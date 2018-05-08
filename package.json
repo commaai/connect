@@ -1,0 +1,27 @@
+{
+  "name": "explorer",
+  "version": "0.1.0",
+  "scripts": {
+    "start": "react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test --env=jsdom",
+    "eject": "react-app-rewired eject"
+  },
+  "repository": "git@github.com:commaai/explorer.git",
+  "author": "Chris Vickery <chrisinajar@gmail.com>",
+  "private": true,
+  "dependencies": {
+    "babel-loader": "^7.1.4",
+    "babel-runtime": "^6.26.0",
+    "geval": "^2.2.0",
+    "react": "^16.3.2",
+    "react-dom": "^16.3.2",
+    "react-scripts": "1.1.4",
+    "shared-worker-loader": "^0.2.0"
+  },
+  "devDependencies": {
+    "react-app-rewired": "^1.5.2",
+    "sharedworker-loader": "^2.1.1",
+    "worker-loader": "^1.1.1"
+  }
+}
