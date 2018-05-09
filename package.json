@@ -11,17 +11,24 @@
   "author": "Chris Vickery <chrisinajar@gmail.com>",
   "private": true,
   "dependencies": {
+    "ap": "^0.2.0",
     "babel-loader": "^7.1.4",
     "babel-runtime": "^6.26.0",
+    "debounce": "^1.1.0",
     "geval": "^2.2.0",
+    "global": "^4.3.2",
+    "observ": "^0.2.0",
+    "observ-struct": "^6.0.0",
     "react": "^16.3.2",
     "react-dom": "^16.3.2",
     "react-scripts": "1.1.4",
-    "shared-worker-loader": "^0.2.0"
+    "shared-worker-loader": "^0.2.0",
+    "weakmap-shim": "^1.1.1"
   },
   "devDependencies": {
     "react-app-rewired": "^1.5.2",
     "sharedworker-loader": "^2.1.1",
+    "tape": "^4.9.0",
     "worker-loader": "^1.1.1"
   }
 }

@@ -1,3 +1,26 @@
+# Explorer
+The frontend to the explorer web UI. This a react app using [Create React App](https://github.com/facebookincubator/create-react-app) (see wall of documentatio below)
+
+ * `src/` contains the main app
+ * `src/timeline` contains the API for timeline data
+   * `src/timeline/index/js` is an API wrapper explosing sane methods
+   * `src/timeline/index.sharedworker.js` is the sharedworker implementation of the timeline data
+   * `src/timeline/index.worker.js` is the non-shared web worker for when browsers don't support shared workers
+
+### Development
+`yarn start`
+
+## Contributing
+
+ * Use best practices
+ * Write test cases
+ * Keep files small and clean
+ * Write test cases
+ * Use branches / pull requests to isolate work. Don't do work that can't be merged quickly, find ways to break it up
+ * Write test cases, you wont
+
+# Create React App documentation
+
 This project was bootstrapped with [Create React App](https://github.com/facebookincubator/create-react-app).
 
 Below you will find some information on how to perform common tasks.<br>
