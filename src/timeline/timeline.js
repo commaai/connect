@@ -4,21 +4,23 @@ const Struct = require('observ-struct');
 const CreateStore = require('weakmap-shim/create-store');
 const debounce = require('debounce');
 
+const Playback = require('./playback');
+
 const BroadcastEvent = Event();
 const PortState = CreateStore();
 
 const state = Struct({
   start: Value(getDefaultStartDate()),
   end: Value(getDefaultEndDate()),
-  playSpeed: Value(0), // 0 = stopped, 1 = playing, 2 = 2x speed... multiplier on speed
   routeName: Value(false),
+  playSpeed: Value(0), // 0 = stopped, 1 = playing, 2 = 2x speed... multiplier on speed
   offset: Value(0), // in miliseconds from the start
   startTime: Value(Date.now()) // millisecond timestamp in which play began
 });
 
 setInterval(function () {
   console.log('Setting play speed...');
-  state.playSpeed.set(~~(Math.random() * 3) / 2);
+  Playback.play(state, ~~(Math.random() * 3) / 2);
 }, 5000);
 
 module.exports = {

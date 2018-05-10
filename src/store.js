@@ -2,6 +2,8 @@ import * as Redux from 'redux';
 import { routerReducer, routerMiddleware } from 'react-router-redux';
 import createHistory from 'history/createBrowserHistory';
 import reducers from './reducers';
+import TimelineWorker from './timeline';
+import { updateState } from './actions';
 
 export const history = createHistory();
 
@@ -16,5 +18,11 @@ export function createStore () {
     Redux.applyMiddleware(middleware)
   );
 
+  TimelineWorker.onStateChange(dispatchState);
+
   return store;
+
+  function dispatchState (data) {
+    store.dispatch(updateState(data));
+  }
 }

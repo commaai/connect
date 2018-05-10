@@ -29,7 +29,8 @@
     "react-scripts": "1.1.4",
     "redux": "^4.0.0",
     "shared-worker-loader": "^0.2.0",
-    "weakmap-shim": "^1.1.1"
+    "weakmap-shim": "^1.1.1",
+    "xtend": "^4.0.1"
   },
   "devDependencies": {
     "react-app-rewired": "^1.5.2",

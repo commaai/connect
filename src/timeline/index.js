@@ -1,19 +1,20 @@
 import window from 'global/window';
-import Event from 'geval';
+import Event from 'geval/event';
 import { partial } from 'ap';
 
 const TimelineSharedWorker = require('./index.sharedworker');
 const TimelineWebWorker = require('./index.sharedworker');
 
-const UnloadEvent = Event(function (broadcast) {
-  window.addEventListener('beforeunload', broadcast);
-});
+const UnloadEvent = Event();
+const StateEvent = Event();
+window.addEventListener('beforeunload', UnloadEvent.broadcast);
 
 class TimelineInterface {
   constructor (options) {
     this.options = options || {};
     this._initPromise = init(this)
   }
+  onStateChange = StateEvent.listen
 
   async getPort () {
     await this._initPromise;
@@ -42,9 +43,21 @@ class TimelineInterface {
   }
 
   async handleMessage (msg) {
+    if (this.handleCommand(msg)) {
+      return;
+    }
+    console.log('Unknown message!', msg.data);
+  }
+  async handleCommand (msg) {
+    if (!msg.data.command) {
+      return false;
+    }
     switch (msg.data.command) {
       case 'return-value':
         // implement RPC return values
+        break;
+      case 'state':
+        StateEvent.broadcast(msg.data.data);
         break;
       case 'broadcastPort':
         // set up dedicated broadcast channel
@@ -54,9 +67,13 @@ class TimelineInterface {
       default:
         console.log('Unknown message!', msg.data);
     }
+    return true;
   }
   async handleBroadcast (msg) {
-    console.log('Data broadcast', msg.data);
+    if (this.handleCommand(msg)) {
+      return;
+    }
+    console.log('Unknown message!', msg.data);
   }
 }
 // create instance and expose it
@@ -75,8 +92,10 @@ async function initWorker (timeline) {
   if (typeof window.SharedWorker === 'function') {
     worker = new TimelineSharedWorker();
     timeline.isShared = true;
-  } else {
+  } else if (typeof window.WebWorker === 'function') {
     worker = new TimelineWebWorker();
+  } else {
+    worker = { port: {} };
   }
   var port = worker.port || worker;
 
@@ -85,5 +104,5 @@ async function initWorker (timeline) {
   timeline.worker = worker;
   timeline.port = port;
 
-  UnloadEvent(() => timeline.disconnect());
+  UnloadEvent.listen(() => timeline.disconnect());
 }
