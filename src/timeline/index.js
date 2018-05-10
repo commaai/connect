@@ -63,9 +63,10 @@ class TimelineInterface {
         // set up dedicated broadcast channel
         this.broadcastPort = msg.ports[0];
         this.broadcastPort.onmessage = this.handleBroadcast.bind(this);
+        this.broadcastPort.onmessageerror = console.error.bind(console);
         break;
       default:
-        console.log('Unknown message!', msg.data);
+        return false;
     }
     return true;
   }
