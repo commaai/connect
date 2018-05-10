@@ -5,7 +5,7 @@ import App from './App';
 import registerServiceWorker from './registerServiceWorker';
 import TimelineWorker from './timeline';
 
-console.log(TimelineWorker.getValue());
+console.log(App);
 
 ReactDOM.render(<App />, document.getElementById('root'));
 registerServiceWorker();
