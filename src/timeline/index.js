@@ -3,7 +3,7 @@ import Event from 'geval/event';
 import { partial } from 'ap';
 
 const TimelineSharedWorker = require('./index.sharedworker');
-const TimelineWebWorker = require('./index.sharedworker');
+const TimelineWebWorker = require('./index.worker');
 
 const UnloadEvent = Event();
 const StateEvent = Event();
@@ -89,12 +89,14 @@ async function init (timeline) {
 async function initWorker (timeline) {
   var worker = null;
 
-  if (typeof window.SharedWorker === 'function') {
+  if (typeof TimelineSharedWorker === 'function') {
     worker = new TimelineSharedWorker();
     timeline.isShared = true;
-  } else if (typeof window.WebWorker === 'function') {
+  } else if (typeof TimelineWebWorker === 'function') {
+    console.log('Using web worker fallback');
     worker = new TimelineWebWorker();
   } else {
+    console.warn('Using fake web workers');
     worker = { port: {} };
   }
   var port = worker.port || worker;

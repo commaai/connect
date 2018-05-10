@@ -4,6 +4,7 @@ import createHistory from 'history/createBrowserHistory';
 import reducers from './reducers';
 import TimelineWorker from './timeline';
 import { updateState } from './actions';
+import compose from './devtools';
 
 export const history = createHistory();
 
@@ -15,7 +16,7 @@ export function createStore () {
       ...reducers,
       router: routerReducer
     }),
-    Redux.applyMiddleware(middleware)
+    compose(Redux.applyMiddleware(middleware))
   );
 
   TimelineWorker.onStateChange(dispatchState);

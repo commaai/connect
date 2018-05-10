@@ -19,13 +19,13 @@ function override (config, env) {
     use: [{
       loader: 'sharedworker-loader',
       options: {
-        name: '[hash].worker.js'
+        name: '[hash].sharedworker.js'
       }
     }, { loader: 'babel-loader' }]
   });
   config.module.rules.push({
     test: /\.worker\.js$/,
-    include: path.resolve('./src'),
+    include: path.resolve('./src/timeline'),
     use: [{ loader: 'worker-loader' }, { loader: 'babel-loader' }]
   });
 

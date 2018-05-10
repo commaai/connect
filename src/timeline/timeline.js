@@ -18,10 +18,16 @@ const state = Struct({
   startTime: Value(Date.now()) // millisecond timestamp in which play began
 });
 
-setInterval(function () {
-  console.log('Setting play speed...');
-  Playback.play(state, ~~(Math.random() * 3) / 2);
-}, 5000);
+// segments
+// start offset
+// length
+// name
+// all other attributes stored in cache entries
+
+// setInterval(function () {
+//   console.log('Setting play speed...');
+//   Playback.play(state, ~~(Math.random() * 3) / 2);
+// }, 5000);
 
 module.exports = {
   handleMessage,
@@ -56,20 +62,28 @@ function createBroadcastPort (port) {
   if (PortState(port).broadcastPort) {
     return PortState(port).broadcastPort;
   }
-  var broadcastChannel = new MessageChannel();
+  var broadcastChannel = null;
+  var broadcastPort = null;
+  if (typeof MessageChannel === 'function') {
+    broadcastChannel = new MessageChannel();
+    broadcastPort = broadcastChannel.port2;
+  } else {
+    broadcastPort = port;
+  }
   var unlisten = BroadcastEvent.listen(function (msg) {
-    console.log('Broadcasting state change over msg channel');
-    broadcastChannel.port1.postMessage(msg);
+    broadcastPort.postMessage(msg);
   });
 
-  PortState(port).broadcastPort = broadcastChannel.port2;
+  PortState(port).broadcastPort = broadcastPort;
   PortState(port).closePort = closePort;
 
-  return broadcastChannel.port2;
+  return broadcastPort;
 
   function closePort () {
     unlisten();
-    broadcastChannel.port1.close();
+    if (broadcastChannel) {
+      broadcastChannel.port1.close();
+    }
   }
 }
 
