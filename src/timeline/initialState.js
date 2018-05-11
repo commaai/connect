@@ -3,10 +3,11 @@ module.exports = {
   start: getDefaultStartDate(),
   end: getDefaultEndDate(),
 
-  routeName: false,
+  route: false,
   segment: 0,
+  nextSegment: null,
   playSpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed... multiplier on speed
-  offset: 36600000 - 5000, // in miliseconds from the start
+  offset: 41348000 - 5000, // in miliseconds from the start
   startTime: Date.now(), // millisecond timestamp in which play began
 
   // this data should come from the API server instead

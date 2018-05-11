@@ -3,14 +3,18 @@ import CreateStore from 'weakmap-shim/create-store';
 import debounce from 'debounce';
 import { createStore } from 'redux';
 import reduceReducers from 'reduce-reducers';
+import { timeout } from 'thyming';
 
 import Playback from './playback';
 import Segments from './segments';
 
 const BroadcastEvent = Event();
 const PortState = CreateStore();
+const SegmentTimerStore = CreateStore();
 
 const store = createStore(reduceReducers(Playback.reducer, Segments.reducer));
+
+scheduleSegmentUpdate();
 
 // segments
 // start offset
@@ -18,13 +22,15 @@ const store = createStore(reduceReducers(Playback.reducer, Segments.reducer));
 // name
 // all other attributes stored in cache entries
 
-setInterval(function () {
-  let speed = ~~(Math.random() * 3) / 2;
-  console.log('Setting play speed...', speed);
-  store.dispatch(Playback.play(speed));
-}, 5000);
+// setInterval(function () {
+//   let speed = ~~(Math.random() * 3) / 2;
+//   console.log('Setting play speed...', speed);
+//   store.dispatch(Playback.play(speed));
+// }, 5000);
 
 store.subscribe(function () {
+  scheduleSegmentUpdate();
+
   BroadcastEvent.broadcast({
     command: 'state',
     data: getState()
@@ -54,8 +60,6 @@ export function createBroadcastPort (port) {
   var broadcastChannel = null;
   var broadcastPort = null;
   var receiverPort = null;
-
-  debugger;
 
   if (typeof MessageChannel === 'function') {
     broadcastChannel = new MessageChannel();
@@ -104,4 +108,19 @@ function getDefaultEndDate () {
   d.setHours(d.getHours() + 1, 0, 0, 0);
 
   return d;
+}
+
+function scheduleSegmentUpdate () {
+  const state = getState();
+
+  if (state.nextSegment) {
+    let timeUntilNext = state.nextSegment.startOffset - Playback.currentOffset(state);
+    if (SegmentTimerStore(state).stopTimer) {
+      SegmentTimerStore(state).stopTimer();
+    }
+    SegmentTimerStore(state).stopTimer = timeout(function () {
+      // empty action to churn the butter
+      store.dispatch(Segments.updateSegments());
+    }, timeUntilNext);
+  }
 }

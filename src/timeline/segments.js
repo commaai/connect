@@ -1,10 +1,13 @@
 const initialState = require('./initialState');
 const Playback = require('./playback');
 
+const ACTION_UPDATE_SEGMENTS = 'update_segments';
+
 const SEGMENT_LENGTH = 1000 * 60;
 
 module.exports = {
-  segmentForOffset,
+  getCurrentSegment, getNextSegment, updateSegments,
+  SEGMENT_LENGTH,
   reducer
 };
 
@@ -18,48 +21,65 @@ for example, caching url metadata
 */
 
 function reducer (state = initialState, action) {
+  var currentSegment = getCurrentSegment(state);
+  var nextSegment = getNextSegment(state);
+
+  if (currentSegment) {
+    state.route = currentSegment.route
+    state.segment = currentSegment.segment;
+  } else {
+    state.route = false;
+    state.segment = 0;
+  }
+  state.nextSegment = nextSegment;
+
   return state;
 }
 
-function nextSegment (state, offset) {
+function updateSegments () {
+  return {
+    type: ACTION_UPDATE_SEGMENTS
+  };
+}
+
+function getNextSegment (state, offset) {
   if (offset === undefined) {
     offset = Playback.currentOffset(state);
   }
 
-  console.log('Figuring out which segment we\'re on for offset', offset);
-
   var segments = state.segments;
-  var curSegment = null;
   var lastSegment = null;
 
   for (let i = 0, len = segments.length; i < len; ++i) {
     let thisSegment = segments[i];
     // the next segment is after the offset, that means this offset is in a blank
     if (thisSegment.offset > offset) {
-      console.log('Probably first segment of', thisSegment);
+      return {
+        route: thisSegment.route,
+        segment: 0,
+        startOffset: thisSegment.offset
+      };
       break;
     }
     if (thisSegment.offset + thisSegment.length > offset) {
       let segmentIndex = ~~((offset - thisSegment.offset) / SEGMENT_LENGTH);
-      if (segmentIndex < thisSegment.segments) {
-        console.log('Next segment in this thing');
+      if (segmentIndex + 1 < thisSegment.segments) {
+        return {
+          route: thisSegment.route,
+          segment: segmentIndex + 1,
+          startOffset: thisSegment.offset + SEGMENT_LENGTH * (segmentIndex + 1)
+        };
       }
-      curSegment = {
-        route: thisSegment.route,
-        segment: segmentIndex,
-        offset: (offset - thisSegment.offset) % SEGMENT_LENGTH
-      };
-      break;
     }
   }
+
+  return null;
 }
 
-function segmentForOffset (state, offset) {
+function getCurrentSegment (state, offset) {
   if (offset === undefined) {
     offset = Playback.currentOffset(state);
   }
-
-  console.log('Figuring out which segment we\'re on for offset', offset);
 
   var segments = state.segments;
 
@@ -72,7 +92,7 @@ function segmentForOffset (state, offset) {
     if (thisSegment.offset + thisSegment.length > offset) {
       return {
         route: thisSegment.route,
-        segment: ~~((offset - thisSegment.offset) / 1000)
+        segment: ~~((offset - thisSegment.offset) / SEGMENT_LENGTH)
       };
     }
   }
