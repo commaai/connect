@@ -32,5 +32,9 @@ function close () {
 }
 
 function postMessage (msg, transferables) {
-  port.postMessage(msg, '*', transferables);
+  if (self.window === self) {
+    port.postMessage(msg, '*', transferables);
+  } else {
+    port.postMessage(msg, transferables);
+  }
 }

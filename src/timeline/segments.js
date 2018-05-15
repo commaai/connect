@@ -2,12 +2,27 @@ const initialState = require('./initialState');
 const Playback = require('./playback');
 
 const ACTION_UPDATE_SEGMENTS = 'update_segments';
+const ACTION_LOAD_SEGMENT_METADATA = 'load_segment_metadata';
+const ACTION_SEGMENT_METADATA = 'segment_metadata';
 
 const SEGMENT_LENGTH = 1000 * 60;
 
 module.exports = {
-  getCurrentSegment, getNextSegment, updateSegments,
+  // helpers
+  getCurrentSegment,
+  getNextSegment,
+  hasSegmentMetadata,
+  parseSegmentMetadata,
+
+  // actions
+  updateSegments,
+  fetchSegmentMetadata,
+  insertSegmentMetadata,
+
+  // constants
   SEGMENT_LENGTH,
+
+  // reducer
   reducer
 };
 
@@ -21,6 +36,20 @@ for example, caching url metadata
 */
 
 function reducer (state = initialState, action) {
+  switch (action.type) {
+    case ACTION_LOAD_SEGMENT_METADATA:
+      state.segmentData = {
+        promise: action.promise,
+        start: action.start,
+        end: action.end,
+        dongleId: state.dongleId
+      };
+      break;
+    case ACTION_SEGMENT_METADATA:
+      state.segmentData = action.data;
+      state.segments = action.segments;
+      break;
+  }
   var currentSegment = getCurrentSegment(state);
   var nextSegment = getNextSegment(state);
 
@@ -42,9 +71,89 @@ function updateSegments () {
   };
 }
 
+function fetchSegmentMetadata (start, end, promise) {
+  return {
+    type: ACTION_LOAD_SEGMENT_METADATA,
+    start, end, promise
+  };
+}
+
+function insertSegmentMetadata (data) {
+  return {
+    type: ACTION_SEGMENT_METADATA,
+    segments: segmentsFromMetadata(data),
+    data
+  };
+}
+
+function parseSegmentMetadata (state, segments) {
+  console.log(segments);
+  segments = segments.map(function (segment) {
+    segment.offset = Math.round(segment.start_time_utc) - state.start;
+    segment.duration = Math.round(segment.end_time_utc - segment.start_time_utc);
+    return segment;
+  });
+  return {
+    start: state.start,
+    dongleId: state.dongleId,
+    end: state.end,
+    segments
+  };
+}
+function segmentsFromMetadata (segmentsData) {
+  console.log(segmentsData);
+  var curSegment = null;
+  var segments = [];
+  segmentsData.segments.forEach(function (segment) {
+    /*
+      route: '99c94dc769b5d96e|2018-04-09--11-29-08',
+      offset: 41348000,
+      length: 214000,
+      segments: 4
+    */
+    if (!curSegment || curSegment.route !== segment.canonical_route_name) {
+      curSegment = {
+        offset: segment.offset,
+        route: segment.canonical_route_name,
+        length: 0,
+        segments: 0
+      };
+      segments.push(curSegment);
+    }
+    curSegment.length = (segment.offset - curSegment.offset) + segment.duration;
+    curSegment.segments++;
+  });
+
+  return segments;
+}
+
+function hasSegmentMetadata (state) {
+  if (!state.segmentData) {
+    console.log('So segment data at all');
+    return false;
+  }
+  if (state.dongleId !== state.segmentData.dongleId) {
+    console.log('Bad dongle id');;
+    return false;
+  }
+  if (state.start.getTime() < state.segmentData.start.getTime()) {
+    console.log('Bad start offset');
+    return false;
+  }
+  if (state.end.getTime() > state.segmentData.end.getTime()) {
+    console.log('Bad end offset');
+    return false;
+  }
+
+  return state.start.getTime() >= state.segmentData.start.getTime() && state.end.getTime() <= state.segmentData.end.getTime();
+}
+
 function getNextSegment (state, offset) {
   if (offset === undefined) {
     offset = Playback.currentOffset(state);
+  }
+  if (!state.segments) {
+    return null;
   }
 
   var segments = state.segments;
@@ -79,6 +188,9 @@ function getNextSegment (state, offset) {
 function getCurrentSegment (state, offset) {
   if (offset === undefined) {
     offset = Playback.currentOffset(state);
+  }
+  if (!state.segments) {
+    return null;
   }
 
   var segments = state.segments;

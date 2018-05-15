@@ -1,6 +1,7 @@
 import window from 'global/window';
 import Event from 'geval/event';
 import { partial } from 'ap';
+import { getCommaAccessToken } from '../api/auth';
 
 const TimelineSharedWorker = require('./index.sharedworker');
 const TimelineWebWorker = require('./index.worker');
@@ -90,22 +91,32 @@ async function init (timeline) {
 async function initWorker (timeline) {
   var worker = null;
 
+  await getCommaAccessToken();
+
   if (typeof TimelineSharedWorker === 'function') {
     worker = new TimelineSharedWorker();
     timeline.isShared = true;
   } else if (typeof TimelineWebWorker === 'function') {
-    console.log('Using web worker fallback');
+    console.warn('Using web worker fallback');
     worker = new TimelineWebWorker();
   } else {
-    console.warn('Using fake web workers');
-    worker = { port: {} };
+    console.warn('Using fake web workers, this is probably a node/test environment');
+    worker = { port: { postMessage: noop } };
   }
   var port = worker.port || worker;
 
   port.onmessage = timeline.handleMessage.bind(timeline);
+  // port.postMessage({
+  //   command: 'hello',
+  //   data: {
+  //     token: await getCommaAccessToken()
+  //   }
+  // });
 
   timeline.worker = worker;
   timeline.port = port;
 
   UnloadEvent.listen(() => timeline.disconnect());
 }
+
+function noop () { }
