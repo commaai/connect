@@ -46,7 +46,7 @@ function currentOffset (state) {
 function seek (offset) {
   return {
     type: ACTION_SEEK,
-    offset
+    offset: offset
   };
 }
 

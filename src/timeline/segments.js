@@ -62,6 +62,8 @@ function reducer (state = initialState, action) {
   }
   state.nextSegment = nextSegment;
 
+  state.range = state.end - state.start;
+
   return state;
 }
 

@@ -1,7 +1,9 @@
-import LogStream from "@commaai/log_reader";
+import LogStream from '@commaai/log_reader';
 import { timeout } from 'thyming';
+import request from 'simple-get';
+import Event from 'geval/event';
+import debounce from 'debounce';
 import * as API from '../api';
-import request from "simple-get";
 
 // cache all of the data
 
@@ -10,38 +12,69 @@ const EXPIREY_TIME = 1000 * 60 * 5; // 5 minutes?
 const CacheStore = {};
 
 class CacheEntry {
-  constructor (route, segment) {
+  constructor (route, segment, dataListener) {
     this.route = route;
     this.segment = segment;
     this.expire = this.expire.bind(this);
+    this.dataListener = dataListener;
 
     this.touch();
 
     this.log = [];
+    this.queue = [];
+    this.logEvent = Event();
+    this.logEvent.listen((e) => this.log = this.log.concat(e));
+    var sendLogs = debounce(() => {
+      if (!this.queue.length) {
+        return;
+      }
+      var queue = this.queue;
+      this.queue = [];
+      this.logEvent.broadcast(queue);
+    });
     this.getLogStream().then((loader) => {
-      loader(this.log.push.bind(this.log));
+      loader((msg) => {
+        this.queue.push(msg);
+        sendLogs();
+      });
     });
   }
 
-  async getLog () {
+  getLog (callback) {
+    if (this.log.length) {
+      callback(this.log);
+    }
+  }
+
+  subscribe (callback) {
+    this.logEvent.listen(callback);
+  }
+
+  start () {
+    if (this.started) {
+      return;
+    }
+    this.started = true;
+    this.getLog(this.dataListener);
+    this.subscribe(this.dataListener);
+  }
+
+  async getLogUrl () {
     var urls = await API.getLogUrls(this.route);
     return urls[this.segment];
   }
 
   async getLogStream () {
     return new Promise(async (resolve, reject) => {
-      request(await this.getLog(), (err, res) => {
+      request(await this.getLogUrl(), (err, res) => {
         if (err) {
           return reject(err);
         }
-        res.on('end', () => {
-          setTimeout(() => {
-            console.log('Segment length', this.log.length);
-            console.log('Segment', this.segment, 'starts at', this.log[1].LogMonoTime, 'and ends at', this.log[this.log.length - 1].LogMonoTime);
-            console.log('Length:', this.log[this.log.length - 1].LogMonoTime - this.log[1].LogMonoTime);
-          });
-        });
-        resolve(new LogStream(res));
+        // res.on('end', () => {
+        // });
+        resolve(new LogStream(res, {
+          binary: true
+        }));
       });
     });
   }
@@ -63,7 +96,7 @@ class CacheEntry {
   }
 }
 
-export function getEntry (route, segment) {
+export function getEntry (route, segment, dataListener) {
   if (CacheStore[route] && CacheStore[route][segment]) {
     return CacheStore[route][segment].touch();
   }
@@ -72,7 +105,11 @@ export function getEntry (route, segment) {
     CacheStore[route] = {};
   }
 
-  CacheStore[route][segment] = new CacheEntry(route, segment);
+  CacheStore[route][segment] = new CacheEntry(route, segment, function (data) {
+    dataListener({
+      route, segment, data
+    });
+  });
 
   return CacheStore[route][segment];
 }

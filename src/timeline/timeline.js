@@ -12,6 +12,7 @@ import Segments from './segments';
 import * as Cache from './cache';
 
 const BroadcastEvent = Event();
+const DataLogEvent = Event();
 const PortState = CreateStore();
 const SegmentTimerStore = CreateStore();
 
@@ -45,7 +46,8 @@ store.subscribe(function () {
 });
 
 const commands = {
-  close
+  close,
+  seek
 };
 
 export function handleMessage (port, msg) {
@@ -68,9 +70,23 @@ export function createBroadcastPort (port) {
   if (PortState(port).broadcastPort) {
     return PortState(port).broadcastPort;
   }
+  const state = getState();
   var broadcastChannel = null;
   var broadcastPort = null;
   var receiverPort = null;
+
+  var dataUnlisten = DataLogEvent.listen(sendData);
+
+  if (state.route) {
+    let entry = Cache.getEntry(state.route, state.segment);
+    if (entry) {
+      entry.getLog((data) => sendData({
+        route: state.route,
+        segment: state.segment,
+        data: data
+      }));
+    }
+  }
 
   if (typeof MessageChannel === 'function') {
     broadcastChannel = new MessageChannel();
@@ -88,9 +104,27 @@ export function createBroadcastPort (port) {
 
   function closePort () {
     unlisten();
+    dataUnlisten();
     if (broadcastChannel) {
       broadcastChannel.port1.close();
     }
+  }
+
+  function sendData (msg) {
+    var buffer = null;
+    if (msg.data.length === 1) {
+      // force copy for older versions of node/shim
+      buffer = new Buffer(msg.data);
+    } else {
+      buffer = Buffer.concat(msg.data);
+    }
+    console.log('Data event', msg.data.length);
+    port.postMessage({
+      command: 'data',
+      route: msg.route,
+      segment: msg.segment,
+      data: buffer.buffer
+    }, [buffer.buffer]);
   }
 }
 
@@ -102,6 +136,10 @@ function close (port) {
     PortState(port).broadcastChannel.port1.close();
   }
   port.close();
+}
+
+function seek (port, offset) {
+  store.dispatch(Playback.seek(offset));
 }
 
 function getDefaultStartDate () {
@@ -219,14 +257,28 @@ async function checkSegmentMetadata (state) {
   */
 }
 
+var ensureSegmentDataTimer = null;
 async function ensureSegmentData (state) {
-  var entry = null;
-  if (state.route) {
-    entry = await Cache.getEntry(state.route, state.segment)
-  }
-  if (state.nextSegment) {
-    await Cache.getEntry(state.nextSegment.route, state.nextSegment.segment)
+  if (ensureSegmentDataTimer) {
+    ensureSegmentDataTimer();
+    ensureSegmentDataTimer = null;
   }
 
-  console.log(entry);
+  var entry = null;
+  if (Date.now() - state.startTime < 1000) {
+    ensureSegmentDataTimer = timeout(function () {
+      ensureSegmentDataTimer = null;
+      return ensureSegmentData(getState());
+    }, 1100 - (Date.now() - state.startTime));
+    return;
+  }
+  if (state.route) {
+    entry = Cache.getEntry(state.route, state.segment, DataLogEvent.broadcast);
+  }
+  if (state.nextSegment) {
+    Cache.getEntry(state.nextSegment.route, state.nextSegment.segment, DataLogEvent.broadcast);
+  }
+  if (entry) {
+    entry.start();
+  }
 }

@@ -2,6 +2,7 @@ import window from 'global/window';
 import Event from 'geval/event';
 import { partial } from 'ap';
 import { getCommaAccessToken } from '../api/auth';
+import * as Playback from './playback';
 
 const TimelineSharedWorker = require('./index.sharedworker');
 const TimelineWebWorker = require('./index.worker');
@@ -13,6 +14,7 @@ window.addEventListener('beforeunload', UnloadEvent.broadcast);
 class TimelineInterface {
   constructor (options) {
     this.options = options || {};
+    this.buffers = {};
     this._initPromise = init(this)
   }
   onStateChange = StateEvent.listen
@@ -34,6 +36,13 @@ class TimelineInterface {
     });
   }
 
+  async seek (offset) {
+    return this.postMessage({
+      command: 'seek',
+      data: Math.round(offset)
+    });
+  }
+
   async rpc (msg) {
     // msg that expects a reply
   }
@@ -49,15 +58,20 @@ class TimelineInterface {
     }
     console.log('Unknown message!', msg.data);
   }
-  async handleCommand (msg) {
+  handleCommand (msg) {
     if (!msg.data.command) {
       return false;
     }
     switch (msg.data.command) {
+      case 'data':
+        // log data stream
+        this.handleData(msg);
+        break;
       case 'return-value':
         // implement RPC return values
         break;
       case 'state':
+        this.state = msg.data.data;
         StateEvent.broadcast(msg.data.data);
         break;
       case 'broadcastPort':
@@ -76,6 +90,23 @@ class TimelineInterface {
       return;
     }
     console.log('Unknown message!', msg.data);
+  }
+  async handleData (msg) {
+    if (!this.buffers[msg.data.route]) {
+      this.buffers[msg.data.route] = {};
+    }
+    if (!this.buffers[msg.data.route][msg.data.segment]) {
+      this.buffers[msg.data.route][msg.data.segment] = [];
+    }
+    this.buffers[msg.data.route][msg.data.segment].push(msg.data.data);
+    console.log('Got data for', msg.data.route, msg.data.segment, ':', msg.data.data.byteLength);
+  }
+  currentOffset () {
+    if (this.state) {
+      return Playback.currentOffset(this.state);
+    } else {
+      return 0;
+    }
   }
 }
 // create instance and expose it

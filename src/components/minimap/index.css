@@ -1,0 +1,12 @@
+.minimap-holder {
+  position: relative;
+  width: 100%;
+  background-color: #ccc;
+  min-height: 60px;
+}
+.minimap-progress-bar {
+  position: absolute;
+  top: 0px;
+  background-color: rgba(20, 255, 20, 0.5);
+  height: 100%;
+}
