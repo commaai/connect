@@ -25,6 +25,35 @@ export function addToIndex (index, newBuff) {
   indexBuffer(index.index, newBuff, index.buffers.length - 1);
 }
 
+export function findMonoTime (index, monoTime, start, end) {
+  if (!start) {
+    start = 0;
+  }
+  if (!end) {
+    end = index.index.length;
+  }
+  if (start === index.index.length) {
+    return index.index.length - 1;
+  }
+  if (start >= end) {
+    return end;
+  }
+  // index is floored so always increase start
+  var curIndex = Math.floor((end - start) / 2 + start);
+  var curMillis = index.index[curIndex][0];
+  // we can have duplicates so we treat matches as being too high since we're
+  // looking for the first instance of a duplicate
+  if (curMillis === monoTime || monoTime < curMillis) {
+    return findMonoTime(index, monoTime, start, curIndex);
+  }
+  if (monoTime > curMillis) {
+    return findMonoTime(index, monoTime, curIndex + 1, end);
+  }
+
+  // impossible
+  return curIndex;
+}
+
 function isSafe (monotime) {
   return monotime >= Number.MAX_SAFE_INTEGER;
 }
@@ -41,11 +70,14 @@ function indexBuffer (index, buffer, bufferIndex) {
     let monoTime = event.getLogMonoTime().toString();
     let milis = Number(monoTime.substr(0, monoTime.length - 6));
     let micros = Number(monoTime.substr(-6, 6));
+    let messageSize = messageBuff.byteLength;
+
     if (!index.length || (milis > index[index.length - 1][0] || (milis === index[index.length - 1][0] && micros > index[index.length - 1][1]))) {
       index.push([
         milis,
         micros,
         offset,
+        messageSize,
         bufferIndex
       ]);
     } else {
@@ -60,10 +92,11 @@ function indexBuffer (index, buffer, bufferIndex) {
         milis,
         micros,
         offset,
+        messageSize,
         bufferIndex
       ]);
     }
-    offset += messageBuff.byteLength;
+    offset += messageSize;
   }
 
   var endNow = performance.now();

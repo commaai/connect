@@ -1,6 +1,10 @@
 import window from 'global/window';
 import Event from 'geval/event';
 import { partial } from 'ap';
+import * as capnp from 'capnp-ts';
+import { Event as CapnpEvent } from '@commaai/log_reader/capnp/log.capnp';
+import toJSON from 'capnp-json';
+
 import { getCommaAccessToken } from '../api/auth';
 import * as Playback from './playback';
 import * as LogIndex from './logIndex';
@@ -111,6 +115,45 @@ class TimelineInterface {
     }
     console.log(this.buffers[msg.data.route][msg.data.segment].index.length);
     console.log('Got data for', msg.data.route, msg.data.segment, ':', msg.data.data.byteLength);
+  }
+  getIndex () {
+    if (!this.state || !this.state.route) {
+      return [];
+    }
+    if (!this.buffers[this.state.route] || !this.buffers[this.state.route][this.state.segment]) {
+      return [];
+    }
+
+    return this.buffers[this.state.route][this.state.segment].index;
+  }
+  lastEvents (eventCount = 10, offset = this.currentOffset()) {
+    if (!this.state || !this.state.route) {
+      return [];
+    }
+    if (!this.buffers[this.state.route] || !this.buffers[this.state.route][this.state.segment]) {
+      return [];
+    }
+    var segment = this.state.segments.filter((a) => a.route === this.state.route);
+    var logIndex = this.buffers[this.state.route][this.state.segment];
+    segment = segment[0];
+    if (!segment) {
+      return [];
+    }
+    offset -= segment.offset;
+    var startTime = logIndex.index[0][0];
+    var logMonoTime = offset + startTime;
+
+    var curIndex = LogIndex.findMonoTime(logIndex, logMonoTime);
+    eventCount = Math.min(eventCount, curIndex);
+
+    return [...Array(eventCount)].map((u, i) => {
+      // millis, micros, offset, len, buffer
+      var entry = logIndex.index[curIndex - i];
+      var buffer = logIndex.buffers[entry[4]].slice(entry[2], entry[2] + entry[3]);
+      var msg = new capnp.Message(buffer, false);
+      var event = msg.getRoot(CapnpEvent);
+      return toJSON(event);
+    });
   }
   currentOffset () {
     if (this.state) {

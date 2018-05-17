@@ -9,23 +9,23 @@ module.exports = {
   route: false,
   segment: 0,
   nextSegment: null,
-  playSpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed... multiplier on speed
+  playSpeed: .1, // 0 = stopped, 1 = playing, 2 = 2x speed... multiplier on speed
   offset: 0, // in miliseconds from the start
   startTime: Date.now(), // millisecond timestamp in which play began
 
-
+  segments: [],
   // this data should come from the API server instead
-  segments: [{
-    route: '99c94dc769b5d96e|2018-04-09--10-10-00',
-    offset: 10000,
-    length: 2558000,
-    segments: 43
-  }, {
-    route: '99c94dc769b5d96e|2018-04-09--11-29-08',
-    offset: 2658000,
-    length: 214000,
-    segments: 4
-  }],
+  // segments: [{
+  //   route: '99c94dc769b5d96e|2018-04-09--10-10-00',
+  //   offset: 10000,
+  //   length: 2558000,
+  //   segments: 43
+  // }, {
+  //   route: '99c94dc769b5d96e|2018-04-09--11-29-08',
+  //   offset: 2658000,
+  //   length: 214000,
+  //   segments: 4
+  // }],
 
   segmentData: null
 };
