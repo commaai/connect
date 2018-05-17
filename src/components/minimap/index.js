@@ -4,8 +4,9 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux'
 import raf from 'raf';
-import TimelineWorker from '../../timeline';
+import debounce from 'debounce';
 import document from 'global/document';
+import TimelineWorker from '../../timeline';
 import './index.css';
 
 class Minimap extends Component {
@@ -14,6 +15,7 @@ class Minimap extends Component {
     this.renderOffset = this.renderOffset.bind(this);
     this.handleClick = this.handleClick.bind(this);
     this.handleMove = this.handleMove.bind(this);
+    this.sendSeek = debounce(this.sendSeek.bind(this), 1000 / 60);
 
     this.offsetValue = React.createRef();
     this.progressBar = React.createRef();
@@ -24,6 +26,9 @@ class Minimap extends Component {
   renderOffset () {
     if (this.offsetValue.current && this.offsetValue.current.parentElement) {
       let offset = TimelineWorker.currentOffset();
+      if (this.seekIndex) {
+        offset = this.seekIndex;
+      }
       let seconds = Math.floor(offset / 1000);
       let minutes = Math.floor(seconds / 60);
       let hours = Math.floor(minutes / 60);
@@ -35,7 +40,8 @@ class Minimap extends Component {
       ].join(':');
 
       this.offsetValue.current.innerHTML = timeStr;
-      this.progressBar.current.style.width = ~~(10000 * TimelineWorker.currentOffset() / this.props.workerState.range) / 100 + '%';
+      this.progressBar.current.style.width = ~~(10000 * offset / this.props.workerState.range) / 100 + '%';
+
       raf(this.renderOffset);
     }
   }
@@ -47,7 +53,15 @@ class Minimap extends Component {
     if (e.currentTarget.parentElement.querySelector('.minimap-holder:active') !== e.currentTarget) {
       return;
     }
-    TimelineWorker.seek(e.pageX / document.body.clientWidth * this.props.workerState.range);
+    let percent = e.pageX / document.body.clientWidth;
+    this.seekIndex = percent * this.props.workerState.range;
+    this.sendSeek();
+  }
+  sendSeek () {
+    if (this.seekIndex) {
+      TimelineWorker.seek(this.seekIndex);
+      this.seekIndex = null;
+    }
   }
   render () {
     return (

@@ -3,13 +3,18 @@ import { timeout } from 'thyming';
 import request from 'simple-get';
 import Event from 'geval/event';
 import debounce from 'debounce';
+import store from './store';
 import * as API from '../api';
 
 // cache all of the data
 
 const EXPIREY_TIME = 1000 * 60 * 5; // 5 minutes?
+// const EXPIREY_TIME = 1000 * 30; // 30 seconds for testing
 
 const CacheStore = {};
+const ExpireEvent = Event();
+
+export const onExpire = ExpireEvent.listen;
 
 class CacheEntry {
   constructor (route, segment, dataListener) {
@@ -47,7 +52,7 @@ class CacheEntry {
   }
 
   subscribe (callback) {
-    this.logEvent.listen(callback);
+    return this.logEvent.listen(callback);
   }
 
   start () {
@@ -56,7 +61,7 @@ class CacheEntry {
     }
     this.started = true;
     this.getLog(this.dataListener);
-    this.subscribe(this.dataListener);
+    this.unlisten = this.subscribe(this.dataListener);
   }
 
   async getLogUrl () {
@@ -91,8 +96,23 @@ class CacheEntry {
   }
 
   expire () {
+    const state = store.getState();
+    if (state.route === this.route && state.segment === this.segment) {
+      return this.touch();
+    }
+    if (state.nextSegment && state.nextSegment.route === this.route && state.nextSegment.segment === this.segment) {
+      return this.touch();
+    }
     // expire out of the cache
+    if (this.unlisten) {
+      this.unlisten();
+      this.unlisten = null;
+    }
     delete CacheStore[this.route][this.segment];
+    ExpireEvent.broadcast({
+      route: this.route,
+      segment: this.segment
+    });
   }
 }
 

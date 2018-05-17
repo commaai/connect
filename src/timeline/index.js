@@ -3,6 +3,7 @@ import Event from 'geval/event';
 import { partial } from 'ap';
 import { getCommaAccessToken } from '../api/auth';
 import * as Playback from './playback';
+import * as LogIndex from './logIndex';
 
 const TimelineSharedWorker = require('./index.sharedworker');
 const TimelineWebWorker = require('./index.worker');
@@ -63,12 +64,20 @@ class TimelineInterface {
       return false;
     }
     switch (msg.data.command) {
+      case 'expire':
+        // cached segment is expiring because we haven't watched it in a while...
+        console.log('Expiring cache entry', msg.data);
+        if (this.buffers[msg.data.route] && this.buffers[msg.data.route][msg.data.segment]) {
+          delete this.buffers[msg.data.route][msg.data.segment];
+        }
+        break;
       case 'data':
         // log data stream
         this.handleData(msg);
         break;
       case 'return-value':
         // implement RPC return values
+        // is this needed?
         break;
       case 'state':
         this.state = msg.data.data;
@@ -96,9 +105,11 @@ class TimelineInterface {
       this.buffers[msg.data.route] = {};
     }
     if (!this.buffers[msg.data.route][msg.data.segment]) {
-      this.buffers[msg.data.route][msg.data.segment] = [];
+      this.buffers[msg.data.route][msg.data.segment] = LogIndex.createIndex(msg.data.data);
+    } else {
+      LogIndex.addToIndex(this.buffers[msg.data.route][msg.data.segment], msg.data.data);
     }
-    this.buffers[msg.data.route][msg.data.segment].push(msg.data.data);
+    console.log(this.buffers[msg.data.route][msg.data.segment].index.length);
     console.log('Got data for', msg.data.route, msg.data.segment, ':', msg.data.data.byteLength);
   }
   currentOffset () {

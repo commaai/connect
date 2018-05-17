@@ -91,8 +91,8 @@ function insertSegmentMetadata (data) {
 function parseSegmentMetadata (state, segments) {
   console.log(segments);
   segments = segments.map(function (segment) {
-    segment.offset = Math.round(segment.start_time_utc) - state.start;
-    segment.duration = Math.round(segment.end_time_utc - segment.start_time_utc);
+    segment.offset = Math.round(segment.start_time_utc_millis) - state.start;
+    segment.duration = Math.round(segment.end_time_utc_millis - segment.start_time_utc_millis);
     return segment;
   });
   return {
