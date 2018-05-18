@@ -123,7 +123,7 @@ function segmentsFromMetadata (segmentsData) {
       segments.push(curSegment);
     }
     curSegment.length = (segment.offset - curSegment.offset) + segment.duration;
-    curSegment.segments++;
+    curSegment.segments = Number(segment.url.split('/').pop()) + 1;
   });
 
   return segments;
