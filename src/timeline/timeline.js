@@ -108,7 +108,7 @@ export function createBroadcastPort (port) {
     var buffer = null;
     if (msg.data.length === 1) {
       // force copy for older versions of node/shim
-      buffer = new Buffer(msg.data);
+      buffer = Buffer.from(msg.data);
     } else {
       buffer = Buffer.concat(msg.data);
     }

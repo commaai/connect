@@ -56,6 +56,7 @@ function reducer (state = initialState, action) {
   if (currentSegment) {
     state.route = currentSegment.route
     state.segment = currentSegment.segment;
+    state.currentSegment = currentSegment;
   } else {
     state.route = false;
     state.segment = 0;
@@ -114,16 +115,24 @@ function segmentsFromMetadata (segmentsData) {
       segments: 4
     */
     if (!curSegment || curSegment.route !== segment.canonical_route_name) {
+      let url = segment.url;
+      let parts = url.split('/');
+
+      if (Number.isFinite(Number(parts.pop()))) {
+        // url has a number at the end
+        url = parts.join('/');
+      }
       curSegment = {
         offset: segment.offset,
         route: segment.canonical_route_name,
         length: 0,
-        segments: 0
+        segments: 0,
+        url: url
       };
       segments.push(curSegment);
     }
     curSegment.length = (segment.offset - curSegment.offset) + segment.duration;
-    curSegment.segments = Number(segment.url.split('/').pop()) + 1;
+    curSegment.segments++;
   });
 
   return segments;
@@ -131,7 +140,7 @@ function segmentsFromMetadata (segmentsData) {
 
 function hasSegmentMetadata (state) {
   if (!state.segmentData) {
-    console.log('So segment data at all');
+    console.log('No segment data at all');
     return false;
   }
   if (state.dongleId !== state.segmentData.dongleId) {
@@ -166,8 +175,10 @@ function getNextSegment (state, offset) {
     // the next segment is after the offset, that means this offset is in a blank
     if (thisSegment.offset > offset) {
       return {
+        url: thisSegment.url,
         route: thisSegment.route,
         segment: 0,
+        routeOffset: thisSegment.offset,
         startOffset: thisSegment.offset
       };
       break;
@@ -176,8 +187,10 @@ function getNextSegment (state, offset) {
       let segmentIndex = ~~((offset - thisSegment.offset) / SEGMENT_LENGTH);
       if (segmentIndex + 1 < thisSegment.segments) {
         return {
+          url: thisSegment.url,
           route: thisSegment.route,
           segment: segmentIndex + 1,
+          routeOffset: thisSegment.offset,
           startOffset: thisSegment.offset + SEGMENT_LENGTH * (segmentIndex + 1)
         };
       }
@@ -204,9 +217,13 @@ function getCurrentSegment (state, offset) {
       break;
     }
     if (thisSegment.offset + thisSegment.length > offset) {
+      let segmentIndex = Math.floor((offset - thisSegment.offset) / SEGMENT_LENGTH);
       return {
+        url: thisSegment.url,
         route: thisSegment.route,
-        segment: ~~((offset - thisSegment.offset) / SEGMENT_LENGTH)
+        segment: segmentIndex,
+        routeOffset: thisSegment.offset,
+        startOffset: thisSegment.offset + SEGMENT_LENGTH * segmentIndex
       };
     }
   }

@@ -97,6 +97,7 @@ class CacheEntry {
 
   expire () {
     const state = store.getState();
+    // don't let active segments expire, even if left alone (like leaving it paused)
     if (state.route === this.route && state.segment === this.segment) {
       return this.touch();
     }

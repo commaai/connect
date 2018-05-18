@@ -70,14 +70,14 @@ class Minimap extends Component {
     }
   }
   handleClick (e) {
-    TimelineWorker.seek(e.pageX / document.body.clientWidth * this.props.range);
+    TimelineWorker.seek(e.pageX / this.eventView.current.clientWidth * this.props.range);
   }
   handleMove (e) {
     // make sure they're clicking & dragging and not just moving the mouse around
     if (e.currentTarget.parentElement.querySelector('.minimap-holder:active') !== e.currentTarget) {
       return;
     }
-    let percent = e.pageX / document.body.clientWidth;
+    let percent = e.pageX / this.eventView.current.clientWidth;
     this.seekIndex = percent * this.props.range;
     this.sendSeek();
   }
