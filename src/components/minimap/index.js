@@ -107,7 +107,7 @@ class Minimap extends Component {
   }
   renderSegment (segment) {
     let startPerc = 100 * segment.offset / this.props.range;
-    let widthPerc = 100 * segment.length / this.props.range;
+    let widthPerc = 100 * segment.duration / this.props.range;
     let style = {
       position: 'absolute',
       width: widthPerc + '%',

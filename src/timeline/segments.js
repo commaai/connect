@@ -111,7 +111,7 @@ function segmentsFromMetadata (segmentsData) {
     /*
       route: '99c94dc769b5d96e|2018-04-09--11-29-08',
       offset: 41348000,
-      length: 214000,
+      duration: 214000,
       segments: 4
     */
     if (!curSegment || curSegment.route !== segment.canonical_route_name) {
@@ -125,13 +125,13 @@ function segmentsFromMetadata (segmentsData) {
       curSegment = {
         offset: segment.offset,
         route: segment.canonical_route_name,
-        length: 0,
+        duration: 0,
         segments: 0,
         url: url
       };
       segments.push(curSegment);
     }
-    curSegment.length = (segment.offset - curSegment.offset) + segment.duration;
+    curSegment.duration = (segment.offset - curSegment.offset) + segment.duration;
     curSegment.segments++;
   });
 
@@ -183,7 +183,7 @@ function getNextSegment (state, offset) {
       };
       break;
     }
-    if (thisSegment.offset + thisSegment.length > offset) {
+    if (thisSegment.offset + thisSegment.duration > offset) {
       let segmentIndex = ~~((offset - thisSegment.offset) / SEGMENT_LENGTH);
       if (segmentIndex + 1 < thisSegment.segments) {
         return {
@@ -191,7 +191,8 @@ function getNextSegment (state, offset) {
           route: thisSegment.route,
           segment: segmentIndex + 1,
           routeOffset: thisSegment.offset,
-          startOffset: thisSegment.offset + SEGMENT_LENGTH * (segmentIndex + 1)
+          startOffset: thisSegment.offset + SEGMENT_LENGTH * (segmentIndex + 1),
+          duration: thisSegment.duration
         };
       }
     }
@@ -216,15 +217,17 @@ function getCurrentSegment (state, offset) {
     if (thisSegment.offset > offset) {
       break;
     }
-    if (thisSegment.offset + thisSegment.length > offset) {
+    if (thisSegment.offset + thisSegment.duration > offset) {
       let segmentIndex = Math.floor((offset - thisSegment.offset) / SEGMENT_LENGTH);
       return {
         url: thisSegment.url,
         route: thisSegment.route,
         segment: segmentIndex,
         routeOffset: thisSegment.offset,
-        startOffset: thisSegment.offset + SEGMENT_LENGTH * segmentIndex
+        startOffset: thisSegment.offset + SEGMENT_LENGTH * segmentIndex,
+        duration: thisSegment.duration
       };
     }
   }
+  return null;
 }

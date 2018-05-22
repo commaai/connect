@@ -42,6 +42,16 @@ test('finds last segment of a route', async function () {
   expect(segment.segment).toBe(segmentData[0].segments - 1); // 0 indexed
 });
 
+test('ends last segment of a route', async function () {
+  var segment = Segments.getCurrentSegment({
+    segments: segmentData,
+    offset: segmentData[0].offset + segmentData[0].length - 10,
+    playSpeed: 1,
+    startTime: Date.now() - 50
+  });
+  expect(segment).toBe(null);
+});
+
 test('finds next segment within route', async function () {
   var segment = Segments.getNextSegment({
     segments: segmentData,

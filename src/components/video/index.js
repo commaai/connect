@@ -18,19 +18,29 @@ class VideoPreview extends Component {
     this.updatePreview = this.updatePreview.bind(this);
     this.imageRef = React.createRef();
     this.videoPlayer = React.createRef();
+
+    this.state = {
+      bufferTime: 2
+    };
   }
 
   componentDidMount () {
     this.mounted = true;
+    if (this.videoPlayer.current) {
+      this.videoPlayer.current.playbackRate = this.props.playSpeed || 1;
+    }
+
     raf(this.updatePreview);
   }
-
   componentWillUnmount () {
     this.mounted = false;
   }
-  componentDidUpdate(prevProps, prevState) {
-    if (!this.props.currentSegment || (this.props.currentSegment.url && !prevProps.currentSegment) || this.props.currentSegment.url !== prevProps.currentSegment.url) {
-      this.videoPlayer.current.load();
+
+  componentDidUpdate (prevProps, prevState) {
+    if (this.videoPlayer.current) {
+      if (this.props.playSpeed !== prevProps.playSpeed) {
+        this.videoPlayer.current.playbackRate = this.props.playSpeed;
+      }
     }
   }
 
@@ -38,9 +48,46 @@ class VideoPreview extends Component {
     if (!this.mounted) {
       return;
     }
-    if (this.imageRef.current) {
-      this.imageRef.current.src = this.nearestImageFrame();
+    let offset = TimelineWorker.currentOffset();
+    let shouldShowPreview = true;
+    let bufferTime = this.state.bufferTime;
+
+    if (this.videoPlayer.current && this.props.playSpeed) {
+      let playerState = this.videoPlayer.current.getState().player;
+      let curVideoTime = playerState.currentTime;
+      let desiredVideoTime = this.currentVideoTime(offset);
+      let timeDiff = desiredVideoTime - curVideoTime;
+
+      console.log('Adjusting time drift by', timeDiff, curVideoTime);
+      // console.log(playerState);
+      shouldShowPreview = playerState.buffered.length === 0 || playerState.waiting || (Math.abs(timeDiff) > 2);
+
+      if (Number.isFinite(timeDiff) && Math.abs(timeDiff) > 0.25) {
+
+        if (Math.abs(timeDiff) > bufferTime * 1.1) {
+          console.log('Seeking!');
+          this.setState({
+            ...this.state,
+            bufferTime: Math.min(10, this.state.bufferTime * 1.5)
+          });
+          this.videoPlayer.current.seek(desiredVideoTime + this.state.bufferTime);
+        } else {
+          if (timeDiff > 0) {
+            timeDiff = Math.min(1, timeDiff);
+          } else {
+            timeDiff = Math.max(0.25, timeDiff + this.props.playSpeed) - this.props.playSpeed;
+          }
+          this.videoPlayer.current.playbackRate = (this.props.playSpeed + timeDiff);
+        }
+      } else {
+        this.videoPlayer.current.playbackRate = this.props.playSpeed;
+      }
     }
+    if (this.imageRef.current) {
+      this.imageRef.current.src = this.nearestImageFrame(offset);
+      this.imageRef.current.style.display = shouldShowPreview ? 'block' : 'none';
+    }
+
     raf(this.updatePreview);
   }
   videoURL () {
@@ -48,6 +95,15 @@ class VideoPreview extends Component {
       return '';
     }
     return '//video.comma.ai/hls/' + this.props.dongleId + '/' + this.props.currentSegment.url.split('/').pop() + '/index.m3u8';
+  }
+
+  currentVideoTime (offset = TimelineWorker.currentOffset()) {
+    if (!this.props.currentSegment) {
+      return 0;
+    }
+    offset = offset - this.props.currentSegment.routeOffset;
+
+    return offset / 1000;
   }
 
   // nearest cache-worthy frame of the video
@@ -58,7 +114,7 @@ class VideoPreview extends Component {
       return '';
     }
     offset = offset - this.props.currentSegment.routeOffset;
-    var seconds = Math.floor(offset / 5000) * 5;
+    var seconds = Math.floor(offset / 1000) * 1;
 
     return this.props.currentSegment.url + '/sec' + seconds + '.jpg';
   }
@@ -66,11 +122,16 @@ class VideoPreview extends Component {
   render () {
     return (
       <div>
-        { /* <img ref={ this.imageRef } src={this.nearestImageFrame()} /> */ }
-
         <Player
+          style={{ zIndex: 1 }}
           ref={ this.videoPlayer }
           autoPlay
+          muted={ true }
+          fluid={ false }
+          width={ 638 }
+          height={ 480 }
+
+          startTime={ this.currentVideoTime() + this.state.bufferTime }
           playbackRate={ this.props.playSpeed }
           >
           <HLSSource
@@ -84,6 +145,14 @@ class VideoPreview extends Component {
             />
           </ControlBar>
         </Player>
+
+        <img style={{
+          width: 638,
+          height: 480,
+          position: 'absolute',
+          top: 0,
+          zIndex: 1
+        }} ref={ this.imageRef } src={this.nearestImageFrame()} />
       </div>
     );
   }

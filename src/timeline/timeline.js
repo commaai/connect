@@ -144,11 +144,21 @@ function seek (port, offset) {
 }
 
 function scheduleSegmentUpdate (state) {
+  let timeUntilNext = 0;
+  let offset = Playback.currentOffset(state);
+
+  if (SegmentTimerStore(state).stopTimer) {
+    SegmentTimerStore(state).stopTimer();
+  }
   if (state.nextSegment) {
-    let timeUntilNext = state.nextSegment.startOffset - Playback.currentOffset(state);
-    if (SegmentTimerStore(state).stopTimer) {
-      SegmentTimerStore(state).stopTimer();
-    }
+    timeUntilNext = state.nextSegment.startOffset - offset;
+  }
+  if (state.currentSegment) {
+    let time = (state.currentSegment.startOffset + state.currentSegment.duration) - offset;
+    timeUntilNext = Math.min(time, timeUntilNext);
+  }
+
+  if (timeUntilNext > 0) {
     SegmentTimerStore(state).stopTimer = timeout(function () {
       // empty action to churn the butter
       store.dispatch(Segments.updateSegments());
