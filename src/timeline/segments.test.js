@@ -3,12 +3,12 @@ const Segments = require('./segments');
 const segmentData = [{
   route: '99c94dc769b5d96e|2018-04-09--10-10-00',
   offset: 36600000,
-  length: 2558000,
+  duration: 2558000,
   segments: 43
 }, {
   route: '99c94dc769b5d96e|2018-04-09--11-29-08',
   offset: 41348000,
-  length: 214000,
+  duration: 214000,
   segments: 4
 }];
 
@@ -45,7 +45,7 @@ test('finds last segment of a route', async function () {
 test('ends last segment of a route', async function () {
   var segment = Segments.getCurrentSegment({
     segments: segmentData,
-    offset: segmentData[0].offset + segmentData[0].length - 10,
+    offset: segmentData[0].offset + segmentData[0].duration - 10,
     playSpeed: 1,
     startTime: Date.now() - 50
   });
@@ -66,7 +66,7 @@ test('finds next segment within route', async function () {
 test('finds next segment across routes', async function () {
   var segment = Segments.getNextSegment({
     segments: segmentData,
-    offset: segmentData[0].offset + segmentData[0].length - 1000,
+    offset: segmentData[0].offset + segmentData[0].duration - 1000,
     playSpeed: 1,
     startTime: Date.now()
   });

@@ -6,7 +6,7 @@ import VideoPreview from './video';
 export default class HomePage extends Component {
   render() {
     return (
-      <div className="App">
+      <div>
         <Grid container spacing={24}>
           <Grid item xs={7}>
             <Minimap />

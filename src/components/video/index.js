@@ -20,7 +20,7 @@ class VideoPreview extends Component {
     this.videoPlayer = React.createRef();
 
     this.state = {
-      bufferTime: 2
+      bufferTime: 5
     };
   }
 
@@ -51,50 +51,66 @@ class VideoPreview extends Component {
     let offset = TimelineWorker.currentOffset();
     let shouldShowPreview = true;
     let bufferTime = this.state.bufferTime;
+    let videoPlayer = this.videoPlayer.current;
 
-    if (this.videoPlayer.current && this.props.playSpeed) {
-      let playerState = this.videoPlayer.current.getState().player;
-      let curVideoTime = playerState.currentTime;
-      let desiredVideoTime = this.currentVideoTime(offset);
-      let timeDiff = desiredVideoTime - curVideoTime;
+    if (videoPlayer) {
+      let playerState = videoPlayer.getState().player;
+      if (this.props.playSpeed && this.props.currentSegment) {
+        let curVideoTime = playerState.currentTime;
+        let desiredVideoTime = this.currentVideoTime(offset);
+        let timeDiff = desiredVideoTime - curVideoTime;
 
-      console.log('Adjusting time drift by', timeDiff, curVideoTime);
-      // console.log(playerState);
-      shouldShowPreview = playerState.buffered.length === 0 || playerState.waiting || (Math.abs(timeDiff) > 2);
+        console.log('Adjusting time drift by', timeDiff, curVideoTime);
+        // console.log(playerState);
+        shouldShowPreview = playerState.buffered.length === 0 || playerState.waiting || (Math.abs(timeDiff) > 2);
 
-      if (Number.isFinite(timeDiff) && Math.abs(timeDiff) > 0.25) {
+        if (Number.isFinite(timeDiff) && Math.abs(timeDiff) > 0.25) {
 
-        if (Math.abs(timeDiff) > bufferTime * 1.1) {
-          console.log('Seeking!');
-          this.setState({
-            ...this.state,
-            bufferTime: Math.min(10, this.state.bufferTime * 1.5)
-          });
-          this.videoPlayer.current.seek(desiredVideoTime + this.state.bufferTime);
-        } else {
-          if (timeDiff > 0) {
-            timeDiff = Math.min(1, timeDiff);
+          if (Math.abs(timeDiff) > bufferTime * 1.1) {
+            console.log('Seeking!');
+            this.setState({
+              ...this.state,
+              bufferTime: Math.min(10, this.state.bufferTime * 1.5)
+            });
+            videoPlayer.seek(desiredVideoTime + this.state.bufferTime);
           } else {
-            timeDiff = Math.max(0.25, timeDiff + this.props.playSpeed) - this.props.playSpeed;
+            if (timeDiff > 0) {
+              timeDiff = Math.min(1, timeDiff);
+            } else {
+              timeDiff = Math.max(0.25, timeDiff + this.props.playSpeed) - this.props.playSpeed;
+            }
+            videoPlayer.playbackRate = (this.props.playSpeed + timeDiff);
           }
-          this.videoPlayer.current.playbackRate = (this.props.playSpeed + timeDiff);
+        } else {
+          videoPlayer.playbackRate = this.props.playSpeed;
+        }
+
+        if (this.props.currentSegment && playerState.paused && !playerState.seeking) {
+          console.log('Play');
+          videoPlayer.play();
         }
       } else {
-        this.videoPlayer.current.playbackRate = this.props.playSpeed;
+        if (!playerState.paused && !playerState.seeking && playerState.buffered.length) {
+          console.log('Pause');
+          videoPlayer.pause();
+        }
       }
     }
     if (this.imageRef.current) {
-      this.imageRef.current.src = this.nearestImageFrame(offset);
+      if (shouldShowPreview) {
+        this.imageRef.current.src = this.nearestImageFrame(offset);
+      }
       this.imageRef.current.style.display = shouldShowPreview ? 'block' : 'none';
     }
 
     raf(this.updatePreview);
   }
   videoURL () {
-    if (!this.props.currentSegment) {
+    let segment = this.props.currentSegment || this.props.nextSegment;
+    if (!segment) {
       return '';
     }
-    return '//video.comma.ai/hls/' + this.props.dongleId + '/' + this.props.currentSegment.url.split('/').pop() + '/index.m3u8';
+    return '//video.comma.ai/hls/' + this.props.dongleId + '/' + segment.url.split('/').pop() + '/index.m3u8';
   }
 
   currentVideoTime (offset = TimelineWorker.currentOffset()) {
@@ -110,13 +126,14 @@ class VideoPreview extends Component {
   // always show a frame before the current offset so that data is what happened
   // after this frame was seen, that way you can't see things it hasn't reacted to
   nearestImageFrame (offset = TimelineWorker.currentOffset()) {
-    if (!this.props.currentSegment) {
+    let segment = this.props.currentSegment || this.props.nextSegment;
+    if (!segment) {
       return '';
     }
-    offset = offset - this.props.currentSegment.routeOffset;
-    var seconds = Math.floor(offset / 1000) * 1;
+    offset = offset - segment.routeOffset;
+    var seconds = Math.max(1, Math.floor(offset / 1000) * 1);
 
-    return this.props.currentSegment.url + '/sec' + seconds + '.jpg';
+    return segment.url + '/sec' + seconds + '.jpg';
   }
 
   render () {
@@ -125,13 +142,13 @@ class VideoPreview extends Component {
         <Player
           style={{ zIndex: 1 }}
           ref={ this.videoPlayer }
-          autoPlay
+          autoPlay={ !!this.props.currentSegment }
           muted={ true }
           fluid={ false }
           width={ 638 }
           height={ 480 }
 
-          startTime={ this.currentVideoTime() + this.state.bufferTime }
+          startTime={ this.currentVideoTime() + (this.props.currentSegment ? this.state.bufferTime : 0) }
           playbackRate={ this.props.playSpeed }
           >
           <HLSSource

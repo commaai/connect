@@ -3,8 +3,8 @@ import * as request from './request';
 
 export async function getSegmentMetadata (start, end, dongleId) {
   return await request.get('devices/' + dongleId + '/segments', {
-    from: start.getTime(),
-    to: end.getTime()
+    from: start,
+    to: end
   });
 }
 

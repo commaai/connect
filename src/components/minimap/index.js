@@ -34,19 +34,19 @@ class Minimap extends Component {
       if (!lastEvent.length) {
         this.eventView.current.innerHTML = '';
       } else if (this.lastLastEvent !== lastEvent[0].LogMonoTime) {
-        this.eventView.current.innerHTML = lastEvent
-          // .filter((log) => log.Can)
-          // .slice(0, 10)
-          .map((log) => {
-            if (log.LogMessage) {
-              return {
-                LogMonoTime: log.LogMonoTime,
-                LogMessage: JSON.parse(log.LogMessage)
-              };
-            }
-            return log;
-          })
-          .map(JSON.stringify.bind(JSON)).join('\n');
+        // this.eventView.current.innerHTML = lastEvent
+        //   // .filter((log) => log.Can)
+        //   // .slice(0, 10)
+        //   .map((log) => {
+        //     if (log.LogMessage) {
+        //       return {
+        //         LogMonoTime: log.LogMonoTime,
+        //         LogMessage: JSON.parse(log.LogMessage)
+        //       };
+        //     }
+        //     return log;
+        //   })
+        //   .map(JSON.stringify.bind(JSON)).join('\n');
         this.lastLastEvent = lastEvent[0].LogMonoTime;
       }
       if (this.seekIndex) {

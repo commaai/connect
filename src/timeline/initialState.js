@@ -34,12 +34,12 @@ function getDefaultStartDate () {
   var d = new Date();
   d.setHours(d.getHours(), 0, 0, 0);
 
-  return new Date(d.getTime() - 1000 * 60 * 60 * 24);
+  return (new Date(d.getTime() - 1000 * 60 * 60 * 24)).getTime();
 }
 
 function getDefaultEndDate () {
   var d = new Date();
   d.setHours(d.getHours() + 1, 0, 0, 0);
 
-  return d;
+  return d.getTime();
 }

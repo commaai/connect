@@ -56,11 +56,12 @@ function reducer (state = initialState, action) {
   if (currentSegment) {
     state.route = currentSegment.route
     state.segment = currentSegment.segment;
-    state.currentSegment = currentSegment;
   } else {
     state.route = false;
     state.segment = 0;
   }
+
+  state.currentSegment = currentSegment;
   state.nextSegment = nextSegment;
 
   state.range = state.end - state.start;
@@ -147,16 +148,16 @@ function hasSegmentMetadata (state) {
     console.log('Bad dongle id');;
     return false;
   }
-  if (state.start.getTime() < state.segmentData.start.getTime()) {
+  if (state.start < state.segmentData.start) {
     console.log('Bad start offset');
     return false;
   }
-  if (state.end.getTime() > state.segmentData.end.getTime()) {
+  if (state.end > state.segmentData.end) {
     console.log('Bad end offset');
     return false;
   }
 
-  return state.start.getTime() >= state.segmentData.start.getTime() && state.end.getTime() <= state.segmentData.end.getTime();
+  return state.start >= state.segmentData.start && state.end <= state.segmentData.end;
 }
 
 function getNextSegment (state, offset) {
