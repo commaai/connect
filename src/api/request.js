@@ -1,7 +1,7 @@
 import { getCommaAccessToken } from './auth';
 import ConfigRequest from 'config-request/instance';
 
-const URL_ROOT = '//api.commadotai.com/v1/';
+const URL_ROOT = 'https://api.commadotai.com/v1/';
 
 const request = ConfigRequest();
 

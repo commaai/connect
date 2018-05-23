@@ -7,6 +7,7 @@ import Collector from 'collect-methods';
 
 import * as API from '../api';
 
+import init from './startup';
 import Playback from './playback';
 import Segments from './segments';
 import * as Cache from './cache';
@@ -17,8 +18,12 @@ const DataLogEvent = Event();
 const PortState = CreateStore();
 const SegmentTimerStore = CreateStore();
 
+// set up initial schedules
 scheduleSegmentUpdate(getState());
 checkSegmentMetadata(getState());
+
+// fire off init method
+init();
 
 // segments
 // start offset
@@ -167,6 +172,9 @@ function scheduleSegmentUpdate (state) {
 }
 
 async function checkSegmentMetadata (state) {
+  if (!state.dongleId) {
+    return;
+  }
   if (Segments.hasSegmentMetadata(state)) {
     // already has metadata, don't bother
     return true;

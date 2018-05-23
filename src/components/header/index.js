@@ -24,12 +24,28 @@ const styles = theme => ({
 class AppHeader extends Component {
   constructor (props) {
     super(props);
-    this.handleChange = this.handleChange.bind(this);
+    this.handleSearchChange = this.handleSearchChange.bind(this);
+    this.handleSelectChange = this.handleSelectChange.bind(this);
+
+    this.state = {
+      searchString: props.search || ''
+    };
   }
-  handleChange (e) {
-    console.log(e.target);
-    console.log(e);
-    debugger;
+  componentDidUpdate (prevProps, prevState) {
+    if (prevProps.dongleId !== this.props.dongleId) {
+      // console.log('Setting state from props', this.props.dongleId);
+      // this.setState({
+      //   searchString: this.props.dongleId
+      // });
+    }
+  }
+  handleSelectChange (e) {
+  }
+  handleSearchChange (e) {
+    console.log('Setting state', e.target.value)
+    this.setState({
+      searchString: e.target.value
+    });
   }
   selectedOption () {
     var timeRange = this.props.end - this.props.start;
@@ -62,23 +78,24 @@ class AppHeader extends Component {
               <Grid item xs={3}>
                 <FormControl style={{ width: '100%' }}>
                   <InputLabel htmlFor='search-bar'>Search</InputLabel>
-                  <Input id='search-bar' value={ this.props.dongleId } onChange={ this.handleChange } />
+                  <Input id='search-bar' value={ this.state.searchString || '' } onChange={ this.handleSearchChange } />
                 </FormControl>
               </Grid>
               <Grid item xs={4}>
                 <CurrentTime />
               </Grid>
-              <Grid item xs={4} align='right'>
+              <Grid item xs={3} align='right'>
                 <FormControl>
                   <Select
                     value={ this.selectedOption() }
-                    onChange={ this.handleChange }
+                    onChange={ this.handleSelectChange }
                     name='timerange'>
                     <MenuItem value='2-weeks'>{ this.last2WeeksText() } </MenuItem>
-                    <MenuItem value={20}>Twenty</MenuItem>
-                    <MenuItem value={30}>Thirty</MenuItem>
                   </Select>
                 </FormControl>
+              </Grid>
+              <Grid item xs={1}>
+                <img src='/images/comma-white.png' style={ imgStyles } />
               </Grid>
             </Grid>
           </Toolbar>

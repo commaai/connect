@@ -4,7 +4,8 @@ module.exports = {
   end: getDefaultEndDate(),
 
   // dongleId: '99c94dc769b5d96e',
-  dongleId: 'ff83f397542ab647',
+  // dongleId: 'ff83f397542ab647',
+  dongleId: null,
 
   route: false,
   segment: 0,

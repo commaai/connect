@@ -178,7 +178,7 @@ async function initWorker (timeline) {
 
   await getCommaAccessToken();
 
-  if (typeof TimelineSharedWorker === 'function') {
+  if (false && typeof TimelineSharedWorker === 'function') {
     worker = new TimelineSharedWorker();
     timeline.isShared = true;
   } else if (typeof TimelineWebWorker === 'function') {

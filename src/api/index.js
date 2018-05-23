@@ -25,3 +25,7 @@ export async function getLogUrls (routeName) {
 
   return urlStore[routeName];
 }
+
+export async function listDevices () {
+  return await request.get('me/devices/');
+}

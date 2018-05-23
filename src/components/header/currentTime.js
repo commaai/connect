@@ -39,7 +39,7 @@ class TimeDisplay extends Component {
       return '...';
     }
     var now = new Date(currentOffset + start);
-    var dateString = fecha.format(now, 'HH:MM:ss MMMM Do, YYYY');
+    var dateString = fecha.format(now, 'HH:mm:ss MMMM Do, YYYY');
 
     return dateString;
   }

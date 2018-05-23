@@ -1,10 +1,13 @@
 import { createMuiTheme } from '@material-ui/core/styles';
+import Colors from './colors';
 
 const theme = createMuiTheme({
   palette: {
     type: 'dark',
     primary: {
-      main: '#151719'
+      light: Colors.grey50,
+      main: Colors.grey500,
+      dark: Colors.grey700
     }
   },
   spacing: {
