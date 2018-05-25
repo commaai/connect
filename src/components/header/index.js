@@ -3,29 +3,57 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import fecha from 'fecha';
 
+import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import AppBar from '@material-ui/core/AppBar';
 import Grid from '@material-ui/core/Grid';
-import { withStyles } from '@material-ui/core/styles';
 import Input from '@material-ui/core/Input';
 import InputLabel from '@material-ui/core/InputLabel';
 import FormControl from '@material-ui/core/FormControl';
 import Toolbar from '@material-ui/core/Toolbar';
 import Select from '@material-ui/core/Select';
+import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
+import IconButton from '@material-ui/core/IconButton';
+
+import AccountCircle from '@material-ui/icons/AccountCircle';
 
 import CurrentTime from './currentTime';
 
-const styles = theme => ({
-  appBar: {
-  }
-});
+const styles = theme => {
+  console.log(theme);
+  return {
+    appBar: {
+      height: '140px'
+    },
+    toolBar: {
+      [theme.breakpoints.up('md')]: {
+        paddingLeft: theme.spacing.unit * 6,
+        paddingRight: theme.spacing.unit * 6
+      }
+    },
+    upperBar: {
+      height: '90px',
+      paddingTop: '20px',
+      paddingBottom: '16px'
+    },
+    logo: {
+      width: 'auto',
+      height: '34px',
+      margin: '16px 28px'
+    }
+  };
+};
 
 class AppHeader extends Component {
   constructor (props) {
     super(props);
+
     this.handleSearchChange = this.handleSearchChange.bind(this);
     this.handleSelectChange = this.handleSelectChange.bind(this);
+    this.handleChange = this.handleChange.bind(this);
+    this.handleMenu = this.handleMenu.bind(this);
+    this.handleClose = this.handleClose.bind(this);
 
     this.state = {
       searchString: props.search || ''
@@ -40,6 +68,18 @@ class AppHeader extends Component {
     }
   }
   handleSelectChange (e) {
+  }
+
+  handleChange (event, checked) {
+    this.setState({ auth: checked });
+  }
+
+  handleMenu (event) {
+    this.setState({ anchorEl: event.currentTarget });
+  }
+
+  handleClose () {
+    this.setState({ anchorEl: null });
   }
   handleSearchChange (e) {
     console.log('Setting state', e.target.value)
@@ -62,29 +102,28 @@ class AppHeader extends Component {
        + fecha.format(new Date(this.props.end), 'MMMM Do)');
   }
   render () {
-    const imgStyles = {
-      width: 'auto',
-      height: '40px',
-      margin: '0 20px'
-    };
+    const { classes } = this.props;
+    const { auth, anchorEl } = this.state;
+    const open = Boolean(anchorEl);
+
     return (
       <div className={ this.props.classes.root }>
         <AppBar position='sticky' className={ this.props.classes.appBar }>
-          <Toolbar>
-            <Grid container spacing={24}>
-              <Grid item xs={1}>
-                <img src='/images/comma-white.png' style={ imgStyles } />
+          <Toolbar className={ this.props.classes.toolBar } >
+            <Grid container spacing={0} className={ this.props.classes.upperBar } >
+              <Grid item xs={1} >
+                <img src='/images/comma-white.png' className={ this.props.classes.logo } />
               </Grid>
-              <Grid item xs={3}>
+              <Grid item xs={3} >
                 <FormControl style={{ width: '100%' }}>
                   <InputLabel htmlFor='search-bar'>Search</InputLabel>
                   <Input id='search-bar' value={ this.state.searchString || '' } onChange={ this.handleSearchChange } />
                 </FormControl>
               </Grid>
-              <Grid item xs={4}>
+              <Grid item xs={4} >
                 <CurrentTime />
               </Grid>
-              <Grid item xs={3} align='right'>
+              <Grid item xs={3} align='right' >
                 <FormControl>
                   <Select
                     value={ this.selectedOption() }
@@ -94,8 +133,32 @@ class AppHeader extends Component {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={1}>
-                <img src='/images/comma-white.png' style={ imgStyles } />
+              <Grid item xs={1} >
+                <div>
+                  <IconButton
+                    aria-owns={open ? 'menu-appbar' : null}
+                    aria-haspopup="true"
+                    onClick={this.handleMenu}
+                    color="inherit" >
+                    <AccountCircle />
+                  </IconButton>
+                  <Menu
+                    id="menu-appbar"
+                    anchorEl={anchorEl}
+                    anchorOrigin={{
+                      vertical: 'top',
+                      horizontal: 'right',
+                    }}
+                    transformOrigin={{
+                      vertical: 'top',
+                      horizontal: 'right',
+                    }}
+                    open={open}
+                    onClose={this.handleClose}>
+                    <MenuItem onClick={this.handleClose}>Profile</MenuItem>
+                    <MenuItem onClick={this.handleClose}>My account</MenuItem>
+                  </Menu>
+                </div>
               </Grid>
             </Grid>
           </Toolbar>
