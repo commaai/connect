@@ -51,6 +51,8 @@ store.subscribe(function () {
 
 const commands = {
   close,
+  play,
+  pause,
   seek
 };
 
@@ -146,6 +148,14 @@ function close (port) {
 
 function seek (port, offset) {
   store.dispatch(Playback.seek(offset));
+}
+
+function pause (port) {
+  store.dispatch(Playback.pause());
+}
+
+function play (port, speed) {
+  store.dispatch(Playback.play(speed));
 }
 
 function scheduleSegmentUpdate (state) {

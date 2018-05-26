@@ -28,57 +28,53 @@ class Minimap extends Component {
     raf(this.renderOffset);
   }
   renderOffset () {
-    if (this.offsetValue.current && this.offsetValue.current.parentElement) {
+    if (this.progressBar.current && this.progressBar.current.parentElement) {
       let offset = TimelineWorker.currentOffset();
-      var lastEvent = TimelineWorker.lastEvents(50, offset);
-      if (!lastEvent.length) {
-        this.eventView.current.innerHTML = '';
-      } else if (this.lastLastEvent !== lastEvent[0].LogMonoTime) {
-        // this.eventView.current.innerHTML = lastEvent
-        //   // .filter((log) => log.Can)
-        //   // .slice(0, 10)
-        //   .map((log) => {
-        //     if (log.LogMessage) {
-        //       return {
-        //         LogMonoTime: log.LogMonoTime,
-        //         LogMessage: JSON.parse(log.LogMessage)
-        //       };
-        //     }
-        //     return log;
-        //   })
-        //   .map(JSON.stringify.bind(JSON)).join('\n');
-        this.lastLastEvent = lastEvent[0].LogMonoTime;
-      }
+      // var lastEvent = TimelineWorker.lastEvents(50, offset);
+      // if (!lastEvent.length) {
+      //   this.eventView.current.innerHTML = '';
+      // } else if (this.lastLastEvent !== lastEvent[0].LogMonoTime) {
+      //   this.eventView.current.innerHTML = lastEvent
+      //     // .filter((log) => log.Can)
+      //     // .slice(0, 10)
+      //     .map((log) => {
+      //       if (log.LogMessage) {
+      //         return {
+      //           LogMonoTime: log.LogMonoTime,
+      //           LogMessage: JSON.parse(log.LogMessage)
+      //         };
+      //       }
+      //       return log;
+      //     })
+      //     .map(JSON.stringify.bind(JSON)).join('\n');
+      //   this.lastLastEvent = lastEvent[0].LogMonoTime;
+      // }
       if (this.seekIndex) {
         offset = this.seekIndex;
       }
       offset = Math.floor(offset);
-      let seconds = Math.floor(offset / 1000);
-      let minutes = Math.floor(seconds / 60);
-      let hours = Math.floor(minutes / 60);
-      let timeStr = [
-        hours,
-        ('0' + (minutes % 60)).substr(-2, 2),
-        ('0' + (seconds % 60)).substr(-2, 2),
-        ('00' + (offset % 1000)).substr(-3, 3)
-      ].join(':');
 
-      this.offsetValue.current.innerHTML = timeStr;
       this.progressBar.current.style.width = ~~(10000 * offset / this.props.range) / 100 + '%';
 
       raf(this.renderOffset);
     }
   }
   handleClick (e) {
-    TimelineWorker.seek(e.pageX / this.eventView.current.clientWidth * this.props.range);
+    let boundingBox = e.currentTarget.getBoundingClientRect();
+    let x = e.pageX - boundingBox.x;
+    TimelineWorker.seek(x / boundingBox.width * this.props.range);
   }
   handleMove (e) {
     // make sure they're clicking & dragging and not just moving the mouse around
     if (e.currentTarget.parentElement.querySelector('.minimap-holder:active') !== e.currentTarget) {
       return;
     }
-    let percent = e.pageX / this.eventView.current.clientWidth;
+
+    let boundingBox = e.currentTarget.getBoundingClientRect();
+    let x = e.pageX - boundingBox.x;
+    let percent = x / boundingBox.width;
     this.seekIndex = percent * this.props.range;
+
     this.sendSeek();
   }
   sendSeek () {
@@ -89,19 +85,15 @@ class Minimap extends Component {
   }
   render () {
     return (
-      <div>
+      <div className={ this.props.className } >
         <div className="minimap-holder" onMouseMove={ this.handleMove } onClick={ this.handleClick }>
           <div className="segments">
             { this.props.segments ? this.props.segments.map(this.renderSegment) : [] }
           </div>
           <div className="minimap-progress-bar" ref={this.progressBar} />
-          <span>
-            Current offset:&nbsp;
-            <span ref={this.offsetValue}>{ TimelineWorker.currentOffset() }</span>
-          </span>
         </div>
-        <pre style={{width: '100%', overflow: 'hidden'}} ref={this.eventView} />
-        <pre>{ JSON.stringify(this.props, null, 2) }</pre>
+        {/*<pre style={{width: '100%', overflow: 'hidden'}} ref={this.eventView} />*/}
+        {/*<pre>{ JSON.stringify(this.props, null, 2) }</pre>*/}
       </div>
     );
   }

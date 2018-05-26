@@ -19,10 +19,15 @@ import IconButton from '@material-ui/core/IconButton';
 import AccountCircle from '@material-ui/icons/AccountCircle';
 
 import CurrentTime from './currentTime';
+import Minimap from '../minimap';
 
 const styles = theme => {
   console.log(theme);
   return {
+    root: {
+      position: 'relative',
+      marginBottom: '140px'
+    },
     appBar: {
       height: '140px'
     },
@@ -41,6 +46,12 @@ const styles = theme => {
       width: 'auto',
       height: '34px',
       margin: '16px 28px'
+    },
+    minimap: {
+      position: 'absolute',
+      bottom: 0,
+      padding: '0 ' + theme.spacing.unit * 6 + 'px',
+      width: '100%'
     }
   };
 };
@@ -102,36 +113,35 @@ class AppHeader extends Component {
        + fecha.format(new Date(this.props.end), 'MMMM Do)');
   }
   render () {
-    const { classes } = this.props;
     const { auth, anchorEl } = this.state;
     const open = Boolean(anchorEl);
 
     return (
       <div className={ this.props.classes.root }>
-        <AppBar position='sticky' className={ this.props.classes.appBar }>
+        <AppBar position='fixed' className={ this.props.classes.appBar }>
           <Toolbar className={ this.props.classes.toolBar } >
             <Grid container spacing={0} className={ this.props.classes.upperBar } >
               <Grid item xs={1} >
                 <img src='/images/comma-white.png' className={ this.props.classes.logo } />
               </Grid>
-              <Grid item xs={3} >
-                <FormControl style={{ width: '100%' }}>
+              <Grid item xs={2} >
+                {/*<FormControl style={{ width: '100%' }}>
                   <InputLabel htmlFor='search-bar'>Search</InputLabel>
                   <Input id='search-bar' value={ this.state.searchString || '' } onChange={ this.handleSearchChange } />
-                </FormControl>
+                </FormControl>*/}
               </Grid>
-              <Grid item xs={4} >
+              <Grid item xs={6} >
                 <CurrentTime />
               </Grid>
-              <Grid item xs={3} align='right' >
-                <FormControl>
+              <Grid item xs={2} align='right' >
+                {/*<FormControl>
                   <Select
                     value={ this.selectedOption() }
                     onChange={ this.handleSelectChange }
                     name='timerange'>
                     <MenuItem value='2-weeks'>{ this.last2WeeksText() } </MenuItem>
                   </Select>
-                </FormControl>
+                </FormControl>*/}
               </Grid>
               <Grid item xs={1} >
                 <div>
@@ -162,6 +172,7 @@ class AppHeader extends Component {
               </Grid>
             </Grid>
           </Toolbar>
+          <Minimap className={ this.props.classes.minimap } />
         </AppBar>
       </div>
     );

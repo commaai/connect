@@ -95,6 +95,7 @@ function parseSegmentMetadata (state, segments) {
   segments = segments.map(function (segment) {
     segment.offset = Math.round(segment.start_time_utc_millis) - state.start;
     segment.duration = Math.round(segment.end_time_utc_millis - segment.start_time_utc_millis);
+    segment.events = JSON.parse(segment.events_json);
     return segment;
   });
   return {

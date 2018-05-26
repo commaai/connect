@@ -48,6 +48,19 @@ class TimelineInterface {
     });
   }
 
+  async play (speed = 1) {
+    return this.postMessage({
+      command: 'play',
+      data: speed
+    });
+  }
+
+  async pause () {
+    return this.postMessage({
+      command: 'pause'
+    });
+  }
+
   async rpc (msg) {
     // msg that expects a reply
   }

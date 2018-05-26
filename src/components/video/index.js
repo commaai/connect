@@ -68,11 +68,7 @@ class VideoPreview extends Component {
 
           if (Math.abs(timeDiff) > bufferTime * 1.1) {
             console.log('Seeking!');
-            this.setState({
-              ...this.state,
-              bufferTime: Math.min(10, this.state.bufferTime * 1.5)
-            });
-            videoPlayer.seek(desiredVideoTime + this.state.bufferTime);
+            videoPlayer.seek(desiredVideoTime + this.state.bufferTime * this.props.playSpeed);
           } else {
             if (timeDiff > 0) {
               timeDiff = Math.min(1, timeDiff);
@@ -90,6 +86,7 @@ class VideoPreview extends Component {
           videoPlayer.play();
         }
       } else {
+        shouldShowPreview = !this.props.currentSegment || !playerState.buffered.length;
         if (!playerState.paused && !playerState.seeking && playerState.buffered.length) {
           console.log('Pause');
           videoPlayer.pause();
@@ -138,7 +135,7 @@ class VideoPreview extends Component {
 
   render () {
     return (
-      <div>
+      <div style={{ position: 'relative' }}>
         <Player
           style={{ zIndex: 1 }}
           ref={ this.videoPlayer }
@@ -148,7 +145,7 @@ class VideoPreview extends Component {
           width={ 638 }
           height={ 480 }
 
-          startTime={ this.currentVideoTime() + (this.props.currentSegment ? this.state.bufferTime : 0) }
+          startTime={ this.currentVideoTime() + (this.props.currentSegment ? this.state.bufferTime * this.props.playSpeed : 0) }
           playbackRate={ this.props.playSpeed }
           >
           <HLSSource
