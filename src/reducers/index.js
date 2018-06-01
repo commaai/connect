@@ -1,7 +1,9 @@
 import workerState from './workerState';
+import zoom from './zoom';
 
 const reducers = {
-  workerState
+  workerState,
+  zoom
 };
 
 export default reducers;

@@ -141,9 +141,7 @@ class VideoPreview extends Component {
           ref={ this.videoPlayer }
           autoPlay={ !!this.props.currentSegment }
           muted={ true }
-          fluid={ false }
-          width={ 638 }
-          height={ 480 }
+          fluid={ true }
 
           startTime={ this.currentVideoTime() + (this.props.currentSegment ? this.state.bufferTime * this.props.playSpeed : 0) }
           playbackRate={ this.props.playSpeed }
@@ -161,8 +159,8 @@ class VideoPreview extends Component {
         </Player>
 
         <img style={{
-          width: 638,
-          height: 480,
+          width: '100%',
+          height: 'auto',
           position: 'absolute',
           top: 0,
           zIndex: 1

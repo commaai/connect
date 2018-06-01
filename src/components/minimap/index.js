@@ -3,6 +3,7 @@
 // rapid seeking, etc
 import React, { Component } from 'react';
 import { connect } from 'react-redux'
+import { push } from 'react-router-redux'
 import raf from 'raf';
 import debounce from 'debounce';
 import document from 'global/document';
@@ -10,6 +11,7 @@ import { withStyles } from '@material-ui/core/styles';
 
 import theme from '../../theme';
 import TimelineWorker from '../../timeline';
+import { selectRange } from '../../actions';
 
 const styles = (theme) => {
   /* MINIMAP / PROGRESS BAR */
@@ -76,6 +78,12 @@ class Minimap extends Component {
       dragStart: null
     };
   }
+  componentWillMount () {
+      document.addEventListener('mouseup', this.handleUp, false);
+  }
+  componentWillUnmount () {
+      document.removeEventListener('mouseup', this.handleUp, false);
+  }
   componentDidMount () {
     raf(this.renderOffset);
   }
@@ -98,6 +106,7 @@ class Minimap extends Component {
       this.isDragSelecting = false;
       return;
     }
+    console.log(e.currentTarget);
     let boundingBox = e.currentTarget.getBoundingClientRect();
     let x = e.pageX - boundingBox.x;
     TimelineWorker.seek(x / boundingBox.width * this.props.range);
@@ -123,14 +132,24 @@ class Minimap extends Component {
     if (!this.props.dragSelection) {
       return;
     }
+    if (!this.state.dragStart) {
+      return;
+    }
     let selectedArea = Math.abs(this.state.dragStart - this.state.dragEnd) * 100;
     let startPercent = Math.min(this.state.dragStart, this.state.dragEnd);
+    let endPercent = Math.max(this.state.dragStart, this.state.dragEnd);
+
+    startPercent = ~~(1000 * startPercent) / 1000;
+    endPercent = ~~(1000 * endPercent) / 1000;
+
     console.log(selectedArea);
     if (selectedArea > 0.5) {
       TimelineWorker.seek(startPercent * this.props.range);
       this.isDragSelecting = true;
       setTimeout(() => this.isDragSelecting = false);
-    } else {
+      this.props.dispatch(selectRange(startPercent, endPercent));
+      this.props.dispatch(push('/timeline/' + startPercent + '/' + endPercent));
+    } else if (e.currentTarget !== document) {
       this.handleClick(e);
     }
 
@@ -169,7 +188,9 @@ class Minimap extends Component {
     }
   }
   progressBarBackground () {
-    if (this.props.colored) {
+    if (this.props.zoom.expanded) {
+      return '';
+    } else if (this.props.colored) {
       return 'linear-gradient(to left, rgba(25, 255, 25, 0.5), rgba(25, 255, 25, 0.1) 200px, rgba(255, 255, 255, 0) 250px)';
     } else {
       let color = theme.palette.grey[50] + '99';
@@ -191,6 +212,7 @@ class Minimap extends Component {
             { this.props.segments ? this.props.segments.map(this.renderSegment) : [] }
           </div>
           { this.renderDragger() }
+          { this.renderZoom() }
           <div style={{ background: this.progressBarBackground() }} className={ this.props.classes.progressBar } ref={this.progressBar} />
         </div>
       </div>
@@ -201,13 +223,27 @@ class Minimap extends Component {
       return [];
     }
     let color = theme.palette.grey[50] + 'cc';
-    let endColor = theme.palette.grey[200] + '55';
+    let endColor = theme.palette.grey[200] + 'aa';
     return (
       <div style={{
         background: 'linear-gradient(to left, ' + color + ', ' + endColor + ', ' + color + ')',
         left: (100 * Math.min(this.state.dragStart, this.state.dragEnd)) + '%',
         width: (100 * Math.abs(this.state.dragStart - this.state.dragEnd)) + '%',
       }} className={ this.props.classes.progressBar } ref={ this.dragBar } />
+    );
+  }
+  renderZoom () {
+    if (!this.props.zoom.expanded) {
+      return [];
+    }
+    let color = theme.palette.grey[50] + 'cc';
+    let endColor = theme.palette.grey[200] + 'aa';
+    return (
+      <div style={{
+        background: 'linear-gradient(to left, ' + color + ', ' + endColor + ', ' + color + ')',
+        left: (100 * Math.min(this.props.zoom.start, this.props.zoom.end)) + '%',
+        width: (100 * Math.abs(this.props.zoom.start - this.props.zoom.end)) + '%',
+      }} className={ this.props.classes.progressBar } />
     );
   }
   renderSegment (segment) {
@@ -239,5 +275,8 @@ class Minimap extends Component {
 export default connect(mapStateToProps)(withStyles(styles)(Minimap));
 
 function mapStateToProps(state) {
-  return state.workerState;
+  return {
+    ...state.workerState,
+    zoom: state.zoom
+  };
 }

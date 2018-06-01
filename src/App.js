@@ -9,7 +9,7 @@ import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography';
 
 import HomePage from './components/homePage';
-import SelectDevice from './components/selectDevice';
+import Explorer from './components/explorer';
 
 import { history, createStore } from './store';
 import { isAuthenticated, init } from './api/auth';
@@ -31,7 +31,7 @@ class App extends Component {
   authRoutes () {
     return (
       <div>
-        <Route path="/" component={ SelectDevice } />
+        <Route path="/" component={ Explorer } />
       </div>
     );
   }

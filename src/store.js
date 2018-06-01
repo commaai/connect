@@ -3,7 +3,7 @@ import { routerReducer, routerMiddleware } from 'react-router-redux';
 import createHistory from 'history/createBrowserHistory';
 import reducers from './reducers';
 import TimelineWorker from './timeline';
-import { updateState } from './actions';
+import { updateState, selectRange } from './actions';
 import compose from './devtools';
 
 export const history = createHistory();
@@ -19,11 +19,31 @@ export function createStore () {
     compose(Redux.applyMiddleware(middleware))
   );
 
+  history.listen(location => dispatchRoute(location.pathname));
+  dispatchRoute(history.location.pathname);
+
   TimelineWorker.onStateChange(dispatchState);
 
   return store;
 
   function dispatchState (data) {
     store.dispatch(updateState(data));
+  }
+
+  function dispatchRoute (pathname) {
+    var parts = pathname.split('/');
+    parts = parts.filter((m) => m.length);
+
+    switch (parts[0]) {
+      case 'timeline':
+        store.dispatch(selectRange(Number(parts[1]), Number(parts[2])));
+        break;
+
+      default:
+        break;
+    }
+
+    console.log(parts);
+    // store.dispatch(selectRange(data));
   }
 }

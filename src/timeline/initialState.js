@@ -35,12 +35,13 @@ function getDefaultStartDate () {
   var d = new Date();
   d.setHours(d.getHours(), 0, 0, 0);
 
-  return (new Date(d.getTime() - 1000 * 60 * 60 * 24)).getTime();
+  return (new Date(d.getTime() - 1000 * 60 * 60 * 48)).getTime();
 }
 
 function getDefaultEndDate () {
   var d = new Date();
   d.setHours(d.getHours() + 1, 0, 0, 0);
 
-  return d.getTime();
+  return (new Date(d.getTime() - 1000 * 60 * 60 * 36)).getTime();
+  // return d.getTime();
 }

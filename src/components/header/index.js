@@ -26,7 +26,7 @@ const styles = theme => {
   return {
     root: {
       position: 'relative',
-      marginBottom: '140px'
+      height: '140px'
     },
     appBar: {
       height: '140px'

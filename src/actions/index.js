@@ -6,3 +6,10 @@ export function updateState (data) {
     data: data
   };
 }
+
+export function selectRange (start, end) {
+  return {
+    type: Types.TIMELINE_SELECTION_CHANGED,
+    start, end
+  };
+}
