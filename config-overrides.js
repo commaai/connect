@@ -1,3 +1,4 @@
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const path = require('path');
 
 module.exports = override;
@@ -28,6 +29,7 @@ function override (config, env) {
     include: path.resolve('./src/timeline'),
     use: [{ loader: 'worker-loader' }, { loader: 'babel-loader' }]
   });
+  config.plugins = config.plugins.filter(p => p.constructor !== UglifyJsPlugin);
 
   return config;
 };
