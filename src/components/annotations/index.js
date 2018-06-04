@@ -9,6 +9,7 @@ import Typography from '@material-ui/core/Typography';
 import Paper from '@material-ui/core/Paper';
 
 import VideoPreview from '../video';
+import Minimap from '../minimap';
 import LogStream from '../logstream';
 
 const styles = theme => {
@@ -31,9 +32,7 @@ class AnnotationsView extends Component {
             </Typography>
           </Grid>
           <Grid item xs={12}>
-            <Typography>
-              Extended colorful minimap
-            </Typography>
+            <Minimap zoomed colored />
           </Grid>
           <Grid item xs={6}>
             <LogStream />

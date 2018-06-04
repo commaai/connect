@@ -108,6 +108,7 @@ function parseSegmentMetadata (state, segments) {
 function segmentsFromMetadata (segmentsData) {
   console.log(segmentsData);
   var curSegment = null;
+  var curStopTime = null;
   var segments = [];
   segmentsData.segments.forEach(function (segment) {
     /*
@@ -116,6 +117,11 @@ function segmentsFromMetadata (segmentsData) {
       duration: 214000,
       segments: 4
     */
+    // if (curStopTime && segment.start_time_utc_millis - curStopTime > 10000) {
+    //   // 10 seconds is *WAY* too much time xD
+    //   curSegment = null;
+    // }
+    curStopTime = segment.start_time_utc_millis;
     if (!curSegment || curSegment.route !== segment.canonical_route_name) {
       let url = segment.url;
       let parts = url.split('/');
@@ -127,14 +133,17 @@ function segmentsFromMetadata (segmentsData) {
       curSegment = {
         offset: segment.offset,
         route: segment.canonical_route_name,
+        startTime: segment.start_time_utc_millis,
         duration: 0,
         segments: 0,
-        url: url
+        url: url,
+        events: []
       };
       segments.push(curSegment);
     }
     curSegment.duration = (segment.offset - curSegment.offset) + segment.duration;
     curSegment.segments++;
+    curSegment.events = curSegment.events.concat(segment.events);
   });
 
   return segments;
@@ -181,7 +190,8 @@ function getNextSegment (state, offset) {
         route: thisSegment.route,
         segment: 0,
         routeOffset: thisSegment.offset,
-        startOffset: thisSegment.offset
+        startOffset: thisSegment.offset,
+        events: thisSegment.events
       };
       break;
     }
@@ -194,7 +204,8 @@ function getNextSegment (state, offset) {
           segment: segmentIndex + 1,
           routeOffset: thisSegment.offset,
           startOffset: thisSegment.offset + SEGMENT_LENGTH * (segmentIndex + 1),
-          duration: thisSegment.duration
+          duration: thisSegment.duration,
+          events: thisSegment.events
         };
       }
     }
@@ -227,9 +238,19 @@ function getCurrentSegment (state, offset) {
         segment: segmentIndex,
         routeOffset: thisSegment.offset,
         startOffset: thisSegment.offset + SEGMENT_LENGTH * segmentIndex,
-        duration: thisSegment.duration
+        duration: thisSegment.duration,
+        events: thisSegment.events
       };
     }
   }
   return null;
+}
+
+function cropSelection (state, start, end) {
+  var curSegment = getCurrentSegment(state, start);
+  if (!curSegment) {
+    curSegment = getNextSegment(state, start);
+    start = curSegment.startOffset - 1000; // 1 second before next route
+  }
+  state.range
 }

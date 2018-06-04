@@ -14,6 +14,7 @@ const TimelineWebWorker = require('./index.worker');
 
 const UnloadEvent = Event();
 const StateEvent = Event();
+const IndexEvent = Event();
 window.addEventListener('beforeunload', UnloadEvent.broadcast);
 
 class TimelineInterface {
@@ -23,6 +24,7 @@ class TimelineInterface {
     this._initPromise = init(this)
   }
   onStateChange = StateEvent.listen
+  onIndexed = IndexEvent.listen
 
   async getPort () {
     await this._initPromise;
@@ -128,6 +130,13 @@ class TimelineInterface {
     }
     console.log(this.buffers[msg.data.route][msg.data.segment].index.length);
     console.log('Got data for', msg.data.route, msg.data.segment, ':', msg.data.data.byteLength);
+    IndexEvent.broadcast(msg.data.route);
+  }
+  getStartMonoTime (route, segment = 0) {
+    if (!this.buffers[route] || !this.buffers[route][segment] || !this.buffers[route][segment].index) {
+      return 0;
+    }
+    return this.buffers[route][segment].index[0][0];
   }
   getIndex () {
     if (!this.state || !this.state.route) {
