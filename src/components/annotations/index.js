@@ -8,6 +8,7 @@ import Slide from '@material-ui/core/Slide';
 import Typography from '@material-ui/core/Typography';
 import Paper from '@material-ui/core/Paper';
 
+import AnnotationList from './list';
 import VideoPreview from '../video';
 import Minimap from '../minimap';
 import LogStream from '../logstream';
@@ -35,7 +36,7 @@ class AnnotationsView extends Component {
             <Minimap zoomed colored />
           </Grid>
           <Grid item xs={6}>
-            <LogStream />
+            <AnnotationList />
           </Grid>
           <Grid item xs={6}>
             <VideoPreview />

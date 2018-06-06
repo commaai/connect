@@ -44,6 +44,5 @@ export function createStore () {
     }
 
     console.log(parts);
-    // store.dispatch(selectRange(data));
   }
 }

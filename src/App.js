@@ -11,11 +11,17 @@ import Typography from '@material-ui/core/Typography';
 import HomePage from './components/homePage';
 import Explorer from './components/explorer';
 
+import TimelineWorker from './timeline';
 import { history, createStore } from './store';
+import { updateState } from './actions';
 import { isAuthenticated, init } from './api/auth';
 import './App.css';
 
 const store = createStore();
+
+TimelineWorker.onStateChange(function (data) {
+  store.dispatch(updateState(data));
+});
 
 class App extends Component {
   constructor (props) {

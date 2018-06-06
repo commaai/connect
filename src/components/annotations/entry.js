@@ -6,30 +6,25 @@ import { withStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
 import Slide from '@material-ui/core/Slide';
 import Typography from '@material-ui/core/Typography';
-
-import Annotations from './annotations';
-import Header from './header';
+import Paper from '@material-ui/core/Paper';
 
 const styles = theme => {
   return {
+    root: {
+    }
   };
 };
 
-class ExplorerApp extends Component {
+class AnnotationEntry extends Component {
   render() {
     return (
-      <div>
-        <Header />
-        <Slide direction='up' in={ this.props.expanded } mountOnEnter unmountOnExit>
-          <Annotations />
-        </Slide>
+      <div className={ this.props.classes.root }>
       </div>
     );
   }
 }
 
 const stateToProps = Obstruction({
-  expanded: 'zoom.expanded'
 });
 
-export default connect(stateToProps)(withStyles(styles)(ExplorerApp));
+export default connect(stateToProps)(withStyles(styles)(AnnotationEntry));

@@ -5,7 +5,9 @@
     "start": "react-app-rewired start",
     "build": "react-app-rewired build",
     "test": "react-app-rewired test --env=jsdom",
-    "eject": "react-app-rewired eject"
+    "eject": "react-app-rewired eject",
+    "storybook": "start-storybook -p 9009 -s public",
+    "build-storybook": "build-storybook -s public"
   },
   "repository": "git@github.com:commaai/explorer.git",
   "author": "Chris Vickery <chrisinajar@gmail.com>",
@@ -51,8 +53,18 @@
     "xtend": "^4.0.1"
   },
   "devDependencies": {
+    "@storybook/addon-actions": "^3.4.6",
+    "@storybook/addon-links": "^3.4.6",
+    "@storybook/addons": "^3.4.6",
+    "@storybook/react": "^3.4.6",
+    "babel-core": "^6.26.3",
+    "css-loader": "^0.28.11",
+    "node-sass": "^4.9.0",
     "react-app-rewired": "^1.5.2",
+    "sass-loader": "^7.0.3",
     "sharedworker-loader": "^2.1.1",
+    "storybook-addon-material-ui": "^0.9.0-alpha.1",
+    "style-loader": "^0.21.0",
     "tape": "^4.9.0",
     "worker-loader": "^1.1.1"
   }

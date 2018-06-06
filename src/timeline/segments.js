@@ -111,6 +111,9 @@ function segmentsFromMetadata (segmentsData) {
   var curStopTime = null;
   var segments = [];
   segmentsData.segments.forEach(function (segment) {
+    if (!segment.url) {
+      return;
+    }
     /*
       route: '99c94dc769b5d96e|2018-04-09--11-29-08',
       offset: 41348000,
@@ -124,6 +127,7 @@ function segmentsFromMetadata (segmentsData) {
     curStopTime = segment.start_time_utc_millis;
     if (!curSegment || curSegment.route !== segment.canonical_route_name) {
       let url = segment.url;
+      console.log(url, segment);
       let parts = url.split('/');
 
       if (Number.isFinite(Number(parts.pop()))) {
