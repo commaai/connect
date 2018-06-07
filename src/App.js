@@ -15,7 +15,6 @@ import TimelineWorker from './timeline';
 import { history, createStore } from './store';
 import { updateState } from './actions';
 import { isAuthenticated, init } from './api/auth';
-import './App.css';
 
 const store = createStore();
 

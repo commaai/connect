@@ -17,7 +17,11 @@ const styles = theme => {
   return {
     root: {
       margin: theme.spacing.unit * 5,
-      borderRadius: theme.spacing.unit
+      borderRadius: theme.spacing.unit,
+      background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)'
+    },
+    paddedContainer: {
+      padding: theme.spacing.unit * 4,
     }
   };
 };
@@ -35,11 +39,16 @@ class AnnotationsView extends Component {
           <Grid item xs={12}>
             <Minimap zoomed colored />
           </Grid>
+        </Grid>
+        <Grid container spacing={ 32 } className={ this.props.classes.paddedContainer } >
           <Grid item xs={6}>
             <AnnotationList />
           </Grid>
           <Grid item xs={6}>
             <VideoPreview />
+          </Grid>
+          <Grid item xs={12}>
+            {/*<LogStream />*/}
           </Grid>
         </Grid>
       </Paper>
