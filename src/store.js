@@ -2,7 +2,6 @@ import * as Redux from 'redux';
 import { routerReducer, routerMiddleware } from 'react-router-redux';
 import createHistory from 'history/createBrowserHistory';
 import reducers from './reducers';
-import TimelineWorker from './timeline';
 import { updateState, selectRange } from './actions';
 import compose from './devtools';
 
@@ -22,13 +21,7 @@ export function createStore () {
   history.listen(location => dispatchRoute(location.pathname));
   dispatchRoute(history.location.pathname);
 
-  TimelineWorker.onStateChange(dispatchState);
-
   return store;
-
-  function dispatchState (data) {
-    store.dispatch(updateState(data));
-  }
 
   function dispatchRoute (pathname) {
     var parts = pathname.split('/');

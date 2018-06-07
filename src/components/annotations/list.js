@@ -13,35 +13,14 @@ import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
 import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 
+import AnnotationEntry from './entry';
+
 const styles = theme => {
   return {
     root: {
-    },
-    entry: {
-      backgroundColor: theme.palette.grey[800]
-    },
-    expanded: {
-      margin: '0px 0',
-      backgroundColor: theme.palette.grey[999]
-    },
-    date: {
-      color: theme.palette.grey[100]
-    },
-    disengage: {
-      textAlign: 'center',
-      verticalAlign: 'middle',
-      lineHeight: '17px',
-      color: theme.palette.error.main,
-      border: '1px solid ' + theme.palette.error.main,
-      borderRadius: theme.spacing.unit,
-      minWidth: '100%',
-      fontSize: '0.9em'
-    },
-    summaryContent: {
-      padding: '0px',
-      '&>:last-child': {
-        padding: '0px'
-      }
+      border: '1px solid rgba(255,255,255,0.04)',
+      borderRadius: 5,
+      overflow: 'hidden'
     }
   };
 };
@@ -72,11 +51,6 @@ class AnnotationList extends Component {
     return (
       <div className={ this.props.classes.root }>
         { events.filter(this.filterEntry).map(partial(this.renderEntry, segment)) }
-        <pre>
-          <Typography>
-            { JSON.stringify({}, null, 2) }
-          </Typography>
-        </pre>
       </div>
     );
   }
@@ -86,39 +60,17 @@ class AnnotationList extends Component {
   renderEntry (segment, event, index) {
     const eventId = event.time + ':' + index;
     const timestamp = this.props.start + segment.startOffset + event.offset_millis;
-    const dateString = fecha.format(new Date(timestamp), 'MMM D @ HH:mm:ss');
 
     return (
-      <ExpansionPanel
-        classes={{
-          expanded: this.props.classes.expanded
-        }}
-        className={ this.props.classes.entry }
+      <AnnotationEntry
         key={ eventId }
-        expanded={ this.state.expanded === eventId }
+        eventId={ eventId }
+        event={ event }
+        timestamp={ timestamp }
+        // expanded={ this.state.expanded === eventId }
+        expanded={ this.state.expanded ? this.state.expanded === eventId : index === 0 }
         onChange={ partial(this.handleExpanded, eventId) }
-        >
-        <ExpansionPanelSummary classes={{
-            content: this.props.classes.summaryContent
-          }}>
-          <Grid container>
-            <Grid item xs={ 1 }>
-            </Grid>
-            <Grid item xs={ 5 }>
-              <Typography className={ this.props.classes.heading }>{ this.eventTitle(event) }</Typography>
-            </Grid>
-            <Grid item xs={ 4 }>
-              <Typography className={ this.props.classes.date }>[{ dateString }]</Typography>
-            </Grid>
-            <Grid item xs={ 2 }>
-              <Typography className={ this.props.classes.disengage }>Disengage</Typography>
-            </Grid>
-          </Grid>
-        </ExpansionPanelSummary>
-        <ExpansionPanelDetails>
-          details and stuff!
-        </ExpansionPanelDetails>
-      </ExpansionPanel>
+        />
     );
   }
   eventTitle (event) {

@@ -2,6 +2,40 @@ import { createMuiTheme } from '@material-ui/core/styles';
 import Colors from './colors';
 
 const theme = createMuiTheme({
+  overrides: {
+    MuiSelect: {
+      select: {
+        // padding: '12px 16px'
+        // height: '100%'
+      },
+      icon: {
+
+      }
+    },
+    MuiInput: {
+      root: {
+        position: 'relative',
+        border: '1px solid ' + Colors.grey800,
+        borderRadius: 20,
+        overflow: 'hidden'
+      },
+      input: {
+        margin: '12px 16px',
+        padding: 0,
+        '&::placeholder': {
+          color: 'rgba(255, 255, 255, 0.2)'
+        }
+      }
+    }
+  },
+  props: {
+    MuiSelect: {
+      disableUnderline: true
+    },
+    MuiInput: {
+      disableUnderline: true
+    }
+  },
   palette: {
     type: 'dark',
     background: {
@@ -25,6 +59,9 @@ const theme = createMuiTheme({
       900: Colors.grey900,
       950: Colors.grey950,
       999: Colors.grey999
+    },
+    error: {
+      main: 'rgba(209,106,35,0.72)'
     }
   }
 });

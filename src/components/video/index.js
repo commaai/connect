@@ -60,7 +60,7 @@ class VideoPreview extends Component {
         let desiredVideoTime = this.currentVideoTime(offset);
         let timeDiff = desiredVideoTime - curVideoTime;
 
-        console.log('Adjusting time drift by', timeDiff, curVideoTime);
+        // console.log('Adjusting time drift by', timeDiff, curVideoTime);
         // console.log(playerState);
         shouldShowPreview = playerState.buffered.length === 0 || playerState.waiting || (Math.abs(timeDiff) > 2);
 
