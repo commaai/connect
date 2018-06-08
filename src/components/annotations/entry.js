@@ -39,9 +39,10 @@ const styles = theme => {
       lineHeight: '17px',
       color: theme.palette.error.main,
       border: '1px solid ' + theme.palette.error.main,
-      borderRadius: theme.spacing.unit,
-      minWidth: '100%',
-      fontSize: '0.9em'
+      borderRadius: 15,
+      fontSize: '0.9em',
+      display: 'inline-block',
+      padding: '6px 10px'
     },
     summaryContent: {
       padding: '0px',
@@ -61,6 +62,9 @@ const styles = theme => {
       '&>div': {
         height: 42
       }
+    },
+    placeholder: {
+      color: theme.palette.placeholder
     }
   };
 };
@@ -83,6 +87,10 @@ class AnnotationEntry extends Component {
 
   render () {
     const dateString = fecha.format(new Date(this.props.timestamp), 'MMM D @ HH:mm:ss');
+    var selectClassName = this.props.classes.select;
+    if (!this.state.reason || !this.state.reason.length) {
+      selectClassName += ' ' + this.props.classes.placeholder;
+    }
 
     return (
       <ExpansionPanel
@@ -108,7 +116,7 @@ class AnnotationEntry extends Component {
               <Typography className={ this.props.classes.date }>[{ dateString }]</Typography>
             </Grid>
             <Grid item xs={ 2 }>
-              <Typography className={ this.props.classes.disengage }>Disengage</Typography>
+              <Typography className={ this.props.classes.disengage }>Disengaged</Typography>
             </Grid>
           </Grid>
         </ExpansionPanelSummary>
@@ -120,14 +128,14 @@ class AnnotationEntry extends Component {
                 displayEmpty
                 value={ this.state.reason }
                 onChange={ this.handleChange }
-                className={ this.props.classes.select }
+                className={ selectClassName }
                 inputProps={{
                   name: 'reason',
                   id: 'reason-simple'
                 }}
               >
                 { this.state.reason === '' &&
-                  <MenuItem disabled value=''>
+                  <MenuItem disabled value='' >
                     Choose one
                   </MenuItem>
                 }

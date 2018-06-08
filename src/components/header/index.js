@@ -134,14 +134,14 @@ class AppHeader extends Component {
                 <CurrentTime />
               </Grid>
               <Grid item xs={2} align='right' >
-                {/*<FormControl>
+                <FormControl>
                   <Select
                     value={ this.selectedOption() }
                     onChange={ this.handleSelectChange }
                     name='timerange'>
                     <MenuItem value='2-weeks'>{ this.last2WeeksText() } </MenuItem>
                   </Select>
-                </FormControl>*/}
+                </FormControl>
               </Grid>
               <Grid item xs={1} >
                 <div>

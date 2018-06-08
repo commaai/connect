@@ -1,15 +1,21 @@
 import { createMuiTheme } from '@material-ui/core/styles';
 import Colors from './colors';
+import { ChevronIcon, AccountIcon } from './icons';
 
 const theme = createMuiTheme({
   overrides: {
     MuiSelect: {
       select: {
-        // padding: '12px 16px'
+        padding: '12px 16px',
+        margin: '0',
+        '&>div': {
+          margin: '0',
+        }
         // height: '100%'
       },
       icon: {
-
+        marginRight: 20,
+        color: 'rgba(255, 255, 255, 0.25)'
       }
     },
     MuiInput: {
@@ -23,14 +29,16 @@ const theme = createMuiTheme({
         margin: '12px 16px',
         padding: 0,
         '&::placeholder': {
-          color: 'rgba(255, 255, 255, 0.2)'
+          opacity: 1,
+          color: Colors.white30
         }
       }
     }
   },
   props: {
     MuiSelect: {
-      disableUnderline: true
+      disableUnderline: true,
+      IconComponent: ChevronIcon
     },
     MuiInput: {
       disableUnderline: true
@@ -38,6 +46,7 @@ const theme = createMuiTheme({
   },
   palette: {
     type: 'dark',
+    placeholder: Colors.white30,
     background: {
       default: Colors.grey999
     },
