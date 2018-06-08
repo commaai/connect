@@ -106,16 +106,16 @@ class AnnotationEntry extends Component {
         <ExpansionPanelSummary classes={{
             content: this.props.classes.summaryContent
           }}>
-          <Grid container>
+          <Grid container alignItems='center' >
             <Grid item xs={ 1 }>
             </Grid>
-            <Grid item xs={ 5 }>
+            <Grid item xs={ 4 }>
               <Typography className={ this.props.classes.heading }>{ this.getTitle() }</Typography>
             </Grid>
             <Grid item xs={ 4 }>
               <Typography className={ this.props.classes.date }>[{ dateString }]</Typography>
             </Grid>
-            <Grid item xs={ 2 }>
+            <Grid item xs={ 3 }>
               <Typography className={ this.props.classes.disengage }>Disengaged</Typography>
             </Grid>
           </Grid>

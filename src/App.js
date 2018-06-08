@@ -29,7 +29,10 @@ class App extends Component {
     this.state = {
       initialized: false
     };
-    init().then(() => {
+    Promise.all([
+      TimelineWorker.init(),
+      init()
+    ]).then(() => {
       this.setState({ initialized: true });
     });
   }

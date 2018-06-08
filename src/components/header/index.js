@@ -16,7 +16,7 @@ import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 import IconButton from '@material-ui/core/IconButton';
 
-import AccountCircle from '@material-ui/icons/AccountCircle';
+import { AccountIcon } from '../../icons';
 
 import CurrentTime from './currentTime';
 import Minimap from '../minimap';
@@ -134,14 +134,14 @@ class AppHeader extends Component {
                 <CurrentTime />
               </Grid>
               <Grid item xs={2} align='right' >
-                <FormControl>
+                {/*<FormControl>
                   <Select
                     value={ this.selectedOption() }
                     onChange={ this.handleSelectChange }
                     name='timerange'>
                     <MenuItem value='2-weeks'>{ this.last2WeeksText() } </MenuItem>
                   </Select>
-                </FormControl>
+                </FormControl>*/}
               </Grid>
               <Grid item xs={1} >
                 <div>
@@ -150,7 +150,7 @@ class AppHeader extends Component {
                     aria-haspopup="true"
                     onClick={this.handleMenu}
                     color="inherit" >
-                    <AccountCircle />
+                    <AccountIcon />
                   </IconButton>
                   <Menu
                     id="menu-appbar"

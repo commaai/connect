@@ -67,8 +67,8 @@ class AnnotationList extends Component {
         eventId={ eventId }
         event={ event }
         timestamp={ timestamp }
-        // expanded={ this.state.expanded === eventId }
-        expanded={ this.state.expanded ? this.state.expanded === eventId : index === 0 }
+        expanded={ this.state.expanded === eventId }
+        // expanded={ this.state.expanded ? this.state.expanded === eventId : index === 0 }
         onChange={ partial(this.handleExpanded, eventId) }
         />
     );

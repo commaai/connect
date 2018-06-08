@@ -23,7 +23,17 @@ scheduleSegmentUpdate(getState());
 checkSegmentMetadata(getState());
 
 // fire off init method
-init();
+let hasGottenSegmentData = null;
+let hasGottenSegmentDataPromise = new Promise(function (resolve, reject) {
+  hasGottenSegmentData = function () {
+    hasGottenSegmentData = noop;
+    resolve();
+  };
+});
+const startupPromise = Promise.all([
+  init(),
+  hasGottenSegmentDataPromise
+]);
 
 // segments
 // start offset
@@ -53,10 +63,11 @@ const commands = {
   close,
   play,
   pause,
-  seek
+  seek,
+  hello
 };
 
-export function handleMessage (port, msg) {
+export async function handleMessage (port, msg) {
   console.log('Got this message', msg);
 
   if (msg.data.command) {
@@ -64,7 +75,17 @@ export function handleMessage (port, msg) {
       console.error('Invalid command!', msg.data);
       return;
     }
-    commands[msg.data.command](port, msg.data.data);
+    let result = commands[msg.data.command](port, msg.data.data);
+    if (result && msg.data.requestId) {
+      result = await result;
+      if (result) {
+        port.postMessage({
+          requestId: msg.data.requestId,
+          command: 'return-value',
+          data: result
+        });
+      }
+    }
   }
 }
 
@@ -158,6 +179,11 @@ function play (port, speed) {
   store.dispatch(Playback.play(speed));
 }
 
+async function hello (port) {
+  await startupPromise;
+  return 'hello';
+}
+
 function scheduleSegmentUpdate (state) {
   let timeUntilNext = 0;
   let offset = Playback.currentOffset(state);
@@ -183,10 +209,12 @@ function scheduleSegmentUpdate (state) {
 
 async function checkSegmentMetadata (state) {
   if (!state.dongleId) {
+    hasGottenSegmentData();
     return;
   }
   if (Segments.hasSegmentMetadata(state)) {
     // already has metadata, don't bother
+    hasGottenSegmentData();
     return true;
   }
   console.log('We need to update the segment metadata...');
@@ -212,6 +240,7 @@ async function checkSegmentMetadata (state) {
   segmentData = Segments.parseSegmentMetadata(state, segmentData);
   // broken
   store.dispatch(Segments.insertSegmentMetadata(segmentData));
+  hasGottenSegmentData();
   // ensureSegmentData(getState());
 }
 
@@ -243,4 +272,7 @@ async function ensureSegmentData (state) {
       entry.start();
     }
   }
+}
+
+function noop () {
 }

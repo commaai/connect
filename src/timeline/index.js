@@ -21,10 +21,20 @@ class TimelineInterface {
   constructor (options) {
     this.options = options || {};
     this.buffers = {};
-    this._initPromise = init(this)
+    this.requestId = 1;
+    this.openRequests = {};
+    this._initPromise = init(this);
+    this._readyPromise = this.rpc({
+      command: 'hello'
+    });
   }
+
   onStateChange = StateEvent.listen
   onIndexed = IndexEvent.listen
+
+  async init () {
+    return this._readyPromise;
+  }
 
   async getPort () {
     await this._initPromise;
@@ -65,10 +75,18 @@ class TimelineInterface {
 
   async rpc (msg) {
     // msg that expects a reply
+    return new Promise((resolve, reject) => {
+      let requestId = this.requestId++;
+      this.openRequests[requestId] = resolve;
+      this.postMessage({
+        ...msg,
+        requestId
+      });
+    });
   }
 
   async postMessage (msg) {
-    var port = await this.getPort()
+    var port = await this.getPort();
     port.postMessage(msg);
   }
 
@@ -97,6 +115,12 @@ class TimelineInterface {
       case 'return-value':
         // implement RPC return values
         // is this needed?
+        if (this.openRequests[msg.data.requestId]) {
+          this.openRequests[msg.data.requestId](msg.data.data);
+          delete this.openRequests[msg.data.requestId];
+        } else {
+          console.error('Got a reply for invalid RPC', msg.data.requestId);
+        }
         break;
       case 'state':
         this.state = msg.data.data;
@@ -213,12 +237,6 @@ async function initWorker (timeline) {
   var port = worker.port || worker;
 
   port.onmessage = timeline.handleMessage.bind(timeline);
-  // port.postMessage({
-  //   command: 'hello',
-  //   data: {
-  //     token: await getCommaAccessToken()
-  //   }
-  // });
 
   timeline.worker = worker;
   timeline.port = port;

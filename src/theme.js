@@ -11,7 +11,6 @@ const theme = createMuiTheme({
         '&>div': {
           margin: '0',
         }
-        // height: '100%'
       },
       icon: {
         marginRight: 20,

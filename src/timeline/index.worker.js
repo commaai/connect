@@ -8,15 +8,6 @@ const portInterface = {
   postMessage: postMessage
 };
 
-postMessage({
-  command: 'state',
-  data: API.getState()
-});
-
-postMessage({
-  command: 'broadcastPort'
-}, [API.createBroadcastPort(port)]);
-
 port.onmessage = function (msg) {
   console.log('Got msg', msg);
   API.handleMessage(portInterface, msg);
@@ -26,6 +17,15 @@ port.onmessageerror = function (e) {
   console.error('Msgh error!', e);
   close();
 }
+
+postMessage({
+  command: 'state',
+  data: API.getState()
+});
+
+postMessage({
+  command: 'broadcastPort'
+}, [API.createBroadcastPort(port)]);
 
 function close () {
   port.close();
