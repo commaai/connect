@@ -4,8 +4,8 @@ module.exports = {
   end: getDefaultEndDate(),
 
   // dongleId: '99c94dc769b5d96e',
-  // dongleId: 'ff83f397542ab647',
-  dongleId: 'f1b4c567731f4a1b',
+  dongleId: 'ff83f397542ab647',
+  // dongleId: 'f1b4c567731f4a1b',
   // dongleId: null,
 
   route: false,
@@ -36,7 +36,7 @@ function getDefaultStartDate () {
   var d = new Date();
   d.setHours(d.getHours(), 0, 0, 0);
 
-  return (new Date(d.getTime() - 1000 * 60 * 60 * 48)).getTime();
+  return (new Date(d.getTime() - 1000 * 60 * 60 * 24 * 7)).getTime();
 }
 
 function getDefaultEndDate () {

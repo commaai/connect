@@ -158,12 +158,20 @@ function hasSegmentMetadata (state) {
     console.log('No segment data at all');
     return false;
   }
+  if (!state.segmentData.segments) {
+    console.log('Still loading...');
+    return false;
+  }
   if (state.dongleId !== state.segmentData.dongleId) {
     console.log('Bad dongle id');;
     return false;
   }
   if (state.start < state.segmentData.start) {
     console.log('Bad start offset');
+    return false;
+  }
+  if (state.end > state.segmentData.end) {
+    console.log('Bad end offset');
     return false;
   }
   if (state.end > state.segmentData.end) {

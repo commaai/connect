@@ -18,11 +18,7 @@ const DataLogEvent = Event();
 const PortState = CreateStore();
 const SegmentTimerStore = CreateStore();
 
-// set up initial schedules
-scheduleSegmentUpdate(getState());
-checkSegmentMetadata(getState());
-
-// fire off init method
+// fire off init method / construct init promises
 let hasGottenSegmentData = null;
 let hasGottenSegmentDataPromise = new Promise(function (resolve, reject) {
   hasGottenSegmentData = function () {
@@ -34,6 +30,12 @@ const startupPromise = Promise.all([
   init(),
   hasGottenSegmentDataPromise
 ]);
+
+var segmentsRequest = null;
+
+// set up initial schedules
+scheduleSegmentUpdate(getState());
+checkSegmentMetadata(getState());
 
 // segments
 // start offset
@@ -57,6 +59,9 @@ store.subscribe(function () {
     command: 'state',
     data: state
   });
+  if (Segments.hasSegmentMetadata(state)) {
+    hasGottenSegmentData();
+  }
 });
 
 const commands = {
@@ -209,38 +214,41 @@ function scheduleSegmentUpdate (state) {
 
 async function checkSegmentMetadata (state) {
   if (!state.dongleId) {
-    hasGottenSegmentData();
     return;
   }
   if (Segments.hasSegmentMetadata(state)) {
     // already has metadata, don't bother
-    hasGottenSegmentData();
     return true;
+  }
+  if (segmentsRequest) {
+    return;
   }
   console.log('We need to update the segment metadata...');
   var dongleId = state.dongleId;
   var start = state.start;
   var end = state.end;
 
-  var segmentData = API.getSegmentMetadata(start, end, dongleId);
+  var segmentData = null;
+  segmentsRequest = API.getSegmentMetadata(start, end, dongleId);
   store.dispatch(Segments.fetchSegmentMetadata(start, end));
 
   try {
-    segmentData = await segmentData;
+    segmentData = await segmentsRequest;
     console.log(segmentData);
   } catch (e) {
     console.error('Failure fetching segment metadata', e.stack || e);
     ///@TODO retry this call!
     return;
+  } finally {
+    segmentsRequest = null;
   }
   if (state.start !== start || state.end !== end || state.dongleId !== dongleId) {
-    return;
+    return checkSegmentMetadata(getState());
   }
 
   segmentData = Segments.parseSegmentMetadata(state, segmentData);
   // broken
   store.dispatch(Segments.insertSegmentMetadata(segmentData));
-  hasGottenSegmentData();
   // ensureSegmentData(getState());
 }
 
