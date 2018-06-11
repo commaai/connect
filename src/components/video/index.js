@@ -94,7 +94,7 @@ class VideoPreview extends Component {
       }
     }
     if (this.imageRef.current) {
-      if (shouldShowPreview) {
+      if (shouldShowPreview && this.imageRef.current.src !== this.nearestImageFrame(offset)) {
         this.imageRef.current.src = this.nearestImageFrame(offset);
       }
       this.imageRef.current.style.display = shouldShowPreview ? 'block' : 'none';

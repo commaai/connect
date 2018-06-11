@@ -5,7 +5,6 @@ import Hls from 'hls.js';
 export default class HLSSource extends Component {
   constructor(props, context) {
     super(props, context);
-    this.hls = new Hls();
   }
 
   componentDidUpdate (prevProps, prevState) {
@@ -13,7 +12,7 @@ export default class HLSSource extends Component {
       this.initHls();
     }
   }
-  componentDidMount() {
+  componentWillMount() {
     this.initHls();
   }
 
@@ -25,6 +24,10 @@ export default class HLSSource extends Component {
 
     // load hls video source base on hls.js
     if (Hls.isSupported()) {
+      if (this.hls) {
+        this.hls.destroy();
+      }
+      this.hls = new Hls();
       this.hls.loadSource(src);
       this.hls.attachMedia(video);
       this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
