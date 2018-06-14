@@ -33,11 +33,11 @@ class AnnotationsView extends Component {
         <Grid container>
           <Grid item xs={12}>
             <Typography>
-              Header
+              { (this.props.currentSegment || this.props.nextSegment).route }
             </Typography>
           </Grid>
           <Grid item xs={12}>
-            <Minimap zoomed colored />
+            <Minimap zoomed colored thumbnailed />
           </Grid>
         </Grid>
         <Grid container spacing={ 32 } className={ this.props.classes.paddedContainer } >
@@ -57,6 +57,8 @@ class AnnotationsView extends Component {
 }
 
 const stateToProps = Obstruction({
+  currentSegment: 'workerState.currentSegment',
+  nextSegment: 'workerState.nextSegment',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AnnotationsView));

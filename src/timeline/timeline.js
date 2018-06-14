@@ -201,6 +201,7 @@ function scheduleSegmentUpdate (state) {
   }
   if (state.currentSegment) {
     let time = (state.currentSegment.startOffset + state.currentSegment.duration) - offset;
+    debugger;
     timeUntilNext = Math.min(time, timeUntilNext);
   }
 

@@ -17,6 +17,7 @@ import Select from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
 import Button from '@material-ui/core/Button';
 import TextField from '@material-ui/core/TextField';
+import FormHelperText from '@material-ui/core/FormHelperText';
 
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 
@@ -73,15 +74,52 @@ class AnnotationEntry extends Component {
   constructor (props) {
     super(props);
     this.handleChange = this.handleChange.bind(this);
+    this.handleComment = this.handleComment.bind(this);
+    this.validate = this.validate.bind(this);
 
     this.state = {
-      reason: ''
+      reason: '',
+      comment: ''
     };
   }
 
   handleChange (e) {
     this.setState({
       reason: e.target.value
+    });
+  }
+
+  handleComment (e) {
+    this.setState({
+      comment: e.target.value
+    });
+  }
+
+  validate () {
+    if (this.state.saving) {
+      return false;
+    }
+    if (this.state.reason === '') {
+      this.setState({
+        error: 'You must select a reason',
+        errorElem: 'reason'
+      });
+      return;
+    }
+
+    if (this.state.reason === 'other' && !this.state.comment.length) {
+      this.setState({
+        error: 'You must describe your reason',
+        errorElem: 'comment'
+      });
+      return;
+    }
+
+    // no error
+    this.setState({
+      error: false,
+      errorElem: false,
+      saving: true
     });
   }
 
@@ -149,12 +187,12 @@ class AnnotationEntry extends Component {
               </Select>
             ))}
             { this.renderFormLine('Comment', (
-              <TextField placeholder='Add a comment...' className={ this.props.classes.select } />
+              <TextField onChange={ this.handleComment } placeholder='Add a comment...' className={ this.props.classes.select } />
             ))}
           </Grid>
         </ExpansionPanelDetails>
         <ExpansionPanelActions>
-          <Button variant='outlined' size='small'>Resolve Annotation</Button>
+          <Button onClick={ this.validate } variant='outlined' size='small'>Resolve Annotation</Button>
           <Button variant='outlined' size='small'>Cancel</Button>
         </ExpansionPanelActions>
       </ExpansionPanel>
@@ -163,6 +201,12 @@ class AnnotationEntry extends Component {
   renderFormLine (label, form) {
     return (
       <React.Fragment>
+        <Grid item xs={ 12 }>
+          { (this.state.errorElem === label.toLowerCase())
+            ? (<FormHelperText error>{ this.state.error }</FormHelperText>)
+            : []
+          }
+        </Grid>
         <Grid item xs={ 3 }>
           <Typography className={ this.props.classes.formLabel } >
             { label }:

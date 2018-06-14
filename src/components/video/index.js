@@ -20,7 +20,8 @@ class VideoPreview extends Component {
     this.videoPlayer = React.createRef();
 
     this.state = {
-      bufferTime: 5
+      bufferTime: 5,
+      src: this.videoURL()
     };
   }
 
@@ -34,12 +35,22 @@ class VideoPreview extends Component {
   }
   componentWillUnmount () {
     this.mounted = false;
+    this.setState({
+      src: this.videoURL()
+    });
+    if (this.videoPlayer.current) {
+      this.videoPlayer.current.load();
+    }
   }
 
   componentDidUpdate (prevProps, prevState) {
-    if (this.videoPlayer.current) {
-      if (this.props.playSpeed !== prevProps.playSpeed) {
-        this.videoPlayer.current.playbackRate = this.props.playSpeed;
+    let newUrl = this.videoURL();
+    if (this.state.src !== newUrl) {
+      this.setState({
+        src: newUrl
+      });
+      if (this.videoPlayer.current) {
+        this.videoPlayer.current.load();
       }
     }
   }
@@ -67,6 +78,9 @@ class VideoPreview extends Component {
         if (Number.isFinite(timeDiff) && Math.abs(timeDiff) > 0.25) {
 
           if (Math.abs(timeDiff) > bufferTime * 1.1) {
+            if (desiredVideoTime + this.state.bufferTime * this.props.playSpeed > playerState.duration) {
+              debugger;
+            }
             console.log('Seeking!');
             videoPlayer.seek(desiredVideoTime + this.state.bufferTime * this.props.playSpeed);
           } else {
@@ -142,13 +156,13 @@ class VideoPreview extends Component {
           autoPlay={ !!this.props.currentSegment }
           muted={ true }
           fluid={ true }
+          src={ this.state.src }
 
           startTime={ this.currentVideoTime() + (this.props.currentSegment ? this.state.bufferTime * this.props.playSpeed : 0) }
           playbackRate={ this.props.playSpeed }
           >
           <HLSSource
             isVideoChild
-            src={ this.videoURL() }
           />
           <ControlBar autoHide={false}>
             <PlaybackRateMenuButton

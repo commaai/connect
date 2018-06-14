@@ -126,6 +126,9 @@ function segmentsFromMetadata (segmentsData) {
     // }
     curStopTime = segment.start_time_utc_millis;
     if (!curSegment || curSegment.route !== segment.canonical_route_name) {
+      if (curSegment) {
+        finishSegment(curSegment);
+      }
       let url = segment.url;
       console.log(url, segment);
       let parts = url.split('/');
@@ -150,7 +153,40 @@ function segmentsFromMetadata (segmentsData) {
     curSegment.events = curSegment.events.concat(segment.events);
   });
 
+  if (curSegment) {
+    finishSegment(curSegment);
+  }
+
   return segments;
+
+  function finishSegment (segment) {
+    var lastEngage = null;
+
+    segment.events = segment.events.sort(function (eventA, eventB) {
+      if (eventA.route_offset_millis === eventB.route_offset_millis) {
+        return eventA.route_offset_micros - eventB.route_offset_micros;
+      }
+      return eventA.route_offset_millis - eventB.route_offset_millis;
+    });
+    segment.events.forEach(function (event) {
+      // NOTE sometimes theres 2 disengages in a row and that is NONSENSE
+      switch (event.type) {
+        case 'engage':
+          lastEngage = event;
+          break;
+        case 'disengage':
+          lastEngage.data = {
+            end_offset_micros: event.offset_micros,
+            end_offset_millis: event.offset_millis,
+            end_route_offset_micros: event.route_offset_micros,
+            end_route_offset_millis: event.route_offset_millis
+          };
+          break;
+        default:
+          break;
+      }
+    });
+  }
 }
 
 function hasSegmentMetadata (state) {

@@ -14,6 +14,7 @@ import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 
 import AnnotationEntry from './entry';
+import Timelineworker from '../../timeline';
 
 const styles = theme => {
   return {
@@ -37,10 +38,12 @@ class AnnotationList extends Component {
     };
   }
 
-  handleExpanded (eventId) {
+  handleExpanded (eventId, seekpos) {
     this.setState({
       expanded: this.state.expanded === eventId ? null : eventId
     });
+
+    Timelineworker.seek(seekpos - 10000);
   }
 
   render() {
@@ -59,7 +62,7 @@ class AnnotationList extends Component {
   }
   renderEntry (segment, event, index) {
     const eventId = event.time + ':' + index;
-    const timestamp = this.props.start + segment.startOffset + event.offset_millis;
+    const timestamp = this.props.start + segment.routeOffset + event.route_offset_millis;
 
     return (
       <AnnotationEntry
@@ -69,7 +72,7 @@ class AnnotationList extends Component {
         timestamp={ timestamp }
         expanded={ this.state.expanded === eventId }
         // expanded={ this.state.expanded ? this.state.expanded === eventId : index === 0 }
-        onChange={ partial(this.handleExpanded, eventId) }
+        onChange={ partial(this.handleExpanded, eventId, segment.routeOffset + event.route_offset_millis) }
         />
     );
   }

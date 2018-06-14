@@ -43,12 +43,23 @@ const styles = (theme) => {
     },
     segment: {
       position: 'relative',
-      height: '100%'
+      height: '100%',
+      background: 'linear-gradient(to bottom, ' + theme.palette.grey[200] + 'ff 0%, ' + theme.palette.grey[200] + '55 100%)'
     },
-    activeSegment: {
+    segmentColor: {
+      position: 'absolute',
+      display: 'inline-block',
       height: '100%',
       width: '100%',
-      background: 'linear-gradient(to bottom, rgb(20, 200, 20) 0%, rgb(0, 70, 0) 100%)'
+      '&.active': {
+        background: 'linear-gradient(to bottom, rgb(20, 200, 20) 0%, rgb(0, 70, 0) 100%)'
+      },
+      '&.engage': {
+        background: 'linear-gradient(to bottom, rgb(20, 200, 20) 0%, rgb(0, 70, 0) 100%)'
+      },
+      '&.alert': {
+        background: 'linear-gradient(to bottom, ' + theme.palette.error.main + ' 0%, ' + theme.palette.error.dark + ' 100%)'
+      }
     },
     uncoloredSegment: {
       height: '100%',
@@ -290,7 +301,6 @@ class Minimap extends Component {
       let duration = zoomEnd - zoomStart;
       startPerc = (startPerc - zoomStart) / duration * 100
       widthPerc = (widthPerc) / duration * 100
-      console.log('% range is', zoomEnd, zoomStart, duration, startPerc, widthPerc);
     }
     let style = {
       position: 'absolute',
@@ -315,14 +325,19 @@ class Minimap extends Component {
   renderSegmentEvents (segment) {
     console.log(segment.route);
     var startMonoTime = TimelineWorker.getStartMonoTime(segment.route, 0);
-    segment.events.forEach(function (event) {
-      console.log(event.time, startMonoTime);
-    });
-    console.log(segment, segment.events);
-    return (
-      <div className={ this.props.classes.activeSegment }>
-      </div>
-    );
+    console.log(segment.events);
+    return segment.events
+      .filter((event) => event.data && event.data.end_route_offset_millis)
+      .map((event) => {
+        let style = {
+          left: ((event.route_offset_millis / segment.duration) * 100) + '%',
+          width: (((event.data.end_route_offset_millis - event.route_offset_millis) / segment.duration) * 100) + '%',
+        };
+        return (
+          <div style={ style } className={ this.props.classes.segmentColor + ' ' + event.type }>
+          </div>
+        );
+      });
   }
 }
 

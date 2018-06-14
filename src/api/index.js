@@ -1,8 +1,9 @@
 import { timeout } from 'thyming';
 import * as request from './request';
+import { AnnotationValidator } from './validators';
 
 export async function getSegmentMetadata (start, end, dongleId) {
-  return await request.get('devices/' + dongleId + '/segments', {
+  return request.get('devices/' + dongleId + '/segments', {
     from: start,
     to: end
   });
@@ -27,5 +28,15 @@ export async function getLogUrls (routeName) {
 }
 
 export async function listDevices () {
-  return await request.get('me/devices/');
+  return request.get('me/devices/');
+}
+
+export async function createAnnotation (data) {
+  data = AnnotationValidator.validate(data);
+  if (data.error) {
+    throw data.error;
+  }
+  data = data.value;
+
+  return request.post('annotations/new', data);
 }
