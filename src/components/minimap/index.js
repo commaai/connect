@@ -323,9 +323,6 @@ class Minimap extends Component {
     }
   }
   renderSegmentEvents (segment) {
-    console.log(segment.route);
-    var startMonoTime = TimelineWorker.getStartMonoTime(segment.route, 0);
-    console.log(segment.events);
     return segment.events
       .filter((event) => event.data && event.data.end_route_offset_millis)
       .map((event) => {
@@ -334,7 +331,7 @@ class Minimap extends Component {
           width: (((event.data.end_route_offset_millis - event.route_offset_millis) / segment.duration) * 100) + '%',
         };
         return (
-          <div style={ style } className={ this.props.classes.segmentColor + ' ' + event.type }>
+          <div key={ segment.route + event.route_offset_millis } style={ style } className={ this.props.classes.segmentColor + ' ' + event.type }>
           </div>
         );
       });

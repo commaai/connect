@@ -98,7 +98,8 @@ class TimeDisplay extends Component {
     this.decreaseSpeed = this.decreaseSpeed.bind(this);
 
     this.state = {
-      playSpeed: 1
+      playSpeed: 1,
+      displayTime: this.getDisplayTime()
     };
   }
   componentDidUpdate (prevProps, prevState) {
@@ -154,7 +155,10 @@ class TimeDisplay extends Component {
     if (!this.mounted || !this.textHolder.current) {
       return;
     }
-    this.textHolder.current.innerHTML = this.getDisplayTime();
+    let displayTime = this.getDisplayTime();
+    if (this.state.displayTime !== displayTime) {
+      this.setState({ displayTime });
+    }
 
     raf(this.updateTime);
   }
@@ -195,7 +199,7 @@ class TimeDisplay extends Component {
               CURRENT PLAYBACK TIME
             </Typography>
             <Typography variant='body1' align='center'>
-              <span ref={ this.textHolder } className={ this.props.classes.currentTime } >{ this.getDisplayTime() }</span>
+              <span ref={ this.textHolder } className={ this.props.classes.currentTime } >{ this.state.displayTime }</span>
             </Typography>
           </Grid>
           <Grid item xs={3} className={ this.props.classes.seperator } >

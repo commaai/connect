@@ -79,10 +79,12 @@ class VideoPreview extends Component {
 
           if (Math.abs(timeDiff) > bufferTime * 1.1) {
             if (desiredVideoTime + this.state.bufferTime * this.props.playSpeed > playerState.duration) {
-              debugger;
+              // debugger;
+              // do nothing, this is a bug
+            } else {
+              console.log('Seeking!');
+              videoPlayer.seek(desiredVideoTime + this.state.bufferTime * this.props.playSpeed);
             }
-            console.log('Seeking!');
-            videoPlayer.seek(desiredVideoTime + this.state.bufferTime * this.props.playSpeed);
           } else {
             if (timeDiff > 0) {
               timeDiff = Math.min(1, timeDiff);

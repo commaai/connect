@@ -90,12 +90,24 @@ function insertSegmentMetadata (data) {
   };
 }
 
-function parseSegmentMetadata (state, segments) {
+function parseSegmentMetadata (state, segments, annotations) {
   console.log(segments);
   segments = segments.map(function (segment) {
     segment.offset = Math.round(segment.start_time_utc_millis) - state.start;
     segment.duration = Math.round(segment.end_time_utc_millis - segment.start_time_utc_millis);
     segment.events = JSON.parse(segment.events_json);
+    segment.events.forEach(function (event) {
+      console.log(event, annotations, segment);
+      annotations.forEach(function (annotation) {
+        if (annotation.canonical_segment_name === segment.canonical_name && annotation.segment_offset_nanos === event.offset_micros) {
+          if (event.id) {
+            debugger;
+          }
+          event.id = annotation.id;
+          event.data = annotation.data;
+        }
+      });
+    });
     return segment;
   });
   return {

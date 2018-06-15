@@ -28,12 +28,14 @@ const styles = theme => {
 
 class AnnotationsView extends Component {
   render() {
+    let visibleSegment = (this.props.currentSegment || this.props.nextSegment);
+    let routeName = visibleSegment ? visibleSegment.route : 'Nothing visible';
     return (
       <Paper className={ this.props.classes.root }>
         <Grid container>
           <Grid item xs={12}>
             <Typography>
-              { (this.props.currentSegment || this.props.nextSegment).route }
+              {  }
             </Typography>
           </Grid>
           <Grid item xs={12}>

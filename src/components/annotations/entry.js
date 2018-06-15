@@ -18,8 +18,11 @@ import MenuItem from '@material-ui/core/MenuItem';
 import Button from '@material-ui/core/Button';
 import TextField from '@material-ui/core/TextField';
 import FormHelperText from '@material-ui/core/FormHelperText';
+import LinearProgress from '@material-ui/core/LinearProgress';
 
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+
+import * as API from '../../api';
 
 const styles = theme => {
   return {
@@ -78,9 +81,17 @@ class AnnotationEntry extends Component {
     this.validate = this.validate.bind(this);
 
     this.state = {
-      reason: '',
-      comment: ''
+      ...this.props.event.data,
+      saving: false,
+      id: this.props.event.id
     };
+  }
+
+  componentWillReceiveProps (props) {
+    this.setState({
+      ...props.event.data,
+      id: props.event.id
+    });
   }
 
   handleChange (e) {
@@ -95,7 +106,7 @@ class AnnotationEntry extends Component {
     });
   }
 
-  validate () {
+  async validate () {
     if (this.state.saving) {
       return false;
     }
@@ -121,12 +132,62 @@ class AnnotationEntry extends Component {
       errorElem: false,
       saving: true
     });
+
+    var data = null;
+
+    try {
+      if (!this.state.id) {
+        data = await API.createAnnotation({
+          canonical_segment_name: this.props.segment.route + '--' + this.props.segment.segment,
+          segment_offset_nanos: this.props.event.offset_micros,
+          start_time_utc_millis: this.props.timestamp,
+          end_time_utc_millis: this.props.timestamp,
+          type: this.props.event.type,
+          data: {
+            reason: this.state.reason,
+            comment: this.state.comment
+          }
+        });
+      } else {
+        data = await API.updateAnnotation(this.state.id, {
+          reason: this.state.reason,
+          comment: this.state.comment
+        });
+      }
+    } catch (e) {
+      // no error
+      let error = e;
+      let message = error.message;
+      if (!error.isJoi) {
+        this.setState({
+          error: message,
+          errorElem: 'reason',
+          saving: false
+        });
+      } else {
+        this.setState({
+          error: message,
+          errorElem: 'reason',
+          saving: false
+        });
+      }
+      return;
+    }
+
+    console.log('Hey check out this kickass annotation', data);
+    this.setState({
+      id: data.id,
+      error: false,
+      errorElem: false,
+      saving: false
+    });
   }
 
   render () {
     const dateString = fecha.format(new Date(this.props.timestamp), 'MMM D @ HH:mm:ss');
+    const reason = this.state.reason || '';
     var selectClassName = this.props.classes.select;
-    if (!this.state.reason || !this.state.reason.length) {
+    if (!reason.length) {
       selectClassName += ' ' + this.props.classes.placeholder;
     }
 
@@ -158,13 +219,18 @@ class AnnotationEntry extends Component {
             </Grid>
           </Grid>
         </ExpansionPanelSummary>
-        <Divider />
+        {/* if (!this.state.saving) { */}
+        { !this.state.saving && <Divider style={{ marginBottom: 4 }} /> }
+        {/* } else { */}
+        {  this.state.saving && <LinearProgress /> }
         <ExpansionPanelDetails>
           <Grid container alignContent='center' alignItems='center'>
             { this.renderFormLine('Reason', (
               <Select
+                disabled={ this.state.saving }
                 displayEmpty
-                value={ this.state.reason }
+                error={ this.state.errorElem === 'reason' }
+                value={ reason }
                 onChange={ this.handleChange }
                 className={ selectClassName }
                 inputProps={{
@@ -172,7 +238,7 @@ class AnnotationEntry extends Component {
                   id: 'reason-simple'
                 }}
               >
-                { this.state.reason === '' &&
+                { reason === '' &&
                   <MenuItem disabled value='' >
                     Choose one
                   </MenuItem>
@@ -187,13 +253,29 @@ class AnnotationEntry extends Component {
               </Select>
             ))}
             { this.renderFormLine('Comment', (
-              <TextField onChange={ this.handleComment } placeholder='Add a comment...' className={ this.props.classes.select } />
+              <TextField
+                onChange={ this.handleComment }
+                placeholder='Add a comment...'
+                className={ this.props.classes.select }
+                error={ this.state.errorElem === 'Comment' }
+                disabled={ this.state.saving }
+                value={ this.state.comment }
+                />
             ))}
           </Grid>
         </ExpansionPanelDetails>
         <ExpansionPanelActions>
-          <Button onClick={ this.validate } variant='outlined' size='small'>Resolve Annotation</Button>
-          <Button variant='outlined' size='small'>Cancel</Button>
+          <Button
+            onClick={ this.validate }
+            variant='outlined'
+            size='small'
+            disabled={ this.state.saving }
+            >Resolve Annotation</Button>
+          <Button
+            variant='outlined'
+            size='small'
+            disabled={ this.state.saving }
+          >Cancel</Button>
         </ExpansionPanelActions>
       </ExpansionPanel>
     );
@@ -202,10 +284,7 @@ class AnnotationEntry extends Component {
     return (
       <React.Fragment>
         <Grid item xs={ 12 }>
-          { (this.state.errorElem === label.toLowerCase())
-            ? (<FormHelperText error>{ this.state.error }</FormHelperText>)
-            : []
-          }
+          { this.state.errorElem === label.toLowerCase() && <FormHelperText error>{ this.state.error }</FormHelperText> }
         </Grid>
         <Grid item xs={ 3 }>
           <Typography className={ this.props.classes.formLabel } >

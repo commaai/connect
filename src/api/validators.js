@@ -8,6 +8,6 @@ export const AnnotationValidator = Joi.object().keys({
   type: Joi.string().required(),
   data: Joi.object().keys({
     reason: Joi.string().required(),
-    comment: Joi.string().optional()
+    comment: Joi.string().allow('').optional()
   })
 });

@@ -32,6 +32,7 @@ const startupPromise = Promise.all([
 ]);
 
 var segmentsRequest = null;
+var annotationsRequest = null;
 
 // set up initial schedules
 scheduleSegmentUpdate(getState());
@@ -145,7 +146,6 @@ export function createBroadcastPort (port) {
     } else {
       buffer = Buffer.concat(msg.data);
     }
-    console.log('Data event', msg.data.length);
     port.postMessage({
       command: 'data',
       route: msg.route,
@@ -201,7 +201,6 @@ function scheduleSegmentUpdate (state) {
   }
   if (state.currentSegment) {
     let time = (state.currentSegment.startOffset + state.currentSegment.duration) - offset;
-    debugger;
     timeUntilNext = Math.min(time, timeUntilNext);
   }
 
@@ -221,7 +220,7 @@ async function checkSegmentMetadata (state) {
     // already has metadata, don't bother
     return true;
   }
-  if (segmentsRequest) {
+  if (segmentsRequest || annotationsRequest) {
     return;
   }
   console.log('We need to update the segment metadata...');
@@ -230,24 +229,28 @@ async function checkSegmentMetadata (state) {
   var end = state.end;
 
   var segmentData = null;
+  var annotationsData = null;
   segmentsRequest = API.getSegmentMetadata(start, end, dongleId);
+  annotationsRequest = API.listAnnotations(start, end, dongleId);
   store.dispatch(Segments.fetchSegmentMetadata(start, end));
 
   try {
     segmentData = await segmentsRequest;
-    console.log(segmentData);
+    annotationsData = await annotationsRequest;
+    console.log(segmentData, annotationsData);
   } catch (e) {
     console.error('Failure fetching segment metadata', e.stack || e);
     ///@TODO retry this call!
     return;
   } finally {
     segmentsRequest = null;
+    annotationsRequest = null;
   }
   if (state.start !== start || state.end !== end || state.dongleId !== dongleId) {
     return checkSegmentMetadata(getState());
   }
 
-  segmentData = Segments.parseSegmentMetadata(state, segmentData);
+  segmentData = Segments.parseSegmentMetadata(state, segmentData, annotationsData);
   // broken
   store.dispatch(Segments.insertSegmentMetadata(segmentData));
   // ensureSegmentData(getState());

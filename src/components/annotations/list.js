@@ -67,6 +67,7 @@ class AnnotationList extends Component {
     return (
       <AnnotationEntry
         key={ eventId }
+        segment={ segment }
         eventId={ eventId }
         event={ event }
         timestamp={ timestamp }

@@ -44,11 +44,28 @@ export async function post(endpoint, data) {
   });
 }
 
+export async function patch(endpoint, data) {
+  await initPromise;
+  return new Promise((resolve, reject) => {
+    request.patch(
+      endpoint,
+      {
+        body: data,
+        json: true
+      },
+      errorHandler(resolve, reject)
+    );
+  });
+}
+
 function errorHandler(resolve, reject) {
   return handle;
 
   function handle(err, data) {
     if (err) {
+      if (err.statusCode === 0) {
+        err = new Error('There was an unexpected server error, please try again later.');
+      }
       return reject(err);
     }
     resolve(data);
