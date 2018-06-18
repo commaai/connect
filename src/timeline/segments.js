@@ -128,7 +128,6 @@ function parseSegmentMetadata (state, segments, annotations) {
       event.timestamp = segment.start_time_utc_millis + event.offset_millis;
       event.canonical_segment_name = segment.canonical_name;
       annotations.forEach(function (annotation) {
-        console.log(annotation.canonical_segment_name, event.canonical_segment_name);
         // debugger;
         if (annotation.canonical_segment_name === event.canonical_segment_name
           && annotation.offset_millis === event.offset_millis
