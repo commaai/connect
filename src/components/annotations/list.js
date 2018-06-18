@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { partial } from 'ap';
 import fecha from 'fecha';
@@ -8,13 +7,10 @@ import { withStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
 import Slide from '@material-ui/core/Slide';
 import Typography from '@material-ui/core/Typography';
-import ExpansionPanel from '@material-ui/core/ExpansionPanel';
-import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
-import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 
 import AnnotationEntry from './entry';
 import Timelineworker from '../../timeline';
+import { filterEvent } from './common';
 
 const styles = theme => {
   return {
@@ -49,7 +45,7 @@ class AnnotationList extends Component {
   render() {
     // you like that line? mmm, so unclear.
     // use current segment or next segment or empty defaults so it doesn't throw
-    const segment = this.props.currentSegment || this.props.nextSegment;
+    const segment = this.props.segment;
     const events = (segment || {}).events || [];
     return (
       <div className={ this.props.classes.root }>
@@ -57,12 +53,17 @@ class AnnotationList extends Component {
       </div>
     );
   }
-  filterEntry (entry) {
-    return entry.type === 'disengage';
+  filterEntry (event) {
+    if (this.props.resolved && !event.id) {
+      return false;
+    }
+    if (this.props.unresolved && event.id) {
+      return false;
+    }
+    return filterEvent(event);
   }
   renderEntry (segment, event, index) {
     const eventId = event.time + ':' + index;
-    const timestamp = this.props.start + segment.routeOffset + event.route_offset_millis;
 
     return (
       <AnnotationEntry
@@ -70,7 +71,6 @@ class AnnotationList extends Component {
         segment={ segment }
         eventId={ eventId }
         event={ event }
-        timestamp={ timestamp }
         expanded={ this.state.expanded === eventId }
         // expanded={ this.state.expanded ? this.state.expanded === eventId : index === 0 }
         onChange={ partial(this.handleExpanded, eventId, segment.routeOffset + event.route_offset_millis) }
@@ -82,10 +82,4 @@ class AnnotationList extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  currentSegment: 'workerState.currentSegment',
-  nextSegment: 'workerState.nextSegment',
-  start: 'workerState.start'
-});
-
-export default connect(stateToProps)(withStyles(styles)(AnnotationList));
+export default withStyles(styles)(AnnotationList);

@@ -8,7 +8,7 @@ import Slide from '@material-ui/core/Slide';
 import Typography from '@material-ui/core/Typography';
 import Paper from '@material-ui/core/Paper';
 
-import AnnotationList from './list';
+import AnnotationTabs from './tabs';
 import VideoPreview from '../video';
 import Minimap from '../minimap';
 import LogStream from '../logstream';
@@ -22,6 +22,9 @@ const styles = theme => {
     },
     paddedContainer: {
       padding: theme.spacing.unit * 4,
+    },
+    title: {
+      margin: 20
     }
   };
 };
@@ -30,12 +33,24 @@ class AnnotationsView extends Component {
   render() {
     let visibleSegment = (this.props.currentSegment || this.props.nextSegment);
     let routeName = visibleSegment ? visibleSegment.route : 'Nothing visible';
+    let titleElement = routeName;
+    if (visibleSegment) {
+      let shortName = routeName.split('|')[1];
+      titleElement = (
+        <React.Fragment>
+          { shortName } --&nbsp;
+          <a href={ 'https://community.comma.ai/cabana/?route=' + routeName} target='_blank'>
+            Open in Cabana!
+          </a>
+        </React.Fragment>
+      );
+    }
     return (
       <Paper className={ this.props.classes.root }>
         <Grid container>
           <Grid item xs={12}>
-            <Typography>
-              {  }
+            <Typography variant='title' className={ this.props.classes.title } >
+              { titleElement }
             </Typography>
           </Grid>
           <Grid item xs={12}>
@@ -44,7 +59,7 @@ class AnnotationsView extends Component {
         </Grid>
         <Grid container spacing={ 32 } className={ this.props.classes.paddedContainer } >
           <Grid item xs={6}>
-            <AnnotationList />
+            { visibleSegment && <AnnotationTabs segment={ visibleSegment } /> }
           </Grid>
           <Grid item xs={6}>
             <VideoPreview />

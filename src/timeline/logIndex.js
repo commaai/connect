@@ -69,13 +69,13 @@ function indexBuffer (index, buffer, bufferIndex) {
     let event = msg.getRoot(Event);
     let monoTime = event.getLogMonoTime().toString();
     let milis = Number(monoTime.substr(0, monoTime.length - 6));
-    let micros = Number(monoTime.substr(-6, 6));
+    let nanos = Number(monoTime.substr(-6, 6));
     let messageSize = messageBuff.byteLength;
 
-    if (!index.length || (milis > index[index.length - 1][0] || (milis === index[index.length - 1][0] && micros > index[index.length - 1][1]))) {
+    if (!index.length || (milis > index[index.length - 1][0] || (milis === index[index.length - 1][0] && nanos > index[index.length - 1][1]))) {
       index.push([
         milis,
-        micros,
+        nanos,
         offset,
         messageSize,
         bufferIndex
@@ -83,14 +83,14 @@ function indexBuffer (index, buffer, bufferIndex) {
     } else {
       let searchIndex = index.length - 2;
 
-      while (searchIndex >= 0 && (milis < index[searchIndex][0] || (milis == index[searchIndex][0] && micros < index[searchIndex][1]))) {
+      while (searchIndex >= 0 && (milis < index[searchIndex][0] || (milis == index[searchIndex][0] && nanos < index[searchIndex][1]))) {
         searchIndex--;
       }
       searchIndex++;
 
       index.splice(searchIndex, 0, [
         milis,
-        micros,
+        nanos,
         offset,
         messageSize,
         bufferIndex
@@ -102,5 +102,5 @@ function indexBuffer (index, buffer, bufferIndex) {
   var endNow = performance.now();
   var timeDiff = (endNow - startNow);
 
-  console.log('took', timeDiff, 'ms to index', index.length - startIndex, 'entries');
+  // console.log('took', timeDiff, 'ms to index', index.length - startIndex, 'entries');
 }

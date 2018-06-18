@@ -4,6 +4,7 @@ const Playback = require('./playback');
 const ACTION_UPDATE_SEGMENTS = 'update_segments';
 const ACTION_LOAD_SEGMENT_METADATA = 'load_segment_metadata';
 const ACTION_SEGMENT_METADATA = 'segment_metadata';
+const ACTION_RESOLVE_ANNOTATION = 'resolve_annotation';
 
 const SEGMENT_LENGTH = 1000 * 60;
 
@@ -18,6 +19,7 @@ module.exports = {
   updateSegments,
   fetchSegmentMetadata,
   insertSegmentMetadata,
+  resolveAnnotation,
 
   // constants
   SEGMENT_LENGTH,
@@ -48,6 +50,25 @@ function reducer (state = initialState, action) {
     case ACTION_SEGMENT_METADATA:
       state.segmentData = action.data;
       state.segments = action.segments;
+      break;
+    case ACTION_RESOLVE_ANNOTATION:
+      let found = false;
+      state.segments.forEach((segment) => {
+        if (segment.route !== action.route) {
+          return;
+        }
+        segment.events.forEach((event) => {
+          if (event.time !== action.event.time || event.type !== action.event.type) {
+            return;
+          }
+          event.id = action.annotation.id;
+          event.annotation = action.annotation;
+          found = true;
+        });
+      });
+      if (!found) {
+        debugger;
+      }
       break;
   }
   var currentSegment = getCurrentSegment(state);
@@ -90,6 +111,13 @@ function insertSegmentMetadata (data) {
   };
 }
 
+function resolveAnnotation (annotation, event, route) {
+  return {
+    type: ACTION_RESOLVE_ANNOTATION,
+    annotation, event, route
+  };
+}
+
 function parseSegmentMetadata (state, segments, annotations) {
   console.log(segments);
   segments = segments.map(function (segment) {
@@ -97,19 +125,26 @@ function parseSegmentMetadata (state, segments, annotations) {
     segment.duration = Math.round(segment.end_time_utc_millis - segment.start_time_utc_millis);
     segment.events = JSON.parse(segment.events_json);
     segment.events.forEach(function (event) {
-      console.log(event, annotations, segment);
+      event.timestamp = segment.start_time_utc_millis + event.offset_millis;
+      event.canonical_segment_name = segment.canonical_name;
       annotations.forEach(function (annotation) {
-        if (annotation.canonical_segment_name === segment.canonical_name && annotation.segment_offset_nanos === event.offset_micros) {
+        console.log(annotation.canonical_segment_name, event.canonical_segment_name);
+        // debugger;
+        if (annotation.canonical_segment_name === event.canonical_segment_name
+          && annotation.offset_millis === event.offset_millis
+          && annotation.offset_nanos_part === event.offset_nanos) {
           if (event.id) {
+            console.error('Server returned more than one matching annotation-to-event', event, annotation);
             debugger;
           }
           event.id = annotation.id;
-          event.data = annotation.data;
+          event.annotation = annotation;
         }
       });
     });
     return segment;
   });
+
   return {
     start: state.start,
     dongleId: state.dongleId,
@@ -176,7 +211,7 @@ function segmentsFromMetadata (segmentsData) {
 
     segment.events = segment.events.sort(function (eventA, eventB) {
       if (eventA.route_offset_millis === eventB.route_offset_millis) {
-        return eventA.route_offset_micros - eventB.route_offset_micros;
+        return eventA.route_offset_nanos - eventB.route_offset_nanos;
       }
       return eventA.route_offset_millis - eventB.route_offset_millis;
     });
@@ -188,9 +223,9 @@ function segmentsFromMetadata (segmentsData) {
           break;
         case 'disengage':
           lastEngage.data = {
-            end_offset_micros: event.offset_micros,
+            end_offset_nanos: event.offset_nanos,
             end_offset_millis: event.offset_millis,
-            end_route_offset_micros: event.route_offset_micros,
+            end_route_offset_nanos: event.route_offset_nanos,
             end_route_offset_millis: event.route_offset_millis
           };
           break;

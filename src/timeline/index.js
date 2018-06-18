@@ -73,6 +73,13 @@ class TimelineInterface {
     });
   }
 
+  async resolveAnnotation (annotation, event, route) {
+    return this.postMessage({
+      command: 'resolve',
+      data: { annotation, event, route }
+    });
+  }
+
   async rpc (msg) {
     // msg that expects a reply
     return new Promise((resolve, reject) => {
@@ -152,8 +159,6 @@ class TimelineInterface {
     } else {
       LogIndex.addToIndex(this.buffers[msg.data.route][msg.data.segment], msg.data.data);
     }
-    console.log(this.buffers[msg.data.route][msg.data.segment].index.length);
-    console.log('Got data for', msg.data.route, msg.data.segment, ':', msg.data.data.byteLength);
     IndexEvent.broadcast(msg.data.route);
   }
   getStartMonoTime (route, segment = 0) {

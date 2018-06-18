@@ -70,7 +70,8 @@ const commands = {
   play,
   pause,
   seek,
-  hello
+  hello,
+  resolve
 };
 
 export async function handleMessage (port, msg) {
@@ -189,6 +190,12 @@ async function hello (port) {
   return 'hello';
 }
 
+async function resolve (port, data) {
+  const { annotation, event, route } = data;
+
+  store.dispatch(Segments.resolveAnnotation(annotation, event, route));
+}
+
 function scheduleSegmentUpdate (state) {
   let timeUntilNext = 0;
   let offset = Playback.currentOffset(state);
@@ -258,7 +265,6 @@ async function checkSegmentMetadata (state) {
 
 var ensureSegmentDataTimer = null;
 async function ensureSegmentData (state) {
-  console.log('Ensure segment...');
   if (ensureSegmentDataTimer) {
     ensureSegmentDataTimer();
     ensureSegmentDataTimer = null;

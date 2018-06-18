@@ -23,6 +23,7 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 
 import * as API from '../../api';
+import Timelineworker from '../../timeline';
 
 const styles = theme => {
   return {
@@ -80,18 +81,31 @@ class AnnotationEntry extends Component {
     this.handleComment = this.handleComment.bind(this);
     this.validate = this.validate.bind(this);
 
-    this.state = {
-      ...this.props.event.data,
-      saving: false,
-      id: this.props.event.id
-    };
+    if (this.props.event.annotation) {
+      this.state = {
+        ...this.props.event.annotation.data,
+        saving: false,
+        id: this.props.event.id
+      };
+    } else {
+      this.state = {
+        saving: false
+      };
+    }
   }
 
   componentWillReceiveProps (props) {
-    this.setState({
-      ...props.event.data,
-      id: props.event.id
-    });
+    if (props.event.annotation) {
+      this.setState({
+        ...props.event.annotation.data,
+        saving: false,
+        id: props.event.id
+      });
+    } else {
+      this.setState({
+        saving: false
+      });
+    }
   }
 
   handleChange (e) {
@@ -110,7 +124,7 @@ class AnnotationEntry extends Component {
     if (this.state.saving) {
       return false;
     }
-    if (this.state.reason === '') {
+    if (!this.state.reason || this.state.reason === '') {
       this.setState({
         error: 'You must select a reason',
         errorElem: 'reason'
@@ -138,16 +152,18 @@ class AnnotationEntry extends Component {
     try {
       if (!this.state.id) {
         data = await API.createAnnotation({
-          canonical_segment_name: this.props.segment.route + '--' + this.props.segment.segment,
-          segment_offset_nanos: this.props.event.offset_micros,
-          start_time_utc_millis: this.props.timestamp,
-          end_time_utc_millis: this.props.timestamp,
+          canonical_segment_name: this.props.event.canonical_segment_name,
+          offset_nanos_part: this.props.event.offset_nanos,
+          offset_millis: this.props.event.offset_millis,
+          start_time_utc_millis: this.props.event.timestamp,
+          end_time_utc_millis: this.props.event.timestamp,
           type: this.props.event.type,
           data: {
             reason: this.state.reason,
             comment: this.state.comment
           }
         });
+        Timelineworker.resolveAnnotation(data, this.props.event, this.props.segment.route);
       } else {
         data = await API.updateAnnotation(this.state.id, {
           reason: this.state.reason,
@@ -184,8 +200,9 @@ class AnnotationEntry extends Component {
   }
 
   render () {
-    const dateString = fecha.format(new Date(this.props.timestamp), 'MMM D @ HH:mm:ss');
+    const dateString = fecha.format(new Date(this.props.event.timestamp), 'MMM D @ HH:mm:ss');
     const reason = this.state.reason || '';
+    const comment = this.state.comment || '';
     var selectClassName = this.props.classes.select;
     if (!reason.length) {
       selectClassName += ' ' + this.props.classes.placeholder;
@@ -259,7 +276,7 @@ class AnnotationEntry extends Component {
                 className={ this.props.classes.select }
                 error={ this.state.errorElem === 'Comment' }
                 disabled={ this.state.saving }
-                value={ this.state.comment }
+                value={ comment }
                 />
             ))}
           </Grid>
