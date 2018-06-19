@@ -92,7 +92,7 @@ class Minimap extends Component {
     };
   }
   componentDidUpdate (prevProps, nextProps) {
-    let minOffset = this.props.zoom.start * this.props.range;
+    let minOffset = this.props.zoom.start - this.props.start;
     if (minOffset > TimelineWorker.currentOffset()) {
       TimelineWorker.seek(minOffset);
     }
@@ -115,15 +115,10 @@ class Minimap extends Component {
         offset = this.seekIndex;
       }
       offset = Math.floor(offset);
-      offset = offset / this.props.range;
 
-      if (this.props.zoomed) {
-        offset -= this.props.zoom.start;
-        let duration = this.props.zoom.end - this.props.zoom.start;
-        offset /= duration;
-      }
+      let percent = this.offsetToPercent(offset);
 
-      this.progressBar.current.style.width = ~~(10000 * offset) / 100 + '%';
+      this.progressBar.current.style.width = ~~(10000 * percent) / 100 + '%';
 
       raf(this.renderOffset);
     }
@@ -137,14 +132,9 @@ class Minimap extends Component {
     console.log(e.currentTarget);
     let boundingBox = e.currentTarget.getBoundingClientRect();
     let x = e.pageX - boundingBox.x;
-    if (!this.props.zoomed) {
-      TimelineWorker.seek(x / boundingBox.width * this.props.range);
-    } else {
-      let zoomStart = this.props.zoom.start;
-      let zoomEnd = this.props.zoom.end;
-      let duration = zoomEnd - zoomStart;
-      TimelineWorker.seek(((x / boundingBox.width * duration) + zoomStart) * this.props.range);
-    }
+    let percent = x / boundingBox.width;
+
+    TimelineWorker.seek(this.percentToOffset(percent));
   }
   handleDown (e) {
     if (!this.props.dragSelection) {
@@ -174,16 +164,21 @@ class Minimap extends Component {
     let startPercent = Math.min(this.state.dragStart, this.state.dragEnd);
     let endPercent = Math.max(this.state.dragStart, this.state.dragEnd);
 
-    startPercent = ~~(1000 * startPercent) / 1000;
-    endPercent = ~~(1000 * endPercent) / 1000;
+    let startOffset = Math.round(this.percentToOffset(startPercent));
+    let endOffset = Math.round(this.percentToOffset(endPercent));
 
-    console.log(selectedArea);
-    if (selectedArea > 0.5) {
-      TimelineWorker.seek(startPercent * this.props.range);
+    if (selectedArea > 0.1) {
+      let currentOffset = TimelineWorker.currentOffset();
+      if (currentOffset < startOffset || currentOffset > endOffset) {
+        TimelineWorker.seek(startOffset);
+      }
+      let startTime = startOffset + this.props.start;
+      let endTime = endOffset + this.props.start;
+
       this.isDragSelecting = true;
       setTimeout(() => this.isDragSelecting = false);
-      this.props.dispatch(selectRange(startPercent, endPercent));
-      this.props.dispatch(push('/timeline/' + startPercent + '/' + endPercent));
+      this.props.dispatch(selectRange(startTime, endTime));
+      this.props.dispatch(push('/timeline/' + startTime + '/' + endTime));
     } else if (e.currentTarget !== document) {
       this.handleClick(e);
     }
@@ -204,14 +199,7 @@ class Minimap extends Component {
       let x = e.pageX - boundingBox.x;
       let percent = x / boundingBox.width;
 
-      if (this.props.zoomed) {
-        let zoomStart = this.props.zoom.start;
-        let zoomEnd = this.props.zoom.end;
-        let duration = zoomEnd - zoomStart;
-        percent = percent * duration + zoomStart
-      }
-
-      this.seekIndex = percent * this.props.range;
+      this.seekIndex = this.percentToOffset(percent);
 
       return this.sendSeek();
     } else if (this.state.dragStart) {
@@ -223,6 +211,20 @@ class Minimap extends Component {
       });
     }
     // do other things for drag selection!
+  }
+  percentToOffset (perc) {
+    if (this.props.zoomed) {
+      return perc * (this.props.zoom.end - this.props.zoom.start) + (this.props.zoom.start - this.props.start);
+    } else {
+      return perc * this.props.range;
+    }
+  }
+  offsetToPercent (offset) {
+    if (this.props.zoomed) {
+      return (offset - (this.props.zoom.start - this.props.start)) / (this.props.zoom.end - this.props.zoom.start);
+    } else {
+      return offset / this.props.range;
+    }
   }
   sendSeek () {
     if (this.seekIndex) {
@@ -281,26 +283,34 @@ class Minimap extends Component {
     }
     let color = theme.palette.grey[50] + 'cc';
     let endColor = theme.palette.grey[200] + 'aa';
+    let zoomStart = (this.props.zoom.start - this.props.start) / this.props.range;
+    let zoomEnd = (this.props.zoom.end - this.props.start) / this.props.range;
+
     return (
       <div style={{
         background: 'linear-gradient(to left, ' + color + ', ' + endColor + ', ' + color + ')',
-        left: (100 * Math.min(this.props.zoom.start, this.props.zoom.end)) + '%',
-        width: (100 * Math.abs(this.props.zoom.start - this.props.zoom.end)) + '%',
+        left: (100 * Math.min(zoomStart, zoomEnd)) + '%',
+        width: (100 * Math.abs(zoomStart - zoomEnd)) + '%',
       }} className={ this.props.classes.progressBar } />
     );
   }
   renderSegment (segment) {
     let startPerc = 100 * segment.offset / this.props.range;
     let widthPerc = 100 * segment.duration / this.props.range;
+
     if (this.props.zoomed) {
-      let zoomStart = this.props.zoom.start * 100;
-      let zoomEnd = this.props.zoom.end * 100;
-      if (startPerc + widthPerc < zoomStart) {
+      let startOffset = this.props.zoom.start - this.props.start;
+      let endOffset = this.props.zoom.end - this.props.start;
+      let zoomDuration = endOffset - startOffset;
+
+      if (segment.offset > endOffset) {
         return;
       }
-      let duration = zoomEnd - zoomStart;
-      startPerc = (startPerc - zoomStart) / duration * 100
-      widthPerc = (widthPerc) / duration * 100
+      if (segment.offset + segment.duration < startOffset) {
+        return;
+      }
+      startPerc = 100 * (segment.offset - startOffset) / zoomDuration;
+      widthPerc = 100 * segment.duration / zoomDuration;
     }
     let style = {
       position: 'absolute',
