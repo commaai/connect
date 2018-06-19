@@ -73,6 +73,13 @@ class TimelineInterface {
     });
   }
 
+  async selectDevice (dongleId) {
+    return this.postMessage({
+      command: 'selectDevice',
+      data: dongleId
+    });
+  }
+
   async resolveAnnotation (annotation, event, route) {
     return this.postMessage({
       command: 'resolve',
@@ -198,7 +205,7 @@ class TimelineInterface {
     eventCount = Math.min(eventCount, curIndex);
 
     return [...Array(eventCount)].map((u, i) => {
-      // millis, micros, offset, len, buffer
+      // millis, nanos, offset, len, buffer
       var entry = logIndex.index[curIndex - i];
       var buffer = logIndex.buffers[entry[4]].slice(entry[2], entry[2] + entry[3]);
       var msg = new capnp.Message(buffer, false);

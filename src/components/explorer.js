@@ -9,6 +9,7 @@ import Typography from '@material-ui/core/Typography';
 
 import Annotations from './annotations';
 import Header from './header';
+import Dashboard from './dashboard';
 
 const styles = theme => {
   return {
@@ -20,6 +21,9 @@ class ExplorerApp extends Component {
     return (
       <div>
         <Header />
+        <Slide direction='down' in={ !this.props.expanded } mountOnEnter unmountOnExit>
+          <Dashboard />
+        </Slide>
         <Slide direction='up' in={ this.props.expanded } mountOnEnter unmountOnExit>
           <Annotations />
         </Slide>

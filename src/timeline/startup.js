@@ -2,6 +2,7 @@ import * as API from '../api';
 import store from './store';
 
 const ACTION_STARTUP_DATA = 'ACTION_STARTUP_DATA';
+const ACTION_SELECT_DEVICE = 'ACTION_SELECT_DEVICE';
 
 export function reducer (state = initialState, action) {
   switch (action.type) {
@@ -10,11 +11,14 @@ export function reducer (state = initialState, action) {
         state.dongleId = action.devices[0].dongle_id;
       }
       state.devices = action.devices;
-      return state;
+      break;
+    case ACTION_SELECT_DEVICE:
+      state.dongleId = action.dongleId;
       break;
     default:
       return state;
   }
+  return state;
 }
 
 export default async function init () {
@@ -24,6 +28,13 @@ export default async function init () {
 
   store.dispatch({
     type: ACTION_STARTUP_DATA,
-    devices: devices
+    devices
   });
+}
+
+export function selectDevice (dongleId) {
+  return {
+    type: ACTION_SELECT_DEVICE,
+    dongleId
+  };
 }
