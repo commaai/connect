@@ -25,9 +25,7 @@ export function selectRange (start, end) {
       desiredPath.push(start);
       desiredPath.push(end);
     }
-    desiredPath = desiredPath.join('/');
-
-    debugger;
+    desiredPath = '/' + desiredPath.join('/');
 
     if (state.zoom.start !== start || state.zoom.end !== end) {
       dispatch({
