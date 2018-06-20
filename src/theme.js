@@ -7,7 +7,7 @@ const theme = createMuiTheme({
     MuiSelect: {
       select: {
         padding: '12px 16px',
-        margin: '0',
+        margin: '0 16px 0 0',
         '&>div': {
           margin: '0',
         }

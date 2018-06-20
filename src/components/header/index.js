@@ -110,15 +110,32 @@ class AppHeader extends Component {
     var timeRange = this.props.end - this.props.start;
     console.log(timeRange);
 
-    return '2-weeks';
+    if (Math.abs(this.props.end - Date.now()) < 1000 * 60 * 60) {
+      // ends right around now
+      if (timeRange === 1000 * 60 * 60 * 24 * 14) {
+        return '2-weeks';
+      } else if (timeRange === 1000 * 60 * 60 * 24 * 7) {
+        return '1-week';
+      }
+    }
+
+    return 'custom';
+  }
+  lastWeekText () {
+    if (!this.props.start || !this.props.end) {
+      return '--';
+    }
+    return 'Last Week'
+       + fecha.format(new Date(this.props.start), ' (MM Do - ')
+       + fecha.format(new Date(this.props.end), 'MM Do)');
   }
   last2WeeksText () {
     if (!this.props.start || !this.props.end) {
       return '--';
     }
     return 'Past 2 Weeks'
-       + fecha.format(new Date(this.props.start), ' (MMMM Do - ')
-       + fecha.format(new Date(this.props.end), 'MMMM Do)');
+       + fecha.format(new Date(this.props.start), ' (MM Do - ')
+       + fecha.format(new Date(this.props.end), 'MM Do)');
   }
   render () {
     const { auth, anchorEl } = this.state;
@@ -132,26 +149,25 @@ class AppHeader extends Component {
               <Grid item xs={1} >
                 <img src='/images/comma-white.png' className={ this.props.classes.logo } />
               </Grid>
-              <Grid item xs={2} >
+              <Grid item xs={2} xl={3} >
                 {/*<FormControl style={{ width: '100%' }}>
                   <InputLabel htmlFor='search-bar'>Search</InputLabel>
                   <Input id='search-bar' value={ this.state.searchString || '' } onChange={ this.handleSearchChange } />
                 </FormControl>*/}
               </Grid>
-              <Grid item xs={6} >
+              <Grid item xs={6} xl={4} align='center' >
                 <CurrentTime />
               </Grid>
-              <Grid item xs={2} align='right' >
-                {/*<FormControl>
+              <Grid item xs={3} xl={4} align='right' >
+                <FormControl>
                   <Select
                     value={ this.selectedOption() }
                     onChange={ this.handleSelectChange }
                     name='timerange'>
+                    <MenuItem value='1-week'>{ this.lastWeekText() } </MenuItem>
                     <MenuItem value='2-weeks'>{ this.last2WeeksText() } </MenuItem>
                   </Select>
-                </FormControl>*/}
-              </Grid>
-              <Grid item xs={1} >
+                </FormControl>
                 <div>
                   <IconButton
                     aria-owns={open ? 'menu-appbar' : null}

@@ -298,7 +298,7 @@ class Minimap extends Component {
     );
   }
   renderZoom () {
-    if (!this.props.dragSelection || !this.state.zoom.expanded) {
+    if (!this.props.dragSelection || !this.state.zoom.expanded || this.props.zoomed) {
       return [];
     }
     let color = theme.palette.grey[50] + 'cc';

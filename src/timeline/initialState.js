@@ -34,7 +34,7 @@ module.exports = {
 
 function getDefaultStartDate () {
   var d = new Date();
-  d.setHours(d.getHours(), 0, 0, 0);
+  d.setHours(d.getHours() + 1, 0, 0, 0);
 
   return (new Date(d.getTime() - 1000 * 60 * 60 * 24 * 7)).getTime();
 }
