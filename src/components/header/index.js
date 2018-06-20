@@ -16,11 +16,12 @@ import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 import IconButton from '@material-ui/core/IconButton';
 
-import { logOut } from '../../api/auth';
 import { AccountIcon } from '../../icons';
-
 import CurrentTime from './currentTime';
 import Minimap from '../minimap';
+
+import { logOut } from '../../api/auth';
+import Timelineworker from '../../timeline';
 
 const styles = theme => {
   console.log(theme);
@@ -81,6 +82,21 @@ class AppHeader extends Component {
     }
   }
   handleSelectChange (e) {
+    var selection = e.target.value;
+    var d = new Date();
+    d.setHours(d.getHours() + 1, 0, 0, 0);
+
+    switch (selection) {
+      case '24-hours':
+        Timelineworker.selectTimeRange(d.getTime() - (1000 * 60 * 60 * 24), d.getTime());
+        break;
+      case '1-week':
+        Timelineworker.selectTimeRange(d.getTime() - (1000 * 60 * 60 * 24 * 7), d.getTime());
+        break;
+      case '2-weeks':
+        Timelineworker.selectTimeRange(d.getTime() - (1000 * 60 * 60 * 24 * 14), d.getTime());
+        break;
+    }
   }
 
   handleChange (event, checked) {
@@ -116,6 +132,8 @@ class AppHeader extends Component {
         return '2-weeks';
       } else if (timeRange === 1000 * 60 * 60 * 24 * 7) {
         return '1-week';
+      } else if (timeRange === 1000 * 60 * 60 * 24) {
+        return '24-hours';
       }
     }
 
@@ -126,16 +144,22 @@ class AppHeader extends Component {
       return '--';
     }
     return 'Last Week'
-       + fecha.format(new Date(this.props.start), ' (MM Do - ')
-       + fecha.format(new Date(this.props.end), 'MM Do)');
+       + fecha.format(new Date(this.props.start), ' (MMM Do - ')
+       + fecha.format(new Date(this.props.end), 'MMM Do)');
   }
   last2WeeksText () {
     if (!this.props.start || !this.props.end) {
       return '--';
     }
     return 'Past 2 Weeks'
-       + fecha.format(new Date(this.props.start), ' (MM Do - ')
-       + fecha.format(new Date(this.props.end), 'MM Do)');
+       + fecha.format(new Date(this.props.start), ' (MMM Do - ')
+       + fecha.format(new Date(this.props.end), 'MMM Do)');
+  }
+  last24HoursText () {
+    if (!this.props.start || !this.props.end) {
+      return '--';
+    }
+    return 'Last 24h';
   }
   render () {
     const { auth, anchorEl } = this.state;
@@ -149,51 +173,50 @@ class AppHeader extends Component {
               <Grid item xs={1} >
                 <img src='/images/comma-white.png' className={ this.props.classes.logo } />
               </Grid>
-              <Grid item xs={2} xl={3} >
+              <Grid item xs={false} lg={3} >
                 {/*<FormControl style={{ width: '100%' }}>
                   <InputLabel htmlFor='search-bar'>Search</InputLabel>
                   <Input id='search-bar' value={ this.state.searchString || '' } onChange={ this.handleSearchChange } />
                 </FormControl>*/}
               </Grid>
-              <Grid item xs={6} xl={4} align='center' >
+              <Grid item xs={6} lg={4} align='center' >
                 <CurrentTime />
               </Grid>
-              <Grid item xs={3} xl={4} align='right' >
+              <Grid item xs={5} lg={4} align='right' >
                 <FormControl>
                   <Select
                     value={ this.selectedOption() }
                     onChange={ this.handleSelectChange }
                     name='timerange'>
+                    <MenuItem value='24-hours'>{ this.last24HoursText() } </MenuItem>
                     <MenuItem value='1-week'>{ this.lastWeekText() } </MenuItem>
                     <MenuItem value='2-weeks'>{ this.last2WeeksText() } </MenuItem>
                   </Select>
                 </FormControl>
-                <div>
-                  <IconButton
-                    aria-owns={open ? 'menu-appbar' : null}
-                    aria-haspopup="true"
-                    onClick={this.handleMenu}
-                    color="inherit" >
-                    <AccountIcon />
-                  </IconButton>
-                  <Menu
-                    id="menu-appbar"
-                    anchorEl={anchorEl}
-                    anchorOrigin={{
-                      vertical: 'top',
-                      horizontal: 'right',
-                    }}
-                    transformOrigin={{
-                      vertical: 'top',
-                      horizontal: 'right',
-                    }}
-                    open={open}
-                    onClose={this.handleClose}>
-                    <MenuItem onClick={this.handleClose}>Profile</MenuItem>
-                    <MenuItem onClick={this.handleClose}>My account</MenuItem>
-                    <MenuItem onClick={this.handleLogOut}>Log out</MenuItem>
-                  </Menu>
-                </div>
+                <IconButton
+                  aria-owns={open ? 'menu-appbar' : null}
+                  aria-haspopup="true"
+                  onClick={this.handleMenu}
+                  color="inherit" >
+                  <AccountIcon />
+                </IconButton>
+                <Menu
+                  id="menu-appbar"
+                  anchorEl={anchorEl}
+                  anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  open={open}
+                  onClose={this.handleClose}>
+                  <MenuItem onClick={this.handleClose}>Profile</MenuItem>
+                  <MenuItem onClick={this.handleClose}>My account</MenuItem>
+                  <MenuItem onClick={this.handleLogOut}>Log out</MenuItem>
+                </Menu>
               </Grid>
             </Grid>
           </Toolbar>
