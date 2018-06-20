@@ -43,7 +43,6 @@ class AnnotationsView extends Component {
 
   close () {
     this.props.dispatch(selectRange(null, null));
-    this.props.dispatch(push('/'));
   }
 
   render () {
