@@ -74,7 +74,7 @@ class AnnotationsView extends Component {
             </IconButton>
           </Grid>
           <Grid item xs={12}>
-            <Minimap zoomed colored thumbnailed />
+            <Minimap zoomed colored thumbnailed dragSelection />
           </Grid>
         </Grid>
         <Grid container spacing={ 32 } className={ this.props.classes.paddedContainer } >
