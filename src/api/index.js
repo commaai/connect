@@ -1,6 +1,9 @@
+import queryString from 'query-string';
 import { timeout } from 'thyming';
+
 import * as request from './request';
 import { AnnotationValidator } from './validators';
+import { exchangeCodeForTokens } from './auth/google';
 
 export async function getSegmentMetadata (start, end, dongleId) {
   return request.get('devices/' + dongleId + '/segments', {
@@ -62,4 +65,19 @@ export async function listAnnotations (start, end, dongleId) {
     from: start,
     to: end
   });
+}
+
+export async function commaTokenExchange(accessToken, idToken) {
+  const data = await request.postForm("auth/", {
+    access_token: accessToken,
+    id_token: idToken
+  });
+
+  localStorage.authorization = JSON.parse(data).access_token;
+}
+
+export async function exchangeAndStoreTokens(code) {
+  const tokens = await exchangeCodeForTokens(code);
+
+  return commaTokenExchange(tokens.access_token, tokens.id_token);
 }

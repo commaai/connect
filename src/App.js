@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Provider } from 'react-redux';
-import { Route } from 'react-router';
+import { Route, Redirect } from 'react-router';
 import { ConnectedRouter } from 'react-router-redux';
 import { timeout } from 'thyming';
 
@@ -14,7 +14,7 @@ import Explorer from './components/explorer';
 import TimelineWorker from './timeline';
 import { history, createStore } from './store';
 import { updateState } from './actions';
-import { isAuthenticated, init } from './api/auth';
+import * as Auth from './api/auth';
 
 const store = createStore();
 
@@ -29,10 +29,10 @@ class App extends Component {
     this.state = {
       initialized: false
     };
-    Promise.all([
-      TimelineWorker.init(),
-      init()
-    ]).then(() => {
+
+    Auth.init()
+    .then((isAuthed) => isAuthed && TimelineWorker.init())
+    .then(() => {
       this.setState({ initialized: true });
     });
   }
@@ -40,10 +40,20 @@ class App extends Component {
     return (
       <div>
         <Route path="/" component={ Explorer } />
+        <Route path="/auth/g/redirect" render={ () => <Redirect to="/" /> } />
       </div>
     );
   }
   ananymousRoutes () {
+    return (
+      <Grid container alignItems='center' style={{ width: '100%', height: '100%', marginTop: '30vh' }}>
+        <Grid item align='center' xs={12} >
+          <a href={ Auth.oauthRedirectLink }>
+            <Typography variant='title'>Sign in</Typography>
+          </a>
+        </Grid>
+      </Grid>
+    );
   }
   renderLoading () {
     return (
@@ -64,7 +74,7 @@ class App extends Component {
     return (
       <Provider store={ store }>
         <ConnectedRouter history={ history }>
-          { isAuthenticated() ? this.authRoutes() : this.ananymousRoutes() }
+          { Auth.isAuthenticated() ? this.authRoutes() : this.ananymousRoutes() }
         </ConnectedRouter>
       </Provider>
     );

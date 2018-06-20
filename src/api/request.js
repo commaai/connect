@@ -1,5 +1,8 @@
-import { getCommaAccessToken } from './auth';
 import ConfigRequest from 'config-request/instance';
+import qs from 'querystringify';
+
+import { getCommaAccessToken } from './auth/storage';
+import errorHandler from './errorHandler';
 
 const URL_ROOT = 'https://api.commadotai.com/v1/';
 
@@ -8,12 +11,17 @@ const request = ConfigRequest();
 var initPromise = init();
 
 async function init() {
-  var token = await getCommaAccessToken();
-  request.configure({
+  const config = {
     baseUrl: URL_ROOT,
-    token: 'JWT ' + token,
     jwt: false
-  });
+  }
+
+  var token = await getCommaAccessToken();
+  if (token) {
+    config.token = `JWT ${token}`;
+  }
+
+  request.configure(config);
 }
 
 export async function get(endpoint, data) {
@@ -44,6 +52,22 @@ export async function post(endpoint, data) {
   });
 }
 
+export async function postForm(endpoint, data) {
+  await initPromise;
+  return new Promise((resolve, reject) => {
+    request.post(
+      endpoint,
+      {
+        body: qs.stringify(data),
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        }
+      },
+      errorHandler(resolve, reject)
+    )
+  });
+}
+
 export async function patch(endpoint, data) {
   await initPromise;
   return new Promise((resolve, reject) => {
@@ -56,18 +80,4 @@ export async function patch(endpoint, data) {
       errorHandler(resolve, reject)
     );
   });
-}
-
-function errorHandler(resolve, reject) {
-  return handle;
-
-  function handle(err, data) {
-    if (err) {
-      if (err.statusCode === 0) {
-        err = new Error('There was an unexpected server error, please try again later.');
-      }
-      return reject(err);
-    }
-    resolve(data);
-  }
 }

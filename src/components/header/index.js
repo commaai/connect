@@ -16,6 +16,7 @@ import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 import IconButton from '@material-ui/core/IconButton';
 
+import { logOut } from '../../api/auth';
 import { AccountIcon } from '../../icons';
 
 import CurrentTime from './currentTime';
@@ -65,6 +66,7 @@ class AppHeader extends Component {
     this.handleChange = this.handleChange.bind(this);
     this.handleMenu = this.handleMenu.bind(this);
     this.handleClose = this.handleClose.bind(this);
+    this.handleLogOut = this.handleLogOut.bind(this);
 
     this.state = {
       searchString: props.search || ''
@@ -92,6 +94,12 @@ class AppHeader extends Component {
   handleClose () {
     this.setState({ anchorEl: null });
   }
+
+  handleLogOut() {
+    this.handleClose();
+    logOut();
+  }
+
   handleSearchChange (e) {
     console.log('Setting state', e.target.value)
     this.setState({
@@ -167,6 +175,7 @@ class AppHeader extends Component {
                     onClose={this.handleClose}>
                     <MenuItem onClick={this.handleClose}>Profile</MenuItem>
                     <MenuItem onClick={this.handleClose}>My account</MenuItem>
+                    <MenuItem onClick={this.handleLogOut}>Log out</MenuItem>
                   </Menu>
                 </div>
               </Grid>
