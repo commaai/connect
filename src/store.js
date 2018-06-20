@@ -27,6 +27,10 @@ export function createStore () {
     var parts = pathname.split('/');
     parts = parts.filter((m) => m.length);
 
+    if (!parts[0]) {
+      return;
+    }
+
     Timelineworker.selectDevice(parts[0]);
     store.dispatch(selectRange(Number(parts[1]), Number(parts[2])));
   }
