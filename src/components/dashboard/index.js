@@ -62,7 +62,6 @@ class Dashboard extends Component {
     let startTime = segment.startTime - ZOOM_BUFFER;
     let endTime = segment.startTime + segment.duration + ZOOM_BUFFER;
     this.props.dispatch(selectRange(startTime, endTime));
-    this.props.dispatch(push('/timeline/' + startTime + '/' + endTime));
   }
 
   render() {

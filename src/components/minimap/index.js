@@ -199,7 +199,6 @@ class Minimap extends Component {
       this.isDragSelecting = true;
       setTimeout(() => this.isDragSelecting = false);
       this.props.dispatch(selectRange(startTime, endTime));
-      this.props.dispatch(push('/timeline/' + startTime + '/' + endTime));
     } else if (e.currentTarget !== document) {
       this.handleClick(e);
     }

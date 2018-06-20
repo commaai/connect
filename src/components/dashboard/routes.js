@@ -32,7 +32,6 @@ class RouteList extends Component {
     let endTime = ride.startTime + ride.duration + 1000;
 
     this.props.dispatch(selectRange(startTime, endTime));
-    this.props.dispatch(push('/timeline/' + startTime + '/' + endTime));
   }
   render () {
     var rideList = [];
