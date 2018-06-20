@@ -45,7 +45,7 @@ class RouteList extends Component {
           offset: segment.offset,
           duration: 0
         };
-        rideList.push(curRideChunk);
+        rideList.unshift(curRideChunk);
         lastSegmentEnd = segment.startTime;
       }
       curRideChunk.duration += segment.startTime - lastSegmentEnd;
