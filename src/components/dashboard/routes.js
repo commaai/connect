@@ -9,7 +9,9 @@ import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
+import Divider from '@material-ui/core/Divider';
 
+import Minimap from '../minimap';
 import { selectRange } from '../../actions';
 
 const MIN_TIME_BETWEEN_ROUTES = 60000; // 1 minute
@@ -71,6 +73,12 @@ class RouteList extends Component {
   renderRide (ride) {
     return (
       <React.Fragment key={ ride.startTime }>
+        <Grid item xs={12} >
+          <Minimap zoomed colored thumbnailed zoomOverride={{
+            start: ride.startTime,
+            end: ride.startTime + ride.duration
+          }} />
+        </Grid>
         <Grid item xs={8} >
           Your ride on { fecha.format(new Date(ride.startTime), 'MMMM D @ HH:mm') }
         </Grid>
@@ -78,6 +86,9 @@ class RouteList extends Component {
           <Button variant='outlined' onClick={ partial(this.showRide, ride) }>
             Review
           </Button>
+        </Grid>
+        <Grid item xs={12} >
+          <Divider />
         </Grid>
       </React.Fragment>
     );

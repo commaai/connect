@@ -58,7 +58,12 @@ const styles = (theme) => {
         background: 'linear-gradient(to bottom, rgb(20, 200, 20) 0%, rgb(0, 70, 0) 100%)'
       },
       '&.alert': {
-        background: 'linear-gradient(to bottom, ' + theme.palette.error.main + ' 0%, ' + theme.palette.error.dark + ' 100%)'
+        '&.userPrompt': {
+          background: 'linear-gradient(to bottom, ' + theme.palette.error.main + ' 0%, ' + theme.palette.error.dark + ' 100%)'
+        },
+        '&.critical': {
+          background: 'linear-gradient(to bottom, ' + theme.palette.error.dark + ' 0%, ' + theme.palette.error.dark + ' 100%)'
+        }
       }
     },
     uncoloredSegment: {
@@ -69,6 +74,12 @@ const styles = (theme) => {
     }
   };
 };
+
+const AlertStatusCodes = [
+  'normal',
+  'userPrompt',
+  'critical'
+];
 
 class Minimap extends Component {
   constructor (props) {
@@ -100,6 +111,9 @@ class Minimap extends Component {
 
   componentDidUpdate (prevProps, nextProps) {
     let minOffset = this.state.zoom.start - this.props.start;
+    if (this.props.zoomOverride) {
+      return;
+    }
     if (minOffset > TimelineWorker.currentOffset()) {
       TimelineWorker.seek(minOffset);
     }
@@ -348,7 +362,11 @@ class Minimap extends Component {
           width: (((event.data.end_route_offset_millis - event.route_offset_millis) / segment.duration) * 100) + '%',
         };
         return (
-          <div key={ segment.route + event.route_offset_millis } style={ style } className={ this.props.classes.segmentColor + ' ' + event.type }>
+          <div
+            key={ segment.route + event.route_offset_millis }
+            style={ style }
+            className={ this.props.classes.segmentColor + ' ' + event.type + (event.data.alertStatus ? ' ' + AlertStatusCodes[event.data.alertStatus] : '') }
+            >
           </div>
         );
       });
