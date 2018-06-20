@@ -7,7 +7,7 @@ const ACTION_SELECT_DEVICE = 'ACTION_SELECT_DEVICE';
 export function reducer (state = initialState, action) {
   switch (action.type) {
     case ACTION_STARTUP_DATA:
-      if (action.devices.length === 1 && !state.dongleId) {
+      if (!state.dongleId) {
         state.dongleId = action.devices[0].dongle_id;
       }
       state.devices = action.devices;
