@@ -74,6 +74,10 @@ class TimelineInterface {
   }
 
   async selectDevice (dongleId) {
+    await this._readyPromise;
+    if (this.state.dongleId === dongleId) {
+      return;
+    }
     return this.postMessage({
       command: 'selectDevice',
       data: dongleId

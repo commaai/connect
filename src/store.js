@@ -5,6 +5,7 @@ import createHistory from 'history/createBrowserHistory';
 import reducers from './reducers';
 import { updateState, selectRange } from './actions';
 import compose from './devtools';
+import Timelineworker from './timeline';
 
 export const history = createHistory();
 
@@ -26,8 +27,7 @@ export function createStore () {
     var parts = pathname.split('/');
     parts = parts.filter((m) => m.length);
 
-    if (parts.length > 2) {
-      store.dispatch(selectRange(Number(parts[1]), Number(parts[2])));
-    }
+    Timelineworker.selectDevice(parts[0]);
+    store.dispatch(selectRange(Number(parts[1]), Number(parts[2])));
   }
 }

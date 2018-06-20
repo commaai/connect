@@ -16,7 +16,7 @@ import Typography from '@material-ui/core/Typography';
 
 import RouteList from './routes';
 import Timelineworker from '../../timeline';
-import { selectRange } from '../../actions';
+import { selectRange, selectDevice } from '../../actions';
 import { filterEvent } from '../annotations/common';
 
 // 1 second on either end
@@ -55,7 +55,7 @@ class Dashboard extends Component {
   }
 
   handleChange (dongleId) {
-    Timelineworker.selectDevice(dongleId);
+    this.props.dispatch(selectDevice(dongleId));
   }
 
   goToAnnotation (segment) {
