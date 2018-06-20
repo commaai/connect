@@ -1,17 +1,22 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'react-router-redux'
 import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
 import Slide from '@material-ui/core/Slide';
 import Typography from '@material-ui/core/Typography';
+import IconButton from '@material-ui/core/IconButton';
 import Paper from '@material-ui/core/Paper';
+
+import CloseIcon from '@material-ui/icons/Close';
 
 import AnnotationTabs from './tabs';
 import VideoPreview from '../video';
 import Minimap from '../minimap';
 import LogStream from '../logstream';
+import { selectRange } from '../../actions';
 
 const styles = theme => {
   return {
@@ -30,7 +35,18 @@ const styles = theme => {
 };
 
 class AnnotationsView extends Component {
-  render() {
+  constructor (props) {
+    super(props);
+
+    this.close = this.close.bind(this);
+  }
+
+  close () {
+    this.props.dispatch(selectRange(null, null));
+    this.props.dispatch(push('/'));
+  }
+
+  render () {
     let visibleSegment = (this.props.currentSegment || this.props.nextSegment);
     let routeName = visibleSegment ? visibleSegment.route : 'Nothing visible';
     let titleElement = routeName;
@@ -48,10 +64,15 @@ class AnnotationsView extends Component {
     return (
       <Paper className={ this.props.classes.root }>
         <Grid container>
-          <Grid item xs={12}>
+          <Grid item xs={11}>
             <Typography variant='title' className={ this.props.classes.title } >
               { titleElement }
             </Typography>
+          </Grid>
+          <Grid item xs={1}>
+            <IconButton onClick={ this.close } aria-label='Close' >
+              <CloseIcon />
+            </IconButton>
           </Grid>
           <Grid item xs={12}>
             <Minimap zoomed colored thumbnailed />
