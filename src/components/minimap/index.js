@@ -58,7 +58,12 @@ const styles = (theme) => {
         background: 'linear-gradient(to bottom, rgb(20, 200, 20) 0%, rgb(0, 70, 0) 100%)'
       },
       '&.alert': {
-        background: 'linear-gradient(to bottom, ' + theme.palette.error.main + ' 0%, ' + theme.palette.error.dark + ' 100%)'
+        '&.userPrompt': {
+          background: 'linear-gradient(to bottom, ' + theme.palette.error.main + ' 0%, ' + theme.palette.error.dark + ' 100%)'
+        },
+        '&.critical': {
+          background: 'linear-gradient(to bottom, ' + theme.palette.error.dark + ' 0%, ' + theme.palette.error.dark + ' 100%)'
+        }
       }
     },
     uncoloredSegment: {
@@ -69,6 +74,12 @@ const styles = (theme) => {
     }
   };
 };
+
+const AlertStatusCodes = [
+  'normal',
+  'userPrompt',
+  'critical'
+];
 
 class Minimap extends Component {
   constructor (props) {
@@ -88,11 +99,21 @@ class Minimap extends Component {
     this.dragBar = React.createRef();
 
     this.state = {
-      dragStart: null
+      dragStart: null,
+      zoom: this.props.zoomOverride || this.props.zoom
     };
   }
+  componentWillReceiveProps (props) {
+    this.setState({
+      zoom: props.zoomOverride || props.zoom
+    });
+  }
+
   componentDidUpdate (prevProps, nextProps) {
-    let minOffset = this.props.zoom.start - this.props.start;
+    let minOffset = this.state.zoom.start - this.props.start;
+    if (this.props.zoomOverride) {
+      return;
+    }
     if (minOffset > TimelineWorker.currentOffset()) {
       TimelineWorker.seek(minOffset);
     }
@@ -214,14 +235,14 @@ class Minimap extends Component {
   }
   percentToOffset (perc) {
     if (this.props.zoomed) {
-      return perc * (this.props.zoom.end - this.props.zoom.start) + (this.props.zoom.start - this.props.start);
+      return perc * (this.state.zoom.end - this.state.zoom.start) + (this.state.zoom.start - this.props.start);
     } else {
       return perc * this.props.range;
     }
   }
   offsetToPercent (offset) {
     if (this.props.zoomed) {
-      return (offset - (this.props.zoom.start - this.props.start)) / (this.props.zoom.end - this.props.zoom.start);
+      return (offset - (this.state.zoom.start - this.props.start)) / (this.state.zoom.end - this.state.zoom.start);
     } else {
       return offset / this.props.range;
     }
@@ -233,7 +254,7 @@ class Minimap extends Component {
     }
   }
   progressBarBackground () {
-    if (this.props.zoom.expanded) {
+    if (this.state.zoom.expanded) {
       return '';
     } else if (this.props.colored) {
       return 'linear-gradient(to left, rgba(25, 255, 25, 0.5), rgba(25, 255, 25, 0.1) 200px, rgba(255, 255, 255, 0) 250px)';
@@ -278,13 +299,13 @@ class Minimap extends Component {
     );
   }
   renderZoom () {
-    if (!this.props.dragSelection || !this.props.zoom.expanded) {
+    if (!this.props.dragSelection || !this.state.zoom.expanded) {
       return [];
     }
     let color = theme.palette.grey[50] + 'cc';
     let endColor = theme.palette.grey[200] + 'aa';
-    let zoomStart = (this.props.zoom.start - this.props.start) / this.props.range;
-    let zoomEnd = (this.props.zoom.end - this.props.start) / this.props.range;
+    let zoomStart = (this.state.zoom.start - this.props.start) / this.props.range;
+    let zoomEnd = (this.state.zoom.end - this.props.start) / this.props.range;
 
     return (
       <div style={{
@@ -299,8 +320,8 @@ class Minimap extends Component {
     let widthPerc = 100 * segment.duration / this.props.range;
 
     if (this.props.zoomed) {
-      let startOffset = this.props.zoom.start - this.props.start;
-      let endOffset = this.props.zoom.end - this.props.start;
+      let startOffset = this.state.zoom.start - this.props.start;
+      let endOffset = this.state.zoom.end - this.props.start;
       let zoomDuration = endOffset - startOffset;
 
       if (segment.offset > endOffset) {
@@ -341,7 +362,11 @@ class Minimap extends Component {
           width: (((event.data.end_route_offset_millis - event.route_offset_millis) / segment.duration) * 100) + '%',
         };
         return (
-          <div key={ segment.route + event.route_offset_millis } style={ style } className={ this.props.classes.segmentColor + ' ' + event.type }>
+          <div
+            key={ segment.route + event.route_offset_millis }
+            style={ style }
+            className={ this.props.classes.segmentColor + ' ' + event.type + (event.data.alertStatus ? ' ' + AlertStatusCodes[event.data.alertStatus] : '') }
+            >
           </div>
         );
       });

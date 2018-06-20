@@ -59,6 +59,9 @@ class VideoPreview extends Component {
     if (!this.mounted) {
       return;
     }
+    // schedule next run right away so that we can return early
+    raf(this.updatePreview);
+
     let offset = TimelineWorker.currentOffset();
     let shouldShowPreview = true;
     let bufferTime = this.state.bufferTime;
@@ -66,6 +69,9 @@ class VideoPreview extends Component {
 
     if (videoPlayer) {
       let playerState = videoPlayer.getState().player;
+      if (!playerState.buffered) {
+        return;
+      }
       if (this.props.playSpeed && this.props.currentSegment) {
         let curVideoTime = playerState.currentTime;
         let desiredVideoTime = this.currentVideoTime(offset);
@@ -115,8 +121,6 @@ class VideoPreview extends Component {
       }
       this.imageRef.current.style.display = shouldShowPreview ? 'block' : 'none';
     }
-
-    raf(this.updatePreview);
   }
   videoURL () {
     let segment = this.props.currentSegment || this.props.nextSegment;

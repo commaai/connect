@@ -7,7 +7,7 @@ import Collector from 'collect-methods';
 
 import * as API from '../api';
 
-import init from './startup';
+import init, { selectDevice as selectDeviceAction } from './startup';
 import Playback from './playback';
 import Segments from './segments';
 import * as Cache from './cache';
@@ -71,7 +71,8 @@ const commands = {
   pause,
   seek,
   hello,
-  resolve
+  resolve,
+  selectDevice
 };
 
 export async function handleMessage (port, msg) {
@@ -190,10 +191,14 @@ async function hello (port) {
   return 'hello';
 }
 
-async function resolve (port, data) {
+function resolve (port, data) {
   const { annotation, event, route } = data;
 
   store.dispatch(Segments.resolveAnnotation(annotation, event, route));
+}
+
+function selectDevice (port, dongleId) {
+  store.dispatch(selectDeviceAction(dongleId));
 }
 
 function scheduleSegmentUpdate (state) {

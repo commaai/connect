@@ -33,6 +33,7 @@ export function createStore () {
         break;
 
       default:
+        store.dispatch(selectRange());
         break;
     }
 
