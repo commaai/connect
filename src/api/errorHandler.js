@@ -1,4 +1,5 @@
-export default (resolve, reject) => {
+
+export default function (resolve, reject) {
   return handle;
 
   function handle(err, data) {

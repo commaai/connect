@@ -1,4 +1,5 @@
 import qs from 'query-string';
+import document from 'global/document';
 
 import * as storage from './storage';
 import * as Api from '../';
@@ -6,9 +7,9 @@ export { oauthRedirectLink } from './google';
 
 // seed cache
 export async function init() {
-  if (typeof window !== 'undefined') {
-    if (window.location.pathname == "/auth/g/redirect") {
-      var code = qs.parse(window.location.search)['code'];
+  if (document.location) {
+    if (document.location.pathname == "/auth/g/redirect") {
+      var code = qs.parse(document.location.search)['code'];
       await Api.exchangeAndStoreTokens(code);
     }
   }
@@ -18,7 +19,7 @@ export async function init() {
 
 export function logOut() {
   storage.logOut();
-  window.location.href = window.location.origin;
+  document.location.href = document.location.origin;
 }
 
 export function isAuthenticated() {
