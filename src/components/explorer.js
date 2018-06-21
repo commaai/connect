@@ -6,6 +6,7 @@ import { withStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
 import Slide from '@material-ui/core/Slide';
 import Typography from '@material-ui/core/Typography';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 import Annotations from './annotations';
 import Header from './header';
