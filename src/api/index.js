@@ -3,7 +3,6 @@ import { timeout } from 'thyming';
 
 import * as request from './request';
 import { AnnotationValidator } from './validators';
-import { exchangeCodeForTokens } from './auth/google';
 
 export async function getSegmentMetadata (start, end, dongleId) {
   return request.get('devices/' + dongleId + '/segments', {
@@ -74,10 +73,4 @@ export async function commaTokenExchange(accessToken, idToken) {
   });
 
   localStorage.authorization = JSON.parse(data).access_token;
-}
-
-export async function exchangeAndStoreTokens(code) {
-  const tokens = await exchangeCodeForTokens(code);
-
-  return commaTokenExchange(tokens.access_token, tokens.id_token);
 }
