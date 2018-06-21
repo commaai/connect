@@ -135,7 +135,7 @@ class Dashboard extends Component {
         className={ this.props.classes.expansion }
         >
         <ExpansionPanelSummary>
-          <Typography>{ device.alias || device.dongle_id }</Typography>
+          <Typography>{ (device.alias && device.alias + ' (' + device.dongle_id + ')') || device.dongle_id }</Typography>
         </ExpansionPanelSummary>
       </ExpansionPanel>
     );
