@@ -14,6 +14,7 @@ import CloseIcon from '@material-ui/icons/Close';
 
 import AnnotationTabs from './tabs';
 import VideoPreview from '../video';
+import Media from './media';
 import Minimap from '../minimap';
 import LogStream from '../logstream';
 import { selectRange } from '../../actions';
@@ -82,7 +83,7 @@ class AnnotationsView extends Component {
             { visibleSegment && <AnnotationTabs segment={ visibleSegment } /> }
           </Grid>
           <Grid item xs={6}>
-            <VideoPreview />
+            <Media />
           </Grid>
           <Grid item xs={12}>
             {/*<LogStream />*/}

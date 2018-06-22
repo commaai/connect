@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { Link } from 'react-router-dom';
 import Obstruction from 'obstruction';
 import fecha from 'fecha';
 
@@ -116,7 +117,9 @@ class AppHeader extends Component {
           <Toolbar className={ this.props.classes.toolBar } >
             <Grid container spacing={0} className={ this.props.classes.upperBar } >
               <Grid item xs={1} >
-                <img src='/images/comma-white.png' className={ this.props.classes.logo } />
+                <Link to="/">
+                  <img src='/images/comma-white.png' className={ this.props.classes.logo } />
+                </Link>
               </Grid>
               <Grid item xs={false} lg={3} >
                 {/*<FormControl style={{ width: '100%' }}>
