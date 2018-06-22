@@ -6,7 +6,7 @@ module.exports = {
   // dongleId: '99c94dc769b5d96e',
   // dongleId: 'ff83f397542ab647',
   // dongleId: 'f1b4c567731f4a1b',
-  // dongleId: null,
+  dongleId: null,
 
   route: false,
   segment: 0,
@@ -29,7 +29,15 @@ module.exports = {
   //   segments: 4
   // }],
 
-  segmentData: null
+  segmentData: null,
+
+  loop: {
+    // in time instead of offset
+    // this makes it so that the timespan can change without this changing
+    // thats helpful to shared links and other things probably...
+    startTime: 1529478766606 + (1000 * 60 * 12.5),
+    duration: (1000 * 5)
+  }
 };
 
 function getDefaultStartDate () {
