@@ -45,6 +45,7 @@
     "react-dom": "^16.3.2",
     "react-error-boundary": "^1.2.2",
     "react-map-gl": "^3.2.10",
+    "react-measure": "^2.0.0",
     "react-redux": "^5.0.7",
     "react-router": "^4.2.0",
     "react-router-dom": "^4.3.1",

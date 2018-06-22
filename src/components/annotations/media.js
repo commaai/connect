@@ -12,8 +12,10 @@ import VideoPreview from '../video';
 
 const styles = theme => ({
   mediaChoice: {
-    display: 'inline-block',
-    cursor: 'pointer'
+    display: 'block',
+    cursor: 'pointer',
+    height: '48px',
+    minWidth: '44px'
   },
   hidden: {
     display: 'none'
@@ -39,17 +41,11 @@ class Media extends Component {
     return (
       <React.Fragment>
         <Grid container justify='flex-end'>
-          <Grid item xs={1}>
-            <div className={ this.props.classes.mediaChoice }
-                 onClick={() => this.setState({inView: MediaType.VIDEO})}>
-              <Typography>Video</Typography>
-            </div>
+          <Grid item xs={1} className={ this.props.classes.mediaChoice } onClick={() => this.setState({inView: MediaType.VIDEO})}>
+            <Typography>Video</Typography>
           </Grid>
-          <Grid item xs={1}>
-            <div className={ this.props.classes.mediaChoice }
-                 onClick={() => this.setState({inView: MediaType.MAP})}>
-              <Typography>Map</Typography>
-            </div>
+          <Grid item xs={1} className={ this.props.classes.mediaChoice } onClick={() => this.setState({inView: MediaType.MAP})}>
+            <Typography>Map</Typography>
           </Grid>
         </Grid>
         <div className={ classNames({[this.props.classes.hidden]: inView !== MediaType.VIDEO }) }>

@@ -1,8 +1,9 @@
 import React, { Component } from 'react';
+import classNames from '@sindresorhus/class-names';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';
-
+import Measure from 'react-measure';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -14,11 +15,14 @@ import TimelineWorker from '../../timeline';
 
 import RouteApi from '../../api/route';
 
-const styles = theme => {
-  root: {}
-};
-
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiY29tbWFhaSIsImEiOiJjamlud2h2czAwNTN5M3dxZWg2Z3hmNnEwIn0.aam-7k03KBbMbtR7cUJslw';
+
+const styles = {
+  mapContainer: {
+    width: '100%',
+    height: '500'
+  }
+}
 
 class SingleMap extends Component {
   state = {
@@ -82,7 +86,7 @@ class SingleMap extends Component {
 
   populateMap = async () => {
     this.setPath([]);
-    if (!this.map || !this.props.segment || !this.state.route) return;
+    if (!this.map || !this.props.segment || !this.state.route || !this.props.segments[this.props.segment.segment]) return;
     let route = this.state.route;
     let routeSigUrl = this.props.segment.url;
     let { startCoord, endCoord } = this.props.segments[this.props.segment.segment];
@@ -194,16 +198,25 @@ class SingleMap extends Component {
 
   render () {
     return (
-      <React.Fragment>
-        <ReactMapGL
-          {...this.state.viewport}
-          mapStyle={this.state.mapStyle}
-          onViewportChange={(viewport) => this.setState({viewport})}
-          mapboxApiAccessToken={ MAPBOX_TOKEN }
-          attributionControl={ false }
-          ref={ this.initMap }
-        />
-      </React.Fragment>
+      <Measure
+        bounds
+        onResize={(contentRect) => {
+          this.setState({ viewport: {...this.state.viewport, width: contentRect.bounds.width } })
+        }}
+      >
+        {({ measureRef }) =>
+          <div ref={ measureRef } className={ this.props.classes.mapContainer }>
+            <ReactMapGL
+              {...this.state.viewport}
+              mapStyle={this.state.mapStyle}
+              onViewportChange={(viewport) => this.setState({viewport})}
+              mapboxApiAccessToken={ MAPBOX_TOKEN }
+              attributionControl={ false }
+              ref={ this.initMap }
+            />
+          </div>
+        }
+      </Measure>
     );
   }
 }
