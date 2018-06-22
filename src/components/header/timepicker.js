@@ -47,7 +47,7 @@ class TimeframePicker extends Component {
     this.handleSave = this.handleSave.bind(this);
 
     this.state = {
-      showPicker: true
+      showPicker: false
     };
   }
 
