@@ -13,7 +13,7 @@ export default function ConfigRequestPromise() {
 }
 
 let wrap = function(requestFunc) {
-  return function(path, options) {
+  return async function(path, options) {
     return new Promise(function (resolve, reject) {
       requestFunc(path, options || {}, errorHandler(resolve, reject));
     })

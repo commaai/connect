@@ -44,11 +44,16 @@ class SingleMap extends Component {
   componentWillReceiveProps(nextProps) {
     let nextRoute = nextProps.segment && nextProps.segment.route;
 
-    if (nextRoute && nextRoute !== this.state.route) {
-      let map = this.map.getMap();
-      this.setState({ route: nextRoute });
+    if (nextRoute && nextRoute !== this.state.route
+        && this.map) {
+      this.setState({ route: nextRoute }, async () => {
+        let map = this.map.getMap();
+        const coords = await RouteApi(nextProps.segment.url).getCoords();
 
-      RouteApi(nextProps.segment.url).getCoords().then(coords => {
+        if (this.state.route !== nextRoute) {
+          // handle race, if route changes while coords request was in flight
+          return;
+        }
         const coordsArr = coords.map(coord => [coord.lng, coord.lat]);
         this.setState({ coords: coordsArr });
         map.getSource('route').setData({

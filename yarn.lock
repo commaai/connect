@@ -110,6 +110,10 @@
   dependencies:
     recompose "^0.26.0 || ^0.27.0"
 
+"@sindresorhus/class-names@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@sindresorhus/class-names/-/class-names-0.1.0.tgz#c0b0230ab5ba95f3c09e6609763d72b6445c07f8"
+
 "@storybook/addon-actions@3.4.6", "@storybook/addon-actions@^3.4.6":
   version "3.4.6"
   resolved "https://registry.yarnpkg.com/@storybook/addon-actions/-/addon-actions-3.4.6.tgz#70ca84a4754ea2969640428890d9a3c9369261f6"

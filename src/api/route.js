@@ -8,9 +8,8 @@ export default function routeApi(routeSigUrl) {
 
   return {
     getCoords: async function() {
-      const coordsJson = await request.get("route.coords");
-
-      return JSON.parse(coordsJson);
+      const coords = await request.get("route.coords");
+      return JSON.parse(coords);
     }
   }
 }
