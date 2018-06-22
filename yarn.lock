@@ -285,6 +285,12 @@
   dependencies:
     csstype "^2.2.0"
 
+"@types/recompose@^0.26.1":
+  version "0.26.1"
+  resolved "https://registry.yarnpkg.com/@types/recompose/-/recompose-0.26.1.tgz#a21c5728dea223551882b763335cb1bc641bf1d0"
+  dependencies:
+    "@types/react" "*"
+
 JSONStream@^1.3.2:
   version "1.3.2"
   resolved "https://registry.yarnpkg.com/JSONStream/-/JSONStream-1.3.2.tgz#c102371b6ec3a7cf3b847ca00c20bb0fce4c6dea"
@@ -2815,6 +2821,10 @@ dashdash@^1.12.0:
   resolved "https://registry.yarnpkg.com/dashdash/-/dashdash-1.14.1.tgz#853cfa0f7cbe2fed5de20326b8dd581035f6e2f0"
   dependencies:
     assert-plus "^1.0.0"
+
+date-fns@2.0.0-alpha.7:
+  version "2.0.0-alpha.7"
+  resolved "https://registry.yarnpkg.com/date-fns/-/date-fns-2.0.0-alpha.7.tgz#245ad16f95764eababfb2c0a41fd5d033c20e57a"
 
 date-format-lite@^17.7.0:
   version "17.7.0"
@@ -5992,12 +6002,14 @@ material-ui-icons@^1.0.0-alpha.19:
   dependencies:
     recompose "^0.26.0"
 
-material-ui-pickers@^1.0.0-rc.9:
-  version "1.0.0-rc.9"
-  resolved "https://registry.yarnpkg.com/material-ui-pickers/-/material-ui-pickers-1.0.0-rc.9.tgz#f343c8af28c49cc397ccc5ce72eb8fff843855fc"
+material-ui-pickers@^1.0.0-rc.10:
+  version "1.0.0-rc.10"
+  resolved "https://registry.yarnpkg.com/material-ui-pickers/-/material-ui-pickers-1.0.0-rc.10.tgz#c6917c9f8e0ad6e318b7eac04ffb46aae2bd0f3f"
   dependencies:
+    "@types/recompose" "^0.26.1"
     babel-runtime "^6.26.0"
     react-text-mask "^5.3.1"
+    recompose "^0.27.1"
 
 math-expression-evaluator@^1.2.14:
   version "1.2.17"
@@ -7879,6 +7891,17 @@ recompose@^0.26.0:
 "recompose@^0.26.0 || ^0.27.0":
   version "0.27.0"
   resolved "https://registry.yarnpkg.com/recompose/-/recompose-0.27.0.tgz#8230ebd651bf1159097006f79083fe224b1501cf"
+  dependencies:
+    babel-runtime "^6.26.0"
+    change-emitter "^0.1.2"
+    fbjs "^0.8.1"
+    hoist-non-react-statics "^2.3.1"
+    react-lifecycles-compat "^3.0.2"
+    symbol-observable "^1.0.4"
+
+recompose@^0.27.1:
+  version "0.27.1"
+  resolved "https://registry.yarnpkg.com/recompose/-/recompose-0.27.1.tgz#1a49e931f183634516633bbb4f4edbfd3f38a7ba"
   dependencies:
     babel-runtime "^6.26.0"
     change-emitter "^0.1.2"

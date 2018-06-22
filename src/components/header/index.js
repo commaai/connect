@@ -16,9 +16,10 @@ import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 import IconButton from '@material-ui/core/IconButton';
 
-import { AccountIcon } from '../../icons';
 import CurrentTime from './currentTime';
+import TimeframePicker from './timepicker';
 import Minimap from '../minimap';
+import { AccountIcon } from '../../icons';
 
 import { logOut } from '../../api/auth';
 import Timelineworker from '../../timeline';
@@ -63,7 +64,6 @@ class AppHeader extends Component {
     super(props);
 
     this.handleSearchChange = this.handleSearchChange.bind(this);
-    this.handleSelectChange = this.handleSelectChange.bind(this);
     this.handleChange = this.handleChange.bind(this);
     this.handleMenu = this.handleMenu.bind(this);
     this.handleClose = this.handleClose.bind(this);
@@ -79,23 +79,6 @@ class AppHeader extends Component {
       // this.setState({
       //   searchString: this.props.dongleId
       // });
-    }
-  }
-  handleSelectChange (e) {
-    var selection = e.target.value;
-    var d = new Date();
-    d.setHours(d.getHours() + 1, 0, 0, 0);
-
-    switch (selection) {
-      case '24-hours':
-        Timelineworker.selectTimeRange(d.getTime() - (1000 * 60 * 60 * 24), d.getTime());
-        break;
-      case '1-week':
-        Timelineworker.selectTimeRange(d.getTime() - (1000 * 60 * 60 * 24 * 7), d.getTime());
-        break;
-      case '2-weeks':
-        Timelineworker.selectTimeRange(d.getTime() - (1000 * 60 * 60 * 24 * 14), d.getTime());
-        break;
     }
   }
 
@@ -122,45 +105,7 @@ class AppHeader extends Component {
       searchString: e.target.value
     });
   }
-  selectedOption () {
-    var timeRange = this.props.end - this.props.start;
-    console.log(timeRange);
 
-    if (Math.abs(this.props.end - Date.now()) < 1000 * 60 * 60) {
-      // ends right around now
-      if (timeRange === 1000 * 60 * 60 * 24 * 14) {
-        return '2-weeks';
-      } else if (timeRange === 1000 * 60 * 60 * 24 * 7) {
-        return '1-week';
-      } else if (timeRange === 1000 * 60 * 60 * 24) {
-        return '24-hours';
-      }
-    }
-
-    return 'custom';
-  }
-  lastWeekText () {
-    if (!this.props.start || !this.props.end) {
-      return '--';
-    }
-    return 'Last Week'
-       + fecha.format(new Date(this.props.start), ' (MMM Do - ')
-       + fecha.format(new Date(this.props.end), 'MMM Do)');
-  }
-  last2WeeksText () {
-    if (!this.props.start || !this.props.end) {
-      return '--';
-    }
-    return 'Past 2 Weeks'
-       + fecha.format(new Date(this.props.start), ' (MMM Do - ')
-       + fecha.format(new Date(this.props.end), 'MMM Do)');
-  }
-  last24HoursText () {
-    if (!this.props.start || !this.props.end) {
-      return '--';
-    }
-    return 'Last 24h';
-  }
   render () {
     const { auth, anchorEl } = this.state;
     const open = Boolean(anchorEl);
@@ -183,16 +128,7 @@ class AppHeader extends Component {
                 <CurrentTime />
               </Grid>
               <Grid item xs={5} lg={4} align='right' >
-                <FormControl>
-                  <Select
-                    value={ this.selectedOption() }
-                    onChange={ this.handleSelectChange }
-                    name='timerange'>
-                    <MenuItem value='24-hours'>{ this.last24HoursText() } </MenuItem>
-                    <MenuItem value='1-week'>{ this.lastWeekText() } </MenuItem>
-                    <MenuItem value='2-weeks'>{ this.last2WeeksText() } </MenuItem>
-                  </Select>
-                </FormControl>
+                <TimeframePicker />
                 <IconButton
                   aria-owns={open ? 'menu-appbar' : null}
                   aria-haspopup="true"
