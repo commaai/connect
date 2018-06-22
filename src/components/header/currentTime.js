@@ -37,7 +37,9 @@ const styles = theme => {
       backgroundColor: theme.palette.grey[999],
       height: '64px',
       borderRadius: '32px',
-      padding: theme.spacing.unit
+      padding: theme.spacing.unit,
+      maxWidth: 450,
+      margin: '0 auto'
     },
     fullHeight: {
       height: '100%'

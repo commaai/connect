@@ -73,6 +73,15 @@ class TimelineInterface {
     });
   }
 
+  async selectTimeRange (start, end) {
+    return this.postMessage({
+      command: 'selectTimeRange',
+      data: {
+        start, end
+      }
+    });
+  }
+
   async selectDevice (dongleId) {
     await this._readyPromise;
     if (this.state.dongleId === dongleId) {
