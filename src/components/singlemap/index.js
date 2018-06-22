@@ -37,60 +37,84 @@ class SingleMap extends Component {
     super(props);
 
     this.initMap = this.initMap.bind(this);
+    this.populateMap = this.populateMap.bind(this);
     this.posAtOffset = this.posAtOffset.bind(this);
+    this.setPath = this.setPath.bind(this); 
     this.updateMarkerPos = this.updateMarkerPos.bind(this);
   }
 
   componentWillReceiveProps(nextProps) {
     let nextRoute = nextProps.segment && nextProps.segment.route;
 
-    if (nextRoute && nextRoute !== this.state.route
-        && this.map) {
-      this.setState({ route: nextRoute }, async () => {
-        let map = this.map.getMap();
-        const coords = await RouteApi(nextProps.segment.url).getCoords();
-
-        if (this.state.route !== nextRoute) {
-          // handle race, if route changes while coords request was in flight
-          return;
-        }
-        const coordsArr = coords.map(coord => [coord.lng, coord.lat]);
-        this.setState({ coords: coordsArr });
-        map.getSource('route').setData({
-          "type": "Feature",
-          "properties": {},
-          "geometry": {
-              "type": "LineString",
-              "coordinates": coordsArr,
-          }
-        });
-
-        var bounds = coordsArr.reduce(function(bounds, coord) {
-          return bounds.extend(coord);
-        }, new LngLatBounds(coordsArr[0], coordsArr[1]));
-        map.fitBounds(bounds, { padding: 20 });
-      });
+    if (nextRoute !== this.state.route) {
+      this.setState({ route: nextRoute }, this.populateMap);
     }
-  }
+  }   
 
   componentDidMount() {
     this.updateMarkerPos();
   }
 
   updateMarkerPos() {
-    if (this.props.segment) {
-      const { routeOffset } = this.props.segment;
-      const offset = TimelineWorker.currentOffset();
+    let markerSource = this.map && this.map.getMap().getSource('seekPoint');
+    if (markerSource) {
+      if (this.props.segment) {
+        const { routeOffset } = this.props.segment;
+        const offset = TimelineWorker.currentOffset();
 
-      const pos = this.posAtOffset(offset - routeOffset);
-      if (pos && this.map) {
-        this.map.getMap().getSource('seekPoint').setData({
+        const pos = this.posAtOffset(offset - routeOffset);
+        if (pos) {
+          markerSource.setData({
+            "type": "Point",
+            "coordinates": pos
+          });
+        }
+      } else if (markerSource._data && markerSource._data.coordinates.length > 0) {
+        markerSource.setData({
           "type": "Point",
-          "coordinates": pos
+          "coordinates": []
         });
       }
     }
     raf(this.updateMarkerPos);
+  }
+
+  populateMap = async () => {
+    this.setPath([]);
+    if (!this.map || !this.props.segment || !this.state.route) return;
+    let route = this.state.route;
+    let routeSigUrl = this.props.segment.url;
+    
+    const coords = await RouteApi(routeSigUrl).getCoords();
+    if (this.state.route !== route) {
+      // handle race, if route changes while coords request was in flight
+      return;
+    }
+
+    const coordsArr = coords.map(coord => [coord.lng, coord.lat]);
+    this.setPath(coordsArr);
+  }
+
+  setPath(coords) {
+    let map = this.map && this.map.getMap();
+    this.setState({ coords });
+
+    if (map) {
+      map.getSource('route').setData({
+        "type": "Feature",
+        "properties": {},
+        "geometry": {
+            "type": "LineString",
+            "coordinates": coords,
+        }
+      });
+      if (coords.length > 1) {
+        let bounds = coords.reduce(function(bounds, coord) {
+          return bounds.extend(coord);
+        }, new LngLatBounds(coords[0], coords[1]));
+        map.fitBounds(bounds, { padding: 20 });
+      }
+    }
   }
 
   posAtOffset(offset) {
@@ -153,6 +177,10 @@ class SingleMap extends Component {
       map.addLayer(markerGeoJson);
 
       this.map = mapComponent;
+
+      if (this.state.route && this.props.segment) {
+        this.populateMap();
+      }
     });
   }
 
