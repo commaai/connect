@@ -187,6 +187,7 @@ function segmentsFromMetadata (segmentsData) {
         offset: segment.offset,
         route: segment.canonical_route_name,
         startTime: segment.start_time_utc_millis,
+        startCoord: [segment.start_lng, segment.start_lat],
         duration: 0,
         segments: 0,
         url: url,
@@ -197,6 +198,7 @@ function segmentsFromMetadata (segmentsData) {
     curSegment.duration = (segment.offset - curSegment.offset) + segment.duration;
     curSegment.segments++;
     curSegment.events = curSegment.events.concat(segment.events);
+    curSegment.endCoord = [segment.end_lng, segment.end_lat];
   });
 
   if (curSegment) {

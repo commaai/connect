@@ -36,6 +36,7 @@ class SingleMap extends Component {
   constructor(props){
     super(props);
 
+    this.fitBounds = this.fitBounds.bind(this);
     this.initMap = this.initMap.bind(this);
     this.populateMap = this.populateMap.bind(this);
     this.posAtOffset = this.posAtOffset.bind(this);
@@ -58,7 +59,7 @@ class SingleMap extends Component {
   updateMarkerPos() {
     let markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
-      if (this.props.segment) {
+      if (this.props.segment && this.state.coords.length > 0) {
         const { routeOffset } = this.props.segment;
         const offset = TimelineWorker.currentOffset();
 
@@ -84,7 +85,10 @@ class SingleMap extends Component {
     if (!this.map || !this.props.segment || !this.state.route) return;
     let route = this.state.route;
     let routeSigUrl = this.props.segment.url;
-    
+    let { startCoord, endCoord } = this.props.segments[this.props.segment.segment];
+    let bounds = new LngLatBounds(startCoord, endCoord);
+    this.fitBounds(bounds);
+
     const coords = await RouteApi(routeSigUrl).getCoords();
     if (this.state.route !== route) {
       // handle race, if route changes while coords request was in flight
@@ -93,6 +97,10 @@ class SingleMap extends Component {
 
     const coordsArr = coords.map(coord => [coord.lng, coord.lat]);
     this.setPath(coordsArr);
+  }
+
+  fitBounds(latLngBounds) {
+    this.map.getMap().fitBounds(latLngBounds, { padding: 20 });
   }
 
   setPath(coords) {
@@ -112,7 +120,7 @@ class SingleMap extends Component {
         let bounds = coords.reduce(function(bounds, coord) {
           return bounds.extend(coord);
         }, new LngLatBounds(coords[0], coords[1]));
-        map.fitBounds(bounds, { padding: 20 });
+        this.fitBounds(bounds);
       }
     }
   }
@@ -203,6 +211,7 @@ class SingleMap extends Component {
 const stateToProps = Obstruction({
   offset: 'workerState.offset',
   route: 'workerState.route',
+  segments: 'workerState.segments',
   segment: 'workerState.currentSegment',
   startTime: 'workerState.startTime'
 });
