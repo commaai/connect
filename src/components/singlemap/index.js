@@ -44,7 +44,7 @@ class SingleMap extends Component {
     this.initMap = this.initMap.bind(this);
     this.populateMap = this.populateMap.bind(this);
     this.posAtOffset = this.posAtOffset.bind(this);
-    this.setPath = this.setPath.bind(this); 
+    this.setPath = this.setPath.bind(this);
     this.updateMarkerPos = this.updateMarkerPos.bind(this);
   }
 
@@ -54,7 +54,7 @@ class SingleMap extends Component {
     if (nextRoute !== this.state.route) {
       this.setState({ route: nextRoute }, this.populateMap);
     }
-  }   
+  }
 
   componentDidMount() {
     this.updateMarkerPos();
@@ -81,6 +81,7 @@ class SingleMap extends Component {
         });
       }
     }
+
     raf(this.updateMarkerPos);
   }
 
@@ -130,8 +131,27 @@ class SingleMap extends Component {
   }
 
   posAtOffset(offset) {
-    const coordsIdx = Math.floor(offset / 1e3);
-    return this.state.coords[coordsIdx];
+    const offsetSeconds = Math.floor(offset / 1e3);
+    const offsetFractionalPart = (offset % 1e3) / 1000.0;
+    const coordIdx = Math.min(
+      offsetSeconds,
+      this.state.coords.length - 1
+    );
+    const nextCoordIdx = Math.min(
+      offsetSeconds + 1,
+      this.state.coords.length - 1
+    );
+    if (!this.state.coords[coordIdx]) {
+      return null;
+    }
+
+    const [floorLng, floorLat] = this.state.coords[coordIdx];
+    const [ceilLng, ceilLat] = this.state.coords[nextCoordIdx];
+
+    return [
+      floorLng + ((ceilLng - floorLng) * offsetFractionalPart),
+      floorLat + ((ceilLat - floorLat) * offsetFractionalPart)
+    ];
   }
 
   initMap(mapComponent) {
