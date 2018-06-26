@@ -9,7 +9,8 @@ import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 
 import { LngLatBounds } from 'mapbox-gl';
-import ReactMapGL from 'react-map-gl';
+import ReactMapGL, { FlyToInterpolator } from 'react-map-gl';
+import { easeCubic } from 'd3-ease';
 
 import TimelineWorker from '../../timeline';
 
@@ -20,7 +21,7 @@ const MAPBOX_TOKEN = 'pk.eyJ1IjoiY29tbWFhaSIsImEiOiJjamlud2h2czAwNTN5M3dxZWg2Z3h
 const styles = {
   mapContainer: {
     width: '100%',
-    height: '500'
+    cursor: 'default !important'
   }
 }
 
@@ -49,10 +50,14 @@ class SingleMap extends Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    let nextRoute = nextProps.segment && nextProps.segment.route;
+    let nextRoute = nextProps.currentSegment && nextProps.currentSegment.route;
 
     if (nextRoute !== this.state.route) {
       this.setState({ route: nextRoute }, this.populateMap);
+    }
+
+    if (nextProps.startTime !== this.props.startTime) {
+      this.shouldFlyTo = true;
     }
   }
 
@@ -60,11 +65,15 @@ class SingleMap extends Component {
     this.updateMarkerPos();
   }
 
+  getMarkerSource() {
+    return this.map && this.map.getMap().getSource('seekPoint');
+  }
+
   updateMarkerPos() {
-    let markerSource = this.map && this.map.getMap().getSource('seekPoint');
+    let markerSource = this.getMarkerSource()
     if (markerSource) {
-      if (this.props.segment && this.state.coords.length > 0) {
-        const { routeOffset } = this.props.segment;
+      if (this.props.currentSegment && this.state.coords.length > 0) {
+        const { routeOffset } = this.props.currentSegment;
         const offset = TimelineWorker.currentOffset();
 
         const pos = this.posAtOffset(offset - routeOffset);
@@ -73,6 +82,7 @@ class SingleMap extends Component {
             "type": "Point",
             "coordinates": pos
           });
+          this.moveViewportTo(pos);
         }
       } else if (markerSource._data && markerSource._data.coordinates.length > 0) {
         markerSource.setData({
@@ -85,12 +95,29 @@ class SingleMap extends Component {
     raf(this.updateMarkerPos);
   }
 
+  moveViewportTo(pos) {
+    let viewport = {
+      ...this.state.viewport,
+      longitude: pos[0],
+      latitude: pos[1]
+    };
+    if (this.shouldFlyTo) {
+      viewport.transitionDuration = 500;
+      viewport.transitionInterpolator = new FlyToInterpolator();
+      this.shouldFlyTo = false;
+    }
+
+    this.setState({ viewport });
+  }
+
   populateMap = async () => {
     this.setPath([]);
-    if (!this.map || !this.props.segment || !this.state.route || !this.props.segments[this.props.segment.segment]) return;
+    if (!this.map || !this.props.currentSegment || !this.state.route || !this.props.segments[this.props.segmentNum]) {
+      return;
+    }
     let route = this.state.route;
-    let routeSigUrl = this.props.segment.url;
-    let { startCoord, endCoord } = this.props.segments[this.props.segment.segment];
+    let routeSigUrl = this.props.currentSegment.url;
+    let { startCoord, endCoord } = this.props.segments[this.props.segmentNum];
     let bounds = new LngLatBounds(startCoord, endCoord);
     this.fitBounds(bounds);
 
@@ -161,6 +188,7 @@ class SingleMap extends Component {
     }
 
     let map = mapComponent.getMap();
+
     map.on('load', () => {
       map.addSource('route', {
         "type": "geojson",
@@ -210,7 +238,7 @@ class SingleMap extends Component {
 
       this.map = mapComponent;
 
-      if (this.state.route && this.props.segment) {
+      if (this.state.route && this.props.currentSegment) {
         this.populateMap();
       }
     });
@@ -233,6 +261,7 @@ class SingleMap extends Component {
               mapboxApiAccessToken={ MAPBOX_TOKEN }
               attributionControl={ false }
               ref={ this.initMap }
+              dragPan={ false }
             />
           </div>
         }
@@ -245,7 +274,8 @@ const stateToProps = Obstruction({
   offset: 'workerState.offset',
   route: 'workerState.route',
   segments: 'workerState.segments',
-  segment: 'workerState.currentSegment',
+  segmentNum: 'workerState.segment',
+  currentSegment: 'workerState.currentSegment',
   startTime: 'workerState.startTime'
 });
 

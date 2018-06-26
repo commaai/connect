@@ -25,6 +25,7 @@
     "classnames": "^2.2.6",
     "collect-methods": "^1.2.0",
     "config-request": "^0.5.1",
+    "d3-ease": "^1.0.3",
     "date-fns": "2.0.0-alpha.7",
     "date-format": "^1.2.0",
     "date-format-lite": "^17.7.0",

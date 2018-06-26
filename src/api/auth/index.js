@@ -18,7 +18,8 @@ export async function init() {
     }
   }
 
-  return storage.getCommaAccessToken();
+  const token = await storage.getCommaAccessToken();
+  return token;
 }
 
 export function logOut() {
