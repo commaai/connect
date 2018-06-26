@@ -3,12 +3,13 @@
 
 const initialState = require('./initialState');
 
-const ACTION_SEEK = 'seek';
-const ACTION_PAUSE = 'pause';
-const ACTION_PLAY = 'play';
+const ACTION_SEEK = 'action_seek';
+const ACTION_PAUSE = 'action_pause';
+const ACTION_PLAY = 'action_play';
+const ACTION_LOOP = 'action_loop';
 
 module.exports = {
-  pause, play, seek, currentOffset,
+  pause, play, seek, currentOffset, selectLoop,
   reducer
 };
 
@@ -29,6 +30,12 @@ function reducer (state = initialState, action) {
         state.playSpeed = action.speed;
         state.startTime = Date.now();
       }
+      break;
+    case ACTION_LOOP:
+      state.loop = {
+        startTime: action.startTime,
+        duration: action.duration
+      };
       break;
     default:
       break;
@@ -86,5 +93,12 @@ function play (speed = 1) {
   return {
     type: ACTION_PLAY,
     speed
+  };
+}
+
+function selectLoop (startTime, duration) {
+  return {
+    type: ACTION_LOOP,
+    startTime, duration
   };
 }

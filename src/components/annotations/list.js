@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { partial } from 'ap';
 import fecha from 'fecha';
@@ -35,11 +36,17 @@ class AnnotationList extends Component {
   }
 
   handleExpanded (eventId, seekpos) {
+    let isExpanded = this.state.expanded !== eventId && eventId;
     this.setState({
-      expanded: this.state.expanded === eventId ? null : eventId
+      expanded: isExpanded ? eventId : null
     });
 
-    Timelineworker.seek(seekpos - 10000);
+    if (isExpanded) {
+      // 5 seconds before, 5 seconds after...
+      Timelineworker.selectLoop(seekpos + this.props.start - 5000, 10000);
+    } else if (this.props.zoom && this.props.zoom.expanded) {
+      Timelineworker.selectLoop(this.props.zoom.start, this.props.zoom.end - this.props.zoom.start);
+    }
   }
 
   render() {
@@ -82,4 +89,9 @@ class AnnotationList extends Component {
   }
 }
 
-export default withStyles(styles)(AnnotationList);
+const stateToProps = Obstruction({
+  start: 'workerState.start',
+  zoom: 'zoom'
+});
+
+export default connect(stateToProps)(withStyles(styles)(AnnotationList));

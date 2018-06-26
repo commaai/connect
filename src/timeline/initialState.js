@@ -35,8 +35,8 @@ module.exports = {
     // in time instead of offset
     // this makes it so that the timespan can change without this changing
     // thats helpful to shared links and other things probably...
-    startTime: 1529478766606 + (1000 * 60 * 12.5),
-    duration: (1000 * 5)
+    startTime: null,
+    duration: null
   }
 };
 
