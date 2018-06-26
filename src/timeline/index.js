@@ -82,6 +82,15 @@ class TimelineInterface {
     });
   }
 
+  async selectLoop (startTime, duration) {
+    return this.postMessage({
+      command: 'selectLoop',
+      data: {
+        startTime, duration
+      }
+    });
+  }
+
   async selectDevice (dongleId) {
     await this._readyPromise;
     if (this.state.dongleId === dongleId) {

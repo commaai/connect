@@ -20,7 +20,7 @@ class VideoPreview extends Component {
     this.videoPlayer = React.createRef();
 
     this.state = {
-      bufferTime: 5,
+      bufferTime: 4,
       src: this.videoURL()
     };
   }
@@ -77,19 +77,37 @@ class VideoPreview extends Component {
         let desiredVideoTime = this.currentVideoTime(offset);
         let timeDiff = desiredVideoTime - curVideoTime;
 
+        let isBuffered = false;
+        for (let i = 0, buf = playerState.buffered, len = buf.length; i < len; ++i) {
+          let start = buf.start(i);
+          if (start < desiredVideoTime && buf.end(i) > desiredVideoTime) {
+            isBuffered = true;
+            break;
+          } else if (Math.abs(start - desiredVideoTime) < 5) {
+            isBuffered = true;
+            break;
+          }
+        }
+
         // console.log('Adjusting time drift by', timeDiff, curVideoTime);
         // console.log(playerState);
         shouldShowPreview = playerState.buffered.length === 0 || playerState.waiting || (Math.abs(timeDiff) > 2);
 
         if (Number.isFinite(timeDiff) && Math.abs(timeDiff) > 0.25) {
 
-          if (Math.abs(timeDiff) > bufferTime * 1.1) {
+          if (Math.abs(timeDiff) > bufferTime * 1.1 || (Math.abs(timeDiff) > 0.5 && isBuffered)) {
             if (desiredVideoTime + this.state.bufferTime * this.props.playSpeed > playerState.duration) {
               // debugger;
               // do nothing, this is a bug
             } else {
               console.log('Seeking!');
-              videoPlayer.seek(desiredVideoTime + this.state.bufferTime * this.props.playSpeed);
+              // debugger;
+              if (isBuffered) {
+                videoPlayer.seek(desiredVideoTime);
+              } else {
+                console.log(playerState, desiredVideoTime);
+                videoPlayer.seek(desiredVideoTime + this.state.bufferTime * this.props.playSpeed);
+              }
             }
           } else {
             if (timeDiff > 0) {
@@ -164,7 +182,7 @@ class VideoPreview extends Component {
           fluid={ true }
           src={ this.state.src }
 
-          startTime={ this.currentVideoTime() + (this.props.currentSegment ? this.state.bufferTime * this.props.playSpeed : 0) }
+          startTime={ this.currentVideoTime() }
           playbackRate={ this.props.playSpeed }
           >
           <HLSSource

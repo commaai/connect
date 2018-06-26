@@ -3,12 +3,13 @@
 
 const initialState = require('./initialState');
 
-const ACTION_SEEK = 'seek';
-const ACTION_PAUSE = 'pause';
-const ACTION_PLAY = 'play';
+const ACTION_SEEK = 'action_seek';
+const ACTION_PAUSE = 'action_pause';
+const ACTION_PLAY = 'action_play';
+const ACTION_LOOP = 'action_loop';
 
 module.exports = {
-  pause, play, seek, currentOffset,
+  pause, play, seek, currentOffset, selectLoop,
   reducer
 };
 
@@ -30,16 +31,46 @@ function reducer (state = initialState, action) {
         state.startTime = Date.now();
       }
       break;
+    case ACTION_LOOP:
+      state.loop = {
+        startTime: action.startTime,
+        duration: action.duration
+      };
+      break;
     default:
-      return state;
       break;
   }
+
+  let offset = state.offset + (Date.now() - state.startTime) * state.playSpeed;
+  // normalize over loop
+  if (state.loop && state.loop.startTime) {
+    let loopOffset = state.loop.startTime - state.start;
+    // has loop, trap offset within the loop
+    if (offset < loopOffset) {
+      state.startTime = Date.now();
+      state.offset = loopOffset;
+    } else if (offset > loopOffset + state.loop.duration) {
+      state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
+      state.startTime = Date.now();
+    }
+  }
+
   return state;
 }
 
 // fetch current playback offset
 function currentOffset (state) {
-  return state.offset + (Date.now() - state.startTime) * state.playSpeed;
+  let offset = state.offset + (Date.now() - state.startTime) * state.playSpeed;
+
+  if (state.loop && state.loop.startTime) {
+    // respect the loop
+    let loopOffset = state.loop.startTime - state.start;
+    if (offset > loopOffset + state.loop.duration) {
+      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
+    }
+  }
+
+  return offset;
 }
 
 // seek to a specific offset
@@ -62,5 +93,12 @@ function play (speed = 1) {
   return {
     type: ACTION_PLAY,
     speed
+  };
+}
+
+function selectLoop (startTime, duration) {
+  return {
+    type: ACTION_LOOP,
+    startTime, duration
   };
 }

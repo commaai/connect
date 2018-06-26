@@ -8,7 +8,10 @@ import Collector from 'collect-methods';
 import * as API from '../api';
 
 import init from './startup';
-import { selectDevice as selectDeviceAction, selectTimeRange as selectTimeRangeAction } from './startup';
+import {
+  selectDevice as selectDeviceAction,
+  selectTimeRange as selectTimeRangeAction
+} from './startup';
 import Playback from './playback';
 import Segments from './segments';
 import * as Cache from './cache';
@@ -74,7 +77,8 @@ const commands = {
   hello,
   resolve,
   selectDevice,
-  selectTimeRange
+  selectTimeRange,
+  selectLoop
 };
 
 export async function handleMessage (port, msg) {
@@ -206,6 +210,11 @@ function selectDevice (port, dongleId) {
 function selectTimeRange (port, data) {
   const { start, end } = data;
   store.dispatch(selectTimeRangeAction(start, end));
+}
+
+function selectLoop (port, data) {
+  const { startTime, duration } = data;
+  store.dispatch(Playback.selectLoop(startTime, duration));
 }
 
 function scheduleSegmentUpdate (state) {

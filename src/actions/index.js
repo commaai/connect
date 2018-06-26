@@ -29,6 +29,13 @@ export function selectRange (start, end) {
       });
     }
 
+    if (!state.workerState.loop.startTime
+      || !state.workerState.loop.duration
+      || state.workerState.loop.startTime < start
+      || state.workerState.loop.startTime + state.workerState.loop.duration > end) {
+      Timelineworker.selectLoop(start, end - start);
+    }
+
     if (curPath !== desiredPath) {
       dispatch(push(desiredPath));
     }
