@@ -223,12 +223,14 @@ function segmentsFromMetadata (segmentsData) {
           lastEngage = event;
           break;
         case 'disengage':
-          lastEngage.data = {
-            end_offset_nanos: event.offset_nanos,
-            end_offset_millis: event.offset_millis,
-            end_route_offset_nanos: event.route_offset_nanos,
-            end_route_offset_millis: event.route_offset_millis
-          };
+          if (lastEngage) {
+            lastEngage.data = {
+              end_offset_nanos: event.offset_nanos,
+              end_offset_millis: event.offset_millis,
+              end_route_offset_nanos: event.route_offset_nanos,
+              end_route_offset_millis: event.route_offset_millis
+            };
+          }
           break;
         default:
           break;
