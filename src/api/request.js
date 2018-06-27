@@ -3,8 +3,7 @@ import qs from 'querystringify';
 
 import { getCommaAccessToken } from './auth/storage';
 import errorHandler from './errorHandler';
-
-const URL_ROOT = 'https://api.commadotai.com/v1/';
+import { COMMA_URL_ROOT } from './config';
 
 const request = ConfigRequest();
 
@@ -12,9 +11,9 @@ var initPromise = init();
 
 async function init() {
   const config = {
-    baseUrl: URL_ROOT,
+    baseUrl: COMMA_URL_ROOT,
     jwt: false
-  }
+  };
 
   var token = await getCommaAccessToken();
   if (token) {

@@ -34,6 +34,9 @@ const theme = createMuiTheme({
       }
     }
   },
+  // shape: {
+  //   borderRadius: 8
+  // },
   props: {
     MuiSelect: {
       disableUnderline: true,

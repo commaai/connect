@@ -2,8 +2,7 @@
 // rapidly change high level timeline stuff
 // rapid seeking, etc
 import React, { Component } from 'react';
-import { connect } from 'react-redux'
-import { push } from 'react-router-redux'
+import { connect } from 'react-redux';
 import raf from 'raf';
 import debounce from 'debounce';
 import document from 'global/document';

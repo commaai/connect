@@ -1,9 +1,8 @@
 import * as Redux from 'redux';
-import { routerReducer, routerMiddleware } from 'react-router-redux';
+import { connectRouter, routerMiddleware } from 'connected-react-router'
 import thunk from 'redux-thunk';
 import createHistory from 'history/createBrowserHistory';
 import reducers from './reducers';
-import { updateState, selectRange } from './actions';
 import compose from './devtools';
 import Timelineworker from './timeline';
 
@@ -11,33 +10,11 @@ export const history = createHistory();
 
 export function createStore () {
   const store = Redux.createStore(
-    Redux.combineReducers({
-      ...reducers,
-      router: routerReducer
-    }),
+    connectRouter(history)(
+      Redux.combineReducers(reducers)
+    ),
     compose(Redux.applyMiddleware(thunk, routerMiddleware(history)))
   );
 
-  history.listen(location => dispatchRoute(location.pathname));
-  dispatchRoute(history.location.pathname);
-
   return store;
-
-  function dispatchRoute (pathname) {
-    var parts = pathname.split('/');
-    parts = parts.filter((m) => m.length);
-
-    if (parts[0] === 'auth') {
-      // auth is not a device, so skip
-      return;
-    }
-
-    if (!parts[0]) {
-      store.dispatch(selectRange(null, null));
-      return;
-    }
-
-    Timelineworker.selectDevice(parts[0]);
-    store.dispatch(selectRange(Number(parts[1]), Number(parts[2])));
-  }
 }
