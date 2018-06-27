@@ -30,10 +30,6 @@ let hasGottenSegmentDataPromise = new Promise(function (resolve, reject) {
     resolve();
   };
 });
-const startupPromise = Promise.all([
-  init(),
-  hasGottenSegmentDataPromise
-]);
 
 var segmentsRequest = null;
 var annotationsRequest = null;
@@ -193,7 +189,10 @@ function play (port, speed) {
 }
 
 async function hello (port) {
-  await startupPromise;
+  await Promise.all([
+    init(),
+    hasGottenSegmentDataPromise
+  ]);
   return 'hello';
 }
 
