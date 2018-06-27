@@ -1,15 +1,24 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux'
+import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
 import { Player, ControlBar, PlaybackRateMenuButton } from 'video-react';
-import HLSSource from './hlsSource';
-
+import classNames from '@sindresorhus/class-names';
 // CSS for video
 import 'video-react/dist/video-react.css';
 
+import HLSSource from './hlsSource';
+
 import TimelineWorker from '../../timeline';
 
-// show video or
+const styles = theme => {
+  return {
+    root: {},
+    hidden: {
+      display: 'none'
+    }
+  }
+};
 
 class VideoPreview extends Component {
   constructor (props) {
@@ -21,7 +30,8 @@ class VideoPreview extends Component {
 
     this.state = {
       bufferTime: 4,
-      src: this.videoURL()
+      src: this.videoURL(),
+      noVideo: false
     };
   }
 
@@ -66,10 +76,11 @@ class VideoPreview extends Component {
     let shouldShowPreview = true;
     let bufferTime = this.state.bufferTime;
     let videoPlayer = this.videoPlayer.current;
+    let noVideo = this.state.noVideo;
 
     if (videoPlayer) {
       let playerState = videoPlayer.getState().player;
-      if (!playerState.buffered) {
+      if (!playerState.buffered || Number.isNaN(playerState.duration)) {
         return;
       }
       if (this.props.playSpeed && this.props.currentSegment) {
@@ -96,11 +107,13 @@ class VideoPreview extends Component {
         if (Number.isFinite(timeDiff) && Math.abs(timeDiff) > 0.25) {
 
           if (Math.abs(timeDiff) > bufferTime * 1.1 || (Math.abs(timeDiff) > 0.5 && isBuffered)) {
-            if (desiredVideoTime + this.state.bufferTime * this.props.playSpeed > playerState.duration) {
-              // debugger;
-              // do nothing, this is a bug
+            if (desiredVideoTime > playerState.duration) {
+              noVideo = true;
+            } else if (desiredVideoTime < 0) {
+              noVideo = true;
             } else {
-              console.log('Seeking!');
+              noVideo = false;
+              console.log('Seeking!', desiredVideoTime);
               // debugger;
               if (isBuffered) {
                 videoPlayer.seek(desiredVideoTime);
@@ -116,8 +129,10 @@ class VideoPreview extends Component {
               timeDiff = Math.max(0.25, timeDiff + this.props.playSpeed) - this.props.playSpeed;
             }
             videoPlayer.playbackRate = (this.props.playSpeed + timeDiff);
+            noVideo = false;
           }
         } else {
+          noVideo = false;
           videoPlayer.playbackRate = this.props.playSpeed;
         }
 
@@ -138,6 +153,11 @@ class VideoPreview extends Component {
         this.imageRef.current.src = this.nearestImageFrame(offset);
       }
       this.imageRef.current.style.display = shouldShowPreview ? 'block' : 'none';
+    }
+    if (noVideo !== this.state.noVideo) {
+      this.setState({
+        noVideo
+      });
     }
   }
   videoURL () {
@@ -174,42 +194,46 @@ class VideoPreview extends Component {
   render () {
     return (
       <div style={{ position: 'relative' }}>
-        <Player
-          style={{ zIndex: 1 }}
-          ref={ this.videoPlayer }
-          autoPlay={ !!this.props.currentSegment }
-          muted={ true }
-          fluid={ true }
-          src={ this.state.src }
+        <div className={ classNames({
+          [this.props.classes.hidden]: this.state.noVideo
+        }) }>
+          <Player
+            style={{ zIndex: 1 }}
+            ref={ this.videoPlayer }
+            autoPlay={ !!this.props.currentSegment }
+            muted={ true }
+            fluid={ true }
+            src={ this.state.src }
 
-          startTime={ this.currentVideoTime() }
-          playbackRate={ this.props.playSpeed }
-          >
-          <HLSSource
-            isVideoChild
-          />
-          <ControlBar autoHide={false}>
-            <PlaybackRateMenuButton
-              rates={[5, 3, 1.5, 1, 0.5, 0.1]}
-              order={7.1}
+            startTime={ this.currentVideoTime() }
+            playbackRate={ this.props.playSpeed }
+            >
+            <HLSSource
+              isVideoChild
             />
-          </ControlBar>
-        </Player>
+            <ControlBar autoHide={false}>
+              <PlaybackRateMenuButton
+                rates={[5, 3, 1.5, 1, 0.5, 0.1]}
+                order={7.1}
+              />
+            </ControlBar>
+          </Player>
 
-        <img style={{
-          width: '100%',
-          height: 'auto',
-          position: 'absolute',
-          top: 0,
-          zIndex: 1
-        }} ref={ this.imageRef } src={this.nearestImageFrame()} />
+          <img style={{
+            width: '100%',
+            height: 'auto',
+            position: 'absolute',
+            top: 0,
+            zIndex: 1
+          }} ref={ this.imageRef } src={this.nearestImageFrame()} />
+        </div>
       </div>
     );
   }
 }
 
-export default connect(mapStateToProps)(VideoPreview);
-
 function mapStateToProps(state) {
   return state.workerState;
 }
+
+export default connect(mapStateToProps)(withStyles(styles)(VideoPreview));

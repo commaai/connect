@@ -45,7 +45,7 @@ class Media extends Component {
             <Typography>Map</Typography>
           </Grid>
         </Grid>
-        { inView === MediaType.VIDEO && <VideoPreview /> }
+        { inView === MediaType.VIDEO && <VideoPreview onVideoChange={(noVideo) => this.setState({inView: noVideo ? MediaType.MAP : MediaType.VIDEO}) } /> }
         { inView === MediaType.MAP && <SingleMap /> }
       </React.Fragment>
     );
