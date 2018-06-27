@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { partial } from 'ap';
-import { push } from 'react-router-redux'
 
 import { withStyles } from '@material-ui/core/styles';
 import Badge from '@material-ui/core/Badge';

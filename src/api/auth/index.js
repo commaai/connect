@@ -1,23 +1,11 @@
-import qs from 'query-string';
 import document from 'global/document';
 
 import * as storage from './storage';
-import * as Api from '../';
-import { exchangeCodeForTokens } from './google';
 
-export { oauthRedirectLink } from './google';
+export { oauthRedirectLink } from '../config';
 
 // seed cache
 export async function init() {
-  if (document.location) {
-    if (document.location.pathname == "/auth/g/redirect") {
-      var code = qs.parse(document.location.search)['code'];
-
-      const tokens = await exchangeCodeForTokens(code);
-      await Api.commaTokenExchange(tokens.access_token, tokens.id_token);
-    }
-  }
-
   const token = await storage.getCommaAccessToken();
   return token;
 }

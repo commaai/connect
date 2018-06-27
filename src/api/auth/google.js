@@ -1,42 +1,23 @@
 import ConfigRequest from 'config-request/instance';
+import qs from 'querystringify';
+
 import errorHandler from '../errorHandler';
-import qs from 'query-string';
+import * as Config from '../config';
 
-const GOOGLE_AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/auth'
-var redirectOrigin = 'http://127.0.0.1';
-if (typeof window !== 'undefined') {
-  redirectOrigin = window.location.origin;
-}
-const REDIRECT_URI = `${redirectOrigin}/auth/g/redirect`;
-const OAUTH_PARAMS = qs.stringify({
-    type: 'web_server',
-    client_id: '45471411055-ffgv404iin6vi94qv6g6hd8fb48hr4bf.apps.googleusercontent.com',
-    redirect_uri: REDIRECT_URI,
-    response_type: 'code',
-    scope: 'https://www.googleapis.com/auth/userinfo.email'
-  });
-
-export const oauthRedirectLink = `${GOOGLE_AUTH_ENDPOINT}?${OAUTH_PARAMS}`
-
-const request = ConfigRequest();
-
-const initPromise = init();
-async function init() {
-  request.configure({
-      baseUrl: "https://www.googleapis.com/",
-      parse: JSON.parse
-  });
-}
+const googleRequest = ConfigRequest();
+googleRequest.configure({
+  baseUrl: Config.GOOGLE_URL_ROOT,
+  parse: JSON.parse
+});
 
 export async function postForm(endpoint, data) {
-  await initPromise;
   return new Promise((resolve, reject) => {
-    request.post(
+    googleRequest.post(
       endpoint,
       {
         body: qs.stringify(data),
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
+          'Content-Type': 'application/x-www-form-urlencoded'
         }
       },
       errorHandler(resolve, reject)
@@ -45,14 +26,35 @@ export async function postForm(endpoint, data) {
 }
 
 export async function exchangeCodeForTokens(code) {
-  await initPromise;
   const params = {
     code: code,
-    client_id: '45471411055-ffgv404iin6vi94qv6g6hd8fb48hr4bf.apps.googleusercontent.com',
-    client_secret: '_9OMwDPbbx2JktznntXt-1Hs',
-    redirect_uri: REDIRECT_URI,
+    client_id: Config.GOOGLE_CLIENT_ID,
+    client_secret: Config.GOOGLE_CLIENT_SECRET,
+    redirect_uri: Config.REDIRECT_URI,
     grant_type: 'authorization_code'
   };
 
-  return postForm("oauth2/v4/token/", params);
+  return postForm('oauth2/v4/token/', params);
+}
+
+export async function commaTokenExchange (accessToken, idToken) {
+  const request = ConfigRequest();
+  request.configure({
+    baseUrl: Config.COMMA_URL_ROOT
+  });
+
+  let promise = new Promise(function (resolve, reject) {
+    request.post('auth/', {
+      body: qs.stringify({
+        access_token: accessToken,
+        id_token: idToken
+      }),
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    }, errorHandler(resolve, reject));
+  });
+
+  var data = await promise;
+  localStorage.authorization = JSON.parse(data).access_token;
 }

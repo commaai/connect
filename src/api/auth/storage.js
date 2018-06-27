@@ -1,16 +1,18 @@
 import storage from 'localforage';
 
+export { oauthRedirectLink } from './google';
+
 export let isAuthed = false;
 let useForage = true;
 
-export function logOut() {
+export function logOut () {
   localStorage.removeItem('authorization');
   if (useForage) {
     storage.removeItem('authorization');
   }
 }
 
-export function getTokenInternal() {
+export function getTokenInternal () {
   if (typeof localStorage !== 'undefined') {
     if (localStorage.authorization) {
       return localStorage.authorization;
@@ -19,7 +21,7 @@ export function getTokenInternal() {
   return null;
 }
 
-export async function getCommaAccessToken() {
+export async function getCommaAccessToken () {
   let token = getTokenInternal();
   if (!token) {
     try {

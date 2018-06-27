@@ -1,5 +1,5 @@
-import { push } from 'react-router-redux'
-import document from 'global/document'
+import { push } from 'connected-react-router';
+import document from 'global/document';
 import * as Types from './types';
 import Timelineworker from '../timeline';
 

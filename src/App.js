@@ -1,8 +1,10 @@
 import React, { Component } from 'react';
 import { Provider } from 'react-redux';
-import { Route, Redirect } from 'react-router';
-import { ConnectedRouter } from 'react-router-redux';
+import { Route, Switch, Redirect } from 'react-router';
+import { ConnectedRouter } from 'connected-react-router';
 import { timeout } from 'thyming';
+import document from 'global/document';
+import qs from 'query-string';
 
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Grid from '@material-ui/core/Grid';
@@ -10,11 +12,13 @@ import Typography from '@material-ui/core/Typography';
 
 import HomePage from './components/homePage';
 import Explorer from './components/explorer';
+import AnonymousLanding from './components/anonymous';
 
 import TimelineWorker from './timeline';
 import { history, createStore } from './store';
 import { updateState } from './actions';
 import * as Auth from './api/auth';
+import { exchangeCodeForTokens, commaTokenExchange } from './api/auth/google';
 
 const store = createStore();
 
@@ -30,29 +34,44 @@ class App extends Component {
       initialized: false
     };
 
-    Auth.init()
-    .then((isAuthed) => isAuthed && TimelineWorker.init())
-    .then(() => {
-      this.setState({ initialized: true });
-    });
+    this.auth();
+  }
+  async auth () {
+    if (document.location) {
+      if (document.location.pathname == '/auth/g/redirect') {
+        var code = qs.parse(document.location.search)['code'];
+
+        try {
+          const tokens = await exchangeCodeForTokens(code);
+          await commaTokenExchange(tokens.access_token, tokens.id_token);
+          // done authing!!
+        } catch (e) {
+        }
+      }
+    }
+
+    let isAuthed = await Auth.init();
+
+    if (isAuthed) {
+      await TimelineWorker.init();
+    }
+
+    this.setState({ initialized: true });
   }
   authRoutes () {
     return (
-      <div>
+      <Switch>
+        <Route path="/auth/" render={ () => <Redirect to="/" /> } />
         <Route path="/" component={ Explorer } />
-        <Route path="/auth/g/redirect" render={ () => <Redirect to="/" /> } />
-      </div>
+      </Switch>
     );
   }
   ananymousRoutes () {
     return (
-      <Grid container alignItems='center' style={{ width: '100%', height: '100%', marginTop: '30vh' }}>
-        <Grid item align='center' xs={12} >
-          <a href={ Auth.oauthRedirectLink }>
-            <Typography variant='title'>Sign in</Typography>
-          </a>
-        </Grid>
-      </Grid>
+      <Switch>
+        <Route path="/auth/" render={ () => <Redirect to="/" /> } />
+        <Route path="/" component={ AnonymousLanding } />
+      </Switch>
     );
   }
   renderLoading () {

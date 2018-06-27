@@ -15,6 +15,11 @@ const TimelineWebWorker = require('./index.worker');
 const UnloadEvent = Event();
 const StateEvent = Event();
 const IndexEvent = Event();
+const InitEvent = Event();
+const InitPromise = new Promise(function (resolve, reject) {
+  InitEvent.listen(resolve);
+});
+
 window.addEventListener('beforeunload', UnloadEvent.broadcast);
 
 class TimelineInterface {
@@ -23,7 +28,7 @@ class TimelineInterface {
     this.buffers = {};
     this.requestId = 1;
     this.openRequests = {};
-    this._initPromise = init(this);
+    this._initPromise = InitPromise;
     this._readyPromise = this.rpc({
       command: 'hello'
     });
@@ -33,6 +38,10 @@ class TimelineInterface {
   onIndexed = IndexEvent.listen
 
   async init () {
+    if (!this.hasInit) {
+      this.hasInit = true;
+      init(this);
+    }
     return this._readyPromise;
   }
 
@@ -256,7 +265,10 @@ async function init (timeline) {
 async function initWorker (timeline) {
   var worker = null;
 
-  await getCommaAccessToken();
+  var token = await getCommaAccessToken();
+  if (!token) {
+    return new Promise(noop);
+  }
 
   if (false && typeof TimelineSharedWorker === 'function') {
     worker = new TimelineSharedWorker();
@@ -276,6 +288,7 @@ async function initWorker (timeline) {
   timeline.port = port;
 
   UnloadEvent.listen(() => timeline.disconnect());
+  InitEvent.broadcast(token);
 }
 
 function noop () { }
