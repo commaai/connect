@@ -6,6 +6,7 @@ import store from './store';
 // fix later, but not too later
 
 const ACTION_STARTUP_DATA = 'ACTION_STARTUP_DATA';
+const ACTION_PROFILE_REFRESHED = 'ACTION_PROFILE_REFRESHED';
 const ACTION_SELECT_DEVICE = 'ACTION_SELECT_DEVICE';
 const ACTION_SELECT_TIME_RANGE = 'ACTION_SELECT_TIME_RANGE';
 
@@ -26,6 +27,9 @@ export function reducer (state = initialState, action) {
       state.segmentData = null;
       state.segments = [];
       break;
+    case ACTION_PROFILE_REFRESHED:
+      state.profile = action.profile;
+      break;
     default:
       return state;
   }
@@ -41,6 +45,9 @@ export default async function init () {
     type: ACTION_STARTUP_DATA,
     devices
   });
+
+  let profile = await API.getProfile();
+  store.dispatch({ type: ACTION_PROFILE_REFRESHED, profile });
 }
 
 export function selectDevice (dongleId) {

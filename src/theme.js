@@ -29,7 +29,7 @@ const theme = createMuiTheme({
         padding: 0,
         '&::placeholder': {
           opacity: 1,
-          color: Colors.white30
+          color: Colors.white300
         }
       }
     }
@@ -48,7 +48,7 @@ const theme = createMuiTheme({
   },
   palette: {
     type: 'dark',
-    placeholder: Colors.white30,
+    placeholder: Colors.white300,
     background: {
       default: Colors.grey999
     },
@@ -70,6 +70,14 @@ const theme = createMuiTheme({
       900: Colors.grey900,
       950: Colors.grey950,
       999: Colors.grey999
+    },
+    white: {
+      100: Colors.white100,
+      120: Colors.white120,
+      200: Colors.white200,
+      300: Colors.white300,
+      400: Colors.white400,
+      500: Colors.white500,
     },
     error: {
       main: 'rgba(209,106,35,0.72)'
