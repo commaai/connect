@@ -123,7 +123,7 @@ function parseSegmentMetadata (state, segments, annotations) {
   segments = segments.map(function (segment) {
     segment.offset = Math.round(segment.start_time_utc_millis) - state.start;
     segment.duration = Math.round(segment.end_time_utc_millis - segment.start_time_utc_millis);
-    segment.events = JSON.parse(segment.events_json);
+    segment.events = JSON.parse(segment.events_json) || [];
     segment.events.forEach(function (event) {
       event.timestamp = segment.start_time_utc_millis + event.offset_millis;
       event.canonical_segment_name = segment.canonical_name;
