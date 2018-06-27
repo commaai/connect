@@ -16,9 +16,6 @@ const styles = theme => ({
     cursor: 'pointer',
     height: '48px',
     minWidth: '44px'
-  },
-  hidden: {
-    display: 'none'
   }
 });
 
@@ -48,12 +45,8 @@ class Media extends Component {
             <Typography>Map</Typography>
           </Grid>
         </Grid>
-        <div className={ classNames({[this.props.classes.hidden]: inView !== MediaType.VIDEO }) }>
-          <VideoPreview />
-        </div>
-        <div className={ classNames({[this.props.classes.hidden]: inView !== MediaType.MAP }) }>
-          <SingleMap />
-        </div>
+        { inView === MediaType.VIDEO && <VideoPreview /> }
+        { inView === MediaType.MAP && <SingleMap /> }
       </React.Fragment>
     );
   }

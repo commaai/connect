@@ -27,7 +27,13 @@ export function createStore () {
     var parts = pathname.split('/');
     parts = parts.filter((m) => m.length);
 
+    if (parts[0] === 'auth') {
+      // auth is not a device, so skip
+      return;
+    }
+
     if (!parts[0]) {
+      store.dispatch(selectRange(null, null));
       return;
     }
 

@@ -26,19 +26,7 @@ const styles = {
 }
 
 class SingleMap extends Component {
-  state = {
-    viewport: {
-      width: 400,
-      height: 400,
-      latitude: 37.7577,
-      longitude: -122.4376,
-      zoom: 8
-    },
-    route: null,
-    coords: [],
-  }
-
-  constructor(props){
+  constructor (props) {
     super(props);
 
     this.fitBounds = this.fitBounds.bind(this);
@@ -47,9 +35,23 @@ class SingleMap extends Component {
     this.posAtOffset = this.posAtOffset.bind(this);
     this.setPath = this.setPath.bind(this);
     this.updateMarkerPos = this.updateMarkerPos.bind(this);
+
+    let nextRoute = props.currentSegment && props.currentSegment.route;
+
+    this.state = {
+      viewport: {
+        width: 400,
+        height: 400,
+        latitude: 37.7577,
+        longitude: -122.4376,
+        zoom: 8
+      },
+      route: nextRoute,
+      coords: [],
+    };
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps (nextProps) {
     let nextRoute = nextProps.currentSegment && nextProps.currentSegment.route;
 
     if (nextRoute !== this.state.route) {
@@ -62,7 +64,12 @@ class SingleMap extends Component {
   }
 
   componentDidMount() {
+    this.mounted = true;
     this.updateMarkerPos();
+  }
+
+  componentWillUnmount () {
+    this.mounted = false;
   }
 
   getMarkerSource() {
@@ -70,6 +77,10 @@ class SingleMap extends Component {
   }
 
   updateMarkerPos() {
+    if (!this.mounted) {
+      return;
+    }
+
     let markerSource = this.getMarkerSource()
     if (markerSource) {
       if (this.props.currentSegment && this.state.coords.length > 0) {
