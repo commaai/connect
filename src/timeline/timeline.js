@@ -237,7 +237,7 @@ function scheduleSegmentUpdate (state) {
     let timeUntilLoop = state.loop.startTime + state.loop.duration - curTime;
     let loopStartOffset = state.loop.startTime - state.start;
     let loopStartSegment = Segments.getCurrentSegment(state, loopStartOffset);
-    if (loopStartSegment.startOffset !== state.currentSegment.startOffset) {
+    if (!state.currentSegment || !loopStartSegment || loopStartSegment.startOffset !== state.currentSegment.startOffset) {
       timeUntilNext = Math.min(timeUntilLoop, timeUntilNext);
     }
   }
