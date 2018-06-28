@@ -38,7 +38,10 @@ export function reducer (state = initialState, action) {
 
 export default async function init () {
   console.log('Fetching devices!');
-  var devices = await API.listDevices();
+  var devices = API.listDevices();
+  var profile = API.getProfile();
+  devices = await devices;
+  profile = await profile;
   console.log('Device list:', devices);
 
   store.dispatch({
@@ -46,8 +49,10 @@ export default async function init () {
     devices
   });
 
-  let profile = await API.getProfile();
-  store.dispatch({ type: ACTION_PROFILE_REFRESHED, profile });
+  store.dispatch({
+    type: ACTION_PROFILE_REFRESHED,
+    profile
+  });
 }
 
 export function selectDevice (dongleId) {
