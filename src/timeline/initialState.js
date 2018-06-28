@@ -37,7 +37,9 @@ module.exports = {
     // thats helpful to shared links and other things probably...
     startTime: null,
     duration: null
-  }
+  },
+
+  profile: null,
 };
 
 function getDefaultStartDate () {

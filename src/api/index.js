@@ -29,6 +29,12 @@ export async function getLogUrls (routeName) {
   return urlStore[routeName];
 }
 
+export async function getProfile(dongle_id) {
+  let profile = dongle_id || 'me';
+
+  return request.get(profile + '/');
+}
+
 export async function listDevices () {
   return request.get('me/devices/');
 }

@@ -6,6 +6,7 @@ import store from './store';
 // fix later, but not too later
 
 const ACTION_STARTUP_DATA = 'ACTION_STARTUP_DATA';
+const ACTION_PROFILE_REFRESHED = 'ACTION_PROFILE_REFRESHED';
 const ACTION_SELECT_DEVICE = 'ACTION_SELECT_DEVICE';
 const ACTION_SELECT_TIME_RANGE = 'ACTION_SELECT_TIME_RANGE';
 
@@ -26,6 +27,9 @@ export function reducer (state = initialState, action) {
       state.segmentData = null;
       state.segments = [];
       break;
+    case ACTION_PROFILE_REFRESHED:
+      state.profile = action.profile;
+      break;
     default:
       return state;
   }
@@ -34,12 +38,20 @@ export function reducer (state = initialState, action) {
 
 export default async function init () {
   console.log('Fetching devices!');
-  var devices = await API.listDevices();
+  var devices = API.listDevices();
+  var profile = API.getProfile();
+  devices = await devices;
+  profile = await profile;
   console.log('Device list:', devices);
 
   store.dispatch({
     type: ACTION_STARTUP_DATA,
     devices
+  });
+
+  store.dispatch({
+    type: ACTION_PROFILE_REFRESHED,
+    profile
   });
 }
 

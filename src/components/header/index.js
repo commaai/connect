@@ -15,6 +15,7 @@ import Toolbar from '@material-ui/core/Toolbar';
 import Select from '@material-ui/core/Select';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
+import ListItem from '@material-ui/core/ListItem';
 import IconButton from '@material-ui/core/IconButton';
 
 import CurrentTime from './currentTime';
@@ -56,6 +57,11 @@ const styles = theme => {
       bottom: 0,
       padding: '0 ' + theme.spacing.unit * 6 + 'px',
       width: '100%'
+    },
+    userMeta: {
+      outline: 'none',
+      padding: `${theme.spacing.unit}px ${theme.spacing.unit * 2}px`,
+      borderBottom: '1px solid ' + theme.palette.white[12],
     }
   };
 };
@@ -152,8 +158,12 @@ class AppHeader extends Component {
                   }}
                   open={open}
                   onClose={this.handleClose}>
-                  <MenuItem onClick={this.handleClose}>Profile</MenuItem>
-                  <MenuItem onClick={this.handleClose}>My account</MenuItem>
+                  <ListItem classes={ { root: this.props.classes.userMeta } } disableGutters>
+                    <div>
+                      <Typography variant='body2' paragraph>{ this.props.profile.email }</Typography>
+                      <Typography variant='body1' paragraph>{ this.props.profile.points } points</Typography>
+                    </div>
+                  </ListItem>
                   <MenuItem onClick={this.handleLogOut}>Log out</MenuItem>
                 </Menu>
               </Grid>
@@ -170,6 +180,7 @@ const stateToProps = Obstruction({
   dongleId: 'workerState.dongleId',
   start: 'workerState.start',
   end: 'workerState.end',
+  profile: 'workerState.profile',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));
