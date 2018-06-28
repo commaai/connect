@@ -7,12 +7,12 @@ import { COMMA_URL_ROOT } from './config';
 
 const request = ConfigRequest();
 
-var initialized = false;
-async function ensureInit() {
-  if (initialized) return;
-
-  await init();
-  initialized = true;
+var initPromise;
+function ensureInit() {
+  if (!initPromise) {
+    initPromise = init();
+  }
+  return initPromise;
 }
 
 async function init() {
