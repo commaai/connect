@@ -284,8 +284,15 @@ class Minimap extends Component {
   }
   render () {
     let hoverOffset = this.percentToOffset(this.state.hoverPercent);
-    let timestampAtOffset = this.props.start + hoverOffset;
-    let timeString = fecha.format(timestampAtOffset, 'M/D HH:mm:ss');
+    let timeString = null;
+
+    if (Number.isNaN(hoverOffset)) {
+      timeString = 'N/A';
+    } else {
+      let timestampAtOffset = this.props.start + hoverOffset;
+      timeString = fecha.format(timestampAtOffset, 'M/D HH:mm:ss');
+    }
+
     return (
       <div className={ this.props.className } style={ this.props.style } >
         <div
