@@ -61,7 +61,7 @@ const styles = theme => {
     userMeta: {
       outline: 'none',
       padding: `${theme.spacing.unit}px ${theme.spacing.unit * 2}px`,
-      borderBottom: '1px solid ' + theme.palette.white[120],
+      borderBottom: '1px solid ' + theme.palette.white[12],
     }
   };
 };
