@@ -3,10 +3,13 @@
 // rapid seeking, etc
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
 import debounce from 'debounce';
 import document from 'global/document';
-import { withStyles } from '@material-ui/core/styles';
+import fecha from 'fecha';
+
+import Tooltip from '@material-ui/core/Tooltip';
 
 import theme from '../../theme';
 import TimelineWorker from '../../timeline';
@@ -70,6 +73,13 @@ const styles = (theme) => {
       width: '100%',
       backgroundColor: 'transparent',
       background: 'linear-gradient(to bottom, ' + theme.palette.grey[200] + 'ff 0%, ' + theme.palette.grey[200] + '55 100%)'
+    },
+    hoverBead: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: 50,
+      height: '100%'
     }
   };
 };
@@ -96,10 +106,13 @@ class Minimap extends Component {
     this.offsetValue = React.createRef();
     this.progressBar = React.createRef();
     this.dragBar = React.createRef();
+    this.hoverBead = React.createRef();
 
     this.state = {
       dragStart: null,
-      zoom: this.props.zoomOverride || this.props.zoom
+      zoom: this.props.zoomOverride || this.props.zoom,
+      mouseX: 0,
+      hoverPercent: 0
     };
   }
   componentWillReceiveProps (props) {
@@ -122,13 +135,20 @@ class Minimap extends Component {
     this.stopListening = TimelineWorker.onIndexed(() => this.forceUpdate());
   }
   componentWillUnmount () {
+    this.mounted = false;
     document.removeEventListener('mouseup', this.handleUp, false);
     this.stopListening();
   }
   componentDidMount () {
+    this.mounted = true;
     raf(this.renderOffset);
   }
   renderOffset () {
+    if (!this.mounted) {
+      return;
+    }
+    raf(this.renderOffset);
+
     if (this.progressBar.current && this.progressBar.current.parentElement) {
       let offset = TimelineWorker.currentOffset();
       if (this.seekIndex) {
@@ -139,8 +159,6 @@ class Minimap extends Component {
       let percent = this.offsetToPercent(offset);
 
       this.progressBar.current.style.width = ~~(10000 * percent) / 100 + '%';
-
-      raf(this.renderOffset);
     }
   }
   handleClick (e) {
@@ -208,23 +226,24 @@ class Minimap extends Component {
     });
   }
   handleMove (e) {
+    let boundingBox = e.currentTarget.getBoundingClientRect();
+    let x = e.pageX - boundingBox.x;
+    let percent = x / boundingBox.width;
+
+    this.setState({
+      mouseX: x,
+      hoverPercent: percent
+    });
+
     // make sure they're clicking & dragging and not just moving the mouse around
     if (e.currentTarget.parentElement.querySelector('.' + this.props.classes.holder + ':active') !== e.currentTarget) {
       return;
     }
 
     if (!this.props.dragSelection) {
-      let boundingBox = e.currentTarget.getBoundingClientRect();
-      let x = e.pageX - boundingBox.x;
-      let percent = x / boundingBox.width;
-
       this.seekIndex = this.percentToOffset(percent);
-
       return this.sendSeek();
     } else if (this.state.dragStart) {
-      let boundingBox = e.currentTarget.getBoundingClientRect();
-      let x = e.pageX - boundingBox.x;
-      let percent = x / boundingBox.width;
       this.setState({
         dragEnd: percent
       });
@@ -264,6 +283,9 @@ class Minimap extends Component {
     }
   }
   render () {
+    let hoverOffset = this.percentToOffset(this.state.hoverPercent);
+    let timestampAtOffset = this.props.start + hoverOffset;
+    let timeString = fecha.format(timestampAtOffset, 'M/D HH:mm:ss');
     return (
       <div className={ this.props.className } style={ this.props.style } >
         <div
@@ -277,7 +299,17 @@ class Minimap extends Component {
           </div>
           { this.renderDragger() }
           { this.renderZoom() }
-          <div style={{ background: this.progressBarBackground() }} className={ this.props.classes.progressBar } ref={this.progressBar} />
+          <div style={{ background: this.progressBarBackground() }} className={ this.props.classes.progressBar } ref={ this.progressBar } />
+          <Tooltip
+            title={ timeString }
+            >
+            <div
+              className={ this.props.classes.hoverBead }
+              ref={ this.hoverBead }
+              style={{
+                left: this.state.mouseX - 25
+              }} />
+          </Tooltip>
         </div>
       </div>
     );
