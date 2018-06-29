@@ -8,11 +8,14 @@ import raf from 'raf';
 import debounce from 'debounce';
 import document from 'global/document';
 import fecha from 'fecha';
+import classNames from '@sindresorhus/class-names';
 
+import Measure from 'react-measure';
 import Tooltip from '@material-ui/core/Tooltip';
 
 import theme from '../../theme';
 import TimelineWorker from '../../timeline';
+import Segments from '../../timeline/segments';
 import { selectRange } from '../../actions';
 
 const styles = (theme) => {
@@ -23,7 +26,7 @@ const styles = (theme) => {
       width: '100%',
       backgroundColor: '#000',
       minHeight: '45px',
-      overflow: 'hidden',
+      overflow: 'hidden'
     },
     rounded: {
       borderRadius: '10px 10px 0px 0px'
@@ -42,6 +45,9 @@ const styles = (theme) => {
       left: '0px',
       width: '100%',
       height: '100%',
+      '&.thumbnailed': {
+        height: '50%'
+      }
     },
     segment: {
       position: 'relative',
@@ -80,6 +86,14 @@ const styles = (theme) => {
       left: 0,
       width: 50,
       height: '100%'
+    },
+    thumbnailHolder: {
+      position: 'absolute',
+      height: '50%',
+      top: '50%',
+      width: '100%',
+      whiteSpace: 'nowrap',
+      userSelect: 'none'
     }
   };
 };
@@ -100,6 +114,7 @@ class Minimap extends Component {
     this.handleDown = this.handleDown.bind(this);
     this.handleUp = this.handleUp.bind(this);
     this.renderSegment = this.renderSegment.bind(this);
+    this.renderThumbnails = this.renderThumbnails.bind(this);
 
     this.sendSeek = debounce(this.sendSeek.bind(this), 1000 / 60);
 
@@ -112,7 +127,11 @@ class Minimap extends Component {
       dragStart: null,
       zoom: this.props.zoomOverride || this.props.zoom,
       mouseX: 0,
-      hoverPercent: 0
+      hoverPercent: 0,
+      thumbnail: {
+        height: 0,
+        width: 0
+      }
     };
   }
   componentWillReceiveProps (props) {
@@ -301,7 +320,9 @@ class Minimap extends Component {
           onMouseUp={ this.handleUp }
           onMouseMove={ this.handleMove }
           onClick={ this.handleClick } >
-          <div className={ this.props.classes.segments }>
+          <div className={ classNames(this.props.classes.segments, {
+            thumbnailed: this.props.thumbnailed
+          }) }>
             { this.props.segments ? this.props.segments.map(this.renderSegment) : [] }
           </div>
           { this.renderDragger() }
@@ -317,6 +338,14 @@ class Minimap extends Component {
                 left: this.state.mouseX - 25
               }} />
           </Tooltip>
+          { this.props.thumbnailed &&
+            <Measure
+              bounds
+              onResize={ (rect) => this.setState({ thumbnail: rect.bounds }) }
+            >
+              { this.renderThumbnails }
+            </Measure>
+          }
         </div>
       </div>
     );
@@ -407,6 +436,42 @@ class Minimap extends Component {
           </div>
         );
       });
+  }
+  renderThumbnails (options) {
+    const imgStyles = {
+      display: 'inline-block',
+      height: this.state.thumbnail.height,
+      width: (1164 / 874) * this.state.thumbnail.height,
+    };
+    var imgCount = Math.ceil(this.state.thumbnail.width / imgStyles.width);
+    var gutter = 0; // (this.state.thumbnail.width - (imgCount * imgStyles.width)) / imgCount;
+    var blankImages = 0;
+    imgStyles.marginRight = gutter / 2;
+
+    var imgArr = [];
+    for (let i = 0; i < imgCount; ++i) {
+      let offset = this.percentToOffset((i + 0.5) / imgCount);
+      let segment = Segments.getCurrentSegment(this.props, offset);
+      if (!segment) {
+        blankImages++;
+        continue;
+      }
+      let seconds = Math.floor((offset - segment.routeOffset) / 1000);
+      let url = segment.url + '/sec' + seconds + '.jpg';
+
+      imgArr.push((
+        <img src={ url } style={{
+          ...imgStyles,
+          marginLeft: ((imgStyles.width + gutter) * blankImages) + gutter
+        }}/>
+      ));
+      blankImages = 0;
+    }
+    return (
+      <div ref={ options.measureRef } className={ this.props.classes.thumbnailHolder } >
+        { imgArr }
+      </div>
+    );
   }
 }
 
