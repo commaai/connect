@@ -1,3 +1,4 @@
+const SentryCliPlugin = require('@sentry/webpack-plugin');
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const path = require('path');
 
@@ -30,6 +31,16 @@ function override (config, env) {
     use: [{ loader: 'worker-loader' }, { loader: 'babel-loader' }]
   });
   config.plugins = config.plugins.filter(p => p.constructor !== UglifyJsPlugin);
+  if (env === 'production') {
+    config.plugins.push(
+      new SentryCliPlugin({
+        include: '.',
+        ignoreFile: '.sentrycliignore',
+        ignore: ['node_modules', 'webpack.config.js', 'config-overrides.js'],
+        configFile: 'sentry.properties',
+      })
+    );
+  }
 
   return config;
 };
