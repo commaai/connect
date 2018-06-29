@@ -92,7 +92,8 @@ const styles = (theme) => {
       height: '50%',
       top: '50%',
       width: '100%',
-      whiteSpace: 'nowrap'
+      whiteSpace: 'nowrap',
+      userSelect: 'none'
     }
   };
 };
