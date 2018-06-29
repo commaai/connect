@@ -1,3 +1,4 @@
+import Raven from 'raven-js';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import document from 'global/document';
@@ -10,6 +11,13 @@ import './index.css';
 import App from './App';
 import Theme from './theme';
 import registerServiceWorker from './registerServiceWorker';
+
+if (process.env.NODE_ENV === 'production') {
+  Raven.config(
+    'https://6a242abfa01b4660aa34f150e87de018@sentry.io/1234624',
+    { environment: process.env.NODE_ENV }
+  ).install();
+}
 
 ReactDOM.render((
   <MuiThemeProvider theme={Theme}>
