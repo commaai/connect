@@ -463,7 +463,7 @@ class Minimap extends Component {
         <img src={ url } style={{
           ...imgStyles,
           marginLeft: ((imgStyles.width + gutter) * blankImages) + gutter
-        }}/>
+        }} key={ i }/>
       ));
       blankImages = 0;
     }
