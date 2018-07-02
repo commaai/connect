@@ -22,7 +22,9 @@ const styles = theme => {
     root: {},
     review: {
       padding: theme.spacing.unit,
-      minWidth: 0
+      minWidth: 0,
+      top: '50%',
+      transform: 'translateY(-50%)'
     }
   }
 };
