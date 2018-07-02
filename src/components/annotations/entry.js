@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { partial } from 'ap';
 import fecha from 'fecha';
+import Raven from 'raven-js';
 
 import { withStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
@@ -171,6 +172,7 @@ class AnnotationEntry extends Component {
         });
       }
     } catch (e) {
+      Raven.captureException(e);
       // no error
       let error = e;
       let message = error.message;
