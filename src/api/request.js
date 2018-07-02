@@ -7,7 +7,13 @@ import { COMMA_URL_ROOT } from './config';
 
 const request = ConfigRequest();
 
-var initPromise = init();
+var initPromise;
+function ensureInit() {
+  if (!initPromise) {
+    initPromise = init();
+  }
+  return initPromise;
+}
 
 async function init() {
   const config = {
@@ -24,7 +30,7 @@ async function init() {
 }
 
 export async function get(endpoint, data) {
-  await initPromise;
+  await ensureInit();
   return new Promise((resolve, reject) => {
     request.get(
       endpoint,
@@ -38,7 +44,7 @@ export async function get(endpoint, data) {
 }
 
 export async function post(endpoint, data) {
-  await initPromise;
+  await ensureInit();
   return new Promise((resolve, reject) => {
     request.post(
       endpoint,
@@ -52,7 +58,7 @@ export async function post(endpoint, data) {
 }
 
 export async function postForm(endpoint, data) {
-  await initPromise;
+  await ensureInit();
   return new Promise((resolve, reject) => {
     request.post(
       endpoint,
@@ -68,7 +74,7 @@ export async function postForm(endpoint, data) {
 }
 
 export async function patch(endpoint, data) {
-  await initPromise;
+  await ensureInit();
   return new Promise((resolve, reject) => {
     request.patch(
       endpoint,
