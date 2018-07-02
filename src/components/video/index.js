@@ -211,12 +211,7 @@ class VideoPreview extends Component {
             <HLSSource
               isVideoChild
             />
-            <ControlBar autoHide={false}>
-              <PlaybackRateMenuButton
-                rates={[5, 3, 1.5, 1, 0.5, 0.1]}
-                order={7.1}
-              />
-            </ControlBar>
+            <ControlBar disabled />
           </Player>
 
           <img style={{
