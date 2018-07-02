@@ -406,13 +406,13 @@ class Minimap extends Component {
     }
     if (this.props.colored) {
       return (
-        <div key={ segment.route } style={ style } className={ this.props.classes.segment }>
+        <div key={ segment.route + segment.offset } style={ style } className={ this.props.classes.segment }>
           { this.renderSegmentEvents(segment) }
         </div>
       );
     } else {
       return (
-        <div key={ segment.route } style={ style } className={ this.props.classes.segment }>
+        <div key={ segment.route + segment.offset } style={ style } className={ this.props.classes.segment }>
           <div className={ this.props.classes.uncoloredSegment }>
           </div>
         </div>
