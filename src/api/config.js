@@ -18,7 +18,8 @@ export const OAUTH_PARAMS = {
   client_id: GOOGLE_CLIENT_ID,
   redirect_uri: REDIRECT_URI,
   response_type: 'code',
-  scope: 'https://www.googleapis.com/auth/userinfo.email'
+  scope: 'https://www.googleapis.com/auth/userinfo.email',
+  prompt: 'select_account',
 };
 
 export const oauthRedirectLink = [GOOGLE_AUTH_ENDPOINT, qs.stringify(OAUTH_PARAMS)].join('?');
