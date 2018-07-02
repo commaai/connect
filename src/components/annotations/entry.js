@@ -260,12 +260,12 @@ class AnnotationEntry extends Component {
                     Choose one
                   </MenuItem>
                 }
-                <MenuItem value='accident'>Accidental or unimportant</MenuItem>
-                <MenuItem value='intentional'>I wanted to take over</MenuItem>
+                <MenuItem value='arbitrary'>Arbitrary or accidental</MenuItem>
                 <MenuItem value='danger'>I needed to take over for safety</MenuItem>
-                <MenuItem value='drunk'>I was severely intoxicated</MenuItem>
-                <MenuItem value='aliens'>Avoiding alien invasion</MenuItem>
-                <MenuItem value='demons'>Demonic influence</MenuItem>
+                <MenuItem value='lanes'>Lane change</MenuItem>
+                <MenuItem value='aliens'>Go a different way</MenuItem>
+                <MenuItem value='sharp-turn'>Turn too sharp</MenuItem>
+                <MenuItem value='too-slow'>I wanted to accelerate quicker</MenuItem>
                 <MenuItem value='other'>Other (explain in comment)</MenuItem>
               </Select>
             ))}
