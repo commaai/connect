@@ -195,7 +195,7 @@ class VideoPreview extends Component {
     return (
       <div style={{ position: 'relative' }}>
         <div className={ classNames({
-          [this.props.classes.hidden]: this.state.noVideo
+          [this.props.classes.hidden]: false // this.state.noVideo
         }) }>
           <Player
             style={{ zIndex: 1 }}

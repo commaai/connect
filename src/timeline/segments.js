@@ -160,6 +160,9 @@ function segmentsFromMetadata (segmentsData) {
     if (!segment.url) {
       return;
     }
+    if (segment.proc_log !== 40 || segment.proc_camera !== 40) {
+      return;
+    }
     /*
       route: '99c94dc769b5d96e|2018-04-09--11-29-08',
       offset: 41348000,

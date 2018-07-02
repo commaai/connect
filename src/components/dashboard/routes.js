@@ -9,6 +9,8 @@ import Typography from '@material-ui/core/Typography';
 import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
 import Divider from '@material-ui/core/Divider';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
 
 import Minimap from '../minimap';
 import { selectRange } from '../../actions';
@@ -16,7 +18,13 @@ import { selectRange } from '../../actions';
 const MIN_TIME_BETWEEN_ROUTES = 60000; // 1 minute
 
 const styles = theme => {
-  root: {}
+  return {
+    root: {},
+    review: {
+      padding: theme.spacing.unit,
+      minWidth: 0
+    }
+  }
 };
 
 class RouteList extends Component {
@@ -61,34 +69,40 @@ class RouteList extends Component {
         <Typography variant='headline'>
           Recent Drives
         </Typography>
-        <Grid container>
+        <List>
           { rideList.map(this.renderRide) }
-        </Grid>
+        </List>
       </React.Fragment>
     );
   }
 
   renderRide (ride) {
     return (
-      <React.Fragment key={ ride.startTime }>
-        <Grid item xs={12} >
-          <Minimap zoomed colored thumbnailed zoomOverride={{
-            start: ride.startTime,
-            end: ride.startTime + ride.duration
-          }} />
+      <ListItem key={ ride.startTime }>
+        <Grid container >
+          <Grid item xs={2} >
+            <Button variant='outlined' onClick={ partial(this.showRide, ride) } className={ this.props.classes.review }>
+              Review
+            </Button>
+          </Grid>
+          <Grid item xs={10} >
+            <Grid container >
+              <Grid item xs={12} >
+                Your ride on { fecha.format(new Date(ride.startTime), 'MMMM D @ HH:mm') }
+              </Grid>
+              <Grid item xs={12} >
+                <Minimap zoomed colored thumbnailed zoomOverride={{
+                  start: ride.startTime,
+                  end: ride.startTime + ride.duration
+                }} />
+              </Grid>
+              <Grid item xs={12} >
+                <Divider />
+              </Grid>
+            </Grid>
+          </Grid>
         </Grid>
-        <Grid item xs={8} >
-          Your ride on { fecha.format(new Date(ride.startTime), 'MMMM D @ HH:mm') }
-        </Grid>
-        <Grid item xs={4} >
-          <Button variant='outlined' onClick={ partial(this.showRide, ride) }>
-            Review
-          </Button>
-        </Grid>
-        <Grid item xs={12} >
-          <Divider />
-        </Grid>
-      </React.Fragment>
+      </ListItem>
     );
   }
 }

@@ -422,14 +422,14 @@ class Minimap extends Component {
   renderSegmentEvents (segment) {
     return segment.events
       .filter((event) => event.data && event.data.end_route_offset_millis)
-      .map((event) => {
+      .map((event, i) => {
         let style = {
           left: ((event.route_offset_millis / segment.duration) * 100) + '%',
           width: (((event.data.end_route_offset_millis - event.route_offset_millis) / segment.duration) * 100) + '%',
         };
         return (
           <div
-            key={ segment.route + event.route_offset_millis }
+            key={ segment.route + i }
             style={ style }
             className={ this.props.classes.segmentColor + ' ' + event.type + (event.data.alertStatus ? ' ' + AlertStatusCodes[event.data.alertStatus] : '') }
             >
