@@ -50,9 +50,9 @@ class App extends Component {
       }
     }
 
-    let isAuthed = await Auth.init();
+    await Auth.init();
 
-    if (isAuthed) {
+    if (Auth.isAuthenticated()) {
       await TimelineWorker.init();
     }
 
