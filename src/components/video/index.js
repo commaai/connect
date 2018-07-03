@@ -2,8 +2,11 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux'
 import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
-import { Player, ControlBar, PlaybackRateMenuButton } from 'video-react';
 import classNames from '@sindresorhus/class-names';
+import * as tfc from '@tensorflow/tfjs-core';
+
+import { Player, ControlBar, PlaybackRateMenuButton } from 'video-react';
+import Measure from 'react-measure';
 // CSS for video
 import 'video-react/dist/video-react.css';
 
@@ -16,6 +19,13 @@ const styles = theme => {
     root: {},
     hidden: {
       display: 'none'
+    },
+    canvas: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      border: '2px solid blue',
+      margin: -2
     }
   }
 };
@@ -27,6 +37,7 @@ class VideoPreview extends Component {
     this.updatePreview = this.updatePreview.bind(this);
     this.imageRef = React.createRef();
     this.videoPlayer = React.createRef();
+    this.canvas = React.createRef();
 
     this.state = {
       bufferTime: 4,
@@ -71,6 +82,8 @@ class VideoPreview extends Component {
     }
     // schedule next run right away so that we can return early
     raf(this.updatePreview);
+
+    this.renderUI();
 
     let offset = TimelineWorker.currentOffset();
     let shouldShowPreview = true;
@@ -152,13 +165,179 @@ class VideoPreview extends Component {
       if (shouldShowPreview && this.imageRef.current.src !== this.nearestImageFrame(offset)) {
         this.imageRef.current.src = this.nearestImageFrame(offset);
       }
-      this.imageRef.current.style.display = shouldShowPreview ? 'block' : 'none';
+      this.imageRef.current.style.opacity = shouldShowPreview ? 1 : 0;
     }
     if (noVideo !== this.state.noVideo) {
       this.setState({
         noVideo
       });
     }
+  }
+  renderUI () {
+    if (!this.imageRef.current || !this.canvas.current) {
+      return;
+    }
+    if (this.imageRef.current.height === 0) {
+      return;
+    }
+    var ctx = this.canvas.current.getContext('2d');
+    var width = this.imageRef.current.width;
+    var height = this.imageRef.current.height;
+    this.canvas.current.width = width;
+    this.canvas.current.height = height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    var calibration = TimelineWorker.getCalibration(this.props.route);
+    if (!calibration) {
+      return; // loading calibration from logs still...
+    }
+    let model = TimelineWorker.currentModel();
+    if (!model) {
+      return; // we're calibrated but not model frames yet
+    }
+    var intrinsic = intrinsicMatrix();
+    var extrinsic = tfc.tensor([...calibration.LiveCalibration.ExtrinsicMatrix, 0, 0, 0, 1], [4, 4]);
+    var warpMatrix = tfc.tensor(calibration.LiveCalibration.WarpMatrix2, [3, 3]);
+
+    // reset transform before anything
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // scale original coords onto our current size
+    ctx.scale(width / 1440, height / 1080);
+    // offset for the implicit UI adding video margin
+    ctx.translate(120, 80);
+
+    ctx.lineWidth = 5;
+
+    ctx.strokeStyle = 'purple';
+    this.drawLaneLine({
+      ctx,
+      calibration,
+      intrinsic,
+      extrinsic,
+      points: model.Model.LeftLane.Points,
+      std: 0.025 * model.Model.LeftLane.Prob,
+      // std: model.Model.RightLane.Std
+    });
+    ctx.strokeStyle = 'green';
+    this.drawLaneLine({
+      ctx,
+      calibration,
+      intrinsic,
+      extrinsic,
+      points: model.Model.RightLane.Points,
+      std: 0.025 * model.Model.RightLane.Prob,
+      // std: 0 - model.Model.RightLane.Std
+    });
+    // reset back to normal
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 8;
+    this.drawLaneLine({
+      ctx,
+      calibration,
+      intrinsic,
+      extrinsic,
+      points: model.Model.LeftLane.Points,
+      // std: 0.025 * model.Model.LeftLane.Prob,
+      std: 0 - model.Model.LeftLane.Std
+    });
+    this.drawLaneLine({
+      ctx,
+      calibration,
+      intrinsic,
+      extrinsic,
+      points: model.Model.LeftLane.Points,
+      // std: 0.025 * model.Model.LeftLane.Prob,
+      std: model.Model.LeftLane.Std
+    });
+    this.drawLaneLine({
+      ctx,
+      calibration,
+      intrinsic,
+      extrinsic,
+      points: model.Model.RightLane.Points,
+      // std: 0.025 * model.Model.LeftLane.Prob,
+      std: 0 - model.Model.RightLane.Std
+    });
+    this.drawLaneLine({
+      ctx,
+      calibration,
+      intrinsic,
+      extrinsic,
+      points: model.Model.RightLane.Points,
+      // std: 0.025 * model.Model.LeftLane.Prob,
+      std: model.Model.RightLane.Std
+    });
+  }
+  drawLaneLine (options) {
+    const {
+      ctx,
+      points,
+      std,
+      calibration,
+      intrinsic,
+      extrinsic
+    } = options;
+    /*
+
+const int vwp_w = 1920;
+const int vwp_h = 1080;
+const int nav_w = 640;
+const int nav_ww= 760;
+const int sbr_w = 300;
+const int bdr_s = 30;
+const int box_x = sbr_w+bdr_s;
+const int box_y = bdr_s;
+const int box_w = vwp_w-sbr_w-(bdr_s*2);
+const int box_h = vwp_h-(bdr_s*2);
+const int viz_w = vwp_w-(bdr_s*2);
+const int header_h = 420;
+
+nvgTranslate(s->vg, 240.0f, 0.0); // rgb-box space
+nvgTranslate(s->vg, -1440.0f / 2, -1080.0f / 2); // zoom 2x
+nvgScale(s->vg, 2.0, 2.0);
+nvgScale(s->vg, 1440.0f / s->rgb_width, 1080.0f / s->rgb_height);
+    */
+
+    const { width, height } = this.imageRef.current;
+
+    ctx.beginPath();
+    var isFirst = true;
+    points.forEach(function (val, i) {
+      var y = val - std;
+      var x = i;
+
+      var pCarSpace = tfc.tensor([x, y, 0, 1], [4, 1]);
+      // pCarSpace.print();
+      var ep4 = tfc.matMul(extrinsic, pCarSpace).dataSync();
+      const ep = tfc.tensor([ep4[0], ep4[1], ep4[2]], [3, 1]);
+      // ep.print();
+      var kep = tfc.matMul(intrinsic, ep);
+      // const vec3 p_image = {{KEp.v[0] / KEp.v[2], KEp.v[1] / KEp.v[2], 1.}};
+
+      var finalPoint = [
+        kep.get(0, 0) / kep.get(0, 2),
+        kep.get(0, 1) / kep.get(0, 2),
+        1
+      ];
+      if (finalPoint[0] < 0 && finalPoint[1] < 0) {
+        return;
+      }
+      // finalPoint[0] += 120;
+      // console.log(finalPoint);
+      if (isFirst) {
+        isFirst = false;
+        ctx.moveTo(finalPoint[0], finalPoint[1]);
+      } else {
+        ctx.lineTo(finalPoint[0], finalPoint[1]);
+      }
+    });
+    ctx.stroke();
+    // extrinsic.print();
+    // calibration.LiveCalibration.ExtrinsicMatrix
+    // calibration.LiveCalibration.WarpMatrix2
+    // debugger;
   }
   videoURL () {
     let segment = this.props.currentSegment || this.props.nextSegment;
@@ -226,10 +405,21 @@ class VideoPreview extends Component {
             top: 0,
             zIndex: 1
           }} ref={ this.imageRef } src={this.nearestImageFrame()} />
+          <canvas ref={ this.canvas } className={ this.props.classes.canvas } style={{
+            zIndex: 2
+          }} />
         </div>
       </div>
     );
   }
+}
+
+function intrinsicMatrix () {
+  return tfc.tensor([
+    950.892854,   0,        584,
+    0,          950.892854, 439,
+    0,            0,        1
+  ], [3, 3]);
 }
 
 function mapStateToProps(state) {

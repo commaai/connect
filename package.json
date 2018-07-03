@@ -17,6 +17,7 @@
     "@material-ui/core": "^1.0.0",
     "@material-ui/icons": "^1.0.0",
     "@sindresorhus/class-names": "^0.1.0",
+    "@tensorflow/tfjs-core": "^0.12.0",
     "ap": "^0.2.0",
     "babel-loader": "^7.1.4",
     "babel-runtime": "^6.26.0",
