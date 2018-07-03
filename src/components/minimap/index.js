@@ -180,6 +180,12 @@ class Minimap extends Component {
       this.progressBar.current.style.width = ~~(10000 * percent) / 100 + '%';
     }
   }
+  percentFromMouseEvent (e) {
+    let boundingBox = e.currentTarget.getBoundingClientRect();
+    let x = e.pageX - boundingBox.left;
+    return x / boundingBox.width;
+  }
+
   handleClick (e) {
     if (this.isDragSelecting) {
       console.log('Is a drag event');
@@ -187,9 +193,7 @@ class Minimap extends Component {
       return;
     }
     console.log(e.currentTarget);
-    let boundingBox = e.currentTarget.getBoundingClientRect();
-    let x = e.pageX - boundingBox.x;
-    let percent = x / boundingBox.width;
+    let percent = this.percentFromMouseEvent(e);
 
     TimelineWorker.seek(this.percentToOffset(percent));
   }
@@ -202,9 +206,7 @@ class Minimap extends Component {
       return;
     }
 
-    let boundingBox = e.currentTarget.getBoundingClientRect();
-    let x = e.pageX - boundingBox.x;
-    let percent = x / boundingBox.width;
+    let percent = this.percentFromMouseEvent(e);
     this.setState({
       dragStart: percent,
       dragEnd: percent
@@ -246,7 +248,7 @@ class Minimap extends Component {
   }
   handleMove (e) {
     let boundingBox = e.currentTarget.getBoundingClientRect();
-    let x = e.pageX - boundingBox.x;
+    let x = e.pageX - boundingBox.left;
     let percent = x / boundingBox.width;
 
     this.setState({
