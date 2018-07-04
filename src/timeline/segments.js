@@ -160,7 +160,7 @@ function segmentsFromMetadata (segmentsData) {
     if (!segment.url) {
       return;
     }
-    if (segment.proc_log !== 40 || segment.proc_camera !== 40) {
+    if (segment.proc_log !== 40) {
       return;
     }
     /*
