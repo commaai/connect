@@ -48,8 +48,11 @@ export function findMonoTime (index, monoTime, start, end) {
   var curMillis = index.index[curIndex][0];
   // we can have duplicates so we treat matches as being too high since we're
   // looking for the first instance of a duplicate
-  if (curMillis === monoTime || monoTime < curMillis) {
-    return findMonoTime(index, monoTime, start, curIndex - 1);
+  if (curMillis === monoTime) {
+    return curIndex;
+  }
+  if (monoTime < curMillis) {
+    return findMonoTime(index, monoTime, start, curIndex);
   }
   if (monoTime > curMillis) {
     return findMonoTime(index, monoTime, curIndex + 1, end);
