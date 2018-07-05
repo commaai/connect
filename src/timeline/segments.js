@@ -199,7 +199,7 @@ function segmentsFromMetadata (segmentsData) {
         startCoord: [segment.start_lng, segment.start_lat],
         duration: 0,
         segments: 0,
-        url: url, // .replace('blob.core.windows.net', 'azureedge.net'),
+        url: url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate-vzn.azureedge.net'),
         events: [],
         videoAvailableBetweenOffsets: [],
         hasVideo: segmentHasVideo
