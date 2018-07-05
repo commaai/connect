@@ -14,6 +14,7 @@ module.exports = {
   getNextSegment,
   hasSegmentMetadata,
   parseSegmentMetadata,
+  hasCameraAtOffset,
 
   // actions
   updateSegments,
@@ -155,6 +156,7 @@ function segmentsFromMetadata (segmentsData) {
   console.log(segmentsData);
   var curSegment = null;
   var curStopTime = null;
+  var curVideoStartOffset = null;
   var segments = [];
   segmentsData.segments.forEach(function (segment) {
     if (!segment.url) {
@@ -162,6 +164,10 @@ function segmentsFromMetadata (segmentsData) {
     }
     if (segment.proc_log !== 40) {
       return;
+    }
+    var segmentHasVideo = (segment.proc_camera === 40);
+    if (segmentHasVideo && curVideoStartOffset === null) {
+      curVideoStartOffset = segment.offset;
     }
     /*
       route: '99c94dc769b5d96e|2018-04-09--11-29-08',
@@ -194,10 +200,17 @@ function segmentsFromMetadata (segmentsData) {
         duration: 0,
         segments: 0,
         url: url,
-        events: []
+        events: [],
+        videoAvailableBetweenOffsets: [],
+        hasVideo: segmentHasVideo
       };
       segments.push(curSegment);
     }
+    if (!segmentHasVideo && curVideoStartOffset !== null) {
+      curSegment.videoAvailableBetweenOffsets.push([curVideoStartOffset, segment.offset]);
+      curVideoStartOffset = null;
+    }
+    curSegment.hasVideo = (curSegment.hasVideo || segmentHasVideo);
     curSegment.duration = (segment.offset - curSegment.offset) + segment.duration;
     curSegment.segments++;
     curSegment.events = curSegment.events.concat(segment.events);
@@ -213,6 +226,12 @@ function segmentsFromMetadata (segmentsData) {
   function finishSegment (segment) {
     var lastEngage = null;
 
+    if (segment.videoAvailableBetweenOffsets.length === 0
+        && segment.hasVideo) {
+      segment.videoAvailableBetweenOffsets = [
+        [segment.offset, segment.offset + segment.duration]
+      ];
+    }
     segment.events = segment.events.sort(function (eventA, eventB) {
       if (eventA.route_offset_millis === eventB.route_offset_millis) {
         return eventA.route_offset_nanos - eventB.route_offset_nanos;
@@ -269,6 +288,12 @@ function hasSegmentMetadata (state) {
   }
 
   return state.start >= state.segmentData.start && state.end <= state.segmentData.end;
+}
+
+function hasCameraAtOffset(segment, offset) {
+  return segment.videoAvailableBetweenOffsets.some(function(offsetInterval) {
+    return offset >= offsetInterval[0] && offset <= offsetInterval[1];
+  });
 }
 
 function getNextSegment (state, offset) {
@@ -340,7 +365,8 @@ function getCurrentSegment (state, offset) {
         routeOffset: thisSegment.offset,
         startOffset: thisSegment.offset + SEGMENT_LENGTH * segmentIndex,
         duration: thisSegment.duration,
-        events: thisSegment.events
+        events: thisSegment.events,
+        videoAvailableBetweenOffsets: thisSegment.videoAvailableBetweenOffsets,
       };
     }
   }

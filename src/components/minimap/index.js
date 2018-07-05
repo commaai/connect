@@ -454,7 +454,7 @@ class Minimap extends Component {
     for (let i = 0; i < imgCount; ++i) {
       let offset = this.percentToOffset((i + 0.5) / imgCount);
       let segment = Segments.getCurrentSegment(this.props, offset);
-      if (!segment) {
+      if (!segment || !Segments.hasCameraAtOffset(segment, offset)) {
         blankImages++;
         continue;
       }
