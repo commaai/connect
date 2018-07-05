@@ -9,7 +9,7 @@ const ACTION_PLAY = 'action_play';
 const ACTION_LOOP = 'action_loop';
 
 module.exports = {
-  pause, play, seek, currentOffset, selectLoop,
+  pause, play, seek, currentOffset, selectLoop, timestampToOffset,
   reducer
 };
 
@@ -56,6 +56,10 @@ function reducer (state = initialState, action) {
   }
 
   return state;
+}
+
+function timestampToOffset (state, timestamp) {
+  return timestamp - state.start;
 }
 
 // fetch current playback offset

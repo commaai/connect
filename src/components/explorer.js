@@ -14,6 +14,7 @@ import Dashboard from './dashboard';
 
 import Timelineworker from '../timeline';
 import { selectRange } from '../actions';
+import { getDongleID, getZoom } from '../url';
 
 const styles = theme => {
   return {
@@ -35,28 +36,24 @@ class ExplorerApp extends Component {
     this.checkProps(props);
   }
   checkProps (props) {
-    var pathname = props.pathname;
-    var parts = pathname.split('/');
-    parts = parts.filter((m) => m.length);
-
-    if (!parts[0]) {
-      this.props.dispatch(selectRange(null, null));
-      return;
-    }
+    var dongleId = getDongleID(props.pathname);
+    var zoom = getZoom(props.pathname);
 
     let curDongle = this.state.settingDongle || props.dongleId;
 
-    if (curDongle !== parts[0]) {
-      Timelineworker.selectDevice(parts[0]);
-      this.setState({
-        settingDongle: parts[0]
-      });
-    } else {
-      this.setState({
-        settingDongle: null
-      });
+    if (dongleId) {
+      if (curDongle !== dongleId) {
+        Timelineworker.selectDevice(dongleId);
+        this.setState({
+          settingDongle: dongleId
+        });
+      } else {
+        this.setState({
+          settingDongle: null
+        });
+      }
     }
-    this.props.dispatch(selectRange(Number(parts[1]), Number(parts[2])));
+    this.props.dispatch(selectRange(zoom.start, zoom.end));
   }
   render() {
     return (

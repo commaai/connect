@@ -188,7 +188,9 @@ function play (port, speed) {
   store.dispatch(Playback.play(speed));
 }
 
-async function hello (port) {
+async function hello (port, data) {
+  console.log(data);
+  store.dispatch(selectDeviceAction(data.dongleId));
   await Promise.all([
     init(),
     hasGottenSegmentDataPromise

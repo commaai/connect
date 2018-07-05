@@ -23,9 +23,7 @@ const styles = theme => {
     canvas: {
       position: 'absolute',
       top: 0,
-      left: 0,
-      border: '2px solid blue',
-      margin: -2
+      left: 0
     }
   }
 };
@@ -186,6 +184,8 @@ class VideoPreview extends Component {
     }
     let model = TimelineWorker.currentModel();
     if (!model) {
+      var ctx = this.canvas.current.getContext('2d');
+      ctx.clearRect(0, 0, width, height);
       return; // we're calibrated but not model frames yet
     }
     if (this.lastModelFrame === model.Model.FrameId) {

@@ -31,10 +31,10 @@ export function addToIndex (index, newBuff) {
 }
 
 export function findMonoTime (index, monoTime, start, end) {
-  if (!start) {
+  if (start === undefined) {
     start = 0;
   }
-  if (!end) {
+  if (end === undefined) {
     end = index.index.length;
   }
   if (start === index.index.length) {

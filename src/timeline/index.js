@@ -8,6 +8,7 @@ import toJSON from 'capnp-json';
 import { getCommaAccessToken } from '../api/auth/storage';
 import * as Playback from './playback';
 import * as LogIndex from './logIndex';
+import { getDongleID, getZoom } from '../url';
 
 const TimelineSharedWorker = require('./index.sharedworker');
 const TimelineWebWorker = require('./index.worker');
@@ -21,6 +22,7 @@ const InitPromise = new Promise(function (resolve, reject) {
 });
 
 window.addEventListener('beforeunload', UnloadEvent.broadcast);
+var startPath = window.location ? window.location.pathname : '';
 
 class TimelineInterface {
   constructor (options) {
@@ -30,7 +32,11 @@ class TimelineInterface {
     this.openRequests = {};
     this._initPromise = InitPromise;
     this._readyPromise = this.rpc({
-      command: 'hello'
+      command: 'hello',
+      data: {
+        dongleId: getDongleID(startPath),
+        zoom: getZoom(startPath)
+      }
     });
   }
 
@@ -341,6 +347,8 @@ async function initWorker (timeline) {
 
   timeline.worker = worker;
   timeline.port = port;
+
+  port.postMessage
 
   UnloadEvent.listen(() => timeline.disconnect());
   InitEvent.broadcast(token);
