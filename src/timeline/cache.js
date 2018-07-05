@@ -1,4 +1,5 @@
 import LogStream from '@commaai/log_reader';
+import toJSON from  'capnp-json';
 import { timeout } from 'thyming';
 import request from 'simple-get';
 import Event from 'geval/event';
@@ -127,9 +128,11 @@ export function getEntry (route, segment, dataListener) {
   }
 
   CacheStore[route][segment] = new CacheEntry(route, segment, function (data) {
-    dataListener({
-      route, segment, data
-    });
+    if (dataListener) {
+      dataListener({
+        route, segment, data
+      });
+    }
   });
 
   return CacheStore[route][segment];

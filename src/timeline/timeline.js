@@ -314,6 +314,12 @@ async function ensureSegmentData (state) {
     if (entry) {
       entry.start();
     }
+    if (state.segment !== 0) {
+      entry = Cache.getEntry(state.route, state.segment, DataLogEvent.broadcast);
+      if (entry) {
+        entry.start();
+      }
+    }
   }
   if (state.nextSegment) {
     entry = Cache.getEntry(state.nextSegment.route, state.nextSegment.segment, DataLogEvent.broadcast);

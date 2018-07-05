@@ -2,8 +2,11 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux'
 import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
-import { Player, ControlBar, PlaybackRateMenuButton } from 'video-react';
 import classNames from '@sindresorhus/class-names';
+import * as tfc from '@tensorflow/tfjs-core';
+
+import { Player, ControlBar, PlaybackRateMenuButton } from 'video-react';
+import Measure from 'react-measure';
 // CSS for video
 import 'video-react/dist/video-react.css';
 
@@ -16,6 +19,13 @@ const styles = theme => {
     root: {},
     hidden: {
       display: 'none'
+    },
+    canvas: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      border: '2px solid blue',
+      margin: -2
     }
   }
 };
@@ -27,6 +37,7 @@ class VideoPreview extends Component {
     this.updatePreview = this.updatePreview.bind(this);
     this.imageRef = React.createRef();
     this.videoPlayer = React.createRef();
+    this.canvas = React.createRef();
 
     this.state = {
       bufferTime: 4,
@@ -71,6 +82,8 @@ class VideoPreview extends Component {
     }
     // schedule next run right away so that we can return early
     raf(this.updatePreview);
+
+    this.renderUI();
 
     let offset = TimelineWorker.currentOffset();
     let shouldShowPreview = true;
@@ -152,13 +165,134 @@ class VideoPreview extends Component {
       if (shouldShowPreview && this.imageRef.current.src !== this.nearestImageFrame(offset)) {
         this.imageRef.current.src = this.nearestImageFrame(offset);
       }
-      this.imageRef.current.style.display = shouldShowPreview ? 'block' : 'none';
+      this.imageRef.current.style.opacity = shouldShowPreview ? 1 : 0;
     }
     if (noVideo !== this.state.noVideo) {
       this.setState({
         noVideo
       });
     }
+  }
+  renderUI () {
+    if (!this.imageRef.current || !this.canvas.current) {
+      return;
+    }
+    if (this.imageRef.current.height === 0) {
+      return;
+    }
+    var calibration = TimelineWorker.getCalibration(this.props.route);
+    if (!calibration) {
+      return; // loading calibration from logs still...
+    }
+    let model = TimelineWorker.currentModel();
+    if (!model) {
+      return; // we're calibrated but not model frames yet
+    }
+    if (this.lastModelFrame === model.Model.FrameId) {
+      return;
+    }
+    var width = this.imageRef.current.width;
+    var height = this.imageRef.current.height;
+    this.canvas.current.width = width;
+    this.canvas.current.height = height;
+    var ctx = this.canvas.current.getContext('2d');
+    ctx.clearRect(0, 0, width, height);
+
+    this.lastModelFrame = model.Model.FrameId;
+
+    var intrinsic = intrinsicMatrix();
+    var extrinsic = tfc.tensor([...calibration.LiveCalibration.ExtrinsicMatrix, 0, 0, 0, 1], [4, 4]);
+
+    // reset transform before anything
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // // most logically reasonable
+    // // scale original coords onto our current size
+    ctx.scale(width / 1164, height / 874);
+    // // viewport is now in a 1440x1080 coordinate system
+    // // offset for the implicit UI adding video margin
+    // ctx.translate(120, 80);
+
+    // most correct looking
+    // scale original coords onto our current size
+    // ctx.scale(width / (1440 - 120), height / 1080);
+    // viewport is now in a 1440x1080 coordinate system
+    // offset for the implicit UI adding video margin
+    // ctx.translate(75, 105);
+
+    var points = [[], [], [], []];
+
+    this.addPoints(points, model.Model.LeftLane.Points, 0.025 * model.Model.LeftLane.Prob);
+    this.addPoints(points, model.Model.RightLane.Points, 0.025 * model.Model.RightLane.Prob);
+
+    this.addPoints(points, model.Model.LeftLane.Points, model.Model.LeftLane.Std);
+    this.addPoints(points, model.Model.LeftLane.Points, 0 - model.Model.LeftLane.Std);
+
+    this.addPoints(points, model.Model.RightLane.Points, model.Model.RightLane.Std);
+    this.addPoints(points, model.Model.RightLane.Points, 0 - model.Model.RightLane.Std);
+
+    this.addPoints(points, model.Model.Path.Points, 0);
+
+    var pCarSpace = tfc.tensor(points);
+      // pCarSpace.print();
+    var ep4 = tfc.matMul(extrinsic, pCarSpace);
+    var kep = tfc.matMul(intrinsic, ep4);
+
+    kep = kep.dataSync();
+
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'green';
+    this.drawPointsFromTensor(ctx, kep, 0);
+
+    ctx.strokeStyle = 'green';
+    this.drawPointsFromTensor(ctx, kep, 1);
+
+    // colors for ghost/accuracy lines
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 8;
+
+    this.drawPointsFromTensor(ctx, kep, 2);
+    this.drawPointsFromTensor(ctx, kep, 3);
+    this.drawPointsFromTensor(ctx, kep, 4);
+    this.drawPointsFromTensor(ctx, kep, 5);
+
+    ctx.strokeStyle = 'purple';
+    ctx.lineWidth = 5 * 1 / model.Model.Path.Prob;
+    this.drawPointsFromTensor(ctx, kep, 6);
+  }
+  addPoints (tensor, points, std) {
+    std = Math.min(std, 0.7);
+    points.forEach(function (val, i) {
+      var y = val - std;
+      var x = i;
+      tensor[0].push(x);
+      tensor[1].push(y);
+      tensor[2].push(0);
+      tensor[3].push(1);
+    });
+
+    return tensor;
+  }
+  drawPointsFromTensor (ctx, tensor, index) {
+    ctx.beginPath();
+    var isFirst = true;
+    for (let i = 0; i < 50; ++i) {
+      let z = tensor[(50 * index) + 700 + i];
+      let finalPoint = [
+        tensor[(50 * index) + i] / z,
+        tensor[(50 * index) + 350 + i] / z,
+      ];
+      if (finalPoint[0] < 0 && finalPoint[1] < 0) {
+        continue;
+      }
+      if (isFirst) {
+        isFirst = false;
+        ctx.moveTo(finalPoint[0], finalPoint[1]);
+      } else {
+        ctx.lineTo(finalPoint[0], finalPoint[1]);
+      }
+    }
+    ctx.stroke();
   }
   videoURL () {
     let segment = this.props.currentSegment || this.props.nextSegment;
@@ -221,10 +355,22 @@ class VideoPreview extends Component {
             top: 0,
             zIndex: 1
           }} ref={ this.imageRef } src={this.nearestImageFrame()} />
+          <canvas ref={ this.canvas } className={ this.props.classes.canvas } style={{
+            zIndex: 2
+          }} />
         </div>
       </div>
     );
   }
+}
+
+function intrinsicMatrix () {
+  return tfc.tensor([
+    950.892854,   0,        584,  0,
+    0,          950.892854, 439,  0,
+    0,            0,        1,    0,
+    0,            0,        0,    0,
+  ], [4, 4]);
 }
 
 function mapStateToProps(state) {
