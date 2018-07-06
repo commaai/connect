@@ -32,7 +32,8 @@ export function selectRange (start, end) {
     if (!state.workerState.loop.startTime
       || !state.workerState.loop.duration
       || state.workerState.loop.startTime < start
-      || state.workerState.loop.startTime + state.workerState.loop.duration > end) {
+      || state.workerState.loop.startTime + state.workerState.loop.duration > end
+      || state.workerState.loop.duration < end - start) {
       Timelineworker.selectLoop(start, end - start);
     }
 
