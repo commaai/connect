@@ -188,7 +188,9 @@ function play (port, speed) {
   store.dispatch(Playback.play(speed));
 }
 
-async function hello (port) {
+async function hello (port, data) {
+  console.log(data);
+  store.dispatch(selectDeviceAction(data.dongleId));
   await Promise.all([
     init(),
     hasGottenSegmentDataPromise
@@ -313,6 +315,12 @@ async function ensureSegmentData (state) {
     entry = Cache.getEntry(state.route, state.segment, DataLogEvent.broadcast);
     if (entry) {
       entry.start();
+    }
+    if (state.segment !== 0) {
+      entry = Cache.getEntry(state.route, state.segment, DataLogEvent.broadcast);
+      if (entry) {
+        entry.start();
+      }
     }
   }
   if (state.nextSegment) {

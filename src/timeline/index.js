@@ -2,12 +2,13 @@ import window from 'global/window';
 import Event from 'geval/event';
 import { partial } from 'ap';
 import * as capnp from 'capnp-ts';
-import { Event as CapnpEvent } from '@commaai/log_reader/capnp/log.capnp';
+import { Event as CapnpEvent, Event_Which } from '@commaai/log_reader/capnp/log.capnp';
 import toJSON from 'capnp-json';
 
 import { getCommaAccessToken } from '../api/auth/storage';
 import * as Playback from './playback';
 import * as LogIndex from './logIndex';
+import { getDongleID, getZoom } from '../url';
 
 const TimelineSharedWorker = require('./index.sharedworker');
 const TimelineWebWorker = require('./index.worker');
@@ -21,6 +22,7 @@ const InitPromise = new Promise(function (resolve, reject) {
 });
 
 window.addEventListener('beforeunload', UnloadEvent.broadcast);
+var startPath = window.location ? window.location.pathname : '';
 
 class TimelineInterface {
   constructor (options) {
@@ -30,7 +32,11 @@ class TimelineInterface {
     this.openRequests = {};
     this._initPromise = InitPromise;
     this._readyPromise = this.rpc({
-      command: 'hello'
+      command: 'hello',
+      data: {
+        dongleId: getDongleID(startPath),
+        zoom: getZoom(startPath)
+      }
     });
   }
 
@@ -251,6 +257,67 @@ class TimelineInterface {
       return 0;
     }
   }
+  currentModel () {
+    return this.getEventByType(Event_Which.MODEL);
+  }
+  currentLive20 () {
+    return this.getEventByType(Event_Which.LIVE20);
+  }
+  getEventByType (which) {
+    if (!this.state || !this.state.route) {
+      return;
+    }
+    if (!this.buffers[this.state.route] || !this.buffers[this.state.route][this.state.segment]) {
+      return;
+    }
+    var offset = this.currentOffset();
+    var segment = this.state.segments.filter((a) => a.route === this.state.route);
+    segment = segment[0];
+    if (!segment) {
+      return;
+    }
+
+    for (let curSegNum = this.state.segment; curSegNum >= 0; --curSegNum) {
+      var logIndex = this.buffers[this.state.route][curSegNum];
+      if (!logIndex) {
+        return;
+      }
+      offset -= segment.offset;
+      var startTime = logIndex.index[0][0];
+      var logMonoTime = offset + startTime;
+      var curIndex = logIndex.index.length - 1;
+      if (curSegNum === this.state.segment) {
+        curIndex = LogIndex.findMonoTime(logIndex, logMonoTime);
+      }
+
+      for (curIndex; curIndex >= 0; --curIndex) {
+        let entry = logIndex.index[curIndex];
+        if (entry[5] === which) {
+          let buffer = logIndex.buffers[entry[4]].slice(entry[2], entry[2] + entry[3]);
+          var msg = new capnp.Message(buffer, false);
+          var event = msg.getRoot(CapnpEvent);
+          return toJSON(event);
+        }
+      }
+    }
+  }
+  getCalibration (route) {
+    if (!this.state || !this.state.route) {
+      return;
+    }
+    var indexes = this.buffers[this.state.route];
+
+    if (!indexes) {
+      return;
+    }
+
+    for (let i = 0, keys = Object.keys(indexes), len = keys.length; i < len; ++i) {
+      let index = indexes[keys[i]];
+      if (index.calibrations && index.calibrations.length) {
+        return index.calibrations[index.calibrations.length - 1];
+      }
+    }
+  }
 }
 // create instance and expose it
 var timeline = new TimelineInterface();
@@ -286,6 +353,8 @@ async function initWorker (timeline) {
 
   timeline.worker = worker;
   timeline.port = port;
+
+  port.postMessage
 
   UnloadEvent.listen(() => timeline.disconnect());
   InitEvent.broadcast(token);

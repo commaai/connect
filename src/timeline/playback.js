@@ -9,16 +9,25 @@ const ACTION_PLAY = 'action_play';
 const ACTION_LOOP = 'action_loop';
 
 module.exports = {
-  pause, play, seek, currentOffset, selectLoop,
+  pause, play, seek, currentOffset, selectLoop, timestampToOffset,
   reducer
 };
 
 function reducer (state = initialState, action) {
   // console.log(action);
+  var loopOffset = null;
+  if (state.loop && state.loop.startTime !== null) {
+    loopOffset = state.loop.startTime - state.start;
+  }
   switch (action.type) {
     case ACTION_SEEK:
       state.offset = action.offset;
       state.startTime = Date.now();
+      if (loopOffset !== null
+          && (state.offset < loopOffset || state.offset > (loopOffset + state.loop.duration))) {
+        // seek out of loop bounds,
+        state.loop = { startTime: null, duration: null };
+      }
       break;
     case ACTION_PAUSE:
       state.offset = currentOffset(state);
@@ -43,8 +52,8 @@ function reducer (state = initialState, action) {
 
   let offset = state.offset + (Date.now() - state.startTime) * state.playSpeed;
   // normalize over loop
-  if (state.loop && state.loop.startTime) {
-    let loopOffset = state.loop.startTime - state.start;
+  if (state.loop && state.loop.startTime !== null) {
+    loopOffset = state.loop.startTime - state.start;
     // has loop, trap offset within the loop
     if (offset < loopOffset) {
       state.startTime = Date.now();
@@ -56,6 +65,10 @@ function reducer (state = initialState, action) {
   }
 
   return state;
+}
+
+function timestampToOffset (state, timestamp) {
+  return timestamp - state.start;
 }
 
 // fetch current playback offset

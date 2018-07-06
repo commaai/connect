@@ -9,7 +9,7 @@ import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 
 import { LngLatBounds } from 'mapbox-gl';
-import ReactMapGL, { FlyToInterpolator } from 'react-map-gl';
+import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 import { easeCubic } from 'd3-ease';
 
 import TimelineWorker from '../../timeline';
@@ -17,6 +17,7 @@ import TimelineWorker from '../../timeline';
 import RouteApi from '../../api/route';
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiY29tbWFhaSIsImEiOiJjamlud2h2czAwNTN5M3dxZWg2Z3hmNnEwIn0.aam-7k03KBbMbtR7cUJslw';
+const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 
 const styles = {
   mapContainer: {
@@ -29,7 +30,6 @@ class SingleMap extends Component {
   constructor (props) {
     super(props);
 
-    this.fitBounds = this.fitBounds.bind(this);
     this.initMap = this.initMap.bind(this);
     this.populateMap = this.populateMap.bind(this);
     this.posAtOffset = this.posAtOffset.bind(this);
@@ -44,7 +44,7 @@ class SingleMap extends Component {
         height: 400,
         latitude: 37.7577,
         longitude: -122.4376,
-        zoom: 8
+        zoom: 13
       },
       route: nextRoute,
       coords: [],
@@ -55,7 +55,13 @@ class SingleMap extends Component {
     let nextRoute = nextProps.currentSegment && nextProps.currentSegment.route;
 
     if (nextRoute !== this.state.route) {
-      this.setState({ route: nextRoute }, this.populateMap);
+      if (this.state.coords.length > 0) {
+        this.setPath([]);
+      }
+
+      if (this.map && nextProps.segments[nextProps.segmentNum]) {
+        this.setState({ route: nextRoute }, this.populateMap.bind(this, nextProps));
+      }
     }
 
     if (nextProps.startTime !== this.props.startTime) {
@@ -113,24 +119,23 @@ class SingleMap extends Component {
       latitude: pos[1]
     };
     if (this.shouldFlyTo) {
-      viewport.transitionDuration = 500;
-      viewport.transitionInterpolator = new FlyToInterpolator();
+      viewport.transitionDuration = 200;
+      viewport.transitionInterpolator = new LinearInterpolator();
       this.shouldFlyTo = false;
     }
 
     this.setState({ viewport });
   }
 
-  populateMap = async () => {
-    this.setPath([]);
-    if (!this.map || !this.props.currentSegment || !this.state.route || !this.props.segments[this.props.segmentNum]) {
+  populateMap = async (props) => {
+    if (!props) props = this.props;
+
+    if (!this.map || !props.currentSegment || !this.state.route || !props.segments[this.props.segmentNum]) {
       return;
     }
     let route = this.state.route;
-    let routeSigUrl = this.props.currentSegment.url;
-    let { startCoord, endCoord } = this.props.segments[this.props.segmentNum];
-    let bounds = new LngLatBounds(startCoord, endCoord);
-    this.fitBounds(bounds);
+    let routeSigUrl = props.currentSegment.url;
+    let { startCoord, endCoord } = props.segments[props.segmentNum];
 
     const coords = await RouteApi(routeSigUrl).getCoords();
     if (this.state.route !== route) {
@@ -140,10 +145,6 @@ class SingleMap extends Component {
 
     const coordsArr = coords.map(coord => [coord.lng, coord.lat]);
     this.setPath(coordsArr);
-  }
-
-  fitBounds(latLngBounds) {
-    this.map.getMap().fitBounds(latLngBounds, { padding: 20 });
   }
 
   setPath(coords) {
@@ -159,12 +160,6 @@ class SingleMap extends Component {
             "coordinates": coords,
         }
       });
-      if (coords.length > 1) {
-        let bounds = coords.reduce(function(bounds, coord) {
-          return bounds.extend(coord);
-        }, new LngLatBounds(coords[0], coords[1]));
-        this.fitBounds(bounds);
-      }
     }
   }
 
@@ -267,7 +262,7 @@ class SingleMap extends Component {
           <div ref={ measureRef } className={ this.props.classes.mapContainer }>
             <ReactMapGL
               {...this.state.viewport}
-              mapStyle={this.state.mapStyle}
+              mapStyle={ MAP_STYLE }
               onViewportChange={(viewport) => this.setState({viewport})}
               mapboxApiAccessToken={ MAPBOX_TOKEN }
               attributionControl={ false }
