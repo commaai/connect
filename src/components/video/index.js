@@ -242,10 +242,10 @@ class VideoPreview extends Component {
       this.renderLeadCar(options, leadOne);
     }
     if (leadTwo.Status) {
-      this.renderLeadCar(options, leadTwo);
+      this.renderLeadCar(options, leadTwo, true);
     }
   }
-  renderLeadCar (options, leadData) {
+  renderLeadCar (options, leadData, is2ndCar) {
     var { width, height, ctx } = options;
 
     var drel = leadData.DRel;
@@ -257,12 +257,55 @@ class VideoPreview extends Component {
 
     var [x, y, z] = this.carSpaceToImageSpace([drel + 2.7, yrel, 0, 1]);
 
+    if (x < 0 || y < 0) {
+      return
+    }
+
     var sz = 25 * 30;
     sz /= ((drel + 2.7) / 3 + 30);
     sz = Math.min(Math.max(sz, 15), 30);
 
-    ctx.fillStyle = 'white';
-    ctx.fillRect(x - sz/2, y - sz/2, sz, sz);
+    var fillAlpha = 0;
+    var speedBuff = 10;
+    var leadBuff = 40;
+
+    if (drel < leadBuff) {
+      fillAlpha = 255 * (1 - (drel / leadBuff));
+      if (vrel < 0) {
+        fillAlpha += 255 * (-1 * (vrel / speedBuff));
+      }
+      fillAlpha = Math.min(fillAlpha, 255) / 255;
+    }
+
+    // glow
+    if (is2ndCar) {
+      ctx.strokeStyle = 'rgba(218, 202, 37, 0.5)';
+    } else {
+      ctx.strokeStyle = 'rgb(218, 202, 37)';
+    }
+    ctx.lineWidth = 5;
+    var g_xo = sz / 5;
+    var g_yo = sz / 10;
+    ctx.beginPath();
+    ctx.moveTo(x + (sz * 1.35) + g_xo, y + sz + g_yo);
+    ctx.lineTo(x, y - g_xo);
+    ctx.lineTo(x - (sz * 1.35) - g_xo, y + sz + g_yo);
+    ctx.lineTo(x + (sz * 1.35) + g_xo, y + sz + g_yo);
+    ctx.stroke();
+
+    if (fillAlpha > 0) {
+      if (is2ndCar) {
+        fillAlpha /= 1.5;
+      }
+      ctx.fillStyle = 'rgba(201, 34, 49, ' + fillAlpha + ')';
+
+      ctx.beginPath();
+      ctx.moveTo(x + (sz * 1.25), y + sz);
+      ctx.lineTo(x, y);
+      ctx.lineTo(x - (sz * 1.25), y + sz);
+      ctx.lineTo(x + (sz * 1.25), y + sz);
+      ctx.stroke();
+    }
   }
   renderLaneLines (options, model) {
     this.lastModelMonoTime = model.LogMonoTime;
