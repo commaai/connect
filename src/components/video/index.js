@@ -185,6 +185,7 @@ class VideoPreview extends Component {
     var calibration = TimelineWorker.getCalibration(this.props.route);
     if (!calibration) {
       let ctx = this.canvas.current.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, width, height);
       return; // loading calibration from logs still...
     }
@@ -195,6 +196,7 @@ class VideoPreview extends Component {
         this.lastModelMonoTime = false;
         this.lastLive20MonoTime = false;
         let ctx = this.canvas.current.getContext('2d');
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, width, height);
       }
     }
@@ -205,6 +207,7 @@ class VideoPreview extends Component {
         this.lastModelMonoTime = false;
         this.lastLive20MonoTime = false;
         let ctx = this.canvas.current.getContext('2d');
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, width, height);
       }
     }
