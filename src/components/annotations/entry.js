@@ -267,9 +267,13 @@ class AnnotationEntry extends Component {
                 <MenuItem value='arbitrary'>Arbitrary or accidental</MenuItem>
                 <MenuItem value='danger'>I needed to take over for safety</MenuItem>
                 <MenuItem value='lanes'>Lane change</MenuItem>
-                <MenuItem value='aliens'>Go a different way</MenuItem>
+                <MenuItem value='different-way'>Go a different way</MenuItem>
                 <MenuItem value='sharp-turn'>Turn too sharp</MenuItem>
                 <MenuItem value='too-slow'>I wanted to accelerate quicker</MenuItem>
+                <MenuItem value='exit'>Took an exit</MenuItem>
+                <MenuItem value='stop-light'>Stopped at light</MenuItem>
+                <MenuItem value='stop-sign'>Stopped at sign</MenuItem>
+                <MenuItem value='bad-lanes'>Lanes misidentified</MenuItem>
                 <MenuItem value='other'>Other (explain in comment)</MenuItem>
               </Select>
             ))}

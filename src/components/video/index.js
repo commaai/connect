@@ -334,6 +334,8 @@ class VideoPreview extends Component {
   }
   drawLine (ctx, points, std) {
     std = Math.min(std, 0.7);
+    std = Math.max(std, -0.7);
+
     ctx.beginPath();
     var isFirst = true;
     var isAbove = false;
@@ -342,6 +344,9 @@ class VideoPreview extends Component {
     var isRight = false;
     points.forEach((val, i) => {
       var [x, y, z] = this.carSpaceToImageSpace([i, val - std, 0, 1]);
+
+      // there are no lines that draw to the top of the screen
+      // so we just filter all of those out right away
       if (y < 0) {
         return;
       }
