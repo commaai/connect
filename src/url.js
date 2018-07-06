@@ -3,6 +3,10 @@ export function getDongleID (pathname) {
   var parts = pathname.split('/');
   parts = parts.filter((m) => m.length);
 
+  if (parts[0] === 'auth') {
+    return null;
+  }
+
   return parts[0] || null;
 }
 
@@ -10,7 +14,7 @@ export function getZoom (pathname) {
   var parts = pathname.split('/');
   parts = parts.filter((m) => m.length);
 
-  if (parts.length >= 3) {
+  if (parts.length >= 3 && parts[0] !== 'auth') {
     return {
       start: Number(parts[1]),
       end: Number(parts[2])

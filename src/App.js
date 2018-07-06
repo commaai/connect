@@ -78,9 +78,6 @@ class App extends Component {
     return (
       <Grid container alignItems='center' style={{ width: '100%', height: '100%', marginTop: '30vh' }}>
         <Grid item align='center' xs={12} >
-          <Typography>
-            Downloading the entire internet...
-          </Typography>
           <CircularProgress size='10vh' color='secondary' />
         </Grid>
       </Grid>

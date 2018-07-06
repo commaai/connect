@@ -185,6 +185,7 @@ class VideoPreview extends Component {
     var calibration = TimelineWorker.getCalibration(this.props.route);
     if (!calibration) {
       let ctx = this.canvas.current.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, width, height);
       return; // loading calibration from logs still...
     }
@@ -195,6 +196,7 @@ class VideoPreview extends Component {
         this.lastModelMonoTime = false;
         this.lastLive20MonoTime = false;
         let ctx = this.canvas.current.getContext('2d');
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, width, height);
       }
     }
@@ -205,6 +207,7 @@ class VideoPreview extends Component {
         this.lastModelMonoTime = false;
         this.lastLive20MonoTime = false;
         let ctx = this.canvas.current.getContext('2d');
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, width, height);
       }
     }
@@ -333,10 +336,41 @@ class VideoPreview extends Component {
     std = Math.min(std, 0.7);
     ctx.beginPath();
     var isFirst = true;
+    var isAbove = false;
+    var isBelow = false;
+    var isLeft = false;
+    var isRight = false;
     points.forEach((val, i) => {
       var [x, y, z] = this.carSpaceToImageSpace([i, val - std, 0, 1]);
-      if (x < 0 && y < 0) {
+      if (y < 0) {
         return;
+      }
+      if ((isRight && isLeft) || (isAbove && isBelow)) {
+        return;
+      }
+      if (x < 0) {
+        isLeft = true;
+        if (isRight) {
+          return;
+        }
+      }
+      if (x > 1164) {
+        isRight = true;
+        if (isLeft) {
+          return;
+        }
+      }
+      if (y > 874) {
+        isBelow = true;
+        if (isAbove) {
+          return;
+        }
+      }
+      if (y < 0) {
+        isAbove = true;
+        if (isBelow) {
+          return;
+        }
       }
       if (isFirst) {
         isFirst = false;
