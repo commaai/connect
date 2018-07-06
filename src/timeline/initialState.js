@@ -11,7 +11,7 @@ module.exports = {
   route: false,
   segment: 0,
   nextSegment: null,
-  playSpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed... multiplier on speed
+  playSpeed: 0, // 0 = stopped, 1 = playing, 2 = 2x speed... multiplier on speed
   offset: 0, // in miliseconds from the start
   startTime: Date.now(), // millisecond timestamp in which play began
 

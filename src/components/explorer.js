@@ -34,6 +34,16 @@ class ExplorerApp extends Component {
   }
   componentWillReceiveProps (props) {
     this.checkProps(props);
+
+    var isZoomed = props.expanded;
+    var wasZoomed = this.props.expanded;
+
+    if (isZoomed && !wasZoomed) {
+      Timelineworker.play();
+    }
+    if (!isZoomed && wasZoomed) {
+      Timelineworker.pause();
+    }
   }
   checkProps (props) {
     var dongleId = getDongleID(props.pathname);
