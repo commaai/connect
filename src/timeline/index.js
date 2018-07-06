@@ -260,6 +260,9 @@ class TimelineInterface {
   currentModel () {
     return this.getEventByType(Event_Which.MODEL);
   }
+  currentLive20 () {
+    return this.getEventByType(Event_Which.LIVE20);
+  }
   getEventByType (which) {
     if (!this.state || !this.state.route) {
       return;
@@ -276,6 +279,9 @@ class TimelineInterface {
 
     for (let curSegNum = this.state.segment; curSegNum >= 0; --curSegNum) {
       var logIndex = this.buffers[this.state.route][curSegNum];
+      if (!logIndex) {
+        return;
+      }
       offset -= segment.offset;
       var startTime = logIndex.index[0][0];
       var logMonoTime = offset + startTime;
