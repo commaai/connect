@@ -90,7 +90,9 @@ class RouteList extends Component {
           <Grid item xs={10} >
             <Grid container >
               <Grid item xs={12} >
-                Your ride on { fecha.format(new Date(ride.startTime), 'MMMM D @ HH:mm') }
+                <Typography>
+                  Your ride on { fecha.format(new Date(ride.startTime), 'MMMM D @ HH:mm') }
+                </Typography>
               </Grid>
               <Grid item xs={12} >
                 <Minimap zoomed colored thumbnailed zoomOverride={{
