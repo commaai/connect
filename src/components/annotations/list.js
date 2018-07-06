@@ -11,7 +11,10 @@ import Typography from '@material-ui/core/Typography';
 
 import AnnotationEntry from './entry';
 import Timelineworker from '../../timeline';
+import { selectRange } from '../../actions';
 import { filterEvent } from './common';
+
+const LOOP_DURATION = 10000;
 
 const styles = theme => {
   return {
@@ -35,6 +38,12 @@ class AnnotationList extends Component {
     };
   }
 
+  componentWillReceiveProps(nextProps) {
+    if (this.state.expanded && nextProps.loop.startTime === null) {
+      this.setState({ expanded: false });
+    }
+  }
+
   handleExpanded (eventId, seekpos) {
     let isExpanded = this.state.expanded !== eventId && eventId;
     this.setState({
@@ -42,8 +51,16 @@ class AnnotationList extends Component {
     });
 
     if (isExpanded) {
-      // 5 seconds before, 5 seconds after...
-      Timelineworker.selectLoop(seekpos + this.props.start - 5000, 10000);
+      let loopStartTime = seekpos + this.props.start - LOOP_DURATION / 2;
+      let loopEndTime = loopStartTime + LOOP_DURATION;
+
+      if (this.props.zoom
+          && (loopStartTime < this.props.zoom.start || loopEndTime > this.props.zoom.end)) {
+        this.props.dispatch(selectRange(loopStartTime, loopEndTime));
+      } else {
+        // 5 seconds before, 5 seconds after...
+        Timelineworker.selectLoop(loopStartTime, LOOP_DURATION);
+      }
     } else if (this.props.zoom && this.props.zoom.expanded) {
       Timelineworker.selectLoop(this.props.zoom.start, this.props.zoom.end - this.props.zoom.start);
     }
@@ -81,7 +98,7 @@ class AnnotationList extends Component {
         expanded={ this.state.expanded === eventId }
         // expanded={ this.state.expanded ? this.state.expanded === eventId : index === 0 }
         onChange={ partial(this.handleExpanded, eventId, segment.routeOffset + event.route_offset_millis) }
-        />
+      />
     );
   }
   eventTitle (event) {
@@ -91,6 +108,7 @@ class AnnotationList extends Component {
 
 const stateToProps = Obstruction({
   start: 'workerState.start',
+  loop: 'workerState.loop',
   zoom: 'zoom'
 });
 

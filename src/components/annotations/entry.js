@@ -171,6 +171,8 @@ class AnnotationEntry extends Component {
           comment: this.state.comment
         });
       }
+
+      Timelineworker.selectLoop(null, null);
     } catch (e) {
       Raven.captureException(e);
       // no error
@@ -294,6 +296,7 @@ class AnnotationEntry extends Component {
             variant='outlined'
             size='small'
             disabled={ this.state.saving }
+            onClick={ this.props.onChange }
           >Cancel</Button>
         </ExpansionPanelActions>
       </ExpansionPanel>

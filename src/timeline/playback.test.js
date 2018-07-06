@@ -1,10 +1,13 @@
 const Playback = require('./playback');
 
-var defaultStruct = {
-  playSpeed: 0, // 0 = stopped, 1 = playing, 2 = 2x speed... multiplier on speed
-  offset: 0, // in miliseconds from the start
-  startTime: Date.now() // millisecond timestamp in which play began
-};
+var makeDefaultStruct = function() {
+  return {
+    start: Date.now(),
+    playSpeed: 0, // 0 = stopped, 1 = playing, 2 = 2x speed... multiplier on speed
+    offset: 0, // in miliseconds from the start
+    startTime: Date.now() // millisecond timestamp in which play began
+  };
+}
 
 // make Date.now super stable for tests
 var mostRecentNow = Date.now();
@@ -19,7 +22,7 @@ function newNow () {
 
 test('playback controls', async function () {
   newNow();
-  var state = defaultStruct;
+  var state = makeDefaultStruct();
 
   // should do nothing
   Playback.reducer(state, Playback.pause());
@@ -60,6 +63,34 @@ test('playback controls', async function () {
   expect(state.offset).toEqual(123);
   expect(state.startTime).toEqual(Date.now());
   expect(Playback.currentOffset(state)).toEqual(123);
+});
+
+test('loop should clear when seeked after loop end time', function() {
+  newNow();
+  var state = makeDefaultStruct();
+
+  // set up loop
+  Playback.reducer(state, Playback.play());
+  Playback.reducer(state, Playback.selectLoop(1000, 1000));
+  expect(state.loop.startTime).toEqual(1000);
+
+  // seek past loop end boundary a
+  Playback.reducer(state, Playback.seek(3000));
+  expect(state.loop.startTime).toEqual(null);
+});
+
+test('loop should clear when seeked before loop start time', function() {
+  newNow();
+  var state = makeDefaultStruct();
+
+  // set up loop
+  Playback.reducer(state, Playback.play());
+  Playback.reducer(state, Playback.selectLoop(1000, 1000));
+  expect(state.loop.startTime).toEqual(1000);
+
+  // seek past loop end boundary a
+  Playback.reducer(state, Playback.seek(0));
+  expect(state.loop.startTime).toEqual(null);
 });
 
 async function delay (ms) {
