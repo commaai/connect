@@ -169,7 +169,7 @@ class AppHeader extends Component {
               </Grid>
             </Grid>
           </Toolbar>
-          <Minimap rounded dragSelection className={ this.props.classes.minimap } />
+          <Minimap rounded dragSelection noseek className={ this.props.classes.minimap } />
         </AppBar>
       </div>
     );

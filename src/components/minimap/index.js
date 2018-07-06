@@ -145,9 +145,10 @@ class Minimap extends Component {
     if (this.props.zoomOverride) {
       return;
     }
-    if (minOffset > TimelineWorker.currentOffset()) {
-      TimelineWorker.seek(minOffset);
-    }
+    // isn't needed with the reducers handling bounds
+    // if (minOffset > TimelineWorker.currentOffset()) {
+    //   TimelineWorker.seek(minOffset);
+    // }
   }
   componentWillMount () {
     document.addEventListener('mouseup', this.handleUp, false);
@@ -190,6 +191,9 @@ class Minimap extends Component {
     if (this.isDragSelecting) {
       console.log('Is a drag event');
       this.isDragSelecting = false;
+      return;
+    }
+    if (this.props.noseek) {
       return;
     }
     console.log(e.currentTarget);

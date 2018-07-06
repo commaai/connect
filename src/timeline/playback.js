@@ -23,10 +23,14 @@ function reducer (state = initialState, action) {
     case ACTION_SEEK:
       state.offset = action.offset;
       state.startTime = Date.now();
-      if (loopOffset !== null
-          && (state.offset < loopOffset || state.offset > (loopOffset + state.loop.duration))) {
-        // seek out of loop bounds,
-        state.loop = { startTime: null, duration: null };
+      if (loopOffset !== null) {
+        if (state.offset > (loopOffset + state.loop.duration)) {
+          state.offset = (loopOffset + state.loop.duration) - 1000; // 1 second before end
+        }
+        // intentionally second in case we're in a sub-1-second loop (madness)
+        if (state.offset < loopOffset) {
+          state.offset = loopOffset;
+        }
       }
       break;
     case ACTION_PAUSE:
