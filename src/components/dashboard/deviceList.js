@@ -14,6 +14,7 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 import Pencil from '@material-ui/icons/Edit';
 import TextField from '@material-ui/core/TextField';
 import Typography from '@material-ui/core/Typography';
+import FormControl from '@material-ui/core/FormControl';
 
 import * as API from '../../api';
 import Timelineworker from '../../timeline';
@@ -40,6 +41,9 @@ const styles = theme => {
     },
     saveButton: {
       marginRight: theme.spacing.unit,
+    },
+    textField: {
+      marginBottom: theme.spacing.unit
     }
   }
 };
@@ -60,6 +64,7 @@ class DeviceList extends Component {
     this.renderDevice = this.renderDevice.bind(this);
     this.setDeviceAlias = this.setDeviceAlias.bind(this);
     this.toggleDeviceEdit = this.toggleDeviceEdit.bind(this);
+    this.cancelEdit = this.cancelEdit.bind(this);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -76,6 +81,9 @@ class DeviceList extends Component {
       this.props.handleDeviceSelected(device.dongle_id);
       this.setState({ editingDevice: device.dongle_id, deviceAlias: device.alias });
     }
+  }
+  cancelEdit () {
+    this.setState({ editingDevice: null });
   }
 
   handleAliasChange (e) {
@@ -137,42 +145,48 @@ class DeviceList extends Component {
         className={ this.props.classes.expansion }
         >
         <ExpansionPanelSummary>
-          <Grid item xs={10}>
-            { this.state.editingDevice === device.dongle_id ?
-              <div>
-                {  this.state.isWaitingForApi && <LinearProgress /> }
-                <TextField
-                  id="name"
-                  label="Name"
-                  className={this.props.classes.nameField}
-                  value={this.state.deviceAlias}
-                  onChange={this.handleAliasChange}
-                  margin="normal"
-                  onKeyPress={ partial(this.handleAliasFieldKeyPress, device.dongle_id) }
-                />
-                <Button
+          <Grid container>
+            <Grid item xs={10}>
+              { this.state.editingDevice === device.dongle_id ?
+                <React.Fragment>
+                  { this.state.isWaitingForApi && <LinearProgress /> }
+                  { this.state.error !== null && <FormHelperText error>{ this.state.error }</FormHelperText> }
+                  <TextField
+                    id="name"
+                    label="Name"
+                    className={this.props.classes.textField}
+                    value={this.state.deviceAlias}
+                    onChange={this.handleAliasChange}
+                    onKeyPress={ partial(this.handleAliasFieldKeyPress, device.dongle_id) }
+                  />
+                </React.Fragment>
+                :
+                <Typography>{ (device.alias && device.alias + ' (' + device.dongle_id + ')') || device.dongle_id }</Typography>
+              }
+            </Grid>
+            { (!device.shared && (device.is_owner || this.props.isSuperUser)) &&
+              <Grid item xs={2} alignContent='center'>
+                <Pencil className={ this.props.classes.editDeviceIcon } onClick={ partial(this.toggleDeviceEdit, device) } />
+              </Grid>
+            }
+            { this.state.editingDevice === device.dongle_id &&
+              <React.Fragment>
+                <Grid item xs={6}>
+                  <Button
                   variant='outlined'
                   onClick={ partial(this.setDeviceAlias, device.dongle_id) }
                   className={this.props.classes.saveButton }>
-                  Save
-                </Button>
-                <Button variant='text' onClick={ partial(this.toggleDeviceEdit, device) }>
-                  Cancel
-                </Button>
-                <div>
-                  { this.state.error !== null && <FormHelperText error>{ this.state.error }</FormHelperText> }
-                </div>
-              </div>
-
-              :
-              <Typography>{ (device.alias && device.alias + ' (' + device.dongle_id + ')') || device.dongle_id }</Typography>
+                    Save
+                  </Button>
+                </Grid>
+                <Grid item xs={6}>
+                  <Button variant='outlined' onClick={ this.cancelEdit }>
+                    Cancel
+                  </Button>
+                </Grid>
+              </React.Fragment>
             }
           </Grid>
-          { (!device.shared && (device.is_owner || this.props.isSuperUser)) &&
-            <Grid item xs={2} alignContent='center'>
-              <Pencil className={ this.props.classes.editDeviceIcon } onClick={ partial(this.toggleDeviceEdit, device) } />
-            </Grid>
-          }
         </ExpansionPanelSummary>
       </ExpansionPanel>
     );
