@@ -95,25 +95,26 @@ class DeviceList extends Component {
   }
 
   render () {
-    // var devices = this.props.devices;
-    // var dongleId = this.props.selectedDevice;
-    // var found = !dongleId;
+    var devices = this.props.devices;
+    var dongleId = this.props.selectedDevice;
+    var found = !dongleId;
 
-    // devices.forEach(function (device) {
-    //   if (device.dongle_id === dongleId) {
-    //     found = true;
-    //   }
-    // });
+    devices.forEach(function (device) {
+      if (device.dongle_id === dongleId) {
+        found = true;
+      }
+    });
 
-    // if (!found) {
-    //   devices.push({
-    //     dongle_id: dongleId,
-    //     shared: true
-    //   });
-    // }
+    if (!found) {
+      devices.push({
+        dongle_id: dongleId,
+        shared: true
+      });
+    }
+
     return (
       <React.Fragment>
-        { this.props.devices.map(this.renderDevice) }
+        { devices.map(this.renderDevice) }
       </React.Fragment>
     );
   }
@@ -155,7 +156,7 @@ class DeviceList extends Component {
               <Typography>{ (device.alias && device.alias + ' (' + device.dongle_id + ')') || device.dongle_id }</Typography>
             }
           </Grid>
-          { (device.is_owner || this.props.isSuperUser) &&
+          { (!device.shared && (device.is_owner || this.props.isSuperUser)) &&
             <Grid item xs={2} alignContent='center'>
               <Pencil className={ this.props.classes.editDeviceIcon } onClick={ partial(this.toggleDeviceEdit, device) } />
             </Grid>
