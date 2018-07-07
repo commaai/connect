@@ -10,8 +10,9 @@ import * as API from '../api';
 import init from './startup';
 import {
   selectDevice as selectDeviceAction,
-  selectTimeRange as selectTimeRangeAction
-} from './startup';
+  selectTimeRange as selectTimeRangeAction,
+  updateDevice as updateDeviceAction,
+} from './actions';
 import Playback from './playback';
 import Segments from './segments';
 import * as Cache from './cache';
@@ -74,7 +75,8 @@ const commands = {
   resolve,
   selectDevice,
   selectTimeRange,
-  selectLoop
+  selectLoop,
+  updateDevice,
 };
 
 export async function handleMessage (port, msg) {
@@ -206,6 +208,10 @@ function resolve (port, data) {
 
 function selectDevice (port, dongleId) {
   store.dispatch(selectDeviceAction(dongleId));
+}
+
+function updateDevice (port, device) {
+  store.dispatch(updateDeviceAction(device));
 }
 
 function selectTimeRange (port, data) {

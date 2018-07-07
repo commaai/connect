@@ -32,6 +32,12 @@ const theme = createMuiTheme({
           color: Colors.white30
         }
       }
+    },
+    MuiFormLabel: {
+      root: {
+        marginLeft: 16,
+        marginTop: 4
+      }
     }
   },
   // shape: {

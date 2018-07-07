@@ -39,6 +39,10 @@ export async function listDevices () {
   return request.get('me/devices/');
 }
 
+export async function setDeviceAlias(dongle_id, alias) {
+  return request.patch('devices/' + dongle_id + '/', { alias });
+}
+
 export async function createAnnotation (data) {
   data = AnnotationValidator.validate(data);
   if (data.error) {

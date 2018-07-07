@@ -10,9 +10,11 @@ import ExpansionPanel from '@material-ui/core/ExpansionPanel';
 import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
 import Grid from '@material-ui/core/Grid';
 import Paper from '@material-ui/core/Paper';
+import Pencil from '@material-ui/icons/Edit';
 import Slide from '@material-ui/core/Slide';
 import Typography from '@material-ui/core/Typography';
 
+import DeviceList from './deviceList';
 import RouteList from './routes';
 import Timelineworker from '../../timeline';
 import { selectRange, selectDevice } from '../../actions';
@@ -30,17 +32,9 @@ const styles = theme => {
       padding: theme.spacing.unit * 2,
       borderRadius: theme.spacing.unit
     },
-    expansion: {
-      backgroundColor: theme.palette.grey[800]
-    },
-    expanded: {
-      minHeight: 'initial',
-      margin: '0px 0',
-      backgroundColor: theme.palette.grey[999]
-    },
     badge: {
 
-    }
+    },
   };
 };
 
@@ -48,12 +42,16 @@ class Dashboard extends Component {
   constructor (props) {
     super(props);
 
-    this.renderDevice = this.renderDevice.bind(this);
-    this.handleChange = this.handleChange.bind(this);
+    this.state = {
+      editingDevice: null,
+
+    };
+
+    this.handleDeviceSelected = this.handleDeviceSelected.bind(this);
     this.goToAnnotation = this.goToAnnotation.bind(this);
   }
 
-  handleChange (dongleId) {
+  handleDeviceSelected (dongleId) {
     this.props.dispatch(selectDevice(dongleId));
   }
 
@@ -64,23 +62,6 @@ class Dashboard extends Component {
   }
 
   render() {
-    var devices = this.props.devices;
-    var dongleId = this.props.selectedDevice;
-    var found = !dongleId;
-
-    devices.forEach(function (device) {
-      if (device.dongle_id === dongleId) {
-        found = true;
-      }
-    });
-
-    if (!found) {
-      devices.push({
-        dongle_id: dongleId,
-        shared: true
-      });
-    }
-
     let firstAnnotationSegment = null;
     let newAnnotations = this.props.segments.reduce((count, segment) => {
       let segCount = segment.events.filter(filterEvent).reduce((memo, event) => event.id ? memo : memo + 1, 0);
@@ -101,7 +82,9 @@ class Dashboard extends Component {
               <Typography variant='headline'>
                 Your Devices
               </Typography>
-              { this.props.devices.map(this.renderDevice) }
+              <DeviceList
+                selectedDevice={ this.props.selectedDevice }
+                handleDeviceSelected={ this.handleDeviceSelected } />
             </Paper>
           </Grid>
           <Grid item xs={ 6 } >
@@ -122,24 +105,6 @@ class Dashboard extends Component {
     );
   }
 
-  renderDevice (device) {
-    return (
-      <ExpansionPanel
-        classes={{
-          expanded: this.props.classes.expanded
-        }}
-        key={ device.dongle_id }
-        expanded={ this.props.selectedDevice === device.dongle_id }
-        onChange={ partial(this.handleChange, device.dongle_id) }
-        className={ this.props.classes.expansion }
-        >
-        <ExpansionPanelSummary>
-          <Typography>{ (device.alias && device.alias + ' (' + device.dongle_id + ')') || device.dongle_id }</Typography>
-        </ExpansionPanelSummary>
-      </ExpansionPanel>
-    );
-  }
-
   renderAnnotateButton (segment, count) {
     return (
       <Badge style={{ width: '50%' }} color='secondary' badgeContent={ count }>
@@ -153,8 +118,7 @@ class Dashboard extends Component {
 
 const stateToProps = Obstruction({
   segments: 'workerState.segments',
-  devices: 'workerState.devices',
-  selectedDevice: 'workerState.dongleId'
+  selectedDevice: 'workerState.dongleId',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Dashboard));

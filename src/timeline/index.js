@@ -124,6 +124,13 @@ class TimelineInterface {
     });
   }
 
+  async updateDevice (device) {
+    return this.postMessage({
+      command: 'updateDevice',
+      data: device,
+    });
+  }
+
   async rpc (msg) {
     // msg that expects a reply
     return new Promise((resolve, reject) => {
