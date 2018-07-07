@@ -35,6 +35,12 @@ const styles = theme => {
       margin: '0px 0',
       backgroundColor: theme.palette.grey[999]
     },
+    nameField: {
+      marginRight: theme.spacing.unit,
+    },
+    saveButton: {
+      marginRight: theme.spacing.unit,
+    }
   }
 };
 
@@ -64,7 +70,7 @@ class DeviceList extends Component {
   }
 
   toggleDeviceEdit (device) {
-    if (this.state.editingDevice === device.dongleId) {
+    if (this.state.editingDevice === device.dongle_id) {
       this.setState({ editingDevice: null });
     } else {
       this.props.handleDeviceSelected(device.dongle_id);
@@ -138,14 +144,20 @@ class DeviceList extends Component {
                 <TextField
                   id="name"
                   label="Name"
-                  className={this.props.classes.textField}
+                  className={this.props.classes.nameField}
                   value={this.state.deviceAlias}
                   onChange={this.handleAliasChange}
                   margin="normal"
                   onKeyPress={ partial(this.handleAliasFieldKeyPress, device.dongle_id) }
                 />
-                <Button variant='outlined' onClick={ partial(this.setDeviceAlias, device.dongle_id) }>
+                <Button
+                  variant='outlined'
+                  onClick={ partial(this.setDeviceAlias, device.dongle_id) }
+                  className={this.props.classes.saveButton }>
                   Save
+                </Button>
+                <Button variant='text' onClick={ partial(this.toggleDeviceEdit, device) }>
+                  Cancel
                 </Button>
                 <div>
                   { this.state.error !== null && <FormHelperText error>{ this.state.error }</FormHelperText> }
