@@ -40,7 +40,7 @@ export async function listDevices () {
 }
 
 export async function setDeviceAlias(dongle_id, alias) {
-  return request.patch('devices/' + dongle_id, { alias });
+  return request.patch('devices/' + dongle_id + '/', { alias });
 }
 
 export async function createAnnotation (data) {

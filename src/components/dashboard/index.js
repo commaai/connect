@@ -47,11 +47,11 @@ class Dashboard extends Component {
 
     };
 
-    this.handleChange = this.handleChange.bind(this);
+    this.handleDeviceSelected = this.handleDeviceSelected.bind(this);
     this.goToAnnotation = this.goToAnnotation.bind(this);
   }
 
-  handleChange (dongleId) {
+  handleDeviceSelected (dongleId) {
     this.props.dispatch(selectDevice(dongleId));
   }
 
@@ -82,7 +82,9 @@ class Dashboard extends Component {
               <Typography variant='headline'>
                 Your Devices
               </Typography>
-              <DeviceList />
+              <DeviceList
+                selectedDevice={ this.props.selectedDevice }
+                handleDeviceSelected={ this.handleDeviceSelected } />
             </Paper>
           </Grid>
           <Grid item xs={ 6 } >

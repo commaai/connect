@@ -2,15 +2,21 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { partial } from 'ap';
+import Raven from 'raven-js';
 
 import { withStyles } from '@material-ui/core/styles';
+import Button from '@material-ui/core/Button';
+import FormHelperText from '@material-ui/core/FormHelperText';
 import ExpansionPanel from '@material-ui/core/ExpansionPanel';
 import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
 import Grid from '@material-ui/core/Grid';
+import LinearProgress from '@material-ui/core/LinearProgress';
 import Pencil from '@material-ui/icons/Edit';
+import TextField from '@material-ui/core/TextField';
 import Typography from '@material-ui/core/Typography';
 
-import TextField from '@material-ui/core/TextField';
+import * as API from '../../api';
+import Timelineworker from '../../timeline';
 
 const styles = theme => {
   return {
@@ -39,19 +45,53 @@ class DeviceList extends Component {
     this.state = {
       editingDevice: null,
       deviceAlias: '',
+      isWaitingForApi: false,
+      error: null,
     };
 
     this.handleAliasChange = this.handleAliasChange.bind(this);
+    this.handleAliasFieldKeyPress = this.handleAliasFieldKeyPress.bind(this);
     this.renderDevice = this.renderDevice.bind(this);
+    this.setDeviceAlias = this.setDeviceAlias.bind(this);
     this.toggleDeviceEdit = this.toggleDeviceEdit.bind(this);
   }
 
-  toggleDeviceEdit (device) {
-    this.setState({ editingDevice: device.dongleId, deviceAlias: device.alias });
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.selectedDevice !== this.props.selectedDevice
+        && nextProps.selectedDevice !== this.state.editingDevice) {
+      this.setState({ editingDevice: null });
+    }
   }
 
-  handleAliasChange (deviceAlias) {
-    this.setState({ deviceAlias });
+  toggleDeviceEdit (device) {
+    if (this.state.editingDevice === device.dongleId) {
+      this.setState({ editingDevice: null });
+    } else {
+      this.props.handleDeviceSelected(device.dongle_id);
+      this.setState({ editingDevice: device.dongle_id, deviceAlias: device.alias });
+    }
+  }
+
+  handleAliasChange (e) {
+    this.setState({ deviceAlias: e.target.value });
+  }
+
+  handleAliasFieldKeyPress (dongle_id, e) {
+    if (e.key === 'Enter' && !this.state.isWaitingForApi) {
+      this.setDeviceAlias(dongle_id);
+    }
+  }
+
+  async setDeviceAlias (dongle_id) {
+    this.setState({ isWaitingForApi: true });
+    try {
+      const device = await API.setDeviceAlias(dongle_id, this.state.deviceAlias.trim());
+      Timelineworker.updateDevice(device);
+      this.setState({ isWaitingForApi: false, editingDevice: null });
+    } catch(e) {
+      Raven.captureException(e);
+      this.setState({ error: e.message, isWaitingForApi: false });
+    }
   }
 
   render () {
@@ -86,27 +126,40 @@ class DeviceList extends Component {
         }}
         key={ device.dongle_id }
         expanded={ this.props.selectedDevice === device.dongle_id }
-        onChange={ partial(this.handleChange, device.dongle_id) }
+        onChange={ partial(this.props.handleDeviceSelected, device.dongle_id) }
         className={ this.props.classes.expansion }
         >
         <ExpansionPanelSummary>
           <Grid item xs={10}>
             { this.state.editingDevice === device.dongle_id ?
-              <TextField
-                id="name"
-                label="Name"
-                className={this.props.classes.textField}
-                value={this.state.deviceAlias}
-                onChange={this.handleChange}
-                margin="normal"
-              />
-              : 
+              <div>
+                {  this.state.isWaitingForApi && <LinearProgress /> }
+                <TextField
+                  id="name"
+                  label="Name"
+                  className={this.props.classes.textField}
+                  value={this.state.deviceAlias}
+                  onChange={this.handleAliasChange}
+                  margin="normal"
+                  onKeyPress={ partial(this.handleAliasFieldKeyPress, device.dongle_id) }
+                />
+                <Button variant='outlined' onClick={ partial(this.setDeviceAlias, device.dongle_id) }>
+                  Save
+                </Button>
+                <div>
+                  { this.state.error !== null && <FormHelperText error>{ this.state.error }</FormHelperText> }
+                </div>
+              </div>
+
+              :
               <Typography>{ (device.alias && device.alias + ' (' + device.dongle_id + ')') || device.dongle_id }</Typography>
             }
           </Grid>
-          <Grid item xs={2} alignContent='center'>
-            <Pencil className={ this.props.classes.editDeviceIcon } onClick={ partial(this.toggleDeviceEdit, device) } />
-          </Grid>
+          { (device.is_owner || this.props.isSuperUser) &&
+            <Grid item xs={2} alignContent='center'>
+              <Pencil className={ this.props.classes.editDeviceIcon } onClick={ partial(this.toggleDeviceEdit, device) } />
+            </Grid>
+          }
         </ExpansionPanelSummary>
       </ExpansionPanel>
     );
@@ -115,6 +168,7 @@ class DeviceList extends Component {
 
 const stateToProps = Obstruction({
   devices: 'workerState.devices',
+  isSuperUser: 'workerState.profile.superuser',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));
