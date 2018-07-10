@@ -91,13 +91,14 @@ class VideoPreview extends Component {
     let bufferTime = this.state.bufferTime;
     let videoPlayer = this.videoPlayer.current;
     let noVideo = this.state.noVideo;
+    let playSpeed = this.props.startTime < Date.now() ? this.props.playSpeed : 0;
 
     if (videoPlayer) {
       let playerState = videoPlayer.getState().player;
       if (!playerState.buffered || Number.isNaN(playerState.duration)) {
         return;
       }
-      if (this.props.playSpeed && this.props.currentSegment) {
+      if (playSpeed && this.props.currentSegment) {
         let curVideoTime = playerState.currentTime;
         let desiredVideoTime = this.currentVideoTime(offset);
         let timeDiff = desiredVideoTime - curVideoTime;
@@ -142,12 +143,16 @@ class VideoPreview extends Component {
             } else {
               timeDiff = Math.max(0.25, timeDiff + this.props.playSpeed) - this.props.playSpeed;
             }
-            videoPlayer.playbackRate = (this.props.playSpeed + timeDiff);
+            if (this.props.startTime < Date.now()) {
+              videoPlayer.playbackRate = (this.props.playSpeed + timeDiff);
+            } else {
+              videoPlayer.playbackRate = 0;
+            }
             noVideo = false;
           }
         } else {
           noVideo = false;
-          videoPlayer.playbackRate = this.props.playSpeed;
+          videoPlayer.playbackRate = playSpeed;
         }
 
         if (this.props.currentSegment && playerState.paused && !playerState.seeking) {
@@ -211,6 +216,7 @@ class VideoPreview extends Component {
         ctx.clearRect(0, 0, width, height);
       }
     }
+    let mpc = TimelineWorker.currentMPC();
     if (this.lastModelMonoTime === modelLogTime && this.lastLive20MonoTime === live20LogTime) {
       return;
     }
@@ -232,6 +238,9 @@ class VideoPreview extends Component {
     }
     if (live20) {
       this.renderLeadCars({ width, height, ctx }, live20);
+    }
+    if (mpc) {
+      this.renderMPC({ width, height, ctx }, mpc);
     }
   }
   renderLeadCars (options, live20) {
@@ -315,7 +324,7 @@ class VideoPreview extends Component {
     var { width, height, ctx } = options;
 
     ctx.lineWidth = 5;
-    ctx.strokeStyle = 'green';
+    ctx.strokeStyle = 'blue';
     this.drawLine(ctx, model.Model.LeftLane.Points, 0.025 * model.Model.LeftLane.Prob);
     this.drawLine(ctx, model.Model.RightLane.Points, 0.025 * model.Model.RightLane.Prob);
 
@@ -377,6 +386,32 @@ class VideoPreview extends Component {
           return;
         }
       }
+      if (isFirst) {
+        isFirst = false;
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+    ctx.stroke();
+  }
+  renderMPC (options, mpc) {
+    var { width, height, ctx } = options;
+    var data = mpc.LiveMpc
+    var isFirst = true;
+
+    var alpha = Math.max(0, 1 - (data.Cost / 100));
+
+    ctx.strokeStyle = 'rgba(' + (1 - alpha) * 255 + ', ' + alpha * 255 + ', 0, 1)';
+    console.log(data.Cost);
+    ctx.beginPath();
+    data.X.forEach((x, i) => {
+      let y = data.Y[i];
+      let z = 0;
+      [x, y, z] = this.carSpaceToImageSpace([x, y, 0, 1]);
+
+      let psi = data.Psi[i];
+
       if (isFirst) {
         isFirst = false;
         ctx.moveTo(x, y);
@@ -452,7 +487,7 @@ class VideoPreview extends Component {
             src={ this.state.src }
 
             startTime={ this.currentVideoTime() }
-            playbackRate={ this.props.playSpeed }
+            playbackRate={ this.props.startTime > Date.now() ? 0 : this.props.playSpeed }
             >
             <HLSSource
               isVideoChild
