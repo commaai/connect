@@ -264,6 +264,7 @@ class AnnotationEntry extends Component {
                     Choose one
                   </MenuItem>
                 }
+                { this.isPlanned() && <MenuItem value={ this.props.event.annotation.data.reason }>{ this.props.event.annotation.data.reason }</MenuItem> }
                 <MenuItem value='arbitrary'>Arbitrary or accidental</MenuItem>
                 <MenuItem value='danger'>I needed to take over for safety</MenuItem>
                 <MenuItem value='lanes'>Lane change</MenuItem>
@@ -327,7 +328,16 @@ class AnnotationEntry extends Component {
   }
   getTitle () {
     // this.props.event
-    return 'Disengage event';
+    if (this.isPlanned()) {
+      return 'Planned disengagement';
+    } else if (this.props.event.type === 'disengage_steer') {
+      return 'Steering disengagement';
+    } else if (this.props.event.type === 'disengage') {
+      return 'Disengagement';
+    }
+  }
+  isPlanned () {
+    return (this.props.event.data && this.props.event.annotation && this.props.event.data.is_planned)
   }
 }
 

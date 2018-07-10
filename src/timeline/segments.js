@@ -125,6 +125,10 @@ function parseSegmentMetadata (state, segments, annotations) {
     segment.offset = Math.round(segment.start_time_utc_millis) - state.start;
     segment.duration = Math.round(segment.end_time_utc_millis - segment.start_time_utc_millis);
     segment.events = JSON.parse(segment.events_json) || [];
+    let plannedDisengageEvents = segment.events.filter(function(event) {
+      return event.type === "alert" && event.data && event.data.should_take_control;
+    });
+
     segment.events.forEach(function (event) {
       event.timestamp = segment.start_time_utc_millis + event.offset_millis;
       event.canonical_segment_name = segment.canonical_name;
@@ -141,6 +145,40 @@ function parseSegmentMetadata (state, segments, annotations) {
           event.annotation = annotation;
         }
       });
+
+      if (event.data && event.data.is_planned) {
+        var reason;
+
+        let alert = plannedDisengageEvents.reduce(function(closestAlert, alert) {
+          let closestAlertDiff = Math.abs(closestAlert.offset_millis - event.offset_millis);
+          if (Math.abs(alert.offset_millis - event.offset_millis) < closestAlertDiff) {
+            return alert;
+          } else {
+            return closestAlert;
+          }
+        }, plannedDisengageEvents[0]);
+        if (alert) {
+          reason = alert.data.alertText2;
+        } else {
+          console.warn('Expected alert corresponding to planned disengagement', event);
+          reason = 'Planned disengagement';
+        }
+
+        event.id = 'planned_disengage_' + event.time;
+        event.annotation = {
+          "start_time_utc_millis": event.timestamp,
+          "data": {
+            reason,
+          },
+          "offset_nanos_part": event.offset_nanos,
+          "end_time_utc_millis": event.timestamp,
+          "canonical_segment_name": event.canonical_segment_name,
+          "dongle_id": state.dongleId,
+          "type": event.type,
+          "id": event.id,
+          "offset_millis": event.offset_millis
+        }
+      }
     });
     return segment;
   });
