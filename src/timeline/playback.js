@@ -22,7 +22,7 @@ function reducer (state = initialState, action) {
   switch (action.type) {
     case ACTION_SEEK:
       state.offset = action.offset;
-      state.startTime = Date.now() + 5000;
+      state.startTime = Date.now();
       if (loopOffset !== null) {
         if (state.offset > (loopOffset + state.loop.duration)) {
           state.offset = (loopOffset + state.loop.duration) - 1000; // 1 second before end
