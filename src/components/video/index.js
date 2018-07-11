@@ -340,12 +340,12 @@ class VideoPreview extends Component {
     this.drawLine(ctx, model.Model.RightLane.Points, 0.025 * model.Model.RightLane.Prob);
 
     // colors for ghost/accuracy lines
-    ctx.strokeStyle = 'rgba(255, 255, 255, ' + (0.7 - model.Model.LeftLane.Prob) + ')';
+    ctx.strokeStyle = 'rgba(255, 255, 255, ' + Math.max(0.1, 0.7 - model.Model.LeftLane.Prob) + ')';
     ctx.lineWidth = 8;
     this.drawLine(ctx, model.Model.LeftLane.Points, model.Model.LeftLane.Std);
     this.drawLine(ctx, model.Model.LeftLane.Points, 0 - model.Model.LeftLane.Std);
 
-    ctx.strokeStyle = 'rgba(255, 255, 255, ' + (0.7 - model.Model.RightLane.Prob) + ')';
+    ctx.strokeStyle = 'rgba(255, 255, 255, ' + Math.max(0.1, 0.7 - model.Model.RightLane.Prob) + ')';
     this.drawLine(ctx, model.Model.RightLane.Points, model.Model.RightLane.Std);
     this.drawLine(ctx, model.Model.RightLane.Points, 0 - model.Model.RightLane.Std);
 
@@ -451,12 +451,39 @@ class VideoPreview extends Component {
 
     var pWidth = 1164;
     var pHeight = 874;
+    var radius = 60;
+    var border = 20;
+    var x = radius + border;
+    var y = x;
 
-    ctx.fillStyle = 'blue';
-    ctx.translate(pWidth / 2, pHeight);
-    ctx.rotate(0 - data.SteeringAngle * Math.PI / 180 / 4);
-    ctx.translate(0 - pWidth / 2, -pHeight);
-    ctx.fillRect(pWidth / 2 - 4, pHeight, 8, -100);
+    ctx.fillStyle = 'black';
+    ctx.strokeStyle = 'black';
+    ctx.translate(x, y);
+    ctx.rotate(0 - data.SteeringAngle * Math.PI / 180);
+
+    ctx.save();
+    ctx.translate(-x, -y);
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
+    ctx.lineWidth = 5;
+    ctx.stroke();
+
+    // ctx.beginPath();
+    // ctx.arc(x, y, radius / 3, 0, 2 * Math.PI, false);
+    // ctx.fill();
+
+    ctx.restore();
+    ctx.save();
+    ctx.rotate(0.3);
+    ctx.translate(-x, -y);
+    ctx.fillRect(x - radius, y - 2, radius * 2, 5);
+
+    ctx.restore();
+    ctx.save();
+    ctx.rotate(-0.3);
+    ctx.translate(-x, -y);
+    ctx.fillRect(x - radius, y - 2, radius * 2, 5);
   }
   carSpaceToImageSpace (coords) {
     this.matmul(this.extrinsic, coords);

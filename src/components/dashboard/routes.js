@@ -64,7 +64,6 @@ class RouteList extends Component {
       // curRideChunk.segments.push(segment);
       curRideChunk.segments++;
       lastEnd = segment.startTime + segment.duration;
-      console.log(segment);
     });
     return (
       <React.Fragment>

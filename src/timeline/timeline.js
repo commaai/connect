@@ -230,6 +230,7 @@ function scheduleSegmentUpdate (state) {
 
   if (SegmentTimerStore(state).stopTimer) {
     SegmentTimerStore(state).stopTimer();
+    SegmentTimerStore(state).stopTimer = null;
   }
   if (state.nextSegment) {
     timeUntilNext = state.nextSegment.startOffset - offset;
@@ -251,10 +252,13 @@ function scheduleSegmentUpdate (state) {
   }
 
   if (timeUntilNext > 0) {
+    console.log('Waiting', timeUntilNext, 'for something to change...');
     SegmentTimerStore(state).stopTimer = timeout(function () {
       // empty action to churn the butter
       store.dispatch(Segments.updateSegments());
     }, timeUntilNext);
+  } else {
+    console.log('There is not task i think its worth waiting for...');
   }
 }
 
