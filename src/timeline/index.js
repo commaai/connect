@@ -270,6 +270,12 @@ class TimelineInterface {
   currentLive20 () {
     return this.getEventByType(Event_Which.LIVE20);
   }
+  currentMPC () {
+    return this.getEventByType(Event_Which.LIVE_MPC);
+  }
+  currentCarState () {
+    return this.getEventByType(Event_Which.CAR_STATE);
+  }
   getEventByType (which) {
     if (!this.state || !this.state.route) {
       return;

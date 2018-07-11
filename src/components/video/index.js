@@ -36,7 +36,10 @@ class VideoPreview extends Component {
     this.updatePreview = this.updatePreview.bind(this);
     this.imageRef = React.createRef();
     this.videoPlayer = React.createRef();
-    this.canvas = React.createRef();
+    this.canvas_lines = React.createRef();
+    this.canvas_lead = React.createRef();
+    this.canvas_mpc = React.createRef();
+    this.canvas_carstate = React.createRef();
 
     this.intrinsic = intrinsicMatrix();
 
@@ -91,13 +94,14 @@ class VideoPreview extends Component {
     let bufferTime = this.state.bufferTime;
     let videoPlayer = this.videoPlayer.current;
     let noVideo = this.state.noVideo;
+    let playSpeed = this.props.startTime < Date.now() ? this.props.playSpeed : 0;
 
     if (videoPlayer) {
       let playerState = videoPlayer.getState().player;
       if (!playerState.buffered || Number.isNaN(playerState.duration)) {
         return;
       }
-      if (this.props.playSpeed && this.props.currentSegment) {
+      if (playSpeed && this.props.currentSegment) {
         let curVideoTime = playerState.currentTime;
         let desiredVideoTime = this.currentVideoTime(offset);
         let timeDiff = desiredVideoTime - curVideoTime;
@@ -142,12 +146,16 @@ class VideoPreview extends Component {
             } else {
               timeDiff = Math.max(0.25, timeDiff + this.props.playSpeed) - this.props.playSpeed;
             }
-            videoPlayer.playbackRate = (this.props.playSpeed + timeDiff);
+            if (this.props.startTime < Date.now()) {
+              videoPlayer.playbackRate = (this.props.playSpeed + timeDiff);
+            } else {
+              videoPlayer.playbackRate = 0;
+            }
             noVideo = false;
           }
         } else {
           noVideo = false;
-          videoPlayer.playbackRate = this.props.playSpeed;
+          videoPlayer.playbackRate = playSpeed;
         }
 
         if (this.props.currentSegment && playerState.paused && !playerState.seeking) {
@@ -175,51 +183,61 @@ class VideoPreview extends Component {
     }
   }
   renderCanvas () {
-    if (!this.imageRef.current || !this.canvas.current) {
-      return;
-    }
-    if (this.imageRef.current.height === 0) {
-      return;
-    }
-    var { width, height } = this.canvas.current.getBoundingClientRect();
     var calibration = TimelineWorker.getCalibration(this.props.route);
+
     if (!calibration) {
-      let ctx = this.canvas.current.getContext('2d');
+      this.lastCalibrationTime = false;
+      return;
+    }
+    if (calibration) {
+      if (this.lastCalibrationTime !== calibration.LogMonoTime) {
+        this.extrinsic = [...calibration.LiveCalibration.ExtrinsicMatrix, 0, 0, 0, 1];
+      }
+      this.lastCalibrationTime = calibration.LogMonoTime;
+    }
+    if (this.canvas_lines.current) {
+      this.renderEventToCanvas(this.canvas_lines.current, calibration, TimelineWorker.currentModel, this.renderLaneLines);
+    }
+    if (this.canvas_lead.current) {
+      this.renderEventToCanvas(this.canvas_lead.current, calibration, TimelineWorker.currentLive20, this.renderLeadCars);
+    }
+    if (this.canvas_mpc.current) {
+      this.renderEventToCanvas(this.canvas_mpc.current, calibration, TimelineWorker.currentMPC, this.renderMPC);
+    }
+    if (this.canvas_carstate.current) {
+      this.renderEventToCanvas(this.canvas_carstate.current, calibration, TimelineWorker.currentCarState, this.renderCarState);
+    }
+  }
+  renderEventToCanvas (canvas, calibration, getEvent, renderEvent) {
+    var { width, height } = canvas.getBoundingClientRect();
+
+    if (!calibration) {
+      let ctx = canvas.getContext('2d');
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, width, height);
       return; // loading calibration from logs still...
     }
-    let model = TimelineWorker.currentModel();
-    let modelLogTime = model ? model.LogMonoTime : null;
-    if (!model) {
-      if (this.lastModelMonoTime) {
-        this.lastModelMonoTime = false;
-        this.lastLive20MonoTime = false;
-        let ctx = this.canvas.current.getContext('2d');
+
+    let event = getEvent.apply(TimelineWorker);
+    let logTime = event ? event.LogMonoTime : null;
+    let monoIndex = getEvent.name + 'MonoTime';
+    if (!event) {
+      if (this[monoIndex]) {
+        this[monoIndex] = false;
+        let ctx = canvas.getContext('2d');
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, width, height);
       }
-    }
-    let live20 = TimelineWorker.currentLive20();
-    let live20LogTime = model ? model.LogMonoTime : null;
-    if (!live20) {
-      if (this.lastLive20MonoTime) {
-        this.lastModelMonoTime = false;
-        this.lastLive20MonoTime = false;
-        let ctx = this.canvas.current.getContext('2d');
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, width, height);
-      }
-    }
-    if (this.lastModelMonoTime === modelLogTime && this.lastLive20MonoTime === live20LogTime) {
       return;
     }
+    if (logTime === this[monoIndex]) {
+      return;
+    }
+    this[monoIndex] = logTime;
     // will render!
-    this.extrinsic = [...calibration.LiveCalibration.ExtrinsicMatrix, 0, 0, 0, 1];
-
-    this.canvas.current.width = width;
-    this.canvas.current.height = height;
-    var ctx = this.canvas.current.getContext('2d');
+    canvas.width = width;
+    canvas.height = height;
+    var ctx = canvas.getContext('2d');
     // reset transform before anything, just in case
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     // clear all the data
@@ -227,12 +245,7 @@ class VideoPreview extends Component {
     // scale original coords onto our current size
     ctx.scale(width / 1164, height / 874);
 
-    if (model) {
-      this.renderLaneLines({ width, height, ctx }, model);
-    }
-    if (live20) {
-      this.renderLeadCars({ width, height, ctx }, live20);
-    }
+    renderEvent.apply(this, [{ width, height, ctx }, event]);
   }
   renderLeadCars (options, live20) {
     this.lastLive20MonoTime = live20.LogMonoTime;
@@ -267,6 +280,9 @@ class VideoPreview extends Component {
     var sz = 25 * 30;
     sz /= ((drel + 2.7) / 3 + 30);
     sz = Math.min(Math.max(sz, 15), 30);
+    if (is2ndCar) {
+      sz /= 1.2;
+    }
 
     var fillAlpha = 0;
     var speedBuff = 10;
@@ -315,16 +331,21 @@ class VideoPreview extends Component {
     var { width, height, ctx } = options;
 
     ctx.lineWidth = 5;
-    ctx.strokeStyle = 'green';
+    ctx.strokeStyle = 'blue';
+    let prob = (model.Model.LeftLane.Prob) * 255;
+    ctx.strokeStyle = 'rgba(' + prob + ', ' + prob + ', 255, 1)';
     this.drawLine(ctx, model.Model.LeftLane.Points, 0.025 * model.Model.LeftLane.Prob);
+    prob = (model.Model.RightLane.Prob) * 255;
+    ctx.strokeStyle = 'rgba(' + prob + ', ' + prob + ', 255, 1)';
     this.drawLine(ctx, model.Model.RightLane.Points, 0.025 * model.Model.RightLane.Prob);
 
     // colors for ghost/accuracy lines
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, ' + Math.max(0.1, 0.7 - model.Model.LeftLane.Prob) + ')';
     ctx.lineWidth = 8;
     this.drawLine(ctx, model.Model.LeftLane.Points, model.Model.LeftLane.Std);
     this.drawLine(ctx, model.Model.LeftLane.Points, 0 - model.Model.LeftLane.Std);
 
+    ctx.strokeStyle = 'rgba(255, 255, 255, ' + Math.max(0.1, 0.7 - model.Model.RightLane.Prob) + ')';
     this.drawLine(ctx, model.Model.RightLane.Points, model.Model.RightLane.Std);
     this.drawLine(ctx, model.Model.RightLane.Points, 0 - model.Model.RightLane.Std);
 
@@ -385,6 +406,84 @@ class VideoPreview extends Component {
       }
     });
     ctx.stroke();
+  }
+  renderMPC (options, mpc) {
+    var { width, height, ctx } = options;
+    var data = mpc.LiveMpc;
+    var isFirst = true;
+
+    var alpha = Math.max(0, 1 - (data.Cost / 50));
+
+    ctx.strokeStyle = 'rgba(' + (1 - alpha) * 255 + ', ' + alpha * 255 + ', 0, 1)';
+    ctx.fillStyle = 'rgba(' + (1 - alpha) * 255 + ', ' + alpha * 255 + ', 0, 1)';
+    ctx.beginPath();
+    data.X.forEach((x, i) => {
+      let y = data.Y[i];
+      let z = 0;
+      [x, y, z] = this.carSpaceToImageSpace([x, y, 0, 1]);
+
+      ctx.lineWidth = -50 / z;
+
+      if (y < 0) {
+        return;
+      }
+
+      let psi = data.Psi[i];
+
+      if (isFirst) {
+        isFirst = false;
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(0 - psi);
+      ctx.translate(-x, -y);
+      ctx.fillRect(x - 500 / z, y - 16 / z, 1000 / z, 32 / z);
+      ctx.restore();
+    });
+    ctx.stroke();
+  }
+  renderCarState (options, carState) {
+    var { width, height, ctx } = options;
+    var data = carState.CarState;
+
+    var pWidth = 1164;
+    var pHeight = 874;
+    var radius = 60;
+    var border = 20;
+    var x = radius + border;
+    var y = x;
+
+    ctx.fillStyle = 'black';
+    ctx.strokeStyle = 'black';
+    ctx.translate(x, y);
+    ctx.rotate(0 - data.SteeringAngle * Math.PI / 180);
+
+    ctx.save();
+    ctx.translate(-x, -y);
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
+    ctx.lineWidth = 5;
+    ctx.stroke();
+
+    // ctx.beginPath();
+    // ctx.arc(x, y, radius / 3, 0, 2 * Math.PI, false);
+    // ctx.fill();
+
+    ctx.restore();
+    ctx.save();
+    ctx.rotate(0.3);
+    ctx.translate(-x, -y);
+    ctx.fillRect(x - radius, y - 2, radius * 2, 5);
+
+    ctx.restore();
+    ctx.save();
+    ctx.rotate(-0.3);
+    ctx.translate(-x, -y);
+    ctx.fillRect(x - radius, y - 2, radius * 2, 5);
   }
   carSpaceToImageSpace (coords) {
     this.matmul(this.extrinsic, coords);
@@ -452,7 +551,7 @@ class VideoPreview extends Component {
             src={ this.state.src }
 
             startTime={ this.currentVideoTime() }
-            playbackRate={ this.props.playSpeed }
+            playbackRate={ this.props.startTime > Date.now() ? 0 : this.props.playSpeed }
             >
             <HLSSource
               isVideoChild
@@ -467,7 +566,16 @@ class VideoPreview extends Component {
             top: 0,
             zIndex: 1
           }} ref={ this.imageRef } src={this.nearestImageFrame()} />
-          <canvas ref={ this.canvas } className={ this.props.classes.canvas } style={{
+          <canvas ref={ this.canvas_mpc } className={ this.props.classes.canvas } style={{
+            zIndex: 2
+          }} />
+          <canvas ref={ this.canvas_lines } className={ this.props.classes.canvas } style={{
+            zIndex: 2
+          }} />
+          <canvas ref={ this.canvas_lead } className={ this.props.classes.canvas } style={{
+            zIndex: 2
+          }} />
+          <canvas ref={ this.canvas_carstate } className={ this.props.classes.canvas } style={{
             zIndex: 2
           }} />
         </div>
