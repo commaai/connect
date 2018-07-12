@@ -36,6 +36,9 @@ const styles = theme => {
   };
 };
 
+// 30 days
+const LOOKBACK_WINDOW_MILLIS = 30*24*3600*1000;
+
 class TimeframePicker extends Component {
   constructor (props) {
     super(props);
@@ -142,6 +145,8 @@ class TimeframePicker extends Component {
   }
 
   render () {
+    let minDate = new Date(Date.now() - LOOKBACK_WINDOW_MILLIS).toISOString().substr(0,10);
+
     return (
       <React.Fragment>
         <FormControl>
@@ -164,6 +169,7 @@ class TimeframePicker extends Component {
           >
             <Paper className={ this.props.classes.modal } >
               <DateTimePicker
+                minDate={ minDate }
                 value={ new Date(this.state.start || this.props.start || 0) }
                 onChange={ this.changeStart }
                 label="Start time"
@@ -171,6 +177,7 @@ class TimeframePicker extends Component {
               />
 
               <DateTimePicker
+                minDate={ minDate }
                 value={ new Date(this.state.end || this.props.end || 0) }
                 onChange={ this.changeEnd }
                 label="End time"
