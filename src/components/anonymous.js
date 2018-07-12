@@ -18,7 +18,7 @@ const styles = theme => {
       height: '100%',
       marginTop: '30vh',
       margin: '0 auto',
-      textAlign: 'center'
+      textAlign: 'left'
     },
     top: {
     },
@@ -29,7 +29,7 @@ const styles = theme => {
       verticalAlign: 'top'
     },
     tagline: {
-      padding: '10px 0',
+      padding: '10px 0 20px 0',
       fontSize: '18px',
     },
     logInButton: {
@@ -63,7 +63,7 @@ class AnonymousLanding extends Component {
           </Typography>
         </Grid>
         <Grid item xs={12}>
-          <Typography className={ this.props.classes.tagline }>review and annotate your drives</Typography>
+          <Typography className={ this.props.classes.tagline }>Review and annotate your comma.ai driving data</Typography>
         </Grid>
         <Grid item xs={12}>
           <a href={ oauthRedirectLink } className={ this.props.classes.logInLink }>
