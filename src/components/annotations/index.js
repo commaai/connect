@@ -93,14 +93,16 @@ class AnnotationsView extends Component {
   }
 
   renderAnnotationsElement(visibleSegment) {
-    let isEon = visibleSegment.deviceType === DeviceType.one;
+    var annotElement = null;
+    if (visibleSegment.deviceType === DeviceType.one) {
+      annotElement = <AnnotationTabs segment={ visibleSegment } />;
+    } else {
+      annotElement = <EonUpsell />;
+    }
 
     return (
       <Grid item xs={6}>
-        { !isEon && <EonUpsell /> }
-        <AnnotationTabs
-          isUpsellDemo={ !isEon }
-          segment={ visibleSegment } />
+        { annotElement }
       </Grid>
     );
   }

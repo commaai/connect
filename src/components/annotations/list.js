@@ -74,7 +74,7 @@ class AnnotationList extends Component {
     const events = (segment || {}).events || [];
     return (
       <div className={ this.props.classes.root }>
-        { !(segment.hpgps || this.props.isUpsellDemo) && <GreyPandaUpsellRow /> }
+        { !(segment.hpgps || this.props.isUpsellDemo || this.props.resolved) && <GreyPandaUpsellRow /> }
         { events.filter(this.filterEntry).map(partial(this.renderEntry, segment)) }
       </div>
     );
