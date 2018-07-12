@@ -16,6 +16,10 @@ export default function reducer (state = initialState, action) {
       break;
     case ACTION_SELECT_DEVICE:
       state.dongleId = action.dongleId;
+      if (state.segmentData && state.segmentData.dongleId !== state.dongleId) {
+        state.segmentData = null;
+        state.segments = [];
+      }
       break;
     case ACTION_SELECT_TIME_RANGE:
       state.start = action.start;
