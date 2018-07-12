@@ -22,6 +22,7 @@ const styles = theme => {
     },
     content: {
       maxWidth: '560px',
+      width: '100%',
     },
     tagline: {
       padding: '10px 0',
@@ -51,8 +52,8 @@ class AnonymousLanding extends Component {
   render () {
     return (
       <Grid container alignItems='center' justify='center' style={{ width: '100%', height: '100%', marginTop: '30vh' }}>
-        <Grid container xs={12} className={ this.props.classes.content } direction='column'>
-          <Grid item xs={12} alignItems='center' className={ this.props.classes.top }>
+        <Grid item className={ this.props.classes.content }>
+          <Grid item xs={12} className={ this.props.classes.top }>
             <img src={ commaSvg } />
             <Typography paragraph={false} className={ this.props.classes.title }>explorer</Typography>
           </Grid>
