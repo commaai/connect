@@ -12,6 +12,7 @@ import { getDongleID, getZoom } from '../url';
 
 const TimelineSharedWorker = require('./index.sharedworker');
 const TimelineWebWorker = require('./index.worker');
+const LogReaderWorker = require('./logReader');
 
 const UnloadEvent = Event();
 const StateEvent = Event();
@@ -183,6 +184,27 @@ class TimelineInterface {
       case 'state':
         this.state = msg.data.data;
         StateEvent.broadcast(msg.data.data);
+        if (this.logReader) {
+          let port = this.logReader.port || this.logReader;
+          if (this.state.route) {
+            port.postMessage({
+              command: 'touch',
+              data: {
+                route: this.state.route,
+                segment: this.state.segment,
+              }
+            });
+          }
+          if (this.state.nextSegment) {
+            port.postMessage({
+              command: 'touch',
+              data: {
+                route: this.state.nextSegment.route,
+                segment: this.state.nextSegment.segment,
+              }
+            });
+          }
+        }
         break;
       case 'broadcastPort':
         // set up dedicated broadcast channel
@@ -344,6 +366,7 @@ async function init (timeline) {
 
 async function initWorker (timeline) {
   var worker = null;
+  var logReader = null;
 
   var token = await getCommaAccessToken();
   if (!token) {
@@ -353,9 +376,11 @@ async function initWorker (timeline) {
   if (false && typeof TimelineSharedWorker === 'function') {
     worker = new TimelineSharedWorker();
     timeline.isShared = true;
+    timeline.logReader = new LogReaderWorker();
   } else if (typeof TimelineWebWorker === 'function') {
     console.warn('Using web worker fallback');
     worker = new TimelineWebWorker();
+    timeline.logReader = new LogReaderWorker();
   } else {
     console.warn('Using fake web workers, this is probably a node/test environment');
     worker = { port: { postMessage: noop } };
@@ -367,7 +392,15 @@ async function initWorker (timeline) {
   timeline.worker = worker;
   timeline.port = port;
 
-  port.postMessage
+  LogReaderWorker.onData(function (msg) {
+    timeline.handleData(msg);
+  });
+
+  if (timeline.logReader) {
+    port.postMessage({
+      command: 'cachePort'
+    }, [timeline.logReader.port || timeline.logReader]);
+  }
 
   UnloadEvent.listen(() => timeline.disconnect());
   InitEvent.broadcast(token);
