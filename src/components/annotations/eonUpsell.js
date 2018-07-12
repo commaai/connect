@@ -31,7 +31,7 @@ class EonUpsell extends Component {
           <img src='https://comma.ai/eon-offroad-transparent-01.png'
                className={ this.props.classes.eon } />
         </Grid>
-        <Grid container xs={6} justify='center' alignItems='center' className={ this.props.classes.content }>
+        <Grid container xs={6} justify='center' className={ this.props.classes.content }>
           <Grid item xs={12}>
             <Typography align='center'>Unlock driving annotations with an EON</Typography>
           </Grid>
