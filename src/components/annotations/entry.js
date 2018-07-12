@@ -311,14 +311,6 @@ class AnnotationEntry extends Component {
             onClick={ this.props.onChange }
           >Cancel</Button>
         </ExpansionPanelActions>
-        { !(this.props.segment.hpgps || this.isPlanned()) &&
-          <Grid container alignItems='flex-end'>
-            <Typography ></Typography>
-            <Grid item>
-
-            </Grid>
-          </Grid>
-        }
       </ExpansionPanel>
     );
   }
