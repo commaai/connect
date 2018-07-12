@@ -77,6 +77,7 @@ const commands = {
   selectTimeRange,
   selectLoop,
   updateDevice,
+  cachePort
 };
 
 export async function handleMessage (port, msg) {
@@ -87,7 +88,7 @@ export async function handleMessage (port, msg) {
       console.error('Invalid command!', msg.data);
       return;
     }
-    let result = commands[msg.data.command](port, msg.data.data);
+    let result = commands[msg.data.command](port, msg.data.data, msg.ports);
     if (result && msg.data.requestId) {
       result = await result;
       if (result) {
@@ -224,8 +225,13 @@ function selectLoop (port, data) {
   store.dispatch(Playback.selectLoop(startTime, duration));
 }
 
+function cachePort (port, data, ports) {
+  console.log('Was handed this port!', ports);
+  Cache.setCachePort(ports[0]);
+}
+
 function scheduleSegmentUpdate (state) {
-  let timeUntilNext = 0;
+  let timeUntilNext = 30000;
   let offset = Playback.currentOffset(state);
 
   if (SegmentTimerStore(state).stopTimer) {
