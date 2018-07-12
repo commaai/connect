@@ -7,22 +7,26 @@ import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 
 import { oauthRedirectLink } from '../api/auth';
-import commaSvg from '../static/comma.svg';
+import { CommaIcon } from '../icons';
 
 const styles = theme => {
   return {
-    root: {},
-    top: {
+    root: {
+      maxWidth: '560px',
       height: '60px',
+      width: '100%',
+      height: '100%',
+      marginTop: '30vh',
+      margin: '0 auto',
+      textAlign: 'center'
+    },
+    top: {
     },
     title: {
       display: 'inline',
       lineHeight: '60px',
       fontSize: '24px',
-    },
-    content: {
-      maxWidth: '560px',
-      width: '100%',
+      verticalAlign: 'top'
     },
     tagline: {
       padding: '10px 0',
@@ -51,15 +55,17 @@ const styles = theme => {
 class AnonymousLanding extends Component {
   render () {
     return (
-      <Grid container alignItems='center' justify='center' style={{ width: '100%', height: '100%', marginTop: '30vh' }}>
-        <Grid item className={ this.props.classes.content }>
-          <Grid item xs={12} className={ this.props.classes.top }>
-            <img src={ commaSvg } />
-            <Typography paragraph={false} className={ this.props.classes.title }>explorer</Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Typography className={ this.props.classes.tagline }>review and annotate your drives</Typography>
-          </Grid>
+      <Grid container alignItems='center' justify='center' className={ this.props.classes.root }>
+        <Grid item xs={12}>
+          <Typography paragraph={false} className={ this.props.classes.title }>
+            <CommaIcon style={{ fontSize: '2em' }} />
+            explorer
+          </Typography>
+        </Grid>
+        <Grid item xs={12}>
+          <Typography className={ this.props.classes.tagline }>review and annotate your drives</Typography>
+        </Grid>
+        <Grid item xs={12}>
           <a href={ oauthRedirectLink } className={ this.props.classes.logInLink }>
             <div className={ this.props.classes.logInButton }>
               <Typography className={ this.props.classes.logInText }>Log in with Google</Typography>
