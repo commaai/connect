@@ -14,7 +14,7 @@ function getWorker () {
   if (logReader) {
     return logReader;
   }
-  if (false && typeof LogReaderSharedWorker === 'function') {
+  if (typeof LogReaderSharedWorker === 'function') {
     logReader = new LogReaderSharedWorker();
   } else if (typeof LogReaderWorker === 'function') {
     console.warn('Using web worker fallback');
@@ -22,13 +22,14 @@ function getWorker () {
   } else {
     throw new Error('Don\'t');
   }
+  let port = logReader.port || logReader;
 
   let channel = new MessageChannel();
   let logPort = channel.port1;
   let apiPort = channel.port2;
 
   logPort.onmessage = relayMessage;
-  logReader.onmessage = handleMessage;
+  port.onmessage = handleMessage;
 
   return apiPort;
 }
@@ -38,5 +39,6 @@ function handleMessage (msg) {
 }
 
 function relayMessage (msg) {
-  logReader.postMessage(msg.data);
+  let port = logReader.port || logReader;
+  port.postMessage(msg.data);
 }
