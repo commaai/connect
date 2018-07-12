@@ -240,7 +240,9 @@ function segmentsFromMetadata (segmentsData) {
         url: url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate-vzn.azureedge.net'),
         events: [],
         videoAvailableBetweenOffsets: [],
-        hasVideo: segmentHasVideo
+        hasVideo: segmentHasVideo,
+        deviceType: segment.devicetype,
+        hpgps: segment.hpgps,
       };
       segments.push(curSegment);
     }
@@ -355,7 +357,10 @@ function getNextSegment (state, offset) {
         segment: 0,
         routeOffset: thisSegment.offset,
         startOffset: thisSegment.offset,
-        events: thisSegment.events
+        events: thisSegment.events,
+        videoAvailableBetweenOffsets: thisSegment.videoAvailableBetweenOffsets,
+        deviceType: thisSegment.deviceType,
+        hpgps: thisSegment.hpgps,
       };
       break;
     }
@@ -369,7 +374,10 @@ function getNextSegment (state, offset) {
           routeOffset: thisSegment.offset,
           startOffset: thisSegment.offset + SEGMENT_LENGTH * (segmentIndex + 1),
           duration: thisSegment.duration,
-          events: thisSegment.events
+          events: thisSegment.events,
+          deviceType: thisSegment.deviceType,
+          videoAvailableBetweenOffsets: thisSegment.videoAvailableBetweenOffsets,
+          hpgps: thisSegment.hpgps,
         };
       }
     }
@@ -404,7 +412,9 @@ function getCurrentSegment (state, offset) {
         startOffset: thisSegment.offset + SEGMENT_LENGTH * segmentIndex,
         duration: thisSegment.duration,
         events: thisSegment.events,
+        deviceType: thisSegment.deviceType,
         videoAvailableBetweenOffsets: thisSegment.videoAvailableBetweenOffsets,
+        hpgps: thisSegment.hpgps,
       };
     }
   }

@@ -13,10 +13,12 @@ import CloseIcon from '@material-ui/icons/Close';
 
 import AnnotationTabs from './tabs';
 import VideoPreview from '../video';
+import EonUpsell from './eonUpsell';
 import Media from './media';
 import Minimap from '../minimap';
 import LogStream from '../logstream';
 import { selectRange } from '../../actions';
+import { DeviceType } from '../../defs/segments';
 
 const styles = theme => {
   return {
@@ -78,9 +80,7 @@ class AnnotationsView extends Component {
           </Grid>
         </Grid>
         <Grid container spacing={ 32 } className={ this.props.classes.paddedContainer } >
-          <Grid item xs={6}>
-            { visibleSegment && <AnnotationTabs segment={ visibleSegment } /> }
-          </Grid>
+          { visibleSegment && this.renderAnnotationsElement(visibleSegment) }
           <Grid item xs={6}>
             <Media />
           </Grid>
@@ -89,6 +89,21 @@ class AnnotationsView extends Component {
           </Grid>
         </Grid>
       </Paper>
+    );
+  }
+
+  renderAnnotationsElement(visibleSegment) {
+    var annotElement = null;
+    if (visibleSegment.deviceType === DeviceType.one) {
+      annotElement = <AnnotationTabs segment={ visibleSegment } />;
+    } else {
+      annotElement = <EonUpsell />;
+    }
+
+    return (
+      <Grid item xs={6}>
+        { annotElement }
+      </Grid>
     );
   }
 }

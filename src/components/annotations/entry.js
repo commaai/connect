@@ -18,6 +18,7 @@ import Select from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
 import Button from '@material-ui/core/Button';
 import TextField from '@material-ui/core/TextField';
+import Tooltip from '@material-ui/core/Tooltip';
 import FormHelperText from '@material-ui/core/FormHelperText';
 import LinearProgress from '@material-ui/core/LinearProgress';
 
@@ -291,12 +292,18 @@ class AnnotationEntry extends Component {
           </Grid>
         </ExpansionPanelDetails>
         <ExpansionPanelActions>
-          <Button
-            onClick={ this.validate }
-            variant='outlined'
-            size='small'
-            disabled={ this.state.saving }
-            >Resolve Annotation</Button>
+          <Tooltip title='Grey Panda required to annotate' id="tooltip-annot"
+                   disableFocusListener={ this.props.segment.hpgps || this.isPlanned() }
+                   disableHoverListener={ this.props.segment.hpgps || this.isPlanned() }>
+            <div>
+              <Button
+                onClick={ this.validate }
+                variant='outlined'
+                size='small'
+                disabled={ this.state.saving || this.isPlanned() || !this.props.segment.hpgps }
+                >Resolve Annotation</Button>
+            </div>
+          </Tooltip>
           <Button
             variant='outlined'
             size='small'

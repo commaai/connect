@@ -13,6 +13,7 @@ import AnnotationEntry from './entry';
 import Timelineworker from '../../timeline';
 import { selectRange } from '../../actions';
 import { filterEvent } from './common';
+import GreyPandaUpsellRow from './greyPandaUpsell';
 
 const LOOP_DURATION = 10000;
 
@@ -73,6 +74,7 @@ class AnnotationList extends Component {
     const events = (segment || {}).events || [];
     return (
       <div className={ this.props.classes.root }>
+        { !(segment.hpgps || this.props.isUpsellDemo || this.props.resolved) && <GreyPandaUpsellRow /> }
         { events.filter(this.filterEntry).map(partial(this.renderEntry, segment)) }
       </div>
     );
@@ -96,6 +98,7 @@ class AnnotationList extends Component {
         eventId={ eventId }
         event={ event }
         expanded={ this.state.expanded === eventId }
+        disabled={ !segment.hpgps }
         // expanded={ this.state.expanded ? this.state.expanded === eventId : index === 0 }
         onChange={ partial(this.handleExpanded, eventId, segment.routeOffset + event.route_offset_millis) }
       />
