@@ -7,7 +7,6 @@ import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 
 import ShopButton from './shopButton';
-import greyPandaTsp from '../../static/grey-panda-tsp.png';
 
 const styles = theme => {
   return {
@@ -32,7 +31,7 @@ class GreyPandaUpsellRow extends Component {
     return (
       <Grid container className={ this.props.classes.root }>
         <Grid item xs={6} className={ this.props.classes.rowFill }>
-          <img src={ greyPandaTsp } className={ this.props.classes.image } />
+          <img src='/images/grey-panda-tsp.png' className={ this.props.classes.image } />
         </Grid>
         <Grid item xs={6} className={ this.props.classes.rowFill }>
           <Typography>
