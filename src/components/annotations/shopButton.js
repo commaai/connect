@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
@@ -26,7 +25,4 @@ class ShopButton extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-});
-
-export default connect(stateToProps)(withStyles(styles)(ShopButton));
+export default withStyles(styles)(ShopButton);

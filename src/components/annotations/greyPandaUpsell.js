@@ -17,42 +17,32 @@ const styles = theme => {
     },
     rowFill: {
       height: '100%',
+      textAlign: 'center'
     },
     image: {
-      display: 'block',
-      height: '72px'
-    },
-    block: {
-      display: 'block',
-    },
+      display: 'inline-block',
+      height: '72px',
+      width: 'auto'
+    }
   }
 };
 
 class GreyPandaUpsellRow extends Component {
   render () {
     return (
-      <Grid container xs={12} className={ this.props.classes.root }>
-        <Grid item xs={6}>
-          <Grid container alignItems='center' justify='center' className={ this.props.classes.rowFill }>
-            <img src={ greyPandaTsp } className={ this.props.classes.image } />
-          </Grid>
+      <Grid container className={ this.props.classes.root }>
+        <Grid item xs={6} className={ this.props.classes.rowFill }>
+          <img src={ greyPandaTsp } className={ this.props.classes.image } />
         </Grid>
-        <Grid item xs={6}>
-          <Grid container alignItems='center' justify='center' className={ this.props.classes.rowFill }>
-            <Grid item xs={12}>
-              <Typography align='center' className={ this.props.classes.block }>
-                Upgrade to a Grey Panda and help improve openpilot
-              </Typography>
-            </Grid>
-            <ShopButton link="https://comma.ai/shop/products/panda-obd-ii-dongle/?ref=explorer" />
-          </Grid>
+        <Grid item xs={6} className={ this.props.classes.rowFill }>
+          <Typography>
+            Upgrade to a Grey Panda and help improve openpilot
+          </Typography>
+          <ShopButton link="https://comma.ai/shop/products/panda-obd-ii-dongle/?ref=explorer" />
         </Grid>
       </Grid>
     );
   }
 }
 
-const stateToProps = Obstruction({
-});
-
-export default connect(stateToProps)(withStyles(styles)(GreyPandaUpsellRow));
+export default withStyles(styles)(GreyPandaUpsellRow);

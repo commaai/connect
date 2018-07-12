@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
@@ -19,6 +18,7 @@ const styles = theme => {
     },
     content: {
       padding: '50px 12px',
+      textAlign: 'center'
     }
   }
 };
@@ -26,15 +26,14 @@ const styles = theme => {
 class EonUpsell extends Component {
   render () {
     return (
-      <Grid container xs={12} className={ this.props.classes.root }>
+      <Grid container className={ this.props.classes.root }>
         <Grid item xs={6}>
-          <img src='https://comma.ai/eon-offroad-transparent-01.png'
-               className={ this.props.classes.eon } />
+          <img
+            src='https://comma.ai/eon-offroad-transparent-01.png'
+            className={ this.props.classes.eon } />
         </Grid>
-        <Grid container xs={6} justify='center' className={ this.props.classes.content }>
-          <Grid item xs={12}>
-            <Typography align='center'>Unlock driving annotations with an EON</Typography>
-          </Grid>
+        <Grid item xs={6} className={ this.props.classes.content }>
+          <Typography>Unlock driving annotations with an EON</Typography>
           <ShopButton link="https://comma.ai/shop/products/eon-dashcam-devkit/?ref=explorer" />
         </Grid>
       </Grid>
@@ -42,7 +41,4 @@ class EonUpsell extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-});
-
-export default connect(stateToProps)(withStyles(styles)(EonUpsell));
+export default withStyles(styles)(EonUpsell);
