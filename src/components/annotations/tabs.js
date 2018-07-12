@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import Obstruction from 'obstruction';
 import { partial } from 'ap';
 import fecha from 'fecha';
+import classNames from '@sindresorhus/class-names';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -20,7 +21,12 @@ const styles = theme => {
       marginRight: theme.spacing.unit * 2.5,
       backgroundColor: theme.palette.grey[100],
       top: -6
-    }
+    },
+    upsellDemo: {
+      cursor: 'default',
+      pointerEvents: 'none',
+      opacity: 0.8
+    },
   };
 };
 
@@ -60,6 +66,9 @@ class AnnotationTabs extends Component {
           value={ this.state.selectedTab }
           onChange={ this.handleChange }
           fullWidth
+          className={ classNames({
+            [this.props.classes.upsellDemo]: this.props.isUpsellDemo
+            })}
           >
           <Tab label={
             <Typography>
@@ -86,7 +95,13 @@ class AnnotationTabs extends Component {
   renderTab (index) {
     switch (index) {
       case 0:
-        return (<AnnotationList segment={ this.props.segment } unresolved />);
+        return (
+          <AnnotationList
+            segment={ this.props.segment }
+            unresolved
+            isUpsellDemo={ this.props.isUpsellDemo }
+          />
+        );
       case 1:
         return (<AnnotationList segment={ this.props.segment } resolved />);
     }
