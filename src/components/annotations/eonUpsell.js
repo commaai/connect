@@ -18,8 +18,12 @@ const styles = theme => {
       width: '100%',
     },
     content: {
-      padding: '50px 12px',
+      padding: '20px 12px',
       textAlign: 'center'
+    },
+    imageContainer: {
+      display: 'flex',
+      alignItems: 'center',
     }
   }
 };
@@ -28,7 +32,7 @@ class EonUpsell extends Component {
   render () {
     return (
       <div className={ this.props.classes.root }>
-        <Grid item xs={6}>
+        <Grid item xs={6} className={ this.props.classes.imageContainer }>
           <img
             src='https://comma.ai/eon-offroad-transparent-01.png'
             className={ this.props.classes.eon } />
