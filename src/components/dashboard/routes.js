@@ -51,6 +51,7 @@ const styles = theme => {
       paddingBottom: 12,
     },
     routeListItemHeaderName: {
+      fontSize: 18,
       fontWeight: 600,
     },
     routeListItemHeaderButton: {
@@ -152,7 +153,7 @@ class RouteList extends Component {
     if (hasRideInTimeWindow) {
       zeroRidesEle = <Typography>Loading...</Typography>;
     } else {
-      zeroRidesEle = <Typography>Looks like you haven't driven in the selected time range.</Typography>
+      zeroRidesEle = <Typography>Looks like you haven{'\''}t driven in the selected time range.</Typography>
     }
 
     return (
