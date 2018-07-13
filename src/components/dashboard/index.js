@@ -131,13 +131,17 @@ class Dashboard extends Component {
   }
 
   renderAnnotateButton (segment, count) {
-    return (
-      <Badge badgeContent={ count } style={{ width: '100%' }} classes={{ badge: this.props.classes.routeListHeaderButtonBubble }}>
-        <Button fullWidth variant='outlined' size='large' disabled={ segment == null } onClick={ partial(this.goToAnnotation, segment) } className={ this.props.classes.routeListHeaderButton }>
-          Begin Annotating
-        </Button>
-      </Badge>
-    )
+    if (count > 0) {
+      return (
+        <Badge badgeContent={ count } style={{ width: '100%' }} classes={{ badge: this.props.classes.routeListHeaderButtonBubble }}>
+          <Button fullWidth variant='outlined' size='large' disabled={ segment == null } onClick={ partial(this.goToAnnotation, segment) } className={ this.props.classes.routeListHeaderButton }>
+            Begin Annotating
+          </Button>
+        </Badge>
+      );
+    } else {
+      return [];
+    }
   }
 }
 
