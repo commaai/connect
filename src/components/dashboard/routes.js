@@ -20,11 +20,60 @@ const MIN_TIME_BETWEEN_ROUTES = 60000; // 1 minute
 const styles = theme => {
   return {
     root: {},
+    routeListHeader: {
+      alignItems: 'center',
+      padding: 12,
+      paddingLeft: 24,
+      paddingRight: 24,
+    },
+    routeListHeaderButton: {
+      background: 'linear-gradient(to bottom, rgb(82, 94, 102) 0%, rgb(64, 75, 79) 100%)',
+      borderRadius: 30,
+      color: '#fff',
+      height: 45,
+    },
+    routeListHeaderName: {
+      fontWeight: 500,
+    },
+    routeListItem: {
+      background: 'rgba(255, 255, 255, 0.0)',
+      borderTop: '1px solid rgba(255, 255, 255, .05)',
+      cursor: 'pointer',
+      transition: 'background .2s',
+      '&:hover': {
+        background: '#30373B',
+        borderRadius: 12,
+      }
+    },
+    routeListItemHeader: {
+      alignItems: 'center',
+      fontSize: 18,
+      paddingBottom: 12,
+    },
+    routeListItemHeaderName: {
+      fontWeight: 600,
+    },
+    routeListItemHeaderButton: {
+      background: 'transparent',
+      border: '1px solid #272D30',
+      borderRadius: 20,
+      // color: '#404B4F',
+      color: '#fff',
+      height: 36,
+      transitionDuration: '.1s',
+      '&:hover': {
+        background: '#758791',
+        borderColor: '#fff',
+      },
+    },
     review: {
-      padding: theme.spacing.unit,
+      padding: 8,
       minWidth: 0,
       top: '50%',
       transform: 'translateY(-50%)'
+    },
+    selectedDeviceText: {
+      color: '#49545B'
     }
   }
 };
@@ -35,11 +84,17 @@ class RouteList extends Component {
 
     this.renderRide = this.renderRide.bind(this);
     this.showRide = this.showRide.bind(this);
+    this.goToAnnotation = this.goToAnnotation.bind(this);
   }
   showRide (ride) {
     let startTime = ride.startTime - 1000;
     let endTime = ride.startTime + ride.duration + 1000;
 
+    this.props.dispatch(selectRange(startTime, endTime));
+  }
+  goToAnnotation (segment) {
+    let startTime = segment.startTime - this.props.zoomBuffer;
+    let endTime = segment.startTime + segment.duration + this.props.zoomBuffer;
     this.props.dispatch(selectRange(startTime, endTime));
   }
   render () {
@@ -68,6 +123,19 @@ class RouteList extends Component {
 
     return (
       <React.Fragment>
+        <Grid container className={ this.props.classes.routeListHeader }>
+          <Grid item xs={ 9 }>
+            <Typography variant='headline' className={ this.props.classes.routeListHeaderName }>
+              Recent Drives
+              { this.props.device &&
+                  <span className={ this.props.classes.selectedDeviceText }> - { this.props.device.alias || this.props.device.device_type }</span>
+              }
+            </Typography>
+          </Grid>
+          <Grid item xs={ 3 }>
+            { this.props.renderAnnotateButton() }
+          </Grid>
+        </Grid>
         { rideList.length === 0 && this.renderZeroRides() }
         <List>
           { rideList.map(this.renderRide) }
@@ -96,30 +164,29 @@ class RouteList extends Component {
 
   renderRide (ride) {
     return (
-      <ListItem key={ ride.startTime }>
-        <Grid container >
-          <Grid item xs={2} >
-            <Button variant='outlined' onClick={ partial(this.showRide, ride) } className={ this.props.classes.review }>
-              Review
-            </Button>
-          </Grid>
-          <Grid item xs={10} >
-            <Grid container >
-              <Grid item xs={12} >
-                <Typography>
-                  Your ride on { fecha.format(new Date(ride.startTime), 'MMMM D @ HH:mm') }
-                </Typography>
-              </Grid>
-              <Grid item xs={12} >
-                <Minimap zoomed colored thumbnailed zoomOverride={{
-                  start: ride.startTime,
-                  end: ride.startTime + ride.duration
-                }} />
-              </Grid>
-              <Grid item xs={12} >
-                <Divider />
-              </Grid>
+      <ListItem key={ ride.startTime } className={ this.props.classes.routeListItem }  onClick={ partial(this.showRide, ride) }>
+        <Grid container>
+          <Grid container className={ this.props.classes.routeListItemHeader }>
+            <Grid item xs={10} >
+              <Typography className={ this.props.classes.routeListItemHeaderName }>
+                { fecha.format(new Date(ride.startTime), 'MMMM D @ HH:mm') } -
+                { fecha.format(new Date(ride.startTime + ride.duration + 1000), ' HH:mm') }
+              </Typography>
             </Grid>
+            <Grid item xs={2} >
+              <Button variant='outlined' fullWidth onClick={ partial(this.showRide, ride) } className={ this.props.classes.routeListItemHeaderButton }>
+                Review Drive
+              </Button>
+            </Grid>
+          </Grid>
+          <Grid item xs={12} >
+            <Minimap zoomed colored thumbnailed zoomOverride={{
+              start: ride.startTime,
+              end: ride.startTime + ride.duration
+            }} />
+          </Grid>
+          <Grid item xs={12} >
+            <Divider />
           </Grid>
         </Grid>
       </ListItem>

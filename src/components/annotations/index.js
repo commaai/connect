@@ -10,6 +10,7 @@ import IconButton from '@material-ui/core/IconButton';
 import Paper from '@material-ui/core/Paper';
 
 import CloseIcon from '@material-ui/icons/Close';
+import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 
 import AnnotationTabs from './tabs';
 import VideoPreview from '../video';
@@ -32,7 +33,18 @@ const styles = theme => {
     },
     title: {
       margin: 20
-    }
+    },
+    annotationsViewerHeader: {
+      alignItems: 'center',
+    },
+    annotationsViewerHeaderName: {
+      fontSize: 22,
+      fontWeight: 700,
+      paddingLeft: 12,
+    },
+    annotationsViewerHeaderClose: {
+      marginLeft: 'auto',
+    },
   };
 };
 
@@ -55,25 +67,30 @@ class AnnotationsView extends Component {
       let shortName = routeName.split('|')[1];
       titleElement = (
         <React.Fragment>
-          { shortName } --&nbsp;
-          <a href={ 'https://community.comma.ai/cabana/?route=' + routeName} target='_blank'>
+          <Grid container className={ this.props.classes.annotationsViewerHeader }>
+            <IconButton aria-label='Go Back' onClick={ () => window.history.back() } >
+              <KeyboardBackspaceIcon />
+            </IconButton>
+            <Typography className={ this.props.classes.annotationsViewerHeaderName }>
+              { shortName }
+            </Typography>
+            <IconButton onClick={ this.close } aria-label='Close' className={ this.props.classes.annotationsViewerHeaderClose }>
+              <CloseIcon />
+            </IconButton>
+          </Grid>
+          {/*<a href={ 'https://community.comma.ai/cabana/?route=' + routeName} target='_blank'>
             Open in Cabana!
-          </a>
+          </a>*/}
         </React.Fragment>
       );
     }
     return (
       <Paper className={ this.props.classes.root }>
         <Grid container>
-          <Grid item xs={11}>
+          <Grid item xs={12}>
             <Typography variant='title' className={ this.props.classes.title } >
               { titleElement }
             </Typography>
-          </Grid>
-          <Grid item xs={1}>
-            <IconButton onClick={ this.close } aria-label='Close' >
-              <CloseIcon />
-            </IconButton>
           </Grid>
           <Grid item xs={12}>
             <Minimap zoomed colored thumbnailed dragSelection />

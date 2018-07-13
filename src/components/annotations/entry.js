@@ -37,8 +37,12 @@ const styles = theme => {
       margin: '0px 0',
       backgroundColor: theme.palette.grey[999]
     },
+    heading: {
+      fontWeight: 500,
+    },
     date: {
-      color: theme.palette.grey[100]
+      color: theme.palette.grey[100],
+      fontWeight: 500,
     },
     disengage: {
       textAlign: 'center',
@@ -49,7 +53,8 @@ const styles = theme => {
       borderRadius: 15,
       fontSize: '0.9em',
       display: 'inline-block',
-      padding: '6px 10px'
+      padding: '6px 10px',
+      fontWeight: 500,
     },
     summaryContent: {
       padding: '0px',

@@ -26,14 +26,39 @@ const ZOOM_BUFFER = 1000;
 const styles = theme => {
   return {
     margin: {
-      margin: theme.spacing.unit * 2
+      margin: theme.spacing.unit * 2,
+      marginLeft: 48,
+      marginRight: 48,
     },
     floatingBox: {
+      background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
       padding: theme.spacing.unit * 2,
       borderRadius: theme.spacing.unit
     },
-    badge: {
-
+    deviceListHeader: {
+      alignItems: 'center',
+      padding: 12,
+      paddingLeft: 24,
+      paddingRight: 24,
+    },
+    deviceListHeaderName: {
+      fontSize: 18,
+      fontWeight: 500,
+    },
+    routeListHeaderButton: {
+      background: 'linear-gradient(to bottom, rgb(82, 94, 102) 0%, rgb(64, 75, 79) 100%)',
+      borderRadius: 30,
+      color: '#fff',
+      height: 45,
+    },
+    routeListHeaderButtonBubble: {
+      backgroundColor: '#DACA25',
+      borderRadius: 20,
+      color: '#fff',
+      fontWeight: 500,
+      minWidth: 40,
+      height: 28,
+      textShadow: '0 1px 4px rgba(0,0,0,.35)',
     },
   };
 };
@@ -49,6 +74,7 @@ class Dashboard extends Component {
 
     this.handleDeviceSelected = this.handleDeviceSelected.bind(this);
     this.goToAnnotation = this.goToAnnotation.bind(this);
+    this.renderAnnotateButton = this.renderAnnotateButton.bind(this);
   }
 
   handleDeviceSelected (dongleId) {
@@ -74,27 +100,22 @@ class Dashboard extends Component {
     return (
       <div className={ this.props.classes.margin }>
         <Grid container spacing={ 24 } >
-          <Grid item xs={ 6 } >
+          <Grid item xs={ 3 } >
             <Paper className={ this.props.classes.floatingBox }>
-              <Typography variant='headline'>
-                Your Devices
-              </Typography>
+              <Grid container className={ this.props.classes.deviceListHeader }>
+                <Typography variant='headline' className={ this.props.classes.deviceListHeaderName }>
+                  Your Devices
+                </Typography>
+              </Grid>
               <DeviceList
                 selectedDevice={ this.props.selectedDongleId }
                 handleDeviceSelected={ this.handleDeviceSelected } />
             </Paper>
           </Grid>
-          <Grid item xs={ 6 } >
+          <Grid item xs={ 9 } >
             <Paper className={ this.props.classes.floatingBox }>
-              <Typography variant='headline'>
-                Recent Drives
-                { this.props.device &&
-                  <span className={ this.props.classes.selectedDeviceText }>: { this.props.device.alias || this.props.device.device_type }</span> }
-              </Typography>
-              <Grid item xs={ 12 } style={{ textAlign: 'center' }} >
-                { newAnnotations > 0 && this.renderAnnotateButton(firstAnnotationSegment, newAnnotations) }
-              </Grid>
-              <RouteList />
+              <RouteList
+                renderAnnotateButton={ partial(this.renderAnnotateButton, firstAnnotationSegment, newAnnotations) } />
             </Paper>
           </Grid>
         </Grid>
@@ -112,8 +133,8 @@ class Dashboard extends Component {
 
   renderAnnotateButton (segment, count) {
     return (
-      <Badge style={{ width: '50%' }} color='secondary' badgeContent={ count }>
-        <Button fullWidth variant='outlined' size='large' onClick={ partial(this.goToAnnotation, segment) }>
+      <Badge badgeContent={ count } style={{ width: '100%' }} classes={{ badge: this.props.classes.routeListHeaderButtonBubble }}>
+        <Button fullWidth variant='outlined' size='large' disabled={ segment == null } onClick={ partial(this.goToAnnotation, segment) } className={ this.props.classes.routeListHeaderButton }>
           Begin Annotating
         </Button>
       </Badge>

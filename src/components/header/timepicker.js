@@ -32,7 +32,12 @@ const styles = theme => {
     },
     buttonGroup: {
       textAlign: 'right'
-    }
+    },
+    headerDropdown: {
+      minWidth: 320,
+      textAlign: 'center',
+      fontWeight: 500,
+    },
   };
 };
 
@@ -153,6 +158,7 @@ class TimeframePicker extends Component {
           <Select
             value={ this.selectedOption() }
             onChange={ this.handleSelectChange }
+            className={ this.props.classes.headerDropdown }
             name='timerange'>
             <MenuItem value='custom'>Custom</MenuItem>
             <MenuItem value='24-hours'>{ this.last24HoursText() } </MenuItem>

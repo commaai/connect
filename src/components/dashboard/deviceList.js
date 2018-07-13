@@ -45,7 +45,10 @@ const styles = theme => {
     },
     textField: {
       marginBottom: theme.spacing.unit
-    }
+    },
+    deviceListItemName: {
+      fontWeight: 500,
+    },
   }
 };
 
@@ -172,11 +175,11 @@ class DeviceList extends Component {
                   />
                 </React.Fragment>
                 :
-                <Typography>{ (alias + ' (' + device.dongle_id + ')') }</Typography>
+                <Typography className={ this.props.classes.deviceListItemName }>{ (alias + ' (' + device.dongle_id + ')') }</Typography>
               }
             </Grid>
             { (!device.shared && (device.is_owner || this.props.isSuperUser)) &&
-              <Grid item xs={2} alignContent='center'>
+              <Grid item xs={2}>
                 <Pencil className={ this.props.classes.editDeviceIcon } onClick={ partial(this.toggleDeviceEdit, device) } />
               </Grid>
             }

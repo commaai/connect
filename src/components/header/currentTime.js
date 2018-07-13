@@ -38,7 +38,7 @@ const styles = theme => {
       height: '64px',
       borderRadius: '32px',
       padding: theme.spacing.unit,
-      maxWidth: 450,
+      maxWidth: 510,
       margin: '0 auto'
     },
     fullHeight: {
@@ -80,8 +80,9 @@ const styles = theme => {
     },
     currentTime: {
       fontSize: 15,
+      fontWeight: 500,
       display: 'block',
-      marginTop: 8
+      marginTop: 4,
     }
   }
 };
@@ -197,7 +198,7 @@ class TimeDisplay extends Component {
             </Grid>
           </Grid>
           <Grid item xs={6} className={ this.props.classes.seperator } >
-            <Typography variant='caption' align='center'>
+            <Typography variant='caption' align='center' style={{ paddingTop: 4 }}>
               CURRENT PLAYBACK TIME
             </Typography>
             <Typography variant='body1' align='center'>

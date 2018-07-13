@@ -26,7 +26,7 @@ const styles = (theme) => {
       width: '100%',
       backgroundColor: '#000',
       minHeight: '45px',
-      overflow: 'hidden'
+      overflow: 'hidden',
     },
     rounded: {
       borderRadius: '10px 10px 0px 0px'
@@ -52,7 +52,8 @@ const styles = (theme) => {
     segment: {
       position: 'relative',
       height: '100%',
-      background: 'linear-gradient(to bottom, ' + theme.palette.grey[200] + 'ff 0%, ' + theme.palette.grey[200] + '55 100%)'
+      // background: 'linear-gradient(to bottom, ' + theme.palette.grey[200] + 'ff 0%, ' + theme.palette.grey[200] + '55 100%)',
+      background: theme.palette.states.drivingBlue,
     },
     segmentColor: {
       position: 'absolute',
@@ -60,25 +61,24 @@ const styles = (theme) => {
       height: '100%',
       width: '100%',
       '&.active': {
-        background: 'linear-gradient(to bottom, rgb(20, 200, 20) 0%, rgb(0, 70, 0) 100%)'
+        // background: 'linear-gradient(to bottom, rgb(20, 200, 20) 0%, rgb(0, 70, 0) 100%)'
       },
       '&.engage': {
-        background: 'linear-gradient(to bottom, rgb(20, 200, 20) 0%, rgb(0, 70, 0) 100%)'
+        background: theme.palette.states.engagedGreen,
       },
       '&.alert': {
         '&.userPrompt': {
-          background: 'linear-gradient(to bottom, ' + theme.palette.error.main + ' 0%, ' + theme.palette.error.dark + ' 100%)'
+          background: theme.palette.states.alertOrange,
         },
         '&.critical': {
-          background: 'linear-gradient(to bottom, ' + theme.palette.error.dark + ' 0%, ' + theme.palette.error.dark + ' 100%)'
+          background: theme.palette.states.alertRed,
         }
       }
     },
     uncoloredSegment: {
+      background: theme.palette.states.drivingBlue,
       height: '100%',
       width: '100%',
-      backgroundColor: 'transparent',
-      background: 'linear-gradient(to bottom, ' + theme.palette.grey[200] + 'ff 0%, ' + theme.palette.grey[200] + '55 100%)'
     },
     hoverBead: {
       position: 'absolute',
@@ -93,7 +93,10 @@ const styles = (theme) => {
       top: '50%',
       width: '100%',
       whiteSpace: 'nowrap',
-      userSelect: 'none'
+      userSelect: 'none',
+      '& img': {
+        pointerEvents: 'none',
+      }
     }
   };
 };
@@ -299,7 +302,7 @@ class Minimap extends Component {
     if (this.state.zoom.expanded) {
       return '';
     } else if (this.props.colored) {
-      return 'linear-gradient(to left, rgba(25, 255, 25, 0.5), rgba(25, 255, 25, 0.1) 200px, rgba(255, 255, 255, 0) 250px)';
+      return 'linear-gradient(to left, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1) 200px, rgba(255, 255, 255, 0) 250px)';
     } else {
       let color = theme.palette.grey[50] + '99';
       let endColor = theme.palette.grey[999] + '00';

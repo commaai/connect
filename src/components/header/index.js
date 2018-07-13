@@ -48,9 +48,19 @@ const styles = theme => {
       paddingBottom: '16px'
     },
     logo: {
+      alignItems: 'center',
+      display: 'flex',
+      textDecoration: 'none',
+    },
+    logoImg: {
       width: 'auto',
       height: '34px',
-      margin: '16px 28px'
+      margin: '16px 28px',
+    },
+    logoText: {
+      fontFamily: 'MaisonNeueExtended',
+      fontSize: 22,
+      fontWeight: 600,
     },
     minimap: {
       position: 'absolute',
@@ -123,17 +133,20 @@ class AppHeader extends Component {
         <AppBar position='fixed' className={ this.props.classes.appBar }>
           <Toolbar className={ this.props.classes.toolBar } >
             <Grid container spacing={0} className={ this.props.classes.upperBar } >
-              <Grid item xs={1} >
-                <Link to="/">
-                  <img src='/images/comma-white.png' className={ this.props.classes.logo } />
+              <Grid item xs={4}>
+                <Link to="/" className={ this.props.classes.logo }>
+                  <img src='/images/comma-white.png' className={ this.props.classes.logoImg } />
+                  <Typography className={ this.props.classes.logoText }>
+                    Explorer
+                  </Typography>
                 </Link>
               </Grid>
-              <Grid item xs={false} lg={3} >
-                {/*<FormControl style={{ width: '100%' }}>
+              {/*<Grid item xs={false} lg={3} >
+                <FormControl style={{ width: '100%' }}>
                   <InputLabel htmlFor='search-bar'>Search</InputLabel>
                   <Input id='search-bar' value={ this.state.searchString || '' } onChange={ this.handleSearchChange } />
-                </FormControl>*/}
-              </Grid>
+                </FormControl>
+              </Grid>*/}
               <Grid item xs={6} lg={4} align='center' >
                 <CurrentTime />
               </Grid>

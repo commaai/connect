@@ -3,6 +3,9 @@ import Colors from './colors';
 import { ChevronIcon, AccountIcon } from './icons';
 
 const theme = createMuiTheme({
+  typography: {
+    fontFamily: 'MaisonNeue',
+  },
   overrides: {
     MuiSelect: {
       select: {
@@ -62,6 +65,12 @@ const theme = createMuiTheme({
       light: Colors.grey50,
       main: Colors.grey900,
       dark: Colors.grey999
+    },
+    states: {
+      drivingBlue: Colors.blue500,
+      engagedGreen: Colors.green400,
+      alertOrange: Colors.orange50,
+      alertRed: Colors.red100,
     },
     grey: {
       50: Colors.grey50,
