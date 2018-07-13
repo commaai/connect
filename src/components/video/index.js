@@ -466,6 +466,13 @@ class VideoPreview extends Component {
 
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2';
+    ctx.lineWidth = 9;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
+    ctx.strokeStyle = 'black';
     ctx.lineWidth = 5;
     ctx.stroke();
 
@@ -477,12 +484,18 @@ class VideoPreview extends Component {
     ctx.save();
     ctx.rotate(0.3);
     ctx.translate(-x, -y);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.2';
+    ctx.fillRect(x - radius, y - 3, radius * 2, 7);
+    ctx.fillStyle = 'black';
     ctx.fillRect(x - radius, y - 2, radius * 2, 5);
 
     ctx.restore();
     ctx.save();
     ctx.rotate(-0.3);
     ctx.translate(-x, -y);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.2';
+    ctx.fillRect(x - radius, y - 3, radius * 2, 7);
+    ctx.fillStyle = 'black';
     ctx.fillRect(x - radius, y - 2, radius * 2, 5);
   }
   carSpaceToImageSpace (coords) {
