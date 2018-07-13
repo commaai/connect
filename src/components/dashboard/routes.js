@@ -181,7 +181,7 @@ class RouteList extends Component {
             </Grid>
           </Grid>
           <Grid item xs={12} >
-            <Minimap zoomed colored thumbnailed zoomOverride={{
+            <Minimap gradient zoomed colored thumbnailed zoomOverride={{
               start: ride.startTime,
               end: ride.startTime + ride.duration
             }} />

@@ -55,6 +55,15 @@ const styles = (theme) => {
       // background: 'linear-gradient(to bottom, ' + theme.palette.grey[200] + 'ff 0%, ' + theme.palette.grey[200] + '55 100%)',
       background: theme.palette.states.drivingBlue,
     },
+    'gradient': {
+        background: 'linear-gradient(rgba(0, 0, 0, 0.05) 5%, rgba(255, 255, 255, 0.1) 10%, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4))',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none'
+    },
     segmentColor: {
       position: 'absolute',
       display: 'inline-block',
@@ -333,6 +342,7 @@ class Minimap extends Component {
             thumbnailed: this.props.thumbnailed
           }) }>
             { this.props.segments ? this.props.segments.map(this.renderSegment) : [] }
+            { this.props.gradient && <div className={this.props.classes.gradient} /> }
           </div>
           { this.renderDragger() }
           { this.renderZoom() }
