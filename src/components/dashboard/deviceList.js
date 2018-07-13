@@ -118,7 +118,7 @@ class DeviceList extends Component {
       if (device.dongle_id === dongleId) {
         found = true;
       }
-      onlyHasAppDevice &= (device.device_type !== 'neo' && device.device_type !== 'panda');
+      onlyHasAppDevice = onlyHasAppDevice && (device.device_type !== 'neo' && device.device_type !== 'panda');
       if (device.device_type === 'neo'){
         devices[idx].device_type = 'EON';
       } else if (device.device_type === 'app') {

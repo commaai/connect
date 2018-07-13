@@ -10,6 +10,7 @@ import ShopButton from './shopButton';
 const styles = theme => {
   return {
     root: {
+      display: 'flex',
       paddingTop: '48px'
     },
     eon: {
@@ -26,7 +27,7 @@ const styles = theme => {
 class EonUpsell extends Component {
   render () {
     return (
-      <Grid container className={ this.props.classes.root }>
+      <div className={ this.props.classes.root }>
         <Grid item xs={6}>
           <img
             src='https://comma.ai/eon-offroad-transparent-01.png'
@@ -36,7 +37,7 @@ class EonUpsell extends Component {
           <Typography>{ this.props.hook }</Typography>
           <ShopButton link="https://comma.ai/shop/products/eon-dashcam-devkit/?ref=explorer" />
         </Grid>
-      </Grid>
+      </div>
     );
   }
 }

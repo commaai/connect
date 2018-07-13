@@ -79,7 +79,7 @@ class RouteList extends Component {
   renderZeroRides() {
     var zeroRidesEle = null;
     let device = this.props.device;
-    let hasRideInTimeWindow = device.last_segment_utc_millis !== null && device.last_segment_utc_millis >= this.props.start;
+    let hasRideInTimeWindow = device && device.last_segment_utc_millis !== null && device.last_segment_utc_millis >= this.props.start;
 
     if (hasRideInTimeWindow) {
       zeroRidesEle = <Typography>Loading...</Typography>;
