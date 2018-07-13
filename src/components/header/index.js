@@ -56,7 +56,8 @@ const styles = theme => {
       position: 'absolute',
       bottom: 0,
       padding: '0 ' + theme.spacing.unit * 6 + 'px',
-      width: '100%'
+      width: '100%',
+      cursor: 'ew-resize'
     },
     userMeta: {
       outline: 'none',
