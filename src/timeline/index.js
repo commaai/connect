@@ -250,22 +250,31 @@ class TimelineInterface {
 
     return this.buffers[this.state.route][this.state.segment].index;
   }
-  lastEvents (eventCount = 10, offset = this.currentOffset()) {
+  currentLogMonoTime () {
     if (!this.state || !this.state.route) {
-      return [];
+      return null;
     }
     if (!this.buffers[this.state.route] || !this.buffers[this.state.route][this.state.segment]) {
-      return [];
+      return null;
     }
+    var offset = this.currentOffset();
     var segment = this.state.segments.filter((a) => a.route === this.state.route);
     var logIndex = this.buffers[this.state.route][this.state.segment];
     segment = segment[0];
     if (!segment) {
-      return [];
+      return null;
     }
     offset -= segment.offset;
     var startTime = logIndex.index[0][0];
-    var logMonoTime = offset + startTime;
+
+    return offset + startTime;
+  }
+  lastEvents (eventCount = 10) {
+    var logMonoTime = this.currentLogMonoTime();
+    if (!logMonoTime) {
+      return [];
+    }
+    var logIndex = this.buffers[this.state.route][this.state.segment];
 
     var curIndex = LogIndex.findMonoTime(logIndex, logMonoTime);
     eventCount = Math.min(eventCount, curIndex);
@@ -287,24 +296,25 @@ class TimelineInterface {
     }
   }
   currentModel () {
-    return this.getEventByType(Event_Which.MODEL);
+    return this.getEventByType(Event_Which.MODEL, 1000);
   }
   currentLive20 () {
-    return this.getEventByType(Event_Which.LIVE20);
+    return this.getEventByType(Event_Which.LIVE20, 1000);
   }
   currentMPC () {
-    return this.getEventByType(Event_Which.LIVE_MPC);
+    return this.getEventByType(Event_Which.LIVE_MPC, 1000);
   }
   currentCarState () {
-    return this.getEventByType(Event_Which.CAR_STATE);
+    return this.getEventByType(Event_Which.CAR_STATE, 1000);
   }
-  getEventByType (which) {
+  getEventByType (which, maxTimeDiff = -1) {
     if (!this.state || !this.state.route) {
       return;
     }
     if (!this.buffers[this.state.route] || !this.buffers[this.state.route][this.state.segment]) {
       return;
     }
+    var monoTime = this.currentLogMonoTime()
     var offset = this.currentOffset();
     var segment = this.state.segments.filter((a) => a.route === this.state.route);
     segment = segment[0];
@@ -327,6 +337,9 @@ class TimelineInterface {
 
       for (curIndex; curIndex >= 0; --curIndex) {
         let entry = logIndex.index[curIndex];
+        if (maxTimeDiff !== -1 && monoTime - entry[0] > maxTimeDiff) {
+          return;
+        }
         if (entry[5] === which) {
           let buffer = logIndex.buffers[entry[4]].slice(entry[2], entry[2] + entry[3]);
           var msg = new capnp.Message(buffer, false);

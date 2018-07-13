@@ -223,7 +223,6 @@ function segmentsFromMetadata (segmentsData) {
         finishSegment(curSegment);
       }
       let url = segment.url;
-      console.log(url, segment);
       let parts = url.split('/');
 
       if (Number.isFinite(Number(parts.pop()))) {
