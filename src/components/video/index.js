@@ -332,7 +332,7 @@ class VideoPreview extends Component {
 
     ctx.lineWidth = 5;
     ctx.strokeStyle = 'blue';
-    let prob = (model.Model.LeftLane.Prob) * 255;
+    let prob = ~~((model.Model.LeftLane.Prob) * 255);
     ctx.strokeStyle = 'rgba(' + prob + ', ' + prob + ', 255, 1)';
     this.drawLine(ctx, model.Model.LeftLane.Points, 0.025 * model.Model.LeftLane.Prob);
     prob = (model.Model.RightLane.Prob) * 255;
@@ -414,8 +414,8 @@ class VideoPreview extends Component {
 
     var alpha = Math.max(0, 1 - (data.Cost / 50));
 
-    ctx.strokeStyle = 'rgba(' + (1 - alpha) * 255 + ', ' + alpha * 255 + ', 0, 1)';
-    ctx.fillStyle = 'rgba(' + (1 - alpha) * 255 + ', ' + alpha * 255 + ', 0, 1)';
+    ctx.strokeStyle = 'rgb(' + ~~((1 - alpha) * 255) + ', ' + ~~(alpha * 255) + ', 0)';
+    ctx.fillStyle = 'rgb(' + ~~((1 - alpha) * 255) + ', ' + ~~(alpha * 255) + ', 0)';
     ctx.beginPath();
     data.X.forEach((x, i) => {
       let y = data.Y[i];
