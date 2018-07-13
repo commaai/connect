@@ -70,10 +70,19 @@ class RouteList extends Component {
         <Typography variant='headline'>
           Recent Drives
         </Typography>
+        { rideList.length === 0 && this.renderZeroRides() }
         <List>
           { rideList.map(this.renderRide) }
         </List>
       </React.Fragment>
+    );
+  }
+
+  renderZeroRides() {
+    return (
+      <Grid container>
+        <Typography>Looks like you haven't driven in the selected time range.</Typography>
+      </Grid>
     );
   }
 

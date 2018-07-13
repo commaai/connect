@@ -33,7 +33,7 @@ class EonUpsell extends Component {
             className={ this.props.classes.eon } />
         </Grid>
         <Grid item xs={6} className={ this.props.classes.content }>
-          <Typography>Unlock driving annotations with an EON</Typography>
+          <Typography>{ this.props.hook }</Typography>
           <ShopButton link="https://comma.ai/shop/products/eon-dashcam-devkit/?ref=explorer" />
         </Grid>
       </Grid>

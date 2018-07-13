@@ -16,6 +16,7 @@ import TextField from '@material-ui/core/TextField';
 import Typography from '@material-ui/core/Typography';
 import FormControl from '@material-ui/core/FormControl';
 
+import EonUpsell from '../annotations/eonUpsell';
 import * as API from '../../api';
 import Timelineworker from '../../timeline';
 
@@ -112,28 +113,38 @@ class DeviceList extends Component {
     var devices = this.props.devices;
     var dongleId = this.props.selectedDevice;
     var found = !dongleId;
-
-    devices.forEach(function (device) {
+    var onlyHasAppDevice = true;
+    devices.forEach(function (device, idx) {
       if (device.dongle_id === dongleId) {
         found = true;
+      }
+      onlyHasAppDevice &= (device.device_type !== 'neo' && device.device_type !== 'panda');
+      if (device.device_type === 'neo'){
+        devices[idx].device_type = 'EON';
+      } else if (device.device_type === 'app') {
+        devices[idx].device_type = 'chffr';
       }
     });
 
     if (!found) {
       devices.push({
         dongle_id: dongleId,
-        shared: true
+        shared: true,
+        alias: 'Shared device',
       });
     }
 
     return (
       <React.Fragment>
-        { devices.map(this.renderDevice) }
+        { devices.filter(this.filterDrivingDevice).map(this.renderDevice) }
+        { onlyHasAppDevice && <EonUpsell hook='Upgrade to an EON to augment your driving experience' /> }
       </React.Fragment>
     );
   }
 
   renderDevice (device) {
+    let alias = device.alias || device.device_type;
+
     return (
       <ExpansionPanel
         classes={{
@@ -161,7 +172,7 @@ class DeviceList extends Component {
                   />
                 </React.Fragment>
                 :
-                <Typography>{ (device.alias && device.alias + ' (' + device.dongle_id + ')') || device.dongle_id }</Typography>
+                <Typography>{ (alias + ' (' + device.dongle_id + ')') }</Typography>
               }
             </Grid>
             { (!device.shared && (device.is_owner || this.props.isSuperUser)) &&
@@ -190,6 +201,10 @@ class DeviceList extends Component {
         </ExpansionPanelSummary>
       </ExpansionPanel>
     );
+  }
+
+  filterDrivingDevice(device) {
+    return device.device_type !== 'panda';
   }
 }
 
