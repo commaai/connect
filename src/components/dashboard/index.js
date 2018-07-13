@@ -80,7 +80,7 @@ class Dashboard extends Component {
                 Your Devices
               </Typography>
               <DeviceList
-                selectedDevice={ this.props.selectedDevice }
+                selectedDevice={ this.props.selectedDongleId }
                 handleDeviceSelected={ this.handleDeviceSelected } />
             </Paper>
           </Grid>
@@ -88,6 +88,8 @@ class Dashboard extends Component {
             <Paper className={ this.props.classes.floatingBox }>
               <Typography variant='headline'>
                 Recent Drives
+                { this.props.device &&
+                  <span className={ this.props.classes.selectedDeviceText }>: { this.props.device.alias || this.props.device.device_type }</span> }
               </Typography>
               <Grid item xs={ 12 } style={{ textAlign: 'center' }} >
                 { newAnnotations > 0 && this.renderAnnotateButton(firstAnnotationSegment, newAnnotations) }
@@ -121,7 +123,8 @@ class Dashboard extends Component {
 
 const stateToProps = Obstruction({
   segments: 'workerState.segments',
-  selectedDevice: 'workerState.dongleId',
+  selectedDongleId: 'workerState.dongleId',
+  device: 'workerState.device',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Dashboard));

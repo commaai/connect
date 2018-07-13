@@ -14,7 +14,7 @@ export default function reducer (state = initialState, action) {
         state.device = action.devices[0];
       } else {
         state.device = action.devices.find(function(device) {
-          return device.dongle_id === action.dongleId
+          return device.dongle_id === state.dongleId
         });
       }
       state.devices = action.devices;
