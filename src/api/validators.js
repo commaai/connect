@@ -1,4 +1,4 @@
-const Joi = require('joi');
+const Joi = require('joi-browser');
 
 export const AnnotationValidator = Joi.object().keys({
   canonical_segment_name: Joi.string().required(),

@@ -30,7 +30,6 @@ function override (config, env) {
     include: path.resolve('./src/timeline'),
     use: [{ loader: 'worker-loader' }, { loader: 'babel-loader' }]
   });
-  config.plugins = config.plugins.filter(p => p.constructor !== UglifyJsPlugin);
   if (env === 'production') {
     config.plugins.push(
       new SentryCliPlugin({

@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux'
 import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
-import classNames from '@sindresorhus/class-names';
+import { classNames } from 'react-extras';
 
 import { Player, ControlBar, PlaybackRateMenuButton } from 'video-react';
 import Measure from 'react-measure';

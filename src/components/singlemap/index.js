@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import classNames from '@sindresorhus/class-names';
+import { classNames } from 'react-extras';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';

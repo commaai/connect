@@ -8,7 +8,7 @@ import raf from 'raf';
 import debounce from 'debounce';
 import document from 'global/document';
 import fecha from 'fecha';
-import classNames from '@sindresorhus/class-names';
+import { classNames } from 'react-extras';
 
 import Measure from 'react-measure';
 import Tooltip from '@material-ui/core/Tooltip';
