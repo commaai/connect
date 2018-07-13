@@ -49,7 +49,6 @@ const styles = theme => {
       background: 'linear-gradient(to bottom, rgb(82, 94, 102) 0%, rgb(64, 75, 79) 100%)',
       borderRadius: 30,
       color: '#fff',
-      height: 45,
     },
     routeListHeaderButtonBubble: {
       backgroundColor: '#DACA25',
@@ -100,7 +99,7 @@ class Dashboard extends Component {
     return (
       <div className={ this.props.classes.margin }>
         <Grid container spacing={ 24 } >
-          <Grid item xs={ 3 } >
+          <Grid item xs={ 6 } lg={ 3 } >
             <Paper className={ this.props.classes.floatingBox }>
               <Grid container className={ this.props.classes.deviceListHeader }>
                 <Typography variant='headline' className={ this.props.classes.deviceListHeaderName }>
@@ -112,7 +111,7 @@ class Dashboard extends Component {
                 handleDeviceSelected={ this.handleDeviceSelected } />
             </Paper>
           </Grid>
-          <Grid item xs={ 9 } >
+          <Grid item xs={ 6 } lg={ 9 } >
             <Paper className={ this.props.classes.floatingBox }>
               <RouteList
                 renderAnnotateButton={ partial(this.renderAnnotateButton, firstAnnotationSegment, newAnnotations) } />

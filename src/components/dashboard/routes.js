@@ -60,7 +60,6 @@ const styles = theme => {
       borderRadius: 20,
       // color: '#404B4F',
       color: '#fff',
-      height: 36,
       transitionDuration: '.1s',
       '&:hover': {
         background: '#758791',
@@ -168,13 +167,13 @@ class RouteList extends Component {
       <ListItem key={ ride.startTime } className={ this.props.classes.routeListItem }  onClick={ partial(this.showRide, ride) }>
         <Grid container>
           <Grid container className={ this.props.classes.routeListItemHeader }>
-            <Grid item xs={10} >
+            <Grid item xs={8} >
               <Typography className={ this.props.classes.routeListItemHeaderName }>
                 { fecha.format(new Date(ride.startTime), 'MMMM D @ HH:mm') } -
                 { fecha.format(new Date(ride.startTime + ride.duration + 1000), ' HH:mm') }
               </Typography>
             </Grid>
-            <Grid item xs={2} >
+            <Grid item xs={4} >
               <Button variant='outlined' fullWidth onClick={ partial(this.showRide, ride) } className={ this.props.classes.routeListItemHeaderButton }>
                 Review Drive
               </Button>
