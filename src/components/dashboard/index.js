@@ -74,9 +74,6 @@ class Dashboard extends Component {
     return (
       <div className={ this.props.classes.margin }>
         <Grid container spacing={ 24 } >
-          <Grid item xs={ 12 } style={{ textAlign: 'center' }} >
-            { newAnnotations > 0 && this.renderAnnotateButton(firstAnnotationSegment, newAnnotations) }
-          </Grid>
           <Grid item xs={ 6 } >
             <Paper className={ this.props.classes.floatingBox }>
               <Typography variant='headline'>
@@ -89,6 +86,12 @@ class Dashboard extends Component {
           </Grid>
           <Grid item xs={ 6 } >
             <Paper className={ this.props.classes.floatingBox }>
+              <Typography variant='headline'>
+                Recent Drives
+              </Typography>
+              <Grid item xs={ 12 } style={{ textAlign: 'center' }} >
+                { newAnnotations > 0 && this.renderAnnotateButton(firstAnnotationSegment, newAnnotations) }
+              </Grid>
               <RouteList />
             </Paper>
           </Grid>

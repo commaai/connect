@@ -11,11 +11,21 @@ export default function reducer (state = initialState, action) {
     case ACTION_STARTUP_DATA:
       if (!state.dongleId) {
         state.dongleId = action.devices[0].dongle_id;
+        state.device = action.devices[0];
+      } else {
+        state.device = action.devices.find(function(device) {
+          return device.dongle_id === action.dongleId
+        });
       }
       state.devices = action.devices;
       break;
     case ACTION_SELECT_DEVICE:
       state.dongleId = action.dongleId;
+      if (state.devices) {
+        state.device = state.devices.find(function(device) {
+          return device.dongle_id === action.dongleId
+        });
+      }
       if (state.segmentData && state.segmentData.dongleId !== state.dongleId) {
         state.segmentData = null;
         state.segments = [];

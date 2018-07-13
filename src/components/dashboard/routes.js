@@ -65,11 +65,9 @@ class RouteList extends Component {
       curRideChunk.segments++;
       lastEnd = segment.startTime + segment.duration;
     });
+
     return (
       <React.Fragment>
-        <Typography variant='headline'>
-          Recent Drives
-        </Typography>
         { rideList.length === 0 && this.renderZeroRides() }
         <List>
           { rideList.map(this.renderRide) }
@@ -79,9 +77,19 @@ class RouteList extends Component {
   }
 
   renderZeroRides() {
+    var zeroRidesEle = null;
+    let device = this.props.device;
+    let hasRideInTimeWindow = device.last_segment_utc_millis !== null && device.last_segment_utc_millis >= this.props.start;
+
+    if (hasRideInTimeWindow) {
+      zeroRidesEle = <Typography>Loading...</Typography>;
+    } else {
+      zeroRidesEle = <Typography>Looks like you haven't driven in the selected time range.</Typography>
+    }
+
     return (
       <Grid container>
-        <Typography>Looks like you haven't driven in the selected time range.</Typography>
+        { zeroRidesEle }
       </Grid>
     );
   }
@@ -120,7 +128,10 @@ class RouteList extends Component {
 }
 
 const stateToProps = Obstruction({
-  segments: 'workerState.segments'
+  segments: 'workerState.segments',
+  start: 'workerState.start',
+  devices: 'workerState.devices',
+  device: 'workerState.device',
 });
 
 export default connect(stateToProps)(withStyles(styles)(RouteList));
