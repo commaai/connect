@@ -56,7 +56,7 @@ const styles = (theme) => {
       background: theme.palette.states.drivingBlue,
     },
     'gradient': {
-        background: 'linear-gradient(rgba(0, 0, 0, 0.05) 5%, rgba(255, 255, 255, 0.1) 10%, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4))',
+        background: 'linear-gradient(rgba(0, 0, 0, 0.0) 4%, rgba(255, 255, 255, 0.025) 10%, rgba(0, 0, 0, 0.1) 25%, rgba(0, 0, 0, 0.4))',
         position: 'absolute',
         top: 0,
         left: 0,
