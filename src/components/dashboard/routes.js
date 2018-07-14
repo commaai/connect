@@ -85,6 +85,7 @@ class RouteList extends Component {
     this.renderRide = this.renderRide.bind(this);
     this.showRide = this.showRide.bind(this);
     this.goToAnnotation = this.goToAnnotation.bind(this);
+    this.filterShortRides = this.filterShortRides.bind(this);
   }
   showRide (ride) {
     let startTime = ride.startTime - 1000;
@@ -138,7 +139,7 @@ class RouteList extends Component {
         </Grid>
         { rideList.length === 0 && this.renderZeroRides() }
         <List>
-          { rideList.map(this.renderRide) }
+          { rideList.filter(this.filterShortRides).map(this.renderRide) }
         </List>
       </React.Fragment>
     );
@@ -191,6 +192,10 @@ class RouteList extends Component {
         </Grid>
       </ListItem>
     );
+  }
+
+  filterShortRides(ride) {
+    return ride.duration >= 180000;
   }
 }
 
