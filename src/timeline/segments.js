@@ -263,11 +263,6 @@ function segmentsFromMetadata (segmentsData) {
   return segments;
 
   function finishSegment (segment) {
-    if (segment.duration < 180000) {
-      segments.pop();
-      return;
-    }
-
     var lastEngage = null;
 
     if (segment.videoAvailableBetweenOffsets.length === 0
