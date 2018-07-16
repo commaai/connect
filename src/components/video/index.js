@@ -196,7 +196,7 @@ class VideoPreview extends Component {
       this.lastCalibrationTime = calibration.LogMonoTime;
     }
     if (this.canvas_lines.current) {
-      this.renderEventToCanvas(this.canvas_lines.current, calibration, TimelineWorker.currentModel, this.renderLaneLines);
+      this.renderEventToCanvas(this.canvas_lines.current, calibration, TimelineWorker.currentModel, this.drawLaneFull);
     }
     if (this.canvas_lead.current) {
       this.renderEventToCanvas(this.canvas_lead.current, calibration, TimelineWorker.currentLive20, this.renderLeadCars);
@@ -352,6 +352,55 @@ class VideoPreview extends Component {
     ctx.strokeStyle = 'purple';
     ctx.lineWidth = 5 * 1 / model.Model.Path.Prob;
     this.drawLine(ctx, model.Model.Path.Points, 0);
+  }
+  drawLaneFull(options, model) { // ui_draw_vision_lanes
+    var { ctx } = options;
+    var { LeftLane, RightLane } = model.Model;
+
+    this.drawLaneBoundary(ctx, LeftLane);
+    this.drawLaneBoundary(ctx, RightLane);
+
+    ctx.strokeStyle = 'purple';
+    ctx.lineWidth = 5 * 1 / model.Model.Path.Prob;
+    this.drawLine(ctx, model.Model.Path.Points, 0);
+  }
+  drawLaneBoundary(ctx, lane) { // ui_draw_lane
+    let color = 'rgba(255, 255, 255,' + lane.Prob + ')';
+    this.drawLaneLine(ctx, lane.Points, 0.025 * lane.Prob, color, false);
+    let offset = Math.min(lane.Std, 0.7);
+    color = 'rgba(255, 255, 255,' + (lane.Prob / 4) + ')';
+    this.drawLaneLine(ctx, lane.Points, -(offset), color, true);
+    this.drawLaneLine(ctx, lane.Points, offset, color, true);
+  }
+  drawLaneLine(ctx, points, off, color, is_ghost) { // ui_draw_lane_line
+    ctx.beginPath();
+    let started = false;
+    for (let i=0; i < 49; i++) {
+      let px = i;
+      let py = points[i] - off;
+      let [x, y, z] = this.carSpaceToImageSpace([px, py, 0, 1]);
+      if (x < 0 || y < 0) {
+        continue;
+      }
+      if (!started) {
+        ctx.moveTo(x, y);
+        started = true;
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    for (let i=49; i > 0; i--) {
+      let px = i;
+      let py = is_ghost?(points[i]-off):(points[i]+off);
+      let [x, y, z] = this.carSpaceToImageSpace([px, py, 0, 1]);
+      if (x < 0 || y < 0) {
+        continue;
+      }
+      ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
   }
   drawLine (ctx, points, std) {
     std = Math.min(std, 0.7);
