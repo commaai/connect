@@ -329,33 +329,6 @@ class VideoPreview extends Component {
       ctx.stroke();
     }
   }
-  renderLaneLines (options, model) {
-    this.lastModelMonoTime = model.LogMonoTime;
-    var { width, height, ctx } = options;
-
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = 'blue';
-    let prob = ~~((model.Model.LeftLane.Prob) * 255);
-    ctx.strokeStyle = 'rgba(' + prob + ', ' + prob + ', 255, 1)';
-    this.drawLine(ctx, model.Model.LeftLane.Points, 0.025 * model.Model.LeftLane.Prob);
-    prob = (model.Model.RightLane.Prob) * 255;
-    ctx.strokeStyle = 'rgba(' + prob + ', ' + prob + ', 255, 1)';
-    this.drawLine(ctx, model.Model.RightLane.Points, 0.025 * model.Model.RightLane.Prob);
-
-    // colors for ghost/accuracy lines
-    ctx.strokeStyle = 'rgba(255, 255, 255, ' + Math.max(0.1, 0.7 - model.Model.LeftLane.Prob) + ')';
-    ctx.lineWidth = 8;
-    this.drawLine(ctx, model.Model.LeftLane.Points, model.Model.LeftLane.Std);
-    this.drawLine(ctx, model.Model.LeftLane.Points, 0 - model.Model.LeftLane.Std);
-
-    ctx.strokeStyle = 'rgba(255, 255, 255, ' + Math.max(0.1, 0.7 - model.Model.RightLane.Prob) + ')';
-    this.drawLine(ctx, model.Model.RightLane.Points, model.Model.RightLane.Std);
-    this.drawLine(ctx, model.Model.RightLane.Points, 0 - model.Model.RightLane.Std);
-
-    ctx.strokeStyle = 'purple';
-    ctx.lineWidth = 5 * 1 / model.Model.Path.Prob;
-    this.drawLine(ctx, model.Model.Path.Points, 0);
-  }
   drawLaneFull(options, model) { // ui_draw_vision_lanes
     var { ctx } = options;
     var { LeftLane, RightLane, Path } = model.Model;
@@ -460,98 +433,6 @@ class VideoPreview extends Component {
     }
     ctx.fillStyle = track_bg;
     ctx.fill();
-  }
-  drawLine (ctx, points, std) {
-    std = Math.min(std, 0.7);
-    std = Math.max(std, -0.7);
-
-    ctx.beginPath();
-    var isFirst = true;
-    var isAbove = false;
-    var isBelow = false;
-    var isLeft = false;
-    var isRight = false;
-    points.forEach((val, i) => {
-      var [x, y, z] = this.carSpaceToImageSpace([i, val - std, 0, 1]);
-
-      // there are no lines that draw to the top of the screen
-      // so we just filter all of those out right away
-      if (y < 0) {
-        return;
-      }
-      if ((isRight && isLeft) || (isAbove && isBelow)) {
-        return;
-      }
-      if (x < 0) {
-        isLeft = true;
-        if (isRight) {
-          return;
-        }
-      }
-      if (x > vwp_w) {
-        isRight = true;
-        if (isLeft) {
-          return;
-        }
-      }
-      if (y > vwp_h) {
-        isBelow = true;
-        if (isAbove) {
-          return;
-        }
-      }
-      if (y < 0) {
-        isAbove = true;
-        if (isBelow) {
-          return;
-        }
-      }
-      if (isFirst) {
-        isFirst = false;
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-    });
-    ctx.stroke();
-  }
-  renderMPC (options, mpc) {
-    var { width, height, ctx } = options;
-    var data = mpc.LiveMpc;
-    var isFirst = true;
-
-    var alpha = Math.max(0, 1 - (data.Cost / 50));
-
-    ctx.strokeStyle = 'rgb(' + ~~((1 - alpha) * 255) + ', ' + ~~(alpha * 255) + ', 0)';
-    ctx.fillStyle = 'rgb(' + ~~((1 - alpha) * 255) + ', ' + ~~(alpha * 255) + ', 0)';
-    ctx.beginPath();
-    data.X.forEach((x, i) => {
-      let y = data.Y[i];
-      let z = 0;
-      [x, y, z] = this.carSpaceToImageSpace([x, y, 0, 1]);
-
-      ctx.lineWidth = -50 / z;
-
-      if (y < 0) {
-        return;
-      }
-
-      let psi = data.Psi[i];
-
-      if (isFirst) {
-        isFirst = false;
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(0 - psi);
-      ctx.translate(-x, -y);
-      ctx.fillRect(x - 500 / z, y - 16 / z, 1000 / z, 32 / z);
-      ctx.restore();
-    });
-    ctx.stroke();
   }
   renderCarState (options, carState) {
     var { width, height, ctx } = options;
