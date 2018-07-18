@@ -329,9 +329,9 @@ class VideoPreview extends Component {
 
     // glow
     if (is2ndCar) {
-      ctx.strokeStyle = 'rgba(218, 202, 37, 0.5)';
+      ctx.fillStyle = 'rgba(218, 202, 37, 0.5)';
     } else {
-      ctx.strokeStyle = 'rgb(218, 202, 37)';
+      ctx.fillStyle = 'rgb(218, 202, 37)';
     }
     ctx.lineWidth = 5;
     var g_xo = sz / 5;
@@ -341,7 +341,7 @@ class VideoPreview extends Component {
     ctx.lineTo(x, y - g_xo);
     ctx.lineTo(x - (sz * 1.35) - g_xo, y + sz + g_yo);
     ctx.lineTo(x + (sz * 1.35) + g_xo, y + sz + g_yo);
-    ctx.stroke();
+    ctx.fill();
 
     if (fillAlpha > 0) {
       if (is2ndCar) {
@@ -354,7 +354,7 @@ class VideoPreview extends Component {
       ctx.lineTo(x, y);
       ctx.lineTo(x - (sz * 1.25), y + sz);
       ctx.lineTo(x + (sz * 1.25), y + sz);
-      ctx.stroke();
+      ctx.fill();
     }
   }
   drawLaneFull(options, model) { // ui_draw_vision_lanes
