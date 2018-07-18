@@ -3,19 +3,19 @@ import { connect } from 'react-redux'
 import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
 import { classNames } from 'react-extras';
+import theme from '../../theme';
 
 import { Player, ControlBar, PlaybackRateMenuButton } from 'video-react';
 import Measure from 'react-measure';
-// CSS for video
-import 'video-react/dist/video-react.css';
+import 'video-react/dist/video-react.css'; // CSS for video
 
 import HLSSource from './hlsSource';
-
 import TimelineWorker from '../../timeline';
 
-// Viewport Size
+// UI Measurements
 const vwp_w = 1164;
 const vwp_h = 874;
+const bdr_s = 30;
 
 const styles = theme => {
   return {
@@ -23,13 +23,23 @@ const styles = theme => {
     hidden: {
       display: 'none'
     },
-    canvas: {
+    videoContainer: {
+      position: 'relative',
+    },
+    videoImage: {
+      height: 'auto',
       position: 'absolute',
       top: 0,
-      left: 0,
       width: '100%',
+      zIndex: 1
+    },
+    videoUiCanvas: {
       height: '100%',
-    }
+      left: 0,
+      position: 'absolute',
+      top: 0,
+      width: '100%',
+    },
   }
 };
 
@@ -50,7 +60,7 @@ class VideoPreview extends Component {
     this.state = {
       bufferTime: 4,
       src: this.videoURL(),
-      noVideo: false
+      noVideo: false,
     };
   }
 
@@ -62,6 +72,7 @@ class VideoPreview extends Component {
 
     raf(this.updatePreview);
   }
+
   componentWillUnmount () {
     this.mounted = false;
     this.setState({
@@ -127,7 +138,6 @@ class VideoPreview extends Component {
         shouldShowPreview = playerState.buffered.length === 0 || playerState.waiting || (Math.abs(timeDiff) > 2);
 
         if (Number.isFinite(timeDiff) && Math.abs(timeDiff) > 0.25) {
-
           if (Math.abs(timeDiff) > bufferTime * 1.1 || (Math.abs(timeDiff) > 0.5 && isBuffered)) {
             if (desiredVideoTime > playerState.duration) {
               noVideo = true;
@@ -135,12 +145,12 @@ class VideoPreview extends Component {
               noVideo = true;
             } else {
               noVideo = false;
-              console.log('Seeking!', desiredVideoTime);
+              // console.log('Seeking!', desiredVideoTime);
               // debugger;
               if (isBuffered) {
                 videoPlayer.seek(desiredVideoTime);
               } else {
-                console.log(playerState, desiredVideoTime);
+                // console.log(playerState, desiredVideoTime);
                 videoPlayer.seek(desiredVideoTime + this.state.bufferTime * this.props.playSpeed);
               }
             }
@@ -200,22 +210,38 @@ class VideoPreview extends Component {
       this.lastCalibrationTime = calibration.LogMonoTime;
     }
     if (this.canvas_lines.current) {
-      this.renderEventToCanvas(this.canvas_lines.current, calibration, TimelineWorker.currentModel, this.drawLaneFull);
+      const params = { calibration, shouldScale: true };
+      this.renderEventToCanvas(
+        this.canvas_lines.current, params,
+        TimelineWorker.currentModel,
+        this.drawLaneFull);
     }
     if (this.canvas_lead.current) {
-      this.renderEventToCanvas(this.canvas_lead.current, calibration, TimelineWorker.currentLive20, this.renderLeadCars);
+      const params = { calibration, shouldScale: true };
+      this.renderEventToCanvas(
+        this.canvas_lead.current, params,
+        TimelineWorker.currentLive20,
+        this.renderLeadCars);
     }
     if (this.canvas_mpc.current) {
-      this.renderEventToCanvas(this.canvas_mpc.current, calibration, TimelineWorker.currentMPC, this.drawLaneMpc);
+      const params = { calibration, shouldScale: true };
+      this.renderEventToCanvas(
+        this.canvas_mpc.current, params,
+        TimelineWorker.currentMPC,
+        this.drawLaneMpc);
     }
     if (this.canvas_carstate.current) {
-      this.renderEventToCanvas(this.canvas_carstate.current, calibration, TimelineWorker.currentCarState, this.renderCarState);
+      const params = { calibration, shouldScale: true };
+      this.renderEventToCanvas(
+        this.canvas_carstate.current, params,
+        TimelineWorker.currentCarState,
+        this.renderCarState);
     }
   }
-  renderEventToCanvas (canvas, calibration, getEvent, renderEvent) {
+  renderEventToCanvas (canvas, params, getEvent, renderEvent) {
     var { width, height } = canvas.getBoundingClientRect();
 
-    if (!calibration) {
+    if (!params.calibration) {
       let ctx = canvas.getContext('2d');
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, width, height);
@@ -247,7 +273,9 @@ class VideoPreview extends Component {
     // clear all the data
     ctx.clearRect(0, 0, width, height);
     // scale original coords onto our current size
-    ctx.scale(width / vwp_w, height / vwp_h);
+    if (params.shouldScale) {
+      ctx.scale(width / vwp_w, height / vwp_h);
+    }
     renderEvent.apply(this, [{ width, height, ctx }, event]);
   }
   renderLeadCars (options, live20) {
@@ -343,7 +371,7 @@ class VideoPreview extends Component {
   }
   drawLaneBoundary(ctx, lane) { // ui_draw_lane
     let color = 'rgba(255, 255, 255,' + lane.Prob + ')';
-    this.drawLaneLine(ctx, lane.Points, 0.025 * lane.Prob, color, false);
+    this.drawLaneLine(ctx, lane.Points, 0.035 * lane.Prob, color, false);
     let offset = Math.min(lane.Std, 0.7);
     color = 'rgba(255, 255, 255,' + (lane.Prob / 4) + ')';
     this.drawLaneLine(ctx, lane.Points, -(offset), color, true);
@@ -387,7 +415,7 @@ class VideoPreview extends Component {
     for (let i=0; i <= path_height; i++) {
       let px, py, mpx;
       if (is_mpc) {
-        px = path.X[i];
+        px = i==0?0.0:path.X[i];
         py = path.Y[i] - offset;
       } else {
         px = i;
@@ -435,34 +463,56 @@ class VideoPreview extends Component {
     ctx.fill();
   }
   renderCarState (options, carState) {
-    var { width, height, ctx } = options;
-    var data = carState.CarState;
+    var { ctx } = options;
+    var { CarState } = carState;
+    this.drawCarStateBorder(options, CarState);
+    this.drawCarStateWheel(options, CarState);
+  }
+  drawCarStateWheel(options, CarState) {
+    var { ctx } = options;
 
-    var radius = 48;
-    var border = 20;
-    var x = radius + border;
-    var y = x;
+    var radius = 80;
+    var x = vwp_w - (radius + (bdr_s * 2));
+    var y = radius + (bdr_s * 2);
 
+    // Wheel Background
     ctx.beginPath();
-    ctx.arc(x, y, radius * 1.65, 0, 2 * Math.PI, false);
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
+    if (CarState.CruiseState.Enabled) {
+      ctx.fillStyle = theme.palette.states.engagedGreen;
+    } else if (CarState.CruiseState.Available) {
+      ctx.fillStyle = theme.palette.states.drivingBlue;
+    }
     ctx.closePath();
     ctx.fill();
 
+    // Rotate Wheel
     ctx.translate(x, y);
-    ctx.rotate(0 - data.SteeringAngle * Math.PI / 180);
+    ctx.rotate(0 - CarState.SteeringAngle * Math.PI / 180);
     ctx.save();
     ctx.translate(-x, -y);
 
+    // Wheel Image
+    var wheelImg, wheelImgPattern;
     ctx.beginPath();
-    ctx.arc(x, y, radius * 1.5, 0, 2 * Math.PI, false);
-    var wheelImg = new Image();
+    ctx.arc(x, y, radius-(bdr_s/2), 0, 2 * Math.PI, false);
+    wheelImg = new Image();
     wheelImg.src = require('../../icons/icon-chffr-wheel.svg');
-    var wheelImgPattern = ctx.createPattern(wheelImg, 'no-repeat');
+    wheelImgPattern = ctx.createPattern(wheelImg, 'repeat')
     ctx.fillStyle = wheelImgPattern;
     ctx.closePath();
+    ctx.translate(vwp_w-((bdr_s*2)+bdr_s/2), (bdr_s*2)+bdr_s/2);
     ctx.fill();
-
+  }
+  drawCarStateBorder(options, carState) {
+    var { ctx } = options;
+    ctx.lineWidth = bdr_s*2;
+    if (carState.CruiseState.Enabled) {
+      ctx.strokeStyle = theme.palette.states.engagedGreen;
+    } else if (carState.CruiseState.Available) {
+      ctx.strokeStyle = theme.palette.states.drivingBlue;
+    }
+    ctx.strokeRect(0, 0, vwp_w, vwp_h);
   }
   carSpaceToImageSpace (coords) {
     this.matmul(this.extrinsic, coords);
@@ -516,48 +566,45 @@ class VideoPreview extends Component {
   }
 
   render () {
+    const { classes } = this.props;
     return (
-      <div style={{ position: 'relative' }}>
-        <div className={ classNames({
-          [this.props.classes.hidden]: false // this.state.noVideo
+      <div
+        className={ classNames(classes.videoContainer, {
+          [classes.hidden]: false // this.state.noVideo
         }) }>
-          <Player
-            style={{ zIndex: 1 }}
-            ref={ this.videoPlayer }
-            autoPlay={ !!this.props.currentSegment }
-            muted={ true }
-            fluid={ true }
-            src={ this.state.src }
-
-            startTime={ this.currentVideoTime() }
-            playbackRate={ this.props.startTime > Date.now() ? 0 : this.props.playSpeed }
-            >
-            <HLSSource
-              isVideoChild
-            />
-            <ControlBar disabled />
-          </Player>
-
-          <img style={{
-            width: '100%',
-            height: 'auto',
-            position: 'absolute',
-            top: 0,
-            zIndex: 1
-          }} ref={ this.imageRef } src={this.nearestImageFrame()} />
-          <canvas ref={ this.canvas_lines } className={ this.props.classes.canvas } style={{
-            zIndex: 2
-          }} />
-          <canvas ref={ this.canvas_mpc } className={ this.props.classes.canvas } style={{
-            zIndex: 3
-          }} />
-          <canvas ref={ this.canvas_lead } className={ this.props.classes.canvas } style={{
-            zIndex: 4
-          }} />
-          <canvas ref={ this.canvas_carstate } className={ this.props.classes.canvas } style={{
-            zIndex: 2
-          }} />
-        </div>
+        <Player
+          ref={ this.videoPlayer }
+          style={{ zIndex: 1 }}
+          autoPlay={ !!this.props.currentSegment }
+          muted={ true }
+          fluid={ true }
+          src={ this.state.src }
+          startTime={ this.currentVideoTime() }
+          playbackRate={ this.props.startTime > Date.now() ? 0 : this.props.playSpeed }>
+          <HLSSource
+            isVideoChild />
+          <ControlBar disabled />
+        </Player>
+        <img
+          ref={ this.imageRef }
+          className={ classes.videoImage }
+          src={this.nearestImageFrame()} />
+        <canvas
+          ref={ this.canvas_lines }
+          className={ classes.videoUiCanvas }
+          style={{ zIndex: 2 }} />
+        <canvas
+          ref={ this.canvas_mpc }
+          className={ classes.videoUiCanvas }
+          style={{ zIndex: 3 }} />
+        <canvas
+          ref={ this.canvas_lead }
+          className={ classes.videoUiCanvas }
+          style={{ zIndex: 4 }} />
+        <canvas
+          ref={ this.canvas_carstate }
+          className={ classes.videoUiCanvas }
+          style={{ zIndex: 5 }} />
       </div>
     );
   }
