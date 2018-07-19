@@ -19,7 +19,9 @@ import { history, createStore } from './store';
 import { updateState } from './actions';
 import * as Auth from './api/auth';
 import { exchangeCodeForTokens, commaTokenExchange } from './api/auth/google';
+import { initGoogleAnalytics } from './analytics';
 
+initGoogleAnalytics(history);
 const store = createStore();
 
 TimelineWorker.onStateChange(function (data) {
