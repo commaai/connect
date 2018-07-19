@@ -85,6 +85,9 @@ const styles = theme => {
       minWidth: 28,
       height: 28,
       textShadow: '0 1px 4px rgba(0,0,0,.35)',
+    },
+    badgeRoot: {
+      width: '100%'
     }
   }
 };
@@ -190,7 +193,7 @@ class RouteList extends Component {
             <Grid item xs={4} >
               { ride.annotations > 0
                 ?
-                <Badge badgeContent={ ride.annotations } classes={{ badge: this.props.classes.badge }}>
+                <Badge badgeContent={ ride.annotations } classes={{ root: this.props.classes.badgeRoot, badge: this.props.classes.badge }}>
                   <Button variant='outlined' fullWidth onClick={ partial(this.showRide, ride) } className={ this.props.classes.routeListItemHeaderButton }>
                     Review Drive
                   </Button>
