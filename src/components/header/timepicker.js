@@ -130,17 +130,21 @@ class TimeframePicker extends Component {
     if (!this.props.start || !this.props.end) {
       return '--';
     }
+
+    let weekAgo = Date.now() - (1000 * 60 * 60 * 24 * 7);
     return 'Last Week'
-       + fecha.format(new Date(this.props.start), ' (MMM Do - ')
-       + fecha.format(new Date(this.props.end), 'MMM Do)');
+       + fecha.format(new Date(weekAgo), ' (MMM Do - ')
+       + fecha.format(new Date(), 'MMM Do)');
   }
   last2WeeksText () {
     if (!this.props.start || !this.props.end) {
       return '--';
     }
+
+    let twoWeeksAgo = Date.now() - (1000 * 60 * 60 * 24 * 14);
     return 'Past 2 Weeks'
-       + fecha.format(new Date(this.props.start), ' (MMM Do - ')
-       + fecha.format(new Date(this.props.end), 'MMM Do)');
+       + fecha.format(new Date(twoWeeksAgo), ' (MMM Do - ')
+       + fecha.format(new Date(), 'MMM Do)');
   }
   last24HoursText () {
     if (!this.props.start || !this.props.end) {
