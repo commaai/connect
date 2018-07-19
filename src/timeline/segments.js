@@ -250,6 +250,7 @@ function segmentsFromMetadata (segmentsData) {
       curVideoStartOffset = null;
     }
     curSegment.hasVideo = (curSegment.hasVideo || segmentHasVideo);
+    curSegment.hpgps = (curSegment.hpgps || segment.hpgps);
     curSegment.duration = (segment.offset - curSegment.offset) + segment.duration;
     curSegment.segments++;
     curSegment.events = curSegment.events.concat(segment.events);
