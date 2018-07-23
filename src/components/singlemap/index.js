@@ -40,11 +40,11 @@ class SingleMap extends Component {
 
     this.state = {
       viewport: {
-        width: 400,
-        height: 400,
+        width: 640,
+        height: 480,
         latitude: 37.7577,
         longitude: -122.4376,
-        zoom: 13
+        zoom: 15
       },
       route: nextRoute,
       coords: [],

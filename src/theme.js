@@ -10,7 +10,7 @@ const theme = createMuiTheme({
     MuiSelect: {
       select: {
         padding: '12px 16px',
-        margin: '0 16px 0 0',
+        margin: '0px',
         '&>div': {
           margin: '0',
         }
@@ -28,8 +28,7 @@ const theme = createMuiTheme({
         overflow: 'hidden'
       },
       input: {
-        margin: '12px 16px',
-        padding: 0,
+        padding: '12px 16px',
         '&::placeholder': {
           opacity: 1,
           color: Colors.white30

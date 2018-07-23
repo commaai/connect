@@ -17,21 +17,46 @@ const styles = theme => {
   return {
     root: {
     },
-    tabLabelBadge: {
-      marginRight: 24,
-      backgroundColor: theme.palette.grey[100],
-      top: -4
-    },
-    tabLabelText: {
-      fontWeight: 500,
-    },
     upsellDemo: {
       cursor: 'default',
       pointerEvents: 'none',
       opacity: 0.8
     },
+    annotationsViewer: {
+      display: 'flex',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      overflow: 'hidden',
+      flexDirection: 'column',
+    },
+    annotationsViewerTabs: {
+      height: 48,
+      marginBottom: 12,
+      width: '100%',
+    },
+    tabLabelBadge: {
+      backgroundColor: theme.palette.grey[100],
+      borderRadius: 24,
+      marginRight: 24,
+      minWidth: 28,
+      top: -4,
+    },
+    tabLabelText: {
+      fontWeight: 500,
+      paddingLeft: 24,
+      textTransform: 'none',
+    },
     annotationsViewerTabIndicator: {
-      backgroundColor: '#fff',
+      backgroundColor: theme.palette.grey[100],
+      borderRadius: 8,
+      height: 6,
+    },
+    annotationsViewerList: {
+      height: '100%',
+      overflowY: 'scroll',
     },
   };
 };
@@ -66,38 +91,41 @@ class AnnotationTabs extends Component {
   }
 
   render() {
+    const { classes } = this.props;
     return (
-      <React.Fragment>
-        <Tabs
-          value={ this.state.selectedTab }
-          onChange={ this.handleChange }
-          classes={{
-            indicator: this.props.classes.annotationsViewerTabIndicator
-          }}
-          fullWidth
-          className={ classNames({
-            [this.props.classes.upsellDemo]: this.props.isUpsellDemo
-            })}
-          >
-          <Tab label={
-            <Typography className={ this.props.classes.tabLabelText }>
-              <Badge classes={{ badge: this.props.classes.tabLabelBadge }} badgeContent={ this.count(false) }>
-                &nbsp;
-              </Badge>
-              Unresolved
-            </Typography>
-          } />
-          <Tab label={
-            <Typography className={ this.props.classes.tabLabelText }>
-              <Badge classes={{ badge: this.props.classes.tabLabelBadge }} badgeContent={ this.count(true) }>
-                &nbsp;
-              </Badge>
-              Resolved
-            </Typography>
-          } />
-        </Tabs>
-        { this.renderTab(this.state.selectedTab) }
-      </React.Fragment>
+      <div style={{ position: 'relative', height: '100%' }}>
+        <div className={ classes.annotationsViewer }>
+          <Tabs
+            value={ this.state.selectedTab }
+            onChange={ this.handleChange }
+            classes={{
+              indicator: classes.annotationsViewerTabIndicator
+            }}
+            className={ classNames(classes.annotationsViewerTabs, {
+              [classes.upsellDemo]: this.props.isUpsellDemo
+            })}>
+            <Tab label={
+              <Typography className={ classes.tabLabelText }>
+                <Badge classes={{ badge: classes.tabLabelBadge }} badgeContent={ this.count(false) }>
+                  &nbsp;
+                </Badge>
+                Annotations Unresolved
+              </Typography>
+            } />
+            <Tab label={
+              <Typography className={ classes.tabLabelText }>
+                <Badge classes={{ badge: classes.tabLabelBadge }} badgeContent={ this.count(true) }>
+                  &nbsp;
+                </Badge>
+                Resolved
+              </Typography>
+            } />
+          </Tabs>
+          <div className={ classes.annotationsViewerList + ' x-scrollbar' }>
+            { this.renderTab(this.state.selectedTab) }
+          </div>
+        </div>
+      </div>
     );
   }
 

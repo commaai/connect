@@ -35,7 +35,7 @@ const styles = theme => {
     expandedd: {
       minHeight: 'initial',
       margin: '0px 0',
-      backgroundColor: theme.palette.grey[999]
+      backgroundColor: '#16181A',
     },
     heading: {
       fontWeight: 500,
@@ -44,17 +44,17 @@ const styles = theme => {
       color: theme.palette.grey[100],
       fontWeight: 500,
     },
-    disengage: {
+    pillBody: {
       textAlign: 'center',
-      verticalAlign: 'middle',
-      lineHeight: '17px',
+    },
+    pillText: {
       color: theme.palette.error.main,
       border: '1px solid ' + theme.palette.error.main,
       borderRadius: 15,
-      fontSize: '0.9em',
       display: 'inline-block',
-      padding: '6px 10px',
       fontWeight: 500,
+      margin: '0 auto',
+      padding: '6px 10px',
     },
     summaryContent: {
       padding: '0px',
@@ -62,22 +62,44 @@ const styles = theme => {
         padding: '0px'
       }
     },
+    formField: {
+      alignItems: 'center',
+      display: 'flex',
+      marginBottom: 12,
+      width: '100%',
+    },
     formLabel: {
-      verticalAlign: 'center',
-      lineHeight: '42px',
-      textAlign: 'right',
       paddingRight: '24px'
     },
+    formLabelText: {
+      fontWeight: 500,
+      textAlign: 'right',
+    },
     select: {
+      margin: 0,
       width: '100%',
-      marginTop: 14,
-      '&>div': {
-        height: 42
-      }
     },
     placeholder: {
       color: theme.palette.placeholder
-    }
+    },
+    panelActions: {
+      justifyContent: 'flex-start',
+      paddingBottom: 36,
+      paddingLeft: '27%',
+      paddingRight: 24,
+      paddingTop: 0,
+    },
+    resolveButton: {
+      background: 'linear-gradient(to bottom, rgb(82, 94, 102) 0%, rgb(64, 75, 79) 100%)',
+      borderRadius: 30,
+      color: '#fff',
+      padding: '12px 24px',
+    },
+    cancelButton: {
+      border: '1px solid #272D30',
+      borderRadius: 30,
+      padding: '12px 24px',
+    },
   };
 };
 
@@ -235,14 +257,14 @@ class AnnotationEntry extends Component {
           <Grid container alignItems='center' >
             <Grid item xs={ 1 }>
             </Grid>
-            <Grid item xs={ 4 }>
+            <Grid item xs={ 5 }>
               <Typography className={ this.props.classes.heading }>{ this.getTitle() }</Typography>
             </Grid>
-            <Grid item xs={ 4 }>
+            <Grid item xs={ 3 }>
               <Typography className={ this.props.classes.date }>[{ dateString }]</Typography>
             </Grid>
-            <Grid item xs={ 3 }>
-              <Typography className={ this.props.classes.disengage }>Disengaged</Typography>
+            <Grid item xs={ 3 } className={ this.props.classes.pillBody }>
+              <Typography className={ this.props.classes.pillText }>Disengaged</Typography>
             </Grid>
           </Grid>
         </ExpansionPanelSummary>
@@ -296,24 +318,24 @@ class AnnotationEntry extends Component {
             ))}
           </Grid>
         </ExpansionPanelDetails>
-        <ExpansionPanelActions>
+        <ExpansionPanelActions className={ this.props.classes.panelActions }>
           <Tooltip title='Grey Panda required to annotate' id="tooltip-annot"
                    disableFocusListener={ this.props.segment.hpgps || this.isPlanned() }
                    disableHoverListener={ this.props.segment.hpgps || this.isPlanned() }>
             <div>
               <Button
                 onClick={ this.validate }
-                variant='outlined'
                 size='small'
                 disabled={ this.state.saving || this.isPlanned() || !this.props.segment.hpgps }
+                className={ this.props.classes.resolveButton }
                 >Resolve Annotation</Button>
             </div>
           </Tooltip>
           <Button
-            variant='outlined'
             size='small'
             disabled={ this.state.saving }
             onClick={ this.props.onChange }
+            className={ this.props.classes.cancelButton }
           >Cancel</Button>
         </ExpansionPanelActions>
       </ExpansionPanel>
@@ -321,21 +343,24 @@ class AnnotationEntry extends Component {
   }
   renderFormLine (label, form) {
     return (
-      <React.Fragment>
-        <Grid item xs={ 12 }>
-          { this.state.errorElem === label.toLowerCase() && <FormHelperText error>{ this.state.error }</FormHelperText> }
-        </Grid>
-        <Grid item xs={ 3 }>
-          <Typography className={ this.props.classes.formLabel } >
+      <div className={ this.props.classes.formField }>
+        { this.state.errorElem === label.toLowerCase() ? (
+            <Grid item xs={ 12 }>
+              <FormHelperText error>
+                { this.state.error }
+              </FormHelperText>
+            </Grid>
+          ) : null
+        }
+        <Grid item xs={ 3 } className={ this.props.classes.formLabel }>
+          <Typography className={ this.props.classes.formLabelText }>
             { label }:
           </Typography>
         </Grid>
-        <Grid item xs={ 9 } style={{
-          paddingRight: 40
-        }}>
+        <Grid item xs={ 9 } style={{ paddingRight: 40 }}>
           { form }
         </Grid>
-      </React.Fragment>
+      </div>
     );
   }
   getTitle () {

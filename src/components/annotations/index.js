@@ -73,7 +73,7 @@ class AnnotationsView extends Component {
               <KeyboardBackspaceIcon />
             </IconButton>
             <Typography className={ this.props.classes.annotationsViewerHeaderName }>
-              { shortName }
+              { shortName } - { this.props.device.alias }
             </Typography>
             <IconButton onClick={ this.close } aria-label='Close' className={ this.props.classes.annotationsViewerHeaderClose }>
               <CloseIcon />
@@ -135,6 +135,7 @@ class AnnotationsView extends Component {
 const stateToProps = Obstruction({
   currentSegment: 'workerState.currentSegment',
   nextSegment: 'workerState.nextSegment',
+  device: 'workerState.device',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AnnotationsView));

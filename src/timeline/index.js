@@ -301,6 +301,9 @@ class TimelineInterface {
   currentLive20 () {
     return this.getEventByType(Event_Which.LIVE20, 1000);
   }
+  currentLive100 () {
+    return this.getEventByType(Event_Which.LIVE100, 1000);
+  }
   currentMPC () {
     return this.getEventByType(Event_Which.LIVE_MPC, 1000);
   }
