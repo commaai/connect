@@ -6,12 +6,14 @@ import fecha from 'fecha';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
+import Badge from '@material-ui/core/Badge';
 import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
 import Divider from '@material-ui/core/Divider';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 
+import { filterEvent } from '../annotations/common';
 import Minimap from '../minimap';
 import { selectRange } from '../../actions';
 
@@ -74,6 +76,18 @@ const styles = theme => {
     },
     selectedDeviceText: {
       color: '#49545B'
+    },
+    badge: {
+      backgroundColor: '#DACA25',
+      borderRadius: 20,
+      color: '#fff',
+      fontWeight: 500,
+      minWidth: 28,
+      height: 28,
+      textShadow: '0 1px 4px rgba(0,0,0,.35)',
+    },
+    badgeRoot: {
+      width: '100%'
     }
   }
 };
@@ -109,7 +123,8 @@ class RouteList extends Component {
           segments: 0,
           startTime: segment.startTime,
           offset: segment.offset,
-          duration: 0
+          duration: 0,
+          annotations: 0
         };
         rideList.unshift(curRideChunk);
         lastSegmentEnd = segment.startTime;
@@ -120,6 +135,7 @@ class RouteList extends Component {
       // curRideChunk.segments.push(segment);
       curRideChunk.segments++;
       lastEnd = segment.startTime + segment.duration;
+      curRideChunk.annotations += segment.events.filter(filterEvent).reduce((memo, event) => event.id ? memo : memo + 1, 0);
     });
 
     return (
@@ -175,9 +191,18 @@ class RouteList extends Component {
               </Typography>
             </Grid>
             <Grid item xs={4} >
-              <Button variant='outlined' fullWidth onClick={ partial(this.showRide, ride) } className={ this.props.classes.routeListItemHeaderButton }>
-                Review Drive
-              </Button>
+              { ride.annotations > 0
+                ?
+                <Badge badgeContent={ ride.annotations } classes={{ root: this.props.classes.badgeRoot, badge: this.props.classes.badge }}>
+                  <Button variant='outlined' fullWidth onClick={ partial(this.showRide, ride) } className={ this.props.classes.routeListItemHeaderButton }>
+                    Review Drive
+                  </Button>
+                </Badge>
+                :
+                  <Button variant='outlined' fullWidth onClick={ partial(this.showRide, ride) } className={ this.props.classes.routeListItemHeaderButton }>
+                    Review Drive
+                  </Button>
+              }
             </Grid>
           </Grid>
           <Grid item xs={12} >
