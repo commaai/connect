@@ -42,6 +42,7 @@
     "localforage": "^1.7.1",
     "material-ui-pickers": "^1.0.0-rc.10",
     "obstruction": "^2.1.0",
+    "prop-types": "^15.6.2",
     "query-string": "^5.0.1",
     "raf": "^3.4.0",
     "raven-js": "^3.26.3",

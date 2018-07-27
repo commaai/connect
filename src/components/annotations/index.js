@@ -16,6 +16,7 @@ import AnnotationTabs from './tabs';
 import VideoPreview from '../video';
 import EonUpsell from './eonUpsell';
 import Media from './media';
+import AnnotationsFooter from './footer';
 import Minimap from '../minimap';
 import LogStream from '../logstream';
 import { selectRange } from '../../actions';
@@ -44,14 +45,6 @@ const styles = theme => {
     },
     annotationsViewerHeaderClose: {
       marginLeft: 'auto',
-    },
-    openInCabana: {
-      float: 'right',
-      border: '1px solid ' + theme.palette.grey[800],
-      color: theme.palette.grey[500],
-      textDecoration: 'none',
-      borderRadius: 20,
-      padding: '10px 20px'
     }
   };
 };
@@ -93,29 +86,33 @@ class AnnotationsView extends Component {
       );
     }
     return (
-      <Paper className={ this.props.classes.root }>
-        <Grid container>
-          <Grid item xs={12}>
-            <Typography variant='title' className={ this.props.classes.title } >
-              { titleElement }
-            </Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Minimap gradient zoomed colored thumbnailed dragSelection />
-          </Grid>
+      <Grid container>
+        <Grid item xs={12}>
+          <Paper className={ this.props.classes.root }>
+            <Grid container>
+              <Grid item xs={12}>
+                <Typography variant='title' className={ this.props.classes.title } >
+                  { titleElement }
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Minimap gradient zoomed colored thumbnailed dragSelection />
+              </Grid>
+            </Grid>
+            <Grid container spacing={ 32 } className={ this.props.classes.paddedContainer } >
+              { visibleSegment && this.renderAnnotationsElement(visibleSegment) }
+              <Grid item xs={6}>
+                <Media />
+              </Grid>
+              <Grid item xs={12}>
+              </Grid>
+            </Grid>
+          </Paper>
         </Grid>
-        <Grid container spacing={ 32 } className={ this.props.classes.paddedContainer } >
-          { visibleSegment && this.renderAnnotationsElement(visibleSegment) }
-          <Grid item xs={6}>
-            <Media />
-          </Grid>
-          <Grid item xs={12}>
-            <a className={ this.props.classes.openInCabana } href={ 'https://community.comma.ai/cabana/?route=' + routeName} target='_blank'>
-              Open in Cabana!
-            </a>
-          </Grid>
+        <Grid item xs={12}>
+          <AnnotationsFooter segment={ visibleSegment } />
         </Grid>
-      </Paper>
+      </Grid>
     );
   }
 
