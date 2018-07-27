@@ -21,7 +21,7 @@ const styles = theme => {
     footerButton: {
       display: 'inline-block',
       border: '1px solid ' + theme.palette.grey[800],
-      color: theme.palette.grey[500],
+      color: theme.palette.grey[400],
       textDecoration: 'none',
       borderRadius: 20,
       padding: '10px 20px',
