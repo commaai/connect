@@ -45,6 +45,14 @@ const styles = theme => {
     annotationsViewerHeaderClose: {
       marginLeft: 'auto',
     },
+    openInCabana: {
+      float: 'right',
+      border: '1px solid ' + theme.palette.grey[800],
+      color: theme.palette.grey[500],
+      textDecoration: 'none',
+      borderRadius: 20,
+      padding: '10px 20px'
+    }
   };
 };
 
@@ -102,7 +110,9 @@ class AnnotationsView extends Component {
             <Media />
           </Grid>
           <Grid item xs={12}>
-            {/*<LogStream />*/}
+            <a className={ this.props.classes.openInCabana } href={ 'https://community.comma.ai/cabana/?route=' + routeName} target='_blank'>
+              Open in Cabana!
+            </a>
           </Grid>
         </Grid>
       </Paper>
