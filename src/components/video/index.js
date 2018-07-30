@@ -3,15 +3,23 @@ import { connect } from 'react-redux'
 import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
 import { classNames } from 'react-extras';
+import theme from '../../theme';
 
 import { Player, ControlBar, PlaybackRateMenuButton } from 'video-react';
 import Measure from 'react-measure';
-// CSS for video
-import 'video-react/dist/video-react.css';
+import 'video-react/dist/video-react.css'; // CSS for video
 
 import HLSSource from './hlsSource';
-
 import TimelineWorker from '../../timeline';
+
+// UI Assets
+var wheelImg = new Image();
+wheelImg.src = require('../../icons/icon-chffr-wheel.svg');
+
+// UI Measurements
+const vwp_w = 1164;
+const vwp_h = 874;
+const bdr_s = 30;
 
 const styles = theme => {
   return {
@@ -19,13 +27,23 @@ const styles = theme => {
     hidden: {
       display: 'none'
     },
-    canvas: {
+    videoContainer: {
+      position: 'relative',
+    },
+    videoImage: {
+      height: 'auto',
       position: 'absolute',
       top: 0,
-      left: 0,
       width: '100%',
+      zIndex: 1
+    },
+    videoUiCanvas: {
       height: '100%',
-    }
+      left: 0,
+      position: 'absolute',
+      top: 0,
+      width: '100%',
+    },
   }
 };
 
@@ -36,9 +54,8 @@ class VideoPreview extends Component {
     this.updatePreview = this.updatePreview.bind(this);
     this.imageRef = React.createRef();
     this.videoPlayer = React.createRef();
-    this.canvas_lines = React.createRef();
+    this.canvas_road = React.createRef();
     this.canvas_lead = React.createRef();
-    this.canvas_mpc = React.createRef();
     this.canvas_carstate = React.createRef();
 
     this.intrinsic = intrinsicMatrix();
@@ -46,7 +63,7 @@ class VideoPreview extends Component {
     this.state = {
       bufferTime: 4,
       src: this.videoURL(),
-      noVideo: false
+      noVideo: false,
     };
   }
 
@@ -55,9 +72,9 @@ class VideoPreview extends Component {
     if (this.videoPlayer.current) {
       this.videoPlayer.current.playbackRate = this.props.playSpeed || 1;
     }
-
     raf(this.updatePreview);
   }
+
   componentWillUnmount () {
     this.mounted = false;
     this.setState({
@@ -123,7 +140,6 @@ class VideoPreview extends Component {
         shouldShowPreview = playerState.buffered.length === 0 || playerState.waiting || (Math.abs(timeDiff) > 2);
 
         if (Number.isFinite(timeDiff) && Math.abs(timeDiff) > 0.25) {
-
           if (Math.abs(timeDiff) > bufferTime * 1.1 || (Math.abs(timeDiff) > 0.5 && isBuffered)) {
             if (desiredVideoTime > playerState.duration) {
               noVideo = true;
@@ -131,12 +147,12 @@ class VideoPreview extends Component {
               noVideo = true;
             } else {
               noVideo = false;
-              console.log('Seeking!', desiredVideoTime);
+              // console.log('Seeking!', desiredVideoTime);
               // debugger;
               if (isBuffered) {
                 videoPlayer.seek(desiredVideoTime);
               } else {
-                console.log(playerState, desiredVideoTime);
+                // console.log(playerState, desiredVideoTime);
                 videoPlayer.seek(desiredVideoTime + this.state.bufferTime * this.props.playSpeed);
               }
             }
@@ -195,41 +211,60 @@ class VideoPreview extends Component {
       }
       this.lastCalibrationTime = calibration.LogMonoTime;
     }
-    if (this.canvas_lines.current) {
-      this.renderEventToCanvas(this.canvas_lines.current, calibration, TimelineWorker.currentModel, this.renderLaneLines);
-    }
-    if (this.canvas_lead.current) {
-      this.renderEventToCanvas(this.canvas_lead.current, calibration, TimelineWorker.currentLive20, this.renderLeadCars);
-    }
-    if (this.canvas_mpc.current) {
-      this.renderEventToCanvas(this.canvas_mpc.current, calibration, TimelineWorker.currentMPC, this.renderMPC);
-    }
-    if (this.canvas_carstate.current) {
-      this.renderEventToCanvas(this.canvas_carstate.current, calibration, TimelineWorker.currentCarState, this.renderCarState);
+    if (this.props.shouldShowUI) {
+      if (this.canvas_road.current) {
+        const params = { calibration, shouldScale: true };
+        const events = {
+          model: TimelineWorker.currentModel,
+          mpc: TimelineWorker.currentMPC,
+          carState: TimelineWorker.currentCarState,
+        };
+        this.renderEventToCanvas(
+          this.canvas_road.current, params, events, this.drawLaneFull);
+      }
+      if (this.canvas_lead.current) {
+        const params = { calibration, shouldScale: true };
+        const events = { live20: TimelineWorker.currentLive20 };
+        this.renderEventToCanvas(
+          this.canvas_lead.current, params, events, this.renderLeadCars);
+      }
+      if (this.canvas_carstate.current) {
+        const params = { calibration, shouldScale: true };
+        const events = { carState: TimelineWorker.currentCarState };
+        this.renderEventToCanvas(
+          this.canvas_carstate.current, params, events, this.renderCarState);
+      }
     }
   }
-  renderEventToCanvas (canvas, calibration, getEvent, renderEvent) {
+  renderEventToCanvas (canvas, params, events, renderEvent) {
     var { width, height } = canvas.getBoundingClientRect();
 
-    if (!calibration) {
+    if (!params.calibration) {
       let ctx = canvas.getContext('2d');
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, width, height);
       return; // loading calibration from logs still...
     }
 
-    let event = getEvent.apply(TimelineWorker);
-    let logTime = event ? event.LogMonoTime : null;
-    let monoIndex = getEvent.name + 'MonoTime';
-    if (!event) {
-      if (this[monoIndex]) {
-        this[monoIndex] = false;
-        let ctx = canvas.getContext('2d');
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, width, height);
+    let logTime, monoIndex;
+    let _events = {};
+    Object.keys(events).map((key, logEvent) => {
+      let event = events[key].apply(TimelineWorker);
+      if (!event) {
+        if (this[monoIndex]) {
+          this[monoIndex] = false;
+          let ctx = canvas.getContext('2d');
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.clearRect(0, 0, width, height);
+        }
+        return;
+      } else {
+        logTime = event ? event.LogMonoTime : null;
+        monoIndex = events[key].name + 'MonoTime';
+        _events[`${ key }`] = event;
       }
-      return;
-    }
+    })
+
     if (logTime === this[monoIndex]) {
       return;
     }
@@ -243,16 +278,18 @@ class VideoPreview extends Component {
     // clear all the data
     ctx.clearRect(0, 0, width, height);
     // scale original coords onto our current size
-    ctx.scale(width / 1164, height / 874);
+    if (params.shouldScale) {
+      ctx.scale(width / vwp_w, height / vwp_h);
+    }
 
-    renderEvent.apply(this, [{ width, height, ctx }, event]);
+    renderEvent.apply(this, [{ width, height, ctx }, _events]);
   }
-  renderLeadCars (options, live20) {
-    this.lastLive20MonoTime = live20.LogMonoTime;
+  renderLeadCars (options, events) {
+    this.lastLive20MonoTime = events.live20.LogMonoTime;
     var { width, height, ctx } = options;
 
-    var leadOne = live20.Live20.LeadOne;
-    var leadTwo = live20.Live20.LeadTwo;
+    var leadOne = events.live20.Live20.LeadOne;
+    var leadTwo = events.live20.Live20.LeadTwo;
 
     if (leadOne.Status) {
       this.renderLeadCar(options, leadOne);
@@ -298,9 +335,9 @@ class VideoPreview extends Component {
 
     // glow
     if (is2ndCar) {
-      ctx.strokeStyle = 'rgba(218, 202, 37, 0.5)';
+      ctx.fillStyle = 'rgba(218, 202, 37, 0.5)';
     } else {
-      ctx.strokeStyle = 'rgb(218, 202, 37)';
+      ctx.fillStyle = 'rgb(218, 202, 37)';
     }
     ctx.lineWidth = 5;
     var g_xo = sz / 5;
@@ -310,7 +347,7 @@ class VideoPreview extends Component {
     ctx.lineTo(x, y - g_xo);
     ctx.lineTo(x - (sz * 1.35) - g_xo, y + sz + g_yo);
     ctx.lineTo(x + (sz * 1.35) + g_xo, y + sz + g_yo);
-    ctx.stroke();
+    ctx.fill();
 
     if (fillAlpha > 0) {
       if (is2ndCar) {
@@ -323,180 +360,184 @@ class VideoPreview extends Component {
       ctx.lineTo(x, y);
       ctx.lineTo(x - (sz * 1.25), y + sz);
       ctx.lineTo(x + (sz * 1.25), y + sz);
+      ctx.fill();
+    }
+  }
+  drawLaneFull(options, events) { // ui_draw_vision_lanes
+    var { ctx } = options;
+    if (typeof(events) !== "undefined") {
+      if (typeof(events.model) !== "undefined") {
+        this.drawLaneBoundary(ctx, events.model.Model.LeftLane);
+        this.drawLaneBoundary(ctx, events.model.Model.RightLane);
+        this.drawLaneTrack(ctx, events.model.Model.Path);
+      }
+      if (typeof(events.mpc) !== "undefined" && typeof(events.carState) !== "undefined") {
+        this.drawLaneTrack(ctx, events.mpc.LiveMpc, {
+          isMpc: true,
+          isEnabled: events.carState.CarState.CruiseState.Enabled,
+        });
+      }
+    }
+  }
+  drawLaneBoundary(ctx, lane) { // ui_draw_lane
+    let color = 'rgba(255, 255, 255,' + lane.Prob + ')';
+    this.drawLaneLine(ctx, lane.Points, 0.035 * lane.Prob, color, false);
+    let offset = Math.min(lane.Std, 0.7);
+    color = 'rgba(255, 255, 255,' + lane.Prob + ')';
+    this.drawLaneLine(ctx, lane.Points, -offset, color, true);
+    this.drawLaneLine(ctx, lane.Points, offset, color, true);
+  }
+  drawLaneLine(ctx, points, off, color, isGhost) { // ui_draw_lane_line
+    ctx.beginPath();
+    let started = false;
+    const line_height = 49;
+    for (let i=0; i < line_height; i++) {
+      let px = i;
+      let py = points[i]-off;
+      let [x, y, z] = this.carSpaceToImageSpace([px, py, 0.0, 1.0]);
+      if (y < 0) {
+        continue;
+      }
+      if (!started) {
+        ctx.moveTo(x, y);
+        started = true;
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    for (let i=line_height; i > 0; i--) {
+      let px = i==line_height?line_height:i;
+      let py = isGhost?(points[i]-off):(points[i]+off);
+      let [x, y, z] = this.carSpaceToImageSpace([px, py, 0.0, 1.0]);
+      if (y < 0) {
+        continue;
+      }
+      ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    if (!isGhost) {
+      ctx.fillStyle = color;
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 0.1;
       ctx.stroke();
     }
   }
-  renderLaneLines (options, model) {
-    this.lastModelMonoTime = model.LogMonoTime;
-    var { width, height, ctx } = options;
-
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = 'blue';
-    let prob = ~~((model.Model.LeftLane.Prob) * 255);
-    ctx.strokeStyle = 'rgba(' + prob + ', ' + prob + ', 255, 1)';
-    this.drawLine(ctx, model.Model.LeftLane.Points, 0.025 * model.Model.LeftLane.Prob);
-    prob = (model.Model.RightLane.Prob) * 255;
-    ctx.strokeStyle = 'rgba(' + prob + ', ' + prob + ', 255, 1)';
-    this.drawLine(ctx, model.Model.RightLane.Points, 0.025 * model.Model.RightLane.Prob);
-
-    // colors for ghost/accuracy lines
-    ctx.strokeStyle = 'rgba(255, 255, 255, ' + Math.max(0.1, 0.7 - model.Model.LeftLane.Prob) + ')';
-    ctx.lineWidth = 8;
-    this.drawLine(ctx, model.Model.LeftLane.Points, model.Model.LeftLane.Std);
-    this.drawLine(ctx, model.Model.LeftLane.Points, 0 - model.Model.LeftLane.Std);
-
-    ctx.strokeStyle = 'rgba(255, 255, 255, ' + Math.max(0.1, 0.7 - model.Model.RightLane.Prob) + ')';
-    this.drawLine(ctx, model.Model.RightLane.Points, model.Model.RightLane.Std);
-    this.drawLine(ctx, model.Model.RightLane.Points, 0 - model.Model.RightLane.Std);
-
-    ctx.strokeStyle = 'purple';
-    ctx.lineWidth = 5 * 1 / model.Model.Path.Prob;
-    this.drawLine(ctx, model.Model.Path.Points, 0);
-  }
-  drawLine (ctx, points, std) {
-    std = Math.min(std, 0.7);
-    std = Math.max(std, -0.7);
-
+  drawLaneTrack(ctx, path, params) {
+    let isMpc, isEnabled;
+    if (params) {
+      isMpc = params.isMpc;
+      isEnabled = params.isEnabled;
+    }
     ctx.beginPath();
-    var isFirst = true;
-    var isAbove = false;
-    var isBelow = false;
-    var isLeft = false;
-    var isRight = false;
-    points.forEach((val, i) => {
-      var [x, y, z] = this.carSpaceToImageSpace([i, val - std, 0, 1]);
+    let started = false;
+    let offset = isMpc?0.3:0.5;
+    let path_height = isMpc?20:49;
+    for (let i=0; i <= path_height; i++) {
+      let px, py, mpx;
+      if (isMpc) {
+        px = i==0?0.0:path.X[i];
+        py = path.Y[i]-offset;
+      } else {
+        px = i;
+        py = path.Points[i] - offset;
+      }
+      let [x, y, z] = this.carSpaceToImageSpace([px, py, 0.0, 1.0]);
 
-      // there are no lines that draw to the top of the screen
-      // so we just filter all of those out right away
-      if (y < 0) {
-        return;
-      }
-      if ((isRight && isLeft) || (isAbove && isBelow)) {
-        return;
-      }
-      if (x < 0) {
-        isLeft = true;
-        if (isRight) {
-          return;
-        }
-      }
-      if (x > 1164) {
-        isRight = true;
-        if (isLeft) {
-          return;
-        }
-      }
-      if (y > 874) {
-        isBelow = true;
-        if (isAbove) {
-          return;
-        }
-      }
-      if (y < 0) {
-        isAbove = true;
-        if (isBelow) {
-          return;
-        }
-      }
-      if (isFirst) {
-        isFirst = false;
+      if (!started) {
         ctx.moveTo(x, y);
+        started = true;
       } else {
         ctx.lineTo(x, y);
       }
-    });
-    ctx.stroke();
-  }
-  renderMPC (options, mpc) {
-    var { width, height, ctx } = options;
-    var data = mpc.LiveMpc;
-    var isFirst = true;
-
-    var alpha = Math.max(0, 1 - (data.Cost / 50));
-
-    ctx.strokeStyle = 'rgb(' + ~~((1 - alpha) * 255) + ', ' + ~~(alpha * 255) + ', 0)';
-    ctx.fillStyle = 'rgb(' + ~~((1 - alpha) * 255) + ', ' + ~~(alpha * 255) + ', 0)';
-    ctx.beginPath();
-    data.X.forEach((x, i) => {
-      let y = data.Y[i];
-      let z = 0;
-      [x, y, z] = this.carSpaceToImageSpace([x, y, 0, 1]);
-
-      ctx.lineWidth = -50 / z;
-
-      if (y < 0) {
-        return;
-      }
-
-      let psi = data.Psi[i];
-
-      if (isFirst) {
-        isFirst = false;
-        ctx.moveTo(x, y);
+    }
+    for (let i=path_height; i >= 0; i--) {
+      let px, py, mpx;
+      if (isMpc) {
+        px = i==0?0.0:path.X[i];
+        py = path.Y[i] + offset;
       } else {
-        ctx.lineTo(x, y);
+        px = i;
+        py = path.Points[i] + offset;
       }
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(0 - psi);
-      ctx.translate(-x, -y);
-      ctx.fillRect(x - 500 / z, y - 16 / z, 1000 / z, 32 / z);
-      ctx.restore();
-    });
-    ctx.stroke();
+      let [x, y, z] = this.carSpaceToImageSpace([px, py, 0.0, 1.0]);
+
+      ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    let track_bg;
+    if (isMpc) {
+      track_bg = ctx.createLinearGradient(vwp_w, vwp_h-40, vwp_w, vwp_h * 0.4);
+      if (isEnabled) {
+        track_bg.addColorStop(0, 'rgba(23, 134, 68, 0.8)');
+        track_bg.addColorStop(1, 'rgba(14, 89, 45, 0.8)');
+      } else {
+        track_bg.addColorStop(0, 'rgba(23, 88, 134, 0.6)');
+        track_bg.addColorStop(1, 'rgba(15, 58, 89, 0.6)');
+      }
+    } else {
+      track_bg = ctx.createLinearGradient(vwp_w, vwp_h, vwp_w, vwp_h * 0.5);
+      track_bg.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+      track_bg.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+    }
+    ctx.fillStyle = track_bg;
+    ctx.fill();
   }
-  renderCarState (options, carState) {
-    var { width, height, ctx } = options;
-    var data = carState.CarState;
+  renderCarState (options, events) {
+    var { ctx } = options;
+    if (typeof(events) !== "undefined") {
+      this.drawCarStateBorder(options, events.carState.CarState);
+      this.drawCarStateWheel(options, events.carState.CarState);
+    }
+  }
+  drawCarStateWheel(options, CarState) {
+    var { ctx } = options;
 
-    var pWidth = 1164;
-    var pHeight = 874;
-    var radius = 60;
-    var border = 20;
-    var x = radius + border;
-    var y = x;
+    var radius = 80;
+    var x = vwp_w - (radius + (bdr_s * 2));
+    var y = radius + (bdr_s * 2);
 
-    ctx.fillStyle = 'black';
-    ctx.strokeStyle = 'black';
+    // Wheel Background
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
+    if (CarState.CruiseState.Enabled) {
+      ctx.fillStyle = theme.palette.states.engagedGreen;
+    } else if (CarState.CruiseState.Available) {
+      ctx.fillStyle = theme.palette.states.drivingBlue;
+    } else {
+      ctx.fillStyle = theme.palette.states.drivingBlue;
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // Rotate Wheel
     ctx.translate(x, y);
-    ctx.rotate(0 - data.SteeringAngle * Math.PI / 180);
-
+    ctx.rotate(0 - CarState.SteeringAngle * Math.PI / 180);
     ctx.save();
     ctx.translate(-x, -y);
 
+    // Wheel Image
     ctx.beginPath();
-    ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2';
-    ctx.lineWidth = 9;
-    ctx.stroke();
+    ctx.arc(x, y, radius-(bdr_s/2), 0, 2 * Math.PI, false);
+    var wheelImgPattern = ctx.createPattern(wheelImg, 'repeat')
+    ctx.fillStyle = wheelImgPattern;
+    ctx.closePath();
+    ctx.translate(vwp_w-((bdr_s*2)+bdr_s/2), (bdr_s*2)+bdr_s/2);
+    ctx.fill();
+  }
+  drawCarStateBorder(options, carState) {
+    var { ctx } = options;
+    ctx.lineWidth = bdr_s*2;
 
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
-    ctx.strokeStyle = 'black';
-    ctx.lineWidth = 5;
-    ctx.stroke();
-
-    // ctx.beginPath();
-    // ctx.arc(x, y, radius / 3, 0, 2 * Math.PI, false);
-    // ctx.fill();
-
-    ctx.restore();
-    ctx.save();
-    ctx.rotate(0.3);
-    ctx.translate(-x, -y);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.2';
-    ctx.fillRect(x - radius, y - 3, radius * 2, 7);
-    ctx.fillStyle = 'black';
-    ctx.fillRect(x - radius, y - 2, radius * 2, 5);
-
-    ctx.restore();
-    ctx.save();
-    ctx.rotate(-0.3);
-    ctx.translate(-x, -y);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.2';
-    ctx.fillRect(x - radius, y - 3, radius * 2, 7);
-    ctx.fillStyle = 'black';
-    ctx.fillRect(x - radius, y - 2, radius * 2, 5);
+    if (carState.CruiseState.Enabled) {
+      ctx.strokeStyle = theme.palette.states.engagedGreen;
+    } else if (carState.CruiseState.Available) {
+      ctx.strokeStyle = theme.palette.states.drivingBlue;
+    } else {
+      ctx.strokeStyle = theme.palette.states.drivingBlue;
+    }
+    ctx.strokeRect(0, 0, vwp_w, vwp_h);
   }
   carSpaceToImageSpace (coords) {
     this.matmul(this.extrinsic, coords);
@@ -550,48 +591,45 @@ class VideoPreview extends Component {
   }
 
   render () {
+    const { classes } = this.props;
     return (
-      <div style={{ position: 'relative' }}>
-        <div className={ classNames({
-          [this.props.classes.hidden]: false // this.state.noVideo
+      <div
+        className={ classNames(classes.videoContainer, {
+          [classes.hidden]: false // this.state.noVideo
         }) }>
-          <Player
-            style={{ zIndex: 1 }}
-            ref={ this.videoPlayer }
-            autoPlay={ !!this.props.currentSegment }
-            muted={ true }
-            fluid={ true }
-            src={ this.state.src }
-
-            startTime={ this.currentVideoTime() }
-            playbackRate={ this.props.startTime > Date.now() ? 0 : this.props.playSpeed }
-            >
-            <HLSSource
-              isVideoChild
-            />
-            <ControlBar disabled />
-          </Player>
-
-          <img style={{
-            width: '100%',
-            height: 'auto',
-            position: 'absolute',
-            top: 0,
-            zIndex: 1
-          }} ref={ this.imageRef } src={this.nearestImageFrame()} />
-          <canvas ref={ this.canvas_mpc } className={ this.props.classes.canvas } style={{
-            zIndex: 2
-          }} />
-          <canvas ref={ this.canvas_lines } className={ this.props.classes.canvas } style={{
-            zIndex: 2
-          }} />
-          <canvas ref={ this.canvas_lead } className={ this.props.classes.canvas } style={{
-            zIndex: 2
-          }} />
-          <canvas ref={ this.canvas_carstate } className={ this.props.classes.canvas } style={{
-            zIndex: 2
-          }} />
-        </div>
+        <Player
+          ref={ this.videoPlayer }
+          style={{ zIndex: 1 }}
+          autoPlay={ !!this.props.currentSegment }
+          muted={ true }
+          fluid={ true }
+          src={ this.state.src }
+          startTime={ this.currentVideoTime() }
+          playbackRate={ this.props.startTime > Date.now() ? 0 : this.props.playSpeed }>
+          <HLSSource
+            isVideoChild />
+          <ControlBar disabled />
+        </Player>
+        <img
+          ref={ this.imageRef }
+          className={ classes.videoImage }
+          src={this.nearestImageFrame()} />
+        { this.props.shouldShowUI &&
+          <React.Fragment>
+            <canvas
+              ref={ this.canvas_road }
+              className={ classes.videoUiCanvas }
+              style={{ zIndex: 2 }} />
+            <canvas
+              ref={ this.canvas_lead }
+              className={ classes.videoUiCanvas }
+              style={{ zIndex: 4 }} />
+            <canvas
+              ref={ this.canvas_carstate }
+              className={ classes.videoUiCanvas }
+              style={{ zIndex: 5 }} />
+          </React.Fragment>
+        }
       </div>
     );
   }
