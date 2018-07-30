@@ -614,18 +614,22 @@ class VideoPreview extends Component {
           ref={ this.imageRef }
           className={ classes.videoImage }
           src={this.nearestImageFrame()} />
-        <canvas
-          ref={ this.canvas_road }
-          className={ classes.videoUiCanvas }
-          style={{ zIndex: 2 }} />
-        <canvas
-          ref={ this.canvas_lead }
-          className={ classes.videoUiCanvas }
-          style={{ zIndex: 4 }} />
-        <canvas
-          ref={ this.canvas_carstate }
-          className={ classes.videoUiCanvas }
-          style={{ zIndex: 5 }} />
+        { this.props.shouldShowUI &&
+          <React.Fragment>
+            <canvas
+              ref={ this.canvas_road }
+              className={ classes.videoUiCanvas }
+              style={{ zIndex: 2 }} />
+            <canvas
+              ref={ this.canvas_lead }
+              className={ classes.videoUiCanvas }
+              style={{ zIndex: 4 }} />
+            <canvas
+              ref={ this.canvas_carstate }
+              className={ classes.videoUiCanvas }
+              style={{ zIndex: 5 }} />
+          </React.Fragment>
+        }
       </div>
     );
   }

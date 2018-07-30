@@ -125,9 +125,8 @@ class Media extends Component {
             </Grid>
           </Grid>
         </Grid>
-        { inView === MediaType.VIDEO && <VideoPreview shouldShowUI={false} onVideoChange={(noVideo) => this.setState({inView: noVideo ? MediaType.MAP : MediaType.VIDEO}) } /> }
-        { inView === MediaType.UI && <VideoPreview shouldShowUI={true} onVideoChange={(noVideo) => this.setState({inView: noVideo ? MediaType.MAP : MediaType.UI}) } /> }
         { inView === MediaType.MAP && <SingleMap /> }
+        { inView !== MediaType.MAP && <VideoPreview shouldShowUI={ inView === MediaType.UI } onVideoChange={(noVideo) => this.setState({inView: noVideo ? MediaType.MAP : inView}) } /> }
       </React.Fragment>
     );
   }
