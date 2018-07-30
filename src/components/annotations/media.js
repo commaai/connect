@@ -111,7 +111,7 @@ class Media extends Component {
               onClick={() => this.setState({inView: MediaType.UI})}>
               <div className={ this.props.classes.mediaOptionIcon } />
               <Typography className={ this.props.classes.mediaOptionText }>
-                EON UI
+                HUD
               </Typography>
             </Grid>
             <Grid item xs={ 4 }
