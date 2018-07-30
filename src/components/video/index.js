@@ -437,7 +437,7 @@ class VideoPreview extends Component {
     for (let i=0; i <= path_height; i++) {
       let px, py, mpx;
       if (isMpc) {
-        px = path.X[i];
+        px = i==0?0.0:path.X[i];
         py = path.Y[i]-offset;
       } else {
         px = i;
@@ -467,7 +467,11 @@ class VideoPreview extends Component {
       if (x < 0 || y < 0) {
         continue;
       }
-      ctx.lineTo(x, y);
+      if (i==0) {
+        ctx.lineTo(x, vwp_h);
+      } else {
+        ctx.lineTo(x, y);
+      }
     }
     ctx.closePath();
     let track_bg;
