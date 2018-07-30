@@ -392,10 +392,10 @@ class VideoPreview extends Component {
     let started = false;
     const line_height = 49;
     for (let i=0; i < line_height; i++) {
-      let px = i==0?0.0:i*1.0;
+      let px = i;
       let py = points[i]-off;
       let [x, y, z] = this.carSpaceToImageSpace([px, py, 0.0, 1.0]);
-      if (x < 0 || y < 0) {
+      if (y < 0) {
         continue;
       }
       if (!started) {
@@ -409,7 +409,7 @@ class VideoPreview extends Component {
       let px = i==line_height?line_height:i;
       let py = isGhost?(points[i]-off):(points[i]+off);
       let [x, y, z] = this.carSpaceToImageSpace([px, py, 0.0, 1.0]);
-      if (x < 0 || y < 0) {
+      if (y < 0) {
         continue;
       }
       ctx.lineTo(x, y);
@@ -444,9 +444,7 @@ class VideoPreview extends Component {
         py = path.Points[i] - offset;
       }
       let [x, y, z] = this.carSpaceToImageSpace([px, py, 0.0, 1.0]);
-      if (x < 0 || y < 0) {
-        continue;
-      }
+
       if (!started) {
         ctx.moveTo(x, y);
         started = true;
@@ -457,21 +455,15 @@ class VideoPreview extends Component {
     for (let i=path_height; i >= 0; i--) {
       let px, py, mpx;
       if (isMpc) {
-        px = path.X[i];
+        px = i==0?0.0:path.X[i];
         py = path.Y[i] + offset;
       } else {
         px = i;
         py = path.Points[i] + offset;
       }
       let [x, y, z] = this.carSpaceToImageSpace([px, py, 0.0, 1.0]);
-      if (x < 0 || y < 0) {
-        continue;
-      }
-      if (i==0) {
-        ctx.lineTo(x, vwp_h);
-      } else {
-        ctx.lineTo(x, y);
-      }
+
+      ctx.lineTo(x, y);
     }
     ctx.closePath();
     let track_bg;
@@ -537,7 +529,7 @@ class VideoPreview extends Component {
   drawCarStateBorder(options, carState) {
     var { ctx } = options;
     ctx.lineWidth = bdr_s*2;
-    console.log('carState: ', carState);
+
     if (carState.CruiseState.Enabled) {
       ctx.strokeStyle = theme.palette.states.engagedGreen;
     } else if (carState.CruiseState.Available) {
