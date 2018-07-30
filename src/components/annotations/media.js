@@ -76,7 +76,7 @@ class Media extends Component {
       <React.Fragment>
         <Grid container>
           <Grid item xs={ 8 }>
-            <Select
+            {/*<Select
               disabled={ true }
               displayEmpty
               value={ 'eon-road-camera' }
@@ -92,7 +92,7 @@ class Media extends Component {
                 </MenuItem>
               }
               <MenuItem value='eon-driver-camera'>EON Driver Camera</MenuItem>
-            </Select>
+            </Select>*/}
           </Grid>
           <Grid item xs={ 4 }
             className={ this.props.classes.mediaOptions }>
