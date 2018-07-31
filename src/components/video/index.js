@@ -200,6 +200,9 @@ class VideoPreview extends Component {
   }
   renderCanvas () {
     var calibration = TimelineWorker.getCalibration(this.props.route);
+    if (!this.props.shouldShowUI) {
+      return
+    }
 
     if (!calibration) {
       this.lastCalibrationTime = false;
@@ -211,29 +214,27 @@ class VideoPreview extends Component {
       }
       this.lastCalibrationTime = calibration.LogMonoTime;
     }
-    if (this.props.shouldShowUI) {
-      if (this.canvas_road.current) {
-        const params = { calibration, shouldScale: true };
-        const events = {
-          model: TimelineWorker.currentModel,
-          mpc: TimelineWorker.currentMPC,
-          carState: TimelineWorker.currentCarState,
-        };
-        this.renderEventToCanvas(
-          this.canvas_road.current, params, events, this.drawLaneFull);
-      }
-      if (this.canvas_lead.current) {
-        const params = { calibration, shouldScale: true };
-        const events = { live20: TimelineWorker.currentLive20 };
-        this.renderEventToCanvas(
-          this.canvas_lead.current, params, events, this.renderLeadCars);
-      }
-      if (this.canvas_carstate.current) {
-        const params = { calibration, shouldScale: true };
-        const events = { carState: TimelineWorker.currentCarState };
-        this.renderEventToCanvas(
-          this.canvas_carstate.current, params, events, this.renderCarState);
-      }
+    if (this.canvas_road.current) {
+      const params = { calibration, shouldScale: true };
+      const events = {
+        model: TimelineWorker.currentModel,
+        mpc: TimelineWorker.currentMPC,
+        carState: TimelineWorker.currentCarState,
+      };
+      this.renderEventToCanvas(
+        this.canvas_road.current, params, events, this.drawLaneFull);
+    }
+    if (this.canvas_lead.current) {
+      const params = { calibration, shouldScale: true };
+      const events = { live20: TimelineWorker.currentLive20 };
+      this.renderEventToCanvas(
+        this.canvas_lead.current, params, events, this.renderLeadCars);
+    }
+    if (this.canvas_carstate.current) {
+      const params = { calibration, shouldScale: true };
+      const events = { carState: TimelineWorker.currentCarState };
+      this.renderEventToCanvas(
+        this.canvas_carstate.current, params, events, this.renderCarState);
     }
   }
   renderEventToCanvas (canvas, params, events, renderEvent) {
@@ -248,27 +249,36 @@ class VideoPreview extends Component {
 
     let logTime, monoIndex;
     let _events = {};
-    Object.keys(events).map((key, logEvent) => {
+    let needsRender = false;
+    let eventsSig = Object.keys(events).join(',');
+    Object.keys(events).map((key) => {
       let event = events[key].apply(TimelineWorker);
+      monoIndex = events[key].name + 'MonoTime' + eventsSig;
+
       if (!event) {
         if (this[monoIndex]) {
           this[monoIndex] = false;
           let ctx = canvas.getContext('2d');
           ctx.setTransform(1, 0, 0, 1, 0, 0);
           ctx.clearRect(0, 0, width, height);
+          // we have to force re-render when one is missing
+          // this is because there's more than one event being rendered through this flow
+          // this should be re-broken apart such that this isn't an issue
+          // fixing that will also reduce the rendering complexity
+          needsRender = true;
         }
         return;
       } else {
         logTime = event ? event.LogMonoTime : null;
-        monoIndex = events[key].name + 'MonoTime';
-        _events[`${ key }`] = event;
+        needsRender = needsRender || logTime !== this[monoIndex];
+        this[monoIndex] = logTime;
+        _events[key] = event;
       }
     })
 
-    if (logTime === this[monoIndex]) {
+    if (!needsRender) {
       return;
     }
-    this[monoIndex] = logTime;
     // will render!
     canvas.width = width;
     canvas.height = height;
@@ -285,6 +295,9 @@ class VideoPreview extends Component {
     renderEvent.apply(this, [{ width, height, ctx }, _events]);
   }
   renderLeadCars (options, events) {
+    if (!events.live20) {
+      return;
+    }
     this.lastLive20MonoTime = events.live20.LogMonoTime;
     var { width, height, ctx } = options;
 
@@ -365,13 +378,13 @@ class VideoPreview extends Component {
   }
   drawLaneFull(options, events) { // ui_draw_vision_lanes
     var { ctx } = options;
-    if (typeof(events) !== "undefined") {
-      if (typeof(events.model) !== "undefined") {
+    if (events) {
+      if (events.model) {
         this.drawLaneBoundary(ctx, events.model.Model.LeftLane);
         this.drawLaneBoundary(ctx, events.model.Model.RightLane);
         this.drawLaneTrack(ctx, events.model.Model.Path);
       }
-      if (typeof(events.mpc) !== "undefined" && typeof(events.carState) !== "undefined") {
+      if (events.mpc && events.carState) {
         this.drawLaneTrack(ctx, events.mpc.LiveMpc, {
           isMpc: true,
           isEnabled: events.carState.CarState.CruiseState.Enabled,
@@ -486,7 +499,7 @@ class VideoPreview extends Component {
   }
   renderCarState (options, events) {
     var { ctx } = options;
-    if (typeof(events) !== "undefined") {
+    if (events && events.carState) {
       this.drawCarStateBorder(options, events.carState.CarState);
       this.drawCarStateWheel(options, events.carState.CarState);
     }
