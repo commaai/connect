@@ -446,6 +446,14 @@ class Minimap extends Component {
           left: ((event.route_offset_millis / segment.duration) * 100) + '%',
           width: (((event.data.end_route_offset_millis - event.route_offset_millis) / segment.duration) * 100) + '%',
         };
+        if (localStorage.showCurrentEvent) {
+          let time = TimelineWorker.currentOffset();
+          let eventStart = event.route_offset_millis + segment.offset;
+          let eventEnd = event.data.end_route_offset_millis + segment.offset;
+          if (time > eventStart && time < eventEnd) {
+            console.log('Current event:', event);
+          }
+        }
         return (
           <div
             key={ segment.route + i }
