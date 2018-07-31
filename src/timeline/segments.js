@@ -120,7 +120,6 @@ function resolveAnnotation (annotation, event, route) {
 }
 
 function parseSegmentMetadata (state, segments, annotations) {
-  console.log(segments);
   segments = segments.map(function (segment) {
     segment.offset = Math.round(segment.start_time_utc_millis) - state.start;
     segment.duration = Math.round(segment.end_time_utc_millis - segment.start_time_utc_millis);
@@ -191,7 +190,6 @@ function parseSegmentMetadata (state, segments, annotations) {
   };
 }
 function segmentsFromMetadata (segmentsData) {
-  console.log(segmentsData);
   var curSegment = null;
   var curStopTime = null;
   var curVideoStartOffset = null;

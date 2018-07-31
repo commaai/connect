@@ -5,7 +5,6 @@ const API = require('./timeline');
 self.onconnect = sharedWorkerInit;
 
 function sharedWorkerInit (e) {
-  console.log(e.ports);
   const port = e.ports[0];
   const portInterface = {
     close: close,
@@ -22,7 +21,6 @@ function sharedWorkerInit (e) {
   }, [API.createBroadcastPort(port)]);
 
   port.onmessage = function (msg) {
-    console.log('Got msg', msg);
     API.handleMessage(portInterface, msg);
   }
   port.onmessageerror = function (e) {

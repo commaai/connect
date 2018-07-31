@@ -18,8 +18,6 @@ export function setCachePort (port) {
 }
 
 export function getEntry (route, segment, dataListener) {
-  console.log('Getting thing from the place!', route, segment);
-
   if (!listenerMap[route]) {
     listenerMap[route] = {};
   }

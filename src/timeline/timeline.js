@@ -81,8 +81,6 @@ const commands = {
 };
 
 export async function handleMessage (port, msg) {
-  console.log('Got this message', msg);
-
   if (msg.data.command) {
     if (!commands[msg.data.command]) {
       console.error('Invalid command!', msg.data);
@@ -293,7 +291,6 @@ async function checkSegmentMetadata (state) {
   try {
     segmentData = await segmentsRequest;
     annotationsData = await annotationsRequest;
-    console.log(segmentData, annotationsData);
   } catch (e) {
     console.error('Failure fetching segment metadata', e.stack || e);
     ///@TODO retry this call!
