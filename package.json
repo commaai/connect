@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "scripts": {
     "start": "react-app-rewired start",
-    "build": "react-app-rewired build",
+    "build": "react-app-rewired build && find build -name '*.map' -exec rm {} \\;",
     "test": "react-app-rewired test --env=jsdom",
     "eject": "react-app-rewired eject",
     "storybook": "start-storybook -p 9009 -s public",
