@@ -201,6 +201,7 @@ function segmentsFromMetadata (segmentsData) {
     if (segment.proc_log !== 40) {
       return;
     }
+    var segmentHasDriverCamera = (segment.proc_dcamera >= 0);
     var segmentHasVideo = (segment.proc_camera === 40);
     if (segmentHasVideo && curVideoStartOffset === null) {
       curVideoStartOffset = segment.offset;
@@ -240,6 +241,7 @@ function segmentsFromMetadata (segmentsData) {
         hasVideo: segmentHasVideo,
         deviceType: segment.devicetype,
         hpgps: segment.hpgps,
+        hasDriverCamera: segmentHasDriverCamera,
       };
       segments.push(curSegment);
     }
@@ -248,6 +250,7 @@ function segmentsFromMetadata (segmentsData) {
       curVideoStartOffset = null;
     }
     curSegment.hasVideo = (curSegment.hasVideo || segmentHasVideo);
+    curSegment.hasDriverCamera = (curSegment.hasDriverCamera || segmentHasDriverCamera);
     curSegment.hpgps = (curSegment.hpgps || segment.hpgps);
     curSegment.duration = (segment.offset - curSegment.offset) + segment.duration;
     curSegment.segments++;
@@ -359,6 +362,8 @@ function getNextSegment (state, offset) {
         videoAvailableBetweenOffsets: thisSegment.videoAvailableBetweenOffsets,
         deviceType: thisSegment.deviceType,
         hpgps: thisSegment.hpgps,
+        hasVideo: thisSegment.hasVideo,
+        hasDriverCamera: thisSegment.hasDriverCamera,
       };
       break;
     }
@@ -376,6 +381,8 @@ function getNextSegment (state, offset) {
           deviceType: thisSegment.deviceType,
           videoAvailableBetweenOffsets: thisSegment.videoAvailableBetweenOffsets,
           hpgps: thisSegment.hpgps,
+          hasVideo: thisSegment.hasVideo,
+          hasDriverCamera: thisSegment.hasDriverCamera,
         };
       }
     }
@@ -413,6 +420,8 @@ function getCurrentSegment (state, offset) {
         deviceType: thisSegment.deviceType,
         videoAvailableBetweenOffsets: thisSegment.videoAvailableBetweenOffsets,
         hpgps: thisSegment.hpgps,
+        hasVideo: thisSegment.hasVideo,
+        hasDriverCamera: thisSegment.hasDriverCamera,
       };
     }
   }
