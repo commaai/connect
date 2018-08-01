@@ -8,6 +8,8 @@ import Paper from '@material-ui/core/Paper';
 import Typography from '@material-ui/core/Typography';
 import Snackbar from '@material-ui/core/Snackbar';
 
+import * as API from '../../api';
+
 const styles = theme => {
   return {
     root: {
@@ -21,7 +23,7 @@ const styles = theme => {
     footerButton: {
       display: 'inline-block',
       border: '1px solid ' + theme.palette.grey[800],
-      color: theme.palette.grey[400],
+      color: theme.palette.grey[50],
       textDecoration: 'none',
       borderRadius: 20,
       padding: '10px 20px',
@@ -41,6 +43,7 @@ class AnnotationsFooter extends Component {
 
     this.copySegmentName = this.copySegmentName.bind(this);
     this.handleClose = this.handleClose.bind(this);
+    this.downloadVideoSegment = this.downloadVideoSegment.bind(this);
 
     this.state = {
       showCopiedSnack: false
@@ -64,6 +67,22 @@ class AnnotationsFooter extends Component {
     this.snackTimer = timeout(this.handleClose, 1000);
   }
 
+  async downloadVideoSegment() {
+    if (!this.props.segment) {
+      return;
+    }
+    let seg = this.props.segment;
+    let segmentKeyPath = seg.route.replace('|', '/') + '/' + seg.segment;
+
+    let files = (await API.getRouteFiles(this.props.segment.route));
+    let videoMatchingSegment = files.cameras.find(function(video) {
+      return video.indexOf(segmentKeyPath) !== -1;
+    });
+    if (videoMatchingSegment) {
+      window.location = videoMatchingSegment;
+    }
+  }
+
   handleClose () {
     this.setState({
       showCopiedSnack: false
@@ -74,6 +93,9 @@ class AnnotationsFooter extends Component {
   render () {
     return (
       <Paper className={ this.props.classes.root } >
+        <a className={ this.props.classes.footerButton } onClick={ this.downloadVideoSegment }>
+          Download Video Segment
+        </a>
         <a className={ this.props.classes.footerButton } href={ 'https://community.comma.ai/cabana/?route=' + this.props.segment.route} target='_blank'>
           Open in Cabana!
         </a>
