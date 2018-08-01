@@ -457,6 +457,9 @@ class VideoPreview extends Component {
         py = path.Points[i] - offset;
       }
       let [x, y, z] = this.carSpaceToImageSpace([px, py, 0.0, 1.0]);
+      if (y < 0) {
+        continue;
+      }
 
       if (!started) {
         ctx.moveTo(x, y);
@@ -475,7 +478,9 @@ class VideoPreview extends Component {
         py = path.Points[i] + offset;
       }
       let [x, y, z] = this.carSpaceToImageSpace([px, py, 0.0, 1.0]);
-
+      if (y < 0) {
+        continue;
+      }
       ctx.lineTo(x, y);
     }
     ctx.closePath();
