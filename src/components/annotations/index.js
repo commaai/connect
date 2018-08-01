@@ -73,7 +73,7 @@ class AnnotationsView extends Component {
               <KeyboardBackspaceIcon />
             </IconButton>
             <Typography className={ this.props.classes.annotationsViewerHeaderName }>
-              { shortName } - { this.props.device.alias }
+              { shortName } { this.props.device && '- ' + this.props.device.alias }
             </Typography>
             <IconButton onClick={ this.close } aria-label='Close' className={ this.props.classes.annotationsViewerHeaderClose }>
               <CloseIcon />
