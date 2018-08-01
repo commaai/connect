@@ -38,6 +38,7 @@ class SingleMap extends Component {
 
     let nextRoute = props.currentSegment && props.currentSegment.route;
 
+    this.isLoadingCoords = false;
     this.state = {
       viewport: {
         width: 640,
@@ -53,15 +54,16 @@ class SingleMap extends Component {
 
   componentWillReceiveProps (nextProps) {
     let nextRoute = nextProps.currentSegment && nextProps.currentSegment.route;
-
     if (nextRoute !== this.state.route) {
       if (this.state.coords.length > 0) {
         this.setPath([]);
       }
+    }
 
-      if (this.map && nextProps.segments[nextProps.segmentNum]) {
-        this.setState({ route: nextRoute }, this.populateMap.bind(this, nextProps));
-      }
+    let coordsNeedRefresh = nextRoute !== this.state.route || this.state.coords.length === 0;
+    let shouldRefreshMap = coordsNeedRefresh && this.map != null && !this.isLoadingCoords;
+    if (shouldRefreshMap) {
+      this.setState({ route: nextRoute }, this.populateMap.bind(this, nextProps));
     }
 
     if (nextProps.startTime !== this.props.startTime) {
@@ -130,21 +132,27 @@ class SingleMap extends Component {
   populateMap = async (props) => {
     if (!props) props = this.props;
 
-    if (!this.map || !props.currentSegment || !this.state.route || !props.segments[this.props.segmentNum]) {
+    if (!this.map || !props.currentSegment || !this.state.route) {
       return;
     }
+    this.isLoadingCoords = true;
+
     let route = this.state.route;
     let routeSigUrl = props.currentSegment.url;
-    let { startCoord, endCoord } = props.segments[props.segmentNum];
 
-    const coords = await RouteApi(routeSigUrl).getCoords();
-    if (this.state.route !== route) {
-      // handle race, if route changes while coords request was in flight
-      return;
+    try {
+      const coords = await RouteApi(routeSigUrl).getCoords();
+
+      if (this.state.route !== route) {
+        // handle race, if route changes while coords request was in flight
+        return;
+      }
+
+      const coordsArr = coords.map(coord => [coord.lng, coord.lat]);
+      this.setPath(coordsArr);
+    } finally {
+      this.isLoadingCoords = false;
     }
-
-    const coordsArr = coords.map(coord => [coord.lng, coord.lat]);
-    this.setPath(coordsArr);
   }
 
   setPath(coords) {
