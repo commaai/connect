@@ -93,9 +93,11 @@ class AnnotationsFooter extends Component {
   render () {
     return (
       <Paper className={ this.props.classes.root } >
-        <a className={ this.props.classes.footerButton } onClick={ this.downloadVideoSegment }>
-          Download Video Segment
-        </a>
+        { this.props.segment && this.props.segment.hasVideo && this.props.segment.hasDriverCamera &&
+          <a className={ this.props.classes.footerButton } onClick={ this.downloadVideoSegment }>
+            Download Video Segment
+          </a>
+        }
         <a className={ this.props.classes.footerButton } href={ 'https://community.comma.ai/cabana/?route=' + this.props.segment.route} target='_blank'>
           Open in Cabana!
         </a>
