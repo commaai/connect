@@ -33,7 +33,7 @@ function override (config, env) {
   if (env === 'production') {
     config.plugins.push(
       new SentryCliPlugin({
-        include: '.',
+        include: './build/',
         ignoreFile: '.sentrycliignore',
         ignore: ['node_modules', 'webpack.config.js', 'config-overrides.js'],
         configFile: 'sentry.properties',
