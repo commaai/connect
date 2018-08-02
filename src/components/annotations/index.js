@@ -24,17 +24,21 @@ import { DeviceType } from '../../defs/segments';
 
 const styles = theme => {
   return {
-    root: {
-      margin: theme.spacing.unit * 5,
-      borderRadius: theme.spacing.unit,
-      background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)'
+    base: {
+      background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      flexGrow: 1,
+      minWidth: '100%',
     },
-    paddedContainer: {
+    header: {},
+    headerTitle: {},
+    headerSeeker: {},
+    viewer: {
       padding: theme.spacing.unit * 4,
     },
-    title: {
-      margin: 20
-    },
+
     annotationsViewerHeader: {
       alignItems: 'center',
     },
@@ -61,74 +65,57 @@ class AnnotationsView extends Component {
   }
 
   render () {
+    const { classes, device } = this.props;
     let visibleSegment = (this.props.currentSegment || this.props.nextSegment);
     let routeName = visibleSegment ? visibleSegment.route : 'Nothing visible';
     let titleElement = routeName;
     if (visibleSegment) {
       let shortName = routeName.split('|')[1];
       titleElement = (
-        <React.Fragment>
-          <Grid container className={ this.props.classes.annotationsViewerHeader }>
-            <IconButton aria-label='Go Back' onClick={ () => window.history.back() } >
-              <KeyboardBackspaceIcon />
-            </IconButton>
-            <Typography className={ this.props.classes.annotationsViewerHeaderName }>
-              { shortName } { this.props.device && '- ' + this.props.device.alias }
-            </Typography>
-            <IconButton onClick={ this.close } aria-label='Close' className={ this.props.classes.annotationsViewerHeaderClose }>
-              <CloseIcon />
-            </IconButton>
-          </Grid>
-          {/*<a href={ 'https://community.comma.ai/cabana/?route=' + routeName} target='_blank'>
-            Open in Cabana!
-          </a>*/}
-        </React.Fragment>
+        <Grid container className={ classes.annotationsViewerHeader }>
+          <IconButton aria-label='Go Back' onClick={ () => window.history.back() } >
+            <KeyboardBackspaceIcon />
+          </IconButton>
+          <Typography className={ classes.annotationsViewerHeaderName }>
+            { shortName } { this.props.device && '- ' + this.props.device.alias }
+          </Typography>
+          <IconButton onClick={ this.close } aria-label='Close' className={ classes.annotationsViewerHeaderClose }>
+            <CloseIcon />
+          </IconButton>
+        </Grid>
       );
     }
     return (
-      <Grid container>
-        <Grid item xs={12}>
-          <Paper className={ this.props.classes.root }>
-            <Grid container>
-              <Grid item xs={12}>
-                <Typography variant='title' className={ this.props.classes.title } >
-                  { titleElement }
-                </Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <Minimap gradient zoomed colored thumbnailed dragSelection />
-              </Grid>
-            </Grid>
-            <Grid container spacing={ 32 } className={ this.props.classes.paddedContainer } >
+      <div className={ classes.base }>
+        <div className={ classes.header }>
+          <div className={ classes.headerTitle }>
+            { titleElement }
+          </div>
+          <div className={ classes.headerSeeker }>
+            <Minimap gradient zoomed colored thumbnailed dragSelection />
+          </div>
+        </div>
+        <div className={ classes.viewer }>
+          <Grid container spacing={ 32 }>
+            <Grid item xs={ 6 }>
               { visibleSegment && this.renderAnnotationsElement(visibleSegment) }
-              <Grid item xs={6}>
-                <Media />
-              </Grid>
-              <Grid item xs={12}>
-              </Grid>
             </Grid>
-          </Paper>
-        </Grid>
-        <Grid item xs={12}>
-          <AnnotationsFooter segment={ visibleSegment } />
-        </Grid>
-      </Grid>
+            <Grid item xs={ 6 }>
+              <Media />
+            </Grid>
+          </Grid>
+        </div>
+      </div>
     );
+    // { /* <AnnotationsFooter segment={ visibleSegment } /> */ }
   }
 
   renderAnnotationsElement(visibleSegment) {
-    var annotElement = null;
     if (visibleSegment.deviceType === DeviceType.one) {
-      annotElement = <AnnotationTabs segment={ visibleSegment } />;
+      return (<AnnotationTabs segment={ visibleSegment } />);
     } else {
-      annotElement = <EonUpsell hook='Unlock driving annotations with an EON' />;
+      return (<EonUpsell hook='Unlock driving annotations with an EON' />);
     }
-
-    return (
-      <Grid item xs={6}>
-        { annotElement }
-      </Grid>
-    );
   }
 }
 

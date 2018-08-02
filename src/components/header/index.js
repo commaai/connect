@@ -6,12 +6,10 @@ import fecha from 'fecha';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
-import AppBar from '@material-ui/core/AppBar';
 import Grid from '@material-ui/core/Grid';
 import Input from '@material-ui/core/Input';
 import InputLabel from '@material-ui/core/InputLabel';
 import FormControl from '@material-ui/core/FormControl';
-import Toolbar from '@material-ui/core/Toolbar';
 import Select from '@material-ui/core/Select';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
@@ -29,23 +27,12 @@ import Timelineworker from '../../timeline';
 const styles = theme => {
   console.log(theme);
   return {
-    root: {
-      position: 'relative',
-      height: '140px'
-    },
-    appBar: {
-      height: '140px'
-    },
-    toolBar: {
-      [theme.breakpoints.up('md')]: {
-        paddingLeft: theme.spacing.unit * 6,
-        paddingRight: theme.spacing.unit * 6
-      }
-    },
-    upperBar: {
-      height: '90px',
-      paddingTop: '20px',
-      paddingBottom: '16px'
+    base: {
+      backgroundColor: '#1D2225',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      paddingTop: '16px',
+      paddingBottom: '16px',
+      width: '100%',
     },
     logo: {
       alignItems: 'center',
@@ -129,63 +116,52 @@ class AppHeader extends Component {
     const open = Boolean(anchorEl);
 
     return (
-      <div className={ this.props.classes.root }>
-        <AppBar position='fixed' className={ this.props.classes.appBar }>
-          <Toolbar className={ this.props.classes.toolBar } >
-            <Grid container spacing={0} className={ this.props.classes.upperBar } >
-              <Grid item xs={4}>
-                <Link to="/" className={ this.props.classes.logo }>
-                  <img src='/images/comma-white.png' className={ this.props.classes.logoImg } />
-                  <Typography className={ this.props.classes.logoText }>
-                    Explorer
-                  </Typography>
-                </Link>
-              </Grid>
-              {/*<Grid item xs={false} lg={3} >
-                <FormControl style={{ width: '100%' }}>
-                  <InputLabel htmlFor='search-bar'>Search</InputLabel>
-                  <Input id='search-bar' value={ this.state.searchString || '' } onChange={ this.handleSearchChange } />
-                </FormControl>
-              </Grid>*/}
-              <Grid item xs={6} lg={4} align='center' >
-                <CurrentTime />
-              </Grid>
-              <Grid item xs={5} lg={4} align='right' >
-                <TimeframePicker />
-                <IconButton
-                  aria-owns={open ? 'menu-appbar' : null}
-                  aria-haspopup="true"
-                  onClick={this.handleMenu}
-                  color="inherit" >
-                  <AccountIcon />
-                </IconButton>
-                <Menu
-                  id="menu-appbar"
-                  anchorEl={anchorEl}
-                  anchorOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  transformOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  open={open}
-                  onClose={this.handleClose}>
-                  <ListItem classes={ { root: this.props.classes.userMeta } } disableGutters>
-                    <div>
-                      <Typography variant='body2' paragraph>{ this.props.profile.email }</Typography>
-                      <Typography variant='body1' paragraph>{ this.props.profile.points } points</Typography>
-                    </div>
-                  </ListItem>
-                  <MenuItem onClick={this.handleLogOut}>Log out</MenuItem>
-                </Menu>
-              </Grid>
-            </Grid>
-          </Toolbar>
-          <Minimap rounded dragSelection noseek className={ this.props.classes.minimap } />
-        </AppBar>
-      </div>
+      <header className={ this.props.classes.base }>
+        <Grid container spacing={ 0 }>
+          <Grid item xs={4}>
+            <Link to="/" className={ this.props.classes.logo }>
+              <img src='/images/comma-white.png' className={ this.props.classes.logoImg } />
+              <Typography className={ this.props.classes.logoText }>
+                explorer
+              </Typography>
+            </Link>
+          </Grid>
+          <Grid item xs={6} lg={4} align='center' >
+            <CurrentTime />
+          </Grid>
+          <Grid item xs={5} lg={4} align='right' >
+            <TimeframePicker />
+            <IconButton
+              aria-owns={open ? 'menu-appbar' : null}
+              aria-haspopup="true"
+              onClick={this.handleMenu}
+              color="inherit" >
+              <AccountIcon />
+            </IconButton>
+            <Menu
+              id="menu-appbar"
+              anchorEl={anchorEl}
+              anchorOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+              open={open}
+              onClose={this.handleClose}>
+              <ListItem classes={ { root: this.props.classes.userMeta } } disableGutters>
+                <div>
+                  <Typography variant='body2' paragraph>{ this.props.profile.email }</Typography>
+                  <Typography variant='body1' paragraph>{ this.props.profile.points } points</Typography>
+                </div>
+              </ListItem>
+              <MenuItem onClick={this.handleLogOut}>Log out</MenuItem>
+            </Menu>
+          </Grid>
+        </Grid>
+      </header>
     );
   }
 }

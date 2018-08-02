@@ -22,73 +22,62 @@ const MIN_TIME_BETWEEN_ROUTES = 60000; // 1 minute
 const styles = theme => {
   return {
     root: {},
-    routeListHeader: {
+    header: {
       alignItems: 'center',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
       padding: 12,
+      paddingLeft: 48,
+      paddingRight: 60,
+    },
+    headerLabel: {
+      cursor: 'default',
+      textTransform: 'uppercase',
+    },
+    drives: {
+      height: '100%',
+      overflowY: 'scroll',
       paddingLeft: 24,
       paddingRight: 24,
     },
-    routeListHeaderButton: {
-      background: 'linear-gradient(to bottom, rgb(82, 94, 102) 0%, rgb(64, 75, 79) 100%)',
-      borderRadius: 30,
-      color: '#fff',
-      height: 45,
-    },
-    routeListHeaderName: {
-      fontWeight: 500,
-    },
-    routeListItem: {
+    drive: {
       background: 'rgba(255, 255, 255, 0.0)',
+      background: 'linear-gradient(to bottom, #30373B 0%, #1D2225 100%)',
       borderTop: '1px solid rgba(255, 255, 255, .05)',
+      borderRadius: 8,
       cursor: 'pointer',
+      display: 'flex',
+      flexDirection: 'column',
+      marginBottom: 12,
+      overflow: 'hidden',
+      padding: 0,
       transition: 'background .2s',
-      '&:hover': {
-        background: '#30373B',
-        borderRadius: 12,
-      }
+      '&:hover': {}
     },
-    routeListItemHeader: {
+    driveHeader: {
       alignItems: 'center',
       fontSize: 18,
-      paddingBottom: 12,
+      padding: 18,
+      paddingLeft: 24,
+      paddingRight: 24,
+      width: '100%',
     },
-    routeListItemHeaderName: {
-      fontSize: 18,
-      fontWeight: 600,
+    driveHeaderIntro: {
+      alignItems: 'center',
+      display: 'flex',
     },
-    routeListItemHeaderButton: {
-      background: 'transparent',
-      border: '1px solid #272D30',
-      borderRadius: 20,
-      // color: '#404B4F',
-      color: '#fff',
-      transitionDuration: '.1s',
-      '&:hover': {
-        background: '#758791',
-        borderColor: '#fff',
-      },
+    driveAvatar: {
+      background: '#404B4F',
+      borderRadius: 30,
+      height: 52,
+      width: 52,
     },
-    review: {
-      padding: 8,
-      minWidth: 0,
-      top: '50%',
-      transform: 'translateY(-50%)'
+    driveTitle: {
+      marginLeft: 18,
     },
-    selectedDeviceText: {
-      color: '#49545B'
+    driveTimeline: {
+      height: 60,
+      width: '100%',
     },
-    badge: {
-      backgroundColor: '#DACA25',
-      borderRadius: 20,
-      color: '#fff',
-      fontWeight: 500,
-      minWidth: 28,
-      height: 28,
-      textShadow: '0 1px 4px rgba(0,0,0,.35)',
-    },
-    badgeRoot: {
-      width: '100%'
-    }
   }
 };
 
@@ -113,6 +102,7 @@ class RouteList extends Component {
     this.props.dispatch(selectRange(startTime, endTime));
   }
   render () {
+    const { classes } = this.props;
     var rideList = [];
     var lastEnd = 0;
     var lastSegmentEnd = 0;
@@ -140,21 +130,35 @@ class RouteList extends Component {
 
     return (
       <React.Fragment>
-        <Grid container className={ this.props.classes.routeListHeader }>
-          <Grid item xs={ 9 }>
-            <Typography variant='headline' className={ this.props.classes.routeListHeaderName }>
-              Recent Drives
-              { this.props.device &&
-                  <span className={ this.props.classes.selectedDeviceText }> - { this.props.device.alias || this.props.device.device_type }</span>
-              }
+        <Grid container className={ classes.header }>
+          <Grid item xs={ 4 }>
+            <Typography variant='caption' className={ classes.headerLabel }>
+              Unresolved Drives
             </Typography>
           </Grid>
-          <Grid item xs={ 3 }>
-            { this.props.renderAnnotateButton() }
+          <Grid item xs={ 2 }>
+            <Typography variant='caption' className={ classes.headerLabel }>
+              Duration
+            </Typography>
+          </Grid>
+          <Grid item xs={ 2 }>
+            <Typography variant='caption' className={ classes.headerLabel }>
+              Start
+            </Typography>
+          </Grid>
+          <Grid item xs={ 2 }>
+            <Typography variant='caption' className={ classes.headerLabel }>
+              End
+            </Typography>
+          </Grid>
+          <Grid item xs={ 2 }>
+            <Typography variant='caption' className={ classes.headerLabel }>
+              Distance
+            </Typography>
           </Grid>
         </Grid>
         { rideList.length === 0 && this.renderZeroRides() }
-        <List>
+        <List className={ classes.drives }>
           { rideList.filter(this.filterShortRides).map(this.renderRide) }
         </List>
       </React.Fragment>
@@ -180,41 +184,64 @@ class RouteList extends Component {
   }
 
   renderRide (ride) {
+    const { classes } = this.props;
+    // badgeContent={ ride.annotations }
     return (
-      <ListItem key={ ride.startTime } className={ this.props.classes.routeListItem }  onClick={ partial(this.showRide, ride) }>
-        <Grid container>
-          <Grid container className={ this.props.classes.routeListItemHeader }>
-            <Grid item xs={8} >
-              <Typography className={ this.props.classes.routeListItemHeaderName }>
-                { fecha.format(new Date(ride.startTime), 'MMMM D @ HH:mm') } -
-                { fecha.format(new Date(ride.startTime + ride.duration + 1000), ' HH:mm') }
+      <ListItem
+        key={ ride.startTime }
+        className={ classes.drive }
+        onClick={ partial(this.showRide, ride) }>
+        <Grid container className={ classes.driveHeader }>
+          <Grid item xs={ 4 } className={ classes.driveHeaderIntro }>
+            <div className={ classes.driveAvatar } />
+            <div className={ classes.driveTitle }>
+              <Typography variant='body2'>
+                Daly City to Fremont
               </Typography>
-            </Grid>
-            <Grid item xs={4} >
-              { ride.annotations > 0
-                ?
-                <Badge badgeContent={ ride.annotations } classes={{ root: this.props.classes.badgeRoot, badge: this.props.classes.badge }}>
-                  <Button variant='outlined' fullWidth onClick={ partial(this.showRide, ride) } className={ this.props.classes.routeListItemHeaderButton }>
-                    Review Drive
-                  </Button>
-                </Badge>
-                :
-                  <Button variant='outlined' fullWidth onClick={ partial(this.showRide, ride) } className={ this.props.classes.routeListItemHeaderButton }>
-                    Review Drive
-                  </Button>
-              }
-            </Grid>
+              <Typography>
+                Honda Civic
+              </Typography>
+            </div>
           </Grid>
-          <Grid item xs={12} >
-            <Minimap gradient zoomed colored thumbnailed zoomOverride={{
-              start: ride.startTime,
-              end: ride.startTime + ride.duration
-            }} />
+          <Grid item xs={ 2 }>
+            <Typography variant='body2'>
+              1hr 12min
+            </Typography>
+            <Typography>
+              144 points
+            </Typography>
           </Grid>
-          <Grid item xs={12} >
-            <Divider />
+          <Grid item xs={ 2 }>
+            <Typography variant='body2'>
+              { fecha.format(new Date(ride.startTime), 'HH:mm') }
+            </Typography>
+            <Typography>
+              { fecha.format(new Date(ride.startTime), 'MMMM D') }
+            </Typography>
+          </Grid>
+          <Grid item xs={ 2 }>
+            <Typography variant='body2'>
+              { fecha.format(new Date(ride.startTime + ride.duration + 1000), 'HH:mm') }
+            </Typography>
+            <Typography>
+              { fecha.format(new Date(ride.startTime + ride.duration + 1000), 'MMMM D') }
+            </Typography>
+          </Grid>
+          <Grid item xs={ 2 }>
+            <Typography variant='body2'>
+              32.4 mi
+            </Typography>
+            <Typography>
+              52.2 mi
+            </Typography>
           </Grid>
         </Grid>
+        <div className={ classes.driveTimeline }>
+          <Minimap gradient zoomed colored thumbnailed zoomOverride={{
+            start: ride.startTime,
+            end: ride.startTime + ride.duration
+          }} />
+        </div>
       </ListItem>
     );
   }

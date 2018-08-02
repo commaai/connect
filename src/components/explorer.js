@@ -18,6 +18,20 @@ import { getDongleID, getZoom } from '../url';
 
 const styles = theme => {
   return {
+    base: {
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+    },
+    header: {
+      display: 'flex',
+      height: 96,
+      minHeight: 96,
+    },
+    window: {
+      display: 'flex',
+      flexGrow: 1,
+    },
   };
 };
 
@@ -65,16 +79,17 @@ class ExplorerApp extends Component {
     }
     this.props.dispatch(selectRange(zoom.start, zoom.end));
   }
+
   render() {
+    const { classes, expanded } = this.props;
     return (
-      <div>
-        <Header />
-        <Slide direction='down' in={ !this.props.expanded } mountOnEnter unmountOnExit>
-          <Dashboard />
-        </Slide>
-        <Slide direction='up' in={ this.props.expanded } mountOnEnter unmountOnExit>
-          <Annotations />
-        </Slide>
+      <div className={ classes.base }>
+        <div className={ classes.header }>
+          <Header />
+        </div>
+        <div className={ classes.window }>
+          { expanded ? (<Annotations />) : (<Dashboard />) }
+        </div>
       </div>
     );
   }
