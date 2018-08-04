@@ -34,17 +34,17 @@ const styles = theme => {
       textAlign: 'right'
     },
     headerDropdown: {
-      minWidth: 320,
-      textAlign: 'center',
       fontWeight: 500,
+      marginRight: 12,
+      minWidth: 310,
+      textAlign: 'center',
     },
   };
 };
 
-// 30 days
-const LOOKBACK_WINDOW_MILLIS = 30*24*3600*1000;
+const LOOKBACK_WINDOW_MILLIS = 30*24*3600*1000; // 30 days
 
-class TimeframePicker extends Component {
+class TimeSelect extends Component {
   constructor (props) {
     super(props);
 
@@ -89,16 +89,19 @@ class TimeframePicker extends Component {
       showPicker: false
     });
   }
+
   changeStart (value) {
     this.setState({
       start: value.getTime()
     });
   }
+
   changeEnd (value) {
     this.setState({
       end: value.getTime()
     });
   }
+
   handleSave () {
     Timelineworker.selectTimeRange(this.state.start, this.state.end);
     this.setState({
@@ -136,6 +139,7 @@ class TimeframePicker extends Component {
        + fecha.format(new Date(weekAgo), ' (MMM Do - ')
        + fecha.format(new Date(), 'MMM Do)');
   }
+
   last2WeeksText () {
     if (!this.props.start || !this.props.end) {
       return '--';
@@ -146,11 +150,12 @@ class TimeframePicker extends Component {
        + fecha.format(new Date(twoWeeksAgo), ' (MMM Do - ')
        + fecha.format(new Date(), 'MMM Do)');
   }
+
   last24HoursText () {
     if (!this.props.start || !this.props.end) {
       return '--';
     }
-    return 'Last 24h';
+    return 'Last 24 Hours';
   }
 
   render () {
@@ -160,54 +165,49 @@ class TimeframePicker extends Component {
       <React.Fragment>
         <FormControl>
           <Select
+            name='timerange'
             value={ this.selectedOption() }
             onChange={ this.handleSelectChange }
-            className={ this.props.classes.headerDropdown }
-            name='timerange'>
+            className={ this.props.classes.headerDropdown }>
             <MenuItem value='custom'>Custom</MenuItem>
-            <MenuItem value='24-hours'>{ this.last24HoursText() } </MenuItem>
-            <MenuItem value='1-week'>{ this.lastWeekText() } </MenuItem>
-            <MenuItem value='2-weeks'>{ this.last2WeeksText() } </MenuItem>
+            <MenuItem value='24-hours'>{ this.last24HoursText() }</MenuItem>
+            <MenuItem value='1-week'>{ this.lastWeekText() }</MenuItem>
+            <MenuItem value='2-weeks'>{ this.last2WeeksText() }</MenuItem>
           </Select>
         </FormControl>
-
-          <Modal
-            aria-labelledby="simple-modal-title"
-            aria-describedby="simple-modal-description"
-            open={ this.state.showPicker }
-            onClose={ this.handleClose }
-          >
-            <Paper className={ this.props.classes.modal } >
-              <DateTimePicker
-                minDate={ minDate }
-                value={ new Date(this.state.start || this.props.start || 0) }
-                onChange={ this.changeStart }
-                label="Start time"
-                showTodayButton
-              />
-
-              <DateTimePicker
-                minDate={ minDate }
-                value={ new Date(this.state.end || this.props.end || 0) }
-                onChange={ this.changeEnd }
-                label="End time"
-                showTodayButton
-              />
-              <br />
-              <br />
-              <Divider />
-              <br />
-              <div className={ this.props.classes.buttonGroup } >
-                <Button variant='contained' onClick={ this.handleClose } >
-                  Cancel
-                </Button>
-                &nbsp;
-                <Button variant='contained' color='secondary' onClick={ this.handleSave }>
-                  Save
-                </Button>
-              </div>
-            </Paper>
-          </Modal>
+        <Modal
+          aria-labelledby='simple-modal-title'
+          aria-describedby='simple-modal-description'
+          open={ this.state.showPicker }
+          onClose={ this.handleClose }>
+          <Paper className={ this.props.classes.modal }>
+            <DateTimePicker
+              minDate={ minDate }
+              value={ new Date(this.state.start || this.props.start || 0) }
+              onChange={ this.changeStart }
+              label='Start time'
+              showTodayButton />
+            <DateTimePicker
+              minDate={ minDate }
+              value={ new Date(this.state.end || this.props.end || 0) }
+              onChange={ this.changeEnd }
+              label='End time'
+              showTodayButton />
+            <br />
+            <br />
+            <Divider />
+            <br />
+            <div className={ this.props.classes.buttonGroup }>
+              <Button variant='contained' onClick={ this.handleClose }>
+                Cancel
+              </Button>
+              &nbsp;
+              <Button variant='contained' color='secondary' onClick={ this.handleSave }>
+                Save
+              </Button>
+            </div>
+          </Paper>
+        </Modal>
       </React.Fragment>
     );
   }
@@ -218,4 +218,4 @@ const stateToProps = Obstruction({
   start: 'workerState.start'
 });
 
-export default connect(stateToProps)(withStyles(styles)(TimeframePicker));
+export default connect(stateToProps)(withStyles(styles)(TimeSelect));

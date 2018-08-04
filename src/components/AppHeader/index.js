@@ -16,9 +16,8 @@ import MenuItem from '@material-ui/core/MenuItem';
 import ListItem from '@material-ui/core/ListItem';
 import IconButton from '@material-ui/core/IconButton';
 
-import CurrentTime from './currentTime';
-import TimeframePicker from './timepicker';
-import Minimap from '../minimap';
+import TimeDisplay from './TimeDisplay';
+import TimeFilter from './TimeFilter';
 import { AccountIcon } from '../../icons';
 
 import { logOut } from '../../api/auth';
@@ -37,6 +36,7 @@ const styles = theme => {
     logo: {
       alignItems: 'center',
       display: 'flex',
+      maxWidth: 200,
       textDecoration: 'none',
     },
     logoImg: {
@@ -49,18 +49,21 @@ const styles = theme => {
       fontSize: 22,
       fontWeight: 600,
     },
-    minimap: {
-      position: 'absolute',
-      bottom: 0,
-      padding: '0 ' + theme.spacing.unit * 6 + 'px',
-      width: '100%',
-      cursor: 'ew-resize'
-    },
     userMeta: {
       outline: 'none',
-      padding: `${theme.spacing.unit}px ${theme.spacing.unit * 2}px`,
+      padding: `${ theme.spacing.unit }px ${ theme.spacing.unit * 2 }px`,
       borderBottom: '1px solid ' + theme.palette.white[12],
-    }
+    },
+    selectArea: {
+      alignItems: 'center',
+      display: 'flex',
+      justifyContent: 'center',
+    },
+    accountIcon: {
+      color: '#272D30',
+      height: 34,
+      width: 34,
+    },
   };
 };
 
@@ -68,30 +71,16 @@ class AppHeader extends Component {
   constructor (props) {
     super(props);
 
-    this.handleSearchChange = this.handleSearchChange.bind(this);
-    this.handleChange = this.handleChange.bind(this);
-    this.handleMenu = this.handleMenu.bind(this);
+    this.handleClickedAccount = this.handleClickedAccount.bind(this);
     this.handleClose = this.handleClose.bind(this);
     this.handleLogOut = this.handleLogOut.bind(this);
 
     this.state = {
-      searchString: props.search || ''
+      anchorEl: null,
     };
   }
-  componentDidUpdate (prevProps, prevState) {
-    if (prevProps.dongleId !== this.props.dongleId) {
-      // console.log('Setting state from props', this.props.dongleId);
-      // this.setState({
-      //   searchString: this.props.dongleId
-      // });
-    }
-  }
 
-  handleChange (event, checked) {
-    this.setState({ auth: checked });
-  }
-
-  handleMenu (event) {
+  handleClickedAccount (event) {
     this.setState({ anchorEl: event.currentTarget });
   }
 
@@ -104,60 +93,57 @@ class AppHeader extends Component {
     logOut();
   }
 
-  handleSearchChange (e) {
-    console.log('Setting state', e.target.value)
-    this.setState({
-      searchString: e.target.value
-    });
-  }
-
   render () {
+    const { profile, classes } = this.props;
     const { auth, anchorEl } = this.state;
     const open = Boolean(anchorEl);
 
     return (
-      <header className={ this.props.classes.base }>
+      <header className={ classes.base }>
         <Grid container spacing={ 0 }>
-          <Grid item xs={4}>
-            <Link to="/" className={ this.props.classes.logo }>
-              <img src='/images/comma-white.png' className={ this.props.classes.logoImg } />
-              <Typography className={ this.props.classes.logoText }>
+          <Grid item xs={ 4 }>
+            <Link to="/" className={ classes.logo }>
+              <img src='/images/comma-white.png' className={ classes.logoImg } />
+              <Typography className={ classes.logoText }>
                 explorer
               </Typography>
             </Link>
           </Grid>
-          <Grid item xs={6} lg={4} align='center' >
-            <CurrentTime />
+          <Grid item xs={ 6 } lg={ 4 } align='center'>
+            <TimeDisplay />
           </Grid>
-          <Grid item xs={5} lg={4} align='right' >
-            <TimeframePicker />
+          <Grid item xs={ 5 } lg={ 4 } align='right' className={ classes.selectArea }>
+            <TimeFilter />
             <IconButton
               aria-owns={open ? 'menu-appbar' : null}
-              aria-haspopup="true"
-              onClick={this.handleMenu}
-              color="inherit" >
-              <AccountIcon />
+              aria-haspopup='true'
+              onClick={ this.handleClickedAccount }>
+              <AccountIcon className={ classes.accountIcon } />
             </IconButton>
             <Menu
-              id="menu-appbar"
-              anchorEl={anchorEl}
-              anchorOrigin={{
+              id='menu-appbar'
+              open={ open }
+              onClose={ this.handleClose }
+              anchorEl={ anchorEl }
+              anchorOrigin={ {
                 vertical: 'top',
                 horizontal: 'right',
-              }}
-              transformOrigin={{
+              } }
+              transformOrigin={ {
                 vertical: 'top',
                 horizontal: 'right',
-              }}
-              open={open}
-              onClose={this.handleClose}>
-              <ListItem classes={ { root: this.props.classes.userMeta } } disableGutters>
+              } }>
+              <ListItem classes={ { root: classes.userMeta } } disableGutters>
                 <div>
-                  <Typography variant='body2' paragraph>{ this.props.profile.email }</Typography>
-                  <Typography variant='body1' paragraph>{ this.props.profile.points } points</Typography>
+                  <Typography variant='body2' paragraph>
+                    { profile.email }
+                  </Typography>
+                  <Typography variant='body1' paragraph>
+                    { profile.points } points
+                  </Typography>
                 </div>
               </ListItem>
-              <MenuItem onClick={this.handleLogOut}>Log out</MenuItem>
+              <MenuItem onClick={ this.handleLogOut }>Log out</MenuItem>
             </Menu>
           </Grid>
         </Grid>

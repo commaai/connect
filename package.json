@@ -14,6 +14,7 @@
   "private": true,
   "dependencies": {
     "@commaai/log_reader": "^0.3.1",
+    "@mapbox/mapbox-sdk": "^0.4.0",
     "@material-ui/core": "^1.0.0",
     "@material-ui/icons": "^1.0.0",
     "ap": "^0.2.0",

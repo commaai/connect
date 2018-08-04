@@ -17,7 +17,7 @@ import TextField from '@material-ui/core/TextField';
 import Typography from '@material-ui/core/Typography';
 import FormControl from '@material-ui/core/FormControl';
 
-import EonUpsell from '../annotations/eonUpsell';
+import EonUpsell from '../Annotations/eonUpsell';
 import * as API from '../../api';
 import Timelineworker from '../../timeline';
 

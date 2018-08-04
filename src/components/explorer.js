@@ -4,13 +4,12 @@ import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
-import Slide from '@material-ui/core/Slide';
 import Typography from '@material-ui/core/Typography';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-import Annotations from './annotations';
-import Header from './header';
-import Dashboard from './dashboard';
+import AppHeader from './AppHeader';
+import Dashboard from './Dashboard';
+import Annotations from './Annotations';
 
 import Timelineworker from '../timeline';
 import { selectRange } from '../actions';
@@ -85,7 +84,7 @@ class ExplorerApp extends Component {
     return (
       <div className={ classes.base }>
         <div className={ classes.header }>
-          <Header />
+          <AppHeader />
         </div>
         <div className={ classes.window }>
           { expanded ? (<Annotations />) : (<Dashboard />) }

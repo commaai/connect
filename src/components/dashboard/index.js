@@ -4,24 +4,18 @@ import Obstruction from 'obstruction';
 import { partial } from 'ap';
 
 import { withStyles } from '@material-ui/core/styles';
-import Badge from '@material-ui/core/Badge';
 import Button from '@material-ui/core/Button';
-import ExpansionPanel from '@material-ui/core/ExpansionPanel';
-import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
 import Grid from '@material-ui/core/Grid';
-import Paper from '@material-ui/core/Paper';
-import Pencil from '@material-ui/icons/Edit';
-import Slide from '@material-ui/core/Slide';
 import Typography from '@material-ui/core/Typography';
+import Modal from '@material-ui/core/Modal';
 
-import DeviceList from './deviceList';
-import RouteList from './routes';
-import Timelineworker from '../../timeline';
 import { selectRange, selectDevice } from '../../actions';
-import { filterEvent } from '../annotations/common';
+import { filterEvent } from '../../utils';
+import DeviceList from './DeviceList';
+import DriveList from './DriveList';
+import Timelineworker from '../../timeline';
 
-// 1 second on either end
-const ZOOM_BUFFER = 1000;
+const ZOOM_BUFFER = 1000; // 1 second on either end
 
 const styles = theme => {
   return {
@@ -32,15 +26,18 @@ const styles = theme => {
       flexGrow: 1,
       minWidth: '100%',
     },
-    deviceList: {
+    sidebar: {
       background: 'linear-gradient(180deg, #1B2023 0%, #111516 100%)',
+      display: 'flex',
+      flexDirection: 'column',
       minWidth: 300,
+      width: '20%',
     },
-    deviceListHeader: {
+    sidebarHeader: {
       alignItems: 'center',
       padding: 24,
     },
-    routeList: {
+    window: {
       display: 'flex',
       flexGrow: 1,
       flexDirection: 'column',
@@ -96,12 +93,12 @@ class Dashboard extends Component {
 
     return (
       <div className={ classes.base }>
-        <div className={ classes.deviceList }>
-          <div className={ classes.deviceListHeader }>
+        <div className={ classes.sidebar }>
+          <div className={ classes.sidebarHeader }>
             <Button
               size='large'
               variant='outlined'
-              className={ this.props.classes.annotateButton }
+              className={ classes.annotateButton }
               onClick={ partial(this.goToAnnotation, firstAnnotationSegment) }>
               Annotate
             </Button>
@@ -110,8 +107,8 @@ class Dashboard extends Component {
             selectedDevice={ this.props.selectedDongleId }
             handleDeviceSelected={ this.handleDeviceSelected } />
         </div>
-        <div className={ classes.routeList }>
-          <RouteList />
+        <div className={ classes.window }>
+          <DriveList />
         </div>
       </div>
     );

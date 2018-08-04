@@ -7,6 +7,11 @@ const theme = createMuiTheme({
     fontFamily: 'MaisonNeue',
   },
   overrides: {
+    MuiPaper: {
+      root: {
+        backgroundColor: '#30373B'
+      },
+    },
     MuiSelect: {
       select: {
         padding: '12px 16px',
@@ -17,7 +22,7 @@ const theme = createMuiTheme({
       },
       icon: {
         marginRight: 20,
-        color: 'rgba(255, 255, 255, 0.25)'
+        color: '#272D30'
       }
     },
     MuiInput: {
@@ -42,9 +47,6 @@ const theme = createMuiTheme({
       }
     }
   },
-  // shape: {
-  //   borderRadius: 8
-  // },
   props: {
     MuiSelect: {
       disableUnderline: true,

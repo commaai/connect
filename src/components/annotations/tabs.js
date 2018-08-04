@@ -11,7 +11,7 @@ import Tab from '@material-ui/core/Tab';
 import Badge from '@material-ui/core/Badge';
 
 import AnnotationList from './list';
-import { filterEvent } from './common';
+import { filterEvent } from '../../utils';
 
 const styles = theme => {
   return {

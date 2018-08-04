@@ -8,7 +8,7 @@ import raf from 'raf';
 import debounce from 'debounce';
 import document from 'global/document';
 import fecha from 'fecha';
-import { classNames } from 'react-extras';
+import cx from 'classnames';
 
 import Measure from 'react-measure';
 import Tooltip from '@material-ui/core/Tooltip';
@@ -19,59 +19,75 @@ import Segments from '../../timeline/segments';
 import { selectRange } from '../../actions';
 
 const styles = (theme) => {
-  /* MINIMAP / PROGRESS BAR */
   return {
-    holder: {
+    base: {
+      backgroundColor: '#1D2225',
+      minHeight: '32px',
+      overflow: 'hidden',
       position: 'relative',
       width: '100%',
-      backgroundColor: '#000',
-      minHeight: '45px',
-      overflow: 'hidden',
+      '&.hasThumbnails': {
+        minHeight: '40px',
+      },
+      '&.hasThumbnails.hasRuler': {
+        minHeight: '80px',
+      },
     },
     rounded: {
       borderRadius: '10px 10px 0px 0px'
     },
-    progressBar: {
-      position: 'absolute',
-      top: '0px',
-      borderRight: '2px solid ' + theme.palette.grey[50],
-      height: '100%',
-    },
-
-  /* SEGMENTS */
     segments: {
       position: 'absolute',
       top: '0px',
       left: '0px',
       width: '100%',
       height: '100%',
-      '&.thumbnailed': {
-        height: '50%'
-      }
+      '&.hasThumbnails': {
+        height: '40%'
+      },
+      '&.hasThumbnails.hasRuler': {
+        height: '70%',
+      },
     },
     segment: {
       position: 'relative',
       height: '100%',
-      // background: 'linear-gradient(to bottom, ' + theme.palette.grey[200] + 'ff 0%, ' + theme.palette.grey[200] + '55 100%)',
       background: theme.palette.states.drivingBlue,
     },
-    'gradient': {
-        background: 'linear-gradient(rgba(0, 0, 0, 0.0) 4%, rgba(255, 255, 255, 0.025) 10%, rgba(0, 0, 0, 0.1) 25%, rgba(0, 0, 0, 0.4))',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none'
+    ruler: {
+      background: '#272D30d9',
+      position: 'relative',
+      height: '70%',
+      width: '100%',
+    },
+    rulerRemaining: {
+      background: '#272D30',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      height: '100%',
+      pointerEvents: 'none',
+      width: '100%',
+    },
+    statusGradient: {
+      background: 'linear-gradient(rgba(0, 0, 0, 0.0) 4%, rgba(255, 255, 255, 0.025) 10%, rgba(0, 0, 0, 0.1) 25%, rgba(0, 0, 0, 0.4))',
+      height: '100%',
+      left: 0,
+      pointerEvents: 'none',
+      position: 'absolute',
+      top: 0,
+      width: '100%',
+      '&.hasRuler': {
+        height: '30%',
+        top: '70%',
+      },
     },
     segmentColor: {
       position: 'absolute',
       display: 'inline-block',
       height: '100%',
       width: '100%',
-      '&.active': {
-        // background: 'linear-gradient(to bottom, rgb(20, 200, 20) 0%, rgb(0, 70, 0) 100%)'
-      },
+      '&.active': {},
       '&.engage': {
         background: theme.palette.states.engagedGreen,
       },
@@ -98,15 +114,19 @@ const styles = (theme) => {
     },
     thumbnailHolder: {
       position: 'absolute',
-      height: '50%',
-      top: '50%',
+      height: '60%',
+      top: '40%',
       width: '100%',
       whiteSpace: 'nowrap',
       userSelect: 'none',
       '& img': {
         pointerEvents: 'none',
-      }
-    }
+      },
+      '&.hasRuler': {
+        height: '30%',
+        top: '70%',
+      },
+    },
   };
 };
 
@@ -116,11 +136,11 @@ const AlertStatusCodes = [
   'critical'
 ];
 
-class Minimap extends Component {
+class Timeline extends Component {
   constructor (props) {
     super(props);
 
-    this.renderOffset = this.renderOffset.bind(this);
+    this.getOffset = this.getOffset.bind(this);
     this.handleClick = this.handleClick.bind(this);
     this.handleMove = this.handleMove.bind(this);
     this.handleDown = this.handleDown.bind(this);
@@ -131,7 +151,7 @@ class Minimap extends Component {
     this.sendSeek = debounce(this.sendSeek.bind(this), 1000 / 60);
 
     this.offsetValue = React.createRef();
-    this.progressBar = React.createRef();
+    this.rulerRemaining = React.createRef();
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
 
@@ -173,24 +193,21 @@ class Minimap extends Component {
   }
   componentDidMount () {
     this.mounted = true;
-    raf(this.renderOffset);
+    raf(this.getOffset);
   }
-  renderOffset () {
+  getOffset () {
     if (!this.mounted) {
       return;
     }
-    raf(this.renderOffset);
-
-    if (this.progressBar.current && this.progressBar.current.parentElement) {
-      let offset = TimelineWorker.currentOffset();
-      if (this.seekIndex) {
-        offset = this.seekIndex;
-      }
-      offset = Math.floor(offset);
-
-      let percent = this.offsetToPercent(offset);
-
-      this.progressBar.current.style.width = ~~(10000 * percent) / 100 + '%';
+    raf(this.getOffset);
+    let offset = TimelineWorker.currentOffset();
+    if (this.seekIndex) {
+      offset = this.seekIndex;
+    }
+    offset = Math.floor(offset);
+    let percent = this.offsetToPercent(offset);
+    if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
+      this.rulerRemaining.current.style.left = ~~(10000 * percent) / 100 + '%';
     }
   }
   percentFromMouseEvent (e) {
@@ -198,7 +215,6 @@ class Minimap extends Component {
     let x = e.pageX - boundingBox.left;
     return x / boundingBox.width;
   }
-
   handleClick (e) {
     if (this.isDragSelecting) {
       console.log('Is a drag event');
@@ -214,11 +230,12 @@ class Minimap extends Component {
     TimelineWorker.seek(this.percentToOffset(percent));
   }
   handleDown (e) {
+    const { classes } = this.props;
     if (!this.props.dragSelection) {
       return;
     }
     // make sure they're clicking & dragging and not just moving the mouse around
-    if (e.currentTarget.parentElement.querySelector('.' + this.props.classes.holder + ':active') !== e.currentTarget) {
+    if (e.currentTarget.parentElement.querySelector(`.${ classes.base }:active`) !== e.currentTarget) {
       return;
     }
 
@@ -229,15 +246,16 @@ class Minimap extends Component {
     });
   }
   handleUp (e) {
+    const { dragStart, dragEnd } = this.state;
     if (!this.props.dragSelection) {
       return;
     }
-    if (!this.state.dragStart) {
+    if (!dragStart) {
       return;
     }
-    let selectedArea = Math.abs(this.state.dragStart - this.state.dragEnd) * 100;
-    let startPercent = Math.min(this.state.dragStart, this.state.dragEnd);
-    let endPercent = Math.max(this.state.dragStart, this.state.dragEnd);
+    let selectedArea = Math.abs(dragStart - dragEnd) * 100;
+    let startPercent = Math.min(dragStart, dragEnd);
+    let endPercent = Math.max(dragStart, dragEnd);
 
     let startOffset = Math.round(this.percentToOffset(startPercent));
     let endOffset = Math.round(this.percentToOffset(endPercent));
@@ -273,7 +291,7 @@ class Minimap extends Component {
     });
 
     // make sure they're clicking & dragging and not just moving the mouse around
-    if (e.currentTarget.parentElement.querySelector('.' + this.props.classes.holder + ':active') !== e.currentTarget) {
+    if (e.currentTarget.parentElement.querySelector('.' + this.props.classes.base + ':active') !== e.currentTarget) {
       return;
     }
 
@@ -288,15 +306,17 @@ class Minimap extends Component {
     // do other things for drag selection!
   }
   percentToOffset (perc) {
+    const { zoom } = this.state;
     if (this.props.zoomed) {
-      return perc * (this.state.zoom.end - this.state.zoom.start) + (this.state.zoom.start - this.props.start);
+      return perc * (zoom.end - zoom.start) + (zoom.start - this.props.start);
     } else {
       return perc * this.props.range;
     }
   }
   offsetToPercent (offset) {
+    const { zoom } = this.state;
     if (this.props.zoomed) {
-      return (offset - (this.state.zoom.start - this.props.start)) / (this.state.zoom.end - this.state.zoom.start);
+      return (offset - (zoom.start - this.props.start)) / (zoom.end - zoom.start);
     } else {
       return offset / this.props.range;
     }
@@ -307,7 +327,7 @@ class Minimap extends Component {
       this.seekIndex = null;
     }
   }
-  progressBarBackground () {
+  styleEventBarBackground () {
     if (this.state.zoom.expanded) {
       return '';
     } else if (this.props.colored) {
@@ -315,53 +335,62 @@ class Minimap extends Component {
     } else {
       let color = theme.palette.grey[50] + '99';
       let endColor = theme.palette.grey[999] + '00';
-      // return 'linear-gradient(to left, rgba(25, 255, 25, 0.5), rgba(25, 255, 25, 0.1) 200px, rgba(255, 255, 255, 0) 250px)';
       return 'linear-gradient(to left, ' + color + ', ' + endColor + ' 200px';
     }
   }
   render () {
+    const { classes, hasThumbnails, tooltipped, hasRuler } = this.props;
     let hoverOffset = this.percentToOffset(this.state.hoverPercent);
     let timeString = null;
-
-    if (Number.isNaN(hoverOffset)) {
-      timeString = 'N/A';
-    } else {
-      let timestampAtOffset = this.props.start + hoverOffset;
-      timeString = fecha.format(timestampAtOffset, 'M/D HH:mm:ss');
+    if (tooltipped) {
+      if (Number.isNaN(hoverOffset)) {
+        timeString = 'N/A';
+      } else {
+        let timestampAtOffset = this.props.start + hoverOffset;
+        timeString = fecha.format(timestampAtOffset, 'M/D HH:mm:ss');
+      }
     }
-
     return (
       <div className={ this.props.className } style={ this.props.style } >
-        <div
-          className={ this.props.classes.holder + ' ' + (this.props.rounded ? this.props.classes.rounded : '') }
+        <div className={ cx(classes.base, {
+            rounded: this.props.rounded,
+            hasRuler: this.props.hasRuler,
+            hasThumbnails: this.props.hasThumbnails,
+          }) }
           onMouseDown={ this.handleDown }
           onMouseUp={ this.handleUp }
           onMouseMove={ this.handleMove }
           onClick={ this.handleClick } >
-          <div className={ classNames(this.props.classes.segments, {
-            thumbnailed: this.props.thumbnailed
-          }) }>
-            { this.props.segments ? this.props.segments.map(this.renderSegment) : [] }
-            { this.props.gradient && <div className={this.props.classes.gradient} /> }
+          <div className={ cx(classes.segments, { hasThumbnails, hasRuler }) }>
+            { this.props.segments && this.props.segments.map(this.renderSegment) }
+            { this.props.hasRuler && (
+              <div className={ classes.ruler }>
+                <div
+                  ref={ this.rulerRemaining }
+                  className={ classes.rulerRemaining } />
+              </div>
+            ) }
+            { this.props.hasGradient && (
+              <div
+                className={ cx(classes.statusGradient, {
+                  hasRuler: this.props.hasRuler,
+                }) } />
+            ) }
           </div>
           { this.renderDragger() }
           { this.renderZoom() }
-          <div style={{ background: this.progressBarBackground() }} className={ this.props.classes.progressBar } ref={ this.progressBar } />
-          <Tooltip
-            title={ timeString }
-            >
-            <div
-              className={ this.props.classes.hoverBead }
-              ref={ this.hoverBead }
-              style={{
-                left: this.state.mouseX - 25
-              }} />
-          </Tooltip>
-          { this.props.thumbnailed &&
+          { this.props.tooltipped &&
+            <Tooltip title={ timeString }>
+              <div
+                ref={ this.hoverBead }
+                className={ classes.hoverBead }
+                style={ { left: this.state.mouseX - 25 } } />
+            </Tooltip>
+          }
+          { hasThumbnails &&
             <Measure
               bounds
-              onResize={ (rect) => this.setState({ thumbnail: rect.bounds }) }
-            >
+              onResize={ (rect) => this.setState({ thumbnail: rect.bounds }) }>
               { this.renderThumbnails }
             </Measure>
           }
@@ -370,45 +399,50 @@ class Minimap extends Component {
     );
   }
   renderDragger () {
+    const { classes } = this.props;
     if (!this.props.dragSelection || !this.state.dragStart) {
       return [];
     }
     let color = theme.palette.grey[50] + 'cc';
     let endColor = theme.palette.grey[200] + 'aa';
+    const draggerStyle = {
+      background: 'linear-gradient(to left,' + color + ',' + endColor + ',' + color + ')',
+      left: (100 * Math.min(this.state.dragStart, this.state.dragEnd)) + '%',
+      width: (100 * Math.abs(this.state.dragStart - this.state.dragEnd)) + '%',
+    };
     return (
-      <div style={{
-        background: 'linear-gradient(to left, ' + color + ', ' + endColor + ', ' + color + ')',
-        left: (100 * Math.min(this.state.dragStart, this.state.dragEnd)) + '%',
-        width: (100 * Math.abs(this.state.dragStart - this.state.dragEnd)) + '%',
-      }} className={ this.props.classes.progressBar } ref={ this.dragBar } />
+      <div
+        ref={ this.dragBar }
+        style={ draggerStyle } />
     );
   }
   renderZoom () {
-    if (!this.props.dragSelection || !this.state.zoom.expanded || this.props.zoomed) {
+    const { zoom, classes } = this.props;
+    if (!this.props.dragSelection || !zoom.expanded || this.props.zoomed) {
       return [];
     }
     let color = theme.palette.grey[50] + 'cc';
     let endColor = theme.palette.grey[200] + 'aa';
-    let zoomStart = (this.state.zoom.start - this.props.start) / this.props.range;
-    let zoomEnd = (this.state.zoom.end - this.props.start) / this.props.range;
-
+    let zoomStart = (zoom.start - this.props.start) / this.props.range;
+    let zoomEnd = (zoom.end - this.props.start) / this.props.range;
+    const barStyle = {
+      background: 'linear-gradient(to left,' + color + ',' + endColor + ',' + color + ')',
+      left: (100 * Math.min(zoomStart, zoomEnd)) + '%',
+      width: (100 * Math.abs(zoomStart - zoomEnd)) + '%',
+    };
     return (
-      <div style={{
-        background: 'linear-gradient(to left, ' + color + ', ' + endColor + ', ' + color + ')',
-        left: (100 * Math.min(zoomStart, zoomEnd)) + '%',
-        width: (100 * Math.abs(zoomStart - zoomEnd)) + '%',
-      }} className={ this.props.classes.progressBar } />
+      <div
+        style={ barStyle } />
     );
   }
   renderSegment (segment) {
+    const { classes } = this.props;
     let startPerc = 100 * segment.offset / this.props.range;
     let widthPerc = 100 * segment.duration / this.props.range;
-
     if (this.props.zoomed) {
       let startOffset = this.state.zoom.start - this.props.start;
       let endOffset = this.state.zoom.end - this.props.start;
       let zoomDuration = endOffset - startOffset;
-
       if (segment.offset > endOffset) {
         return;
       }
@@ -423,22 +457,19 @@ class Minimap extends Component {
       width: widthPerc + '%',
       left: startPerc + '%',
     }
-    if (this.props.colored) {
-      return (
-        <div key={ segment.route + segment.offset } style={ style } className={ this.props.classes.segment }>
-          { this.renderSegmentEvents(segment) }
-        </div>
-      );
-    } else {
-      return (
-        <div key={ segment.route + segment.offset } style={ style } className={ this.props.classes.segment }>
-          <div className={ this.props.classes.uncoloredSegment }>
-          </div>
-        </div>
-      );
-    }
+    return (
+      <div
+        key={ segment.route + segment.offset }
+        className={ classes.segment }
+        style={ style }>
+        { this.props.colored ? this.renderSegmentEvents(segment) : (
+          <div className={ classes.uncoloredSegment } />
+        ) }
+      </div>
+    );
   }
   renderSegmentEvents (segment) {
+    const { classes } = this.props;
     return segment.events
       .filter((event) => event.data && event.data.end_route_offset_millis)
       .map((event, i) => {
@@ -458,20 +489,22 @@ class Minimap extends Component {
           <div
             key={ segment.route + i }
             style={ style }
-            className={ this.props.classes.segmentColor + ' ' + event.type + (event.data.alertStatus ? ' ' + AlertStatusCodes[event.data.alertStatus] : '') }
-            >
-          </div>
+            className={ cx(classes.segmentColor, event.type, {
+              [`${ AlertStatusCodes[event.data.alertStatus] }`]: event.data.alertStatus,
+            }) } />
         );
       });
   }
   renderThumbnails (options) {
+    const { classes } = this.props;
+    const { thumbnail } = this.state;
     const imgStyles = {
       display: 'inline-block',
-      height: this.state.thumbnail.height,
-      width: (1164 / 874) * this.state.thumbnail.height,
+      height: thumbnail.height,
+      width: (1164 / 874) * thumbnail.height,
     };
-    var imgCount = Math.ceil(this.state.thumbnail.width / imgStyles.width);
-    var gutter = 0; // (this.state.thumbnail.width - (imgCount * imgStyles.width)) / imgCount;
+    var imgCount = Math.ceil(thumbnail.width / imgStyles.width);
+    var gutter = 0;
     var blankImages = 0;
     imgStyles.marginRight = gutter / 2;
 
@@ -485,24 +518,31 @@ class Minimap extends Component {
       }
       let seconds = Math.floor((offset - segment.routeOffset) / 1000);
       let url = segment.url + '/sec' + seconds + '.jpg';
-
       imgArr.push((
-        <img src={ url } style={{
-          ...imgStyles,
-          marginLeft: ((imgStyles.width + gutter) * blankImages) + gutter
-        }} key={ i }/>
+        <img
+          key={ i }
+          src={ url }
+          style={{
+            ...imgStyles,
+            marginLeft: ((imgStyles.width + gutter) * blankImages) + gutter,
+          }} />
       ));
       blankImages = 0;
     }
+
     return (
-      <div ref={ options.measureRef } className={ this.props.classes.thumbnailHolder } >
+      <div
+        ref={ options.measureRef }
+        className={ cx(classes.thumbnailHolder, {
+          hasRuler: this.props.hasRuler,
+        }) } >
         { imgArr }
       </div>
     );
   }
 }
 
-export default connect(mapStateToProps)(withStyles(styles)(Minimap));
+export default connect(mapStateToProps)(withStyles(styles)(Timeline));
 
 function mapStateToProps(state) {
   return {

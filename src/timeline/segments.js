@@ -242,6 +242,8 @@ function segmentsFromMetadata (segmentsData) {
         deviceType: segment.devicetype,
         hpgps: segment.hpgps,
         hasDriverCamera: segmentHasDriverCamera,
+        locStart: '',
+        locEnd: '',
       };
       segments.push(curSegment);
     }

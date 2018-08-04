@@ -9,8 +9,8 @@ import Select from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
 import Typography from '@material-ui/core/Typography';
 
-import SingleMap from '../singlemap';
-import VideoPreview from '../video';
+import DriveMap from '../DriveMap';
+import DriveVideo from '../DriveVideo';
 
 const styles = theme => ({
   mediaSources: {
@@ -57,7 +57,7 @@ const styles = theme => ({
 
 const MediaType = {
   VIDEO: 'video',
-  UI: 'ui',
+  HUD: 'hud',
   MAP: 'map'
 }
 
@@ -66,10 +66,11 @@ class Media extends Component {
     super(props);
 
     this.state = {
-      inView: MediaType.UI,
+      inView: MediaType.HUD,
     }
   }
   render () {
+    const { classes } = this.props;
     let inView = this.state.inView;
     const mediaSource = 'eon-road-camera';
     return (
@@ -95,38 +96,44 @@ class Media extends Component {
             </Select>*/}
           </Grid>
           <Grid item xs={ 4 }
-            className={ this.props.classes.mediaOptions }>
+            className={ classes.mediaOptions }>
             <Grid item xs={ 4 }
-              className={ this.props.classes.mediaOption }
+              className={ classes.mediaOption }
               style={ inView === MediaType.VIDEO ? { opacity: 1 } : {}}
               onClick={() => this.setState({inView: MediaType.VIDEO})}>
-              <div className={ this.props.classes.mediaOptionIcon } />
-              <Typography className={ this.props.classes.mediaOptionText }>
+              <div className={ classes.mediaOptionIcon } />
+              <Typography className={ classes.mediaOptionText }>
                 Video
               </Typography>
             </Grid>
             <Grid item xs={ 4 }
-              className={ this.props.classes.mediaOption }
-              style={ inView === MediaType.UI ? { opacity: 1 } : {}}
-              onClick={() => this.setState({inView: MediaType.UI})}>
-              <div className={ this.props.classes.mediaOptionIcon } />
-              <Typography className={ this.props.classes.mediaOptionText }>
+              className={ classes.mediaOption }
+              style={ inView === MediaType.HUD ? { opacity: 1 } : {}}
+              onClick={() => this.setState({inView: MediaType.HUD})}>
+              <div className={ classes.mediaOptionIcon } />
+              <Typography className={ classes.mediaOptionText }>
                 HUD
               </Typography>
             </Grid>
             <Grid item xs={ 4 }
-              className={ this.props.classes.mediaOption }
+              className={ classes.mediaOption }
               style={ inView === MediaType.MAP ? { opacity: 1 } : {}}
               onClick={() => this.setState({inView: MediaType.MAP})}>
-              <div className={ this.props.classes.mediaOptionIcon } />
-              <Typography className={ this.props.classes.mediaOptionText }>
+              <div className={ classes.mediaOptionIcon } />
+              <Typography className={ classes.mediaOptionText }>
                 Map
               </Typography>
             </Grid>
           </Grid>
         </Grid>
-        { inView === MediaType.MAP && <SingleMap /> }
-        { inView !== MediaType.MAP && <VideoPreview shouldShowUI={ inView === MediaType.UI } onVideoChange={(noVideo) => this.setState({inView: noVideo ? MediaType.MAP : inView}) } /> }
+        { inView === MediaType.MAP && <DriveMap /> }
+        { inView !== MediaType.MAP &&
+          <DriveVideo
+            shouldShowUI={ inView === MediaType.HUD }
+            onVideoChange={ (noVideo) => {
+              this.setState({ inView: noVideo ? MediaType.MAP : inView }) }
+            } />
+        }
       </React.Fragment>
     );
   }
