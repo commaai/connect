@@ -129,7 +129,6 @@ function parseSegmentMetadata (state, segments, annotations) {
       segment.segment = segmentNum;
       if (segmentNum > 0) {
         routeStartTimes[segment.canonical_route_name] = segment.offset - (SEGMENT_LENGTH * segmentNum);
-        console.log('This is not the first segment but it looks like it wtf', segment);
       } else {
         routeStartTimes[segment.canonical_route_name] = segment.offset;
       }
