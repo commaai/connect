@@ -239,9 +239,15 @@ function scheduleSegmentUpdate (state) {
   if (state.nextSegment) {
     timeUntilNext = state.nextSegment.startOffset - offset;
   }
+  if (timeUntilNext < 0) {
+    debugger;
+  }
   if (state.currentSegment) {
     let time = (state.currentSegment.startOffset + state.currentSegment.duration) - offset;
     timeUntilNext = Math.min(time, timeUntilNext);
+  }
+  if (timeUntilNext < 0) {
+    debugger;
   }
   if (state.loop && state.loop.startTime) {
     let curTime = state.start + offset;
@@ -254,6 +260,9 @@ function scheduleSegmentUpdate (state) {
       timeUntilNext = Math.min(timeUntilLoop, timeUntilNext);
     }
   }
+  if (timeUntilNext < 0) {
+    debugger;
+  }
 
   if (timeUntilNext > 0) {
     console.log('Waiting', timeUntilNext, 'for something to change...');
@@ -262,7 +271,7 @@ function scheduleSegmentUpdate (state) {
       store.dispatch(Segments.updateSegments());
     }, timeUntilNext);
   } else {
-    console.log('There is not task i think its worth waiting for...');
+    console.log('There is not task i think its worth waiting for...', timeUntilNext);
   }
 }
 

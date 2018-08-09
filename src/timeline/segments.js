@@ -120,8 +120,27 @@ function resolveAnnotation (annotation, event, route) {
 }
 
 function parseSegmentMetadata (state, segments, annotations) {
+  var lastSegmentTime = 0;
+  var routeStartTimes = {};
   segments = segments.map(function (segment) {
     segment.offset = Math.round(segment.start_time_utc_millis) - state.start;
+    if (!routeStartTimes[segment.canonical_route_name]) {
+      let segmentNum = Number(segment.canonical_name.split('--')[2]);
+      segment.segment = segmentNum;
+      if (segmentNum > 0) {
+        routeStartTimes[segment.canonical_route_name] = segment.offset - (SEGMENT_LENGTH * segmentNum);
+      } else {
+        routeStartTimes[segment.canonical_route_name] = segment.offset;
+      }
+      segment.routeOffset = routeStartTimes[segment.canonical_route_name];
+    } else {
+      segment.routeOffset = routeStartTimes[segment.canonical_route_name];
+    }
+
+    // if (lastSegmentTime && segment.canonical_route_name === 'df4d7c59724ab244|2018-07-31--17-31-27') {
+    //   console.log('Segment length', segment.offset - lastSegmentTime, Object.keys(segment));
+    // }
+    lastSegmentTime = segment.offset;
     segment.duration = Math.round(segment.end_time_utc_millis - segment.start_time_utc_millis);
     segment.events = JSON.parse(segment.events_json) || [];
     let plannedDisengageEvents = segment.events.filter(function(event) {
@@ -130,6 +149,9 @@ function parseSegmentMetadata (state, segments, annotations) {
 
     segment.events.forEach(function (event) {
       event.timestamp = segment.start_time_utc_millis + event.offset_millis;
+      // segment.start_time_utc_millis + event.offset_millis
+      // segment.start_time_utc_millis - state.start + state.start
+
       event.canonical_segment_name = segment.canonical_name;
       annotations.forEach(function (annotation) {
         // debugger;
@@ -229,7 +251,7 @@ function segmentsFromMetadata (segmentsData) {
         url = parts.join('/');
       }
       curSegment = {
-        offset: segment.offset,
+        offset: segment.offset - (segment.segment * SEGMENT_LENGTH),
         route: segment.canonical_route_name,
         startTime: segment.start_time_utc_millis,
         startCoord: [segment.start_lng, segment.start_lat],
@@ -375,7 +397,7 @@ function getNextSegment (state, offset) {
           route: thisSegment.route,
           segment: segmentIndex + 1,
           routeOffset: thisSegment.offset,
-          startOffset: thisSegment.offset + SEGMENT_LENGTH * (segmentIndex + 1),
+          startOffset: thisSegment.offset + (segmentIndex + 1) * SEGMENT_LENGTH,
           duration: thisSegment.duration,
           events: thisSegment.events,
           deviceType: thisSegment.deviceType,
@@ -414,7 +436,7 @@ function getCurrentSegment (state, offset) {
         route: thisSegment.route,
         segment: segmentIndex,
         routeOffset: thisSegment.offset,
-        startOffset: thisSegment.offset + SEGMENT_LENGTH * segmentIndex,
+        startOffset: thisSegment.offset + segmentIndex * SEGMENT_LENGTH,
         duration: thisSegment.duration,
         events: thisSegment.events,
         deviceType: thisSegment.deviceType,
