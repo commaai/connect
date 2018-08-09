@@ -46,13 +46,21 @@ const styles = theme => {
     base: {
       backgroundColor: '#272D30',
     },
-    expandedd: {
+    isExpanded: {
       minHeight: 'initial',
       margin: '0px 0',
       backgroundColor: '#1D2225',
     },
+    bubble: {
+      background: 'linear-gradient(to bottom, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.55) 100%)',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: 60,
+      height: 28,
+      width: 28,
+    },
     heading: {
       fontWeight: 500,
+      paddingLeft: '5%',
     },
     date: {
       color: theme.palette.grey[100],
@@ -240,7 +248,6 @@ class AnnotationEntry extends Component {
       return;
     }
 
-    console.log('Hey check out this kickass annotation', data);
     this.setState({
       id: data.id,
       error: false,
@@ -261,7 +268,7 @@ class AnnotationEntry extends Component {
 
     return (
       <ExpansionPanel
-        classes={ { expanded: classes.expandedd } }
+        classes={ { expanded: classes.isExpanded } }
         className={ classes.base }
         key={ eventId }
         expanded={ this.props.expanded }
@@ -271,6 +278,7 @@ class AnnotationEntry extends Component {
           classes={ { content: classes.summaryContent } }>
           <Grid container alignItems='center' >
             <Grid item xs={ 1 }>
+              <div className={ classes.bubble } />
             </Grid>
             <Grid item xs={ 5 }>
               <Typography className={ classes.heading }>

@@ -16,8 +16,8 @@ import MenuItem from '@material-ui/core/MenuItem';
 import ListItem from '@material-ui/core/ListItem';
 import IconButton from '@material-ui/core/IconButton';
 
-import TimeDisplay from './TimeDisplay';
 import TimeFilter from './TimeFilter';
+import TimeDisplay from '../TimeDisplay';
 import { AccountIcon } from '../../icons';
 
 import { logOut } from '../../api/auth';
@@ -29,8 +29,7 @@ const styles = theme => {
     base: {
       backgroundColor: '#1D2225',
       borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-      paddingTop: '16px',
-      paddingBottom: '16px',
+      display: 'flex',
       width: '100%',
     },
     logo: {
@@ -40,29 +39,34 @@ const styles = theme => {
       textDecoration: 'none',
     },
     logoImg: {
-      width: 'auto',
       height: '34px',
-      margin: '16px 28px',
+      margin: '0px 28px',
+      width: 'auto',
     },
     logoText: {
       fontFamily: 'MaisonNeueExtended',
-      fontSize: 22,
+      fontSize: 18,
       fontWeight: 600,
     },
-    userMeta: {
-      outline: 'none',
-      padding: `${ theme.spacing.unit }px ${ theme.spacing.unit * 2 }px`,
-      borderBottom: '1px solid ' + theme.palette.white[12],
+    timeDisplay: {
+      alignItems: 'center',
     },
     selectArea: {
       alignItems: 'center',
       display: 'flex',
-      justifyContent: 'center',
+      justifyContent: 'flex-end',
+      marginLeft: 'auto',
+      paddingRight: 28,
     },
     accountIcon: {
       color: '#272D30',
       height: 34,
       width: 34,
+    },
+    userMeta: {
+      outline: 'none',
+      padding: `${ theme.spacing.unit }px ${ theme.spacing.unit * 2 }px`,
+      borderBottom: '1px solid ' + theme.palette.white[12],
     },
   };
 };
@@ -101,7 +105,7 @@ class AppHeader extends Component {
     return (
       <header className={ classes.base }>
         <Grid container spacing={ 0 }>
-          <Grid item xs={ 4 }>
+          <Grid item container xs={ 4 }>
             <Link to="/" className={ classes.logo }>
               <img src='/images/comma-white.png' className={ classes.logoImg } />
               <Typography className={ classes.logoText }>
@@ -109,10 +113,12 @@ class AppHeader extends Component {
               </Typography>
             </Link>
           </Grid>
-          <Grid item xs={ 6 } lg={ 4 } align='center'>
-            <TimeDisplay />
+          <Grid item container xs={ 4 } className={ classes.timeDisplay }>
+            <TimeDisplay isThin />
           </Grid>
-          <Grid item xs={ 5 } lg={ 4 } align='right' className={ classes.selectArea }>
+          <Grid
+            item xs={ 4 } align='right'
+            className={ classes.selectArea }>
             <TimeFilter />
             <IconButton
               aria-owns={open ? 'menu-appbar' : null}

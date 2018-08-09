@@ -3,23 +3,25 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { partial } from 'ap';
 import Raven from 'raven-js';
-
-import { withStyles } from '@material-ui/core/styles';
 import cx from 'classnames';
-import Button from '@material-ui/core/Button';
-import FormHelperText from '@material-ui/core/FormHelperText';
-import ExpansionPanel from '@material-ui/core/ExpansionPanel';
-import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
-import Grid from '@material-ui/core/Grid';
-import LinearProgress from '@material-ui/core/LinearProgress';
-import Pencil from '@material-ui/icons/Edit';
-import TextField from '@material-ui/core/TextField';
-import Typography from '@material-ui/core/Typography';
-import FormControl from '@material-ui/core/FormControl';
 
-import EonUpsell from '../Annotations/eonUpsell';
+import {
+  withStyles,
+  Grid,
+  Button,
+  Typography,
+  FormHelperText,
+  ExpansionPanel,
+  ExpansionPanelSummary,
+  LinearProgress,
+  FormControl,
+  TextField,
+} from '@material-ui/core';
+import Pencil from '@material-ui/icons/Edit';
+
 import * as API from '../../api';
 import Timelineworker from '../../timeline';
+import EonUpsell from '../Annotations/eonUpsell';
 
 const styles = theme => {
   return {
@@ -34,9 +36,9 @@ const styles = theme => {
       padding: 32,
       paddingTop: 16,
       paddingBottom: 16,
-    },
-    device_isSelected: {
-      backgroundColor: '#171B1D',
+      '&.isSelected': {
+        backgroundColor: '#171B1D',
+      }
     },
     deviceAvatar: {
       backgroundColor: '#1D2225',
@@ -175,9 +177,7 @@ class DeviceList extends Component {
       <div
         key={ device.dongle_id }
         onClick={ partial(this.props.handleDeviceSelected, device.dongle_id) }
-        className={ cx(classes.device, [{
-          [`${ classes.device_isSelected }`]: isSelected,
-        }]) }>
+        className={ cx(classes.device, [{ isSelected: isSelected }]) }>
         <div className={ classes.deviceAvatar } />
         <div className={ classes.deviceInfo }>
           <Typography variant='body2' className={ classes.deviceAlias }>

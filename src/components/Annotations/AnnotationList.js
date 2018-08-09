@@ -5,7 +5,7 @@ import { partial } from 'ap';
 import fecha from 'fecha';
 import { withStyles } from '@material-ui/core/styles';
 
-import AnnotationEntry from './entry';
+import AnnotationListItem from './AnnotationListItem';
 import GreyPandaUpsellRow from './greyPandaUpsell';
 import Timelineworker from '../../timeline';
 import { selectRange } from '../../actions';
@@ -80,7 +80,7 @@ class AnnotationList extends Component {
   renderEntry (segment, event, index) {
     const eventId = event.time + ':' + index;
     return (
-      <AnnotationEntry
+      <AnnotationListItem
         key={ eventId }
         segment={ segment }
         eventId={ eventId }

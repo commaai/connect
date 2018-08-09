@@ -75,7 +75,7 @@ class DriveListDrive extends Component {
     this.handleDriveClicked = this.handleDriveClicked.bind(this);
   }
 
-  componentWillMount() {
+  componentDidMount() {
     const { drive } = this.props;
     GeocodeApi().reverseLookup(drive.startCoord).then((startLocation) => {
       this.setState({ startLocation })

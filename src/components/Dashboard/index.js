@@ -30,7 +30,7 @@ const styles = theme => {
       background: 'linear-gradient(180deg, #1B2023 0%, #111516 100%)',
       display: 'flex',
       flexDirection: 'column',
-      minWidth: 300,
+      minWidth: 280,
       width: '20%',
     },
     sidebarHeader: {
@@ -60,10 +60,6 @@ const styles = theme => {
 class Dashboard extends Component {
   constructor (props) {
     super(props);
-
-    this.state = {
-      editingDevice: null,
-    };
 
     this.handleDeviceSelected = this.handleDeviceSelected.bind(this);
     this.goToAnnotation = this.goToAnnotation.bind(this);

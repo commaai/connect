@@ -45,7 +45,12 @@ const theme = createMuiTheme({
         marginLeft: 16,
         marginTop: 4
       }
-    }
+    },
+    MuiTab: {
+      root: {
+        minHeight: 40,
+      }
+    },
   },
   props: {
     MuiSelect: {

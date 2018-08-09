@@ -37,10 +37,19 @@ const styles = theme => {
       padding: theme.spacing.unit,
       maxWidth: 510,
       margin: '0 auto',
-    },
-    isExpanded: {},
-    fullHeight: {
-      height: '100%'
+      minWidth: 450,
+      opacity: 0,
+      pointerEvents: 'none',
+      transition: 'opacity 0.1s ease-in-out',
+      '&.isExpanded': {
+        opacity: 1,
+        pointerEvents: 'auto',
+      },
+      '&.isThin': {
+        height: 50,
+        paddingBottom: 0,
+        paddingTop: 0,
+      },
     },
     icon: {
       width: '98%',
@@ -73,6 +82,11 @@ const styles = theme => {
     iconBox: {
       display: 'inline-block',
       borderRight: '1px solid ' + theme.palette.grey[900]
+    },
+    dateTime: {
+      alignItems: 'center',
+      display: 'flex',
+      justifyContent: 'center',
     },
     currentTime: {
       fontSize: 15,
@@ -181,7 +195,11 @@ class TimeDisplay extends Component {
     const { classes } = this.props;
     const isPaused = this.props.playSpeed === 0;
     return (
-      <div className={ cx(classes.base, { isExpanded: this.props.expanded }) }>
+      <div
+        className={ cx(classes.base, {
+          isExpanded: this.props.expanded,
+          isThin: this.props.isThin,
+        }) }>
         <Grid container>
           <Grid item xs={ 3 }>
             <Grid container>
@@ -201,10 +219,12 @@ class TimeDisplay extends Component {
               </Grid>
             </Grid>
           </Grid>
-          <Grid item xs={ 6 }>
-            <Typography variant='caption' align='center' style={{ paddingTop: 4 }}>
-              CURRENT PLAYBACK TIME
-            </Typography>
+          <Grid item xs={ 6 } className={ classes.dateTime }>
+            { !this.props.isThin && (
+              <Typography variant='caption' align='center' style={{ paddingTop: 4 }}>
+                CURRENT PLAYBACK TIME
+              </Typography>
+            )}
             <Typography variant='body1' align='center'>
               <span ref={ this.textHolder } className={ classes.currentTime } >
                 { this.state.displayTime }

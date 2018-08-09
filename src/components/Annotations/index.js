@@ -2,20 +2,22 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
-import { withStyles } from '@material-ui/core/styles';
-import Grid from '@material-ui/core/Grid';
-import Slide from '@material-ui/core/Slide';
-import Typography from '@material-ui/core/Typography';
-import IconButton from '@material-ui/core/IconButton';
-import Paper from '@material-ui/core/Paper';
-
+import {
+  withStyles,
+  Grid,
+  Slide,
+  Paper,
+  Typography,
+  IconButton,
+} from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 
-import AnnotationTabs from './tabs';
+import AnnotationTabs from './AnnotationTabs';
 import EonUpsell from './eonUpsell';
-import Media from './media';
+import Media from './Media';
 import Timeline from '../Timeline';
+import TimeDisplay from '../TimeDisplay';
 import AnnotationsFooter from './footer';
 
 import { selectRange } from '../../actions';
@@ -24,35 +26,47 @@ import { DeviceType } from '../../defs/segments';
 const styles = theme => {
   return {
     base: {
+      display: 'flex',
+      flexDirection: 'column',
+      flexGrow: 1,
+    },
+    window: {
       background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
       borderRadius: 8,
       display: 'flex',
       flexDirection: 'column',
       flexGrow: 1,
-      margin: 24,
+      overflowY: 'scroll',
+      margin: 18,
     },
-
     header: {},
-    headerTitle: {
+    headerContext: {
       alignItems: 'center',
       display: 'flex',
       padding: 12,
       paddingLeft: 18,
       paddingRight: 24,
     },
-    headerTimeline: {},
-    viewer: {
-      padding: theme.spacing.unit * 4,
-    },
-
-    annotationsViewerHeaderName: {
+    headerTitle: {
       fontSize: 22,
       fontWeight: 700,
       paddingLeft: 12,
     },
-    annotationsViewerHeaderClose: {
+    headerActions: {
       marginLeft: 'auto',
-    }
+    },
+    headerTimeline: {},
+    viewer: {
+      padding: theme.spacing.unit * 4,
+    },
+    footer: {
+      alignItems: 'center',
+      background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
+      display: 'flex',
+      height: 64,
+      marginTop: 'auto',
+      width: '100%',
+    },
   };
 };
 
@@ -74,31 +88,36 @@ class Annotations extends Component {
     let shortName = routeName.split('|')[1];
     return (
       <div className={ classes.base }>
-        <div className={ classes.header }>
-          <div className={ classes.headerTitle }>
-            <IconButton aria-label='Go Back' onClick={ () => window.history.back() } >
-              <KeyboardBackspaceIcon />
-            </IconButton>
-            <Typography className={ classes.annotationsViewerHeaderName }>
-              { this.props.device.alias }
-            </Typography>
-            <IconButton onClick={ this.close } aria-label='Close' className={ classes.annotationsViewerHeaderClose }>
-              <CloseIcon />
-            </IconButton>
+        <div className={ classes.window }>
+          <div className={ classes.header }>
+            <div className={ classes.headerContext }>
+              <IconButton aria-label='Go Back' onClick={ () => window.history.back() } >
+                <KeyboardBackspaceIcon />
+              </IconButton>
+              <Typography className={ classes.headerTitle }>
+                { this.props.device.alias }
+              </Typography>
+              <div className={ classes.headerActions }>
+                <IconButton onClick={ this.close } aria-label='Close'>
+                  <CloseIcon />
+                </IconButton>
+              </div>
+            </div>
+            <Timeline className={ classes.headerTimeline }
+              zoomed colored hasThumbnails hasRuler hasGradient tooltipped dragSelection />
           </div>
-          <Timeline
-            className={ classes.headerTimeline }
-            zoomed colored hasThumbnails hasRuler hasGradient tooltipped dragSelection />
+          <div className={ classes.viewer }>
+            <Grid container spacing={ 32 }>
+              <Grid item xs={ 6 }>
+                { visibleSegment && this.renderAnnotationsElement(visibleSegment) }
+              </Grid>
+              <Grid item xs={ 6 }>
+                <Media />
+              </Grid>
+            </Grid>
+          </div>
         </div>
-        <div className={ classes.viewer }>
-          <Grid container spacing={ 32 }>
-            <Grid item xs={ 6 }>
-              { visibleSegment && this.renderAnnotationsElement(visibleSegment) }
-            </Grid>
-            <Grid item xs={ 6 }>
-              <Media />
-            </Grid>
-          </Grid>
+        <div className={ classes.footer }>
         </div>
       </div>
     );

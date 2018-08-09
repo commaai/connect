@@ -11,7 +11,7 @@ import Grid from '@material-ui/core/Grid';
 import { filterEvent } from '../../utils';
 import { selectRange } from '../../actions';
 import GeocodeApi from '../../api/geocode';
-import DriveListDrive from './DriveListDrive';
+import DriveListItem from './DriveListItem';
 
 const MIN_TIME_BETWEEN_ROUTES = 60000; // 1 minute
 
@@ -95,7 +95,7 @@ class DriveList extends Component {
         <ul className={ classes.drives }>
           { driveList.filter(this.filterShortDrives).map((drive) => {
               return (
-                <DriveListDrive
+                <DriveListItem
                   key={ drive.startTime }
                   drive={ drive }
                   deviceAlias={ deviceAlias } />

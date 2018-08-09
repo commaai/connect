@@ -24,8 +24,8 @@ const styles = theme => {
     },
     header: {
       display: 'flex',
-      height: 96,
-      minHeight: 96,
+      height: 64,
+      minHeight: 64,
     },
     window: {
       display: 'flex',
