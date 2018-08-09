@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import document from 'global/document';
 import { timeout } from 'thyming';
+import { partial } from 'ap';
 
 import { withStyles } from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
@@ -43,7 +44,7 @@ class AnnotationsFooter extends Component {
 
     this.copySegmentName = this.copySegmentName.bind(this);
     this.handleClose = this.handleClose.bind(this);
-    this.downloadVideoSegment = this.downloadVideoSegment.bind(this);
+    this.downloadSegmentFile = this.downloadSegmentFile.bind(this);
 
     this.state = {
       showCopiedSnack: false
@@ -67,19 +68,21 @@ class AnnotationsFooter extends Component {
     this.snackTimer = timeout(this.handleClose, 1000);
   }
 
-  async downloadVideoSegment() {
+  async downloadSegmentFile(type) {
     if (!this.props.segment) {
       return;
     }
+
     let seg = this.props.segment;
     let segmentKeyPath = seg.route.replace('|', '/') + '/' + seg.segment;
 
     let files = (await API.getRouteFiles(this.props.segment.route));
-    let videoMatchingSegment = files.cameras.find(function(video) {
-      return video.indexOf(segmentKeyPath) !== -1;
-    });
-    if (videoMatchingSegment) {
-      window.location = videoMatchingSegment;
+    let url = files[type].find(function(url) {
+      return url.indexOf(segmentKeyPath) !== -1;
+    })
+
+    if (url) {
+      window.open(url);
     }
   }
 
@@ -93,9 +96,14 @@ class AnnotationsFooter extends Component {
   render () {
     return (
       <Paper className={ this.props.classes.root } >
-        { this.props.segment && this.props.segment.hasVideo && this.props.segment.hasDriverCamera &&
-          <a className={ this.props.classes.footerButton } onClick={ this.downloadVideoSegment }>
+        { this.props.segment && this.props.segment.hasVideo &&
+          <a className={ this.props.classes.footerButton } onClick={ partial(this.downloadSegmentFile, 'cameras') }>
             Download Video Segment
+          </a>
+        }
+        { this.props.segment &&
+          <a className={ this.props.classes.footerButton } onClick={ partial(this.downloadSegmentFile, 'logs') }>
+            Download Log Segment
           </a>
         }
         <a className={ this.props.classes.footerButton } href={ 'https://community.comma.ai/cabana/?route=' + this.props.segment.route} target='_blank'>
