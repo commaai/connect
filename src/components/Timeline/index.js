@@ -545,7 +545,8 @@ class Timeline extends Component {
         continue;
       }
       let seconds = Math.floor((offset - segment.routeOffset) / 1000);
-      let url = segment.url + '/sec' + seconds + '.jpg';
+      let url = segment.url + '/sec' + seconds + '-tiny.jpg';
+
       imgArr.push((
         <img
           key={ i }

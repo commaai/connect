@@ -295,6 +295,13 @@ class TimelineInterface {
       return 0;
     }
   }
+  timestampToOffset (timestamp) {
+    if (this.state) {
+      return Playback.timestampToOffset(this.state, timestamp);
+    } else {
+      return 0;
+    }
+  }
   currentModel () {
     return this.getEventByType(Event_Which.MODEL, 1000);
   }

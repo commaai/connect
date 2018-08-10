@@ -39,14 +39,15 @@ class AnnotationList extends Component {
       this.setState({ expanded: false });
     }
   }
-  handleExpanded (eventId, seekpos) {
+
+  handleExpanded (eventId, timestamp) {
     const { zoom } = this.props;
     let isExpanded = this.state.expanded !== eventId && eventId;
     this.setState({
       expanded: isExpanded ? eventId : null
     });
     if (isExpanded) {
-      let loopStartTime = seekpos + this.props.start - LOOP_DURATION / 2;
+      let loopStartTime = timestamp - LOOP_DURATION / 2;
       let loopEndTime = loopStartTime + LOOP_DURATION;
       if (zoom && (loopStartTime < zoom.start || loopEndTime > zoom.end)) {
         this.props.dispatch(selectRange(loopStartTime, loopEndTime));
@@ -87,7 +88,9 @@ class AnnotationList extends Component {
         event={ event }
         expanded={ this.state.expanded === eventId }
         disabled={ !segment.hpgps }
-        onChange={ partial(this.handleExpanded, eventId, segment.routeOffset + event.route_offset_millis) } />
+        // expanded={ this.state.expanded ? this.state.expanded === eventId : index === 0 }
+        onChange={ partial(this.handleExpanded, eventId, event.timestamp) }
+      />
     );
   }
 }
