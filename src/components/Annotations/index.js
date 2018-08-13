@@ -118,10 +118,10 @@ class Annotations extends Component {
           </div>
         </div>
         <div className={ classes.footer }>
+          <AnnotationsFooter segment={ visibleSegment } />
         </div>
       </div>
     );
-    // { /* <AnnotationsFooter segment={ visibleSegment } /> */ }
   }
 
   renderAnnotationsElement(visibleSegment) {

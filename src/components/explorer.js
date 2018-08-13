@@ -30,6 +30,7 @@ const styles = theme => {
     window: {
       display: 'flex',
       flexGrow: 1,
+      minHeight: 0,
     },
   };
 };

@@ -12,6 +12,7 @@ import cx from 'classnames';
 
 import Measure from 'react-measure';
 import Tooltip from '@material-ui/core/Tooltip';
+import { render } from 'react-dom';
 
 import theme from '../../theme';
 import TimelineWorker from '../../timeline';
@@ -151,11 +152,13 @@ class Timeline extends Component {
     this.renderThumbnails = this.renderThumbnails.bind(this);
     this.sendSeek = debounce(this.sendSeek.bind(this), 1000 / 60);
 
+
     this.offsetValue = React.createRef();
     this.rulerRemaining = React.createRef();
     this.rulerRemainingHovered = React.createRef();
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
+    // this.canvas_speed = React.createRef();
 
     this.state = {
       dragStart: null,
@@ -353,6 +356,11 @@ class Timeline extends Component {
       TimelineWorker.seek(this.seekIndex);
       this.seekIndex = null;
     }
+  }
+
+  renderEventToCanvas (canvas, params, events, renderEvent) {
+    var { width, height } = canvas.getBoundingClientRect();
+
   }
 
   render () {

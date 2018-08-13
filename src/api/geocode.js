@@ -25,7 +25,7 @@ export default function geocodeApi() {
       }).send().then(response => {
         return new Promise((resolve, reject) => {
           const features = response.body.features;
-          if (features.length > 0) {
+          if (features[0].context) {
             let region = features[0].context.filter(getRegion)[0].short_code;
             if (region.includes('US-')) { region = region.substr(3); }
             const locality = features[0].context.filter(getLocality)[0].text;

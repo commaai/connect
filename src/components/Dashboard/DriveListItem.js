@@ -40,9 +40,15 @@ const styles = theme => {
       display: 'flex',
     },
     driveAvatar: {
+      alignItems: 'center',
       background: '#404B4F',
       borderRadius: 30,
+      color: '#fff',
+      display: 'flex',
+      fontWeight: 600,
       height: 52,
+      justifyContent: 'center',
+      margin: '0px 3%',
       width: 52,
     },
     driveTitle: {
@@ -95,6 +101,7 @@ class DriveListDrive extends Component {
     const { drive, deviceAlias, classes } = this.props;
     const { startLocation, endLocation } = this.state;
     const startTime = fecha.format(new Date(drive.startTime), 'HH:mm');
+    const startDate = fecha.format(new Date(drive.startTime), 'ddd, MMM D');
     const endTime = fecha.format(new Date(drive.startTime + drive.duration + 1000), 'HH:mm')
     const duration = formatDriveDuration(drive.duration);
     const points = getDrivePoints(drive.duration);
@@ -106,10 +113,12 @@ class DriveListDrive extends Component {
         <div className={ classes.driveHeader }>
           <Grid container>
             <Grid item xs={ 4 } className={ classes.driveHeaderIntro }>
-              <div className={ classes.driveAvatar } />
+              <div className={ classes.driveAvatar }>
+                { drive.annotations }
+              </div>
               <div className={ classes.driveTitle }>
                 <Typography variant='body2'>
-                  Drive from { startTime } to { endTime }
+                  { startDate } @ { startTime } to { endTime }
                 </Typography>
                 <Typography>
                   { deviceAlias }

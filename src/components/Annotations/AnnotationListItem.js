@@ -5,22 +5,24 @@ import { partial } from 'ap';
 import fecha from 'fecha';
 import Raven from 'raven-js';
 
-import { withStyles } from '@material-ui/core/styles';
-import Grid from '@material-ui/core/Grid';
-import Slide from '@material-ui/core/Slide';
-import Typography from '@material-ui/core/Typography';
-import ExpansionPanel from '@material-ui/core/ExpansionPanel';
-import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
-import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
-import ExpansionPanelActions from '@material-ui/core/ExpansionPanelActions';
-import Divider from '@material-ui/core/Divider';
-import Select from '@material-ui/core/Select';
-import MenuItem from '@material-ui/core/MenuItem';
-import Button from '@material-ui/core/Button';
-import TextField from '@material-ui/core/TextField';
-import Tooltip from '@material-ui/core/Tooltip';
-import FormHelperText from '@material-ui/core/FormHelperText';
-import LinearProgress from '@material-ui/core/LinearProgress';
+import {
+  withStyles,
+  Grid,
+  Slide,
+  Typography,
+  ExpansionPanel,
+  ExpansionPanelSummary,
+  ExpansionPanelDetails,
+  ExpansionPanelActions,
+  Divider,
+  Select,
+  MenuItem,
+  Button,
+  TextField,
+  Tooltip,
+  FormHelperText,
+  LinearProgress,
+} from '@material-ui/core';
 
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 

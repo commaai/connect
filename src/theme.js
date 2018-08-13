@@ -20,6 +20,9 @@ const theme = createMuiTheme({
           margin: '0',
         }
       },
+      selectMenu: {
+        paddingRight: 54,
+      },
       icon: {
         marginRight: 20,
         color: '#272D30'
