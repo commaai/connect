@@ -133,7 +133,7 @@ class AppHeader extends Component {
         <AppBar position='fixed' className={ this.props.classes.appBar }>
           <Toolbar className={ this.props.classes.toolBar } >
             <Grid container spacing={0} className={ this.props.classes.upperBar } >
-              <Grid item xs={4}>
+              <Grid item xs={2} lg={4}>
                 <Link to="/" className={ this.props.classes.logo }>
                   <img src='/images/comma-white.png' className={ this.props.classes.logoImg } />
                   <Typography className={ this.props.classes.logoText }>
@@ -150,7 +150,7 @@ class AppHeader extends Component {
               <Grid item xs={6} lg={4} align='center' >
                 <CurrentTime />
               </Grid>
-              <Grid item xs={5} lg={4} align='right' >
+              <Grid item xs={4} lg={4} align='right' >
                 <TimeframePicker />
                 <IconButton
                   aria-owns={open ? 'menu-appbar' : null}

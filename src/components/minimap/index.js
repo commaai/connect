@@ -483,7 +483,7 @@ class Minimap extends Component {
         blankImages++;
         continue;
       }
-      let seconds = Math.floor((offset - segment.routeOffset) / 1000);
+      let seconds = Math.floor((offset - segment.routeOffset) / 10000) * 10;
       let url = segment.url + '/sec' + seconds + '-tiny.jpg';
 
       imgArr.push((

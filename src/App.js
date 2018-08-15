@@ -60,10 +60,17 @@ class App extends Component {
 
     this.setState({ initialized: true });
   }
+  redirectLink () {
+    let url = '/';
+    if (typeof window.sessionStorage !== 'undefined') {
+      url = sessionStorage.redirectURL || '/';
+    }
+    return url;
+  }
   authRoutes () {
     return (
       <Switch>
-        <Route path="/auth/" render={ () => <Redirect to="/" /> } />
+        <Route path="/auth/" render={ () => <Redirect to={ this.redirectLink() } /> } />
         <Route path="/" component={ Explorer } />
       </Switch>
     );

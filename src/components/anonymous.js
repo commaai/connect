@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
+import window from 'global/window';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -53,6 +54,11 @@ const styles = theme => {
 };
 
 class AnonymousLanding extends Component {
+  componentWillMount () {
+    if (typeof window.sessionStorage !== 'undefined') {
+      sessionStorage.redirectURL = this.props.pathname;
+    }
+  }
   render () {
     return (
       <Grid container alignItems='center' justify='center' className={ this.props.classes.root }>
@@ -77,4 +83,8 @@ class AnonymousLanding extends Component {
   }
 }
 
-export default withStyles(styles)(AnonymousLanding);
+const stateToProps = Obstruction({
+  pathname: 'router.location.pathname'
+});
+
+export default connect(stateToProps)(withStyles(styles)(AnonymousLanding));

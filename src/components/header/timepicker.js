@@ -34,7 +34,6 @@ const styles = theme => {
       textAlign: 'right'
     },
     headerDropdown: {
-      minWidth: 320,
       textAlign: 'center',
       fontWeight: 500,
     },
@@ -142,9 +141,9 @@ class TimeframePicker extends Component {
     }
 
     let twoWeeksAgo = Date.now() - (1000 * 60 * 60 * 24 * 14);
-    return 'Past 2 Weeks'
-       + fecha.format(new Date(twoWeeksAgo), ' (MMM Do - ')
-       + fecha.format(new Date(), 'MMM Do)');
+    return '2 Weeks'
+       + fecha.format(new Date(twoWeeksAgo), ' (M/D - ')
+       + fecha.format(new Date(), 'M/D)');
   }
   last24HoursText () {
     if (!this.props.start || !this.props.end) {
@@ -171,43 +170,43 @@ class TimeframePicker extends Component {
           </Select>
         </FormControl>
 
-          <Modal
-            aria-labelledby="simple-modal-title"
-            aria-describedby="simple-modal-description"
-            open={ this.state.showPicker }
-            onClose={ this.handleClose }
-          >
-            <Paper className={ this.props.classes.modal } >
-              <DateTimePicker
-                minDate={ minDate }
-                value={ new Date(this.state.start || this.props.start || 0) }
-                onChange={ this.changeStart }
-                label="Start time"
-                showTodayButton
-              />
+        <Modal
+          aria-labelledby="simple-modal-title"
+          aria-describedby="simple-modal-description"
+          open={ this.state.showPicker }
+          onClose={ this.handleClose }
+        >
+          <Paper className={ this.props.classes.modal } >
+            <DateTimePicker
+              minDate={ minDate }
+              value={ new Date(this.state.start || this.props.start || 0) }
+              onChange={ this.changeStart }
+              label="Start time"
+              showTodayButton
+            />
 
-              <DateTimePicker
-                minDate={ minDate }
-                value={ new Date(this.state.end || this.props.end || 0) }
-                onChange={ this.changeEnd }
-                label="End time"
-                showTodayButton
-              />
-              <br />
-              <br />
-              <Divider />
-              <br />
-              <div className={ this.props.classes.buttonGroup } >
-                <Button variant='contained' onClick={ this.handleClose } >
-                  Cancel
-                </Button>
-                &nbsp;
-                <Button variant='contained' color='secondary' onClick={ this.handleSave }>
-                  Save
-                </Button>
-              </div>
-            </Paper>
-          </Modal>
+            <DateTimePicker
+              minDate={ minDate }
+              value={ new Date(this.state.end || this.props.end || 0) }
+              onChange={ this.changeEnd }
+              label="End time"
+              showTodayButton
+            />
+            <br />
+            <br />
+            <Divider />
+            <br />
+            <div className={ this.props.classes.buttonGroup } >
+              <Button variant='contained' onClick={ this.handleClose } >
+                Cancel
+              </Button>
+              &nbsp;
+              <Button variant='contained' color='secondary' onClick={ this.handleSave }>
+                Save
+              </Button>
+            </div>
+          </Paper>
+        </Modal>
       </React.Fragment>
     );
   }

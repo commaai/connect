@@ -9,7 +9,8 @@ const theme = createMuiTheme({
   overrides: {
     MuiSelect: {
       select: {
-        padding: '12px 16px',
+        padding: '12px',
+        paddingRight: '48px',
         margin: '0px',
         '&>div': {
           margin: '0',
