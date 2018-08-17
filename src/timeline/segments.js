@@ -275,7 +275,7 @@ function segmentsFromMetadata (segmentsData) {
     curSegment.hasDriverCamera = (curSegment.hasDriverCamera || segmentHasDriverCamera);
     curSegment.hpgps = (curSegment.hpgps || segment.hpgps);
     curSegment.duration = (segment.offset - curSegment.offset) + segment.duration;
-    curSegment.segments++;
+    curSegment.segments = Math.max(curSegment.segments, Number(segment.canonical_name.split('--').pop()) + 1);
     curSegment.events = curSegment.events.concat(segment.events);
     curSegment.endCoord = [segment.end_lng, segment.end_lat];
   });
