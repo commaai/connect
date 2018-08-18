@@ -100,6 +100,10 @@ const styles = theme => {
       borderRadius: 30,
       padding: '12px 24px',
     },
+    reasonDetailed: {
+      paddingLeft: '30px',
+      color: theme.palette.lightGrey[200],
+    }
   };
 };
 
@@ -293,16 +297,19 @@ class AnnotationEntry extends Component {
                   </MenuItem>
                 }
                 { this.isPlanned() && <MenuItem value={ this.props.event.annotation.data.reason }>{ this.props.event.annotation.data.reason }</MenuItem> }
-                <MenuItem value='arbitrary'>Arbitrary or accidental</MenuItem>
+                <MenuItem value='arbitrary'>I wanted to take over</MenuItem>
+                <MenuItem className={ this.props.classes.reasonDetailed } value='different-way'>Go a different way</MenuItem>
+                <MenuItem className={ this.props.classes.reasonDetailed } value='lanes'>Change lanes</MenuItem>
+                <MenuItem className={ this.props.classes.reasonDetailed } value='too-slow'>Accelerate quicker</MenuItem>
+                <MenuItem className={ this.props.classes.reasonDetailed } value='exit'>Take an exit</MenuItem>
+                <MenuItem className={ this.props.classes.reasonDetailed } value='stop-light'>Stop at light</MenuItem>
+                <MenuItem className={ this.props.classes.reasonDetailed } value='stop-sign'>Stop at sign</MenuItem>
+
                 <MenuItem value='danger'>I needed to take over for safety</MenuItem>
-                <MenuItem value='lanes'>Lane change</MenuItem>
-                <MenuItem value='different-way'>Go a different way</MenuItem>
-                <MenuItem value='sharp-turn'>Turn too sharp</MenuItem>
-                <MenuItem value='too-slow'>I wanted to accelerate quicker</MenuItem>
-                <MenuItem value='exit'>Took an exit</MenuItem>
-                <MenuItem value='stop-light'>Stopped at light</MenuItem>
-                <MenuItem value='stop-sign'>Stopped at sign</MenuItem>
-                <MenuItem value='bad-lanes'>Lanes misidentified</MenuItem>
+                <MenuItem className={ this.props.classes.reasonDetailed } value='sharp-turn'>Turn too sharp</MenuItem>
+                <MenuItem className={ this.props.classes.reasonDetailed } value='bad-lanes'>Lanes misidentified</MenuItem>
+                <MenuItem className={ this.props.classes.reasonDetailed } value='bad-lead-car'>Lead car misidentified</MenuItem>
+
                 <MenuItem value='other'>Other (explain in comment)</MenuItem>
               </Select>
             ))}
