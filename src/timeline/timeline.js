@@ -263,9 +263,6 @@ function scheduleSegmentUpdate (state) {
   if (timeUntilNext < 0) {
     debugger;
   }
-  if (timeUntilNext > 60000) {
-    debugger;
-  }
 
   if (timeUntilNext > 0) {
     console.log('Waiting', timeUntilNext, 'for something to change...');
