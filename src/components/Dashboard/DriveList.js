@@ -193,6 +193,7 @@ class DriveList extends Component {
           annotations: 0,
           startCoord: segment.startCoord,
           endCoord: segment.endCoord,
+          distanceMiles: segment.distanceMiles,
         };
         driveList.unshift(curRideChunk);
         lastSegmentEnd = segment.startTime;

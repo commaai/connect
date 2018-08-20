@@ -113,7 +113,6 @@ class TimeSelect extends Component {
 
   selectedOption () {
     var timeRange = this.props.end - this.props.start;
-    console.log(timeRange);
 
     if (Math.abs(this.props.end - Date.now()) < 1000 * 60 * 60) {
       // ends right around now

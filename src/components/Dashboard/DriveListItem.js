@@ -13,6 +13,7 @@ import { formatDriveDuration, getDrivePoints } from '../../utils';
 import GeocodeApi from '../../api/geocode';
 import Timeline from '../Timeline';
 import { RightArrow } from '../../icons';
+import { KM_PER_MI } from '../../utils/conversions';
 
 const styles = theme => {
   return {
@@ -151,10 +152,10 @@ class DriveListDrive extends Component {
             </Grid>
             <Grid item xs={ 1 }>
               <Typography variant='body2'>
-                32.4 mi
+                { +drive.distanceMiles.toFixed(1) } mi
               </Typography>
               <Typography>
-                52.2 mi
+                { +(drive.distanceMiles * KM_PER_MI).toFixed(1) } km
               </Typography>
             </Grid>
             <Grid item xs={ 1 }>

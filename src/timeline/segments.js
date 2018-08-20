@@ -266,6 +266,7 @@ function segmentsFromMetadata (segmentsData) {
         hasDriverCamera: segmentHasDriverCamera,
         locStart: '',
         locEnd: '',
+        distanceMiles: 0.0,
       };
       segments.push(curSegment);
     }
@@ -280,6 +281,7 @@ function segmentsFromMetadata (segmentsData) {
     curSegment.segments = Math.max(curSegment.segments, Number(segment.canonical_name.split('--').pop()) + 1);
     curSegment.events = curSegment.events.concat(segment.events);
     curSegment.endCoord = [segment.end_lng, segment.end_lat];
+    curSegment.distanceMiles += segment.length;
   });
 
   if (curSegment) {
@@ -388,6 +390,7 @@ function getNextSegment (state, offset) {
         hpgps: thisSegment.hpgps,
         hasVideo: thisSegment.hasVideo,
         hasDriverCamera: thisSegment.hasDriverCamera,
+        distanceMiles: thisSegment.distanceMiles,
       };
       break;
     }
@@ -407,6 +410,7 @@ function getNextSegment (state, offset) {
           hpgps: thisSegment.hpgps,
           hasVideo: thisSegment.hasVideo,
           hasDriverCamera: thisSegment.hasDriverCamera,
+          distanceMiles: thisSegment.distanceMiles,
         };
       }
     }
@@ -446,6 +450,7 @@ function getCurrentSegment (state, offset) {
         hpgps: thisSegment.hpgps,
         hasVideo: thisSegment.hasVideo,
         hasDriverCamera: thisSegment.hasDriverCamera,
+        distanceMiles: thisSegment.distanceMiles,
       };
     }
   }
