@@ -43,6 +43,7 @@ export default function reducer (state = initialState, action) {
     case ACTION_UPDATE_DEVICE:
       let deviceIndex = state.devices.findIndex(d => d.dongle_id === action.device.dongle_id);
       state.devices[deviceIndex] = action.device;
+      state.device = action.device;
       break;
     default:
       return state;

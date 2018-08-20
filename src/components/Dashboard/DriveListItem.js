@@ -69,14 +69,9 @@ class DriveListDrive extends Component {
   constructor (props) {
     super(props);
 
-    const _location = {
-      neighborhood: 'undefined',
-      locality: 'undefined',
-      region: 'NA',
-    };
     this.state = {
-      startLocation: _location,
-      endLocation: _location,
+      startLocation: null,
+      endLocation: null,
     }
 
     this.handleDriveClicked = this.handleDriveClicked.bind(this);
@@ -135,19 +130,19 @@ class DriveListDrive extends Component {
               </Typography>
             </Grid>
             <Grid item xs={ 2 }>
-            <Typography variant='body2'>
-              { startLocation.neighborhood }
-            </Typography>
-            <Typography>
-              { startLocation.locality }, { startLocation.region }
-            </Typography>
+              <Typography variant='body2'>
+                { startLocation && startLocation.neighborhood }
+              </Typography>
+              <Typography>
+                { startLocation && (startLocation.locality + ', ' + startLocation.region) }
+              </Typography>
             </Grid>
             <Grid item xs={ 2 }>
               <Typography variant='body2'>
-                { endLocation.neighborhood }
+                { endLocation && endLocation.neighborhood }
               </Typography>
               <Typography>
-                { endLocation.locality }, { endLocation.region }
+                { endLocation && (endLocation.locality + ', ' + endLocation.region) }
               </Typography>
             </Grid>
             <Grid item xs={ 1 }>

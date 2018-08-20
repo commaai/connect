@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { partial } from 'ap';
 import fecha from 'fecha';
-import Raven from 'raven-js';
 
 import {
   withStyles,
@@ -13,18 +12,13 @@ import {
   MenuItem,
   ListItem,
   IconButton,
-  Button,
-  Paper,
-  Modal,
-  TextField,
 } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
 
 import { filterEvent } from '../../utils';
 import { selectRange } from '../../actions';
-import * as API from '../../api';
-import Timelineworker from '../../timeline';
 import GeocodeApi from '../../api/geocode';
+import DeviceSettingsModal from './DeviceSettingsModal';
 import DriveListItem from './DriveListItem';
 
 const MIN_TIME_BETWEEN_ROUTES = 60000; // 1 minute
@@ -63,15 +57,6 @@ const styles = theme => {
     settingsButtonIcon: {
       color: '#272D30',
     },
-    modal: {
-      position: 'absolute',
-      padding: theme.spacing.unit * 2,
-      width: theme.spacing.unit * 50,
-      margin: '0 auto',
-      left: '50%',
-      top: '40%',
-      transform: 'translate(-50%, -50%)'
-    },
   }
 };
 
@@ -87,22 +72,12 @@ class DriveList extends Component {
     this.handleClosedSettings = this.handleClosedSettings.bind(this);
     this.handleOpenedSettingsModal= this.handleOpenedSettingsModal.bind(this);
     this.handleCanceledSettings= this.handleCanceledSettings.bind(this);
-    this.handleAliasChange = this.handleAliasChange.bind(this);
-    this.handleAliasFieldKeyPress = this.handleAliasFieldKeyPress.bind(this);
-    this.setDeviceAlias = this.setDeviceAlias.bind(this);
+    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
 
     this.state = {
       anchorEl: null,
-      showDeviceSettings: false,
-      editingDevice: null,
-      deviceAlias: '',
-      deviceAliasSaved: '',
-      isWaitingForApi: false,
+      showDeviceSettingsModal: false,
     }
-  }
-
-  componentDidMount () {
-    this.setState({ deviceAliasSaved: this.props.device.alias })
   }
 
   filterShortDrives(ride) {
@@ -124,21 +99,20 @@ class DriveList extends Component {
   }
 
   handleOpenedSettingsModal (device) {
-    this.setState({ showDeviceSettings: true })
+    this.setState({ showDeviceSettingsModal: true })
     if (this.state.editingDevice === device.dongle_id) {
       this.setState({ editingDevice: null });
-    } else {
-      this.setState({
-        editingDevice: device.dongle_id,
-        deviceAlias: this.state.deviceAliasSaved,
-      });
     }
+  }
+
+  handleClosedSettingsModal() {
+    this.setState({ showDeviceSettingsModal: false });
   }
 
   handleCanceledSettings () {
     this.setState({
       anchorEl: null,
-      showDeviceSettings: false,
+      showDeviceSettingsModal: false,
     })
   }
 
@@ -148,37 +122,8 @@ class DriveList extends Component {
     });
   }
 
-  handleAliasChange (e) {
-    this.setState({ deviceAlias: e.target.value });
-  }
-
-  handleAliasFieldKeyPress (dongle_id, e) {
-    if (e.key === 'Enter' && !this.state.isWaitingForApi) {
-      this.setDeviceAlias(dongle_id);
-    }
-  }
-
-  async setDeviceAlias (dongle_id) {
-    this.setState({ isWaitingForApi: true });
-    try {
-      const device = await API.setDeviceAlias(dongle_id, this.state.deviceAlias.trim());
-      Timelineworker.updateDevice(device);
-      this.setState({
-        isWaitingForApi: false,
-        editingDevice: null ,
-        anchorEl: null,
-        showDeviceSettings: false,
-        deviceAliasSaved: this.state.deviceAlias,
-      });
-    } catch(e) {
-      Raven.captureException(e);
-      this.setState({ error: e.message, isWaitingForApi: false });
-    }
-  }
-
   render () {
     const { classes, device, segments } = this.props;
-    const deviceAlias = this.state.deviceAliasSaved;
     var driveList = [];
     var lastEnd = 0;
     var lastSegmentEnd = 0;
@@ -217,7 +162,7 @@ class DriveList extends Component {
                 <DriveListItem
                   key={ drive.startTime }
                   drive={ drive }
-                  deviceAlias={ deviceAlias } />
+                  deviceAlias={ device.alias } />
               )
             })
           }
@@ -250,13 +195,12 @@ class DriveList extends Component {
 
   renderDriveListHeader() {
     const { classes, device } = this.props;
-    const deviceAlias = this.state.deviceAliasSaved;
     return (
       <div className={ classes.header }>
         <Grid container alignItems='center'>
           <Grid item xs={ 4 }>
             <Typography variant='title'>
-              { deviceAlias } Drives
+              { device.alias } Drives
             </Typography>
           </Grid>
           <Grid item xs={ 2 }>
@@ -292,7 +236,6 @@ class DriveList extends Component {
   renderDriveListSettings() {
     const { classes, device } = this.props;
     const { anchorEl } = this.state;
-    const deviceAlias = this.state.deviceAliasSaved;
     const open = Boolean(anchorEl);
     return (
       <React.Fragment>
@@ -319,36 +262,17 @@ class DriveList extends Component {
           <ListItem classes={ { root: classes.userMeta } } disableGutters>
             <div>
               <Typography variant='body2' paragraph>
-                { deviceAlias }
+                { device.alias }
               </Typography>
             </div>
           </ListItem>
           <MenuItem onClick={ partial(this.handleOpenedSettingsModal, device) }>Edit Device</MenuItem>
         </Menu>
-        <Modal
-          aria-labelledby='device-settings-modal'
-          aria-describedby='device-settings-modal-description'
-          open={ this.state.showDeviceSettings }
-          onClose={ this.handleCanceledSettings }>
-          <Paper className={ this.props.classes.modal }>
-            <TextField
-              id='device_alias'
-              label="Device Name"
-              className={ classes.textField }
-              value={ this.state.deviceAlias }
-              onChange={ this.handleAliasChange }
-              onKeyPress={ partial(this.handleAliasFieldKeyPress, device.dongle_id) } />
-            <div className={ this.props.classes.buttonGroup }>
-              <Button variant='contained' onClick={ this.handleCanceledSettings }>
-                Cancel
-              </Button>
-              &nbsp;
-              <Button variant='contained' color='secondary' onClick={ partial(this.setDeviceAlias, device.dongle_id)  }>
-                Save
-              </Button>
-            </div>
-          </Paper>
-        </Modal>
+        <DeviceSettingsModal
+          isOpen={ this.state.showDeviceSettingsModal }
+          onClose={ this.handleClosedSettingsModal }
+          onCancel={ this.handleCanceledSettings }
+        />
       </React.Fragment>
     )
   }
@@ -357,8 +281,8 @@ class DriveList extends Component {
 const stateToProps = Obstruction({
   segments: 'workerState.segments',
   start: 'workerState.start',
-  devices: 'workerState.devices',
   device: 'workerState.device',
+  isSuperUser: 'workerState.profile.superuser',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveList));
