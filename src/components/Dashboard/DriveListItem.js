@@ -128,7 +128,7 @@ class DriveListDrive extends Component {
             </Grid>
             <Grid item xs={ 2 }>
               <Typography variant='body2'>
-                { duration.hours }hr { duration.minutes }min
+                { duration.hours > 0 && duration.hours.toString() + 'hr ' }{ duration.minutes }min
               </Typography>
               <Typography>
                 { points } points
