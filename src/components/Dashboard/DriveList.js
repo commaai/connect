@@ -80,7 +80,13 @@ class DriveList extends Component {
     }
   }
 
-  filterShortDrives(ride) {
+  componentWillReceiveProps (props) {
+    if (props.device && !this.state.deviceAliasSaved) {
+      this.setState({ deviceAliasSaved: props.device.alias });
+    }
+  }
+
+  filterShortDrives (ride) {
     return ride.duration >= 180000;
   }
 
@@ -224,7 +230,7 @@ class DriveList extends Component {
             </Typography>
           </Grid>
           <Grid item xs={ 1 } className={ classes.settingsArea }>
-            { (!device.shared && (device.is_owner || this.props.isSuperUser)) &&
+            { ((device && !device.shared && device.is_owner) || this.props.isSuperUser) &&
               this.renderDriveListSettings()
             }
           </Grid>
