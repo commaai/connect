@@ -243,7 +243,7 @@ function scheduleSegmentUpdate (state) {
     debugger;
   }
   if (state.currentSegment) {
-    let time = (state.currentSegment.startOffset + state.currentSegment.duration) - offset;
+    let time = (state.currentSegment.routeOffset + state.currentSegment.duration) - offset;
     timeUntilNext = Math.min(time, timeUntilNext);
   }
   if (timeUntilNext < 0) {
@@ -263,6 +263,9 @@ function scheduleSegmentUpdate (state) {
   if (timeUntilNext < 0) {
     debugger;
   }
+  if (timeUntilNext > 60000) {
+    debugger;
+  }
 
   if (timeUntilNext > 0) {
     console.log('Waiting', timeUntilNext, 'for something to change...');
@@ -272,6 +275,7 @@ function scheduleSegmentUpdate (state) {
     }, timeUntilNext);
   } else {
     console.log('There is not task i think its worth waiting for...', timeUntilNext);
+    debugger;
   }
 }
 

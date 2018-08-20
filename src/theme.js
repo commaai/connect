@@ -14,7 +14,8 @@ const theme = createMuiTheme({
     },
     MuiSelect: {
       select: {
-        padding: '12px 16px',
+        padding: '12px',
+        paddingRight: '48px',
         margin: '0px',
         '&>div': {
           margin: '0',
@@ -94,6 +95,9 @@ const theme = createMuiTheme({
       900: Colors.grey900,
       950: Colors.grey950,
       999: Colors.grey999
+    },
+    lightGrey: {
+      200: Colors.lightGrey200,
     },
     white: {
       10: Colors.white10,

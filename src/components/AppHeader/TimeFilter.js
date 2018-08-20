@@ -146,9 +146,9 @@ class TimeSelect extends Component {
     }
 
     let twoWeeksAgo = Date.now() - (1000 * 60 * 60 * 24 * 14);
-    return 'Past 2 Weeks'
-       + fecha.format(new Date(twoWeeksAgo), ' (MMM Do - ')
-       + fecha.format(new Date(), 'MMM Do)');
+    return '2 Weeks'
+       + fecha.format(new Date(twoWeeksAgo), ' (M/D - ')
+       + fecha.format(new Date(), 'M/D)');
   }
 
   last24HoursText () {
@@ -185,20 +185,22 @@ class TimeSelect extends Component {
               minDate={ minDate }
               value={ new Date(this.state.start || this.props.start || 0) }
               onChange={ this.changeStart }
-              label='Start time'
-              showTodayButton />
+              label="Start time"
+              showTodayButton
+            />
             <DateTimePicker
               minDate={ minDate }
               value={ new Date(this.state.end || this.props.end || 0) }
               onChange={ this.changeEnd }
-              label='End time'
-              showTodayButton />
+              label="End time"
+              showTodayButton
+            />
             <br />
             <br />
             <Divider />
             <br />
-            <div className={ this.props.classes.buttonGroup }>
-              <Button variant='contained' onClick={ this.handleClose }>
+            <div className={ this.props.classes.buttonGroup } >
+              <Button variant='contained' onClick={ this.handleClose } >
                 Cancel
               </Button>
               &nbsp;

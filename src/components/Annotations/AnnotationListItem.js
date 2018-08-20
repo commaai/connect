@@ -29,18 +29,21 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import * as API from '../../api';
 import Timelineworker from '../../timeline';
 
-const disengagementReasons = [
-  { value: 'arbitrary', title: 'Arbitrary or accidental' },
-  { value: 'danger', title: 'I needed to take over for safety' },
-  { value: 'lanes', title: 'Lane change' },
+const DISENGAGEMENT_REASONS = [
+  { value: "arbitrary", title: "I wanted to take over", header: true },
   { value: 'different-way', title: 'Go a different way' },
+  { value: 'lanes', title: 'Change lanes' },
+  { value: 'too-slow', title: 'Accelerate quicker' },
+  { value: 'exit', title: 'Take an exit' },
+  { value: 'stop-light', title: 'Stop at light' },
+  { value: 'stop-sign', title: 'Stop at sign' },
+  { value: 'other-desire', title: 'Other (explain in comment)' },
+
+  { value: 'danger', title: 'I needed to take over for safety', header: true },
   { value: 'sharp-turn', title: 'Turn too sharp' },
-  { value: 'too-slow', title: 'I wanted to accelerate quicker' },
-  { value: 'exit', title: 'Took an exit' },
-  { value: 'stop-light', title: 'Stopped at light' },
-  { value: 'stop-sign', title: 'Stopped at sign' },
   { value: 'bad-lanes', title: 'Lanes misidentified' },
-  { value: 'other', title: 'Other (explain in comment)' },
+  { value: 'bad-lead-car', title: 'Lead car misidentified' },
+  { value: 'other-safety', title: 'Other (explain in comment)' },
 ];
 
 const styles = theme => {
@@ -127,6 +130,10 @@ const styles = theme => {
       padding: '12px 24px',
       textTransform: 'none',
     },
+    reasonDetailed: {
+      paddingLeft: '30px',
+      color: theme.palette.lightGrey[200],
+    }
   };
 };
 
@@ -322,11 +329,12 @@ class AnnotationEntry extends Component {
                     { event.annotation.data.reason }
                   </MenuItem>
                 }
-                { disengagementReasons.map((disengagementReason) => {
+                { DISENGAGEMENT_REASONS.map((disengagementReason) => {
                     return (
                       <MenuItem
                         key={ disengagementReason.value }
-                        value={ disengagementReason.value }>
+                        value={ disengagementReason.value }
+                        className={ !disengagementReason.header && this.props.classes.reasonDetailed }>
                         { disengagementReason.title }
                       </MenuItem>
                     )
