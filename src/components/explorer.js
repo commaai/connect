@@ -4,13 +4,12 @@ import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
-import Slide from '@material-ui/core/Slide';
 import Typography from '@material-ui/core/Typography';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-import Annotations from './annotations';
-import Header from './header';
-import Dashboard from './dashboard';
+import AppHeader from './AppHeader';
+import Dashboard from './Dashboard';
+import Annotations from './Annotations';
 
 import Timelineworker from '../timeline';
 import { selectRange } from '../actions';
@@ -18,6 +17,21 @@ import { getDongleID, getZoom } from '../url';
 
 const styles = theme => {
   return {
+    base: {
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+    },
+    header: {
+      display: 'flex',
+      height: 64,
+      minHeight: 64,
+    },
+    window: {
+      display: 'flex',
+      flexGrow: 1,
+      minHeight: 0,
+    },
   };
 };
 
@@ -65,16 +79,17 @@ class ExplorerApp extends Component {
     }
     this.props.dispatch(selectRange(zoom.start, zoom.end));
   }
+
   render() {
+    const { classes, expanded } = this.props;
     return (
-      <div>
-        <Header />
-        <Slide direction='down' in={ !this.props.expanded } mountOnEnter unmountOnExit>
-          <Dashboard />
-        </Slide>
-        <Slide direction='up' in={ this.props.expanded } mountOnEnter unmountOnExit>
-          <Annotations />
-        </Slide>
+      <div className={ classes.base }>
+        <div className={ classes.header }>
+          <AppHeader />
+        </div>
+        <div className={ classes.window }>
+          { expanded ? (<Annotations />) : (<Dashboard />) }
+        </div>
       </div>
     );
   }

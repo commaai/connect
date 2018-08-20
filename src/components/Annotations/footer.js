@@ -17,9 +17,8 @@ const styles = theme => {
     root: {
       width: '100%',
       height: '100%',
-      paddingTop: theme.spacing.unit * 2,
-      marginTop: theme.spacing.unit * 2,
-      background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
+      paddingTop: theme.spacing.unit,
+      background: 'transparent',
       textAlign: 'right'
     },
     footerButton: {

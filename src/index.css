@@ -10,13 +10,28 @@ html {
 }
 
 body {
-  background-color: #151719;
+  /* background-color: #151719; */
+  background: #16181A;
   font-family: 'MaisonNeue', sans-serif;
   margin: 0;
+  overflow: hidden;
   padding: 0;
 }
 
-::-webkit-scrollbar-track {
+#root {
+  height: 100vh;
+  width: 100vw;
+}
+
+/*
+
+  Scrollbar
+  ~~~~~~~~~~
+
+*/
+
+::-webkit-scrollbar-track,
+::-ms-track {
   background-color: transparent;
   border-radius: 8px;
   box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.2);
@@ -27,25 +42,33 @@ body {
   width: 12px;
 }
 
-::-webkit-scrollbar-thumb {
-  background-color: #49545B;
+::-webkit-scrollbar-thumb,
+::-ms-thumb {
+  background-color: transparent;
   border-radius: 8px;
+}
+
+*:hover::-webkit-scrollbar-thumb,
+*:hover::-ms-thumb {
+  background-color: #49545B;
   box-shadow: inset 0 0 6px rgba(255, 255, 255, .125), 0 0 6px rgba(0, 0, 0, .3);
 }
 
-::-webkit-scrollbar-thumb:hover {
+::-webkit-scrollbar-thumb:hover,
+::-ms-thumb:hover {
   background-color: #596971;
 }
 
-::-webkit-scrollbar-thumb:active {
+::-webkit-scrollbar-thumb:active,
+::-ms-thumb:hover {
   background-color: #49545B;
   box-shadow: none;
 }
 
 /*
 
-  Custom Fonts
-  ~~~~~~~~~~~~
+  Fonts
+  ~~~~~~
 
 */
 

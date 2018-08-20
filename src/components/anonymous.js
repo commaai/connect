@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import window from 'global/window';
 
+import cx from 'classnames';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
@@ -12,43 +13,39 @@ import { CommaIcon } from '../icons';
 
 const styles = theme => {
   return {
-    root: {
-      maxWidth: '560px',
+    base: {
       height: '60px',
-      width: '100%',
-      height: '100%',
-      marginTop: '30vh',
       margin: '0 auto',
-      textAlign: 'left'
-    },
-    top: {
+      marginTop: '30vh',
+      maxWidth: '560px',
     },
     title: {
       display: 'inline',
-      lineHeight: '60px',
+      fontFamily: 'MaisonNeueExtended',
       fontSize: '24px',
-      verticalAlign: 'top'
+      fontWeight: 600,
+      lineHeight: '60px',
+      verticalAlign: 'top',
     },
     tagline: {
-      padding: '10px 0 20px 0',
+      padding: '20px 0 52px',
       fontSize: '18px',
     },
     logInButton: {
-      width: '100%',
+      alignItems: 'center',
       background: '#175886',
-      border: '1px solid #000000',
+      display: 'flex',
       borderRadius: '100px',
       fontSize: '21px',
       height: '80px',
-      display: 'flex',
       justifyContent: 'center',
-      alignItems: 'center',
-    },
-    logInLink: {
       textDecoration: 'none',
+      width: '100%',
     },
     logInText: {
-      fontSize: '24px',
+      fontFamily: 'MaisonNeue',
+      fontSize: '18px',
+      fontWeight: 600,
     }
   }
 };
@@ -60,25 +57,22 @@ class AnonymousLanding extends Component {
     }
   }
   render () {
+    const { classes } = this.props;
     return (
-      <Grid container alignItems='center' justify='center' className={ this.props.classes.root }>
-        <Grid item xs={12}>
-          <Typography paragraph={false} className={ this.props.classes.title }>
-            <CommaIcon style={{ fontSize: '2em' }} />
-            explorer
+      <div className={ classes.base }>
+        <Typography className={ classes.title }>
+          <CommaIcon style={ { fontSize: '2em' } } />
+          explorer
+        </Typography>
+        <Typography className={ classes.tagline }>
+          Review and annotate your comma.ai driving data.
+        </Typography>
+        <a href={ oauthRedirectLink } className={ classes.logInButton }>
+          <Typography className={ classes.logInText }>
+            Log in with Google
           </Typography>
-        </Grid>
-        <Grid item xs={12}>
-          <Typography className={ this.props.classes.tagline }>Review and annotate your comma.ai driving data</Typography>
-        </Grid>
-        <Grid item xs={12}>
-          <a href={ oauthRedirectLink } className={ this.props.classes.logInLink }>
-            <div className={ this.props.classes.logInButton }>
-              <Typography className={ this.props.classes.logInText }>Log in with Google</Typography>
-            </div>
-          </a>
-        </Grid>
-      </Grid>
+        </a>
+      </div>
     );
   }
 }

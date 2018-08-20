@@ -23,7 +23,6 @@ const bdr_s = 30;
 
 const styles = theme => {
   return {
-    root: {},
     hidden: {
       display: 'none'
     },
