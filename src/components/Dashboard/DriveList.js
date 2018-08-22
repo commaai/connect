@@ -76,7 +76,7 @@ class DriveList extends Component {
 
     this.state = {
       anchorEl: null,
-      showDeviceSettingsModal: true
+      showDeviceSettingsModal: false
     };
   }
 
