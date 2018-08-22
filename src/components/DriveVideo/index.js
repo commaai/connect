@@ -375,23 +375,23 @@ class VideoPreview extends Component {
       ctx.fill();
     }
   }
-  drawLaneFull(options, events) { // ui_draw_vision_lanes
+  drawLaneFull (options, events) { // ui_draw_vision_lanes
     var { ctx } = options;
     if (events) {
       if (events.model) {
         this.drawLaneBoundary(ctx, events.model.Model.LeftLane);
         this.drawLaneBoundary(ctx, events.model.Model.RightLane);
-        this.drawLaneTrack(ctx, events.model.Model.Path);
+        this.drawLaneTrack(options, events.model.Model.Path);
       }
       if (events.mpc && events.carState) {
-        this.drawLaneTrack(ctx, events.mpc.LiveMpc, {
+        this.drawLaneTrack(options, events.mpc.LiveMpc, {
           isMpc: true,
           isEnabled: events.carState.CarState.CruiseState.Enabled,
         });
       }
     }
   }
-  drawLaneBoundary(ctx, lane) { // ui_draw_lane
+  drawLaneBoundary (ctx, lane) { // ui_draw_lane
     let color = 'rgba(255, 255, 255,' + lane.Prob + ')';
     this.drawLaneLine(ctx, lane.Points, 0.035 * lane.Prob, color, false);
     let offset = Math.min(lane.Std, 0.7);
@@ -399,7 +399,7 @@ class VideoPreview extends Component {
     this.drawLaneLine(ctx, lane.Points, -offset, color, true);
     this.drawLaneLine(ctx, lane.Points, offset, color, true);
   }
-  drawLaneLine(ctx, points, off, color, isGhost) { // ui_draw_lane_line
+  drawLaneLine (ctx, points, off, color, isGhost) { // ui_draw_lane_line
     ctx.beginPath();
     let started = false;
     const line_height = 49;
@@ -436,7 +436,8 @@ class VideoPreview extends Component {
       ctx.stroke();
     }
   }
-  drawLaneTrack(ctx, path, params) {
+  drawLaneTrack (options, path, params) {
+    const { ctx } = options;
     let isMpc, isEnabled;
     if (params) {
       isMpc = params.isMpc;
@@ -447,16 +448,18 @@ class VideoPreview extends Component {
     let offset = isMpc?0.3:0.5;
     let path_height = isMpc?20:49;
     for (let i=0; i <= path_height; i++) {
-      let px, py, mpx;
+      let px, py;
       if (isMpc) {
-        px = i==0?0.0:path.X[i];
+        px = path.X[i];
         py = path.Y[i]-offset;
       } else {
         px = i;
         py = path.Points[i] - offset;
       }
       let [x, y, z] = this.carSpaceToImageSpace([px, py, 0.0, 1.0]);
-      if (y < 0) {
+      if (i === 0) {
+        y = vwp_h;
+      } else if (y < 0) {
         continue;
       }
 
@@ -468,16 +471,18 @@ class VideoPreview extends Component {
       }
     }
     for (let i=path_height; i >= 0; i--) {
-      let px, py, mpx;
+      let px, py;
       if (isMpc) {
-        px = i==0?0.0:path.X[i];
+        px = path.X[i];
         py = path.Y[i] + offset;
       } else {
         px = i;
         py = path.Points[i] + offset;
       }
       let [x, y, z] = this.carSpaceToImageSpace([px, py, 0.0, 1.0]);
-      if (y < 0) {
+      if (i === 0) {
+        y = vwp_h;
+      } else if (y < 0) {
         continue;
       }
       ctx.lineTo(x, y);
@@ -508,7 +513,7 @@ class VideoPreview extends Component {
       this.drawCarStateWheel(options, events.carState.CarState);
     }
   }
-  drawCarStateWheel(options, CarState) {
+  drawCarStateWheel (options, CarState) {
     var { ctx } = options;
 
     var radius = 80;
