@@ -76,8 +76,8 @@ class DriveList extends Component {
 
     this.state = {
       anchorEl: null,
-      showDeviceSettingsModal: false,
-    }
+      showDeviceSettingsModal: false
+    };
   }
 
   componentWillReceiveProps (props) {
@@ -106,9 +106,6 @@ class DriveList extends Component {
 
   handleOpenedSettingsModal (device) {
     this.setState({ showDeviceSettingsModal: true })
-    if (this.state.editingDevice === device.dongle_id) {
-      this.setState({ editingDevice: null });
-    }
   }
 
   handleClosedSettingsModal() {
@@ -246,34 +243,10 @@ class DriveList extends Component {
     return (
       <React.Fragment>
         <IconButton
-          aria-owns={ open ? 'device-settings' : null }
-          aria-haspopup='true'
           className={ classes.settingsButton }
-          onClick={ this.handleClickedSettings }>
+          onClick={ partial(this.handleOpenedSettingsModal, device) }>
           <SettingsIcon className={ classes.settingsButtonIcon } />
         </IconButton>
-        <Menu
-          id='device-settings'
-          open={ open }
-          onClose={ this.handleClosedSettings }
-          anchorEl={ anchorEl }
-          anchorOrigin={ {
-            vertical: 'top',
-            horizontal: 'right',
-          } }
-          transformOrigin={ {
-            vertical: 'top',
-            horizontal: 'right',
-          } }>
-          <ListItem classes={ { root: classes.userMeta } } disableGutters>
-            <div>
-              <Typography variant='body2' paragraph>
-                { device.alias }
-              </Typography>
-            </div>
-          </ListItem>
-          <MenuItem onClick={ partial(this.handleOpenedSettingsModal, device) }>Edit Device</MenuItem>
-        </Menu>
         <DeviceSettingsModal
           isOpen={ this.state.showDeviceSettingsModal }
           onClose={ this.handleClosedSettingsModal }

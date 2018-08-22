@@ -47,8 +47,11 @@ export async function listDevices () {
   return request.get('me/devices/');
 }
 
-export async function setDeviceAlias(dongle_id, alias) {
+export async function setDeviceAlias (dongle_id, alias) {
   return request.patch('devices/' + dongle_id + '/', { alias });
+}
+export async function shareDevice (dongle_id, email) {
+  return request.post('devices/' + dongle_id + '/add_user', { email });
 }
 
 export async function createAnnotation (data) {
