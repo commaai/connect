@@ -105,7 +105,7 @@ class AppHeader extends Component {
     return (
       <header className={ classes.base }>
         <Grid container spacing={ 0 }>
-          <Grid item container xs={ 4 }>
+          <Grid item container xs={ 2 } lg={ 4 }>
             <Link to="/" className={ classes.logo }>
               <img src='/images/comma-white.png' className={ classes.logoImg } />
               <Typography className={ classes.logoText }>
@@ -113,11 +113,13 @@ class AppHeader extends Component {
               </Typography>
             </Link>
           </Grid>
-          <Grid item container xs={ 4 } className={ classes.timeDisplay }>
+          <Grid item container xs={ 6 } lg={ 4 } className={ classes.timeDisplay }>
             <TimeDisplay isThin />
           </Grid>
           <Grid
-            item xs={ 4 } align='right'
+            item
+            xs={ 4 }
+            align='right'
             className={ classes.selectArea }>
             <TimeFilter />
             <IconButton
