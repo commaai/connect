@@ -79,14 +79,23 @@ class DriveListDrive extends Component {
 
   componentDidMount() {
     const { drive } = this.props;
+    this.mounted = true;
     GeocodeApi().reverseLookup(drive.startCoord).then((startLocation) => {
+      if (!this.mounted) {
+        return;
+      }
       this.setState({ startLocation })
     })
     GeocodeApi().reverseLookup(drive.endCoord).then((endLocation) => {
+      if (!this.mounted) {
+        return;
+      }
       this.setState({ endLocation })
     })
   }
-
+  componentWillUnmount() {
+    this.mounted = false;
+  }
   handleDriveClicked (drive) {
     let startTime = drive.startTime - 1000;
     let endTime = drive.startTime + drive.duration + 1000;
