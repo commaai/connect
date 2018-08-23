@@ -6,6 +6,7 @@ export default function filterEvent (which) {
     case Event_Which.LIVE20:
     case Event_Which.LIVE100:
     case Event_Which.LIVE_MPC:
+    case Event_Which.INIT_DATA:
     case Event_Which.CAR_STATE:
     case Event_Which.LIVE_CALIBRATION:
       return true;
