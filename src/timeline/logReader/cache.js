@@ -5,6 +5,9 @@ import request from 'simple-get';
 import Event from 'geval/event';
 import debounce from 'debounce';
 import * as API from '../../api';
+import * as capnp from 'capnp-ts';
+import { Event as CapnpEvent } from '@commaai/log_reader/capnp/log.capnp';
+import filterWhich from './allowedEventTypes';
 
 // cache all of the data
 
@@ -38,8 +41,15 @@ class CacheEntry {
       this.logEvent.broadcast(queue);
     });
     this.getLogStream().then((loader) => {
-      loader((msg) => {
-        this.queue.push(msg);
+      loader((buf) => {
+        let msg = new capnp.Message(buf, false);
+        let event = msg.getRoot(CapnpEvent);
+        let which = event.which();
+        if (!filterWhich(which)) {
+          // don't send event to main thread
+          return;
+        }
+        this.queue.push(buf);
         sendLogs();
       });
     });
