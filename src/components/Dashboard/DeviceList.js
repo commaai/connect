@@ -3,39 +3,66 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { partial } from 'ap';
 import Raven from 'raven-js';
+import cx from 'classnames';
 
-import { withStyles } from '@material-ui/core/styles';
-import Button from '@material-ui/core/Button';
-import FormHelperText from '@material-ui/core/FormHelperText';
-import ExpansionPanel from '@material-ui/core/ExpansionPanel';
-import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
-import Grid from '@material-ui/core/Grid';
-import LinearProgress from '@material-ui/core/LinearProgress';
+import {
+  withStyles,
+  Grid,
+  Button,
+  Typography,
+  FormHelperText,
+  ExpansionPanel,
+  ExpansionPanelSummary,
+  LinearProgress,
+  FormControl,
+  TextField,
+} from '@material-ui/core';
 import Pencil from '@material-ui/icons/Edit';
-import TextField from '@material-ui/core/TextField';
-import Typography from '@material-ui/core/Typography';
-import FormControl from '@material-ui/core/FormControl';
 
-import EonUpsell from '../annotations/eonUpsell';
 import * as API from '../../api';
 import Timelineworker from '../../timeline';
+import EonUpsell from '../Annotations/eonUpsell';
 
 const styles = theme => {
   return {
-    root: {},
+    base: {
+      height: '100%',
+      overflowY: 'scroll',
+    },
+    device: {
+      alignItems: 'center',
+      cursor: 'pointer',
+      display: 'flex',
+      padding: 32,
+      paddingTop: 16,
+      paddingBottom: 16,
+      '&.isSelected': {
+        backgroundColor: '#171B1D',
+      }
+    },
+    deviceAvatar: {
+      backgroundColor: '#1D2225',
+      borderRadius: 30,
+      height: 46,
+      width: 46,
+    },
+    deviceInfo: {
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      marginLeft: 16,
+    },
+    deviceAlias: {},
+    deviceId: {
+      color: '#525E66',
+      fontFamily: 'MaisonNeueMono',
+    },
+
     editDeviceIcon: {
       color: 'white',
       '&:hover': {
         color: theme.palette.grey[100]
       }
-    },
-    expansion: {
-      backgroundColor: theme.palette.grey[800]
-    },
-    expanded: {
-      minHeight: 'initial',
-      margin: '0px 0',
-      backgroundColor: theme.palette.grey[999]
     },
     nameField: {
       marginRight: theme.spacing.unit,
@@ -45,9 +72,6 @@ const styles = theme => {
     },
     textField: {
       marginBottom: theme.spacing.unit
-    },
-    deviceListItemName: {
-      fontWeight: 500,
     },
   }
 };
@@ -138,29 +162,44 @@ class DeviceList extends Component {
     }
 
     return (
-      <React.Fragment>
+      <div className={ this.props.classes.base }>
         { devices.filter(this.filterDrivingDevice).map(this.renderDevice) }
         { onlyHasAppDevice && <EonUpsell hook='Upgrade to an EON to augment your driving experience' /> }
-      </React.Fragment>
+      </div>
     );
   }
 
   renderDevice (device) {
+    const { classes } = this.props;
+    const isSelected = (this.props.selectedDevice === device.dongle_id);
     let alias = device.alias || device.device_type;
-
     return (
+      <div
+        key={ device.dongle_id }
+        onClick={ partial(this.props.handleDeviceSelected, device.dongle_id) }
+        className={ cx(classes.device, [{ isSelected: isSelected }]) }>
+        <div className={ classes.deviceAvatar } />
+        <div className={ classes.deviceInfo }>
+          <Typography variant='body2' className={ classes.deviceAlias }>
+            { alias }
+          </Typography>
+          <Typography variant='caption' className={ classes.deviceId }>
+            ({ device.dongle_id })
+          </Typography>
+        </div>
+      </div>
+    )
+
+    const oldRender = (
       <ExpansionPanel
-        classes={{
-          expanded: this.props.classes.expanded
-        }}
+        classes={{ expanded: classes.expanded }}
         key={ device.dongle_id }
         expanded={ this.props.selectedDevice === device.dongle_id }
         onChange={ partial(this.props.handleDeviceSelected, device.dongle_id) }
-        className={ this.props.classes.expansion }
-        >
+        className={ classes.expansion } >
         <ExpansionPanelSummary>
           <Grid container>
-            <Grid item xs={10}>
+            <Grid item xs={ 10 }>
               { this.state.editingDevice === device.dongle_id ?
                 <React.Fragment>
                   { this.state.isWaitingForApi && <LinearProgress /> }
@@ -168,32 +207,33 @@ class DeviceList extends Component {
                   <TextField
                     id="name"
                     label="Name"
-                    className={this.props.classes.textField}
-                    value={this.state.deviceAlias}
-                    onChange={this.handleAliasChange}
-                    onKeyPress={ partial(this.handleAliasFieldKeyPress, device.dongle_id) }
-                  />
+                    className={ classes.textField }
+                    value={ this.state.deviceAlias }
+                    onChange={ this.handleAliasChange }
+                    onKeyPress={ partial(this.handleAliasFieldKeyPress, device.dongle_id) } />
                 </React.Fragment>
                 :
-                <Typography className={ this.props.classes.deviceListItemName }>{ (alias + ' (' + device.dongle_id + ')') }</Typography>
+                <Typography className={ classes.deviceListItemName }>
+                  { (alias + ' (' + device.dongle_id + ')') }
+                </Typography>
               }
             </Grid>
             { (!device.shared && (device.is_owner || this.props.isSuperUser)) &&
-              <Grid item xs={2}>
-                <Pencil className={ this.props.classes.editDeviceIcon } onClick={ partial(this.toggleDeviceEdit, device) } />
+              <Grid item xs={ 2 }>
+                <Pencil className={ classes.editDeviceIcon } onClick={ partial(this.toggleDeviceEdit, device) } />
               </Grid>
             }
             { this.state.editingDevice === device.dongle_id &&
               <React.Fragment>
-                <Grid item xs={6}>
+                <Grid item xs={ 6 }>
                   <Button
                   variant='outlined'
                   onClick={ partial(this.setDeviceAlias, device.dongle_id) }
-                  className={this.props.classes.saveButton }>
+                  className={ classes.saveButton }>
                     Save
                   </Button>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={ 6 }>
                   <Button variant='outlined' onClick={ this.cancelEdit }>
                     Cancel
                   </Button>

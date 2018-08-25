@@ -71,6 +71,8 @@ function indexBuffer (index, buffer, bufferIndex) {
   var offset = 0;
   var startIndex = index.length;
   var calibrations = [];
+  var lastIndex = index.length ? index.length - 1 : 0;
+  // debugger;
 
   while (offset < buffer.byteLength) {
     let messageBuff = BufferUtils.readMessage(buffer, offset);
@@ -95,13 +97,20 @@ function indexBuffer (index, buffer, bufferIndex) {
         bufferIndex,
         which
       ]);
+      lastIndex = index.length - 1;
     } else {
-      let searchIndex = index.length - 2;
-
-      while (searchIndex >= 0 && (milis < index[searchIndex][0] || (milis == index[searchIndex][0] && nanos < index[searchIndex][1]))) {
-        searchIndex--;
+      let searchIndex = lastIndex;
+      let incAmount = 1;
+      // debugger;
+      while (searchIndex < index.length - 1 && (milis > index[searchIndex][0] || (milis == index[searchIndex][0] && nanos > index[searchIndex][1]))) {
+        incAmount = Math.min(Math.floor(index.length - searchIndex / 2), incAmount * 2);
+        searchIndex = Math.min(searchIndex + incAmount, index.length - 1);
       }
+      // debugger;
+      searchIndex = binSearch(index, searchIndex - incAmount, searchIndex, milis, nanos);
+      // debugger;
       searchIndex++;
+      lastIndex = searchIndex;
 
       index.splice(searchIndex, 0, [
         milis,
@@ -119,4 +128,23 @@ function indexBuffer (index, buffer, bufferIndex) {
   var timeDiff = (endNow - startNow);
 
   return calibrations;
+}
+
+function binSearch (index, start, end, milis, nanos) {
+  if (start >= end) {
+    return start;
+  }
+  let searchIndex = Math.floor((end - start) / 2) + start;
+  // searchIndex wont equal end, only start
+
+  if (milis < index[searchIndex][0] || (milis == index[searchIndex][0] && nanos < index[searchIndex][1])) {
+    return binSearch(index, start, searchIndex, milis, nanos);
+  }
+  if (milis > index[searchIndex][0] || (milis == index[searchIndex][0] && nanos > index[searchIndex][1])) {
+    if (searchIndex === index.length - 1 || milis < index[searchIndex + 1][0] || (milis == index[searchIndex + 1][0] && nanos < index[searchIndex + 1][1])) {
+      return searchIndex;
+    }
+    return binSearch(index, searchIndex + 1, end, milis, nanos);
+  }
+  return searchIndex;
 }

@@ -1,12 +1,9 @@
 import React, { Component } from 'react';
-import { classNames } from 'react-extras';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';
 import Measure from 'react-measure';
-
 import { withStyles } from '@material-ui/core/styles';
-import Typography from '@material-ui/core/Typography';
 
 import { LngLatBounds } from 'mapbox-gl';
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
@@ -26,7 +23,7 @@ const styles = {
   }
 }
 
-class SingleMap extends Component {
+class DriveMap extends Component {
   constructor (props) {
     super(props);
 
@@ -293,4 +290,4 @@ const stateToProps = Obstruction({
   startTime: 'workerState.startTime'
 });
 
-export default connect(stateToProps)(withStyles(styles)(SingleMap));
+export default connect(stateToProps)(withStyles(styles)(DriveMap));

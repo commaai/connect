@@ -10,7 +10,6 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography';
 
-import HomePage from './components/homePage';
 import Explorer from './components/explorer';
 import AnonymousLanding from './components/anonymous';
 
@@ -60,10 +59,17 @@ class App extends Component {
 
     this.setState({ initialized: true });
   }
+  redirectLink () {
+    let url = '/';
+    if (typeof window.sessionStorage !== 'undefined') {
+      url = sessionStorage.redirectURL || '/';
+    }
+    return url;
+  }
   authRoutes () {
     return (
       <Switch>
-        <Route path="/auth/" render={ () => <Redirect to="/" /> } />
+        <Route path="/auth/" render={ () => <Redirect to={ this.redirectLink() } /> } />
         <Route path="/" component={ Explorer } />
       </Switch>
     );
@@ -78,7 +84,7 @@ class App extends Component {
   }
   renderLoading () {
     return (
-      <Grid container alignItems='center' style={{ width: '100%', height: '100%', marginTop: '30vh' }}>
+      <Grid container alignItems='center' style={{ width: '100%', height: '100%' }}>
         <Grid item align='center' xs={12} >
           <CircularProgress size='10vh' style={{ color: '#525E66' }} />
         </Grid>

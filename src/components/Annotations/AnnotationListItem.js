@@ -5,40 +5,67 @@ import { partial } from 'ap';
 import fecha from 'fecha';
 import Raven from 'raven-js';
 
-import { withStyles } from '@material-ui/core/styles';
-import Grid from '@material-ui/core/Grid';
-import Slide from '@material-ui/core/Slide';
-import Typography from '@material-ui/core/Typography';
-import ExpansionPanel from '@material-ui/core/ExpansionPanel';
-import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
-import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
-import ExpansionPanelActions from '@material-ui/core/ExpansionPanelActions';
-import Divider from '@material-ui/core/Divider';
-import Select from '@material-ui/core/Select';
-import MenuItem from '@material-ui/core/MenuItem';
-import Button from '@material-ui/core/Button';
-import TextField from '@material-ui/core/TextField';
-import Tooltip from '@material-ui/core/Tooltip';
-import FormHelperText from '@material-ui/core/FormHelperText';
-import LinearProgress from '@material-ui/core/LinearProgress';
+import {
+  withStyles,
+  Grid,
+  Slide,
+  Typography,
+  ExpansionPanel,
+  ExpansionPanelSummary,
+  ExpansionPanelDetails,
+  ExpansionPanelActions,
+  Divider,
+  Select,
+  MenuItem,
+  Button,
+  TextField,
+  Tooltip,
+  FormHelperText,
+  LinearProgress,
+} from '@material-ui/core';
 
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 
 import * as API from '../../api';
 import Timelineworker from '../../timeline';
 
+const DISENGAGEMENT_REASONS = [
+  { value: "arbitrary", title: "I wanted to take over", header: true },
+  { value: 'different-way', title: 'Go a different way' },
+  { value: 'lanes', title: 'Change lanes' },
+  { value: 'too-slow', title: 'Accelerate quicker' },
+  { value: 'exit', title: 'Take an exit' },
+  { value: 'stop-light', title: 'Stop at light' },
+  { value: 'stop-sign', title: 'Stop at sign' },
+  { value: 'other-desire', title: 'Other (explain in comment)' },
+
+  { value: 'danger', title: 'I needed to take over for safety', header: true },
+  { value: 'sharp-turn', title: 'Turn too sharp' },
+  { value: 'bad-lanes', title: 'Lanes misidentified' },
+  { value: 'bad-lead-car', title: 'Lead car misidentified' },
+  { value: 'other-safety', title: 'Other (explain in comment)' },
+];
+
 const styles = theme => {
   return {
-    root: {
-      backgroundColor: theme.palette.grey[800]
+    base: {
+      backgroundColor: '#272D30',
     },
-    expandedd: {
+    isExpanded: {
       minHeight: 'initial',
       margin: '0px 0',
-      backgroundColor: '#16181A',
+      backgroundColor: '#1D2225',
+    },
+    bubble: {
+      background: 'linear-gradient(to bottom, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.55) 100%)',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: 60,
+      height: 28,
+      width: 28,
     },
     heading: {
       fontWeight: 500,
+      paddingLeft: '5%',
     },
     date: {
       color: theme.palette.grey[100],
@@ -48,8 +75,8 @@ const styles = theme => {
       textAlign: 'center',
     },
     pillText: {
-      color: theme.palette.error.main,
-      border: '1px solid ' + theme.palette.error.main,
+      color: '#65737a',
+      border: '1px solid #65737a57',
       borderRadius: 15,
       display: 'inline-block',
       fontWeight: 500,
@@ -94,12 +121,19 @@ const styles = theme => {
       borderRadius: 30,
       color: '#fff',
       padding: '12px 24px',
+      textTransform: 'none',
     },
     cancelButton: {
+      background: 'transparent',
       border: '1px solid #272D30',
       borderRadius: 30,
       padding: '12px 24px',
+      textTransform: 'none',
     },
+    reasonDetailed: {
+      paddingLeft: '30px',
+      color: theme.palette.lightGrey[200],
+    }
   };
 };
 
@@ -150,6 +184,7 @@ class AnnotationEntry extends Component {
   }
 
   async validate () {
+    const { event, segment } = this.props;
     if (this.state.saving) {
       return false;
     }
@@ -181,18 +216,18 @@ class AnnotationEntry extends Component {
     try {
       if (!this.state.id) {
         data = await API.createAnnotation({
-          canonical_segment_name: this.props.event.canonical_segment_name,
-          offset_nanos_part: this.props.event.offset_nanos,
-          offset_millis: this.props.event.offset_millis,
-          start_time_utc_millis: this.props.event.timestamp,
-          end_time_utc_millis: this.props.event.timestamp,
-          type: this.props.event.type,
+          canonical_segment_name: event.canonical_segment_name,
+          offset_nanos_part: event.offset_nanos,
+          offset_millis: event.offset_millis,
+          start_time_utc_millis: event.timestamp,
+          end_time_utc_millis: event.timestamp,
+          type: event.type,
           data: {
             reason: this.state.reason,
             comment: this.state.comment
           }
         });
-        Timelineworker.resolveAnnotation(data, this.props.event, this.props.segment.route);
+        Timelineworker.resolveAnnotation(data, event, segment.route);
       } else {
         data = await API.updateAnnotation(this.state.id, {
           reason: this.state.reason,
@@ -222,7 +257,6 @@ class AnnotationEntry extends Component {
       return;
     }
 
-    console.log('Hey check out this kickass annotation', data);
     this.setState({
       id: data.id,
       error: false,
@@ -232,7 +266,8 @@ class AnnotationEntry extends Component {
   }
 
   render () {
-    const dateString = fecha.format(new Date(this.props.event.timestamp), 'MMM D @ HH:mm:ss');
+    const { event, eventId, segment, classes } = this.props;
+    const dateString = fecha.format(new Date(event.timestamp), 'MMM D @ HH:mm:ss');
     const reason = this.state.reason || '';
     const comment = this.state.comment || '';
     var selectClassName = this.props.classes.select;
@@ -242,39 +277,40 @@ class AnnotationEntry extends Component {
 
     return (
       <ExpansionPanel
-        classes={{
-          expanded: this.props.classes.expandedd
-        }}
-        className={ this.props.classes.root }
-        key={ this.props.eventId }
+        classes={ { expanded: classes.isExpanded } }
+        className={ classes.base }
+        key={ eventId }
         expanded={ this.props.expanded }
         onChange={ this.props.onChange }
-        defaultExpanded={ this.props.defaultExpanded }
-        >
-        <ExpansionPanelSummary classes={{
-            content: this.props.classes.summaryContent
-          }}>
+        defaultExpanded={ this.props.defaultExpanded }>
+        <ExpansionPanelSummary
+          classes={ { content: classes.summaryContent } }>
           <Grid container alignItems='center' >
             <Grid item xs={ 1 }>
+              <div className={ classes.bubble } />
             </Grid>
             <Grid item xs={ 5 }>
-              <Typography className={ this.props.classes.heading }>{ this.getTitle() }</Typography>
+              <Typography className={ classes.heading }>
+                { this.getTitle() }
+              </Typography>
             </Grid>
             <Grid item xs={ 3 }>
-              <Typography className={ this.props.classes.date }>[{ dateString }]</Typography>
+              <Typography className={ classes.date }>
+                [{ dateString }]
+              </Typography>
             </Grid>
-            <Grid item xs={ 3 } className={ this.props.classes.pillBody }>
-              <Typography className={ this.props.classes.pillText }>Disengaged</Typography>
+            <Grid item xs={ 3 } className={ classes.pillBody }>
+              <Typography className={ classes.pillText }>
+                Disengaged
+              </Typography>
             </Grid>
           </Grid>
         </ExpansionPanelSummary>
-        {/* if (!this.state.saving) { */}
-        { !this.state.saving && <Divider style={{ marginBottom: 4 }} /> }
-        {/* } else { */}
+        { !this.state.saving && <Divider style={ { marginBottom: 4 } } /> }
         {  this.state.saving && <LinearProgress /> }
         <ExpansionPanelDetails>
           <Grid container alignContent='center' alignItems='center'>
-            { this.renderFormLine('Reason', (
+            { this.renderFormField('Reason', (
               <Select
                 disabled={ this.state.saving }
                 displayEmpty
@@ -282,78 +318,82 @@ class AnnotationEntry extends Component {
                 value={ reason }
                 onChange={ this.handleChange }
                 className={ selectClassName }
-                inputProps={{
-                  name: 'reason',
-                  id: 'reason-simple'
-                }}
-              >
+                inputProps={ { name: 'reason', id: 'reason-simple' } }>
                 { reason === '' &&
                   <MenuItem disabled value='' >
                     Choose one
                   </MenuItem>
                 }
-                { this.isPlanned() && <MenuItem value={ this.props.event.annotation.data.reason }>{ this.props.event.annotation.data.reason }</MenuItem> }
-                <MenuItem value='arbitrary'>Arbitrary or accidental</MenuItem>
-                <MenuItem value='danger'>I needed to take over for safety</MenuItem>
-                <MenuItem value='lanes'>Lane change</MenuItem>
-                <MenuItem value='different-way'>Go a different way</MenuItem>
-                <MenuItem value='sharp-turn'>Turn too sharp</MenuItem>
-                <MenuItem value='too-slow'>I wanted to accelerate quicker</MenuItem>
-                <MenuItem value='exit'>Took an exit</MenuItem>
-                <MenuItem value='stop-light'>Stopped at light</MenuItem>
-                <MenuItem value='stop-sign'>Stopped at sign</MenuItem>
-                <MenuItem value='bad-lanes'>Lanes misidentified</MenuItem>
-                <MenuItem value='other'>Other (explain in comment)</MenuItem>
+                { this.isPlanned() &&
+                  <MenuItem value={ event.annotation.data.reason }>
+                    { event.annotation.data.reason }
+                  </MenuItem>
+                }
+                { DISENGAGEMENT_REASONS.map((disengagementReason) => {
+                    return (
+                      <MenuItem
+                        key={ disengagementReason.value }
+                        value={ disengagementReason.value }
+                        className={ !disengagementReason.header && this.props.classes.reasonDetailed }>
+                        { disengagementReason.title }
+                      </MenuItem>
+                    )
+                  })
+                }
               </Select>
             ))}
-            { this.renderFormLine('Comment', (
+            { this.renderFormField('Comment', (
               <TextField
                 onChange={ this.handleComment }
                 placeholder='Add a comment...'
-                className={ this.props.classes.select }
+                className={ classes.select }
                 error={ this.state.errorElem === 'Comment' }
                 disabled={ this.state.saving }
-                value={ comment }
-                />
+                value={ comment } />
             ))}
           </Grid>
         </ExpansionPanelDetails>
-        <ExpansionPanelActions className={ this.props.classes.panelActions }>
-          <Tooltip title='Grey Panda required to annotate' id="tooltip-annot"
-                   disableFocusListener={ this.props.segment.hpgps || this.isPlanned() }
-                   disableHoverListener={ this.props.segment.hpgps || this.isPlanned() }>
+        <ExpansionPanelActions className={ classes.panelActions }>
+          <Tooltip
+            id="tooltip-annot"
+            title='Grey Panda required to annotate'
+            disableFocusListener={ segment.hpgps || this.isPlanned() }
+            disableHoverListener={ segment.hpgps || this.isPlanned() }>
             <div>
               <Button
                 onClick={ this.validate }
-                size='small'
-                disabled={ this.state.saving || this.isPlanned() || !this.props.segment.hpgps }
-                className={ this.props.classes.resolveButton }
-                >Resolve Annotation</Button>
+                size='large'
+                disabled={ this.state.saving || this.isPlanned() || !segment.hpgps }
+                className={ classes.resolveButton }>
+                Resolve Annotation
+              </Button>
             </div>
           </Tooltip>
           <Button
-            size='small'
+            size='large'
             disabled={ this.state.saving }
             onClick={ this.props.onChange }
-            className={ this.props.classes.cancelButton }
-          >Cancel</Button>
+            className={ classes.cancelButton }>
+            Cancel
+          </Button>
         </ExpansionPanelActions>
       </ExpansionPanel>
     );
   }
-  renderFormLine (label, form) {
+  renderFormField (label, form) {
+    const { classes } = this.props;
     return (
-      <div className={ this.props.classes.formField }>
-        { this.state.errorElem === label.toLowerCase() ? (
+      <div className={ classes.formField }>
+        { this.state.errorElem === label.toLowerCase() && (
             <Grid item xs={ 12 }>
               <FormHelperText error>
                 { this.state.error }
               </FormHelperText>
             </Grid>
-          ) : null
+          )
         }
-        <Grid item xs={ 3 } className={ this.props.classes.formLabel }>
-          <Typography className={ this.props.classes.formLabelText }>
+        <Grid item xs={ 3 } className={ classes.formLabel }>
+          <Typography className={ classes.formLabelText }>
             { label }:
           </Typography>
         </Grid>
@@ -364,17 +404,17 @@ class AnnotationEntry extends Component {
     );
   }
   getTitle () {
-    // this.props.event
     if (this.isPlanned()) {
-      return 'Planned disengagement';
+      return 'Planned Disengagement';
     } else if (this.props.event.type === 'disengage_steer') {
-      return 'Steering disengagement';
+      return 'Steering Override';
     } else if (this.props.event.type === 'disengage') {
       return 'Disengagement';
     }
   }
   isPlanned () {
-    return (this.props.event.data && this.props.event.annotation && this.props.event.data.is_planned)
+    const { event } = this.props;
+    return (event.data && event.annotation && event.data.is_planned)
   }
 }
 

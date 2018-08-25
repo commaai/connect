@@ -10,15 +10,15 @@ import Typography from '@material-ui/core/Typography';
 import Snackbar from '@material-ui/core/Snackbar';
 
 import * as API from '../../api';
+import Timelineworker from '../../timeline';
 
 const styles = theme => {
   return {
     root: {
       width: '100%',
       height: '100%',
-      paddingTop: theme.spacing.unit * 2,
-      marginTop: theme.spacing.unit * 2,
-      background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
+      paddingTop: theme.spacing.unit,
+      background: 'transparent',
       textAlign: 'right'
     },
     footerButton: {
@@ -45,6 +45,7 @@ class AnnotationsFooter extends Component {
     this.copySegmentName = this.copySegmentName.bind(this);
     this.handleClose = this.handleClose.bind(this);
     this.downloadSegmentFile = this.downloadSegmentFile.bind(this);
+    this.openInCabana = this.openInCabana.bind(this);
 
     this.state = {
       showCopiedSnack: false
@@ -93,6 +94,14 @@ class AnnotationsFooter extends Component {
     this.snackTimer();
   }
 
+  openInCabana () {
+    console.log(this.props.segment);
+    var win = window.open('https://community.comma.ai/cabana/?route=' + this.props.segment.route + '&seekTime=' + Math.floor((Timelineworker.currentOffset() - this.props.segment.routeOffset) / 1000), '_blank');
+    if (win.focus) {
+      win.focus();
+    }
+  }
+
   render () {
     return (
       <Paper className={ this.props.classes.root } >
@@ -106,7 +115,7 @@ class AnnotationsFooter extends Component {
             Download Log Segment
           </a>
         }
-        <a className={ this.props.classes.footerButton } href={ 'https://community.comma.ai/cabana/?route=' + this.props.segment.route} target='_blank'>
+        <a className={ this.props.classes.footerButton } onClick={ this.openInCabana } href='#'>
           Open in Cabana!
         </a>
         <a className={ this.props.classes.footerButton } onClick={ this.copySegmentName } target='_blank'>

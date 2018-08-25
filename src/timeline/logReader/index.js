@@ -14,7 +14,7 @@ function getWorker () {
   if (logReader) {
     return logReader;
   }
-  if (typeof LogReaderSharedWorker === 'function' && typeof SharedWorker === 'function') {
+  if (false && typeof LogReaderSharedWorker === 'function' && typeof SharedWorker === 'function') {
     logReader = new LogReaderSharedWorker();
   } else if (typeof LogReaderWorker === 'function') {
     console.warn('Using web worker fallback');

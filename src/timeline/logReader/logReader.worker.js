@@ -9,7 +9,7 @@ const portInterface = {
 };
 
 port.onmessage = function (msg) {
-  console.log('Got msg', msg);
+  // console.log('Got msg', msg);
   API.handleMessage(portInterface, msg);
 }
 

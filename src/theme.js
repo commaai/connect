@@ -7,17 +7,26 @@ const theme = createMuiTheme({
     fontFamily: 'MaisonNeue',
   },
   overrides: {
+    MuiPaper: {
+      root: {
+        backgroundColor: '#30373B'
+      },
+    },
     MuiSelect: {
       select: {
-        padding: '12px 16px',
+        padding: '12px',
+        paddingRight: '48px',
         margin: '0px',
         '&>div': {
           margin: '0',
         }
       },
+      selectMenu: {
+        paddingRight: 54,
+      },
       icon: {
         marginRight: 20,
-        color: 'rgba(255, 255, 255, 0.25)'
+        color: '#272D30'
       }
     },
     MuiInput: {
@@ -40,11 +49,13 @@ const theme = createMuiTheme({
         marginLeft: 16,
         marginTop: 4
       }
-    }
+    },
+    MuiTab: {
+      root: {
+        minHeight: 40,
+      }
+    },
   },
-  // shape: {
-  //   borderRadius: 8
-  // },
   props: {
     MuiSelect: {
       disableUnderline: true,
@@ -84,6 +95,9 @@ const theme = createMuiTheme({
       900: Colors.grey900,
       950: Colors.grey950,
       999: Colors.grey999
+    },
+    lightGrey: {
+      200: Colors.lightGrey200,
     },
     white: {
       10: Colors.white10,

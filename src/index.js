@@ -28,4 +28,4 @@ ReactDOM.render((
       <App />
     </MuiPickersUtilsProvider>
   </MuiThemeProvider>
-  ), document.getElementById('root'));
+), document.getElementById('root'));

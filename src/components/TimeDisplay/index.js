@@ -4,14 +4,12 @@ import Obstruction from 'obstruction';
 import raf from 'raf';
 import fecha from 'fecha';
 import { partial } from 'ap';
+import cx from 'classnames';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 import IconButton from '@material-ui/core/IconButton';
-
-import Forward10 from '@material-ui/icons/Forward10';
-import Replay10 from '@material-ui/icons/Replay10';
 import PlayArrow from '@material-ui/icons/PlayArrow';
 import Pause from '@material-ui/icons/Pause';
 
@@ -31,18 +29,27 @@ const timerSteps = [
 ];
 
 const styles = theme => {
-  console.log(theme);
   return {
-    root: {
+    base: {
       backgroundColor: theme.palette.grey[999],
       height: '64px',
       borderRadius: '32px',
       padding: theme.spacing.unit,
       maxWidth: 510,
-      margin: '0 auto'
-    },
-    fullHeight: {
-      height: '100%'
+      margin: '0 auto',
+      minWidth: 450,
+      opacity: 0,
+      pointerEvents: 'none',
+      transition: 'opacity 0.1s ease-in-out',
+      '&.isExpanded': {
+        opacity: 1,
+        pointerEvents: 'auto',
+      },
+      '&.isThin': {
+        height: 50,
+        paddingBottom: 0,
+        paddingTop: 0,
+      },
     },
     icon: {
       width: '98%',
@@ -60,6 +67,10 @@ const styles = theme => {
       }
     },
     tinyArrow: {
+      display: 'flex',
+      height: 12,
+    },
+    tinyArrowIcon: {
       width: 12,
       height: 12,
       color: theme.palette.grey[700]
@@ -68,15 +79,14 @@ const styles = theme => {
       maxWidth: '100%',
       maxHeight: '100%'
     },
-    verticalButtons: {
-      marginTop: -6
-    },
-    speedText: {
-      marginTop: 3
-    },
     iconBox: {
       display: 'inline-block',
       borderRight: '1px solid ' + theme.palette.grey[900]
+    },
+    dateTime: {
+      alignItems: 'center',
+      display: 'flex',
+      justifyContent: 'center',
     },
     currentTime: {
       fontSize: 15,
@@ -105,6 +115,7 @@ class TimeDisplay extends Component {
       displayTime: this.getDisplayTime()
     };
   }
+
   componentDidUpdate (prevProps, prevState) {
     if (this.props.playSpeed !== 0 && this.props.playSpeed !== this.state.playSpeed) {
       this.setState({
@@ -145,6 +156,7 @@ class TimeDisplay extends Component {
     curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
     TimelineWorker.play(timerSteps[curIndex]);
   }
+
   decreaseSpeed () {
     let curIndex = timerSteps.indexOf(this.state.playSpeed);
     if (curIndex === -1) {
@@ -173,64 +185,86 @@ class TimeDisplay extends Component {
       return '...';
     }
     var now = new Date(currentOffset + start);
-    var dateString = fecha.format(now, 'ddd, D MMMM, YYYY @ HH:mm:ss');
+    var dateString = fecha.format(now, 'ddd, D MMM, YYYY @ HH:mm:ss');
+    // var dateString = fecha.format(now, 'MMM D @ HH:mm:ss');
 
     return dateString;
   }
 
   render () {
+    const { classes } = this.props;
     const isPaused = this.props.playSpeed === 0;
     return (
-      <div className={ this.props.classes.root }>
-        <Grid container className={ this.props.classes.fullHeight } >
-          <Grid item xs={3}>
-            <Grid container className={ this.props.classes.fullHeight } >
-              <Grid item align='center' xs={6} className={ this.props.classes.iconBox } >
-                <IconButton className={ this.props.classes.iconButton } onClick={ partial(this.jumpBack, 10000) } aria-label='Jump back 10 seconds' >
-                  <HistoryBackIcon className={ this.props.classes.icon + ' small dim' } />
+      <div
+        className={ cx(classes.base, {
+          isExpanded: this.props.expanded,
+          isThin: this.props.isThin,
+        }) }>
+        <Grid container>
+          <Grid item xs={ 3 }>
+            <Grid container>
+              <Grid item align='center' xs={ 6 } className={ classes.iconBox } >
+                <IconButton
+                  onClick={ partial(this.jumpBack, 10000) }
+                  aria-label='Jump back 10 seconds'>
+                  <HistoryBackIcon className={ classes.icon + ' small dim' } />
                 </IconButton>
               </Grid>
-              <Grid item align='center' xs={6} className={ this.props.classes.iconBox } >
-                <IconButton className={ this.props.classes.iconButton } onClick={ partial(this.jumpForward, 10000) } aria-label='Jump forward 10 seconds' >
-                  <HistoryForwardIcon className={ this.props.classes.icon + ' small dim' } />
+              <Grid item align='center' xs={ 6 } className={ classes.iconBox } >
+                <IconButton
+                  onClick={ partial(this.jumpForward, 10000) }
+                  aria-label='Jump forward 10 seconds'>
+                  <HistoryForwardIcon className={ classes.icon + ' small dim' } />
                 </IconButton>
               </Grid>
             </Grid>
           </Grid>
-          <Grid item xs={6} className={ this.props.classes.seperator } >
-            <Typography variant='caption' align='center' style={{ paddingTop: 4 }}>
-              CURRENT PLAYBACK TIME
-            </Typography>
+          <Grid item xs={ 6 } className={ classes.dateTime }>
+            { !this.props.isThin && (
+              <Typography variant='caption' align='center' style={{ paddingTop: 4 }}>
+                CURRENT PLAYBACK TIME
+              </Typography>
+            )}
             <Typography variant='body1' align='center'>
-              <span ref={ this.textHolder } className={ this.props.classes.currentTime } >{ this.state.displayTime }</span>
+              <span ref={ this.textHolder } className={ classes.currentTime } >
+                { this.state.displayTime }
+              </span>
             </Typography>
           </Grid>
-          <Grid item xs={3} className={ this.props.classes.seperator } >
-            <Grid container className={ this.props.classes.fullHeight } >
-              <Grid item align='center' xs={4} className={ this.props.classes.iconBox } >
-                <Grid container justify='center' alignItems='center' direction='column' className={ this.props.classes.verticalButtons } >
-                  <Grid item >
-                    <IconButton className={ this.props.classes.tinyArrow } onClick={ this.increaseSpeed } aria-label='Increase play speed by 1 step' >
-                      <UpArrow className={ this.props.classes.tinyArrow } />
+          <Grid item xs={ 3 }>
+            <Grid container>
+              <Grid item align='center' xs={ 4 } className={ classes.iconBox } >
+                <Grid container alignItems='center' direction='column'>
+                  <Grid item className={ classes.tinyArrow }>
+                    <IconButton
+                      className={ classes.tinyArrowIcon }
+                      onClick={ this.increaseSpeed }
+                      aria-label='Increase play speed by 1 step'>
+                      <UpArrow className={ classes.tinyArrowIcon } />
                     </IconButton>
                   </Grid>
-                  <Grid item className={ this.props.classes.speedText } >
-                    <Typography variant='body1' align='center'>
+                  <Grid item>
+                    <Typography variant='body2' align='center'>
                       { this.state.playSpeed }x
                     </Typography>
                   </Grid>
-                  <Grid item >
-                    <IconButton className={ this.props.classes.tinyArrow } onClick={ this.decreaseSpeed } aria-label='Decrease play speed by 1 step' >
-                      <DownArrow className={ this.props.classes.tinyArrow } />
+                  <Grid item className={ classes.tinyArrow }>
+                    <IconButton
+                      className={ classes.tinyArrowIcon }
+                      onClick={ this.decreaseSpeed }
+                      aria-label='Decrease play speed by 1 step'>
+                      <DownArrow className={ classes.tinyArrowIcon } />
                     </IconButton>
                   </Grid>
                 </Grid>
               </Grid>
-              <Grid item align='center' xs={8} >
-                <IconButton className={ this.props.classes.iconButton } onClick={ this.togglePause } aria-label={ isPaused ? 'Unpause' : 'Pause' } >
+              <Grid item align='center' xs={ 8 } >
+                <IconButton
+                  onClick={ this.togglePause }
+                  aria-label={ isPaused ? 'Unpause' : 'Pause' } >
                 { isPaused
-                  ? ( <PlayArrow className={ this.props.classes.icon + ' circle' } /> )
-                  : ( <Pause className={ this.props.classes.icon + ' circle' } /> )
+                  ? ( <PlayArrow className={ classes.icon + ' circle' } /> )
+                  : ( <Pause className={ classes.icon + ' circle' } /> )
                 }
                 </IconButton>
               </Grid>
@@ -243,8 +277,9 @@ class TimeDisplay extends Component {
 }
 
 const stateToProps = Obstruction({
+  expanded: 'zoom.expanded',
   playSpeed: 'workerState.playSpeed',
-  start: 'workerState.start'
+  start: 'workerState.start',
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));

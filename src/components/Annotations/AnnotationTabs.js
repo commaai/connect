@@ -10,8 +10,8 @@ import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import Badge from '@material-ui/core/Badge';
 
-import AnnotationList from './list';
-import { filterEvent } from './common';
+import AnnotationList from './AnnotationList';
+import { filterEvent } from '../../utils';
 
 const styles = theme => {
   return {
@@ -33,7 +33,6 @@ const styles = theme => {
       flexDirection: 'column',
     },
     annotationsViewerTabs: {
-      height: 48,
       marginBottom: 12,
       width: '100%',
     },
