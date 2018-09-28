@@ -16,6 +16,18 @@ export default function reducer (state = initialState, action) {
         state.device = action.devices.find(function(device) {
           return device.dongle_id === state.dongleId
         });
+        if (!state.device) {
+          state.device = {
+            "alias": null,
+            "create_time": 1513041169,
+            "device_type": "unknown",
+            "dongle_id": "0000000000000000",
+            "imei": "000000000000000",
+            "is_owner": false,
+            "last_segment_utc_millis": null,
+            "serial": "00000000"
+          }
+        }
       }
       state.devices = action.devices;
       break;
