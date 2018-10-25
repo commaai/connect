@@ -586,7 +586,7 @@ class VideoPreview extends Component {
     if (!segment) {
       return '';
     }
-    return '//video.comma.ai/hls/' + this.props.dongleId + '/' + segment.url.split('/').pop() + '/index.m3u8';
+    return 'https://comma-video.azureedge.net/hls/' + this.props.dongleId + '/' + segment.url.split('/').pop() + '/index.m3u8';
   }
 
   currentVideoTime (offset = TimelineWorker.currentOffset()) {
