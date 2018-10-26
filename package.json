@@ -3,7 +3,8 @@
   "version": "0.3.1",
   "scripts": {
     "start": "react-app-rewired start",
-    "build": "react-app-rewired build && find build -name '*.map' -exec rm {} \\;",
+    "build:production": "env-cmd .env.production react-app-rewired build && find build -name '*.map' -exec rm {} \\;",
+    "build:master": "env-cmd .env.staging react-app-rewired build && find build -name '*.map' -exec rm {} \\;",
     "test": "react-app-rewired test --env=jsdom",
     "eject": "react-app-rewired eject",
     "storybook": "start-storybook -p 9009 -s public",
@@ -74,6 +75,7 @@
     "@storybook/react": "^3.4.6",
     "babel-core": "^6.26.3",
     "css-loader": "^0.28.11",
+    "env-cmd": "^8.0.2",
     "node-sass": "^4.9.0",
     "react-app-rewired": "^1.5.2",
     "sass-loader": "^7.0.3",
