@@ -1,6 +1,13 @@
 # Explorer
 The frontend to the explorer web UI. This a react app using [Create React App](https://github.com/facebookincubator/create-react-app) (see wall of documentatio below)
 
+## Environments
+ * Developemnt (local machine) http://localhost:3000
+ * Staging (master branch) https://master--comma-explorer.netlify.com/
+ * Production (production branch) https://my.comma.ai
+   * all production hostnames redirect to here to prevent CORS caching issues (see public/_redirects)
+   * Netlify "Preview Deploy" functionality will not work because the video server CDN caches the CORS requests, and every preview deploy has a different URL (if you pull up videos using one of these links, you should clear the CDN cache for any video URLs that were hit)
+
 ## Libraries Used
 There's a ton of them, but these are worth mentioning because they sort of affect everything.
 
