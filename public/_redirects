@@ -1,7 +1,7 @@
-/*  /index.html  200
-
 # Redirect default Netlify subdomain to primary domain
 https://comma-explorer.netlify.com/* https://my.comma.ai/:splat 301!
 
 # Redirect domain aliases to primary domain
 https://my.comma.life/* https://my.comma.ai/:splat 301!
+
+/*  /index.html  200
