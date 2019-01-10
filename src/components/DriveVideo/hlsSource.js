@@ -1,11 +1,11 @@
 // https://video-react.js.org/customize/customize-source/
 import React, { Component } from 'react';
-import Hls from 'hls.js';
+import Hls from '@commaai/hls.js';
 
 export default class HLSSource extends Component {
   constructor(props, context) {
     super(props, context);
-    this.hls = new Hls();
+    this.hls = new Hls({disablePtsDtsCorrectionInMp4Remux: true});
   }
 
   componentDidUpdate (prevProps, prevState) {

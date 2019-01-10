@@ -14,6 +14,7 @@
   "author": "Chris Vickery <chrisinajar@gmail.com>",
   "private": true,
   "dependencies": {
+    "@commaai/hls.js": "^0.12.2",
     "@commaai/log_reader": "^0.3.1",
     "@mapbox/mapbox-sdk": "^0.4.0",
     "@material-ui/core": "^1.0.0",
@@ -39,7 +40,6 @@
     "geval": "^2.2.0",
     "global": "^4.3.2",
     "history": "^4.7.2",
-    "hls.js": "^0.9.1",
     "joi-browser": "^13.4.0",
     "localforage": "^1.7.1",
     "material-ui-pickers": "^1.0.0-rc.10",
