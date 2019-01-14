@@ -21,6 +21,8 @@ const vwp_w = 1164;
 const vwp_h = 874;
 const bdr_s = 30;
 
+const STREAM_VERSION = 1;
+
 const styles = theme => {
   return {
     hidden: {
@@ -586,7 +588,7 @@ class VideoPreview extends Component {
     if (!segment) {
       return '';
     }
-    return process.env.REACT_APP_VIDEO_CDN + '/hls/' + this.props.dongleId + '/' + segment.url.split('/').pop() + '/index.m3u8';
+    return process.env.REACT_APP_VIDEO_CDN + '/hls/' + this.props.dongleId + '/' + segment.url.split('/').pop() + '/index.m3u8?v=' + STREAM_VERSION;
   }
 
   currentVideoTime (offset = TimelineWorker.currentOffset()) {
