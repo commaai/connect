@@ -21,7 +21,7 @@ const vwp_w = 1164;
 const vwp_h = 874;
 const bdr_s = 30;
 
-const STREAM_VERSION = 1;
+const STREAM_VERSION = 2;
 
 const styles = theme => {
   return {
