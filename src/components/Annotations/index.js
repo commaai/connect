@@ -63,7 +63,6 @@ const styles = theme => {
       alignItems: 'center',
       background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
       display: 'flex',
-      height: 64,
       marginTop: 'auto',
       width: '100%',
     },

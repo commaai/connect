@@ -95,7 +95,6 @@ class AnnotationsFooter extends Component {
   }
 
   openInCabana () {
-    console.log(this.props.segment);
     var win = window.open('https://community.comma.ai/cabana/?route=' + this.props.segment.route + '&seekTime=' + Math.floor((Timelineworker.currentOffset() - this.props.segment.routeOffset) / 1000), '_blank');
     if (win.focus) {
       win.focus();
@@ -107,7 +106,12 @@ class AnnotationsFooter extends Component {
       <Paper className={ this.props.classes.root } >
         { this.props.segment && this.props.segment.hasVideo &&
           <a className={ this.props.classes.footerButton } onClick={ partial(this.downloadSegmentFile, 'cameras') }>
-            Download Video Segment
+            Download Camera Segment
+          </a>
+        }
+        { this.props.segment && this.props.segment.hasDriverCamera &&
+          <a className={ this.props.classes.footerButton } onClick={ partial(this.downloadSegmentFile, 'dcameras') }>
+            Download Front Camera Segment
           </a>
         }
         { this.props.segment &&
@@ -116,7 +120,7 @@ class AnnotationsFooter extends Component {
           </a>
         }
         <a className={ this.props.classes.footerButton } onClick={ this.openInCabana } href='#'>
-          Open in Cabana!
+          Open in Cabana
         </a>
         <a className={ this.props.classes.footerButton } onClick={ this.copySegmentName } target='_blank'>
           Copy Current Segment
