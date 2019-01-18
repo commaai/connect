@@ -1,6 +1,6 @@
 {
   "name": "explorer",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "scripts": {
     "start": "react-app-rewired start",
     "build:production": "env-cmd .env.production react-app-rewired build && find build -name '*.map' -exec rm {} \\;",
