@@ -16,11 +16,10 @@
     eventemitter3 "3.1.0"
     url-toolkit "^2.1.6"
 
-"@commaai/log_reader@^0.3.1":
-  version "0.3.1"
-  resolved "https://registry.yarnpkg.com/@commaai/log_reader/-/log_reader-0.3.1.tgz#0e2b47b621ac9b852ccf5137787e17952a34170c"
+"@commaai/log_reader@^0.4.2":
+  version "0.4.2"
+  resolved "https://registry.yarnpkg.com/@commaai/log_reader/-/log_reader-0.4.2.tgz#3179678099f95aa00823c438d2b42ea826832c9b"
   dependencies:
-    "@commaai/unbzip2-stream" "^2.0.0"
     JSONStream "^1.3.2"
     ap "^0.2.0"
     capnp-json "^0.1.2"
@@ -30,10 +29,7 @@
     file-type "^7.6.0"
     geval "^2.2.0"
     stream-selector "^0.4.0"
-
-"@commaai/unbzip2-stream@^2.0.0":
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/@commaai/unbzip2-stream/-/unbzip2-stream-2.0.0.tgz#93821dc5e72f04ec5eedef5ed4e6ff57412019e0"
+    wasm-bz2 "^0.0.2"
 
 "@mapbox/fusspot@^0.4.0":
   version "0.4.0"
@@ -619,6 +615,10 @@ arr-flatten@^1.0.1, arr-flatten@^1.1.0:
 arr-union@^3.1.0:
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/arr-union/-/arr-union-3.1.0.tgz#e39b09aea9def866a8f206e288af63919bae39c4"
+
+array-differ@~1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/array-differ/-/array-differ-1.0.0.tgz#eff52e3758249d33be402b8bb8e564bb2b5d4031"
 
 array-equal@^1.0.0:
   version "1.0.0"
@@ -4369,7 +4369,7 @@ getpass@^0.1.1:
   dependencies:
     assert-plus "^1.0.0"
 
-geval@^2.1.1, geval@^2.2.0:
+geval@^2.1.1, geval@^2.2.0, geval@~2.2.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/geval/-/geval-2.2.0.tgz#5622b10a28028284198afe351f6b417042c33dda"
 
@@ -6035,6 +6035,13 @@ jsx-ast-utils@^2.0.0:
 kdbush@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/kdbush/-/kdbush-1.0.1.tgz#3cbd03e9dead9c0f6f66ccdb96450e5cecc640e0"
+
+key-difference@~1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/key-difference/-/key-difference-1.0.0.tgz#7ede6f69bfff08010b5612885303b688a30008cc"
+  dependencies:
+    array-differ "~1.0.0"
+    xtend "~4.0.0"
 
 keycode@^2.1.9:
   version "2.2.0"
@@ -10306,6 +10313,13 @@ warning@^4.0.1:
   dependencies:
     loose-envify "^1.0.0"
 
+wasm-bz2@^0.0.2:
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/wasm-bz2/-/wasm-bz2-0.0.2.tgz#ff5c4e3ed660169ec14f00bd9f4650c43c142a13"
+  dependencies:
+    ap "^0.2.0"
+    weakmap-event "^2.0.7"
+
 watch@~0.10.0:
   version "0.10.0"
   resolved "https://registry.yarnpkg.com/watch/-/watch-0.10.0.tgz#77798b2da0f9910d595f1ace5b0c2258521f21dc"
@@ -10324,7 +10338,16 @@ wbuf@^1.1.0, wbuf@^1.7.2:
   dependencies:
     minimalistic-assert "^1.0.0"
 
-weakmap-shim@^1.1.1:
+weakmap-event@^2.0.7:
+  version "2.0.7"
+  resolved "https://registry.yarnpkg.com/weakmap-event/-/weakmap-event-2.0.7.tgz#3f65318aba89e022981e8249bfae339a4ad6945a"
+  dependencies:
+    geval "~2.2.0"
+    key-difference "~1.0.0"
+    weakmap-shim "~1.1.0"
+    xtend "~4.0.0"
+
+weakmap-shim@^1.1.1, weakmap-shim@~1.1.0:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/weakmap-shim/-/weakmap-shim-1.1.1.tgz#d65afd784109b2166e00ff571c33150ec2a40b49"
 
@@ -10610,7 +10633,7 @@ xml-name-validator@^2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/xml-name-validator/-/xml-name-validator-2.0.1.tgz#4d8b8f1eccd3419aa362061becef515e1e559635"
 
-xtend@^4.0.0, xtend@^4.0.1, xtend@~4.0.1:
+xtend@^4.0.0, xtend@^4.0.1, xtend@~4.0.0, xtend@~4.0.1:
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/xtend/-/xtend-4.0.1.tgz#a5c6d532be656e23db820efb943a1f04998d63af"
 
