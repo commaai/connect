@@ -149,6 +149,7 @@ class Timeline extends Component {
     this.handleMouseUp = this.handleMouseUp.bind(this);
     this.handleMouseLeave = this.handleMouseLeave.bind(this);
     this.renderSegment = this.renderSegment.bind(this);
+    this.handleThumbLoadError = this.handleThumbLoadError.bind(this);
     this.renderThumbnails = this.renderThumbnails.bind(this);
     this.sendSeek = debounce(this.sendSeek.bind(this), 1000 / 60);
 
@@ -531,6 +532,10 @@ class Timeline extends Component {
       });
   }
 
+  handleThumbLoadError(e) {
+    e.target.src='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+  }
+
   renderThumbnails (options) {
     const { classes } = this.props;
     const { thumbnail } = this.state;
@@ -545,6 +550,7 @@ class Timeline extends Component {
     imgStyles.marginRight = gutter / 2;
 
     var imgArr = [];
+
     for (let i = 0; i < imgCount; ++i) {
       let offset = this.percentToOffset((i + 0.5) / imgCount);
       let segment = Segments.getCurrentSegment(this.props, offset);
@@ -559,6 +565,7 @@ class Timeline extends Component {
         <img
           key={ i }
           src={ url }
+          onError={ this.handleThumbLoadError }
           style={{
             ...imgStyles,
             marginLeft: ((imgStyles.width + gutter) * blankImages) + gutter,
