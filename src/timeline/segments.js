@@ -293,10 +293,11 @@ function segmentsFromMetadata (segmentsData) {
   function finishSegment (segment) {
     var lastEngage = null;
 
-    if (segment.videoAvailableBetweenOffsets.length === 0
-        && segment.hasVideo) {
+    if (segment.hasVideo) {
+      let lastVideoRange = segment.videoAvailableBetweenOffsets[segment.videoAvailableBetweenOffsets.length - 1] || [segment.offset, segment.offset + segment.duration];
       segment.videoAvailableBetweenOffsets = [
-        [segment.offset, segment.offset + segment.duration]
+        ...segment.videoAvailableBetweenOffsets.slice(0, segment.videoAvailableBetweenOffsets.length - 1),
+        [lastVideoRange[0], segment.offset + segment.duration]
       ];
     }
     segment.events = segment.events.sort(function (eventA, eventB) {
