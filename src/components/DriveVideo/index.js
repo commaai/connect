@@ -11,6 +11,7 @@ import 'video-react/dist/video-react.css'; // CSS for video
 
 import HLSSource from './hlsSource';
 import TimelineWorker from '../../timeline';
+import { strokeRoundedRect, fillRoundedRect } from './canvas';
 
 // UI Assets
 var wheelImg = new Image();
@@ -58,6 +59,7 @@ class VideoPreview extends Component {
     this.canvas_road = React.createRef();
     this.canvas_lead = React.createRef();
     this.canvas_carstate = React.createRef();
+    this.canvas_maxspeed = React.createRef();
 
     this.intrinsic = intrinsicMatrix();
 
@@ -236,6 +238,15 @@ class VideoPreview extends Component {
       const events = { carState: TimelineWorker.currentCarState };
       this.renderEventToCanvas(
         this.canvas_carstate.current, params, events, this.renderCarState);
+    }
+    if (this.canvas_maxspeed.current) {
+      const params = { calibration, shouldScale: true };
+      const events = {
+        live100: TimelineWorker.currentLive100,
+        liveMapData: TimelineWorker.currentLiveMapData
+      };
+      this.renderEventToCanvas(
+        this.canvas_maxspeed.current, params, events, this.renderMaxSpeed);
     }
   }
   renderEventToCanvas (canvas, params, events, renderEvent) {
@@ -515,6 +526,165 @@ class VideoPreview extends Component {
       this.drawCarStateWheel(options, events.carState.CarState);
     }
   }
+
+  renderMaxSpeed (options, events) {
+    var { ctx } = options;
+    if (events && events.live100) {
+      var liveMapData = (events.liveMapData && events.liveMapData.LiveMapData) || undefined;
+      this.drawMaxSpeed(options, events.live100.Live100, liveMapData);
+    }
+  }
+
+  drawMaxSpeed (options, Live100, LiveMapData) {
+    var { ctx } = options;
+
+    var maxSpeed = Live100.VCruise * 0.6225 + 0.5;
+    var isSpeedLimitValid = LiveMapData !== undefined && LiveMapData.SpeedLimitValid;
+    var speedLimit = (LiveMapData && LiveMapData.SpeedLimit) || 0;
+    var speedLimitCalc = speedLimit * 2.2369363 + 0.5;
+    var speedLimitOffset = 0; // TODO read from initData
+    var metric = false; // TODO read from initData
+    if (metric) {
+      maxSpeed = maxSpeed + 0.5;
+      speedLimitCalc = speedLimit * 3.6 + 0.5;
+      // speedLimitOffset = InitData.Params['SpeedLimitOffset'] * 3.6 + 0.5;
+    }
+    var isCruiseSet = !isNaN(Live100.VCruise) && Live100.VCruise != 0 && Live100.VCruise != 255;
+    var isSetOverLimit = (
+      isSpeedLimitValid
+      && Live100.Enabled
+      && isCruiseSet
+      && maxSpeed > (speedLimit + speedLimitOffset)
+    );
+    var hysteresisOffset = 0.5; // TODO adjust to 0.0 if last isEgoOverLimit==true
+    var isEgoOverLimit = isSpeedLimitValid && Live100.VEgo > (speedLimit + speedLimitOffset + hysteresisOffset);
+    var speedLimWidth = Math.floor(180 * (5/6));
+    var width = Math.floor(184 * (5/6)) + speedLimWidth;
+    var height = Math.floor(202 * (5/6));
+
+    var left = bdr_s*2 + (width - speedLimWidth*2);
+    var top = bdr_s*2;
+
+    // background
+    var fillStyle;
+    if (isSetOverLimit) {
+      fillStyle = 'rgba(218, 111, 37, 0.705)';
+    } else {
+      fillStyle = 'rgba(0, 0, 0, 0.392)';
+    }
+    fillRoundedRect(ctx, left, top, width, height, 30, fillStyle);
+
+    // border
+    var strokeStyle;
+    if (isSetOverLimit) {
+      strokeStyle="rgba(218, 111, 37, 1.0)";
+    } else if (isSpeedLimitValid && !isEgoOverLimit) {
+      strokeStyle="rgba(255, 255, 255, 1.0)";
+    } else if (isSpeedLimitValid && isEgoOverLimit) {
+      strokeStyle="rgba(255, 255, 255, 0.078)";
+    } else {
+      strokeStyle="rgba(255, 255, 255, 0.392)";
+    }
+    strokeRoundedRect(ctx, left, top, width, height, 20, 10, strokeStyle);
+
+    var textTopY = top + 10 + (26*5/3);
+    var textBottomY = textTopY + (48*(4/3));
+    // MAX text
+    ctx.font = 26*(5/3) + "px Open Sans";
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (isCruiseSet) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.784)';
+    } else {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.392)';
+    }
+
+    ctx.fillText("MAX", left+speedLimWidth/2+width/2, textTopY);
+
+    // max speed text
+    if (isCruiseSet) {
+      ctx.font = "700 " + 48*(5/3) + "px Open Sans";
+      ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
+      ctx.fillText(Math.floor(maxSpeed), 2 + left + speedLimWidth/2 + width / 2, textBottomY);
+    } else {
+      ctx.font = "600 " + 42*(5/3) + "px Open Sans";
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.392)';
+      ctx.fillText("N/A", left + speedLimWidth/2 + width / 2, textBottomY);
+    }
+
+    if (Live100.DecelForTurn && Live100.Enabled) {
+      var turnSpeed = Live100.VCurvature * 2.2369363 + 0.5;
+      ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
+      ctx.font = "700 " + 25*(5/3) + "px Open Sans";
+      ctx.fillText("TURN", 200*(5/6) + left + speedLimWidth/2 + width/2, textTopY);
+      ctx.font = "700 " + 50*(5/3) + "px Open Sans";
+      ctx.fillText(Math.floor(turnSpeed), 200*(5/6) + left + speedLimWidth/2 + width/2, textBottomY);
+    }
+
+    // Speed Limit
+    if (!isSpeedLimitValid) {
+      speedLimWidth -= Math.floor(5*(5/6));
+      height -= Math.floor(10*(5/6)) + 2;
+      left += Math.floor(9*(5/6)) - 2;
+      top += Math.floor(5*(5/6)) + 1;
+    }
+
+    var speedLimBorderRadius = isSpeedLimitValid ? 30 : 15;
+    // background
+    var speedLimFillStyle;
+
+    if (isSpeedLimitValid && isEgoOverLimit) {
+      speedLimFillStyle = "rgba(218, 111, 37, 0.706)";
+    } else if (isSpeedLimitValid) {
+      speedLimFillStyle = "rgba(255, 255, 255, 1.0)";
+    } else {
+      speedLimFillStyle = "rgba(255, 255, 255, 0.392)";
+    }
+    fillRoundedRect(ctx, left, top, speedLimWidth, height, speedLimBorderRadius, speedLimFillStyle);
+
+    // border
+    if (isSpeedLimitValid) {
+      var speedLimStrokeStyle;
+      if (isEgoOverLimit) {
+        speedLimStrokeStyle = "rgba(218, 111, 37, 1.0)";
+      } else {
+        speedLimStrokeStyle = "rgba(255, 255, 255, 1.0)";
+      }
+      strokeRoundedRect(ctx, left, top, speedLimWidth, height, 20, 10, speedLimStrokeStyle);
+    }
+
+    ctx.font = "600 " + 50*(2/3) + "px Open Sans";
+    if (isSpeedLimitValid && isEgoOverLimit) {
+      ctx.fillStyle = "rgba(255,255,255,1.0)";
+    } else {
+      ctx.fillStyle = "rgba(0,0,0,1.0)";
+    }
+    ctx.fillText("SPEED",
+                 left + speedLimWidth/2 + (isSpeedLimitValid ? 5 : 0),
+                 top + (5/6)*(isSpeedLimitValid ? 35 : 30));
+    ctx.fillText("LIMIT",
+                 left + speedLimWidth/2 + (isSpeedLimitValid ? 5 : 0),
+                 top + (5/6)*(isSpeedLimitValid ? 75 : 70));
+
+
+    if (isEgoOverLimit) {
+      ctx.fillStyle = "rgba(255,255,255,1.0)";
+    } else {
+      ctx.fillStyle = "rgba(0,0,0,1.0)";
+    }
+    if (isSpeedLimitValid) {
+      ctx.font = "700 " + 48*(5/3) + "px Open Sans";
+      ctx.fillText(Math.floor(speedLimitCalc),
+                   left + speedLimWidth / 2,
+                   textBottomY + 3);
+    } else {
+      ctx.font = "600 " + 42*(5/3) + "px Open Sans";
+      ctx.fillText("N/A",
+                   left + speedLimWidth / 2,
+                   textBottomY + 3);
+    }
+  }
+
   drawCarStateWheel (options, CarState) {
     var { ctx } = options;
 
@@ -652,6 +822,10 @@ class VideoPreview extends Component {
               ref={ this.canvas_carstate }
               className={ classes.videoUiCanvas }
               style={{ zIndex: 5 }} />
+            <canvas
+              ref={ this.canvas_maxspeed }
+              className={ classes.videoUiCanvas }
+              style={{ zIndex: 6 }} />
           </React.Fragment>
         }
       </div>

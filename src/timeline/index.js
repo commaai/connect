@@ -311,6 +311,9 @@ class TimelineInterface {
   currentLive100 () {
     return this.getEventByType(Event_Which.LIVE100, 1000);
   }
+  currentLiveMapData () {
+    return this.getEventByType(Event_Which.LIVE_MAP_DATA, 4000);
+  }
   currentMPC () {
     return this.getEventByType(Event_Which.LIVE_MPC, 1000);
   }
