@@ -15,7 +15,7 @@
   "author": "Chris Vickery <chrisinajar@gmail.com>",
   "private": true,
   "dependencies": {
-    "@commaai/capnp-json": "^0.1.5",
+    "@commaai/capnp-json": "^0.1.6",
     "@commaai/hls.js": "^0.12.2",
     "@commaai/log_reader": "^0.4.2",
     "@mapbox/mapbox-sdk": "^0.4.0",
