@@ -1,5 +1,5 @@
 import * as capnp from 'capnp-ts';
-import toJSON from 'capnp-json';
+import toJSON from '@commaai/capnp-json';
 import BufferUtils from 'capnp-split/buffer';
 import { Event, Event_Which } from '@commaai/log_reader/capnp/log.capnp';
 

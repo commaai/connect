@@ -3,7 +3,7 @@ import Event from 'geval/event';
 import { partial } from 'ap';
 import * as capnp from 'capnp-ts';
 import { Event as CapnpEvent, Event_Which } from '@commaai/log_reader/capnp/log.capnp';
-import toJSON from 'capnp-json';
+import toJSON from '@commaai/capnp-json';
 
 import { getCommaAccessToken } from '../api/auth/storage';
 import * as Playback from './playback';

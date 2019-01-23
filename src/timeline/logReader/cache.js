@@ -1,5 +1,5 @@
 import LogStream from '@commaai/log_reader';
-import toJSON from  'capnp-json';
+import toJSON from '@commaai/capnp-json';
 import { timeout } from 'thyming';
 import request from 'simple-get';
 import Event from 'geval/event';
