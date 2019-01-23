@@ -243,7 +243,8 @@ class VideoPreview extends Component {
       const params = { calibration, shouldScale: true };
       const events = {
         live100: TimelineWorker.currentLive100,
-        liveMapData: TimelineWorker.currentLiveMapData
+        liveMapData: TimelineWorker.currentLiveMapData,
+        initData: TimelineWorker.currentInitData,
       };
       this.renderEventToCanvas(
         this.canvas_maxspeed.current, params, events, this.renderMaxSpeed);
@@ -531,24 +532,31 @@ class VideoPreview extends Component {
     var { ctx } = options;
     if (events && events.live100) {
       var liveMapData = (events.liveMapData && events.liveMapData.LiveMapData) || undefined;
-      this.drawMaxSpeed(options, events.live100.Live100, liveMapData);
+      this.drawMaxSpeed(options, events.live100.Live100, liveMapData, events.initData.InitData);
     }
   }
 
-  drawMaxSpeed (options, Live100, LiveMapData) {
+  drawMaxSpeed (options, Live100, LiveMapData, InitData) {
     var { ctx } = options;
 
     var maxSpeed = Live100.VCruise * 0.6225 + 0.5;
     var isSpeedLimitValid = LiveMapData !== undefined && LiveMapData.SpeedLimitValid;
     var speedLimit = (LiveMapData && LiveMapData.SpeedLimit) || 0;
     var speedLimitCalc = speedLimit * 2.2369363 + 0.5;
-    var speedLimitOffset = 0; // TODO read from initData
-    var metric = false; // TODO read from initData
-    if (metric) {
+
+    var speedLimitOffset = 0;
+    var speedLimitOffsetParam = InitData.Params.Entries.find((entry) => entry.Key === "SpeedLimitOffset");
+    if (speedLimitOffsetParam) {
+      speedLimitOffset = parseFloat(speedLimitOffsetParam.Value);
+    }
+
+    var metricParam = InitData.Params.Entries.find((entry) => entry.Key === "IsMetric");
+    if (metricParam.Value === "1") {
       maxSpeed = maxSpeed + 0.5;
       speedLimitCalc = speedLimit * 3.6 + 0.5;
-      // speedLimitOffset = InitData.Params['SpeedLimitOffset'] * 3.6 + 0.5;
+      speedLimitOffset = speedLimitOffset * 3.6 + 0.5;
     }
+
     var isCruiseSet = !isNaN(Live100.VCruise) && Live100.VCruise != 0 && Live100.VCruise != 255;
     var isSetOverLimit = (
       isSpeedLimitValid
@@ -660,10 +668,10 @@ class VideoPreview extends Component {
       ctx.fillStyle = "rgba(0,0,0,1.0)";
     }
     ctx.fillText("SPEED",
-                 left + speedLimWidth/2 + (isSpeedLimitValid ? 5 : 0),
+                 left + speedLimWidth/2 + 2,
                  top + (5/6)*(isSpeedLimitValid ? 35 : 30));
     ctx.fillText("LIMIT",
-                 left + speedLimWidth/2 + (isSpeedLimitValid ? 5 : 0),
+                 left + speedLimWidth/2,
                  top + (5/6)*(isSpeedLimitValid ? 75 : 70));
 
 

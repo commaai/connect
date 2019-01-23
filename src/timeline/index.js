@@ -302,6 +302,55 @@ class TimelineInterface {
       return 0;
     }
   }
+  currentInitData () {
+    if (!this.state || !this.state.route) {
+      return;
+    }
+    if (!this.buffers[this.state.route] || !this.buffers[this.state.route][this.state.segment]) {
+      return;
+    }
+
+    var segment = this.state.segments.filter((a) => a.route === this.state.route);
+    segment = segment[0];
+    if (!segment) {
+      return;
+    }
+
+    // check if any buffered logs have the initdata packet
+    var curSegLog = this.buffers[this.state.route][this.state.segment];
+    var entry = curSegLog.index[0];
+    if (entry[5] !== Event_Which.INIT_DATA) {
+      return;
+    }
+
+    let buffer = curSegLog.buffers[entry[4]].slice(entry[2], entry[2] + entry[3]);
+    var msg = new capnp.Message(buffer, false);
+    var event = msg.getRoot(CapnpEvent);
+
+    var initData = toJSON(event);
+    // Cast params key-value pointers to Text, as capnp-ts does not yet
+    // apply parameterized struct types like we use for
+    // params: Map(Text, Text)
+    initData = Object.create(initData);
+    Object.defineProperty(initData, 'InitData', {writable: true, value: Object.create(initData.InitData)});
+    Object.defineProperty(initData.InitData, 'Params', {writable: true, value: Object.create(initData.InitData.Params)});
+    var parsedEntries = initData.InitData.Params.Entries.map((entry) => {
+      entry = Object.create(entry);
+      Object.defineProperty(entry, 'Key', {
+        writable: false,
+        value: capnp.Text.fromPointer(entry.Key).get()
+      });
+      Object.defineProperty(entry, 'Value', {
+        writable: true,
+        value: capnp.Text.fromPointer(entry.Value).get()
+      })
+
+      return entry;
+    });
+    Object.defineProperty(initData.InitData.Params, 'Entries', {writable: true, value: parsedEntries});
+
+    return initData;
+  }
   currentModel () {
     return this.getEventByType(Event_Which.MODEL, 1000);
   }

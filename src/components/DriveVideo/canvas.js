@@ -18,6 +18,7 @@ function roundedRectPath(ctx, left, top, width, height, radius) {
 	var right=left+width;
 	var bottom=top+height;
 	var K = 4 * (Math.SQRT2-1) / 3;
+
 	ctx.beginPath();
 	ctx.moveTo(left+radius,top);
 	ctx.lineTo(right-radius,top);
