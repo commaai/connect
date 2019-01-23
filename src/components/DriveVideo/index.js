@@ -608,9 +608,9 @@ class VideoPreview extends Component {
     );
     var hysteresisOffset = 0.5; // TODO adjust to 0.0 if last isEgoOverLimit==true
     var isEgoOverLimit = isSpeedLimitValid && Live100.VEgo > (speedLimit + speedLimitOffset + hysteresisOffset);
-    var speedLimWidth = Math.floor(180 * (5/6));
-    var width = Math.floor(184 * (5/6)) + speedLimWidth;
-    var height = Math.floor(202 * (5/6));
+    var speedLimWidth = Math.floor(180 * (2/3));
+    var width = Math.floor(184 * (2/3)) + speedLimWidth;
+    var height = Math.floor(202 * (2/3));
 
     var left = bdr_s*2 + (width - speedLimWidth*2);
     var top = bdr_s*2;
@@ -637,10 +637,10 @@ class VideoPreview extends Component {
     }
     strokeRoundedRect(ctx, left, top, width, height, 20, 10, strokeStyle);
 
-    var textTopY = top + 10 + (26*5/3);
+    var textTopY = top + (26*4/3);
     var textBottomY = textTopY + (48*(4/3));
     // MAX text
-    ctx.font = 26*(5/3) + "px Open Sans";
+    ctx.font = 26*(4/3) + "px Open Sans";
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     if (isCruiseSet) {
@@ -653,30 +653,30 @@ class VideoPreview extends Component {
 
     // max speed text
     if (isCruiseSet) {
-      ctx.font = "700 " + 48*(5/3) + "px Open Sans";
+      ctx.font = "700 " + 48*(4/3) + "px Open Sans";
       ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
       ctx.fillText(Math.floor(maxSpeed), 2 + left + speedLimWidth/2 + width / 2, textBottomY);
     } else {
-      ctx.font = "600 " + 42*(5/3) + "px Open Sans";
+      ctx.font = "600 " + 42*(4/3) + "px Open Sans";
       ctx.fillStyle = 'rgba(255, 255, 255, 0.392)';
       ctx.fillText("N/A", left + speedLimWidth/2 + width / 2, textBottomY);
     }
 
-    // if (Live100.DecelForTurn && Live100.Enabled) {
+    if (Live100.DecelForTurn && Live100.Enabled) {
       var turnSpeed = Live100.VCurvature * 2.2369363 + 0.5;
       ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
-      ctx.font = "700 " + 25*(5/3) + "px Open Sans";
-      ctx.fillText("TURN", 200*(5/6) + left + speedLimWidth/2 + width/2, textTopY);
-      ctx.font = "700 " + 50*(5/3) + "px Open Sans";
-      ctx.fillText(Math.floor(turnSpeed), 200*(5/6) + left + speedLimWidth/2 + width/2, textBottomY);
-    // }
+      ctx.font = "700 " + 25*(4/3) + "px Open Sans";
+      ctx.fillText("TURN", 200*(2/3) + left + speedLimWidth/2 + width/2, textTopY);
+      ctx.font = "700 " + 50*(4/3) + "px Open Sans";
+      ctx.fillText(Math.floor(turnSpeed), 200*(2/3) + left + speedLimWidth/2 + width/2, textBottomY);
+    }
 
     // Speed Limit
     if (!isSpeedLimitValid) {
-      speedLimWidth -= Math.floor(5*(5/6));
-      height -= Math.floor(10*(5/6)) + 2;
-      left += Math.floor(9*(5/6)) - 2;
-      top += Math.floor(5*(5/6)) + 1;
+      speedLimWidth -= Math.floor(5*(2/3));
+      height -= Math.floor(10*(2/3)) + 2;
+      left += Math.floor(9*(2/3)) - 2;
+      top += Math.floor(5*(2/3)) + 1;
     }
 
     var speedLimBorderRadius = isSpeedLimitValid ? 30 : 15;
@@ -711,10 +711,10 @@ class VideoPreview extends Component {
     }
     ctx.fillText("SPEED",
                  left + speedLimWidth/2 + 2,
-                 top + (5/6)*(isSpeedLimitValid ? 35 : 30));
+                 top + (2/3)*(isSpeedLimitValid ? 35 : 30));
     ctx.fillText("LIMIT",
                  left + speedLimWidth/2,
-                 top + (5/6)*(isSpeedLimitValid ? 75 : 70));
+                 top + (2/3)*(isSpeedLimitValid ? 80 : 75));
 
 
     if (isEgoOverLimit) {
@@ -723,12 +723,12 @@ class VideoPreview extends Component {
       ctx.fillStyle = "rgba(0,0,0,1.0)";
     }
     if (isSpeedLimitValid) {
-      ctx.font = "700 " + 48*(5/3) + "px Open Sans";
+      ctx.font = "700 " + 48*(4/3) + "px Open Sans";
       ctx.fillText(Math.floor(speedLimitCalc),
                    left + speedLimWidth / 2,
                    textBottomY + 3);
     } else {
-      ctx.font = "600 " + 42*(5/3) + "px Open Sans";
+      ctx.font = "600 " + 42*(4/3) + "px Open Sans";
       ctx.fillText("N/A",
                    left + speedLimWidth / 2,
                    textBottomY + 3);
