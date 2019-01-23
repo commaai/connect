@@ -17,7 +17,7 @@
   "dependencies": {
     "@commaai/capnp-json": "^0.1.6",
     "@commaai/hls.js": "^0.12.2",
-    "@commaai/log_reader": "^0.4.2",
+    "@commaai/log_reader": "^0.4.3",
     "@mapbox/mapbox-sdk": "^0.4.0",
     "@material-ui/core": "^1.0.0",
     "@material-ui/icons": "^1.0.0",
