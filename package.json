@@ -1,6 +1,6 @@
 {
   "name": "explorer",
-  "version": "0.3.14",
+  "version": "0.3.15",
   "scripts": {
     "start": "react-app-rewired start",
     "build:keepmaps": "env-cmd .env.production react-app-rewired build",
