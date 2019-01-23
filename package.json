@@ -3,6 +3,7 @@
   "version": "0.3.10",
   "scripts": {
     "start": "react-app-rewired start",
+    "build:keepmaps": "env-cmd .env.production react-app-rewired build",
     "build:production": "env-cmd .env.production react-app-rewired build && find build -name '*.map' -exec rm {} \\;",
     "build:branch-deploy": "env-cmd .env.staging react-app-rewired build && find build -name '*.map' -exec rm {} \\;",
     "test": "react-app-rewired test --env=jsdom",
@@ -14,6 +15,7 @@
   "author": "Chris Vickery <chrisinajar@gmail.com>",
   "private": true,
   "dependencies": {
+    "@commaai/capnp-json": "^0.1.5",
     "@commaai/hls.js": "^0.12.2",
     "@commaai/log_reader": "^0.4.2",
     "@mapbox/mapbox-sdk": "^0.4.0",
@@ -22,7 +24,6 @@
     "ap": "^0.2.0",
     "babel-loader": "^7.1.4",
     "babel-runtime": "^6.26.0",
-    "capnp-json": "^0.1.3",
     "capnp-split": "^0.1.4",
     "capnp-ts": "^0.2.4",
     "classnames": "^2.2.6",
