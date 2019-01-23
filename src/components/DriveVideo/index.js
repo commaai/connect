@@ -60,6 +60,7 @@ class VideoPreview extends Component {
     this.canvas_lead = React.createRef();
     this.canvas_carstate = React.createRef();
     this.canvas_maxspeed = React.createRef();
+    this.canvas_speed = React.createRef();
 
     this.intrinsic = intrinsicMatrix();
 
@@ -248,6 +249,15 @@ class VideoPreview extends Component {
       };
       this.renderEventToCanvas(
         this.canvas_maxspeed.current, params, events, this.renderMaxSpeed);
+    }
+    if (this.canvas_speed.current) {
+      const params = { calibration, shouldScale: true };
+      const events = {
+        live100: TimelineWorker.currentLive100,
+        initData: TimelineWorker.currentInitData,
+      };
+      this.renderEventToCanvas(
+        this.canvas_speed.current, params, events, this.renderSpeed);
     }
   }
   renderEventToCanvas (canvas, params, events, renderEvent) {
@@ -521,16 +531,48 @@ class VideoPreview extends Component {
     ctx.fill();
   }
   renderCarState (options, events) {
-    var { ctx } = options;
     if (events && events.carState) {
       this.drawCarStateBorder(options, events.carState.CarState);
       this.drawCarStateWheel(options, events.carState.CarState);
     }
   }
 
-  renderMaxSpeed (options, events) {
+  renderSpeed (options, events) {
+    if (events && events.live100 && events.initData) {
+      this.drawSpeed(options, events.live100.Live100, events.initData.InitData);
+    }
+  }
+  drawSpeed (options, Live100, InitData) {
     var { ctx } = options;
-    if (events && events.live100) {
+
+    var speed = Live100.VEgo;
+
+    var metricParam = InitData.Params.Entries.find((entry) => entry.Key === "IsMetric");
+    var isMetric = metricParam.Value === "1";
+    if (isMetric) {
+      speed = Math.floor(speed * 3.6 + 0.5);
+    } else {
+      speed = Math.floor(speed * 2.2369363 + 0.5);
+    }
+
+    var x = vwp_w / 2;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '700 128px Open Sans';
+    ctx.fillStyle = 'rgb(255,255,255)';
+    ctx.fillText(speed, x, 140);
+
+    ctx.font = '400 48px Open Sans';
+    ctx.fillStyle = 'rgba(255,255,255,200)';
+    if (isMetric) {
+      ctx.fillText("kph", x, 210);
+    } else {
+      ctx.fillText("mph", x, 210);
+    }
+
+  }
+  renderMaxSpeed (options, events) {
+    if (events && events.live100 && events.initData) {
       var liveMapData = (events.liveMapData && events.liveMapData.LiveMapData) || undefined;
       this.drawMaxSpeed(options, events.live100.Live100, liveMapData, events.initData.InitData);
     }
@@ -620,14 +662,14 @@ class VideoPreview extends Component {
       ctx.fillText("N/A", left + speedLimWidth/2 + width / 2, textBottomY);
     }
 
-    if (Live100.DecelForTurn && Live100.Enabled) {
+    // if (Live100.DecelForTurn && Live100.Enabled) {
       var turnSpeed = Live100.VCurvature * 2.2369363 + 0.5;
       ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
       ctx.font = "700 " + 25*(5/3) + "px Open Sans";
       ctx.fillText("TURN", 200*(5/6) + left + speedLimWidth/2 + width/2, textTopY);
       ctx.font = "700 " + 50*(5/3) + "px Open Sans";
       ctx.fillText(Math.floor(turnSpeed), 200*(5/6) + left + speedLimWidth/2 + width/2, textBottomY);
-    }
+    // }
 
     // Speed Limit
     if (!isSpeedLimitValid) {
@@ -834,6 +876,10 @@ class VideoPreview extends Component {
               ref={ this.canvas_maxspeed }
               className={ classes.videoUiCanvas }
               style={{ zIndex: 6 }} />
+            <canvas
+              ref={ this.canvas_speed }
+              className={ classes.videoUiCanvas }
+              style={{ zIndex: 7 }} />
           </React.Fragment>
         }
       </div>
