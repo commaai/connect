@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import cx from 'classnames';
 import Obstruction from 'obstruction';
 import { classNames } from 'react-extras';
 
@@ -34,9 +35,15 @@ const styles = theme => ({
     minHeight: 32,
     minWidth: 44,
     opacity: '0.6',
+    '&.disabled': {
+      cursor: 'default',
+    },
     '&:last-child': {
       borderRight: 'none',
-    }
+    },
+  },
+  mediaOptionDisabled: {
+    cursor: 'auto',
   },
   mediaOptionIcon: {
     backgroundColor: '#fff',
@@ -61,6 +68,7 @@ const styles = theme => ({
 
 const MediaType = {
   VIDEO: 'video',
+  DRIVER_VIDEO: 'dcamera',
   HUD: 'hud',
   MAP: 'map'
 }
@@ -84,9 +92,10 @@ class Media extends Component {
       <React.Fragment>
         { this.renderMediaOptions() }
         { inView === MediaType.MAP && <DriveMap /> }
-        { inView !== MediaType.MAP &&
+        { (inView !== MediaType.MAP) &&
           <DriveVideo
             shouldShowUI={ inView === MediaType.HUD }
+            front={ inView === MediaType.DRIVER_VIDEO }
             onVideoChange={ (noVideo) => {
               this.setState({ inView: noVideo ? MediaType.MAP : inView }) }
             } />
@@ -96,12 +105,13 @@ class Media extends Component {
   }
 
   renderMediaOptions () {
-    const { classes } = this.props;
+    const { classes, currentSegment } = this.props;
     let { inView } = this.state;
     const mediaSource = 'eon-road-camera';
+    const hasDriverCamera = this.props.currentSegment && this.props.currentSegment.hasDriverCamera;
     return (
       <Grid container>
-        <Grid item xs={ 7 }>
+        <Grid item xs={ 5 }>
           {/*
           <FormControl className={ classes.mediaSource }>
             <Select
@@ -114,17 +124,9 @@ class Media extends Component {
           </FormControl>
           */}
         </Grid>
-        <Grid item xs={ 4 }
+        <Grid item xs={ 7 }
           className={ classes.mediaOptions }>
-          <Grid item xs={ 4 }
-            className={ classes.mediaOption }
-            style={ inView === MediaType.VIDEO ? { opacity: 1 } : {}}
-            onClick={() => this.setState({inView: MediaType.VIDEO})}>
-            <Typography className={ classes.mediaOptionText }>
-              Video
-            </Typography>
-          </Grid>
-          <Grid item xs={ 4 }
+          <Grid item xs={ 3 }
             className={ classes.mediaOption }
             style={ inView === MediaType.HUD ? { opacity: 1 } : { } }
             onClick={() => this.setState({inView: MediaType.HUD }) }>
@@ -132,7 +134,23 @@ class Media extends Component {
               HUD
             </Typography>
           </Grid>
-          <Grid item xs={ 4 }
+          <Grid item xs={ 3 }
+            className={ classes.mediaOption }
+            style={ inView === MediaType.VIDEO ? { opacity: 1 } : {}}
+            onClick={() => this.setState({inView: MediaType.VIDEO})}>
+            <Typography className={ classes.mediaOptionText }>
+              Video
+            </Typography>
+          </Grid>
+          <Grid item xs={ 3 }
+            className={ cx(classes.mediaOption, { disabled: !hasDriverCamera } ) }
+            style={ inView === MediaType.DRIVER_VIDEO ? { opacity: 1 } : {} }
+            onClick={() => hasDriverCamera && this.setState({inView: MediaType.DRIVER_VIDEO})}>
+            <Typography className={ classes.mediaOptionText }>
+              Driver Video
+            </Typography>
+          </Grid>
+          <Grid item xs={ 3 }
             className={ classes.mediaOption }
             style={ inView === MediaType.MAP ? { opacity: 1 } : { } }
             onClick={() => this.setState({inView: MediaType.MAP})}>
@@ -148,6 +166,7 @@ class Media extends Component {
 }
 
 const stateToProps = Obstruction({
+  currentSegment: 'workerState.currentSegment',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));
