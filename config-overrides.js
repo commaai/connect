@@ -14,9 +14,11 @@ function override (config, env) {
   // console.log(config.output);
 
   var uglifyPluginIdx = config.plugins.findIndex(p => p.constructor.name==='UglifyJsPlugin')
-  var uglifyPlugin = config.plugins[uglifyPluginIdx];
-  uglifyPlugin.options.mangle = {keep_classnames: true, keep_fnames: true, ...uglifyPlugin.options.mangle};
-  config.plugins[uglifyPluginIdx] = uglifyPlugin;
+  if (uglifyPluginIdx !== -1) {
+    var uglifyPlugin = config.plugins[uglifyPluginIdx];
+    uglifyPlugin.options.mangle = {keep_fnames: true, ...uglifyPlugin.options.mangle};
+    config.plugins[uglifyPluginIdx] = uglifyPlugin;
+  }
 
   config.module.rules = config.module.rules || [];
 
