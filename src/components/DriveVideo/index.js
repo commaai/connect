@@ -581,7 +581,8 @@ class VideoPreview extends Component {
   drawMaxSpeed (options, Live100, LiveMapData, InitData) {
     var { ctx } = options;
 
-    var maxSpeed = Live100.VCruise * 0.6225 + 0.5;
+    var maxSpeed = Live100.VCruise;
+    var maxSpeedCalc = * 0.6225 + 0.5;
     var isSpeedLimitValid = LiveMapData !== undefined && LiveMapData.SpeedLimitValid;
     var speedLimit = (LiveMapData && LiveMapData.SpeedLimit) || 0;
     var speedLimitCalc = speedLimit * 2.2369363 + 0.5;
@@ -594,17 +595,18 @@ class VideoPreview extends Component {
 
     var metricParam = InitData.Params.Entries.find((entry) => entry.Key === "IsMetric");
     if (metricParam.Value === "1") {
-      maxSpeed = maxSpeed + 0.5;
+      maxSpeedCalc = maxSpeed + 0.5;
       speedLimitCalc = speedLimit * 3.6 + 0.5;
       speedLimitOffset = speedLimitOffset * 3.6 + 0.5;
     }
 
     var isCruiseSet = !isNaN(Live100.VCruise) && Live100.VCruise != 0 && Live100.VCruise != 255;
+
     var isSetOverLimit = (
       isSpeedLimitValid
       && Live100.Enabled
       && isCruiseSet
-      && maxSpeed > (speedLimit + speedLimitOffset)
+      && maxSpeedCalc > (speedLimitCalc + speedLimitOffset)
     );
     var hysteresisOffset = 0.5; // TODO adjust to 0.0 if last isEgoOverLimit==true
     var isEgoOverLimit = isSpeedLimitValid && Live100.VEgo > (speedLimit + speedLimitOffset + hysteresisOffset);
@@ -655,7 +657,7 @@ class VideoPreview extends Component {
     if (isCruiseSet) {
       ctx.font = "700 " + 48*(4/3) + "px Open Sans";
       ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
-      ctx.fillText(Math.floor(maxSpeed), 2 + left + speedLimWidth/2 + width / 2, textBottomY);
+      ctx.fillText(Math.floor(maxSpeedCalc), 2 + left + speedLimWidth/2 + width / 2, textBottomY);
     } else {
       ctx.font = "600 " + 42*(4/3) + "px Open Sans";
       ctx.fillStyle = 'rgba(255, 255, 255, 0.392)';
