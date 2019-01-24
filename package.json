@@ -3,7 +3,7 @@
   "version": "0.3.15",
   "scripts": {
     "start": "react-app-rewired start",
-    "build:keepmaps": "env-cmd .env.production react-app-rewired build",
+    "build:keepmaps": "env-cmd .env.development react-app-rewired build",
     "build:production": "env-cmd .env.production react-app-rewired build && find build -name '*.map' -exec rm {} \\;",
     "build:branch-deploy": "env-cmd .env.staging react-app-rewired build && find build -name '*.map' -exec rm {} \\;",
     "test": "react-app-rewired test --env=jsdom",
