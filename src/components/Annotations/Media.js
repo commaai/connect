@@ -108,7 +108,7 @@ class Media extends Component {
     const { classes, currentSegment } = this.props;
     let { inView } = this.state;
     const mediaSource = 'eon-road-camera';
-    const hasDriverCamera = this.props.currentSegment && this.props.currentSegment.hasDriverCamera;
+    const hasDriverCameraStream = this.props.currentSegment && this.props.currentSegment.hasDriverCameraStream;
     return (
       <Grid container>
         <Grid item xs={ 5 }>
@@ -143,9 +143,9 @@ class Media extends Component {
             </Typography>
           </Grid>
           <Grid item xs={ 3 }
-            className={ cx(classes.mediaOption, { disabled: !hasDriverCamera } ) }
+            className={ cx(classes.mediaOption, { disabled: !hasDriverCameraStream } ) }
             style={ inView === MediaType.DRIVER_VIDEO ? { opacity: 1 } : {} }
-            onClick={() => hasDriverCamera && this.setState({inView: MediaType.DRIVER_VIDEO})}>
+            onClick={() => hasDriverCameraStream && this.setState({inView: MediaType.DRIVER_VIDEO})}>
             <Typography className={ classes.mediaOptionText }>
               Driver Video
             </Typography>

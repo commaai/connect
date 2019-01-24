@@ -224,6 +224,7 @@ function segmentsFromMetadata (segmentsData) {
       return;
     }
     var segmentHasDriverCamera = (segment.proc_dcamera >= 0);
+    var segmentHasDriverCameraStream = (segment.proc_dcamera === 40);
     var segmentHasVideo = (segment.proc_camera === 40);
     if (segmentHasVideo && curVideoStartOffset === null) {
       curVideoStartOffset = segment.offset;
@@ -264,6 +265,7 @@ function segmentsFromMetadata (segmentsData) {
         deviceType: segment.devicetype,
         hpgps: segment.hpgps,
         hasDriverCamera: segmentHasDriverCamera,
+        hasDriverCameraStream: segmentHasDriverCameraStream,
         locStart: '',
         locEnd: '',
         distanceMiles: 0.0,
@@ -276,6 +278,7 @@ function segmentsFromMetadata (segmentsData) {
     }
     curSegment.hasVideo = (curSegment.hasVideo || segmentHasVideo);
     curSegment.hasDriverCamera = (curSegment.hasDriverCamera || segmentHasDriverCamera);
+    curSegment.hasDriverCameraStream = (curSegment.hasDriverCameraStream || segmentHasDriverCameraStream);
     curSegment.hpgps = (curSegment.hpgps || segment.hpgps);
     curSegment.duration = (segment.offset - curSegment.offset) + segment.duration;
     curSegment.segments = Math.max(curSegment.segments, Number(segment.canonical_name.split('--').pop()) + 1);
@@ -391,6 +394,7 @@ function getNextSegment (state, offset) {
         hpgps: thisSegment.hpgps,
         hasVideo: thisSegment.hasVideo,
         hasDriverCamera: thisSegment.hasDriverCamera,
+        hasDriverCameraStream: thisSegment.hasDriverCameraStream,
         distanceMiles: thisSegment.distanceMiles,
       };
       break;
@@ -411,6 +415,7 @@ function getNextSegment (state, offset) {
           hpgps: thisSegment.hpgps,
           hasVideo: thisSegment.hasVideo,
           hasDriverCamera: thisSegment.hasDriverCamera,
+          hasDriverCameraStream: thisSegment.hasDriverCameraStream,
           distanceMiles: thisSegment.distanceMiles,
         };
       }
@@ -451,6 +456,7 @@ function getCurrentSegment (state, offset) {
         hpgps: thisSegment.hpgps,
         hasVideo: thisSegment.hasVideo,
         hasDriverCamera: thisSegment.hasDriverCamera,
+        hasDriverCameraStream: thisSegment.hasDriverCameraStream,
         distanceMiles: thisSegment.distanceMiles,
       };
     }

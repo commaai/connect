@@ -582,7 +582,7 @@ class VideoPreview extends Component {
     var { ctx } = options;
 
     var maxSpeed = Live100.VCruise;
-    var maxSpeedCalc = * 0.6225 + 0.5;
+    var maxSpeedCalc = maxSpeed * 0.6225 + 0.5;
     var isSpeedLimitValid = LiveMapData !== undefined && LiveMapData.SpeedLimitValid;
     var speedLimit = (LiveMapData && LiveMapData.SpeedLimit) || 0;
     var speedLimitCalc = speedLimit * 2.2369363 + 0.5;
