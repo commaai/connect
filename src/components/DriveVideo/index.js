@@ -808,7 +808,11 @@ class VideoPreview extends Component {
     if (!segment) {
       return '';
     }
-    return process.env.REACT_APP_VIDEO_CDN + '/hls/' + this.props.dongleId + '/' + segment.url.split('/').pop() + '/index.m3u8?v=' + STREAM_VERSION;
+    let base = process.env.REACT_APP_VIDEO_CDN + '/hls/' + this.props.dongleId + '/' + segment.url.split('/').pop();
+    if (this.props.front) {
+      base += '/dcamera';
+    }
+    return base + '/index.m3u8?v=' + STREAM_VERSION;
   }
 
   currentVideoTime (offset = TimelineWorker.currentOffset()) {
@@ -854,10 +858,12 @@ class VideoPreview extends Component {
             isVideoChild />
           <ControlBar disabled />
         </Player>
-        <img
-          ref={ this.imageRef }
-          className={ classes.videoImage }
-          src={this.nearestImageFrame()} />
+        { !this.props.front &&
+          <img
+            ref={ this.imageRef }
+            className={ classes.videoImage }
+            src={this.nearestImageFrame()} />
+        }
         { this.props.shouldShowUI &&
           <React.Fragment>
             <canvas

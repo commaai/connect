@@ -17,7 +17,6 @@ import SettingsIcon from '@material-ui/icons/Settings';
 
 import { filterEvent } from '../../utils';
 import { selectRange } from '../../actions';
-import GeocodeApi from '../../api/geocode';
 import DeviceSettingsModal from './DeviceSettingsModal';
 import DriveListItem from './DriveListItem';
 
