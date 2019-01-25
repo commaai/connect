@@ -676,9 +676,9 @@ class VideoPreview extends Component {
     // Speed Limit
     if (!isSpeedLimitValid) {
       speedLimWidth -= Math.floor(5*(2/3));
-      height -= Math.floor(10*(2/3)) + 2;
-      left += Math.floor(9*(2/3)) - 2;
-      top += Math.floor(5*(2/3)) + 1;
+      height -= Math.floor(10*(2/3)) + 4;
+      left += Math.floor(9*(2/3)) - 1;
+      top += Math.floor(5*(2/3)) + 2;
     }
 
     var speedLimBorderRadius = isSpeedLimitValid ? 30 : 15;
