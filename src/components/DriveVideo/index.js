@@ -814,7 +814,16 @@ class VideoPreview extends Component {
     if (this.props.front) {
       base += '/dcamera';
     }
-    return base + '/index.m3u8?v=' + STREAM_VERSION;
+
+    // We append count of segments with stream available as a cache-busting method
+    // on stream indexes served before route is fully uploaded
+    let segCount;
+    if (this.props.front) {
+      segCount = segment.driverCameraStreamSegCount;
+    } else {
+      segCount = segment.cameraStreamSegCount;
+    }
+    return base + '/index.m3u8' + '?v=' + STREAM_VERSION + '&s=' + segCount;
   }
 
   currentVideoTime (offset = TimelineWorker.currentOffset()) {
