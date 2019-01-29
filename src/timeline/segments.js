@@ -269,6 +269,8 @@ function segmentsFromMetadata (segmentsData) {
         locStart: '',
         locEnd: '',
         distanceMiles: 0.0,
+        cameraStreamSegCount: 0,
+        driverCameraStreamSegCount: 0,
       };
       segments.push(curSegment);
     }
@@ -285,6 +287,8 @@ function segmentsFromMetadata (segmentsData) {
     curSegment.events = curSegment.events.concat(segment.events);
     curSegment.endCoord = [segment.end_lng, segment.end_lat];
     curSegment.distanceMiles += segment.length;
+    curSegment.cameraStreamSegCount += Math.floor(segmentHasVideo);
+    curSegment.driverCameraStreamSegCount += Math.floor(segmentHasDriverCameraStream);
   });
 
   if (curSegment) {
@@ -395,6 +399,8 @@ function getNextSegment (state, offset) {
         hasVideo: thisSegment.hasVideo,
         hasDriverCamera: thisSegment.hasDriverCamera,
         hasDriverCameraStream: thisSegment.hasDriverCameraStream,
+        cameraStreamSegCount: thisSegment.cameraStreamSegCount,
+        driverCameraStreamSegCount: thisSegment.driverCameraStreamSegCount,
         distanceMiles: thisSegment.distanceMiles,
       };
       break;
@@ -416,6 +422,8 @@ function getNextSegment (state, offset) {
           hasVideo: thisSegment.hasVideo,
           hasDriverCamera: thisSegment.hasDriverCamera,
           hasDriverCameraStream: thisSegment.hasDriverCameraStream,
+          cameraStreamSegCount: thisSegment.cameraStreamSegCount,
+          driverCameraStreamSegCount: thisSegment.driverCameraStreamSegCount,
           distanceMiles: thisSegment.distanceMiles,
         };
       }
@@ -457,6 +465,8 @@ function getCurrentSegment (state, offset) {
         hasVideo: thisSegment.hasVideo,
         hasDriverCamera: thisSegment.hasDriverCamera,
         hasDriverCameraStream: thisSegment.hasDriverCameraStream,
+        cameraStreamSegCount: thisSegment.cameraStreamSegCount,
+        driverCameraStreamSegCount: thisSegment.driverCameraStreamSegCount,
         distanceMiles: thisSegment.distanceMiles,
       };
     }
