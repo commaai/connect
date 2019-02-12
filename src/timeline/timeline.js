@@ -253,7 +253,7 @@ function scheduleSegmentUpdate (state) {
     let curTime = state.start + offset;
     // curTime will be between start and end because we used currentOffset to get it
     // currentOffset takes into account loops using modulo over duration
-    let timeUntilLoop = state.loop.startTime + state.loop.duration - curTime;
+    let timeUntilLoop = 1 + state.loop.startTime + state.loop.duration - curTime;
     let loopStartOffset = state.loop.startTime - state.start;
     let loopStartSegment = Segments.getCurrentSegment(state, loopStartOffset);
     if (!state.currentSegment || !loopStartSegment || loopStartSegment.startOffset !== state.currentSegment.startOffset) {
