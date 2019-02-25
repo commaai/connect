@@ -1,16 +1,17 @@
 import React, { Component } from 'react';
+import Obstruction from 'obstruction';
 import PropTypes from 'prop-types';
 import document from 'global/document';
 import { timeout } from 'thyming';
 import { partial } from 'ap';
-
+import raf from 'raf';
 import { withStyles } from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
 import Typography from '@material-ui/core/Typography';
 import Snackbar from '@material-ui/core/Snackbar';
 
 import * as API from '../../api';
-import Timelineworker from '../../timeline';
+import TimelineWorker from '../../timeline';
 
 const styles = theme => {
   return {
@@ -46,9 +47,30 @@ class AnnotationsFooter extends Component {
     this.handleClose = this.handleClose.bind(this);
     this.downloadSegmentFile = this.downloadSegmentFile.bind(this);
     this.openInCabana = this.openInCabana.bind(this);
+    this.openWayInOsmEditor = this.openWayInOsmEditor.bind(this);
+    this.updateWayId = this.updateWayId.bind(this);
 
     this.state = {
-      showCopiedSnack: false
+      showCopiedSnack: false,
+      wayId: 0,
+    }
+  }
+
+  componentDidMount() {
+    raf(this.updateWayId);
+  }
+
+  updateWayId() {
+    raf(this.updateWayId);
+
+    var event = TimelineWorker.currentLiveMapData();
+    if (event && event.LiveMapData) {
+      var wayId = parseInt(event.LiveMapData.WayId);
+      if (wayId !== this.state.wayId) {
+        this.setState({ wayId });
+      }
+    } else if (this.state.wayId) {
+      this.setState({ wayId: 0 });
     }
   }
 
@@ -95,7 +117,19 @@ class AnnotationsFooter extends Component {
   }
 
   openInCabana () {
-    var win = window.open('https://community.comma.ai/cabana/?route=' + this.props.segment.route + '&seekTime=' + Math.floor((Timelineworker.currentOffset() - this.props.segment.routeOffset) / 1000), '_blank');
+    var win = window.open('https://community.comma.ai/cabana/?route=' + this.props.segment.route + '&seekTime=' + Math.floor((TimelineWorker.currentOffset() - this.props.segment.routeOffset) / 1000), '_blank');
+    if (win.focus) {
+      win.focus();
+    }
+  }
+
+  openWayInOsmEditor () {
+    var { wayId } = this.state;
+    if (!wayId) {
+      return;
+    }
+
+    var win = window.open(`https://www.openstreetmap.org/way/${wayId}`, '_blank');
     if (win.focus) {
       win.focus();
     }
@@ -119,6 +153,9 @@ class AnnotationsFooter extends Component {
             Download Log Segment
           </a>
         }
+        <a className={ this.props.classes.footerButton } onClick={ this.openWayInOsmEditor } href='#'>
+          Edit OpenStreetMap Here
+        </a>
         <a className={ this.props.classes.footerButton } onClick={ this.openInCabana } href='#'>
           Open in Cabana
         </a>
