@@ -1,5 +1,4 @@
 import {
-  ACTION_PROFILE_REFRESHED,
   ACTION_SELECT_DEVICE,
   ACTION_SELECT_TIME_RANGE,
   ACTION_STARTUP_DATA,
@@ -30,6 +29,7 @@ export default function reducer (state = initialState, action) {
         }
       }
       state.devices = action.devices;
+      state.profile = action.profile;
       break;
     case ACTION_SELECT_DEVICE:
       state.dongleId = action.dongleId;
@@ -48,9 +48,6 @@ export default function reducer (state = initialState, action) {
       state.end = action.end;
       state.segmentData = null;
       state.segments = [];
-      break;
-    case ACTION_PROFILE_REFRESHED:
-      state.profile = action.profile;
       break;
     case ACTION_UPDATE_DEVICE:
       let deviceIndex = state.devices.findIndex(d => d.dongle_id === action.device.dongle_id);

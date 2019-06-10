@@ -1,6 +1,6 @@
 import * as API from '../api';
 import store from './store';
-import { ACTION_STARTUP_DATA, ACTION_PROFILE_REFRESHED } from './actions/types';
+import { ACTION_STARTUP_DATA } from './actions/types';
 
 export default async function init () {
   console.log('Fetching devices!');
@@ -11,12 +11,8 @@ export default async function init () {
   console.log('Device list:', devices);
 
   store.dispatch({
-    type: ACTION_PROFILE_REFRESHED,
-    profile
-  });
-
-  store.dispatch({
     type: ACTION_STARTUP_DATA,
+    profile,
     devices
   });
 }
