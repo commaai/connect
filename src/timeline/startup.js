@@ -11,12 +11,12 @@ export default async function init () {
   console.log('Device list:', devices);
 
   store.dispatch({
-    type: ACTION_STARTUP_DATA,
-    devices
+    type: ACTION_PROFILE_REFRESHED,
+    profile
   });
 
   store.dispatch({
-    type: ACTION_PROFILE_REFRESHED,
-    profile
+    type: ACTION_STARTUP_DATA,
+    devices
   });
 }
