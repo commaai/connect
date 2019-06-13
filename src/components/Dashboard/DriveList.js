@@ -86,7 +86,7 @@ class DriveList extends Component {
   }
 
   filterShortDrives (ride) {
-    return ride.duration >= 180000;
+    return ride.duration > 60000;
   }
 
   goToAnnotation (segment) {
