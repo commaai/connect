@@ -15,11 +15,13 @@
   integrity sha512-bsNTzZ4uqLl1to+xHVJyZDoX6OIR/piF1luWBLUrJrAcaYPoUfL4bEHmHmCfIiIKtJF+3ty3oYtIFn7o9Rmp/Q==
 
 "@commaai/comma-api@^1.0.4":
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-1.0.5.tgz#b591abf48cbebfb786c47b7249cf26fd5904c4db"
-  integrity sha512-MMjhr+93/1N7KX0osfui5K4pCOMsDYIe0kTDdwS8AFUwQI6eyZSxXPHSdCF2aVogCeWno2rYrQ5HkMz1lqq8Mg==
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-1.0.7.tgz#4941fe67cc705b9af797b2f52c8bbcb73e27d94b"
+  integrity sha512-+Y2dYFd4Y3OL2cCRzPk1W+zxvMC4ENk92yaLxdrKEMmSll5UCctoWd9sh9912lkPdWJRnH7BwX9f3ffs4xzgag==
   dependencies:
+    babel-runtime "^6.26.0"
     config-request "^0.5.1"
+    joi-browser "^13.4.0"
     querystringify "^2.1.1"
 
 "@commaai/hls.js@^0.12.2":
@@ -46,10 +48,11 @@
     wasm-bz2 "^0.0.2"
 
 "@commaai/my-comma-auth@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@commaai/my-comma-auth/-/my-comma-auth-1.0.0.tgz#37defa230380d4f9b53dcbb3f957e23a350800a0"
-  integrity sha512-StZSYMzrWf/OxrP+kZZ4yjH3lVIOsJBTNz4Z6K414oF5Z8za+mHCD5jZr6MvIPdEY7zXw1Y1mMqm0j1SBcCz7Q==
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@commaai/my-comma-auth/-/my-comma-auth-1.0.2.tgz#23a6b671664852bfee82c1fd6aaf4bfca0a3dc26"
+  integrity sha512-ClRguhMCkSnsq6+U51xs3DjCPXFzY9HqH06bdBd48LuwZSi6tItQpC4gxIKHskFvZQcXjFSGxPe0+s2FIhuUJw==
   dependencies:
+    babel-runtime "^6.26.0"
     comma-api "https://github.com/commaai/comma-api.git#full-spec"
     config-request "^0.5.1"
     global "^4.4.0"
@@ -2569,11 +2572,13 @@ combined-stream@1.0.6, combined-stream@^1.0.5, combined-stream@~1.0.5:
   dependencies:
     delayed-stream "~1.0.0"
 
-"comma-api@https://github.com/commaai/comma-api.git#full-spec":
-  version "1.0.0"
-  resolved "https://github.com/commaai/comma-api.git#c295dadafd00b126c77e84894378c0e930e8bce3"
+"comma-api@git+https://github.com/commaai/comma-api.git#full-spec":
+  version "1.0.6"
+  resolved "git+https://github.com/commaai/comma-api.git#cccc4385207fa95f06a6e3cf168460ae89bcbd4c"
   dependencies:
+    babel-runtime "^6.26.0"
     config-request "^0.5.1"
+    joi-browser "^13.4.0"
     querystringify "^2.1.1"
 
 commander@2.15.x, commander@^2.11.0, commander@^2.15.0, commander@^2.15.1, commander@^2.9.0, commander@~2.15.0:
@@ -3287,6 +3292,7 @@ dom-urls@^1.1.0:
 dom-walk@^0.1.0:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/dom-walk/-/dom-walk-0.1.1.tgz#672226dc74c8f799ad35307df936aba11acd6018"
+  integrity sha1-ZyIm3HTI95mtNTB9+TaroRrNYBg=
 
 domain-browser@^1.1.1:
   version "1.2.0"
@@ -5051,6 +5057,7 @@ ignore@^3.3.3:
 immediate@~3.0.5:
   version "3.0.6"
   resolved "https://registry.yarnpkg.com/immediate/-/immediate-3.0.6.tgz#9db1dbd0faf8de6fbe0f5dd5e56bb606280de69b"
+  integrity sha1-nbHb0Pr43m++D13V5Wu2BigN5ps=
 
 immutable@^3.8.1, immutable@^3.8.2:
   version "3.8.2"
@@ -6145,6 +6152,7 @@ levn@^0.3.0, levn@~0.3.0:
 lie@3.1.1:
   version "3.1.1"
   resolved "https://registry.yarnpkg.com/lie/-/lie-3.1.1.tgz#9a436b2cc7746ca59de7a41fa469b3efb76bd87e"
+  integrity sha1-mkNrLMd0bKWd56QfpGmz77dr2H4=
   dependencies:
     immediate "~3.0.5"
 
@@ -6618,6 +6626,7 @@ mimic-response@^1.0.0:
 min-document@^2.19.0:
   version "2.19.0"
   resolved "https://registry.yarnpkg.com/min-document/-/min-document-2.19.0.tgz#7bd282e3f5842ed295bb748cdd9f1ffa2c824685"
+  integrity sha1-e9KC4/WELtKVu3SM3Z8f+iyCRoU=
   dependencies:
     dom-walk "^0.1.0"
 
@@ -7832,6 +7841,7 @@ process-nextick-args@~2.0.0:
 process@^0.11.10:
   version "0.11.10"
   resolved "https://registry.yarnpkg.com/process/-/process-0.11.10.tgz#7332300e840161bda3e69a1d1d91a7d4bc16f182"
+  integrity sha1-czIwDoQBYb2j5podHZGn1LwW8YI=
 
 process@~0.5.1:
   version "0.5.2"
