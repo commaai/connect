@@ -5,6 +5,7 @@ import document from 'global/document';
 import { timeout } from 'thyming';
 import { partial } from 'ap';
 import raf from 'raf';
+import qs from 'querystringify';
 import { withStyles } from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
 import Typography from '@material-ui/core/Typography';
@@ -117,7 +118,12 @@ class AnnotationsFooter extends Component {
   }
 
   openInCabana () {
-    var win = window.open('https://community.comma.ai/cabana/?route=' + this.props.segment.route + '&seekTime=' + Math.floor((TimelineWorker.currentOffset() - this.props.segment.routeOffset) / 1000), '_blank');
+    var params = {
+      'route': this.props.segment.route,
+      'url': this.props.segment.url,
+      'seekTime': Math.floor((TimelineWorker.currentOffset() - this.props.segment.routeOffset) / 1000)
+    };
+    var win = window.open('https://my.comma.ai/cabana/' + qs.stringify(params, true) , '_blank');
     if (win.focus) {
       win.focus();
     }
@@ -157,7 +163,7 @@ class AnnotationsFooter extends Component {
           Edit OpenStreetMap Here
         </a>
         <a className={ this.props.classes.footerButton } onClick={ this.openInCabana } href='#'>
-          Open in Cabana
+          View CAN Data in Cabana
         </a>
         <a className={ this.props.classes.footerButton } onClick={ this.copySegmentName } target='_blank'>
           Copy Current Segment
