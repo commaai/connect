@@ -118,12 +118,9 @@ class AnnotationsFooter extends Component {
   }
 
   openInCabana () {
-    let urlParts = this.props.segment.url.split('/');
-    urlParts.pop(); // remove segment number
-
     var params = {
       'route': this.props.segment.route,
-      'url': urlParts.join("/"),
+      'url': this.props.segment.url,
       'seekTime': Math.floor((TimelineWorker.currentOffset() - this.props.segment.routeOffset) / 1000)
     };
     var win = window.open('https://community.comma.ai/cabana/' + qs.stringify(params, true) , '_blank');
