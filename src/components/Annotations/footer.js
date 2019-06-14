@@ -5,6 +5,7 @@ import document from 'global/document';
 import { timeout } from 'thyming';
 import { partial } from 'ap';
 import raf from 'raf';
+import qs from 'querystringify';
 import { withStyles } from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
 import Typography from '@material-ui/core/Typography';
@@ -117,7 +118,15 @@ class AnnotationsFooter extends Component {
   }
 
   openInCabana () {
-    var win = window.open('https://community.comma.ai/cabana/?route=' + this.props.segment.route + '&seekTime=' + Math.floor((TimelineWorker.currentOffset() - this.props.segment.routeOffset) / 1000), '_blank');
+    let urlParts = this.props.segment.url.split('/');
+    urlParts.pop(); // remove segment number
+
+    var params = {
+      'route': this.props.segment.route,
+      'url': urlParts.join("/"),
+      'seekTime': Math.floor((TimelineWorker.currentOffset() - this.props.segment.routeOffset) / 1000)
+    };
+    var win = window.open('https://community.comma.ai/cabana/' + qs.stringify(params, true) , '_blank');
     if (win.focus) {
       win.focus();
     }
