@@ -19,7 +19,7 @@ import {
 } from '@material-ui/core';
 import Pencil from '@material-ui/icons/Edit';
 
-import * as API from '../../api';
+import { devices as Devices } from '@commaai/comma-api';
 import Timelineworker from '../../timeline';
 import EonUpsell from '../Annotations/eonUpsell';
 
@@ -127,7 +127,7 @@ class DeviceList extends Component {
   async setDeviceAlias (dongle_id) {
     this.setState({ isWaitingForApi: true });
     try {
-      const device = await API.setDeviceAlias(dongle_id, this.state.deviceAlias.trim());
+      const device = await Devices.setDeviceAlias(dongle_id, this.state.deviceAlias.trim());
       Timelineworker.updateDevice(device);
       this.setState({ isWaitingForApi: false, editingDevice: null });
     } catch(e) {

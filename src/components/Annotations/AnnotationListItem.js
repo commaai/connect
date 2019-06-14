@@ -26,7 +26,7 @@ import {
 
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 
-import * as API from '../../api';
+import { annotations as Annotations } from '@commaai/comma-api';
 import Timelineworker from '../../timeline';
 
 const DISENGAGEMENT_REASONS = [
@@ -215,7 +215,7 @@ class AnnotationEntry extends Component {
 
     try {
       if (!this.state.id) {
-        data = await API.createAnnotation({
+        data = await Annotations.createAnnotation({
           canonical_segment_name: event.canonical_segment_name,
           offset_nanos_part: event.offset_nanos,
           offset_millis: event.offset_millis,
@@ -229,7 +229,7 @@ class AnnotationEntry extends Component {
         });
         Timelineworker.resolveAnnotation(data, event, segment.route);
       } else {
-        data = await API.updateAnnotation(this.state.id, {
+        data = await Annotations.updateAnnotation(this.state.id, {
           reason: this.state.reason,
           comment: this.state.comment
         });

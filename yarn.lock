@@ -14,6 +14,16 @@
   resolved "https://registry.yarnpkg.com/@commaai/capnp-json/-/capnp-json-0.1.6.tgz#75d7fe92e5d45a041abc3c5849fd8f3fe6b6fe9a"
   integrity sha512-bsNTzZ4uqLl1to+xHVJyZDoX6OIR/piF1luWBLUrJrAcaYPoUfL4bEHmHmCfIiIKtJF+3ty3oYtIFn7o9Rmp/Q==
 
+"@commaai/comma-api@^1.0.4":
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-1.0.7.tgz#4941fe67cc705b9af797b2f52c8bbcb73e27d94b"
+  integrity sha512-+Y2dYFd4Y3OL2cCRzPk1W+zxvMC4ENk92yaLxdrKEMmSll5UCctoWd9sh9912lkPdWJRnH7BwX9f3ffs4xzgag==
+  dependencies:
+    babel-runtime "^6.26.0"
+    config-request "^0.5.1"
+    joi-browser "^13.4.0"
+    querystringify "^2.1.1"
+
 "@commaai/hls.js@^0.12.2":
   version "0.12.2"
   resolved "https://registry.yarnpkg.com/@commaai/hls.js/-/hls.js-0.12.2.tgz#694433f0de5e454a1b116daf83f9f6d4b6f285ab"
@@ -36,6 +46,18 @@
     geval "^2.2.0"
     stream-selector "^0.4.0"
     wasm-bz2 "^0.0.2"
+
+"@commaai/my-comma-auth@^1.0.0":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@commaai/my-comma-auth/-/my-comma-auth-1.0.3.tgz#030e95aa2ef8775824e453f67519544ef61f6bf0"
+  integrity sha512-S4cSV0l5WV4vUQ3N+3wRS2oWX7Bk9PnoXU3sV9IDTGIotsjxeJOw9SRsknqYEGnOc3UwPg73OIyQAyH3qmuWvA==
+  dependencies:
+    babel-runtime "^6.26.0"
+    comma-api "https://github.com/commaai/comma-api.git#full-spec"
+    config-request "^0.5.1"
+    global "^4.4.0"
+    localforage "^1.7.3"
+    querystringify "^2.1.1"
 
 "@mapbox/fusspot@^0.4.0":
   version "0.4.0"
@@ -2550,6 +2572,15 @@ combined-stream@1.0.6, combined-stream@^1.0.5, combined-stream@~1.0.5:
   dependencies:
     delayed-stream "~1.0.0"
 
+"comma-api@git+https://github.com/commaai/comma-api.git#full-spec":
+  version "1.0.6"
+  resolved "git+https://github.com/commaai/comma-api.git#cccc4385207fa95f06a6e3cf168460ae89bcbd4c"
+  dependencies:
+    babel-runtime "^6.26.0"
+    config-request "^0.5.1"
+    joi-browser "^13.4.0"
+    querystringify "^2.1.1"
+
 commander@2.15.x, commander@^2.11.0, commander@^2.15.0, commander@^2.15.1, commander@^2.9.0, commander@~2.15.0:
   version "2.15.1"
   resolved "https://registry.yarnpkg.com/commander/-/commander-2.15.1.tgz#df46e867d0fc2aec66a34662b406a9ccafff5b0f"
@@ -3261,6 +3292,7 @@ dom-urls@^1.1.0:
 dom-walk@^0.1.0:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/dom-walk/-/dom-walk-0.1.1.tgz#672226dc74c8f799ad35307df936aba11acd6018"
+  integrity sha1-ZyIm3HTI95mtNTB9+TaroRrNYBg=
 
 domain-browser@^1.1.1:
   version "1.2.0"
@@ -4494,6 +4526,14 @@ global@^4.3.2, global@~4.3.0:
     min-document "^2.19.0"
     process "~0.5.1"
 
+global@^4.4.0:
+  version "4.4.0"
+  resolved "https://registry.yarnpkg.com/global/-/global-4.4.0.tgz#3e7b105179006a323ed71aafca3e9c57a5cc6406"
+  integrity sha512-wv/LAoHdRE3BeTGz53FAamhGlPLhlssK45usmGFThIi4XqnBmjKQ16u+RNbP7WvigRZDxUsM0J3gcQ5yicaL0w==
+  dependencies:
+    min-document "^2.19.0"
+    process "^0.11.10"
+
 globals@^9.17.0, globals@^9.18.0:
   version "9.18.0"
   resolved "https://registry.yarnpkg.com/globals/-/globals-9.18.0.tgz#aa3896b3e69b487f17e31ed2143d69a8e30c2d8a"
@@ -5017,6 +5057,7 @@ ignore@^3.3.3:
 immediate@~3.0.5:
   version "3.0.6"
   resolved "https://registry.yarnpkg.com/immediate/-/immediate-3.0.6.tgz#9db1dbd0faf8de6fbe0f5dd5e56bb606280de69b"
+  integrity sha1-nbHb0Pr43m++D13V5Wu2BigN5ps=
 
 immutable@^3.8.1, immutable@^3.8.2:
   version "3.8.2"
@@ -6111,6 +6152,7 @@ levn@^0.3.0, levn@~0.3.0:
 lie@3.1.1:
   version "3.1.1"
   resolved "https://registry.yarnpkg.com/lie/-/lie-3.1.1.tgz#9a436b2cc7746ca59de7a41fa469b3efb76bd87e"
+  integrity sha1-mkNrLMd0bKWd56QfpGmz77dr2H4=
   dependencies:
     immediate "~3.0.5"
 
@@ -6164,6 +6206,13 @@ loader-utils@^1.0.0, loader-utils@^1.0.1, loader-utils@^1.0.2, loader-utils@^1.1
 localforage@^1.7.1:
   version "1.7.1"
   resolved "https://registry.yarnpkg.com/localforage/-/localforage-1.7.1.tgz#e4927e042302b864db30f3211f13b5c6f0de965d"
+  dependencies:
+    lie "3.1.1"
+
+localforage@^1.7.3:
+  version "1.7.3"
+  resolved "https://registry.yarnpkg.com/localforage/-/localforage-1.7.3.tgz#0082b3ca9734679e1bd534995bdd3b24cf10f204"
+  integrity sha512-1TulyYfc4udS7ECSBT2vwJksWbkwwTX8BzeUIiq8Y07Riy7bDAAnxDaPU/tWyOVmQAcWJIEIFP9lPfBGqVoPgQ==
   dependencies:
     lie "3.1.1"
 
@@ -6577,6 +6626,7 @@ mimic-response@^1.0.0:
 min-document@^2.19.0:
   version "2.19.0"
   resolved "https://registry.yarnpkg.com/min-document/-/min-document-2.19.0.tgz#7bd282e3f5842ed295bb748cdd9f1ffa2c824685"
+  integrity sha1-e9KC4/WELtKVu3SM3Z8f+iyCRoU=
   dependencies:
     dom-walk "^0.1.0"
 
@@ -7791,6 +7841,7 @@ process-nextick-args@~2.0.0:
 process@^0.11.10:
   version "0.11.10"
   resolved "https://registry.yarnpkg.com/process/-/process-0.11.10.tgz#7332300e840161bda3e69a1d1d91a7d4bc16f182"
+  integrity sha1-czIwDoQBYb2j5podHZGn1LwW8YI=
 
 process@~0.5.1:
   version "0.5.2"
@@ -7963,6 +8014,11 @@ querystringify@0.0.x:
 querystringify@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/querystringify/-/querystringify-2.0.0.tgz#fa3ed6e68eb15159457c89b37bc6472833195755"
+
+querystringify@^2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/querystringify/-/querystringify-2.1.1.tgz#60e5a5fd64a7f8bfa4d2ab2ed6fdf4c85bad154e"
+  integrity sha512-w7fLxIRCRT7U8Qu53jQnJyPkYZIaR4n5151KMfcJlO/A9397Wxb1amJvROTK6TOnp7PfoAmg/qXiNHI+08jRfA==
 
 quickselect@^1.0.0:
   version "1.1.1"

@@ -10,14 +10,15 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography';
 
+import MyCommaAuth, { google as GoogleAuth, storage as AuthStorage } from '@commaai/my-comma-auth';
+import { auth as AuthApi, request as Request } from '@commaai/comma-api';
+
 import Explorer from './components/explorer';
 import AnonymousLanding from './components/anonymous';
 
 import TimelineWorker from './timeline';
 import { history, createStore } from './store';
 import { updateState } from './actions';
-import * as Auth from './api/auth';
-import { exchangeCodeForTokens, commaTokenExchange } from './api/auth/google';
 import { initGoogleAnalytics } from './analytics';
 
 initGoogleAnalytics(history);
@@ -43,18 +44,23 @@ class App extends Component {
         var code = qs.parse(document.location.search)['code'];
 
         try {
-          const tokens = await exchangeCodeForTokens(code);
-          await commaTokenExchange(tokens.access_token, tokens.id_token);
+          const tokens = await GoogleAuth.exchangeCodeForTokens(code);
+          const token = await AuthApi.refreshAccessToken(tokens.id_token);
+          if (token) {
+            AuthStorage.setCommaAccessToken(token);
+          }
           // done authing!!
         } catch (e) {
+          console.log(e);
         }
       }
     }
 
-    await Auth.init();
+    const token = await MyCommaAuth.init();
+    Request.configure(token);
 
-    if (Auth.isAuthenticated()) {
-      await TimelineWorker.init();
+    if (MyCommaAuth.isAuthenticated()) {
+      await TimelineWorker.init(token);
     }
 
     this.setState({ initialized: true });
@@ -98,7 +104,7 @@ class App extends Component {
     return (
       <Provider store={ store }>
         <ConnectedRouter history={ history }>
-          { Auth.isAuthenticated() ? this.authRoutes() : this.ananymousRoutes() }
+          { MyCommaAuth.isAuthenticated() ? this.authRoutes() : this.ananymousRoutes() }
         </ConnectedRouter>
       </Provider>
     );

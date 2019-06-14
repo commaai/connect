@@ -1,11 +1,12 @@
-import * as API from '../api';
+import { devices as Devices, account as Account } from '@commaai/comma-api';
+
 import store from './store';
 import { ACTION_STARTUP_DATA } from './actions/types';
 
 export default async function init () {
   console.log('Fetching devices!');
-  var devices = API.listDevices();
-  var profile = API.getProfile();
+  var devices = Devices.listDevices();
+  var profile = Account.getProfile();
   devices = await devices;
   profile = await profile;
   console.log('Device list:', devices);

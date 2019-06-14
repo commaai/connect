@@ -18,7 +18,7 @@ import CheckIcon from '@material-ui/icons/Check';
 import SaveIcon from '@material-ui/icons/Save';
 import ShareIcon from '@material-ui/icons/Share';
 
-import * as API from '../../api';
+import { devices as Devices } from '@commaai/comma-api';
 import Timelineworker from '../../timeline';
 
 const styles = theme => {
@@ -114,7 +114,7 @@ class DeviceSettingsModal extends Component {
       hasSavedAlias: false
     });
     try {
-      const device = await API.setDeviceAlias(dongle_id, this.state.deviceAlias.trim());
+      const device = await Devices.setDeviceAlias(dongle_id, this.state.deviceAlias.trim());
       Timelineworker.updateDevice(device);
       this.setState({
         loadingDeviceAlias: false,
@@ -139,7 +139,7 @@ class DeviceSettingsModal extends Component {
       hasShared: false
     });
     try {
-      await API.shareDevice(dongle_id, this.state.shareEmail.trim());
+      await Devices.grantDeviceReadPermission(dongle_id, this.state.shareEmail.trim());
       this.setState({
         loadingDeviceShare: false,
         shareEmail: '',

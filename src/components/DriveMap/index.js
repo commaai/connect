@@ -9,9 +9,9 @@ import { LngLatBounds } from 'mapbox-gl';
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 import { easeCubic } from 'd3-ease';
 
+import { derived as DerivedDataApi } from '@commaai/comma-api';
 import TimelineWorker from '../../timeline';
 
-import RouteApi from '../../api/route';
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiY29tbWFhaSIsImEiOiJjamlud2h2czAwNTN5M3dxZWg2Z3hmNnEwIn0.aam-7k03KBbMbtR7cUJslw';
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
@@ -138,7 +138,7 @@ class DriveMap extends Component {
     let routeSigUrl = props.currentSegment.url;
 
     try {
-      const coords = await RouteApi(routeSigUrl).getCoords();
+      const coords = await DerivedDataApi(routeSigUrl).getCoords();
 
       if (this.state.route !== route) {
         // handle race, if route changes while coords request was in flight
