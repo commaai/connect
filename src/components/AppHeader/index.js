@@ -16,7 +16,7 @@ import MenuItem from '@material-ui/core/MenuItem';
 import ListItem from '@material-ui/core/ListItem';
 import IconButton from '@material-ui/core/IconButton';
 
-import { logOut } from '@commaai/my-comma-auth';
+import MyCommaAuth from '@commaai/my-comma-auth';
 
 import TimeFilter from './TimeFilter';
 import TimeDisplay from '../TimeDisplay';
@@ -95,7 +95,7 @@ class AppHeader extends Component {
 
   handleLogOut() {
     this.handleClose();
-    logOut();
+    MyCommaAuth.logOut();
   }
 
   render () {

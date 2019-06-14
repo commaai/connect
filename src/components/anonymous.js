@@ -8,7 +8,7 @@ import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 
-import { oauthRedirectLink } from '@commaai/my-comma-auth';
+import { config as AuthConfig } from '@commaai/my-comma-auth';
 
 import { CommaIcon } from '../icons';
 
@@ -68,7 +68,7 @@ class AnonymousLanding extends Component {
         <Typography className={ classes.tagline }>
           Review and annotate your comma.ai driving data.
         </Typography>
-        <a href={ oauthRedirectLink } className={ classes.logInButton }>
+        <a href={ AuthConfig.oauthRedirectLink } className={ classes.logInButton }>
           <Typography className={ classes.logInText }>
             Log in with Google
           </Typography>

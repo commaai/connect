@@ -11,7 +11,6 @@ import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
-import { exchangeCodeForTokens } from '@commaai/my-comma-auth/google';
 import { auth as AuthApi, request as Request } from '@commaai/comma-api';
 
 import Explorer from './components/explorer';
@@ -45,7 +44,7 @@ class App extends Component {
         var code = qs.parse(document.location.search)['code'];
 
         try {
-          const tokens = await exchangeCodeForTokens(code);
+          const tokens = await MyCommaAuth.google.exchangeCodeForTokens(code);
           await AuthApi.commaTokenExchange(tokens.access_token, tokens.id_token);
           // done authing!!
         } catch (e) {

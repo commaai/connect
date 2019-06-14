@@ -5,7 +5,7 @@ import * as capnp from 'capnp-ts';
 import { Event as CapnpEvent, Event_Which } from '@commaai/log_reader/capnp/log.capnp';
 import toJSON from '@commaai/capnp-json';
 
-import { getCommaAccessToken } from '@commaai/my-comma-auth/storage';
+import { storage as AuthStorage } from '@commaai/my-comma-auth';
 import * as Playback from './playback';
 import * as LogIndex from './logIndex';
 import { getDongleID, getZoom } from '../url';
@@ -443,7 +443,7 @@ async function initWorker (timeline) {
   var worker = null;
   var logReader = null;
 
-  var token = await getCommaAccessToken();
+  var token = await AuthStorage.getCommaAccessToken();
   if (!token) {
     return new Promise(noop);
   }
