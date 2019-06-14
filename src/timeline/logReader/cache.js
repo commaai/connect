@@ -1,10 +1,13 @@
 import LogStream from '@commaai/log_reader';
 import toJSON from '@commaai/capnp-json';
+import { getLogUrls } from 'comma-api/src/raw';
+import Auth from '@commaai/my-comma-auth';
+import { configure as configureApi } from 'comma-api/src/request';
+
 import { timeout } from 'thyming';
 import request from 'simple-get';
 import Event from 'geval/event';
 import debounce from 'debounce';
-import * as API from '../../api';
 import * as capnp from 'capnp-ts';
 import { Event as CapnpEvent } from '@commaai/log_reader/capnp/log.capnp';
 import filterWhich from './allowedEventTypes';
@@ -25,6 +28,9 @@ class CacheEntry {
     this.segment = segment;
     this.expire = this.expire.bind(this);
     this.dataListener = dataListener;
+    this.authInitPromise = Auth.init().then(function(token) {
+      configureApi(token);
+    });
 
     this.touch();
 
@@ -75,7 +81,8 @@ class CacheEntry {
   }
 
   async getLogUrl () {
-    var urls = await API.getLogUrls(this.route);
+    await this.authInitPromise;
+    var urls = await getLogUrls(this.route);
     return urls[this.segment];
   }
 

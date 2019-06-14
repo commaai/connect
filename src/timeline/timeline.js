@@ -5,7 +5,11 @@ import { timeout } from 'thyming';
 import storage from 'localforage';
 import Collector from 'collect-methods';
 
-import * as API from '../api';
+import Auth from '@commaai/my-comma-auth';
+import { configure as configureApi } from 'comma-api/src/request';
+
+import { listAnnotations } from 'comma-api/src/annotations';
+import { getSegmentMetadata } from 'comma-api/src/drives';
 
 import init from './startup';
 import {
@@ -31,13 +35,18 @@ let hasGottenSegmentDataPromise = new Promise(function (resolve, reject) {
     resolve();
   };
 });
+let initAuthPromise = Auth.init().then(function(token) {
+  configureApi(token);
+})
 
 var segmentsRequest = null;
 var annotationsRequest = null;
 
 // set up initial schedules
-scheduleSegmentUpdate(getState());
-checkSegmentMetadata(getState());
+initAuthPromise.then(function() {
+  scheduleSegmentUpdate(getState());
+  checkSegmentMetadata(getState())
+});
 
 // segments
 // start offset
@@ -191,6 +200,7 @@ function play (port, speed) {
 
 async function hello (port, data) {
   console.log(data);
+  await initAuthPromise;
   store.dispatch(selectDeviceAction(data.dongleId));
   await Promise.all([
     init(),
@@ -294,8 +304,8 @@ async function checkSegmentMetadata (state) {
 
   var segmentData = null;
   var annotationsData = null;
-  segmentsRequest = API.getSegmentMetadata(start, end, dongleId);
-  annotationsRequest = API.listAnnotations(start, end, dongleId);
+  segmentsRequest = getSegmentMetadata(start, end, dongleId);
+  annotationsRequest = listAnnotations(start, end, dongleId);
   store.dispatch(Segments.fetchSegmentMetadata(start, end));
 
   try {

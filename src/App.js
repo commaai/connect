@@ -10,14 +10,17 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography';
 
+import Auth from '@commaai/my-comma-auth';
+import { exchangeCodeForTokens } from '@commaai/my-comma-auth/google';
+import { commaTokenExchange } from 'comma-api/src/auth';
+import { configure as configureApi } from 'comma-api/src/request';
+
 import Explorer from './components/explorer';
 import AnonymousLanding from './components/anonymous';
 
 import TimelineWorker from './timeline';
 import { history, createStore } from './store';
 import { updateState } from './actions';
-import * as Auth from './api/auth';
-import { exchangeCodeForTokens, commaTokenExchange } from './api/auth/google';
 import { initGoogleAnalytics } from './analytics';
 
 initGoogleAnalytics(history);
@@ -51,10 +54,11 @@ class App extends Component {
       }
     }
 
-    await Auth.init();
+    const token = await Auth.init();
+    configureApi(token);
 
     if (Auth.isAuthenticated()) {
-      await TimelineWorker.init();
+      await TimelineWorker.init(token);
     }
 
     this.setState({ initialized: true });

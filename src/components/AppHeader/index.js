@@ -16,11 +16,12 @@ import MenuItem from '@material-ui/core/MenuItem';
 import ListItem from '@material-ui/core/ListItem';
 import IconButton from '@material-ui/core/IconButton';
 
+import { logOut } from '@commaai/my-comma-auth';
+
 import TimeFilter from './TimeFilter';
 import TimeDisplay from '../TimeDisplay';
 import { AccountIcon } from '../../icons';
 
-import { logOut } from '../../api/auth';
 import Timelineworker from '../../timeline';
 
 const styles = theme => {

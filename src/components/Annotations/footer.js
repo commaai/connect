@@ -10,7 +10,7 @@ import Paper from '@material-ui/core/Paper';
 import Typography from '@material-ui/core/Typography';
 import Snackbar from '@material-ui/core/Snackbar';
 
-import * as API from '../../api';
+import { getRouteFiles } from 'comma-api/src/raw';
 import TimelineWorker from '../../timeline';
 
 const styles = theme => {
@@ -99,7 +99,7 @@ class AnnotationsFooter extends Component {
     let seg = this.props.segment;
     let segmentKeyPath = seg.route.replace('|', '/') + '/' + seg.segment;
 
-    let files = (await API.getRouteFiles(this.props.segment.route));
+    let files = (await getRouteFiles(this.props.segment.route));
     let url = files[type].find(function(url) {
       return url.indexOf(segmentKeyPath) !== -1;
     })

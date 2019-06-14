@@ -5,7 +5,7 @@ import * as capnp from 'capnp-ts';
 import { Event as CapnpEvent, Event_Which } from '@commaai/log_reader/capnp/log.capnp';
 import toJSON from '@commaai/capnp-json';
 
-import { getCommaAccessToken } from '../api/auth/storage';
+import { getCommaAccessToken } from '@commaai/my-comma-auth/storage';
 import * as Playback from './playback';
 import * as LogIndex from './logIndex';
 import { getDongleID, getZoom } from '../url';

@@ -8,7 +8,8 @@ import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 
-import { oauthRedirectLink } from '../api/auth';
+import { oauthRedirectLink } from '@commaai/my-comma-auth';
+
 import { CommaIcon } from '../icons';
 
 const styles = theme => {
