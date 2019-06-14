@@ -10,10 +10,9 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography';
 
-import Auth from '@commaai/my-comma-auth';
+import MyCommaAuth from '@commaai/my-comma-auth';
 import { exchangeCodeForTokens } from '@commaai/my-comma-auth/google';
-import { commaTokenExchange } from 'comma-api/src/auth';
-import { configure as configureApi } from 'comma-api/src/request';
+import { auth as AuthApi, request as Request } from '@commaai/comma-api';
 
 import Explorer from './components/explorer';
 import AnonymousLanding from './components/anonymous';
@@ -47,17 +46,17 @@ class App extends Component {
 
         try {
           const tokens = await exchangeCodeForTokens(code);
-          await commaTokenExchange(tokens.access_token, tokens.id_token);
+          await AuthApi.commaTokenExchange(tokens.access_token, tokens.id_token);
           // done authing!!
         } catch (e) {
         }
       }
     }
 
-    const token = await Auth.init();
-    configureApi(token);
+    const token = await MyCommaAuth.init();
+    Request.configure(token);
 
-    if (Auth.isAuthenticated()) {
+    if (MyCommaAuth.isAuthenticated()) {
       await TimelineWorker.init(token);
     }
 
@@ -102,7 +101,7 @@ class App extends Component {
     return (
       <Provider store={ store }>
         <ConnectedRouter history={ history }>
-          { Auth.isAuthenticated() ? this.authRoutes() : this.ananymousRoutes() }
+          { MyCommaAuth.isAuthenticated() ? this.authRoutes() : this.ananymousRoutes() }
         </ConnectedRouter>
       </Provider>
     );

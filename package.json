@@ -16,6 +16,7 @@
   "private": true,
   "dependencies": {
     "@commaai/capnp-json": "^0.1.6",
+    "@commaai/comma-api": "^1.0.4",
     "@commaai/hls.js": "^0.12.2",
     "@commaai/log_reader": "^0.4.5",
     "@commaai/my-comma-auth": "^1.0.0",
@@ -29,7 +30,6 @@
     "capnp-ts": "^0.2.4",
     "classnames": "^2.2.6",
     "collect-methods": "^1.2.0",
-    "comma-api": "https://github.com/commaai/comma-api.git#full-spec",
     "config-request": "^0.5.1",
     "connected-react-router": "^4.3.0",
     "d3-ease": "^1.0.3",

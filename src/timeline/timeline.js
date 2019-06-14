@@ -6,10 +6,10 @@ import storage from 'localforage';
 import Collector from 'collect-methods';
 
 import Auth from '@commaai/my-comma-auth';
-import { configure as configureApi } from 'comma-api/src/request';
+import { request as Request } from '@commaai/comma-api';
 
-import { listAnnotations } from 'comma-api/src/annotations';
-import { getSegmentMetadata } from 'comma-api/src/drives';
+import { annotations as Annotations } from '@commaai/comma-api';
+import { drives as Drives } from '@commaai/comma-api';
 
 import init from './startup';
 import {
@@ -36,7 +36,7 @@ let hasGottenSegmentDataPromise = new Promise(function (resolve, reject) {
   };
 });
 let initAuthPromise = Auth.init().then(function(token) {
-  configureApi(token);
+  Request.configure(token);
 })
 
 var segmentsRequest = null;
@@ -304,8 +304,8 @@ async function checkSegmentMetadata (state) {
 
   var segmentData = null;
   var annotationsData = null;
-  segmentsRequest = getSegmentMetadata(start, end, dongleId);
-  annotationsRequest = listAnnotations(start, end, dongleId);
+  segmentsRequest = Drives.getSegmentMetadata(start, end, dongleId);
+  annotationsRequest = Annotations.listAnnotations(start, end, dongleId);
   store.dispatch(Segments.fetchSegmentMetadata(start, end));
 
   try {

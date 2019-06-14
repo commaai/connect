@@ -14,6 +14,14 @@
   resolved "https://registry.yarnpkg.com/@commaai/capnp-json/-/capnp-json-0.1.6.tgz#75d7fe92e5d45a041abc3c5849fd8f3fe6b6fe9a"
   integrity sha512-bsNTzZ4uqLl1to+xHVJyZDoX6OIR/piF1luWBLUrJrAcaYPoUfL4bEHmHmCfIiIKtJF+3ty3oYtIFn7o9Rmp/Q==
 
+"@commaai/comma-api@^1.0.4":
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-1.0.5.tgz#b591abf48cbebfb786c47b7249cf26fd5904c4db"
+  integrity sha512-MMjhr+93/1N7KX0osfui5K4pCOMsDYIe0kTDdwS8AFUwQI6eyZSxXPHSdCF2aVogCeWno2rYrQ5HkMz1lqq8Mg==
+  dependencies:
+    config-request "^0.5.1"
+    querystringify "^2.1.1"
+
 "@commaai/hls.js@^0.12.2":
   version "0.12.2"
   resolved "https://registry.yarnpkg.com/@commaai/hls.js/-/hls.js-0.12.2.tgz#694433f0de5e454a1b116daf83f9f6d4b6f285ab"
@@ -2560,13 +2568,6 @@ combined-stream@1.0.6, combined-stream@^1.0.5, combined-stream@~1.0.5:
   resolved "https://registry.yarnpkg.com/combined-stream/-/combined-stream-1.0.6.tgz#723e7df6e801ac5613113a7e445a9b69cb632818"
   dependencies:
     delayed-stream "~1.0.0"
-
-"comma-api@git+https://github.com/commaai/comma-api.git#full-spec":
-  version "1.0.0"
-  resolved "git+https://github.com/commaai/comma-api.git#c295dadafd00b126c77e84894378c0e930e8bce3"
-  dependencies:
-    config-request "^0.5.1"
-    querystringify "^2.1.1"
 
 "comma-api@https://github.com/commaai/comma-api.git#full-spec":
   version "1.0.0"

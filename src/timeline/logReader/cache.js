@@ -1,8 +1,7 @@
 import LogStream from '@commaai/log_reader';
 import toJSON from '@commaai/capnp-json';
-import { getLogUrls } from 'comma-api/src/raw';
+import { raw as RawApi, request as Request } from '@commaai/comma-api';
 import Auth from '@commaai/my-comma-auth';
-import { configure as configureApi } from 'comma-api/src/request';
 
 import { timeout } from 'thyming';
 import request from 'simple-get';
@@ -29,7 +28,7 @@ class CacheEntry {
     this.expire = this.expire.bind(this);
     this.dataListener = dataListener;
     this.authInitPromise = Auth.init().then(function(token) {
-      configureApi(token);
+      Request.configure(token);
     });
 
     this.touch();
@@ -82,7 +81,7 @@ class CacheEntry {
 
   async getLogUrl () {
     await this.authInitPromise;
-    var urls = await getLogUrls(this.route);
+    var urls = await RawApi.getLogUrls(this.route);
     return urls[this.segment];
   }
 
