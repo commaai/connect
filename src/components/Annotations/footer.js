@@ -163,7 +163,7 @@ class AnnotationsFooter extends Component {
           Edit OpenStreetMap Here
         </a>
         <a className={ this.props.classes.footerButton } onClick={ this.openInCabana } href='#'>
-          Open in Cabana
+          View CAN Data in Cabana
         </a>
         <a className={ this.props.classes.footerButton } onClick={ this.copySegmentName } target='_blank'>
           Copy Current Segment
