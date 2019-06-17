@@ -14,10 +14,10 @@
   resolved "https://registry.yarnpkg.com/@commaai/capnp-json/-/capnp-json-0.1.6.tgz#75d7fe92e5d45a041abc3c5849fd8f3fe6b6fe9a"
   integrity sha512-bsNTzZ4uqLl1to+xHVJyZDoX6OIR/piF1luWBLUrJrAcaYPoUfL4bEHmHmCfIiIKtJF+3ty3oYtIFn7o9Rmp/Q==
 
-"@commaai/comma-api@^1.0.4":
-  version "1.0.10"
-  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-1.0.10.tgz#ec725d08e58b45bf6ce1383e92a802a293505ff3"
-  integrity sha512-VM2KR5dEn1uI+FfG9fGxNZ7YSuYJ/EFAhgqTApoT/Q/dqd1OaBltgb71h5UIAKaHD2uYHwYVEbn/+eAKB63jww==
+"@commaai/comma-api@^1.0.0", "@commaai/comma-api@^1.0.4":
+  version "1.0.12"
+  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-1.0.12.tgz#aa2be678dd0cdcf5102602e011051eda354853d6"
+  integrity sha512-AWwKaQzgQt6oyOP0lvMqy5/7rMQbKIVwTYX5MJnBFOVOgHrGmzxhPk8Bsi+5GpSA1qSFbnzoMvQ95QFC5teJhw==
   dependencies:
     babel-runtime "^6.26.0"
     config-request "^0.5.1"
@@ -48,12 +48,12 @@
     wasm-bz2 "^0.0.2"
 
 "@commaai/my-comma-auth@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@commaai/my-comma-auth/-/my-comma-auth-1.1.0.tgz#76c919575e489819d384ea132a7f400792217f00"
-  integrity sha512-n65xybuoogxVWAY1uFh2SrpWN5URp+Z33t7c0E5qJygE44LJlk9opVGoxf1P0bQQSppJSFAkcBEODy8oJMs1OQ==
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@commaai/my-comma-auth/-/my-comma-auth-1.1.1.tgz#602cd6ce6b5b9e98637a178278b3595ff94ab086"
+  integrity sha512-kyeKN9QFnAQ5CAGElAzJwevNnvxM8iynnpJzC3O3+Zk4c8qQoSxNiaTdRs5ftHj1abFzdhEhTDqP4ku0KNWaIQ==
   dependencies:
+    "@commaai/comma-api" "^1.0.0"
     babel-runtime "^6.26.0"
-    comma-api "https://github.com/commaai/comma-api.git#full-spec"
     config-request "^0.5.1"
     global "^4.4.0"
     localforage "^1.7.3"
@@ -2571,15 +2571,6 @@ combined-stream@1.0.6, combined-stream@^1.0.5, combined-stream@~1.0.5:
   resolved "https://registry.yarnpkg.com/combined-stream/-/combined-stream-1.0.6.tgz#723e7df6e801ac5613113a7e445a9b69cb632818"
   dependencies:
     delayed-stream "~1.0.0"
-
-"comma-api@git+https://github.com/commaai/comma-api.git#full-spec":
-  version "1.0.10"
-  resolved "git+https://github.com/commaai/comma-api.git#672d46e87ee5df6ab358e3db307158cfad2cc273"
-  dependencies:
-    babel-runtime "^6.26.0"
-    config-request "^0.5.1"
-    joi-browser "^13.4.0"
-    querystringify "^2.1.1"
 
 commander@2.15.x, commander@^2.11.0, commander@^2.15.0, commander@^2.15.1, commander@^2.9.0, commander@~2.15.0:
   version "2.15.1"
