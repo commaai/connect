@@ -47,10 +47,10 @@
     stream-selector "^0.4.0"
     wasm-bz2 "^0.0.2"
 
-"@commaai/my-comma-auth@^1.0.0":
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/@commaai/my-comma-auth/-/my-comma-auth-1.0.3.tgz#030e95aa2ef8775824e453f67519544ef61f6bf0"
-  integrity sha512-S4cSV0l5WV4vUQ3N+3wRS2oWX7Bk9PnoXU3sV9IDTGIotsjxeJOw9SRsknqYEGnOc3UwPg73OIyQAyH3qmuWvA==
+"@commaai/my-comma-auth@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@commaai/my-comma-auth/-/my-comma-auth-1.1.0.tgz#76c919575e489819d384ea132a7f400792217f00"
+  integrity sha512-n65xybuoogxVWAY1uFh2SrpWN5URp+Z33t7c0E5qJygE44LJlk9opVGoxf1P0bQQSppJSFAkcBEODy8oJMs1OQ==
   dependencies:
     babel-runtime "^6.26.0"
     comma-api "https://github.com/commaai/comma-api.git#full-spec"
@@ -2572,9 +2572,9 @@ combined-stream@1.0.6, combined-stream@^1.0.5, combined-stream@~1.0.5:
   dependencies:
     delayed-stream "~1.0.0"
 
-"comma-api@https://github.com/commaai/comma-api.git#full-spec":
-  version "1.0.9"
-  resolved "https://github.com/commaai/comma-api.git#8e25cb41bc0b465f293a7d90c6e606ccefcd8761"
+"comma-api@git+https://github.com/commaai/comma-api.git#full-spec":
+  version "1.0.10"
+  resolved "git+https://github.com/commaai/comma-api.git#672d46e87ee5df6ab358e3db307158cfad2cc273"
   dependencies:
     babel-runtime "^6.26.0"
     config-request "^0.5.1"
