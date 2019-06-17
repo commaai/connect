@@ -48,9 +48,9 @@
     wasm-bz2 "^0.0.2"
 
 "@commaai/my-comma-auth@^1.1.0":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@commaai/my-comma-auth/-/my-comma-auth-1.1.1.tgz#602cd6ce6b5b9e98637a178278b3595ff94ab086"
-  integrity sha512-kyeKN9QFnAQ5CAGElAzJwevNnvxM8iynnpJzC3O3+Zk4c8qQoSxNiaTdRs5ftHj1abFzdhEhTDqP4ku0KNWaIQ==
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@commaai/my-comma-auth/-/my-comma-auth-1.1.2.tgz#2508d12e2b161b4ff120c0ebd3bcf28b8508d076"
+  integrity sha512-PjoY6fQQAf1cowT4voEtzCwXX97rcMQvkqYN8MOaZsPD+ux+LfNZzdUqKSa2MYGNNmyJFL8+gHL8K6CEwE0NkA==
   dependencies:
     "@commaai/comma-api" "^1.0.0"
     babel-runtime "^6.26.0"
