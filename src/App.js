@@ -10,7 +10,7 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography';
 
-import MyCommaAuth, { google as GoogleAuth, storage as AuthStorage } from '@commaai/my-comma-auth';
+import MyCommaAuth, { storage as AuthStorage } from '@commaai/my-comma-auth';
 import { auth as AuthApi, request as Request } from '@commaai/comma-api';
 
 import Explorer from './components/explorer';
@@ -44,8 +44,7 @@ class App extends Component {
         var code = qs.parse(document.location.search)['code'];
 
         try {
-          const tokens = await GoogleAuth.exchangeCodeForTokens(code);
-          const token = await AuthApi.refreshAccessToken(tokens.id_token);
+          const token = await AuthApi.refreshAccessToken(code);
           if (token) {
             AuthStorage.setCommaAccessToken(token);
           }
