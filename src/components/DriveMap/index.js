@@ -11,9 +11,8 @@ import { easeCubic } from 'd3-ease';
 
 import { derived as DerivedDataApi } from '@commaai/comma-api';
 import TimelineWorker from '../../timeline';
+import { MAPBOX_TOKEN } from '../../api/geocode';
 
-
-const MAPBOX_TOKEN = 'pk.eyJ1IjoiY29tbWFhaSIsImEiOiJjamlud2h2czAwNTN5M3dxZWg2Z3hmNnEwIn0.aam-7k03KBbMbtR7cUJslw';
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 
 const styles = {

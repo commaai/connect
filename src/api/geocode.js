@@ -1,8 +1,10 @@
 import Raven from 'raven-js';
 
+export const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
+
 const mbxGeocoding = require('@mapbox/mapbox-sdk/services/geocoding');
 const geocodingClient = mbxGeocoding({
-  accessToken: 'pk.eyJ1IjoiY29tbWFhaSIsImEiOiJjamlud2h2czAwNTN5M3dxZWg2Z3hmNnEwIn0.aam-7k03KBbMbtR7cUJslw'
+  accessToken: MAPBOX_TOKEN
 })
 
 export default function geocodeApi() {
