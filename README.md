@@ -2,7 +2,7 @@
 The frontend to the explorer web UI. This a react app using [Create React App](https://github.com/facebookincubator/create-react-app) (see wall of documentatio below)
 
 ## Environments
- * Developemnt (local machine) http://localhost:3000
+ * Development (local machine) http://localhost:3000
  * Staging (master branch) https://master--comma-explorer.netlify.com/
  * Production (production branch) https://my.comma.ai
    * all production hostnames redirect to here to prevent CORS caching issues (see public/_redirects)
