@@ -417,11 +417,21 @@ class VideoPreview extends Component {
   }
   drawLaneBoundary (ctx, lane) { // ui_draw_lane
     let color = 'rgba(255, 255, 255,' + lane.Prob + ')';
-    this.drawLaneLine(ctx, lane.Points, 0.035 * lane.Prob, color, false);
+
+    let points;
+    if (lane.Points.length > 0) {
+      points = lane.Points;
+    } else {
+      points = [];
+      for (let i = 0; i < 192; i++) {
+        points.push(lane.Poly[0] * (i*i*i) + lane.Poly[1] * (i*i) + lane.Poly[2] * i + lane.Poly[3]);
+      }
+    }
+    this.drawLaneLine(ctx, points, 0.035 * lane.Prob, color, false);
     let offset = Math.min(lane.Std, 0.7);
     color = 'rgba(255, 255, 255,' + lane.Prob + ')';
-    this.drawLaneLine(ctx, lane.Points, -offset, color, true);
-    this.drawLaneLine(ctx, lane.Points, offset, color, true);
+    this.drawLaneLine(ctx, points, -offset, color, true);
+    this.drawLaneLine(ctx, points, offset, color, true);
   }
   drawLaneLine (ctx, points, off, color, isGhost) { // ui_draw_lane_line
     ctx.beginPath();

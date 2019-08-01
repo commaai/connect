@@ -14,6 +14,13 @@
   resolved "https://registry.yarnpkg.com/@commaai/capnp-json/-/capnp-json-0.1.6.tgz#75d7fe92e5d45a041abc3c5849fd8f3fe6b6fe9a"
   integrity sha512-bsNTzZ4uqLl1to+xHVJyZDoX6OIR/piF1luWBLUrJrAcaYPoUfL4bEHmHmCfIiIKtJF+3ty3oYtIFn7o9Rmp/Q==
 
+"@commaai/capnp-json@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@commaai/capnp-json/-/capnp-json-0.2.0.tgz#866bba39274b02f899803dc7968a7fe79fb02321"
+  integrity sha512-PXqEjvoLkb7VPaeMlFV7NspHAUMfTGhd6plQ72rilrjagf1os73fdItdlhk/q2XELx+l/Vq1xRSLJT1Os0DVqQ==
+  dependencies:
+    capnp-ts "0.2.4"
+
 "@commaai/comma-api@^1.0.0", "@commaai/comma-api@^1.0.4":
   version "1.0.12"
   resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-1.0.12.tgz#aa2be678dd0cdcf5102602e011051eda354853d6"
@@ -31,12 +38,12 @@
     eventemitter3 "3.1.0"
     url-toolkit "^2.1.6"
 
-"@commaai/log_reader@^0.4.5":
-  version "0.4.5"
-  resolved "https://registry.yarnpkg.com/@commaai/log_reader/-/log_reader-0.4.5.tgz#fc95a3cc393cb64f1788b29ca42cc56f9a3e70ac"
-  integrity sha512-nvxe0xFZ6uU87IKFh96/zf1KvzxQf+5Brm7NRcLWBGe0Te6sxRjSyndPlHCm+mvDAN5SUBWvoa1f92IXdOZipQ==
+"@commaai/log_reader@0.5.2":
+  version "0.5.2"
+  resolved "https://registry.yarnpkg.com/@commaai/log_reader/-/log_reader-0.5.2.tgz#01ca9e846567258d5ffc5aa6c079501ad8a0074b"
+  integrity sha512-ZySRnLfDGTh9DaZEZYEdoHScPZhmJdklYiODeIp27SPkgESVyXJNymCaggepw2P1os+YyNV9YNm5gnpupnoCzw==
   dependencies:
-    "@commaai/capnp-json" "^0.1.6"
+    "@commaai/capnp-json" "^0.2.0"
     JSONStream "^1.3.2"
     ap "^0.2.0"
     capnp-split "^0.1.1"
@@ -2306,7 +2313,7 @@ capnp-split@^0.1.4:
   dependencies:
     through2 "^2.0.3"
 
-capnp-ts@^0.2.4:
+capnp-ts@0.2.4, capnp-ts@^0.2.4:
   version "0.2.4"
   resolved "https://registry.yarnpkg.com/capnp-ts/-/capnp-ts-0.2.4.tgz#da729493311f384d65d480d9afe979ceab9f41bb"
   dependencies:
