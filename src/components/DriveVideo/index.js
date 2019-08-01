@@ -481,6 +481,15 @@ class VideoPreview extends Component {
     let started = false;
     let offset = isMpc?0.3:0.5;
     let path_height = isMpc?20:49;
+    let points;
+    if (path.Points.length > 0) {
+      points = path.Points;
+    } else {
+      points = [];
+      for (let i = 0; i < 192; i++) {
+        points.push(path.Poly[0] * (i*i*i) + path.Poly[1] * (i*i) + path.Poly[2] * i + path.Poly[3]);
+      }
+    }
     for (let i=0; i <= path_height; i++) {
       let px, py;
       if (isMpc) {
@@ -488,7 +497,7 @@ class VideoPreview extends Component {
         py = path.Y[i]-offset;
       } else {
         px = i;
-        py = path.Points[i] - offset;
+        py = points[i] - offset;
       }
       let [x, y, z] = this.carSpaceToImageSpace([px, py, 0.0, 1.0]);
       if (i === 0) {
@@ -511,7 +520,7 @@ class VideoPreview extends Component {
         py = path.Y[i] + offset;
       } else {
         px = i;
-        py = path.Points[i] + offset;
+        py = points[i] + offset;
       }
       let [x, y, z] = this.carSpaceToImageSpace([px, py, 0.0, 1.0]);
       if (i === 0) {
