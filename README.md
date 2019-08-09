@@ -1,5 +1,5 @@
 # Explorer
-The frontend to the explorer web UI. This a react app using [Create React App](https://github.com/facebookincubator/create-react-app) (see wall of documentatio below)
+The frontend to the explorer web UI. This a react app using [Create React App](https://github.com/facebookincubator/create-react-app) (see wall of documentation below)
 
 ## Environments
  * Development (local machine) http://localhost:3000
@@ -29,7 +29,7 @@ Smaller libraries... useful things scattered everywhere that seemed worth mentio
 
  * `src/` contains the main app
  * `src/timeline` contains the API for timeline data
-   * `src/timeline/index/js` is an API wrapper explosing sane methods
+   * `src/timeline/index/js` is an API wrapper exposing sane methods
    * `src/timeline/index.sharedworker.js` is the sharedworker implementation of the timeline data
    * `src/timeline/index.worker.js` is the non-shared web worker for when browsers don't support shared workers
    * Basically everything else in `src/timeline` is implementation of the worker. A few files / helper functions are used both in and out of the worker (such as the currentOffset function)
@@ -40,16 +40,16 @@ Smaller libraries... useful things scattered everywhere that seemed worth mentio
  * `src/api` root folder for all API communications
    * `src/api/auth` handles trying to find the auth token for the user in any location it could be stored. It also tries to store the auth token in IndexDB so that the shared worker can get it for free.
    * `src/api/request` wraps all the request types (get/post/etc) and configures the `config-request` instance.
-   * `src/api/index.js` is the only file that should be accessed by normal application code. It should explose every available endpoint as a specific API rather than expecting endpoint names as strings (example, `API.listDevices()` not `API.get("listDevices")`)
+   * `src/api/index.js` is the only file that should be accessed by normal application code. It should expose every available endpoint as a specific API rather than expecting endpoint names as strings (example, `API.listDevices()` not `API.get("listDevices")`)
 
 ## How shit works
-Everything functions by talking to a central Web/Shared worker. The current playback is tracked not by storing the current offset, but instead storing the local time that the player began, the offset it began at, and the playback rate. Any time any of these values change, it rebases them all back to the current time. It means that at any arbitrary moment you can calulate the current offset with...
+Everything functions by talking to a central Web/Shared worker. The current playback is tracked not by storing the current offset, but instead storing the local time that the player began, the offset it began at, and the playback rate. Any time any of these values change, it rebases them all back to the current time. It means that at any arbitrary moment you can calculate the current offset with...
 ```js
 (Date.now() - state.startTime) * state.playSpeed + state.offset
 ```
 This is exposed through `Timelineworker.currentOffset()`.
 
-With this central authority on current offset time, it becomes much easier to have each data source keep themselves in sync instead of trying to manage syncronizing all of them.
+With this central authority on current offset time, it becomes much easier to have each data source keep themselves in sync instead of trying to manage synchronizing all of them.
 
 The **raw binary feed** is read in using a rather specific technique. The worker doesn't interpret the buffer at all, it just streams it out in chunks from the decompressor / download stream. The page itself is handed the raw buffer as a transferable, and the first thing it does is iterate over the entire buffer finding the offset positions and sizes of every message. Along with that data it also reads in the LogMonoTime value for that given event, and then inserts it sorted into an array (messages are not sorted coming in). Now that it has the sorted array of offset data, each frame it does a binary search of the current time offset in the array and then uses this to parse in just those portions of the buffer into JSON objects. As many of the values as possible are represented as data views to the raw buffer, reducing the amount of data that needs copying.
 
@@ -1357,7 +1357,7 @@ Jest will look for test files with any of the following popular naming conventio
 
 The `.test.js` / `.spec.js` files (or the `__tests__` folders) can be located at any depth under the `src` top level folder.
 
-We recommend to put the test files (or `__tests__` folders) next to the code they are testing so that relative imports appear shorter. For example, if `App.test.js` and `App.js` are in the same folder, the test just needs to `import App from './App'` instead of a long relative path. Colocation also helps find tests more quickly in larger projects.
+We recommend to put the test files (or `__tests__` folders) next to the code they are testing so that relative imports appear shorter. For example, if `App.test.js` and `App.js` are in the same folder, the test just needs to `import App from './App'` instead of a long relative path. Collocation also helps find tests more quickly in larger projects.
 
 ### Command Line Interface
 
@@ -1554,7 +1554,7 @@ Note that tests run much slower with coverage so it is recommended to run it sep
 
 #### Configuration
 
-The default Jest coverage configuration can be overriden by adding any of the following supported keys to a Jest config in your package.json.
+The default Jest coverage configuration can be overridden by adding any of the following supported keys to a Jest config in your package.json.
 
 Supported overrides:
  - [`collectCoverageFrom`](https://facebook.github.io/jest/docs/en/configuration.html#collectcoveragefrom-array)
@@ -2283,7 +2283,7 @@ GitHub Pages doesn’t support routers that use the HTML5 `pushState` history AP
 
 ##### "/dev/tty: No such a device or address"
 
-If, when deploying, you get `/dev/tty: No such a device or address` or a similar error, try the follwing:
+If, when deploying, you get `/dev/tty: No such a device or address` or a similar error, try the following:
 
 1. Create a new [Personal Access Token](https://github.com/settings/tokens)
 2. `git remote set-url origin https://<user>:<token>@github.com/<user>/<repo>` .
