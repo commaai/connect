@@ -3,9 +3,14 @@ import Raven from 'raven-js';
 export const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
 const mbxGeocoding = require('@mapbox/mapbox-sdk/services/geocoding');
-const geocodingClient = mbxGeocoding({
-  accessToken: MAPBOX_TOKEN
-})
+let geocodingClient = null;
+if (MAPBOX_TOKEN) {
+  geocodingClient = mbxGeocoding({
+    accessToken: MAPBOX_TOKEN
+  });
+} else {
+  console.warn("Missing mapbox token");
+}
 
 export default function geocodeApi() {
 
@@ -23,6 +28,10 @@ export default function geocodeApi() {
 
   return {
     reverseLookup: async function(coords) {
+      if (geocodingClient === null) {
+        return null;
+      }
+
       const response = await geocodingClient.reverseGeocode({
         query: [ coords[0], coords[1] ],
         limit: 1,
