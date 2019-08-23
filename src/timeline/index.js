@@ -1,3 +1,4 @@
+import qs from 'query-string';
 import window from 'global/window';
 import Event from 'geval/event';
 import { partial } from 'ap';
@@ -9,6 +10,7 @@ import { storage as AuthStorage } from '@commaai/my-comma-auth';
 import * as Playback from './playback';
 import * as LogIndex from './logIndex';
 import { getDongleID, getZoom } from '../url';
+import { isDemo } from '../demo';
 
 const TimelineSharedWorker = require('./index.sharedworker');
 const TimelineWebWorker = require('./index.worker');
@@ -36,7 +38,7 @@ class TimelineInterface {
       command: 'hello',
       data: {
         dongleId: getDongleID(startPath),
-        zoom: getZoom(startPath)
+        zoom: getZoom(startPath),
       }
     });
   }
@@ -44,10 +46,11 @@ class TimelineInterface {
   onStateChange = StateEvent.listen
   onIndexed = IndexEvent.listen
 
-  async init () {
+  async init (isDemo) {
     if (!this.hasInit) {
       this.hasInit = true;
-      init(this);
+      this.isDemo = isDemo;
+      init(this, this.isDemo);
     }
     return this._readyPromise;
   }
@@ -435,16 +438,16 @@ export default timeline;
 
 // helper functions
 
-async function init (timeline) {
-  await initWorker(timeline);
+async function init (timeline, isDemo) {
+  await initWorker(timeline, isDemo);
 }
 
-async function initWorker (timeline) {
+async function initWorker (timeline, isDemo) {
   var worker = null;
   var logReader = null;
 
   var token = await AuthStorage.getCommaAccessToken();
-  if (!token) {
+  if ( !(token || isDemo) ) {
     return new Promise(noop);
   }
 
@@ -470,13 +473,11 @@ async function initWorker (timeline) {
   LogReaderWorker.onData(function (msg) {
     timeline.handleData(msg);
   });
-
   if (timeline.logReader) {
     port.postMessage({
       command: 'cachePort'
     }, [timeline.logReader.port || timeline.logReader]);
   }
-
   UnloadEvent.listen(() => timeline.disconnect());
   InitEvent.broadcast(token);
 }

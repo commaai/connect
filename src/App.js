@@ -5,6 +5,7 @@ import { ConnectedRouter } from 'connected-react-router';
 import { timeout } from 'thyming';
 import document from 'global/document';
 import qs from 'query-string';
+import localforage from 'localforage';
 
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Grid from '@material-ui/core/Grid';
@@ -20,6 +21,7 @@ import TimelineWorker from './timeline';
 import { history, createStore } from './store';
 import { updateState } from './actions';
 import { initGoogleAnalytics } from './analytics';
+import * as Demo from './demo';
 
 initGoogleAnalytics(history);
 const store = createStore();
@@ -33,10 +35,26 @@ class App extends Component {
     super(props);
 
     this.state = {
-      initialized: false
+      initialized: false,
+      demo: false,
     };
 
-    this.auth();
+    Demo.init().then((isDemo) => {
+      if (isDemo) {
+        return localforage.setItem('isDemo', '1')
+          .then(TimelineWorker.init(isDemo).then(
+            () => {
+              TimelineWorker.selectTimeRange(1564443025000, Date.now());
+              this.setState({
+                initialized: true,
+                demo: true,
+              })
+            })
+          );
+      } else {
+        return this.auth();
+      }
+    });
   }
   async auth () {
     if (document.location) {
@@ -59,7 +77,7 @@ class App extends Component {
     Request.configure(token);
 
     if (MyCommaAuth.isAuthenticated()) {
-      await TimelineWorker.init(token);
+      await TimelineWorker.init();
     }
 
     this.setState({ initialized: true });
@@ -103,7 +121,7 @@ class App extends Component {
     return (
       <Provider store={ store }>
         <ConnectedRouter history={ history }>
-          { MyCommaAuth.isAuthenticated() ? this.authRoutes() : this.ananymousRoutes() }
+          { (MyCommaAuth.isAuthenticated() || this.state.demo) ? this.authRoutes() : this.ananymousRoutes() }
         </ConnectedRouter>
       </Provider>
     );

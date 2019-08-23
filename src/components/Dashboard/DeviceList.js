@@ -135,7 +135,12 @@ class DeviceList extends Component {
       this.setState({ error: e.message, isWaitingForApi: false });
     }
   }
-
+  deviceTypePretty (deviceType) {
+    if (deviceType === 'neo'){
+      return 'EON';
+    }
+    return deviceType;
+  }
   render () {
     var devices = this.props.devices;
     var dongleId = this.props.selectedDevice;
@@ -146,11 +151,6 @@ class DeviceList extends Component {
         found = true;
       }
       onlyHasAppDevice = onlyHasAppDevice && (device.device_type !== 'neo' && device.device_type !== 'panda');
-      if (device.device_type === 'neo'){
-        devices[idx].device_type = 'EON';
-      } else if (device.device_type === 'app') {
-        devices[idx].device_type = 'chffr';
-      }
     });
 
     if (!found) {
@@ -172,7 +172,7 @@ class DeviceList extends Component {
   renderDevice (device) {
     const { classes } = this.props;
     const isSelected = (this.props.selectedDevice === device.dongle_id);
-    let alias = device.alias || device.device_type;
+    let alias = device.alias || this.deviceTypePretty(device.device_type);
     return (
       <div
         key={ device.dongle_id }

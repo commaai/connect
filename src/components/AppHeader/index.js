@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import Obstruction from 'obstruction';
 import fecha from 'fecha';
+import localforage from 'localforage';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -25,7 +26,6 @@ import { AccountIcon } from '../../icons';
 import Timelineworker from '../../timeline';
 
 const styles = theme => {
-  console.log(theme);
   return {
     base: {
       backgroundColor: '#1D2225',
@@ -95,6 +95,7 @@ class AppHeader extends Component {
 
   handleLogOut() {
     this.handleClose();
+    localforage.removeItem('isDemo');
     MyCommaAuth.logOut();
   }
 

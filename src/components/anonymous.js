@@ -47,9 +47,22 @@ const styles = theme => {
       fontFamily: 'MaisonNeue',
       fontSize: '18px',
       fontWeight: 600,
-    }
+    },
+    demoLink: {
+      textDecoration: 'none',
+      justifyContent: 'center',
+      width: '100%',
+      height: '40px',
+      paddingTop: '10px',
+      display: 'flex',
+    },
+    demoLinkText: {
+      fontSize: '18px',
+    },
   }
 };
+
+const DEMO_LINK = window.location.origin + '/?demo=1';
 
 class AnonymousLanding extends Component {
   componentWillMount () {
@@ -71,6 +84,11 @@ class AnonymousLanding extends Component {
         <a href={ AuthConfig.oauthRedirectLink } className={ classes.logInButton }>
           <Typography className={ classes.logInText }>
             Log in with Google
+          </Typography>
+        </a>
+        <a href={ DEMO_LINK } className={ classes.demoLink }>
+          <Typography className={ classes.demoLinkText }>
+            or try the demo
           </Typography>
         </a>
       </div>

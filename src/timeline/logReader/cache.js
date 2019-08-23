@@ -10,6 +10,8 @@ import debounce from 'debounce';
 import * as capnp from 'capnp-ts';
 import { Event as CapnpEvent } from '@commaai/log_reader/capnp/log.capnp';
 import filterWhich from './allowedEventTypes';
+import * as Demo from '../../demo';
+const demoLogUrls = require('../../demo/logUrls.json');
 
 // cache all of the data
 
@@ -74,14 +76,21 @@ class CacheEntry {
     if (this.started) {
       return;
     }
-    this.started = true;
-    this.getLog(this.dataListener);
-    this.unlisten = this.subscribe(this.dataListener);
+    Demo.init().then(() => {
+      this.started = true;
+      this.getLog(this.dataListener);
+      this.unlisten = this.subscribe(this.dataListener);
+    });
   }
 
   async getLogUrl () {
     await this.authInitPromise;
-    var urls = await RawApi.getLogUrls(this.route);
+    var urls;
+    if (Demo.isDemo()) {
+      urls = demoLogUrls[this.route];
+    } else {
+      urls = await RawApi.getLogUrls(this.route);
+    }
     return urls[this.segment];
   }
 

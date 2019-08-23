@@ -21,6 +21,8 @@ import Playback from './playback';
 import Segments from './segments';
 import * as Cache from './cache';
 import store from './store';
+import * as Demo from '../demo';
+const demoSegments = require('../demo/segments.json');
 
 const BroadcastEvent = Event();
 const DataLogEvent = Event();
@@ -199,13 +201,15 @@ function play (port, speed) {
 }
 
 async function hello (port, data) {
-  console.log(data);
+  await Demo.init();
   await initAuthPromise;
   store.dispatch(selectDeviceAction(data.dongleId));
+
   await Promise.all([
-    init(),
+    init(Demo.isDemo()),
     hasGottenSegmentDataPromise
   ]);
+
   return 'hello';
 }
 
@@ -304,8 +308,14 @@ async function checkSegmentMetadata (state) {
 
   var segmentData = null;
   var annotationsData = null;
-  segmentsRequest = Drives.getSegmentMetadata(start, end, dongleId);
-  annotationsRequest = Annotations.listAnnotations(start, end, dongleId);
+  await Demo.init();
+  if (Demo.isDemo()) {
+    segmentsRequest = Promise.resolve(demoSegments);
+    annotationsRequest = Promise.resolve([]);
+  } else {
+    segmentsRequest = Drives.getSegmentMetadata(start, end, dongleId);
+    annotationsRequest = Annotations.listAnnotations(start, end, dongleId);
+  }
   store.dispatch(Segments.fetchSegmentMetadata(start, end));
 
   try {

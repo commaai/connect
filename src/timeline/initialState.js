@@ -40,6 +40,7 @@ module.exports = {
   },
 
   profile: null,
+  isDemo: false,
 };
 
 function getDefaultStartDate () {
