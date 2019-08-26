@@ -220,7 +220,7 @@ function segmentsFromMetadata (segmentsData) {
     if (!segment.url) {
       return;
     }
-    if (segment.proc_log !== 40) {
+    if (!(segment.proc_log === 40 || segment.proc_qlog === 40)) {
       return;
     }
     var segmentHasDriverCamera = (segment.proc_dcamera >= 0);
