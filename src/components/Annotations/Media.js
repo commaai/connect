@@ -81,7 +81,7 @@ class Media extends Component {
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
 
     this.state = {
-      inView: MediaType.HUD,
+      inView: MediaType.DRIVER_VIDEO,
     }
   }
 

@@ -3,6 +3,7 @@ import { connect } from 'react-redux'
 import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
 import { classNames } from 'react-extras';
+import { matrix, multiply } from 'mathjs';
 import theme from '../../theme';
 
 import { Player, ControlBar, PlaybackRateMenuButton } from 'video-react';
@@ -61,6 +62,7 @@ class VideoPreview extends Component {
     this.canvas_carstate = React.createRef();
     this.canvas_maxspeed = React.createRef();
     this.canvas_speed = React.createRef();
+    this.canvas_face = React.createRef();
 
     this.intrinsic = intrinsicMatrix();
 
@@ -204,14 +206,26 @@ class VideoPreview extends Component {
   }
   renderCanvas () {
     var calibration = TimelineWorker.getCalibration(this.props.route);
-    if (!this.props.shouldShowUI) {
-      return
-    }
-
     if (!calibration) {
       this.lastCalibrationTime = false;
       return;
     }
+
+    if (this.props.front) {
+      if (this.canvas_face.current) {
+        const params = { calibration, shouldScale: true };
+        const events = {
+          driverMonitoring: TimelineWorker.currentDriverMonitoring
+        };
+        this.renderEventToCanvas(
+          this.canvas_face.current, params, events, this.renderDriverMonitoring);
+      }
+    }
+
+    if (!this.props.shouldShowUI) {
+      return
+    }
+
     if (calibration) {
       if (this.lastCalibrationTime !== calibration.LogMonoTime) {
         this.extrinsic = [...calibration.LiveCalibration.ExtrinsicMatrix, 0, 0, 0, 1];
@@ -804,15 +818,144 @@ class VideoPreview extends Component {
     }
     ctx.strokeRect(0, 0, vwp_w, vwp_h);
   }
+  renderDriverMonitoring (options, events) {
+    if (!events.driverMonitoring) {
+      return;
+    }
+
+    var { ctx } = options;
+    let driverMonitoring = events.driverMonitoring.DriverMonitoring;
+
+    if (driverMonitoring.FaceProb < 0.8) {
+      return;
+    }
+    /*
+
+def draw_nose(img, yvec, color):
+  # recover matrix from params
+  rcmat = np.zeros((3,4))
+  rcmat[:,:3] = orientation.rot_matrix(*yvec[0:3]) * yvec[5]
+  rcmat[0,3] = (yvec[3]+0.5)* 160
+  rcmat[1,3] = (yvec[4]+0.5) * 320
+  rcmat[2,3] = 1.0
+
+  # draw nose
+  if yvec[6] > 0:
+    p1 = np.dot(rcmat, [0,0,0,1])[0:2]
+    p2 = np.dot(rcmat, [0,0,100,1])[0:2]
+    tr = tuple(map(lambda x: int(round(x)), p1))
+    pr = tuple(map(lambda x: int(round(x)), p2))
+    cv2.circle(img, tr, 7, color=(255,0,0))
+    cv2.line(img, tr, pr, color=color, thickness=3)
+
+    # draw std
+    if len(yvec) > 7:
+      from common.model_helpers import softplus
+      std = 1/softplus(yvec[7])
+      cv2.circle(img, tr, int(7+max(0, min(std*100, 30))), color=(color[0]//2, color[1]//2, color[2]//2))
+
+    */
+    // let xW = vwp_w / 2;
+    let xW = vwp_h / 2;
+    let xOffset = vwp_w - xW;
+    let noseSize = 20;
+    ctx.translate(xOffset, 0);
+
+    let opacity = (driverMonitoring.FaceProb - 0.8) / 0.2 * 255;
+    noseSize *= 1 / (driverMonitoring.FaceProb * driverMonitoring.FaceProb);
+    let [x, y] = driverMonitoring.FacePosition.map(v => v + 0.5);
+    x = toX(x);
+    y = toY(y);
+    
+    let flatMatrix = this.rot_matrix(...driverMonitoring.FaceOrientation)
+      .reduce((m, v) => m.concat([...v, 1]), [])
+      .concat([0,0,0,1]);
+    flatMatrix[3] = x;
+    flatMatrix[7] = y;
+
+    let p1 = this.matmul(flatMatrix, [0, 0, 0, 1]);
+    let p2 = this.matmul(flatMatrix, [0, 0, 100, 1]);
+
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(0, 0, 0, ' + opacity + ')';
+    ctx.arc(x, y, noseSize, 0, 2 * Math.PI);
+    ctx.stroke();
+    ctx.closePath();
+
+    ctx.beginPath();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = theme.palette.states.drivingBlue;
+    ctx.moveTo((p1[0]), (p1[1]));
+    ctx.strokeStyle = 'rgba(255, 255, 255, ' + opacity + ')';
+    ctx.lineTo((p2[0]), (p2[1]));
+    ctx.stroke();
+    ctx.closePath();
+
+    // debugger;
+
+    function toX (x) {
+      return (x * xW);
+    }
+    function toY (y) {
+      return (y * vwp_h);
+    }
+  }
   carSpaceToImageSpace (coords) {
-    this.matmul(this.extrinsic, coords);
-    this.matmul(this.intrinsic, coords);
+    coords = this.matmul(this.extrinsic, coords);
+    coords = this.matmul(this.intrinsic, coords);
 
     // project onto 3d with Z
     coords[0] /= coords[2];
     coords[1] /= coords[2];
 
     return coords;
+  }
+  rot_matrix (roll, pitch, yaw) {
+    /*
+
+def rot_matrix(roll, pitch, yaw):
+  cr, sr = np.cos(roll), np.sin(roll)
+  cp, sp = np.cos(pitch), np.sin(pitch)
+  cy, sy = np.cos(yaw), np.sin(yaw)
+  rr = array([[1,0,0],[0, cr,-sr],[0, sr, cr]])
+  rp = array([[cp,0,sp],[0, 1,0],[-sp, 0, cp]])
+  ry = array([[cy,-sy,0],[sy, cy,0],[0, 0, 1]])
+  return ry.dot(rp.dot(rr))
+    */
+
+    let cr = Math.cos(roll);
+    let sr = Math.sin(roll);
+    let cp = Math.cos(pitch);
+    let sp = Math.sin(pitch);
+    let cy = Math.cos(yaw);
+    let sy = Math.sin(yaw);
+
+    let rr = [
+      [1,0,0],
+      [0, cr,-sr],
+      [0, sr, cr]
+    ];
+    let rp = [
+      [cp,0,sp],
+      [0, 1,0],
+      [-sp, 0, cp]
+    ];
+    let ry = [
+      [cy,-sy,0],
+      [sy, cy,0],
+      [0, 0, 1]
+    ];
+    return multiply(ry, multiply(rp, rr));
+  }
+  matmul3 (matrix, coord) {
+    let b0 = coord[0], b1 = coord[1], b2 = coord[2];
+
+    coord[0] = b0 * matrix[0]  + b1 * matrix[1]  + b2 * matrix[2];
+    coord[1] = b0 * matrix[3]  + b1 * matrix[4]  + b2 * matrix[5];
+    coord[2] = b0 * matrix[6]  + b1 * matrix[7]  + b2 * matrix[8];
+
+    return coord;
   }
   matmul (matrix, coord) {
     let b0 = coord[0], b1 = coord[1], b2 = coord[2], b3 = coord[3];
@@ -916,6 +1059,14 @@ class VideoPreview extends Component {
               ref={ this.canvas_speed }
               className={ classes.videoUiCanvas }
               style={{ zIndex: 7 }} />
+          </React.Fragment>
+        }
+        { this.props.front &&
+          <React.Fragment>
+            <canvas
+              ref={ this.canvas_face }
+              className={ classes.videoUiCanvas }
+              style={{ zIndex: 2 }} />
           </React.Fragment>
         }
       </div>
