@@ -861,6 +861,8 @@ def draw_nose(img, yvec, color):
     let noseSize = 20;
     ctx.translate(xOffset, 0);
 
+    let isDistracted = this.isDistracted(driverMonitoring);
+
     let opacity = (driverMonitoring.FaceProb - 0.8) / 0.2 * 255;
     noseSize *= 1 / (driverMonitoring.FaceProb * driverMonitoring.FaceProb);
     let [x, y] = driverMonitoring.FacePosition.map(v => v + 0.5);
@@ -878,7 +880,11 @@ def draw_nose(img, yvec, color):
 
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(0, 0, 0, ' + opacity + ')';
+    if (isDistracted) {
+      ctx.strokeStyle = 'rgba(255, 0, 0, ' + opacity + ')';
+    } else {
+      ctx.strokeStyle = 'rgba(0, 255, 0, ' + opacity + ')';
+    }
     ctx.arc(x, y, noseSize, 0, 2 * Math.PI);
     ctx.stroke();
     ctx.closePath();
@@ -901,6 +907,77 @@ def draw_nose(img, yvec, color):
       return (y * vwp_h);
     }
   }
+  isDistracted (driverMonitoring) {
+    let pose = this.getDriverPose(driverMonitoring);
+
+    const _PITCH_NATURAL_OFFSET = 0.12;
+    const _YAW_NATURAL_OFFSET = 0.08;
+    const _PITCH_POS_ALLOWANCE = 0.04;
+    const _PITCH_WEIGHT = 1.35;
+    const _METRIC_THRESHOLD = 0.4;
+
+    let pitch_error = pose.pitch - _PITCH_NATURAL_OFFSET
+    let yaw_error = pose.yaw - _YAW_NATURAL_OFFSET
+    if (pitch_error > 0) {
+      pitch_error = Math.max(pitch_error - _PITCH_POS_ALLOWANCE, 0);
+    }
+  
+    pitch_error *= _PITCH_WEIGHT;
+    let pose_metric = Math.sqrt(Math.pow(yaw_error, 2) + Math.pow(pitch_error, 2));
+    if (pose_metric > _METRIC_THRESHOLD) {
+      return true;
+    }
+    return false;
+/*
+    if not self.pose_calibrated:
+      pitch_error = pose.pitch - _PITCH_NATURAL_OFFSET
+      yaw_error = pose.yaw - _YAW_NATURAL_OFFSET
+      # add positive pitch allowance
+      if pitch_error > 0.:
+        pitch_error = max(pitch_error - _PITCH_POS_ALLOWANCE, 0.)
+      #print 'not calibrated'
+    else:
+      pitch_error = pose.pitch - self.pose.pitch_offseter.filtered_stat.mean()
+      yaw_error = pose.yaw - self.pose.yaw_offseter.filtered_stat.mean()
+      #print 'calibrated'
+
+    pitch_error *= _PITCH_WEIGHT
+    pose_metric = np.sqrt(yaw_error**2 + pitch_error**2)
+
+    if pose_metric > _METRIC_THRESHOLD:
+      return DistractedType.BAD_POSE
+    elif blink.left_blink>_BLINK_THRESHOLD and blink.right_blink>_BLINK_THRESHOLD:
+      return DistractedType.BAD_BLINK
+    else:
+      return DistractedType.NOT_DISTRACTED
+*/
+
+  }
+  getDriverPose (driverMonitoring) {
+    // use driver monitoring units instead of canvas units
+    // that way we can compare against the same constants
+    const W = 160;
+    const H = 320;
+    const RESIZED_FOCAL = 320.0;
+    const FULL_W = 426;
+
+    const angles_desc = driverMonitoring.FaceOrientation;
+    const pos_desc = driverMonitoring.FacePosition;
+    
+    let pitch_prnet = angles_desc[0];
+    let yaw_prnet = angles_desc[1];
+    let roll_prnet = angles_desc[2];
+
+    let face_pixel_position = [(pos_desc[0] + .5)*W - W + FULL_W, (pos_desc[1]+.5)*H];
+    let yaw_focal_angle = Math.atan2(face_pixel_position[0] - FULL_W/2, RESIZED_FOCAL)
+    let pitch_focal_angle = Math.atan2(face_pixel_position[1] - H/2, RESIZED_FOCAL)
+
+    let roll = roll_prnet
+    let pitch = pitch_prnet + pitch_focal_angle
+    let yaw = -yaw_prnet + yaw_focal_angle
+    return { roll, pitch, yaw };
+  }
+
   carSpaceToImageSpace (coords) {
     coords = this.matmul(this.extrinsic, coords);
     coords = this.matmul(this.intrinsic, coords);
