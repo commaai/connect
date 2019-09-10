@@ -46,6 +46,7 @@
     "joi-browser": "^13.4.0",
     "localforage": "^1.7.1",
     "material-ui-pickers": "^1.0.0-rc.10",
+    "mathjs": "^6.2.1",
     "obstruction": "^2.1.0",
     "prop-types": "^15.6.2",
     "query-string": "^5.0.1",
