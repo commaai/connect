@@ -28,6 +28,7 @@
     "babel-runtime": "^6.26.0",
     "capnp-split": "^0.1.4",
     "capnp-ts": "^0.2.4",
+    "carly": "^0.1.0",
     "classnames": "^2.2.6",
     "collect-methods": "^1.2.0",
     "config-request": "^0.5.1",
@@ -90,5 +91,11 @@
     "style-loader": "^0.21.0",
     "tape": "^4.9.0",
     "worker-loader": "^1.1.1"
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "^@commaai/(.*)$": "<rootDir>/node_modules/@commaai/$1/dist/index.js",
+      "capnp-split": "<rootDir>/node_modules/capnp-split/dist/index.js"
+    }
   }
 }

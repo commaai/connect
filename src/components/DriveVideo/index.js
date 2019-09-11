@@ -131,26 +131,47 @@ class VideoPreview extends Component {
     let videoPlayer = this.videoPlayer.current;
     let noVideo = this.state.noVideo;
     let playSpeed = this.props.startTime < Date.now() ? this.props.playSpeed : 0;
+    let desiredPlaySpeed = this.props.desiredPlaySpeed;
 
     if (videoPlayer) {
       let playerState = videoPlayer.getState().player;
       if (!playerState.buffered || Number.isNaN(playerState.duration)) {
         return;
       }
-      if (playSpeed && this.props.currentSegment) {
+      if (desiredPlaySpeed && this.props.currentSegment) {
         let curVideoTime = playerState.currentTime;
         let desiredVideoTime = this.currentVideoTime(offset);
         let timeDiff = desiredVideoTime - curVideoTime;
 
-        let isBuffered = false;
+        let desiredBufferedVideoTime = desiredVideoTime;
+        if (this.props.bufferingVideo) {
+          // if we're currently already paused buffering for video
+          // then wait for another 2 seconds of video t oload
+          desiredBufferedVideoTime += 2;
+        }
+        desiredBufferedVideoTime = Math.min(playerState.duration, desiredBufferedVideoTime);
+
+        let isBuffering = true;
         for (let i = 0, buf = playerState.buffered, len = buf.length; i < len; ++i) {
           let start = buf.start(i);
-          if (start < desiredVideoTime && buf.end(i) > desiredVideoTime) {
-            isBuffered = true;
+          if (start < desiredVideoTime && buf.end(i) >= desiredBufferedVideoTime) {
+            isBuffering = false;
             break;
           } else if (Math.abs(start - desiredVideoTime) < 5) {
-            isBuffered = true;
-            break;
+            // isBuffering = false;
+            // break;
+          }
+        }
+
+        if (this.props.bufferingVideo !== isBuffering) {
+          console.log('Changing buffer state to', isBuffering);
+          TimelineWorker.bufferVideo(isBuffering);
+        }
+
+        if (isBuffering) {
+          console.log('Video is buffering!', desiredVideoTime, curVideoTime);
+          for (let i = 0, buf = playerState.buffered, len = buf.length; i < len; ++i) {
+            console.log(buf.start(i), buf.end(i), desiredVideoTime);
           }
         }
 
@@ -159,7 +180,12 @@ class VideoPreview extends Component {
         shouldShowPreview = playerState.buffered.length === 0 || playerState.waiting || (Math.abs(timeDiff) > 2);
 
         if (Number.isFinite(timeDiff) && Math.abs(timeDiff) > 0.25) {
-          if (Math.abs(timeDiff) > bufferTime * 1.1 || (Math.abs(timeDiff) > 0.5 && isBuffered)) {
+          if (isBuffering) {
+            // instantly seek when buffering
+            console.log('Seeking buffered video');
+            videoPlayer.pause();
+            videoPlayer.seek(Math.max(0, desiredVideoTime - 2));
+          } else if (Math.abs(timeDiff) > bufferTime * 1.1 || (Math.abs(timeDiff) > 0.5 && !isBuffering)) {
             if (desiredVideoTime > playerState.duration) {
               noVideo = true;
             } else if (desiredVideoTime < 0) {
@@ -168,12 +194,12 @@ class VideoPreview extends Component {
               noVideo = false;
               // console.log('Seeking!', desiredVideoTime);
               // debugger;
-              if (isBuffered) {
-                videoPlayer.seek(desiredVideoTime);
-              } else {
-                // console.log(playerState, desiredVideoTime);
-                videoPlayer.seek(desiredVideoTime + this.state.bufferTime * this.props.playSpeed);
-              }
+              videoPlayer.seek(desiredVideoTime);
+              // if (!isBuffering) {
+              // } else {
+              //   // console.log(playerState, desiredVideoTime);
+              //   videoPlayer.seek(desiredVideoTime + this.state.bufferTime * this.props.playSpeed);
+              // }
             }
           } else {
             if (timeDiff > 0) {
@@ -193,7 +219,7 @@ class VideoPreview extends Component {
           videoPlayer.playbackRate = playSpeed;
         }
 
-        if (this.props.currentSegment && playerState.paused && !playerState.seeking) {
+        if (!isBuffering && this.props.currentSegment && playerState.paused && !playerState.seeking) {
           console.log('Play');
           videoPlayer.play();
         }

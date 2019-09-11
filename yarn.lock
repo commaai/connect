@@ -2331,6 +2331,11 @@ cardinal@~0.4.2:
     ansicolors "~0.2.1"
     redeyed "~0.4.0"
 
+carly@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/carly/-/carly-0.1.0.tgz#00778730d151bdc8e3f938fa98daefe20a5dbfb4"
+  integrity sha1-AHeHMNFRvcjj+Tj6mNrv4gpdv7Q=
+
 case-sensitive-paths-webpack-plugin@2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/case-sensitive-paths-webpack-plugin/-/case-sensitive-paths-webpack-plugin-2.1.1.tgz#3d29ced8c1f124bf6f53846fb3f5894731fdc909"

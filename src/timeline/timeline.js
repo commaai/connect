@@ -82,6 +82,8 @@ const commands = {
   play,
   pause,
   seek,
+  bufferVideo,
+  bufferData,
   hello,
   resolve,
   selectDevice,
@@ -198,6 +200,14 @@ function pause (port) {
 
 function play (port, speed) {
   store.dispatch(Playback.play(speed));
+}
+
+function bufferVideo (port, isBuffering) {
+  store.dispatch(Playback.bufferVideo(isBuffering));
+}
+
+function bufferData (port, isBuffering) {
+  store.dispatch(Playback.bufferData(isBuffering));
 }
 
 async function hello (port, data) {

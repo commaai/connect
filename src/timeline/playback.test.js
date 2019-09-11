@@ -5,7 +5,10 @@ var makeDefaultStruct = function() {
     start: Date.now(),
     playSpeed: 0, // 0 = stopped, 1 = playing, 2 = 2x speed... multiplier on speed
     offset: 0, // in miliseconds from the start
-    startTime: Date.now() // millisecond timestamp in which play began
+    startTime: Date.now(), // millisecond timestamp in which play began
+
+    shouldBuffer: true,
+    isBuffering: false
   };
 }
 
@@ -27,6 +30,7 @@ test('playback controls', async function () {
   // should do nothing
   Playback.reducer(state, Playback.pause());
   expect(state.playSpeed).toEqual(0);
+  expect(state.desiredPlaySpeed).toEqual(0);
 
   // start playing, should set start time and such
   var playTime = newNow();
@@ -34,6 +38,7 @@ test('playback controls', async function () {
   // this is a (usually 1ms) race condition
   expect(state.startTime).toEqual(playTime);
   expect(state.playSpeed).toEqual(1);
+  expect(state.desiredPlaySpeed).toEqual(1);
 
   await delay(100 + Math.random() * 200);
   // should update offset
@@ -48,6 +53,7 @@ test('playback controls', async function () {
   // this is a (usually 1ms) race condition
   expect(state.startTime).toEqual(playTime);
   expect(state.playSpeed).toEqual(0.5);
+  expect(state.desiredPlaySpeed).toEqual(0.5);
 
   await delay(100 + Math.random() * 200);
   // should update offset, playback speed 1/2
@@ -92,6 +98,47 @@ test('loop should clear when seeked before loop start time', function() {
   Playback.reducer(state, Playback.seek(0));
   expect(state.loop.startTime).toEqual(null);
 });
+
+test('buffering video and data', async function () {
+  newNow();
+  var state = makeDefaultStruct();
+
+  // buffering is enabled by default
+  expect(state.shouldBuffer).toEqual(true);
+
+  Playback.reducer(state, Playback.play());
+  expect(state.playSpeed).toEqual(1);
+  expect(state.desiredPlaySpeed).toEqual(1);
+  expect(state.isBuffering).toEqual(false);
+
+  // claim the video is buffering
+  Playback.reducer(state, Playback.bufferVideo());
+  expect(state.playSpeed).toEqual(0);
+  expect(state.desiredPlaySpeed).toEqual(1);
+  expect(state.isBuffering).toEqual(true);
+
+  Playback.reducer(state, Playback.play(0.5));
+  expect(state.playSpeed).toEqual(0);
+  expect(state.desiredPlaySpeed).toEqual(0.5);
+  expect(state.isBuffering).toEqual(true);
+
+  Playback.reducer(state, Playback.bufferData());
+  expect(state.playSpeed).toEqual(0);
+  expect(state.desiredPlaySpeed).toEqual(0.5);
+  expect(state.isBuffering).toEqual(true);
+
+  Playback.reducer(state, Playback.play(2));
+  Playback.reducer(state, Playback.bufferVideo(false));
+  expect(state.playSpeed).toEqual(0);
+  expect(state.desiredPlaySpeed).toEqual(2);
+  expect(state.isBuffering).toEqual(true);
+
+  Playback.reducer(state, Playback.bufferData(false));
+  expect(state.playSpeed).toEqual(2);
+  expect(state.desiredPlaySpeed).toEqual(2);
+  expect(state.isBuffering).toEqual(false);
+});
+
 
 async function delay (ms) {
   return new Promise((resolve, reject) => setTimeout(resolve, ms));

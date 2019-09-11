@@ -7,10 +7,12 @@ const ACTION_SEEK = 'action_seek';
 const ACTION_PAUSE = 'action_pause';
 const ACTION_PLAY = 'action_play';
 const ACTION_LOOP = 'action_loop';
+const ACTION_BUFFER_VIDEO = 'action_buffer_video';
+const ACTION_BUFFER_DATA = 'action_buffer_data';
 
 module.exports = {
   pause, play, seek, currentOffset, selectLoop, timestampToOffset,
-  reducer
+  reducer, bufferVideo, bufferData
 };
 
 function reducer (state = initialState, action) {
@@ -43,10 +45,12 @@ function reducer (state = initialState, action) {
     case ACTION_PAUSE:
       state.offset = currentOffset(state);
       state.playSpeed = 0;
+      state.desiredPlaySpeed = 0;
       break;
     case ACTION_PLAY:
-      if (action.speed !== state.playSpeed) {
+      if (action.speed !== state.desiredPlaySpeed) {
         state.offset = currentOffset(state);
+        state.desiredPlaySpeed = action.speed;
         state.playSpeed = action.speed;
         state.startTime = Date.now();
       }
@@ -56,6 +60,12 @@ function reducer (state = initialState, action) {
         startTime: action.startTime,
         duration: action.duration
       };
+      break;
+    case ACTION_BUFFER_VIDEO:
+      state.bufferingVideo = action.buffering;
+      break;
+    case ACTION_BUFFER_DATA:
+      state.bufferingData = action.buffering;
       break;
     default:
       break;
@@ -73,6 +83,23 @@ function reducer (state = initialState, action) {
       state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
       state.startTime = Date.now();
     }
+  }
+
+  state.bufferingVideo = !!state.bufferingVideo;
+  state.bufferingData = !!state.bufferingData;
+  state.isBuffering = state.shouldBuffer && (state.bufferingVideo || state.bufferingData);
+
+  if (state.isBuffering) {
+    if (state.playSpeed > 0) {
+      console.log('Entering buffer state, pausing things');
+      state.offset = currentOffset(state);
+      state.playSpeed = 0;
+    }
+  } else if (state.playSpeed !== state.desiredPlaySpeed) {
+    console.log('Exiting buffer state, resuming things');
+    state.offset = currentOffset(state);
+    state.startTime = Date.now();
+    state.playSpeed = state.desiredPlaySpeed;
   }
 
   return state;
@@ -124,5 +151,21 @@ function selectLoop (startTime, duration) {
   return {
     type: ACTION_LOOP,
     startTime, duration
+  };
+}
+
+// update video buffering state
+function bufferVideo (buffering = true) {
+  return {
+    type: ACTION_BUFFER_VIDEO,
+    buffering
+  };
+}
+
+// update data buffering state
+function bufferData (buffering = true) {
+  return {
+    type: ACTION_BUFFER_DATA,
+    buffering
   };
 }

@@ -6,6 +6,8 @@ import { timeout } from 'thyming';
 import document from 'global/document';
 import qs from 'query-string';
 import localforage from 'localforage';
+import Jepsen from 'carly';
+import Collector from 'collect-methods';
 
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Grid from '@material-ui/core/Grid';
@@ -39,22 +41,37 @@ class App extends Component {
       demo: false,
     };
 
-    Demo.init().then((isDemo) => {
+    this.cancelInit = Collector();
+
+    const checkDemo = Jepsen((isDemo) => {
       if (isDemo) {
         return localforage.setItem('isDemo', '1')
-          .then(TimelineWorker.init(isDemo).then(
-            () => {
-              TimelineWorker.selectTimeRange(1564443025000, Date.now());
-              this.setState({
-                initialized: true,
-                demo: true,
-              })
-            })
-          );
+          .then(initDemoTimeline.callback);
       } else {
         return this.auth();
       }
     });
+
+    const initDemoTimeline = Jepsen(() => {
+      TimelineWorker.init(true).then(initDemoState.callback);
+    });
+
+    const initDemoState = Jepsen(() => {
+      TimelineWorker.selectTimeRange(1564443025000, Date.now());
+      this.setState({
+        initialized: true,
+        demo: true,
+      })
+    });
+
+    this.cancelInit(checkDemo.cancel);
+    this.cancelInit(initDemoTimeline.cancel);
+    this.cancelInit(initDemoState.cancel);
+
+    Demo.init().then(checkDemo.callback);
+  }
+  componentWillUnmount () {
+    this.cancelInit();
   }
   async auth () {
     if (document.location) {
