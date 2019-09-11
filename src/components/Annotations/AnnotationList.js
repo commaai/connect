@@ -1,9 +1,11 @@
-import React, { Component } from 'react';
+import React, { PureComponent } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { partial } from 'ap';
 import fecha from 'fecha';
 import { withStyles } from '@material-ui/core/styles';
+import { AutoSizer, List } from 'react-virtualized';
+import memoize from 'memoize-one';
 
 import AnnotationListItem from './AnnotationListItem';
 import GreyPandaUpsellRow from './greyPandaUpsell';
@@ -23,12 +25,9 @@ const styles = theme => {
   };
 };
 
-class AnnotationList extends Component {
+class AnnotationList extends PureComponent {
   constructor (props) {
     super(props);
-    this.renderEntry = this.renderEntry.bind(this);
-    this.handleExpanded = this.handleExpanded.bind(this);
-    this.filterEntry = this.filterEntry.bind(this);
 
     this.state = {
       expanded: false
@@ -40,7 +39,11 @@ class AnnotationList extends Component {
     }
   }
 
-  handleExpanded (eventId, timestamp) {
+  filter = memoize(
+    list => list.filter(this.filterEntry)
+  );
+
+  handleExpanded = (eventId, timestamp) => {
     const { zoom } = this.props;
     let isExpanded = this.state.expanded !== eventId && eventId;
     this.setState({
@@ -62,14 +65,27 @@ class AnnotationList extends Component {
   render() {
     const { segment, classes, isUpsellDemo, resolved } = this.props;
     const events = (segment || {}).events || [];
+
     return (
-      <div className={ classes.base }>
-        { !(segment.hpgps || isUpsellDemo || resolved) && <GreyPandaUpsellRow /> }
-        { events.filter(this.filterEntry).map(partial(this.renderEntry, segment)) }
+      <div className={classes.base} style={{ height: '100%' }}>
+        {!(segment.hpgps || isUpsellDemo || resolved) && <GreyPandaUpsellRow />}
+        <AutoSizer>
+          {({ height, width }) => (
+            <List
+              height={height}
+              width={width}
+              overscanRowCount={10}
+              // noRowsRenderer={this.noRowsRenderer}
+              rowCount={this.filter(events).length}
+              rowHeight={64}
+              rowRenderer={this.renderEntry}
+            />
+          )}
+        </AutoSizer>
       </div>
     );
   }
-  filterEntry (event) {
+  filterEntry = (event) => {
     if (this.props.resolved && !event.id) {
       return false;
     }
@@ -78,20 +94,27 @@ class AnnotationList extends Component {
     }
     return filterEvent(event);
   }
-  renderEntry (segment, event, index) {
+
+  renderEntry = ({ index, key, style }) => {
+    const { segment } = this.props;
+    const events = (segment || {}).events || [];
+    const filteredList = this.filter(events);
+
+    const event = filteredList[index];
     const eventId = event.time + ':' + index;
     return (
       <AnnotationListItem
-        key={ eventId }
-        segment={ segment }
-        eventId={ eventId }
-        event={ event }
-        expanded={ this.state.expanded === eventId }
-        disabled={ !segment.hpgps }
+        key={key}
+        style={style}
+        segment={segment}
+        eventId={eventId}
+        event={event}
+        expanded={this.state.expanded === eventId}
+        disabled={!segment.hpgps}
         // expanded={ this.state.expanded ? this.state.expanded === eventId : index === 0 }
-        onChange={ partial(this.handleExpanded, eventId, event.timestamp) }
+        onChange={partial(this.handleExpanded, eventId, event.timestamp)}
       />
-    );
+    )
   }
 }
 
