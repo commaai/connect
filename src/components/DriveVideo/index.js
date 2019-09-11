@@ -33,6 +33,8 @@ const W = 160;
 const H = 320;
 const RESIZED_FOCAL = 320.0;
 const FULL_W = 426;
+const DM_FACE_THRESHOLD = 0.4; // probs below this disappear
+const DM_BLINK_THRESHOLD = 0.2; // probs above this count as blinking
 
 const STREAM_VERSION = 2;
 
@@ -848,8 +850,8 @@ class VideoPreview extends Component {
 
     let isDistracted = this.isDistracted(driverMonitoring);
 
-    let opacity = (driverMonitoring.FaceProb - 0.8) / 0.2 * 255;
-    noseSize *= 1 / (driverMonitoring.FaceProb * driverMonitoring.FaceProb);
+    let opacity = (driverMonitoring.FaceProb - DM_FACE_THRESHOLD) / (1 - DM_FACE_THRESHOLD) * 255;
+    noseSize *= 1 / (driverMonitoring.FaceProb);
     let [x, y] = driverMonitoring.FacePosition.map(v => v + 0.5);
     x = toX(x);
     y = toY(y);
@@ -865,7 +867,7 @@ class VideoPreview extends Component {
 
     let isBlinking = false;
 
-    if (driverMonitoring.LeftBlinkProb > 0.2 || driverMonitoring.RightBlinkProb > 0.2) {
+    if (driverMonitoring.LeftBlinkProb > DM_BLINK_THRESHOLD || driverMonitoring.RightBlinkProb > DM_BLINK_THRESHOLD) {
       isBlinking = true;
     }
 
