@@ -3,7 +3,7 @@ import { connect } from 'react-redux'
 import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
 import { classNames } from 'react-extras';
-import { matrix, multiply } from 'mathjs';
+import { multiply } from 'mathjs';
 import theme from '../../theme';
 
 import { Player, ControlBar, PlaybackRateMenuButton } from 'video-react';
@@ -22,6 +22,17 @@ wheelImg.src = require('../../icons/icon-chffr-wheel.svg');
 const vwp_w = 1164;
 const vwp_h = 874;
 const bdr_s = 30;
+
+// driver monitoring constants
+const _PITCH_NATURAL_OFFSET = 0.12;
+const _YAW_NATURAL_OFFSET = 0.08;
+const _PITCH_POS_ALLOWANCE = 0.04;
+const _PITCH_WEIGHT = 1.35;
+const _METRIC_THRESHOLD = 0.4;
+const W = 160;
+const H = 320;
+const RESIZED_FOCAL = 320.0;
+const FULL_W = 426;
 
 const STREAM_VERSION = 2;
 
@@ -829,33 +840,7 @@ class VideoPreview extends Component {
     if (driverMonitoring.FaceProb < 0.8) {
       return;
     }
-    /*
 
-def draw_nose(img, yvec, color):
-  # recover matrix from params
-  rcmat = np.zeros((3,4))
-  rcmat[:,:3] = orientation.rot_matrix(*yvec[0:3]) * yvec[5]
-  rcmat[0,3] = (yvec[3]+0.5)* 160
-  rcmat[1,3] = (yvec[4]+0.5) * 320
-  rcmat[2,3] = 1.0
-
-  # draw nose
-  if yvec[6] > 0:
-    p1 = np.dot(rcmat, [0,0,0,1])[0:2]
-    p2 = np.dot(rcmat, [0,0,100,1])[0:2]
-    tr = tuple(map(lambda x: int(round(x)), p1))
-    pr = tuple(map(lambda x: int(round(x)), p2))
-    cv2.circle(img, tr, 7, color=(255,0,0))
-    cv2.line(img, tr, pr, color=color, thickness=3)
-
-    # draw std
-    if len(yvec) > 7:
-      from common.model_helpers import softplus
-      std = 1/softplus(yvec[7])
-      cv2.circle(img, tr, int(7+max(0, min(std*100, 30))), color=(color[0]//2, color[1]//2, color[2]//2))
-
-    */
-    // let xW = vwp_w / 2;
     let xW = vwp_h / 2;
     let xOffset = vwp_w - xW;
     let noseSize = 20;
@@ -878,16 +863,35 @@ def draw_nose(img, yvec, color):
     let p1 = this.matmul(flatMatrix, [0, 0, 0, 1]);
     let p2 = this.matmul(flatMatrix, [0, 0, 100, 1]);
 
+    let isBlinking = false;
+
+    if (driverMonitoring.LeftBlinkProb > 0.2 || driverMonitoring.RightBlinkProb > 0.2) {
+      isBlinking = true;
+    }
+
     ctx.lineWidth = 3;
     ctx.beginPath();
     if (isDistracted) {
       ctx.strokeStyle = 'rgba(255, 0, 0, ' + opacity + ')';
+    } else if (isBlinking) {
+      ctx.strokeStyle = 'rgba(255, 255, 0, ' + opacity + ')';
     } else {
       ctx.strokeStyle = 'rgba(0, 255, 0, ' + opacity + ')';
     }
     ctx.arc(x, y, noseSize, 0, 2 * Math.PI);
     ctx.stroke();
     ctx.closePath();
+
+    // print raw and converted values, useful for debugging but super not pretty
+    // ctx.fillStyle = 'rgb(255,255,255)';
+    // ctx.font = '800 14px Open Sans';
+    // ctx.fillText(driverMonitoring.FaceOrientation[2], x + noseSize * 2, y);
+    // ctx.fillText(driverMonitoring.FaceOrientation[1], x, y + noseSize * 2);
+
+    // let pose = this.getDriverPose(driverMonitoring);
+
+    // ctx.fillText(pose.yaw, x + noseSize * 2, y + noseSize / 2);
+    // ctx.fillText(pose.pitch, x, y + noseSize * 2.5);
 
     ctx.beginPath();
     ctx.lineWidth = 3;
@@ -898,8 +902,6 @@ def draw_nose(img, yvec, color):
     ctx.stroke();
     ctx.closePath();
 
-    // debugger;
-
     function toX (x) {
       return (x * xW);
     }
@@ -909,12 +911,6 @@ def draw_nose(img, yvec, color):
   }
   isDistracted (driverMonitoring) {
     let pose = this.getDriverPose(driverMonitoring);
-
-    const _PITCH_NATURAL_OFFSET = 0.12;
-    const _YAW_NATURAL_OFFSET = 0.08;
-    const _PITCH_POS_ALLOWANCE = 0.04;
-    const _PITCH_WEIGHT = 1.35;
-    const _METRIC_THRESHOLD = 0.4;
 
     let pitch_error = pose.pitch - _PITCH_NATURAL_OFFSET
     let yaw_error = pose.yaw - _YAW_NATURAL_OFFSET
@@ -928,39 +924,10 @@ def draw_nose(img, yvec, color):
       return true;
     }
     return false;
-/*
-    if not self.pose_calibrated:
-      pitch_error = pose.pitch - _PITCH_NATURAL_OFFSET
-      yaw_error = pose.yaw - _YAW_NATURAL_OFFSET
-      # add positive pitch allowance
-      if pitch_error > 0.:
-        pitch_error = max(pitch_error - _PITCH_POS_ALLOWANCE, 0.)
-      #print 'not calibrated'
-    else:
-      pitch_error = pose.pitch - self.pose.pitch_offseter.filtered_stat.mean()
-      yaw_error = pose.yaw - self.pose.yaw_offseter.filtered_stat.mean()
-      #print 'calibrated'
-
-    pitch_error *= _PITCH_WEIGHT
-    pose_metric = np.sqrt(yaw_error**2 + pitch_error**2)
-
-    if pose_metric > _METRIC_THRESHOLD:
-      return DistractedType.BAD_POSE
-    elif blink.left_blink>_BLINK_THRESHOLD and blink.right_blink>_BLINK_THRESHOLD:
-      return DistractedType.BAD_BLINK
-    else:
-      return DistractedType.NOT_DISTRACTED
-*/
-
   }
   getDriverPose (driverMonitoring) {
     // use driver monitoring units instead of canvas units
-    // that way we can compare against the same constants
-    const W = 160;
-    const H = 320;
-    const RESIZED_FOCAL = 320.0;
-    const FULL_W = 426;
-
+    // that way code can be nearly identical
     const angles_desc = driverMonitoring.FaceOrientation;
     const pos_desc = driverMonitoring.FacePosition;
     
@@ -989,18 +956,6 @@ def draw_nose(img, yvec, color):
     return coords;
   }
   rot_matrix (roll, pitch, yaw) {
-    /*
-
-def rot_matrix(roll, pitch, yaw):
-  cr, sr = np.cos(roll), np.sin(roll)
-  cp, sp = np.cos(pitch), np.sin(pitch)
-  cy, sy = np.cos(yaw), np.sin(yaw)
-  rr = array([[1,0,0],[0, cr,-sr],[0, sr, cr]])
-  rp = array([[cp,0,sp],[0, 1,0],[-sp, 0, cp]])
-  ry = array([[cy,-sy,0],[sy, cy,0],[0, 0, 1]])
-  return ry.dot(rp.dot(rr))
-    */
-
     let cr = Math.cos(roll);
     let sr = Math.sin(roll);
     let cp = Math.cos(pitch);
@@ -1024,15 +979,6 @@ def rot_matrix(roll, pitch, yaw):
       [0, 0, 1]
     ];
     return multiply(ry, multiply(rp, rr));
-  }
-  matmul3 (matrix, coord) {
-    let b0 = coord[0], b1 = coord[1], b2 = coord[2];
-
-    coord[0] = b0 * matrix[0]  + b1 * matrix[1]  + b2 * matrix[2];
-    coord[1] = b0 * matrix[3]  + b1 * matrix[4]  + b2 * matrix[5];
-    coord[2] = b0 * matrix[6]  + b1 * matrix[7]  + b2 * matrix[8];
-
-    return coord;
   }
   matmul (matrix, coord) {
     let b0 = coord[0], b1 = coord[1], b2 = coord[2], b3 = coord[3];
