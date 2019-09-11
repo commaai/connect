@@ -11,6 +11,8 @@ export default function filterEvent (which) {
     case Event_Which.CAR_STATE:
     case Event_Which.LIVE_CALIBRATION:
       return true;
+    case Event_Which.DRIVER_MONITORING:
+      return true;
     default:
       return false;
   }

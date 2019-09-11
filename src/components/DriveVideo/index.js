@@ -3,6 +3,7 @@ import { connect } from 'react-redux'
 import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
 import { classNames } from 'react-extras';
+import { multiply } from 'mathjs';
 import theme from '../../theme';
 
 import { Player, ControlBar, PlaybackRateMenuButton } from 'video-react';
@@ -21,6 +22,17 @@ wheelImg.src = require('../../icons/icon-chffr-wheel.svg');
 const vwp_w = 1164;
 const vwp_h = 874;
 const bdr_s = 30;
+
+// driver monitoring constants
+const _PITCH_NATURAL_OFFSET = 0.12;
+const _YAW_NATURAL_OFFSET = 0.08;
+const _PITCH_POS_ALLOWANCE = 0.04;
+const _PITCH_WEIGHT = 1.35;
+const _METRIC_THRESHOLD = 0.4;
+const W = 160;
+const H = 320;
+const RESIZED_FOCAL = 320.0;
+const FULL_W = 426;
 
 const STREAM_VERSION = 2;
 
@@ -61,6 +73,7 @@ class VideoPreview extends Component {
     this.canvas_carstate = React.createRef();
     this.canvas_maxspeed = React.createRef();
     this.canvas_speed = React.createRef();
+    this.canvas_face = React.createRef();
 
     this.intrinsic = intrinsicMatrix();
 
@@ -204,14 +217,26 @@ class VideoPreview extends Component {
   }
   renderCanvas () {
     var calibration = TimelineWorker.getCalibration(this.props.route);
-    if (!this.props.shouldShowUI) {
-      return
-    }
-
     if (!calibration) {
       this.lastCalibrationTime = false;
       return;
     }
+
+    if (this.props.front) {
+      if (this.canvas_face.current) {
+        const params = { calibration, shouldScale: true };
+        const events = {
+          driverMonitoring: TimelineWorker.currentDriverMonitoring
+        };
+        this.renderEventToCanvas(
+          this.canvas_face.current, params, events, this.renderDriverMonitoring);
+      }
+    }
+
+    if (!this.props.shouldShowUI) {
+      return
+    }
+
     if (calibration) {
       if (this.lastCalibrationTime !== calibration.LogMonoTime) {
         this.extrinsic = [...calibration.LiveCalibration.ExtrinsicMatrix, 0, 0, 0, 1];
@@ -804,15 +829,156 @@ class VideoPreview extends Component {
     }
     ctx.strokeRect(0, 0, vwp_w, vwp_h);
   }
+  renderDriverMonitoring (options, events) {
+    if (!events.driverMonitoring) {
+      return;
+    }
+
+    var { ctx } = options;
+    let driverMonitoring = events.driverMonitoring.DriverMonitoring;
+
+    if (driverMonitoring.FaceProb < 0.8) {
+      return;
+    }
+
+    let xW = vwp_h / 2;
+    let xOffset = vwp_w - xW;
+    let noseSize = 20;
+    ctx.translate(xOffset, 0);
+
+    let isDistracted = this.isDistracted(driverMonitoring);
+
+    let opacity = (driverMonitoring.FaceProb - 0.8) / 0.2 * 255;
+    noseSize *= 1 / (driverMonitoring.FaceProb * driverMonitoring.FaceProb);
+    let [x, y] = driverMonitoring.FacePosition.map(v => v + 0.5);
+    x = toX(x);
+    y = toY(y);
+    
+    let flatMatrix = this.rot_matrix(...driverMonitoring.FaceOrientation)
+      .reduce((m, v) => m.concat([...v, 1]), [])
+      .concat([0,0,0,1]);
+    flatMatrix[3] = x;
+    flatMatrix[7] = y;
+
+    let p1 = this.matmul(flatMatrix, [0, 0, 0, 1]);
+    let p2 = this.matmul(flatMatrix, [0, 0, 100, 1]);
+
+    let isBlinking = false;
+
+    if (driverMonitoring.LeftBlinkProb > 0.2 || driverMonitoring.RightBlinkProb > 0.2) {
+      isBlinking = true;
+    }
+
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    if (isDistracted) {
+      ctx.strokeStyle = 'rgba(255, 0, 0, ' + opacity + ')';
+    } else if (isBlinking) {
+      ctx.strokeStyle = 'rgba(255, 255, 0, ' + opacity + ')';
+    } else {
+      ctx.strokeStyle = 'rgba(0, 255, 0, ' + opacity + ')';
+    }
+    ctx.arc(x, y, noseSize, 0, 2 * Math.PI);
+    ctx.stroke();
+    ctx.closePath();
+
+    // print raw and converted values, useful for debugging but super not pretty
+    // ctx.fillStyle = 'rgb(255,255,255)';
+    // ctx.font = '800 14px Open Sans';
+    // ctx.fillText(driverMonitoring.FaceOrientation[2], x + noseSize * 2, y);
+    // ctx.fillText(driverMonitoring.FaceOrientation[1], x, y + noseSize * 2);
+
+    // let pose = this.getDriverPose(driverMonitoring);
+
+    // ctx.fillText(pose.yaw, x + noseSize * 2, y + noseSize / 2);
+    // ctx.fillText(pose.pitch, x, y + noseSize * 2.5);
+
+    ctx.beginPath();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = theme.palette.states.drivingBlue;
+    ctx.moveTo((p1[0]), (p1[1]));
+    ctx.strokeStyle = 'rgba(255, 255, 255, ' + opacity + ')';
+    ctx.lineTo((p2[0]), (p2[1]));
+    ctx.stroke();
+    ctx.closePath();
+
+    function toX (x) {
+      return (x * xW);
+    }
+    function toY (y) {
+      return (y * vwp_h);
+    }
+  }
+  isDistracted (driverMonitoring) {
+    let pose = this.getDriverPose(driverMonitoring);
+
+    let pitch_error = pose.pitch - _PITCH_NATURAL_OFFSET
+    let yaw_error = pose.yaw - _YAW_NATURAL_OFFSET
+    if (pitch_error > 0) {
+      pitch_error = Math.max(pitch_error - _PITCH_POS_ALLOWANCE, 0);
+    }
+  
+    pitch_error *= _PITCH_WEIGHT;
+    let pose_metric = Math.sqrt(Math.pow(yaw_error, 2) + Math.pow(pitch_error, 2));
+    if (pose_metric > _METRIC_THRESHOLD) {
+      return true;
+    }
+    return false;
+  }
+  getDriverPose (driverMonitoring) {
+    // use driver monitoring units instead of canvas units
+    // that way code can be nearly identical
+    const angles_desc = driverMonitoring.FaceOrientation;
+    const pos_desc = driverMonitoring.FacePosition;
+    
+    let pitch_prnet = angles_desc[0];
+    let yaw_prnet = angles_desc[1];
+    let roll_prnet = angles_desc[2];
+
+    let face_pixel_position = [(pos_desc[0] + .5)*W - W + FULL_W, (pos_desc[1]+.5)*H];
+    let yaw_focal_angle = Math.atan2(face_pixel_position[0] - FULL_W/2, RESIZED_FOCAL)
+    let pitch_focal_angle = Math.atan2(face_pixel_position[1] - H/2, RESIZED_FOCAL)
+
+    let roll = roll_prnet
+    let pitch = pitch_prnet + pitch_focal_angle
+    let yaw = -yaw_prnet + yaw_focal_angle
+    return { roll, pitch, yaw };
+  }
+
   carSpaceToImageSpace (coords) {
-    this.matmul(this.extrinsic, coords);
-    this.matmul(this.intrinsic, coords);
+    coords = this.matmul(this.extrinsic, coords);
+    coords = this.matmul(this.intrinsic, coords);
 
     // project onto 3d with Z
     coords[0] /= coords[2];
     coords[1] /= coords[2];
 
     return coords;
+  }
+  rot_matrix (roll, pitch, yaw) {
+    let cr = Math.cos(roll);
+    let sr = Math.sin(roll);
+    let cp = Math.cos(pitch);
+    let sp = Math.sin(pitch);
+    let cy = Math.cos(yaw);
+    let sy = Math.sin(yaw);
+
+    let rr = [
+      [1,0,0],
+      [0, cr,-sr],
+      [0, sr, cr]
+    ];
+    let rp = [
+      [cp,0,sp],
+      [0, 1,0],
+      [-sp, 0, cp]
+    ];
+    let ry = [
+      [cy,-sy,0],
+      [sy, cy,0],
+      [0, 0, 1]
+    ];
+    return multiply(ry, multiply(rp, rr));
   }
   matmul (matrix, coord) {
     let b0 = coord[0], b1 = coord[1], b2 = coord[2], b3 = coord[3];
@@ -916,6 +1082,14 @@ class VideoPreview extends Component {
               ref={ this.canvas_speed }
               className={ classes.videoUiCanvas }
               style={{ zIndex: 7 }} />
+          </React.Fragment>
+        }
+        { this.props.front &&
+          <React.Fragment>
+            <canvas
+              ref={ this.canvas_face }
+              className={ classes.videoUiCanvas }
+              style={{ zIndex: 2 }} />
           </React.Fragment>
         }
       </div>

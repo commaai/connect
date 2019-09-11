@@ -372,6 +372,9 @@ class TimelineInterface {
   currentCarState () {
     return this.getEventByType(Event_Which.CAR_STATE, 1000);
   }
+  currentDriverMonitoring () {
+    return this.getEventByType(Event_Which.DRIVER_MONITORING, 1000);
+  }
   getEventByType (which, maxTimeDiff = -1) {
     if (!this.state || !this.state.route) {
       return;
