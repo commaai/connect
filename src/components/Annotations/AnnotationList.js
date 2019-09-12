@@ -33,15 +33,28 @@ class AnnotationList extends PureComponent {
       expanded: false
     };
   }
+
+  // TODO: Migrate deprecated lifecycle method
   componentWillReceiveProps(nextProps) {
     if (this.state.expanded && nextProps.loop.startTime === null) {
-      this.setState({ expanded: false });
+      this.setState({ expanded: false }, () => {
+        this.recomputeList();
+      });
     }
   }
+
+  list = null
 
   filter = memoize(
     list => list.filter(this.filterEntry)
   );
+
+  recomputeList = () => {
+    if (this.list) {
+      this.list.recomputeRowHeights();
+      this.list.forceUpdateGrid();
+    }
+  }
 
   handleExpanded = (eventId, timestamp) => {
     const { zoom } = this.props;
@@ -49,6 +62,9 @@ class AnnotationList extends PureComponent {
     this.setState({
       expanded: isExpanded ? eventId : null
     });
+
+    this.recomputeList();
+
     if (isExpanded) {
       let loopStartTime = timestamp - LOOP_DURATION / 2;
       let loopEndTime = loopStartTime + LOOP_DURATION;
@@ -62,6 +78,25 @@ class AnnotationList extends PureComponent {
       Timelineworker.selectLoop(zoom.start, zoom.end - zoom.start);
     }
   }
+
+  getEvent(index) {
+    const { segment } = this.props;
+    const events = (segment || {}).events || [];
+    const filteredList = this.filter(events);
+
+    return filteredList[index];
+  }
+
+  getRowHeight = ({ index }) => {
+    const event = this.getEvent(index);
+
+    const eventId = event.time + ':' + index;
+
+    const expanded = this.state.expanded === eventId;
+
+    return !expanded ? 64 : 314; // TODO: is 314 safe?
+  }
+
   render() {
     const { segment, classes, isUpsellDemo, resolved } = this.props;
     const events = (segment || {}).events || [];
@@ -72,12 +107,13 @@ class AnnotationList extends PureComponent {
         <AutoSizer>
           {({ height, width }) => (
             <List
+              ref={ref => this.list = ref}
               height={height}
               width={width}
               overscanRowCount={10}
               // noRowsRenderer={this.noRowsRenderer}
               rowCount={this.filter(events).length}
-              rowHeight={64}
+              rowHeight={this.getRowHeight}
               rowRenderer={this.renderEntry}
             />
           )}
@@ -97,10 +133,7 @@ class AnnotationList extends PureComponent {
 
   renderEntry = ({ index, key, style }) => {
     const { segment } = this.props;
-    const events = (segment || {}).events || [];
-    const filteredList = this.filter(events);
-
-    const event = filteredList[index];
+    const event = this.getEvent(index);
     const eventId = event.time + ':' + index;
     return (
       <AnnotationListItem
