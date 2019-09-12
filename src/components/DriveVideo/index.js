@@ -125,6 +125,27 @@ class VideoPreview extends Component {
 
     this.renderCanvas();
 
+    let monoTime = TimelineWorker.currentLogMonoTime();
+    let [lastEvent] = TimelineWorker.lastEvents(1);
+
+    let isDataBuffering = !lastEvent;
+    if (lastEvent) {
+      let monoTimeLength = ('' + monoTime).length;
+      let monSec = lastEvent.LogMonoTime.substr(0, monoTimeLength);
+      let timeDiff = Math.abs(monoTime - Number(monSec));
+      if (timeDiff > 2000) {
+        // 2 seconds of grace
+        isDataBuffering = true;
+      }
+    } else if (!this.props.currentSegment) {
+      isDataBuffering = false;
+    }
+
+    if (isDataBuffering !== this.props.bufferingData) {
+      console.log('Changing data buffer state to', isDataBuffering);
+      TimelineWorker.bufferData(isDataBuffering);
+    }
+
     let offset = TimelineWorker.currentOffset();
     let shouldShowPreview = true;
     let bufferTime = this.state.bufferTime;
@@ -146,20 +167,25 @@ class VideoPreview extends Component {
         let desiredBufferedVideoTime = desiredVideoTime;
         if (this.props.bufferingVideo) {
           // if we're currently already paused buffering for video
-          // then wait for another 2 seconds of video t oload
-          desiredBufferedVideoTime += 2;
+          // then wait for another few seconds of video t oload
+          desiredBufferedVideoTime += 3;
         }
-        desiredBufferedVideoTime = Math.min(playerState.duration, desiredBufferedVideoTime);
+        // clip the duration down slightly to handle rounding errors near the end of video
+        desiredBufferedVideoTime = Math.min(playerState.duration - 0.1, desiredBufferedVideoTime);
 
         let isBuffering = true;
         for (let i = 0, buf = playerState.buffered, len = buf.length; i < len; ++i) {
           let start = buf.start(i);
-          if (start < desiredVideoTime && buf.end(i) >= desiredBufferedVideoTime) {
+          // if we seek to a spot **right** at the start of an already loaded segment then
+          // HLS doesn't actually load that segment. it just expects to jump forwards a bit and be fine
+          // because of this, the first 4 seconds of a given video is almost never available
+          // additionally, sometimes even in the middle of the video it can be off and not load due to rounding errors
+          // we check if we're in the first 5 seconds or if we're 0.1 seconds (or less) before the start
+          if (start < 5 && desiredVideoTime < 5 || start - desiredVideoTime < 0.1) {
+            start = desiredVideoTime;
+          }
+          if (start <= desiredVideoTime && buf.end(i) >= desiredBufferedVideoTime) {
             isBuffering = false;
-            break;
-          } else if (Math.abs(start - desiredVideoTime) < 5) {
-            // isBuffering = false;
-            // break;
           }
         }
 
@@ -168,12 +194,12 @@ class VideoPreview extends Component {
           TimelineWorker.bufferVideo(isBuffering);
         }
 
-        if (isBuffering) {
-          console.log('Video is buffering!', desiredVideoTime, curVideoTime);
-          for (let i = 0, buf = playerState.buffered, len = buf.length; i < len; ++i) {
-            console.log(buf.start(i), buf.end(i), desiredVideoTime);
-          }
-        }
+        // if (isBuffering) {
+        //   console.log('Video is buffering!', desiredVideoTime, curVideoTime);
+        //   for (let i = 0, buf = playerState.buffered, len = buf.length; i < len; ++i) {
+        //     console.log(buf.start(i), buf.end(i), desiredVideoTime);
+        //   }
+        // }
 
         // console.log('Adjusting time drift by', timeDiff, curVideoTime);
         // console.log(playerState);
@@ -182,9 +208,9 @@ class VideoPreview extends Component {
         if (Number.isFinite(timeDiff) && Math.abs(timeDiff) > 0.25) {
           if (isBuffering) {
             // instantly seek when buffering
-            console.log('Seeking buffered video');
+            console.log('Seeking buffered video', timeDiff);
             videoPlayer.pause();
-            videoPlayer.seek(Math.max(0, desiredVideoTime - 2));
+            videoPlayer.seek(desiredVideoTime);
           } else if (Math.abs(timeDiff) > bufferTime * 1.1 || (Math.abs(timeDiff) > 0.5 && !isBuffering)) {
             if (desiredVideoTime > playerState.duration) {
               noVideo = true;
