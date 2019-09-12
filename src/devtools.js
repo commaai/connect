@@ -1,3 +1,4 @@
+/* eslint-disable import/no-mutable-exports */
 import window from 'global/window';
 import { compose } from 'redux';
 import * as Actions from './actions';

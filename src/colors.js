@@ -1,4 +1,4 @@
-let Colors = {
+const Colors = {
   transparent: 'transparent',
   white: '#fff',
   white10: 'rgba(255, 255, 255, 0.1)',
@@ -86,6 +86,7 @@ let Colors = {
   lightOrange50: '#fcf4ee',
   lightOrange100: '#f9e8dd',
   lightOrange200: '#f6ddcc',
+  // eslint-disable-next-line no-dupe-keys
   lightOrange200: '#f4d2bb',
   lightOrange300: '#f1c7aa',
   lightOrange400: '#eebc9a',

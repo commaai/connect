@@ -1,6 +1,6 @@
 
-export function getDongleID (pathname) {
-  var parts = pathname.split('/');
+export function getDongleID(pathname) {
+  let parts = pathname.split('/');
   parts = parts.filter((m) => m.length);
 
   if (parts[0] === 'auth') {
@@ -10,8 +10,8 @@ export function getDongleID (pathname) {
   return parts[0] || null;
 }
 
-export function getZoom (pathname) {
-  var parts = pathname.split('/');
+export function getZoom(pathname) {
+  let parts = pathname.split('/');
   parts = parts.filter((m) => m.length);
 
   if (parts.length >= 3 && parts[0] !== 'auth') {
@@ -26,8 +26,8 @@ export function getZoom (pathname) {
   };
 }
 
-export function getPathname (options) {
-  var path = [
+export function getPathname(options) {
+  const path = [
     options.dongleId
   ];
 

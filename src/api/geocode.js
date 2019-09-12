@@ -1,3 +1,4 @@
+/* eslint-disable */
 import Raven from 'raven-js';
 
 export const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;

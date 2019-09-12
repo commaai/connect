@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { push } from 'connected-react-router';
 import document from 'global/document';
 import * as Types from './types';

@@ -1,0 +1,13 @@
+node_modules/
+public/
+.storybook
+src/registerServiceWorker.js
+
+# TODO: Fix up the files
+src/**/*.test.js
+src/utils/
+src/timeline/
+src/stories/
+src/demo/
+src/icons/
+src/components/**/

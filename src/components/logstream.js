@@ -1,33 +1,36 @@
 import React, { Component } from 'react';
-import { connect } from 'react-redux'
+import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
 import raf from 'raf';
-import TimelineWorker from '../timeline';
-
 import { withStyles } from '@material-ui/core/styles';
 
-const styles = theme => {
-  return {
-    root: {
-      ...theme.typography.body1,
-    }
-  };
-}
+import TimelineWorker from '../timeline';
+
+
+const styles = (theme) => ({
+  root: {
+    ...theme.typography.body1,
+  }
+});
 
 class LogViewer extends Component {
-  constructor (props) {
+  constructor(props) {
     super(props);
 
     this.renderLogs = this.renderLogs.bind(this);
 
     this.eventView = React.createRef();
   }
-  componentDidMount () {
+
+  componentDidMount() {
     raf(this.renderLogs);
   }
-  renderLogs () {
+
+  renderLogs() {
     if (this.eventView.current && this.eventView.current.parentElement) {
-      let offset = TimelineWorker.currentOffset();
-      var lastEvent = TimelineWorker.lastEvents(50, offset);
+      const offset = TimelineWorker.currentOffset();
+      const lastEvent = TimelineWorker.lastEvents(50, offset);
+
       if (!lastEvent.length) {
         this.eventView.current.innerHTML = '';
       } else if (this.lastLastEvent !== lastEvent[0].LogMonoTime) {
@@ -50,12 +53,14 @@ class LogViewer extends Component {
       raf(this.renderLogs);
     }
   }
-  render () {
-    const propsToRender = {...this.props};
+
+  render() {
+    const { classes } = this.props;
+    const propsToRender = { ...this.props };
     delete propsToRender.classes;
 
     return (
-      <div className={ this.props.classes.root } style={{width: '100%', overflow: 'hidden'}} >
+      <div className={classes.root} style={{ width: '100%', overflow: 'hidden' }}>
         <pre ref={this.eventView} />
         <pre>{ JSON.stringify(propsToRender, null, 2) }</pre>
       </div>
@@ -63,8 +68,12 @@ class LogViewer extends Component {
   }
 }
 
-export default connect(mapStateToProps)(withStyles(styles)(LogViewer));
+LogViewer.propTypes = {
+  classes: PropTypes.object.isRequired,
+};
 
 function mapStateToProps(state) {
   return state.workerState;
 }
+
+export default connect(mapStateToProps)(withStyles(styles)(LogViewer));

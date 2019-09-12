@@ -1,6 +1,6 @@
 import { createMuiTheme } from '@material-ui/core/styles';
 import Colors from './colors';
-import { ChevronIcon, AccountIcon } from './icons';
+import { ChevronIcon } from './icons';
 
 const theme = createMuiTheme({
   typography: {
@@ -32,7 +32,7 @@ const theme = createMuiTheme({
     MuiInput: {
       root: {
         position: 'relative',
-        border: '1px solid ' + Colors.grey800,
+        border: `1px solid ${Colors.grey800}`,
         borderRadius: 20,
         overflow: 'hidden'
       },

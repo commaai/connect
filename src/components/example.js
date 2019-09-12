@@ -1,25 +1,19 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 
-const styles = theme => {
-  return {
-    root: {}
-  }
-};
+const styles = (/* theme */) => ({
+  root: {}
+});
 
-class MyAwesomeComponent extends Component {
-  render () {
-    return (
-      <React.Fragment>
-        <Typography>asdf</Typography>
-      </React.Fragment>
-    );
-  }
-}
+const MyAwesomeComponent = () => (
+  <>
+    <Typography>asdf</Typography>
+  </>
+);
 
 const stateToProps = Obstruction({
 });

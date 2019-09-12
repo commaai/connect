@@ -1,3 +1,4 @@
+/* eslint-disable */
 const SentryCliPlugin = require('@sentry/webpack-plugin');
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const path = require('path');
@@ -21,6 +22,14 @@ function override (config, env) {
   }
 
   config.module.rules = config.module.rules || [];
+  config.module.rules = config.module.rules.filter(({ use }) => {
+    const [config] = use || [];
+
+    if (config &&  config.loader.includes('eslint-loader')) {
+      return false;
+    }
+    return true;
+  })
 
   config.module.rules.push({
     test: /\.sharedworker\.js$/,
