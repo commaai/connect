@@ -136,8 +136,14 @@ class VideoPreview extends Component {
         console.log('Buffering data', timeDiff);
         isDataBuffering = true;
       }
-    } else if (!this.props.currentSegment) {
+    }
+    if (!this.props.currentSegment) {
       isDataBuffering = false;
+
+      if (this.props.bufferVideo) {
+        console.log('Exited segment while buffering, exiting buffer state');
+        TimelineWorker.bufferVideo(false);
+      }
     }
 
     if (isDataBuffering !== this.props.bufferingData) {
@@ -189,16 +195,16 @@ class VideoPreview extends Component {
         }
 
         if (this.props.bufferingVideo !== isBuffering) {
-          console.log('Changing buffer state to', isBuffering);
+          console.log('Changing video buffer state to', isBuffering);
           TimelineWorker.bufferVideo(isBuffering);
         }
 
-        // if (isBuffering) {
-        //   console.log('Video is buffering!', desiredVideoTime, curVideoTime);
-        //   for (let i = 0, buf = playerState.buffered, len = buf.length; i < len; ++i) {
-        //     console.log(buf.start(i), buf.end(i), desiredVideoTime);
-        //   }
-        // }
+        if (isBuffering) {
+          console.log('Video is buffering!', desiredVideoTime, curVideoTime);
+          for (let i = 0, buf = playerState.buffered, len = buf.length; i < len; ++i) {
+            console.log(buf.start(i), buf.end(i), desiredVideoTime);
+          }
+        }
 
         // console.log('Adjusting time drift by', timeDiff, curVideoTime);
         // console.log(playerState);
