@@ -91,16 +91,14 @@ class VideoPreview extends Component {
     if (this.videoPlayer.current) {
       this.videoPlayer.current.playbackRate = this.props.playSpeed || 1;
     }
-    raf(this.updatePreview);
+    this.rafLoop = raf(this.updatePreview);
   }
 
   componentWillUnmount () {
     this.mounted = false;
-    this.setState({
-      src: this.videoURL()
-    });
-    if (this.videoPlayer.current) {
-      this.videoPlayer.current.load();
+    if (this.rafLoop) {
+      raf.cancel(this.rafLoop);
+      this.rafLoop = null;
     }
   }
 
@@ -121,7 +119,7 @@ class VideoPreview extends Component {
       return;
     }
     // schedule next run right away so that we can return early
-    raf(this.updatePreview);
+    this.rafLoop = raf(this.updatePreview);
 
     this.renderCanvas();
 
@@ -135,6 +133,7 @@ class VideoPreview extends Component {
       let timeDiff = Math.abs(monoTime - Number(monSec));
       if (timeDiff > 2000) {
         // 2 seconds of grace
+        console.log('Buffering data', timeDiff);
         isDataBuffering = true;
       }
     } else if (!this.props.currentSegment) {
@@ -168,7 +167,7 @@ class VideoPreview extends Component {
         if (this.props.bufferingVideo) {
           // if we're currently already paused buffering for video
           // then wait for another few seconds of video t oload
-          desiredBufferedVideoTime += 3;
+          desiredBufferedVideoTime += 3 * desiredPlaySpeed;
         }
         // clip the duration down slightly to handle rounding errors near the end of video
         desiredBufferedVideoTime = Math.min(playerState.duration - 0.1, desiredBufferedVideoTime);
