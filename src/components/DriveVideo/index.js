@@ -4,6 +4,7 @@ import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
 import { classNames } from 'react-extras';
 import { multiply } from 'mathjs';
+import debounce from 'debounce';
 import theme from '../../theme';
 
 import { Player, ControlBar, PlaybackRateMenuButton } from 'video-react';
@@ -68,6 +69,7 @@ class VideoPreview extends Component {
     super(props);
 
     this.updatePreview = this.updatePreview.bind(this);
+
     this.imageRef = React.createRef();
     this.videoPlayer = React.createRef();
     this.canvas_road = React.createRef();
@@ -78,6 +80,7 @@ class VideoPreview extends Component {
     this.canvas_face = React.createRef();
 
     this.intrinsic = intrinsicMatrix();
+    this.frame = 0;
 
     this.state = {
       bufferTime: 4,
@@ -92,6 +95,7 @@ class VideoPreview extends Component {
       this.videoPlayer.current.playbackRate = this.props.playSpeed || 1;
     }
     this.rafLoop = raf(this.updatePreview);
+    this.checkVideoBuffer();
   }
 
   componentWillUnmount () {
@@ -115,14 +119,23 @@ class VideoPreview extends Component {
   }
 
   updatePreview () {
-    if (!this.mounted) {
-      return;
-    }
     // schedule next run right away so that we can return early
     this.rafLoop = raf(this.updatePreview);
 
-    this.renderCanvas();
+    this.frame = (++this.frame) % 60;
 
+    // 20 fps
+    if (this.frame % 3 === 0) {
+      this.renderCanvas();
+    }
+
+    // 6 fps
+    if (this.frame % 10 === 0) {
+      this.checkVideoBuffer();
+    }
+  }
+
+  checkVideoBuffer = debounce(() => {
     let monoTime = TimelineWorker.currentLogMonoTime();
     let [lastEvent] = TimelineWorker.lastEvents(1);
 
@@ -185,18 +198,16 @@ class VideoPreview extends Component {
           // HLS doesn't actually load that segment. it just expects to jump forwards a bit and be fine
           // because of this, the first 4 seconds of a given video is almost never available
           // additionally, sometimes even in the middle of the video it can be off and not load due to rounding errors
-          // we check if we're in the first 5 seconds or if we're 0.1 seconds (or less) before the start
-          if (start < 5 && desiredVideoTime < 5 || start - desiredVideoTime < 0.1) {
-            start = desiredVideoTime;
+          // we check if we're in the first 5 seconds or if we're *right* before the start
+          if (start < 5 && desiredVideoTime < 5 || (start > desiredVideoTime && start - desiredVideoTime < 0.5)) {
+            // start = desiredVideoTime;
+            debugger;
+            console.log('We\'re so close to not buffering that we might as well not buffer', start, buf.end(i), desiredVideoTime);
+            console.log(start, buf.end(i), desiredVideoTime);
           }
           if (start <= desiredVideoTime && buf.end(i) >= desiredBufferedVideoTime) {
             isBuffering = false;
           }
-        }
-
-        if (this.props.bufferingVideo !== isBuffering) {
-          console.log('Changing video buffer state to', isBuffering);
-          TimelineWorker.bufferVideo(isBuffering);
         }
 
         if (isBuffering) {
@@ -206,15 +217,23 @@ class VideoPreview extends Component {
           }
         }
 
+        if (playerState.waiting || playerState.seeking) {
+          isBuffering = true;
+        }
+
+        if (this.props.bufferingVideo !== isBuffering) {
+          console.log('Changing video buffer state to', isBuffering);
+          TimelineWorker.bufferVideo(isBuffering);
+        }
+
         // console.log('Adjusting time drift by', timeDiff, curVideoTime);
         // console.log(playerState);
-        shouldShowPreview = playerState.buffered.length === 0 || playerState.waiting || (Math.abs(timeDiff) > 2);
+        shouldShowPreview = isBuffering;
 
         if (Number.isFinite(timeDiff) && Math.abs(timeDiff) > 0.25) {
           if (isBuffering) {
             // instantly seek when buffering
-            console.log('Seeking buffered video', timeDiff);
-            videoPlayer.pause();
+            console.log('Seeking buffered video', timeDiff, desiredVideoTime);
             videoPlayer.seek(desiredVideoTime);
           } else if (Math.abs(timeDiff) > bufferTime * 1.1 || (Math.abs(timeDiff) > 0.5 && !isBuffering)) {
             if (desiredVideoTime > playerState.duration) {
@@ -223,7 +242,7 @@ class VideoPreview extends Component {
               noVideo = true;
             } else {
               noVideo = false;
-              // console.log('Seeking!', desiredVideoTime);
+              console.log('Seeking!', desiredVideoTime);
               // debugger;
               videoPlayer.seek(desiredVideoTime);
               // if (!isBuffering) {
@@ -247,7 +266,7 @@ class VideoPreview extends Component {
           }
         } else {
           noVideo = false;
-          videoPlayer.playbackRate = playSpeed;
+          videoPlayer.playbackRate = desiredPlaySpeed;
         }
 
         if (!isBuffering && this.props.currentSegment && playerState.paused && !playerState.seeking) {
@@ -255,6 +274,9 @@ class VideoPreview extends Component {
           videoPlayer.play();
         }
       } else {
+        if (this.props.bufferingVideo) {
+          TimelineWorker.bufferVideo(false);
+        }
         shouldShowPreview = !this.props.currentSegment || !playerState.buffered.length;
         if (!playerState.paused && !playerState.seeking && playerState.buffered.length) {
           console.log('Pause');
@@ -273,7 +295,8 @@ class VideoPreview extends Component {
         noVideo
       });
     }
-  }
+  }, 100)
+
   renderCanvas () {
     var calibration = TimelineWorker.getCalibration(this.props.route);
     if (!calibration) {
@@ -912,7 +935,7 @@ class VideoPreview extends Component {
     let [x, y] = driverMonitoring.FacePosition.map(v => v + 0.5);
     x = toX(x);
     y = toY(y);
-    
+
     let flatMatrix = this.rot_matrix(...driverMonitoring.FaceOrientation)
       .reduce((m, v) => m.concat([...v, 1]), [])
       .concat([0,0,0,1]);
@@ -976,7 +999,7 @@ class VideoPreview extends Component {
     if (pitch_error > 0) {
       pitch_error = Math.max(pitch_error - _PITCH_POS_ALLOWANCE, 0);
     }
-  
+
     pitch_error *= _PITCH_WEIGHT;
     let pose_metric = Math.sqrt(Math.pow(yaw_error, 2) + Math.pow(pitch_error, 2));
     if (pose_metric > _METRIC_THRESHOLD) {
@@ -989,7 +1012,7 @@ class VideoPreview extends Component {
     // that way code can be nearly identical
     const angles_desc = driverMonitoring.FaceOrientation;
     const pos_desc = driverMonitoring.FacePosition;
-    
+
     let pitch_prnet = angles_desc[0];
     let yaw_prnet = angles_desc[1];
     let roll_prnet = angles_desc[2];
