@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { PureComponent } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { partial } from 'ap';
@@ -137,7 +137,7 @@ const styles = theme => {
   };
 };
 
-class AnnotationEntry extends Component {
+class AnnotationEntry extends PureComponent {
   constructor (props) {
     super(props);
     this.handleChange = this.handleChange.bind(this);
@@ -266,7 +266,7 @@ class AnnotationEntry extends Component {
   }
 
   render () {
-    const { event, eventId, segment, classes } = this.props;
+    const { event, eventId, segment, classes, style } = this.props;
     const dateString = fecha.format(new Date(event.timestamp), 'MMM D @ HH:mm:ss');
     const reason = this.state.reason || '';
     const comment = this.state.comment || '';
@@ -277,6 +277,7 @@ class AnnotationEntry extends Component {
 
     return (
       <ExpansionPanel
+        style={style}
         classes={ { expanded: classes.isExpanded } }
         className={ classes.base }
         key={ eventId }
