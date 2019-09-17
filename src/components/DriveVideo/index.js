@@ -118,11 +118,12 @@ class VideoPreview extends Component {
 
   componentDidUpdate (prevProps, prevState) {
     let newUrl = this.videoURL();
-    if (this.state.src !== newUrl) {
+    if (this.state.src !== newUrl && newUrl.length) {
       this.setState({
         src: newUrl
       });
       if (this.videoPlayer.current) {
+        console.log('Calling load with media change');
         this.videoPlayer.current.load();
       }
     }
@@ -216,6 +217,7 @@ class VideoPreview extends Component {
           desiredBufferedVideoTime += 3 * desiredPlaySpeed;
         }
         // clip the duration down slightly to handle rounding errors near the end of video
+        desiredVideoTime = Math.min(playerState.duration - 0.1, desiredVideoTime);
         desiredBufferedVideoTime = Math.min(playerState.duration - 0.1, desiredBufferedVideoTime);
 
         let isBuffering = true;
@@ -245,6 +247,7 @@ class VideoPreview extends Component {
         }
 
         if (playerState.waiting || playerState.seeking) {
+          console.log('Waiting/seeking...');
           isBuffering = true;
         }
 
@@ -1078,7 +1081,13 @@ class VideoPreview extends Component {
     return coord;
   }
   videoURL () {
-    let segment = this.props.currentSegment || this.props.nextSegment;
+    let segment = this.props.currentSegment;
+    if (!segment) {
+      let offset = TimelineWorker.currentOffset();
+      if (this.props.nextSegment.startOffset - offset < 5000) {
+        segment = this.props.nextSegment;
+      }
+    }
     if (!segment) {
       return '';
     }

@@ -14,41 +14,30 @@ export default class HLSSource extends Component {
         this.props.onBufferAppend();
       }
     });
+
+    this.state = {
+      src: ''
+    };
     // this.hls.on(Hls.Events.STREAM_STATE_TRANSITION, (eventName, data) => {
     // });
   }
 
-  componentWillUpdate (nextProps, nextState) {
-    if (this.props.src !== nextProps.src || this.props.video !== nextProps.video) {
-      this.initHls(nextProps);
-    }
+  componentDidMount () {
+    this.componentDidUpdate({});
   }
+
   componentDidUpdate (prevProps) {
-    if (this.props.src !== prevProps.src || this.props.video !== prevProps.video) {
-      // this.initHls(this.props);
-      this.hls.attachMedia(this.props.video);
-    }
-  }
-  componentDidMount() {
-    // this.initHls();
-  }
-
-  initHls (props) {
-    // `src` is the property get from this component
-    // `video` is the property insert from `Video` component
-    // `video` is the html5 video element
-    const { src, video } = props;
-
-    // load hls video source base on hls.js
-    console.log(src);
-    if (Hls.isSupported()) {
-      if (this.hls) {
+    if (this.props.src !== this.state.src && this.props.src.length) {
+      console.log('Loading media source!', this.props.src);
+      if (this.state.src.length) {
         this.hls.detachMedia();
-        // this.hls.destroy();
       }
-      // this.hls = new Hls({disablePtsDtsCorrectionInMp4Remux: true});
-      // this.hls = new Hls();
-      this.hls.loadSource(src);
+      this.setState({
+        src: this.props.src
+      }, () => {
+        this.hls.loadSource(this.state.src);
+        this.hls.attachMedia(this.props.video);
+      });
     }
   }
 
@@ -61,7 +50,7 @@ export default class HLSSource extends Component {
 
   render() {
     return (
-      <source src={this.props.src} type={this.props.type || 'application/x-mpegURL'} />
+      <source src={this.state.src} type={this.props.type || 'application/x-mpegURL'} />
     );
   }
 }
