@@ -278,7 +278,7 @@ class TimeDisplay extends Component {
 
 const stateToProps = Obstruction({
   expanded: 'zoom.expanded',
-  playSpeed: 'workerState.playSpeed',
+  playSpeed: 'workerState.desiredPlaySpeed',
   start: 'workerState.start',
 });
 

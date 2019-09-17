@@ -10,17 +10,12 @@ export default class HLSSource extends Component {
       this.props.video.play();
     });
     this.hls.on(Hls.Events.BUFFER_APPENDED, (eventName, data) => {
-      console.log('New buffered data!');
       if (this.props.onBufferAppend) {
         this.props.onBufferAppend();
       }
     });
-    this.hls.on(Hls.Events.BUFFER_FLUSHED, (eventName, data) => {
-      console.log('New buffered flush!');
-      if (this.props.onBufferAppend) {
-        this.props.onBufferAppend();
-      }
-    });
+    // this.hls.on(Hls.Events.STREAM_STATE_TRANSITION, (eventName, data) => {
+    // });
   }
 
   componentWillUpdate (nextProps, nextState) {
