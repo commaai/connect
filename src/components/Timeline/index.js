@@ -9,11 +9,13 @@ import debounce from 'debounce';
 import document from 'global/document';
 import fecha from 'fecha';
 import cx from 'classnames';
+import { partial } from 'ap';
 
 import Measure from 'react-measure';
 import Tooltip from '@material-ui/core/Tooltip';
 import { render } from 'react-dom';
 
+import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import TimelineWorker from '../../timeline';
 import Segments from '../../timeline/segments';
@@ -127,6 +129,9 @@ const styles = (theme) => {
       '&.hasRuler': {
         height: '30%',
       },
+      '& > div': {
+        display: 'inline-block'
+      }
     },
   };
 };
@@ -148,9 +153,8 @@ class Timeline extends Component {
     this.handleMouseDown = this.handleMouseDown.bind(this);
     this.handleMouseUp = this.handleMouseUp.bind(this);
     this.handleMouseLeave = this.handleMouseLeave.bind(this);
+    this.percentToOffset = this.percentToOffset.bind(this);
     this.renderSegment = this.renderSegment.bind(this);
-    this.handleThumbLoadError = this.handleThumbLoadError.bind(this);
-    this.renderThumbnails = this.renderThumbnails.bind(this);
     this.sendSeek = debounce(this.sendSeek.bind(this), 1000 / 60);
 
 
@@ -424,7 +428,23 @@ class Timeline extends Component {
             <Measure
               bounds
               onResize={ (rect) => this.setState({ thumbnail: rect.bounds }) }>
-              { this.renderThumbnails }
+              { (options) => {
+              return (
+                <div
+                  ref={ options.measureRef }
+                  className={ cx(this.props.classes.thumbnails, {
+                    hasRuler: this.props.hasRuler,
+                  }) } >
+                <Thumbnails
+                  getCurrentSegment={ partial(Segments.getCurrentSegment, this.props) }
+                  percentToOffset={ this.percentToOffset }
+                  thumbnail={ this.state.thumbnail }
+                  className={ this.props.classes.thumbnail }
+                  hasRuler={ this.props.hasRuler }
+                  />
+                </div>
+                );
+              }}
             </Measure>
           }
         </div>
@@ -530,59 +550,6 @@ class Timeline extends Component {
             }) } />
         );
       });
-  }
-
-  handleThumbLoadError(e) {
-    e.target.src='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
-  }
-
-  renderThumbnails (options) {
-    const { classes } = this.props;
-    const { thumbnail } = this.state;
-    const imgStyles = {
-      display: 'inline-block',
-      height: thumbnail.height,
-      width: (1164 / 874) * thumbnail.height,
-    };
-    var imgCount = Math.ceil(thumbnail.width / imgStyles.width);
-    var gutter = 0;
-    var blankImages = 0;
-    imgStyles.marginRight = gutter / 2;
-
-    var imgArr = [];
-
-    for (let i = 0; i < imgCount; ++i) {
-      let offset = this.percentToOffset((i + 0.5) / imgCount);
-      let segment = Segments.getCurrentSegment(this.props, offset);
-      if (!segment || !Segments.hasCameraAtOffset(segment, offset)) {
-        blankImages++;
-        continue;
-      }
-      let seconds = Math.floor((offset - segment.routeOffset) / 10000) * 10;
-      let url = segment.url + '/sec' + seconds + '-tiny.jpg';
-
-      imgArr.push((
-        <img
-          key={ i }
-          src={ url }
-          onError={ this.handleThumbLoadError }
-          style={{
-            ...imgStyles,
-            marginLeft: ((imgStyles.width + gutter) * blankImages) + gutter,
-          }} />
-      ));
-      blankImages = 0;
-    }
-
-    return (
-      <div
-        ref={ options.measureRef }
-        className={ cx(classes.thumbnails, {
-          hasRuler: this.props.hasRuler,
-        }) } >
-        { imgArr }
-      </div>
-    );
   }
 }
 
