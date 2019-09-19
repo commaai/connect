@@ -5,15 +5,16 @@ import raf from 'raf';
 import { classNames } from 'react-extras';
 import { multiply } from 'mathjs';
 import debounce from 'debounce';
-import theme from '../../theme';
 
 import { Player, ControlBar, PlaybackRateMenuButton } from 'video-react';
 import Measure from 'react-measure';
 import 'video-react/dist/video-react.css'; // CSS for video
 
+import theme from '../../theme';
 import HLSSource from './hlsSource';
 import TimelineWorker from '../../timeline';
 import { strokeRoundedRect, fillRoundedRect } from './canvas';
+import Buffering from './buffering';
 
 // UI Assets
 var wheelImg = new Image();
@@ -217,8 +218,8 @@ class VideoPreview extends Component {
           desiredBufferedVideoTime += 3 * desiredPlaySpeed;
         }
         // clip the duration down slightly to handle rounding errors near the end of video
-        desiredVideoTime = Math.min(playerState.duration - 0.1, desiredVideoTime);
-        desiredBufferedVideoTime = Math.min(playerState.duration - 0.1, desiredBufferedVideoTime);
+        desiredVideoTime = Math.min(playerState.duration - 0.4, desiredVideoTime);
+        desiredBufferedVideoTime = Math.min(playerState.duration - 0.4, desiredBufferedVideoTime);
 
         let isBuffering = true;
         let remainingTime = desiredBufferedVideoTime;
@@ -243,16 +244,16 @@ class VideoPreview extends Component {
         }
 
         if (isBuffering) {
-          console.log('We need', remainingTime, 'more time buffered...');
+          // console.log('We need', remainingTime, 'more time buffered...');
         }
 
         if (playerState.waiting || playerState.seeking) {
-          console.log('Waiting/seeking...');
+          // console.log('Waiting/seeking...');
           isBuffering = true;
         }
 
         if (this.props.bufferingVideo !== isBuffering) {
-          console.log('Changing video buffer state to', isBuffering);
+          // console.log('Changing video buffer state to', isBuffering);
           TimelineWorker.bufferVideo(isBuffering);
         }
 
@@ -262,7 +263,7 @@ class VideoPreview extends Component {
         noVideo = isBuffering;
 
         if (Number.isFinite(timeDiff) && Math.abs(timeDiff) > 0.2) {
-          console.log('Seeking video', timeDiff, desiredVideoTime);
+          // console.log('Seeking video', timeDiff, desiredVideoTime);
           if (playSpeed > 0) {
             videoPlayer.seek(desiredVideoTime + timeDiff * 0.9);
           } else {
@@ -1082,7 +1083,7 @@ class VideoPreview extends Component {
   }
   videoURL () {
     let segment = this.props.currentSegment;
-    if (!segment) {
+    if (!segment && this.props.nextSegment) {
       let offset = TimelineWorker.currentOffset();
       if (this.props.nextSegment.startOffset - offset < 5000) {
         segment = this.props.nextSegment;
@@ -1132,11 +1133,21 @@ class VideoPreview extends Component {
 
   render () {
     const { classes } = this.props;
+    if (this.props.playSpeed !== this.props.desiredPlaySpeed && !this.props.isBuffering) {
+      console.log(this.props);
+      debugger;
+    }
     return (
       <div
         className={ classNames(classes.videoContainer, {
           [classes.hidden]: false // this.state.noVideo
         }) }>
+        { this.props.isBuffering &&
+          <Buffering
+            bufferingVideo={ this.props.bufferingVideo }
+            bufferingData={ this.props.bufferingData }
+            />
+        }
         <Player
           ref={ this.videoPlayer }
           style={{ zIndex: 1 }}
