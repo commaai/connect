@@ -247,9 +247,26 @@ class VideoPreview extends Component {
           // console.log('We need', remainingTime, 'more time buffered...');
         }
 
-        if (playerState.waiting || playerState.seeking) {
-          // console.log('Waiting/seeking...');
+        if (playerState.waiting) {
+          if (!this.state.seekingWaiting) {
+            this.setState({
+              seekingWaiting: Date.now() + 15000
+            });
+          } else if (this.state.seekingWaiting < Date.now()) {
+            // console.log('Bumping seeek time to get out of stuck seek state');
+            videoPlayer.playSpeed = 0.25;
+            videoPlayer.play();
+            // console.log('SEEK');
+            videoPlayer.seek(desiredVideoTime + 0.1);
+            this.setState({
+              seekingWaiting: false
+            });
+          }
           isBuffering = true;
+        } else if (this.state.seekingWaiting) {
+          this.setState({
+            seekingWaiting: false
+          });
         }
 
         if (this.props.bufferingVideo !== isBuffering) {
@@ -257,17 +274,20 @@ class VideoPreview extends Component {
           TimelineWorker.bufferVideo(isBuffering);
         }
 
-        // console.log('Adjusting time drift by', timeDiff, curVideoTime);
-        // console.log(playerState);
         shouldShowPreview = isBuffering;
         noVideo = isBuffering;
 
-        if (Number.isFinite(timeDiff) && Math.abs(timeDiff) > 0.2) {
-          // console.log('Seeking video', timeDiff, desiredVideoTime);
-          if (playSpeed > 0) {
-            videoPlayer.seek(desiredVideoTime + timeDiff * 0.9);
+        if (!playerState.seeking && Number.isFinite(timeDiff) && Math.abs(timeDiff) > Math.max(this.state.timeDiff, 0.2) ){
+          // console.log('Seeking video', timeDiff, desiredVideoTime, curVideoTime);
+          if (playSpeed > 0 && timeDiff < 1) {
+            // console.log('SEEK');
+            this.setState({
+              timeDiff
+            });
+            videoPlayer.seek(desiredVideoTime + timeDiff);
           } else {
-            videoPlayer.seek(desiredVideoTime);
+            // console.log('SEEK');
+            videoPlayer.seek(desiredVideoTime + (this.state.timeDiff || 0));
           }
         }
 
@@ -276,7 +296,7 @@ class VideoPreview extends Component {
         }
 
         if (!isBuffering && this.props.currentSegment && playerState.paused) {
-          console.log('Play');
+          // console.log('Play');
           videoPlayer.play();
         }
       } else {
@@ -287,7 +307,7 @@ class VideoPreview extends Component {
         }
         shouldShowPreview = !this.props.currentSegment || !playerState.buffered.length;
         if (!playerState.paused && !playerState.seeking && playerState.buffered.length) {
-          console.log('Pause');
+          // console.log('Pause');
           videoPlayer.pause();
         }
       }
