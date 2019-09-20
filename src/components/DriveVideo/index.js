@@ -233,6 +233,11 @@ class VideoPreview extends Component {
 
         let isBuffering = true;
         let remainingTime = desiredBufferedVideoTime;
+
+        if (playerState.waiting || playerState.seeking) {
+          isBuffering = true;
+        }
+
         for (let i = 0, buf = playerState.buffered, len = buf.length; i < len; ++i) {
           let start = buf.start(i);
           // if we seek to a spot **right** at the start of an already loaded segment then
@@ -257,20 +262,18 @@ class VideoPreview extends Component {
           // console.log('We need', remainingTime, 'more time buffered...');
         }
 
-        if (playerState.waiting || playerState.seeking) {
-          isBuffering = true;
-        }
-
         let timeDiffAbs = Math.abs(timeDiff);
         if (Number.isFinite(timeDiff) && timeDiffAbs > 0) {
-          if (this.props.isBuffering && playerState.paused && timeDiffAbs > 1.0) {
+          if (this.props.isBuffering && playerState.paused && !playerState.seeking && timeDiffAbs > 1.0) {
             // console.log('SEEK paused', timeDiff);
             videoPlayer.seek(desiredVideoTime);
             isBuffering = true;
           } else if (timeDiffAbs > 1.0) {
             // console.log('Seeking video', timeDiff, desiredVideoTime, curVideoTime);
             videoPlayer.seek(desiredVideoTime);
-            isBuffering = true;
+            if (desiredVideoTime > 5) {
+              isBuffering = true;
+            }
           } else if (timeDiffAbs > 0.2) {
             desiredPlaySpeed = desiredPlaySpeed + timeDiff;
           // } else {
@@ -285,10 +288,10 @@ class VideoPreview extends Component {
         shouldShowPreview = isBuffering;
         noVideo = isBuffering;
 
+        desiredPlaySpeed = Math.round(desiredPlaySpeed * 5) / 5;
+
         if (videoPlayer.playbackRate !== desiredPlaySpeed) {
-          // console.log(videoPlayer.playbackRate);
           videoPlayer.playbackRate = desiredPlaySpeed;
-          // console.log(videoPlayer.playbackRate);
         }
 
         if (!isBuffering && !this.props.bufferingData && this.props.currentSegment && playerState.paused) {

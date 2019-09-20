@@ -36,7 +36,6 @@ export default function Buffering (props) {
         position: 'relative',
         textAlign: 'center',
         top: '50%',
-        transform: 'translate(0, -50%)'
       }}>
         <Typography>
           { message }
@@ -44,7 +43,7 @@ export default function Buffering (props) {
         <br />
         <Button
           onClick={ props.onDisableBuffering }>
-          Disable buffering
+          Click to disable buffering
         </Button>
       </div>
     </div>
