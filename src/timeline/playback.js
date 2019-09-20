@@ -9,10 +9,11 @@ const ACTION_PLAY = 'action_play';
 const ACTION_LOOP = 'action_loop';
 const ACTION_BUFFER_VIDEO = 'action_buffer_video';
 const ACTION_BUFFER_DATA = 'action_buffer_data';
+const ACTION_DISABLE_BUFFER = 'action_disable_buffer';
 
 module.exports = {
   pause, play, seek, currentOffset, selectLoop, timestampToOffset,
-  reducer, bufferVideo, bufferData
+  reducer, bufferVideo, bufferData, disableBuffer
 };
 
 function reducer (state = initialState, action) {
@@ -67,6 +68,8 @@ function reducer (state = initialState, action) {
     case ACTION_BUFFER_DATA:
       state.bufferingData = action.buffering;
       break;
+    case ACTION_DISABLE_BUFFER:
+      state.shouldBuffer = false;
     default:
       break;
   }
@@ -167,5 +170,11 @@ function bufferData (buffering = true) {
   return {
     type: ACTION_BUFFER_DATA,
     buffering
+  };
+}
+
+function disableBuffer () {
+  return {
+    type: ACTION_DISABLE_BUFFER
   };
 }

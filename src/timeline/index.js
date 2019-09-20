@@ -92,6 +92,13 @@ class TimelineInterface {
     });
   }
 
+  async disableBuffer () {
+    return this.postMessage({
+      command: 'disableBuffer',
+      data: true
+    });
+  }
+
   async bufferVideo (isBuffering = true) {
     return this.postMessage({
       command: 'bufferVideo',
