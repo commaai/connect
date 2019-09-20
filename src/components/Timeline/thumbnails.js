@@ -61,6 +61,10 @@ export default function Thumbnails (props) {
     currentSegment.endOffset = seconds;
   }
 
+  if (currentSegment) {
+    imgArr.push(currentSegment);
+  }
+
   return imgArr.map(renderImage);
 
   function renderImage (data, i) {
