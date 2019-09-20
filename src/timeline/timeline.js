@@ -82,6 +82,9 @@ const commands = {
   play,
   pause,
   seek,
+  bufferVideo,
+  bufferData,
+  disableBuffer,
   hello,
   resolve,
   selectDevice,
@@ -200,6 +203,18 @@ function play (port, speed) {
   store.dispatch(Playback.play(speed));
 }
 
+function bufferVideo (port, isBuffering) {
+  store.dispatch(Playback.bufferVideo(isBuffering));
+}
+
+function bufferData (port, isBuffering) {
+  store.dispatch(Playback.bufferData(isBuffering));
+}
+
+function disableBuffer (port, data) {
+  store.dispatch(Playback.disableBuffer(data));
+}
+
 async function hello (port, data) {
   await Demo.init();
   await initAuthPromise;
@@ -279,6 +294,7 @@ function scheduleSegmentUpdate (state) {
   }
 
   if (timeUntilNext > 0) {
+    timeUntilNext = Math.max(200, timeUntilNext);
     console.log('Waiting', timeUntilNext, 'for something to change...');
     SegmentTimerStore(state).stopTimer = timeout(function () {
       // empty action to churn the butter

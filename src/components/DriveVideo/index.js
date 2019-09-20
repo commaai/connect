@@ -4,15 +4,17 @@ import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
 import { classNames } from 'react-extras';
 import { multiply } from 'mathjs';
-import theme from '../../theme';
+import debounce from 'debounce';
 
 import { Player, ControlBar, PlaybackRateMenuButton } from 'video-react';
 import Measure from 'react-measure';
 import 'video-react/dist/video-react.css'; // CSS for video
 
+import theme from '../../theme';
 import HLSSource from './hlsSource';
 import TimelineWorker from '../../timeline';
 import { strokeRoundedRect, fillRoundedRect } from './canvas';
+import Buffering from './buffering';
 
 // UI Assets
 var wheelImg = new Image();
@@ -68,6 +70,11 @@ class VideoPreview extends Component {
     super(props);
 
     this.updatePreview = this.updatePreview.bind(this);
+    this.onSourceLoaded = this.onSourceLoaded.bind(this);
+    this.onDisableBuffering = this.onDisableBuffering.bind(this);
+
+    // this.checkVideoBuffer = this.checkVideoBuffer.bind(this);
+
     this.imageRef = React.createRef();
     this.videoPlayer = React.createRef();
     this.canvas_road = React.createRef();
@@ -78,6 +85,7 @@ class VideoPreview extends Component {
     this.canvas_face = React.createRef();
 
     this.intrinsic = intrinsicMatrix();
+    this.frame = 0;
 
     this.state = {
       bufferTime: 4,
@@ -91,113 +99,215 @@ class VideoPreview extends Component {
     if (this.videoPlayer.current) {
       this.videoPlayer.current.playbackRate = this.props.playSpeed || 1;
     }
-    raf(this.updatePreview);
+    this.rafLoop = raf(this.updatePreview);
+    this.checkVideoBuffer();
+    this.stopListening = TimelineWorker.onIndexed(() => this.checkDataBuffer());
   }
 
   componentWillUnmount () {
     this.mounted = false;
-    this.setState({
-      src: this.videoURL()
-    });
-    if (this.videoPlayer.current) {
-      this.videoPlayer.current.load();
+    if (this.rafLoop) {
+      raf.cancel(this.rafLoop);
+      this.rafLoop = null;
+    }
+    if (this.stopListening) {
+      this.stopListening();
+      this.stopListening = null;
+    }
+    if (this.stopListeningToVideo) {
+      this.stopListeningToVideo();
+      this.stopListeningToVideo = null;
     }
   }
 
   componentDidUpdate (prevProps, prevState) {
     let newUrl = this.videoURL();
-    if (this.state.src !== newUrl) {
+    if (this.state.src !== newUrl && newUrl.length) {
       this.setState({
         src: newUrl
       });
-      if (this.videoPlayer.current) {
-        this.videoPlayer.current.load();
-      }
+    }
+    // play state
+    this.checkVideoBuffer();
+  }
+
+  onSourceLoaded () {
+    if (this.videoPlayer.current) {
+      console.log('Calling load with media change');
+      this.videoPlayer.current.load();
     }
   }
 
-  updatePreview () {
-    if (!this.mounted) {
-      return;
-    }
-    // schedule next run right away so that we can return early
-    raf(this.updatePreview);
+  onDisableBuffering () {
+    TimelineWorker.disableBuffer();
+  }
 
-    this.renderCanvas();
+  updatePreview () {
+    // schedule next run right away so that we can return early
+    this.rafLoop = raf(this.updatePreview);
+
+    this.frame++;
+    if (this.frame >= 60) {
+      this.frame = 0;
+      this.checkVideoBuffer();
+    }
+
+    // 10 fps
+    if (this.frame % 6 === 0) {
+      this.checkDataBuffer();
+    }
+    if (this.frame % 6 === 3) {
+      this.renderCanvas();
+    }
+  }
+
+  checkDataBuffer = debounce(() => {
+    let monoTime = TimelineWorker.currentLogMonoTime();
+    let [lastEvent] = TimelineWorker.lastEvents(1);
+
+    let isDataBuffering = !lastEvent;
+    if (lastEvent) {
+      let monoTimeLength = ('' + monoTime).length;
+      let monSec = lastEvent.LogMonoTime.substr(0, monoTimeLength);
+      let timeDiff = Math.abs(monoTime - Number(monSec));
+      if (timeDiff > 2000) {
+        // 2 seconds of grace
+        // console.log('Buffering data', timeDiff);
+        isDataBuffering = true;
+      }
+    }
+    if (!this.props.currentSegment) {
+      isDataBuffering = false;
+
+      if (this.props.bufferVideo) {
+        console.log('Exited segment while buffering, exiting buffer state');
+        TimelineWorker.bufferVideo(false);
+      }
+    }
+
+    if (isDataBuffering !== this.props.bufferingData) {
+      console.log('Changing data buffer state to', isDataBuffering);
+      TimelineWorker.bufferData(isDataBuffering);
+    }
+
+  }, 100)
+
+  checkVideoBuffer = debounce(() => {
+    let videoPlayer = this.videoPlayer.current;
+
+    if (videoPlayer && !videoPlayer.wasConnected) {
+      videoPlayer.wasConnected = true;
+      if (this.stopListeningToVideo) {
+        this.stopListeningToVideo();
+        this.stopListeningToVideo = null;
+      }
+      this.stopListeningToVideo = videoPlayer.subscribeToStateChange(this.checkVideoBuffer);
+    }
 
     let offset = TimelineWorker.currentOffset();
     let shouldShowPreview = true;
     let bufferTime = this.state.bufferTime;
-    let videoPlayer = this.videoPlayer.current;
     let noVideo = this.state.noVideo;
-    let playSpeed = this.props.startTime < Date.now() ? this.props.playSpeed : 0;
+    let playSpeed = this.props.playSpeed;
+    let desiredPlaySpeed = this.props.desiredPlaySpeed;
 
     if (videoPlayer) {
       let playerState = videoPlayer.getState().player;
       if (!playerState.buffered || Number.isNaN(playerState.duration)) {
         return;
       }
-      if (playSpeed && this.props.currentSegment) {
+      if (desiredPlaySpeed && this.props.currentSegment) {
         let curVideoTime = playerState.currentTime;
         let desiredVideoTime = this.currentVideoTime(offset);
         let timeDiff = desiredVideoTime - curVideoTime;
 
-        let isBuffered = false;
+        let desiredBufferedVideoTime = desiredVideoTime;
+        if (this.props.bufferingVideo) {
+          // if we're currently already paused buffering for video
+          // then wait for another few seconds of video t oload
+          desiredBufferedVideoTime += 3 * desiredPlaySpeed;
+        }
+        // clip the duration down slightly to handle rounding errors near the end of video
+        desiredVideoTime = Math.min(playerState.duration - 0.4, desiredVideoTime);
+        desiredBufferedVideoTime = Math.min(playerState.duration - 0.4, desiredBufferedVideoTime);
+
+        let isBuffering = true;
+        let remainingTime = desiredBufferedVideoTime;
+
         for (let i = 0, buf = playerState.buffered, len = buf.length; i < len; ++i) {
           let start = buf.start(i);
-          if (start < desiredVideoTime && buf.end(i) > desiredVideoTime) {
-            isBuffered = true;
-            break;
-          } else if (Math.abs(start - desiredVideoTime) < 5) {
-            isBuffered = true;
-            break;
+          // if we seek to a spot **right** at the start of an already loaded segment then
+          // HLS doesn't actually load that segment. it just expects to jump forwards a bit and be fine
+          // because of this, the first 4 seconds of a given video is almost never available
+          // additionally, sometimes even in the middle of the video it can be off and not load due to rounding errors
+          // we check if we're in the first 5 seconds or if we're *right* before the start
+          // "stuck seeking" errors are handled below
+          if (start < 5 && desiredVideoTime < 5 || (start > desiredVideoTime && start - desiredVideoTime < 0.5)) {
+            start = desiredVideoTime;
+          }
+          if (start <= desiredVideoTime) {
+            if (buf.end(i) >= desiredBufferedVideoTime) {
+              isBuffering = false;
+            } else {
+              remainingTime = Math.min(remainingTime, desiredBufferedVideoTime - buf.end(i));
+            }
           }
         }
 
-        // console.log('Adjusting time drift by', timeDiff, curVideoTime);
-        // console.log(playerState);
-        shouldShowPreview = playerState.buffered.length === 0 || playerState.waiting || (Math.abs(timeDiff) > 2);
-
-        if (Number.isFinite(timeDiff) && Math.abs(timeDiff) > 0.25) {
-          if (Math.abs(timeDiff) > bufferTime * 1.1 || (Math.abs(timeDiff) > 0.5 && isBuffered)) {
-            if (desiredVideoTime > playerState.duration) {
-              noVideo = true;
-            } else if (desiredVideoTime < 0) {
-              noVideo = true;
-            } else {
-              noVideo = false;
-              // console.log('Seeking!', desiredVideoTime);
-              // debugger;
-              if (isBuffered) {
-                videoPlayer.seek(desiredVideoTime);
-              } else {
-                // console.log(playerState, desiredVideoTime);
-                videoPlayer.seek(desiredVideoTime + this.state.bufferTime * this.props.playSpeed);
-              }
-            }
-          } else {
-            if (timeDiff > 0) {
-              timeDiff = Math.min(1, timeDiff);
-            } else {
-              timeDiff = Math.max(0.25, timeDiff + this.props.playSpeed) - this.props.playSpeed;
-            }
-            if (this.props.startTime < Date.now()) {
-              videoPlayer.playbackRate = (this.props.playSpeed + timeDiff);
-            } else {
-              videoPlayer.playbackRate = 0;
-            }
-            noVideo = false;
-          }
-        } else {
-          noVideo = false;
-          videoPlayer.playbackRate = playSpeed;
+        if (isBuffering) {
+          // console.log('We need', remainingTime, 'more time buffered...');
         }
 
-        if (this.props.currentSegment && playerState.paused && !playerState.seeking) {
+        if (playerState.waiting || playerState.seeking) {
+          isBuffering = true;
+        }
+
+        let timeDiffAbs = Math.abs(timeDiff);
+        if (Number.isFinite(timeDiff) && timeDiffAbs > 0) {
+          if (this.props.isBuffering && playerState.paused && !playerState.seeking && timeDiffAbs > 1.0) {
+            // console.log('SEEK paused', timeDiff);
+            videoPlayer.seek(desiredVideoTime);
+            isBuffering = true;
+          } else if (timeDiffAbs > 1.0) {
+            // console.log('Seeking video', timeDiff, desiredVideoTime, curVideoTime);
+            videoPlayer.seek(desiredVideoTime);
+            if (desiredVideoTime > 5) {
+              isBuffering = true;
+            }
+          } else if (timeDiffAbs > 0.2) {
+            desiredPlaySpeed = desiredPlaySpeed + timeDiff;
+          // } else {
+          }
+        }
+
+        if (this.props.bufferingVideo !== isBuffering) {
+          // console.log('Changing video buffer state to', isBuffering);
+          TimelineWorker.bufferVideo(isBuffering);
+        }
+
+        shouldShowPreview = isBuffering;
+        noVideo = isBuffering;
+
+        desiredPlaySpeed = Math.round(desiredPlaySpeed * 5) / 5;
+
+        if (videoPlayer.playbackRate !== desiredPlaySpeed) {
+          videoPlayer.playbackRate = desiredPlaySpeed;
+        }
+
+        if (!isBuffering && !this.props.bufferingData && this.props.currentSegment && playerState.paused) {
           console.log('Play');
           videoPlayer.play();
         }
+        if (!isBuffering && this.props.isBuffering && !playerState.paused) {
+          console.log('Pause for buffering...');
+          videoPlayer.pause();
+        }
       } else {
+        // desired player speed is 0 or there's no segment
+        // either way, no video to load
+        if (this.props.bufferingVideo) {
+          TimelineWorker.bufferVideo(false);
+        }
         shouldShowPreview = !this.props.currentSegment || !playerState.buffered.length;
         if (!playerState.paused && !playerState.seeking && playerState.buffered.length) {
           console.log('Pause');
@@ -212,11 +322,13 @@ class VideoPreview extends Component {
       this.imageRef.current.style.opacity = shouldShowPreview ? 1 : 0;
     }
     if (noVideo !== this.state.noVideo) {
-      this.setState({
-        noVideo
-      });
+      // not used anymore, also could be derrived from the buffer state in props
+      // this.setState({
+      //   noVideo
+      // });
     }
-  }
+  }, 100)
+
   renderCanvas () {
     var calibration = TimelineWorker.getCalibration(this.props.route);
     if (!calibration) {
@@ -855,7 +967,7 @@ class VideoPreview extends Component {
     let [x, y] = driverMonitoring.FacePosition.map(v => v + 0.5);
     x = toX(x);
     y = toY(y);
-    
+
     let flatMatrix = this.rot_matrix(...driverMonitoring.FaceOrientation)
       .reduce((m, v) => m.concat([...v, 1]), [])
       .concat([0,0,0,1]);
@@ -919,7 +1031,7 @@ class VideoPreview extends Component {
     if (pitch_error > 0) {
       pitch_error = Math.max(pitch_error - _PITCH_POS_ALLOWANCE, 0);
     }
-  
+
     pitch_error *= _PITCH_WEIGHT;
     let pose_metric = Math.sqrt(Math.pow(yaw_error, 2) + Math.pow(pitch_error, 2));
     if (pose_metric > _METRIC_THRESHOLD) {
@@ -932,7 +1044,7 @@ class VideoPreview extends Component {
     // that way code can be nearly identical
     const angles_desc = driverMonitoring.FaceOrientation;
     const pos_desc = driverMonitoring.FacePosition;
-    
+
     let pitch_prnet = angles_desc[0];
     let yaw_prnet = angles_desc[1];
     let roll_prnet = angles_desc[2];
@@ -993,7 +1105,13 @@ class VideoPreview extends Component {
     return coord;
   }
   videoURL () {
-    let segment = this.props.currentSegment || this.props.nextSegment;
+    let segment = this.props.currentSegment;
+    if (!segment && this.props.nextSegment) {
+      let offset = TimelineWorker.currentOffset();
+      if (this.props.nextSegment.startOffset - offset < 5000) {
+        segment = this.props.nextSegment;
+      }
+    }
     if (!segment) {
       return '';
     }
@@ -1038,11 +1156,22 @@ class VideoPreview extends Component {
 
   render () {
     const { classes } = this.props;
+    if (this.props.playSpeed !== this.props.desiredPlaySpeed && !this.props.isBuffering) {
+      console.log(this.props);
+      debugger;
+    }
     return (
       <div
         className={ classNames(classes.videoContainer, {
           [classes.hidden]: false // this.state.noVideo
         }) }>
+        { this.props.isBuffering &&
+          <Buffering
+            bufferingVideo={ this.props.bufferingVideo }
+            bufferingData={ this.props.bufferingData }
+            onDisableBuffering={ this.onDisableBuffering }
+            />
+        }
         <Player
           ref={ this.videoPlayer }
           style={{ zIndex: 1 }}
@@ -1053,6 +1182,8 @@ class VideoPreview extends Component {
           startTime={ this.currentVideoTime() }
           playbackRate={ this.props.startTime > Date.now() ? 0 : this.props.playSpeed }>
           <HLSSource
+            onBufferAppend={ this.checkVideoBuffer }
+            onSourceLoaded={ this.onSourceLoaded }
             isVideoChild />
           <ControlBar disabled />
         </Player>

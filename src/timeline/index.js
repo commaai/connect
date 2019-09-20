@@ -92,6 +92,27 @@ class TimelineInterface {
     });
   }
 
+  async disableBuffer () {
+    return this.postMessage({
+      command: 'disableBuffer',
+      data: true
+    });
+  }
+
+  async bufferVideo (isBuffering = true) {
+    return this.postMessage({
+      command: 'bufferVideo',
+      data: isBuffering
+    });
+  }
+
+  async bufferData (isBuffering = true) {
+    return this.postMessage({
+      command: 'bufferData',
+      data: isBuffering
+    });
+  }
+
   async selectTimeRange (start, end) {
     return this.postMessage({
       command: 'selectTimeRange',
