@@ -234,10 +234,6 @@ class VideoPreview extends Component {
         let isBuffering = true;
         let remainingTime = desiredBufferedVideoTime;
 
-        if (playerState.waiting || playerState.seeking) {
-          isBuffering = true;
-        }
-
         for (let i = 0, buf = playerState.buffered, len = buf.length; i < len; ++i) {
           let start = buf.start(i);
           // if we seek to a spot **right** at the start of an already loaded segment then
@@ -260,6 +256,10 @@ class VideoPreview extends Component {
 
         if (isBuffering) {
           // console.log('We need', remainingTime, 'more time buffered...');
+        }
+
+        if (playerState.waiting || playerState.seeking) {
+          isBuffering = true;
         }
 
         let timeDiffAbs = Math.abs(timeDiff);
