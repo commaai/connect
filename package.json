@@ -7,6 +7,7 @@
     "build:production": "env-cmd .env.production react-app-rewired build && find build -name '*.map' -exec rm {} \\;",
     "build:branch-deploy": "env-cmd .env.staging react-app-rewired build && find build -name '*.map' -exec rm {} \\;",
     "test": "react-app-rewired test --env=jsdom",
+    "test-ci": "CI=true react-app-rewired test --env=jsdom",
     "eject": "react-app-rewired eject",
     "storybook": "start-storybook -p 9009 -s public",
     "build-storybook": "build-storybook -s public"

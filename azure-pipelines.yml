@@ -16,5 +16,5 @@ steps:
 - script: |
     npm install yarn
     yarn
-    yarn run test
+    yarn run test-ci
   displayName: 'yarn test'
