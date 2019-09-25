@@ -1,7 +1,9 @@
 # Install yarn, run test cases
 
-
 trigger:
+- master
+
+pr:
 - master
 
 pool:
