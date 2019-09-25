@@ -36,18 +36,18 @@ class AnnotationList extends PureComponent {
 
   // TODO: Migrate deprecated lifecycle method
   componentWillReceiveProps(nextProps) {
-    if (this.state.expanded && nextProps.loop.startTime === null) {
-      this.setState({ expanded: false }, () => {
-        this.recomputeList();
-      });
+    if (this.state.expanded) {
+      if (nextProps.loop.startTime === null || nextProps.resolved !== this.props.resolved) {
+        this.setState({ expanded: false }, () => {
+          this.recomputeList();
+        });
+      }
     }
   }
 
   list = null
 
-  filter = memoize(
-    list => list.filter(this.filterEntry)
-  );
+  filter = memoize((resolved, unresolved, list) => list.filter(this.filterEntry));
 
   recomputeList = () => {
     if (this.list) {
@@ -82,7 +82,7 @@ class AnnotationList extends PureComponent {
   getEvent(index) {
     const { segment } = this.props;
     const events = (segment || {}).events || [];
-    const filteredList = this.filter(events);
+    const filteredList = this.filter(this.props.resolved, this.props.unresolved, events);
 
     return filteredList[index];
   }
@@ -98,7 +98,7 @@ class AnnotationList extends PureComponent {
   }
 
   render() {
-    const { segment, classes, isUpsellDemo, resolved } = this.props;
+    const { segment, classes, isUpsellDemo, resolved, unresolved } = this.props;
     const events = (segment || {}).events || [];
 
     return (
@@ -112,7 +112,7 @@ class AnnotationList extends PureComponent {
               width={width}
               overscanRowCount={10}
               // noRowsRenderer={this.noRowsRenderer}
-              rowCount={this.filter(events).length}
+              rowCount={this.filter(resolved, unresolved, events).length}
               rowHeight={this.getRowHeight}
               rowRenderer={this.renderEntry}
             />
@@ -144,7 +144,6 @@ class AnnotationList extends PureComponent {
         event={event}
         expanded={this.state.expanded === eventId}
         disabled={!segment.hpgps}
-        // expanded={ this.state.expanded ? this.state.expanded === eventId : index === 0 }
         onChange={partial(this.handleExpanded, eventId, event.timestamp)}
       />
     )
