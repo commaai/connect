@@ -55,6 +55,20 @@ class TimelineInterface {
     return this._readyPromise;
   }
 
+  async stop () {
+    if (!this.hasInit) {
+      return;
+    }
+    await this.postMessage({
+      command: 'stop'
+    });
+    this.hasInit = false;
+    if (this.worker) {
+      this.worker.terminate();
+      this.worker = null;
+    }
+  }
+
   async getPort () {
     await this._initPromise;
     return this.port;

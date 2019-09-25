@@ -43,6 +43,10 @@ class App extends Component {
 
     this.cancelInit = Collector();
 
+    const initDemoTimeline = Jepsen(() => {
+      TimelineWorker.init(true).then(initDemoState.callback);
+    });
+
     const checkDemo = Jepsen((isDemo) => {
       if (isDemo) {
         return localforage.setItem('isDemo', '1')
@@ -50,10 +54,6 @@ class App extends Component {
       } else {
         return this.auth();
       }
-    });
-
-    const initDemoTimeline = Jepsen(() => {
-      TimelineWorker.init(true).then(initDemoState.callback);
     });
 
     const initDemoState = Jepsen(() => {
@@ -72,6 +72,7 @@ class App extends Component {
   }
   componentWillUnmount () {
     this.cancelInit();
+    TimelineWorker.stop();
   }
   async auth () {
     if (document.location) {
