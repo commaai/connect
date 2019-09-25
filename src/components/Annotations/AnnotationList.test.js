@@ -10,7 +10,7 @@ import AnnotationList from './AnnotationList';
 import AnnotationEntry from './AnnotationListItem';
 
 const defaultState = {
-
+  start: Date.now()
 };
 
 const store = Redux.createStore(function reducer(state) {
@@ -74,5 +74,4 @@ it('shows the right events at the right times', () => {
   expect(entry.exists()).toBe(true);
   expect(entry.prop('event')).toBeTruthy();
   expect(entry.prop('event').timestamp).toBe(events[0].timestamp);
-  // this.props.event
 });
