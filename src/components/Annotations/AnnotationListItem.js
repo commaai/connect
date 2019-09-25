@@ -335,7 +335,7 @@ class AnnotationEntry extends PureComponent {
                       <MenuItem
                         key={ disengagementReason.value }
                         value={ disengagementReason.value }
-                        className={ !disengagementReason.header && this.props.classes.reasonDetailed }>
+                        className={ !disengagementReason.header ? this.props.classes.reasonDetailed : '' }>
                         { disengagementReason.title }
                       </MenuItem>
                     )
