@@ -91,7 +91,8 @@ const commands = {
   selectTimeRange,
   selectLoop,
   updateDevice,
-  cachePort
+  cachePort,
+  stop
 };
 
 export async function handleMessage (port, msg) {
@@ -116,6 +117,14 @@ export async function handleMessage (port, msg) {
 
 export function getState () {
   return store.getState();
+}
+
+export function stop () {
+  console.log('Stopping worker!');
+  if (SegmentTimerStore(state).stopTimer) {
+    SegmentTimerStore(state).stopTimer();
+    SegmentTimerStore(state).stopTimer = null;
+  }
 }
 
 export function createBroadcastPort (port) {

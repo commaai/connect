@@ -17,7 +17,7 @@ export function handleMessage (port, msg) {
       entry.touch();
       break;
     default:
-      console.log(msg);
+      console.log(msg.data);
       debugger;
   }
 }

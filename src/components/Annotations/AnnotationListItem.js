@@ -419,7 +419,4 @@ class AnnotationEntry extends PureComponent {
   }
 }
 
-const stateToProps = Obstruction({
-});
-
-export default connect(stateToProps)(withStyles(styles)(AnnotationEntry));
+export default withStyles(styles)(AnnotationEntry);
