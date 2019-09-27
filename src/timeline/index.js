@@ -410,6 +410,9 @@ class TimelineInterface {
   currentDriverMonitoring () {
     return this.getEventByType(Event_Which.DRIVER_MONITORING, 1000);
   }
+  currentThumbnail () {
+    return this.getEventByType(Event_Which.THUMBNAIL, 5000);
+  }
   getEventByType (which, maxTimeDiff = -1) {
     if (!this.state || !this.state.route) {
       return;

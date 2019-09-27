@@ -62,6 +62,13 @@ const styles = theme => {
       top: 0,
       width: '100%',
     },
+    thumbnail: {
+      height: '100%',
+      left: 0,
+      position: 'absolute',
+      top: 0,
+      width: '100%',
+    }
   }
 };
 
@@ -278,6 +285,30 @@ class VideoPreview extends Component {
             desiredPlaySpeed = desiredPlaySpeed + timeDiff;
           // } else {
           }
+        }
+
+        if (isBuffering) {
+          let thumbnail = TimelineWorker.currentThumbnail();
+          if (thumbnail) {
+            if (this.state.thumbnailMonoTime !== thumbnail.LogMonoTime || !this.state.shouldShowThumbnail) {
+              let base64 = btoa(String.fromCharCode(...new Uint8Array(thumbnail.Thumbnail.Thumbnail)));
+              this.setState({
+                thumbnailData: base64,
+                thumbnailMonoTime: thumbnail.LogMonoTime,
+                shouldShowThumbnail: true
+              });
+            }
+
+            isBuffering = false;
+          } else if (this.state.shouldShowThumbnail) {
+            this.setState({
+              shouldShowThumbnail: false
+            });
+          }
+        } else if (this.state.shouldShowThumbnail) {
+          this.setState({
+            shouldShowThumbnail: false
+          });
         }
 
         if (this.props.bufferingVideo !== isBuffering) {
@@ -1172,6 +1203,13 @@ class VideoPreview extends Component {
             onDisableBuffering={ this.onDisableBuffering }
             />
         }
+        { this.state.shouldShowThumbnail &&
+          <img
+            style={{ zIndex: 2 }}
+            className={ this.props.classes.thumbnail }
+            src={ "data:image/jpeg;base64," + this.state.thumbnailData }
+            />
+        }
         <Player
           ref={ this.videoPlayer }
           style={{ zIndex: 1 }}
@@ -1187,18 +1225,12 @@ class VideoPreview extends Component {
             isVideoChild />
           <ControlBar disabled />
         </Player>
-        { !this.props.front &&
-          <img
-            ref={ this.imageRef }
-            className={ classes.videoImage }
-            src={this.nearestImageFrame()} />
-        }
         { this.props.shouldShowUI &&
           <React.Fragment>
             <canvas
               ref={ this.canvas_road }
               className={ classes.videoUiCanvas }
-              style={{ zIndex: 2 }} />
+              style={{ zIndex: 3 }} />
             <canvas
               ref={ this.canvas_lead }
               className={ classes.videoUiCanvas }
@@ -1222,7 +1254,7 @@ class VideoPreview extends Component {
             <canvas
               ref={ this.canvas_face }
               className={ classes.videoUiCanvas }
-              style={{ zIndex: 2 }} />
+              style={{ zIndex: 3 }} />
           </React.Fragment>
         }
       </div>
