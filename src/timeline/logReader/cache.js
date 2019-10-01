@@ -29,7 +29,7 @@ class CacheEntry {
     this.segment = segment;
     this.expire = this.expire.bind(this);
     this.dataListener = dataListener;
-    this.authInitPromise = Auth.init().then(function(token) {
+    this.authInitPromise = Promise.all([Auth.init(), Demo.init()]).then(function([token]) {
       Request.configure(token);
     });
 
@@ -76,7 +76,7 @@ class CacheEntry {
     if (this.started) {
       return;
     }
-    Demo.init().then(() => {
+    this.authInitPromise.then(() => {
       this.started = true;
       this.getLog(this.dataListener);
       this.unlisten = this.subscribe(this.dataListener);
@@ -89,6 +89,8 @@ class CacheEntry {
     if (Demo.isDemo()) {
       urls = demoLogUrls[this.route];
     } else {
+      debugger;
+      console.log('Getting log urls outside of demo setup');
       urls = await RawApi.getLogUrls(this.route);
     }
     return urls[this.segment];

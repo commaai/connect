@@ -23,7 +23,7 @@ export default function Thumbnails (props) {
   for (let i = 0; i < imgCount; ++i) {
     let offset = props.percentToOffset((i + 0.5) / imgCount);
     let segment = props.getCurrentSegment(offset);
-    if (!segment || !Segments.hasCameraAtOffset(segment, offset)) {
+    if (!segment) {
       if (currentSegment && !currentSegment.blank) {
         imgArr.push(currentSegment);
         currentSegment = null;

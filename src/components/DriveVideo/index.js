@@ -249,7 +249,11 @@ class VideoPreview extends Component {
           // additionally, sometimes even in the middle of the video it can be off and not load due to rounding errors
           // we check if we're in the first 5 seconds or if we're *right* before the start
           // "stuck seeking" errors are handled below
-          if (start < 5 && desiredVideoTime < 5 || (start > desiredVideoTime && start - desiredVideoTime < 0.5)) {
+          if (start < 6 && desiredVideoTime < 6) {
+            start = desiredVideoTime;
+            desiredBufferedVideoTime = desiredVideoTime;
+          }
+          if (start > desiredVideoTime && start - desiredVideoTime < 0.5) {
             start = desiredVideoTime;
           }
           if (start <= desiredVideoTime) {
@@ -265,7 +269,7 @@ class VideoPreview extends Component {
           // console.log('We need', remainingTime, 'more time buffered...');
         }
 
-        if (playerState.waiting || playerState.seeking) {
+        if (desiredVideoTime > 5 && (playerState.waiting || playerState.seeking)) {
           isBuffering = true;
         }
 
