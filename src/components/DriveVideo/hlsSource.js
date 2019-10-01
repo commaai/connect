@@ -23,31 +23,25 @@ export default class HLSSource extends Component {
   }
 
   componentDidMount () {
-    this.setState({
-      src: this.props.src
-    });
+    this.componentDidUpdate({});
   }
 
-  componentWillUpdate (nextProps, nextState) {
-    if (nextProps.src !== nextState.src && nextProps.src.length) {
-      console.log('Loading media source!', nextProps.src);
+  componentDidUpdate (prevProps) {
+    if (this.props.src !== this.state.src && this.props.src.length) {
+      console.log('Loading media source!', this.props.src);
       if (this.state.src.length) {
         this.hls.detachMedia();
       }
       this.setState({
-        src: nextProps.src
+        src: this.props.src
+      }, () => {
+        this.hls.loadSource(this.state.src);
+        this.hls.attachMedia(this.props.video);
+
+        if (this.props.onSourceLoaded) {
+          this.props.onSourceLoaded();
+        }
       });
-    }
-  }
-
-  componentDidUpdate (prevProps, prevState) {
-    if (this.state.src !== prevState.src) {
-      this.hls.loadSource(this.state.src);
-      this.hls.attachMedia(this.props.video);
-
-      if (this.props.onSourceLoaded) {
-        this.props.onSourceLoaded();
-      }
     }
   }
 
