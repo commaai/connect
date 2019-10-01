@@ -5,6 +5,8 @@ import {
   ACTION_UPDATE_DEVICE,
 } from '../actions/types';
 
+const initialState = {};
+
 export default function reducer (state = initialState, action) {
   switch (action.type) {
     case ACTION_STARTUP_DATA:
