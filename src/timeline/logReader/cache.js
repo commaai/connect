@@ -89,8 +89,6 @@ class CacheEntry {
     if (Demo.isDemo()) {
       urls = demoLogUrls[this.route];
     } else {
-      debugger;
-      console.log('Getting log urls outside of demo setup');
       urls = await RawApi.getLogUrls(this.route);
     }
     return urls[this.segment];
