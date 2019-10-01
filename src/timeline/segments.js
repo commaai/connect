@@ -54,20 +54,25 @@ function reducer (state = initialState, action) {
       break;
     case ACTION_RESOLVE_ANNOTATION:
       let found = false;
-      state.segments.forEach((segment) => {
-        if (segment.route !== action.route) {
-          return;
+      state.segments = state.segments.map((segment) => {
+        if (found || segment.route !== action.route) {
+          return segment;
         }
-        segment.events.forEach((event) => {
-          if (event.time !== action.event.time || event.type !== action.event.type) {
-            return;
+
+        segment.events = segment.events.map((event) => {
+          if (found || event.time !== action.event.time || event.type !== action.event.type) {
+            return event;
           }
           event.id = action.annotation.id;
           event.annotation = action.annotation;
           found = true;
+          return event;
         });
+
+        return segment;
       });
       if (!found) {
+        console.log('Resolving unknonwn annotation');
         debugger;
       }
       break;
