@@ -121,10 +121,10 @@ export function getState () {
 
 export function stop () {
   console.log('Stopping worker!');
-  if (SegmentTimerStore(state).stopTimer) {
-    SegmentTimerStore(state).stopTimer();
-    SegmentTimerStore(state).stopTimer = null;
-  }
+  // if (SegmentTimerStore(state).stopTimer) {
+  //   SegmentTimerStore(state).stopTimer();
+  //   SegmentTimerStore(state).stopTimer = null;
+  // }
 }
 
 export function createBroadcastPort (port) {

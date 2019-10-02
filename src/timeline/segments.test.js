@@ -1,4 +1,4 @@
-const Segments = require('./segments');
+import Segments from './segments';
 
 const segmentData = [{
   route: '99c94dc769b5d96e|2018-04-09--10-10-00',

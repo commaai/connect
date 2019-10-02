@@ -1,5 +1,5 @@
-const initialState = require('./initialState');
-const Playback = require('./playback');
+import initialState from './initialState';
+import Playback from './playback';
 
 const ACTION_UPDATE_SEGMENTS = 'update_segments';
 const ACTION_LOAD_SEGMENT_METADATA = 'load_segment_metadata';
@@ -8,7 +8,7 @@ const ACTION_RESOLVE_ANNOTATION = 'resolve_annotation';
 
 const SEGMENT_LENGTH = 1000 * 60;
 
-module.exports = {
+const API = {
   // helpers
   getCurrentSegment,
   getNextSegment,
@@ -28,6 +28,7 @@ module.exports = {
   // reducer
   reducer
 };
+export default API;
 
 /*
 segments look like, but can contain additional data if they want
@@ -477,13 +478,4 @@ function getCurrentSegment (state, offset) {
     }
   }
   return null;
-}
-
-function cropSelection (state, start, end) {
-  var curSegment = getCurrentSegment(state, start);
-  if (!curSegment) {
-    curSegment = getNextSegment(state, start);
-    start = curSegment.startOffset - 1000; // 1 second before next route
-  }
-  state.range
 }

@@ -13,6 +13,7 @@ import 'video-react/dist/video-react.css'; // CSS for video
 import theme from '../../theme';
 import HLSSource from './hlsSource';
 import TimelineWorker from '../../timeline';
+import * as LogIndex from '../../timeline/logIndex';
 import { strokeRoundedRect, fillRoundedRect } from './canvas';
 import Buffering from './buffering';
 
@@ -169,21 +170,31 @@ class VideoPreview extends Component {
   }
 
   checkDataBuffer = debounce(() => {
-    let monoTime = TimelineWorker.currentLogMonoTime();
-    let [lastEvent] = TimelineWorker.lastEvents(1);
+    let isDataBuffering = true;
+    if (this.props.currentSegment) {
+      let monoTime = TimelineWorker.currentLogMonoTime();
+      let logIndex = TimelineWorker.getLogIndex();
+      if (logIndex) {
+        var curIndex = LogIndex.findMonoTime(logIndex, monoTime);
+        var lastEvent = TimelineWorker.getEvent(curIndex, logIndex);
+        var nextEvent = TimelineWorker.getEvent(curIndex + 1, logIndex);
 
-    let isDataBuffering = !lastEvent;
-    if (lastEvent) {
-      let monoTimeLength = ('' + monoTime).length;
-      let monSec = lastEvent.LogMonoTime.substr(0, monoTimeLength);
-      let timeDiff = Math.abs(monoTime - Number(monSec));
-      if (timeDiff > 2000) {
-        // 2 seconds of grace
-        // console.log('Buffering data', timeDiff);
-        isDataBuffering = true;
+        if (nextEvent) {
+          isDataBuffering = false;
+        } else {
+          isDataBuffering = !lastEvent;
+          if (lastEvent) {
+            let monoTimeLength = ('' + monoTime).length;
+            let monSec = lastEvent.LogMonoTime.substr(0, monoTimeLength);
+            let timeDiff = Math.abs(monoTime - Number(monSec));
+            if (timeDiff > 3000) {
+              // 3 seconds of grace
+              isDataBuffering = true;
+            }
+          }
+        }
       }
-    }
-    if (!this.props.currentSegment) {
+    } else {
       isDataBuffering = false;
 
       if (this.props.bufferVideo) {
