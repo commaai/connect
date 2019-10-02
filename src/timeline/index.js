@@ -386,6 +386,9 @@ class TimelineInterface {
     Object.defineProperty(initData, 'InitData', {writable: true, value: Object.create(initData.InitData)});
     Object.defineProperty(initData.InitData, 'Params', {writable: true, value: Object.create(initData.InitData.Params)});
     var parsedEntries = initData.InitData.Params.Entries.map((entry) => {
+      if (!entry.Key || !entry.Value) {
+        return null;
+      }
       entry = Object.create(entry);
       Object.defineProperty(entry, 'Key', {
         writable: false,
@@ -397,7 +400,7 @@ class TimelineInterface {
       })
 
       return entry;
-    });
+    }).filter((entry) => !!entry);
     Object.defineProperty(initData.InitData.Params, 'Entries', {writable: true, value: parsedEntries});
 
     return initData;
