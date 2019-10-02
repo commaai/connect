@@ -312,19 +312,32 @@ class TimelineInterface {
     if (!logMonoTime) {
       return [];
     }
-    var logIndex = this.buffers[this.state.route][this.state.segment];
+    var logIndex = this.getLogIndex();
 
     var curIndex = LogIndex.findMonoTime(logIndex, logMonoTime);
     eventCount = Math.min(eventCount, curIndex);
 
     return [...Array(eventCount)].map((u, i) => {
-      // millis, nanos, offset, len, buffer
-      var entry = logIndex.index[curIndex - i];
-      var buffer = logIndex.buffers[entry[4]].slice(entry[2], entry[2] + entry[3]);
-      var msg = new capnp.Message(buffer, false);
-      var event = msg.getRoot(CapnpEvent);
-      return toJSON(event);
+      return this.getEvent(curIndex - i, logIndex);
     });
+  }
+  getLogIndex () {
+    return this.buffers[this.state.route] ? this.buffers[this.state.route][this.state.segment] : null;
+  }
+  getEvent (index, logIndex) {
+    // millis, nanos, offset, len, buffer
+    if (!logIndex) {
+      logIndex = this.buffers[this.state.route][this.state.segment];
+    }
+    if (index < 0 || index >= logIndex.index.length) {
+      console.log('Invalid event index', index);
+      return null;
+    }
+    var entry = logIndex.index[index];
+    var buffer = logIndex.buffers[entry[4]].slice(entry[2], entry[2] + entry[3]);
+    var msg = new capnp.Message(buffer, false);
+    var event = msg.getRoot(CapnpEvent);
+    return toJSON(event);
   }
   currentOffset () {
     if (this.state) {
