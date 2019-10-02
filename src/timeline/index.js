@@ -386,7 +386,7 @@ class TimelineInterface {
     Object.defineProperty(initData, 'InitData', {writable: true, value: Object.create(initData.InitData)});
     Object.defineProperty(initData.InitData, 'Params', {writable: true, value: Object.create(initData.InitData.Params)});
     var parsedEntries = initData.InitData.Params.Entries.map((entry) => {
-      if (!entry.Key || !entry.Value) {
+      if (!entry.Key.byteOffset || !entry.Value.byteOffset) {
         return null;
       }
       entry = Object.create(entry);
