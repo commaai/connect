@@ -182,8 +182,7 @@ class VideoPreview extends Component {
         if (nextEvent) {
           isDataBuffering = false;
         } else {
-          isDataBuffering = !lastEvent;
-          if (lastEvent) {
+          if (lastEvent && lastEvent.LogMonoTime) {
             let monoTimeLength = ('' + monoTime).length;
             let monSec = lastEvent.LogMonoTime.substr(0, monoTimeLength);
             let timeDiff = Math.abs(monoTime - Number(monSec));
@@ -191,6 +190,8 @@ class VideoPreview extends Component {
               // 3 seconds of grace
               isDataBuffering = true;
             }
+          } else {
+            isDataBuffering = true;
           }
         }
       }
