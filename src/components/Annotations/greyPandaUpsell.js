@@ -8,32 +8,30 @@ import Grid from '@material-ui/core/Grid';
 
 import ShopButton from './shopButton';
 
-const styles = theme => {
-  return {
-    root: {
-      height: '96px',
-      padding: '12px 0',
-    },
-    rowFill: {
-      height: '100%',
-      textAlign: 'center'
-    },
-    image: {
-      display: 'inline-block',
-      height: '72px',
-      width: 'auto'
-    }
+const styles = (theme) => ({
+  root: {
+    height: '96px',
+    padding: '12px 0',
+  },
+  rowFill: {
+    height: '100%',
+    textAlign: 'center'
+  },
+  image: {
+    display: 'inline-block',
+    height: '72px',
+    width: 'auto'
   }
-};
+});
 
 class GreyPandaUpsellRow extends Component {
-  render () {
+  render() {
     return (
-      <Grid container className={ this.props.classes.root }>
-        <Grid item xs={6} className={ this.props.classes.rowFill }>
-          <img src='/images/grey-panda-tsp.png' className={ this.props.classes.image } />
+      <Grid container className={this.props.classes.root}>
+        <Grid item xs={6} className={this.props.classes.rowFill}>
+          <img src="/images/grey-panda-tsp.png" className={this.props.classes.image} />
         </Grid>
-        <Grid item xs={6} className={ this.props.classes.rowFill }>
+        <Grid item xs={6} className={this.props.classes.rowFill}>
           <Typography>
             Upgrade to a Grey Panda and help improve openpilot
           </Typography>

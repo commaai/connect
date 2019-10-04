@@ -6,10 +6,8 @@ import storage from 'localforage';
 import Collector from 'collect-methods';
 
 import Auth from '@commaai/my-comma-auth';
-import { request as Request } from '@commaai/comma-api';
+import { request as Request, annotations as Annotations, drives as Drives } from '@commaai/comma-api';
 
-import { annotations as Annotations } from '@commaai/comma-api';
-import { drives as Drives } from '@commaai/comma-api';
 
 import init from './startup';
 import {
@@ -22,6 +20,7 @@ import Segments from './segments';
 import * as Cache from './cache';
 import store from './store';
 import * as Demo from '../demo';
+
 const demoSegments = require('../demo/segments.json');
 
 const BroadcastEvent = Event();
@@ -31,23 +30,23 @@ const SegmentTimerStore = CreateStore();
 
 // fire off init method / construct init promises
 let hasGottenSegmentData = null;
-let hasGottenSegmentDataPromise = new Promise(function (resolve, reject) {
+const hasGottenSegmentDataPromise = new Promise(((resolve, reject) => {
   hasGottenSegmentData = function () {
     hasGottenSegmentData = noop;
     resolve();
   };
-});
-let initAuthPromise = Auth.init().then(function(token) {
+}));
+const initAuthPromise = Auth.init().then((token) => {
   Request.configure(token);
-})
+});
 
-var segmentsRequest = null;
-var annotationsRequest = null;
+let segmentsRequest = null;
+let annotationsRequest = null;
 
 // set up initial schedules
-initAuthPromise.then(function() {
+initAuthPromise.then(() => {
   scheduleSegmentUpdate(getState());
-  checkSegmentMetadata(getState())
+  checkSegmentMetadata(getState());
 });
 
 // segments
@@ -62,7 +61,7 @@ initAuthPromise.then(function() {
 //   store.dispatch(Playback.play(speed));
 // }, 5000);
 
-store.subscribe(function () {
+store.subscribe(() => {
   const state = getState();
   checkSegmentMetadata(state);
   scheduleSegmentUpdate(state);
@@ -95,7 +94,7 @@ const commands = {
   stop
 };
 
-export async function handleMessage (port, msg) {
+export async function handleMessage(port, msg) {
   if (msg.data.command) {
     if (!commands[msg.data.command]) {
       console.error('Invalid command!', msg.data);
@@ -115,11 +114,11 @@ export async function handleMessage (port, msg) {
   }
 }
 
-export function getState () {
+export function getState() {
   return store.getState();
 }
 
-export function stop () {
+export function stop() {
   console.log('Stopping worker!');
   // if (SegmentTimerStore(state).stopTimer) {
   //   SegmentTimerStore(state).stopTimer();
@@ -127,26 +126,26 @@ export function stop () {
   // }
 }
 
-export function createBroadcastPort (port) {
+export function createBroadcastPort(port) {
   if (PortState(port).broadcastPort) {
     return PortState(port).broadcastPort;
   }
   const state = getState();
-  var broadcastChannel = null;
-  var broadcastPort = null;
-  var receiverPort = null;
-  var unlisten = Collector();
+  let broadcastChannel = null;
+  let broadcastPort = null;
+  let receiverPort = null;
+  const unlisten = Collector();
 
   unlisten(DataLogEvent.listen(sendData));
   unlisten(Cache.onExpire(handleExpire));
 
   if (state.route) {
-    let entry = Cache.getEntry(state.route, state.segment);
+    const entry = Cache.getEntry(state.route, state.segment);
     if (entry) {
       entry.getLog((data) => sendData({
         route: state.route,
         segment: state.segment,
-        data: data
+        data
       }));
     }
   }
@@ -166,8 +165,8 @@ export function createBroadcastPort (port) {
 
   return receiverPort;
 
-  function sendData (msg) {
-    var buffer = null;
+  function sendData(msg) {
+    let buffer = null;
     if (msg.data.length === 1) {
       // force copy for older versions of node/shim
       buffer = Buffer.from(msg.data);
@@ -182,7 +181,7 @@ export function createBroadcastPort (port) {
     }, [buffer.buffer]);
   }
 
-  function handleExpire (data) {
+  function handleExpire(data) {
     port.postMessage({
       ...data,
       command: 'expire'
@@ -190,7 +189,7 @@ export function createBroadcastPort (port) {
   }
 }
 
-function close (port) {
+function close(port) {
   if (PortState(port).unlisten) {
     PortState(port).unlisten();
   }
@@ -200,31 +199,31 @@ function close (port) {
   port.close();
 }
 
-function seek (port, offset) {
+function seek(port, offset) {
   store.dispatch(Playback.seek(offset));
 }
 
-function pause (port) {
+function pause(port) {
   store.dispatch(Playback.pause());
 }
 
-function play (port, speed) {
+function play(port, speed) {
   store.dispatch(Playback.play(speed));
 }
 
-function bufferVideo (port, isBuffering) {
+function bufferVideo(port, isBuffering) {
   store.dispatch(Playback.bufferVideo(isBuffering));
 }
 
-function bufferData (port, isBuffering) {
+function bufferData(port, isBuffering) {
   store.dispatch(Playback.bufferData(isBuffering));
 }
 
-function disableBuffer (port, data) {
+function disableBuffer(port, data) {
   store.dispatch(Playback.disableBuffer(data));
 }
 
-async function hello (port, data) {
+async function hello(port, data) {
   await Demo.init();
   await initAuthPromise;
   store.dispatch(selectDeviceAction(data.dongleId));
@@ -237,38 +236,38 @@ async function hello (port, data) {
   return 'hello';
 }
 
-function resolve (port, data) {
+function resolve(port, data) {
   const { annotation, event, route } = data;
 
   store.dispatch(Segments.resolveAnnotation(annotation, event, route));
 }
 
-function selectDevice (port, dongleId) {
+function selectDevice(port, dongleId) {
   store.dispatch(selectDeviceAction(dongleId));
 }
 
-function updateDevice (port, device) {
+function updateDevice(port, device) {
   store.dispatch(updateDeviceAction(device));
 }
 
-function selectTimeRange (port, data) {
+function selectTimeRange(port, data) {
   const { start, end } = data;
   store.dispatch(selectTimeRangeAction(start, end));
 }
 
-function selectLoop (port, data) {
+function selectLoop(port, data) {
   const { startTime, duration } = data;
   store.dispatch(Playback.selectLoop(startTime, duration));
 }
 
-function cachePort (port, data, ports) {
+function cachePort(port, data, ports) {
   console.log('Was handed this port!', ports);
   Cache.setCachePort(ports[0]);
 }
 
-function scheduleSegmentUpdate (state) {
+function scheduleSegmentUpdate(state) {
   let timeUntilNext = 30000;
-  let offset = Playback.currentOffset(state);
+  const offset = Playback.currentOffset(state);
 
   if (SegmentTimerStore(state).stopTimer) {
     SegmentTimerStore(state).stopTimer();
@@ -281,19 +280,19 @@ function scheduleSegmentUpdate (state) {
     debugger;
   }
   if (state.currentSegment) {
-    let time = (state.currentSegment.routeOffset + state.currentSegment.duration) - offset;
+    const time = (state.currentSegment.routeOffset + state.currentSegment.duration) - offset;
     timeUntilNext = Math.min(time, timeUntilNext);
   }
   if (timeUntilNext < 0) {
     debugger;
   }
   if (state.loop && state.loop.startTime) {
-    let curTime = state.start + offset;
+    const curTime = state.start + offset;
     // curTime will be between start and end because we used currentOffset to get it
     // currentOffset takes into account loops using modulo over duration
-    let timeUntilLoop = 1 + state.loop.startTime + state.loop.duration - curTime;
-    let loopStartOffset = state.loop.startTime - state.start;
-    let loopStartSegment = Segments.getCurrentSegment(state, loopStartOffset);
+    const timeUntilLoop = 1 + state.loop.startTime + state.loop.duration - curTime;
+    const loopStartOffset = state.loop.startTime - state.start;
+    const loopStartSegment = Segments.getCurrentSegment(state, loopStartOffset);
     if (!state.currentSegment || !loopStartSegment || loopStartSegment.startOffset !== state.currentSegment.startOffset) {
       timeUntilNext = Math.min(timeUntilLoop, timeUntilNext);
     }
@@ -305,7 +304,7 @@ function scheduleSegmentUpdate (state) {
   if (timeUntilNext > 0) {
     timeUntilNext = Math.max(200, timeUntilNext);
     console.log('Waiting', timeUntilNext, 'for something to change...');
-    SegmentTimerStore(state).stopTimer = timeout(function () {
+    SegmentTimerStore(state).stopTimer = timeout(() => {
       // empty action to churn the butter
       store.dispatch(Segments.updateSegments());
     }, timeUntilNext);
@@ -315,7 +314,7 @@ function scheduleSegmentUpdate (state) {
   }
 }
 
-async function checkSegmentMetadata (state) {
+async function checkSegmentMetadata(state) {
   if (!state.dongleId) {
     return;
   }
@@ -327,12 +326,12 @@ async function checkSegmentMetadata (state) {
     return;
   }
   console.log('We need to update the segment metadata...');
-  var dongleId = state.dongleId;
-  var start = state.start;
-  var end = state.end;
+  const { dongleId } = state;
+  const { start } = state;
+  const { end } = state;
 
-  var segmentData = null;
-  var annotationsData = null;
+  let segmentData = null;
+  let annotationsData = null;
   await Demo.init();
   if (Demo.isDemo()) {
     segmentsRequest = Promise.resolve(demoSegments);
@@ -348,7 +347,7 @@ async function checkSegmentMetadata (state) {
     annotationsData = await annotationsRequest;
   } catch (e) {
     console.error('Failure fetching segment metadata', e.stack || e);
-    ///@TODO retry this call!
+    // /@TODO retry this call!
     return;
   } finally {
     segmentsRequest = null;
@@ -364,16 +363,16 @@ async function checkSegmentMetadata (state) {
   // ensureSegmentData(getState());
 }
 
-var ensureSegmentDataTimer = null;
-async function ensureSegmentData (state) {
+let ensureSegmentDataTimer = null;
+async function ensureSegmentData(state) {
   if (ensureSegmentDataTimer) {
     ensureSegmentDataTimer();
     ensureSegmentDataTimer = null;
   }
 
-  var entry = null;
+  let entry = null;
   if (Date.now() - state.startTime < 1000) {
-    ensureSegmentDataTimer = timeout(function () {
+    ensureSegmentDataTimer = timeout(() => {
       ensureSegmentDataTimer = null;
       return ensureSegmentData(getState());
     }, 1100 - (Date.now() - state.startTime));
@@ -399,5 +398,5 @@ async function ensureSegmentData (state) {
   }
 }
 
-function noop () {
+function noop() {
 }

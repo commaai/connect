@@ -1,8 +1,8 @@
-export function filterEvent (event) {
+export function filterEvent(event) {
   return (event.type === 'disengage' || event.type === 'disengage_steer');
 }
 
-export function formatDriveDuration (duration) {
+export function formatDriveDuration(duration) {
   const milliseconds = parseInt((duration % 1000) / 100);
   let seconds = parseInt((duration / 1000) % 60);
   let minutes = parseInt((duration / (1000 * 60)) % 60);
@@ -15,11 +15,11 @@ export function formatDriveDuration (duration) {
     minutes,
     seconds,
     milliseconds,
-  }
+  };
 }
 
-export function getDrivePoints (duration) {
-  let minutes = parseInt(duration / (1000 * 60));
-  let points = Math.floor(minutes * 1.5); // panda
+export function getDrivePoints(duration) {
+  const minutes = parseInt(duration / (1000 * 60));
+  const points = Math.floor(minutes * 1.5); // panda
   return points;
 }

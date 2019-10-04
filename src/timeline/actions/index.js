@@ -4,24 +4,24 @@ import {
   ACTION_UPDATE_DEVICE,
 } from './types';
 
-export function updateDevice (device) {
+export function updateDevice(device) {
   return {
     type: ACTION_UPDATE_DEVICE,
     device,
-  }
+  };
 }
 
-export function selectDevice (dongleId) {
+export function selectDevice(dongleId) {
   return {
     type: ACTION_SELECT_DEVICE,
     dongleId
   };
 }
 
-export function selectTimeRange (start, end) {
+export function selectTimeRange(start, end) {
   return {
     type: ACTION_SELECT_TIME_RANGE,
-    start, end
+    start,
+    end
   };
 }
-

@@ -12,13 +12,21 @@ const ACTION_BUFFER_DATA = 'action_buffer_data';
 const ACTION_DISABLE_BUFFER = 'action_disable_buffer';
 
 module.exports = {
-  pause, play, seek, currentOffset, selectLoop, timestampToOffset,
-  reducer, bufferVideo, bufferData, disableBuffer
+  pause,
+  play,
+  seek,
+  currentOffset,
+  selectLoop,
+  timestampToOffset,
+  reducer,
+  bufferVideo,
+  bufferData,
+  disableBuffer
 };
 
-function reducer (state = initialState, action) {
+function reducer(state = initialState, action) {
   // console.log(action);
-  var loopOffset = null;
+  let loopOffset = null;
   if (state.loop && state.loop.startTime !== null) {
     loopOffset = state.loop.startTime - state.start;
   }
@@ -30,7 +38,7 @@ function reducer (state = initialState, action) {
       if (loopOffset !== null) {
         if (state.offset < loopOffset || state.offset > (loopOffset + state.loop.duration)) {
           // a seek outside of loop should break out of the loop
-          state.loop = {startTime: null, duration: null};
+          state.loop = { startTime: null, duration: null };
           state.loopOffset = null;
         } else {
           if (state.offset > (loopOffset + state.loop.duration)) {
@@ -74,7 +82,7 @@ function reducer (state = initialState, action) {
       break;
   }
 
-  let offset = state.offset + (Date.now() - state.startTime) * state.playSpeed;
+  const offset = state.offset + (Date.now() - state.startTime) * state.playSpeed;
   // normalize over loop
   if (state.loop && state.loop.startTime !== null) {
     loopOffset = state.loop.startTime - state.start;
@@ -108,17 +116,17 @@ function reducer (state = initialState, action) {
   return state;
 }
 
-function timestampToOffset (state, timestamp) {
+function timestampToOffset(state, timestamp) {
   return timestamp - state.start;
 }
 
 // fetch current playback offset
-function currentOffset (state) {
+function currentOffset(state) {
   let offset = state.offset + (Date.now() - state.startTime) * state.playSpeed;
 
   if (state.loop && state.loop.startTime) {
     // respect the loop
-    let loopOffset = state.loop.startTime - state.start;
+    const loopOffset = state.loop.startTime - state.start;
     if (offset > loopOffset + state.loop.duration) {
       offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
     }
@@ -128,37 +136,38 @@ function currentOffset (state) {
 }
 
 // seek to a specific offset
-function seek (offset) {
+function seek(offset) {
   return {
     type: ACTION_SEEK,
-    offset: offset
+    offset
   };
 }
 
 // pause the playback
-function pause () {
+function pause() {
   return {
     type: ACTION_PAUSE
   };
 }
 
 // resume / change play speed
-function play (speed = 1) {
+function play(speed = 1) {
   return {
     type: ACTION_PLAY,
     speed
   };
 }
 
-function selectLoop (startTime, duration) {
+function selectLoop(startTime, duration) {
   return {
     type: ACTION_LOOP,
-    startTime, duration
+    startTime,
+    duration
   };
 }
 
 // update video buffering state
-function bufferVideo (buffering = true) {
+function bufferVideo(buffering = true) {
   return {
     type: ACTION_BUFFER_VIDEO,
     buffering
@@ -166,14 +175,14 @@ function bufferVideo (buffering = true) {
 }
 
 // update data buffering state
-function bufferData (buffering = true) {
+function bufferData(buffering = true) {
   return {
     type: ACTION_BUFFER_DATA,
     buffering
   };
 }
 
-function disableBuffer () {
+function disableBuffer() {
   return {
     type: ACTION_DISABLE_BUFFER
   };

@@ -3,7 +3,7 @@ import { findMonoTime } from './logIndex';
 // export function findMonoTime (index, monoTime, start, end) {
 
 it('can binary search correctly', () => {
-  var exampleIndex = {
+  const exampleIndex = {
     index: [
       [123],
       [234],
@@ -20,4 +20,3 @@ it('can binary search correctly', () => {
   expect(findMonoTime(exampleIndex, 678)).toBe(5);
   expect(findMonoTime(exampleIndex, 679)).toBe(5);
 });
-

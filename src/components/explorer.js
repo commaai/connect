@@ -15,42 +15,42 @@ import Timelineworker from '../timeline';
 import { selectRange } from '../actions';
 import { getDongleID, getZoom } from '../url';
 
-const styles = theme => {
-  return {
-    base: {
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-    },
-    header: {
-      display: 'flex',
-      height: 64,
-      minHeight: 64,
-    },
-    window: {
-      display: 'flex',
-      flexGrow: 1,
-      minHeight: 0,
-    },
-  };
-};
+const styles = (theme) => ({
+  base: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+  },
+  header: {
+    display: 'flex',
+    height: 64,
+    minHeight: 64,
+  },
+  window: {
+    display: 'flex',
+    flexGrow: 1,
+    minHeight: 0,
+  },
+});
 
 class ExplorerApp extends Component {
-  constructor (props) {
+  constructor(props) {
     super(props);
 
     this.state = {
       settingDongle: null
     };
   }
-  componentWillMount () {
+
+  componentWillMount() {
     this.checkProps(this.props);
   }
-  componentWillReceiveProps (props) {
+
+  componentWillReceiveProps(props) {
     this.checkProps(props);
 
-    var isZoomed = props.expanded;
-    var wasZoomed = this.props.expanded;
+    const isZoomed = props.expanded;
+    const wasZoomed = this.props.expanded;
 
     if (isZoomed && !wasZoomed) {
       Timelineworker.play();
@@ -59,11 +59,12 @@ class ExplorerApp extends Component {
       Timelineworker.pause();
     }
   }
-  checkProps (props) {
-    var dongleId = getDongleID(props.pathname);
-    var zoom = getZoom(props.pathname);
 
-    let curDongle = this.state.settingDongle || props.dongleId;
+  checkProps(props) {
+    const dongleId = getDongleID(props.pathname);
+    const zoom = getZoom(props.pathname);
+
+    const curDongle = this.state.settingDongle || props.dongleId;
 
     if (dongleId) {
       if (curDongle !== dongleId) {
@@ -83,11 +84,11 @@ class ExplorerApp extends Component {
   render() {
     const { classes, expanded } = this.props;
     return (
-      <div className={ classes.base }>
-        <div className={ classes.header }>
+      <div className={classes.base}>
+        <div className={classes.header}>
           <AppHeader />
         </div>
-        <div className={ classes.window }>
+        <div className={classes.window}>
           { expanded ? (<Annotations />) : (<Dashboard />) }
         </div>
       </div>

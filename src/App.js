@@ -28,12 +28,12 @@ import * as Demo from './demo';
 initGoogleAnalytics(history);
 const store = createStore();
 
-TimelineWorker.onStateChange(function (data) {
+TimelineWorker.onStateChange((data) => {
   store.dispatch(updateState(data));
 });
 
 class App extends Component {
-  constructor (props) {
+  constructor(props) {
     super(props);
 
     this.state = {
@@ -51,9 +51,8 @@ class App extends Component {
       if (isDemo) {
         return localforage.setItem('isDemo', '1')
           .then(initDemoTimeline.callback);
-      } else {
-        return this.auth();
       }
+      return this.auth();
     });
 
     const initDemoState = Jepsen(() => {
@@ -61,7 +60,7 @@ class App extends Component {
       this.setState({
         initialized: true,
         demo: true,
-      })
+      });
     });
 
     this.cancelInit(checkDemo.cancel);
@@ -70,14 +69,16 @@ class App extends Component {
 
     Demo.init().then(checkDemo.callback);
   }
-  componentWillUnmount () {
+
+  componentWillUnmount() {
     this.cancelInit();
     TimelineWorker.stop();
   }
-  async auth () {
+
+  async auth() {
     if (document.location) {
       if (document.location.pathname == '/auth/g/redirect') {
-        var code = qs.parse(document.location.search)['code'];
+        const { code } = qs.parse(document.location.search);
 
         try {
           const token = await AuthApi.refreshAccessToken(code, AuthConfig.REDIRECT_URI);
@@ -100,45 +101,50 @@ class App extends Component {
 
     this.setState({ initialized: true });
   }
-  redirectLink () {
+
+  redirectLink() {
     let url = '/';
     if (typeof window.sessionStorage !== 'undefined') {
       url = sessionStorage.redirectURL || '/';
     }
     return url;
   }
-  authRoutes () {
+
+  authRoutes() {
     return (
       <Switch>
-        <Route path="/auth/" render={ () => <Redirect to={ this.redirectLink() } /> } />
-        <Route path="/" component={ Explorer } />
+        <Route path="/auth/" render={() => <Redirect to={this.redirectLink()} />} />
+        <Route path="/" component={Explorer} />
       </Switch>
     );
   }
-  ananymousRoutes () {
+
+  ananymousRoutes() {
     return (
       <Switch>
-        <Route path="/auth/" render={ () => <Redirect to="/" /> } />
-        <Route path="/" component={ AnonymousLanding } />
+        <Route path="/auth/" render={() => <Redirect to="/" />} />
+        <Route path="/" component={AnonymousLanding} />
       </Switch>
     );
   }
-  renderLoading () {
+
+  renderLoading() {
     return (
-      <Grid container alignItems='center' style={{ width: '100%', height: '100%' }}>
-        <Grid item align='center' xs={12} >
-          <CircularProgress size='10vh' style={{ color: '#525E66' }} />
+      <Grid container alignItems="center" style={{ width: '100%', height: '100%' }}>
+        <Grid item align="center" xs={12}>
+          <CircularProgress size="10vh" style={{ color: '#525E66' }} />
         </Grid>
       </Grid>
     );
   }
+
   render() {
     if (!this.state.initialized) {
       return this.renderLoading();
     }
     return (
-      <Provider store={ store }>
-        <ConnectedRouter history={ history }>
+      <Provider store={store}>
+        <ConnectedRouter history={history}>
           { (MyCommaAuth.isAuthenticated() || this.state.demo) ? this.authRoutes() : this.ananymousRoutes() }
         </ConnectedRouter>
       </Provider>

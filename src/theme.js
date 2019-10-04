@@ -32,7 +32,7 @@ const theme = createMuiTheme({
     MuiInput: {
       root: {
         position: 'relative',
-        border: '1px solid ' + Colors.grey800,
+        border: `1px solid ${Colors.grey800}`,
         borderRadius: 20,
         overflow: 'hidden'
       },

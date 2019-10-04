@@ -13,7 +13,9 @@ import IconButton from '@material-ui/core/IconButton';
 import PlayArrow from '@material-ui/icons/PlayArrow';
 import Pause from '@material-ui/icons/Pause';
 
-import { DownArrow, UpArrow, HistoryForwardIcon, HistoryBackIcon } from '../../icons';
+import {
+  DownArrow, UpArrow, HistoryForwardIcon, HistoryBackIcon
+} from '../../icons';
 
 import TimelineWorker from '../../timeline';
 
@@ -28,77 +30,75 @@ const timerSteps = [
   5
 ];
 
-const styles = theme => {
-  return {
-    base: {
-      backgroundColor: theme.palette.grey[999],
-      height: '64px',
-      borderRadius: '32px',
-      padding: theme.spacing.unit,
-      maxWidth: 510,
-      margin: '0 auto',
-      minWidth: 450,
-      opacity: 0,
-      pointerEvents: 'none',
-      transition: 'opacity 0.1s ease-in-out',
-      '&.isExpanded': {
-        opacity: 1,
-        pointerEvents: 'auto',
-      },
-      '&.isThin': {
-        height: 50,
-        paddingBottom: 0,
-        paddingTop: 0,
-      },
+const styles = (theme) => ({
+  base: {
+    backgroundColor: theme.palette.grey[999],
+    height: '64px',
+    borderRadius: '32px',
+    padding: theme.spacing.unit,
+    maxWidth: 510,
+    margin: '0 auto',
+    minWidth: 450,
+    opacity: 0,
+    pointerEvents: 'none',
+    transition: 'opacity 0.1s ease-in-out',
+    '&.isExpanded': {
+      opacity: 1,
+      pointerEvents: 'auto',
     },
-    icon: {
-      width: '98%',
-      height: '98%',
-      '&.dim': {
-        color: theme.palette.grey[700]
-      },
-      '&.small': {
-        width: '60%',
-        height: '60%',
-      },
-      '&.circle': {
-        border: '1px solid ' + theme.palette.grey[900],
-        borderRadius: '50%'
-      }
+    '&.isThin': {
+      height: 50,
+      paddingBottom: 0,
+      paddingTop: 0,
     },
-    tinyArrow: {
-      display: 'flex',
-      height: 12,
-    },
-    tinyArrowIcon: {
-      width: 12,
-      height: 12,
+  },
+  icon: {
+    width: '98%',
+    height: '98%',
+    '&.dim': {
       color: theme.palette.grey[700]
     },
-    iconButton: {
-      maxWidth: '100%',
-      maxHeight: '100%'
+    '&.small': {
+      width: '60%',
+      height: '60%',
     },
-    iconBox: {
-      display: 'inline-block',
-      borderRight: '1px solid ' + theme.palette.grey[900]
-    },
-    dateTime: {
-      alignItems: 'center',
-      display: 'flex',
-      justifyContent: 'center',
-    },
-    currentTime: {
-      fontSize: 15,
-      fontWeight: 500,
-      display: 'block',
-      marginTop: 4,
+    '&.circle': {
+      border: `1px solid ${theme.palette.grey[900]}`,
+      borderRadius: '50%'
     }
+  },
+  tinyArrow: {
+    display: 'flex',
+    height: 12,
+  },
+  tinyArrowIcon: {
+    width: 12,
+    height: 12,
+    color: theme.palette.grey[700]
+  },
+  iconButton: {
+    maxWidth: '100%',
+    maxHeight: '100%'
+  },
+  iconBox: {
+    display: 'inline-block',
+    borderRight: `1px solid ${theme.palette.grey[900]}`
+  },
+  dateTime: {
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'center',
+  },
+  currentTime: {
+    fontSize: 15,
+    fontWeight: 500,
+    display: 'block',
+    marginTop: 4,
   }
-};
+});
 
 class TimeDisplay extends Component {
-  constructor (props) {
+  constructor(props) {
     super(props);
 
     this.textHolder = React.createRef();
@@ -116,7 +116,7 @@ class TimeDisplay extends Component {
     };
   }
 
-  componentDidUpdate (prevProps, prevState) {
+  componentDidUpdate(prevProps, prevState) {
     if (this.props.playSpeed !== 0 && this.props.playSpeed !== this.state.playSpeed) {
       this.setState({
         playSpeed: this.props.playSpeed
@@ -124,15 +124,16 @@ class TimeDisplay extends Component {
     }
   }
 
-  componentDidMount () {
+  componentDidMount() {
     this.mounted = true;
     raf(this.updateTime);
   }
-  componentWillUnmount () {
+
+  componentWillUnmount() {
     this.mounted = false;
   }
 
-  togglePause (e) {
+  togglePause(e) {
     if (this.props.playSpeed === 0) {
       TimelineWorker.play(this.state.playSpeed);
     } else {
@@ -140,15 +141,15 @@ class TimeDisplay extends Component {
     }
   }
 
-  jumpBack (amount) {
+  jumpBack(amount) {
     TimelineWorker.seek(TimelineWorker.currentOffset() - amount);
   }
 
-  jumpForward (amount) {
+  jumpForward(amount) {
     TimelineWorker.seek(TimelineWorker.currentOffset() + amount);
   }
 
-  increaseSpeed () {
+  increaseSpeed() {
     let curIndex = timerSteps.indexOf(this.state.playSpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
@@ -157,7 +158,7 @@ class TimeDisplay extends Component {
     TimelineWorker.play(timerSteps[curIndex]);
   }
 
-  decreaseSpeed () {
+  decreaseSpeed() {
     let curIndex = timerSteps.indexOf(this.state.playSpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
@@ -166,11 +167,11 @@ class TimeDisplay extends Component {
     TimelineWorker.play(timerSteps[curIndex]);
   }
 
-  updateTime () {
+  updateTime() {
     if (!this.mounted || !this.textHolder.current) {
       return;
     }
-    let displayTime = this.getDisplayTime();
+    const displayTime = this.getDisplayTime();
     if (this.state.displayTime !== displayTime) {
       this.setState({ displayTime });
     }
@@ -178,94 +179,100 @@ class TimeDisplay extends Component {
     raf(this.updateTime);
   }
 
-  getDisplayTime () {
-    var currentOffset = TimelineWorker.currentOffset();
-    var start = this.props.start;
+  getDisplayTime() {
+    const currentOffset = TimelineWorker.currentOffset();
+    const { start } = this.props;
     if (!Number.isFinite(start)) {
       return '...';
     }
-    var now = new Date(currentOffset + start);
-    var dateString = fecha.format(now, 'ddd, D MMM, YYYY @ HH:mm:ss');
+    const now = new Date(currentOffset + start);
+    const dateString = fecha.format(now, 'ddd, D MMM, YYYY @ HH:mm:ss');
     // var dateString = fecha.format(now, 'MMM D @ HH:mm:ss');
 
     return dateString;
   }
 
-  render () {
+  render() {
     const { classes } = this.props;
     const isPaused = this.props.playSpeed === 0;
     return (
       <div
-        className={ cx(classes.base, {
+        className={cx(classes.base, {
           isExpanded: this.props.expanded,
           isThin: this.props.isThin,
-        }) }>
+        })}
+      >
         <Grid container>
-          <Grid item xs={ 3 }>
+          <Grid item xs={3}>
             <Grid container>
-              <Grid item align='center' xs={ 6 } className={ classes.iconBox } >
+              <Grid item align="center" xs={6} className={classes.iconBox}>
                 <IconButton
-                  onClick={ partial(this.jumpBack, 10000) }
-                  aria-label='Jump back 10 seconds'>
-                  <HistoryBackIcon className={ classes.icon + ' small dim' } />
+                  onClick={partial(this.jumpBack, 10000)}
+                  aria-label="Jump back 10 seconds"
+                >
+                  <HistoryBackIcon className={`${classes.icon} small dim`} />
                 </IconButton>
               </Grid>
-              <Grid item align='center' xs={ 6 } className={ classes.iconBox } >
+              <Grid item align="center" xs={6} className={classes.iconBox}>
                 <IconButton
-                  onClick={ partial(this.jumpForward, 10000) }
-                  aria-label='Jump forward 10 seconds'>
-                  <HistoryForwardIcon className={ classes.icon + ' small dim' } />
+                  onClick={partial(this.jumpForward, 10000)}
+                  aria-label="Jump forward 10 seconds"
+                >
+                  <HistoryForwardIcon className={`${classes.icon} small dim`} />
                 </IconButton>
               </Grid>
             </Grid>
           </Grid>
-          <Grid item xs={ 6 } className={ classes.dateTime }>
+          <Grid item xs={6} className={classes.dateTime}>
             { !this.props.isThin && (
-              <Typography variant='caption' align='center' style={{ paddingTop: 4 }}>
+              <Typography variant="caption" align="center" style={{ paddingTop: 4 }}>
                 CURRENT PLAYBACK TIME
               </Typography>
             )}
-            <Typography variant='body1' align='center'>
-              <span ref={ this.textHolder } className={ classes.currentTime } >
+            <Typography variant="body1" align="center">
+              <span ref={this.textHolder} className={classes.currentTime}>
                 { this.state.displayTime }
               </span>
             </Typography>
           </Grid>
-          <Grid item xs={ 3 }>
+          <Grid item xs={3}>
             <Grid container>
-              <Grid item align='center' xs={ 4 } className={ classes.iconBox } >
-                <Grid container alignItems='center' direction='column'>
-                  <Grid item className={ classes.tinyArrow }>
+              <Grid item align="center" xs={4} className={classes.iconBox}>
+                <Grid container alignItems="center" direction="column">
+                  <Grid item className={classes.tinyArrow}>
                     <IconButton
-                      className={ classes.tinyArrowIcon }
-                      onClick={ this.increaseSpeed }
-                      aria-label='Increase play speed by 1 step'>
-                      <UpArrow className={ classes.tinyArrowIcon } />
+                      className={classes.tinyArrowIcon}
+                      onClick={this.increaseSpeed}
+                      aria-label="Increase play speed by 1 step"
+                    >
+                      <UpArrow className={classes.tinyArrowIcon} />
                     </IconButton>
                   </Grid>
                   <Grid item>
-                    <Typography variant='body2' align='center'>
-                      { this.state.playSpeed }x
+                    <Typography variant="body2" align="center">
+                      { this.state.playSpeed }
+x
                     </Typography>
                   </Grid>
-                  <Grid item className={ classes.tinyArrow }>
+                  <Grid item className={classes.tinyArrow}>
                     <IconButton
-                      className={ classes.tinyArrowIcon }
-                      onClick={ this.decreaseSpeed }
-                      aria-label='Decrease play speed by 1 step'>
-                      <DownArrow className={ classes.tinyArrowIcon } />
+                      className={classes.tinyArrowIcon}
+                      onClick={this.decreaseSpeed}
+                      aria-label="Decrease play speed by 1 step"
+                    >
+                      <DownArrow className={classes.tinyArrowIcon} />
                     </IconButton>
                   </Grid>
                 </Grid>
               </Grid>
-              <Grid item align='center' xs={ 8 } >
+              <Grid item align="center" xs={8}>
                 <IconButton
-                  onClick={ this.togglePause }
-                  aria-label={ isPaused ? 'Unpause' : 'Pause' } >
-                { isPaused
-                  ? ( <PlayArrow className={ classes.icon + ' circle' } /> )
-                  : ( <Pause className={ classes.icon + ' circle' } /> )
-                }
+                  onClick={this.togglePause}
+                  aria-label={isPaused ? 'Unpause' : 'Pause'}
+                >
+                  { isPaused
+                    ? (<PlayArrow className={`${classes.icon} circle`} />)
+                    : (<Pause className={`${classes.icon} circle`} />)}
                 </IconButton>
               </Grid>
             </Grid>

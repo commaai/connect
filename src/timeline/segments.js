@@ -39,7 +39,7 @@ for example, caching url metadata
 }
 */
 
-function reducer (state = initialState, action) {
+function reducer(state = initialState, action) {
   switch (action.type) {
     case ACTION_LOAD_SEGMENT_METADATA:
       state.segmentData = {
@@ -78,11 +78,11 @@ function reducer (state = initialState, action) {
       }
       break;
   }
-  var currentSegment = getCurrentSegment(state);
-  var nextSegment = getNextSegment(state);
+  const currentSegment = getCurrentSegment(state);
+  const nextSegment = getNextSegment(state);
 
   if (currentSegment) {
-    state.route = currentSegment.route
+    state.route = currentSegment.route;
     state.segment = currentSegment.segment;
   } else {
     state.route = false;
@@ -97,20 +97,22 @@ function reducer (state = initialState, action) {
   return state;
 }
 
-function updateSegments () {
+function updateSegments() {
   return {
     type: ACTION_UPDATE_SEGMENTS
   };
 }
 
-function fetchSegmentMetadata (start, end, promise) {
+function fetchSegmentMetadata(start, end, promise) {
   return {
     type: ACTION_LOAD_SEGMENT_METADATA,
-    start, end, promise
+    start,
+    end,
+    promise
   };
 }
 
-function insertSegmentMetadata (data) {
+function insertSegmentMetadata(data) {
   return {
     type: ACTION_SEGMENT_METADATA,
     segments: segmentsFromMetadata(data),
@@ -118,20 +120,22 @@ function insertSegmentMetadata (data) {
   };
 }
 
-function resolveAnnotation (annotation, event, route) {
+function resolveAnnotation(annotation, event, route) {
   return {
     type: ACTION_RESOLVE_ANNOTATION,
-    annotation, event, route
+    annotation,
+    event,
+    route
   };
 }
 
-function parseSegmentMetadata (state, segments, annotations) {
-  var lastSegmentTime = 0;
-  var routeStartTimes = {};
-  segments = segments.map(function (segment) {
+function parseSegmentMetadata(state, segments, annotations) {
+  let lastSegmentTime = 0;
+  const routeStartTimes = {};
+  segments = segments.map((segment) => {
     segment.offset = Math.round(segment.start_time_utc_millis) - state.start;
     if (!routeStartTimes[segment.canonical_route_name]) {
-      let segmentNum = Number(segment.canonical_name.split('--')[2]);
+      const segmentNum = Number(segment.canonical_name.split('--')[2]);
       segment.segment = segmentNum;
       if (segmentNum > 0) {
         routeStartTimes[segment.canonical_route_name] = segment.offset - (SEGMENT_LENGTH * segmentNum);
@@ -149,17 +153,15 @@ function parseSegmentMetadata (state, segments, annotations) {
     lastSegmentTime = segment.offset;
     segment.duration = Math.round(segment.end_time_utc_millis - segment.start_time_utc_millis);
     segment.events = JSON.parse(segment.events_json) || [];
-    let plannedDisengageEvents = segment.events.filter(function(event) {
-      return event.type === "alert" && event.data && event.data.should_take_control;
-    });
+    const plannedDisengageEvents = segment.events.filter((event) => event.type === 'alert' && event.data && event.data.should_take_control);
 
-    segment.events.forEach(function (event) {
+    segment.events.forEach((event) => {
       event.timestamp = segment.start_time_utc_millis + event.offset_millis;
       // segment.start_time_utc_millis + event.offset_millis
       // segment.start_time_utc_millis - state.start + state.start
 
       event.canonical_segment_name = segment.canonical_name;
-      annotations.forEach(function (annotation) {
+      annotations.forEach((annotation) => {
         // debugger;
         if (annotation.canonical_segment_name === event.canonical_segment_name
           && annotation.offset_millis === event.offset_millis
@@ -174,15 +176,14 @@ function parseSegmentMetadata (state, segments, annotations) {
       });
 
       if (event.data && event.data.is_planned) {
-        var reason;
+        let reason;
 
-        let alert = plannedDisengageEvents.reduce(function(closestAlert, alert) {
-          let closestAlertDiff = Math.abs(closestAlert.offset_millis - event.offset_millis);
+        const alert = plannedDisengageEvents.reduce((closestAlert, alert) => {
+          const closestAlertDiff = Math.abs(closestAlert.offset_millis - event.offset_millis);
           if (Math.abs(alert.offset_millis - event.offset_millis) < closestAlertDiff) {
             return alert;
-          } else {
-            return closestAlert;
           }
+          return closestAlert;
         }, plannedDisengageEvents[0]);
         if (alert) {
           reason = alert.data.alertText2;
@@ -191,20 +192,20 @@ function parseSegmentMetadata (state, segments, annotations) {
           reason = 'Planned disengagement';
         }
 
-        event.id = 'planned_disengage_' + event.time;
+        event.id = `planned_disengage_${event.time}`;
         event.annotation = {
-          "start_time_utc_millis": event.timestamp,
-          "data": {
+          start_time_utc_millis: event.timestamp,
+          data: {
             reason,
           },
-          "offset_nanos_part": event.offset_nanos,
-          "end_time_utc_millis": event.timestamp,
-          "canonical_segment_name": event.canonical_segment_name,
-          "dongle_id": state.dongleId,
-          "type": event.type,
-          "id": event.id,
-          "offset_millis": event.offset_millis
-        }
+          offset_nanos_part: event.offset_nanos,
+          end_time_utc_millis: event.timestamp,
+          canonical_segment_name: event.canonical_segment_name,
+          dongle_id: state.dongleId,
+          type: event.type,
+          id: event.id,
+          offset_millis: event.offset_millis
+        };
       }
     });
     return segment;
@@ -217,21 +218,21 @@ function parseSegmentMetadata (state, segments, annotations) {
     segments
   };
 }
-function segmentsFromMetadata (segmentsData) {
-  var curSegment = null;
-  var curStopTime = null;
-  var curVideoStartOffset = null;
-  var segments = [];
-  segmentsData.segments.forEach(function (segment) {
+function segmentsFromMetadata(segmentsData) {
+  let curSegment = null;
+  let curStopTime = null;
+  let curVideoStartOffset = null;
+  const segments = [];
+  segmentsData.segments.forEach((segment) => {
     if (!segment.url) {
       return;
     }
     if (!(segment.proc_log === 40 || segment.proc_qlog === 40)) {
       return;
     }
-    var segmentHasDriverCamera = (segment.proc_dcamera >= 0);
-    var segmentHasDriverCameraStream = (segment.proc_dcamera === 40);
-    var segmentHasVideo = (segment.proc_camera === 40);
+    const segmentHasDriverCamera = (segment.proc_dcamera >= 0);
+    const segmentHasDriverCameraStream = (segment.proc_dcamera === 40);
+    const segmentHasVideo = (segment.proc_camera === 40);
     if (segmentHasVideo && curVideoStartOffset === null) {
       curVideoStartOffset = segment.offset;
     }
@@ -250,8 +251,8 @@ function segmentsFromMetadata (segmentsData) {
       if (curSegment) {
         finishSegment(curSegment);
       }
-      let url = segment.url;
-      let parts = url.split('/');
+      let { url } = segment;
+      const parts = url.split('/');
 
       if (Number.isFinite(Number(parts.pop()))) {
         // url has a number at the end
@@ -303,23 +304,23 @@ function segmentsFromMetadata (segmentsData) {
 
   return segments;
 
-  function finishSegment (segment) {
-    var lastEngage = null;
+  function finishSegment(segment) {
+    let lastEngage = null;
 
     if (segment.hasVideo) {
-      let lastVideoRange = segment.videoAvailableBetweenOffsets[segment.videoAvailableBetweenOffsets.length - 1] || [segment.offset, segment.offset + segment.duration];
+      const lastVideoRange = segment.videoAvailableBetweenOffsets[segment.videoAvailableBetweenOffsets.length - 1] || [segment.offset, segment.offset + segment.duration];
       segment.videoAvailableBetweenOffsets = [
         ...segment.videoAvailableBetweenOffsets.slice(0, segment.videoAvailableBetweenOffsets.length - 1),
         [lastVideoRange[0], segment.offset + segment.duration]
       ];
     }
-    segment.events = segment.events.sort(function (eventA, eventB) {
+    segment.events = segment.events.sort((eventA, eventB) => {
       if (eventA.route_offset_millis === eventB.route_offset_millis) {
         return eventA.route_offset_nanos - eventB.route_offset_nanos;
       }
       return eventA.route_offset_millis - eventB.route_offset_millis;
     });
-    segment.events.forEach(function (event) {
+    segment.events.forEach((event) => {
       // NOTE sometimes theres 2 disengages in a row and that is NONSENSE
       switch (event.type) {
         case 'engage':
@@ -342,7 +343,7 @@ function segmentsFromMetadata (segmentsData) {
   }
 }
 
-function hasSegmentMetadata (state) {
+function hasSegmentMetadata(state) {
   if (!state.segmentData) {
     console.log('No segment data at all');
     return false;
@@ -352,7 +353,7 @@ function hasSegmentMetadata (state) {
     return false;
   }
   if (state.dongleId !== state.segmentData.dongleId) {
-    console.log('Bad dongle id');;
+    console.log('Bad dongle id');
     return false;
   }
   if (state.start < state.segmentData.start) {
@@ -372,12 +373,10 @@ function hasSegmentMetadata (state) {
 }
 
 function hasCameraAtOffset(segment, offset) {
-  return segment.videoAvailableBetweenOffsets.some(function(offsetInterval) {
-    return offset >= offsetInterval[0] && offset <= offsetInterval[1];
-  });
+  return segment.videoAvailableBetweenOffsets.some((offsetInterval) => offset >= offsetInterval[0] && offset <= offsetInterval[1]);
 }
 
-function getNextSegment (state, offset) {
+function getNextSegment(state, offset) {
   if (offset === undefined) {
     offset = Playback.currentOffset(state);
   }
@@ -385,11 +384,11 @@ function getNextSegment (state, offset) {
     return null;
   }
 
-  var segments = state.segments;
-  var lastSegment = null;
+  const { segments } = state;
+  const lastSegment = null;
 
   for (let i = 0, len = segments.length; i < len; ++i) {
-    let thisSegment = segments[i];
+    const thisSegment = segments[i];
     // the next segment is after the offset, that means this offset is in a blank
     if (thisSegment.offset > offset) {
       return {
@@ -412,7 +411,7 @@ function getNextSegment (state, offset) {
       break;
     }
     if (thisSegment.offset + thisSegment.duration > offset) {
-      let segmentIndex = ~~((offset - thisSegment.offset) / SEGMENT_LENGTH);
+      const segmentIndex = ~~((offset - thisSegment.offset) / SEGMENT_LENGTH);
       if (segmentIndex + 1 < thisSegment.segments) {
         return {
           url: thisSegment.url,
@@ -439,7 +438,7 @@ function getNextSegment (state, offset) {
   return null;
 }
 
-function getCurrentSegment (state, offset) {
+function getCurrentSegment(state, offset) {
   if (offset === undefined) {
     offset = Playback.currentOffset(state);
   }
@@ -447,16 +446,16 @@ function getCurrentSegment (state, offset) {
     return null;
   }
 
-  var segments = state.segments;
+  const { segments } = state;
 
   for (let i = 0, len = segments.length; i < len; ++i) {
-    let thisSegment = segments[i];
+    const thisSegment = segments[i];
     // the next segment is after the offset, that means this offset is in a blank
     if (thisSegment.offset > offset) {
       break;
     }
     if (thisSegment.offset + thisSegment.duration > offset) {
-      let segmentIndex = Math.floor((offset - thisSegment.offset) / SEGMENT_LENGTH);
+      const segmentIndex = Math.floor((offset - thisSegment.offset) / SEGMENT_LENGTH);
       return {
         url: thisSegment.url,
         route: thisSegment.route,

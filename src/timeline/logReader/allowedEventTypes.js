@@ -1,6 +1,6 @@
 import { Event_Which } from '@commaai/log_reader/capnp/log.capnp';
 
-export default function filterEvent (which) {
+export default function filterEvent(which) {
   switch (which) {
     case Event_Which.MODEL:
     case Event_Which.LIVE20:

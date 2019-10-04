@@ -5,18 +5,16 @@ import Obstruction from 'obstruction';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 
-const styles = theme => {
-  return {
-    root: {}
-  }
-};
+const styles = (theme) => ({
+  root: {}
+});
 
 class MyAwesomeComponent extends Component {
-  render () {
+  render() {
     return (
-      <React.Fragment>
+      <>
         <Typography>asdf</Typography>
-      </React.Fragment>
+      </>
     );
   }
 }

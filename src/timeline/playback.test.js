@@ -1,6 +1,6 @@
 const Playback = require('./playback');
 
-var makeDefaultStruct = function() {
+const makeDefaultStruct = function () {
   return {
     start: Date.now(),
     playSpeed: 0, // 0 = stopped, 1 = playing, 2 = 2x speed... multiplier on speed
@@ -10,22 +10,22 @@ var makeDefaultStruct = function() {
     shouldBuffer: true,
     isBuffering: false
   };
-}
+};
 
 // make Date.now super stable for tests
-var mostRecentNow = Date.now();
+let mostRecentNow = Date.now();
 Date._now = Date.now;
 Date.now = function () {
   return mostRecentNow;
 };
-function newNow () {
+function newNow() {
   mostRecentNow = Date._now();
   return mostRecentNow;
 }
 
-test('playback controls', async function () {
+test('playback controls', async () => {
   newNow();
-  var state = makeDefaultStruct();
+  const state = makeDefaultStruct();
 
   // should do nothing
   Playback.reducer(state, Playback.pause());
@@ -33,7 +33,7 @@ test('playback controls', async function () {
   expect(state.desiredPlaySpeed).toEqual(0);
 
   // start playing, should set start time and such
-  var playTime = newNow();
+  let playTime = newNow();
   Playback.reducer(state, Playback.play());
   // this is a (usually 1ms) race condition
   expect(state.startTime).toEqual(playTime);
@@ -42,7 +42,7 @@ test('playback controls', async function () {
 
   await delay(100 + Math.random() * 200);
   // should update offset
-  var ellapsed = newNow() - playTime;
+  let ellapsed = newNow() - playTime;
   Playback.reducer(state, Playback.pause());
 
   expect(state.offset).toEqual(ellapsed);
@@ -57,7 +57,7 @@ test('playback controls', async function () {
 
   await delay(100 + Math.random() * 200);
   // should update offset, playback speed 1/2
-  ellapsed = ellapsed + (newNow() - playTime) / 2;
+  ellapsed += (newNow() - playTime) / 2;
   expect(Playback.currentOffset(state)).toEqual(ellapsed);
   Playback.reducer(state, Playback.pause());
 
@@ -71,9 +71,9 @@ test('playback controls', async function () {
   expect(Playback.currentOffset(state)).toEqual(123);
 });
 
-test('loop should clear when seeked after loop end time', function() {
+test('loop should clear when seeked after loop end time', () => {
   newNow();
-  var state = makeDefaultStruct();
+  const state = makeDefaultStruct();
 
   // set up loop
   Playback.reducer(state, Playback.play());
@@ -85,9 +85,9 @@ test('loop should clear when seeked after loop end time', function() {
   expect(state.loop.startTime).toEqual(null);
 });
 
-test('loop should clear when seeked before loop start time', function() {
+test('loop should clear when seeked before loop start time', () => {
   newNow();
-  var state = makeDefaultStruct();
+  const state = makeDefaultStruct();
 
   // set up loop
   Playback.reducer(state, Playback.play());
@@ -99,9 +99,9 @@ test('loop should clear when seeked before loop start time', function() {
   expect(state.loop.startTime).toEqual(null);
 });
 
-test('buffering video and data', async function () {
+test('buffering video and data', async () => {
   newNow();
-  var state = makeDefaultStruct();
+  const state = makeDefaultStruct();
 
   // buffering is enabled by default
   expect(state.shouldBuffer).toEqual(true);
@@ -140,6 +140,6 @@ test('buffering video and data', async function () {
 });
 
 
-async function delay (ms) {
+async function delay(ms) {
   return new Promise((resolve, reject) => setTimeout(resolve, ms));
 }

@@ -21,41 +21,39 @@ import ShareIcon from '@material-ui/icons/Share';
 import { devices as Devices } from '@commaai/comma-api';
 import Timelineworker from '../../timeline';
 
-const styles = theme => {
-  return {
-    modal: {
-      position: 'absolute',
-      padding: theme.spacing.unit * 2,
-      width: theme.spacing.unit * 50,
-      left: '50%',
-      top: '40%',
-      transform: 'translate(-50%, -50%)'
-    },
-    textField: {
-    },
-    buttonGroup: {
-      textAlign: 'right'
-    },
-    form: {
-      paddingTop: theme.spacing.unit,
-      paddingBottom: theme.spacing.unit
-    },
-    formRow: {
-      minHeight: 75
-    },
-    fabProgress: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      zIndex: 1,
-    },
-    wrapper: {
-      margin: theme.spacing.unit,
-      position: 'relative',
-      display: 'inline-block'
-    }
+const styles = (theme) => ({
+  modal: {
+    position: 'absolute',
+    padding: theme.spacing.unit * 2,
+    width: theme.spacing.unit * 50,
+    left: '50%',
+    top: '40%',
+    transform: 'translate(-50%, -50%)'
+  },
+  textField: {
+  },
+  buttonGroup: {
+    textAlign: 'right'
+  },
+  form: {
+    paddingTop: theme.spacing.unit,
+    paddingBottom: theme.spacing.unit
+  },
+  formRow: {
+    minHeight: 75
+  },
+  fabProgress: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 1,
+  },
+  wrapper: {
+    margin: theme.spacing.unit,
+    position: 'relative',
+    display: 'inline-block'
   }
-};
+});
 
 class DeviceSettingsModal extends Component {
   constructor(props) {
@@ -82,28 +80,28 @@ class DeviceSettingsModal extends Component {
     }
   }
 
-  handleAliasChange (e) {
+  handleAliasChange(e) {
     this.setState({
       deviceAlias: e.target.value,
       hasSavedAlias: e.target.value === this.props.device.dongle_id ? this.state.hasSavedAlias : false
     });
   }
 
-  handleEmailChange (e) {
+  handleEmailChange(e) {
     this.setState({
       shareEmail: e.target.value,
       hasShared: false
     });
   }
 
-  callOnEnter (method, e) {
+  callOnEnter(method, e) {
     if (e.key === 'Enter') {
       method();
     }
   }
 
-  async setDeviceAlias () {
-    var dongle_id = this.props.device.dongle_id;
+  async setDeviceAlias() {
+    const { dongle_id } = this.props.device;
 
     if (this.state.loadingDeviceAlias) {
       return;
@@ -120,19 +118,19 @@ class DeviceSettingsModal extends Component {
         loadingDeviceAlias: false,
         hasSavedAlias: true
       });
-    } catch(e) {
+    } catch (e) {
       Raven.captureException(e);
       this.setState({ error: e.message, loadingDeviceAlias: false });
     }
   }
 
-  async shareDevice () {
+  async shareDevice() {
     if (this.state.loadingDeviceShare) {
       return;
     }
 
-    var dongle_id = this.props.device.dongle_id;
-    var email = this.state.shareEmail;
+    const { dongle_id } = this.props.device;
+    const email = this.state.shareEmail;
 
     this.setState({
       loadingDeviceShare: true,
@@ -145,8 +143,8 @@ class DeviceSettingsModal extends Component {
         shareEmail: '',
         hasShared: true
       });
-    } catch(e) {
-      let err = e;
+    } catch (e) {
+      const err = e;
       console.log(e, err);
       console.log(err.statusCode);
       debugger;
@@ -155,61 +153,68 @@ class DeviceSettingsModal extends Component {
     }
   }
 
-  render () {
+  render() {
     const { classes } = this.props;
     return (
       <Modal
-        aria-labelledby='device-settings-modal'
-        aria-describedby='device-settings-modal-description'
-        open={ this.props.isOpen }
-        onClose={ this.props.onClose }>
-        <Paper className={ classes.modal }>
+        aria-labelledby="device-settings-modal"
+        aria-describedby="device-settings-modal-description"
+        open={this.props.isOpen}
+        onClose={this.props.onClose}
+      >
+        <Paper className={classes.modal}>
           <Typography variant="title">
             Edit Device
           </Typography>
           <Divider />
-          <div className={ classes.form }>
-            <div className={ classes.formRow }>
+          <div className={classes.form}>
+            <div className={classes.formRow}>
               <TextField
-                id='device_alias'
+                id="device_alias"
                 label="Device Name"
-                className={ classes.textField }
-                value={ this.state.deviceAlias }
-                onChange={ this.handleAliasChange }
-                onKeyPress={ partial(this.callOnEnter, this.setDeviceAlias) } />
-                { (this.props.device.alias !== this.state.deviceAlias || this.state.hasSavedAlias) &&
-                  <div className={ classes.wrapper }>
+                className={classes.textField}
+                value={this.state.deviceAlias}
+                onChange={this.handleAliasChange}
+                onKeyPress={partial(this.callOnEnter, this.setDeviceAlias)}
+              />
+              { (this.props.device.alias !== this.state.deviceAlias || this.state.hasSavedAlias)
+                  && (
+                  <div className={classes.wrapper}>
                     <IconButton
-                      variant='fab'
-                      onClick={ this.setDeviceAlias }>
+                      variant="fab"
+                      onClick={this.setDeviceAlias}
+                    >
                       { this.state.hasSavedAlias && <CheckIcon /> || <SaveIcon /> }
                     </IconButton>
                     {this.state.loadingDeviceAlias && <CircularProgress size={48} className={classes.fabProgress} />}
                   </div>
-                }
+                  )}
             </div>
-            <div className={ classes.formRow }>
+            <div className={classes.formRow}>
               <TextField
-                id='device_share'
+                id="device_share"
                 label="Share by Email"
-                className={ classes.textField }
-                value={ this.state.shareEmail }
-                onChange={ this.handleEmailChange }
-                onKeyPress={ partial(this.callOnEnter, this.shareDevice) } />
-                { (this.state.shareEmail.length > 0 || this.state.hasShared) &&
-                  <div className={ classes.wrapper }>
+                className={classes.textField}
+                value={this.state.shareEmail}
+                onChange={this.handleEmailChange}
+                onKeyPress={partial(this.callOnEnter, this.shareDevice)}
+              />
+              { (this.state.shareEmail.length > 0 || this.state.hasShared)
+                  && (
+                  <div className={classes.wrapper}>
                     <IconButton
-                      variant='fab'
-                      onClick={ this.shareDevice }>
+                      variant="fab"
+                      onClick={this.shareDevice}
+                    >
                       { this.state.hasShared && <CheckIcon /> || <ShareIcon /> }
                     </IconButton>
                     {this.state.loadingDeviceShare && <CircularProgress size={48} className={classes.fabProgress} />}
                   </div>
-                }
+                  )}
             </div>
           </div>
-          <div className={ classes.buttonGroup }>
-            <Button variant='contained' onClick={ this.props.onClose }>
+          <div className={classes.buttonGroup}>
+            <Button variant="contained" onClick={this.props.onClose}>
               Close
             </Button>
             &nbsp;

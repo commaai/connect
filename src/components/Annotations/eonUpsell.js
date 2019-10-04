@@ -7,37 +7,36 @@ import Typography from '@material-ui/core/Typography';
 
 import ShopButton from './shopButton';
 
-const styles = theme => {
-  return {
-    root: {
-      display: 'flex',
-      paddingTop: '48px'
-    },
-    eon: {
-      display: 'block',
-      width: '100%',
-    },
-    content: {
-      padding: '20px 12px',
-      textAlign: 'center'
-    },
-    imageContainer: {
-      display: 'flex',
-      alignItems: 'center',
-    }
+const styles = (theme) => ({
+  root: {
+    display: 'flex',
+    paddingTop: '48px'
+  },
+  eon: {
+    display: 'block',
+    width: '100%',
+  },
+  content: {
+    padding: '20px 12px',
+    textAlign: 'center'
+  },
+  imageContainer: {
+    display: 'flex',
+    alignItems: 'center',
   }
-};
+});
 
 class EonUpsell extends Component {
-  render () {
+  render() {
     return (
-      <div className={ this.props.classes.root }>
-        <Grid item xs={6} className={ this.props.classes.imageContainer }>
+      <div className={this.props.classes.root}>
+        <Grid item xs={6} className={this.props.classes.imageContainer}>
           <img
-            src='https://comma.ai/eon-offroad-transparent-01.png'
-            className={ this.props.classes.eon } />
+            src="https://comma.ai/eon-offroad-transparent-01.png"
+            className={this.props.classes.eon}
+          />
         </Grid>
-        <Grid item xs={6} className={ this.props.classes.content }>
+        <Grid item xs={6} className={this.props.classes.content}>
           <Typography>{ this.props.hook }</Typography>
           <ShopButton link="https://comma.ai/shop/products/eon-dashcam-devkit/?ref=explorer" />
         </Grid>

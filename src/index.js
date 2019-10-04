@@ -8,7 +8,7 @@ import MuiPickersUtilsProvider from 'material-ui-pickers/utils/MuiPickersUtilsPr
 import DateFnsUtils from 'material-ui-pickers/utils/date-fns-utils';
 
 import './index.css';
-import 'react-virtualized/styles.css'
+import 'react-virtualized/styles.css';
 import App from './App';
 import Theme from './theme';
 import { unregister } from './registerServiceWorker';

@@ -8,9 +8,9 @@ module.exports = getWorker;
 
 getWorker.onData = DataEvent.listen;
 
-var logReader = null;
+let logReader = null;
 
-function getWorker () {
+function getWorker() {
   if (logReader) {
     return logReader;
   }
@@ -22,11 +22,11 @@ function getWorker () {
   } else {
     throw new Error('Don\'t');
   }
-  let port = logReader.port || logReader;
+  const port = logReader.port || logReader;
 
-  let channel = new MessageChannel();
-  let logPort = channel.port1;
-  let apiPort = channel.port2;
+  const channel = new MessageChannel();
+  const logPort = channel.port1;
+  const apiPort = channel.port2;
 
   logPort.onmessage = relayMessage;
   port.onmessage = handleMessage;
@@ -34,11 +34,11 @@ function getWorker () {
   return apiPort;
 }
 
-function handleMessage (msg) {
+function handleMessage(msg) {
   DataEvent.broadcast(msg);
 }
 
-function relayMessage (msg) {
-  let port = logReader.port || logReader;
+function relayMessage(msg) {
+  const port = logReader.port || logReader;
   port.postMessage(msg.data);
 }

@@ -1,9 +1,9 @@
-const { removeLoaders, loaderByName } = require("@craco/craco");
-const WorkerLoaderPlugin = require("craco-worker-loader");
-const SentryPlugin = require("craco-sentry-plugin");
+const { removeLoaders, loaderByName } = require('@craco/craco');
+const WorkerLoaderPlugin = require('craco-worker-loader');
+const SentryPlugin = require('craco-sentry-plugin');
 
-module.exports = function({ env }) {
-  var plugins = [{
+module.exports = function ({ env }) {
+  const plugins = [{
     plugin: WorkerLoaderPlugin
   }];
   if (env === 'production') {
@@ -12,7 +12,7 @@ module.exports = function({ env }) {
     });
   }
   return {
-    plugins: plugins,
+    plugins,
     webpack: {
       configure: (webpackConfig, { env, paths }) => {
         webpackConfig.output.globalObject = 'this';

@@ -22,13 +22,13 @@ export default class HLSSource extends Component {
     // });
   }
 
-  componentDidMount () {
+  componentDidMount() {
     this.setState({
       src: this.props.src
     });
   }
 
-  componentWillUpdate (nextProps, nextState) {
+  componentWillUpdate(nextProps, nextState) {
     if (nextProps.src !== nextState.src) {
       // console.log('Loading media source!', nextProps.src);
       if (this.state.src.length) {
@@ -41,7 +41,7 @@ export default class HLSSource extends Component {
     }
   }
 
-  componentDidUpdate (prevProps, prevState) {
+  componentDidUpdate(prevProps, prevState) {
     if (this.state.src !== prevState.src && this.state.src.length) {
       // console.log('this.hls.loadSource(this.state.src);');
       this.hls.loadSource(this.state.src);

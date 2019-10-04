@@ -4,25 +4,25 @@ const API = require('./logReader');
 
 self.onconnect = sharedWorkerInit;
 
-function sharedWorkerInit (e) {
+function sharedWorkerInit(e) {
   console.log(e.ports);
   const port = e.ports[0];
   const portInterface = {
-    close: close,
-    postMessage: postMessage
+    close,
+    postMessage
   };
 
   port.onmessage = function (msg) {
     console.log('Got msg', msg);
     API.handleMessage(portInterface, msg);
-  }
+  };
   port.onmessageerror = function (e) {
     console.error('Msgh error!', e);
     close();
-  }
+  };
 
-  API.onData(function (msg) {
-    var buffer = null;
+  API.onData((msg) => {
+    let buffer = null;
     if (msg.data.length === 1) {
       // force copy for older versions of node/shim
       buffer = Buffer.from(msg.data);
@@ -37,10 +37,10 @@ function sharedWorkerInit (e) {
     }, [buffer.buffer]);
   });
 
-  function close () {
+  function close() {
     port.close();
   }
-  function postMessage (msg, transferables) {
+  function postMessage(msg, transferables) {
     port.postMessage(msg, transferables);
   }
 }

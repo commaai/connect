@@ -1,5 +1,5 @@
 import * as Redux from 'redux';
-import { connectRouter, routerMiddleware } from 'connected-react-router'
+import { connectRouter, routerMiddleware } from 'connected-react-router';
 import thunk from 'redux-thunk';
 import createHistory from 'history/createBrowserHistory';
 import reducers from './reducers';
@@ -8,7 +8,7 @@ import Timelineworker from './timeline';
 
 export const history = createHistory();
 
-export function createStore () {
+export function createStore() {
   const store = Redux.createStore(
     connectRouter(history)(
       Redux.combineReducers(reducers)

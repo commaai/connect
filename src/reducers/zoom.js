@@ -6,7 +6,7 @@ const initialState = {
   expanded: false
 };
 
-export default function zoom (state = initialState, action) {
+export default function zoom(state = initialState, action) {
   switch (action.type) {
     case TIMELINE_SELECTION_CHANGED:
       state = {

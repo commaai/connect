@@ -5,7 +5,7 @@ const DataLogEvent = Event();
 
 export const onData = DataLogEvent.listen;
 
-export function handleMessage (port, msg) {
+export function handleMessage(port, msg) {
   let entry = null;
   switch (msg.data.command) {
     case 'start':
