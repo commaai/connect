@@ -4,7 +4,6 @@ import thunk from 'redux-thunk';
 import createHistory from 'history/createBrowserHistory';
 import reducers from './reducers';
 import compose from './devtools';
-import Timelineworker from './timeline';
 
 export const history = createHistory();
 

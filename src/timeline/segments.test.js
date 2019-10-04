@@ -1,3 +1,4 @@
+/* eslint-env jest */
 import Segments from './segments';
 
 const segmentData = [{

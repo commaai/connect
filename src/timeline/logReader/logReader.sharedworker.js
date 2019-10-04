@@ -2,22 +2,28 @@
 /* eslint-disable no-restricted-globals */
 const API = require('./logReader');
 
-self.onconnect = sharedWorkerInit;
-
 function sharedWorkerInit(e) {
   console.log(e.ports);
   const port = e.ports[0];
+
+  function close() {
+    port.close();
+  }
+  function postMessage(msg, transferables) {
+    port.postMessage(msg, transferables);
+  }
+
   const portInterface = {
     close,
     postMessage
   };
 
-  port.onmessage = function (msg) {
+  port.onmessage = function messageHandler(msg) {
     console.log('Got msg', msg);
     API.handleMessage(portInterface, msg);
   };
-  port.onmessageerror = function (e) {
-    console.error('Msgh error!', e);
+  port.onmessageerror = function errorHandler(err) {
+    console.error('Msgh error!', err);
     close();
   };
 
@@ -36,11 +42,6 @@ function sharedWorkerInit(e) {
       data: buffer.buffer
     }, [buffer.buffer]);
   });
-
-  function close() {
-    port.close();
-  }
-  function postMessage(msg, transferables) {
-    port.postMessage(msg, transferables);
-  }
 }
+
+self.onconnect = sharedWorkerInit;

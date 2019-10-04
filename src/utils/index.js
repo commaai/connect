@@ -3,10 +3,10 @@ export function filterEvent(event) {
 }
 
 export function formatDriveDuration(duration) {
-  const milliseconds = parseInt((duration % 1000) / 100);
-  let seconds = parseInt((duration / 1000) % 60);
-  let minutes = parseInt((duration / (1000 * 60)) % 60);
-  let hours = parseInt((duration / (1000 * 60 * 60)) % 24);
+  const milliseconds = Math.floor((duration % 1000) / 100);
+  let seconds = Math.floor((duration / 1000) % 60);
+  let minutes = Math.floor((duration / (1000 * 60)) % 60);
+  let hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
   hours = (hours < 10) ? hours : hours;
   minutes = (minutes < 10) ? minutes : minutes;
   seconds = (seconds < 10) ? seconds : seconds;
@@ -19,7 +19,7 @@ export function formatDriveDuration(duration) {
 }
 
 export function getDrivePoints(duration) {
-  const minutes = parseInt(duration / (1000 * 60));
+  const minutes = Math.floor(duration / (1000 * 60));
   const points = Math.floor(minutes * 1.5); // panda
   return points;
 }

@@ -9,30 +9,24 @@ export const onExpire = ExpireEvent.listen;
 
 const listenerMap = {};
 
+function handleMessage(msg) {
+  switch (msg.data.command) {
+    case 'expire':
+      ExpireEvent.broadcast(msg.data.data);
+      break;
+    case 'data':
+      break;
+    default:
+      break;
+  }
+}
+
 export function setCachePort(port) {
   if (cachePort) {
     cachePort.onmessage = null;
   }
   cachePort = port;
   cachePort.onmessage = handleMessage;
-}
-
-export function getEntry(route, segment, dataListener) {
-  if (!listenerMap[route]) {
-    listenerMap[route] = {};
-  }
-  listenerMap[route][segment] = dataListener;
-  touch(route, segment);
-  return {
-    start: partial(start, route, segment)
-  };
-}
-
-function expire(route, segment) {
-  cachePort.postMessage({
-    command: 'expire',
-    data: { route, segment }
-  });
 }
 
 function start(route, segment) {
@@ -49,12 +43,20 @@ function touch(route, segment) {
   });
 }
 
-function handleMessage(msg) {
-  switch (msg.data.command) {
-    case 'expire':
-      ExpireEvent.broadcast(msg.data.data);
-      break;
-    case 'data':
-      break;
+export function getEntry(route, segment, dataListener) {
+  if (!listenerMap[route]) {
+    listenerMap[route] = {};
   }
+  listenerMap[route][segment] = dataListener;
+  touch(route, segment);
+  return {
+    start: partial(start, route, segment)
+  };
 }
+
+// function expire(route, segment) {
+//   cachePort.postMessage({
+//     command: 'expire',
+//     data: { route, segment }
+//   });
+// }

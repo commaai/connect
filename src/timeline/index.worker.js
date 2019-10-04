@@ -3,28 +3,6 @@
 const API = require('./timeline');
 
 const port = self;
-const portInterface = {
-  close,
-  postMessage
-};
-
-port.onmessage = function (msg) {
-  API.handleMessage(portInterface, msg);
-};
-
-port.onmessageerror = function (e) {
-  console.error('Msgh error!', e);
-  close();
-};
-
-postMessage({
-  command: 'state',
-  data: API.getState()
-});
-
-postMessage({
-  command: 'broadcastPort'
-}, [API.createBroadcastPort(port)]);
 
 function close() {
   port.close();
@@ -37,3 +15,26 @@ function postMessage(msg, transferables) {
     port.postMessage(msg, transferables);
   }
 }
+
+const portInterface = {
+  close,
+  postMessage
+};
+
+port.onmessage = function messageHandler(msg) {
+  API.handleMessage(portInterface, msg);
+};
+
+port.onmessageerror = function errorHandler(e) {
+  console.error('Msgh error!', e);
+  close();
+};
+
+postMessage({
+  command: 'state',
+  data: API.getState()
+});
+
+postMessage({
+  command: 'broadcastPort'
+}, [API.createBroadcastPort(port)]);

@@ -17,7 +17,8 @@ export function handleMessage(port, msg) {
       entry.touch();
       break;
     default:
-      console.log(msg.data);
-      debugger;
+      console.warn('Unknown log reader command', msg.data);
+      // debugger;
+      break;
   }
 }

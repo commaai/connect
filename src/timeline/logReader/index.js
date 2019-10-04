@@ -1,23 +1,27 @@
 const Event = require('geval/event');
-const LogReaderSharedWorker = require('./logReader.sharedworker');
 const LogReaderWorker = require('./logReader.worker');
+// const LogReaderSharedWorker = require('./logReader.sharedworker');
 
 const DataEvent = Event();
 
-module.exports = getWorker;
-
-getWorker.onData = DataEvent.listen;
-
 let logReader = null;
+
+function handleMessage(msg) {
+  DataEvent.broadcast(msg);
+}
+
+function relayMessage(msg) {
+  const port = logReader.port || logReader;
+  port.postMessage(msg.data);
+}
 
 function getWorker() {
   if (logReader) {
     return logReader;
   }
-  if (false && typeof LogReaderSharedWorker === 'function' && typeof SharedWorker === 'function') {
-    logReader = new LogReaderSharedWorker();
-  } else if (typeof LogReaderWorker === 'function') {
-    console.warn('Using web worker fallback');
+  // if (typeof LogReaderSharedWorker === 'function' && typeof SharedWorker === 'function') {
+  // logReader = new LogReaderSharedWorker();
+  if (typeof LogReaderWorker === 'function') {
     logReader = new LogReaderWorker();
   } else {
     throw new Error('Don\'t');
@@ -34,11 +38,6 @@ function getWorker() {
   return apiPort;
 }
 
-function handleMessage(msg) {
-  DataEvent.broadcast(msg);
-}
+module.exports = getWorker;
 
-function relayMessage(msg) {
-  const port = logReader.port || logReader;
-  port.postMessage(msg.data);
-}
+getWorker.onData = DataEvent.listen;

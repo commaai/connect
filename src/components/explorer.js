@@ -1,10 +1,9 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
+import PropTypes from 'prop-types';
 
 import { withStyles } from '@material-ui/core/styles';
-import Grid from '@material-ui/core/Grid';
-import Typography from '@material-ui/core/Typography';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 import AppHeader from './AppHeader';
@@ -15,7 +14,7 @@ import Timelineworker from '../timeline';
 import { selectRange } from '../actions';
 import { getDongleID, getZoom } from '../url';
 
-const styles = (theme) => ({
+const styles = (/* theme */) => ({
   base: {
     display: 'flex',
     flexDirection: 'column',
@@ -50,7 +49,8 @@ class ExplorerApp extends Component {
     this.checkProps(props);
 
     const isZoomed = props.expanded;
-    const wasZoomed = this.props.expanded;
+    const { expanded } = this.props;
+    const wasZoomed = expanded;
 
     if (isZoomed && !wasZoomed) {
       Timelineworker.play();
@@ -64,7 +64,8 @@ class ExplorerApp extends Component {
     const dongleId = getDongleID(props.pathname);
     const zoom = getZoom(props.pathname);
 
-    const curDongle = this.state.settingDongle || props.dongleId;
+    const { settingDongle } = this.state;
+    const curDongle = settingDongle || props.dongleId;
 
     if (dongleId) {
       if (curDongle !== dongleId) {
@@ -78,7 +79,8 @@ class ExplorerApp extends Component {
         });
       }
     }
-    this.props.dispatch(selectRange(zoom.start, zoom.end));
+    const { dispatch } = this.props;
+    dispatch(selectRange(zoom.start, zoom.end));
   }
 
   render() {
@@ -95,6 +97,12 @@ class ExplorerApp extends Component {
     );
   }
 }
+
+ExplorerApp.propTypes = {
+  expanded: PropTypes.bool.isRequired,
+  dispatch: PropTypes.func.isRequired,
+  classes: PropTypes.object.isRequired
+};
 
 const stateToProps = Obstruction({
   expanded: 'zoom.expanded',

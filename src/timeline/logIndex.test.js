@@ -1,3 +1,4 @@
+/* eslint-env jest */
 import { findMonoTime } from './logIndex';
 
 // export function findMonoTime (index, monoTime, start, end) {

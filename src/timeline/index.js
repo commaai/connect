@@ -1,18 +1,15 @@
-import qs from 'query-string';
 import window from 'global/window';
 import Event from 'geval/event';
-import { partial } from 'ap';
 import * as capnp from 'capnp-ts';
-import { Event as CapnpEvent, Event_Which } from '@commaai/log_reader/capnp/log.capnp';
+import { Event as CapnpEvent, Event_Which as EventWhich } from '@commaai/log_reader/capnp/log.capnp';
 import toJSON from '@commaai/capnp-json';
 
 import { storage as AuthStorage } from '@commaai/my-comma-auth';
 import * as Playback from './playback';
 import * as LogIndex from './logIndex';
 import { getDongleID, getZoom } from '../url';
-import { isDemo } from '../demo';
 
-const TimelineSharedWorker = require('./index.sharedworker');
+// const TimelineSharedWorker = require('./index.sharedworker');
 const TimelineWebWorker = require('./index.worker');
 const LogReaderWorker = require('./logReader');
 
@@ -20,12 +17,61 @@ const UnloadEvent = Event();
 const StateEvent = Event();
 const IndexEvent = Event();
 const InitEvent = Event();
-const InitPromise = new Promise(((resolve, reject) => {
+const InitPromise = new Promise(((resolve) => {
   InitEvent.listen(resolve);
 }));
 
 window.addEventListener('beforeunload', UnloadEvent.broadcast);
 const startPath = window.location ? window.location.pathname : '';
+
+// helper functions
+
+function noop() { }
+
+async function initWorker(_t, isDemo) {
+  const t = _t;
+  let worker = null;
+
+  const token = await AuthStorage.getCommaAccessToken();
+  if (!(token || isDemo)) {
+    return new Promise(noop);
+  }
+
+  // if (false && typeof TimelineSharedWorker === 'function') {
+  //   worker = new TimelineSharedWorker();
+  //   t.isShared = true;
+  //   t.logReader = new LogReaderWorker();
+  if (typeof TimelineWebWorker === 'function') {
+    worker = new TimelineWebWorker();
+    t.logReader = new LogReaderWorker();
+  } else {
+    console.warn('Using fake web workers, this is probably a node/test environment');
+    worker = { port: { postMessage: noop } };
+  }
+  const port = worker.port || worker;
+
+  port.onmessage = t.handleMessage.bind(t);
+
+  t.worker = worker;
+  t.port = port;
+
+  LogReaderWorker.onData((msg) => {
+    t.handleData(msg);
+  });
+  if (t.logReader) {
+    port.postMessage({
+      command: 'cachePort'
+    }, [t.logReader.port || t.logReader]);
+  }
+  UnloadEvent.listen(() => t.disconnect());
+  InitEvent.broadcast(token);
+
+  return t;
+}
+
+async function init(t, isDemo) {
+  await initWorker(t, isDemo);
+}
 
 class TimelineInterface {
   constructor(options) {
@@ -33,8 +79,8 @@ class TimelineInterface {
     this.buffers = {};
     this.requestId = 1;
     this.openRequests = {};
-    this._initPromise = InitPromise;
-    this._readyPromise = this.rpc({
+    this.initPromise = InitPromise;
+    this.readyPromise = this.rpc({
       command: 'hello',
       data: {
         dongleId: getDongleID(startPath),
@@ -53,7 +99,7 @@ class TimelineInterface {
       this.isDemo = isDemo;
       init(this, this.isDemo);
     }
-    return this._readyPromise;
+    return this.readyPromise;
   }
 
   async stop() {
@@ -71,7 +117,7 @@ class TimelineInterface {
   }
 
   async getPort() {
-    await this._initPromise;
+    await this.initPromise;
     return this.port;
   }
 
@@ -147,9 +193,9 @@ class TimelineInterface {
   }
 
   async selectDevice(dongleId) {
-    await this._readyPromise;
+    await this.readyPromise;
     if (this.state.dongleId === dongleId) {
-      return;
+      return true;
     }
     return this.postMessage({
       command: 'selectDevice',
@@ -173,8 +219,9 @@ class TimelineInterface {
 
   async rpc(msg) {
     // msg that expects a reply
-    return new Promise((resolve, reject) => {
-      const requestId = this.requestId++;
+    return new Promise((resolve) => {
+      const { requestId } = this;
+      this.requestId += 1;
       this.openRequests[requestId] = resolve;
       this.postMessage({
         ...msg,
@@ -248,7 +295,7 @@ class TimelineInterface {
         break;
       case 'broadcastPort':
         // set up dedicated broadcast channel
-        this.broadcastPort = msg.ports[0];
+        [this.broadcastPort] = msg.ports;
         this.broadcastPort.onmessage = this.handleBroadcast.bind(this);
         this.broadcastPort.onmessageerror = console.error.bind(console);
         break;
@@ -278,7 +325,9 @@ class TimelineInterface {
   }
 
   getStartMonoTime(route, segment = 0) {
-    if (!this.buffers[route] || !this.buffers[route][segment] || !this.buffers[route][segment].index) {
+    if (!this.buffers[route]
+      || !this.buffers[route][segment]
+      || !this.buffers[route][segment].index) {
       return 0;
     }
     return this.buffers[route][segment].index[0][0];
@@ -303,9 +352,8 @@ class TimelineInterface {
       return null;
     }
     let offset = this.currentOffset();
-    let segment = this.state.segments.filter((a) => a.route === this.state.route);
+    const [segment] = this.state.segments.filter((a) => a.route === this.state.route);
     const logIndex = this.buffers[this.state.route][this.state.segment];
-    segment = segment[0];
     if (!segment) {
       return null;
     }
@@ -315,7 +363,7 @@ class TimelineInterface {
     return offset + startTime;
   }
 
-  lastEvents(eventCount = 10) {
+  lastEvents(_eventCount = 10) {
     const logMonoTime = this.currentLogMonoTime();
     if (!logMonoTime) {
       return [];
@@ -323,20 +371,20 @@ class TimelineInterface {
     const logIndex = this.getLogIndex();
 
     const curIndex = LogIndex.findMonoTime(logIndex, logMonoTime);
-    eventCount = Math.min(eventCount, curIndex);
+    const eventCount = Math.min(_eventCount, curIndex);
 
     return [...Array(eventCount)].map((u, i) => this.getEvent(curIndex - i, logIndex));
   }
 
   getLogIndex() {
-    return this.buffers[this.state.route] ? this.buffers[this.state.route][this.state.segment] : null;
+    return this.buffers[this.state.route]
+      ? this.buffers[this.state.route][this.state.segment]
+      : null;
   }
 
-  getEvent(index, logIndex) {
+  getEvent(index, _logIndex) {
     // millis, nanos, offset, len, buffer
-    if (!logIndex) {
-      logIndex = this.buffers[this.state.route][this.state.segment];
-    }
+    const logIndex = _logIndex || this.buffers[this.state.route][this.state.segment];
     if (index < 0 || index >= logIndex.index.length) {
       console.log('Invalid event index', index);
       return null;
@@ -364,23 +412,22 @@ class TimelineInterface {
 
   currentInitData() {
     if (!this.state || !this.state.route) {
-      return;
+      return null;
     }
     if (!this.buffers[this.state.route] || !this.buffers[this.state.route][this.state.segment]) {
-      return;
+      return null;
     }
 
-    let segment = this.state.segments.filter((a) => a.route === this.state.route);
-    segment = segment[0];
+    const [segment] = this.state.segments.filter((a) => a.route === this.state.route);
     if (!segment) {
-      return;
+      return null;
     }
 
     // check if any buffered logs have the initdata packet
     const curSegLog = this.buffers[this.state.route][this.state.segment];
     const entry = curSegLog.index[0];
-    if (entry[5] !== Event_Which.INIT_DATA) {
-      return;
+    if (entry[5] !== EventWhich.INIT_DATA) {
+      return null;
     }
 
     const buffer = curSegLog.buffers[entry[4]].slice(entry[2], entry[2] + entry[3]);
@@ -394,78 +441,77 @@ class TimelineInterface {
     initData = Object.create(initData);
     Object.defineProperty(initData, 'InitData', { writable: true, value: Object.create(initData.InitData) });
     Object.defineProperty(initData.InitData, 'Params', { writable: true, value: Object.create(initData.InitData.Params) });
-    const parsedEntries = initData.InitData.Params.Entries.map((entry) => {
-      if (!entry.Key.byteOffset || !entry.Value.byteOffset) {
+    const parsedEntries = initData.InitData.Params.Entries.map((_paramEntry) => {
+      if (!_paramEntry.Key.byteOffset || !_paramEntry.Value.byteOffset) {
         return null;
       }
-      entry = Object.create(entry);
-      Object.defineProperty(entry, 'Key', {
+      const paramEntry = Object.create(_paramEntry);
+      Object.defineProperty(paramEntry, 'Key', {
         writable: false,
-        value: capnp.Text.fromPointer(entry.Key).get()
+        value: capnp.Text.fromPointer(paramEntry.Key).get()
       });
-      Object.defineProperty(entry, 'Value', {
+      Object.defineProperty(paramEntry, 'Value', {
         writable: true,
-        value: capnp.Text.fromPointer(entry.Value).get()
+        value: capnp.Text.fromPointer(paramEntry.Value).get()
       });
 
-      return entry;
-    }).filter((entry) => !!entry);
+      return paramEntry;
+    }).filter((paramEntry) => !!paramEntry);
     Object.defineProperty(initData.InitData.Params, 'Entries', { writable: true, value: parsedEntries });
 
     return initData;
   }
 
   currentModel() {
-    return this.getEventByType(Event_Which.MODEL, 1000);
+    return this.getEventByType(EventWhich.MODEL, 1000);
   }
 
   currentLive20() {
-    return this.getEventByType(Event_Which.LIVE20, 1000);
+    return this.getEventByType(EventWhich.LIVE20, 1000);
   }
 
   currentLive100() {
-    return this.getEventByType(Event_Which.LIVE100, 1000);
+    return this.getEventByType(EventWhich.LIVE100, 1000);
   }
 
   currentLiveMapData() {
-    return this.getEventByType(Event_Which.LIVE_MAP_DATA, 4000);
+    return this.getEventByType(EventWhich.LIVE_MAP_DATA, 4000);
   }
 
   currentMPC() {
-    return this.getEventByType(Event_Which.LIVE_MPC, 1000);
+    return this.getEventByType(EventWhich.LIVE_MPC, 1000);
   }
 
   currentCarState() {
-    return this.getEventByType(Event_Which.CAR_STATE, 1000);
+    return this.getEventByType(EventWhich.CAR_STATE, 1000);
   }
 
   currentDriverMonitoring() {
-    return this.getEventByType(Event_Which.DRIVER_MONITORING, 1000);
+    return this.getEventByType(EventWhich.DRIVER_MONITORING, 1000);
   }
 
   currentThumbnail() {
-    return this.getEventByType(Event_Which.THUMBNAIL, 5000);
+    return this.getEventByType(EventWhich.THUMBNAIL, 5000);
   }
 
   getEventByType(which, maxTimeDiff = -1) {
     if (!this.state || !this.state.route) {
-      return;
+      return null;
     }
     if (!this.buffers[this.state.route] || !this.buffers[this.state.route][this.state.segment]) {
-      return;
+      return null;
     }
     const monoTime = this.currentLogMonoTime();
     let offset = this.currentOffset();
-    let segment = this.state.segments.filter((a) => a.route === this.state.route);
-    segment = segment[0];
+    const [segment] = this.state.segments.filter((a) => a.route === this.state.route);
     if (!segment) {
-      return;
+      return null;
     }
 
     for (let curSegNum = this.state.segment; curSegNum >= 0; --curSegNum) {
       const logIndex = this.buffers[this.state.route][curSegNum];
       if (!logIndex) {
-        return;
+        return null;
       }
       offset -= segment.offset;
       const startTime = logIndex.index[0][0];
@@ -478,7 +524,7 @@ class TimelineInterface {
       for (curIndex; curIndex >= 0; --curIndex) {
         const entry = logIndex.index[curIndex];
         if (maxTimeDiff !== -1 && monoTime - entry[0] > maxTimeDiff) {
-          return;
+          return null;
         }
         if (entry[5] === which) {
           const buffer = logIndex.buffers[entry[4]].slice(entry[2], entry[2] + entry[3]);
@@ -488,16 +534,18 @@ class TimelineInterface {
         }
       }
     }
+
+    return null;
   }
 
-  getCalibration(route) {
+  getCalibration() {
     if (!this.state || !this.state.route) {
-      return;
+      return null;
     }
     const indexes = this.buffers[this.state.route];
 
     if (!indexes) {
-      return;
+      return null;
     }
 
     for (let i = 0, keys = Object.keys(indexes), len = keys.length; i < len; ++i) {
@@ -506,56 +554,9 @@ class TimelineInterface {
         return index.calibrations[index.calibrations.length - 1];
       }
     }
+    return null;
   }
 }
 // create instance and expose it
 const timeline = new TimelineInterface();
 export default timeline;
-
-// helper functions
-
-async function init(timeline, isDemo) {
-  await initWorker(timeline, isDemo);
-}
-
-async function initWorker(timeline, isDemo) {
-  let worker = null;
-  const logReader = null;
-
-  const token = await AuthStorage.getCommaAccessToken();
-  if (!(token || isDemo)) {
-    return new Promise(noop);
-  }
-
-  if (false && typeof TimelineSharedWorker === 'function') {
-    worker = new TimelineSharedWorker();
-    timeline.isShared = true;
-    timeline.logReader = new LogReaderWorker();
-  } else if (typeof TimelineWebWorker === 'function') {
-    console.warn('Using web worker fallback');
-    worker = new TimelineWebWorker();
-    timeline.logReader = new LogReaderWorker();
-  } else {
-    console.warn('Using fake web workers, this is probably a node/test environment');
-    worker = { port: { postMessage: noop } };
-  }
-  const port = worker.port || worker;
-
-  port.onmessage = timeline.handleMessage.bind(timeline);
-
-  timeline.worker = worker;
-  timeline.port = port;
-
-  LogReaderWorker.onData((msg) => {
-    timeline.handleData(msg);
-  });
-  if (timeline.logReader) {
-    port.postMessage({
-      command: 'cachePort'
-    }, [timeline.logReader.port || timeline.logReader]);
-  }
-  UnloadEvent.listen(() => timeline.disconnect());
-  InitEvent.broadcast(token);
-}
-
-function noop() { }

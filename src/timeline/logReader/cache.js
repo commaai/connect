@@ -1,5 +1,4 @@
 import LogStream from '@commaai/log_reader';
-import toJSON from '@commaai/capnp-json';
 import { raw as RawApi, request as Request } from '@commaai/comma-api';
 import Auth from '@commaai/my-comma-auth';
 
@@ -39,7 +38,9 @@ class CacheEntry {
     this.log = [];
     this.queue = [];
     this.logEvent = Event();
-    this.logEvent.listen((e) => this.log = this.log.concat(e));
+    this.logEvent.listen((e) => {
+      this.log = this.log.concat(e);
+    });
     const sendLogs = debounce(() => {
       if (!this.queue.length) {
         return;
@@ -96,10 +97,12 @@ class CacheEntry {
   }
 
   async getLogStream() {
-    return new Promise(async (resolve, reject) => {
-      request(await this.getLogUrl(), (err, res) => {
+    const logUrl = await this.getLogUrl();
+    return new Promise((resolve, reject) => {
+      request(logUrl, (err, res) => {
         if (err) {
-          return reject(err);
+          reject(err);
+          return;
         }
         // res.on('end', () => {
         // });

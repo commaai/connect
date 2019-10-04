@@ -2,8 +2,8 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import raf from 'raf';
 import { withStyles } from '@material-ui/core/styles';
+import PropTypes from 'prop-types';
 import TimelineWorker from '../timeline';
-
 
 const styles = (theme) => ({
   root: {
@@ -55,8 +55,10 @@ class LogViewer extends Component {
     const propsToRender = { ...this.props };
     delete propsToRender.classes;
 
+    const { classes } = this.props;
+
     return (
-      <div className={this.props.classes.root} style={{ width: '100%', overflow: 'hidden' }}>
+      <div className={classes.root} style={{ width: '100%', overflow: 'hidden' }}>
         <pre ref={this.eventView} />
         <pre>{ JSON.stringify(propsToRender, null, 2) }</pre>
       </div>
@@ -64,8 +66,12 @@ class LogViewer extends Component {
   }
 }
 
-export default connect(mapStateToProps)(withStyles(styles)(LogViewer));
+LogViewer.propTypes = {
+  classes: PropTypes.object.isRequired,
+};
 
 function mapStateToProps(state) {
   return state.workerState;
 }
+
+export default connect(mapStateToProps)(withStyles(styles)(LogViewer));
