@@ -9,8 +9,9 @@ import {
 } from './actions';
 import Segments from './segments';
 import init from './startup';
-import Playback from './playback';
+import * as Playback from './playback';
 import store from './store';
+import * as Cache from './cache';
 import * as Demo from '../demo';
 
 export const PortState = CreateStore();

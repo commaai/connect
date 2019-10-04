@@ -5,6 +5,7 @@ import raf from 'raf';
 import fecha from 'fecha';
 import { partial } from 'ap';
 import cx from 'classnames';
+import PropTypes from 'prop-types';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -30,6 +31,13 @@ const timerSteps = [
   5
 ];
 
+function jumpBack(amount) {
+  TimelineWorker.seek(TimelineWorker.currentOffset() - amount);
+}
+
+function jumpForward(amount) {
+  TimelineWorker.seek(TimelineWorker.currentOffset() + amount);
+}
 const styles = (theme) => ({
   base: {
     backgroundColor: theme.palette.grey[999],
@@ -98,6 +106,16 @@ const styles = (theme) => ({
 });
 
 class TimeDisplay extends Component {
+  static getDerivedStateFromProps(props, state) {
+    if (props.playSpeed !== 0 && props.playSpeed !== state.playSpeed) {
+      return {
+        ...state,
+        playSpeed: props.playSpeed
+      };
+    }
+    return state;
+  }
+
   constructor(props) {
     super(props);
 
@@ -105,8 +123,6 @@ class TimeDisplay extends Component {
 
     this.updateTime = this.updateTime.bind(this);
     this.togglePause = this.togglePause.bind(this);
-    this.jumpForward = this.jumpForward.bind(this);
-    this.jumpBack = this.jumpBack.bind(this);
     this.increaseSpeed = this.increaseSpeed.bind(this);
     this.decreaseSpeed = this.decreaseSpeed.bind(this);
 
@@ -116,14 +132,6 @@ class TimeDisplay extends Component {
     };
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    if (this.props.playSpeed !== 0 && this.props.playSpeed !== this.state.playSpeed) {
-      this.setState({
-        playSpeed: this.props.playSpeed
-      });
-    }
-  }
-
   componentDidMount() {
     this.mounted = true;
     raf(this.updateTime);
@@ -131,52 +139,6 @@ class TimeDisplay extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
-  }
-
-  togglePause(e) {
-    if (this.props.playSpeed === 0) {
-      TimelineWorker.play(this.state.playSpeed);
-    } else {
-      TimelineWorker.pause();
-    }
-  }
-
-  jumpBack(amount) {
-    TimelineWorker.seek(TimelineWorker.currentOffset() - amount);
-  }
-
-  jumpForward(amount) {
-    TimelineWorker.seek(TimelineWorker.currentOffset() + amount);
-  }
-
-  increaseSpeed() {
-    let curIndex = timerSteps.indexOf(this.state.playSpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
-    TimelineWorker.play(timerSteps[curIndex]);
-  }
-
-  decreaseSpeed() {
-    let curIndex = timerSteps.indexOf(this.state.playSpeed);
-    if (curIndex === -1) {
-      curIndex = timerSteps.indexOf(1);
-    }
-    curIndex = Math.max(0, curIndex - 1);
-    TimelineWorker.play(timerSteps[curIndex]);
-  }
-
-  updateTime() {
-    if (!this.mounted || !this.textHolder.current) {
-      return;
-    }
-    const displayTime = this.getDisplayTime();
-    if (this.state.displayTime !== displayTime) {
-      this.setState({ displayTime });
-    }
-
-    raf(this.updateTime);
   }
 
   getDisplayTime() {
@@ -190,6 +152,48 @@ class TimeDisplay extends Component {
     // var dateString = fecha.format(now, 'MMM D @ HH:mm:ss');
 
     return dateString;
+  }
+
+  updateTime() {
+    if (!this.mounted || !this.textHolder.current) {
+      return;
+    }
+    const newDisplayTime = this.getDisplayTime();
+    const { displayTime } = this.state;
+    if (newDisplayTime !== displayTime) {
+      this.setState({ displayTime: newDisplayTime });
+    }
+
+    raf(this.updateTime);
+  }
+
+  decreaseSpeed() {
+    const { playSpeed } = this.state;
+    let curIndex = timerSteps.indexOf(playSpeed);
+    if (curIndex === -1) {
+      curIndex = timerSteps.indexOf(1);
+    }
+    curIndex = Math.max(0, curIndex - 1);
+    TimelineWorker.play(timerSteps[curIndex]);
+  }
+
+  increaseSpeed() {
+    const { playSpeed } = this.state;
+    let curIndex = timerSteps.indexOf(playSpeed);
+    if (curIndex === -1) {
+      curIndex = timerSteps.indexOf(1);
+    }
+    curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
+    TimelineWorker.play(timerSteps[curIndex]);
+  }
+
+  togglePause(e) {
+    const { playSpeed } = this.props;
+    if (playSpeed === 0) {
+      TimelineWorker.play(this.state.playSpeed);
+    } else {
+      TimelineWorker.pause();
+    }
   }
 
   render() {
@@ -207,7 +211,7 @@ class TimeDisplay extends Component {
             <Grid container>
               <Grid item align="center" xs={6} className={classes.iconBox}>
                 <IconButton
-                  onClick={partial(this.jumpBack, 10000)}
+                  onClick={partial(jumpBack, 10000)}
                   aria-label="Jump back 10 seconds"
                 >
                   <HistoryBackIcon className={`${classes.icon} small dim`} />
@@ -215,7 +219,7 @@ class TimeDisplay extends Component {
               </Grid>
               <Grid item align="center" xs={6} className={classes.iconBox}>
                 <IconButton
-                  onClick={partial(this.jumpForward, 10000)}
+                  onClick={partial(jumpForward, 10000)}
                   aria-label="Jump forward 10 seconds"
                 >
                   <HistoryForwardIcon className={`${classes.icon} small dim`} />
@@ -250,8 +254,7 @@ class TimeDisplay extends Component {
                   </Grid>
                   <Grid item>
                     <Typography variant="body2" align="center">
-                      { this.state.playSpeed }
-x
+                      { this.state.playSpeed }x
                     </Typography>
                   </Grid>
                   <Grid item className={classes.tinyArrow}>
@@ -282,6 +285,12 @@ x
     );
   }
 }
+
+TimeDisplay.propTypes = {
+  classes: PropTypes.object.isRequired,
+  playSpeed: PropTypes.number.isRequired,
+  start: PropTypes.number.isRequired
+};
 
 const stateToProps = Obstruction({
   expanded: 'zoom.expanded',

@@ -12,7 +12,7 @@ const ACTION_BUFFER_DATA = 'action_buffer_data';
 const ACTION_DISABLE_BUFFER = 'action_disable_buffer';
 
 // fetch current playback offset
-function currentOffset(state) {
+export function currentOffset(state) {
   let offset = state.offset + (Date.now() - state.startTime) * state.playSpeed;
 
   if (state.loop && state.loop.startTime) {
@@ -26,7 +26,7 @@ function currentOffset(state) {
   return offset;
 }
 
-function reducer(_state = initialState, action) {
+export function reducer(_state = initialState, action) {
   let state = _state;
   // console.log(action);
   let loopOffset = null;
@@ -132,12 +132,12 @@ function reducer(_state = initialState, action) {
   return state;
 }
 
-function timestampToOffset(state, timestamp) {
+export function timestampToOffset(state, timestamp) {
   return timestamp - state.start;
 }
 
 // seek to a specific offset
-function seek(offset) {
+export function seek(offset) {
   return {
     type: ACTION_SEEK,
     offset
@@ -145,21 +145,21 @@ function seek(offset) {
 }
 
 // pause the playback
-function pause() {
+export function pause() {
   return {
     type: ACTION_PAUSE
   };
 }
 
 // resume / change play speed
-function play(speed = 1) {
+export function play(speed = 1) {
   return {
     type: ACTION_PLAY,
     speed
   };
 }
 
-function selectLoop(startTime, duration) {
+export function selectLoop(startTime, duration) {
   return {
     type: ACTION_LOOP,
     startTime,
@@ -168,7 +168,7 @@ function selectLoop(startTime, duration) {
 }
 
 // update video buffering state
-function bufferVideo(buffering = true) {
+export function bufferVideo(buffering = true) {
   return {
     type: ACTION_BUFFER_VIDEO,
     buffering
@@ -176,28 +176,15 @@ function bufferVideo(buffering = true) {
 }
 
 // update data buffering state
-function bufferData(buffering = true) {
+export function bufferData(buffering = true) {
   return {
     type: ACTION_BUFFER_DATA,
     buffering
   };
 }
 
-function disableBuffer() {
+export function disableBuffer() {
   return {
     type: ACTION_DISABLE_BUFFER
   };
 }
-
-module.exports = {
-  pause,
-  play,
-  seek,
-  currentOffset,
-  selectLoop,
-  timestampToOffset,
-  reducer,
-  bufferVideo,
-  bufferData,
-  disableBuffer
-};

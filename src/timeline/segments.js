@@ -1,5 +1,5 @@
 import initialState from './initialState';
-import Playback from './playback';
+import { currentOffset } from './playback';
 
 const ACTION_UPDATE_SEGMENTS = 'update_segments';
 const ACTION_LOAD_SEGMENT_METADATA = 'load_segment_metadata';
@@ -18,7 +18,7 @@ for example, caching url metadata
 */
 
 function getCurrentSegment(state, o) {
-  const offset = o === undefined ? Playback.currentOffset(state) : o;
+  const offset = o === undefined ? currentOffset(state) : o;
   if (!state.segments) {
     return null;
   }
@@ -57,7 +57,7 @@ function getCurrentSegment(state, o) {
 }
 
 function getNextSegment(state, o) {
-  const offset = o === undefined ? Playback.currentOffset(state) : o;
+  const offset = o === undefined ? currentOffset(state) : o;
   if (!state.segments) {
     return null;
   }

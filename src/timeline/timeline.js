@@ -6,7 +6,7 @@ import { partial } from 'ap';
 
 import { annotations as Annotations, drives as Drives } from '@commaai/comma-api'; // eslint-disable-line
 
-import Playback from './playback';
+import { currentOffset } from './playback';
 import Segments from './segments';
 import * as Cache from './cache';
 import store from './store';
@@ -28,7 +28,7 @@ export function getState() {
 
 function scheduleSegmentUpdate(state) {
   let timeUntilNext = 30000;
-  const offset = Playback.currentOffset(state);
+  const offset = currentOffset(state);
 
   if (SegmentTimerStore(state).stopTimer) {
     SegmentTimerStore(state).stopTimer();
@@ -132,18 +132,6 @@ initAuthPromise.then(() => {
   scheduleSegmentUpdate(getState());
   checkSegmentMetadata(getState());
 });
-
-// segments
-// start offset
-// length
-// name
-// all other attributes stored in cache entries
-
-// setInterval(function () {
-//   let speed = ~~(Math.random() * 3) / 2;
-//   console.log('Setting play speed...', speed);
-//   store.dispatch(Playback.play(speed));
-// }, 5000);
 
 let ensureSegmentDataTimer = null;
 async function ensureSegmentData(state) {

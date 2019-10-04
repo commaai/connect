@@ -2,17 +2,16 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import window from 'global/window';
+import PropTypes from 'prop-types';
 
-import cx from 'classnames';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
-import Grid from '@material-ui/core/Grid';
 
 import { config as AuthConfig } from '@commaai/my-comma-auth';
 
 import { CommaIcon } from '../icons';
 
-const styles = (theme) => ({
+const styles = (/* theme */) => ({
   base: {
     height: '60px',
     margin: '0 auto',
@@ -65,7 +64,8 @@ const DEMO_LINK = `${window.location.origin}/?demo=1`;
 class AnonymousLanding extends Component {
   componentWillMount() {
     if (typeof window.sessionStorage !== 'undefined') {
-      sessionStorage.redirectURL = this.props.pathname;
+      const { pathname } = this.props;
+      sessionStorage.redirectURL = pathname;
     }
   }
 
@@ -94,6 +94,11 @@ class AnonymousLanding extends Component {
     );
   }
 }
+
+AnonymousLanding.propTypes = {
+  pathname: PropTypes.string.isRequired,
+  classes: PropTypes.object.isRequired
+};
 
 const stateToProps = Obstruction({
   pathname: 'router.location.pathname'
