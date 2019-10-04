@@ -40,11 +40,6 @@ export default function Buffering (props) {
         <Typography>
           { message }
         </Typography>
-        <br />
-        <Button
-          onClick={ props.onDisableBuffering }>
-          Click to disable buffering
-        </Button>
       </div>
     </div>
   );
