@@ -18,6 +18,13 @@ module.exports = function ({ env }) {
       configure: (webpackConfig, { env, paths }) => {
         webpackConfig.output.globalObject = 'this';
         removeLoaders(webpackConfig, loaderByName('eslint-loader'));
+        webpackConfig.optimization.minimizer = webpackConfig.optimization.minimizer.map(function (plugin) {
+          if (plugin.constructor.name !== 'TerserPlugin') {
+            return plugin;
+          }
+          plugin.options.terserOptions.keep_fnames = true;
+          return plugin;
+        });
         return webpackConfig;
       }
     }
