@@ -254,7 +254,8 @@ class TimeDisplay extends Component {
                   </Grid>
                   <Grid item>
                     <Typography variant="body2" align="center">
-                      { this.state.playSpeed }x
+                      { this.state.playSpeed }
+x
                     </Typography>
                   </Grid>
                   <Grid item className={classes.tinyArrow}>

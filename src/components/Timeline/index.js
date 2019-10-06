@@ -282,7 +282,7 @@ class Timeline extends Component {
       const endTime = endOffset + start;
 
       this.isDragSelecting = true;
-      setTimeout(() => { this.isDragSelecting = false });
+      setTimeout(() => { this.isDragSelecting = false; });
       dispatch(selectRange(startTime, endTime));
     } else if (e.currentTarget !== document) {
       this.handleClick(e);
