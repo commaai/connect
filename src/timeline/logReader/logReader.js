@@ -5,7 +5,7 @@ const DataLogEvent = Event();
 
 export const onData = DataLogEvent.listen;
 
-export function handleMessage (port, msg) {
+export function handleMessage(port, msg) {
   let entry = null;
   switch (msg.data.command) {
     case 'start':
@@ -17,7 +17,8 @@ export function handleMessage (port, msg) {
       entry.touch();
       break;
     default:
-      console.log(msg.data);
-      debugger;
+      console.warn('Unknown log reader command', msg.data);
+      // debugger;
+      break;
   }
 }

@@ -9,7 +9,7 @@ storiesOf('Material-UI', module)
 // Add the `muiTheme` decorator to provide material-ui support to your stories.
 // If you do not specify any arguments it starts with two default themes
 // You can also configure `muiTheme` as a global decorator.
-    // .addDecorator(muiTheme())
-    .add('Card Example Controlled', () => (
-            <VideoPlayer />
-        ));
+// .addDecorator(muiTheme())
+  .add('Card Example Controlled', () => (
+    <VideoPlayer />
+  ));

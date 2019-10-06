@@ -2,7 +2,7 @@ import * as Redux from 'redux';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { AutoSizer, List } from 'react-virtualized';
-import { mount, shallow} from 'enzyme';
+import { mount, shallow } from 'enzyme';
 import { MuiThemeProvider } from '@material-ui/core/styles';
 import Theme from '../../theme';
 
@@ -13,9 +13,9 @@ const defaultState = {
   start: Date.now()
 };
 
-const store = Redux.createStore(function reducer(state) {
+const store = Redux.createStore((state) => {
   if (!state) {
-    return {...defaultState};
+    return { ...defaultState };
   }
   return state;
 });
@@ -34,10 +34,14 @@ const events = [{
 }];
 
 it('renders without crashing', () => {
-  const list = mount(<AnnotationList resolved store={ store } segment={{
-    hpgps: true,
-    events
-  }} />);
+  const list = mount(<AnnotationList
+    resolved
+    store={store}
+    segment={{
+      hpgps: true,
+      events
+    }}
+  />);
 
   expect(list.exists()).toBe(true);
   expect(list.instance()).toBeInstanceOf(AnnotationList);
@@ -45,18 +49,22 @@ it('renders without crashing', () => {
 });
 
 it('shows the right events at the right times', () => {
-  const list = mount(<AnnotationList resolved store={ store } segment={{
-    hpgps: true,
-    events
-  }} />);
+  const list = mount(<AnnotationList
+    resolved
+    store={store}
+    segment={{
+      hpgps: true,
+      events
+    }}
+  />);
 
   expect(list.find(List).length).toBe(1);
   expect(list.find(List).prop('rowCount')).toBe(2);
-  var entry = shallow(
+  let entry = shallow(
     <MuiThemeProvider theme={Theme}>
       { list.find(List).invoke('rowRenderer')({ index: 0 }) }
     </MuiThemeProvider>
-    ).find(AnnotationEntry);
+  ).find(AnnotationEntry);
   expect(entry.exists()).toBe(true);
   expect(entry.prop('event')).toBeTruthy();
   expect(entry.prop('event').id).toBe(123);
@@ -70,7 +78,7 @@ it('shows the right events at the right times', () => {
     <MuiThemeProvider theme={Theme}>
       { list.find(List).invoke('rowRenderer')({ index: 0 }) }
     </MuiThemeProvider>
-    ).find(AnnotationEntry);
+  ).find(AnnotationEntry);
   expect(entry.exists()).toBe(true);
   expect(entry.prop('event')).toBeTruthy();
   expect(entry.prop('event').timestamp).toBe(events[0].timestamp);

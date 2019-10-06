@@ -1,8 +1,10 @@
-const WorkerLoaderPlugin = require("craco-worker-loader");
-const SentryPlugin = require("craco-sentry-plugin");
+/* eslint-disable */
+const { removeLoaders, loaderByName } = require('@craco/craco');
+const WorkerLoaderPlugin = require('craco-worker-loader');
+const SentryPlugin = require('craco-sentry-plugin');
 
-module.exports = function({ env }) {
-  var plugins = [{
+module.exports = function ({ env }) {
+  const plugins = [{
     plugin: WorkerLoaderPlugin
   }];
   if (env === 'production') {
@@ -11,12 +13,19 @@ module.exports = function({ env }) {
     });
   }
   return {
-    plugins: plugins,
+    plugins,
     webpack: {
-      configure: {
-        output: {
-          globalObject: "this"
-        }
+      configure: (webpackConfig, { env, paths }) => {
+        webpackConfig.output.globalObject = 'this';
+        removeLoaders(webpackConfig, loaderByName('eslint-loader'));
+        webpackConfig.optimization.minimizer = webpackConfig.optimization.minimizer.map(function (plugin) {
+          if (plugin.constructor.name !== 'TerserPlugin') {
+            return plugin;
+          }
+          plugin.options.terserOptions.keep_fnames = true;
+          return plugin;
+        });
+        return webpackConfig;
       }
     }
   };

@@ -5,19 +5,17 @@ import { withStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
 import Typography from '@material-ui/core/Typography';
 
-const styles = theme => {
-  return {
-    shopLink: {
-      textDecoration: 'none',
-    }
+const styles = (theme) => ({
+  shopLink: {
+    textDecoration: 'none',
   }
-};
+});
 
 class ShopButton extends Component {
-  render () {
+  render() {
     return (
-      <a href={ this.props.link } target="_blank" className={ this.props.classes.shopLink }>
-        <Button variant='outlined'>
+      <a href={this.props.link} target="_blank" className={this.props.classes.shopLink}>
+        <Button variant="outlined">
           Shop
         </Button>
       </a>

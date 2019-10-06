@@ -1,3 +1,4 @@
+/* eslint-env jest */
 import Segments from './segments';
 
 const segmentData = [{
@@ -20,8 +21,8 @@ const segmentData = [{
   }]
 }];
 
-test('finds current segment', async function () {
-  var segment = Segments.getCurrentSegment({
+test('finds current segment', async () => {
+  let segment = Segments.getCurrentSegment({
     segments: segmentData,
     offset: segmentData[0].offset,
     playSpeed: 1,
@@ -39,8 +40,8 @@ test('finds current segment', async function () {
   expect(segment.segment).toBe(1);
 });
 
-test('finds last segment of a route', async function () {
-  var segment = Segments.getCurrentSegment({
+test('finds last segment of a route', async () => {
+  const segment = Segments.getCurrentSegment({
     segments: segmentData,
     offset: segmentData[0].offset + Segments.SEGMENT_LENGTH * (segmentData[0].segments - 1) + 1000,
     playSpeed: 1,
@@ -50,8 +51,8 @@ test('finds last segment of a route', async function () {
   expect(segment.segment).toBe(segmentData[0].segments - 1); // 0 indexed
 });
 
-test('ends last segment of a route', async function () {
-  var segment = Segments.getCurrentSegment({
+test('ends last segment of a route', async () => {
+  const segment = Segments.getCurrentSegment({
     segments: segmentData,
     offset: segmentData[0].offset + segmentData[0].duration - 10,
     playSpeed: 1,
@@ -60,8 +61,8 @@ test('ends last segment of a route', async function () {
   expect(segment).toBe(null);
 });
 
-test('finds next segment within route', async function () {
-  var segment = Segments.getNextSegment({
+test('finds next segment within route', async () => {
+  const segment = Segments.getNextSegment({
     segments: segmentData,
     offset: segmentData[0].offset,
     playSpeed: 1,
@@ -71,8 +72,8 @@ test('finds next segment within route', async function () {
   expect(segment.segment).toBe(1);
 });
 
-test('finds next segment across routes', async function () {
-  var segment = Segments.getNextSegment({
+test('finds next segment across routes', async () => {
+  const segment = Segments.getNextSegment({
     segments: segmentData,
     offset: segmentData[0].offset + segmentData[0].duration - 1000,
     playSpeed: 1,
@@ -82,8 +83,8 @@ test('finds next segment across routes', async function () {
   expect(segment.segment).toBe(0);
 });
 
-test('adds annotation id when resolved', function () {
-  var state = Segments.reducer({
+test('adds annotation id when resolved', () => {
+  let state = Segments.reducer({
     segments: segmentData
   }, {});
   expect(state.segments[0].events[0].id).toBe(undefined);
@@ -98,9 +99,9 @@ test('adds annotation id when resolved', function () {
   expect(state.segments[0].events[0].id).toBe(321);
 });
 
-test('reducer returns new array when resolving annotations', function () {
-  var oldEvents = segmentData[0].events;
-  var state = Segments.reducer({
+test('reducer returns new array when resolving annotations', () => {
+  const oldEvents = segmentData[0].events;
+  const state = Segments.reducer({
     segments: segmentData
   }, {
     type: 'resolve_annotation',

@@ -1,4 +1,19 @@
 
+function getDefaultStartDate() {
+  const d = new Date();
+  d.setHours(d.getHours() + 1, 0, 0, 0);
+
+  return (new Date(d.getTime() - 1000 * 60 * 60 * 24 * 14)).getTime();
+}
+
+function getDefaultEndDate() {
+  const d = new Date();
+  d.setHours(d.getHours() + 1, 0, 0, 0);
+
+  // return (new Date(d.getTime() - 1000 * 60 * 60 * 36)).getTime();
+  return d.getTime();
+}
+
 module.exports = {
   start: getDefaultStartDate(),
   end: getDefaultEndDate(),
@@ -46,18 +61,3 @@ module.exports = {
   profile: null,
   isDemo: false,
 };
-
-function getDefaultStartDate () {
-  var d = new Date();
-  d.setHours(d.getHours() + 1, 0, 0, 0);
-
-  return (new Date(d.getTime() - 1000 * 60 * 60 * 24 * 14)).getTime();
-}
-
-function getDefaultEndDate () {
-  var d = new Date();
-  d.setHours(d.getHours() + 1, 0, 0, 0);
-
-  // return (new Date(d.getTime() - 1000 * 60 * 60 * 36)).getTime();
-  return d.getTime();
-}

@@ -20,10 +20,10 @@ const styles = {
     width: '100%',
     cursor: 'default !important'
   }
-}
+};
 
 class DriveMap extends Component {
-  constructor (props) {
+  constructor(props) {
     super(props);
 
     this.initMap = this.initMap.bind(this);
@@ -32,7 +32,7 @@ class DriveMap extends Component {
     this.setPath = this.setPath.bind(this);
     this.updateMarkerPos = this.updateMarkerPos.bind(this);
 
-    let nextRoute = props.currentSegment && props.currentSegment.route;
+    const nextRoute = props.currentSegment && props.currentSegment.route;
 
     this.isLoadingCoords = false;
     this.state = {
@@ -48,16 +48,16 @@ class DriveMap extends Component {
     };
   }
 
-  componentWillReceiveProps (nextProps) {
-    let nextRoute = nextProps.currentSegment && nextProps.currentSegment.route;
+  componentWillReceiveProps(nextProps) {
+    const nextRoute = nextProps.currentSegment && nextProps.currentSegment.route;
     if (nextRoute !== this.state.route) {
       if (this.state.coords.length > 0) {
         this.setPath([]);
       }
     }
 
-    let coordsNeedRefresh = nextRoute !== this.state.route || this.state.coords.length === 0;
-    let shouldRefreshMap = coordsNeedRefresh && this.map != null && !this.isLoadingCoords;
+    const coordsNeedRefresh = nextRoute !== this.state.route || this.state.coords.length === 0;
+    const shouldRefreshMap = coordsNeedRefresh && this.map != null && !this.isLoadingCoords;
     if (shouldRefreshMap) {
       this.setState({ route: nextRoute }, this.populateMap.bind(this, nextProps));
     }
@@ -72,7 +72,7 @@ class DriveMap extends Component {
     this.updateMarkerPos();
   }
 
-  componentWillUnmount () {
+  componentWillUnmount() {
     this.mounted = false;
   }
 
@@ -85,7 +85,7 @@ class DriveMap extends Component {
       return;
     }
 
-    let markerSource = this.getMarkerSource()
+    const markerSource = this.getMarkerSource();
     if (markerSource) {
       if (this.props.currentSegment && this.state.coords.length > 0) {
         const { routeOffset } = this.props.currentSegment;
@@ -94,15 +94,15 @@ class DriveMap extends Component {
         const pos = this.posAtOffset(offset - routeOffset);
         if (pos) {
           markerSource.setData({
-            "type": "Point",
-            "coordinates": pos
+            type: 'Point',
+            coordinates: pos
           });
           this.moveViewportTo(pos);
         }
       } else if (markerSource._data && markerSource._data.coordinates.length > 0) {
         markerSource.setData({
-          "type": "Point",
-          "coordinates": []
+          type: 'Point',
+          coordinates: []
         });
       }
     }
@@ -111,7 +111,7 @@ class DriveMap extends Component {
   }
 
   moveViewportTo(pos) {
-    let viewport = {
+    const viewport = {
       ...this.state.viewport,
       longitude: pos[0],
       latitude: pos[1]
@@ -133,8 +133,8 @@ class DriveMap extends Component {
     }
     this.isLoadingCoords = true;
 
-    let route = this.state.route;
-    let routeSigUrl = props.currentSegment.url;
+    const { route } = this.state;
+    const routeSigUrl = props.currentSegment.url;
 
     try {
       const coords = await DerivedDataApi(routeSigUrl).getCoords();
@@ -144,7 +144,7 @@ class DriveMap extends Component {
         return;
       }
 
-      const coordsArr = coords.map(coord => [coord.lng, coord.lat]);
+      const coordsArr = coords.map((coord) => [coord.lng, coord.lat]);
       this.setPath(coordsArr);
     } finally {
       this.isLoadingCoords = false;
@@ -152,16 +152,16 @@ class DriveMap extends Component {
   }
 
   setPath(coords) {
-    let map = this.map && this.map.getMap();
+    const map = this.map && this.map.getMap();
     this.setState({ coords });
 
     if (map) {
       map.getSource('route').setData({
-        "type": "Feature",
-        "properties": {},
-        "geometry": {
-            "type": "LineString",
-            "coordinates": coords,
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates: coords,
         }
       });
     }
@@ -197,51 +197,51 @@ class DriveMap extends Component {
       return;
     }
 
-    let map = mapComponent.getMap();
+    const map = mapComponent.getMap();
 
     map.on('load', () => {
       map.addSource('route', {
-        "type": "geojson",
-        "data": {
-          "type": "Feature",
-          "properties": {},
-          "geometry": {
-              "type": "LineString",
-              "coordinates": [],
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: [],
           }
         }
       });
       map.addSource('seekPoint', {
-        "type": "geojson",
-        "data": {
-          "type": "Point",
-          "coordinates": []
+        type: 'geojson',
+        data: {
+          type: 'Point',
+          coordinates: []
         }
       });
 
       const lineGeoJson = {
-        "id": "routeLine",
-        "type": "line",
-        "source": "route",
-        "layout": {
-          "line-join": "round",
-          "line-cap": "round"
+        id: 'routeLine',
+        type: 'line',
+        source: 'route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
         },
-        "paint": {
-          "line-color": "#888",
-          "line-width": 8
+        paint: {
+          'line-color': '#888',
+          'line-width': 8
         }
       };
       map.addLayer(lineGeoJson);
 
       const markerGeoJson = {
-        "id": "marker",
-        "type": "circle",
-        "paint": {
-            "circle-radius": 10,
-            "circle-color": "#007cbf"
+        id: 'marker',
+        type: 'circle',
+        paint: {
+          'circle-radius': 10,
+          'circle-color': '#007cbf'
         },
-        "source": "seekPoint"
+        source: 'seekPoint'
       };
 
       map.addLayer(markerGeoJson);
@@ -254,27 +254,27 @@ class DriveMap extends Component {
     });
   }
 
-  render () {
+  render() {
     return (
       <Measure
         bounds
         onResize={(contentRect) => {
-          this.setState({ viewport: {...this.state.viewport, width: contentRect.bounds.width } })
+          this.setState({ viewport: { ...this.state.viewport, width: contentRect.bounds.width } });
         }}
       >
-        {({ measureRef }) =>
-          <div ref={ measureRef } className={ this.props.classes.mapContainer }>
+        {({ measureRef }) => (
+          <div ref={measureRef} className={this.props.classes.mapContainer}>
             <ReactMapGL
               {...this.state.viewport}
-              mapStyle={ MAP_STYLE }
-              onViewportChange={(viewport) => this.setState({viewport})}
-              mapboxApiAccessToken={ MAPBOX_TOKEN }
-              attributionControl={ false }
-              ref={ this.initMap }
-              dragPan={ false }
+              mapStyle={MAP_STYLE}
+              onViewportChange={(viewport) => this.setState({ viewport })}
+              mapboxApiAccessToken={MAPBOX_TOKEN}
+              attributionControl={false}
+              ref={this.initMap}
+              dragPan={false}
             />
           </div>
-        }
+        )}
       </Measure>
     );
   }

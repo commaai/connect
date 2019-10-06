@@ -3,23 +3,36 @@
 const API = require('./logReader');
 
 const port = self;
+
+function close() {
+  port.close();
+}
+
+function postMessage(msg, transferables) {
+  if (self.window === self) {
+    port.postMessage(msg, '*', transferables);
+  } else {
+    port.postMessage(msg, transferables);
+  }
+}
+
 const portInterface = {
-  close: close,
-  postMessage: postMessage
+  close,
+  postMessage
 };
 
-port.onmessage = function (msg) {
+port.onmessage = function messageHandler(msg) {
   // console.log('Got msg', msg);
   API.handleMessage(portInterface, msg);
-}
+};
 
-port.onmessageerror = function (e) {
+port.onmessageerror = function errorHandler(e) {
   console.error('Msgh error!', e);
   close();
-}
+};
 
-API.onData(function (msg) {
-  var buffer = null;
+API.onData((msg) => {
+  let buffer = null;
   if (msg.data.length === 1) {
     // force copy for older versions of node/shim
     buffer = Buffer.from(msg.data);
@@ -33,15 +46,3 @@ API.onData(function (msg) {
     data: buffer.buffer
   }, [buffer.buffer]);
 });
-
-function close () {
-  port.close();
-}
-
-function postMessage (msg, transferables) {
-  if (self.window === self) {
-    port.postMessage(msg, '*', transferables);
-  } else {
-    port.postMessage(msg, transferables);
-  }
-}

@@ -1,17 +1,17 @@
-import { Event_Which } from '@commaai/log_reader/capnp/log.capnp';
+import { Event_Which as EventWhich } from '@commaai/log_reader/capnp/log.capnp';
 
-export default function filterEvent (which) {
+export default function filterEvent(which) {
   switch (which) {
-    case Event_Which.MODEL:
-    case Event_Which.LIVE20:
-    case Event_Which.LIVE100:
-    case Event_Which.LIVE_MAP_DATA:
-    case Event_Which.LIVE_MPC:
-    case Event_Which.INIT_DATA:
-    case Event_Which.CAR_STATE:
-    case Event_Which.LIVE_CALIBRATION:
-    case Event_Which.DRIVER_MONITORING:
-    case Event_Which.THUMBNAIL:
+    case EventWhich.MODEL:
+    case EventWhich.LIVE20:
+    case EventWhich.LIVE100:
+    case EventWhich.LIVE_MAP_DATA:
+    case EventWhich.LIVE_MPC:
+    case EventWhich.INIT_DATA:
+    case EventWhich.CAR_STATE:
+    case EventWhich.LIVE_CALIBRATION:
+    case EventWhich.DRIVER_MONITORING:
+    case EventWhich.THUMBNAIL:
       return true;
     default:
       return false;

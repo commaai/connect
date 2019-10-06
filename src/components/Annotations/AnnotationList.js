@@ -15,18 +15,16 @@ import { filterEvent } from '../../utils';
 
 const LOOP_DURATION = 10000;
 
-const styles = theme => {
-  return {
-    base: {
-      border: '1px solid rgba(255,255,255,0.04)',
-      borderRadius: 5,
-      overflow: 'hidden'
-    }
-  };
-};
+const styles = (theme) => ({
+  base: {
+    border: '1px solid rgba(255,255,255,0.04)',
+    borderRadius: 5,
+    overflow: 'hidden'
+  }
+});
 
 class AnnotationList extends PureComponent {
-  constructor (props) {
+  constructor(props) {
     super(props);
 
     this.state = {
@@ -58,7 +56,7 @@ class AnnotationList extends PureComponent {
 
   handleExpanded = (eventId, timestamp) => {
     const { zoom } = this.props;
-    let isExpanded = this.state.expanded !== eventId && eventId;
+    const isExpanded = this.state.expanded !== eventId && eventId;
     this.setState({
       expanded: isExpanded ? eventId : null
     });
@@ -66,8 +64,8 @@ class AnnotationList extends PureComponent {
     this.recomputeList();
 
     if (isExpanded) {
-      let loopStartTime = timestamp - LOOP_DURATION / 2;
-      let loopEndTime = loopStartTime + LOOP_DURATION;
+      const loopStartTime = timestamp - LOOP_DURATION / 2;
+      const loopEndTime = loopStartTime + LOOP_DURATION;
       if (zoom && (loopStartTime < zoom.start || loopEndTime > zoom.end)) {
         this.props.dispatch(selectRange(loopStartTime, loopEndTime));
       } else {
@@ -90,7 +88,7 @@ class AnnotationList extends PureComponent {
   getRowHeight = ({ index }) => {
     const event = this.getEvent(index);
 
-    const eventId = event.time + ':' + index;
+    const eventId = `${event.time}:${index}`;
 
     const expanded = this.state.expanded === eventId;
 
@@ -98,7 +96,9 @@ class AnnotationList extends PureComponent {
   }
 
   render() {
-    const { segment, classes, isUpsellDemo, resolved, unresolved } = this.props;
+    const {
+      segment, classes, isUpsellDemo, resolved, unresolved
+    } = this.props;
     const events = (segment || {}).events || [];
 
     return (
@@ -107,7 +107,7 @@ class AnnotationList extends PureComponent {
         <AutoSizer>
           {({ height, width }) => (
             <List
-              ref={ref => this.list = ref}
+              ref={(ref) => this.list = ref}
               height={height}
               width={width}
               overscanRowCount={10}
@@ -121,6 +121,7 @@ class AnnotationList extends PureComponent {
       </div>
     );
   }
+
   filterEntry = (event) => {
     if (this.props.resolved && !event.id) {
       return false;
@@ -134,7 +135,7 @@ class AnnotationList extends PureComponent {
   renderEntry = ({ index, key, style }) => {
     const { segment } = this.props;
     const event = this.getEvent(index);
-    const eventId = event.time + ':' + index;
+    const eventId = `${event.time}:${index}`;
     return (
       <AnnotationListItem
         key={key}
@@ -146,7 +147,7 @@ class AnnotationList extends PureComponent {
         disabled={!segment.hpgps}
         onChange={partial(this.handleExpanded, eventId, event.timestamp)}
       />
-    )
+    );
   }
 }
 

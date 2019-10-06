@@ -9,11 +9,11 @@ const store = createStore();
 
 module.exports = decorate;
 
-function decorate (story) {
+function decorate(story) {
   return (
     <MuiThemeProvider theme={Theme}>
       <CssBaseline />
-      <Provider store={ store }>
+      <Provider store={store}>
         { story() }
       </Provider>
     </MuiThemeProvider>

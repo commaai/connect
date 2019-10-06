@@ -1,6 +1,6 @@
 import globalState from './globalState';
 
-let reducers = {
+const reducers = {
   globalState,
-}
+};
 export default reducers;

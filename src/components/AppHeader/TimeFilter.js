@@ -18,34 +18,32 @@ import { DateTimePicker } from 'material-ui-pickers';
 
 import Timelineworker from '../../timeline';
 
-const styles = theme => {
-  return {
-    root: {},
-    modal: {
-      position: 'absolute',
-      padding: theme.spacing.unit * 2,
-      width: theme.spacing.unit * 50,
-      margin: '0 auto',
-      left: '50%',
-      top: '40%',
-      transform: 'translate(-50%, -50%)'
-    },
-    buttonGroup: {
-      textAlign: 'right'
-    },
-    headerDropdown: {
-      fontWeight: 500,
-      marginRight: 12,
-      minWidth: 310,
-      textAlign: 'center',
-    },
-  };
-};
+const styles = (theme) => ({
+  root: {},
+  modal: {
+    position: 'absolute',
+    padding: theme.spacing.unit * 2,
+    width: theme.spacing.unit * 50,
+    margin: '0 auto',
+    left: '50%',
+    top: '40%',
+    transform: 'translate(-50%, -50%)'
+  },
+  buttonGroup: {
+    textAlign: 'right'
+  },
+  headerDropdown: {
+    fontWeight: 500,
+    marginRight: 12,
+    minWidth: 310,
+    textAlign: 'center',
+  },
+});
 
-const LOOKBACK_WINDOW_MILLIS = 30*24*3600*1000; // 30 days
+const LOOKBACK_WINDOW_MILLIS = 30 * 24 * 3600 * 1000; // 30 days
 
 class TimeSelect extends Component {
-  constructor (props) {
+  constructor(props) {
     super(props);
 
     this.handleSelectChange = this.handleSelectChange.bind(this);
@@ -59,9 +57,9 @@ class TimeSelect extends Component {
     };
   }
 
-  handleSelectChange (e) {
-    var selection = e.target.value;
-    var d = new Date();
+  handleSelectChange(e) {
+    const selection = e.target.value;
+    const d = new Date();
     d.setHours(d.getHours() + 1, 0, 0, 0);
 
     switch (selection) {
@@ -84,25 +82,25 @@ class TimeSelect extends Component {
     }
   }
 
-  handleClose () {
+  handleClose() {
     this.setState({
       showPicker: false
     });
   }
 
-  changeStart (value) {
+  changeStart(value) {
     this.setState({
       start: value.getTime()
     });
   }
 
-  changeEnd (value) {
+  changeEnd(value) {
     this.setState({
       end: value.getTime()
     });
   }
 
-  handleSave () {
+  handleSave() {
     Timelineworker.selectTimeRange(this.state.start, this.state.end);
     this.setState({
       showPicker: false,
@@ -111,16 +109,16 @@ class TimeSelect extends Component {
     });
   }
 
-  selectedOption () {
-    var timeRange = this.props.end - this.props.start;
+  selectedOption() {
+    const timeRange = this.props.end - this.props.start;
 
     if (Math.abs(this.props.end - Date.now()) < 1000 * 60 * 60) {
       // ends right around now
       if (timeRange === 1000 * 60 * 60 * 24 * 14) {
         return '2-weeks';
-      } else if (timeRange === 1000 * 60 * 60 * 24 * 7) {
+      } if (timeRange === 1000 * 60 * 60 * 24 * 7) {
         return '1-week';
-      } else if (timeRange === 1000 * 60 * 60 * 24) {
+      } if (timeRange === 1000 * 60 * 60 * 24) {
         return '24-hours';
       }
     }
@@ -128,69 +126,71 @@ class TimeSelect extends Component {
     return 'custom';
   }
 
-  lastWeekText () {
+  lastWeekText() {
     if (!this.props.start || !this.props.end) {
       return '--';
     }
 
-    let weekAgo = Date.now() - (1000 * 60 * 60 * 24 * 7);
-    return 'Last Week'
-       + fecha.format(new Date(weekAgo), ' (MMM Do - ')
-       + fecha.format(new Date(), 'MMM Do)');
+    const weekAgo = Date.now() - (1000 * 60 * 60 * 24 * 7);
+    return `Last Week${
+      fecha.format(new Date(weekAgo), ' (MMM Do - ')
+    }${fecha.format(new Date(), 'MMM Do)')}`;
   }
 
-  last2WeeksText () {
+  last2WeeksText() {
     if (!this.props.start || !this.props.end) {
       return '--';
     }
 
-    let twoWeeksAgo = Date.now() - (1000 * 60 * 60 * 24 * 14);
-    return '2 Weeks'
-       + fecha.format(new Date(twoWeeksAgo), ' (M/D - ')
-       + fecha.format(new Date(), 'M/D)');
+    const twoWeeksAgo = Date.now() - (1000 * 60 * 60 * 24 * 14);
+    return `2 Weeks${
+      fecha.format(new Date(twoWeeksAgo), ' (M/D - ')
+    }${fecha.format(new Date(), 'M/D)')}`;
   }
 
-  last24HoursText () {
+  last24HoursText() {
     if (!this.props.start || !this.props.end) {
       return '--';
     }
     return 'Last 24 Hours';
   }
 
-  render () {
-    let minDate = new Date(Date.now() - LOOKBACK_WINDOW_MILLIS).toISOString().substr(0,10);
+  render() {
+    const minDate = new Date(Date.now() - LOOKBACK_WINDOW_MILLIS).toISOString().substr(0, 10);
 
     return (
-      <React.Fragment>
+      <>
         <FormControl>
           <Select
-            name='timerange'
-            value={ this.selectedOption() }
-            onChange={ this.handleSelectChange }
-            className={ this.props.classes.headerDropdown }>
-            <MenuItem value='custom'>Custom</MenuItem>
-            <MenuItem value='24-hours'>{ this.last24HoursText() }</MenuItem>
-            <MenuItem value='1-week'>{ this.lastWeekText() }</MenuItem>
-            <MenuItem value='2-weeks'>{ this.last2WeeksText() }</MenuItem>
+            name="timerange"
+            value={this.selectedOption()}
+            onChange={this.handleSelectChange}
+            className={this.props.classes.headerDropdown}
+          >
+            <MenuItem value="custom">Custom</MenuItem>
+            <MenuItem value="24-hours">{ this.last24HoursText() }</MenuItem>
+            <MenuItem value="1-week">{ this.lastWeekText() }</MenuItem>
+            <MenuItem value="2-weeks">{ this.last2WeeksText() }</MenuItem>
           </Select>
         </FormControl>
         <Modal
-          aria-labelledby='simple-modal-title'
-          aria-describedby='simple-modal-description'
-          open={ this.state.showPicker }
-          onClose={ this.handleClose }>
-          <Paper className={ this.props.classes.modal }>
+          aria-labelledby="simple-modal-title"
+          aria-describedby="simple-modal-description"
+          open={this.state.showPicker}
+          onClose={this.handleClose}
+        >
+          <Paper className={this.props.classes.modal}>
             <DateTimePicker
-              minDate={ minDate }
-              value={ new Date(this.state.start || this.props.start || 0) }
-              onChange={ this.changeStart }
+              minDate={minDate}
+              value={new Date(this.state.start || this.props.start || 0)}
+              onChange={this.changeStart}
               label="Start time"
               showTodayButton
             />
             <DateTimePicker
-              minDate={ minDate }
-              value={ new Date(this.state.end || this.props.end || 0) }
-              onChange={ this.changeEnd }
+              minDate={minDate}
+              value={new Date(this.state.end || this.props.end || 0)}
+              onChange={this.changeEnd}
               label="End time"
               showTodayButton
             />
@@ -198,18 +198,18 @@ class TimeSelect extends Component {
             <br />
             <Divider />
             <br />
-            <div className={ this.props.classes.buttonGroup } >
-              <Button variant='contained' onClick={ this.handleClose } >
+            <div className={this.props.classes.buttonGroup}>
+              <Button variant="contained" onClick={this.handleClose}>
                 Cancel
               </Button>
               &nbsp;
-              <Button variant='contained' color='secondary' onClick={ this.handleSave }>
+              <Button variant="contained" color="secondary" onClick={this.handleSave}>
                 Save
               </Button>
             </div>
           </Paper>
         </Modal>
-      </React.Fragment>
+      </>
     );
   }
 }

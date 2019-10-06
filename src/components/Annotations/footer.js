@@ -14,34 +14,32 @@ import Snackbar from '@material-ui/core/Snackbar';
 import { raw as RawApi } from '@commaai/comma-api';
 import TimelineWorker from '../../timeline';
 
-const styles = theme => {
-  return {
-    root: {
-      width: '100%',
-      height: '100%',
-      paddingTop: theme.spacing.unit,
-      background: 'transparent',
-      textAlign: 'right'
-    },
-    footerButton: {
-      display: 'inline-block',
-      border: '1px solid ' + theme.palette.grey[800],
-      color: theme.palette.grey[50],
-      textDecoration: 'none',
-      borderRadius: 20,
-      padding: '10px 20px',
-      margin: '0px 10px',
-      cursor: 'pointer'
-    }
+const styles = (theme) => ({
+  root: {
+    width: '100%',
+    height: '100%',
+    paddingTop: theme.spacing.unit,
+    background: 'transparent',
+    textAlign: 'right'
+  },
+  footerButton: {
+    display: 'inline-block',
+    border: `1px solid ${theme.palette.grey[800]}`,
+    color: theme.palette.grey[50],
+    textDecoration: 'none',
+    borderRadius: 20,
+    padding: '10px 20px',
+    margin: '0px 10px',
+    cursor: 'pointer'
   }
-};
+});
 
 class AnnotationsFooter extends Component {
   static propTypes = {
     segment: PropTypes.object.isRequired,
   };
 
-  constructor (props) {
+  constructor(props) {
     super(props);
 
     this.copySegmentName = this.copySegmentName.bind(this);
@@ -54,7 +52,7 @@ class AnnotationsFooter extends Component {
     this.state = {
       showCopiedSnack: false,
       wayId: 0,
-    }
+    };
   }
 
   componentDidMount() {
@@ -64,9 +62,9 @@ class AnnotationsFooter extends Component {
   updateWayId() {
     raf(this.updateWayId);
 
-    var event = TimelineWorker.currentLiveMapData();
+    const event = TimelineWorker.currentLiveMapData();
     if (event && event.LiveMapData) {
-      var wayId = parseInt(event.LiveMapData.WayId);
+      const wayId = parseInt(event.LiveMapData.WayId);
       if (wayId !== this.state.wayId) {
         this.setState({ wayId });
       }
@@ -75,9 +73,9 @@ class AnnotationsFooter extends Component {
     }
   }
 
-  copySegmentName (e) {
+  copySegmentName(e) {
     const el = document.createElement('textarea');
-    el.value = this.props.segment.route + '--' + this.props.segment.segment;
+    el.value = `${this.props.segment.route}--${this.props.segment.segment}`;
     el.setAttribute('readonly', '');
     el.style.position = 'absolute';
     el.style.left = '-9999px';
@@ -97,75 +95,76 @@ class AnnotationsFooter extends Component {
       return;
     }
 
-    let seg = this.props.segment;
-    let segmentKeyPath = seg.route.replace('|', '/') + '/' + seg.segment;
+    const seg = this.props.segment;
+    const segmentKeyPath = `${seg.route.replace('|', '/')}/${seg.segment}`;
 
-    let files = (await RawApi.getRouteFiles(this.props.segment.route));
-    let url = files[type].find(function(url) {
-      return url.indexOf(segmentKeyPath) !== -1;
-    })
+    const files = (await RawApi.getRouteFiles(this.props.segment.route));
+    const url = files[type].find((url) => url.indexOf(segmentKeyPath) !== -1);
 
     if (url) {
       window.location.href = url;
     }
   }
 
-  handleClose () {
+  handleClose() {
     this.setState({
       showCopiedSnack: false
     });
     this.snackTimer();
   }
 
-  openInCabana () {
-    var params = {
-      'route': this.props.segment.route,
-      'url': this.props.segment.url,
-      'seekTime': Math.floor((TimelineWorker.currentOffset() - this.props.segment.routeOffset) / 1000)
+  openInCabana() {
+    const params = {
+      route: this.props.segment.route,
+      url: this.props.segment.url,
+      seekTime: Math.floor((TimelineWorker.currentOffset() - this.props.segment.routeOffset) / 1000)
     };
-    var win = window.open('https://my.comma.ai/cabana/' + qs.stringify(params, true) , '_blank');
+    const win = window.open(`https://my.comma.ai/cabana/${qs.stringify(params, true)}`, '_blank');
     if (win.focus) {
       win.focus();
     }
   }
 
-  openWayInOsmEditor () {
-    var { wayId } = this.state;
+  openWayInOsmEditor() {
+    const { wayId } = this.state;
     if (!wayId) {
       return;
     }
 
-    var win = window.open(`https://www.openstreetmap.org/way/${wayId}`, '_blank');
+    const win = window.open(`https://www.openstreetmap.org/way/${wayId}`, '_blank');
     if (win.focus) {
       win.focus();
     }
   }
 
-  render () {
+  render() {
     return (
-      <Paper className={ this.props.classes.root } >
-        { this.props.segment && this.props.segment.hasVideo &&
-          <a className={ this.props.classes.footerButton } onClick={ partial(this.downloadSegmentFile, 'cameras') }>
+      <Paper className={this.props.classes.root}>
+        { this.props.segment && this.props.segment.hasVideo
+          && (
+          <a className={this.props.classes.footerButton} onClick={partial(this.downloadSegmentFile, 'cameras')}>
             Download Camera Segment
           </a>
-        }
-        { this.props.segment && this.props.segment.hasDriverCamera &&
-          <a className={ this.props.classes.footerButton } onClick={ partial(this.downloadSegmentFile, 'dcameras') }>
+          )}
+        { this.props.segment && this.props.segment.hasDriverCamera
+          && (
+          <a className={this.props.classes.footerButton} onClick={partial(this.downloadSegmentFile, 'dcameras')}>
             Download Front Camera Segment
           </a>
-        }
-        { this.props.segment &&
-          <a className={ this.props.classes.footerButton } onClick={ partial(this.downloadSegmentFile, 'logs') }>
+          )}
+        { this.props.segment
+          && (
+          <a className={this.props.classes.footerButton} onClick={partial(this.downloadSegmentFile, 'logs')}>
             Download Log Segment
           </a>
-        }
-        <a className={ this.props.classes.footerButton } onClick={ this.openWayInOsmEditor } href='#'>
+          )}
+        <a className={this.props.classes.footerButton} onClick={this.openWayInOsmEditor} href="#">
           Edit OpenStreetMap Here
         </a>
-        <a className={ this.props.classes.footerButton } onClick={ this.openInCabana } href='#'>
+        <a className={this.props.classes.footerButton} onClick={this.openInCabana} href="#">
           View CAN Data in Cabana
         </a>
-        <a className={ this.props.classes.footerButton } onClick={ this.copySegmentName } target='_blank'>
+        <a className={this.props.classes.footerButton} onClick={this.copySegmentName} target="_blank">
           Copy Current Segment
         </a>
         <Snackbar

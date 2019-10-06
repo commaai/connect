@@ -2,13 +2,19 @@
 /* eslint-disable no-restricted-globals */
 const API = require('./timeline');
 
-self.onconnect = sharedWorkerInit;
-
-function sharedWorkerInit (e) {
+function sharedWorkerInit(e) {
   const port = e.ports[0];
+
+  function close() {
+    port.close();
+  }
+  function postMessage(msg, transferables) {
+    port.postMessage(msg, transferables);
+  }
+
   const portInterface = {
-    close: close,
-    postMessage: postMessage
+    close,
+    postMessage
   };
 
   postMessage({
@@ -20,18 +26,13 @@ function sharedWorkerInit (e) {
     command: 'broadcastPort'
   }, [API.createBroadcastPort(port)]);
 
-  port.onmessage = function (msg) {
+  port.onmessage = function handleMessage(msg) {
     API.handleMessage(portInterface, msg);
-  }
-  port.onmessageerror = function (e) {
-    console.error('Msgh error!', e);
+  };
+  port.onmessageerror = function handleError(err) {
+    console.error('Msgh error!', err);
     close();
-  }
-
-  function close () {
-    port.close();
-  }
-  function postMessage (msg, transferables) {
-    port.postMessage(msg, transferables);
-  }
+  };
 }
+
+self.onconnect = sharedWorkerInit;

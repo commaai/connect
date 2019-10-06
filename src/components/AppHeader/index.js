@@ -25,55 +25,53 @@ import { AccountIcon } from '../../icons';
 
 import Timelineworker from '../../timeline';
 
-const styles = theme => {
-  return {
-    base: {
-      backgroundColor: '#1D2225',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-      display: 'flex',
-      width: '100%',
-    },
-    logo: {
-      alignItems: 'center',
-      display: 'flex',
-      maxWidth: 200,
-      textDecoration: 'none',
-    },
-    logoImg: {
-      height: '34px',
-      margin: '0px 28px',
-      width: 'auto',
-    },
-    logoText: {
-      fontFamily: 'MaisonNeueExtended',
-      fontSize: 18,
-      fontWeight: 600,
-    },
-    timeDisplay: {
-      alignItems: 'center',
-    },
-    selectArea: {
-      alignItems: 'center',
-      display: 'flex',
-      justifyContent: 'flex-end',
-      marginLeft: 'auto',
-      paddingRight: 28,
-    },
-    accountIcon: {
-      color: '#272D30',
-      height: 34,
-      width: 34,
-    },
-    userMeta: {
-      outline: 'none',
-      padding: `${ theme.spacing.unit }px ${ theme.spacing.unit * 2 }px`,
-      borderBottom: '1px solid ' + theme.palette.white[12],
-    },
-  };
-};
+const styles = (theme) => ({
+  base: {
+    backgroundColor: '#1D2225',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    display: 'flex',
+    width: '100%',
+  },
+  logo: {
+    alignItems: 'center',
+    display: 'flex',
+    maxWidth: 200,
+    textDecoration: 'none',
+  },
+  logoImg: {
+    height: '34px',
+    margin: '0px 28px',
+    width: 'auto',
+  },
+  logoText: {
+    fontFamily: 'MaisonNeueExtended',
+    fontSize: 18,
+    fontWeight: 600,
+  },
+  timeDisplay: {
+    alignItems: 'center',
+  },
+  selectArea: {
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginLeft: 'auto',
+    paddingRight: 28,
+  },
+  accountIcon: {
+    color: '#272D30',
+    height: 34,
+    width: 34,
+  },
+  userMeta: {
+    outline: 'none',
+    padding: `${theme.spacing.unit}px ${theme.spacing.unit * 2}px`,
+    borderBottom: `1px solid ${theme.palette.white[12]}`,
+  },
+});
 
 class AppHeader extends Component {
-  constructor (props) {
+  constructor(props) {
     super(props);
 
     this.handleClickedAccount = this.handleClickedAccount.bind(this);
@@ -85,11 +83,11 @@ class AppHeader extends Component {
     };
   }
 
-  handleClickedAccount (event) {
+  handleClickedAccount(event) {
     this.setState({ anchorEl: event.currentTarget });
   }
 
-  handleClose () {
+  handleClose() {
     this.setState({ anchorEl: null });
   }
 
@@ -99,61 +97,66 @@ class AppHeader extends Component {
     MyCommaAuth.logOut();
   }
 
-  render () {
+  render() {
     const { profile, classes } = this.props;
     const { auth, anchorEl } = this.state;
     const open = Boolean(anchorEl);
 
     return (
-      <header className={ classes.base }>
-        <Grid container spacing={ 0 }>
-          <Grid item container xs={ 2 } lg={ 4 }>
-            <Link to="/" className={ classes.logo }>
-              <img src='/images/comma-white.png' className={ classes.logoImg } />
-              <Typography className={ classes.logoText }>
+      <header className={classes.base}>
+        <Grid container spacing={0}>
+          <Grid item container xs={2} lg={4}>
+            <Link to="/" className={classes.logo}>
+              <img src="/images/comma-white.png" className={classes.logoImg} />
+              <Typography className={classes.logoText}>
                 explorer
               </Typography>
             </Link>
           </Grid>
-          <Grid item container xs={ 6 } lg={ 4 } className={ classes.timeDisplay }>
+          <Grid item container xs={6} lg={4} className={classes.timeDisplay}>
             <TimeDisplay isThin />
           </Grid>
           <Grid
             item
-            xs={ 4 }
-            align='right'
-            className={ classes.selectArea }>
+            xs={4}
+            align="right"
+            className={classes.selectArea}
+          >
             <TimeFilter />
             <IconButton
               aria-owns={open ? 'menu-appbar' : null}
-              aria-haspopup='true'
-              onClick={ this.handleClickedAccount }>
-              <AccountIcon className={ classes.accountIcon } />
+              aria-haspopup="true"
+              onClick={this.handleClickedAccount}
+            >
+              <AccountIcon className={classes.accountIcon} />
             </IconButton>
             <Menu
-              id='menu-appbar'
-              open={ open }
-              onClose={ this.handleClose }
-              anchorEl={ anchorEl }
-              anchorOrigin={ {
+              id="menu-appbar"
+              open={open}
+              onClose={this.handleClose}
+              anchorEl={anchorEl}
+              anchorOrigin={{
                 vertical: 'top',
                 horizontal: 'right',
-              } }
-              transformOrigin={ {
+              }}
+              transformOrigin={{
                 vertical: 'top',
                 horizontal: 'right',
-              } }>
-              <ListItem classes={ { root: classes.userMeta } } disableGutters>
+              }}
+            >
+              <ListItem classes={{ root: classes.userMeta }} disableGutters>
                 <div>
-                  <Typography variant='body2' paragraph>
+                  <Typography variant="body2" paragraph>
                     { profile.email }
                   </Typography>
-                  <Typography variant='body1' paragraph>
-                    { profile.points } points
+                  <Typography variant="body1" paragraph>
+                    { profile.points }
+                    {' '}
+points
                   </Typography>
                 </div>
               </ListItem>
-              <MenuItem onClick={ this.handleLogOut }>Log out</MenuItem>
+              <MenuItem onClick={this.handleLogOut}>Log out</MenuItem>
             </Menu>
           </Grid>
         </Grid>
