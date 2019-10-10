@@ -1,11 +1,14 @@
 // https://video-react.js.org/customize/customize-source/
 import React, { Component } from 'react';
-import Hls from 'hls.js';
+import Hls from '@commaai/hls.js';
 
 export default class HLSSource extends Component {
   constructor(props, context) {
     super(props, context);
-    this.hls = new Hls();
+    this.hls = new Hls({
+      enableWorker: false,
+      disablePtsDtsCorrectionInMp4Remux: true
+    });
     this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
       this.props.video.play();
     });
@@ -31,7 +34,7 @@ export default class HLSSource extends Component {
   componentWillUpdate(nextProps, nextState) {
     if (nextProps.src !== nextState.src) {
       // console.log('Loading media source!', nextProps.src);
-      if (this.state.src.length) {
+      if (this.state.src && this.state.src.length) {
         // console.log('this.hls.detachMedia();');
         this.hls.detachMedia();
       }
@@ -42,9 +45,10 @@ export default class HLSSource extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (this.state.src !== prevState.src && this.state.src.length) {
-      // console.log('this.hls.loadSource(this.state.src);');
-      this.hls.loadSource(this.state.src);
+    const { src } = this.state;
+    if (src !== prevState.src && src && src.length) {
+      // console.log('this.hls.loadSource(src);');
+      this.hls.loadSource(src);
       // console.log('this.hls.attachMedia(this.props.video);');
       this.hls.attachMedia(this.props.video);
 

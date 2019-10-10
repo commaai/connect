@@ -1,7 +1,7 @@
+/* eslint-env jest */
 import * as Redux from 'redux';
 import React from 'react';
-import ReactDOM from 'react-dom';
-import { AutoSizer, List } from 'react-virtualized';
+import { List } from 'react-virtualized';
 import { mount, shallow } from 'enzyme';
 import { MuiThemeProvider } from '@material-ui/core/styles';
 import Theme from '../../theme';

@@ -7,7 +7,6 @@ import { multiply } from 'mathjs';
 import debounce from 'debounce';
 
 import { Player, ControlBar, PlaybackRateMenuButton } from 'video-react';
-import Measure from 'react-measure';
 import 'video-react/dist/video-react.css'; // CSS for video
 
 import theme from '../../theme';

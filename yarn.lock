@@ -923,6 +923,14 @@
     joi-browser "^13.4.0"
     querystringify "^2.1.1"
 
+"@commaai/hls.js@^0.12.5":
+  version "0.12.5"
+  resolved "https://registry.yarnpkg.com/@commaai/hls.js/-/hls.js-0.12.5.tgz#891e47124b4e9e2a1528463613bf415ff252d2ec"
+  integrity sha512-aZcwFrhHSGVpi76cHMjT1wQ6Pe0AVv3s0TdzNGFA6LpCb6WCFy2EF9H8QCtNlAviccYnAw4XQrJ+hHToUp4QnA==
+  dependencies:
+    eventemitter3 "3.1.0"
+    url-toolkit "^2.1.6"
+
 "@commaai/log_reader@0.5.3":
   version "0.5.3"
   resolved "https://registry.yarnpkg.com/@commaai/log_reader/-/log_reader-0.5.3.tgz#c3dd2c6f3b911198c32bbebd34d0e9cc862e0672"
@@ -7455,14 +7463,6 @@ history@^4.7.2:
     resolve-pathname "^2.2.0"
     value-equal "^0.4.0"
     warning "^3.0.0"
-
-hls.js@0.12.3-canary.4258:
-  version "0.12.3-canary.4258"
-  resolved "https://registry.yarnpkg.com/hls.js/-/hls.js-0.12.3-canary.4258.tgz#9ef7e89a85609222497512b9baed806712246901"
-  integrity sha512-uSNt4fDVNb5rMpgMGjFvVaIqWwwRnIFiCrTY2zHCIQbaKgw8DOhA3QC5ImYdv8nXiZod5LS69dYxjnj/u8+3nw==
-  dependencies:
-    eventemitter3 "3.1.0"
-    url-toolkit "^2.1.6"
 
 hmac-drbg@^1.0.0:
   version "1.0.1"
