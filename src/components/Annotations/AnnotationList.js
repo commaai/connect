@@ -138,7 +138,7 @@ class AnnotationList extends PureComponent {
     const eventId = `${event.time}:${index}`;
     return (
       <AnnotationListItem
-        key={key}
+        key={eventId}
         style={style}
         segment={segment}
         eventId={eventId}
