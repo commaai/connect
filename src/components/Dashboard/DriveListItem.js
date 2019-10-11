@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { partial } from 'ap';
 import fecha from 'fecha';
+import { classNames } from 'react-extras';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -113,7 +114,7 @@ class DriveListDrive extends Component {
     return (
       <li
         key={drive.startTime}
-        className={classes.drive}
+        className={classNames(classes.drive, 'DriveEntry')}
         onClick={partial(this.handleDriveClicked, drive)}
       >
         <div className={classes.driveHeader}>
