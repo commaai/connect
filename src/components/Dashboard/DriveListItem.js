@@ -199,6 +199,4 @@ km
   }
 }
 
-const stateToProps = Obstruction({});
-
-export default connect(stateToProps)(withStyles(styles)(DriveListDrive));
+export default connect(() => ({}))(withStyles(styles)(DriveListDrive));

@@ -1,14 +1,11 @@
 import React, { PureComponent } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import { partial } from 'ap';
 import fecha from 'fecha';
 import Raven from 'raven-js';
+import { classNames } from 'react-extras';
 
 import {
   withStyles,
   Grid,
-  Slide,
   Typography,
   ExpansionPanel,
   ExpansionPanelSummary,
@@ -23,8 +20,6 @@ import {
   FormHelperText,
   LinearProgress,
 } from '@material-ui/core';
-
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 
 import { annotations as Annotations } from '@commaai/comma-api';
 import Timelineworker from '../../timeline';
@@ -279,7 +274,7 @@ class AnnotationEntry extends PureComponent {
       <ExpansionPanel
         style={style}
         classes={{ expanded: classes.isExpanded }}
-        className={classes.base}
+        className={classNames(classes.base, 'AnnotationListEntry')}
         key={eventId}
         expanded={this.props.expanded}
         onChange={this.props.onChange}

@@ -58,6 +58,7 @@ module.exports = {
     duration: null
   },
 
-  profile: null,
+  profile: {},
+  devices: [],
   isDemo: false,
 };

@@ -382,11 +382,20 @@ class TimelineInterface {
       : null;
   }
 
+  getNextLogIndex() {
+    if (!this.state.nextSegment) {
+      return null;
+    }
+    return this.buffers[this.state.nextSegment.route]
+      ? this.buffers[this.state.nextSegment.route][this.state.nextSegment.segment]
+      : null;
+  }
+
   getEvent(index, _logIndex) {
     // millis, nanos, offset, len, buffer
     const logIndex = _logIndex || this.buffers[this.state.route][this.state.segment];
     if (index < 0 || index >= logIndex.index.length) {
-      console.log('Invalid event index', index);
+      // console.log('Invalid event index', index);
       return null;
     }
     const entry = logIndex.index[index];

@@ -43,5 +43,17 @@ describe('demo mode', () => {
 
   it('should load', async () => {
     await expect(page).toClick('.DriveEntry');
+    await delay(2000);
+    let annotationEntry = await page.$('.AnnotationListEntry');
+    expect(annotationEntry).toBeTruthy();
+    let boundingBox = await annotationEntry.boundingBox();
+    const initialHeight = boundingBox.height;
+    expect(initialHeight).toBeGreaterThan(10);
+    await expect(page).toClick('.AnnotationListEntry');
+    await delay(1000);
+    annotationEntry = await page.$('.AnnotationListEntry');
+    expect(annotationEntry).toBeTruthy();
+    boundingBox = await annotationEntry.boundingBox();
+    expect(boundingBox.height).toBeGreaterThan(initialHeight);
   });
 });

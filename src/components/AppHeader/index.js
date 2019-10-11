@@ -102,6 +102,10 @@ class AppHeader extends Component {
     const { auth, anchorEl } = this.state;
     const open = Boolean(anchorEl);
 
+    if (!profile) {
+      return [];
+    }
+
     return (
       <header className={classes.base}>
         <Grid container spacing={0}>

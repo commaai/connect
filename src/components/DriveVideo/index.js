@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withStyles } from '@material-ui/core/styles';
@@ -6,7 +7,7 @@ import { classNames } from 'react-extras';
 import { multiply } from 'mathjs';
 import debounce from 'debounce';
 
-import { Player, ControlBar, PlaybackRateMenuButton } from 'video-react';
+import { Player, ControlBar } from 'video-react';
 import 'video-react/dist/video-react.css'; // CSS for video
 
 import theme from '../../theme';
@@ -69,6 +70,15 @@ const styles = (theme) => ({
     width: '100%',
   }
 });
+
+function intrinsicMatrix() {
+  return [
+    950.892854, 0, 584, 0,
+    0, 950.892854, 439, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 0,
+  ];
+}
 
 class VideoPreview extends Component {
   constructor(props) {
@@ -174,7 +184,11 @@ class VideoPreview extends Component {
       if (logIndex) {
         const curIndex = LogIndex.findMonoTime(logIndex, monoTime);
         const lastEvent = TimelineWorker.getEvent(curIndex, logIndex);
-        const nextEvent = TimelineWorker.getEvent(curIndex + 1, logIndex);
+        let nextEvent = TimelineWorker.getEvent(curIndex + 1, logIndex);
+
+        if (!nextEvent) {
+          nextEvent = TimelineWorker.getEvent(0, TimelineWorker.getNextLogIndex());
+        }
 
         if (nextEvent) {
           isDataBuffering = false;
@@ -186,8 +200,6 @@ class VideoPreview extends Component {
             // 3 seconds of grace
             isDataBuffering = true;
           }
-        } else {
-          isDataBuffering = true;
         }
       }
     } else {
@@ -1309,15 +1321,6 @@ class VideoPreview extends Component {
       </div>
     );
   }
-}
-
-function intrinsicMatrix() {
-  return [
-    950.892854, 0, 584, 0,
-    0, 950.892854, 439, 0,
-    0, 0, 1, 0,
-    0, 0, 0, 0,
-  ];
 }
 
 function mapStateToProps(state) {
