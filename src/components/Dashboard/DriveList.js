@@ -124,6 +124,11 @@ class DriveList extends Component {
 
   render() {
     const { classes, device, segments } = this.props;
+
+    if (!device) {
+      return [];
+    }
+
     const driveList = [];
     let lastEnd = 0;
     let lastSegmentEnd = 0;

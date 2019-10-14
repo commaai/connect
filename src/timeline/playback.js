@@ -84,6 +84,10 @@ export function reducer(_state = initialState, action) {
           duration: action.duration
         }
       };
+      if (action.duration > 0 && action.startTime > 0) {
+        state.start = Math.min(action.startTime, state.start);
+        state.end = Math.max(action.startTime + action.duration, state.end);
+      }
       break;
     case ACTION_BUFFER_VIDEO:
       state.bufferingVideo = action.buffering;
