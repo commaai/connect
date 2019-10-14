@@ -79,8 +79,8 @@ class Annotations extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
-    const visibleSegment = (this.props.currentSegment || this.props.nextSegment);
+    const { classes, device, loop, currentSegment, nextSegment } = this.props;
+    const visibleSegment = (currentSegment || nextSegment);
     const routeName = visibleSegment ? visibleSegment.route : 'Nothing visible';
     const shortName = routeName.split('|')[1];
     return (
@@ -123,7 +123,7 @@ class Annotations extends Component {
           </div>
         </div>
         <div className={classes.footer}>
-          <AnnotationsFooter segment={visibleSegment} />
+          <AnnotationsFooter segment={visibleSegment} loop={loop} />
         </div>
       </div>
     );
@@ -141,6 +141,7 @@ const stateToProps = Obstruction({
   currentSegment: 'workerState.currentSegment',
   nextSegment: 'workerState.nextSegment',
   device: 'workerState.device',
+  loop: 'workerState.loop',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Annotations));
