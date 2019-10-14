@@ -78,8 +78,22 @@ class Annotations extends Component {
     this.props.dispatch(selectRange(null, null));
   }
 
+  renderAnnotationsElement(visibleSegment) {
+    if (visibleSegment.deviceType === DeviceType.one) {
+      return (<AnnotationTabs segment={visibleSegment} />);
+    }
+    return (<EonUpsell hook="Unlock driving annotations with an EON" />);
+  }
+
   render() {
-    const { classes, device, loop, currentSegment, nextSegment } = this.props;
+    const {
+      classes,
+      device,
+      loop,
+      currentSegment,
+      nextSegment,
+      start
+    } = this.props;
     const visibleSegment = (currentSegment || nextSegment);
     const routeName = visibleSegment ? visibleSegment.route : 'Nothing visible';
     const shortName = routeName.split('|')[1];
@@ -123,17 +137,10 @@ class Annotations extends Component {
           </div>
         </div>
         <div className={classes.footer}>
-          <AnnotationsFooter segment={visibleSegment} loop={loop} />
+          <AnnotationsFooter segment={visibleSegment} loop={loop} start={start} />
         </div>
       </div>
     );
-  }
-
-  renderAnnotationsElement(visibleSegment) {
-    if (visibleSegment.deviceType === DeviceType.one) {
-      return (<AnnotationTabs segment={visibleSegment} />);
-    }
-    return (<EonUpsell hook="Unlock driving annotations with an EON" />);
   }
 }
 
@@ -142,6 +149,7 @@ const stateToProps = Obstruction({
   nextSegment: 'workerState.nextSegment',
   device: 'workerState.device',
   loop: 'workerState.loop',
+  start: 'workerState.start'
 });
 
 export default connect(stateToProps)(withStyles(styles)(Annotations));

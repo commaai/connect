@@ -23,15 +23,22 @@ describe('AnnotationsFooter', () => {
     currentOffsetMock.mockClear();
   });
   it('opens cabana at the current timestamp and loop', () => {
+    const start = 123123123;
+    const routeOffset = Math.round(Math.random() * 10000);
+    const routeStartTime = start + routeOffset;
+    const loopStartTime = routeStartTime + Math.round(Math.random() * 10000);
+    const currentOffset = loopStartTime - start + Math.round(Math.random() * 10000);
+    currentOffsetMock.mockImplementationOnce(() => currentOffset);
     const footer = mount(
       <AnnotationsFooter
         segment={{
-          routeOffset: 123321
+          routeOffset
         }}
         loop={{
-          startTime: 123120123,
+          startTime: loopStartTime,
           duration: 15000
         }}
+        start={start}
       />
     );
 
@@ -39,7 +46,6 @@ describe('AnnotationsFooter', () => {
     const openInCabana = footer.find('.openInCabana');
     expect(openInCabana.exists()).toBe(true);
 
-    currentOffsetMock.mockImplementationOnce(() => 123123123);
     openInCabana.simulate('click');
 
     expect(winOpenMock.mock.calls.length).toBe(1);
@@ -54,23 +60,30 @@ describe('AnnotationsFooter', () => {
     expect(qsParams.segments).toEqual(expect.stringContaining(','));
     const segmentParts = qsParams.segments.split(',');
 
-    expect(Number(qsParams.seekTime)).toBe(122999);
-    expect(Number(segmentParts[0])).toBe(122996);
-    expect(Number(segmentParts[1])).toBe(123011);
+    expect(Number(qsParams.seekTime)).toBe(Math.floor((currentOffset - routeOffset) / 1000));
+    expect(Number(segmentParts[0])).toBe(Math.floor((loopStartTime - routeStartTime) / 1000));
+    expect(Number(segmentParts[1])).toBe(Math.floor((loopStartTime - routeStartTime) / 1000) + 15);
 
 
     footer.unmount();
   });
   it('doesn\'t send cabana the loop when its greater than 3 minutes', () => {
+    const start = 123123123;
+    const routeOffset = Math.round(Math.random() * 10000);
+    const routeStartTime = start + routeOffset;
+    const loopStartTime = routeStartTime + Math.round(Math.random() * 10000);
+    const currentOffset = loopStartTime - start + Math.round(Math.random() * 10000);
+    currentOffsetMock.mockImplementationOnce(() => currentOffset);
     const footer = mount(
       <AnnotationsFooter
         segment={{
-          routeOffset: 123321
+          routeOffset
         }}
         loop={{
-          startTime: 123120123,
+          startTime: loopStartTime,
           duration: 181000
         }}
+        start={start}
       />
     );
 
@@ -78,7 +91,6 @@ describe('AnnotationsFooter', () => {
     const openInCabana = footer.find('.openInCabana');
     expect(openInCabana.exists()).toBe(true);
 
-    currentOffsetMock.mockImplementationOnce(() => 123123123);
     openInCabana.simulate('click');
 
     expect(winOpenMock.mock.calls.length).toBe(1);

@@ -115,15 +115,17 @@ class AnnotationsFooter extends Component {
   }
 
   openInCabana() {
-    const { segment, loop } = this.props;
+    const { segment, loop, start } = this.props;
+    const currentOffset = TimelineWorker.currentOffset();
     const params = {
       route: segment.route,
       url: segment.url,
-      seekTime: Math.floor((TimelineWorker.currentOffset() - segment.routeOffset) / 1000)
+      seekTime: Math.floor((currentOffset - segment.routeOffset) / 1000)
     };
+    const routeStartTime = (start + segment.routeOffset);
 
-    if (loop.startTime && loop.startTime > segment.routeOffset && loop.duration < 180000) {
-      const startTime = Math.floor((loop.startTime - segment.routeOffset) / 1000);
+    if (loop.startTime && loop.startTime > routeStartTime && loop.duration < 180000) {
+      const startTime = Math.floor((loop.startTime - routeStartTime) / 1000);
       params.segments = [startTime, Math.floor(startTime + (loop.duration / 1000))].join(',');
     }
 
@@ -196,6 +198,7 @@ class AnnotationsFooter extends Component {
 AnnotationsFooter.propTypes = {
   segment: PropTypes.object.isRequired,
   loop: PropTypes.object.isRequired,
+  start: PropTypes.number.isRequired
 };
 
 export default withStyles(styles)(AnnotationsFooter);
