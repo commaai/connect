@@ -122,8 +122,9 @@ class AnnotationsFooter extends Component {
       seekTime: Math.floor((TimelineWorker.currentOffset() - segment.routeOffset) / 1000)
     };
 
-    if (loop.startTime && loop.startTime > segment.routeOffset) {
-      params.segment = [Math.floor((loop.startTime - segment.routeOffset) / 1000)].join(',');
+    if (loop.startTime && loop.startTime > segment.routeOffset && loop.duration < 180000) {
+      const startTime = Math.floor((loop.startTime - segment.routeOffset) / 1000);
+      params.segments = [startTime, Math.floor(startTime + (loop.duration / 1000))].join(',');
     }
 
     const win = window.open(`https://my.comma.ai/cabana/${qs.stringify(params, true)}`, '_blank');
