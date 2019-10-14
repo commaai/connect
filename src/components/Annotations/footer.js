@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import Obstruction from 'obstruction';
+import { classNames } from 'react-extras';
 import PropTypes from 'prop-types';
 import document from 'global/document';
 import { timeout } from 'thyming';
@@ -35,10 +36,6 @@ const styles = (theme) => ({
 });
 
 class AnnotationsFooter extends Component {
-  static propTypes = {
-    segment: PropTypes.object.isRequired,
-  };
-
   constructor(props) {
     super(props);
 
@@ -74,8 +71,12 @@ class AnnotationsFooter extends Component {
   }
 
   copySegmentName(e) {
+    const { segment } = this.props;
+    if (!segment) {
+      return;
+    }
     const el = document.createElement('textarea');
-    el.value = `${this.props.segment.route}--${this.props.segment.segment}`;
+    el.value = `${segment.route}--${segment.segment}`;
     el.setAttribute('readonly', '');
     el.style.position = 'absolute';
     el.style.left = '-9999px';
@@ -114,11 +115,20 @@ class AnnotationsFooter extends Component {
   }
 
   openInCabana() {
+    const { segment, loop, start } = this.props;
+    const currentOffset = TimelineWorker.currentOffset();
     const params = {
-      route: this.props.segment.route,
-      url: this.props.segment.url,
-      seekTime: Math.floor((TimelineWorker.currentOffset() - this.props.segment.routeOffset) / 1000)
+      route: segment.route,
+      url: segment.url,
+      seekTime: Math.floor((currentOffset - segment.routeOffset) / 1000)
     };
+    const routeStartTime = (start + segment.routeOffset);
+
+    if (loop.startTime && loop.startTime > routeStartTime && loop.duration < 180000) {
+      const startTime = Math.floor((loop.startTime - routeStartTime) / 1000);
+      params.segments = [startTime, Math.floor(startTime + (loop.duration / 1000))].join(',');
+    }
+
     const win = window.open(`https://my.comma.ai/cabana/${qs.stringify(params, true)}`, '_blank');
     if (win.focus) {
       win.focus();
@@ -161,7 +171,7 @@ class AnnotationsFooter extends Component {
         <a className={this.props.classes.footerButton} onClick={this.openWayInOsmEditor} href="#">
           Edit OpenStreetMap Here
         </a>
-        <a className={this.props.classes.footerButton} onClick={this.openInCabana} href="#">
+        <a className={classNames(this.props.classes.footerButton, 'openInCabana')} onClick={this.openInCabana} href="#">
           View CAN Data in Cabana
         </a>
         <a className={this.props.classes.footerButton} onClick={this.copySegmentName} target="_blank">
@@ -184,5 +194,11 @@ class AnnotationsFooter extends Component {
     );
   }
 }
+
+AnnotationsFooter.propTypes = {
+  segment: PropTypes.object.isRequired,
+  loop: PropTypes.object.isRequired,
+  start: PropTypes.number.isRequired
+};
 
 export default withStyles(styles)(AnnotationsFooter);
