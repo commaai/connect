@@ -1300,43 +1300,43 @@ class VideoPreview extends Component {
         </Player>
         { this.props.shouldShowUI
           && (
-          <>
-            <canvas
-              ref={this.canvas_road}
-              className={classes.videoUiCanvas}
-              style={{ zIndex: 3 }}
-            />
-            <canvas
-              ref={this.canvas_lead}
-              className={classes.videoUiCanvas}
-              style={{ zIndex: 4 }}
-            />
-            <canvas
-              ref={this.canvas_carstate}
-              className={classes.videoUiCanvas}
-              style={{ zIndex: 5 }}
-            />
-            <canvas
-              ref={this.canvas_maxspeed}
-              className={classes.videoUiCanvas}
-              style={{ zIndex: 6 }}
-            />
-            <canvas
-              ref={this.canvas_speed}
-              className={classes.videoUiCanvas}
-              style={{ zIndex: 7 }}
-            />
-          </>
+            <>
+              <canvas
+                ref={this.canvas_road}
+                className={classes.videoUiCanvas}
+                style={{ zIndex: 3 }}
+              />
+              <canvas
+                ref={this.canvas_lead}
+                className={classes.videoUiCanvas}
+                style={{ zIndex: 4 }}
+              />
+              <canvas
+                ref={this.canvas_carstate}
+                className={classes.videoUiCanvas}
+                style={{ zIndex: 5 }}
+              />
+              <canvas
+                ref={this.canvas_maxspeed}
+                className={classes.videoUiCanvas}
+                style={{ zIndex: 6 }}
+              />
+              <canvas
+                ref={this.canvas_speed}
+                className={classes.videoUiCanvas}
+                style={{ zIndex: 7 }}
+              />
+            </>
           )}
         { this.props.front
           && (
-          <>
-            <canvas
-              ref={this.canvas_face}
-              className={classes.videoUiCanvas}
-              style={{ zIndex: 3 }}
-            />
-          </>
+            <>
+              <canvas
+                ref={this.canvas_face}
+                className={classes.videoUiCanvas}
+                style={{ zIndex: 3 }}
+              />
+            </>
           )}
       </div>
     );

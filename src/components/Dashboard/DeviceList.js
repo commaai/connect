@@ -234,22 +234,22 @@ class DeviceList extends Component {
               )}
             { this.state.editingDevice === device.dongle_id
               && (
-              <>
-                <Grid item xs={6}>
-                  <Button
-                    variant="outlined"
-                    onClick={partial(this.setDeviceAlias, device.dongle_id)}
-                    className={classes.saveButton}
-                  >
+                <>
+                  <Grid item xs={6}>
+                    <Button
+                      variant="outlined"
+                      onClick={partial(this.setDeviceAlias, device.dongle_id)}
+                      className={classes.saveButton}
+                    >
                     Save
-                  </Button>
-                </Grid>
-                <Grid item xs={6}>
-                  <Button variant="outlined" onClick={this.cancelEdit}>
+                    </Button>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Button variant="outlined" onClick={this.cancelEdit}>
                     Cancel
-                  </Button>
-                </Grid>
-              </>
+                    </Button>
+                  </Grid>
+                </>
               )}
           </Grid>
         </ExpansionPanelSummary>
