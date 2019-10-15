@@ -9,6 +9,7 @@
     "build:deploy-preview": "env-cmd .env.staging craco build",
     "test": "craco test --env=jsdom",
     "test-ci": "CI=true craco test --env=jsdom",
+    "test-coverage": "CI=true craco test --env=jsdom --coverage",
     "test-puppeteer": "jest -c src/__puppeteer__/jest.config.js",
     "storybook": "start-storybook -p 9009 -s public",
     "build-storybook": "build-storybook -s public"

@@ -21,17 +21,19 @@ import Buffering from './buffering';
 const wheelImg = new Image();
 wheelImg.src = require('../../icons/icon-chffr-wheel.svg');
 
+
+// these constants are named this way so that the names are the same in python and js
+// do not refactor them to have js style or more descriptive names
 // UI Measurements
 const vwp_w = 1164;
 const vwp_h = 874;
 const bdr_s = 30;
-
 // driver monitoring constants
-const _PITCH_NATURAL_OFFSET = 0.12;
-const _YAW_NATURAL_OFFSET = 0.08;
-const _PITCH_POS_ALLOWANCE = 0.04;
-const _PITCH_WEIGHT = 1.35;
-const _METRIC_THRESHOLD = 0.4;
+const _PITCH_NATURAL_OFFSET = 0.12; // eslint-disable-line no-underscore-dangle
+const _YAW_NATURAL_OFFSET = 0.08; // eslint-disable-line no-underscore-dangle
+const _PITCH_POS_ALLOWANCE = 0.04; // eslint-disable-line no-underscore-dangle
+const _PITCH_WEIGHT = 1.35; // eslint-disable-line no-underscore-dangle
+const _METRIC_THRESHOLD = 0.4; // eslint-disable-line no-underscore-dangle
 const W = 160;
 const H = 320;
 const RESIZED_FOCAL = 320.0;
@@ -39,6 +41,7 @@ const FULL_W = 426;
 const DM_FACE_THRESHOLD = 0.4; // probs below this disappear
 const DM_BLINK_THRESHOLD = 0.2; // probs above this count as blinking
 
+// cache break index files
 const STREAM_VERSION = 2;
 
 const styles = (theme) => ({
@@ -119,6 +122,17 @@ class VideoPreview extends Component {
     this.stopListening = TimelineWorker.onIndexed(() => this.checkDataBuffer());
   }
 
+  componentDidUpdate(prevProps, prevState) {
+    const newUrl = this.videoURL();
+    if (this.state.src !== newUrl && newUrl.length) {
+      this.setState({
+        src: newUrl
+      });
+    }
+    // play state
+    this.checkVideoBuffer();
+  }
+
   componentWillUnmount() {
     this.mounted = false;
     if (this.rafLoop) {
@@ -133,17 +147,6 @@ class VideoPreview extends Component {
       this.stopListeningToVideo();
       this.stopListeningToVideo = null;
     }
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    const newUrl = this.videoURL();
-    if (this.state.src !== newUrl && newUrl.length) {
-      this.setState({
-        src: newUrl
-      });
-    }
-    // play state
-    this.checkVideoBuffer();
   }
 
   onSourceLoaded() {
@@ -1207,7 +1210,7 @@ class VideoPreview extends Component {
     } else {
       segCount = segment.cameraStreamSegCount;
     }
-    return `${base}/index.m3u8` + `?v=${STREAM_VERSION}&s=${segCount}`;
+    return `${base}/index.m3u8` + `?v=${STREAM_VERSION}&s=${segCount}&o=${location.origin}`;
   }
 
   currentVideoTime(offset = TimelineWorker.currentOffset()) {
