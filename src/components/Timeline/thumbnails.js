@@ -8,6 +8,7 @@ function renderImage(imgStyles, data, i) {
     return (
       <div
         key={i}
+        className="thumbnailImage blank"
         style={{
           ...imgStyles,
           width: imgStyles.width * data.length,
@@ -18,12 +19,15 @@ function renderImage(imgStyles, data, i) {
   return (
     <div
       key={i}
+      className="thumbnailImage images"
       style={{
         ...imgStyles,
         width: imgStyles.width * data.length,
         marginLeft: gutter,
-        backgroundSize: `${Math.max(100, Math.round(1200 / data.length))}% 100%`,
-        backgroundImage: `url(${data.url})`
+        backgroundSize: `auto ${imgStyles.height}px`,
+        backgroundRepeat: 'repeat-x',
+        backgroundImage: `url(${data.url})`,
+        backgroundPosition: `${data.startImage * imgStyles.width}px`
       }}
     />
   );
@@ -36,6 +40,7 @@ export default function Thumbnails(props) {
     height: thumbnail.height,
     width: (1164 / 874) * thumbnail.height,
   };
+  // console.log('Thumbnail props', props);
   const imgCount = Math.ceil(thumbnail.width / imgStyles.width);
   imgStyles.marginRight = gutter / 2;
 
@@ -61,7 +66,8 @@ export default function Thumbnails(props) {
       }
       currentSegment.length += 1;
     } else {
-      let seconds = Math.floor((offset - segment.routeOffset) / 10000) * 10;
+      // 12 per file, 5s each
+      let seconds = Math.floor((offset - segment.routeOffset) / 1000);
       const url = `${segment.url}/${segment.segment}/sprite.jpg`;
       seconds %= 60;
 
@@ -70,10 +76,23 @@ export default function Thumbnails(props) {
         currentSegment = null;
       }
 
+      const imageIndex = Math.floor(seconds / 5);
+
+      if (currentSegment) {
+        if (imageIndex === currentSegment.endImage + 1) {
+          currentSegment.endImage = imageIndex;
+        } else {
+          imgArr.push(currentSegment);
+          currentSegment = null;
+        }
+      }
+
       if (!currentSegment) {
         currentSegment = {
           segment: segment.segment,
           startOffset: seconds,
+          startImage: imageIndex,
+          endImage: imageIndex,
           length: 0,
           url
         };
