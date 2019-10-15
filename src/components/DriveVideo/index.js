@@ -6,6 +6,7 @@ import raf from 'raf';
 import { classNames } from 'react-extras';
 import { multiply } from 'mathjs';
 import debounce from 'debounce';
+import PropTypes from 'prop-types';
 
 import { Player, ControlBar } from 'video-react';
 import 'video-react/dist/video-react.css'; // CSS for video
@@ -20,7 +21,6 @@ import Buffering from './buffering';
 // UI Assets
 const wheelImg = new Image();
 wheelImg.src = require('../../icons/icon-chffr-wheel.svg');
-
 
 // these constants are named this way so that the names are the same in python and js
 // do not refactor them to have js style or more descriptive names
@@ -83,7 +83,40 @@ function intrinsicMatrix() {
   ];
 }
 
+function videoURL(props) {
+  let segment = props.currentSegment;
+  if (!segment && props.nextSegment) {
+    const offset = TimelineWorker.currentOffset();
+    if (props.nextSegment.startOffset - offset < 5000) {
+      segment = props.nextSegment;
+    }
+  }
+  if (!segment) {
+    return '';
+  }
+  let base = `${process.env.REACT_APP_VIDEO_CDN}/hls/${props.dongleId}/${segment.url.split('/').pop()}`;
+  if (props.front) {
+    base += '/dcamera';
+  }
+
+  // We append count of segments with stream available as a cache-busting method
+  // on stream indexes served before route is fully uploaded
+  let segCount;
+  if (props.front) {
+    segCount = segment.driverCameraStreamSegCount;
+  } else {
+    segCount = segment.cameraStreamSegCount;
+  }
+  return `${base}/index.m3u8?v=${STREAM_VERSION}&s=${segCount}`;
+}
+
 class VideoPreview extends Component {
+  static getDerivedStateFromProps(props) {
+    return {
+      src: videoURL(props)
+    };
+  }
+
   constructor(props) {
     super(props);
 
@@ -107,28 +140,23 @@ class VideoPreview extends Component {
 
     this.state = {
       bufferTime: 4,
-      src: this.videoURL(),
+      src: videoURL(props),
       noVideo: false,
     };
   }
 
   componentDidMount() {
+    const { playSpeed } = this.props;
     this.mounted = true;
     if (this.videoPlayer.current) {
-      this.videoPlayer.current.playbackRate = this.props.playSpeed || 1;
+      this.videoPlayer.current.playbackRate = playSpeed || 1;
     }
     this.rafLoop = raf(this.updatePreview);
     this.checkVideoBuffer();
     this.stopListening = TimelineWorker.onIndexed(() => this.checkDataBuffer());
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    const newUrl = this.videoURL();
-    if (this.state.src !== newUrl && newUrl.length) {
-      this.setState({
-        src: newUrl
-      });
-    }
+  componentDidUpdate() {
     // play state
     this.checkVideoBuffer();
   }
@@ -244,9 +272,9 @@ class VideoPreview extends Component {
       if (!playerState.buffered || Number.isNaN(playerState.duration)) {
         return;
       }
+      let desiredVideoTime = this.currentVideoTime(offset);
+      const curVideoTime = playerState.currentTime;
       if (desiredPlaySpeed && this.props.currentSegment) {
-        const curVideoTime = playerState.currentTime;
-        let desiredVideoTime = this.currentVideoTime(offset);
         const timeDiff = desiredVideoTime - curVideoTime;
 
         let desiredBufferedVideoTime = desiredVideoTime;
@@ -313,23 +341,7 @@ class VideoPreview extends Component {
         }
 
         if (isBuffering) {
-          const thumbnail = TimelineWorker.currentThumbnail();
-          if (thumbnail) {
-            if (this.state.thumbnailMonoTime !== thumbnail.LogMonoTime || !this.state.shouldShowThumbnail) {
-              const base64 = btoa(String.fromCharCode(...new Uint8Array(thumbnail.Thumbnail.Thumbnail)));
-              this.setState({
-                thumbnailData: base64,
-                thumbnailMonoTime: thumbnail.LogMonoTime,
-                shouldShowThumbnail: true
-              });
-            }
-
-            isBuffering = false;
-          } else if (this.state.shouldShowThumbnail) {
-            this.setState({
-              shouldShowThumbnail: false
-            });
-          }
+          isBuffering = this.updatePreviewImage();
         } else if (this.state.shouldShowThumbnail) {
           this.setState({
             shouldShowThumbnail: false
@@ -364,6 +376,14 @@ class VideoPreview extends Component {
         if (this.props.bufferingVideo) {
           TimelineWorker.bufferVideo(false);
         }
+        if (this.props.currentSegment) {
+          if (this.updatePreviewImage()) {
+            // no image
+            if (Math.abs(curVideoTime - desiredVideoTime) > 1) {
+              videoPlayer.seek(desiredVideoTime);
+            }
+          }
+        }
         shouldShowPreview = !this.props.currentSegment || !playerState.buffered.length;
         if (!playerState.paused && !playerState.seeking && playerState.buffered.length) {
           console.log('Pause');
@@ -384,6 +404,30 @@ class VideoPreview extends Component {
       // });
     }
   }, 100)
+
+  updatePreviewImage() {
+    const { shouldShowThumbnail } = this.state;
+    const thumbnail = TimelineWorker.currentThumbnail();
+    let retVal = true;
+    if (thumbnail) {
+      const { thumbnailMonoTime } = this.state;
+      if (thumbnailMonoTime !== thumbnail.LogMonoTime || !shouldShowThumbnail) {
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(thumbnail.Thumbnail.Thumbnail)));
+        this.setState({
+          thumbnailData: base64,
+          thumbnailMonoTime: thumbnail.LogMonoTime,
+          shouldShowThumbnail: true
+        });
+      }
+      retVal = false;
+    } else if (shouldShowThumbnail) {
+      this.setState({
+        shouldShowThumbnail: false
+      });
+    }
+
+    return retVal;
+  }
 
   renderCanvas() {
     const calibration = TimelineWorker.getCalibration(this.props.route);
@@ -1186,33 +1230,6 @@ class VideoPreview extends Component {
     return coord;
   }
 
-  videoURL() {
-    let segment = this.props.currentSegment;
-    if (!segment && this.props.nextSegment) {
-      const offset = TimelineWorker.currentOffset();
-      if (this.props.nextSegment.startOffset - offset < 5000) {
-        segment = this.props.nextSegment;
-      }
-    }
-    if (!segment) {
-      return '';
-    }
-    let base = `${process.env.REACT_APP_VIDEO_CDN}/hls/${this.props.dongleId}/${segment.url.split('/').pop()}`;
-    if (this.props.front) {
-      base += '/dcamera';
-    }
-
-    // We append count of segments with stream available as a cache-busting method
-    // on stream indexes served before route is fully uploaded
-    let segCount;
-    if (this.props.front) {
-      segCount = segment.driverCameraStreamSegCount;
-    } else {
-      segCount = segment.cameraStreamSegCount;
-    }
-    return `${base}/index.m3u8` + `?v=${STREAM_VERSION}&s=${segCount}&o=${location.origin}`;
-  }
-
   currentVideoTime(offset = TimelineWorker.currentOffset()) {
     if (!this.props.currentSegment) {
       return 0;
@@ -1325,6 +1342,10 @@ class VideoPreview extends Component {
     );
   }
 }
+
+VideoPreview.propTypes = {
+  playSpeed: PropTypes.number.isRequired
+};
 
 function mapStateToProps(state) {
   return state.workerState;

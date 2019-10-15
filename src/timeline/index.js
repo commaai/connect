@@ -500,7 +500,7 @@ class TimelineInterface {
   }
 
   currentThumbnail() {
-    return this.getEventByType(EventWhich.THUMBNAIL, 5000);
+    return this.getEventByType(EventWhich.THUMBNAIL, 6000);
   }
 
   getEventByType(which, maxTimeDiff = -1) {
