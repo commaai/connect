@@ -58,7 +58,7 @@ export class TimelineInterface {
 
       const token = await AuthStorage.getCommaAccessToken();
       if (!(token || isDemo)) {
-        return new Promise((resolve, reject) => reject('No auth'));
+        return new Promise((resolve, reject) => reject(Error('No auth')));
       }
 
       // if (false && typeof TimelineSharedWorker === 'function') {

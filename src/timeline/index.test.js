@@ -35,7 +35,7 @@ describe('timeline index', () => {
     try {
       await timeline.init();
     } catch (e) {
-      expect(e).toMatch('No auth');
+      expect(() => { throw e; }).toThrowError('No auth');
     }
   });
 

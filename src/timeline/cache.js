@@ -7,14 +7,13 @@ let cachePort = null;
 const ExpireEvent = Event();
 export const onExpire = ExpireEvent.listen;
 
-const listenerMap = {};
-
 function handleMessage(msg) {
+  if (!msg || !msg.data) {
+    return;
+  }
   switch (msg.data.command) {
     case 'expire':
       ExpireEvent.broadcast(msg.data.data);
-      break;
-    case 'data':
       break;
     default:
       break;
@@ -43,20 +42,9 @@ function touch(route, segment) {
   });
 }
 
-export function getEntry(route, segment, dataListener) {
-  if (!listenerMap[route]) {
-    listenerMap[route] = {};
-  }
-  listenerMap[route][segment] = dataListener;
+export function getEntry(route, segment) {
   touch(route, segment);
   return {
     start: partial(start, route, segment)
   };
 }
-
-// function expire(route, segment) {
-//   cachePort.postMessage({
-//     command: 'expire',
-//     data: { route, segment }
-//   });
-// }
