@@ -46,7 +46,7 @@ function close(port) {
   port.close();
 }
 
-function seek(port, offset) {
+function seek(offset) {
   store.dispatch(Playback.seek(offset));
 }
 
@@ -54,23 +54,23 @@ function pause(/* port */) {
   store.dispatch(Playback.pause());
 }
 
-function play(port, speed) {
+function play(speed) {
   store.dispatch(Playback.play(speed));
 }
 
-function bufferVideo(port, isBuffering) {
+function bufferVideo(isBuffering) {
   store.dispatch(Playback.bufferVideo(isBuffering));
 }
 
-function bufferData(port, isBuffering) {
+function bufferData(isBuffering) {
   store.dispatch(Playback.bufferData(isBuffering));
 }
 
-function disableBuffer(port, data) {
+function disableBuffer(data) {
   store.dispatch(Playback.disableBuffer(data));
 }
 
-async function hello(port, data) {
+async function hello(data) {
   await Demo.init();
   await initAuthPromise;
   store.dispatch(selectDeviceAction(data.dongleId));
@@ -83,31 +83,31 @@ async function hello(port, data) {
   return 'hello';
 }
 
-function resolveAnnotation(port, data) {
+function resolveAnnotation(data) {
   const { annotation, event, route } = data;
 
   store.dispatch(Segments.resolveAnnotation(annotation, event, route));
 }
 
-function selectDevice(port, dongleId) {
+function selectDevice(dongleId) {
   store.dispatch(selectDeviceAction(dongleId));
 }
 
-function updateDevice(port, device) {
+function updateDevice(device) {
   store.dispatch(updateDeviceAction(device));
 }
 
-function selectTimeRange(port, data) {
+function selectTimeRange(data) {
   const { start, end } = data;
   store.dispatch(selectTimeRangeAction(start, end));
 }
 
-function selectLoop(port, data) {
+function selectLoop(data) {
   const { startTime, duration } = data;
   store.dispatch(Playback.selectLoop(startTime, duration));
 }
 
-function cachePort(port, data, ports) {
+function cachePort(data, ports) {
   console.log('Was handed this port!', ports);
   Cache.setCachePort(ports[0]);
 }

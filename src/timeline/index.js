@@ -1,3 +1,4 @@
+/* eslint-disable class-methods-use-this */
 import window from 'global/window';
 import Event from 'geval/event';
 import * as capnp from 'capnp-ts';
@@ -7,10 +8,13 @@ import toJSON from '@commaai/capnp-json';
 import { storage as AuthStorage } from '@commaai/my-comma-auth';
 import * as Playback from './playback';
 import * as LogIndex from './logIndex';
+import * as Cache from './cache';
 import { getDongleID, getZoom } from '../url';
+import { getState } from './timeline';
+import { commands } from './commands';
+import store from './store';
 
 // const TimelineSharedWorker = require('./index.sharedworker');
-const TimelineWebWorker = require('./index.worker');
 const LogReaderWorker = require('./logReader');
 
 const UnloadEvent = Event();
@@ -30,7 +34,6 @@ function noop() { }
 
 async function initWorker(_t, isDemo) {
   const t = _t;
-  let worker = null;
 
   const token = await AuthStorage.getCommaAccessToken();
   if (!(token || isDemo)) {
@@ -41,31 +44,28 @@ async function initWorker(_t, isDemo) {
   //   worker = new TimelineSharedWorker();
   //   t.isShared = true;
   //   t.logReader = new LogReaderWorker();
-  if (typeof TimelineWebWorker === 'function') {
-    worker = new TimelineWebWorker();
+  if (typeof LogReaderWorker === 'function') {
     t.logReader = new LogReaderWorker();
-  } else {
-    console.warn('Using fake web workers, this is probably a node/test environment');
-    worker = { port: { postMessage: noop } };
   }
-  const port = worker.port || worker;
 
-  port.onmessage = t.handleMessage.bind(t);
-
-  t.worker = worker;
-  t.port = port;
+  // broadcast message
+  // handle message
+  // cache port
+  commands.cachePort(null, [t.logReader.port || t.logReader]);
 
   LogReaderWorker.onData((msg) => {
     t.handleData(msg);
   });
-  if (t.logReader) {
-    port.postMessage({
-      command: 'cachePort'
-    }, [t.logReader.port || t.logReader]);
-  }
-  UnloadEvent.listen(() => t.disconnect());
-  InitEvent.broadcast(token);
 
+  UnloadEvent.listen(() => t.disconnect());
+  Cache.onExpire(t.expire.bind(t));
+  t.setState(getState());
+  store.subscribe(() => {
+    const state = store.getState();
+    t.setState(state);
+  });
+
+  InitEvent.broadcast(token);
   return t;
 }
 
@@ -80,12 +80,9 @@ class TimelineInterface {
     this.requestId = 1;
     this.openRequests = {};
     this.initPromise = InitPromise;
-    this.readyPromise = this.rpc({
-      command: 'hello',
-      data: {
-        dongleId: getDongleID(startPath),
-        zoom: getZoom(startPath),
-      }
+    this.readyPromise = commands.hello({
+      dongleId: getDongleID(startPath),
+      zoom: getZoom(startPath),
     });
   }
 
@@ -106,9 +103,7 @@ class TimelineInterface {
     if (!this.hasInit) {
       return;
     }
-    await this.postMessage({
-      command: 'stop'
-    });
+    await commands.stop();
     this.hasInit = false;
     if (this.worker) {
       this.worker.terminate();
@@ -121,75 +116,40 @@ class TimelineInterface {
     return this.port;
   }
 
-  async getValue() {
-    return this.postMessage({
-      foo: 'bar'
-    });
-  }
-
   async disconnect() {
-    return this.postMessage({
-      command: 'close'
-    });
+    return commands.close();
   }
 
   async seek(offset) {
-    return this.postMessage({
-      command: 'seek',
-      data: Math.round(offset)
-    });
+    return commands.seek(Math.round(offset));
   }
 
   async play(speed = 1) {
-    return this.postMessage({
-      command: 'play',
-      data: speed
-    });
+    return commands.play(speed);
   }
 
   async pause() {
-    return this.postMessage({
-      command: 'pause'
-    });
+    return commands.pause();
   }
 
   async disableBuffer() {
-    return this.postMessage({
-      command: 'disableBuffer',
-      data: true
-    });
+    return commands.disableBuffer(true);
   }
 
   async bufferVideo(isBuffering = true) {
-    return this.postMessage({
-      command: 'bufferVideo',
-      data: isBuffering
-    });
+    return commands.bufferVideo(isBuffering);
   }
 
   async bufferData(isBuffering = true) {
-    return this.postMessage({
-      command: 'bufferData',
-      data: isBuffering
-    });
+    return commands.bufferData(isBuffering);
   }
 
   async selectTimeRange(start, end) {
-    return this.postMessage({
-      command: 'selectTimeRange',
-      data: {
-        start, end
-      }
-    });
+    return commands.selectTimeRange({ start, end });
   }
 
   async selectLoop(startTime, duration) {
-    return this.postMessage({
-      command: 'selectLoop',
-      data: {
-        startTime, duration
-      }
-    });
+    return commands.selectLoop({ startTime, duration });
   }
 
   async selectDevice(dongleId) {
@@ -197,49 +157,48 @@ class TimelineInterface {
     if (this.state.dongleId === dongleId) {
       return true;
     }
-    return this.postMessage({
-      command: 'selectDevice',
-      data: dongleId
-    });
+    return commands.selectDevice(dongleId);
   }
 
   async resolveAnnotation(annotation, event, route) {
-    return this.postMessage({
-      command: 'resolve',
-      data: { annotation, event, route }
-    });
+    return commands.resolve({ annotation, event, route });
   }
 
   async updateDevice(device) {
-    return this.postMessage({
-      command: 'updateDevice',
-      data: device,
-    });
+    return commands.updateDevice(device,);
   }
 
-  async rpc(msg) {
-    // msg that expects a reply
-    return new Promise((resolve) => {
-      const { requestId } = this;
-      this.requestId += 1;
-      this.openRequests[requestId] = resolve;
-      this.postMessage({
-        ...msg,
-        requestId
-      });
-    });
-  }
-
-  async postMessage(msg) {
-    const port = await this.getPort();
-    port.postMessage(msg);
-  }
-
-  async handleMessage(msg) {
-    if (this.handleCommand(msg)) {
-      return;
+  setState(state) {
+    this.state = state;
+    StateEvent.broadcast(state);
+    if (this.logReader) {
+      const port = this.logReader.port || this.logReader;
+      if (this.state.route) {
+        port.postMessage({
+          command: 'touch',
+          data: {
+            route: this.state.route,
+            segment: this.state.segment,
+          }
+        });
+      }
+      if (this.state.nextSegment) {
+        port.postMessage({
+          command: 'touch',
+          data: {
+            route: this.state.nextSegment.route,
+            segment: this.state.nextSegment.segment,
+          }
+        });
+      }
     }
-    console.log('Unknown message!', msg.data);
+  }
+
+  expire(data) {
+    console.log('Expiring cache entry', data);
+    if (this.buffers[data.route] && this.buffers[data.route][data.segment]) {
+      delete this.buffers[data.route][data.segment];
+    }
   }
 
   handleCommand(msg) {
@@ -247,13 +206,6 @@ class TimelineInterface {
       return false;
     }
     switch (msg.data.command) {
-      case 'expire':
-        // cached segment is expiring because we haven't watched it in a while...
-        console.log('Expiring cache entry', msg.data);
-        if (this.buffers[msg.data.route] && this.buffers[msg.data.route][msg.data.segment]) {
-          delete this.buffers[msg.data.route][msg.data.segment];
-        }
-        break;
       case 'data':
         // log data stream
         this.handleData(msg);
@@ -266,31 +218,6 @@ class TimelineInterface {
           delete this.openRequests[msg.data.requestId];
         } else {
           console.error('Got a reply for invalid RPC', msg.data.requestId);
-        }
-        break;
-      case 'state':
-        this.state = msg.data.data;
-        StateEvent.broadcast(msg.data.data);
-        if (this.logReader) {
-          const port = this.logReader.port || this.logReader;
-          if (this.state.route) {
-            port.postMessage({
-              command: 'touch',
-              data: {
-                route: this.state.route,
-                segment: this.state.segment,
-              }
-            });
-          }
-          if (this.state.nextSegment) {
-            port.postMessage({
-              command: 'touch',
-              data: {
-                route: this.state.nextSegment.route,
-                segment: this.state.nextSegment.segment,
-              }
-            });
-          }
         }
         break;
       case 'broadcastPort':

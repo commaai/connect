@@ -228,12 +228,6 @@ export function createBroadcastPort(port) {
   const unlisten = Collector();
 
   unlisten(DataLogEvent.listen(partial(sendData, port)));
-  unlisten(Cache.onExpire((data) => {
-    port.postMessage({
-      ...data,
-      command: 'expire'
-    });
-  }));
 
   if (state.route) {
     const entry = Cache.getEntry(state.route, state.segment);
