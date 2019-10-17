@@ -129,9 +129,6 @@ export function findMonoTime(index, monoTime, start = 0, end = index.index.lengt
   const curMillis = index.index[curIndex][0];
   // we can have duplicates so we treat matches as being too high since we're
   // looking for the first instance of a duplicate
-  if (curMillis === monoTime) {
-    return curIndex;
-  }
   if (monoTime < curMillis) {
     return findMonoTime(index, monoTime, start, curIndex);
   }
@@ -139,6 +136,5 @@ export function findMonoTime(index, monoTime, start = 0, end = index.index.lengt
     return findMonoTime(index, monoTime, curIndex + 1, end);
   }
 
-  // impossible
   return curIndex;
 }

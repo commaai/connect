@@ -435,6 +435,9 @@ function parseSegmentMetadata(state, _segments, annotations) {
 }
 
 function hasSegmentMetadata(state) {
+  if (!state) {
+    return false;
+  }
   if (!state.segmentData) {
     console.log('No segment data at all');
     return false;
@@ -455,12 +458,8 @@ function hasSegmentMetadata(state) {
     console.log('Bad end offset');
     return false;
   }
-  if (state.end > state.segmentData.end) {
-    console.log('Bad end offset');
-    return false;
-  }
 
-  return state.start >= state.segmentData.start && state.end <= state.segmentData.end;
+  return true;
 }
 
 function hasCameraAtOffset(segment, offset) {
