@@ -14,7 +14,6 @@ import { getState, init as initTimeline } from './timeline';
 import { commands } from './commands';
 import store from './store';
 
-// const TimelineSharedWorker = require('./index.sharedworker');
 const LogReaderWorker = require('./logReader');
 
 const UnloadEvent = Event();
@@ -30,9 +29,7 @@ const startPath = window.location ? window.location.pathname : '';
 
 // helper functions
 
-function noop() { }
-
-class TimelineInterface {
+export class TimelineInterface {
   constructor(options) {
     this.options = options || {};
     this.buffers = {};
@@ -61,7 +58,7 @@ class TimelineInterface {
 
       const token = await AuthStorage.getCommaAccessToken();
       if (!(token || isDemo)) {
-        return new Promise(noop);
+        return new Promise((resolve, reject) => reject('No auth'));
       }
 
       // if (false && typeof TimelineSharedWorker === 'function') {
@@ -194,44 +191,6 @@ class TimelineInterface {
     if (this.buffers[data.route] && this.buffers[data.route][data.segment]) {
       delete this.buffers[data.route][data.segment];
     }
-  }
-
-  handleCommand(msg) {
-    if (!msg.data.command) {
-      return false;
-    }
-    switch (msg.data.command) {
-      case 'data':
-        // log data stream
-        this.handleData(msg);
-        break;
-      case 'return-value':
-        // implement RPC return values
-        // is this needed?
-        if (this.openRequests[msg.data.requestId]) {
-          this.openRequests[msg.data.requestId](msg.data.data);
-          delete this.openRequests[msg.data.requestId];
-        } else {
-          console.error('Got a reply for invalid RPC', msg.data.requestId);
-        }
-        break;
-      case 'broadcastPort':
-        // set up dedicated broadcast channel
-        [this.broadcastPort] = msg.ports;
-        this.broadcastPort.onmessage = this.handleBroadcast.bind(this);
-        this.broadcastPort.onmessageerror = console.error.bind(console);
-        break;
-      default:
-        return false;
-    }
-    return true;
-  }
-
-  async handleBroadcast(msg) {
-    if (this.handleCommand(msg)) {
-      return;
-    }
-    console.log('Unknown message!', msg.data);
   }
 
   async handleData(msg) {
