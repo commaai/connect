@@ -10,7 +10,7 @@ import * as Playback from './playback';
 import * as LogIndex from './logIndex';
 import * as Cache from './cache';
 import { getDongleID, getZoom } from '../url';
-import { getState } from './timeline';
+import { getState, init as initTimeline } from './timeline';
 import { commands } from './commands';
 import store from './store';
 
@@ -32,47 +32,6 @@ const startPath = window.location ? window.location.pathname : '';
 
 function noop() { }
 
-async function initWorker(_t, isDemo) {
-  const t = _t;
-
-  const token = await AuthStorage.getCommaAccessToken();
-  if (!(token || isDemo)) {
-    return new Promise(noop);
-  }
-
-  // if (false && typeof TimelineSharedWorker === 'function') {
-  //   worker = new TimelineSharedWorker();
-  //   t.isShared = true;
-  //   t.logReader = new LogReaderWorker();
-  if (typeof LogReaderWorker === 'function') {
-    t.logReader = new LogReaderWorker();
-  }
-
-  // broadcast message
-  // handle message
-  // cache port
-  commands.cachePort(null, [t.logReader.port || t.logReader]);
-
-  LogReaderWorker.onData((msg) => {
-    t.handleData(msg);
-  });
-
-  UnloadEvent.listen(() => t.disconnect());
-  Cache.onExpire(t.expire.bind(t));
-  t.setState(getState());
-  store.subscribe(() => {
-    const state = store.getState();
-    t.setState(state);
-  });
-
-  InitEvent.broadcast(token);
-  return t;
-}
-
-async function init(t, isDemo) {
-  await initWorker(t, isDemo);
-}
-
 class TimelineInterface {
   constructor(options) {
     this.options = options || {};
@@ -80,10 +39,8 @@ class TimelineInterface {
     this.requestId = 1;
     this.openRequests = {};
     this.initPromise = InitPromise;
-    this.readyPromise = commands.hello({
-      dongleId: getDongleID(startPath),
-      zoom: getZoom(startPath),
-    });
+
+    this.expire = this.expire.bind(this);
   }
 
   onStateChange = StateEvent.listen
@@ -94,7 +51,45 @@ class TimelineInterface {
     if (!this.hasInit) {
       this.hasInit = true;
       this.isDemo = isDemo;
-      init(this, this.isDemo);
+
+      initTimeline();
+
+      this.readyPromise = commands.hello({
+        dongleId: getDongleID(startPath),
+        zoom: getZoom(startPath),
+      });
+
+      const token = await AuthStorage.getCommaAccessToken();
+      if (!(token || isDemo)) {
+        return new Promise(noop);
+      }
+
+      // if (false && typeof TimelineSharedWorker === 'function') {
+      //   worker = new TimelineSharedWorker();
+      //   t.isShared = true;
+      //   t.logReader = new LogReaderWorker();
+      if (typeof LogReaderWorker === 'function') {
+        this.logReader = new LogReaderWorker();
+      }
+
+      // broadcast message
+      // handle message
+      // cache port
+      commands.cachePort(null, [this.logReader.port || this.logReader]);
+
+      LogReaderWorker.onData((msg) => {
+        this.handleData(msg);
+      });
+
+      UnloadEvent.listen(() => this.disconnect());
+      Cache.onExpire(this.expire);
+      this.setState(getState());
+      store.subscribe(() => {
+        const state = store.getState();
+        this.setState(state);
+      });
+
+      InitEvent.broadcast(token);
     }
     return this.readyPromise;
   }
@@ -105,9 +100,9 @@ class TimelineInterface {
     }
     await commands.stop();
     this.hasInit = false;
-    if (this.worker) {
-      this.worker.terminate();
-      this.worker = null;
+    if (this.logReader) {
+      this.logReader.terminate();
+      this.logReader = null;
     }
   }
 
