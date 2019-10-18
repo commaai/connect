@@ -250,6 +250,7 @@ class VideoPreview extends Component {
 
   checkVideoBuffer = debounce(() => {
     const videoPlayer = this.videoPlayer.current;
+    const { front } = this.props;
 
     if (videoPlayer && !videoPlayer.wasConnected) {
       videoPlayer.wasConnected = true;
@@ -340,7 +341,7 @@ class VideoPreview extends Component {
           }
         }
 
-        if (isBuffering) {
+        if (isBuffering && !front) {
           isBuffering = this.updatePreviewImage();
         } else if (this.state.shouldShowThumbnail) {
           this.setState({
@@ -377,7 +378,7 @@ class VideoPreview extends Component {
           TimelineWorker.bufferVideo(false);
         }
         if (this.props.currentSegment) {
-          if (this.updatePreviewImage()) {
+          if (front || this.updatePreviewImage()) {
             // no image
             if (Math.abs(curVideoTime - desiredVideoTime) > 1) {
               videoPlayer.seek(desiredVideoTime);
