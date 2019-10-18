@@ -1,6 +1,6 @@
 {
   "name": "explorer",
-  "version": "0.6.12",
+  "version": "0.7.0",
   "scripts": {
     "start": "craco start",
     "build:keepmaps": "env-cmd .env.development craco build",
