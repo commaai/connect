@@ -2,6 +2,7 @@ import { push } from 'connected-react-router';
 import document from 'global/document';
 import * as Types from './types';
 import Timelineworker from '../timeline';
+import { getDongleID } from '../url';
 
 export function updateState(data) {
   return {
@@ -14,14 +15,16 @@ export function selectRange(start, end) {
   return (dispatch, getState) => {
     const state = getState();
     if (!state.workerState.dongleId) {
-      return dispatch({
+      dispatch({
         type: Types.TIMELINE_SELECTION_CHANGED,
         start,
         end
       });
+      return;
     }
     const curPath = document.location.pathname;
-    const desiredPath = urlForState(state.workerState.dongleId, start, end);
+    const dongleId = getDongleID(curPath) || state.workerState.dongleId;
+    const desiredPath = urlForState(dongleId, start, end);
 
     if (state.zoom.start !== start || state.zoom.end !== end) {
       dispatch({

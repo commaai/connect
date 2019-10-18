@@ -85,6 +85,7 @@ async function checkSegmentMetadata(state) {
     // already has metadata, don't bother
     return;
   }
+  await Demo.init();
   if (segmentsRequest || annotationsRequest) {
     return;
   }
@@ -95,7 +96,6 @@ async function checkSegmentMetadata(state) {
 
   let segmentData = null;
   let annotationsData = null;
-  await Demo.init();
   if (Demo.isDemo()) {
     segmentsRequest = Promise.resolve(demoSegments);
     annotationsRequest = Promise.resolve([]);
