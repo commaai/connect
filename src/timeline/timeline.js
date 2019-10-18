@@ -11,7 +11,7 @@ import Segments from './segments';
 import * as Cache from './cache';
 import store from './store';
 import * as Demo from '../demo';
-import { commands, PortState, initAuthPromise } from './commands';
+import { commands, initAuthPromise } from './commands';
 
 const demoSegments = require('../demo/segments.json');
 
@@ -127,12 +127,6 @@ async function checkSegmentMetadata(state) {
   // ensureSegmentData(getState());
 }
 
-// set up initial schedules
-initAuthPromise.then(() => {
-  scheduleSegmentUpdate(getState());
-  checkSegmentMetadata(getState());
-});
-
 let ensureSegmentDataTimer = null;
 async function ensureSegmentData(state) {
   if (ensureSegmentDataTimer) {
@@ -169,17 +163,25 @@ async function ensureSegmentData(state) {
   }
 }
 
-store.subscribe(() => {
-  const state = getState();
-  checkSegmentMetadata(state);
-  scheduleSegmentUpdate(state);
-  ensureSegmentData(state);
-
-  BroadcastEvent.broadcast({
-    command: 'state',
-    data: state
+export function init() {
+  // set up initial schedules
+  initAuthPromise.then(() => {
+    scheduleSegmentUpdate(getState());
+    checkSegmentMetadata(getState());
   });
-});
+
+  store.subscribe(() => {
+    const state = getState();
+    checkSegmentMetadata(state);
+    scheduleSegmentUpdate(state);
+    ensureSegmentData(state);
+
+    BroadcastEvent.broadcast({
+      command: 'state',
+      data: state
+    });
+  });
+}
 
 export async function handleMessage(port, msg) {
   if (msg.data.command) {
@@ -199,65 +201,4 @@ export async function handleMessage(port, msg) {
       }
     }
   }
-}
-
-function sendData(port, msg) {
-  let buffer = null;
-  if (msg.data.length === 1) {
-    // force copy for older versions of node/shim
-    buffer = Buffer.from(msg.data);
-  } else {
-    buffer = Buffer.concat(msg.data);
-  }
-  port.postMessage({
-    command: 'data',
-    route: msg.route,
-    segment: msg.segment,
-    data: buffer.buffer
-  }, [buffer.buffer]);
-}
-
-export function createBroadcastPort(port) {
-  if (PortState(port).broadcastPort) {
-    return PortState(port).broadcastPort;
-  }
-  const state = getState();
-  let broadcastChannel = null;
-  let broadcastPort = null;
-  let receiverPort = null;
-  const unlisten = Collector();
-
-  unlisten(DataLogEvent.listen(partial(sendData, port)));
-  unlisten(Cache.onExpire((data) => {
-    port.postMessage({
-      ...data,
-      command: 'expire'
-    });
-  }));
-
-  if (state.route) {
-    const entry = Cache.getEntry(state.route, state.segment);
-    if (entry) {
-      entry.getLog((data) => sendData(port, {
-        route: state.route,
-        segment: state.segment,
-        data
-      }));
-    }
-  }
-
-  if (typeof MessageChannel === 'function') {
-    broadcastChannel = new MessageChannel();
-    broadcastPort = broadcastChannel.port1;
-    receiverPort = broadcastChannel.port2;
-    unlisten(() => broadcastChannel.port1.close());
-  } else {
-    broadcastPort = port;
-  }
-  unlisten(BroadcastEvent.listen(broadcastPort.postMessage.bind(broadcastPort)));
-
-  PortState(port).broadcastPort = receiverPort;
-  PortState(port).closePort = unlisten;
-
-  return receiverPort;
 }

@@ -78,8 +78,9 @@ class CacheEntry {
     if (this.started) {
       return;
     }
+    this.started = true;
+
     this.authInitPromise.then(() => {
-      this.started = true;
       this.getLog(this.dataListener);
       this.unlisten = this.subscribe(this.dataListener);
     });
