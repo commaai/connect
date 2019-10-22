@@ -143,7 +143,8 @@ class Media extends Component {
               Video
             </Typography>
           </Grid>
-          { hasDriverCameraStream &&
+          { hasDriverCameraStream
+            && (
             <Grid
               item
               xs={3}
@@ -155,7 +156,7 @@ class Media extends Component {
                 Driver Video
               </Typography>
             </Grid>
-          }
+            )}
           <Grid
             item
             xs={hasDriverCameraStream ? 3 : 4}

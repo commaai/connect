@@ -18,6 +18,27 @@ export default class HLSSource extends Component {
       }
     });
 
+    this.hls.on(Hls.Events.ERROR, (event, data) => {
+      if (data.fatal) {
+        switch (data.type) {
+          case Hls.ErrorTypes.NETWORK_ERROR:
+          // try to recover network error
+            console.log("fatal network error encountered, try to recover");
+            this.hls.startLoad();
+            break;
+          case Hls.ErrorTypes.MEDIA_ERROR:
+            console.log("fatal media error encountered, try to recover");
+            this.hls.recoverMediaError();
+            break;
+          default:
+          // cannot recover
+            this.hls.destroy();
+            this.hls = null;
+            break;
+        }
+      }
+    });
+
     this.state = {
       src: ''
     };
@@ -63,6 +84,7 @@ export default class HLSSource extends Component {
     if (this.hls) {
       // console.log('this.hls.destroy();');
       this.hls.destroy();
+      this.hls = null;
     }
   }
 
