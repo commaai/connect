@@ -68,6 +68,10 @@ const styles = (theme) => ({
     padding: `${theme.spacing.unit}px ${theme.spacing.unit * 2}px`,
     borderBottom: `1px solid ${theme.palette.white[12]}`,
   },
+  userMetaLink: {
+    textDecoration: 'none',
+    color: '#fff',
+  },
 });
 
 class AppHeader extends Component {
@@ -160,6 +164,13 @@ points
                   </Typography>
                 </div>
               </ListItem>
+              <li>
+                  <MenuItem
+                      component="a"
+                      href="/useradmin/"
+                      target="_blank"
+                  >Manage Account</MenuItem>
+              </li>
               <MenuItem onClick={this.handleLogOut}>Log out</MenuItem>
             </Menu>
           </Grid>
