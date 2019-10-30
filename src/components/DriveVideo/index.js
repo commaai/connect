@@ -50,6 +50,8 @@ const styles = (theme) => ({
   },
   videoContainer: {
     position: 'relative',
+    width: 850,
+    height: 640
   },
   videoImage: {
     height: 'auto',
@@ -1289,17 +1291,19 @@ class VideoPreview extends Component {
           style={{ zIndex: 1 }}
           autoPlay={!!this.props.currentSegment}
           muted
-          fluid
+          fluid={false}
           src={this.state.src}
           startTime={this.currentVideoTime()}
           playbackRate={this.props.startTime > Date.now() ? 0 : this.props.playSpeed}
+          width={850}
+          height={640}
         >
           <HLSSource
             onBufferAppend={this.checkVideoBuffer}
             onSourceLoaded={this.onSourceLoaded}
             isVideoChild
           />
-          <ControlBar disabled />
+          <ControlBar disabled disableCompletely />
         </Player>
         { this.props.shouldShowUI
           && (
