@@ -49,7 +49,7 @@ describe('hls source', () => {
 
     expect(element.exists()).toBe(true);
     expect(HLS.onMock).toBeCalled();
-    expect(HLS.onMock.mock.calls.length).toBe(2);
+    expect(HLS.onMock.mock.calls.length).toBe(3);
 
     expect(playMock).toHaveBeenCalledTimes(0);
     HLS.onMock.mock.calls[0][1]();
