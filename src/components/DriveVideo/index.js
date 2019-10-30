@@ -346,7 +346,7 @@ class VideoPreview extends Component {
         }
 
         if (isBuffering && !front) {
-          isBuffering = this.updatePreviewImage();
+          isBuffering = this.updatePreviewImage(playerState.seeking ? null : timeDiff);
         } else if (this.state.shouldShowThumbnail) {
           this.setState({
             shouldShowThumbnail: false
@@ -410,13 +410,21 @@ class VideoPreview extends Component {
     }
   }, 100)
 
-  updatePreviewImage() {
+  updatePreviewImage(timeDiff) {
     const { shouldShowThumbnail } = this.state;
     const thumbnail = TimelineWorker.currentThumbnail();
+    const monoTime = TimelineWorker.currentLogMonoTime();
+    const monoTimeLength = (`${monoTime}`).length;
     let retVal = true;
     if (thumbnail) {
       const { thumbnailMonoTime } = this.state;
-      if (thumbnailMonoTime !== thumbnail.LogMonoTime || !shouldShowThumbnail) {
+      const thumbnailTime = Number(thumbnail.LogMonoTime.substr(0, monoTimeLength));
+      const thumbnailTimeDiff = thumbnailTime;
+
+      if (Number.isFinite(timeDiff) && timeDiff > 0 && timeDiff < thumbnailTimeDiff) {
+        retVal = false;
+        // the video is closer than we are
+      } else if (thumbnailMonoTime !== thumbnail.LogMonoTime || !shouldShowThumbnail) {
         const base64 = btoa(String.fromCharCode(...new Uint8Array(thumbnail.Thumbnail.Thumbnail)));
         this.setState({
           thumbnailData: base64,
