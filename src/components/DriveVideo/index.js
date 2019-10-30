@@ -211,6 +211,7 @@ class VideoPreview extends Component {
     let isDataBuffering = true;
     if (this.props.currentSegment) {
       const monoTime = TimelineWorker.currentLogMonoTime();
+      const monoTimeLength = (`${monoTime}`).length;
       const logIndex = TimelineWorker.getLogIndex();
       if (logIndex) {
         const curIndex = LogIndex.findMonoTime(logIndex, monoTime);
@@ -221,16 +222,17 @@ class VideoPreview extends Component {
           nextEvent = TimelineWorker.getEvent(0, TimelineWorker.getNextLogIndex());
         }
 
-        if (nextEvent) {
-          isDataBuffering = false;
-        } else if (lastEvent && lastEvent.LogMonoTime) {
-          const monoTimeLength = (`${monoTime}`).length;
+        if (nextEvent && nextEvent.LogMonoTime) {
+          const nextEventTime = Number(nextEvent.LogMonoTime.substr(0, monoTimeLength));
+          const timeDiff = Math.abs(nextEventTime - monoTime)
+
+          isDataBuffering = timeDiff > 1000;
+        }
+        if (isDataBuffering && lastEvent && lastEvent.LogMonoTime) {
           const monSec = lastEvent.LogMonoTime.substr(0, monoTimeLength);
           const timeDiff = Math.abs(monoTime - Number(monSec));
-          if (timeDiff > 3000) {
-            // 3 seconds of grace
-            isDataBuffering = true;
-          }
+          // 3 seconds of grace
+          isDataBuffering = timeDiff > 3000;
         }
       }
     } else {
