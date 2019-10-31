@@ -21,7 +21,7 @@
     "@commaai/capnp-json": "^0.1.6",
     "@commaai/comma-api": "^1.2.2",
     "@commaai/hls.js": "^0.12.5",
-    "@commaai/log_reader": "^0.5.4",
+    "@commaai/log_reader": "^0.5.5",
     "@commaai/my-comma-auth": "^1.1.4",
     "@mapbox/mapbox-sdk": "^0.4.0",
     "@material-ui/core": "^1.0.0",
