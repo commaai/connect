@@ -1,6 +1,6 @@
 module.exports = {
   server: {
-    command: 'PORT=3003 env-cmd .env.staging craco start',
+    command: 'serve -l 3003 build',
     port: 3003,
     launchTimeout: 10000,
     debug: true,

@@ -7,11 +7,12 @@
     "build:production": "env-cmd .env.production craco build",
     "build:branch-deploy": "env-cmd .env.staging craco build",
     "build:deploy-preview": "env-cmd .env.staging craco build",
-    "deploy": "npm run test-ci && npm run build:production && gh-pages deploy",
     "test": "craco test --env=jsdom",
     "test-ci": "CI=true craco test --env=jsdom",
     "test-coverage": "CI=true craco test --env=jsdom --coverage",
     "test-puppeteer": "jest -c src/__puppeteer__/jest.config.js",
+    "test-puppeteer-build": "JEST_PUPPETEER_CONFIG=jest-puppeteer.build.config.js yarn run test-puppeteer",
+    "deploy": "npm run test-ci && npm run build:production && npm run test-puppeteer-build && gh-pages -d build",
     "storybook": "start-storybook -p 9009 -s public",
     "build-storybook": "build-storybook -s public"
   },
