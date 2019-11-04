@@ -165,11 +165,13 @@ points
                 </div>
               </ListItem>
               <li>
-                  <MenuItem
-                      component="a"
-                      href="/useradmin/"
-                      target="_blank"
-                  >Manage Account</MenuItem>
+                <MenuItem
+                  component="a"
+                  href="/useradmin/"
+                  target="_blank"
+                >
+Manage Account
+                </MenuItem>
               </li>
               <MenuItem onClick={this.handleLogOut}>Log out</MenuItem>
             </Menu>

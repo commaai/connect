@@ -226,7 +226,7 @@ class VideoPreview extends Component {
 
         if (nextEvent && nextEvent.LogMonoTime) {
           const nextEventTime = Number(nextEvent.LogMonoTime.substr(0, monoTimeLength));
-          const timeDiff = Math.abs(nextEventTime - monoTime)
+          const timeDiff = Math.abs(nextEventTime - monoTime);
 
           isDataBuffering = timeDiff > 1000;
         }
