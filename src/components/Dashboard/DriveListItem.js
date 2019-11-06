@@ -125,13 +125,7 @@ class DriveListDrive extends Component {
               </div>
               <div className={classes.driveTitle}>
                 <Typography variant="body2">
-                  { startDate }
-                  {' '}
-@
-                  { startTime }
-                  {' '}
-to
-                  { endTime }
+                  { `${startDate} @ ${startTime} to ${endTime}` }
                 </Typography>
                 <Typography>
                   { deviceAlias }
@@ -141,13 +135,10 @@ to
             <Grid item xs={2}>
               <Typography variant="body2">
                 { duration.hours > 0 && `${duration.hours.toString()}hr ` }
-                { duration.minutes }
-min
+                { `${duration.minutes} min` }
               </Typography>
               <Typography>
-                { points }
-                {' '}
-points
+                { `${points} points` }
               </Typography>
             </Grid>
             <Grid item xs={2}>
@@ -168,14 +159,10 @@ points
             </Grid>
             <Grid item xs={1}>
               <Typography variant="body2">
-                { +drive.distanceMiles.toFixed(1) }
-                {' '}
-mi
+                { `${+drive.distanceMiles.toFixed(1)} mi` }
               </Typography>
               <Typography>
-                { +(drive.distanceMiles * KM_PER_MI).toFixed(1) }
-                {' '}
-km
+                { `${+(drive.distanceMiles * KM_PER_MI).toFixed(1)} km` }
               </Typography>
             </Grid>
             <Grid item xs={1}>
