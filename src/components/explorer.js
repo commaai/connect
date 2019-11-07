@@ -4,7 +4,7 @@ import Obstruction from 'obstruction';
 import PropTypes from 'prop-types';
 
 import { withStyles } from '@material-ui/core/styles';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import 'mapbox-gl/src/css/mapbox-gl.css';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
