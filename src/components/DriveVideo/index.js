@@ -39,7 +39,7 @@ const H = 320;
 const RESIZED_FOCAL = 320.0;
 const FULL_W = 426;
 const DM_FACE_THRESHOLD = 0.4; // probs below this disappear
-const DM_EYE_THRESHOLD 0.4; // probs below which blink is masked
+const DM_EYE_THRESHOLD = 0.4; // probs below which blink is masked
 const DM_BLINK_THRESHOLD = 0.5; // probs above this count as blinking
 
 // cache break index files
