@@ -39,7 +39,8 @@ const H = 320;
 const RESIZED_FOCAL = 320.0;
 const FULL_W = 426;
 const DM_FACE_THRESHOLD = 0.4; // probs below this disappear
-const DM_BLINK_THRESHOLD = 0.2; // probs above this count as blinking
+const DM_EYE_THRESHOLD 0.4; // probs below which blink is masked
+const DM_BLINK_THRESHOLD = 0.5; // probs above this count as blinking
 
 // cache break index files
 const STREAM_VERSION = 2;
@@ -1112,7 +1113,11 @@ class VideoPreview extends Component {
 
     let isBlinking = false;
 
-    if (driverMonitoring.LeftBlinkProb > DM_BLINK_THRESHOLD || driverMonitoring.RightBlinkProb > DM_BLINK_THRESHOLD) {
+    if (
+      driverMonitoring.LeftBlinkProb + driverMonitoring.RightBlinkProb > 2 * DM_BLINK_THRESHOLD 
+      && driverMonitoring.LeftEyeProb > DM_EYE_THRESHOLD
+      && driverMonitoring.RightEyeProb > DM_EYE_THRESHOLD
+    ) {
       isBlinking = true;
     }
 
@@ -1180,17 +1185,17 @@ class VideoPreview extends Component {
     const angles_desc = driverMonitoring.FaceOrientation;
     const pos_desc = driverMonitoring.FacePosition;
 
-    const pitch_prnet = angles_desc[0];
-    const yaw_prnet = angles_desc[1];
-    const roll_prnet = angles_desc[2];
+    const pitch_net = angles_desc[0];
+    const yaw_net = angles_desc[1];
+    const roll_net = angles_desc[2];
 
     const face_pixel_position = [(pos_desc[0] + 0.5) * W - W + FULL_W, (pos_desc[1] + 0.5) * H];
     const yaw_focal_angle = Math.atan2(face_pixel_position[0] - FULL_W / 2, RESIZED_FOCAL);
     const pitch_focal_angle = Math.atan2(face_pixel_position[1] - H / 2, RESIZED_FOCAL);
 
-    const roll = roll_prnet;
-    const pitch = pitch_prnet + pitch_focal_angle;
-    const yaw = -yaw_prnet + yaw_focal_angle;
+    const roll = roll_net;
+    const pitch = pitch_net + pitch_focal_angle;
+    const yaw = -yaw_net + yaw_focal_angle;
     return { roll, pitch, yaw };
   }
 
