@@ -454,7 +454,8 @@ class VideoPreview extends Component {
       if (this.canvas_face.current) {
         const params = { calibration, shouldScale: true };
         const events = {
-          driverMonitoring: TimelineWorker.currentDriverMonitoring
+          driverMonitoring: TimelineWorker.currentDriverMonitoring,
+          liveCalibration: TimelineWorker.currentLiveCalibration
         };
         this.renderEventToCanvas(
           this.canvas_face.current, params, events, this.renderDriverMonitoring
@@ -1078,12 +1079,13 @@ class VideoPreview extends Component {
   }
 
   renderDriverMonitoring(options, events) {
-    if (!events.driverMonitoring) {
+    if (!events.driverMonitoring || !events.liveCalibration) {
       return;
     }
 
     const { ctx } = options;
     const driverMonitoring = events.driverMonitoring.DriverMonitoring;
+    const liveCalibration = events.liveCalibration.LiveCalibrationData;
 
     if (driverMonitoring.FaceProb < 0.8) {
       return;
@@ -1094,7 +1096,7 @@ class VideoPreview extends Component {
     let noseSize = 20;
     ctx.translate(xOffset, 0);
 
-    const isDistracted = this.isDistracted(driverMonitoring);
+    const isDistracted = this.isDistracted(driverMonitoring, liveCalibration);
 
     const opacity = (driverMonitoring.FaceProb - DM_FACE_THRESHOLD) / (1 - DM_FACE_THRESHOLD) * 255;
     noseSize *= 1 / (driverMonitoring.FaceProb);
@@ -1162,8 +1164,8 @@ class VideoPreview extends Component {
     }
   }
 
-  isDistracted(driverMonitoring) {
-    const pose = this.getDriverPose(driverMonitoring);
+  isDistracted(driverMonitoring, liveCalibration) {
+    const pose = this.getDriverPose(driverMonitoring, liveCalibration);
 
     let pitch_error = pose.pitch - _PITCH_NATURAL_OFFSET;
     const yaw_error = pose.yaw - _YAW_NATURAL_OFFSET;
@@ -1179,7 +1181,7 @@ class VideoPreview extends Component {
     return false;
   }
 
-  getDriverPose(driverMonitoring) {
+  getDriverPose(driverMonitoring, liveCalibration) {
     // use driver monitoring units instead of canvas units
     // that way code can be nearly identical
     const angles_desc = driverMonitoring.FaceOrientation;
@@ -1194,8 +1196,14 @@ class VideoPreview extends Component {
     const pitch_focal_angle = Math.atan2(face_pixel_position[1] - H / 2, RESIZED_FOCAL);
 
     const roll = roll_net;
-    const pitch = pitch_net + pitch_focal_angle;
-    const yaw = -yaw_net + yaw_focal_angle;
+    let pitch = pitch_net + pitch_focal_angle;
+    let yaw = -yaw_net + yaw_focal_angle;
+    
+    if (liveCalibration.CalStatus > 0) {
+      pitch = pitch - liveCalibration.RpyCalib[1];
+      yaw = yaw - liveCalibration.RpyCalib[2];
+    }
+
     return { roll, pitch, yaw };
   }
 
