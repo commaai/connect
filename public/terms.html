@@ -1,56 +1,582 @@
-<pre>
-The Terms and Conditions below are effective for all users
-Last Updated on July 18, 2019
-
-Comma.ai, Inc. Terms and Conditions
-Please read these Terms of Use (“Terms”) carefully before using openpilot which is open-sourced software developed by Comma.ai, Inc., a corporation organized under the laws of Delaware (“comma,” “us,” “we,” or “our”).
-Before using and by accessing openpilot, you indicate that you have read, understood, and agree to these Terms. These Terms apply to all users and others who access or use openpilot. If others use openpilot through your user account or vehicle, you are responsible to ensure that they only use openpilot when it is safe to do so, and in compliance with these Terms and with applicable law. If you disagree with any part of the Terms, you should not access or use openpilot.
-
-Communications
-You agree that comma may contact you by email or telephone in connection with openpilot or for other business purposes. You may opt out of receiving email messages at any time by contacting us at support@comma.ai.
-
-We collect, use, and share information from and about you and your vehicle in connection with openpilot. You consent to comma accessing the systems associated with openpilot, without additional notice or consent, for the purposes of providing openpilot, data collection, software updates, safety and cybersecurity, suspension or removal of your account, and as disclosed in the Privacy Policy (available here).
-
-Safety
-
-openpilot performs the functions of Adaptive Cruise Control (ACC) and Lane Keeping Assist System (LKAS) designed for use in compatible motor vehicles. While using openpilot, it is your responsibility to obey all laws, traffic rules, and traffic regulations governing your vehicle and its operation. Access to and use of openpilot is at your own risk and responsibility, and openpilot should be accessed and/or used only when you can do so safely.
-
-openpilot does not make your vehicle “autonomous” or capable of operation without the active monitoring of a licensed driver. It is designed to assist a licensed driver. A licensed driver must pay attention to the road, remain aware of navigation at all times, and be prepared to take immediate action. Failure to do so can cause damage, injury, or death.
-
-Supported Locations and Models
-
-openpilot is compatible only with particular makes and models of vehicles. For a complete list of currently supported vehicles, visit https://comma.ai. openpilot will not function properly when installed in an incompatible vehicle.
-openpilot is compatible only within the geographical boundaries of the United States of America.
-
-Indemnification
-
-To the maximum extent allowable by law, you agree to defend, indemnify and hold harmless comma, and its employees, partners, suppliers, contractors, investors, agents, officers, directors, and affiliates, from and against any and all claims, damages, causes of action, penalties, interest, demands, obligations, losses, liabilities, costs or debt, additional taxes, and expenses (including but not limited to attorneys’ fees), resulting from or arising out of (i) your use and access of, or inability to use or access, openpilot, (ii) your breach of these Terms, (iii) the inaccuracy of any information, representation or warranty made by you, (iv) activities of anyone other than you in connection with openpilot conducted through your comma device or account, (v) any other of your activities under or in connection with these Terms or openpilot.
-
-Limitation of Liability
-
-In no event shall comma, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from (i) your access to or use of or inability to access or use of the Software; or (ii) any conduct or content of any third party on the Software whether based on warranty, contract, tort (including negligence) or any other legal theory, whether or not we have been informed of the possibility of such damage, and even if a remedy set forth herein is found to have failed of its essential purpose.
-
-No Warranty or Obligations to Maintain or Service
-
-comma provides openpilot without representations, conditions, or warranties of any kind. openpilot is provided on an “AS IS” and “AS AVAILABLE” basis, including with all faults and errors as may occur. To the extent permitted by law and unless prohibited by law, comma on behalf of itself and all persons and parties acting by, through, or for comma, explicitly disclaims all warranties or conditions, express, implied, or collateral, including any implied warranties of merchantability, satisfactory quality, and fitness for a particular purpose in respect of openpilot.
-
-To the extent permitted by law, comma does not warrant the operation, performance, or availability of openpilot under all conditions. comma is not responsible for any failures caused by server errors, misdirected or redirected transmissions, failed internet connections, interruptions or failures in the transmission of data, any computer virus, or any acts or omissions of third parties that damage the network or impair wireless service.
-
-We undertake reasonable measures to preserve and secure information collected through our openpilot. However, no data collection, transmission or storage system is 100% secure, and there is always a risk that your information may be intercepted without our consent. In using openpilot, you acknowledge that comma is not responsible for intercepted information, and you hereby release us from any and all claims arising out of or related to the use of intercepted information in any unauthorized manner.
-
-By providing openpilot, comma does not transfer or license its intellectual property or grant rights in its brand names, nor does comma make representations with respect to third-party intellectual property rights.
-
-We are not obligated to provide any maintenance or support for openpilot, technical or otherwise. If we voluntarily provide any maintenance or support for openpilot, we may stop any such maintenance, support, or services at any time in our sole discretion.
-
-Modification of Software
-
-In no event shall comma, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable if you choose to modify the software.
-
-Changes
-
-We reserve the right, at our sole discretion, to modify or replace these Terms at any time. If a revision is material we will provide at least 15 days’ notice prior to any new terms taking effect. What constitutes a material change will be determined at our sole discretion.
-By continuing to access or use our Software after any revisions become effective, you agree to be bound by the revised terms. If you do not agree to the new terms, you are no longer authorized to use the Software.
-
-Contact Us
-If you have any questions about these Terms, please contact us at support@comma.ai.
-</pre>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang xml:lang>
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>openpilot Terms of Service</title>
+  <style>
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <style type="text/css">
+html {
+font-size: 100%;
+overflow-y: scroll;
+-webkit-text-size-adjust: 100%;
+-ms-text-size-adjust: 100%;
+}
+body {
+color: #444;
+font-family: Georgia, Palatino, 'Palatino Linotype', Times, 'Times New Roman', serif;
+font-size: 12px;
+line-height: 1.7;
+padding: 1em;
+margin: auto;
+max-width: 42em;
+background: #fefefe;
+}
+a {
+color: #0645ad;
+text-decoration: none;
+}
+a:visited {
+color: #0b0080;
+}
+a:hover {
+color: #06e;
+}
+a:active {
+color: #faa700;
+}
+a:focus {
+outline: thin dotted;
+}
+*::-moz-selection {
+background: rgba(255, 255, 0, 0.3);
+color: #000;
+}
+*::selection {
+background: rgba(255, 255, 0, 0.3);
+color: #000;
+}
+a::-moz-selection {
+background: rgba(255, 255, 0, 0.3);
+color: #0645ad;
+}
+a::selection {
+background: rgba(255, 255, 0, 0.3);
+color: #0645ad;
+}
+p {
+margin: 1em 0;
+}
+img {
+max-width: 100%;
+}
+h1, h2, h3, h4, h5, h6 {
+color: #111;
+line-height: 125%;
+margin-top: 2em;
+font-weight: normal;
+}
+h4, h5, h6 {
+font-weight: bold;
+}
+h1 {
+font-size: 2.5em;
+}
+h2 {
+font-size: 2em;
+}
+h3 {
+font-size: 1.5em;
+}
+h4 {
+font-size: 1.2em;
+}
+h5 {
+font-size: 1em;
+}
+h6 {
+font-size: 0.9em;
+}
+blockquote {
+color: #666666;
+margin: 0;
+padding-left: 3em;
+border-left: 0.5em #EEE solid;
+}
+hr {
+display: block;
+height: 2px;
+border: 0;
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #eee;
+margin: 1em 0;
+padding: 0;
+}
+pre, code, kbd, samp {
+color: #000;
+font-family: monospace, monospace;
+_font-family: 'courier new', monospace;
+font-size: 0.98em;
+}
+pre {
+white-space: pre;
+white-space: pre-wrap;
+word-wrap: break-word;
+}
+b, strong {
+font-weight: bold;
+}
+dfn {
+font-style: italic;
+}
+ins {
+background: #ff9;
+color: #000;
+text-decoration: none;
+}
+mark {
+background: #ff0;
+color: #000;
+font-style: italic;
+font-weight: bold;
+}
+sub, sup {
+font-size: 75%;
+line-height: 0;
+position: relative;
+vertical-align: baseline;
+}
+sup {
+top: -0.5em;
+}
+sub {
+bottom: -0.25em;
+}
+ul, ol {
+margin: 1em 0;
+padding: 0 0 0 2em;
+}
+li p:last-child {
+margin-bottom: 0;
+}
+ul ul, ol ol {
+margin: .3em 0;
+}
+dl {
+margin-bottom: 1em;
+}
+dt {
+font-weight: bold;
+margin-bottom: .8em;
+}
+dd {
+margin: 0 0 .8em 2em;
+}
+dd:last-child {
+margin-bottom: 0;
+}
+img {
+border: 0;
+-ms-interpolation-mode: bicubic;
+vertical-align: middle;
+}
+figure {
+display: block;
+text-align: center;
+margin: 1em 0;
+}
+figure img {
+border: none;
+margin: 0 auto;
+}
+figcaption {
+font-size: 0.8em;
+font-style: italic;
+margin: 0 0 .8em;
+}
+table {
+margin-bottom: 2em;
+border-bottom: 1px solid #ddd;
+border-right: 1px solid #ddd;
+border-spacing: 0;
+border-collapse: collapse;
+}
+table th {
+padding: .2em 1em;
+background-color: #eee;
+border-top: 1px solid #ddd;
+border-left: 1px solid #ddd;
+}
+table td {
+padding: .2em 1em;
+border-top: 1px solid #ddd;
+border-left: 1px solid #ddd;
+vertical-align: top;
+}
+.author {
+font-size: 1.2em;
+text-align: center;
+}
+@media only screen and (min-width: 480px) {
+body {
+font-size: 14px;
+}
+}
+@media only screen and (min-width: 768px) {
+body {
+font-size: 16px;
+}
+}
+@media print {
+* {
+background: transparent !important;
+color: black !important;
+filter: none !important;
+-ms-filter: none !important;
+}
+body {
+font-size: 12pt;
+max-width: 100%;
+}
+a, a:visited {
+text-decoration: underline;
+}
+hr {
+height: 1px;
+border: 0;
+border-bottom: 1px solid black;
+}
+a[href]:after {
+content: " (" attr(href) ")";
+}
+abbr[title]:after {
+content: " (" attr(title) ")";
+}
+.ir a:after, a[href^="javascript:"]:after, a[href^="#"]:after {
+content: "";
+}
+pre, blockquote {
+border: 1px solid #999;
+padding-right: 1em;
+page-break-inside: avoid;
+}
+tr, img {
+page-break-inside: avoid;
+}
+img {
+max-width: 100% !important;
+}
+@page :left {
+margin: 15mm 20mm 15mm 10mm;
+}
+@page :right {
+margin: 15mm 10mm 15mm 20mm;
+}
+p, h2, h3 {
+orphans: 3;
+widows: 3;
+}
+h2, h3 {
+page-break-after: avoid;
+}
+}
+</style>
+  <style type="text/css">
+html {
+font-size: 100%;
+overflow-y: scroll;
+-webkit-text-size-adjust: 100%;
+-ms-text-size-adjust: 100%;
+}
+body {
+color: #444;
+font-family: Georgia, Palatino, 'Palatino Linotype', Times, 'Times New Roman', serif;
+font-size: 12px;
+line-height: 1.7;
+padding: 1em;
+margin: auto;
+max-width: 42em;
+background: #fefefe;
+}
+a {
+color: #0645ad;
+text-decoration: none;
+}
+a:visited {
+color: #0b0080;
+}
+a:hover {
+color: #06e;
+}
+a:active {
+color: #faa700;
+}
+a:focus {
+outline: thin dotted;
+}
+*::-moz-selection {
+background: rgba(255, 255, 0, 0.3);
+color: #000;
+}
+*::selection {
+background: rgba(255, 255, 0, 0.3);
+color: #000;
+}
+a::-moz-selection {
+background: rgba(255, 255, 0, 0.3);
+color: #0645ad;
+}
+a::selection {
+background: rgba(255, 255, 0, 0.3);
+color: #0645ad;
+}
+p {
+margin: 1em 0;
+}
+img {
+max-width: 100%;
+}
+h1, h2, h3, h4, h5, h6 {
+color: #111;
+line-height: 125%;
+margin-top: 2em;
+font-weight: normal;
+}
+h4, h5, h6 {
+font-weight: bold;
+}
+h1 {
+font-size: 2.5em;
+}
+h2 {
+font-size: 2em;
+}
+h3 {
+font-size: 1.5em;
+}
+h4 {
+font-size: 1.2em;
+}
+h5 {
+font-size: 1em;
+}
+h6 {
+font-size: 0.9em;
+}
+blockquote {
+color: #666666;
+margin: 0;
+padding-left: 3em;
+border-left: 0.5em #EEE solid;
+}
+hr {
+display: block;
+height: 2px;
+border: 0;
+border-top: 1px solid #aaa;
+border-bottom: 1px solid #eee;
+margin: 1em 0;
+padding: 0;
+}
+pre, code, kbd, samp {
+color: #000;
+font-family: monospace, monospace;
+_font-family: 'courier new', monospace;
+font-size: 0.98em;
+}
+pre {
+white-space: pre;
+white-space: pre-wrap;
+word-wrap: break-word;
+}
+b, strong {
+font-weight: bold;
+}
+dfn {
+font-style: italic;
+}
+ins {
+background: #ff9;
+color: #000;
+text-decoration: none;
+}
+mark {
+background: #ff0;
+color: #000;
+font-style: italic;
+font-weight: bold;
+}
+sub, sup {
+font-size: 75%;
+line-height: 0;
+position: relative;
+vertical-align: baseline;
+}
+sup {
+top: -0.5em;
+}
+sub {
+bottom: -0.25em;
+}
+ul, ol {
+margin: 1em 0;
+padding: 0 0 0 2em;
+}
+li p:last-child {
+margin-bottom: 0;
+}
+ul ul, ol ol {
+margin: .3em 0;
+}
+dl {
+margin-bottom: 1em;
+}
+dt {
+font-weight: bold;
+margin-bottom: .8em;
+}
+dd {
+margin: 0 0 .8em 2em;
+}
+dd:last-child {
+margin-bottom: 0;
+}
+img {
+border: 0;
+-ms-interpolation-mode: bicubic;
+vertical-align: middle;
+}
+figure {
+display: block;
+text-align: center;
+margin: 1em 0;
+}
+figure img {
+border: none;
+margin: 0 auto;
+}
+figcaption {
+font-size: 0.8em;
+font-style: italic;
+margin: 0 0 .8em;
+}
+table {
+margin-bottom: 2em;
+border-bottom: 1px solid #ddd;
+border-right: 1px solid #ddd;
+border-spacing: 0;
+border-collapse: collapse;
+}
+table th {
+padding: .2em 1em;
+background-color: #eee;
+border-top: 1px solid #ddd;
+border-left: 1px solid #ddd;
+}
+table td {
+padding: .2em 1em;
+border-top: 1px solid #ddd;
+border-left: 1px solid #ddd;
+vertical-align: top;
+}
+.author {
+font-size: 1.2em;
+text-align: center;
+}
+@media only screen and (min-width: 480px) {
+body {
+font-size: 14px;
+}
+}
+@media only screen and (min-width: 768px) {
+body {
+font-size: 16px;
+}
+}
+@media print {
+* {
+background: transparent !important;
+color: black !important;
+filter: none !important;
+-ms-filter: none !important;
+}
+body {
+font-size: 12pt;
+max-width: 100%;
+}
+a, a:visited {
+text-decoration: underline;
+}
+hr {
+height: 1px;
+border: 0;
+border-bottom: 1px solid black;
+}
+a[href]:after {
+content: " (" attr(href) ")";
+}
+abbr[title]:after {
+content: " (" attr(title) ")";
+}
+.ir a:after, a[href^="javascript:"]:after, a[href^="#"]:after {
+content: "";
+}
+pre, blockquote {
+border: 1px solid #999;
+padding-right: 1em;
+page-break-inside: avoid;
+}
+tr, img {
+page-break-inside: avoid;
+}
+img {
+max-width: 100% !important;
+}
+@page :left {
+margin: 15mm 20mm 15mm 10mm;
+}
+@page :right {
+margin: 15mm 10mm 15mm 20mm;
+}
+p, h2, h3 {
+orphans: 3;
+widows: 3;
+}
+h2, h3 {
+page-break-after: avoid;
+}
+}
+</style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<h2 id="openpilot-terms-and-conditions">openpilot Terms and Conditions</h2>
+<p>The Terms and Conditions below are effective for all users</p>
+<p>Last Updated on October 18, 2019</p>
+<p>Please read these Terms of Use (“Terms”) carefully before using openpilot which is open-sourced software developed by Comma.ai, Inc., a corporation organized under the laws of Delaware (“comma,” “us,” “we,” or “our”).</p>
+<p><strong>Before using and by accessing openpilot, you indicate that you have read, understood, and agree to these Terms.</strong> These Terms apply to all users and others who access or use openpilot. If others use openpilot through your user account or vehicle, you are responsible to ensure that they only use openpilot when it is safe to do so, and in compliance with these Terms and with applicable law. If you disagree with any part of the Terms, you should not access or use openpilot.</p>
+<h3 id="communications">Communications</h3>
+<p>You agree that comma may contact you by email or telephone in connection with openpilot or for other business purposes. You may opt out of receiving email messages at any time by contacting us at support@comma.ai.</p>
+<p>We collect, use, and share information from and about you and your vehicle in connection with openpilot. You consent to comma accessing the systems associated with openpilot, without additional notice or consent, for the purposes of providing openpilot, data collection, software updates, safety and cybersecurity, suspension or removal of your account, and as disclosed in the Privacy Policy (available at https://my.comma.ai/privacy).</p>
+<h3 id="safety">Safety</h3>
+<p>openpilot performs the functions of Adaptive Cruise Control (ACC) and Lane Keeping Assist System (LKAS) designed for use in compatible motor vehicles. While using openpilot, it is your responsibility to obey all laws, traffic rules, and traffic regulations governing your vehicle and its operation. Access to and use of openpilot is at your own risk and responsibility, and openpilot should be accessed and/or used only when you can do so safely.</p>
+<p>openpilot does not make your vehicle “autonomous” or capable of operation without the active monitoring of a licensed driver. It is designed to assist a licensed driver. A licensed driver must pay attention to the road, remain aware of navigation at all times, and be prepared to take immediate action. Failure to do so can cause damage, injury, or death.</p>
+<h3 id="supported-locations-and-models">Supported Locations and Models</h3>
+<p>openpilot is compatible only with particular makes and models of vehicles. For a complete list of currently supported vehicles, visit https://comma.ai. openpilot will not function properly when installed in an incompatible vehicle. openpilot is compatible only within the geographical boundaries of the United States of America.</p>
+<h3 id="indemnification">Indemnification</h3>
+<p><strong>To the maximum extent allowable by law, you agree to defend, indemnify and hold harmless comma, and its employees, partners, suppliers, contractors, investors, agents, officers, directors, and affiliates, from and against any and all claims, damages, causes of action, penalties, interest, demands, obligations, losses, liabilities, costs or debt, additional taxes, and expenses (including but not limited to attorneys’ fees), resulting from or arising out of (i) your use and access of, or inability to use or access, openpilot, (ii) your breach of these Terms, (iii) the inaccuracy of any information, representation or warranty made by you, (iv) activities of anyone other than you in connection with openpilot conducted through your comma device or account, (v) any other of your activities under or in connection with these Terms or openpilot.</strong></p>
+<h3 id="limitation-of-liability">Limitation of Liability</h3>
+<p>In no event shall comma, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from (i) your access to or use of or inability to access or use of the Software; or (ii) any conduct or content of any third party on the Software whether based on warranty, contract, tort (including negligence) or any other legal theory, whether or not we have been informed of the possibility of such damage, and even if a remedy set forth herein is found to have failed of its essential purpose.</p>
+<h3 id="no-warranty-or-obligations-to-maintain-or-service">No Warranty or Obligations to Maintain or Service</h3>
+<p>comma provides openpilot without representations, conditions, or warranties of any kind. openpilot is provided on an “AS IS” and “AS AVAILABLE” basis, including with all faults and errors as may occur. To the extent permitted by law and unless prohibited by law, comma on behalf of itself and all persons and parties acting by, through, or for comma, explicitly disclaims all warranties or conditions, express, implied, or collateral, including any implied warranties of merchantability, satisfactory quality, and fitness for a particular purpose in respect of openpilot.</p>
+<p>To the extent permitted by law, comma does not warrant the operation, performance, or availability of openpilot under all conditions. comma is not responsible for any failures caused by server errors, misdirected or redirected transmissions, failed internet connections, interruptions or failures in the transmission of data, any computer virus, or any acts or omissions of third parties that damage the network or impair wireless service.</p>
+<p>We undertake reasonable measures to preserve and secure information collected through our openpilot. However, no data collection, transmission or storage system is 100% secure, and there is always a risk that your information may be intercepted without our consent. <em>In using openpilot, you acknowledge that comma is not responsible for intercepted information, and you hereby release us from any and all claims arising out of or related to the use of intercepted information in any unauthorized manner.</em></p>
+<p>By providing openpilot, comma does not transfer or license its intellectual property or grant rights in its brand names, nor does comma make representations with respect to third-party intellectual property rights.</p>
+<p>We are not obligated to provide any maintenance or support for openpilot, technical or otherwise. If we voluntarily provide any maintenance or support for openpilot, we may stop any such maintenance, support, or services at any time in our sole discretion.</p>
+<h3 id="modification-of-software">Modification of Software</h3>
+<p>In no event shall comma, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable if you choose to modify the software.</p>
+<h3 id="changes">Changes</h3>
+<p>We reserve the right, at our sole discretion, to modify or replace these Terms at any time. If a revision is material we will provide at least 15 days’ notice prior to any new terms taking effect. What constitutes a material change will be determined at our sole discretion.</p>
+<p>By continuing to access or use our Software after any revisions become effective, you agree to be bound by the revised terms. If you do not agree to the new terms, you are no longer authorized to use the Software.</p>
+<h3 id="contact-us">Contact Us</h3>
+<p>If you have any questions about these Terms, please contact us at support@comma.ai.</p>
+</body>
+</html>
