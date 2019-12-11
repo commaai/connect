@@ -10,6 +10,7 @@ import PropTypes from 'prop-types';
 
 import { Player, ControlBar } from 'video-react';
 import 'video-react/dist/video-react.css'; // CSS for video
+import { video as VideoApi } from '@commaai/comma-api';
 
 import theme from '../../theme';
 import HLSSource from './hlsSource';
@@ -97,26 +98,28 @@ function videoURL(props) {
   if (!segment) {
     return '';
   }
-  let base = `${process.env.REACT_APP_VIDEO_CDN}/hls/${props.dongleId}/${segment.url.split('/').pop()}`;
   if (props.front) {
-    base += '/dcamera';
-  }
+    let base = `${process.env.REACT_APP_VIDEO_CDN}/hls/${props.dongleId}/${segment.url.split('/').pop()}`;
 
-  // We append count of segments with stream available as a cache-busting method
-  // on stream indexes served before route is fully uploaded
-  let segCount;
-  if (props.front) {
-    segCount = segment.driverCameraStreamSegCount;
+    base += '/dcamera';
+
+
+    // We append count of segments with stream available as a cache-busting method
+    // on stream indexes served before route is fully uploaded
+    let segCount = segment.driverCameraStreamSegCount;
+    return `${base}/index.m3u8?v=${STREAM_VERSION}&s=${segCount}`;
   } else {
-    segCount = segment.cameraStreamSegCount;
+    return VideoApi(
+      segment.url,
+      process.env.REACT_APP_VIDEO_CDN
+    ).getQcameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`;
   }
-  return `${base}/index.m3u8?v=${STREAM_VERSION}&s=${segCount}`;
 }
 
 class VideoPreview extends Component {
   static getDerivedStateFromProps(props) {
     return {
-      src: videoURL(props)
+      src: videoURL(props),
     };
   }
 
@@ -126,7 +129,7 @@ class VideoPreview extends Component {
     this.updatePreview = this.updatePreview.bind(this);
     this.onSourceLoaded = this.onSourceLoaded.bind(this);
     this.onDisableBuffering = this.onDisableBuffering.bind(this);
-
+    this.onStartTimeAvailable = this.onStartTimeAvailable.bind(this);
     // this.checkVideoBuffer = this.checkVideoBuffer.bind(this);
 
     this.imageRef = React.createRef();
@@ -144,7 +147,7 @@ class VideoPreview extends Component {
     this.state = {
       bufferTime: 4,
       src: videoURL(props),
-      noVideo: false,
+      videoStartTime: null,
     };
   }
 
@@ -185,6 +188,10 @@ class VideoPreview extends Component {
       console.log('Calling load with media change');
       this.videoPlayer.current.load();
     }
+  }
+
+  onStartTimeAvailable(videoStartTime) {
+    this.setState({ videoStartTime });
   }
 
   onDisableBuffering() {
@@ -269,7 +276,6 @@ class VideoPreview extends Component {
     const offset = TimelineWorker.currentOffset();
     let shouldShowPreview = true;
     const { bufferTime } = this.state;
-    let { noVideo } = this.state;
     const { playSpeed } = this.props;
     let { desiredPlaySpeed } = this.props;
 
@@ -360,7 +366,6 @@ class VideoPreview extends Component {
         }
 
         shouldShowPreview = isBuffering;
-        noVideo = isBuffering;
 
         desiredPlaySpeed = Math.round(desiredPlaySpeed * 5) / 5;
 
@@ -402,12 +407,6 @@ class VideoPreview extends Component {
         this.imageRef.current.src = this.nearestImageFrame(offset);
       }
       this.imageRef.current.style.opacity = shouldShowPreview ? 1 : 0;
-    }
-    if (noVideo !== this.state.noVideo) {
-      // not used anymore, also could be derrived from the buffer state in props
-      // this.setState({
-      //   noVideo
-      // });
     }
   }, 100)
 
@@ -1114,7 +1113,7 @@ class VideoPreview extends Component {
     let isBlinking = false;
 
     if (
-      driverMonitoring.LeftBlinkProb + driverMonitoring.RightBlinkProb > 2 * DM_BLINK_THRESHOLD 
+      driverMonitoring.LeftBlinkProb + driverMonitoring.RightBlinkProb > 2 * DM_BLINK_THRESHOLD
       && driverMonitoring.LeftEyeProb > DM_EYE_THRESHOLD
       && driverMonitoring.RightEyeProb > DM_EYE_THRESHOLD
     ) {
@@ -1253,8 +1252,16 @@ class VideoPreview extends Component {
       return 0;
     }
     offset -= this.props.currentSegment.routeOffset;
+    offset = offset / 1000;
 
-    return offset / 1000;
+    if (!this.props.front) {
+      let initData = TimelineWorker.currentInitData();
+      if (initData !== null && this.state.videoStartTime !== null) {
+        offset -= (this.state.videoStartTime - parseInt(initData.LogMonoTime)/1e9);
+      }
+    }
+
+    return offset;
   }
 
   // nearest cache-worthy frame of the video
@@ -1280,7 +1287,7 @@ class VideoPreview extends Component {
     return (
       <div
         className={classNames(classes.videoContainer, {
-          [classes.hidden]: false // this.state.noVideo
+          [classes.hidden]: false
         })}
       >
         { this.props.isBuffering
@@ -1314,6 +1321,7 @@ class VideoPreview extends Component {
           <HLSSource
             onBufferAppend={this.checkVideoBuffer}
             onSourceLoaded={this.onSourceLoaded}
+            onStartTimeAvailable={this.onStartTimeAvailable}
             isVideoChild
           />
           <ControlBar disabled disableCompletely />
