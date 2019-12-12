@@ -87,42 +87,7 @@ function intrinsicMatrix() {
   ];
 }
 
-function videoURL(props) {
-  let segment = props.currentSegment;
-  if (!segment && props.nextSegment) {
-    const offset = TimelineWorker.currentOffset();
-    if (props.nextSegment.startOffset - offset < 5000) {
-      segment = props.nextSegment;
-    }
-  }
-  if (!segment) {
-    return '';
-  }
-  if (props.front) {
-    let base = `${process.env.REACT_APP_VIDEO_CDN}/hls/${props.dongleId}/${segment.url.split('/').pop()}`;
-
-    base += '/dcamera';
-
-
-    // We append count of segments with stream available as a cache-busting method
-    // on stream indexes served before route is fully uploaded
-    let segCount = segment.driverCameraStreamSegCount;
-    return `${base}/index.m3u8?v=${STREAM_VERSION}&s=${segCount}`;
-  } else {
-    return VideoApi(
-      segment.url,
-      process.env.REACT_APP_VIDEO_CDN
-    ).getQcameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`;
-  }
-}
-
 class VideoPreview extends Component {
-  static getDerivedStateFromProps(props) {
-    return {
-      src: videoURL(props),
-    };
-  }
-
   constructor(props) {
     super(props);
 
@@ -145,7 +110,7 @@ class VideoPreview extends Component {
 
     this.state = {
       bufferTime: 4,
-      src: videoURL(props),
+      src: '',
     };
   }
 
@@ -160,9 +125,10 @@ class VideoPreview extends Component {
     this.stopListening = TimelineWorker.onIndexed(() => this.checkDataBuffer());
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps) {
     // play state
     this.checkVideoBuffer();
+    this.updateVideoSource(prevProps);
   }
 
   componentWillUnmount() {
@@ -178,6 +144,49 @@ class VideoPreview extends Component {
     if (this.stopListeningToVideo) {
       this.stopListeningToVideo();
       this.stopListeningToVideo = null;
+    }
+  }
+
+  updateVideoSource(prevProps) {
+    const { props } = this;
+    let segment = props.currentSegment;
+    if (!segment && props.nextSegment) {
+      const offset = TimelineWorker.currentOffset();
+      if (props.nextSegment.startOffset - offset < 5000) {
+        segment = props.nextSegment;
+      }
+    }
+    console.log(segment);
+    if (!segment) {
+      if (this.state.src !== '') {
+        this.setState({ src: '' });
+      }
+      return;
+    }
+
+    if (props.front) {
+      let base = `${process.env.REACT_APP_VIDEO_CDN}/hls/${props.dongleId}/${segment.url.split('/').pop()}`;
+      base += '/dcamera';
+      // We append count of segments with stream available as a cache-busting method
+      // on stream indexes served before route is fully uploaded
+      let segCount = segment.driverCameraStreamSegCount;
+      let src = `${base}/index.m3u8?v=${STREAM_VERSION}&s=${segCount}`;
+      if (this.state.src !== src) {
+        this.setState({ src });
+      }
+    } else if (this.state.src === '' || !prevProps.currentSegment || prevProps.currentSegment.route !== segment.route) {
+      let videoApi = VideoApi(segment.url, process.env.REACT_APP_VIDEO_CDN);
+      videoApi.getQcameraStreamIndex().then(() => {
+        let src = videoApi.getQcameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`
+        if (src !== this.state.src) {
+          this.setState({src});
+        }
+      }).catch(() => {
+        let src = videoApi.getRearCameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`;
+        if (src !== this.state.src) {
+          this.setState({src});
+        }
+      });
     }
   }
 
@@ -1253,7 +1262,6 @@ class VideoPreview extends Component {
       let firstFrameTime = TimelineWorker.firstFrameTime();
 
       if (initData !== null && firstFrameTime !== null) {
-        console.log(firstFrameTime - initData.LogMonoTime/1e9);
         offset -= (firstFrameTime - initData.LogMonoTime/1e9);
       }
     }
