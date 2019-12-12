@@ -21,8 +21,7 @@ jest.mock('@commaai/hls.js', () => {
 
 HLS.Events = {
   MANIFEST_PARSED: 0,
-  BUFFER_APPENDED: 1,
-  INIT_PTS_FOUND: 2,
+  BUFFER_APPENDED: 1
 };
 
 beforeEach(() => {
@@ -38,7 +37,7 @@ describe('hls source', () => {
     expect(element.exists()).toBe(true);
     expect(HLS).toBeCalledWith({
       enableWorker: false,
-      disablePtsDtsCorrectionInMp4Remux: false
+      disablePtsDtsCorrectionInMp4Remux: true
     });
 
     element.unmount();
@@ -50,10 +49,10 @@ describe('hls source', () => {
 
     expect(element.exists()).toBe(true);
     expect(HLS.onMock).toBeCalled();
-    expect(HLS.onMock.mock.calls.length).toBe(4);
+    expect(HLS.onMock.mock.calls.length).toBe(3);
 
     expect(playMock).toHaveBeenCalledTimes(0);
-    HLS.onMock.mock.calls[1][1]();
+    HLS.onMock.mock.calls[0][1]();
     expect(playMock).toHaveBeenCalledTimes(1);
 
     element.unmount();
