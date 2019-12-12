@@ -37,7 +37,7 @@ describe('hls source', () => {
     expect(element.exists()).toBe(true);
     expect(HLS).toBeCalledWith({
       enableWorker: false,
-      disablePtsDtsCorrectionInMp4Remux: true
+      disablePtsDtsCorrectionInMp4Remux: false
     });
 
     element.unmount();
