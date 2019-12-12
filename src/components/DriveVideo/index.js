@@ -129,7 +129,6 @@ class VideoPreview extends Component {
     this.updatePreview = this.updatePreview.bind(this);
     this.onSourceLoaded = this.onSourceLoaded.bind(this);
     this.onDisableBuffering = this.onDisableBuffering.bind(this);
-    this.onStartTimeAvailable = this.onStartTimeAvailable.bind(this);
     // this.checkVideoBuffer = this.checkVideoBuffer.bind(this);
 
     this.imageRef = React.createRef();
@@ -147,7 +146,6 @@ class VideoPreview extends Component {
     this.state = {
       bufferTime: 4,
       src: videoURL(props),
-      videoStartTime: null,
     };
   }
 
@@ -188,10 +186,6 @@ class VideoPreview extends Component {
       console.log('Calling load with media change');
       this.videoPlayer.current.load();
     }
-  }
-
-  onStartTimeAvailable(videoStartTime) {
-    this.setState({ videoStartTime });
   }
 
   onDisableBuffering() {
@@ -1256,8 +1250,11 @@ class VideoPreview extends Component {
 
     if (!this.props.front) {
       let initData = TimelineWorker.currentInitData();
-      if (initData !== null && this.state.videoStartTime !== null) {
-        offset -= (this.state.videoStartTime - parseInt(initData.LogMonoTime)/1e9);
+      let firstFrameTime = TimelineWorker.firstFrameTime();
+
+      if (initData !== null && firstFrameTime !== null) {
+        console.log(firstFrameTime - initData.LogMonoTime/1e9);
+        offset -= (firstFrameTime - initData.LogMonoTime/1e9);
       }
     }
 
@@ -1321,7 +1318,6 @@ class VideoPreview extends Component {
           <HLSSource
             onBufferAppend={this.checkVideoBuffer}
             onSourceLoaded={this.onSourceLoaded}
-            onStartTimeAvailable={this.onStartTimeAvailable}
             isVideoChild
           />
           <ControlBar disabled disableCompletely />

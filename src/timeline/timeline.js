@@ -148,7 +148,7 @@ async function ensureSegmentData(state) {
       entry.start();
     }
     if (state.segment !== 0) {
-      entry = Cache.getEntry(state.route, state.segment, DataLogEvent.broadcast);
+      entry = Cache.getEntry(state.route, 0, DataLogEvent.broadcast);
       if (entry) {
         entry.start();
       }

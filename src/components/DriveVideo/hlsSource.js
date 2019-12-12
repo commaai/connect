@@ -9,10 +9,6 @@ export default class HLSSource extends Component {
       enableWorker: false,
       disablePtsDtsCorrectionInMp4Remux: false
     });
-    this.hls.on(Hls.Events.INIT_PTS_FOUND, (eventName, data) => {
-      const time = data.initPTS/90000;
-      this.props.onStartTimeAvailable(time);
-    });
     this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
       this.props.video.play();
     });
