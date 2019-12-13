@@ -98,7 +98,6 @@ export class TimelineInterface {
     await commands.stop();
     this.hasInit = false;
     if (this.logReader) {
-      this.logReader.terminate();
       this.logReader = null;
     }
   }
@@ -356,17 +355,21 @@ export class TimelineInterface {
       if (!_paramEntry.Key.byteOffset || !_paramEntry.Value.byteOffset) {
         return null;
       }
-      const paramEntry = Object.create(_paramEntry);
-      Object.defineProperty(paramEntry, 'Key', {
-        writable: false,
-        value: capnp.Text.fromPointer(paramEntry.Key).get()
-      });
-      Object.defineProperty(paramEntry, 'Value', {
-        writable: true,
-        value: capnp.Text.fromPointer(paramEntry.Value).get()
-      });
+      try {
+        const paramEntry = Object.create(_paramEntry);
+        Object.defineProperty(paramEntry, 'Key', {
+          writable: false,
+          value: capnp.Text.fromPointer(paramEntry.Key).get()
+        });
+        Object.defineProperty(paramEntry, 'Value', {
+          writable: true,
+          value: capnp.Text.fromPointer(paramEntry.Value).get()
+        });
 
-      return paramEntry;
+        return paramEntry;
+      } catch(e) {
+        return null;
+      }
     }).filter((paramEntry) => !!paramEntry);
     Object.defineProperty(initData.InitData.Params, 'Entries', { writable: true, value: parsedEntries });
 
