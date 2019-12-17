@@ -156,7 +156,6 @@ class VideoPreview extends Component {
         segment = props.nextSegment;
       }
     }
-    console.log(segment);
     if (!segment) {
       if (this.state.src !== '') {
         this.setState({ src: '' });

@@ -90,11 +90,15 @@ class CacheEntry {
     await this.authInitPromise;
     let urls;
     if (Demo.isDemo()) {
-      urls = demoLogUrls[this.route];
+      return demoLogUrls[this.route][this.segment];
     } else {
-      urls = await RawApi.getLogUrls(this.route);
+      urls = await RawApi.getRouteFiles(this.route);
+      if (urls.logs[this.segment] !== undefined) {
+        return urls.logs[this.segment];
+      } else {
+        return urls.qlogs[this.segment];
+      }
     }
-    return urls[this.segment];
   }
 
   async getLogStream() {
