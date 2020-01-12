@@ -79,7 +79,7 @@ class Annotations extends Component {
   }
 
   renderAnnotationsElement(visibleSegment) {
-    if (visibleSegment.deviceType === DeviceType.one) {
+    if (visibleSegment.deviceType === DeviceType.two) {
       return (<AnnotationTabs segment={visibleSegment} />);
     }
     return (<EonUpsell hook="Unlock driving annotations with an EON" />);

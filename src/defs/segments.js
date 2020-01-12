@@ -4,4 +4,5 @@ export const DeviceType = {
   ios: 2,
   one: 3,
   android: 5,
+  two : 6,
 };
