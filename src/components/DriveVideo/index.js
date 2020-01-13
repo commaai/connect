@@ -1334,7 +1334,7 @@ class VideoPreview extends Component {
             <>
               <canvas
                 ref={this.canvas_road}
-                className={classes.videoUiCanvas}
+                className={classNames(classes.videoUiCanvas, 'hudRoadCanvas')}
                 style={{ zIndex: 3 }}
               />
               <canvas

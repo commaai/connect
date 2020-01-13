@@ -30,7 +30,7 @@ describe('demo mode', () => {
       deviceScaleFactor: 1,
     });
     await page.goto('localhost:3003/?demo=1');
-    // wait 5 seconds for the data to start loading...
+    // wait for the data to start loading...
     await delay(8000);
 
     return true;
@@ -55,5 +55,22 @@ describe('demo mode', () => {
     expect(annotationEntry).toBeTruthy();
     boundingBox = await annotationEntry.boundingBox();
     expect(boundingBox.height).toBeGreaterThan(initialHeight);
+
+    async function expectCanvasToChange(canvasHandle, wait) {
+      let start = Date.now();
+      let origDataUrl = await page.evaluate(canvas => canvas.toDataURL(), canvasHandle);
+      let dataUrl;
+      while (Date.now() < (start + wait)) {
+        dataUrl = await page.evaluate(canvas => canvas.toDataURL(), canvasHandle);
+        if (origDataUrl !== dataUrl) {
+          break;
+        }
+      }
+      expect(dataUrl).not.toEqual(origDataUrl);
+    }
+
+    let hudRoadCanvas = await page.$('.hudRoadCanvas');
+    expect(hudRoadCanvas).toBeTruthy();
+    await expectCanvasToChange(hudRoadCanvas);
   });
 });
