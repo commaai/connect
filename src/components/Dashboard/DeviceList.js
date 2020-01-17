@@ -21,7 +21,7 @@ import Pencil from '@material-ui/icons/Edit';
 
 import { devices as Devices } from '@commaai/comma-api';
 import Timelineworker from '../../timeline';
-import EonUpsell from '../Annotations/eonUpsell';
+import CommaTwoUpsell from '../Annotations/commaTwoUpsell';
 
 const styles = (theme) => ({
   base: {
@@ -138,34 +138,30 @@ class DeviceList extends Component {
   deviceTypePretty(deviceType) {
     if (deviceType === 'neo') {
       return 'EON';
+    } else if (deviceType === 'two') {
+      return 'comma two';
     }
     return deviceType;
   }
 
   render() {
-    const { devices } = this.props;
+    let { devices } = this.props;
     const dongleId = this.props.selectedDevice;
-    let found = !dongleId;
-    let onlyHasAppDevice = true;
-    devices.forEach((device, idx) => {
-      if (device.dongle_id === dongleId) {
-        found = true;
-      }
-      onlyHasAppDevice = onlyHasAppDevice && (device.device_type !== 'neo' && device.device_type !== 'panda');
-    });
+    let found = devices.some((device) => device.dongle_id === dongleId);
+    let onlyHasAppDevice = (devices.length === 0);
 
     if (!found) {
-      devices.push({
+      devices = [{
         dongle_id: dongleId,
         shared: true,
         alias: 'Shared device',
-      });
+      }].concat(devices);
     }
 
     return (
       <div className={this.props.classes.base}>
         { devices.filter(this.filterDrivingDevice).map(this.renderDevice) }
-        { onlyHasAppDevice && <EonUpsell hook="Upgrade to an EON to augment your driving experience" /> }
+        { onlyHasAppDevice && <CommaTwoUpsell hook="Get started with comma two" /> }
       </div>
     );
   }

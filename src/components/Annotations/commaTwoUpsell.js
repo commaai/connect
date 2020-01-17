@@ -15,6 +15,7 @@ const styles = (theme) => ({
   eon: {
     display: 'block',
     width: '100%',
+    paddingTop: '30px',
   },
   content: {
     padding: '20px 12px',
@@ -26,23 +27,23 @@ const styles = (theme) => ({
   }
 });
 
-class EonUpsell extends Component {
+class CommaTwoUpsell extends Component {
   render() {
     return (
       <div className={this.props.classes.root}>
         <Grid item xs={6} className={this.props.classes.imageContainer}>
           <img
-            src="https://comma.ai/eon-offroad-transparent-01.png"
+            src="https://comma.ai/two-onroad-transparent-01.png"
             className={this.props.classes.eon}
           />
         </Grid>
         <Grid item xs={6} className={this.props.classes.content}>
           <Typography>{ this.props.hook }</Typography>
-          <ShopButton link="https://comma.ai/shop/products/eon-dashcam-devkit/?ref=explorer" />
+          <ShopButton link="https://comma.ai/shop/products/comma-two-devkit/?ref=explorer" />
         </Grid>
       </div>
     );
   }
 }
 
-export default withStyles(styles)(EonUpsell);
+export default withStyles(styles)(CommaTwoUpsell);

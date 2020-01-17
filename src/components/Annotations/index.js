@@ -14,7 +14,6 @@ import CloseIcon from '@material-ui/icons/Close';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 
 import AnnotationTabs from './AnnotationTabs';
-import EonUpsell from './eonUpsell';
 import Media from './Media';
 import Timeline from '../Timeline';
 import TimeDisplay from '../TimeDisplay';
@@ -79,10 +78,7 @@ class Annotations extends Component {
   }
 
   renderAnnotationsElement(visibleSegment) {
-    if (visibleSegment.deviceType === DeviceType.one) {
-      return (<AnnotationTabs segment={visibleSegment} />);
-    }
-    return (<EonUpsell hook="Unlock driving annotations with an EON" />);
+    return (<AnnotationTabs segment={visibleSegment} />);
   }
 
   render() {
