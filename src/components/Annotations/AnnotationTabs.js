@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import Obstruction from 'obstruction';
 import { partial } from 'ap';
 import fecha from 'fecha';
-import { classNames } from 'react-extras';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -15,11 +14,6 @@ import { filterEvent } from '../../utils';
 
 const styles = (theme) => ({
   root: {
-  },
-  upsellDemo: {
-    cursor: 'default',
-    pointerEvents: 'none',
-    opacity: 0.8
   },
   annotationsViewer: {
     display: 'flex',
@@ -98,9 +92,7 @@ class AnnotationTabs extends Component {
             classes={{
               indicator: classes.annotationsViewerTabIndicator
             }}
-            className={classNames(classes.annotationsViewerTabs, {
-              [classes.upsellDemo]: this.props.isUpsellDemo
-            })}
+            className={classes.annotationsViewerTabs}
           >
             <Tab label={(
               <Typography className={classes.tabLabelText}>
@@ -136,7 +128,6 @@ class AnnotationTabs extends Component {
           <AnnotationList
             segment={this.props.segment}
             unresolved
-            isUpsellDemo={this.props.isUpsellDemo}
           />
         );
       case 1:

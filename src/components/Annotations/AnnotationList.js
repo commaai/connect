@@ -8,7 +8,6 @@ import { AutoSizer, List } from 'react-virtualized';
 import memoize from 'memoize-one';
 
 import AnnotationListItem from './AnnotationListItem';
-import GreyPandaUpsellRow from './greyPandaUpsell';
 import Timelineworker from '../../timeline';
 import { selectRange } from '../../actions';
 import { filterEvent } from '../../utils';
@@ -97,13 +96,12 @@ class AnnotationList extends PureComponent {
 
   render() {
     const {
-      segment, classes, isUpsellDemo, resolved, unresolved
+      segment, classes, resolved, unresolved
     } = this.props;
     const events = (segment || {}).events || [];
 
     return (
       <div className={classes.base} style={{ height: '100%' }}>
-        {!(segment.hpgps || isUpsellDemo || resolved) && <GreyPandaUpsellRow />}
         <AutoSizer>
           {({ height, width }) => (
             <List
