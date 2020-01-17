@@ -56,7 +56,7 @@ describe('demo mode', () => {
     boundingBox = await annotationEntry.boundingBox();
     expect(boundingBox.height).toBeGreaterThan(initialHeight);
 
-    async function expectCanvasToChange(canvasHandle, wait) {
+    async function expectCanvasToChange(canvasHandle, wait = 10000) {
       let start = Date.now();
       let origDataUrl = await page.evaluate(canvas => canvas.toDataURL(), canvasHandle);
       let dataUrl;
