@@ -12,7 +12,7 @@ export default function reducer(_state = initialState, action) {
   let deviceIndex = null;
   switch (action.type) {
     case ACTION_STARTUP_DATA:
-      if (!state.dongleId) {
+      if (!state.dongleId && action.devices.length > 0) {
         state = {
           ...state,
           dongleId: action.devices[0].dongle_id,

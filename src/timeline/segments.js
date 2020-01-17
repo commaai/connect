@@ -438,6 +438,10 @@ function hasSegmentMetadata(state) {
   if (!state) {
     return false;
   }
+  if (state.devices && state.devices.length === 0) {
+    // new users without devices won't have segment metadata
+    return true;
+  }
   if (!state.segmentData) {
     console.log('No segment data at all');
     return false;
