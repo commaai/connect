@@ -31,7 +31,6 @@ export default function reducer(_state = initialState, action) {
             dongle_id: '0000000000000000',
             imei: '000000000000000',
             is_owner: false,
-            last_segment_utc_millis: null,
             serial: '00000000'
           };
         }

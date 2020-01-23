@@ -177,13 +177,11 @@ class DriveList extends Component {
   renderZeroRides() {
     const { classes } = this.props;
     let zeroRidesEle = null;
-    const { device } = this.props;
-    const hasDrivesInQuery = (device && device.last_segment_utc_millis !== null)
-      && (device.last_segment_utc_millis >= this.props.start);
+    const { device, segmentData } = this.props;
 
-    if (hasDrivesInQuery) {
+    if (device && (segmentData === null || typeof segmentData.segments === 'undefined')) {
       zeroRidesEle = <Typography>Loading...</Typography>;
-    } else {
+    } else if (segmentData && segmentData.segments && segmentData.segments.length === 0) {
       zeroRidesEle = (
         <Typography>
 Looks like you haven
@@ -267,6 +265,7 @@ Drives
 
 const stateToProps = Obstruction({
   segments: 'workerState.segments',
+  segmentData: 'workerState.segmentData',
   start: 'workerState.start',
   device: 'workerState.device',
   isSuperUser: 'workerState.profile.superuser',
