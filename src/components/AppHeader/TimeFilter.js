@@ -40,7 +40,7 @@ const styles = (theme) => ({
   },
 });
 
-const LOOKBACK_WINDOW_MILLIS = 30 * 24 * 3600 * 1000; // 30 days
+const LOOKBACK_WINDOW_MILLIS = 365 * 24 * 3600 * 1000; // 30 days
 
 class TimeSelect extends Component {
   constructor(props) {
