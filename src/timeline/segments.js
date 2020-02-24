@@ -171,7 +171,7 @@ function segmentsFromMetadata(segmentsData) {
     }
     const segmentHasDriverCamera = (segment.proc_dcamera >= 0);
     const segmentHasDriverCameraStream = (segment.proc_dcamera === 40);
-    const segmentHasVideo = (segment.proc_camera === 40);
+    const segmentHasVideo = (segment.proc_camera >= 0);
     if (segmentHasVideo && curVideoStartOffset === null) {
       curVideoStartOffset = segment.offset;
     }
