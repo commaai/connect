@@ -13,6 +13,8 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography';
 
+import { hot } from 'react-hot-loader/root';
+
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 import { auth as AuthApi, request as Request } from '@commaai/comma-api';
 
@@ -24,6 +26,7 @@ import { history, createStore } from './store';
 import { updateState } from './actions';
 import { initGoogleAnalytics } from './analytics';
 import * as Demo from './demo';
+
 
 initGoogleAnalytics(history);
 const store = createStore();
@@ -152,4 +155,4 @@ class App extends Component {
   }
 }
 
-export default App;
+export default hot(App);

@@ -1,3 +1,4 @@
+import 'react-hot-loader';
 import Raven from 'raven-js';
 import React from 'react';
 import ReactDOM from 'react-dom';
