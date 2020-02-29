@@ -72,6 +72,7 @@ const styles = (theme) => ({
   titleContainer: {
     display: 'flex',
     alignItems: 'center',
+    flexWrap: 'nowrap',
   }
 });
 
