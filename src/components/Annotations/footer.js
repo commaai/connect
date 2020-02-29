@@ -14,6 +14,8 @@ import Snackbar from '@material-ui/core/Snackbar';
 
 import { raw as RawApi } from '@commaai/comma-api';
 import TimelineWorker from '../../timeline';
+import * as Demo from '../../demo';
+const demoFiles = require('../../demo/files.json');
 
 const styles = (theme) => ({
   root: {
@@ -99,7 +101,12 @@ class AnnotationsFooter extends Component {
     const seg = this.props.segment;
     const segmentKeyPath = `${seg.route.replace('|', '/')}/${seg.segment}`;
 
-    const files = (await RawApi.getRouteFiles(this.props.segment.route));
+    let files;
+    if (Demo.isDemo()) {
+      files = demoFiles;
+    } else {
+      files = (await RawApi.getRouteFiles(this.props.segment.route));
+    }
     const url = files[type].find((url) => url.indexOf(segmentKeyPath) !== -1);
 
     if (url) {
