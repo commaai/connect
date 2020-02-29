@@ -11,9 +11,7 @@ import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 import ListItem from '@material-ui/core/ListItem';
 import IconButton from '@material-ui/core/IconButton';
-
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBars } from '@fortawesome/free-solid-svg-icons';
+import Icon from '@material-ui/core/Icon';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
@@ -70,8 +68,11 @@ const styles = (theme) => ({
   },
   hamburger: {
     color: '#fff',
-    margin: '20px 20px',
   },
+  titleContainer: {
+    display: 'flex',
+    alignItems: 'center',
+  }
 });
 
 class AppHeader extends Component {
@@ -118,8 +119,12 @@ class AppHeader extends Component {
     return (
       <header className={classes.base}>
         <Grid container spacing={0}>
-          <Grid item container xs={2} lg={4}>
-            <FontAwesomeIcon className={classes.hamburger} icon={faBars} size="2x" onClick={this.toggleDrawer} />
+          <Grid item container xs={2} lg={4} className={classes.titleContainer}>
+            <IconButton aria-label="menu" className={classes.hamburger} onClick={this.toggleDrawer}>
+              <Icon>
+                menu
+              </Icon>
+            </IconButton>
             <Link to="/" className={classes.logo}>
               <Typography className={classes.logoText}>
                 explorer
