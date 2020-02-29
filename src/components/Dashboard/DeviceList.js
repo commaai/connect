@@ -28,14 +28,13 @@ const styles = (theme) => ({
   base: {
     height: '100%',
     overflowY: 'scroll',
+    paddingLeft: '10px',
   },
   device: {
     alignItems: 'center',
     cursor: 'pointer',
     display: 'flex',
-    padding: 32,
-    paddingTop: 16,
-    paddingBottom: 16,
+    padding: '16px 32px',
     '&.isSelected': {
       backgroundColor: '#171B1D',
     }
