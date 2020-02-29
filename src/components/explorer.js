@@ -9,6 +9,7 @@ import 'mapbox-gl/src/css/mapbox-gl.css';
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
 import Annotations from './Annotations';
+import AppDrawer from './AppDrawer';
 
 import Timelineworker from '../timeline';
 import { selectRange, selectDevice } from '../actions';
@@ -36,14 +37,18 @@ class ExplorerApp extends Component {
   constructor(props) {
     super(props);
 
+    this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
+
     this.state = {
-      settingDongle: null
+      settingDongle: null,
+      drawerIsOpen: false,
     };
   }
 
   componentWillMount() {
     this.checkProps(this.props);
   }
+
 
   componentWillReceiveProps(props) {
     this.checkProps(props);
@@ -58,6 +63,12 @@ class ExplorerApp extends Component {
     if (!isZoomed && wasZoomed) {
       Timelineworker.pause();
     }
+  }
+
+  handleDrawerStateChanged(drawerOpen) {
+    this.setState({
+      drawerIsOpen: drawerOpen
+    });
   }
 
   checkProps(props) {
@@ -87,11 +98,17 @@ class ExplorerApp extends Component {
 
   render() {
     const { classes, expanded } = this.props;
+
     return (
       <div className={classes.base}>
         <div className={classes.header}>
-          <AppHeader />
+          <AppHeader drawerIsOpen={this.state.drawerIsOpen}
+            handleDrawerStateChanged={this.handleDrawerStateChanged}
+          />
         </div>
+        <AppDrawer drawerIsOpen={this.state.drawerIsOpen}
+          handleDrawerStateChanged={this.handleDrawerStateChanged}
+        />
         <div className={classes.window}>
           { expanded ? (<Annotations />) : (<Dashboard />) }
         </div>

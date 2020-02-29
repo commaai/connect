@@ -2,28 +2,24 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import Obstruction from 'obstruction';
-import fecha from 'fecha';
 import localforage from 'localforage';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
-import Input from '@material-ui/core/Input';
-import InputLabel from '@material-ui/core/InputLabel';
-import FormControl from '@material-ui/core/FormControl';
-import Select from '@material-ui/core/Select';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 import ListItem from '@material-ui/core/ListItem';
 import IconButton from '@material-ui/core/IconButton';
+
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faBars } from '@fortawesome/free-solid-svg-icons';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import TimeFilter from './TimeFilter';
 import TimeDisplay from '../TimeDisplay';
 import { AccountIcon } from '../../icons';
-
-import Timelineworker from '../../timeline';
 
 const styles = (theme) => ({
   base: {
@@ -72,6 +68,10 @@ const styles = (theme) => ({
     textDecoration: 'none',
     color: '#fff',
   },
+  hamburger: {
+    color: '#fff',
+    margin: '20px 20px',
+  },
 });
 
 class AppHeader extends Component {
@@ -81,10 +81,15 @@ class AppHeader extends Component {
     this.handleClickedAccount = this.handleClickedAccount.bind(this);
     this.handleClose = this.handleClose.bind(this);
     this.handleLogOut = this.handleLogOut.bind(this);
+    this.toggleDrawer = this.toggleDrawer.bind(this);
 
     this.state = {
       anchorEl: null,
     };
+  }
+
+  toggleDrawer() {
+    this.props.handleDrawerStateChanged(!this.props.drawerIsOpen);
   }
 
   handleClickedAccount(event) {
@@ -114,8 +119,8 @@ class AppHeader extends Component {
       <header className={classes.base}>
         <Grid container spacing={0}>
           <Grid item container xs={2} lg={4}>
+            <FontAwesomeIcon className={classes.hamburger} icon={faBars} size="2x" onClick={this.toggleDrawer} />
             <Link to="/" className={classes.logo}>
-              <img src="/images/comma-white.png" className={classes.logoImg} />
               <Typography className={classes.logoText}>
                 explorer
               </Typography>
@@ -160,7 +165,7 @@ class AppHeader extends Component {
                   <Typography variant="body1" paragraph>
                     { profile.points }
                     {' '}
-points
+                    points
                   </Typography>
                 </div>
               </ListItem>
@@ -170,7 +175,7 @@ points
                   href="/useradmin/"
                   target="_blank"
                 >
-Manage Account
+                Manage Account
                 </MenuItem>
               </li>
               <MenuItem onClick={this.handleLogOut}>Log out</MenuItem>

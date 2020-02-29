@@ -4,6 +4,17 @@ import * as Types from './types';
 import Timelineworker from '../timeline';
 import { getDongleID } from '../url';
 
+function urlForState(dongleId, start, end) {
+  const path = [dongleId];
+
+  if (start && end) {
+    path.push(start);
+    path.push(end);
+  }
+
+  return `/${path.join('/')}`;
+}
+
 export function updateState(data) {
   return {
     type: Types.WORKER_STATE_UPDATE,
@@ -61,15 +72,4 @@ export function selectDevice(dongleId) {
       dispatch(push(desiredPath));
     }
   };
-}
-
-function urlForState(dongleId, start, end) {
-  const path = [dongleId];
-
-  if (start && end) {
-    path.push(start);
-    path.push(end);
-  }
-
-  return `/${path.join('/')}`;
 }
