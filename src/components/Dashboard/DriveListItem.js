@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
+// import Obstruction from 'obstruction';
 import { partial } from 'ap';
 import fecha from 'fecha';
 import { classNames } from 'react-extras';
@@ -16,9 +16,9 @@ import Timeline from '../Timeline';
 import { RightArrow } from '../../icons';
 import { KM_PER_MI } from '../../utils/conversions';
 
-const styles = (theme) => ({
+const styles = (/* theme */) => ({
   drive: {
-    background: 'rgba(255, 255, 255, 0.0)',
+    // background: 'rgba(255, 255, 255, 0.0)',
     background: 'linear-gradient(to bottom, #30373B 0%, #1D2225 100%)',
     borderTop: '1px solid rgba(255, 255, 255, .05)',
     borderRadius: 8,
@@ -28,17 +28,25 @@ const styles = (theme) => ({
     marginBottom: 12,
     overflow: 'hidden',
     padding: 0,
+    minHeight: '300px',
+    justifyContent: 'space-between',
     transition: 'background .2s',
     '&:hover': {}
   },
   driveHeader: {
     alignItems: 'center',
     padding: 18,
-    paddingLeft: 24,
-    paddingRight: 24,
-  },
-  driveHeaderIntro: {
     display: 'flex',
+    flexDirection: 'column',
+    flexWrap: 'wrap',
+    textAlign: 'center',
+  },
+  driveSubHeader: {
+    marginBottom: '30px',
+  },
+  subHeaderLabel: {
+    marginRight: '10px',
+    marginBottom: '5px',
   },
   driveAvatar: {
     alignItems: 'center',
@@ -50,10 +58,11 @@ const styles = (theme) => ({
     height: 52,
     justifyContent: 'center',
     margin: '0px 3%',
-    width: 52,
+    minWidth: 52,
   },
   driveTitle: {
     marginLeft: '10%',
+    marginTop: '10px',
   },
   driveTimeline: {},
   driveArrow: {
@@ -61,6 +70,9 @@ const styles = (theme) => ({
     height: '100%',
     marginLeft: '25%',
     width: 32,
+    position: 'absolute',
+    right: '5%',
+    top: '-33%'
   },
 });
 
@@ -118,11 +130,20 @@ class DriveListDrive extends Component {
         onClick={partial(this.handleDriveClicked, drive)}
       >
         <div className={classes.driveHeader}>
-          <Grid container>
-            <Grid item xs={4} className={classes.driveHeaderIntro}>
-              <div className={classes.driveAvatar}>
-                { drive.annotations }
-              </div>
+          <Grid container justify="center" alignItems="center" className={classes.driveSubHeader}>
+            <Grid container justify="center" alignItems="center">
+              <Grid item className={classes.subHeaderLabel}>
+                <Typography variant="title">
+                  Annotations
+                </Typography>
+              </Grid>
+              <Grid item>
+                <div className={classes.driveAvatar}>
+                  { drive.annotations }
+                </div>
+              </Grid>
+            </Grid>
+            <Grid item>
               <div className={classes.driveTitle}>
                 <Typography variant="body2">
                   { `${startDate} @ ${startTime} to ${endTime}` }
@@ -132,7 +153,12 @@ class DriveListDrive extends Component {
                 </Typography>
               </div>
             </Grid>
-            <Grid item xs={2}>
+          </Grid>
+          <Grid container justify="space-around" wrap="wrap">
+            <Grid item md={2}>
+              <Typography variant="title">
+                Duration
+              </Typography>
               <Typography variant="body2">
                 { duration.hours > 0 && `${duration.hours.toString()}hr ` }
                 { `${duration.minutes} min` }
@@ -141,7 +167,10 @@ class DriveListDrive extends Component {
                 { `${points} points` }
               </Typography>
             </Grid>
-            <Grid item xs={2}>
+            <Grid item md={2}>
+              <Typography variant="title">
+                Origin
+              </Typography>
               <Typography variant="body2">
                 { startLocation && startLocation.neighborhood }
               </Typography>
@@ -149,7 +178,10 @@ class DriveListDrive extends Component {
                 { startLocation && (`${startLocation.locality}, ${startLocation.region}`) }
               </Typography>
             </Grid>
-            <Grid item xs={2}>
+            <Grid item md={2}>
+              <Typography variant="title">
+                Destination
+              </Typography>
               <Typography variant="body2">
                 { endLocation && endLocation.neighborhood }
               </Typography>
@@ -157,7 +189,10 @@ class DriveListDrive extends Component {
                 { endLocation && (`${endLocation.locality}, ${endLocation.region}`) }
               </Typography>
             </Grid>
-            <Grid item xs={1}>
+            <Grid item md={2}>
+              <Typography variant="title">
+                Distance
+              </Typography>
               <Typography variant="body2">
                 { `${+drive.distanceMiles.toFixed(1)} mi` }
               </Typography>
@@ -165,10 +200,8 @@ class DriveListDrive extends Component {
                 { `${+(drive.distanceMiles * KM_PER_MI).toFixed(1)} km` }
               </Typography>
             </Grid>
-            <Grid item xs={1}>
-              <RightArrow className={classes.driveArrow} />
-            </Grid>
           </Grid>
+          <RightArrow className={classes.driveArrow} />
         </div>
         <Timeline
           className={classes.driveTimeline}

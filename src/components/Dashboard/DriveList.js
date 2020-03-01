@@ -35,12 +35,11 @@ const styles = (theme) => ({
     textTransform: 'uppercase',
   },
   drives: {
+    marginTop: 15,
     height: '100%',
     margin: 0,
     overflowY: 'scroll',
-    padding: 16,
-    paddingLeft: 24,
-    paddingRight: 24,
+    paddingLeft: 16,
   },
   zeroState: {
     padding: '16px 48px',
@@ -122,58 +121,6 @@ class DriveList extends Component {
     });
   }
 
-  render() {
-    const { classes, device, segments } = this.props;
-
-    if (!device) {
-      return [];
-    }
-
-    const driveList = [];
-    let lastEnd = 0;
-    let lastSegmentEnd = 0;
-    let curRideChunk = null;
-    this.props.segments.forEach((segment) => {
-      if (!curRideChunk || segment.startTime - lastEnd > MIN_TIME_BETWEEN_ROUTES) {
-        curRideChunk = {
-          segments: 0,
-          startTime: segment.startTime,
-          offset: segment.offset,
-          duration: 0,
-          annotations: 0,
-          startCoord: segment.startCoord,
-          endCoord: segment.endCoord,
-          distanceMiles: segment.distanceMiles,
-        };
-        driveList.unshift(curRideChunk);
-        lastSegmentEnd = segment.startTime;
-      }
-      curRideChunk.duration += segment.startTime - lastSegmentEnd;
-      curRideChunk.duration += segment.duration;
-      lastSegmentEnd = segment.startTime + segment.duration;
-      curRideChunk.segments++;
-      lastEnd = segment.startTime + segment.duration;
-      curRideChunk.annotations += segment.events.filter(filterEvent)
-        .reduce((memo, event) => (event.id ? memo : memo + 1), 0);
-    });
-
-    return (
-      <>
-        { this.renderDriveListHeader() }
-        { driveList.length === 0 && this.renderZeroRides() }
-        <ul className={classes.drives}>
-          { driveList.filter(this.filterShortDrives).map((drive) => (
-            <DriveListItem
-              key={drive.startTime}
-              drive={drive}
-              deviceAlias={device.alias}
-            />
-          ))}
-        </ul>
-      </>
-    );
-  }
-
   renderZeroRides() {
     const { classes } = this.props;
     let zeroRidesEle = null;
@@ -209,7 +156,7 @@ t driven in the selected time range.
             <Typography variant="title">
               { device.alias }
               {' '}
-Drives
+              Drives
             </Typography>
           </Grid>
           <Grid item xs={2}>
@@ -258,6 +205,58 @@ Drives
           onClose={this.handleClosedSettingsModal}
           onCancel={this.handleCanceledSettings}
         />
+      </>
+    );
+  }
+
+  render() {
+    const { classes, device, segments } = this.props;
+
+    if (!device) {
+      return [];
+    }
+
+    const driveList = [];
+    let lastEnd = 0;
+    let lastSegmentEnd = 0;
+    let curRideChunk = null;
+    this.props.segments.forEach((segment) => {
+      if (!curRideChunk || segment.startTime - lastEnd > MIN_TIME_BETWEEN_ROUTES) {
+        curRideChunk = {
+          segments: 0,
+          startTime: segment.startTime,
+          offset: segment.offset,
+          duration: 0,
+          annotations: 0,
+          startCoord: segment.startCoord,
+          endCoord: segment.endCoord,
+          distanceMiles: segment.distanceMiles,
+        };
+        driveList.unshift(curRideChunk);
+        lastSegmentEnd = segment.startTime;
+      }
+      curRideChunk.duration += segment.startTime - lastSegmentEnd;
+      curRideChunk.duration += segment.duration;
+      lastSegmentEnd = segment.startTime + segment.duration;
+      curRideChunk.segments++;
+      lastEnd = segment.startTime + segment.duration;
+      curRideChunk.annotations += segment.events.filter(filterEvent)
+        .reduce((memo, event) => (event.id ? memo : memo + 1), 0);
+    });
+
+    return (
+      <>
+        {/* { this.renderDriveListHeader() } */}
+        { driveList.length === 0 && this.renderZeroRides() }
+        <ul className={classes.drives}>
+          { driveList.filter(this.filterShortDrives).map((drive) => (
+            <DriveListItem
+              key={drive.startTime}
+              drive={drive}
+              deviceAlias={device.alias}
+            />
+          ))}
+        </ul>
       </>
     );
   }

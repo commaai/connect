@@ -27,6 +27,8 @@ const styles = (theme) => ({
   base: {
     height: '100%',
     overflowY: 'scroll',
+    paddingTop: '10px',
+    padding: 0,
   },
   device: {
     alignItems: 'center',
@@ -144,28 +146,6 @@ class DeviceList extends Component {
     return deviceType;
   }
 
-  render() {
-    let { devices } = this.props;
-    const dongleId = this.props.selectedDevice;
-    let found = devices.some((device) => device.dongle_id === dongleId);
-    let onlyHasAppDevice = (devices.length === 0);
-
-    if (!found) {
-      devices = [{
-        dongle_id: dongleId,
-        shared: true,
-        alias: 'Shared device',
-      }].concat(devices);
-    }
-
-    return (
-      <div className={this.props.classes.base}>
-        { devices.filter(this.filterDrivingDevice).map(this.renderDevice) }
-        { onlyHasAppDevice && <CommaTwoUpsell hook="Get started with comma two" /> }
-      </div>
-    );
-  }
-
   renderDevice(device) {
     const { classes } = this.props;
     const isSelected = (this.props.selectedDevice === device.dongle_id);
@@ -184,12 +164,12 @@ class DeviceList extends Component {
           <Typography variant="caption" className={classes.deviceId}>
             (
             { device.dongle_id }
-)
+            )
           </Typography>
         </div>
       </div>
     );
-
+ 
     const oldRender = (
       <ExpansionPanel
         classes={{ expanded: classes.expanded }}
@@ -250,6 +230,28 @@ class DeviceList extends Component {
           </Grid>
         </ExpansionPanelSummary>
       </ExpansionPanel>
+    );
+  }
+
+  render() {
+    let { devices } = this.props;
+    const dongleId = this.props.selectedDevice;
+    let found = devices.some((device) => device.dongle_id === dongleId);
+    let onlyHasAppDevice = (devices.length === 0);
+
+    if (!found) {
+      devices = [{
+        dongle_id: dongleId,
+        shared: true,
+        alias: 'Shared device',
+      }].concat(devices);
+    }
+
+    return (
+      <div className={this.props.classes.base}>
+        { devices.filter(this.filterDrivingDevice).map(this.renderDevice) }
+        { onlyHasAppDevice && <CommaTwoUpsell hook="Get started with comma two" /> }
+      </div>
     );
   }
 
