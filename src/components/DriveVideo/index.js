@@ -46,14 +46,23 @@ const DM_BLINK_THRESHOLD = 0.5; // probs above this count as blinking
 // cache break index files
 const STREAM_VERSION = 2;
 
-const styles = (theme) => ({
+const styles = (/* theme */) => ({
   hidden: {
     display: 'none'
   },
-  videoContainer: {
+  videoContainerBig: {
     position: 'relative',
     width: 850,
-    height: 640
+    height: 640,
+    visibility: 'visible',
+    marginBottom: 10,
+  },
+  videoContainerSmall: {
+    position: 'relative',
+    width: 300,
+    height: 200,
+    visibility: 'visible',
+    marginBottom: 10,
   },
   videoImage: {
     height: 'auto',
@@ -147,48 +156,6 @@ class VideoPreview extends Component {
     }
   }
 
-  updateVideoSource(prevProps) {
-    const { props } = this;
-    let segment = props.currentSegment;
-    if (!segment && props.nextSegment) {
-      const offset = TimelineWorker.currentOffset();
-      if (props.nextSegment.startOffset - offset < 5000) {
-        segment = props.nextSegment;
-      }
-    }
-    if (!segment) {
-      if (this.state.src !== '') {
-        this.setState({ src: '' });
-      }
-      return;
-    }
-
-    if (props.front) {
-      let base = `${process.env.REACT_APP_VIDEO_CDN}/hls/${props.dongleId}/${segment.url.split('/').pop()}`;
-      base += '/dcamera';
-      // We append count of segments with stream available as a cache-busting method
-      // on stream indexes served before route is fully uploaded
-      let segCount = segment.driverCameraStreamSegCount;
-      let src = `${base}/index.m3u8?v=${STREAM_VERSION}&s=${segCount}`;
-      if (this.state.src !== src) {
-        this.setState({ src });
-      }
-    } else if (this.state.src === '' || !prevProps.currentSegment || prevProps.currentSegment.route !== segment.route) {
-      let videoApi = VideoApi(segment.url, process.env.REACT_APP_VIDEO_CDN);
-      videoApi.getQcameraStreamIndex().then(() => {
-        let src = videoApi.getQcameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`
-        if (src !== this.state.src) {
-          this.setState({src});
-        }
-      }).catch(() => {
-        let src = videoApi.getRearCameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`;
-        if (src !== this.state.src) {
-          this.setState({src});
-        }
-      });
-    }
-  }
-
   onSourceLoaded() {
     if (this.videoPlayer.current) {
       console.log('Calling load with media change');
@@ -196,27 +163,8 @@ class VideoPreview extends Component {
     }
   }
 
-  onDisableBuffering() {
+  onDisableBuffering = () => {
     TimelineWorker.disableBuffer();
-  }
-
-  updatePreview() {
-    // schedule next run right away so that we can return early
-    this.rafLoop = raf(this.updatePreview);
-
-    this.frame++;
-    if (this.frame >= 60) {
-      this.frame = 0;
-      this.checkVideoBuffer();
-    }
-
-    // 10 fps
-    if (this.frame % 6 === 0) {
-      this.checkDataBuffer();
-    }
-    if (this.frame % 6 === 3) {
-      this.renderCanvas();
-    }
   }
 
   checkDataBuffer = debounce(() => {
@@ -412,6 +360,44 @@ class VideoPreview extends Component {
     }
   }, 100)
 
+  rot_matrix = (roll, pitch, yaw) => {
+    const cr = Math.cos(roll);
+    const sr = Math.sin(roll);
+    const cp = Math.cos(pitch);
+    const sp = Math.sin(pitch);
+    const cy = Math.cos(yaw);
+    const sy = Math.sin(yaw);
+
+    const rr = [
+      [1, 0, 0],
+      [0, cr, -sr],
+      [0, sr, cr]
+    ];
+    const rp = [
+      [cp, 0, sp],
+      [0, 1, 0],
+      [-sp, 0, cp]
+    ];
+    const ry = [
+      [cy, -sy, 0],
+      [sy, cy, 0],
+      [0, 0, 1]
+    ];
+    return multiply(ry, multiply(rp, rr));
+  }
+
+  matmul = (matrix, coord) => {
+    const b0 = coord[0]; const b1 = coord[1]; const b2 = coord[2]; const
+      b3 = coord[3];
+
+    coord[0] = b0 * matrix[0] + b1 * matrix[1] + b2 * matrix[2] + b3 * matrix[3];
+    coord[1] = b0 * matrix[4] + b1 * matrix[5] + b2 * matrix[6] + b3 * matrix[7];
+    coord[2] = b0 * matrix[8] + b1 * matrix[9] + b2 * matrix[10] + b3 * matrix[11];
+    coord[3] = b0 * matrix[12] + b1 * matrix[13] + b2 * matrix[14] + b3 * matrix[15];
+
+    return coord;
+  }
+
   updatePreviewImage(timeDiff) {
     const { shouldShowThumbnail } = this.state;
     const thumbnail = TimelineWorker.currentThumbnail();
@@ -442,225 +428,6 @@ class VideoPreview extends Component {
     }
 
     return retVal;
-  }
-
-  renderCanvas() {
-    const calibration = TimelineWorker.getCalibration(this.props.route);
-    if (!calibration) {
-      this.lastCalibrationTime = false;
-      return;
-    }
-
-    if (this.props.front) {
-      if (this.canvas_face.current) {
-        const params = { calibration, shouldScale: true };
-        const events = {
-          driverMonitoring: TimelineWorker.currentDriverMonitoring
-        };
-        this.renderEventToCanvas(
-          this.canvas_face.current, params, events, this.renderDriverMonitoring
-        );
-      }
-    }
-
-    if (!this.props.shouldShowUI) {
-      return;
-    }
-
-    if (calibration) {
-      if (this.lastCalibrationTime !== calibration.LogMonoTime) {
-        this.extrinsic = [...calibration.LiveCalibration.ExtrinsicMatrix, 0, 0, 0, 1];
-      }
-      this.lastCalibrationTime = calibration.LogMonoTime;
-    }
-    if (this.canvas_road.current) {
-      const params = { calibration, shouldScale: true };
-      const events = {
-        model: TimelineWorker.currentModel,
-        mpc: TimelineWorker.currentMPC,
-        carState: TimelineWorker.currentCarState,
-      };
-      this.renderEventToCanvas(
-        this.canvas_road.current, params, events, this.drawLaneFull
-      );
-    }
-    if (this.canvas_lead.current) {
-      const params = { calibration, shouldScale: true };
-      const events = { live20: TimelineWorker.currentLive20 };
-      this.renderEventToCanvas(
-        this.canvas_lead.current, params, events, this.renderLeadCars
-      );
-    }
-    if (this.canvas_carstate.current) {
-      const params = { calibration, shouldScale: true };
-      const events = { carState: TimelineWorker.currentCarState };
-      this.renderEventToCanvas(
-        this.canvas_carstate.current, params, events, this.renderCarState
-      );
-    }
-    if (this.canvas_maxspeed.current) {
-      const params = { calibration, shouldScale: true };
-      const events = {
-        live100: TimelineWorker.currentLive100,
-        liveMapData: TimelineWorker.currentLiveMapData,
-        initData: TimelineWorker.currentInitData,
-      };
-      this.renderEventToCanvas(
-        this.canvas_maxspeed.current, params, events, this.renderMaxSpeed
-      );
-    }
-    if (this.canvas_speed.current) {
-      const params = { calibration, shouldScale: true };
-      const events = {
-        live100: TimelineWorker.currentLive100,
-        initData: TimelineWorker.currentInitData,
-      };
-      this.renderEventToCanvas(
-        this.canvas_speed.current, params, events, this.renderSpeed
-      );
-    }
-  }
-
-  renderEventToCanvas(canvas, params, events, renderEvent) {
-    const { width, height } = canvas.getBoundingClientRect();
-
-    if (!params.calibration) {
-      const ctx = canvas.getContext('2d');
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, width, height);
-      return; // loading calibration from logs still...
-    }
-
-    let logTime; let
-      monoIndex;
-    const _events = {};
-    let needsRender = false;
-    const eventsSig = Object.keys(events).join(',');
-    Object.keys(events).map((key) => {
-      const event = events[key].apply(TimelineWorker);
-      monoIndex = `${events[key].name}MonoTime${eventsSig}`;
-
-      if (!event) {
-        if (this[monoIndex]) {
-          this[monoIndex] = false;
-          const ctx = canvas.getContext('2d');
-          ctx.setTransform(1, 0, 0, 1, 0, 0);
-          ctx.clearRect(0, 0, width, height);
-          // we have to force re-render when one is missing
-          // this is because there's more than one event being rendered through this flow
-          // this should be re-broken apart such that this isn't an issue
-          // fixing that will also reduce the rendering complexity
-          needsRender = true;
-        }
-      } else {
-        logTime = event ? event.LogMonoTime : null;
-        needsRender = needsRender || logTime !== this[monoIndex];
-        this[monoIndex] = logTime;
-        _events[key] = event;
-      }
-    });
-
-    if (!needsRender) {
-      return;
-    }
-    // will render!
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    // reset transform before anything, just in case
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    // clear all the data
-    ctx.clearRect(0, 0, width, height);
-    // scale original coords onto our current size
-    if (params.shouldScale) {
-      ctx.scale(width / vwp_w, height / vwp_h);
-    }
-
-    renderEvent.apply(this, [{ width, height, ctx }, _events]);
-  }
-
-  renderLeadCars(options, events) {
-    if (!events.live20) {
-      return;
-    }
-    this.lastLive20MonoTime = events.live20.LogMonoTime;
-    const { width, height, ctx } = options;
-
-    const leadOne = events.live20.Live20.LeadOne;
-    const leadTwo = events.live20.Live20.LeadTwo;
-
-    if (leadOne.Status) {
-      this.renderLeadCar(options, leadOne);
-    }
-    if (leadTwo.Status) {
-      this.renderLeadCar(options, leadTwo, true);
-    }
-  }
-
-  renderLeadCar(options, leadData, is2ndCar) {
-    const { width, height, ctx } = options;
-
-    const drel = leadData.DRel;
-    const vrel = leadData.VRel;
-    const yrel = leadData.YRel;
-
-    var x = drel + 2.7;
-    var y = yrel;
-
-    var [x, y, z] = this.carSpaceToImageSpace([drel + 2.7, yrel, 0, 1]);
-
-    if (x < 0 || y < 0) {
-      return;
-    }
-
-    let sz = 25 * 30;
-    sz /= ((drel + 2.7) / 3 + 30);
-    sz = Math.min(Math.max(sz, 15), 30);
-    if (is2ndCar) {
-      sz /= 1.2;
-    }
-
-    let fillAlpha = 0;
-    const speedBuff = 10;
-    const leadBuff = 40;
-
-    if (drel < leadBuff) {
-      fillAlpha = 255 * (1 - (drel / leadBuff));
-      if (vrel < 0) {
-        fillAlpha += 255 * (-1 * (vrel / speedBuff));
-      }
-      fillAlpha = Math.min(fillAlpha, 255) / 255;
-    }
-
-    // glow
-    if (is2ndCar) {
-      ctx.fillStyle = 'rgba(218, 202, 37, 0.5)';
-    } else {
-      ctx.fillStyle = 'rgb(218, 202, 37)';
-    }
-    ctx.lineWidth = 5;
-    const g_xo = sz / 5;
-    const g_yo = sz / 10;
-    ctx.beginPath();
-    ctx.moveTo(x + (sz * 1.35) + g_xo, y + sz + g_yo);
-    ctx.lineTo(x, y - g_xo);
-    ctx.lineTo(x - (sz * 1.35) - g_xo, y + sz + g_yo);
-    ctx.lineTo(x + (sz * 1.35) + g_xo, y + sz + g_yo);
-    ctx.fill();
-
-    if (fillAlpha > 0) {
-      if (is2ndCar) {
-        fillAlpha /= 1.5;
-      }
-      ctx.fillStyle = `rgba(201, 34, 49, ${fillAlpha})`;
-
-      ctx.beginPath();
-      ctx.moveTo(x + (sz * 1.25), y + sz);
-      ctx.lineTo(x, y);
-      ctx.lineTo(x - (sz * 1.25), y + sz);
-      ctx.lineTo(x + (sz * 1.25), y + sz);
-      ctx.fill();
-    }
   }
 
   drawLaneFull(options, events) { // ui_draw_vision_lanes
@@ -820,6 +587,148 @@ class VideoPreview extends Component {
     ctx.fill();
   }
 
+  renderEventToCanvas(canvas, params, events, renderEvent) {
+    const { width, height } = canvas.getBoundingClientRect();
+
+    if (!params.calibration) {
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      return; // loading calibration from logs still...
+    }
+
+    let logTime; let
+      monoIndex;
+    const _events = {};
+    let needsRender = false;
+    const eventsSig = Object.keys(events).join(',');
+    Object.keys(events).map((key) => {
+      const event = events[key].apply(TimelineWorker);
+      monoIndex = `${events[key].name}MonoTime${eventsSig}`;
+
+      if (!event) {
+        if (this[monoIndex]) {
+          this[monoIndex] = false;
+          const ctx = canvas.getContext('2d');
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.clearRect(0, 0, width, height);
+          // we have to force re-render when one is missing
+          // this is because there's more than one event being rendered through this flow
+          // this should be re-broken apart such that this isn't an issue
+          // fixing that will also reduce the rendering complexity
+          needsRender = true;
+        }
+      } else {
+        logTime = event ? event.LogMonoTime : null;
+        needsRender = needsRender || logTime !== this[monoIndex];
+        this[monoIndex] = logTime;
+        _events[key] = event;
+      }
+    });
+
+    if (!needsRender) {
+      return;
+    }
+    // will render!
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    // reset transform before anything, just in case
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    // clear all the data
+    ctx.clearRect(0, 0, width, height);
+    // scale original coords onto our current size
+    if (params.shouldScale) {
+      ctx.scale(width / vwp_w, height / vwp_h);
+    }
+
+    renderEvent.apply(this, [{ width, height, ctx }, _events]);
+  }
+
+  renderLeadCars(options, events) {
+    if (!events.live20) {
+      return;
+    }
+    this.lastLive20MonoTime = events.live20.LogMonoTime;
+    const { width, height, ctx } = options;
+
+    const leadOne = events.live20.Live20.LeadOne;
+    const leadTwo = events.live20.Live20.LeadTwo;
+
+    if (leadOne.Status) {
+      this.renderLeadCar(options, leadOne);
+    }
+    if (leadTwo.Status) {
+      this.renderLeadCar(options, leadTwo, true);
+    }
+  }
+
+  renderLeadCar(options, leadData, is2ndCar) {
+    const { width, height, ctx } = options;
+
+    const drel = leadData.DRel;
+    const vrel = leadData.VRel;
+    const yrel = leadData.YRel;
+
+    var x = drel + 2.7;
+    var y = yrel;
+
+    var [x, y, z] = this.carSpaceToImageSpace([drel + 2.7, yrel, 0, 1]);
+
+    if (x < 0 || y < 0) {
+      return;
+    }
+
+    let sz = 25 * 30;
+    sz /= ((drel + 2.7) / 3 + 30);
+    sz = Math.min(Math.max(sz, 15), 30);
+    if (is2ndCar) {
+      sz /= 1.2;
+    }
+
+    let fillAlpha = 0;
+    const speedBuff = 10;
+    const leadBuff = 40;
+
+    if (drel < leadBuff) {
+      fillAlpha = 255 * (1 - (drel / leadBuff));
+      if (vrel < 0) {
+        fillAlpha += 255 * (-1 * (vrel / speedBuff));
+      }
+      fillAlpha = Math.min(fillAlpha, 255) / 255;
+    }
+
+    // glow
+    if (is2ndCar) {
+      ctx.fillStyle = 'rgba(218, 202, 37, 0.5)';
+    } else {
+      ctx.fillStyle = 'rgb(218, 202, 37)';
+    }
+    ctx.lineWidth = 5;
+    const g_xo = sz / 5;
+    const g_yo = sz / 10;
+    ctx.beginPath();
+    ctx.moveTo(x + (sz * 1.35) + g_xo, y + sz + g_yo);
+    ctx.lineTo(x, y - g_xo);
+    ctx.lineTo(x - (sz * 1.35) - g_xo, y + sz + g_yo);
+    ctx.lineTo(x + (sz * 1.35) + g_xo, y + sz + g_yo);
+    ctx.fill();
+
+    if (fillAlpha > 0) {
+      if (is2ndCar) {
+        fillAlpha /= 1.5;
+      }
+      ctx.fillStyle = `rgba(201, 34, 49, ${fillAlpha})`;
+
+      ctx.beginPath();
+      ctx.moveTo(x + (sz * 1.25), y + sz);
+      ctx.lineTo(x, y);
+      ctx.lineTo(x - (sz * 1.25), y + sz);
+      ctx.lineTo(x + (sz * 1.25), y + sz);
+      ctx.fill();
+    }
+  }
+
   renderCarState(options, events) {
     if (events && events.carState) {
       this.drawCarStateBorder(options, events.carState.CarState);
@@ -833,7 +742,7 @@ class VideoPreview extends Component {
     }
   }
 
-  drawSpeed(options, Live100, InitData) {
+  drawSpeed = (options, Live100, InitData) => {
     const { ctx } = options;
 
     let speed = Live100.VEgo;
@@ -869,7 +778,7 @@ class VideoPreview extends Component {
     }
   }
 
-  drawMaxSpeed(options, Live100, LiveMapData, InitData) {
+  drawMaxSpeed = (options, Live100, LiveMapData, InitData) => {
     const { ctx } = options;
 
     const maxSpeed = Live100.VCruise;
@@ -1028,7 +937,7 @@ class VideoPreview extends Component {
     }
   }
 
-  drawCarStateWheel(options, CarState) {
+  drawCarStateWheel = (options, CarState) => {
     const { ctx } = options;
 
     const radius = 80;
@@ -1064,7 +973,7 @@ class VideoPreview extends Component {
     ctx.fill();
   }
 
-  drawCarStateBorder(options, carState) {
+  drawCarStateBorder = (options, carState) => {
     const { ctx } = options;
     ctx.lineWidth = bdr_s * 2;
 
@@ -1180,7 +1089,26 @@ class VideoPreview extends Component {
     return false;
   }
 
-  getDriverPose(driverMonitoring) {
+  updatePreview() {
+    // schedule next run right away so that we can return early
+    this.rafLoop = raf(this.updatePreview);
+
+    this.frame++;
+    if (this.frame >= 60) {
+      this.frame = 0;
+      this.checkVideoBuffer();
+    }
+
+    // 10 fps
+    if (this.frame % 6 === 0) {
+      this.checkDataBuffer();
+    }
+    if (this.frame % 6 === 3) {
+      this.renderCanvas();
+    }
+  }
+
+  getDriverPose = (driverMonitoring) => {
     // use driver monitoring units instead of canvas units
     // that way code can be nearly identical
     const angles_desc = driverMonitoring.FaceOrientation;
@@ -1200,6 +1128,48 @@ class VideoPreview extends Component {
     return { roll, pitch, yaw };
   }
 
+  updateVideoSource(prevProps) {
+    const { props } = this;
+    let segment = props.currentSegment;
+    if (!segment && props.nextSegment) {
+      const offset = TimelineWorker.currentOffset();
+      if (props.nextSegment.startOffset - offset < 5000) {
+        segment = props.nextSegment;
+      }
+    }
+    if (!segment) {
+      if (this.state.src !== '') {
+        this.setState({ src: '' });
+      }
+      return;
+    }
+
+    if (props.front) {
+      let base = `${process.env.REACT_APP_VIDEO_CDN}/hls/${props.dongleId}/${segment.url.split('/').pop()}`;
+      base += '/dcamera';
+      // We append count of segments with stream available as a cache-busting method
+      // on stream indexes served before route is fully uploaded
+      let segCount = segment.driverCameraStreamSegCount;
+      let src = `${base}/index.m3u8?v=${STREAM_VERSION}&s=${segCount}`;
+      if (this.state.src !== src) {
+        this.setState({ src });
+      }
+    } else if (this.state.src === '' || !prevProps.currentSegment || prevProps.currentSegment.route !== segment.route) {
+      let videoApi = VideoApi(segment.url, process.env.REACT_APP_VIDEO_CDN);
+      videoApi.getQcameraStreamIndex().then(() => {
+        let src = videoApi.getQcameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`
+        if (src !== this.state.src) {
+          this.setState({src});
+        }
+      }).catch(() => {
+        let src = videoApi.getRearCameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`;
+        if (src !== this.state.src) {
+          this.setState({src});
+        }
+      });
+    }
+  }
+
   carSpaceToImageSpace(coords) {
     coords = this.matmul(this.extrinsic, coords);
     coords = this.matmul(this.intrinsic, coords);
@@ -1209,44 +1179,6 @@ class VideoPreview extends Component {
     coords[1] /= coords[2];
 
     return coords;
-  }
-
-  rot_matrix(roll, pitch, yaw) {
-    const cr = Math.cos(roll);
-    const sr = Math.sin(roll);
-    const cp = Math.cos(pitch);
-    const sp = Math.sin(pitch);
-    const cy = Math.cos(yaw);
-    const sy = Math.sin(yaw);
-
-    const rr = [
-      [1, 0, 0],
-      [0, cr, -sr],
-      [0, sr, cr]
-    ];
-    const rp = [
-      [cp, 0, sp],
-      [0, 1, 0],
-      [-sp, 0, cp]
-    ];
-    const ry = [
-      [cy, -sy, 0],
-      [sy, cy, 0],
-      [0, 0, 1]
-    ];
-    return multiply(ry, multiply(rp, rr));
-  }
-
-  matmul(matrix, coord) {
-    const b0 = coord[0]; const b1 = coord[1]; const b2 = coord[2]; const
-      b3 = coord[3];
-
-    coord[0] = b0 * matrix[0] + b1 * matrix[1] + b2 * matrix[2] + b3 * matrix[3];
-    coord[1] = b0 * matrix[4] + b1 * matrix[5] + b2 * matrix[6] + b3 * matrix[7];
-    coord[2] = b0 * matrix[8] + b1 * matrix[9] + b2 * matrix[10] + b3 * matrix[11];
-    coord[3] = b0 * matrix[12] + b1 * matrix[13] + b2 * matrix[14] + b3 * matrix[15];
-
-    return coord;
   }
 
   currentVideoTime(offset = TimelineWorker.currentOffset()) {
@@ -1282,17 +1214,101 @@ class VideoPreview extends Component {
     return `${segment.url}/sec${seconds}.jpg`;
   }
 
+  renderCanvas() {
+    const calibration = TimelineWorker.getCalibration(this.props.route);
+    if (!calibration) {
+      this.lastCalibrationTime = false;
+      return;
+    }
+
+    if (this.props.front) {
+      if (this.canvas_face.current) {
+        const params = { calibration, shouldScale: true };
+        const events = {
+          driverMonitoring: TimelineWorker.currentDriverMonitoring
+        };
+        this.renderEventToCanvas(
+          this.canvas_face.current, params, events, this.renderDriverMonitoring
+        );
+      }
+    }
+
+    if (!this.props.shouldShowUI) {
+      return;
+    }
+
+    if (calibration) {
+      if (this.lastCalibrationTime !== calibration.LogMonoTime) {
+        this.extrinsic = [...calibration.LiveCalibration.ExtrinsicMatrix, 0, 0, 0, 1];
+      }
+      this.lastCalibrationTime = calibration.LogMonoTime;
+    }
+    if (this.canvas_road.current) {
+      const params = { calibration, shouldScale: true };
+      const events = {
+        model: TimelineWorker.currentModel,
+        mpc: TimelineWorker.currentMPC,
+        carState: TimelineWorker.currentCarState,
+      };
+      this.renderEventToCanvas(
+        this.canvas_road.current, params, events, this.drawLaneFull
+      );
+    }
+    if (this.canvas_lead.current) {
+      const params = { calibration, shouldScale: true };
+      const events = { live20: TimelineWorker.currentLive20 };
+      this.renderEventToCanvas(
+        this.canvas_lead.current, params, events, this.renderLeadCars
+      );
+    }
+    if (this.canvas_carstate.current) {
+      const params = { calibration, shouldScale: true };
+      const events = { carState: TimelineWorker.currentCarState };
+      this.renderEventToCanvas(
+        this.canvas_carstate.current, params, events, this.renderCarState
+      );
+    }
+    if (this.canvas_maxspeed.current) {
+      const params = { calibration, shouldScale: true };
+      const events = {
+        live100: TimelineWorker.currentLive100,
+        liveMapData: TimelineWorker.currentLiveMapData,
+        initData: TimelineWorker.currentInitData,
+      };
+      this.renderEventToCanvas(
+        this.canvas_maxspeed.current, params, events, this.renderMaxSpeed
+      );
+    }
+    if (this.canvas_speed.current) {
+      const params = { calibration, shouldScale: true };
+      const events = {
+        live100: TimelineWorker.currentLive100,
+        initData: TimelineWorker.currentInitData,
+      };
+      this.renderEventToCanvas(
+        this.canvas_speed.current, params, events, this.renderSpeed
+      );
+    }
+  }
+
   render() {
     const { classes } = this.props;
     if (this.props.playSpeed !== this.props.desiredPlaySpeed && !this.props.isBuffering) {
       console.log(this.props);
       debugger;
     }
+
+    let videoContainer;
+
+    if (screen.width < 850) {
+      videoContainer = this.props.classes.videoContainerSmall;
+    } else {
+      videoContainer = this.props.classes.videoContainerBig;
+    }
+
     return (
       <div
-        className={classNames(classes.videoContainer, {
-          [classes.hidden]: false
-        })}
+        className={videoContainer}
       >
         { this.props.isBuffering
           && (
@@ -1305,6 +1321,7 @@ class VideoPreview extends Component {
         { this.state.shouldShowThumbnail
           && (
           <img
+            alt="thumbnail"
             style={{ zIndex: 2 }}
             className={this.props.classes.thumbnail}
             src={`data:image/jpeg;base64,${this.state.thumbnailData}`}
@@ -1319,8 +1336,9 @@ class VideoPreview extends Component {
           src={this.state.src}
           startTime={this.currentVideoTime()}
           playbackRate={this.props.startTime > Date.now() ? 0 : this.props.playSpeed}
-          width={850}
-          height={640}
+          width='100%'
+          height='100%'
+          playsInline
         >
           <HLSSource
             onBufferAppend={this.checkVideoBuffer}

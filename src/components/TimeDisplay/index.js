@@ -46,7 +46,6 @@ const styles = (theme) => ({
     padding: theme.spacing.unit,
     maxWidth: 510,
     margin: '0 auto',
-    minWidth: 450,
     opacity: 0,
     pointerEvents: 'none',
     transition: 'opacity 0.1s ease-in-out',

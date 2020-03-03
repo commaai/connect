@@ -22,8 +22,8 @@ const styles = (theme) => ({
     border: '1px solid rgba(255,255,255,.1)',
     borderRadius: 50,
     display: 'flex',
-    marginLeft: 'auto',
-    marginBottom: 12,
+    margin: '12px 0px',
+    width: '70%',
   },
   mediaOption: {
     alignItems: 'center',
@@ -84,6 +84,74 @@ class Media extends Component {
     };
   }
 
+  renderMediaOptions() {
+    const { classes, currentSegment } = this.props;
+    const { inView } = this.state;
+    const mediaSource = 'eon-road-camera';
+    const hasDriverCameraStream = this.props.currentSegment && this.props.currentSegment.hasDriverCameraStream;
+    return (
+      <Grid container justify="center" alignItems="center" className={classes.mediaOptions}>
+        {/* <Grid
+          item
+          xs={hasDriverCameraStream ? 5 : 7}
+        /> */}
+        {/* <Grid
+          item
+          xs={hasDriverCameraStream ? 7 : 5}
+          className={classes.mediaOptions}
+        > */}
+        <Grid
+          item
+          xs={hasDriverCameraStream ? 3 : 4}
+          className={classes.mediaOption}
+          style={inView === MediaType.HUD ? { opacity: 1 } : { }}
+          onClick={() => this.setState({ inView: MediaType.HUD })}
+        >
+          <Typography className={classes.mediaOptionText}>
+            HUD
+          </Typography>
+        </Grid>
+        <Grid
+          item
+          xs={hasDriverCameraStream ? 3 : 4}
+          className={classes.mediaOption}
+          style={inView === MediaType.VIDEO ? { opacity: 1 } : {}}
+          onClick={() => this.setState({ inView: MediaType.VIDEO })}
+        >
+          <Typography className={classes.mediaOptionText}>
+            Video
+          </Typography>
+        </Grid>
+        { hasDriverCameraStream
+          && (
+          <Grid
+            item
+            // xs={3}
+            className={cx(classes.mediaOption, { disabled: !hasDriverCameraStream })}
+            style={inView === MediaType.DRIVER_VIDEO ? { opacity: 1 } : {}}
+            onClick={() => hasDriverCameraStream && this.setState({ inView: MediaType.DRIVER_VIDEO })}
+          >
+            <Typography className={classes.mediaOptionText}>
+              Driver Video
+            </Typography>
+          </Grid>
+          )}
+        <Grid
+          item
+          xs={hasDriverCameraStream ? 3 : 4}
+          className={classes.mediaOption}
+          style={inView === MediaType.MAP ? { opacity: 1 } : { }}
+          onClick={() => this.setState({ inView: MediaType.MAP })}
+        >
+          <Typography className={classes.mediaOptionText}>
+            Map
+          </Typography>
+        </Grid>
+        {/* </Grid> */}
+      </Grid>
+    );
+  }
+
   render() {
     const { classes } = this.props;
     const { inView } = this.state;
@@ -102,74 +170,6 @@ class Media extends Component {
           />
           )}
       </>
-    );
-  }
-
-  renderMediaOptions() {
-    const { classes, currentSegment } = this.props;
-    const { inView } = this.state;
-    const mediaSource = 'eon-road-camera';
-    const hasDriverCameraStream = this.props.currentSegment && this.props.currentSegment.hasDriverCameraStream;
-    return (
-      <Grid container>
-        <Grid
-          item
-          xs={hasDriverCameraStream ? 5 : 7}
-        />
-        <Grid
-          item
-          xs={hasDriverCameraStream ? 7 : 5}
-          className={classes.mediaOptions}
-        >
-          <Grid
-            item
-            xs={hasDriverCameraStream ? 3 : 4}
-            className={classes.mediaOption}
-            style={inView === MediaType.HUD ? { opacity: 1 } : { }}
-            onClick={() => this.setState({ inView: MediaType.HUD })}
-          >
-            <Typography className={classes.mediaOptionText}>
-              HUD
-            </Typography>
-          </Grid>
-          <Grid
-            item
-            xs={hasDriverCameraStream ? 3 : 4}
-            className={classes.mediaOption}
-            style={inView === MediaType.VIDEO ? { opacity: 1 } : {}}
-            onClick={() => this.setState({ inView: MediaType.VIDEO })}
-          >
-            <Typography className={classes.mediaOptionText}>
-              Video
-            </Typography>
-          </Grid>
-          { hasDriverCameraStream
-            && (
-            <Grid
-              item
-              xs={3}
-              className={cx(classes.mediaOption, { disabled: !hasDriverCameraStream })}
-              style={inView === MediaType.DRIVER_VIDEO ? { opacity: 1 } : {}}
-              onClick={() => hasDriverCameraStream && this.setState({ inView: MediaType.DRIVER_VIDEO })}
-            >
-              <Typography className={classes.mediaOptionText}>
-                Driver Video
-              </Typography>
-            </Grid>
-            )}
-          <Grid
-            item
-            xs={hasDriverCameraStream ? 3 : 4}
-            className={classes.mediaOption}
-            style={inView === MediaType.MAP ? { opacity: 1 } : { }}
-            onClick={() => this.setState({ inView: MediaType.MAP })}
-          >
-            <Typography className={classes.mediaOptionText}>
-              Map
-            </Typography>
-          </Grid>
-        </Grid>
-      </Grid>
     );
   }
 }

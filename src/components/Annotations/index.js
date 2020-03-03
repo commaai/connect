@@ -27,15 +27,9 @@ const styles = (theme) => ({
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
-  },
-  window: {
-    background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
-    borderRadius: 8,
-    display: 'flex',
-    flexDirection: 'column',
-    flexGrow: 1,
+    width: '100vw',
     overflowY: 'scroll',
-    margin: 18,
+    paddingLeft: 12
   },
   header: {},
   headerContext: {
@@ -54,15 +48,20 @@ const styles = (theme) => ({
     marginLeft: 'auto',
   },
   headerTimeline: {},
-  viewer: {
+  largeViewer: {
     padding: theme.spacing.unit * 4,
+  },
+  videoHalf: {
+    marginRight: 10
   },
   footer: {
     alignItems: 'center',
     background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
     display: 'flex',
-    marginTop: 'auto',
     width: '100%',
+  },
+  annotations: {
+    height: '100%',
   },
 });
 
@@ -77,9 +76,37 @@ class Annotations extends Component {
     this.props.dispatch(selectRange(null, null));
   }
 
-  renderAnnotationsElement(visibleSegment) {
-    return (<AnnotationTabs segment={visibleSegment} />);
-  }
+  renderAnnotationsElement = (visibleSegment) => (
+    <AnnotationTabs segment={visibleSegment} />
+  );
+
+  renderLargeScreen = (classes, visibleSegment) => (
+    <div className={classes.largeViewer}>
+      <Grid container wrap="nowrap">
+        <Grid className={classes.videoHalf} container wrap="nowrap" direction="column" alignItems="center">
+          <Media />
+          <TimeDisplay isThin />
+        </Grid>
+        <Grid container className={classes.annotations}>
+          { visibleSegment && this.renderAnnotationsElement(visibleSegment) }
+        </Grid>
+      </Grid>
+    </div>
+  );
+
+  renderSmallScreen = (classes, visibleSegment) => (
+    <div className={classes.viewer}>
+      <Grid container direction="column" alignItems="center">
+        <Grid container wrap="nowrap" direction="column" alignItems="center">
+          <Media />
+          <TimeDisplay isThin />
+        </Grid>
+        <Grid container className={classes.annotations}>
+          { visibleSegment && this.renderAnnotationsElement(visibleSegment) }
+        </Grid>
+      </Grid>
+    </div>
+  );
 
   render() {
     const {
@@ -92,46 +119,36 @@ class Annotations extends Component {
     } = this.props;
     const visibleSegment = (currentSegment || nextSegment);
     const routeName = visibleSegment ? visibleSegment.route : 'Nothing visible';
-    const shortName = routeName.split('|')[1];
+    // const shortName = routeName.split('|')[1];
+    let annotations;
+    if (screen.width < 850) {
+      console.log('rendering small screen');
+      annotations = this.renderSmallScreen(classes, visibleSegment);
+    } else {
+      console.log('rendering large screen');
+      annotations = this.renderLargeScreen(classes, visibleSegment);
+    }
+
     return (
       <div className={classes.base}>
-        <div className={classes.window}>
-          <div className={classes.header}>
-            <div className={classes.headerContext}>
-              <IconButton aria-label="Go Back" onClick={() => window.history.back()}>
-                <KeyboardBackspaceIcon />
-              </IconButton>
-              <Typography className={classes.headerTitle}>
-                { this.props.device.alias }
-              </Typography>
-              <div className={classes.headerActions}>
-                <IconButton onClick={this.close} aria-label="Close">
-                  <CloseIcon />
-                </IconButton>
-              </div>
-            </div>
-            <Timeline
-              className={classes.headerTimeline}
-              zoomed
-              colored
-              hasThumbnails
-              hasRuler
-              hasGradient
-              tooltipped
-              dragSelection
-            />
+        <div className={classes.header}>
+          <div className={classes.headerContext}>
+            <Typography className={classes.headerTitle}>
+              { this.props.device.alias }
+            </Typography>
           </div>
-          <div className={classes.viewer}>
-            <Grid container spacing={32}>
-              <Grid item xs={6}>
-                { visibleSegment && this.renderAnnotationsElement(visibleSegment) }
-              </Grid>
-              <Grid item xs={6}>
-                <Media />
-              </Grid>
-            </Grid>
-          </div>
+          <Timeline
+            className={classes.headerTimeline}
+            zoomed
+            colored
+            hasThumbnails
+            hasRuler
+            hasGradient
+            tooltipped
+            dragSelection
+          />
         </div>
+        {annotations}
         <div className={classes.footer}>
           <AnnotationsFooter segment={visibleSegment} loop={loop} start={start} />
         </div>

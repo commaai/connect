@@ -14,14 +14,11 @@ import { filterEvent } from '../../utils';
 
 const styles = (theme) => ({
   root: {
+    height: '100%',
+    width: '100%',
   },
   annotationsViewer: {
     display: 'flex',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
     overflow: 'hidden',
     flexDirection: 'column',
   },
@@ -49,6 +46,8 @@ const styles = (theme) => ({
   annotationsViewerList: {
     height: '100%',
     overflowY: 'scroll',
+    width: '100%',
+    flex: 1,
   },
 });
 
@@ -81,10 +80,31 @@ class AnnotationTabs extends Component {
     }).length;
   }
 
+  renderTab(index) {
+    switch (index) {
+      case 0:
+        return (
+          <AnnotationList
+            segment={this.props.segment}
+            unresolved
+          />
+        );
+      case 1:
+        return (<AnnotationList segment={this.props.segment} resolved />);
+      default:
+        return (
+          <AnnotationList
+            segment={this.props.segment}
+            unresolved
+          />
+        );
+    }
+  }
+
   render() {
     const { classes } = this.props;
     return (
-      <div style={{ position: 'relative', height: '100%' }}>
+      <div className={classes.root}>
         <div className={classes.annotationsViewer}>
           <Tabs
             value={this.state.selectedTab}
@@ -119,20 +139,6 @@ class AnnotationTabs extends Component {
         </div>
       </div>
     );
-  }
-
-  renderTab(index) {
-    switch (index) {
-      case 0:
-        return (
-          <AnnotationList
-            segment={this.props.segment}
-            unresolved
-          />
-        );
-      case 1:
-        return (<AnnotationList segment={this.props.segment} resolved />);
-    }
   }
 }
 
