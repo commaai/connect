@@ -486,7 +486,7 @@ class VideoPreview extends Component {
     }
     if (this.canvas_lead.current) {
       const params = { calibration, shouldScale: true };
-      const events = { live20: TimelineWorker.currentLive20 };
+      const events = { radarState: TimelineWorker.currentRadarState };
       this.renderEventToCanvas(
         this.canvas_lead.current, params, events, this.renderLeadCars
       );
@@ -580,14 +580,14 @@ class VideoPreview extends Component {
   }
 
   renderLeadCars(options, events) {
-    if (!events.live20) {
+    if (!events.radarState) {
       return;
     }
-    this.lastLive20MonoTime = events.live20.LogMonoTime;
+    this.lastRadarStateMonoTime = events.radarState.LogMonoTime;
     const { width, height, ctx } = options;
 
-    const leadOne = events.live20.Live20.LeadOne;
-    const leadTwo = events.live20.Live20.LeadTwo;
+    const leadOne = events.radarState.RadarState.LeadOne;
+    const leadTwo = events.radarState.RadarState.LeadTwo;
 
     if (leadOne.Status) {
       this.renderLeadCar(options, leadOne);
