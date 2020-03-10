@@ -380,8 +380,8 @@ export class TimelineInterface {
     return this.getEventByType(EventWhich.MODEL, 1000);
   }
 
-  currentLive20() {
-    return this.getEventByType(EventWhich.LIVE20, 1000);
+  currentRadarState() {
+    return this.getEventByType(EventWhich.RADAR_STATE, 1000);
   }
 
   currentLive100() {

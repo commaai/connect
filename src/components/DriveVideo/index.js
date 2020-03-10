@@ -586,149 +586,7 @@ class VideoPreview extends Component {
     ctx.fillStyle = track_bg;
     ctx.fill();
   }
-
-  renderEventToCanvas(canvas, params, events, renderEvent) {
-    const { width, height } = canvas.getBoundingClientRect();
-
-    if (!params.calibration) {
-      const ctx = canvas.getContext('2d');
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, width, height);
-      return; // loading calibration from logs still...
-    }
-
-    let logTime; let
-      monoIndex;
-    const _events = {};
-    let needsRender = false;
-    const eventsSig = Object.keys(events).join(',');
-    Object.keys(events).map((key) => {
-      const event = events[key].apply(TimelineWorker);
-      monoIndex = `${events[key].name}MonoTime${eventsSig}`;
-
-      if (!event) {
-        if (this[monoIndex]) {
-          this[monoIndex] = false;
-          const ctx = canvas.getContext('2d');
-          ctx.setTransform(1, 0, 0, 1, 0, 0);
-          ctx.clearRect(0, 0, width, height);
-          // we have to force re-render when one is missing
-          // this is because there's more than one event being rendered through this flow
-          // this should be re-broken apart such that this isn't an issue
-          // fixing that will also reduce the rendering complexity
-          needsRender = true;
-        }
-      } else {
-        logTime = event ? event.LogMonoTime : null;
-        needsRender = needsRender || logTime !== this[monoIndex];
-        this[monoIndex] = logTime;
-        _events[key] = event;
-      }
-    });
-
-    if (!needsRender) {
-      return;
-    }
-    // will render!
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    // reset transform before anything, just in case
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    // clear all the data
-    ctx.clearRect(0, 0, width, height);
-    // scale original coords onto our current size
-    if (params.shouldScale) {
-      ctx.scale(width / vwp_w, height / vwp_h);
-    }
-
-    renderEvent.apply(this, [{ width, height, ctx }, _events]);
-  }
-
-  renderLeadCars(options, events) {
-    if (!events.live20) {
-      return;
-    }
-    this.lastLive20MonoTime = events.live20.LogMonoTime;
-    const { width, height, ctx } = options;
-
-    const leadOne = events.live20.Live20.LeadOne;
-    const leadTwo = events.live20.Live20.LeadTwo;
-
-    if (leadOne.Status) {
-      this.renderLeadCar(options, leadOne);
-    }
-    if (leadTwo.Status) {
-      this.renderLeadCar(options, leadTwo, true);
-    }
-  }
-
-  renderLeadCar(options, leadData, is2ndCar) {
-    const { width, height, ctx } = options;
-
-    const drel = leadData.DRel;
-    const vrel = leadData.VRel;
-    const yrel = leadData.YRel;
-
-    var x = drel + 2.7;
-    var y = yrel;
-
-    var [x, y, z] = this.carSpaceToImageSpace([drel + 2.7, yrel, 0, 1]);
-
-    if (x < 0 || y < 0) {
-      return;
-    }
-
-    let sz = 25 * 30;
-    sz /= ((drel + 2.7) / 3 + 30);
-    sz = Math.min(Math.max(sz, 15), 30);
-    if (is2ndCar) {
-      sz /= 1.2;
-    }
-
-    let fillAlpha = 0;
-    const speedBuff = 10;
-    const leadBuff = 40;
-
-    if (drel < leadBuff) {
-      fillAlpha = 255 * (1 - (drel / leadBuff));
-      if (vrel < 0) {
-        fillAlpha += 255 * (-1 * (vrel / speedBuff));
-      }
-      fillAlpha = Math.min(fillAlpha, 255) / 255;
-    }
-
-    // glow
-    if (is2ndCar) {
-      ctx.fillStyle = 'rgba(218, 202, 37, 0.5)';
-    } else {
-      ctx.fillStyle = 'rgb(218, 202, 37)';
-    }
-    ctx.lineWidth = 5;
-    const g_xo = sz / 5;
-    const g_yo = sz / 10;
-    ctx.beginPath();
-    ctx.moveTo(x + (sz * 1.35) + g_xo, y + sz + g_yo);
-    ctx.lineTo(x, y - g_xo);
-    ctx.lineTo(x - (sz * 1.35) - g_xo, y + sz + g_yo);
-    ctx.lineTo(x + (sz * 1.35) + g_xo, y + sz + g_yo);
-    ctx.fill();
-
-    if (fillAlpha > 0) {
-      if (is2ndCar) {
-        fillAlpha /= 1.5;
-      }
-      ctx.fillStyle = `rgba(201, 34, 49, ${fillAlpha})`;
-
-      ctx.beginPath();
-      ctx.moveTo(x + (sz * 1.25), y + sz);
-      ctx.lineTo(x, y);
-      ctx.lineTo(x - (sz * 1.25), y + sz);
-      ctx.lineTo(x + (sz * 1.25), y + sz);
-      ctx.fill();
-    }
-  }
-
+  
   renderCarState(options, events) {
     if (events && events.carState) {
       this.drawCarStateBorder(options, events.carState.CarState);
@@ -1256,7 +1114,7 @@ class VideoPreview extends Component {
     }
     if (this.canvas_lead.current) {
       const params = { calibration, shouldScale: true };
-      const events = { live20: TimelineWorker.currentLive20 };
+      const events = { radarState: TimelineWorker.currentRadarState };
       this.renderEventToCanvas(
         this.canvas_lead.current, params, events, this.renderLeadCars
       );
@@ -1288,6 +1146,148 @@ class VideoPreview extends Component {
       this.renderEventToCanvas(
         this.canvas_speed.current, params, events, this.renderSpeed
       );
+    }
+  }
+
+  renderEventToCanvas(canvas, params, events, renderEvent) {
+    const { width, height } = canvas.getBoundingClientRect();
+
+    if (!params.calibration) {
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      return; // loading calibration from logs still...
+    }
+
+    let logTime; let
+      monoIndex;
+    const _events = {};
+    let needsRender = false;
+    const eventsSig = Object.keys(events).join(',');
+    Object.keys(events).map((key) => {
+      const event = events[key].apply(TimelineWorker);
+      monoIndex = `${events[key].name}MonoTime${eventsSig}`;
+
+      if (!event) {
+        if (this[monoIndex]) {
+          this[monoIndex] = false;
+          const ctx = canvas.getContext('2d');
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.clearRect(0, 0, width, height);
+          // we have to force re-render when one is missing
+          // this is because there's more than one event being rendered through this flow
+          // this should be re-broken apart such that this isn't an issue
+          // fixing that will also reduce the rendering complexity
+          needsRender = true;
+        }
+      } else {
+        logTime = event ? event.LogMonoTime : null;
+        needsRender = needsRender || logTime !== this[monoIndex];
+        this[monoIndex] = logTime;
+        _events[key] = event;
+      }
+    });
+
+    if (!needsRender) {
+      return;
+    }
+    // will render!
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    // reset transform before anything, just in case
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    // clear all the data
+    ctx.clearRect(0, 0, width, height);
+    // scale original coords onto our current size
+    if (params.shouldScale) {
+      ctx.scale(width / vwp_w, height / vwp_h);
+    }
+
+    renderEvent.apply(this, [{ width, height, ctx }, _events]);
+  }
+
+  renderLeadCars(options, events) {
+    if (!events.radarState) {
+      return;
+    }
+    this.lastRadarStateMonoTime = events.radarState.LogMonoTime;
+    const { width, height, ctx } = options;
+
+    const leadOne = events.radarState.RadarState.LeadOne;
+    const leadTwo = events.radarState.RadarState.LeadTwo;
+
+    if (leadOne.Status) {
+      this.renderLeadCar(options, leadOne);
+    }
+    if (leadTwo.Status) {
+      this.renderLeadCar(options, leadTwo, true);
+    }
+  }
+
+  renderLeadCar(options, leadData, is2ndCar) {
+    const { width, height, ctx } = options;
+
+    const drel = leadData.DRel;
+    const vrel = leadData.VRel;
+    const yrel = leadData.YRel;
+
+    var x = drel + 2.7;
+    var y = yrel;
+
+    var [x, y, z] = this.carSpaceToImageSpace([drel + 2.7, yrel, 0, 1]);
+
+    if (x < 0 || y < 0) {
+      return;
+    }
+
+    let sz = 25 * 30;
+    sz /= ((drel + 2.7) / 3 + 30);
+    sz = Math.min(Math.max(sz, 15), 30);
+    if (is2ndCar) {
+      sz /= 1.2;
+    }
+
+    let fillAlpha = 0;
+    const speedBuff = 10;
+    const leadBuff = 40;
+
+    if (drel < leadBuff) {
+      fillAlpha = 255 * (1 - (drel / leadBuff));
+      if (vrel < 0) {
+        fillAlpha += 255 * (-1 * (vrel / speedBuff));
+      }
+      fillAlpha = Math.min(fillAlpha, 255) / 255;
+    }
+
+    // glow
+    if (is2ndCar) {
+      ctx.fillStyle = 'rgba(218, 202, 37, 0.5)';
+    } else {
+      ctx.fillStyle = 'rgb(218, 202, 37)';
+    }
+    ctx.lineWidth = 5;
+    const g_xo = sz / 5;
+    const g_yo = sz / 10;
+    ctx.beginPath();
+    ctx.moveTo(x + (sz * 1.35) + g_xo, y + sz + g_yo);
+    ctx.lineTo(x, y - g_xo);
+    ctx.lineTo(x - (sz * 1.35) - g_xo, y + sz + g_yo);
+    ctx.lineTo(x + (sz * 1.35) + g_xo, y + sz + g_yo);
+    ctx.fill();
+
+    if (fillAlpha > 0) {
+      if (is2ndCar) {
+        fillAlpha /= 1.5;
+      }
+      ctx.fillStyle = `rgba(201, 34, 49, ${fillAlpha})`;
+
+      ctx.beginPath();
+      ctx.moveTo(x + (sz * 1.25), y + sz);
+      ctx.lineTo(x, y);
+      ctx.lineTo(x - (sz * 1.25), y + sz);
+      ctx.lineTo(x + (sz * 1.25), y + sz);
+      ctx.fill();
     }
   }
 
