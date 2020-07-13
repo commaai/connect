@@ -45,30 +45,10 @@ class AnnotationsFooter extends Component {
     this.handleClose = this.handleClose.bind(this);
     this.downloadSegmentFile = this.downloadSegmentFile.bind(this);
     this.openInCabana = this.openInCabana.bind(this);
-    this.updateWayId = this.updateWayId.bind(this);
 
     this.state = {
       showCopiedSnack: false,
-      wayId: 0,
     };
-  }
-
-  componentDidMount() {
-    raf(this.updateWayId);
-  }
-
-  updateWayId() {
-    raf(this.updateWayId);
-
-    const event = TimelineWorker.currentLiveMapData();
-    if (event && event.LiveMapData) {
-      const wayId = parseInt(event.LiveMapData.WayId);
-      if (wayId !== this.state.wayId) {
-        this.setState({ wayId });
-      }
-    } else if (this.state.wayId) {
-      this.setState({ wayId: 0 });
-    }
   }
 
   copySegmentName(e) {
