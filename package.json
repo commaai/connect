@@ -104,7 +104,7 @@
     "eslint-plugin-react": "^7.14.3",
     "eslint-plugin-react-hooks": "^1.7.0",
     "jest-puppeteer": "^4.3.0",
-    "node-sass": "^4.9.0",
+    "node-sass": "^4.13.1",
     "puppeteer": "^1.20.0",
     "sass-loader": "^7.0.3",
     "sharedworker-loader": "^2.1.1",
