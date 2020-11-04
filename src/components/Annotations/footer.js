@@ -175,9 +175,6 @@ class AnnotationsFooter extends Component {
             Download Log Segment
           </a>
           )}
-        <a className={this.props.classes.footerButton} onClick={this.openWayInOsmEditor} href="#">
-          Edit OpenStreetMap Here
-        </a>
         <a className={classNames(this.props.classes.footerButton, 'openInCabana')} onClick={this.openInCabana} href="#">
           View CAN Data in Cabana
         </a>
