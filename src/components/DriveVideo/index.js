@@ -29,6 +29,21 @@ wheelImg.src = require('../../icons/icon-chffr-wheel.svg');
 let vwp_w = 1164;
 let vwp_h = 874;
 
+const tici_intrinsics = [
+  2648.0, 0, 1928.0/2, 0,
+  0, 2648.0, 1208.0/2, 0,
+  0, 0, 1, 0,
+  0, 0, 0, 0,
+];
+
+const eon_intrinsics = [
+  910.0, 0, 1164.0/2, 0,
+  0, 910.0, 874.0/2, 0,
+  0, 0, 1, 0,
+  0, 0, 0, 0,
+];
+
+
 const bdr_s = 30;
 // driver monitoring constants
 const _PITCH_NATURAL_OFFSET = 0.12; // eslint-disable-line no-underscore-dangle
@@ -87,21 +102,9 @@ function intrinsicMatrix(init_data) {
   if (is_tici(init_data)) {
     vwp_w = 1928;
     vwp_h = 1208;
-
-    return [
-      2648.0, 0, 1928.0/2, 0,
-      0, 2648.0, 1208.0/2, 0,
-      0, 0, 1, 0,
-      0, 0, 0, 0,
-    ];
-
+    return tici_intrinsics;
   } else {
-    return [
-      910.0, 0, 1164.0/2, 0,
-      0, 910.0, 874.0/2, 0,
-      0, 0, 1, 0,
-      0, 0, 0, 0,
-    ];
+    return eon_intrinsics;
   }
 }
 
@@ -123,12 +126,7 @@ class VideoPreview extends Component {
     this.canvas_speed = React.createRef();
     this.canvas_face = React.createRef();
 
-    this.intrinsic = [
-      910.0, 0, 1164.0/2, 0,
-      0, 910.0, 874.0/2, 0,
-      0, 0, 1, 0,
-      0, 0, 0, 0,
-    ];
+    this.intrinsic = eon_intrinsics;
 
     this.frame = 0;
 
