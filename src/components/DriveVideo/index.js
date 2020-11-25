@@ -26,8 +26,9 @@ wheelImg.src = require('../../icons/icon-chffr-wheel.svg');
 // these constants are named this way so that the names are the same in python and js
 // do not refactor them to have js style or more descriptive names
 // UI Measurements
-const vwp_w = 1928;
-const vwp_h = 1208;
+let vwp_w = 1164;
+let vwp_h = 874;
+
 const bdr_s = 30;
 // driver monitoring constants
 const _PITCH_NATURAL_OFFSET = 0.12; // eslint-disable-line no-underscore-dangle
@@ -53,7 +54,7 @@ const styles = (theme) => ({
   videoContainer: {
     position: 'relative',
     width: 850,
-    height: 530
+    height: 640
   },
   videoImage: {
     height: 'auto',
@@ -78,13 +79,30 @@ const styles = (theme) => ({
   }
 });
 
-function intrinsicMatrix() {
-  return [
-    2648.0, 0, 1928.0/2, 0,
-    0, 2648.0, 1208.0/2, 0,
-    0, 0, 1, 0,
-    0, 0, 0, 0,
-  ];
+function is_tici(init_data) {
+  return init_data.InitData.KernelArgs.includes("console=ttyMSM0,115200n8");
+}
+
+function intrinsicMatrix(init_data) {
+  if (is_tici(init_data)) {
+    vwp_w = 1928;
+    vwp_h = 1208;
+
+    return [
+      2648.0, 0, 1928.0/2, 0,
+      0, 2648.0, 1208.0/2, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 0,
+    ];
+
+  } else {
+    return [
+      910.0, 0, 1164.0/2, 0,
+      0, 910.0, 874.0/2, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 0,
+    ];
+  }
 }
 
 class VideoPreview extends Component {
@@ -105,7 +123,13 @@ class VideoPreview extends Component {
     this.canvas_speed = React.createRef();
     this.canvas_face = React.createRef();
 
-    this.intrinsic = intrinsicMatrix();
+    this.intrinsic = [
+      910.0, 0, 1164.0/2, 0,
+      0, 910.0, 874.0/2, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 0,
+    ];
+
     this.frame = 0;
 
     this.state = {
@@ -472,6 +496,10 @@ class VideoPreview extends Component {
         this.extrinsic = [...calibration.LiveCalibration.ExtrinsicMatrix, 0, 0, 0, 1];
       }
       this.lastCalibrationTime = calibration.LogMonoTime;
+    }
+    let init_data = TimelineWorker.currentInitData();
+    if (init_data){
+      this.intrinsic = intrinsicMatrix(init_data);
     }
 
     let live_calibration = TimelineWorker.currentLiveCalibration();
@@ -1325,7 +1353,7 @@ class VideoPreview extends Component {
           startTime={this.currentVideoTime()}
           playbackRate={this.props.startTime > Date.now() ? 0 : this.props.playSpeed}
           width={850}
-          height={530}
+          height={640}
         >
           <HLSSource
             onBufferAppend={this.checkVideoBuffer}
