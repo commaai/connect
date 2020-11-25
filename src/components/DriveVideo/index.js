@@ -30,10 +30,12 @@ wheelImg.src = require('../../icons/icon-chffr-wheel.svg');
 const tici_vwp_w = 1928;
 const tici_vwp_h = 1208;
 const tici_focal = 2648;
+const tici_video_height = 530;
 
 const eon_vwp_w = 1164;
 const eon_vwp_h = 874;
 const eon_focal = 910;
+const eon_video_height = 640;
 
 const tici_intrinsic = [
   tici_focal, 0, tici_vwp_w/2, 0,
@@ -75,7 +77,6 @@ const styles = (theme) => ({
   videoContainer: {
     position: 'relative',
     width: 850,
-    height: 640
   },
   videoImage: {
     height: 'auto',
@@ -125,6 +126,7 @@ class VideoPreview extends Component {
     this.intrinsic = eon_intrinsic;
     this.vwp_w = eon_vwp_w;
     this.vwp_h = eon_vwp_h;
+    this.video_height = eon_video_height;
 
     this.frame = 0;
 
@@ -499,6 +501,7 @@ class VideoPreview extends Component {
         this.intrinsic = tici_intrinsic;
         this.vwp_w = tici_vwp_w;
         this.vwp_h = tici_vwp_h;
+        this.video_height = tici_video_height;
       }
     }
 
@@ -1353,7 +1356,7 @@ class VideoPreview extends Component {
           startTime={this.currentVideoTime()}
           playbackRate={this.props.startTime > Date.now() ? 0 : this.props.playSpeed}
           width={850}
-          height={640}
+          height={this.video_height}
         >
           <HLSSource
             onBufferAppend={this.checkVideoBuffer}
