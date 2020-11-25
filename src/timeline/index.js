@@ -408,6 +408,10 @@ export class TimelineInterface {
     return this.getEventByType(EventWhich.THUMBNAIL, 6000);
   }
 
+  currentLiveCalibration() {
+    return this.getEventByType(EventWhich.LIVE_CALIBRATION, 1000);
+  }
+
   getEventByType(which, maxTimeDiff = -1) {
     if (!this.state || !this.state.route) {
       return null;

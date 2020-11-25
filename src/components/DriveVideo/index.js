@@ -473,6 +473,12 @@ class VideoPreview extends Component {
       }
       this.lastCalibrationTime = calibration.LogMonoTime;
     }
+
+    let live_calibration = TimelineWorker.currentLiveCalibration();
+    if (live_calibration) {
+      this.extrinsic = [...live_calibration.LiveCalibration.ExtrinsicMatrix, 0, 0, 0, 1];
+    }
+
     if (this.canvas_road.current) {
       const params = { calibration, shouldScale: true };
       const events = {
