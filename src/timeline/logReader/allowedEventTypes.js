@@ -10,6 +10,7 @@ export default function filterEvent(which) {
     case EventWhich.LIVE_MPC:
     case EventWhich.INIT_DATA:
     case EventWhich.CAR_STATE:
+    case EventWhich.CONTROLS_STATE:
     case EventWhich.LIVE_CALIBRATION:
     case EventWhich.DRIVER_MONITORING:
     case EventWhich.THUMBNAIL:
