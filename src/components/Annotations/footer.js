@@ -45,31 +45,10 @@ class AnnotationsFooter extends Component {
     this.handleClose = this.handleClose.bind(this);
     this.downloadSegmentFile = this.downloadSegmentFile.bind(this);
     this.openInCabana = this.openInCabana.bind(this);
-    this.openWayInOsmEditor = this.openWayInOsmEditor.bind(this);
-    this.updateWayId = this.updateWayId.bind(this);
 
     this.state = {
       showCopiedSnack: false,
-      wayId: 0,
     };
-  }
-
-  componentDidMount() {
-    raf(this.updateWayId);
-  }
-
-  updateWayId() {
-    raf(this.updateWayId);
-
-    const event = TimelineWorker.currentLiveMapData();
-    if (event && event.LiveMapData) {
-      const wayId = parseInt(event.LiveMapData.WayId);
-      if (wayId !== this.state.wayId) {
-        this.setState({ wayId });
-      }
-    } else if (this.state.wayId) {
-      this.setState({ wayId: 0 });
-    }
   }
 
   copySegmentName(e) {
@@ -142,18 +121,6 @@ class AnnotationsFooter extends Component {
     }
   }
 
-  openWayInOsmEditor() {
-    const { wayId } = this.state;
-    if (!wayId) {
-      return;
-    }
-
-    const win = window.open(`https://www.openstreetmap.org/way/${wayId}`, '_blank');
-    if (win.focus) {
-      win.focus();
-    }
-  }
-
   render() {
     return (
       <Paper className={this.props.classes.root}>
@@ -175,9 +142,6 @@ class AnnotationsFooter extends Component {
             Download Log Segment
           </a>
           )}
-        <a className={this.props.classes.footerButton} onClick={this.openWayInOsmEditor} href="#">
-          Edit OpenStreetMap Here
-        </a>
         <a className={classNames(this.props.classes.footerButton, 'openInCabana')} onClick={this.openInCabana} href="#">
           View CAN Data in Cabana
         </a>
