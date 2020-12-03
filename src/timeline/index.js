@@ -400,6 +400,10 @@ export class TimelineInterface {
     return this.getEventByType(EventWhich.CAR_STATE, 1000);
   }
 
+  currentControlsState() {
+    return this.getEventByType(EventWhich.CONTROLS_STATE);
+  }
+
   currentDriverMonitoring() {
     return this.getEventByType(EventWhich.DRIVER_MONITORING, 1000);
   }

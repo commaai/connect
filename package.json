@@ -52,7 +52,7 @@
     "joi-browser": "^13.4.0",
     "localforage": "^1.7.1",
     "mapbox-gl": "^1.4.0",
-    "material-ui-pickers": "^1.0.0-rc.10",
+    "material-ui-pickers": "^1.0.1",
     "mathjs": "^6.2.1",
     "memoize-one": "^5.1.1",
     "obstruction": "^2.1.0",

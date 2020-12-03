@@ -133,7 +133,7 @@ class Annotations extends Component {
           </div>
         </div>
         <div className={classes.footer}>
-          <AnnotationsFooter segment={visibleSegment} loop={loop} start={start} />
+          { visibleSegment && <AnnotationsFooter segment={visibleSegment} loop={loop} start={start} /> }
         </div>
       </div>
     );

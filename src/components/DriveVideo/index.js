@@ -515,7 +515,7 @@ class VideoPreview extends Component {
       const events = {
         model: TimelineWorker.currentModel,
         mpc: TimelineWorker.currentMPC,
-        carState: TimelineWorker.currentCarState,
+        controlsState: TimelineWorker.currentControlsState,
       };
       this.renderEventToCanvas(
         this.canvas_road.current, params, events, this.drawLaneFull
@@ -530,7 +530,10 @@ class VideoPreview extends Component {
     }
     if (this.canvas_carstate.current) {
       const params = { calibration, shouldScale: true };
-      const events = { carState: TimelineWorker.currentCarState };
+      const events = {
+        carState: TimelineWorker.currentCarState,
+        controlsState: TimelineWorker.currentControlsState,
+      };
       this.renderEventToCanvas(
         this.canvas_carstate.current, params, events, this.renderCarState
       );
@@ -708,10 +711,10 @@ class VideoPreview extends Component {
         this.drawLaneBoundary(ctx, events.model.Model.RightLane);
         this.drawLaneTrack(options, events.model.Model.Path);
       }
-      if (events.mpc && events.carState) {
+      if (events.mpc && events.controlsState) {
         this.drawLaneTrack(options, events.mpc.LiveMpc, {
           isMpc: true,
-          isEnabled: events.carState.CarState.CruiseState.Enabled,
+          isEnabled: events.controlsState.ControlsState.Enabled,
         });
       }
     }
@@ -858,9 +861,9 @@ class VideoPreview extends Component {
   }
 
   renderCarState(options, events) {
-    if (events && events.carState) {
-      this.drawCarStateBorder(options, events.carState.CarState);
-      this.drawCarStateWheel(options, events.carState.CarState);
+    if (events && events.carState && events.controlsState) {
+      this.drawCarStateBorder(options, events.controlsState.ControlsState);
+      this.drawCarStateWheel(options, events.carState.CarState, events.controlsState.ControlsState);
     }
   }
 
@@ -1065,7 +1068,7 @@ class VideoPreview extends Component {
     }
   }
 
-  drawCarStateWheel(options, CarState) {
+  drawCarStateWheel(options, CarState, ControlsState) {
     const { ctx } = options;
 
     const radius = 80;
@@ -1075,10 +1078,8 @@ class VideoPreview extends Component {
     // Wheel Background
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
-    if (CarState.CruiseState.Enabled) {
+    if (ControlsState.Enabled) {
       ctx.fillStyle = theme.palette.states.engagedGreen;
-    } else if (CarState.CruiseState.Available) {
-      ctx.fillStyle = theme.palette.states.drivingBlue;
     } else {
       ctx.fillStyle = theme.palette.states.drivingBlue;
     }
@@ -1101,14 +1102,12 @@ class VideoPreview extends Component {
     ctx.fill();
   }
 
-  drawCarStateBorder(options, carState) {
+  drawCarStateBorder(options, ControlsState) {
     const { ctx } = options;
     ctx.lineWidth = bdr_s * 2;
 
-    if (carState.CruiseState.Enabled) {
+    if (ControlsState.Enabled) {
       ctx.strokeStyle = theme.palette.states.engagedGreen;
-    } else if (carState.CruiseState.Available) {
-      ctx.strokeStyle = theme.palette.states.drivingBlue;
     } else {
       ctx.strokeStyle = theme.palette.states.drivingBlue;
     }
