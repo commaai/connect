@@ -26,8 +26,32 @@ wheelImg.src = require('../../icons/icon-chffr-wheel.svg');
 // these constants are named this way so that the names are the same in python and js
 // do not refactor them to have js style or more descriptive names
 // UI Measurements
-const vwp_w = 1164;
-const vwp_h = 874;
+
+const tici_vwp_w = 1928;
+const tici_vwp_h = 1208;
+const tici_focal = 2648;
+const tici_video_height = 530;
+
+const eon_vwp_w = 1164;
+const eon_vwp_h = 874;
+const eon_focal = 910;
+const eon_video_height = 640;
+
+const tici_intrinsic = [
+  tici_focal, 0, tici_vwp_w/2, 0,
+  0, tici_focal, tici_vwp_h/2, 0,
+  0, 0, 1, 0,
+  0, 0, 0, 0,
+];
+const eon_intrinsic = [
+  eon_focal, 0, eon_vwp_w/2, 0,
+  0, eon_focal, eon_vwp_h/2, 0,
+  0, 0, 1, 0,
+  0, 0, 0, 0,
+];
+
+
+
 const bdr_s = 30;
 // driver monitoring constants
 const _PITCH_NATURAL_OFFSET = 0.12; // eslint-disable-line no-underscore-dangle
@@ -53,7 +77,6 @@ const styles = (theme) => ({
   videoContainer: {
     position: 'relative',
     width: 850,
-    height: 640
   },
   videoImage: {
     height: 'auto',
@@ -78,13 +101,8 @@ const styles = (theme) => ({
   }
 });
 
-function intrinsicMatrix() {
-  return [
-    950.892854, 0, 584, 0,
-    0, 950.892854, 439, 0,
-    0, 0, 1, 0,
-    0, 0, 0, 0,
-  ];
+function is_tici(init_data) {
+  return init_data.InitData.DeviceType == 4;
 }
 
 class VideoPreview extends Component {
@@ -105,7 +123,11 @@ class VideoPreview extends Component {
     this.canvas_speed = React.createRef();
     this.canvas_face = React.createRef();
 
-    this.intrinsic = intrinsicMatrix();
+    this.intrinsic = eon_intrinsic;
+    this.vwp_w = eon_vwp_w;
+    this.vwp_h = eon_vwp_h;
+    this.video_height = eon_video_height;
+
     this.frame = 0;
 
     this.state = {
@@ -473,6 +495,21 @@ class VideoPreview extends Component {
       }
       this.lastCalibrationTime = calibration.LogMonoTime;
     }
+    let init_data = TimelineWorker.currentInitData();
+    if (init_data){
+      if (is_tici(init_data)) {
+        this.intrinsic = tici_intrinsic;
+        this.vwp_w = tici_vwp_w;
+        this.vwp_h = tici_vwp_h;
+        this.video_height = tici_video_height;
+      }
+    }
+
+    let live_calibration = TimelineWorker.currentLiveCalibration();
+    if (live_calibration) {
+      this.extrinsic = [...live_calibration.LiveCalibration.ExtrinsicMatrix, 0, 0, 0, 1];
+    }
+
     if (this.canvas_road.current) {
       const params = { calibration, shouldScale: true };
       const events = {
@@ -573,7 +610,7 @@ class VideoPreview extends Component {
     ctx.clearRect(0, 0, width, height);
     // scale original coords onto our current size
     if (params.shouldScale) {
-      ctx.scale(width / vwp_w, height / vwp_h);
+      ctx.scale(width / this.vwp_w, height / this.vwp_h);
     }
 
     renderEvent.apply(this, [{ width, height, ctx }, _events]);
@@ -770,7 +807,7 @@ class VideoPreview extends Component {
       }
       let [x, y, z] = this.carSpaceToImageSpace([px, py, 0.0, 1.0]);
       if (i === 0) {
-        y = vwp_h;
+        y = this.vwp_h;
       } else if (y < 0) {
         continue;
       }
@@ -794,7 +831,7 @@ class VideoPreview extends Component {
       }
       let [x, y, z] = this.carSpaceToImageSpace([px, py, 0.0, 1.0]);
       if (i === 0) {
-        y = vwp_h;
+        y = this.vwp_h;
       } else if (y < 0) {
         continue;
       }
@@ -803,7 +840,7 @@ class VideoPreview extends Component {
     ctx.closePath();
     let track_bg;
     if (isMpc) {
-      track_bg = ctx.createLinearGradient(vwp_w, vwp_h - 40, vwp_w, vwp_h * 0.4);
+      track_bg = ctx.createLinearGradient(this.vwp_w, this.vwp_h - 40, this.vwp_w, this.vwp_h * 0.4);
       if (isEnabled) {
         track_bg.addColorStop(0, 'rgba(23, 134, 68, 0.8)');
         track_bg.addColorStop(1, 'rgba(14, 89, 45, 0.8)');
@@ -812,7 +849,7 @@ class VideoPreview extends Component {
         track_bg.addColorStop(1, 'rgba(15, 58, 89, 0.6)');
       }
     } else {
-      track_bg = ctx.createLinearGradient(vwp_w, vwp_h, vwp_w, vwp_h * 0.5);
+      track_bg = ctx.createLinearGradient(this.vwp_w, this.vwp_h, this.vwp_w, this.vwp_h * 0.5);
       track_bg.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
       track_bg.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
     }
@@ -846,7 +883,7 @@ class VideoPreview extends Component {
       speed = Math.floor(speed * 2.2369363 + 0.5);
     }
 
-    const x = vwp_w / 2;
+    const x = this.vwp_w / 2;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = '700 128px Open Sans';
@@ -1032,7 +1069,7 @@ class VideoPreview extends Component {
     const { ctx } = options;
 
     const radius = 80;
-    const x = vwp_w - (radius + (bdr_s * 2));
+    const x = this.vwp_w - (radius + (bdr_s * 2));
     const y = radius + (bdr_s * 2);
 
     // Wheel Background
@@ -1060,7 +1097,7 @@ class VideoPreview extends Component {
     const wheelImgPattern = ctx.createPattern(wheelImg, 'repeat');
     ctx.fillStyle = wheelImgPattern;
     ctx.closePath();
-    ctx.translate(vwp_w - ((bdr_s * 2) + bdr_s / 2), (bdr_s * 2) + bdr_s / 2);
+    ctx.translate(this.vwp_w - ((bdr_s * 2) + bdr_s / 2), (bdr_s * 2) + bdr_s / 2);
     ctx.fill();
   }
 
@@ -1075,7 +1112,7 @@ class VideoPreview extends Component {
     } else {
       ctx.strokeStyle = theme.palette.states.drivingBlue;
     }
-    ctx.strokeRect(0, 0, vwp_w, vwp_h);
+    ctx.strokeRect(0, 0, this.vwp_w, this.vwp_h);
   }
 
   renderDriverMonitoring(options, events) {
@@ -1090,8 +1127,8 @@ class VideoPreview extends Component {
       return;
     }
 
-    const xW = vwp_h / 2;
-    const xOffset = vwp_w - xW;
+    const xW = this.vwp_h / 2;
+    const xOffset = this.vwp_w - xW;
     let noseSize = 20;
     ctx.translate(xOffset, 0);
 
@@ -1159,7 +1196,7 @@ class VideoPreview extends Component {
       return (x * xW);
     }
     function toY(y) {
-      return (y * vwp_h);
+      return (y * this.vwp_h);
     }
   }
 
@@ -1207,7 +1244,6 @@ class VideoPreview extends Component {
     // project onto 3d with Z
     coords[0] /= coords[2];
     coords[1] /= coords[2];
-
     return coords;
   }
 
@@ -1320,7 +1356,7 @@ class VideoPreview extends Component {
           startTime={this.currentVideoTime()}
           playbackRate={this.props.startTime > Date.now() ? 0 : this.props.playSpeed}
           width={850}
-          height={640}
+          height={this.video_height}
         >
           <HLSSource
             onBufferAppend={this.checkVideoBuffer}
