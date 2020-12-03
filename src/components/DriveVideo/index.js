@@ -102,7 +102,7 @@ const styles = (theme) => ({
 });
 
 function is_tici(init_data) {
-  return init_data.InitData.KernelArgs.includes("console=ttyMSM0,115200n8");
+  return init_data.InitData.DeviceType == 4;
 }
 
 class VideoPreview extends Component {
