@@ -704,9 +704,27 @@ class VideoPreview extends Component {
   }
 
   drawLaneFull(options, events) { // ui_draw_vision_lanes
-    const { ctx } = options;
     if (events) {
+      if (events.modelv2) {
+        laneLines = events.modelv2.ModelV2.LaneLines;
+        laneLineProbs = events.modelv2.ModelV2.LaneLineProbs;
+        for (let i = 0; i < laneLines.length; i++) {
+          color = `rgba(255, 255, 255,${laneLineProbs[i]})`;
+          this.drawLaneLineV2(ctx, laneLines[i], color);
+        }
+        
+        roadEdges = events.modelv2.ModelV2.RoadEdges;
+        roadEdgeStds = events.modelv2.ModelV2.RoadEdgeStds;
+        for (let i = 0; i < roadEdges.length; i++) {
+          color = `rgba(255, 0, 0,${1.0 - Math.max(roadEdgeStds[i], 1.0)})`;
+          this.drawLaneLineV2(ctx, roadEdges[i], color);
+        }
+
+        position = events.modelv2.ModelV2.position;
+        this.drawLaneTrackV2(ctx, position);
+      }
       if (events.model) {
+        const { ctx } = options;
         this.drawLaneBoundary(ctx, events.model.Model.LeftLane);
         this.drawLaneBoundary(ctx, events.model.Model.RightLane);
         this.drawLaneTrack(options, events.model.Model.Path);
@@ -777,10 +795,48 @@ class VideoPreview extends Component {
     }
   }
 
+  drawLaneLineV2(ctx, points, off, color, isGhost) { // ui_draw_lane_line
+    ctx.beginPath();
+    let started = false;
+    const line_height = 49;
+    for (let i = 0; i < line_height; i++) {
+      const px = points.X[i];
+      const py = points.Y[i] - off;
+      const pz = points.Z[i];
+      const [x, y, z] = this.carSpaceToImageSpace([px, py, pz, 1.0]);
+      if (y < 0) {
+        continue;
+      }
+      if (!started) {
+        ctx.moveTo(x, y);
+        started = true;
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    for (let i = line_height; i > 0; i--) {
+      const px = points.X[i];
+      const py = isGhost ? (points.Y[i] - off) : (points.Y[i] + off);
+      const pz = points.Z[i];
+      const [x, y, z] = this.carSpaceToImageSpace([px, py, pz, 1.0]);
+      if (y < 0) {
+        continue;
+      }
+      ctx.lineTo(x, y);
+    }
+    if (!isGhost) {
+      ctx.fillStyle = color;
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 0.1;
+      ctx.stroke();
+    }
+  }
+
   drawLaneTrack(options, path, params) {
     const { ctx } = options;
-    let isMpc; let
-      isEnabled;
+    let isMpc; let isEnabled;
     if (params) {
       isMpc = params.isMpc;
       isEnabled = params.isEnabled;
@@ -856,6 +912,51 @@ class VideoPreview extends Component {
       track_bg.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
       track_bg.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
     }
+    ctx.fillStyle = track_bg;
+    ctx.fill();
+  }
+
+  drawLaneTrackV2(ctx, points) {
+    ctx.beginPath();
+    let started = false;
+    const offset = 0.5;
+    let points;
+    for (let i = 0; i <= points.X.length; i++) {
+      const px = points.X[i];
+      const py = points.Y[i] - offset;
+      const pz = points.Z[i];
+      const [x, y, z] = this.carSpaceToImageSpace([px, py, pz, 1.0]);
+      if (i === 0) {
+        y = this.vwp_h;
+      } else if (y < 0) {
+        continue;
+      }
+
+      if (!started) {
+        ctx.moveTo(x, y);
+        started = true;
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    for (let i = points.X.length; i >= 0; i--) {
+      const px = points.X[i];
+      const py = points.Y[i] + offset;
+      const pz = points.Z[i];
+      const [x, y, z] = this.carSpaceToImageSpace([px, py, pz, 1.0]);
+      if (i === 0) {
+        y = this.vwp_h;
+      } else if (y < 0) {
+        continue;
+      }
+      ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+
+    let track_bg;
+    track_bg = ctx.createLinearGradient(this.vwp_w, this.vwp_h, this.vwp_w, this.vwp_h * 0.5);
+    track_bg.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+    track_bg.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
     ctx.fillStyle = track_bg;
     ctx.fill();
   }
