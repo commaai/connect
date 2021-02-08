@@ -925,8 +925,8 @@ class VideoPreview extends Component {
     let points;
     for (let i = 0; i <= points.X.length; i++) {
       const px = points.X[i];
-      const py = points.Y[i] - offset;
-      const pz = points.Z[i];
+      const py = -points.Y[i] - offset;
+      const pz = -points.Z[i];
       const [x, y, z] = this.carSpaceToImageSpace([px, py, pz, 1.0]);
       if (i === 0) {
         y = this.vwp_h;
@@ -943,8 +943,8 @@ class VideoPreview extends Component {
     }
     for (let i = points.X.length; i >= 0; i--) {
       const px = points.X[i];
-      const py = points.Y[i] + offset;
-      const pz = points.Z[i];
+      const py = -points.Y[i] + offset;
+      const pz = -points.Z[i];
       const [x, y, z] = this.carSpaceToImageSpace([px, py, pz, 1.0]);
       if (i === 0) {
         y = this.vwp_h;
