@@ -712,7 +712,7 @@ class VideoPreview extends Component {
           color = `rgba(255, 255, 255,${laneLineProbs[i]})`;
           this.drawLaneLineV2(ctx, laneLines[i], color);
         }
-        
+
         roadEdges = events.modelv2.ModelV2.RoadEdges;
         roadEdgeStds = events.modelv2.ModelV2.RoadEdgeStds;
         for (let i = 0; i < roadEdges.length; i++) {
@@ -799,11 +799,13 @@ class VideoPreview extends Component {
     ctx.beginPath();
     let started = false;
     const line_height = 49;
+    let z_off = 1.22;
+
     for (let i = 0; i < line_height; i++) {
       const px = points.X[i];
-      const py = points.Y[i] - off;
-      const pz = points.Z[i];
-      const [x, y, z] = this.carSpaceToImageSpace([px, py, pz, 1.0]);
+      const py = -points.Y[i] - off;
+      const pz = -points.Z[i];
+      const [x, y, z] = this.carSpaceToImageSpace([px, py, pz + z_off, 1.0]);
       if (y < 0) {
         continue;
       }
@@ -816,9 +818,9 @@ class VideoPreview extends Component {
     }
     for (let i = line_height; i > 0; i--) {
       const px = points.X[i];
-      const py = isGhost ? (points.Y[i] - off) : (points.Y[i] + off);
-      const pz = points.Z[i];
-      const [x, y, z] = this.carSpaceToImageSpace([px, py, pz, 1.0]);
+      const py = isGhost ? (-points.Y[i] - off) : (-points.Y[i] + off);
+      const pz = -points.Z[i];
+      const [x, y, z] = this.carSpaceToImageSpace([px, py, pz + z_off, 1.0]);
       if (y < 0) {
         continue;
       }
