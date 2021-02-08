@@ -4,6 +4,7 @@ export default function filterEvent(which) {
   switch (which) {
     case EventWhich.FRAME:
     case EventWhich.MODEL:
+    case EventWhich.MODELV2:
     case EventWhich.RADAR_STATE:
     case EventWhich.LIVE100:
     case EventWhich.LIVE_MAP_DATA:
