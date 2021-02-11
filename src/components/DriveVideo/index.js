@@ -514,6 +514,7 @@ class VideoPreview extends Component {
       const params = { calibration, shouldScale: true };
       const events = {
         model: TimelineWorker.currentModel,
+        modelv2: TimelineWorker.currentModelV2,
         mpc: TimelineWorker.currentMPC,
         controlsState: TimelineWorker.currentControlsState,
       };
@@ -705,26 +706,26 @@ class VideoPreview extends Component {
 
   drawLaneFull(options, events) { // ui_draw_vision_lanes
     if (events) {
+      const { ctx } = options;
       if (events.modelv2) {
-        laneLines = events.modelv2.ModelV2.LaneLines;
-        laneLineProbs = events.modelv2.ModelV2.LaneLineProbs;
+        const laneLines = events.modelv2.ModelV2.LaneLines;
+        const laneLineProbs = events.modelv2.ModelV2.LaneLineProbs;
         for (let i = 0; i < laneLines.length; i++) {
-          color = `rgba(255, 255, 255,${laneLineProbs[i]})`;
+          const color = `rgba(255, 255, 255,${laneLineProbs[i]})`;
           this.drawLaneLineV2(ctx, laneLines[i], color);
         }
 
-        roadEdges = events.modelv2.ModelV2.RoadEdges;
-        roadEdgeStds = events.modelv2.ModelV2.RoadEdgeStds;
+        const roadEdges = events.modelv2.ModelV2.RoadEdges;
+        const roadEdgeStds = events.modelv2.ModelV2.RoadEdgeStds;
         for (let i = 0; i < roadEdges.length; i++) {
-          color = `rgba(255, 0, 0,${1.0 - Math.max(roadEdgeStds[i], 1.0)})`;
+          const color = `rgba(255, 0, 0,${1.0 - Math.max(roadEdgeStds[i], 1.0)})`;
           this.drawLaneLineV2(ctx, roadEdges[i], color);
         }
 
-        position = events.modelv2.ModelV2.position;
+        const position = events.modelv2.ModelV2.Position;
         this.drawLaneTrackV2(ctx, position);
       }
       if (events.model) {
-        const { ctx } = options;
         this.drawLaneBoundary(ctx, events.model.Model.LeftLane);
         this.drawLaneBoundary(ctx, events.model.Model.RightLane);
         this.drawLaneTrack(options, events.model.Model.Path);
@@ -927,7 +928,7 @@ class VideoPreview extends Component {
       const px = points.X[i];
       const py = -points.Y[i] - offset;
       const pz = -points.Z[i];
-      const [x, y, z] = this.carSpaceToImageSpace([px, py, pz, 1.0]);
+      let [x, y, z] = this.carSpaceToImageSpace([px, py, pz, 1.0]);
       if (i === 0) {
         y = this.vwp_h;
       } else if (y < 0) {
@@ -945,7 +946,7 @@ class VideoPreview extends Component {
       const px = points.X[i];
       const py = -points.Y[i] + offset;
       const pz = -points.Z[i];
-      const [x, y, z] = this.carSpaceToImageSpace([px, py, pz, 1.0]);
+      let [x, y, z] = this.carSpaceToImageSpace([px, py, pz, 1.0]);
       if (i === 0) {
         y = this.vwp_h;
       } else if (y < 0) {
