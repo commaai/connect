@@ -705,8 +705,8 @@ class VideoPreview extends Component {
   }
 
   drawLaneFull(options, events) { // ui_draw_vision_lanes
+    const { ctx } = options;
     if (events) {
-      const { ctx } = options;
       if (events.modelv2) {
         this.drawLaneBoundaryV2(ctx, events.modelv2.ModelV2.LaneLines, events.modelv2.ModelV2.LaneLineProbs, false);
         this.drawLaneBoundaryV2(ctx, events.modelv2.ModelV2.RoadEdges, events.modelv2.ModelV2.RoadEdgeStds, true);
@@ -790,7 +790,7 @@ class VideoPreview extends Component {
     }
   }
 
-  drawLaneLineV2(ctx, points, off, color, isGhost) { // ui_draw_lane_line
+  drawLaneLineV2(ctx, points, off, color, isGhost) {
     ctx.beginPath();
     let started = false;
     let z_off = 1.22;
@@ -832,7 +832,8 @@ class VideoPreview extends Component {
 
   drawLaneTrack(options, path, params) {
     const { ctx } = options;
-    let isMpc; let isEnabled;
+    let isMpc; let
+      isEnabled;
     if (params) {
       isMpc = params.isMpc;
       isEnabled = params.isEnabled;
