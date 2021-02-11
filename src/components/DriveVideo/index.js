@@ -711,26 +711,26 @@ class VideoPreview extends Component {
         const laneLines = events.modelv2.ModelV2.LaneLines;
         const laneLineProbs = events.modelv2.ModelV2.LaneLineProbs;
         for (let i = 0; i < laneLines.length; i++) {
-          const color = `rgba(255, 255, 255,${laneLineProbs[i]})`;
-          this.drawLaneLineV2(ctx, laneLines[i], color);
+          const color = `rgba(255, 255, 255, ${laneLineProbs[i]})`;
+          this.drawLaneLineV2(ctx, laneLines[i], 0.035, color);
         }
 
         const roadEdges = events.modelv2.ModelV2.RoadEdges;
         const roadEdgeStds = events.modelv2.ModelV2.RoadEdgeStds;
         for (let i = 0; i < roadEdges.length; i++) {
-          const color = `rgba(255, 0, 0,${1.0 - Math.max(roadEdgeStds[i], 1.0)})`;
-          this.drawLaneLineV2(ctx, roadEdges[i], color);
+          console.log(roadEdgeStds[i])
+          const color = `rgba(255, 0, 0, ${Math.min(Math.max(1.0 - roadEdgeStds[i], 0.0), 1.0)})`;
+          console.log((1.0 - roadEdgeStds[i]), color)
+          this.drawLaneLineV2(ctx, roadEdges[i], 0.035, color);
         }
 
         const position = events.modelv2.ModelV2.Position;
         this.drawLaneTrackV2(ctx, position);
-      }
-      if (events.model) {
+      } else if (events.model) {
         this.drawLaneBoundary(ctx, events.model.Model.LeftLane);
         this.drawLaneBoundary(ctx, events.model.Model.RightLane);
         this.drawLaneTrack(options, events.model.Model.Path);
-      }
-      if (events.mpc && events.controlsState) {
+      } else if (events.mpc && events.controlsState) {
         this.drawLaneTrack(options, events.mpc.LiveMpc, {
           isMpc: true,
           isEnabled: events.controlsState.ControlsState.Enabled,
@@ -799,10 +799,9 @@ class VideoPreview extends Component {
   drawLaneLineV2(ctx, points, off, color, isGhost) { // ui_draw_lane_line
     ctx.beginPath();
     let started = false;
-    const line_height = 49;
     let z_off = 1.22;
 
-    for (let i = 0; i < line_height; i++) {
+    for (let i = 0; i < points.X.length; i++) {
       const px = points.X[i];
       const py = -points.Y[i] - off;
       const pz = -points.Z[i];
@@ -817,7 +816,7 @@ class VideoPreview extends Component {
         ctx.lineTo(x, y);
       }
     }
-    for (let i = line_height; i > 0; i--) {
+    for (let i = points.X.length-1; i >= 0; i--) {
       const px = points.X[i];
       const py = isGhost ? (-points.Y[i] - off) : (-points.Y[i] + off);
       const pz = -points.Z[i];
@@ -942,7 +941,7 @@ class VideoPreview extends Component {
         ctx.lineTo(x, y);
       }
     }
-    for (let i = points.X.length; i >= 0; i--) {
+    for (let i = points.X.length-1; i >= 0; i--) {
       const px = points.X[i];
       const py = -points.Y[i] + offset;
       const pz = -points.Z[i];
