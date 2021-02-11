@@ -922,7 +922,7 @@ class VideoPreview extends Component {
     ctx.beginPath();
     let started = false;
     const offset = 0.5;
-    let points;
+
     for (let i = 0; i <= points.X.length; i++) {
       const px = points.X[i];
       const py = -points.Y[i] - offset;
