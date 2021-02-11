@@ -381,7 +381,7 @@ export class TimelineInterface {
   }
 
   currentModelV2() {
-    return this.getEventByType(EventWhich.MODEL_V2, 1000000);
+    return this.getEventByType(EventWhich.MODEL_V2, 1000);
   }
 
   currentRadarState() {
