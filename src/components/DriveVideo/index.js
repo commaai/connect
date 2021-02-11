@@ -708,24 +708,9 @@ class VideoPreview extends Component {
     if (events) {
       const { ctx } = options;
       if (events.modelv2) {
-        const laneLines = events.modelv2.ModelV2.LaneLines;
-        const laneLineProbs = events.modelv2.ModelV2.LaneLineProbs;
-        for (let i = 0; i < laneLines.length; i++) {
-          const color = `rgba(255, 255, 255, ${laneLineProbs[i]})`;
-          this.drawLaneLineV2(ctx, laneLines[i], 0.035, color);
-        }
-
-        const roadEdges = events.modelv2.ModelV2.RoadEdges;
-        const roadEdgeStds = events.modelv2.ModelV2.RoadEdgeStds;
-        for (let i = 0; i < roadEdges.length; i++) {
-          console.log(roadEdgeStds[i])
-          const color = `rgba(255, 0, 0, ${Math.min(Math.max(1.0 - roadEdgeStds[i], 0.0), 1.0)})`;
-          console.log((1.0 - roadEdgeStds[i]), color)
-          this.drawLaneLineV2(ctx, roadEdges[i], 0.035, color);
-        }
-
-        const position = events.modelv2.ModelV2.Position;
-        this.drawLaneTrackV2(ctx, position);
+        this.drawLaneBoundaryV2(ctx, events.modelv2.ModelV2.LaneLines, events.modelv2.ModelV2.LaneLineProbs, false);
+        this.drawLaneBoundaryV2(ctx, events.modelv2.ModelV2.RoadEdges, events.modelv2.ModelV2.RoadEdgeStds, true);
+        this.drawLaneTrackV2(ctx, events.modelv2.ModelV2.Position);
       } else if (events.model) {
         this.drawLaneBoundary(ctx, events.model.Model.LeftLane);
         this.drawLaneBoundary(ctx, events.model.Model.RightLane);
@@ -793,6 +778,15 @@ class VideoPreview extends Component {
       ctx.strokeStyle = color;
       ctx.lineWidth = 0.1;
       ctx.stroke();
+    }
+  }
+
+  drawLaneBoundaryV2(ctx, lines, certainty, isStds) {
+    for (let i = 0; i < lines.length; i++) {
+      const opacity = !isStds ? certainty[i] : 1.0 - certainty[i];
+      const color = !isStds ? "255, 255, 255" : "255, 0, 0";
+      const rgba = `rgba(${color}, ${Math.min(Math.max(opacity, 0.0), 1.0)})`;
+      this.drawLaneLineV2(ctx, lines[i], 0.035, rgba);
     }
   }
 
