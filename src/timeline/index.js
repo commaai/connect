@@ -343,37 +343,7 @@ export class TimelineInterface {
     const buffer = curSegLog.buffers[entry[4]].slice(entry[2], entry[2] + entry[3]);
     const msg = new capnp.Message(buffer, false);
     const event = msg.getRoot(CapnpEvent);
-
-    let initData = toJSON(event);
-    // Cast params key-value pointers to Text, as capnp-ts does not yet
-    // apply parameterized struct types like we use for
-    // params: Map(Text, Text)
-    initData = Object.create(initData);
-    Object.defineProperty(initData, 'InitData', { writable: true, value: Object.create(initData.InitData) });
-    Object.defineProperty(initData.InitData, 'Params', { writable: true, value: Object.create(initData.InitData.Params) });
-    const parsedEntries = initData.InitData.Params.Entries.map((_paramEntry) => {
-      if (!_paramEntry.Key.byteOffset || !_paramEntry.Value.byteOffset) {
-        return null;
-      }
-      try {
-        const paramEntry = Object.create(_paramEntry);
-        Object.defineProperty(paramEntry, 'Key', {
-          writable: false,
-          value: capnp.Text.fromPointer(paramEntry.Key).get()
-        });
-        Object.defineProperty(paramEntry, 'Value', {
-          writable: true,
-          value: capnp.Text.fromPointer(paramEntry.Value).get()
-        });
-
-        return paramEntry;
-      } catch(e) {
-        return null;
-      }
-    }).filter((paramEntry) => !!paramEntry);
-    Object.defineProperty(initData.InitData.Params, 'Entries', { writable: true, value: parsedEntries });
-
-    return initData;
+    return toJSON(event);
   }
 
   currentModel() {
@@ -386,14 +356,6 @@ export class TimelineInterface {
 
   currentRadarState() {
     return this.getEventByType(EventWhich.RADAR_STATE, 1000);
-  }
-
-  currentLive100() {
-    return this.getEventByType(EventWhich.LIVE100, 1000);
-  }
-
-  currentLiveMapData() {
-    return this.getEventByType(EventWhich.LIVE_MAP_DATA, 4000);
   }
 
   currentMPC() {

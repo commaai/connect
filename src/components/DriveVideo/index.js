@@ -542,8 +542,7 @@ class VideoPreview extends Component {
     if (this.canvas_maxspeed.current) {
       const params = { calibration, shouldScale: true };
       const events = {
-        live100: TimelineWorker.currentLive100,
-        liveMapData: TimelineWorker.currentLiveMapData,
+        controlsState: TimelineWorker.currentControlsState,
         initData: TimelineWorker.currentInitData,
       };
       this.renderEventToCanvas(
@@ -553,7 +552,7 @@ class VideoPreview extends Component {
     if (this.canvas_speed.current) {
       const params = { calibration, shouldScale: true };
       const events = {
-        live100: TimelineWorker.currentLive100,
+        carState: TimelineWorker.currentCarState,
         initData: TimelineWorker.currentInitData,
       };
       this.renderEventToCanvas(
@@ -966,15 +965,15 @@ class VideoPreview extends Component {
   }
 
   renderSpeed(options, events) {
-    if (events && events.live100 && events.initData) {
-      this.drawSpeed(options, events.live100.Live100, events.initData.InitData);
+    if (events && events.carState && events.initData) {
+      this.drawSpeed(options, events.carState.CarState, events.initData.InitData);
     }
   }
 
-  drawSpeed(options, Live100, InitData) {
+  drawSpeed(options, CarState, InitData) {
     const { ctx } = options;
 
-    let speed = Live100.VEgo;
+    let speed = CarState.VEgo;
 
     const metricParam = InitData.Params.Entries.find((entry) => entry.Key === 'IsMetric');
     const isMetric = metricParam.Value === '1';
@@ -1001,72 +1000,35 @@ class VideoPreview extends Component {
   }
 
   renderMaxSpeed(options, events) {
-    if (events && events.live100 && events.initData) {
-      const liveMapData = (events.liveMapData && events.liveMapData.LiveMapData) || undefined;
-      this.drawMaxSpeed(options, events.live100.Live100, liveMapData, events.initData.InitData);
+    if (events && events.controlsState && events.initData) {
+      this.drawMaxSpeed(options, events.controlsState.ControlsState, events.initData.InitData);
     }
   }
 
-  drawMaxSpeed(options, Live100, LiveMapData, InitData) {
+  drawMaxSpeed(options, ControlsState, InitData) {
     const { ctx } = options;
 
-    const maxSpeed = Live100.VCruise;
+    const maxSpeed = ControlsState.VCruise;
     let maxSpeedCalc = maxSpeed * 0.6225 + 0.5;
-    const isSpeedLimitValid = LiveMapData !== undefined && LiveMapData.SpeedLimitValid;
-    const speedLimit = (LiveMapData && LiveMapData.SpeedLimit) || 0;
-    let speedLimitCalc = speedLimit * 2.2369363 + 0.5;
-
-    let speedLimitOffset = 0;
-    const speedLimitOffsetParam = InitData.Params.Entries.find((entry) => entry.Key === 'SpeedLimitOffset');
-    if (speedLimitOffsetParam) {
-      speedLimitOffset = parseFloat(speedLimitOffsetParam.Value);
-    }
 
     const metricParam = InitData.Params.Entries.find((entry) => entry.Key === 'IsMetric');
     if (metricParam.Value === '1') {
       maxSpeedCalc = maxSpeed + 0.5;
-      speedLimitCalc = speedLimit * 3.6 + 0.5;
-      speedLimitOffset = speedLimitOffset * 3.6 + 0.5;
     }
 
-    const isCruiseSet = !isNaN(Live100.VCruise) && Live100.VCruise != 0 && Live100.VCruise != 255;
+    const isCruiseSet = !isNaN(ControlsState.VCruise) && ControlsState.VCruise != 0 && ControlsState.VCruise != 255;
 
-    const isSetOverLimit = (
-      isSpeedLimitValid
-      && Live100.Enabled
-      && isCruiseSet
-      && maxSpeedCalc > (speedLimitCalc + speedLimitOffset)
-    );
-    const hysteresisOffset = 0.5; // TODO adjust to 0.0 if last isEgoOverLimit==true
-    const isEgoOverLimit = isSpeedLimitValid && Live100.VEgo > (speedLimit + speedLimitOffset + hysteresisOffset);
-    let speedLimWidth = Math.floor(180 * (2 / 3));
-    const width = Math.floor(184 * (2 / 3)) + speedLimWidth;
+    const width = Math.floor(184 * (2 / 3));
     let height = Math.floor(202 * (2 / 3));
 
-    let left = bdr_s * 2 + (width - speedLimWidth * 2);
+    let left = bdr_s * 2;
     let top = bdr_s * 2;
 
     // background
-    let fillStyle;
-    if (isSetOverLimit) {
-      fillStyle = 'rgba(218, 111, 37, 0.705)';
-    } else {
-      fillStyle = 'rgba(0, 0, 0, 0.392)';
-    }
-    fillRoundedRect(ctx, left, top, width, height, 30, fillStyle);
+    fillRoundedRect(ctx, left, top, width, height, 30, 'rgba(0, 0, 0, 0.392)');
 
     // border
-    let strokeStyle;
-    if (isSetOverLimit) {
-      strokeStyle = 'rgba(218, 111, 37, 1.0)';
-    } else if (isSpeedLimitValid && !isEgoOverLimit) {
-      strokeStyle = 'rgba(255, 255, 255, 1.0)';
-    } else if (isSpeedLimitValid && isEgoOverLimit) {
-      strokeStyle = 'rgba(255, 255, 255, 0.078)';
-    } else {
-      strokeStyle = 'rgba(255, 255, 255, 0.392)';
-    }
-    strokeRoundedRect(ctx, left, top, width, height, 20, 10, strokeStyle);
+    strokeRoundedRect(ctx, left, top, width, height, 30, 10, 'rgba(255, 255, 255, 0.392)');
 
     const textTopY = top + (26 * 4 / 3);
     const textBottomY = textTopY + (48 * (4 / 3));
@@ -1080,89 +1042,26 @@ class VideoPreview extends Component {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.392)';
     }
 
-    ctx.fillText('MAX', left + speedLimWidth / 2 + width / 2, textTopY);
+    ctx.fillText('MAX', left + width / 2, textTopY);
 
     // max speed text
     if (isCruiseSet) {
       ctx.font = `700 ${48 * (4 / 3)}px Open Sans`;
       ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
-      ctx.fillText(Math.floor(maxSpeedCalc), 2 + left + speedLimWidth / 2 + width / 2, textBottomY);
+      ctx.fillText(Math.floor(maxSpeedCalc), 2 + left + width / 2, textBottomY);
     } else {
       ctx.font = `600 ${42 * (4 / 3)}px Open Sans`;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.392)';
-      ctx.fillText('N/A', left + speedLimWidth / 2 + width / 2, textBottomY);
+      ctx.fillText('N/A', left + width / 2, textBottomY);
     }
 
-    if (Live100.DecelForTurn && Live100.Enabled) {
-      const turnSpeed = Live100.VCurvature * 2.2369363 + 0.5;
+    if (ControlsState.DecelForTurnDEPRECATED && ControlsState.Enabled) {
+      const turnSpeed = ControlsState.VCurvatureDEPRECATED * 2.2369363 + 0.5;
       ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
       ctx.font = `700 ${25 * (4 / 3)}px Open Sans`;
-      ctx.fillText('TURN', 200 * (2 / 3) + left + speedLimWidth / 2 + width / 2, textTopY);
+      ctx.fillText('TURN', 200 * (2 / 3) + left + width / 2, textTopY);
       ctx.font = `700 ${50 * (4 / 3)}px Open Sans`;
-      ctx.fillText(Math.floor(turnSpeed), 200 * (2 / 3) + left + speedLimWidth / 2 + width / 2, textBottomY);
-    }
-
-    // Speed Limit
-    if (!isSpeedLimitValid) {
-      speedLimWidth -= Math.floor(5 * (2 / 3));
-      height -= Math.floor(10 * (2 / 3)) + 4;
-      left += Math.floor(9 * (2 / 3)) - 1;
-      top += Math.floor(5 * (2 / 3)) + 2;
-    }
-
-    const speedLimBorderRadius = isSpeedLimitValid ? 30 : 15;
-    // background
-    let speedLimFillStyle;
-
-    if (isSpeedLimitValid && isEgoOverLimit) {
-      speedLimFillStyle = 'rgba(218, 111, 37, 0.706)';
-    } else if (isSpeedLimitValid) {
-      speedLimFillStyle = 'rgba(255, 255, 255, 1.0)';
-    } else {
-      speedLimFillStyle = 'rgba(255, 255, 255, 0.392)';
-    }
-    fillRoundedRect(ctx, left, top, speedLimWidth, height, speedLimBorderRadius, speedLimFillStyle);
-
-    // border
-    if (isSpeedLimitValid) {
-      let speedLimStrokeStyle;
-      if (isEgoOverLimit) {
-        speedLimStrokeStyle = 'rgba(218, 111, 37, 1.0)';
-      } else {
-        speedLimStrokeStyle = 'rgba(255, 255, 255, 1.0)';
-      }
-      strokeRoundedRect(ctx, left, top, speedLimWidth, height, 20, 10, speedLimStrokeStyle);
-    }
-
-    ctx.font = `600 ${50 * (2 / 3)}px Open Sans`;
-    if (isSpeedLimitValid && isEgoOverLimit) {
-      ctx.fillStyle = 'rgba(255,255,255,1.0)';
-    } else {
-      ctx.fillStyle = 'rgba(0,0,0,1.0)';
-    }
-    ctx.fillText('SPEED',
-      left + speedLimWidth / 2 + 2,
-      top + (2 / 3) * (isSpeedLimitValid ? 35 : 30));
-    ctx.fillText('LIMIT',
-      left + speedLimWidth / 2,
-      top + (2 / 3) * (isSpeedLimitValid ? 80 : 75));
-
-
-    if (isEgoOverLimit) {
-      ctx.fillStyle = 'rgba(255,255,255,1.0)';
-    } else {
-      ctx.fillStyle = 'rgba(0,0,0,1.0)';
-    }
-    if (isSpeedLimitValid) {
-      ctx.font = `700 ${48 * (4 / 3)}px Open Sans`;
-      ctx.fillText(Math.floor(speedLimitCalc),
-        left + speedLimWidth / 2,
-        textBottomY + 3);
-    } else {
-      ctx.font = `600 ${42 * (4 / 3)}px Open Sans`;
-      ctx.fillText('N/A',
-        left + speedLimWidth / 2,
-        textBottomY + 3);
+      ctx.fillText(Math.floor(turnSpeed), 200 * (2 / 3) + left + width / 2, textBottomY);
     }
   }
 
