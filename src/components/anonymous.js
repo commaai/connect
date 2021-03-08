@@ -40,6 +40,7 @@ const styles = (/* theme */) => ({
     justifyContent: 'center',
     textDecoration: 'none',
     width: '100%',
+    marginBottom: '0.5em',
   },
   logInText: {
     fontFamily: 'MaisonNeue',
@@ -51,7 +52,6 @@ const styles = (/* theme */) => ({
     justifyContent: 'center',
     width: '100%',
     height: '40px',
-    paddingTop: '10px',
     display: 'flex',
   },
   demoLinkText: {
@@ -80,9 +80,14 @@ class AnonymousLanding extends Component {
         <Typography className={classes.tagline}>
           Review and annotate your comma.ai driving data.
         </Typography>
-        <a href={AuthConfig.oauthRedirectLink} className={classes.logInButton}>
+        <a href={AuthConfig.GOOGLE_REDIRECT_LINK} className={classes.logInButton}>
           <Typography className={classes.logInText}>
             Log in with Google
+          </Typography>
+        </a>
+        <a href={AuthConfig.APPLE_REDIRECT_LINK} className={classes.logInButton}>
+          <Typography className={classes.logInText}>
+            Log in with Apple
           </Typography>
         </a>
         <a href={DEMO_LINK} className={classes.demoLink}>
