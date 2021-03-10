@@ -82,12 +82,17 @@ class AnonymousLanding extends Component {
         </Typography>
         <a href={AuthConfig.GOOGLE_REDIRECT_LINK} className={classes.logInButton}>
           <Typography className={classes.logInText}>
-            Log in with Google
+            Sign in with Google
           </Typography>
         </a>
         <a href={AuthConfig.APPLE_REDIRECT_LINK} className={classes.logInButton}>
           <Typography className={classes.logInText}>
-            Log in with Apple
+            Sign in with Apple
+          </Typography>
+        </a>
+        <a href={AuthConfig.GITHUB_REDIRECT_LINK} className={classes.logInButton}>
+          <Typography className={classes.logInText}>
+            Sign in with GitHub
           </Typography>
         </a>
         <a href={DEMO_LINK} className={classes.demoLink}>
