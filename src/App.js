@@ -77,11 +77,20 @@ class App extends Component {
 
   async auth() {
     if (document.location) {
-      if (document.location.pathname == '/auth/g/redirect') {
+      if (document.location.pathname == AuthConfig.GOOGLE_REDIRECT_PATH ||
+          document.location.pathname == AuthConfig.APPLE_REDIRECT_PATH ||
+          document.location.pathname == AuthConfig.GITHUB_REDIRECT_PATH)
+        {
         const { code } = qs.parse(document.location.search);
-
         try {
-          const token = await AuthApi.refreshAccessToken(code, AuthConfig.REDIRECT_URI);
+          let token = null;
+          if (document.location.pathname == AuthConfig.GOOGLE_REDIRECT_PATH) {
+            token = await AuthApi.refreshAccessToken(code, AuthConfig.GOOGLE_REDIRECT_URI, 'google');
+          } else if (document.location.pathname == AuthConfig.APPLE_REDIRECT_PATH) {
+            token = await AuthApi.refreshAccessToken(code, AuthConfig.APPLE_REDIRECT_URI, 'apple');
+          } else if (document.location.pathname == AuthConfig.GITHUB_REDIRECT_PATH) {
+            token = await AuthApi.refreshAccessToken(code, AuthConfig.GItHUB_REDIRECT_URI, 'github');
+          }
           if (token) {
             AuthStorage.setCommaAccessToken(token);
           }

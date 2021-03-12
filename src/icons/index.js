@@ -2,6 +2,10 @@
 import React from 'react';
 import SvgIcon from '@material-ui/core/SvgIcon';
 
+export const auth_apple = require('./auth_apple.png');
+export const auth_github = require('./auth_github.png');
+export const auth_google = require('./auth_google.png');
+
 export function AccountIcon(props) {
   return (
     <SvgIcon {...props}>

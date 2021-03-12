@@ -9,7 +9,7 @@ import Typography from '@material-ui/core/Typography';
 
 import { config as AuthConfig } from '@commaai/my-comma-auth';
 
-import { CommaIcon } from '../icons';
+import { CommaIcon, auth_apple, auth_github, auth_google } from '../icons';
 
 const styles = (/* theme */) => ({
   base: {
@@ -32,7 +32,7 @@ const styles = (/* theme */) => ({
   },
   logInButton: {
     alignItems: 'center',
-    background: '#175886',
+    background: '#ffffff',
     display: 'flex',
     borderRadius: '100px',
     fontSize: '21px',
@@ -40,10 +40,15 @@ const styles = (/* theme */) => ({
     justifyContent: 'center',
     textDecoration: 'none',
     width: '100%',
+    marginBottom: '0.5em',
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'left 15% center',
+    backgroundSize: '40px',
   },
   logInText: {
     fontFamily: 'MaisonNeue',
     fontSize: '18px',
+    color: 'black',
     fontWeight: 600,
   },
   demoLink: {
@@ -51,7 +56,6 @@ const styles = (/* theme */) => ({
     justifyContent: 'center',
     width: '100%',
     height: '40px',
-    paddingTop: '10px',
     display: 'flex',
   },
   demoLinkText: {
@@ -80,9 +84,25 @@ class AnonymousLanding extends Component {
         <Typography className={classes.tagline}>
           Review and annotate your comma.ai driving data.
         </Typography>
-        <a href={AuthConfig.oauthRedirectLink} className={classes.logInButton}>
+        <a href={AuthConfig.GOOGLE_REDIRECT_LINK} 
+           className={classes.logInButton}
+           style={{backgroundImage: "url(" + auth_google + ")"}}>
           <Typography className={classes.logInText}>
-            Log in with Google
+            Sign in with Google
+          </Typography>
+        </a>
+        <a href={AuthConfig.APPLE_REDIRECT_LINK}
+           className={classes.logInButton}
+           style={{backgroundImage: "url(" + auth_apple + ")"}}>
+          <Typography className={classes.logInText}>
+            Sign in with Apple
+          </Typography>
+        </a>
+        <a href={AuthConfig.GITHUB_REDIRECT_LINK}
+           className={classes.logInButton}
+           style={{backgroundImage: "url(" + auth_github + ")"}}>
+          <Typography className={classes.logInText}>
+            Sign in with GitHub
           </Typography>
         </a>
         <a href={DEMO_LINK} className={classes.demoLink}>
