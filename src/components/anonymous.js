@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import window from 'global/window';
 import PropTypes from 'prop-types';
+import qs from 'querystringify';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -73,6 +74,25 @@ class AnonymousLanding extends Component {
     }
   }
 
+  componentDidMount() {
+    const script = document.createElement("script");
+    document.body.appendChild(script);
+    script.onload = () => {
+      AppleID.auth.init({
+        clientId : AuthConfig.APPLE_CLIENT_ID,
+        scope : AuthConfig.APPLE_SCOPES,
+        redirectURI : AuthConfig.APPLE_REDIRECT_URI,
+        usePopup : true,
+      });
+    };
+    script.src = "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
+    script.async = true;
+    document.addEventListener('AppleIDSignInOnSuccess', (data) => {
+      window.location = [AuthConfig.APPLE_REDIRECT_PATH,
+        qs.stringify({code: data.detail.authorization.code})].join('?');
+    });
+  }
+
   render() {
     const { classes } = this.props;
     return (
@@ -84,16 +104,16 @@ class AnonymousLanding extends Component {
         <Typography className={classes.tagline}>
           Review and annotate your comma.ai driving data.
         </Typography>
-        <a href={AuthConfig.GOOGLE_REDIRECT_LINK} 
+        <a href={AuthConfig.GOOGLE_REDIRECT_LINK}
            className={classes.logInButton}
            style={{backgroundImage: "url(" + auth_google + ")"}}>
           <Typography className={classes.logInText}>
             Sign in with Google
           </Typography>
         </a>
-        <a href={AuthConfig.APPLE_REDIRECT_LINK}
+        <a onClick={ () => AppleID.auth.signIn() }
            className={classes.logInButton}
-           style={{backgroundImage: "url(" + auth_apple + ")"}}>
+           style={ { backgroundImage: "url(" + auth_apple + ")", cursor: 'pointer' } }>
           <Typography className={classes.logInText}>
             Sign in with Apple
           </Typography>
