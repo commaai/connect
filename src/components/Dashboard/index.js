@@ -5,15 +5,12 @@ import { partial } from 'ap';
 
 import { withStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
-import Grid from '@material-ui/core/Grid';
-import Typography from '@material-ui/core/Typography';
-import Modal from '@material-ui/core/Modal';
 
-import { selectRange, selectDevice } from '../../actions';
+import { selectRange, selectDevice, primeNav } from '../../actions';
 import { filterEvent } from '../../utils';
 import DeviceList from './DeviceList';
 import DriveList from './DriveList';
-import Timelineworker from '../../timeline';
+import Prime from '../Prime';
 
 const ZOOM_BUFFER = 1000; // 1 second on either end
 
@@ -75,7 +72,7 @@ class Dashboard extends Component {
   }
 
   render() {
-    const { classes } = this.props;
+    const { classes, prime_nav, device } = this.props;
     let firstAnnotationSegment = null;
     const newAnnotations = this.props.segments.reduce((count, segment) => {
       const segCount = segment.events.filter(filterEvent).reduce((memo, event) => (event.id ? memo : memo + 1), 0);
@@ -103,8 +100,17 @@ class Dashboard extends Component {
             handleDeviceSelected={this.handleDeviceSelected}
           />
         </div>
+
         <div className={classes.window}>
-          <DriveList />
+          { prime_nav ?
+            ( <Prime /> )
+          : ( <>
+            <Button size="large" variant="outlined" className={classes.annotateButton}
+              onClick={ () => this.props.dispatch(primeNav('intro')) }>
+              { device.prime ? "Manage comma prime" : "Activate comma prime" }
+            </Button>
+            <DriveList />
+          </> ) }
         </div>
       </div>
     );
@@ -115,6 +121,7 @@ const stateToProps = Obstruction({
   segments: 'workerState.segments',
   selectedDongleId: 'workerState.dongleId',
   device: 'workerState.device',
+  prime_nav: 'prime.nav',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Dashboard));

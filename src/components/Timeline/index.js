@@ -597,7 +597,7 @@ Timeline.propTypes = {
 function mapStateToProps(state) {
   return {
     ...state.workerState,
-    zoom: state.zoom
+    zoom: state.zoom,
   };
 }
 

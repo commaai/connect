@@ -12,7 +12,7 @@ import Annotations from './Annotations';
 
 import Timelineworker from '../timeline';
 import { selectRange, selectDevice } from '../actions';
-import { getDongleID, getZoom } from '../url';
+import { getDongleID, getZoom, getPrimeNav } from '../url';
 
 const styles = (/* theme */) => ({
   base: {
@@ -63,6 +63,7 @@ class ExplorerApp extends Component {
   checkProps(props) {
     const dongleId = getDongleID(props.pathname);
     const zoom = getZoom(props.pathname);
+    const prime_nav = getPrimeNav(props.pathname);
 
     const { settingDongle } = this.state;
     const curDongle = settingDongle || props.dongleId;
@@ -82,7 +83,10 @@ class ExplorerApp extends Component {
         });
       }
     }
-    dispatch(selectRange(zoom.start, zoom.end));
+
+    if (!prime_nav) {
+      dispatch(selectRange(zoom.start, zoom.end));
+    }
   }
 
   render() {
@@ -109,7 +113,7 @@ ExplorerApp.propTypes = {
 const stateToProps = Obstruction({
   expanded: 'zoom.expanded',
   pathname: 'router.location.pathname',
-  dongleId: 'workerState.dongleId'
+  dongleId: 'workerState.dongleId',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

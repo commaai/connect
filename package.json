@@ -28,6 +28,8 @@
     "@mapbox/mapbox-sdk": "^0.4.0",
     "@material-ui/core": "^1.0.0",
     "@material-ui/icons": "^1.0.0",
+    "@stripe/react-stripe-js": "^1.4.0",
+    "@stripe/stripe-js": "^1.13.2",
     "ap": "^0.2.0",
     "babel-runtime": "^6.26.0",
     "capnp-split": "^0.1.4",
@@ -79,8 +81,7 @@
     "simple-get": "^3.1.0",
     "thyming": "^0.1.1",
     "video-react": "^0.14.1",
-    "weakmap-shim": "^1.1.1",
-    "xtend": "^4.0.1"
+    "weakmap-shim": "^1.1.1"
   },
   "devDependencies": {
     "@babel/helper-regex": "^7.10.5",
