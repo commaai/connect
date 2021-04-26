@@ -1,32 +1,40 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
+import moment from 'moment';
 
-import * as BillingApi from '../../api/billing';
-import { fetchDevice } from '../../actions/async/Devices';
-import PrimePayment from '../../components/PrimePayment';
+import { billing as BillingApi } from '@commaai/comma-api'
+import PrimePayment from './PrimePayment';
 import stripe, { tokenizeNativePay, tokenizeCard } from '../../api/stripe';
-import { PortableSpinner } from '../../components';
+
+import { primeFetchPaymentMethod, primeFetchSubscription } from '../../actions';
+
+import { withStyles, Typography, Button } from '@material-ui/core';
+
+const styles = () => ({
+});
 
 class PrimeManage extends Component {
   constructor(props) {
     super(props);
     this.state ={
-      paymentMethod: null,
       savingPaymentMethod: false,
       savedPaymentMethod: false,
       error: null,
       paymentMethodChangedAndValid: false,
     };
+
+    this._handleSavePaymentMethod = this._handleSavePaymentMethod.bind(this);
+    this._handleChangePaymentMethod = this._handleChangePaymentMethod.bind(this);
   }
 
   componentDidMount() {
-    let { dongleId } = this.props.navigation.state.params;
-    BillingApi.getPaymentMethod().then(paymentMethod => this.setState({paymentMethod}));
+    this.props.dispatch(primeFetchSubscription(this.props.dongleId));
+    this.props.dispatch(primeFetchPaymentMethod());
   }
 
   placeholderCard() {
-    const { paymentMethod } = this.state;
+    const { paymentMethod } = this.props;
     return {
       number: '0000 '.repeat(3) + paymentMethod.last4,
       expiry: paymentMethod.exp_month + '/' + paymentMethod.exp_year.toString().substring(2, 4),
@@ -81,104 +89,77 @@ class PrimeManage extends Component {
   }
 
   render() {
-    let { navigate } = this.props.navigation;
-    let { dongleId } = this.props.navigation.state.params;
-    let subscription = this.props.subscriptions[dongleId];
-    if (!subscription) { return null; }
-    let { error, paymentMethod, savedPaymentMethod, savingPaymentMethod, paymentMethodChangedAndValid } = this.state;
-    let goBackFn = this.props.navigation.goBack.bind(null, null);
+    const { dongleId, subscription, paymentMethod } = this.props;
+    if (!subscription) {
+      return ( <></> );
+    }
+    let { error, savedPaymentMethod, savingPaymentMethod, paymentMethodChangedAndValid } = this.state;
     let joinDate = moment.unix(subscription.subscribed_at).format('MMMM Do, YYYY');
     let nextPaymentDate = moment.unix(subscription.next_charge_at).format('MMMM Do, YYYY');
 
     return (
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "position" : null} style={ { flex: 1, position: 'relative', backgroundColor: 'black' } }>
-        <Page
-          headerIconLeftAsset={ Assets.iconChevronLeft }
-          headerIconLeftAction={ goBackFn }
-          headerStyle={ Styles.primeManagePageHeader }
-          style={ Styles.primeManageContainer }>
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={{width: '100%', height: '100%' }}>
-              <View style={ Styles.primeManageHeader }>
-                <X.Text color='white' weight='bold' size='big' style={ Styles.primeManageTitle }>comma prime</X.Text>
-              </View>
-              <View style={ Styles.primeManageSub }>
-                <View>
-                  <View style={ Styles.primeManageSubInfo }>
-                    <View>
-                      <X.Text color='lightGrey' style={ Styles.primeManageSubInfoText }>Joined:</X.Text>
-                      <X.Text color='white'  style={ Styles.primeManageSubInfoText }>{ joinDate }</X.Text>
-                    </View>
-                  </View>
-                  <View style={ Styles.primeManageSubRow }>
-                    <View style={ Styles.primeManageSubInfo }>
-                      <View>
-                        <X.Text color='lightGrey' style={ Styles.primeManageSubInfoText }>Next payment:</X.Text>
-                        <X.Text color='white' style={ Styles.primeManageSubInfoText }>{ nextPaymentDate }</X.Text>
-                      </View>
-                    </View>
-                    <View style={ Styles.primeManageSubInfo }>
-                      <View>
-                        <X.Text color='lightGrey' style={ Styles.primeManageSubInfoText }>Amount:</X.Text>
-                        <X.Text color='white' style={ Styles.primeManageSubInfoText }>$24.00</X.Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-              </View>
-              { paymentMethod ?
-                <View style={ Styles.primeManagePaymentContainer } >
-                  <PrimePayment
-                    placeholderCard={ this.placeholderCard() }
-                    useNativePay={ paymentMethod.tokenization_method == 'apple_pay' }
-                    submitText={ savingPaymentMethod ? 'Updating...' : 'Update payment method' }
-                    submitDisabled={ !(paymentMethodChangedAndValid || savingPaymentMethod) }
-                    chooseDisabled={ savingPaymentMethod }
-                    onChange={ this._handleChangePaymentMethod }
-                    onSubmit={ this._handleSavePaymentMethod }
-                  />
-                  { savedPaymentMethod &&
-                    <View style={ Styles.primeManagePaymentSuccessIcon}>
-                      <X.Image source={ Assets.iconCheckmark } />
-                    </View> }
-                  { error &&
-                    <View style={ Styles.primeManagePaymentError }>
-                      <View style={ Styles.primeManagePaymentErrorIcon }>
-                        <X.Image source={ Assets.iconError } />
-                      </View>
-                      <X.Text color='red'>{ error }</X.Text>
-                    </View> }
-                  <X.Button size='tiny' color='borderless' onPress={ () => navigate('PrimeCancel', { dongleId }) }>
-                    <X.Text color='black' size='small' style={ { textAlign: 'center' } }>
-                      Cancel subscription
-                    </X.Text>
-                  </X.Button>
-                </View>
-              :
-                <View style={ Styles.primeManageSpinnerContainer }>
-                  <PortableSpinner
-                    spinnerMessage={ '' }
-                    static={ false }
-                    style={ Styles.spinner }
-                    textStyle={ Styles.spinnerText }/>
-                </View>
-            }
-            </View>
-          </TouchableWithoutFeedback>
-        </Page>
-      </KeyboardAvoidingView>
+      <div>
+        <div>
+          <Typography>comma prime</Typography>
+        </div>
+        <div>
+          <div>
+            <div>
+              <div>
+                <Typography>Joined:</Typography>
+                <Typography>{ joinDate }</Typography>
+              </div>
+            </div>
+            <div>
+              <div>
+                <div>
+                  <Typography>Next payment:</Typography>
+                  <Typography>{ nextPaymentDate }</Typography>
+                </div>
+              </div>
+              <div>
+                <div>
+                  <Typography>Amount:</Typography>
+                  <Typography>$24.00</Typography>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <PrimePayment
+            placeholderCard={ this.placeholderCard() }
+            useNativePay={ paymentMethod.tokenization_method == 'apple_pay' }
+            submitText={ savingPaymentMethod ? 'Updating...' : 'Update payment method' }
+            submitDisabled={ !(paymentMethodChangedAndValid || savingPaymentMethod) }
+            chooseDisabled={ savingPaymentMethod }
+            onChange={ this._handleChangePaymentMethod }
+            onSubmit={ this._handleSavePaymentMethod }
+          />
+          { savedPaymentMethod &&
+            <div>
+              <img source={ Assets.iconCheckmark } />
+            </div> }
+          { error &&
+            <div>
+              <div>
+                <img source={ Assets.iconError } />
+              </div>
+              <Typography>{ error }</Typography>
+            </div> }
+          <Button onClick={ () => navigate('PrimeCancel', { dongleId }) }>
+            <Typography>Cancel subscription</Typography>
+          </Button>
+        </div>
+      </div>
     );
   }
 }
 
 let stateToProps = Obstruction({
-  subscriptions: 'devices.subscriptions',
+  dongleId: 'workerState.dongleId',
+  subscription: 'prime.subscription',
+  paymentMethod: 'prime.paymentMethod',
 });
-let dispatchToProps = function(dispatch) {
-  return ({
-    fetchDevice: function(dongleId) {
-      dispatch(fetchDevice(dongleId))
-    }
-  });
-}
-export default connect(stateToProps, dispatchToProps)(withNavigation(PrimeManage));
+
+export default connect(stateToProps)(withStyles(styles)(PrimeManage));

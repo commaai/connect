@@ -1,18 +1,24 @@
 import React, { Component } from 'react';
-import {CardElement} from '@stripe/react-stripe-js';
+import { connect } from 'react-redux';
+import Obstruction from 'obstruction';
+import { withStyles, Button } from '@material-ui/core';
+import stripe from '../../api/stripe'
+import { Elements, CardElement } from '@stripe/react-stripe-js';
+
+const styles = () => ({
+});
 
 class PrimePayment extends Component {
-  static defaultProps = {
-    submitText: 'Save payment method',
-    chooseDisabled: false,
-    onChange: () => {},
-    onSubmit: () => {},
-  };
+  // static defaultProps = {
+  //   submitText: 'Save payment method',
+  //   chooseDisabled: false,
+  //   onChange: () => {},
+  //   onSubmit: () => {},
+  // };
 
   constructor(props) {
     super(props);
 
-    console.log(props);
     this.state ={
       card: null,
     };
@@ -27,18 +33,36 @@ class PrimePayment extends Component {
     const { card } = this.state;
 
     return (
-      <div>
-        <CardElement onChange={ this._handleCardInput } />
+      <Elements stripe={stripe}>
+        <CardElement
+          options={{
+            style: {
+              base: {
+                fontSize: '16px',
+                color: '#424770',
+                '::placeholder': {
+                  color: '#aab7c4',
+                },
+              },
+              invalid: {
+                color: '#9e2146',
+              },
+            },
+            onChange: this._handleCardInput
+          }}
+          />
         <Button
-          style={ Styles.primePaymentInfoDetailsSubmit }
-          textColor='white'
-          onPress={ () => this.props.onSubmit(card, useNativePay) }
-          isDisabled={ this.props.submitDisabled !== undefined ? this.props.submitDisabled : !((card && card.valid) || useNativePay) }>
+          onClick={ () => this.props.onSubmit(card, useNativePay) }
+          disabled={ this.props.submitDisabled !== undefined ? this.props.submitDisabled : !((card && card.valid) || useNativePay) }>
           { this.props.submitText }
         </Button>
-      </div>
+      </Elements>
     );
   }
 }
 
-export default PrimePayment;
+let stateToProps = Obstruction({
+  paymentMethod: 'prime.paymentMethod',
+});
+
+export default connect(stateToProps)(withStyles(styles)(PrimePayment));

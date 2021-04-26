@@ -19,6 +19,7 @@ import {
 } from '@material-ui/core';
 import Pencil from '@material-ui/icons/Edit';
 
+import { deviceTypePretty } from '../../utils'
 import { devices as Devices } from '@commaai/comma-api';
 import Timelineworker from '../../timeline';
 import CommaTwoUpsell from '../Annotations/commaTwoUpsell';
@@ -135,15 +136,6 @@ class DeviceList extends Component {
     }
   }
 
-  deviceTypePretty(deviceType) {
-    if (deviceType === 'neo') {
-      return 'EON';
-    } else if (deviceType === 'two') {
-      return 'comma two';
-    }
-    return deviceType;
-  }
-
   render() {
     let { devices } = this.props;
     const dongleId = this.props.selectedDevice;
@@ -169,7 +161,7 @@ class DeviceList extends Component {
   renderDevice(device) {
     const { classes } = this.props;
     const isSelected = (this.props.selectedDevice === device.dongle_id);
-    const alias = device.alias || this.deviceTypePretty(device.device_type);
+    const alias = device.alias || deviceTypePretty(device.device_type);
     return (
       <div
         key={device.dongle_id}
@@ -183,73 +175,11 @@ class DeviceList extends Component {
           </Typography>
           <Typography variant="caption" className={classes.deviceId}>
             (
-            { device.dongle_id }
-)
+              { device.dongle_id }
+            )
           </Typography>
         </div>
       </div>
-    );
-
-    const oldRender = (
-      <ExpansionPanel
-        classes={{ expanded: classes.expanded }}
-        key={device.dongle_id}
-        expanded={this.props.selectedDevice === device.dongle_id}
-        onChange={partial(this.props.handleDeviceSelected, device.dongle_id)}
-        className={classes.expansion}
-      >
-        <ExpansionPanelSummary>
-          <Grid container>
-            <Grid item xs={10}>
-              { this.state.editingDevice === device.dongle_id
-                ? (
-                  <>
-                    { this.state.isWaitingForApi && <LinearProgress /> }
-                    { this.state.error !== null && <FormHelperText error>{ this.state.error }</FormHelperText> }
-                    <TextField
-                      id="name"
-                      label="Name"
-                      className={classes.textField}
-                      value={this.state.deviceAlias}
-                      onChange={this.handleAliasChange}
-                      onKeyPress={partial(this.handleAliasFieldKeyPress, device.dongle_id)}
-                    />
-                  </>
-                )
-                : (
-                  <Typography className={classes.deviceListItemName}>
-                    { (`${alias} (${device.dongle_id})`) }
-                  </Typography>
-                )}
-            </Grid>
-            { (!device.shared && (device.is_owner || this.props.isSuperUser))
-              && (
-              <Grid item xs={2}>
-                <Pencil className={classes.editDeviceIcon} onClick={partial(this.toggleDeviceEdit, device)} />
-              </Grid>
-              )}
-            { this.state.editingDevice === device.dongle_id
-              && (
-                <>
-                  <Grid item xs={6}>
-                    <Button
-                      variant="outlined"
-                      onClick={partial(this.setDeviceAlias, device.dongle_id)}
-                      className={classes.saveButton}
-                    >
-                    Save
-                    </Button>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Button variant="outlined" onClick={this.cancelEdit}>
-                    Cancel
-                    </Button>
-                  </Grid>
-                </>
-              )}
-          </Grid>
-        </ExpansionPanelSummary>
-      </ExpansionPanel>
     );
   }
 

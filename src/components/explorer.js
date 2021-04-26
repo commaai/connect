@@ -63,7 +63,6 @@ class ExplorerApp extends Component {
   checkProps(props) {
     const dongleId = getDongleID(props.pathname);
     const zoom = getZoom(props.pathname);
-    const prime_nav = getPrimeNav(props.pathname);
 
     const { settingDongle } = this.state;
     const curDongle = settingDongle || props.dongleId;
@@ -84,7 +83,7 @@ class ExplorerApp extends Component {
       }
     }
 
-    if (!prime_nav) {
+    if (!getPrimeNav(props.pathname)) {
       dispatch(selectRange(zoom.start, zoom.end));
     }
   }

@@ -1,8 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-
-
+import { deviceTypePretty } from '../../utils';
 
 import {
   withStyles,
@@ -34,34 +33,16 @@ class PrimeIntro extends Component {
     super(props);
 
     this.navPrime = this.navPrime.bind(this);
-    this.deviceTypePretty = this.deviceTypePretty.bind(this);
-  }
-
-  deviceTypePretty(deviceType) {
-    if (deviceType === 'neo') {
-      return 'EON';
-    } else if (deviceType === 'two') {
-      return 'comma two';
-    }
-    return deviceType;
   }
 
   navPrime() {
-    primeNav('payment');
-    this.props.dispatch({ Types.PR, prime.nav: 'payment' });
+    ;
   }
 
   render() {
-    const { classes, dongleId, devices } = this.props;
-    let device = null
-    devices.forEach(d => {
-      console.log(d, dongleId);
-      if (d.dongle_id === dongleId) {
-        device = d;
-      }
-    });
+    const { classes, device } = this.props;
 
-    const alias = device.alias || this.deviceTypePretty(device.device_type);
+    const alias = device.alias || deviceTypePretty(device.device_type);
 
     return (
       <div className={ classes.primeContainer }>
@@ -81,7 +62,8 @@ class PrimeIntro extends Component {
           <li>24/7 connectivity</li>
           <li>Unlimited data at 512kbps*</li>
         </ul>
-        <Button size="large" variant="outlined" className={ classes.continueButton } onClick={ this.navPrime }>
+        <Button size="large" variant="outlined" className={ classes.continueButton }
+          onClick={ () => primeNav('payment') }>
           Activate comma prime
         </Button>
         <p>* Data plan only offered in United States</p>
@@ -91,7 +73,7 @@ class PrimeIntro extends Component {
 }
 
 const stateToProps = Obstruction({
-  devices: 'workerState.devices',
+  device: 'workerState.device',
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeIntro));

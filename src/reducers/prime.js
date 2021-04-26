@@ -1,11 +1,9 @@
-import { PRIME_NAV } from '../actions/types';
+import { PRIME_NAV, PRIME_GET_SUBSCRIPTION, PRIME_GET_PAYMENTMETHOD } from '../actions/types';
 
 const initialState = {
   nav: null,
-  activated: false,
-  trialClaimable: false,
+  subscription: null,
   paymentMethod: null,
-  paymentInfo: null,
 };
 
 export default function prime(state = initialState, action) {
@@ -14,6 +12,16 @@ export default function prime(state = initialState, action) {
       return {
         ...state,
         nav: action.payload,
+      };
+    case PRIME_GET_SUBSCRIPTION:
+      return {
+        ...state,
+        subscription: action.payload,
+      };
+    case PRIME_GET_PAYMENTMETHOD:
+      return {
+        ...state,
+        paymentMethod: action.payload,
       };
     default:
       return state;

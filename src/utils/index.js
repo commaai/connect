@@ -23,3 +23,12 @@ export function getDrivePoints(duration) {
   const points = Math.floor(minutes * 1.5); // panda
   return points;
 }
+
+export function deviceTypePretty(deviceType) {
+  if (deviceType === 'neo') {
+    return 'EON';
+  } else if (deviceType === 'two') {
+    return 'comma two';
+  }
+  return deviceType;
+}

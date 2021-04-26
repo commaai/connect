@@ -106,7 +106,7 @@ class Dashboard extends Component {
             ( <Prime /> )
           : ( <>
             <Button size="large" variant="outlined" className={classes.annotateButton}
-              onClick={ () => this.props.dispatch(primeNav('intro')) }>
+              onClick={ () => this.props.dispatch(primeNav(device.prime ? 'manage' : 'intro')) }>
               { device.prime ? "Manage comma prime" : "Activate comma prime" }
             </Button>
             <DriveList />

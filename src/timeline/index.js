@@ -9,7 +9,7 @@ import { storage as AuthStorage } from '@commaai/my-comma-auth';
 import * as Playback from './playback';
 import * as LogIndex from './logIndex';
 import * as Cache from './cache';
-import { getDongleID, getZoom, getPrimeNav } from '../url';
+import { getDongleID, getZoom } from '../url';
 import { getState, init as initTimeline } from './timeline';
 import { commands } from './commands';
 import store from './store';
@@ -54,7 +54,6 @@ export class TimelineInterface {
       this.readyPromise = commands.hello({
         dongleId: getDongleID(startPath),
         zoom: getZoom(startPath),
-        prime_nav: getPrimeNav(startPath),
       });
 
       const token = await AuthStorage.getCommaAccessToken();

@@ -3,6 +3,7 @@ import document from 'global/document';
 import * as Types from './types';
 import Timelineworker from '../timeline';
 import { getDongleID, getPrimeNav } from '../url';
+import { billing as BillingApi } from '@commaai/comma-api';
 
 export function updateState(data) {
   return {
@@ -86,6 +87,55 @@ export function primeNav(page) {
     if (curPath !== desiredPath) {
       dispatch(push(desiredPath));
     }
+  };
+}
+
+export function primeFetchSubscription() {
+  return (dispatch, getState) => {
+    const state = getState();
+
+    BillingApi.getSubscription(state.workerState.dongleId).then((sub) => {
+      dispatch({
+        type: Types.PRIME_GET_SUBSCRIPTION,
+        payload: sub,
+      });
+    }).catch((err) => {
+      console.log(err);
+      dispatch({
+        type: Types.PRIME_GET_SUBSCRIPTION,
+        payload: null,
+      });
+    });
+  };
+}
+
+export function primeFetchPaymentMethod() {
+  return (dispatch, getState) => {
+    const state = getState();
+
+    dispatch({
+      type: Types.PRIME_GET_PAYMENTMETHOD,
+      payload: {
+        brand: "Visa",
+        country: "US",
+        exp_month: 6,
+        exp_year: 2023,
+        last4: "0033",
+        tokenization_method: null,
+      }
+    });
+    // BillingApi.getPaymentMethod().then((payment) => {
+    //   dispatch({
+    //     type: Types.PRIME_GET_PAYMENTMETHOD,
+    //     payload: payment,
+    //   });
+    // }).catch((err) => {
+    //   console.log(err);
+    //   dispatch({
+    //     type: Types.PRIME_GET_PAYMENTMETHOD,
+    //     payload: null,
+    //   });
+    // });
   };
 }
 
