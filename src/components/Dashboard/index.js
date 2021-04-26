@@ -11,6 +11,7 @@ import { filterEvent } from '../../utils';
 import DeviceList from './DeviceList';
 import DriveList from './DriveList';
 import Prime from '../Prime';
+import PrimeBanner from '../Prime/PrimeBanner'
 
 const ZOOM_BUFFER = 1000; // 1 second on either end
 
@@ -105,10 +106,7 @@ class Dashboard extends Component {
           { prime_nav ?
             ( <Prime /> )
           : ( <>
-            <Button size="large" variant="outlined" className={classes.annotateButton}
-              onClick={ () => this.props.dispatch(primeNav(device.prime ? 'manage' : 'intro')) }>
-              { device.prime ? "Manage comma prime" : "Activate comma prime" }
-            </Button>
+            <PrimeBanner />
             <DriveList />
           </> ) }
         </div>

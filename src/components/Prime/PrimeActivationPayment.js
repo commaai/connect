@@ -1,25 +1,17 @@
 import React, { Component } from 'react';
-import {
-  Linking,
-  Platform,
-  TouchableWithoutFeedback,
-  View,
-  KeyboardAvoidingView,
-  Keyboard,
-} from 'react-native';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import moment from 'moment';
-import * as Billing from '../../api/billing';
-import X from '../../theme';
-import { Assets } from '../../constants';
-import Page from '../../components/Page';
-import Styles from './PrimeStyles';
-import { primeActivated } from '../../actions/Auth';
-import { fetchDeviceSubscription } from '../../actions/async/Devices';
-import PrimePayment from '../../components/PrimePayment';
+import { billing as BillingApi } from '@commaai/comma-api'
+import PrimePayment from './PrimePayment';
 import stripe, { tokenizeNativePay, tokenizeCard } from '../../api/stripe';
+
+import { withStyles, Typography, Button } from '@material-ui/core';
+
+const styles = () => ({
+
+});
 
 class PrimeActivationPayment extends Component {
   constructor(props) {
@@ -130,7 +122,6 @@ class PrimeActivationPayment extends Component {
   }
 
   render() {
-    const { navigate, goBack } = this.props.navigation;
     const { error } = this.props.navigation.state.params;
     const { card, deviceSupportsNativePay, canUseNativePay, useNativePay } = this.state;
 
@@ -144,44 +135,34 @@ class PrimeActivationPayment extends Component {
     }
 
     return (
-      <View style={{width: '100%', height: '100%'}}>
-        <X.Text
-          size='big'
-          weight='semibold'
-          color='white'
-          style={ Styles.title }>
-          Activate comma prime
-        </X.Text>
+      <div style={{width: '100%', height: '100%'}}>
+        <Typography>Activate comma prime</Typography>
         { error ?
-          <View style={ [Styles.section, Styles.paymentError] }>
-            <X.Text color='white' size='small' style={ Styles.paymentErrorText }>{ error }{'\n'}You have not been charged.</X.Text>
-          </View>
+          <div style={ [Styles.section, Styles.paymentError] }>
+            <Typography color='white' size='small' style={ Styles.paymentErrorText }>{ error }</Typography>
+            <Typography>You have not been charged.</Typography>
+          </div>
           :
-          <View style={ Styles.section }>
-            <X.Text color='white' size='small' style={ Styles.chargeText }>{ chargeText }</X.Text>
-          </View>
+          <div style={ Styles.section }>
+            <Typography color='white' size='small' style={ Styles.chargeText }>{ chargeText }</Typography>
+          </div>
         }
-        <View style={ [Styles.section, Styles.fullWidthSection, Styles.paymentSection ] }>
+        <div style={ [Styles.section, Styles.fullWidthSection, Styles.paymentSection ] }>
           <PrimePayment
             submitText='Activate'
             onSubmit={ this._handlePaymentSubmit }
           />
-        </View>
-      </View>
+        </div>
+      </div>
     );
   }
 }
 
 const stateToProps = Obstruction({
-  subscriptions: 'devices.subscriptions'
+  dongleId: 'workerState.dongleId',
+  subscription: 'prime.subscription',
+  paymentMethod: 'prime.paymentMethod',
 });
-function dispatchToProps(dispatch) {
-  return {
-    primeActivated: async (dongleId) => {
-      dispatch(primeActivated());
-      await dispatch(fetchDeviceSubscription(dongleId));
-    }
-  }
-}
-export default connect(stateToProps, dispatchToProps)(PrimeActivationPayment);
+
+export default connect(stateToProps)(withStyles(styles)(PrimeActivationPayment));
 

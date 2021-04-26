@@ -2,14 +2,11 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
-import PrimeIntro from './PrimeIntro';
 import PrimeManage from './PrimeManage';
+import PrimeActivationPayment from './PrimeActivationPayment';
+import PrimeActivationDone from './PrimeActivationDone';
 
-import {
-  withStyles,
-  Typography,
-  Button,
-} from '@material-ui/core';
+import { withStyles } from '@material-ui/core';
 
 const styles = () => ({
 });
@@ -22,10 +19,10 @@ class Prime extends Component {
   render() {
     const { prime } = this.props;
     switch (prime.nav) {
-    case 'intro':
-      return ( <PrimeIntro /> );
     case 'manage':
       return ( <PrimeManage /> );
+    case 'activationPayment':
+      return ( <PrimeActivationPayment /> );
     }
   }
 }

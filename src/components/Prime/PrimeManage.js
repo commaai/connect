@@ -7,8 +7,6 @@ import { billing as BillingApi } from '@commaai/comma-api'
 import PrimePayment from './PrimePayment';
 import stripe, { tokenizeNativePay, tokenizeCard } from '../../api/stripe';
 
-import { primeFetchPaymentMethod, primeFetchSubscription } from '../../actions';
-
 import { withStyles, Typography, Button } from '@material-ui/core';
 
 const styles = () => ({
@@ -156,7 +154,7 @@ class PrimeManage extends Component {
   }
 }
 
-let stateToProps = Obstruction({
+const stateToProps = Obstruction({
   dongleId: 'workerState.dongleId',
   subscription: 'prime.subscription',
   paymentMethod: 'prime.paymentMethod',
