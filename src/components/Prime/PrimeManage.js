@@ -6,10 +6,60 @@ import moment from 'moment';
 import { billing as BillingApi } from '@commaai/comma-api'
 import PrimePayment from './PrimePayment';
 import stripe from '../../api/stripe';
+import { deviceTypePretty } from '../../utils';
 
-import { withStyles, Typography, Button } from '@material-ui/core';
+import { withStyles, Typography, Button, Modal, Paper } from '@material-ui/core';
 
-const styles = () => ({
+import { primeFetchSubscription, primeFetchPaymentMethod, primeNav } from '../../actions';
+
+const styles = (theme) => ({
+  primeContainer: {
+    padding: '16px 48px',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    color: '#fff',
+  },
+  primeBlock: {
+    marginTop: 10,
+  },
+  overviewBlock: {
+    marginTop: 20,
+  },
+  manageItem: {
+    marginLeft: 10,
+  },
+  paymentElement: {
+    maxWidth: 350,
+  },
+  modal: {
+    position: 'absolute',
+    padding: theme.spacing.unit * 2,
+    width: theme.spacing.unit * 50,
+    left: '50%',
+    top: '40%',
+    transform: 'translate(-50%, -50%)',
+    '& p': {
+      marginTop: 10,
+    },
+  },
+  closeButton: {
+    marginTop: 10,
+    float: 'right'
+  },
+  cancelButton: {
+    marginTop: 10,
+  },
+  cancelError: {
+    backgroundColor: 'rgba(255, 0, 0, 0.3)',
+    marginTop: 10,
+    padding: 10,
+    '& p': { margin: 0 },
+  },
+  cancelSuccess: {
+    backgroundColor: 'rgba(0, 255, 0, 0.3)',
+    marginTop: 10,
+    padding: 10,
+    '& p': { margin: 0 },
+  },
 });
 
 class PrimeManage extends Component {
@@ -20,10 +70,11 @@ class PrimeManage extends Component {
       savedPaymentMethod: false,
       error: null,
       paymentMethodChangedAndValid: false,
+      cancelModal: false,
     };
 
-    this._handleSavePaymentMethod = this._handleSavePaymentMethod.bind(this);
-    this._handleChangePaymentMethod = this._handleChangePaymentMethod.bind(this);
+    this.cancelPrime = this.cancelPrime.bind(this);
+    this.modalClose = this.modalClose.bind(this);
   }
 
   componentDidMount() {
@@ -31,63 +82,30 @@ class PrimeManage extends Component {
     this.props.dispatch(primeFetchPaymentMethod());
   }
 
-  placeholderCard() {
-    const { paymentMethod } = this.props;
-    return {
-      number: '0000 '.repeat(3) + paymentMethod.last4,
-      expiry: paymentMethod.exp_month + '/' + paymentMethod.exp_year.toString().substring(2, 4),
-      cvc: 'CVC'
-    };
+  cancelPrime() {
+    BillingApi.cancelPrime(this.props.dongleId).then((resp) => {
+      if (resp.success) {
+        this.setState({ cancelSuccess: 'Cancelled subscription.' });
+      } else if (resp.error) {
+        this.setState({ cancelError: resp.description });
+      } else {
+        this.setState({ cancelError: 'Could not cancel due to unknown error. Please try again.'})
+      }
+    }).catch((err) => {
+      this.setState({ cancelError: 'Could not cancel due to unknown error. Please try again.' });
+    });
   }
 
-  _handleSavePaymentMethod = async (card, useNativePay) => {
-    // Keyboard.dismiss();
-    // this.setState({ savingPaymentMethod: true, savedPaymentMethod: false });
-    // try {
-    //   let stripeToken;
-    //   if (useNativePay) {
-    //     stripeToken = await tokenizeNativePay();
-    //   } else {
-    //     stripeToken = await tokenizeCard(card);
-    //   }
-    //   const paymentMethod = await BillingApi.updatePaymentMethod(stripeToken.tokenId);
-    //   if (paymentMethod.error) {
-    //     let err = new Error();
-    //     if (typeof paymentMethod.error === 'string') {
-    //       err.message = paymentMethod.error;
-    //     } else {
-    //       err.message = 'Server error. Please try again';
-    //     }
-    //     throw err;
-    //   }
-    //   stripe.completeNativePayRequest();
-    //   this.setState({
-    //     paymentMethod,
-    //     savingPaymentMethod: false,
-    //     savedPaymentMethod: true,
-    //     paymentMethodChangedAndValid: false
-    //   });
-    // } catch(err) {
-    //   stripe.cancelNativePayRequest();
-    //   console.log(err.stack);
-    //   this.setState({ error: err.message, savingPaymentMethod: false });
-    // }
-  }
-
-  _handleChangePaymentMethod = (card, useNativePay) => {
-    // let nativePayChanged = useNativePay !== (this.state.paymentMethod.tokenization_method === 'apple_pay');
-    // let cardChanged = card && (this.placeholderCard().number !== card.values.number || this.placeholderCard().expiry != card.values.expiry || this.placeholderCard().cvc != card.values.cvc);
-    // let valid = ((card && card.valid) || useNativePay);
-
-    // this.setState({
-    //   paymentMethodChangedAndValid: valid && (cardChanged || nativePayChanged),
-    //   savedPaymentMethod: false,
-    //   error: null,
-    // });
+  modalClose() {
+    if (this.state.cancelSuccess) {
+      this.props.dispatch(primeNav(null));
+    } else {
+      this.setState({ cancelModal: false });
+    }
   }
 
   render() {
-    const { dongleId, subscription, paymentMethod } = this.props;
+    const { dongleId, subscription, paymentMethod, classes, device } = this.props;
     if (!subscription) {
       return ( <></> );
     }
@@ -95,67 +113,90 @@ class PrimeManage extends Component {
     let joinDate = moment.unix(subscription.subscribed_at).format('MMMM Do, YYYY');
     let nextPaymentDate = moment.unix(subscription.next_charge_at).format('MMMM Do, YYYY');
 
+    const alias = device.alias || deviceTypePretty(device.device_type);
+    const simId = this.state.simInfo ? this.state.simInfo.sim_id : null;
+    const pm = this.props.paymentMethod;
+
     return (
-      <div>
+      <>
         <div>
-          <Typography>comma prime</Typography>
-        </div>
-        <div>
-          <div>
-            <div>
-              <div>
-                <Typography>Joined:</Typography>
-                <Typography>{ joinDate }</Typography>
+          <div className={ classes.primeContainer }>
+            <Typography variant="title">comma prime</Typography>
+            <div className={ classes.overviewBlock }>
+              <Typography variant="subheading">device</Typography>
+              <div className={ classes.manageItem }>
+                <Typography variant="body2">{ alias }</Typography>
+                <Typography variant="caption" className={classes.deviceId}>({ device.dongle_id })</Typography>
               </div>
             </div>
-            <div>
-              <div>
-                <div>
-                  <Typography>Next payment:</Typography>
-                  <Typography>{ nextPaymentDate }</Typography>
-                </div>
-              </div>
-              <div>
-                <div>
-                  <Typography>Amount:</Typography>
-                  <Typography>$24.00</Typography>
-                </div>
-              </div>
+            <div className={ classes.overviewBlock }>
+              <Typography variant="subheading">joined</Typography>
+              <Typography className={ classes.manageItem }>{ joinDate }</Typography>
+            </div>
+            <div className={ classes.overviewBlock }>
+              <Typography variant="subheading">payment method</Typography>
+              <Typography className={ classes.manageItem }>
+                { pm.brand } •••• •••• •••• { paymentMethod.last4 }
+              </Typography>
+            </div>
+            <div className={ classes.overviewBlock }>
+              <Typography variant="subheading">next payment</Typography>
+              <Typography className={ classes.manageItem }>{ nextPaymentDate }</Typography>
+            </div>
+            <div className={ classes.overviewBlock }>
+              <Typography variant="subheading">amount</Typography>
+              <Typography className={ classes.manageItem }>$24.00</Typography>
+            </div>
+          </div>
+          <div className={ classes.primeContainer }>
+            <Typography variant="title">update payment method</Typography>
+            { this.state.activated && <div className={ classes.overviewBlockSuccess }>
+              <Typography>payment updated</Typography>
+            </div> }
+            { this.state.error && <div className={ classes.overviewBlockError }>
+              <ErrorIcon />
+              <Typography noWrap>{ this.state.error }</Typography>
+            </div> }
+            <div className={ classes.overviewBlock + " " + classes.paymentElement }>
+              <PrimePayment disabled={ Boolean(this.state.activated) } simId={ simId } buttonText="update"
+                onActivated={ (msg) => this.setState({ activated: msg }) }
+                onError={ (err) => this.setState({error: err}) }
+                onCancel={ () => this.setState({ cancelModal: true }) } />
             </div>
           </div>
         </div>
-        <div>
-          <PrimePayment
-            placeholderCard={ this.placeholderCard() }
-            useNativePay={ paymentMethod.tokenization_method == 'apple_pay' }
-            submitText={ savingPaymentMethod ? 'Updating...' : 'Update payment method' }
-            submitDisabled={ !(paymentMethodChangedAndValid || savingPaymentMethod) }
-            chooseDisabled={ savingPaymentMethod }
-            onChange={ this._handleChangePaymentMethod }
-            onSubmit={ this._handleSavePaymentMethod }
-          />
-          { savedPaymentMethod &&
-            <div>
-              <img source={ Assets.iconCheckmark } />
+        <Modal open={ this.state.cancelModal } onClose={ this.modalClose }>
+          <Paper className={classes.modal}>
+            <Typography variant="title">Cancel prime subscription</Typography>
+            { this.state.cancelError && <div className={ classes.cancelError }>
+              <Typography>{ this.state.cancelError }</Typography>
             </div> }
-          { error &&
-            <div>
-              <div>
-                <img source={ Assets.iconError } />
-              </div>
-              <Typography>{ error }</Typography>
+            { this.state.cancelSuccess && <div className={ classes.cancelSuccess }>
+              <Typography>{ this.state.cancelSuccess }</Typography>
             </div> }
-          <Button onClick={ () => navigate('PrimeCancel', { dongleId }) }>
-            <Typography>Cancel subscription</Typography>
-          </Button>
-        </div>
-      </div>
+            <Typography>Device: {alias} ({ dongleId })</Typography>
+            <Typography>We're sorry to see you go.</Typography>
+            <Typography>
+              Cancelling will immediately suspend billing and comma prime membership benefits.
+            </Typography>
+            <Button variant="contained" className={ classes.cancelButton } onClick={ this.cancelPrime }
+              disabled={ this.state.cancelSuccess }>
+              Cancel subscription
+            </Button>
+            <Button variant="contained" className={ classes.closeButton }
+              onClick={ this.modalClose }>
+              Close
+            </Button>
+          </Paper>
+        </Modal>
+      </>
     );
   }
 }
 
 const stateToProps = Obstruction({
   dongleId: 'workerState.dongleId',
+  device: 'workerState.device',
   subscription: 'prime.subscription',
   paymentMethod: 'prime.paymentMethod',
 });

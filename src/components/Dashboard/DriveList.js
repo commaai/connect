@@ -50,10 +50,10 @@ const styles = (theme) => ({
     justifyContent: 'flex-end',
   },
   settingsButton: {
-    border: '1px solid #272D30'
+    border: '1px solid rgba(255, 255, 255, 0.3)'
   },
   settingsButtonIcon: {
-    color: '#272D30',
+    color: 'rgba(255, 255, 255, 0.3)',
   },
 });
 

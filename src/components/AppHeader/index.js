@@ -55,7 +55,7 @@ const styles = (theme) => ({
     paddingRight: 28,
   },
   accountIcon: {
-    color: '#272D30',
+    color: 'rgba(255, 255, 255, 0.3)',
     height: 34,
     width: 34,
   },

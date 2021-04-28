@@ -3,9 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import PrimeManage from './PrimeManage';
-import PrimeActivationPayment from './PrimeActivationPayment';
 import PrimeOverview from './PrimeOverview';
-import PrimeActivationDone from './PrimeActivationDone';
 
 import { withStyles } from '@material-ui/core';
 
@@ -24,8 +22,6 @@ class Prime extends Component {
       return ( <PrimeManage /> );
     case 'overview':
       return ( <PrimeOverview /> );
-    case 'activationPayment':
-      return ( <PrimeActivationPayment /> );
     }
   }
 }

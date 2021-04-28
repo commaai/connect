@@ -19,6 +19,7 @@ class PrimeCancel extends Component {
       error: null,
       success: false,
       isLoading: false,
+      cancelModal: false,
     };
   }
 

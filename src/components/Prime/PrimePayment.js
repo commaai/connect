@@ -20,6 +20,7 @@ class PrimePayment extends Component {
   }
 
   static defaultProps = {
+    buttonText: 'Activate',
     onError: () => {},
     onActivated: (_) => {},
   }
@@ -93,8 +94,12 @@ class PrimePayment extends Component {
         }} />
         <Button size="large" variant="outlined" disabled={ !canCheckout || this.props.disabled }
           style={{ marginTop: 20 }} onClick={ this.submitPayment }>
-          Activate
+          { this.props.buttonText }
         </Button>
+        { this.props.onCancel && <Button size="large" style={{ marginLeft: 20, marginTop: 20 }}
+          onClick={ this.props.onCancel }>
+          Cancel subscription
+        </Button> }
       </>
     );
   }
@@ -106,7 +111,8 @@ const InjectedCheckoutForm = (props) => {
       <ElementsConsumer>
         {({elements, stripe}) => (
           <PrimePayment elements={ elements } stripe={ stripe } disabled={ props.disabled } simId={ props.simId }
-            onError={ props.onError } onActivated={ props.onActivated } dongleId={ props.dongleId } />
+            onError={ props.onError } onActivated={ props.onActivated } dongleId={ props.dongleId }
+            buttonText={ props.buttonText } onCancel={ props.onCancel } />
         )}
       </ElementsConsumer>
     </Elements>
