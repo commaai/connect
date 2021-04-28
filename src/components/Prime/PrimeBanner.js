@@ -3,18 +3,13 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { deviceTypePretty } from '../../utils';
 import { primeNav } from '../../actions';
+import PrimeChecklist from './PrimeChecklist';
 
 import {
   withStyles,
   Typography,
   Button,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
 } from '@material-ui/core';
-import CheckIcon from '@material-ui/icons/Check';
-
 
 const styles = () => ({
   primeContainer: {
@@ -39,21 +34,12 @@ const styles = () => ({
   },
 });
 
-const listItems = [
-  ['Real-time car location', null],
-  ['Take pictures remotely', null],
-  ['1 year storage of drive videos', null],
-  ['Simple SSH for developers', null],
-  ['24/7 connectivity', null],
-  ['Unlimited data at 512kbps', 'only offered in United States'],
-];
-
 class PrimeBanner extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      moreInfo: false,
+      moreInfo: (!props.collapsed),
     };
   }
 
@@ -71,16 +57,9 @@ class PrimeBanner extends Component {
         </div> }
         { this.state.moreInfo && <div>
           <Typography className={ classes.introLine }>Become a comma prime member today for only $24/month</Typography>
-          <List className={ classes.checkList }>
-            { listItems.map((listItemText, _) => {
-              return <ListItem className={ classes.checkListItem }>
-                <ListItemIcon><CheckIcon /></ListItemIcon>
-                <ListItemText primary={ listItemText[0] } secondary={ listItemText[1] } />
-              </ListItem>;
-            }) }
-          </List>
+          <PrimeChecklist />
           <Button size="large" variant="outlined"
-            onClick={ () => this.props.dispatch(primeNav('activationPayment')) }>
+            onClick={ () => this.props.dispatch(primeNav('overview')) }>
             Activate comma prime
           </Button>
         </div> }

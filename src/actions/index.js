@@ -111,8 +111,6 @@ export function primeFetchSubscription() {
 
 export function primeFetchPaymentMethod() {
   return (dispatch, getState) => {
-    const state = getState();
-
     dispatch({
       type: Types.PRIME_GET_PAYMENTMETHOD,
       payload: {

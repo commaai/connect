@@ -5,7 +5,7 @@ import moment from 'moment';
 
 import { billing as BillingApi } from '@commaai/comma-api'
 import PrimePayment from './PrimePayment';
-import stripe, { tokenizeNativePay, tokenizeCard } from '../../api/stripe';
+import stripe from '../../api/stripe';
 
 import { withStyles, Typography, Button } from '@material-ui/core';
 
@@ -41,49 +41,49 @@ class PrimeManage extends Component {
   }
 
   _handleSavePaymentMethod = async (card, useNativePay) => {
-    Keyboard.dismiss();
-    this.setState({ savingPaymentMethod: true, savedPaymentMethod: false });
-    try {
-      let stripeToken;
-      if (useNativePay) {
-        stripeToken = await tokenizeNativePay();
-      } else {
-        stripeToken = await tokenizeCard(card);
-      }
-      const paymentMethod = await BillingApi.updatePaymentMethod(stripeToken.tokenId);
-      if (paymentMethod.error) {
-        let err = new Error();
-        if (typeof paymentMethod.error === 'string') {
-          err.message = paymentMethod.error;
-        } else {
-          err.message = 'Server error. Please try again';
-        }
-        throw err;
-      }
-      stripe.completeNativePayRequest();
-      this.setState({
-        paymentMethod,
-        savingPaymentMethod: false,
-        savedPaymentMethod: true,
-        paymentMethodChangedAndValid: false
-      });
-    } catch(err) {
-      stripe.cancelNativePayRequest();
-      console.log(err.stack);
-      this.setState({ error: err.message, savingPaymentMethod: false });
-    }
+    // Keyboard.dismiss();
+    // this.setState({ savingPaymentMethod: true, savedPaymentMethod: false });
+    // try {
+    //   let stripeToken;
+    //   if (useNativePay) {
+    //     stripeToken = await tokenizeNativePay();
+    //   } else {
+    //     stripeToken = await tokenizeCard(card);
+    //   }
+    //   const paymentMethod = await BillingApi.updatePaymentMethod(stripeToken.tokenId);
+    //   if (paymentMethod.error) {
+    //     let err = new Error();
+    //     if (typeof paymentMethod.error === 'string') {
+    //       err.message = paymentMethod.error;
+    //     } else {
+    //       err.message = 'Server error. Please try again';
+    //     }
+    //     throw err;
+    //   }
+    //   stripe.completeNativePayRequest();
+    //   this.setState({
+    //     paymentMethod,
+    //     savingPaymentMethod: false,
+    //     savedPaymentMethod: true,
+    //     paymentMethodChangedAndValid: false
+    //   });
+    // } catch(err) {
+    //   stripe.cancelNativePayRequest();
+    //   console.log(err.stack);
+    //   this.setState({ error: err.message, savingPaymentMethod: false });
+    // }
   }
 
   _handleChangePaymentMethod = (card, useNativePay) => {
-    let nativePayChanged = useNativePay !== (this.state.paymentMethod.tokenization_method === 'apple_pay');
-    let cardChanged = card && (this.placeholderCard().number !== card.values.number || this.placeholderCard().expiry != card.values.expiry || this.placeholderCard().cvc != card.values.cvc);
-    let valid = ((card && card.valid) || useNativePay);
+    // let nativePayChanged = useNativePay !== (this.state.paymentMethod.tokenization_method === 'apple_pay');
+    // let cardChanged = card && (this.placeholderCard().number !== card.values.number || this.placeholderCard().expiry != card.values.expiry || this.placeholderCard().cvc != card.values.cvc);
+    // let valid = ((card && card.valid) || useNativePay);
 
-    this.setState({
-      paymentMethodChangedAndValid: valid && (cardChanged || nativePayChanged),
-      savedPaymentMethod: false,
-      error: null,
-    });
+    // this.setState({
+    //   paymentMethodChangedAndValid: valid && (cardChanged || nativePayChanged),
+    //   savedPaymentMethod: false,
+    //   error: null,
+    // });
   }
 
   render() {

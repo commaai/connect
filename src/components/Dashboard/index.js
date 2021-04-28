@@ -106,7 +106,7 @@ class Dashboard extends Component {
           { prime_nav ?
             ( <Prime /> )
           : ( <>
-            <PrimeBanner />
+            <PrimeBanner collapsed />
             <DriveList />
           </> ) }
         </div>

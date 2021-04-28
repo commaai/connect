@@ -2,6 +2,7 @@ import { athena as Athena } from '@commaai/comma-api';
 
 export async function fetchSimInfo(dongleId) {
   let payload = { method: 'getSimInfo', jsonrpc: '2.0', id: 0 };
+  console.log(dongleId, payload);
   return Athena.postJsonRpcPayload(dongleId, payload).then(
     function(response) {
       console.log(response);

@@ -3,14 +3,37 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import moment from 'moment';
-import { billing as BillingApi } from '@commaai/comma-api'
+import { billing as Billing } from '@commaai/comma-api'
 import PrimePayment from './PrimePayment';
-import stripe, { tokenizeNativePay, tokenizeCard } from '../../api/stripe';
+import stripe from '../../api/stripe';
+import { primeFetchSubscription } from '../../actions';
 
 import { withStyles, Typography, Button } from '@material-ui/core';
 
 const styles = () => ({
-
+  primeContainer: {
+    padding: '16px 48px',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    color: '#fff',
+  },
+  primeBlock: {
+    marginTop: 10,
+  },
+  moreInfoContainer: {
+    '& p': { display: 'inline' },
+    '& button': { display: 'inline', marginLeft: '15px' },
+  },
+  introLine: {
+    lineHeight: '36px',
+  },
+  checkList: {
+    marginLeft: 10,
+    marginBottom: 10,
+  },
+  checkListItem: {
+    padding: '5px 0',
+    '& svg': { margin: 0 },
+  },
 });
 
 class PrimeActivationPayment extends Component {
@@ -18,6 +41,7 @@ class PrimeActivationPayment extends Component {
     super(props);
 
     this.state = {
+      error: null,
       card: {
         // values: {
         //   number: 4242424242424242,
@@ -31,35 +55,27 @@ class PrimeActivationPayment extends Component {
     this.activate = this.activate.bind(this);
   }
 
+  componentDidMount() {
+    this.props.dispatch(primeFetchSubscription(this.props.dongleId));
+  }
 
-  _handlePaymentSubmit = (card, useNativePay) => {
+  _handlePaymentSubmit = (card) => {
     const { dongleId, simInfo } = this.props.navigation.state.params;
     this.props.navigation.navigate('PrimeActivationSpinner',
       {
         message: 'Activating...',
         nextScreen: 'PrimeActivationDone',
         unskippable: true,
-        loadFn: () => this.activate(dongleId, simInfo, card, useNativePay),
+        loadFn: () => this.activate(dongleId, simInfo, card),
         dongleId,
       }
     );
   }
 
-  async activate(dongleId, simInfo, card, useNativePay) {
+  async activate(dongleId, simInfo, card) {
     try {
       let stripeToken;
-      if (useNativePay) {
-        console.log('using native pay');
-        if (this.isTrialClaimable()) {
-          let firstCharge = this.firstChargeDate();
-          console.log({firstCharge});
-          stripeToken = await tokenizeNativePay({ label: `comma prime trial ${firstCharge}` });
-        } else {
-          stripeToken = await tokenizeNativePay();
-        }
-      } else {
-        stripeToken = await tokenizeCard(card);
-      }
+      // stripeToken = await tokenizeCard(card);
       let payResp;
       try {
         payResp = await Billing.payForPrime(dongleId, simInfo.sim_id, stripeToken.tokenId);
@@ -89,20 +105,14 @@ class PrimeActivationPayment extends Component {
         throw new Error('An error occurred');
       }
     } catch(err) {
-      stripe.cancelNativePayRequest();
       console.log(err.message);
       this.props.navigation.navigate('PrimeActivationPayment', { dongleId, simInfo, error: err.message });
       throw err;
     }
   }
 
-  subscription() {
-    const { dongleId } = this.props.navigation.state.params;
-    return this.props.subscriptions[dongleId];
-  }
-
   isTrialClaimable() {
-    return this.subscription() && this.subscription().trial_claimable;
+    return this.props.subscription && this.subscription().trial_claimable;
   }
 
   firstChargeDate() {
@@ -122,8 +132,8 @@ class PrimeActivationPayment extends Component {
   }
 
   render() {
-    const { error } = this.props.navigation.state.params;
-    const { card, deviceSupportsNativePay, canUseNativePay, useNativePay } = this.state;
+    const { classes, subscription } = this.props;
+    const { error, card } = this.state;
 
     let chargeText = 'Your card will be charged $24.00 today and monthly thereafter.';
     if (this.isTrialClaimable()) {
@@ -135,19 +145,19 @@ class PrimeActivationPayment extends Component {
     }
 
     return (
-      <div style={{width: '100%', height: '100%'}}>
-        <Typography>Activate comma prime</Typography>
+      <div className={ classes.primeContainer }>
+        <Typography variant="title">Activate comma prime</Typography>
         { error ?
-          <div style={ [Styles.section, Styles.paymentError] }>
-            <Typography color='white' size='small' style={ Styles.paymentErrorText }>{ error }</Typography>
+          <div className={ classes.primeBlock }>
+            <Typography>{ error }</Typography>
             <Typography>You have not been charged.</Typography>
           </div>
           :
-          <div style={ Styles.section }>
-            <Typography color='white' size='small' style={ Styles.chargeText }>{ chargeText }</Typography>
+          <div className={ classes.primeBlock }>
+            <Typography>{ chargeText }</Typography>
           </div>
         }
-        <div style={ [Styles.section, Styles.fullWidthSection, Styles.paymentSection ] }>
+        <div className={ classes.primeBlock }>
           <PrimePayment
             submitText='Activate'
             onSubmit={ this._handlePaymentSubmit }
@@ -159,9 +169,7 @@ class PrimeActivationPayment extends Component {
 }
 
 const stateToProps = Obstruction({
-  dongleId: 'workerState.dongleId',
   subscription: 'prime.subscription',
-  paymentMethod: 'prime.paymentMethod',
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeActivationPayment));
