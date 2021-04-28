@@ -5,7 +5,7 @@ import Obstruction from 'obstruction';
 import moment from 'moment';
 import { billing as Billing } from '@commaai/comma-api'
 import stripe, { tokenizeCard } from '../../api/stripe';
-import { primeFetchSubscription } from '../../actions';
+import { primeFetchSubscription, primeNav } from '../../actions';
 import { deviceTypePretty } from '../../utils';
 import { fetchSimInfo } from './util';
 import PrimeChecklist from './PrimeChecklist';
@@ -60,6 +60,12 @@ const styles = () => ({
     backgroundColor: 'rgba(255, 0, 0, 0.2)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
+  overviewBlockSuccess: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: 'rgba(0, 255, 0, 0.2)',
+    '& p': { display: 'inline-block', marginLeft: 10 },
+  },
 });
 
 class PrimeOverview extends Component {
@@ -69,6 +75,7 @@ class PrimeOverview extends Component {
     this.state = {
       error: null,
       simInfo: null,
+      activated: null,
     };
   }
 
@@ -116,8 +123,16 @@ class PrimeOverview extends Component {
       }
     }
 
+    let successMsg = '';
+    if (this.state.activated) {
+      if (this.state.activated.already_active) {
+        successMsg = 'comma prime is already active for this device.\nYou have not been charged for another subscription.';
+      } else {
+        successMsg = 'comma prime activated';
+      }
+    }
+
     const simId = this.state.simInfo ? this.state.simInfo.sim_id : null;
-    console.log(this.state.simInfo);
 
     return (
       <div>
@@ -128,6 +143,13 @@ class PrimeOverview extends Component {
         </div>
         <div className={ classes.primeContainer }>
           <Typography variant="title">checkout</Typography>
+          { this.state.activated && <div className={ classes.overviewBlockSuccess }>
+            <Typography>{ successMsg }</Typography>
+            <Typography>
+              Connectivity will be enabled as soon as activation propagates to your local cell tower.
+              Rebooting your device may help.
+            </Typography>
+          </div> }
           { this.state.error && <div className={ classes.overviewBlockError }>
             <ErrorIcon />
             <Typography noWrap>{ this.state.error }</Typography>
@@ -143,7 +165,8 @@ class PrimeOverview extends Component {
             <Typography>{ chargeText }</Typography>
           </div>
           <div className={ classes.overviewBlock }>
-            <PrimePayment onError={ (err) => this.setState({error: err}) } simId={ simId } />
+            <PrimePayment onActivated={ (msg) => this.setState({ activated: msg }) } simId={ simId }
+              onError={ (err) => this.setState({error: err}) } disabled={ Boolean(this.state.activated) } />
           </div>
         </div>
       </div>

@@ -21,6 +21,7 @@ class PrimePayment extends Component {
 
   static defaultProps = {
     onError: () => {},
+    onActivated: (_) => {},
   }
 
   handleCardInput(card) {
@@ -59,8 +60,8 @@ class PrimePayment extends Component {
     }
     if ('error' in payResp) {
       if (payResp['error'] === "Subscription already active") {
-        this.props.primeActivated(dongleId);
-        return {payResp: {success: 1, already_active: true}};
+        this.props.onActivated(payResp);
+        return;
       } else if (payResp['error'] === 'Payment failed') {
         throw new Error('Card declined');
       } else if (payResp['error'] === 'Invalid SIM') {
@@ -70,8 +71,8 @@ class PrimePayment extends Component {
         throw new Error(payResp.error);
       }
     } else if (payResp['success']) {
-      await this.props.primeActivated(dongleId);
-      return { payResp };
+      this.props.onActivated(payResp);
+      return;
     } else {
       // wtf
       console.log('unknown error', payResp);
@@ -104,8 +105,8 @@ const InjectedCheckoutForm = (props) => {
     <Elements stripe={ stripe }>
       <ElementsConsumer>
         {({elements, stripe}) => (
-          <PrimePayment elements={ elements } stripe={ stripe } disabled={ props.disabled }
-            onError={ props.onError } simId={ props.simId } dongleId={ props.dongleId } />
+          <PrimePayment elements={ elements } stripe={ stripe } disabled={ props.disabled } simId={ props.simId }
+            onError={ props.onError } onActivated={ props.onActivated } dongleId={ props.dongleId } />
         )}
       </ElementsConsumer>
     </Elements>
