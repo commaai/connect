@@ -5,29 +5,21 @@ import Obstruction from 'obstruction';
 import PrimeManage from './PrimeManage';
 import PrimeOverview from './PrimeOverview';
 
-import { withStyles } from '@material-ui/core';
-
-const styles = () => ({
-});
-
 class Prime extends Component {
   constructor(props) {
     super(props);
   }
 
   render() {
-    const { prime } = this.props;
-    switch (prime.nav) {
-    case 'manage':
+    if (this.props.prime) {
       return ( <PrimeManage /> );
-    case 'overview':
-      return ( <PrimeOverview /> );
     }
+    return ( <PrimeOverview /> );
   }
 }
 
 const stateToProps = Obstruction({
-  prime: 'prime',
+  prime: 'workersState.device.prime',
 });
 
-export default connect(stateToProps)(withStyles(styles)(Prime));
+export default connect(stateToProps)(Prime);

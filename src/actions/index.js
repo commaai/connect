@@ -111,29 +111,29 @@ export function primeFetchSubscription() {
 
 export function primeFetchPaymentMethod() {
   return (dispatch, getState) => {
-    dispatch({
-      type: Types.PRIME_GET_PAYMENTMETHOD,
-      payload: {
-        brand: "Visa",
-        country: "US",
-        exp_month: 6,
-        exp_year: 2023,
-        last4: "0033",
-        tokenization_method: null,
-      }
-    });
-    // BillingApi.getPaymentMethod().then((payment) => {
-    //   dispatch({
-    //     type: Types.PRIME_GET_PAYMENTMETHOD,
-    //     payload: payment,
-    //   });
-    // }).catch((err) => {
-    //   console.log(err);
-    //   dispatch({
-    //     type: Types.PRIME_GET_PAYMENTMETHOD,
-    //     payload: null,
-    //   });
+    // dispatch({
+    //   type: Types.PRIME_GET_PAYMENTMETHOD,
+    //   payload: {
+    //     brand: "Visa",
+    //     country: "US",
+    //     exp_month: 6,
+    //     exp_year: 2023,
+    //     last4: "0033",
+    //     tokenization_method: null,
+    //   }
     // });
+    BillingApi.getPaymentMethod().then((payment) => {
+      dispatch({
+        type: Types.PRIME_GET_PAYMENTMETHOD,
+        payload: payment,
+      });
+    }).catch((err) => {
+      console.log(err);
+      dispatch({
+        type: Types.PRIME_GET_PAYMENTMETHOD,
+        payload: null,
+      });
+    });
   };
 }
 

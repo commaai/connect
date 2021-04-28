@@ -3,15 +3,12 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import moment from 'moment';
-import { billing as Billing } from '@commaai/comma-api'
-import stripe, { tokenizeCard } from '../../api/stripe';
-import { primeFetchSubscription, primeNav } from '../../actions';
+import { primeFetchSubscription } from '../../actions';
 import { deviceTypePretty } from '../../utils';
 import { fetchSimInfo } from './util';
 import PrimeChecklist from './PrimeChecklist';
-import { Elements, CardElement, useElements, useStripe } from '@stripe/react-stripe-js';
 
-import { withStyles, Typography, Button, Card } from '@material-ui/core';
+import { withStyles, Typography } from '@material-ui/core';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import PrimePayment from './PrimePayment';
 
