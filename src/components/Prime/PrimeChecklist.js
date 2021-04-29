@@ -8,7 +8,10 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Typography,
 } from '@material-ui/core';
+
+
 import CheckIcon from '@material-ui/icons/Check';
 
 const styles = () => ({
@@ -17,8 +20,12 @@ const styles = () => ({
     marginBottom: 10,
   },
   checkListItem: {
-    padding: '5px 0',
-    '& svg': { margin: 0 },
+    padding: '7px 0',
+    '& svg': { alignSelf: 'flex-start' },
+  },
+  learnMore: {
+    marginBottom: 10,
+    '& a': { color: 'white' }
   },
 });
 
@@ -41,17 +48,22 @@ class PrimeChecklist extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes } = this.props;
 
     return (
-      <List className={ classes.checkList }>
-        { listItems.map((listItemText, i) => {
-          return <ListItem key={ i } className={ classes.checkListItem }>
-            <ListItemIcon><CheckIcon /></ListItemIcon>
-            <ListItemText primary={ listItemText[0] } secondary={ listItemText[1] } />
-          </ListItem>;
-        }) }
-      </List>
+      <>
+        <List className={ classes.checkList }>
+          { listItems.map((listItemText, i) => {
+            return <ListItem key={ i } className={ classes.checkListItem }>
+              <ListItemIcon><CheckIcon /></ListItemIcon>
+              <ListItemText primary={ listItemText[0] } secondary={ listItemText[1] } />
+            </ListItem>;
+          }) }
+        </List>
+        <Typography className={ classes.learnMore }>
+          Learn more about comma prime from our <a rel="noopener noreferrer" target="_blank" href="https://comma.ai/faq">FAQ</a>
+        </Typography>
+      </>
     );
   }
 }

@@ -2,7 +2,7 @@ import { devices as Devices, account as Account, billing as Billing } from '@com
 
 import store from './store';
 import { ACTION_STARTUP_DATA } from './actions/types';
-import { primeGetPaymentMethodAction, primeGetSubscriptionAction, primeNavAction } from './actions';
+import { primeGetPaymentMethodAction, primeGetSubscriptionAction } from './actions';
 import { getDongleID } from '../url';
 
 const demoProfile = require('../demo/profile.json');
@@ -27,9 +27,12 @@ export default async function init(isDemo) {
       const dongleId = getDongleID(window.location.pathname) || devices[0].dongle_id;
       const device = devices.find((dev) => dev.dongle_id === dongleId);
       if (device.is_owner) {
-        Billing.getSubscription(dongleId).then((subscription) => {
+        try {
+          let subscription = await Billing.getSubscription(dongleId);
           store.dispatch(primeGetSubscriptionAction(dongleId, subscription));
-        });
+        } catch(err) {
+          console.log(err);
+        }
       }
     }
 
