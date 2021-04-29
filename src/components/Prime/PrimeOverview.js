@@ -9,6 +9,7 @@ import PrimeChecklist from './PrimeChecklist';
 
 import { withStyles, Typography } from '@material-ui/core';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
+import InfoIcon from '@material-ui/icons/InfoOutline';
 import PrimePayment from './PrimePayment';
 
 const styles = () => ({
@@ -56,6 +57,12 @@ const styles = () => ({
     backgroundColor: 'rgba(255, 0, 0, 0.2)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
+  overviewBlockLoading: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    '& p': { display: 'inline-block', marginLeft: 10 },
+  },
   overviewBlockSuccess: {
     marginTop: 15,
     padding: 10,
@@ -80,10 +87,11 @@ class PrimeOverview extends Component {
   }
 
   componentDidMount() {
+    this.setState({ simInfoLoading: true });
     fetchSimInfo(this.props.dongleId).then((result) => {
-      this.setState({ simInfo: result.simInfo });
+      this.setState({ simInfo: result.simInfo, simInfoLoading: false });
     }).catch((err) => {
-      this.setState({ error: err.message });
+      this.setState({ error: err.message, simInfoLoading: false });
     });
   }
 
@@ -108,7 +116,7 @@ class PrimeOverview extends Component {
   }
 
   render() {
-    const { classes, subscription, device } = this.props;
+    const { classes, device } = this.props;
 
     const alias = device.alias || deviceTypePretty(device.device_type);
 
@@ -151,6 +159,10 @@ class PrimeOverview extends Component {
           { this.state.error && <div className={ classes.overviewBlockError }>
             <ErrorIcon />
             <Typography noWrap>{ this.state.error }</Typography>
+          </div> }
+          { this.state.simInfoLoading && <div className={ classes.overviewBlockLoading }>
+            <InfoIcon />
+            <Typography noWrap>Fetching SIM data</Typography>
           </div> }
           <div className={ classes.overviewBlock }>
             <Typography variant="subheading">device</Typography>

@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import moment from 'moment';
 
-import { billing as BillingApi } from '@commaai/comma-api'
+import { billing as Billing} from '@commaai/comma-api'
 import PrimePayment from './PrimePayment';
 import { deviceTypePretty } from '../../utils';
 import Timelineworker from '../../timeline';
@@ -11,7 +11,7 @@ import Timelineworker from '../../timeline';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import { withStyles, Typography, Button, Modal, Paper } from '@material-ui/core';
 
-import { selectDevice } from '../../timeline/actions';
+import { primeFetchSubscription, selectDevice } from '../../actions';
 
 const styles = (theme) => ({
   primeContainer: {
@@ -80,7 +80,9 @@ class PrimeManage extends Component {
     super(props);
     this.state = {
       error: null,
+      cancelError: null,
       cancelModal: false,
+      canceling: false,
     };
 
     this.cancelPrime = this.cancelPrime.bind(this);
@@ -89,21 +91,23 @@ class PrimeManage extends Component {
   }
 
   cancelPrime() {
-    BillingApi.cancelPrime(this.props.dongleId).then((resp) => {
+    this.setState({ canceling: true });
+    Billing.cancelPrime(this.props.dongleId).then((resp) => {
       if (resp.success) {
-        this.setState({ cancelSuccess: 'Cancelled subscription.' });
+        this.setState({ canceling: false, cancelError: null, cancelSuccess: 'Cancelled subscription.' });
       } else if (resp.error) {
-        this.setState({ cancelError: resp.description });
+        this.setState({ canceling: false, cancelError: resp.description });
       } else {
-        this.setState({ cancelError: 'Could not cancel due to unknown error. Please try again.'})
+        this.setState({ canceling: false, cancelError: 'Could not cancel due to unknown error. Please try again.'})
       }
     }).catch((err) => {
-      this.setState({ cancelError: 'Could not cancel due to unknown error. Please try again.' });
+      this.setState({ canceling: false, cancelError: 'Could not cancel due to unknown error. Please try again.' });
     });
   }
 
   modalClose() {
     if (this.state.cancelSuccess) {
+      this.props.dispatch(primeFetchSubscription(this.props.dongleId));
       this.props.dispatch(selectDevice(this.props.dongleId));
     } else {
       this.setState({ cancelModal: false });
@@ -117,15 +121,11 @@ class PrimeManage extends Component {
 
   render() {
     const { dongleId, subscription, paymentMethod, classes, device } = this.props;
-    if (!subscription) {
-      return ( <></> );
-    }
     let joinDate = moment.unix(subscription.subscribed_at).format('MMMM Do, YYYY');
     let nextPaymentDate = moment.unix(subscription.next_charge_at).format('MMMM Do, YYYY');
 
     const alias = device.alias || deviceTypePretty(device.device_type);
     const simId = this.state.simInfo ? this.state.simInfo.sim_id : null;
-    const pm = this.props.paymentMethod;
 
     return (
       <>
@@ -146,7 +146,7 @@ class PrimeManage extends Component {
             <div className={ classes.overviewBlock }>
               <Typography variant="subheading">payment method</Typography>
               <Typography className={ classes.manageItem }>
-                { pm.brand } •••• •••• •••• { paymentMethod.last4 }
+                { paymentMethod.brand } •••• •••• •••• { paymentMethod.last4 }
               </Typography>
             </div>
             <div className={ classes.overviewBlock }>
@@ -190,8 +190,8 @@ class PrimeManage extends Component {
               Cancelling will immediately suspend billing and comma prime membership benefits.
             </Typography>
             <Button variant="contained" className={ classes.cancelButton } onClick={ this.cancelPrime }
-              disabled={ this.state.cancelSuccess }>
-              Cancel subscription
+              disabled={ Boolean(this.state.cancelSuccess) }>
+              { this.state.canceling ? 'Canceling...' : 'Cancel subscription' }
             </Button>
             <Button variant="contained" className={ classes.closeButton }
               onClick={ this.modalClose }>
