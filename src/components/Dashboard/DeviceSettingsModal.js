@@ -172,7 +172,7 @@ class DeviceSettingsModal extends Component {
           </Typography>
           <Divider />
           <Button variant="outlined" className={ classes.primeManageButton }
-            onClick={ () => this.props.dispatch(primeNav("manage")) }>
+            onClick={ () => this.props.dispatch(primeNav()) }>
             Manage Prime
           </Button>
           <div className={classes.form}>

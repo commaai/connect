@@ -13,7 +13,7 @@ export function getZoom(pathname) {
   let parts = pathname.split('/');
   parts = parts.filter((m) => m.length);
 
-  if (parts.length >= 3 && parts[0] !== 'auth' && parts[1] !== 'prime') {
+  if (parts.length >= 3 && parts[0] !== 'auth') {
     return {
       start: Number(parts[1]),
       end: Number(parts[2])
@@ -29,8 +29,8 @@ export function getPrimeNav(pathname) {
   let parts = pathname.split('/');
   parts = parts.filter((m) => m.length);
 
-  if (parts.length >= 3 && parts[0] !== 'auth' && parts[1] === 'prime') {
-    return parts[2];
+  if (parts.length == 2 && parts[0] !== 'auth' && parts[1] === 'prime') {
+    return true;
   }
-  return null;
+  return false;
 }

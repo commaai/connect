@@ -2,8 +2,8 @@ import { push } from 'connected-react-router';
 import document from 'global/document';
 import * as Types from './types';
 import Timelineworker from '../timeline';
-import { getDongleID, getPrimeNav } from '../url';
-import { billing as BillingApi } from '@commaai/comma-api';
+import { getDongleID } from '../url';
+import { billing as Billing } from '@commaai/comma-api';
 
 export function updateState(data) {
   return {
@@ -53,37 +53,15 @@ export function selectDevice(dongleId) {
   return (dispatch, getState) => {
     const state = getState();
     if (state.workerState.dongleId !== dongleId) {
-      Timelineworker.selectDevice(dongleId);
+      Timelineworker.selectDevice(dongleId).then(() => {
+        dispatch(primeFetchSubscription());
+      });
+    } else {
+      dispatch(primeNav(false));
     }
 
     const curPath = document.location.pathname;
-    if (getPrimeNav(curPath)) {
-      dispatch({
-        type: Types.PRIME_NAV,
-        payload: null,
-      });
-    }
-
     const desiredPath = urlForState(dongleId, state.zoom.start, state.zoom.end, null);
-    if (curPath !== desiredPath) {
-      dispatch(push(desiredPath));
-    }
-  };
-}
-
-export function primeNav(page) {
-  return (dispatch, getState) => {
-    const state = getState();
-
-    if (state.prime.nav !== page) {
-      dispatch({
-        type: Types.PRIME_NAV,
-        payload: page,
-      });
-    }
-
-    const curPath = document.location.pathname;
-    const desiredPath = urlForState(state.workerState.dongleId, null, null, page);
     if (curPath !== desiredPath) {
       dispatch(push(desiredPath));
     }
@@ -94,46 +72,27 @@ export function primeFetchSubscription() {
   return (dispatch, getState) => {
     const state = getState();
 
-    BillingApi.getSubscription(state.workerState.dongleId).then((sub) => {
-      dispatch({
-        type: Types.PRIME_GET_SUBSCRIPTION,
-        payload: sub,
+    if (state.workerState.device.is_owner) {
+      Billing.getSubscription(state.workerState.dongleId).then((subscription) => {
+        Timelineworker.primeGetSubscription(state.workerState.dongleId, subscription);
       });
-    }).catch((err) => {
-      console.log(err);
-      dispatch({
-        type: Types.PRIME_GET_SUBSCRIPTION,
-        payload: null,
-      });
-    });
+    }
   };
 }
 
-export function primeFetchPaymentMethod() {
+export function primeNav(nav = true) {
   return (dispatch, getState) => {
-    // dispatch({
-    //   type: Types.PRIME_GET_PAYMENTMETHOD,
-    //   payload: {
-    //     brand: "Visa",
-    //     country: "US",
-    //     exp_month: 6,
-    //     exp_year: 2023,
-    //     last4: "0033",
-    //     tokenization_method: null,
-    //   }
-    // });
-    BillingApi.getPaymentMethod().then((payment) => {
-      dispatch({
-        type: Types.PRIME_GET_PAYMENTMETHOD,
-        payload: payment,
-      });
-    }).catch((err) => {
-      console.log(err);
-      dispatch({
-        type: Types.PRIME_GET_PAYMENTMETHOD,
-        payload: null,
-      });
-    });
+    const state = getState();
+
+    if (state.workerState.primeNav != nav) {
+      Timelineworker.primeNav(nav);
+    }
+
+    const curPath = document.location.pathname;
+    const desiredPath = urlForState(state.workerState.dongleId, null, null, nav);
+    if (curPath !== desiredPath) {
+      dispatch(push(desiredPath));
+    }
   };
 }
 
@@ -145,7 +104,6 @@ function urlForState(dongleId, start, end, prime_nav) {
     path.push(end);
   } else if (prime_nav) {
     path.push('prime');
-    path.push(prime_nav);
   }
 
   return `/${path.join('/')}`;

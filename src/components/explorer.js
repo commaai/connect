@@ -11,7 +11,7 @@ import Dashboard from './Dashboard';
 import Annotations from './Annotations';
 
 import Timelineworker from '../timeline';
-import { selectRange, selectDevice } from '../actions';
+import { selectRange, primeNav } from '../actions';
 import { getDongleID, getZoom, getPrimeNav } from '../url';
 
 const styles = (/* theme */) => ({
@@ -83,7 +83,9 @@ class ExplorerApp extends Component {
       }
     }
 
-    if (!getPrimeNav(props.pathname)) {
+    if (getPrimeNav(props.pathname)) {
+      dispatch(primeNav());
+    } else {
       dispatch(selectRange(zoom.start, zoom.end));
     }
   }

@@ -6,6 +6,9 @@ import {
   selectDevice as selectDeviceAction,
   selectTimeRange as selectTimeRangeAction,
   updateDevice as updateDeviceAction,
+  primeGetSubscriptionAction,
+  primeGetPaymentMethodAction,
+  primeNavAction,
 } from './actions';
 import Segments from './segments';
 import init from './startup';
@@ -112,6 +115,18 @@ function cachePort(data, ports) {
   Cache.setCachePort(ports[0]);
 }
 
+function primeGetSubscription(dongleId, subscription) {
+  store.dispatch(primeGetSubscriptionAction(dongleId, subscription));
+}
+
+function primeGetPaymentMethod(paymentMethod) {
+  store.dispatch(primeGetPaymentMethodAction(paymentMethod));
+}
+
+function primeNav(nav = true) {
+  store.dispatch(primeNavAction(nav));
+}
+
 function stop() {
   console.log('Stopping worker!');
   // if (SegmentTimerStore(state).stopTimer) {
@@ -135,5 +150,8 @@ export const commands = {
   selectLoop,
   updateDevice,
   cachePort,
-  stop
+  stop,
+  primeGetSubscription,
+  primeGetPaymentMethod,
+  primeNav,
 };

@@ -1,4 +1,7 @@
 import {
+  ACTION_PRIME_NAV,
+  ACTION_PRIME_PAYMENTMETHOD,
+  ACTION_PRIME_SUBSCRIPTION,
   ACTION_SELECT_DEVICE,
   ACTION_SELECT_TIME_RANGE,
   ACTION_UPDATE_DEVICE,
@@ -23,5 +26,27 @@ export function selectTimeRange(start, end) {
     type: ACTION_SELECT_TIME_RANGE,
     start,
     end
+  };
+}
+
+export function primeGetSubscriptionAction(dongleId, subscription) {
+  return {
+    type: ACTION_PRIME_SUBSCRIPTION,
+    dongleId,
+    subscription,
+  };
+}
+
+export function primeGetPaymentMethodAction(paymentMethod) {
+  return {
+    type: ACTION_PRIME_PAYMENTMETHOD,
+    paymentMethod,
+  };
+}
+
+export function primeNavAction(nav) {
+  return {
+    type: ACTION_PRIME_NAV,
+    primeNav: nav,
   };
 }

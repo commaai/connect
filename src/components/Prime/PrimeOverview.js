@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import moment from 'moment';
-import { primeFetchSubscription } from '../../actions';
 import { deviceTypePretty } from '../../utils';
 import { fetchSimInfo } from './util';
 import PrimeChecklist from './PrimeChecklist';
@@ -75,13 +74,12 @@ class PrimeOverview extends Component {
     this.state = {
       error: null,
       simInfo: null,
+      simInfoLoading: false,
       activated: null,
     };
   }
 
   componentDidMount() {
-    this.props.dispatch(primeFetchSubscription(this.props.dongleId));
-
     fetchSimInfo(this.props.dongleId).then((result) => {
       this.setState({ simInfo: result.simInfo });
     }).catch((err) => {
@@ -178,7 +176,7 @@ class PrimeOverview extends Component {
 const stateToProps = Obstruction({
   dongleId: 'workerState.dongleId',
   device: 'workerState.device',
-  subscription: 'prime.subscription',
+  subscription: 'workerState.subscription',
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeOverview));

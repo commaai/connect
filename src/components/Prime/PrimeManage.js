@@ -5,12 +5,11 @@ import moment from 'moment';
 
 import { billing as BillingApi } from '@commaai/comma-api'
 import PrimePayment from './PrimePayment';
-import stripe from '../../api/stripe';
 import { deviceTypePretty } from '../../utils';
 
 import { withStyles, Typography, Button, Modal, Paper } from '@material-ui/core';
 
-import { primeFetchSubscription, primeFetchPaymentMethod, primeNav } from '../../actions';
+import { selectDevice } from '../../timeline/actions';
 
 const styles = (theme) => ({
   primeContainer: {
@@ -77,11 +76,6 @@ class PrimeManage extends Component {
     this.modalClose = this.modalClose.bind(this);
   }
 
-  componentDidMount() {
-    this.props.dispatch(primeFetchSubscription(this.props.dongleId));
-    this.props.dispatch(primeFetchPaymentMethod());
-  }
-
   cancelPrime() {
     BillingApi.cancelPrime(this.props.dongleId).then((resp) => {
       if (resp.success) {
@@ -98,7 +92,7 @@ class PrimeManage extends Component {
 
   modalClose() {
     if (this.state.cancelSuccess) {
-      this.props.dispatch(primeNav(null));
+      this.props.dispatch(selectDevice(this.props.dongleId));
     } else {
       this.setState({ cancelModal: false });
     }
@@ -197,8 +191,8 @@ class PrimeManage extends Component {
 const stateToProps = Obstruction({
   dongleId: 'workerState.dongleId',
   device: 'workerState.device',
-  subscription: 'prime.subscription',
-  paymentMethod: 'prime.paymentMethod',
+  subscription: 'workerState.subscription',
+  paymentMethod: 'workerState.paymentMethod',
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeManage));

@@ -11,7 +11,8 @@ class Prime extends Component {
   }
 
   render() {
-    if (this.props.prime) {
+    console.log(this.props);
+    if (this.props.subscription) {
       return ( <PrimeManage /> );
     }
     return ( <PrimeOverview /> );
@@ -19,7 +20,7 @@ class Prime extends Component {
 }
 
 const stateToProps = Obstruction({
-  prime: 'workersState.device.prime',
+  subscription: 'workerState.subscription',
 });
 
 export default connect(stateToProps)(Prime);

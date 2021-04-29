@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import { deviceTypePretty } from '../../utils';
 import { primeNav } from '../../actions';
 import PrimeChecklist from './PrimeChecklist';
 
@@ -44,9 +43,7 @@ class PrimeBanner extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
-
-    const alias = device.alias || deviceTypePretty(device.device_type);
+    const { classes } = this.props;
 
     return (
       <div className={ classes.primeContainer }>
@@ -59,7 +56,7 @@ class PrimeBanner extends Component {
           <Typography className={ classes.introLine }>Become a comma prime member today for only $24/month</Typography>
           <PrimeChecklist />
           <Button size="large" variant="outlined"
-            onClick={ () => this.props.dispatch(primeNav('overview')) }>
+            onClick={ () => this.props.dispatch(primeNav()) }>
             Activate comma prime
           </Button>
         </div> }
@@ -68,8 +65,6 @@ class PrimeBanner extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  device: 'workerState.device',
-});
+const stateToProps = Obstruction({});
 
 export default connect(stateToProps)(withStyles(styles)(PrimeBanner));
