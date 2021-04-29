@@ -168,12 +168,12 @@ class DeviceSettingsModal extends Component {
       >
         <Paper className={classes.modal}>
           <Typography variant="title">
-            Edit Device
+            Device Settings
           </Typography>
           <Divider />
           <Button variant="outlined" className={ classes.primeManageButton }
             onClick={ () => this.props.dispatch(primeNav()) }>
-            Manage Prime
+            Manage Prime Settings
           </Button>
           <div className={classes.form}>
             <div className={classes.formRow}>
@@ -181,7 +181,7 @@ class DeviceSettingsModal extends Component {
                 id="device_alias"
                 label="Device Name"
                 className={classes.textField}
-                value={this.state.deviceAlias}
+                value={ this.state.deviceAlias ? this.state.deviceAlias : '' }
                 onChange={this.handleAliasChange}
                 onKeyPress={partial(this.callOnEnter, this.setDeviceAlias)}
               />

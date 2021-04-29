@@ -11,7 +11,9 @@ class Prime extends Component {
   }
 
   render() {
-    console.log(this.props);
+    if (!this.props.device.is_owner) {
+      return ( <></> );
+    }
     if (this.props.subscription) {
       return ( <PrimeManage /> );
     }
@@ -21,6 +23,7 @@ class Prime extends Component {
 
 const stateToProps = Obstruction({
   subscription: 'workerState.subscription',
+  device: 'workerState.device',
 });
 
 export default connect(stateToProps)(Prime);
