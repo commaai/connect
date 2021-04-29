@@ -63,7 +63,7 @@ const styles = () => ({
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
   paymentElement: {
-    maxWidth: 350,
+    maxWidth: 400,
   },
 });
 
@@ -164,8 +164,8 @@ class PrimeOverview extends Component {
           </div>
           <div className={ classes.overviewBlock + " " + classes.paymentElement }>
             <PrimePayment disabled={ Boolean(this.state.activated) } simId={ simId }
-              onActivated={ (msg) => this.setState({ activated: msg }) }
-              onError={ (err) => this.setState({error: err}) } />
+              onActivated={ (msg) => this.setState({ activated: msg, error: null }) }
+              onError={ (err) => this.setState({ error: err }) } />
           </div>
         </div>
       </div>

@@ -7,6 +7,7 @@ import { billing as BillingApi } from '@commaai/comma-api'
 import PrimePayment from './PrimePayment';
 import { deviceTypePretty } from '../../utils';
 
+import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import { withStyles, Typography, Button, Modal, Paper } from '@material-ui/core';
 
 import { selectDevice } from '../../timeline/actions';
@@ -23,11 +24,23 @@ const styles = (theme) => ({
   overviewBlock: {
     marginTop: 20,
   },
+  overviewBlockError: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: 'rgba(255, 0, 0, 0.2)',
+    '& p': { display: 'inline-block', marginLeft: 10 },
+  },
+  overviewBlockSuccess: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: 'rgba(0, 255, 0, 0.2)',
+    '& p': { display: 'inline-block', marginLeft: 10 },
+  },
   manageItem: {
     marginLeft: 10,
   },
   paymentElement: {
-    maxWidth: 350,
+    maxWidth: 400,
   },
   modal: {
     position: 'absolute',
@@ -152,8 +165,8 @@ class PrimeManage extends Component {
               <Typography noWrap>{ this.state.error }</Typography>
             </div> }
             <div className={ classes.overviewBlock + " " + classes.paymentElement }>
-              <PrimePayment disabled={ Boolean(this.state.activated) } simId={ simId } buttonText="update"
-                onActivated={ (msg) => this.setState({ activated: msg }) }
+              <PrimePayment disabled={ Boolean(this.state.activated) } simId={ simId } isUpdate={ true }
+                onActivated={ (msg) => this.setState({ activated: msg, error: null }) }
                 onError={ (err) => this.setState({error: err}) }
                 onCancel={ () => this.setState({ cancelModal: true }) } />
             </div>

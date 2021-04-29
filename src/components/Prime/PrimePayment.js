@@ -11,12 +11,16 @@ class PrimePayment extends Component {
   constructor(props) {
     super(props);
 
-    this.state ={
+    this.state = {
       card: null,
+      activating: false,
     };
 
     this.handleCardInput = this.handleCardInput.bind(this);
     this.submitPayment = this.submitPayment.bind(this);
+    this.tokenize = this.tokenize.bind(this);
+    this.activate = this.activate.bind(this);
+    this.updatePayment = this.updatePayment.bind(this);
   }
 
   static defaultProps = {
@@ -33,28 +37,35 @@ class PrimePayment extends Component {
   }
 
   submitPayment() {
-    const { stripe, elements } = this.props;
+    const { elements } = this.props;
     const cardElement = elements.getElement(CardElement);
 
-    this.activate(cardElement).then((res) => {
-      console.log(res);
+    let activateFunc = this.props.isUpdate ? this.updatePayment : this.activate;
+
+    this.setState({ activating: true });
+    activateFunc(cardElement).then((res) => {
+      this.setState({ activating: false });
     }).catch((err) => {
-      console.log(err);
+      this.setState({ activating: false });
       this.props.onError(err.message);
     });
   }
 
-  async activate(cardElement) {
-    console.log('activating', this.props);
-    const { stripe, dongleId, simId } = this.props;
-    const token = await stripe.createToken(cardElement);
-    if (token.error) {
-      console.log(token.error);
+  async tokenize(cardElement) {
+    const { stripe } = this.props;
+    const resp = await stripe.createToken(cardElement);
+    if (resp.error) {
       throw new Error("An error occured while creating payment token");
     }
+    return resp.token.id;
+  }
+
+  async activate(cardElement) {
+    const { dongleId, simId } = this.props;
+    const token = await this.tokenize(cardElement);
     let payResp;
     try {
-      payResp = await Billing.payForPrime(dongleId, simId, token.token.id);
+      payResp = await Billing.payForPrime(dongleId, simId, token);
     } catch(err) {
       console.log('server error', err);
       throw new Error('An error occurred');
@@ -81,8 +92,36 @@ class PrimePayment extends Component {
     }
   }
 
+  async updatePayment(cardElement) {
+    const token = await this.tokenize(cardElement);
+    let payResp;
+    try {
+      payResp = await Billing.updatePaymentMethod(token);
+    } catch(err) {
+      console.log('server error', err);
+      throw new Error('An error occurred');
+    }
+    if (payResp.error) {
+      let err = new Error();
+      if (typeof payResp.error === 'string') {
+        err.message = payResp.error;
+      } else {
+        err.message = 'Server error. Please try again';
+      }
+      throw err;
+    }
+    this.props.onActivated(payResp);
+  }
+
   render() {
-    const canCheckout = this.state.card && this.state.card.complete && this.props.simId;
+    const canCheckout = this.state.card && this.state.card.complete && !this.state.activating &&
+      (this.props.simId || this.props.isUpdate);
+
+    let buttonText = this.props.isUpdate ? 'update' : 'activate';
+    if (this.state.activating) {
+      buttonText = this.props.isUpdate ? 'updating...' : 'activating...';
+    }
+
     return (
       <>
         <CardElement onChange={ this.handleCardInput } options={{
@@ -94,7 +133,7 @@ class PrimePayment extends Component {
         }} />
         <Button size="large" variant="outlined" disabled={ !canCheckout || this.props.disabled }
           style={{ marginTop: 20 }} onClick={ this.submitPayment }>
-          { this.props.buttonText }
+          { buttonText }
         </Button>
         { this.props.onCancel && <Button size="large" style={{ marginLeft: 20, marginTop: 20 }}
           onClick={ this.props.onCancel }>
@@ -112,7 +151,7 @@ const InjectedCheckoutForm = (props) => {
         {({elements, stripe}) => (
           <PrimePayment elements={ elements } stripe={ stripe } disabled={ props.disabled } simId={ props.simId }
             onError={ props.onError } onActivated={ props.onActivated } dongleId={ props.dongleId }
-            buttonText={ props.buttonText } onCancel={ props.onCancel } />
+            isUpdate={ props.isUpdate } onCancel={ props.onCancel } />
         )}
       </ElementsConsumer>
     </Elements>
