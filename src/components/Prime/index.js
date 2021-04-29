@@ -14,7 +14,7 @@ class Prime extends Component {
     if (!this.props.device.is_owner) {
       return ( <></> );
     }
-    if (this.props.subscription) {
+    if (this.props.device.prime) {
       return ( <PrimeManage /> );
     }
     return ( <PrimeOverview /> );

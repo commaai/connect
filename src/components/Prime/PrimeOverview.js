@@ -100,16 +100,16 @@ class PrimeOverview extends Component {
   }
 
   firstChargeDate() {
-    if (this.subscription()) {
-      return moment.unix(this.subscription().trial_end).format("MMMM Do")
+    if (this.props.subscription) {
+      return moment.unix(this.props.subscription.trial_end).format("MMMM Do")
     } else {
       return null;
     }
   }
 
   claimEndDate() {
-    if (this.subscription() && this.subscription().trial_claim_end) {
-      return moment.unix(this.subscription().trial_claim_end).format("MMMM Do")
+    if (this.props.subscription && this.props.subscription.trial_claim_end) {
+      return moment.unix(this.props.subscription.trial_claim_end).format("MMMM Do")
     } else {
       return null;
     }
@@ -122,7 +122,7 @@ class PrimeOverview extends Component {
 
     let chargeText = 'You will be charged $24.00 today and monthly thereafter.';
     if (this.isTrialClaimable()) {
-      chargeText = `Continue to checkout to claim your trial.
+      chargeText = `Fill in your payment information to claim your trial.\n
       You will be charged $24.00 on ${this.firstChargeDate()} and monthly thereafter.`;
       if (this.claimEndDate()) {
         chargeText += `\nOffer only valid until ${this.claimEndDate()}.`;

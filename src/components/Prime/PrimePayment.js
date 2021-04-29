@@ -117,7 +117,7 @@ class PrimePayment extends Component {
     const canCheckout = this.state.card && this.state.card.complete && !this.state.activating &&
       (this.props.simId || this.props.isUpdate);
 
-    let buttonText = this.props.isUpdate ? 'update' : 'activate';
+    let buttonText = this.props.isUpdate ? 'update' : 'activate now';
     if (this.state.activating) {
       buttonText = this.props.isUpdate ? 'updating...' : 'activating...';
     }
