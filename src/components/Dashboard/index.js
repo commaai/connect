@@ -73,7 +73,7 @@ class Dashboard extends Component {
   }
 
   render() {
-    const { classes, primeNav, subscription, device } = this.props;
+    const { classes, primeNav, device } = this.props;
     let firstAnnotationSegment = null;
     const newAnnotations = this.props.segments.reduce((count, segment) => {
       const segCount = segment.events.filter(filterEvent).reduce((memo, event) => (event.id ? memo : memo + 1), 0);
@@ -106,7 +106,7 @@ class Dashboard extends Component {
           { primeNav ?
             ( <Prime /> )
           : ( <>
-            { !subscription && device.is_owner && <PrimeBanner collapsed /> }
+            { !device.prime && device.is_owner && <PrimeBanner collapsed /> }
             <DriveList />
           </> ) }
         </div>
@@ -119,7 +119,6 @@ const stateToProps = Obstruction({
   segments: 'workerState.segments',
   selectedDongleId: 'workerState.dongleId',
   primeNav: 'workerState.primeNav',
-  subscription: 'workerState.subscription',
   device: 'workerState.device',
 });
 

@@ -121,6 +121,9 @@ class PrimeManage extends Component {
 
   render() {
     const { dongleId, subscription, paymentMethod, classes, device } = this.props;
+    if (!paymentMethod || !subscription) {
+      return ( <></> );
+    }
     let joinDate = moment.unix(subscription.subscribed_at).format('MMMM Do, YYYY');
     let nextPaymentDate = moment.unix(subscription.next_charge_at).format('MMMM Do, YYYY');
 
@@ -131,37 +134,37 @@ class PrimeManage extends Component {
       <>
         <div>
           <div className={ classes.primeContainer }>
-            <Typography variant="title">comma prime</Typography>
+            <Typography variant="title">Comma prime</Typography>
             <div className={ classes.overviewBlock }>
-              <Typography variant="subheading">device</Typography>
+              <Typography variant="subheading">Device</Typography>
               <div className={ classes.manageItem }>
                 <Typography variant="body2">{ alias }</Typography>
                 <Typography variant="caption" className={classes.deviceId}>({ device.dongle_id })</Typography>
               </div>
             </div>
             <div className={ classes.overviewBlock }>
-              <Typography variant="subheading">joined</Typography>
+              <Typography variant="subheading">Joined</Typography>
               <Typography className={ classes.manageItem }>{ joinDate }</Typography>
             </div>
             <div className={ classes.overviewBlock }>
-              <Typography variant="subheading">payment method</Typography>
+              <Typography variant="subheading">Payment method</Typography>
               <Typography className={ classes.manageItem }>
                 { paymentMethod.brand } •••• •••• •••• { paymentMethod.last4 }
               </Typography>
             </div>
             <div className={ classes.overviewBlock }>
-              <Typography variant="subheading">next payment</Typography>
+              <Typography variant="subheading">Next payment</Typography>
               <Typography className={ classes.manageItem }>{ nextPaymentDate }</Typography>
             </div>
             <div className={ classes.overviewBlock }>
-              <Typography variant="subheading">amount</Typography>
+              <Typography variant="subheading">Amount</Typography>
               <Typography className={ classes.manageItem }>$24.00</Typography>
             </div>
           </div>
           <div className={ classes.primeContainer }>
-            <Typography variant="title">update payment method</Typography>
+            <Typography variant="title">Update payment method</Typography>
             { this.state.activated && <div className={ classes.overviewBlockSuccess }>
-              <Typography>payment updated</Typography>
+              <Typography>Payment updated</Typography>
             </div> }
             { this.state.error && <div className={ classes.overviewBlockError }>
               <ErrorIcon />

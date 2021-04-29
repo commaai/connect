@@ -47,7 +47,7 @@ class PrimeBanner extends Component {
 
     return (
       <div className={ classes.primeContainer }>
-        <Typography variant="title">comma prime</Typography>
+        <Typography variant="title">Comma prime</Typography>
         { !this.state.moreInfo && <div className={ classes.moreInfoContainer }>
           <Typography>Become a comma prime member today for only $24/month</Typography>
           <Button onClick={ () => this.setState({ moreInfo: true }) }>More info</Button>

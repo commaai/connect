@@ -6,10 +6,10 @@ import moment from 'moment';
 import { deviceTypePretty } from '../../utils';
 import { fetchSimInfo } from './util';
 import PrimeChecklist from './PrimeChecklist';
+import { billing as Billing } from '@commaai/comma-api';
 
 import { withStyles, Typography } from '@material-ui/core';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
-import InfoIcon from '@material-ui/icons/InfoOutline';
 import PrimePayment from './PrimePayment';
 
 const styles = () => ({
@@ -67,7 +67,6 @@ const styles = () => ({
     marginTop: 15,
     padding: 10,
     backgroundColor: 'rgba(0, 255, 0, 0.2)',
-    '& p': { display: 'inline-block', marginLeft: 10 },
   },
   paymentElement: {
     maxWidth: 400,
@@ -83,7 +82,10 @@ class PrimeOverview extends Component {
       simInfo: null,
       simInfoLoading: false,
       activated: null,
+      new_subscription: null,
     };
+
+    this.onPrimeActivated = this.onPrimeActivated.bind(this);
   }
 
   componentDidMount() {
@@ -115,26 +117,34 @@ class PrimeOverview extends Component {
     }
   }
 
+  onPrimeActivated(resp) {
+    this.setState({ activated: resp, error: null });
+    Billing.getSubscription(this.props.dongleId).then((subscription) => {
+      this.setState({ new_subscription: subscription });
+    });
+  }
+
   render() {
     const { classes, device } = this.props;
+    const { new_subscription } = this.state;
 
     const alias = device.alias || deviceTypePretty(device.device_type);
 
-    let chargeText = 'You will be charged $24.00 today and monthly thereafter.';
+    let chargeText = ['You will be charged $24.00 today and monthly thereafter.'];
     if (this.isTrialClaimable()) {
-      chargeText = `Fill in your payment information to claim your trial.\n
-      You will be charged $24.00 on ${this.firstChargeDate()} and monthly thereafter.`;
+      chargeText = [`Fill in your payment information to claim your trial.`,
+        `You will be charged $24.00 on ${this.firstChargeDate()} and monthly thereafter.`];
       if (this.claimEndDate()) {
-        chargeText += `\nOffer only valid until ${this.claimEndDate()}.`;
+        chargeText.push(`Offer only valid until ${this.claimEndDate()}.`);
       }
     }
 
-    let successMsg = '';
+    let successMsg = ['Comma prime activated'];
     if (this.state.activated) {
       if (this.state.activated.already_active) {
-        successMsg = 'comma prime is already active for this device.\nYou have not been charged for another subscription.';
-      } else {
-        successMsg = 'comma prime activated';
+        successMsg = ['Comma prime is already active for this device.\nYou have not been charged for another subscription.'];
+      } else if (new_subscription && new_subscription.is_prime_sim) {
+        successMsg.push('Connectivity will be enabled as soon as activation propagates to your local cell tower. Rebooting your device may help.');
       }
     }
 
@@ -143,40 +153,39 @@ class PrimeOverview extends Component {
     return (
       <div>
         <div className={ classes.primeContainer }>
-          <Typography variant="title">comma prime</Typography>
+          <Typography variant="title">Comma prime</Typography>
           <Typography className={ classes.introLine }>Become a comma prime member today for only $24/month</Typography>
           <PrimeChecklist />
         </div>
         <div className={ classes.primeContainer }>
           <Typography variant="title">checkout</Typography>
           { this.state.activated && <div className={ classes.overviewBlockSuccess }>
-            <Typography>{ successMsg }</Typography>
-            <Typography>
-              Connectivity will be enabled as soon as activation propagates to your local cell tower.
-              Rebooting your device may help.
-            </Typography>
+            { successMsg.map((msg, i) => {
+              return <Typography variant="body1" key={ i }>{ msg }</Typography>
+            }) }
           </div> }
           { this.state.error && <div className={ classes.overviewBlockError }>
             <ErrorIcon />
             <Typography noWrap>{ this.state.error }</Typography>
           </div> }
           { this.state.simInfoLoading && <div className={ classes.overviewBlockLoading }>
-            <InfoIcon />
             <Typography noWrap>Fetching SIM data</Typography>
           </div> }
           <div className={ classes.overviewBlock }>
-            <Typography variant="subheading">device</Typography>
+            <Typography variant="subheading">Device</Typography>
             <div className={ classes.deviceBlock }>
               <Typography variant="body2">{ alias }</Typography>
               <Typography variant="caption" className={classes.deviceId}>({ device.dongle_id })</Typography>
             </div>
           </div>
           <div className={ classes.overviewBlock }>
-            <Typography>{ chargeText }</Typography>
+            { chargeText.map((txt, i) => {
+              return <Typography key={i}>{ txt }</Typography>
+            }) }
           </div>
           <div className={ classes.overviewBlock + " " + classes.paymentElement }>
             <PrimePayment disabled={ Boolean(this.state.activated) } simId={ simId }
-              onActivated={ (msg) => this.setState({ activated: msg, error: null }) }
+              onActivated={ this.onPrimeActivated }
               onError={ (err) => this.setState({ error: err }) } />
           </div>
         </div>
