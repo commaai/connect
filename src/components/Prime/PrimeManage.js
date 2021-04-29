@@ -6,6 +6,7 @@ import moment from 'moment';
 import { billing as BillingApi } from '@commaai/comma-api'
 import PrimePayment from './PrimePayment';
 import { deviceTypePretty } from '../../utils';
+import Timelineworker from '../../timeline';
 
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import { withStyles, Typography, Button, Modal, Paper } from '@material-ui/core';
@@ -77,16 +78,14 @@ const styles = (theme) => ({
 class PrimeManage extends Component {
   constructor(props) {
     super(props);
-    this.state ={
-      savingPaymentMethod: false,
-      savedPaymentMethod: false,
+    this.state = {
       error: null,
-      paymentMethodChangedAndValid: false,
       cancelModal: false,
     };
 
     this.cancelPrime = this.cancelPrime.bind(this);
     this.modalClose = this.modalClose.bind(this);
+    this.onPaymentUpdated = this.onPaymentUpdated.bind(this);
   }
 
   cancelPrime() {
@@ -111,12 +110,16 @@ class PrimeManage extends Component {
     }
   }
 
+  onPaymentUpdated(paymentMethod) {
+    Timelineworker.primeGetPaymentMethod(paymentMethod);
+    this.setState({ activated: true, error: null });
+  }
+
   render() {
     const { dongleId, subscription, paymentMethod, classes, device } = this.props;
     if (!subscription) {
       return ( <></> );
     }
-    let { error, savedPaymentMethod, savingPaymentMethod, paymentMethodChangedAndValid } = this.state;
     let joinDate = moment.unix(subscription.subscribed_at).format('MMMM Do, YYYY');
     let nextPaymentDate = moment.unix(subscription.next_charge_at).format('MMMM Do, YYYY');
 
@@ -166,7 +169,7 @@ class PrimeManage extends Component {
             </div> }
             <div className={ classes.overviewBlock + " " + classes.paymentElement }>
               <PrimePayment disabled={ Boolean(this.state.activated) } simId={ simId } isUpdate={ true }
-                onActivated={ (msg) => this.setState({ activated: msg, error: null }) }
+                onActivated={ this.onPaymentUpdated }
                 onError={ (err) => this.setState({error: err}) }
                 onCancel={ () => this.setState({ cancelModal: true }) } />
             </div>
