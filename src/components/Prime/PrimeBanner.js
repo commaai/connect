@@ -31,6 +31,20 @@ const styles = () => ({
     padding: '5px 0',
     '& svg': { margin: 0 },
   },
+  moreInfoButton: {
+    borderRadius: 30,
+  },
+  activateButton: {
+    background: '#fff',
+    borderRadius: 30,
+    color: '#404B4F',
+    textTransform: 'none',
+    width: 300,
+    '&:hover': {
+      background: '#fff',
+      color: '#404B4F',
+    }
+  },
 });
 
 class PrimeBanner extends Component {
@@ -47,15 +61,17 @@ class PrimeBanner extends Component {
 
     return (
       <div className={ classes.primeContainer }>
-        <Typography variant="title">Comma prime</Typography>
+        <Typography variant="title">comma prime</Typography>
         { !this.state.moreInfo && <div className={ classes.moreInfoContainer }>
           <Typography>Become a comma prime member today for only $24/month</Typography>
-          <Button onClick={ () => this.setState({ moreInfo: true }) }>More info</Button>
+          <Button onClick={ () => this.setState({ moreInfo: true }) } className={ classes.moreInfoButton }>
+            More info
+          </Button>
         </div> }
         { this.state.moreInfo && <div>
           <Typography className={ classes.introLine }>Become a comma prime member today for only $24/month</Typography>
           <PrimeChecklist />
-          <Button size="large" variant="outlined"
+          <Button size="large" variant="outlined" className={ classes.activateButton }
             onClick={ () => this.props.dispatch(primeNav()) }>
             Activate comma prime
           </Button>

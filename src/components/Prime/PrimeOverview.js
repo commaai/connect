@@ -71,6 +71,22 @@ const styles = () => ({
   paymentElement: {
     maxWidth: 400,
   },
+  activateButton: {
+    marginTop: 20,
+    background: '#fff',
+    borderRadius: 30,
+    color: '#404B4F',
+    textTransform: 'none',
+    width: 200,
+    '&:hover': {
+      background: '#fff',
+      color: '#404B4F',
+    },
+    '&:disabled': {
+      background: '#bbb',
+      color: '#404B4F',
+    },
+  }
 });
 
 class PrimeOverview extends Component {
@@ -139,10 +155,10 @@ class PrimeOverview extends Component {
       }
     }
 
-    let successMsg = ['Comma prime activated'];
+    let successMsg = ['comma prime activated'];
     if (this.state.activated) {
       if (this.state.activated.already_active) {
-        successMsg = ['Comma prime is already active for this device.\nYou have not been charged for another subscription.'];
+        successMsg = ['comma prime is already active for this device.\nYou have not been charged for another subscription.'];
       } else if (new_subscription && new_subscription.is_prime_sim) {
         successMsg.push('Connectivity will be enabled as soon as activation propagates to your local cell tower. Rebooting your device may help.');
       }
@@ -153,7 +169,7 @@ class PrimeOverview extends Component {
     return (
       <div>
         <div className={ classes.primeContainer }>
-          <Typography variant="title">Comma prime</Typography>
+          <Typography variant="title">comma prime</Typography>
           <Typography className={ classes.introLine }>Become a comma prime member today for only $24/month</Typography>
           <PrimeChecklist />
         </div>
@@ -185,7 +201,7 @@ class PrimeOverview extends Component {
           </div>
           <div className={ classes.overviewBlock + " " + classes.paymentElement }>
             <PrimePayment disabled={ Boolean(this.state.activated) } simId={ simId }
-              onActivated={ this.onPrimeActivated }
+              onActivated={ this.onPrimeActivated } activateButtonClass={ classes.activateButton }
               onError={ (err) => this.setState({ error: err }) } />
           </div>
         </div>

@@ -117,9 +117,9 @@ class PrimePayment extends Component {
     const canCheckout = this.state.card && this.state.card.complete && !this.state.activating &&
       (this.props.simId || this.props.isUpdate);
 
-    let buttonText = this.props.isUpdate ? 'update' : 'activate now';
+    let buttonText = this.props.isUpdate ? 'Update' : 'Activate now';
     if (this.state.activating) {
-      buttonText = this.props.isUpdate ? 'updating...' : 'activating...';
+      buttonText = this.props.isUpdate ? 'Updating...' : 'Activating...';
     }
 
     return (
@@ -131,12 +131,12 @@ class PrimePayment extends Component {
             },
           },
         }} />
-        <Button size="large" variant="outlined" disabled={ !canCheckout || this.props.disabled }
-          style={{ marginTop: 20 }} onClick={ this.submitPayment }>
+        <Button size="large" disabled={ !canCheckout || this.props.disabled }
+          className={ this.props.activateButtonClass } onClick={ this.submitPayment }>
           { buttonText }
         </Button>
-        { this.props.onCancel && <Button size="large" style={{ marginLeft: 20, marginTop: 20 }}
-          onClick={ this.props.onCancel }>
+        { this.props.onCancel && <Button className={ this.props.cancelButtonClass }
+          onClick={ this.props.onCancel } size="large" variant="outlined">
           Cancel subscription
         </Button> }
       </>
@@ -149,9 +149,7 @@ const InjectedCheckoutForm = (props) => {
     <Elements stripe={ stripe }>
       <ElementsConsumer>
         {({elements, stripe}) => (
-          <PrimePayment elements={ elements } stripe={ stripe } disabled={ props.disabled } simId={ props.simId }
-            onError={ props.onError } onActivated={ props.onActivated } dongleId={ props.dongleId }
-            isUpdate={ props.isUpdate } onCancel={ props.onCancel } />
+          <PrimePayment elements={ elements } stripe={ stripe } {...props} />
         )}
       </ElementsConsumer>
     </Elements>

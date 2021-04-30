@@ -40,9 +40,6 @@ const styles = (theme) => ({
   manageItem: {
     marginLeft: 10,
   },
-  paymentElement: {
-    maxWidth: 400,
-  },
   modal: {
     position: 'absolute',
     padding: theme.spacing.unit * 2,
@@ -58,7 +55,7 @@ const styles = (theme) => ({
     marginTop: 10,
     float: 'right'
   },
-  cancelButton: {
+  cancelModalButton: {
     marginTop: 10,
   },
   cancelError: {
@@ -72,6 +69,32 @@ const styles = (theme) => ({
     marginTop: 10,
     padding: 10,
     '& p': { margin: 0 },
+  },
+  paymentElement: {
+    maxWidth: 450,
+  },
+  activateButton: {
+    marginTop: 20,
+    background: '#fff',
+    borderRadius: 30,
+    color: '#404B4F',
+    textTransform: 'none',
+    width: 200,
+    '&:hover': {
+      background: '#fff',
+      color: '#404B4F',
+    },
+    '&:disabled': {
+      background: '#bbb',
+      color: '#404B4F',
+    },
+  },
+  cancelButton: {
+    marginTop: 20,
+    width: 200,
+    textTransform: 'none',
+    borderRadius: 30,
+    float: 'right',
   },
 });
 
@@ -134,7 +157,7 @@ class PrimeManage extends Component {
       <>
         <div>
           <div className={ classes.primeContainer }>
-            <Typography variant="title">Comma prime</Typography>
+            <Typography variant="title">comma prime</Typography>
             <div className={ classes.overviewBlock }>
               <Typography variant="subheading">Device</Typography>
               <div className={ classes.manageItem }>
@@ -172,9 +195,9 @@ class PrimeManage extends Component {
             </div> }
             <div className={ classes.overviewBlock + " " + classes.paymentElement }>
               <PrimePayment disabled={ Boolean(this.state.activated) } simId={ simId } isUpdate={ true }
-                onActivated={ this.onPaymentUpdated }
+                onActivated={ this.onPaymentUpdated } activateButtonClass={ classes.activateButton }
                 onError={ (err) => this.setState({error: err}) }
-                onCancel={ () => this.setState({ cancelModal: true }) } />
+                onCancel={ () => this.setState({ cancelModal: true }) } cancelButtonClass={ classes.cancelButton } />
             </div>
           </div>
         </div>
@@ -192,7 +215,7 @@ class PrimeManage extends Component {
             <Typography>
               Cancelling will immediately suspend billing and comma prime membership benefits.
             </Typography>
-            <Button variant="contained" className={ classes.cancelButton } onClick={ this.cancelPrime }
+            <Button variant="contained" className={ classes.cancelModalButton } onClick={ this.cancelPrime }
               disabled={ Boolean(this.state.cancelSuccess) }>
               { this.state.canceling ? 'Canceling...' : 'Cancel subscription' }
             </Button>
