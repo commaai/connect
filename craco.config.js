@@ -7,7 +7,7 @@ module.exports = function ({ env }) {
   const plugins = [{
     plugin: WorkerLoaderPlugin
   }];
-  if (env === 'production') {
+  if (env === 'production' && !process.env.REACT_APP_EXCLUDE_SENTRY) {
     plugins.push({
       plugin: SentryPlugin
     });
