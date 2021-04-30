@@ -1184,6 +1184,16 @@
     joi-browser "^13.4.0"
     querystringify "^2.1.1"
 
+"@commaai/comma-api@^1.5.0":
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-1.5.0.tgz#add983e8c004433d78a806d974701689297fc0ed"
+  integrity sha512-d2+9k2IBJcth9hzRL+sTuPuV8fuPXySpfkB6B01VeOdZ6JVJByv9jcFd5D+7YeLyg/jh0DSKXqjFNb95jNuuSA==
+  dependencies:
+    babel-runtime "^6.26.0"
+    config-request "^0.5.1"
+    joi-browser "^13.4.0"
+    querystringify "^2.1.1"
+
 "@commaai/hls.js@^0.12.7":
   version "0.12.7"
   resolved "https://registry.yarnpkg.com/@commaai/hls.js/-/hls.js-0.12.7.tgz#1f93e0f0b1921bcd889c768df34eb018c25276fb"
