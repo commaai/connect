@@ -71,7 +71,7 @@ class PrimeBanner extends Component {
         { this.state.moreInfo && <div>
           <Typography className={ classes.introLine }>Become a comma prime member today for only $24/month</Typography>
           <PrimeChecklist />
-          <Button size="large" variant="outlined" className={ classes.activateButton }
+          <Button size="large" className={ classes.activateButton }
             onClick={ () => this.props.dispatch(primeNav()) }>
             Activate comma prime
           </Button>

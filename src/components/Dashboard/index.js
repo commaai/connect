@@ -89,7 +89,6 @@ class Dashboard extends Component {
           <div className={classes.sidebarHeader}>
             <Button
               size="large"
-              variant="outlined"
               className={classes.annotateButton}
               onClick={partial(this.goToAnnotation, firstAnnotationSegment)}
             >
