@@ -1,6 +1,5 @@
 /* eslint-env jest */
 import puppeteer from 'puppeteer';
-import expectPuppeteer from 'expect-puppeteer'
 
 const width = 1600;
 const height = 1200;
@@ -20,9 +19,9 @@ describe('demo mode', () => {
   });
   beforeAll(async () => {
     browser = await puppeteer.launch({
-      headless: false,
+      headless: true,
       slowMo: 80,
-      args: [`--window-size=${width},${height}`]
+      args: [`--window-size=${width},${height}`],
     });
     page = await browser.newPage();
     await page.setViewport({
@@ -30,7 +29,7 @@ describe('demo mode', () => {
       height,
       deviceScaleFactor: 1,
     });
-    await page.goto('localhost:3003/?demo=1');
+    await page.goto('http://localhost:3003/?demo=1');
     // wait for the data to start loading...
     await delay(8000);
 
@@ -43,14 +42,14 @@ describe('demo mode', () => {
   });
 
   it('should load', async () => {
-    await expectPuppeteer(page).toClick('.DriveEntry');
+    await expect(page).toClick('.DriveEntry');
     await delay(2000);
     let annotationEntry = await page.$('.AnnotationListEntry');
     expect(annotationEntry).toBeTruthy();
     let boundingBox = await annotationEntry.boundingBox();
     const initialHeight = boundingBox.height;
     expect(initialHeight).toBeGreaterThan(10);
-    await expectPuppeteer(page).toClick('.AnnotationListEntry');
+    await expect(page).toClick('.AnnotationListEntry');
     await delay(1000);
     annotationEntry = await page.$('.AnnotationListEntry');
     expect(annotationEntry).toBeTruthy();
