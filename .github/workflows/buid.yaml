@@ -41,8 +41,8 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-yarn-
     - name: yarn install
-        if: steps.yarn-cache.outputs.cache-hit != 'true'
-        run: yarn install
+      if: steps.yarn-cache.outputs.cache-hit != 'true'
+      run: yarn install
     - name: yarn build:development
       run: yarn build:development
     - name: run puppeteer tests
