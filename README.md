@@ -3,7 +3,7 @@ The frontend to the explorer web UI. This a react app using [Create React App](h
 
 ## Environments
  * Development (local machine) http://localhost:3000
- * Staging (netlify) https://master--comma-explorer.netlify.com/
+ * Staging (netlify) https://master--commaai-explorer.netlify.com/
    * CI builds all branches with github actions
    * then pushes branches to netlify
  * Production (gh-pages) https://my.comma.ai
