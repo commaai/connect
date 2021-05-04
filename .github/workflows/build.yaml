@@ -1,0 +1,72 @@
+name: build
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: cache node modules
+      uses: actions/cache@v2
+      id: yarn-cache
+      with:
+        path: node_modules
+        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-yarn-
+    - name: yarn install
+      if: steps.yarn-cache.outputs.cache-hit != 'true'
+      run: yarn install
+    - name: yarn build:development
+      run: yarn build:development
+    - name: run tests
+      run: yarn test-ci
+    - name: run puppeteer tests
+      run: yarn test-puppeteer-build
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: start deployment
+      uses: bobheadxi/deployments@v0.4.3
+      id: deployment
+      with:
+        step: start
+        token: ${{ secrets.GITHUB_TOKEN }}
+        env: netlify
+    - uses: actions/checkout@v2
+    - name: cache node modules
+      uses: actions/cache@v2
+      id: yarn-cache
+      with:
+        path: node_modules
+        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-yarn-
+    - name: yarn install
+      if: steps.yarn-cache.outputs.cache-hit != 'true'
+      run: yarn install
+    - name: yarn build:staging
+      run: yarn build:staging
+    - name: test build
+      run: test -d build
+    - name: get branch name
+      shell: bash
+      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+      id: extract_branch
+    - name: publish netlify
+      uses: netlify/actions/cli@master
+      with:
+        args: deploy --dir=build --alias=${{ steps.extract_branch.outputs.branch }}
+      env:
+        NETLIFY_SITE_ID: fc9258a0-3bc2-47c6-9141-75c28ebcd01f
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+    - name: update deployment status
+      uses: bobheadxi/deployments@v0.4.3
+      if: always()
+      with:
+        step: finish
+        token: ${{ secrets.GITHUB_TOKEN }}
+        status: ${{ job.status }}
+        deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+        env_url: https://${{ steps.extract_branch.outputs.branch }}--commaai-explorer.netlify.app

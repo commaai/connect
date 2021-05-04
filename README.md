@@ -3,9 +3,11 @@ The frontend to the explorer web UI. This a react app using [Create React App](h
 
 ## Environments
  * Development (local machine) http://localhost:3000
- * Staging (master branch) https://master--comma-explorer.netlify.com/
- * Production (gh-pages branch) https://my.comma.ai
-   * `yarn deploy` updates GitHub pages
+ * Staging (netlify) https://master--comma-explorer.netlify.com/
+   * CI builds all branches with github actions
+   * then pushes branches to netlify
+ * Production (gh-pages) https://my.comma.ai
+   * `yarn deploy` runs gh-pages to deploy to GitHub pages where production url redirects to
    * all production hostnames redirect to here to prevent CORS caching issues (see public/_redirects)
    * Netlify "Preview Deploy" functionality will not work because the video server CDN caches the CORS requests, and every preview deploy has a different URL (if you pull up videos using one of these links, you should clear the CDN cache for any video URLs that were hit)
 

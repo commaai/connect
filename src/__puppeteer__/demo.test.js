@@ -19,9 +19,9 @@ describe('demo mode', () => {
   });
   beforeAll(async () => {
     browser = await puppeteer.launch({
-      headless: false,
+      headless: true,
       slowMo: 80,
-      args: [`--window-size=${width},${height}`]
+      args: [`--window-size=${width},${height}`],
     });
     page = await browser.newPage();
     await page.setViewport({
@@ -29,7 +29,7 @@ describe('demo mode', () => {
       height,
       deviceScaleFactor: 1,
     });
-    await page.goto('localhost:3003/?demo=1');
+    await page.goto('http://localhost:3003/?demo=1');
     // wait for the data to start loading...
     await delay(8000);
 
