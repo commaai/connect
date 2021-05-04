@@ -23,8 +23,6 @@ jobs:
       run: yarn install
     - name: run tests
       run: yarn test-ci
-    - name: run puppeteer tests
-      run: yarn test-puppeteer
   build:
     runs-on: ubuntu-20.04
     steps:
@@ -47,3 +45,14 @@ jobs:
       run: yarn build:development
     - name: run puppeteer tests
       run: yarn test-puppeteer-build
+    - name: get branch name
+      shell: bash
+      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+      id: extract_branch
+    - name: publish netlify
+      uses: netlify/actions/cli@master
+      with:
+        args: deploy --dir=build --alias=${{ steps.extract_branch.outputs.branch }}
+      env:
+        NETLIFY_SITE_ID: fc9258a0-3bc2-47c6-9141-75c28ebcd01f
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
