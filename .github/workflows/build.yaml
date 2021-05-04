@@ -1,6 +1,6 @@
 name: build
 
-on: [push, pull_request]
+on: [push]
 
 jobs:
   test:
@@ -41,14 +41,14 @@ jobs:
       run: yarn install
     - name: yarn build:staging
       run: yarn build:staging
-    - name: get branch name
-      shell: bash
-      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-      id: extract_branch
-    - name: publish netlify
-      uses: netlify/actions/cli@master
+    - name: deploy to netlify
+      uses: nwtgck/actions-netlify@v1.2
       with:
-        args: deploy --dir=build --alias=${{ steps.extract_branch.outputs.branch }}
+        publish-dir: 'build'
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        enable-pull-request-comment: false
+        enable-commit-comment: false
+        alias: ${{ github.head_ref }}
       env:
-        NETLIFY_SITE_ID: fc9258a0-3bc2-47c6-9141-75c28ebcd01f
         NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: fc9258a0-3bc2-47c6-9141-75c28ebcd01f
