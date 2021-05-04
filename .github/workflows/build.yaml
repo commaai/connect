@@ -49,8 +49,7 @@ jobs:
     - name: yarn build:staging
       run: yarn build:staging
     - name: test build
-      shell: bash
-      run: [ -d "build" ]
+      run: test -d build
     - name: get branch name
       shell: bash
       run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
