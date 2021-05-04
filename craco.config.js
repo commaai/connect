@@ -13,7 +13,7 @@ module.exports = function ({ env }) {
     });
   }
   return {
-    plugns,
+    plugins,
     jest: {
       configure: (jestConfig, { env, paths }) => {
         jestConfig.testPathIgnorePatterns = ['node_modules', '__puppeteer__'];
