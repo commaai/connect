@@ -44,6 +44,8 @@ export default async function init(isDemo) {
 
     Billing.getPaymentMethod().then((paymentMethod) => {
       store.dispatch(primeGetPaymentMethodAction(paymentMethod));
+    }).catch((err) => {
+      console.log(err);
     });
   }
 }

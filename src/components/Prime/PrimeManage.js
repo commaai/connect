@@ -143,10 +143,19 @@ class PrimeManage extends Component {
   }
 
   render() {
-    const { dongleId, subscription, paymentMethod, classes, device } = this.props;
-    if (!paymentMethod || !subscription) {
+    const { dongleId, subscription, classes, device } = this.props;
+    if (!subscription) {
       return ( <></> );
     }
+
+    let paymentMethod = this.props.paymentMethod;
+    if (!paymentMethod) {
+      paymentMethod = {
+        brand: "",
+        last4: "0000",
+      };
+    }
+
     let joinDate = moment.unix(subscription.subscribed_at).format('MMMM Do, YYYY');
     let nextPaymentDate = moment.unix(subscription.next_charge_at).format('MMMM Do, YYYY');
 
