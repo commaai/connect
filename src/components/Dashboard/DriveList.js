@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { partial } from 'ap';
 import fecha from 'fecha';
+import Colors from '../../colors';
 
 import {
   withStyles,
@@ -25,7 +26,7 @@ const MIN_TIME_BETWEEN_ROUTES = 60000; // 1 minute
 const styles = (theme) => ({
   header: {
     alignItems: 'center',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    borderBottom: `1px solid ${Colors.white10}`,
     padding: 16,
     paddingLeft: 48,
     paddingRight: 60,
@@ -50,10 +51,10 @@ const styles = (theme) => ({
     justifyContent: 'flex-end',
   },
   settingsButton: {
-    border: '1px solid #272D30'
+    border: `1px solid ${Colors.white40}`
   },
   settingsButtonIcon: {
-    color: '#272D30',
+    color: Colors.white40,
   },
 });
 

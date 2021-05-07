@@ -3,6 +3,9 @@ import {
   ACTION_SELECT_TIME_RANGE,
   ACTION_STARTUP_DATA,
   ACTION_UPDATE_DEVICE,
+  ACTION_PRIME_NAV,
+  ACTION_PRIME_SUBSCRIPTION,
+  ACTION_PRIME_PAYMENTMETHOD,
 } from '../actions/types';
 
 const initialState = {};
@@ -41,7 +44,9 @@ export default function reducer(_state = initialState, action) {
     case ACTION_SELECT_DEVICE:
       state = {
         ...state,
-        dongleId: action.dongleId
+        dongleId: action.dongleId,
+        primeNav: false,
+        subscription: null,
       };
       if (state.devices) {
         state.device = state.devices.find((device) => device.dongle_id === action.dongleId);
@@ -61,6 +66,27 @@ export default function reducer(_state = initialState, action) {
       deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.device.dongle_id);
       state.devices[deviceIndex] = action.device;
       state.device = action.device;
+      break;
+    case ACTION_PRIME_NAV:
+      state = {
+        ...state,
+        primeNav: action.primeNav,
+      };
+      break;
+    case ACTION_PRIME_SUBSCRIPTION:
+      if (action.dongleId != state.dongleId) { // ignore outdated info
+        break;
+      }
+      state = {
+        ...state,
+        subscription: action.subscription,
+      };
+      break;
+    case ACTION_PRIME_PAYMENTMETHOD:
+      state = {
+        ...state,
+        paymentMethod: action.paymentMethod,
+      };
       break;
     default:
       return state;

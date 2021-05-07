@@ -3,7 +3,7 @@ import zoom from './zoom';
 
 const reducers = {
   workerState,
-  zoom
+  zoom,
 };
 
 export default reducers;

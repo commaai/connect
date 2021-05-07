@@ -14,7 +14,7 @@ import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography';
 
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
-import { auth as AuthApi, request as Request } from '@commaai/comma-api';
+import { auth as AuthApi, request as Request, billing as Billing, athena as Athena } from '@commaai/comma-api';
 
 import Explorer from './components/explorer';
 import AnonymousLanding from './components/anonymous';
@@ -103,6 +103,8 @@ class App extends Component {
 
     const token = await MyCommaAuth.init();
     Request.configure(token);
+    Billing.configure(token);
+    Athena.configure(token);
 
     if (MyCommaAuth.isAuthenticated()) {
       await TimelineWorker.init();

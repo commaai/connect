@@ -1,4 +1,3 @@
-
 export function getDongleID(pathname) {
   let parts = pathname.split('/');
   parts = parts.filter((m) => m.length);
@@ -26,15 +25,12 @@ export function getZoom(pathname) {
   };
 }
 
-export function getPathname(options) {
-  const path = [
-    options.dongleId
-  ];
+export function getPrimeNav(pathname) {
+  let parts = pathname.split('/');
+  parts = parts.filter((m) => m.length);
 
-  if (options.start && options.end) {
-    path.push(options.start);
-    path.push(options.end);
+  if (parts.length == 2 && parts[0] !== 'auth' && parts[1] === 'prime') {
+    return true;
   }
-
-  return path.join('/');
+  return false;
 }

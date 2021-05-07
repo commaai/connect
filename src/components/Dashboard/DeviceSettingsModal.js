@@ -20,6 +20,7 @@ import ShareIcon from '@material-ui/icons/Share';
 
 import { devices as Devices } from '@commaai/comma-api';
 import Timelineworker from '../../timeline';
+import { primeNav } from '../../actions';
 
 const styles = (theme) => ({
   modal: {
@@ -52,7 +53,10 @@ const styles = (theme) => ({
     margin: theme.spacing.unit,
     position: 'relative',
     display: 'inline-block'
-  }
+  },
+  primeManageButton: {
+    marginTop: 20,
+  },
 });
 
 class DeviceSettingsModal extends Component {
@@ -164,16 +168,20 @@ class DeviceSettingsModal extends Component {
       >
         <Paper className={classes.modal}>
           <Typography variant="title">
-            Edit Device
+            Device Settings
           </Typography>
           <Divider />
+          <Button variant="outlined" className={ classes.primeManageButton }
+            onClick={ () => this.props.dispatch(primeNav()) }>
+            Manage Prime Settings
+          </Button>
           <div className={classes.form}>
             <div className={classes.formRow}>
               <TextField
                 id="device_alias"
                 label="Device Name"
                 className={classes.textField}
-                value={this.state.deviceAlias}
+                value={ this.state.deviceAlias ? this.state.deviceAlias : '' }
                 onChange={this.handleAliasChange}
                 onKeyPress={partial(this.callOnEnter, this.setDeviceAlias)}
               />
@@ -227,6 +235,7 @@ class DeviceSettingsModal extends Component {
 
 const stateToProps = Obstruction({
   device: 'workerState.device',
+  subscription: 'workerState.subscription'
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceSettingsModal));

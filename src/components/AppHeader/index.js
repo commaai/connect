@@ -8,10 +8,6 @@ import localforage from 'localforage';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
-import Input from '@material-ui/core/Input';
-import InputLabel from '@material-ui/core/InputLabel';
-import FormControl from '@material-ui/core/FormControl';
-import Select from '@material-ui/core/Select';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 import ListItem from '@material-ui/core/ListItem';
@@ -59,7 +55,7 @@ const styles = (theme) => ({
     paddingRight: 28,
   },
   accountIcon: {
-    color: '#272D30',
+    color: 'rgba(255, 255, 255, 0.3)',
     height: 34,
     width: 34,
   },

@@ -3,6 +3,7 @@ import document from 'global/document';
 import * as Types from './types';
 import Timelineworker from '../timeline';
 import { getDongleID } from '../url';
+import { billing as Billing } from '@commaai/comma-api';
 
 export function updateState(data) {
   return {
@@ -24,7 +25,7 @@ export function selectRange(start, end) {
     }
     const curPath = document.location.pathname;
     const dongleId = getDongleID(curPath) || state.workerState.dongleId;
-    const desiredPath = urlForState(dongleId, start, end);
+    const desiredPath = urlForState(dongleId, start, end, false);
 
     if (state.zoom.start !== start || state.zoom.end !== end) {
       dispatch({
@@ -52,23 +53,57 @@ export function selectDevice(dongleId) {
   return (dispatch, getState) => {
     const state = getState();
     if (state.workerState.dongleId !== dongleId) {
-      Timelineworker.selectDevice(dongleId);
+      Timelineworker.selectDevice(dongleId).then(() => {
+        dispatch(primeFetchSubscription());
+      });
+    } else {
+      dispatch(primeNav(false));
     }
-    const curPath = document.location.pathname;
-    const desiredPath = urlForState(dongleId, state.zoom.start, state.zoom.end);
 
+    const curPath = document.location.pathname;
+    const desiredPath = urlForState(dongleId, state.zoom.start, state.zoom.end, null);
     if (curPath !== desiredPath) {
       dispatch(push(desiredPath));
     }
   };
 }
 
-function urlForState(dongleId, start, end) {
+export function primeFetchSubscription() {
+  return (dispatch, getState) => {
+    const state = getState();
+
+    if (state.workerState.device.is_owner) {
+      Billing.getSubscription(state.workerState.dongleId).then((subscription) => {
+        Timelineworker.primeGetSubscription(state.workerState.dongleId, subscription);
+      });
+    }
+  };
+}
+
+export function primeNav(nav = true) {
+  return (dispatch, getState) => {
+    const state = getState();
+
+    if (state.workerState.primeNav != nav) {
+      Timelineworker.primeNav(nav);
+    }
+
+    const curPath = document.location.pathname;
+    const desiredPath = urlForState(state.workerState.dongleId, null, null, nav);
+    if (curPath !== desiredPath) {
+      dispatch(push(desiredPath));
+    }
+  };
+}
+
+function urlForState(dongleId, start, end, prime_nav) {
   const path = [dongleId];
 
   if (start && end) {
     path.push(start);
     path.push(end);
+  } else if (prime_nav) {
+    path.push('prime');
   }
 
   return `/${path.join('/')}`;
