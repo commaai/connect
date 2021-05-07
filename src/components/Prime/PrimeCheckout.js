@@ -89,7 +89,7 @@ const styles = () => ({
   }
 });
 
-class PrimeOverview extends Component {
+class PrimeCheckout extends Component {
   constructor(props) {
     super(props);
 
@@ -216,5 +216,5 @@ const stateToProps = Obstruction({
   subscription: 'workerState.subscription',
 });
 
-export default connect(stateToProps)(withStyles(styles)(PrimeOverview));
+export default connect(stateToProps)(withStyles(styles)(PrimeCheckout));
 
