@@ -12,6 +12,11 @@ const theme = createMuiTheme({
         backgroundColor: '#30373B'
       },
     },
+    MuiDrawer: {
+      paperAnchorDockedLeft: {
+        borderRight: 'none',
+      },
+    },
     MuiSelect: {
       select: {
         padding: '12px',

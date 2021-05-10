@@ -59,24 +59,21 @@ const styles = (/* theme */) => ({
   },
   drawerContent: {
     width: '100%',
+    height: '100%',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-  },
-  sidebar: {
     background: 'linear-gradient(180deg, #1B2023 0%, #111516 100%)',
-    display: 'flex',
-    flexDirection: 'column',
-    minWidth: 280,
-    width: '20%',
   },
   sidebarHeader: {
     alignItems: 'center',
-    padding: 24,
+    padding: 14.5,
     color: '#fff',
     display: 'flex',
     width: '100%',
     paddingLeft: 0,
+    backgroundColor: '#1D2225',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
   },
 });
 
@@ -117,32 +114,32 @@ class AppDrawer extends Component {
     }, 0);
 
     return (
-      <div>
-        <Drawer open={this.props.drawerIsOpen} onClose={this.toggleDrawerOff}>
-          <div className={classes.sidebarHeader}>
-            <Link to="/" className={classes.logo}>
-              <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
-              <Typography className={classes.logoText}>
-                explorer
-              </Typography>
-            </Link>
-          </div>
-          <div className={classes.drawerContent}>
-            <Button
-              size="large"
-              variant="outlined"
-              className={classes.annotateButton}
-              onClick={partial(this.goToAnnotation, firstAnnotationSegment)}
+      <Drawer open={ this.props.isPermanent || this.props.drawerIsOpen } onClose={this.toggleDrawerOff}
+        variant={ this.props.isPermanent ? "permanent" : "temporary" }
+      >
+        <div className={classes.sidebarHeader}>
+          <Link to="/" className={classes.logo}>
+            <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+            <Typography className={classes.logoText}>
+              explorer
+            </Typography>
+          </Link>
+        </div>
+        <div className={classes.drawerContent}>
+          <Button
+            size="large"
+            variant="outlined"
+            className={classes.annotateButton}
+            onClick={partial(this.goToAnnotation, firstAnnotationSegment)}
             >
-              Annotate
-            </Button>
-            <DeviceList
-              selectedDevice={this.props.selectedDongleId}
-              handleDeviceSelected={this.handleDeviceSelected}
+            Annotate
+          </Button>
+          <DeviceList
+            selectedDevice={this.props.selectedDongleId}
+            handleDeviceSelected={this.handleDeviceSelected}
             />
-          </div>
-        </Drawer>
-      </div>
+        </div>
+      </Drawer>
     );
   }
 }

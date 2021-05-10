@@ -15,6 +15,8 @@ import Timelineworker from '../timeline';
 import { selectRange, primeNav } from '../actions';
 import { getDongleID, getZoom, getPrimeNav } from '../url';
 
+let resizeTimeout = null;
+
 const styles = (/* theme */) => ({
   base: {
     display: 'flex',
@@ -37,18 +39,25 @@ class ExplorerApp extends Component {
   constructor(props) {
     super(props);
 
-    this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
-
     this.state = {
       settingDongle: null,
       drawerIsOpen: false,
+      windowHeight: window.innerHeight,
+      windowWidth: window.innerWidth,
     };
+
+    this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
+    this.handleResize = this.handleResize.bind(this);
   }
 
   componentWillMount() {
     this.checkProps(this.props);
+    window.addEventListener('resize', this.handleResize);
   }
 
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.handleResize);
+  }
 
   componentWillReceiveProps(props) {
     this.checkProps(props);
@@ -63,6 +72,19 @@ class ExplorerApp extends Component {
     if (!isZoomed && wasZoomed) {
       Timelineworker.pause();
     }
+  }
+
+  handleResize() {
+    if (resizeTimeout) {
+      clearTimeout(resizeTimeout);
+    }
+    resizeTimeout = setTimeout(() => {
+      this.setState({
+        windowHeight: window.innerHeight,
+        windowWidth: window.innerWidth,
+      });
+      resizeTimeout = null;
+    }, 150);
   }
 
   handleDrawerStateChanged(drawerOpen) {
@@ -104,6 +126,20 @@ class ExplorerApp extends Component {
   render() {
     const { classes, expanded } = this.props;
 
+    const drawerIsPermanent = this.state.windowWidth > 1080;
+    const sidebarWidth = 280;
+
+    let containerStyles = {
+      height: '100%',
+    };
+    if (drawerIsPermanent) {
+      containerStyles = {
+        ...containerStyles,
+        width: `calc(100% - ${sidebarWidth}px)`,
+        marginLeft: sidebarWidth
+      };
+    }
+
     return (
       <div className={classes.base}>
         <div className={classes.header}>
@@ -111,10 +147,9 @@ class ExplorerApp extends Component {
             handleDrawerStateChanged={this.handleDrawerStateChanged}
           />
         </div>
-        <AppDrawer drawerIsOpen={this.state.drawerIsOpen}
-          handleDrawerStateChanged={this.handleDrawerStateChanged}
-        />
-        <div className={classes.window}>
+        <AppDrawer drawerIsOpen={this.state.drawerIsOpen} isPermanent={drawerIsPermanent}
+          handleDrawerStateChanged={this.handleDrawerStateChanged} width={ sidebarWidth } />
+        <div className={classes.window} style={ containerStyles }>
           { expanded ? (<Annotations />) : (<Dashboard />) }
         </div>
       </div>

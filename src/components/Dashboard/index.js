@@ -34,7 +34,7 @@ class Dashboard extends Component {
   }
 
   render() {
-    const { classes, primeNav } = this.props;
+    const { classes, primeNav, device } = this.props;
 
     return (
       <div className={classes.base}>
