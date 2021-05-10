@@ -13,6 +13,12 @@ import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import PrimePayment from './PrimePayment';
 
 const styles = () => ({
+  primeBox: {
+    display: 'flex',
+    overflowY: 'auto',
+    height: 'calc(100vh - 64px)',
+    flexDirection: 'column',
+  },
   primeContainer: {
     padding: '16px 48px',
     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
@@ -167,7 +173,7 @@ class PrimeCheckout extends Component {
     const simId = this.state.simInfo ? this.state.simInfo.sim_id : null;
 
     return (
-      <div>
+      <div className={ classes.primeBox }>
         <div className={ classes.primeContainer }>
           <Typography variant="title">comma prime</Typography>
           <Typography className={ classes.introLine }>Become a comma prime member today for only $24/month</Typography>

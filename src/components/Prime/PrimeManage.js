@@ -14,6 +14,12 @@ import { withStyles, Typography, Button, Modal, Paper } from '@material-ui/core'
 import { primeFetchSubscription, selectDevice } from '../../actions';
 
 const styles = (theme) => ({
+  primeBox: {
+    display: 'flex',
+    overflowY: 'auto',
+    height: 'calc(100vh - 64px)',
+    flexDirection: 'column',
+  },
   primeContainer: {
     padding: '16px 48px',
     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
@@ -164,7 +170,7 @@ class PrimeManage extends Component {
 
     return (
       <>
-        <div>
+        <div className={ classes.primeBox }>
           <div className={ classes.primeContainer }>
             <Typography variant="title">comma prime</Typography>
             <div className={ classes.overviewBlock }>

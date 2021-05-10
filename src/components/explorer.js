@@ -9,10 +9,13 @@ import 'mapbox-gl/src/css/mapbox-gl.css';
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
 import Annotations from './Annotations';
+import AppDrawer from './AppDrawer';
 
 import Timelineworker from '../timeline';
 import { selectRange, primeNav } from '../actions';
 import { getDongleID, getZoom, getPrimeNav } from '../url';
+
+let resizeTimeout = null;
 
 const styles = (/* theme */) => ({
   base: {
@@ -29,6 +32,7 @@ const styles = (/* theme */) => ({
     display: 'flex',
     flexGrow: 1,
     minHeight: 0,
+    height: '100%',
   },
 });
 
@@ -37,12 +41,23 @@ class ExplorerApp extends Component {
     super(props);
 
     this.state = {
-      settingDongle: null
+      settingDongle: null,
+      drawerIsOpen: false,
+      windowHeight: window.innerHeight,
+      windowWidth: window.innerWidth,
     };
+
+    this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
+    this.handleResize = this.handleResize.bind(this);
   }
 
   componentWillMount() {
     this.checkProps(this.props);
+    window.addEventListener('resize', this.handleResize);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.handleResize);
   }
 
   componentWillReceiveProps(props) {
@@ -58,6 +73,25 @@ class ExplorerApp extends Component {
     if (!isZoomed && wasZoomed) {
       Timelineworker.pause();
     }
+  }
+
+  handleResize() {
+    if (resizeTimeout) {
+      clearTimeout(resizeTimeout);
+    }
+    resizeTimeout = setTimeout(() => {
+      this.setState({
+        windowHeight: window.innerHeight,
+        windowWidth: window.innerWidth,
+      });
+      resizeTimeout = null;
+    }, 150);
+  }
+
+  handleDrawerStateChanged(drawerOpen) {
+    this.setState({
+      drawerIsOpen: drawerOpen
+    });
   }
 
   checkProps(props) {
@@ -92,12 +126,31 @@ class ExplorerApp extends Component {
 
   render() {
     const { classes, expanded } = this.props;
+
+    const drawerIsPermanent = this.state.windowWidth > 1080;
+    const sidebarWidth = 280;
+
+    let containerStyles = {
+      height: '100%',
+    };
+    if (drawerIsPermanent) {
+      containerStyles = {
+        ...containerStyles,
+        width: `calc(100% - ${sidebarWidth}px)`,
+        marginLeft: sidebarWidth
+      };
+    }
+
     return (
       <div className={classes.base}>
         <div className={classes.header}>
-          <AppHeader />
+          <AppHeader drawerIsOpen={this.state.drawerIsOpen}
+            handleDrawerStateChanged={this.handleDrawerStateChanged}
+          />
         </div>
-        <div className={classes.window}>
+        <AppDrawer drawerIsOpen={this.state.drawerIsOpen} isPermanent={drawerIsPermanent}
+          handleDrawerStateChanged={this.handleDrawerStateChanged} width={ sidebarWidth } />
+        <div className={classes.window} style={ containerStyles }>
           { expanded ? (<Annotations />) : (<Dashboard />) }
         </div>
       </div>

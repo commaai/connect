@@ -35,16 +35,23 @@ const styles = (theme) => ({
     cursor: 'default',
     textTransform: 'uppercase',
   },
+  drivesTable: {
+    display: 'flex',
+    overflowY: 'auto',
+    height: 'calc(100vh - 144px)',
+    flexDirection: 'column',
+  },
   drives: {
-    height: '100%',
     margin: 0,
     overflowY: 'scroll',
     padding: 16,
     paddingLeft: 24,
     paddingRight: 24,
+    flex: '1',
   },
   zeroState: {
     padding: '16px 48px',
+    flex: '0',
   },
   settingsArea: {
     display: 'flex',
@@ -161,16 +168,18 @@ class DriveList extends Component {
     return (
       <>
         { this.renderDriveListHeader() }
-        { driveList.length === 0 && this.renderZeroRides() }
-        <ul className={classes.drives}>
-          { driveList.filter(this.filterShortDrives).map((drive) => (
-            <DriveListItem
-              key={drive.startTime}
-              drive={drive}
-              deviceAlias={device.alias}
-            />
-          ))}
-        </ul>
+        <div className={ classes.drivesTable }>
+          { driveList.length === 0 && this.renderZeroRides() }
+          <ul className={classes.drives}>
+            { driveList.filter(this.filterShortDrives).map((drive) => (
+              <DriveListItem
+                key={drive.startTime}
+                drive={drive}
+                deviceAlias={device.alias}
+              />
+            ))}
+          </ul>
+        </div>>
       </>
     );
   }
@@ -183,13 +192,7 @@ class DriveList extends Component {
     if (device && (segmentData === null || typeof segmentData.segments === 'undefined')) {
       zeroRidesEle = <Typography>Loading...</Typography>;
     } else if (segmentData && segmentData.segments && segmentData.segments.length === 0) {
-      zeroRidesEle = (
-        <Typography>
-Looks like you haven
-          {'\''}
-t driven in the selected time range.
-        </Typography>
-      );
+      zeroRidesEle = ( <Typography>Looks like you haven{'\''}t driven in the selected time range.</Typography> );
     }
 
     return (

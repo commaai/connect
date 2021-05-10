@@ -94,32 +94,6 @@ class AnnotationList extends PureComponent {
     return !expanded ? 64 : 314; // TODO: is 314 safe?
   }
 
-  render() {
-    const {
-      segment, classes, resolved, unresolved
-    } = this.props;
-    const events = (segment || {}).events || [];
-
-    return (
-      <div className={classes.base} style={{ height: '100%' }}>
-        <AutoSizer>
-          {({ height, width }) => (
-            <List
-              ref={(ref) => this.list = ref}
-              height={height}
-              width={width}
-              overscanRowCount={10}
-              // noRowsRenderer={this.noRowsRenderer}
-              rowCount={this.filter(resolved, unresolved, events).length}
-              rowHeight={this.getRowHeight}
-              rowRenderer={this.renderEntry}
-            />
-          )}
-        </AutoSizer>
-      </div>
-    );
-  }
-
   filterEntry = (event) => {
     if (this.props.resolved && !event.id) {
       return false;
@@ -145,6 +119,32 @@ class AnnotationList extends PureComponent {
         disabled={!segment.hpgps}
         onChange={partial(this.handleExpanded, eventId, event.timestamp)}
       />
+    );
+  }
+
+  render() {
+    const {
+      segment, classes, resolved, unresolved
+    } = this.props;
+    const events = (segment || {}).events || [];
+
+    return (
+      <div className={classes.base} style={{ height: '100%' }}>
+        <AutoSizer>
+          {({ height, width }) => (
+            <List
+              ref={(ref) => this.list = ref}
+              height={height}
+              width={width}
+              overscanRowCount={10}
+              // noRowsRenderer={this.noRowsRenderer}
+              rowCount={this.filter(resolved, unresolved, events).length}
+              rowHeight={this.getRowHeight}
+              rowRenderer={this.renderEntry}
+            />
+          )}
+        </AutoSizer>
+      </div>
     );
   }
 }
