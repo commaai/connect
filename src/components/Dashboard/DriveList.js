@@ -36,7 +36,7 @@ const styles = (theme) => ({
     textTransform: 'uppercase',
   },
   drives: {
-    height: '100%',
+    height: 'calc(100vh - 146px)',
     margin: 0,
     overflowY: 'scroll',
     padding: 16,

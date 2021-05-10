@@ -13,6 +13,9 @@ const theme = createMuiTheme({
       },
     },
     MuiDrawer: {
+      paper: {
+        overflowY: null,
+      },
       paperAnchorDockedLeft: {
         borderRight: 'none',
       },

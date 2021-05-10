@@ -35,7 +35,7 @@ const styles = (/* theme */) => ({
     height: 50,
     textTransform: 'none',
     width: '80%',
-    margin: '15px 0',
+    margin: '16.5px 0',
     '&:hover': {
       background: '#fff',
       color: '#404B4F',
@@ -59,7 +59,7 @@ const styles = (/* theme */) => ({
   },
   drawerContent: {
     width: '100%',
-    height: '100%',
+    height: 'calc(100vh - 64px)',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
