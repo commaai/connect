@@ -89,6 +89,7 @@ class AppDrawer extends Component {
 
   handleDeviceSelected(dongleId) {
     this.props.dispatch(selectDevice(dongleId));
+    this.toggleDrawerOff();
   }
 
   goToAnnotation(segment) {
@@ -118,7 +119,7 @@ class AppDrawer extends Component {
         variant={ this.props.isPermanent ? "permanent" : "temporary" }
       >
         <div className={classes.sidebarHeader}>
-          <Link to="/" className={classes.logo}>
+          <Link to="/" onClick={ this.toggleDrawerOff } className={classes.logo}>
             <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
             <Typography className={classes.logoText}>
               explorer
@@ -130,7 +131,7 @@ class AppDrawer extends Component {
             size="large"
             variant="outlined"
             className={classes.annotateButton}
-            onClick={partial(this.goToAnnotation, firstAnnotationSegment)}
+            onClick={() => { this.toggleDrawerOff(); this.goToAnnotation(firstAnnotationSegment); }}
             >
             Annotate
           </Button>

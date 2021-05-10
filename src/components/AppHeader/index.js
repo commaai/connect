@@ -67,6 +67,7 @@ const styles = (theme) => ({
     color: '#fff',
   },
   hamburger: {
+    margin: '0 5px',
     color: '#fff',
   },
   titleContainer: {
