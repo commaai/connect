@@ -10,25 +10,39 @@ import Typography from '@material-ui/core/Typography';
 
 import { config as AuthConfig } from '@commaai/my-comma-auth';
 
-import { CommaIcon, auth_apple, auth_github, auth_google } from '../icons';
+import { auth_apple, auth_github, auth_google } from '../icons';
 
 const styles = (/* theme */) => ({
-  base: {
-    height: '60px',
-    margin: '0 auto',
-    marginTop: '30vh',
-    maxWidth: '560px',
+  baseContainer: {
+    width: '100vw',
+    height: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  title: {
-    display: 'inline',
+  base: {
+    overflowY: 'auto',
+    margin: 20,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  logo: {
+    display: 'flex',
+  },
+  logoImg: {
+    height: 45,
+    marginRight: 20,
+    width: 'auto',
+  },
+  logoText: {
     fontFamily: 'MaisonNeueExtended',
-    fontSize: '24px',
+    fontSize: 24,
     fontWeight: 600,
-    lineHeight: '60px',
-    verticalAlign: 'top',
   },
   tagline: {
-    padding: '20px 0 52px',
+    margin: '20px 0 52px',
     fontSize: '18px',
   },
   logInButton: {
@@ -96,40 +110,42 @@ class AnonymousLanding extends Component {
   render() {
     const { classes } = this.props;
     return (
-      <div className={classes.base}>
-        <Typography className={classes.title}>
-          <CommaIcon style={{ fontSize: '2em' }} />
-          explorer
-        </Typography>
-        <Typography className={classes.tagline}>
-          Review and annotate your comma.ai driving data.
-        </Typography>
-        <a href={AuthConfig.GOOGLE_REDIRECT_LINK}
-           className={classes.logInButton}
-           style={{backgroundImage: "url(" + auth_google + ")"}}>
-          <Typography className={classes.logInText}>
-            Sign in with Google
+      <div className={ classes.baseContainer }>
+        <div className={classes.base}>
+          <div className={classes.logo}>
+            <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+            <Typography className={classes.logoText}>explorer</Typography>
+          </div>
+          <Typography className={classes.tagline}>
+            Review and annotate your comma.ai driving data.
           </Typography>
-        </a>
-        <a onClick={ () => AppleID.auth.signIn() }
-           className={classes.logInButton}
-           style={ { backgroundImage: "url(" + auth_apple + ")", cursor: 'pointer' } }>
-          <Typography className={classes.logInText}>
-            Sign in with Apple
-          </Typography>
-        </a>
-        <a href={AuthConfig.GITHUB_REDIRECT_LINK}
-           className={classes.logInButton}
-           style={{backgroundImage: "url(" + auth_github + ")"}}>
-          <Typography className={classes.logInText}>
-            Sign in with GitHub
-          </Typography>
-        </a>
-        <a href={DEMO_LINK} className={classes.demoLink}>
-          <Typography className={classes.demoLinkText}>
-            or try the demo
-          </Typography>
-        </a>
+          <a href={AuthConfig.GOOGLE_REDIRECT_LINK}
+            className={classes.logInButton}
+            style={{backgroundImage: "url(" + auth_google + ")"}}>
+            <Typography className={classes.logInText}>
+              Sign in with Google
+            </Typography>
+          </a>
+          <a onClick={ () => AppleID.auth.signIn() }
+            className={classes.logInButton}
+            style={ { backgroundImage: "url(" + auth_apple + ")", cursor: 'pointer' } }>
+            <Typography className={classes.logInText}>
+              Sign in with Apple
+            </Typography>
+          </a>
+          <a href={AuthConfig.GITHUB_REDIRECT_LINK}
+            className={classes.logInButton}
+            style={{backgroundImage: "url(" + auth_github + ")"}}>
+            <Typography className={classes.logInText}>
+              Sign in with GitHub
+            </Typography>
+          </a>
+          <a href={DEMO_LINK} className={classes.demoLink}>
+            <Typography className={classes.demoLinkText}>
+              or try the demo
+            </Typography>
+          </a>
+        </div>
       </div>
     );
   }
