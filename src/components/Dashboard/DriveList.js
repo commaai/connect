@@ -38,7 +38,7 @@ const styles = (theme) => ({
   drivesTable: {
     display: 'flex',
     overflowY: 'auto',
-    height: '100vh',
+    height: 'calc(100vh - 144px)',
     flexDirection: 'column',
   },
   drives: {
