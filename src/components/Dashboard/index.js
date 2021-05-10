@@ -16,7 +16,6 @@ const styles = (/* theme */) => ({
   base: {
     background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
     display: 'flex',
-    overflow: 'hidden',
     flexGrow: 0,
     minWidth: '100%',
     flexWrap: 'wrap',

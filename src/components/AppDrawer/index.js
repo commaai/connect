@@ -119,7 +119,7 @@ class AppDrawer extends Component {
         variant={ this.props.isPermanent ? "permanent" : "temporary" }
       >
         <div className={classes.sidebarHeader}>
-          <Link to="/" onClick={ this.toggleDrawerOff } className={classes.logo}>
+          <Link to="/" onClick={ () => { this.toggleDrawerOff(); window.location = '/'; } } className={classes.logo}>
             <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
             <Typography className={classes.logoText}>
               explorer
