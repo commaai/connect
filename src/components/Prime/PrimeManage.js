@@ -151,6 +151,7 @@ class PrimeManage extends Component {
   render() {
     const { dongleId, subscription, classes, device } = this.props;
     if (!subscription) {
+      console.log('device has prime, but no subscription found');
       return ( <></> );
     }
 

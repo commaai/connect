@@ -28,6 +28,9 @@ const styles = (/* theme */) => ({
     height: 64,
     minHeight: 64,
   },
+  main: {
+    flexGrow: 1,
+  },
   window: {
     display: 'flex',
     flexGrow: 1,
@@ -126,15 +129,17 @@ class ExplorerApp extends Component {
 
   render() {
     const { classes, expanded } = this.props;
+    const { drawerIsOpen } = this.state;
 
-    const showMenuButton = this.state.windowWidth <= 1080;
-    const drawerIsPermanent = !expanded && this.state.windowWidth > 1080;
+    const isLarge = this.state.windowWidth > 1080;
+    const renderDrawer = !expanded || !isLarge;
+
     const sidebarWidth = Math.max(280, this.state.windowWidth * 0.2);
 
     let containerStyles = {
       height: '100%',
     };
-    if (drawerIsPermanent) {
+    if (renderDrawer && isLarge) {
       containerStyles = {
         ...containerStyles,
         width: `calc(100% - ${sidebarWidth}px)`,
@@ -144,17 +149,16 @@ class ExplorerApp extends Component {
 
     return (
       <div className={classes.base}>
-        <div className={classes.header}>
-          <AppHeader drawerIsOpen={this.state.drawerIsOpen} showMenuButton={ showMenuButton }
-            handleDrawerStateChanged={this.handleDrawerStateChanged}
-          />
-        </div>
-        { (!expanded || !drawerIsPermanent) &&
-          <AppDrawer drawerIsOpen={this.state.drawerIsOpen} isPermanent={drawerIsPermanent}
-            handleDrawerStateChanged={this.handleDrawerStateChanged} width={ sidebarWidth } />
-        }
-        <div className={classes.window} style={ containerStyles }>
-          { expanded ? (<Annotations />) : (<Dashboard />) }
+        <AppHeader drawerIsOpen={ drawerIsOpen } annotating={ expanded } showDrawerButton={ !isLarge }
+          handleDrawerStateChanged={this.handleDrawerStateChanged} />
+        <div className={ classes.main }>
+          { renderDrawer &&
+            <AppDrawer drawerIsOpen={ drawerIsOpen } isPermanent={ isLarge } width={ sidebarWidth }
+              handleDrawerStateChanged={this.handleDrawerStateChanged} />
+          }
+          <div className={ classes.window } style={ containerStyles }>
+            { expanded ? (<Annotations />) : (<Dashboard />) }
+          </div>
         </div>
       </div>
     );

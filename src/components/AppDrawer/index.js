@@ -43,8 +43,8 @@ const styles = (/* theme */) => ({
   logo: {
     alignItems: 'center',
     display: 'flex',
-    maxWidth: 200,
     textDecoration: 'none',
+    height: 81,
   },
   logoImg: {
     height: '34px',
@@ -102,7 +102,7 @@ class AppDrawer extends Component {
   }
 
   render() {
-    const { classes } = this.props;
+    const { classes, isPermanent, drawerIsOpen, selectedDongleId } = this.props;
     let firstAnnotationSegment = null;
     const newAnnotations = this.props.segments.reduce((count, segment) => {
       const segCount = segment.events.filter(filterEvent).reduce((memo, event) => (event.id ? memo : memo + 1), 0);
@@ -113,30 +113,21 @@ class AppDrawer extends Component {
     }, 0);
 
     return (
-      <Drawer open={ this.props.isPermanent || this.props.drawerIsOpen } onClose={this.toggleDrawerOff}
-        variant={ this.props.isPermanent ? "permanent" : "temporary" } PaperProps={{ style: { width: this.props.width }}}
-      >
-        <div className={classes.sidebarHeader}>
-          <Link to="/" onClick={ () => { this.toggleDrawerOff(); window.location = '/'; } } className={classes.logo}>
-            <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
-            <Typography className={classes.logoText}>
-              explorer
-            </Typography>
-          </Link>
-        </div>
-        <div className={classes.drawerContent}>
-          <Button
-            size="large"
-            variant="outlined"
-            className={classes.annotateButton}
-            onClick={() => { this.toggleDrawerOff(); this.goToAnnotation(firstAnnotationSegment); }}
-            >
+      <Drawer open={ isPermanent || drawerIsOpen } onClose={this.toggleDrawerOff}
+        variant={ isPermanent ? "permanent" : "temporary" }
+        PaperProps={{ style: { width: this.props.width, top: 'auto' }}}>
+        <div className={classes.drawerContent} style={ !isPermanent ? { height: '100vh' } : {} }>
+          { !isPermanent &&
+            <Link to="/" class={ classes.logo }>
+              <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+              <Typography className={ classes.logoText }>explorer</Typography>
+            </Link>
+          }
+          <Button size="large" className={classes.annotateButton}
+            onClick={() => { this.toggleDrawerOff(); this.goToAnnotation(firstAnnotationSegment); }}>
             Annotate
           </Button>
-          <DeviceList
-            selectedDevice={this.props.selectedDongleId}
-            handleDeviceSelected={this.handleDeviceSelected}
-            />
+          <DeviceList selectedDevice={ selectedDongleId } handleDeviceSelected={this.handleDeviceSelected} />
         </div>
       </Drawer>
     );

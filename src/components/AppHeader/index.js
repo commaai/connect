@@ -5,32 +5,42 @@ import Obstruction from 'obstruction';
 import localforage from 'localforage';
 
 import { withStyles } from '@material-ui/core/styles';
-import Typography from '@material-ui/core/Typography';
-import Grid from '@material-ui/core/Grid';
-import Menu from '@material-ui/core/Menu';
-import MenuItem from '@material-ui/core/MenuItem';
-import ListItem from '@material-ui/core/ListItem';
-import IconButton from '@material-ui/core/IconButton';
-import Icon from '@material-ui/core/Icon';
+import { Divider, Typography, Menu, MenuItem, ListItem, IconButton, Icon } from '@material-ui/core';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import TimeFilter from './TimeFilter';
 import TimeDisplay from '../TimeDisplay';
 import { AccountIcon } from '../../icons';
+import Colors from '../../colors';
 
 const styles = (theme) => ({
-  base: {
+  header: {
     backgroundColor: '#1D2225',
     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
     display: 'flex',
     width: '100%',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 7.5,
+    flexWrap: 'wrap',
+  },
+  titleContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'nowrap',
+  },
+  hamburger: {
+    marginRight: 10,
   },
   logo: {
     alignItems: 'center',
     display: 'flex',
     maxWidth: 200,
     textDecoration: 'none',
+  },
+  logoImgLink: {
+    lineHeight: 0,
   },
   logoImg: {
     height: '34px',
@@ -42,39 +52,20 @@ const styles = (theme) => ({
     fontSize: 18,
     fontWeight: 600,
   },
-  timeDisplay: {
-    alignItems: 'center',
-  },
-  selectArea: {
-    alignItems: 'center',
-    display: 'flex',
-    justifyContent: 'flex-end',
-    marginLeft: 'auto',
-    paddingRight: 28,
-  },
   accountIcon: {
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: Colors.white30,
     height: 34,
     width: 34,
   },
-  userMeta: {
-    outline: 'none',
-    padding: `${theme.spacing.unit}px ${theme.spacing.unit * 2}px`,
-    borderBottom: `1px solid ${theme.palette.white[12]}`,
+  accountListEmail: {
+    fontWeight: 'bold',
   },
-  userMetaLink: {
-    textDecoration: 'none',
-    color: '#fff',
+  accountListItem: {
+    color: Colors.white,
   },
-  hamburger: {
-    margin: '0 5px',
-    color: '#fff',
+  accountMenuItem: {
+    padding: '12px 24px',
   },
-  titleContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    flexWrap: 'nowrap',
-  }
 });
 
 class AppHeader extends Component {
@@ -110,8 +101,8 @@ class AppHeader extends Component {
   }
 
   render() {
-    const { profile, classes, showMenuButton } = this.props;
-    const { auth, anchorEl } = this.state;
+    const { profile, classes, annotating, showDrawerButton, showMenuButton } = this.props;
+    const { anchorEl } = this.state;
     const open = Boolean(anchorEl);
 
     if (!profile) {
@@ -119,15 +110,15 @@ class AppHeader extends Component {
     }
 
     return (
-      <header className={classes.base}>
-        <Grid container spacing={0}>
-          <Grid item container xs={2} lg={4} className={classes.titleContainer}>
-            { showMenuButton ?
+      <>
+        <header className={ classes.header }>
+          <div className={classes.titleContainer}>
+            { showDrawerButton ?
               <IconButton aria-label="menu" className={classes.hamburger} onClick={this.toggleDrawer}>
                 <Icon>menu</Icon>
               </IconButton>
             :
-              <Link to="/" className={classes.logo}>
+              <Link to="/" className={ classes.logoImgLink }>
                 <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
               </Link>
             }
@@ -136,64 +127,28 @@ class AppHeader extends Component {
                 explorer
               </Typography>
             </Link>
-          </Grid>
-          <Grid item container xs={6} lg={4} className={classes.timeDisplay}>
-            <TimeDisplay isThin />
-          </Grid>
-          <Grid
-            item
-            xs={4}
-            align="right"
-            className={classes.selectArea}
-          >
-            <TimeFilter />
-            <IconButton
-              aria-owns={open ? 'menu-appbar' : null}
-              aria-haspopup="true"
-              onClick={this.handleClickedAccount}
-            >
-              <AccountIcon className={classes.accountIcon} />
-            </IconButton>
-            <Menu
-              id="menu-appbar"
-              open={open}
-              onClose={this.handleClose}
-              anchorEl={anchorEl}
-              anchorOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
-            >
-              <ListItem classes={{ root: classes.userMeta }} disableGutters>
-                <div>
-                  <Typography variant="body2" paragraph>
-                    { profile.email }
-                  </Typography>
-                  <Typography variant="body1" paragraph>
-                    { profile.points }
-                    {' '}
-                    points
-                  </Typography>
-                </div>
-              </ListItem>
-              <li>
-                <MenuItem
-                  component="a"
-                  href="/useradmin/"
-                  target="_blank"
-                >
-                Manage Account
-                </MenuItem>
-              </li>
-              <MenuItem onClick={this.handleLogOut}>Log out</MenuItem>
-            </Menu>
-          </Grid>
-        </Grid>
-      </header>
+          </div>
+          <div className={ classes.headerWideItem }>
+            { annotating ?
+              <TimeDisplay isThin /> :
+              <TimeFilter /> }
+          </div>
+          <IconButton aria-owns={open ? 'menu-appbar' : null} aria-haspopup="true" onClick={this.handleClickedAccount}>
+            <AccountIcon className={classes.accountIcon} />
+          </IconButton>
+        </header>
+        <Menu id="menu-appbar" open={open} onClose={this.handleClose} anchorEl={anchorEl}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+          <ListItem className={ classes.accountListItem + ' ' + classes.accountListEmail }>{ profile.email }</ListItem>
+          <ListItem className={ classes.accountListItem }>{ profile.points } points</ListItem>
+          <Divider />
+          <MenuItem className={ classes.accountMenuItem } component="a" href="/useradmin/" target="_blank">
+            Manage Account
+          </MenuItem>
+          <MenuItem className={ classes.accountMenuItem } onClick={this.handleLogOut}>Log out</MenuItem>
+        </Menu>
+      </>
     );
   }
 }
