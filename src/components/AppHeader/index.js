@@ -110,7 +110,7 @@ class AppHeader extends Component {
   }
 
   render() {
-    const { profile, classes } = this.props;
+    const { profile, classes, showMenuButton } = this.props;
     const { auth, anchorEl } = this.state;
     const open = Boolean(anchorEl);
 
@@ -122,11 +122,15 @@ class AppHeader extends Component {
       <header className={classes.base}>
         <Grid container spacing={0}>
           <Grid item container xs={2} lg={4} className={classes.titleContainer}>
-            <IconButton aria-label="menu" className={classes.hamburger} onClick={this.toggleDrawer}>
-              <Icon>
-                menu
-              </Icon>
-            </IconButton>
+            { showMenuButton ?
+              <IconButton aria-label="menu" className={classes.hamburger} onClick={this.toggleDrawer}>
+                <Icon>menu</Icon>
+              </IconButton>
+            :
+              <Link to="/" className={classes.logo}>
+                <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+              </Link>
+            }
             <Link to="/" className={classes.logo}>
               <Typography className={classes.logoText}>
                 explorer

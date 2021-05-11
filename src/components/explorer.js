@@ -127,8 +127,9 @@ class ExplorerApp extends Component {
   render() {
     const { classes, expanded } = this.props;
 
-    const drawerIsPermanent = this.state.windowWidth > 1080;
-    const sidebarWidth = 280;
+    const showMenuButton = this.state.windowWidth <= 1080;
+    const drawerIsPermanent = !expanded && this.state.windowWidth > 1080;
+    const sidebarWidth = Math.max(280, this.state.windowWidth * 0.2);
 
     let containerStyles = {
       height: '100%',
@@ -144,12 +145,14 @@ class ExplorerApp extends Component {
     return (
       <div className={classes.base}>
         <div className={classes.header}>
-          <AppHeader drawerIsOpen={this.state.drawerIsOpen}
+          <AppHeader drawerIsOpen={this.state.drawerIsOpen} showMenuButton={ showMenuButton }
             handleDrawerStateChanged={this.handleDrawerStateChanged}
           />
         </div>
-        <AppDrawer drawerIsOpen={this.state.drawerIsOpen} isPermanent={drawerIsPermanent}
-          handleDrawerStateChanged={this.handleDrawerStateChanged} width={ sidebarWidth } />
+        { (!expanded || !drawerIsPermanent) &&
+          <AppDrawer drawerIsOpen={this.state.drawerIsOpen} isPermanent={drawerIsPermanent}
+            handleDrawerStateChanged={this.handleDrawerStateChanged} width={ sidebarWidth } />
+        }
         <div className={classes.window} style={ containerStyles }>
           { expanded ? (<Annotations />) : (<Dashboard />) }
         </div>

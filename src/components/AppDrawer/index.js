@@ -31,11 +31,11 @@ const styles = (/* theme */) => ({
   annotateButton: {
     background: '#fff',
     borderRadius: 30,
+    margin: 24,
     color: '#404B4F',
     height: 50,
     textTransform: 'none',
     width: '80%',
-    margin: '16.5px 0',
     '&:hover': {
       background: '#fff',
       color: '#404B4F',
@@ -62,7 +62,6 @@ const styles = (/* theme */) => ({
     height: 'calc(100vh - 64px)',
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
     background: 'linear-gradient(180deg, #1B2023 0%, #111516 100%)',
   },
   sidebarHeader: {
@@ -116,7 +115,7 @@ class AppDrawer extends Component {
 
     return (
       <Drawer open={ this.props.isPermanent || this.props.drawerIsOpen } onClose={this.toggleDrawerOff}
-        variant={ this.props.isPermanent ? "permanent" : "temporary" }
+        variant={ this.props.isPermanent ? "permanent" : "temporary" } PaperProps={{ style: { width: this.props.width }}}
       >
         <div className={classes.sidebarHeader}>
           <Link to="/" onClick={ () => { this.toggleDrawerOff(); window.location = '/'; } } className={classes.logo}>
