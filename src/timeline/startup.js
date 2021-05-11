@@ -26,13 +26,12 @@ export default async function init(isDemo) {
     if (devices.length > 0) {
       const dongleId = getDongleID(window.location.pathname) || devices[0].dongle_id;
       const device = devices.find((dev) => dev.dongle_id === dongleId);
-      if (device.is_owner) {
-        try {
-          let subscription = await Billing.getSubscription(dongleId);
+      if (device.prime && (device.is_owner || profile.superuser)) {
+        Billing.getSubscription(dongleId).then((subscription) => {
           store.dispatch(primeGetSubscriptionAction(dongleId, subscription));
-        } catch(err) {
+        }).catch((err) => {
           console.log(err);
-        }
+        });
       }
     }
 
