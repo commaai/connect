@@ -41,7 +41,7 @@ class Dashboard extends Component {
           { primeNav ?
             ( <Prime /> )
           : ( <>
-            { !device.prime && device.is_owner && <PrimeBanner collapsed /> }
+            { device && !device.prime && device.is_owner && <PrimeBanner collapsed /> }
             <DriveList />
           </> ) }
         </div>
