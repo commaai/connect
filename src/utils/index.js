@@ -27,8 +27,9 @@ export function getDrivePoints(duration) {
 export function deviceTypePretty(deviceType) {
   if (deviceType === 'neo') {
     return 'EON';
-  } else if (deviceType === 'two') {
-    return 'comma two';
+  } else if (deviceType === 'freon') {
+    return 'freon';
+  } else {
+    return `comma ${deviceType}`;
   }
-  return deviceType;
 }

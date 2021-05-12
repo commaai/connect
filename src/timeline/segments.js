@@ -215,6 +215,9 @@ function segmentsFromMetadata(segmentsData) {
       };
       segments.push(curSegment);
     }
+    if (curSegment.startCoord[0] === 0 && curSegment.startCoord[1] === 0) {
+      curSegment.startCoord = [segment.start_lng, segment.start_lat];
+    }
     if (!segmentHasVideo && curVideoStartOffset !== null) {
       curSegment.videoAvailableBetweenOffsets.push([curVideoStartOffset, segment.offset]);
       curVideoStartOffset = null;
@@ -228,10 +231,12 @@ function segmentsFromMetadata(segmentsData) {
     curSegment.duration = (segment.offset - curSegment.offset) + segment.duration;
     curSegment.segments = Math.max(curSegment.segments, Number(segment.canonical_name.split('--').pop()) + 1);
     curSegment.events = curSegment.events.concat(segment.events);
-    curSegment.endCoord = [segment.end_lng, segment.end_lat];
     curSegment.distanceMiles += segment.length;
     curSegment.cameraStreamSegCount += Math.floor(segmentHasVideo);
     curSegment.driverCameraStreamSegCount += Math.floor(segmentHasDriverCameraStream);
+    if (!curSegment.endCoord || segment.end_lng !== 0 || segment.end_lat !== 0) {
+      curSegment.endCoord = [segment.end_lng, segment.end_lat];
+    }
   });
 
   if (curSegment) {
