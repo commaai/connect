@@ -179,7 +179,7 @@ class DriveList extends Component {
               />
             ))}
           </ul>
-        </div>>
+        </div>
       </>
     );
   }
@@ -237,7 +237,7 @@ Drives
             </Typography>
           </Grid>
           <Grid item xs={1} className={classes.settingsArea}>
-            { ((device && !device.shared && device.is_owner) || this.props.isSuperUser)
+            { device && ((!device.shared && device.is_owner) || this.props.isSuperUser)
               && this.renderDriveListSettings()}
           </Grid>
         </Grid>

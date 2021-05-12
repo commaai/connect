@@ -72,7 +72,7 @@ export function primeFetchSubscription() {
   return (dispatch, getState) => {
     const state = getState();
 
-    if (state.workerState.device.is_owner) {
+    if (state.workerState.device.is_owner || state.workerState.profile.superuser) {
       Billing.getSubscription(state.workerState.dongleId).then((subscription) => {
         Timelineworker.primeGetSubscription(state.workerState.dongleId, subscription);
       });
