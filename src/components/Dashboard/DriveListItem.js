@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { partial } from 'ap';
 import fecha from 'fecha';
 import { classNames } from 'react-extras';
 
@@ -39,6 +38,9 @@ const styles = (theme) => ({
   driveHeaderIntro: {
     display: 'flex',
   },
+  driveHeaderIntroSmall: {
+    justifyContent: 'center',
+  },
   driveAvatar: {
     alignItems: 'center',
     background: '#404B4F',
@@ -51,8 +53,9 @@ const styles = (theme) => ({
     margin: '0px 3%',
     width: 52,
   },
-  driveTitle: {
-    marginLeft: '10%',
+  driveAvatarSmall: {
+    width: 40,
+    height: 40,
   },
   driveTimeline: {},
   driveArrow: {
@@ -103,7 +106,7 @@ class DriveListDrive extends Component {
   }
 
   render() {
-    const { drive, deviceAlias, classes } = this.props;
+    const { drive, deviceAlias, classes, small } = this.props;
     const { startLocation, endLocation } = this.state;
     const startTime = fecha.format(new Date(drive.startTime), 'HH:mm');
     const startDate = fecha.format(new Date(drive.startTime), 'ddd, MMM D');
@@ -114,24 +117,26 @@ class DriveListDrive extends Component {
       <li
         key={drive.startTime}
         className={classNames(classes.drive, 'DriveEntry')}
-        onClick={partial(this.handleDriveClicked, drive)}
+        onClick={ () => this.handleDriveClicked(drive) }
       >
         <div className={classes.driveHeader}>
           <Grid container>
-            <Grid item xs={4} className={classes.driveHeaderIntro}>
-              <div className={classes.driveAvatar}>
-                { drive.annotations }
-              </div>
-              <div className={classes.driveTitle}>
-                <Typography variant="body2">
-                  { `${startDate} @ ${startTime} to ${endTime}` }
-                </Typography>
-                <Typography>
-                  { deviceAlias }
-                </Typography>
-              </div>
+            { !small &&
+              <Grid item xs={ 1 } className={classes.driveHeaderIntro}>
+                <div className={classes.driveAvatar}>
+                  { drive.annotations }
+                </div>
+              </Grid>
+            }
+            <Grid item xs={ small ? 8 : 3 }>
+              <Typography variant="body2">
+                { `${startDate} @ ${startTime} to ${endTime}` }
+              </Typography>
+              <Typography>
+                { deviceAlias }
+              </Typography>
             </Grid>
-            <Grid item xs={2}>
+            <Grid item xs={ 2 }>
               <Typography variant="body2">
                 { duration.hours > 0 && `${duration.hours.toString()}hr ` }
                 { `${duration.minutes} min` }
@@ -140,7 +145,14 @@ class DriveListDrive extends Component {
                 { `${points} points` }
               </Typography>
             </Grid>
-            <Grid item xs={2}>
+            { small &&
+              <Grid item xs={ 2 } className={classes.driveHeaderIntro + ' ' + classes.driveHeaderIntroSmall}>
+                <div className={ classes.driveAvatar + ' ' + classes.driveAvatarSmall }>
+                  { drive.annotations }
+                </div>
+              </Grid>
+            }
+            <Grid item xs={ small ? 4 : 2 }>
               <Typography variant="body2">
                 { startLocation && startLocation.neighborhood }
               </Typography>
@@ -148,7 +160,7 @@ class DriveListDrive extends Component {
                 { startLocation && (`${startLocation.locality}, ${startLocation.region}`) }
               </Typography>
             </Grid>
-            <Grid item xs={2}>
+            <Grid item xs={ small ? 4 : 2 }>
               <Typography variant="body2">
                 { endLocation && endLocation.neighborhood }
               </Typography>
@@ -156,7 +168,7 @@ class DriveListDrive extends Component {
                 { endLocation && (`${endLocation.locality}, ${endLocation.region}`) }
               </Typography>
             </Grid>
-            <Grid item xs={1}>
+            <Grid item xs={ small ? 2 : 1 }>
               <Typography variant="body2">
                 { `${+drive.distanceMiles.toFixed(1)} mi` }
               </Typography>
@@ -164,7 +176,7 @@ class DriveListDrive extends Component {
                 { `${+(drive.distanceMiles * KM_PER_MI).toFixed(1)} km` }
               </Typography>
             </Grid>
-            <Grid item xs={1}>
+            <Grid item xs={ small ? 2 : 1 }>
               <RightArrow className={classes.driveArrow} />
             </Grid>
           </Grid>

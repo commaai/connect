@@ -167,6 +167,7 @@ class DriveList extends Component {
       curRideChunk.annotations += segment.events.filter(filterEvent)
         .reduce((memo, event) => (event.id ? memo : memo + 1), 0);
     });
+    const isSmall = this.state.windowWidth < 640;
 
     return (
       <>
@@ -179,6 +180,7 @@ class DriveList extends Component {
                 key={drive.startTime}
                 drive={drive}
                 deviceAlias={device.alias}
+                small={ isSmall }
               />
             ))}
           </ul>
@@ -209,43 +211,40 @@ class DriveList extends Component {
 
   renderDriveListHeader() {
     const { classes, device } = this.props;
-    const isSmall = this.state.windowWidth < 768;
+    const isMedium = this.state.windowWidth < 768;
+    const isSmall = this.state.windowWidth < 640;
     return (
       <div className={classes.header}>
         <ResizeHandler onResize={ this.onResize } />
         <Grid container alignItems="center">
-          <Grid item xs={4}>
+          <Grid item xs={ isSmall ? 11 : 4 }>
             <Typography variant="title">
               { device.alias } Drives
             </Typography>
           </Grid>
-          { isSmall ?
-            <Grid item xs={7}></Grid>
-          :
-            <>
-              <Grid item xs={2}>
-                <Typography variant="caption" className={classes.headerLabel}>
-                  Duration
-                </Typography>
-              </Grid>
-              <Grid item xs={2}>
-                <Typography variant="caption" className={classes.headerLabel}>
-                  Origin
-                </Typography>
-              </Grid>
-              <Grid item xs={2}>
-                <Typography variant="caption" className={classes.headerLabel}>
-                  Destination
-                </Typography>
-              </Grid>
-              <Grid item xs={1}>
-                <Typography variant="caption" className={classes.headerLabel}>
-                  Distance
-                </Typography>
-              </Grid>
-            </>
-          }
-          <Grid item xs={1} className={classes.settingsArea}>
+          { !isSmall && <>
+            <Grid item xs={2}>
+              <Typography variant="caption" className={classes.headerLabel}>
+                Duration
+              </Typography>
+            </Grid>
+            <Grid item xs={2}>
+              <Typography variant="caption" className={classes.headerLabel}>
+                Origin
+              </Typography>
+            </Grid>
+            <Grid item xs={2}>
+              <Typography variant="caption" className={classes.headerLabel}>
+                Destination
+              </Typography>
+            </Grid>
+            <Grid item xs={ 1 }>
+              <Typography variant="caption" className={classes.headerLabel}>
+                { isMedium ? 'Dist.' : 'Distance' }
+              </Typography>
+            </Grid>
+          </> }
+          <Grid item xs={ 1 } className={classes.settingsArea}>
             { device && ((!device.shared && device.is_owner) || this.props.isSuperUser)
               && this.renderDriveListSettings()}
           </Grid>
