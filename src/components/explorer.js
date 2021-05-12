@@ -14,6 +14,7 @@ import AppDrawer from './AppDrawer';
 import Timelineworker from '../timeline';
 import { selectRange, primeNav } from '../actions';
 import { getDongleID, getZoom, getPrimeNav } from '../url';
+import ResizeHandler from './ResizeHandler';
 
 let resizeTimeout = null;
 
@@ -46,21 +47,15 @@ class ExplorerApp extends Component {
     this.state = {
       settingDongle: null,
       drawerIsOpen: false,
-      windowHeight: window.innerHeight,
       windowWidth: window.innerWidth,
     };
 
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
-    this.handleResize = this.handleResize.bind(this);
+    this.onResize = this.onResize.bind(this);
   }
 
   componentWillMount() {
     this.checkProps(this.props);
-    window.addEventListener('resize', this.handleResize);
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener('resize', this.handleResize);
   }
 
   componentWillReceiveProps(props) {
@@ -78,17 +73,8 @@ class ExplorerApp extends Component {
     }
   }
 
-  handleResize() {
-    if (resizeTimeout) {
-      clearTimeout(resizeTimeout);
-    }
-    resizeTimeout = setTimeout(() => {
-      this.setState({
-        windowHeight: window.innerHeight,
-        windowWidth: window.innerWidth,
-      });
-      resizeTimeout = null;
-    }, 150);
+  onResize(windowWidth) {
+    this.setState({ windowWidth });
   }
 
   handleDrawerStateChanged(drawerOpen) {
@@ -149,6 +135,7 @@ class ExplorerApp extends Component {
 
     return (
       <div className={classes.base}>
+        <ResizeHandler onResize={ this.onResize } />
         <AppHeader drawerIsOpen={ drawerIsOpen } annotating={ expanded } showDrawerButton={ !isLarge }
           handleDrawerStateChanged={this.handleDrawerStateChanged} />
         <div className={ classes.main }>

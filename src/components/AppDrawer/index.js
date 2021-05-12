@@ -118,7 +118,7 @@ class AppDrawer extends Component {
         PaperProps={{ style: { width: this.props.width, top: 'auto' }}}>
         <div className={classes.drawerContent} style={ !isPermanent ? { height: '100vh' } : {} }>
           { !isPermanent &&
-            <Link to="/" class={ classes.logo }>
+            <Link to="/" className={ classes.logo }>
               <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
               <Typography className={ classes.logoText }>explorer</Typography>
             </Link>

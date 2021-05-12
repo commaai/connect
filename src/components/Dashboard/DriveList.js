@@ -16,6 +16,7 @@ import { filterEvent } from '../../utils';
 import { selectRange } from '../../actions';
 import DeviceSettingsModal from './DeviceSettingsModal';
 import DriveListItem from './DriveListItem';
+import ResizeHandler from '../ResizeHandler';
 
 const MIN_TIME_BETWEEN_ROUTES = 60000; // 1 minute
 
@@ -74,10 +75,12 @@ class DriveList extends Component {
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
     this.handleCanceledSettings = this.handleCanceledSettings.bind(this);
     this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
+    this.onResize = this.onResize.bind(this);
 
     this.state = {
       anchorEl: null,
-      showDeviceSettingsModal: false
+      showDeviceSettingsModal: false,
+      windowWidth: window.innerWidth,
     };
   }
 
@@ -124,6 +127,10 @@ class DriveList extends Component {
     this.setState({
       showPicker: false
     });
+  }
+
+  onResize(windowWidth) {
+    this.setState({ windowWidth });
   }
 
   render() {
@@ -202,36 +209,42 @@ class DriveList extends Component {
 
   renderDriveListHeader() {
     const { classes, device } = this.props;
+    const isSmall = this.state.windowWidth < 768;
     return (
       <div className={classes.header}>
+        <ResizeHandler onResize={ this.onResize } />
         <Grid container alignItems="center">
           <Grid item xs={4}>
             <Typography variant="title">
-              { device.alias }
-              {' '}
-Drives
+              { device.alias } Drives
             </Typography>
           </Grid>
-          <Grid item xs={2}>
-            <Typography variant="caption" className={classes.headerLabel}>
-              Duration
-            </Typography>
-          </Grid>
-          <Grid item xs={2}>
-            <Typography variant="caption" className={classes.headerLabel}>
-              Origin
-            </Typography>
-          </Grid>
-          <Grid item xs={2}>
-            <Typography variant="caption" className={classes.headerLabel}>
-              Destination
-            </Typography>
-          </Grid>
-          <Grid item xs={1}>
-            <Typography variant="caption" className={classes.headerLabel}>
-              Distance
-            </Typography>
-          </Grid>
+          { isSmall ?
+            <Grid item xs={7}></Grid>
+          :
+            <>
+              <Grid item xs={2}>
+                <Typography variant="caption" className={classes.headerLabel}>
+                  Duration
+                </Typography>
+              </Grid>
+              <Grid item xs={2}>
+                <Typography variant="caption" className={classes.headerLabel}>
+                  Origin
+                </Typography>
+              </Grid>
+              <Grid item xs={2}>
+                <Typography variant="caption" className={classes.headerLabel}>
+                  Destination
+                </Typography>
+              </Grid>
+              <Grid item xs={1}>
+                <Typography variant="caption" className={classes.headerLabel}>
+                  Distance
+                </Typography>
+              </Grid>
+            </>
+          }
           <Grid item xs={1} className={classes.settingsArea}>
             { device && ((!device.shared && device.is_owner) || this.props.isSuperUser)
               && this.renderDriveListSettings()}
