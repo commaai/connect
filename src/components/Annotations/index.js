@@ -22,7 +22,8 @@ const styles = (theme) => ({
   base: {
     display: 'flex',
     flexDirection: 'column',
-    flexGrow: 1,
+    overflowY: 'scroll',
+    height: '100%'
   },
   window: {
     background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
@@ -30,7 +31,6 @@ const styles = (theme) => ({
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
-    overflowY: 'scroll',
     margin: 18,
   },
   header: {},

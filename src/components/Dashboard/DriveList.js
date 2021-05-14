@@ -34,16 +34,14 @@ const styles = (theme) => ({
   },
   drivesTable: {
     display: 'flex',
-    overflowY: 'auto',
-    height: 'calc(100vh - 144px)',
     flexDirection: 'column',
+    overflowY: 'scroll',
   },
   drives: {
     margin: 0,
-    overflowY: 'scroll',
     padding: 16,
     paddingLeft: 24,
-    paddingRight: 24,
+    paddingRight: 12,
     flex: '1',
   },
   zeroState: {

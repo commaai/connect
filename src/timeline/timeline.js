@@ -63,7 +63,7 @@ function scheduleSegmentUpdate(state) {
   }
 
   if (timeUntilNext > 0) {
-    timeUntilNext = Math.max(200, timeUntilNext);
+    timeUntilNext = Math.min(30000, Math.max(200, timeUntilNext));
     console.log('Waiting', timeUntilNext, 'for something to change...');
     SegmentTimerStore(state).stopTimer = timeout(() => {
       // empty action to churn the butter

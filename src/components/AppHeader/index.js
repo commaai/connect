@@ -24,6 +24,7 @@ const styles = (theme) => ({
     justifyContent: 'space-between',
     padding: 7.5,
     flexWrap: 'wrap',
+    flexGrow: 0,
   },
   titleContainer: {
     display: 'flex',

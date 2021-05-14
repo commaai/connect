@@ -20,23 +20,13 @@ let resizeTimeout = null;
 
 const styles = (/* theme */) => ({
   base: {
+    height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    height: '100%',
-  },
-  header: {
-    display: 'flex',
-    height: 64,
-    minHeight: 64,
-  },
-  main: {
-    flexGrow: 1,
   },
   window: {
-    display: 'flex',
     flexGrow: 1,
     minHeight: 0,
-    height: '100%',
   },
 });
 
@@ -122,9 +112,7 @@ class ExplorerApp extends Component {
 
     const sidebarWidth = Math.max(280, this.state.windowWidth * 0.2);
 
-    let containerStyles = {
-      height: '100%',
-    };
+    let containerStyles = {};
     if (renderDrawer && isLarge) {
       containerStyles = {
         ...containerStyles,
@@ -138,14 +126,12 @@ class ExplorerApp extends Component {
         <ResizeHandler onResize={ this.onResize } />
         <AppHeader drawerIsOpen={ drawerIsOpen } annotating={ expanded } showDrawerButton={ !isLarge }
           handleDrawerStateChanged={this.handleDrawerStateChanged} />
-        <div className={ classes.main }>
-          { renderDrawer &&
-            <AppDrawer drawerIsOpen={ drawerIsOpen } isPermanent={ isLarge } width={ sidebarWidth }
-              handleDrawerStateChanged={this.handleDrawerStateChanged} />
-          }
-          <div className={ classes.window } style={ containerStyles }>
-            { expanded ? (<Annotations />) : (<Dashboard />) }
-          </div>
+        { renderDrawer &&
+          <AppDrawer drawerIsOpen={ drawerIsOpen } isPermanent={ isLarge } width={ sidebarWidth }
+            handleDrawerStateChanged={this.handleDrawerStateChanged} />
+        }
+        <div className={ classes.window } style={ containerStyles }>
+          { expanded ? (<Annotations />) : (<Dashboard />) }
         </div>
       </div>
     );
