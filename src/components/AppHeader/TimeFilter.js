@@ -14,8 +14,6 @@ import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 import Paper from '@material-ui/core/Paper';
 
-import { DateTimePicker } from 'material-ui-pickers';
-
 import Timelineworker from '../../timeline';
 
 const styles = (theme) => ({
@@ -30,6 +28,7 @@ const styles = (theme) => ({
     transform: 'translate(-50%, -50%)'
   },
   buttonGroup: {
+    marginTop: 20,
     textAlign: 'right'
   },
   headerDropdown: {
@@ -37,6 +36,11 @@ const styles = (theme) => ({
     marginRight: 12,
     minWidth: 310,
     textAlign: 'center',
+  },
+  datePickerContainer: {
+    display: 'flex',
+    marginBottom: 20,
+    '& aside': { width: 100 },
   },
 });
 
@@ -88,16 +92,12 @@ class TimeSelect extends Component {
     });
   }
 
-  changeStart(value) {
-    this.setState({
-      start: value.getTime()
-    });
+  changeStart(event) {
+    this.setState({ start: event.target.valueAsNumber });
   }
 
-  changeEnd(value) {
-    this.setState({
-      end: value.getTime()
-    });
+  changeEnd(event) {
+    this.setState({ end: event.target.valueAsNumber });
   }
 
   handleSave() {
@@ -156,7 +156,11 @@ class TimeSelect extends Component {
   }
 
   render() {
+    const { classes } = this.props;
     const minDate = new Date(Date.now() - LOOKBACK_WINDOW_MILLIS).toISOString().substr(0, 10);
+    const maxDate = new Date().toISOString().substr(0, 10);
+    const startDate = new Date(this.state.start || this.props.start || 0).toISOString().substr(0, 10);
+    const endDate = new Date(this.state.end || this.props.end || 0).toISOString().substr(0, 10);
 
     return (
       <>
@@ -165,7 +169,7 @@ class TimeSelect extends Component {
             name="timerange"
             value={this.selectedOption()}
             onChange={this.handleSelectChange}
-            className={this.props.classes.headerDropdown}
+            className={classes.headerDropdown}
           >
             <MenuItem value="custom">Custom</MenuItem>
             <MenuItem value="24-hours">{ this.last24HoursText() }</MenuItem>
@@ -179,26 +183,19 @@ class TimeSelect extends Component {
           open={this.state.showPicker}
           onClose={this.handleClose}
         >
-          <Paper className={this.props.classes.modal}>
-            <DateTimePicker
-              minDate={minDate}
-              value={new Date(this.state.start || this.props.start || 0)}
-              onChange={this.changeStart}
-              label="Start time"
-              showTodayButton
-            />
-            <DateTimePicker
-              minDate={minDate}
-              value={new Date(this.state.end || this.props.end || 0)}
-              onChange={this.changeEnd}
-              label="End time"
-              showTodayButton
-            />
-            <br />
-            <br />
+          <Paper className={classes.modal}>
+            <div className={ classes.datePickerContainer }>
+              <Typography variant="body2">Start date:</Typography>
+              <input label="Start date" type="date" min={ minDate } max={ maxDate } onChange={this.changeStart}
+                value={ startDate } />
+            </div>
+            <div className={ classes.datePickerContainer }>
+              <Typography variant="body2">End date:</Typography>
+              <input label="End date" type="date" min={ minDate } max={ maxDate } onChange={this.changeEnd}
+                value={ endDate } />
+            </div>
             <Divider />
-            <br />
-            <div className={this.props.classes.buttonGroup}>
+            <div className={classes.buttonGroup}>
               <Button variant="contained" onClick={this.handleClose}>
                 Cancel
               </Button>
