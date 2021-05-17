@@ -27,6 +27,7 @@ const styles = (theme) => ({
     padding: 16,
     paddingLeft: 48,
     paddingRight: 60,
+    flexGrow: 0,
   },
   headerLabel: {
     cursor: 'default',
@@ -35,6 +36,7 @@ const styles = (theme) => ({
   drivesTable: {
     display: 'flex',
     flexDirection: 'column',
+    flexGrow: 1,
     overflowY: 'scroll',
   },
   drives: {

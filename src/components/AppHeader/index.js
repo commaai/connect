@@ -13,6 +13,7 @@ import TimeFilter from './TimeFilter';
 import TimeDisplay from '../TimeDisplay';
 import { AccountIcon } from '../../icons';
 import Colors from '../../colors';
+import ResizeHandler from '../ResizeHandler';
 
 const styles = (theme) => ({
   header: {
@@ -77,9 +78,11 @@ class AppHeader extends Component {
     this.handleClose = this.handleClose.bind(this);
     this.handleLogOut = this.handleLogOut.bind(this);
     this.toggleDrawer = this.toggleDrawer.bind(this);
+    this.onResize = this.onResize.bind(this);
 
     this.state = {
       anchorEl: null,
+      windowWidth: window.innerWidth,
     };
   }
 
@@ -101,10 +104,22 @@ class AppHeader extends Component {
     MyCommaAuth.logOut();
   }
 
+  onResize(windowWidth) {
+    this.setState({ windowWidth });
+  }
+
   render() {
     const { profile, classes, annotating, showDrawerButton, showMenuButton } = this.props;
     const { anchorEl } = this.state;
     const open = Boolean(anchorEl);
+
+    let reorderWideStyle = {};
+    if (this.state.windowWidth < 660) {
+      reorderWideStyle = {
+        order: 4,
+        width: '100%',
+      };
+    }
 
     if (!profile) {
       return [];
@@ -112,6 +127,7 @@ class AppHeader extends Component {
 
     return (
       <>
+        <ResizeHandler onResize={ this.onResize } />
         <header className={ classes.header }>
           <div className={classes.titleContainer}>
             { showDrawerButton ?
@@ -129,7 +145,7 @@ class AppHeader extends Component {
               </Typography>
             </Link>
           </div>
-          <div className={ classes.headerWideItem }>
+          <div className={ classes.headerWideItem } style={ reorderWideStyle }>
             { annotating ?
               <TimeDisplay isThin /> :
               <TimeFilter /> }

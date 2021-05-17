@@ -17,6 +17,7 @@ import Timeline from '../Timeline';
 import AnnotationsFooter from './footer';
 
 import { selectRange } from '../../actions';
+import ResizeHandler from '../ResizeHandler';
 
 const styles = (theme) => ({
   base: {
@@ -66,11 +67,20 @@ class Annotations extends Component {
   constructor(props) {
     super(props);
 
+    this.state = {
+      windowWidth: window.innerWidth,
+    };
+
     this.close = this.close.bind(this);
+    this.onResize = this.onResize.bind(this);
   }
 
   close() {
     this.props.dispatch(selectRange(null, null));
+  }
+
+  onResize(windowWidth) {
+    this.setState({ windowWidth });
   }
 
   renderAnnotationsElement(visibleSegment) {
@@ -89,8 +99,10 @@ class Annotations extends Component {
     const visibleSegment = (currentSegment || nextSegment);
     const routeName = visibleSegment ? visibleSegment.route : 'Nothing visible';
     const shortName = routeName.split('|')[1];
+    const isLg = this.state.windowWidth >= 1280;
     return (
       <div className={classes.base}>
+        <ResizeHandler onResize={ this.onResize } />
         <div className={classes.window}>
           <div className={classes.header}>
             <div className={classes.headerContext}>
@@ -119,12 +131,11 @@ class Annotations extends Component {
           </div>
           <div className={classes.viewer}>
             <Grid container spacing={32}>
-              <Grid item xs={6}>
+              { !isLg && <Grid item xs={12} lg={6}><Media /></Grid> }
+              <Grid item xs={12} lg={6}>
                 { visibleSegment && this.renderAnnotationsElement(visibleSegment) }
               </Grid>
-              <Grid item xs={6}>
-                <Media />
-              </Grid>
+              { isLg && <Grid item xs={12} lg={6}><Media /></Grid> }
             </Grid>
           </div>
         </div>
