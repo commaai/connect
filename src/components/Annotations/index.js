@@ -5,8 +5,6 @@ import Obstruction from 'obstruction';
 import {
   withStyles,
   Grid,
-  Slide,
-  Paper,
   Typography,
   IconButton,
 } from '@material-ui/core';
@@ -16,11 +14,9 @@ import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import AnnotationTabs from './AnnotationTabs';
 import Media from './Media';
 import Timeline from '../Timeline';
-import TimeDisplay from '../TimeDisplay';
 import AnnotationsFooter from './footer';
 
 import { selectRange } from '../../actions';
-import { DeviceType } from '../../defs/segments';
 
 const styles = (theme) => ({
   base: {

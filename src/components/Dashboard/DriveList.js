@@ -2,16 +2,12 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { partial } from 'ap';
-import fecha from 'fecha';
 import Colors from '../../colors';
 
 import {
   withStyles,
   Typography,
   Grid,
-  Menu,
-  MenuItem,
-  ListItem,
   IconButton,
 } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';

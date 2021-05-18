@@ -1,8 +1,6 @@
 import Event from 'geval/event';
 import CreateStore from 'weakmap-shim/create-store';
 import { timeout } from 'thyming';
-import Collector from 'collect-methods';
-import { partial } from 'ap';
 
 import { annotations as Annotations, drives as Drives } from '@commaai/comma-api'; // eslint-disable-line
 

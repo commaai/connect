@@ -2,14 +2,10 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import cx from 'classnames';
 import Obstruction from 'obstruction';
-import { classNames } from 'react-extras';
 
 import {
   withStyles,
   Grid,
-  FormControl,
-  Select,
-  MenuItem,
   Typography,
 } from '@material-ui/core';
 

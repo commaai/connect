@@ -1,7 +1,4 @@
 import React, { Component } from 'react';
-import Obstruction from 'obstruction';
-import { partial } from 'ap';
-import fecha from 'fecha';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';

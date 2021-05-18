@@ -7,17 +7,8 @@ import cx from 'classnames';
 
 import {
   withStyles,
-  Grid,
-  Button,
   Typography,
-  FormHelperText,
-  ExpansionPanel,
-  ExpansionPanelSummary,
-  LinearProgress,
-  FormControl,
-  TextField,
 } from '@material-ui/core';
-import Pencil from '@material-ui/icons/Edit';
 
 import { deviceTypePretty } from '../../utils'
 import { devices as Devices } from '@commaai/comma-api';

@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { Provider } from 'react-redux';
 import { Route, Switch, Redirect } from 'react-router';
 import { ConnectedRouter } from 'connected-react-router';
-import { timeout } from 'thyming';
 import document from 'global/document';
 import qs from 'query-string';
 import localforage from 'localforage';
@@ -11,7 +10,6 @@ import Collector from 'collect-methods';
 
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Grid from '@material-ui/core/Grid';
-import Typography from '@material-ui/core/Typography';
 
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 import { auth as AuthApi, request as Request, billing as Billing, athena as Athena } from '@commaai/comma-api';

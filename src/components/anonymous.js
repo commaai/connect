@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import window from 'global/window';
 import PropTypes from 'prop-types';
-import qs from 'querystringify';
+import qs from 'query-string';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';

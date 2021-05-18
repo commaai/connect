@@ -3,11 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
-import Button from '@material-ui/core/Button';
 
-import { selectRange, selectDevice, primeNav } from '../../actions';
-import { filterEvent } from '../../utils';
-import DeviceList from './DeviceList';
 import DriveList from './DriveList';
 import Prime from '../Prime';
 import PrimeBanner from '../Prime/PrimeBanner'

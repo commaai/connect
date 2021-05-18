@@ -5,9 +5,7 @@ import raf from 'raf';
 import Measure from 'react-measure';
 import { withStyles } from '@material-ui/core/styles';
 
-import { LngLatBounds } from 'mapbox-gl';
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
-import { easeCubic } from 'd3-ease';
 
 import { derived as DerivedDataApi } from '@commaai/comma-api';
 import TimelineWorker from '../../timeline';

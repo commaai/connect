@@ -1,15 +1,12 @@
 import React, { Component } from 'react';
-import Obstruction from 'obstruction';
 import { classNames } from 'react-extras';
 import PropTypes from 'prop-types';
 import document from 'global/document';
 import { timeout } from 'thyming';
 import { partial } from 'ap';
-import raf from 'raf';
-import qs from 'querystringify';
+import qs from 'query-string';
 import { withStyles } from '@material-ui/core/styles';
 import Paper from '@material-ui/core/Paper';
-import Typography from '@material-ui/core/Typography';
 import Snackbar from '@material-ui/core/Snackbar';
 
 import { raw as RawApi } from '@commaai/comma-api';

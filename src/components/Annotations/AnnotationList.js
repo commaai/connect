@@ -2,7 +2,6 @@ import React, { PureComponent } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { partial } from 'ap';
-import fecha from 'fecha';
 import { withStyles } from '@material-ui/core/styles';
 import { AutoSizer, List } from 'react-virtualized';
 import memoize from 'memoize-one';
