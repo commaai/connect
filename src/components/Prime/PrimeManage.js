@@ -16,8 +16,6 @@ import { primeFetchSubscription, selectDevice } from '../../actions';
 const styles = (theme) => ({
   primeBox: {
     display: 'flex',
-    overflowY: 'auto',
-    height: 'calc(100vh - 64px)',
     flexDirection: 'column',
   },
   primeContainer: {

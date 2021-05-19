@@ -16,10 +16,8 @@ import Timelineworker from '../../timeline';
 import CommaTwoUpsell from '../Annotations/commaTwoUpsell';
 
 const styles = (theme) => ({
-  base: {
-    height: '100%',
-    overflowY: 'scroll',
-    paddingLeft: '10px',
+  deviceList: {
+    overflow: 'auto',
   },
   device: {
     alignItems: 'center',
@@ -127,7 +125,7 @@ class DeviceList extends Component {
   }
 
   render() {
-    let { devices } = this.props;
+    let { classes, devices } = this.props;
     const dongleId = this.props.selectedDevice;
     let found = devices.some((device) => device.dongle_id === dongleId);
     let onlyHasAppDevice = (devices.length === 0);
@@ -141,7 +139,8 @@ class DeviceList extends Component {
     }
 
     return (
-      <div className={this.props.classes.base}>
+      <div className={ `scrollstyle ${classes.deviceList}` }
+        style={{ height: `calc(100vh - ${this.props.headerHeight}px)` }}>
         { devices.filter(this.filterDrivingDevice).map(this.renderDevice) }
         { onlyHasAppDevice && <CommaTwoUpsell hook="Get started with comma two" /> }
       </div>

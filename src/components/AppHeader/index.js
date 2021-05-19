@@ -5,7 +5,7 @@ import Obstruction from 'obstruction';
 import localforage from 'localforage';
 
 import { withStyles } from '@material-ui/core/styles';
-import { Divider, Typography, Menu, MenuItem, ListItem, IconButton, Icon } from '@material-ui/core';
+import { Divider, Typography, Menu, MenuItem, ListItem, IconButton, Icon, AppBar } from '@material-ui/core';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
@@ -20,12 +20,11 @@ const styles = (theme) => ({
     backgroundColor: '#1D2225',
     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
     display: 'flex',
-    width: '100%',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 7.5,
     flexWrap: 'wrap',
-    flexGrow: 0,
   },
   titleContainer: {
     display: 'flex',
@@ -127,32 +126,34 @@ class AppHeader extends Component {
     return (
       <>
         <ResizeHandler onResize={ this.onResize } />
-        <header className={ classes.header }>
-          <div className={classes.titleContainer}>
-            { showDrawerButton ?
-              <IconButton aria-label="menu" className={classes.hamburger} onClick={this.toggleDrawer}>
-                <Icon>menu</Icon>
-              </IconButton>
-            :
-              <Link to="/" className={ classes.logoImgLink }>
-                <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+        <AppBar position="sticky">
+          <div ref={ this.props.forwardRef } className={ classes.header }>
+            <div className={classes.titleContainer}>
+              { showDrawerButton ?
+                <IconButton aria-label="menu" className={classes.hamburger} onClick={this.toggleDrawer}>
+                  <Icon>menu</Icon>
+                </IconButton>
+              :
+                <Link to="/" className={ classes.logoImgLink }>
+                  <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+                </Link>
+              }
+              <Link to="/" className={classes.logo}>
+                <Typography className={classes.logoText}>
+                  explorer
+                </Typography>
               </Link>
-            }
-            <Link to="/" className={classes.logo}>
-              <Typography className={classes.logoText}>
-                explorer
-              </Typography>
-            </Link>
+            </div>
+            <div className={ classes.headerWideItem } style={ reorderWideStyle }>
+              { annotating ?
+                <TimeDisplay isThin /> :
+                <TimeFilter /> }
+            </div>
+            <IconButton aria-owns={open ? 'menu-appbar' : null} aria-haspopup="true" onClick={this.handleClickedAccount}>
+              <AccountIcon className={classes.accountIcon} />
+            </IconButton>
           </div>
-          <div className={ classes.headerWideItem } style={ reorderWideStyle }>
-            { annotating ?
-              <TimeDisplay isThin /> :
-              <TimeFilter /> }
-          </div>
-          <IconButton aria-owns={open ? 'menu-appbar' : null} aria-haspopup="true" onClick={this.handleClickedAccount}>
-            <AccountIcon className={classes.accountIcon} />
-          </IconButton>
-        </header>
+        </AppBar>
         <Menu id="menu-appbar" open={open} onClose={this.handleClose} anchorEl={anchorEl}
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}>

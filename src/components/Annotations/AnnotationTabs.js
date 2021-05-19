@@ -51,7 +51,6 @@ const styles = (theme) => ({
   },
   annotationsViewerList: {
     height: '100%',
-    overflowY: 'scroll',
   },
 });
 

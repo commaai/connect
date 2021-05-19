@@ -16,17 +16,11 @@ import { selectRange, primeNav } from '../actions';
 import { getDongleID, getZoom, getPrimeNav } from '../url';
 import ResizeHandler from './ResizeHandler';
 
-let resizeTimeout = null;
-
 const styles = (/* theme */) => ({
   base: {
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
   },
   window: {
-    flexGrow: 1,
-    minHeight: 0,
+    background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
   },
 });
 
@@ -38,10 +32,12 @@ class ExplorerApp extends Component {
       settingDongle: null,
       drawerIsOpen: false,
       windowWidth: window.innerWidth,
+      headerRef: null,
     };
 
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
     this.onResize = this.onResize.bind(this);
+    this.updateHeaderRef = this.updateHeaderRef.bind(this);
   }
 
   componentWillMount() {
@@ -103,6 +99,12 @@ class ExplorerApp extends Component {
     }
   }
 
+  updateHeaderRef(ref) {
+    if (!this.state.headerRef) {
+      this.setState({ headerRef: ref });
+    }
+  }
+
   render() {
     const { classes, expanded } = this.props;
     const { drawerIsOpen } = this.state;
@@ -112,7 +114,10 @@ class ExplorerApp extends Component {
 
     const sidebarWidth = Math.max(280, this.state.windowWidth * 0.2);
 
-    let containerStyles = {};
+    const headerHeight = this.state.headerRef ? this.state.headerRef.getBoundingClientRect().height : 64;
+    let containerStyles = {
+      minHeight: `calc(100vh - ${headerHeight}px)`,
+    };
     if (renderDrawer && isLarge) {
       containerStyles = {
         ...containerStyles,
@@ -121,14 +126,18 @@ class ExplorerApp extends Component {
       };
     }
 
+    let drawerStyles = {
+      minHeight: `calc(100vh - ${headerHeight}px)`,
+    };
+
     return (
       <div className={classes.base}>
         <ResizeHandler onResize={ this.onResize } />
         <AppHeader drawerIsOpen={ drawerIsOpen } annotating={ expanded } showDrawerButton={ !isLarge }
-          handleDrawerStateChanged={this.handleDrawerStateChanged} />
+          handleDrawerStateChanged={this.handleDrawerStateChanged} forwardRef={ this.updateHeaderRef } />
         { renderDrawer &&
           <AppDrawer drawerIsOpen={ drawerIsOpen } isPermanent={ isLarge } width={ sidebarWidth }
-            handleDrawerStateChanged={this.handleDrawerStateChanged} />
+            handleDrawerStateChanged={this.handleDrawerStateChanged} style={ drawerStyles } />
         }
         <div className={ classes.window } style={ containerStyles }>
           { expanded ? (<Annotations />) : (<Dashboard />) }

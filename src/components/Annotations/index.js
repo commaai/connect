@@ -23,7 +23,6 @@ const styles = (theme) => ({
   base: {
     display: 'flex',
     flexDirection: 'column',
-    overflowY: 'scroll',
     height: '100%'
   },
   window: {

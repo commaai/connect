@@ -44,7 +44,7 @@ const styles = (/* theme */) => ({
     alignItems: 'center',
     display: 'flex',
     textDecoration: 'none',
-    height: 81,
+    minHeight: 64,
   },
   logoImg: {
     height: '34px',
@@ -56,8 +56,8 @@ const styles = (/* theme */) => ({
     fontWeight: 800,
   },
   drawerContent: {
+    height: '100%',
     width: '100%',
-    height: 'calc(100vh - 64px)',
     display: 'flex',
     flexDirection: 'column',
     background: 'linear-gradient(180deg, #1B2023 0%, #111516 100%)',
@@ -115,7 +115,7 @@ class AppDrawer extends Component {
       <Drawer open={ isPermanent || drawerIsOpen } onClose={this.toggleDrawerOff}
         variant={ isPermanent ? "permanent" : "temporary" }
         PaperProps={{ style: { width: this.props.width, top: 'auto' }}}>
-        <div className={classes.drawerContent} style={ !isPermanent ? { height: '100vh' } : {} }>
+        <div className={classes.drawerContent}>
           { !isPermanent &&
             <Link to="/" className={ classes.logo }>
               <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
@@ -126,7 +126,8 @@ class AppDrawer extends Component {
             onClick={() => { this.toggleDrawerOff(); this.goToAnnotation(firstAnnotationSegment); }}>
             Annotate
           </Button>
-          <DeviceList selectedDevice={ selectedDongleId } handleDeviceSelected={this.handleDeviceSelected} />
+          <DeviceList selectedDevice={ selectedDongleId } handleDeviceSelected={this.handleDeviceSelected}
+            headerHeight={ 64 + 96 } />
         </div>
       </Drawer>
     );

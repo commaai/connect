@@ -33,7 +33,6 @@ const styles = (theme) => ({
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
-    overflowY: 'scroll',
   },
   drives: {
     margin: 0,

@@ -15,53 +15,45 @@ body {
   background: #16181A;
   font-family: 'Inter', sans-serif;
   margin: 0;
-  overflow: hidden;
   padding: 0;
 }
 
-#root {
-  height: 100vh;
-  width: 100vw;
-}
-
 /*
-
   Scrollbar
   ~~~~~~~~~~
-
 */
 
-::-webkit-scrollbar-track,
-::-ms-track {
+.scrollstyle::-webkit-scrollbar-track,
+.scrollstyle::-ms-track {
   background-color: transparent;
   border-radius: 8px;
   box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.2);
 }
 
-::-webkit-scrollbar {
+.scrollstyle::-webkit-scrollbar {
   background-color: transparent;
   width: 12px;
 }
 
-::-webkit-scrollbar-thumb,
-::-ms-thumb {
+.scrollstyle::-webkit-scrollbar-thumb,
+.scrollstyle::-ms-thumb {
   background-color: transparent;
   border-radius: 8px;
 }
 
-*:hover::-webkit-scrollbar-thumb,
-*:hover::-ms-thumb {
+.scrollstyle:hover::-webkit-scrollbar-thumb,
+.scrollstyle:hover::-ms-thumb {
   background-color: #49545B;
   box-shadow: inset 0 0 6px rgba(255, 255, 255, .125), 0 0 6px rgba(0, 0, 0, .3);
 }
 
-::-webkit-scrollbar-thumb:hover,
-::-ms-thumb:hover {
+.scrollstyle::-webkit-scrollbar-thumb:hover,
+.scrollstyle::-ms-thumb:hover {
   background-color: #596971;
 }
 
-::-webkit-scrollbar-thumb:active,
-::-ms-thumb:hover {
+.scrollstyle::-webkit-scrollbar-thumb:active,
+.scrollstyle::-ms-thumb:hover {
   background-color: #49545B;
   box-shadow: none;
 }

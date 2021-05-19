@@ -10,10 +10,8 @@ import PrimeBanner from '../Prime/PrimeBanner'
 
 const styles = (/* theme */) => ({
   base: {
-    background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
     display: 'flex',
     flexDirection: 'column',
-    height: '100%',
   },
 });
 
