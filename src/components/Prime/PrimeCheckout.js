@@ -44,7 +44,6 @@ const styles = () => ({
   },
   deviceId: {
     color: '#525E66',
-    fontFamily: 'MaisonNeueMono',
   },
   leftMargin: {
     marginLeft: 10,

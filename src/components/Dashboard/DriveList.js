@@ -29,10 +29,6 @@ const styles = (theme) => ({
     paddingRight: 60,
     flexGrow: 0,
   },
-  headerLabel: {
-    cursor: 'default',
-    textTransform: 'uppercase',
-  },
   drivesTable: {
     display: 'flex',
     flexDirection: 'column',
@@ -224,22 +220,22 @@ class DriveList extends Component {
           </Grid>
           { !isSmall && <>
             <Grid item xs={2}>
-              <Typography variant="caption" className={classes.headerLabel}>
+              <Typography variant="subheading">
                 Duration
               </Typography>
             </Grid>
             <Grid item xs={2}>
-              <Typography variant="caption" className={classes.headerLabel}>
+              <Typography variant="subheading">
                 Origin
               </Typography>
             </Grid>
             <Grid item xs={2}>
-              <Typography variant="caption" className={classes.headerLabel}>
+              <Typography variant="subheading">
                 Destination
               </Typography>
             </Grid>
             <Grid item xs={ 1 }>
-              <Typography variant="caption" className={classes.headerLabel}>
+              <Typography variant="subheading">
                 { isMedium ? 'Dist.' : 'Distance' }
               </Typography>
             </Grid>

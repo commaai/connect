@@ -42,12 +42,12 @@ const styles = (theme) => ({
     justifyContent: 'center',
     marginLeft: 16,
   },
-  deviceAlias: {},
+  deviceAlias: {
+    fontWeight: 600,
+  },
   deviceId: {
     color: '#525E66',
-    fontFamily: 'MaisonNeueMono',
   },
-
   editDeviceIcon: {
     color: 'white',
     '&:hover': {
@@ -160,7 +160,7 @@ class DeviceList extends Component {
       >
         <div className={classes.deviceAvatar} />
         <div className={classes.deviceInfo}>
-          <Typography variant="body2" className={classes.deviceAlias}>
+          <Typography className={classes.deviceAlias}>
             { alias }
           </Typography>
           <Typography variant="caption" className={classes.deviceId}>

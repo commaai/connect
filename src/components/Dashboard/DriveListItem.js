@@ -64,6 +64,9 @@ const styles = (theme) => ({
     marginLeft: '25%',
     width: 32,
   },
+  firstLine: {
+    fontWeight: 600,
+  },
 });
 
 class DriveListDrive extends Component {
@@ -129,7 +132,7 @@ class DriveListDrive extends Component {
               </Grid>
             }
             <Grid item xs={ small ? 8 : 3 }>
-              <Typography variant="body2">
+              <Typography className={ classes.firstLine }>
                 { `${startDate} @ ${startTime} to ${endTime}` }
               </Typography>
               <Typography>
@@ -137,7 +140,7 @@ class DriveListDrive extends Component {
               </Typography>
             </Grid>
             <Grid item xs={ 2 }>
-              <Typography variant="body2">
+              <Typography className={ classes.firstLine }>
                 { duration.hours > 0 && `${duration.hours.toString()}hr ` }
                 { `${duration.minutes} min` }
               </Typography>
@@ -153,7 +156,7 @@ class DriveListDrive extends Component {
               </Grid>
             }
             <Grid item xs={ small ? 4 : 2 }>
-              <Typography variant="body2">
+              <Typography className={ classes.firstLine }>
                 { startLocation && startLocation.neighborhood }
               </Typography>
               <Typography>
@@ -161,7 +164,7 @@ class DriveListDrive extends Component {
               </Typography>
             </Grid>
             <Grid item xs={ small ? 4 : 2 }>
-              <Typography variant="body2">
+              <Typography className={ classes.firstLine }>
                 { endLocation && endLocation.neighborhood }
               </Typography>
               <Typography>
@@ -169,7 +172,7 @@ class DriveListDrive extends Component {
               </Typography>
             </Grid>
             <Grid item xs={ small ? 2 : 1 }>
-              <Typography variant="body2">
+              <Typography className={ classes.firstLine }>
                 { `${+drive.distanceMiles.toFixed(1)} mi` }
               </Typography>
               <Typography>

@@ -50,9 +50,8 @@ const styles = (theme) => ({
     width: 'auto',
   },
   logoText: {
-    fontFamily: 'MaisonNeueExtended',
-    fontSize: 18,
-    fontWeight: 600,
+    fontSize: 20,
+    fontWeight: 800,
   },
   accountIcon: {
     color: Colors.white30,
