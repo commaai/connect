@@ -356,23 +356,16 @@ class AnnotationEntry extends PureComponent {
           </Grid>
         </ExpansionPanelDetails>
         <ExpansionPanelActions className={classes.panelActions}>
-          <Tooltip
-            id="tooltip-annot"
-            title="Grey Panda required to annotate"
-            disableFocusListener={segment.hpgps || this.isPlanned()}
-            disableHoverListener={segment.hpgps || this.isPlanned()}
-          >
-            <div>
-              <Button
-                onClick={this.validate}
-                size="large"
-                disabled={this.state.saving || this.isPlanned() || !segment.hpgps}
-                className={classes.resolveButton}
-              >
-                Resolve Annotation
-              </Button>
-            </div>
-          </Tooltip>
+          <div>
+            <Button
+              onClick={this.validate}
+              size="large"
+              disabled={this.state.saving || this.isPlanned() || !segment.hpgps}
+              className={classes.resolveButton}
+            >
+              Resolve Annotation
+            </Button>
+          </div>
           <Button
             size="large"
             disabled={this.state.saving}

@@ -112,7 +112,7 @@ class AnnotationsFooter extends Component {
       params.segments = [startTime, Math.floor(startTime + (loop.duration / 1000))].join(',');
     }
 
-    const win = window.open(`https://my.comma.ai/cabana/${qs.stringify(params, true)}`, '_blank');
+    const win = window.open(`https://my.comma.ai/cabana/?${qs.stringify(params, true)}`, '_blank');
     if (win.focus) {
       win.focus();
     }
@@ -139,7 +139,7 @@ class AnnotationsFooter extends Component {
             Download Log Segment
           </a>
           )}
-        <a className={classNames(this.props.classes.footerButton, 'openInCabana')} onClick={this.openInCabana} href="#">
+        <a className={classNames(this.props.classes.footerButton, 'openInCabana')} onClick={this.openInCabana}>
           View CAN Data in Cabana
         </a>
         <a className={this.props.classes.footerButton} onClick={this.copySegmentName} target="_blank">
