@@ -54,13 +54,6 @@ const styles = (theme) => ({
   viewer: {
     padding: theme.spacing.unit * 4,
   },
-  footer: {
-    alignItems: 'center',
-    background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
-    display: 'flex',
-    marginTop: 'auto',
-    width: '100%',
-  },
 });
 
 class Annotations extends Component {
@@ -139,9 +132,7 @@ class Annotations extends Component {
             </Grid>
           </div>
         </div>
-        <div className={classes.footer}>
-          { visibleSegment && <AnnotationsFooter segment={visibleSegment} loop={loop} start={start} /> }
-        </div>
+        { visibleSegment && <AnnotationsFooter segment={visibleSegment} loop={loop} start={start} /> }
       </div>
     );
   }

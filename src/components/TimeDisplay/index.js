@@ -63,7 +63,7 @@ const styles = (theme) => ({
     },
   },
   playSpeedContainer: {
-    marginRight: 20,
+    marginRight: theme.spacing.unit * 1,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -95,7 +95,7 @@ const styles = (theme) => ({
     borderLeft: `1px solid ${theme.palette.grey[900]}`
   },
   currentTime: {
-    margin: '0 20px',
+    margin: `0 ${theme.spacing.unit * 1}px`,
     fontSize: 15,
     fontWeight: 500,
     display: 'block',
@@ -215,10 +215,8 @@ class TimeDisplay extends Component {
             CURRENT PLAYBACK TIME
           </Typography>
         )}
-        <Typography variant="body1" align="center">
-          <span ref={this.textHolder} className={classes.currentTime}>
-            { this.state.displayTime }
-          </span>
+        <Typography variant="body1" align="center" className={classes.currentTime}>
+          <span ref={this.textHolder}>{ this.state.displayTime }</span>
         </Typography>
         <div className={ classes.playSpeedContainer }>
           <IconButton className={classes.tinyArrowIcon} onClick={this.increaseSpeed}
