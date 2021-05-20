@@ -116,6 +116,8 @@ class AppHeader extends Component {
       reorderWideStyle = {
         order: 4,
         width: '100%',
+        display: 'flex',
+        justifyContent: 'center',
       };
     }
 
@@ -126,7 +128,7 @@ class AppHeader extends Component {
     return (
       <>
         <ResizeHandler onResize={ this.onResize } />
-        <AppBar position="sticky">
+        <AppBar position="sticky" elevation="1">
           <div ref={ this.props.forwardRef } className={ classes.header }>
             <div className={classes.titleContainer}>
               { showDrawerButton ?
