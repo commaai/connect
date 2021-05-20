@@ -16,8 +16,6 @@ import { primeFetchSubscription, selectDevice } from '../../actions';
 const styles = (theme) => ({
   primeBox: {
     display: 'flex',
-    overflowY: 'auto',
-    height: 'calc(100vh - 64px)',
     flexDirection: 'column',
   },
   primeContainer: {
@@ -151,6 +149,7 @@ class PrimeManage extends Component {
   render() {
     const { dongleId, subscription, classes, device } = this.props;
     if (!subscription) {
+      console.log('device has prime, but no subscription found');
       return ( <></> );
     }
 

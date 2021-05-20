@@ -4,7 +4,7 @@ import { ChevronIcon } from './icons';
 
 const theme = createMuiTheme({
   typography: {
-    fontFamily: 'MaisonNeue',
+    fontFamily: "'Inter', sans-serif",
   },
   overrides: {
     MuiPaper: {

@@ -76,7 +76,7 @@ const styles = (theme) => ({
   },
   videoContainer: {
     position: 'relative',
-    width: 850,
+    maxWidth: '100%',
   },
   videoImage: {
     height: 'auto',
@@ -976,7 +976,7 @@ class VideoPreview extends Component {
     let speed = CarState.VEgo;
 
     const metricParam = InitData.Params.Entries.find((entry) => entry.Key === 'IsMetric');
-    const isMetric = metricParam.Value === '1';
+    const isMetric = metricParam && metricParam.Value === '1';
     if (isMetric) {
       speed = Math.floor(speed * 3.6 + 0.5);
     } else {
@@ -1012,7 +1012,7 @@ class VideoPreview extends Component {
     let maxSpeedCalc = maxSpeed * 0.6225 + 0.5;
 
     const metricParam = InitData.Params.Entries.find((entry) => entry.Key === 'IsMetric');
-    if (metricParam.Value === '1') {
+    if (metricParam && metricParam.Value === '1') {
       maxSpeedCalc = maxSpeed + 0.5;
     }
 
@@ -1315,7 +1315,7 @@ class VideoPreview extends Component {
   }
 
   render() {
-    const { classes } = this.props;
+    const { classes, size } = this.props;
     if (this.props.playSpeed !== this.props.desiredPlaySpeed && !this.props.isBuffering) {
       console.log(this.props);
       debugger;
@@ -1347,12 +1347,11 @@ class VideoPreview extends Component {
           style={{ zIndex: 1 }}
           autoPlay={!!this.props.currentSegment}
           muted
-          fluid={false}
+          fluid={true}
           src={this.state.src}
           startTime={this.currentVideoTime()}
           playbackRate={this.props.startTime > Date.now() ? 0 : this.props.playSpeed}
-          width={850}
-          height={this.video_height}
+          playsInline={true}
         >
           <HLSSource
             onBufferAppend={this.checkVideoBuffer}

@@ -6,7 +6,6 @@ import { timeout } from 'thyming';
 import { partial } from 'ap';
 import qs from 'query-string';
 import { withStyles } from '@material-ui/core/styles';
-import Paper from '@material-ui/core/Paper';
 import Snackbar from '@material-ui/core/Snackbar';
 
 import { raw as RawApi } from '@commaai/comma-api';
@@ -16,14 +15,17 @@ const demoFiles = require('../../demo/files.json');
 
 const styles = (theme) => ({
   root: {
+    background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
+    flexGrow: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
     width: '100%',
-    height: '100%',
-    paddingTop: theme.spacing.unit,
-    background: 'transparent',
-    textAlign: 'right'
+    padding: 10,
   },
   footerButton: {
-    display: 'inline-block',
+    display: 'block',
     border: `1px solid ${theme.palette.grey[800]}`,
     color: theme.palette.grey[50],
     textDecoration: 'none',
@@ -120,31 +122,33 @@ class AnnotationsFooter extends Component {
 
   render() {
     return (
-      <Paper className={this.props.classes.root}>
-        { this.props.segment && this.props.segment.hasVideo
-          && (
-          <a className={this.props.classes.footerButton} onClick={partial(this.downloadSegmentFile, 'cameras')}>
-            Download Camera Segment
+      <>
+        <div className={this.props.classes.root}>
+          { this.props.segment && this.props.segment.hasVideo
+            && (
+            <a className={this.props.classes.footerButton} onClick={partial(this.downloadSegmentFile, 'cameras')}>
+              Download Camera Segment
+            </a>
+            )}
+          { this.props.segment && this.props.segment.hasDriverCamera
+            && (
+            <a className={this.props.classes.footerButton} onClick={partial(this.downloadSegmentFile, 'dcameras')}>
+              Download Front Camera Segment
+            </a>
+            )}
+          { this.props.segment
+            && (
+            <a className={this.props.classes.footerButton} onClick={partial(this.downloadSegmentFile, 'logs')}>
+              Download Log Segment
+            </a>
+            )}
+          <a className={classNames(this.props.classes.footerButton, 'openInCabana')} onClick={this.openInCabana}>
+            View CAN Data in Cabana
           </a>
-          )}
-        { this.props.segment && this.props.segment.hasDriverCamera
-          && (
-          <a className={this.props.classes.footerButton} onClick={partial(this.downloadSegmentFile, 'dcameras')}>
-            Download Front Camera Segment
+          <a className={this.props.classes.footerButton} onClick={this.copySegmentName} target="_blank">
+            Copy Current Segment
           </a>
-          )}
-        { this.props.segment
-          && (
-          <a className={this.props.classes.footerButton} onClick={partial(this.downloadSegmentFile, 'logs')}>
-            Download Log Segment
-          </a>
-          )}
-        <a className={classNames(this.props.classes.footerButton, 'openInCabana')} onClick={this.openInCabana}>
-          View CAN Data in Cabana
-        </a>
-        <a className={this.props.classes.footerButton} onClick={this.copySegmentName} target="_blank">
-          Copy Current Segment
-        </a>
+        </div>
         <Snackbar
           anchorOrigin={{
             vertical: 'bottom',
@@ -158,7 +162,7 @@ class AnnotationsFooter extends Component {
           variant="success"
           message={<span id="message-id">Copied segment name!</span>}
         />
-      </Paper>
+      </>
     );
   }
 }

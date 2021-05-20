@@ -11,6 +11,9 @@ import { filterEvent } from '../../utils';
 
 const styles = (theme) => ({
   root: {
+    position: 'relative',
+    height: '100%',
+    minHeight: 300,
   },
   annotationsViewer: {
     display: 'flex',
@@ -25,6 +28,9 @@ const styles = (theme) => ({
   annotationsViewerTabs: {
     marginBottom: 12,
     width: '100%',
+  },
+  tab: {
+    maxWidth: '50%',
   },
   tabLabelBadge: {
     backgroundColor: theme.palette.grey[100],
@@ -45,7 +51,6 @@ const styles = (theme) => ({
   },
   annotationsViewerList: {
     height: '100%',
-    overflowY: 'scroll',
   },
 });
 
@@ -81,17 +86,15 @@ class AnnotationTabs extends Component {
   render() {
     const { classes } = this.props;
     return (
-      <div style={{ position: 'relative', height: '100%' }}>
+      <div className={classes.root}>
         <div className={classes.annotationsViewer}>
           <Tabs
             value={this.state.selectedTab}
             onChange={this.handleChange}
-            classes={{
-              indicator: classes.annotationsViewerTabIndicator
-            }}
+            classes={{ indicator: classes.annotationsViewerTabIndicator }}
             className={classes.annotationsViewerTabs}
           >
-            <Tab label={(
+            <Tab className={ classes.tab } label={(
               <Typography className={classes.tabLabelText}>
                 <Badge classes={{ badge: classes.tabLabelBadge }} badgeContent={this.count(false)}>
                   &nbsp;
@@ -100,7 +103,7 @@ class AnnotationTabs extends Component {
               </Typography>
             )}
             />
-            <Tab label={(
+            <Tab className={ classes.tab } label={(
               <Typography className={classes.tabLabelText}>
                 <Badge classes={{ badge: classes.tabLabelBadge }} badgeContent={this.count(true)}>
                   &nbsp;

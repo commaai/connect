@@ -43,8 +43,8 @@ const styles = (/* theme */) => ({
   logo: {
     alignItems: 'center',
     display: 'flex',
-    maxWidth: 200,
     textDecoration: 'none',
+    minHeight: 64,
   },
   logoImg: {
     height: '34px',
@@ -52,13 +52,12 @@ const styles = (/* theme */) => ({
     width: 'auto',
   },
   logoText: {
-    fontFamily: 'MaisonNeueExtended',
-    fontSize: 18,
-    fontWeight: 600,
+    fontSize: 20,
+    fontWeight: 800,
   },
   drawerContent: {
+    height: '100%',
     width: '100%',
-    height: 'calc(100vh - 64px)',
     display: 'flex',
     flexDirection: 'column',
     background: 'linear-gradient(180deg, #1B2023 0%, #111516 100%)',
@@ -102,7 +101,7 @@ class AppDrawer extends Component {
   }
 
   render() {
-    const { classes } = this.props;
+    const { classes, isPermanent, drawerIsOpen, selectedDongleId } = this.props;
     let firstAnnotationSegment = null;
     const newAnnotations = this.props.segments.reduce((count, segment) => {
       const segCount = segment.events.filter(filterEvent).reduce((memo, event) => (event.id ? memo : memo + 1), 0);
@@ -113,30 +112,22 @@ class AppDrawer extends Component {
     }, 0);
 
     return (
-      <Drawer open={ this.props.isPermanent || this.props.drawerIsOpen } onClose={this.toggleDrawerOff}
-        variant={ this.props.isPermanent ? "permanent" : "temporary" } PaperProps={{ style: { width: this.props.width }}}
-      >
-        <div className={classes.sidebarHeader}>
-          <Link to="/" onClick={ () => { this.toggleDrawerOff(); window.location = '/'; } } className={classes.logo}>
-            <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
-            <Typography className={classes.logoText}>
-              explorer
-            </Typography>
-          </Link>
-        </div>
+      <Drawer open={ isPermanent || drawerIsOpen } onClose={this.toggleDrawerOff}
+        variant={ isPermanent ? "permanent" : "temporary" }
+        PaperProps={{ style: { width: this.props.width, top: 'auto' }}}>
         <div className={classes.drawerContent}>
-          <Button
-            size="large"
-            variant="outlined"
-            className={classes.annotateButton}
-            onClick={() => { this.toggleDrawerOff(); this.goToAnnotation(firstAnnotationSegment); }}
-            >
+          { !isPermanent &&
+            <Link to="/" className={ classes.logo }>
+              <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+              <Typography className={ classes.logoText }>explorer</Typography>
+            </Link>
+          }
+          <Button size="large" className={classes.annotateButton}
+            onClick={() => { this.toggleDrawerOff(); this.goToAnnotation(firstAnnotationSegment); }}>
             Annotate
           </Button>
-          <DeviceList
-            selectedDevice={this.props.selectedDongleId}
-            handleDeviceSelected={this.handleDeviceSelected}
-            />
+          <DeviceList selectedDevice={ selectedDongleId } handleDeviceSelected={this.handleDeviceSelected}
+            headerHeight={ 64 + 96 } />
         </div>
       </Drawer>
     );

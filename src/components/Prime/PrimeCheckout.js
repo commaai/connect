@@ -15,8 +15,6 @@ import PrimePayment from './PrimePayment';
 const styles = () => ({
   primeBox: {
     display: 'flex',
-    overflowY: 'auto',
-    height: 'calc(100vh - 64px)',
     flexDirection: 'column',
   },
   primeContainer: {
@@ -44,7 +42,6 @@ const styles = () => ({
   },
   deviceId: {
     color: '#525E66',
-    fontFamily: 'MaisonNeueMono',
   },
   leftMargin: {
     marginLeft: 10,

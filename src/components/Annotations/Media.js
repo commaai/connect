@@ -3,16 +3,16 @@ import { connect } from 'react-redux';
 import cx from 'classnames';
 import Obstruction from 'obstruction';
 
-import {
-  withStyles,
-  Grid,
-  Typography,
-} from '@material-ui/core';
+import { withStyles, Typography } from '@material-ui/core';
 
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
 
 const styles = (theme) => ({
+  root: {
+    display: 'flex',
+    alignItems: 'flex-end',
+  },
   mediaOptions: {
     alignItems: 'center',
     border: '1px solid rgba(255,255,255,.1)',
@@ -30,6 +30,8 @@ const styles = (theme) => ({
     cursor: 'pointer',
     minHeight: 32,
     minWidth: 44,
+    paddingLeft: 15,
+    paddingRight: 15,
     opacity: '0.6',
     '&.disabled': {
       cursor: 'default',
@@ -107,65 +109,37 @@ class Media extends Component {
     const mediaSource = 'eon-road-camera';
     const hasDriverCameraStream = this.props.currentSegment && this.props.currentSegment.hasDriverCameraStream;
     return (
-      <Grid container>
-        <Grid
-          item
-          xs={hasDriverCameraStream ? 5 : 7}
-        />
-        <Grid
-          item
-          xs={hasDriverCameraStream ? 7 : 5}
-          className={classes.mediaOptions}
-        >
-          <Grid
-            item
-            xs={hasDriverCameraStream ? 3 : 4}
-            className={classes.mediaOption}
-            style={inView === MediaType.HUD ? { opacity: 1 } : { }}
-            onClick={() => this.setState({ inView: MediaType.HUD })}
-          >
+      <div className={classes.root}>
+        <div className={classes.mediaOptions}>
+          <div className={classes.mediaOption} style={inView === MediaType.HUD ? { opacity: 1 } : { }}
+            onClick={() => this.setState({ inView: MediaType.HUD })}>
             <Typography className={classes.mediaOptionText}>
               HUD
             </Typography>
-          </Grid>
-          <Grid
-            item
-            xs={hasDriverCameraStream ? 3 : 4}
-            className={classes.mediaOption}
-            style={inView === MediaType.VIDEO ? { opacity: 1 } : {}}
-            onClick={() => this.setState({ inView: MediaType.VIDEO })}
-          >
+          </div>
+          <div className={classes.mediaOption} style={inView === MediaType.VIDEO ? { opacity: 1 } : {}}
+            onClick={() => this.setState({ inView: MediaType.VIDEO })}>
             <Typography className={classes.mediaOptionText}>
               Video
             </Typography>
-          </Grid>
-          { hasDriverCameraStream
-            && (
-            <Grid
-              item
-              xs={3}
-              className={cx(classes.mediaOption, { disabled: !hasDriverCameraStream })}
+          </div>
+          { hasDriverCameraStream && (
+            <div className={cx(classes.mediaOption, { disabled: !hasDriverCameraStream })}
               style={inView === MediaType.DRIVER_VIDEO ? { opacity: 1 } : {}}
-              onClick={() => hasDriverCameraStream && this.setState({ inView: MediaType.DRIVER_VIDEO })}
-            >
+              onClick={() => hasDriverCameraStream && this.setState({ inView: MediaType.DRIVER_VIDEO })}>
               <Typography className={classes.mediaOptionText}>
                 Driver Video
               </Typography>
-            </Grid>
+            </div>
             )}
-          <Grid
-            item
-            xs={hasDriverCameraStream ? 3 : 4}
-            className={classes.mediaOption}
-            style={inView === MediaType.MAP ? { opacity: 1 } : { }}
-            onClick={() => this.setState({ inView: MediaType.MAP })}
-          >
+          <div className={classes.mediaOption} style={inView === MediaType.MAP ? { opacity: 1 } : { }}
+            onClick={() => this.setState({ inView: MediaType.MAP })}>
             <Typography className={classes.mediaOptionText}>
               Map
             </Typography>
-          </Grid>
-        </Grid>
-      </Grid>
+          </div>
+        </div>
+      </div>
     );
   }
 }

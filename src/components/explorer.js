@@ -14,25 +14,13 @@ import AppDrawer from './AppDrawer';
 import Timelineworker from '../timeline';
 import { selectRange, primeNav } from '../actions';
 import { getDongleID, getZoom, getPrimeNav } from '../url';
-
-let resizeTimeout = null;
+import ResizeHandler from './ResizeHandler';
 
 const styles = (/* theme */) => ({
   base: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-  },
-  header: {
-    display: 'flex',
-    height: 64,
-    minHeight: 64,
   },
   window: {
-    display: 'flex',
-    flexGrow: 1,
-    minHeight: 0,
-    height: '100%',
+    background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
   },
 });
 
@@ -43,21 +31,17 @@ class ExplorerApp extends Component {
     this.state = {
       settingDongle: null,
       drawerIsOpen: false,
-      windowHeight: window.innerHeight,
       windowWidth: window.innerWidth,
+      headerRef: null,
     };
 
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
-    this.handleResize = this.handleResize.bind(this);
+    this.onResize = this.onResize.bind(this);
+    this.updateHeaderRef = this.updateHeaderRef.bind(this);
   }
 
   componentWillMount() {
     this.checkProps(this.props);
-    window.addEventListener('resize', this.handleResize);
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener('resize', this.handleResize);
   }
 
   componentWillReceiveProps(props) {
@@ -75,17 +59,8 @@ class ExplorerApp extends Component {
     }
   }
 
-  handleResize() {
-    if (resizeTimeout) {
-      clearTimeout(resizeTimeout);
-    }
-    resizeTimeout = setTimeout(() => {
-      this.setState({
-        windowHeight: window.innerHeight,
-        windowWidth: window.innerWidth,
-      });
-      resizeTimeout = null;
-    }, 150);
+  onResize(windowWidth) {
+    this.setState({ windowWidth });
   }
 
   handleDrawerStateChanged(drawerOpen) {
@@ -124,17 +99,26 @@ class ExplorerApp extends Component {
     }
   }
 
+  updateHeaderRef(ref) {
+    if (!this.state.headerRef) {
+      this.setState({ headerRef: ref });
+    }
+  }
+
   render() {
     const { classes, expanded } = this.props;
+    const { drawerIsOpen } = this.state;
 
-    const showMenuButton = this.state.windowWidth <= 1080;
-    const drawerIsPermanent = !expanded && this.state.windowWidth > 1080;
+    const isLarge = this.state.windowWidth > 1080;
+    const renderDrawer = !expanded || !isLarge;
+
     const sidebarWidth = Math.max(280, this.state.windowWidth * 0.2);
 
+    const headerHeight = this.state.headerRef ? this.state.headerRef.getBoundingClientRect().height : 64;
     let containerStyles = {
-      height: '100%',
+      minHeight: `calc(100vh - ${headerHeight}px)`,
     };
-    if (drawerIsPermanent) {
+    if (renderDrawer && isLarge) {
       containerStyles = {
         ...containerStyles,
         width: `calc(100% - ${sidebarWidth}px)`,
@@ -142,18 +126,20 @@ class ExplorerApp extends Component {
       };
     }
 
+    let drawerStyles = {
+      minHeight: `calc(100vh - ${headerHeight}px)`,
+    };
+
     return (
       <div className={classes.base}>
-        <div className={classes.header}>
-          <AppHeader drawerIsOpen={this.state.drawerIsOpen} showMenuButton={ showMenuButton }
-            handleDrawerStateChanged={this.handleDrawerStateChanged}
-          />
-        </div>
-        { (!expanded || !drawerIsPermanent) &&
-          <AppDrawer drawerIsOpen={this.state.drawerIsOpen} isPermanent={drawerIsPermanent}
-            handleDrawerStateChanged={this.handleDrawerStateChanged} width={ sidebarWidth } />
+        <ResizeHandler onResize={ this.onResize } />
+        <AppHeader drawerIsOpen={ drawerIsOpen } annotating={ expanded } showDrawerButton={ !isLarge }
+          handleDrawerStateChanged={this.handleDrawerStateChanged} forwardRef={ this.updateHeaderRef } />
+        { renderDrawer &&
+          <AppDrawer drawerIsOpen={ drawerIsOpen } isPermanent={ isLarge } width={ sidebarWidth }
+            handleDrawerStateChanged={this.handleDrawerStateChanged} style={ drawerStyles } />
         }
-        <div className={classes.window} style={ containerStyles }>
+        <div className={ classes.window } style={ containerStyles }>
           { expanded ? (<Annotations />) : (<Dashboard />) }
         </div>
       </div>

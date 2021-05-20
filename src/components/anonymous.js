@@ -37,9 +37,8 @@ const styles = (/* theme */) => ({
     width: 'auto',
   },
   logoText: {
-    fontFamily: 'MaisonNeueExtended',
     fontSize: 24,
-    fontWeight: 600,
+    fontWeight: 800,
   },
   tagline: {
     margin: '20px 0 52px',
@@ -61,7 +60,6 @@ const styles = (/* theme */) => ({
     backgroundSize: '40px',
   },
   logInText: {
-    fontFamily: 'MaisonNeue',
     fontSize: '18px',
     color: 'black',
     fontWeight: 600,

@@ -17,12 +17,13 @@ import Timeline from '../Timeline';
 import AnnotationsFooter from './footer';
 
 import { selectRange } from '../../actions';
+import ResizeHandler from '../ResizeHandler';
 
 const styles = (theme) => ({
   base: {
     display: 'flex',
     flexDirection: 'column',
-    flexGrow: 1,
+    height: '100%'
   },
   window: {
     background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
@@ -30,7 +31,6 @@ const styles = (theme) => ({
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
-    overflowY: 'scroll',
     margin: 18,
   },
   header: {},
@@ -53,24 +53,26 @@ const styles = (theme) => ({
   viewer: {
     padding: theme.spacing.unit * 4,
   },
-  footer: {
-    alignItems: 'center',
-    background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
-    display: 'flex',
-    marginTop: 'auto',
-    width: '100%',
-  },
 });
 
 class Annotations extends Component {
   constructor(props) {
     super(props);
 
+    this.state = {
+      windowWidth: window.innerWidth,
+    };
+
     this.close = this.close.bind(this);
+    this.onResize = this.onResize.bind(this);
   }
 
   close() {
     this.props.dispatch(selectRange(null, null));
+  }
+
+  onResize(windowWidth) {
+    this.setState({ windowWidth });
   }
 
   renderAnnotationsElement(visibleSegment) {
@@ -89,8 +91,10 @@ class Annotations extends Component {
     const visibleSegment = (currentSegment || nextSegment);
     const routeName = visibleSegment ? visibleSegment.route : 'Nothing visible';
     const shortName = routeName.split('|')[1];
+    const isLg = this.state.windowWidth >= 1280;
     return (
       <div className={classes.base}>
+        <ResizeHandler onResize={ this.onResize } />
         <div className={classes.window}>
           <div className={classes.header}>
             <div className={classes.headerContext}>
@@ -119,18 +123,15 @@ class Annotations extends Component {
           </div>
           <div className={classes.viewer}>
             <Grid container spacing={32}>
-              <Grid item xs={6}>
+              { !isLg && <Grid item xs={12} lg={6}><Media /></Grid> }
+              <Grid item xs={12} lg={6}>
                 { visibleSegment && this.renderAnnotationsElement(visibleSegment) }
               </Grid>
-              <Grid item xs={6}>
-                <Media />
-              </Grid>
+              { isLg && <Grid item xs={12} lg={6}><Media /></Grid> }
             </Grid>
           </div>
         </div>
-        <div className={classes.footer}>
-          { visibleSegment && <AnnotationsFooter segment={visibleSegment} loop={loop} start={start} /> }
-        </div>
+        { visibleSegment && <AnnotationsFooter segment={visibleSegment} loop={loop} start={start} /> }
       </div>
     );
   }
