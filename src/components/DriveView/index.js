@@ -82,16 +82,8 @@ class DriveView extends Component {
                 </IconButton>
               </div>
             </div>
-            <Timeline
-              className={classes.headerTimeline}
-              zoomed
-              colored
-              hasThumbnails
-              hasRuler
-              hasGradient
-              tooltipped
-              dragSelection
-            />
+            <Timeline className={classes.headerTimeline} zoomed colored hasThumbnails hasRuler hasGradient
+              tooltipped dragSelection />
           </div>
           <div style={{ padding: viewerPadding }}>
             <Media />

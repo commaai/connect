@@ -104,12 +104,13 @@ class AppDrawer extends Component {
               <Typography className={ classes.logoText }>explorer</Typography>
             </Link>
           }
-          <Button size="large" className={classes.addDeviceButton}
+          {/* <Button size="large" className={classes.addDeviceButton}
             onClick={() => { this.toggleDrawerOff(); this.goToAddDevice(); }}>
             Add device
-          </Button>
+          </Button> */}
+          <div style={{ height: 24 }}></div>
           <DeviceList selectedDevice={ selectedDongleId } handleDeviceSelected={this.handleDeviceSelected}
-            headerHeight={ 64 + 96 } />
+            headerHeight={ 64 + 24 } />
         </div>
       </Drawer>
     );
