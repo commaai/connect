@@ -604,10 +604,10 @@ class VideoPreview extends Component {
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
-    // reset transform before anything, just in case
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
     // clear all the data
     ctx.clearRect(0, 0, width, height);
+    // reset transform before anything, just in case
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     // scale original coords onto our current size
     if (params.shouldScale) {
       ctx.scale(width / this.vwp_w, height / this.vwp_h);
@@ -1066,7 +1066,8 @@ class VideoPreview extends Component {
     const { ctx } = options;
 
     const radius = 80;
-    const x = this.vwp_w - (radius + (bdr_s * 2));
+    const wheelRadius = radius - (bdr_s / 2);
+    const x = this.vwp_w - radius - (bdr_s * 2);
     const y = radius + (bdr_s * 2);
 
     // Wheel Background
@@ -1083,17 +1084,10 @@ class VideoPreview extends Component {
     // Rotate Wheel
     ctx.translate(x, y);
     ctx.rotate(0 - CarState.SteeringAngle * Math.PI / 180);
-    ctx.save();
     ctx.translate(-x, -y);
 
     // Wheel Image
-    ctx.beginPath();
-    ctx.arc(x, y, radius - (bdr_s / 2), 0, 2 * Math.PI, false);
-    const wheelImgPattern = ctx.createPattern(wheelImg, 'repeat');
-    ctx.fillStyle = wheelImgPattern;
-    ctx.closePath();
-    ctx.translate(this.vwp_w - ((bdr_s * 2) + bdr_s / 2), (bdr_s * 2) + bdr_s / 2);
-    ctx.fill();
+    ctx.drawImage(wheelImg, x - wheelRadius, y - wheelRadius, 2 * wheelRadius, 2 * wheelRadius);
   }
 
   drawCarStateBorder(options, ControlsState) {
