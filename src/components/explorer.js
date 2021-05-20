@@ -110,7 +110,6 @@ class ExplorerApp extends Component {
     const { drawerIsOpen } = this.state;
 
     const isLarge = this.state.windowWidth > 1080;
-    const renderDrawer = !expanded || !isLarge;
 
     const sidebarWidth = Math.max(280, this.state.windowWidth * 0.2);
 
@@ -118,7 +117,7 @@ class ExplorerApp extends Component {
     let containerStyles = {
       minHeight: `calc(100vh - ${headerHeight}px)`,
     };
-    if (renderDrawer && isLarge) {
+    if (isLarge) {
       containerStyles = {
         ...containerStyles,
         width: `calc(100% - ${sidebarWidth}px)`,
@@ -135,10 +134,8 @@ class ExplorerApp extends Component {
         <ResizeHandler onResize={ this.onResize } />
         <AppHeader drawerIsOpen={ drawerIsOpen } annotating={ expanded } showDrawerButton={ !isLarge }
           handleDrawerStateChanged={this.handleDrawerStateChanged} forwardRef={ this.updateHeaderRef } />
-        { renderDrawer &&
-          <AppDrawer drawerIsOpen={ drawerIsOpen } isPermanent={ isLarge } width={ sidebarWidth }
-            handleDrawerStateChanged={this.handleDrawerStateChanged} style={ drawerStyles } />
-        }
+        <AppDrawer drawerIsOpen={ drawerIsOpen } isPermanent={ isLarge } width={ sidebarWidth }
+          handleDrawerStateChanged={this.handleDrawerStateChanged} style={ drawerStyles } />
         <div className={ classes.window } style={ containerStyles }>
           { expanded ? (<DriveView />) : (<Dashboard />) }
         </div>

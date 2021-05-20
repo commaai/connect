@@ -10,16 +10,17 @@ import DriveVideo from '../DriveVideo';
 
 const styles = (theme) => ({
   root: {
-    display: 'flex',
-    alignItems: 'flex-end',
+    maxWidth: 964,
+    margin: '0 auto',
+    marginBottom: 12,
   },
   mediaOptions: {
+    width: 'max-content',
     alignItems: 'center',
     border: '1px solid rgba(255,255,255,.1)',
     borderRadius: 50,
     display: 'flex',
     marginLeft: 'auto',
-    marginBottom: 12,
   },
   mediaOption: {
     alignItems: 'center',
