@@ -4,7 +4,7 @@ import { mount } from 'enzyme';
 import queryString from 'query-string';
 import TimelineWorker from '../../timeline';
 
-import AnnotationsFooter from './footer';
+import DriveViewFooter from './footer';
 
 const winOpenMock = jest.fn(() => ({
   focus: jest.fn()
@@ -17,7 +17,7 @@ jest.mock('../../timeline', () => ({
 const currentOffsetMock = jest.fn();
 TimelineWorker.currentOffset = currentOffsetMock;
 
-describe('AnnotationsFooter', () => {
+describe('DriveViewFooter', () => {
   beforeEach(() => {
     winOpenMock.mockClear();
     currentOffsetMock.mockClear();
@@ -30,7 +30,7 @@ describe('AnnotationsFooter', () => {
     const currentOffset = loopStartTime - start + Math.round(Math.random() * 10000);
     currentOffsetMock.mockImplementationOnce(() => currentOffset);
     const footer = mount(
-      <AnnotationsFooter
+      <DriveViewFooter
         segment={{
           routeOffset
         }}
@@ -75,16 +75,8 @@ describe('AnnotationsFooter', () => {
     const currentOffset = loopStartTime - start + Math.round(Math.random() * 10000);
     currentOffsetMock.mockImplementationOnce(() => currentOffset);
     const footer = mount(
-      <AnnotationsFooter
-        segment={{
-          routeOffset
-        }}
-        loop={{
-          startTime: loopStartTime,
-          duration: 181000
-        }}
-        start={start}
-      />
+      <DriveViewFooter segment={{ routeOffset }} start={start}
+        loop={{ startTime: loopStartTime, duration: 181000 }} />
     );
 
     expect(footer.exists()).toBe(true);

@@ -16,6 +16,7 @@ const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 const styles = {
   mapContainer: {
     width: '100%',
+    height: '100%',
     cursor: 'default !important'
   }
 };
@@ -254,12 +255,9 @@ class DriveMap extends Component {
 
   render() {
     return (
-      <Measure
-        bounds
-        onResize={(contentRect) => {
-          this.setState({ viewport: { ...this.state.viewport, width: contentRect.bounds.width } });
-        }}
-      >
+      <Measure bounds onResize={(contentRect) => this.setState({ viewport: {
+          ...this.state.viewport, width: contentRect.bounds.width, height: contentRect.bounds.height
+        }}) }>
         {({ measureRef }) => (
           <div ref={measureRef} className={this.props.classes.mapContainer}>
             <ReactMapGL

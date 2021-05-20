@@ -4,19 +4,13 @@ import Obstruction from 'obstruction';
 import { partial } from 'ap';
 import Colors from '../../colors';
 
-import {
-  withStyles,
-  Typography,
-  Grid,
-  IconButton,
-} from '@material-ui/core';
+import { withStyles, Typography, Grid, IconButton } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
 
-import { filterEvent } from '../../utils';
-import { selectRange } from '../../actions';
 import DeviceSettingsModal from './DeviceSettingsModal';
 import DriveListItem from './DriveListItem';
 import ResizeHandler from '../ResizeHandler';
+import { deviceTypePretty } from '../../utils'
 
 const MIN_TIME_BETWEEN_ROUTES = 60000; // 1 minute
 
@@ -24,9 +18,7 @@ const styles = (theme) => ({
   header: {
     alignItems: 'center',
     borderBottom: `1px solid ${Colors.white10}`,
-    padding: 16,
-    paddingLeft: 48,
-    paddingRight: 60,
+    padding: '16px 48px',
     flexGrow: 0,
   },
   drivesTable: {
@@ -36,9 +28,7 @@ const styles = (theme) => ({
   },
   drives: {
     margin: 0,
-    padding: 16,
-    paddingLeft: 24,
-    paddingRight: 12,
+    padding: '16px 12px',
     flex: '1',
   },
   zeroState: {
@@ -50,6 +40,8 @@ const styles = (theme) => ({
     justifyContent: 'flex-end',
   },
   settingsButton: {
+    position: 'relative',
+    left: 12,
     border: `1px solid ${Colors.white40}`
   },
   settingsButtonIcon: {
@@ -61,7 +53,6 @@ class DriveList extends Component {
   constructor(props) {
     super(props);
 
-    this.goToAnnotation = this.goToAnnotation.bind(this);
     this.filterShortDrives = this.filterShortDrives.bind(this);
     this.renderDriveListHeader = this.renderDriveListHeader.bind(this);
     this.renderDriveListSettings = this.renderDriveListSettings.bind(this);
@@ -87,12 +78,6 @@ class DriveList extends Component {
 
   filterShortDrives(ride) {
     return ride.duration > 60000;
-  }
-
-  goToAnnotation(segment) {
-    const startTime = segment.startTime - this.props.zoomBuffer;
-    const endTime = segment.startTime + segment.duration + this.props.zoomBuffer;
-    this.props.dispatch(selectRange(startTime, endTime));
   }
 
   handleClickedSettings(event) {
@@ -146,7 +131,6 @@ class DriveList extends Component {
           startTime: segment.startTime,
           offset: segment.offset,
           duration: 0,
-          annotations: 0,
           startCoord: segment.startCoord,
           endCoord: segment.endCoord,
           distanceMiles: segment.distanceMiles,
@@ -159,10 +143,7 @@ class DriveList extends Component {
       lastSegmentEnd = segment.startTime + segment.duration;
       curRideChunk.segments++;
       lastEnd = segment.startTime + segment.duration;
-      curRideChunk.annotations += segment.events.filter(filterEvent)
-        .reduce((memo, event) => (event.id ? memo : memo + 1), 0);
     });
-    const isSmall = this.state.windowWidth < 640;
 
     return (
       <>
@@ -171,12 +152,7 @@ class DriveList extends Component {
           { driveList.length === 0 && this.renderZeroRides() }
           <ul className={classes.drives}>
             { driveList.filter(this.filterShortDrives).map((drive) => (
-              <DriveListItem
-                key={drive.startTime}
-                drive={drive}
-                deviceAlias={device.alias}
-                small={ isSmall }
-              />
+              <DriveListItem key={drive.startTime} drive={drive} windowWidth={ this.state.windowWidth }/>
             ))}
           </ul>
         </div>
@@ -208,41 +184,34 @@ class DriveList extends Component {
     const { classes, device } = this.props;
     const isMedium = this.state.windowWidth < 768;
     const isSmall = this.state.windowWidth < 640;
+    const deviceStyle = isSmall ?
+      { flexGrow: 0, maxWidth: '90%', flexBasis: '90%' } :
+      { flexGrow: 0, maxWidth: 'calc(26% + 12px)', flexBasis: 'calc(26% + 12px)', marginLeft: -12 };
     return (
       <div className={classes.header}>
         <ResizeHandler onResize={ this.onResize } />
         <Grid container alignItems="center">
-          <Grid item xs={ isSmall ? 11 : 4 }>
-            <Typography variant="title">
-              { device.alias } Drives
-            </Typography>
-          </Grid>
+          <div style={ deviceStyle }>
+            <Typography variant="title">{ device.alias || deviceTypePretty(device.device_type) }</Typography>
+          </div>
           { !isSmall && <>
-            <Grid item xs={2}>
-              <Typography variant="subheading">
-                Duration
-              </Typography>
-            </Grid>
-            <Grid item xs={2}>
-              <Typography variant="subheading">
-                Origin
-              </Typography>
-            </Grid>
-            <Grid item xs={2}>
-              <Typography variant="subheading">
-                Destination
-              </Typography>
-            </Grid>
-            <Grid item xs={ 1 }>
-              <Typography variant="subheading">
-                { isMedium ? 'Dist.' : 'Distance' }
-              </Typography>
-            </Grid>
+            <div style={{ flexGrow: 0, maxWidth: '14%', flexBasis: '14%' }}>
+              <Typography variant="subheading">Duration</Typography>
+            </div>
+            <div style={{ flexGrow: 0, maxWidth: '22%', flexBasis: '22%' }}>
+              <Typography variant="subheading">Origin</Typography>
+            </div>
+            <div style={{ flexGrow: 0, maxWidth: '22%', flexBasis: '22%' }}>
+              <Typography variant="subheading">Destination</Typography>
+            </div>
+            <div style={{ flexGrow: 0, maxWidth: '10%', flexBasis: '10%' }}>
+              <Typography variant="subheading">{ isMedium ? 'Dist.' : 'Distance' }</Typography>
+            </div>
           </> }
-          <Grid item xs={ 1 } className={classes.settingsArea}>
+          <div className={classes.settingsArea} style={{ flexGrow: 0, maxWidth: '6%', flexBasis: '6%' }}>
             { device && ((!device.shared && device.is_owner) || this.props.isSuperUser)
               && this.renderDriveListSettings()}
-          </Grid>
+          </div>
         </Grid>
       </div>
     );

@@ -128,7 +128,7 @@ class AppHeader extends Component {
     return (
       <>
         <ResizeHandler onResize={ this.onResize } />
-        <AppBar position="sticky" elevation="1">
+        <AppBar position="sticky" elevation={ 1 }>
           <div ref={ this.props.forwardRef } className={ classes.header }>
             <div className={classes.titleContainer}>
               { showDrawerButton ?

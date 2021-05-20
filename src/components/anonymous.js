@@ -115,7 +115,7 @@ class AnonymousLanding extends Component {
             <Typography className={classes.logoText}>explorer</Typography>
           </div>
           <Typography className={classes.tagline}>
-            Review and annotate your comma.ai driving data.
+            View your comma.ai devices and driving data.
           </Typography>
           <a href={AuthConfig.GOOGLE_REDIRECT_LINK}
             className={classes.logInButton}

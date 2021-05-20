@@ -11,7 +11,6 @@ import Drawer from '@material-ui/core/Drawer';
 
 import DeviceList from '../Dashboard/DeviceList';
 
-import { filterEvent } from '../../utils';
 import { selectRange, selectDevice } from '../../actions';
 
 const ZOOM_BUFFER = 1000; // 1 second on either end
@@ -27,7 +26,7 @@ const styles = (/* theme */) => ({
     flexGrow: 1,
     minHeight: 0,
   },
-  annotateButton: {
+  addDeviceButton: {
     background: '#fff',
     borderRadius: 30,
     margin: 24,
@@ -79,21 +78,12 @@ class AppDrawer extends Component {
     super(props);
 
     this.handleDeviceSelected = this.handleDeviceSelected.bind(this);
-    this.goToAnnotation = this.goToAnnotation.bind(this);
     this.toggleDrawerOff = this.toggleDrawerOff.bind(this);
-
   }
 
   handleDeviceSelected(dongleId) {
     this.props.dispatch(selectDevice(dongleId));
     this.toggleDrawerOff();
-  }
-
-  goToAnnotation(segment) {
-    if (segment == null) { return; }
-    const startTime = segment.startTime - ZOOM_BUFFER;
-    const endTime = segment.startTime + segment.duration + ZOOM_BUFFER;
-    this.props.dispatch(selectRange(startTime, endTime));
   }
 
   toggleDrawerOff() {
@@ -102,14 +92,6 @@ class AppDrawer extends Component {
 
   render() {
     const { classes, isPermanent, drawerIsOpen, selectedDongleId } = this.props;
-    let firstAnnotationSegment = null;
-    const newAnnotations = this.props.segments.reduce((count, segment) => {
-      const segCount = segment.events.filter(filterEvent).reduce((memo, event) => (event.id ? memo : memo + 1), 0);
-      if (!firstAnnotationSegment && segCount > 0) {
-        firstAnnotationSegment = segment;
-      }
-      return count + segCount;
-    }, 0);
 
     return (
       <Drawer open={ isPermanent || drawerIsOpen } onClose={this.toggleDrawerOff}
@@ -122,12 +104,13 @@ class AppDrawer extends Component {
               <Typography className={ classes.logoText }>explorer</Typography>
             </Link>
           }
-          <Button size="large" className={classes.annotateButton}
-            onClick={() => { this.toggleDrawerOff(); this.goToAnnotation(firstAnnotationSegment); }}>
-            Annotate
-          </Button>
+          {/* <Button size="large" className={classes.addDeviceButton}
+            onClick={() => { this.toggleDrawerOff(); this.goToAddDevice(); }}>
+            Add device
+          </Button> */}
+          <div style={{ height: 24 }}></div>
           <DeviceList selectedDevice={ selectedDongleId } handleDeviceSelected={this.handleDeviceSelected}
-            headerHeight={ 64 + 96 } />
+            headerHeight={ 64 + 24 } />
         </div>
       </Drawer>
     );

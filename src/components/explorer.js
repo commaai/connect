@@ -8,7 +8,7 @@ import 'mapbox-gl/src/css/mapbox-gl.css';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
-import Annotations from './Annotations';
+import DriveView from './DriveView';
 import AppDrawer from './AppDrawer';
 
 import Timelineworker from '../timeline';
@@ -21,6 +21,8 @@ const styles = (/* theme */) => ({
   },
   window: {
     background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
+    display: 'flex',
+    flexDirection: 'column',
   },
 });
 
@@ -110,15 +112,14 @@ class ExplorerApp extends Component {
     const { drawerIsOpen } = this.state;
 
     const isLarge = this.state.windowWidth > 1080;
-    const renderDrawer = !expanded || !isLarge;
 
     const sidebarWidth = Math.max(280, this.state.windowWidth * 0.2);
 
-    const headerHeight = this.state.headerRef ? this.state.headerRef.getBoundingClientRect().height : 64;
+    const headerHeight = this.state.headerRef ? this.state.headerRef.getBoundingClientRect().height : 66;
     let containerStyles = {
       minHeight: `calc(100vh - ${headerHeight}px)`,
     };
-    if (renderDrawer && isLarge) {
+    if (isLarge) {
       containerStyles = {
         ...containerStyles,
         width: `calc(100% - ${sidebarWidth}px)`,
@@ -135,12 +136,10 @@ class ExplorerApp extends Component {
         <ResizeHandler onResize={ this.onResize } />
         <AppHeader drawerIsOpen={ drawerIsOpen } annotating={ expanded } showDrawerButton={ !isLarge }
           handleDrawerStateChanged={this.handleDrawerStateChanged} forwardRef={ this.updateHeaderRef } />
-        { renderDrawer &&
-          <AppDrawer drawerIsOpen={ drawerIsOpen } isPermanent={ isLarge } width={ sidebarWidth }
-            handleDrawerStateChanged={this.handleDrawerStateChanged} style={ drawerStyles } />
-        }
+        <AppDrawer drawerIsOpen={ drawerIsOpen } isPermanent={ isLarge } width={ sidebarWidth }
+          handleDrawerStateChanged={this.handleDrawerStateChanged} style={ drawerStyles } />
         <div className={ classes.window } style={ containerStyles }>
-          { expanded ? (<Annotations />) : (<Dashboard />) }
+          { expanded ? (<DriveView />) : (<Dashboard />) }
         </div>
       </div>
     );

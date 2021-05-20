@@ -7,19 +7,24 @@ import { withStyles, Typography } from '@material-ui/core';
 
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
+import ResizeHandler from '../ResizeHandler';
 
 const styles = (theme) => ({
   root: {
     display: 'flex',
-    alignItems: 'flex-end',
+  },
+  mediaOptionsRoot: {
+    maxWidth: 964,
+    margin: '0 auto',
+    marginBottom: 12,
   },
   mediaOptions: {
+    width: 'max-content',
     alignItems: 'center',
     border: '1px solid rgba(255,255,255,.1)',
     borderRadius: 50,
     display: 'flex',
     marginLeft: 'auto',
-    marginBottom: 12,
   },
   mediaOption: {
     alignItems: 'center',
@@ -79,65 +84,86 @@ class Media extends Component {
 
     this.state = {
       inView: MediaType.HUD,
+      windowWidth: window.innerWidth,
+      windowHeight: window.innerHeight,
     };
+
+    this.onResize = this.onResize.bind(this);
+  }
+
+  onResize(windowWidth, windowHeight) {
+    this.setState({ windowWidth, windowHeight });
   }
 
   render() {
     const { classes } = this.props;
-    const { inView } = this.state;
+    const { inView, windowWidth, windowHeight } = this.state;
+
+    const showMapAlways = windowWidth >= 1536;
+    if (showMapAlways && inView === MediaType.MAP) {
+      this.setState({ inView: MediaType.HUD });
+    }
+
+    const mediaContainerStyle = showMapAlways ?
+      { width: '60%' } :
+      { width: '100%' };
+    const mapContainerStyle = showMapAlways ?
+      { width: '40%', marginTop: 46, paddingLeft: 24 } :
+      { width: '100%' };
+
     return (
-      <>
-        { this.renderMediaOptions() }
-        { inView === MediaType.MAP && <DriveMap /> }
-        { (inView !== MediaType.MAP)
-          && (
-          <DriveVideo
-            shouldShowUI={inView === MediaType.HUD}
-            front={inView === MediaType.DRIVER_VIDEO}
-            onVideoChange={(noVideo) => {
-              this.setState({ inView: noVideo ? MediaType.MAP : inView });
-            }}
-          />
-          )}
-      </>
+      <div className={ classes.root }>
+        <ResizeHandler onResize={ this.onResize } />
+        <div style={ mediaContainerStyle }>
+          { this.renderMediaOptions(showMapAlways) }
+          { inView !== MediaType.MAP &&
+            <DriveVideo shouldShowUI={inView === MediaType.HUD} front={inView === MediaType.DRIVER_VIDEO}
+              onVideoChange={(noVideo) => this.setState({ inView: noVideo ? MediaType.MAP : inView }) } />
+          }
+          { (inView === MediaType.MAP && !showMapAlways) &&
+            <div style={ mapContainerStyle }>
+              <DriveMap />
+            </div>
+          }
+        </div>
+        { (inView !== MediaType.MAP && showMapAlways) &&
+          <div style={ mapContainerStyle }>
+            <DriveMap />
+          </div>
+        }
+      </div>
     );
   }
 
-  renderMediaOptions() {
+  renderMediaOptions(showMapAlways) {
     const { classes, currentSegment } = this.props;
     const { inView } = this.state;
     const mediaSource = 'eon-road-camera';
     const hasDriverCameraStream = this.props.currentSegment && this.props.currentSegment.hasDriverCameraStream;
     return (
-      <div className={classes.root}>
+      <div className={classes.mediaOptionsRoot}>
         <div className={classes.mediaOptions}>
           <div className={classes.mediaOption} style={inView === MediaType.HUD ? { opacity: 1 } : { }}
             onClick={() => this.setState({ inView: MediaType.HUD })}>
-            <Typography className={classes.mediaOptionText}>
-              HUD
-            </Typography>
+            <Typography className={classes.mediaOptionText}>HUD</Typography>
           </div>
           <div className={classes.mediaOption} style={inView === MediaType.VIDEO ? { opacity: 1 } : {}}
             onClick={() => this.setState({ inView: MediaType.VIDEO })}>
-            <Typography className={classes.mediaOptionText}>
-              Video
-            </Typography>
+            <Typography className={classes.mediaOptionText}>Video</Typography>
           </div>
           { hasDriverCameraStream && (
             <div className={cx(classes.mediaOption, { disabled: !hasDriverCameraStream })}
               style={inView === MediaType.DRIVER_VIDEO ? { opacity: 1 } : {}}
               onClick={() => hasDriverCameraStream && this.setState({ inView: MediaType.DRIVER_VIDEO })}>
-              <Typography className={classes.mediaOptionText}>
-                Driver Video
-              </Typography>
+              <Typography className={classes.mediaOptionText}>Driver Video</Typography>
             </div>
             )}
-          <div className={classes.mediaOption} style={inView === MediaType.MAP ? { opacity: 1 } : { }}
-            onClick={() => this.setState({ inView: MediaType.MAP })}>
-            <Typography className={classes.mediaOptionText}>
-              Map
-            </Typography>
-          </div>
+          { !showMapAlways &&
+            <div className={classes.mediaOption} style={inView === MediaType.MAP ? { opacity: 1 } : { }}
+              onClick={() => this.setState({ inView: MediaType.MAP })}>
+              <Typography className={classes.mediaOptionText}>Map</Typography>
+            </div>
+          }
         </div>
       </div>
     );

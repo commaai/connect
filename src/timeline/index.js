@@ -152,10 +152,6 @@ export class TimelineInterface {
     return commands.selectDevice(dongleId);
   }
 
-  async resolveAnnotation(annotation, event, route) {
-    return commands.resolve({ annotation, event, route });
-  }
-
   async updateDevice(device) {
     return commands.updateDevice(device,);
   }

@@ -31,31 +31,15 @@ const styles = (theme) => ({
   },
   driveHeader: {
     alignItems: 'center',
-    padding: 18,
-    paddingLeft: 24,
-    paddingRight: 24,
   },
   driveHeaderIntro: {
     display: 'flex',
   },
+  driveGridItem: {
+    flexGrow: 1,
+  },
   driveHeaderIntroSmall: {
     justifyContent: 'center',
-  },
-  driveAvatar: {
-    alignItems: 'center',
-    background: '#404B4F',
-    borderRadius: 30,
-    color: '#fff',
-    display: 'flex',
-    fontWeight: 600,
-    height: 52,
-    justifyContent: 'center',
-    margin: '0px 3%',
-    width: 52,
-  },
-  driveAvatarSmall: {
-    width: 40,
-    height: 40,
   },
   driveTimeline: {},
   driveArrow: {
@@ -109,37 +93,45 @@ class DriveListDrive extends Component {
   }
 
   render() {
-    const { drive, deviceAlias, classes, small } = this.props;
+    const { drive, classes, windowWidth } = this.props;
+
+    const small = windowWidth < 640;
+
     const { startLocation, endLocation } = this.state;
     const startTime = fecha.format(new Date(drive.startTime), 'HH:mm');
-    const startDate = fecha.format(new Date(drive.startTime), 'ddd, MMM D');
+    const startDate = fecha.format(new Date(drive.startTime), small ? 'ddd, MMM D' : 'dddd, MMM D');
     const endTime = fecha.format(new Date(drive.startTime + drive.duration + 1000), 'HH:mm');
     const duration = formatDriveDuration(drive.duration);
     const points = getDrivePoints(drive.duration);
+
+    const gridStyle = small ? {
+      date:   { order: 1, maxWidth: '50%', flexBasis: '50%', marginBottom: 12 },
+      dur:    { order: 2, maxWidth: '28%', flexBasis: '28%', marginBottom: 12 },
+      dist:   { order: 3, maxWidth: '22%', flexBasis: '22%', marginBottom: 12 },
+      origin: { order: 4, maxWidth: '50%', flexBasis: '50%' },
+      dest:   { order: 5, maxWidth: '50%', flexBasis: '50%' },
+    } : {
+      date:   { order: 1, maxWidth: '26%', flexBasis: '26%' },
+      dur:    { order: 2, maxWidth: '14%', flexBasis: '14%' },
+      origin: { order: 3, maxWidth: '22%', flexBasis: '22%' },
+      dest:   { order: 4, maxWidth: '22%', flexBasis: '22%' },
+      dist:   { order: 5, maxWidth: '10%', flexBasis: '10%' },
+      arrow:  { order: 6, maxWidth: '6%',  flexBasis: '6%' },
+    };
     return (
-      <li
-        key={drive.startTime}
-        className={classNames(classes.drive, 'DriveEntry')}
-        onClick={ () => this.handleDriveClicked(drive) }
-      >
-        <div className={classes.driveHeader}>
+      <li key={drive.startTime} className={classNames(classes.drive, 'DriveEntry')}
+        onClick={ () => this.handleDriveClicked(drive) }>
+        <div className={classes.driveHeader} style={ !small ? { padding: '18px 32px' } : { padding: 18 } }>
           <Grid container>
-            { !small &&
-              <Grid item xs={ 1 } className={classes.driveHeaderIntro}>
-                <div className={classes.driveAvatar}>
-                  { drive.annotations }
-                </div>
-              </Grid>
-            }
-            <Grid item xs={ small ? 8 : 3 }>
+            <div className={ classes.driveGridItem } style={ gridStyle.date }>
               <Typography className={ classes.firstLine }>
-                { `${startDate} @ ${startTime} to ${endTime}` }
+                { startDate }
               </Typography>
               <Typography>
-                { deviceAlias }
+                { startTime } to { endTime }
               </Typography>
-            </Grid>
-            <Grid item xs={ 2 }>
+            </div>
+            <div className={ classes.driveGridItem } style={ gridStyle.dur }>
               <Typography className={ classes.firstLine }>
                 { duration.hours > 0 && `${duration.hours.toString()}hr ` }
                 { `${duration.minutes} min` }
@@ -147,41 +139,36 @@ class DriveListDrive extends Component {
               <Typography>
                 { `${points} points` }
               </Typography>
-            </Grid>
-            { small &&
-              <Grid item xs={ 2 } className={classes.driveHeaderIntro + ' ' + classes.driveHeaderIntroSmall}>
-                <div className={ classes.driveAvatar + ' ' + classes.driveAvatarSmall }>
-                  { drive.annotations }
-                </div>
-              </Grid>
-            }
-            <Grid item xs={ small ? 4 : 2 }>
+            </div>
+            <div className={ classes.driveGridItem } style={ gridStyle.origin }>
               <Typography className={ classes.firstLine }>
                 { startLocation && startLocation.neighborhood }
               </Typography>
               <Typography>
                 { startLocation && (`${startLocation.locality}, ${startLocation.region}`) }
               </Typography>
-            </Grid>
-            <Grid item xs={ small ? 4 : 2 }>
+            </div>
+            <div className={ classes.driveGridItem } style={ gridStyle.dest }>
               <Typography className={ classes.firstLine }>
                 { endLocation && endLocation.neighborhood }
               </Typography>
               <Typography>
                 { endLocation && (`${endLocation.locality}, ${endLocation.region}`) }
               </Typography>
-            </Grid>
-            <Grid item xs={ small ? 2 : 1 }>
+            </div>
+            <div className={ classes.driveGridItem } style={ gridStyle.dist }>
               <Typography className={ classes.firstLine }>
                 { `${+drive.distanceMiles.toFixed(1)} mi` }
               </Typography>
               <Typography>
                 { `${+(drive.distanceMiles * KM_PER_MI).toFixed(1)} km` }
               </Typography>
-            </Grid>
-            <Grid item xs={ small ? 2 : 1 }>
-              <RightArrow className={classes.driveArrow} />
-            </Grid>
+            </div>
+            { !small &&
+              <div className={ classes.driveGridItem } style={ gridStyle.arrow }>
+                <RightArrow className={classes.driveArrow} />
+              </div>
+            }
           </Grid>
         </div>
         <Timeline

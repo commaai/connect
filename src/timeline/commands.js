@@ -86,12 +86,6 @@ async function hello(data) {
   return 'hello';
 }
 
-function resolveAnnotation(data) {
-  const { annotation, event, route } = data;
-
-  store.dispatch(Segments.resolveAnnotation(annotation, event, route));
-}
-
 function selectDevice(dongleId) {
   store.dispatch(selectDeviceAction(dongleId));
 }
@@ -144,7 +138,6 @@ export const commands = {
   bufferData,
   disableBuffer,
   hello,
-  resolve: resolveAnnotation,
   selectDevice,
   selectTimeRange,
   selectLoop,

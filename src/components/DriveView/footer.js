@@ -36,7 +36,7 @@ const styles = (theme) => ({
   }
 });
 
-class AnnotationsFooter extends Component {
+class DriveViewFooter extends Component {
   constructor(props) {
     super(props);
 
@@ -167,10 +167,10 @@ class AnnotationsFooter extends Component {
   }
 }
 
-AnnotationsFooter.propTypes = {
+DriveViewFooter.propTypes = {
   segment: PropTypes.object.isRequired,
   loop: PropTypes.object.isRequired,
   start: PropTypes.number.isRequired
 };
 
-export default withStyles(styles)(AnnotationsFooter);
+export default withStyles(styles)(DriveViewFooter);
