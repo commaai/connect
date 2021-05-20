@@ -2,7 +2,7 @@ import Event from 'geval/event';
 import CreateStore from 'weakmap-shim/create-store';
 import { timeout } from 'thyming';
 
-import { annotations as Annotations, drives as Drives } from '@commaai/comma-api'; // eslint-disable-line
+import { drives as Drives } from '@commaai/comma-api'; // eslint-disable-line
 
 import { currentOffset } from './playback';
 import Segments from './segments';
@@ -18,7 +18,6 @@ const DataLogEvent = Event();
 const SegmentTimerStore = CreateStore();
 
 let segmentsRequest = null;
-let annotationsRequest = null;
 
 export function getState() {
   return store.getState();
@@ -84,7 +83,7 @@ async function checkSegmentMetadata(state) {
     return;
   }
   await Demo.init();
-  if (segmentsRequest || annotationsRequest) {
+  if (segmentsRequest) {
     return;
   }
   console.log('We need to update the segment metadata...');
@@ -93,33 +92,28 @@ async function checkSegmentMetadata(state) {
   const { end } = state;
 
   let segmentData = null;
-  let annotationsData = null;
   if (Demo.isDemo()) {
     segmentsRequest = Promise.resolve(demoSegments);
-    annotationsRequest = Promise.resolve([]);
   } else {
     segmentsRequest = Drives.getSegmentMetadata(start, end, dongleId);
-    annotationsRequest = Annotations.listAnnotations(start, end, dongleId);
   }
   store.dispatch(Segments.fetchSegmentMetadata(start, end));
 
   try {
     segmentData = await segmentsRequest;
-    annotationsData = await annotationsRequest;
   } catch (e) {
     console.error('Failure fetching segment metadata', e.stack || e);
     // /@TODO retry this call!
     return;
   } finally {
     segmentsRequest = null;
-    annotationsRequest = null;
   }
   if (state.start !== start || state.end !== end || state.dongleId !== dongleId) {
     checkSegmentMetadata(getState());
     return;
   }
 
-  segmentData = Segments.parseSegmentMetadata(state, segmentData, annotationsData);
+  segmentData = Segments.parseSegmentMetadata(state, segmentData);
   // broken
   store.dispatch(Segments.insertSegmentMetadata(segmentData));
   // ensureSegmentData(getState());

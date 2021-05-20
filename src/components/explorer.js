@@ -8,7 +8,7 @@ import 'mapbox-gl/src/css/mapbox-gl.css';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
-import Annotations from './Annotations';
+import DriveView from './DriveView';
 import AppDrawer from './AppDrawer';
 
 import Timelineworker from '../timeline';
@@ -140,7 +140,7 @@ class ExplorerApp extends Component {
             handleDrawerStateChanged={this.handleDrawerStateChanged} style={ drawerStyles } />
         }
         <div className={ classes.window } style={ containerStyles }>
-          { expanded ? (<Annotations />) : (<Dashboard />) }
+          { expanded ? (<DriveView />) : (<Dashboard />) }
         </div>
       </div>
     );

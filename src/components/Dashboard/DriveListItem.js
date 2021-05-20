@@ -41,22 +41,6 @@ const styles = (theme) => ({
   driveHeaderIntroSmall: {
     justifyContent: 'center',
   },
-  driveAvatar: {
-    alignItems: 'center',
-    background: '#404B4F',
-    borderRadius: 30,
-    color: '#fff',
-    display: 'flex',
-    fontWeight: 600,
-    height: 52,
-    justifyContent: 'center',
-    margin: '0px 3%',
-    width: 52,
-  },
-  driveAvatarSmall: {
-    width: 40,
-    height: 40,
-  },
   driveTimeline: {},
   driveArrow: {
     color: '#404B4F',
@@ -117,21 +101,11 @@ class DriveListDrive extends Component {
     const duration = formatDriveDuration(drive.duration);
     const points = getDrivePoints(drive.duration);
     return (
-      <li
-        key={drive.startTime}
-        className={classNames(classes.drive, 'DriveEntry')}
-        onClick={ () => this.handleDriveClicked(drive) }
-      >
+      <li key={drive.startTime} className={classNames(classes.drive, 'DriveEntry')}
+        onClick={ () => this.handleDriveClicked(drive) }>
         <div className={classes.driveHeader}>
           <Grid container>
-            { !small &&
-              <Grid item xs={ 1 } className={classes.driveHeaderIntro}>
-                <div className={classes.driveAvatar}>
-                  { drive.annotations }
-                </div>
-              </Grid>
-            }
-            <Grid item xs={ small ? 8 : 3 }>
+            <Grid item xs={ small ? 8 : 4 }>
               <Typography className={ classes.firstLine }>
                 { `${startDate} @ ${startTime} to ${endTime}` }
               </Typography>
@@ -148,13 +122,6 @@ class DriveListDrive extends Component {
                 { `${points} points` }
               </Typography>
             </Grid>
-            { small &&
-              <Grid item xs={ 2 } className={classes.driveHeaderIntro + ' ' + classes.driveHeaderIntroSmall}>
-                <div className={ classes.driveAvatar + ' ' + classes.driveAvatarSmall }>
-                  { drive.annotations }
-                </div>
-              </Grid>
-            }
             <Grid item xs={ small ? 4 : 2 }>
               <Typography className={ classes.firstLine }>
                 { startLocation && startLocation.neighborhood }

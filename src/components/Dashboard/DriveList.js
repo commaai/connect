@@ -61,7 +61,6 @@ class DriveList extends Component {
   constructor(props) {
     super(props);
 
-    this.goToAnnotation = this.goToAnnotation.bind(this);
     this.filterShortDrives = this.filterShortDrives.bind(this);
     this.renderDriveListHeader = this.renderDriveListHeader.bind(this);
     this.renderDriveListSettings = this.renderDriveListSettings.bind(this);
@@ -87,12 +86,6 @@ class DriveList extends Component {
 
   filterShortDrives(ride) {
     return ride.duration > 60000;
-  }
-
-  goToAnnotation(segment) {
-    const startTime = segment.startTime - this.props.zoomBuffer;
-    const endTime = segment.startTime + segment.duration + this.props.zoomBuffer;
-    this.props.dispatch(selectRange(startTime, endTime));
   }
 
   handleClickedSettings(event) {
@@ -146,7 +139,6 @@ class DriveList extends Component {
           startTime: segment.startTime,
           offset: segment.offset,
           duration: 0,
-          annotations: 0,
           startCoord: segment.startCoord,
           endCoord: segment.endCoord,
           distanceMiles: segment.distanceMiles,
@@ -159,8 +151,6 @@ class DriveList extends Component {
       lastSegmentEnd = segment.startTime + segment.duration;
       curRideChunk.segments++;
       lastEnd = segment.startTime + segment.duration;
-      curRideChunk.annotations += segment.events.filter(filterEvent)
-        .reduce((memo, event) => (event.id ? memo : memo + 1), 0);
     });
     const isSmall = this.state.windowWidth < 640;
 

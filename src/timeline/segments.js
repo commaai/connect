@@ -4,7 +4,6 @@ import { currentOffset } from './playback';
 const ACTION_UPDATE_SEGMENTS = 'update_segments';
 const ACTION_LOAD_SEGMENT_METADATA = 'load_segment_metadata';
 const ACTION_SEGMENT_METADATA = 'segment_metadata';
-const ACTION_RESOLVE_ANNOTATION = 'resolve_annotation';
 
 const SEGMENT_LENGTH = 1000 * 60;
 
@@ -248,7 +247,6 @@ function segmentsFromMetadata(segmentsData) {
 
 function reducer(_state = initialState, action) {
   let state = _state;
-  let found = false;
   switch (action.type) {
     case ACTION_LOAD_SEGMENT_METADATA:
       state = {
@@ -267,36 +265,6 @@ function reducer(_state = initialState, action) {
         segmentData: action.data,
         segments: action.segments
       };
-      break;
-    case ACTION_RESOLVE_ANNOTATION:
-      state = { ...state };
-      state.segments = state.segments.map((s) => {
-        let segment = s;
-        if (found || segment.route !== action.route) {
-          return segment;
-        }
-        segment = {
-          ...segment,
-          events: segment.events.map((e) => {
-            let event = e;
-            if (found || event.time !== action.event.time || event.type !== action.event.type) {
-              return event;
-            }
-            event = {
-              ...event,
-              id: action.annotation.id,
-              annotation: action.annotation
-            };
-            found = true;
-            return event;
-          })
-        };
-
-        return segment;
-      });
-      if (!found) {
-        console.warning('Resolving unknonwn annotation');
-      }
       break;
     default:
       break;
@@ -343,16 +311,7 @@ function insertSegmentMetadata(data) {
   };
 }
 
-function resolveAnnotation(annotation, event, route) {
-  return {
-    type: ACTION_RESOLVE_ANNOTATION,
-    annotation,
-    event,
-    route
-  };
-}
-
-function parseSegmentMetadata(state, _segments, annotations) {
+function parseSegmentMetadata(state, _segments) {
   const routeStartTimes = {};
   let segments = _segments;
   segments = segments.map((_segment) => {
@@ -381,19 +340,6 @@ function parseSegmentMetadata(state, _segments, annotations) {
       // segment.start_time_utc_millis - state.start + state.start
 
       event.canonical_segment_name = segment.canonical_name;
-      annotations.forEach((annotation) => {
-        // debugger;
-        if (annotation.canonical_segment_name === event.canonical_segment_name
-          && annotation.offset_millis === event.offset_millis
-          && annotation.offset_nanos_part === event.offset_nanos) {
-          if (event.id) {
-            console.error('Server returned more than one matching annotation-to-event', event, annotation);
-            // debugger;
-          }
-          event.id = annotation.id;
-          event.annotation = annotation;
-        }
-      });
 
       if (event.data && event.data.is_planned) {
         let reason;
@@ -413,19 +359,6 @@ function parseSegmentMetadata(state, _segments, annotations) {
         }
 
         event.id = `planned_disengage_${event.time}`;
-        event.annotation = {
-          start_time_utc_millis: event.timestamp,
-          data: {
-            reason,
-          },
-          offset_nanos_part: event.offset_nanos,
-          end_time_utc_millis: event.timestamp,
-          canonical_segment_name: event.canonical_segment_name,
-          dongle_id: state.dongleId,
-          type: event.type,
-          id: event.id,
-          offset_millis: event.offset_millis
-        };
       }
     });
     return segment;
@@ -487,7 +420,6 @@ const API = {
   updateSegments,
   fetchSegmentMetadata,
   insertSegmentMetadata,
-  resolveAnnotation,
 
   // constants
   SEGMENT_LENGTH,

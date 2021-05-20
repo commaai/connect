@@ -5,15 +5,12 @@ import { partial } from 'ap';
 import Raven from 'raven-js';
 import cx from 'classnames';
 
-import {
-  withStyles,
-  Typography,
-} from '@material-ui/core';
+import { withStyles, Typography } from '@material-ui/core';
 
 import { deviceTypePretty } from '../../utils'
 import { devices as Devices } from '@commaai/comma-api';
 import Timelineworker from '../../timeline';
-import CommaTwoUpsell from '../Annotations/commaTwoUpsell';
+import CommaTwoUpsell from '../DriveView/commaTwoUpsell';
 
 const styles = (theme) => ({
   deviceList: {

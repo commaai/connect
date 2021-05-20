@@ -84,39 +84,6 @@ describe('segments', () => {
     expect(segment.segment).toBe(0);
   });
 
-  it('adds annotation id when resolved', () => {
-    let state = Segments.reducer({
-      segments: segmentData
-    }, {});
-    expect(state.segments[0].events[0].id).toBe(undefined);
-    state = Segments.reducer(state, {
-      type: 'resolve_annotation',
-      route: segmentData[0].route,
-      event: segmentData[0].events[0],
-      annotation: {
-        id: 321
-      }
-    });
-    expect(state.segments[0].events[0].id).toBe(321);
-  });
-
-  it('reducer returns new array when resolving annotations', () => {
-    const oldEvents = segmentData[0].events;
-    const state = Segments.reducer({
-      segments: segmentData
-    }, {
-      type: 'resolve_annotation',
-      route: segmentData[0].route,
-      event: segmentData[0].events[0],
-      annotation: {
-        id: 321
-      }
-    });
-    expect(state.segments === segmentData).toBe(false);
-    expect(state.segments[0].route).toBe(segmentData[0].route);
-    expect(state.segments[0].events === oldEvents).toBe(false);
-  });
-
   it('can check if it has segment metadata', () => {
     expect(Segments.hasSegmentMetadata()).toBe(false);
     expect(Segments.hasSegmentMetadata({})).toBe(false);

@@ -2,19 +2,13 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
-import {
-  withStyles,
-  Grid,
-  Typography,
-  IconButton,
-} from '@material-ui/core';
+import { withStyles, Typography, IconButton } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 
-import AnnotationTabs from './AnnotationTabs';
 import Media from './Media';
 import Timeline from '../Timeline';
-import AnnotationsFooter from './footer';
+import DriveViewFooter from './footer';
 
 import { selectRange } from '../../actions';
 import ResizeHandler from '../ResizeHandler';
@@ -55,7 +49,7 @@ const styles = (theme) => ({
   },
 });
 
-class Annotations extends Component {
+class DriveView extends Component {
   constructor(props) {
     super(props);
 
@@ -73,10 +67,6 @@ class Annotations extends Component {
 
   onResize(windowWidth) {
     this.setState({ windowWidth });
-  }
-
-  renderAnnotationsElement(visibleSegment) {
-    return (<AnnotationTabs segment={visibleSegment} />);
   }
 
   render() {
@@ -122,16 +112,10 @@ class Annotations extends Component {
             />
           </div>
           <div className={classes.viewer}>
-            <Grid container spacing={32}>
-              { !isLg && <Grid item xs={12} lg={6}><Media /></Grid> }
-              <Grid item xs={12} lg={6}>
-                { visibleSegment && this.renderAnnotationsElement(visibleSegment) }
-              </Grid>
-              { isLg && <Grid item xs={12} lg={6}><Media /></Grid> }
-            </Grid>
+            <Media />
           </div>
         </div>
-        { visibleSegment && <AnnotationsFooter segment={visibleSegment} loop={loop} start={start} /> }
+        { visibleSegment && <DriveViewFooter segment={visibleSegment} loop={loop} start={start} /> }
       </div>
     );
   }
@@ -145,4 +129,4 @@ const stateToProps = Obstruction({
   start: 'workerState.start'
 });
 
-export default connect(stateToProps)(withStyles(styles)(Annotations));
+export default connect(stateToProps)(withStyles(styles)(DriveView));
