@@ -54,6 +54,7 @@ export function selectDevice(dongleId) {
     const state = getState();
     if (state.workerState.dongleId !== dongleId) {
       Timelineworker.selectDevice(dongleId).then(() => {
+        dispatch(selectRange(null, null))
         dispatch(primeFetchSubscription());
       });
     } else {

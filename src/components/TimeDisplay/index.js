@@ -145,8 +145,7 @@ class TimeDisplay extends Component {
       return '...';
     }
     const now = new Date(currentOffset + start);
-    const dateString = fecha.format(now, 'ddd, D MMM, YYYY @ HH:mm:ss');
-    // var dateString = fecha.format(now, 'MMM D @ HH:mm:ss');
+    const dateString = fecha.format(now, 'ddd, D MMM @ HH:mm:ss');
 
     return dateString;
   }

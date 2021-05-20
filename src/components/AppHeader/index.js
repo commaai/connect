@@ -112,7 +112,7 @@ class AppHeader extends Component {
     const open = Boolean(anchorEl);
 
     let reorderWideStyle = {};
-    if (this.state.windowWidth < 660) {
+    if (this.state.windowWidth < 640) {
       reorderWideStyle = {
         order: 4,
         width: '100%',
