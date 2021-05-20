@@ -14,11 +14,6 @@ import { selectRange } from '../../actions';
 import ResizeHandler from '../ResizeHandler';
 
 const styles = (theme) => ({
-  base: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%'
-  },
   window: {
     background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
     borderRadius: 8,
@@ -83,7 +78,7 @@ class DriveView extends Component {
     const shortName = routeName.split('|')[1];
     const isLg = this.state.windowWidth >= 1280;
     return (
-      <div className={classes.base}>
+      <>
         <ResizeHandler onResize={ this.onResize } />
         <div className={classes.window}>
           <div className={classes.header}>
@@ -116,7 +111,7 @@ class DriveView extends Component {
           </div>
         </div>
         { visibleSegment && <DriveViewFooter segment={visibleSegment} loop={loop} start={start} /> }
-      </div>
+      </>
     );
   }
 }

@@ -21,6 +21,8 @@ const styles = (/* theme */) => ({
   },
   window: {
     background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
+    display: 'flex',
+    flexDirection: 'column',
   },
 });
 
@@ -113,7 +115,7 @@ class ExplorerApp extends Component {
 
     const sidebarWidth = Math.max(280, this.state.windowWidth * 0.2);
 
-    const headerHeight = this.state.headerRef ? this.state.headerRef.getBoundingClientRect().height : 64;
+    const headerHeight = this.state.headerRef ? this.state.headerRef.getBoundingClientRect().height : 66;
     let containerStyles = {
       minHeight: `calc(100vh - ${headerHeight}px)`,
     };
