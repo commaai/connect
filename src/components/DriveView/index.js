@@ -38,10 +38,6 @@ const styles = (theme) => ({
   headerActions: {
     marginLeft: 'auto',
   },
-  headerTimeline: {},
-  viewer: {
-    padding: theme.spacing.unit * 4,
-  },
 });
 
 class DriveView extends Component {
@@ -65,22 +61,13 @@ class DriveView extends Component {
   }
 
   render() {
-    const {
-      classes,
-      device,
-      loop,
-      currentSegment,
-      nextSegment,
-      start
-    } = this.props;
+    const { classes, loop, currentSegment, nextSegment, start } = this.props;
     const visibleSegment = (currentSegment || nextSegment);
-    const routeName = visibleSegment ? visibleSegment.route : 'Nothing visible';
-    const shortName = routeName.split('|')[1];
-    const isLg = this.state.windowWidth >= 1280;
+    const viewerPadding = this.state.windowWidth < 768 ? 12 : 32
     return (
       <>
         <ResizeHandler onResize={ this.onResize } />
-        <div className={classes.window}>
+        <div className={classes.window} >
           <div className={classes.header}>
             <div className={classes.headerContext}>
               <IconButton aria-label="Go Back" onClick={() => window.history.back()}>
@@ -106,7 +93,7 @@ class DriveView extends Component {
               dragSelection
             />
           </div>
-          <div className={classes.viewer}>
+          <div style={{ padding: viewerPadding }}>
             <Media />
           </div>
         </div>
