@@ -32,14 +32,17 @@ const theme = createMuiTheme({
         margin: '0px',
         '&>div': {
           margin: '0',
-        }
+        },
+        '&:focus': {
+          background: 'inherit',
+        },
       },
       selectMenu: {
         paddingRight: 54,
       },
       icon: {
         marginRight: 20,
-        color: '#272D30'
+        color: Colors.white30,
       }
     },
     MuiInput: {

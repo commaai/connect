@@ -1,13 +1,9 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import { partial } from 'ap';
 import Colors from '../../colors';
 
-import { withStyles, Typography, Grid, IconButton } from '@material-ui/core';
-import SettingsIcon from '@material-ui/icons/Settings';
-
-import DeviceSettingsModal from './DeviceSettingsModal';
+import { withStyles, Typography, Grid } from '@material-ui/core';
 import DriveListItem from './DriveListItem';
 import ResizeHandler from '../ResizeHandler';
 import { deviceTypePretty } from '../../utils'
@@ -55,17 +51,9 @@ class DriveList extends Component {
 
     this.filterShortDrives = this.filterShortDrives.bind(this);
     this.renderDriveListHeader = this.renderDriveListHeader.bind(this);
-    this.renderDriveListSettings = this.renderDriveListSettings.bind(this);
-    this.handleClickedSettings = this.handleClickedSettings.bind(this);
-    this.handleClosedSettings = this.handleClosedSettings.bind(this);
-    this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
-    this.handleCanceledSettings = this.handleCanceledSettings.bind(this);
-    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
     this.onResize = this.onResize.bind(this);
 
     this.state = {
-      anchorEl: null,
-      showDeviceSettingsModal: false,
       windowWidth: window.innerWidth,
     };
   }
@@ -78,35 +66,6 @@ class DriveList extends Component {
 
   filterShortDrives(ride) {
     return ride.duration > 60000;
-  }
-
-  handleClickedSettings(event) {
-    this.setState({ anchorEl: event.currentTarget });
-  }
-
-  handleClosedSettings() {
-    this.setState({ anchorEl: null });
-  }
-
-  handleOpenedSettingsModal(device) {
-    this.setState({ showDeviceSettingsModal: true });
-  }
-
-  handleClosedSettingsModal() {
-    this.setState({ showDeviceSettingsModal: false });
-  }
-
-  handleCanceledSettings() {
-    this.setState({
-      anchorEl: null,
-      showDeviceSettingsModal: false,
-    });
-  }
-
-  handleClose() {
-    this.setState({
-      showPicker: false
-    });
   }
 
   onResize(windowWidth) {
@@ -208,33 +167,8 @@ class DriveList extends Component {
               <Typography variant="subheading">{ isMedium ? 'Dist.' : 'Distance' }</Typography>
             </div>
           </> }
-          <div className={classes.settingsArea} style={{ flexGrow: 0, maxWidth: '6%', flexBasis: '6%' }}>
-            { device && ((!device.shared && device.is_owner) || this.props.isSuperUser)
-              && this.renderDriveListSettings()}
-          </div>
         </Grid>
       </div>
-    );
-  }
-
-  renderDriveListSettings() {
-    const { classes, device } = this.props;
-    const { anchorEl } = this.state;
-    const open = Boolean(anchorEl);
-    return (
-      <>
-        <IconButton
-          className={classes.settingsButton}
-          onClick={partial(this.handleOpenedSettingsModal, device)}
-        >
-          <SettingsIcon className={classes.settingsButtonIcon} />
-        </IconButton>
-        <DeviceSettingsModal
-          isOpen={this.state.showDeviceSettingsModal}
-          onClose={this.handleClosedSettingsModal}
-          onCancel={this.handleCanceledSettings}
-        />
-      </>
     );
   }
 }

@@ -1,5 +1,4 @@
 import React from 'react';
-import { partial } from 'ap';
 
 const gutter = 0;
 
@@ -107,5 +106,5 @@ export default function Thumbnails(props) {
     imgArr.push(currentSegment);
   }
 
-  return imgArr.map(partial(renderImage, imgStyles));
+  return imgArr.map((data, i) => renderImage(imgStyles, data, i));
 }

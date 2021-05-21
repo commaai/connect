@@ -9,7 +9,6 @@ import debounce from 'debounce';
 import document from 'global/document';
 import fecha from 'fecha';
 import cx from 'classnames';
-import { partial } from 'ap';
 import PropTypes from 'prop-types';
 
 import Measure from 'react-measure';
@@ -557,7 +556,7 @@ class Timeline extends Component {
                   })}
                 >
                   <Thumbnails
-                    getCurrentSegment={partial(Segments.getCurrentSegment, this.props)}
+                    getCurrentSegment={ (seg) => Segments.getCurrentSegment(this.props, seg) }
                     percentToOffset={this.percentToOffset}
                     thumbnail={thumbnail}
                     className={classes.thumbnail}

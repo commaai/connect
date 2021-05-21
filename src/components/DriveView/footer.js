@@ -3,7 +3,6 @@ import { classNames } from 'react-extras';
 import PropTypes from 'prop-types';
 import document from 'global/document';
 import { timeout } from 'thyming';
-import { partial } from 'ap';
 import qs from 'query-string';
 import { withStyles } from '@material-ui/core/styles';
 import Snackbar from '@material-ui/core/Snackbar';
@@ -126,19 +125,19 @@ class DriveViewFooter extends Component {
         <div className={this.props.classes.root}>
           { this.props.segment && this.props.segment.hasVideo
             && (
-            <a className={this.props.classes.footerButton} onClick={partial(this.downloadSegmentFile, 'cameras')}>
+            <a className={this.props.classes.footerButton} onClick={ () => this.downloadSegmentFile('cameras') }>
               Download Camera Segment
             </a>
             )}
           { this.props.segment && this.props.segment.hasDriverCamera
             && (
-            <a className={this.props.classes.footerButton} onClick={partial(this.downloadSegmentFile, 'dcameras')}>
+            <a className={this.props.classes.footerButton} onClick={ () => this.downloadSegmentFile('dcameras') }>
               Download Front Camera Segment
             </a>
             )}
           { this.props.segment
             && (
-            <a className={this.props.classes.footerButton} onClick={partial(this.downloadSegmentFile, 'logs')}>
+            <a className={this.props.classes.footerButton} onClick={ () => this.downloadSegmentFile('logs') }>
               Download Log Segment
             </a>
             )}

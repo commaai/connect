@@ -27,7 +27,6 @@
     "@material-ui/icons": "^1.0.0",
     "@stripe/react-stripe-js": "^1.4.0",
     "@stripe/stripe-js": "^1.13.2",
-    "ap": "^0.2.0",
     "capnp-split": "^0.1.4",
     "capnp-ts": "^0.4.0",
     "carly": "^0.1.0",

@@ -49,6 +49,10 @@ class ExplorerApp extends Component {
   componentWillReceiveProps(props) {
     this.checkProps(props);
 
+    if (this.props.pathname !== props.pathname) {
+      this.setState({ drawerIsOpen: false });
+    }
+
     const isZoomed = props.expanded;
     const { expanded } = this.props;
     const wasZoomed = expanded;

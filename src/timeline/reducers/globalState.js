@@ -65,7 +65,6 @@ export default function reducer(_state = initialState, action) {
     case ACTION_UPDATE_DEVICE:
       deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.device.dongle_id);
       state.devices[deviceIndex] = action.device;
-      state.device = action.device;
       break;
     case ACTION_PRIME_NAV:
       state = {

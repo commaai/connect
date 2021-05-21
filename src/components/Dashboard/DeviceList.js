@@ -1,16 +1,17 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import { partial } from 'ap';
 import Raven from 'raven-js';
 import cx from 'classnames';
 
-import { withStyles, Typography } from '@material-ui/core';
-
+import { withStyles, Typography, IconButton } from '@material-ui/core';
+import SettingsIcon from '@material-ui/icons/Settings';
+import DeviceSettingsModal from './DeviceSettingsModal';
 import { deviceTypePretty } from '../../utils'
 import { devices as Devices } from '@commaai/comma-api';
 import Timelineworker from '../../timeline';
 import CommaTwoUpsell from '../DriveView/commaTwoUpsell';
+import Colors from '../../colors';
 
 const styles = (theme) => ({
   deviceList: {
@@ -20,16 +21,20 @@ const styles = (theme) => ({
     alignItems: 'center',
     cursor: 'pointer',
     display: 'flex',
+    justifyContent: 'space-between',
     padding: '16px 32px',
     '&.isSelected': {
       backgroundColor: '#171B1D',
     }
   },
-  deviceAvatar: {
-    backgroundColor: '#1D2225',
-    borderRadius: 30,
+  settingsButton: {
     height: 46,
     width: 46,
+    color: Colors.white30,
+    transition: 'color 150ms cubic-bezier(0.4, 0, 0.2, 1) 0ms',
+    '&:hover': {
+      color: Colors.white,
+    },
   },
   deviceInfo: {
     display: 'flex',
@@ -65,18 +70,13 @@ class DeviceList extends Component {
     super(props);
 
     this.state = {
-      editingDevice: null,
-      deviceAlias: '',
-      isWaitingForApi: false,
-      error: null,
+      showDeviceSettingsModal: false,
+      deviceSettingsModalDevice: null,
     };
 
-    this.handleAliasChange = this.handleAliasChange.bind(this);
-    this.handleAliasFieldKeyPress = this.handleAliasFieldKeyPress.bind(this);
     this.renderDevice = this.renderDevice.bind(this);
-    this.setDeviceAlias = this.setDeviceAlias.bind(this);
-    this.toggleDeviceEdit = this.toggleDeviceEdit.bind(this);
-    this.cancelEdit = this.cancelEdit.bind(this);
+    this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
+    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -86,39 +86,14 @@ class DeviceList extends Component {
     }
   }
 
-  toggleDeviceEdit(device) {
-    if (this.state.editingDevice === device.dongle_id) {
-      this.setState({ editingDevice: null });
-    } else {
-      this.props.handleDeviceSelected(device.dongle_id);
-      this.setState({ editingDevice: device.dongle_id, deviceAlias: device.alias });
-    }
+  handleOpenedSettingsModal(device, ev) {
+    ev.stopPropagation();
+    ev.preventDefault();
+    this.setState({ showDeviceSettingsModal: true, deviceSettingsModalDevice: device });
   }
 
-  cancelEdit() {
-    this.setState({ editingDevice: null });
-  }
-
-  handleAliasChange(e) {
-    this.setState({ deviceAlias: e.target.value });
-  }
-
-  handleAliasFieldKeyPress(dongle_id, e) {
-    if (e.key === 'Enter' && !this.state.isWaitingForApi) {
-      this.setDeviceAlias(dongle_id);
-    }
-  }
-
-  async setDeviceAlias(dongle_id) {
-    this.setState({ isWaitingForApi: true });
-    try {
-      const device = await Devices.setDeviceAlias(dongle_id, this.state.deviceAlias.trim());
-      Timelineworker.updateDevice(device);
-      this.setState({ isWaitingForApi: false, editingDevice: null });
-    } catch (e) {
-      Raven.captureException(e);
-      this.setState({ error: e.message, isWaitingForApi: false });
-    }
+  handleClosedSettingsModal() {
+    this.setState({ showDeviceSettingsModal: false });
   }
 
   render() {
@@ -136,35 +111,38 @@ class DeviceList extends Component {
     }
 
     return (
-      <div className={ `scrollstyle ${classes.deviceList}` }
-        style={{ height: `calc(100vh - ${this.props.headerHeight}px)` }}>
-        { devices.filter(this.filterDrivingDevice).map(this.renderDevice) }
-        { onlyHasAppDevice && <CommaTwoUpsell hook="Get started with comma two" /> }
-      </div>
+      <>
+        <div className={ `scrollstyle ${classes.deviceList}` }
+          style={{ height: `calc(100vh - ${this.props.headerHeight}px)` }}>
+          { devices.filter(this.filterDrivingDevice).map(this.renderDevice) }
+          { onlyHasAppDevice && <CommaTwoUpsell hook="Get started with comma two" /> }
+        </div>
+        <DeviceSettingsModal isOpen={this.state.showDeviceSettingsModal} device={ this.state.deviceSettingsModalDevice }
+          onClose={this.handleClosedSettingsModal} />
+      </>
     );
   }
 
   renderDevice(device) {
-    const { classes } = this.props;
+    const { classes, isSuperUser } = this.props;
     const isSelected = (this.props.selectedDevice === device.dongle_id);
     const alias = device.alias || deviceTypePretty(device.device_type);
     return (
-      <div
-        key={device.dongle_id}
-        onClick={partial(this.props.handleDeviceSelected, device.dongle_id)}
-        className={cx(classes.device, [{ isSelected }])}
-      >
-        <div className={classes.deviceAvatar} />
+      <div key={device.dongle_id} onClick={ () => this.props.handleDeviceSelected(device.dongle_id) }
+        className={cx(classes.device, [{ isSelected }])}>
         <div className={classes.deviceInfo}>
           <Typography className={classes.deviceAlias}>
             { alias }
           </Typography>
           <Typography variant="caption" className={classes.deviceId}>
-            (
-              { device.dongle_id }
-            )
+            ({ device.dongle_id })
           </Typography>
         </div>
+        { ((!device.shared && device.is_owner) || isSuperUser) &&
+          <IconButton className={classes.settingsButton} onClick={ (ev) => this.handleOpenedSettingsModal(device, ev) }>
+            <SettingsIcon className={classes.settingsButtonIcon} />
+          </IconButton>
+        }
       </div>
     );
   }

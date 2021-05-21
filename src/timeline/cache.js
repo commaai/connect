@@ -1,5 +1,4 @@
 import Event from 'geval/event';
-import { partial } from 'ap';
 // cache all of the data
 
 let cachePort = null;
@@ -45,6 +44,6 @@ function touch(route, segment) {
 export function getEntry(route, segment) {
   touch(route, segment);
   return {
-    start: partial(start, route, segment)
+    start: () => start(route, segment),
   };
 }

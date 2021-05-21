@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import { partial } from 'ap';
 import Raven from 'raven-js';
 
 import { withStyles } from '@material-ui/core/styles';
@@ -20,7 +19,7 @@ import ShareIcon from '@material-ui/icons/Share';
 
 import { devices as Devices } from '@commaai/comma-api';
 import Timelineworker from '../../timeline';
-import { primeNav } from '../../actions';
+import { primeNav, selectDevice } from '../../actions';
 
 const styles = (theme) => ({
   modal: {
@@ -33,6 +32,12 @@ const styles = (theme) => ({
     transform: 'translate(-50%, -50%)',
     outline: 'none',
   },
+  titleContainer: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 5,
+  },
   buttonGroup: {
     textAlign: 'right'
   },
@@ -42,6 +47,9 @@ const styles = (theme) => ({
   },
   formRow: {
     minHeight: 75
+  },
+  textField: {
+    maxWidth: '70%',
   },
   fabProgress: {
     position: 'absolute',
@@ -71,6 +79,7 @@ class DeviceSettingsModal extends Component {
       shareEmail: ''
     };
 
+    this.onPrimeSettings = this.onPrimeSettings.bind(this);
     this.handleAliasChange = this.handleAliasChange.bind(this);
     this.handleEmailChange = this.handleEmailChange.bind(this);
     this.callOnEnter = this.callOnEnter.bind(this);
@@ -157,23 +166,53 @@ class DeviceSettingsModal extends Component {
     }
   }
 
+  onPrimeSettings() {
+    let intv = null;
+    const doPrimeNav = () => {
+      if (intv) {
+        clearInterval(intv);
+      }
+      this.props.dispatch(primeNav());
+      this.props.onClose();
+    };
+
+    if (this.props.device.dongle_id !== this.props.stateDevice.dongle_id) {
+      this.props.dispatch(selectDevice(this.props.device.dongle_id));
+      intv = setInterval(() => {
+        if (this.props.device.dongle_id === this.props.stateDevice.dongle_id) {
+          doPrimeNav();
+        }
+      }, 100);
+    } else {
+      doPrimeNav();
+    }
+  }
+
   render() {
-    const { classes } = this.props;
+    const { classes, device } = this.props;
+    if (!device) {
+      return <></>;
+    }
+
     return (
       <Modal aria-labelledby="device-settings-modal" aria-describedby="device-settings-modal-description"
         open={this.props.isOpen} onClose={this.props.onClose}>
         <Paper className={classes.modal}>
-          <Typography variant="title">
-            Device Settings
-          </Typography>
+          <div className={ classes.titleContainer }>
+            <Typography variant="title">
+              Device settings
+            </Typography>
+            <Typography variant="caption">
+              { device.dongle_id }
+            </Typography>
+          </div>
           <Divider />
-          <Button variant="outlined" className={ classes.primeManageButton }
-            onClick={ () => this.props.dispatch(primeNav()) }>
+          <Button variant="outlined" className={ classes.primeManageButton } onClick={ this.onPrimeSettings }>
             Manage prime settings
           </Button>
           <div className={classes.form}>
             <div className={classes.formRow}>
-              <TextField id="device_alias" label="Device Name"
+              <TextField id="device_alias" label="Device Name" className={ classes.textField }
                 value={ this.state.deviceAlias ? this.state.deviceAlias : '' }
                 onChange={this.handleAliasChange} onKeyPress={ (ev) => this.callOnEnter(this.setDeviceAlias, ev) } />
               { (this.props.device.alias !== this.state.deviceAlias || this.state.hasSavedAlias) &&
@@ -186,7 +225,7 @@ class DeviceSettingsModal extends Component {
               }
             </div>
             <div className={classes.formRow}>
-              <TextField id="device_share" label="Share by Email"
+              <TextField id="device_share" label="Share by Email" className={ classes.textField }
                 value={this.state.shareEmail} onChange={this.handleEmailChange} variant="outlined"
                 onKeyPress={ (ev) => this.callOnEnter(this.shareDevice, ev) }
                 helperText="give another user read access to to this device" />
@@ -212,8 +251,8 @@ class DeviceSettingsModal extends Component {
 }
 
 const stateToProps = Obstruction({
-  device: 'workerState.device',
-  subscription: 'workerState.subscription'
+  subscription: 'workerState.subscription',
+  stateDevice: 'workerState.device',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceSettingsModal));

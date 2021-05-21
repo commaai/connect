@@ -3,13 +3,11 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';
 import fecha from 'fecha';
-import { partial } from 'ap';
 import cx from 'classnames';
 import PropTypes from 'prop-types';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
-import Grid from '@material-ui/core/Grid';
 import IconButton from '@material-ui/core/IconButton';
 import PlayArrow from '@material-ui/icons/PlayArrow';
 import Pause from '@material-ui/icons/Pause';
@@ -198,13 +196,13 @@ class TimeDisplay extends Component {
     return (
       <div className={cx(classes.base, { isExpanded: this.props.expanded, isThin: this.props.isThin })}>
         <div className={ classes.iconBox }>
-          <IconButton className={ classes.iconButton } onClick={partial(jumpBack, 10000)}
+          <IconButton className={ classes.iconButton } onClick={ () => jumpBack(10000) }
             aria-label="Jump back 10 seconds">
             <HistoryBackIcon className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
         <div className={ classes.iconBox }>
-          <IconButton className={ classes.iconButton } onClick={partial(jumpForward, 10000)}
+          <IconButton className={ classes.iconButton } onClick={ () => jumpForward(10000) }
             aria-label="Jump forward 10 seconds">
             <HistoryForwardIcon className={`${classes.icon} small dim`} />
           </IconButton>
