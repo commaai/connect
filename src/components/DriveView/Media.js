@@ -1,13 +1,18 @@
 import React, { Component } from 'react';
-import { connect } from 'react-redux';
 import cx from 'classnames';
-import Obstruction from 'obstruction';
+import qs from 'query-string';
 
-import { withStyles, Typography } from '@material-ui/core';
+import { withStyles, Typography, Menu, MenuItem } from '@material-ui/core';
 
+import { raw as RawApi } from '@commaai/comma-api';
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
 import ResizeHandler from '../ResizeHandler';
+import * as Demo from '../../demo';
+import TimelineWorker from '../../timeline';
+import TimeDisplay from '../TimeDisplay';
+
+const demoFiles = require('../../demo/files.json');
 
 const styles = (theme) => ({
   root: {
@@ -16,15 +21,18 @@ const styles = (theme) => ({
   mediaOptionsRoot: {
     maxWidth: 964,
     margin: '0 auto',
-    marginBottom: 12,
+    display: 'flex',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
   },
   mediaOptions: {
+    marginBottom: 12,
+    display: 'flex',
     width: 'max-content',
     alignItems: 'center',
     border: '1px solid rgba(255,255,255,.1)',
     borderRadius: 50,
     display: 'flex',
-    marginLeft: 'auto',
   },
   mediaOption: {
     alignItems: 'center',
@@ -37,7 +45,6 @@ const styles = (theme) => ({
     minWidth: 44,
     paddingLeft: 15,
     paddingRight: 15,
-    opacity: '0.6',
     '&.disabled': {
       cursor: 'default',
     },
@@ -59,13 +66,15 @@ const styles = (theme) => ({
     fontSize: 12,
     fontWeight: 500,
     textAlign: 'center',
-    textTransform: 'uppercase',
   },
   mediaSource: {
     width: '100%',
   },
   mediaSourceSelect: {
     width: '100%',
+  },
+  timeDisplay: {
+    marginTop: 12,
   },
 });
 
@@ -80,24 +89,100 @@ class Media extends Component {
   constructor(props) {
     super(props);
 
-    this.renderMediaOptions = this.renderMediaOptions.bind(this);
-
     this.state = {
       inView: MediaType.HUD,
       windowWidth: window.innerWidth,
       windowHeight: window.innerHeight,
+      downloadMenu: null,
+      moreInfoMenu: null,
     };
 
+    this.renderMediaOptions = this.renderMediaOptions.bind(this);
+    this.renderMenus = this.renderMenus.bind(this);
     this.onResize = this.onResize.bind(this);
+    this.copySegmentName = this.copySegmentName.bind(this);
+    this.downloadSegmentFile = this.downloadSegmentFile.bind(this);
+    this.openInCabana = this.openInCabana.bind(this);
+    this.openInUseradmin = this.openInUseradmin.bind(this);
   }
 
   onResize(windowWidth, windowHeight) {
     this.setState({ windowWidth, windowHeight });
   }
 
+  async copySegmentName() {
+    const { visibleSegment } = this.props;
+    if (!visibleSegment || !navigator.clipboard) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(`${visibleSegment.route}--${visibleSegment.segment}`);
+    this.setState({ moreInfoMenu: null });
+  }
+
+  async downloadSegmentFile(type) {
+    const { visibleSegment } = this.props;
+    if (!visibleSegment) {
+      return;
+    }
+
+    const segmentKeyPath = `${visibleSegment.route.replace('|', '/')}/${visibleSegment.segment}`;
+
+    let files;
+    if (Demo.isDemo()) {
+      files = demoFiles;
+    } else {
+      files = (await RawApi.getRouteFiles(visibleSegment.route));
+    }
+    const url = files[type].find((url) => url.indexOf(segmentKeyPath) !== -1);
+
+    if (url) {
+      window.location.href = url;
+    }
+    this.setState({ downloadMenu: null });
+  }
+
+  openInCabana() {
+    const { visibleSegment, loop, start } = this.props;
+    const currentOffset = TimelineWorker.currentOffset();
+    const params = {
+      route: visibleSegment.route,
+      url: visibleSegment.url,
+      seekTime: Math.floor((currentOffset - visibleSegment.routeOffset) / 1000)
+    };
+    const routeStartTime = (start + visibleSegment.routeOffset);
+
+    if (loop.startTime && loop.startTime > routeStartTime && loop.duration < 180000) {
+      const startTime = Math.floor((loop.startTime - routeStartTime) / 1000);
+      params.segments = [startTime, Math.floor(startTime + (loop.duration / 1000))].join(',');
+    }
+
+    const win = window.open(`https://my.comma.ai/cabana/?${qs.stringify(params, true)}`, '_blank');
+    if (win.focus) {
+      win.focus();
+    }
+  }
+
+  openInUseradmin() {
+    const { visibleSegment } = this.props;
+
+    const params = {
+      onebox: `${visibleSegment.route}--${visibleSegment.segment}`,
+    };
+
+    const win = window.open(`https://my.comma.ai/useradmin/?${qs.stringify(params, true)}`, '_blank');
+    if (win.focus) {
+      win.focus();
+    }
+  }
+
   render() {
     const { classes } = this.props;
     const { inView, windowWidth, windowHeight } = this.state;
+
+    if (this.props.menusOnly) {  // for test
+      return this.renderMenus(true);
+    }
 
     const showMapAlways = windowWidth >= 1536;
     if (showMapAlways && inView === MediaType.MAP) {
@@ -125,6 +210,9 @@ class Media extends Component {
               <DriveMap />
             </div>
           }
+          <div className={ classes.timeDisplay }>
+            <TimeDisplay isThin />
+          </div>
         </div>
         { (inView !== MediaType.MAP && showMapAlways) &&
           <div style={ mapContainerStyle }>
@@ -136,42 +224,87 @@ class Media extends Component {
   }
 
   renderMediaOptions(showMapAlways) {
-    const { classes, currentSegment } = this.props;
+    const { classes, visibleSegment } = this.props;
     const { inView } = this.state;
-    const mediaSource = 'eon-road-camera';
-    const hasDriverCameraStream = this.props.currentSegment && this.props.currentSegment.hasDriverCameraStream;
+    const hasDriverCameraStream = visibleSegment && visibleSegment.hasDriverCameraStream;
     return (
-      <div className={classes.mediaOptionsRoot}>
-        <div className={classes.mediaOptions}>
-          <div className={classes.mediaOption} style={inView === MediaType.HUD ? { opacity: 1 } : { }}
-            onClick={() => this.setState({ inView: MediaType.HUD })}>
-            <Typography className={classes.mediaOptionText}>HUD</Typography>
-          </div>
-          <div className={classes.mediaOption} style={inView === MediaType.VIDEO ? { opacity: 1 } : {}}
-            onClick={() => this.setState({ inView: MediaType.VIDEO })}>
-            <Typography className={classes.mediaOptionText}>Video</Typography>
-          </div>
-          { hasDriverCameraStream && (
-            <div className={cx(classes.mediaOption, { disabled: !hasDriverCameraStream })}
-              style={inView === MediaType.DRIVER_VIDEO ? { opacity: 1 } : {}}
-              onClick={() => hasDriverCameraStream && this.setState({ inView: MediaType.DRIVER_VIDEO })}>
-              <Typography className={classes.mediaOptionText}>Driver Video</Typography>
+      <>
+        <div className={classes.mediaOptionsRoot}>
+          <div className={classes.mediaOptions}>
+            <div className={classes.mediaOption} style={inView !== MediaType.HUD ? { opacity: 0.6 } : { }}
+              onClick={() => this.setState({ inView: MediaType.HUD })}>
+              <Typography className={classes.mediaOptionText}>HUD</Typography>
             </div>
-            )}
-          { !showMapAlways &&
-            <div className={classes.mediaOption} style={inView === MediaType.MAP ? { opacity: 1 } : { }}
-              onClick={() => this.setState({ inView: MediaType.MAP })}>
-              <Typography className={classes.mediaOptionText}>Map</Typography>
+            <div className={classes.mediaOption} style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
+              onClick={() => this.setState({ inView: MediaType.VIDEO })}>
+              <Typography className={classes.mediaOptionText}>Video</Typography>
             </div>
-          }
+            { hasDriverCameraStream && (
+              <div className={cx(classes.mediaOption, { disabled: !hasDriverCameraStream })}
+                style={inView !== MediaType.DRIVER_VIDEO ? { opacity: 0.6 } : {}}
+                onClick={() => hasDriverCameraStream && this.setState({ inView: MediaType.DRIVER_VIDEO })}>
+                <Typography className={classes.mediaOptionText}>Driver Video</Typography>
+              </div>
+              )}
+            { !showMapAlways &&
+              <div className={classes.mediaOption} style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
+                onClick={() => this.setState({ inView: MediaType.MAP })}>
+                <Typography className={classes.mediaOptionText}>Map</Typography>
+              </div>
+            }
+          </div>
+          <div className={classes.mediaOptions}>
+            <div className={classes.mediaOption} aria-haspopup="true"
+              onClick={ (ev) => this.setState({ downloadMenu: ev.target }) }>
+              <Typography className={classes.mediaOptionText}>Download</Typography>
+            </div>
+            <div className={classes.mediaOption} aria-haspopup="true"
+              onClick={ (ev) => this.setState({ moreInfoMenu: ev.target }) }>
+              <Typography className={classes.mediaOptionText}>More info</Typography>
+            </div>
+          </div>
         </div>
-      </div>
+        { this.renderMenus() }
+      </>
+    );
+  }
+
+  renderMenus(alwaysOpen = false) {
+    const { classes, visibleSegment } = this.props;
+    return (
+      <>
+        <Menu id="menu-download" open={ alwaysOpen || Boolean(this.state.downloadMenu) }
+          anchorEl={ this.state.downloadMenu } onClose={ () => this.setState({ downloadMenu: null }) }
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+          <MenuItem onClick={ () => this.downloadSegmentFile('cameras') }
+            disabled={ !(visibleSegment && visibleSegment.hasVideo) }>
+            Download Camera Segment
+          </MenuItem>
+          <MenuItem onClick={ () => this.downloadSegmentFile('dcameras') }
+            disabled={ !(visibleSegment && visibleSegment.hasDriverCamera) }>
+            Download Front Camera Segment
+          </MenuItem>
+          <MenuItem onClick={ () => this.downloadSegmentFile('logs') } disabled={ !visibleSegment }>
+            Download Log Segment
+          </MenuItem>
+        </Menu>
+        <Menu id="menu-info" open={ alwaysOpen || Boolean(this.state.moreInfoMenu) }
+          anchorEl={ this.state.moreInfoMenu } onClose={ () => this.setState({ moreInfoMenu: null }) }
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+          <MenuItem onClick={ this.openInCabana } id="openInCabana" >
+            View in Cabana
+          </MenuItem>
+          <MenuItem onClick={ this.openInUseradmin }>
+            View in useradmin
+          </MenuItem>
+          <MenuItem onClick={ this.copySegmentName }>
+            Copy to clipboard
+          </MenuItem>
+        </Menu>
+      </>
     );
   }
 }
 
-const stateToProps = Obstruction({
-  currentSegment: 'workerState.currentSegment',
-});
-
-export default connect(stateToProps)(withStyles(styles)(Media));
+export default withStyles(styles)(Media);

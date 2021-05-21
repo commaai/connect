@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
+import fecha from 'fecha';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
@@ -8,10 +9,10 @@ import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 
 import Media from './Media';
 import Timeline from '../Timeline';
-import DriveViewFooter from './footer';
 
 import { selectRange } from '../../actions';
 import ResizeHandler from '../ResizeHandler';
+import Colors from '../../colors';
 
 const styles = (theme) => ({
   window: {
@@ -19,24 +20,20 @@ const styles = (theme) => ({
     borderRadius: 8,
     display: 'flex',
     flexDirection: 'column',
-    flexGrow: 1,
     margin: 18,
   },
   header: {},
   headerContext: {
     alignItems: 'center',
+    justifyContent: 'space-between',
     display: 'flex',
     padding: 12,
-    paddingLeft: 18,
-    paddingRight: 24,
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 700,
+  headerInfo: {
+    color: Colors.white,
+    fontSize: 18,
+    fontWeight: 500,
     paddingLeft: 12,
-  },
-  headerActions: {
-    marginLeft: 'auto',
   },
 });
 
@@ -61,9 +58,17 @@ class DriveView extends Component {
   }
 
   render() {
-    const { classes, loop, currentSegment, nextSegment, start } = this.props;
+    const { classes, currentSegment, nextSegment, zoom, loop, start } = this.props;
     const visibleSegment = (currentSegment || nextSegment);
     const viewerPadding = this.state.windowWidth < 768 ? 12 : 32
+
+    const viewEndTime = fecha.format(new Date(zoom.end), 'HH:mm');
+    const startTime = fecha.format(new Date(zoom.start), 'MMM D @ HH:mm');
+    let headerText = `${startTime} - ${viewEndTime}`;
+    if (this.state.windowWidth >= 640) {
+      const startDay = fecha.format(new Date(zoom.start), 'dddd');
+      headerText = startDay + " " + headerText;
+    }
     return (
       <>
         <ResizeHandler onResize={ this.onResize } />
@@ -73,23 +78,20 @@ class DriveView extends Component {
               <IconButton aria-label="Go Back" onClick={() => window.history.back()}>
                 <KeyboardBackspaceIcon />
               </IconButton>
-              <Typography className={classes.headerTitle}>
-                { this.props.device.alias }
-              </Typography>
-              <div className={classes.headerActions}>
-                <IconButton onClick={this.close} aria-label="Close">
-                  <CloseIcon />
-                </IconButton>
+              <div className={ classes.headerInfo }>
+                { headerText }
               </div>
+              <IconButton onClick={this.close} aria-label="Close">
+                <CloseIcon />
+              </IconButton>
             </div>
             <Timeline className={classes.headerTimeline} zoomed colored hasThumbnails hasRuler hasGradient
               tooltipped dragSelection />
           </div>
           <div style={{ padding: viewerPadding }}>
-            <Media />
+            <Media visibleSegment={ visibleSegment } loop={ loop } start={ start } />
           </div>
         </div>
-        { visibleSegment && <DriveViewFooter segment={visibleSegment} loop={loop} start={start} /> }
       </>
     );
   }
@@ -100,7 +102,8 @@ const stateToProps = Obstruction({
   nextSegment: 'workerState.nextSegment',
   device: 'workerState.device',
   loop: 'workerState.loop',
-  start: 'workerState.start'
+  start: 'workerState.start',
+  zoom: 'zoom',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveView));

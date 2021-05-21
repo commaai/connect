@@ -44,7 +44,7 @@ const styles = (theme) => ({
     height: '64px',
     borderRadius: '32px',
     padding: theme.spacing.unit,
-    width: 'max-content',
+    width: 400,
     maxWidth: '100%',
     margin: '0 auto',
     opacity: 0,
@@ -97,6 +97,7 @@ const styles = (theme) => ({
     fontSize: 15,
     fontWeight: 500,
     display: 'block',
+    flexGrow: 1,
   }
 });
 

@@ -4,7 +4,7 @@ import { mount } from 'enzyme';
 import queryString from 'query-string';
 import TimelineWorker from '../../timeline';
 
-import DriveViewFooter from './footer';
+import Media from './Media';
 
 const winOpenMock = jest.fn(() => ({
   focus: jest.fn()
@@ -17,7 +17,7 @@ jest.mock('../../timeline', () => ({
 const currentOffsetMock = jest.fn();
 TimelineWorker.currentOffset = currentOffsetMock;
 
-describe('DriveViewFooter', () => {
+describe('Media', () => {
   beforeEach(() => {
     winOpenMock.mockClear();
     currentOffsetMock.mockClear();
@@ -29,21 +29,12 @@ describe('DriveViewFooter', () => {
     const loopStartTime = routeStartTime + Math.round(Math.random() * 10000);
     const currentOffset = loopStartTime - start + Math.round(Math.random() * 10000);
     currentOffsetMock.mockImplementationOnce(() => currentOffset);
-    const footer = mount(
-      <DriveViewFooter
-        segment={{
-          routeOffset
-        }}
-        loop={{
-          startTime: loopStartTime,
-          duration: 15000
-        }}
-        start={start}
-      />
+    const media = mount(
+      <Media visibleSegment={{ routeOffset }} loop={{ startTime: loopStartTime, duration: 15000 }} start={start} menusOnly />
     );
 
-    expect(footer.exists()).toBe(true);
-    const openInCabana = footer.find('.openInCabana');
+    expect(media.exists()).toBe(true);
+    const openInCabana = media.find('#openInCabana').first();
     expect(openInCabana.exists()).toBe(true);
 
     openInCabana.simulate('click');
@@ -64,8 +55,7 @@ describe('DriveViewFooter', () => {
     expect(Number(segmentParts[0])).toBe(Math.floor((loopStartTime - routeStartTime) / 1000));
     expect(Number(segmentParts[1])).toBe(Math.floor((loopStartTime - routeStartTime) / 1000) + 15);
 
-
-    footer.unmount();
+    media.unmount();
   });
   it('doesn\'t send cabana the loop when its greater than 3 minutes', () => {
     const start = 123123123;
@@ -74,13 +64,13 @@ describe('DriveViewFooter', () => {
     const loopStartTime = routeStartTime + Math.round(Math.random() * 10000);
     const currentOffset = loopStartTime - start + Math.round(Math.random() * 10000);
     currentOffsetMock.mockImplementationOnce(() => currentOffset);
-    const footer = mount(
-      <DriveViewFooter segment={{ routeOffset }} start={start}
-        loop={{ startTime: loopStartTime, duration: 181000 }} />
+    const media = mount(
+      <Media visibleSegment={{ routeOffset }} start={start}
+        loop={{ startTime: loopStartTime, duration: 181000 }} menusOnly />
     );
 
-    expect(footer.exists()).toBe(true);
-    const openInCabana = footer.find('.openInCabana');
+    expect(media.exists()).toBe(true);
+    const openInCabana = media.find('#openInCabana').first();
     expect(openInCabana.exists()).toBe(true);
 
     openInCabana.simulate('click');
@@ -96,6 +86,6 @@ describe('DriveViewFooter', () => {
     const qsParams = queryString.parse(urlParams);
     expect(qsParams.segments).toEqual(undefined);
 
-    footer.unmount();
+    media.unmount();
   });
 });

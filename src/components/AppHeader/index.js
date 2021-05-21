@@ -147,11 +147,7 @@ class AppHeader extends Component {
               </Link>
             </div>
             <div className={ classes.headerWideItem } style={ reorderWideStyle }>
-              { !primeNav && (
-                annotating ?
-                  <TimeDisplay isThin /> :
-                  <TimeFilter />
-              ) }
+              { !primeNav && !annotating && <TimeFilter /> }
             </div>
             <IconButton aria-owns={open ? 'menu-appbar' : null} aria-haspopup="true" onClick={this.handleClickedAccount}>
               <AccountIcon className={classes.accountIcon} />
