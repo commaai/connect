@@ -14,7 +14,7 @@ import { auth_apple, auth_github, auth_google } from '../icons';
 
 const styles = (/* theme */) => ({
   baseContainer: {
-    width: '100vw',
+    width: '100%',
     height: '100vh',
     display: 'flex',
     flexDirection: 'column',
@@ -23,56 +23,62 @@ const styles = (/* theme */) => ({
   },
   base: {
     overflowY: 'auto',
-    margin: 20,
+    padding: 20,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-  },
-  logo: {
-    display: 'flex',
+    width: '100%',
   },
   logoImg: {
     height: 45,
-    marginRight: 20,
+    marginBottom: 60,
     width: 'auto',
   },
   logoText: {
-    fontSize: 24,
+    fontSize: 36,
     fontWeight: 800,
   },
   tagline: {
-    margin: '20px 0 52px',
+    maxWidth: '90%',
+    textAlign: 'center',
+    margin: '10px 0 52px',
     fontSize: '18px',
   },
   logInButton: {
     alignItems: 'center',
     background: '#ffffff',
     display: 'flex',
-    borderRadius: '100px',
-    fontSize: '21px',
-    height: '80px',
+    borderRadius: 80,
+    fontSize: 21,
+    height: 80,
     justifyContent: 'center',
     textDecoration: 'none',
-    width: '100%',
-    marginBottom: '0.5em',
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'left 15% center',
-    backgroundSize: '40px',
+    width: 400,
+    maxWidth: '90%',
+    marginBottom: 10,
+    '&:hover': {
+      background: '#eee',
+    },
   },
-  logInText: {
-    fontSize: '18px',
+  buttonText: {
+    fontSize: 18,
+    width: 190,
+    textAlign: 'center',
     color: 'black',
     fontWeight: 600,
+  },
+  buttonImage: {
+    height: 40,
   },
   demoLink: {
     textDecoration: 'none',
     justifyContent: 'center',
-    width: '100%',
     height: '40px',
     display: 'flex',
   },
   demoLinkText: {
-    fontSize: '18px',
+    textDecoration: 'underline',
+    fontSize: '16px',
   },
 });
 
@@ -110,38 +116,25 @@ class AnonymousLanding extends Component {
     return (
       <div className={ classes.baseContainer }>
         <div className={classes.base}>
-          <div className={classes.logo}>
-            <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
-            <Typography className={classes.logoText}>explorer</Typography>
-          </div>
+          <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+          <Typography className={classes.logoText}>explorer</Typography>
           <Typography className={classes.tagline}>
-            View your comma.ai devices and driving data.
+            View driving data and manage your device
           </Typography>
-          <a href={AuthConfig.GOOGLE_REDIRECT_LINK}
-            className={classes.logInButton}
-            style={{backgroundImage: "url(" + auth_google + ")"}}>
-            <Typography className={classes.logInText}>
-              Sign in with Google
-            </Typography>
+          <a href={ AuthConfig.GOOGLE_REDIRECT_LINK } className={ classes.logInButton }>
+            <img className={ classes.buttonImage } src={ auth_google } />
+            <Typography className={ classes.buttonText }>Sign in with Google</Typography>
           </a>
-          <a onClick={ () => AppleID.auth.signIn() }
-            className={classes.logInButton}
-            style={ { backgroundImage: "url(" + auth_apple + ")", cursor: 'pointer' } }>
-            <Typography className={classes.logInText}>
-              Sign in with Apple
-            </Typography>
+          <a onClick={ () => AppleID.auth.signIn() } className={classes.logInButton}>
+            <img className={ classes.buttonImage } src={ auth_apple } />
+            <Typography className={ classes.buttonText }>Sign in with Apple</Typography>
           </a>
-          <a href={AuthConfig.GITHUB_REDIRECT_LINK}
-            className={classes.logInButton}
-            style={{backgroundImage: "url(" + auth_github + ")"}}>
-            <Typography className={classes.logInText}>
-              Sign in with GitHub
-            </Typography>
+          <a href={AuthConfig.GITHUB_REDIRECT_LINK} className={classes.logInButton}>
+            <img className={ classes.buttonImage } src={ auth_github } />
+            <Typography className={ classes.buttonText }>Sign in with GitHub</Typography>
           </a>
           <a href={DEMO_LINK} className={classes.demoLink}>
-            <Typography className={classes.demoLinkText}>
-              or try the demo
-            </Typography>
+            <Typography className={classes.demoLinkText}>Try the demo</Typography>
           </a>
         </div>
       </div>
