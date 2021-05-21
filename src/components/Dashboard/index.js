@@ -26,11 +26,12 @@ class Dashboard extends Component {
     return (
       <div className={classes.base}>
         { primeNav ?
-          ( <Prime /> )
-        : ( <>
-          { device && !device.prime && device.is_owner && <PrimeBanner collapsed /> }
-          <DriveList />
-        </> ) }
+          <Prime /> :
+          <>
+            { device && !device.prime && device.is_owner && <PrimeBanner collapsed /> }
+            <DriveList />
+          </>
+        }
       </div>
     );
   }

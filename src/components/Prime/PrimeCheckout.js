@@ -185,10 +185,10 @@ class PrimeCheckout extends Component {
           </div> }
           { this.state.error && <div className={ classes.overviewBlockError }>
             <ErrorIcon />
-            <Typography noWrap>{ this.state.error }</Typography>
+            <Typography>{ this.state.error }</Typography>
           </div> }
           { this.state.simInfoLoading && <div className={ classes.overviewBlockLoading }>
-            <Typography noWrap>Fetching SIM data</Typography>
+            <Typography>Fetching SIM data</Typography>
           </div> }
           <div className={ classes.overviewBlock }>
             <Typography variant="subheading">Device</Typography>

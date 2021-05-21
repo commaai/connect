@@ -3,7 +3,7 @@ import { devices as Devices, account as Account, billing as Billing } from '@com
 import store from './store';
 import { ACTION_STARTUP_DATA } from './actions/types';
 import { primeGetPaymentMethodAction, primeGetSubscriptionAction } from './actions';
-import { getDongleID } from '../url';
+import { getDongleID, getPrimeNav } from '../url';
 
 const demoProfile = require('../demo/profile.json');
 const demoDevices = require('../demo/devices.json');
@@ -38,7 +38,8 @@ export default async function init(isDemo) {
     store.dispatch({
       type: ACTION_STARTUP_DATA,
       profile,
-      devices
+      devices,
+      primeNav: getPrimeNav(window.location.pathname),
     });
 
     Billing.getPaymentMethod().then((paymentMethod) => {

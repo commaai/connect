@@ -23,6 +23,9 @@ export function selectRange(start, end) {
       });
       return;
     }
+    if (state.workerState.primeNav) {
+      dispatch(primeNav(false));
+    }
     const curPath = document.location.pathname;
     const dongleId = getDongleID(curPath) || state.workerState.dongleId;
     const desiredPath = urlForState(dongleId, start, end, false);

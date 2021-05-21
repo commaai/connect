@@ -21,10 +21,12 @@ const styles = (theme) => ({
     position: 'absolute',
     padding: theme.spacing.unit * 2,
     width: theme.spacing.unit * 50,
+    maxWidth: '90%',
     margin: '0 auto',
     left: '50%',
     top: '40%',
-    transform: 'translate(-50%, -50%)'
+    transform: 'translate(-50%, -50%)',
+    outline: 'none',
   },
   buttonGroup: {
     marginTop: 20,
@@ -176,12 +178,8 @@ class TimeSelect extends Component {
             <MenuItem value="2-weeks">{ this.last2WeeksText() }</MenuItem>
           </Select>
         </FormControl>
-        <Modal
-          aria-labelledby="simple-modal-title"
-          aria-describedby="simple-modal-description"
-          open={this.state.showPicker}
-          onClose={this.handleClose}
-        >
+        <Modal aria-labelledby="simple-modal-title" aria-describedby="simple-modal-description"
+          open={this.state.showPicker} onClose={this.handleClose}>
           <Paper className={classes.modal}>
             <div className={ classes.datePickerContainer }>
               <Typography variant="body2">Start date:</Typography>

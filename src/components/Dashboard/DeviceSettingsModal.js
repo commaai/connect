@@ -27,11 +27,11 @@ const styles = (theme) => ({
     position: 'absolute',
     padding: theme.spacing.unit * 2,
     width: theme.spacing.unit * 50,
+    maxWidth: '90%',
     left: '50%',
     top: '40%',
-    transform: 'translate(-50%, -50%)'
-  },
-  textField: {
+    transform: 'translate(-50%, -50%)',
+    outline: 'none',
   },
   buttonGroup: {
     textAlign: 'right'
@@ -160,12 +160,8 @@ class DeviceSettingsModal extends Component {
   render() {
     const { classes } = this.props;
     return (
-      <Modal
-        aria-labelledby="device-settings-modal"
-        aria-describedby="device-settings-modal-description"
-        open={this.props.isOpen}
-        onClose={this.props.onClose}
-      >
+      <Modal aria-labelledby="device-settings-modal" aria-describedby="device-settings-modal-description"
+        open={this.props.isOpen} onClose={this.props.onClose}>
         <Paper className={classes.modal}>
           <Typography variant="title">
             Device Settings
@@ -173,59 +169,41 @@ class DeviceSettingsModal extends Component {
           <Divider />
           <Button variant="outlined" className={ classes.primeManageButton }
             onClick={ () => this.props.dispatch(primeNav()) }>
-            Manage Prime Settings
+            Manage prime settings
           </Button>
           <div className={classes.form}>
             <div className={classes.formRow}>
-              <TextField
-                id="device_alias"
-                label="Device Name"
-                className={classes.textField}
+              <TextField id="device_alias" label="Device Name"
                 value={ this.state.deviceAlias ? this.state.deviceAlias : '' }
-                onChange={this.handleAliasChange}
-                onKeyPress={partial(this.callOnEnter, this.setDeviceAlias)}
-              />
-              { (this.props.device.alias !== this.state.deviceAlias || this.state.hasSavedAlias)
-                  && (
-                  <div className={classes.wrapper}>
-                    <IconButton
-                      variant="fab"
-                      onClick={this.setDeviceAlias}
-                    >
-                      { this.state.hasSavedAlias && <CheckIcon /> || <SaveIcon /> }
-                    </IconButton>
-                    {this.state.loadingDeviceAlias && <CircularProgress size={48} className={classes.fabProgress} />}
-                  </div>
-                  )}
+                onChange={this.handleAliasChange} onKeyPress={ (ev) => this.callOnEnter(this.setDeviceAlias, ev) } />
+              { (this.props.device.alias !== this.state.deviceAlias || this.state.hasSavedAlias) &&
+                <div className={classes.wrapper}>
+                  <IconButton variant="fab" onClick={this.setDeviceAlias}>
+                    { this.state.hasSavedAlias && <CheckIcon /> || <SaveIcon /> }
+                  </IconButton>
+                  {this.state.loadingDeviceAlias && <CircularProgress size={48} className={classes.fabProgress} />}
+                </div>
+              }
             </div>
             <div className={classes.formRow}>
-              <TextField
-                id="device_share"
-                label="Share by Email"
-                className={classes.textField}
-                value={this.state.shareEmail}
-                onChange={this.handleEmailChange}
-                onKeyPress={partial(this.callOnEnter, this.shareDevice)}
-              />
-              { (this.state.shareEmail.length > 0 || this.state.hasShared)
-                  && (
-                  <div className={classes.wrapper}>
-                    <IconButton
-                      variant="fab"
-                      onClick={this.shareDevice}
-                    >
-                      { this.state.hasShared && <CheckIcon /> || <ShareIcon /> }
-                    </IconButton>
-                    {this.state.loadingDeviceShare && <CircularProgress size={48} className={classes.fabProgress} />}
-                  </div>
-                  )}
+              <TextField id="device_share" label="Share by Email"
+                value={this.state.shareEmail} onChange={this.handleEmailChange} variant="outlined"
+                onKeyPress={ (ev) => this.callOnEnter(this.shareDevice, ev) }
+                helperText="give another user read access to to this device" />
+              { (this.state.shareEmail.length > 0 || this.state.hasShared) &&
+                <div className={classes.wrapper}>
+                  <IconButton variant="fab" onClick={this.shareDevice}>
+                    { this.state.hasShared && <CheckIcon /> || <ShareIcon /> }
+                  </IconButton>
+                  {this.state.loadingDeviceShare && <CircularProgress size={48} className={classes.fabProgress} />}
+                </div>
+              }
             </div>
           </div>
           <div className={classes.buttonGroup}>
             <Button variant="contained" onClick={this.props.onClose}>
               Close
             </Button>
-            &nbsp;
           </div>
         </Paper>
       </Modal>

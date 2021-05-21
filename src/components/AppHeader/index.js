@@ -107,7 +107,7 @@ class AppHeader extends Component {
   }
 
   render() {
-    const { profile, classes, annotating, showDrawerButton, showMenuButton } = this.props;
+    const { profile, classes, annotating, showDrawerButton, primeNav } = this.props;
     const { anchorEl } = this.state;
     const open = Boolean(anchorEl);
 
@@ -147,9 +147,11 @@ class AppHeader extends Component {
               </Link>
             </div>
             <div className={ classes.headerWideItem } style={ reorderWideStyle }>
-              { annotating ?
-                <TimeDisplay isThin /> :
-                <TimeFilter /> }
+              { !primeNav && (
+                annotating ?
+                  <TimeDisplay isThin /> :
+                  <TimeFilter />
+              ) }
             </div>
             <IconButton aria-owns={open ? 'menu-appbar' : null} aria-haspopup="true" onClick={this.handleClickedAccount}>
               <AccountIcon className={classes.accountIcon} />
@@ -177,6 +179,7 @@ const stateToProps = Obstruction({
   start: 'workerState.start',
   end: 'workerState.end',
   profile: 'workerState.profile',
+  primeNav: 'workerState.primeNav',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));

@@ -9,7 +9,8 @@ import { deviceTypePretty } from '../../utils';
 import Timelineworker from '../../timeline';
 
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
-import { withStyles, Typography, Button, Modal, Paper } from '@material-ui/core';
+import { withStyles, Typography, Button, Modal, Paper, IconButton } from '@material-ui/core';
+import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 
 import { primeFetchSubscription, selectDevice } from '../../actions';
 
@@ -171,6 +172,11 @@ class PrimeManage extends Component {
       <>
         <div className={ classes.primeBox }>
           <div className={ classes.primeContainer }>
+            <IconButton aria-label="Go Back" onClick={() => window.history.back()}>
+              <KeyboardBackspaceIcon />
+            </IconButton>
+          </div>
+          <div className={ classes.primeContainer }>
             <Typography variant="title">comma prime</Typography>
             <div className={ classes.overviewBlock }>
               <Typography variant="subheading">Device</Typography>
@@ -205,7 +211,7 @@ class PrimeManage extends Component {
             </div> }
             { this.state.error && <div className={ classes.overviewBlockError }>
               <ErrorIcon />
-              <Typography noWrap>{ this.state.error }</Typography>
+              <Typography>{ this.state.error }</Typography>
             </div> }
             <div className={ classes.overviewBlock + " " + classes.paymentElement }>
               <PrimePayment disabled={ Boolean(this.state.activated) } simId={ simId } isUpdate={ true }

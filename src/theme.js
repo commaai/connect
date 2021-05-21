@@ -7,6 +7,11 @@ const theme = createMuiTheme({
     fontFamily: "'Inter', sans-serif",
   },
   overrides: {
+    MuiButton: {
+      root: {
+        textTransform: 'none',
+      },
+    },
     MuiPaper: {
       root: {
         backgroundColor: '#30373B'
@@ -50,13 +55,24 @@ const theme = createMuiTheme({
           opacity: 1,
           color: Colors.white30
         }
-      }
+      },
+    },
+    MuiInputLabel: {
+      shrink: {
+        transform: 'translate(0, -2px) scale(0.75)',
+      },
     },
     MuiFormLabel: {
       root: {
         marginLeft: 16,
-        marginTop: 4
+        marginTop: 4,
       }
+    },
+    MuiFormHelperText: {
+      root: {
+        marginLeft: 8,
+        marginTop: 4,
+      },
     },
     MuiTab: {
       root: {
