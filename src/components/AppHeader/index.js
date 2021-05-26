@@ -10,7 +10,6 @@ import { Divider, Typography, Menu, MenuItem, ListItem, IconButton, Icon, AppBar
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import TimeFilter from './TimeFilter';
-import TimeDisplay from '../TimeDisplay';
 import { AccountIcon } from '../../icons';
 import Colors from '../../colors';
 import ResizeHandler from '../ResizeHandler';

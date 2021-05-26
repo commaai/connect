@@ -6,6 +6,7 @@ import raf from 'raf';
 import { classNames } from 'react-extras';
 import { multiply } from 'mathjs';
 import debounce from 'debounce';
+import Obstruction from 'obstruction';
 
 import { video as VideoApi } from '@commaai/comma-api';
 
@@ -87,13 +88,14 @@ function is_tici(init_data) {
   return init_data.InitData.DeviceType == 4;
 }
 
-class VideoPreview extends Component {
+class DriveVideo extends Component {
   constructor(props) {
     super(props);
 
-    this.updatePreview = this.updatePreview.bind(this);
+    this.update = this.update.bind(this);
     this.onSourceLoaded = this.onSourceLoaded.bind(this);
     this.updateVideoPlayState = this.updateVideoPlayState.bind(this);
+    this.updateCameraSource = this.updateCameraSource.bind(this);
 
     this.videoPlayer = React.createRef();
     this.canvas_road = React.createRef();
@@ -110,66 +112,65 @@ class VideoPreview extends Component {
     this.frame = 0;
 
     this.state = {
-      bufferingData: true,
-      bufferingVideo: true,
+      isBufferingData: true,
       src: null,
     };
   }
 
   componentDidMount() {
-    this.rafLoop = raf(this.updatePreview);
+    this.componentDidUpdate({});
+    this.rafLoop = raf(this.update);
   }
 
   componentDidUpdate(prevProps) {
-    this.updateVideoSource(prevProps);
+    let segment = this.props.currentSegment;
+    if (!segment && this.props.nextSegment) {
+      const offset = TimelineWorker.currentOffset();
+      if (this.props.nextSegment.startOffset - offset < 5000) {
+        segment = this.props.nextSegment;
+      }
+    }
+
+    if (!segment) {
+      return;
+    }
+
+    let src = null;
+    if (this.props.front) {
+      console.log(this.props.front);
+      let base = `${process.env.REACT_APP_VIDEO_CDN}/hls/${this.props.dongleId}/${segment.url.split('/').pop()}/dcamera`;
+      // We append count of segments with stream available as a cache-busting method
+      // on stream indexes served before route is fully uploaded
+      let segCount = segment.driverCameraStreamSegCount;
+      src = `${base}/index.m3u8?v=${STREAM_VERSION}&s=${segCount}`;
+      this.updateCameraSource(src);
+    } else {
+      let videoApi = VideoApi(segment.url, process.env.REACT_APP_VIDEO_CDN);
+      videoApi.getQcameraStreamIndex().then(() => {
+        src = videoApi.getQcameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`
+        this.updateCameraSource(src);
+      }).catch(() => {
+        src = videoApi.getRearCameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`;
+        this.updateCameraSource(src);
+      });
+    }
+  }
+
+  updateCameraSource(src) {
+    if (src !== this.state.src) {
+      console.log('new src', src);
+      this.setState({
+        src,
+        isBufferingData: true,
+      });
+    }
+
     this.checkDataBuffer();
     this.checkVideoBuffer();
   }
 
   componentWillUnmount() {
     raf.cancel(this.rafLoop);
-  }
-
-  updateVideoSource(prevProps) {
-    const { props } = this;
-    let segment = props.currentSegment;
-    if (!segment && props.nextSegment) {
-      const offset = TimelineWorker.currentOffset();
-      if (props.nextSegment.startOffset - offset < 5000) {
-        segment = props.nextSegment;
-      }
-    }
-    if (!segment) {
-      if (this.state.src) {
-        this.setState({ src: null });
-      }
-      return;
-    }
-
-    if (props.front) {
-      let base = `${process.env.REACT_APP_VIDEO_CDN}/hls/${props.dongleId}/${segment.url.split('/').pop()}`;
-      base += '/dcamera';
-      // We append count of segments with stream available as a cache-busting method
-      // on stream indexes served before route is fully uploaded
-      let segCount = segment.driverCameraStreamSegCount;
-      let src = `${base}/index.m3u8?v=${STREAM_VERSION}&s=${segCount}`;
-      if (this.state.src !== src) {
-        this.setState({ src });
-      }
-    } else if (!this.state.src || !prevProps.currentSegment || prevProps.currentSegment.route !== segment.route) {
-      let videoApi = VideoApi(segment.url, process.env.REACT_APP_VIDEO_CDN);
-      videoApi.getQcameraStreamIndex().then(() => {
-        let src = videoApi.getQcameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`
-        if (src !== this.state.src) {
-          this.setState({src});
-        }
-      }).catch(() => {
-        let src = videoApi.getRearCameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`;
-        if (src !== this.state.src) {
-          this.setState({src});
-        }
-      });
-    }
   }
 
   onSourceLoaded() {
@@ -179,7 +180,7 @@ class VideoPreview extends Component {
     }
   }
 
-  updatePreview() {
+  update() {
     this.frame++;
     if (this.frame % 20 === 0) {
       this.checkVideoBuffer();
@@ -191,7 +192,7 @@ class VideoPreview extends Component {
       this.renderCanvas();
     }
 
-    this.rafLoop = raf(this.updatePreview);
+    this.rafLoop = raf(this.update);
   }
 
   updateVideoPlayState() {
@@ -200,7 +201,7 @@ class VideoPreview extends Component {
     }
 
     const videoPlayer = this.videoPlayer.current;
-    if (this.state.isBufferingData || this.state.isBufferingVideo || this.props.desiredPlaySpeed === 0) {
+    if (this.state.isBufferingData || this.props.desiredPlaySpeed === 0) {
       if (!videoPlayer.paused) {
         console.log('pause');
         videoPlayer.pause();
@@ -256,82 +257,25 @@ class VideoPreview extends Component {
       return;
     }
 
-    const offset = TimelineWorker.currentOffset();
-    let { desiredPlaySpeed } = this.props;
-    let desiredVideoTime = this.currentVideoTime(offset);
-    const timeDiff = desiredVideoTime - videoPlayer.currentTime;
+    let playbackRate = this.props.desiredPlaySpeed;
 
-    let desiredBufferedVideoTime = desiredVideoTime;
-    if (this.state.isBufferingVideo) {
-      // if we're currently already paused buffering for video
-      // then wait for another few seconds of video to load
-      desiredBufferedVideoTime += 3 * desiredPlaySpeed;
-    }
     // clip the duration down slightly to handle rounding errors near the end of video
-    desiredVideoTime = Math.min(videoPlayer.duration - 0.4, desiredVideoTime);
-    desiredBufferedVideoTime = Math.min(videoPlayer.duration - 0.4, desiredBufferedVideoTime);
+    const desiredVideoTime = Math.min(videoPlayer.duration - 0.4, this.currentVideoTime());
 
-    let isBufferingVideo = true;
-    let remainingTime = desiredBufferedVideoTime;
-
-    for (let i = 0; i < videoPlayer.buffered.length; ++i) {
-      let start = videoPlayer.buffered.start(i);
-      // if we seek to a spot **right** at the start of an already loaded segment then
-      // HLS doesn't actually load that segment. it just expects to jump forwards a bit and be fine
-      // because of this, the first 4 seconds of a given video is almost never available
-      // additionally, sometimes even in the middle of the video it can be off and not load due to rounding errors
-      // we check if we're in the first 5 seconds or if we're *right* before the start
-      // "stuck seeking" errors are handled below
-      if (start < 6 && desiredVideoTime < 6) {
-        start = desiredVideoTime;
-        desiredBufferedVideoTime = desiredVideoTime;
-      }
-      if (start > desiredVideoTime && start - desiredVideoTime < 0.5) {
-        start = desiredVideoTime;
-      }
-      if (start <= desiredVideoTime) {
-        if (videoPlayer.buffered.end(i) >= desiredBufferedVideoTime) {
-          isBufferingVideo = false;
-        } else {
-          remainingTime = Math.min(remainingTime, desiredBufferedVideoTime - videoPlayer.buffered.end(i));
-        }
-      }
-    }
-
-    if (isBufferingVideo) {
-      console.log('We need', remainingTime, 'more time buffered...');
-    }
-
-    if (desiredVideoTime > 5 && (videoPlayer.waiting || videoPlayer.seeking)) {
-      isBufferingVideo = true;
-    }
-
-    const timeDiffAbs = Math.abs(timeDiff);
-    if (Number.isFinite(timeDiff) && timeDiffAbs > 0) {
-      if (this.props.isBufferingVideo && videoPlayer.paused && !videoPlayer.seeking && timeDiffAbs > 1.0) {
-        console.log('SEEK paused', timeDiff);
+    // seeking and speeding up play speed to sync
+    const timeDiff = desiredVideoTime - videoPlayer.currentTime;
+    if (Math.abs(timeDiff) > 1.0) {
+      if (!videoPlayer.seeking) {
+        console.log('seek', desiredVideoTime);
         videoPlayer.currentTime = desiredVideoTime;
-        isBufferingVideo = true;
-      } else if (timeDiffAbs > 1.0) {
-        console.log('Seeking video', timeDiff, desiredVideoTime, videoPlayer.currentTime);
-        videoPlayer.currentTime = desiredVideoTime;
-        if (desiredVideoTime > 5) {
-          isBufferingVideo = true;
-        }
-      } else if (timeDiffAbs > 0.2) {
-        desiredPlaySpeed += timeDiff;
       }
+    } else {
+      playbackRate += Math.min(0, timeDiff);
     }
 
-    if (this.state.isBufferingVideo !== isBufferingVideo) {
-      console.log('Changing video buffer state to', isBufferingVideo);
-      this.setState({ isBufferingVideo });
-    }
-
-    desiredPlaySpeed = Math.round(desiredPlaySpeed * 5) / 5;
-
-    if (videoPlayer.playbackRate !== desiredPlaySpeed) {
-      videoPlayer.playbackRate = desiredPlaySpeed;
+    playbackRate = Math.round(playbackRate * 5) / 5;
+    if (videoPlayer.playbackRate !== playbackRate) {
+      videoPlayer.playbackRate = playbackRate;
     }
 
     this.updateVideoPlayState();
@@ -1166,13 +1110,14 @@ class VideoPreview extends Component {
 
   render() {
     const { classes } = this.props;
+    const videoPlayer = this.videoPlayer.current;
+    const isBufferingVideo = !videoPlayer || videoPlayer.waiting || videoPlayer.seeking;
     return (
       <div className={classNames(classes.videoContainer, { [classes.hidden]: false })}>
-        { (this.state.isBufferingData || this.state.isBufferingVideo) &&
-          <Buffering bufferingVideo={this.state.isBufferingVideo} bufferingData={this.state.isBufferingData} />
+        { (this.state.isBufferingData || isBufferingVideo) &&
+          <Buffering bufferingVideo={ isBufferingVideo } bufferingData={ this.state.isBufferingData } />
         }
-        <video ref={this.videoPlayer} src={this.state.src} style={{ zIndex: 1, width: '100%' }}
-          autoPlay muted playsInline>
+        <video ref={this.videoPlayer} style={{ zIndex: 1, width: '100%' }} autoPlay muted playsInline>
           <HLSSource onBufferAppend={this.checkVideoBuffer} onSourceLoaded={this.onSourceLoaded}
             video={ this.videoPlayer } src={this.state.src} />
         </video>
@@ -1194,8 +1139,15 @@ class VideoPreview extends Component {
   }
 }
 
-function mapStateToProps(state) {
-  return state.workerState;
-}
+const stateToProps = Obstruction({
+  dongleId: 'workerState.dongleId',
+  currentSegment: 'workerState.currentSegment',
+  nextSegment: 'workerState.nextSegment',
+  desiredPlaySpeed: 'workerState.desiredPlaySpeed',
+  route: 'workerState.route',
+  segment: 'workerState.segment',
+  offset: 'workerState.offset',
+  startTime: 'workerState.startTime',
+});
 
-export default connect(mapStateToProps)(withStyles(styles)(VideoPreview));
+export default connect(stateToProps)(withStyles(styles)(DriveVideo));

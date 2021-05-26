@@ -1194,6 +1194,14 @@
     joi-browser "^13.4.0"
     querystringify "^2.1.1"
 
+"@commaai/hls.js@^0.12.7":
+  version "0.12.7"
+  resolved "https://registry.yarnpkg.com/@commaai/hls.js/-/hls.js-0.12.7.tgz#1f93e0f0b1921bcd889c768df34eb018c25276fb"
+  integrity sha512-jISvZJRCg5nBv+jn9H7UDcdKPGdjyFcGDOJ9GBksOnXZPEwcVbsrH4FCr7fTju68eEH6rd4ydvYh2O1oYTdjPg==
+  dependencies:
+    eventemitter3 "3.1.0"
+    url-toolkit "^2.1.6"
+
 "@commaai/log_reader@^0.8.0":
   version "0.8.0"
   resolved "https://registry.yarnpkg.com/@commaai/log_reader/-/log_reader-0.8.0.tgz#4f6d74b62762827a3701085c36cbad6f978087c6"
@@ -5283,6 +5291,11 @@ etag@~1.8.1:
   version "1.8.1"
   resolved "https://registry.yarnpkg.com/etag/-/etag-1.8.1.tgz#41ae2eeb65efa62268aebfea83ac7d79299b0887"
   integrity sha1-Qa4u62XvpiJorr/qg6x9eSmbCIc=
+
+eventemitter3@3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/eventemitter3/-/eventemitter3-3.1.0.tgz#090b4d6cdbd645ed10bf750d4b5407942d7ba163"
+  integrity sha512-ivIvhpq/Y0uSjcHDcOIccjmYjGLcP09MFGE7ysAwkAvkXfpZlC985pH2/ui64DKazbTW/4kN3yqozUxlXzI6cA==
 
 eventemitter3@^3.1.0:
   version "3.1.2"
@@ -13255,6 +13268,11 @@ url-to-options@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/url-to-options/-/url-to-options-1.0.1.tgz#1505a03a289a48cbd7a434efbaeec5055f5633a9"
   integrity sha1-FQWgOiiaSMvXpDTvuu7FBV9WM6k=
+
+url-toolkit@^2.1.6:
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/url-toolkit/-/url-toolkit-2.2.2.tgz#51ef27b56d3187185f9ecf4a8ac7e8f55203c89d"
+  integrity sha512-l25w6Sy+Iy3/IbogunxhWwljPaDnqpiKvrQRoLBm6DfISco7NyRIS7Zf6+Oxhy1T8kHxWdwLND7ZZba6NjXMug==
 
 url@^0.11.0:
   version "0.11.0"
