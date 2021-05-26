@@ -19,7 +19,7 @@
   "dependencies": {
     "@commaai/capnp-json": "^0.8.0",
     "@commaai/comma-api": "^1.5.0",
-    "@commaai/hls.js": "^0.12.7",
+    "hls.js": "^1.0.4",
     "@commaai/log_reader": "^0.8.0",
     "@commaai/my-comma-auth": "^1.2.1",
     "@mapbox/mapbox-sdk": "^0.4.0",

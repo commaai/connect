@@ -61,18 +61,6 @@ function play(speed) {
   store.dispatch(Playback.play(speed));
 }
 
-function bufferVideo(isBuffering) {
-  store.dispatch(Playback.bufferVideo(isBuffering));
-}
-
-function bufferData(isBuffering) {
-  store.dispatch(Playback.bufferData(isBuffering));
-}
-
-function disableBuffer(data) {
-  store.dispatch(Playback.disableBuffer(data));
-}
-
 async function hello(data) {
   await Demo.init();
   await initAuthPromise;
@@ -134,9 +122,6 @@ export const commands = {
   play,
   pause,
   seek,
-  bufferVideo,
-  bufferData,
-  disableBuffer,
   hello,
   selectDevice,
   selectTimeRange,

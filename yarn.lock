@@ -1194,14 +1194,6 @@
     joi-browser "^13.4.0"
     querystringify "^2.1.1"
 
-"@commaai/hls.js@^0.12.7":
-  version "0.12.7"
-  resolved "https://registry.yarnpkg.com/@commaai/hls.js/-/hls.js-0.12.7.tgz#1f93e0f0b1921bcd889c768df34eb018c25276fb"
-  integrity sha512-jISvZJRCg5nBv+jn9H7UDcdKPGdjyFcGDOJ9GBksOnXZPEwcVbsrH4FCr7fTju68eEH6rd4ydvYh2O1oYTdjPg==
-  dependencies:
-    eventemitter3 "3.1.0"
-    url-toolkit "^2.1.6"
-
 "@commaai/log_reader@^0.8.0":
   version "0.8.0"
   resolved "https://registry.yarnpkg.com/@commaai/log_reader/-/log_reader-0.8.0.tgz#4f6d74b62762827a3701085c36cbad6f978087c6"
@@ -5292,11 +5284,6 @@ etag@~1.8.1:
   resolved "https://registry.yarnpkg.com/etag/-/etag-1.8.1.tgz#41ae2eeb65efa62268aebfea83ac7d79299b0887"
   integrity sha1-Qa4u62XvpiJorr/qg6x9eSmbCIc=
 
-eventemitter3@3.1.0:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/eventemitter3/-/eventemitter3-3.1.0.tgz#090b4d6cdbd645ed10bf750d4b5407942d7ba163"
-  integrity sha512-ivIvhpq/Y0uSjcHDcOIccjmYjGLcP09MFGE7ysAwkAvkXfpZlC985pH2/ui64DKazbTW/4kN3yqozUxlXzI6cA==
-
 eventemitter3@^3.1.0:
   version "3.1.2"
   resolved "https://registry.yarnpkg.com/eventemitter3/-/eventemitter3-3.1.2.tgz#2d3d48f9c346698fce83a85d7d664e98535df6e7"
@@ -6417,6 +6404,11 @@ history@^4.7.2:
     tiny-invariant "^1.0.2"
     tiny-warning "^1.0.0"
     value-equal "^1.0.1"
+
+hls.js@^1.0.4:
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/hls.js/-/hls.js-1.0.4.tgz#1b191f0f49c992e5c22d4a648ac73630d13d3c2e"
+  integrity sha512-sTea9L0ORE9u5dThUjEhDP4t9YzakEYRyMHEYQctaLZf2X9ihjmUbqKneExQWHXZz2cYQs5ihaKUe8QnrQDp7Q==
 
 hmac-drbg@^1.0.1:
   version "1.0.1"
@@ -13263,11 +13255,6 @@ url-to-options@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/url-to-options/-/url-to-options-1.0.1.tgz#1505a03a289a48cbd7a434efbaeec5055f5633a9"
   integrity sha1-FQWgOiiaSMvXpDTvuu7FBV9WM6k=
-
-url-toolkit@^2.1.6:
-  version "2.2.1"
-  resolved "https://registry.yarnpkg.com/url-toolkit/-/url-toolkit-2.2.1.tgz#89009ed3d62a3574de079532a7266c14d2cc1c4f"
-  integrity sha512-8+DzgrtDZYZGhHaAop5WGVghMdCfOLGbhcArsJD0qDll71FXa7EeKxi2hilPIscn2nwMz4PRjML32Sz4JTN0Xw==
 
 url@^0.11.0:
   version "0.11.0"

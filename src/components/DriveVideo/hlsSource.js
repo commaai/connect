@@ -1,17 +1,16 @@
-// https://video-react.js.org/customize/customize-source/
 import React, { Component } from 'react';
-import Hls from '@commaai/hls.js';
+import Hls from 'hls.js';
 
 export default class HLSSource extends Component {
-  constructor(props, context) {
-    super(props, context);
+  constructor(props) {
+    super(props);
+    this.state = {};
+
     this.hls = new Hls({
       enableWorker: false,
       disablePtsDtsCorrectionInMp4Remux: false
     });
-    this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      this.props.video.play();
-    });
+
     this.hls.on(Hls.Events.BUFFER_APPENDED, (eventName, data) => {
       if (this.props.onBufferAppend) {
         this.props.onBufferAppend();
@@ -39,50 +38,32 @@ export default class HLSSource extends Component {
       }
     });
 
-    this.state = {
-      src: ''
-    };
     // this.hls.on(Hls.Events.STREAM_STATE_TRANSITION, (eventName, data) => {
     // });
   }
 
   componentDidMount() {
-    this.setState({
-      src: this.props.src
-    });
+    this.componentDidUpdate({});
   }
 
-  componentWillUpdate(nextProps, nextState) {
-    if (nextProps.src !== nextState.src) {
-      // console.log('Loading media source!', nextProps.src);
-      if (this.state.src && this.state.src.length) {
-        // console.log('this.hls.detachMedia();');
+  componentDidUpdate(prevProps) {
+    if (this.props.src !== prevProps.src) {
+      if (prevProps.src) {
         this.hls.detachMedia();
       }
-      this.setState({
-        src: nextProps.src
-      });
-    }
-  }
+      if (this.props.src) {
+        this.hls.loadSource(this.props.src);
+        this.hls.attachMedia(this.props.video.current);
 
-  componentDidUpdate(prevProps, prevState) {
-    const { src } = this.state;
-    if (src !== prevState.src && src && src.length) {
-      // console.log('this.hls.loadSource(src);');
-      this.hls.loadSource(src);
-      // console.log('this.hls.attachMedia(this.props.video);');
-      this.hls.attachMedia(this.props.video);
-
-      if (this.props.onSourceLoaded) {
-        this.props.onSourceLoaded();
+        if (this.props.onSourceLoaded) {
+          this.props.onSourceLoaded();
+        }
       }
     }
   }
 
   componentWillUnmount() {
-    // destroy hls video source
     if (this.hls) {
-      // console.log('this.hls.destroy();');
       this.hls.destroy();
       this.hls = null;
     }
@@ -90,7 +71,7 @@ export default class HLSSource extends Component {
 
   render() {
     return (
-      <source src={this.state.src} type={this.props.type || 'application/x-mpegURL'} />
+      <source src={this.props.src} type={this.props.type || 'application/x-mpegURL'} />
     );
   }
 }
