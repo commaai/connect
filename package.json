@@ -20,7 +20,6 @@
     "@commaai/capnp-json": "^0.8.0",
     "@commaai/comma-api": "^1.5.0",
     "@commaai/hls.js": "^0.12.7",
-    "hls.js": "^1.0.4",
     "@commaai/log_reader": "^0.8.0",
     "@commaai/my-comma-auth": "^1.2.1",
     "@mapbox/mapbox-sdk": "^0.4.0",
@@ -40,6 +39,7 @@
     "gh-pages": "^2.1.1",
     "global": "^4.3.2",
     "history": "^4.7.2",
+    "hls.js": "^1.0.4",
     "localforage": "^1.7.1",
     "mapbox-gl": "^1.4.0",
     "mathjs": "^6.2.1",
@@ -55,6 +55,7 @@
     "react-extras": "^0.7.1",
     "react-map-gl": "^3.2.10",
     "react-measure": "^2.0.0",
+    "react-player": "^2.9.0",
     "react-redux": "^5.0.7",
     "react-router": "^4.2.0",
     "react-router-dom": "^4.3.1",
@@ -65,7 +66,6 @@
     "redux-thunk": "^2.3.0",
     "simple-get": "^3.1.0",
     "thyming": "^0.1.1",
-    "video-react": "^0.14.1",
     "weakmap-shim": "^1.1.1"
   },
   "devDependencies": {
