@@ -96,8 +96,8 @@ class DriveVideo extends Component {
     this.onSourceLoaded = this.onSourceLoaded.bind(this);
     this.updateVideoPlayState = this.updateVideoPlayState.bind(this);
     this.updateCameraSource = this.updateCameraSource.bind(this);
+    this.onVideoRef = this.onVideoRef.bind(this);
 
-    this.videoPlayer = React.createRef();
     this.canvas_road = React.createRef();
     this.canvas_lead = React.createRef();
     this.canvas_carstate = React.createRef();
@@ -112,7 +112,6 @@ class DriveVideo extends Component {
     this.frame = 0;
 
     this.state = {
-      isBufferingData: true,
       src: null,
     };
   }
@@ -137,7 +136,6 @@ class DriveVideo extends Component {
 
     let src = null;
     if (this.props.front) {
-      console.log(this.props.front);
       let base = `${process.env.REACT_APP_VIDEO_CDN}/hls/${this.props.dongleId}/${segment.url.split('/').pop()}/dcamera`;
       // We append count of segments with stream available as a cache-busting method
       // on stream indexes served before route is fully uploaded
@@ -159,10 +157,7 @@ class DriveVideo extends Component {
   updateCameraSource(src) {
     if (src !== this.state.src) {
       console.log('new src', src);
-      this.setState({
-        src,
-        isBufferingData: true,
-      });
+      this.setState({ src });
     }
 
     this.checkDataBuffer();
@@ -173,10 +168,22 @@ class DriveVideo extends Component {
     raf.cancel(this.rafLoop);
   }
 
+  onVideoRef(ref) {
+    this.videoPlayer = ref;
+    this.videoPlayer.addEventListener('waiting', (ev) => {
+      console.log('waiting', ev);
+      TimelineWorker.bufferVideo(true);
+    });
+    this.videoPlayer.addEventListener('playing', (ev) => {
+      console.log('playing', ev);
+      TimelineWorker.bufferVideo(false);
+    });
+  }
+
   onSourceLoaded() {
-    if (this.videoPlayer.current) {
+    if (this.videoPlayer) {
       console.log('Calling load with media change');
-      this.videoPlayer.current.load();
+      this.videoPlayer.load();
     }
   }
 
@@ -200,16 +207,15 @@ class DriveVideo extends Component {
       return;
     }
 
-    const videoPlayer = this.videoPlayer.current;
-    if (this.state.isBufferingData || this.props.desiredPlaySpeed === 0) {
-      if (!videoPlayer.paused) {
+    if (this.props.isBufferingData || this.props.desiredPlaySpeed === 0) {
+      if (!this.videoPlayer.paused) {
         console.log('pause');
-        videoPlayer.pause();
+        this.videoPlayer.pause();
       }
     } else {
-      if (videoPlayer.paused) {
+      if (this.videoPlayer.paused) {
         console.log('play');
-        videoPlayer.play();
+        this.videoPlayer.play();
       }
     }
   }
@@ -245,37 +251,38 @@ class DriveVideo extends Component {
       isBufferingData = timeDiff > 3000;
     }
 
-    if (isBufferingData !== this.state.isBufferingData) {
+    if (isBufferingData !== this.props.isBufferingData) {
       console.log('Changing data buffer state to', isBufferingData);
-      this.setState({ isBufferingData });
+      TimelineWorker.bufferData(isBufferingData);
     }
+
+    this.updateVideoPlayState();
   }, 100)
 
   checkVideoBuffer = debounce(() => {
-    const videoPlayer = this.videoPlayer.current;
-    if (!this.props.currentSegment || !videoPlayer || !videoPlayer.duration) {
+    if (!this.props.currentSegment || !this.videoPlayer || !this.videoPlayer.duration) {
       return;
     }
 
-    let playbackRate = this.props.desiredPlaySpeed;
+    let playbackRate = this.isBufferingData ? 0 : this.props.desiredPlaySpeed;
 
     // clip the duration down slightly to handle rounding errors near the end of video
-    const desiredVideoTime = Math.min(videoPlayer.duration - 0.4, this.currentVideoTime());
+    const desiredVideoTime = Math.min(this.videoPlayer.duration - 0.4, this.currentVideoTime());
 
     // seeking and speeding up play speed to sync
-    const timeDiff = desiredVideoTime - videoPlayer.currentTime;
+    const timeDiff = desiredVideoTime - this.videoPlayer.currentTime;
     if (Math.abs(timeDiff) > 1.0) {
-      if (!videoPlayer.seeking) {
+      if (!this.videoPlayer.seeking) {
         console.log('seek', desiredVideoTime);
-        videoPlayer.currentTime = desiredVideoTime;
+        this.videoPlayer.currentTime = desiredVideoTime;
       }
     } else {
-      playbackRate += Math.min(0, timeDiff);
+      playbackRate = Math.min(0, playbackRate + timeDiff);
     }
 
     playbackRate = Math.round(playbackRate * 5) / 5;
-    if (videoPlayer.playbackRate !== playbackRate) {
-      videoPlayer.playbackRate = playbackRate;
+    if (this.videoPlayer.playbackRate !== playbackRate) {
+      this.videoPlayer.playbackRate = playbackRate;
     }
 
     this.updateVideoPlayState();
@@ -1109,15 +1116,13 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { classes } = this.props;
-    const videoPlayer = this.videoPlayer.current;
-    const isBufferingVideo = !videoPlayer || videoPlayer.waiting || videoPlayer.seeking;
+    const { classes, isBufferingData, isBufferingVideo } = this.props;
     return (
       <div className={classNames(classes.videoContainer, { [classes.hidden]: false })}>
-        { (this.state.isBufferingData || isBufferingVideo) &&
-          <Buffering bufferingVideo={ isBufferingVideo } bufferingData={ this.state.isBufferingData } />
+        { (isBufferingData, isBufferingVideo) &&
+          <Buffering bufferingVideo={ isBufferingVideo } bufferingData={ isBufferingData } />
         }
-        <video ref={this.videoPlayer} style={{ zIndex: 1, width: '100%' }} autoPlay muted playsInline>
+        <video ref={ this.onVideoRef } style={{ zIndex: 1, width: '100%' }} autoPlay muted playsInline>
           <HLSSource onBufferAppend={this.checkVideoBuffer} onSourceLoaded={this.onSourceLoaded}
             video={ this.videoPlayer } src={this.state.src} />
         </video>
@@ -1148,6 +1153,8 @@ const stateToProps = Obstruction({
   segment: 'workerState.segment',
   offset: 'workerState.offset',
   startTime: 'workerState.startTime',
+  isBufferingVideo: 'workerState.isBufferingVideo',
+  isBufferingData: 'workerState.isBufferingData',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveVideo));

@@ -26,7 +26,9 @@ module.exports = {
   route: false,
   segment: 0,
   nextSegment: null,
-  desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed... multiplier on speed
+  desiredPlaySpeed: 1, // speed set by user
+  isBufferingVideo: true, // if we're currently buffering for more data
+  isBufferingData: true, // if we're currently buffering for more data
   offset: 0, // in miliseconds from the start
   startTime: Date.now(), // millisecond timestamp in which play began
 

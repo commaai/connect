@@ -7,10 +7,13 @@ const ACTION_SEEK = 'action_seek';
 const ACTION_PAUSE = 'action_pause';
 const ACTION_PLAY = 'action_play';
 const ACTION_LOOP = 'action_loop';
+const ACTION_BUFFER_VIDEO = 'action_buffer_video';
+const ACTION_BUFFER_DATA = 'action_buffer_data';
 
 // fetch current playback offset
 export function currentOffset(state) {
-  let offset = state.offset + (Date.now() - state.startTime) * state.desiredPlaySpeed;
+  let playSpeed = (state.isBufferingData || state.isBufferingVideo) ? 0 : state.desiredPlaySpeed;
+  let offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
 
   if (state.loop && state.loop.startTime) {
     // respect the loop
@@ -35,7 +38,7 @@ export function reducer(_state = initialState, action) {
       state = {
         ...state,
         offset: action.offset,
-        startTime: Date.now()
+        startTime: Date.now(),
       };
 
       if (loopOffset !== null) {
@@ -58,7 +61,8 @@ export function reducer(_state = initialState, action) {
       state = {
         ...state,
         offset: currentOffset(state),
-        desiredPlaySpeed: 0
+        startTime: Date.now(),
+        desiredPlaySpeed: 0,
       };
       break;
     case ACTION_PLAY:
@@ -67,7 +71,7 @@ export function reducer(_state = initialState, action) {
           ...state,
           offset: currentOffset(state),
           desiredPlaySpeed: action.speed,
-          startTime: Date.now()
+          startTime: Date.now(),
         };
       }
       break;
@@ -84,11 +88,28 @@ export function reducer(_state = initialState, action) {
         state.end = Math.max(action.startTime + action.duration, state.end);
       }
       break;
+    case ACTION_BUFFER_VIDEO:
+      state = {
+        ...state,
+        isBufferingVideo: action.buffering,
+        startTime: Date.now(),
+        offset: currentOffset(state),
+      }
+      break;
+    case ACTION_BUFFER_DATA:
+      state = {
+        ...state,
+        isBufferingData: action.buffering,
+        startTime: Date.now(),
+        offset: currentOffset(state),
+      }
+      break;
     default:
       break;
   }
 
-  const offset = state.offset + (Date.now() - state.startTime) * state.desiredPlaySpeed;
+  let playSpeed = (state.isBufferingData || state.isBufferingVideo) ? 0 : state.desiredPlaySpeed;
+  const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
   // normalize over loop
   if (state.loop && state.loop.startTime !== null) {
     loopOffset = state.loop.startTime - state.start;
@@ -101,6 +122,9 @@ export function reducer(_state = initialState, action) {
       state.startTime = Date.now();
     }
   }
+
+  state.isBufferingData = Boolean(state.isBufferingData);
+  state.isBufferingVideo = Boolean(state.isBufferingVideo);
 
   return state;
 }
@@ -137,5 +161,21 @@ export function selectLoop(startTime, duration) {
     type: ACTION_LOOP,
     startTime,
     duration
+  };
+}
+
+// update video buffering state
+export function bufferVideo(buffering = true) {
+  return {
+    type: ACTION_BUFFER_VIDEO,
+    buffering
+  };
+}
+
+// update data buffering state
+export function bufferData(buffering = true) {
+  return {
+    type: ACTION_BUFFER_DATA,
+    buffering
   };
 }

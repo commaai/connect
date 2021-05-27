@@ -124,6 +124,14 @@ export class TimelineInterface {
     return commands.pause();
   }
 
+  async bufferVideo(isBuffering = true) {
+    return commands.bufferVideo(isBuffering);
+  }
+
+  async bufferData(isBuffering = true) {
+    return commands.bufferData(isBuffering);
+  }
+
   async selectTimeRange(start, end) {
     return commands.selectTimeRange({ start, end });
   }

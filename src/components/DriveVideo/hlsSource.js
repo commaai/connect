@@ -6,6 +6,8 @@ export default class HLSSource extends Component {
     super(props);
     this.state = {};
 
+    this.attachSrc = this.attachSrc.bind(this);
+
     this.hls = new Hls({
       enableWorker: false,
       disablePtsDtsCorrectionInMp4Remux: false
@@ -40,6 +42,8 @@ export default class HLSSource extends Component {
 
     // this.hls.on(Hls.Events.STREAM_STATE_TRANSITION, (eventName, data) => {
     // });
+
+    this.hls.on(Hls.Events.MEDIA_DETACHED, this.attachSrc);
   }
 
   componentDidMount() {
@@ -50,14 +54,8 @@ export default class HLSSource extends Component {
     if (this.props.src !== prevProps.src) {
       if (prevProps.src) {
         this.hls.detachMedia();
-      }
-      if (this.props.src) {
-        this.hls.loadSource(this.props.src);
-        this.hls.attachMedia(this.props.video.current);
-
-        if (this.props.onSourceLoaded) {
-          this.props.onSourceLoaded();
-        }
+      } else {
+        this.attachSrc();
       }
     }
   }
@@ -66,6 +64,18 @@ export default class HLSSource extends Component {
     if (this.hls) {
       this.hls.destroy();
       this.hls = null;
+    }
+  }
+
+  attachSrc() {
+    if (this.hls && this.props.src) {
+      console.log('HlsSource attached', this.props.src);
+      this.hls.loadSource(this.props.src);
+      this.hls.attachMedia(this.props.video);
+
+      if (this.props.onSourceLoaded) {
+        this.props.onSourceLoaded();
+      }
     }
   }
 
