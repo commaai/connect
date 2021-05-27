@@ -27,7 +27,7 @@ export function currentOffset(state) {
 }
 
 export function reducer(_state = initialState, action) {
-  let state = _state;
+  let state = { ..._state };
   // console.log(action);
   let loopOffset = null;
   if (state.loop && state.loop.startTime !== null) {
@@ -39,6 +39,7 @@ export function reducer(_state = initialState, action) {
         ...state,
         offset: action.offset,
         startTime: Date.now(),
+        isBufferingData: true,
       };
 
       if (loopOffset !== null) {
@@ -93,7 +94,6 @@ export function reducer(_state = initialState, action) {
         ...state,
         isBufferingVideo: action.buffering,
         startTime: Date.now(),
-        offset: currentOffset(state),
       }
       break;
     case ACTION_BUFFER_DATA:
@@ -101,7 +101,6 @@ export function reducer(_state = initialState, action) {
         ...state,
         isBufferingData: action.buffering,
         startTime: Date.now(),
-        offset: currentOffset(state),
       }
       break;
     default:

@@ -103,6 +103,7 @@ class DriveVideo extends Component {
     super(props);
 
     this.updatePreview = this.updatePreview.bind(this);
+    this.visibleSegment = this.visibleSegment.bind(this);
 
     this.videoPlayer = React.createRef();
     this.canvas_road = React.createRef();
@@ -134,9 +135,9 @@ class DriveVideo extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    // play state
-    this.syncVideo();
     this.updateVideoSource(prevProps);
+    this.syncVideo();
+    this.checkDataBuffer();
   }
 
   componentWillUnmount() {
@@ -146,15 +147,19 @@ class DriveVideo extends Component {
     }
   }
 
-  updateVideoSource(prevProps) {
-    const { props } = this;
-    let segment = props.currentSegment;
-    if (!segment && props.nextSegment) {
-      const offset = TimelineWorker.currentOffset();
-      if (props.nextSegment.startOffset - offset < 5000) {
-        segment = props.nextSegment;
-      }
+  visibleSegment(props = this.props) {
+    if (props.currentSegment) {
+      return props.currentSegment;
     }
+    const offset = TimelineWorker.currentOffset();
+    if (props.nextSegment && props.nextSegment.startOffset - offset < 5000) {
+      return props.nextSegment;
+    }
+    return null;
+  }
+
+  updateVideoSource(prevProps) {
+    const segment = this.visibleSegment();
     if (!segment) {
       if (this.state.src !== '') {
         this.setState({ src: '' });
@@ -162,8 +167,9 @@ class DriveVideo extends Component {
       return;
     }
 
-    if (props.front) {
-      let base = `${process.env.REACT_APP_VIDEO_CDN}/hls/${props.dongleId}/${segment.url.split('/').pop()}`;
+    const prevSegment = this.visibleSegment(prevProps);
+    if (this.props.front) {
+      let base = `${process.env.REACT_APP_VIDEO_CDN}/hls/${this.props.dongleId}/${segment.url.split('/').pop()}`;
       base += '/dcamera';
       // We append count of segments with stream available as a cache-busting method
       // on stream indexes served before route is fully uploaded
@@ -171,18 +177,23 @@ class DriveVideo extends Component {
       let src = `${base}/index.m3u8?v=${STREAM_VERSION}&s=${segCount}`;
       if (this.state.src !== src) {
         this.setState({ src });
+        this.syncVideo();
       }
-    } else if (this.state.src === '' || !prevProps.currentSegment || prevProps.currentSegment.route !== segment.route) {
+    } else if (this.props.front !== prevProps.front || this.state.src === ''  || !prevSegment ||
+      prevSegment.route !== segment.route)
+    {
       let videoApi = VideoApi(segment.url, process.env.REACT_APP_VIDEO_CDN);
       videoApi.getQcameraStreamIndex().then(() => {
         let src = videoApi.getQcameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`
         if (src !== this.state.src) {
           this.setState({src});
+          this.syncVideo();
         }
       }).catch(() => {
         let src = videoApi.getRearCameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`;
         if (src !== this.state.src) {
           this.setState({src});
+          this.syncVideo();
         }
       });
     }
@@ -193,12 +204,9 @@ class DriveVideo extends Component {
     this.rafLoop = raf(this.updatePreview);
 
     this.frame++;
-    if (this.frame >= 60) {
-      this.frame = 0;
+    if (this.frame % 30 === 0) {
       this.syncVideo();
     }
-
-    // 10 fps
     if (this.frame % 6 === 0) {
       this.checkDataBuffer();
     }
@@ -208,8 +216,15 @@ class DriveVideo extends Component {
   }
 
   checkDataBuffer = debounce(() => {
+    if (!this.props.currentSegment) {
+      if (this.props.isBufferingData) {
+        TimelineWorker.bufferData(false);
+      }
+      return;
+    }
+
     const logIndex = TimelineWorker.getLogIndex();
-    if (!this.props.currentSegment || !logIndex) {
+    if (!logIndex) {
       return;
     }
 
@@ -245,7 +260,7 @@ class DriveVideo extends Component {
 
   syncVideo = debounce(() => {
     const videoPlayer = this.videoPlayer.current;
-    if (!videoPlayer || !this.props.currentSegment || !videoPlayer.getDuration() || !this.props.desiredPlaySpeed) {
+    if (!videoPlayer || !this.visibleSegment() || !videoPlayer.getDuration()) {
       return;
     }
 
@@ -254,7 +269,7 @@ class DriveVideo extends Component {
     let desiredVideoTime = this.currentVideoTime();
     const curVideoTime = videoPlayer.getCurrentTime();
     const timeDiff = desiredVideoTime - curVideoTime;
-    if (Math.abs(timeDiff) > 0.5) {
+    if (Math.abs(timeDiff) > 0.3) {
       console.log('Seeking', curVideoTime, '->', desiredVideoTime);
       videoPlayer.seekTo(desiredVideoTime);
     } else {
@@ -1077,10 +1092,10 @@ class DriveVideo extends Component {
   }
 
   currentVideoTime(offset = TimelineWorker.currentOffset()) {
-    if (!this.props.currentSegment) {
+    if (!this.visibleSegment()) {
       return 0;
     }
-    offset -= this.props.currentSegment.routeOffset;
+    offset -= this.visibleSegment().routeOffset;
     offset = offset / 1000;
 
     if (!this.props.front) {
@@ -1096,14 +1111,15 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { classes, currentSegment, isBufferingData, isBufferingVideo } = this.props;
+    const { classes, isBufferingData, isBufferingVideo } = this.props;
+    console.log('render', this.state.src);
     return (
       <div className={classNames(classes.videoContainer, { [classes.hidden]: false })}>
-        { (isBufferingData, isBufferingVideo) &&
-          <Buffering bufferingVideo={ isBufferingVideo } bufferingData={ isBufferingData } />
+        { (isBufferingData || isBufferingVideo) &&
+          <Buffering isBufferingVideo={ isBufferingVideo } isBufferingData={ isBufferingData } />
         }
         <ReactPlayer ref={ this.videoPlayer } url={ this.state.src } playsinline={ true } muted={ true } width="100%"
-          height="unset" playing={ currentSegment && !isBufferingData }
+          height="unset" playing={ Boolean(this.visibleSegment()) && !isBufferingData }
           config={{
             file: { forceHLS: true },
             hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false },

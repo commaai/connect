@@ -266,6 +266,10 @@ function reducer(_state = initialState, action) {
         segments: action.segments
       };
       break;
+    case ACTION_UPDATE_SEGMENTS:
+      state = {
+        ...state,
+      }
     default:
       break;
   }
