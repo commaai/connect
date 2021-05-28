@@ -74,6 +74,7 @@ const styles = (theme) => ({
     display: 'none'
   },
   videoContainer: {
+    minHeight: 300,
     position: 'relative',
     maxWidth: 964,
     margin: '0 auto',
@@ -216,15 +217,8 @@ class DriveVideo extends Component {
   }
 
   checkDataBuffer = debounce(() => {
-    if (!this.props.currentSegment) {
-      if (this.props.isBufferingData) {
-        TimelineWorker.bufferData(false);
-      }
-      return;
-    }
-
     const logIndex = TimelineWorker.getLogIndex();
-    if (!logIndex) {
+    if (!logIndex || !this.visibleSegment()) {
       return;
     }
 
@@ -264,19 +258,21 @@ class DriveVideo extends Component {
       return;
     }
 
-    let newPlaybackRate = this.props.desiredPlaySpeed;
+    let newPlaybackRate = this.props.isBufferingData ? 0 : this.props.desiredPlaySpeed;
 
-    let desiredVideoTime = this.currentVideoTime();
-    const curVideoTime = videoPlayer.getCurrentTime();
-    const timeDiff = desiredVideoTime - curVideoTime;
-    if (Math.abs(timeDiff) > 0.3) {
-      console.log('Seeking', curVideoTime, '->', desiredVideoTime);
-      videoPlayer.seekTo(desiredVideoTime);
-    } else {
-      newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff)
+    if (!this.props.isBufferingData || videoPlayer.getInternalPlayer().playbackRate === 0) {
+      let desiredVideoTime = this.currentVideoTime();
+      const curVideoTime = videoPlayer.getCurrentTime();
+      const timeDiff = desiredVideoTime - curVideoTime;
+      if (Math.abs(timeDiff) > 0.3) {
+        console.log('Seeking', curVideoTime, '->', desiredVideoTime);
+        videoPlayer.seekTo(desiredVideoTime);
+      } else {
+        newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff)
+      }
     }
 
-    newPlaybackRate = Math.round(newPlaybackRate * 10) / 10;
+    newPlaybackRate = Math.round(newPlaybackRate * 20) / 20;
     if (videoPlayer.getInternalPlayer().playbackRate !== newPlaybackRate) {
       console.log('newPlaybackRate', newPlaybackRate);
       videoPlayer.getInternalPlayer().playbackRate = newPlaybackRate;
@@ -1119,11 +1115,12 @@ class DriveVideo extends Component {
           <Buffering isBufferingVideo={ isBufferingVideo } isBufferingData={ isBufferingData } />
         }
         <ReactPlayer ref={ this.videoPlayer } url={ this.state.src } playsinline={ true } muted={ true } width="100%"
-          height="unset" playing={ Boolean(this.visibleSegment()) && !isBufferingData }
+          height="unset" playing={ Boolean(this.visibleSegment()) }
           config={{
             file: { forceHLS: true },
             hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false },
           }}
+          playbackRate={ isBufferingData ? 0 : this.props.desiredPlaySpeed }
           onBuffer={ () => TimelineWorker.bufferVideo(true) }
           onBufferEnd={ () => TimelineWorker.bufferVideo(false) } />
         { this.props.shouldShowUI &&

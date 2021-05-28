@@ -297,13 +297,6 @@ export class TimelineInterface {
     return 0;
   }
 
-  timestampToOffset(timestamp) {
-    if (this.state) {
-      return Playback.timestampToOffset(this.state, timestamp);
-    }
-    return 0;
-  }
-
   firstFrameTime() {
     if (!this.state || !this.state.route) {
       return null;

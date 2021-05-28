@@ -66,7 +66,7 @@ function scheduleSegmentUpdate(state) {
     console.log('Waiting', timeUntilNext, 'for something to change...');
     SegmentTimerStore(state).stopTimer = timeout(() => {
       // empty action to churn the butter
-      store.dispatch(Segments.updateSegments());
+      // store.dispatch(Segments.updateSegments());
     }, timeUntilNext);
   } else {
     console.log('There is not task i think its worth waiting for...', timeUntilNext);
