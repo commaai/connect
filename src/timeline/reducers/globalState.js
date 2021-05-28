@@ -11,7 +11,6 @@ import {
 const initialState = {};
 
 export default function reducer(_state = initialState, action) {
-  console.log(action);
   let state = { ..._state };
   let deviceIndex = null;
   switch (action.type) {
