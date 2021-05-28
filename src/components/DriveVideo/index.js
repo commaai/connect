@@ -131,6 +131,7 @@ class DriveVideo extends Component {
       this.videoPlayer.current.playbackRate = playSpeed || 1;
     }
     this.rafLoop = raf(this.updatePreview);
+    this.updateVideoSource({});
     this.syncVideo();
     this.checkDataBuffer();
   }
@@ -217,6 +218,13 @@ class DriveVideo extends Component {
   }
 
   checkDataBuffer = debounce(() => {
+    if (this.props.front || !this.props.shouldShowUI) {
+      if (this.props.isBufferingData) {
+        TimelineWorker.bufferData(false);
+      }
+      return;
+    }
+
     const logIndex = TimelineWorker.getLogIndex();
     if (!logIndex || !this.visibleSegment()) {
       return;
@@ -266,7 +274,7 @@ class DriveVideo extends Component {
       const timeDiff = desiredVideoTime - curVideoTime;
       if (Math.abs(timeDiff) > 0.3) {
         console.log('Seeking', curVideoTime, '->', desiredVideoTime);
-        videoPlayer.seekTo(desiredVideoTime);
+        videoPlayer.seekTo(desiredVideoTime, 'seconds');
       } else {
         newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff)
       }
@@ -1108,14 +1116,14 @@ class DriveVideo extends Component {
 
   render() {
     const { classes, isBufferingData, isBufferingVideo } = this.props;
-    console.log('render', this.state.src);
+    console.log('render', this.state.src, this.props.desiredPlaySpeed);
     return (
       <div className={classNames(classes.videoContainer, { [classes.hidden]: false })}>
         { (isBufferingData || isBufferingVideo) &&
           <Buffering isBufferingVideo={ isBufferingVideo } isBufferingData={ isBufferingData } />
         }
-        <ReactPlayer ref={ this.videoPlayer } url={ this.state.src } playsinline={ true } muted={ true } width="100%"
-          height="unset" playing={ Boolean(this.visibleSegment()) }
+        <ReactPlayer ref={ this.videoPlayer } url={ this.state.src } playsinline={ true } muted={ true }
+          width="100%" height="unset" playing={ Boolean(this.visibleSegment()) }
           config={{
             file: { forceHLS: true },
             hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false },
