@@ -226,7 +226,8 @@ class DriveVideo extends Component {
     }
 
     const logIndex = TimelineWorker.getLogIndex();
-    if (!logIndex || !this.visibleSegment()) {
+    console.log(logIndex, this.visibleSegment());
+    if (!logIndex) {
       return;
     }
 
@@ -272,11 +273,13 @@ class DriveVideo extends Component {
       let desiredVideoTime = this.currentVideoTime();
       const curVideoTime = videoPlayer.getCurrentTime();
       const timeDiff = desiredVideoTime - curVideoTime;
-      if (Math.abs(timeDiff) > 0.3) {
+      if (Math.abs(timeDiff) <= 0.3) {
+        newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff)
+      } else if (desiredVideoTime === 0) { // logs start ealier than video
+        newPlaybackRate = 0;
+      } else {
         console.log('Seeking', curVideoTime, '->', desiredVideoTime);
         videoPlayer.seekTo(desiredVideoTime, 'seconds');
-      } else {
-        newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff)
       }
     }
 
@@ -1111,7 +1114,7 @@ class DriveVideo extends Component {
       }
     }
 
-    return offset;
+    return Math.max(0, offset);
   }
 
   render() {

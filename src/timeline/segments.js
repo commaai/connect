@@ -280,6 +280,9 @@ function reducer(_state = initialState, action) {
   if (currentSegment) {
     state.route = currentSegment.route;
     state.segment = currentSegment.segment;
+  } else if (nextSegment) {
+    state.route = nextSegment.route;
+    state.segment = nextSegment.segment;
   } else {
     state.route = false;
     state.segment = 0;
