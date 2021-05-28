@@ -11,8 +11,8 @@ import {
 const initialState = {};
 
 export default function reducer(_state = initialState, action) {
-  let state = { ..._state };
   console.log(action);
+  let state = { ..._state };
   let deviceIndex = null;
   switch (action.type) {
     case ACTION_STARTUP_DATA:

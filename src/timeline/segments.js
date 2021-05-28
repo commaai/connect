@@ -247,7 +247,6 @@ function segmentsFromMetadata(segmentsData) {
 
 function reducer(_state = initialState, action) {
   let state = { ..._state };
-  console.log(action);
   switch (action.type) {
     case ACTION_LOAD_SEGMENT_METADATA:
       state = {

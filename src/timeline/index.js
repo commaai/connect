@@ -164,6 +164,10 @@ export class TimelineInterface {
     return commands.primeNav(nav);
   }
 
+  async resetPlayback() {
+    return commands.resetPlayback();
+  }
+
   setState(state) {
     this.state = state;
     StateEvent.broadcast(state);

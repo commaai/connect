@@ -117,6 +117,10 @@ function primeNav(nav = true) {
   store.dispatch(primeNavAction(nav));
 }
 
+function resetPlayback() {
+  store.dispatch(Playback.resetPlayback());
+}
+
 function stop() {
   console.log('Stopping worker!');
   // if (SegmentTimerStore(state).stopTimer) {
@@ -142,4 +146,5 @@ export const commands = {
   primeGetSubscription,
   primeGetPaymentMethod,
   primeNav,
+  resetPlayback,
 };

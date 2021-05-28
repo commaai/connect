@@ -9,6 +9,7 @@ const ACTION_PLAY = 'action_play';
 const ACTION_LOOP = 'action_loop';
 const ACTION_BUFFER_VIDEO = 'action_buffer_video';
 const ACTION_BUFFER_DATA = 'action_buffer_data';
+const ACTION_RESET = 'action_reset';
 
 // fetch current playback offset
 export function currentOffset(state) {
@@ -28,7 +29,6 @@ export function currentOffset(state) {
 
 export function reducer(_state = initialState, action) {
   let state = { ..._state };
-  console.log(action);
   let loopOffset = null;
   if (state.loop && state.loop.startTime !== null) {
     loopOffset = state.loop.startTime - state.start;
@@ -81,7 +81,7 @@ export function reducer(_state = initialState, action) {
         ...state,
         loop: {
           startTime: action.startTime,
-          duration: action.duration
+          duration: action.duration,
         }
       };
       if (action.duration > 0 && action.startTime > 0) {
@@ -104,6 +104,16 @@ export function reducer(_state = initialState, action) {
         offset: currentOffset(state),
         startTime: Date.now(),
       }
+      break;
+    case ACTION_RESET:
+      state = {
+        ...state,
+        desiredPlaySpeed: 1,
+        isBufferingVideo: false,
+        isBufferingData: true,
+        offset: 0,
+        startTime: Date.now(),
+      };
       break;
     default:
       break;
@@ -174,5 +184,11 @@ export function bufferData(buffering = true) {
   return {
     type: ACTION_BUFFER_DATA,
     buffering
+  };
+}
+
+export function resetPlayback() {
+  return {
+    type: ACTION_RESET,
   };
 }

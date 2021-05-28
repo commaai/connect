@@ -255,7 +255,6 @@ class DriveVideo extends Component {
     }
 
     if (isDataBuffering !== this.props.isBufferingData) {
-      console.log('Changing data buffer state to', isDataBuffering);
       TimelineWorker.bufferData(isDataBuffering);
     }
   }, 100)
@@ -283,14 +282,12 @@ class DriveVideo extends Component {
         TimelineWorker.seek(TimelineWorker.currentOffset() - (timeDiff * 1000));
         newPlaybackRate = 0;
       } else {
-        console.log('Seeking', curVideoTime, '->', desiredVideoTime);
         videoPlayer.seekTo(desiredVideoTime, 'seconds');
       }
     }
 
     newPlaybackRate = Math.round(newPlaybackRate * 20) / 20;
     if (videoPlayer.getInternalPlayer().playbackRate !== newPlaybackRate) {
-      console.log('newPlaybackRate', newPlaybackRate);
       videoPlayer.getInternalPlayer().playbackRate = newPlaybackRate;
     }
   }, 100)
@@ -1124,7 +1121,6 @@ class DriveVideo extends Component {
 
   render() {
     const { classes, isBufferingData, isBufferingVideo } = this.props;
-    console.log('render', this.state.src, this.props.desiredPlaySpeed);
     return (
       <div className={classNames(classes.videoContainer, { [classes.hidden]: false })}>
         { (isBufferingData || isBufferingVideo) &&
