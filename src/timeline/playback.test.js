@@ -108,29 +108,29 @@ describe('playback', () => {
 
     state = Playback.reducer(state, Playback.play());
     expect(state.desiredPlaySpeed).toEqual(1);
-    expect(state.isBuffering).toEqual(false);
+    expect(state.isBufferingData).toEqual(false);
 
     // claim the video is buffering
     state = Playback.reducer(state, Playback.bufferVideo());
     expect(state.desiredPlaySpeed).toEqual(1);
-    expect(state.isBuffering).toEqual(true);
+    expect(state.isBufferingVideo).toEqual(true);
 
     state = Playback.reducer(state, Playback.play(0.5));
     expect(state.desiredPlaySpeed).toEqual(0.5);
-    expect(state.isBuffering).toEqual(true);
+    expect(state.isBufferingVideo).toEqual(true);
 
     state = Playback.reducer(state, Playback.bufferData());
     expect(state.desiredPlaySpeed).toEqual(0.5);
-    expect(state.isBuffering).toEqual(true);
+    expect(state.isBufferingData).toEqual(true);
 
     state = Playback.reducer(state, Playback.play(2));
     state = Playback.reducer(state, Playback.bufferVideo(false));
     expect(state.desiredPlaySpeed).toEqual(2);
-    expect(state.isBuffering).toEqual(true);
+    expect(state.isBufferingVideo).toEqual(false);
 
     state = Playback.reducer(state, Playback.bufferData(false));
     expect(state.desiredPlaySpeed).toEqual(2);
-    expect(state.isBuffering).toEqual(false);
+    expect(state.isBufferingData).toEqual(false);
   });
 
   it('should expand start and end to fit loop', () => {

@@ -26,7 +26,7 @@ describe('segments', () => {
     let segment = Segments.getCurrentSegment({
       segments: segmentData,
       offset: segmentData[0].offset,
-      playSpeed: 1,
+      desiredPlaySpeed: 1,
       startTime: Date.now()
     });
     expect(segment.route).toBe(segmentData[0].route);
@@ -35,7 +35,7 @@ describe('segments', () => {
     segment = Segments.getCurrentSegment({
       segments: segmentData,
       offset: segmentData[0].offset + Segments.SEGMENT_LENGTH * 1.1,
-      playSpeed: 1,
+      desiredPlaySpeed: 1,
       startTime: Date.now()
     });
     expect(segment.segment).toBe(1);
@@ -45,7 +45,7 @@ describe('segments', () => {
     const segment = Segments.getCurrentSegment({
       segments: segmentData,
       offset: segmentData[0].offset + Segments.SEGMENT_LENGTH * (segmentData[0].segments - 1) + 1000,
-      playSpeed: 1,
+      desiredPlaySpeed: 1,
       startTime: Date.now()
     });
     expect(segment.route).toBe(segmentData[0].route);
@@ -56,7 +56,7 @@ describe('segments', () => {
     const segment = Segments.getCurrentSegment({
       segments: segmentData,
       offset: segmentData[0].offset + segmentData[0].duration - 10,
-      playSpeed: 1,
+      desiredPlaySpeed: 1,
       startTime: Date.now() - 50
     });
     expect(segment).toBe(null);
@@ -66,7 +66,7 @@ describe('segments', () => {
     const segment = Segments.getNextSegment({
       segments: segmentData,
       offset: segmentData[0].offset,
-      playSpeed: 1,
+      desiredPlaySpeed: 1,
       startTime: Date.now()
     });
     expect(segment.route).toBe(segmentData[0].route);
@@ -77,7 +77,7 @@ describe('segments', () => {
     const segment = Segments.getNextSegment({
       segments: segmentData,
       offset: segmentData[0].offset + segmentData[0].duration - 1000,
-      playSpeed: 1,
+      desiredPlaySpeed: 1,
       startTime: Date.now()
     });
     expect(segment.route).toBe(segmentData[1].route);
