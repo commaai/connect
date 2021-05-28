@@ -74,7 +74,7 @@ const styles = (theme) => ({
     display: 'none'
   },
   videoContainer: {
-    minHeight: 300,
+    minHeight: 200,
     position: 'relative',
     maxWidth: 964,
     margin: '0 auto',
@@ -226,7 +226,6 @@ class DriveVideo extends Component {
     }
 
     const logIndex = TimelineWorker.getLogIndex();
-    console.log(logIndex, this.visibleSegment());
     if (!logIndex) {
       return;
     }
@@ -267,6 +266,11 @@ class DriveVideo extends Component {
       return;
     }
 
+    // sanity check for ios
+    if (videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() > 30 && this.props.isBufferingVideo) {
+      TimelineWorker.bufferVideo(false);
+    }
+
     let newPlaybackRate = this.props.isBufferingData ? 0 : this.props.desiredPlaySpeed;
 
     if (!this.props.isBufferingData || videoPlayer.getInternalPlayer().playbackRate === 0) {
@@ -275,7 +279,8 @@ class DriveVideo extends Component {
       const timeDiff = desiredVideoTime - curVideoTime;
       if (Math.abs(timeDiff) <= 0.3) {
         newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff)
-      } else if (desiredVideoTime === 0) { // logs start ealier than video
+      } else if (desiredVideoTime === 0 && timeDiff < 0) { // logs start ealier than video
+        TimelineWorker.seek(TimelineWorker.currentOffset() - (timeDiff * 1000));
         newPlaybackRate = 0;
       } else {
         console.log('Seeking', curVideoTime, '->', desiredVideoTime);
@@ -1127,13 +1132,11 @@ class DriveVideo extends Component {
         }
         <ReactPlayer ref={ this.videoPlayer } url={ this.state.src } playsinline={ true } muted={ true }
           width="100%" height="unset" playing={ Boolean(this.visibleSegment()) }
-          config={{
-            file: { forceHLS: true },
-            hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false },
-          }}
+          config={{ hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false } }}
           playbackRate={ isBufferingData ? 0 : this.props.desiredPlaySpeed }
           onBuffer={ () => TimelineWorker.bufferVideo(true) }
-          onBufferEnd={ () => TimelineWorker.bufferVideo(false) } />
+          onBufferEnd={ () => TimelineWorker.bufferVideo(false) }
+          onPlay={ () => TimelineWorker.bufferVideo(false) } />
         { this.props.shouldShowUI &&
           <>
             <canvas style={{ zIndex: 3 }} className={classNames(classes.videoUiCanvas, 'hudRoadCanvas')}
