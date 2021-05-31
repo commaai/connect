@@ -265,20 +265,28 @@ class DriveVideo extends Component {
       return;
     }
 
-    // sanity check for ios
-    if (videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() > 30 && this.props.isBufferingVideo) {
+    const internalPlayer = videoPlayer.getInternalPlayer();
+
+    // sanity check required for ios
+    const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() > 30;
+    if (hasSufficientBuffer && this.props.isBufferingVideo) {
       TimelineWorker.bufferVideo(false);
+    }
+    // sanity check because on loop, player pauses, intentional pausing is with playbackRate = 0
+    if (internalPlayer.paused && !this.props.isBufferingData && hasSufficientBuffer) {
+      internalPlayer.play();
     }
 
     let newPlaybackRate = this.props.isBufferingData ? 0 : this.props.desiredPlaySpeed;
 
-    if (!this.props.isBufferingData || videoPlayer.getInternalPlayer().playbackRate === 0) {
+    if (!this.props.isBufferingData || internalPlayer.playbackRate === 0) {
       let desiredVideoTime = this.currentVideoTime();
       const curVideoTime = videoPlayer.getCurrentTime();
       const timeDiff = desiredVideoTime - curVideoTime;
       if (Math.abs(timeDiff) <= 0.3) {
         newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff)
-      } else if (desiredVideoTime === 0 && timeDiff < 0) { // logs start ealier than video
+      } else if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
+        // logs start ealier than video, so skip to video ts 0
         TimelineWorker.seek(TimelineWorker.currentOffset() - (timeDiff * 1000));
         newPlaybackRate = 0;
       } else {
@@ -287,8 +295,8 @@ class DriveVideo extends Component {
     }
 
     newPlaybackRate = Math.round(newPlaybackRate * 20) / 20;
-    if (videoPlayer.getInternalPlayer().playbackRate !== newPlaybackRate) {
-      videoPlayer.getInternalPlayer().playbackRate = newPlaybackRate;
+    if (internalPlayer.playbackRate !== newPlaybackRate) {
+      internalPlayer.playbackRate = newPlaybackRate;
     }
   }, 100)
 
