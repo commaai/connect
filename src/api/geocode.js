@@ -39,7 +39,7 @@ export default function geocodeApi() {
 
       try {
         const { features } = response.body;
-        if (features[0].context) {
+        if (features.length && features[0].context) {
           let region = features[0].context.filter(getRegion)[0].short_code;
           if (region.indexOf('US-') !== -1) { region = region.substr(3); }
           const locality = features[0].context.filter(getLocality)[0].text;
