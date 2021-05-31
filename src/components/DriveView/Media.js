@@ -202,8 +202,7 @@ class Media extends Component {
         <div style={ mediaContainerStyle }>
           { this.renderMediaOptions(showMapAlways) }
           { inView !== MediaType.MAP &&
-            <DriveVideo shouldShowUI={inView === MediaType.HUD} front={inView === MediaType.DRIVER_VIDEO}
-              onVideoChange={(noVideo) => this.setState({ inView: noVideo ? MediaType.MAP : inView }) } />
+            <DriveVideo shouldShowUI={inView === MediaType.HUD} front={inView === MediaType.DRIVER_VIDEO} />
           }
           { (inView === MediaType.MAP && !showMapAlways) &&
             <div style={ mapContainerStyle }>

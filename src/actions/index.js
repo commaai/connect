@@ -43,6 +43,7 @@ export function selectRange(start, end) {
       || state.workerState.loop.startTime < start
       || state.workerState.loop.startTime + state.workerState.loop.duration > end
       || state.workerState.loop.duration < end - start) {
+      Timelineworker.resetPlayback();
       Timelineworker.selectLoop(start, end - start);
     }
 

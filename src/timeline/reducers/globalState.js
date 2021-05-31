@@ -11,7 +11,7 @@ import {
 const initialState = {};
 
 export default function reducer(_state = initialState, action) {
-  let state = _state;
+  let state = { ..._state };
   let deviceIndex = null;
   switch (action.type) {
     case ACTION_STARTUP_DATA:
@@ -57,14 +57,23 @@ export default function reducer(_state = initialState, action) {
       }
       break;
     case ACTION_SELECT_TIME_RANGE:
-      state.start = action.start;
-      state.end = action.end;
-      state.segmentData = null;
-      state.segments = [];
+      state = {
+        ...state,
+        start: action.start,
+        end: action.end,
+        segmentData: null,
+        segments: [],
+      };
       break;
     case ACTION_UPDATE_DEVICE:
       deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.device.dongle_id);
-      state.devices[deviceIndex] = action.device;
+      state = {
+        ...state,
+        devices: {
+          ...state.devices,
+          deviceIndex: action.device,
+        },
+      };
       break;
     case ACTION_PRIME_NAV:
       state = {

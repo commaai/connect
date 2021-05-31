@@ -60,7 +60,7 @@ const styles = (theme) => ({
       paddingTop: 0,
     },
   },
-  playSpeedContainer: {
+  desiredPlaySpeedContainer: {
     marginRight: theme.spacing.unit * 1,
     display: 'flex',
     flexDirection: 'column',
@@ -103,10 +103,10 @@ const styles = (theme) => ({
 
 class TimeDisplay extends Component {
   static getDerivedStateFromProps(props, state) {
-    if (props.playSpeed !== 0 && props.playSpeed !== state.playSpeed) {
+    if (props.desiredPlaySpeed !== 0 && props.desiredPlaySpeed !== state.desiredPlaySpeed) {
       return {
         ...state,
-        playSpeed: props.playSpeed
+        desiredPlaySpeed: props.desiredPlaySpeed
       };
     }
     return state;
@@ -123,7 +123,7 @@ class TimeDisplay extends Component {
     this.decreaseSpeed = this.decreaseSpeed.bind(this);
 
     this.state = {
-      playSpeed: 1,
+      desiredPlaySpeed: 1,
       displayTime: this.getDisplayTime()
     };
   }
@@ -163,8 +163,8 @@ class TimeDisplay extends Component {
   }
 
   decreaseSpeed() {
-    const { playSpeed } = this.state;
-    let curIndex = timerSteps.indexOf(playSpeed);
+    const { desiredPlaySpeed } = this.state;
+    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
     }
@@ -173,8 +173,8 @@ class TimeDisplay extends Component {
   }
 
   increaseSpeed() {
-    const { playSpeed } = this.state;
-    let curIndex = timerSteps.indexOf(playSpeed);
+    const { desiredPlaySpeed } = this.state;
+    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
     }
@@ -183,9 +183,9 @@ class TimeDisplay extends Component {
   }
 
   togglePause(e) {
-    const { playSpeed } = this.props;
-    if (playSpeed === 0) {
-      TimelineWorker.play(this.state.playSpeed);
+    const { desiredPlaySpeed } = this.props;
+    if (desiredPlaySpeed === 0) {
+      TimelineWorker.play(this.state.desiredPlaySpeed);
     } else {
       TimelineWorker.pause();
     }
@@ -193,7 +193,7 @@ class TimeDisplay extends Component {
 
   render() {
     const { classes } = this.props;
-    const isPaused = this.props.playSpeed === 0;
+    const isPaused = this.props.desiredPlaySpeed === 0;
     return (
       <div className={cx(classes.base, { isExpanded: this.props.expanded, isThin: this.props.isThin })}>
         <div className={ classes.iconBox }>
@@ -216,13 +216,13 @@ class TimeDisplay extends Component {
         <Typography variant="body1" align="center" className={classes.currentTime}>
           <span ref={this.textHolder}>{ this.state.displayTime }</span>
         </Typography>
-        <div className={ classes.playSpeedContainer }>
+        <div className={ classes.desiredPlaySpeedContainer }>
           <IconButton className={classes.tinyArrowIcon} onClick={this.increaseSpeed}
             aria-label="Increase play speed by 1 step">
             <UpArrow className={classes.tinyArrowIcon} />
           </IconButton>
           <Typography variant="body2" align="center">
-            { this.state.playSpeed }×
+            { this.state.desiredPlaySpeed }×
           </Typography>
           <IconButton className={classes.tinyArrowIcon} onClick={this.decreaseSpeed}
             aria-label="Decrease play speed by 1 step">
@@ -244,13 +244,13 @@ class TimeDisplay extends Component {
 
 TimeDisplay.propTypes = {
   classes: PropTypes.object.isRequired,
-  playSpeed: PropTypes.number.isRequired,
+  desiredPlaySpeed: PropTypes.number.isRequired,
   start: PropTypes.number.isRequired
 };
 
 const stateToProps = Obstruction({
   expanded: 'zoom.expanded',
-  playSpeed: 'workerState.desiredPlaySpeed',
+  desiredPlaySpeed: 'workerState.desiredPlaySpeed',
   start: 'workerState.start',
 });
 

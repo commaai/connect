@@ -1,14 +1,13 @@
 import React from 'react';
-import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Typography from '@material-ui/core/Typography';
 
 export default function Buffering(props) {
   const parts = [];
-  if (props.bufferingVideo) {
+  if (props.isBufferingVideo) {
     parts.push('video');
   }
-  if (props.bufferingData) {
+  if (props.isBufferingData) {
     parts.push('data');
   }
   const message = `Buffering ${parts.join(' and ')}`;

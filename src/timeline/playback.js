@@ -9,11 +9,12 @@ const ACTION_PLAY = 'action_play';
 const ACTION_LOOP = 'action_loop';
 const ACTION_BUFFER_VIDEO = 'action_buffer_video';
 const ACTION_BUFFER_DATA = 'action_buffer_data';
-const ACTION_DISABLE_BUFFER = 'action_disable_buffer';
+const ACTION_RESET = 'action_reset';
 
 // fetch current playback offset
 export function currentOffset(state) {
-  let offset = state.offset + (Date.now() - state.startTime) * state.playSpeed;
+  let playSpeed = (state.isBufferingData || state.isBufferingVideo) ? 0 : state.desiredPlaySpeed;
+  let offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
 
   if (state.loop && state.loop.startTime) {
     // respect the loop
@@ -27,8 +28,7 @@ export function currentOffset(state) {
 }
 
 export function reducer(_state = initialState, action) {
-  let state = _state;
-  // console.log(action);
+  let state = { ..._state };
   let loopOffset = null;
   if (state.loop && state.loop.startTime !== null) {
     loopOffset = state.loop.startTime - state.start;
@@ -38,7 +38,8 @@ export function reducer(_state = initialState, action) {
       state = {
         ...state,
         offset: action.offset,
-        startTime: Date.now()
+        startTime: Date.now(),
+        isBufferingData: true,
       };
 
       if (loopOffset !== null) {
@@ -61,8 +62,8 @@ export function reducer(_state = initialState, action) {
       state = {
         ...state,
         offset: currentOffset(state),
-        playSpeed: 0,
-        desiredPlaySpeed: 0
+        startTime: Date.now(),
+        desiredPlaySpeed: 0,
       };
       break;
     case ACTION_PLAY:
@@ -71,8 +72,7 @@ export function reducer(_state = initialState, action) {
           ...state,
           offset: currentOffset(state),
           desiredPlaySpeed: action.speed,
-          playSpeed: action.speed,
-          startTime: Date.now()
+          startTime: Date.now(),
         };
       }
       break;
@@ -81,7 +81,7 @@ export function reducer(_state = initialState, action) {
         ...state,
         loop: {
           startTime: action.startTime,
-          duration: action.duration
+          duration: action.duration,
         }
       };
       if (action.duration > 0 && action.startTime > 0) {
@@ -90,19 +90,37 @@ export function reducer(_state = initialState, action) {
       }
       break;
     case ACTION_BUFFER_VIDEO:
-      state.bufferingVideo = action.buffering;
+      state = {
+        ...state,
+        isBufferingVideo: action.buffering,
+        offset: currentOffset(state),
+        startTime: Date.now(),
+      }
       break;
     case ACTION_BUFFER_DATA:
-      state.bufferingData = action.buffering;
+      state = {
+        ...state,
+        isBufferingData: action.buffering,
+        offset: currentOffset(state),
+        startTime: Date.now(),
+      }
       break;
-    case ACTION_DISABLE_BUFFER:
-      state.shouldBuffer = false;
+    case ACTION_RESET:
+      state = {
+        ...state,
+        desiredPlaySpeed: 1,
+        isBufferingVideo: false,
+        isBufferingData: true,
+        offset: 0,
+        startTime: Date.now(),
+      };
       break;
     default:
       break;
   }
 
-  const offset = state.offset + (Date.now() - state.startTime) * state.playSpeed;
+  let playSpeed = (state.isBufferingData || state.isBufferingVideo) ? 0 : state.desiredPlaySpeed;
+  const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
   // normalize over loop
   if (state.loop && state.loop.startTime !== null) {
     loopOffset = state.loop.startTime - state.start;
@@ -116,28 +134,10 @@ export function reducer(_state = initialState, action) {
     }
   }
 
-  state.bufferingVideo = !!state.bufferingVideo;
-  state.bufferingData = !!state.bufferingData;
-  state.isBuffering = state.shouldBuffer && (state.bufferingVideo || state.bufferingData);
-
-  if (state.isBuffering) {
-    if (state.playSpeed > 0) {
-      console.log('Entering buffer state, pausing things');
-      state.offset = currentOffset(state);
-      state.playSpeed = 0;
-    }
-  } else if (state.playSpeed !== state.desiredPlaySpeed) {
-    console.log('Exiting buffer state, resuming things');
-    state.offset = currentOffset(state);
-    state.startTime = Date.now();
-    state.playSpeed = state.desiredPlaySpeed;
-  }
+  state.isBufferingData = Boolean(state.isBufferingData);
+  state.isBufferingVideo = Boolean(state.isBufferingVideo);
 
   return state;
-}
-
-export function timestampToOffset(state, timestamp) {
-  return timestamp - state.start;
 }
 
 // seek to a specific offset
@@ -187,8 +187,8 @@ export function bufferData(buffering = true) {
   };
 }
 
-export function disableBuffer() {
+export function resetPlayback() {
   return {
-    type: ACTION_DISABLE_BUFFER
+    type: ACTION_RESET,
   };
 }

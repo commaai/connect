@@ -69,10 +69,6 @@ function bufferData(isBuffering) {
   store.dispatch(Playback.bufferData(isBuffering));
 }
 
-function disableBuffer(data) {
-  store.dispatch(Playback.disableBuffer(data));
-}
-
 async function hello(data) {
   await Demo.init();
   await initAuthPromise;
@@ -121,6 +117,10 @@ function primeNav(nav = true) {
   store.dispatch(primeNavAction(nav));
 }
 
+function resetPlayback() {
+  store.dispatch(Playback.resetPlayback());
+}
+
 function stop() {
   console.log('Stopping worker!');
   // if (SegmentTimerStore(state).stopTimer) {
@@ -136,7 +136,6 @@ export const commands = {
   seek,
   bufferVideo,
   bufferData,
-  disableBuffer,
   hello,
   selectDevice,
   selectTimeRange,
@@ -147,4 +146,5 @@ export const commands = {
   primeGetSubscription,
   primeGetPaymentMethod,
   primeNav,
+  resetPlayback,
 };

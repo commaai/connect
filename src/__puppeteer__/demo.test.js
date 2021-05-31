@@ -44,8 +44,18 @@ describe('demo mode', () => {
   it('should load', async () => {
     await expect(page).toClick('.DriveEntry');
     await delay(2000);
-   
-    async function expectCanvasToChange(canvasHandle, wait = 30000) {
+
+    let video = await page.$('video');
+    let videoSrc = await page.evaluate(vid => vid.getAttribute('src'), video);
+    expect(videoSrc.startsWith('blob:')).toBeTruthy();
+
+    // puppeteer chromium cannot play mp4, so change source to something it can play
+    await page.evaluate(vid => {
+      vid.setAttribute('src', 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm');
+      vid.play();
+    }, video);
+
+    async function expectCanvasToChange(canvasHandle, wait = 5000) {
       let start = Date.now();
       let origDataUrl = await page.evaluate(canvas => canvas.toDataURL(), canvasHandle);
       let dataUrl;

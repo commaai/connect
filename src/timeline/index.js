@@ -124,10 +124,6 @@ export class TimelineInterface {
     return commands.pause();
   }
 
-  async disableBuffer() {
-    return commands.disableBuffer(true);
-  }
-
   async bufferVideo(isBuffering = true) {
     return commands.bufferVideo(isBuffering);
   }
@@ -166,6 +162,10 @@ export class TimelineInterface {
 
   async primeNav(nav) {
     return commands.primeNav(nav);
+  }
+
+  async resetPlayback() {
+    return commands.resetPlayback();
   }
 
   setState(state) {
@@ -297,13 +297,6 @@ export class TimelineInterface {
   currentOffset() {
     if (this.state) {
       return Playback.currentOffset(this.state);
-    }
-    return 0;
-  }
-
-  timestampToOffset(timestamp) {
-    if (this.state) {
-      return Playback.timestampToOffset(this.state, timestamp);
     }
     return 0;
   }

@@ -246,7 +246,7 @@ function segmentsFromMetadata(segmentsData) {
 }
 
 function reducer(_state = initialState, action) {
-  let state = _state;
+  let state = { ..._state };
   switch (action.type) {
     case ACTION_LOAD_SEGMENT_METADATA:
       state = {
@@ -266,6 +266,10 @@ function reducer(_state = initialState, action) {
         segments: action.segments
       };
       break;
+    case ACTION_UPDATE_SEGMENTS:
+      state = {
+        ...state,
+      }
     default:
       break;
   }
@@ -275,6 +279,9 @@ function reducer(_state = initialState, action) {
   if (currentSegment) {
     state.route = currentSegment.route;
     state.segment = currentSegment.segment;
+  } else if (nextSegment) {
+    state.route = nextSegment.route;
+    state.segment = nextSegment.segment;
   } else {
     state.route = false;
     state.segment = 0;
