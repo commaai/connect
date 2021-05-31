@@ -4,7 +4,6 @@ import { connect } from 'react-redux';
 import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
 import { classNames } from 'react-extras';
-import { multiply } from 'mathjs';
 import debounce from 'debounce';
 import Obstruction from 'obstruction';
 import ReactPlayer from 'react-player'
@@ -913,32 +912,6 @@ class DriveVideo extends Component {
     coords[0] /= coords[2];
     coords[1] /= coords[2];
     return coords;
-  }
-
-  rot_matrix(roll, pitch, yaw) {
-    const cr = Math.cos(roll);
-    const sr = Math.sin(roll);
-    const cp = Math.cos(pitch);
-    const sp = Math.sin(pitch);
-    const cy = Math.cos(yaw);
-    const sy = Math.sin(yaw);
-
-    const rr = [
-      [1, 0, 0],
-      [0, cr, -sr],
-      [0, sr, cr]
-    ];
-    const rp = [
-      [cp, 0, sp],
-      [0, 1, 0],
-      [-sp, 0, cp]
-    ];
-    const ry = [
-      [cy, -sy, 0],
-      [sy, cy, 0],
-      [0, 0, 1]
-    ];
-    return multiply(ry, multiply(rp, rr));
   }
 
   matmul(matrix, coord) {
