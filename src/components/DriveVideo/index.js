@@ -48,25 +48,8 @@ const eon_intrinsic = [
   0, 0, 0, 0,
 ];
 
-
-
 const bdr_s = 30;
 // driver monitoring constants
-const _PITCH_NATURAL_OFFSET = 0.12; // eslint-disable-line no-underscore-dangle
-const _YAW_NATURAL_OFFSET = 0.08; // eslint-disable-line no-underscore-dangle
-const _PITCH_POS_ALLOWANCE = 0.04; // eslint-disable-line no-underscore-dangle
-const _PITCH_WEIGHT = 1.35; // eslint-disable-line no-underscore-dangle
-const _METRIC_THRESHOLD = 0.4; // eslint-disable-line no-underscore-dangle
-const W = 160;
-const H = 320;
-const RESIZED_FOCAL = 320.0;
-const FULL_W = 426;
-const DM_FACE_THRESHOLD = 0.4; // probs below this disappear
-const DM_EYE_THRESHOLD = 0.4; // probs below which blink is masked
-const DM_BLINK_THRESHOLD = 0.5; // probs above this count as blinking
-
-// cache break index files
-const STREAM_VERSION = 2;
 
 const styles = (theme) => ({
   hidden: {
