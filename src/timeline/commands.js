@@ -17,8 +17,6 @@ import store from './store';
 import * as Cache from './cache';
 import * as Demo from '../demo';
 
-export const PortState = CreateStore();
-
 // fire off init method / construct init promises
 export const initAuthPromise = Auth.init().then((token) => {
   Request.configure(token);
@@ -38,16 +36,6 @@ store.subscribe(() => {
     hasGottenSegmentData();
   }
 });
-
-function close(port) {
-  if (PortState(port).unlisten) {
-    PortState(port).unlisten();
-  }
-  if (PortState(port).broadcastChannel) {
-    PortState(port).broadcastChannel.port1.close();
-  }
-  port.close();
-}
 
 function seek(offset) {
   store.dispatch(Playback.seek(offset));

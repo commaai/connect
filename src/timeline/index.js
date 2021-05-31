@@ -16,7 +16,6 @@ import store from './store';
 
 const LogReaderWorker = require('./logReader');
 
-const UnloadEvent = Event();
 const StateEvent = Event();
 const IndexEvent = Event();
 const InitEvent = Event();
@@ -24,7 +23,6 @@ const InitPromise = new Promise(((resolve) => {
   InitEvent.listen(resolve);
 }));
 
-window.addEventListener('beforeunload', UnloadEvent.broadcast);
 const startPath = window.location ? window.location.pathname : '';
 
 // helper functions
@@ -79,7 +77,6 @@ export class TimelineInterface {
         this.handleData(msg);
       });
 
-      UnloadEvent.listen(() => this.disconnect());
       Cache.onExpire(this.expire);
       this.setState(getState());
       store.subscribe(() => {
@@ -101,15 +98,6 @@ export class TimelineInterface {
     if (this.logReader) {
       this.logReader = null;
     }
-  }
-
-  async getPort() {
-    await this.initPromise;
-    return this.port;
-  }
-
-  async disconnect() {
-    return commands.close();
   }
 
   async seek(offset) {
