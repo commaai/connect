@@ -80,7 +80,6 @@ const styles = (theme) => ({
 
 const MediaType = {
   VIDEO: 'video',
-  DRIVER_VIDEO: 'dcamera',
   HUD: 'hud',
   MAP: 'map'
 };
@@ -202,7 +201,7 @@ class Media extends Component {
         <div style={ mediaContainerStyle }>
           { this.renderMediaOptions(showMapAlways) }
           { inView !== MediaType.MAP &&
-            <DriveVideo shouldShowUI={inView === MediaType.HUD} front={inView === MediaType.DRIVER_VIDEO} />
+            <DriveVideo shouldShowUI={inView === MediaType.HUD} />
           }
           { (inView === MediaType.MAP && !showMapAlways) &&
             <div style={ mapContainerStyle }>
@@ -225,7 +224,6 @@ class Media extends Component {
   renderMediaOptions(showMapAlways) {
     const { classes, visibleSegment } = this.props;
     const { inView } = this.state;
-    const hasDriverCameraStream = visibleSegment && visibleSegment.hasDriverCameraStream;
     return (
       <>
         <div className={classes.mediaOptionsRoot}>
@@ -238,13 +236,6 @@ class Media extends Component {
               onClick={() => this.setState({ inView: MediaType.VIDEO })}>
               <Typography className={classes.mediaOptionText}>Video</Typography>
             </div>
-            { hasDriverCameraStream && (
-              <div className={cx(classes.mediaOption, { disabled: !hasDriverCameraStream })}
-                style={inView !== MediaType.DRIVER_VIDEO ? { opacity: 0.6 } : {}}
-                onClick={() => hasDriverCameraStream && this.setState({ inView: MediaType.DRIVER_VIDEO })}>
-                <Typography className={classes.mediaOptionText}>Driver Video</Typography>
-              </div>
-              )}
             { !showMapAlways &&
               <div className={classes.mediaOption} style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
                 onClick={() => this.setState({ inView: MediaType.MAP })}>
@@ -282,7 +273,7 @@ class Media extends Component {
           </MenuItem>
           <MenuItem onClick={ () => this.downloadSegmentFile('dcameras') }
             disabled={ !(visibleSegment && visibleSegment.hasDriverCamera) }>
-            Download Front Camera Segment
+            Download Driver Camera Segment
           </MenuItem>
           <MenuItem onClick={ () => this.downloadSegmentFile('logs') } disabled={ !visibleSegment }>
             Download Log Segment

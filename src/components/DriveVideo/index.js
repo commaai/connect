@@ -170,20 +170,7 @@ class DriveVideo extends Component {
     }
 
     const prevSegment = this.visibleSegment(prevProps);
-    if (this.props.front) {
-      let base = `${process.env.REACT_APP_VIDEO_CDN}/hls/${this.props.dongleId}/${segment.url.split('/').pop()}`;
-      base += '/dcamera';
-      // We append count of segments with stream available as a cache-busting method
-      // on stream indexes served before route is fully uploaded
-      let segCount = segment.driverCameraStreamSegCount;
-      let src = `${base}/index.m3u8?v=${STREAM_VERSION}&s=${segCount}`;
-      if (this.state.src !== src) {
-        this.setState({ src });
-        this.syncVideo();
-      }
-    } else if (this.props.front !== prevProps.front || this.state.src === ''  || !prevSegment ||
-      prevSegment.route !== segment.route)
-    {
+    if (this.state.src === ''  || !prevSegment || prevSegment.route !== segment.route) {
       let videoApi = VideoApi(segment.url, process.env.REACT_APP_VIDEO_CDN);
       videoApi.getQcameraStreamIndex().then(() => {
         let src = videoApi.getQcameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`
@@ -218,7 +205,7 @@ class DriveVideo extends Component {
   }
 
   checkDataBuffer = debounce(() => {
-    if (this.props.front || !this.props.shouldShowUI) {
+    if (!this.props.shouldShowUI) {
       if (this.props.isBufferingData) {
         TimelineWorker.bufferData(false);
       }
@@ -306,18 +293,6 @@ class DriveVideo extends Component {
     if (!calibration) {
       this.lastCalibrationTime = false;
       return;
-    }
-
-    if (this.props.front) {
-      if (this.canvas_face.current) {
-        const params = { calibration, shouldScale: true };
-        const events = {
-          driverMonitoring: TimelineWorker.currentDriverMonitoring
-        };
-        this.renderEventToCanvas(
-          this.canvas_face.current, params, events, this.renderDriverMonitoring
-        );
-      }
     }
 
     if (!this.props.shouldShowUI) {
@@ -1107,13 +1082,11 @@ class DriveVideo extends Component {
     offset -= this.visibleSegment().routeOffset;
     offset = offset / 1000;
 
-    if (!this.props.front) {
-      let initData = TimelineWorker.currentInitData();
-      let firstFrameTime = TimelineWorker.firstFrameTime();
+    let initData = TimelineWorker.currentInitData();
+    let firstFrameTime = TimelineWorker.firstFrameTime();
 
-      if (initData !== null && firstFrameTime !== null) {
-        offset -= (firstFrameTime - initData.LogMonoTime/1e9);
-      }
+    if (initData !== null && firstFrameTime !== null) {
+      offset -= (firstFrameTime - initData.LogMonoTime/1e9);
     }
 
     return Math.max(0, offset);
@@ -1143,9 +1116,6 @@ class DriveVideo extends Component {
             <canvas className={classes.videoUiCanvas} style={{ zIndex: 6 }} ref={this.canvas_maxspeed} />
             <canvas className={classes.videoUiCanvas} style={{ zIndex: 7 }} ref={this.canvas_speed} />
           </>
-        }
-        { this.props.front &&
-          <canvas ref={this.canvas_face} className={classes.videoUiCanvas} style={{ zIndex: 3 }} />
         }
       </div>
     );
