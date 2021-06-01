@@ -193,7 +193,7 @@ class Media extends Component {
       { width: '60%' } :
       { width: '100%' };
     const mapContainerStyle = showMapAlways ?
-      { width: '40%', marginTop: 46, paddingLeft: 24 } :
+      { width: '40%', marginBottom: 62, marginTop: 46, paddingLeft: 24 } :
       { width: '100%' };
 
     return (

@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';
-import Measure from 'react-measure';
 import { withStyles } from '@material-ui/core/styles';
 
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
@@ -15,9 +14,13 @@ const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 
 const styles = {
   mapContainer: {
-    width: '100%',
     height: '100%',
-    cursor: 'default !important'
+    cursor: 'default !important',
+    '& div': {
+      height: '100% !important',
+      width: '100% !important',
+      minHeight: 300,
+    },
   }
 };
 
@@ -36,11 +39,9 @@ class DriveMap extends Component {
     this.isLoadingCoords = false;
     this.state = {
       viewport: {
-        width: 640,
-        height: 480,
         latitude: 37.7577,
         longitude: -122.4376,
-        zoom: 15
+        zoom: 15,
       },
       route: nextRoute,
       coords: [],
@@ -113,7 +114,7 @@ class DriveMap extends Component {
     const viewport = {
       ...this.state.viewport,
       longitude: pos[0],
-      latitude: pos[1]
+      latitude: pos[1],
     };
     if (this.shouldFlyTo) {
       viewport.transitionDuration = 200;
@@ -254,24 +255,13 @@ class DriveMap extends Component {
   }
 
   render() {
+    const { classes } = this.props;
     return (
-      <Measure bounds onResize={(contentRect) => this.setState({ viewport: {
-          ...this.state.viewport, width: contentRect.bounds.width, height: contentRect.bounds.height
-        }}) }>
-        {({ measureRef }) => (
-          <div ref={measureRef} className={this.props.classes.mapContainer}>
-            <ReactMapGL
-              {...this.state.viewport}
-              mapStyle={MAP_STYLE}
-              onViewportChange={(viewport) => this.setState({ viewport })}
-              mapboxApiAccessToken={MAPBOX_TOKEN}
-              attributionControl={false}
-              ref={this.initMap}
-              dragPan={false}
-            />
-          </div>
-        )}
-      </Measure>
+      <div className={ classes.mapContainer }>
+        <ReactMapGL width="100%" height="100%" {...this.state.viewport} mapStyle={MAP_STYLE}
+          onViewportChange={(viewport) => this.setState({ viewport })}
+          mapboxApiAccessToken={MAPBOX_TOKEN} attributionControl={false} ref={this.initMap} dragPan={false} />
+      </div>
     );
   }
 }
