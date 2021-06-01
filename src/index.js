@@ -11,12 +11,14 @@ import App from './App';
 import Theme from './theme';
 import { unregister } from './registerServiceWorker';
 
-if (process.env.NODE_ENV === 'production') {
+if (process.env.REACT_APP_SENTRY_ENV) {
   Raven.config(
     'https://6a242abfa01b4660aa34f150e87de018@sentry.io/1234624',
-    { environment: process.env.NODE_ENV }
+    { environment: process.env.REACT_APP_SENTRY_ENV }
   ).install();
+}
 
+if (process.env.NODE_ENV === 'production') {
   unregister();
 }
 
