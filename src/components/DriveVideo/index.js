@@ -272,13 +272,8 @@ class DriveVideo extends Component {
     if (hasSufficientBuffer && this.props.isBufferingVideo) {
       TimelineWorker.bufferVideo(false);
     }
-    // sanity check because on loop, player pauses, intentional pausing is with playbackRate = 0
-    if (internalPlayer.paused && !this.props.isBufferingData && hasSufficientBuffer) {
-      internalPlayer.play();
-    }
 
     let newPlaybackRate = this.props.isBufferingData ? 0 : this.props.desiredPlaySpeed;
-
     if (!this.props.isBufferingData || internalPlayer.playbackRate === 0) {
       let desiredVideoTime = this.currentVideoTime();
       const curVideoTime = videoPlayer.getCurrentTime();
@@ -288,7 +283,6 @@ class DriveVideo extends Component {
       } else if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
         // logs start ealier than video, so skip to video ts 0
         TimelineWorker.seek(TimelineWorker.currentOffset() - (timeDiff * 1000));
-        newPlaybackRate = 0;
       } else {
         videoPlayer.seekTo(desiredVideoTime, 'seconds');
       }
@@ -297,6 +291,13 @@ class DriveVideo extends Component {
     newPlaybackRate = Math.round(newPlaybackRate * 20) / 20;
     if (internalPlayer.playbackRate !== newPlaybackRate) {
       internalPlayer.playbackRate = newPlaybackRate;
+    }
+
+    // pausing and unpausing is required on some browsers
+    if (internalPlayer.paused && internalPlayer.playbackRate !== 0 && hasSufficientBuffer) {
+      internalPlayer.play();
+    } else if (!internalPlayer.paused && internalPlayer.playbackRate === 0) {
+      internalPlayer.pause();
     }
   }, 100)
 
@@ -1129,15 +1130,16 @@ class DriveVideo extends Component {
 
   render() {
     const { classes, isBufferingData, isBufferingVideo } = this.props;
+    const playSpeed = isBufferingData ? 0 : this.props.desiredPlaySpeed;
     return (
       <div className={classNames(classes.videoContainer, { [classes.hidden]: false })}>
         { (isBufferingData || isBufferingVideo) &&
           <Buffering isBufferingVideo={ isBufferingVideo } isBufferingData={ isBufferingData } />
         }
         <ReactPlayer ref={ this.videoPlayer } url={ this.state.src } playsinline={ true } muted={ true }
-          width="100%" height="unset" playing={ Boolean(this.visibleSegment()) }
+          width="100%" height="unset" playing={ Boolean(this.visibleSegment()) && Boolean(playSpeed) }
           config={{ hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false } }}
-          playbackRate={ isBufferingData ? 0 : this.props.desiredPlaySpeed }
+          playbackRate={ playSpeed }
           onBuffer={ () => TimelineWorker.bufferVideo(true) }
           onBufferEnd={ () => TimelineWorker.bufferVideo(false) }
           onPlay={ () => TimelineWorker.bufferVideo(false) } />
