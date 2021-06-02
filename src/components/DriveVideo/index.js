@@ -888,15 +888,6 @@ class DriveVideo extends Component {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.392)';
       ctx.fillText('N/A', left + width / 2, textBottomY);
     }
-
-    if (ControlsState.DecelForTurnDEPRECATED && ControlsState.Enabled) {
-      const turnSpeed = ControlsState.VCurvatureDEPRECATED * 2.2369363 + 0.5;
-      ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
-      ctx.font = `700 ${25 * (4 / 3)}px Open Sans`;
-      ctx.fillText('TURN', 200 * (2 / 3) + left + width / 2, textTopY);
-      ctx.font = `700 ${50 * (4 / 3)}px Open Sans`;
-      ctx.fillText(Math.floor(turnSpeed), 200 * (2 / 3) + left + width / 2, textBottomY);
-    }
   }
 
   drawCarStateWheel(options, CarState, ControlsState) {
@@ -920,7 +911,7 @@ class DriveVideo extends Component {
 
     // Rotate Wheel
     ctx.translate(x, y);
-    ctx.rotate(0 - CarState.SteeringAngle * Math.PI / 180);
+    ctx.rotate(0 - CarState.SteeringAngleDeg * Math.PI / 180);
     ctx.translate(-x, -y);
 
     // Wheel Image

@@ -300,11 +300,11 @@ export class TimelineInterface {
     const logIndex = this.buffers[this.state.route][0];
     for(let i = 0; i < logIndex.index.length; i++) {
       const entry = logIndex.index[i];
-      if (entry[5] === EventWhich.FRAME) {
+      if (entry[5] === EventWhich.ROAD_CAMERA_STATE) {
         const buffer = logIndex.buffers[entry[4]].slice(entry[2], entry[2] + entry[3]);
         const msg = new capnp.Message(buffer, false);
         const event = toJSON(msg.getRoot(CapnpEvent));
-        return event.Frame.TimestampEof / 1e9;
+        return event.RoadCameraState.TimestampEof / 1e9;
       }
     }
     return null;
