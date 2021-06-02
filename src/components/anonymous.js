@@ -45,6 +45,7 @@ const styles = (/* theme */) => ({
     fontSize: '18px',
   },
   logInButton: {
+    cursor: 'pointer',
     alignItems: 'center',
     background: '#ffffff',
     display: 'flex',

@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
-import cx from 'classnames';
 import qs from 'query-string';
+import { connect } from 'react-redux';
+import Obstruction from 'obstruction';
 
 import { withStyles, Typography, Menu, MenuItem } from '@material-ui/core';
 
@@ -103,6 +104,12 @@ class Media extends Component {
     this.downloadSegmentFile = this.downloadSegmentFile.bind(this);
     this.openInCabana = this.openInCabana.bind(this);
     this.openInUseradmin = this.openInUseradmin.bind(this);
+  }
+
+  componentDidUpdate() {
+    if (this.props.isBufferingData && this.state.inView == MediaType.MAP && this.state.windowWidth < 1536) {
+      TimelineWorker.bufferData(false);
+    }
   }
 
   onResize(windowWidth, windowHeight) {
@@ -297,4 +304,8 @@ class Media extends Component {
   }
 }
 
-export default withStyles(styles)(Media);
+const stateToProps = Obstruction({
+  isBufferingData: 'workerState.isBufferingData',
+});
+
+export default connect(stateToProps)(withStyles(styles)(Media));
