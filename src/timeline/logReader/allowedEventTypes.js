@@ -10,7 +10,6 @@ export default function filterEvent(which) {
     case EventWhich.CAR_STATE:
     case EventWhich.CONTROLS_STATE:
     case EventWhich.LIVE_CALIBRATION:
-    case EventWhich.DRIVER_STATE:
     case EventWhich.THUMBNAIL:
     case EventWhich.ROAD_CAMERA_STATE:
       return true;

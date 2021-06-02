@@ -4,7 +4,6 @@ import { connect } from 'react-redux';
 import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
 import { classNames } from 'react-extras';
-import { multiply } from 'mathjs';
 import debounce from 'debounce';
 import Obstruction from 'obstruction';
 import ReactPlayer from 'react-player'
@@ -49,25 +48,8 @@ const eon_intrinsic = [
   0, 0, 0, 0,
 ];
 
-
-
 const bdr_s = 30;
 // driver monitoring constants
-const _PITCH_NATURAL_OFFSET = 0.12; // eslint-disable-line no-underscore-dangle
-const _YAW_NATURAL_OFFSET = 0.08; // eslint-disable-line no-underscore-dangle
-const _PITCH_POS_ALLOWANCE = 0.04; // eslint-disable-line no-underscore-dangle
-const _PITCH_WEIGHT = 1.35; // eslint-disable-line no-underscore-dangle
-const _METRIC_THRESHOLD = 0.4; // eslint-disable-line no-underscore-dangle
-const W = 160;
-const H = 320;
-const RESIZED_FOCAL = 320.0;
-const FULL_W = 426;
-const DM_FACE_THRESHOLD = 0.4; // probs below this disappear
-const DM_EYE_THRESHOLD = 0.4; // probs below which blink is masked
-const DM_BLINK_THRESHOLD = 0.5; // probs above this count as blinking
-
-// cache break index files
-const STREAM_VERSION = 2;
 
 const styles = (theme) => ({
   hidden: {
@@ -170,20 +152,7 @@ class DriveVideo extends Component {
     }
 
     const prevSegment = this.visibleSegment(prevProps);
-    if (this.props.front) {
-      let base = `${process.env.REACT_APP_VIDEO_CDN}/hls/${this.props.dongleId}/${segment.url.split('/').pop()}`;
-      base += '/dcamera';
-      // We append count of segments with stream available as a cache-busting method
-      // on stream indexes served before route is fully uploaded
-      let segCount = segment.driverCameraStreamSegCount;
-      let src = `${base}/index.m3u8?v=${STREAM_VERSION}&s=${segCount}`;
-      if (this.state.src !== src) {
-        this.setState({ src });
-        this.syncVideo();
-      }
-    } else if (this.props.front !== prevProps.front || this.state.src === ''  || !prevSegment ||
-      prevSegment.route !== segment.route)
-    {
+    if (this.state.src === ''  || !prevSegment || prevSegment.route !== segment.route) {
       let videoApi = VideoApi(segment.url, process.env.REACT_APP_VIDEO_CDN);
       videoApi.getQcameraStreamIndex().then(() => {
         let src = videoApi.getQcameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`
@@ -218,7 +187,7 @@ class DriveVideo extends Component {
   }
 
   checkDataBuffer = debounce(() => {
-    if (this.props.front || !this.props.shouldShowUI) {
+    if (!this.props.shouldShowUI) {
       if (this.props.isBufferingData) {
         TimelineWorker.bufferData(false);
       }
@@ -306,18 +275,6 @@ class DriveVideo extends Component {
     if (!calibration) {
       this.lastCalibrationTime = false;
       return;
-    }
-
-    if (this.props.front) {
-      if (this.canvas_face.current) {
-        const params = { calibration, shouldScale: true };
-        const events = {
-          driverMonitoring: TimelineWorker.currentDriverMonitoring
-        };
-        this.renderEventToCanvas(
-          this.canvas_face.current, params, events, this.renderDriverMonitoring
-        );
-      }
     }
 
     if (!this.props.shouldShowUI) {
@@ -930,128 +887,6 @@ class DriveVideo extends Component {
     ctx.strokeRect(0, 0, this.vwp_w, this.vwp_h);
   }
 
-  renderDriverMonitoring(options, events) {
-    if (!events.driverMonitoring) {
-      return;
-    }
-
-    const { ctx } = options;
-    const driverMonitoring = events.driverMonitoring.DriverMonitoring;
-
-    if (driverMonitoring.FaceProb < 0.8) {
-      return;
-    }
-
-    const xW = this.vwp_h / 2;
-    const xOffset = this.vwp_w - xW;
-    let noseSize = 20;
-    ctx.translate(xOffset, 0);
-
-    const isDistracted = this.isDistracted(driverMonitoring);
-
-    const opacity = (driverMonitoring.FaceProb - DM_FACE_THRESHOLD) / (1 - DM_FACE_THRESHOLD) * 255;
-    noseSize *= 1 / (driverMonitoring.FaceProb);
-    let [x, y] = driverMonitoring.FacePosition.map((v) => v + 0.5);
-    x = toX(x);
-    y = toY(y);
-
-    const flatMatrix = this.rot_matrix(...driverMonitoring.FaceOrientation)
-      .reduce((m, v) => m.concat([...v, 1]), [])
-      .concat([0, 0, 0, 1]);
-    flatMatrix[3] = x;
-    flatMatrix[7] = y;
-
-    const p1 = this.matmul(flatMatrix, [0, 0, 0, 1]);
-    const p2 = this.matmul(flatMatrix, [0, 0, 100, 1]);
-
-    let isBlinking = false;
-
-    if (
-      driverMonitoring.LeftBlinkProb + driverMonitoring.RightBlinkProb > 2 * DM_BLINK_THRESHOLD
-      && driverMonitoring.LeftEyeProb > DM_EYE_THRESHOLD
-      && driverMonitoring.RightEyeProb > DM_EYE_THRESHOLD
-    ) {
-      isBlinking = true;
-    }
-
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    if (isDistracted) {
-      ctx.strokeStyle = `rgba(255, 0, 0, ${opacity})`;
-    } else if (isBlinking) {
-      ctx.strokeStyle = `rgba(255, 255, 0, ${opacity})`;
-    } else {
-      ctx.strokeStyle = `rgba(0, 255, 0, ${opacity})`;
-    }
-    ctx.arc(x, y, noseSize, 0, 2 * Math.PI);
-    ctx.stroke();
-    ctx.closePath();
-
-    // print raw and converted values, useful for debugging but super not pretty
-    // ctx.fillStyle = 'rgb(255,255,255)';
-    // ctx.font = '800 14px Open Sans';
-    // ctx.fillText(driverMonitoring.FaceOrientation[2], x + noseSize * 2, y);
-    // ctx.fillText(driverMonitoring.FaceOrientation[1], x, y + noseSize * 2);
-
-    // let pose = this.getDriverPose(driverMonitoring);
-
-    // ctx.fillText(pose.yaw, x + noseSize * 2, y + noseSize / 2);
-    // ctx.fillText(pose.pitch, x, y + noseSize * 2.5);
-
-    ctx.beginPath();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = theme.palette.states.drivingBlue;
-    ctx.moveTo((p1[0]), (p1[1]));
-    ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
-    ctx.lineTo((p2[0]), (p2[1]));
-    ctx.stroke();
-    ctx.closePath();
-
-    function toX(x) {
-      return (x * xW);
-    }
-    function toY(y) {
-      return (y * this.vwp_h);
-    }
-  }
-
-  isDistracted(driverMonitoring) {
-    const pose = this.getDriverPose(driverMonitoring);
-
-    let pitch_error = pose.pitch - _PITCH_NATURAL_OFFSET;
-    const yaw_error = pose.yaw - _YAW_NATURAL_OFFSET;
-    if (pitch_error > 0) {
-      pitch_error = Math.max(pitch_error - _PITCH_POS_ALLOWANCE, 0);
-    }
-
-    pitch_error *= _PITCH_WEIGHT;
-    const pose_metric = Math.sqrt(Math.pow(yaw_error, 2) + Math.pow(pitch_error, 2));
-    if (pose_metric > _METRIC_THRESHOLD) {
-      return true;
-    }
-    return false;
-  }
-
-  getDriverPose(driverMonitoring) {
-    // use driver monitoring units instead of canvas units
-    // that way code can be nearly identical
-    const angles_desc = driverMonitoring.FaceOrientation;
-    const pos_desc = driverMonitoring.FacePosition;
-
-    const pitch_net = angles_desc[0];
-    const yaw_net = angles_desc[1];
-    const roll_net = angles_desc[2];
-
-    const face_pixel_position = [(pos_desc[0] + 0.5) * W - W + FULL_W, (pos_desc[1] + 0.5) * H];
-    const yaw_focal_angle = Math.atan2(face_pixel_position[0] - FULL_W / 2, RESIZED_FOCAL);
-    const pitch_focal_angle = Math.atan2(face_pixel_position[1] - H / 2, RESIZED_FOCAL);
-
-    const roll = roll_net;
-    const pitch = pitch_net + pitch_focal_angle;
-    const yaw = -yaw_net + yaw_focal_angle;
-    return { roll, pitch, yaw };
-  }
-
   carSpaceToImageSpace(coords) {
     coords = this.matmul(this.extrinsic, coords);
     coords = this.matmul(this.intrinsic, coords);
@@ -1060,32 +895,6 @@ class DriveVideo extends Component {
     coords[0] /= coords[2];
     coords[1] /= coords[2];
     return coords;
-  }
-
-  rot_matrix(roll, pitch, yaw) {
-    const cr = Math.cos(roll);
-    const sr = Math.sin(roll);
-    const cp = Math.cos(pitch);
-    const sp = Math.sin(pitch);
-    const cy = Math.cos(yaw);
-    const sy = Math.sin(yaw);
-
-    const rr = [
-      [1, 0, 0],
-      [0, cr, -sr],
-      [0, sr, cr]
-    ];
-    const rp = [
-      [cp, 0, sp],
-      [0, 1, 0],
-      [-sp, 0, cp]
-    ];
-    const ry = [
-      [cy, -sy, 0],
-      [sy, cy, 0],
-      [0, 0, 1]
-    ];
-    return multiply(ry, multiply(rp, rr));
   }
 
   matmul(matrix, coord) {
@@ -1107,13 +916,11 @@ class DriveVideo extends Component {
     offset -= this.visibleSegment().routeOffset;
     offset = offset / 1000;
 
-    if (!this.props.front) {
-      let initData = TimelineWorker.currentInitData();
-      let firstFrameTime = TimelineWorker.firstFrameTime();
+    let initData = TimelineWorker.currentInitData();
+    let firstFrameTime = TimelineWorker.firstFrameTime();
 
-      if (initData !== null && firstFrameTime !== null) {
-        offset -= (firstFrameTime - initData.LogMonoTime/1e9);
-      }
+    if (initData !== null && firstFrameTime !== null) {
+      offset -= (firstFrameTime - initData.LogMonoTime/1e9);
     }
 
     return Math.max(0, offset);
@@ -1143,9 +950,6 @@ class DriveVideo extends Component {
             <canvas className={classes.videoUiCanvas} style={{ zIndex: 6 }} ref={this.canvas_maxspeed} />
             <canvas className={classes.videoUiCanvas} style={{ zIndex: 7 }} ref={this.canvas_speed} />
           </>
-        }
-        { this.props.front &&
-          <canvas ref={this.canvas_face} className={classes.videoUiCanvas} style={{ zIndex: 3 }} />
         }
       </div>
     );

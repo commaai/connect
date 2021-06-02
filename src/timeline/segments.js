@@ -45,9 +45,7 @@ function getCurrentSegment(state, o) {
         hpgps: thisSegment.hpgps,
         hasVideo: thisSegment.hasVideo,
         hasDriverCamera: thisSegment.hasDriverCamera,
-        hasDriverCameraStream: thisSegment.hasDriverCameraStream,
         cameraStreamSegCount: thisSegment.cameraStreamSegCount,
-        driverCameraStreamSegCount: thisSegment.driverCameraStreamSegCount,
         distanceMiles: thisSegment.distanceMiles,
       };
     }
@@ -79,9 +77,7 @@ function getNextSegment(state, o) {
         hpgps: thisSegment.hpgps,
         hasVideo: thisSegment.hasVideo,
         hasDriverCamera: thisSegment.hasDriverCamera,
-        hasDriverCameraStream: thisSegment.hasDriverCameraStream,
         cameraStreamSegCount: thisSegment.cameraStreamSegCount,
-        driverCameraStreamSegCount: thisSegment.driverCameraStreamSegCount,
         distanceMiles: thisSegment.distanceMiles,
       };
       // already returned, unreachable code
@@ -103,9 +99,7 @@ function getNextSegment(state, o) {
           hpgps: thisSegment.hpgps,
           hasVideo: thisSegment.hasVideo,
           hasDriverCamera: thisSegment.hasDriverCamera,
-          hasDriverCameraStream: thisSegment.hasDriverCameraStream,
           cameraStreamSegCount: thisSegment.cameraStreamSegCount,
-          driverCameraStreamSegCount: thisSegment.driverCameraStreamSegCount,
           distanceMiles: thisSegment.distanceMiles,
         };
       }
@@ -169,7 +163,6 @@ function segmentsFromMetadata(segmentsData) {
       return;
     }
     const segmentHasDriverCamera = (segment.proc_dcamera >= 0);
-    const segmentHasDriverCameraStream = (segment.proc_dcamera === 40);
     const segmentHasVideo = (segment.proc_camera >= 0);
     if (segmentHasVideo && curVideoStartOffset === null) {
       curVideoStartOffset = segment.offset;
@@ -205,12 +198,10 @@ function segmentsFromMetadata(segmentsData) {
         deviceType: segment.devicetype,
         hpgps: segment.hpgps,
         hasDriverCamera: segmentHasDriverCamera,
-        hasDriverCameraStream: segmentHasDriverCameraStream,
         locStart: '',
         locEnd: '',
         distanceMiles: 0.0,
         cameraStreamSegCount: 0,
-        driverCameraStreamSegCount: 0,
       };
       segments.push(curSegment);
     }
@@ -223,16 +214,12 @@ function segmentsFromMetadata(segmentsData) {
     }
     curSegment.hasVideo = (curSegment.hasVideo || segmentHasVideo);
     curSegment.hasDriverCamera = (curSegment.hasDriverCamera || segmentHasDriverCamera);
-    if (!curSegment.hasDriverCameraStream) {
-      curSegment.hasDriverCameraStream = segmentHasDriverCameraStream;
-    }
     curSegment.hpgps = (curSegment.hpgps || segment.hpgps);
     curSegment.duration = (segment.offset - curSegment.offset) + segment.duration;
     curSegment.segments = Math.max(curSegment.segments, Number(segment.canonical_name.split('--').pop()) + 1);
     curSegment.events = curSegment.events.concat(segment.events);
     curSegment.distanceMiles += segment.length;
     curSegment.cameraStreamSegCount += Math.floor(segmentHasVideo);
-    curSegment.driverCameraStreamSegCount += Math.floor(segmentHasDriverCameraStream);
     if (!curSegment.endCoord || segment.end_lng !== 0 || segment.end_lat !== 0) {
       curSegment.endCoord = [segment.end_lng, segment.end_lat];
     }

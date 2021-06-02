@@ -360,10 +360,6 @@ export class TimelineInterface {
     return this.getEventByType(EventWhich.CONTROLS_STATE);
   }
 
-  currentDriverMonitoring() {
-    return this.getEventByType(EventWhich.DRIVER_MONITORING, 1000);
-  }
-
   currentThumbnail() {
     return this.getEventByType(EventWhich.THUMBNAIL, 6000);
   }
