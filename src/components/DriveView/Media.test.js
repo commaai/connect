@@ -30,7 +30,8 @@ describe('Media', () => {
     const currentOffset = loopStartTime - start + Math.round(Math.random() * 10000);
     currentOffsetMock.mockImplementationOnce(() => currentOffset);
     const media = mount(
-      <Media visibleSegment={{ routeOffset }} loop={{ startTime: loopStartTime, duration: 15000 }} start={start} menusOnly />
+      <Media visibleSegment={{ routeOffset }} loop={{ startTime: loopStartTime, duration: 15000 }} start={start}
+        store={{ subscribe: () => {}, dispatch: () => {}, getState: () => {} }} menusOnly />
     );
 
     expect(media.exists()).toBe(true);
@@ -65,8 +66,9 @@ describe('Media', () => {
     const currentOffset = loopStartTime - start + Math.round(Math.random() * 10000);
     currentOffsetMock.mockImplementationOnce(() => currentOffset);
     const media = mount(
-      <Media visibleSegment={{ routeOffset }} start={start}
-        loop={{ startTime: loopStartTime, duration: 181000 }} menusOnly />
+      <Media visibleSegment={{ routeOffset }} start={start} menusOnly
+        store={{ subscribe: () => {}, dispatch: () => {}, getState: () => {} }}
+        loop={{ startTime: loopStartTime, duration: 181000 }} />
     );
 
     expect(media.exists()).toBe(true);
