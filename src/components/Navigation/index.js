@@ -27,6 +27,9 @@ const styles = () => ({
     padding: '12px 16px',
     border: `1px solid ${Colors.white10}`,
     backgroundColor: Colors.grey800,
+    maxHeight: 'calc(50vh - 20px)',
+    display: 'flex',
+    flexDirection: 'column',
   },
   overlayTextfield: {
     borderRadius: 0,
@@ -34,6 +37,10 @@ const styles = () => ({
   },
   overlaySearchButton: {
     color: Colors.white30,
+  },
+  overlaySearchResults: {
+    flexGrow: 1,
+    overflow: 'auto',
   },
   overlaySearchItem: {
     cursor: 'pointer',
@@ -102,6 +109,11 @@ class Navigation extends Component {
     }
 
     if (prevProps.dongleId !== dongleId) {
+      this.setState({
+        carOnline: true,
+        carLocation: null,
+        carLocationTime: null,
+      });
       this.updateDevice();
     }
   }
@@ -190,8 +202,8 @@ class Navigation extends Component {
           mapStyle={ MAP_STYLE } width="100%" height="100%" onNativeClick={ this.focus } maxPitch={ 0 }
           mapboxApiAccessToken={ MAPBOX_TOKEN } attributionControl={ false } ref={ this.initMap } >
           <GeolocateControl className={ classes.geolocateControl } positionOptions={{ enableHighAccuracy: true }}
-            trackUserLocation={ true } showAccuracyCircle={ false } onGeolocate={ this.onGeolocate } auto
-            fitBoundsOptions={{ maxZoom: 10 }} />
+            showAccuracyCircle={ false } onGeolocate={ this.onGeolocate } auto fitBoundsOptions={{ maxZoom: 10 }}
+            trackUserLocation={true} />
           { carLocation && carOnline &&
             <Marker latitude={ carLocation[1] } longitude={ carLocation[0] } offsetLeft={ -18 } offsetTop={ -33 }>
               <img className={ classes.carPin } src={ car_pin } />
@@ -224,11 +236,13 @@ class Navigation extends Component {
               ( <InputAdornment position="end"><Search className={ classes.overlaySearchButton } /></InputAdornment> ) :
               null
           }} />
-        { this.state.search && this.state.search.map((item) => (
-          <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item) }>
-            <Typography>{ item.place_name }</Typography>
-          </div>
-        )) }
+        <div className={ classes.overlaySearchResults }>
+          { this.state.search && this.state.search.map((item) => (
+            <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item) }>
+              <Typography>{ item.place_name }</Typography>
+            </div>
+          )) }
+        </div>
       </div>
     );
   }
