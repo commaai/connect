@@ -5,7 +5,7 @@ import debounce from 'debounce';
 import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, FlyToInterpolator,
   WebMercatorViewport } from 'react-map-gl';
 
-import { withStyles, TextField, InputAdornment, Typography } from '@material-ui/core';
+import { withStyles, TextField, InputAdornment, Typography, Button } from '@material-ui/core';
 import { Search, Room } from '@material-ui/icons';
 import Colors from '../../colors';
 import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
@@ -39,6 +39,8 @@ const styles = () => ({
     color: Colors.white30,
   },
   overlaySearchResults: {
+    marginTop: 5,
+    borderTop: `1px solid ${Colors.white20}`,
     flexGrow: 1,
     overflow: 'auto',
   },
@@ -46,15 +48,54 @@ const styles = () => ({
     cursor: 'pointer',
     marginTop: 15,
   },
+  overlaySearchDetails: {
+    color: Colors.white40,
+  },
   searchPin: {
     cursor: 'pointer',
     fontSize: 36,
     color: '#31a1ee',
   },
   searchSelect: {
-    cursor: 'pointer',
     fontSize: 36,
     color: '#31a1ee',
+  },
+  searchSelectBox: {
+    borderRadius: 22,
+    padding: '12px 16px',
+    border: `1px solid ${Colors.white10}`,
+    backgroundColor: Colors.grey800,
+    color: Colors.white,
+    maxWidth: 330,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  searchSelectBoxHeader: {
+    display: 'flex',
+    width: '100%',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    '& > p': {
+      fontWeight: 600,
+    },
+  },
+  searchSelectButton: {
+    backgroundColor: Colors.white,
+    color: Colors.grey800,
+    borderRadius: 22,
+    borderRadius: 30,
+    color: '#404B4F',
+    textTransform: 'none',
+    minHeight: 'unset',
+    '&:hover': {
+      background: '#ddd',
+      color: '#404B4F',
+    }
+  },
+  searchSelectBoxDetails: {
+    color: Colors.white40,
   },
   carPin: {
     width: 36,
@@ -84,6 +125,7 @@ class Navigation extends Component {
 
     this.flyToMarkers = this.flyToMarkers.bind(this);
     this.renderOverlay = this.renderOverlay.bind(this);
+    this.renderSearchOverlay = this.renderSearchOverlay.bind(this);
     this.onGeolocate = this.onGeolocate.bind(this);
     this.onSearch = this.onSearch.bind(this);
     this.onSearchSelect = this.onSearchSelect.bind(this);
@@ -159,6 +201,7 @@ class Navigation extends Component {
   }
 
   async onSearch(ev) {  // TODO debounce
+    this.focus();
     if (ev.target.value.length >= 3) {
       const proximity = this.state.carLocation || this.state.geoLocateCoords || undefined;
       const features = await GeocodeApi().forwardLookup(ev.target.value, proximity);
@@ -169,6 +212,7 @@ class Navigation extends Component {
   }
 
   onSearchSelect(item) {
+    console.log(item);
     this.setState({ searchSelect: item, search: null });
   }
 
@@ -247,12 +291,17 @@ class Navigation extends Component {
           <HTMLOverlay redraw={ this.renderOverlay } style={{ width: 330, height: 'unset', top: 10, left: 10 }}
             captureScroll={ true } captureDrag={ true } captureClick={ true } captureDoubleClick={ true }
             capturePointerMove={ true } />
+          { searchSelect &&
+            <HTMLOverlay redraw={ this.renderSearchOverlay } captureScroll={ true } captureDrag={ true }
+              captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
+              style={{ width: 'fit-content', height: 'unset', top: 'auto', bottom: 10, left: 10 }} />
+          }
         </ReactMapGL>
       </div>
     );
   }
 
-  renderOverlay(width, height, project, unproject) {
+  renderOverlay() {
     const { classes } = this.props;
 
     return (
@@ -265,13 +314,35 @@ class Navigation extends Component {
               ( <InputAdornment position="end"><Search className={ classes.overlaySearchButton } /></InputAdornment> ) :
               null
           }} />
-        <div className={ classes.overlaySearchResults }>
-          { this.state.search && this.state.search.map((item) => (
-            <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item) }>
-              <Typography>{ item.place_name }</Typography>
-            </div>
-          )) }
+        { this.state.search &&
+          <div className={ classes.overlaySearchResults }>
+            { this.state.search.map((item) => (
+              <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item) }>
+                <Typography>
+                  { item.text }
+                  <span className={ classes.overlaySearchDetails }>{ item.place_name.substr(item.text.length) }</span>
+                </Typography>
+              </div>
+            )) }
+          </div>
+        }
+      </div>
+    );
+  }
+
+  renderSearchOverlay() {
+    const { classes } = this.props;
+    const { searchSelect } = this.state;
+
+    return (
+      <div className={ classes.searchSelectBox }>
+        <div className={ classes.searchSelectBoxHeader }>
+          <Typography>{ searchSelect.text }</Typography>
+          <Button classes={{ root: classes.searchSelectButton }}>navigate</Button>
         </div>
+        <Typography className={ classes.searchSelectBoxDetails }>
+          { searchSelect.place_name.substr(searchSelect.text.length + 2) }
+        </Typography>
       </div>
     );
   }
