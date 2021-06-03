@@ -27,7 +27,7 @@ const styles = () => ({
     padding: '12px 16px',
     border: `1px solid ${Colors.white10}`,
     backgroundColor: Colors.grey800,
-    maxHeight: 'calc(50vh - 20px)',
+    maxHeight: 'calc(60vh - 20px)',
     display: 'flex',
     flexDirection: 'column',
   },
@@ -46,7 +46,13 @@ const styles = () => ({
     cursor: 'pointer',
     marginTop: 15,
   },
+  searchPin: {
+    cursor: 'pointer',
+    fontSize: 36,
+    color: '#31a1ee',
+  },
   searchSelect: {
+    cursor: 'pointer',
     fontSize: 36,
     color: '#31a1ee',
   },
@@ -100,9 +106,11 @@ class Navigation extends Component {
 
   componentDidUpdate(prevProps, prevState) {
     const { dongleId } = this.props;
-    const { geoLocateCoords, searchSelect } = this.state;
+    const { geoLocateCoords, search, carLocation, searchSelect } = this.state;
 
     if ((searchSelect && prevState.searchSelect !== searchSelect) ||
+      (search && prevState.search !== search) ||
+      (carLocation && prevState.carLocation !== carLocation) ||
       (geoLocateCoords && prevState.geoLocateCoords !== geoLocateCoords))
     {
       this.flyToMarkers();
@@ -154,36 +162,51 @@ class Navigation extends Component {
     if (ev.target.value.length >= 3) {
       const proximity = this.state.carLocation || this.state.geoLocateCoords || undefined;
       const features = await GeocodeApi().forwardLookup(ev.target.value, proximity);
-      this.setState({ search: features });
+      this.setState({ searchSelect: null, search: features });
     } else {
-      this.setState({ search: null });
+      this.setState({ searchSelect: null, search: null });
     }
   }
 
-  async onSearchSelect(item) {
+  onSearchSelect(item) {
     this.setState({ searchSelect: item, search: null });
   }
 
   flyToMarkers() {
-    const { geoLocateCoords, searchSelect, carLocation } = this.state;
+    const { geoLocateCoords, search, searchSelect, carLocation } = this.state;
 
-    const MIN_MAX_BBOX = [[180, 90], [-180, -90]];
-    const geoLocateBounds = geoLocateCoords ? [geoLocateCoords, geoLocateCoords] : MIN_MAX_BBOX;
-    const carLocationBounds = carLocation ? [carLocation, carLocation] : MIN_MAX_BBOX;
-    const searchSelectBounds =
-      searchSelect ? [searchSelect.bbox.slice(0, 2), searchSelect.bbox.slice(2, 4)] : MIN_MAX_BBOX;
+    const bounds = [];
+    if (geoLocateCoords) {
+      bounds.push([geoLocateCoords, geoLocateCoords]);
+    }
+    if (carLocation) {
+      bounds.push([carLocation, carLocation]);
+    }
+    if (searchSelect) {
+      bounds.push(searchSelect.bbox ?
+        [searchSelect.bbox.slice(0, 2), searchSelect.bbox.slice(2, 4)] :
+        [searchSelect.center, searchSelect.center]
+      );
+    }
+    if (search) {
+      search.forEach((item) => bounds.push(
+        item.bbox ? [item.bbox.slice(0, 2), item.bbox.slice(2, 4)] : [item.center, item.center]
+      ));
+    }
 
-    const bbox = [[
-      Math.min(geoLocateBounds[0][0], carLocationBounds[0][0], searchSelectBounds[0][0]),
-      Math.min(geoLocateBounds[0][1], carLocationBounds[0][1], searchSelectBounds[0][1]),
-    ], [
-      Math.max(geoLocateBounds[1][0], carLocationBounds[1][0], searchSelectBounds[1][0]),
-      Math.max(geoLocateBounds[1][1], carLocationBounds[1][1], searchSelectBounds[1][1]),
-    ]];
+    if (bounds.length) {
+      const bbox = [[
+        Math.min.apply(null, bounds.map((e) => e[0][0])),
+        Math.min.apply(null, bounds.map((e) => e[0][1])),
+      ], [
+        Math.max.apply(null, bounds.map((e) => e[1][0])),
+        Math.max.apply(null, bounds.map((e) => e[1][1])),
+      ]];
 
-    this.setState({
-      viewport: new WebMercatorViewport(this.state.viewport).fitBounds(bbox, { padding: 50, maxZoom: 10 })
-    });
+      this.setState({
+        viewport: new WebMercatorViewport(this.state.viewport).fitBounds(bbox, { padding: 50, maxZoom: 10 })
+      });
+    }
   }
 
   focus() {
@@ -194,25 +217,31 @@ class Navigation extends Component {
 
   render() {
     const { classes } = this.props;
-    const { hasFocus, searchSelect, carLocation, carOnline, viewport } = this.state;
+    const { hasFocus, search , searchSelect, carLocation, carOnline, viewport } = this.state;
 
     return (
-      <div className={ classes.mapContainer } style={{ height: hasFocus ? '50vh' : 150 }}>
+      <div className={ classes.mapContainer } style={{ height: hasFocus ? '60vh' : 150 }}>
         <ReactMapGL { ...viewport } onViewportChange={ (viewport) => this.setState({ viewport }) }
           mapStyle={ MAP_STYLE } width="100%" height="100%" onNativeClick={ this.focus } maxPitch={ 0 }
           mapboxApiAccessToken={ MAPBOX_TOKEN } attributionControl={ false } ref={ this.initMap } >
           <GeolocateControl className={ classes.geolocateControl } positionOptions={{ enableHighAccuracy: true }}
             showAccuracyCircle={ false } onGeolocate={ this.onGeolocate } auto fitBoundsOptions={{ maxZoom: 10 }}
-            trackUserLocation={true} />
+            trackUserLocation={true} onViewportChange={ this.flyToMarkers } />
           { carLocation && carOnline &&
             <Marker latitude={ carLocation[1] } longitude={ carLocation[0] } offsetLeft={ -18 } offsetTop={ -33 }>
               <img className={ classes.carPin } src={ car_pin } />
             </Marker>
           }
+          { search && search.map((item) =>
+            <Marker latitude={ item.center[1] } longitude={ item.center[0] } key={ item.id }
+            offsetLeft={ -18 } offsetTop={ -33 }>
+              <Room classes={{ root: classes.searchPin }} onClick={ () => this.onSearchSelect(item) } />
+            </Marker>
+          )}
           { searchSelect &&
             <Marker latitude={ searchSelect.center[1] } longitude={ searchSelect.center[0] }
               offsetLeft={ -18 } offsetTop={ -33 }>
-              <Room classes={{ root: classes.searchSelect }} />
+              <Room classes={{ root: classes.searchSelect }}/>
             </Marker>
           }
           <HTMLOverlay redraw={ this.renderOverlay } style={{ width: 330, height: 'unset', top: 10, left: 10 }}
