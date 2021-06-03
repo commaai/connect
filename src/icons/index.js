@@ -6,6 +6,8 @@ export const auth_apple = require('./auth_apple.png');
 export const auth_github = require('./auth_github.png');
 export const auth_google = require('./auth_google.png');
 
+export const car_pin = require('./icon-pin-car.png');
+
 export function AccountIcon(props) {
   return (
     <SvgIcon {...props}>
