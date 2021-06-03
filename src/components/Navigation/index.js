@@ -10,6 +10,7 @@ import Colors from '../../colors';
 import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
 import { athena as Athena, devices as Devices } from '@commaai/comma-api';
 import { car_pin } from '../../icons';
+import ResizeHandler from '../ResizeHandler';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 const styles = () => ({
@@ -128,6 +129,7 @@ class Navigation extends Component {
       search: null,
       route: null,
       searchSelect: null,
+      windowWidth: window.innerWidth,
     };
 
     this.searchInputRef = React.createRef();
@@ -144,6 +146,7 @@ class Navigation extends Component {
     this.formatDistance = this.formatDistance.bind(this);
     this.formatDuration = this.formatDuration.bind(this);
     this.navigate = this.navigate.bind(this);
+    this.onResize = this.onResize.bind(this);
 
     this.updateDeviceInterval = null;
   }
@@ -361,12 +364,19 @@ class Navigation extends Component {
     });
   }
 
+  onResize(windowWidth) {
+    this.setState({ windowWidth });
+  }
+
   render() {
     const { classes } = this.props;
-    const { hasFocus, search , searchSelect, carLocation, carOnline, viewport } = this.state;
+    const { hasFocus, search , searchSelect, carLocation, carOnline, viewport, windowWidth } = this.state;
+
+    const offsetLeft = windowWidth < 600 ? (windowWidth - 300) / 2 : 10;
 
     return (
       <div className={ classes.mapContainer } style={{ height: hasFocus ? '60vh' : 150 }}>
+        <ResizeHandler onResize={ this.onResize } />
         <ReactMapGL { ...viewport } onViewportChange={ (viewport) => this.setState({ viewport }) }
           mapStyle={ MAP_STYLE } width="100%" height="100%" onNativeClick={ this.focus } maxPitch={ 0 }
           mapboxApiAccessToken={ MAPBOX_TOKEN } attributionControl={ false } ref={ this.initMap } >
@@ -396,13 +406,13 @@ class Navigation extends Component {
               <Room classes={{ root: classes.searchSelect }}/>
             </Marker>
           }
-          <HTMLOverlay redraw={ this.renderOverlay } style={{ width: 330, height: 'unset', top: 10, left: 10 }}
+          <HTMLOverlay redraw={ this.renderOverlay } style={{ width: 300, height: 'unset', top: 10, left: offsetLeft }}
             captureScroll={ true } captureDrag={ true } captureClick={ true } captureDoubleClick={ true }
             capturePointerMove={ true } />
           { searchSelect &&
             <HTMLOverlay redraw={ this.renderSearchOverlay } captureScroll={ true } captureDrag={ true }
               captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
-              style={{ width: 330, height: 'unset', top: 'auto', bottom: 10, left: 10 }} />
+              style={{ width: 300, height: 'unset', top: 'auto', bottom: 10, left: offsetLeft }} />
           }
         </ReactMapGL>
       </div>
