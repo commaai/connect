@@ -125,12 +125,13 @@ class Navigation extends Component {
     };
 
     this.searchInputRef = React.createRef();
+    this.searchSelectBoxRef = React.createRef();
 
     this.flyToMarkers = this.flyToMarkers.bind(this);
     this.renderOverlay = this.renderOverlay.bind(this);
     this.renderSearchOverlay = this.renderSearchOverlay.bind(this);
     this.onGeolocate = this.onGeolocate.bind(this);
-    this.onSearch = this.onSearch.bind(this);
+    this.onSearch = debounce(this.onSearch.bind(this), 200);
     this.onSearchSelect = this.onSearchSelect.bind(this);
     this.focus = this.focus.bind(this);
     this.updateDevice = this.updateDevice.bind(this);
@@ -155,10 +156,8 @@ class Navigation extends Component {
     const { dongleId } = this.props;
     const { geoLocateCoords, search, carLocation, searchSelect } = this.state;
 
-    if ((searchSelect && prevState.searchSelect !== searchSelect) ||
-      (search && prevState.search !== search) ||
-      (carLocation && prevState.carLocation !== carLocation) ||
-      (geoLocateCoords && prevState.geoLocateCoords !== geoLocateCoords))
+    if ((carLocation && !prevState.carLocation) || (geoLocateCoords && !prevState.geoLocateCoords) ||
+      (searchSelect && prevState.searchSelect !== searchSelect) || (search && prevState.search !== search))
     {
       this.flyToMarkers();
     }
@@ -173,7 +172,7 @@ class Navigation extends Component {
     }
   }
 
-  updateDevice() {  // TODO debounce
+  updateDevice() {
     const { dongleId } = this.props;
 
     // get last known location
@@ -205,12 +204,14 @@ class Navigation extends Component {
     }
   }
 
-  async onSearch(ev) {  // TODO debounce
+  onSearch() {
+    const searchInput = this.searchInputRef.current;
     this.focus();
-    if (ev.target.value.length >= 3) {
+    if (searchInput && searchInput.value.length >= 3) {
       const proximity = this.state.carLocation || this.state.geoLocateCoords || undefined;
-      const features = await GeocodeApi().forwardLookup(ev.target.value, proximity);
-      this.setState({ searchSelect: null, search: features });
+      GeocodeApi().forwardLookup(searchInput.value, proximity).then((features) => {
+        this.setState({ searchSelect: null, search: features });
+      });
     } else {
       this.setState({ searchSelect: null, search: null });
     }
@@ -260,8 +261,17 @@ class Navigation extends Component {
         Math.max.apply(null, bounds.map((e) => e[1][1])),
       ]];
 
+      const bottomBoxHeight = this.searchSelectBoxRef.current ?
+        this.searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0
+      const padding = {
+        left: 20,
+        right: 20,
+        top: 82,
+        bottom: bottomBoxHeight + 20,
+      };
+
       this.setState({
-        viewport: new WebMercatorViewport(this.state.viewport).fitBounds(bbox, { padding: 50, maxZoom: 10 })
+        viewport: new WebMercatorViewport(this.state.viewport).fitBounds(bbox, { padding: padding, maxZoom: 10 })
       });
     }
   }
@@ -381,7 +391,7 @@ class Navigation extends Component {
     const { searchSelect, carOnline } = this.state;
 
     return (
-      <div className={ classes.searchSelectBox }>
+      <div className={ classes.searchSelectBox } ref={ this.searchSelectBoxRef }>
         <div className={ classes.searchSelectBoxHeader }>
           <div>
             <Typography>{ searchSelect.text }</Typography>
