@@ -3,12 +3,13 @@ import Raven from 'raven-js';
 export const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
 const mbxGeocoding = require('@mapbox/mapbox-sdk/services/geocoding');
+const mbxDirections = require('@mapbox/mapbox-sdk/services/directions');
 
 let geocodingClient = null;
+let directionsClient = null;
 if (MAPBOX_TOKEN) {
-  geocodingClient = mbxGeocoding({
-    accessToken: MAPBOX_TOKEN
-  });
+  geocodingClient = mbxGeocoding({ accessToken: MAPBOX_TOKEN });
+  directionsClient = mbxDirections({ accessToken: MAPBOX_TOKEN });
 } else {
   console.warn('Missing mapbox token');
 }
@@ -55,6 +56,37 @@ export default function geocodeApi() {
       } catch (err) {
         Raven.captureException(err);
       }
-    }
+    },
+
+    async forwardLookup(query, proximity) {
+      if (!geocodingClient) {
+        return null;
+      }
+
+      const resp = await geocodingClient.forwardGeocode({
+        query: query,
+        mode: "mapbox.places",
+        proximity: proximity,
+        limit: 5,
+      }).send();
+
+      return resp.body.features;
+    },
+
+    async getDirections(points) {
+      if (!directionsClient) {
+        return null;
+      }
+
+      const resp = await directionsClient.getDirections({
+        profile: 'driving-traffic',
+        waypoints: points.map((p) => { return { coordinates: p }; }),
+        annotations: ['distance', 'duration'],
+        geometries: 'geojson',
+        overview: 'full',
+      }).send();
+
+      return resp.body.routes;
+    },
   };
 }
