@@ -74,9 +74,9 @@ const styles = () => ({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
-    '& > p': {
-      fontWeight: 600,
-    },
+  },
+  bold: {
+    fontWeight: 600,
   },
   searchSelectButton: {
     marginLeft: 10,
@@ -95,6 +95,12 @@ const styles = () => ({
       background: '#ddd',
       color: '#404B4F',
     },
+  },
+  searchSelectButtonFake: {
+    padding: '8px 16px',
+    background: '#ddd',
+    minWidth: 100,
+    textAlign: 'center',
   },
   searchSelectBoxDetails: {
     color: Colors.white40,
@@ -137,6 +143,7 @@ class Navigation extends Component {
     this.updateDevice = this.updateDevice.bind(this);
     this.formatDistance = this.formatDistance.bind(this);
     this.formatDuration = this.formatDuration.bind(this);
+    this.navigate = this.navigate.bind(this);
 
     this.updateDeviceInterval = null;
   }
@@ -195,6 +202,7 @@ class Navigation extends Component {
       this.setState({ carOnline: resp.result });
     }).catch(() => {
       this.setState({ carOnline: false });
+      this.searchInputRef.current.value = '';
     });
   }
 
@@ -218,7 +226,6 @@ class Navigation extends Component {
   }
 
   onSearchSelect(item) {
-    console.log(item);
     this.setState({ searchSelect: item, search: null });
     if (this.state.carLocation) {
       GeocodeApi().getDirections([this.state.carLocation, item.center]).then((route) => {
@@ -309,6 +316,51 @@ class Navigation extends Component {
     return `${res}${mins} min`;
   }
 
+  navigate() {
+    const { dongleId } = this.props;
+    const { searchSelect } = this.state;
+
+    this.setState({ searchSelect: {
+      ...searchSelect,
+      settingDest: true,
+      success: false,
+    }});
+
+    const payload = {
+      method: "setNavDestination",
+      params: {
+        latitude: searchSelect.center[1],
+        longitude: searchSelect.center[0],
+      },
+      jsonrpc: "2.0",
+      id: 0,
+    };
+
+    Athena.postJsonRpcPayload(dongleId, payload).then((resp) => {
+      if (resp.result) {
+        this.setState({ searchSelect: {
+          ...searchSelect,
+          settingDest: true,
+          success: true,
+        }});
+      } else {
+        this.setState({ searchSelect: {
+          ...searchSelect,
+          settingDest: false,
+          success: false,
+        }});
+        console.log(resp);
+      }
+    }).catch((err) => {
+      console.log(err);
+      this.setState({ searchSelect: {
+        ...searchSelect,
+        settingDest: false,
+        success: false,
+      }});
+    });
+  }
+
   render() {
     const { classes } = this.props;
     const { hasFocus, search , searchSelect, carLocation, carOnline, viewport } = this.state;
@@ -394,7 +446,7 @@ class Navigation extends Component {
       <div className={ classes.searchSelectBox } ref={ this.searchSelectBoxRef }>
         <div className={ classes.searchSelectBoxHeader }>
           <div>
-            <Typography>{ searchSelect.text }</Typography>
+            <Typography className={ classes.bold }>{ searchSelect.text }</Typography>
             { searchSelect.route &&
               <Typography className={ classes.searchSelectBoxDetails }>
                 { this.formatDistance(searchSelect.route.distance) } (
@@ -402,9 +454,16 @@ class Navigation extends Component {
               </Typography>
             }
           </div>
-          <Button disabled={ !carOnline || !searchSelect.route } classes={{ root: classes.searchSelectButton }}>
-            navigate
-          </Button>
+          { searchSelect.settingDest ?
+            <Typography className={ `${classes.searchSelectButton} ${classes.searchSelectButtonFake}` }>
+              { searchSelect.success ? "Destination set" : "..." }
+            </Typography>
+          :
+            <Button disabled={ !carOnline || !searchSelect.route } classes={{ root: classes.searchSelectButton }}
+              onClick={ this.navigate }>
+              navigate
+            </Button>
+          }
         </div>
         <Typography className={ classes.searchSelectBoxDetails }>
           { searchSelect.place_name.substr(searchSelect.text.length + 2) }

@@ -30,7 +30,7 @@ class Dashboard extends Component {
           <Prime /> :
           <>
             { device && !device.prime && device.is_owner && <PrimeBanner collapsed /> }
-            { device && device.prime && <Navigation /> }
+            { device && device.prime && device.device_type === 'three' && <Navigation /> }
             <DriveList />
           </>
         }
