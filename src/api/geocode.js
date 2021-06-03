@@ -55,6 +55,21 @@ export default function geocodeApi() {
       } catch (err) {
         Raven.captureException(err);
       }
+    },
+
+    async forwardLookup(query, proximity) {
+      if (!geocodingClient) {
+        return null;
+      }
+
+      const resp = await geocodingClient.forwardGeocode({
+        query: query,
+        mode: "mapbox.places",
+        proximity: proximity,
+        limit: 5,
+      }).send();
+
+      return resp.body.features;
     }
   };
 }
