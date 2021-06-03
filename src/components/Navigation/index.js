@@ -2,9 +2,8 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import debounce from 'debounce';
-import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, FlyToInterpolator,
-  WebMercatorViewport } from 'react-map-gl';
-
+import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, FlyToInterpolator, Source,
+  WebMercatorViewport, Layer} from 'react-map-gl';
 import { withStyles, TextField, InputAdornment, Typography, Button } from '@material-ui/core';
 import { Search, Room } from '@material-ui/icons';
 import Colors from '../../colors';
@@ -66,10 +65,8 @@ const styles = () => ({
     border: `1px solid ${Colors.white10}`,
     backgroundColor: Colors.grey800,
     color: Colors.white,
-    maxWidth: 330,
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
   },
   searchSelectBoxHeader: {
     display: 'flex',
@@ -82,6 +79,7 @@ const styles = () => ({
     },
   },
   searchSelectButton: {
+    marginLeft: 10,
     backgroundColor: Colors.white,
     color: Colors.grey800,
     borderRadius: 22,
@@ -92,7 +90,11 @@ const styles = () => ({
     '&:hover': {
       background: '#ddd',
       color: '#404B4F',
-    }
+    },
+    '&:disabled': {
+      background: '#ddd',
+      color: '#404B4F',
+    },
   },
   searchSelectBoxDetails: {
     color: Colors.white40,
@@ -118,6 +120,7 @@ class Navigation extends Component {
       carLocationTime: null,
       geoLocateCoords: null,
       search: null,
+      route: null,
       searchSelect: null,
     };
 
@@ -131,6 +134,8 @@ class Navigation extends Component {
     this.onSearchSelect = this.onSearchSelect.bind(this);
     this.focus = this.focus.bind(this);
     this.updateDevice = this.updateDevice.bind(this);
+    this.formatDistance = this.formatDistance.bind(this);
+    this.formatDuration = this.formatDuration.bind(this);
 
     this.updateDeviceInterval = null;
   }
@@ -187,8 +192,8 @@ class Navigation extends Component {
       id: 0,
     };
 
-    Athena.postJsonRpcPayload(dongleId, payload).then(() => {
-      this.setState({ carOnline: true });
+    Athena.postJsonRpcPayload(dongleId, payload).then((resp) => {
+      this.setState({ carOnline: resp.result });
     }).catch(() => {
       this.setState({ carOnline: false });
     });
@@ -214,6 +219,14 @@ class Navigation extends Component {
   onSearchSelect(item) {
     console.log(item);
     this.setState({ searchSelect: item, search: null });
+    if (this.state.carLocation) {
+      GeocodeApi().getDirections([this.state.carLocation, item.center]).then((route) => {
+        this.setState({ searchSelect: {
+          ...item,
+          route: route[0],
+        }});
+      });
+    }
   }
 
   flyToMarkers() {
@@ -259,6 +272,33 @@ class Navigation extends Component {
     }
   }
 
+  formatDistance(meters) {
+    const { searchSelect } = this.state;
+
+    let metric = false;
+    if (searchSelect && searchSelect.context) {
+      const country = searchSelect.context[searchSelect.context.length - 1];
+      if (country.id.substr(0, 7) === 'country' && country.short_code !== 'us' && country.short_code !== 'gb') {
+        metric = true;
+      }
+    }
+    if (metric) {
+      return (meters / 1000.0).toFixed(1) + " km";
+    }
+    return (meters / 1609.34).toFixed(1) + " mi";
+  }
+
+  formatDuration(seconds) {
+    let mins = Math.round(seconds / 60.0);
+    let res = '';
+    if (mins >= 60) {
+      const hours = Math.floor(mins / 60.0);
+      mins -= hours * 60;
+      res += `${hours} hr `;
+    }
+    return `${res}${mins} min`;
+  }
+
   render() {
     const { classes } = this.props;
     const { hasFocus, search , searchSelect, carLocation, carOnline, viewport } = this.state;
@@ -271,6 +311,12 @@ class Navigation extends Component {
           <GeolocateControl className={ classes.geolocateControl } positionOptions={{ enableHighAccuracy: true }}
             showAccuracyCircle={ false } onGeolocate={ this.onGeolocate } auto fitBoundsOptions={{ maxZoom: 10 }}
             trackUserLocation={true} onViewportChange={ this.flyToMarkers } />
+          { searchSelect && searchSelect.route &&
+            <Source id="my-data" type="geojson" data={ searchSelect.route.geometry }>
+              <Layer type="line" layout={{ 'line-cap': 'round', 'line-join': 'bevel' }}
+                paint={{ 'line-color': '#31a1ee', 'line-width': 3, 'line-blur': 1 }}  />
+            </Source>
+          }
           { carLocation && carOnline &&
             <Marker latitude={ carLocation[1] } longitude={ carLocation[0] } offsetLeft={ -18 } offsetTop={ -33 }>
               <img className={ classes.carPin } src={ car_pin } />
@@ -294,7 +340,7 @@ class Navigation extends Component {
           { searchSelect &&
             <HTMLOverlay redraw={ this.renderSearchOverlay } captureScroll={ true } captureDrag={ true }
               captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
-              style={{ width: 'fit-content', height: 'unset', top: 'auto', bottom: 10, left: 10 }} />
+              style={{ width: 330, height: 'unset', top: 'auto', bottom: 10, left: 10 }} />
           }
         </ReactMapGL>
       </div>
@@ -332,13 +378,23 @@ class Navigation extends Component {
 
   renderSearchOverlay() {
     const { classes } = this.props;
-    const { searchSelect } = this.state;
+    const { searchSelect, carOnline } = this.state;
 
     return (
       <div className={ classes.searchSelectBox }>
         <div className={ classes.searchSelectBoxHeader }>
-          <Typography>{ searchSelect.text }</Typography>
-          <Button classes={{ root: classes.searchSelectButton }}>navigate</Button>
+          <div>
+            <Typography>{ searchSelect.text }</Typography>
+            { searchSelect.route &&
+              <Typography className={ classes.searchSelectBoxDetails }>
+                { this.formatDistance(searchSelect.route.distance) } (
+                { this.formatDuration(searchSelect.route.duration) })
+              </Typography>
+            }
+          </div>
+          <Button disabled={ !carOnline || !searchSelect.route } classes={{ root: classes.searchSelectButton }}>
+            navigate
+          </Button>
         </div>
         <Typography className={ classes.searchSelectBoxDetails }>
           { searchSelect.place_name.substr(searchSelect.text.length + 2) }
