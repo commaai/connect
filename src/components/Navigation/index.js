@@ -112,23 +112,28 @@ const styles = () => ({
   },
 });
 
+const initialState = {
+  hasFocus: false,
+  viewport: {
+    longitude: -122.45,
+    latitude: 37.78,
+    zoom: 0,
+  },
+  carOnline: true,
+  carLocation: null,
+  carLocationTime: null,
+  geoLocateCoords: null,
+  search: null,
+  route: null,
+  searchSelect: null,
+  windowWidth: window.innerWidth,
+}
+
 class Navigation extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      hasFocus: false,
-      viewport: {
-        longitude: -122.45,
-        latitude: 37.78,
-        zoom: 0,
-      },
-      carOnline: true,
-      carLocation: null,
-      carLocationTime: null,
-      geoLocateCoords: null,
-      search: null,
-      route: null,
-      searchSelect: null,
+      ...initialState,
       windowWidth: window.innerWidth,
     };
 
@@ -174,10 +179,12 @@ class Navigation extends Component {
 
     if (prevProps.dongleId !== dongleId) {
       this.setState({
-        carOnline: true,
-        carLocation: null,
-        carLocationTime: null,
+        ...initialState,
+        windowWidth: window.innerWidth,
       });
+      if (this.searchInputRef.current) {
+        this.searchInputRef.current.value = '';
+      }
       this.updateDevice();
     }
   }
@@ -221,6 +228,7 @@ class Navigation extends Component {
     if (searchInput && searchInput.value.length >= 3) {
       const proximity = this.state.carLocation || this.state.geoLocateCoords || undefined;
       GeocodeApi().forwardLookup(searchInput.value, proximity).then((features) => {
+        console.log(features);
         this.setState({ searchSelect: null, search: features });
       });
     } else {
@@ -372,7 +380,9 @@ class Navigation extends Component {
     const { classes } = this.props;
     const { hasFocus, search , searchSelect, carLocation, carOnline, viewport, windowWidth } = this.state;
 
-    const offsetLeft = windowWidth < 600 ? (windowWidth - 300) / 2 : 10;
+    const cardStyle = windowWidth < 600 ?
+      { width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 } :
+      { width: 330, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
 
     return (
       <div className={ classes.mapContainer } style={{ height: hasFocus ? '60vh' : 150 }}>
@@ -381,8 +391,8 @@ class Navigation extends Component {
           mapStyle={ MAP_STYLE } width="100%" height="100%" onNativeClick={ this.focus } maxPitch={ 0 }
           mapboxApiAccessToken={ MAPBOX_TOKEN } attributionControl={ false } ref={ this.initMap } >
           <GeolocateControl className={ classes.geolocateControl } positionOptions={{ enableHighAccuracy: true }}
-            showAccuracyCircle={ false } onGeolocate={ this.onGeolocate } auto fitBoundsOptions={{ maxZoom: 10 }}
-            trackUserLocation={true} onViewportChange={ this.flyToMarkers } />
+            showAccuracyCircle={ false } onGeolocate={ this.onGeolocate } auto={ hasFocus }
+            fitBoundsOptions={{ maxZoom: 10 }} trackUserLocation={true} onViewportChange={ this.flyToMarkers } />
           { searchSelect && searchSelect.route &&
             <Source id="my-data" type="geojson" data={ searchSelect.route.geometry }>
               <Layer type="line" layout={{ 'line-cap': 'round', 'line-join': 'bevel' }}
@@ -406,13 +416,13 @@ class Navigation extends Component {
               <Room classes={{ root: classes.searchSelect }}/>
             </Marker>
           }
-          <HTMLOverlay redraw={ this.renderOverlay } style={{ width: 300, height: 'unset', top: 10, left: offsetLeft }}
+          <HTMLOverlay redraw={ this.renderOverlay } style={{ ...cardStyle, top: 10 }}
             captureScroll={ true } captureDrag={ true } captureClick={ true } captureDoubleClick={ true }
             capturePointerMove={ true } />
           { searchSelect &&
             <HTMLOverlay redraw={ this.renderSearchOverlay } captureScroll={ true } captureDrag={ true }
               captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
-              style={{ width: 300, height: 'unset', top: 'auto', bottom: 10, left: offsetLeft }} />
+              style={{ ...cardStyle, bottom: 10 }} />
           }
         </ReactMapGL>
       </div>
@@ -427,6 +437,7 @@ class Navigation extends Component {
         <TextField onChange={ this.onSearch } fullWidth={ true } inputRef={ this.searchInputRef }
           disabled={ !this.state.carOnline } placeholder={ this.state.carOnline ? "search" : "device not online" }
           InputProps={{
+            onFocus: this.onSearch,
             classes: { root: classes.overlayTextfield },
             endAdornment: this.state.carOnline ?
               ( <InputAdornment position="end"><Search className={ classes.overlaySearchButton } /></InputAdornment> ) :
@@ -437,8 +448,10 @@ class Navigation extends Component {
             { this.state.search.map((item) => (
               <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item) }>
                 <Typography>
-                  { item.text }
-                  <span className={ classes.overlaySearchDetails }>{ item.place_name.substr(item.text.length) }</span>
+                  { item.place_name.split(', ', 1) }
+                  <span className={ classes.overlaySearchDetails }>
+                    , { item.place_name.split(', ').slice(1).join(', ') }
+                  </span>
                 </Typography>
               </div>
             )) }
@@ -456,7 +469,7 @@ class Navigation extends Component {
       <div className={ classes.searchSelectBox } ref={ this.searchSelectBoxRef }>
         <div className={ classes.searchSelectBoxHeader }>
           <div>
-            <Typography className={ classes.bold }>{ searchSelect.text }</Typography>
+            <Typography className={ classes.bold }>{ searchSelect.place_name.split(', ', 1) }</Typography>
             { searchSelect.route &&
               <Typography className={ classes.searchSelectBoxDetails }>
                 { this.formatDistance(searchSelect.route.distance) } (
@@ -466,7 +479,7 @@ class Navigation extends Component {
           </div>
           { searchSelect.settingDest ?
             <Typography className={ `${classes.searchSelectButton} ${classes.searchSelectButtonFake}` }>
-              { searchSelect.success ? "Destination set" : "..." }
+              { searchSelect.success ? "destination set" : "..." }
             </Typography>
           :
             <Button disabled={ !carOnline || !searchSelect.route } classes={{ root: classes.searchSelectButton }}
@@ -476,7 +489,7 @@ class Navigation extends Component {
           }
         </div>
         <Typography className={ classes.searchSelectBoxDetails }>
-          { searchSelect.place_name.substr(searchSelect.text.length + 2) }
+          { searchSelect.place_name.split(', ').slice(1).join(', ') }
         </Typography>
       </div>
     );
