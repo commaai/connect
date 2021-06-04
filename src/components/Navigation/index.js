@@ -33,7 +33,10 @@ const styles = () => ({
   },
   overlayTextfield: {
     borderRadius: 0,
-    '& input': { padding: 0 }
+    '& input': {
+      padding: 0,
+      height: 24,
+    },
   },
   overlaySearchButton: {
     color: Colors.white30,
@@ -212,7 +215,9 @@ class Navigation extends Component {
       this.setState({ carOnline: resp.result });
     }).catch(() => {
       this.setState({ carOnline: false });
-      this.searchInputRef.current.value = '';
+      if (this.searchInputRef.current) {
+        this.searchInputRef.current.value = '';
+      }
     });
   }
 
@@ -228,8 +233,10 @@ class Navigation extends Component {
     if (searchInput && searchInput.value.length >= 3) {
       const proximity = this.state.carLocation || this.state.geoLocateCoords || undefined;
       GeocodeApi().forwardLookup(searchInput.value, proximity).then((features) => {
-        console.log(features);
-        this.setState({ searchSelect: null, search: features });
+        this.setState({
+          searchSelect: null,
+          search: features.filter((item, i) => i < 4 || item.relevance == 1),
+        });
       });
     } else {
       this.setState({ searchSelect: null, search: null });
@@ -249,7 +256,7 @@ class Navigation extends Component {
   }
 
   flyToMarkers() {
-    const { geoLocateCoords, search, searchSelect, carLocation } = this.state;
+    const { geoLocateCoords, search, searchSelect, carLocation, windowWidth } = this.state;
 
     const bounds = [];
     if (geoLocateCoords) {
@@ -259,15 +266,10 @@ class Navigation extends Component {
       bounds.push([carLocation, carLocation]);
     }
     if (searchSelect) {
-      bounds.push(searchSelect.bbox ?
-        [searchSelect.bbox.slice(0, 2), searchSelect.bbox.slice(2, 4)] :
-        [searchSelect.center, searchSelect.center]
-      );
+      bounds.push([searchSelect.center, searchSelect.center]);
     }
     if (search) {
-      search.forEach((item) => bounds.push(
-        item.bbox ? [item.bbox.slice(0, 2), item.bbox.slice(2, 4)] : [item.center, item.center]
-      ));
+      search.forEach((item) => bounds.push([item.center, item.center]));
     }
 
     if (bounds.length) {
@@ -282,15 +284,16 @@ class Navigation extends Component {
       const bottomBoxHeight = this.searchSelectBoxRef.current ?
         this.searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0
       const padding = {
-        left: 20,
+        left: (windowWidth < 600 || !search) ? 20 : 360,
         right: 20,
         top: 82,
         bottom: bottomBoxHeight + 20,
       };
-
-      this.setState({
-        viewport: new WebMercatorViewport(this.state.viewport).fitBounds(bbox, { padding: padding, maxZoom: 10 })
-      });
+      if (this.state.viewport.width) {
+        this.setState({
+          viewport: new WebMercatorViewport(this.state.viewport).fitBounds(bbox, { padding: padding, maxZoom: 10 })
+        });
+      }
     }
   }
 
@@ -385,7 +388,7 @@ class Navigation extends Component {
       { width: 330, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
 
     return (
-      <div className={ classes.mapContainer } style={{ height: hasFocus ? '60vh' : 150 }}>
+      <div className={ classes.mapContainer } style={{ height: hasFocus ? '60vh' : 200 }}>
         <ResizeHandler onResize={ this.onResize } />
         <ReactMapGL { ...viewport } onViewportChange={ (viewport) => this.setState({ viewport }) }
           mapStyle={ MAP_STYLE } width="100%" height="100%" onNativeClick={ this.focus } maxPitch={ 0 }
@@ -444,7 +447,7 @@ class Navigation extends Component {
               null
           }} />
         { this.state.search &&
-          <div className={ classes.overlaySearchResults }>
+          <div className={ `${classes.overlaySearchResults} scrollstyle` }>
             { this.state.search.map((item) => (
               <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item) }>
                 <Typography>

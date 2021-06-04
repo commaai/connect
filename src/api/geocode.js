@@ -67,7 +67,7 @@ export default function geocodeApi() {
         query: query,
         mode: "mapbox.places",
         proximity: proximity,
-        limit: 5,
+        limit: 8,
         types: ['postcode', 'place', 'locality', 'address', 'poi'],
       }).send();
 
