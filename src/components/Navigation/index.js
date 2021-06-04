@@ -129,6 +129,7 @@ const initialState = {
   search: null,
   route: null,
   searchSelect: null,
+  searchLooking: false,
   windowWidth: window.innerWidth,
 }
 
@@ -142,6 +143,7 @@ class Navigation extends Component {
 
     this.searchInputRef = React.createRef();
     this.searchSelectBoxRef = React.createRef();
+    this.overlayRef = React.createRef();
 
     this.flyToMarkers = this.flyToMarkers.bind(this);
     this.renderOverlay = this.renderOverlay.bind(this);
@@ -149,6 +151,7 @@ class Navigation extends Component {
     this.onGeolocate = this.onGeolocate.bind(this);
     this.onSearch = debounce(this.onSearch.bind(this), 200);
     this.onSearchSelect = this.onSearchSelect.bind(this);
+    this.onSearchBlur = this.onSearchBlur.bind(this);
     this.focus = this.focus.bind(this);
     this.updateDevice = this.updateDevice.bind(this);
     this.formatDistance = this.formatDistance.bind(this);
@@ -236,22 +239,39 @@ class Navigation extends Component {
         this.setState({
           searchSelect: null,
           search: features.filter((item, i) => i < 4 || item.relevance == 1),
+          searchLooking: false,
         });
       });
     } else {
-      this.setState({ searchSelect: null, search: null });
+      this.setState({ searchSelect: null, search: null, searchLooking: false });
     }
   }
 
   onSearchSelect(item) {
-    this.setState({ searchSelect: item, search: null });
+    this.setState({
+      searchSelect: item,
+      search: null,
+      searchLooking: false,
+    });
     if (this.state.carLocation) {
       GeocodeApi().getDirections([this.state.carLocation, item.center]).then((route) => {
-        this.setState({ searchSelect: {
-          ...item,
-          route: route[0],
-        }});
+        this.setState({
+          searchSelect: {
+            ...item,
+            route: route[0],
+          },
+          search: null,
+          searchLooking: false,
+        });
       });
+    }
+  }
+
+  onSearchBlur(ev) {
+    if (this.state.search && this.searchInputRef.current &&
+      this.overlayRef.current && this.overlayRef.current !== ev.relatedTarget)
+    {
+      this.setState({ searchLooking: true });
     }
   }
 
@@ -403,19 +423,20 @@ class Navigation extends Component {
             </Source>
           }
           { carLocation && carOnline &&
-            <Marker latitude={ carLocation[1] } longitude={ carLocation[0] } offsetLeft={ -18 } offsetTop={ -33 }>
+            <Marker latitude={ carLocation[1] } longitude={ carLocation[0] } offsetLeft={ -18 } offsetTop={ -33 }
+              captureDrag={ false } captureClick={ false } captureDoubleClick={ false }>
               <img className={ classes.carPin } src={ car_pin } />
             </Marker>
           }
           { search && search.map((item) =>
-            <Marker latitude={ item.center[1] } longitude={ item.center[0] } key={ item.id }
-            offsetLeft={ -18 } offsetTop={ -33 }>
+            <Marker latitude={ item.center[1] } longitude={ item.center[0] } key={ item.id } offsetLeft={ -18 }
+              offsetTop={ -33 } captureDrag={ false } captureClick={ false } captureDoubleClick={ false }>
               <Room classes={{ root: classes.searchPin }} onClick={ () => this.onSearchSelect(item) } />
             </Marker>
           )}
           { searchSelect &&
-            <Marker latitude={ searchSelect.center[1] } longitude={ searchSelect.center[0] }
-              offsetLeft={ -18 } offsetTop={ -33 }>
+            <Marker latitude={ searchSelect.center[1] } longitude={ searchSelect.center[0] } offsetLeft={ -18 }
+              offsetTop={ -33 } captureDrag={ false } captureClick={ false } captureDoubleClick={ false }>
               <Room classes={{ root: classes.searchSelect }}/>
             </Marker>
           }
@@ -434,21 +455,24 @@ class Navigation extends Component {
 
   renderOverlay() {
     const { classes } = this.props;
+    const { carOnline, search, searchLooking } = this.state;
 
     return (
-      <div className={ classes.overlay } onClick={ this.focus }>
+      <div className={ classes.overlay } ref={ this.overlayRef } tabIndex={ 0 } onBlur={ this.onSearchBlur }
+        onClick={ this.focus }>
         <TextField onChange={ this.onSearch } fullWidth={ true } inputRef={ this.searchInputRef }
-          disabled={ !this.state.carOnline } placeholder={ this.state.carOnline ? "search" : "device not online" }
+          disabled={ !carOnline } placeholder={ carOnline ? "search" : "device not online" }
           InputProps={{
             onFocus: this.onSearch,
+            onBlur: this.onSearchBlur,
             classes: { root: classes.overlayTextfield },
-            endAdornment: this.state.carOnline ?
+            endAdornment: carOnline ?
               ( <InputAdornment position="end"><Search className={ classes.overlaySearchButton } /></InputAdornment> ) :
               null
           }} />
-        { this.state.search &&
+        { search && !searchLooking &&
           <div className={ `${classes.overlaySearchResults} scrollstyle` }>
-            { this.state.search.map((item) => (
+            { search.map((item) => (
               <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item) }>
                 <Typography>
                   { item.place_name.split(', ', 1) }
