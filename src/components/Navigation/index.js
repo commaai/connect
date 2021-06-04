@@ -159,17 +159,17 @@ class Navigation extends Component {
     this.navigate = this.navigate.bind(this);
     this.onResize = this.onResize.bind(this);
 
-    this.updateDeviceInterval = null;
+    this.updateDeviceTimeout = null;
+    this.updateDeviceTimeoutTime = 5000;
   }
 
   componentDidMount() {
     this.componentDidUpdate({});
-    this.updateDeviceInterval = setInterval(this.updateDevice, 10000);
   }
 
   componentWillUnmount() {
-    if (this.updateDeviceInterval) {
-      clearInterval(this.updateDeviceInterval);
+    if (this.updateDeviceTimeout) {
+      clearInterval(this.updateDeviceTimeout);
     }
   }
 
@@ -190,7 +190,9 @@ class Navigation extends Component {
       });
       if (this.searchInputRef.current) {
         this.searchInputRef.current.value = '';
+
       }
+      this.updateDeviceTimeoutTime = 5000;
       this.updateDevice();
     }
   }
@@ -222,6 +224,9 @@ class Navigation extends Component {
         this.searchInputRef.current.value = '';
       }
     });
+
+    this.updateDeviceTimeout = setTimeout(this.updateDevice, this.updateDeviceTimeoutTime);
+    this.updateDeviceTimeoutTime *= 2;
   }
 
   onGeolocate(pos) {
