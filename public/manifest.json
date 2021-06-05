@@ -1,6 +1,6 @@
 {
-  "short_name": "Explorer",
-  "name": "Comma AI Explorer",
+  "short_name": "explorer",
+  "name": "comma.ai explorer",
   "icons": [
     {
       "src": "favicon.ico",
