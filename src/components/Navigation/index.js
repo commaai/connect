@@ -5,7 +5,7 @@ import debounce from 'debounce';
 import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, FlyToInterpolator, Source,
   WebMercatorViewport, Layer} from 'react-map-gl';
 import { withStyles, TextField, InputAdornment, Typography, Button } from '@material-ui/core';
-import { Search, Room } from '@material-ui/icons';
+import { Search, Room, Clear } from '@material-ui/icons';
 import moment from 'moment';
 
 import { athena as Athena, devices as Devices } from '@commaai/comma-api';
@@ -42,6 +42,10 @@ const styles = () => ({
   },
   overlaySearchButton: {
     color: Colors.white30,
+  },
+  overlayClearButton: {
+    color: Colors.white30,
+    cursor: 'pointer',
   },
   overlaySearchResults: {
     marginTop: 5,
@@ -171,6 +175,7 @@ class Navigation extends Component {
     this.navigate = this.navigate.bind(this);
     this.onResize = this.onResize.bind(this);
     this.toggleCarPinTooltip = this.toggleCarPinTooltip.bind(this);
+    this.clearSearch = this.clearSearch.bind(this);
 
     this.updateDeviceTimeout = null;
     this.updateDeviceTimeoutTime = 5000;
@@ -203,7 +208,6 @@ class Navigation extends Component {
       });
       if (this.searchInputRef.current) {
         this.searchInputRef.current.value = '';
-
       }
       this.updateDeviceTimeoutTime = 5000;
       this.updateDevice();
@@ -293,6 +297,18 @@ class Navigation extends Component {
     }
   }
 
+  clearSearch() {
+    if (this.searchInputRef.current) {
+      this.searchInputRef.current.value = '';
+    }
+    this.setState({
+      search: null,
+      route: null,
+      searchSelect: null,
+      searchLooking: false,
+    }, this.flyToMarkers);
+  }
+
   flyToMarkers() {
     const { geoLocateCoords, search, searchSelect, carLocation, windowWidth } = this.state;
 
@@ -369,8 +385,12 @@ class Navigation extends Component {
   }
 
   navigate() {
-    const { dongleId } = this.props;
+    const { dongleId, hasNav } = this.props;
     const { searchSelect } = this.state;
+
+    if (!hasNav) {
+      return;
+    }
 
     this.setState({ searchSelect: {
       ...searchSelect,
@@ -425,7 +445,7 @@ class Navigation extends Component {
   }
 
   render() {
-    const { classes } = this.props;
+    const { classes, hasNav } = this.props;
     const { hasFocus, search , searchSelect, carLocation, carLocationTime, viewport, windowWidth } = this.state;
 
     const cardStyle = windowWidth < 600 ?
@@ -441,11 +461,11 @@ class Navigation extends Component {
     }
 
     return (
-      <div className={ classes.mapContainer } style={{ height: hasFocus ? '60vh' : 200 }}>
+      <div className={ classes.mapContainer } style={{ height: (hasFocus && hasNav) ? '60vh' : 200 }}>
         <ResizeHandler onResize={ this.onResize } />
         <ReactMapGL { ...viewport } onViewportChange={ (viewport) => this.setState({ viewport }) }
           mapStyle={ MAP_STYLE } width="100%" height="100%" onNativeClick={ this.focus } maxPitch={ 0 }
-          mapboxApiAccessToken={ MAPBOX_TOKEN } attributionControl={ false } ref={ this.initMap } >
+          mapboxApiAccessToken={ MAPBOX_TOKEN } attributionControl={ false }>
           <GeolocateControl className={ classes.geolocateControl } positionOptions={{ enableHighAccuracy: true }}
             showAccuracyCircle={ false } onGeolocate={ this.onGeolocate } auto={ hasFocus }
             fitBoundsOptions={{ maxZoom: 10 }} trackUserLocation={true} onViewportChange={ this.flyToMarkers } />
@@ -479,9 +499,11 @@ class Navigation extends Component {
               <Room classes={{ root: classes.searchSelect }}/>
             </Marker>
           }
-          <HTMLOverlay redraw={ this.renderOverlay } style={{ ...cardStyle, top: 10 }}
-            captureScroll={ true } captureDrag={ true } captureClick={ true } captureDoubleClick={ true }
-            capturePointerMove={ true } />
+          { hasNav &&
+            <HTMLOverlay redraw={ this.renderOverlay } style={{ ...cardStyle, top: 10 }}
+              captureScroll={ true } captureDrag={ true } captureClick={ true } captureDoubleClick={ true }
+              capturePointerMove={ true } />
+          }
           { searchSelect &&
             <HTMLOverlay redraw={ this.renderSearchOverlay } captureScroll={ true } captureDrag={ true }
               captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
@@ -505,8 +527,14 @@ class Navigation extends Component {
             onFocus: this.onSearch,
             onBlur: this.onSearchBlur,
             classes: { root: classes.overlayTextfield },
-            endAdornment: carOnline ?
-              ( <InputAdornment position="end"><Search className={ classes.overlaySearchButton } /></InputAdornment> ) :
+            endAdornment: carOnline ? ( <>
+                { this.searchInputRef.current && this.searchInputRef.current.value &&
+                  <InputAdornment position="end">
+                    <Clear className={ classes.overlayClearButton } onClick={ this.clearSearch } />
+                  </InputAdornment>
+                }
+                <InputAdornment position="end"><Search className={ classes.overlaySearchButton } /></InputAdornment>
+              </> ) :
               null
           }} />
         { search && !searchLooking &&
