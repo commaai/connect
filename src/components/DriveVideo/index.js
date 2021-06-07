@@ -777,14 +777,14 @@ class DriveVideo extends Component {
     const x = this.vwp_w / 2;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = '700 128px Open Sans';
+    ctx.font = '700 128px \'Open Sans\', sans-serif';
     ctx.fillStyle = 'rgb(255,255,255)';
     ctx.fillText(speed, x, 140);
 
-    ctx.font = '400 48px Open Sans';
+    ctx.font = '400 48px \'Open Sans\', sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,200)';
     if (isMetric) {
-      ctx.fillText('kph', x, 210);
+      ctx.fillText('km/h', x, 210);
     } else {
       ctx.fillText('mph', x, 210);
     }
@@ -824,7 +824,7 @@ class DriveVideo extends Component {
     const textTopY = top + (26 * 4 / 3);
     const textBottomY = textTopY + (48 * (4 / 3));
     // MAX text
-    ctx.font = `${26 * (4 / 3)}px Open Sans`;
+    ctx.font = `${26 * (4 / 3)}px \'Open Sans\', sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     if (isCruiseSet) {
@@ -837,11 +837,11 @@ class DriveVideo extends Component {
 
     // max speed text
     if (isCruiseSet) {
-      ctx.font = `700 ${48 * (4 / 3)}px Open Sans`;
+      ctx.font = `700 ${48 * (4 / 3)}px \'Open Sans\', sans-serif`;
       ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
       ctx.fillText(Math.floor(maxSpeedCalc), 2 + left + width / 2, textBottomY);
     } else {
-      ctx.font = `600 ${42 * (4 / 3)}px Open Sans`;
+      ctx.font = `600 ${42 * (4 / 3)}px \'Open Sans\', sans-serif`;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.392)';
       ctx.fillText('N/A', left + width / 2, textBottomY);
     }

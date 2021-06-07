@@ -6,9 +6,11 @@ import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, FlyToInterpolator, S
   WebMercatorViewport, Layer} from 'react-map-gl';
 import { withStyles, TextField, InputAdornment, Typography, Button } from '@material-ui/core';
 import { Search, Room } from '@material-ui/icons';
+import moment from 'moment';
+
+import { athena as Athena, devices as Devices } from '@commaai/comma-api';
 import Colors from '../../colors';
 import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
-import { athena as Athena, devices as Devices } from '@commaai/comma-api';
 import { car_pin } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
 
@@ -113,6 +115,15 @@ const styles = () => ({
     width: 36,
     height: 36,
   },
+  carPinTooltip: {
+    textAlign: 'center',
+    borderRadius: 14,
+    fontSize: '0.8em',
+    padding: '6px 8px',
+    border: `1px solid ${Colors.white10}`,
+    backgroundColor: Colors.grey800,
+    color: Colors.white,
+  },
 });
 
 const initialState = {
@@ -144,6 +155,7 @@ class Navigation extends Component {
     this.searchInputRef = React.createRef();
     this.searchSelectBoxRef = React.createRef();
     this.overlayRef = React.createRef();
+    this.carPinTooltipRef = React.createRef();
 
     this.flyToMarkers = this.flyToMarkers.bind(this);
     this.renderOverlay = this.renderOverlay.bind(this);
@@ -158,6 +170,7 @@ class Navigation extends Component {
     this.formatDuration = this.formatDuration.bind(this);
     this.navigate = this.navigate.bind(this);
     this.onResize = this.onResize.bind(this);
+    this.toggleCarPinTooltip = this.toggleCarPinTooltip.bind(this);
 
     this.updateDeviceTimeout = null;
     this.updateDeviceTimeoutTime = 5000;
@@ -404,13 +417,28 @@ class Navigation extends Component {
     this.setState({ windowWidth });
   }
 
+  toggleCarPinTooltip(visible) {
+    const tooltip = this.carPinTooltipRef.current;
+    if (tooltip) {
+      tooltip.style.visibility = visible ? 'visible' : 'hidden';
+    }
+  }
+
   render() {
     const { classes } = this.props;
-    const { hasFocus, search , searchSelect, carLocation, carOnline, viewport, windowWidth } = this.state;
+    const { hasFocus, search , searchSelect, carLocation, carLocationTime, viewport, windowWidth } = this.state;
 
     const cardStyle = windowWidth < 600 ?
       { width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 } :
       { width: 330, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
+
+    let carPinTooltipStyle = { transform: 'translate(calc(-50% + 18px), 0)' };
+    if (carLocation) {
+      const pixelsAvailable = viewport.height - new WebMercatorViewport(viewport).project(carLocation)[1];
+      if (pixelsAvailable < 50) {
+        carPinTooltipStyle = { transform: 'translate(calc(-50% + 18px), -87px)' };
+      }
+    }
 
     return (
       <div className={ classes.mapContainer } style={{ height: hasFocus ? '60vh' : 200 }}>
@@ -427,10 +455,16 @@ class Navigation extends Component {
                 paint={{ 'line-color': '#31a1ee', 'line-width': 3, 'line-blur': 1 }}  />
             </Source>
           }
-          { carLocation && carOnline &&
+          { carLocation &&
             <Marker latitude={ carLocation[1] } longitude={ carLocation[0] } offsetLeft={ -18 } offsetTop={ -33 }
-              captureDrag={ false } captureClick={ false } captureDoubleClick={ false }>
-              <img className={ classes.carPin } src={ car_pin } />
+              captureDrag={ false } captureClick={ true } captureDoubleClick={ false }>
+              <img className={ classes.carPin } src={ car_pin } onMouseEnter={ () => this.toggleCarPinTooltip(true) }
+                onMouseLeave={ () => this.toggleCarPinTooltip(false) } />
+              <div className={ classes.carPinTooltip } ref={ this.carPinTooltipRef }
+                style={{ ...carPinTooltipStyle, visibility: 'hidden' }}>
+                { moment(carLocationTime).format('LT') },<br />
+                { moment(carLocationTime).fromNow() }
+              </div>
             </Marker>
           }
           { search && search.map((item) =>
