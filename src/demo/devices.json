@@ -14,6 +14,7 @@
     "last_gps_time": 1565453808000,
     "last_segment_create_time": 1566014754,
     "last_segment_utc_millis": 1566014561197,
+    "last_athena_ping": 1565453808,
     "sim_id": "0000000000000000000",
     "vehicle_id": 34833
   }

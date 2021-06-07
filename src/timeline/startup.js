@@ -42,10 +42,12 @@ export default async function init(isDemo) {
       primeNav: getPrimeNav(window.location.pathname),
     });
 
-    Billing.getPaymentMethod().then((paymentMethod) => {
-      store.dispatch(primeGetPaymentMethodAction(paymentMethod));
-    }).catch((err) => {
-      console.log(err);
-    });
+    if (profile.prime) {
+      Billing.getPaymentMethod().then((paymentMethod) => {
+        store.dispatch(primeGetPaymentMethodAction(paymentMethod));
+      }).catch((err) => {
+        console.log(err);
+      });
+    }
   }
 }

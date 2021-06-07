@@ -13,6 +13,7 @@ import Colors from '../../colors';
 import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
 import { car_pin } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
+import * as Demo from '../../demo';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 const styles = () => ({
@@ -216,6 +217,10 @@ class Navigation extends Component {
 
   updateDevice() {
     const { dongleId } = this.props;
+
+    if (Demo.isDemo()) {
+      return;
+    }
 
     // get last known location
     Devices.fetchLocation(dongleId).then((resp) => {

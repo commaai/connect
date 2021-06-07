@@ -115,7 +115,7 @@ class DeviceList extends Component {
     let found = devices.some((device) => device.dongle_id === dongleId);
     let onlyHasAppDevice = (devices.length === 0);
 
-    if (!found) {
+    if (!found && dongleId) {
       devices = [{
         dongle_id: dongleId,
         shared: true,

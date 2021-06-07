@@ -73,11 +73,7 @@ class DriveList extends Component {
   }
 
   render() {
-    const { classes, device, segments } = this.props;
-
-    if (!device) {
-      return [];
-    }
+    const { classes } = this.props;
 
     const driveList = [];
     let lastEnd = 0;
@@ -178,6 +174,7 @@ const stateToProps = Obstruction({
   segmentData: 'workerState.segmentData',
   start: 'workerState.start',
   device: 'workerState.device',
+  dongleId: 'workerState.dongleId',
   isSuperUser: 'workerState.profile.superuser',
 });
 

@@ -22,15 +22,19 @@ class Dashboard extends Component {
   }
 
   render() {
-    const { classes, primeNav, device } = this.props;
+    const { classes, primeNav, device, dongleId } = this.props;
+
+    if (!device || !dongleId) {
+      return null;
+    }
 
     return (
       <div className={classes.base}>
         { primeNav ?
           <Prime /> :
           <>
-            { device && !device.prime && device.is_owner && <PrimeBanner collapsed /> }
-            { device && <Navigation hasNav={ device.prime && device.device_type === 'three' } /> }
+            { !device.prime && device.is_owner && <PrimeBanner collapsed /> }
+            <Navigation hasNav={ device.prime && device.device_type === 'three' } />
             <DriveList />
           </>
         }
@@ -41,7 +45,7 @@ class Dashboard extends Component {
 
 const stateToProps = Obstruction({
   segments: 'workerState.segments',
-  selectedDongleId: 'workerState.dongleId',
+  dongleId: 'workerState.dongleId',
   primeNav: 'workerState.primeNav',
   device: 'workerState.device',
 });
