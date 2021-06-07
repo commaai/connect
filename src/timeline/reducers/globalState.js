@@ -38,7 +38,12 @@ export default function reducer(_state = initialState, action) {
           };
         }
       }
-      state.devices = action.devices;
+      state.devices = action.devices.map((device) => {
+        return {
+          ...device,
+          fetched_at: parseInt(Date.now() / 1000),
+        };
+      });
       state.profile = action.profile;
       break;
     case ACTION_SELECT_DEVICE:

@@ -36,7 +36,20 @@ const styles = (theme) => ({
       color: Colors.white,
     },
   },
+  deviceOnline: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.green400,
+  },
+  deviceOffline: {
+    backgroundColor: Colors.grey400,
+  },
   deviceInfo: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  deviceName: {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
@@ -127,16 +140,20 @@ class DeviceList extends Component {
     const { classes, isSuperUser } = this.props;
     const isSelected = (this.props.selectedDevice === device.dongle_id);
     const alias = device.alias || deviceTypePretty(device.device_type);
+    const offlineCls = device.last_athena_ping < (device.fetched_at - 120) ? classes.deviceOffline : '';
     return (
       <div key={device.dongle_id} onClick={ () => this.props.handleDeviceSelected(device.dongle_id) }
         className={cx(classes.device, [{ isSelected }])}>
         <div className={classes.deviceInfo}>
-          <Typography className={classes.deviceAlias}>
-            { alias }
-          </Typography>
-          <Typography variant="caption" className={classes.deviceId}>
-            ({ device.dongle_id })
-          </Typography>
+          <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
+          <div className={ classes.deviceName }>
+            <Typography className={classes.deviceAlias}>
+              { alias }
+            </Typography>
+            <Typography variant="caption" className={classes.deviceId}>
+              ({ device.dongle_id })
+            </Typography>
+          </div>
         </div>
         { ((!device.shared && device.is_owner) || isSuperUser) &&
           <IconButton className={classes.settingsButton} onClick={ (ev) => this.handleOpenedSettingsModal(device, ev) }>
