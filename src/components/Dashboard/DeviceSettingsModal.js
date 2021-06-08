@@ -17,7 +17,7 @@ import CheckIcon from '@material-ui/icons/Check';
 import SaveIcon from '@material-ui/icons/Save';
 import ShareIcon from '@material-ui/icons/Share';
 
-import { devices as Devices } from '@commaai/comma-api';
+import { devices as DevicesApi } from '@commaai/comma-api';
 import Timelineworker from '../../timeline';
 import { primeNav, selectDevice } from '../../actions';
 
@@ -31,6 +31,10 @@ const styles = (theme) => ({
     top: '40%',
     transform: 'translate(-50%, -50%)',
     outline: 'none',
+  },
+  modalUnpair: {
+    width: theme.spacing.unit * 45,
+    maxWidth: '80%',
   },
   titleContainer: {
     display: 'flex',
@@ -65,6 +69,12 @@ const styles = (theme) => ({
   primeManageButton: {
     marginTop: 20,
   },
+  topButtonGroup: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap-reverse',
+    alignItems: 'baseline',
+  },
 });
 
 class DeviceSettingsModal extends Component {
@@ -76,7 +86,9 @@ class DeviceSettingsModal extends Component {
       loadingDeviceAlias: false,
       loadingDeviceShare: false,
       hasSavedAlias: false,
-      shareEmail: ''
+      shareEmail: '',
+      unpairConfirm: false,
+      unpaired: false,
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -85,6 +97,8 @@ class DeviceSettingsModal extends Component {
     this.callOnEnter = this.callOnEnter.bind(this);
     this.setDeviceAlias = this.setDeviceAlias.bind(this);
     this.shareDevice = this.shareDevice.bind(this);
+    this.unpairDevice = this.unpairDevice.bind(this);
+    this.closeUnpair = this.closeUnpair.bind(this);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -125,7 +139,7 @@ class DeviceSettingsModal extends Component {
       hasSavedAlias: false
     });
     try {
-      const device = await Devices.setDeviceAlias(dongle_id, this.state.deviceAlias.trim());
+      const device = await DevicesApi.setDeviceAlias(dongle_id, this.state.deviceAlias.trim());
       Timelineworker.updateDevice(device);
       this.setState({
         loadingDeviceAlias: false,
@@ -150,7 +164,7 @@ class DeviceSettingsModal extends Component {
       hasShared: false
     });
     try {
-      await Devices.grantDeviceReadPermission(dongle_id, this.state.shareEmail.trim());
+      await DevicesApi.grantDeviceReadPermission(dongle_id, this.state.shareEmail.trim());
       this.setState({
         loadingDeviceShare: false,
         shareEmail: '',
@@ -188,13 +202,27 @@ class DeviceSettingsModal extends Component {
     }
   }
 
+  async unpairDevice() {
+    this.setState({ loadingUnpair: true });
+    await DevicesApi.unpair(this.props.device.dongle_id);
+    this.setState({ loadingUnpair: false, unpaired: true })
+  }
+
+  closeUnpair() {
+    if (this.state.unpaired) {
+      window.location = window.location.origin;
+    } else {
+      this.setState({ unpairConfirm: false });
+    }
+  }
+
   render() {
     const { classes, device } = this.props;
     if (!device) {
       return <></>;
     }
 
-    return (
+    return ( <>
       <Modal aria-labelledby="device-settings-modal" aria-describedby="device-settings-modal-description"
         open={this.props.isOpen} onClose={this.props.onClose}>
         <Paper className={classes.modal}>
@@ -207,9 +235,15 @@ class DeviceSettingsModal extends Component {
             </Typography>
           </div>
           <Divider />
-          <Button variant="outlined" className={ classes.primeManageButton } onClick={ this.onPrimeSettings }>
-            Manage prime settings
-          </Button>
+          <div className={ classes.topButtonGroup }>
+            <Button variant="outlined" className={ classes.primeManageButton } onClick={ this.onPrimeSettings }>
+              Manage prime settings
+            </Button>
+            <Button variant="outlined" className={ classes.primeManageButton }
+              onClick={ () => this.setState({ unpairConfirm: true }) }>
+              Unpair device
+            </Button>
+          </div>
           <div className={classes.form}>
             <div className={classes.formRow}>
               <TextField id="device_alias" label="Device Name" className={ classes.textField }
@@ -246,7 +280,33 @@ class DeviceSettingsModal extends Component {
           </div>
         </Paper>
       </Modal>
-    );
+      <Modal aria-labelledby="device-settings-modal" aria-describedby="device-settings-modal-description"
+        open={this.state.unpairConfirm} onClose={ this.closeUnpair }>
+        <Paper className={ `${classes.modal} ${classes.modalUnpair}` }>
+          <div className={ classes.titleContainer }>
+            <Typography variant="title">
+              Unpair device
+            </Typography>
+            <Typography variant="caption">
+              { device.dongle_id }
+            </Typography>
+          </div>
+          <Divider />
+          <div className={ classes.topButtonGroup }>
+            { this.state.unpaired ?
+              <Typography variant="body2">Unpaired</Typography> :
+              <Button variant="outlined" className={ classes.primeManageButton } onClick={ this.unpairDevice }
+                disabled={ this.state.loadingUnpair }>
+                { this.state.loadingUnpair ? '...' : 'Confirm' }
+              </Button>
+            }
+            <Button variant="contained" className={ classes.primeManageButton } onClick={ this.closeUnpair }>
+              { this.state.unpaired ? 'Close' : 'Cancel' }
+            </Button>
+          </div>
+        </Paper>
+      </Modal>
+    </> );
   }
 }
 

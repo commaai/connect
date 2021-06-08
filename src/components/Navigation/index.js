@@ -227,7 +227,7 @@ class Navigation extends Component {
       this.setState({
         carLocation: [resp.lng, resp.lat],
         carLocationTime: resp.time,
-      });
+      }, this.flyToMarkers);
     }).catch(console.log);
 
     // see if device can be reached

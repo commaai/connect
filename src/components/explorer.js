@@ -2,9 +2,12 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import PropTypes from 'prop-types';
+import localforage from 'localforage';
 
-import { withStyles } from '@material-ui/core/styles';
+import { withStyles, Modal, Paper, Typography, Button, CircularProgress, Divider } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
+
+import { devices as DevicesApi } from '@commaai/comma-api';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
@@ -16,13 +19,31 @@ import { selectRange, primeNav } from '../actions';
 import { getDongleID, getZoom, getPrimeNav } from '../url';
 import ResizeHandler from './ResizeHandler';
 
-const styles = (/* theme */) => ({
+const styles = (theme) => ({
   base: {
   },
   window: {
     background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
     display: 'flex',
     flexDirection: 'column',
+  },
+  modal: {
+    position: 'absolute',
+    padding: theme.spacing.unit * 2,
+    width: theme.spacing.unit * 50,
+    maxWidth: '90%',
+    left: '50%',
+    top: '40%',
+    transform: 'translate(-50%, -50%)',
+    outline: 'none',
+    '& p': { marginTop: 10 },
+  },
+  closeButton: {
+    marginTop: 10,
+    float: 'right'
+  },
+  fabProgress: {
+    marginTop: 10,
   },
 });
 
@@ -35,15 +56,62 @@ class ExplorerApp extends Component {
       drawerIsOpen: false,
       windowWidth: window.innerWidth,
       headerRef: null,
+      pairLoading: false,
+      pairError: null,
+      pairDongleId: null,
     };
 
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
     this.onResize = this.onResize.bind(this);
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
+    this.closePair = this.closePair.bind(this);
   }
 
   componentWillMount() {
     this.checkProps(this.props);
+  }
+
+  async componentDidMount() {
+    const { pairLoading, pairError, pairDongleId } = this.state;
+    let pairToken;
+    try {
+      pairToken = await localforage.getItem('pairToken');
+    } catch (err) {
+      console.log(err);
+    }
+    if (pairToken && !pairLoading && !pairError && !pairDongleId) {
+      this.setState({ pairLoading: true });
+      try {
+        const resp = await DevicesApi.pilotPair(pairToken);
+        const json = JSON.parse(resp);
+        if (json.dongle_id) {
+          await localforage.removeItem('pairToken');
+          this.setState({
+            pairLoading: false,
+            pairError: null,
+            pairDongleId: json.dongle_id,
+          });
+
+          const device = await DevicesApi.fetchDevice(json.dongle_id);
+          Timelineworker.updateDevice(device);
+        } else {
+          await localforage.removeItem('pairToken');
+          this.setState({ pairDongleId: null, pairLoading: false, pairError: `Could not pair: ${resp}` });
+        }
+      } catch(err) {
+        await localforage.removeItem('pairToken');
+        this.setState({ pairDongleId: null, pairLoading: false, pairError: `Error: ${err.message}` });
+      }
+    }
+  }
+
+  async closePair() {
+    const { pairDongleId } = this.state;
+    if (pairDongleId) {
+      Timelineworker.selectDevice(pairDongleId);
+    }
+    await localforage.removeItem('pairToken');
+    this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }
 
   componentWillReceiveProps(props) {
@@ -113,7 +181,7 @@ class ExplorerApp extends Component {
 
   render() {
     const { classes, expanded } = this.props;
-    const { drawerIsOpen } = this.state;
+    const { drawerIsOpen, pairLoading, pairError, pairDongleId } = this.state;
 
     const isLarge = this.state.windowWidth > 1080;
 
@@ -145,6 +213,18 @@ class ExplorerApp extends Component {
         <div className={ classes.window } style={ containerStyles }>
           { expanded ? (<DriveView />) : (<Dashboard />) }
         </div>
+        <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
+          <Paper className={classes.modal}>
+            <Typography variant="title">Pairing device</Typography>
+            <Divider />
+            { pairLoading && <CircularProgress size={32} className={classes.fabProgress} /> }
+            { pairDongleId && <Typography>Successfully paired device { pairDongleId }</Typography> }
+            { pairError && <Typography>{ pairError }</Typography> }
+            <Button variant="contained" className={ classes.closeButton } onClick={ this.closePair }>
+              Close
+            </Button>
+          </Paper>
+        </Modal>
       </div>
     );
   }

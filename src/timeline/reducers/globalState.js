@@ -71,14 +71,16 @@ export default function reducer(_state = initialState, action) {
       };
       break;
     case ACTION_UPDATE_DEVICE:
-      deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.device.dongle_id);
       state = {
         ...state,
-        devices: {
-          ...state.devices,
-          deviceIndex: action.device,
-        },
+        devices: [...state.devices],
       };
+      deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.device.dongle_id);
+      if (deviceIndex !== -1) {
+        state.devices[deviceIndex] = action.device;
+      } else {
+        state.devices.push(action.device);
+      }
       break;
     case ACTION_PRIME_NAV:
       state = {

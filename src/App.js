@@ -39,6 +39,15 @@ class App extends Component {
       demo: false,
     };
 
+    const pairToken = qs.parse(window.location.search).pair;
+    if (pairToken) {
+      try {
+        localforage.setItem('pairToken', pairToken);
+      } catch (err) {
+        console.log(err);
+      }
+    }
+
     this.cancelInit = Collector();
 
     const initDemoTimeline = Jepsen(() => {

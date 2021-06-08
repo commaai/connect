@@ -151,7 +151,7 @@ class DeviceList extends Component {
               { alias }
             </Typography>
             <Typography variant="caption" className={classes.deviceId}>
-              ({ device.dongle_id })
+              { device.dongle_id }
             </Typography>
           </div>
         </div>
