@@ -18,7 +18,7 @@
   "private": true,
   "dependencies": {
     "@commaai/capnp-json": "^0.8.1",
-    "@commaai/comma-api": "^1.5.0",
+    "@commaai/comma-api": "^1.6.0",
     "@commaai/hls.js": "^0.12.7",
     "@commaai/log_reader": "^0.8.1",
     "@commaai/my-comma-auth": "^1.2.1",
