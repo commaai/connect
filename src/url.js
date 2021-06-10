@@ -1,8 +1,10 @@
+const dongleIdRegex = new RegExp('[a-f0-9]{16}');
+
 export function getDongleID(pathname) {
   let parts = pathname.split('/');
   parts = parts.filter((m) => m.length);
 
-  if (parts[0] === 'auth') {
+  if (!dongleIdRegex.test(parts[0])) {
     return null;
   }
 
