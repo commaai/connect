@@ -20,8 +20,8 @@ describe('timeline actions', () => {
       },
       zoom: {},
     }));
-    window.history.replaceState({}, 'test page', '/urldongle');
+    window.history.replaceState({}, 'test page', '/0000aaaa0000aaaa');
     actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/urldongle/123/1234');
+    expect(push).toBeCalledWith('/0000aaaa0000aaaa/123/1234');
   });
 });
