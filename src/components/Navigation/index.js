@@ -177,6 +177,10 @@ class Navigation extends Component {
     this.onResize = this.onResize.bind(this);
     this.toggleCarPinTooltip = this.toggleCarPinTooltip.bind(this);
     this.clearSearch = this.clearSearch.bind(this);
+    this.formatSearchName = this.formatSearchName.bind(this);
+    this.formatSearchDetails = this.formatSearchDetails.bind(this);
+    this.itemLoc = this.itemLoc.bind(this);
+    this.itemLngLat = this.itemLngLat.bind(this);
 
     this.updateDeviceTimeout = null;
     this.updateDeviceTimeoutTime = 5000;
@@ -262,10 +266,11 @@ class Navigation extends Component {
     this.focus();
     if (searchInput && searchInput.value.length >= 3) {
       const proximity = this.state.carLocation || this.state.geoLocateCoords || undefined;
-      GeocodeApi().forwardLookup(searchInput.value, proximity).then((features) => {
+      GeocodeApi().forwardLookup(searchInput.value, proximity, true).then((features) => {
         this.setState({
           searchSelect: null,
-          search: features.filter((item, i) => i < 4 || item.relevance == 1),
+          search: features.filter((item) =>
+            !(['categoryQuery', 'chainQuery', 'administrativeArea'].includes(item.resultType))).slice(0, 10),
           searchLooking: false,
         });
       });
@@ -281,7 +286,7 @@ class Navigation extends Component {
       searchLooking: false,
     });
     if (this.state.carLocation) {
-      GeocodeApi().getDirections([this.state.carLocation, item.center]).then((route) => {
+      GeocodeApi().getDirections([this.state.carLocation, this.itemLngLat(item)]).then((route) => {
         this.setState({
           searchSelect: {
             ...item,
@@ -325,10 +330,10 @@ class Navigation extends Component {
       bounds.push([carLocation, carLocation]);
     }
     if (searchSelect) {
-      bounds.push([searchSelect.center, searchSelect.center]);
+      bounds.push(this.itemLngLat(searchSelect, true));
     }
     if (search) {
-      search.forEach((item) => bounds.push([item.center, item.center]));
+      search.forEach((item) => bounds.push(this.itemLngLat(item, true)));
     }
 
     if (bounds.length) {
@@ -362,23 +367,28 @@ class Navigation extends Component {
     }
   }
 
-  formatDistance(meters) {
-    const { searchSelect } = this.state;
+  formatDistance(route) {
+    const meters = route.distance;
 
-    let metric = false;
-    if (searchSelect && searchSelect.context) {
-      const country = searchSelect.context[searchSelect.context.length - 1];
-      if (country.id.substr(0, 7) === 'country' && country.short_code !== 'us' && country.short_code !== 'gb') {
-        metric = true;
-      }
+    let metric = true;
+    try {
+      route.legs[0].admins.forEach((adm) => {
+        if (['US', 'GB'].includes(adm.iso_3166_1)) {
+          metric = false;
+        }
+      });
+    } catch (err) {
+      metric = false;
     }
+
     if (metric) {
       return (meters / 1000.0).toFixed(1) + " km";
     }
     return (meters / 1609.34).toFixed(1) + " mi";
   }
 
-  formatDuration(seconds) {
+  formatDuration(route) {
+    const seconds = route.duration;
     let mins = Math.round(seconds / 60.0);
     let res = '';
     if (mins >= 60) {
@@ -387,6 +397,41 @@ class Navigation extends Component {
       res += `${hours} hr `;
     }
     return `${res}${mins} min`;
+  }
+
+  formatSearchName(item) {
+    if (item.resultType === 'place') {
+      return item.title;
+    } else {
+      return item.title.split(',', 1)[0];
+    }
+  }
+
+  formatSearchDetails(item, comma=false) {
+    const name = this.formatSearchName(item);
+    const addrLabelName = item.address.label.split(',', 1)[0];
+    let res;
+    if (name.substr(0, addrLabelName.length) === addrLabelName) {
+      res = item.address.label.split(', ').slice(1).join(', ');
+    } else {
+      res = item.address.label;
+    }
+    if (res.length) {
+      return (comma ? ', ' : '') + res;
+    }
+  }
+
+  itemLoc(item) {
+    if (item.access && item.access.length) {
+      return item.access[0];
+    }
+    return item.position;
+  }
+
+  itemLngLat(item, bounds=false) {
+    const pos = this.itemLoc(item);
+    const res = [pos.lng, pos.lat];
+    return bounds ? [res, res] : res;
   }
 
   navigate() {
@@ -403,11 +448,12 @@ class Navigation extends Component {
       success: false,
     }});
 
+    const pos = this.itemLoc(searchSelect);
     const payload = {
       method: "setNavDestination",
       params: {
-        latitude: searchSelect.center[1],
-        longitude: searchSelect.center[0],
+        latitude: pos.lat,
+        longitude: pos.lng,
       },
       jsonrpc: "2.0",
       id: 0,
@@ -493,14 +539,16 @@ class Navigation extends Component {
             </Marker>
           }
           { search && search.map((item) =>
-            <Marker latitude={ item.center[1] } longitude={ item.center[0] } key={ item.id } offsetLeft={ -18 }
-              offsetTop={ -33 } captureDrag={ false } captureClick={ false } captureDoubleClick={ false }>
+            <Marker latitude={ this.itemLoc(item).lat } longitude={ this.itemLoc(item).lng } key={ item.id }
+              offsetLeft={ -18 } offsetTop={ -33 } captureDrag={ false } captureClick={ false }
+              captureDoubleClick={ false }>
               <Room classes={{ root: classes.searchPin }} onClick={ () => this.onSearchSelect(item) } />
             </Marker>
           )}
           { searchSelect &&
-            <Marker latitude={ searchSelect.center[1] } longitude={ searchSelect.center[0] } offsetLeft={ -18 }
-              offsetTop={ -33 } captureDrag={ false } captureClick={ false } captureDoubleClick={ false }>
+            <Marker latitude={ this.itemLoc(searchSelect).lat } longitude={ this.itemLoc(searchSelect).lng }
+              offsetLeft={ -18 } offsetTop={ -33 } captureDrag={ false } captureClick={ false }
+              captureDoubleClick={ false }>
               <Room classes={{ root: classes.searchSelect }}/>
             </Marker>
           }
@@ -547,9 +595,9 @@ class Navigation extends Component {
             { search.map((item) => (
               <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item) }>
                 <Typography>
-                  { item.place_name.split(', ', 1) }
+                  { this.formatSearchName(item) }
                   <span className={ classes.overlaySearchDetails }>
-                    , { item.place_name.split(', ').slice(1).join(', ') }
+                    { this.formatSearchDetails(item, true) }
                   </span>
                 </Typography>
               </div>
@@ -568,11 +616,11 @@ class Navigation extends Component {
       <div className={ classes.searchSelectBox } ref={ this.searchSelectBoxRef }>
         <div className={ classes.searchSelectBoxHeader }>
           <div>
-            <Typography className={ classes.bold }>{ searchSelect.place_name.split(', ', 1) }</Typography>
+            <Typography className={ classes.bold }>{ this.formatSearchName(searchSelect) }</Typography>
             { searchSelect.route &&
               <Typography className={ classes.searchSelectBoxDetails }>
-                { this.formatDistance(searchSelect.route.distance) } (
-                { this.formatDuration(searchSelect.route.duration) })
+                { this.formatDistance(searchSelect.route) } (
+                { this.formatDuration(searchSelect.route) })
               </Typography>
             }
           </div>
@@ -588,7 +636,7 @@ class Navigation extends Component {
           }
         </div>
         <Typography className={ classes.searchSelectBoxDetails }>
-          { searchSelect.place_name.split(', ').slice(1).join(', ') }
+          { this.formatSearchDetails(searchSelect, false) }
         </Typography>
       </div>
     );

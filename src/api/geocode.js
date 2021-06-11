@@ -1,4 +1,5 @@
 import Raven from 'raven-js';
+import qs from 'query-string';
 
 export const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -59,19 +60,25 @@ export default function geocodeApi() {
     },
 
     async forwardLookup(query, proximity) {
-      if (!geocodingClient) {
-        return null;
+      const params = {
+        apiKey: process.env.REACT_APP_HERE_API_KEY,
+        q: query,
+        at: `${proximity[1]},${proximity[0]}`,
+        limit: 20,
+        details: '1',
+      };
+
+      try {
+        const resp = await fetch(`https://autosuggest.search.hereapi.com/v1/autosuggest?${qs.stringify(params)}`, {
+          method: 'GET',
+        });
+        if (resp.ok) {
+          const json = await resp.json();
+          return json.items;
+        }
+      } catch (err) {
+        console.log(err);
       }
-
-      const resp = await geocodingClient.forwardGeocode({
-        query: query,
-        mode: "mapbox.places",
-        proximity: proximity,
-        limit: 8,
-        types: ['postcode', 'place', 'locality', 'address', 'poi'],
-      }).send();
-
-      return resp.body.features;
     },
 
     async getDirections(points) {
