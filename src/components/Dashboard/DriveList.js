@@ -136,7 +136,7 @@ class DriveList extends Component {
   }
 
   renderDriveListHeader() {
-    const { classes, device } = this.props;
+    const { classes } = this.props;
     const isMedium = this.state.windowWidth < 768;
     const isSmall = this.state.windowWidth < 640;
     const deviceStyle = isSmall ?
@@ -147,7 +147,7 @@ class DriveList extends Component {
         <ResizeHandler onResize={ this.onResize } />
         <Grid container alignItems="center">
           <div style={ deviceStyle }>
-            <Typography variant="title">{ device.alias || deviceTypePretty(device.device_type) }</Typography>
+            <Typography variant="title">Drives</Typography>
           </div>
           { !isSmall && <>
             <div style={{ flexGrow: 0, maxWidth: '14%', flexBasis: '14%' }}>
