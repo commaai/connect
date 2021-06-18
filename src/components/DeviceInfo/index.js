@@ -2,6 +2,8 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { withStyles, Typography, Button } from '@material-ui/core';
+import "react-responsive-carousel/lib/styles/carousel.min.css"; // requires a loader
+import { Carousel } from 'react-responsive-carousel';
 
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
@@ -71,6 +73,9 @@ const styles = () => ({
   snapshotContainerLarge: {
     display: 'flex',
     justifyContent: 'space-between',
+    '& > div:first-child': {
+      marginRight: 16,
+    },
     '& img': {
       maxHeight: 302,
       maxWidth: '100%',
@@ -78,9 +83,6 @@ const styles = () => ({
   },
   snapshotImageContainer: {
     position: 'relative',
-    '&:first-child': {
-      marginRight: 16,
-    },
     '& p': {
       '-webkit-text-stroke': '0.5px black',
       fontFamily: 'sans-serif',
@@ -134,6 +136,7 @@ class DeviceInfo extends Component {
     this.snapshotType = this.snapshotType.bind(this);
     this.renderButtons = this.renderButtons.bind(this);
     this.renderStats = this.renderStats.bind(this);
+    this.renderSnapshotImage = this.renderSnapshotImage.bind(this);
   }
 
   componentDidMount() {
@@ -237,32 +240,15 @@ class DeviceInfo extends Component {
           <div className={ `${classes.row} ${classes.columnRow}` }>
             { windowWidth >= 640 ?
               <div className={ classes.snapshotContainerLarge }>
-                <div className={ classes.snapshotImageContainer }>
-                  <img src={ `data:image/jpeg;base64,${snapshot.result.jpegBack}` } />
-                  <Typography>road camera</Typography>
-                </div>
-                <div className={ classes.snapshotImageContainer }>
-                  <img src={ `data:image/jpeg;base64,${snapshot.result.jpegFront}` } />
-                  <Typography>interior camera</Typography>
-                </div>
+                { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
+                { this.renderSnapshotImage(snapshot.result.jpegFront, true) }
               </div>
             :
               <div className={ classes.snapshotContainerSmall }>
-                <div className={ classes.snapshotTypeContainer }>
-                  <Button className={ classes.button } onClick={ () => this.snapshotType(false) }
-                    disabled={ !snapshot.showFront }>
-                    road camera
-                  </Button>
-                  <Button className={ classes.button } onClick={ () => this.snapshotType(true) }
-                    disabled={ !!snapshot.showFront }>
-                    interior camera
-                  </Button>
-                </div>
-                { snapshot.showFront ?
-                  <img src={ `data:image/jpeg;base64,${snapshot.result.jpegFront}` } />
-                :
-                  <img src={ `data:image/jpeg;base64,${snapshot.result.jpegBack}` } />
-                }
+                <Carousel autoPlay={ false } showThumbs={ false } showStatus={ false }>
+                  { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
+                  { this.renderSnapshotImage(snapshot.result.jpegFront, true) }
+                </Carousel>
               </div>
             }
           </div>
@@ -320,6 +306,16 @@ class DeviceInfo extends Component {
           take snapshot
         </Button>
       </>
+    );
+  }
+
+  renderSnapshotImage(src, isFront) {
+    const { classes } = this.props;
+    return (
+      <div className={ classes.snapshotImageContainer }>
+        <img src={ `data:image/jpeg;base64,${src}` } />
+        <Typography>{ isFront ? 'interior camera' : 'road camera' }</Typography>
+      </div>
     );
   }
 }
