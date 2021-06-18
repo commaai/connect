@@ -23,9 +23,6 @@ const styles = () => ({
     alignItems: 'center',
     marginBottom: 16,
   },
-  columnRow: {
-    flexDirection: 'column',
-  },
   button: {
     backgroundColor: Colors.white,
     color: Colors.grey800,
@@ -49,10 +46,6 @@ const styles = () => ({
     display: 'flex',
     justifyContent: 'space-around',
   },
-  spaceBetween: {
-    display: 'flex',
-    justifyContent: 'space-between',
-  },
   deviceStat: {
     display: 'flex',
     flexDirection: 'column',
@@ -75,44 +68,31 @@ const styles = () => ({
   },
   snapshotContainerLarge: {
     display: 'flex',
-    justifyContent: 'space-around',
-    '& img': {
-      maxHeight: 302,
-      maxWidth: '100%',
-    },
   },
-  snapshotImageContainer: {
-    position: 'relative',
-    '& img': {
-      display: 'block',
-    },
-    '& p': {
-      '-webkit-text-stroke': '0.5px black',
-      fontFamily: 'sans-serif',
-      fontSize: 20,
-      fontWeight: 600,
-      position: 'absolute',
-      top: 0,
-      left: 7,
-    },
-  },
-  snapshotContainerSmall: {
-    '& img': {
-      maxHeight: 302,
-      maxWidth: '100%',
-    },
-  },
-  snapshotTypeContainer: {
-    width: '100%',
-    marginBottom: 8,
+  snapshotImageContainerLarge: {
+    width: '50%',
     display: 'flex',
-    '& button': {
-      padding: '5px 16px',
+    justifyContent: 'center',
+  },
+  snapshotImage: {
+    display: 'block',
+    width: 'unset !important',
+    maxHeight: 302,
+    maxWidth: '100%',
+  },
+  snapshotImageError: {
+    maxWidth: 300,
+    margin: '0 auto',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    '& p': {
+      textAlign: 'center',
+      fontSize: '1rem',
       '&:first-child': {
-        borderRadius: '15px 0 0 15px',
-      },
-      '&:last-child': {
-        borderRadius: '0 15px 15px 0',
+        fontWeight: 600,
       },
     },
   },
@@ -204,8 +184,13 @@ class DeviceInfo extends Component {
         jsonrpc: "2.0",
         id: 0,
       };
-      const resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
-      console.log(resp);
+      let resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
+      if (resp.result && !resp.result.jpegBack && !resp.result.jpegFront) {
+        resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
+      }
+      if (resp.result && !resp.result.jpegBack && !resp.result.jpegFront) {
+        throw new Error('unable to fetch snapshot');
+      }
       this.setState({ snapshot: resp });
     } catch(err) {
       this.setState({ snapshot: { error: err.message }});
@@ -245,17 +230,19 @@ class DeviceInfo extends Component {
           <div className={ classes.snapshotContainer }>
             { windowWidth >= 640 ?
               <div className={ classes.snapshotContainerLarge }>
-                { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
-                { this.renderSnapshotImage(snapshot.result.jpegFront, true) }
+                <div className={ classes.snapshotImageContainerLarge }>
+                  { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
+                </div>
+                <div className={ classes.snapshotImageContainerLarge }>
+                  { this.renderSnapshotImage(snapshot.result.jpegFront, true) }
+                </div>
               </div>
             :
-            <div className={ classes.snapshotContainerSmall }>
-                <Carousel autoPlay={ false } interval={ 2147483647 } showThumbs={ false } showStatus={ false }
-                  showArrows={ false }>
-                  { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
-                  { this.renderSnapshotImage(snapshot.result.jpegFront, true) }
-                </Carousel>
-              </div>
+              <Carousel autoPlay={ false } interval={ 2147483647 } showThumbs={ false } showStatus={ false }
+                showArrows={ false }>
+                { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
+                { this.renderSnapshotImage(snapshot.result.jpegFront, true) }
+              </Carousel>
             }
           </div>
         }
@@ -275,15 +262,15 @@ class DeviceInfo extends Component {
       <>
         <div className={ classes.deviceStat }>
           <Typography variant="subheading">{ Math.round(deviceStats.result.all.distance) }</Typography>
-          <Typography variant="subheading">Miles</Typography>
+          <Typography variant="subheading">miles</Typography>
         </div>
         <div className={ classes.deviceStat }>
           <Typography variant="subheading">{ deviceStats.result.all.routes }</Typography>
-          <Typography variant="subheading">Drives</Typography>
+          <Typography variant="subheading">drives</Typography>
         </div>
         <div className={ classes.deviceStat }>
           <Typography variant="subheading">{ Math.round(deviceStats.result.all.minutes / 60.0) }</Typography>
-          <Typography variant="subheading">Hours</Typography>
+          <Typography variant="subheading">hours</Typography>
         </div>
       </>
     );
@@ -303,8 +290,8 @@ class DeviceInfo extends Component {
     return (
       <>
         <div className={ classes.carBattery } style={{ backgroundColor: batteryBackground }}>
-          <Typography variant="subheading" >
-            car battery: { batteryVoltage ? batteryVoltage.toFixed(1) + ' v' : 'N/A' }
+          <Typography variant="subheading">
+            car battery: { batteryVoltage ? batteryVoltage.toFixed(1) + ' V' : 'N/A' }
           </Typography>
         </div>
         <Button onClick={ this.takeSnapshot } disabled={ Boolean(snapshot.fetching) }
@@ -317,12 +304,20 @@ class DeviceInfo extends Component {
 
   renderSnapshotImage(src, isFront) {
     const { classes } = this.props;
-    return (
-      <div className={ classes.snapshotImageContainer }>
-        <img src={ `data:image/jpeg;base64,${src}` } />
-        <Typography>{ isFront ? 'interior camera' : 'road camera' }</Typography>
-      </div>
-    );
+    if (!src) {
+      return (
+        <div className={ classes.snapshotImageError }>
+          <Typography>{ isFront && 'Interior' } snapshot not available</Typography>
+          { isFront &&
+            <Typography>
+              Enable "Record and Upload Driver Camera" on your device for interior camera snapshots
+            </Typography>
+          }
+        </div>
+      );
+    }
+
+    return ( <img src={ `data:image/jpeg;base64,${src}` } className={ classes.snapshotImage } /> );
   }
 }
 
