@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import { withStyles, Typography } from '@material-ui/core';
+import { withStyles, Typography, Button } from '@material-ui/core';
 
 import Colors from '../../colors';
 import { deviceTypePretty } from '../../utils'
@@ -11,6 +11,23 @@ const styles = () => ({
   container: {
     borderBottom: `1px solid ${Colors.white10}`,
     padding: '16px 36px',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  row: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  deviceStat: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    maxWidth: 80,
+  },
+  carBattery: {
+    padding: '0 8px',
+    borderRadius: 4,
   },
 });
 
@@ -28,6 +45,8 @@ class DeviceInfo extends Component {
     };
 
     this.fetchDeviceInfo = this.fetchDeviceInfo.bind(this);
+    this.fetchDeviceCarHealth = this.fetchDeviceCarHealth.bind(this);
+    this.takeSnapshot = this.takeSnapshot.bind(this);
   }
 
   componentDidMount() {
@@ -46,7 +65,6 @@ class DeviceInfo extends Component {
 
       this.fetchDeviceInfo();
       this.fetchDeviceCarHealth();
-      this.takeSnapshot();
     }
   }
 
@@ -98,25 +116,47 @@ class DeviceInfo extends Component {
     const { classes, dongleId, device } = this.props;
     const { deviceStats, snapshot, carHealth } = this.state;
 
+    let batteryVoltage;
+    if (carHealth && carHealth.result && carHealth.result.pandaState && carHealth.result.pandaState.voltage) {
+      batteryVoltage = carHealth.result.pandaState.voltage / 1000.0;
+    }
+
     return (
       <div className={ classes.container }>
-        <Typography variant="title">{ device.alias || deviceTypePretty(device.device_type) }</Typography>
-        { deviceStats && deviceStats.result &&
-          <div>
-            <Typography variant="subheading">stats</Typography>
-            { JSON.stringify(deviceStats) }
+        <div className={ classes.row }>
+          <Typography variant="title">{ device.alias || deviceTypePretty(device.device_type) }</Typography>
+
+          { deviceStats && deviceStats.result ? <>
+            <div className={ classes.deviceStat }>
+              <Typography variant="subheading">{ deviceStats.result.all.distance.toFixed(1) }</Typography>
+              <Typography variant="subheading">Kilometers</Typography>
+            </div>
+            <div className={ classes.deviceStat }>
+              <Typography variant="subheading">{ deviceStats.result.all.routes }</Typography>
+              <Typography variant="subheading">Drives</Typography>
+            </div>
+            <div className={ classes.deviceStat }>
+              <Typography variant="subheading">{ deviceStats.result.all.minutes }</Typography>
+              <Typography variant="subheading">Hours</Typography>
+            </div>
+          </> :
+            <Typography variant="subheading">Loading...</Typography>
+          }
+          <div className={ classes.carBattery }
+            style={{ backgroundColor: batteryVoltage < 11.0 ? '#971925': '#178645' }}>
+            <Typography variant="subheading" >
+              car battery: { batteryVoltage ? batteryVoltage.toFixed(1) + 'v' : 'N/A' }
+            </Typography>
           </div>
-        }
+          <Button onClick={ this.takeSnapshot }>
+            take snapshot
+          </Button>
+        </div>
         { snapshot && snapshot.result &&
-          <div>
+          <div className={ classes.row }>
             <Typography variant="subheading">snapshot</Typography>
+            <img src={ `data:image/jpeg;base64,${snapshot.result.jpegBack}` } />
             { JSON.stringify(snapshot) }
-          </div>
-        }
-        { carHealth && carHealth.result &&
-          <div>
-            <Typography variant="subheading">car health</Typography>
-            { JSON.stringify(carHealth) }
           </div>
         }
       </div>
