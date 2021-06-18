@@ -70,12 +70,12 @@ const styles = () => ({
     padding: '5px 16px',
     borderRadius: 15,
   },
+  snapshotContainer: {
+    borderBottom: `1px solid ${Colors.white10}`,
+  },
   snapshotContainerLarge: {
     display: 'flex',
-    justifyContent: 'space-between',
-    '& > div:first-child': {
-      marginRight: 16,
-    },
+    justifyContent: 'space-around',
     '& img': {
       maxHeight: 302,
       maxWidth: '100%',
@@ -83,6 +83,9 @@ const styles = () => ({
   },
   snapshotImageContainer: {
     position: 'relative',
+    '& img': {
+      display: 'block',
+    },
     '& p': {
       '-webkit-text-stroke': '0.5px black',
       fontFamily: 'sans-serif',
@@ -219,33 +222,36 @@ class DeviceInfo extends Component {
     const { snapshot, windowWidth } = this.state;
 
     return (
-      <div className={ classes.container }>
+      <>
         <ResizeHandler onResize={ this.onResize } />
-        { windowWidth >= 768 ?
-          <div className={ classes.row }>
-            <Typography variant="title">{ device.alias || deviceTypePretty(device.device_type) }</Typography>
-            { this.renderStats() }
-            { this.renderButtons() }
-          </div>
-        : <>
-          <div className={ classes.row }>
-            <Typography variant="title">{ device.alias || deviceTypePretty(device.device_type) }</Typography>
-            { this.renderButtons() }
-          </div>
-          <div className={ `${classes.row} ${classes.spaceAround}` }>
-            { this.renderStats() }
-          </div>
-        </> }
+        <div className={ classes.container }>
+          { windowWidth >= 768 ?
+            <div className={ classes.row }>
+              <Typography variant="title">{ device.alias || deviceTypePretty(device.device_type) }</Typography>
+              { this.renderStats() }
+              { this.renderButtons() }
+            </div>
+          : <>
+            <div className={ classes.row }>
+              <Typography variant="title">{ device.alias || deviceTypePretty(device.device_type) }</Typography>
+              { this.renderButtons() }
+            </div>
+            <div className={ `${classes.row} ${classes.spaceAround}` }>
+              { this.renderStats() }
+            </div>
+          </> }
+        </div>
         { snapshot.result &&
-          <div className={ `${classes.row} ${classes.columnRow}` }>
+          <div className={ classes.snapshotContainer }>
             { windowWidth >= 640 ?
               <div className={ classes.snapshotContainerLarge }>
                 { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
                 { this.renderSnapshotImage(snapshot.result.jpegFront, true) }
               </div>
             :
-              <div className={ classes.snapshotContainerSmall }>
-                <Carousel autoPlay={ false } showThumbs={ false } showStatus={ false }>
+            <div className={ classes.snapshotContainerSmall }>
+                <Carousel autoPlay={ false } interval={ 2147483647 } showThumbs={ false } showStatus={ false }
+                  showArrows={ false }>
                   { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
                   { this.renderSnapshotImage(snapshot.result.jpegFront, true) }
                 </Carousel>
@@ -253,7 +259,7 @@ class DeviceInfo extends Component {
             }
           </div>
         }
-      </div>
+      </>
     );
   }
 
