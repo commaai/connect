@@ -110,7 +110,7 @@ const styles = () => ({
   searchSelectButtonFake: {
     padding: '8px 16px',
     background: '#ddd',
-    minWidth: 100,
+    minWidth: 90,
     textAlign: 'center',
   },
   searchSelectBoxDetails: {
@@ -285,8 +285,9 @@ class Navigation extends Component {
       search: null,
       searchLooking: false,
     });
-    if (this.state.carLocation) {
-      GeocodeApi().getDirections([this.state.carLocation, this.itemLngLat(item)]).then((route) => {
+    const startLocation = this.state.carLocation || this.state.geoLocateCoords || null;
+    if (startLocation) {
+      GeocodeApi().getDirections([startLocation, this.itemLngLat(item)]).then((route) => {
         this.setState({
           searchSelect: {
             ...item,
@@ -611,7 +612,9 @@ class Navigation extends Component {
 
   renderSearchOverlay() {
     const { classes } = this.props;
-    const { searchSelect, carOnline } = this.state;
+    const { searchSelect, carOnline, carLocation, geoLocateCoords } = this.state;
+
+    const noRoute = !searchSelect.route && (carLocation || geoLocateCoords);
 
     return (
       <div className={ classes.searchSelectBox } ref={ this.searchSelectBoxRef }>
@@ -630,7 +633,7 @@ class Navigation extends Component {
               { searchSelect.success ? "destination set" : "..." }
             </Typography>
           :
-            <Button disabled={ !carOnline || !searchSelect.route } classes={{ root: classes.searchSelectButton }}
+            <Button disabled={ Boolean(!carOnline || noRoute) } classes={{ root: classes.searchSelectButton }}
               onClick={ this.navigate }>
               navigate
             </Button>
