@@ -16,6 +16,8 @@ const styles = () => ({
     paddingTop: 8,
     display: 'flex',
     flexDirection: 'column',
+    minHeight: 64,
+    justifyContent: 'center',
   },
   row: {
     display: 'flex',
@@ -118,6 +120,7 @@ class DeviceInfo extends Component {
     this.state = {
       ...initialState,
       windowWidth: window.innerWidth,
+      deviceOnline: null,
     };
 
     this.onResize = this.onResize.bind(this);
@@ -139,13 +142,19 @@ class DeviceInfo extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { dongleId } = this.props;
+    const { dongleId, device } = this.props;
 
     if (prevProps.dongleId !== dongleId) {
       this.setState(initialState);
 
       this.fetchDeviceInfo();
       this.fetchDeviceCarHealth();
+    }
+
+    if (prevProps.device !== device) {
+      this.setState({
+        deviceOnline: device.last_athena_ping >= (device.fetched_at - 120),
+      });
     }
   }
 
@@ -293,11 +302,11 @@ class DeviceInfo extends Component {
 
   renderButtons() {
     const { classes } = this.props;
-    const { snapshot, carHealth, windowWidth } = this.state;
+    const { deviceOnline, snapshot, carHealth, windowWidth } = this.state;
 
     let batteryVoltage;
     let batteryBackground = Colors.grey400;
-    if (carHealth.result && carHealth.result.pandaState && carHealth.result.pandaState.voltage) {
+    if (deviceOnline && carHealth.result && carHealth.result.pandaState && carHealth.result.pandaState.voltage) {
       batteryVoltage = carHealth.result.pandaState.voltage / 1000.0;
       batteryBackground = batteryVoltage < 11.0 ? Colors.red400: Colors.green400;
     }
@@ -308,12 +317,16 @@ class DeviceInfo extends Component {
       <>
         <div className={ classes.carBattery } style={{ backgroundColor: batteryBackground }}>
           <Typography variant="subheading">
-            { windowWidth >= 520 && 'car ' }
-            { 'battery: ' }
-            { batteryVoltage ? batteryVoltage.toFixed(1) + ' V' : 'N/A' }
+            { deviceOnline ?
+              (windowWidth >= 520 ? 'car ' : '') +
+              'battery: ' +
+              (batteryVoltage ? batteryVoltage.toFixed(1) + ' V' : 'N/A')
+            :
+              'device offline'
+            }
           </Typography>
         </div>
-        <Button onClick={ this.takeSnapshot } disabled={ Boolean(snapshot.fetching) }
+        <Button onClick={ this.takeSnapshot } disabled={ Boolean(snapshot.fetching || !deviceOnline) }
           classes={{ root: `${classes.button} ${buttonClass}` }}>
           { snapshot.fetching ?
             <CircularProgress size={ 19 } /> :
