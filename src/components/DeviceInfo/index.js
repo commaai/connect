@@ -13,7 +13,7 @@ import { devices as DevicesApi, athena as AthenaApi } from '@commaai/comma-api';
 const styles = () => ({
   container: {
     borderBottom: `1px solid ${Colors.white10}`,
-    padding: '16px 36px 0 36px',
+    paddingTop: 16,
     display: 'flex',
     flexDirection: 'column',
   },
@@ -55,6 +55,8 @@ const styles = () => ({
   carBattery: {
     padding: '3px 16px',
     borderRadius: 15,
+    margin: '0 10px',
+    textAlign: 'center',
     '& h3': {
       fontWeight: 500,
     },
@@ -62,6 +64,11 @@ const styles = () => ({
   snapshotButton: {
     minWidth: 130,
     padding: '5px 16px',
+    borderRadius: 15,
+  },
+  snapshotButtonSmall: {
+    minWidth: 90,
+    padding: '5px 10px',
     borderRadius: 15,
   },
   snapshotContainer: {
@@ -204,12 +211,14 @@ class DeviceInfo extends Component {
 
   render() {
     const { classes, device } = this.props;
-    const { snapshot, windowWidth } = this.state;
+    const { snapshot, deviceStats, windowWidth } = this.state;
+
+    const containerPadding = windowWidth > 520 ? 36 : 16;
 
     return (
       <>
         <ResizeHandler onResize={ this.onResize } />
-        <div className={ classes.container }>
+        <div className={ classes.container } style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
           { windowWidth >= 768 ?
             <div className={ classes.row }>
               <Typography variant="title">{ device.alias || deviceTypePretty(device.device_type) }</Typography>
@@ -221,9 +230,11 @@ class DeviceInfo extends Component {
               <Typography variant="title">{ device.alias || deviceTypePretty(device.device_type) }</Typography>
               { this.renderButtons() }
             </div>
-            <div className={ `${classes.row} ${classes.spaceAround}` }>
-              { this.renderStats() }
-            </div>
+            { deviceStats.result &&
+              <div className={ `${classes.row} ${classes.spaceAround}` }>
+                { this.renderStats() }
+              </div>
+            }
           </> }
         </div>
         { snapshot.result &&
@@ -255,7 +266,11 @@ class DeviceInfo extends Component {
     const { deviceStats } = this.state;
 
     if (!deviceStats.result) {
-      return null;
+      return <>
+        <div></div>
+        <div></div>
+        <div></div>
+      </>;
     }
 
     return (
@@ -278,7 +293,7 @@ class DeviceInfo extends Component {
 
   renderButtons() {
     const { classes } = this.props;
-    const { snapshot, carHealth } = this.state;
+    const { snapshot, carHealth, windowWidth } = this.state;
 
     let batteryVoltage;
     let batteryBackground = Colors.grey400;
@@ -287,15 +302,19 @@ class DeviceInfo extends Component {
       batteryBackground = batteryVoltage < 11.0 ? Colors.red400: Colors.green400;
     }
 
+    const buttonClass = windowWidth >= 768 ? classes.snapshotButton : classes.snapshotButtonSmall;
+
     return (
       <>
         <div className={ classes.carBattery } style={{ backgroundColor: batteryBackground }}>
           <Typography variant="subheading">
-            car battery: { batteryVoltage ? batteryVoltage.toFixed(1) + ' V' : 'N/A' }
+            { windowWidth >= 520 && 'car ' }
+            { 'battery: ' }
+            { batteryVoltage ? batteryVoltage.toFixed(1) + ' V' : 'N/A' }
           </Typography>
         </div>
         <Button onClick={ this.takeSnapshot } disabled={ Boolean(snapshot.fetching) }
-          classes={{ root: `${classes.button} ${classes.snapshotButton}` }}>
+          classes={{ root: `${classes.button} ${buttonClass}` }}>
           { snapshot.fetching ?
             <CircularProgress size={ 19 } /> :
             'take snapshot'
