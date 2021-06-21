@@ -13,7 +13,7 @@ import { devices as DevicesApi, athena as AthenaApi } from '@commaai/comma-api';
 const styles = () => ({
   container: {
     borderBottom: `1px solid ${Colors.white10}`,
-    paddingTop: 16,
+    paddingTop: 8,
     display: 'flex',
     flexDirection: 'column',
   },
@@ -21,7 +21,7 @@ const styles = () => ({
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   button: {
     backgroundColor: Colors.white,
@@ -302,7 +302,7 @@ class DeviceInfo extends Component {
       batteryBackground = batteryVoltage < 11.0 ? Colors.red400: Colors.green400;
     }
 
-    const buttonClass = windowWidth >= 768 ? classes.snapshotButton : classes.snapshotButtonSmall;
+    const buttonClass = windowWidth >= 520 ? classes.snapshotButton : classes.snapshotButtonSmall;
 
     return (
       <>
