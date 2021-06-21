@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import { withStyles, Typography, Button } from '@material-ui/core';
+import { withStyles, Typography, Button, CircularProgress } from '@material-ui/core';
 import "react-responsive-carousel/lib/styles/carousel.min.css"; // requires a loader
 import { Carousel } from 'react-responsive-carousel';
 
@@ -60,6 +60,7 @@ const styles = () => ({
     },
   },
   snapshotButton: {
+    minWidth: 130,
     padding: '5px 16px',
     borderRadius: 15,
   },
@@ -138,7 +139,6 @@ class DeviceInfo extends Component {
 
       this.fetchDeviceInfo();
       this.fetchDeviceCarHealth();
-      this.takeSnapshot(); // TODO remove
     }
   }
 
@@ -153,7 +153,7 @@ class DeviceInfo extends Component {
       const resp = await DevicesApi.fetchDeviceStats(dongleId);
       this.setState({ deviceStats: { result: resp }});
     } catch(err) {
-      this.setState({ deviceStats: { error: error.message }});
+      this.setState({ deviceStats: { error: err.message }});
     }
   }
 
@@ -296,7 +296,10 @@ class DeviceInfo extends Component {
         </div>
         <Button onClick={ this.takeSnapshot } disabled={ Boolean(snapshot.fetching) }
           classes={{ root: `${classes.button} ${classes.snapshotButton}` }}>
-          take snapshot
+          { snapshot.fetching ?
+            <CircularProgress size={ 19 } /> :
+            'take snapshot'
+          }
         </Button>
       </>
     );
