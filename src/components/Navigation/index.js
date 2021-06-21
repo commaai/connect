@@ -265,8 +265,8 @@ class Navigation extends Component {
     const searchInput = this.searchInputRef.current;
     this.focus();
     if (searchInput && searchInput.value.length >= 3) {
-      const proximity = this.state.carLocation || this.state.geoLocateCoords || undefined;
-      GeocodeApi().forwardLookup(searchInput.value, proximity, true).then((features) => {
+      const proximity = this.state.carLocation || this.state.geoLocateCoords || null;
+      GeocodeApi().forwardLookup(searchInput.value, proximity).then((features) => {
         this.setState({
           searchSelect: null,
           search: features.filter((item) =>

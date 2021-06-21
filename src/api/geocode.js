@@ -60,13 +60,17 @@ export default function geocodeApi() {
     },
 
     async forwardLookup(query, proximity) {
-      const params = {
+      let params = {
         apiKey: process.env.REACT_APP_HERE_API_KEY,
         q: query,
-        at: `${proximity[1]},${proximity[0]}`,
         limit: 20,
         details: '1',
       };
+      if (proximity) {
+        params.at = `${proximity[1]},${proximity[0]}`;
+      } else {
+        params.in = 'bbox:-180,-90,180,90';
+      }
 
       try {
         const resp = await fetch(`https://autosuggest.search.hereapi.com/v1/autosuggest?${qs.stringify(params)}`, {
