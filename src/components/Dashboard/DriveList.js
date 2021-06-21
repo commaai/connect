@@ -5,6 +5,7 @@ import Colors from '../../colors';
 
 import { withStyles, Typography, Grid } from '@material-ui/core';
 import DriveListItem from './DriveListItem';
+import ResizeHandler from '../ResizeHandler';
 
 const MIN_TIME_BETWEEN_ROUTES = 60000; // 1 minute
 
@@ -99,6 +100,7 @@ class DriveList extends Component {
 
     return (
       <div className={ classes.drivesTable }>
+        <ResizeHandler onResize={ this.onResize } />
         { driveList.length === 0 && this.renderZeroRides() }
         <ul className={classes.drives}>
           { driveList.filter(this.filterShortDrives).map((drive) => (
