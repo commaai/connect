@@ -516,7 +516,8 @@ class Navigation extends Component {
         <ResizeHandler onResize={ this.onResize } />
         <ReactMapGL { ...viewport } onViewportChange={ (viewport) => this.setState({ viewport }) }
           mapStyle={ MAP_STYLE } width="100%" height="100%" onNativeClick={ this.focus } maxPitch={ 0 }
-          mapboxApiAccessToken={ MAPBOX_TOKEN } attributionControl={ false }>
+          mapboxApiAccessToken={ MAPBOX_TOKEN } attributionControl={ false } dragRotate={ false }
+          onContextMenu={ null }>
           <GeolocateControl className={ classes.geolocateControl } positionOptions={{ enableHighAccuracy: true }}
             showAccuracyCircle={ false } onGeolocate={ this.onGeolocate } auto={ hasFocus }
             fitBoundsOptions={{ maxZoom: 10 }} trackUserLocation={true} onViewportChange={ this.flyToMarkers } />
