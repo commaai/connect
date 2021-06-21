@@ -15,16 +15,22 @@ export default function reducer(_state = initialState, action) {
   let deviceIndex = null;
   switch (action.type) {
     case ACTION_STARTUP_DATA:
-      if (!state.dongleId && action.devices.length > 0) {
+      let devices = action.devices.map((device) => {
+        return {
+          ...device,
+          fetched_at: parseInt(Date.now() / 1000),
+        };
+      });
+      if (!state.dongleId && devices.length > 0) {
         state = {
           ...state,
-          dongleId: action.devices[0].dongle_id,
-          device: action.devices[0]
+          dongleId: devices[0].dongle_id,
+          device: devices[0]
         };
       } else {
         state = {
           ...state,
-          device: action.devices.find((device) => device.dongle_id === state.dongleId)
+          device: devices.find((device) => device.dongle_id === state.dongleId)
         };
         if (!state.device) {
           state.device = {
@@ -38,12 +44,7 @@ export default function reducer(_state = initialState, action) {
           };
         }
       }
-      state.devices = action.devices.map((device) => {
-        return {
-          ...device,
-          fetched_at: parseInt(Date.now() / 1000),
-        };
-      });
+      state.devices = devices;
       state.profile = action.profile;
       break;
     case ACTION_SELECT_DEVICE:

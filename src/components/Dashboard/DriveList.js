@@ -6,7 +6,6 @@ import Colors from '../../colors';
 import { withStyles, Typography, Grid } from '@material-ui/core';
 import DriveListItem from './DriveListItem';
 import ResizeHandler from '../ResizeHandler';
-import { deviceTypePretty } from '../../utils'
 
 const MIN_TIME_BETWEEN_ROUTES = 60000; // 1 minute
 
@@ -50,7 +49,6 @@ class DriveList extends Component {
     super(props);
 
     this.filterShortDrives = this.filterShortDrives.bind(this);
-    this.renderDriveListHeader = this.renderDriveListHeader.bind(this);
     this.onResize = this.onResize.bind(this);
 
     this.state = {
@@ -101,17 +99,15 @@ class DriveList extends Component {
     });
 
     return (
-      <>
-        { this.renderDriveListHeader() }
-        <div className={ classes.drivesTable }>
-          { driveList.length === 0 && this.renderZeroRides() }
-          <ul className={classes.drives}>
-            { driveList.filter(this.filterShortDrives).map((drive) => (
-              <DriveListItem key={drive.startTime} drive={drive} windowWidth={ this.state.windowWidth }/>
-            ))}
-          </ul>
-        </div>
-      </>
+      <div className={ classes.drivesTable }>
+        <ResizeHandler onResize={ this.onResize } />
+        { driveList.length === 0 && this.renderZeroRides() }
+        <ul className={classes.drives}>
+          { driveList.filter(this.filterShortDrives).map((drive) => (
+            <DriveListItem key={drive.startTime} drive={drive} windowWidth={ this.state.windowWidth }/>
+          ))}
+        </ul>
+      </div>
     );
   }
 
@@ -130,39 +126,6 @@ class DriveList extends Component {
       <div className={classes.zeroState}>
         <Grid container>
           { zeroRidesEle }
-        </Grid>
-      </div>
-    );
-  }
-
-  renderDriveListHeader() {
-    const { classes, device } = this.props;
-    const isMedium = this.state.windowWidth < 768;
-    const isSmall = this.state.windowWidth < 640;
-    const deviceStyle = isSmall ?
-      { flexGrow: 0, maxWidth: '90%', flexBasis: '90%' } :
-      { flexGrow: 0, maxWidth: 'calc(26% + 12px)', flexBasis: 'calc(26% + 12px)', marginLeft: -12 };
-    return (
-      <div className={classes.header}>
-        <ResizeHandler onResize={ this.onResize } />
-        <Grid container alignItems="center">
-          <div style={ deviceStyle }>
-            <Typography variant="title">{ device.alias || deviceTypePretty(device.device_type) }</Typography>
-          </div>
-          { !isSmall && <>
-            <div style={{ flexGrow: 0, maxWidth: '14%', flexBasis: '14%' }}>
-              <Typography variant="subheading">Duration</Typography>
-            </div>
-            <div style={{ flexGrow: 0, maxWidth: '22%', flexBasis: '22%' }}>
-              <Typography variant="subheading">Origin</Typography>
-            </div>
-            <div style={{ flexGrow: 0, maxWidth: '22%', flexBasis: '22%' }}>
-              <Typography variant="subheading">Destination</Typography>
-            </div>
-            <div style={{ flexGrow: 0, maxWidth: '10%', flexBasis: '10%' }}>
-              <Typography variant="subheading">{ isMedium ? 'Dist.' : 'Distance' }</Typography>
-            </div>
-          </> }
         </Grid>
       </div>
     );

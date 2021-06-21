@@ -575,7 +575,7 @@ class Navigation extends Component {
       <div className={ classes.overlay } ref={ this.overlayRef } tabIndex={ 0 } onBlur={ this.onSearchBlur }
         onClick={ this.focus }>
         <TextField onChange={ this.onSearch } fullWidth={ true } inputRef={ this.searchInputRef }
-          disabled={ !carOnline } placeholder={ carOnline ? "search" : "device not online" }
+          disabled={ !carOnline } placeholder={ carOnline ? "search" : "device offline" }
           InputProps={{
             onFocus: this.onSearch,
             onBlur: this.onSearchBlur,

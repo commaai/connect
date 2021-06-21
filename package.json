@@ -55,6 +55,7 @@
     "react-measure": "^2.0.0",
     "react-player": "^2.9.0",
     "react-redux": "^5.0.7",
+    "react-responsive-carousel": "^3.2.18",
     "react-router": "^4.2.0",
     "react-router-dom": "^4.3.1",
     "react-scripts": "^3.4.4",

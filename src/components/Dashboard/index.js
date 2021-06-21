@@ -6,8 +6,9 @@ import { withStyles } from '@material-ui/core/styles';
 
 import DriveList from './DriveList';
 import Prime from '../Prime';
-import PrimeBanner from '../Prime/PrimeBanner'
-import Navigation from '../Navigation'
+import PrimeBanner from '../Prime/PrimeBanner';
+import Navigation from '../Navigation';
+import DeviceInfo from '../DeviceInfo';
 
 const styles = (/* theme */) => ({
   base: {
@@ -35,6 +36,7 @@ class Dashboard extends Component {
           <>
             <Navigation hasNav={ device.prime && device.device_type === 'three' } />
             { !device.prime && device.is_owner && <PrimeBanner collapsed /> }
+            <DeviceInfo />
             <DriveList />
           </>
         }
