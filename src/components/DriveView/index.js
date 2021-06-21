@@ -75,15 +75,13 @@ class DriveView extends Component {
         <div className={classes.window} >
           <div className={classes.header}>
             <div className={classes.headerContext}>
-              <IconButton aria-label="Go Back" onClick={() => window.history.back()}>
+              <IconButton aria-label="Go Back" onClick={ this.close }>
                 <KeyboardBackspaceIcon />
               </IconButton>
               <div className={ classes.headerInfo }>
                 { headerText }
               </div>
-              <IconButton onClick={this.close} aria-label="Close">
-                <CloseIcon />
-              </IconButton>
+              <div></div>
             </div>
             <Timeline className={classes.headerTimeline} zoomed colored hasThumbnails hasRuler hasGradient
               tooltipped dragSelection />
