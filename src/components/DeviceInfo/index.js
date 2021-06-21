@@ -5,6 +5,7 @@ import { withStyles, Typography, Button, CircularProgress } from '@material-ui/c
 import "react-responsive-carousel/lib/styles/carousel.min.css"; // requires a loader
 import { Carousel } from 'react-responsive-carousel';
 
+import * as Demo from '../../demo';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { deviceTypePretty } from '../../utils'
@@ -147,11 +148,13 @@ class DeviceInfo extends Component {
     if (prevProps.dongleId !== dongleId) {
       this.setState(initialState);
 
-      this.fetchDeviceInfo();
-      this.fetchDeviceCarHealth();
+      if (!Demo.isDemo()) {
+        this.fetchDeviceInfo();
+        this.fetchDeviceCarHealth();
+      }
     }
 
-    if (prevProps.device !== device) {
+    if (prevProps.device !== device && device) {
       this.setState({
         deviceOnline: device.last_athena_ping >= (device.fetched_at - 120),
       });
