@@ -26,6 +26,9 @@ const styles = () => ({
     alignItems: 'center',
     marginBottom: 8,
   },
+  bold: {
+    fontWeight: 600,
+  },
   button: {
     backgroundColor: Colors.white,
     color: Colors.grey800,
@@ -78,6 +81,8 @@ const styles = () => ({
     borderBottom: `1px solid ${Colors.white10}`,
   },
   snapshotContainerLarge: {
+    maxWidth: 1050,
+    margin: '0 auto',
     display: 'flex',
   },
   snapshotImageContainerLarge: {
@@ -87,12 +92,14 @@ const styles = () => ({
   },
   snapshotImage: {
     display: 'block',
-    width: 'unset !important',
-    maxHeight: 302,
+    width: '450px !important',
     maxWidth: '100%',
   },
   snapshotImageError: {
-    maxWidth: 300,
+    width: 450,
+    maxWidth: '100%',
+    backgroundColor: Colors.grey950,
+    padding: '0 80px',
     margin: '0 auto',
     height: '100%',
     display: 'flex',
@@ -226,6 +233,7 @@ class DeviceInfo extends Component {
     const { snapshot, deviceStats, windowWidth } = this.state;
 
     const containerPadding = windowWidth > 520 ? 36 : 16;
+    const largeSnapshotPadding = windowWidth > 1440 ? '12px 0' : 0;
 
     return (
       <>
@@ -252,7 +260,7 @@ class DeviceInfo extends Component {
         { snapshot.result &&
           <div className={ classes.snapshotContainer }>
             { windowWidth >= 640 ?
-              <div className={ classes.snapshotContainerLarge }>
+              <div className={ classes.snapshotContainerLarge } style={{ padding: largeSnapshotPadding }}>
                 <div className={ classes.snapshotImageContainerLarge }>
                   { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
                 </div>
@@ -288,15 +296,21 @@ class DeviceInfo extends Component {
     return (
       <>
         <div className={ classes.deviceStat }>
-          <Typography variant="subheading">{ Math.round(deviceStats.result.all.distance) }</Typography>
+          <Typography variant="subheading" className={ classes.bold }>
+            { Math.round(deviceStats.result.all.distance) }
+          </Typography>
           <Typography variant="subheading">miles</Typography>
         </div>
         <div className={ classes.deviceStat }>
-          <Typography variant="subheading">{ deviceStats.result.all.routes }</Typography>
+          <Typography variant="subheading" className={ classes.bold }>
+            { deviceStats.result.all.routes }
+          </Typography>
           <Typography variant="subheading">drives</Typography>
         </div>
         <div className={ classes.deviceStat }>
-          <Typography variant="subheading">{ Math.round(deviceStats.result.all.minutes / 60.0) }</Typography>
+          <Typography variant="subheading" className={ classes.bold }>
+            { Math.round(deviceStats.result.all.minutes / 60.0) }
+          </Typography>
           <Typography variant="subheading">hours</Typography>
         </div>
       </>
