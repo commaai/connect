@@ -7,7 +7,7 @@ import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuIt
 import { Search, Clear } from '@material-ui/icons';
 import moment from 'moment';
 
-import { devices as Devices, navigation as NavigationAPI } from '@commaai/comma-api';
+import { devices as Devices, navigation as NavigationAPI, athena as AthenaApi } from '@commaai/comma-api';
 import Colors from '../../colors';
 import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
 import { pin_car, pin_marker, pin_home, pin_work, pin_pinned } from '../../icons';
@@ -144,6 +144,7 @@ const initialState = {
     latitude: 37.78,
     zoom: 0,
   },
+  carOnline: true,
   carLocation: null,
   carLocationTime: null,
   favoriteLocations: [],
@@ -236,6 +237,23 @@ class Navigation extends Component {
         carLocationTime: resp.time,
       }, this.flyToMarkers);
     }).catch(console.log);
+
+     // see if device can be reached
+     const payload = {
+      method: "getMessage",
+      params: { service: "deviceState", timeout: 3000 },
+      jsonrpc: "2.0",
+      id: 0,
+    };
+
+    AthenaApi.postJsonRpcPayload(dongleId, payload).then((resp) => {
+      this.setState({ carOnline: resp.result });
+    }).catch(() => {
+      this.setState({ carOnline: false });
+      if (this.searchInputRef.current) {
+        this.searchInputRef.current.value = '';
+      }
+    });
   }
 
   updateFavoriteLocations() {
@@ -624,12 +642,13 @@ class Navigation extends Component {
 
   renderOverlay() {
     const { classes } = this.props;
-    const { search, searchLooking } = this.state;
+    const { search, carOnline, searchLooking } = this.state;
 
     return (
       <div className={ classes.overlay } ref={ this.overlayRef } tabIndex={ 0 } onBlur={ this.onSearchBlur }
         onClick={ this.focus }>
-        <TextField onChange={ this.onSearch } fullWidth={ true } inputRef={ this.searchInputRef } placeholder="search"
+        <TextField onChange={ this.onSearch } fullWidth={ true } inputRef={ this.searchInputRef }
+          placeholder={ carOnline ? 'search' : 'device offline' } disabled={ !carOnline }
           InputProps={{
             onFocus: this.onSearch,
             onBlur: this.onSearchBlur,
@@ -663,7 +682,7 @@ class Navigation extends Component {
 
   renderSearchOverlay() {
     const { classes } = this.props;
-    const { searchSelect, carLocation, geoLocateCoords, saveAsMenu, savingAs, savedAs } = this.state;
+    const { searchSelect, carOnline, carLocation, geoLocateCoords, saveAsMenu, savingAs, savedAs } = this.state;
 
     const noRoute = !searchSelect.route && (carLocation || geoLocateCoords);
 
@@ -710,7 +729,7 @@ class Navigation extends Component {
               { searchSelect.success ? "destination set" : "..." }
             </Typography>
           :
-            <Button disabled={ Boolean(noRoute) } classes={{ root: classes.searchSelectButton }}
+            <Button disabled={ Boolean(!carOnline || noRoute) } classes={{ root: classes.searchSelectButton }}
               onClick={ this.navigate }>
               navigate
             </Button>
