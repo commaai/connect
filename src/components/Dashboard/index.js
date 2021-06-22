@@ -9,6 +9,7 @@ import Prime from '../Prime';
 import PrimeBanner from '../Prime/PrimeBanner';
 import Navigation from '../Navigation';
 import DeviceInfo from '../DeviceInfo';
+import { fetchDeviceOnline } from '../../actions';
 
 const styles = (/* theme */) => ({
   base: {
@@ -22,7 +23,7 @@ class Dashboard extends Component {
     super(props);
 
     this.onVisibilityChange = this.onVisibilityChange.bind(this);
-    this.fetchDeviceOnline = this.fetchDeviceOnline.bind(this);
+    this.fetchOnline = this.fetchOnline.bind(this);
     this.fetchDeviceOnlineTimeout = null;
   }
 
@@ -32,12 +33,15 @@ class Dashboard extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.dongleId !== this.props.dongleId && this.props.dongleId) {
+    if (prevProps.dongleId !== this.props.dongleId) {
       if (this.fetchDeviceOnlineTimeout) {
         clearTimeout(this.fetchDeviceOnlineTimeout);
         this.fetchDeviceOnlineTimeout = null;
       }
-      this.fetchDeviceOnline();
+
+      if (this.props.dongleId) {
+        this.fetchOnline();
+      }
     }
   }
 
@@ -51,18 +55,19 @@ class Dashboard extends Component {
 
   onVisibilityChange(ev) {
     if (document.visibilityState === 'visible' && !this.fetchDeviceOnlineTimeout) {
-      this.fetchDeviceOnline();
+      this.fetchOnline();
     }
   }
 
-  fetchDeviceOnline() {
+  fetchOnline() {
     if (document.visibilityState === 'visible') {
-      this.fetchDeviceOnlineTimeout = setTimeout(this.fetchDeviceOnline, 1000);
+      this.fetchDeviceOnlineTimeout = setTimeout(this.fetchOnline, 60000);
     } else {
       this.fetchDeviceOnlineTimeout = null;
     }
 
-    console.log(new Date().getTime() / 1000, 'fetching');
+    console.log(parseInt(Date.now() / 1000), 'fetching');
+    this.props.dispatch(fetchDeviceOnline(this.props.dongleId));
   }
 
   render() {

@@ -8,6 +8,7 @@ import {
   primeGetSubscriptionAction,
   primeGetPaymentMethodAction,
   primeNavAction,
+  updateDeviceOnlineAction,
 } from './actions';
 import Segments from './segments';
 import init from './startup';
@@ -108,6 +109,10 @@ function resetPlayback() {
   store.dispatch(Playback.resetPlayback());
 }
 
+function updateDeviceOnline(dongleId, last_athena_ping, fetched_at) {
+  store.dispatch(updateDeviceOnlineAction(dongleId, last_athena_ping, fetched_at));
+}
+
 function stop() {
   console.log('Stopping worker!');
   // if (SegmentTimerStore(state).stopTimer) {
@@ -134,4 +139,5 @@ export const commands = {
   primeGetPaymentMethod,
   primeNav,
   resetPlayback,
+  updateDeviceOnline,
 };

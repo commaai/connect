@@ -6,6 +6,7 @@ import {
   ACTION_PRIME_NAV,
   ACTION_PRIME_SUBSCRIPTION,
   ACTION_PRIME_PAYMENTMETHOD,
+  ACTION_UPDATE_DEVICE_ONLINE,
 } from '../actions/types';
 
 const initialState = {};
@@ -81,6 +82,29 @@ export default function reducer(_state = initialState, action) {
         state.devices[deviceIndex] = action.device;
       } else {
         state.devices.push(action.device);
+      }
+      break;
+    case ACTION_UPDATE_DEVICE_ONLINE:
+      state = {
+        ...state,
+        devices: [...state.devices],
+      };
+      deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.dongleId);
+
+      if (deviceIndex !== -1) {
+        state.devices[deviceIndex] = {
+          ...state.devices[deviceIndex],
+          last_athena_ping: action.last_athena_ping,
+          fetched_at: action.fetched_at,
+        };
+      }
+
+      if (state.device.dongle_id === action.dongleId) {
+        state.device = {
+          ...state.device,
+          last_athena_ping: action.last_athena_ping,
+          fetched_at: action.fetched_at,
+        };
       }
       break;
     case ACTION_PRIME_NAV:

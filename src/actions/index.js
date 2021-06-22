@@ -101,18 +101,11 @@ export function primeNav(nav = true) {
   };
 }
 
-export function updateDeviceOnline(dongleId) {
+export function fetchDeviceOnline(dongleId) {
   return (dispatch, getState) => {
-    const payload = {
-      method: "getSshAuthorizedKeys",
-      params: {},
-      jsonrpc: "2.0",
-      id: 0,
-    };
-
     DevicesApi.fetchDevice(dongleId).then((resp) => {
-      if (resp.result && resp.result.last_athena_ping) {
-        Timelineworker.updateDeviceOnline(resp.result.last_athena_ping, new Date().getTime() / 1000);
+      if (resp.dongle_id === dongleId) {
+        Timelineworker.updateDeviceOnline(dongleId, resp.last_athena_ping, parseInt(Date.now() / 1000));
       }
     }).catch(console.log);
   };
