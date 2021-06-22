@@ -59,12 +59,14 @@ const styles = () => ({
     maxWidth: 80,
   },
   carBattery: {
-    padding: '3px 16px',
+    padding: '5px 16px',
     borderRadius: 15,
     margin: '0 10px',
     textAlign: 'center',
-    '& h3': {
+    '& p': {
+      fontSize: 14,
       fontWeight: 500,
+      lineHeight: '1.4em',
     },
   },
   snapshotButton: {
@@ -333,11 +335,11 @@ class DeviceInfo extends Component {
     return (
       <>
         <div className={ classes.carBattery } style={{ backgroundColor: batteryBackground }}>
-          <Typography variant="subheading">
+          <Typography>
             { deviceOnline ?
               (windowWidth >= 520 ? 'car ' : '') +
               'battery: ' +
-              (batteryVoltage ? batteryVoltage.toFixed(1) + ' V' : 'N/A')
+              (batteryVoltage ? batteryVoltage.toFixed(1) + '\u00a0V' : 'N/A')
             :
               'device offline'
             }

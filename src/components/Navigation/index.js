@@ -91,6 +91,7 @@ const styles = () => ({
     color: '#404B4F',
     textTransform: 'none',
     minHeight: 'unset',
+    flexShrink: 0,
     '&:hover': {
       background: '#ddd',
       color: '#404B4F',
@@ -105,6 +106,7 @@ const styles = () => ({
     minWidth: 81.4,
     textAlign: 'center',
     whiteSpace: 'nowrap',
+    flexShrink: 0,
   },
   searchSelectBoxDetails: {
     color: Colors.white40,
