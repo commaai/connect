@@ -33,3 +33,10 @@ export function deviceTypePretty(deviceType) {
     return `comma ${deviceType}`;
   }
 }
+
+export function deviceIsOnline(device) {
+  if (!device.last_athena_ping) {
+    return false;
+  }
+  return device.last_athena_ping >= (device.fetched_at - 120);
+}

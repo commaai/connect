@@ -6,7 +6,7 @@ import cx from 'classnames';
 import { withStyles, Typography, IconButton } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
 import DeviceSettingsModal from './DeviceSettingsModal';
-import { deviceTypePretty } from '../../utils'
+import { deviceTypePretty, deviceIsOnline } from '../../utils'
 import CommaTwoUpsell from '../DriveView/commaTwoUpsell';
 import Colors from '../../colors';
 
@@ -137,7 +137,7 @@ class DeviceList extends Component {
     const { classes, isSuperUser } = this.props;
     const isSelected = (this.props.selectedDevice === device.dongle_id);
     const alias = device.alias || deviceTypePretty(device.device_type);
-    const offlineCls = device.last_athena_ping < (device.fetched_at - 120) ? classes.deviceOffline : '';
+    const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
     return (
       <div key={device.dongle_id} onClick={ () => this.props.handleDeviceSelected(device.dongle_id) }
         className={cx(classes.device, [{ isSelected }])}>

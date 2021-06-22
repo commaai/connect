@@ -8,7 +8,7 @@ import { Carousel } from 'react-responsive-carousel';
 import * as Demo from '../../demo';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
-import { deviceTypePretty } from '../../utils'
+import { deviceTypePretty, deviceIsOnline } from '../../utils'
 import { devices as DevicesApi, athena as AthenaApi } from '@commaai/comma-api';
 
 const styles = () => ({
@@ -130,7 +130,6 @@ class DeviceInfo extends Component {
     this.state = {
       ...initialState,
       windowWidth: window.innerWidth,
-      deviceOnline: null,
     };
 
     this.onResize = this.onResize.bind(this);
@@ -152,7 +151,7 @@ class DeviceInfo extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { dongleId, device } = this.props;
+    const { dongleId } = this.props;
 
     if (prevProps.dongleId !== dongleId) {
       this.setState(initialState);
@@ -161,12 +160,6 @@ class DeviceInfo extends Component {
         this.fetchDeviceInfo();
         this.fetchDeviceCarHealth();
       }
-    }
-
-    if (prevProps.device !== device && device) {
-      this.setState({
-        deviceOnline: device.last_athena_ping >= (device.fetched_at - 120),
-      });
     }
   }
 
@@ -188,7 +181,11 @@ class DeviceInfo extends Component {
   }
 
   async fetchDeviceCarHealth() {
-    const { dongleId } = this.props;
+    const { dongleId, device } = this.props;
+    if (!deviceIsOnline(device)) {
+      return;
+    }
+
     this.setState({ carHealth: { fetching: true }});
     try {
       const payload = {
@@ -326,12 +323,14 @@ class DeviceInfo extends Component {
   }
 
   renderButtons() {
-    const { classes } = this.props;
-    const { deviceOnline, snapshot, carHealth, windowWidth } = this.state;
+    const { classes, device } = this.props;
+    const { snapshot, carHealth, windowWidth } = this.state;
 
     let batteryVoltage;
     let batteryBackground = Colors.grey400;
-    if (deviceOnline && carHealth.result && carHealth.result.pandaState && carHealth.result.pandaState.voltage) {
+    if (deviceIsOnline(device) && carHealth.result && carHealth.result.pandaState &&
+      carHealth.result.pandaState.voltage)
+    {
       batteryVoltage = carHealth.result.pandaState.voltage / 1000.0;
       batteryBackground = batteryVoltage < 11.0 ? Colors.red400: Colors.green400;
     }
@@ -342,7 +341,7 @@ class DeviceInfo extends Component {
       <>
         <div className={ classes.carBattery } style={{ backgroundColor: batteryBackground }}>
           <Typography>
-            { deviceOnline ?
+            { deviceIsOnline(device) ?
               (windowWidth >= 520 ? 'car ' : '') +
               'battery: ' +
               (batteryVoltage ? batteryVoltage.toFixed(1) + '\u00a0V' : 'N/A')
@@ -351,7 +350,7 @@ class DeviceInfo extends Component {
             }
           </Typography>
         </div>
-        <Button onClick={ this.takeSnapshot } disabled={ Boolean(snapshot.fetching || !deviceOnline) }
+        <Button onClick={ this.takeSnapshot } disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
           classes={{ root: `${classes.button} ${buttonClass}` }}>
           { snapshot.fetching ?
             <CircularProgress size={ 19 } /> :

@@ -13,6 +13,7 @@ import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
 import { pin_car, pin_marker, pin_home, pin_work, pin_pinned } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
 import * as Demo from '../../demo';
+import { deviceIsOnline } from '../../utils';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 const styles = () => ({
@@ -146,7 +147,6 @@ const initialState = {
     latitude: 37.78,
     zoom: 0,
   },
-  carOnline: true,
   carLocation: null,
   carLocationTime: null,
   favoriteLocations: [],
@@ -206,7 +206,7 @@ class Navigation extends Component {
 
   componentDidUpdate(prevProps, prevState) {
     const { dongleId } = this.props;
-    const { geoLocateCoords, search, carLocation, searchSelect, carOnline } = this.state;
+    const { geoLocateCoords, search, carLocation, searchSelect } = this.state;
 
     if ((carLocation && !prevState.carLocation) || (geoLocateCoords && !prevState.geoLocateCoords) ||
       (searchSelect && prevState.searchSelect !== searchSelect) || (search && prevState.search !== search))
@@ -223,16 +223,6 @@ class Navigation extends Component {
         this.searchInputRef.current.value = '';
       }
       this.updateDevice();
-    }
-
-    if (prevState.carOnline !== carOnline) {
-      if (!carOnline && this.searchInputRef.current) {
-        this.searchInputRef.current.value = '';
-      }
-
-      if (carOnline) {
-
-      }
     }
   }
 
@@ -665,7 +655,7 @@ class Navigation extends Component {
 
   renderOverlay() {
     const { classes } = this.props;
-    const { search, carOnline, searchLooking } = this.state;
+    const { search, searchLooking } = this.state;
 
     return (
       <div className={ classes.overlay } ref={ this.overlayRef } tabIndex={ 0 } onBlur={ this.onSearchBlur }
@@ -704,13 +694,13 @@ class Navigation extends Component {
   }
 
   renderSearchOverlay() {
-    const { classes } = this.props;
-    const { searchSelect, carOnline, carLocation, geoLocateCoords, saveAsMenu, savingAs, savedAs } = this.state;
+    const { classes, device } = this.props;
+    const { searchSelect, carLocation, geoLocateCoords, saveAsMenu, savingAs, savedAs } = this.state;
 
     const noRoute = !searchSelect.route && (carLocation || geoLocateCoords);
 
     let navigateButtonText = 'navigate';
-    if (!carOnline) {
+    if (!deviceIsOnline(device)) {
       navigateButtonText = 'offline';
     } else if (noRoute) {
       navigateButtonText = 'no route';
@@ -759,8 +749,8 @@ class Navigation extends Component {
               { searchSelect.success ? "destination set" : "..." }
             </Typography>
           :
-            <Button disabled={ Boolean(!carOnline || noRoute) } classes={{ root: classes.searchSelectButton }}
-              onClick={ this.navigate }>
+            <Button disabled={ Boolean(!deviceIsOnline(device) || noRoute) } onClick={ this.navigate }
+              classes={{ root: classes.searchSelectButton }}>
               { navigateButtonText }
             </Button>
           }
@@ -774,6 +764,7 @@ class Navigation extends Component {
 }
 
 const stateToProps = Obstruction({
+  device: 'workerState.device',
   dongleId: 'workerState.dongleId',
 });
 
