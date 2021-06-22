@@ -6,7 +6,11 @@ export const auth_apple = require('./auth_apple.png');
 export const auth_github = require('./auth_github.png');
 export const auth_google = require('./auth_google.png');
 
-export const car_pin = require('./icon-pin-car.png');
+export const pin_car = require('./pin-car.svg');
+export const pin_marker = require('./pin-marker.svg');
+export const pin_pinned = require('./pin-pinned.svg');
+export const pin_home = require('./pin-home.svg');
+export const pin_work = require('./pin-work.svg');
 
 export function AccountIcon(props) {
   return (

@@ -1191,10 +1191,10 @@
     joi-browser "^13.4.0"
     querystringify "^2.1.1"
 
-"@commaai/comma-api@^1.6.0":
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-1.6.0.tgz#60f07bb422521e11ec2f29a520d971486c85d142"
-  integrity sha512-kx7CFTSQOkhgsMKZLBfa6jExZFgeWjOU3F6QI5S727po9cf9ySe4ck9RqK5vAUTMcN0meMdR9fX5KN93n4fLNw==
+"@commaai/comma-api@^1.7.0":
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-1.7.0.tgz#18701c7f057308d2652e13cec9dd3c9b73f11a3e"
+  integrity sha512-vvLFOe65hp7v/mOncZqhJa7MjbC2XORq+lekNEDWJEy5OkM6hmk+nBzdRUZhbgf2KXtpbMeOqozFxyCuqbThpw==
   dependencies:
     babel-runtime "^6.26.0"
     config-request "^0.5.1"

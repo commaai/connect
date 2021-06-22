@@ -2,23 +2,24 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import debounce from 'debounce';
-import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, FlyToInterpolator, Source,
-  WebMercatorViewport, Layer} from 'react-map-gl';
-import { withStyles, TextField, InputAdornment, Typography, Button } from '@material-ui/core';
-import { Search, Room, Clear } from '@material-ui/icons';
+import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer} from 'react-map-gl';
+import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem } from '@material-ui/core';
+import { Search, Clear } from '@material-ui/icons';
 import moment from 'moment';
 
-import { athena as Athena, devices as Devices } from '@commaai/comma-api';
+import { devices as Devices, navigation as NavigationAPI, athena as AthenaApi } from '@commaai/comma-api';
 import Colors from '../../colors';
 import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
-import { car_pin } from '../../icons';
+import { pin_car, pin_marker, pin_home, pin_work, pin_pinned } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
 import * as Demo from '../../demo';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 const styles = () => ({
+  noWrap: {
+    whiteSpace: 'nowrap',
+  },
   mapContainer: {
-    transition: 'height 0.2s',
     borderBottom: `1px solid ${Colors.white10}`,
   },
   geolocateControl: {
@@ -61,15 +62,6 @@ const styles = () => ({
   overlaySearchDetails: {
     color: Colors.white40,
   },
-  searchPin: {
-    cursor: 'pointer',
-    fontSize: 36,
-    color: '#31a1ee',
-  },
-  searchSelect: {
-    fontSize: 36,
-    color: '#31a1ee',
-  },
   searchSelectBox: {
     borderRadius: 22,
     padding: '12px 16px',
@@ -83,14 +75,15 @@ const styles = () => ({
     display: 'flex',
     width: '100%',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 10,
   },
   bold: {
     fontWeight: 600,
   },
   searchSelectButton: {
-    marginLeft: 10,
+    marginLeft: 8,
+    padding: '6px 12px',
     backgroundColor: Colors.white,
     color: Colors.grey800,
     borderRadius: 22,
@@ -108,17 +101,27 @@ const styles = () => ({
     },
   },
   searchSelectButtonFake: {
-    padding: '8px 16px',
     background: '#ddd',
-    minWidth: 90,
+    minWidth: 81.4,
     textAlign: 'center',
+    whiteSpace: 'nowrap',
   },
   searchSelectBoxDetails: {
     color: Colors.white40,
   },
-  carPin: {
-    width: 36,
-    height: 36,
+  pin: {
+    width: 20,
+    height: 32,
+  },
+  pinClick: {
+    width: 22.5,
+    height: 32,
+    cursor: 'pointer',
+  },
+  favoritePin: {
+    width: 15,
+    height: 24,
+    cursor: 'pointer',
   },
   carPinTooltip: {
     textAlign: 'center',
@@ -128,6 +131,9 @@ const styles = () => ({
     border: `1px solid ${Colors.white10}`,
     backgroundColor: Colors.grey800,
     color: Colors.white,
+  },
+  saveAsMenuItem: {
+    justifyContent: 'center',
   },
 });
 
@@ -141,12 +147,16 @@ const initialState = {
   carOnline: true,
   carLocation: null,
   carLocationTime: null,
+  favoriteLocations: [],
   geoLocateCoords: null,
   search: null,
   route: null,
   searchSelect: null,
   searchLooking: false,
   windowWidth: window.innerWidth,
+  saveAsMenu: null,
+  savingAs: false,
+  savedAs: false,
 }
 
 class Navigation extends Component {
@@ -168,9 +178,11 @@ class Navigation extends Component {
     this.onGeolocate = this.onGeolocate.bind(this);
     this.onSearch = debounce(this.onSearch.bind(this), 200);
     this.onSearchSelect = this.onSearchSelect.bind(this);
+    this.onFavoriteSelect = this.onFavoriteSelect.bind(this);
     this.onSearchBlur = this.onSearchBlur.bind(this);
     this.focus = this.focus.bind(this);
     this.updateDevice = this.updateDevice.bind(this);
+    this.updateFavoriteLocations = this.updateFavoriteLocations.bind(this);
     this.formatDistance = this.formatDistance.bind(this);
     this.formatDuration = this.formatDuration.bind(this);
     this.navigate = this.navigate.bind(this);
@@ -181,19 +193,13 @@ class Navigation extends Component {
     this.formatSearchDetails = this.formatSearchDetails.bind(this);
     this.itemLoc = this.itemLoc.bind(this);
     this.itemLngLat = this.itemLngLat.bind(this);
-
-    this.updateDeviceTimeout = null;
-    this.updateDeviceTimeoutTime = 5000;
+    this.saveSearchAs = this.saveSearchAs.bind(this);
+    this.deleteFavorite = this.deleteFavorite.bind(this);
   }
 
   componentDidMount() {
+    this.updateFavoriteLocations();
     this.componentDidUpdate({});
-  }
-
-  componentWillUnmount() {
-    if (this.updateDeviceTimeout) {
-      clearInterval(this.updateDeviceTimeout);
-    }
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -214,7 +220,6 @@ class Navigation extends Component {
       if (this.searchInputRef.current) {
         this.searchInputRef.current.value = '';
       }
-      this.updateDeviceTimeoutTime = 5000;
       this.updateDevice();
     }
   }
@@ -226,7 +231,6 @@ class Navigation extends Component {
       return;
     }
 
-    // get last known location
     Devices.fetchLocation(dongleId).then((resp) => {
       this.setState({
         carLocation: [resp.lng, resp.lat],
@@ -234,15 +238,15 @@ class Navigation extends Component {
       }, this.flyToMarkers);
     }).catch(console.log);
 
-    // see if device can be reached
-    const payload = {
+     // see if device can be reached
+     const payload = {
       method: "getMessage",
       params: { service: "deviceState", timeout: 3000 },
       jsonrpc: "2.0",
       id: 0,
     };
 
-    Athena.postJsonRpcPayload(dongleId, payload).then((resp) => {
+    AthenaApi.postJsonRpcPayload(dongleId, payload).then((resp) => {
       this.setState({ carOnline: resp.result });
     }).catch(() => {
       this.setState({ carOnline: false });
@@ -250,9 +254,29 @@ class Navigation extends Component {
         this.searchInputRef.current.value = '';
       }
     });
+  }
 
-    this.updateDeviceTimeout = setTimeout(this.updateDevice, this.updateDeviceTimeoutTime);
-    this.updateDeviceTimeoutTime *= 2;
+  updateFavoriteLocations() {
+    const { dongleId, hasNav } = this.props;
+    if (!hasNav || Demo.isDemo()) {
+      return;
+    }
+
+    NavigationAPI.getLocationsData(dongleId).then((resp) => {
+      let favorites = {};
+      resp.forEach((loc) => {
+        if (loc.save_type === 'favorite') {
+          let icon;
+          switch (loc.label) {
+          case 'home': icon = pin_home;   break;
+          case 'work': icon = pin_work;   break;
+          default:     icon = pin_pinned; break;
+          }
+          favorites[loc.id] = { ...loc, icon };
+        }
+      });
+      this.setState({ favoriteLocations: favorites });
+    }).catch(console.log);
   }
 
   onGeolocate(pos) {
@@ -272,10 +296,12 @@ class Navigation extends Component {
           search: features.filter((item) =>
             !(['categoryQuery', 'chainQuery', 'administrativeArea'].includes(item.resultType))).slice(0, 10),
           searchLooking: false,
+          savingAs: false,
+          savedAs: false,
         });
       });
     } else {
-      this.setState({ searchSelect: null, search: null, searchLooking: false });
+      this.setState({ searchSelect: null, search: null, searchLooking: false, savingAs: false, savedAs: false });
     }
   }
 
@@ -300,6 +326,24 @@ class Navigation extends Component {
     }
   }
 
+  onFavoriteSelect(id, loc) {
+    this.focus();
+    const item = {
+      favoriteId: id,
+      favoriteIcon: loc.icon,
+      title: loc.place_name,
+      address: {
+        label: `${loc.place_name}, ${loc.place_details}`,
+      },
+      resultType: 'place',
+      position: {
+        lat: loc.latitude,
+        lng: loc.longitude,
+      },
+    };
+    this.onSearchSelect(item);
+  }
+
   onSearchBlur(ev) {
     if (this.state.search && this.searchInputRef.current &&
       this.overlayRef.current && this.overlayRef.current !== ev.relatedTarget)
@@ -311,17 +355,21 @@ class Navigation extends Component {
   clearSearch() {
     if (this.searchInputRef.current) {
       this.searchInputRef.current.value = '';
+      this.searchInputRef.current.focus();
     }
     this.setState({
       search: null,
       route: null,
       searchSelect: null,
       searchLooking: false,
-    }, this.flyToMarkers);
+      savingAs: false,
+      savedAs: false,
+    });
   }
 
   flyToMarkers() {
-    const { geoLocateCoords, search, searchSelect, carLocation, windowWidth } = this.state;
+    const { hasNav } = this.props;
+    const { geoLocateCoords, search, searchSelect, carLocation, windowWidth, viewport } = this.state;
 
     const bounds = [];
     if (geoLocateCoords) {
@@ -346,17 +394,17 @@ class Navigation extends Component {
         Math.max.apply(null, bounds.map((e) => e[1][1])),
       ]];
 
-      const bottomBoxHeight = this.searchSelectBoxRef.current ?
+      const bottomBoxHeight = (this.searchSelectBoxRef.current && viewport.height > 200) ?
         this.searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0
       const padding = {
-        left: (windowWidth < 600 || !search) ? 20 : 360,
+        left: (windowWidth < 600 || !search) ? 20 : 390,
         right: 20,
-        top: 82,
+        top: hasNav ? 82 : 20,
         bottom: bottomBoxHeight + 20,
       };
-      if (this.state.viewport.width) {
+      if (viewport.width) {
         this.setState({
-          viewport: new WebMercatorViewport(this.state.viewport).fitBounds(bbox, { padding: padding, maxZoom: 10 })
+          viewport: new WebMercatorViewport(viewport).fitBounds(bbox, { padding: padding, maxZoom: 10 })
         });
       }
     }
@@ -450,31 +498,14 @@ class Navigation extends Component {
     }});
 
     const pos = this.itemLoc(searchSelect);
-    const payload = {
-      method: "setNavDestination",
-      params: {
-        latitude: pos.lat,
-        longitude: pos.lng,
-      },
-      jsonrpc: "2.0",
-      id: 0,
-    };
-
-    Athena.postJsonRpcPayload(dongleId, payload).then((resp) => {
-      if (resp.result) {
-        this.setState({ searchSelect: {
-          ...searchSelect,
-          settingDest: true,
-          success: true,
-        }});
-      } else {
-        this.setState({ searchSelect: {
-          ...searchSelect,
-          settingDest: false,
-          success: false,
-        }});
-        console.log(resp);
-      }
+    NavigationAPI.setDestination(dongleId, pos.lat, pos.lng,
+      this.formatSearchName(searchSelect), this.formatSearchDetails(searchSelect))
+    .then((resp) => {
+      this.setState({ searchSelect: {
+        ...searchSelect,
+        settingDest: true,
+        success: true,
+      }});
     }).catch((err) => {
       console.log(err);
       this.setState({ searchSelect: {
@@ -492,23 +523,57 @@ class Navigation extends Component {
   toggleCarPinTooltip(visible) {
     const tooltip = this.carPinTooltipRef.current;
     if (tooltip) {
-      tooltip.style.visibility = visible ? 'visible' : 'hidden';
+      tooltip.style.display = visible ? 'block' : 'none';
+    }
+  }
+
+  saveSearchAs(as) {
+    const { dongleId } = this.props;
+    const { searchSelect } = this.state;
+    this.setState({ saveAsMenu: null, savingAs: true });
+
+    const pos = this.itemLoc(searchSelect);
+    const label = as === 'pin' ? undefined : as;
+    NavigationAPI.putLocationSave(dongleId, pos.lat, pos.lng,
+      this.formatSearchName(searchSelect), this.formatSearchDetails(searchSelect), 'favorite', label)
+    .then((resp) => {
+      this.updateFavoriteLocations();
+      this.setState({ savingAs: false, savedAs: true });
+    }).catch((err) => {
+      console.log(err);
+      this.setState({ savingAs: false, savedAs: false });
+    });
+  }
+
+  deleteFavorite() {
+    const { dongleId } = this.props;
+    const { searchSelect } = this.state;
+    if (searchSelect.favoriteId) {
+      this.setState({ savingAs: true });
+      NavigationAPI.deleteLocationSave(dongleId, searchSelect.favoriteId).then((resp) => {
+        this.updateFavoriteLocations();
+        this.setState({ savingAs: false, savedAs: true });
+      }).catch((err) => {
+        console.log(err);
+        this.setState({ savingAs: false, savedAs: false });
+      });
     }
   }
 
   render() {
     const { classes, hasNav } = this.props;
-    const { hasFocus, search , searchSelect, carLocation, carLocationTime, viewport, windowWidth } = this.state;
+    const { hasFocus, search , searchSelect, carLocation, favoriteLocations, carLocationTime, viewport,
+      windowWidth } = this.state;
 
     const cardStyle = windowWidth < 600 ?
       { width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 } :
-      { width: 330, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
+      { width: 360, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
 
-    let carPinTooltipStyle = { transform: 'translate(calc(-50% + 18px), 0)' };
+    let carPinTooltipStyle = { transform: 'translate(calc(-50% + 10px), -4px)' };
     if (carLocation) {
       const pixelsAvailable = viewport.height - new WebMercatorViewport(viewport).project(carLocation)[1];
       if (pixelsAvailable < 50) {
-        carPinTooltipStyle = { transform: 'translate(calc(-50% + 18px), -87px)' };
+        carPinTooltipStyle = { transform: 'translate(calc(-50% + 10px), -81px)' };
       }
     }
 
@@ -521,20 +586,26 @@ class Navigation extends Component {
           onContextMenu={ null }>
           <GeolocateControl className={ classes.geolocateControl } positionOptions={{ enableHighAccuracy: true }}
             showAccuracyCircle={ false } onGeolocate={ this.onGeolocate } auto={ hasFocus }
-            fitBoundsOptions={{ maxZoom: 10 }} trackUserLocation={true} onViewportChange={ this.flyToMarkers } />
+            fitBoundsOptions={{ maxZoom: 10 }} trackUserLocation={true} onViewportChange={ () => {} } />
           { searchSelect && searchSelect.route &&
             <Source id="my-data" type="geojson" data={ searchSelect.route.geometry }>
               <Layer type="line" layout={{ 'line-cap': 'round', 'line-join': 'bevel' }}
                 paint={{ 'line-color': '#31a1ee', 'line-width': 3, 'line-blur': 1 }}  />
             </Source>
           }
+          { !search && !searchSelect && favoriteLocations && Object.entries(favoriteLocations).map(([id, loc]) =>
+            <Marker latitude={ loc.latitude } longitude={ loc.longitude } key={ id } offsetLeft={ -7.5 }
+              offsetTop={ -24 } captureDrag={ false } captureClick={ false } captureDoubleClick={ false }>
+              <img className={ classes.favoritePin } src={ loc.icon } onClick={ () => this.onFavoriteSelect(id, loc) } />
+            </Marker>
+          )}
           { carLocation &&
-            <Marker latitude={ carLocation[1] } longitude={ carLocation[0] } offsetLeft={ -18 } offsetTop={ -33 }
+            <Marker latitude={ carLocation[1] } longitude={ carLocation[0] } offsetLeft={ -10 } offsetTop={ -32 }
               captureDrag={ false } captureClick={ true } captureDoubleClick={ false }>
-              <img className={ classes.carPin } src={ car_pin } onMouseEnter={ () => this.toggleCarPinTooltip(true) }
+              <img className={ classes.pin } src={ pin_car } onMouseEnter={ () => this.toggleCarPinTooltip(true) }
                 onMouseLeave={ () => this.toggleCarPinTooltip(false) } />
               <div className={ classes.carPinTooltip } ref={ this.carPinTooltipRef }
-                style={{ ...carPinTooltipStyle, visibility: 'hidden' }}>
+                style={{ ...carPinTooltipStyle, display: 'none' }}>
                 { moment(carLocationTime).format('LT') },<br />
                 { moment(carLocationTime).fromNow() }
               </div>
@@ -542,16 +613,16 @@ class Navigation extends Component {
           }
           { search && search.map((item) =>
             <Marker latitude={ this.itemLoc(item).lat } longitude={ this.itemLoc(item).lng } key={ item.id }
-              offsetLeft={ -18 } offsetTop={ -33 } captureDrag={ false } captureClick={ false }
+              offsetLeft={ -10 } offsetTop={ -32 } captureDrag={ false } captureClick={ false }
               captureDoubleClick={ false }>
-              <Room classes={{ root: classes.searchPin }} onClick={ () => this.onSearchSelect(item) } />
+              <img className={ classes.pinClick } src={ pin_marker } onClick={ () => this.onSearchSelect(item) } />
             </Marker>
           )}
           { searchSelect &&
             <Marker latitude={ this.itemLoc(searchSelect).lat } longitude={ this.itemLoc(searchSelect).lng }
-              offsetLeft={ -18 } offsetTop={ -33 } captureDrag={ false } captureClick={ false }
+              offsetLeft={ -10 } offsetTop={ -32 } captureDrag={ false } captureClick={ false }
               captureDoubleClick={ false }>
-              <Room classes={{ root: classes.searchSelect }}/>
+              <img className={ classes.pin } src={ searchSelect.favoriteIcon ? searchSelect.favoriteIcon : pin_marker } />
             </Marker>
           }
           { hasNav &&
@@ -571,26 +642,25 @@ class Navigation extends Component {
 
   renderOverlay() {
     const { classes } = this.props;
-    const { carOnline, search, searchLooking } = this.state;
+    const { search, carOnline, searchLooking } = this.state;
 
     return (
       <div className={ classes.overlay } ref={ this.overlayRef } tabIndex={ 0 } onBlur={ this.onSearchBlur }
         onClick={ this.focus }>
         <TextField onChange={ this.onSearch } fullWidth={ true } inputRef={ this.searchInputRef }
-          disabled={ !carOnline } placeholder={ carOnline ? "search" : "device offline" }
+          placeholder={ carOnline ? 'search' : 'device offline' } disabled={ !carOnline }
           InputProps={{
             onFocus: this.onSearch,
             onBlur: this.onSearchBlur,
             classes: { root: classes.overlayTextfield },
-            endAdornment: carOnline ? ( <>
-                { this.searchInputRef.current && this.searchInputRef.current.value &&
-                  <InputAdornment position="end">
-                    <Clear className={ classes.overlayClearButton } onClick={ this.clearSearch } />
-                  </InputAdornment>
-                }
-                <InputAdornment position="end"><Search className={ classes.overlaySearchButton } /></InputAdornment>
-              </> ) :
-              null
+            endAdornment: <>
+              { this.searchInputRef.current && this.searchInputRef.current.value &&
+                <InputAdornment position="end">
+                  <Clear className={ classes.overlayClearButton } onClick={ this.clearSearch } />
+                </InputAdornment>
+              }
+              <InputAdornment position="end"><Search className={ classes.overlaySearchButton } /></InputAdornment>
+            </>
           }} />
         { search && !searchLooking &&
           <div className={ `${classes.overlaySearchResults} scrollstyle` }>
@@ -612,7 +682,7 @@ class Navigation extends Component {
 
   renderSearchOverlay() {
     const { classes } = this.props;
-    const { searchSelect, carOnline, carLocation, geoLocateCoords } = this.state;
+    const { searchSelect, carOnline, carLocation, geoLocateCoords, saveAsMenu, savingAs, savedAs } = this.state;
 
     const noRoute = !searchSelect.route && (carLocation || geoLocateCoords);
 
@@ -628,6 +698,32 @@ class Navigation extends Component {
               </Typography>
             }
           </div>
+          { searchSelect.favoriteId ?
+            <Button disabled={ savingAs || savedAs } onClick={ this.deleteFavorite }
+              classes={{ root: classes.searchSelectButton, label: classes.noWrap }}>
+              { savingAs ? '...' : (savedAs ? 'deleted' :  'delete') }
+            </Button>
+          :
+            <Button disabled={ savingAs || savedAs }
+              onClick={ (ev) => this.setState({ saveAsMenu: ev.target }) }
+              classes={{ root: classes.searchSelectButton, label: classes.noWrap }}>
+              { savingAs ? '...' : (savedAs ? 'saved' :  'save as') }
+            </Button>
+          }
+          <Menu id="menu-save-as" open={ Boolean(saveAsMenu) } anchorEl={ saveAsMenu }
+            onClose={ () => this.setState({ saveAsMenu: null }) }
+            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+            <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('home') }>
+              home
+            </MenuItem>
+            <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('work') }>
+              work
+            </MenuItem>
+            <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('pin') }>
+              favorite
+            </MenuItem>
+          </Menu>
           { searchSelect.settingDest ?
             <Typography className={ `${classes.searchSelectButton} ${classes.searchSelectButtonFake}` }>
               { searchSelect.success ? "destination set" : "..." }
