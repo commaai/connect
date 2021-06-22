@@ -20,6 +20,49 @@ const styles = (/* theme */) => ({
 class Dashboard extends Component {
   constructor(props) {
     super(props);
+
+    this.onVisibilityChange = this.onVisibilityChange.bind(this);
+    this.fetchDeviceOnline = this.fetchDeviceOnline.bind(this);
+    this.fetchDeviceOnlineTimeout = null;
+  }
+
+  componentDidMount() {
+    document.addEventListener("visibilitychange", this.onVisibilityChange);
+    this.componentDidUpdate({});
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.dongleId !== this.props.dongleId && this.props.dongleId) {
+      if (this.fetchDeviceOnlineTimeout) {
+        clearTimeout(this.fetchDeviceOnlineTimeout);
+        this.fetchDeviceOnlineTimeout = null;
+      }
+      this.fetchDeviceOnline();
+    }
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    if (this.fetchDeviceOnlineTimeout) {
+      clearTimeout(this.fetchDeviceOnlineTimeout);
+      this.fetchDeviceOnlineTimeout = null;
+    }
+  }
+
+  onVisibilityChange(ev) {
+    if (document.visibilityState === 'visible' && !this.fetchDeviceOnlineTimeout) {
+      this.fetchDeviceOnline();
+    }
+  }
+
+  fetchDeviceOnline() {
+    if (document.visibilityState === 'visible') {
+      this.fetchDeviceOnlineTimeout = setTimeout(this.fetchDeviceOnline, 1000);
+    } else {
+      this.fetchDeviceOnlineTimeout = null;
+    }
+
+    console.log(new Date().getTime() / 1000, 'fetching');
   }
 
   render() {

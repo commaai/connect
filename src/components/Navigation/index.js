@@ -7,7 +7,7 @@ import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuIt
 import { Search, Clear } from '@material-ui/icons';
 import moment from 'moment';
 
-import { devices as Devices, navigation as NavigationAPI, athena as AthenaApi } from '@commaai/comma-api';
+import { devices as Devices, navigation as NavigationAPI } from '@commaai/comma-api';
 import Colors from '../../colors';
 import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
 import { pin_car, pin_marker, pin_home, pin_work, pin_pinned } from '../../icons';
@@ -201,12 +201,12 @@ class Navigation extends Component {
   }
 
   componentDidMount() {
-    this.componentDidUpdate({});
+    this.componentDidUpdate({}, {});
   }
 
   componentDidUpdate(prevProps, prevState) {
     const { dongleId } = this.props;
-    const { geoLocateCoords, search, carLocation, searchSelect } = this.state;
+    const { geoLocateCoords, search, carLocation, searchSelect, carOnline } = this.state;
 
     if ((carLocation && !prevState.carLocation) || (geoLocateCoords && !prevState.geoLocateCoords) ||
       (searchSelect && prevState.searchSelect !== searchSelect) || (search && prevState.search !== search))
@@ -223,6 +223,16 @@ class Navigation extends Component {
         this.searchInputRef.current.value = '';
       }
       this.updateDevice();
+    }
+
+    if (prevState.carOnline !== carOnline) {
+      if (!carOnline && this.searchInputRef.current) {
+        this.searchInputRef.current.value = '';
+      }
+
+      if (carOnline) {
+
+      }
     }
   }
 
@@ -243,26 +253,6 @@ class Navigation extends Component {
         }, this.flyToMarkers);
       }
     }).catch(console.log);
-
-    // see if device can be reached
-    const payload = {
-      method: "getMessage",
-      params: { service: "deviceState", timeout: 3000 },
-      jsonrpc: "2.0",
-      id: 0,
-    };
-    AthenaApi.postJsonRpcPayload(dongleId, payload).then((resp) => {
-      if (dongleId === this.props.dongleId) {
-        this.setState({ carOnline: resp.result });
-      }
-    }).catch((err) => {
-      if (dongleId === this.props.dongleId) {
-        this.setState({ carOnline: false });
-        if (this.searchInputRef.current) {
-          this.searchInputRef.current.value = '';
-        }
-      }
-    });
   }
 
   updateFavoriteLocations() {
