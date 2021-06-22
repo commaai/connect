@@ -201,7 +201,6 @@ class Navigation extends Component {
   }
 
   componentDidMount() {
-    this.updateFavoriteLocations();
     this.componentDidUpdate({});
   }
 
@@ -233,6 +232,8 @@ class Navigation extends Component {
     if (Demo.isDemo()) {
       return;
     }
+
+    this.updateFavoriteLocations();
 
     Devices.fetchLocation(dongleId).then((resp) => {
       this.setState({
