@@ -3,7 +3,7 @@ import document from 'global/document';
 import * as Types from './types';
 import Timelineworker from '../timeline';
 import { getDongleID } from '../url';
-import { billing as Billing } from '@commaai/comma-api';
+import { billing as Billing, devices as DevicesApi } from '@commaai/comma-api';
 
 export function updateState(data) {
   return {
@@ -98,6 +98,23 @@ export function primeNav(nav = true) {
     if (curPath !== desiredPath) {
       dispatch(push(desiredPath));
     }
+  };
+}
+
+export function updateDeviceOnline(dongleId) {
+  return (dispatch, getState) => {
+    const payload = {
+      method: "getSshAuthorizedKeys",
+      params: {},
+      jsonrpc: "2.0",
+      id: 0,
+    };
+
+    DevicesApi.fetchDevice(dongleId).then((resp) => {
+      if (resp.result && resp.result.last_athena_ping) {
+        Timelineworker.updateDeviceOnline(resp.result.last_athena_ping, new Date().getTime() / 1000);
+      }
+    }).catch(console.log);
   };
 }
 
