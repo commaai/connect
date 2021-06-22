@@ -648,7 +648,7 @@ class Navigation extends Component {
       <div className={ classes.overlay } ref={ this.overlayRef } tabIndex={ 0 } onBlur={ this.onSearchBlur }
         onClick={ this.focus }>
         <TextField onChange={ this.onSearch } fullWidth={ true } inputRef={ this.searchInputRef }
-          placeholder={ carOnline ? 'search' : 'device offline' } disabled={ !carOnline }
+          placeholder="search"
           InputProps={{
             onFocus: this.onSearch,
             onBlur: this.onSearchBlur,
@@ -685,6 +685,13 @@ class Navigation extends Component {
     const { searchSelect, carOnline, carLocation, geoLocateCoords, saveAsMenu, savingAs, savedAs } = this.state;
 
     const noRoute = !searchSelect.route && (carLocation || geoLocateCoords);
+
+    let navigateButtonText = 'navigate';
+    if (!carOnline) {
+      navigateButtonText = 'offline';
+    } else if (noRoute) {
+      navigateButtonText = 'no route';
+    }
 
     return (
       <div className={ classes.searchSelectBox } ref={ this.searchSelectBoxRef }>
@@ -731,7 +738,7 @@ class Navigation extends Component {
           :
             <Button disabled={ Boolean(!carOnline || noRoute) } classes={{ root: classes.searchSelectButton }}
               onClick={ this.navigate }>
-              navigate
+              { navigateButtonText }
             </Button>
           }
         </div>
