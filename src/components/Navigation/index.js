@@ -183,6 +183,7 @@ class Navigation extends Component {
     this.focus = this.focus.bind(this);
     this.updateDevice = this.updateDevice.bind(this);
     this.updateFavoriteLocations = this.updateFavoriteLocations.bind(this);
+    this.getFavoriteLabelIcon = this.getFavoriteLabelIcon.bind(this);
     this.formatDistance = this.formatDistance.bind(this);
     this.formatDuration = this.formatDuration.bind(this);
     this.navigate = this.navigate.bind(this);
@@ -266,17 +267,25 @@ class Navigation extends Component {
       let favorites = {};
       resp.forEach((loc) => {
         if (loc.save_type === 'favorite') {
-          let icon;
-          switch (loc.label) {
-          case 'home': icon = pin_home;   break;
-          case 'work': icon = pin_work;   break;
-          default:     icon = pin_pinned; break;
-          }
-          favorites[loc.id] = { ...loc, icon };
+          favorites[loc.id] = {
+            ...loc,
+            icon: this.getFavoriteLabelIcon(loc.label),
+          };
         }
       });
       this.setState({ favoriteLocations: favorites });
     }).catch(console.log);
+  }
+
+  getFavoriteLabelIcon(label) {
+    switch (label) {
+      case 'home':
+        return pin_home;
+      case 'work':
+        return pin_work;
+      default:
+        return pin_pinned;
+      }
   }
 
   onGeolocate(pos) {
@@ -538,7 +547,14 @@ class Navigation extends Component {
       this.formatSearchName(searchSelect), this.formatSearchDetails(searchSelect), 'favorite', label)
     .then((resp) => {
       this.updateFavoriteLocations();
-      this.setState({ savingAs: false, savedAs: true });
+      this.setState({
+        savingAs: false,
+        savedAs: true,
+        searchSelect: {
+          ...searchSelect,
+          favoriteIcon: this.getFavoriteLabelIcon(label),
+        },
+      });
     }).catch((err) => {
       console.log(err);
       this.setState({ savingAs: false, savedAs: false });
@@ -552,7 +568,14 @@ class Navigation extends Component {
       this.setState({ savingAs: true });
       NavigationAPI.deleteLocationSave(dongleId, searchSelect.favoriteId).then((resp) => {
         this.updateFavoriteLocations();
-        this.setState({ savingAs: false, savedAs: true });
+        this.setState({
+          savingAs: false,
+          savedAs: true,
+          searchSelect: {
+            ...searchSelect,
+            favoriteIcon: undefined,
+          },
+        });
       }).catch((err) => {
         console.log(err);
         this.setState({ savingAs: false, savedAs: false });
