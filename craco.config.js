@@ -1,15 +1,38 @@
 /* eslint-disable */
-const { removeLoaders, loaderByName } = require('@craco/craco');
-const WorkerLoaderPlugin = require('craco-worker-loader');
+const { removeLoaders, loaderByName, addBeforeLoader } = require('@craco/craco');
 const SentryPlugin = require('craco-sentry-plugin');
 
 module.exports = function ({ env }) {
   const plugins = [{
-    plugin: WorkerLoaderPlugin
+    plugin: {
+      overrideWebpackConfig: ({ pluginOptions, webpackConfig, context: { env } }) => {
+        const workerLoader = {
+          test: /\.worker\.js/,
+          use: {
+            loader: "worker-loader",
+            options: pluginOptions || {}
+          }
+        };
+        addBeforeLoader(webpackConfig, loaderByName("babel-loader"), workerLoader);
+        return webpackConfig;
+      }
+    }
   }];
   if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SENTRY_ENV) {
     plugins.push({
-      plugin: SentryPlugin
+      plugin: {
+        overrideWebpackConfig: ({ pluginOptions, webpackConfig, context: { env } }) => {
+          const sentryPlugin = new SentryCliPlugin({
+            include: './build/',
+            ignoreFile: '.sentrycliignore',
+            ignore: ['node_modules', 'webpack.config.js', 'craco.config.js'],
+            configFile: 'sentry.properties',
+            ...pluginOptions
+          });
+          webpackConfig.plugins.push(sentryPlugin);
+          return webpackConfig;
+        }
+      }
     });
   }
   return {

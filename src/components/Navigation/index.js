@@ -236,26 +236,31 @@ class Navigation extends Component {
     this.updateFavoriteLocations();
 
     Devices.fetchLocation(dongleId).then((resp) => {
-      this.setState({
-        carLocation: [resp.lng, resp.lat],
-        carLocationTime: resp.time,
-      }, this.flyToMarkers);
+      if (dongleId === this.props.dongleId) {
+        this.setState({
+          carLocation: [resp.lng, resp.lat],
+          carLocationTime: resp.time,
+        }, this.flyToMarkers);
+      }
     }).catch(console.log);
 
-     // see if device can be reached
-     const payload = {
+    // see if device can be reached
+    const payload = {
       method: "getMessage",
       params: { service: "deviceState", timeout: 3000 },
       jsonrpc: "2.0",
       id: 0,
     };
-
     AthenaApi.postJsonRpcPayload(dongleId, payload).then((resp) => {
-      this.setState({ carOnline: resp.result });
-    }).catch(() => {
-      this.setState({ carOnline: false });
-      if (this.searchInputRef.current) {
-        this.searchInputRef.current.value = '';
+      if (dongleId === this.props.dongleId) {
+        this.setState({ carOnline: resp.result });
+      }
+    }).catch((err) => {
+      if (dongleId === this.props.dongleId) {
+        this.setState({ carOnline: false });
+        if (this.searchInputRef.current) {
+          this.searchInputRef.current.value = '';
+        }
       }
     });
   }
@@ -267,16 +272,18 @@ class Navigation extends Component {
     }
 
     NavigationAPI.getLocationsData(dongleId).then((resp) => {
-      let favorites = {};
-      resp.forEach((loc) => {
-        if (loc.save_type === 'favorite') {
-          favorites[loc.id] = {
-            ...loc,
-            icon: this.getFavoriteLabelIcon(loc.label),
-          };
-        }
-      });
-      this.setState({ favoriteLocations: favorites });
+      if (dongleId === this.props.dongleId) {
+        let favorites = {};
+        resp.forEach((loc) => {
+          if (loc.save_type === 'favorite') {
+            favorites[loc.id] = {
+              ...loc,
+              icon: this.getFavoriteLabelIcon(loc.label),
+            };
+          }
+        });
+        this.setState({ favoriteLocations: favorites });
+      }
     }).catch(console.log);
   }
 

@@ -2,7 +2,6 @@ import LogStream from '@commaai/log_reader';
 import { raw as RawApi, request as Request } from '@commaai/comma-api';
 import Auth from '@commaai/my-comma-auth';
 
-import { timeout } from 'thyming';
 import request from 'simple-get';
 import Event from 'geval/event';
 import debounce from 'debounce';
@@ -120,11 +119,11 @@ class CacheEntry {
 
   touch() {
     if (this.expireTimer) {
-      this.expireTimer();
+      clearTimeout(this.expireTimer);
       this.expireTimer = null;
     }
     this.lastTime = Date.now();
-    this.expireTimer = timeout(this.expire, EXPIREY_TIME);
+    this.expireTimer = setTimeout(this.expire, EXPIREY_TIME);
 
     return this;
   }

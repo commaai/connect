@@ -1,15 +1,12 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import Raven from 'raven-js';
 import cx from 'classnames';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
 import DeviceSettingsModal from './DeviceSettingsModal';
 import { deviceTypePretty } from '../../utils'
-import { devices as Devices } from '@commaai/comma-api';
-import Timelineworker from '../../timeline';
 import CommaTwoUpsell from '../DriveView/commaTwoUpsell';
 import Colors from '../../colors';
 

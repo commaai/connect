@@ -1,6 +1,6 @@
 import * as capnp from 'capnp-ts';
 import toJSON from '@commaai/capnp-json';
-import BufferUtils from 'capnp-split/buffer';
+import BufferUtils from '@commaai/log_reader/src/buffer';
 import { Event, Event_Which as EventWhich } from '@commaai/log_reader/capnp/log.capnp';
 
 // IE

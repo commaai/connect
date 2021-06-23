@@ -1,4 +1,3 @@
-import CreateStore from 'weakmap-shim/create-store';
 import Auth from '@commaai/my-comma-auth';
 import { request as Request } from '@commaai/comma-api'; // eslint-disable-line
 
