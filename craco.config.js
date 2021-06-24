@@ -22,7 +22,7 @@ module.exports = function ({ env }) {
     webpack: {
       configure: (webpackConfig, { env, paths }) => {
         if (sentryPlugin) {
-          webpackConfig.plugin.push(sentryPlugin);
+          webpackConfig.plugins.push(sentryPlugin);
         }
         webpackConfig.output.globalObject = 'this';
         addBeforeLoader(webpackConfig, loaderByName("babel-loader"), {
