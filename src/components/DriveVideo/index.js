@@ -152,7 +152,7 @@ class DriveVideo extends Component {
     }
 
     const prevSegment = this.visibleSegment(prevProps);
-    if (this.state.src === ''  || !prevSegment || prevSegment.route !== segment.route) {
+    if (this.state.src === '' || !prevSegment || prevSegment.route !== segment.route) {
       let videoApi = VideoApi(segment.url, process.env.REACT_APP_VIDEO_CDN);
       videoApi.getQcameraStreamIndex().then(() => {
         let src = videoApi.getQcameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`
@@ -160,7 +160,8 @@ class DriveVideo extends Component {
           this.setState({src});
           this.syncVideo();
         }
-      }).catch(() => {
+      }).catch((err) => {
+        console.log(err);
         let src = videoApi.getRearCameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`;
         if (src !== this.state.src) {
           this.setState({src});

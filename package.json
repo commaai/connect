@@ -18,20 +18,18 @@
   "private": true,
   "dependencies": {
     "@commaai/capnp-json": "^0.8.1",
-    "@commaai/comma-api": "^1.7.0",
+    "@commaai/comma-api": "^2.0.0",
     "@commaai/hls.js": "^0.12.7",
-    "@commaai/log_reader": "^0.8.1",
+    "@commaai/log_reader": "^0.9.0",
     "@commaai/my-comma-auth": "^1.2.1",
     "@mapbox/mapbox-sdk": "^0.12.1",
     "@material-ui/core": "^1.0.0",
     "@material-ui/icons": "^1.0.0",
+    "@sentry/webpack-plugin": "^1.8.1",
     "@stripe/react-stripe-js": "^1.4.0",
     "@stripe/stripe-js": "^1.13.2",
-    "capnp-split": "^0.1.4",
     "capnp-ts": "^0.4.0",
-    "carly": "^0.1.0",
     "classnames": "^2.2.6",
-    "collect-methods": "^1.2.0",
     "connected-react-router": "^4.3.0",
     "debounce": "^1.1.0",
     "fecha": "^2.3.3",
@@ -64,8 +62,8 @@
     "redux": "^4.0.0",
     "redux-thunk": "^2.3.0",
     "simple-get": "^3.1.0",
-    "thyming": "^0.1.1",
-    "weakmap-shim": "^1.1.1"
+    "weakmap-shim": "^1.1.1",
+    "worker-loader": "^2.0.0"
   },
   "devDependencies": {
     "@babel/helper-builder-react-jsx": "^7.12.13",
@@ -73,7 +71,6 @@
     "@craco/craco": "^5.5.0",
     "babel-eslint": "^10.0.3",
     "craco-sentry-plugin": "^1.0.0",
-    "craco-worker-loader": "^1.0.0",
     "env-cmd": "^8.0.2",
     "enzyme": "^3.10.0",
     "enzyme-adapter-react-16": "^1.14.0",
@@ -92,8 +89,7 @@
     "moduleNameMapper": {
       "^@commaai/pandajs$": "<rootDir>/node_modules/@commaai/pandajs/lib/index.js",
       "^@commaai/hls.js$": "<rootDir>/node_modules/@commaai/hls.js/dist/hls.js",
-      "^@commaai/(.*comma.*)$": "<rootDir>/node_modules/@commaai/$1/dist/index.js",
-      "^capnp-split$": "<rootDir>/node_modules/capnp-split/dist/index.js"
+      "^@commaai/(.*comma.*)$": "<rootDir>/node_modules/@commaai/$1/dist/index.js"
     }
   },
   "browserslist": {

@@ -83,16 +83,15 @@ class ExplorerApp extends Component {
       this.setState({ pairLoading: true });
       try {
         const resp = await DevicesApi.pilotPair(pairToken);
-        const json = JSON.parse(resp);
-        if (json.dongle_id) {
+        if (resp.dongle_id) {
           await localforage.removeItem('pairToken');
           this.setState({
             pairLoading: false,
             pairError: null,
-            pairDongleId: json.dongle_id,
+            pairDongleId: resp.dongle_id,
           });
 
-          const device = await DevicesApi.fetchDevice(json.dongle_id);
+          const device = await DevicesApi.fetchDevice(resp.dongle_id);
           Timelineworker.updateDevice(device);
         } else {
           await localforage.removeItem('pairToken');

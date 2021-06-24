@@ -5,8 +5,6 @@ import { ConnectedRouter } from 'connected-react-router';
 import document from 'global/document';
 import qs from 'query-string';
 import localforage from 'localforage';
-import Jepsen from 'carly';
-import Collector from 'collect-methods';
 
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Grid from '@material-ui/core/Grid';
@@ -47,38 +45,24 @@ class App extends Component {
         console.log(err);
       }
     }
+  }
 
-    this.cancelInit = Collector();
-
-    const initDemoTimeline = Jepsen(() => {
-      TimelineWorker.init(true).then(initDemoState.callback);
-    });
-
-    const checkDemo = Jepsen((isDemo) => {
-      if (isDemo) {
-        return localforage.setItem('isDemo', '1')
-          .then(initDemoTimeline.callback);
-      }
-      return this.auth();
-    });
-
-    const initDemoState = Jepsen(() => {
+  async componentDidMount() {
+    const isDemo = await Demo.init();
+    if (isDemo) {
+      await localforage.setItem('isDemo', '1');
+      await TimelineWorker.init(true);
       TimelineWorker.selectTimeRange(1564443025000, Date.now());
       this.setState({
         initialized: true,
         demo: true,
       });
-    });
+    }
 
-    this.cancelInit(checkDemo.cancel);
-    this.cancelInit(initDemoTimeline.cancel);
-    this.cancelInit(initDemoState.cancel);
-
-    Demo.init().then(checkDemo.callback);
+    return await this.auth();
   }
 
   componentWillUnmount() {
-    this.cancelInit();
     TimelineWorker.stop();
   }
 

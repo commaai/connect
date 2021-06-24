@@ -1,19 +1,18 @@
-/* eslint-disable */
-const { removeLoaders, loaderByName } = require('@craco/craco');
-const WorkerLoaderPlugin = require('craco-worker-loader');
-const SentryPlugin = require('craco-sentry-plugin');
+const { removeLoaders, loaderByName, addBeforeLoader } = require('@craco/craco');
+const SentryCliPlugin = require('@sentry/webpack-plugin');
 
 module.exports = function ({ env }) {
-  const plugins = [{
-    plugin: WorkerLoaderPlugin
-  }];
+  let sentryPlugin;
   if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SENTRY_ENV) {
-    plugins.push({
-      plugin: SentryPlugin
+    sentryPlugin = new SentryCliPlugin({
+      include: './build/',
+      ignoreFile: '.sentrycliignore',
+      ignore: ['node_modules', 'webpack.config.js', 'craco.config.js'],
+      configFile: 'sentry.properties',
     });
   }
+
   return {
-    plugins,
     jest: {
       configure: (jestConfig, { env, paths }) => {
         jestConfig.testPathIgnorePatterns = ['node_modules', '__puppeteer__'];
@@ -22,7 +21,14 @@ module.exports = function ({ env }) {
     },
     webpack: {
       configure: (webpackConfig, { env, paths }) => {
+        if (sentryPlugin) {
+          webpackConfig.plugins.push(sentryPlugin);
+        }
         webpackConfig.output.globalObject = 'this';
+        addBeforeLoader(webpackConfig, loaderByName("babel-loader"), {
+          test: /\.worker\.js/,
+          use: { loader: "worker-loader" }
+        });
         removeLoaders(webpackConfig, loaderByName('eslint-loader'));
         webpackConfig.optimization.minimizer = webpackConfig.optimization.minimizer.map(function (plugin) {
           if (plugin.constructor.name !== 'TerserPlugin') {

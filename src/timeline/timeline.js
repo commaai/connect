@@ -1,6 +1,5 @@
 import Event from 'geval/event';
 import CreateStore from 'weakmap-shim/create-store';
-import { timeout } from 'thyming';
 
 import { drives as Drives } from '@commaai/comma-api'; // eslint-disable-line
 
@@ -28,7 +27,7 @@ function scheduleSegmentUpdate(state) {
   const offset = currentOffset(state);
 
   if (SegmentTimerStore(state).stopTimer) {
-    SegmentTimerStore(state).stopTimer();
+    clearTimeout(SegmentTimerStore(state).stopTimer);
     SegmentTimerStore(state).stopTimer = null;
   }
   if (state.nextSegment) {
@@ -64,7 +63,7 @@ function scheduleSegmentUpdate(state) {
   if (timeUntilNext > 0) {
     timeUntilNext = Math.min(30000, Math.max(200, timeUntilNext));
     console.log('Waiting', timeUntilNext, 'for something to change...');
-    SegmentTimerStore(state).stopTimer = timeout(() => {
+    SegmentTimerStore(state).stopTimer = setTimeout(() => {
       // empty action to churn the butter
       // store.dispatch(Segments.updateSegments());
     }, timeUntilNext);
@@ -122,13 +121,13 @@ async function checkSegmentMetadata(state) {
 let ensureSegmentDataTimer = null;
 async function ensureSegmentData(state) {
   if (ensureSegmentDataTimer) {
-    ensureSegmentDataTimer();
+    clearTimeout(ensureSegmentDataTimer);
     ensureSegmentDataTimer = null;
   }
 
   let entry = null;
   if (Date.now() - state.startTime < 1000) {
-    ensureSegmentDataTimer = timeout(() => {
+    ensureSegmentDataTimer = setTimeout(() => {
       ensureSegmentDataTimer = null;
       return ensureSegmentData(getState());
     }, 1100 - (Date.now() - state.startTime));

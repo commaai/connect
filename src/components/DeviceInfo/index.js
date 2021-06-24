@@ -179,7 +179,9 @@ class DeviceInfo extends Component {
     this.setState({ deviceStats: { fetching: true }});
     try {
       const resp = await DevicesApi.fetchDeviceStats(dongleId);
-      this.setState({ deviceStats: { result: resp }});
+      if (dongleId === this.props.dongleId) {
+        this.setState({ deviceStats: { result: resp }});
+      }
     } catch(err) {
       this.setState({ deviceStats: { error: err.message }});
     }
@@ -196,7 +198,9 @@ class DeviceInfo extends Component {
         id: 0,
       };
       const resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
-      this.setState({ carHealth: resp });
+      if (dongleId === this.props.dongleId) {
+        this.setState({ carHealth: resp });
+      }
     } catch(err) {
       this.setState({ carHealth: { error: err.message }});
     }
@@ -219,7 +223,9 @@ class DeviceInfo extends Component {
       if (resp.result && !resp.result.jpegBack && !resp.result.jpegFront) {
         throw new Error('unable to fetch snapshot');
       }
-      this.setState({ snapshot: resp });
+      if (dongleId === this.props.dongleId) {
+        this.setState({ snapshot: resp });
+      }
     } catch(err) {
       this.setState({ snapshot: { error: err.message }});
     }
