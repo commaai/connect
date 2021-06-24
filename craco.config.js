@@ -2,6 +2,16 @@ const { removeLoaders, loaderByName, addBeforeLoader } = require('@craco/craco')
 const SentryCliPlugin = require('@sentry/webpack-plugin');
 
 module.exports = function ({ env }) {
+  let sentryPlugin;
+  if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SENTRY_ENV) {
+    sentryPlugin = new SentryCliPlugin({
+      include: './build/',
+      ignoreFile: '.sentrycliignore',
+      ignore: ['node_modules', 'webpack.config.js', 'craco.config.js'],
+      configFile: 'sentry.properties',
+    });
+  }
+
   return {
     jest: {
       configure: (jestConfig, { env, paths }) => {
@@ -11,13 +21,8 @@ module.exports = function ({ env }) {
     },
     webpack: {
       configure: (webpackConfig, { env, paths }) => {
-        if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SENTRY_ENV) {
-          webpackConfig.plugins.push(new SentryCliPlugin({
-            include: './build/',
-            ignoreFile: '.sentrycliignore',
-            ignore: ['node_modules', 'webpack.config.js', 'craco.config.js'],
-            configFile: 'sentry.properties',
-          }))
+        if (sentryPlugin) {
+          webpackConfig.plugin.push(sentryPlugin);
         }
         webpackConfig.output.globalObject = 'this';
         addBeforeLoader(webpackConfig, loaderByName("babel-loader"), {
