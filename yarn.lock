@@ -1191,9 +1191,10 @@
     joi-browser "^13.4.0"
     querystringify "^2.1.1"
 
-"@commaai/comma-api@https://github.com/commaai/comma-api.git#fetch":
+"@commaai/comma-api@^2.0.0":
   version "2.0.0"
-  resolved "https://github.com/commaai/comma-api.git#01cf6381dc3058bcc68f2f3ab70db0f1da7a1b41"
+  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-2.0.0.tgz#8a6626bd36dde0e6f4ef3379392239f97f83aaa3"
+  integrity sha512-M49VPXFwC8l43Y9rOHfOSp+YR9rf+3F5x9EbTzdTk+fM9mvFEabFHUCFPzcDILEOKFqDcmZcgA3JIopaeVCrlw==
   dependencies:
     babel-runtime "^6.26.0"
     joi-browser "^13.4.0"
