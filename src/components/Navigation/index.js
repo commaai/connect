@@ -9,7 +9,7 @@ import moment from 'moment';
 
 import { devices as Devices, navigation as NavigationAPI } from '@commaai/comma-api';
 import Colors from '../../colors';
-import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
+import GeocodeApi from '../../api/geocode';
 import { pin_car, pin_marker, pin_home, pin_work, pin_pinned } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
 import * as Demo from '../../demo';
@@ -601,7 +601,7 @@ class Navigation extends Component {
         <ResizeHandler onResize={ this.onResize } />
         <ReactMapGL { ...viewport } onViewportChange={ (viewport) => this.setState({ viewport }) }
           mapStyle={ MAP_STYLE } width="100%" height="100%" onNativeClick={ this.focus } maxPitch={ 0 }
-          mapboxApiAccessToken={ MAPBOX_TOKEN } attributionControl={ false } dragRotate={ false }
+          mapboxApiAccessToken={ process.env.REACT_APP_MAPBOX_TOKEN } attributionControl={ false } dragRotate={ false }
           onContextMenu={ null }>
           <GeolocateControl className={ classes.geolocateControl } positionOptions={{ enableHighAccuracy: true }}
             showAccuracyCircle={ false } onGeolocate={ this.onGeolocate } auto={ hasFocus }

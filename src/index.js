@@ -9,7 +9,7 @@ import './index.css';
 import 'react-virtualized/styles.css';
 import App from './App';
 import Theme from './theme';
-import { unregister } from './registerServiceWorker';
+import { register, unregister } from './registerServiceWorker';
 
 if (process.env.REACT_APP_SENTRY_ENV) {
   Raven.config(
@@ -18,7 +18,9 @@ if (process.env.REACT_APP_SENTRY_ENV) {
   ).install();
 }
 
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SERVICEWORKER) {
+  register();
+} else {
   unregister();
 }
 
