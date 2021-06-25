@@ -13,7 +13,6 @@ import GeocodeApi from '../../api/geocode';
 import { pin_car, pin_marker, pin_home, pin_work, pin_pinned } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
 import * as Demo from '../../demo';
-import { deviceIsOnline } from '../../utils';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 const styles = () => ({
@@ -705,13 +704,6 @@ class Navigation extends Component {
 
     const noRoute = !searchSelect.route && (carLocation || geoLocateCoords);
 
-    let navigateButtonText = 'navigate';
-    if (!deviceIsOnline(device)) {
-      navigateButtonText = 'offline';
-    } else if (noRoute) {
-      navigateButtonText = 'no route';
-    }
-
     return (
       <div className={ classes.searchSelectBox } ref={ this.searchSelectBoxRef }>
         <div className={ classes.searchSelectBoxHeader }>
@@ -755,9 +747,9 @@ class Navigation extends Component {
               { searchSelect.success ? "destination set" : "..." }
             </Typography>
           :
-            <Button disabled={ Boolean(!deviceIsOnline(device) || noRoute) } onClick={ this.navigate }
+            <Button disabled={ Boolean(noRoute) } onClick={ this.navigate }
               classes={{ root: classes.searchSelectButton }}>
-              { navigateButtonText }
+              { noRoute ? 'no route' : 'navigate' }
             </Button>
           }
         </div>
