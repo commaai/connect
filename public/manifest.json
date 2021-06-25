@@ -29,8 +29,11 @@
       "purpose": "any maskable"
     }
   ],
-  "start_url": "./",
+  "lang": "en-US",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#000000"
+  "orientation": "portrait-primary",
+  "theme_color": "#16181a",
+  "background_color": "#16181a"
 }
