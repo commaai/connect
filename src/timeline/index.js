@@ -156,6 +156,10 @@ export class TimelineInterface {
     return commands.resetPlayback();
   }
 
+  async updateDeviceOnline(dongleId, last_athena_ping, fetched_at) {
+    return commands.updateDeviceOnline(dongleId, last_athena_ping, fetched_at);
+  }
+
   setState(state) {
     this.state = state;
     StateEvent.broadcast(state);

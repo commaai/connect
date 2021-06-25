@@ -5,6 +5,7 @@ import {
   ACTION_SELECT_DEVICE,
   ACTION_SELECT_TIME_RANGE,
   ACTION_UPDATE_DEVICE,
+  ACTION_UPDATE_DEVICE_ONLINE,
 } from './types';
 
 export function updateDevice(device) {
@@ -48,5 +49,14 @@ export function primeNavAction(nav) {
   return {
     type: ACTION_PRIME_NAV,
     primeNav: nav,
+  };
+}
+
+export function updateDeviceOnlineAction(dongleId, last_athena_ping, fetched_at) {
+  return {
+    type: ACTION_UPDATE_DEVICE_ONLINE,
+    dongleId,
+    last_athena_ping,
+    fetched_at,
   };
 }

@@ -3,7 +3,7 @@ import document from 'global/document';
 import * as Types from './types';
 import Timelineworker from '../timeline';
 import { getDongleID } from '../url';
-import { billing as Billing } from '@commaai/comma-api';
+import { billing as Billing, devices as DevicesApi } from '@commaai/comma-api';
 
 export function updateState(data) {
   return {
@@ -98,6 +98,16 @@ export function primeNav(nav = true) {
     if (curPath !== desiredPath) {
       dispatch(push(desiredPath));
     }
+  };
+}
+
+export function fetchDeviceOnline(dongleId) {
+  return (dispatch, getState) => {
+    DevicesApi.fetchDevice(dongleId).then((resp) => {
+      if (resp.dongle_id === dongleId) {
+        Timelineworker.updateDeviceOnline(dongleId, resp.last_athena_ping, parseInt(Date.now() / 1000));
+      }
+    }).catch(console.log);
   };
 }
 

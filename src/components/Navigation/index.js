@@ -7,12 +7,13 @@ import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuIt
 import { Search, Clear } from '@material-ui/icons';
 import moment from 'moment';
 
-import { devices as Devices, navigation as NavigationAPI, athena as AthenaApi } from '@commaai/comma-api';
+import { devices as Devices, navigation as NavigationAPI } from '@commaai/comma-api';
 import Colors from '../../colors';
 import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
 import { pin_car, pin_marker, pin_home, pin_work, pin_pinned } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
 import * as Demo from '../../demo';
+import { deviceIsOnline } from '../../utils';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 const styles = () => ({
@@ -146,7 +147,6 @@ const initialState = {
     latitude: 37.78,
     zoom: 0,
   },
-  carOnline: true,
   carLocation: null,
   carLocationTime: null,
   favoriteLocations: [],
@@ -164,6 +164,7 @@ const initialState = {
 class Navigation extends Component {
   constructor(props) {
     super(props);
+    this.mounted = null;
     this.state = {
       ...initialState,
       windowWidth: window.innerWidth,
@@ -201,7 +202,8 @@ class Navigation extends Component {
   }
 
   componentDidMount() {
-    this.componentDidUpdate({});
+    this.mounted = true;
+    this.componentDidUpdate({}, {});
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -226,6 +228,10 @@ class Navigation extends Component {
     }
   }
 
+  componentWillUnmount() {
+    this.mounted = false;
+  }
+
   updateDevice() {
     const { dongleId } = this.props;
 
@@ -236,33 +242,13 @@ class Navigation extends Component {
     this.updateFavoriteLocations();
 
     Devices.fetchLocation(dongleId).then((resp) => {
-      if (dongleId === this.props.dongleId) {
+      if (this.mounted && dongleId === this.props.dongleId) {
         this.setState({
           carLocation: [resp.lng, resp.lat],
           carLocationTime: resp.time,
         }, this.flyToMarkers);
       }
     }).catch(console.log);
-
-    // see if device can be reached
-    const payload = {
-      method: "getMessage",
-      params: { service: "deviceState", timeout: 3000 },
-      jsonrpc: "2.0",
-      id: 0,
-    };
-    AthenaApi.postJsonRpcPayload(dongleId, payload).then((resp) => {
-      if (dongleId === this.props.dongleId) {
-        this.setState({ carOnline: resp.result });
-      }
-    }).catch((err) => {
-      if (dongleId === this.props.dongleId) {
-        this.setState({ carOnline: false });
-        if (this.searchInputRef.current) {
-          this.searchInputRef.current.value = '';
-        }
-      }
-    });
   }
 
   updateFavoriteLocations() {
@@ -272,7 +258,7 @@ class Navigation extends Component {
     }
 
     NavigationAPI.getLocationsData(dongleId).then((resp) => {
-      if (dongleId === this.props.dongleId) {
+      if (this.mounted && dongleId === this.props.dongleId) {
         let favorites = {};
         resp.forEach((loc) => {
           if (loc.save_type === 'favorite') {
@@ -675,7 +661,7 @@ class Navigation extends Component {
 
   renderOverlay() {
     const { classes } = this.props;
-    const { search, carOnline, searchLooking } = this.state;
+    const { search, searchLooking } = this.state;
 
     return (
       <div className={ classes.overlay } ref={ this.overlayRef } tabIndex={ 0 } onBlur={ this.onSearchBlur }
@@ -714,13 +700,13 @@ class Navigation extends Component {
   }
 
   renderSearchOverlay() {
-    const { classes } = this.props;
-    const { searchSelect, carOnline, carLocation, geoLocateCoords, saveAsMenu, savingAs, savedAs } = this.state;
+    const { classes, device } = this.props;
+    const { searchSelect, carLocation, geoLocateCoords, saveAsMenu, savingAs, savedAs } = this.state;
 
     const noRoute = !searchSelect.route && (carLocation || geoLocateCoords);
 
     let navigateButtonText = 'navigate';
-    if (!carOnline) {
+    if (!deviceIsOnline(device)) {
       navigateButtonText = 'offline';
     } else if (noRoute) {
       navigateButtonText = 'no route';
@@ -769,8 +755,8 @@ class Navigation extends Component {
               { searchSelect.success ? "destination set" : "..." }
             </Typography>
           :
-            <Button disabled={ Boolean(!carOnline || noRoute) } classes={{ root: classes.searchSelectButton }}
-              onClick={ this.navigate }>
+            <Button disabled={ Boolean(!deviceIsOnline(device) || noRoute) } onClick={ this.navigate }
+              classes={{ root: classes.searchSelectButton }}>
               { navigateButtonText }
             </Button>
           }
@@ -784,6 +770,7 @@ class Navigation extends Component {
 }
 
 const stateToProps = Obstruction({
+  device: 'workerState.device',
   dongleId: 'workerState.dongleId',
 });
 
