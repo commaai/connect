@@ -164,6 +164,7 @@ const initialState = {
 class Navigation extends Component {
   constructor(props) {
     super(props);
+    this.mounted = null;
     this.state = {
       ...initialState,
       windowWidth: window.innerWidth,
@@ -201,6 +202,7 @@ class Navigation extends Component {
   }
 
   componentDidMount() {
+    this.mounted = true;
     this.componentDidUpdate({}, {});
   }
 
@@ -226,6 +228,10 @@ class Navigation extends Component {
     }
   }
 
+  componentWillUnmount() {
+    this.mounted = false;
+  }
+
   updateDevice() {
     const { dongleId } = this.props;
 
@@ -236,7 +242,7 @@ class Navigation extends Component {
     this.updateFavoriteLocations();
 
     Devices.fetchLocation(dongleId).then((resp) => {
-      if (dongleId === this.props.dongleId) {
+      if (this.mounted && dongleId === this.props.dongleId) {
         this.setState({
           carLocation: [resp.lng, resp.lat],
           carLocationTime: resp.time,
@@ -252,7 +258,7 @@ class Navigation extends Component {
     }
 
     NavigationAPI.getLocationsData(dongleId).then((resp) => {
-      if (dongleId === this.props.dongleId) {
+      if (this.mounted && dongleId === this.props.dongleId) {
         let favorites = {};
         resp.forEach((loc) => {
           if (loc.save_type === 'favorite') {

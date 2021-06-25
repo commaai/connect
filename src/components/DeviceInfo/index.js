@@ -127,6 +127,7 @@ const initialState = {
 class DeviceInfo extends Component {
   constructor(props) {
     super(props);
+    this.mounted = null;
     this.state = {
       ...initialState,
       windowWidth: window.innerWidth,
@@ -143,11 +144,12 @@ class DeviceInfo extends Component {
   }
 
   componentDidMount() {
+    this.mounted = true;
     this.componentDidUpdate({});
   }
 
   componentWillUnmount() {
-
+    this.mounted = false;
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -172,7 +174,7 @@ class DeviceInfo extends Component {
     this.setState({ deviceStats: { fetching: true }});
     try {
       const resp = await DevicesApi.fetchDeviceStats(dongleId);
-      if (dongleId === this.props.dongleId) {
+      if (this.mounted && dongleId === this.props.dongleId) {
         this.setState({ deviceStats: { result: resp }});
       }
     } catch(err) {
@@ -195,7 +197,7 @@ class DeviceInfo extends Component {
         id: 0,
       };
       const resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
-      if (dongleId === this.props.dongleId) {
+      if (this.mounted && dongleId === this.props.dongleId) {
         this.setState({ carHealth: resp });
       }
     } catch(err) {

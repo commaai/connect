@@ -66,7 +66,6 @@ class Dashboard extends Component {
       this.fetchDeviceOnlineTimeout = null;
     }
 
-    console.log(parseInt(Date.now() / 1000), 'fetching');
     this.props.dispatch(fetchDeviceOnline(this.props.dongleId));
   }
 

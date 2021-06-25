@@ -258,7 +258,7 @@ class DriveVideo extends Component {
       }
     }
 
-    newPlaybackRate = Math.round(newPlaybackRate * 20) / 20;
+    newPlaybackRate = Math.round(newPlaybackRate * 10) / 10;
     if (internalPlayer.playbackRate !== newPlaybackRate) {
       internalPlayer.playbackRate = newPlaybackRate;
     }
