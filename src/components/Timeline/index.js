@@ -8,7 +8,6 @@ import raf from 'raf';
 import debounce from 'debounce';
 import document from 'global/document';
 import fecha from 'fecha';
-import cx from 'classnames';
 import PropTypes from 'prop-types';
 
 import Measure from 'react-measure';
@@ -454,13 +453,12 @@ class Timeline extends Component {
             console.log('Current event:', event);
           }
         }
+        const statusCls = event.data.alertStatus ? `${AlertStatusCodes[event.data.alertStatus]}` : '';
         return (
           <div
             key={segment.route + event.time + event.type}
             style={style}
-            className={cx(classes.segmentColor, event.type, {
-              [`${AlertStatusCodes[event.data.alertStatus]}`]: event.data.alertStatus,
-            })}
+            className={ `${classes.segmentColor} ${event.type} ${statusCls}` }
           />
         );
       });
@@ -490,6 +488,9 @@ class Timeline extends Component {
         timeString = fecha.format(timestampAtOffset, 'M/D HH:mm:ss');
       }
     }
+    const roundedCls = rounded ? 'rounded' : '';
+    const hasRulerCls = hasRuler ? 'hasRuler' : '';
+    const hasThumbnailsCls = hasThumbnails ? 'hasThumbnails' : '';
     return (
       <div
         className={className}
@@ -497,18 +498,14 @@ class Timeline extends Component {
       >
         <div
           role="presentation"
-          className={cx(classes.base, {
-            rounded,
-            hasRuler,
-            hasThumbnails,
-          })}
+          className={ `${classes.base} ${roundedCls} ${hasRulerCls} ${hasThumbnailsCls}` }
           onMouseDown={this.handleMouseDown}
           onMouseUp={this.handleMouseUp}
           onMouseMove={this.handleMouseMove}
           onMouseLeave={this.handleMouseLeave}
           onClick={this.handleClick}
         >
-          <div className={cx(classes.segments, { hasThumbnails, hasRuler })}>
+          <div className={ `${classes.segments} ${hasRulerCls} ${hasThumbnailsCls}` }>
             { segments && segments.map(this.renderSegment) }
             { hasRuler && (
               <div className={classes.ruler}>
@@ -522,13 +519,7 @@ class Timeline extends Component {
                 />
               </div>
             ) }
-            { hasGradient && (
-              <div
-                className={cx(classes.statusGradient, {
-                  hasRuler,
-                })}
-              />
-            ) }
+            { hasGradient && <div className={ `${classes.statusGradient} ${hasRulerCls}` } /> }
             { this.renderDragger() }
             { this.renderZoom() }
           </div>
@@ -549,12 +540,7 @@ class Timeline extends Component {
               onResize={(rect) => this.setState({ thumbnail: rect.bounds })}
             >
               { (options) => (
-                <div
-                  ref={options.measureRef}
-                  className={cx(classes.thumbnails, {
-                    hasRuler,
-                  })}
-                >
+                <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
                   <Thumbnails
                     getCurrentSegment={ (seg) => Segments.getCurrentSegment(this.props, seg) }
                     percentToOffset={this.percentToOffset}

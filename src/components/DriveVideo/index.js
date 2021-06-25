@@ -3,7 +3,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
-import { classNames } from 'react-extras';
 import debounce from 'debounce';
 import Obstruction from 'obstruction';
 import ReactPlayer from 'react-player'
@@ -931,7 +930,7 @@ class DriveVideo extends Component {
     const { classes, isBufferingData, isBufferingVideo } = this.props;
     const playSpeed = isBufferingData ? 0 : this.props.desiredPlaySpeed;
     return (
-      <div className={classNames(classes.videoContainer, { [classes.hidden]: false })}>
+      <div className={ classes.videoContainer }>
         { (isBufferingData || isBufferingVideo) &&
           <Buffering isBufferingVideo={ isBufferingVideo } isBufferingData={ isBufferingData } />
         }
@@ -944,7 +943,7 @@ class DriveVideo extends Component {
           onPlay={ () => TimelineWorker.bufferVideo(false) } />
         { this.props.shouldShowUI &&
           <>
-            <canvas style={{ zIndex: 3 }} className={classNames(classes.videoUiCanvas, 'hudRoadCanvas')}
+            <canvas style={{ zIndex: 3 }} className={ `${classes.videoUiCanvas} hudRoadCanvas` }
               ref={this.canvas_road} />
             <canvas className={classes.videoUiCanvas} style={{ zIndex: 4 }} ref={this.canvas_lead} />
             <canvas className={classes.videoUiCanvas} style={{ zIndex: 5 }} ref={this.canvas_carstate} />

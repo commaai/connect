@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';
 import fecha from 'fecha';
-import cx from 'classnames';
 import PropTypes from 'prop-types';
 
 import { withStyles } from '@material-ui/core/styles';
@@ -194,8 +193,10 @@ class TimeDisplay extends Component {
   render() {
     const { classes } = this.props;
     const isPaused = this.props.desiredPlaySpeed === 0;
+    const isExpandedCls = this.props.expanded ? 'isExpanded' : '';
+    const isThinCls = this.props.isThin ? 'isThin' : '';
     return (
-      <div className={cx(classes.base, { isExpanded: this.props.expanded, isThin: this.props.isThin })}>
+      <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
         <div className={ classes.iconBox }>
           <IconButton className={ classes.iconButton } onClick={ () => jumpBack(10000) }
             aria-label="Jump back 10 seconds">

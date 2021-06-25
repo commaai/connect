@@ -2649,11 +2649,6 @@ atob@^2.1.2:
   resolved "https://registry.yarnpkg.com/atob/-/atob-2.1.2.tgz#6d9517eb9e030d2436666651e86bd9f6f13533c9"
   integrity sha512-Wm6ukoaOGJi/73p/cl2GvLjTI5JM1k/O14isD73YML8StrH/7/lRFgmg8nICZgD3bZZvjwCGxtMOD3wWNAu8cg==
 
-auto-bind@^1.2.0:
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/auto-bind/-/auto-bind-1.2.1.tgz#807f7910b0210db9eefe133f3492c28e89698b96"
-  integrity sha512-/W9yj1yKmBLwpexwAujeD9YHwYmRuWFGV8HWE7smQab797VeHa4/cnE2NFeDhA+E+5e/OGBI8763EhLjfZ/MXA==
-
 autoprefixer@^9.6.1:
   version "9.8.6"
   resolved "https://registry.yarnpkg.com/autoprefixer/-/autoprefixer-9.8.6.tgz#3b73594ca1bf9266320c5acf1588d74dea74210f"
@@ -3536,7 +3531,7 @@ class-utils@^0.3.5:
     isobject "^3.0.0"
     static-extend "^0.1.1"
 
-classnames@^2.2.5, classnames@^2.2.6:
+classnames@^2.2.5:
   version "2.2.6"
   resolved "https://registry.yarnpkg.com/classnames/-/classnames-2.2.6.tgz#43935bffdd291f326dad0a205309b38d00f650ce"
   integrity sha512-JR/iSQOSt+LQIWwrwEzJ9uk0xfN3mTVYMwt1Ir5mUcSN6pU+V4zQFFaJsclJbPuAUQH+yfWef6tm7l1quW3C8Q==
@@ -3957,13 +3952,6 @@ cosmiconfig@^6.0.0:
     parse-json "^5.0.0"
     path-type "^4.0.0"
     yaml "^1.7.2"
-
-craco-sentry-plugin@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/craco-sentry-plugin/-/craco-sentry-plugin-1.0.0.tgz#90f7c19ba3a5bd6dd47784d5633a6f2a2eb21ef5"
-  integrity sha512-m5gl7dFh5DSvOpg3mezmx6KAQA6k9uPkVKEQhXPuuTJ5ghPD4YpL2dYdcw18gck7jrOMfWzkiDnePwrdhD5XGQ==
-  dependencies:
-    "@sentry/webpack-plugin" "^1.8.1"
 
 create-ecdh@^4.0.0:
   version "4.0.4"
@@ -6435,11 +6423,6 @@ history@^4.7.2:
     tiny-invariant "^1.0.2"
     tiny-warning "^1.0.0"
     value-equal "^1.0.1"
-
-hls.js@^1.0.4:
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/hls.js/-/hls.js-1.0.4.tgz#1b191f0f49c992e5c22d4a648ac73630d13d3c2e"
-  integrity sha512-sTea9L0ORE9u5dThUjEhDP4t9YzakEYRyMHEYQctaLZf2X9ihjmUbqKneExQWHXZz2cYQs5ihaKUe8QnrQDp7Q==
 
 hmac-drbg@^1.0.1:
   version "1.0.1"
@@ -10974,14 +10957,6 @@ react-event-listener@^0.6.2:
     "@babel/runtime" "^7.2.0"
     prop-types "^15.6.0"
     warning "^4.0.1"
-
-react-extras@^0.7.1:
-  version "0.7.1"
-  resolved "https://registry.yarnpkg.com/react-extras/-/react-extras-0.7.1.tgz#e41850a1fbd7ecd30a02c74a386a3ceee6a31815"
-  integrity sha512-GW9qJjrZo5iTbcH6Dg1S6v4BJWhiShCd0IeNXrPTnkfMttLFK8JAO6eWrS2LCJu6w9tyB4iQpPEyi44SyAlCAA==
-  dependencies:
-    auto-bind "^1.2.0"
-    prop-types "^15.6.0"
 
 react-fast-compare@^3.0.1:
   version "3.2.0"

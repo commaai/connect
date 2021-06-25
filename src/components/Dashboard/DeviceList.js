@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import cx from 'classnames';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
@@ -135,12 +134,12 @@ class DeviceList extends Component {
 
   renderDevice(device) {
     const { classes, isSuperUser } = this.props;
-    const isSelected = (this.props.selectedDevice === device.dongle_id);
+    const isSelectedCls = (this.props.selectedDevice === device.dongle_id) ? 'isSelected' : '';
     const alias = device.alias || deviceTypePretty(device.device_type);
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
     return (
       <div key={device.dongle_id} onClick={ () => this.props.handleDeviceSelected(device.dongle_id) }
-        className={cx(classes.device, [{ isSelected }])}>
+        className={ `${classes.device} ${isSelectedCls}` }>
         <div className={classes.deviceInfo}>
           <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
           <div className={ classes.deviceName }>

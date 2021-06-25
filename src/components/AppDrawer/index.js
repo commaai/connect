@@ -26,19 +26,6 @@ const styles = (/* theme */) => ({
     flexGrow: 1,
     minHeight: 0,
   },
-  addDeviceButton: {
-    background: '#fff',
-    borderRadius: 30,
-    margin: 24,
-    color: '#404B4F',
-    height: 50,
-    textTransform: 'none',
-    width: '80%',
-    '&:hover': {
-      background: '#fff',
-      color: '#404B4F',
-    }
-  },
   logo: {
     alignItems: 'center',
     display: 'flex',
@@ -104,10 +91,6 @@ class AppDrawer extends Component {
               <Typography className={ classes.logoText }>explorer</Typography>
             </Link>
           }
-          {/* <Button size="large" className={classes.addDeviceButton}
-            onClick={() => { this.toggleDrawerOff(); this.goToAddDevice(); }}>
-            Add device
-          </Button> */}
           <div style={{ height: 24 }}></div>
           <DeviceList selectedDevice={ selectedDongleId } handleDeviceSelected={this.handleDeviceSelected}
             headerHeight={ 64 + 24 } />

@@ -29,6 +29,8 @@ export function deviceTypePretty(deviceType) {
     return 'EON';
   } else if (deviceType === 'freon') {
     return 'freon';
+  } else if (deviceType === 'unknown') {
+    return 'unknown';
   } else {
     return `comma ${deviceType}`;
   }

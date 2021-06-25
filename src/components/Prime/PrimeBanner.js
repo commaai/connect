@@ -12,7 +12,7 @@ import {
 
 const styles = () => ({
   primeContainer: {
-    padding: '16px 48px',
+    padding: '16px 36px',
     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
     color: '#fff',
   },

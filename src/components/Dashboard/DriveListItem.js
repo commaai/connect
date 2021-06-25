@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import fecha from 'fecha';
-import { classNames } from 'react-extras';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -119,7 +118,7 @@ class DriveListDrive extends Component {
       arrow:  { order: 6, maxWidth: '6%',  flexBasis: '6%' },
     };
     return (
-      <li key={drive.startTime} className={classNames(classes.drive, 'DriveEntry')}
+      <li key={drive.startTime} className={ `${classes.drive} DriveEntry` }
         onClick={ () => this.handleDriveClicked(drive) }>
         <div className={classes.driveHeader} style={ !small ? { padding: '18px 32px' } : { padding: 18 } }>
           <Grid container>
