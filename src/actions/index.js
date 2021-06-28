@@ -60,6 +60,7 @@ export function selectDevice(dongleId) {
       Timelineworker.selectDevice(dongleId).then(() => {
         dispatch(selectRange(null, null))
         dispatch(primeFetchSubscription());
+        dispatch(fetchDeviceOnline(dongleId));
       });
     } else {
       dispatch(primeNav(false));

@@ -9,7 +9,6 @@ import Prime from '../Prime';
 import PrimeBanner from '../Prime/PrimeBanner';
 import Navigation from '../Navigation';
 import DeviceInfo from '../DeviceInfo';
-import { fetchDeviceOnline } from '../../actions';
 
 const styles = (/* theme */) => ({
   base: {
@@ -19,56 +18,6 @@ const styles = (/* theme */) => ({
 });
 
 class Dashboard extends Component {
-  constructor(props) {
-    super(props);
-
-    this.onVisibilityChange = this.onVisibilityChange.bind(this);
-    this.fetchOnline = this.fetchOnline.bind(this);
-    this.fetchDeviceOnlineTimeout = null;
-  }
-
-  componentDidMount() {
-    document.addEventListener("visibilitychange", this.onVisibilityChange);
-    this.componentDidUpdate({});
-  }
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.dongleId !== this.props.dongleId) {
-      if (this.fetchDeviceOnlineTimeout) {
-        clearTimeout(this.fetchDeviceOnlineTimeout);
-        this.fetchDeviceOnlineTimeout = null;
-      }
-
-      if (this.props.dongleId) {
-        this.fetchOnline();
-      }
-    }
-  }
-
-  componentWillUnmount() {
-    document.removeEventListener('visibilitychange', this.onVisibilityChange);
-    if (this.fetchDeviceOnlineTimeout) {
-      clearTimeout(this.fetchDeviceOnlineTimeout);
-      this.fetchDeviceOnlineTimeout = null;
-    }
-  }
-
-  onVisibilityChange(ev) {
-    if (document.visibilityState === 'visible' && !this.fetchDeviceOnlineTimeout) {
-      this.fetchOnline();
-    }
-  }
-
-  fetchOnline() {
-    if (document.visibilityState === 'visible') {
-      this.fetchDeviceOnlineTimeout = setTimeout(this.fetchOnline, 60000);
-    } else {
-      this.fetchDeviceOnlineTimeout = null;
-    }
-
-    this.props.dispatch(fetchDeviceOnline(this.props.dongleId));
-  }
-
   render() {
     const { classes, primeNav, device, dongleId } = this.props;
 
