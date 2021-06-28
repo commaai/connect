@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import debounce from 'debounce';
 import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer} from 'react-map-gl';
-import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem } from '@material-ui/core';
+import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress } from '@material-ui/core';
 import { Search, Clear } from '@material-ui/icons';
 import moment from 'moment';
 
@@ -85,9 +85,7 @@ const styles = () => ({
     marginLeft: 8,
     padding: '6px 12px',
     backgroundColor: Colors.white,
-    color: Colors.grey800,
-    borderRadius: 22,
-    borderRadius: 30,
+    borderRadius: 15,
     color: '#404B4F',
     textTransform: 'none',
     minHeight: 'unset',
@@ -104,9 +102,16 @@ const styles = () => ({
   searchSelectButtonFake: {
     background: '#ddd',
     minWidth: 81.4,
+    flexShrink: 1,
     textAlign: 'center',
-    whiteSpace: 'nowrap',
-    flexShrink: 0,
+    display: 'inline-flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    '& p': {
+      color: '#404B4F',
+      lineHeight: '1.4em',
+      fontWeight: 500,
+    },
   },
   searchSelectBoxDetails: {
     color: Colors.white40,
@@ -505,13 +510,18 @@ class Navigation extends Component {
     NavigationAPI.setDestination(dongleId, pos.lat, pos.lng,
       this.formatSearchName(searchSelect), this.formatSearchDetails(searchSelect))
     .then((resp) => {
+      if (resp.error) {
+        throw new Error(resp.error);
+      }
+
       this.setState({ searchSelect: {
         ...searchSelect,
         settingDest: true,
-        success: true,
+        success: resp.success,
+        saved_next: resp.saved_next,
       }});
     }).catch((err) => {
-      console.log(err);
+      console.log(`failed to set destination: ${err.message}`);
       this.setState({ searchSelect: {
         ...searchSelect,
         settingDest: false,
@@ -743,9 +753,15 @@ class Navigation extends Component {
             </MenuItem>
           </Menu>
           { searchSelect.settingDest ?
-            <Typography className={ `${classes.searchSelectButton} ${classes.searchSelectButtonFake}` }>
-              { searchSelect.success ? "destination set" : "..." }
-            </Typography>
+            <div className={ `${classes.searchSelectButton} ${classes.searchSelectButtonFake}` }>
+              { searchSelect.success ?
+                <Typography>
+                  { searchSelect.saved_next ? "saved as next destination" : "destination set" }
+                </Typography>
+              :
+                <CircularProgress size={ 19 } />
+              }
+            </div>
           :
             <Button disabled={ Boolean(noRoute) } onClick={ this.navigate }
               classes={{ root: classes.searchSelectButton }}>
