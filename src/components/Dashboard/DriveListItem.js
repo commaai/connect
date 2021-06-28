@@ -141,18 +141,18 @@ class DriveListDrive extends Component {
             </div>
             <div className={ classes.driveGridItem } style={ gridStyle.origin }>
               <Typography className={ classes.firstLine }>
-                { startLocation && startLocation.neighborhood }
+                { startLocation && startLocation.place }
               </Typography>
               <Typography>
-                { startLocation && (`${startLocation.locality}, ${startLocation.region}`) }
+                { startLocation && startLocation.details }
               </Typography>
             </div>
             <div className={ classes.driveGridItem } style={ gridStyle.dest }>
               <Typography className={ classes.firstLine }>
-                { endLocation && endLocation.neighborhood }
+                { endLocation && endLocation.place }
               </Typography>
               <Typography>
-                { endLocation && (`${endLocation.locality}, ${endLocation.region}`) }
+                { endLocation && endLocation.details }
               </Typography>
             </div>
             <div className={ classes.driveGridItem } style={ gridStyle.dist }>

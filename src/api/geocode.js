@@ -14,16 +14,31 @@ if (process.env.REACT_APP_MAPBOX_TOKEN) {
 }
 
 export default function geocodeApi() {
-  function getNeighborhood(context) {
-    return (context.id.indexOf('neighborhood') !== -1);
+  function getFilteredContexts(context) {
+    const include_ctxs = ['region', 'district', 'place', 'locality', 'neighborhood'];
+    return context.filter((ctx) => {
+      return include_ctxs.some((c) => ctx.id.indexOf(c) !== -1);
+    });
   }
 
-  function getLocality(context) {
-    return (context.id.indexOf('place') !== -1);
+  function getContextString(context) {
+    if (context.id.indexOf('region') !== -1) {
+      if (context.short_code.indexOf('US-') !== -1) {
+        return context.short_code.substr(3);
+      }
+      return context.short_code;
+    }
+    return context.text;
   }
 
-  function getRegion(context) {
-    return (context.id.indexOf('region') !== -1);
+  function priorityGetContext(contexts) {
+    for (const prio of ['place', 'locality', 'district']) {
+      for (const ctx of contexts) {
+        if (ctx.id.indexOf(prio) !== -1) {
+          return ctx;
+        }
+      }
+    }
   }
 
   return {
@@ -40,17 +55,19 @@ export default function geocodeApi() {
       try {
         const { features } = response.body;
         if (features.length && features[0].context) {
-          let region = features[0].context.filter(getRegion)[0].short_code;
-          if (region.indexOf('US-') !== -1) { region = region.substr(3); }
-          const locality = features[0].context.filter(getLocality)[0].text;
-          const _neighborhood = features[0].context.filter(getNeighborhood)[0];
-          const neighborhood = _neighborhood ? _neighborhood.text : locality;
-
-          return {
-            region,
-            locality,
-            neighborhood,
-          };
+          let contexts = getFilteredContexts(features[0].context);
+          let place = '';
+          let details = '';
+          if (contexts.length > 0) {
+            place = getContextString(contexts.shift());
+          }
+          if (contexts.length > 0) {
+            details = getContextString(contexts.pop());
+          }
+          if (contexts.length > 0) {
+            details = `${getContextString(priorityGetContext(contexts))}, ${details}`;
+          }
+          return { place, details };
         }
       } catch (err) {
         Raven.captureException(err);
