@@ -3,6 +3,7 @@ import qs from 'query-string';
 
 const mbxGeocoding = require('@mapbox/mapbox-sdk/services/geocoding');
 const mbxDirections = require('@mapbox/mapbox-sdk/services/directions');
+const geocodeCache = new Map();
 
 let geocodingClient = null;
 let directionsClient = null;
@@ -41,37 +42,52 @@ export default function geocodeApi() {
     }
   }
 
+  async function noCacheReverseLookup(coords) {
+    const response = await geocodingClient.reverseGeocode({
+      query: [coords[0], coords[1]],
+      limit: 1,
+    }).send();
+
+    try {
+      const { features } = response.body;
+      if (features.length && features[0].context) {
+        let contexts = getFilteredContexts(features[0].context);
+        let place = '';
+        let details = '';
+        if (contexts.length > 0) {
+          place = getContextString(contexts.shift());
+        }
+        if (contexts.length > 0) {
+          details = getContextString(contexts.pop());
+        }
+        if (contexts.length > 0) {
+          details = `${getContextString(priorityGetContext(contexts))}, ${details}`;
+        }
+        return { place, details };
+      }
+    } catch (err) {
+      Raven.captureException(err);
+    }
+  }
+
   return {
     async reverseLookup(coords) {
       if (geocodingClient === null) {
         return null;
       }
 
-      const response = await geocodingClient.reverseGeocode({
-        query: [coords[0], coords[1]],
-        limit: 1,
-      }).send();
+      // round for better caching
+      coords[0] = Math.round(coords[0] * 1000) / 1000;
+      coords[1] = Math.round(coords[1] * 1000) / 1000;
 
-      try {
-        const { features } = response.body;
-        if (features.length && features[0].context) {
-          let contexts = getFilteredContexts(features[0].context);
-          let place = '';
-          let details = '';
-          if (contexts.length > 0) {
-            place = getContextString(contexts.shift());
-          }
-          if (contexts.length > 0) {
-            details = getContextString(contexts.pop());
-          }
-          if (contexts.length > 0) {
-            details = `${getContextString(priorityGetContext(contexts))}, ${details}`;
-          }
-          return { place, details };
-        }
-      } catch (err) {
-        Raven.captureException(err);
+      const cacheKey = JSON.stringify(coords);
+      if (geocodeCache.has(cacheKey)) {
+        return await geocodeCache.get(cacheKey);
       }
+
+      const res = noCacheReverseLookup(coords);
+      geocodeCache.set(cacheKey, res);
+      return await res;
     },
 
     async forwardLookup(query, proximity) {
