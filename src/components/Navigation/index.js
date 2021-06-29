@@ -3,7 +3,8 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import debounce from 'debounce';
 import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer} from 'react-map-gl';
-import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress } from '@material-ui/core';
+import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress, Popper }
+  from '@material-ui/core';
 import { Search, Clear } from '@material-ui/icons';
 import moment from 'moment';
 
@@ -102,7 +103,6 @@ const styles = () => ({
   searchSelectButtonFake: {
     background: '#ddd',
     minWidth: 81.4,
-    flexShrink: 1,
     textAlign: 'center',
     display: 'inline-flex',
     justifyContent: 'center',
@@ -142,6 +142,17 @@ const styles = () => ({
   saveAsMenuItem: {
     justifyContent: 'center',
   },
+  savedNextPopover: {
+    borderRadius: 22,
+    padding: '8px 16px',
+    border: `1px solid ${Colors.white10}`,
+    backgroundColor: Colors.grey800,
+    marginTop: 5,
+    textAlign: 'center',
+    '& p:first-child': {
+      fontWeight: 500,
+    },
+  },
 });
 
 const initialState = {
@@ -178,6 +189,7 @@ class Navigation extends Component {
     this.searchSelectBoxRef = React.createRef();
     this.overlayRef = React.createRef();
     this.carPinTooltipRef = React.createRef();
+    this.navigateFakeButtonRef = React.createRef();
 
     this.flyToMarkers = this.flyToMarkers.bind(this);
     this.renderOverlay = this.renderOverlay.bind(this);
@@ -753,14 +765,16 @@ class Navigation extends Component {
             </MenuItem>
           </Menu>
           { searchSelect.settingDest ?
-            <div className={ `${classes.searchSelectButton} ${classes.searchSelectButtonFake}` }>
+            <div className={ `${classes.searchSelectButton} ${classes.searchSelectButtonFake}` }
+              ref={ this.navigateFakeButtonRef }>
               { searchSelect.success ?
-                <Typography>
-                  { searchSelect.saved_next ? "saved as next destination" : "destination set" }
-                </Typography>
-              :
-                <CircularProgress size={ 19 } />
-              }
+                <Typography>destination set</Typography> :
+                <CircularProgress size={ 19 } /> }
+              <Popper open={ Boolean(searchSelect.success && searchSelect.saved_next) } placement="bottom"
+                anchorEl={ this.navigateFakeButtonRef.current } className={ classes.savedNextPopover }>
+                <Typography>device offline</Typography>
+                <Typography>destination will be set once device is online</Typography>
+              </Popper>
             </div>
           :
             <Button disabled={ Boolean(noRoute) } onClick={ this.navigate }
