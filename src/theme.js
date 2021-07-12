@@ -57,7 +57,11 @@ const theme = createMuiTheme({
         '&::placeholder': {
           opacity: 1,
           color: Colors.white30
-        }
+        },
+        '&:focus': {
+          outline: 'none',
+          boxShadow: 'none',
+        },
       },
     },
     MuiInputLabel: {
@@ -81,6 +85,14 @@ const theme = createMuiTheme({
       root: {
         minHeight: 40,
       }
+    },
+    MuiListItem: {
+      root: {
+        '&:focus': {
+          outline: 'none',
+          boxShadow: 'none',
+        },
+      },
     },
   },
   props: {

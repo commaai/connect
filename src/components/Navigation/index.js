@@ -685,7 +685,7 @@ class Navigation extends Component {
     const { search, searchLooking } = this.state;
 
     return (
-      <div className={ classes.overlay } ref={ this.overlayRef } tabIndex={ 0 } onBlur={ this.onSearchBlur }
+      <div className={ classes.overlay } ref={ this.overlayRef } tabIndex={ -1 } onBlur={ this.onSearchBlur }
         onClick={ this.focus }>
         <TextField onChange={ this.onSearch } fullWidth={ true } inputRef={ this.searchInputRef }
           placeholder="search"

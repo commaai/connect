@@ -156,7 +156,7 @@ class AppHeader extends Component {
         <Menu id="menu-appbar" open={open} onClose={this.handleClose} anchorEl={anchorEl}
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
-          <ListItem className={ classes.accountListItem + ' ' + classes.accountListEmail }>{ profile.email }</ListItem>
+          <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>{ profile.email }</ListItem>
           <ListItem className={ classes.accountListItem }>{ profile.points } points</ListItem>
           <Divider />
           <MenuItem className={ classes.accountMenuItem } component="a" href="/useradmin/" target="_blank">
