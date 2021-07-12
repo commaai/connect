@@ -48,6 +48,18 @@ const styles = () => ({
       color: '#404B4F',
     },
   },
+  buttonOffline: {
+    background: Colors.grey400,
+    color: Colors.lightGrey600,
+    '&:disabled': {
+      background: Colors.grey400,
+      color: Colors.lightGrey600,
+    },
+    '&:disabled:hover': {
+      background: Colors.grey400,
+      color: Colors.lightGrey600,
+    },
+  },
   spaceAround: {
     display: 'flex',
     justifyContent: 'space-around',
@@ -338,6 +350,7 @@ class DeviceInfo extends Component {
     }
 
     const buttonClass = windowWidth >= 520 ? classes.snapshotButton : classes.snapshotButtonSmall;
+    const buttonOffline = deviceIsOnline(device) ? '' : classes.buttonOffline;
 
     return (
       <>
@@ -353,7 +366,7 @@ class DeviceInfo extends Component {
           </Typography>
         </div>
         <Button onClick={ this.takeSnapshot } disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
-          classes={{ root: `${classes.button} ${buttonClass}` }}>
+          classes={{ root: `${classes.button} ${buttonClass} ${buttonOffline}` }}>
           { snapshot.fetching ?
             <CircularProgress size={ 19 } /> :
             'take snapshot'
