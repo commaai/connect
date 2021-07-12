@@ -671,9 +671,9 @@ class Navigation extends Component {
   }
 
   viewportChange(viewport, interactionState) {
-    const { search, searchLooking } = this.state
+    const { search, searchSelect, searchLooking } = this.state
     this.setState({ viewport });
-    if (search && !searchLooking &&
+    if (search && !searchSelect && !searchLooking &&
       (interactionState.isPanning || interactionState.isZooming || interactionState.isRotating))
     {
       this.setState({ searchLooking: true, noFly: true });
@@ -754,7 +754,7 @@ class Navigation extends Component {
               captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
               style={{ ...cardStyle, bottom: 10 }} />
           }
-          { searchLooking &&
+          { search && searchLooking && !searchSelect &&
             <HTMLOverlay redraw={ this.renderResearchArea } captureScroll={ true } captureDrag={ true }
               captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
               style={{ ...cardStyle, bottom: 10, left: '50%', width: 'auto', transform: 'translate(-50%, 0)' }} />
