@@ -60,6 +60,7 @@ const styles = (theme) => ({
     fontWeight: 'bold',
   },
   accountListItem: {
+    outline: 'none',
     color: Colors.white,
   },
   accountMenuItem: {
