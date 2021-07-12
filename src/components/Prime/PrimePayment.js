@@ -6,6 +6,7 @@ import stripe from '../../api/stripe'
 import { Elements, CardElement, ElementsConsumer } from '@stripe/react-stripe-js';
 
 import { billing as Billing } from '@commaai/comma-api';
+import Colors from '../../colors';
 
 class PrimePayment extends Component {
   constructor(props) {
@@ -32,7 +33,9 @@ class PrimePayment extends Component {
   handleCardInput(card) {
     this.setState({ card: card });
     if (card.error) {
-      this.props.onError(card.error);
+      this.props.onError(card.error.message);
+    } else {
+      this.props.onError();
     }
   }
 
@@ -127,7 +130,11 @@ class PrimePayment extends Component {
         <CardElement onChange={ this.handleCardInput } options={{
           style: {
             base: {
-              color: '#fff',
+              fontSize: '16px',
+              color: Colors.white,
+              '::placeholder': {
+                color: Colors.lightGrey500,
+              },
             },
           },
         }} />
