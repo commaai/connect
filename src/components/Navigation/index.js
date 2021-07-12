@@ -5,7 +5,7 @@ import debounce from 'debounce';
 import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer} from 'react-map-gl';
 import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress, Popper }
   from '@material-ui/core';
-import { Search, Clear } from '@material-ui/icons';
+import { Search, Clear, Refresh } from '@material-ui/icons';
 import moment from 'moment';
 
 import { devices as Devices, navigation as NavigationAPI } from '@commaai/comma-api';
@@ -153,6 +153,19 @@ const styles = () => ({
       fontWeight: 500,
     },
   },
+  researchArea: {
+    borderRadius: 18,
+    padding: '6px 16px',
+    border: `1px solid ${Colors.white10}`,
+    backgroundColor: Colors.grey800,
+    color: Colors.white,
+    '&:hover': {
+      backgroundColor: Colors.grey900,
+    },
+    '& svg': {
+      marginRight: 6,
+    }
+  },
 });
 
 const initialState = {
@@ -170,6 +183,7 @@ const initialState = {
   route: null,
   searchSelect: null,
   searchLooking: false,
+  noFly: false,
   windowWidth: window.innerWidth,
   saveAsMenu: null,
   savingAs: false,
@@ -194,9 +208,12 @@ class Navigation extends Component {
     this.flyToMarkers = this.flyToMarkers.bind(this);
     this.renderOverlay = this.renderOverlay.bind(this);
     this.renderSearchOverlay = this.renderSearchOverlay.bind(this);
+    this.renderResearchArea = this.renderResearchArea.bind(this);
     this.onGeolocate = this.onGeolocate.bind(this);
     this.onSearch = debounce(this.onSearch.bind(this), 200);
+    this.onFocus = this.onFocus.bind(this);
     this.onSearchSelect = this.onSearchSelect.bind(this);
+    this.researchArea = this.researchArea.bind(this);
     this.onFavoriteSelect = this.onFavoriteSelect.bind(this);
     this.onSearchBlur = this.onSearchBlur.bind(this);
     this.focus = this.focus.bind(this);
@@ -215,6 +232,7 @@ class Navigation extends Component {
     this.itemLngLat = this.itemLngLat.bind(this);
     this.saveSearchAs = this.saveSearchAs.bind(this);
     this.deleteFavorite = this.deleteFavorite.bind(this);
+    this.viewportChange = this.viewportChange.bind(this);
   }
 
   componentDidMount() {
@@ -313,6 +331,7 @@ class Navigation extends Component {
       const proximity = this.state.carLocation || this.state.geoLocateCoords || null;
       GeocodeApi().forwardLookup(searchInput.value, proximity).then((features) => {
         this.setState({
+          noFly: false,
           searchSelect: null,
           search: features.filter((item) =>
             !(['categoryQuery', 'chainQuery', 'administrativeArea'].includes(item.resultType))).slice(0, 10),
@@ -322,14 +341,44 @@ class Navigation extends Component {
         });
       });
     } else {
-      this.setState({ searchSelect: null, search: null, searchLooking: false, savingAs: false, savedAs: false });
+      this.setState({
+        noFly: false,
+        searchSelect: null,
+        search: null,
+        searchLooking: false,
+        savingAs: false,
+        savedAs: false
+      });
+    }
+  }
+
+  onFocus() {
+    const searchInput = this.searchInputRef.current;
+    this.focus();
+    if (searchInput && searchInput.value.length >= 3) {
+      this.setState({
+        noFly: false,
+        searchSelect: null,
+        searchLooking: false,
+        savingAs: false,
+        savedAs: false,
+      });
+    } else {
+      this.setState({
+        noFly: false,
+        searchSelect: null,
+        search: null,
+        searchLooking: false,
+        savingAs: false,
+        savedAs: false
+      });
     }
   }
 
   onSearchSelect(item) {
     this.setState({
+      noFly: false,
       searchSelect: item,
-      search: null,
       searchLooking: false,
     });
     const startLocation = this.state.carLocation || this.state.geoLocateCoords || null;
@@ -340,7 +389,6 @@ class Navigation extends Component {
             ...item,
             route: route[0],
           },
-          search: null,
           searchLooking: false,
         });
       });
@@ -379,6 +427,7 @@ class Navigation extends Component {
       this.searchInputRef.current.focus();
     }
     this.setState({
+      noFly: false,
       search: null,
       route: null,
       searchSelect: null,
@@ -390,7 +439,11 @@ class Navigation extends Component {
 
   flyToMarkers() {
     const { hasNav } = this.props;
-    const { geoLocateCoords, search, searchSelect, carLocation, windowWidth, viewport } = this.state;
+    const { noFly, geoLocateCoords, search, searchSelect, carLocation, windowWidth, viewport } = this.state;
+
+    if (noFly) {
+      return;
+    }
 
     const bounds = [];
     if (geoLocateCoords) {
@@ -600,9 +653,36 @@ class Navigation extends Component {
     }
   }
 
+  researchArea() {
+    const { viewport, windowWidth } = this.state;
+    const searchInput = this.searchInputRef.current;
+
+    GeocodeApi().forwardLookup(searchInput.value, null, viewport).then((features) => {
+      this.setState({
+        noFly: true,
+        searchSelect: null,
+        search: features.filter((item) =>
+          !(['categoryQuery', 'chainQuery', 'administrativeArea'].includes(item.resultType))).slice(0, 10),
+        searchLooking: windowWidth < 600,
+        savingAs: false,
+        savedAs: false,
+      });
+    });
+  }
+
+  viewportChange(viewport, interactionState) {
+    const { search, searchLooking } = this.state
+    this.setState({ viewport });
+    if (search && !searchLooking &&
+      (interactionState.isPanning || interactionState.isZooming || interactionState.isRotating))
+    {
+      this.setState({ searchLooking: true, noFly: true });
+    }
+  }
+
   render() {
     const { classes, hasNav } = this.props;
-    const { hasFocus, search , searchSelect, carLocation, favoriteLocations, carLocationTime, viewport,
+    const { hasFocus, search, searchLooking, searchSelect, carLocation, favoriteLocations, carLocationTime, viewport,
       windowWidth } = this.state;
 
     const cardStyle = windowWidth < 600 ?
@@ -620,10 +700,9 @@ class Navigation extends Component {
     return (
       <div className={ classes.mapContainer } style={{ height: (hasFocus && hasNav) ? '60vh' : 200 }}>
         <ResizeHandler onResize={ this.onResize } />
-        <ReactMapGL { ...viewport } onViewportChange={ (viewport) => this.setState({ viewport }) }
+        <ReactMapGL { ...viewport } onViewportChange={ this.viewportChange } onContextMenu={ null }
           mapStyle={ MAP_STYLE } width="100%" height="100%" onNativeClick={ this.focus } maxPitch={ 0 }
-          mapboxApiAccessToken={ process.env.REACT_APP_MAPBOX_TOKEN } attributionControl={ false } dragRotate={ false }
-          onContextMenu={ null }>
+          mapboxApiAccessToken={ process.env.REACT_APP_MAPBOX_TOKEN } attributionControl={ false } dragRotate={ false }>
           <GeolocateControl className={ classes.geolocateControl } positionOptions={{ enableHighAccuracy: true }}
             showAccuracyCircle={ false } onGeolocate={ this.onGeolocate } auto={ hasFocus }
             fitBoundsOptions={{ maxZoom: 10 }} trackUserLocation={true} onViewportChange={ () => {} } />
@@ -651,7 +730,7 @@ class Navigation extends Component {
               </div>
             </Marker>
           }
-          { search && search.map((item) =>
+          { search && !searchSelect && search.map((item) =>
             <Marker latitude={ this.itemLoc(item).lat } longitude={ this.itemLoc(item).lng } key={ item.id }
               offsetLeft={ -10 } offsetTop={ -32 } captureDrag={ false } captureClick={ false }
               captureDoubleClick={ false }>
@@ -675,6 +754,11 @@ class Navigation extends Component {
               captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
               style={{ ...cardStyle, bottom: 10 }} />
           }
+          { searchLooking &&
+            <HTMLOverlay redraw={ this.renderResearchArea } captureScroll={ true } captureDrag={ true }
+              captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
+              style={{ ...cardStyle, bottom: 10, left: '50%', width: 'auto', transform: 'translate(-50%, 0)' }} />
+          }
         </ReactMapGL>
       </div>
     );
@@ -682,7 +766,7 @@ class Navigation extends Component {
 
   renderOverlay() {
     const { classes } = this.props;
-    const { search, searchLooking } = this.state;
+    const { search, searchSelect, searchLooking } = this.state;
 
     return (
       <div className={ classes.overlay } ref={ this.overlayRef } tabIndex={ -1 } onBlur={ this.onSearchBlur }
@@ -690,7 +774,7 @@ class Navigation extends Component {
         <TextField onChange={ this.onSearch } fullWidth={ true } inputRef={ this.searchInputRef }
           placeholder="search"
           InputProps={{
-            onFocus: this.onSearch,
+            onFocus: this.onFocus,
             onBlur: this.onSearchBlur,
             classes: { root: classes.overlayTextfield },
             endAdornment: <>
@@ -702,7 +786,7 @@ class Navigation extends Component {
               <InputAdornment position="end"><Search className={ classes.overlaySearchButton } /></InputAdornment>
             </>
           }} />
-        { search && !searchLooking &&
+        { search && !searchSelect && !searchLooking &&
           <div className={ `${classes.overlaySearchResults} scrollstyle` }>
             { search.map((item) => (
               <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item) }>
@@ -787,6 +871,17 @@ class Navigation extends Component {
           { this.formatSearchDetails(searchSelect, false) }
         </Typography>
       </div>
+    );
+  }
+
+  renderResearchArea() {
+    const { classes } = this.props;
+
+    return (
+      <Button className={ classes.researchArea } onClick={ this.researchArea }>
+        <Refresh />
+        search this area
+      </Button>
     );
   }
 }

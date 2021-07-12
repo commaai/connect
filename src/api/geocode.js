@@ -1,5 +1,6 @@
 import Raven from 'raven-js';
 import qs from 'query-string';
+import { WebMercatorViewport } from 'react-map-gl';
 
 const mbxGeocoding = require('@mapbox/mapbox-sdk/services/geocoding');
 const mbxDirections = require('@mapbox/mapbox-sdk/services/directions');
@@ -90,7 +91,7 @@ export default function geocodeApi() {
       return await res;
     },
 
-    async forwardLookup(query, proximity) {
+    async forwardLookup(query, proximity, viewport) {
       let params = {
         apiKey: process.env.REACT_APP_HERE_API_KEY,
         q: query,
@@ -99,6 +100,9 @@ export default function geocodeApi() {
       };
       if (proximity) {
         params.at = `${proximity[1]},${proximity[0]}`;
+      } else if (viewport) {
+        const bbox = new WebMercatorViewport(viewport).getBounds();
+        params.in = `bbox:${bbox[0][0]},${bbox[0][1]},${bbox[1][0]},${bbox[1][1]}`;
       } else {
         params.in = 'bbox:-180,-90,180,90';
       }
