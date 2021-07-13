@@ -18,7 +18,7 @@ const styles = () => ({
     flexDirection: 'column',
   },
   primeContainer: {
-    padding: '16px 48px',
+    padding: '16px 32px',
     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
     color: '#fff',
   },
@@ -57,6 +57,8 @@ const styles = () => ({
   overviewBlockError: {
     marginTop: 15,
     padding: 10,
+    display: 'flex',
+    alignItems: 'center',
     backgroundColor: 'rgba(255, 0, 0, 0.2)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
@@ -69,27 +71,13 @@ const styles = () => ({
   overviewBlockSuccess: {
     marginTop: 15,
     padding: 10,
+    display: 'flex',
+    alignItems: 'center',
     backgroundColor: 'rgba(0, 255, 0, 0.2)',
   },
   paymentElement: {
     maxWidth: 400,
   },
-  activateButton: {
-    marginTop: 20,
-    background: '#fff',
-    borderRadius: 30,
-    color: '#404B4F',
-    textTransform: 'none',
-    width: 200,
-    '&:hover': {
-      background: '#fff',
-      color: '#404B4F',
-    },
-    '&:disabled': {
-      background: '#bbb',
-      color: '#404B4F',
-    },
-  }
 });
 
 class PrimeCheckout extends Component {
@@ -158,7 +146,7 @@ class PrimeCheckout extends Component {
       }
     }
 
-    let successMsg = ['comma prime activated'];
+    let successMsg = ['comma prime activated.'];
     if (this.state.activated) {
       if (this.state.activated.already_active) {
         successMsg = ['comma prime is already active for this device.\nYou have not been charged for another subscription.'];
@@ -179,9 +167,11 @@ class PrimeCheckout extends Component {
         <div className={ classes.primeContainer }>
           <Typography variant="title">checkout</Typography>
           { this.state.activated && <div className={ classes.overviewBlockSuccess }>
-            { successMsg.map((msg, i) => {
-              return <Typography variant="body1" key={ i }>{ msg }</Typography>
-            }) }
+            <div>
+              { successMsg.map((msg, i) => {
+                return <Typography variant="body1" key={ i }>{ msg }</Typography>
+              }) }
+            </div>
           </div> }
           { this.state.error && <div className={ classes.overviewBlockError }>
             <ErrorIcon />
@@ -204,7 +194,7 @@ class PrimeCheckout extends Component {
           </div>
           <div className={ classes.overviewBlock + " " + classes.paymentElement }>
             <PrimePayment disabled={ Boolean(this.state.activated) } simId={ simId }
-              onActivated={ this.onPrimeActivated } activateButtonClass={ classes.activateButton }
+              onActivated={ this.onPrimeActivated }
               onError={ (err) => this.setState({ error: err }) } />
           </div>
         </div>

@@ -1,23 +1,89 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import { Button } from '@material-ui/core';
+import { withStyles, Button, Typography, TextField } from '@material-ui/core';
 import stripe from '../../api/stripe'
-import { Elements, CardElement, ElementsConsumer } from '@stripe/react-stripe-js';
+import { Elements, ElementsConsumer, CardNumberElement, CardExpiryElement, CardCvcElement } from '@stripe/react-stripe-js';
 
 import { billing as Billing } from '@commaai/comma-api';
 import Colors from '../../colors';
+
+const styles = () => ({
+  block: {
+    marginBottom: 10,
+  },
+  stripeCardNumber: {
+    padding: 10,
+    border: `1px solid ${Colors.grey500}`,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+  },
+  stripeCardOther: {
+    display: 'flex',
+    '& > div': {
+      flexGrow: 1,
+      padding: 10,
+      border: `1px solid ${Colors.grey500}`,
+      borderTop: 'none',
+      '&:first-child': {
+        borderRight: 'none',
+        borderBottomLeftRadius: 10,
+      },
+      '&:last-child': {
+        borderBottomRightRadius: 10,
+      },
+    },
+  },
+  buttons: {
+    marginTop: 10,
+    background: '#fff',
+    borderRadius: 18,
+    color: '#404B4F',
+    textTransform: 'none',
+    width: 200,
+    '&:hover': {
+      backgroundColor: '#fff',
+      color: '#404B4F',
+    },
+    '&:disabled': {
+      backgroundColor: '#bbb',
+      color: '#404B4F',
+    },
+    '&:disabled:hover': {
+      backgroundColor: '#bbb',
+      color: '#404B4F',
+    }
+  },
+  cancelButton: {
+    color: Colors.white,
+    background: 'transparent',
+    border: `1px solid ${Colors.grey500}`,
+  },
+  buttonsContainer: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  input: {
+    border: `1px solid ${Colors.grey500}`,
+    borderRadius: 10,
+  },
+});
 
 class PrimePayment extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      card: null,
+      cardNumber: null,
+      cardExpiry: null,
+      cardCvc: null,
+      zipCode: null,
       activating: false,
     };
 
     this.handleCardInput = this.handleCardInput.bind(this);
+    this.handleZipInput = this.handleZipInput.bind(this);
     this.submitPayment = this.submitPayment.bind(this);
     this.tokenize = this.tokenize.bind(this);
     this.activate = this.activate.bind(this);
@@ -31,7 +97,10 @@ class PrimePayment extends Component {
   }
 
   handleCardInput(card) {
-    this.setState({ card: card });
+    let state = {};
+    state[card.elementType] = card;
+    this.setState(state);
+
     if (card.error) {
       this.props.onError(card.error.message);
     } else {
@@ -39,14 +108,18 @@ class PrimePayment extends Component {
     }
   }
 
+  handleZipInput(ev) {
+    this.setState({ zipCode: ev.target.value });
+  }
+
   submitPayment() {
     const { elements } = this.props;
-    const cardElement = elements.getElement(CardElement);
+    const cardNumberElement = elements.getElement(CardNumberElement);
 
     let activateFunc = this.props.isUpdate ? this.updatePayment : this.activate;
 
     this.setState({ activating: true });
-    activateFunc(cardElement).then((res) => {
+    activateFunc(cardNumberElement).then((res) => {
       this.setState({ activating: false });
     }).catch((err) => {
       this.setState({ activating: false });
@@ -54,18 +127,20 @@ class PrimePayment extends Component {
     });
   }
 
-  async tokenize(cardElement) {
+  async tokenize(cardNumberElement) {
     const { stripe } = this.props;
-    const resp = await stripe.createToken(cardElement);
+    const resp = await stripe.createToken(cardNumberElement, {
+      address_zip: this.state.zipCode,
+    });
     if (resp.error) {
       throw new Error("An error occured while creating payment token");
     }
     return resp.token.id;
   }
 
-  async activate(cardElement) {
+  async activate(cardNumberElement) {
     const { dongleId, simId } = this.props;
-    const token = await this.tokenize(cardElement);
+    const token = await this.tokenize(cardNumberElement);
     let payResp;
     try {
       payResp = await Billing.payForPrime(dongleId, simId, token);
@@ -117,35 +192,55 @@ class PrimePayment extends Component {
   }
 
   render() {
-    const canCheckout = this.state.card && this.state.card.complete && !this.state.activating &&
-      (this.props.simId || this.props.isUpdate);
+    const { classes } = this.props;
+
+    const canCheckout = !this.state.activating && (this.props.simId || this.props.isUpdate) &&
+      this.state.cardNumber && this.state.cardNumber.complete && this.state.cardCvc && this.state.cardCvc.complete &&
+      this.state.cardExpiry && this.state.cardExpiry.complete && this.state.zipCode && this.state.zipCode.length >= 3;
 
     let buttonText = this.props.isUpdate ? 'Update' : 'Activate now';
     if (this.state.activating) {
       buttonText = this.props.isUpdate ? 'Updating...' : 'Activating...';
     }
 
+    const stripeStyle = {
+      base: {
+        fontSize: '16px',
+        color: Colors.white,
+        '::placeholder': { color: Colors.lightGrey500 },
+      },
+    };
+
     return (
       <>
-        <CardElement onChange={ this.handleCardInput } options={{
-          style: {
-            base: {
-              fontSize: '16px',
-              color: Colors.white,
-              '::placeholder': {
-                color: Colors.lightGrey500,
-              },
-            },
-          },
-        }} />
-        <Button size="large" disabled={ !canCheckout || this.props.disabled }
-          className={ this.props.activateButtonClass } onClick={ this.submitPayment }>
-          { buttonText }
-        </Button>
-        { this.props.onCancel && <Button className={ this.props.cancelButtonClass }
-          onClick={ this.props.onCancel } size="large" variant="outlined">
-          Cancel subscription
-        </Button> }
+        <div className={ classes.block }>
+          <Typography>Card information</Typography>
+          <div className={ classes.stripeCardNumber }>
+            <CardNumberElement onChange={ this.handleCardInput } options={{
+              showIcon: true,
+              style: stripeStyle,
+            }} />
+          </div>
+          <div className={ classes.stripeCardOther }>
+            <CardExpiryElement onChange={ this.handleCardInput } options={{ style: stripeStyle }} />
+            <CardCvcElement onChange={ this.handleCardInput } options={{ style: stripeStyle }} />
+          </div>
+        </div>
+        <div className={ classes.block }>
+          <Typography>Zipcode</Typography>
+          <TextField required style={{ maxWidth: '100%', width: 150 }} InputProps={{ classes: { root: classes.input }}}
+            onChange={ this.handleZipInput } />
+        </div>
+        <div className={ classes.buttonsContainer }>
+          <Button disabled={ !canCheckout || this.props.disabled } className={ classes.buttons }
+            onClick={ this.submitPayment }>
+            { buttonText }
+          </Button>
+          { this.props.onCancel &&
+            <Button className={ `${classes.buttons} ${classes.cancelButton}` } onClick={ this.props.onCancel }>
+              Cancel subscription
+            </Button> }
+        </div>
       </>
     );
   }
@@ -167,4 +262,4 @@ let stateToProps = Obstruction({
   dongleId: 'workerState.dongleId',
 });
 
-export default connect(stateToProps)(InjectedCheckoutForm);
+export default connect(stateToProps)(withStyles(styles)(InjectedCheckoutForm));

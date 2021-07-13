@@ -40,6 +40,7 @@ const styles = () => ({
     color: '#404B4F',
     textTransform: 'none',
     width: 300,
+    maxWidth: '100%',
     '&:hover': {
       background: '#fff',
       color: '#404B4F',

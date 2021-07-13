@@ -20,7 +20,7 @@ const styles = (theme) => ({
     flexDirection: 'column',
   },
   primeContainer: {
-    padding: '16px 48px',
+    padding: '16px 32px',
     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
     color: '#fff',
   },
@@ -33,12 +33,16 @@ const styles = (theme) => ({
   overviewBlockError: {
     marginTop: 15,
     padding: 10,
+    display: 'flex',
+    alignItems: 'center',
     backgroundColor: 'rgba(255, 0, 0, 0.2)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
   overviewBlockSuccess: {
     marginTop: 15,
     padding: 10,
+    display: 'flex',
+    alignItems: 'center',
     backgroundColor: 'rgba(0, 255, 0, 0.2)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
@@ -49,6 +53,7 @@ const styles = (theme) => ({
     position: 'absolute',
     padding: theme.spacing.unit * 2,
     width: theme.spacing.unit * 50,
+    maxWidth: '90%',
     left: '50%',
     top: '40%',
     transform: 'translate(-50%, -50%)',
@@ -77,29 +82,6 @@ const styles = (theme) => ({
   },
   paymentElement: {
     maxWidth: 450,
-  },
-  activateButton: {
-    marginTop: 20,
-    background: '#fff',
-    borderRadius: 30,
-    color: '#404B4F',
-    textTransform: 'none',
-    width: 200,
-    '&:hover': {
-      background: '#fff',
-      color: '#404B4F',
-    },
-    '&:disabled': {
-      background: '#bbb',
-      color: '#404B4F',
-    },
-  },
-  cancelButton: {
-    marginTop: 20,
-    width: 200,
-    textTransform: 'none',
-    borderRadius: 30,
-    float: 'right',
   },
 });
 
@@ -135,8 +117,7 @@ class PrimeManage extends Component {
 
   modalClose() {
     if (this.state.cancelSuccess) {
-      this.props.dispatch(primeFetchSubscription(this.props.dongleId));
-      this.props.dispatch(selectDevice(this.props.dongleId));
+      window.location = window.location.origin;
     } else {
       this.setState({ cancelModal: false });
     }
@@ -215,9 +196,9 @@ class PrimeManage extends Component {
             </div> }
             <div className={ classes.overviewBlock + " " + classes.paymentElement }>
               <PrimePayment disabled={ Boolean(this.state.activated) } simId={ simId } isUpdate={ true }
-                onActivated={ this.onPaymentUpdated } activateButtonClass={ classes.activateButton }
+                onActivated={ this.onPaymentUpdated }
                 onError={ (err) => this.setState({error: err}) }
-                onCancel={ () => this.setState({ cancelModal: true }) } cancelButtonClass={ classes.cancelButton } />
+                onCancel={ () => this.setState({ cancelModal: true }) } />
             </div>
           </div>
         </div>
