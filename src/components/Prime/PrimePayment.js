@@ -13,16 +13,18 @@ const styles = () => ({
     marginBottom: 10,
   },
   stripeCardNumber: {
-    padding: 10,
-    border: `1px solid ${Colors.grey500}`,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+    '& > div': {
+      padding: '10px 16px',
+      border: `1px solid ${Colors.grey500}`,
+      borderTopLeftRadius: 10,
+      borderTopRightRadius: 10,
+    }
   },
   stripeCardOther: {
     display: 'flex',
     '& > div': {
       flexGrow: 1,
-      padding: 10,
+      padding: '10px 16px',
       border: `1px solid ${Colors.grey500}`,
       borderTop: 'none',
       '&:first-child': {
@@ -64,9 +66,13 @@ const styles = () => ({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  input: {
+  inputRoot: {
     border: `1px solid ${Colors.grey500}`,
     borderRadius: 10,
+  },
+  input: {
+    padding: '10px 16px',
+    '&::placeholder': { color: Colors.lightGrey500 },
   },
 });
 
@@ -228,8 +234,8 @@ class PrimePayment extends Component {
         </div>
         <div className={ classes.block }>
           <Typography>Zipcode</Typography>
-          <TextField required style={{ maxWidth: '100%', width: 150 }} InputProps={{ classes: { root: classes.input }}}
-            onChange={ this.handleZipInput } />
+          <TextField required style={{ maxWidth: '100%', width: 150 }} onChange={ this.handleZipInput }
+            InputProps={{ classes: { root: classes.inputRoot, input: classes.input }}} placeholder="00000" />
         </div>
         <div className={ classes.buttonsContainer }>
           <Button disabled={ !canCheckout || this.props.disabled } className={ classes.buttons }

@@ -35,6 +35,7 @@ const styles = () => ({
     maxHeight: 'calc(60vh - 20px)',
     display: 'flex',
     flexDirection: 'column',
+    outline: 'none !important',
   },
   overlayTextfield: {
     borderRadius: 0,
@@ -59,6 +60,10 @@ const styles = () => ({
   overlaySearchItem: {
     cursor: 'pointer',
     marginTop: 15,
+  },
+  overlaySearchNoResults: {
+    marginTop: 10,
+    fontSize: 14,
   },
   overlaySearchDetails: {
     color: Colors.white40,
@@ -788,6 +793,7 @@ class Navigation extends Component {
           }} />
         { search && !searchSelect && !searchLooking &&
           <div className={ `${classes.overlaySearchResults} scrollstyle` }>
+            { search.length === 0 && <Typography className={ classes.overlaySearchNoResults }>no search results</Typography> }
             { search.map((item) => (
               <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item) }>
                 <Typography>
