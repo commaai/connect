@@ -179,9 +179,9 @@ const styles = () => ({
 const initialState = {
   hasFocus: false,
   viewport: {
-    longitude: -122.45,
-    latitude: 37.78,
-    zoom: 0,
+    longitude: -117.20,
+    latitude: 32.73,
+    zoom: 5,
   },
   carLocation: null,
   carLocationTime: null,
@@ -336,7 +336,8 @@ class Navigation extends Component {
     const searchInput = this.searchInputRef.current;
     this.focus();
     if (searchInput && searchInput.value.length >= 3) {
-      const proximity = this.state.carLocation || this.state.geoLocateCoords || null;
+      const vp = this.state.viewport;
+      const proximity = this.state.carLocation || this.state.geoLocateCoords || [vp.longitude, vp.latitude];
       GeocodeApi().forwardLookup(searchInput.value, proximity).then((features) => {
         this.setState({
           noFly: false,

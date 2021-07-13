@@ -102,7 +102,13 @@ export default function geocodeApi() {
         params.at = `${proximity[1]},${proximity[0]}`;
       } else if (viewport) {
         const bbox = new WebMercatorViewport(viewport).getBounds();
-        params.in = `bbox:${bbox[0][0]},${bbox[0][1]},${bbox[1][0]},${bbox[1][1]}`;
+        let vals = [
+          Math.max(-180, bbox[0][0]),
+          Math.max(-90,  bbox[0][1]),
+          Math.min( 180, bbox[1][0]),
+          Math.min( 90,  bbox[1][1]),
+        ];
+        params.in = 'bbox:' + vals.join(',');
       } else {
         params.in = 'bbox:-180,-90,180,90';
       }
