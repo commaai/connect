@@ -278,8 +278,6 @@ class Navigation extends Component {
       return;
     }
 
-    this.updateFavoriteLocations();
-
     Devices.fetchLocation(dongleId).then((resp) => {
       if (this.mounted && dongleId === this.props.dongleId) {
         this.setState({
@@ -288,6 +286,8 @@ class Navigation extends Component {
         }, this.flyToMarkers);
       }
     }).catch(console.log);
+
+    this.updateFavoriteLocations();
   }
 
   updateFavoriteLocations() {
@@ -344,6 +344,8 @@ class Navigation extends Component {
           savingAs: false,
           savedAs: false,
         });
+      }).catch((err) => {
+        console.log(err);
       });
     } else {
       this.setState({
@@ -672,6 +674,8 @@ class Navigation extends Component {
         savingAs: false,
         savedAs: false,
       });
+    }).catch((err) => {
+      console.log(err);
     });
   }
 

@@ -107,17 +107,16 @@ export default function geocodeApi() {
         params.in = 'bbox:-180,-90,180,90';
       }
 
-      try {
-        const resp = await fetch(`https://autosuggest.search.hereapi.com/v1/autosuggest?${qs.stringify(params)}`, {
-          method: 'GET',
-        });
-        if (resp.ok) {
-          const json = await resp.json();
-          return json.items;
-        }
-      } catch (err) {
-        console.log(err);
+      const resp = await fetch(`https://autosuggest.search.hereapi.com/v1/autosuggest?${qs.stringify(params)}`, {
+        method: 'GET',
+      });
+      if (!resp.ok) {
+        console.log(resp);
+        return [];
       }
+
+      const json = await resp.json();
+      return json.items;
     },
 
     async getDirections(points) {
