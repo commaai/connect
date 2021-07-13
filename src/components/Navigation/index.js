@@ -159,6 +159,9 @@ const styles = () => ({
     },
   },
   researchArea: {
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: 18,
     padding: '6px 16px',
     border: `1px solid ${Colors.white10}`,
@@ -766,7 +769,7 @@ class Navigation extends Component {
           { search && searchLooking && !searchSelect &&
             <HTMLOverlay redraw={ this.renderResearchArea } captureScroll={ true } captureDrag={ true }
               captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
-              style={{ ...cardStyle, bottom: 10, left: '50%', width: 'auto', transform: 'translate(-50%, 0)' }} />
+              style={{ ...cardStyle, bottom: 10, left: '50%', width: 180, transform: 'translate(-50%, 0)' }} />
           }
         </ReactMapGL>
       </div>
