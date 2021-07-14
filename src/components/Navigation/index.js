@@ -178,11 +178,6 @@ const styles = () => ({
 
 const initialState = {
   hasFocus: false,
-  viewport: {
-    longitude: -117.20,
-    latitude: 32.73,
-    zoom: 5,
-  },
   carLastLocation: null,
   carLastLocationTime: null,
   carNetworkLocation: null,
@@ -206,6 +201,11 @@ class Navigation extends Component {
     this.mounted = null;
     this.state = {
       ...initialState,
+      viewport: {
+        longitude: -117.20,
+        latitude: 32.73,
+        zoom: 5,
+      },
       windowWidth: window.innerWidth,
     };
 
