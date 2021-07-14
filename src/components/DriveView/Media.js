@@ -90,7 +90,7 @@ class Media extends Component {
     super(props);
 
     this.state = {
-      inView: MediaType.HUD,
+      inView: MediaType.VIDEO,
       windowWidth: window.innerWidth,
       windowHeight: window.innerHeight,
       downloadMenu: null,
