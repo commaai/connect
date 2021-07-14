@@ -183,9 +183,10 @@ const initialState = {
     latitude: 32.73,
     zoom: 5,
   },
-  carLocation: null,
-  carLocationTime: null,
-  carLocationAccuracy: null,
+  carLastLocation: null,
+  carLastLocationTime: null,
+  carNetworkLocation: null,
+  carNetworkLocationAccuracy: null,
   favoriteLocations: [],
   geoLocateCoords: null,
   search: null,
@@ -242,8 +243,10 @@ class Navigation extends Component {
     this.saveSearchAs = this.saveSearchAs.bind(this);
     this.deleteFavorite = this.deleteFavorite.bind(this);
     this.viewportChange = this.viewportChange.bind(this);
-    this.getDeviceLocation = this.getDeviceLocation.bind(this);
+    this.getDeviceLastLocation = this.getDeviceLastLocation.bind(this);
     this.getDeviceNetworkLocation = this.getDeviceNetworkLocation.bind(this);
+    this.getCarLocation = this.getCarLocation.bind(this);
+    this.carLocationCircle = this.carLocationCircle.bind(this);
   }
 
   componentDidMount() {
@@ -253,10 +256,11 @@ class Navigation extends Component {
 
   componentDidUpdate(prevProps, prevState) {
     const { dongleId } = this.props;
-    const { geoLocateCoords, search, carLocation, searchSelect } = this.state;
+    const { geoLocateCoords, search, carLastLocation, carNetworkLocation, searchSelect } = this.state;
 
-    if ((carLocation && !prevState.carLocation) || (geoLocateCoords && !prevState.geoLocateCoords) ||
-      (searchSelect && prevState.searchSelect !== searchSelect) || (search && prevState.search !== search))
+    if ((carLastLocation && !prevState.carLastLocation) || (carNetworkLocation && !prevState.carNetworkLocation) ||
+      (geoLocateCoords && !prevState.geoLocateCoords) || (searchSelect && prevState.searchSelect !== searchSelect) ||
+      (search && prevState.search !== search))
     {
       this.flyToMarkers();
     }
@@ -282,25 +286,23 @@ class Navigation extends Component {
       return;
     }
 
-    this.getDeviceLocation();
+    this.getDeviceLastLocation();
+    this.getDeviceNetworkLocation();
     this.updateFavoriteLocations();
   }
 
-  async getDeviceLocation() {
+  async getDeviceLastLocation() {
     const { dongleId } = this.props;
     try {
       const resp = await Devices.fetchLocation(dongleId);
       if (this.mounted && dongleId === this.props.dongleId) {
         this.setState({
-          carLocation: [resp.lng, resp.lat],
-          carLocationTime: resp.time,
-          carLocationAccuracy: null,
+          carLastLocation: [resp.lng, resp.lat],
+          carLastLocationTime: resp.time,
         }, this.flyToMarkers);
       }
     } catch(err) {
-      if (err.message && err.message.substr('no_segments_uploaded') !== -1) {
-        this.getDeviceNetworkLocation();
-      } else {
+      if (!err.message || err.message.substr('no_segments_uploaded') === -1) {
         console.log(err);
       }
     }
@@ -325,14 +327,35 @@ class Navigation extends Component {
       resp = await GeocodeApi().networkPositioning(resp.result);
       if (resp && this.mounted && dongleId === this.props.dongleId) {
         this.setState({
-          carLocation: [resp.lng, resp.lat],
-          carLocationTime: null,
-          carLocationAccuracy: resp.accuracy,
+          carNetworkLocation: [resp.lng, resp.lat],
+          carNetworkLocationAccuracy: resp.accuracy,
         }, this.flyToMarkers);
       }
     } catch (err) {
       console.log(err);
     }
+  }
+
+  getCarLocation() {
+    const { carLastLocation, carLastLocationTime, carNetworkLocation, carNetworkLocationAccuracy } = this.state;
+
+    if (carNetworkLocation && carNetworkLocationAccuracy <= 10000 &&
+      (carNetworkLocationAccuracy <= 100 || !carLastLocation))
+    {
+      return {
+        location: carNetworkLocation,
+        accuracy: carNetworkLocationAccuracy,
+        time: Date.now(),
+      };
+    }
+    if (carLastLocation) {
+      return {
+        location: carLastLocation,
+        accuracy: 0,
+        time: carLastLocationTime,
+      };
+    }
+    return null;
   }
 
   updateFavoriteLocations() {
@@ -379,7 +402,8 @@ class Navigation extends Component {
     this.focus();
     if (searchInput && searchInput.value.length >= 3) {
       const vp = this.state.viewport;
-      const proximity = this.state.carLocation || this.state.geoLocateCoords || [vp.longitude, vp.latitude];
+      const carLoc = this.getCarLocation();
+      const proximity = (carLoc ? carLoc.location : null) || this.state.geoLocateCoords || [vp.longitude, vp.latitude];
       GeocodeApi().forwardLookup(searchInput.value, proximity).then((features) => {
         this.setState({
           noFly: false,
@@ -434,7 +458,8 @@ class Navigation extends Component {
       searchSelect: item,
       searchLooking: false,
     });
-    const startLocation = this.state.carLocation || this.state.geoLocateCoords || null;
+    const carLoc = this.getCarLocation();
+    const startLocation = (carLoc ? carLoc.location : null) || this.state.geoLocateCoords || null;
     if (startLocation) {
       GeocodeApi().getDirections([startLocation, this.itemLngLat(item)]).then((route) => {
         this.setState({
@@ -492,7 +517,8 @@ class Navigation extends Component {
 
   flyToMarkers() {
     const { hasNav } = this.props;
-    const { noFly, geoLocateCoords, search, searchSelect, carLocation, windowWidth, viewport } = this.state;
+    const { noFly, geoLocateCoords, search, searchSelect, windowWidth, viewport } = this.state;
+    const carLocation = this.getCarLocation();
 
     if (noFly) {
       return;
@@ -503,7 +529,7 @@ class Navigation extends Component {
       bounds.push([geoLocateCoords, geoLocateCoords]);
     }
     if (carLocation) {
-      bounds.push([carLocation, carLocation]);
+      bounds.push([carLocation.location, carLocation.location]);
     }
     if (searchSelect) {
       bounds.push(this.itemLngLat(searchSelect, true));
@@ -735,10 +761,40 @@ class Navigation extends Component {
     }
   }
 
+  carLocationCircle(carLocation) {
+    const points = 32;
+    const km = carLocation.accuracy / 1000;
+
+    const distanceX = km / (111.320 * Math.cos(carLocation.location[1] * Math.PI / 180));
+    const distanceY = km / 110.574;
+
+    let res = [];
+    let theta, x, y;
+    for (let i = 0; i < points; i++) {
+      theta = (i / points) * (2 * Math.PI);
+      x = distanceX * Math.cos(theta);
+      y = distanceY * Math.sin(theta);
+
+      res.push([carLocation.location[0] + x, carLocation.location[1] + y]);
+    }
+    res.push(res[0]);
+
+    return {
+      "type": "FeatureCollection",
+      "features": [{
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [res],
+        }
+      }],
+    };
+  };
+
   render() {
     const { classes, hasNav } = this.props;
-    const { hasFocus, search, searchLooking, searchSelect, carLocation, carLocationAccuracy, favoriteLocations,
-      carLocationTime, viewport, windowWidth } = this.state;
+    const { hasFocus, search, searchLooking, searchSelect, favoriteLocations, viewport, windowWidth } = this.state;
+    const carLocation = this.getCarLocation();
 
     const cardStyle = windowWidth < 600 ?
       { width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 } :
@@ -746,7 +802,7 @@ class Navigation extends Component {
 
     let carPinTooltipStyle = { transform: 'translate(calc(-50% + 10px), -4px)' };
     if (carLocation) {
-      const pixelsAvailable = viewport.height - new WebMercatorViewport(viewport).project(carLocation)[1];
+      const pixelsAvailable = viewport.height - new WebMercatorViewport(viewport).project(carLocation.location)[1];
       if (pixelsAvailable < 50) {
         carPinTooltipStyle = { transform: 'translate(calc(-50% + 10px), -81px)' };
       }
@@ -774,22 +830,22 @@ class Navigation extends Component {
             </Marker>
           )}
           { carLocation &&
-            <Marker latitude={ carLocation[1] } longitude={ carLocation[0] } offsetLeft={ -10 } offsetTop={ -32 }
-              captureDrag={ false } captureClick={ true } captureDoubleClick={ false }>
+            <Marker latitude={ carLocation.location[1] } longitude={ carLocation.location[0] } offsetLeft={ -10 }
+              offsetTop={ -32 } captureDrag={ false } captureClick={ true } captureDoubleClick={ false }>
               <img className={ classes.pin } src={ pin_car } onMouseEnter={ () => this.toggleCarPinTooltip(true) }
                 onMouseLeave={ () => this.toggleCarPinTooltip(false) } />
               <div className={ classes.carPinTooltip } ref={ this.carPinTooltipRef }
                 style={{ ...carPinTooltipStyle, display: 'none' }}>
-                { carLocationTime && <>
-                  { moment(carLocationTime).format('LT') },<br />
-                  { moment(carLocationTime).fromNow() }
-                </> }
-                { carLocationAccuracy && <>
-                  { carLocationTime && <br/ > }
-                  { `accuracy: ${(carLocationAccuracy / 1609.34).toFixed(1)} mi` }
-                </> }
+                { moment(carLocation.time).format('LT') },<br />
+                { moment(carLocation.time).fromNow() }
               </div>
             </Marker>
+          }
+          { carLocation && carLocation.accuracy &&
+            <Source type="geojson" data={ this.carLocationCircle(carLocation) }>
+              <Layer id="polygon" type="fill" source="polygon" layout={{}}
+                paint={{ 'fill-color': '#31a1ee', 'fill-opacity': 0.3 }} />
+            </Source>
           }
           { search && !searchSelect && search.map((item) =>
             <Marker latitude={ this.itemLoc(item).lat } longitude={ this.itemLoc(item).lng } key={ item.id }
@@ -868,7 +924,8 @@ class Navigation extends Component {
 
   renderSearchOverlay() {
     const { classes, device } = this.props;
-    const { searchSelect, carLocation, geoLocateCoords, saveAsMenu, savingAs, savedAs } = this.state;
+    const { searchSelect, geoLocateCoords, saveAsMenu, savingAs, savedAs } = this.state;
+    const carLocation = this.getCarLocation();
 
     const noRoute = !searchSelect.route && (carLocation || geoLocateCoords);
 
