@@ -7,6 +7,7 @@ import { Elements, ElementsConsumer, CardNumberElement, CardExpiryElement, CardC
 
 import { billing as Billing } from '@commaai/comma-api';
 import Colors from '../../colors';
+import ResizeHandler from '../ResizeHandler';
 
 const styles = () => ({
   block: {
@@ -81,6 +82,7 @@ class PrimePayment extends Component {
     super(props);
 
     this.state = {
+      windowWidth: window.innerWidth,
       cardNumber: null,
       cardExpiry: null,
       cardCvc: null,
@@ -88,6 +90,7 @@ class PrimePayment extends Component {
       activating: false,
     };
 
+    this.onResize = this.onResize.bind(this);
     this.handleCardInput = this.handleCardInput.bind(this);
     this.handleZipInput = this.handleZipInput.bind(this);
     this.submitPayment = this.submitPayment.bind(this);
@@ -100,6 +103,10 @@ class PrimePayment extends Component {
     buttonText: 'Activate',
     onError: () => {},
     onActivated: (_) => {},
+  }
+
+  onResize(windowWidth) {
+    this.setState({ windowWidth });
   }
 
   handleCardInput(card) {
@@ -198,15 +205,15 @@ class PrimePayment extends Component {
   }
 
   render() {
-    const { classes } = this.props;
+    const { classes, simId, isUpdate, disabled, onCancel } = this.props;
+    const { activating, cardNumber, cardCvc, cardExpiry, zipCode, windowWidth } = this.state;
 
-    const canCheckout = !this.state.activating && (this.props.simId || this.props.isUpdate) &&
-      this.state.cardNumber && this.state.cardNumber.complete && this.state.cardCvc && this.state.cardCvc.complete &&
-      this.state.cardExpiry && this.state.cardExpiry.complete && this.state.zipCode && this.state.zipCode.length >= 3;
+    const canCheckout = !activating && (simId || isUpdate) && cardNumber && cardNumber.complete &&
+      cardCvc && cardCvc.complete && cardExpiry && cardExpiry.complete && zipCode && zipCode.length >= 3;
 
-    let buttonText = this.props.isUpdate ? 'Update' : 'Activate now';
-    if (this.state.activating) {
-      buttonText = this.props.isUpdate ? 'Updating...' : 'Activating...';
+    let buttonText = isUpdate ? 'Update' : 'Activate now';
+    if (activating) {
+      buttonText = isUpdate ? 'Updating...' : 'Activating...';
     }
 
     const stripeStyle = {
@@ -217,8 +224,11 @@ class PrimePayment extends Component {
       },
     };
 
+    const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
+
     return (
       <>
+        <ResizeHandler onResize={ this.onResize } />
         <div className={ classes.block }>
           <Typography>Card information</Typography>
           <div className={ classes.stripeCardNumber }>
@@ -238,12 +248,13 @@ class PrimePayment extends Component {
             InputProps={{ classes: { root: classes.inputRoot, input: classes.input }}} placeholder="00000" />
         </div>
         <div className={ classes.buttonsContainer }>
-          <Button disabled={ !canCheckout || this.props.disabled } className={ classes.buttons }
-            onClick={ this.submitPayment }>
+          <Button disabled={ !canCheckout || disabled } className={ classes.buttons }
+            onClick={ this.submitPayment } style={ buttonSmallStyle }>
             { buttonText }
           </Button>
-          { this.props.onCancel &&
-            <Button className={ `${classes.buttons} ${classes.cancelButton}` } onClick={ this.props.onCancel }>
+          { onCancel &&
+            <Button className={ `${classes.buttons} ${classes.cancelButton}` } onClick={ onCancel }
+              style={ buttonSmallStyle }>
               Cancel subscription
             </Button> }
         </div>
