@@ -65,6 +65,11 @@ const styles = () => ({
     marginTop: 10,
     fontSize: 14,
   },
+  overlaySearchNoLocation: {
+    marginTop: 10,
+    fontSize: 14,
+    color: Colors.orange100,
+  },
   overlaySearchDetails: {
     color: Colors.white40,
   },
@@ -883,7 +888,8 @@ class Navigation extends Component {
 
   renderOverlay() {
     const { classes } = this.props;
-    const { search, searchSelect, searchLooking } = this.state;
+    const { search, searchSelect, searchLooking, geoLocateCoords } = this.state;
+    const carLocation = this.getCarLocation();
 
     return (
       <div className={ classes.overlay } ref={ this.overlayRef } tabIndex={ -1 } onBlur={ this.onSearchBlur }
@@ -905,7 +911,12 @@ class Navigation extends Component {
           }} />
         { search && !searchSelect && !searchLooking &&
           <div className={ `${classes.overlaySearchResults} scrollstyle` }>
-            { search.length === 0 && <Typography className={ classes.overlaySearchNoResults }>no search results</Typography> }
+            { !geoLocateCoords && !carLocation &&
+              <Typography className={ classes.overlaySearchNoLocation }>
+                location unknown, turn on device for better results
+              </Typography> }
+            { search.length === 0 &&
+              <Typography className={ classes.overlaySearchNoResults }>no search results</Typography> }
             { search.map((item) => (
               <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item) }>
                 <Typography>
