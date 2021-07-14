@@ -235,8 +235,8 @@ class Media extends Component {
       <>
         <div className={classes.mediaOptionsRoot}>
           <div className={classes.mediaOptions}>
-            <div className={classes.mediaOption} style={inView !== MediaType.HUD ? { opacity: 0.6 } : { }}
-              onClick={() => this.setState({ inView: MediaType.HUD })}>
+            <div className={ `${classes.mediaOption} hudButton` } onClick={() => this.setState({ inView: MediaType.HUD })}
+              style={inView !== MediaType.HUD ? { opacity: 0.6 } : { }} >
               <Typography className={classes.mediaOptionText}>HUD</Typography>
             </div>
             <div className={classes.mediaOption} style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}

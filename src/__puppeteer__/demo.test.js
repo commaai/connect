@@ -55,6 +55,8 @@ describe('demo mode', () => {
       vid.play();
     }, video);
 
+    await expect(page).toClick('.hudButton');
+
     async function expectCanvasToChange(canvasHandle, wait = 5000) {
       let start = Date.now();
       let origDataUrl = await page.evaluate(canvas => canvas.toDataURL(), canvasHandle);
