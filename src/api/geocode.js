@@ -125,6 +125,21 @@ export default function geocodeApi() {
       return json.items;
     },
 
+    async networkPositioning(req) {
+      const key = process.env.REACT_APP_HERE_API_KEY;
+      const resp = await fetch(`https://positioning.hereapi.com/v2/locate?apiKey=${key}&fallback=any,singleWifi`, {
+        method: 'POST',
+        headers: new Headers({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(req),
+      });
+      if (!resp.ok) {
+        console.log(resp);
+        return null;
+      }
+      const json = await resp.json();
+      return json.location;
+    },
+
     async getDirections(points) {
       if (!directionsClient) {
         return null;

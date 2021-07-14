@@ -8,7 +8,7 @@ import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuIt
 import { Search, Clear, Refresh } from '@material-ui/icons';
 import moment from 'moment';
 
-import { devices as Devices, navigation as NavigationAPI } from '@commaai/comma-api';
+import { devices as Devices, navigation as NavigationAPI, athena as AthenaApi } from '@commaai/comma-api';
 import Colors from '../../colors';
 import GeocodeApi from '../../api/geocode';
 import { pin_car, pin_marker, pin_home, pin_work, pin_pinned } from '../../icons';
@@ -185,6 +185,7 @@ const initialState = {
   },
   carLocation: null,
   carLocationTime: null,
+  carLocationAccuracy: null,
   favoriteLocations: [],
   geoLocateCoords: null,
   search: null,
@@ -241,6 +242,8 @@ class Navigation extends Component {
     this.saveSearchAs = this.saveSearchAs.bind(this);
     this.deleteFavorite = this.deleteFavorite.bind(this);
     this.viewportChange = this.viewportChange.bind(this);
+    this.getDeviceLocation = this.getDeviceLocation.bind(this);
+    this.getDeviceNetworkLocation = this.getDeviceNetworkLocation.bind(this);
   }
 
   componentDidMount() {
@@ -275,22 +278,61 @@ class Navigation extends Component {
   }
 
   updateDevice() {
-    const { dongleId } = this.props;
-
     if (Demo.isDemo()) {
       return;
     }
 
-    Devices.fetchLocation(dongleId).then((resp) => {
+    this.getDeviceLocation();
+    this.updateFavoriteLocations();
+  }
+
+  async getDeviceLocation() {
+    const { dongleId } = this.props;
+    try {
+      const resp = await Devices.fetchLocation(dongleId);
       if (this.mounted && dongleId === this.props.dongleId) {
         this.setState({
           carLocation: [resp.lng, resp.lat],
           carLocationTime: resp.time,
+          carLocationAccuracy: null,
         }, this.flyToMarkers);
       }
-    }).catch(console.log);
+    } catch(err) {
+      if (err.message && err.message.substr('no_segments_uploaded') !== -1) {
+        this.getDeviceNetworkLocation();
+      } else {
+        console.log(err);
+      }
+    }
+  }
 
-    this.updateFavoriteLocations();
+  async getDeviceNetworkLocation() {
+    const { dongleId, hasNav } = this.props;
+    if (!hasNav) {
+      return;
+    }
+
+    const payload = {
+      method: "getNetworks",
+      jsonrpc: "2.0",
+      id: 0,
+    };
+    try {
+      let resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
+      if (!resp.result) {
+        return;
+      }
+      resp = await GeocodeApi().networkPositioning(resp.result);
+      if (resp && this.mounted && dongleId === this.props.dongleId) {
+        this.setState({
+          carLocation: [resp.lng, resp.lat],
+          carLocationTime: null,
+          carLocationAccuracy: resp.accuracy,
+        }, this.flyToMarkers);
+      }
+    } catch (err) {
+      console.log(err);
+    }
   }
 
   updateFavoriteLocations() {
@@ -695,8 +737,8 @@ class Navigation extends Component {
 
   render() {
     const { classes, hasNav } = this.props;
-    const { hasFocus, search, searchLooking, searchSelect, carLocation, favoriteLocations, carLocationTime, viewport,
-      windowWidth } = this.state;
+    const { hasFocus, search, searchLooking, searchSelect, carLocation, carLocationAccuracy, favoriteLocations,
+      carLocationTime, viewport, windowWidth } = this.state;
 
     const cardStyle = windowWidth < 600 ?
       { width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 } :
@@ -738,8 +780,14 @@ class Navigation extends Component {
                 onMouseLeave={ () => this.toggleCarPinTooltip(false) } />
               <div className={ classes.carPinTooltip } ref={ this.carPinTooltipRef }
                 style={{ ...carPinTooltipStyle, display: 'none' }}>
-                { moment(carLocationTime).format('LT') },<br />
-                { moment(carLocationTime).fromNow() }
+                { carLocationTime && <>
+                  { moment(carLocationTime).format('LT') },<br />
+                  { moment(carLocationTime).fromNow() }
+                </> }
+                { carLocationAccuracy && <>
+                  { carLocationTime && <br/ > }
+                  { `accuracy: ${(carLocationAccuracy / 1609.34).toFixed(1)} mi` }
+                </> }
               </div>
             </Marker>
           }
