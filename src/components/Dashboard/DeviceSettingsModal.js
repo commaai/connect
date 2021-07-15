@@ -308,7 +308,8 @@ class DeviceSettingsModal extends Component {
                 { this.state.loadingUnpair ? '...' : 'Confirm' }
               </Button>
             }
-            <Button variant="contained" className={ classes.primeManageButton } onClick={ this.closeUnpair }>
+            <Button variant="contained" className={ `${classes.primeManageButton} ${classes.cancelButton}` }
+              onClick={ this.closeUnpair }>
               { this.state.unpaired ? 'Close' : 'Cancel' }
             </Button>
           </div>

@@ -18,6 +18,7 @@ import Timelineworker from '../timeline';
 import { selectRange, primeNav } from '../actions';
 import { getDongleID, getZoom, getPrimeNav } from '../url';
 import ResizeHandler from './ResizeHandler';
+import Colors from '../colors';
 
 const styles = (theme) => ({
   base: {
@@ -40,7 +41,12 @@ const styles = (theme) => ({
   },
   closeButton: {
     marginTop: 10,
-    float: 'right'
+    float: 'right',
+    backgroundColor: Colors.grey200,
+    color: Colors.white,
+    '&:hover': {
+      backgroundColor: Colors.grey400,
+    },
   },
   fabProgress: {
     marginTop: 10,

@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import moment from 'moment';
-import { withStyles, Typography, IconButton } from '@material-ui/core';
+import { withStyles, Typography, IconButton, Modal, Paper, Button } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 
@@ -15,7 +15,7 @@ import PrimePayment from './PrimePayment';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 
-const styles = () => ({
+const styles = (theme) => ({
   primeBox: {
     display: 'flex',
     flexDirection: 'column',
@@ -70,18 +70,32 @@ const styles = () => ({
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
-  overviewBlockSuccess: {
-    marginTop: 15,
-    padding: 10,
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 255, 0, 0.2)',
-  },
   paymentElement: {
     maxWidth: 400,
   },
   chargeText: {
     marginBottom: 10,
+  },
+  modal: {
+    position: 'absolute',
+    padding: theme.spacing.unit * 2,
+    width: theme.spacing.unit * 50,
+    maxWidth: '90%',
+    left: '50%',
+    top: '40%',
+    transform: 'translate(-50%, -50%)',
+    '& p': {
+      marginTop: 10,
+    },
+  },
+  closeButton: {
+    marginTop: 10,
+    float: 'right',
+    backgroundColor: Colors.grey200,
+    color: Colors.white,
+    '&:hover': {
+      backgroundColor: Colors.grey400,
+    },
   },
 });
 
@@ -131,14 +145,18 @@ class PrimeCheckout extends Component {
   }
 
   onPrimeActivated(resp) {
-    this.setState({ activated: resp, error: null });
-    Billing.getSubscription(this.props.dongleId).then((subscription) => {
-      this.setState({ new_subscription: subscription });
-    });
+    if (resp.success) {
+      this.setState({ activated: resp, error: null });
+      Billing.getSubscription(this.props.dongleId).then((subscription) => {
+        this.setState({ new_subscription: subscription });
+      });
+    } else if (resp.error) {
+      this.setState({ error: resp.error });
+    }
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, dongleId } = this.props;
     const { new_subscription, windowWidth, activated, simInfo, simInfoLoading, error } = this.state;
 
     const alias = device.alias || deviceTypePretty(device.device_type);
@@ -152,19 +170,10 @@ class PrimeCheckout extends Component {
       }
     }
 
-    let successMsg = ['comma prime activated.'];
-    if (activated) {
-      if (activated.already_active) {
-        successMsg = ['comma prime is already active for this device.\nYou have not been charged for another subscription.'];
-      } else if (new_subscription && new_subscription.is_prime_sim) {
-        successMsg.push('Connectivity will be enabled as soon as activation propagates to your local cell tower. Rebooting your device may help.');
-      }
-    }
-
     const simId = simInfo ? simInfo.sim_id : null;
     const containerPadding = windowWidth > 520 ? 36 : 16;
 
-    return (
+    return ( <>
       <div className={ classes.primeBox }>
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
         <div className={ classes.primeContainer } style={{ padding: `8px ${containerPadding}px` }}>
@@ -179,13 +188,6 @@ class PrimeCheckout extends Component {
         </div>
         <div className={ classes.primeContainer } style={{ padding: `16px ${containerPadding}px` }}>
           <Typography variant="title">checkout</Typography>
-          { activated && <div className={ classes.overviewBlockSuccess }>
-            <div>
-              { successMsg.map((msg, i) => {
-                return <Typography variant="body1" key={ i }>{ msg }</Typography>
-              }) }
-            </div>
-          </div> }
           { error && <div className={ classes.overviewBlockError }>
             <ErrorIcon />
             <Typography>{ error }</Typography>
@@ -212,7 +214,22 @@ class PrimeCheckout extends Component {
           </div>
         </div>
       </div>
-    );
+      <Modal open={ Boolean(activated) } onClose={ () => window.location = window.location.origin }>
+        <Paper className={classes.modal}>
+          <Typography variant="title">comma prime activated</Typography>
+          <Typography>Device: {alias} ({ dongleId })</Typography>
+          { activated && new_subscription && new_subscription.is_prime_sim &&
+            <Typography>
+              Connectivity will be enabled as soon as activation propagates to your local cell tower. Rebooting your device may help.
+            </Typography>
+          }
+          <Button variant="contained" className={ classes.closeButton }
+            onClick={ () => window.location = window.location.origin }>
+            Close
+          </Button>
+        </Paper>
+      </Modal>
+    </> );
   }
 }
 
