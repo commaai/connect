@@ -838,7 +838,7 @@ class Navigation extends Component {
           )}
           { carLocation &&
             <Marker latitude={ carLocation.location[1] } longitude={ carLocation.location[0] } offsetLeft={ -10 }
-              offsetTop={ -32 } captureDrag={ false } captureClick={ true } captureDoubleClick={ false }>
+              offsetTop={ -30 } captureDrag={ false } captureClick={ true } captureDoubleClick={ false }>
               <img className={ classes.pin } src={ pin_car } onMouseEnter={ () => this.toggleCarPinTooltip(true) }
                 onMouseLeave={ () => this.toggleCarPinTooltip(false) } />
               <div className={ classes.carPinTooltip } ref={ this.carPinTooltipRef }
@@ -855,14 +855,14 @@ class Navigation extends Component {
           }
           { search && !searchSelect && search.map((item) =>
             <Marker latitude={ this.itemLoc(item).lat } longitude={ this.itemLoc(item).lng } key={ item.id }
-              offsetLeft={ -10 } offsetTop={ -32 } captureDrag={ false } captureClick={ false }
+              offsetLeft={ -10 } offsetTop={ -30 } captureDrag={ false } captureClick={ false }
               captureDoubleClick={ false }>
               <img className={ classes.pinClick } src={ pin_marker } onClick={ () => this.onSearchSelect(item) } />
             </Marker>
           )}
           { searchSelect &&
             <Marker latitude={ this.itemLoc(searchSelect).lat } longitude={ this.itemLoc(searchSelect).lng }
-              offsetLeft={ -10 } offsetTop={ -32 } captureDrag={ false } captureClick={ false }
+              offsetLeft={ -10 } offsetTop={ -30 } captureDrag={ false } captureClick={ false }
               captureDoubleClick={ false }>
               <img className={ classes.pin } src={ searchSelect.favoriteIcon ? searchSelect.favoriteIcon : pin_marker } />
             </Marker>
