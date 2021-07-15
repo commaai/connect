@@ -63,7 +63,7 @@ const styles = (theme) => ({
     color: Colors.white,
   },
   accountMenuItem: {
-    padding: '12px 24px',
+    padding: '12px 16px',
   },
 });
 

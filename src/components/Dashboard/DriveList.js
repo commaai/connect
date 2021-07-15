@@ -23,11 +23,11 @@ const styles = (theme) => ({
   },
   drives: {
     margin: 0,
-    padding: '16px 12px',
+    padding: 16,
     flex: '1',
   },
   zeroState: {
-    padding: '16px 48px',
+    padding: 16,
     flex: '0',
   },
   settingsArea: {

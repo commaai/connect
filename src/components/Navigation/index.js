@@ -337,7 +337,9 @@ class Navigation extends Component {
         }, this.flyToMarkers);
       }
     } catch (err) {
-      console.log(err);
+      if (!err.message || err.message.substr('{"error": "Device not registered"}') === -1) {
+        console.log(err);
+      }
     }
   }
 

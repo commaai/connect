@@ -1,27 +1,21 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
+import { withStyles, Typography, Button } from '@material-ui/core';
+
 import { primeNav } from '../../actions';
 import PrimeChecklist from './PrimeChecklist';
-
-import {
-  withStyles,
-  Typography,
-  Button,
-} from '@material-ui/core';
+import Colors from '../../colors';
 
 const styles = () => ({
   primeContainer: {
-    padding: '16px 36px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    padding: 16,
+    borderBottom: `1px solid ${Colors.white10}`,
     color: '#fff',
   },
-  moreInfoContainer: {
-    '& p': { display: 'inline' },
-    '& button': { display: 'inline', marginLeft: '15px' },
-  },
   introLine: {
-    lineHeight: '36px',
+    display: 'inline',
+    lineHeight: '23px',
   },
   checkList: {
     marginLeft: 10,
@@ -33,6 +27,10 @@ const styles = () => ({
   },
   moreInfoButton: {
     borderRadius: 30,
+    minHeight: 'unset',
+    padding: '2px 8px',
+    marginLeft: '15px',
+    display: 'inline',
   },
   activateButton: {
     background: '#fff',
@@ -63,20 +61,20 @@ class PrimeBanner extends Component {
     return (
       <div className={ classes.primeContainer }>
         <Typography variant="title">comma prime</Typography>
-        { !this.state.moreInfo && <div className={ classes.moreInfoContainer }>
-          <Typography>Become a comma prime member today for only $24/month</Typography>
-          <Button onClick={ () => this.setState({ moreInfo: true }) } className={ classes.moreInfoButton }>
-            More info
-          </Button>
-        </div> }
-        { this.state.moreInfo && <div>
-          <Typography className={ classes.introLine }>Become a comma prime member today for only $24/month</Typography>
+        <Typography classes={{ root: classes.introLine }}>
+          Become a comma prime member today for only $24/month
+        </Typography>
+        { this.state.moreInfo ? <>
           <PrimeChecklist />
           <Button size="large" className={ classes.activateButton }
             onClick={ () => this.props.dispatch(primeNav()) }>
             Activate comma prime
           </Button>
-        </div> }
+        </> :
+          <Button onClick={ () => this.setState({ moreInfo: true }) } className={ classes.moreInfoButton }>
+            More info
+          </Button>
+        }
       </div>
     );
   }
