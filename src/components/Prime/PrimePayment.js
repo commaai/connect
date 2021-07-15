@@ -39,21 +39,21 @@ const styles = () => ({
   },
   buttons: {
     marginTop: 10,
-    background: '#fff',
+    background: Colors.white,
     borderRadius: 18,
     color: '#404B4F',
     textTransform: 'none',
     width: 200,
     '&:hover': {
-      backgroundColor: '#fff',
+      backgroundColor: Colors.white70,
       color: '#404B4F',
     },
     '&:disabled': {
-      backgroundColor: '#bbb',
+      backgroundColor: Colors.white70,
       color: '#404B4F',
     },
     '&:disabled:hover': {
-      backgroundColor: '#bbb',
+      backgroundColor: Colors.white70,
       color: '#404B4F',
     }
   },
@@ -61,6 +61,10 @@ const styles = () => ({
     color: Colors.white,
     background: 'transparent',
     border: `1px solid ${Colors.grey500}`,
+    '&:hover': {
+      backgroundColor: Colors.white10,
+      color: Colors.white,
+    },
   },
   buttonsContainer: {
     display: 'flex',

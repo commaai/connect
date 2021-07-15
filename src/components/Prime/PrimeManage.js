@@ -61,10 +61,26 @@ const styles = (theme) => ({
   },
   closeButton: {
     marginTop: 10,
-    float: 'right'
+    float: 'right',
+    backgroundColor: Colors.grey200,
+    color: Colors.white,
+    '&:hover': {
+      backgroundColor: Colors.grey400,
+    },
   },
   cancelModalButton: {
     marginTop: 10,
+    backgroundColor: Colors.grey200,
+    color: Colors.white,
+    '&:hover': {
+      backgroundColor: Colors.grey400,
+    },
+    '&:disabled': {
+      backgroundColor: Colors.grey400,
+    },
+    '&:disabled:hover': {
+      backgroundColor: Colors.grey400,
+    },
   },
   cancelError: {
     backgroundColor: 'rgba(255, 0, 0, 0.3)',
@@ -219,7 +235,7 @@ class PrimeManage extends Component {
               Cancelling will immediately suspend billing and comma prime membership benefits.
             </Typography>
             <Button variant="contained" className={ classes.cancelModalButton } onClick={ this.cancelPrime }
-              disabled={ Boolean(this.state.cancelSuccess) }>
+              disabled={ Boolean(this.state.cancelSuccess || this.state.canceling) }>
               { this.state.canceling ? 'Canceling...' : 'Cancel subscription' }
             </Button>
             <Button variant="contained" className={ classes.closeButton }

@@ -14,6 +14,7 @@ import MenuItem from '@material-ui/core/MenuItem';
 import Paper from '@material-ui/core/Paper';
 
 import Timelineworker from '../../timeline';
+import Colors from '../../colors';
 
 const styles = (theme) => ({
   root: {},
@@ -35,13 +36,28 @@ const styles = (theme) => ({
   headerDropdown: {
     fontWeight: 500,
     marginRight: 12,
-    minWidth: 310,
+    width: 310,
+    maxWidth: '90%',
     textAlign: 'center',
   },
   datePickerContainer: {
     display: 'flex',
     marginBottom: 20,
     '& aside': { width: 100 },
+  },
+  cancelButton: {
+    backgroundColor: Colors.grey200,
+    color: Colors.white,
+    '&:hover': {
+      backgroundColor: Colors.grey400,
+    },
+  },
+  saveButton: {
+    backgroundColor: Colors.white,
+    color: Colors.grey800,
+    '&:hover': {
+      backgroundColor: Colors.white70,
+    },
   },
 });
 
@@ -193,11 +209,11 @@ class TimeSelect extends Component {
             </div>
             <Divider />
             <div className={classes.buttonGroup}>
-              <Button variant="contained" onClick={this.handleClose}>
+              <Button variant="contained" className={ classes.cancelButton } onClick={this.handleClose}>
                 Cancel
               </Button>
               &nbsp;
-              <Button variant="contained" color="secondary" onClick={this.handleSave}>
+              <Button variant="contained" className={ classes.saveButton } onClick={this.handleSave}>
                 Save
               </Button>
             </div>

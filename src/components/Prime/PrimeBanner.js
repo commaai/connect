@@ -12,7 +12,7 @@ const styles = () => ({
   primeContainer: {
     padding: 16,
     borderBottom: `1px solid ${Colors.white10}`,
-    color: '#fff',
+    color: Colors.white,
   },
   introLine: {
     display: 'inline',
@@ -34,14 +34,14 @@ const styles = () => ({
     display: 'inline',
   },
   activateButton: {
-    background: '#fff',
+    backgroundColor: Colors.white,
     borderRadius: 30,
     color: '#404B4F',
     textTransform: 'none',
     width: 300,
     maxWidth: '100%',
     '&:hover': {
-      background: '#fff',
+      backgroundColor: Colors.white70,
       color: '#404B4F',
     }
   },

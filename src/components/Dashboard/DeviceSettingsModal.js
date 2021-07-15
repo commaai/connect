@@ -20,6 +20,7 @@ import ShareIcon from '@material-ui/icons/Share';
 import { devices as DevicesApi } from '@commaai/comma-api';
 import Timelineworker from '../../timeline';
 import { primeNav, selectDevice } from '../../actions';
+import Colors from '../../colors';
 
 const styles = (theme) => ({
   modal: {
@@ -74,6 +75,13 @@ const styles = (theme) => ({
     justifyContent: 'space-between',
     flexWrap: 'wrap-reverse',
     alignItems: 'baseline',
+  },
+  cancelButton: {
+    backgroundColor: Colors.grey200,
+    color: Colors.white,
+    '&:hover': {
+      backgroundColor: Colors.grey400,
+    },
   },
 });
 
@@ -274,7 +282,7 @@ class DeviceSettingsModal extends Component {
             </div>
           </div>
           <div className={classes.buttonGroup}>
-            <Button variant="contained" onClick={this.props.onClose}>
+            <Button variant="contained" className={ classes.cancelButton } onClick={this.props.onClose}>
               Close
             </Button>
           </div>
