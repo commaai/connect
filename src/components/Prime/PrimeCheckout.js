@@ -139,7 +139,7 @@ class PrimeCheckout extends Component {
 
   render() {
     const { classes, device } = this.props;
-    const { new_subscription, windowWidth } = this.state;
+    const { new_subscription, windowWidth, activated, simInfo, simInfoLoading, error } = this.state;
 
     const alias = device.alias || deviceTypePretty(device.device_type);
 
@@ -153,15 +153,15 @@ class PrimeCheckout extends Component {
     }
 
     let successMsg = ['comma prime activated.'];
-    if (this.state.activated) {
-      if (this.state.activated.already_active) {
+    if (activated) {
+      if (activated.already_active) {
         successMsg = ['comma prime is already active for this device.\nYou have not been charged for another subscription.'];
       } else if (new_subscription && new_subscription.is_prime_sim) {
         successMsg.push('Connectivity will be enabled as soon as activation propagates to your local cell tower. Rebooting your device may help.');
       }
     }
 
-    const simId = this.state.simInfo ? this.state.simInfo.sim_id : null;
+    const simId = simInfo ? simInfo.sim_id : null;
     const containerPadding = windowWidth > 520 ? 36 : 16;
 
     return (
@@ -179,18 +179,18 @@ class PrimeCheckout extends Component {
         </div>
         <div className={ classes.primeContainer } style={{ padding: `16px ${containerPadding}px` }}>
           <Typography variant="title">checkout</Typography>
-          { this.state.activated && <div className={ classes.overviewBlockSuccess }>
+          { activated && <div className={ classes.overviewBlockSuccess }>
             <div>
               { successMsg.map((msg, i) => {
                 return <Typography variant="body1" key={ i }>{ msg }</Typography>
               }) }
             </div>
           </div> }
-          { this.state.error && <div className={ classes.overviewBlockError }>
+          { error && <div className={ classes.overviewBlockError }>
             <ErrorIcon />
-            <Typography>{ this.state.error }</Typography>
+            <Typography>{ error }</Typography>
           </div> }
-          { this.state.simInfoLoading && <div className={ classes.overviewBlockLoading }>
+          { simInfoLoading && <div className={ classes.overviewBlockLoading }>
             <Typography>Fetching SIM data</Typography>
           </div> }
           <div className={ classes.overviewBlock }>
@@ -206,7 +206,7 @@ class PrimeCheckout extends Component {
             }) }
           </div>
           <div className={ classes.overviewBlock + " " + classes.paymentElement }>
-            <PrimePayment disabled={ Boolean(this.state.activated) } simId={ simId }
+            <PrimePayment disabled={ Boolean(activated) } simId={ simId }
               onActivated={ this.onPrimeActivated }
               onError={ (err) => this.setState({ error: err }) } />
           </div>

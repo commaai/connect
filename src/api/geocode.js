@@ -24,7 +24,7 @@ export default function geocodeApi() {
   }
 
   function getContextString(context) {
-    if (context.id.indexOf('region') !== -1) {
+    if (context.id.indexOf('region') !== -1 && context.short_code) {
       if (context.short_code.indexOf('US-') !== -1) {
         return context.short_code.substr(3);
       }
