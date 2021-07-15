@@ -307,7 +307,7 @@ class Navigation extends Component {
         }, this.flyToMarkers);
       }
     } catch(err) {
-      if (!err.message || err.message.substr('no_segments_uploaded') === -1) {
+      if (!err.message || err.message.indexOf('no_segments_uploaded') === -1) {
         console.log(err);
       }
     }
@@ -337,7 +337,7 @@ class Navigation extends Component {
         }, this.flyToMarkers);
       }
     } catch (err) {
-      if (!err.message || err.message.substr('{"error": "Device not registered"}') === -1) {
+      if (!err.message || err.message.indexOf('{"error": "Device not registered"}') === -1) {
         console.log(err);
       }
     }

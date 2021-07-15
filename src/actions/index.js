@@ -81,7 +81,11 @@ export function primeFetchSubscription() {
     if ((state.workerState.device && state.workerState.device.is_owner) || state.workerState.profile.superuser) {
       Billing.getSubscription(state.workerState.dongleId).then((subscription) => {
         Timelineworker.primeGetSubscription(state.workerState.dongleId, subscription);
-      }).catch(console.log);
+      }).catch((err) => {
+        if (!err.message || err.message.indexOf('404') !== 0) {
+          console.log(err);
+        }
+      });
     }
   };
 }

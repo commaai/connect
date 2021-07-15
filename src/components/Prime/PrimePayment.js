@@ -75,6 +75,9 @@ const styles = () => ({
     padding: '10px 16px',
     '&::placeholder': { color: Colors.lightGrey500 },
   },
+  fieldLabel: {
+    fontSize: '0.8rem',
+  },
 });
 
 class PrimePayment extends Component {
@@ -230,7 +233,7 @@ class PrimePayment extends Component {
       <>
         <ResizeHandler onResize={ this.onResize } />
         <div className={ classes.block }>
-          <Typography>Card information</Typography>
+          <Typography className={ classes.fieldLabel }>Card information</Typography>
           <div className={ classes.stripeCardNumber }>
             <CardNumberElement onChange={ this.handleCardInput } options={{
               showIcon: true,
@@ -243,7 +246,7 @@ class PrimePayment extends Component {
           </div>
         </div>
         <div className={ classes.block }>
-          <Typography>Zipcode</Typography>
+          <Typography className={ classes.fieldLabel }>Zipcode</Typography>
           <TextField required style={{ maxWidth: '100%', width: 150 }} onChange={ this.handleZipInput }
             InputProps={{ classes: { root: classes.inputRoot, input: classes.input }}} placeholder="00000" />
         </div>

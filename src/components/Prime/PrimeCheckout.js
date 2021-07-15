@@ -32,7 +32,7 @@ const styles = () => ({
     '& button': { display: 'inline', marginLeft: '15px' },
   },
   introLine: {
-    lineHeight: '36px',
+    lineHeight: '23px',
   },
   checkList: {
     marginLeft: 10,
@@ -79,6 +79,9 @@ const styles = () => ({
   },
   paymentElement: {
     maxWidth: 400,
+  },
+  chargeText: {
+    marginBottom: 10,
   },
 });
 
@@ -199,7 +202,7 @@ class PrimeCheckout extends Component {
           </div>
           <div className={ classes.overviewBlock }>
             { chargeText.map((txt, i) => {
-              return <Typography key={i}>{ txt }</Typography>
+              return <Typography key={i} className={ classes.chargeText }>{ txt }</Typography>
             }) }
           </div>
           <div className={ classes.overviewBlock + " " + classes.paymentElement }>
