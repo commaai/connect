@@ -75,7 +75,7 @@ const styles = () => ({
   },
   searchSelectBox: {
     borderRadius: 22,
-    padding: '12px 16px',
+    padding: '12px 16px 12px 21px',
     border: `1px solid ${Colors.white10}`,
     backgroundColor: Colors.grey800,
     color: Colors.white,
@@ -179,6 +179,14 @@ const styles = () => ({
       marginRight: 6,
     }
   },
+  clearSearchSelect: {
+    padding: 5,
+    fontSize: 20,
+    cursor: 'pointer',
+    position: 'absolute',
+    left: 5,
+    top: 5,
+  },
 });
 
 const initialState = {
@@ -252,6 +260,7 @@ class Navigation extends Component {
     this.getDeviceNetworkLocation = this.getDeviceNetworkLocation.bind(this);
     this.getCarLocation = this.getCarLocation.bind(this);
     this.carLocationCircle = this.carLocationCircle.bind(this);
+    this.clearSearchSelect = this.clearSearchSelect.bind(this);
   }
 
   componentDidMount() {
@@ -520,6 +529,18 @@ class Navigation extends Component {
       savingAs: false,
       savedAs: false,
     });
+  }
+
+  clearSearchSelect() {
+    this.setState({
+      noFly: false,
+      route: null,
+      searchSelect: null,
+      searchLooking: false,
+      savingAs: false,
+      savedAs: false,
+    });
+    this.onSearch();
   }
 
   flyToMarkers() {
@@ -850,7 +871,7 @@ class Navigation extends Component {
               </div>
             </Marker>
           }
-          { carLocation && carLocation.accuracy &&
+          { carLocation && Boolean(carLocation.accuracy) &&
             <Source type="geojson" data={ this.carLocationCircle(carLocation) }>
               <Layer id="polygon" type="fill" source="polygon" layout={{}}
                 paint={{ 'fill-color': '#31a1ee', 'fill-opacity': 0.3 }} />
@@ -946,6 +967,7 @@ class Navigation extends Component {
 
     return (
       <div className={ classes.searchSelectBox } ref={ this.searchSelectBoxRef }>
+        <Clear className={ classes.clearSearchSelect } onClick={ this.clearSearchSelect } />
         <div className={ classes.searchSelectBoxHeader }>
           <div>
             <Typography className={ classes.bold }>{ this.formatSearchName(searchSelect) }</Typography>
