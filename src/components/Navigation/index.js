@@ -75,7 +75,7 @@ const styles = () => ({
   },
   searchSelectBox: {
     borderRadius: 22,
-    padding: '12px 16px 12px 21px',
+    padding: '12px 16px',
     border: `1px solid ${Colors.white10}`,
     backgroundColor: Colors.grey800,
     color: Colors.white,
@@ -184,8 +184,17 @@ const styles = () => ({
     fontSize: 20,
     cursor: 'pointer',
     position: 'absolute',
-    left: 5,
-    top: 5,
+    left: -6,
+    top: -8,
+    height: 24,
+    width: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.grey900,
+    color: Colors.white,
+    border: `1px solid ${Colors.grey600}`,
+    '&:hover': {
+      backgroundColor: Colors.grey700,
+    },
   },
 });
 
@@ -561,8 +570,7 @@ class Navigation extends Component {
     }
     if (searchSelect) {
       bounds.push(this.itemLngLat(searchSelect, true));
-    }
-    if (search) {
+    } else if (search) {
       search.forEach((item) => bounds.push(this.itemLngLat(item, true)));
     }
 
