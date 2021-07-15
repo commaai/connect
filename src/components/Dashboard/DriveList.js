@@ -27,7 +27,6 @@ const styles = (theme) => ({
     flex: '1',
   },
   zeroState: {
-    padding: 16,
     flex: '0',
   },
   settingsArea: {
@@ -112,9 +111,9 @@ class DriveList extends Component {
   }
 
   renderZeroRides() {
-    const { classes } = this.props;
+    const { classes, device, segmentData } = this.props;
+    const { windowWidth } = this.state;
     let zeroRidesEle = null;
-    const { device, segmentData } = this.props;
 
     if (device && (segmentData === null || typeof segmentData.segments === 'undefined')) {
       zeroRidesEle = <Typography>Loading...</Typography>;
@@ -122,8 +121,9 @@ class DriveList extends Component {
       zeroRidesEle = ( <Typography>Looks like you haven{'\''}t driven in the selected time range.</Typography> );
     }
 
+    const containerPadding = windowWidth > 520 ? 36 : 16;
     return (
-      <div className={classes.zeroState}>
+      <div className={classes.zeroState} style={{ padding: `16px ${containerPadding}px` }}>
         <Grid container>
           { zeroRidesEle }
         </Grid>

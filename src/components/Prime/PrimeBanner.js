@@ -6,6 +6,7 @@ import { withStyles, Typography, Button } from '@material-ui/core';
 import { primeNav } from '../../actions';
 import PrimeChecklist from './PrimeChecklist';
 import Colors from '../../colors';
+import ResizeHandler from '../ResizeHandler';
 
 const styles = () => ({
   primeContainer: {
@@ -52,19 +53,24 @@ class PrimeBanner extends Component {
 
     this.state = {
       moreInfo: (!props.collapsed),
+      windowWidth: window.innerWidth,
     };
   }
 
   render() {
     const { classes } = this.props;
+    const { windowWidth, moreInfo } = this.state;
+
+    const containerPadding = windowWidth > 520 ? 36 : 16;
 
     return (
-      <div className={ classes.primeContainer }>
+      <div className={ classes.primeContainer } style={{ padding: `16px ${containerPadding}px` }}>
+        <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
         <Typography variant="title">comma prime</Typography>
         <Typography classes={{ root: classes.introLine }}>
           Become a comma prime member today for only $24/month
         </Typography>
-        { this.state.moreInfo ? <>
+        { moreInfo ? <>
           <PrimeChecklist />
           <Button size="large" className={ classes.activateButton }
             onClick={ () => this.props.dispatch(primeNav()) }>

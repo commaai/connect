@@ -769,7 +769,7 @@ class Navigation extends Component {
   }
 
   carLocationCircle(carLocation) {
-    const points = 32;
+    const points = 128;
     const km = carLocation.accuracy / 1000;
 
     const distanceX = km / (111.320 * Math.cos(carLocation.location[1] * Math.PI / 180));
@@ -843,8 +843,7 @@ class Navigation extends Component {
                 onMouseLeave={ () => this.toggleCarPinTooltip(false) } />
               <div className={ classes.carPinTooltip } ref={ this.carPinTooltipRef }
                 style={{ ...carPinTooltipStyle, display: 'none' }}>
-                { moment(carLocation.time).format('LT') },<br />
-                { moment(carLocation.time).fromNow() }
+                { moment(carLocation.time).format('LT') },<br />{ moment(carLocation.time).fromNow() }
               </div>
             </Marker>
           }
