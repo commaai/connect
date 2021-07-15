@@ -759,12 +759,15 @@ class Navigation extends Component {
   }
 
   viewportChange(viewport, interactionState) {
-    const { search, searchSelect, searchLooking } = this.state
+    const { search, searchSelect, searchLooking } = this.state;
     this.setState({ viewport });
-    if (search && !searchSelect && !searchLooking &&
-      (interactionState.isPanning || interactionState.isZooming || interactionState.isRotating))
-    {
-      this.setState({ searchLooking: true, noFly: true });
+
+    if (interactionState.isPanning || interactionState.isZooming || interactionState.isRotating) {
+      this.focus();
+
+      if (search && !searchSelect && !searchLooking) {
+        this.setState({ searchLooking: true, noFly: true });
+      }
     }
   }
 
