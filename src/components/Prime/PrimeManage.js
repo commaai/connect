@@ -2,17 +2,16 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import moment from 'moment';
+import ErrorIcon from '@material-ui/icons/ErrorOutline';
+import { withStyles, Typography, Button, Modal, Paper, IconButton } from '@material-ui/core';
+import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 
 import { billing as Billing} from '@commaai/comma-api'
 import PrimePayment from './PrimePayment';
 import { deviceTypePretty } from '../../utils';
 import Timelineworker from '../../timeline';
-
-import ErrorIcon from '@material-ui/icons/ErrorOutline';
-import { withStyles, Typography, Button, Modal, Paper, IconButton } from '@material-ui/core';
-import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
-
-import { primeFetchSubscription, selectDevice } from '../../actions';
+import ResizeHandler from '../ResizeHandler';
+import Colors from '../../colors';
 
 const styles = (theme) => ({
   primeBox: {
@@ -20,8 +19,7 @@ const styles = (theme) => ({
     flexDirection: 'column',
   },
   primeContainer: {
-    padding: '16px 32px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    borderBottom: `1px solid ${Colors.white10}`,
     color: '#fff',
   },
   primeBlock: {
@@ -93,6 +91,7 @@ class PrimeManage extends Component {
       cancelError: null,
       cancelModal: false,
       canceling: false,
+      windowWidth: window.innerWidth,
     };
 
     this.cancelPrime = this.cancelPrime.bind(this);
@@ -130,6 +129,7 @@ class PrimeManage extends Component {
 
   render() {
     const { dongleId, subscription, classes, device } = this.props;
+    const { windowWidth } = this.state;
     if (!subscription) {
       console.log('device has prime, but no subscription found');
       return ( <></> );
@@ -148,16 +148,18 @@ class PrimeManage extends Component {
 
     const alias = device.alias || deviceTypePretty(device.device_type);
     const simId = this.state.simInfo ? this.state.simInfo.sim_id : null;
+    const containerPadding = windowWidth > 520 ? 36 : 16;
 
     return (
       <>
+        <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
         <div className={ classes.primeBox }>
-          <div className={ classes.primeContainer }>
+          <div className={ classes.primeContainer } style={{ padding: `8px ${containerPadding}px` }}>
             <IconButton aria-label="Go Back" onClick={() => window.history.back()}>
               <KeyboardBackspaceIcon />
             </IconButton>
           </div>
-          <div className={ classes.primeContainer }>
+          <div className={ classes.primeContainer } style={{ padding: `16px ${containerPadding}px` }}>
             <Typography variant="title">comma prime</Typography>
             <div className={ classes.overviewBlock }>
               <Typography variant="subheading">Device</Typography>
@@ -185,7 +187,7 @@ class PrimeManage extends Component {
               <Typography className={ classes.manageItem }>$24.00</Typography>
             </div>
           </div>
-          <div className={ classes.primeContainer }>
+          <div className={ classes.primeContainer } style={{ padding: `16px ${containerPadding}px` }}>
             <Typography variant="title">Update payment method</Typography>
             { this.state.activated && <div className={ classes.overviewBlockSuccess }>
               <Typography>Payment updated</Typography>

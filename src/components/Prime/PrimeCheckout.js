@@ -1,16 +1,19 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-
 import moment from 'moment';
+import { withStyles, Typography, IconButton } from '@material-ui/core';
+import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
+import ErrorIcon from '@material-ui/icons/ErrorOutline';
+
+import { billing as Billing } from '@commaai/comma-api';
+
 import { deviceTypePretty } from '../../utils';
 import { fetchSimInfo } from './util';
 import PrimeChecklist from './PrimeChecklist';
-import { billing as Billing } from '@commaai/comma-api';
-
-import { withStyles, Typography } from '@material-ui/core';
-import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import PrimePayment from './PrimePayment';
+import ResizeHandler from '../ResizeHandler';
+import Colors from '../../colors';
 
 const styles = () => ({
   primeBox: {
@@ -18,8 +21,7 @@ const styles = () => ({
     flexDirection: 'column',
   },
   primeContainer: {
-    padding: '16px 32px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    borderBottom: `1px solid ${Colors.white10}`,
     color: '#fff',
   },
   primeBlock: {
@@ -90,6 +92,7 @@ class PrimeCheckout extends Component {
       simInfoLoading: false,
       activated: null,
       new_subscription: null,
+      windowWidth: window.innerWidth,
     };
 
     this.onPrimeActivated = this.onPrimeActivated.bind(this);
@@ -133,7 +136,7 @@ class PrimeCheckout extends Component {
 
   render() {
     const { classes, device } = this.props;
-    const { new_subscription } = this.state;
+    const { new_subscription, windowWidth } = this.state;
 
     const alias = device.alias || deviceTypePretty(device.device_type);
 
@@ -156,15 +159,22 @@ class PrimeCheckout extends Component {
     }
 
     const simId = this.state.simInfo ? this.state.simInfo.sim_id : null;
+    const containerPadding = windowWidth > 520 ? 36 : 16;
 
     return (
       <div className={ classes.primeBox }>
-        <div className={ classes.primeContainer }>
+        <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
+        <div className={ classes.primeContainer } style={{ padding: `8px ${containerPadding}px` }}>
+          <IconButton aria-label="Go Back" onClick={() => window.history.back()}>
+            <KeyboardBackspaceIcon />
+          </IconButton>
+        </div>
+        <div className={ classes.primeContainer } style={{ padding: `16px ${containerPadding}px` }}>
           <Typography variant="title">comma prime</Typography>
           <Typography className={ classes.introLine }>Become a comma prime member today for only $24/month</Typography>
           <PrimeChecklist />
         </div>
-        <div className={ classes.primeContainer }>
+        <div className={ classes.primeContainer } style={{ padding: `16px ${containerPadding}px` }}>
           <Typography variant="title">checkout</Typography>
           { this.state.activated && <div className={ classes.overviewBlockSuccess }>
             <div>
