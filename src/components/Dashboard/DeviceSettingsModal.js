@@ -301,6 +301,10 @@ class DeviceSettingsModal extends Component {
           </div>
           <Divider />
           <div className={ classes.topButtonGroup }>
+            <Button variant="contained" className={ `${classes.primeManageButton} ${classes.cancelButton}` }
+              onClick={ this.closeUnpair }>
+              { this.state.unpaired ? 'Close' : 'Cancel' }
+            </Button>
             { this.state.unpaired ?
               <Typography variant="body2">Unpaired</Typography> :
               <Button variant="outlined" className={ classes.primeManageButton } onClick={ this.unpairDevice }
@@ -308,10 +312,6 @@ class DeviceSettingsModal extends Component {
                 { this.state.loadingUnpair ? '...' : 'Confirm' }
               </Button>
             }
-            <Button variant="contained" className={ `${classes.primeManageButton} ${classes.cancelButton}` }
-              onClick={ this.closeUnpair }>
-              { this.state.unpaired ? 'Close' : 'Cancel' }
-            </Button>
           </div>
         </Paper>
       </Modal>
