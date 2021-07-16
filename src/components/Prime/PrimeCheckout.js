@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import moment from 'moment';
-import { withStyles, Typography, IconButton, Modal, Paper, Button } from '@material-ui/core';
+import { withStyles, Typography, IconButton, Modal, Paper, Button, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 
@@ -67,6 +67,8 @@ const styles = (theme) => ({
   overviewBlockLoading: {
     marginTop: 15,
     padding: 10,
+    display: 'flex',
+    alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
@@ -193,6 +195,7 @@ class PrimeCheckout extends Component {
             <Typography>{ error }</Typography>
           </div> }
           { simInfoLoading && <div className={ classes.overviewBlockLoading }>
+            <CircularProgress size={ 19 } style={{ color: Colors.white }} />
             <Typography>Fetching SIM data</Typography>
           </div> }
           <div className={ classes.overviewBlock }>

@@ -78,6 +78,7 @@ const styles = () => ({
   input: {
     padding: '10px 16px',
     '&::placeholder': { color: Colors.lightGrey500 },
+    '&:disabled::placeholder': { color: Colors.grey500 },
   },
   fieldLabel: {
     fontSize: '0.8rem',
@@ -215,6 +216,7 @@ class PrimePayment extends Component {
     const { classes, simId, isUpdate, disabled, onCancel } = this.props;
     const { activating, cardNumber, cardCvc, cardExpiry, zipCode, windowWidth } = this.state;
 
+    const disableFields = !simId && !isUpdate;
     const canCheckout = !activating && (simId || isUpdate) && cardNumber && cardNumber.complete &&
       cardCvc && cardCvc.complete && cardExpiry && cardExpiry.complete && zipCode && zipCode.length >= 3;
 
@@ -226,8 +228,8 @@ class PrimePayment extends Component {
     const stripeStyle = {
       base: {
         fontSize: '16px',
-        color: Colors.white,
-        '::placeholder': { color: Colors.lightGrey500 },
+        color: disableFields ? Colors.white20 : Colors.white,
+        '::placeholder': { color: disableFields ? Colors.grey400 : Colors.lightGrey500 },
       },
     };
 
@@ -240,19 +242,27 @@ class PrimePayment extends Component {
           <Typography className={ classes.fieldLabel }>Card information</Typography>
           <div className={ classes.stripeCardNumber }>
             <CardNumberElement onChange={ this.handleCardInput } options={{
+              disabled: disableFields,
               showIcon: true,
               style: stripeStyle,
             }} />
           </div>
           <div className={ classes.stripeCardOther }>
-            <CardExpiryElement onChange={ this.handleCardInput } options={{ style: stripeStyle }} />
-            <CardCvcElement onChange={ this.handleCardInput } options={{ style: stripeStyle }} />
+            <CardExpiryElement onChange={ this.handleCardInput } options={{
+              disabled: disableFields,
+              style: stripeStyle,
+            }} />
+            <CardCvcElement onChange={ this.handleCardInput } options={{
+              disabled: disableFields,
+              style: stripeStyle,
+            }} />
           </div>
         </div>
         <div className={ classes.block }>
           <Typography className={ classes.fieldLabel }>Zipcode</Typography>
           <TextField required style={{ maxWidth: '100%', width: 150 }} onChange={ this.handleZipInput }
-            InputProps={{ classes: { root: classes.inputRoot, input: classes.input }}} placeholder="00000" />
+            disabled={ disableFields } InputProps={{ classes: { root: classes.inputRoot, input: classes.input }}}
+            placeholder="00000" />
         </div>
         <div className={ classes.buttonsContainer }>
           <Button disabled={ !canCheckout || disabled } className={ classes.buttons }
