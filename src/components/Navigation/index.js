@@ -89,6 +89,15 @@ const styles = () => ({
     alignItems: 'flex-start',
     marginBottom: 10,
   },
+  searchSelectBoxTitle: {
+    flexBasis: 'auto',
+  },
+  searchSelectBoxButtons: {
+    display: 'flex',
+    flexWrap: 'wrap-reverse',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+  },
   bold: {
     fontWeight: 600,
   },
@@ -100,7 +109,8 @@ const styles = () => ({
     color: '#404B4F',
     textTransform: 'none',
     minHeight: 'unset',
-    flexShrink: 0,
+    flexGrow: 1,
+    maxWidth: 125,
     '&:hover': {
       background: '#ddd',
       color: '#404B4F',
@@ -117,6 +127,7 @@ const styles = () => ({
     display: 'inline-flex',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 10,
     '& p': {
       color: '#404B4F',
       lineHeight: '1.4em',
@@ -977,7 +988,7 @@ class Navigation extends Component {
       <div className={ classes.searchSelectBox } ref={ this.searchSelectBoxRef }>
         <Clear className={ classes.clearSearchSelect } onClick={ this.clearSearchSelect } />
         <div className={ classes.searchSelectBoxHeader }>
-          <div>
+          <div className={ classes.searchSelectBoxTitle }>
             <Typography className={ classes.bold }>{ this.formatSearchName(searchSelect) }</Typography>
             { searchSelect.route &&
               <Typography className={ classes.searchSelectBoxDetails }>
@@ -986,50 +997,52 @@ class Navigation extends Component {
               </Typography>
             }
           </div>
-          { searchSelect.favoriteId ?
-            <Button disabled={ savingAs || savedAs } onClick={ this.deleteFavorite }
-              classes={{ root: classes.searchSelectButton, label: classes.noWrap }}>
-              { savingAs ? '...' : (savedAs ? 'deleted' :  'delete') }
-            </Button>
-          :
-            <Button disabled={ savingAs || savedAs }
-              onClick={ (ev) => this.setState({ saveAsMenu: ev.target }) }
-              classes={{ root: classes.searchSelectButton, label: classes.noWrap }}>
-              { savingAs ? '...' : (savedAs ? 'saved' :  'save as') }
-            </Button>
-          }
-          <Menu id="menu-save-as" open={ Boolean(saveAsMenu) } anchorEl={ saveAsMenu }
-            onClose={ () => this.setState({ saveAsMenu: null }) }
-            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
-            <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('home') }>
-              home
-            </MenuItem>
-            <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('work') }>
-              work
-            </MenuItem>
-            <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('pin') }>
-              favorite
-            </MenuItem>
-          </Menu>
-          { searchSelect.settingDest ?
-            <div className={ `${classes.searchSelectButton} ${classes.searchSelectButtonFake}` }
-              ref={ this.navigateFakeButtonRef }>
-              { searchSelect.success ?
-                <Typography>destination set</Typography> :
-                <CircularProgress size={ 19 } /> }
-              <Popper open={ Boolean(searchSelect.success && searchSelect.saved_next) } placement="bottom"
-                anchorEl={ this.navigateFakeButtonRef.current } className={ classes.savedNextPopover }>
-                <Typography>device offline</Typography>
-                <Typography>destination will be set once device is online</Typography>
-              </Popper>
-            </div>
-          :
-            <Button disabled={ Boolean(noRoute) } onClick={ this.navigate }
-              classes={{ root: classes.searchSelectButton }}>
-              { noRoute ? 'no route' : 'navigate' }
-            </Button>
-          }
+          <div className={ classes.searchSelectBoxButtons }>
+            { searchSelect.favoriteId ?
+              <Button disabled={ savingAs || savedAs } onClick={ this.deleteFavorite }
+                classes={{ root: classes.searchSelectButton, label: classes.noWrap }}>
+                { savingAs ? '...' : (savedAs ? 'deleted' :  'delete') }
+              </Button>
+            :
+              <Button disabled={ savingAs || savedAs }
+                onClick={ (ev) => this.setState({ saveAsMenu: ev.target }) }
+                classes={{ root: classes.searchSelectButton, label: classes.noWrap }}>
+                { savingAs ? '...' : (savedAs ? 'saved' :  'save as') }
+              </Button>
+            }
+            <Menu id="menu-save-as" open={ Boolean(saveAsMenu) } anchorEl={ saveAsMenu }
+              onClose={ () => this.setState({ saveAsMenu: null }) }
+              anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+              <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('home') }>
+                home
+              </MenuItem>
+              <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('work') }>
+                work
+              </MenuItem>
+              <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('pin') }>
+                favorite
+              </MenuItem>
+            </Menu>
+            { searchSelect.settingDest ?
+              <div className={ `${classes.searchSelectButton} ${classes.searchSelectButtonFake}` }
+                ref={ this.navigateFakeButtonRef }>
+                { searchSelect.success ?
+                  <Typography>destination set</Typography> :
+                  <CircularProgress size={ 19 } /> }
+                <Popper open={ Boolean(searchSelect.success && searchSelect.saved_next) } placement="bottom"
+                  anchorEl={ this.navigateFakeButtonRef.current } className={ classes.savedNextPopover }>
+                  <Typography>device offline</Typography>
+                  <Typography>destination will be set once device is online</Typography>
+                </Popper>
+              </div>
+            :
+              <Button disabled={ Boolean(noRoute) } onClick={ this.navigate }
+                classes={{ root: classes.searchSelectButton }} style={{ marginBottom: 8 }}>
+                { noRoute ? 'no route' : 'navigate' }
+              </Button>
+            }
+          </div>
         </div>
         <Typography className={ classes.searchSelectBoxDetails }>
           { this.formatSearchDetails(searchSelect, false) }
