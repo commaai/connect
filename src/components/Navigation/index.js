@@ -475,7 +475,7 @@ class Navigation extends Component {
         searchLooking: false,
         savingAs: false,
         savedAs: false,
-      });
+      }, this.flyToMarkers);
     } else {
       this.setState({
         noFly: false,
