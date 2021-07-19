@@ -80,7 +80,11 @@ class App extends Component {
           } else if (document.location.pathname == AuthConfig.APPLE_REDIRECT_PATH) {
             token = await AuthApi.refreshAccessToken(code, AuthConfig.APPLE_REDIRECT_URI, 'apple');
           } else if (document.location.pathname == AuthConfig.GITHUB_REDIRECT_PATH) {
-            token = await AuthApi.refreshAccessToken(code, AuthConfig.GItHUB_REDIRECT_URI, 'github');
+            if (document.location.origin === 'https://connect.comma.ai') {
+              token = await AuthApi.refreshAccessToken(code, AuthConfig.GITHUB_REDIRECT_URI, 'github_connect');
+            } else {
+              token = await AuthApi.refreshAccessToken(code, AuthConfig.GITHUB_REDIRECT_URI, 'github');
+            }
           }
           if (token) {
             AuthStorage.setCommaAccessToken(token);

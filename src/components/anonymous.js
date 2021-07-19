@@ -126,6 +126,12 @@ class AnonymousLanding extends Component {
 
   render() {
     const { classes } = this.props;
+
+    let github_redirect_url = AuthConfig.GITHUB_REDIRECT_LINK;
+    if (window.location.origin === 'https://connect.comma.ai') {
+      github_redirect_url = AuthConfig.GITHUB_CONNECT_REDIRECT_LINK;
+    }
+
     return (
       <div className={ classes.baseContainer }>
         <div className={classes.base}>
@@ -144,7 +150,7 @@ class AnonymousLanding extends Component {
             <img className={ classes.buttonImage } src={ auth_apple } />
             <Typography className={ classes.buttonText }>Sign in with Apple</Typography>
           </a>
-          <a href={AuthConfig.GITHUB_REDIRECT_LINK} className={classes.logInButton}>
+          <a href={github_redirect_url} className={classes.logInButton}>
             <img className={ classes.buttonImage } src={ auth_github } />
             <Typography className={ classes.buttonText }>Sign in with GitHub</Typography>
           </a>
