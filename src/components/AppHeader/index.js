@@ -157,7 +157,8 @@ class AppHeader extends Component {
           <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>{ profile.email }</ListItem>
           <ListItem className={ classes.accountListItem }>{ profile.points } points</ListItem>
           <Divider />
-          <MenuItem className={ classes.accountMenuItem } component="a" href="/useradmin/" target="_blank">
+          <MenuItem className={ classes.accountMenuItem } component="a" href="https://my.comma.ai/useradmin/"
+            target="_blank">
             Manage Account
           </MenuItem>
           <MenuItem className={ classes.accountMenuItem } onClick={this.handleLogOut}>Log out</MenuItem>
