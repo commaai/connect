@@ -939,7 +939,7 @@ class Navigation extends Component {
       <div className={ classes.overlay } ref={ this.overlayRef } tabIndex={ -1 } onBlur={ this.onSearchBlur }
         onClick={ this.focus }>
         <TextField onChange={ this.onSearch } fullWidth={ true } inputRef={ this.searchInputRef }
-          placeholder="search"
+          placeholder="where do you want to go?"
           InputProps={{
             onFocus: this.onFocus,
             onBlur: this.onSearchBlur,
