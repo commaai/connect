@@ -20,7 +20,7 @@ const styles = (theme) => ({
     justifyContent: 'space-between',
     padding: '16px 32px',
     '&.isSelected': {
-      backgroundColor: '#171B1D',
+      backgroundColor: 'rgba(0, 0, 0, 0.25)',
     }
   },
   settingsButton: {
