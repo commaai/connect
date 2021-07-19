@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import { withStyles, Typography, Button, CircularProgress } from '@material-ui/core';
+import { withStyles, Typography, Button, CircularProgress, Popper } from '@material-ui/core';
 import "react-responsive-carousel/lib/styles/carousel.min.css"; // requires a loader
 import { Carousel } from 'react-responsive-carousel';
 
@@ -128,6 +128,15 @@ const styles = () => ({
       },
     },
   },
+  snapshotErrorPopover: {
+    borderRadius: 22,
+    padding: '8px 16px',
+    border: `1px solid ${Colors.white10}`,
+    backgroundColor: Colors.grey800,
+    marginTop: 5,
+    textAlign: 'center',
+    maxWidth: '90%',
+  },
 });
 
 const initialState = {
@@ -144,6 +153,8 @@ class DeviceInfo extends Component {
       ...initialState,
       windowWidth: window.innerWidth,
     };
+
+    this.snapshotButtonRef = React.createRef();
 
     this.onResize = this.onResize.bind(this);
     this.fetchDeviceInfo = this.fetchDeviceInfo.bind(this);
@@ -220,7 +231,7 @@ class DeviceInfo extends Component {
   async takeSnapshot() {
     const { dongleId } = this.props;
     const { snapshot } = this.state;
-    this.setState({ snapshot: { ...snapshot, fetching: true }});
+    this.setState({ snapshot: { ...snapshot, error: null, fetching: true }});
     try {
       const payload = {
         method: "takeSnapshot",
@@ -238,7 +249,15 @@ class DeviceInfo extends Component {
         this.setState({ snapshot: resp });
       }
     } catch(err) {
-      this.setState({ snapshot: { error: err.message }});
+      let error = err.message;
+      if (error.indexOf('Device not registered') !== -1) {
+        error = 'device offline'
+      } else if (error.length > 5 && error[5] === '{') {
+        try {
+          error = JSON.parse(error.substr(5)).error;
+        } catch { }
+      }
+      this.setState({ snapshot: { error: error }});
     }
   }
 
@@ -365,13 +384,19 @@ class DeviceInfo extends Component {
             }
           </Typography>
         </div>
-        <Button onClick={ this.takeSnapshot } disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
-          classes={{ root: `${classes.button} ${buttonClass} ${buttonOffline}` }}>
-          { snapshot.fetching ?
-            <CircularProgress size={ 19 } /> :
-            'take snapshot'
-          }
-        </Button>
+        <div ref={ this.snapshotButtonRef }>
+          <Button onClick={ this.takeSnapshot } disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
+            classes={{ root: `${classes.button} ${buttonClass} ${buttonOffline}` }}>
+            { snapshot.fetching ?
+              <CircularProgress size={ 19 } /> :
+              'take snapshot'
+            }
+          </Button>
+        </div>
+        <Popper open={ Boolean(snapshot.error) } placement="bottom"
+          anchorEl={ this.snapshotButtonRef.current } className={ classes.snapshotErrorPopover }>
+          <Typography>{ snapshot.error }</Typography>
+        </Popper>
       </>
     );
   }
