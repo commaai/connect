@@ -32,7 +32,7 @@ const styles = () => ({
     padding: '12px 16px',
     border: `1px solid ${Colors.white10}`,
     backgroundColor: Colors.grey800,
-    maxHeight: 'calc(60vh - 70px)',
+    maxHeight: 'calc(60vh - 100px)',
     display: 'flex',
     flexDirection: 'column',
     outline: 'none !important',
