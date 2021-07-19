@@ -88,7 +88,7 @@ class AppDrawer extends Component {
           { !isPermanent &&
             <Link to="/" className={ classes.logo }>
               <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
-              <Typography className={ classes.logoText }>explorer</Typography>
+              <Typography className={ classes.logoText }>connect</Typography>
             </Link>
           }
           <div style={{ height: 24 }}></div>

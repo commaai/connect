@@ -140,9 +140,7 @@ class AppHeader extends Component {
                 </Link>
               }
               <Link to="/" className={classes.logo}>
-                <Typography className={classes.logoText}>
-                  explorer
-                </Typography>
+                <Typography className={classes.logoText}>connect</Typography>
               </Link>
             </div>
             <div className={ classes.headerWideItem } style={ reorderWideStyle }>

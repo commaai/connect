@@ -11,6 +11,7 @@ import Typography from '@material-ui/core/Typography';
 import { config as AuthConfig } from '@commaai/my-comma-auth';
 
 import { auth_apple, auth_github, auth_google } from '../icons';
+import Colors from '../colors';
 
 const styles = (/* theme */) => ({
   baseContainer: {
@@ -31,17 +32,28 @@ const styles = (/* theme */) => ({
   },
   logoImg: {
     height: 45,
-    marginBottom: 60,
     width: 'auto',
+  },
+  logoContainer: {
+    width: 84,
+    height: 84,
+    backgroundColor: Colors.grey900,
+    borderRadius: 17,
+    marginBottom: 60,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logoText: {
     fontSize: 36,
     fontWeight: 800,
+    textAlign: 'center',
   },
   tagline: {
+    width: 380,
     maxWidth: '90%',
     textAlign: 'center',
-    margin: '10px 0 52px',
+    margin: '10px 0 30px',
     fontSize: '18px',
   },
   logInButton: {
@@ -117,10 +129,12 @@ class AnonymousLanding extends Component {
     return (
       <div className={ classes.baseContainer }>
         <div className={classes.base}>
-          <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
-          <Typography className={classes.logoText}>explorer</Typography>
+          <div className={ classes.logoContainer }>
+            <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+          </div>
+          <Typography className={classes.logoText}>comma connect</Typography>
           <Typography className={classes.tagline}>
-            View driving data and manage your device
+            Manage your comma device, view your drives, and comma prime features
           </Typography>
           <a href={ AuthConfig.GOOGLE_REDIRECT_LINK } className={ classes.logInButton }>
             <img className={ classes.buttonImage } src={ auth_google } />
