@@ -61,6 +61,7 @@ const styles = (theme) => ({
   },
   accountListItem: {
     color: Colors.white,
+    padding: '12px 16px',
   },
   accountMenuItem: {
     padding: '12px 16px',
