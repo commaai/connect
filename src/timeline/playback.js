@@ -8,12 +8,11 @@ const ACTION_PAUSE = 'action_pause';
 const ACTION_PLAY = 'action_play';
 const ACTION_LOOP = 'action_loop';
 const ACTION_BUFFER_VIDEO = 'action_buffer_video';
-const ACTION_BUFFER_DATA = 'action_buffer_data';
 const ACTION_RESET = 'action_reset';
 
 // fetch current playback offset
 export function currentOffset(state) {
-  let playSpeed = (state.isBufferingData || state.isBufferingVideo) ? 0 : state.desiredPlaySpeed;
+  let playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
   let offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
 
   if (state.loop && state.loop.startTime) {
@@ -39,7 +38,6 @@ export function reducer(_state = initialState, action) {
         ...state,
         offset: action.offset,
         startTime: Date.now(),
-        isBufferingData: true,
       };
 
       if (loopOffset !== null) {
@@ -97,20 +95,11 @@ export function reducer(_state = initialState, action) {
         startTime: Date.now(),
       }
       break;
-    case ACTION_BUFFER_DATA:
-      state = {
-        ...state,
-        isBufferingData: action.buffering,
-        offset: currentOffset(state),
-        startTime: Date.now(),
-      }
-      break;
     case ACTION_RESET:
       state = {
         ...state,
         desiredPlaySpeed: 1,
         isBufferingVideo: false,
-        isBufferingData: true,
         offset: 0,
         startTime: Date.now(),
       };
@@ -119,7 +108,7 @@ export function reducer(_state = initialState, action) {
       break;
   }
 
-  let playSpeed = (state.isBufferingData || state.isBufferingVideo) ? 0 : state.desiredPlaySpeed;
+  let playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
   const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
   // normalize over loop
   if (state.loop && state.loop.startTime !== null) {
@@ -134,7 +123,6 @@ export function reducer(_state = initialState, action) {
     }
   }
 
-  state.isBufferingData = Boolean(state.isBufferingData);
   state.isBufferingVideo = Boolean(state.isBufferingVideo);
 
   return state;
@@ -175,14 +163,6 @@ export function selectLoop(startTime, duration) {
 export function bufferVideo(buffering = true) {
   return {
     type: ACTION_BUFFER_VIDEO,
-    buffering
-  };
-}
-
-// update data buffering state
-export function bufferData(buffering = true) {
-  return {
-    type: ACTION_BUFFER_DATA,
     buffering
   };
 }

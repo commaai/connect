@@ -7,9 +7,6 @@ export default function Buffering(props) {
   if (props.isBufferingVideo) {
     parts.push('video');
   }
-  if (props.isBufferingData) {
-    parts.push('data');
-  }
   const message = `Buffering ${parts.join(' and ')}`;
   return (
     <div

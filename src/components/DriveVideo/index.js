@@ -93,13 +93,11 @@ class DriveVideo extends Component {
     this.rafLoop = raf(this.updatePreview);
     this.updateVideoSource({});
     this.syncVideo();
-    this.checkDataBuffer();
   }
 
   componentDidUpdate(prevProps) {
     this.updateVideoSource(prevProps);
     this.syncVideo();
-    this.checkDataBuffer();
   }
 
   componentWillUnmount() {
@@ -157,52 +155,7 @@ class DriveVideo extends Component {
     if (this.frame % 30 === 0) {
       this.syncVideo();
     }
-    if (this.frame % 6 === 0) {
-      this.checkDataBuffer();
-    }
   }
-
-  checkDataBuffer = debounce(() => {
-    if (!this.props.shouldShowUI) {
-      if (this.props.isBufferingData) {
-        TimelineWorker.bufferData(false);
-      }
-      return;
-    }
-
-    const logIndex = TimelineWorker.getLogIndex();
-    if (!logIndex) {
-      return;
-    }
-
-    let isDataBuffering = true;
-    const monoTime = TimelineWorker.currentLogMonoTime();
-    const monoTimeLength = (`${monoTime}`).length;
-    const curIndex = LogIndex.findMonoTime(logIndex, monoTime);
-    const lastEvent = TimelineWorker.getEvent(curIndex, logIndex);
-    let nextEvent = TimelineWorker.getEvent(curIndex + 1, logIndex);
-
-    if (!nextEvent) {
-      nextEvent = TimelineWorker.getEvent(0, TimelineWorker.getNextLogIndex());
-    }
-
-    if (nextEvent && nextEvent.LogMonoTime) {
-      const nextEventTime = Number(nextEvent.LogMonoTime.substr(0, monoTimeLength));
-      const timeDiff = Math.abs(nextEventTime - monoTime);
-
-      isDataBuffering = timeDiff > 1000;
-    }
-    if (isDataBuffering && lastEvent && lastEvent.LogMonoTime) {
-      const monSec = lastEvent.LogMonoTime.substr(0, monoTimeLength);
-      const timeDiff = Math.abs(monoTime - Number(monSec));
-      // 3 seconds of grace
-      isDataBuffering = timeDiff > 3000;
-    }
-
-    if (isDataBuffering !== this.props.isBufferingData) {
-      TimelineWorker.bufferData(isDataBuffering);
-    }
-  }, 100)
 
   syncVideo = debounce(() => {
     const videoPlayer = this.videoPlayer.current;
@@ -218,19 +171,17 @@ class DriveVideo extends Component {
       TimelineWorker.bufferVideo(false);
     }
 
-    let newPlaybackRate = this.props.isBufferingData ? 0 : this.props.desiredPlaySpeed;
-    if (!this.props.isBufferingData || internalPlayer.playbackRate === 0) {
-      let desiredVideoTime = this.currentVideoTime();
-      const curVideoTime = videoPlayer.getCurrentTime();
-      const timeDiff = desiredVideoTime - curVideoTime;
-      if (Math.abs(timeDiff) <= 0.3) {
-        newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff)
-      } else if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
-        // logs start ealier than video, so skip to video ts 0
-        TimelineWorker.seek(TimelineWorker.currentOffset() - (timeDiff * 1000));
-      } else {
-        videoPlayer.seekTo(desiredVideoTime, 'seconds');
-      }
+    let newPlaybackRate = this.props.desiredPlaySpeed;
+    let desiredVideoTime = this.currentVideoTime();
+    const curVideoTime = videoPlayer.getCurrentTime();
+    const timeDiff = desiredVideoTime - curVideoTime;
+    if (Math.abs(timeDiff) <= 0.3) {
+      newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff)
+    } else if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
+      // logs start ealier than video, so skip to video ts 0
+      TimelineWorker.seek(TimelineWorker.currentOffset() - (timeDiff * 1000));
+    } else {
+      videoPlayer.seekTo(desiredVideoTime, 'seconds');
     }
 
     newPlaybackRate = Math.round(newPlaybackRate * 10) / 10;
@@ -267,12 +218,12 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { classes, isBufferingData, isBufferingVideo } = this.props;
-    const playSpeed = isBufferingData ? 0 : this.props.desiredPlaySpeed;
+    const { classes, isBufferingVideo } = this.props;
+    const playSpeed = this.props.desiredPlaySpeed;
     return (
       <div className={ classes.videoContainer }>
-        { (isBufferingData || isBufferingVideo) &&
-          <Buffering isBufferingVideo={ isBufferingVideo } isBufferingData={ isBufferingData } />
+        { isBufferingVideo &&
+          <Buffering isBufferingVideo={ isBufferingVideo } />
         }
         <ReactPlayer ref={ this.videoPlayer } url={ this.state.src } playsinline={ true } muted={ true }
           width="100%" height="unset" playing={ Boolean(this.visibleSegment()) && Boolean(playSpeed) }
@@ -296,7 +247,6 @@ const stateToProps = Obstruction({
   offset: 'workerState.offset',
   startTime: 'workerState.startTime',
   isBufferingVideo: 'workerState.isBufferingVideo',
-  isBufferingData: 'workerState.isBufferingData',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveVideo));

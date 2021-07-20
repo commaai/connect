@@ -116,10 +116,6 @@ export class TimelineInterface {
     return commands.bufferVideo(isBuffering);
   }
 
-  async bufferData(isBuffering = true) {
-    return commands.bufferData(isBuffering);
-  }
-
   async selectTimeRange(start, end) {
     return commands.selectTimeRange({ start, end });
   }

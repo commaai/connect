@@ -28,7 +28,6 @@ module.exports = {
   nextSegment: null,
   desiredPlaySpeed: 1, // speed set by user
   isBufferingVideo: false, // if we're currently buffering for more data
-  isBufferingData: true, // if we're currently buffering for more data
   offset: 0, // in miliseconds from the start
   startTime: Date.now(), // millisecond timestamp in which play began
 

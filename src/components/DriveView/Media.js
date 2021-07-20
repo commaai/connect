@@ -105,12 +105,6 @@ class Media extends Component {
     this.openInUseradmin = this.openInUseradmin.bind(this);
   }
 
-  componentDidUpdate() {
-    if (this.props.isBufferingData && this.state.inView == MediaType.MAP && this.state.windowWidth < 1536) {
-      TimelineWorker.bufferData(false);
-    }
-  }
-
   onResize(windowWidth, windowHeight) {
     this.setState({ windowWidth, windowHeight });
   }
@@ -300,7 +294,6 @@ class Media extends Component {
 }
 
 const stateToProps = Obstruction({
-  isBufferingData: 'workerState.isBufferingData',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));
