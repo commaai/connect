@@ -89,8 +89,6 @@ class DriveVideo extends Component {
 
     this.videoPlayer = React.createRef();
     this.canvas_carstate = React.createRef();
-    this.canvas_maxspeed = React.createRef();
-    this.canvas_speed = React.createRef();
 
     this.intrinsic = eon_intrinsic;
     this.vwp_w = eon_vwp_w;
@@ -311,26 +309,6 @@ class DriveVideo extends Component {
         this.canvas_carstate.current, params, events, this.renderCarState
       );
     }
-    if (this.canvas_maxspeed.current) {
-      const params = { calibration, shouldScale: true };
-      const events = {
-        controlsState: TimelineWorker.currentControlsState,
-        initData: TimelineWorker.currentInitData,
-      };
-      this.renderEventToCanvas(
-        this.canvas_maxspeed.current, params, events, this.renderMaxSpeed
-      );
-    }
-    if (this.canvas_speed.current) {
-      const params = { calibration, shouldScale: true };
-      const events = {
-        carState: TimelineWorker.currentCarState,
-        initData: TimelineWorker.currentInitData,
-      };
-      this.renderEventToCanvas(
-        this.canvas_speed.current, params, events, this.renderSpeed
-      );
-    }
   }
 
   renderEventToCanvas(canvas, params, events, renderEvent) {
@@ -394,128 +372,7 @@ class DriveVideo extends Component {
   renderCarState(options, events) {
     if (events && events.carState && events.controlsState) {
       this.drawCarStateBorder(options, events.controlsState.ControlsState);
-      this.drawCarStateWheel(options, events.carState.CarState, events.controlsState.ControlsState);
     }
-  }
-
-  renderSpeed(options, events) {
-    if (events && events.carState && events.initData) {
-      this.drawSpeed(options, events.carState.CarState, events.initData.InitData);
-    }
-  }
-
-  drawSpeed(options, CarState, InitData) {
-    const { ctx } = options;
-
-    let speed = CarState.VEgo;
-
-    const metricParam = InitData.Params.Entries.find((entry) => entry.Key === 'IsMetric');
-    const isMetric = metricParam && metricParam.Value === '1';
-    if (isMetric) {
-      speed = Math.floor(speed * 3.6 + 0.5);
-    } else {
-      speed = Math.floor(speed * 2.2369363 + 0.5);
-    }
-
-    const x = this.vwp_w / 2;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = '700 128px \'Open Sans\', sans-serif';
-    ctx.fillStyle = 'rgb(255,255,255)';
-    ctx.fillText(speed, x, 140);
-
-    ctx.font = '400 48px \'Open Sans\', sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,200)';
-    if (isMetric) {
-      ctx.fillText('km/h', x, 210);
-    } else {
-      ctx.fillText('mph', x, 210);
-    }
-  }
-
-  renderMaxSpeed(options, events) {
-    if (events && events.controlsState && events.initData) {
-      this.drawMaxSpeed(options, events.controlsState.ControlsState, events.initData.InitData);
-    }
-  }
-
-  drawMaxSpeed(options, ControlsState, InitData) {
-    const { ctx } = options;
-
-    const maxSpeed = ControlsState.VCruise;
-    let maxSpeedCalc = maxSpeed * 0.6225 + 0.5;
-
-    const metricParam = InitData.Params.Entries.find((entry) => entry.Key === 'IsMetric');
-    if (metricParam && metricParam.Value === '1') {
-      maxSpeedCalc = maxSpeed + 0.5;
-    }
-
-    const isCruiseSet = !isNaN(ControlsState.VCruise) && ControlsState.VCruise != 0 && ControlsState.VCruise != 255;
-
-    const width = Math.floor(184 * (2 / 3));
-    let height = Math.floor(202 * (2 / 3));
-
-    let left = bdr_s * 2;
-    let top = bdr_s * 2;
-
-    // background
-    fillRoundedRect(ctx, left, top, width, height, 30, 'rgba(0, 0, 0, 0.392)');
-
-    // border
-    strokeRoundedRect(ctx, left, top, width, height, 30, 10, 'rgba(255, 255, 255, 0.392)');
-
-    const textTopY = top + (26 * 4 / 3);
-    const textBottomY = textTopY + (48 * (4 / 3));
-    // MAX text
-    ctx.font = `${26 * (4 / 3)}px \'Open Sans\', sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    if (isCruiseSet) {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.784)';
-    } else {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.392)';
-    }
-
-    ctx.fillText('MAX', left + width / 2, textTopY);
-
-    // max speed text
-    if (isCruiseSet) {
-      ctx.font = `700 ${48 * (4 / 3)}px \'Open Sans\', sans-serif`;
-      ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
-      ctx.fillText(Math.floor(maxSpeedCalc), 2 + left + width / 2, textBottomY);
-    } else {
-      ctx.font = `600 ${42 * (4 / 3)}px \'Open Sans\', sans-serif`;
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.392)';
-      ctx.fillText('N/A', left + width / 2, textBottomY);
-    }
-  }
-
-  drawCarStateWheel(options, CarState, ControlsState) {
-    const { ctx } = options;
-
-    const radius = 80;
-    const wheelRadius = radius - (bdr_s / 2);
-    const x = this.vwp_w - radius - (bdr_s * 2);
-    const y = radius + (bdr_s * 2);
-
-    // Wheel Background
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
-    if (ControlsState.Enabled) {
-      ctx.fillStyle = theme.palette.states.engagedGreen;
-    } else {
-      ctx.fillStyle = theme.palette.states.drivingBlue;
-    }
-    ctx.closePath();
-    ctx.fill();
-
-    // Rotate Wheel
-    ctx.translate(x, y);
-    ctx.rotate(0 - CarState.SteeringAngleDeg * Math.PI / 180);
-    ctx.translate(-x, -y);
-
-    // Wheel Image
-    ctx.drawImage(wheelImg, x - wheelRadius, y - wheelRadius, 2 * wheelRadius, 2 * wheelRadius);
   }
 
   drawCarStateBorder(options, ControlsState) {
@@ -528,28 +385,6 @@ class DriveVideo extends Component {
       ctx.strokeStyle = theme.palette.states.drivingBlue;
     }
     ctx.strokeRect(0, 0, this.vwp_w, this.vwp_h);
-  }
-
-  carSpaceToImageSpace(coords) {
-    coords = this.matmul(this.extrinsic, coords);
-    coords = this.matmul(this.intrinsic, coords);
-
-    // project onto 3d with Z
-    coords[0] /= coords[2];
-    coords[1] /= coords[2];
-    return coords;
-  }
-
-  matmul(matrix, coord) {
-    const b0 = coord[0]; const b1 = coord[1]; const b2 = coord[2]; const
-      b3 = coord[3];
-
-    coord[0] = b0 * matrix[0] + b1 * matrix[1] + b2 * matrix[2] + b3 * matrix[3];
-    coord[1] = b0 * matrix[4] + b1 * matrix[5] + b2 * matrix[6] + b3 * matrix[7];
-    coord[2] = b0 * matrix[8] + b1 * matrix[9] + b2 * matrix[10] + b3 * matrix[11];
-    coord[3] = b0 * matrix[12] + b1 * matrix[13] + b2 * matrix[14] + b3 * matrix[15];
-
-    return coord;
   }
 
   currentVideoTime(offset = TimelineWorker.currentOffset()) {
@@ -585,11 +420,7 @@ class DriveVideo extends Component {
           onBufferEnd={ () => TimelineWorker.bufferVideo(false) }
           onPlay={ () => TimelineWorker.bufferVideo(false) } />
         { this.props.shouldShowUI &&
-          <>
-            <canvas className={classes.videoUiCanvas} style={{ zIndex: 5 }} ref={this.canvas_carstate} />
-            <canvas className={classes.videoUiCanvas} style={{ zIndex: 6 }} ref={this.canvas_maxspeed} />
-            <canvas className={classes.videoUiCanvas} style={{ zIndex: 7 }} ref={this.canvas_speed} />
-          </>
+          <canvas className={classes.videoUiCanvas} style={{ zIndex: 5 }} ref={this.canvas_carstate} />
         }
       </div>
     );
