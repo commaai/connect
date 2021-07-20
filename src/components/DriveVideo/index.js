@@ -88,11 +88,9 @@ class DriveVideo extends Component {
     this.visibleSegment = this.visibleSegment.bind(this);
 
     this.videoPlayer = React.createRef();
-    this.canvas_lead = React.createRef();
     this.canvas_carstate = React.createRef();
     this.canvas_maxspeed = React.createRef();
     this.canvas_speed = React.createRef();
-    this.canvas_face = React.createRef();
 
     this.intrinsic = eon_intrinsic;
     this.vwp_w = eon_vwp_w;
@@ -303,13 +301,6 @@ class DriveVideo extends Component {
       this.extrinsic = [...live_calibration.LiveCalibration.ExtrinsicMatrix, 0, 0, 0, 1];
     }
 
-    if (this.canvas_lead.current) {
-      const params = { calibration, shouldScale: true };
-      const events = { radarState: TimelineWorker.currentRadarState };
-      this.renderEventToCanvas(
-        this.canvas_lead.current, params, events, this.renderLeadCars
-      );
-    }
     if (this.canvas_carstate.current) {
       const params = { calibration, shouldScale: true };
       const events = {
@@ -398,90 +389,6 @@ class DriveVideo extends Component {
     }
 
     renderEvent.apply(this, [{ width, height, ctx }, _events]);
-  }
-
-  renderLeadCars(options, events) {
-    if (!events.radarState) {
-      return;
-    }
-    this.lastRadarStateMonoTime = events.radarState.LogMonoTime;
-    const { width, height, ctx } = options;
-
-    const leadOne = events.radarState.RadarState.LeadOne;
-    const leadTwo = events.radarState.RadarState.LeadTwo;
-
-    if (leadOne.Status) {
-      this.renderLeadCar(options, leadOne);
-    }
-    if (leadTwo.Status) {
-      this.renderLeadCar(options, leadTwo, true);
-    }
-  }
-
-  renderLeadCar(options, leadData, is2ndCar) {
-    const { width, height, ctx } = options;
-
-    const drel = leadData.DRel;
-    const vrel = leadData.VRel;
-    const yrel = leadData.YRel;
-
-    var x = drel + 2.7;
-    var y = yrel;
-
-    var [x, y, z] = this.carSpaceToImageSpace([drel + 2.7, yrel, 0, 1]);
-
-    if (x < 0 || y < 0) {
-      return;
-    }
-
-    let sz = 25 * 30;
-    sz /= ((drel + 2.7) / 3 + 30);
-    sz = Math.min(Math.max(sz, 15), 30);
-    if (is2ndCar) {
-      sz /= 1.2;
-    }
-
-    let fillAlpha = 0;
-    const speedBuff = 10;
-    const leadBuff = 40;
-
-    if (drel < leadBuff) {
-      fillAlpha = 255 * (1 - (drel / leadBuff));
-      if (vrel < 0) {
-        fillAlpha += 255 * (-1 * (vrel / speedBuff));
-      }
-      fillAlpha = Math.min(fillAlpha, 255) / 255;
-    }
-
-    // glow
-    if (is2ndCar) {
-      ctx.fillStyle = 'rgba(218, 202, 37, 0.5)';
-    } else {
-      ctx.fillStyle = 'rgb(218, 202, 37)';
-    }
-    ctx.lineWidth = 5;
-    const g_xo = sz / 5;
-    const g_yo = sz / 10;
-    ctx.beginPath();
-    ctx.moveTo(x + (sz * 1.35) + g_xo, y + sz + g_yo);
-    ctx.lineTo(x, y - g_xo);
-    ctx.lineTo(x - (sz * 1.35) - g_xo, y + sz + g_yo);
-    ctx.lineTo(x + (sz * 1.35) + g_xo, y + sz + g_yo);
-    ctx.fill();
-
-    if (fillAlpha > 0) {
-      if (is2ndCar) {
-        fillAlpha /= 1.5;
-      }
-      ctx.fillStyle = `rgba(201, 34, 49, ${fillAlpha})`;
-
-      ctx.beginPath();
-      ctx.moveTo(x + (sz * 1.25), y + sz);
-      ctx.lineTo(x, y);
-      ctx.lineTo(x - (sz * 1.25), y + sz);
-      ctx.lineTo(x + (sz * 1.25), y + sz);
-      ctx.fill();
-    }
   }
 
   renderCarState(options, events) {
@@ -679,7 +586,6 @@ class DriveVideo extends Component {
           onPlay={ () => TimelineWorker.bufferVideo(false) } />
         { this.props.shouldShowUI &&
           <>
-            <canvas className={classes.videoUiCanvas} style={{ zIndex: 4 }} ref={this.canvas_lead} />
             <canvas className={classes.videoUiCanvas} style={{ zIndex: 5 }} ref={this.canvas_carstate} />
             <canvas className={classes.videoUiCanvas} style={{ zIndex: 6 }} ref={this.canvas_maxspeed} />
             <canvas className={classes.videoUiCanvas} style={{ zIndex: 7 }} ref={this.canvas_speed} />
