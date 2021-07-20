@@ -13,14 +13,9 @@ import { video as VideoApi } from '@commaai/comma-api';
 import theme from '../../theme';
 import TimelineWorker from '../../timeline';
 import * as LogIndex from '../../timeline/logIndex';
-import { strokeRoundedRect, fillRoundedRect } from './canvas';
 import Buffering from './buffering';
 
 window.Hls = Hls;
-
-// UI Assets
-const wheelImg = new Image();
-wheelImg.src = require('../../icons/icon-chffr-wheel.svg');
 
 // these constants are named this way so that the names are the same in python and js
 // do not refactor them to have js style or more descriptive names
@@ -47,9 +42,6 @@ const eon_intrinsic = [
   0, 0, 0, 0,
 ];
 
-const bdr_s = 30;
-// driver monitoring constants
-
 const styles = (theme) => ({
   hidden: {
     display: 'none'
@@ -67,13 +59,6 @@ const styles = (theme) => ({
     width: '100%',
     zIndex: 1
   },
-  videoUiCanvas: {
-    height: '100%',
-    left: 0,
-    position: 'absolute',
-    top: 0,
-    width: '100%',
-  },
 });
 
 function is_tici(init_data) {
@@ -88,7 +73,6 @@ class DriveVideo extends Component {
     this.visibleSegment = this.visibleSegment.bind(this);
 
     this.videoPlayer = React.createRef();
-    this.canvas_carstate = React.createRef();
 
     this.intrinsic = eon_intrinsic;
     this.vwp_w = eon_vwp_w;
@@ -175,9 +159,6 @@ class DriveVideo extends Component {
     }
     if (this.frame % 6 === 0) {
       this.checkDataBuffer();
-    }
-    if (this.frame % 6 === 3) {
-      this.renderCanvas();
     }
   }
 
@@ -268,125 +249,6 @@ class DriveVideo extends Component {
     }
   }, 100)
 
-  renderCanvas() {
-    const calibration = TimelineWorker.getCalibration(this.props.route);
-    if (!calibration) {
-      this.lastCalibrationTime = false;
-      return;
-    }
-
-    if (!this.props.shouldShowUI) {
-      return;
-    }
-
-    if (calibration) {
-      if (this.lastCalibrationTime !== calibration.LogMonoTime) {
-        this.extrinsic = [...calibration.LiveCalibration.ExtrinsicMatrix, 0, 0, 0, 1];
-      }
-      this.lastCalibrationTime = calibration.LogMonoTime;
-    }
-    let init_data = TimelineWorker.currentInitData();
-    if (init_data){
-      if (is_tici(init_data)) {
-        this.intrinsic = tici_intrinsic;
-        this.vwp_w = tici_vwp_w;
-        this.vwp_h = tici_vwp_h;
-      }
-    }
-
-    let live_calibration = TimelineWorker.currentLiveCalibration();
-    if (live_calibration) {
-      this.extrinsic = [...live_calibration.LiveCalibration.ExtrinsicMatrix, 0, 0, 0, 1];
-    }
-
-    if (this.canvas_carstate.current) {
-      const params = { calibration, shouldScale: true };
-      const events = {
-        carState: TimelineWorker.currentCarState,
-        controlsState: TimelineWorker.currentControlsState,
-      };
-      this.renderEventToCanvas(
-        this.canvas_carstate.current, params, events, this.renderCarState
-      );
-    }
-  }
-
-  renderEventToCanvas(canvas, params, events, renderEvent) {
-    const { width, height } = canvas.getBoundingClientRect();
-
-    if (!params.calibration) {
-      const ctx = canvas.getContext('2d');
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, width, height);
-      return; // loading calibration from logs still...
-    }
-
-    let logTime; let
-      monoIndex;
-    const _events = {};
-    let needsRender = false;
-    const eventsSig = Object.keys(events).join(',');
-    Object.keys(events).map((key) => {
-      const event = events[key].apply(TimelineWorker);
-      monoIndex = `${events[key].name}MonoTime${eventsSig}`;
-
-      if (!event) {
-        if (this[monoIndex]) {
-          this[monoIndex] = false;
-          const ctx = canvas.getContext('2d');
-          ctx.setTransform(1, 0, 0, 1, 0, 0);
-          ctx.clearRect(0, 0, width, height);
-          // we have to force re-render when one is missing
-          // this is because there's more than one event being rendered through this flow
-          // this should be re-broken apart such that this isn't an issue
-          // fixing that will also reduce the rendering complexity
-          needsRender = true;
-        }
-      } else {
-        logTime = event ? event.LogMonoTime : null;
-        needsRender = needsRender || logTime !== this[monoIndex];
-        this[monoIndex] = logTime;
-        _events[key] = event;
-      }
-    });
-
-    if (!needsRender) {
-      return;
-    }
-    // will render!
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    // clear all the data
-    ctx.clearRect(0, 0, width, height);
-    // reset transform before anything, just in case
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    // scale original coords onto our current size
-    if (params.shouldScale) {
-      ctx.scale(width / this.vwp_w, height / this.vwp_h);
-    }
-
-    renderEvent.apply(this, [{ width, height, ctx }, _events]);
-  }
-
-  renderCarState(options, events) {
-    if (events && events.carState && events.controlsState) {
-      this.drawCarStateBorder(options, events.controlsState.ControlsState);
-    }
-  }
-
-  drawCarStateBorder(options, ControlsState) {
-    const { ctx } = options;
-    ctx.lineWidth = bdr_s * 2;
-
-    if (ControlsState.Enabled) {
-      ctx.strokeStyle = theme.palette.states.engagedGreen;
-    } else {
-      ctx.strokeStyle = theme.palette.states.drivingBlue;
-    }
-    ctx.strokeRect(0, 0, this.vwp_w, this.vwp_h);
-  }
-
   currentVideoTime(offset = TimelineWorker.currentOffset()) {
     if (!this.visibleSegment()) {
       return 0;
@@ -419,9 +281,6 @@ class DriveVideo extends Component {
           onBuffer={ () => TimelineWorker.bufferVideo(true) }
           onBufferEnd={ () => TimelineWorker.bufferVideo(false) }
           onPlay={ () => TimelineWorker.bufferVideo(false) } />
-        { this.props.shouldShowUI &&
-          <canvas className={classes.videoUiCanvas} style={{ zIndex: 5 }} ref={this.canvas_carstate} />
-        }
       </div>
     );
   }
