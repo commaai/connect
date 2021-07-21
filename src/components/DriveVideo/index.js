@@ -12,7 +12,6 @@ import { video as VideoApi } from '@commaai/comma-api';
 
 import theme from '../../theme';
 import TimelineWorker from '../../timeline';
-import * as LogIndex from '../../timeline/logIndex';
 import Buffering from './buffering';
 
 window.Hls = Hls;

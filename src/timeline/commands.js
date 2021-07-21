@@ -14,7 +14,6 @@ import Segments from './segments';
 import init from './startup';
 import * as Playback from './playback';
 import store from './store';
-import * as Cache from './cache';
 import * as Demo from '../demo';
 
 // fire off init method / construct init promises
@@ -84,11 +83,6 @@ function selectLoop(data) {
   store.dispatch(Playback.selectLoop(startTime, duration));
 }
 
-function cachePort(data, ports) {
-  console.log('Was handed this port!', ports);
-  Cache.setCachePort(ports[0]);
-}
-
 function primeGetSubscription(dongleId, subscription) {
   store.dispatch(primeGetSubscriptionAction(dongleId, subscription));
 }
@@ -128,7 +122,6 @@ export const commands = {
   selectTimeRange,
   selectLoop,
   updateDevice,
-  cachePort,
   stop,
   primeGetSubscription,
   primeGetPaymentMethod,
