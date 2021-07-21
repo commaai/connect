@@ -39,10 +39,14 @@ const styles = (/* theme */) => ({
     height: 84,
     backgroundColor: Colors.grey900,
     borderRadius: 17,
-    marginBottom: 60,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
+  },
+  logoSpacer: {
+    height: 60,
+    flexShrink: 2,
   },
   logoText: {
     fontSize: 36,
@@ -134,10 +138,11 @@ class AnonymousLanding extends Component {
 
     return (
       <div className={ classes.baseContainer }>
-        <div className={classes.base}>
+        <div className={ classes.base }>
           <div className={ classes.logoContainer }>
             <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
           </div>
+          <div className={ classes.logoSpacer }>&nbsp;</div>
           <Typography className={classes.logoText}>comma connect</Typography>
           <Typography className={classes.tagline}>
             Manage your comma device, view your drives, and comma prime features
