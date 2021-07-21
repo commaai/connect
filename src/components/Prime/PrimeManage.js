@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import moment from 'moment';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
-import { withStyles, Typography, Button, Modal, Paper, IconButton } from '@material-ui/core';
+import { withStyles, Typography, Button, Modal, Paper, IconButton, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 
 import { billing as Billing} from '@commaai/comma-api'
@@ -69,6 +69,7 @@ const styles = (theme) => ({
     },
   },
   cancelModalButton: {
+    width: 170,
     marginTop: 10,
     backgroundColor: Colors.grey200,
     color: Colors.white,
@@ -236,7 +237,10 @@ class PrimeManage extends Component {
             </Typography>
             <Button variant="contained" className={ classes.cancelModalButton } onClick={ this.cancelPrime }
               disabled={ Boolean(this.state.cancelSuccess || this.state.canceling) }>
-              { this.state.canceling ? 'Canceling...' : 'Cancel subscription' }
+              { this.state.canceling ?
+                <CircularProgress size={ 19 } style={{ color: Colors.white }} /> :
+                'Cancel subscription'
+              }
             </Button>
             <Button variant="contained" className={ classes.closeButton }
               onClick={ this.modalClose }>

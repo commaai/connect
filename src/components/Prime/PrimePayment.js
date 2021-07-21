@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import { withStyles, Button, Typography, TextField } from '@material-ui/core';
+import { withStyles, Button, Typography, TextField, CircularProgress } from '@material-ui/core';
 import stripe from '../../api/stripe'
 import { Elements, ElementsConsumer, CardNumberElement, CardExpiryElement, CardCvcElement } from '@stripe/react-stripe-js';
 
@@ -220,11 +220,6 @@ class PrimePayment extends Component {
     const canCheckout = !activating && (simId || isUpdate) && cardNumber && cardNumber.complete &&
       cardCvc && cardCvc.complete && cardExpiry && cardExpiry.complete && zipCode && zipCode.length >= 3;
 
-    let buttonText = isUpdate ? 'Update' : 'Activate now';
-    if (activating) {
-      buttonText = isUpdate ? 'Updating...' : 'Activating...';
-    }
-
     const stripeStyle = {
       base: {
         fontSize: '16px',
@@ -267,7 +262,10 @@ class PrimePayment extends Component {
         <div className={ classes.buttonsContainer }>
           <Button disabled={ !canCheckout || disabled } className={ classes.buttons }
             onClick={ this.submitPayment } style={ buttonSmallStyle }>
-            { buttonText }
+            { activating ?
+              <CircularProgress size={ 19 } /> :
+              isUpdate ? 'Update' : 'Activate now'
+            }
           </Button>
           { onCancel &&
             <Button className={ `${classes.buttons} ${classes.cancelButton}` } onClick={ onCancel }
