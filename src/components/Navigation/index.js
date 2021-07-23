@@ -847,8 +847,8 @@ class Navigation extends Component {
     const carLocation = this.getCarLocation();
 
     const cardStyle = windowWidth < 600 ?
-      { width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 } :
-      { width: 360, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
+      { zIndex: 4, width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 } :
+      { zIndex: 4, width: 360, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
 
     let carPinTooltipStyle = { transform: 'translate(calc(-50% + 10px), -4px)' };
     if (carLocation) {
