@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { withStyles } from '@material-ui/core/styles';
+import { withStyles, Typography, CircularProgress } from '@material-ui/core';
 import raf from 'raf';
 import debounce from 'debounce';
 import Obstruction from 'obstruction';
@@ -10,9 +10,7 @@ import Hls from '@commaai/hls.js';
 
 import { video as VideoApi } from '@commaai/comma-api';
 
-import theme from '../../theme';
 import TimelineWorker from '../../timeline';
-import Buffering from './buffering';
 
 window.Hls = Hls;
 
@@ -41,7 +39,7 @@ const eon_intrinsic = [
   0, 0, 0, 0,
 ];
 
-const styles = (theme) => ({
+const styles = () => ({
   hidden: {
     display: 'none'
   },
@@ -57,6 +55,23 @@ const styles = (theme) => ({
     top: 0,
     width: '100%',
     zIndex: 1
+  },
+  bufferingContainer: {
+    zIndex: 50,
+    position: 'absolute',
+    height: '100%',
+    width: '100%',
+    backgroundColor: '#16181Aaa',
+  },
+  bufferingSpinner: {
+    position: 'relative',
+    textAlign: 'center',
+    top: 'calc(50% - 25px)',
+  },
+  bufferingText: {
+    position: 'relative',
+    textAlign: 'center',
+    top: '50%',
   },
 });
 
@@ -215,7 +230,14 @@ class DriveVideo extends Component {
     return (
       <div className={ classes.videoContainer }>
         { isBufferingVideo &&
-          <Buffering isBufferingVideo={ isBufferingVideo } />
+          <div className={ classes.bufferingContainer }>
+            <div className={ classes.bufferingSpinner }>
+              <CircularProgress color="secondary" thickness={ 6 } size={ 50 } />
+            </div>
+            <div className={ classes.bufferingText }>
+              <Typography>Buffering video</Typography>
+            </div>
+          </div>
         }
         <ReactPlayer ref={ this.videoPlayer } url={ this.state.src } playsinline={ true } muted={ true }
           width="100%" height="unset" playing={ Boolean(this.visibleSegment()) && Boolean(playSpeed) }
