@@ -51,6 +51,9 @@ const styles = (theme) => ({
   fabProgress: {
     marginTop: 10,
   },
+  pairedDongleId: {
+    fontWeight: 'bold',
+  },
 });
 
 class ExplorerApp extends Component {
@@ -101,11 +104,27 @@ class ExplorerApp extends Component {
           Timelineworker.updateDevice(device);
         } else {
           await localforage.removeItem('pairToken');
-          this.setState({ pairDongleId: null, pairLoading: false, pairError: `Could not pair: ${resp}` });
+          console.log(resp);
+          this.setState({ pairDongleId: null, pairLoading: false, pairError: 'Error: could not pair, please try again' });
         }
       } catch(err) {
         await localforage.removeItem('pairToken');
-        this.setState({ pairDongleId: null, pairLoading: false, pairError: `Error: ${err.message}` });
+        let msg;
+        if (err.message.indexOf('400') === 0) {
+          msg = 'invalid request';
+        } else if (err.message.indexOf('401') === 0) {
+          msg = 'could not decode token';
+        } else if (err.message.indexOf('403') === 0) {
+          msg = 'device paired with different owner';
+        } else if (err.message.indexOf('404') === 0) {
+          msg = 'tried to pair invalid device';
+        } else if (err.message.indexOf('417') === 0) {
+          msg = 'pair token not true';
+        } else {
+          msg = 'unable to pair';
+          console.log(err);
+        }
+        this.setState({ pairDongleId: null, pairLoading: false, pairError: `Error: ${msg}, please try again` });
       }
     }
   }
@@ -223,7 +242,11 @@ class ExplorerApp extends Component {
             <Typography variant="title">Pairing device</Typography>
             <Divider />
             { pairLoading && <CircularProgress size={32} className={classes.fabProgress} /> }
-            { pairDongleId && <Typography>Successfully paired device { pairDongleId }</Typography> }
+            { pairDongleId &&
+              <Typography>
+                Successfully paired device <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
+              </Typography>
+            }
             { pairError && <Typography>{ pairError }</Typography> }
             <Button variant="contained" className={ classes.closeButton } onClick={ this.closePair }>
               Close
