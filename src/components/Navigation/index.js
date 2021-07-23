@@ -372,7 +372,7 @@ class Navigation extends Component {
     };
     try {
       let resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
-      if (!resp.result) {
+      if (!resp.result || !this.mounted || dongleId !== this.props.dongleId) {
         return;
       }
       resp = await GeocodeApi().networkPositioning(resp.result);
@@ -383,7 +383,9 @@ class Navigation extends Component {
         }, this.flyToMarkers);
       }
     } catch (err) {
-      if (!err.message || err.message.indexOf('{"error": "Device not registered"}') === -1) {
+      if (this.mounted && dongleId === this.props.dongleId &&
+        (!err.message || err.message.indexOf('{"error": "Device not registered"}') === -1))
+      {
         console.log(err);
       }
     }

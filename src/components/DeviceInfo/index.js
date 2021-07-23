@@ -224,7 +224,9 @@ class DeviceInfo extends Component {
         this.setState({ carHealth: resp });
       }
     } catch(err) {
-      this.setState({ carHealth: { error: err.message }});
+      if (this.mounted && dongleId === this.props.dongleId) {
+        this.setState({ carHealth: { error: err.message }});
+      }
     }
   }
 
