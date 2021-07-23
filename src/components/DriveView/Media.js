@@ -227,18 +227,20 @@ class Media extends Component {
     return (
       <>
         <div className={classes.mediaOptionsRoot}>
-          <div className={classes.mediaOptions}>
-            <div className={classes.mediaOption} style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
-              onClick={() => this.setState({ inView: MediaType.VIDEO })}>
-              <Typography className={classes.mediaOptionText}>Video</Typography>
-            </div>
-            { !showMapAlways &&
+          { showMapAlways ?
+            <div></div>
+          :
+            <div className={classes.mediaOptions}>
+              <div className={classes.mediaOption} style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
+                onClick={() => this.setState({ inView: MediaType.VIDEO })}>
+                <Typography className={classes.mediaOptionText}>Video</Typography>
+              </div>
               <div className={classes.mediaOption} style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
                 onClick={() => this.setState({ inView: MediaType.MAP })}>
                 <Typography className={classes.mediaOptionText}>Map</Typography>
               </div>
-            }
-          </div>
+            </div>
+          }
           <div className={classes.mediaOptions}>
             <div className={classes.mediaOption} aria-haspopup="true"
               onClick={ (ev) => this.setState({ downloadMenu: ev.target }) }>
