@@ -46,8 +46,10 @@ export class TimelineInterface {
         return new Promise((resolve, reject) => reject(Error('No auth')));
       }
 
+      this.setState(store.getState());
       store.subscribe(() => {
         const state = store.getState();
+        this.setState(state);
       });
 
       InitEvent.broadcast(token);
