@@ -5,6 +5,7 @@ import Event from 'geval/event';
 import { storage as AuthStorage } from '@commaai/my-comma-auth';
 import * as Playback from './playback';
 import { getDongleID, getPrimeNav, getZoom } from '../url';
+import { getState, init as initTimeline } from './timeline';
 import { commands } from './commands';
 import store from './store';
 
@@ -34,6 +35,8 @@ export class TimelineInterface {
     if (!this.hasInit) {
       this.hasInit = true;
       this.isDemo = isDemo;
+
+      initTimeline();
 
       this.readyPromise = commands.hello({
         dongleId: getDongleID(startPath),
