@@ -23,6 +23,12 @@ const styles = () => ({
   mapContainer: {
     borderBottom: `1px solid ${Colors.white10}`,
   },
+  mapError: {
+    position: 'relative',
+    marginTop: 20,
+    marginLeft: 20,
+    '& p': { color: Colors.white50 },
+  },
   geolocateControl: {
     display: 'none',
   },
@@ -239,6 +245,7 @@ class Navigation extends Component {
         latitude: 32.73,
         zoom: 5,
       },
+      mapError: null,
       windowWidth: window.innerWidth,
     };
 
@@ -248,6 +255,7 @@ class Navigation extends Component {
     this.carPinTooltipRef = React.createRef();
     this.navigateFakeButtonRef = React.createRef();
 
+    this.checkWebGLSupport = this.checkWebGLSupport.bind(this);
     this.flyToMarkers = this.flyToMarkers.bind(this);
     this.renderOverlay = this.renderOverlay.bind(this);
     this.renderSearchOverlay = this.renderSearchOverlay.bind(this);
@@ -285,6 +293,7 @@ class Navigation extends Component {
 
   componentDidMount() {
     this.mounted = true;
+    this.checkWebGLSupport();
     this.componentDidUpdate({}, {});
   }
 
@@ -313,6 +322,14 @@ class Navigation extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+  }
+
+  checkWebGLSupport() {
+    let canvas = document.createElement("canvas");
+    let gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+    if (!gl || !(gl instanceof WebGLRenderingContext)) {
+      this.setState({ mapError: 'Failed to get WebGL context, your browser or device may not support WebGL.' });
+    }
   }
 
   updateDevice() {
@@ -843,7 +860,8 @@ class Navigation extends Component {
 
   render() {
     const { classes, hasNav } = this.props;
-    const { hasFocus, search, searchLooking, searchSelect, favoriteLocations, viewport, windowWidth } = this.state;
+    const { mapError, hasFocus, search, searchLooking, searchSelect, favoriteLocations, viewport,
+      windowWidth } = this.state;
     const carLocation = this.getCarLocation();
 
     const cardStyle = windowWidth < 600 ?
@@ -861,9 +879,16 @@ class Navigation extends Component {
     return (
       <div className={ classes.mapContainer } style={{ height: (hasFocus && hasNav) ? '60vh' : 200 }}>
         <ResizeHandler onResize={ this.onResize } />
+        { mapError &&
+          <div className={ classes.mapError }>
+            <Typography>Could not initialize map.</Typography>
+            <Typography>{ mapError }</Typography>
+          </div>
+        }
         <ReactMapGL { ...viewport } onViewportChange={ this.viewportChange } onContextMenu={ null }
           mapStyle={ MAP_STYLE } width="100%" height="100%" onNativeClick={ this.focus } maxPitch={ 0 }
-          mapboxApiAccessToken={ process.env.REACT_APP_MAPBOX_TOKEN } attributionControl={ false } dragRotate={ false }>
+          mapboxApiAccessToken={ process.env.REACT_APP_MAPBOX_TOKEN } attributionControl={ false } dragRotate={ false }
+          onError={ (err) => this.setState({ mapError: err.error.message }) }>
           <GeolocateControl className={ classes.geolocateControl } positionOptions={{ enableHighAccuracy: true }}
             showAccuracyCircle={ false } onGeolocate={ this.onGeolocate } auto={ hasFocus }
             fitBoundsOptions={{ maxZoom: 10 }} trackUserLocation={true} onViewportChange={ () => {} } />
