@@ -7,12 +7,11 @@ import { currentOffset } from './playback';
 import Segments from './segments';
 import store from './store';
 import * as Demo from '../demo';
-import { commands, initAuthPromise } from './commands';
+import { initAuthPromise } from './commands';
 
 const demoSegments = require('../demo/segments.json');
 
 const BroadcastEvent = Event();
-const DataLogEvent = Event();
 const SegmentTimerStore = CreateStore();
 
 let segmentsRequest = null;
@@ -85,9 +84,7 @@ async function checkSegmentMetadata(state) {
     return;
   }
   console.log('We need to update the segment metadata...');
-  const { dongleId } = state;
-  const { start } = state;
-  const { end } = state;
+  const { dongleId, start, end } = state;
 
   let segmentData = null;
   if (Demo.isDemo()) {
@@ -133,24 +130,4 @@ export function init() {
       data: state
     });
   });
-}
-
-export async function handleMessage(port, msg) {
-  if (msg.data.command) {
-    if (!commands[msg.data.command]) {
-      console.error('Invalid command!', msg.data);
-      return;
-    }
-    let result = commands[msg.data.command](port, msg.data.data, msg.ports);
-    if (result && msg.data.requestId) {
-      result = await result;
-      if (result) {
-        port.postMessage({
-          requestId: msg.data.requestId,
-          command: 'return-value',
-          data: result
-        });
-      }
-    }
-  }
 }
