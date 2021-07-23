@@ -176,6 +176,7 @@ const styles = () => ({
     backgroundColor: Colors.grey800,
     marginTop: 5,
     textAlign: 'center',
+    zIndex: 5,
     '& p:first-child': {
       fontWeight: 500,
     },
