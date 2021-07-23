@@ -206,13 +206,6 @@ class DriveVideo extends Component {
     offset -= this.visibleSegment().routeOffset;
     offset = offset / 1000;
 
-    let initData = TimelineWorker.currentInitData();
-    let firstFrameTime = TimelineWorker.firstFrameTime();
-
-    if (initData !== null && firstFrameTime !== null) {
-      offset -= (firstFrameTime - initData.LogMonoTime/1e9);
-    }
-
     return Math.max(0, offset);
   }
 
