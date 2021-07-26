@@ -14,7 +14,6 @@ import Segments from './segments';
 import init from './startup';
 import * as Playback from './playback';
 import store from './store';
-import * as Cache from './cache';
 import * as Demo from '../demo';
 
 // fire off init method / construct init promises
@@ -53,10 +52,6 @@ function bufferVideo(isBuffering) {
   store.dispatch(Playback.bufferVideo(isBuffering));
 }
 
-function bufferData(isBuffering) {
-  store.dispatch(Playback.bufferData(isBuffering));
-}
-
 async function hello(data) {
   await Demo.init();
   await initAuthPromise;
@@ -86,11 +81,6 @@ function selectTimeRange(data) {
 function selectLoop(data) {
   const { startTime, duration } = data;
   store.dispatch(Playback.selectLoop(startTime, duration));
-}
-
-function cachePort(data, ports) {
-  console.log('Was handed this port!', ports);
-  Cache.setCachePort(ports[0]);
 }
 
 function primeGetSubscription(dongleId, subscription) {
@@ -127,13 +117,11 @@ export const commands = {
   pause,
   seek,
   bufferVideo,
-  bufferData,
   hello,
   selectDevice,
   selectTimeRange,
   selectLoop,
   updateDevice,
-  cachePort,
   stop,
   primeGetSubscription,
   primeGetPaymentMethod,

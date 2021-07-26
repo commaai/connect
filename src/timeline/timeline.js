@@ -5,15 +5,13 @@ import { drives as Drives } from '@commaai/comma-api'; // eslint-disable-line
 
 import { currentOffset } from './playback';
 import Segments from './segments';
-import * as Cache from './cache';
 import store from './store';
 import * as Demo from '../demo';
-import { commands, initAuthPromise } from './commands';
+import { initAuthPromise } from './commands';
 
 const demoSegments = require('../demo/segments.json');
 
 const BroadcastEvent = Event();
-const DataLogEvent = Event();
 const SegmentTimerStore = CreateStore();
 
 let segmentsRequest = null;
@@ -65,7 +63,7 @@ function scheduleSegmentUpdate(state) {
     console.log('Waiting', timeUntilNext, 'for something to change...');
     SegmentTimerStore(state).stopTimer = setTimeout(() => {
       // empty action to churn the butter
-      // store.dispatch(Segments.updateSegments());
+      store.dispatch(Segments.updateSegments());
     }, timeUntilNext);
   } else {
     console.log('There is not task i think its worth waiting for...', timeUntilNext);
@@ -86,9 +84,7 @@ async function checkSegmentMetadata(state) {
     return;
   }
   console.log('We need to update the segment metadata...');
-  const { dongleId } = state;
-  const { start } = state;
-  const { end } = state;
+  const { dongleId, start, end } = state;
 
   let segmentData = null;
   if (Demo.isDemo()) {
@@ -115,43 +111,6 @@ async function checkSegmentMetadata(state) {
   segmentData = Segments.parseSegmentMetadata(state, segmentData);
   // broken
   store.dispatch(Segments.insertSegmentMetadata(segmentData));
-  // ensureSegmentData(getState());
-}
-
-let ensureSegmentDataTimer = null;
-async function ensureSegmentData(state) {
-  if (ensureSegmentDataTimer) {
-    clearTimeout(ensureSegmentDataTimer);
-    ensureSegmentDataTimer = null;
-  }
-
-  let entry = null;
-  if (Date.now() - state.startTime < 1000) {
-    ensureSegmentDataTimer = setTimeout(() => {
-      ensureSegmentDataTimer = null;
-      return ensureSegmentData(getState());
-    }, 1100 - (Date.now() - state.startTime));
-    return;
-  }
-  if (state.route) {
-    entry = Cache.getEntry(state.route, state.segment, DataLogEvent.broadcast);
-    if (entry) {
-      entry.start();
-    }
-    if (state.segment !== 0) {
-      entry = Cache.getEntry(state.route, 0, DataLogEvent.broadcast);
-      if (entry) {
-        entry.start();
-      }
-    }
-  }
-  const { nextSegment } = state;
-  if (nextSegment) {
-    entry = Cache.getEntry(nextSegment.route, nextSegment.segment, DataLogEvent.broadcast);
-    if (entry) {
-      entry.start();
-    }
-  }
 }
 
 export function init() {
@@ -165,31 +124,10 @@ export function init() {
     const state = getState();
     checkSegmentMetadata(state);
     scheduleSegmentUpdate(state);
-    ensureSegmentData(state);
 
     BroadcastEvent.broadcast({
       command: 'state',
       data: state
     });
   });
-}
-
-export async function handleMessage(port, msg) {
-  if (msg.data.command) {
-    if (!commands[msg.data.command]) {
-      console.error('Invalid command!', msg.data);
-      return;
-    }
-    let result = commands[msg.data.command](port, msg.data.data, msg.ports);
-    if (result && msg.data.requestId) {
-      result = await result;
-      if (result) {
-        port.postMessage({
-          requestId: msg.data.requestId,
-          command: 'return-value',
-          data: result
-        });
-      }
-    }
-  }
 }

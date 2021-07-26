@@ -81,7 +81,6 @@ const styles = (theme) => ({
 
 const MediaType = {
   VIDEO: 'video',
-  HUD: 'hud',
   MAP: 'map'
 };
 
@@ -104,12 +103,6 @@ class Media extends Component {
     this.downloadSegmentFile = this.downloadSegmentFile.bind(this);
     this.openInCabana = this.openInCabana.bind(this);
     this.openInUseradmin = this.openInUseradmin.bind(this);
-  }
-
-  componentDidUpdate() {
-    if (this.props.isBufferingData && this.state.inView == MediaType.MAP && this.state.windowWidth < 1536) {
-      TimelineWorker.bufferData(false);
-    }
   }
 
   onResize(windowWidth, windowHeight) {
@@ -192,7 +185,7 @@ class Media extends Component {
 
     const showMapAlways = windowWidth >= 1536;
     if (showMapAlways && inView === MediaType.MAP) {
-      this.setState({ inView: MediaType.HUD });
+      this.setState({ inView: MediaType.VIDEO });
     }
 
     const mediaContainerStyle = showMapAlways ?
@@ -208,7 +201,7 @@ class Media extends Component {
         <div style={ mediaContainerStyle }>
           { this.renderMediaOptions(showMapAlways) }
           { inView !== MediaType.MAP &&
-            <DriveVideo shouldShowUI={inView === MediaType.HUD} />
+            <DriveVideo />
           }
           { (inView === MediaType.MAP && !showMapAlways) &&
             <div style={ mapContainerStyle }>
@@ -229,27 +222,25 @@ class Media extends Component {
   }
 
   renderMediaOptions(showMapAlways) {
-    const { classes, visibleSegment } = this.props;
+    const { classes } = this.props;
     const { inView } = this.state;
     return (
       <>
         <div className={classes.mediaOptionsRoot}>
-          <div className={classes.mediaOptions}>
-            <div className={ `${classes.mediaOption} hudButton` } onClick={() => this.setState({ inView: MediaType.HUD })}
-              style={inView !== MediaType.HUD ? { opacity: 0.6 } : { }} >
-              <Typography className={classes.mediaOptionText}>HUD</Typography>
-            </div>
-            <div className={classes.mediaOption} style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
-              onClick={() => this.setState({ inView: MediaType.VIDEO })}>
-              <Typography className={classes.mediaOptionText}>Video</Typography>
-            </div>
-            { !showMapAlways &&
+          { showMapAlways ?
+            <div></div>
+          :
+            <div className={classes.mediaOptions}>
+              <div className={classes.mediaOption} style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
+                onClick={() => this.setState({ inView: MediaType.VIDEO })}>
+                <Typography className={classes.mediaOptionText}>Video</Typography>
+              </div>
               <div className={classes.mediaOption} style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
                 onClick={() => this.setState({ inView: MediaType.MAP })}>
                 <Typography className={classes.mediaOptionText}>Map</Typography>
               </div>
-            }
-          </div>
+            </div>
+          }
           <div className={classes.mediaOptions}>
             <div className={classes.mediaOption} aria-haspopup="true"
               onClick={ (ev) => this.setState({ downloadMenu: ev.target }) }>
@@ -305,7 +296,6 @@ class Media extends Component {
 }
 
 const stateToProps = Obstruction({
-  isBufferingData: 'workerState.isBufferingData',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));

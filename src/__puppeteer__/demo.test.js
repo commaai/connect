@@ -48,30 +48,5 @@ describe('demo mode', () => {
     let video = await page.$('video');
     let videoSrc = await page.evaluate(vid => vid.getAttribute('src'), video);
     expect(videoSrc.startsWith('blob:')).toBeTruthy();
-
-    // puppeteer chromium cannot play mp4, so change source to something it can play
-    await page.evaluate(vid => {
-      vid.setAttribute('src', 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm');
-      vid.play();
-    }, video);
-
-    await expect(page).toClick('.hudButton');
-
-    async function expectCanvasToChange(canvasHandle, wait = 5000) {
-      let start = Date.now();
-      let origDataUrl = await page.evaluate(canvas => canvas.toDataURL(), canvasHandle);
-      let dataUrl;
-      while (Date.now() < (start + wait)) {
-        dataUrl = await page.evaluate(canvas => canvas.toDataURL(), canvasHandle);
-        if (origDataUrl !== dataUrl) {
-          break;
-        }
-      }
-      expect(dataUrl).not.toEqual(origDataUrl);
-    }
-
-    let hudRoadCanvas = await page.$('.hudRoadCanvas');
-    expect(hudRoadCanvas).toBeTruthy();
-    await expectCanvasToChange(hudRoadCanvas);
   });
 });
