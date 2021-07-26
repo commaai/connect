@@ -785,13 +785,13 @@ class Navigation extends Component {
       NavigationAPI.deleteLocationSave(dongleId, searchSelect.favoriteId).then((resp) => {
         this.updateFavoriteLocations();
         this.setState({
+          noFly: false,
+          route: null,
+          searchSelect: null,
+          searchLooking: false,
           savingAs: false,
-          savedAs: true,
-          searchSelect: {
-            ...searchSelect,
-            favoriteIcon: undefined,
-          },
-        });
+          savedAs: false,
+        }, this.flyToMarkers);
       }).catch((err) => {
         console.log(err);
         this.setState({ savingAs: false, savedAs: false });
@@ -1029,7 +1029,7 @@ class Navigation extends Component {
             { searchSelect.favoriteId ?
               <Button disabled={ savingAs || savedAs } onClick={ this.deleteFavorite }
                 classes={{ root: classes.searchSelectButton, label: classes.noWrap }}>
-                { savingAs ? '...' : (savedAs ? 'deleted' :  'delete') }
+                { savingAs ? '...' : 'delete' }
               </Button>
             :
               <Button disabled={ savingAs || savedAs }
