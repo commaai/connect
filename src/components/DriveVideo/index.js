@@ -14,31 +14,6 @@ import TimelineWorker from '../../timeline';
 
 window.Hls = Hls;
 
-// these constants are named this way so that the names are the same in python and js
-// do not refactor them to have js style or more descriptive names
-// UI Measurements
-
-const tici_vwp_w = 1928;
-const tici_vwp_h = 1208;
-const tici_focal = 2648;
-
-const eon_vwp_w = 1164;
-const eon_vwp_h = 874;
-const eon_focal = 910;
-
-const tici_intrinsic = [
-  tici_focal, 0, tici_vwp_w/2, 0,
-  0, tici_focal, tici_vwp_h/2, 0,
-  0, 0, 1, 0,
-  0, 0, 0, 0,
-];
-const eon_intrinsic = [
-  eon_focal, 0, eon_vwp_w/2, 0,
-  0, eon_focal, eon_vwp_h/2, 0,
-  0, 0, 1, 0,
-  0, 0, 0, 0,
-];
-
 const styles = () => ({
   hidden: {
     display: 'none'
@@ -75,10 +50,6 @@ const styles = () => ({
   },
 });
 
-function is_tici(init_data) {
-  return init_data.InitData.DeviceType == 4;
-}
-
 class DriveVideo extends Component {
   constructor(props) {
     super(props);
@@ -87,10 +58,6 @@ class DriveVideo extends Component {
     this.visibleSegment = this.visibleSegment.bind(this);
 
     this.videoPlayer = React.createRef();
-
-    this.intrinsic = eon_intrinsic;
-    this.vwp_w = eon_vwp_w;
-    this.vwp_h = eon_vwp_h;
 
     this.frame = 0;
 
