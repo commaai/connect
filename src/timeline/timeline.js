@@ -1,5 +1,4 @@
 import Event from 'geval/event';
-import CreateStore from 'weakmap-shim/create-store';
 
 import { drives as Drives } from '@commaai/comma-api'; // eslint-disable-line
 
@@ -12,8 +11,8 @@ import { initAuthPromise } from './commands';
 const demoSegments = require('../demo/segments.json');
 
 const BroadcastEvent = Event();
-const SegmentTimerStore = CreateStore();
 
+let segmentsTimer = null;
 let segmentsRequest = null;
 
 export function getState() {
@@ -24,9 +23,9 @@ function scheduleSegmentUpdate(state) {
   let timeUntilNext = 30000;
   const offset = currentOffset(state);
 
-  if (SegmentTimerStore(state).stopTimer) {
-    clearTimeout(SegmentTimerStore(state).stopTimer);
-    SegmentTimerStore(state).stopTimer = null;
+  if (segmentsTimer) {
+    clearTimeout(segmentsTimer);
+    segmentsTimer = null;
   }
   if (state.nextSegment) {
     timeUntilNext = state.nextSegment.startOffset - offset;
@@ -61,7 +60,7 @@ function scheduleSegmentUpdate(state) {
   if (timeUntilNext > 0) {
     timeUntilNext = Math.min(30000, Math.max(200, timeUntilNext));
     console.log('Waiting', timeUntilNext, 'for something to change...');
-    SegmentTimerStore(state).stopTimer = setTimeout(() => {
+    segmentsTimer = setTimeout(() => {
       // empty action to churn the butter
       store.dispatch(Segments.updateSegments());
     }, timeUntilNext);
