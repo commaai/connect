@@ -904,14 +904,15 @@ class Navigation extends Component {
           { !search && !searchSelect && favoriteLocations && Object.entries(favoriteLocations).map(([id, loc]) =>
             <Marker latitude={ loc.latitude } longitude={ loc.longitude } key={ id } offsetLeft={ -7.5 }
               offsetTop={ -24 } captureDrag={ false } captureClick={ false } captureDoubleClick={ false }>
-              <img className={ classes.favoritePin } src={ loc.icon } onClick={ () => this.onFavoriteSelect(id, loc) } />
+              <img className={ classes.favoritePin } src={ loc.icon } onClick={ () => this.onFavoriteSelect(id, loc) }
+                alt="favorite-location" />
             </Marker>
           )}
           { carLocation &&
             <Marker latitude={ carLocation.location[1] } longitude={ carLocation.location[0] } offsetLeft={ -10 }
               offsetTop={ -30 } captureDrag={ false } captureClick={ true } captureDoubleClick={ false }>
               <img className={ classes.pin } src={ pin_car } onMouseEnter={ () => this.toggleCarPinTooltip(true) }
-                onMouseLeave={ () => this.toggleCarPinTooltip(false) } />
+                onMouseLeave={ () => this.toggleCarPinTooltip(false) } alt="car-location" />
               <div className={ classes.carPinTooltip } ref={ this.carPinTooltipRef }
                 style={{ ...carPinTooltipStyle, display: 'none' }}>
                 { moment(carLocation.time).format('LT') },<br />{ moment(carLocation.time).fromNow() }
@@ -928,14 +929,16 @@ class Navigation extends Component {
             <Marker latitude={ this.itemLoc(item).lat } longitude={ this.itemLoc(item).lng } key={ item.id }
               offsetLeft={ -10 } offsetTop={ -30 } captureDrag={ false } captureClick={ false }
               captureDoubleClick={ false }>
-              <img className={ classes.pinClick } src={ pin_marker } onClick={ () => this.onSearchSelect(item) } />
+              <img className={ classes.pinClick } src={ pin_marker } onClick={ () => this.onSearchSelect(item) }
+                alt="pin-location" />
             </Marker>
           )}
           { searchSelect &&
             <Marker latitude={ this.itemLoc(searchSelect).lat } longitude={ this.itemLoc(searchSelect).lng }
               offsetLeft={ -10 } offsetTop={ -30 } captureDrag={ false } captureClick={ false }
               captureDoubleClick={ false }>
-              <img className={ classes.pin } src={ searchSelect.favoriteIcon ? searchSelect.favoriteIcon : pin_marker } />
+              <img className={ classes.pin } src={ searchSelect.favoriteIcon ? searchSelect.favoriteIcon : pin_marker }
+                alt="pin-location" />
             </Marker>
           }
           { hasNav &&

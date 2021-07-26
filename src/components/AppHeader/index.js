@@ -43,9 +43,9 @@ const styles = (theme) => ({
     lineHeight: 0,
   },
   logoImg: {
-    height: '34px',
+    height: 34,
+    width: 18.9,
     margin: '0px 28px',
-    width: 'auto',
   },
   logoText: {
     fontSize: 20,
@@ -147,7 +147,8 @@ class AppHeader extends Component {
             <div className={ classes.headerWideItem } style={ reorderWideStyle }>
               { !primeNav && !annotating && <TimeFilter /> }
             </div>
-            <IconButton aria-owns={open ? 'menu-appbar' : null} aria-haspopup="true" onClick={this.handleClickedAccount}>
+            <IconButton aria-owns={open ? 'menu-appbar' : null} aria-haspopup="true" onClick={this.handleClickedAccount}
+              aria-label="account menu">
               <AccountIcon className={classes.accountIcon} />
             </IconButton>
           </div>

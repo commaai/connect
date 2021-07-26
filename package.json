@@ -54,9 +54,7 @@
     "reduce-reducers": "^0.3.0",
     "redux": "^4.0.0",
     "redux-thunk": "^2.3.0",
-    "simple-get": "^3.1.0",
-    "weakmap-shim": "^1.1.1",
-    "worker-loader": "^2.0.0"
+    "weakmap-shim": "^1.1.1"
   },
   "devDependencies": {
     "@babel/helper-builder-react-jsx": "^7.12.13",

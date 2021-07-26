@@ -152,7 +152,8 @@ class DeviceList extends Component {
           </div>
         </div>
         { ((!device.shared && device.is_owner) || isSuperUser) &&
-          <IconButton className={classes.settingsButton} onClick={ (ev) => this.handleOpenedSettingsModal(device, ev) }>
+          <IconButton className={classes.settingsButton} onClick={ (ev) => this.handleOpenedSettingsModal(device, ev) }
+            aria-label="device settings">
             <SettingsIcon className={classes.settingsButtonIcon} />
           </IconButton>
         }

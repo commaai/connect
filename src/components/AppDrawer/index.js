@@ -5,15 +5,12 @@ import { Link } from 'react-router-dom';
 
 import { withStyles } from '@material-ui/core/styles';
 import 'mapbox-gl/src/css/mapbox-gl.css';
-import Button from '@material-ui/core/Button';
 import Typography from '@material-ui/core/Typography';
 import Drawer from '@material-ui/core/Drawer';
 
 import DeviceList from '../Dashboard/DeviceList';
 
-import { selectRange, selectDevice } from '../../actions';
-
-const ZOOM_BUFFER = 1000; // 1 second on either end
+import { selectDevice } from '../../actions';
 
 const styles = (/* theme */) => ({
   header: {
@@ -33,9 +30,9 @@ const styles = (/* theme */) => ({
     minHeight: 64,
   },
   logoImg: {
-    height: '34px',
+    height: 34,
+    width: 18.9,
     margin: '0px 28px',
-    width: 'auto',
   },
   logoText: {
     fontSize: 20,
