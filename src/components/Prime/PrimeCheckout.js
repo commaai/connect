@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import moment from 'moment';
+import fecha from 'fecha';
 import { withStyles, Typography, IconButton, Modal, Paper, Button, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
@@ -132,7 +132,7 @@ class PrimeCheckout extends Component {
 
   firstChargeDate() {
     if (this.props.subscription) {
-      return moment.unix(this.props.subscription.trial_end).format("MMMM Do")
+      return fecha.format(this.props.subscription.trial_end * 1000, "MMMM Do");
     } else {
       return null;
     }
@@ -140,7 +140,7 @@ class PrimeCheckout extends Component {
 
   claimEndDate() {
     if (this.props.subscription && this.props.subscription.trial_claim_end) {
-      return moment.unix(this.props.subscription.trial_claim_end).format("MMMM Do")
+      return fecha.format(this.props.subscription.trial_claim_end * 1000, "MMMM Do");
     } else {
       return null;
     }

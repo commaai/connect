@@ -105,10 +105,6 @@ function updateDeviceOnline(dongleId, last_athena_ping, fetched_at) {
 
 function stop() {
   console.log('Stopping worker!');
-  // if (SegmentTimerStore(state).stopTimer) {
-  //   SegmentTimerStore(state).stopTimer();
-  //   SegmentTimerStore(state).stopTimer = null;
-  // }
 }
 
 export const commands = {

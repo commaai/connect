@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import moment from 'moment';
+import fecha from 'fecha';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import { withStyles, Typography, Button, Modal, Paper, IconButton, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
@@ -160,8 +160,9 @@ class PrimeManage extends Component {
       };
     }
 
-    let joinDate = moment.unix(subscription.subscribed_at).format('MMMM Do, YYYY');
-    let nextPaymentDate = moment.unix(subscription.next_charge_at).format('MMMM Do, YYYY');
+    let joinDate = fecha.format(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0, 'MMMM Do, YYYY');
+    let nextPaymentDate = fecha.format(
+      subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0, 'MMMM Do, YYYY');
 
     const alias = device.alias || deviceTypePretty(device.device_type);
     const simId = this.state.simInfo ? this.state.simInfo.sim_id : null;

@@ -6,8 +6,9 @@ import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorV
 import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress, Popper }
   from '@material-ui/core';
 import { Search, Clear, Refresh } from '@material-ui/icons';
-import moment from 'moment';
+import fecha from 'fecha';
 
+import { timeFromNow } from '../../utils';
 import { devices as Devices, navigation as NavigationAPI, athena as AthenaApi } from '@commaai/comma-api';
 import Colors from '../../colors';
 import GeocodeApi from '../../api/geocode';
@@ -915,7 +916,7 @@ class Navigation extends Component {
                 onMouseLeave={ () => this.toggleCarPinTooltip(false) } alt="car-location" />
               <div className={ classes.carPinTooltip } ref={ this.carPinTooltipRef }
                 style={{ ...carPinTooltipStyle, display: 'none' }}>
-                { moment(carLocation.time).format('LT') },<br />{ moment(carLocation.time).fromNow() }
+                { fecha.format(carLocation.time, 'h:mm a') },<br />{ timeFromNow(carLocation.time) }
               </div>
             </Marker>
           }

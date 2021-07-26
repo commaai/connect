@@ -34,7 +34,6 @@
     "global": "^4.3.2",
     "history": "^4.7.2",
     "localforage": "^1.7.1",
-    "moment": "^2.29.1",
     "obstruction": "^2.1.0",
     "prop-types": "^15.7.2",
     "query-string": "^5.0.1",
@@ -53,8 +52,7 @@
     "react-virtualized": "^9.21.1",
     "reduce-reducers": "^0.3.0",
     "redux": "^4.0.0",
-    "redux-thunk": "^2.3.0",
-    "weakmap-shim": "^1.1.1"
+    "redux-thunk": "^2.3.0"
   },
   "devDependencies": {
     "@babel/helper-builder-react-jsx": "^7.12.13",
