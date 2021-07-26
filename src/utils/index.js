@@ -22,7 +22,6 @@ export function formatDriveDuration(duration) {
 
 export function timeFromNow(ts) {
   const dt = (Date.now() - ts) / 1000;
-  console.log(ts, Date.now(), dt);
   if (dt > 3600 * 24 * 30) {
     return fecha.format(ts, 'MMM Do YYYY');
   }

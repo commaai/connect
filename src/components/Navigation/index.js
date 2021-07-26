@@ -624,9 +624,12 @@ class Navigation extends Component {
         bottom: bottomBoxHeight + 20,
       };
       if (viewport.width) {
-        this.setState({
-          viewport: new WebMercatorViewport(viewport).fitBounds(bbox, { padding: padding, maxZoom: 10 })
-        });
+        try {
+          const newVp = new WebMercatorViewport(viewport).fitBounds(bbox, { padding: padding, maxZoom: 10 });
+          this.setState({ viewport: newVp });
+        } catch (err) {
+          console.log(err);
+        }
       }
     }
   }
