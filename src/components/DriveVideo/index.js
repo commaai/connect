@@ -56,6 +56,7 @@ class DriveVideo extends Component {
 
     this.updatePreview = this.updatePreview.bind(this);
     this.visibleSegment = this.visibleSegment.bind(this);
+    this.isVideoBuffering = this.isVideoBuffering.bind(this);
 
     this.videoPlayer = React.createRef();
 
@@ -133,8 +134,20 @@ class DriveVideo extends Component {
     this.rafLoop = raf(this.updatePreview);
 
     this.frame++;
-    if (this.frame % 30 === 0) {
+    if (this.frame % 20 === 0) {
       this.syncVideo();
+    }
+  }
+
+  isVideoBuffering() {
+    const videoPlayer = this.videoPlayer.current;
+    if (!videoPlayer || !this.visibleSegment() || !videoPlayer.getDuration()) {
+      TimelineWorker.bufferVideo(true);
+    }
+
+    const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() > 30;
+    if (!hasSufficientBuffer || videoPlayer.getInternalPlayer().readyState < 2) {
+      TimelineWorker.bufferVideo(true);
     }
   }
 
@@ -148,7 +161,7 @@ class DriveVideo extends Component {
 
     // sanity check required for ios
     const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() > 30;
-    if (hasSufficientBuffer && this.props.isBufferingVideo) {
+    if (hasSufficientBuffer && internalPlayer.readyState >= 2 && this.props.isBufferingVideo) {
       TimelineWorker.bufferVideo(false);
     }
 
@@ -210,7 +223,7 @@ class DriveVideo extends Component {
           width="100%" height="unset" playing={ Boolean(this.visibleSegment()) && Boolean(playSpeed) }
           config={{ hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false } }}
           playbackRate={ playSpeed }
-          onBuffer={ () => TimelineWorker.bufferVideo(true) }
+          onBuffer={ () => this.isVideoBuffering() }
           onBufferEnd={ () => TimelineWorker.bufferVideo(false) }
           onPlay={ () => TimelineWorker.bufferVideo(false) } />
       </div>
