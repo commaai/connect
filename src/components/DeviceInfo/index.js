@@ -7,6 +7,7 @@ import { Carousel } from 'react-responsive-carousel';
 
 import * as Demo from '../../demo';
 import ResizeHandler from '../ResizeHandler';
+import VisibilityHandler from '../VisibilityHandler';
 import Colors from '../../colors';
 import { deviceTypePretty, deviceIsOnline } from '../../utils'
 import { devices as DevicesApi, athena as AthenaApi } from '@commaai/comma-api';
@@ -157,6 +158,7 @@ class DeviceInfo extends Component {
     this.snapshotButtonRef = React.createRef();
 
     this.onResize = this.onResize.bind(this);
+    this.onVisible = this.onVisible.bind(this);
     this.fetchDeviceInfo = this.fetchDeviceInfo.bind(this);
     this.fetchDeviceCarHealth = this.fetchDeviceCarHealth.bind(this);
     this.takeSnapshot = this.takeSnapshot.bind(this);
@@ -168,28 +170,21 @@ class DeviceInfo extends Component {
 
   componentDidMount() {
     this.mounted = true;
-    this.componentDidUpdate({});
   }
 
   componentWillUnmount() {
     this.mounted = false;
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    const { dongleId } = this.props;
-
-    if (prevProps.dongleId !== dongleId) {
-      this.setState(initialState);
-
-      if (!Demo.isDemo()) {
-        this.fetchDeviceInfo();
-        this.fetchDeviceCarHealth();
-      }
-    }
-  }
-
   onResize(windowWidth) {
     this.setState({ windowWidth });
+  }
+
+  onVisible() {
+    if (!Demo.isDemo()) {
+      this.fetchDeviceInfo();
+      this.fetchDeviceCarHealth();
+    }
   }
 
   async fetchDeviceInfo() {
@@ -208,6 +203,7 @@ class DeviceInfo extends Component {
   async fetchDeviceCarHealth() {
     const { dongleId, device } = this.props;
     if (!deviceIsOnline(device)) {
+      this.setState({ carHealth: {} });
       return;
     }
 
@@ -278,6 +274,7 @@ class DeviceInfo extends Component {
     return (
       <>
         <ResizeHandler onResize={ this.onResize } />
+        <VisibilityHandler onVisible={ this.onVisible } onInit={ true } onDongleId={ true } minInterval={ 60 } />
         <div className={ classes.container } style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
           { windowWidth >= 768 ?
             <div className={ classes.row }>

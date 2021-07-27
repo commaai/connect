@@ -14,6 +14,7 @@ import Colors from '../../colors';
 import GeocodeApi from '../../api/geocode';
 import { pin_car, pin_marker, pin_home, pin_work, pin_pinned } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
+import VisibilityHandler from '../VisibilityHandler';
 import * as Demo from '../../demo';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
@@ -318,7 +319,6 @@ class Navigation extends Component {
       if (this.searchInputRef.current) {
         this.searchInputRef.current.value = '';
       }
-      this.updateDevice();
     }
   }
 
@@ -886,6 +886,7 @@ class Navigation extends Component {
     return (
       <div className={ classes.mapContainer } style={{ height: (hasFocus && hasNav) ? '60vh' : 200 }}>
         <ResizeHandler onResize={ this.onResize } />
+        <VisibilityHandler onVisible={ this.updateDevice } onInit={ true } onDongleId={ true } minInterval={ 60 } />
         { mapError &&
           <div className={ classes.mapError }>
             <Typography>Could not initialize map.</Typography>
