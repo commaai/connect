@@ -148,6 +148,19 @@ const styles = () => ({
       fontWeight: 500,
     },
   },
+  searchSelectButtonSecondary: {
+    marginLeft: 8,
+    padding: '4.5px 12px',
+    borderRadius: 15,
+    textTransform: 'none',
+    minHeight: 'unset',
+    flexGrow: 1,
+    maxWidth: 125,
+    border: `1.5px solid ${Colors.white50}`,
+    '&:disabled': {
+      border: `1.5px solid ${Colors.white20}`,
+    },
+  },
   searchSelectBoxDetails: {
     color: Colors.white40,
   },
@@ -1063,13 +1076,13 @@ class Navigation extends Component {
           <div className={ classes.searchSelectBoxButtons }>
             { searchSelect.favoriteId ?
               <Button disabled={ savingAs || savedAs } onClick={ this.deleteFavorite }
-                classes={{ root: classes.searchSelectButton, label: classes.noWrap }}>
+                classes={{ root: classes.searchSelectButtonSecondary, label: classes.noWrap }}>
                 { savingAs ? '...' : 'delete' }
               </Button>
             :
               <Button disabled={ savingAs || savedAs }
                 onClick={ (ev) => this.setState({ saveAsMenu: ev.target }) }
-                classes={{ root: classes.searchSelectButton, label: classes.noWrap }}>
+                classes={{ root: classes.searchSelectButtonSecondary, label: classes.noWrap }}>
                 { savingAs ? '...' : (savedAs ? 'saved' :  'save as') }
               </Button>
             }
