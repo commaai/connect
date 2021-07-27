@@ -8,6 +8,7 @@ import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuIt
 import { Search, Clear, Refresh } from '@material-ui/icons';
 import fecha from 'fecha';
 
+import { primeNav } from '../../actions';
 import { timeFromNow } from '../../utils';
 import { devices as Devices, navigation as NavigationAPI, athena as AthenaApi } from '@commaai/comma-api';
 import Colors from '../../colors';
@@ -109,6 +110,11 @@ const styles = () => ({
   bold: {
     fontWeight: 600,
   },
+  primeAdTitle: {
+    lineHeight: '31px',
+    fontSize: 20,
+    fontWeight: 600,
+  },
   searchSelectButton: {
     marginLeft: 8,
     padding: '6px 12px',
@@ -144,6 +150,15 @@ const styles = () => ({
   },
   searchSelectBoxDetails: {
     color: Colors.white40,
+  },
+  primeAdButton: {
+    padding: '6px 24px',
+    color: Colors.white,
+    backgroundColor: Colors.primeBlue100,
+    '&:hover': {
+      color: Colors.white,
+      backgroundColor: Colors.primeBlue300,
+    },
   },
   pin: {
     width: 20,
@@ -235,6 +250,7 @@ const initialState = {
   saveAsMenu: null,
   savingAs: false,
   savedAs: false,
+  showPrimeAd: true,
 }
 
 class Navigation extends Component {
@@ -254,6 +270,7 @@ class Navigation extends Component {
 
     this.searchInputRef = React.createRef();
     this.searchSelectBoxRef = React.createRef();
+    this.primeAdBoxRef = React.createRef();
     this.overlayRef = React.createRef();
     this.carPinTooltipRef = React.createRef();
     this.navigateFakeButtonRef = React.createRef();
@@ -262,6 +279,7 @@ class Navigation extends Component {
     this.flyToMarkers = this.flyToMarkers.bind(this);
     this.renderOverlay = this.renderOverlay.bind(this);
     this.renderSearchOverlay = this.renderSearchOverlay.bind(this);
+    this.renderPrimeAd = this.renderPrimeAd.bind(this);
     this.renderResearchArea = this.renderResearchArea.bind(this);
     this.onGeolocate = this.onGeolocate.bind(this);
     this.onSearch = debounce(this.onSearch.bind(this), 200);
@@ -615,8 +633,12 @@ class Navigation extends Component {
         Math.max.apply(null, bounds.map((e) => e[1][1])),
       ]];
 
-      const bottomBoxHeight = (this.searchSelectBoxRef.current && viewport.height > 200) ?
-        this.searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0
+      const searchSelectBox = this.searchSelectBoxRef.current;
+      let bottomBoxHeight = (searchSelectBox && viewport.height > 200) ?
+        searchSelectBox.getBoundingClientRect().height + 10 : 0;
+      const primeAdBox = this.primeAdBoxRef.current;
+      bottomBoxHeight = Math.max(bottomBoxHeight, primeAdBox ? primeAdBox.getBoundingClientRect().height + 10 : 0);
+
       const padding = {
         left: (windowWidth < 600 || !search) ? 20 : 390,
         right: 20,
@@ -866,9 +888,9 @@ class Navigation extends Component {
   };
 
   render() {
-    const { classes, hasNav } = this.props;
+    const { classes, device, hasNav } = this.props;
     const { mapError, hasFocus, search, searchLooking, searchSelect, favoriteLocations, viewport,
-      windowWidth } = this.state;
+      windowWidth, showPrimeAd } = this.state;
     const carLocation = this.getCarLocation();
 
     const cardStyle = windowWidth < 600 ?
@@ -960,6 +982,11 @@ class Navigation extends Component {
             <HTMLOverlay redraw={ this.renderResearchArea } captureScroll={ true } captureDrag={ true }
               captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
               style={{ ...cardStyle, bottom: 10, left: '50%', width: 180, transform: 'translate(-50%, 0)' }} />
+          }
+          { showPrimeAd && !hasNav && !device.prime && device.is_owner &&
+            <HTMLOverlay redraw={ this.renderPrimeAd } captureScroll={ true } captureDrag={ true }
+              captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
+              style={{ ...cardStyle, bottom: 10 }} />
           }
         </ReactMapGL>
       </div>
@@ -1095,6 +1122,31 @@ class Navigation extends Component {
         <Refresh />
         search this area
       </Button>
+    );
+  }
+
+  renderPrimeAd() {
+    const { classes} = this.props;
+
+    return (
+      <div className={ classes.searchSelectBox } ref={ this.primeAdBoxRef }>
+        <Clear className={ classes.clearSearchSelect }
+          onClick={ () => this.setState({ showPrimeAd: false }, this.flyToMarkers) } />
+        <div className={ classes.searchSelectBoxHeader }>
+          <div className={ classes.searchSelectBoxTitle }>
+            <Typography className={ classes.primeAdTitle }>comma prime</Typography>
+          </div>
+          <div className={ classes.searchSelectBoxButtons }>
+            <Button onClick={ () => this.props.dispatch(primeNav()) }
+              className={ `${classes.searchSelectButton} ${classes.primeAdButton}` }>
+              sign up
+            </Button>
+          </div>
+        </div>
+        <Typography className={ classes.primeAdDetails }>
+          Put your car on the internet with comma prime for $24/mo.
+        </Typography>
+      </div>
     );
   }
 }

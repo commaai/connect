@@ -1,18 +1,10 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-
-import {
-  withStyles,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Typography,
-} from '@material-ui/core';
-
-
+import { withStyles, List, ListItem, ListItemIcon, ListItemText, Typography } from '@material-ui/core';
 import CheckIcon from '@material-ui/icons/Check';
+
+import ResizeHandler from '../ResizeHandler';
 
 const styles = () => ({
   checkList: {
@@ -20,7 +12,6 @@ const styles = () => ({
     marginBottom: 10,
   },
   checkListItem: {
-    padding: '7px 0',
     '& svg': { alignSelf: 'flex-start' },
   },
   learnMore: {
@@ -44,17 +35,22 @@ class PrimeChecklist extends Component {
 
     this.state = {
       moreInfo: (!props.collapsed),
+      windowWidth: window.innerWidth,
     };
   }
 
   render() {
     const { classes } = this.props;
+    const { windowWidth } = this.state;
+
+    const paddingStyle = windowWidth > 520 ? { padding: '7px 0', } : { padding: '4px 0', };
 
     return (
       <>
+        <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
         <List className={ classes.checkList }>
           { listItems.map((listItemText, i) => {
-            return <ListItem key={ i } className={ classes.checkListItem }>
+            return <ListItem key={ i } className={ classes.checkListItem } style={ paddingStyle }>
               <ListItemIcon><CheckIcon /></ListItemIcon>
               <ListItemText primary={ listItemText[0] } secondary={ listItemText[1] } />
             </ListItem>;
