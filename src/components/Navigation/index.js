@@ -646,16 +646,34 @@ class Navigation extends Component {
         Math.max.apply(null, bounds.map((e) => e[1][1])),
       ]];
 
-      const searchSelectBox = this.searchSelectBoxRef.current;
-      let bottomBoxHeight = (searchSelectBox && viewport.height > 200) ?
-        searchSelectBox.getBoundingClientRect().height + 10 : 0;
+      if (Math.abs(bbox[0][0] - bbox[1][0]) < 0.01) {
+        bbox[0][0] -= 0.01;
+        bbox[0][1] += 0.01;
+      }
+      if (Math.abs(bbox[1][0] - bbox[1][1]) < 0.01) {
+        bbox[1][0] -= 0.01;
+        bbox[1][1] += 0.01;
+      }
+
+      const bottomBoxHeight = (this.searchSelectBoxRef.current && viewport.height > 200) ?
+        this.searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0;
+
+      let rightBoxWidth = 0;
+      let topBoxHeight = hasNav ? 62 : 0;
+
       const primeAdBox = this.primeAdBoxRef.current;
-      bottomBoxHeight = Math.max(bottomBoxHeight, primeAdBox ? primeAdBox.getBoundingClientRect().height + 10 : 0);
+      if (primeAdBox) {
+        if (windowWidth < 600) {
+          topBoxHeight = Math.max(topBoxHeight, primeAdBox.getBoundingClientRect().height + 10);
+        } else {
+          rightBoxWidth = primeAdBox.getBoundingClientRect().width + 10;
+        }
+      }
 
       const padding = {
         left: (windowWidth < 600 || !search) ? 20 : 390,
-        right: 20,
-        top: hasNav ? 82 : 20,
+        right: rightBoxWidth + 20,
+        top: topBoxHeight + 20,
         bottom: bottomBoxHeight + 20,
       };
       if (viewport.width) {
@@ -999,7 +1017,7 @@ class Navigation extends Component {
           { showPrimeAd && !hasNav && !device.prime && device.is_owner &&
             <HTMLOverlay redraw={ this.renderPrimeAd } captureScroll={ true } captureDrag={ true }
               captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
-              style={{ ...cardStyle, bottom: 10 }} />
+              style={{ ...cardStyle, top: 10, left: windowWidth < 600 ? 10 : 'auto', right: 10 }} />
           }
         </ReactMapGL>
       </div>
