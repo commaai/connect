@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import PropTypes from 'prop-types';
 import localforage from 'localforage';
+import * as Sentry from '@sentry/react';
 
 import { withStyles, Modal, Paper, Typography, Button, CircularProgress, Divider } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -123,6 +124,7 @@ class ExplorerApp extends Component {
         } else {
           msg = 'unable to pair';
           console.log(err);
+          Sentry.captureException(err);
         }
         this.setState({ pairDongleId: null, pairLoading: false, pairError: `Error: ${msg}, please try again` });
       }
