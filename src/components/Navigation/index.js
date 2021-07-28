@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
+import * as Sentry from '@sentry/react';
 import debounce from 'debounce';
 import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer} from 'react-map-gl';
 import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress, Popper }
@@ -388,6 +389,7 @@ class Navigation extends Component {
     } catch(err) {
       if (!err.message || err.message.indexOf('no_segments_uploaded') === -1) {
         console.log(err);
+        Sentry.captureException(err);
       }
     }
   }
@@ -420,6 +422,7 @@ class Navigation extends Component {
         (!err.message || err.message.indexOf('{"error": "Device not registered"}') === -1))
       {
         console.log(err);
+        Sentry.captureException(err);
       }
     }
   }
@@ -504,6 +507,7 @@ class Navigation extends Component {
         });
       }).catch((err) => {
         console.log(err);
+        Sentry.captureException(err);
       });
     } else {
       this.setState({
@@ -682,6 +686,7 @@ class Navigation extends Component {
           this.setState({ viewport: newVp });
         } catch (err) {
           console.log(err);
+          Sentry.captureException(err);
         }
       }
     }
@@ -872,6 +877,7 @@ class Navigation extends Component {
       });
     }).catch((err) => {
       console.log(err);
+      Sentry.captureException(err);
     });
   }
 

@@ -48,6 +48,8 @@ jobs:
       run: yarn install
     - name: yarn build:staging
       run: yarn build:staging
+      env:
+        SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
     - name: test build
       run: test -d build
     - name: get branch name

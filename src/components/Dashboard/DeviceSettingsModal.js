@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import Raven from 'raven-js';
+import * as Sentry from "@sentry/react";
 
 import { withStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
@@ -154,7 +154,7 @@ class DeviceSettingsModal extends Component {
         hasSavedAlias: true
       });
     } catch (e) {
-      Raven.captureException(e);
+      Sentry.captureException(e);
       this.setState({ error: e.message, loadingDeviceAlias: false });
     }
   }
@@ -183,7 +183,7 @@ class DeviceSettingsModal extends Component {
       console.log(e, err);
       console.log(err.statusCode);
       debugger;
-      Raven.captureException(e);
+      Sentry.captureException(e);
       this.setState({ error: e.message, loadingDeviceShare: false });
     }
   }

@@ -1,4 +1,5 @@
 import { push } from 'connected-react-router';
+import * as Sentry from '@sentry/react';
 import document from 'global/document';
 import * as Types from './types';
 import Timelineworker from '../timeline';
@@ -84,6 +85,7 @@ export function primeFetchSubscription() {
       }).catch((err) => {
         if (!err.message || err.message.indexOf('404') !== 0) {
           console.log(err);
+          Sentry.captureException(err);
         }
       });
     }

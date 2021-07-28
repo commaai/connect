@@ -1,4 +1,4 @@
-import Raven from 'raven-js';
+import * as Sentry from "@sentry/react";
 import qs from 'query-string';
 import { WebMercatorViewport } from 'react-map-gl';
 
@@ -67,7 +67,7 @@ export default function geocodeApi() {
         return { place, details };
       }
     } catch (err) {
-      Raven.captureException(err);
+      Sentry.captureException(err);
     }
   }
 

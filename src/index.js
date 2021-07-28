@@ -1,4 +1,4 @@
-import Raven from 'raven-js';
+import * as Sentry from "@sentry/react";
 import React from 'react';
 import ReactDOM from 'react-dom';
 import document from 'global/document';
@@ -12,10 +12,11 @@ import Theme from './theme';
 import { register, unregister } from './registerServiceWorker';
 
 if (process.env.REACT_APP_SENTRY_ENV) {
-  Raven.config(
-    'https://6a242abfa01b4660aa34f150e87de018@sentry.io/1234624',
-    { environment: process.env.REACT_APP_SENTRY_ENV }
-  ).install();
+  Sentry.init({
+    dsn: 'https://6a242abfa01b4660aa34f150e87de018@sentry.io/1234624',
+    environment: process.env.REACT_APP_SENTRY_ENV,
+    maxValueLength: 1000,
+  });
 }
 
 if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SERVICEWORKER) {
