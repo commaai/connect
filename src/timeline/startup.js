@@ -1,3 +1,4 @@
+import Raven from 'raven-js';
 import { devices as Devices, account as Account, billing as Billing } from '@commaai/comma-api';
 
 import store from './store';
@@ -48,6 +49,7 @@ export default async function init(isDemo) {
       Billing.getPaymentMethod().then((paymentMethod) => {
         store.dispatch(primeGetPaymentMethodAction(paymentMethod));
       }).catch((err) => {
+        Raven.captureException(err);
         if (!err.resp || err.resp.status !== 400) {
           console.log(err.message);
         }
