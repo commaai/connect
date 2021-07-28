@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react";
 import { devices as Devices, account as Account, billing as Billing } from '@commaai/comma-api';
 
 import store from './store';
@@ -29,6 +30,8 @@ export default async function init(isDemo) {
       if (device && (device.is_owner || profile.superuser)) {
         Billing.getSubscription(dongleId).then((subscription) => {
           store.dispatch(primeGetSubscriptionAction(dongleId, subscription));
+        }).catch((err) => {
+          Sentry.captureException(err)
         });
       }
     }
