@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 import { devices as Devices, account as Account, billing as Billing } from '@commaai/comma-api';
 
 import store from './store';
@@ -48,8 +47,6 @@ export default async function init(isDemo) {
     if (profile.prime) {
       Billing.getPaymentMethod().then((paymentMethod) => {
         store.dispatch(primeGetPaymentMethodAction(paymentMethod));
-      }).catch((err) => {
-        Sentry.captureException(err);
       });
     }
   }
