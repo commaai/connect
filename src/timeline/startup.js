@@ -47,6 +47,10 @@ export default async function init(isDemo) {
     if (profile.prime) {
       Billing.getPaymentMethod().then((paymentMethod) => {
         store.dispatch(primeGetPaymentMethodAction(paymentMethod));
+      }).catch((err) => {
+        if (!err.resp || err.resp.status !== 400) {
+          console.log(err.message);
+        }
       });
     }
   }
