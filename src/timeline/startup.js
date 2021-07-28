@@ -29,10 +29,6 @@ export default async function init(isDemo) {
       if (device && (device.is_owner || profile.superuser)) {
         Billing.getSubscription(dongleId).then((subscription) => {
           store.dispatch(primeGetSubscriptionAction(dongleId, subscription));
-        }).catch((err) => {
-          if (!err.message || err.message.indexOf('404') !== 0) {
-            console.log(err);
-          }
         });
       }
     }
