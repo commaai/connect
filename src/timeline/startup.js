@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/react";
 import { devices as Devices, account as Account, billing as Billing } from '@commaai/comma-api';
 
 import store from './store';
@@ -31,7 +30,9 @@ export default async function init(isDemo) {
         Billing.getSubscription(dongleId).then((subscription) => {
           store.dispatch(primeGetSubscriptionAction(dongleId, subscription));
         }).catch((err) => {
-          Sentry.captureException(err)
+          if (!err.message || err.message.indexOf('404') !== 0) {
+            console.log(err);
+          }
         });
       }
     }
@@ -46,10 +47,6 @@ export default async function init(isDemo) {
     if (profile.prime) {
       Billing.getPaymentMethod().then((paymentMethod) => {
         store.dispatch(primeGetPaymentMethodAction(paymentMethod));
-      }).catch((err) => {
-        if (!err.resp || err.resp.status !== 400) {
-          console.log(err.message);
-        }
       });
     }
   }
