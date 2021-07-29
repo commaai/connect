@@ -1,11 +1,16 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import Colors from '../../colors';
-
 import { withStyles, Typography, Grid } from '@material-ui/core';
+
+import { drives as DrivesApi } from '@commaai/comma-api';
+import Segments from '../../timeline/segments';
+import store from '../../timeline/store';
+import Colors from '../../colors';
 import DriveListItem from './DriveListItem';
 import ResizeHandler from '../ResizeHandler';
+import VisibilityHandler from '../VisibilityHandler';
+import * as Demo from '../../demo';
 
 const MIN_TIME_BETWEEN_ROUTES = 60000; // 1 minute
 
@@ -49,6 +54,7 @@ class DriveList extends Component {
 
     this.filterShortDrives = this.filterShortDrives.bind(this);
     this.onResize = this.onResize.bind(this);
+    this.onVisible = this.onVisible.bind(this);
 
     this.state = {
       windowWidth: window.innerWidth,
@@ -67,6 +73,30 @@ class DriveList extends Component {
 
   onResize(windowWidth) {
     this.setState({ windowWidth });
+  }
+
+  async onVisible() {
+    const { dongleId, start, end } = this.props;
+    if (!dongleId || Demo.isDemo()) {
+      return;
+    }
+
+    store.dispatch(Segments.fetchSegmentMetadata(start, end));
+
+    let segmentData;
+    try {
+      segmentData = await DrivesApi.getSegmentMetadata(start, end, dongleId);
+    } catch (err) {
+      console.log(err);
+      return;
+    }
+
+    if (this.props.start !== start || this.props.end !== end || this.props.dongleId !== dongleId) {
+      return;
+    }
+
+    segmentData = Segments.parseSegmentMetadata({ dongleId, start, end }, segmentData);
+    store.dispatch(Segments.insertSegmentMetadata(segmentData));
   }
 
   render() {
@@ -100,6 +130,7 @@ class DriveList extends Component {
     return (
       <div className={ classes.drivesTable }>
         <ResizeHandler onResize={ this.onResize } />
+        <VisibilityHandler onVisible={ this.onVisible } minInterval={ 60 } />
         { driveList.length === 0 && this.renderZeroRides() }
         <ul className={classes.drives}>
           { driveList.filter(this.filterShortDrives).map((drive) => (
@@ -136,6 +167,7 @@ const stateToProps = Obstruction({
   segments: 'workerState.segments',
   segmentData: 'workerState.segmentData',
   start: 'workerState.start',
+  end: 'workerState.end',
   device: 'workerState.device',
   dongleId: 'workerState.dongleId',
   isSuperUser: 'workerState.profile.superuser',
