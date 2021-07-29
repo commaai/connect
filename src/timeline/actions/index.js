@@ -4,9 +4,17 @@ import {
   ACTION_PRIME_SUBSCRIPTION,
   ACTION_SELECT_DEVICE,
   ACTION_SELECT_TIME_RANGE,
+  ACTION_UPDATE_DEVICES,
   ACTION_UPDATE_DEVICE,
   ACTION_UPDATE_DEVICE_ONLINE,
 } from './types';
+
+export function updateDevices(devices) {
+  return {
+    type: ACTION_UPDATE_DEVICES,
+    devices,
+  };
+}
 
 export function updateDevice(device) {
   return {

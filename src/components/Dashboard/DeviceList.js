@@ -2,12 +2,15 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
+import { devices as DevicesApi } from '@commaai/comma-api';
 import { withStyles, Typography, IconButton } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
 import DeviceSettingsModal from './DeviceSettingsModal';
 import { deviceTypePretty, deviceIsOnline } from '../../utils'
 import CommaTwoUpsell from '../DriveView/commaTwoUpsell';
 import Colors from '../../colors';
+import VisibilityHandler from '../VisibilityHandler';
+import Timelineworker from '../../timeline';
 
 const styles = (theme) => ({
   deviceList: {
@@ -86,6 +89,7 @@ class DeviceList extends Component {
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
     this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
+    this.onVisible = this.onVisible.bind(this);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -105,6 +109,15 @@ class DeviceList extends Component {
     this.setState({ showDeviceSettingsModal: false });
   }
 
+  async onVisible() {
+    try {
+      const devices = await DevicesApi.listDevices();
+      Timelineworker.updateDevices(devices);
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
   render() {
     let { classes, devices } = this.props;
     const dongleId = this.props.selectedDevice;
@@ -121,6 +134,7 @@ class DeviceList extends Component {
 
     return (
       <>
+        <VisibilityHandler onVisible={ this.onVisible } minInterval={ 10 } />
         <div className={ `scrollstyle ${classes.deviceList}` }
           style={{ height: `calc(100vh - ${this.props.headerHeight}px)` }}>
           { devices.filter(this.filterDrivingDevice).map(this.renderDevice) }

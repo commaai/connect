@@ -2,6 +2,7 @@ import {
   ACTION_SELECT_DEVICE,
   ACTION_SELECT_TIME_RANGE,
   ACTION_STARTUP_DATA,
+  ACTION_UPDATE_DEVICES,
   ACTION_UPDATE_DEVICE,
   ACTION_PRIME_NAV,
   ACTION_PRIME_SUBSCRIPTION,
@@ -11,17 +12,29 @@ import {
 
 const initialState = {};
 
+const emptyDevice = {
+  alias: null,
+  create_time: 1513041169,
+  device_type: 'unknown',
+  dongle_id: '0000000000000000',
+  imei: '000000000000000',
+  is_owner: false,
+  serial: '00000000'
+};
+
+function populateFetchedAt(d) {
+  return {
+    ...d,
+    fetched_at: parseInt(Date.now() / 1000),
+  };
+}
+
 export default function reducer(_state = initialState, action) {
   let state = { ..._state };
   let deviceIndex = null;
   switch (action.type) {
     case ACTION_STARTUP_DATA:
-      let devices = action.devices.map((device) => {
-        return {
-          ...device,
-          fetched_at: parseInt(Date.now() / 1000),
-        };
-      });
+      let devices = action.devices.map(populateFetchedAt);
       if (!state.dongleId && devices.length > 0) {
         state = {
           ...state,
@@ -35,13 +48,7 @@ export default function reducer(_state = initialState, action) {
         };
         if (!state.device) {
           state.device = {
-            alias: null,
-            create_time: 1513041169,
-            device_type: 'unknown',
-            dongle_id: '0000000000000000',
-            imei: '000000000000000',
-            is_owner: false,
-            serial: '00000000'
+            ...emptyDevice,
           };
         }
       }
@@ -71,6 +78,20 @@ export default function reducer(_state = initialState, action) {
         segmentData: null,
         segments: [],
       };
+      break;
+    case ACTION_UPDATE_DEVICES:
+      state = {
+        ...state,
+        devices: action.devices.map(populateFetchedAt),
+      };
+      if (state.dongleId) {
+        state.device = state.devices.find((d) => d.dongle_id === state.dongleId);
+        if (!state.device) {
+          state.device = {
+            ...emptyDevice,
+          };
+        }
+      }
       break;
     case ACTION_UPDATE_DEVICE:
       state = {

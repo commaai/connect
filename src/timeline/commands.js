@@ -5,6 +5,7 @@ import {
   selectDevice as selectDeviceAction,
   selectTimeRange as selectTimeRangeAction,
   updateDevice as updateDeviceAction,
+  updateDevices as updateDevicesAction,
   primeGetSubscriptionAction,
   primeGetPaymentMethodAction,
   primeNavAction,
@@ -69,6 +70,10 @@ function selectDevice(dongleId) {
   store.dispatch(selectDeviceAction(dongleId));
 }
 
+function updateDevices(devices) {
+  store.dispatch(updateDevicesAction(devices));
+}
+
 function updateDevice(device) {
   store.dispatch(updateDeviceAction(device));
 }
@@ -117,6 +122,7 @@ export const commands = {
   selectDevice,
   selectTimeRange,
   selectLoop,
+  updateDevices,
   updateDevice,
   stop,
   primeGetSubscription,
