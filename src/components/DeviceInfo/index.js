@@ -140,18 +140,14 @@ const styles = () => ({
   },
 });
 
-const initialState = {
-  deviceStats: {},
-  carHealth: {},
-  snapshot: {},
-}
-
 class DeviceInfo extends Component {
   constructor(props) {
     super(props);
     this.mounted = null;
     this.state = {
-      ...initialState,
+      deviceStats: {},
+      carHealth: {},
+      snapshot: {},
       windowWidth: window.innerWidth,
     };
 
@@ -177,7 +173,9 @@ class DeviceInfo extends Component {
 
     if (prevProps.dongleId !== dongleId) {
       this.setState({
-        ...initialState,
+        deviceStats: {},
+        carHealth: {},
+        snapshot: {},
         windowWidth: window.innerWidth,
       });
     }
