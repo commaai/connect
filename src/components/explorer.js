@@ -23,6 +23,7 @@ import Colors from '../colors';
 
 const styles = (theme) => ({
   base: {
+    height: '100%',
   },
   window: {
     background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
@@ -72,7 +73,6 @@ class ExplorerApp extends Component {
     };
 
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
-    this.onResize = this.onResize.bind(this);
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
   }
@@ -159,10 +159,6 @@ class ExplorerApp extends Component {
     }
   }
 
-  onResize(windowWidth) {
-    this.setState({ windowWidth });
-  }
-
   handleDrawerStateChanged(drawerOpen) {
     this.setState({
       drawerIsOpen: drawerOpen
@@ -207,15 +203,18 @@ class ExplorerApp extends Component {
 
   render() {
     const { classes, expanded } = this.props;
-    const { drawerIsOpen, pairLoading, pairError, pairDongleId } = this.state;
+    const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
-    const isLarge = this.state.windowWidth > 1080;
+    const isLarge = windowWidth > 1080;
 
-    const sidebarWidth = Math.max(280, this.state.windowWidth * 0.2);
+    const sidebarWidth = Math.max(280, windowWidth * 0.2);
 
-    const headerHeight = this.state.headerRef ? this.state.headerRef.getBoundingClientRect().height : 66;
+    const headerHeight = this.state.headerRef ?
+      this.state.headerRef.getBoundingClientRect().height :
+      (windowWidth < 640 ? 111 : 66);
+    console.log('headerHeight', headerHeight);
     let containerStyles = {
-      minHeight: `calc(100vh - ${headerHeight}px)`,
+      minHeight: `calc(100% - ${headerHeight}px)`,
     };
     if (isLarge) {
       containerStyles = {
@@ -226,12 +225,12 @@ class ExplorerApp extends Component {
     }
 
     let drawerStyles = {
-      minHeight: `calc(100vh - ${headerHeight}px)`,
+      minHeight: `calc(100% - ${headerHeight}px)`,
     };
 
     return (
       <div className={classes.base}>
-        <ResizeHandler onResize={ this.onResize } />
+        <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
         <AppHeader drawerIsOpen={ drawerIsOpen } annotating={ expanded } showDrawerButton={ !isLarge }
           handleDrawerStateChanged={this.handleDrawerStateChanged} forwardRef={ this.updateHeaderRef } />
         <AppDrawer drawerIsOpen={ drawerIsOpen } isPermanent={ isLarge } width={ sidebarWidth }
