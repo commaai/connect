@@ -23,7 +23,6 @@ import Colors from '../colors';
 
 const styles = (theme) => ({
   base: {
-    height: '100%',
   },
   window: {
     background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
@@ -65,11 +64,11 @@ class ExplorerApp extends Component {
     this.state = {
       settingDongle: null,
       drawerIsOpen: false,
-      windowWidth: window.innerWidth,
       headerRef: null,
       pairLoading: false,
       pairError: null,
       pairDongleId: null,
+      windowWidth: window.innerWidth,
     };
 
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
@@ -212,20 +211,19 @@ class ExplorerApp extends Component {
     const headerHeight = this.state.headerRef ?
       this.state.headerRef.getBoundingClientRect().height :
       (windowWidth < 640 ? 111 : 66);
-    console.log('headerHeight', headerHeight);
     let containerStyles = {
-      minHeight: `calc(100% - ${headerHeight}px)`,
+      minHeight: `calc(100vh - ${headerHeight}px)`,
     };
     if (isLarge) {
       containerStyles = {
         ...containerStyles,
         width: `calc(100% - ${sidebarWidth}px)`,
-        marginLeft: sidebarWidth
+        marginLeft: sidebarWidth,
       };
     }
 
     let drawerStyles = {
-      minHeight: `calc(100% - ${headerHeight}px)`,
+      minHeight: `calc(100vh - ${headerHeight}px)`,
     };
 
     return (

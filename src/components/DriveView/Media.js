@@ -91,7 +91,6 @@ class Media extends Component {
     this.state = {
       inView: MediaType.VIDEO,
       windowWidth: window.innerWidth,
-      windowHeight: window.innerHeight,
       downloadMenu: null,
       moreInfoMenu: null,
     };
@@ -105,8 +104,8 @@ class Media extends Component {
     this.openInUseradmin = this.openInUseradmin.bind(this);
   }
 
-  onResize(windowWidth, windowHeight) {
-    this.setState({ windowWidth, windowHeight });
+  onResize(windowWidth) {
+    this.setState({ windowWidth });
   }
 
   async copySegmentName() {
@@ -177,7 +176,7 @@ class Media extends Component {
 
   render() {
     const { classes } = this.props;
-    const { inView, windowWidth, windowHeight } = this.state;
+    const { inView, windowWidth } = this.state;
 
     if (this.props.menusOnly) {  // for test
       return this.renderMenus(true);
