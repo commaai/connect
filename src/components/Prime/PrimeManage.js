@@ -12,6 +12,7 @@ import { deviceTypePretty } from '../../utils';
 import Timelineworker from '../../timeline';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
+import { primeNav } from '../../actions';
 
 const styles = (theme) => ({
   primeBox: {
@@ -173,7 +174,7 @@ class PrimeManage extends Component {
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
         <div className={ classes.primeBox }>
           <div className={ classes.primeContainer } style={{ padding: `8px ${containerPadding}px` }}>
-            <IconButton aria-label="Go Back" onClick={() => window.history.back()}>
+            <IconButton aria-label="Go Back" onClick={() => this.props.dispatch(primeNav(false)) }>
               <KeyboardBackspaceIcon />
             </IconButton>
           </div>

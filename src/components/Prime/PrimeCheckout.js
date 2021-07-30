@@ -7,7 +7,7 @@ import { withStyles, Typography, IconButton, Modal, Paper, Button, CircularProgr
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 
-import { billing as Billing, athena as AthenaApi } from '@commaai/comma-api';
+import { billing as Billing } from '@commaai/comma-api';
 
 import { deviceTypePretty } from '../../utils';
 import { fetchSimInfo } from './util';
@@ -15,6 +15,7 @@ import PrimeChecklist from './PrimeChecklist';
 import PrimePayment from './PrimePayment';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
+import { primeNav } from '../../actions';
 
 const styles = (theme) => ({
   primeBox: {
@@ -196,7 +197,7 @@ class PrimeCheckout extends Component {
       <div className={ classes.primeBox }>
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
         <div className={ classes.primeContainer } style={{ padding: `8px ${containerPadding}px` }}>
-          <IconButton aria-label="Go Back" onClick={() => window.history.back()}>
+          <IconButton aria-label="Go Back" onClick={() => this.props.dispatch(primeNav(false)) }>
             <KeyboardBackspaceIcon />
           </IconButton>
         </div>
