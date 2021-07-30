@@ -18,10 +18,16 @@ export default async function init(isDemo) {
     });
   } else {
     console.log('Fetching devices!');
-    let devices = Devices.listDevices();
-    let profile = Account.getProfile();
-    devices = await devices;
-    profile = await profile;
+    let devices, profile;
+    try {
+      devices = Devices.listDevices();
+      profile = Account.getProfile();
+      devices = await devices;
+      profile = await profile;
+    } catch (err) {
+      console.log(err);
+      Sentry.captureException(err);
+    }
     console.log('Device list:', devices);
 
     if (devices.length > 0) {

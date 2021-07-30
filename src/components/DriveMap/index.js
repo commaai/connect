@@ -197,6 +197,10 @@ class DriveMap extends Component {
     }
 
     const map = mapComponent.getMap();
+    if (!map) {
+      this.map = null;
+      return;
+    }
 
     map.on('load', () => {
       map.addSource('route', {
