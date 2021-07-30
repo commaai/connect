@@ -107,7 +107,7 @@ class AppHeader extends Component {
   }
 
   render() {
-    const { profile, classes, annotating, showDrawerButton, primeNav } = this.props;
+    const { profile, classes, annotating, showDrawerButton, primeNav, dongleId } = this.props;
     const { anchorEl } = this.state;
     const open = Boolean(anchorEl);
 
@@ -145,7 +145,7 @@ class AppHeader extends Component {
               </Link>
             </div>
             <div className={ classes.headerWideItem } style={ reorderWideStyle }>
-              { !primeNav && !annotating && <TimeFilter /> }
+              { !primeNav && !annotating && Boolean(dongleId) && <TimeFilter /> }
             </div>
             <IconButton aria-owns={open ? 'menu-appbar' : null} aria-haspopup="true" onClick={this.handleClickedAccount}
               aria-label="account menu">

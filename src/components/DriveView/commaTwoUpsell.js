@@ -1,46 +1,77 @@
 import React, { Component } from 'react';
 
-import { withStyles } from '@material-ui/core/styles';
-import Grid from '@material-ui/core/Grid';
-import Typography from '@material-ui/core/Typography';
+import { withStyles, Button, Typography } from '@material-ui/core';
 
-import ShopButton from './shopButton';
+import ResizeHandler from '../ResizeHandler';
 
-const styles = (theme) => ({
-  root: {
-    display: 'flex',
-    paddingTop: '48px'
-  },
+const styles = () => ({
   eon: {
-    display: 'block',
-    width: '100%',
-    paddingTop: '30px',
+    maxWidth: '100%',
+    width: 400,
   },
   content: {
-    padding: '20px 12px',
-    textAlign: 'center'
+    textAlign: 'center',
+    minWidth: 120,
   },
   imageContainer: {
+  },
+  shopLink: {
+    display: 'inline-block',
+    marginTop: 8,
+    textDecoration: 'none',
+  },
+  pairInstructions: {
+    minWidth: 300,
+    maxWidth: 750,
+    minHeight: 150,
     display: 'flex',
-    alignItems: 'center',
-  }
+    flexDirection: 'column',
+    justifyContent: 'center',
+    textAlign: 'center',
+    '& p:first-child': {
+      fontWeight: 600,
+    },
+  },
+  upsell: {
+    display: 'flex',
+    alignContent: 'center',
+  },
 });
 
 class CommaTwoUpsell extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      windowWidth: window.innerWidth,
+    };
+  }
+
   render() {
+    const { classes, hook } = this.props;
+    const { windowWidth } = this.state;
+
+    const containerPadding = windowWidth > 520 ? 36 : 16;
+
     return (
-      <div className={this.props.classes.root}>
-        <Grid item xs={6} className={this.props.classes.imageContainer}>
-          <img
-            src="https://comma.ai/two-onroad-transparent-01.png"
-            className={this.props.classes.eon}
-          />
-        </Grid>
-        <Grid item xs={6} className={this.props.classes.content}>
-          <Typography>{ this.props.hook }</Typography>
-          <ShopButton link="https://comma.ai/shop/products/comma-two-devkit/?ref=explorer" />
-        </Grid>
-      </div>
+      <>
+        <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
+        <div className={ classes.pairInstructions } style={{ padding: `8px ${containerPadding}px` }}>
+          <Typography>Already own a comma device?</Typography>
+          <Typography>Scan the QR code on the device with your phone</Typography>
+        </div>
+        <div className={ classes.upsell } style={{ padding: `8px ${containerPadding}px` }}>
+          <div className={classes.imageContainer}>
+            <img src="https://comma.ai/two-onroad-transparent-01.png" className={classes.eon} />
+          </div>
+          <div className={classes.content}>
+            <Typography>{ hook }</Typography>
+            <a href="https://comma.ai/shop/products/comma-two-devkit/?ref=explorer" target="_blank"
+              className={classes.shopLink}>
+              <Button variant="outlined">Shop</Button>
+            </a>
+          </div>
+        </div>
+      </>
     );
   }
 }

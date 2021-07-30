@@ -7,7 +7,6 @@ import { withStyles, Typography, IconButton } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
 import DeviceSettingsModal from './DeviceSettingsModal';
 import { deviceTypePretty, deviceIsOnline } from '../../utils'
-import CommaTwoUpsell from '../DriveView/commaTwoUpsell';
 import Colors from '../../colors';
 import VisibilityHandler from '../VisibilityHandler';
 import Timelineworker from '../../timeline';
@@ -122,7 +121,6 @@ class DeviceList extends Component {
     let { classes, devices } = this.props;
     const dongleId = this.props.selectedDevice;
     let found = devices.some((device) => device.dongle_id === dongleId);
-    let onlyHasAppDevice = (devices.length === 0);
 
     if (!found && dongleId) {
       devices = [{
@@ -138,7 +136,6 @@ class DeviceList extends Component {
         <div className={ `scrollstyle ${classes.deviceList}` }
           style={{ height: `calc(100vh - ${this.props.headerHeight}px)` }}>
           { devices.filter(this.filterDrivingDevice).map(this.renderDevice) }
-          { onlyHasAppDevice && <CommaTwoUpsell hook="Get started with comma two" /> }
         </div>
         <DeviceSettingsModal isOpen={this.state.showDeviceSettingsModal} device={ this.state.deviceSettingsModalDevice }
           onClose={this.handleClosedSettingsModal} />
