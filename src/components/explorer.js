@@ -78,6 +78,7 @@ class ExplorerApp extends Component {
 
   componentWillMount() {
     this.checkProps(this.props);
+    window.scrollTo({ top: 0 });
   }
 
   async componentDidMount() {
