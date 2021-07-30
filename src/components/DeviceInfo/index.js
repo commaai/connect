@@ -172,6 +172,17 @@ class DeviceInfo extends Component {
     this.mounted = true;
   }
 
+  componentDidUpdate(prevProps) {
+    const { dongleId } = this.props;
+
+    if (prevProps.dongleId !== dongleId) {
+      this.setState({
+        ...initialState,
+        windowWidth: window.innerWidth,
+      });
+    }
+  }
+
   componentWillUnmount() {
     this.mounted = false;
   }
