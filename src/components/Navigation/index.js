@@ -165,13 +165,17 @@ const styles = () => ({
   searchSelectBoxDetails: {
     color: Colors.white40,
   },
+  primeAdContainer: {
+    backgroundColor: Colors.grey500,
+    border: `1px solid ${Colors.grey700}`,
+  },
   primeAdButton: {
     padding: '6px 24px',
     color: Colors.white,
-    backgroundColor: Colors.primeBlue100,
+    backgroundColor: Colors.primeBlue50,
     '&:hover': {
       color: Colors.white,
-      backgroundColor: Colors.primeBlue300,
+      backgroundColor: Colors.primeBlue200,
     },
   },
   pin: {
@@ -1166,7 +1170,7 @@ class Navigation extends Component {
     const { classes} = this.props;
 
     return (
-      <div className={ classes.searchSelectBox } ref={ this.primeAdBoxRef }>
+      <div className={ `${classes.searchSelectBox} ${classes.primeAdContainer}` } ref={ this.primeAdBoxRef }>
         <Clear className={ classes.clearSearchSelect }
           onClick={ () => this.setState({ showPrimeAd: false }, this.flyToMarkers) } />
         <div className={ classes.searchSelectBoxHeader }>
