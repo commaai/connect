@@ -2,11 +2,12 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import fecha from 'fecha';
+import * as Sentry from '@sentry/react';
 import { withStyles, Typography, IconButton, Modal, Paper, Button, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 
-import { billing as Billing } from '@commaai/comma-api';
+import { billing as Billing, athena as AthenaApi } from '@commaai/comma-api';
 
 import { deviceTypePretty } from '../../utils';
 import { fetchSimInfo } from './util';
@@ -115,15 +116,31 @@ class PrimeCheckout extends Component {
     };
 
     this.onPrimeActivated = this.onPrimeActivated.bind(this);
+    this.fetchSimDetails = this.fetchSimDetails.bind(this);
   }
 
   componentDidMount() {
     this.setState({ simInfoLoading: true });
-    fetchSimInfo(this.props.dongleId).then((result) => {
+    this.fetchSimDetails(true);
+  }
+
+  async fetchSimDetails(retry) {
+    try {
+      let result = await fetchSimInfo(this.props.dongleId);
       this.setState({ simInfo: result.simInfo, simInfoLoading: false });
-    }).catch((err) => {
-      this.setState({ error: err.message, simInfoLoading: false });
-    });
+    } catch (err) {
+      if (err.message === 'Failed to fetch') {
+        if (retry) {
+          console.log('Failed to fetch sim info, retrying...');
+          this.fetchSimDetails(false);
+        } else {
+          this.setState({ error: 'Failed to fetch, please try again later', simInfoLoading: false });
+          Sentry.captureException(err);
+        }
+      } else {
+        this.setState({ error: err.message, simInfoLoading: false });
+      }
+    }
   }
 
   isTrialClaimable() {
