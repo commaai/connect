@@ -1,37 +1,5 @@
 import React from 'react';
 
-const gutter = 0;
-
-function renderImage(imgStyles, data, i) {
-  if (data.blank) {
-    return (
-      <div
-        key={i}
-        className="thumbnailImage blank"
-        style={{
-          ...imgStyles,
-          width: imgStyles.width * data.length,
-        }}
-      />
-    );
-  }
-  return (
-    <div
-      key={i}
-      className="thumbnailImage images"
-      style={{
-        ...imgStyles,
-        width: imgStyles.width * data.length,
-        marginLeft: gutter,
-        backgroundSize: `auto ${imgStyles.height}px`,
-        backgroundRepeat: 'repeat-x',
-        backgroundImage: `url(${data.url})`,
-        backgroundPosition: `${data.startImage * imgStyles.width}px`
-      }}
-    />
-  );
-}
-
 export default function Thumbnails(props) {
   const { thumbnail } = props;
   const imgStyles = {
@@ -39,9 +7,7 @@ export default function Thumbnails(props) {
     height: thumbnail.height,
     width: (1164 / 874) * thumbnail.height,
   };
-  // console.log('Thumbnail props', props);
   const imgCount = Math.ceil(thumbnail.width / imgStyles.width);
-  imgStyles.marginRight = gutter / 2;
 
   const imgArr = [];
   let currentSegment = null;
@@ -106,5 +72,20 @@ export default function Thumbnails(props) {
     imgArr.push(currentSegment);
   }
 
-  return imgArr.map((data, i) => renderImage(imgStyles, data, i));
+  return imgArr.map((data, i) =>
+    data.blank ?
+      <div key={i} className="thumbnailImage blank" style={{
+        ...imgStyles,
+        width: imgStyles.width * data.length
+      }} />
+    :
+      <div key={i} className="thumbnailImage images" style={{
+        ...imgStyles,
+        width: imgStyles.width * data.length,
+        backgroundSize: `auto ${imgStyles.height}px`,
+        backgroundRepeat: 'repeat-x',
+        backgroundImage: `url(${data.url})`,
+        backgroundPositionX: `-${data.startImage * imgStyles.width}px`
+      }} />
+  );
 }
