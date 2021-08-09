@@ -172,10 +172,6 @@ class DriveListDrive extends Component {
         </div>
         <Timeline
           className={classes.driveTimeline}
-          zoomed
-          colored
-          hasThumbnails
-          hasGradient
           zoomOverride={{
             start: drive.startTime,
             end: drive.startTime + drive.duration

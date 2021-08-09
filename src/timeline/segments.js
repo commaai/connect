@@ -277,8 +277,6 @@ function reducer(_state = initialState, action) {
   state.currentSegment = currentSegment;
   state.nextSegment = nextSegment;
 
-  state.range = state.end - state.start;
-
   return state;
 }
 

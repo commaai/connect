@@ -3,12 +3,12 @@
 // rapid seeking, etc
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import Obstruction from 'obstruction';
 import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
 import debounce from 'debounce';
 import document from 'global/document';
 import fecha from 'fecha';
-import PropTypes from 'prop-types';
 
 import Measure from 'react-measure';
 import Tooltip from '@material-ui/core/Tooltip';
@@ -26,23 +26,17 @@ const styles = (/* theme */) => ({
     overflow: 'hidden',
     position: 'relative',
     width: '100%',
-    '&.hasThumbnails.hasRuler': {
+    '&.hasRuler': {
       minHeight: '80px',
     },
-  },
-  rounded: {
-    borderRadius: '10px 10px 0px 0px'
   },
   segments: {
     position: 'absolute',
     top: '0px',
     left: '0px',
     width: '100%',
-    height: '100%',
-    '&.hasThumbnails': {
-      height: '40%'
-    },
-    '&.hasThumbnails.hasRuler': {
+    height: '40%',
+    '&.hasRuler': {
       height: '100%',
     },
   },
@@ -95,11 +89,6 @@ const styles = (/* theme */) => ({
         background: theme.palette.states.alertRed,
       }
     }
-  },
-  uncoloredSegment: {
-    background: theme.palette.states.drivingBlue,
-    height: '100%',
-    width: '100%',
   },
   hoverBead: {
     position: 'absolute',
@@ -182,6 +171,7 @@ class Timeline extends Component {
   componentWillMount() {
     document.addEventListener('mouseup', this.handleMouseUp, false);
     this.stopListening = TimelineWorker.onIndexed(() => this.forceUpdate());
+    this.componentDidUpdate({});
   }
 
   componentDidMount() {
@@ -189,10 +179,11 @@ class Timeline extends Component {
     raf(this.getOffset);
   }
 
-  componentWillReceiveProps(props) {
-    this.setState({
-      zoom: props.zoomOverride || props.zoom
-    });
+  componentDidUpdate(prevProps) {
+    const { zoomOverride, zoom } = this.props;
+    if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom) {
+      this.setState({ zoom: this.props.zoomOverride || this.props.zoom });
+    }
   }
 
   componentWillUnmount() {
@@ -229,10 +220,7 @@ class Timeline extends Component {
       this.isDragSelecting = false;
       return;
     }
-    const { noseek } = this.props;
-    if (noseek) {
-      return;
-    }
+
     const percent = percentFromMouseEvent(e);
 
     TimelineWorker.seek(this.percentToOffset(percent));
@@ -333,20 +321,14 @@ class Timeline extends Component {
 
   percentToOffset(perc) {
     const { zoom } = this.state;
-    const { zoomed, range, start } = this.props;
-    if (zoomed) {
-      return perc * (zoom.end - zoom.start) + (zoom.start - start);
-    }
-    return perc * range;
+    const { start } = this.props;
+    return perc * (zoom.end - zoom.start) + (zoom.start - start);
   }
 
   offsetToPercent(offset) {
     const { zoom } = this.state;
-    const { zoomed, range, start } = this.props;
-    if (zoomed) {
-      return (offset - (zoom.start - start)) / (zoom.end - zoom.start);
-    }
-    return offset / range;
+    const { start } = this.props;
+    return (offset - (zoom.start - start)) / (zoom.end - zoom.start);
   }
 
   sendSeek() {
@@ -375,63 +357,34 @@ class Timeline extends Component {
     );
   }
 
-  renderZoom() {
-    const {
-      zoom, dragSelection, zoomed, start, range
-    } = this.props;
-    if (!dragSelection || !zoom.expanded || zoomed) {
-      return [];
-    }
-    const color = `${theme.palette.grey[50]}cc`;
-    const endColor = `${theme.palette.grey[200]}aa`;
-    const zoomStart = (zoom.start - start) / range;
-    const zoomEnd = (zoom.end - start) / range;
-    const barStyle = {
-      background: `linear-gradient(to left,${color},${endColor},${color})`,
-      left: `${100 * Math.min(zoomStart, zoomEnd)}%`,
-      width: `${100 * Math.abs(zoomStart - zoomEnd)}%`,
-    };
-    return (
-      <div
-        style={barStyle}
-      />
-    );
-  }
-
   renderSegment(segment) {
-    const {
-      classes, range, zoomed, start, colored
-    } = this.props;
+    const { classes, start, end } = this.props;
     const { zoom } = this.state;
+
+    const range = start - end;
     let startPerc = (100 * segment.offset) / range;
     let widthPerc = (100 * segment.duration) / range;
-    if (zoomed) {
-      const startOffset = zoom.start - start;
-      const endOffset = zoom.end - start;
-      const zoomDuration = endOffset - startOffset;
-      if (segment.offset > endOffset) {
-        return [];
-      }
-      if (segment.offset + segment.duration < startOffset) {
-        return [];
-      }
-      startPerc = (100 * (segment.offset - startOffset)) / zoomDuration;
-      widthPerc = (100 * segment.duration) / zoomDuration;
+
+    const startOffset = zoom.start - start;
+    const endOffset = zoom.end - start;
+    const zoomDuration = endOffset - startOffset;
+    if (segment.offset > endOffset) {
+      return [];
     }
+    if (segment.offset + segment.duration < startOffset) {
+      return [];
+    }
+    startPerc = (100 * (segment.offset - startOffset)) / zoomDuration;
+    widthPerc = (100 * segment.duration) / zoomDuration;
+
     const style = {
       position: 'absolute',
       width: `${widthPerc}%`,
       left: `${startPerc}%`,
     };
     return (
-      <div
-        key={segment.route + segment.offset}
-        className={classes.segment}
-        style={style}
-      >
-        { colored ? this.renderSegmentEvents(segment) : (
-          <div className={classes.uncoloredSegment} />
-        ) }
+      <div key={segment.route + segment.offset} className={classes.segment} style={style}>
+        { this.renderSegmentEvents(segment) }
       </div>
     );
   }
@@ -465,18 +418,7 @@ class Timeline extends Component {
   }
 
   render() {
-    const {
-      classes,
-      hasThumbnails,
-      tooltipped,
-      hasRuler,
-      start,
-      className,
-      style,
-      rounded,
-      segments,
-      hasGradient
-    } = this.props;
+    const { classes, tooltipped, hasRuler, start, className, segments } = this.props;
     const { hoverPercent, thumbnail, mouseX } = this.state;
     const hoverOffset = this.percentToOffset(hoverPercent);
     let timeString = null;
@@ -488,102 +430,48 @@ class Timeline extends Component {
         timeString = fecha.format(timestampAtOffset, 'M/D HH:mm:ss');
       }
     }
-    const roundedCls = rounded ? 'rounded' : '';
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
-    const hasThumbnailsCls = hasThumbnails ? 'hasThumbnails' : '';
     return (
-      <div
-        className={className}
-        style={style}
-      >
-        <div
-          role="presentation"
-          className={ `${classes.base} ${roundedCls} ${hasRulerCls} ${hasThumbnailsCls}` }
-          onMouseDown={this.handleMouseDown}
-          onMouseUp={this.handleMouseUp}
-          onMouseMove={this.handleMouseMove}
-          onMouseLeave={this.handleMouseLeave}
-          onClick={this.handleClick}
-        >
-          <div className={ `${classes.segments} ${hasRulerCls} ${hasThumbnailsCls}` }>
+      <div className={className}>
+        <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } onMouseDown={this.handleMouseDown}
+          onMouseUp={this.handleMouseUp} onMouseMove={this.handleMouseMove} onMouseLeave={this.handleMouseLeave}
+          onClick={this.handleClick} >
+          <div className={ `${classes.segments} ${hasRulerCls}` }>
             { segments && segments.map(this.renderSegment) }
             { hasRuler && (
               <div className={classes.ruler}>
-                <div
-                  ref={this.rulerRemaining}
-                  className={classes.rulerRemaining}
-                />
-                <div
-                  ref={this.rulerRemainingHovered}
-                  className={classes.rulerRemaining}
-                />
+                <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
+                <div ref={this.rulerRemainingHovered} className={classes.rulerRemaining} />
               </div>
             ) }
-            { hasGradient && <div className={ `${classes.statusGradient} ${hasRulerCls}` } /> }
+            <div className={ `${classes.statusGradient} ${hasRulerCls}` } />
             { this.renderDragger() }
-            { this.renderZoom() }
           </div>
-          { tooltipped
-            && (
+          { tooltipped &&
             <Tooltip title={timeString}>
-              <div
-                ref={this.hoverBead}
-                className={classes.hoverBead}
-                style={{ left: mouseX - 25 }}
-              />
+              <div ref={this.hoverBead} className={classes.hoverBead} style={{ left: mouseX - 25 }} />
             </Tooltip>
+          }
+          <Measure bounds onResize={(rect) => this.setState({ thumbnail: rect.bounds })}>
+            { (options) => (
+              <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
+                <Thumbnails getCurrentSegment={ (seg) => Segments.getCurrentSegment(this.props, seg) }
+                  percentToOffset={this.percentToOffset} thumbnail={thumbnail} className={classes.thumbnail}
+                  hasRuler={hasRuler} />
+              </div>
             )}
-          { hasThumbnails
-            && (
-            <Measure
-              bounds
-              onResize={(rect) => this.setState({ thumbnail: rect.bounds })}
-            >
-              { (options) => (
-                <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
-                  <Thumbnails
-                    getCurrentSegment={ (seg) => Segments.getCurrentSegment(this.props, seg) }
-                    percentToOffset={this.percentToOffset}
-                    thumbnail={thumbnail}
-                    className={classes.thumbnail}
-                    hasRuler={hasRuler}
-                  />
-                </div>
-              )}
-            </Measure>
-            )}
+          </Measure>
         </div>
       </div>
     );
   }
 }
 
-Timeline.propTypes = {
-  zoom: PropTypes.object.isRequired,
-  zoomOverride: PropTypes.object,
-  zoomed: PropTypes.bool,
-  colored: PropTypes.bool,
-  start: PropTypes.number.isRequired,
-  range: PropTypes.number.isRequired,
-  classes: PropTypes.object.isRequired,
-  dragSelection: PropTypes.bool,
-  hasThumbnails: PropTypes.bool,
-  hasRuler: PropTypes.bool,
-  tooltipped: PropTypes.bool,
-  hasGradient: PropTypes.bool,
-  rounded: PropTypes.bool,
-  segments: PropTypes.array.isRequired,
-  className: PropTypes.string,
-  style: PropTypes.object,
-  dispatch: PropTypes.func.isRequired,
-  noseek: PropTypes.bool,
-};
+const stateToProps = Obstruction({
+  zoom: 'zoom',
+  start: 'workerState.start',
+  end: 'workerState.end',
+  segments: 'workerState.segments',
+});
 
-function mapStateToProps(state) {
-  return {
-    ...state.workerState,
-    zoom: state.zoom,
-  };
-}
-
-export default connect(mapStateToProps)(withStyles(styles)(Timeline));
+export default connect(stateToProps)(withStyles(styles)(Timeline));
