@@ -195,10 +195,12 @@ class DriveVideo extends Component {
   }, 100)
 
   currentVideoTime(offset = TimelineWorker.currentOffset()) {
-    if (!this.visibleSegment()) {
+    const visibleSegment = this.visibleSegment();
+    if (!visibleSegment) {
       return 0;
     }
-    offset -= this.visibleSegment().routeOffset;
+    offset -= visibleSegment.routeOffset;
+    offset -= visibleSegment.routeFirstSegment * 60000;
     offset = offset / 1000;
 
     return Math.max(0, offset);

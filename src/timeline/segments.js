@@ -38,6 +38,7 @@ function getCurrentSegment(state, o) {
         segment: segmentIndex,
         routeOffset: thisSegment.offset,
         startOffset: thisSegment.offset + segmentIndex * SEGMENT_LENGTH,
+        routeFirstSegment: thisSegment.firstSegment,
         duration: thisSegment.duration,
         events: thisSegment.events,
         deviceType: thisSegment.deviceType,
@@ -71,6 +72,7 @@ function getNextSegment(state, o) {
         segment: 0,
         routeOffset: thisSegment.offset,
         startOffset: thisSegment.offset,
+        routeFirstSegment: thisSegment.firstSegment,
         events: thisSegment.events,
         videoAvailableBetweenOffsets: thisSegment.videoAvailableBetweenOffsets,
         deviceType: thisSegment.deviceType,
@@ -186,6 +188,7 @@ function segmentsFromMetadata(segmentsData) {
       }
       curSegment = {
         offset: segment.offset - (segment.segment * SEGMENT_LENGTH),
+        firstSegment: segment.segment,
         route: segment.canonical_route_name,
         startTime: segment.start_time_utc_millis,
         startCoord: [segment.start_lng, segment.start_lat],
@@ -316,14 +319,14 @@ function parseSegmentMetadata(state, _segments) {
       if (segmentNum > 0) {
         routeStartTimes[segment.canonical_route_name] -= (SEGMENT_LENGTH * segmentNum);
       }
-      segment.routeOffset = routeStartTimes[segment.canonical_route_name];
-    } else {
-      segment.routeOffset = routeStartTimes[segment.canonical_route_name];
     }
+    segment.routeOffset = routeStartTimes[segment.canonical_route_name];
 
     segment.duration = Math.round(segment.end_time_utc_millis - segment.start_time_utc_millis);
     segment.events = JSON.parse(segment.events_json) || [];
-    const plannedDisengageEvents = segment.events.filter((event) => event.type === 'alert' && event.data && event.data.should_take_control);
+    const plannedDisengageEvents = segment.events.filter(
+      (event) => event.type === 'alert' && event.data && event.data.should_take_control
+    );
 
     segment.events.forEach((_event) => {
       const event = _event;
