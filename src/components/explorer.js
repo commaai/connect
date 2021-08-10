@@ -107,10 +107,10 @@ class ExplorerApp extends Component {
       }
     }
 
-    if (prevProps.expanded && !expanded) {
+    if (!prevProps.expanded && expanded) {
       Timelineworker.play();
     }
-    if (!prevProps.expanded && expanded) {
+    if (prevProps.expanded && !expanded) {
       Timelineworker.pause();
     }
   }
