@@ -16,7 +16,7 @@ import DriveView from './DriveView';
 import AppDrawer from './AppDrawer';
 
 import Timelineworker from '../timeline';
-import { selectRange, primeNav } from '../actions';
+import { selectRange, selectDevice, primeNav } from '../actions';
 import { getDongleID, getZoom, getPrimeNav } from '../url';
 import ResizeHandler from './ResizeHandler';
 import Colors from '../colors';
@@ -62,7 +62,7 @@ class ExplorerApp extends Component {
     super(props);
 
     this.state = {
-      settingDongle: null,
+      settingDongle: false,
       drawerIsOpen: false,
       headerRef: null,
       pairLoading: false,
@@ -77,8 +77,42 @@ class ExplorerApp extends Component {
   }
 
   componentWillMount() {
-    this.checkProps(this.props);
+    this.componentDidUpdate({})
     window.scrollTo({ top: 0 });
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    const { settingDongle } = this.state;
+    const { pathname, dongleId, expanded } = this.props;
+
+    const zoom = getZoom(pathname);
+    const pathDongleId = getDongleID(pathname);
+
+    if (getPrimeNav(pathname)) {
+      this.props.dispatch(primeNav());
+    } else {
+      this.props.dispatch(selectRange(zoom.start, zoom.end));
+    }
+
+    if (prevProps.pathname !== pathname) {
+      this.setState({ drawerIsOpen: false });
+    }
+
+    if (pathDongleId) {
+      if (!settingDongle && dongleId !== pathDongleId) {
+        this.setState({ settingDongle: true });
+        Timelineworker.selectDevice(pathDongleId);
+      } else if (settingDongle && dongleId === pathDongleId) {
+        this.setState({ settingDongle: false });
+      }
+    }
+
+    if (prevProps.expanded && !expanded) {
+      Timelineworker.play();
+    }
+    if (!prevProps.expanded && expanded) {
+      Timelineworker.pause();
+    }
   }
 
   async componentDidMount() {
@@ -133,66 +167,17 @@ class ExplorerApp extends Component {
 
   async closePair() {
     const { pairDongleId } = this.state;
-    if (pairDongleId) {
-      Timelineworker.selectDevice(pairDongleId);
-    }
     await localforage.removeItem('pairToken');
-    this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
-  }
-
-  componentWillReceiveProps(props) {
-    this.checkProps(props);
-
-    if (this.props.pathname !== props.pathname) {
-      this.setState({ drawerIsOpen: false });
+    if (pairDongleId) {
+      this.props.dispatch(selectDevice(pairDongleId));
     }
-
-    const isZoomed = props.expanded;
-    const { expanded } = this.props;
-    const wasZoomed = expanded;
-
-    if (isZoomed && !wasZoomed) {
-      Timelineworker.play();
-    }
-    if (!isZoomed && wasZoomed) {
-      Timelineworker.pause();
-    }
+    this.setState({ pairLoading: false, pairError: null, pairDongleId: null, settingDongle: pairDongleId });
   }
 
   handleDrawerStateChanged(drawerOpen) {
     this.setState({
       drawerIsOpen: drawerOpen
     });
-  }
-
-  checkProps(props) {
-    const dongleId = getDongleID(props.pathname);
-    const zoom = getZoom(props.pathname);
-
-    const { settingDongle } = this.state;
-    const curDongle = settingDongle || props.dongleId;
-    const { dispatch } = this.props;
-
-    if (dongleId) {
-      if (curDongle !== dongleId) {
-        if (!settingDongle) {
-          Timelineworker.selectDevice(dongleId);
-          this.setState({
-            settingDongle: dongleId
-          });
-        }
-      } else {
-        this.setState({
-          settingDongle: null
-        });
-      }
-    }
-
-    if (getPrimeNav(props.pathname)) {
-      dispatch(primeNav());
-    } else {
-      dispatch(selectRange(zoom.start, zoom.end));
-    }
   }
 
   updateHeaderRef(ref) {

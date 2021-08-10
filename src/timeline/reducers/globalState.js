@@ -100,9 +100,9 @@ export default function reducer(_state = initialState, action) {
       };
       deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.device.dongle_id);
       if (deviceIndex !== -1) {
-        state.devices[deviceIndex] = action.device;
+        state.devices[deviceIndex] = populateFetchedAt(action.device);
       } else {
-        state.devices.push(action.device);
+        state.devices.unshift(populateFetchedAt(action.device));
       }
       break;
     case ACTION_UPDATE_DEVICE_ONLINE:
