@@ -4,6 +4,7 @@ module.exports = {
       target: 'temporary-public-storage',
     },
     collect: {
+      startServerCommand: 'yarn serve -s -C build',
       url: [
         'http://localhost/',
         'http://localhost/?demo=1',
