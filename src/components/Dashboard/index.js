@@ -4,7 +4,6 @@ import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
 
-import CommaTwoUpsell from '../DriveView/commaTwoUpsell';
 import DriveList from './DriveList';
 import Prime from '../Prime';
 import Navigation from '../Navigation';
@@ -19,11 +18,7 @@ const styles = (/* theme */) => ({
 
 class Dashboard extends Component {
   render() {
-    const { classes, primeNav, devices, device, dongleId } = this.props;
-
-    if (devices && devices.length === 0) {
-      return <CommaTwoUpsell hook="Get started with comma two" />
-    }
+    const { classes, primeNav, device, dongleId } = this.props;
 
     if (!device || !dongleId) {
       return null;
@@ -49,7 +44,6 @@ const stateToProps = Obstruction({
   dongleId: 'workerState.dongleId',
   primeNav: 'workerState.primeNav',
   device: 'workerState.device',
-  devices: 'workerState.devices',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Dashboard));

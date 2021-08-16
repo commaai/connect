@@ -13,6 +13,7 @@ import { devices as DevicesApi } from '@commaai/comma-api';
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
 import DriveView from './DriveView';
+import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import AppDrawer from './AppDrawer';
 
 import Timelineworker from '../timeline';
@@ -187,13 +188,13 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, expanded } = this.props;
+    const { classes, expanded, devices } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
-    const isLarge = windowWidth > 1080;
+    const noDevicesUpsell = (devices && devices.length === 0);
+    const isLarge = noDevicesUpsell || windowWidth > 1080;
 
-    const sidebarWidth = Math.max(280, windowWidth * 0.2);
-
+    const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
     const headerHeight = this.state.headerRef ?
       this.state.headerRef.getBoundingClientRect().height :
       (windowWidth < 640 ? 111 : 66);
@@ -220,7 +221,9 @@ class ExplorerApp extends Component {
         <AppDrawer drawerIsOpen={ drawerIsOpen } isPermanent={ isLarge } width={ sidebarWidth }
           handleDrawerStateChanged={this.handleDrawerStateChanged} style={ drawerStyles } />
         <div className={ classes.window } style={ containerStyles }>
-          { expanded ? (<DriveView />) : (<Dashboard />) }
+          { noDevicesUpsell ?
+            <NoDeviceUpsell /> :
+            (expanded ? <DriveView /> : <Dashboard />) }
         </div>
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
           <Paper className={classes.modal}>
@@ -253,6 +256,7 @@ const stateToProps = Obstruction({
   expanded: 'zoom.expanded',
   pathname: 'router.location.pathname',
   dongleId: 'workerState.dongleId',
+  devices: 'workerState.devices',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));
