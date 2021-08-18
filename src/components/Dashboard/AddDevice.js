@@ -159,7 +159,7 @@ class AddDevice extends Component {
       this.qrScanner.destroy();
       this.qrScanner = null;
     }
-    let newState = { modalOpen: true, pairError: null, pairDongleId: null, hasCamera: null };
+    let newState = { modalOpen: false, pairError: null, pairDongleId: null, hasCamera: null };
     if (pairDongleId) {
       if (this.props.devices.length > 0) {
         this.props.dispatch(selectDevice(pairDongleId));
