@@ -9,6 +9,7 @@ import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress
 import { devices as DevicesApi } from '@commaai/comma-api';
 import { selectDevice } from '../../actions';
 import { pairErrorToMessage } from '../../utils';
+import Timelineworker from '../../timeline';
 import Colors from '../../colors';
 
 QrScanner.WORKER_PATH = QrScannerWorkerPath;
@@ -42,7 +43,7 @@ const styles = (theme) => ({
     width: theme.spacing.unit * 50,
     maxWidth: '90%',
     left: '50%',
-    top: '40%',
+    top: '50%',
     transform: 'translate(-50%, -50%)',
     outline: 'none',
   },
@@ -64,9 +65,9 @@ const styles = (theme) => ({
       position: 'absolute',
       backgroundColor: 'rgba(0, 0, 0, 0.8)',
       top: 0,
-      right: 0,
       bottom: 0,
-      left: 0,
+      right: -1,
+      left: -1,
       zIndex: 2,
     },
   },
@@ -153,15 +154,23 @@ class AddDevice extends Component {
 
   modalClose() {
     const { pairDongleId } = this.state;
-    this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null, hasCamera: null });
     if (this.qrScanner) {
       this.qrScanner.stop();
       this.qrScanner.destroy();
       this.qrScanner = null;
     }
+    let newState = { modalOpen: true, pairError: null, pairDongleId: null, hasCamera: null };
     if (pairDongleId) {
-      this.props.dispatch(selectDevice(pairDongleId));
+      if (this.props.devices.length > 0) {
+        this.props.dispatch(selectDevice(pairDongleId));
+      } else {
+        window.location = window.location.origin;
+        newState.modalOpen = true;
+        newState.pairDongleId = pairDongleId;
+        newState.hasCamera = true;
+      }
     }
+    this.setState(newState);
   }
 
   async onQrRead(result) {
@@ -186,7 +195,9 @@ class AddDevice extends Component {
         const resp = await DevicesApi.pilotPair(pairToken);
         if (resp.dongle_id) {
           const device = await DevicesApi.fetchDevice(resp.dongle_id);
-          Timelineworker.updateDevice(device);
+          if (this.props.devices.length > 0) { // state change from no device to a device requires reload.
+            Timelineworker.updateDevice(device);
+          }
           this.setState({ pairLoading: false, pairDongleId: resp.dongle_id, pairError: null });
         } else {
           console.log(resp);
@@ -219,10 +230,10 @@ class AddDevice extends Component {
             { hasCamera === false ?
               <>
                 <Typography style={{ marginBottom: 5 }}>
-                  Camera not found, please enable the camera or use another device.
+                  Camera not found, please enable camera access.
                 </Typography>
                 <Typography>
-                  You can also scan the QR code using another QR code reader application.
+                  You can also scan the QR code on your comma device using any other QR code reader application.
                 </Typography>
               </>
             :
@@ -251,6 +262,7 @@ class AddDevice extends Component {
 }
 
 const stateToProps = Obstruction({
+  devices: 'workerState.devices',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AddDevice));
