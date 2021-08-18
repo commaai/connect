@@ -5,6 +5,7 @@ import qs from 'query-string';
 import QrScanner from 'qr-scanner';
 import QrScannerWorkerPath from '!!file-loader!../../../node_modules/qr-scanner/qr-scanner-worker.min.js';
 import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress } from '@material-ui/core';
+import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 
 import { devices as DevicesApi } from '@commaai/comma-api';
 import { selectDevice } from '../../actions';
@@ -15,6 +16,12 @@ import Colors from '../../colors';
 QrScanner.WORKER_PATH = QrScannerWorkerPath;
 
 const styles = (theme) => ({
+  titleContainer: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 5,
+  },
   addButton: {
     width: '100%',
     background: Colors.white,
@@ -64,8 +71,8 @@ const styles = (theme) => ({
       content: '\'\'',
       position: 'absolute',
       backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      top: 0,
-      bottom: 0,
+      top: -1,
+      bottom: -1,
       right: -1,
       left: -1,
       zIndex: 2,
@@ -159,18 +166,16 @@ class AddDevice extends Component {
       this.qrScanner.destroy();
       this.qrScanner = null;
     }
-    let newState = { modalOpen: false, pairError: null, pairDongleId: null, hasCamera: null };
-    if (pairDongleId) {
-      if (this.props.devices.length > 0) {
-        this.props.dispatch(selectDevice(pairDongleId));
-      } else {
-        window.location = window.location.origin;
-        newState.modalOpen = true;
-        newState.pairDongleId = pairDongleId;
-        newState.hasCamera = true;
-      }
+
+    if (pairDongleId && this.props.devices.length === 0) {
+      window.location = window.location.origin;
+      return;
     }
-    this.setState(newState);
+
+    this.setState({ modalOpen: false, pairError: null, pairDongleId: null });
+    if (pairDongleId) {
+      this.props.dispatch(selectDevice(pairDongleId));
+    }
   }
 
   async onQrRead(result) {
@@ -211,20 +216,24 @@ class AddDevice extends Component {
   }
 
   render() {
-    const { classes, buttonText } = this.props;
+    const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
     const { modalOpen, hasCamera, pairLoading, pairDongleId, pairError } = this.state;
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
     return (
       <>
-        <Button onClick={ () => this.setState({ modalOpen: true }) } className={ classes.addButton }>
+        <Button onClick={ () => this.setState({ modalOpen: true }) } className={ classes.addButton } style={ buttonStyle }>
           { buttonText }
+          { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
         </Button>
         <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>
               <Typography variant="title">Pair device</Typography>
+              <Typography variant="caption">
+                scan QR code
+              </Typography>
             </div>
             <Divider className={ classes.divider } />
             { hasCamera === false ?

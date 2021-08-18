@@ -88,6 +88,7 @@ class AppDrawer extends Component {
               <Typography className={ classes.logoText }>connect</Typography>
             </Link>
           }
+          <div style={{ height: 24 }}></div>
           <DeviceList selectedDevice={ selectedDongleId } handleDeviceSelected={this.handleDeviceSelected}
             headerHeight={ 64 + 24 } />
         </div>

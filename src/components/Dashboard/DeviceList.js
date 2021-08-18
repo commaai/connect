@@ -76,7 +76,7 @@ const styles = (theme) => ({
     marginBottom: theme.spacing.unit
   },
   addDeviceContainer: {
-    padding: '16px 16px',
+    '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.25)' },
   },
 });
 
@@ -134,15 +134,24 @@ class DeviceList extends Component {
       }].concat(devices);
     }
 
+    const addButtonStyle = {
+      borderRadius: 'unset',
+      backgroundColor: 'transparent',
+      color: 'white',
+      fontWeight: 600,
+      justifyContent: 'space-between',
+      padding: '16px 44px 16px 54px',
+    };
+
     return (
       <>
         <VisibilityHandler onVisible={ this.onVisible } minInterval={ 10 } />
         <div className={ `scrollstyle ${classes.deviceList}` }
           style={{ height: `calc(100vh - ${this.props.headerHeight}px)` }}>
-          <div className={ classes.addDeviceContainer }>
-            <AddDevice buttonText={ 'add device' } />
-          </div>
           { devices.filter(this.filterDrivingDevice).map(this.renderDevice) }
+          <div className={ classes.addDeviceContainer }>
+            <AddDevice buttonText={ 'add new device' } buttonStyle={ addButtonStyle } buttonIcon={ true } />
+          </div>
         </div>
         <DeviceSettingsModal isOpen={this.state.showDeviceSettingsModal} device={ this.state.deviceSettingsModalDevice }
           onClose={this.handleClosedSettingsModal} />
