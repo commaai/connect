@@ -21,6 +21,7 @@ import { selectRange, selectDevice, primeNav } from '../actions';
 import { getDongleID, getZoom, getPrimeNav } from '../url';
 import ResizeHandler from './ResizeHandler';
 import Colors from '../colors';
+import { pairErrorToMessage } from '../utils';
 
 const styles = (theme) => ({
   base: {
@@ -145,22 +146,7 @@ class ExplorerApp extends Component {
         }
       } catch(err) {
         await localforage.removeItem('pairToken');
-        let msg;
-        if (err.message.indexOf('400') === 0) {
-          msg = 'invalid request';
-        } else if (err.message.indexOf('401') === 0) {
-          msg = 'could not decode token';
-        } else if (err.message.indexOf('403') === 0) {
-          msg = 'device paired with different owner';
-        } else if (err.message.indexOf('404') === 0) {
-          msg = 'tried to pair invalid device';
-        } else if (err.message.indexOf('417') === 0) {
-          msg = 'pair token not true';
-        } else {
-          msg = 'unable to pair';
-          console.log(err);
-          Sentry.captureException(err);
-        }
+        const msg = pairErrorToMessage(err, true);
         this.setState({ pairDongleId: null, pairLoading: false, pairError: `Error: ${msg}, please try again` });
       }
     }

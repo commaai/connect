@@ -10,6 +10,7 @@ import { deviceTypePretty, deviceIsOnline } from '../../utils'
 import Colors from '../../colors';
 import VisibilityHandler from '../VisibilityHandler';
 import Timelineworker from '../../timeline';
+import AddDevice from './AddDevice';
 
 const styles = (theme) => ({
   deviceList: {
@@ -74,6 +75,9 @@ const styles = (theme) => ({
   textField: {
     marginBottom: theme.spacing.unit
   },
+  addDeviceContainer: {
+    padding: '16px 16px',
+  },
 });
 
 class DeviceList extends Component {
@@ -135,6 +139,9 @@ class DeviceList extends Component {
         <VisibilityHandler onVisible={ this.onVisible } minInterval={ 10 } />
         <div className={ `scrollstyle ${classes.deviceList}` }
           style={{ height: `calc(100vh - ${this.props.headerHeight}px)` }}>
+          <div className={ classes.addDeviceContainer }>
+            <AddDevice buttonText={ 'add device' } />
+          </div>
           { devices.filter(this.filterDrivingDevice).map(this.renderDevice) }
         </div>
         <DeviceSettingsModal isOpen={this.state.showDeviceSettingsModal} device={ this.state.deviceSettingsModalDevice }

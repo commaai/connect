@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 import { withStyles, Button, Typography } from '@material-ui/core';
 
 import ResizeHandler from '../ResizeHandler';
+import AddDevice from '../Dashboard/AddDevice';
 
 const styles = () => ({
   content: {
@@ -40,6 +41,12 @@ const styles = () => ({
       '&:first-child': { fontWeight: 600 },
     },
   },
+  addDeviceContainer: {
+    marginTop: 10,
+    width: '80%',
+    maxWidth: 250,
+    margin: '0 auto',
+  }
 });
 
 class NoDeviceUpsell extends Component {
@@ -51,7 +58,7 @@ class NoDeviceUpsell extends Component {
   }
 
   render() {
-    const { classes, hook } = this.props;
+    const { classes } = this.props;
     const { windowWidth } = this.state;
 
     const containerPadding = windowWidth > 520 ? 36 : 16;
@@ -62,8 +69,11 @@ class NoDeviceUpsell extends Component {
         <div className={ classes.pairInstructions } style={{ padding: `8px ${containerPadding}px` }}>
           <Typography>Already own a comma device?</Typography>
           <Typography>
-            Pair your device by scanning the QR code on the device with any QR code scanner on your phone
+            Pair your comma device by scanning the QR code on the device with any QR code scanner on your phone
           </Typography>
+          <div className={ classes.addDeviceContainer }>
+            <AddDevice buttonText={ 'scan QR code' } />
+          </div>
         </div>
         <div className={classes.content} style={{ padding: `8px ${containerPadding}px` }}>
           <Typography>

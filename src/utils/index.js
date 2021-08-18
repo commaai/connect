@@ -1,4 +1,5 @@
 import fecha from 'fecha';
+import * as Sentry from '@sentry/react';
 
 export function filterEvent(event) {
   return (event.type === 'disengage' || event.type === 'disengage_steer');
@@ -66,4 +67,32 @@ export function deviceIsOnline(device) {
     return false;
   }
   return device.last_athena_ping >= (device.fetched_at - 120);
+}
+
+export function isTouchDevice() {
+  return (('ontouchstart' in window) ||
+     (navigator.maxTouchPoints > 0) ||
+     (navigator.msMaxTouchPoints > 0));
+}
+
+export function pairErrorToMessage(err, sentry) {
+  let msg;
+  if (err.message.indexOf('400') === 0) {
+    msg = 'invalid request';
+  } else if (err.message.indexOf('401') === 0) {
+    msg = 'could not decode token';
+  } else if (err.message.indexOf('403') === 0) {
+    msg = 'device paired with different owner';
+  } else if (err.message.indexOf('404') === 0) {
+    msg = 'tried to pair invalid device';
+  } else if (err.message.indexOf('417') === 0) {
+    msg = 'pair token not true';
+  } else {
+    msg = 'unable to pair';
+    console.log(err);
+    if (sentry) {
+      Sentry.captureException(err);
+    }
+  }
+  return msg;
 }
