@@ -111,7 +111,7 @@ class DriveVideo extends Component {
 
     const prevSegment = this.visibleSegment(prevProps);
     if (this.state.src === '' || !prevSegment || prevSegment.route !== segment.route) {
-      let videoApi = VideoApi(segment.url, process.env.REACT_APP_VIDEO_CDN);
+      let videoApi = VideoApi(segment.url, window.VIDEO_HOST);
       videoApi.getQcameraStreamIndex().then(() => {
         let src = videoApi.getQcameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`
         if (src !== this.state.src) {

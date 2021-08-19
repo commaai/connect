@@ -4,7 +4,6 @@
   "scripts": {
     "start": "craco start",
     "build:development": "env-cmd .env.development craco build --max_old_space_size=8192",
-    "build:staging": "env-cmd .env.staging craco build --max_old_space_size=8192",
     "build:production": "env-cmd .env.production craco build --max_old_space_size=8192",
     "test": "craco test --env=jsdom",
     "test-ci": "CI=true craco test --env=jsdom",
