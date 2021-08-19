@@ -72,3 +72,25 @@ jobs:
         status: ${{ job.status }}
         deployment_id: ${{ steps.deployment.outputs.deployment_id }}
         env_url: https://${{ steps.extract_branch.outputs.branch }}--commaai-explorer.netlify.app
+  docker:
+    runs-on: ubuntu-20.04
+    permissions:
+      packages: write
+      contents: read
+    steps:
+    - uses: actions/checkout@v2
+    - name: get branch name
+      shell: bash
+      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+      id: extract_branch
+    - name: Build Docker image
+      run: |
+        docker build -t connect:${{ steps.extract_branch.outputs.branch }} . --build-arg SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+    - name: Tag latest
+      if: github.ref == 'refs/heads/master'
+      run: docker tag connect:${{ steps.extract_branch.outputs.branch }} connect:latest
+    - name: Log in to registry
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+    - name: Push image
+      run: |
+        docker push ghcr.io/commaai/connect:${{ steps.extract_branch.outputs.branch }}
