@@ -33,4 +33,4 @@ ARG ATHENA_URL_ROOT=https://athena.comma.ai/
 ARG BILLING_URL_ROOT=https://billing.comma.ai/
 ARG VIDEO_HOST=https://my-comma-video.azureedge.net
 ARG SENTRY_ENV=production
-CMD ["/app/make_config.sh" "&& exec nginx -g 'daemon off;'"]
+CMD ["/app/make_config.sh", "&& exec nginx -g 'daemon off;'"]
