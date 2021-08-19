@@ -75,12 +75,12 @@ const styles = (theme) => ({
       bottom: -1,
       right: -1,
       left: -1,
-      zIndex: 2,
+      zIndex: 3,
     },
   },
   videoOverlay: {
     position: 'absolute',
-    zIndex: 3,
+    zIndex: 4,
     width: '100%',
     height: '100%',
     display: 'flex',
@@ -92,6 +92,12 @@ const styles = (theme) => ({
   },
   pairedDongleId: {
     fontWeight: 'bold',
+  },
+  canvas: {
+    position: 'absolute',
+    zIndex: 2,
+    width: '100%',
+    height: '100%',
   },
 });
 
@@ -105,12 +111,16 @@ class AddDevice extends Component {
       pairLoading: false,
       pairError: null,
       pairDongleId: null,
+      canvasWidth: null,
+      canvasHeight: null,
     };
 
     this.videoRef = null;
     this.qrScanner = null;
 
+    this.componentDidUpdate = this.componentDidUpdate.bind(this);
     this.onVideoRef = this.onVideoRef.bind(this);
+    this.onCanvasRef = this.onCanvasRef.bind(this);
     this.modalClose = this.modalClose.bind(this);
     this.onQrRead = this.onQrRead.bind(this);
     this.restart = this.restart.bind(this);
@@ -121,16 +131,62 @@ class AddDevice extends Component {
   }
 
   async componentDidUpdate(prevProps, prevState) {
-    if (this.state.hasCamera === null) {
+    const { modalOpen, hasCamera, pairLoading, pairError, pairDongleId } = this.state;
+    if (hasCamera === null) {
       const hasCamera = await QrScanner.hasCamera();
       this.setState({ hasCamera });
     }
 
-    if (this.videoRef && !this.qrScanner && this.state.hasCamera) {
+    if (modalOpen && this.videoRef && !this.qrScanner && hasCamera) {
+      this.videoRef.addEventListener('play', this.componentDidUpdate);
+      this.videoRef.addEventListener('loadeddata', this.componentDidUpdate);
       this.qrScanner = new QrScanner(this.videoRef, this.onQrRead);
     }
 
-    if (this.qrScanner && this.state.modalOpen && this.state.hasCamera !== false) {
+    if (this.canvasRef && this.videoRef && this.videoRef.srcObject) {
+      const { width, height } = this.canvasRef.getBoundingClientRect();
+      if (this.state.canvasWidth !== width || this.state.canvasHeight !== height) {
+        this.setState({ canvasWidth: width, canvasHeight: height });
+        const size = Math.min(width, height);
+        const x = (width - size)/2 + (size / 6);
+        const y = (height - size)/2 + (size / 6);
+        const rect = size * (2 / 3);
+        const stroke = size / 6;
+
+        this.canvasRef.width = width;
+        this.canvasRef.height = height;
+
+        const ctx = this.canvasRef.getContext('2d');
+        ctx.clearRect(0, 0, width, height);
+        ctx.strokeStyle = 'white';
+
+        ctx.beginPath();
+        ctx.moveTo(x, y + stroke);
+        ctx.lineTo(x, y);
+        ctx.lineTo(x + stroke, y);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(x + rect - stroke, y);
+        ctx.lineTo(x + rect, y);
+        ctx.lineTo(x + rect, y + stroke);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(x + rect, y + rect - stroke);
+        ctx.lineTo(x + rect, y + rect);
+        ctx.lineTo(x + rect - stroke, y + rect);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(x + stroke, y + rect);
+        ctx.lineTo(x, y + rect);
+        ctx.lineTo(x, y + rect - stroke);
+        ctx.stroke();
+      }
+    }
+
+    if (!pairLoading && !pairError && !pairDongleId && this.qrScanner && modalOpen && hasCamera !== false) {
       try {
         await this.qrScanner.start();
       }
@@ -144,8 +200,20 @@ class AddDevice extends Component {
     }
   }
 
+  async componentWillUnmount() {
+    if (this.videoRef) {
+      this.videoRef.removeEventListener('play', this.componentDidUpdate);
+      this.videoRef.removeEventListener('loadeddata', this.componentDidUpdate);
+    }
+  }
+
   async onVideoRef(ref) {
     this.videoRef = ref;
+    this.componentDidUpdate();
+  }
+
+  async onCanvasRef(ref) {
+    this.canvasRef = ref;
     this.componentDidUpdate();
   }
 
@@ -172,7 +240,7 @@ class AddDevice extends Component {
       return;
     }
 
-    this.setState({ modalOpen: false, pairError: null, pairDongleId: null });
+    this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
     }
@@ -194,7 +262,12 @@ class AddDevice extends Component {
         return;
       }
 
-      this.videoRef.pause();
+      if (this.videoRef) {
+        this.videoRef.pause();
+      }
+      if (this.qrScanner) {
+        this.qrScanner._active = false;
+      }
       this.setState({ pairLoading: true, pairDongleId: null, pairError: null });
       try {
         const resp = await DevicesApi.pilotPair(pairToken);
@@ -247,8 +320,9 @@ class AddDevice extends Component {
               </>
             :
               <div className={ `${classes.videoContainer} ${videoContainerOverlay}` }>
+                <canvas className={ classes.canvas } ref={ this.onCanvasRef } />
                 <div className={ classes.videoOverlay }>
-                  { pairLoading && <CircularProgress size="20vw" style={{ color: '#525E66' }} /> }
+                  { pairLoading && <CircularProgress size="10vw" style={{ color: '#525E66' }} /> }
                   { pairError && <>
                     <Typography>{ pairError }</Typography>
                     <Button className={ classes.retryButton } onClick={ this.restart }>try again</Button>
