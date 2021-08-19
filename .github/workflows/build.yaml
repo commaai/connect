@@ -77,6 +77,9 @@ jobs:
     permissions:
       packages: write
       contents: read
+    env:
+      REGISTRY: ghcr.io/commaai
+      IMAGE_NAME: explorer
     steps:
     - uses: actions/checkout@v2
     - name: get branch name
@@ -85,12 +88,12 @@ jobs:
       id: extract_branch
     - name: Build Docker image
       run: |
-        docker build -t explorer:${{ steps.extract_branch.outputs.branch }} . --build-arg SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+        docker build -t $REGISTRY/$IMAGE_NAME:${{ steps.extract_branch.outputs.branch }} . --build-arg SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
     - name: Tag latest
       if: github.ref == 'refs/heads/master'
-      run: docker tag explorer:${{ steps.extract_branch.outputs.branch }} explorer:latest
+      run: docker tag $REGISTRY/$IMAGE_NAME:${{ steps.extract_branch.outputs.branch }} $REGISTRY/$IMAGE_NAME:latest
     - name: Log in to registry
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
     - name: Push image
       run: |
-        docker push ghcr.io/commaai/explorer:${{ steps.extract_branch.outputs.branch }}
+        docker push $REGISTRY/$IMAGE_NAME:${{ steps.extract_branch.outputs.branch }}
