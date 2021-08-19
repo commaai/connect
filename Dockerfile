@@ -15,6 +15,8 @@ COPY . /app
 WORKDIR /app
 
 RUN yarn install
+
+ARG SENTRY_AUTH_TOKEN
 RUN yarn build:staging
 
 COPY build /var/www/html
