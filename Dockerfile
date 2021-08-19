@@ -19,9 +19,12 @@ RUN yarn install
 ARG SENTRY_AUTH_TOKEN
 RUN yarn build:staging
 
-COPY build /var/www/html
+
+FROM nginx:1.21
+
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=0 /app/build /usr/share/nginx/html
 
 EXPOSE 80
 
 CMD ["nginx","-g","daemon off;"]
-
