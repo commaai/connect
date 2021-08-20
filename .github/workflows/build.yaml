@@ -26,6 +26,7 @@ jobs:
       run: yarn test-puppeteer-build
   build:
     runs-on: ubuntu-20.04
+    needs: test
     steps:
     - name: start deployment
       uses: bobheadxi/deployments@v0.4.3
@@ -74,6 +75,7 @@ jobs:
         env_url: https://${{ steps.extract_branch.outputs.branch }}--commaai-explorer.netlify.app
   docker:
     runs-on: ubuntu-20.04
+    needs: test
     permissions:
       packages: write
       contents: read
