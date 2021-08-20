@@ -46,9 +46,10 @@ jobs:
     - name: yarn install
       if: steps.yarn-cache.outputs.cache-hit != 'true'
       run: yarn install
-    - name: yarn build:staging
-      run: yarn build:staging
+    - name: yarn build:production
+      run: yarn build:production
       env:
+        SENTRY_ENV: staging
         SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
     - name: test build
       run: test -d build
