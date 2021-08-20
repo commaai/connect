@@ -11,10 +11,10 @@ import App from './App';
 import Theme from './theme';
 import { register, unregister } from './registerServiceWorker';
 
-if (process.env.REACT_APP_SENTRY_ENV) {
+if (window.SENTRY_ENV) {
   Sentry.init({
     dsn: 'https://6a242abfa01b4660aa34f150e87de018@sentry.io/1234624',
-    environment: process.env.REACT_APP_SENTRY_ENV,
+    environment: window.SENTRY_ENV,
     maxValueLength: 1000,
   });
 }

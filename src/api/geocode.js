@@ -2,18 +2,15 @@ import * as Sentry from "@sentry/react";
 import qs from 'query-string';
 import { WebMercatorViewport } from 'react-map-gl';
 
+export const MAPBOX_TOKEN = 'pk.eyJ1IjoiY29tbWFhaSIsImEiOiJjangyYXV0c20wMGU2NDluMWR4amUydGl5In0.6Vb11S6tdX6Arpj6trRE_g'
+const HERE_API_KEY = 'FzdKQBdDlWNQfvlvreB9ukezD-fYi7uKW0rM_K9eE2E'
+
 const mbxGeocoding = require('@mapbox/mapbox-sdk/services/geocoding');
 const mbxDirections = require('@mapbox/mapbox-sdk/services/directions');
 const geocodeCache = new Map();
 
-let geocodingClient = null;
-let directionsClient = null;
-if (process.env.REACT_APP_MAPBOX_TOKEN) {
-  geocodingClient = mbxGeocoding({ accessToken: process.env.REACT_APP_MAPBOX_TOKEN });
-  directionsClient = mbxDirections({ accessToken: process.env.REACT_APP_MAPBOX_TOKEN });
-} else {
-  console.warn('Missing mapbox token');
-}
+let geocodingClient = mbxGeocoding({ accessToken: MAPBOX_TOKEN });;
+let directionsClient = mbxDirections({ accessToken: MAPBOX_TOKEN });;
 
 export default function geocodeApi() {
   function getFilteredContexts(context) {
@@ -93,7 +90,7 @@ export default function geocodeApi() {
 
     async forwardLookup(query, proximity, viewport) {
       let params = {
-        apiKey: process.env.REACT_APP_HERE_API_KEY,
+        apiKey: HERE_API_KEY,
         q: query,
         limit: 20,
         details: '1',
@@ -126,8 +123,7 @@ export default function geocodeApi() {
     },
 
     async networkPositioning(req) {
-      const key = process.env.REACT_APP_HERE_API_KEY;
-      const resp = await fetch(`https://positioning.hereapi.com/v2/locate?apiKey=${key}&fallback=any,singleWifi`, {
+      const resp = await fetch(`https://positioning.hereapi.com/v2/locate?apiKey=${HERE_API_KEY}&fallback=any,singleWifi`, {
         method: 'POST',
         headers: new Headers({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(req),

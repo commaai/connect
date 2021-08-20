@@ -3,7 +3,7 @@ const SentryCliPlugin = require('@sentry/webpack-plugin');
 
 module.exports = function ({ env }) {
   let sentryPlugin;
-  if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SENTRY_ENV) {
+  if (process.env.NODE_ENV === 'production' && process.env.SENTRY_AUTH_TOKEN) {
     sentryPlugin = new SentryCliPlugin({
       include: './build/',
       ignoreFile: '.sentrycliignore',

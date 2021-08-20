@@ -13,7 +13,7 @@ import { primeNav } from '../../actions';
 import { timeFromNow } from '../../utils';
 import { devices as Devices, navigation as NavigationAPI, athena as AthenaApi } from '@commaai/comma-api';
 import Colors from '../../colors';
-import GeocodeApi from '../../api/geocode';
+import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
 import { pin_car, pin_marker, pin_home, pin_work, pin_pinned } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
@@ -958,7 +958,7 @@ class Navigation extends Component {
         }
         <ReactMapGL { ...viewport } onViewportChange={ this.viewportChange } onContextMenu={ null }
           mapStyle={ MAP_STYLE } width="100%" height="100%" onNativeClick={ this.focus } maxPitch={ 0 }
-          mapboxApiAccessToken={ process.env.REACT_APP_MAPBOX_TOKEN } attributionControl={ false } dragRotate={ false }
+          mapboxApiAccessToken={ MAPBOX_TOKEN } attributionControl={ false } dragRotate={ false }
           onError={ (err) => this.setState({ mapError: err.error.message }) }>
           <GeolocateControl className={ classes.geolocateControl } positionOptions={{ enableHighAccuracy: true }}
             showAccuracyCircle={ false } onGeolocate={ this.onGeolocate } auto={ hasFocus }

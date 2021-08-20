@@ -7,6 +7,7 @@ import { withStyles } from '@material-ui/core/styles';
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
 import { derived as DerivedDataApi } from '@commaai/comma-api';
+import { MAPBOX_TOKEN } from '../../api/geocode';
 import TimelineWorker from '../../timeline';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
@@ -262,7 +263,7 @@ class DriveMap extends Component {
     return (
       <div className={ classes.mapContainer }>
         <ReactMapGL width="100%" height="100%" {...this.state.viewport} mapStyle={MAP_STYLE}
-          mapboxApiAccessToken={process.env.REACT_APP_MAPBOX_TOKEN} ref={this.initMap}
+          mapboxApiAccessToken={MAPBOX_TOKEN} ref={this.initMap}
           onViewportChange={(viewport) => this.setState({ viewport })} attributionControl={false} dragPan={false} />
       </div>
     );
