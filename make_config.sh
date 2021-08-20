@@ -2,7 +2,7 @@
 
 file=/usr/share/nginx/html/config.js
 
-rm $file
+> $file
 
 if [ -n "$COMMA_URL_ROOT" ]; then
   echo "window.COMMA_URL_ROOT = '${COMMA_URL_ROOT}';" >> $file
@@ -19,5 +19,3 @@ fi
 if [ -n "$SENTRY_ENV" ]; then
   echo "window.SENTRY_ENV = '${SENTRY_ENV}';" >> $file
 fi
-
-nginx -g 'daemon off;'
