@@ -20,6 +20,7 @@ const startPath = window.location ? window.location.pathname : '';
 
 // helper functions
 
+
 export class TimelineInterface {
   constructor(options) {
     this.options = options || {};
