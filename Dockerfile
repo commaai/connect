@@ -6,7 +6,6 @@ RUN apt-get update \
     && apt-get install -y \
         nodejs \
         npm \
-        nginx \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN npm install -g yarn
@@ -22,7 +21,7 @@ RUN yarn build:production
 
 FROM nginx:1.21
 
-COPY make_config.sh /app/make_config.sh
+COPY start.sh /app/start.sh
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=0 /app/build /usr/share/nginx/html
 
@@ -33,4 +32,4 @@ ARG ATHENA_URL_ROOT=https://athena.comma.ai/
 ARG BILLING_URL_ROOT=https://billing.comma.ai/
 ARG VIDEO_HOST=https://my-comma-video.azureedge.net
 ARG SENTRY_ENV=production
-CMD ["/app/make_config.sh", "&& exec nginx -g 'daemon off;'"]
+CMD ["/app/start.sh"]
