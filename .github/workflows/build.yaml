@@ -96,7 +96,7 @@ jobs:
     - name: login to container registry
       uses: docker/login-action@v1
       with:
-        registry: $REGISTRY
+        registry: ${{ REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: get tags
