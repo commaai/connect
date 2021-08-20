@@ -49,7 +49,6 @@ jobs:
     - name: yarn build:production
       run: yarn build:production
       env:
-        SENTRY_ENV: staging
         SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
     - name: test build
       run: test -d build
@@ -102,6 +101,7 @@ jobs:
     - name: Build and push
       uses: docker/build-push-action@v2
       with:
+        build-args: SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
         context: .
         push: true
         tags: ${{ steps.extract_tags.outputs.tags }}
