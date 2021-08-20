@@ -2,10 +2,10 @@ FROM node:16.7-bullseye
 
 WORKDIR /app
 
-COPY package.json yarn.lock /app
+COPY package.json yarn.lock /app/
 RUN yarn install
 
-COPY . /app
+COPY . /app/
 ARG SENTRY_AUTH_TOKEN
 RUN yarn build:production
 
