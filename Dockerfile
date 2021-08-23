@@ -12,6 +12,8 @@ RUN yarn build:production
 
 FROM nginx:1.21
 
-COPY make_config.sh /docker-entrypoint.d/make_config.sh
+COPY config.js.template /etc/nginx/templates/config.js.template
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=0 /app/build /usr/share/nginx/html
+
+ENV NGINX_ENVSUBST_OUTPUT_DIR /usr/share/nginx/html
