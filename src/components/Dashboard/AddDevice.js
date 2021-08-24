@@ -138,7 +138,7 @@ class AddDevice extends Component {
       this.setState({ hasCamera });
     }
 
-    if (modalOpen && this.videoRef && !this.qrScanner && hasCamera) {
+    if (modalOpen && this.videoRef && !this.qrScanner && hasCamera && !pairDongleId) {
       this.videoRef.addEventListener('play', this.componentDidUpdate);
       this.videoRef.addEventListener('loadeddata', this.componentDidUpdate);
       this.qrScanner = new QrScanner(this.videoRef, this.onQrRead);
@@ -252,7 +252,7 @@ class AddDevice extends Component {
       return;
     }
 
-    Sentry.captureMessage("qr scanned", { result: result, 'app_id': this.props.profile.id });
+    Sentry.captureMessage("qr scanned", { user: { id: this.props.profile.id }, extra: { result } });
     let pairToken;
     if (result.startsWith('https://')) {
       try {
