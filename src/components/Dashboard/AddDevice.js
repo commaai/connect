@@ -6,6 +6,7 @@ import QrScanner from 'qr-scanner';
 import QrScannerWorkerPath from '!!file-loader!../../../node_modules/qr-scanner/qr-scanner-worker.min.js';
 import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress } from '@material-ui/core';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
+import * as Sentry from '@sentry/react';
 
 import { devices as DevicesApi } from '@commaai/comma-api';
 import { selectDevice } from '../../actions';
@@ -247,44 +248,61 @@ class AddDevice extends Component {
   }
 
   async onQrRead(result) {
-    if (this.state.pairLoading || this.state.pairError || this.state.pairDongleId) {
+    if (this.state.pairLoading || this.state.pairError || this.state.pairDongleId || !result) {
       return;
     }
 
-    this.setState({ msg: result })
+    Sentry.captureMessage("qr scanned", { result: result, 'app_id': this.props.profile.id });
+    let pairToken;
     if (result.startsWith('https://')) {
-      let pairToken;
       try {
         pairToken = qs.parse(result.split('?')[1]).pair;
+        if (!pairToken) {
+          throw new Error('empty pairToken from url qr code');
+        }
       }
       catch (err) {
+        this.setState({ pairLoading: false, pairDongleId: null, pairError: 'Error: could not parse pair token from detected url' });
         console.log(err);
         return;
       }
-
-      if (this.videoRef) {
-        this.videoRef.pause();
-      }
-      if (this.qrScanner) {
-        this.qrScanner._active = false;
-      }
-      this.setState({ pairLoading: true, pairDongleId: null, pairError: null });
+    } else {
       try {
-        const resp = await DevicesApi.pilotPair(pairToken);
-        if (resp.dongle_id) {
-          const device = await DevicesApi.fetchDevice(resp.dongle_id);
-          if (this.props.devices.length > 0) { // state change from no device to a device requires reload.
-            Timelineworker.updateDevice(device);
-          }
-          this.setState({ pairLoading: false, pairDongleId: resp.dongle_id, pairError: null });
-        } else {
-          console.log(resp);
-          this.setState({ pairLoading: false, pairDongleId: null, pairError: 'Error: could not pair' });
+        pairToken = result.split('--')[2];
+        if (!pairToken) {
+          throw new Error('empty pairToken from qr code');
         }
-      } catch(err) {
-        const msg = pairErrorToMessage(err, true);
-        this.setState({ pairLoading: false, pairDongleId: null, pairError: `Error: ${msg}` });
       }
+      catch (err) {
+        this.setState({ pairLoading: false, pairDongleId: null, pairError: 'Error: invalid QR code detected' });
+        console.log(err);
+        return;
+      }
+    }
+
+    if (this.videoRef) {
+      this.videoRef.pause();
+    }
+    if (this.qrScanner) {
+      this.qrScanner._active = false;
+    }
+    this.setState({ pairLoading: true, pairDongleId: null, pairError: null });
+    try {
+      const resp = await DevicesApi.pilotPair(pairToken);
+      if (resp.dongle_id) {
+        const device = await DevicesApi.fetchDevice(resp.dongle_id);
+        if (this.props.devices.length > 0) { // state change from no device to a device requires reload.
+          Timelineworker.updateDevice(device);
+        }
+        this.setState({ pairLoading: false, pairDongleId: resp.dongle_id, pairError: null });
+      } else {
+        console.log(resp);
+        this.setState({ pairLoading: false, pairDongleId: null, pairError: 'Error: could not pair' });
+        Sentry.captureMessage("qr scan failed", { resp: resp, 'app_id': this.props.profile.id });
+      }
+    } catch(err) {
+      const msg = pairErrorToMessage(err, true);
+      this.setState({ pairLoading: false, pairDongleId: null, pairError: `Error: ${msg}` });
     }
   }
 
@@ -345,6 +363,7 @@ class AddDevice extends Component {
 }
 
 const stateToProps = Obstruction({
+  profile: 'workerState.profile',
   devices: 'workerState.devices',
 });
 
