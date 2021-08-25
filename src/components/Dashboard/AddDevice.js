@@ -231,6 +231,7 @@ class AddDevice extends Component {
   modalClose() {
     const { pairDongleId } = this.state;
     if (this.qrScanner) {
+      this.qrScanner._active = true;
       this.qrScanner.stop();
       this.qrScanner.destroy();
       this.qrScanner = null;
