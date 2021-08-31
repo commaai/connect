@@ -83,6 +83,15 @@ const styles = (theme) => ({
       backgroundColor: Colors.grey400,
     },
   },
+  unpairError: {
+    marginTop: 15,
+    padding: 10,
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 0, 0, 0.3)',
+    '& p': { display: 'inline-block', marginLeft: 10 },
+    color: Colors.white,
+  },
 });
 
 class DeviceSettingsModal extends Component {
@@ -97,6 +106,8 @@ class DeviceSettingsModal extends Component {
       shareEmail: '',
       unpairConfirm: false,
       unpaired: false,
+      loadingUnpair: false,
+      unpairError: null,
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -212,8 +223,20 @@ class DeviceSettingsModal extends Component {
 
   async unpairDevice() {
     this.setState({ loadingUnpair: true });
-    await DevicesApi.unpair(this.props.device.dongle_id);
-    this.setState({ loadingUnpair: false, unpaired: true })
+    try {
+      const resp = await DevicesApi.unpair(this.props.device.dongle_id);
+      if (resp.success) {
+        this.setState({ loadingUnpair: false, unpaired: true })
+      } else if (resp.error) {
+        this.setState({ loadingUnpair: false, unpaired: false, unpairError: resp.error })
+      } else {
+        this.setState({ loadingUnpair: false, unpaired: false, unpairError: 'Could not successfully unpair' })
+      }
+    } catch (err) {
+      Sentry.captureException(err);
+      console.log(err);
+      this.setState({ loadingUnpair: false, unpaired: false, unpairError: 'Unable to unpair' })
+    }
   }
 
   closeUnpair() {
@@ -300,6 +323,9 @@ class DeviceSettingsModal extends Component {
             </Typography>
           </div>
           <Divider />
+          { this.state.unpairError &&
+            <div className={ classes.unpairError }>{ this.state.unpairError }</div>
+          }
           <div className={ classes.topButtonGroup }>
             <Button variant="contained" className={ `${classes.primeManageButton} ${classes.cancelButton}` }
               onClick={ this.closeUnpair }>
