@@ -69,7 +69,7 @@ export default function geocodeApi() {
         return { place, details };
       }
     } catch (err) {
-      Sentry.captureException(err);
+      Sentry.captureException(err, { fingerprint: 'geocode_reverse_parse' });
     }
   }
 

@@ -148,7 +148,7 @@ class PrimeCheckout extends Component {
           this.fetchSimDetails(false);
         } else {
           this.setState({ error: 'Failed to fetch, please try again later', simInfoLoading: false });
-          Sentry.captureException(err);
+          Sentry.captureException(err, { fingerprint: 'prime_fetch_sim_details' });
         }
       } else {
         this.setState({ error: err.message, simInfoLoading: false });

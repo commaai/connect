@@ -17,19 +17,22 @@ export default async function init(isDemo) {
       devices: demoDevices,
     });
   } else {
-    console.log('Fetching devices!');
-    let devices, profile;
+    let profile;
     try {
-      devices = Devices.listDevices();
-      profile = Account.getProfile();
-      devices = await devices;
-      profile = await profile;
+      profile = await Account.getProfile();
     } catch (err) {
       console.log(err);
-      Sentry.captureException(err);
+      Sentry.captureException(err, { fingerprint: 'init_api_get_profile' });
     }
     Sentry.setUser({ id: profile.id });
-    console.log('Device list:', devices);
+
+    let devices;
+    try {
+      devices = await Devices.listDevices();
+    } catch (err) {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'init_api_list_devices' });
+    }
 
     if (devices.length > 0) {
       const dongleId = getDongleID(window.location.pathname) || devices[0].dongle_id;
@@ -40,7 +43,7 @@ export default async function init(isDemo) {
         }).catch((err) => {
           if (!err.message || err.message.indexOf('404') !== 0) {
             console.log(err);
-            Sentry.captureException(err);
+            Sentry.captureException(err, { fingerprint: 'init_get_subscription' });
           }
         });
       }
@@ -59,7 +62,7 @@ export default async function init(isDemo) {
       }).catch((err) => {
         if (!err.resp || err.resp.status !== 400) {
           console.log(err.message);
-          Sentry.captureException(err);
+          Sentry.captureException(err, { fingerprint: 'init_get_paymentmethod' });
         }
       });
     }

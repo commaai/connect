@@ -253,7 +253,7 @@ class AddDevice extends Component {
       return;
     }
 
-    Sentry.captureMessage("qr scanned", { user: { id: this.props.profile.id }, extra: { result } });
+    Sentry.captureMessage("qr scanned", { extra: { result } });
     let pairToken;
     if (result.startsWith('https://')) {
       try {
@@ -299,7 +299,7 @@ class AddDevice extends Component {
       } else {
         console.log(resp);
         this.setState({ pairLoading: false, pairDongleId: null, pairError: 'Error: could not pair' });
-        Sentry.captureMessage("qr scan failed", { resp: resp, 'app_id': this.props.profile.id });
+        Sentry.captureMessage("qr scan failed", { extra: { resp } });
       }
     } catch(err) {
       const msg = pairErrorToMessage(err, true);

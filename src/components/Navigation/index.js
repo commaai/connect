@@ -393,7 +393,7 @@ class Navigation extends Component {
     } catch(err) {
       if (!err.message || err.message.indexOf('no_segments_uploaded') === -1) {
         console.log(err);
-        Sentry.captureException(err);
+        Sentry.captureException(err, { fingerprint: 'nav_fetch_location' });
       }
     }
   }
@@ -426,7 +426,7 @@ class Navigation extends Component {
         (!err.message || err.message.indexOf('{"error": "Device not registered"}') === -1))
       {
         console.log(err);
-        Sentry.captureException(err);
+        Sentry.captureException(err, { fingerprint: 'nav_fetch_network_location' });
       }
     }
   }
@@ -511,7 +511,7 @@ class Navigation extends Component {
         });
       }).catch((err) => {
         console.log(err);
-        Sentry.captureException(err);
+        Sentry.captureException(err, { fingerprint: 'nav_geocode_forward_lookup' });
       });
     } else {
       this.setState({
@@ -690,7 +690,7 @@ class Navigation extends Component {
           this.setState({ viewport: newVp });
         } catch (err) {
           console.log(err);
-          Sentry.captureException(err);
+          Sentry.captureException(err, { fingerprint: 'nav_flymarkers_viewport' });
         }
       }
     }
@@ -881,7 +881,7 @@ class Navigation extends Component {
       });
     }).catch((err) => {
       console.log(err);
-      Sentry.captureException(err);
+      Sentry.captureException(err, { fingerprint: 'nav_research_geocode_forward' });
     });
   }
 

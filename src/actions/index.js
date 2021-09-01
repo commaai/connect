@@ -85,7 +85,7 @@ export function primeFetchSubscription() {
       }).catch((err) => {
         if (!err.message || err.message.indexOf('404') !== 0) {
           console.log(err);
-          Sentry.captureException(err);
+          Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' });
         }
       });
     }

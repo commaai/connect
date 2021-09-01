@@ -164,9 +164,9 @@ class DeviceSettingsModal extends Component {
         loadingDeviceAlias: false,
         hasSavedAlias: true
       });
-    } catch (e) {
-      Sentry.captureException(e);
-      this.setState({ error: e.message, loadingDeviceAlias: false });
+    } catch (err) {
+      Sentry.captureException(err, { fingerprint: 'device_settings_alias' });
+      this.setState({ error: err.message, loadingDeviceAlias: false });
     }
   }
 
@@ -189,13 +189,9 @@ class DeviceSettingsModal extends Component {
         shareEmail: '',
         hasShared: true
       });
-    } catch (e) {
-      const err = e;
-      console.log(e, err);
-      console.log(err.statusCode);
-      debugger;
-      Sentry.captureException(e);
-      this.setState({ error: e.message, loadingDeviceShare: false });
+    } catch (err) {
+      Sentry.captureException(err, { fingerprint: 'device_settings_share' });
+      this.setState({ error: err.message, loadingDeviceShare: false });
     }
   }
 
@@ -233,7 +229,7 @@ class DeviceSettingsModal extends Component {
         this.setState({ loadingUnpair: false, unpaired: false, unpairError: 'Could not successfully unpair' })
       }
     } catch (err) {
-      Sentry.captureException(err);
+      Sentry.captureException(err, { fingerprint: 'device_settings_unpair' });
       console.log(err);
       this.setState({ loadingUnpair: false, unpaired: false, unpairError: 'Unable to unpair' })
     }

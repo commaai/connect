@@ -91,7 +91,7 @@ export function pairErrorToMessage(err, sentry) {
     msg = 'unable to pair';
     console.log(err);
     if (sentry) {
-      Sentry.captureException(err);
+      Sentry.captureException(err, { fingerprint: 'qr_pair_error_to_message' });
     }
   }
   return msg;

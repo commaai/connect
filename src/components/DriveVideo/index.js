@@ -121,7 +121,7 @@ class DriveVideo extends Component {
         }
       }).catch((err) => {
         console.log(err);
-        Sentry.captureException(err);
+        Sentry.captureException(err, { fingerprint: 'drive_video_source_get_qcam_index' });
       });
     }
   }
