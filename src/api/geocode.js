@@ -41,13 +41,18 @@ export default function geocodeApi() {
   }
 
   async function noCacheReverseLookup(coords) {
-    const response = await geocodingClient.reverseGeocode({
-      query: [coords[0], coords[1]],
+    const endpoint = 'https://api.mapbox.com/geocoding/v5/mapbox.places/';
+    const params = {
+      access_token: MAPBOX_TOKEN,
       limit: 1,
-    }).send();
+    };
+    const resp = await fetch(`${endpoint}${coords[0]},${coords[1]}.json?${qs.stringify(params)}`, {
+      method: 'GET',
+      cache: 'force-cache',
+    });
 
     try {
-      const { features } = response.body;
+      const { features } = await resp.json();
       if (features.length && features[0].context) {
         let contexts = getFilteredContexts(features[0].context);
         let place = '';
@@ -70,7 +75,7 @@ export default function geocodeApi() {
 
   return {
     async reverseLookup(coords) {
-      if (geocodingClient === null) {
+      if (geocodingClient === null || (coords[0] === 0 && coords[1] === 0)) {
         return null;
       }
 
