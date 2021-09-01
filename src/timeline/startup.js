@@ -28,6 +28,7 @@ export default async function init(isDemo) {
       console.log(err);
       Sentry.captureException(err);
     }
+    Sentry.setUser({ id: profile.id });
     console.log('Device list:', devices);
 
     if (devices.length > 0) {
