@@ -72,7 +72,7 @@ const styles = (theme) => ({
     padding: 10,
     display: 'flex',
     alignItems: 'center',
-    backgroundColor: Colors.orange200,
+    backgroundColor: 'rgba(255, 100, 0, 0.3)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
   overviewBlockLoading: {
@@ -118,8 +118,10 @@ class PrimeCheckout extends Component {
 
     this.state = {
       error: null,
-      simInfo: null,
+      simId: null,
+      simData: null,
       simValid: null,
+      simCached: null,
       simInfoLoading: false,
       activated: null,
       new_subscription: null,
@@ -138,8 +140,12 @@ class PrimeCheckout extends Component {
 
   async fetchSimDetails(retry) {
     try {
-      const simInfo = await fetchSimInfo(this.props.dongleId);
-      this.setState({ simInfo });
+      const result = await fetchSimInfo(this.props.dongleId);
+      this.setState({
+        simId: result.simInfo.sim_id,
+        simData: result.simInfo.data_connected,
+        simCached: false,
+      });
       this.fetchSimValid();
     } catch (err) {
       if (err.message === 'Failed to fetch') {
@@ -150,6 +156,15 @@ class PrimeCheckout extends Component {
           this.setState({ error: 'Failed to fetch, please try again later', simInfoLoading: false });
           Sentry.captureException(err, { fingerprint: 'prime_fetch_sim_details_fetch_failed' });
         }
+      } else if (err.message === 'Could not reach your device.\nConnect device to WiFi and try again.' &&
+        this.props.device.sim_id !== null)
+      {
+        this.setState({
+          simId: this.props.device.sim_id,
+          simData: false,
+          simCached: true,
+        });
+        this.fetchSimValid();
       } else {
         if (!err.message || err.message.toLowerCase().indexOf('server error') !== -1) {
           console.log(err);
@@ -162,20 +177,19 @@ class PrimeCheckout extends Component {
 
   async fetchSimValid() {
     try {
-      let res = await Billing.getSimValid(this.props.dongleId, this.state.simInfo.sim_id);
+      const res = await Billing.getSimValid(this.props.dongleId, this.state.simId);
       if (res.error && res.error == 'sim_third_party') {
-        if (this.state.simInfo.data_connected === true) {
-          this.setState({ simValid: 'sim_third_party_data', simInfoLoading: false });
-        } else {
-          this.setState({
-            error: 'Third-party SIM detected. Turn off device Wi-Fi and try again to confirm cellular data connection.',
-            simInfoLoading: false
-          });
+        if (!this.state.simData) {
+          const msg = this.state.simCached ?
+            'Turn on device and try again to confirm cellular data connection.' :
+            'Third-party SIM detected. Turn off device Wi-Fi and try again to confirm cellular data connection.';
+          this.setState({ error: msg });
         }
+        this.setState({ simValid: false, simInfoLoading: false });
       } else if (res.error) {
         this.setState({ error: res.error, simInfoLoading: false });
       } else {
-        this.setState({ simValid: res.result, simInfoLoading: false });
+        this.setState({ simValid: true, simInfoLoading: false });
       }
     } catch (err) {
       Sentry.captureException(err, { fingerprint: 'prime_checkout_fetch_simvalid' });
@@ -219,7 +233,7 @@ class PrimeCheckout extends Component {
 
   render() {
     const { classes, device, dongleId } = this.props;
-    const { new_subscription, windowWidth, activated, simInfo, simValid, simInfoLoading, error } = this.state;
+    const { new_subscription, windowWidth, activated, simId, simData, simValid, simCached, simInfoLoading, error } = this.state;
 
     const alias = device.alias || deviceTypePretty(device.device_type);
 
@@ -232,7 +246,6 @@ class PrimeCheckout extends Component {
       }
     }
 
-    const simId = simInfo ? simInfo.sim_id : null;
     const containerPadding = windowWidth > 520 ? 36 : 16;
 
     return ( <>
@@ -254,12 +267,14 @@ class PrimeCheckout extends Component {
             <ErrorIcon />
             <Typography>{ error }</Typography>
           </div> }
-          { simValid == 'sim_third_party_data' && <div className={ classes.overviewBlockWarning }>
-            <WarningIcon />
-            <Typography>
-              Third-party SIM detected, comma prime can be activated, but no data connection will be provided.
-            </Typography>
-          </div> }
+          { !simInfoLoading && !simCached && !simValid && simData &&
+            <div className={ classes.overviewBlockWarning }>
+              <WarningIcon />
+              <Typography>
+                Third-party SIM detected, comma prime can be activated, but no data connection will be provided.
+              </Typography>
+            </div>
+          }
           { simInfoLoading && <div className={ classes.overviewBlockLoading }>
             <CircularProgress size={ 19 } style={{ color: Colors.white }} />
             <Typography>Fetching SIM data</Typography>
@@ -277,7 +292,7 @@ class PrimeCheckout extends Component {
             }) }
           </div>
           <div className={ classes.overviewBlock + " " + classes.paymentElement }>
-            <PrimePayment disabled={ Boolean(activated && simValid) } simId={ simId }
+            <PrimePayment disabled={ Boolean(activated || (!simValid && !simData)) } simId={ simId }
               onActivated={ this.onPrimeActivated }
               onError={ (err) => this.setState({ error: err }) } />
           </div>

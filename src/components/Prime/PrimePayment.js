@@ -219,7 +219,7 @@ class PrimePayment extends Component {
     const { classes, simId, isUpdate, disabled, onCancel } = this.props;
     const { activating, cardNumber, cardCvc, cardExpiry, zipCode, windowWidth } = this.state;
 
-    const disableFields = !simId && !isUpdate;
+    const disableFields = disabled || (!simId && !isUpdate);
     const canCheckout = !activating && (simId || isUpdate) && cardNumber && cardNumber.complete &&
       cardCvc && cardCvc.complete && cardExpiry && cardExpiry.complete && zipCode && zipCode.length >= 3;
 
