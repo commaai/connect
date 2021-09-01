@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/react';
 import { withStyles, Typography, IconButton, Modal, Paper, Button, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
+import WarningIcon from '@material-ui/icons/Warning';
 
 import { billing as Billing } from '@commaai/comma-api';
 
@@ -66,6 +67,14 @@ const styles = (theme) => ({
     backgroundColor: 'rgba(255, 0, 0, 0.2)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
+  overviewBlockWarning: {
+    marginTop: 15,
+    padding: 10,
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: Colors.orange200,
+    '& p': { display: 'inline-block', marginLeft: 10 },
+  },
   overviewBlockLoading: {
     marginTop: 15,
     padding: 10,
@@ -110,6 +119,7 @@ class PrimeCheckout extends Component {
     this.state = {
       error: null,
       simInfo: null,
+      simValid: null,
       simInfoLoading: false,
       activated: null,
       new_subscription: null,
@@ -118,6 +128,7 @@ class PrimeCheckout extends Component {
 
     this.onPrimeActivated = this.onPrimeActivated.bind(this);
     this.fetchSimDetails = this.fetchSimDetails.bind(this);
+    this.fetchSimValid = this.fetchSimValid.bind(this);
   }
 
   componentDidMount() {
@@ -128,7 +139,8 @@ class PrimeCheckout extends Component {
   async fetchSimDetails(retry) {
     try {
       let result = await fetchSimInfo(this.props.dongleId);
-      this.setState({ simInfo: result.simInfo, simInfoLoading: false });
+      this.setState({ simInfo: result.simInfo });
+      this.fetchSimValid();
     } catch (err) {
       if (err.message === 'Failed to fetch') {
         if (retry) {
@@ -141,6 +153,28 @@ class PrimeCheckout extends Component {
       } else {
         this.setState({ error: err.message, simInfoLoading: false });
       }
+    }
+  }
+
+  async fetchSimValid() {
+    try {
+      let res = await Billing.getSimValid(this.props.dongleId, this.state.simInfo.sim_id);
+      if (res.error && res.error == 'sim_third_party') {
+        if (this.state.simInfo.data_connected === true) {
+          this.setState({ simValid: 'sim_third_party_data', simInfoLoading: false });
+        } else {
+          this.setState({
+            error: 'Third-party SIM detected. Turn off device Wi-Fi and try again to confirm cellular data connection.',
+            simInfoLoading: false
+          });
+        }
+      } else if (res.error) {
+        this.setState({ error: res.error, simInfoLoading: false });
+      } else {
+        this.setState({ simValid: res.result, simInfoLoading: false });
+      }
+    } catch (err) {
+      this.setState({ error: err.message, simInfoLoading: false });
     }
   }
 
@@ -177,7 +211,7 @@ class PrimeCheckout extends Component {
 
   render() {
     const { classes, device, dongleId } = this.props;
-    const { new_subscription, windowWidth, activated, simInfo, simInfoLoading, error } = this.state;
+    const { new_subscription, windowWidth, activated, simInfo, simValid, simInfoLoading, error } = this.state;
 
     const alias = device.alias || deviceTypePretty(device.device_type);
 
@@ -212,6 +246,12 @@ class PrimeCheckout extends Component {
             <ErrorIcon />
             <Typography>{ error }</Typography>
           </div> }
+          { simValid == 'sim_third_party_data' && <div className={ classes.overviewBlockWarning }>
+            <WarningIcon />
+            <Typography>
+              Third-party SIM detected, comma prime can be activated, but no data connection will be provided.
+            </Typography>
+          </div> }
           { simInfoLoading && <div className={ classes.overviewBlockLoading }>
             <CircularProgress size={ 19 } style={{ color: Colors.white }} />
             <Typography>Fetching SIM data</Typography>
@@ -229,7 +269,7 @@ class PrimeCheckout extends Component {
             }) }
           </div>
           <div className={ classes.overviewBlock + " " + classes.paymentElement }>
-            <PrimePayment disabled={ Boolean(activated) } simId={ simId }
+            <PrimePayment disabled={ Boolean(activated && simValid) } simId={ simId }
               onActivated={ this.onPrimeActivated }
               onError={ (err) => this.setState({ error: err }) } />
           </div>
