@@ -138,8 +138,8 @@ class PrimeCheckout extends Component {
 
   async fetchSimDetails(retry) {
     try {
-      let result = await fetchSimInfo(this.props.dongleId);
-      this.setState({ simInfo: result.simInfo });
+      const simInfo = await fetchSimInfo(this.props.dongleId);
+      this.setState({ simInfo });
       this.fetchSimValid();
     } catch (err) {
       if (err.message === 'Failed to fetch') {
