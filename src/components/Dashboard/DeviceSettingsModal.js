@@ -53,6 +53,11 @@ const styles = (theme) => ({
   formRow: {
     minHeight: 75
   },
+  formRowError: {
+    padding: 10,
+    marginBottom: 5,
+    backgroundColor: Colors.red500,
+  },
   textField: {
     maxWidth: '70%',
   },
@@ -107,6 +112,7 @@ class DeviceSettingsModal extends Component {
       unpairConfirm: false,
       unpaired: false,
       loadingUnpair: false,
+      error: null,
       unpairError: null,
     };
 
@@ -190,8 +196,13 @@ class DeviceSettingsModal extends Component {
         hasShared: true
       });
     } catch (err) {
-      Sentry.captureException(err, { fingerprint: 'device_settings_share' });
-      this.setState({ error: err.message, loadingDeviceShare: false });
+      if (err.resp && err.resp.status === 404) {
+        this.setState({ error: 'could not find user by this email address', loadingDeviceShare: false });
+      } else {
+        console.log(err);
+        Sentry.captureException(err, { fingerprint: 'device_settings_share' });
+        this.setState({ error: 'unable to share', loadingDeviceShare: false });
+      }
     }
   }
 
@@ -272,6 +283,9 @@ class DeviceSettingsModal extends Component {
             </Button>
           </div>
           <div className={classes.form}>
+            { this.state.error && <div className={ classes.formRowError }>
+              <Typography>{ this.state.error }</Typography>
+            </div> }
             <div className={classes.formRow}>
               <TextField id="device_alias" label="Device Name" className={ classes.textField }
                 value={ this.state.deviceAlias ? this.state.deviceAlias : '' }
