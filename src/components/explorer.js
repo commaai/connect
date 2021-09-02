@@ -20,7 +20,7 @@ import { selectRange, selectDevice, primeNav } from '../actions';
 import { getDongleID, getZoom, getPrimeNav } from '../url';
 import ResizeHandler from './ResizeHandler';
 import Colors from '../colors';
-import { pairErrorToMessage } from '../utils';
+import { verifyPairToken, pairErrorToMessage } from '../utils';
 
 const styles = (theme) => ({
   base: {
@@ -126,6 +126,15 @@ class ExplorerApp extends Component {
     }
     if (pairToken && !pairLoading && !pairError && !pairDongleId) {
       this.setState({ pairLoading: true });
+
+      try {
+        verifyPairToken(pairToken, true, 'explorer_pair_verify_pairtoken');
+      } catch (err) {
+        this.setState({ pairLoading: false, pairDongleId: null, pairError: `Error: ${err.message}` });
+        await localforage.removeItem('pairToken');
+        return;
+      }
+
       try {
         const resp = await DevicesApi.pilotPair(pairToken);
         if (resp.dongle_id) {

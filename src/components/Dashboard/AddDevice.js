@@ -10,7 +10,7 @@ import * as Sentry from '@sentry/react';
 
 import { devices as DevicesApi } from '@commaai/comma-api';
 import { selectDevice } from '../../actions';
-import { pairErrorToMessage } from '../../utils';
+import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import Timelineworker from '../../timeline';
 import Colors from '../../colors';
 
@@ -254,8 +254,9 @@ class AddDevice extends Component {
     }
 
     Sentry.captureMessage("qr scanned", { extra: { result } });
+    const from_url = result.startsWith('https://');
     let pairToken;
-    if (result.startsWith('https://')) {
+    if (from_url) {
       try {
         pairToken = qs.parse(result.split('?')[1]).pair;
         if (!pairToken) {
@@ -288,6 +289,14 @@ class AddDevice extends Component {
       this.qrScanner._active = false;
     }
     this.setState({ pairLoading: true, pairDongleId: null, pairError: null });
+
+    try {
+      verifyPairToken(pairToken, from_url, 'adddevice_verify_pairtoken');
+    } catch (err) {
+      this.setState({ pairLoading: false, pairDongleId: null, pairError: `Error: ${err.message}` });
+      return;
+    }
+
     try {
       const resp = await DevicesApi.pilotPair(pairToken);
       if (resp.dongle_id) {

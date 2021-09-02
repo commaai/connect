@@ -1,4 +1,5 @@
 import fecha from 'fecha';
+import jwt from 'jsonwebtoken';
 import * as Sentry from '@sentry/react';
 
 export function filterEvent(event) {
@@ -95,4 +96,28 @@ export function pairErrorToMessage(err, sentry_finterprint) {
     }
   }
   return msg;
+}
+
+export function verifyPairToken(pairToken, from_url, sentry_finterprint) {
+  let decoded;
+  try {
+    decoded = jwt.decode(pairToken, { complete: true });
+  } catch (err) {
+    // https://github.com/auth0/node-jsonwebtoken#errors--codes
+    if (err instanceof jwt.JsonWebTokenError) {
+      throw new Error('invalid QR code, could not decode pair token');
+    } else {
+      // unkown error, let server verify token
+      Sentry.captureException(err, { fingerprint: sentry_finterprint });
+      return;
+    }
+  }
+
+  if (!decoded.payload.identity) {
+    let msg = 'could not get identity from payload';
+    if (!from_url) {
+      msg += ', make sure you are using openpilot 0.8.3 or newer';
+    }
+    throw new Error(msg);
+  }
 }
