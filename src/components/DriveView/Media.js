@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import qs from 'query-string';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
+import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, Menu, MenuItem } from '@material-ui/core';
 
@@ -130,7 +131,11 @@ class Media extends Component {
     if (Demo.isDemo()) {
       files = demoFiles;
     } else {
-      files = (await RawApi.getRouteFiles(visibleSegment.route));
+      try {
+        files = await RawApi.getRouteFiles(visibleSegment.route);
+      } catch (err) {
+        Sentry.captureException(err, { fingerprint: 'media_download_segment_files' });
+      }
     }
     const url = files[type].find((url) => url.indexOf(segmentKeyPath) !== -1);
 

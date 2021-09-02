@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
+import * as Sentry from '@sentry/react';
 import { withStyles, Button, Typography, TextField, CircularProgress } from '@material-ui/core';
 import stripe from '../../api/stripe'
 import { Elements, ElementsConsumer, CardNumberElement, CardExpiryElement, CardCvcElement } from '@stripe/react-stripe-js';
@@ -167,6 +168,7 @@ class PrimePayment extends Component {
       payResp = await Billing.payForPrime(dongleId, simId, token);
     } catch(err) {
       console.log('server error', err);
+      Sentry.captureException(err, { fingerprint: 'prime_payment_activate_pay' });
       throw new Error('An error occurred');
     }
     if ('error' in payResp) {
@@ -198,6 +200,7 @@ class PrimePayment extends Component {
       payResp = await Billing.updatePaymentMethod(token);
     } catch(err) {
       console.log('server error', err);
+      Sentry.captureException(err, { fingerprint: 'prime_payment_update_pay' });
       throw new Error('An error occurred');
     }
     if (payResp.error) {

@@ -472,7 +472,10 @@ class Navigation extends Component {
         });
         this.setState({ favoriteLocations: favorites });
       }
-    }).catch(console.log);
+    }).catch((err) => {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'nav_fetch_locationsdata' });
+    });
   }
 
   getFavoriteLabelIcon(label) {
@@ -798,6 +801,7 @@ class Navigation extends Component {
         saved_next: resp.saved_next,
       }});
     }).catch((err) => {
+      Sentry.captureException(err, { fingerprint: 'nav_set_destination' });
       console.log(`failed to set destination: ${err.message}`);
       this.setState({ searchSelect: {
         ...searchSelect,
@@ -839,6 +843,7 @@ class Navigation extends Component {
       });
     }).catch((err) => {
       console.log(err);
+      Sentry.captureException(err, { fingerprint: 'nav_save_favorite' });
       this.setState({ savingAs: false, savedAs: false });
     });
   }
@@ -860,6 +865,7 @@ class Navigation extends Component {
         }, this.flyToMarkers);
       }).catch((err) => {
         console.log(err);
+        Sentry.captureException(err, { fingerprint: 'nav_delete_favorite' });
         this.setState({ savingAs: false, savedAs: false });
       });
     }

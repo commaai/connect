@@ -5,6 +5,7 @@ import { ConnectedRouter } from 'connected-react-router';
 import document from 'global/document';
 import qs from 'query-string';
 import localforage from 'localforage';
+import * as Sentry from "@sentry/react";
 
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Grid from '@material-ui/core/Grid';
@@ -90,8 +91,9 @@ class App extends Component {
             AuthStorage.setCommaAccessToken(token);
           }
           // done authing!!
-        } catch (e) {
-          console.log(e);
+        } catch (err) {
+          console.log(err);
+          Sentry.captureException(err, { fingerprint: 'app_auth_refresh_token' });
         }
       }
     }

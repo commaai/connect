@@ -148,9 +148,13 @@ class PrimeCheckout extends Component {
           this.fetchSimDetails(false);
         } else {
           this.setState({ error: 'Failed to fetch, please try again later', simInfoLoading: false });
-          Sentry.captureException(err, { fingerprint: 'prime_fetch_sim_details' });
+          Sentry.captureException(err, { fingerprint: 'prime_fetch_sim_details_fetch_failed' });
         }
       } else {
+        if (!err.message || err.message.toLowerCase().indexOf('server error') !== -1) {
+          console.log(err);
+          Sentry.captureException(err, { fingerprint: 'prime_checkout_fetch_siminfo' });
+        }
         this.setState({ error: err.message, simInfoLoading: false });
       }
     }
@@ -174,6 +178,7 @@ class PrimeCheckout extends Component {
         this.setState({ simValid: res.result, simInfoLoading: false });
       }
     } catch (err) {
+      Sentry.captureException(err, { fingerprint: 'prime_checkout_fetch_simvalid' });
       this.setState({ error: err.message, simInfoLoading: false });
     }
   }
@@ -203,6 +208,9 @@ class PrimeCheckout extends Component {
       this.setState({ activated: resp, error: null });
       Billing.getSubscription(this.props.dongleId).then((subscription) => {
         this.setState({ new_subscription: subscription });
+      }).catch((err) => {
+        console.log(err);
+        Sentry.captureException(err, { fingerprint: 'prime_checkout_activated_fetch_sub' });
       });
     } else if (resp.error) {
       this.setState({ error: resp.error });

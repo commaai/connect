@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';
 import { withStyles } from '@material-ui/core/styles';
+import * as Sentry from '@sentry/react';
 
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
@@ -146,6 +147,8 @@ class DriveMap extends Component {
 
       const coordsArr = coords.map((coord) => [coord.lng, coord.lat]);
       this.setPath(coordsArr);
+    } catch(err) {
+      Sentry.captureException(err, { fingerprint: 'drivemap_populate_deriveddrivedata' });
     } finally {
       this.isLoadingCoords = false;
     }

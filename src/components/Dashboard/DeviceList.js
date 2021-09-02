@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
+import * as Sentry from '@sentry/react';
 
 import { devices as DevicesApi } from '@commaai/comma-api';
 import { withStyles, Typography, IconButton } from '@material-ui/core';
@@ -123,6 +124,7 @@ class DeviceList extends Component {
       const devices = await DevicesApi.listDevices();
       Timelineworker.updateDevices(devices);
     } catch (err) {
+      Sentry.captureException(err, { fingerprint: 'devicelist_visible_listdevices' });
       console.log(err);
     }
   }

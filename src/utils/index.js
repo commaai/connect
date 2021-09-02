@@ -75,7 +75,7 @@ export function isTouchDevice() {
      (navigator.msMaxTouchPoints > 0));
 }
 
-export function pairErrorToMessage(err, sentry) {
+export function pairErrorToMessage(err, sentry_finterprint) {
   let msg;
   if (err.message.indexOf('400') === 0) {
     msg = 'invalid request';
@@ -90,8 +90,8 @@ export function pairErrorToMessage(err, sentry) {
   } else {
     msg = 'unable to pair';
     console.log(err);
-    if (sentry) {
-      Sentry.captureException(err, { fingerprint: 'qr_pair_error_to_message' });
+    if (sentry_finterprint) {
+      Sentry.captureException(err, { fingerprint: sentry_finterprint });
     }
   }
   return msg;

@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
+import * as Sentry from '@sentry/react';
 import { withStyles, Typography, Grid } from '@material-ui/core';
 
 import { drives as DrivesApi } from '@commaai/comma-api';
@@ -87,6 +88,7 @@ class DriveList extends Component {
     try {
       segmentData = await DrivesApi.getSegmentMetadata(start, end, dongleId);
     } catch (err) {
+      Sentry.captureException(err, { fingerprint: 'drivelist_visible_segmentmetadata' });
       console.log(err);
       return;
     }

@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
+import * as Sentry from '@sentry/react';
 import { withStyles, Typography, Button, CircularProgress, Popper } from '@material-ui/core';
 import "react-responsive-carousel/lib/styles/carousel.min.css"; // requires a loader
 import { Carousel } from 'react-responsive-carousel';
@@ -205,6 +206,8 @@ class DeviceInfo extends Component {
         this.setState({ deviceStats: { result: resp }});
       }
     } catch(err) {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'device_info_device_stats' });
       this.setState({ deviceStats: { error: err.message }});
     }
   }
@@ -230,6 +233,10 @@ class DeviceInfo extends Component {
       }
     } catch(err) {
       if (this.mounted && dongleId === this.props.dongleId) {
+        if (!err.message || err.message.indexOf('Device not registered') === -1) {
+          console.log(err);
+          Sentry.captureException(err, { fingerprint: 'device_info_athena_pandastate' });
+        }
         this.setState({ carHealth: { error: err.message }});
       }
     }
@@ -259,10 +266,14 @@ class DeviceInfo extends Component {
       let error = err.message;
       if (error.indexOf('Device not registered') !== -1) {
         error = 'device offline'
-      } else if (error.length > 5 && error[5] === '{') {
-        try {
-          error = JSON.parse(error.substr(5)).error;
-        } catch { }
+      } else {
+        console.log(err);
+        Sentry.captureException(err, { fingerprint: 'device_info_snapshot' });
+        if (error.length > 5 && error[5] === '{') {
+          try {
+            error = JSON.parse(error.substr(5)).error;
+          } catch { }
+        }
       }
       this.setState({ snapshot: { error: error }});
     }

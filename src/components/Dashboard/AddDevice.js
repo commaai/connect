@@ -302,7 +302,7 @@ class AddDevice extends Component {
         Sentry.captureMessage("qr scan failed", { extra: { resp } });
       }
     } catch(err) {
-      const msg = pairErrorToMessage(err, true);
+      const msg = pairErrorToMessage(err, 'adddevice_pair_qr');
       this.setState({ pairLoading: false, pairDongleId: null, pairError: `Error: ${msg}` });
     }
   }

@@ -1,4 +1,5 @@
 import Event from 'geval/event';
+import * as Sentry from "@sentry/react";
 
 import { drives as Drives } from '@commaai/comma-api'; // eslint-disable-line
 
@@ -95,8 +96,9 @@ async function checkSegmentMetadata(state) {
 
   try {
     segmentData = await segmentsRequest;
-  } catch (e) {
-    console.error('Failure fetching segment metadata', e.stack || e);
+  } catch (err) {
+    console.error('Failure fetching segment metadata', err);
+    Sentry.captureException(err, { fingerprint: 'timeline_fetch_segments' });
     // /@TODO retry this call!
     return;
   } finally {

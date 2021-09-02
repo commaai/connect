@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import fecha from 'fecha';
+import * as Sentry from '@sentry/react';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import { withStyles, Typography, Button, Modal, Paper, IconButton, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
@@ -128,6 +129,7 @@ class PrimeManage extends Component {
         this.setState({ canceling: false, cancelError: 'Could not cancel due to unknown error. Please try again.'})
       }
     }).catch((err) => {
+      Sentry.captureException(err, { fingerprint: 'primemanage_cancel_prime' });
       this.setState({ canceling: false, cancelError: 'Could not cancel due to unknown error. Please try again.' });
     });
   }
