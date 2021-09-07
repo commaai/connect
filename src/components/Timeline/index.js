@@ -12,12 +12,14 @@ import fecha from 'fecha';
 
 import Measure from 'react-measure';
 import Tooltip from '@material-ui/core/Tooltip';
+import DragHandleIcon from '@material-ui/icons/DragHandle';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import TimelineWorker from '../../timeline';
 import Segments from '../../timeline/segments';
 import { selectRange } from '../../actions';
+import Colors from '../../colors';
 
 const styles = (/* theme */) => ({
   base: {
@@ -95,7 +97,24 @@ const styles = (/* theme */) => ({
     top: 0,
     left: 0,
     width: 50,
-    height: '100%'
+    height: '100%',
+  },
+  draggable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 10,
+    height: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    cursor: 'ew-resize',
+  },
+  draggableIcon: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.3)',
+    transform: 'rotate(90deg)',
+    position: 'absolute',
+    top: 48,
+    left: -3,
   },
   dragHighlight: {
     background: 'rgba(255, 255, 255, 0.1)',
@@ -127,10 +146,14 @@ const AlertStatusCodes = [
   'critical'
 ];
 
-function percentFromMouseEvent(e) {
-  const boundingBox = e.currentTarget.getBoundingClientRect();
-  const x = e.pageX - boundingBox.left;
+function percentFromMouseEvent(ev) {
+  const boundingBox = ev.currentTarget.getBoundingClientRect();
+  const x = ev.pageX - boundingBox.left;
   return x / boundingBox.width;
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
 }
 
 class Timeline extends Component {
@@ -140,22 +163,27 @@ class Timeline extends Component {
     this.getOffset = this.getOffset.bind(this);
     this.handleClick = this.handleClick.bind(this);
     this.handleMouseMove = this.handleMouseMove.bind(this);
-    this.handleMouseDown = this.handleMouseDown.bind(this);
-    this.handleMouseUp = this.handleMouseUp.bind(this);
     this.handleMouseLeave = this.handleMouseLeave.bind(this);
+    this.handleMouseUp = this.handleMouseUp.bind(this);
     this.percentToOffset = this.percentToOffset.bind(this);
     this.renderSegment = this.renderSegment.bind(this);
     this.sendSeek = debounce(this.sendSeek.bind(this), 1000 / 60);
-
+    this.onDragStart = this.onDragStart.bind(this);
 
     this.offsetValue = React.createRef();
     this.rulerRemaining = React.createRef();
     this.rulerRemainingHovered = React.createRef();
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
-    // this.canvas_speed = React.createRef();
+    this.draggableLeft = React.createRef();
+    this.draggableRight = React.createRef();
+
     const { zoomOverride, zoom } = this.props;
     this.state = {
+      currLeft: 0,
+      currRight: 0,
+      dragLeft: null,
+      dragRight: null,
       dragStart: null,
       zoom: zoomOverride || zoom,
       mouseX: 0,
@@ -214,109 +242,55 @@ class Timeline extends Component {
     }
   }
 
-  handleClick(e) {
+  handleClick(ev) {
     if (this.isDragSelecting) {
       console.log('Is a drag event');
       this.isDragSelecting = false;
       return;
     }
 
-    const percent = percentFromMouseEvent(e);
+    const percent = percentFromMouseEvent(ev);
 
     TimelineWorker.seek(this.percentToOffset(percent));
   }
 
-  handleMouseDown(e) {
-    const { classes, dragSelection } = this.props;
-    if (!dragSelection) {
-      return;
-    }
-    // make sure they're clicking & dragging and not just moving the mouse around
-    if (e.currentTarget.parentElement.querySelector(`.${classes.base}:active`) !== e.currentTarget) {
-      return;
-    }
+  handleMouseMove(ev) {
+    const { currLeft, currRight, dragLeft, dragRight, thumbnail } = this.state;
+    if (dragLeft) {
+      const newX =  clamp(currLeft + (ev.screenX - dragLeft), 0, dragRight ? dragRight : thumbnail.width);
+      this.draggableLeft.current.style.left = `${newX}px`;
+    } else if (this.state.dragRight) {
 
-    const percent = percentFromMouseEvent(e);
-    this.setState({
-      dragStart: percent,
-      dragEnd: percent
-    });
-  }
+    } else {
+      const boundingBox = ev.currentTarget.getBoundingClientRect();
+      const x = ev.pageX - boundingBox.left;
+      const percent = x / boundingBox.width;
 
-  handleMouseUp(e) {
-    const { dragStart, dragEnd } = this.state;
-    const { dragSelection } = this.props;
-    if (!dragSelection) {
-      return;
-    }
-    if (!dragStart) {
-      return;
-    }
-    const selectedArea = Math.abs(dragStart - dragEnd) * 100;
-    const startPercent = Math.min(dragStart, dragEnd);
-    const endPercent = Math.max(dragStart, dragEnd);
-    const startOffset = Math.round(this.percentToOffset(startPercent));
-    const endOffset = Math.round(this.percentToOffset(endPercent));
-
-    if (selectedArea > 0.1) {
-      const currentOffset = TimelineWorker.currentOffset();
-      if (currentOffset < startOffset || currentOffset > endOffset) {
-        TimelineWorker.seek(startOffset);
-      }
-      const { start, dispatch } = this.props;
-      const startTime = startOffset + start;
-      const endTime = endOffset + start;
-
-      this.isDragSelecting = true;
-      setTimeout(() => { this.isDragSelecting = false; });
-      dispatch(selectRange(startTime, endTime));
-    } else if (e.currentTarget !== document) {
-      this.handleClick(e);
-    }
-
-    this.setState({
-      dragStart: null,
-      dragEnd: null
-    });
-  }
-
-  handleMouseMove(e) {
-    const boundingBox = e.currentTarget.getBoundingClientRect();
-    const x = e.pageX - boundingBox.left;
-    const percent = x / boundingBox.width;
-
-    this.setState({
-      mouseX: x,
-      hoverPercent: percent,
-      isHovered: true,
-    });
-
-    // mouseover highlight
-    if (this.rulerRemainingHovered.current && this.rulerRemainingHovered.current.parentElement) {
-      let { hoverPercent } = this.state;
-      hoverPercent = (hoverPercent * 100).toFixed(2);
-      this.rulerRemainingHovered.current.style.left = `${hoverPercent}%`;
-    }
-
-    const { classes, dragSelection } = this.props;
-    const { dragStart } = this.state;
-    // drag highlight
-    if (e.currentTarget.parentElement.querySelector(`.${classes.base}:active`) !== e.currentTarget) {
-      return; // ignore mouseover
-    }
-    if (!dragSelection) {
-      this.seekIndex = this.percentToOffset(percent);
-      this.sendSeek();
-    } if (dragStart) {
       this.setState({
-        dragEnd: percent
+        mouseX: x,
+        hoverPercent: percent,
+        isHovered: true,
       });
+
+      // mouseover highlight
+      if (this.rulerRemainingHovered.current && this.rulerRemainingHovered.current.parentElement) {
+        let { hoverPercent } = this.state;
+        hoverPercent = (hoverPercent * 100).toFixed(2);
+        this.rulerRemainingHovered.current.style.left = `${hoverPercent}%`;
+      }
     }
-    // do other things for drag selection!
   }
 
   handleMouseLeave() {
     this.setState({ isHovered: false });
+  }
+
+  handleMouseUp(ev) {
+    const { currLeft, currRight, dragLeft, dragRight, thumbnail } = this.state;
+    if (dragLeft) {
+      const newX =  clamp(currLeft + (ev.screenX - dragLeft), 0, dragRight ? dragRight : thumbnail.width);
+      this.setState({ dragLeft: null, currLeft: newX });
+    }
   }
 
   percentToOffset(perc) {
@@ -336,6 +310,10 @@ class Timeline extends Component {
       TimelineWorker.seek(this.seekIndex);
       this.seekIndex = null;
     }
+  }
+
+  onDragStart(el, ev) {
+    this.setState({ dragLeft: ev.screenX });
   }
 
   renderDragger() {
@@ -419,7 +397,7 @@ class Timeline extends Component {
 
   render() {
     const { classes, tooltipped, hasRuler, start, className, segments } = this.props;
-    const { hoverPercent, thumbnail, mouseX } = this.state;
+    const { hoverPercent, thumbnail, mouseX, currLeft, currRight } = this.state;
     const hoverOffset = this.percentToOffset(hoverPercent);
     let timeString = null;
     if (tooltipped) {
@@ -433,9 +411,8 @@ class Timeline extends Component {
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
     return (
       <div className={className}>
-        <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } onMouseDown={this.handleMouseDown}
-          onMouseUp={this.handleMouseUp} onMouseMove={this.handleMouseMove} onMouseLeave={this.handleMouseLeave}
-          onClick={this.handleClick} >
+        <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } onMouseMove={this.handleMouseMove}
+          onMouseLeave={this.handleMouseLeave} onClick={this.handleClick} >
           <div className={ `${classes.segments} ${hasRulerCls}` }>
             { segments && segments.map(this.renderSegment) }
             { hasRuler && (
@@ -452,6 +429,12 @@ class Timeline extends Component {
               <div ref={this.hoverBead} className={classes.hoverBead} style={{ left: mouseX - 25 }} />
             </Tooltip>
           }
+          { hasRuler && <>
+            <div ref={ this.draggableLeft } className={classes.draggable} style={{ left: currLeft }}
+              onMouseDown={ (ev) => this.onDragStart(this.draggableLeft, ev) }>
+              <DragHandleIcon className={ classes.draggableIcon } />
+            </div>
+          </> }
           <Measure bounds onResize={(rect) => this.setState({ thumbnail: rect.bounds })}>
             { (options) => (
               <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
