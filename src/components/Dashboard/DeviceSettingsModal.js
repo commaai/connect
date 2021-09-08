@@ -16,6 +16,8 @@ import Typography from '@material-ui/core/Typography';
 import CheckIcon from '@material-ui/icons/Check';
 import SaveIcon from '@material-ui/icons/Save';
 import ShareIcon from '@material-ui/icons/Share';
+import WarningIcon from '@material-ui/icons/Warning';
+import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 
 import { devices as DevicesApi } from '@commaai/comma-api';
 import Timelineworker from '../../timeline';
@@ -94,6 +96,15 @@ const styles = (theme) => ({
     display: 'flex',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 0, 0, 0.3)',
+    '& p': { display: 'inline-block', marginLeft: 10 },
+    color: Colors.white,
+  },
+  unpairWarning: {
+    marginTop: 15,
+    padding: 10,
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: Colors.orange200,
     '& p': { display: 'inline-block', marginLeft: 10 },
     color: Colors.white,
   },
@@ -334,7 +345,16 @@ class DeviceSettingsModal extends Component {
           </div>
           <Divider />
           { this.state.unpairError &&
-            <div className={ classes.unpairError }>{ this.state.unpairError }</div>
+            <div className={ classes.unpairError }>
+              <ErrorOutlineIcon />
+              <Typography>{ this.state.unpairError }</Typography>
+            </div>
+          }
+          { this.props.device.prime &&
+            <div className={ classes.unpairWarning }>
+              <WarningIcon />
+              <Typography>unpairing will also cancel your prime subscription</Typography>
+            </div>
           }
           <div className={ classes.topButtonGroup }>
             <Button variant="contained" className={ `${classes.primeManageButton} ${classes.cancelButton}` }
