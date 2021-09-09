@@ -83,7 +83,7 @@ class DriveView extends Component {
               </div>
               <div></div>
             </div>
-            <Timeline className={classes.headerTimeline} hasRuler tooltipped dragSelection />
+            <Timeline className={classes.headerTimeline} hasRuler />
           </div>
           <div style={{ padding: viewerPadding }}>
             <Media visibleSegment={ visibleSegment } loop={ loop } start={ start } />
