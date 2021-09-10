@@ -153,7 +153,8 @@ class DeviceSettingsModal extends Component {
   handleEmailChange(e) {
     this.setState({
       shareEmail: e.target.value,
-      hasShared: false
+      hasShared: false,
+      error: null,
     });
   }
 
