@@ -113,6 +113,10 @@ export function verifyPairToken(pairToken, from_url, sentry_finterprint) {
     }
   }
 
+  if (!decoded || !decoded.payload) {
+    throw new Error('could not decode pair token');
+  }
+
   if (!decoded.payload.identity) {
     let msg = 'could not get identity from payload';
     if (!from_url) {
