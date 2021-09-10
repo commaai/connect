@@ -208,10 +208,16 @@ class Timeline extends Component {
 
   handlePointerMove(e) {
     const { dragging } = this.state;
-    if (dragging) {
-      this.setState({ dragging: [dragging[0], e.pageX] });
+    if (!this.rulerRef.current) {
+      return;
     }
-    this.setState({ hoverX: e.pageX });
+    
+    const rulerBounds = this.rulerRef.current.getBoundingClientRect();
+    const endDrag = Math.max(rulerBounds.x, Math.min(rulerBounds.x + rulerBounds.width, e.pageX));
+    if (dragging) {
+      this.setState({ dragging: [dragging[0], endDrag] });
+    }
+    this.setState({ hoverX: endDrag });
   }
 
   handlePointerUp(e) {
