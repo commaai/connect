@@ -32,7 +32,7 @@ const styles = (/* theme */) => ({
     height: 12,
   },
   segment: {
-    position: 'relative',
+    position: 'absolute',
     height: 12,
     background: theme.palette.states.drivingBlue,
   },
@@ -211,7 +211,7 @@ class Timeline extends Component {
     if (!this.rulerRef.current) {
       return;
     }
-    
+
     const rulerBounds = this.rulerRef.current.getBoundingClientRect();
     const endDrag = Math.max(rulerBounds.x, Math.min(rulerBounds.x + rulerBounds.width, e.pageX));
     if (dragging) {
