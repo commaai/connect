@@ -100,7 +100,6 @@ const styles = (/* theme */) => ({
 });
 
 const DEMO_LINK = `${window.location.origin}/?demo=1`;
-const SERVICE = 'connect';
 
 class AnonymousLanding extends Component {
   componentWillMount() {
@@ -118,7 +117,7 @@ class AnonymousLanding extends Component {
         clientId : AuthConfig.APPLE_CLIENT_ID,
         scope : AuthConfig.APPLE_SCOPES,
         redirectURI : AuthConfig.APPLE_REDIRECT_URI,
-        state : AuthConfig.get_apple_state(SERVICE),
+        state : AuthConfig.APPLE_STATE,
       });
     };
     script.src = "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
@@ -145,7 +144,7 @@ class AnonymousLanding extends Component {
           <Typography className={classes.tagline}>
             Manage your comma device, view your drives, and comma prime features
           </Typography>
-          <a href={ AuthConfig.get_google_redirect_link(SERVICE) } className={ classes.logInButton }>
+          <a href={ AuthConfig.GOOGLE_REDIRECT_LINK } className={ classes.logInButton }>
             <img className={ classes.buttonImage } src={ auth_google } />
             <Typography className={ classes.buttonText }>Sign in with Google</Typography>
           </a>
@@ -153,7 +152,7 @@ class AnonymousLanding extends Component {
             <img className={ classes.buttonImage } src={ auth_apple } />
             <Typography className={ classes.buttonText }>Sign in with Apple</Typography>
           </a>
-          <a href={ AuthConfig.get_github_redirect_link(SERVICE) } className={classes.logInButton}>
+          <a href={ AuthConfig.GITHUB_REDIRECT_LINK } className={classes.logInButton}>
             <img className={ classes.buttonImage } src={ auth_github } />
             <Typography className={ classes.buttonText }>Sign in with GitHub</Typography>
           </a>
