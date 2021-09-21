@@ -160,7 +160,13 @@ class Media extends Component {
       params.segments = [startTime, Math.floor(startTime + (loop.duration / 1000))].join(',');
     }
 
-    const win = window.open(`${window.CABANA_URL_ROOT}?${qs.stringify(params, true)}`, '_blank');
+    // TODO: Remove this when the tests properly load config.js
+    let CABANA_URL_ROOT = window.CABANA_URL_ROOT;
+    if (!CABANA_URL_ROOT) {
+      CABANA_URL_ROOT = 'https://my.comma.ai/cabana/';
+    }
+
+    const win = window.open(`${CABANA_URL_ROOT}?${qs.stringify(params, true)}`, '_blank');
     if (win.focus) {
       win.focus();
     }
@@ -172,8 +178,12 @@ class Media extends Component {
     const params = {
       onebox: `${visibleSegment.route}--${visibleSegment.segment}`,
     };
-
-    const win = window.open(`${window.USERADMIN_URL_ROOT}?${qs.stringify(params, true)}`, '_blank');
+    // TODO: Remove this when the tests properly load config.js
+    let USERADMIN_URL_ROOT = window.USERADMIN_URL_ROOT;
+    if (!USERADMIN_URL_ROOT) {
+      USERADMIN_URL_ROOT = 'https://useradmin.comma.ai/';
+    }
+    const win = window.open(`${USERADMIN_URL_ROOT}?${qs.stringify(params, true)}`, '_blank');
     if (win.focus) {
       win.focus();
     }
