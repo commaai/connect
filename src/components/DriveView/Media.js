@@ -160,7 +160,7 @@ class Media extends Component {
       params.segments = [startTime, Math.floor(startTime + (loop.duration / 1000))].join(',');
     }
 
-    const win = window.open(`https://my.comma.ai/cabana/?${qs.stringify(params, true)}`, '_blank');
+    const win = window.open(`${window.CABANA_URL_ROOT}?${qs.stringify(params, true)}`, '_blank');
     if (win.focus) {
       win.focus();
     }
@@ -173,7 +173,7 @@ class Media extends Component {
       onebox: `${visibleSegment.route}--${visibleSegment.segment}`,
     };
 
-    const win = window.open(`https://my.comma.ai/useradmin/?${qs.stringify(params, true)}`, '_blank');
+    const win = window.open(`${window.USERADMIN_URL_ROOT}?${qs.stringify(params, true)}`, '_blank');
     if (win.focus) {
       win.focus();
     }
@@ -285,7 +285,7 @@ class Media extends Component {
           anchorEl={ this.state.moreInfoMenu } onClose={ () => this.setState({ moreInfoMenu: null }) }
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
           <MenuItem onClick={ this.openInCabana } id="openInCabana" >
-            View in Cabana
+            View in cabana
           </MenuItem>
           <MenuItem onClick={ this.openInUseradmin }>
             View in useradmin
