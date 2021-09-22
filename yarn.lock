@@ -1174,10 +1174,10 @@
     exec-sh "^0.3.2"
     minimist "^1.2.0"
 
-"@commaai/comma-api@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-2.1.0.tgz#9368a03c095f59ffd9f2324757791d299c43ab77"
-  integrity sha512-JMdGq/ftRYHBeeiVHg+o0ZVAGkbXIhI1vOBpwrSnPV1LwDqT+k6njrINz/ABRzxvXqjWhN/VKLPEZ7GBDsZJiA==
+"@commaai/comma-api@^2.1.1":
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-2.1.1.tgz#c7c5bbac8a76c3e464312b5db4b66d257a4a8778"
+  integrity sha512-CAveip3HReWGXsXXX8sNBgGx7/gGB12QC89B6BZQ2pzIAHXUA0Bv7xBr5w1pE211y1iuvXa40hpNewrVF3gdJA==
   dependencies:
     babel-runtime "^6.26.0"
     joi-browser "^13.4.0"
@@ -3345,9 +3345,9 @@ caniuse-api@^3.0.0:
     lodash.uniq "^4.5.0"
 
 caniuse-lite@^1.0.0, caniuse-lite@^1.0.30000981, caniuse-lite@^1.0.30001035, caniuse-lite@^1.0.30001109, caniuse-lite@^1.0.30001181:
-  version "1.0.30001192"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001192.tgz#b848ebc0ab230cf313d194a4775a30155d50ae40"
-  integrity sha512-63OrUnwJj5T1rUmoyqYTdRWBqFFxZFlyZnRRjDR8NSUQFB6A+j/uBORU/SyJ5WzDLg4SPiZH40hQCBNdZ/jmAw==
+  version "1.0.30001259"
+  resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001259.tgz"
+  integrity sha512-V7mQTFhjITxuk9zBpI6nYsiTXhcPe05l+364nZjK7MFK/E7ibvYBSAXr4YcA6oPR8j3ZLM/LN+lUqUVAQEUZFg==
 
 capture-exit@^2.0.0:
   version "2.0.0"
