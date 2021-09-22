@@ -69,28 +69,13 @@ class App extends Component {
 
   async auth() {
     if (document.location) {
-      if (document.location.pathname == AuthConfig.GOOGLE_REDIRECT_PATH ||
-          document.location.pathname == AuthConfig.APPLE_REDIRECT_PATH ||
-          document.location.pathname == AuthConfig.GITHUB_REDIRECT_PATH)
-        {
-        const { code } = qs.parse(document.location.search);
+      if (document.location.pathname === AuthConfig.AUTH_PATH) {
         try {
-          let token = null;
-          if (document.location.pathname == AuthConfig.GOOGLE_REDIRECT_PATH) {
-            token = await AuthApi.refreshAccessToken(code, AuthConfig.GOOGLE_REDIRECT_URI, 'google');
-          } else if (document.location.pathname == AuthConfig.APPLE_REDIRECT_PATH) {
-            token = await AuthApi.refreshAccessToken(code, AuthConfig.APPLE_REDIRECT_URI, 'apple');
-          } else if (document.location.pathname == AuthConfig.GITHUB_REDIRECT_PATH) {
-            if (document.location.origin === 'https://connect.comma.ai') {
-              token = await AuthApi.refreshAccessToken(code, AuthConfig.GITHUB_REDIRECT_URI, 'github_connect');
-            } else {
-              token = await AuthApi.refreshAccessToken(code, AuthConfig.GITHUB_REDIRECT_URI, 'github');
-            }
-          }
+          const { code, provider } = qs.parse(document.location.search);
+          const token = await AuthApi.refreshAccessToken(code, provider);
           if (token) {
             AuthStorage.setCommaAccessToken(token);
           }
-          // done authing!!
         } catch (err) {
           console.log(err);
           Sentry.captureException(err, { fingerprint: 'app_auth_refresh_token' });

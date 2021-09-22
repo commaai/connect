@@ -16,9 +16,9 @@
   "author": "Chris Vickery <chrisinajar@gmail.com>",
   "private": true,
   "dependencies": {
-    "@commaai/comma-api": "^2.0.2",
+    "@commaai/comma-api": "^2.1.1",
     "@commaai/hls.js": "^0.12.7",
-    "@commaai/my-comma-auth": "^1.3.0",
+    "@commaai/my-comma-auth": "^1.4.0",
     "@mapbox/mapbox-sdk": "^0.12.1",
     "@material-ui/core": "^1.0.0",
     "@material-ui/icons": "^1.0.0",

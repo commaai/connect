@@ -1174,10 +1174,10 @@
     exec-sh "^0.3.2"
     minimist "^1.2.0"
 
-"@commaai/comma-api@^2.0.2":
-  version "2.0.2"
-  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-2.0.2.tgz#99b31a40a5fec5295fdfcdb95e772797d788a931"
-  integrity sha512-QWiMq9/zZbCXemOVy8fjU6n8dlx9mao4hlkG2VJZvbZF8jQ0Wa2rswvR9hIwBMnL4Wio1XpjxgvYBoTiTBIWdQ==
+"@commaai/comma-api@^2.1.1":
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-2.1.1.tgz#c7c5bbac8a76c3e464312b5db4b66d257a4a8778"
+  integrity sha512-CAveip3HReWGXsXXX8sNBgGx7/gGB12QC89B6BZQ2pzIAHXUA0Bv7xBr5w1pE211y1iuvXa40hpNewrVF3gdJA==
   dependencies:
     babel-runtime "^6.26.0"
     joi-browser "^13.4.0"
@@ -1191,10 +1191,10 @@
     eventemitter3 "3.1.0"
     url-toolkit "^2.1.6"
 
-"@commaai/my-comma-auth@^1.3.0":
-  version "1.3.0"
-  resolved "https://registry.yarnpkg.com/@commaai/my-comma-auth/-/my-comma-auth-1.3.0.tgz#2e5b1e56b4209f61519710f612157ae87aeb28b2"
-  integrity sha512-rKxzxTJDZ2k1s0vPkSTwOgjP7tIxp+JmPB9Jb++dKXRu6iYbUhNveink7c9NoVpxkxAmZeTHo2NaLsgM9sFMqA==
+"@commaai/my-comma-auth@^1.4.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@commaai/my-comma-auth/-/my-comma-auth-1.4.0.tgz#463d15a1836cfeadd13e9965373216823c15c6b7"
+  integrity sha512-UTDODHEqg4fTbtDUCMIRMebHfvTGk4Jfba+fRkg8FeLEmY6VbKU+JwupIfn5yJY/7/pnpIAzNBlrYK3ttU2d9Q==
   dependencies:
     babel-runtime "^6.26.0"
     global "^4.4.0"
@@ -3345,9 +3345,9 @@ caniuse-api@^3.0.0:
     lodash.uniq "^4.5.0"
 
 caniuse-lite@^1.0.0, caniuse-lite@^1.0.30000981, caniuse-lite@^1.0.30001035, caniuse-lite@^1.0.30001109, caniuse-lite@^1.0.30001181:
-  version "1.0.30001192"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001192.tgz#b848ebc0ab230cf313d194a4775a30155d50ae40"
-  integrity sha512-63OrUnwJj5T1rUmoyqYTdRWBqFFxZFlyZnRRjDR8NSUQFB6A+j/uBORU/SyJ5WzDLg4SPiZH40hQCBNdZ/jmAw==
+  version "1.0.30001259"
+  resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001259.tgz"
+  integrity sha512-V7mQTFhjITxuk9zBpI6nYsiTXhcPe05l+364nZjK7MFK/E7ibvYBSAXr4YcA6oPR8j3ZLM/LN+lUqUVAQEUZFg==
 
 capture-exit@^2.0.0:
   version "2.0.0"
