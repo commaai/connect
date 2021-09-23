@@ -1,5 +1,6 @@
-# Explorer
-The frontend to the explorer web UI. This a react app using [Create React App](https://github.com/facebookincubator/create-react-app)
+# comma connect
+
+The frontend to the comma connect progressive web app. This a react app using [Create React App](https://github.com/facebookincubator/create-react-app)
 
 ## Environments
  * Development (local machine) http://localhost:3000
@@ -14,7 +15,7 @@ The frontend to the explorer web UI. This a react app using [Create React App](h
 ## Libraries Used
 There's a ton of them, but these are worth mentioning because they sort of affect everything.
 
- * `React` - If you don't know react, stop everything you're doing and go learn it. It's simple object oriented components with basic lifecycle callbacks rendered by state and prop changes. Learn it.
+ * `React` - If you don't know react, stop everything you're doing and go learn it. It's simple object oriented components with basic lifecycle callbacks rendered by state and prop changes.
  * `Redux` - Sane formal *global* scope. This is not a replacement for component state, which is the best way to store local component level variables and trigger re-renders. Redux state is for global state that many unrelated components care about. No free-form editing, only specific pre-defined actions
  * `@material-ui` - Lots of fully featured highly customizable components for building the UIs with. Theming system with global and per-component overrides of any CSS values. 
  * `react-router-redux` - the newer one, 5.x.... Mindlessly simple routing with convenient global access due to redux
@@ -54,10 +55,7 @@ This is exposed through `Timelineworker.currentOffset()`.
 
 With this central authority on current offset time, it becomes much easier to have each data source keep themselves in sync instead of trying to manage synchronizing all of them.
 
-The **raw binary feed** is read in using a rather specific technique. The worker doesn't interpret the buffer at all, it just streams it out in chunks from the decompressor / download stream. The page itself is handed the raw buffer as a transferable, and the first thing it does is iterate over the entire buffer finding the offset positions and sizes of every message. Along with that data it also reads in the LogMonoTime value for that given event, and then inserts it sorted into an array (messages are not sorted coming in). Now that it has the sorted array of offset data, each frame it does a binary search of the current time offset in the array and then uses this to parse in just those portions of the buffer into JSON objects. As many of the values as possible are represented as data views to the raw buffer, reducing the amount of data that needs copying.
-
-
-### Development
+## Development
 `yarn start`
 
 ## Contributing
@@ -65,6 +63,4 @@ The **raw binary feed** is read in using a rather specific technique. The worker
  * Use best practices
  * Write test cases
  * Keep files small and clean
- * Write test cases
  * Use branches / pull requests to isolate work. Don't do work that can't be merged quickly, find ways to break it up
- * Write test cases, you wont
