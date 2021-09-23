@@ -123,7 +123,6 @@ class AnonymousLanding extends Component {
     script.src = "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
     script.async = true;
     document.addEventListener('AppleIDSignInOnSuccess', (data) => {
-      console.log(data);
       const { code, state } = data.detail.authorization;
       window.location = [AuthConfig.APPLE_REDIRECT_PATH, qs.stringify({ code, state })].join('?');
     });
