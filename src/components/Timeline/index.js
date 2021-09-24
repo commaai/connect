@@ -23,6 +23,7 @@ const styles = (/* theme */) => ({
   base: {
     position: 'relative',
     width: '100%',
+    overflow: 'hidden',
   },
   segments: {
     backgroundColor: theme.palette.states.drivingBlue,
