@@ -67,21 +67,13 @@ class NoDeviceUpsell extends Component {
       <>
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
         <div className={ classes.pairInstructions } style={{ padding: `8px ${containerPadding}px` }}>
-          <Typography>Already own a comma device?</Typography>
+          <Typography>Pair your device</Typography>
           <Typography>
-            Pair your comma device by scanning the QR code on the device with any QR code scanner on your phone
+            Pair your comma device by scanning the QR code on the device
           </Typography>
           <div className={ classes.addDeviceContainer }>
-            <AddDevice buttonText={ 'scan QR code' } />
+            <AddDevice buttonText={ 'add new device' } />
           </div>
-        </div>
-        <div className={classes.content} style={{ padding: `8px ${containerPadding}px` }}>
-          <Typography>
-            Get started with comma three
-            <a href="https://comma.ai/shop/products/three/?ref=explorer" target="_blank" className={classes.shopLink}>
-              <Button variant="outlined">Shop</Button>
-            </a>
-          </Typography>
         </div>
         <div className={classes.imageContainer}>
           <img src="https://comma.ai/c3-nav.png" />
