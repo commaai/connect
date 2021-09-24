@@ -136,7 +136,7 @@ class PrimeManage extends Component {
 
   modalClose() {
     if (this.state.cancelSuccess) {
-      window.location = window.location.origin;
+      window.location = window.location.origin + '/' + this.props.dongleId;
     } else {
       this.setState({ cancelModal: false });
     }

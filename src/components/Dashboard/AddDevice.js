@@ -238,7 +238,7 @@ class AddDevice extends Component {
     }
 
     if (pairDongleId && this.props.devices.length === 0) {
-      window.location = window.location.origin;
+      window.location = window.location.origin + '/' + pairDongleId;
       return;
     }
 

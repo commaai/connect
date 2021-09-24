@@ -283,7 +283,7 @@ class PrimeCheckout extends Component {
           </div>
         </div>
       </div>
-      <Modal open={ Boolean(activated) } onClose={ () => window.location = window.location.origin }>
+      <Modal open={ Boolean(activated) } onClose={ () => window.location = window.location.origin + '/' + dongleId }>
         <Paper className={classes.modal}>
           <Typography variant="title">comma prime activated</Typography>
           <Typography>Device: {alias} ({ dongleId })</Typography>
@@ -293,7 +293,7 @@ class PrimeCheckout extends Component {
             </Typography>
           }
           <Button variant="contained" className={ classes.closeButton }
-            onClick={ () => window.location = window.location.origin }>
+            onClick={ () => window.location = window.location.origin + '/' + dongleId }>
             Close
           </Button>
         </Paper>
