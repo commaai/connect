@@ -1,6 +1,5 @@
 import {
   ACTION_PRIME_NAV,
-  ACTION_PRIME_PAYMENTMETHOD,
   ACTION_PRIME_SUBSCRIPTION,
   ACTION_PRIME_SUBSCRIBE_INFO,
   ACTION_SELECT_DEVICE,
@@ -52,13 +51,6 @@ export function primeGetSubscribeInfoAction(dongleId, subscribeInfo) {
     type: ACTION_PRIME_SUBSCRIBE_INFO,
     dongleId,
     subscribeInfo,
-  };
-}
-
-export function primeGetPaymentMethodAction(paymentMethod) {
-  return {
-    type: ACTION_PRIME_PAYMENTMETHOD,
-    paymentMethod,
   };
 }
 

@@ -59,5 +59,4 @@ module.exports = {
   devices: [],
   primeNav: false,
   subscription: null,
-  paymentMethod: null,
 };

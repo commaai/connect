@@ -112,10 +112,6 @@ export class TimelineInterface {
     return commands.primeGetSubscription(dongleId, subscription);
   }
 
-  async primeGetPaymentMethod(paymentMethod) {
-    return commands.primeGetPaymentMethod(paymentMethod);
-  }
-
   async primeGetSubscribeInfo(dongleId, subscription) {
     return commands.primeGetSubscribeInfo(dongleId, subscription);
   }

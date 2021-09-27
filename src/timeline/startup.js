@@ -4,7 +4,7 @@ import { devices as Devices, account as Account, billing as Billing } from '@com
 import * as Demo from '../demo';
 import store from './store';
 import { ACTION_STARTUP_DATA } from './actions/types';
-import { primeGetPaymentMethodAction, primeGetSubscriptionAction, primeGetSubscribeInfoAction } from './actions';
+import { primeGetSubscriptionAction, primeGetSubscribeInfoAction } from './actions';
 import { getDongleID, getPrimeNav } from '../url';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
@@ -84,15 +84,4 @@ export default async function init() {
     devices,
     primeNav: getPrimeNav(window.location.pathname),
   });
-
-  if (profile && profile.prime) {
-    Billing.getPaymentMethod().then((paymentMethod) => {
-      store.dispatch(primeGetPaymentMethodAction(paymentMethod));
-    }).catch((err) => {
-      if (!err.resp || err.resp.status !== 400) {
-        console.log(err.message);
-        Sentry.captureException(err, { fingerprint: 'init_get_paymentmethod' });
-      }
-    });
-  }
 }

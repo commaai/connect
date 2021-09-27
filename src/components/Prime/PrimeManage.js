@@ -8,9 +8,7 @@ import { withStyles, Typography, Button, Modal, Paper, IconButton, CircularProgr
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 
 import { billing as Billing} from '@commaai/comma-api'
-import PrimePayment from './PrimePayment';
 import { deviceTypePretty } from '../../utils';
-import Timelineworker from '../../timeline';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { primeNav } from '../../actions';
@@ -110,12 +108,29 @@ class PrimeManage extends Component {
       cancelError: null,
       cancelModal: false,
       canceling: false,
+      stripeStatus: null,
       windowWidth: window.innerWidth,
     };
 
     this.cancelPrime = this.cancelPrime.bind(this);
     this.modalClose = this.modalClose.bind(this);
-    this.onPaymentUpdated = this.onPaymentUpdated.bind(this);
+    this.fetchStripeSession = this.fetchStripeSession.bind(this);
+  }
+
+  componentDidMount() {
+    this.componentDidUpdate({});
+    this.mounted = true;
+  }
+
+  componentDidUpdate(prevProps) {
+    if (!prevProps.stripe_success && this.props.stripe_success) {
+      this.setState({ stripeStatus: { sessionId: this.props.stripe_success, loading: true, paid: null }});
+      this.fetchStripeSession();
+    }
+  }
+
+  componentWillUnmount() {
+    this.mounted = false;
   }
 
   cancelPrime() {
@@ -142,9 +157,40 @@ class PrimeManage extends Component {
     }
   }
 
-  onPaymentUpdated(paymentMethod) {
-    Timelineworker.primeGetPaymentMethod(paymentMethod);
-    this.setState({ activated: true, error: null });
+  async gotoUpdate() {
+    try {
+      const resp = await Billing.getStripeCheckout(this.props.dongleId, this.state.simInfo.sim_id);
+      // TODO other method
+      // window.location = resp.url;
+    } catch (err) {
+      // TODO show error messages
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_update' });
+    }
+  }
+
+  async fetchStripeSession() {
+    const { stripeStatus, dongleId } = this.props;
+    if (!stripeStatus || !this.mounted) {
+      return
+    }
+
+    try {
+      const resp = await Billing.getStripeSession(dongleId, stripeStatus.sessionId);
+      const status = resp['payment_status'];
+      this.setState({ stripeStatus: {
+        ...stripeStatus,
+        paid: status,
+        loading: status !== 'paid',
+      }});
+      if (status !== 'paid') {
+        setTimeout(this.fetchStripeSession, 1000);
+      }
+    } catch (err) {
+      // TODO error handling
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'prime_fetch_stripe_session' });
+    }
   }
 
   render() {
@@ -155,20 +201,11 @@ class PrimeManage extends Component {
       return ( <></> );
     }
 
-    let paymentMethod = this.props.paymentMethod;
-    if (!paymentMethod) {
-      paymentMethod = {
-        brand: "",
-        last4: "0000",
-      };
-    }
-
     let joinDate = fecha.format(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0, 'MMMM Do, YYYY');
     let nextPaymentDate = fecha.format(
       subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0, 'MMMM Do, YYYY');
 
     const alias = device.alias || deviceTypePretty(device.device_type);
-    const simId = this.state.simInfo ? this.state.simInfo.sim_id : null;
     const containerPadding = windowWidth > 520 ? 36 : 16;
 
     return (
@@ -194,12 +231,6 @@ class PrimeManage extends Component {
               <Typography className={ classes.manageItem }>{ joinDate }</Typography>
             </div>
             <div className={ classes.overviewBlock }>
-              <Typography variant="subheading">Payment method</Typography>
-              <Typography className={ classes.manageItem }>
-                { paymentMethod.brand } •••• •••• •••• { paymentMethod.last4 }
-              </Typography>
-            </div>
-            <div className={ classes.overviewBlock }>
               <Typography variant="subheading">Next payment</Typography>
               <Typography className={ classes.manageItem }>{ nextPaymentDate }</Typography>
             </div>
@@ -218,10 +249,9 @@ class PrimeManage extends Component {
               <Typography>{ this.state.error }</Typography>
             </div> }
             <div className={ classes.overviewBlock + " " + classes.paymentElement }>
-              <PrimePayment disabled={ Boolean(this.state.activated) } simId={ simId } isUpdate={ true }
-                onActivated={ this.onPaymentUpdated }
-                onError={ (err) => this.setState({error: err}) }
-                onCancel={ () => this.setState({ cancelModal: true }) } />
+              <Button className={ classes.buttons } onClick={ this.gotoUpdate } disabled={ Boolean(this.state.activated) }>
+                Update payment
+              </Button>
             </div>
           </div>
         </div>
@@ -261,7 +291,6 @@ const stateToProps = Obstruction({
   dongleId: 'workerState.dongleId',
   device: 'workerState.device',
   subscription: 'workerState.subscription',
-  paymentMethod: 'workerState.paymentMethod',
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeManage));

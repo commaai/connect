@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import fecha from 'fecha';
 import * as Sentry from '@sentry/react';
-import { withStyles, Typography, IconButton, Modal, Paper, Button, CircularProgress } from '@material-ui/core';
+import { withStyles, Typography, IconButton, Button, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import WarningIcon from '@material-ui/icons/Warning';
@@ -12,7 +12,6 @@ import { billing as Billing } from '@commaai/comma-api';
 
 import { deviceTypePretty } from '../../utils';
 import PrimeChecklist from './PrimeChecklist';
-import PrimePayment from './PrimePayment';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { primeNav, primeFetchSubscription } from '../../actions';
@@ -82,23 +81,8 @@ const styles = (theme) => ({
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
-  paymentElement: {
-    maxWidth: 400,
-  },
   chargeText: {
     marginBottom: 10,
-  },
-  modal: {
-    position: 'absolute',
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
-    maxWidth: '90%',
-    left: '50%',
-    top: '40%',
-    transform: 'translate(-50%, -50%)',
-    '& p': {
-      marginTop: 10,
-    },
   },
   buttons: {
     marginTop: 10,
@@ -120,15 +104,6 @@ const styles = (theme) => ({
       color: '#404B4F',
     }
   },
-  closeButton: {
-    marginTop: 10,
-    float: 'right',
-    backgroundColor: Colors.grey200,
-    color: Colors.white,
-    '&:hover': {
-      backgroundColor: Colors.grey400,
-    },
-  },
 });
 
 class PrimeCheckout extends Component {
@@ -137,12 +112,9 @@ class PrimeCheckout extends Component {
 
     this.state = {
       error: null,
-      activated: null,
-      new_subscription: null,
       windowWidth: window.innerWidth,
     };
 
-    this.onPrimeActivated = this.onPrimeActivated.bind(this);
     this.gotoCheckout = this.gotoCheckout.bind(this);
   }
 
@@ -152,7 +124,7 @@ class PrimeCheckout extends Component {
 
   componentDidUpdate(prevProps) {
     if (!prevProps.stripe_cancelled && this.props.stripe_cancelled) {
-      this.setState({ error: 'Checkout cancelled' });
+      this.setState({ error: 'checkout cancelled' });
     }
   }
 
@@ -167,6 +139,7 @@ class PrimeCheckout extends Component {
       });
     } else if (resp.error) {
       this.setState({ error: resp.error });
+
     }
   }
 
@@ -182,8 +155,7 @@ class PrimeCheckout extends Component {
   }
 
   render() {
-    const { classes, device, dongleId, subscribeInfo } = this.props;
-    const { new_subscription, windowWidth, activated, error } = this.state;
+    const { windowWidth, error } = this.state;
 
     let chargeText = [];
     if (subscribeInfo) {
@@ -263,21 +235,6 @@ class PrimeCheckout extends Component {
           </div>
         </div>
       </div>
-      <Modal open={ Boolean(activated) } onClose={ () => window.location = window.location.origin + '/' + dongleId }>
-        <Paper className={classes.modal}>
-          <Typography variant="title">comma prime activated</Typography>
-          <Typography>Device: {alias} ({ dongleId })</Typography>
-          { activated && new_subscription && new_subscription.is_prime_sim &&
-            <Typography>
-              Connectivity will be enabled as soon as activation propagates to your local cell tower. Rebooting your device may help.
-            </Typography>
-          }
-          <Button variant="contained" className={ classes.closeButton }
-            onClick={ () => window.location = window.location.origin + '/' + dongleId }>
-            Close
-          </Button>
-        </Paper>
-      </Modal>
     </> );
   }
 }
