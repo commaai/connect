@@ -23,13 +23,13 @@ const styles = (/* theme */) => ({
   base: {
     position: 'relative',
     width: '100%',
-    overflowX: 'clip',
   },
   segments: {
     backgroundColor: theme.palette.states.drivingBlue,
+    position: 'relative',
     left: '0px',
     width: '100%',
-    overflowX: 'clip',
+    overflow: 'hidden',
     height: 12,
   },
   segment: {
