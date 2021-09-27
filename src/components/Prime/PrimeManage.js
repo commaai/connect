@@ -115,6 +115,7 @@ class PrimeManage extends Component {
     this.cancelPrime = this.cancelPrime.bind(this);
     this.modalClose = this.modalClose.bind(this);
     this.fetchStripeSession = this.fetchStripeSession.bind(this);
+    this.gotoUpdate = this.gotoUpdate.bind(this);
   }
 
   componentDidMount() {
@@ -159,9 +160,8 @@ class PrimeManage extends Component {
 
   async gotoUpdate() {
     try {
-      const resp = await Billing.getStripeCheckout(this.props.dongleId, this.state.simInfo.sim_id);
-      // TODO other method
-      // window.location = resp.url;
+      const resp = await Billing.getStripePortal(this.props.dongleId);
+      window.location = resp.url;
     } catch (err) {
       // TODO show error messages
       console.log(err);
