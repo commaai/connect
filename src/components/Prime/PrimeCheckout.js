@@ -100,6 +100,26 @@ const styles = (theme) => ({
       marginTop: 10,
     },
   },
+  buttons: {
+    marginTop: 10,
+    background: Colors.white,
+    borderRadius: 18,
+    color: '#404B4F',
+    textTransform: 'none',
+    width: 200,
+    '&:hover': {
+      backgroundColor: Colors.white70,
+      color: '#404B4F',
+    },
+    '&:disabled': {
+      backgroundColor: Colors.white70,
+      color: '#404B4F',
+    },
+    '&:disabled:hover': {
+      backgroundColor: Colors.white70,
+      color: '#404B4F',
+    }
+  },
   closeButton: {
     marginTop: 10,
     float: 'right',
@@ -123,6 +143,7 @@ class PrimeCheckout extends Component {
     };
 
     this.onPrimeActivated = this.onPrimeActivated.bind(this);
+    this.gotoCheckout = this.gotoCheckout.bind(this);
   }
 
   onPrimeActivated(resp) {
@@ -136,6 +157,16 @@ class PrimeCheckout extends Component {
       });
     } else if (resp.error) {
       this.setState({ error: resp.error });
+    }
+  }
+
+  async gotoCheckout() {
+    try {
+      const resp = await Billing.getStripeCheckout(this.props.dongleId, this.state.simInfo.sim_id);
+      window.location = resp.url;
+    } catch (err) {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_checkout' });
     }
   }
 
@@ -214,9 +245,10 @@ class PrimeCheckout extends Component {
             }) }
           </div>
           <div className={ classes.overviewBlock + " " + classes.paymentElement }>
-            <PrimePayment disabled={ Boolean(activated || !subscribeInfo || !subscribeInfo.sim_id) }
-              simId={ subscribeInfo ? subscribeInfo.sim_id : null } onActivated={ this.onPrimeActivated }
-              onError={ (err) => this.setState({ error: err }) } />
+            <Button className={ classes.buttons } onClick={ this.gotoCheckout }
+              disabled={ Boolean(!subscribeInfo || !subscribeInfo.sim_id) }>
+              Go to checkout
+            </Button>
           </div>
         </div>
       </div>
