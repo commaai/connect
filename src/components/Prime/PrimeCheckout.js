@@ -146,6 +146,16 @@ class PrimeCheckout extends Component {
     this.gotoCheckout = this.gotoCheckout.bind(this);
   }
 
+  componentDidMount() {
+    this.componentDidUpdate({});
+  }
+
+  componentDidUpdate(prevProps) {
+    if (!prevProps.stripe_cancelled && this.props.stripe_cancelled) {
+      this.setState({ error: 'Checkout cancelled' });
+    }
+  }
+
   onPrimeActivated(resp) {
     if (resp.success) {
       this.setState({ activated: resp, error: null });
@@ -165,6 +175,7 @@ class PrimeCheckout extends Component {
       const resp = await Billing.getStripeCheckout(this.props.dongleId, this.state.simInfo.sim_id);
       window.location = resp.url;
     } catch (err) {
+      // TODO show error messages
       console.log(err);
       Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_checkout' });
     }
