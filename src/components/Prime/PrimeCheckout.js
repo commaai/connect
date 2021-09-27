@@ -156,7 +156,7 @@ class PrimeCheckout extends Component {
           this.setState({ error: 'Failed to fetch, please try again later', simInfoLoading: false });
           Sentry.captureException(err, { fingerprint: 'prime_fetch_sim_details_fetch_failed' });
         }
-      } else if (err.message === 'Could not reach your device.\nConnect device to WiFi and try again.' &&
+      } else if (err.message === 'Could not reach your device.\nConnect device to Wi-Fi and try again.' &&
         this.props.device.sim_id !== null)
       {
         this.setState({
