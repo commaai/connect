@@ -46,6 +46,7 @@ function getCurrentSegment(state, o) {
         hpgps: thisSegment.hpgps,
         hasVideo: thisSegment.hasVideo,
         hasDriverCamera: thisSegment.hasDriverCamera,
+        hasRLog: thisSegment.hasRLog,
         cameraStreamSegCount: thisSegment.cameraStreamSegCount,
         distanceMiles: thisSegment.distanceMiles,
       };
@@ -79,6 +80,7 @@ function getNextSegment(state, o) {
         hpgps: thisSegment.hpgps,
         hasVideo: thisSegment.hasVideo,
         hasDriverCamera: thisSegment.hasDriverCamera,
+        hasRLog: thisSegment.hasRLog,
         cameraStreamSegCount: thisSegment.cameraStreamSegCount,
         distanceMiles: thisSegment.distanceMiles,
       };
@@ -101,6 +103,7 @@ function getNextSegment(state, o) {
           hpgps: thisSegment.hpgps,
           hasVideo: thisSegment.hasVideo,
           hasDriverCamera: thisSegment.hasDriverCamera,
+          hasRLog: thisSegment.hasRLog,
           cameraStreamSegCount: thisSegment.cameraStreamSegCount,
           distanceMiles: thisSegment.distanceMiles,
         };
@@ -164,6 +167,7 @@ function segmentsFromMetadata(segmentsData) {
     if (!(segment.proc_log === 40 || segment.proc_qlog === 40)) {
       return;
     }
+    const segmentHasRLog = (segment.proc_log >= 0);
     const segmentHasDriverCamera = (segment.proc_dcamera >= 0);
     const segmentHasVideo = (segment.proc_camera >= 0);
     if (segmentHasVideo && curVideoStartOffset === null) {
@@ -201,6 +205,7 @@ function segmentsFromMetadata(segmentsData) {
         deviceType: segment.devicetype,
         hpgps: segment.hpgps,
         hasDriverCamera: segmentHasDriverCamera,
+        hasRLog: segmentHasRLog,
         locStart: '',
         locEnd: '',
         distanceMiles: 0.0,
@@ -217,6 +222,7 @@ function segmentsFromMetadata(segmentsData) {
     }
     curSegment.hasVideo = (curSegment.hasVideo || segmentHasVideo);
     curSegment.hasDriverCamera = (curSegment.hasDriverCamera || segmentHasDriverCamera);
+    curSegment.hasRLog = (curSegment.hasRLog || segmentHasRLog);
     curSegment.hpgps = (curSegment.hpgps || segment.hpgps);
     curSegment.duration = (segment.offset - curSegment.offset) + segment.duration;
     curSegment.segments = Math.max(curSegment.segments, Number(segment.canonical_name.split('--').pop()) + 1);

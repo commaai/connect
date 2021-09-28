@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Typography, Menu, MenuItem } from '@material-ui/core';
+import { withStyles, Divider, Typography, Menu, MenuItem } from '@material-ui/core';
 
 import { raw as RawApi } from '@commaai/comma-api';
 import DriveMap from '../DriveMap';
@@ -176,7 +176,7 @@ class Media extends Component {
     const { visibleSegment } = this.props;
 
     const params = {
-      onebox: `${visibleSegment.route}--${visibleSegment.segment}`,
+      onebox: visibleSegment.route,
     };
     // TODO: Remove this when the tests properly load config.js
     let USERADMIN_URL_ROOT = window.USERADMIN_URL_ROOT;
@@ -272,23 +272,45 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { classes, visibleSegment } = this.props;
+    const { visibleSegment } = this.props;
+    const disabledStyle = {
+      pointerEvents: 'auto',
+    };
+
+    const QCamAvailable = (visibleSegment);
+    const FCamAvailable = (visibleSegment && visibleSegment.hasVideo);
+    const DCamAvailable = (visibleSegment && visibleSegment.hasDriverCamera);
+    const QLogAvailable = (visibleSegment);
+    const RLogAvailable = (visibleSegment && visibleSegment.hasRLog);
     return (
       <>
         <Menu id="menu-download" open={ alwaysOpen || Boolean(this.state.downloadMenu) }
           anchorEl={ this.state.downloadMenu } onClose={ () => this.setState({ downloadMenu: null }) }
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+          <MenuItem onClick={ () => this.downloadSegmentFile('qcameras') }
+            disabled={ !QCamAvailable } style={ !QCamAvailable ? disabledStyle : {} }>
+            Camera segment
+          </MenuItem>
           <MenuItem onClick={ () => this.downloadSegmentFile('cameras') }
-            disabled={ !(visibleSegment && visibleSegment.hasVideo) }>
-            Download Camera Segment
+            title={ !FCamAvailable ? 'not available, request upload in useradmin' : null }
+            disabled={ !FCamAvailable } style={ !FCamAvailable ? disabledStyle : {} }>
+            Full resolution camera segment
           </MenuItem>
           <MenuItem onClick={ () => this.downloadSegmentFile('dcameras') }
-            disabled={ !(visibleSegment && visibleSegment.hasDriverCamera) }>
-            Download Driver Camera Segment
+            title={ !DCamAvailable ? 'not available, request upload in useradmin' : null }
+            disabled={ !DCamAvailable } style={ !DCamAvailable ? disabledStyle : {} }>
+            Driver camera segment
           </MenuItem>
-          <MenuItem onClick={ () => this.downloadSegmentFile('logs') } disabled={ !visibleSegment }>
-            Download Log Segment
+          <Divider />
+          <MenuItem onClick={ () => this.downloadSegmentFile('qlogs') }
+            disabled={ !QLogAvailable } style={ !QLogAvailable ? disabledStyle : {} }>
+            Log segment
+          </MenuItem>
+          <MenuItem onClick={ () => this.downloadSegmentFile('logs') }
+            title={ !RLogAvailable ? 'not available, request upload in useradmin' : null }
+            disabled={ !RLogAvailable } style={ !RLogAvailable ? disabledStyle : {} }>
+            Raw log segment
           </MenuItem>
         </Menu>
         <Menu id="menu-info" open={ alwaysOpen || Boolean(this.state.moreInfoMenu) }
