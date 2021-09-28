@@ -79,7 +79,6 @@ async function checkSegmentMetadata(state) {
     // already has metadata, don't bother
     return;
   }
-  await Demo.init();
   if (segmentsRequest) {
     return;
   }

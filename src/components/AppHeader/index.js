@@ -89,7 +89,11 @@ class AppHeader extends Component {
   }
 
   handleClickedAccount(event) {
-    this.setState({ anchorEl: event.currentTarget });
+    if (MyCommaAuth.isAuthenticated()) {
+      this.setState({ anchorEl: event.currentTarget });
+    } else if (window.location) {
+      window.location = window.location.origin;
+    }
   }
 
   handleClose() {
@@ -98,8 +102,11 @@ class AppHeader extends Component {
 
   handleLogOut() {
     this.handleClose();
-    localforage.removeItem('isDemo');
     MyCommaAuth.logOut();
+
+    if (window.location) {
+      window.location = window.location.origin;
+    }
   }
 
   onResize(windowWidth) {
@@ -153,18 +160,20 @@ class AppHeader extends Component {
             </IconButton>
           </div>
         </AppBar>
-        <Menu id="menu-appbar" open={open} onClose={this.handleClose} anchorEl={anchorEl}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
-          <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>{ profile.email }</ListItem>
-          <ListItem className={ classes.accountListItem }>{ profile.points } points</ListItem>
-          <Divider />
-          <MenuItem className={ classes.accountMenuItem } component="a" href="https://my.comma.ai/useradmin/"
-            target="_blank">
-            Manage Account
-          </MenuItem>
-          <MenuItem className={ classes.accountMenuItem } onClick={this.handleLogOut}>Log out</MenuItem>
-        </Menu>
+        { MyCommaAuth.isAuthenticated() &&
+          <Menu id="menu-appbar" open={open} onClose={this.handleClose} anchorEl={anchorEl}
+            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+            <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>{ profile.email }</ListItem>
+            <ListItem className={ classes.accountListItem }>{ profile.points } points</ListItem>
+            <Divider />
+            <MenuItem className={ classes.accountMenuItem } component="a" href="https://my.comma.ai/useradmin/"
+              target="_blank">
+              Manage Account
+            </MenuItem>
+            <MenuItem className={ classes.accountMenuItem } onClick={this.handleLogOut}>Log out</MenuItem>
+          </Menu>
+        }
       </>
     );
   }

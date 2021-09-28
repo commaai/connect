@@ -57,7 +57,6 @@ module.exports = {
 
   profile: {},
   devices: [],
-  isDemo: false,
   primeNav: false,
   subscription: null,
   paymentMethod: null,

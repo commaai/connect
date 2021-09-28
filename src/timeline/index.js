@@ -6,6 +6,7 @@ import { storage as AuthStorage } from '@commaai/my-comma-auth';
 import * as Playback from './playback';
 import { getDongleID, getPrimeNav, getZoom } from '../url';
 import { getState, init as initTimeline } from './timeline';
+import * as Demo from '../demo';
 import { commands } from './commands';
 import store from './store';
 
@@ -31,10 +32,9 @@ export class TimelineInterface {
   onStateChange = StateEvent.listen
   onIndexed = IndexEvent.listen
 
-  async init(isDemo) {
+  async init(isDemo = false) {
     if (!this.hasInit) {
       this.hasInit = true;
-      this.isDemo = isDemo;
 
       initTimeline();
 

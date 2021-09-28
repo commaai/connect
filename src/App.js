@@ -35,10 +35,13 @@ class App extends Component {
 
     this.state = {
       initialized: false,
-      demo: false,
     };
 
-    const pairToken = qs.parse(window.location.search).pair;
+    let pairToken;
+    if (window.location) {
+      pairToken = qs.parse(window.location.search).pair;
+    }
+
     if (pairToken) {
       try {
         localforage.setItem('pairToken', pairToken);
@@ -49,15 +52,10 @@ class App extends Component {
   }
 
   async componentDidMount() {
-    const isDemo = await Demo.init();
-    if (isDemo) {
-      await localforage.setItem('isDemo', '1');
+    if (Demo.isDemo()) {
       await TimelineWorker.init(true);
       TimelineWorker.selectTimeRange(1564443025000, Date.now());
-      this.setState({
-        initialized: true,
-        demo: true,
-      });
+      this.setState({ initialized: true });
     }
 
     return await this.auth();
@@ -68,10 +66,10 @@ class App extends Component {
   }
 
   async auth() {
-    if (document.location) {
-      if (document.location.pathname === AuthConfig.AUTH_PATH) {
+    if (window.location) {
+      if (window.location.pathname === AuthConfig.AUTH_PATH) {
         try {
-          const { code, provider } = qs.parse(document.location.search);
+          const { code, provider } = qs.parse(window.location.search);
           const token = await AuthApi.refreshAccessToken(code, provider);
           if (token) {
             AuthStorage.setCommaAccessToken(token);
@@ -138,7 +136,7 @@ class App extends Component {
     return (
       <Provider store={store}>
         <ConnectedRouter history={history}>
-          { (MyCommaAuth.isAuthenticated() || this.state.demo) ? this.authRoutes() : this.ananymousRoutes() }
+          { (MyCommaAuth.isAuthenticated() || Demo.isDemo()) ? this.authRoutes() : this.ananymousRoutes() }
         </ConnectedRouter>
       </Provider>
     );

@@ -2,10 +2,12 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
-
-import { devices as DevicesApi } from '@commaai/comma-api';
 import { withStyles, Typography, IconButton } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
+
+import MyCommaAuth from '@commaai/my-comma-auth';
+import { devices as DevicesApi } from '@commaai/comma-api';
+
 import DeviceSettingsModal from './DeviceSettingsModal';
 import { deviceTypePretty, deviceIsOnline } from '../../utils'
 import Colors from '../../colors';
@@ -159,9 +161,11 @@ class DeviceList extends Component {
         <div className={ `scrollstyle ${classes.deviceList}` }
           style={{ height: `calc(100vh - ${this.props.headerHeight + 16}px)` }}>
           { devices.filter(this.filterDrivingDevice).map(this.renderDevice) }
-          <div className={ classes.addDeviceContainer }>
-            <AddDevice buttonText={ 'add new device' } buttonStyle={ addButtonStyle } buttonIcon={ true } />
-          </div>
+          { MyCommaAuth.isAuthenticated() &&
+            <div className={ classes.addDeviceContainer }>
+              <AddDevice buttonText={ 'add new device' } buttonStyle={ addButtonStyle } buttonIcon={ true } />
+            </div>
+          }
         </div>
         <div className={ classes.versionNumber }>{ version }</div>
         <DeviceSettingsModal isOpen={this.state.showDeviceSettingsModal} device={ this.state.deviceSettingsModalDevice }

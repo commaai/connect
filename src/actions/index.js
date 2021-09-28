@@ -5,6 +5,7 @@ import * as Types from './types';
 import Timelineworker from '../timeline';
 import { getDongleID } from '../url';
 import { billing as Billing, devices as DevicesApi } from '@commaai/comma-api';
+import * as Demo from '../demo';
 
 export function updateState(data) {
   return {
@@ -60,8 +61,10 @@ export function selectDevice(dongleId) {
     if (state.workerState.dongleId !== dongleId) {
       Timelineworker.selectDevice(dongleId).then(() => {
         dispatch(selectRange(null, null))
-        dispatch(primeFetchSubscription());
-        dispatch(fetchDeviceOnline(dongleId));
+        if (!Demo.isDemoDevice(dongleId)) {
+          dispatch(primeFetchSubscription());
+          dispatch(fetchDeviceOnline(dongleId));
+        }
       });
     } else {
       dispatch(primeNav(false));

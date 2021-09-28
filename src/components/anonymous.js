@@ -13,6 +13,8 @@ import { config as AuthConfig } from '@commaai/my-comma-auth';
 import { auth_apple, auth_github, auth_google } from '../icons';
 import Colors from '../colors';
 
+const demoDevices = require('../demo/devices.json');
+
 const styles = (/* theme */) => ({
   baseContainer: {
     width: '100%',
@@ -99,8 +101,6 @@ const styles = (/* theme */) => ({
   },
 });
 
-const DEMO_LINK = `${window.location.origin}/?demo=1`;
-
 class AnonymousLanding extends Component {
   componentWillMount() {
     if (typeof window.sessionStorage !== 'undefined') {
@@ -155,7 +155,7 @@ class AnonymousLanding extends Component {
             <img className={ classes.buttonImage } src={ auth_github } />
             <Typography className={ classes.buttonText }>Sign in with GitHub</Typography>
           </a>
-          <a href={DEMO_LINK} className={classes.demoLink}>
+          <a href={ `${window.location.origin}/${demoDevices[0].dongle_id}` } className={classes.demoLink}>
             <Typography className={classes.demoLinkText}>Try the demo</Typography>
           </a>
         </div>

@@ -54,7 +54,6 @@ function bufferVideo(isBuffering) {
 }
 
 async function hello(data) {
-  await Demo.init();
   await initAuthPromise;
   store.dispatch(selectDeviceAction(data.dongleId));
 
