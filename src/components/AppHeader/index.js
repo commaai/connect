@@ -128,10 +128,6 @@ class AppHeader extends Component {
       };
     }
 
-    if (!profile) {
-      return [];
-    }
-
     return (
       <>
         <ResizeHandler onResize={ this.onResize } />
