@@ -40,6 +40,7 @@ export default function reducer(_state = initialState, action) {
         if (!state.device) {
           state.device = {
             ...emptyDevice,
+            dongle_id: state.dongleId,
           };
         }
       }

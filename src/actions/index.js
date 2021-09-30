@@ -58,17 +58,22 @@ export function selectRange(start, end) {
 export function selectDevice(dongleId) {
   return (dispatch, getState) => {
     const state = getState();
-    if (state.workerState.dongleId !== dongleId) {
-      Timelineworker.selectDevice(dongleId).then(() => {
-        dispatch(selectRange(null, null))
-        if (!Demo.isDemoDevice(dongleId)) {
-          dispatch(primeFetchSubscription());
-          dispatch(fetchDeviceOnline(dongleId));
-        }
-      });
-    } else {
-      dispatch(primeNav(false));
+    let device;
+    if (state.workerState.devices && state.workerState.devices.length > 1) {
+      device = state.workerState.devices.find((d) => d.dongle_id === state.workerState.dongleId);
     }
+    if (!device && state.workerState.device && state.workerState.device.dongle_id === state.workerState.dongleId) {
+      device = state.workerState.device;
+    }
+
+    Timelineworker.selectDevice(dongleId).then(() => {
+      dispatch(primeNav(false));
+      dispatch(selectRange(null, null))
+      if (device && !device.shared) {
+        dispatch(primeFetchSubscription());
+        dispatch(fetchDeviceOnline(dongleId));
+      }
+    });
 
     const curPath = document.location.pathname;
     const desiredPath = urlForState(dongleId, state.zoom.start, state.zoom.end, null);
