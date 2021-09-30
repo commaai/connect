@@ -354,7 +354,7 @@ class DeviceSettingsModal extends Component {
           { this.props.device.prime &&
             <div className={ classes.unpairWarning }>
               <WarningIcon />
-              <Typography>unpairing will also cancel your prime subscription</Typography>
+              <Typography>Unpairing will also cancel the comma prime subscription for this device.</Typography>
             </div>
           }
           <div className={ classes.topButtonGroup }>
@@ -366,7 +366,7 @@ class DeviceSettingsModal extends Component {
               <Typography variant="body2">Unpaired</Typography> :
               <Button variant="outlined" className={ classes.primeManageButton } onClick={ this.unpairDevice }
                 disabled={ this.state.loadingUnpair }>
-                { this.state.loadingUnpair ? '...' : 'Confirm' }
+                { this.state.loadingUnpair ? 'Unpairing...' : 'Confirm' }
               </Button>
             }
           </div>
