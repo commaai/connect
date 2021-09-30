@@ -9,7 +9,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import { devices as DevicesApi } from '@commaai/comma-api';
 
 import DeviceSettingsModal from './DeviceSettingsModal';
-import { deviceTypePretty, deviceIsOnline } from '../../utils'
+import { deviceTypePretty, deviceIsOnline, filterRegularClick } from '../../utils'
 import Colors from '../../colors';
 import VisibilityHandler from '../VisibilityHandler';
 import Timelineworker from '../../timeline';
@@ -20,8 +20,8 @@ const styles = (theme) => ({
     overflow: 'auto',
   },
   device: {
+    textDecoration: 'none',
     alignItems: 'center',
-    cursor: 'pointer',
     display: 'flex',
     justifyContent: 'space-between',
     padding: '16px 32px',
@@ -180,8 +180,8 @@ class DeviceList extends Component {
     const alias = device.alias || deviceTypePretty(device.device_type);
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
     return (
-      <div key={device.dongle_id} onClick={ () => this.props.handleDeviceSelected(device.dongle_id) }
-        className={ `${classes.device} ${isSelectedCls}` }>
+      <a key={device.dongle_id} className={ `${classes.device} ${isSelectedCls}` }
+        onClick={ filterRegularClick(() => this.props.handleDeviceSelected(device.dongle_id)) } href={ `/${device.dongle_id}` }>
         <div className={classes.deviceInfo}>
           <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
           <div className={ classes.deviceName }>
@@ -199,7 +199,7 @@ class DeviceList extends Component {
             <SettingsIcon className={classes.settingsButtonIcon} />
           </IconButton>
         }
-      </div>
+      </a>
     );
   }
 

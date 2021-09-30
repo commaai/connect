@@ -125,3 +125,12 @@ export function verifyPairToken(pairToken, from_url, sentry_finterprint) {
     throw new Error(msg);
   }
 }
+
+export function filterRegularClick(func) {
+  return (ev) => {
+    if (ev.button === 0 && !ev.ctrlKey && !ev.metaKey && !ev.altKey && !ev.shiftKey) {
+      ev.preventDefault();
+      func();
+    }
+  }
+}

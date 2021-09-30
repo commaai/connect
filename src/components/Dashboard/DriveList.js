@@ -102,7 +102,7 @@ class DriveList extends Component {
   }
 
   render() {
-    const { classes } = this.props;
+    const { classes, dongleId } = this.props;
 
     const driveList = [];
     let lastEnd = 0;
@@ -111,6 +111,7 @@ class DriveList extends Component {
     this.props.segments.forEach((segment) => {
       if (!curRideChunk || segment.startTime - lastEnd > MIN_TIME_BETWEEN_ROUTES) {
         curRideChunk = {
+          dongleId: dongleId,
           segments: 0,
           startTime: segment.startTime,
           offset: segment.offset,
@@ -134,11 +135,11 @@ class DriveList extends Component {
         <ResizeHandler onResize={ this.onResize } />
         <VisibilityHandler onVisible={ this.onVisible } minInterval={ 60 } />
         { driveList.length === 0 && this.renderZeroRides() }
-        <ul className={classes.drives}>
+        <div className={classes.drives}>
           { driveList.filter(this.filterShortDrives).map((drive) => (
             <DriveListItem key={drive.startTime} drive={drive} windowWidth={ this.state.windowWidth }/>
           ))}
-        </ul>
+        </div>
       </div>
     );
   }

@@ -4,7 +4,6 @@ import Obstruction from 'obstruction';
 import fecha from 'fecha';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
-import CloseIcon from '@material-ui/icons/Close';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 
 import Media from './Media';
@@ -13,6 +12,7 @@ import Timeline from '../Timeline';
 import { selectRange } from '../../actions';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
+import { filterRegularClick } from '../../utils';
 
 const styles = (theme) => ({
   window: {
@@ -58,7 +58,7 @@ class DriveView extends Component {
   }
 
   render() {
-    const { classes, currentSegment, nextSegment, zoom, loop, start } = this.props;
+    const { classes, dongleId, currentSegment, nextSegment, zoom, loop, start } = this.props;
     const visibleSegment = (currentSegment || nextSegment);
     const viewerPadding = this.state.windowWidth < 768 ? 12 : 32
 
@@ -75,7 +75,7 @@ class DriveView extends Component {
         <div className={classes.window} >
           <div className={classes.header}>
             <div className={classes.headerContext}>
-              <IconButton aria-label="Go Back" onClick={ this.close }>
+              <IconButton aria-label="Go Back" onClick={ filterRegularClick(this.close) } href={ `/${dongleId}` }>
                 <KeyboardBackspaceIcon />
               </IconButton>
               <div className={ classes.headerInfo }>
@@ -97,6 +97,7 @@ class DriveView extends Component {
 const stateToProps = Obstruction({
   currentSegment: 'workerState.currentSegment',
   nextSegment: 'workerState.nextSegment',
+  dongleId: 'workerState.dongleId',
   device: 'workerState.device',
   loop: 'workerState.loop',
   start: 'workerState.start',

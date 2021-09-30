@@ -7,7 +7,7 @@ import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 
 import { selectRange } from '../../actions';
-import { formatDriveDuration, getDrivePoints } from '../../utils';
+import { formatDriveDuration, getDrivePoints, filterRegularClick } from '../../utils';
 import GeocodeApi from '../../api/geocode';
 import Timeline from '../Timeline';
 import { RightArrow } from '../../icons';
@@ -19,13 +19,13 @@ const styles = (theme) => ({
     background: 'linear-gradient(to bottom, #30373B 0%, #1D2225 100%)',
     borderTop: '1px solid rgba(255, 255, 255, .05)',
     borderRadius: 8,
-    cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
     marginBottom: 12,
     overflow: 'hidden',
     padding: 0,
     transition: 'background .2s',
+    textDecoration: 'none',
     '&:hover': {}
   },
   driveHeader: {
@@ -60,8 +60,6 @@ class DriveListDrive extends Component {
       startLocation: null,
       endLocation: null,
     };
-
-    this.handleDriveClicked = this.handleDriveClicked.bind(this);
   }
 
   componentDidMount() {
@@ -85,21 +83,17 @@ class DriveListDrive extends Component {
     this.mounted = false;
   }
 
-  handleDriveClicked(drive) {
-    const startTime = drive.startTime - 1000;
-    const endTime = drive.startTime + drive.duration + 1000;
-    this.props.dispatch(selectRange(startTime, endTime));
-  }
-
   render() {
     const { drive, classes, windowWidth } = this.props;
 
     const small = windowWidth < 640;
 
     const { startLocation, endLocation } = this.state;
+    const startTs = drive.startTime - 1000;
+    const endTs = drive.startTime + drive.duration + 1000;
     const startTime = fecha.format(new Date(drive.startTime), 'HH:mm');
     const startDate = fecha.format(new Date(drive.startTime), small ? 'ddd, MMM D' : 'dddd, MMM D');
-    const endTime = fecha.format(new Date(drive.startTime + drive.duration + 1000), 'HH:mm');
+    const endTime = fecha.format(new Date(endTs), 'HH:mm');
     const duration = formatDriveDuration(drive.duration);
     const points = getDrivePoints(drive.duration);
 
@@ -118,8 +112,8 @@ class DriveListDrive extends Component {
       arrow:  { order: 6, maxWidth: '6%',  flexBasis: '6%' },
     };
     return (
-      <li key={drive.startTime} className={ `${classes.drive} DriveEntry` }
-        onClick={ () => this.handleDriveClicked(drive) }>
+      <a key={drive.startTime} className={ `${classes.drive} DriveEntry` } href={ `/${drive.dongleId}/${startTs}/${endTs}` }
+        onClick={ filterRegularClick(() => this.props.dispatch(selectRange(startTs, endTs))) }>
         <div className={classes.driveHeader} style={ !small ? { padding: '18px 32px' } : { padding: 18 } }>
           <Grid container>
             <div className={ classes.driveGridItem } style={ gridStyle.date }>
@@ -177,7 +171,7 @@ class DriveListDrive extends Component {
             end: drive.startTime + drive.duration
           }}
         />
-      </li>
+      </a>
     );
   }
 }
