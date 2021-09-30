@@ -198,7 +198,10 @@ class DeviceInfo extends Component {
   }
 
   async fetchDeviceInfo() {
-    const { dongleId } = this.props;
+    const { dongleId, device } = this.props;
+    if (device.dongleId !== dongleId) {
+      return;
+    }
     this.setState({ deviceStats: { fetching: true }});
     try {
       const resp = await DevicesApi.fetchDeviceStats(dongleId);
