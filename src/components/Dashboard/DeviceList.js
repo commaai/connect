@@ -9,7 +9,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import { devices as DevicesApi } from '@commaai/comma-api';
 
 import DeviceSettingsModal from './DeviceSettingsModal';
-import { deviceTypePretty, deviceIsOnline, filterRegularClick } from '../../utils'
+import { deviceTypePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils'
 import Colors from '../../colors';
 import VisibilityHandler from '../VisibilityHandler';
 import Timelineworker from '../../timeline';
@@ -122,12 +122,14 @@ class DeviceList extends Component {
   }
 
   async onVisible() {
-    try {
-      const devices = await DevicesApi.listDevices();
-      Timelineworker.updateDevices(devices);
-    } catch (err) {
-      Sentry.captureException(err, { fingerprint: 'devicelist_visible_listdevices' });
-      console.log(err);
+    if (MyCommaAuth.isAuthenticated()) {
+      try {
+        const devices = await DevicesApi.listDevices();
+        Timelineworker.updateDevices(devices);
+      } catch (err) {
+        Sentry.captureException(err, { fingerprint: 'devicelist_visible_listdevices' });
+        console.log(err);
+      }
     }
   }
 
@@ -138,9 +140,8 @@ class DeviceList extends Component {
 
     if (!found && dongleId) {
       devices = [{
+        ...emptyDevice,
         dongle_id: dongleId,
-        shared: true,
-        alias: 'Shared device',
       }].concat(devices);
     }
 
@@ -193,7 +194,7 @@ class DeviceList extends Component {
             </Typography>
           </div>
         </div>
-        { ((!device.shared && device.is_owner) || isSuperUser) &&
+        { (device.is_owner || isSuperUser) &&
           <IconButton className={classes.settingsButton} onClick={ (ev) => this.handleOpenedSettingsModal(device, ev) }
             aria-label="device settings">
             <SettingsIcon className={classes.settingsButtonIcon} />

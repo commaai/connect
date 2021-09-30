@@ -5,6 +5,7 @@
     "dongle_id": "3533c53bb29502d1",
     "ignore_uploads": null,
     "is_owner": false,
+    "shared": true,
     "is_paired": true,
     "last_gps_accuracy": 9,
     "last_gps_bearing": 316.4,

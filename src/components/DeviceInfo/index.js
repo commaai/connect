@@ -191,7 +191,8 @@ class DeviceInfo extends Component {
   }
 
   onVisible() {
-    if (!Demo.isDemo()) {
+    const { device } = this.props;
+    if (!device.shared) {
       this.fetchDeviceInfo();
       this.fetchDeviceCarHealth();
     }
@@ -199,7 +200,7 @@ class DeviceInfo extends Component {
 
   async fetchDeviceInfo() {
     const { dongleId, device } = this.props;
-    if (device.dongleId !== dongleId) {
+    if (device.shared) {
       return;
     }
     this.setState({ deviceStats: { fetching: true }});
