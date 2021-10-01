@@ -4,30 +4,24 @@ The frontend to the comma connect progressive web app. This a react app using [C
 
 ## Environments
  * Development (local machine) http://localhost:3000
- * Staging (netlify) https://master--commaai-explorer.netlify.com/
-   * CI builds all branches with github actions
-   * then pushes branches to netlify
- * Production (gh-pages) https://my.comma.ai
-   * `yarn deploy` runs gh-pages to deploy to GitHub pages where production url redirects to
-   * all production hostnames redirect to here to prevent CORS caching issues (see public/_redirects)
-   * Netlify "Preview Deploy" functionality will not work because the video server CDN caches the CORS requests, and every preview deploy has a different URL (if you pull up videos using one of these links, you should clear the CDN cache for any video URLs that were hit)
+ * Staging (docker)
+   * packages/images are build by CI, and put on staging branch
+ * Production (docker) https://connect.comma.ai
+   * pushed manually
 
 ## Libraries Used
 There's a ton of them, but these are worth mentioning because they sort of affect everything.
 
  * `React` - If you don't know react, stop everything you're doing and go learn it. It's simple object oriented components with basic lifecycle callbacks rendered by state and prop changes.
  * `Redux` - Sane formal *global* scope. This is not a replacement for component state, which is the best way to store local component level variables and trigger re-renders. Redux state is for global state that many unrelated components care about. No free-form editing, only specific pre-defined actions
- * `@material-ui` - Lots of fully featured highly customizable components for building the UIs with. Theming system with global and per-component overrides of any CSS values. 
+ * `@material-ui` - Lots of fully featured highly customizable components for building the UIs with. Theming system with global and per-component overrides of any CSS values.
  * `react-router-redux` - the newer one, 5.x.... Mindlessly simple routing with convenient global access due to redux
 
 Smaller libraries... useful things scattered everywhere that seemed worth mentioning for one reason or another.
-* `ap` - basic function currying, most used utility from this is `partial`
 * `geval` - Really simple event object with no string comparisons on listen/broadcast. Listen function also returns an unlisten function which is the preferred API style for listeners
-* `thyming` - exposes `timeout` and `interval`, which are wrappers around `setTimeout` and `setInterval` which return unlistener functions instead of returning IDs
 * `raf` - all high performance rendering is done within raf loops
-* `video-react` + `hls.js` - Video playback
+* `hls.js` - Video playback
 * `obstruction` - declarative object transforming, useful for defining mapToProps functions for react-redux.
-* `config-request` - convenient configurable request object for simpler API definitions
 
 ## Project Layout
 
@@ -46,7 +40,7 @@ Smaller libraries... useful things scattered everywhere that seemed worth mentio
    * `src/api/request` wraps all the request types (get/post/etc) and configures the `config-request` instance.
    * `src/api/index.js` is the only file that should be accessed by normal application code. It should expose every available endpoint as a specific API rather than expecting endpoint names as strings (example, `API.listDevices()` not `API.get("listDevices")`)
 
-## How shit works
+## How things works
 Everything functions by talking to a central Web/Shared worker. The current playback is tracked not by storing the current offset, but instead storing the local time that the player began, the offset it began at, and the playback rate. Any time any of these values change, it rebases them all back to the current time. It means that at any arbitrary moment you can calculate the current offset with...
 ```js
 (Date.now() - state.startTime) * state.playSpeed + state.offset

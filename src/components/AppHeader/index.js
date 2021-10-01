@@ -167,7 +167,7 @@ class AppHeader extends Component {
             <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>{ profile.email }</ListItem>
             <ListItem className={ classes.accountListItem }>{ profile.points } points</ListItem>
             <Divider />
-            <MenuItem className={ classes.accountMenuItem } component="a" href="https://my.comma.ai/useradmin/"
+            <MenuItem className={ classes.accountMenuItem } component="a" href="https://useradmin.comma.ai/"
               target="_blank">
               Manage Account
             </MenuItem>
