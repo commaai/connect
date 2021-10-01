@@ -286,6 +286,7 @@ class Navigation extends Component {
       windowWidth: window.innerWidth,
     };
 
+    this.mapContainerRef = React.createRef();
     this.searchInputRef = React.createRef();
     this.searchSelectBoxRef = React.createRef();
     this.primeAdBoxRef = React.createRef();
@@ -699,8 +700,10 @@ class Navigation extends Component {
     }
   }
 
-  focus() {
-    if (!this.state.hasFocus) {
+  focus(ev) {
+    if (!this.state.hasFocus && (!ev || !ev.srcEvent || !ev.srcEvent.path || !this.mapContainerRef.current ||
+      ev.srcEvent.path.includes(this.mapContainerRef.current)))
+    {
       this.setState({ hasFocus: true });
     }
   }
@@ -953,7 +956,8 @@ class Navigation extends Component {
     }
 
     return (
-      <div className={ classes.mapContainer } style={{ height: (hasFocus && hasNav) ? '60vh' : 200 }}>
+      <div ref={ this.mapContainerRef } className={ classes.mapContainer }
+        style={{ height: (hasFocus && hasNav) ? '60vh' : 200 }}>
         <ResizeHandler onResize={ this.onResize } />
         <VisibilityHandler onVisible={ this.updateDevice } onInit={ true } onDongleId={ true } minInterval={ 60 } />
         { mapError &&
