@@ -43,10 +43,8 @@ jobs:
     - name: yarn install
       if: steps.yarn-cache.outputs.cache-hit != 'true'
       run: yarn install
-    - name: yarn build:staging
-      run: yarn build:staging
-      env:
-        SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+    - name: yarn build:production
+      run: yarn build:production
     - name: run Lighthouse CI
       run: |
         npm install -g @lhci/cli@0.8.x
@@ -55,7 +53,7 @@ jobs:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
   docker:
     runs-on: ubuntu-20.04
-    needs: test
+    needs: [test, lighthouse]
     permissions:
       packages: write
       contents: read
