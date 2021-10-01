@@ -51,6 +51,8 @@ jobs:
       run: |
         npm install -g @lhci/cli@0.8.x
         lhci autorun
+      env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
   docker:
     runs-on: ubuntu-20.04
     needs: test
