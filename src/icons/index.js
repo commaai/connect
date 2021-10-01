@@ -6,6 +6,8 @@ export const auth_apple = require('./auth_apple.png');
 export const auth_github = require('./auth_github.png');
 export const auth_google = require('./auth_google.png');
 
+export const ios_share = require('./ios_share.png');
+
 export const pin_car = require('./pin-car.svg');
 export const pin_marker = require('./pin-marker.svg');
 export const pin_pinned = require('./pin-pinned.svg');

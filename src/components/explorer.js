@@ -12,6 +12,7 @@ import { devices as DevicesApi } from '@commaai/comma-api';
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
 import DriveView from './DriveView';
+import IosPwaPopup from './IosPwaPopup';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import AppDrawer from './AppDrawer';
 
@@ -219,6 +220,7 @@ class ExplorerApp extends Component {
             <NoDeviceUpsell /> :
             (expanded ? <DriveView /> : <Dashboard />) }
         </div>
+        <IosPwaPopup />
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
           <Paper className={classes.modal}>
             <Typography variant="title">Pairing device</Typography>
