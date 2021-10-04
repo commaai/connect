@@ -103,8 +103,10 @@ async function checkSegmentMetadata(state) {
   } finally {
     segmentsRequest = null;
   }
+
+  state = getState();
   if (state.start !== start || state.end !== end || state.dongleId !== dongleId) {
-    checkSegmentMetadata(getState());
+    checkSegmentMetadata(state);
     return;
   }
 
