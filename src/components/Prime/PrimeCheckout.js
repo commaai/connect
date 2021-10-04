@@ -112,6 +112,7 @@ class PrimeCheckout extends Component {
 
     this.state = {
       error: null,
+      loadingCheckout: false,
       windowWidth: window.innerWidth,
     };
 
@@ -144,6 +145,7 @@ class PrimeCheckout extends Component {
   }
 
   async gotoCheckout() {
+    this.setState({ loadingCheckout: true });
     try {
       const resp = await Billing.getStripeCheckout(this.props.dongleId, this.state.simInfo.sim_id);
       window.location = resp.url;
@@ -155,7 +157,8 @@ class PrimeCheckout extends Component {
   }
 
   render() {
-    const { windowWidth, error } = this.state;
+    const { classes, device } = this.props;
+    const { windowWidth, error, loadingCheckout } = this.state;
 
     let chargeText = [];
     if (subscribeInfo) {
@@ -229,8 +232,8 @@ class PrimeCheckout extends Component {
           </div>
           <div className={ classes.overviewBlock + " " + classes.paymentElement }>
             <Button className={ classes.buttons } onClick={ this.gotoCheckout }
-              disabled={ Boolean(!subscribeInfo || !subscribeInfo.sim_id) }>
-              Go to checkout
+              disabled={ Boolean(!subscribeInfo || !subscribeInfo.sim_id || loadingCheckout) }>
+              { loadingCheckout ? <CircularProgress size={ 19 } /> : 'Go to checkout' }
             </Button>
           </div>
         </div>

@@ -11,6 +11,7 @@ import { billing as Billing} from '@commaai/comma-api'
 import { deviceTypePretty } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
+import Timelineworker from '../../timeline';
 import { primeNav } from '../../actions';
 
 const styles = (theme) => ({
@@ -42,6 +43,14 @@ const styles = (theme) => ({
     display: 'flex',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 255, 0, 0.2)',
+    '& p': { display: 'inline-block', marginLeft: 10 },
+  },
+  overviewBlockLoading: {
+    marginTop: 15,
+    padding: 10,
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
   manageItem: {
@@ -116,6 +125,7 @@ class PrimeManage extends Component {
     this.modalClose = this.modalClose.bind(this);
     this.fetchStripeSession = this.fetchStripeSession.bind(this);
     this.gotoUpdate = this.gotoUpdate.bind(this);
+    this.fetchSubscription = this.fetchSubscription.bind(this);
   }
 
   componentDidMount() {
@@ -125,8 +135,9 @@ class PrimeManage extends Component {
 
   componentDidUpdate(prevProps) {
     if (!prevProps.stripe_success && this.props.stripe_success) {
-      this.setState({ stripeStatus: { sessionId: this.props.stripe_success, loading: true, paid: null }});
-      this.fetchStripeSession();
+      this.setState({
+        stripeStatus: { sessionId: this.props.stripe_success, loading: true, paid: null },
+      }, this.fetchStripeSession);
     }
   }
 
@@ -170,7 +181,8 @@ class PrimeManage extends Component {
   }
 
   async fetchStripeSession() {
-    const { stripeStatus, dongleId } = this.props;
+    const { dongleId } = this.props;
+    const { stripeStatus } = this.state;
     if (!stripeStatus || !this.mounted) {
       return
     }
@@ -183,8 +195,10 @@ class PrimeManage extends Component {
         paid: status,
         loading: status !== 'paid',
       }});
-      if (status !== 'paid') {
-        setTimeout(this.fetchStripeSession, 1000);
+      if (status === 'paid') {
+        this.fetchSubscription(true);
+      } else {
+        setTimeout(this.fetchStripeSession, 2000);
       }
     } catch (err) {
       // TODO error handling
@@ -193,17 +207,38 @@ class PrimeManage extends Component {
     }
   }
 
+  async fetchSubscription(repeat = false) {
+    const { dongleId, } = this.props;
+    try {
+      const subscription = await Billing.getSubscription(dongleId);
+      Timelineworker.primeGetSubscription(dongleId, subscription);
+    } catch (err) {
+      if (err.message && err.message.indexOf('404') === 0) {
+        if (repeat) {
+          setTimeout(() => this.fetchSubscription(true), 2000);
+        }
+      } else {
+        console.log(err);
+        Sentry.captureException(err, { fingerprint: 'prime_fetch_subscription' });
+      }
+    }
+  }
+
   render() {
     const { dongleId, subscription, classes, device } = this.props;
-    const { windowWidth } = this.state;
-    if (!subscription) {
-      console.log('device has prime, but no subscription found');
-      return ( <></> );
+    const { windowWidth, stripeStatus } = this.state;
+
+    if (!subscription && !stripeStatus) {
+      console.log('device has prime, but no subscription or stripe session');
+      return null;
     }
 
-    let joinDate = fecha.format(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0, 'MMMM Do, YYYY');
-    let nextPaymentDate = fecha.format(
-      subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0, 'MMMM Do, YYYY');
+    let joinDate, nextPaymentDate;
+    if (subscription) {
+      joinDate = fecha.format(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0, 'MMMM Do, YYYY');
+      nextPaymentDate = fecha.format(
+        subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0, 'MMMM Do, YYYY');
+    }
 
     const alias = device.alias || deviceTypePretty(device.device_type);
     const containerPadding = windowWidth > 520 ? 36 : 16;
@@ -219,6 +254,25 @@ class PrimeManage extends Component {
           </div>
           <div className={ classes.primeContainer } style={{ padding: `16px ${containerPadding}px` }}>
             <Typography variant="title">comma prime</Typography>
+            { stripeStatus && <>
+              { stripeStatus.paid !== 'paid' &&
+                <div className={ classes.overviewBlockLoading }>
+                  <CircularProgress size={ 19 } style={{ color: Colors.white }} />
+                  <Typography>Waiting for confirmed payment</Typography>
+                </div>
+              }
+              { Boolean(stripeStatus.paid === 'paid' && !subscription) &&
+                <div className={ classes.overviewBlockLoading }>
+                  <CircularProgress size={ 19 } style={{ color: Colors.white }} />
+                  <Typography>Processing subscription</Typography>
+                </div>
+              }
+              { Boolean(stripeStatus.paid === 'paid' && subscription) &&
+                <div className={ classes.overviewBlockSuccess }>
+                  <Typography>Subscription confirmed</Typography>
+                </div>
+              }
+            </> }
             <div className={ classes.overviewBlock }>
               <Typography variant="subheading">Device</Typography>
               <div className={ classes.manageItem }>
@@ -226,33 +280,32 @@ class PrimeManage extends Component {
                 <Typography variant="caption" className={classes.deviceId}>({ device.dongle_id })</Typography>
               </div>
             </div>
-            <div className={ classes.overviewBlock }>
-              <Typography variant="subheading">Joined</Typography>
-              <Typography className={ classes.manageItem }>{ joinDate }</Typography>
-            </div>
-            <div className={ classes.overviewBlock }>
-              <Typography variant="subheading">Next payment</Typography>
-              <Typography className={ classes.manageItem }>{ nextPaymentDate }</Typography>
-            </div>
-            <div className={ classes.overviewBlock }>
-              <Typography variant="subheading">Amount</Typography>
-              <Typography className={ classes.manageItem }>$24.00</Typography>
-            </div>
-          </div>
-          <div className={ classes.primeContainer } style={{ padding: `16px ${containerPadding}px` }}>
-            <Typography variant="title">Update payment method</Typography>
-            { this.state.activated && <div className={ classes.overviewBlockSuccess }>
-              <Typography>Payment updated</Typography>
-            </div> }
-            { this.state.error && <div className={ classes.overviewBlockError }>
-              <ErrorIcon />
-              <Typography>{ this.state.error }</Typography>
-            </div> }
-            <div className={ classes.overviewBlock + " " + classes.paymentElement }>
-              <Button className={ classes.buttons } onClick={ this.gotoUpdate } disabled={ Boolean(this.state.activated) }>
-                Update payment
-              </Button>
-            </div>
+            { subscription && <>
+              <div className={ classes.overviewBlock }>
+                <Typography variant="subheading">Joined</Typography>
+                <Typography className={ classes.manageItem }>{ joinDate }</Typography>
+              </div>
+              <div className={ classes.overviewBlock }>
+                <Typography variant="subheading">Next payment</Typography>
+                <Typography className={ classes.manageItem }>{ nextPaymentDate }</Typography>
+              </div>
+              <div className={ classes.overviewBlock }>
+                <Typography variant="subheading">Amount</Typography>
+                <Typography className={ classes.manageItem }>$24.00</Typography>
+              </div>
+              { this.state.activated && <div className={ classes.overviewBlockSuccess }>
+                <Typography>Payment updated</Typography>
+              </div> }
+              { this.state.error && <div className={ classes.overviewBlockError }>
+                <ErrorIcon />
+                <Typography>{ this.state.error }</Typography>
+              </div> }
+              <div className={ classes.overviewBlock + " " + classes.paymentElement }>
+                <Button className={ classes.buttons } onClick={ this.gotoUpdate } disabled={ Boolean(this.state.activated) }>
+                  Update payment
+                </Button>
+              </div>
+            </> }
           </div>
         </div>
         <Modal open={ this.state.cancelModal } onClose={ this.modalClose }>
