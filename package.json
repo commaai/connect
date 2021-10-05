@@ -24,8 +24,6 @@
     "@material-ui/icons": "^1.0.0",
     "@sentry/react": "^6.10.0",
     "@sentry/webpack-plugin": "^1.8.1",
-    "@stripe/react-stripe-js": "^1.4.0",
-    "@stripe/stripe-js": "^1.13.2",
     "connected-react-router": "^4.3.0",
     "debounce": "^1.1.0",
     "fecha": "^2.3.3",
