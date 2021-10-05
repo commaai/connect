@@ -40,10 +40,13 @@ const styles = (theme) => ({
   overviewBlockSuccess: {
     marginTop: 15,
     padding: 10,
-    display: 'flex',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 255, 0, 0.2)',
-    '& p': { display: 'inline-block', marginLeft: 10 },
+    '& p': {
+      display: 'inline-block',
+      marginLeft: 10,
+      '&:first-child': { fontWeight: 600 },
+    },
   },
   overviewBlockLoading: {
     marginTop: 15,
@@ -302,7 +305,11 @@ class PrimeManage extends Component {
               }
               { Boolean(stripeStatus.paid === 'paid' && subscription) &&
                 <div className={ classes.overviewBlockSuccess }>
-                  <Typography>Subscription confirmed</Typography>
+                  <Typography>comma prime activated</Typography>
+                  <Typography>
+                    Connectivity will be enabled as soon as activation propagates to your local cell tower.
+                    Rebooting your device may help.
+                  </Typography>
                 </div>
               }
             </> }
@@ -326,16 +333,12 @@ class PrimeManage extends Component {
                 <Typography variant="subheading">Amount</Typography>
                 <Typography className={ classes.manageItem }>$24.00</Typography>
               </div>
-              { this.state.activated && <div className={ classes.overviewBlockSuccess }>
-                <Typography>Payment updated</Typography>
-              </div> }
               { this.state.error && <div className={ classes.overviewBlockError }>
                 <ErrorIcon />
                 <Typography>{ this.state.error }</Typography>
               </div> }
               <div className={ classes.overviewBlock + " " + classes.paymentElement }>
-                <Button className={ classes.buttons } style={ buttonSmallStyle } onClick={ this.gotoUpdate }
-                  disabled={ Boolean(this.state.activated) }>
+                <Button className={ classes.buttons } style={ buttonSmallStyle } onClick={ this.gotoUpdate }>
                   Update payment
                 </Button>
                 <Button className={ `${classes.buttons} ${classes.cancelButton}` } style={ buttonSmallStyle }
