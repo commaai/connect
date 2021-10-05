@@ -56,6 +56,35 @@ const styles = (theme) => ({
   manageItem: {
     marginLeft: 10,
   },
+  buttons: {
+    marginTop: 10,
+    background: Colors.white,
+    borderRadius: 18,
+    color: '#404B4F',
+    textTransform: 'none',
+    width: 200,
+    '&:hover': {
+      backgroundColor: Colors.white70,
+      color: '#404B4F',
+    },
+    '&:disabled': {
+      backgroundColor: Colors.white70,
+      color: '#404B4F',
+    },
+    '&:disabled:hover': {
+      backgroundColor: Colors.white70,
+      color: '#404B4F',
+    }
+  },
+  cancelButton: {
+    color: Colors.white,
+    background: 'transparent',
+    border: `1px solid ${Colors.grey500}`,
+    '&:hover': {
+      backgroundColor: Colors.white10,
+      color: Colors.white,
+    },
+  },
   modal: {
     position: 'absolute',
     padding: theme.spacing.unit * 2,
@@ -105,7 +134,10 @@ const styles = (theme) => ({
     '& p': { margin: 0 },
   },
   paymentElement: {
-    maxWidth: 450,
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    maxWidth: 430,
   },
 });
 
@@ -242,6 +274,7 @@ class PrimeManage extends Component {
 
     const alias = device.alias || deviceTypePretty(device.device_type);
     const containerPadding = windowWidth > 520 ? 36 : 16;
+    const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
 
     return (
       <>
@@ -301,8 +334,13 @@ class PrimeManage extends Component {
                 <Typography>{ this.state.error }</Typography>
               </div> }
               <div className={ classes.overviewBlock + " " + classes.paymentElement }>
-                <Button className={ classes.buttons } onClick={ this.gotoUpdate } disabled={ Boolean(this.state.activated) }>
+                <Button className={ classes.buttons } style={ buttonSmallStyle } onClick={ this.gotoUpdate }
+                  disabled={ Boolean(this.state.activated) }>
                   Update payment
+                </Button>
+                <Button className={ `${classes.buttons} ${classes.cancelButton}` } style={ buttonSmallStyle }
+                  onClick={ () => this.setState({ cancelModal: true }) }>
+                  Cancel subscription
                 </Button>
               </div>
             </> }

@@ -176,6 +176,7 @@ class PrimeCheckout extends Component {
 
     const alias = device.alias || deviceTypePretty(device.device_type);
     const containerPadding = windowWidth > 520 ? 36 : 16;
+    const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
 
     return ( <>
       <div className={ classes.primeBox }>
@@ -230,8 +231,8 @@ class PrimeCheckout extends Component {
               return <Typography key={i} className={ classes.chargeText }>{ txt }</Typography>
             }) }
           </div>
-          <div className={ classes.overviewBlock + " " + classes.paymentElement }>
-            <Button className={ classes.buttons } onClick={ this.gotoCheckout }
+          <div className={ classes.overviewBlock }>
+            <Button className={ classes.buttons } style={ buttonSmallStyle } onClick={ this.gotoCheckout }
               disabled={ Boolean(!subscribeInfo || !subscribeInfo.sim_id || loadingCheckout) }>
               { loadingCheckout ? <CircularProgress size={ 19 } /> : 'Go to checkout' }
             </Button>
