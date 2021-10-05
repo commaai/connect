@@ -65,7 +65,7 @@ const styles = (theme) => ({
     borderRadius: 18,
     color: '#404B4F',
     textTransform: 'none',
-    width: 200,
+    width: 220,
     '&:hover': {
       backgroundColor: Colors.white70,
       color: '#404B4F',
@@ -87,6 +87,14 @@ const styles = (theme) => ({
       backgroundColor: Colors.white10,
       color: Colors.white,
     },
+    '&:disabled': {
+      backgroundColor: 'transparent',
+      color: '#404B4F',
+    },
+    '&:disabled:hover': {
+      backgroundColor: 'transparent',
+      color: '#404B4F',
+    }
   },
   modal: {
     position: 'absolute',
@@ -140,7 +148,7 @@ const styles = (theme) => ({
     display: 'flex',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    maxWidth: 430,
+    maxWidth: 450,
   },
 });
 
@@ -338,11 +346,12 @@ class PrimeManage extends Component {
                 <Typography>{ this.state.error }</Typography>
               </div> }
               <div className={ classes.overviewBlock + " " + classes.paymentElement }>
-                <Button className={ classes.buttons } style={ buttonSmallStyle } onClick={ this.gotoUpdate }>
-                  Update payment
+                <Button className={ classes.buttons } style={ buttonSmallStyle } onClick={ this.gotoUpdate }
+                   disabled={ Boolean(!subscription) }>
+                  Update payment method
                 </Button>
                 <Button className={ `${classes.buttons} ${classes.cancelButton}` } style={ buttonSmallStyle }
-                  onClick={ () => this.setState({ cancelModal: true }) }>
+                  onClick={ () => this.setState({ cancelModal: true }) } disabled={ Boolean(!subscription) }>
                   Cancel subscription
                 </Button>
               </div>
