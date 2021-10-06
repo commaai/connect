@@ -44,12 +44,12 @@ async function initDevices() {
 }
 
 export default async function init() {
-  const profile = await initProfile();
+  const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
+
   if (profile) {
     Sentry.setUser({ id: profile.id });
   }
 
-  const devices = await initDevices();
   if (devices.length > 0) {
     const dongleId = getDongleID(window.location.pathname) || devices[0].dongle_id;
     const device = devices.find((dev) => dev.dongle_id === dongleId);
