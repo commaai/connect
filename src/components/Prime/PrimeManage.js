@@ -252,9 +252,16 @@ class PrimeManage extends Component {
 
   async fetchSubscription(repeat = false) {
     const { dongleId, } = this.props;
+    if (!this.mounted) {
+      return;
+    }
     try {
       const subscription = await Billing.getSubscription(dongleId);
-      Timelineworker.primeGetSubscription(dongleId, subscription);
+      if (subscription.user_id) {
+        Timelineworker.primeGetSubscription(dongleId, subscription);
+      } else {
+        setTimeout(() => this.fetchSubscription(true), 2000);
+      }
     } catch (err) {
       if (err.message && err.message.indexOf('404') === 0) {
         if (repeat) {
@@ -271,13 +278,15 @@ class PrimeManage extends Component {
     const { dongleId, subscription, classes, device } = this.props;
     const { windowWidth, stripeStatus } = this.state;
 
-    if (!subscription && !stripeStatus) {
+    const hasPrimeSub = subscription && subscription.user_id;
+
+    if (!hasPrimeSub && !stripeStatus) {
       console.log('device has prime, but no subscription or stripe session');
       return null;
     }
 
     let joinDate, nextPaymentDate;
-    if (subscription) {
+    if (hasPrimeSub) {
       joinDate = fecha.format(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0, 'MMMM Do, YYYY');
       nextPaymentDate = fecha.format(
         subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0, 'MMMM Do, YYYY');
@@ -305,13 +314,13 @@ class PrimeManage extends Component {
                   <Typography>Waiting for confirmed payment</Typography>
                 </div>
               }
-              { Boolean(stripeStatus.paid === 'paid' && !subscription) &&
+              { Boolean(stripeStatus.paid === 'paid' && !hasPrimeSub) &&
                 <div className={ classes.overviewBlockLoading }>
                   <CircularProgress size={ 19 } style={{ color: Colors.white }} />
                   <Typography>Processing subscription</Typography>
                 </div>
               }
-              { Boolean(stripeStatus.paid === 'paid' && subscription) &&
+              { Boolean(stripeStatus.paid === 'paid' && hasPrimeSub) &&
                 <div className={ classes.overviewBlockSuccess }>
                   <Typography>comma prime activated</Typography>
                   <Typography>
@@ -328,7 +337,7 @@ class PrimeManage extends Component {
                 <Typography variant="caption" className={classes.deviceId}>({ device.dongle_id })</Typography>
               </div>
             </div>
-            { subscription && <>
+            { hasPrimeSub && <>
               <div className={ classes.overviewBlock }>
                 <Typography variant="subheading">Joined</Typography>
                 <Typography className={ classes.manageItem }>{ joinDate }</Typography>
@@ -347,11 +356,11 @@ class PrimeManage extends Component {
               </div> }
               <div className={ classes.overviewBlock + " " + classes.paymentElement }>
                 <Button className={ classes.buttons } style={ buttonSmallStyle } onClick={ this.gotoUpdate }
-                   disabled={ Boolean(!subscription) }>
+                   disabled={ !hasPrimeSub }>
                   Update payment method
                 </Button>
                 <Button className={ `${classes.buttons} ${classes.cancelButton}` } style={ buttonSmallStyle }
-                  onClick={ () => this.setState({ cancelModal: true }) } disabled={ Boolean(!subscription) }>
+                  onClick={ () => this.setState({ cancelModal: true }) } disabled={ !hasPrimeSub }>
                   Cancel subscription
                 </Button>
               </div>
