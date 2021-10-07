@@ -157,20 +157,23 @@ class PrimeCheckout extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, subscribeInfo } = this.props;
     const { windowWidth, error, loadingCheckout } = this.state;
 
     let chargeText = [];
     if (subscribeInfo) {
-      chargeText = ['You will be charged $24.00 today and monthly thereafter.'];
+      chargeText = [
+        'Continue to checkout to set up comma prime.',
+        'You will be charged $24.00 today and monthly thereafter.',
+      ];
       if (subscribeInfo.trial_claimable) {
         const trialEndDate = fecha.format(this.props.subscribeInfo.trial_end * 1000, "MMMM Do");
-        chargeText = [`Fill in your payment information to claim your trial.`,
-        `You will be charged $24.00 on ${trialEndDate} and monthly thereafter.`];
-        if (subscribeInfo.trial_claim_end) {
-          const claimEndDate = fecha.format(this.props.subscribeInfo.trial_claim_end * 1000, "MMMM Do");
-          chargeText.push(`Offer only valid until ${claimEndDate}.`);
-        }
+        const claimEndDate =
+          subscribeInfo.trial_claim_end ? fecha.format(subscribeInfo.trial_claim_end * 1000, "MMMM Do") : null;
+        chargeText = [
+          'Continue to checkout to claim your trial' + (claimEndDate ? `, offer only valid until ${claimEndDate}.` : '.'),
+          `You will be charged $24.00 on ${trialEndDate} and monthly thereafter.`
+        ];
       }
     }
 

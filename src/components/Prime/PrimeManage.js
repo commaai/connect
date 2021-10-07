@@ -323,10 +323,12 @@ class PrimeManage extends Component {
               { Boolean(stripeStatus.paid === 'paid' && hasPrimeSub) &&
                 <div className={ classes.overviewBlockSuccess }>
                   <Typography>comma prime activated</Typography>
-                  <Typography>
-                    Connectivity will be enabled as soon as activation propagates to your local cell tower.
-                    Rebooting your device may help.
-                  </Typography>
+                  { subscription.is_prime_sim &&
+                    <Typography>
+                      Connectivity will be enabled as soon as activation propagates to your local cell tower.
+                      Rebooting your device may help.
+                    </Typography>
+                  }
                 </div>
               }
             </> }
