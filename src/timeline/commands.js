@@ -7,6 +7,7 @@ import {
   updateDevice as updateDeviceAction,
   updateDevices as updateDevicesAction,
   primeGetSubscriptionAction,
+  primeGetSubscribeInfoAction,
   primeGetPaymentMethodAction,
   primeNavAction,
   updateDeviceOnlineAction,
@@ -89,6 +90,10 @@ function selectLoop(data) {
 
 function primeGetSubscription(dongleId, subscription) {
   store.dispatch(primeGetSubscriptionAction(dongleId, subscription));
+}
+
+function primeGetSubscribeInfo(dongleId, subscribeInfo) {
+  store.dispatch(primeGetSubscribeInfoAction(dongleId, subscribeInfo));
 }
 
 function primeGetPaymentMethod(paymentMethod) {

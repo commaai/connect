@@ -11,12 +11,11 @@ import WarningIcon from '@material-ui/icons/Warning';
 import { billing as Billing } from '@commaai/comma-api';
 
 import { deviceTypePretty } from '../../utils';
-import { fetchSimInfo } from './util';
 import PrimeChecklist from './PrimeChecklist';
 import PrimePayment from './PrimePayment';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
-import { primeNav } from '../../actions';
+import { primeNav, primeFetchSubscription } from '../../actions';
 
 const styles = (theme) => ({
   primeBox: {
@@ -118,103 +117,12 @@ class PrimeCheckout extends Component {
 
     this.state = {
       error: null,
-      simId: null,
-      simData: null,
-      simValid: null,
-      simCached: null,
-      simInfoLoading: false,
       activated: null,
       new_subscription: null,
       windowWidth: window.innerWidth,
     };
 
     this.onPrimeActivated = this.onPrimeActivated.bind(this);
-    this.fetchSimDetails = this.fetchSimDetails.bind(this);
-    this.fetchSimValid = this.fetchSimValid.bind(this);
-  }
-
-  componentDidMount() {
-    this.setState({ simInfoLoading: true });
-    this.fetchSimDetails(true);
-  }
-
-  async fetchSimDetails(retry) {
-    try {
-      const result = await fetchSimInfo(this.props.dongleId);
-      this.setState({
-        simId: result.simInfo.sim_id,
-        simData: result.simInfo.data_connected,
-        simCached: false,
-      });
-      this.fetchSimValid();
-    } catch (err) {
-      if (err.message === 'Failed to fetch') {
-        if (retry) {
-          console.log('Failed to fetch sim info, retrying...');
-          this.fetchSimDetails(false);
-        } else {
-          this.setState({ error: 'Failed to fetch, please try again later', simInfoLoading: false });
-          Sentry.captureException(err, { fingerprint: 'prime_fetch_sim_details_fetch_failed' });
-        }
-      } else if (err.message === 'Could not reach your device.\nConnect device to Wi-Fi and try again.' &&
-        this.props.device.sim_id !== null)
-      {
-        this.setState({
-          simId: this.props.device.sim_id,
-          simData: false,
-          simCached: true,
-        });
-        this.fetchSimValid();
-      } else {
-        if (!err.message || err.message.toLowerCase().indexOf('server error') !== -1) {
-          console.log(err);
-          Sentry.captureException(err, { fingerprint: 'prime_checkout_fetch_siminfo' });
-        }
-        this.setState({ error: err.message, simInfoLoading: false });
-      }
-    }
-  }
-
-  async fetchSimValid() {
-    try {
-      const res = await Billing.getSimValid(this.props.dongleId, this.state.simId);
-      if (res.error && res.error == 'sim_third_party') {
-        if (!this.state.simData) {
-          const msg = this.state.simCached ?
-            'Turn on device and try again to confirm cellular data connection.' :
-            'Third-party SIM detected. Turn off device Wi-Fi and try again to confirm cellular data connection.';
-          this.setState({ error: msg });
-        }
-        this.setState({ simValid: false, simInfoLoading: false });
-      } else if (res.error) {
-        this.setState({ error: res.error, simInfoLoading: false });
-      } else {
-        this.setState({ simValid: true, simInfoLoading: false });
-      }
-    } catch (err) {
-      Sentry.captureException(err, { fingerprint: 'prime_checkout_fetch_simvalid' });
-      this.setState({ error: err.message, simInfoLoading: false });
-    }
-  }
-
-  isTrialClaimable() {
-    return this.props.subscription && this.props.subscription.trial_claimable;
-  }
-
-  firstChargeDate() {
-    if (this.props.subscription) {
-      return fecha.format(this.props.subscription.trial_end * 1000, "MMMM Do");
-    } else {
-      return null;
-    }
-  }
-
-  claimEndDate() {
-    if (this.props.subscription && this.props.subscription.trial_claim_end) {
-      return fecha.format(this.props.subscription.trial_claim_end * 1000, "MMMM Do");
-    } else {
-      return null;
-    }
   }
 
   onPrimeActivated(resp) {
@@ -232,20 +140,24 @@ class PrimeCheckout extends Component {
   }
 
   render() {
-    const { classes, device, dongleId } = this.props;
-    const { new_subscription, windowWidth, activated, simId, simData, simValid, simCached, simInfoLoading, error } = this.state;
+    const { classes, device, dongleId, subscribeInfo } = this.props;
+    const { new_subscription, windowWidth, activated, error } = this.state;
 
-    const alias = device.alias || deviceTypePretty(device.device_type);
-
-    let chargeText = ['You will be charged $24.00 today and monthly thereafter.'];
-    if (this.isTrialClaimable()) {
-      chargeText = [`Fill in your payment information to claim your trial.`,
-        `You will be charged $24.00 on ${this.firstChargeDate()} and monthly thereafter.`];
-      if (this.claimEndDate()) {
-        chargeText.push(`Offer only valid until ${this.claimEndDate()}.`);
+    let chargeText = [];
+    if (subscribeInfo) {
+      let chargeText = ['You will be charged $24.00 today and monthly thereafter.'];
+      if (subscribeInfo.trial_claimable) {
+        const trialEndDate = fecha.format(this.props.subscribeInfo.trial_end * 1000, "MMMM Do");
+        chargeText = [`Fill in your payment information to claim your trial.`,
+        `You will be charged $24.00 on ${trialEndDate} and monthly thereafter.`];
+        if (subscribeInfo.trial_claim_end) {
+          const claimEndDate = fecha.format(this.props.subscribeInfo.trial_claim_end * 1000, "MMMM Do");
+          chargeText.push(`Offer only valid until ${claimEndDate}.`);
+        }
       }
     }
 
+    const alias = device.alias || deviceTypePretty(device.device_type);
     const containerPadding = windowWidth > 520 ? 36 : 16;
 
     return ( <>
@@ -267,7 +179,21 @@ class PrimeCheckout extends Component {
             <ErrorIcon />
             <Typography>{ error }</Typography>
           </div> }
-          { !simInfoLoading && !simCached && !simValid && simData &&
+          { !subscribeInfo && <div className={ classes.overviewBlockLoading }>
+            <CircularProgress size={ 19 } style={{ color: Colors.white }} />
+            <Typography>Fetching SIM data</Typography>
+          </div> }
+          { Boolean(subscribeInfo && !subscribeInfo.sim_id) &&
+            <div className={ classes.overviewBlockError }>
+              <ErrorIcon />
+              <Typography>
+                { subscribeInfo.device_online ?
+                  'No SIM detected. Ensure SIM is securely inserted and try again.' :
+                  'Could not reach device, connect device to the internet and try again.' }
+              </Typography>
+            </div>
+          }
+          { Boolean(subscribeInfo && subscribeInfo.sim_id && !subscribeInfo.is_prime_sim) &&
             <div className={ classes.overviewBlockWarning }>
               <WarningIcon />
               <Typography>
@@ -275,10 +201,6 @@ class PrimeCheckout extends Component {
               </Typography>
             </div>
           }
-          { simInfoLoading && <div className={ classes.overviewBlockLoading }>
-            <CircularProgress size={ 19 } style={{ color: Colors.white }} />
-            <Typography>Fetching SIM data</Typography>
-          </div> }
           <div className={ classes.overviewBlock }>
             <Typography variant="subheading">Device</Typography>
             <div className={ classes.deviceBlock }>
@@ -292,8 +214,8 @@ class PrimeCheckout extends Component {
             }) }
           </div>
           <div className={ classes.overviewBlock + " " + classes.paymentElement }>
-            <PrimePayment disabled={ Boolean(activated || (!simValid && !simData)) } simId={ simId }
-              onActivated={ this.onPrimeActivated }
+            <PrimePayment disabled={ Boolean(activated || !subscribeInfo || !subscribeInfo.sim_id) }
+              simId={ subscribeInfo ? subscribeInfo.sim_id : null } onActivated={ this.onPrimeActivated }
               onError={ (err) => this.setState({ error: err }) } />
           </div>
         </div>
@@ -320,7 +242,7 @@ class PrimeCheckout extends Component {
 const stateToProps = Obstruction({
   dongleId: 'workerState.dongleId',
   device: 'workerState.device',
-  subscription: 'workerState.subscription',
+  subscribeInfo: 'workerState.subscribeInfo',
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeCheckout));
