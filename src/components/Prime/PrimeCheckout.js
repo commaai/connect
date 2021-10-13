@@ -145,7 +145,7 @@ class PrimeCheckout extends Component {
 
     let chargeText = [];
     if (subscribeInfo) {
-      let chargeText = ['You will be charged $24.00 today and monthly thereafter.'];
+      chargeText = ['You will be charged $24.00 today and monthly thereafter.'];
       if (subscribeInfo.trial_claimable) {
         const trialEndDate = fecha.format(this.props.subscribeInfo.trial_end * 1000, "MMMM Do");
         chargeText = [`Fill in your payment information to claim your trial.`,
