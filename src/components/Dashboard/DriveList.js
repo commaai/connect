@@ -118,7 +118,7 @@ class DriveList extends Component {
           duration: 0,
           startCoord: segment.startCoord,
           endCoord: segment.endCoord,
-          distanceMiles: segment.distanceMiles,
+          distanceMiles: 0,
         };
         driveList.unshift(curRideChunk);
         lastSegmentEnd = segment.startTime;
@@ -128,6 +128,10 @@ class DriveList extends Component {
       lastSegmentEnd = segment.startTime + segment.duration;
       curRideChunk.segments++;
       lastEnd = segment.startTime + segment.duration;
+      curRideChunk.distanceMiles += segment.distanceMiles;
+      curRideChunk.endCoord = (segment.endCoord && !(segment.endCoord[0] === 0 && segment.endCoord[1] === 0)) ?
+        segment.endCoord :
+        curRideChunk.endCoord;
     });
 
     return (
