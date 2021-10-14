@@ -194,22 +194,23 @@ class DeviceSettingsModal extends Component {
     }
 
     const { dongle_id } = this.props.device;
-    const email = this.state.shareEmail;
+    const { shareEmail } = this.state;
 
     this.setState({
       loadingDeviceShare: true,
       hasShared: false
     });
     try {
-      await DevicesApi.grantDeviceReadPermission(dongle_id, this.state.shareEmail.trim());
+      await DevicesApi.grantDeviceReadPermission(dongle_id, shareEmail.trim());
       this.setState({
         loadingDeviceShare: false,
         shareEmail: '',
-        hasShared: true
+        hasShared: true,
+        error: null,
       });
     } catch (err) {
       if (err.resp && err.resp.status === 404) {
-        this.setState({ error: 'could not find user by this email address', loadingDeviceShare: false });
+        this.setState({ error: 'could not find user', loadingDeviceShare: false });
       } else {
         console.log(err);
         Sentry.captureException(err, { fingerprint: 'device_settings_share' });
@@ -299,7 +300,7 @@ class DeviceSettingsModal extends Component {
               <Typography>{ this.state.error }</Typography>
             </div> }
             <div className={classes.formRow}>
-              <TextField id="device_alias" label="Device Name" className={ classes.textField }
+              <TextField id="device_alias" label="Device name" className={ classes.textField }
                 value={ this.state.deviceAlias ? this.state.deviceAlias : '' }
                 onChange={this.handleAliasChange} onKeyPress={ (ev) => this.callOnEnter(this.setDeviceAlias, ev) } />
               { (this.props.device.alias !== this.state.deviceAlias || this.state.hasSavedAlias) &&
@@ -312,7 +313,7 @@ class DeviceSettingsModal extends Component {
               }
             </div>
             <div className={classes.formRow}>
-              <TextField id="device_share" label="Share by Email" className={ classes.textField }
+              <TextField id="device_share" label="Share by email or user id" className={ classes.textField }
                 value={this.state.shareEmail} onChange={this.handleEmailChange} variant="outlined"
                 onKeyPress={ (ev) => this.callOnEnter(this.shareDevice, ev) }
                 helperText="give another user read access to to this device" />
