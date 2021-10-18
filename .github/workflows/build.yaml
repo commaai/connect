@@ -77,7 +77,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: get tags
       shell: bash
-      run: echo "##[set-output name=tags;]ghcr.io/commaai/connect:$(echo ${GITHUB_REF#refs/heads/})$(if [ ${GITHUB_REF} = refs/heads/master ] ; then echo ,ghcr.io/commaai/connect:latest; fi;)"
+      run: echo "##[set-output name=tags;]ghcr.io/commaai/connect:${GITHUB_SHA},ghcr.io/commaai/connect:${GITHUB_REF#refs/heads/}$(if [ ${GITHUB_REF} = refs/heads/master ] ; then echo ,ghcr.io/commaai/connect:latest; fi;)"
       id: extract_tags
     - name: Build and push
       uses: docker/build-push-action@v2
