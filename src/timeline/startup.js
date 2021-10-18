@@ -16,8 +16,12 @@ async function initProfile() {
     try {
       return await Account.getProfile();
     } catch (err) {
-      console.log(err);
-      Sentry.captureException(err, { fingerprint: 'init_api_get_profile' });
+      if (err.resp && err.resp.status === 401) {
+        await MyCommaAuth.logOut();
+      } else {
+        console.log(err);
+        Sentry.captureException(err, { fingerprint: 'init_api_get_profile' });
+      }
     }
   } else if (Demo.isDemo()) {
     return demoProfile;
@@ -35,8 +39,10 @@ async function initDevices() {
     try {
       devices = devices.concat(await Devices.listDevices());
     } catch (err) {
-      console.log(err);
-      Sentry.captureException(err, { fingerprint: 'init_api_list_devices' });
+      if (!err.resp || err.resp.status !== 401) {
+        console.log(err);
+        Sentry.captureException(err, { fingerprint: 'init_api_list_devices' });
+      }
     }
   }
 

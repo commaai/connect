@@ -100,9 +100,9 @@ class AppHeader extends Component {
     this.setState({ anchorEl: null });
   }
 
-  handleLogOut() {
+  async handleLogOut() {
     this.handleClose();
-    MyCommaAuth.logOut();
+    await MyCommaAuth.logOut();
 
     if (window.location) {
       window.location = window.location.origin;
