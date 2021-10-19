@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import Obstruction from 'obstruction';
-import localforage from 'localforage';
 
 import { withStyles } from '@material-ui/core/styles';
 import { Divider, Typography, Menu, MenuItem, ListItem, IconButton, Icon, AppBar } from '@material-ui/core';
@@ -56,12 +55,22 @@ const styles = (theme) => ({
     height: 34,
     width: 34,
   },
-  accountListEmail: {
-    fontWeight: 'bold',
-  },
   accountListItem: {
     color: Colors.white,
     padding: '12px 16px',
+  },
+  accountListEmail: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    paddingBottom: 4,
+    '& :first-child': {
+      fontWeight: 'bold',
+      marginBottom: 2,
+    },
+    '& :last-child': {
+      fontSize: '0.75em',
+      color: Colors.white40,
+    },
   },
   accountMenuItem: {
     padding: '12px 16px',
@@ -160,7 +169,10 @@ class AppHeader extends Component {
           <Menu id="menu-appbar" open={open} onClose={this.handleClose} anchorEl={anchorEl}
             anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
-            <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>{ profile.email }</ListItem>
+            <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>
+              <span>{ profile.email }</span>
+              <span>{ profile.user_id }</span>
+            </ListItem>
             <ListItem className={ classes.accountListItem }>{ profile.points } points</ListItem>
             <Divider />
             <MenuItem className={ classes.accountMenuItem } component="a" href="https://useradmin.comma.ai/"
