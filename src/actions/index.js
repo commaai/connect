@@ -88,14 +88,21 @@ export function primeFetchSubscription() {
     const state = getState();
 
     if ((state.workerState.device && state.workerState.device.is_owner) || state.workerState.profile.superuser) {
-      Billing.getSubscription(state.workerState.dongleId).then((subscription) => {
-        Timelineworker.primeGetSubscription(state.workerState.dongleId, subscription);
-      }).catch((err) => {
-        if (!err.message || err.message.indexOf('404') !== 0) {
+      if (state.workerState.device.prime) {
+        Billing.getSubscription(state.workerState.dongleId).then((subscription) => {
+          Timelineworker.primeGetSubscription(state.workerState.dongleId, subscription);
+        }).catch((err) => {
           console.log(err);
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' });
-        }
-      });
+        });
+      } else {
+        Billing.getSubscribeInfo(state.workerState.dongleId).then((subscribeInfo) => {
+          store.dispatch(primeGetSubscribeInfoAction(state.workerState.dongleId, subscribeInfo));
+        }).catch((err) => {
+          console.log(err);
+          Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' });
+        });
+      }
     }
   };
 }

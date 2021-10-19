@@ -4,7 +4,7 @@ import { devices as Devices, account as Account, billing as Billing } from '@com
 import * as Demo from '../demo';
 import store from './store';
 import { ACTION_STARTUP_DATA } from './actions/types';
-import { primeGetPaymentMethodAction, primeGetSubscriptionAction } from './actions';
+import { primeGetPaymentMethodAction, primeGetSubscriptionAction, primeGetSubscribeInfoAction } from './actions';
 import { getDongleID, getPrimeNav } from '../url';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
@@ -60,14 +60,21 @@ export default async function init() {
     const dongleId = getDongleID(window.location.pathname) || devices[0].dongle_id;
     const device = devices.find((dev) => dev.dongle_id === dongleId);
     if (device && (device.is_owner || profile.superuser)) {
-      Billing.getSubscription(dongleId).then((subscription) => {
-        store.dispatch(primeGetSubscriptionAction(dongleId, subscription));
-      }).catch((err) => {
-        if (!err.message || err.message.indexOf('404') !== 0) {
+      if (device.prime) {
+        Billing.getSubscription(dongleId).then((subscription) => {
+          store.dispatch(primeGetSubscriptionAction(dongleId, subscription));
+        }).catch((err) => {
           console.log(err);
           Sentry.captureException(err, { fingerprint: 'init_get_subscription' });
-        }
-      });
+        });
+      } else {
+        Billing.getSubscribeInfo(dongleId).then((subscribeInfo) => {
+          store.dispatch(primeGetSubscribeInfoAction(dongleId, subscribeInfo));
+        }).catch((err) => {
+          console.log(err);
+          Sentry.captureException(err, { fingerprint: 'init_get_subscribe_info' });
+        });
+      }
     }
   }
 

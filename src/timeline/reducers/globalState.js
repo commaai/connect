@@ -6,6 +6,7 @@ import {
   ACTION_UPDATE_DEVICE,
   ACTION_PRIME_NAV,
   ACTION_PRIME_SUBSCRIPTION,
+  ACTION_PRIME_SUBSCRIBE_INFO,
   ACTION_PRIME_PAYMENTMETHOD,
   ACTION_UPDATE_DEVICE_ONLINE,
 } from '../actions/types';
@@ -133,6 +134,15 @@ export default function reducer(_state = initialState, action) {
       state = {
         ...state,
         subscription: action.subscription,
+      };
+      break;
+    case ACTION_PRIME_SUBSCRIBE_INFO:
+      if (action.dongleId != state.dongleId) {
+        break;
+      }
+      state = {
+        ...state,
+        subscribeInfo: action.subscribeInfo,
       };
       break;
     case ACTION_PRIME_PAYMENTMETHOD:

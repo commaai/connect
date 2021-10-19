@@ -2,6 +2,7 @@ import {
   ACTION_PRIME_NAV,
   ACTION_PRIME_PAYMENTMETHOD,
   ACTION_PRIME_SUBSCRIPTION,
+  ACTION_PRIME_SUBSCRIBE_INFO,
   ACTION_SELECT_DEVICE,
   ACTION_SELECT_TIME_RANGE,
   ACTION_UPDATE_DEVICES,
@@ -43,6 +44,14 @@ export function primeGetSubscriptionAction(dongleId, subscription) {
     type: ACTION_PRIME_SUBSCRIPTION,
     dongleId,
     subscription,
+  };
+}
+
+export function primeGetSubscribeInfoAction(dongleId, subscribeInfo) {
+  return {
+    type: ACTION_PRIME_SUBSCRIBE_INFO,
+    dongleId,
+    subscribeInfo,
   };
 }
 
