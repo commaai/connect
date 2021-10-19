@@ -78,7 +78,7 @@ export default async function init() {
     primeNav: getPrimeNav(window.location.pathname),
   });
 
-  if (profile.prime) {
+  if (profile && profile.prime) {
     Billing.getPaymentMethod().then((paymentMethod) => {
       store.dispatch(primeGetPaymentMethodAction(paymentMethod));
     }).catch((err) => {

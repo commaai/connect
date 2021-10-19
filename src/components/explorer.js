@@ -183,10 +183,10 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, expanded, devices } = this.props;
+    const { classes, expanded, devices, dongleId } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
-    const noDevicesUpsell = (devices && devices.length === 0);
+    const noDevicesUpsell = (devices && devices.length === 0 && !dongleId);
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);

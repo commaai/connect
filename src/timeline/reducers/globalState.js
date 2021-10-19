@@ -9,18 +9,9 @@ import {
   ACTION_PRIME_PAYMENTMETHOD,
   ACTION_UPDATE_DEVICE_ONLINE,
 } from '../actions/types';
+import { emptyDevice } from '../../utils';
 
 const initialState = {};
-
-const emptyDevice = {
-  alias: null,
-  create_time: 1513041169,
-  device_type: 'unknown',
-  dongle_id: '0000000000000000',
-  imei: '000000000000000',
-  is_owner: false,
-  serial: '00000000'
-};
 
 function populateFetchedAt(d) {
   return {
@@ -49,6 +40,7 @@ export default function reducer(_state = initialState, action) {
         if (!state.device) {
           state.device = {
             ...emptyDevice,
+            dongle_id: state.dongleId,
           };
         }
       }

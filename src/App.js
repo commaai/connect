@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { Provider } from 'react-redux';
 import { Route, Switch, Redirect } from 'react-router';
 import { ConnectedRouter } from 'connected-react-router';
-import document from 'global/document';
 import qs from 'query-string';
 import localforage from 'localforage';
 import * as Sentry from "@sentry/react";
@@ -16,6 +15,7 @@ import { auth as AuthApi, request as Request, billing as Billing, athena as Athe
 import Explorer from './components/explorer';
 import AnonymousLanding from './components/anonymous';
 
+import { getDongleID } from './url';
 import TimelineWorker from './timeline';
 import { history, createStore } from './store';
 import { updateState } from './actions';
@@ -86,10 +86,7 @@ class App extends Component {
     Billing.configure(token);
     Athena.configure(token);
 
-    if (MyCommaAuth.isAuthenticated()) {
-      await TimelineWorker.init();
-    }
-
+    await TimelineWorker.init();
     this.setState({ initialized: true });
   }
 
@@ -133,10 +130,12 @@ class App extends Component {
     if (!this.state.initialized) {
       return this.renderLoading();
     }
+
+    const showLogin = !MyCommaAuth.isAuthenticated() && !getDongleID(window.location.pathname);
     return (
       <Provider store={store}>
         <ConnectedRouter history={history}>
-          { (MyCommaAuth.isAuthenticated() || Demo.isDemo()) ? this.authRoutes() : this.ananymousRoutes() }
+          { showLogin ? this.ananymousRoutes() : this.authRoutes() }
         </ConnectedRouter>
       </Provider>
     );

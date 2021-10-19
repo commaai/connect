@@ -191,14 +191,18 @@ class DeviceInfo extends Component {
   }
 
   onVisible() {
-    if (!Demo.isDemo()) {
+    const { device } = this.props;
+    if (!device.shared) {
       this.fetchDeviceInfo();
       this.fetchDeviceCarHealth();
     }
   }
 
   async fetchDeviceInfo() {
-    const { dongleId } = this.props;
+    const { dongleId, device } = this.props;
+    if (device.shared) {
+      return;
+    }
     this.setState({ deviceStats: { fetching: true }});
     try {
       const resp = await DevicesApi.fetchDeviceStats(dongleId);

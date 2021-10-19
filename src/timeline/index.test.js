@@ -19,17 +19,6 @@ jest.mock('./commands', () => ({
 }));
 
 describe('timeline index', () => {
-  it('fails without auth', async () => {
-    const timeline = new TimelineInterface();
-    expect(timeline).toBeTruthy();
-    expect.assertions(2);
-    try {
-      await timeline.init();
-    } catch (e) {
-      expect(() => { throw e; }).toThrowError('No auth');
-    }
-  });
-
   it('subscribes to store changes', async () => {
     const timeline = new TimelineInterface();
 
