@@ -147,7 +147,7 @@ class PrimeCheckout extends Component {
   async gotoCheckout() {
     this.setState({ loadingCheckout: true });
     try {
-      const resp = await Billing.getStripeCheckout(this.props.dongleId, this.state.simInfo.sim_id);
+      const resp = await Billing.getStripeCheckout(this.props.dongleId, this.props.subscribeInfo.sim_id);
       window.location = resp.url;
     } catch (err) {
       // TODO show error messages
