@@ -5,7 +5,6 @@ import * as Types from './types';
 import Timelineworker from '../timeline';
 import { getDongleID } from '../url';
 import { billing as Billing, devices as DevicesApi } from '@commaai/comma-api';
-import * as Demo from '../demo';
 
 export function updateState(data) {
   return {
@@ -97,7 +96,7 @@ export function primeFetchSubscription() {
         });
       } else {
         Billing.getSubscribeInfo(state.workerState.dongleId).then((subscribeInfo) => {
-          store.dispatch(primeGetSubscribeInfoAction(state.workerState.dongleId, subscribeInfo));
+          Timelineworker.primeGetSubscribeInfo(state.workerState.dongleId, subscribeInfo);
         }).catch((err) => {
           console.log(err);
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' });

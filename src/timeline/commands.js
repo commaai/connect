@@ -131,6 +131,7 @@ export const commands = {
   stop,
   primeGetSubscription,
   primeGetPaymentMethod,
+  primeGetSubscribeInfo,
   primeNav,
   resetPlayback,
   updateDeviceOnline,
