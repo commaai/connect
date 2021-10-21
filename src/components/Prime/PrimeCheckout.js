@@ -28,6 +28,12 @@ const styles = (theme) => ({
     justifyContent: 'space-between',
     maxWidth: 500,
     flexDirection: 'row',
+    paddingRight: 20,
+  },
+  headerDevice: {
+    display: 'flex',
+    alignItems: 'center',
+    '& :first-child': { marginRight: 8 },
   },
   primeBlock: {
     marginTop: 10,
@@ -37,6 +43,7 @@ const styles = (theme) => ({
     '& button': { display: 'inline', marginLeft: '15px' },
   },
   introLine: {
+    fontWeight: 500,
     lineHeight: '23px',
   },
   checkList: {
@@ -191,9 +198,10 @@ class PrimeCheckout extends Component {
           <IconButton aria-label="Go Back" onClick={() => this.props.dispatch(primeNav(false)) }>
             <KeyboardBackspaceIcon />
           </IconButton>
-          <Typography variant="title">comma prime</Typography>
-          {/* <Typography variant="body2">{ alias }</Typography> */}
-          <Typography variant="caption" className={classes.deviceId}>({ device.dongle_id })</Typography>
+          <div className={ classes.headerDevice }>
+            <Typography variant="body2">{ alias }</Typography>
+            <Typography variant="caption" className={classes.deviceId}>({ device.dongle_id })</Typography>
+          </div>
         </div>
         <Typography className={ classes.introLine }>Become a comma prime member today for only $24/month</Typography>
         <PrimeChecklist />

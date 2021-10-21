@@ -18,6 +18,7 @@ const styles = () => ({
     },
   },
   learnMore: {
+    fontWeight: 500,
     '& a': { color: 'white' },
   },
 });
