@@ -20,10 +20,14 @@ const styles = (theme) => ({
   primeBox: {
     display: 'flex',
     flexDirection: 'column',
-  },
-  primeContainer: {
-    borderBottom: `1px solid ${Colors.white10}`,
     color: '#fff',
+  },
+  primeHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    maxWidth: 500,
+    flexDirection: 'row',
   },
   primeBlock: {
     marginTop: 10,
@@ -55,10 +59,10 @@ const styles = (theme) => ({
     '& span': { display: 'inline', },
   },
   overviewBlock: {
-    marginTop: 20,
+    marginTop: 10,
   },
   overviewBlockError: {
-    marginTop: 15,
+    marginTop: 10,
     padding: 10,
     display: 'flex',
     alignItems: 'center',
@@ -66,7 +70,7 @@ const styles = (theme) => ({
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
   overviewBlockWarning: {
-    marginTop: 15,
+    marginTop: 10,
     padding: 10,
     display: 'flex',
     alignItems: 'center',
@@ -74,7 +78,7 @@ const styles = (theme) => ({
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
   overviewBlockLoading: {
-    marginTop: 15,
+    marginTop: 10,
     padding: 10,
     display: 'flex',
     alignItems: 'center',
@@ -85,9 +89,9 @@ const styles = (theme) => ({
     marginBottom: 10,
   },
   buttons: {
-    marginTop: 10,
+    height: 48,
     background: Colors.white,
-    borderRadius: 18,
+    borderRadius: 24,
     color: '#404B4F',
     textTransform: 'none',
     width: 200,
@@ -125,7 +129,7 @@ class PrimeCheckout extends Component {
 
   componentDidUpdate(prevProps) {
     if (!prevProps.stripe_cancelled && this.props.stripe_cancelled) {
-      this.setState({ error: 'checkout cancelled' });
+      this.setState({ error: 'Checkout cancelled' });
     }
   }
 
@@ -140,7 +144,6 @@ class PrimeCheckout extends Component {
       });
     } else if (resp.error) {
       this.setState({ error: resp.error });
-
     }
   }
 
@@ -178,68 +181,58 @@ class PrimeCheckout extends Component {
     }
 
     const alias = device.alias || deviceTypePretty(device.device_type);
-    const containerPadding = windowWidth > 520 ? 36 : 16;
+    const containerPadding = windowWidth > 520 ? '24px 36px 36px' : '2px 12px 12px';
     const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
 
     return ( <>
-      <div className={ classes.primeBox }>
+      <div className={ classes.primeBox } style={{ padding: containerPadding }}>
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
-        <div className={ classes.primeContainer } style={{ padding: `8px ${containerPadding}px` }}>
+        <div className={ classes.primeHeader }>
           <IconButton aria-label="Go Back" onClick={() => this.props.dispatch(primeNav(false)) }>
             <KeyboardBackspaceIcon />
           </IconButton>
-        </div>
-        <div className={ classes.primeContainer } style={{ padding: `16px ${containerPadding}px` }}>
           <Typography variant="title">comma prime</Typography>
-          <Typography className={ classes.introLine }>Become a comma prime member today for only $24/month</Typography>
-          <PrimeChecklist />
+          {/* <Typography variant="body2">{ alias }</Typography> */}
+          <Typography variant="caption" className={classes.deviceId}>({ device.dongle_id })</Typography>
         </div>
-        <div className={ classes.primeContainer } style={{ padding: `16px ${containerPadding}px` }}>
-          <Typography variant="title">checkout</Typography>
-          { error && <div className={ classes.overviewBlockError }>
+        <Typography className={ classes.introLine }>Become a comma prime member today for only $24/month</Typography>
+        <PrimeChecklist />
+        { error && <div className={ classes.overviewBlockError }>
+          <ErrorIcon />
+          <Typography>{ error }</Typography>
+        </div> }
+        { !subscribeInfo && <div className={ classes.overviewBlockLoading }>
+          <CircularProgress size={ 19 } style={{ color: Colors.white }} />
+          <Typography>Fetching SIM data</Typography>
+        </div> }
+        { Boolean(subscribeInfo && !subscribeInfo.sim_id) &&
+          <div className={ classes.overviewBlockError }>
             <ErrorIcon />
-            <Typography>{ error }</Typography>
-          </div> }
-          { !subscribeInfo && <div className={ classes.overviewBlockLoading }>
-            <CircularProgress size={ 19 } style={{ color: Colors.white }} />
-            <Typography>Fetching SIM data</Typography>
-          </div> }
-          { Boolean(subscribeInfo && !subscribeInfo.sim_id) &&
-            <div className={ classes.overviewBlockError }>
-              <ErrorIcon />
-              <Typography>
-                { subscribeInfo.device_online ?
-                  'No SIM detected. Ensure SIM is securely inserted and try again.' :
-                  'Could not reach device, connect device to the internet and try again.' }
-              </Typography>
-            </div>
-          }
-          { Boolean(subscribeInfo && subscribeInfo.sim_id && !subscribeInfo.is_prime_sim) &&
-            <div className={ classes.overviewBlockWarning }>
-              <WarningIcon />
-              <Typography>
-                Third-party SIM detected, comma prime can be activated, but no data connection will be provided.
-              </Typography>
-            </div>
-          }
-          <div className={ classes.overviewBlock }>
-            <Typography variant="subheading">Device</Typography>
-            <div className={ classes.deviceBlock }>
-              <Typography variant="body2">{ alias }</Typography>
-              <Typography variant="caption" className={classes.deviceId}>({ device.dongle_id })</Typography>
-            </div>
+            <Typography>
+              { subscribeInfo.device_online ?
+                'No SIM detected. Ensure SIM is securely inserted and try again.' :
+                'Could not reach device, connect device to the internet and try again.' }
+            </Typography>
           </div>
-          <div className={ classes.overviewBlock }>
-            { chargeText.map((txt, i) => {
-              return <Typography key={i} className={ classes.chargeText }>{ txt }</Typography>
-            }) }
+        }
+        { Boolean(subscribeInfo && subscribeInfo.sim_id && !subscribeInfo.is_prime_sim) &&
+          <div className={ classes.overviewBlockWarning }>
+            <WarningIcon />
+            <Typography>
+              Third-party SIM detected, comma prime can be activated, but no data connection will be provided.
+            </Typography>
           </div>
-          <div className={ classes.overviewBlock }>
-            <Button className={ classes.buttons } style={ buttonSmallStyle } onClick={ this.gotoCheckout }
-              disabled={ Boolean(!subscribeInfo || !subscribeInfo.sim_id || loadingCheckout) }>
-              { loadingCheckout ? <CircularProgress size={ 19 } /> : 'Go to checkout' }
-            </Button>
-          </div>
+        }
+        <div className={ classes.overviewBlock }>
+          { chargeText.map((txt, i) => {
+            return <Typography key={i} className={ classes.chargeText }>{ txt }</Typography>
+          }) }
+        </div>
+        <div className={ classes.overviewBlock }>
+          <Button className={ classes.buttons } style={ buttonSmallStyle } onClick={ this.gotoCheckout }
+            disabled={ Boolean(!subscribeInfo || !subscribeInfo.sim_id || loadingCheckout) }>
+            { loadingCheckout ? <CircularProgress size={ 19 } /> : 'Go to checkout' }
+          </Button>
         </div>
       </div>
     </> );
