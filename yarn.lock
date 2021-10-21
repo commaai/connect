@@ -1174,10 +1174,10 @@
     exec-sh "^0.3.2"
     minimist "^1.2.0"
 
-"@commaai/comma-api@2.1.3":
-  version "2.1.3"
-  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-2.1.3.tgz#f51f9591a90111071ffbdc3d63eecf7b671b7f24"
-  integrity sha512-7ul9r9a0YJOPp29x5Z2/XxWI0LEQ/0O27jyrDWtycm1Mn7GJinzZ6MSN05qLvt+4dFVOHOMdDo38eINyt+do0Q==
+"@commaai/comma-api@^2.2.1":
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-2.2.1.tgz#aec897c1c10d896c7f3e31474b446cfc15eff100"
+  integrity sha512-dHDbUcIfJeYinhd4lpxKs9IvenPEwD3W2P3DC3JCnY/EgDVshMi2qmPF8MgnaxJvGLrSXHnKQU0mCP4CFdoNMQ==
   dependencies:
     babel-runtime "^6.26.0"
     joi-browser "^13.4.0"
@@ -1709,18 +1709,6 @@
   integrity sha512-iQADsW4LBMISqZ6Ci1dupJL9pprqwcVFTcOsEmQOEhW+KLCVn/Y4Jrvg2k19fIHCp+iFprriYPTdRcQR8NbUPg==
   dependencies:
     "@sinonjs/commons" "^1.7.0"
-
-"@stripe/react-stripe-js@^1.4.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@stripe/react-stripe-js/-/react-stripe-js-1.4.0.tgz#a67e72202297fc409dc2c8c4f3fb98e0b61fa06d"
-  integrity sha512-Pz5QmG8PgJ3pi8gOWxlngk+ns63p2L1Ds192fn55ykZNRKfGz3G6sfssUVThHn/NAt2Hp1eCEsy/hvlKnXJI6g==
-  dependencies:
-    prop-types "^15.7.2"
-
-"@stripe/stripe-js@^1.13.2":
-  version "1.13.2"
-  resolved "https://registry.yarnpkg.com/@stripe/stripe-js/-/stripe-js-1.13.2.tgz#bb2f561085b5dd091355df871d432b8e1fd467f6"
-  integrity sha512-fycUk7ECukNc31lD5apcrUgdRC1BfiIacs+CpacoCjOgo3ablolnWCvDQWMmVWtODYa8bBv2dlBla+Edc5OvZg==
 
 "@svgr/babel-plugin-add-jsx-attribute@^4.2.0":
   version "4.2.0"

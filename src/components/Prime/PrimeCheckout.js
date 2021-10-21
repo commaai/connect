@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import fecha from 'fecha';
 import * as Sentry from '@sentry/react';
-import { withStyles, Typography, IconButton, Modal, Paper, Button, CircularProgress } from '@material-ui/core';
+import { withStyles, Typography, IconButton, Button, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import WarningIcon from '@material-ui/icons/Warning';
@@ -12,19 +12,28 @@ import { billing as Billing } from '@commaai/comma-api';
 
 import { deviceTypePretty } from '../../utils';
 import PrimeChecklist from './PrimeChecklist';
-import PrimePayment from './PrimePayment';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
-import { primeNav, primeFetchSubscription } from '../../actions';
+import { primeNav } from '../../actions';
 
 const styles = (theme) => ({
   primeBox: {
     display: 'flex',
     flexDirection: 'column',
-  },
-  primeContainer: {
-    borderBottom: `1px solid ${Colors.white10}`,
     color: '#fff',
+  },
+  primeHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    maxWidth: 410,
+    flexDirection: 'row',
+    paddingRight: 20,
+  },
+  headerDevice: {
+    display: 'flex',
+    alignItems: 'center',
+    '& :first-child': { marginRight: 8 },
   },
   primeBlock: {
     marginTop: 10,
@@ -34,6 +43,7 @@ const styles = (theme) => ({
     '& button': { display: 'inline', marginLeft: '15px' },
   },
   introLine: {
+    fontWeight: 500,
     lineHeight: '23px',
   },
   checkList: {
@@ -56,10 +66,10 @@ const styles = (theme) => ({
     '& span': { display: 'inline', },
   },
   overviewBlock: {
-    marginTop: 20,
+    marginTop: 10,
   },
   overviewBlockError: {
-    marginTop: 15,
+    marginTop: 10,
     padding: 10,
     display: 'flex',
     alignItems: 'center',
@@ -67,7 +77,7 @@ const styles = (theme) => ({
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
   overviewBlockWarning: {
-    marginTop: 15,
+    marginTop: 10,
     padding: 10,
     display: 'flex',
     alignItems: 'center',
@@ -75,39 +85,35 @@ const styles = (theme) => ({
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
   overviewBlockLoading: {
-    marginTop: 15,
+    marginTop: 10,
     padding: 10,
     display: 'flex',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
-  paymentElement: {
-    maxWidth: 400,
-  },
   chargeText: {
-    marginBottom: 10,
+    fontSize: 13,
   },
-  modal: {
-    position: 'absolute',
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
-    maxWidth: '90%',
-    left: '50%',
-    top: '40%',
-    transform: 'translate(-50%, -50%)',
-    '& p': {
-      marginTop: 10,
-    },
-  },
-  closeButton: {
-    marginTop: 10,
-    float: 'right',
-    backgroundColor: Colors.grey200,
-    color: Colors.white,
+  buttons: {
+    height: 48,
+    background: Colors.white,
+    borderRadius: 24,
+    color: '#404B4F',
+    textTransform: 'none',
+    width: 200,
     '&:hover': {
-      backgroundColor: Colors.grey400,
+      backgroundColor: Colors.white70,
+      color: '#404B4F',
     },
+    '&:disabled': {
+      backgroundColor: Colors.white70,
+      color: '#404B4F',
+    },
+    '&:disabled:hover': {
+      backgroundColor: Colors.white70,
+      color: '#404B4F',
+    }
   },
 });
 
@@ -117,12 +123,21 @@ class PrimeCheckout extends Component {
 
     this.state = {
       error: null,
-      activated: null,
-      new_subscription: null,
+      loadingCheckout: false,
       windowWidth: window.innerWidth,
     };
 
-    this.onPrimeActivated = this.onPrimeActivated.bind(this);
+    this.gotoCheckout = this.gotoCheckout.bind(this);
+  }
+
+  componentDidMount() {
+    this.componentDidUpdate({});
+  }
+
+  componentDidUpdate(prevProps) {
+    if (!prevProps.stripe_cancelled && this.props.stripe_cancelled) {
+      this.setState({ error: 'Checkout cancelled' });
+    }
   }
 
   onPrimeActivated(resp) {
@@ -139,102 +154,93 @@ class PrimeCheckout extends Component {
     }
   }
 
-  render() {
-    const { classes, device, dongleId, subscribeInfo } = this.props;
-    const { new_subscription, windowWidth, activated, error } = this.state;
+  async gotoCheckout() {
+    this.setState({ loadingCheckout: true });
+    try {
+      const resp = await Billing.getStripeCheckout(this.props.dongleId, this.props.subscribeInfo.sim_id);
+      window.location = resp.url;
+    } catch (err) {
+      // TODO show error messages
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_checkout' });
+    }
+  }
 
-    let chargeText = [];
+  render() {
+    const { classes, device, subscribeInfo } = this.props;
+    const { windowWidth, error, loadingCheckout } = this.state;
+
+    let chargeText = null;
     if (subscribeInfo) {
-      chargeText = ['You will be charged $24.00 today and monthly thereafter.'];
+      chargeText = 'You will be charged $24.00 today and monthly thereafter.';
       if (subscribeInfo.trial_claimable) {
         const trialEndDate = fecha.format(this.props.subscribeInfo.trial_end * 1000, "MMMM Do");
-        chargeText = [`Fill in your payment information to claim your trial.`,
-        `You will be charged $24.00 on ${trialEndDate} and monthly thereafter.`];
-        if (subscribeInfo.trial_claim_end) {
-          const claimEndDate = fecha.format(this.props.subscribeInfo.trial_claim_end * 1000, "MMMM Do");
-          chargeText.push(`Offer only valid until ${claimEndDate}.`);
-        }
+        const claimEndDate =
+          subscribeInfo.trial_claim_end ? fecha.format(subscribeInfo.trial_claim_end * 1000, "MMMM Do") : null;
+        chargeText = `You will be charged $24.00 on ${trialEndDate} and monthly thereafter.` +
+          (claimEndDate ? ` Trial offer only valid until ${claimEndDate}.` : '');
       }
     }
 
     const alias = device.alias || deviceTypePretty(device.device_type);
-    const containerPadding = windowWidth > 520 ? 36 : 16;
+    const containerPadding = windowWidth > 520 ? '24px 36px 36px' : '2px 12px 12px';
+    const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
 
     return ( <>
-      <div className={ classes.primeBox }>
+      <div className={ classes.primeBox } style={{ padding: containerPadding }}>
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
-        <div className={ classes.primeContainer } style={{ padding: `8px ${containerPadding}px` }}>
+        <div className={ classes.primeHeader }>
           <IconButton aria-label="Go Back" onClick={() => this.props.dispatch(primeNav(false)) }>
             <KeyboardBackspaceIcon />
           </IconButton>
+          <div className={ classes.headerDevice }>
+            <Typography variant="body2">{ alias }</Typography>
+            <Typography variant="caption" className={classes.deviceId}>({ device.dongle_id })</Typography>
+          </div>
         </div>
-        <div className={ classes.primeContainer } style={{ padding: `16px ${containerPadding}px` }}>
-          <Typography variant="title">comma prime</Typography>
-          <Typography className={ classes.introLine }>Become a comma prime member today for only $24/month</Typography>
-          <PrimeChecklist />
-        </div>
-        <div className={ classes.primeContainer } style={{ padding: `16px ${containerPadding}px` }}>
-          <Typography variant="title">checkout</Typography>
-          { error && <div className={ classes.overviewBlockError }>
+        <Typography className={ classes.introLine }>Become a comma prime member today for only $24/month</Typography>
+        <PrimeChecklist />
+        { error && <div className={ classes.overviewBlockError }>
+          <ErrorIcon />
+          <Typography>{ error }</Typography>
+        </div> }
+        { !subscribeInfo && <div className={ classes.overviewBlockLoading }>
+          <CircularProgress size={ 19 } style={{ color: Colors.white }} />
+          <Typography>Fetching SIM data</Typography>
+        </div> }
+        { Boolean(subscribeInfo && !subscribeInfo.sim_id) &&
+          <div className={ classes.overviewBlockError }>
             <ErrorIcon />
-            <Typography>{ error }</Typography>
-          </div> }
-          { !subscribeInfo && <div className={ classes.overviewBlockLoading }>
-            <CircularProgress size={ 19 } style={{ color: Colors.white }} />
-            <Typography>Fetching SIM data</Typography>
-          </div> }
-          { Boolean(subscribeInfo && !subscribeInfo.sim_id) &&
-            <div className={ classes.overviewBlockError }>
-              <ErrorIcon />
-              <Typography>
-                { subscribeInfo.device_online ?
-                  'No SIM detected. Ensure SIM is securely inserted and try again.' :
-                  'Could not reach device, connect device to the internet and try again.' }
-              </Typography>
-            </div>
-          }
-          { Boolean(subscribeInfo && subscribeInfo.sim_id && !subscribeInfo.is_prime_sim) &&
-            <div className={ classes.overviewBlockWarning }>
-              <WarningIcon />
-              <Typography>
-                Third-party SIM detected, comma prime can be activated, but no data connection will be provided.
-              </Typography>
-            </div>
-          }
-          <div className={ classes.overviewBlock }>
-            <Typography variant="subheading">Device</Typography>
-            <div className={ classes.deviceBlock }>
-              <Typography variant="body2">{ alias }</Typography>
-              <Typography variant="caption" className={classes.deviceId}>({ device.dongle_id })</Typography>
-            </div>
-          </div>
-          <div className={ classes.overviewBlock }>
-            { chargeText.map((txt, i) => {
-              return <Typography key={i} className={ classes.chargeText }>{ txt }</Typography>
-            }) }
-          </div>
-          <div className={ classes.overviewBlock + " " + classes.paymentElement }>
-            <PrimePayment disabled={ Boolean(activated || !subscribeInfo || !subscribeInfo.sim_id) }
-              simId={ subscribeInfo ? subscribeInfo.sim_id : null } onActivated={ this.onPrimeActivated }
-              onError={ (err) => this.setState({ error: err }) } />
-          </div>
-        </div>
-      </div>
-      <Modal open={ Boolean(activated) } onClose={ () => window.location = window.location.origin + '/' + dongleId }>
-        <Paper className={classes.modal}>
-          <Typography variant="title">comma prime activated</Typography>
-          <Typography>Device: {alias} ({ dongleId })</Typography>
-          { activated && new_subscription && new_subscription.is_prime_sim &&
             <Typography>
-              Connectivity will be enabled as soon as activation propagates to your local cell tower. Rebooting your device may help.
+              { subscribeInfo.device_online ?
+                'No SIM detected. Ensure SIM is securely inserted and try again.' :
+                'Could not reach device, connect device to the internet and try again.' }
             </Typography>
-          }
-          <Button variant="contained" className={ classes.closeButton }
-            onClick={ () => window.location = window.location.origin + '/' + dongleId }>
-            Close
+          </div>
+        }
+        { Boolean(subscribeInfo && subscribeInfo.sim_id && !subscribeInfo.is_prime_sim) &&
+          <div className={ classes.overviewBlockWarning }>
+            <WarningIcon />
+            <Typography>
+              Third-party SIM detected, comma prime can be activated, but no data connection will be provided.
+            </Typography>
+          </div>
+        }
+        <div className={ classes.overviewBlock }>
+          <Button className={ classes.buttons } style={ buttonSmallStyle } onClick={ this.gotoCheckout }
+            disabled={ Boolean(!subscribeInfo || !subscribeInfo.sim_id || loadingCheckout) }>
+            { loadingCheckout ?
+              <CircularProgress size={ 19 } /> :
+              ((subscribeInfo && subscribeInfo.trial_claimable) ? 'Claim trail' : 'Go to checkout')
+            }
           </Button>
-        </Paper>
-      </Modal>
+        </div>
+        { chargeText &&
+          <div className={ classes.overviewBlock }>
+            <Typography className={ classes.chargeText }>{ chargeText }</Typography>
+          </div>
+        }
+      </div>
     </> );
   }
 }

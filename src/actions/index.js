@@ -59,16 +59,16 @@ export function selectDevice(dongleId) {
     const state = getState();
     let device;
     if (state.workerState.devices && state.workerState.devices.length > 1) {
-      device = state.workerState.devices.find((d) => d.dongle_id === state.workerState.dongleId);
+      device = state.workerState.devices.find((d) => d.dongle_id === dongleId);
     }
-    if (!device && state.workerState.device && state.workerState.device.dongle_id === state.workerState.dongleId) {
+    if (!device && state.workerState.device && state.workerState.device.dongle_id === dongleId) {
       device = state.workerState.device;
     }
 
     Timelineworker.selectDevice(dongleId).then(() => {
       dispatch(selectRange(null, null, false))
       if (device && !device.shared) {
-        dispatch(primeFetchSubscription());
+        dispatch(primeFetchSubscription(dongleId, device));
         dispatch(fetchDeviceOnline(dongleId));
       }
 
@@ -81,21 +81,21 @@ export function selectDevice(dongleId) {
   };
 }
 
-export function primeFetchSubscription() {
+export function primeFetchSubscription(dongleId, device) {
   return (dispatch, getState) => {
     const state = getState();
 
-    if ((state.workerState.device && state.workerState.device.is_owner) || state.workerState.profile.superuser) {
-      if (state.workerState.device.prime) {
-        Billing.getSubscription(state.workerState.dongleId).then((subscription) => {
-          Timelineworker.primeGetSubscription(state.workerState.dongleId, subscription);
+    if ((device && device.is_owner) || state.workerState.profile.superuser) {
+      if (device.prime) {
+        Billing.getSubscription(dongleId).then((subscription) => {
+          Timelineworker.primeGetSubscription(dongleId, subscription);
         }).catch((err) => {
           console.log(err);
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' });
         });
       } else {
-        Billing.getSubscribeInfo(state.workerState.dongleId).then((subscribeInfo) => {
-          Timelineworker.primeGetSubscribeInfo(state.workerState.dongleId, subscribeInfo);
+        Billing.getSubscribeInfo(dongleId).then((subscribeInfo) => {
+          Timelineworker.primeGetSubscribeInfo(dongleId, subscribeInfo);
         }).catch((err) => {
           console.log(err);
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' });

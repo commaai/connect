@@ -9,14 +9,17 @@ import ResizeHandler from '../ResizeHandler';
 const styles = () => ({
   checkList: {
     marginLeft: 10,
-    marginBottom: 10,
+    '& span': { fontSize: 14 },
   },
   checkListItem: {
-    '& svg': { alignSelf: 'flex-start' },
+    '& svg': {
+      alignSelf: 'flex-start',
+      fontSize: 21,
+    },
   },
   learnMore: {
-    marginBottom: 10,
-    '& a': { color: 'white' }
+    fontWeight: 500,
+    '& a': { color: 'white' },
   },
 });
 
@@ -26,7 +29,7 @@ const listItems = [
   ['1 year storage of drive videos', null],
   ['Simple SSH for developers', null],
   ['24/7 connectivity', null],
-  ['Unlimited data at 512kbps', 'only offered in United States'],
+  ['Unlimited data at 512kbps', 'only offered in the United States'],
 ];
 
 class PrimeChecklist extends Component {
@@ -43,7 +46,7 @@ class PrimeChecklist extends Component {
     const { classes } = this.props;
     const { windowWidth } = this.state;
 
-    const paddingStyle = windowWidth > 520 ? { padding: '7px 0', } : { padding: '4px 0', };
+    const paddingStyle = windowWidth > 520 ? { padding: '7px 0', } : { padding: '3px 0', };
 
     return (
       <>
@@ -57,7 +60,7 @@ class PrimeChecklist extends Component {
           }) }
         </List>
         <Typography className={ classes.learnMore }>
-          Learn more about comma prime from our <a rel="noopener noreferrer" target="_blank" href="https://comma.ai/faq">FAQ</a>
+          Learn more about comma prime from our <a rel="noopener noreferrer" target="_blank" href="https://comma.ai/prime#faq">FAQ</a>
         </Typography>
       </>
     );

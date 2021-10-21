@@ -8,7 +8,6 @@ import {
   updateDevices as updateDevicesAction,
   primeGetSubscriptionAction,
   primeGetSubscribeInfoAction,
-  primeGetPaymentMethodAction,
   primeNavAction,
   updateDeviceOnlineAction,
 } from './actions';
@@ -96,10 +95,6 @@ function primeGetSubscribeInfo(dongleId, subscribeInfo) {
   store.dispatch(primeGetSubscribeInfoAction(dongleId, subscribeInfo));
 }
 
-function primeGetPaymentMethod(paymentMethod) {
-  store.dispatch(primeGetPaymentMethodAction(paymentMethod));
-}
-
 function primeNav(nav = true) {
   store.dispatch(primeNavAction(nav));
 }
@@ -130,7 +125,6 @@ export const commands = {
   updateDevice,
   stop,
   primeGetSubscription,
-  primeGetPaymentMethod,
   primeGetSubscribeInfo,
   primeNav,
   resetPlayback,

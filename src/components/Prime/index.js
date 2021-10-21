@@ -1,24 +1,28 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
+import qs from 'query-string';
 
 import PrimeManage from './PrimeManage';
 import PrimeCheckout from './PrimeCheckout';
 import { Typography } from '@material-ui/core';
 
 class Prime extends Component {
-  constructor(props) {
-    super(props);
-  }
-
   render() {
+    let stripe_cancelled, stripe_success;
+    if (window.location) {
+      const params = qs.parse(window.location.search);
+      stripe_cancelled = params.stripe_cancelled;
+      stripe_success = params.stripe_success;
+    }
+
     if (!this.props.device.is_owner && !this.props.isSuperUser) {
       return ( <Typography>No access</Typography> );
     }
-    if (this.props.device.prime) {
-      return ( <PrimeManage /> );
+    if (this.props.device.prime || stripe_success) {
+      return ( <PrimeManage stripe_success={ stripe_success } /> );
     }
-    return ( <PrimeCheckout /> );
+    return ( <PrimeCheckout stripe_cancelled={ stripe_cancelled } /> );
   }
 }
 

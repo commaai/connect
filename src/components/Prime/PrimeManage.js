@@ -8,11 +8,10 @@ import { withStyles, Typography, Button, Modal, Paper, IconButton, CircularProgr
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 
 import { billing as Billing} from '@commaai/comma-api'
-import PrimePayment from './PrimePayment';
 import { deviceTypePretty } from '../../utils';
-import Timelineworker from '../../timeline';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
+import Timelineworker from '../../timeline';
 import { primeNav } from '../../actions';
 
 const styles = (theme) => ({
@@ -41,13 +40,61 @@ const styles = (theme) => ({
   overviewBlockSuccess: {
     marginTop: 15,
     padding: 10,
-    display: 'flex',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 255, 0, 0.2)',
+    '& p': {
+      display: 'inline-block',
+      marginLeft: 10,
+      '&:first-child': { fontWeight: 600 },
+    },
+  },
+  overviewBlockLoading: {
+    marginTop: 15,
+    padding: 10,
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
   manageItem: {
     marginLeft: 10,
+  },
+  buttons: {
+    marginTop: 10,
+    background: Colors.white,
+    borderRadius: 18,
+    color: '#404B4F',
+    textTransform: 'none',
+    width: 220,
+    '&:hover': {
+      backgroundColor: Colors.white70,
+      color: '#404B4F',
+    },
+    '&:disabled': {
+      backgroundColor: Colors.white70,
+      color: '#404B4F',
+    },
+    '&:disabled:hover': {
+      backgroundColor: Colors.white70,
+      color: '#404B4F',
+    }
+  },
+  cancelButton: {
+    color: Colors.white,
+    background: 'transparent',
+    border: `1px solid ${Colors.grey500}`,
+    '&:hover': {
+      backgroundColor: Colors.white10,
+      color: Colors.white,
+    },
+    '&:disabled': {
+      backgroundColor: 'transparent',
+      color: '#404B4F',
+    },
+    '&:disabled:hover': {
+      backgroundColor: 'transparent',
+      color: '#404B4F',
+    }
   },
   modal: {
     position: 'absolute',
@@ -98,6 +145,9 @@ const styles = (theme) => ({
     '& p': { margin: 0 },
   },
   paymentElement: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     maxWidth: 450,
   },
 });
@@ -110,12 +160,32 @@ class PrimeManage extends Component {
       cancelError: null,
       cancelModal: false,
       canceling: false,
+      stripeStatus: null,
       windowWidth: window.innerWidth,
     };
 
     this.cancelPrime = this.cancelPrime.bind(this);
     this.modalClose = this.modalClose.bind(this);
-    this.onPaymentUpdated = this.onPaymentUpdated.bind(this);
+    this.fetchStripeSession = this.fetchStripeSession.bind(this);
+    this.gotoUpdate = this.gotoUpdate.bind(this);
+    this.fetchSubscription = this.fetchSubscription.bind(this);
+  }
+
+  componentDidMount() {
+    this.componentDidUpdate({});
+    this.mounted = true;
+  }
+
+  componentDidUpdate(prevProps) {
+    if (!prevProps.stripe_success && this.props.stripe_success) {
+      this.setState({
+        stripeStatus: { sessionId: this.props.stripe_success, loading: true, paid: null },
+      }, this.fetchStripeSession);
+    }
+  }
+
+  componentWillUnmount() {
+    this.mounted = false;
   }
 
   cancelPrime() {
@@ -142,34 +212,89 @@ class PrimeManage extends Component {
     }
   }
 
-  onPaymentUpdated(paymentMethod) {
-    Timelineworker.primeGetPaymentMethod(paymentMethod);
-    this.setState({ activated: true, error: null });
+  async gotoUpdate() {
+    try {
+      const resp = await Billing.getStripePortal(this.props.dongleId);
+      window.location = resp.url;
+    } catch (err) {
+      // TODO show error messages
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_update' });
+    }
+  }
+
+  async fetchStripeSession() {
+    const { dongleId } = this.props;
+    const { stripeStatus } = this.state;
+    if (!stripeStatus || !this.mounted) {
+      return
+    }
+
+    try {
+      const resp = await Billing.getStripeSession(dongleId, stripeStatus.sessionId);
+      const status = resp['payment_status'];
+      this.setState({ stripeStatus: {
+        ...stripeStatus,
+        paid: status,
+        loading: status !== 'paid',
+      }});
+      if (status === 'paid') {
+        this.fetchSubscription(true);
+      } else {
+        setTimeout(this.fetchStripeSession, 2000);
+      }
+    } catch (err) {
+      // TODO error handling
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'prime_fetch_stripe_session' });
+    }
+  }
+
+  async fetchSubscription(repeat = false) {
+    const { dongleId, } = this.props;
+    if (!this.mounted) {
+      return;
+    }
+    try {
+      const subscription = await Billing.getSubscription(dongleId);
+      if (subscription.user_id) {
+        Timelineworker.primeGetSubscription(dongleId, subscription);
+      } else {
+        setTimeout(() => this.fetchSubscription(true), 2000);
+      }
+    } catch (err) {
+      if (err.message && err.message.indexOf('404') === 0) {
+        if (repeat) {
+          setTimeout(() => this.fetchSubscription(true), 2000);
+        }
+      } else {
+        console.log(err);
+        Sentry.captureException(err, { fingerprint: 'prime_fetch_subscription' });
+      }
+    }
   }
 
   render() {
     const { dongleId, subscription, classes, device } = this.props;
-    const { windowWidth } = this.state;
-    if (!subscription) {
-      console.log('device has prime, but no subscription found');
-      return ( <></> );
+    const { windowWidth, stripeStatus } = this.state;
+
+    const hasPrimeSub = subscription && subscription.user_id;
+
+    if (!hasPrimeSub && !stripeStatus) {
+      console.log('device has prime, but no subscription or stripe session');
+      return null;
     }
 
-    let paymentMethod = this.props.paymentMethod;
-    if (!paymentMethod) {
-      paymentMethod = {
-        brand: "",
-        last4: "0000",
-      };
+    let joinDate, nextPaymentDate;
+    if (hasPrimeSub) {
+      joinDate = fecha.format(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0, 'MMMM Do, YYYY');
+      nextPaymentDate = fecha.format(
+        subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0, 'MMMM Do, YYYY');
     }
-
-    let joinDate = fecha.format(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0, 'MMMM Do, YYYY');
-    let nextPaymentDate = fecha.format(
-      subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0, 'MMMM Do, YYYY');
 
     const alias = device.alias || deviceTypePretty(device.device_type);
-    const simId = this.state.simInfo ? this.state.simInfo.sim_id : null;
     const containerPadding = windowWidth > 520 ? 36 : 16;
+    const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
 
     return (
       <>
@@ -182,6 +307,31 @@ class PrimeManage extends Component {
           </div>
           <div className={ classes.primeContainer } style={{ padding: `16px ${containerPadding}px` }}>
             <Typography variant="title">comma prime</Typography>
+            { stripeStatus && <>
+              { stripeStatus.paid !== 'paid' &&
+                <div className={ classes.overviewBlockLoading }>
+                  <CircularProgress size={ 19 } style={{ color: Colors.white }} />
+                  <Typography>Waiting for confirmed payment</Typography>
+                </div>
+              }
+              { Boolean(stripeStatus.paid === 'paid' && !hasPrimeSub) &&
+                <div className={ classes.overviewBlockLoading }>
+                  <CircularProgress size={ 19 } style={{ color: Colors.white }} />
+                  <Typography>Processing subscription</Typography>
+                </div>
+              }
+              { Boolean(stripeStatus.paid === 'paid' && hasPrimeSub) &&
+                <div className={ classes.overviewBlockSuccess }>
+                  <Typography>comma prime activated</Typography>
+                  { subscription.is_prime_sim &&
+                    <Typography>
+                      Connectivity will be enabled as soon as activation propagates to your local cell tower.
+                      Rebooting your device may help.
+                    </Typography>
+                  }
+                </div>
+              }
+            </> }
             <div className={ classes.overviewBlock }>
               <Typography variant="subheading">Device</Typography>
               <div className={ classes.manageItem }>
@@ -189,40 +339,34 @@ class PrimeManage extends Component {
                 <Typography variant="caption" className={classes.deviceId}>({ device.dongle_id })</Typography>
               </div>
             </div>
-            <div className={ classes.overviewBlock }>
-              <Typography variant="subheading">Joined</Typography>
-              <Typography className={ classes.manageItem }>{ joinDate }</Typography>
-            </div>
-            <div className={ classes.overviewBlock }>
-              <Typography variant="subheading">Payment method</Typography>
-              <Typography className={ classes.manageItem }>
-                { paymentMethod.brand } •••• •••• •••• { paymentMethod.last4 }
-              </Typography>
-            </div>
-            <div className={ classes.overviewBlock }>
-              <Typography variant="subheading">Next payment</Typography>
-              <Typography className={ classes.manageItem }>{ nextPaymentDate }</Typography>
-            </div>
-            <div className={ classes.overviewBlock }>
-              <Typography variant="subheading">Amount</Typography>
-              <Typography className={ classes.manageItem }>$24.00</Typography>
-            </div>
-          </div>
-          <div className={ classes.primeContainer } style={{ padding: `16px ${containerPadding}px` }}>
-            <Typography variant="title">Update payment method</Typography>
-            { this.state.activated && <div className={ classes.overviewBlockSuccess }>
-              <Typography>Payment updated</Typography>
-            </div> }
-            { this.state.error && <div className={ classes.overviewBlockError }>
-              <ErrorIcon />
-              <Typography>{ this.state.error }</Typography>
-            </div> }
-            <div className={ classes.overviewBlock + " " + classes.paymentElement }>
-              <PrimePayment disabled={ Boolean(this.state.activated) } simId={ simId } isUpdate={ true }
-                onActivated={ this.onPaymentUpdated }
-                onError={ (err) => this.setState({error: err}) }
-                onCancel={ () => this.setState({ cancelModal: true }) } />
-            </div>
+            { hasPrimeSub && <>
+              <div className={ classes.overviewBlock }>
+                <Typography variant="subheading">Joined</Typography>
+                <Typography className={ classes.manageItem }>{ joinDate }</Typography>
+              </div>
+              <div className={ classes.overviewBlock }>
+                <Typography variant="subheading">Next payment</Typography>
+                <Typography className={ classes.manageItem }>{ nextPaymentDate }</Typography>
+              </div>
+              <div className={ classes.overviewBlock }>
+                <Typography variant="subheading">Amount</Typography>
+                <Typography className={ classes.manageItem }>$24.00</Typography>
+              </div>
+              { this.state.error && <div className={ classes.overviewBlockError }>
+                <ErrorIcon />
+                <Typography>{ this.state.error }</Typography>
+              </div> }
+              <div className={ classes.overviewBlock + " " + classes.paymentElement }>
+                <Button className={ classes.buttons } style={ buttonSmallStyle } onClick={ this.gotoUpdate }
+                   disabled={ !hasPrimeSub }>
+                  Update payment method
+                </Button>
+                <Button className={ `${classes.buttons} ${classes.cancelButton}` } style={ buttonSmallStyle }
+                  onClick={ () => this.setState({ cancelModal: true }) } disabled={ !hasPrimeSub }>
+                  Cancel subscription
+                </Button>
+              </div>
+            </> }
           </div>
         </div>
         <Modal open={ this.state.cancelModal } onClose={ this.modalClose }>
@@ -261,7 +405,6 @@ const stateToProps = Obstruction({
   dongleId: 'workerState.dongleId',
   device: 'workerState.device',
   subscription: 'workerState.subscription',
-  paymentMethod: 'workerState.paymentMethod',
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeManage));

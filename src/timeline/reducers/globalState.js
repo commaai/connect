@@ -7,7 +7,6 @@ import {
   ACTION_PRIME_NAV,
   ACTION_PRIME_SUBSCRIPTION,
   ACTION_PRIME_SUBSCRIBE_INFO,
-  ACTION_PRIME_PAYMENTMETHOD,
   ACTION_UPDATE_DEVICE_ONLINE,
 } from '../actions/types';
 import { emptyDevice } from '../../utils';
@@ -143,12 +142,6 @@ export default function reducer(_state = initialState, action) {
       state = {
         ...state,
         subscribeInfo: action.subscribeInfo,
-      };
-      break;
-    case ACTION_PRIME_PAYMENTMETHOD:
-      state = {
-        ...state,
-        paymentMethod: action.paymentMethod,
       };
       break;
     default:
