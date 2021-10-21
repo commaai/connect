@@ -13,7 +13,7 @@ export function updateState(data) {
   };
 }
 
-export function selectRange(start, end) {
+export function selectRange(start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
     if (!state.workerState.dongleId) {
@@ -25,7 +25,7 @@ export function selectRange(start, end) {
       return;
     }
     if (state.workerState.primeNav) {
-      dispatch(primeNav(false));
+      dispatch(primeNav(false, false));
     }
     const curPath = document.location.pathname;
     const dongleId = getDongleID(curPath) || state.workerState.dongleId;
@@ -48,7 +48,7 @@ export function selectRange(start, end) {
       Timelineworker.selectLoop(start, end - start);
     }
 
-    if (curPath !== desiredPath) {
+    if (allowPathChange && curPath !== desiredPath) {
       dispatch(push(desiredPath));
     }
   };
@@ -66,19 +66,18 @@ export function selectDevice(dongleId) {
     }
 
     Timelineworker.selectDevice(dongleId).then(() => {
-      dispatch(primeNav(false));
-      dispatch(selectRange(null, null))
+      dispatch(selectRange(null, null, false))
       if (device && !device.shared) {
         dispatch(primeFetchSubscription());
         dispatch(fetchDeviceOnline(dongleId));
       }
-    });
 
-    const curPath = document.location.pathname;
-    const desiredPath = urlForState(dongleId, state.zoom.start, state.zoom.end, null);
-    if (curPath !== desiredPath) {
-      dispatch(push(desiredPath));
-    }
+      const curPath = document.location.pathname;
+      const desiredPath = urlForState(dongleId, state.zoom.start, state.zoom.end, null);
+      if (curPath !== desiredPath) {
+        dispatch(push(desiredPath));
+      }
+    });
   };
 }
 
@@ -106,7 +105,7 @@ export function primeFetchSubscription() {
   };
 }
 
-export function primeNav(nav = true) {
+export function primeNav(nav = true, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
 
@@ -116,7 +115,7 @@ export function primeNav(nav = true) {
 
     const curPath = document.location.pathname;
     const desiredPath = urlForState(state.workerState.dongleId, null, null, nav);
-    if (curPath !== desiredPath) {
+    if (allowPathChange && curPath !== desiredPath) {
       dispatch(push(desiredPath));
     }
   };
