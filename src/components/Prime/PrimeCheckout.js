@@ -93,7 +93,7 @@ const styles = (theme) => ({
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
   chargeText: {
-    marginBottom: 10,
+    fontSize: 13,
   },
   buttons: {
     height: 48,
@@ -170,20 +170,15 @@ class PrimeCheckout extends Component {
     const { classes, device, subscribeInfo } = this.props;
     const { windowWidth, error, loadingCheckout } = this.state;
 
-    let chargeText = [];
+    let chargeText = null;
     if (subscribeInfo) {
-      chargeText = [
-        'Continue to checkout to set up comma prime.',
-        'You will be charged $24.00 today and monthly thereafter.',
-      ];
+      chargeText = 'You will be charged $24.00 today and monthly thereafter.';
       if (subscribeInfo.trial_claimable) {
         const trialEndDate = fecha.format(this.props.subscribeInfo.trial_end * 1000, "MMMM Do");
         const claimEndDate =
           subscribeInfo.trial_claim_end ? fecha.format(subscribeInfo.trial_claim_end * 1000, "MMMM Do") : null;
-        chargeText = [
-          'Continue to checkout to claim your trial' + (claimEndDate ? `, offer only valid until ${claimEndDate}.` : '.'),
-          `You will be charged $24.00 on ${trialEndDate} and monthly thereafter.`
-        ];
+        chargeText = `You will be charged $24.00 on ${trialEndDate} and monthly thereafter.` +
+          (claimEndDate ? ` Trial offer only valid until ${claimEndDate}.` : '');
       }
     }
 
@@ -232,16 +227,19 @@ class PrimeCheckout extends Component {
           </div>
         }
         <div className={ classes.overviewBlock }>
-          { chargeText.map((txt, i) => {
-            return <Typography key={i} className={ classes.chargeText }>{ txt }</Typography>
-          }) }
-        </div>
-        <div className={ classes.overviewBlock }>
           <Button className={ classes.buttons } style={ buttonSmallStyle } onClick={ this.gotoCheckout }
             disabled={ Boolean(!subscribeInfo || !subscribeInfo.sim_id || loadingCheckout) }>
-            { loadingCheckout ? <CircularProgress size={ 19 } /> : 'Go to checkout' }
+            { loadingCheckout ?
+              <CircularProgress size={ 19 } /> :
+              ((subscribeInfo && subscribeInfo.trial_claimable) ? 'Claim trail' : 'Go to checkout')
+            }
           </Button>
         </div>
+        { chargeText &&
+          <div className={ classes.overviewBlock }>
+            <Typography className={ classes.chargeText }>{ chargeText }</Typography>
+          </div>
+        }
       </div>
     </> );
   }
