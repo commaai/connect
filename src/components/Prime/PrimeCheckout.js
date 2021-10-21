@@ -14,7 +14,7 @@ import { deviceTypePretty } from '../../utils';
 import PrimeChecklist from './PrimeChecklist';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
-import { primeNav, primeFetchSubscription } from '../../actions';
+import { primeNav } from '../../actions';
 
 const styles = (theme) => ({
   primeBox: {
@@ -26,7 +26,7 @@ const styles = (theme) => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    maxWidth: 500,
+    maxWidth: 410,
     flexDirection: 'row',
     paddingRight: 20,
   },
