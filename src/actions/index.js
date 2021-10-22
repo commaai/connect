@@ -1,10 +1,17 @@
 import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import document from 'global/document';
+import { billing as Billing, devices as DevicesApi, drives as Drives } from '@commaai/comma-api';
+
 import * as Types from './types';
 import { getDongleID } from '../url';
-import { billing as Billing, devices as DevicesApi } from '@commaai/comma-api';
-import { resetPlayback, selectLoop } from '../timeline/playback'
+import { resetPlayback, selectLoop, currentOffset } from '../timeline/playback'
+import Segments from '../timeline/segments';
+import * as Demo from '../demo';
+
+const demoSegments = require('../demo/segments.json');
+
+let segmentsRequest = null;
 
 export function selectRange(start, end, allowPathChange = true) {
   return (dispatch, getState) => {
@@ -69,6 +76,8 @@ export function selectDevice(dongleId) {
       dispatch(fetchDeviceOnline(dongleId));
     }
 
+    dispatch(checkSegmentMetadata());
+
     const curPath = document.location.pathname;
     const desiredPath = urlForState(dongleId, state.zoom.start, state.zoom.end, null);
     if (curPath !== desiredPath) {
@@ -77,11 +86,18 @@ export function selectDevice(dongleId) {
   };
 }
 
-export function primeFetchSubscription(dongleId, device) {
+export function primeFetchSubscription(dongleId, device, profile) {
   return (dispatch, getState) => {
     const state = getState();
 
-    if (device && (device.is_owner || state.profile.superuser)) {
+    if (!device && state.device && state.device === dongleId) {
+      device = state.device;
+    }
+    if (!profile && state.profile) {
+      profile = state.profile;
+    }
+
+    if (device && (device.is_owner || profile.superuser)) {
       if (device.prime) {
         Billing.getSubscription(dongleId).then((subscription) => {
           dispatch(primeGetSubscription(dongleId, subscription));
@@ -135,6 +151,48 @@ export function fetchDeviceOnline(dongleId) {
       });
     }).catch(console.log);
   };
+}
+
+export function checkSegmentMetadata() {
+  return (dispatch, getState) => {
+    let state = getState();
+    if (!state.dongleId) {
+      return;
+    }
+    if (Segments.hasSegmentMetadata(state)) {
+      // already has metadata, don't bother
+      return;
+    }
+    if (segmentsRequest) {
+      return;
+    }
+    console.log('We need to update the segment metadata...');
+    const { dongleId, start, end } = state;
+
+    if (Demo.isDemo()) {
+      segmentsRequest = Promise.resolve(demoSegments);
+    } else {
+      segmentsRequest = Drives.getSegmentMetadata(start, end, dongleId);
+    }
+    dispatch(Segments.fetchSegmentMetadata(start, end));
+
+    segmentsRequest.then((segmentData) => {
+      state = getState();
+      if (state.start !== start || state.end !== end || state.dongleId !== dongleId) {
+        checkSegmentMetadata(state);
+        return;
+      }
+
+      segmentData = Segments.parseSegmentMetadata(state, segmentData);
+      dispatch(Segments.insertSegmentMetadata(segmentData));
+
+      segmentsRequest = null;
+    }).catch((err) => {
+      console.error('Failure fetching segment metadata', err);
+      Sentry.captureException(err, { fingerprint: 'timeline_fetch_segments' });
+      segmentsRequest = null;
+    });
+  }
 }
 
 export function updateDevices(devices) {

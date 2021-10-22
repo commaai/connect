@@ -1,17 +1,13 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import * as Sentry from '@sentry/react';
 import { withStyles, Typography, Grid } from '@material-ui/core';
 
-import { drives as DrivesApi } from '@commaai/comma-api';
-import Segments from '../../timeline/segments';
-import store from '../../store';
 import Colors from '../../colors';
 import DriveListItem from './DriveListItem';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
-import * as Demo from '../../demo';
+import { checkSegmentMetadata } from '../../actions';
 
 const MIN_TIME_BETWEEN_ROUTES = 60000; // 1 minute
 
@@ -77,28 +73,7 @@ class DriveList extends Component {
   }
 
   async onVisible() {
-    const { dongleId, start, end } = this.props;
-    if (!dongleId || Demo.isDemo()) {
-      return;
-    }
-
-    store.dispatch(Segments.fetchSegmentMetadata(start, end));
-
-    let segmentData;
-    try {
-      segmentData = await DrivesApi.getSegmentMetadata(start, end, dongleId);
-    } catch (err) {
-      Sentry.captureException(err, { fingerprint: 'drivelist_visible_segmentmetadata' });
-      console.log(err);
-      return;
-    }
-
-    if (this.props.start !== start || this.props.end !== end || this.props.dongleId !== dongleId) {
-      return;
-    }
-
-    segmentData = Segments.parseSegmentMetadata({ dongleId, start, end }, segmentData);
-    store.dispatch(Segments.insertSegmentMetadata(segmentData));
+    this.props.dispatch(checkSegmentMetadata());
   }
 
   render() {
@@ -173,8 +148,6 @@ class DriveList extends Component {
 const stateToProps = Obstruction({
   segments: 'segments',
   segmentData: 'segmentData',
-  start: 'start',
-  end: 'end',
   device: 'device',
   dongleId: 'dongleId',
 });

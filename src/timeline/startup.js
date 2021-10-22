@@ -59,7 +59,7 @@ export default async function init() {
   if (devices.length > 0) {
     const dongleId = getDongleID(window.location.pathname) || devices[0].dongle_id;
     const device = devices.find((dev) => dev.dongle_id === dongleId);
-    store.dispatch(primeFetchSubscription(dongleId, device));
+    store.dispatch(primeFetchSubscription(dongleId, device, profile));
   }
 
   store.dispatch({
