@@ -177,7 +177,6 @@ const stateToProps = Obstruction({
   end: 'end',
   device: 'device',
   dongleId: 'dongleId',
-  isSuperUser: 'profile.superuser',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveList));

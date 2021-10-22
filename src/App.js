@@ -16,11 +16,11 @@ import Explorer from './components/explorer';
 import AnonymousLanding from './components/anonymous';
 
 import { getDongleID } from './url';
-import TimelineWorker from './timeline';
 import store, { history } from './store';
 import { initGoogleAnalytics } from './analytics';
 import * as Demo from './demo';
 import { selectTimeRange } from './actions';
+import init from './timeline/startup';
 
 initGoogleAnalytics(history);
 
@@ -47,13 +47,13 @@ class App extends Component {
   }
 
   async componentDidMount() {
-    if (Demo.isDemo()) {
-      await TimelineWorker.init(true);
-      this.props.dispatch(selectTimeRange(1564443025000, Date.now()));
-      this.setState({ initialized: true });
-    }
+    await this.auth();
+    await init();
 
-    return await this.auth();
+    if (Demo.isDemo()) {
+      this.props.dispatch(selectTimeRange(1564443025000, Date.now()));
+    }
+    this.setState({ initialized: true });
   }
 
   async auth() {
@@ -73,12 +73,11 @@ class App extends Component {
     }
 
     const token = await MyCommaAuth.init();
-    Request.configure(token);
-    Billing.configure(token);
-    Athena.configure(token);
-
-    await TimelineWorker.init();
-    this.setState({ initialized: true });
+    if (token) {
+      Request.configure(token);
+      Billing.configure(token);
+      Athena.configure(token);
+    }
   }
 
   redirectLink() {

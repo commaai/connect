@@ -6,7 +6,6 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
-import debounce from 'debounce';
 import document from 'global/document';
 import fecha from 'fecha';
 
@@ -14,11 +13,10 @@ import Measure from 'react-measure';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import TimelineWorker from '../../timeline';
 import Segments from '../../timeline/segments';
 import { selectRange } from '../../actions';
 import Colors from '../../colors';
-import { seek } from '../../timeline/playback';
+import { seek, currentOffset } from '../../timeline/playback';
 
 const styles = (/* theme */) => ({
   base: {
@@ -159,7 +157,6 @@ class Timeline extends Component {
 
   componentDidMount() {
     this.mounted = true;
-    this.stopListening = TimelineWorker.onIndexed(() => this.forceUpdate());
     raf(this.getOffset);
     this.componentDidUpdate({});
   }
@@ -173,7 +170,6 @@ class Timeline extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
-    this.stopListening();
   }
 
   getOffset() {
@@ -181,7 +177,7 @@ class Timeline extends Component {
       return;
     }
     raf(this.getOffset);
-    let offset = TimelineWorker.currentOffset();
+    let offset = currentOffset();
     if (this.seekIndex) {
       offset = this.seekIndex;
     }
@@ -235,7 +231,7 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const currentOffset = TimelineWorker.currentOffset();
+      const currentOffset = currentOffset();
       if (currentOffset < startOffset || currentOffset > endOffset) {
         this.props.dispatch(seek(startOffset));
       }
@@ -306,7 +302,7 @@ class Timeline extends Component {
           width: `${((event.data.end_route_offset_millis - event.route_offset_millis) / segment.duration) * 100}%`,
         };
         if (localStorage.showCurrentEvent) {
-          const time = TimelineWorker.currentOffset();
+          const time = currentOffset();
           const eventStart = event.route_offset_millis + segment.offset;
           const eventEnd = event.data.end_route_offset_millis + segment.offset;
           if (time > eventStart && time < eventEnd) {

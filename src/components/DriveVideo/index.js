@@ -11,8 +11,7 @@ import * as Sentry from '@sentry/react';
 
 import { video as VideoApi } from '@commaai/comma-api';
 
-import TimelineWorker from '../../timeline';
-import { seek, bufferVideo } from '../../timeline/playback';
+import { seek, bufferVideo, currentOffset } from '../../timeline/playback';
 
 window.Hls = Hls;
 
@@ -95,7 +94,7 @@ class DriveVideo extends Component {
     if (props.currentSegment) {
       return props.currentSegment;
     }
-    const offset = TimelineWorker.currentOffset();
+    const offset = currentOffset();
     if (props.nextSegment && props.nextSegment.startOffset - offset < 5000) {
       return props.nextSegment;
     }
@@ -171,7 +170,7 @@ class DriveVideo extends Component {
       newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff)
     } else if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
       // logs start ealier than video, so skip to video ts 0
-      this.props.dispatch(seek(TimelineWorker.currentOffset() - (timeDiff * 1000)));
+      this.props.dispatch(seek(currentOffset() - (timeDiff * 1000)));
     } else {
       videoPlayer.seekTo(desiredVideoTime, 'seconds');
     }
@@ -192,7 +191,7 @@ class DriveVideo extends Component {
     }
   }, 100)
 
-  currentVideoTime(offset = TimelineWorker.currentOffset()) {
+  currentVideoTime(offset = currentOffset()) {
     const visibleSegment = this.visibleSegment();
     if (!visibleSegment) {
       return 0;

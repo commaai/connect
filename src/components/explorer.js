@@ -16,7 +16,6 @@ import IosPwaPopup from './IosPwaPopup';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import AppDrawer from './AppDrawer';
 
-import Timelineworker from '../timeline';
 import { selectRange, selectDevice, primeNav, updateDevice } from '../actions';
 import { getDongleID, getZoom, getPrimeNav } from '../url';
 import ResizeHandler from './ResizeHandler';
@@ -104,7 +103,7 @@ class ExplorerApp extends Component {
     if (pathDongleId) {
       if (!settingDongle && dongleId !== pathDongleId) {
         this.setState({ settingDongle: true });
-        Timelineworker.selectDevice(pathDongleId);
+        this.props.dispatch(selectDevice(pathDongleId));
       } else if (settingDongle && dongleId === pathDongleId) {
         this.setState({ settingDongle: false });
       }

@@ -12,3 +12,10 @@ export const ACTION_UPDATE_DEVICE_ONLINE = 'ACTION_UPDATE_DEVICE_ONLINE';
 export const ACTION_PRIME_NAV = 'ACTION_PRIME_NAV';
 export const ACTION_PRIME_SUBSCRIPTION = 'ACTION_PRIME_SUBSCRIPTION';
 export const ACTION_PRIME_SUBSCRIBE_INFO = 'ACTION_PRIME_SUBSCRIBE_INFO';
+
+export const ACTION_SEEK = 'action_seek';
+export const ACTION_PAUSE = 'action_pause';
+export const ACTION_PLAY = 'action_play';
+export const ACTION_LOOP = 'action_loop';
+export const ACTION_BUFFER_VIDEO = 'action_buffer_video';
+export const ACTION_RESET = 'action_reset';

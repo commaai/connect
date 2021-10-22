@@ -136,8 +136,12 @@ class DeviceList extends Component {
   render() {
     let { classes, devices } = this.props;
     const dongleId = this.props.selectedDevice;
-    let found = devices.some((device) => device.dongle_id === dongleId);
 
+    if (devices === null) {
+      return null;
+    }
+
+    let found = devices.some((device) => device.dongle_id === dongleId);
     if (!found && dongleId) {
       devices = [{
         ...emptyDevice,
@@ -176,7 +180,7 @@ class DeviceList extends Component {
   }
 
   renderDevice(device) {
-    const { classes, isSuperUser } = this.props;
+    const { classes, profile } = this.props;
     const isSelectedCls = (this.props.selectedDevice === device.dongle_id) ? 'isSelected' : '';
     const alias = device.alias || deviceTypePretty(device.device_type);
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
@@ -194,7 +198,7 @@ class DeviceList extends Component {
             </Typography>
           </div>
         </div>
-        { (device.is_owner || isSuperUser) &&
+        { (device.is_owner || (profile && profile.superuser)) &&
           <IconButton className={classes.settingsButton} onClick={ (ev) => this.handleOpenedSettingsModal(device, ev) }
             aria-label="device settings">
             <SettingsIcon className={classes.settingsButtonIcon} />
@@ -211,7 +215,7 @@ class DeviceList extends Component {
 
 const stateToProps = Obstruction({
   devices: 'devices',
-  isSuperUser: 'profile.superuser',
+  profile: 'profile',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));

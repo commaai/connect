@@ -11,8 +11,8 @@ import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
 import ResizeHandler from '../ResizeHandler';
 import * as Demo from '../../demo';
-import TimelineWorker from '../../timeline';
 import TimeDisplay from '../TimeDisplay';
+import { currentOffset } from '../../timeline/playback';
 
 const demoFiles = require('../../demo/files.json');
 
@@ -147,7 +147,7 @@ class Media extends Component {
 
   openInCabana() {
     const { visibleSegment, loop, start } = this.props;
-    const currentOffset = TimelineWorker.currentOffset();
+    const currentOffset = currentOffset();
     const params = {
       route: visibleSegment.route,
       url: visibleSegment.url,

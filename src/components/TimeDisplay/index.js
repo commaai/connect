@@ -11,12 +11,8 @@ import IconButton from '@material-ui/core/IconButton';
 import PlayArrow from '@material-ui/icons/PlayArrow';
 import Pause from '@material-ui/icons/Pause';
 
-import {
-  DownArrow, UpArrow, HistoryForwardIcon, HistoryBackIcon
-} from '../../icons';
-
-import TimelineWorker from '../../timeline';
-import { seek, play, pause } from '../../timeline/playback';
+import { DownArrow, UpArrow, HistoryForwardIcon, HistoryBackIcon } from '../../icons';
+import { seek, play, pause, currentOffset } from '../../timeline/playback';
 
 const timerSteps = [
   0.1,
@@ -133,15 +129,15 @@ class TimeDisplay extends Component {
   }
 
   jumpBack(amount) {
-    this.props.dispatch(seek(TimelineWorker.currentOffset() - amount));
+    this.props.dispatch(seek(currentOffset() - amount));
   }
 
   jumpForward(amount) {
-    this.props.dispatch(seek(TimelineWorker.currentOffset() + amount));
+    this.props.dispatch(seek(currentOffset() + amount));
   }
 
   getDisplayTime() {
-    const currentOffset = TimelineWorker.currentOffset();
+    const currentOffset = currentOffset();
     const { start } = this.props;
     if (!Number.isFinite(start)) {
       return '...';

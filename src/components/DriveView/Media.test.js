@@ -2,7 +2,6 @@
 import React from 'react';
 import { mount } from 'enzyme';
 import queryString from 'query-string';
-import TimelineWorker from '../../timeline';
 
 import Media from './Media';
 
@@ -15,7 +14,7 @@ jest.mock('../../timeline', () => ({
 }));
 
 const currentOffsetMock = jest.fn();
-TimelineWorker.currentOffset = currentOffsetMock;
+currentOffset = currentOffsetMock;
 
 describe('Media', () => {
   beforeEach(() => {

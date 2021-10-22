@@ -16,7 +16,11 @@ class Prime extends Component {
       stripe_success = params.stripe_success;
     }
 
-    if (!this.props.device.is_owner && !this.props.isSuperUser) {
+    if (!this.props.profile) {
+      return null;
+    }
+
+    if (!this.props.device.is_owner && !this.props.profile.superuser) {
       return ( <Typography>No access</Typography> );
     }
     if (this.props.device.prime || stripe_success) {
@@ -29,7 +33,7 @@ class Prime extends Component {
 const stateToProps = Obstruction({
   subscription: 'subscription',
   device: 'device',
-  isSuperUser: 'profile.superuser',
+  profile: 'profile',
 });
 
 export default connect(stateToProps)(Prime);

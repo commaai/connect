@@ -1,4 +1,3 @@
-import Event from 'geval/event';
 import * as Sentry from "@sentry/react";
 
 import { drives as Drives } from '@commaai/comma-api'; // eslint-disable-line
@@ -7,20 +6,13 @@ import { currentOffset } from './playback';
 import Segments from './segments';
 import store from '../store';
 import * as Demo from '../demo';
-import { initAuthPromise } from './commands';
 
 const demoSegments = require('../demo/segments.json');
-
-const BroadcastEvent = Event();
 
 let segmentsTimer = null;
 let segmentsRequest = null;
 
-export function getState() {
-  return store.getState();
-}
-
-function scheduleSegmentUpdate(state) {
+export function scheduleSegmentUpdate(state) {
   let timeUntilNext = 30000;
   const offset = currentOffset(state);
 
@@ -71,7 +63,7 @@ function scheduleSegmentUpdate(state) {
   }
 }
 
-async function checkSegmentMetadata(state) {
+export async function checkSegmentMetadata(state) {
   if (!state.dongleId) {
     return;
   }
@@ -104,7 +96,7 @@ async function checkSegmentMetadata(state) {
     segmentsRequest = null;
   }
 
-  state = getState();
+  state = store.getState();
   if (state.start !== start || state.end !== end || state.dongleId !== dongleId) {
     checkSegmentMetadata(state);
     return;
@@ -113,23 +105,4 @@ async function checkSegmentMetadata(state) {
   segmentData = Segments.parseSegmentMetadata(state, segmentData);
   // broken
   store.dispatch(Segments.insertSegmentMetadata(segmentData));
-}
-
-export function init() {
-  // set up initial schedules
-  initAuthPromise.then(() => {
-    scheduleSegmentUpdate(getState());
-    checkSegmentMetadata(getState());
-  });
-
-  store.subscribe(() => {
-    const state = getState();
-    checkSegmentMetadata(state);
-    scheduleSegmentUpdate(state);
-
-    BroadcastEvent.broadcast({
-      command: 'state',
-      data: state
-    });
-  });
 }

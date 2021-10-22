@@ -165,7 +165,7 @@ class AppHeader extends Component {
             </IconButton>
           </div>
         </AppBar>
-        { MyCommaAuth.isAuthenticated() &&
+        { MyCommaAuth.isAuthenticated() && profile &&
           <Menu id="menu-appbar" open={open} onClose={this.handleClose} anchorEl={anchorEl}
             anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}>

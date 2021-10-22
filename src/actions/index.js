@@ -2,7 +2,6 @@ import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import document from 'global/document';
 import * as Types from './types';
-import Timelineworker from '../timeline';
 import { getDongleID } from '../url';
 import { billing as Billing, devices as DevicesApi } from '@commaai/comma-api';
 import { resetPlayback, selectLoop } from '../timeline/playback'
