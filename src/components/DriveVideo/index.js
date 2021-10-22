@@ -12,6 +12,7 @@ import * as Sentry from '@sentry/react';
 import { video as VideoApi } from '@commaai/comma-api';
 
 import TimelineWorker from '../../timeline';
+import { seek } from '../../timeline/playback';
 
 window.Hls = Hls;
 
@@ -170,7 +171,7 @@ class DriveVideo extends Component {
       newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff)
     } else if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
       // logs start ealier than video, so skip to video ts 0
-      TimelineWorker.seek(TimelineWorker.currentOffset() - (timeDiff * 1000));
+      this.props.dispatch(seek(TimelineWorker.currentOffset() - (timeDiff * 1000)));
     } else {
       videoPlayer.seekTo(desiredVideoTime, 'seconds');
     }

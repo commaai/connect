@@ -16,6 +16,7 @@ import {
 } from '../../icons';
 
 import TimelineWorker from '../../timeline';
+import { seek } from '../../timeline/playback';
 
 const timerSteps = [
   0.1,
@@ -28,13 +29,6 @@ const timerSteps = [
   5
 ];
 
-function jumpBack(amount) {
-  TimelineWorker.seek(TimelineWorker.currentOffset() - amount);
-}
-
-function jumpForward(amount) {
-  TimelineWorker.seek(TimelineWorker.currentOffset() + amount);
-}
 const styles = (theme) => ({
   base: {
     display: 'flex',
@@ -120,6 +114,8 @@ class TimeDisplay extends Component {
     this.togglePause = this.togglePause.bind(this);
     this.increaseSpeed = this.increaseSpeed.bind(this);
     this.decreaseSpeed = this.decreaseSpeed.bind(this);
+    this.jumpBack = this.jumpBack.bind(this);
+    this.jumpForward = this.jumpForward.bind(this);
 
     this.state = {
       desiredPlaySpeed: 1,
@@ -134,6 +130,14 @@ class TimeDisplay extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+  }
+
+  jumpBack(amount) {
+    this.props.dispatch(seek(TimelineWorker.currentOffset() - amount));
+  }
+
+  jumpForward(amount) {
+    this.props.dispatch(seek(TimelineWorker.currentOffset() + amount));
   }
 
   getDisplayTime() {
@@ -198,13 +202,13 @@ class TimeDisplay extends Component {
     return (
       <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
         <div className={ classes.iconBox }>
-          <IconButton className={ classes.iconButton } onClick={ () => jumpBack(10000) }
+          <IconButton className={ classes.iconButton } onClick={ () => this.jumpBack(10000) }
             aria-label="Jump back 10 seconds">
             <HistoryBackIcon className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
         <div className={ classes.iconBox }>
-          <IconButton className={ classes.iconButton } onClick={ () => jumpForward(10000) }
+          <IconButton className={ classes.iconButton } onClick={ () => this.jumpForward(10000) }
             aria-label="Jump forward 10 seconds">
             <HistoryForwardIcon className={`${classes.icon} small dim`} />
           </IconButton>

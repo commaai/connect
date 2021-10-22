@@ -37,10 +37,6 @@ store.subscribe(() => {
   }
 });
 
-function seek(offset) {
-  store.dispatch(Playback.seek(offset));
-}
-
 function pause(/* port */) {
   store.dispatch(Playback.pause());
 }
@@ -99,10 +95,6 @@ function primeNav(nav = true) {
   store.dispatch(primeNavAction(nav));
 }
 
-function resetPlayback() {
-  store.dispatch(Playback.resetPlayback());
-}
-
 function updateDeviceOnline(dongleId, last_athena_ping, fetched_at) {
   store.dispatch(updateDeviceOnlineAction(dongleId, last_athena_ping, fetched_at));
 }
@@ -115,7 +107,6 @@ export const commands = {
   close,
   play,
   pause,
-  seek,
   bufferVideo,
   hello,
   selectDevice,
@@ -127,6 +118,5 @@ export const commands = {
   primeGetSubscription,
   primeGetSubscribeInfo,
   primeNav,
-  resetPlayback,
   updateDeviceOnline,
 };

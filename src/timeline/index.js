@@ -68,10 +68,6 @@ export class TimelineInterface {
     this.hasInit = false;
   }
 
-  async seek(offset) {
-    return commands.seek(Math.round(offset));
-  }
-
   async play(speed = 1) {
     return commands.play(speed);
   }
@@ -118,10 +114,6 @@ export class TimelineInterface {
 
   async primeNav(nav) {
     return commands.primeNav(nav);
-  }
-
-  async resetPlayback() {
-    return commands.resetPlayback();
   }
 
   async updateDeviceOnline(dongleId, last_athena_ping, fetched_at) {

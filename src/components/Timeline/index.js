@@ -18,6 +18,7 @@ import TimelineWorker from '../../timeline';
 import Segments from '../../timeline/segments';
 import { selectRange } from '../../actions';
 import Colors from '../../colors';
+import { seek } from '../../timeline/playback';
 
 const styles = (/* theme */) => ({
   base: {
@@ -138,7 +139,6 @@ class Timeline extends Component {
     this.handlePointerLeave = this.handlePointerLeave.bind(this);
     this.percentToOffset = this.percentToOffset.bind(this);
     this.renderSegment = this.renderSegment.bind(this);
-    this.sendSeek = debounce(this.sendSeek.bind(this), 1000 / 60);
 
     this.rulerRemaining = React.createRef();
     this.rulerRef = React.createRef();
@@ -197,7 +197,7 @@ class Timeline extends Component {
     const { dragging } = this.state;
     if (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3) {
       const percent = percentFromPointerEvent(e);
-      TimelineWorker.seek(this.percentToOffset(percent));
+      this.props.dispatch(seek(this.percentToOffset(percent)));
     }
   }
 
@@ -237,7 +237,7 @@ class Timeline extends Component {
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
       const currentOffset = TimelineWorker.currentOffset();
       if (currentOffset < startOffset || currentOffset > endOffset) {
-        TimelineWorker.seek(startOffset);
+        this.props.dispatch(seek(startOffset));
       }
       const { start, dispatch } = this.props;
       const startTime = startOffset + start;
@@ -263,13 +263,6 @@ class Timeline extends Component {
     const { zoom } = this.state;
     const { start } = this.props;
     return (offset - (zoom.start - start)) / (zoom.end - zoom.start);
-  }
-
-  sendSeek() {
-    if (this.seekIndex) {
-      TimelineWorker.seek(this.seekIndex);
-      this.seekIndex = null;
-    }
   }
 
   renderSegment(segment) {

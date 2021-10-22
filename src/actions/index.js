@@ -5,6 +5,7 @@ import * as Types from './types';
 import Timelineworker from '../timeline';
 import { getDongleID } from '../url';
 import { billing as Billing, devices as DevicesApi } from '@commaai/comma-api';
+import { resetPlayback } from '../timeline/playback'
 
 export function selectRange(start, end, allowPathChange = true) {
   return (dispatch, getState) => {
@@ -37,7 +38,7 @@ export function selectRange(start, end, allowPathChange = true) {
       || state.loop.startTime < start
       || state.loop.startTime + state.loop.duration > end
       || state.loop.duration < end - start) {
-      Timelineworker.resetPlayback();
+      dispatch(resetPlayback());
       Timelineworker.selectLoop(start, end - start);
     }
 
