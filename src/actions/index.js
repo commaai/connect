@@ -123,14 +123,12 @@ export function primeNav(nav = true, allowPathChange = true) {
 export function fetchDeviceOnline(dongleId) {
   return (dispatch, getState) => {
     DevicesApi.fetchDevice(dongleId).then((resp) => {
-      if (resp.dongle_id === dongleId) {
-        dispatch({
-          type: Types.ACTION_UPDATE_DEVICE_ONLINE,
-          dongleId: dongleId,
-          last_athena_ping: resp.last_athena_ping,
-          fetched_at: parseInt(Date.now() / 1000),
-        });
-      }
+      dispatch({
+        type: Types.ACTION_UPDATE_DEVICE_ONLINE,
+        dongleId: dongleId,
+        last_athena_ping: resp.last_athena_ping,
+        fetched_at: parseInt(Date.now() / 1000),
+      });
     }).catch(console.log);
   };
 }

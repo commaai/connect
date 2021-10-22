@@ -137,12 +137,12 @@ class TimeDisplay extends Component {
   }
 
   getDisplayTime() {
-    const currentOffset = currentOffset();
+    const offset = currentOffset();
     const { start } = this.props;
     if (!Number.isFinite(start)) {
       return '...';
     }
-    const now = new Date(currentOffset + start);
+    const now = new Date(offset + start);
     const dateString = fecha.format(now, 'ddd, D MMM @ HH:mm:ss');
 
     return dateString;
