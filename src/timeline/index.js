@@ -68,14 +68,6 @@ export class TimelineInterface {
     return commands.pause();
   }
 
-  async selectTimeRange(start, end) {
-    return commands.selectTimeRange({ start, end });
-  }
-
-  async selectLoop(startTime, duration) {
-    return commands.selectLoop({ startTime, duration });
-  }
-
   async selectDevice(dongleId) {
     await this.readyPromise;
     if (this.state.dongleId === dongleId) {

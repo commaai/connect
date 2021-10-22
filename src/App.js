@@ -20,6 +20,7 @@ import TimelineWorker from './timeline';
 import store, { history } from './store';
 import { initGoogleAnalytics } from './analytics';
 import * as Demo from './demo';
+import { selectTimeRange } from './actions';
 
 initGoogleAnalytics(history);
 
@@ -48,7 +49,7 @@ class App extends Component {
   async componentDidMount() {
     if (Demo.isDemo()) {
       await TimelineWorker.init(true);
-      TimelineWorker.selectTimeRange(1564443025000, Date.now());
+      this.props.dispatch(selectTimeRange(1564443025000, Date.now()));
       this.setState({ initialized: true });
     }
 

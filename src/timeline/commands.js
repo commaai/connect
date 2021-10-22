@@ -3,7 +3,6 @@ import { request as Request } from '@commaai/comma-api'; // eslint-disable-line
 
 import {
   selectDevice as selectDeviceAction,
-  selectTimeRange as selectTimeRangeAction,
   updateDevice as updateDeviceAction,
   updateDevices as updateDevicesAction,
 } from '../actions';
@@ -61,23 +60,11 @@ function updateDevice(device) {
   store.dispatch(updateDeviceAction(device));
 }
 
-function selectTimeRange(data) {
-  const { start, end } = data;
-  store.dispatch(selectTimeRangeAction(start, end));
-}
-
-function selectLoop(data) {
-  const { startTime, duration } = data;
-  store.dispatch(Playback.selectLoop(startTime, duration));
-}
-
 export const commands = {
   close,
   play,
   pause,
   hello,
-  selectTimeRange,
-  selectLoop,
   updateDevices,
   updateDevice,
 };

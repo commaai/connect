@@ -13,8 +13,8 @@ import Modal from '@material-ui/core/Modal';
 import MenuItem from '@material-ui/core/MenuItem';
 import Paper from '@material-ui/core/Paper';
 
-import Timelineworker from '../../timeline';
 import Colors from '../../colors';
+import { selectTimeRange } from '../../actions';
 
 const styles = (theme) => ({
   root: {},
@@ -85,13 +85,13 @@ class TimeSelect extends Component {
 
     switch (selection) {
       case '24-hours':
-        Timelineworker.selectTimeRange(d.getTime() - (1000 * 60 * 60 * 24), d.getTime());
+        this.props.dispatch(selectTimeRange(d.getTime() - (1000 * 60 * 60 * 24), d.getTime()));
         break;
       case '1-week':
-        Timelineworker.selectTimeRange(d.getTime() - (1000 * 60 * 60 * 24 * 7), d.getTime());
+        this.props.dispatch(selectTimeRange(d.getTime() - (1000 * 60 * 60 * 24 * 7), d.getTime()));
         break;
       case '2-weeks':
-        Timelineworker.selectTimeRange(d.getTime() - (1000 * 60 * 60 * 24 * 14), d.getTime());
+        this.props.dispatch(selectTimeRange(d.getTime() - (1000 * 60 * 60 * 24 * 14), d.getTime()));
         break;
       case 'custom':
         this.setState({
@@ -118,7 +118,7 @@ class TimeSelect extends Component {
   }
 
   handleSave() {
-    Timelineworker.selectTimeRange(this.state.start, this.state.end);
+    this.props.dispatch(selectTimeRange(this.state.start, this.state.end));
     this.setState({
       showPicker: false,
       start: null,

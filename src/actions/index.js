@@ -5,7 +5,7 @@ import * as Types from './types';
 import Timelineworker from '../timeline';
 import { getDongleID } from '../url';
 import { billing as Billing, devices as DevicesApi } from '@commaai/comma-api';
-import { resetPlayback } from '../timeline/playback'
+import { resetPlayback, selectLoop } from '../timeline/playback'
 
 export function selectRange(start, end, allowPathChange = true) {
   return (dispatch, getState) => {
@@ -39,7 +39,7 @@ export function selectRange(start, end, allowPathChange = true) {
       || state.loop.startTime + state.loop.duration > end
       || state.loop.duration < end - start) {
       dispatch(resetPlayback());
-      Timelineworker.selectLoop(start, end - start);
+      dispatch(selectLoop(start, end - start));
     }
 
     if (allowPathChange && curPath !== desiredPath) {
@@ -125,7 +125,12 @@ export function fetchDeviceOnline(dongleId) {
   return (dispatch, getState) => {
     DevicesApi.fetchDevice(dongleId).then((resp) => {
       if (resp.dongle_id === dongleId) {
-        dispatch(updateDeviceOnline(dongleId, resp.last_athena_ping, parseInt(Date.now() / 1000)));
+        dispatch({
+          type: Types.ACTION_UPDATE_DEVICE_ONLINE,
+          dongleId: dongleId,
+          last_athena_ping: resp.last_athena_ping,
+          fetched_at: parseInt(Date.now() / 1000),
+        });
       }
     }).catch(console.log);
   };
@@ -166,15 +171,6 @@ export function primeGetSubscribeInfo(dongleId, subscribeInfo) {
     type: Types.ACTION_PRIME_SUBSCRIBE_INFO,
     dongleId,
     subscribeInfo,
-  };
-}
-
-export function updateDeviceOnline(dongleId, last_athena_ping, fetched_at) {
-  return {
-    type: Types.ACTION_UPDATE_DEVICE_ONLINE,
-    dongleId,
-    last_athena_ping,
-    fetched_at,
   };
 }
 
