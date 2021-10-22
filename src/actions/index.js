@@ -81,7 +81,7 @@ export function primeFetchSubscription(dongleId, device) {
   return (dispatch, getState) => {
     const state = getState();
 
-    if ((device && device.is_owner) || state.profile.superuser) {
+    if (device && (device.is_owner || state.profile.superuser)) {
       if (device.prime) {
         Billing.getSubscription(dongleId).then((subscription) => {
           dispatch(primeGetSubscription(dongleId, subscription));
@@ -91,7 +91,11 @@ export function primeFetchSubscription(dongleId, device) {
         });
       } else {
         Billing.getSubscribeInfo(dongleId).then((subscribeInfo) => {
-          dispatch(primeGetSubscribeInfo(dongleId, subscribeInfo));
+          dispatch({
+            type: Types.ACTION_PRIME_SUBSCRIBE_INFO,
+            dongleId,
+            subscribeInfo,
+          });
         }).catch((err) => {
           console.log(err);
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' });
@@ -160,14 +164,6 @@ export function primeGetSubscription(dongleId, subscription) {
     type: Types.ACTION_PRIME_SUBSCRIPTION,
     dongleId,
     subscription,
-  };
-}
-
-export function primeGetSubscribeInfo(dongleId, subscribeInfo) {
-  return {
-    type: Types.ACTION_PRIME_SUBSCRIBE_INFO,
-    dongleId,
-    subscribeInfo,
   };
 }
 
