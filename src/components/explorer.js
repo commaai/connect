@@ -17,7 +17,7 @@ import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import AppDrawer from './AppDrawer';
 
 import Timelineworker from '../timeline';
-import { selectRange, selectDevice, primeNav } from '../actions';
+import { selectRange, selectDevice, primeNav, updateDevice } from '../actions';
 import { getDongleID, getZoom, getPrimeNav } from '../url';
 import ResizeHandler from './ResizeHandler';
 import Colors from '../colors';
@@ -148,7 +148,7 @@ class ExplorerApp extends Component {
           });
 
           const device = await DevicesApi.fetchDevice(resp.dongle_id);
-          Timelineworker.updateDevice(device);
+          this.props.dispatch(updateDevice(device));
         } else {
           await localforage.removeItem('pairToken');
           console.log(resp);

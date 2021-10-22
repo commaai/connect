@@ -12,7 +12,7 @@ import DeviceSettingsModal from './DeviceSettingsModal';
 import { deviceTypePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils'
 import Colors from '../../colors';
 import VisibilityHandler from '../VisibilityHandler';
-import Timelineworker from '../../timeline';
+import { updateDevices } from '../../actions';
 import AddDevice from './AddDevice';
 
 const styles = (theme) => ({
@@ -125,7 +125,7 @@ class DeviceList extends Component {
     if (MyCommaAuth.isAuthenticated()) {
       try {
         const devices = await DevicesApi.listDevices();
-        Timelineworker.updateDevices(devices);
+        this.props.dispatch(updateDevices(devices));
       } catch (err) {
         Sentry.captureException(err, { fingerprint: 'devicelist_visible_listdevices' });
         console.log(err);

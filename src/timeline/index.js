@@ -68,14 +68,6 @@ export class TimelineInterface {
     return commands.selectDevice(dongleId);
   }
 
-  async updateDevices(devices) {
-    return commands.updateDevices(devices);
-  }
-
-  async updateDevice(device) {
-    return commands.updateDevice(device,);
-  }
-
   setState(state) {
     this.state = state;
     StateEvent.broadcast(state);

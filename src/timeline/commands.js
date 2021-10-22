@@ -1,11 +1,7 @@
 import Auth from '@commaai/my-comma-auth';
 import { request as Request } from '@commaai/comma-api'; // eslint-disable-line
 
-import {
-  selectDevice as selectDeviceAction,
-  updateDevice as updateDeviceAction,
-  updateDevices as updateDevicesAction,
-} from '../actions';
+import { selectDevice as selectDeviceAction } from '../actions';
 import Segments from './segments';
 import init from './startup';
 import store from '../store';
@@ -43,16 +39,6 @@ async function hello(data) {
   return 'hello';
 }
 
-function updateDevices(devices) {
-  store.dispatch(updateDevicesAction(devices));
-}
-
-function updateDevice(device) {
-  store.dispatch(updateDeviceAction(device));
-}
-
 export const commands = {
   hello,
-  updateDevices,
-  updateDevice,
 };
