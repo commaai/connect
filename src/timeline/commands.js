@@ -8,7 +8,6 @@ import {
 } from '../actions';
 import Segments from './segments';
 import init from './startup';
-import * as Playback from './playback';
 import store from '../store';
 import * as Demo from '../demo';
 
@@ -32,14 +31,6 @@ store.subscribe(() => {
   }
 });
 
-function pause(/* port */) {
-  store.dispatch(Playback.pause());
-}
-
-function play(speed) {
-  store.dispatch(Playback.play(speed));
-}
-
 async function hello(data) {
   await initAuthPromise;
   store.dispatch(selectDeviceAction(data.dongleId));
@@ -61,9 +52,6 @@ function updateDevice(device) {
 }
 
 export const commands = {
-  close,
-  play,
-  pause,
   hello,
   updateDevices,
   updateDevice,

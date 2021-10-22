@@ -60,14 +60,6 @@ export class TimelineInterface {
     return this.readyPromise;
   }
 
-  async play(speed = 1) {
-    return commands.play(speed);
-  }
-
-  async pause() {
-    return commands.pause();
-  }
-
   async selectDevice(dongleId) {
     await this.readyPromise;
     if (this.state.dongleId === dongleId) {

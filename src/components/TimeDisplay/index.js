@@ -16,7 +16,7 @@ import {
 } from '../../icons';
 
 import TimelineWorker from '../../timeline';
-import { seek } from '../../timeline/playback';
+import { seek, play, pause } from '../../timeline/playback';
 
 const timerSteps = [
   0.1,
@@ -172,7 +172,7 @@ class TimeDisplay extends Component {
       curIndex = timerSteps.indexOf(1);
     }
     curIndex = Math.max(0, curIndex - 1);
-    TimelineWorker.play(timerSteps[curIndex]);
+    this.props.dispatch(play(timerSteps[curIndex]));
   }
 
   increaseSpeed() {
@@ -182,15 +182,15 @@ class TimeDisplay extends Component {
       curIndex = timerSteps.indexOf(1);
     }
     curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
-    TimelineWorker.play(timerSteps[curIndex]);
+    this.props.dispatch(play(timerSteps[curIndex]));
   }
 
   togglePause(e) {
     const { desiredPlaySpeed } = this.props;
     if (desiredPlaySpeed === 0) {
-      TimelineWorker.play(this.state.desiredPlaySpeed);
+      this.props.dispatch(play(this.state.desiredPlaySpeed));
     } else {
-      TimelineWorker.pause();
+      this.props.dispatch(pause());
     }
   }
 

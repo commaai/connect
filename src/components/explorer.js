@@ -22,6 +22,7 @@ import { getDongleID, getZoom, getPrimeNav } from '../url';
 import ResizeHandler from './ResizeHandler';
 import Colors from '../colors';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
+import { play, pause } from '../timeline/playback';
 
 const styles = (theme) => ({
   base: {
@@ -110,10 +111,10 @@ class ExplorerApp extends Component {
     }
 
     if (!prevProps.expanded && expanded) {
-      Timelineworker.play();
+      this.props.dispatch(play());
     }
     if (prevProps.expanded && !expanded) {
-      Timelineworker.pause();
+      this.props.dispatch(pause());
     }
   }
 
