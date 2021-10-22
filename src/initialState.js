@@ -55,8 +55,14 @@ module.exports = {
     duration: null
   },
 
-  profile: {},
-  devices: [],
+  profile: null,
+  devices: null,
   primeNav: false,
   subscription: null,
+
+  zoom: {
+    start: 0,
+    end: 0,
+    expanded: false,
+  }
 };

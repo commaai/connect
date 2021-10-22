@@ -210,8 +210,8 @@ class DeviceList extends Component {
 }
 
 const stateToProps = Obstruction({
-  devices: 'workerState.devices',
-  isSuperUser: 'workerState.profile.superuser',
+  devices: 'devices',
+  isSuperUser: 'profile.superuser',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));

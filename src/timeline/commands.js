@@ -14,7 +14,7 @@ import {
 import Segments from './segments';
 import init from './startup';
 import * as Playback from './playback';
-import store from './store';
+import store from '../store';
 import * as Demo from '../demo';
 
 // fire off init method / construct init promises

@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 import { devices as Devices, account as Account, billing as Billing } from '@commaai/comma-api';
 
 import * as Demo from '../demo';
-import store from './store';
+import store from '../store';
 import { ACTION_STARTUP_DATA } from './actions/types';
 import { primeGetSubscriptionAction, primeGetSubscribeInfoAction } from './actions';
 import { getDongleID, getPrimeNav } from '../url';

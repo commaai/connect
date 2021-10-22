@@ -396,9 +396,9 @@ class Timeline extends Component {
 
 const stateToProps = Obstruction({
   zoom: 'zoom',
-  start: 'workerState.start',
-  end: 'workerState.end',
-  segments: 'workerState.segments',
+  start: 'start',
+  end: 'end',
+  segments: 'segments',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));

@@ -274,12 +274,12 @@ class DriveMap extends Component {
 }
 
 const stateToProps = Obstruction({
-  offset: 'workerState.offset',
-  route: 'workerState.route',
-  segments: 'workerState.segments',
-  segmentNum: 'workerState.segment',
-  currentSegment: 'workerState.currentSegment',
-  startTime: 'workerState.startTime'
+  offset: 'offset',
+  route: 'route',
+  segments: 'segments',
+  segmentNum: 'segment',
+  currentSegment: 'currentSegment',
+  startTime: 'startTime'
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveMap));

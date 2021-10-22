@@ -95,12 +95,12 @@ class DriveView extends Component {
 }
 
 const stateToProps = Obstruction({
-  currentSegment: 'workerState.currentSegment',
-  nextSegment: 'workerState.nextSegment',
-  dongleId: 'workerState.dongleId',
-  device: 'workerState.device',
-  loop: 'workerState.loop',
-  start: 'workerState.start',
+  currentSegment: 'currentSegment',
+  nextSegment: 'nextSegment',
+  dongleId: 'dongleId',
+  device: 'device',
+  loop: 'loop',
+  start: 'start',
   zoom: 'zoom',
 });
 

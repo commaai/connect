@@ -1,4 +1,3 @@
-import initialState from './initialState';
 import { currentOffset } from './playback';
 
 const ACTION_UPDATE_SEGMENTS = 'update_segments';
@@ -241,7 +240,7 @@ function segmentsFromMetadata(segmentsData) {
   return segments;
 }
 
-function reducer(_state = initialState, action) {
+function reducer(_state, action) {
   let state = { ..._state };
   switch (action.type) {
     case ACTION_LOAD_SEGMENT_METADATA:

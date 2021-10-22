@@ -1,9 +1,13 @@
-import workerState from './workerState';
 import zoom from './zoom';
+import { reducer as playbackReducer } from '../timeline/playback';
+import Segments from '../timeline/segments';
+import globalState from '../timeline/reducers/globalState';
 
-const reducers = {
-  workerState,
+const reducers = [
+  globalState,
   zoom,
-};
+  playbackReducer,
+  Segments.reducer,
+];
 
 export default reducers;

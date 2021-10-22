@@ -188,11 +188,11 @@ class AppHeader extends Component {
 }
 
 const stateToProps = Obstruction({
-  dongleId: 'workerState.dongleId',
-  start: 'workerState.start',
-  end: 'workerState.end',
-  profile: 'workerState.profile',
-  primeNav: 'workerState.primeNav',
+  dongleId: 'dongleId',
+  start: 'start',
+  end: 'end',
+  profile: 'profile',
+  primeNav: 'primeNav',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));

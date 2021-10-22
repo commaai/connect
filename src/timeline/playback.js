@@ -1,8 +1,6 @@
 // basic helper functions for controlling playback
 // we shouldn't want to edit the raw state most of the time, helper functions are better
 
-const initialState = require('./initialState');
-
 const ACTION_SEEK = 'action_seek';
 const ACTION_PAUSE = 'action_pause';
 const ACTION_PLAY = 'action_play';
@@ -26,7 +24,7 @@ export function currentOffset(state) {
   return offset;
 }
 
-export function reducer(_state = initialState, action) {
+export function reducer(_state, action) {
   let state = { ..._state };
   let loopOffset = null;
   if (state.loop && state.loop.startTime !== null) {

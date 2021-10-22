@@ -1206,8 +1206,8 @@ class Navigation extends Component {
 }
 
 const stateToProps = Obstruction({
-  device: 'workerState.device',
-  dongleId: 'workerState.dongleId',
+  device: 'device',
+  dongleId: 'dongleId',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Navigation));

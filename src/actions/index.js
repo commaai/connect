@@ -6,17 +6,10 @@ import Timelineworker from '../timeline';
 import { getDongleID } from '../url';
 import { billing as Billing, devices as DevicesApi } from '@commaai/comma-api';
 
-export function updateState(data) {
-  return {
-    type: Types.WORKER_STATE_UPDATE,
-    data
-  };
-}
-
 export function selectRange(start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
-    if (!state.workerState.dongleId) {
+    if (!state.dongleId) {
       dispatch({
         type: Types.TIMELINE_SELECTION_CHANGED,
         start,
@@ -24,11 +17,11 @@ export function selectRange(start, end, allowPathChange = true) {
       });
       return;
     }
-    if (state.workerState.primeNav) {
+    if (state.primeNav) {
       dispatch(primeNav(false, false));
     }
     const curPath = document.location.pathname;
-    const dongleId = getDongleID(curPath) || state.workerState.dongleId;
+    const dongleId = getDongleID(curPath) || state.dongleId;
     const desiredPath = urlForState(dongleId, start, end, false);
 
     if (state.zoom.start !== start || state.zoom.end !== end) {
@@ -39,11 +32,11 @@ export function selectRange(start, end, allowPathChange = true) {
       });
     }
 
-    if (!state.workerState.loop.startTime
-      || !state.workerState.loop.duration
-      || state.workerState.loop.startTime < start
-      || state.workerState.loop.startTime + state.workerState.loop.duration > end
-      || state.workerState.loop.duration < end - start) {
+    if (!state.loop.startTime
+      || !state.loop.duration
+      || state.loop.startTime < start
+      || state.loop.startTime + state.loop.duration > end
+      || state.loop.duration < end - start) {
       Timelineworker.resetPlayback();
       Timelineworker.selectLoop(start, end - start);
     }
@@ -58,11 +51,11 @@ export function selectDevice(dongleId) {
   return (dispatch, getState) => {
     const state = getState();
     let device;
-    if (state.workerState.devices && state.workerState.devices.length > 1) {
-      device = state.workerState.devices.find((d) => d.dongle_id === dongleId);
+    if (state.devices && state.devices.length > 1) {
+      device = state.devices.find((d) => d.dongle_id === dongleId);
     }
-    if (!device && state.workerState.device && state.workerState.device.dongle_id === dongleId) {
-      device = state.workerState.device;
+    if (!device && state.device && state.device.dongle_id === dongleId) {
+      device = state.device;
     }
 
     Timelineworker.selectDevice(dongleId).then(() => {
@@ -85,7 +78,7 @@ export function primeFetchSubscription(dongleId, device) {
   return (dispatch, getState) => {
     const state = getState();
 
-    if ((device && device.is_owner) || state.workerState.profile.superuser) {
+    if ((device && device.is_owner) || state.profile.superuser) {
       if (device.prime) {
         Billing.getSubscription(dongleId).then((subscription) => {
           Timelineworker.primeGetSubscription(dongleId, subscription);
@@ -109,12 +102,12 @@ export function primeNav(nav = true, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
 
-    if (state.workerState.primeNav != nav) {
+    if (state.primeNav != nav) {
       Timelineworker.primeNav(nav);
     }
 
     const curPath = document.location.pathname;
-    const desiredPath = urlForState(state.workerState.dongleId, null, null, nav);
+    const desiredPath = urlForState(state.dongleId, null, null, nav);
     if (allowPathChange && curPath !== desiredPath) {
       dispatch(push(desiredPath));
     }

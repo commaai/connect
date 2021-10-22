@@ -398,9 +398,9 @@ class PrimeCheckout extends Component {
 }
 
 const stateToProps = Obstruction({
-  dongleId: 'workerState.dongleId',
-  device: 'workerState.device',
-  subscribeInfo: 'workerState.subscribeInfo',
+  dongleId: 'dongleId',
+  device: 'device',
+  subscribeInfo: 'subscribeInfo',
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeCheckout));

@@ -225,8 +225,8 @@ class TimeSelect extends Component {
 }
 
 const stateToProps = Obstruction({
-  end: 'workerState.end',
-  start: 'workerState.start'
+  end: 'end',
+  start: 'start'
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeSelect));

@@ -11,8 +11,6 @@ import {
 } from '../actions/types';
 import { emptyDevice } from '../../utils';
 
-const initialState = {};
-
 function populateFetchedAt(d) {
   return {
     ...d,
@@ -20,7 +18,7 @@ function populateFetchedAt(d) {
   };
 }
 
-export default function reducer(_state = initialState, action) {
+export default function reducer(_state, action) {
   let state = { ..._state };
   let deviceIndex = null;
   switch (action.type) {

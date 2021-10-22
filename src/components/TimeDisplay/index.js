@@ -251,8 +251,8 @@ TimeDisplay.propTypes = {
 
 const stateToProps = Obstruction({
   expanded: 'zoom.expanded',
-  desiredPlaySpeed: 'workerState.desiredPlaySpeed',
-  start: 'workerState.start',
+  desiredPlaySpeed: 'desiredPlaySpeed',
+  start: 'start',
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));

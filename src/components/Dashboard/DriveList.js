@@ -6,7 +6,7 @@ import { withStyles, Typography, Grid } from '@material-ui/core';
 
 import { drives as DrivesApi } from '@commaai/comma-api';
 import Segments from '../../timeline/segments';
-import store from '../../timeline/store';
+import store from '../../store';
 import Colors from '../../colors';
 import DriveListItem from './DriveListItem';
 import ResizeHandler from '../ResizeHandler';
@@ -171,13 +171,13 @@ class DriveList extends Component {
 }
 
 const stateToProps = Obstruction({
-  segments: 'workerState.segments',
-  segmentData: 'workerState.segmentData',
-  start: 'workerState.start',
-  end: 'workerState.end',
-  device: 'workerState.device',
-  dongleId: 'workerState.dongleId',
-  isSuperUser: 'workerState.profile.superuser',
+  segments: 'segments',
+  segmentData: 'segmentData',
+  start: 'start',
+  end: 'end',
+  device: 'device',
+  dongleId: 'dongleId',
+  isSuperUser: 'profile.superuser',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveList));

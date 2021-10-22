@@ -5,7 +5,7 @@ import { drives as Drives } from '@commaai/comma-api'; // eslint-disable-line
 
 import { currentOffset } from './playback';
 import Segments from './segments';
-import store from './store';
+import store from '../store';
 import * as Demo from '../demo';
 import { initAuthPromise } from './commands';
 

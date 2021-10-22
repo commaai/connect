@@ -8,7 +8,7 @@ import { getDongleID, getPrimeNav, getZoom } from '../url';
 import { getState, init as initTimeline } from './timeline';
 import * as Demo from '../demo';
 import { commands } from './commands';
-import store from './store';
+import store from '../store';
 
 const StateEvent = Event();
 const IndexEvent = Event();

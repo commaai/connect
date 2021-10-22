@@ -231,15 +231,15 @@ class DriveVideo extends Component {
 }
 
 const stateToProps = Obstruction({
-  dongleId: 'workerState.dongleId',
-  currentSegment: 'workerState.currentSegment',
-  nextSegment: 'workerState.nextSegment',
-  desiredPlaySpeed: 'workerState.desiredPlaySpeed',
-  route: 'workerState.route',
-  segment: 'workerState.segment',
-  offset: 'workerState.offset',
-  startTime: 'workerState.startTime',
-  isBufferingVideo: 'workerState.isBufferingVideo',
+  dongleId: 'dongleId',
+  currentSegment: 'currentSegment',
+  nextSegment: 'nextSegment',
+  desiredPlaySpeed: 'desiredPlaySpeed',
+  route: 'route',
+  segment: 'segment',
+  offset: 'offset',
+  startTime: 'startTime',
+  isBufferingVideo: 'isBufferingVideo',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveVideo));

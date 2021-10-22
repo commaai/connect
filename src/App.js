@@ -17,17 +17,11 @@ import AnonymousLanding from './components/anonymous';
 
 import { getDongleID } from './url';
 import TimelineWorker from './timeline';
-import { history, createStore } from './store';
-import { updateState } from './actions';
+import store, { history } from './store';
 import { initGoogleAnalytics } from './analytics';
 import * as Demo from './demo';
 
 initGoogleAnalytics(history);
-const store = createStore();
-
-TimelineWorker.onStateChange((data) => {
-  store.dispatch(updateState(data));
-});
 
 class App extends Component {
   constructor(props) {

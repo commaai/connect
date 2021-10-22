@@ -378,8 +378,8 @@ class DeviceSettingsModal extends Component {
 }
 
 const stateToProps = Obstruction({
-  subscription: 'workerState.subscription',
-  stateDevice: 'workerState.device',
+  subscription: 'subscription',
+  stateDevice: 'device',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceSettingsModal));

@@ -373,8 +373,8 @@ class AddDevice extends Component {
 }
 
 const stateToProps = Obstruction({
-  profile: 'workerState.profile',
-  devices: 'workerState.devices',
+  profile: 'profile',
+  devices: 'devices',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AddDevice));

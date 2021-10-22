@@ -251,8 +251,8 @@ ExplorerApp.propTypes = {
 const stateToProps = Obstruction({
   expanded: 'zoom.expanded',
   pathname: 'router.location.pathname',
-  dongleId: 'workerState.dongleId',
-  devices: 'workerState.devices',
+  dongleId: 'dongleId',
+  devices: 'devices',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

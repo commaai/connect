@@ -27,9 +27,9 @@ class Prime extends Component {
 }
 
 const stateToProps = Obstruction({
-  subscription: 'workerState.subscription',
-  device: 'workerState.device',
-  isSuperUser: 'workerState.profile.superuser',
+  subscription: 'subscription',
+  device: 'device',
+  isSuperUser: 'profile.superuser',
 });
 
 export default connect(stateToProps)(Prime);
