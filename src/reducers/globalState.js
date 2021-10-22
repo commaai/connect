@@ -9,7 +9,7 @@ import {
   ACTION_PRIME_SUBSCRIBE_INFO,
   ACTION_UPDATE_DEVICE_ONLINE,
 } from '../actions/types';
-import { emptyDevice } from '../../utils';
+import { emptyDevice } from '../utils';
 
 function populateFetchedAt(d) {
   return {

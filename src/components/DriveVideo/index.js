@@ -12,7 +12,7 @@ import * as Sentry from '@sentry/react';
 import { video as VideoApi } from '@commaai/comma-api';
 
 import TimelineWorker from '../../timeline';
-import { seek } from '../../timeline/playback';
+import { seek, bufferVideo } from '../../timeline/playback';
 
 window.Hls = Hls;
 
@@ -140,12 +140,12 @@ class DriveVideo extends Component {
   isVideoBuffering() {
     const videoPlayer = this.videoPlayer.current;
     if (!videoPlayer || !this.visibleSegment() || !videoPlayer.getDuration()) {
-      TimelineWorker.bufferVideo(true);
+      this.props.dispatch(bufferVideo(true));
     }
 
     const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() > 30;
     if (!hasSufficientBuffer || videoPlayer.getInternalPlayer().readyState < 2) {
-      TimelineWorker.bufferVideo(true);
+      this.props.dispatch(bufferVideo(true));
     }
   }
 
@@ -160,7 +160,7 @@ class DriveVideo extends Component {
     // sanity check required for ios
     const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() > 30;
     if (hasSufficientBuffer && internalPlayer.readyState >= 2 && this.props.isBufferingVideo) {
-      TimelineWorker.bufferVideo(false);
+      this.props.dispatch(bufferVideo(false));
     }
 
     let newPlaybackRate = this.props.desiredPlaySpeed;
@@ -224,8 +224,8 @@ class DriveVideo extends Component {
           config={{ hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false } }}
           playbackRate={ playSpeed }
           onBuffer={ () => this.isVideoBuffering() }
-          onBufferEnd={ () => TimelineWorker.bufferVideo(false) }
-          onPlay={ () => TimelineWorker.bufferVideo(false) } />
+          onBufferEnd={ () => this.props.dispatch(bufferVideo(false)) }
+          onPlay={ () => this.props.dispatch(bufferVideo(false)) } />
       </div>
     );
   }

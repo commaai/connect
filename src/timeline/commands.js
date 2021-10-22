@@ -6,11 +6,7 @@ import {
   selectTimeRange as selectTimeRangeAction,
   updateDevice as updateDeviceAction,
   updateDevices as updateDevicesAction,
-  primeGetSubscriptionAction,
-  primeGetSubscribeInfoAction,
-  primeNavAction,
-  updateDeviceOnlineAction,
-} from './actions';
+} from '../actions';
 import Segments from './segments';
 import init from './startup';
 import * as Playback from './playback';
@@ -45,10 +41,6 @@ function play(speed) {
   store.dispatch(Playback.play(speed));
 }
 
-function bufferVideo(isBuffering) {
-  store.dispatch(Playback.bufferVideo(isBuffering));
-}
-
 async function hello(data) {
   await initAuthPromise;
   store.dispatch(selectDeviceAction(data.dongleId));
@@ -59,10 +51,6 @@ async function hello(data) {
   ]);
 
   return 'hello';
-}
-
-function selectDevice(dongleId) {
-  store.dispatch(selectDeviceAction(dongleId));
 }
 
 function updateDevices(devices) {
@@ -83,40 +71,13 @@ function selectLoop(data) {
   store.dispatch(Playback.selectLoop(startTime, duration));
 }
 
-function primeGetSubscription(dongleId, subscription) {
-  store.dispatch(primeGetSubscriptionAction(dongleId, subscription));
-}
-
-function primeGetSubscribeInfo(dongleId, subscribeInfo) {
-  store.dispatch(primeGetSubscribeInfoAction(dongleId, subscribeInfo));
-}
-
-function primeNav(nav = true) {
-  store.dispatch(primeNavAction(nav));
-}
-
-function updateDeviceOnline(dongleId, last_athena_ping, fetched_at) {
-  store.dispatch(updateDeviceOnlineAction(dongleId, last_athena_ping, fetched_at));
-}
-
-function stop() {
-  console.log('Stopping worker!');
-}
-
 export const commands = {
   close,
   play,
   pause,
-  bufferVideo,
   hello,
-  selectDevice,
   selectTimeRange,
   selectLoop,
   updateDevices,
   updateDevice,
-  stop,
-  primeGetSubscription,
-  primeGetSubscribeInfo,
-  primeNav,
-  updateDeviceOnline,
 };

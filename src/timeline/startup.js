@@ -3,8 +3,8 @@ import { devices as Devices, account as Account, billing as Billing } from '@com
 
 import * as Demo from '../demo';
 import store from '../store';
-import { ACTION_STARTUP_DATA } from './actions/types';
-import { primeGetSubscriptionAction, primeGetSubscribeInfoAction } from './actions';
+import { ACTION_STARTUP_DATA } from '../actions/types';
+import { primeGetSubscription, primeGetSubscribeInfo } from '../actions';
 import { getDongleID, getPrimeNav } from '../url';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
@@ -62,14 +62,14 @@ export default async function init() {
     if (device && (device.is_owner || profile.superuser)) {
       if (device.prime) {
         Billing.getSubscription(dongleId).then((subscription) => {
-          store.dispatch(primeGetSubscriptionAction(dongleId, subscription));
+          store.dispatch(primeGetSubscription(dongleId, subscription));
         }).catch((err) => {
           console.log(err);
           Sentry.captureException(err, { fingerprint: 'init_get_subscription' });
         });
       } else {
         Billing.getSubscribeInfo(dongleId).then((subscribeInfo) => {
-          store.dispatch(primeGetSubscribeInfoAction(dongleId, subscribeInfo));
+          store.dispatch(primeGetSubscribeInfo(dongleId, subscribeInfo));
         }).catch((err) => {
           console.log(err);
           Sentry.captureException(err, { fingerprint: 'init_get_subscribe_info' });

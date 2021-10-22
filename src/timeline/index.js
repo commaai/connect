@@ -60,24 +60,12 @@ export class TimelineInterface {
     return this.readyPromise;
   }
 
-  async stop() {
-    if (!this.hasInit) {
-      return;
-    }
-    await commands.stop();
-    this.hasInit = false;
-  }
-
   async play(speed = 1) {
     return commands.play(speed);
   }
 
   async pause() {
     return commands.pause();
-  }
-
-  async bufferVideo(isBuffering = true) {
-    return commands.bufferVideo(isBuffering);
   }
 
   async selectTimeRange(start, end) {
@@ -102,22 +90,6 @@ export class TimelineInterface {
 
   async updateDevice(device) {
     return commands.updateDevice(device,);
-  }
-
-  async primeGetSubscription(dongleId, subscription) {
-    return commands.primeGetSubscription(dongleId, subscription);
-  }
-
-  async primeGetSubscribeInfo(dongleId, subscription) {
-    return commands.primeGetSubscribeInfo(dongleId, subscription);
-  }
-
-  async primeNav(nav) {
-    return commands.primeNav(nav);
-  }
-
-  async updateDeviceOnline(dongleId, last_athena_ping, fetched_at) {
-    return commands.updateDeviceOnline(dongleId, last_athena_ping, fetched_at);
   }
 
   setState(state) {

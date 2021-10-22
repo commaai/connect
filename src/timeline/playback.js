@@ -158,7 +158,7 @@ export function selectLoop(startTime, duration) {
 }
 
 // update video buffering state
-export function bufferVideo(buffering = true) {
+export function bufferVideo(buffering) {
   return {
     type: ACTION_BUFFER_VIDEO,
     buffering

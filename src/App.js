@@ -55,10 +55,6 @@ class App extends Component {
     return await this.auth();
   }
 
-  componentWillUnmount() {
-    TimelineWorker.stop();
-  }
-
   async auth() {
     if (window.location) {
       if (window.location.pathname === AuthConfig.AUTH_PATH) {

@@ -59,19 +59,22 @@ export function selectDevice(dongleId) {
       device = state.device;
     }
 
-    Timelineworker.selectDevice(dongleId).then(() => {
-      dispatch(selectRange(null, null, false))
-      if (device && !device.shared) {
-        dispatch(primeFetchSubscription(dongleId, device));
-        dispatch(fetchDeviceOnline(dongleId));
-      }
-
-      const curPath = document.location.pathname;
-      const desiredPath = urlForState(dongleId, state.zoom.start, state.zoom.end, null);
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
+    dispatch({
+      type: Types.ACTION_SELECT_DEVICE,
+      dongleId,
     });
+
+    dispatch(selectRange(null, null, false))
+    if (device && !device.shared) {
+      dispatch(primeFetchSubscription(dongleId, device));
+      dispatch(fetchDeviceOnline(dongleId));
+    }
+
+    const curPath = document.location.pathname;
+    const desiredPath = urlForState(dongleId, state.zoom.start, state.zoom.end, null);
+    if (curPath !== desiredPath) {
+      dispatch(push(desiredPath));
+    }
   };
 }
 
@@ -82,14 +85,14 @@ export function primeFetchSubscription(dongleId, device) {
     if ((device && device.is_owner) || state.profile.superuser) {
       if (device.prime) {
         Billing.getSubscription(dongleId).then((subscription) => {
-          Timelineworker.primeGetSubscription(dongleId, subscription);
+          dispatch(primeGetSubscription(dongleId, subscription));
         }).catch((err) => {
           console.log(err);
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' });
         });
       } else {
         Billing.getSubscribeInfo(dongleId).then((subscribeInfo) => {
-          Timelineworker.primeGetSubscribeInfo(dongleId, subscribeInfo);
+          dispatch(primeGetSubscribeInfo(dongleId, subscribeInfo));
         }).catch((err) => {
           console.log(err);
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' });
@@ -104,7 +107,10 @@ export function primeNav(nav = true, allowPathChange = true) {
     const state = getState();
 
     if (state.primeNav != nav) {
-      Timelineworker.primeNav(nav);
+      dispatch({
+        type: Types.ACTION_PRIME_NAV,
+        primeNav: nav,
+      });
     }
 
     const curPath = document.location.pathname;
@@ -119,9 +125,56 @@ export function fetchDeviceOnline(dongleId) {
   return (dispatch, getState) => {
     DevicesApi.fetchDevice(dongleId).then((resp) => {
       if (resp.dongle_id === dongleId) {
-        Timelineworker.updateDeviceOnline(dongleId, resp.last_athena_ping, parseInt(Date.now() / 1000));
+        dispatch(updateDeviceOnline(dongleId, resp.last_athena_ping, parseInt(Date.now() / 1000)));
       }
     }).catch(console.log);
+  };
+}
+
+export function updateDevices(devices) {
+  return {
+    type: Types.ACTION_UPDATE_DEVICES,
+    devices,
+  };
+}
+
+export function updateDevice(device) {
+  return {
+    type: Types.ACTION_UPDATE_DEVICE,
+    device,
+  };
+}
+
+export function selectTimeRange(start, end) {
+  return {
+    type: Types.ACTION_SELECT_TIME_RANGE,
+    start,
+    end
+  };
+}
+
+export function primeGetSubscription(dongleId, subscription) {
+  return {
+    type: Types.ACTION_PRIME_SUBSCRIPTION,
+    dongleId,
+    subscription,
+  };
+}
+
+export function primeGetSubscribeInfo(dongleId, subscribeInfo) {
+  return {
+    type: Types.ACTION_PRIME_SUBSCRIBE_INFO,
+    dongleId,
+    subscribeInfo,
+  };
+}
+
+export function updateDeviceOnline(dongleId, last_athena_ping, fetched_at) {
+  return {
+    type: Types.ACTION_UPDATE_DEVICE_ONLINE,
+    dongleId,
+    last_athena_ping,
+    fetched_at,
   };
 }
 
