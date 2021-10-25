@@ -1,10 +1,6 @@
-import { currentOffset } from './playback';
+import * as Types from '../actions/types';
 
-const ACTION_UPDATE_SEGMENTS = 'update_segments';
-const ACTION_LOAD_SEGMENT_METADATA = 'load_segment_metadata';
-const ACTION_SEGMENT_METADATA = 'segment_metadata';
-
-const SEGMENT_LENGTH = 1000 * 60;
+export const SEGMENT_LENGTH = 1000 * 60;
 
 /*
 segments look like, but can contain additional data if they want
@@ -15,7 +11,22 @@ for example, caching url metadata
 }
 */
 
-function getCurrentSegment(state, o) {
+function currentOffset(state) {
+  let playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
+  let offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
+
+  if (state.loop && state.loop.startTime) {
+    // respect the loop
+    const loopOffset = state.loop.startTime - state.start;
+    if (offset > loopOffset + state.loop.duration) {
+      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
+    }
+  }
+
+  return offset;
+}
+
+export function getCurrentSegment(state, o) {
   const offset = o === undefined ? currentOffset(state) : o;
   if (!state.segments) {
     return null;
@@ -54,7 +65,7 @@ function getCurrentSegment(state, o) {
   return null;
 }
 
-function getNextSegment(state, o) {
+export function getNextSegment(state, o) {
   const offset = o === undefined ? currentOffset(state) : o;
   if (!state.segments) {
     return null;
@@ -240,10 +251,10 @@ function segmentsFromMetadata(segmentsData) {
   return segments;
 }
 
-function reducer(_state, action) {
+export function reducer(_state, action) {
   let state = { ..._state };
   switch (action.type) {
-    case ACTION_LOAD_SEGMENT_METADATA:
+    case Types.ACTION_LOAD_SEGMENT_METADATA:
       state = {
         ...state,
         segmentData: {
@@ -254,14 +265,14 @@ function reducer(_state, action) {
         }
       };
       break;
-    case ACTION_SEGMENT_METADATA:
+    case Types.ACTION_SEGMENT_METADATA:
       state = {
         ...state,
         segmentData: action.data,
         segments: action.segments
       };
       break;
-    case ACTION_UPDATE_SEGMENTS:
+    case Types.ACTION_UPDATE_SEGMENTS:
       state = {
         ...state,
       }
@@ -288,30 +299,30 @@ function reducer(_state, action) {
   return state;
 }
 
-function updateSegments() {
+export function updateSegments() {
   return {
-    type: ACTION_UPDATE_SEGMENTS
+    type: Types.ACTION_UPDATE_SEGMENTS
   };
 }
 
-function fetchSegmentMetadata(start, end, promise) {
+export function fetchSegmentMetadata(start, end, promise) {
   return {
-    type: ACTION_LOAD_SEGMENT_METADATA,
+    type: Types.ACTION_LOAD_SEGMENT_METADATA,
     start,
     end,
     promise
   };
 }
 
-function insertSegmentMetadata(data) {
+export function insertSegmentMetadata(data) {
   return {
-    type: ACTION_SEGMENT_METADATA,
+    type: Types.ACTION_SEGMENT_METADATA,
     segments: segmentsFromMetadata(data),
     data
   };
 }
 
-function parseSegmentMetadata(state, _segments) {
+export function parseSegmentMetadata(state, _segments) {
   const routeStartTimes = {};
   let segments = _segments;
   segments = segments.map((_segment) => {
@@ -372,7 +383,7 @@ function parseSegmentMetadata(state, _segments) {
   };
 }
 
-function hasSegmentMetadata(state) {
+export function hasSegmentMetadata(state) {
   if (!state) {
     return false;
   }
@@ -403,28 +414,3 @@ function hasSegmentMetadata(state) {
 
   return true;
 }
-
-function hasCameraAtOffset(segment, offset) {
-  return segment.videoAvailableBetweenOffsets.some((int) => offset >= int[0] && offset <= int[1]);
-}
-
-const API = {
-  // helpers
-  getCurrentSegment,
-  getNextSegment,
-  hasSegmentMetadata,
-  parseSegmentMetadata,
-  hasCameraAtOffset,
-
-  // actions
-  updateSegments,
-  fetchSegmentMetadata,
-  insertSegmentMetadata,
-
-  // constants
-  SEGMENT_LENGTH,
-
-  // reducer
-  reducer
-};
-export default API;

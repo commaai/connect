@@ -9,8 +9,11 @@ import initialState from './initialState';
 
 export const history = createBrowserHistory();
 
-const store = Redux.createStore(
-  connectRouter(history)(reduceReducers(initialState, ...reducers)),
-  composeEnhancers(Redux.applyMiddleware(thunk, routerMiddleware(history)))
-);
+let store = null;
+if (!store) {
+  store = Redux.createStore(
+    connectRouter(history)(reduceReducers(initialState, ...reducers)),
+    composeEnhancers(Redux.applyMiddleware(thunk, routerMiddleware(history)))
+  );
+}
 export default store;

@@ -13,7 +13,7 @@ import Measure from 'react-measure';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import Segments from '../../timeline/segments';
+import { getCurrentSegment } from '../../timeline/segments';
 import { selectRange } from '../../actions';
 import Colors from '../../colors';
 import { seek, currentOffset } from '../../timeline/playback';
@@ -358,7 +358,7 @@ class Timeline extends Component {
           <Measure bounds onResize={(rect) => this.setState({ thumbnail: rect.bounds })}>
             { (options) => (
               <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
-                <Thumbnails getCurrentSegment={ (seg) => Segments.getCurrentSegment(this.props, seg) }
+                <Thumbnails getCurrentSegment={ (seg) => getCurrentSegment(this.props, seg) }
                   percentToOffset={this.percentToOffset} thumbnail={thumbnail} className={classes.thumbnail}
                   hasRuler={hasRuler} />
               </div>

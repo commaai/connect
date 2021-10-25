@@ -10,9 +10,6 @@ const winOpenMock = jest.fn(() => ({
 }));
 window.open = winOpenMock;
 
-jest.mock('../../timeline', () => ({
-}));
-
 const currentOffsetMock = jest.fn();
 currentOffset = currentOffsetMock;
 

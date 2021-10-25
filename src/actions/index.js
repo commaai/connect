@@ -6,7 +6,7 @@ import { billing as Billing, devices as DevicesApi, drives as Drives } from '@co
 import * as Types from './types';
 import { getDongleID } from '../url';
 import { resetPlayback, selectLoop, currentOffset } from '../timeline/playback'
-import Segments from '../timeline/segments';
+import { hasSegmentMetadata, fetchSegmentMetadata, parseSegmentMetadata, insertSegmentMetadata } from '../timeline/segments';
 import * as Demo from '../demo';
 
 const demoSegments = require('../demo/segments.json');
@@ -124,6 +124,9 @@ export function primeFetchSubscription(dongleId, device, profile) {
 export function primeNav(nav = true, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
+    if (!state.dongleId) {
+      return;
+    }
 
     if (state.primeNav != nav) {
       dispatch({
@@ -159,7 +162,7 @@ export function checkSegmentMetadata() {
     if (!state.dongleId) {
       return;
     }
-    if (Segments.hasSegmentMetadata(state)) {
+    if (hasSegmentMetadata(state)) {
       // already has metadata, don't bother
       return;
     }
@@ -174,7 +177,7 @@ export function checkSegmentMetadata() {
     } else {
       segmentsRequest = Drives.getSegmentMetadata(start, end, dongleId);
     }
-    dispatch(Segments.fetchSegmentMetadata(start, end));
+    dispatch(fetchSegmentMetadata(start, end));
 
     segmentsRequest.then((segmentData) => {
       state = getState();
@@ -183,8 +186,8 @@ export function checkSegmentMetadata() {
         return;
       }
 
-      segmentData = Segments.parseSegmentMetadata(state, segmentData);
-      dispatch(Segments.insertSegmentMetadata(segmentData));
+      segmentData = parseSegmentMetadata(state, segmentData);
+      dispatch(insertSegmentMetadata(segmentData));
 
       segmentsRequest = null;
     }).catch((err) => {

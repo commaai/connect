@@ -3,9 +3,14 @@ import { push } from 'connected-react-router';
 import window from 'global/window';
 import { selectRange } from './index';
 
-jest.mock('connected-react-router', () => ({
-  push: jest.fn()
-}));
+jest.mock('connected-react-router', () => {
+  const originalModule = jest.requireActual('connected-react-router');
+  return {
+    __esModule: true,
+    ...originalModule,
+    push: jest.fn(),
+  };
+});
 
 describe('timeline actions', () => {
   it('should read dongleid from url when editing zoom', () => {
