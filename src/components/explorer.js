@@ -16,12 +16,14 @@ import IosPwaPopup from './IosPwaPopup';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import AppDrawer from './AppDrawer';
 
-import { selectRange, selectDevice, primeNav, updateDevice } from '../actions';
+import { selectRange, selectTimeRange, selectDevice, primeNav, updateDevice } from '../actions';
 import { getDongleID, getZoom, getPrimeNav } from '../url';
 import ResizeHandler from './ResizeHandler';
 import Colors from '../colors';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { play, pause } from '../timeline/playback';
+import init from '../timeline/startup';
+import * as Demo from '../demo';
 
 const styles = (theme) => ({
   base: {
@@ -78,11 +80,6 @@ class ExplorerApp extends Component {
     this.closePair = this.closePair.bind(this);
   }
 
-  componentWillMount() {
-    this.componentDidUpdate({})
-    window.scrollTo({ top: 0 });
-  }
-
   componentDidUpdate(prevProps, prevState) {
     const { settingDongle } = this.state;
     const { pathname, dongleId, expanded } = this.props;
@@ -119,6 +116,14 @@ class ExplorerApp extends Component {
 
   async componentDidMount() {
     const { pairLoading, pairError, pairDongleId } = this.state;
+
+    window.scrollTo({ top: 0 });  // for ios header
+
+    if (Demo.isDemo()) {
+      this.props.dispatch(selectTimeRange(1564443025000, Date.now()));
+    }
+    await init();
+
     let pairToken;
     try {
       pairToken = await localforage.getItem('pairToken');
@@ -159,6 +164,8 @@ class ExplorerApp extends Component {
         this.setState({ pairDongleId: null, pairLoading: false, pairError: `Error: ${msg}, please try again` });
       }
     }
+
+    this.componentDidUpdate({})
   }
 
   async closePair() {

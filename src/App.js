@@ -18,9 +18,6 @@ import AnonymousLanding from './components/anonymous';
 import { getDongleID } from './url';
 import store, { history } from './store';
 import { initGoogleAnalytics } from './analytics';
-import * as Demo from './demo';
-import { selectTimeRange } from './actions';
-import init from './timeline/startup';
 
 initGoogleAnalytics(history);
 
@@ -47,16 +44,6 @@ class App extends Component {
   }
 
   async componentDidMount() {
-    await this.auth();
-    await init();
-
-    if (Demo.isDemo()) {
-      this.props.dispatch(selectTimeRange(1564443025000, Date.now()));
-    }
-    this.setState({ initialized: true });
-  }
-
-  async auth() {
     if (window.location) {
       if (window.location.pathname === AuthConfig.AUTH_PATH) {
         try {
@@ -78,6 +65,8 @@ class App extends Component {
       Billing.configure(token);
       Athena.configure(token);
     }
+
+    this.setState({ initialized: true });
   }
 
   redirectLink() {
