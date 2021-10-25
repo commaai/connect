@@ -110,7 +110,7 @@ describe('playback', () => {
     expect(state.desiredPlaySpeed).toEqual(1);
 
     // claim the video is buffering
-    state = Playback.reducer(state, Playback.bufferVideo());
+    state = Playback.reducer(state, Playback.bufferVideo(true));
     expect(state.desiredPlaySpeed).toEqual(1);
     expect(state.isBufferingVideo).toEqual(true);
 

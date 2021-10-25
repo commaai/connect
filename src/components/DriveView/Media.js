@@ -147,11 +147,11 @@ class Media extends Component {
 
   openInCabana() {
     const { visibleSegment, loop, start } = this.props;
-    const currentOffset = currentOffset();
+    const offset = currentOffset();
     const params = {
       route: visibleSegment.route,
       url: visibleSegment.url,
-      seekTime: Math.floor((currentOffset - visibleSegment.routeOffset) / 1000)
+      seekTime: Math.floor((offset - visibleSegment.routeOffset) / 1000)
     };
     const routeStartTime = (start + visibleSegment.routeOffset);
 

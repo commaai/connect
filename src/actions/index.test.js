@@ -19,10 +19,8 @@ describe('timeline actions', () => {
     const actionThunk = selectRange(123, 1234);
 
     getState.mockImplementationOnce(() => ({
-      workerState: {
-        dongleId: 'statedongle',
-        loop: {},
-      },
+      dongleId: 'statedongle',
+      loop: {},
       zoom: {},
     }));
     window.history.replaceState({}, 'test page', '/0000aaaa0000aaaa');
