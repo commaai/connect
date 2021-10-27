@@ -2,10 +2,8 @@ import * as Sentry from '@sentry/react';
 import { devices as Devices, account as Account } from '@commaai/comma-api';
 
 import * as Demo from '../demo';
-import store from '../store';
 import { ACTION_STARTUP_DATA } from '../actions/types';
 import { primeFetchSubscription } from '../actions';
-import { getDongleID, getPrimeNav } from '../url';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 const demoProfile = require('../demo/profile.json');
@@ -49,23 +47,25 @@ async function initDevices() {
   return devices;
 }
 
-export default async function init() {
-  const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
+export default function init() {
+  return async (dispatch, getState) => {
+    const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
+    const state = getState();
 
-  if (profile) {
-    Sentry.setUser({ id: profile.id });
-  }
+    if (profile) {
+      Sentry.setUser({ id: profile.id });
+    }
 
-  if (devices.length > 0) {
-    const dongleId = getDongleID(window.location.pathname) || devices[0].dongle_id;
-    const device = devices.find((dev) => dev.dongle_id === dongleId);
-    store.dispatch(primeFetchSubscription(dongleId, device, profile));
-  }
+    if (devices.length > 0) {
+      const dongleId = state.dongleId || devices[0].dongle_id;
+      const device = devices.find((dev) => dev.dongle_id === dongleId);
+      dispatch(primeFetchSubscription(dongleId, device, profile));
+    }
 
-  store.dispatch({
-    type: ACTION_STARTUP_DATA,
-    profile,
-    devices,
-    primeNav: getPrimeNav(window.location.pathname),
-  });
+    dispatch({
+      type: ACTION_STARTUP_DATA,
+      profile,
+      devices,
+    });
+  };
 }

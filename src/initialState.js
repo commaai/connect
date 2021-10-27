@@ -1,3 +1,4 @@
+import { getDongleID, getZoom, getPrimeNav } from './url';
 
 function getDefaultStartDate() {
   const d = new Date();
@@ -14,14 +15,22 @@ function getDefaultEndDate() {
   return d.getTime();
 }
 
-module.exports = {
+function getDefaultZoom() {
+  const zoom = getZoom(window.location.pathname);
+  return {
+    ...zoom,
+    expanded: (zoom.start !== null && zoom.end !== null),
+  };
+}
+
+export default {
   start: getDefaultStartDate(),
   end: getDefaultEndDate(),
 
   // dongleId: '99c94dc769b5d96e',
   // dongleId: 'ff83f397542ab647',
   // dongleId: 'f1b4c567731f4a1b',
-  dongleId: null,
+  dongleId: getDongleID(window.location.pathname),
 
   route: false,
   segment: 0,
@@ -57,12 +66,8 @@ module.exports = {
 
   profile: null,
   devices: null,
-  primeNav: false,
+  primeNav: getPrimeNav(window.location.pathname),
   subscription: null,
 
-  zoom: {
-    start: 0,
-    end: 0,
-    expanded: false,
-  }
+  zoom: getDefaultZoom(),
 };

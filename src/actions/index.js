@@ -4,8 +4,7 @@ import document from 'global/document';
 import { billing as Billing, devices as DevicesApi, drives as Drives } from '@commaai/comma-api';
 
 import * as Types from './types';
-import { getDongleID } from '../url';
-import { resetPlayback, selectLoop, currentOffset } from '../timeline/playback'
+import { resetPlayback, selectLoop } from '../timeline/playback'
 import { hasSegmentMetadata, fetchSegmentMetadata, parseSegmentMetadata, insertSegmentMetadata } from '../timeline/segments';
 import * as Demo from '../demo';
 
@@ -28,8 +27,7 @@ export function selectRange(start, end, allowPathChange = true) {
       dispatch(primeNav(false, false));
     }
     const curPath = document.location.pathname;
-    const dongleId = getDongleID(curPath) || state.dongleId;
-    const desiredPath = urlForState(dongleId, start, end, false);
+    const dongleId = state.dongleId;
 
     if (state.zoom.start !== start || state.zoom.end !== end) {
       dispatch({
@@ -48,6 +46,7 @@ export function selectRange(start, end, allowPathChange = true) {
       dispatch(selectLoop(start, end - start));
     }
 
+    const desiredPath = urlForState(dongleId, start, end, false);
     if (allowPathChange && curPath !== desiredPath) {
       dispatch(push(desiredPath));
     }

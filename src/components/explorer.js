@@ -16,13 +16,12 @@ import IosPwaPopup from './IosPwaPopup';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import AppDrawer from './AppDrawer';
 
-import { selectRange, selectTimeRange, selectDevice, primeNav, updateDevice } from '../actions';
-import { getDongleID, getZoom, getPrimeNav } from '../url';
+import { selectTimeRange, selectDevice, updateDevice } from '../actions';
 import ResizeHandler from './ResizeHandler';
 import Colors from '../colors';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { play, pause } from '../timeline/playback';
-import init from '../timeline/startup';
+import init from '../actions/startup';
 import * as Demo from '../demo';
 
 const styles = (theme) => ({
@@ -81,29 +80,10 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { settingDongle } = this.state;
     const { pathname, dongleId, expanded } = this.props;
-
-    const zoom = getZoom(pathname);
-    const pathDongleId = getDongleID(pathname);
-
-    if (getPrimeNav(pathname)) {
-      this.props.dispatch(primeNav());
-    } else {
-      this.props.dispatch(selectRange(zoom.start, zoom.end));
-    }
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
-    }
-
-    if (pathDongleId) {
-      if (!settingDongle && dongleId !== pathDongleId) {
-        this.setState({ settingDongle: true });
-        this.props.dispatch(selectDevice(pathDongleId));
-      } else if (settingDongle && dongleId === pathDongleId) {
-        this.setState({ settingDongle: false });
-      }
     }
 
     if (!prevProps.expanded && expanded) {
@@ -122,7 +102,7 @@ class ExplorerApp extends Component {
     if (Demo.isDemo()) {
       this.props.dispatch(selectTimeRange(1564443025000, Date.now()));
     }
-    await init();
+    this.props.dispatch(init());
 
     let pairToken;
     try {
