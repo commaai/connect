@@ -27,8 +27,7 @@ export default function reducer(_state, action) {
       if (!state.dongleId && devices.length > 0) {
         state = {
           ...state,
-          dongleId: devices[0].dongle_id,
-          device: devices[0]
+          device: devices[0],
         };
       } else {
         state = {

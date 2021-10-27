@@ -3,7 +3,7 @@ import { devices as Devices, account as Account } from '@commaai/comma-api';
 
 import * as Demo from '../demo';
 import { ACTION_STARTUP_DATA } from '../actions/types';
-import { primeFetchSubscription, checkSegmentMetadata } from '../actions';
+import { primeFetchSubscription, checkSegmentMetadata, selectDevice } from '../actions';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 const demoProfile = require('../demo/profile.json');
@@ -49,20 +49,27 @@ async function initDevices() {
 
 export default function init() {
   return async (dispatch, getState) => {
+    let state = getState();
+    if (state.dongleId) {
+      dispatch(checkSegmentMetadata());
+    }
+
     const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
-    const state = getState();
+    state = getState();
 
     if (profile) {
       Sentry.setUser({ id: profile.id });
     }
 
     if (devices.length > 0) {
+      if (!state.dongleId) {
+        dispatch(selectDevice(devices[0].dongle_id));
+      }
       const dongleId = state.dongleId || devices[0].dongle_id;
       const device = devices.find((dev) => dev.dongle_id === dongleId);
       dispatch(primeFetchSubscription(dongleId, device, profile));
     }
 
-    dispatch(checkSegmentMetadata());
     dispatch({
       type: ACTION_STARTUP_DATA,
       profile,
