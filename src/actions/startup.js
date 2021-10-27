@@ -3,7 +3,7 @@ import { devices as Devices, account as Account } from '@commaai/comma-api';
 
 import * as Demo from '../demo';
 import { ACTION_STARTUP_DATA } from '../actions/types';
-import { primeFetchSubscription } from '../actions';
+import { primeFetchSubscription, checkSegmentMetadata } from '../actions';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 const demoProfile = require('../demo/profile.json');
@@ -62,6 +62,7 @@ export default function init() {
       dispatch(primeFetchSubscription(dongleId, device, profile));
     }
 
+    dispatch(checkSegmentMetadata());
     dispatch({
       type: ACTION_STARTUP_DATA,
       profile,
