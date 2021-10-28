@@ -23,6 +23,23 @@ function getDefaultZoom() {
   };
 }
 
+function getDefaultLoop() {
+  // in time instead of offset
+  // this makes it so that the timespan can change without this changing
+  // thats helpful to shared links and other things probably...
+  const zoom = getZoom(window.location.pathname);
+  if (zoom.start && zoom.end) {
+    return {
+      startTime: zoom.start,
+      duration: zoom.end - zoom.start,
+    };
+  }
+  return {
+    startTime: null,
+    duration: null,
+  }
+}
+
 export default {
   start: getDefaultStartDate(),
   end: getDefaultEndDate(),
@@ -53,16 +70,7 @@ export default {
   //   length: 214000,
   //   segments: 4
   // }],
-
   segmentData: null,
-
-  loop: {
-    // in time instead of offset
-    // this makes it so that the timespan can change without this changing
-    // thats helpful to shared links and other things probably...
-    startTime: null,
-    duration: null
-  },
 
   profile: null,
   devices: null,
@@ -70,4 +78,5 @@ export default {
   subscription: null,
 
   zoom: getDefaultZoom(),
+  loop: getDefaultLoop(),
 };
