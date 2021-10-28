@@ -66,8 +66,10 @@ export default {
 
   profile: null,
   devices: null,
+
   primeNav: getPrimeNav(window.location.pathname),
   subscription: null,
+  subscribeInfo: null,
 
   filter: getDefaultFilter(),
   zoom: getDefaultZoom(),

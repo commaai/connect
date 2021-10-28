@@ -132,6 +132,7 @@ export default function reducer(_state, action) {
       state = {
         ...state,
         subscription: action.subscription,
+        subscribeInfo: null,
       };
       break;
     case ACTION_PRIME_SUBSCRIBE_INFO:
@@ -141,6 +142,7 @@ export default function reducer(_state, action) {
       state = {
         ...state,
         subscribeInfo: action.subscribeInfo,
+        subscription: null,
       };
       break;
     default:

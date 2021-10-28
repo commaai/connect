@@ -138,11 +138,11 @@ class TimeDisplay extends Component {
 
   getDisplayTime() {
     const offset = currentOffset();
-    const { start } = this.props;
-    if (!Number.isFinite(start)) {
+    const { filter } = this.props;
+    if (!Number.isFinite(filter.start)) {
       return '...';
     }
-    const now = new Date(offset + start);
+    const now = new Date(offset + filter.start);
     const dateString = fecha.format(now, 'ddd, D MMM @ HH:mm:ss');
 
     return dateString;
@@ -243,16 +243,10 @@ class TimeDisplay extends Component {
   }
 }
 
-TimeDisplay.propTypes = {
-  classes: PropTypes.object.isRequired,
-  desiredPlaySpeed: PropTypes.number.isRequired,
-  start: PropTypes.number.isRequired
-};
-
 const stateToProps = Obstruction({
   expanded: 'zoom.expanded',
   desiredPlaySpeed: 'desiredPlaySpeed',
-  start: 'start',
+  filter: 'filter',
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));
