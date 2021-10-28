@@ -144,31 +144,16 @@ class TimeSelect extends Component {
   }
 
   lastWeekText() {
-    if (!this.props.filter.start || !this.props.filter.end) {
-      return '--';
-    }
-
     const weekAgo = Date.now() - (1000 * 60 * 60 * 24 * 7);
-    return `Last Week${
-      fecha.format(new Date(weekAgo), ' (MMM Do - ')
-    }${fecha.format(new Date(), 'MMM Do)')}`;
+    return `Last Week${fecha.format(new Date(weekAgo), ' (M/D - ')}${fecha.format(new Date(), 'M/D)')}`;
   }
 
   last2WeeksText() {
-    if (!this.props.filter.start || !this.props.filter.end) {
-      return '--';
-    }
-
     const twoWeeksAgo = Date.now() - (1000 * 60 * 60 * 24 * 14);
-    return `2 Weeks${
-      fecha.format(new Date(twoWeeksAgo), ' (M/D - ')
-    }${fecha.format(new Date(), 'M/D)')}`;
+    return `2 Weeks${fecha.format(new Date(twoWeeksAgo), ' (M/D - ')}${fecha.format(new Date(), 'M/D)')}`;
   }
 
   last24HoursText() {
-    if (!this.props.filter.start || !this.props.filter.end) {
-      return '--';
-    }
     return 'Last 24 Hours';
   }
 
