@@ -16,7 +16,7 @@ import IosPwaPopup from './IosPwaPopup';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import AppDrawer from './AppDrawer';
 
-import { selectTimeRange, selectDevice, updateDevice } from '../actions';
+import { selectTimeFilter, selectDevice, updateDevice } from '../actions';
 import ResizeHandler from './ResizeHandler';
 import Colors from '../colors';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
@@ -100,7 +100,7 @@ class ExplorerApp extends Component {
     window.scrollTo({ top: 0 });  // for ios header
 
     if (Demo.isDemo()) {
-      this.props.dispatch(selectTimeRange(1564443025000, Date.now()));
+      this.props.dispatch(selectTimeFilter(1564443025000, Date.now()));
     }
     this.props.dispatch(init());
 

@@ -1,18 +1,13 @@
 import { getDongleID, getZoom, getPrimeNav } from './url';
 
-function getDefaultStartDate() {
+function getDefaultFilter() {
   const d = new Date();
   d.setHours(d.getHours() + 1, 0, 0, 0);
 
-  return (new Date(d.getTime() - 1000 * 60 * 60 * 24 * 14)).getTime();
-}
-
-function getDefaultEndDate() {
-  const d = new Date();
-  d.setHours(d.getHours() + 1, 0, 0, 0);
-
-  // return (new Date(d.getTime() - 1000 * 60 * 60 * 36)).getTime();
-  return d.getTime();
+  return {
+    start: (new Date(d.getTime() - 1000 * 60 * 60 * 24 * 14)).getTime(),
+    end: d.getTime(),
+  }
 }
 
 function getDefaultZoom() {
@@ -41,9 +36,6 @@ function getDefaultLoop() {
 }
 
 export default {
-  start: getDefaultStartDate(),
-  end: getDefaultEndDate(),
-
   // dongleId: '99c94dc769b5d96e',
   // dongleId: 'ff83f397542ab647',
   // dongleId: 'f1b4c567731f4a1b',
@@ -77,6 +69,7 @@ export default {
   primeNav: getPrimeNav(window.location.pathname),
   subscription: null,
 
+  filter: getDefaultFilter(),
   zoom: getDefaultZoom(),
   loop: getDefaultLoop(),
 };

@@ -17,7 +17,7 @@ function currentOffset(state) {
 
   if (state.loop && state.loop.startTime) {
     // respect the loop
-    const loopOffset = state.loop.startTime - state.start;
+    const loopOffset = state.loop.startTime - state.filter.start;
     if (offset > loopOffset + state.loop.duration) {
       offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
     }
@@ -327,7 +327,7 @@ export function parseSegmentMetadata(state, _segments) {
   let segments = _segments;
   segments = segments.map((_segment) => {
     const segment = _segment;
-    segment.offset = Math.round(segment.start_time_utc_millis) - state.start;
+    segment.offset = Math.round(segment.start_time_utc_millis) - state.filter.start;
     if (!routeStartTimes[segment.canonical_route_name]) {
       const segmentNum = Number(segment.canonical_name.split('--')[2]);
       segment.segment = segmentNum;
@@ -347,9 +347,6 @@ export function parseSegmentMetadata(state, _segments) {
     segment.events.forEach((_event) => {
       const event = _event;
       event.timestamp = segment.start_time_utc_millis + event.offset_millis;
-      // segment.start_time_utc_millis + event.offset_millis
-      // segment.start_time_utc_millis - state.start + state.start
-
       event.canonical_segment_name = segment.canonical_name;
 
       if (event.data && event.data.is_planned) {
@@ -376,9 +373,9 @@ export function parseSegmentMetadata(state, _segments) {
   });
 
   return {
-    start: state.start,
+    start: state.filter.start,
     dongleId: state.dongleId,
-    end: state.end,
+    end: state.filter.end,
     segments
   };
 }
@@ -403,11 +400,11 @@ export function hasSegmentMetadata(state) {
     console.log('Bad dongle id');
     return false;
   }
-  if (state.start < state.segmentData.start) {
+  if (state.filter.start < state.segmentData.start) {
     console.log('Bad start offset');
     return false;
   }
-  if (state.end > state.segmentData.end) {
+  if (state.filter.end > state.segmentData.end) {
     console.log('Bad end offset');
     return false;
   }

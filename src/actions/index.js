@@ -37,6 +37,8 @@ export function selectRange(start, end, allowPathChange = true) {
       });
     }
 
+    dispatch(checkSegmentMetadata());
+
     if (!state.loop.startTime
       || !state.loop.duration
       || state.loop.startTime < start
@@ -169,19 +171,19 @@ export function checkSegmentMetadata() {
       return;
     }
     console.log('We need to update the segment metadata...');
-    const { dongleId, start, end } = state;
+    const { dongleId, filter } = state;
 
     if (Demo.isDemo()) {
       segmentsRequest = Promise.resolve(demoSegments);
     } else {
-      segmentsRequest = Drives.getSegmentMetadata(start, end, dongleId);
+      segmentsRequest = Drives.getSegmentMetadata(filter.start, filter.end, dongleId);
     }
-    dispatch(fetchSegmentMetadata(start, end));
+    dispatch(fetchSegmentMetadata(filter.start, filter.end));
 
     segmentsRequest.then((segmentData) => {
       state = getState();
-      if (state.start !== start || state.end !== end || state.dongleId !== dongleId) {
-        checkSegmentMetadata(state);
+      if (state.filter.start !== filter.start || state.filter.end !== filter.end || state.dongleId !== dongleId) {
+        checkSegmentMetadata();
         return;
       }
 
@@ -211,12 +213,16 @@ export function updateDevice(device) {
   };
 }
 
-export function selectTimeRange(start, end) {
-  return {
-    type: Types.ACTION_SELECT_TIME_RANGE,
-    start,
-    end
-  };
+export function selectTimeFilter(start, end) {
+  return (dispatch, getState) => {
+    dispatch({
+      type: Types.ACTION_SELECT_TIME_FILTER,
+      start,
+      end
+    });
+
+    dispatch(checkSegmentMetadata());
+  }
 }
 
 export function primeGetSubscription(dongleId, subscription) {

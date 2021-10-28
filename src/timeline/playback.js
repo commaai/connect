@@ -14,7 +14,7 @@ export function currentOffset(state = null) {
 
   if (state.loop && state.loop.startTime) {
     // respect the loop
-    const loopOffset = state.loop.startTime - state.start;
+    const loopOffset = state.loop.startTime - state.filter.start;
     if (offset > loopOffset + state.loop.duration) {
       offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
     }
@@ -27,7 +27,7 @@ export function reducer(_state, action) {
   let state = { ..._state };
   let loopOffset = null;
   if (state.loop && state.loop.startTime !== null) {
-    loopOffset = state.loop.startTime - state.start;
+    loopOffset = state.loop.startTime - state.filter.start;
   }
   switch (action.type) {
     case Types.ACTION_SEEK:
@@ -80,8 +80,10 @@ export function reducer(_state, action) {
         }
       };
       if (action.duration > 0 && action.startTime > 0) {
-        state.start = Math.min(action.startTime, state.start);
-        state.end = Math.max(action.startTime + action.duration, state.end);
+        state.filter = {
+          start: Math.min(action.startTime, state.filter.start),
+          end: Math.max(action.startTime + action.duration, state.filter.end),
+        }
       }
       break;
     case Types.ACTION_BUFFER_VIDEO:
@@ -109,7 +111,7 @@ export function reducer(_state, action) {
   const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
   // normalize over loop
   if (state.loop && state.loop.startTime !== null) {
-    loopOffset = state.loop.startTime - state.start;
+    loopOffset = state.loop.startTime - state.filter.start;
     // has loop, trap offset within the loop
     if (offset < loopOffset) {
       state.startTime = Date.now();

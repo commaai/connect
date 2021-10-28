@@ -1,6 +1,6 @@
 import {
   ACTION_SELECT_DEVICE,
-  ACTION_SELECT_TIME_RANGE,
+  ACTION_SELECT_TIME_FILTER,
   ACTION_STARTUP_DATA,
   ACTION_UPDATE_DEVICES,
   ACTION_UPDATE_DEVICE,
@@ -59,11 +59,13 @@ export default function reducer(_state, action) {
         state.segments = [];
       }
       break;
-    case ACTION_SELECT_TIME_RANGE:
+    case ACTION_SELECT_TIME_FILTER:
       state = {
         ...state,
-        start: action.start,
-        end: action.end,
+        filter: {
+          start: action.start,
+          end: action.end,
+        },
         segmentData: null,
         segments: [],
       };

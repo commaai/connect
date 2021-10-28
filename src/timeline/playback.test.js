@@ -3,8 +3,10 @@ const Playback = require('./playback');
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
-    start: Date.now(),
-    end: Date.now() + 100000,
+    filter: {
+      start: Date.now(),
+      end: Date.now() + 100000,
+    },
     desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed... multiplier on speed
     offset: 0, // in miliseconds from the start
     startTime: Date.now(), // millisecond timestamp in which play began
@@ -80,8 +82,8 @@ describe('playback', () => {
 
     // set up loop
     state = Playback.reducer(state, Playback.play());
-    state = Playback.reducer(state, Playback.selectLoop(state.start + 1000, 1000));
-    expect(state.loop.startTime).toEqual(state.start + 1000);
+    state = Playback.reducer(state, Playback.selectLoop(state.filter.start + 1000, 1000));
+    expect(state.loop.startTime).toEqual(state.filter.start + 1000);
 
     // seek past loop end boundary a
     state = Playback.reducer(state, Playback.seek(3000));
@@ -94,8 +96,8 @@ describe('playback', () => {
 
     // set up loop
     state = Playback.reducer(state, Playback.play());
-    state = Playback.reducer(state, Playback.selectLoop(state.start + 1000, 1000));
-    expect(state.loop.startTime).toEqual(state.start + 1000);
+    state = Playback.reducer(state, Playback.selectLoop(state.filter.start + 1000, 1000));
+    expect(state.loop.startTime).toEqual(state.filter.start + 1000);
 
     // seek past loop end boundary a
     state = Playback.reducer(state, Playback.seek(0));
@@ -131,19 +133,19 @@ describe('playback', () => {
   it('should expand start and end to fit loop', () => {
     newNow();
     let state = makeDefaultStruct();
-    const oldStart = state.start;
-    const oldEnd = state.end;
+    const oldStart = state.filter.start;
+    const oldEnd = state.filter.end;
     const newStart = oldStart - 15000;
     const newEnd = oldEnd + 15000;
 
     state = Playback.reducer(state, Playback.selectLoop(oldStart + 15000, 15000));
-    expect(state.start).toBe(oldStart);
-    expect(state.end).toBe(oldEnd);
+    expect(state.filter.start).toBe(oldStart);
+    expect(state.filter.end).toBe(oldEnd);
     state = Playback.reducer(state, Playback.selectLoop(newStart, 15000));
-    expect(state.start).toBe(newStart);
-    expect(state.end).toBe(oldEnd);
+    expect(state.filter.start).toBe(newStart);
+    expect(state.filter.end).toBe(oldEnd);
     state = Playback.reducer(state, Playback.selectLoop(newStart, newEnd - newStart));
-    expect(state.start).toBe(newStart);
-    expect(state.end).toBe(newEnd);
+    expect(state.filter.start).toBe(newStart);
+    expect(state.filter.end).toBe(newEnd);
   });
 });

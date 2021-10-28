@@ -189,8 +189,7 @@ class AppHeader extends Component {
 
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
-  start: 'start',
-  end: 'end',
+  filter: 'filter',
   profile: 'profile',
   primeNav: 'primeNav',
 });
