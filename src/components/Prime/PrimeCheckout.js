@@ -227,7 +227,7 @@ class PrimeCheckout extends Component {
           </div>
         }
         <div className={ classes.overviewBlock }>
-          <Button className={ classes.buttons } style={ buttonSmallStyle } onClick={ this.gotoCheckout }
+          <Button className={ `${classes.buttons} gotoCheckout` } style={ buttonSmallStyle } onClick={ this.gotoCheckout }
             disabled={ Boolean(!subscribeInfo || !subscribeInfo.sim_id || loadingCheckout) }>
             { loadingCheckout ?
               <CircularProgress size={ 19 } /> :

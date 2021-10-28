@@ -1192,7 +1192,7 @@ class Navigation extends Component {
           </div>
           <div className={ classes.searchSelectBoxButtons }>
             <Button onClick={ () => this.props.dispatch(primeNav()) }
-              className={ `${classes.searchSelectButton} ${classes.primeAdButton}` }>
+              className={ `${classes.searchSelectButton} ${classes.primeAdButton} primeSignUp` }>
               sign up
             </Button>
           </div>

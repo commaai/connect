@@ -151,7 +151,7 @@ class AnonymousLanding extends Component {
             <img className={ classes.buttonImage } src={ auth_apple } />
             <Typography className={ classes.buttonText }>Sign in with Apple</Typography>
           </a>
-          <a href={ AuthConfig.GITHUB_REDIRECT_LINK } className={classes.logInButton}>
+          <a href={ AuthConfig.GITHUB_REDIRECT_LINK } className={ `${classes.logInButton} githubAuth` }>
             <img className={ classes.buttonImage } src={ auth_github } />
             <Typography className={ classes.buttonText }>Sign in with GitHub</Typography>
           </a>

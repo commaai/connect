@@ -361,7 +361,7 @@ class PrimeManage extends Component {
                    disabled={ !hasPrimeSub }>
                   Update payment method
                 </Button>
-                <Button className={ `${classes.buttons} ${classes.cancelButton}` } style={ buttonSmallStyle }
+                <Button className={ `${classes.buttons} ${classes.cancelButton} primeCancel` } style={ buttonSmallStyle }
                   onClick={ () => this.setState({ cancelModal: true }) } disabled={ !hasPrimeSub }>
                   Cancel subscription
                 </Button>
@@ -383,14 +383,14 @@ class PrimeManage extends Component {
             <Typography>
               Cancelling will immediately suspend billing and comma prime membership benefits.
             </Typography>
-            <Button variant="contained" className={ classes.cancelModalButton } onClick={ this.cancelPrime }
-              disabled={ Boolean(this.state.cancelSuccess || this.state.canceling) }>
+            <Button variant="contained" className={ `${classes.cancelModalButton} primeModalCancel` }
+              onClick={ this.cancelPrime } disabled={ Boolean(this.state.cancelSuccess || this.state.canceling) }>
               { this.state.canceling ?
                 <CircularProgress size={ 19 } style={{ color: Colors.white }} /> :
                 'Cancel subscription'
               }
             </Button>
-            <Button variant="contained" className={ classes.closeButton }
+            <Button variant="contained" className={ `${classes.closeButton} primeModalClose` }
               onClick={ this.modalClose }>
               Close
             </Button>
