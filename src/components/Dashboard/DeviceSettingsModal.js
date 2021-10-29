@@ -224,7 +224,7 @@ class DeviceSettingsModal extends Component {
       if (intv) {
         clearInterval(intv);
       }
-      this.props.dispatch(primeNav());
+      this.props.dispatch(primeNav(true));
       this.props.onClose();
     };
 

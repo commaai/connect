@@ -1,7 +1,7 @@
 import zoom from './zoom';
 import { reducer as playbackReducer } from '../timeline/playback';
 import { reducer as segmentsReducers } from '../timeline/segments';
-import globalState from '../reducers/globalState';
+import globalState from './globalState';
 
 const reducers = [
   globalState,

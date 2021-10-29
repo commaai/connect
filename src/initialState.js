@@ -10,20 +10,12 @@ function getDefaultFilter() {
   }
 }
 
-function getDefaultZoom() {
-  const zoom = getZoom(window.location.pathname);
-  return {
-    ...zoom,
-    expanded: (zoom.start !== null && zoom.end !== null),
-  };
-}
-
-function getDefaultLoop() {
+function getDefaultLoop(pathname) {
   // in time instead of offset
   // this makes it so that the timespan can change without this changing
   // thats helpful to shared links and other things probably...
-  const zoom = getZoom(window.location.pathname);
-  if (zoom.start && zoom.end) {
+  const zoom = getZoom(pathname);
+  if (zoom.expanded) {
     return {
       startTime: zoom.start,
       duration: zoom.end - zoom.start,
@@ -72,6 +64,6 @@ export default {
   subscribeInfo: null,
 
   filter: getDefaultFilter(),
-  zoom: getDefaultZoom(),
-  loop: getDefaultLoop(),
+  zoom: getZoom(window.location.pathname),
+  loop: getDefaultLoop(window.location.pathname),
 };

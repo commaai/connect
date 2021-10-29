@@ -15,20 +15,6 @@ let segmentsRequest = null;
 export function selectRange(start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
-    if (!state.dongleId) {
-      dispatch({
-        type: Types.TIMELINE_SELECTION_CHANGED,
-        start,
-        end
-      });
-      return;
-    }
-    if (state.primeNav) {
-      dispatch(primeNav(false, false));
-    }
-    const curPath = document.location.pathname;
-    const dongleId = state.dongleId;
-
     if (state.zoom.start !== start || state.zoom.end !== end) {
       dispatch({
         type: Types.TIMELINE_SELECTION_CHANGED,
@@ -48,14 +34,16 @@ export function selectRange(start, end, allowPathChange = true) {
       dispatch(selectLoop(start, end - start));
     }
 
-    const desiredPath = urlForState(dongleId, start, end, false);
-    if (allowPathChange && curPath !== desiredPath) {
-      dispatch(push(desiredPath));
+    if (allowPathChange) {
+      const desiredPath = urlForState(state.dongleId, start, end, false);
+      if (window.location.pathname !== desiredPath) {
+        dispatch(push(desiredPath));
+      }
     }
   };
 }
 
-export function selectDevice(dongleId) {
+export function selectDevice(dongleId, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
     let device;
@@ -79,10 +67,11 @@ export function selectDevice(dongleId) {
 
     dispatch(checkSegmentMetadata());
 
-    const curPath = document.location.pathname;
-    const desiredPath = urlForState(dongleId, state.zoom.start, state.zoom.end, null);
-    if (curPath !== desiredPath) {
-      dispatch(push(desiredPath));
+    if (allowPathChange) {
+      const desiredPath = urlForState(dongleId, state.zoom.start, state.zoom.end, null);
+      if (window.location.pathname !== desiredPath) {
+        dispatch(push(desiredPath));
+      }
     }
   };
 }
@@ -122,7 +111,7 @@ export function primeFetchSubscription(dongleId, device, profile) {
   };
 }
 
-export function primeNav(nav = true, allowPathChange = true) {
+export function primeNav(nav, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
     if (!state.dongleId) {
@@ -136,10 +125,12 @@ export function primeNav(nav = true, allowPathChange = true) {
       });
     }
 
-    const curPath = document.location.pathname;
-    const desiredPath = urlForState(state.dongleId, null, null, nav);
-    if (allowPathChange && curPath !== desiredPath) {
-      dispatch(push(desiredPath));
+    if (allowPathChange) {
+      const curPath = document.location.pathname;
+      const desiredPath = urlForState(state.dongleId, null, null, nav);
+      if (curPath !== desiredPath) {
+        dispatch(push(desiredPath));
+      }
     }
   };
 }

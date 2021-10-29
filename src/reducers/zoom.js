@@ -7,7 +7,7 @@ export default function zoom(_state, action) {
       state.zoom = {
         start: action.start,
         end: action.end,
-        expanded: !!(action.start && action.end)
+        expanded: Boolean(action.start && action.end),
       };
       break;
     default:

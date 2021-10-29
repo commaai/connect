@@ -50,6 +50,7 @@ export default function reducer(_state, action) {
         dongleId: action.dongleId,
         primeNav: false,
         subscription: null,
+        subscribeInfo: null,
       };
       if (state.devices) {
         state.device = state.devices.find((device) => device.dongle_id === action.dongleId);

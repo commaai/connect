@@ -18,12 +18,14 @@ export function getZoom(pathname) {
   if (parts.length >= 3 && parts[0] !== 'auth') {
     return {
       start: Number(parts[1]),
-      end: Number(parts[2])
+      end: Number(parts[2]),
+      expanded: true,
     };
   }
   return {
     start: null,
-    end: null
+    end: null,
+    expanded: false,
   };
 }
 
