@@ -231,7 +231,7 @@ class PrimeCheckout extends Component {
             disabled={ Boolean(!subscribeInfo || !subscribeInfo.sim_id || loadingCheckout) }>
             { loadingCheckout ?
               <CircularProgress size={ 19 } /> :
-              ((subscribeInfo && subscribeInfo.trial_claimable) ? 'Claim trail' : 'Go to checkout')
+              ((subscribeInfo && subscribeInfo.trial_claimable) ? 'Claim trial' : 'Go to checkout')
             }
           </Button>
         </div>
