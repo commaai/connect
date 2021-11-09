@@ -227,7 +227,7 @@ class DeviceInfo extends Component {
     try {
       const payload = {
         method: 'getMessage',
-        params: {'service': 'pandaState', 'timeout': 5000},
+        params: {'service': 'peripheralState', 'timeout': 5000},
         jsonrpc: '2.0',
         id: 0,
       };
@@ -384,10 +384,10 @@ class DeviceInfo extends Component {
 
     let batteryVoltage;
     let batteryBackground = Colors.grey400;
-    if (deviceIsOnline(device) && carHealth.result && carHealth.result.pandaState &&
-      carHealth.result.pandaState.voltage)
+    if (deviceIsOnline(device) && carHealth.result && carHealth.result.peripheralState &&
+      carHealth.result.peripheralState.voltage)
     {
-      batteryVoltage = carHealth.result.pandaState.voltage / 1000.0;
+      batteryVoltage = carHealth.result.peripheralState.voltage / 1000.0;
       batteryBackground = batteryVoltage < 11.0 ? Colors.red400: Colors.green400;
     }
 
