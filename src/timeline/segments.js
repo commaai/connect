@@ -276,6 +276,7 @@ export function reducer(_state, action) {
       state = {
         ...state,
       }
+      break;
     default:
       break;
   }

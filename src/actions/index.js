@@ -68,7 +68,7 @@ export function selectDevice(dongleId, allowPathChange = true) {
     dispatch(checkSegmentMetadata());
 
     if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, state.zoom.start, state.zoom.end, null);
+      const desiredPath = urlForState(dongleId, null, null, null);
       if (window.location.pathname !== desiredPath) {
         dispatch(push(desiredPath));
       }
