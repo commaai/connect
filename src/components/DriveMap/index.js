@@ -274,7 +274,6 @@ class DriveMap extends Component {
 
 const stateToProps = Obstruction({
   offset: 'offset',
-  route: 'route',
   segments: 'segments',
   segmentNum: 'segment',
   currentSegment: 'currentSegment',

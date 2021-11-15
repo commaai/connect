@@ -33,8 +33,7 @@ export default {
   // dongleId: 'f1b4c567731f4a1b',
   dongleId: getDongleID(window.location.pathname),
 
-  route: false,
-  segment: 0,
+  currentSegment: null,
   nextSegment: null,
   desiredPlaySpeed: 1, // speed set by user
   isBufferingVideo: false, // if we're currently buffering for more data

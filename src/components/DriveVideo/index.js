@@ -12,6 +12,7 @@ import * as Sentry from '@sentry/react';
 import { video as VideoApi } from '@commaai/comma-api';
 
 import { seek, bufferVideo, currentOffset } from '../../timeline/playback';
+import { updateSegments } from '../../timeline/segments';
 
 window.Hls = Hls;
 
@@ -150,8 +151,18 @@ class DriveVideo extends Component {
 
   syncVideo = debounce(() => {
     const videoPlayer = this.videoPlayer.current;
-    if (!videoPlayer || !this.visibleSegment() || !videoPlayer.getDuration()) {
+    if (!videoPlayer || !videoPlayer.getDuration()) {
       return;
+    }
+
+    if (!this.visibleSegment()) {
+      this.props.dispatch(updateSegments());
+      return;
+    }
+
+    const offset = currentOffset();
+    if (offset > this.visibleSegment().routeOffset + this.visibleSegment().duration || offset < this.visibleSegment().routeOffset) {
+      this.props.dispatch(updateSegments());
     }
 
     const internalPlayer = videoPlayer.getInternalPlayer();
@@ -235,8 +246,6 @@ const stateToProps = Obstruction({
   currentSegment: 'currentSegment',
   nextSegment: 'nextSegment',
   desiredPlaySpeed: 'desiredPlaySpeed',
-  route: 'route',
-  segment: 'segment',
   offset: 'offset',
   startTime: 'startTime',
   isBufferingVideo: 'isBufferingVideo',

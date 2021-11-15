@@ -280,22 +280,9 @@ export function reducer(_state, action) {
     default:
       break;
   }
-  const currentSegment = getCurrentSegment(state);
-  const nextSegment = getNextSegment(state);
 
-  if (currentSegment) {
-    state.route = currentSegment.route;
-    state.segment = currentSegment.segment;
-  } else if (nextSegment) {
-    state.route = nextSegment.route;
-    state.segment = nextSegment.segment;
-  } else {
-    state.route = false;
-    state.segment = 0;
-  }
-
-  state.currentSegment = currentSegment;
-  state.nextSegment = nextSegment;
+  state.currentSegment = getCurrentSegment(state);
+  state.nextSegment = getNextSegment(state);
 
   return state;
 }
