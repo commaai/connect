@@ -403,7 +403,7 @@ export function hasSegmentMetadata(state) {
 }
 
 export function getSegmentFetchRange(state) {
-  if (!state.zoom.expanded) {
+  if (!state.zoom || !state.zoom.expanded) {
     return state.filter;
   }
   if (state.zoom.end < state.filter.start) {

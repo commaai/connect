@@ -13,7 +13,7 @@ jest.mock('connected-react-router', () => {
 });
 
 describe('timeline actions', () => {
-  it('should read dongleid from url when editing zoom', () => {
+  it('should push history state when editing zoom', () => {
     const dispatch = jest.fn();
     const getState = jest.fn();
     const actionThunk = selectRange(123, 1234);
@@ -23,8 +23,7 @@ describe('timeline actions', () => {
       loop: {},
       zoom: {},
     }));
-    window.history.replaceState({}, 'test page', '/0000aaaa0000aaaa');
     actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/0000aaaa0000aaaa/123/1234');
+    expect(push).toBeCalledWith('/statedongle/123/1234');
   });
 });

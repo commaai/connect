@@ -103,8 +103,10 @@ describe('segments', () => {
         start: 10,
         end: 20
       },
-      start: 0,
-      end: 30,
+      filter: {
+        start: 0,
+        end: 30,
+      },
       dongleId: 'asdfasdf'
     })).toBe(false);
     expect(hasSegmentMetadata({
@@ -114,8 +116,10 @@ describe('segments', () => {
         start: 0,
         end: 20
       },
-      start: 10,
-      end: 30,
+      filter: {
+        start: 10,
+        end: 30,
+      },
       dongleId: 'asdfasdf'
     })).toBe(false);
     expect(hasSegmentMetadata({
@@ -125,8 +129,10 @@ describe('segments', () => {
         start: 10,
         end: 30
       },
-      start: 0,
-      end: 20,
+      filter: {
+        start: 0,
+        end: 20,
+      },
       dongleId: 'asdfasdf'
     })).toBe(false);
     expect(hasSegmentMetadata({
@@ -136,8 +142,10 @@ describe('segments', () => {
         start: 0,
         end: 30
       },
-      start: 10,
-      end: 20,
+      filter: {
+        start: 10,
+        end: 20,
+      },
       dongleId: 'asdfasdf'
     })).toBe(true);
   });
