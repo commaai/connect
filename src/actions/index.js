@@ -5,7 +5,8 @@ import { billing as Billing, devices as DevicesApi, drives as Drives } from '@co
 
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback'
-import { hasSegmentMetadata, fetchSegmentMetadata, parseSegmentMetadata, insertSegmentMetadata } from '../timeline/segments';
+import { getSegmentFetchRange, hasSegmentMetadata, fetchSegmentMetadata, parseSegmentMetadata, insertSegmentMetadata
+  } from '../timeline/segments';
 import * as Demo from '../demo';
 
 const demoSegments = require('../demo/segments.json');
@@ -162,18 +163,21 @@ export function checkSegmentMetadata() {
       return;
     }
     console.log('We need to update the segment metadata...');
-    const { dongleId, filter } = state;
+    const { dongleId } = state;
+    const fetchRange = getSegmentFetchRange(state);
 
     if (Demo.isDemo()) {
       segmentsRequest = Promise.resolve(demoSegments);
     } else {
-      segmentsRequest = Drives.getSegmentMetadata(filter.start, filter.end, dongleId);
+      segmentsRequest = Drives.getSegmentMetadata(fetchRange.start, fetchRange.end, dongleId);
     }
-    dispatch(fetchSegmentMetadata(filter.start, filter.end));
+    dispatch(fetchSegmentMetadata(fetchRange.start, fetchRange.end));
 
     segmentsRequest.then((segmentData) => {
       state = getState();
-      if (state.filter.start !== filter.start || state.filter.end !== filter.end || state.dongleId !== dongleId) {
+      const currFetchRange = getSegmentFetchRange(state);
+      if (currFetchRange.start !== fetchRange.start || currFetchRange.end !== fetchRange.end || state.dongleId !== dongleId) {
+        segmentsRequest = null;
         checkSegmentMetadata();
         return;
       }

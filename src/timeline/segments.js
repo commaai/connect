@@ -325,6 +325,7 @@ export function insertSegmentMetadata(data) {
 
 export function parseSegmentMetadata(state, _segments) {
   const routeStartTimes = {};
+  const fetchRange = getSegmentFetchRange(state);
   let segments = _segments;
   segments = segments.map((_segment) => {
     const segment = _segment;
@@ -374,9 +375,9 @@ export function parseSegmentMetadata(state, _segments) {
   });
 
   return {
-    start: state.filter.start,
+    start: fetchRange.start,
     dongleId: state.dongleId,
-    end: state.filter.end,
+    end: fetchRange.end,
     segments
   };
 }
@@ -401,14 +402,31 @@ export function hasSegmentMetadata(state) {
     console.log('Bad dongle id');
     return false;
   }
-  if (state.filter.start < state.segmentData.start) {
+  const fetchRange = getSegmentFetchRange(state);
+  if (fetchRange.start < state.segmentData.start) {
     console.log('Bad start offset');
     return false;
   }
-  if (state.filter.end > state.segmentData.end) {
+  if (fetchRange.end > state.segmentData.end) {
     console.log('Bad end offset');
     return false;
   }
 
   return true;
+}
+
+export function getSegmentFetchRange(state) {
+  if (!state.zoom.expanded) {
+    return state.filter;
+  }
+  if (state.zoom.end < state.filter.start) {
+    return {
+      start: state.zoom.start - 60000,
+      end: state.zoom.end + 60000,
+    };
+  }
+  return {
+    start: Math.min(state.filter.start, state.zoom.start - 60000),
+    end: Math.max(state.filter.end, state.zoom.end + 60000),
+  };
 }
