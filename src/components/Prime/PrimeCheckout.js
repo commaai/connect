@@ -137,7 +137,7 @@ const styles = (theme) => ({
   },
   plan: {
     cursor: 'pointer',
-    height: 165,
+    height: 140,
     width: 165,
     display: 'flex',
     flexDirection: 'column',
@@ -223,10 +223,11 @@ class PrimeCheckout extends Component {
     const { windowWidth, error, loadingCheckout, selectedPlan } = this.state;
 
     const listItems = [
-      ['On-device navigation', null],
+      ['24/7 connectivity', null],
+      ['Take pictures remotely', null],
       ['1 year storage of drive videos', null],
       ['Simple SSH for developers', null],
-      ['24/7 connectivity', null],
+      ['Turn-by-turn navigation', 'comma three only'],
     ];
 
     let chargeText = null;
@@ -288,7 +289,7 @@ class PrimeCheckout extends Component {
         </div>
         <div className={ classes.overviewBlock }>
           <Typography className={ classes.learnMore }>
-            Learn more about comma prime from our <a rel="noreferrer" target="_blank" href="https://comma.ai/prime#faq">FAQ</a>
+            Learn more about comma prime from our <a target="_blank" href="https://comma.ai/prime#faq">FAQ</a>
           </Typography>
         </div>
         { error && <div className={ classes.overviewBlockError }>
@@ -310,7 +311,7 @@ class PrimeCheckout extends Component {
           </div>
         }
         { Boolean(selectedPlan === 'data' && subscribeInfo && subscribeInfo.sim_id && !subscribeInfo.is_prime_sim) &&
-          <div className={ classes.overviewBlockWarning }>
+          <div className={ classes.overviewBlockError }>
             <ErrorIcon />
             <Typography>
               Third-party SIM detected, comma prime with data plan cannot be activated.
