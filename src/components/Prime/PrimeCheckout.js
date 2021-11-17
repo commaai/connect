@@ -343,7 +343,7 @@ class PrimeCheckout extends Component {
         <div style={ blockMargin }>
           <Button style={ buttonSize } className={ `${classes.buttons} gotoCheckout` }
             onClick={ () => this.gotoCheckout('nodata') }
-            disabled={ Boolean(!subscribeInfo || !subscribeInfo.sim_id || loadingCheckout || !selectedPlan) }>
+            disabled={ Boolean(!subscribeInfo || loadingCheckout || !selectedPlan) }>
             { loadingCheckout ?
               <CircularProgress size={ 19 } /> :
               ((subscribeInfo && subscribeInfo.trial_claimable) ? 'Claim trial' : 'Go to checkout')
