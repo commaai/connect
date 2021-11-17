@@ -21,6 +21,7 @@ const styles = (theme) => ({
   primeBox: {
     display: 'flex',
     flexDirection: 'column',
+    maxWidth: 500,
     color: '#fff',
   },
   primeHeader: {
@@ -62,9 +63,6 @@ const styles = (theme) => ({
     '& aside': { display: 'inline', marginRight: 5, },
     '& span': { display: 'inline', },
   },
-  overviewBlock: {
-    marginTop: 10,
-  },
   overviewBlockError: {
     marginTop: 10,
     padding: 10,
@@ -73,30 +71,11 @@ const styles = (theme) => ({
     backgroundColor: 'rgba(255, 0, 0, 0.2)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
-  overviewBlockWarning: {
-    marginTop: 10,
-    padding: 10,
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 100, 0, 0.3)',
-    '& p': { display: 'inline-block', marginLeft: 10 },
-  },
-  overviewBlockLoading: {
-    marginTop: 10,
-    padding: 10,
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    '& p': { display: 'inline-block', marginLeft: 10 },
-  },
   chargeText: {
     fontSize: 13,
   },
   buttons: {
-    height: 32,
-    width: '100%',
     background: Colors.white,
-    borderRadius: 18,
     color: '#404B4F',
     textTransform: 'none',
     '&:hover': {
@@ -280,6 +259,10 @@ class PrimeCheckout extends Component {
 
     const alias = device.alias || deviceTypePretty(device.device_type);
     const containerPadding = windowWidth > 520 ? '24px 36px 36px' : '2px 12px 12px';
+    const blockMargin = windowWidth > 520 ? { marginTop: 20 } : { marginTop: 10 };
+    const buttonSize = windowWidth > 520 ?
+      { height: 42, borderRadius: 21, width: 350 } :
+      { height: 32, borderRadius: 18, width: '100%' };
     const paddingStyle = windowWidth > 520 ? { paddingLeft: 7, paddingRight: 7 } : { paddingLeft: 8, paddingRight: 8 };
     const selectedStyle = { border: '1px solid white' };
     const plansLoadingClass = !subscribeInfo ? classes.planInfoLoading : '';
@@ -309,7 +292,7 @@ class PrimeCheckout extends Component {
           </div>
         </div>
         <h2 className={ classes.primeTitle }>comma prime</h2>
-        <div className={ classes.overviewBlock }>
+        <div style={ blockMargin }>
           <List className={ classes.checkList }>
             { listItems.map((listItemText, i) => {
               return <ListItem key={ i } className={ classes.checkListItem } style={ paddingStyle }>
@@ -319,7 +302,7 @@ class PrimeCheckout extends Component {
             }) }
           </List>
         </div>
-        <div className={ classes.overviewBlock } style={{ position: 'relative' }}>
+        <div style={{ ...blockMargin, position: 'relative' }}>
           <div className={ classes.planBox }>
             <div className={ `${classes.plan} ${plansLoadingClass}` }
               style={ selectedPlan === 'nodata' ? selectedStyle : {} }
@@ -348,7 +331,7 @@ class PrimeCheckout extends Component {
             </div>
           }
         </div>
-        <div className={ classes.overviewBlock }>
+        <div style={ blockMargin }>
           <Typography className={ classes.learnMore }>
             Learn more about comma prime from our <a target="_blank" href="https://comma.ai/prime#faq">FAQ</a>
           </Typography>
@@ -357,8 +340,9 @@ class PrimeCheckout extends Component {
           <ErrorIcon />
           <Typography>{ error }</Typography>
         </div> }
-        <div className={ classes.overviewBlock }>
-          <Button className={ `${classes.buttons} gotoCheckout` } onClick={ () => this.gotoCheckout('nodata') }
+        <div style={ blockMargin }>
+          <Button style={ buttonSize } className={ `${classes.buttons} gotoCheckout` }
+            onClick={ () => this.gotoCheckout('nodata') }
             disabled={ Boolean(!subscribeInfo || !subscribeInfo.sim_id || loadingCheckout || !selectedPlan) }>
             { loadingCheckout ?
               <CircularProgress size={ 19 } /> :
@@ -367,7 +351,7 @@ class PrimeCheckout extends Component {
           </Button>
         </div>
         { chargeText &&
-          <div className={ classes.overviewBlock }>
+          <div style={ blockMargin }>
             <Typography className={ classes.chargeText }>{ chargeText }</Typography>
           </div>
         }
