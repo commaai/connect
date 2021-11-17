@@ -3,11 +3,11 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import fecha from 'fecha';
 import * as Sentry from '@sentry/react';
-import { withStyles, Typography, IconButton, Button, CircularProgress, List, ListItem, ListItemIcon, ListItemText
-  } from '@material-ui/core';
+import { withStyles, Typography, IconButton, Button, CircularProgress, List, ListItem, ListItemIcon, ListItemText,
+  Tooltip } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
-import WarningIcon from '@material-ui/icons/Warning';
+import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
 import CheckIcon from '@material-ui/icons/Check';
 
 import { billing as Billing } from '@commaai/comma-api';
@@ -149,6 +149,7 @@ const styles = (theme) => ({
     borderRadius: 18,
     fontWeight: 600,
     textAlign: 'center',
+    position: 'relative',
     '&:first-child': { marginRight: 2 },
     '&:last-child': { marginLeft: 2 },
     '& p': {
@@ -166,6 +167,21 @@ const styles = (theme) => ({
     fontSize: '0.8rem',
   },
   planDisabled: {
+    backgroundColor: Colors.white05,
+    color: Colors.white40,
+    cursor: 'default',
+  },
+  planDisabledHelp: {
+    color: Colors.white,
+    position: 'absolute',
+    top: 6,
+    right: 6,
+  },
+  planDisabledTooltip: {
+    margin: '6px 0',
+    fontSize: '0.8rem',
+  },
+  planInfoLoading: {
     backgroundColor: Colors.white03,
     color: Colors.white20,
     cursor: 'default',
@@ -266,8 +282,19 @@ class PrimeCheckout extends Component {
     const containerPadding = windowWidth > 520 ? '24px 36px 36px' : '2px 12px 12px';
     const paddingStyle = windowWidth > 520 ? { paddingLeft: 7, paddingRight: 7 } : { paddingLeft: 8, paddingRight: 8 };
     const selectedStyle = { border: '1px solid white' };
-    const disabledNodataPlan = Boolean(!subscribeInfo);
+    const plansLoadingClass = !subscribeInfo ? classes.planInfoLoading : '';
     const disabledDataPlan = Boolean(!subscribeInfo || !subscribeInfo.sim_id || !subscribeInfo.is_prime_sim);
+
+    let disabledDataPlanText;
+    if (subscribeInfo && disabledDataPlan) {
+      if (!subscribeInfo.sim_id && subscribeInfo.device_online) {
+        disabledDataPlanText = 'No SIM inserted. Ensure SIM is securely inserted and try again.';
+      } else if (!subscribeInfo.sim_id) {
+        disabledDataPlanText = 'Could not reach device, connect device to the internet and try again.';
+      } else if (!subscribeInfo.is_prime_sim) {
+        disabledDataPlanText = 'Third-party SIM detected, comma prime with data plan cannot be activated.';
+      }
+    }
 
     return ( <>
       <div className={ classes.primeBox } style={{ padding: containerPadding }}>
@@ -294,16 +321,21 @@ class PrimeCheckout extends Component {
         </div>
         <div className={ classes.overviewBlock } style={{ position: 'relative' }}>
           <div className={ classes.planBox }>
-            <div className={ `${classes.plan} ${disabledNodataPlan ? classes.planDisabled : ''}` }
+            <div className={ `${classes.plan} ${plansLoadingClass}` }
               style={ selectedPlan === 'nodata' ? selectedStyle : {} }
-              onClick={ !disabledNodataPlan ? () => this.setState({ selectedPlan: 'nodata' }) : null }>
+              onClick={ Boolean(subscribeInfo) ? () => this.setState({ selectedPlan: 'nodata' }) : null }>
               <p className={ classes.planName }>basic</p>
               <p className={ classes.planPrice }>$16/month</p>
               <p className={ classes.planSubtext }>bring your own<br />sim card</p>
             </div>
-            <div className={ `${classes.plan} ${disabledDataPlan ? classes.planDisabled : ''}` }
+            <div className={ `${classes.plan} ${disabledDataPlan ? classes.planDisabled : ''} ${plansLoadingClass}` }
               style={ selectedPlan === 'data' ? selectedStyle : {} }
               onClick={ !disabledDataPlan ? () => this.setState({ selectedPlan: 'data' }) : null }>
+              { Boolean(subscribeInfo && disabledDataPlan) &&
+                <Tooltip title={ disabledDataPlanText } classes={{ tooltip: classes.planDisabledTooltip }}>
+                  <InfoOutlineIcon className={ classes.planDisabledHelp } />
+                </Tooltip>
+              }
               <p className={ classes.planName }>standard</p>
               <p className={ classes.planPrice }>$24/month</p>
               <p className={ classes.planSubtext }>unlimited 512kbps data<br />only offered in the U.S.</p>
@@ -325,24 +357,6 @@ class PrimeCheckout extends Component {
           <ErrorIcon />
           <Typography>{ error }</Typography>
         </div> }
-        { Boolean(selectedPlan === 'data' && subscribeInfo && !subscribeInfo.sim_id) &&
-          <div className={ classes.overviewBlockError }>
-            <ErrorIcon />
-            <Typography>
-              { subscribeInfo.device_online ?
-                'No SIM detected. Ensure SIM is securely inserted and try again.' :
-                'Could not reach device, connect device to the internet and try again.' }
-            </Typography>
-          </div>
-        }
-        { Boolean(selectedPlan === 'data' && subscribeInfo && subscribeInfo.sim_id && !subscribeInfo.is_prime_sim) &&
-          <div className={ classes.overviewBlockError }>
-            <ErrorIcon />
-            <Typography>
-              Third-party SIM detected, comma prime with data plan cannot be activated.
-            </Typography>
-          </div>
-        }
         <div className={ classes.overviewBlock }>
           <Button className={ `${classes.buttons} gotoCheckout` } onClick={ () => this.gotoCheckout('nodata') }
             disabled={ Boolean(!subscribeInfo || !subscribeInfo.sim_id || loadingCheckout || !selectedPlan) }>
