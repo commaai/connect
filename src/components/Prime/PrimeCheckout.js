@@ -134,10 +134,10 @@ const styles = (theme) => ({
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-around',
+    height: 140,
   },
   plan: {
     cursor: 'pointer',
-    height: 140,
     width: 165,
     display: 'flex',
     flexDirection: 'column',
@@ -162,8 +162,27 @@ const styles = (theme) => ({
     fontSize: '1.5rem',
   },
   planSubtext: {
-      fontWeight: 'normal',
-      fontSize: '0.8rem',
+    fontWeight: 'normal',
+    fontSize: '0.8rem',
+  },
+  planDisabled: {
+    backgroundColor: Colors.white03,
+    color: Colors.white20,
+    cursor: 'default',
+  },
+  planLoading: {
+    position: 'absolute',
+    top: 0,
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 140,
+    '& p': {
+      marginTop: 10,
+      fontSize: '0.9rem',
+    },
   },
 });
 
@@ -247,6 +266,8 @@ class PrimeCheckout extends Component {
     const containerPadding = windowWidth > 520 ? '24px 36px 36px' : '2px 12px 12px';
     const paddingStyle = windowWidth > 520 ? { paddingLeft: 7, paddingRight: 7 } : { paddingLeft: 8, paddingRight: 8 };
     const selectedStyle = { border: '1px solid white' };
+    const disabledNodataPlan = Boolean(!subscribeInfo);
+    const disabledDataPlan = Boolean(!subscribeInfo || !subscribeInfo.sim_id || !subscribeInfo.is_prime_sim);
 
     return ( <>
       <div className={ classes.primeBox } style={{ padding: containerPadding }}>
@@ -271,21 +292,29 @@ class PrimeCheckout extends Component {
             }) }
           </List>
         </div>
-        <div className={ classes.overviewBlock }>
+        <div className={ classes.overviewBlock } style={{ position: 'relative' }}>
           <div className={ classes.planBox }>
-            <div className={ classes.plan } style={ selectedPlan === 'nodata' ? selectedStyle : {} }
-              onClick={ () => this.setState({ selectedPlan: 'nodata' }) }>
+            <div className={ `${classes.plan} ${disabledNodataPlan ? classes.planDisabled : ''}` }
+              style={ selectedPlan === 'nodata' ? selectedStyle : {} }
+              onClick={ !disabledNodataPlan ? () => this.setState({ selectedPlan: 'nodata' }) : null }>
               <p className={ classes.planName }>basic</p>
               <p className={ classes.planPrice }>$16/month</p>
-              <p className={ classes.planSubtext }>external internet<br />connection required</p>
+              <p className={ classes.planSubtext }>bring your own<br />sim card</p>
             </div>
-            <div className={ classes.plan } style={ selectedPlan === 'data' ? selectedStyle : {} }
-              onClick={ () => this.setState({ selectedPlan: 'data' }) }>
-              <p className={ classes.planName }>unlimited</p>
+            <div className={ `${classes.plan} ${disabledDataPlan ? classes.planDisabled : ''}` }
+              style={ selectedPlan === 'data' ? selectedStyle : {} }
+              onClick={ !disabledDataPlan ? () => this.setState({ selectedPlan: 'data' }) : null }>
+              <p className={ classes.planName }>standard</p>
               <p className={ classes.planPrice }>$24/month</p>
               <p className={ classes.planSubtext }>unlimited 512kbps data<br />only offered in the U.S.</p>
             </div>
           </div>
+          { !subscribeInfo &&
+            <div className={ classes.planLoading }>
+              <CircularProgress size={ 38 } style={{ color: Colors.white }} />
+              <Typography>Fetching SIM data</Typography>
+            </div>
+          }
         </div>
         <div className={ classes.overviewBlock }>
           <Typography className={ classes.learnMore }>
@@ -295,10 +324,6 @@ class PrimeCheckout extends Component {
         { error && <div className={ classes.overviewBlockError }>
           <ErrorIcon />
           <Typography>{ error }</Typography>
-        </div> }
-        { Boolean(selectedPlan === 'data' && !subscribeInfo) && <div className={ classes.overviewBlockLoading }>
-          <CircularProgress size={ 19 } style={{ color: Colors.white }} />
-          <Typography>Fetching SIM data</Typography>
         </div> }
         { Boolean(selectedPlan === 'data' && subscribeInfo && !subscribeInfo.sim_id) &&
           <div className={ classes.overviewBlockError }>
