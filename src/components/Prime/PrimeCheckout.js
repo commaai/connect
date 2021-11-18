@@ -19,9 +19,11 @@ import { primeNav } from '../../actions';
 
 const styles = (theme) => ({
   primeBox: {
+    background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
+    borderRadius: 8,
     display: 'flex',
     flexDirection: 'column',
-    maxWidth: 500,
+    maxWidth: 450,
     color: '#fff',
   },
   primeHeader: {
@@ -30,7 +32,6 @@ const styles = (theme) => ({
     justifyContent: 'space-between',
     maxWidth: 410,
     flexDirection: 'row',
-    paddingRight: 20,
   },
   headerDevice: {
     display: 'flex',
@@ -75,6 +76,9 @@ const styles = (theme) => ({
     fontSize: 13,
   },
   buttons: {
+    width: '100%',
+    height: 42,
+    borderRadius: 21,
     background: Colors.white,
     color: '#404B4F',
     textTransform: 'none',
@@ -115,15 +119,20 @@ const styles = (theme) => ({
     justifyContent: 'space-around',
     height: 140,
   },
+  planBoxContainer: {
+    position: 'relative',
+    marginLeft: -6,
+    marginRight: -6,
+  },
   plan: {
     cursor: 'pointer',
     WebkitTapHighlightColor: 'transparent',
-    width: 165,
+    width: 160,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'space-around',
-    border: `2px solid transparent`,
+    border: '2px solid transparent',
     backgroundColor: Colors.white10,
     padding: '8px 0',
     borderRadius: 18,
@@ -279,11 +288,10 @@ class PrimeCheckout extends Component {
     }
 
     const alias = device.alias || deviceTypePretty(device.device_type);
-    const containerPadding = windowWidth > 520 ? '24px 36px 36px' : '2px 12px 12px';
+    const containerPadding = windowWidth > 520 ?
+      { margin: 18, padding: '12px 36px 36px' } :
+      { margin: 6, padding: '2px 12px 12px' };
     const blockMargin = windowWidth > 520 ? { marginTop: 20 } : { marginTop: 10 };
-    const buttonSize = windowWidth > 520 ?
-      { height: 42, borderRadius: 21, width: 350 } :
-      { height: 32, borderRadius: 18, width: '100%' };
     const paddingStyle = windowWidth > 520 ? { paddingLeft: 7, paddingRight: 7 } : { paddingLeft: 8, paddingRight: 8 };
     const selectedStyle = { border: '2px solid white' };
     const plansLoadingClass = !subscribeInfo ? classes.planInfoLoading : '';
@@ -301,7 +309,7 @@ class PrimeCheckout extends Component {
     }
 
     return ( <>
-      <div className={ classes.primeBox } style={{ padding: containerPadding }}>
+      <div className={ classes.primeBox } style={ containerPadding }>
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
         <div className={ classes.primeHeader }>
           <IconButton aria-label="Go Back" onClick={() => this.props.dispatch(primeNav(false)) }>
@@ -323,7 +331,7 @@ class PrimeCheckout extends Component {
             }) }
           </List>
         </div>
-        <div style={{ ...blockMargin, position: 'relative' }}>
+        <div className={ classes.planBoxContainer } style={ blockMargin }>
           <div className={ classes.planBox }>
             <div className={ `${classes.plan} ${plansLoadingClass}` }
               style={ selectedPlan === 'nodata' ? selectedStyle : {} }
@@ -365,7 +373,7 @@ class PrimeCheckout extends Component {
           <Typography>{ error }</Typography>
         </div> }
         <div style={ blockMargin }>
-          <Button style={ buttonSize } className={ `${classes.buttons} gotoCheckout` }
+          <Button className={ `${classes.buttons} gotoCheckout` }
             onClick={ () => this.gotoCheckout() }
             disabled={ Boolean(!subscribeInfo || loadingCheckout || !selectedPlan) }>
             { loadingCheckout ?
