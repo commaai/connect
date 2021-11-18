@@ -117,6 +117,7 @@ const styles = (theme) => ({
   },
   plan: {
     cursor: 'pointer',
+    WebkitTapHighlightColor: 'transparent',
     width: 165,
     display: 'flex',
     flexDirection: 'column',
@@ -189,6 +190,7 @@ class PrimeCheckout extends Component {
       error: null,
       loadingCheckout: false,
       selectedPlan: null,
+      disabledPlanTooltip: false,
       windowWidth: window.innerWidth,
     };
 
@@ -234,7 +236,7 @@ class PrimeCheckout extends Component {
 
   render() {
     const { classes, device, subscribeInfo } = this.props;
-    const { windowWidth, error, loadingCheckout, selectedPlan } = this.state;
+    const { windowWidth, error, loadingCheckout, selectedPlan, disabledPlanTooltip } = this.state;
 
     const listItems = [
       ['24/7 connectivity', null],
@@ -315,8 +317,11 @@ class PrimeCheckout extends Component {
               style={ selectedPlan === 'data' ? selectedStyle : {} }
               onClick={ !disabledDataPlan ? () => this.setState({ selectedPlan: 'data' }) : null }>
               { Boolean(subscribeInfo && disabledDataPlan) &&
-                <Tooltip title={ disabledDataPlanText } classes={{ tooltip: classes.planDisabledTooltip }}>
-                  <InfoOutlineIcon className={ classes.planDisabledHelp } />
+                <Tooltip open={ disabledPlanTooltip } title={ disabledDataPlanText } disableHoverListener={ true }
+                  classes={{ tooltip: classes.planDisabledTooltip }} disableFocusListener={ true } disableTouchListener={ true }>
+                  <InfoOutlineIcon className={ classes.planDisabledHelp }
+                    onMouseEnter={ () => this.setState({ disabledPlanTooltip: true }) }
+                    onMouseLeave={ () => this.setState({ disabledPlanTooltip: false }) } />
                 </Tooltip>
               }
               <p className={ classes.planName }>standard</p>
