@@ -125,6 +125,13 @@ export default function reducer(_state, action) {
         ...state,
         primeNav: action.primeNav,
       };
+      if (action.primeNav) {
+        state.zoom = {
+          start: null,
+          end: null,
+          expanded: false,
+        };
+      }
       break;
     case ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId != state.dongleId) { // ignore outdated info
