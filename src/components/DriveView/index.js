@@ -70,7 +70,7 @@ class DriveView extends Component {
   }
 
   render() {
-    const { classes, dongleId, zoom, loop, start } = this.props;
+    const { classes, dongleId, zoom, loop, filter } = this.props;
     const visibleSegment = this.visibleSegment();
     const viewerPadding = this.state.windowWidth < 768 ? 12 : 32
 
@@ -98,7 +98,7 @@ class DriveView extends Component {
             <Timeline className={classes.headerTimeline} hasRuler />
           </div>
           <div style={{ padding: viewerPadding }}>
-            <Media visibleSegment={ visibleSegment } loop={ loop } start={ start } />
+            <Media visibleSegment={ visibleSegment } loop={ loop } start={ filter.start } />
           </div>
         </div>
       </>
@@ -112,7 +112,7 @@ const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
   loop: 'loop',
-  start: 'start',
+  filter: 'filter',
   zoom: 'zoom',
 });
 
