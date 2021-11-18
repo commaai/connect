@@ -257,11 +257,11 @@ class PrimeCheckout extends Component {
       return null;
     }
     if (selectedPlan === 'data') {
-      return subscribeInfo.trial_claimable;
+      return Boolean(subscribeInfo.trial_end_data);
     } else if (selectedPlan === 'nodata') {
-      return subscribeInfo.trial_claimable_nodata;
+      return Boolean(subscribeInfo.trial_end_nodata);
     } else {
-      return subscribeInfo.trial_claimable && subscribeInfo.trial_claimable_nodata;
+      return Boolean(subscribeInfo.trial_end_data && subscribeInfo.trial_end_nodata);
     }
   }
 
@@ -279,10 +279,14 @@ class PrimeCheckout extends Component {
 
     let chargeText = null;
     if (selectedPlan && this.trialClaimable()) {
-      const trialEndDate = fecha.format(this.props.subscribeInfo.trial_end * 1000, "MMMM Do");
-      const claimEndDate = Boolean(subscribeInfo.trial_claim_end && selectedPlan == 'data') ?
-        fecha.format(subscribeInfo.trial_claim_end * 1000, "MMMM Do") :
-        null;
+      let trialEndDate = null;
+      let claimEndDate = null;
+      if (selectedPlan === 'data') {
+        trialEndDate = fecha.format(subscribeInfo.trial_end_data * 1000, "MMMM Do");
+        claimEndDate = fecha.format(subscribeInfo.claim_end_data * 1000, "MMMM Do");
+      } else if (selectedPlan === 'nodata') {
+        trialEndDate = fecha.format(subscribeInfo.trial_end_nodata * 1000, "MMMM Do");
+      }
       chargeText = `Your first charge will be on ${trialEndDate}, then monthly thereafter.` +
         (claimEndDate ? ` Trial offer only valid until ${claimEndDate}.` : '');
     }
