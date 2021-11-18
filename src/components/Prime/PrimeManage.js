@@ -350,7 +350,7 @@ class PrimeManage extends Component {
               </div>
               <div className={ classes.overviewBlock }>
                 <Typography variant="subheading">Amount</Typography>
-                <Typography className={ classes.manageItem }>$24.00</Typography>
+                <Typography className={ classes.manageItem }>${ (subscription.amount / 100).toFixed(2) }</Typography>
               </div>
               { this.state.error && <div className={ classes.overviewBlockError }>
                 <ErrorIcon />
