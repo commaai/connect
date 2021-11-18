@@ -195,6 +195,7 @@ class PrimeCheckout extends Component {
     };
 
     this.gotoCheckout = this.gotoCheckout.bind(this);
+    this.trialClaimable = this.trialClaimable.bind(this);
   }
 
   componentDidMount() {
@@ -221,16 +222,31 @@ class PrimeCheckout extends Component {
     }
   }
 
-  async gotoCheckout(plan) {
+  async gotoCheckout() {
     const { dongleId, subscribeInfo } =  this.props;
     this.setState({ loadingCheckout: true });
     try {
-      const resp = await Billing.getStripeCheckout(dongleId, subscribeInfo.sim_id, plan);
+      const resp = await Billing.getStripeCheckout(dongleId, subscribeInfo.sim_id, this.state.selectedPlan);
       window.location = resp.url;
     } catch (err) {
       // TODO show error messages
       console.log(err);
       Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_checkout' });
+    }
+  }
+
+  trialClaimable() {
+    const { subscribeInfo } = this.props;
+    const { selectedPlan } = this.state;
+    if (!subscribeInfo) {
+      return null;
+    }
+    if (selectedPlan === 'data') {
+      return subscribeInfo.trial_claimable;
+    } else if (selectedPlan === 'nodata') {
+      return subscribeInfo.trial_claimable_nodata;
+    } else {
+      return subscribeInfo.trial_claimable && subscribeInfo.trial_claimable_nodata;
     }
   }
 
@@ -247,16 +263,13 @@ class PrimeCheckout extends Component {
     ];
 
     let chargeText = null;
-    if (selectedPlan && subscribeInfo) {
-      const price = selectedPlan === 'data' ? '$24.00' : '$16.00';
-      chargeText = `You will be charged ${price} today and monthly thereafter.`;
-      if (subscribeInfo.trial_claimable) {
-        const trialEndDate = fecha.format(this.props.subscribeInfo.trial_end * 1000, "MMMM Do");
-        const claimEndDate =
-          subscribeInfo.trial_claim_end ? fecha.format(subscribeInfo.trial_claim_end * 1000, "MMMM Do") : null;
-        chargeText = `You will be charged ${price} on ${trialEndDate} and monthly thereafter.` +
-          (claimEndDate ? ` Trial offer only valid until ${claimEndDate}.` : '');
-      }
+    if (selectedPlan && this.trialClaimable()) {
+      const trialEndDate = fecha.format(this.props.subscribeInfo.trial_end * 1000, "MMMM Do");
+      const claimEndDate = Boolean(subscribeInfo.trial_claim_end && selectedPlan == 'data') ?
+        fecha.format(subscribeInfo.trial_claim_end * 1000, "MMMM Do") :
+        null;
+      chargeText = `Your first charge will be on ${trialEndDate}, then monthly thereafter.` +
+        (claimEndDate ? ` Trial offer only valid until ${claimEndDate}.` : '');
     }
 
     const alias = device.alias || deviceTypePretty(device.device_type);
@@ -347,11 +360,11 @@ class PrimeCheckout extends Component {
         </div> }
         <div style={ blockMargin }>
           <Button style={ buttonSize } className={ `${classes.buttons} gotoCheckout` }
-            onClick={ () => this.gotoCheckout('nodata') }
+            onClick={ () => this.gotoCheckout() }
             disabled={ Boolean(!subscribeInfo || loadingCheckout || !selectedPlan) }>
             { loadingCheckout ?
               <CircularProgress size={ 19 } /> :
-              ((subscribeInfo && subscribeInfo.trial_claimable) ? 'Claim trial' : 'Go to checkout')
+              (this.trialClaimable() ? 'Claim trial' : 'Go to checkout')
             }
           </Button>
         </div>
