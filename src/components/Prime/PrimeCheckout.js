@@ -123,7 +123,7 @@ const styles = (theme) => ({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'space-around',
-    border: `1px solid transparent`,
+    border: `2px solid transparent`,
     backgroundColor: Colors.white10,
     padding: '8px 0',
     borderRadius: 18,
@@ -203,8 +203,14 @@ class PrimeCheckout extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (!prevProps.stripe_cancelled && this.props.stripe_cancelled) {
+    const { stripe_cancelled, subscribeInfo } = this.props;
+    if (!prevProps.stripe_cancelled && stripe_cancelled) {
       this.setState({ error: 'Checkout cancelled' });
+    }
+
+    if (!prevProps.subscribeInfo && prevProps.subscribeInfo !== subscribeInfo) {
+      const plan = subscribeInfo.sim_id && subscribeInfo.is_prime_sim ? 'data' : 'nodata';
+      this.setState({ selectedPlan: plan });
     }
   }
 
@@ -279,7 +285,7 @@ class PrimeCheckout extends Component {
       { height: 42, borderRadius: 21, width: 350 } :
       { height: 32, borderRadius: 18, width: '100%' };
     const paddingStyle = windowWidth > 520 ? { paddingLeft: 7, paddingRight: 7 } : { paddingLeft: 8, paddingRight: 8 };
-    const selectedStyle = { border: '1px solid white' };
+    const selectedStyle = { border: '2px solid white' };
     const plansLoadingClass = !subscribeInfo ? classes.planInfoLoading : '';
     const disabledDataPlan = Boolean(!subscribeInfo || !subscribeInfo.sim_id || !subscribeInfo.is_prime_sim);
 
