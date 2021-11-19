@@ -289,18 +289,18 @@ class PrimeManage extends Component {
       return null;
     }
 
-    let joinDate, nextPaymentDate;
+    let joinDate, nextPaymentDate, planName, planSubtext;
     if (hasPrimeSub) {
       joinDate = fecha.format(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0, 'MMMM Do, YYYY');
       nextPaymentDate = fecha.format(
         subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0, 'MMMM Do, YYYY');
+      planName = subscription.plan === 'nodata' ? 'Basic' : 'Standard';
+      planSubtext = subscription.plan === 'nodata' ? '(without data plan)' : '(with data plan)'
     }
 
     const alias = device.alias || deviceTypePretty(device.device_type);
     const containerPadding = windowWidth > 520 ? 36 : 16;
     const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
-    const planName = subscription.plan === 'nodata' ? 'Basic' : 'Standard';
-    const planSubtext = subscription.plan === 'nodata' ? '(without data plan)' : '(with data plan)'
 
     return (
       <>
