@@ -1198,7 +1198,7 @@ class Navigation extends Component {
           </div>
         </div>
         <Typography className={ classes.primeAdDetails }>
-          Put your car on the internet with comma prime for $24/mo.
+          Put your car on the internet with comma prime
         </Typography>
       </div>
     );

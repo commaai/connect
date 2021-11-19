@@ -308,7 +308,7 @@ class PrimeCheckout extends Component {
       } else if (!subscribeInfo.sim_id) {
         disabledDataPlanText = 'Could not reach device, connect device to the internet and try again.';
       } else if (!subscribeInfo.is_prime_sim) {
-        disabledDataPlanText = 'Third-party SIM detected, comma prime with data plan cannot be activated.';
+        disabledDataPlanText = 'Third-party SIM detected, comma prime with data plan can\'t be activated.';
       }
     }
 
