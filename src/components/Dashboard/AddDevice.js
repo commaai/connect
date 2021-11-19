@@ -27,22 +27,22 @@ const styles = (theme) => ({
     width: '100%',
     background: Colors.white,
     borderRadius: 18,
-    color: '#404B4F',
+    color: Colors.grey900,
     textTransform: 'none',
     '&:hover': {
       backgroundColor: Colors.white70,
-      color: '#404B4F',
+      color: Colors.grey900,
     },
   },
   retryButton: {
     marginTop: 10,
     background: Colors.white,
     borderRadius: 18,
-    color: '#404B4F',
+    color: Colors.grey900,
     textTransform: 'none',
     '&:hover': {
       backgroundColor: Colors.white70,
-      color: '#404B4F',
+      color: Colors.grey900,
     },
   },
   modal: {

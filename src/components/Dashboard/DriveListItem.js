@@ -12,6 +12,7 @@ import GeocodeApi from '../../api/geocode';
 import Timeline from '../Timeline';
 import { RightArrow } from '../../icons';
 import { KM_PER_MI } from '../../utils/conversions';
+import Colors from '../../colors';
 
 const styles = (theme) => ({
   drive: {
@@ -42,7 +43,7 @@ const styles = (theme) => ({
   },
   driveTimeline: {},
   driveArrow: {
-    color: '#404B4F',
+    color: Colors.grey500,
     height: '100%',
     marginLeft: '25%',
     width: 32,

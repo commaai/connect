@@ -80,19 +80,19 @@ const styles = (theme) => ({
     height: 42,
     borderRadius: 21,
     background: Colors.white,
-    color: '#404B4F',
+    color: Colors.grey900,
     textTransform: 'none',
     '&:hover': {
       backgroundColor: Colors.white70,
-      color: '#404B4F',
+      color: Colors.grey900,
     },
     '&:disabled': {
       backgroundColor: Colors.white70,
-      color: '#404B4F',
+      color: Colors.grey900,
     },
     '&:disabled:hover': {
       backgroundColor: Colors.white70,
-      color: '#404B4F',
+      color: Colors.grey900,
     }
   },
   checkList: {

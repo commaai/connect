@@ -63,20 +63,20 @@ const styles = (theme) => ({
     marginTop: 10,
     background: Colors.white,
     borderRadius: 18,
-    color: '#404B4F',
+    color: Colors.grey900,
     textTransform: 'none',
     width: 220,
     '&:hover': {
       backgroundColor: Colors.white70,
-      color: '#404B4F',
+      color: Colors.grey900,
     },
     '&:disabled': {
       backgroundColor: Colors.white70,
-      color: '#404B4F',
+      color: Colors.grey900,
     },
     '&:disabled:hover': {
       backgroundColor: Colors.white70,
-      color: '#404B4F',
+      color: Colors.grey900,
     }
   },
   cancelButton: {
@@ -89,11 +89,11 @@ const styles = (theme) => ({
     },
     '&:disabled': {
       backgroundColor: 'transparent',
-      color: '#404B4F',
+      color: Colors.grey900,
     },
     '&:disabled:hover': {
       backgroundColor: 'transparent',
-      color: '#404B4F',
+      color: Colors.grey900,
     }
   },
   modal: {
