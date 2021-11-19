@@ -6,7 +6,6 @@ import { withStyles, Typography, Button, CircularProgress, Popper } from '@mater
 import "react-responsive-carousel/lib/styles/carousel.min.css"; // requires a loader
 import { Carousel } from 'react-responsive-carousel';
 
-import * as Demo from '../../demo';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import Colors from '../../colors';
@@ -33,21 +32,20 @@ const styles = () => ({
   },
   button: {
     backgroundColor: Colors.white,
-    color: Colors.grey800,
-    color: '#404B4F',
+    color: Colors.grey900,
     textTransform: 'none',
     minHeight: 'unset',
     '&:hover': {
       background: '#ddd',
-      color: '#404B4F',
+      color: Colors.grey900,
     },
     '&:disabled': {
       background: '#ddd',
-      color: '#404B4F',
+      color: Colors.grey900,
     },
     '&:disabled:hover': {
       background: '#ddd',
-      color: '#404B4F',
+      color: Colors.grey900,
     },
   },
   buttonOffline: {

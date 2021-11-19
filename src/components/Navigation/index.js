@@ -121,18 +121,18 @@ const styles = () => ({
     padding: '6px 12px',
     backgroundColor: Colors.white,
     borderRadius: 15,
-    color: '#404B4F',
+    color: Colors.grey900,
     textTransform: 'none',
     minHeight: 'unset',
     flexGrow: 1,
     maxWidth: 125,
     '&:hover': {
       background: '#ddd',
-      color: '#404B4F',
+      color: Colors.grey900,
     },
     '&:disabled': {
       background: '#ddd',
-      color: '#404B4F',
+      color: Colors.grey900,
     },
   },
   searchSelectButtonFake: {
@@ -144,7 +144,7 @@ const styles = () => ({
     alignItems: 'center',
     marginBottom: 10,
     '& p': {
-      color: '#404B4F',
+      color: Colors.grey900,
       lineHeight: '1.4em',
       fontWeight: 500,
     },
@@ -1198,7 +1198,7 @@ class Navigation extends Component {
           </div>
         </div>
         <Typography className={ classes.primeAdDetails }>
-          Put your car on the internet with comma prime for $24/mo.
+          Put your car on the internet with comma prime
         </Typography>
       </div>
     );

@@ -58,25 +58,29 @@ const styles = (theme) => ({
   },
   manageItem: {
     marginLeft: 10,
+    '& span': {
+      color: Colors.white70,
+      fontSize: '0.9em',
+    }
   },
   buttons: {
     marginTop: 10,
     background: Colors.white,
     borderRadius: 18,
-    color: '#404B4F',
+    color: Colors.grey900,
     textTransform: 'none',
     width: 220,
     '&:hover': {
       backgroundColor: Colors.white70,
-      color: '#404B4F',
+      color: Colors.grey900,
     },
     '&:disabled': {
       backgroundColor: Colors.white70,
-      color: '#404B4F',
+      color: Colors.grey900,
     },
     '&:disabled:hover': {
       backgroundColor: Colors.white70,
-      color: '#404B4F',
+      color: Colors.grey900,
     }
   },
   cancelButton: {
@@ -89,11 +93,11 @@ const styles = (theme) => ({
     },
     '&:disabled': {
       backgroundColor: 'transparent',
-      color: '#404B4F',
+      color: Colors.grey900,
     },
     '&:disabled:hover': {
       backgroundColor: 'transparent',
-      color: '#404B4F',
+      color: Colors.grey900,
     }
   },
   modal: {
@@ -295,6 +299,8 @@ class PrimeManage extends Component {
     const alias = device.alias || deviceTypePretty(device.device_type);
     const containerPadding = windowWidth > 520 ? 36 : 16;
     const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
+    const planName = subscription.plan === 'nodata' ? 'Basic' : 'Standard';
+    const planSubtext = subscription.plan === 'nodata' ? '(without data plan)' : '(with data plan)'
 
     return (
       <>
@@ -341,6 +347,10 @@ class PrimeManage extends Component {
             </div>
             { hasPrimeSub && <>
               <div className={ classes.overviewBlock }>
+                <Typography variant="subheading">Plan</Typography>
+                <Typography className={ classes.manageItem }>{ planName } <span>{ planSubtext }</span></Typography>
+              </div>
+              <div className={ classes.overviewBlock }>
                 <Typography variant="subheading">Joined</Typography>
                 <Typography className={ classes.manageItem }>{ joinDate }</Typography>
               </div>
@@ -350,7 +360,7 @@ class PrimeManage extends Component {
               </div>
               <div className={ classes.overviewBlock }>
                 <Typography variant="subheading">Amount</Typography>
-                <Typography className={ classes.manageItem }>$24.00</Typography>
+                <Typography className={ classes.manageItem }>${ (subscription.amount / 100).toFixed(2) }</Typography>
               </div>
               { this.state.error && <div className={ classes.overviewBlockError }>
                 <ErrorIcon />

@@ -1,6 +1,9 @@
 const Colors = {
   transparent: 'transparent',
   white: '#fff',
+  white03: 'rgba(255, 255, 255, 0.03)',
+  white05: 'rgba(255, 255, 255, 0.05)',
+  white08: 'rgba(255, 255, 255, 0.08)',
   white10: 'rgba(255, 255, 255, 0.1)',
   white12: 'rgba(255, 255, 255, 0.12)',
   white20: 'rgba(255, 255, 255, 0.2)',
