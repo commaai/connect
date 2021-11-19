@@ -3,8 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import fecha from 'fecha';
 import * as Sentry from '@sentry/react';
-import { withStyles, Typography, IconButton, Button, CircularProgress, List, ListItem, ListItemIcon, ListItemText,
-  Tooltip } from '@material-ui/core';
+import { withStyles, Typography, IconButton, Button, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
@@ -63,11 +62,21 @@ const styles = (theme) => ({
     '& span': { display: 'inline', },
   },
   overviewBlockError: {
-    marginTop: 10,
-    padding: 10,
+    borderRadius: 12,
+    marginTop: 8,
+    padding: '8px 12px',
     display: 'flex',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 0, 0, 0.2)',
+    '& p': { display: 'inline-block', marginLeft: 10 },
+  },
+  overviewBlockDisabled: {
+    marginTop: 12,
+    borderRadius: 12,
+    padding: '8px 12px',
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: Colors.white08,
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
   chargeText: {
@@ -166,16 +175,6 @@ const styles = (theme) => ({
     color: Colors.white40,
     cursor: 'default',
   },
-  planDisabledHelp: {
-    color: Colors.white,
-    position: 'absolute',
-    top: 6,
-    right: 6,
-  },
-  planDisabledTooltip: {
-    margin: '6px 0',
-    fontSize: '0.8rem',
-  },
   planInfoLoading: {
     backgroundColor: Colors.white03,
     color: Colors.white20,
@@ -205,8 +204,8 @@ class PrimeCheckout extends Component {
       error: null,
       loadingCheckout: false,
       selectedPlan: null,
-      disabledPlanTooltip: false,
       windowWidth: window.innerWidth,
+      windowHeight: window.innerHeight,
     };
 
     this.gotoCheckout = this.gotoCheckout.bind(this);
@@ -273,7 +272,7 @@ class PrimeCheckout extends Component {
 
   render() {
     const { classes, device, subscribeInfo } = this.props;
-    const { windowWidth, error, loadingCheckout, selectedPlan, disabledPlanTooltip } = this.state;
+    const { windowWidth, windowHeight, error, loadingCheckout, selectedPlan } = this.state;
 
     let chargeText = null;
     if (selectedPlan && this.trialClaimable()) {
@@ -291,26 +290,27 @@ class PrimeCheckout extends Component {
 
     const alias = device.alias || deviceTypePretty(device.device_type);
     const containerPadding = windowWidth > 520 ? { margin: '18px 24px' } : { margin: '6px 12px' };
-    const blockMargin = windowWidth > 520 ? { marginTop: 24 } : { marginTop: 12 };
+    const blockMargin = windowWidth > 520 ? { marginTop: 24 } : { marginTop: 8 };
     const paddingStyle = windowWidth > 520 ? { paddingLeft: 7, paddingRight: 7 } : { paddingLeft: 8, paddingRight: 8 };
     const selectedStyle = { border: '2px solid white' };
     const plansLoadingClass = !subscribeInfo ? classes.planInfoLoading : '';
     const disabledDataPlan = Boolean(!subscribeInfo || !subscribeInfo.sim_id || !subscribeInfo.is_prime_sim);
+    const boxHeight = windowHeight > 600 ? { height: 140 } : { height: 110 };
 
     let disabledDataPlanText;
     if (subscribeInfo && disabledDataPlan) {
       if (!subscribeInfo.sim_id && subscribeInfo.device_online) {
-        disabledDataPlanText = 'No SIM inserted. Ensure SIM is securely inserted and try again.';
+        disabledDataPlanText = 'Standard plan not available, no SIM was detected. Ensure SIM is securely inserted and try again.';
       } else if (!subscribeInfo.sim_id) {
-        disabledDataPlanText = 'Could not reach device, connect device to the internet and try again.';
+        disabledDataPlanText = 'Standard plan not available, device could not be reached. Connect device to the internet and try again.';
       } else if (!subscribeInfo.is_prime_sim) {
-        disabledDataPlanText = 'Third-party SIM detected, comma prime with data plan can\'t be activated.';
+        disabledDataPlanText = 'Standard plan not available, detected a third-party SIM.';
       }
     }
 
     return ( <>
       <div className={ classes.primeBox } style={ containerPadding }>
-        <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
+        <ResizeHandler onResize={ (windowWidth, windowHeight) => this.setState({ windowWidth, windowHeight }) } />
         <div className={ classes.primeHeader }>
           <IconButton aria-label="Go Back" onClick={() => this.props.dispatch(primeNav(false)) }>
             <KeyboardBackspaceIcon />
@@ -341,7 +341,7 @@ class PrimeCheckout extends Component {
           </div>
         </div>
         <div className={ classes.planBoxContainer } style={ blockMargin }>
-          <div className={ classes.planBox }>
+          <div className={ classes.planBox } style={ boxHeight }>
             <div className={ `${classes.plan} ${plansLoadingClass}` }
               style={ selectedPlan === 'nodata' ? selectedStyle : {} }
               onClick={ Boolean(subscribeInfo) ? () => this.setState({ selectedPlan: 'nodata' }) : null }>
@@ -352,14 +352,6 @@ class PrimeCheckout extends Component {
             <div className={ `${classes.plan} ${disabledDataPlan ? classes.planDisabled : ''} ${plansLoadingClass}` }
               style={ selectedPlan === 'data' ? selectedStyle : {} }
               onClick={ !disabledDataPlan ? () => this.setState({ selectedPlan: 'data' }) : null }>
-              { Boolean(subscribeInfo && disabledDataPlan) &&
-                <Tooltip open={ disabledPlanTooltip } title={ disabledDataPlanText } disableHoverListener={ true }
-                  classes={{ tooltip: classes.planDisabledTooltip }} disableFocusListener={ true } disableTouchListener={ true }>
-                  <InfoOutlineIcon className={ classes.planDisabledHelp }
-                    onMouseEnter={ () => this.setState({ disabledPlanTooltip: true }) }
-                    onMouseLeave={ () => this.setState({ disabledPlanTooltip: false }) } />
-                </Tooltip>
-              }
               <p className={ classes.planName }>standard</p>
               <p className={ classes.planPrice }>$24/month</p>
               <p className={ classes.planSubtext }>unlimited 512kbps data<br />only offered in the U.S.</p>
@@ -372,6 +364,10 @@ class PrimeCheckout extends Component {
             </div>
           }
         </div>
+        { disabledDataPlanText && <div className={ classes.overviewBlockDisabled } style={ blockMargin }>
+          <InfoOutlineIcon />
+          <Typography>{ disabledDataPlanText }</Typography>
+        </div> }
         <div style={ blockMargin }>
           <Typography className={ classes.learnMore }>
             Learn more about comma prime from our <a target="_blank" href="https://comma.ai/prime#faq">FAQ</a>
