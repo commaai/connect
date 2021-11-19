@@ -19,11 +19,9 @@ import { primeNav } from '../../actions';
 
 const styles = (theme) => ({
   primeBox: {
-    background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
-    borderRadius: 8,
     display: 'flex',
     flexDirection: 'column',
-    maxWidth: 450,
+    maxWidth: 430,
     color: '#fff',
   },
   primeHeader: {
@@ -292,10 +290,8 @@ class PrimeCheckout extends Component {
     }
 
     const alias = device.alias || deviceTypePretty(device.device_type);
-    const containerPadding = windowWidth > 520 ?
-      { margin: 18, padding: '12px 36px 36px' } :
-      { margin: 6, padding: '2px 12px 12px' };
-    const blockMargin = windowWidth > 520 ? { marginTop: 20 } : { marginTop: 10 };
+    const containerPadding = windowWidth > 520 ? { margin: '18px 24px' } : { margin: '6px 12px' };
+    const blockMargin = windowWidth > 520 ? { marginTop: 24 } : { marginTop: 12 };
     const paddingStyle = windowWidth > 520 ? { paddingLeft: 7, paddingRight: 7 } : { paddingLeft: 8, paddingRight: 8 };
     const selectedStyle = { border: '2px solid white' };
     const plansLoadingClass = !subscribeInfo ? classes.planInfoLoading : '';

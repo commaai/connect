@@ -58,6 +58,10 @@ const styles = (theme) => ({
   },
   manageItem: {
     marginLeft: 10,
+    '& span': {
+      color: Colors.white70,
+      fontSize: '0.9em',
+    }
   },
   buttons: {
     marginTop: 10,
@@ -295,6 +299,8 @@ class PrimeManage extends Component {
     const alias = device.alias || deviceTypePretty(device.device_type);
     const containerPadding = windowWidth > 520 ? 36 : 16;
     const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
+    const planName = subscription.plan === 'nodata' ? 'Basic' : 'Standard';
+    const planSubtext = subscription.plan === 'nodata' ? '(without data plan)' : '(with data plan)'
 
     return (
       <>
@@ -340,6 +346,10 @@ class PrimeManage extends Component {
               </div>
             </div>
             { hasPrimeSub && <>
+              <div className={ classes.overviewBlock }>
+                <Typography variant="subheading">Plan</Typography>
+                <Typography className={ classes.manageItem }>{ planName } <span>{ planSubtext }</span></Typography>
+              </div>
               <div className={ classes.overviewBlock }>
                 <Typography variant="subheading">Joined</Typography>
                 <Typography className={ classes.manageItem }>{ joinDate }</Typography>
