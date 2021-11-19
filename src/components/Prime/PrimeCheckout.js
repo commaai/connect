@@ -97,14 +97,22 @@ const styles = (theme) => ({
   },
   checkList: {
     marginLeft: 12,
-    '& span': { fontSize: 14 },
   },
   checkListItem: {
-    padding: 0,
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: 4,
     '& svg': {
       alignSelf: 'flex-start',
       fontSize: 21,
-      marginRight: 0,
+    },
+    '& p': {
+      fontSize: 14,
+      margin: '0 0 0 14px',
+    },
+    '& span': {
+      color: Colors.white70,
+      fontSize: 12,
     },
   },
   learnMore: {
@@ -269,14 +277,6 @@ class PrimeCheckout extends Component {
     const { classes, device, subscribeInfo } = this.props;
     const { windowWidth, error, loadingCheckout, selectedPlan, disabledPlanTooltip } = this.state;
 
-    const listItems = [
-      ['24/7 connectivity', null],
-      ['Take pictures remotely', null],
-      ['1 year storage of drive videos', null],
-      ['Simple SSH for developers', null],
-      ['Turn-by-turn navigation', 'comma three only'],
-    ];
-
     let chargeText = null;
     if (selectedPlan && this.trialClaimable()) {
       let trialEndDate = null;
@@ -326,14 +326,23 @@ class PrimeCheckout extends Component {
         </div>
         <h2 className={ classes.primeTitle }>comma prime</h2>
         <div style={ blockMargin }>
-          <List className={ classes.checkList }>
-            { listItems.map((listItemText, i) => {
-              return <ListItem key={ i } className={ classes.checkListItem } style={ paddingStyle }>
-                <ListItemIcon><CheckIcon /></ListItemIcon>
-                <ListItemText primary={ listItemText[0] } secondary={ listItemText[1] } />
-              </ListItem>;
-            }) }
-          </List>
+          <div className={ classes.checkList }>
+            <div className={ classes.checkListItem } style={ paddingStyle }>
+              <CheckIcon /><p>24/7 connectivity</p>
+            </div>
+            <div className={ classes.checkListItem } style={ paddingStyle }>
+              <CheckIcon /><p>Take pictures remotely</p>
+            </div>
+            <div className={ classes.checkListItem } style={ paddingStyle }>
+              <CheckIcon /><p>1 year storage of drive videos</p>
+            </div>
+            <div className={ classes.checkListItem } style={ paddingStyle }>
+              <CheckIcon /><p>Simple SSH for developers</p>
+            </div>
+            <div className={ classes.checkListItem } style={ paddingStyle }>
+              <CheckIcon /><p>Turn-by-turn navigation <span>comma three only</span></p>
+            </div>
+          </div>
         </div>
         <div className={ classes.planBoxContainer } style={ blockMargin }>
           <div className={ classes.planBox }>
