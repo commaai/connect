@@ -110,29 +110,29 @@ class Media extends Component {
   }
 
   async copySegmentName() {
-    const { visibleSegment } = this.props;
-    if (!visibleSegment || !navigator.clipboard) {
+    const { currentSegment } = this.props;
+    if (!currentSegment || !navigator.clipboard) {
       return;
     }
 
-    await navigator.clipboard.writeText(`${visibleSegment.route}--${visibleSegment.segment}`);
+    await navigator.clipboard.writeText(`${currentSegment.route}--${currentSegment.segment}`);
     this.setState({ moreInfoMenu: null });
   }
 
   async downloadSegmentFile(type) {
-    const { visibleSegment } = this.props;
-    if (!visibleSegment) {
+    const { currentSegment } = this.props;
+    if (!currentSegment) {
       return;
     }
 
-    const segmentKeyPath = `${visibleSegment.route.replace('|', '/')}/${visibleSegment.segment}`;
+    const segmentKeyPath = `${currentSegment.route.replace('|', '/')}/${currentSegment.segment}`;
 
     let files;
     if (Demo.isDemo()) {
       files = demoFiles;
     } else {
       try {
-        files = await RawApi.getRouteFiles(visibleSegment.route);
+        files = await RawApi.getRouteFiles(currentSegment.route);
       } catch (err) {
         Sentry.captureException(err, { fingerprint: 'media_download_segment_files' });
       }
@@ -146,14 +146,17 @@ class Media extends Component {
   }
 
   openInCabana() {
-    const { visibleSegment, loop, start } = this.props;
+    const { currentSegment, loop, start } = this.props;
+    if (!currentSegment) {
+      return;
+    }
     const offset = currentOffset();
     const params = {
-      route: visibleSegment.route,
-      url: visibleSegment.url,
-      seekTime: Math.floor((offset - visibleSegment.routeOffset) / 1000)
+      route: currentSegment.route,
+      url: currentSegment.url,
+      seekTime: Math.floor((offset - currentSegment.routeOffset) / 1000)
     };
-    const routeStartTime = (start + visibleSegment.routeOffset);
+    const routeStartTime = (start + currentSegment.routeOffset);
 
     if (loop.startTime && loop.startTime > routeStartTime && loop.duration < 180000) {
       const startTime = Math.floor((loop.startTime - routeStartTime) / 1000);
@@ -173,10 +176,10 @@ class Media extends Component {
   }
 
   openInUseradmin() {
-    const { visibleSegment } = this.props;
+    const { currentSegment } = this.props;
 
     const params = {
-      onebox: visibleSegment.route,
+      onebox: currentSegment.route,
     };
     // TODO: Remove this when the tests properly load config.js
     let USERADMIN_URL_ROOT = window.USERADMIN_URL_ROOT;
@@ -258,7 +261,7 @@ class Media extends Component {
           <div className={classes.mediaOptions}>
             <div className={classes.mediaOption} aria-haspopup="true"
               onClick={ (ev) => this.setState({ downloadMenu: ev.target }) }>
-              <Typography className={classes.mediaOptionText}>Download</Typography>
+              <Typography className={classes.mediaOptionText}>Files</Typography>
             </div>
             <div className={classes.mediaOption} aria-haspopup="true"
               onClick={ (ev) => this.setState({ moreInfoMenu: ev.target }) }>
@@ -272,16 +275,16 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { visibleSegment } = this.props;
+    const { currentSegment } = this.props;
     const disabledStyle = {
       pointerEvents: 'auto',
     };
 
-    const QCamAvailable = (visibleSegment);
-    const FCamAvailable = (visibleSegment && visibleSegment.hasVideo);
-    const DCamAvailable = (visibleSegment && visibleSegment.hasDriverCamera);
-    const QLogAvailable = (visibleSegment);
-    const RLogAvailable = (visibleSegment && visibleSegment.hasRLog);
+    const QCamAvailable = (currentSegment);
+    const FCamAvailable = (currentSegment && currentSegment.hasVideo);
+    const DCamAvailable = (currentSegment && currentSegment.hasDriverCamera);
+    const QLogAvailable = (currentSegment);
+    const RLogAvailable = (currentSegment && currentSegment.hasRLog);
     return (
       <>
         <Menu id="menu-download" open={ alwaysOpen || Boolean(this.state.downloadMenu) }
@@ -332,6 +335,10 @@ class Media extends Component {
 }
 
 const stateToProps = Obstruction({
+  currentSegment: 'workerState.currentSegment',
+  nextSegment: 'workerState.nextSegment',
+  loop: 'workerState.loop',
+  start: 'workerState.start',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));
