@@ -322,10 +322,9 @@ class Media extends Component {
 }
 
 const stateToProps = Obstruction({
-  currentSegment: 'workerState.currentSegment',
-  nextSegment: 'workerState.nextSegment',
-  loop: 'workerState.loop',
-  start: 'workerState.start',
+  currentSegment: 'currentSegment',
+  loop: 'loop',
+  start: 'start',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));
