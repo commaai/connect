@@ -76,7 +76,7 @@ describe('playback', () => {
     expect(Playback.currentOffset(state)).toEqual(123);
   });
 
-  it('should clear loop when seeked after loop end time', () => {
+  it('should clamp loop when seeked after loop end time', () => {
     newNow();
     let state = makeDefaultStruct();
 
@@ -87,10 +87,11 @@ describe('playback', () => {
 
     // seek past loop end boundary a
     state = Playback.reducer(state, Playback.seek(3000));
-    expect(state.loop.startTime).toEqual(null);
+    expect(state.loop.startTime).toEqual(state.filter.start + 1000);
+    expect(state.offset).toEqual(2000);
   });
 
-  it('should clear loop when seeked before loop start time', () => {
+  it('should clamp loop when seeked before loop start time', () => {
     newNow();
     let state = makeDefaultStruct();
 
@@ -101,7 +102,8 @@ describe('playback', () => {
 
     // seek past loop end boundary a
     state = Playback.reducer(state, Playback.seek(0));
-    expect(state.loop.startTime).toEqual(null);
+    expect(state.loop.startTime).toEqual(state.filter.start + 1000);
+    expect(state.offset).toEqual(1000);
   });
 
   it('should buffer video and data', async () => {

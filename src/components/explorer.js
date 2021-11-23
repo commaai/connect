@@ -99,9 +99,6 @@ class ExplorerApp extends Component {
 
     window.scrollTo({ top: 0 });  // for ios header
 
-    if (Demo.isDemo()) {
-      this.props.dispatch(selectTimeFilter(1564443025000, Date.now()));
-    }
     this.props.dispatch(init());
 
     let pairToken;

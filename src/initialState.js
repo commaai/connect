@@ -1,11 +1,18 @@
 import { getDongleID, getZoom, getPrimeNav } from './url';
+import * as Demo from './demo';
 
 function getDefaultFilter() {
   const d = new Date();
   d.setHours(d.getHours() + 1, 0, 0, 0);
+  let start;
+  if (Demo.isDemo()) {
+    start = 1564443025000;
+  } else {
+    start = (new Date(d.getTime() - 1000 * 60 * 60 * 24 * 14)).getTime();
+  }
 
   return {
-    start: (new Date(d.getTime() - 1000 * 60 * 60 * 24 * 14)).getTime(),
+    start,
     end: d.getTime(),
   }
 }
