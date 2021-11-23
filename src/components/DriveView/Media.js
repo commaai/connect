@@ -98,15 +98,18 @@ class Media extends Component {
 
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
-    this.onResize = this.onResize.bind(this);
     this.copySegmentName = this.copySegmentName.bind(this);
     this.downloadSegmentFile = this.downloadSegmentFile.bind(this);
     this.openInCabana = this.openInCabana.bind(this);
     this.openInUseradmin = this.openInUseradmin.bind(this);
   }
 
-  onResize(windowWidth) {
-    this.setState({ windowWidth });
+  componentDidUpdate() {
+    const { windowWidth, inView } = this.state;
+    const showMapAlways = windowWidth >= 1536;
+    if (showMapAlways && inView === MediaType.MAP) {
+      this.setState({ inView: MediaType.VIDEO });
+    }
   }
 
   async copySegmentName() {
@@ -163,13 +166,7 @@ class Media extends Component {
       params.segments = [startTime, Math.floor(startTime + (loop.duration / 1000))].join(',');
     }
 
-    // TODO: Remove this when the tests properly load config.js
-    let CABANA_URL_ROOT = window.CABANA_URL_ROOT;
-    if (!CABANA_URL_ROOT) {
-      CABANA_URL_ROOT = 'https://my.comma.ai/cabana/';
-    }
-
-    const win = window.open(`${CABANA_URL_ROOT}?${qs.stringify(params, true)}`, '_blank');
+    const win = window.open(`${window.CABANA_URL_ROOT}?${qs.stringify(params)}`, '_blank');
     if (win.focus) {
       win.focus();
     }
@@ -177,16 +174,12 @@ class Media extends Component {
 
   openInUseradmin() {
     const { currentSegment } = this.props;
-
-    const params = {
-      onebox: currentSegment.route,
-    };
-    // TODO: Remove this when the tests properly load config.js
-    let USERADMIN_URL_ROOT = window.USERADMIN_URL_ROOT;
-    if (!USERADMIN_URL_ROOT) {
-      USERADMIN_URL_ROOT = 'https://useradmin.comma.ai/';
+    if (!currentSegment) {
+      return;
     }
-    const win = window.open(`${USERADMIN_URL_ROOT}?${qs.stringify(params, true)}`, '_blank');
+
+    const params = { onebox: currentSegment.route };
+    const win = window.open(`${window.USERADMIN_URL_ROOT}?${qs.stringify(params)}`, '_blank');
     if (win.focus) {
       win.focus();
     }
@@ -201,20 +194,14 @@ class Media extends Component {
     }
 
     const showMapAlways = windowWidth >= 1536;
-    if (showMapAlways && inView === MediaType.MAP) {
-      this.setState({ inView: MediaType.VIDEO });
-    }
-
-    const mediaContainerStyle = showMapAlways ?
-      { width: '60%' } :
-      { width: '100%' };
+    const mediaContainerStyle = showMapAlways ? { width: '60%' } : { width: '100%' };
     const mapContainerStyle = showMapAlways ?
       { width: '40%', marginBottom: 62, marginTop: 46, paddingLeft: 24 } :
       { width: '100%' };
 
     return (
       <div className={ classes.root }>
-        <ResizeHandler onResize={ this.onResize } />
+        <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
         <div style={ mediaContainerStyle }>
           { this.renderMediaOptions(showMapAlways) }
           { inView !== MediaType.MAP &&
