@@ -38,18 +38,10 @@ export function reducer(_state, action) {
       };
 
       if (loopOffset !== null) {
-        if (state.offset < loopOffset || state.offset > (loopOffset + state.loop.duration)) {
-          // a seek outside of loop should break out of the loop
-          state.loop = { startTime: null, duration: null };
-          state.loopOffset = null;
-        } else {
-          if (state.offset > (loopOffset + state.loop.duration)) {
-            state.offset = (loopOffset + state.loop.duration) - 1000; // 1 second before end
-          }
-          // intentionally second in case we're in a sub-1-second loop (madness)
-          if (state.offset < loopOffset) {
-            state.offset = loopOffset;
-          }
+        if (state.offset < loopOffset) {
+          state.offset = loopOffset;
+        } else if (state.offset > (loopOffset + state.loop.duration)) {
+          state.offset = loopOffset + state.loop.duration;
         }
       }
       break;
