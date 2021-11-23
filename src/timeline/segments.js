@@ -65,65 +65,6 @@ export function getCurrentSegment(state, o) {
   return null;
 }
 
-export function getNextSegment(state, o) {
-  const offset = o === undefined ? currentOffset(state) : o;
-  if (!state.segments) {
-    return null;
-  }
-
-  const { segments } = state;
-
-  for (let i = 0, len = segments.length; i < len; ++i) {
-    const thisSegment = segments[i];
-    // the next segment is after the offset, that means this offset is in a blank
-    if (thisSegment.offset > offset) {
-      return {
-        url: thisSegment.url,
-        route: thisSegment.route,
-        segment: 0,
-        routeOffset: thisSegment.offset,
-        startOffset: thisSegment.offset,
-        routeFirstSegment: thisSegment.firstSegment,
-        events: thisSegment.events,
-        videoAvailableBetweenOffsets: thisSegment.videoAvailableBetweenOffsets,
-        deviceType: thisSegment.deviceType,
-        hpgps: thisSegment.hpgps,
-        hasVideo: thisSegment.hasVideo,
-        hasDriverCamera: thisSegment.hasDriverCamera,
-        hasRLog: thisSegment.hasRLog,
-        cameraStreamSegCount: thisSegment.cameraStreamSegCount,
-        distanceMiles: thisSegment.distanceMiles,
-      };
-      // already returned, unreachable code
-      // break;
-    }
-    if (thisSegment.offset + thisSegment.duration > offset) {
-      const segmentIndex = Math.floor((offset - thisSegment.offset) / SEGMENT_LENGTH);
-      if (segmentIndex + 1 < thisSegment.segments) {
-        return {
-          url: thisSegment.url,
-          route: thisSegment.route,
-          segment: segmentIndex + 1,
-          routeOffset: thisSegment.offset,
-          startOffset: thisSegment.offset + (segmentIndex + 1) * SEGMENT_LENGTH,
-          duration: thisSegment.duration,
-          events: thisSegment.events,
-          deviceType: thisSegment.deviceType,
-          videoAvailableBetweenOffsets: thisSegment.videoAvailableBetweenOffsets,
-          hpgps: thisSegment.hpgps,
-          hasVideo: thisSegment.hasVideo,
-          hasDriverCamera: thisSegment.hasDriverCamera,
-          hasRLog: thisSegment.hasRLog,
-          cameraStreamSegCount: thisSegment.cameraStreamSegCount,
-          distanceMiles: thisSegment.distanceMiles,
-        };
-      }
-    }
-  }
-
-  return null;
-}
-
 function finishSegment(segment) {
   let lastEngage = null;
 
@@ -282,7 +223,6 @@ export function reducer(_state, action) {
   }
 
   state.currentSegment = getCurrentSegment(state);
-  state.nextSegment = getNextSegment(state);
 
   return state;
 }

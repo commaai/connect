@@ -2,7 +2,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withStyles, Typography, CircularProgress } from '@material-ui/core';
-import raf from 'raf';
 import debounce from 'debounce';
 import Obstruction from 'obstruction';
 import ReactPlayer from 'react-player'
@@ -56,13 +55,11 @@ class DriveVideo extends Component {
   constructor(props) {
     super(props);
 
-    this.updatePreview = this.updatePreview.bind(this);
     this.visibleSegment = this.visibleSegment.bind(this);
     this.isVideoBuffering = this.isVideoBuffering.bind(this);
+    this.syncVideo = debounce(this.syncVideo.bind(this), 500);
 
     this.videoPlayer = React.createRef();
-
-    this.frame = 0;
 
     this.state = {
       src: null,
@@ -74,9 +71,9 @@ class DriveVideo extends Component {
     if (this.videoPlayer.current) {
       this.videoPlayer.current.playbackRate = playSpeed || 1;
     }
-    this.rafLoop = raf(this.updatePreview);
     this.updateVideoSource({});
     this.syncVideo();
+    this.videoSyncIntv = setInterval(this.syncVideo, 1000);
   }
 
   componentDidUpdate(prevProps) {
@@ -85,19 +82,17 @@ class DriveVideo extends Component {
   }
 
   componentWillUnmount() {
-    if (this.rafLoop) {
-      raf.cancel(this.rafLoop);
-      this.rafLoop = null;
+    if (this.videoSyncIntv) {
+      clearTimeout(this.videoSyncIntv);
+      this.videoSyncIntv = null;
     }
   }
 
   visibleSegment(props = this.props) {
-    if (props.currentSegment) {
-      return props.currentSegment;
-    }
     const offset = currentOffset();
-    if (props.nextSegment && props.nextSegment.startOffset - offset < 5000) {
-      return props.nextSegment;
+    const currSegment = props.currentSegment;
+    if (currSegment && currSegment.routeOffset <= offset && offset <= currSegment.routeOffset + currSegment.duration) {
+      return currSegment;
     }
     return null;
   }
@@ -127,16 +122,6 @@ class DriveVideo extends Component {
     }
   }
 
-  updatePreview() {
-    // schedule next run right away so that we can return early
-    this.rafLoop = raf(this.updatePreview);
-
-    this.frame++;
-    if (this.frame % 20 === 0) {
-      this.syncVideo();
-    }
-  }
-
   isVideoBuffering() {
     const videoPlayer = this.videoPlayer.current;
     if (!videoPlayer || !this.visibleSegment() || !videoPlayer.getDuration()) {
@@ -149,20 +134,16 @@ class DriveVideo extends Component {
     }
   }
 
-  syncVideo = debounce(() => {
-    const videoPlayer = this.videoPlayer.current;
-    if (!videoPlayer || !videoPlayer.getDuration()) {
-      return;
-    }
-
+  syncVideo() {
     if (!this.visibleSegment()) {
+      console.log('segment update');
       this.props.dispatch(updateSegments());
       return;
     }
 
-    const offset = currentOffset();
-    if (offset > this.visibleSegment().routeOffset + this.visibleSegment().duration || offset < this.visibleSegment().routeOffset) {
-      this.props.dispatch(updateSegments());
+    const videoPlayer = this.videoPlayer.current;
+    if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
+      return;
     }
 
     const internalPlayer = videoPlayer.getInternalPlayer();
@@ -200,7 +181,7 @@ class DriveVideo extends Component {
     } else if (!internalPlayer.paused && internalPlayer.playbackRate === 0) {
       internalPlayer.pause();
     }
-  }, 100)
+  }
 
   currentVideoTime(offset = currentOffset()) {
     const visibleSegment = this.visibleSegment();
@@ -244,7 +225,6 @@ class DriveVideo extends Component {
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
   currentSegment: 'currentSegment',
-  nextSegment: 'nextSegment',
   desiredPlaySpeed: 'desiredPlaySpeed',
   offset: 'offset',
   startTime: 'startTime',

@@ -34,7 +34,6 @@ export default {
   dongleId: getDongleID(window.location.pathname),
 
   currentSegment: null,
-  nextSegment: null,
   desiredPlaySpeed: 1, // speed set by user
   isBufferingVideo: false, // if we're currently buffering for more data
   offset: 0, // in miliseconds from the start

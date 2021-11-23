@@ -1,5 +1,5 @@
 /* eslint-env jest */
-import { hasSegmentMetadata, getCurrentSegment, getNextSegment, SEGMENT_LENGTH } from './segments';
+import { hasSegmentMetadata, getCurrentSegment, SEGMENT_LENGTH } from './segments';
 
 const segmentData = [{
   route: '99c94dc769b5d96e|2018-04-09--10-10-00',
@@ -60,28 +60,6 @@ describe('segments', () => {
       startTime: Date.now() - 50
     });
     expect(segment).toBe(null);
-  });
-
-  it('finds next segment within route', async () => {
-    const segment = getNextSegment({
-      segments: segmentData,
-      offset: segmentData[0].offset,
-      desiredPlaySpeed: 1,
-      startTime: Date.now()
-    });
-    expect(segment.route).toBe(segmentData[0].route);
-    expect(segment.segment).toBe(1);
-  });
-
-  it('finds next segment across routes', async () => {
-    const segment = getNextSegment({
-      segments: segmentData,
-      offset: segmentData[0].offset + segmentData[0].duration - 1000,
-      desiredPlaySpeed: 1,
-      startTime: Date.now()
-    });
-    expect(segment.route).toBe(segmentData[1].route);
-    expect(segment.segment).toBe(0);
   });
 
   it('can check if it has segment metadata', () => {

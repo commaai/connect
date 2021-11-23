@@ -59,12 +59,10 @@ class DriveView extends Component {
   }
 
   visibleSegment(props = this.props) {
-    if (props.currentSegment) {
-      return props.currentSegment;
-    }
     const offset = currentOffset();
-    if (props.nextSegment && props.nextSegment.startOffset - offset < 5000) {
-      return props.nextSegment;
+    const currSegment = props.currentSegment;
+    if (currSegment && currSegment.routeOffset <= offset && offset <= currSegment.routeOffset + currSegment.duration) {
+      return currSegment;
     }
     return null;
   }
@@ -108,7 +106,6 @@ class DriveView extends Component {
 
 const stateToProps = Obstruction({
   currentSegment: 'currentSegment',
-  nextSegment: 'nextSegment',
   dongleId: 'dongleId',
   device: 'device',
   loop: 'loop',
