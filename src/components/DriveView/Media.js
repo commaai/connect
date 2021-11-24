@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Divider, Typography, Menu, MenuItem } from '@material-ui/core';
+import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress } from '@material-ui/core';
 
 import { raw as RawApi } from '@commaai/comma-api';
 import DriveMap from '../DriveMap';
@@ -13,6 +13,7 @@ import ResizeHandler from '../ResizeHandler';
 import * as Demo from '../../demo';
 import TimeDisplay from '../TimeDisplay';
 import { currentOffset } from '../../timeline/playback';
+import Colors from '../../colors';
 
 const demoFiles = require('../../demo/files.json');
 
@@ -78,7 +79,17 @@ const styles = (theme) => ({
   timeDisplay: {
     marginTop: 12,
   },
+  menuLoading: {
+    position: 'absolute',
+    outline: 'none',
+    zIndex: 5,
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+  },
 });
+
+const FILE_TYPES = ['qcameras', 'cameras', 'dcameras', 'ecameras', 'qlogs', 'logs'];
 
 const MediaType = {
   VIDEO: 'video',
@@ -92,6 +103,8 @@ class Media extends Component {
     this.state = {
       inView: MediaType.VIDEO,
       windowWidth: window.innerWidth,
+      segmentsFiles: null,
+      segmentsFilesLoading: false,
       downloadMenu: null,
       moreInfoMenu: null,
     };
@@ -99,16 +112,23 @@ class Media extends Component {
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
     this.copySegmentName = this.copySegmentName.bind(this);
-    this.downloadSegmentFile = this.downloadSegmentFile.bind(this);
+    this.downloadFile = this.downloadFile.bind(this);
     this.openInCabana = this.openInCabana.bind(this);
     this.openInUseradmin = this.openInUseradmin.bind(this);
+    this.routesInLoop = this.routesInLoop.bind(this);
+    this.fetchFiles = this.fetchFiles.bind(this);
+    this.currentSegmentNum = this.currentSegmentNum.bind(this);
   }
 
-  componentDidUpdate() {
-    const { windowWidth, inView } = this.state;
+  componentDidUpdate(_, prevState) {
+    const { windowWidth, inView, downloadMenu } = this.state;
     const showMapAlways = windowWidth >= 1536;
     if (showMapAlways && inView === MediaType.MAP) {
       this.setState({ inView: MediaType.VIDEO });
+    }
+
+    if (!prevState.downloadMenu && downloadMenu) {
+      this.fetchFiles();
     }
   }
 
@@ -118,30 +138,16 @@ class Media extends Component {
       return;
     }
 
-    await navigator.clipboard.writeText(`${currentSegment.route}--${currentSegment.segment}`);
+    await navigator.clipboard.writeText(`${currentSegment.route}--${this.currentSegmentNum()}`);
     this.setState({ moreInfoMenu: null });
   }
 
-  async downloadSegmentFile(type) {
-    const { currentSegment } = this.props;
-    if (!currentSegment) {
-      return;
-    }
+  currentSegmentNum() {
+    const offset = currentOffset();
+    return Math.floor((offset - this.props.currentSegment.routeOffset) / 60000);
+  }
 
-    const segmentKeyPath = `${currentSegment.route.replace('|', '/')}/${currentSegment.segment}`;
-
-    let files;
-    if (Demo.isDemo()) {
-      files = demoFiles;
-    } else {
-      try {
-        files = await RawApi.getRouteFiles(currentSegment.route);
-      } catch (err) {
-        Sentry.captureException(err, { fingerprint: 'media_download_segment_files' });
-      }
-    }
-    const url = files[type].find((url) => url.indexOf(segmentKeyPath) !== -1);
-
+  async downloadFile(url) {
     if (url) {
       window.location.href = url;
     }
@@ -149,7 +155,7 @@ class Media extends Component {
   }
 
   openInCabana() {
-    const { currentSegment, loop, start } = this.props;
+    const { currentSegment, loop, filter } = this.props;
     if (!currentSegment) {
       return;
     }
@@ -159,7 +165,7 @@ class Media extends Component {
       url: currentSegment.url,
       seekTime: Math.floor((offset - currentSegment.routeOffset) / 1000)
     };
-    const routeStartTime = (start + currentSegment.routeOffset);
+    const routeStartTime = (filter.start + currentSegment.routeOffset);
 
     if (loop.startTime && loop.startTime > routeStartTime && loop.duration < 180000) {
       const startTime = Math.floor((loop.startTime - routeStartTime) / 1000);
@@ -183,6 +189,50 @@ class Media extends Component {
     if (win.focus) {
       win.focus();
     }
+  }
+
+  routesInLoop() {
+    const { segments, loop } = this.props;
+    return segments
+      .filter((route) =>
+        route.startTime < loop.startTime + loop.duration && route.startTime + route.duration > loop.startTime)
+      .map((route) => route.route);
+  }
+
+  async fetchFiles() {
+    this.setState({ segmentsFilesLoading: true });
+    let promises = [];
+    if (Demo.isDemo()) {
+      promises.push((async () => ['3533c53bb29502d1|2019-12-10--01-13-27', demoFiles])());
+    } else {
+      for (const routeName of this.routesInLoop()) {
+        promises.push((async () => [routeName, await RawApi.getRouteFiles(routeName)])());
+      }
+    }
+
+    let files;
+    try {
+      files = await Promise.all(promises);
+    } catch (err) {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'media_fetch_files' });
+      this.setState({ segmentsFiles: null, segmentsFilesLoading: false });
+    }
+
+    const res = {};
+    for (const [routeName, routeFiles] of files) {
+      res[routeName] = {};
+      for (const type of FILE_TYPES) {
+        res[routeName][type] = {};
+        for (const file of routeFiles[type]) {
+          const urlName = routeName.replace('|', '/');
+          const segmentNum = parseInt(file.split(urlName)[1].split('/')[1]);
+          res[routeName][type][segmentNum] = file;
+        }
+      }
+    }
+
+    this.setState({ segmentsFiles: res, segmentsFilesLoading: false });
   }
 
   render() {
@@ -262,44 +312,61 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { currentSegment } = this.props;
+    const { currentSegment, classes } = this.props;
+    const { segmentsFiles } = this.state;
     const disabledStyle = {
       pointerEvents: 'auto',
     };
 
-    const QCamAvailable = (currentSegment);
-    const FCamAvailable = (currentSegment && currentSegment.hasVideo);
-    const DCamAvailable = (currentSegment && currentSegment.hasDriverCamera);
-    const QLogAvailable = (currentSegment);
-    const RLogAvailable = (currentSegment && currentSegment.hasRLog);
+    let qcam, fcam, ecam, dcam, qlog, rlog;
+    if (segmentsFiles && currentSegment && segmentsFiles[currentSegment.route]) {
+      const seg = this.currentSegmentNum();
+      qcam = segmentsFiles[currentSegment.route]['qcameras'][seg];
+      fcam = segmentsFiles[currentSegment.route]['cameras'][seg];
+      ecam = segmentsFiles[currentSegment.route]['ecameras'][seg];
+      dcam = segmentsFiles[currentSegment.route]['dcameras'][seg];
+      qlog = segmentsFiles[currentSegment.route]['qlogs'][seg];
+      rlog = segmentsFiles[currentSegment.route]['logs'][seg];
+    }
+
     return (
       <>
         <Menu id="menu-download" open={ alwaysOpen || Boolean(this.state.downloadMenu) }
           anchorEl={ this.state.downloadMenu } onClose={ () => this.setState({ downloadMenu: null }) }
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
-          <MenuItem onClick={ () => this.downloadSegmentFile('qcameras') }
-            disabled={ !QCamAvailable } style={ !QCamAvailable ? disabledStyle : {} }>
+          { !segmentsFiles &&
+            <div className={ classes.menuLoading }>
+              <CircularProgress size={ 36 } style={{ color: Colors.white }} />
+            </div>
+          }
+          <MenuItem onClick={ () => this.downloadFile(qcam) }
+            disabled={ !qcam } style={ !qcam ? disabledStyle : {} }>
             Camera segment
           </MenuItem>
-          <MenuItem onClick={ () => this.downloadSegmentFile('cameras') }
-            title={ !FCamAvailable ? 'not available, request upload in useradmin' : null }
-            disabled={ !FCamAvailable } style={ !FCamAvailable ? disabledStyle : {} }>
+          <MenuItem onClick={ () => this.downloadFile(fcam) }
+            title={ !fcam ? 'not available, request upload in useradmin' : null }
+            disabled={ !fcam } style={ !fcam ? disabledStyle : {} }>
             Full resolution camera segment
           </MenuItem>
-          <MenuItem onClick={ () => this.downloadSegmentFile('dcameras') }
-            title={ !DCamAvailable ? 'not available, request upload in useradmin' : null }
-            disabled={ !DCamAvailable } style={ !DCamAvailable ? disabledStyle : {} }>
+          <MenuItem onClick={ () => this.downloadFile(ecam) }
+            title={ !ecam ? 'not available, request upload in useradmin' : null }
+            disabled={ !ecam } style={ !ecam ? disabledStyle : {} }>
+            Wide road camera segment
+          </MenuItem>
+          <MenuItem onClick={ () => this.downloadFile(dcam) }
+            title={ !dcam ? 'not available, request upload in useradmin' : null }
+            disabled={ !dcam } style={ !dcam ? disabledStyle : {} }>
             Driver camera segment
           </MenuItem>
           <Divider />
-          <MenuItem onClick={ () => this.downloadSegmentFile('qlogs') }
-            disabled={ !QLogAvailable } style={ !QLogAvailable ? disabledStyle : {} }>
+          <MenuItem onClick={ () => this.downloadFile(qlog) }
+            disabled={ !qlog } style={ !qlog ? disabledStyle : {} }>
             Log segment
           </MenuItem>
-          <MenuItem onClick={ () => this.downloadSegmentFile('logs') }
-            title={ !RLogAvailable ? 'not available, request upload in useradmin' : null }
-            disabled={ !RLogAvailable } style={ !RLogAvailable ? disabledStyle : {} }>
+          <MenuItem onClick={ () => this.downloadFile(rlog) }
+            title={ !rlog ? 'not available, request upload in useradmin' : null }
+            disabled={ !rlog } style={ !rlog ? disabledStyle : {} }>
             Raw log segment
           </MenuItem>
         </Menu>
@@ -323,8 +390,9 @@ class Media extends Component {
 
 const stateToProps = Obstruction({
   currentSegment: 'currentSegment',
+  segments: 'segments',
   loop: 'loop',
-  start: 'start',
+  filter: 'filter',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));
