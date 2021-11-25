@@ -492,8 +492,6 @@ class Media extends Component {
       }
     }
 
-    console.log(segmentsFiles);
-
     const buttons = [
       [qcam, 'Camera segment', 'qcameras'],
       [fcam, 'Full resolution camera segment', 'cameras'],
@@ -514,9 +512,9 @@ class Media extends Component {
               <CircularProgress size={ 36 } style={{ color: Colors.white }} />
             </div>
           }
-          { buttons.reduce((res, [file, name, type]) => {
-            if (type === 'qlogs') { res.push( <Divider key={ 'divider' } /> ); }
-            res.push( <MenuItem key={ type } onClick={ () => this.downloadFile(file.url) } className={ classes.filesItem }
+          { buttons.flatMap(([file, name, type]) => [
+            type === 'qlogs' ? <Divider key={ 'divider' } /> : null,
+            <MenuItem key={ type } onClick={ () => this.downloadFile(file.url) } className={ classes.filesItem }
               disabled={ !file.url } style={ !file.url ? disabledStyle : {} }>
               <span style={ !file.url ? { color: Colors.white60 } : {} }>{ name }</span>
               { Boolean(!segmentsFilesLoading && !file.url && !file.progress) &&
@@ -529,9 +527,8 @@ class Media extends Component {
                   { file.current ? `${parseInt(file.progress * 100)}%` : 'upload pending' }
                 </div>
               }
-            </MenuItem> );
-            return res;
-          }, []) }
+            </MenuItem>
+          ]) }
         </Menu>
         <Menu id="menu-info" open={ alwaysOpen || Boolean(this.state.moreInfoMenu) }
           anchorEl={ this.state.moreInfoMenu } onClose={ () => this.setState({ moreInfoMenu: null }) }
