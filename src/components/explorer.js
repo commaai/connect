@@ -16,12 +16,13 @@ import IosPwaPopup from './IosPwaPopup';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import AppDrawer from './AppDrawer';
 
-import Timelineworker from '../timeline';
-import { selectRange, selectDevice, primeNav } from '../actions';
-import { getDongleID, getZoom, getPrimeNav } from '../url';
+import { selectTimeFilter, selectDevice, updateDevice } from '../actions';
 import ResizeHandler from './ResizeHandler';
 import Colors from '../colors';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
+import { play, pause } from '../timeline/playback';
+import init from '../actions/startup';
+import * as Demo from '../demo';
 
 const styles = (theme) => ({
   base: {
@@ -78,47 +79,28 @@ class ExplorerApp extends Component {
     this.closePair = this.closePair.bind(this);
   }
 
-  componentWillMount() {
-    this.componentDidUpdate({})
-    window.scrollTo({ top: 0 });
-  }
-
   componentDidUpdate(prevProps, prevState) {
-    const { settingDongle } = this.state;
     const { pathname, dongleId, expanded } = this.props;
-
-    const zoom = getZoom(pathname);
-    const pathDongleId = getDongleID(pathname);
-
-    if (getPrimeNav(pathname)) {
-      this.props.dispatch(primeNav());
-    } else {
-      this.props.dispatch(selectRange(zoom.start, zoom.end));
-    }
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
     }
 
-    if (pathDongleId) {
-      if (!settingDongle && dongleId !== pathDongleId) {
-        this.setState({ settingDongle: true });
-        Timelineworker.selectDevice(pathDongleId);
-      } else if (settingDongle && dongleId === pathDongleId) {
-        this.setState({ settingDongle: false });
-      }
-    }
-
     if (!prevProps.expanded && expanded) {
-      Timelineworker.play();
+      this.props.dispatch(play());
     }
     if (prevProps.expanded && !expanded) {
-      Timelineworker.pause();
+      this.props.dispatch(pause());
     }
   }
 
   async componentDidMount() {
     const { pairLoading, pairError, pairDongleId } = this.state;
+
+    window.scrollTo({ top: 0 });  // for ios header
+
+    this.props.dispatch(init());
+
     let pairToken;
     try {
       pairToken = await localforage.getItem('pairToken');
@@ -147,7 +129,7 @@ class ExplorerApp extends Component {
           });
 
           const device = await DevicesApi.fetchDevice(resp.dongle_id);
-          Timelineworker.updateDevice(device);
+          this.props.dispatch(updateDevice(device));
         } else {
           await localforage.removeItem('pairToken');
           console.log(resp);
@@ -159,6 +141,8 @@ class ExplorerApp extends Component {
         this.setState({ pairDongleId: null, pairLoading: false, pairError: `Error: ${msg}, please try again` });
       }
     }
+
+    this.componentDidUpdate({})
   }
 
   async closePair() {
@@ -251,8 +235,8 @@ ExplorerApp.propTypes = {
 const stateToProps = Obstruction({
   expanded: 'zoom.expanded',
   pathname: 'router.location.pathname',
-  dongleId: 'workerState.dongleId',
-  devices: 'workerState.devices',
+  dongleId: 'dongleId',
+  devices: 'devices',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

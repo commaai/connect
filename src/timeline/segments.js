@@ -1,11 +1,6 @@
-import initialState from './initialState';
-import { currentOffset } from './playback';
+import * as Types from '../actions/types';
 
-const ACTION_UPDATE_SEGMENTS = 'update_segments';
-const ACTION_LOAD_SEGMENT_METADATA = 'load_segment_metadata';
-const ACTION_SEGMENT_METADATA = 'segment_metadata';
-
-const SEGMENT_LENGTH = 1000 * 60;
+export const SEGMENT_LENGTH = 1000 * 60;
 
 /*
 segments look like, but can contain additional data if they want
@@ -16,7 +11,22 @@ for example, caching url metadata
 }
 */
 
-function getCurrentSegment(state, o) {
+function currentOffset(state) {
+  let playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
+  let offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
+
+  if (state.loop && state.loop.startTime) {
+    // respect the loop
+    const loopOffset = state.loop.startTime - state.filter.start;
+    if (offset > loopOffset + state.loop.duration) {
+      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
+    }
+  }
+
+  return offset;
+}
+
+export function getCurrentSegment(state, o) {
   const offset = o === undefined ? currentOffset(state) : o;
   if (!state.segments) {
     return null;
@@ -52,65 +62,6 @@ function getCurrentSegment(state, o) {
       };
     }
   }
-  return null;
-}
-
-function getNextSegment(state, o) {
-  const offset = o === undefined ? currentOffset(state) : o;
-  if (!state.segments) {
-    return null;
-  }
-
-  const { segments } = state;
-
-  for (let i = 0, len = segments.length; i < len; ++i) {
-    const thisSegment = segments[i];
-    // the next segment is after the offset, that means this offset is in a blank
-    if (thisSegment.offset > offset) {
-      return {
-        url: thisSegment.url,
-        route: thisSegment.route,
-        segment: 0,
-        routeOffset: thisSegment.offset,
-        startOffset: thisSegment.offset,
-        routeFirstSegment: thisSegment.firstSegment,
-        events: thisSegment.events,
-        videoAvailableBetweenOffsets: thisSegment.videoAvailableBetweenOffsets,
-        deviceType: thisSegment.deviceType,
-        hpgps: thisSegment.hpgps,
-        hasVideo: thisSegment.hasVideo,
-        hasDriverCamera: thisSegment.hasDriverCamera,
-        hasRLog: thisSegment.hasRLog,
-        cameraStreamSegCount: thisSegment.cameraStreamSegCount,
-        distanceMiles: thisSegment.distanceMiles,
-      };
-      // already returned, unreachable code
-      // break;
-    }
-    if (thisSegment.offset + thisSegment.duration > offset) {
-      const segmentIndex = Math.floor((offset - thisSegment.offset) / SEGMENT_LENGTH);
-      if (segmentIndex + 1 < thisSegment.segments) {
-        return {
-          url: thisSegment.url,
-          route: thisSegment.route,
-          segment: segmentIndex + 1,
-          routeOffset: thisSegment.offset,
-          startOffset: thisSegment.offset + (segmentIndex + 1) * SEGMENT_LENGTH,
-          duration: thisSegment.duration,
-          events: thisSegment.events,
-          deviceType: thisSegment.deviceType,
-          videoAvailableBetweenOffsets: thisSegment.videoAvailableBetweenOffsets,
-          hpgps: thisSegment.hpgps,
-          hasVideo: thisSegment.hasVideo,
-          hasDriverCamera: thisSegment.hasDriverCamera,
-          hasRLog: thisSegment.hasRLog,
-          cameraStreamSegCount: thisSegment.cameraStreamSegCount,
-          distanceMiles: thisSegment.distanceMiles,
-        };
-      }
-    }
-  }
-
   return null;
 }
 
@@ -241,10 +192,10 @@ function segmentsFromMetadata(segmentsData) {
   return segments;
 }
 
-function reducer(_state = initialState, action) {
+export function reducer(_state, action) {
   let state = { ..._state };
   switch (action.type) {
-    case ACTION_LOAD_SEGMENT_METADATA:
+    case Types.ACTION_LOAD_SEGMENT_METADATA:
       state = {
         ...state,
         segmentData: {
@@ -255,69 +206,57 @@ function reducer(_state = initialState, action) {
         }
       };
       break;
-    case ACTION_SEGMENT_METADATA:
+    case Types.ACTION_SEGMENT_METADATA:
       state = {
         ...state,
         segmentData: action.data,
         segments: action.segments
       };
       break;
-    case ACTION_UPDATE_SEGMENTS:
+    case Types.ACTION_UPDATE_SEGMENTS:
       state = {
         ...state,
       }
+      break;
     default:
       break;
   }
-  const currentSegment = getCurrentSegment(state);
-  const nextSegment = getNextSegment(state);
 
-  if (currentSegment) {
-    state.route = currentSegment.route;
-    state.segment = currentSegment.segment;
-  } else if (nextSegment) {
-    state.route = nextSegment.route;
-    state.segment = nextSegment.segment;
-  } else {
-    state.route = false;
-    state.segment = 0;
-  }
-
-  state.currentSegment = currentSegment;
-  state.nextSegment = nextSegment;
+  state.currentSegment = getCurrentSegment(state);
 
   return state;
 }
 
-function updateSegments() {
+export function updateSegments() {
   return {
-    type: ACTION_UPDATE_SEGMENTS
+    type: Types.ACTION_UPDATE_SEGMENTS
   };
 }
 
-function fetchSegmentMetadata(start, end, promise) {
+export function fetchSegmentMetadata(start, end, promise) {
   return {
-    type: ACTION_LOAD_SEGMENT_METADATA,
+    type: Types.ACTION_LOAD_SEGMENT_METADATA,
     start,
     end,
     promise
   };
 }
 
-function insertSegmentMetadata(data) {
+export function insertSegmentMetadata(data) {
   return {
-    type: ACTION_SEGMENT_METADATA,
+    type: Types.ACTION_SEGMENT_METADATA,
     segments: segmentsFromMetadata(data),
     data
   };
 }
 
-function parseSegmentMetadata(state, _segments) {
+export function parseSegmentMetadata(state, _segments) {
   const routeStartTimes = {};
+  const fetchRange = getSegmentFetchRange(state);
   let segments = _segments;
   segments = segments.map((_segment) => {
     const segment = _segment;
-    segment.offset = Math.round(segment.start_time_utc_millis) - state.start;
+    segment.offset = Math.round(segment.start_time_utc_millis) - state.filter.start;
     if (!routeStartTimes[segment.canonical_route_name]) {
       const segmentNum = Number(segment.canonical_name.split('--')[2]);
       segment.segment = segmentNum;
@@ -337,9 +276,6 @@ function parseSegmentMetadata(state, _segments) {
     segment.events.forEach((_event) => {
       const event = _event;
       event.timestamp = segment.start_time_utc_millis + event.offset_millis;
-      // segment.start_time_utc_millis + event.offset_millis
-      // segment.start_time_utc_millis - state.start + state.start
-
       event.canonical_segment_name = segment.canonical_name;
 
       if (event.data && event.data.is_planned) {
@@ -366,14 +302,14 @@ function parseSegmentMetadata(state, _segments) {
   });
 
   return {
-    start: state.start,
+    start: fetchRange.start,
     dongleId: state.dongleId,
-    end: state.end,
+    end: fetchRange.end,
     segments
   };
 }
 
-function hasSegmentMetadata(state) {
+export function hasSegmentMetadata(state) {
   if (!state) {
     return false;
   }
@@ -393,11 +329,12 @@ function hasSegmentMetadata(state) {
     console.log('Bad dongle id');
     return false;
   }
-  if (state.start < state.segmentData.start) {
+  const fetchRange = getSegmentFetchRange(state);
+  if (fetchRange.start < state.segmentData.start) {
     console.log('Bad start offset');
     return false;
   }
-  if (state.end > state.segmentData.end) {
+  if (fetchRange.end > state.segmentData.end) {
     console.log('Bad end offset');
     return false;
   }
@@ -405,27 +342,18 @@ function hasSegmentMetadata(state) {
   return true;
 }
 
-function hasCameraAtOffset(segment, offset) {
-  return segment.videoAvailableBetweenOffsets.some((int) => offset >= int[0] && offset <= int[1]);
+export function getSegmentFetchRange(state) {
+  if (!state.zoom || !state.zoom.expanded) {
+    return state.filter;
+  }
+  if (state.zoom.end < state.filter.start) {
+    return {
+      start: state.zoom.start - 60000,
+      end: state.zoom.end + 60000,
+    };
+  }
+  return {
+    start: Math.min(state.filter.start, state.zoom.start - 60000),
+    end: Math.max(state.filter.end, state.zoom.end + 60000),
+  };
 }
-
-const API = {
-  // helpers
-  getCurrentSegment,
-  getNextSegment,
-  hasSegmentMetadata,
-  parseSegmentMetadata,
-  hasCameraAtOffset,
-
-  // actions
-  updateSegments,
-  fetchSegmentMetadata,
-  insertSegmentMetadata,
-
-  // constants
-  SEGMENT_LENGTH,
-
-  // reducer
-  reducer
-};
-export default API;

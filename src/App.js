@@ -16,18 +16,10 @@ import Explorer from './components/explorer';
 import AnonymousLanding from './components/anonymous';
 
 import { getDongleID } from './url';
-import TimelineWorker from './timeline';
-import { history, createStore } from './store';
-import { updateState } from './actions';
+import store, { history } from './store';
 import { initGoogleAnalytics } from './analytics';
-import * as Demo from './demo';
 
 initGoogleAnalytics(history);
-const store = createStore();
-
-TimelineWorker.onStateChange((data) => {
-  store.dispatch(updateState(data));
-});
 
 class App extends Component {
   constructor(props) {
@@ -52,20 +44,6 @@ class App extends Component {
   }
 
   async componentDidMount() {
-    if (Demo.isDemo()) {
-      await TimelineWorker.init(true);
-      TimelineWorker.selectTimeRange(1564443025000, Date.now());
-      this.setState({ initialized: true });
-    }
-
-    return await this.auth();
-  }
-
-  componentWillUnmount() {
-    TimelineWorker.stop();
-  }
-
-  async auth() {
     if (window.location) {
       if (window.location.pathname === AuthConfig.AUTH_PATH) {
         try {
@@ -82,11 +60,12 @@ class App extends Component {
     }
 
     const token = await MyCommaAuth.init();
-    Request.configure(token);
-    Billing.configure(token);
-    Athena.configure(token);
+    if (token) {
+      Request.configure(token);
+      Billing.configure(token);
+      Athena.configure(token);
+    }
 
-    await TimelineWorker.init();
     this.setState({ initialized: true });
   }
 

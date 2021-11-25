@@ -98,9 +98,9 @@ class AppDrawer extends Component {
 }
 
 const stateToProps = Obstruction({
-  segments: 'workerState.segments',
-  selectedDongleId: 'workerState.dongleId',
-  device: 'workerState.device',
+  segments: 'segments',
+  selectedDongleId: 'dongleId',
+  device: 'device',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppDrawer));

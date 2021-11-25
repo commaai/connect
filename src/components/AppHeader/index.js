@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { Link } from 'react-router-dom';
 import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
@@ -8,10 +7,12 @@ import { Divider, Typography, Menu, MenuItem, ListItem, IconButton, Icon, AppBar
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
+import { selectDevice } from '../../actions';
 import TimeFilter from './TimeFilter';
 import { AccountIcon } from '../../icons';
 import Colors from '../../colors';
 import ResizeHandler from '../ResizeHandler';
+import { filterRegularClick } from '../../utils';
 
 const styles = (theme) => ({
   header: {
@@ -148,13 +149,15 @@ class AppHeader extends Component {
                   <Icon>menu</Icon>
                 </IconButton>
               :
-                <Link to="/" className={ classes.logoImgLink }>
+                <a href={ `/${dongleId}` } className={ classes.logoImgLink }
+                  onClick={ filterRegularClick(() => this.props.dispatch(selectDevice(dongleId))) }>
                   <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
-                </Link>
+                </a>
               }
-              <Link to="/" className={classes.logo}>
+              <a href={ `/${dongleId}` } className={classes.logo}
+                onClick={ filterRegularClick(() => this.props.dispatch(selectDevice(dongleId))) }>
                 <Typography className={classes.logoText}>connect</Typography>
-              </Link>
+              </a>
             </div>
             <div className={ classes.headerWideItem } style={ reorderWideStyle }>
               { !primeNav && !annotating && Boolean(dongleId) && <TimeFilter /> }
@@ -165,7 +168,7 @@ class AppHeader extends Component {
             </IconButton>
           </div>
         </AppBar>
-        { MyCommaAuth.isAuthenticated() &&
+        { MyCommaAuth.isAuthenticated() && profile &&
           <Menu id="menu-appbar" open={open} onClose={this.handleClose} anchorEl={anchorEl}
             anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
@@ -188,11 +191,10 @@ class AppHeader extends Component {
 }
 
 const stateToProps = Obstruction({
-  dongleId: 'workerState.dongleId',
-  start: 'workerState.start',
-  end: 'workerState.end',
-  profile: 'workerState.profile',
-  primeNav: 'workerState.primeNav',
+  dongleId: 'dongleId',
+  filter: 'filter',
+  profile: 'profile',
+  primeNav: 'primeNav',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));

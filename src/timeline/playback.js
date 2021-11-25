@@ -1,23 +1,20 @@
 // basic helper functions for controlling playback
 // we shouldn't want to edit the raw state most of the time, helper functions are better
-
-const initialState = require('./initialState');
-
-const ACTION_SEEK = 'action_seek';
-const ACTION_PAUSE = 'action_pause';
-const ACTION_PLAY = 'action_play';
-const ACTION_LOOP = 'action_loop';
-const ACTION_BUFFER_VIDEO = 'action_buffer_video';
-const ACTION_RESET = 'action_reset';
+import * as Types from '../actions/types';
+import store from '../store';
 
 // fetch current playback offset
-export function currentOffset(state) {
+export function currentOffset(state = null) {
+  if (!state) {
+    state = store.getState();
+  }
+
   let playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
   let offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
 
   if (state.loop && state.loop.startTime) {
     // respect the loop
-    const loopOffset = state.loop.startTime - state.start;
+    const loopOffset = state.loop.startTime - state.filter.start;
     if (offset > loopOffset + state.loop.duration) {
       offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
     }
@@ -26,14 +23,14 @@ export function currentOffset(state) {
   return offset;
 }
 
-export function reducer(_state = initialState, action) {
+export function reducer(_state, action) {
   let state = { ..._state };
   let loopOffset = null;
   if (state.loop && state.loop.startTime !== null) {
-    loopOffset = state.loop.startTime - state.start;
+    loopOffset = state.loop.startTime - state.filter.start;
   }
   switch (action.type) {
-    case ACTION_SEEK:
+    case Types.ACTION_SEEK:
       state = {
         ...state,
         offset: action.offset,
@@ -41,22 +38,14 @@ export function reducer(_state = initialState, action) {
       };
 
       if (loopOffset !== null) {
-        if (state.offset < loopOffset || state.offset > (loopOffset + state.loop.duration)) {
-          // a seek outside of loop should break out of the loop
-          state.loop = { startTime: null, duration: null };
-          state.loopOffset = null;
-        } else {
-          if (state.offset > (loopOffset + state.loop.duration)) {
-            state.offset = (loopOffset + state.loop.duration) - 1000; // 1 second before end
-          }
-          // intentionally second in case we're in a sub-1-second loop (madness)
-          if (state.offset < loopOffset) {
-            state.offset = loopOffset;
-          }
+        if (state.offset < loopOffset) {
+          state.offset = loopOffset;
+        } else if (state.offset > (loopOffset + state.loop.duration)) {
+          state.offset = loopOffset + state.loop.duration;
         }
       }
       break;
-    case ACTION_PAUSE:
+    case Types.ACTION_PAUSE:
       state = {
         ...state,
         offset: currentOffset(state),
@@ -64,7 +53,7 @@ export function reducer(_state = initialState, action) {
         desiredPlaySpeed: 0,
       };
       break;
-    case ACTION_PLAY:
+    case Types.ACTION_PLAY:
       if (action.speed !== state.desiredPlaySpeed) {
         state = {
           ...state,
@@ -74,7 +63,7 @@ export function reducer(_state = initialState, action) {
         };
       }
       break;
-    case ACTION_LOOP:
+    case Types.ACTION_LOOP:
       state = {
         ...state,
         loop: {
@@ -83,11 +72,13 @@ export function reducer(_state = initialState, action) {
         }
       };
       if (action.duration > 0 && action.startTime > 0) {
-        state.start = Math.min(action.startTime, state.start);
-        state.end = Math.max(action.startTime + action.duration, state.end);
+        state.filter = {
+          start: Math.min(action.startTime, state.filter.start),
+          end: Math.max(action.startTime + action.duration, state.filter.end),
+        }
       }
       break;
-    case ACTION_BUFFER_VIDEO:
+    case Types.ACTION_BUFFER_VIDEO:
       state = {
         ...state,
         isBufferingVideo: action.buffering,
@@ -95,7 +86,7 @@ export function reducer(_state = initialState, action) {
         startTime: Date.now(),
       }
       break;
-    case ACTION_RESET:
+    case Types.ACTION_RESET:
       state = {
         ...state,
         desiredPlaySpeed: 1,
@@ -112,7 +103,7 @@ export function reducer(_state = initialState, action) {
   const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
   // normalize over loop
   if (state.loop && state.loop.startTime !== null) {
-    loopOffset = state.loop.startTime - state.start;
+    loopOffset = state.loop.startTime - state.filter.start;
     // has loop, trap offset within the loop
     if (offset < loopOffset) {
       state.startTime = Date.now();
@@ -131,7 +122,7 @@ export function reducer(_state = initialState, action) {
 // seek to a specific offset
 export function seek(offset) {
   return {
-    type: ACTION_SEEK,
+    type: Types.ACTION_SEEK,
     offset
   };
 }
@@ -139,36 +130,36 @@ export function seek(offset) {
 // pause the playback
 export function pause() {
   return {
-    type: ACTION_PAUSE
+    type: Types.ACTION_PAUSE
   };
 }
 
 // resume / change play speed
 export function play(speed = 1) {
   return {
-    type: ACTION_PLAY,
+    type: Types.ACTION_PLAY,
     speed
   };
 }
 
 export function selectLoop(startTime, duration) {
   return {
-    type: ACTION_LOOP,
+    type: Types.ACTION_LOOP,
     startTime,
     duration
   };
 }
 
 // update video buffering state
-export function bufferVideo(buffering = true) {
+export function bufferVideo(buffering) {
   return {
-    type: ACTION_BUFFER_VIDEO,
+    type: Types.ACTION_BUFFER_VIDEO,
     buffering
   };
 }
 
 export function resetPlayback() {
   return {
-    type: ACTION_RESET,
+    type: Types.ACTION_RESET,
   };
 }

@@ -2,7 +2,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { withStyles, Typography, CircularProgress } from '@material-ui/core';
-import raf from 'raf';
 import debounce from 'debounce';
 import Obstruction from 'obstruction';
 import ReactPlayer from 'react-player'
@@ -11,7 +10,8 @@ import * as Sentry from '@sentry/react';
 
 import { video as VideoApi } from '@commaai/comma-api';
 
-import TimelineWorker from '../../timeline';
+import { seek, bufferVideo, currentOffset } from '../../timeline/playback';
+import { updateSegments } from '../../timeline/segments';
 
 window.Hls = Hls;
 
@@ -55,13 +55,11 @@ class DriveVideo extends Component {
   constructor(props) {
     super(props);
 
-    this.updatePreview = this.updatePreview.bind(this);
     this.visibleSegment = this.visibleSegment.bind(this);
     this.isVideoBuffering = this.isVideoBuffering.bind(this);
+    this.syncVideo = debounce(this.syncVideo.bind(this), 500);
 
     this.videoPlayer = React.createRef();
-
-    this.frame = 0;
 
     this.state = {
       src: null,
@@ -73,9 +71,9 @@ class DriveVideo extends Component {
     if (this.videoPlayer.current) {
       this.videoPlayer.current.playbackRate = playSpeed || 1;
     }
-    this.rafLoop = raf(this.updatePreview);
     this.updateVideoSource({});
     this.syncVideo();
+    this.videoSyncIntv = setInterval(this.syncVideo, 1000);
   }
 
   componentDidUpdate(prevProps) {
@@ -84,19 +82,17 @@ class DriveVideo extends Component {
   }
 
   componentWillUnmount() {
-    if (this.rafLoop) {
-      raf.cancel(this.rafLoop);
-      this.rafLoop = null;
+    if (this.videoSyncIntv) {
+      clearTimeout(this.videoSyncIntv);
+      this.videoSyncIntv = null;
     }
   }
 
   visibleSegment(props = this.props) {
-    if (props.currentSegment) {
-      return props.currentSegment;
-    }
-    const offset = TimelineWorker.currentOffset();
-    if (props.nextSegment && props.nextSegment.startOffset - offset < 5000) {
-      return props.nextSegment;
+    const offset = currentOffset();
+    const currSegment = props.currentSegment;
+    if (currSegment && currSegment.routeOffset <= offset && offset <= currSegment.routeOffset + currSegment.duration) {
+      return currSegment;
     }
     return null;
   }
@@ -126,31 +122,27 @@ class DriveVideo extends Component {
     }
   }
 
-  updatePreview() {
-    // schedule next run right away so that we can return early
-    this.rafLoop = raf(this.updatePreview);
-
-    this.frame++;
-    if (this.frame % 20 === 0) {
-      this.syncVideo();
-    }
-  }
-
   isVideoBuffering() {
     const videoPlayer = this.videoPlayer.current;
     if (!videoPlayer || !this.visibleSegment() || !videoPlayer.getDuration()) {
-      TimelineWorker.bufferVideo(true);
+      this.props.dispatch(bufferVideo(true));
     }
 
     const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() > 30;
     if (!hasSufficientBuffer || videoPlayer.getInternalPlayer().readyState < 2) {
-      TimelineWorker.bufferVideo(true);
+      this.props.dispatch(bufferVideo(true));
     }
   }
 
-  syncVideo = debounce(() => {
+  syncVideo() {
+    if (!this.visibleSegment()) {
+      console.log('segment update');
+      this.props.dispatch(updateSegments());
+      return;
+    }
+
     const videoPlayer = this.videoPlayer.current;
-    if (!videoPlayer || !this.visibleSegment() || !videoPlayer.getDuration()) {
+    if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
       return;
     }
 
@@ -159,7 +151,7 @@ class DriveVideo extends Component {
     // sanity check required for ios
     const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() > 30;
     if (hasSufficientBuffer && internalPlayer.readyState >= 2 && this.props.isBufferingVideo) {
-      TimelineWorker.bufferVideo(false);
+      this.props.dispatch(bufferVideo(false));
     }
 
     let newPlaybackRate = this.props.desiredPlaySpeed;
@@ -170,7 +162,7 @@ class DriveVideo extends Component {
       newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff)
     } else if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
       // logs start ealier than video, so skip to video ts 0
-      TimelineWorker.seek(TimelineWorker.currentOffset() - (timeDiff * 1000));
+      this.props.dispatch(seek(currentOffset() - (timeDiff * 1000)));
     } else {
       videoPlayer.seekTo(desiredVideoTime, 'seconds');
     }
@@ -189,9 +181,9 @@ class DriveVideo extends Component {
     } else if (!internalPlayer.paused && internalPlayer.playbackRate === 0) {
       internalPlayer.pause();
     }
-  }, 100)
+  }
 
-  currentVideoTime(offset = TimelineWorker.currentOffset()) {
+  currentVideoTime(offset = currentOffset()) {
     const visibleSegment = this.visibleSegment();
     if (!visibleSegment) {
       return 0;
@@ -223,23 +215,20 @@ class DriveVideo extends Component {
           config={{ hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false } }}
           playbackRate={ playSpeed }
           onBuffer={ () => this.isVideoBuffering() }
-          onBufferEnd={ () => TimelineWorker.bufferVideo(false) }
-          onPlay={ () => TimelineWorker.bufferVideo(false) } />
+          onBufferEnd={ () => this.props.dispatch(bufferVideo(false)) }
+          onPlay={ () => this.props.dispatch(bufferVideo(false)) } />
       </div>
     );
   }
 }
 
 const stateToProps = Obstruction({
-  dongleId: 'workerState.dongleId',
-  currentSegment: 'workerState.currentSegment',
-  nextSegment: 'workerState.nextSegment',
-  desiredPlaySpeed: 'workerState.desiredPlaySpeed',
-  route: 'workerState.route',
-  segment: 'workerState.segment',
-  offset: 'workerState.offset',
-  startTime: 'workerState.startTime',
-  isBufferingVideo: 'workerState.isBufferingVideo',
+  dongleId: 'dongleId',
+  currentSegment: 'currentSegment',
+  desiredPlaySpeed: 'desiredPlaySpeed',
+  offset: 'offset',
+  startTime: 'startTime',
+  isBufferingVideo: 'isBufferingVideo',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveVideo));

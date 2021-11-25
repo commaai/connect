@@ -2,7 +2,7 @@
 import React from 'react';
 import { mount } from 'enzyme';
 import queryString from 'query-string';
-import TimelineWorker from '../../timeline';
+import { currentOffset } from '../../timeline/playback';
 
 import Media from './Media';
 
@@ -11,24 +11,27 @@ const winOpenMock = jest.fn(() => ({
 }));
 window.open = winOpenMock;
 
-jest.mock('../../timeline', () => ({
-}));
-
-const currentOffsetMock = jest.fn();
-TimelineWorker.currentOffset = currentOffsetMock;
+jest.mock('../../timeline/playback', () => {
+  const originalModule = jest.requireActual('../../timeline/playback');
+  return {
+    __esModule: true,
+    ...originalModule,
+    currentOffset: jest.fn(),
+  };
+});
 
 describe('Media', () => {
   beforeEach(() => {
     winOpenMock.mockClear();
-    currentOffsetMock.mockClear();
+    currentOffset.mockClear();
   });
   it('opens cabana at the current timestamp and loop', () => {
     const start = 123123123;
     const routeOffset = Math.round(Math.random() * 10000);
     const routeStartTime = start + routeOffset;
     const loopStartTime = routeStartTime + Math.round(Math.random() * 10000);
-    const currentOffset = loopStartTime - start + Math.round(Math.random() * 10000);
-    currentOffsetMock.mockImplementationOnce(() => currentOffset);
+    const offset = loopStartTime - start + Math.round(Math.random() * 10000);
+    currentOffset.mockImplementationOnce(() => offset);
     const media = mount(
       <Media visibleSegment={{ routeOffset }} loop={{ startTime: loopStartTime, duration: 15000 }} start={start}
         store={{ subscribe: () => {}, dispatch: () => {}, getState: () => {} }} menusOnly />
@@ -41,7 +44,7 @@ describe('Media', () => {
     openInCabana.simulate('click');
 
     expect(winOpenMock.mock.calls.length).toBe(1);
-    expect(currentOffsetMock).toBeCalled();
+    expect(currentOffset).toBeCalled();
 
     const url = winOpenMock.mock.calls[0][0];
     expect(url).toEqual(expect.stringContaining('https://'));
@@ -52,7 +55,7 @@ describe('Media', () => {
     expect(qsParams.segments).toEqual(expect.stringContaining(','));
     const segmentParts = qsParams.segments.split(',');
 
-    expect(Number(qsParams.seekTime)).toBe(Math.floor((currentOffset - routeOffset) / 1000));
+    expect(Number(qsParams.seekTime)).toBe(Math.floor((offset - routeOffset) / 1000));
     expect(Number(segmentParts[0])).toBe(Math.floor((loopStartTime - routeStartTime) / 1000));
     expect(Number(segmentParts[1])).toBe(Math.floor((loopStartTime - routeStartTime) / 1000) + 15);
 
@@ -63,8 +66,8 @@ describe('Media', () => {
     const routeOffset = Math.round(Math.random() * 10000);
     const routeStartTime = start + routeOffset;
     const loopStartTime = routeStartTime + Math.round(Math.random() * 10000);
-    const currentOffset = loopStartTime - start + Math.round(Math.random() * 10000);
-    currentOffsetMock.mockImplementationOnce(() => currentOffset);
+    const offset = loopStartTime - start + Math.round(Math.random() * 10000);
+    currentOffset.mockImplementationOnce(() => offset);
     const media = mount(
       <Media visibleSegment={{ routeOffset }} start={start} menusOnly
         store={{ subscribe: () => {}, dispatch: () => {}, getState: () => {} }}
@@ -78,7 +81,7 @@ describe('Media', () => {
     openInCabana.simulate('click');
 
     expect(winOpenMock.mock.calls.length).toBe(1);
-    expect(currentOffsetMock).toBeCalled();
+    expect(currentOffset).toBeCalled();
 
     const url = winOpenMock.mock.calls[0][0];
     expect(url).toEqual(expect.stringContaining('https://'));

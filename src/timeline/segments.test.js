@@ -1,5 +1,5 @@
 /* eslint-env jest */
-import Segments from './segments';
+import { hasSegmentMetadata, getCurrentSegment, SEGMENT_LENGTH } from './segments';
 
 const segmentData = [{
   route: '99c94dc769b5d96e|2018-04-09--10-10-00',
@@ -23,7 +23,7 @@ const segmentData = [{
 
 describe('segments', () => {
   it('finds current segment', async () => {
-    let segment = Segments.getCurrentSegment({
+    let segment = getCurrentSegment({
       segments: segmentData,
       offset: segmentData[0].offset,
       desiredPlaySpeed: 1,
@@ -32,9 +32,9 @@ describe('segments', () => {
     expect(segment.route).toBe(segmentData[0].route);
     expect(segment.segment).toBe(0);
 
-    segment = Segments.getCurrentSegment({
+    segment = getCurrentSegment({
       segments: segmentData,
-      offset: segmentData[0].offset + Segments.SEGMENT_LENGTH * 1.1,
+      offset: segmentData[0].offset + SEGMENT_LENGTH * 1.1,
       desiredPlaySpeed: 1,
       startTime: Date.now()
     });
@@ -42,9 +42,9 @@ describe('segments', () => {
   });
 
   it('finds last segment of a route', async () => {
-    const segment = Segments.getCurrentSegment({
+    const segment = getCurrentSegment({
       segments: segmentData,
-      offset: segmentData[0].offset + Segments.SEGMENT_LENGTH * (segmentData[0].segments - 1) + 1000,
+      offset: segmentData[0].offset + SEGMENT_LENGTH * (segmentData[0].segments - 1) + 1000,
       desiredPlaySpeed: 1,
       startTime: Date.now()
     });
@@ -53,7 +53,7 @@ describe('segments', () => {
   });
 
   it('ends last segment of a route', async () => {
-    const segment = Segments.getCurrentSegment({
+    const segment = getCurrentSegment({
       segments: segmentData,
       offset: segmentData[0].offset + segmentData[0].duration - 10,
       desiredPlaySpeed: 1,
@@ -62,82 +62,68 @@ describe('segments', () => {
     expect(segment).toBe(null);
   });
 
-  it('finds next segment within route', async () => {
-    const segment = Segments.getNextSegment({
-      segments: segmentData,
-      offset: segmentData[0].offset,
-      desiredPlaySpeed: 1,
-      startTime: Date.now()
-    });
-    expect(segment.route).toBe(segmentData[0].route);
-    expect(segment.segment).toBe(1);
-  });
-
-  it('finds next segment across routes', async () => {
-    const segment = Segments.getNextSegment({
-      segments: segmentData,
-      offset: segmentData[0].offset + segmentData[0].duration - 1000,
-      desiredPlaySpeed: 1,
-      startTime: Date.now()
-    });
-    expect(segment.route).toBe(segmentData[1].route);
-    expect(segment.segment).toBe(0);
-  });
-
   it('can check if it has segment metadata', () => {
-    expect(Segments.hasSegmentMetadata()).toBe(false);
-    expect(Segments.hasSegmentMetadata({})).toBe(false);
-    expect(Segments.hasSegmentMetadata({
+    expect(hasSegmentMetadata()).toBe(false);
+    expect(hasSegmentMetadata({})).toBe(false);
+    expect(hasSegmentMetadata({
       segmentData: {}
     })).toBe(false);
-    expect(Segments.hasSegmentMetadata({
+    expect(hasSegmentMetadata({
       segmentData: {
         segments: [],
         dongleId: 'asdfasdf'
       },
     })).toBe(false);
-    expect(Segments.hasSegmentMetadata({
+    expect(hasSegmentMetadata({
       segmentData: {
         segments: [],
         dongleId: 'asdfasdf',
         start: 10,
         end: 20
       },
-      start: 0,
-      end: 30,
+      filter: {
+        start: 0,
+        end: 30,
+      },
       dongleId: 'asdfasdf'
     })).toBe(false);
-    expect(Segments.hasSegmentMetadata({
+    expect(hasSegmentMetadata({
       segmentData: {
         segments: [],
         dongleId: 'asdfasdf',
         start: 0,
         end: 20
       },
-      start: 10,
-      end: 30,
+      filter: {
+        start: 10,
+        end: 30,
+      },
       dongleId: 'asdfasdf'
     })).toBe(false);
-    expect(Segments.hasSegmentMetadata({
+    expect(hasSegmentMetadata({
       segmentData: {
         segments: [],
         dongleId: 'asdfasdf',
         start: 10,
         end: 30
       },
-      start: 0,
-      end: 20,
+      filter: {
+        start: 0,
+        end: 20,
+      },
       dongleId: 'asdfasdf'
     })).toBe(false);
-    expect(Segments.hasSegmentMetadata({
+    expect(hasSegmentMetadata({
       segmentData: {
         segments: [],
         dongleId: 'asdfasdf',
         start: 0,
         end: 30
       },
-      start: 10,
-      end: 20,
+      filter: {
+        start: 10,
+        end: 20,
+      },
       dongleId: 'asdfasdf'
     })).toBe(true);
   });

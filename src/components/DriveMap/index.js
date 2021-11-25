@@ -9,7 +9,7 @@ import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
 import { derived as DerivedDataApi } from '@commaai/comma-api';
 import { MAPBOX_TOKEN } from '../../api/geocode';
-import TimelineWorker from '../../timeline';
+import { currentOffset } from '../../timeline/playback';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 
@@ -90,9 +90,8 @@ class DriveMap extends Component {
     if (markerSource) {
       if (this.props.currentSegment && this.state.coords.length > 0) {
         const { routeOffset } = this.props.currentSegment;
-        const offset = TimelineWorker.currentOffset();
 
-        const pos = this.posAtOffset(offset - routeOffset);
+        const pos = this.posAtOffset(currentOffset() - routeOffset);
         if (pos) {
           markerSource.setData({
             type: 'Point',
@@ -274,12 +273,11 @@ class DriveMap extends Component {
 }
 
 const stateToProps = Obstruction({
-  offset: 'workerState.offset',
-  route: 'workerState.route',
-  segments: 'workerState.segments',
-  segmentNum: 'workerState.segment',
-  currentSegment: 'workerState.currentSegment',
-  startTime: 'workerState.startTime'
+  offset: 'offset',
+  segments: 'segments',
+  segmentNum: 'segment',
+  currentSegment: 'currentSegment',
+  startTime: 'startTime'
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveMap));

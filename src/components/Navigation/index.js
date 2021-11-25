@@ -1191,7 +1191,7 @@ class Navigation extends Component {
             <Typography className={ classes.primeAdTitle }>comma prime</Typography>
           </div>
           <div className={ classes.searchSelectBoxButtons }>
-            <Button onClick={ () => this.props.dispatch(primeNav()) }
+            <Button onClick={ () => this.props.dispatch(primeNav(true)) }
               className={ `${classes.searchSelectButton} ${classes.primeAdButton} primeSignUp` }>
               sign up
             </Button>
@@ -1206,8 +1206,8 @@ class Navigation extends Component {
 }
 
 const stateToProps = Obstruction({
-  device: 'workerState.device',
-  dongleId: 'workerState.dongleId',
+  device: 'device',
+  dongleId: 'dongleId',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Navigation));

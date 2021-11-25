@@ -11,8 +11,7 @@ import { billing as Billing} from '@commaai/comma-api'
 import { deviceTypePretty } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
-import Timelineworker from '../../timeline';
-import { primeNav } from '../../actions';
+import { primeNav, primeGetSubscription } from '../../actions';
 
 const styles = (theme) => ({
   primeBox: {
@@ -262,7 +261,7 @@ class PrimeManage extends Component {
     try {
       const subscription = await Billing.getSubscription(dongleId);
       if (subscription.user_id) {
-        Timelineworker.primeGetSubscription(dongleId, subscription);
+        this.props.dispatch(primeGetSubscription(dongleId, subscription));
       } else {
         setTimeout(() => this.fetchSubscription(true), 2000);
       }
@@ -412,9 +411,9 @@ class PrimeManage extends Component {
 }
 
 const stateToProps = Obstruction({
-  dongleId: 'workerState.dongleId',
-  device: 'workerState.device',
-  subscription: 'workerState.subscription',
+  dongleId: 'dongleId',
+  device: 'device',
+  subscription: 'subscription',
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeManage));

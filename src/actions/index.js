@@ -1,36 +1,21 @@
 import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import document from 'global/document';
-import * as Types from './types';
-import Timelineworker from '../timeline';
-import { getDongleID } from '../url';
-import { billing as Billing, devices as DevicesApi } from '@commaai/comma-api';
+import { billing as Billing, devices as DevicesApi, drives as Drives } from '@commaai/comma-api';
 
-export function updateState(data) {
-  return {
-    type: Types.WORKER_STATE_UPDATE,
-    data
-  };
-}
+import * as Types from './types';
+import { resetPlayback, selectLoop } from '../timeline/playback'
+import { getSegmentFetchRange, hasSegmentMetadata, fetchSegmentMetadata, parseSegmentMetadata, insertSegmentMetadata
+  } from '../timeline/segments';
+import * as Demo from '../demo';
+
+const demoSegments = require('../demo/segments.json');
+
+let segmentsRequest = null;
 
 export function selectRange(start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
-    if (!state.workerState.dongleId) {
-      dispatch({
-        type: Types.TIMELINE_SELECTION_CHANGED,
-        start,
-        end
-      });
-      return;
-    }
-    if (state.workerState.primeNav) {
-      dispatch(primeNav(false, false));
-    }
-    const curPath = document.location.pathname;
-    const dongleId = getDongleID(curPath) || state.workerState.dongleId;
-    const desiredPath = urlForState(dongleId, start, end, false);
-
     if (state.zoom.start !== start || state.zoom.end !== end) {
       dispatch({
         type: Types.TIMELINE_SELECTION_CHANGED,
@@ -39,63 +24,85 @@ export function selectRange(start, end, allowPathChange = true) {
       });
     }
 
-    if (!state.workerState.loop.startTime
-      || !state.workerState.loop.duration
-      || state.workerState.loop.startTime < start
-      || state.workerState.loop.startTime + state.workerState.loop.duration > end
-      || state.workerState.loop.duration < end - start) {
-      Timelineworker.resetPlayback();
-      Timelineworker.selectLoop(start, end - start);
+    dispatch(checkSegmentMetadata());
+
+    if (!state.loop.startTime
+      || !state.loop.duration
+      || state.loop.startTime < start
+      || state.loop.startTime + state.loop.duration > end
+      || state.loop.duration < end - start) {
+      dispatch(resetPlayback());
+      dispatch(selectLoop(start, end - start));
     }
 
-    if (allowPathChange && curPath !== desiredPath) {
-      dispatch(push(desiredPath));
+    if (allowPathChange) {
+      const desiredPath = urlForState(state.dongleId, start, end, false);
+      if (window.location.pathname !== desiredPath) {
+        dispatch(push(desiredPath));
+      }
     }
   };
 }
 
-export function selectDevice(dongleId) {
+export function selectDevice(dongleId, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
     let device;
-    if (state.workerState.devices && state.workerState.devices.length > 1) {
-      device = state.workerState.devices.find((d) => d.dongle_id === dongleId);
+    if (state.devices && state.devices.length > 1) {
+      device = state.devices.find((d) => d.dongle_id === dongleId);
     }
-    if (!device && state.workerState.device && state.workerState.device.dongle_id === dongleId) {
-      device = state.workerState.device;
+    if (!device && state.device && state.device.dongle_id === dongleId) {
+      device = state.device;
     }
 
-    Timelineworker.selectDevice(dongleId).then(() => {
-      dispatch(selectRange(null, null, false))
-      if (device && !device.shared) {
-        dispatch(primeFetchSubscription(dongleId, device));
-        dispatch(fetchDeviceOnline(dongleId));
-      }
+    dispatch({
+      type: Types.ACTION_SELECT_DEVICE,
+      dongleId,
+    });
 
-      const curPath = document.location.pathname;
-      const desiredPath = urlForState(dongleId, state.zoom.start, state.zoom.end, null);
-      if (curPath !== desiredPath) {
+    dispatch(selectRange(null, null, false))
+    if (device && !device.shared) {
+      dispatch(primeFetchSubscription(dongleId, device));
+      dispatch(fetchDeviceOnline(dongleId));
+    }
+
+    dispatch(checkSegmentMetadata());
+
+    if (allowPathChange) {
+      const desiredPath = urlForState(dongleId, null, null, null);
+      if (window.location.pathname !== desiredPath) {
         dispatch(push(desiredPath));
       }
-    });
+    }
   };
 }
 
-export function primeFetchSubscription(dongleId, device) {
+export function primeFetchSubscription(dongleId, device, profile) {
   return (dispatch, getState) => {
     const state = getState();
 
-    if ((device && device.is_owner) || state.workerState.profile.superuser) {
+    if (!device && state.device && state.device === dongleId) {
+      device = state.device;
+    }
+    if (!profile && state.profile) {
+      profile = state.profile;
+    }
+
+    if (device && (device.is_owner || profile.superuser)) {
       if (device.prime) {
         Billing.getSubscription(dongleId).then((subscription) => {
-          Timelineworker.primeGetSubscription(dongleId, subscription);
+          dispatch(primeGetSubscription(dongleId, subscription));
         }).catch((err) => {
           console.log(err);
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' });
         });
       } else {
         Billing.getSubscribeInfo(dongleId).then((subscribeInfo) => {
-          Timelineworker.primeGetSubscribeInfo(dongleId, subscribeInfo);
+          dispatch({
+            type: Types.ACTION_PRIME_SUBSCRIBE_INFO,
+            dongleId,
+            subscribeInfo,
+          });
         }).catch((err) => {
           console.log(err);
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' });
@@ -105,18 +112,26 @@ export function primeFetchSubscription(dongleId, device) {
   };
 }
 
-export function primeNav(nav = true, allowPathChange = true) {
+export function primeNav(nav, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
-
-    if (state.workerState.primeNav != nav) {
-      Timelineworker.primeNav(nav);
+    if (!state.dongleId) {
+      return;
     }
 
-    const curPath = document.location.pathname;
-    const desiredPath = urlForState(state.workerState.dongleId, null, null, nav);
-    if (allowPathChange && curPath !== desiredPath) {
-      dispatch(push(desiredPath));
+    if (state.primeNav != nav) {
+      dispatch({
+        type: Types.ACTION_PRIME_NAV,
+        primeNav: nav,
+      });
+    }
+
+    if (allowPathChange) {
+      const curPath = document.location.pathname;
+      const desiredPath = urlForState(state.dongleId, null, null, nav);
+      if (curPath !== desiredPath) {
+        dispatch(push(desiredPath));
+      }
     }
   };
 }
@@ -124,10 +139,92 @@ export function primeNav(nav = true, allowPathChange = true) {
 export function fetchDeviceOnline(dongleId) {
   return (dispatch, getState) => {
     DevicesApi.fetchDevice(dongleId).then((resp) => {
-      if (resp.dongle_id === dongleId) {
-        Timelineworker.updateDeviceOnline(dongleId, resp.last_athena_ping, parseInt(Date.now() / 1000));
-      }
+      dispatch({
+        type: Types.ACTION_UPDATE_DEVICE_ONLINE,
+        dongleId: dongleId,
+        last_athena_ping: resp.last_athena_ping,
+        fetched_at: parseInt(Date.now() / 1000),
+      });
     }).catch(console.log);
+  };
+}
+
+export function checkSegmentMetadata() {
+  return (dispatch, getState) => {
+    let state = getState();
+    if (!state.dongleId) {
+      return;
+    }
+    if (hasSegmentMetadata(state)) {
+      // already has metadata, don't bother
+      return;
+    }
+    if (segmentsRequest) {
+      return;
+    }
+    console.log('We need to update the segment metadata...');
+    const { dongleId } = state;
+    const fetchRange = getSegmentFetchRange(state);
+
+    if (Demo.isDemo()) {
+      segmentsRequest = Promise.resolve(demoSegments);
+    } else {
+      segmentsRequest = Drives.getSegmentMetadata(fetchRange.start, fetchRange.end, dongleId);
+    }
+    dispatch(fetchSegmentMetadata(fetchRange.start, fetchRange.end));
+
+    segmentsRequest.then((segmentData) => {
+      state = getState();
+      const currFetchRange = getSegmentFetchRange(state);
+      if (currFetchRange.start !== fetchRange.start || currFetchRange.end !== fetchRange.end || state.dongleId !== dongleId) {
+        segmentsRequest = null;
+        checkSegmentMetadata();
+        return;
+      }
+
+      segmentData = parseSegmentMetadata(state, segmentData);
+      dispatch(insertSegmentMetadata(segmentData));
+
+      segmentsRequest = null;
+    }).catch((err) => {
+      console.error('Failure fetching segment metadata', err);
+      Sentry.captureException(err, { fingerprint: 'timeline_fetch_segments' });
+      segmentsRequest = null;
+    });
+  }
+}
+
+export function updateDevices(devices) {
+  return {
+    type: Types.ACTION_UPDATE_DEVICES,
+    devices,
+  };
+}
+
+export function updateDevice(device) {
+  return {
+    type: Types.ACTION_UPDATE_DEVICE,
+    device,
+  };
+}
+
+export function selectTimeFilter(start, end) {
+  return (dispatch, getState) => {
+    dispatch({
+      type: Types.ACTION_SELECT_TIME_FILTER,
+      start,
+      end
+    });
+
+    dispatch(checkSegmentMetadata());
+  }
+}
+
+export function primeGetSubscription(dongleId, subscription) {
+  return {
+    type: Types.ACTION_PRIME_SUBSCRIPTION,
+    dongleId,
+    subscription,
   };
 }
 

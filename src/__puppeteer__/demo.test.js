@@ -43,7 +43,7 @@ describe('demo mode', () => {
 
   it('should load', async () => {
     await expect(page).toClick('.DriveEntry');
-    await delay(2000);
+    await delay(3000);
 
     let video = await page.$('video');
     let videoSrc = await page.evaluate(vid => vid.getAttribute('src'), video);

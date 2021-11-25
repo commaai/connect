@@ -13,8 +13,8 @@ import Modal from '@material-ui/core/Modal';
 import MenuItem from '@material-ui/core/MenuItem';
 import Paper from '@material-ui/core/Paper';
 
-import Timelineworker from '../../timeline';
 import Colors from '../../colors';
+import { selectTimeFilter } from '../../actions';
 
 const styles = (theme) => ({
   root: {},
@@ -85,19 +85,19 @@ class TimeSelect extends Component {
 
     switch (selection) {
       case '24-hours':
-        Timelineworker.selectTimeRange(d.getTime() - (1000 * 60 * 60 * 24), d.getTime());
+        this.props.dispatch(selectTimeFilter(d.getTime() - (1000 * 60 * 60 * 24), d.getTime()));
         break;
       case '1-week':
-        Timelineworker.selectTimeRange(d.getTime() - (1000 * 60 * 60 * 24 * 7), d.getTime());
+        this.props.dispatch(selectTimeFilter(d.getTime() - (1000 * 60 * 60 * 24 * 7), d.getTime()));
         break;
       case '2-weeks':
-        Timelineworker.selectTimeRange(d.getTime() - (1000 * 60 * 60 * 24 * 14), d.getTime());
+        this.props.dispatch(selectTimeFilter(d.getTime() - (1000 * 60 * 60 * 24 * 14), d.getTime()));
         break;
       case 'custom':
         this.setState({
           showPicker: true,
-          start: this.props.start,
-          end: this.props.end
+          start: this.props.filter.start,
+          end: this.props.filter.end
         });
         break;
     }
@@ -118,7 +118,7 @@ class TimeSelect extends Component {
   }
 
   handleSave() {
-    Timelineworker.selectTimeRange(this.state.start, this.state.end);
+    this.props.dispatch(selectTimeFilter(this.state.start, this.state.end));
     this.setState({
       showPicker: false,
       start: null,
@@ -127,9 +127,9 @@ class TimeSelect extends Component {
   }
 
   selectedOption() {
-    const timeRange = this.props.end - this.props.start;
+    const timeRange = this.props.filter.end - this.props.filter.start;
 
-    if (Math.abs(this.props.end - Date.now()) < 1000 * 60 * 60) {
+    if (Math.abs(this.props.filter.end - Date.now()) < 1000 * 60 * 60) {
       // ends right around now
       if (timeRange === 1000 * 60 * 60 * 24 * 14) {
         return '2-weeks';
@@ -144,31 +144,16 @@ class TimeSelect extends Component {
   }
 
   lastWeekText() {
-    if (!this.props.start || !this.props.end) {
-      return '--';
-    }
-
     const weekAgo = Date.now() - (1000 * 60 * 60 * 24 * 7);
-    return `Last Week${
-      fecha.format(new Date(weekAgo), ' (MMM Do - ')
-    }${fecha.format(new Date(), 'MMM Do)')}`;
+    return `Last Week${fecha.format(new Date(weekAgo), ' (M/D - ')}${fecha.format(new Date(), 'M/D)')}`;
   }
 
   last2WeeksText() {
-    if (!this.props.start || !this.props.end) {
-      return '--';
-    }
-
     const twoWeeksAgo = Date.now() - (1000 * 60 * 60 * 24 * 14);
-    return `2 Weeks${
-      fecha.format(new Date(twoWeeksAgo), ' (M/D - ')
-    }${fecha.format(new Date(), 'M/D)')}`;
+    return `2 Weeks${fecha.format(new Date(twoWeeksAgo), ' (M/D - ')}${fecha.format(new Date(), 'M/D)')}`;
   }
 
   last24HoursText() {
-    if (!this.props.start || !this.props.end) {
-      return '--';
-    }
     return 'Last 24 Hours';
   }
 
@@ -176,8 +161,8 @@ class TimeSelect extends Component {
     const { classes } = this.props;
     const minDate = new Date(Date.now() - LOOKBACK_WINDOW_MILLIS).toISOString().substr(0, 10);
     const maxDate = new Date().toISOString().substr(0, 10);
-    const startDate = new Date(this.state.start || this.props.start || 0).toISOString().substr(0, 10);
-    const endDate = new Date(this.state.end || this.props.end || 0).toISOString().substr(0, 10);
+    const startDate = new Date(this.state.start || this.props.filter.start || 0).toISOString().substr(0, 10);
+    const endDate = new Date(this.state.end || this.props.filter.end || 0).toISOString().substr(0, 10);
 
     return (
       <>
@@ -225,8 +210,7 @@ class TimeSelect extends Component {
 }
 
 const stateToProps = Obstruction({
-  end: 'workerState.end',
-  start: 'workerState.start'
+  filter: 'filter',
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeSelect));

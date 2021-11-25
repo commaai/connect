@@ -11,11 +11,8 @@ import IconButton from '@material-ui/core/IconButton';
 import PlayArrow from '@material-ui/icons/PlayArrow';
 import Pause from '@material-ui/icons/Pause';
 
-import {
-  DownArrow, UpArrow, HistoryForwardIcon, HistoryBackIcon
-} from '../../icons';
-
-import TimelineWorker from '../../timeline';
+import { DownArrow, UpArrow, HistoryForwardIcon, HistoryBackIcon } from '../../icons';
+import { seek, play, pause, currentOffset } from '../../timeline/playback';
 
 const timerSteps = [
   0.1,
@@ -28,13 +25,6 @@ const timerSteps = [
   5
 ];
 
-function jumpBack(amount) {
-  TimelineWorker.seek(TimelineWorker.currentOffset() - amount);
-}
-
-function jumpForward(amount) {
-  TimelineWorker.seek(TimelineWorker.currentOffset() + amount);
-}
 const styles = (theme) => ({
   base: {
     display: 'flex',
@@ -120,6 +110,8 @@ class TimeDisplay extends Component {
     this.togglePause = this.togglePause.bind(this);
     this.increaseSpeed = this.increaseSpeed.bind(this);
     this.decreaseSpeed = this.decreaseSpeed.bind(this);
+    this.jumpBack = this.jumpBack.bind(this);
+    this.jumpForward = this.jumpForward.bind(this);
 
     this.state = {
       desiredPlaySpeed: 1,
@@ -136,13 +128,21 @@ class TimeDisplay extends Component {
     this.mounted = false;
   }
 
+  jumpBack(amount) {
+    this.props.dispatch(seek(currentOffset() - amount));
+  }
+
+  jumpForward(amount) {
+    this.props.dispatch(seek(currentOffset() + amount));
+  }
+
   getDisplayTime() {
-    const currentOffset = TimelineWorker.currentOffset();
-    const { start } = this.props;
-    if (!Number.isFinite(start)) {
+    const offset = currentOffset();
+    const { filter } = this.props;
+    if (!Number.isFinite(filter.start)) {
       return '...';
     }
-    const now = new Date(currentOffset + start);
+    const now = new Date(offset + filter.start);
     const dateString = fecha.format(now, 'ddd, D MMM @ HH:mm:ss');
 
     return dateString;
@@ -168,7 +168,7 @@ class TimeDisplay extends Component {
       curIndex = timerSteps.indexOf(1);
     }
     curIndex = Math.max(0, curIndex - 1);
-    TimelineWorker.play(timerSteps[curIndex]);
+    this.props.dispatch(play(timerSteps[curIndex]));
   }
 
   increaseSpeed() {
@@ -178,15 +178,15 @@ class TimeDisplay extends Component {
       curIndex = timerSteps.indexOf(1);
     }
     curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
-    TimelineWorker.play(timerSteps[curIndex]);
+    this.props.dispatch(play(timerSteps[curIndex]));
   }
 
   togglePause(e) {
     const { desiredPlaySpeed } = this.props;
     if (desiredPlaySpeed === 0) {
-      TimelineWorker.play(this.state.desiredPlaySpeed);
+      this.props.dispatch(play(this.state.desiredPlaySpeed));
     } else {
-      TimelineWorker.pause();
+      this.props.dispatch(pause());
     }
   }
 
@@ -198,13 +198,13 @@ class TimeDisplay extends Component {
     return (
       <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
         <div className={ classes.iconBox }>
-          <IconButton className={ classes.iconButton } onClick={ () => jumpBack(10000) }
+          <IconButton className={ classes.iconButton } onClick={ () => this.jumpBack(10000) }
             aria-label="Jump back 10 seconds">
             <HistoryBackIcon className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
         <div className={ classes.iconBox }>
-          <IconButton className={ classes.iconButton } onClick={ () => jumpForward(10000) }
+          <IconButton className={ classes.iconButton } onClick={ () => this.jumpForward(10000) }
             aria-label="Jump forward 10 seconds">
             <HistoryForwardIcon className={`${classes.icon} small dim`} />
           </IconButton>
@@ -243,16 +243,10 @@ class TimeDisplay extends Component {
   }
 }
 
-TimeDisplay.propTypes = {
-  classes: PropTypes.object.isRequired,
-  desiredPlaySpeed: PropTypes.number.isRequired,
-  start: PropTypes.number.isRequired
-};
-
 const stateToProps = Obstruction({
   expanded: 'zoom.expanded',
-  desiredPlaySpeed: 'workerState.desiredPlaySpeed',
-  start: 'workerState.start',
+  desiredPlaySpeed: 'desiredPlaySpeed',
+  filter: 'filter',
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));

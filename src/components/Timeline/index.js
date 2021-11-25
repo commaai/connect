@@ -6,7 +6,6 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
-import debounce from 'debounce';
 import document from 'global/document';
 import fecha from 'fecha';
 
@@ -14,10 +13,10 @@ import Measure from 'react-measure';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import TimelineWorker from '../../timeline';
-import Segments from '../../timeline/segments';
+import { getCurrentSegment } from '../../timeline/segments';
 import { selectRange } from '../../actions';
 import Colors from '../../colors';
+import { seek, currentOffset } from '../../timeline/playback';
 
 const styles = (/* theme */) => ({
   base: {
@@ -138,7 +137,6 @@ class Timeline extends Component {
     this.handlePointerLeave = this.handlePointerLeave.bind(this);
     this.percentToOffset = this.percentToOffset.bind(this);
     this.renderSegment = this.renderSegment.bind(this);
-    this.sendSeek = debounce(this.sendSeek.bind(this), 1000 / 60);
 
     this.rulerRemaining = React.createRef();
     this.rulerRef = React.createRef();
@@ -159,7 +157,6 @@ class Timeline extends Component {
 
   componentDidMount() {
     this.mounted = true;
-    this.stopListening = TimelineWorker.onIndexed(() => this.forceUpdate());
     raf(this.getOffset);
     this.componentDidUpdate({});
   }
@@ -173,7 +170,6 @@ class Timeline extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
-    this.stopListening();
   }
 
   getOffset() {
@@ -181,7 +177,7 @@ class Timeline extends Component {
       return;
     }
     raf(this.getOffset);
-    let offset = TimelineWorker.currentOffset();
+    let offset = currentOffset();
     if (this.seekIndex) {
       offset = this.seekIndex;
     }
@@ -197,7 +193,7 @@ class Timeline extends Component {
     const { dragging } = this.state;
     if (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3) {
       const percent = percentFromPointerEvent(e);
-      TimelineWorker.seek(this.percentToOffset(percent));
+      this.props.dispatch(seek(this.percentToOffset(percent)));
     }
   }
 
@@ -235,13 +231,13 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const currentOffset = TimelineWorker.currentOffset();
-      if (currentOffset < startOffset || currentOffset > endOffset) {
-        TimelineWorker.seek(startOffset);
+      const offset = currentOffset();
+      if (offset < startOffset || offset > endOffset) {
+        this.props.dispatch(seek(startOffset));
       }
-      const { start, dispatch } = this.props;
-      const startTime = startOffset + start;
-      const endTime = endOffset + start;
+      const { filter, dispatch } = this.props;
+      const startTime = startOffset + filter.start;
+      const endTime = endOffset + filter.start;
 
       dispatch(selectRange(startTime, endTime));
     } else if (e.currentTarget !== document) {
@@ -255,33 +251,26 @@ class Timeline extends Component {
 
   percentToOffset(perc) {
     const { zoom } = this.state;
-    const { start } = this.props;
-    return perc * (zoom.end - zoom.start) + (zoom.start - start);
+    const { filter } = this.props;
+    return perc * (zoom.end - zoom.start) + (zoom.start - filter.start);
   }
 
   offsetToPercent(offset) {
     const { zoom } = this.state;
-    const { start } = this.props;
-    return (offset - (zoom.start - start)) / (zoom.end - zoom.start);
-  }
-
-  sendSeek() {
-    if (this.seekIndex) {
-      TimelineWorker.seek(this.seekIndex);
-      this.seekIndex = null;
-    }
+    const { filter } = this.props;
+    return (offset - (zoom.start - filter.start)) / (zoom.end - zoom.start);
   }
 
   renderSegment(segment) {
-    const { classes, start, end } = this.props;
+    const { classes, filter } = this.props;
     const { zoom } = this.state;
 
-    const range = start - end;
+    const range = filter.start - filter.end;
     let startPerc = (100 * segment.offset) / range;
     let widthPerc = (100 * segment.duration) / range;
 
-    const startOffset = zoom.start - start;
-    const endOffset = zoom.end - start;
+    const startOffset = zoom.start - filter.start;
+    const endOffset = zoom.end - filter.start;
     const zoomDuration = endOffset - startOffset;
     if (segment.offset > endOffset) {
       return [];
@@ -313,7 +302,7 @@ class Timeline extends Component {
           width: `${((event.data.end_route_offset_millis - event.route_offset_millis) / segment.duration) * 100}%`,
         };
         if (localStorage.showCurrentEvent) {
-          const time = TimelineWorker.currentOffset();
+          const time = currentOffset();
           const eventStart = event.route_offset_millis + segment.offset;
           const eventEnd = event.data.end_route_offset_millis + segment.offset;
           if (time > eventStart && time < eventEnd) {
@@ -332,7 +321,7 @@ class Timeline extends Component {
   }
 
   render() {
-    const { classes, hasRuler, start, className, segments } = this.props;
+    const { classes, hasRuler, filter, className, segments } = this.props;
     const { thumbnail, hoverX, dragging } = this.state;
 
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
@@ -347,7 +336,7 @@ class Timeline extends Component {
       const hoverOffset = this.percentToOffset((hoverX - rulerBounds.x) / rulerBounds.width);
       hoverStyle = { left: Math.max(-10, Math.min(rulerBounds.width - 60, hoverX - rulerBounds.x - 35)) };
       if (!Number.isNaN(hoverOffset)) {
-        hoverString = fecha.format(start + hoverOffset, 'HH:mm:ss');
+        hoverString = fecha.format(filter.start + hoverOffset, 'HH:mm:ss');
       }
     }
 
@@ -369,7 +358,7 @@ class Timeline extends Component {
           <Measure bounds onResize={(rect) => this.setState({ thumbnail: rect.bounds })}>
             { (options) => (
               <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
-                <Thumbnails getCurrentSegment={ (seg) => Segments.getCurrentSegment(this.props, seg) }
+                <Thumbnails getCurrentSegment={ (seg) => getCurrentSegment(this.props, seg) }
                   percentToOffset={this.percentToOffset} thumbnail={thumbnail} className={classes.thumbnail}
                   hasRuler={hasRuler} />
               </div>
@@ -396,9 +385,8 @@ class Timeline extends Component {
 
 const stateToProps = Obstruction({
   zoom: 'zoom',
-  start: 'workerState.start',
-  end: 'workerState.end',
-  segments: 'workerState.segments',
+  filter: 'filter',
+  segments: 'segments',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));

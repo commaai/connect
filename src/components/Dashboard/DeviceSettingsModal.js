@@ -20,8 +20,7 @@ import WarningIcon from '@material-ui/icons/Warning';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 
 import { devices as DevicesApi } from '@commaai/comma-api';
-import Timelineworker from '../../timeline';
-import { primeNav, selectDevice } from '../../actions';
+import { primeNav, selectDevice, updateDevice } from '../../actions';
 import Colors from '../../colors';
 
 const styles = (theme) => ({
@@ -177,7 +176,7 @@ class DeviceSettingsModal extends Component {
     });
     try {
       const device = await DevicesApi.setDeviceAlias(dongle_id, this.state.deviceAlias.trim());
-      Timelineworker.updateDevice(device);
+      this.props.dispatch(updateDevice(device));
       this.setState({
         loadingDeviceAlias: false,
         hasSavedAlias: true
@@ -225,7 +224,7 @@ class DeviceSettingsModal extends Component {
       if (intv) {
         clearInterval(intv);
       }
-      this.props.dispatch(primeNav());
+      this.props.dispatch(primeNav(true));
       this.props.onClose();
     };
 
@@ -378,8 +377,8 @@ class DeviceSettingsModal extends Component {
 }
 
 const stateToProps = Obstruction({
-  subscription: 'workerState.subscription',
-  stateDevice: 'workerState.device',
+  subscription: 'subscription',
+  stateDevice: 'device',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceSettingsModal));

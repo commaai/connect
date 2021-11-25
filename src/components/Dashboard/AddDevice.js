@@ -9,9 +9,8 @@ import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
 
 import { devices as DevicesApi } from '@commaai/comma-api';
-import { selectDevice } from '../../actions';
+import { selectDevice, updateDevice } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
-import Timelineworker from '../../timeline';
 import Colors from '../../colors';
 
 QrScanner.WORKER_PATH = QrScannerWorkerPath;
@@ -302,7 +301,7 @@ class AddDevice extends Component {
       if (resp.dongle_id) {
         const device = await DevicesApi.fetchDevice(resp.dongle_id);
         if (this.props.devices.length > 0) { // state change from no device to a device requires reload.
-          Timelineworker.updateDevice(device);
+          this.props.dispatch(updateDevice(device));
         }
         this.setState({ pairLoading: false, pairDongleId: resp.dongle_id, pairError: null });
       } else {
@@ -373,8 +372,8 @@ class AddDevice extends Component {
 }
 
 const stateToProps = Obstruction({
-  profile: 'workerState.profile',
-  devices: 'workerState.devices',
+  profile: 'profile',
+  devices: 'devices',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AddDevice));

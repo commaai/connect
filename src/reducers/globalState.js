@@ -1,6 +1,6 @@
 import {
   ACTION_SELECT_DEVICE,
-  ACTION_SELECT_TIME_RANGE,
+  ACTION_SELECT_TIME_FILTER,
   ACTION_STARTUP_DATA,
   ACTION_UPDATE_DEVICES,
   ACTION_UPDATE_DEVICE,
@@ -9,9 +9,7 @@ import {
   ACTION_PRIME_SUBSCRIBE_INFO,
   ACTION_UPDATE_DEVICE_ONLINE,
 } from '../actions/types';
-import { emptyDevice } from '../../utils';
-
-const initialState = {};
+import { emptyDevice } from '../utils';
 
 function populateFetchedAt(d) {
   return {
@@ -20,7 +18,7 @@ function populateFetchedAt(d) {
   };
 }
 
-export default function reducer(_state = initialState, action) {
+export default function reducer(_state, action) {
   let state = { ..._state };
   let deviceIndex = null;
   switch (action.type) {
@@ -29,8 +27,7 @@ export default function reducer(_state = initialState, action) {
       if (!state.dongleId && devices.length > 0) {
         state = {
           ...state,
-          dongleId: devices[0].dongle_id,
-          device: devices[0]
+          device: devices[0],
         };
       } else {
         state = {
@@ -53,6 +50,7 @@ export default function reducer(_state = initialState, action) {
         dongleId: action.dongleId,
         primeNav: false,
         subscription: null,
+        subscribeInfo: null,
       };
       if (state.devices) {
         state.device = state.devices.find((device) => device.dongle_id === action.dongleId);
@@ -62,11 +60,13 @@ export default function reducer(_state = initialState, action) {
         state.segments = [];
       }
       break;
-    case ACTION_SELECT_TIME_RANGE:
+    case ACTION_SELECT_TIME_FILTER:
       state = {
         ...state,
-        start: action.start,
-        end: action.end,
+        filter: {
+          start: action.start,
+          end: action.end,
+        },
         segmentData: null,
         segments: [],
       };
@@ -125,6 +125,13 @@ export default function reducer(_state = initialState, action) {
         ...state,
         primeNav: action.primeNav,
       };
+      if (action.primeNav) {
+        state.zoom = {
+          start: null,
+          end: null,
+          expanded: false,
+        };
+      }
       break;
     case ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId != state.dongleId) { // ignore outdated info
@@ -133,6 +140,7 @@ export default function reducer(_state = initialState, action) {
       state = {
         ...state,
         subscription: action.subscription,
+        subscribeInfo: null,
       };
       break;
     case ACTION_PRIME_SUBSCRIBE_INFO:
@@ -142,6 +150,7 @@ export default function reducer(_state = initialState, action) {
       state = {
         ...state,
         subscribeInfo: action.subscribeInfo,
+        subscription: null,
       };
       break;
     default:

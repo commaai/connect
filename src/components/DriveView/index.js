@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import fecha from 'fecha';
 
-import { withStyles, Typography, IconButton } from '@material-ui/core';
+import { withStyles, IconButton } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 
 import Media from './Media';
@@ -13,6 +13,7 @@ import { selectRange } from '../../actions';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
+import { currentOffset } from '../../timeline/playback';
 
 const styles = (theme) => ({
   window: {
@@ -57,9 +58,18 @@ class DriveView extends Component {
     this.setState({ windowWidth });
   }
 
+  visibleSegment(props = this.props) {
+    const offset = currentOffset();
+    const currSegment = props.currentSegment;
+    if (currSegment && currSegment.routeOffset <= offset && offset <= currSegment.routeOffset + currSegment.duration) {
+      return currSegment;
+    }
+    return null;
+  }
+
   render() {
-    const { classes, dongleId, currentSegment, nextSegment, zoom, loop, start } = this.props;
-    const visibleSegment = (currentSegment || nextSegment);
+    const { classes, dongleId, zoom, loop, filter } = this.props;
+    const visibleSegment = this.visibleSegment();
     const viewerPadding = this.state.windowWidth < 768 ? 12 : 32
 
     const viewEndTime = fecha.format(new Date(zoom.end), 'HH:mm');
@@ -86,7 +96,7 @@ class DriveView extends Component {
             <Timeline className={classes.headerTimeline} hasRuler />
           </div>
           <div style={{ padding: viewerPadding }}>
-            <Media visibleSegment={ visibleSegment } loop={ loop } start={ start } />
+            <Media visibleSegment={ visibleSegment } loop={ loop } start={ filter.start } />
           </div>
         </div>
       </>
@@ -95,12 +105,11 @@ class DriveView extends Component {
 }
 
 const stateToProps = Obstruction({
-  currentSegment: 'workerState.currentSegment',
-  nextSegment: 'workerState.nextSegment',
-  dongleId: 'workerState.dongleId',
-  device: 'workerState.device',
-  loop: 'workerState.loop',
-  start: 'workerState.start',
+  currentSegment: 'currentSegment',
+  dongleId: 'dongleId',
+  device: 'device',
+  loop: 'loop',
+  filter: 'filter',
   zoom: 'zoom',
 });
 

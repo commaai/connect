@@ -27,7 +27,6 @@
     "connected-react-router": "^4.3.0",
     "debounce": "^1.1.0",
     "fecha": "^2.3.3",
-    "geval": "^2.2.0",
     "gh-pages": "^2.1.1",
     "global": "^4.3.2",
     "history": "^4.7.2",
@@ -49,7 +48,7 @@
     "react-router-dom": "^4.3.1",
     "react-scripts": "^3.4.4",
     "react-virtualized": "^9.21.1",
-    "reduce-reducers": "^0.3.0",
+    "reduce-reducers": "^1.0.4",
     "redux": "^4.0.0",
     "redux-thunk": "^2.3.0"
   },
