@@ -133,10 +133,11 @@ class Media extends Component {
     this.state = {
       inView: MediaType.VIDEO,
       windowWidth: window.innerWidth,
-      segmentsFiles: {},
-      segmentsFilesLoading: false,
       downloadMenu: null,
       moreInfoMenu: null,
+      segmentsFilesLoading: false,
+      segmentsFiles: {},
+      currentUploading: new Set(),
     };
 
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
@@ -147,12 +148,13 @@ class Media extends Component {
     this.openInUseradmin = this.openInUseradmin.bind(this);
     this.routesInLoop = this.routesInLoop.bind(this);
     this.fetchFiles = this.fetchFiles.bind(this);
+    this.updateSegmentsFiles = this.updateSegmentsFiles.bind(this);
     this.currentSegmentNum = this.currentSegmentNum.bind(this);
     this.uploadFile = this.uploadFile.bind(this);
-    this.listUploadQueue = this.listUploadQueue.bind(this);
     this.athenaCall = this.athenaCall.bind(this);
     this.listDataDirectory = this.listDataDirectory.bind(this);
     this.uploadQueue = this.uploadQueue.bind(this);
+    this._uploadQueue = this._uploadQueue.bind(this);
 
     this.uploadQueueIntv = null;
   }
@@ -161,8 +163,7 @@ class Media extends Component {
     this.componentDidUpdate({}, {});
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    const { dongleId } = this.props;
+  componentDidUpdate(_, prevState) {
     const { windowWidth, inView, downloadMenu } = this.state;
     const showMapAlways = windowWidth >= 1536;
     if (showMapAlways && inView === MediaType.MAP) {
@@ -170,11 +171,14 @@ class Media extends Component {
     }
 
     if (!prevState.downloadMenu && downloadMenu) {
-      this.fetchFiles();
-    }
-
-    if (dongleId !== prevProps.dongleId) {
-      this.uploadQueue(true);
+      this.setState({ segmentsFilesLoading: true });
+      if (Demo.isDemo()) {
+        this.fetchFiles('3533c53bb29502d1|2019-12-10--01-13-27', Promise.resolve(demoFiles));
+      } else {
+        for (const routeName of this.routesInLoop()) {
+          this.fetchFiles(routeName, RawApi.getRouteFiles(routeName));
+        }
+      }
     }
   }
 
@@ -183,16 +187,12 @@ class Media extends Component {
   }
 
   uploadQueue(enable) {
-    if (enable) {
-      if (this.uploadQueueIntv) {
-        return;
-      }
-      this.uploadQueueIntv = setInterval(this.listUploadQueue, 5000);
-    } else {
-      if (this.uploadQueueIntv) {
-        clearInterval(this.uploadQueueIntv);
-        this.uploadQueueIntv = null;
-      }
+    if (enable && !this.uploadQueueIntv) {
+      this.uploadQueueIntv = setInterval(this._uploadQueue, 2000);
+      this._uploadQueue();
+    } else if (!enable && this.uploadQueueIntv) {
+      clearInterval(this.uploadQueueIntv);
+      this.uploadQueueIntv = null;
     }
   }
 
@@ -263,47 +263,49 @@ class Media extends Component {
       .map((route) => route.route);
   }
 
-  async fetchFiles() {
-    this.setState({ segmentsFilesLoading: true });
-    let promises = [];
-    if (Demo.isDemo()) {
-      promises.push((async () => ['3533c53bb29502d1|2019-12-10--01-13-27', demoFiles])());
-    } else {
-      for (const routeName of this.routesInLoop()) {
-        promises.push((async () => [routeName, await RawApi.getRouteFiles(routeName)])());
-      }
-    }
-
+  async fetchFiles(routeName, filesPromise) {
     let files;
     try {
-      files = await Promise.all(promises);
+      files = await filesPromise;
     } catch (err) {
       console.log(err);
       Sentry.captureException(err, { fingerprint: 'media_fetch_files' });
       this.setState({ segmentsFiles: null, segmentsFilesLoading: false });
+      return;
     }
 
     const res = {};
-    for (const [routeName, routeFiles] of files) {
-      for (const type of FILE_TYPES) {
-        for (const file of routeFiles[type]) {
-          const urlName = routeName.replace('|', '/');
-          const segmentNum = parseInt(file.split(urlName)[1].split('/')[1]);
-          const segName = `${routeName}--${segmentNum}`;
-          if (!res[segName]) {
-            res[segName] = {};
-          }
-          res[segName][type] = {
-            url: file,
-          };
+    for (const type of FILE_TYPES) {
+      for (const file of files[type]) {
+        const urlName = routeName.replace('|', '/');
+        const segmentNum = parseInt(file.split(urlName)[1].split('/')[1]);
+        const segName = `${routeName}--${segmentNum}`;
+        if (!res[segName]) {
+          res[segName] = {};
         }
+        res[segName][type] = {
+          url: file,
+        };
       }
     }
 
-    this.setState({
-      segmentsFilesLoading: false,
-      segmentsFiles: res,
-    });
+    this.setState(this.updateSegmentsFiles(res, { segmentsFilesLoading: false }));
+  }
+
+  updateSegmentsFiles(newFiles, otherState = {}) {
+    return (prevState) => {
+      const res = prevState.segmentsFiles;
+      for (const seg in newFiles) {
+        if (!res[seg]) {
+          res[seg] = {};
+        }
+        res[seg] = {
+          ...res[seg],
+          ...newFiles[seg],
+        };
+      }
+      return { ...otherState, segmentsFiles: res };
+    };
   }
 
   async listDataDirectory(routeName) {
@@ -319,18 +321,17 @@ class Media extends Component {
     }
   }
 
-  async listUploadQueue() {
-
+  async _uploadQueue() {
     const payload = {
       method: 'listUploadQueue',
       jsonrpc: '2.0',
       id: 0,
     };
     const uploadQueue = await this.athenaCall(payload, 'media_athena_uploadqueue');
-    if (!uploadQueue || !uploadQueue.result || !uploadQueue.result.length) {
-      this.uploadQueue(false);
-    } else {
-      let { segmentsFiles } = this.state;
+    if (uploadQueue && uploadQueue.result) {
+      let { currentUploading } = this.state;
+      const uploadingFiles = {};
+      const newCurrentUploading = new Set();
       for (const uploading of uploadQueue.result) {
         const urlParts = uploading.url.split('?')[0].split('/');
         const filename = urlParts[urlParts.length - 1];
@@ -339,15 +340,26 @@ class Media extends Component {
         const dongleId = urlParts[urlParts.length - 4];
         const seg = `${dongleId}|${datetime}--${segNum}`;
         const type = Object.entries(FILE_NAMES).find((e) => e[1] == filename)[0];
-        if (!segmentsFiles[seg]) {
-          segmentsFiles[seg] = {};
+        if (!uploadingFiles[seg]) {
+          uploadingFiles[seg] = {};
         }
-        segmentsFiles[seg][type] = {
+        uploadingFiles[seg][type] = {
           current: uploading.current,
           progress: uploading.progress,
         };
+        newCurrentUploading.add(seg);
+        currentUploading.delete(seg);
       }
-      this.setState({ segmentsFiles });
+      if (currentUploading.size) { // some item is done uploading
+        const routeName = currentUploading.values().next().value.split('--').slice(0, 2).join('--');
+        this.fetchFiles(routeName, RawApi.getRouteFiles(routeName, true));
+      }
+      this.setState(this.updateSegmentsFiles(uploadingFiles, { currentUploading: newCurrentUploading }));
+      if (!uploadQueue.result.length) {
+        this.uploadQueue(false);
+      }
+    } else {
+      this.uploadQueue(false);
     }
   }
 
@@ -393,7 +405,7 @@ class Media extends Component {
       params: [path, url, { "x-ms-blob-type": "BlockBlob" }],
     };
     await this.athenaCall(payload, 'media_athena_uploadfile');
-    this.uploadQueueIntv = setInterval(this.listUploadQueue, 1000);
+    this.uploadQueue(true);
   }
 
   render() {
@@ -473,8 +485,8 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { currentSegment, segmentsFilesLoading, classes } = this.props;
-    const { segmentsFiles } = this.state;
+    const { currentSegment, device, classes } = this.props;
+    const { segmentsFiles, downloadMenu, moreInfoMenu, segmentsFilesLoading } = this.state;
     const disabledStyle = {
       pointerEvents: 'auto',
     };
@@ -495,7 +507,7 @@ class Media extends Component {
     const buttons = [
       [qcam, 'Camera segment', 'qcameras'],
       [fcam, 'Full resolution camera segment', 'cameras'],
-      [ecam, 'Wide road camera segment', 'ecameras'],
+      device && device.device_type === 'three' ? [ecam, 'Wide road camera segment', 'ecameras'] : null,
       [dcam, 'Driver camera segment', 'dcameras'],
       [qlog, 'Log segment', 'qlogs'],
       [rlog, 'Raw log segment', 'logs'],
@@ -503,8 +515,8 @@ class Media extends Component {
 
     return (
       <>
-        <Menu id="menu-download" open={ alwaysOpen || Boolean(this.state.downloadMenu) }
-          anchorEl={ this.state.downloadMenu } onClose={ () => this.setState({ downloadMenu: null }) }
+        <Menu id="menu-download" open={ Boolean(alwaysOpen || downloadMenu) }
+          anchorEl={ downloadMenu } onClose={ () => this.setState({ downloadMenu: null }) }
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
           { segmentsFilesLoading &&
@@ -512,10 +524,10 @@ class Media extends Component {
               <CircularProgress size={ 36 } style={{ color: Colors.white }} />
             </div>
           }
-          { buttons.flatMap(([file, name, type]) => [
+          { buttons.filter((b) => Boolean(b)).flatMap(([file, name, type]) => [
             type === 'qlogs' ? <Divider key={ 'divider' } /> : null,
-            <MenuItem key={ type } onClick={ () => this.downloadFile(file.url) } className={ classes.filesItem }
-              disabled={ !file.url } style={ !file.url ? disabledStyle : {} }>
+            <MenuItem key={ type } onClick={ file.url ? () => this.downloadFile(file.url) : null }
+              className={ classes.filesItem } disabled={ !file.url } style={ !file.url ? disabledStyle : {} }>
               <span style={ !file.url ? { color: Colors.white60 } : {} }>{ name }</span>
               { Boolean(!segmentsFilesLoading && !file.url && !file.progress) &&
                 <Button className={ classes.uploadButton } onClick={ () => this.uploadFile(type) }>
@@ -530,8 +542,8 @@ class Media extends Component {
             </MenuItem>
           ]) }
         </Menu>
-        <Menu id="menu-info" open={ alwaysOpen || Boolean(this.state.moreInfoMenu) }
-          anchorEl={ this.state.moreInfoMenu } onClose={ () => this.setState({ moreInfoMenu: null }) }
+        <Menu id="menu-info" open={ Boolean(alwaysOpen || moreInfoMenu) }
+          anchorEl={ moreInfoMenu } onClose={ () => this.setState({ moreInfoMenu: null }) }
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
           <MenuItem onClick={ this.openInCabana } id="openInCabana" >
             View in cabana
@@ -550,6 +562,7 @@ class Media extends Component {
 
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
+  device: 'device',
   currentSegment: 'currentSegment',
   segments: 'segments',
   loop: 'loop',
