@@ -140,7 +140,7 @@ class Media extends Component {
       moreInfoMenu: null,
       segmentsFilesLoading: false,
       segmentsFiles: {},
-      currentUploading: new Set(),
+      currentUploading: {},
     };
 
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
@@ -334,7 +334,7 @@ class Media extends Component {
     if (uploadQueue && uploadQueue.result) {
       let { currentUploading } = this.state;
       const uploadingFiles = {};
-      const newCurrentUploading = new Set();
+      const newCurrentUploading = {};
       for (const uploading of uploadQueue.result) {
         const urlParts = uploading.url.split('?')[0].split('/');
         const filename = urlParts[urlParts.length - 1];
@@ -350,11 +350,12 @@ class Media extends Component {
           current: uploading.current,
           progress: uploading.progress,
         };
-        newCurrentUploading.add(seg);
-        currentUploading.delete(seg);
+        newCurrentUploading[uploading.id] = seg;
+        delete currentUploading[uploading.id];
       }
-      if (currentUploading.size) { // some item is done uploading
-        const routeName = currentUploading.values().next().value.split('--').slice(0, 2).join('--');
+      console.log(currentUploading);
+      if (Object.keys(currentUploading).length) { // some item is done uploading
+        const routeName = Object.values(currentUploading)[0].split('--').slice(0, 2).join('--');
         this.fetchFiles(routeName, RawApi.getRouteFiles(routeName, true));
       }
       this.setState(this.updateSegmentsFiles(uploadingFiles, { currentUploading: newCurrentUploading }));
@@ -417,11 +418,10 @@ class Media extends Component {
     const resp = await this.athenaCall(payload, 'media_athena_uploadfile');
     if (resp.error) {
       uploading[seg][type] = {};
+      this.setState(this.updateSegmentsFiles(uploading));
     } else {
-      uploading[seg][type] = { current: false, progress: 0 };
       this.uploadQueue(true);
     }
-    this.setState(this.updateSegmentsFiles(uploading));
   }
 
   render() {
