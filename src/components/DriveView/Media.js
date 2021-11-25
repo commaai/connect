@@ -14,6 +14,7 @@ import * as Demo from '../../demo';
 import TimeDisplay from '../TimeDisplay';
 import { currentOffset } from '../../timeline/playback';
 import Colors from '../../colors';
+import { deviceIsOnline } from '../../utils';
 
 const demoFiles = require('../../demo/files.json');
 
@@ -502,9 +503,8 @@ class Media extends Component {
   renderMenus(alwaysOpen = false) {
     const { currentSegment, device, classes } = this.props;
     const { segmentsFiles, downloadMenu, moreInfoMenu, segmentsFilesLoading } = this.state;
-    const disabledStyle = {
-      pointerEvents: 'auto',
-    };
+    const disabledStyle = { pointerEvents: 'auto' };
+    const online = deviceIsOnline(device);
 
     let qcam = {}, fcam = {}, ecam = {}, dcam = {}, qlog = {}, rlog = {};
     if (segmentsFiles && currentSegment) {
@@ -542,19 +542,20 @@ class Media extends Component {
           { buttons.filter((b) => Boolean(b)).flatMap(([file, name, type]) => [
             type === 'qlogs' ? <Divider key={ 'divider' } /> : null,
             <MenuItem key={ type } onClick={ file.url ? () => this.downloadFile(file.url) : null }
-              className={ classes.filesItem } disabled={ !file.url } style={ !file.url ? disabledStyle : {} }>
+              className={ classes.filesItem } disabled={ !file.url } style={ !file.url ? disabledStyle : {} }
+              title={ Boolean(!file.url && !online) ? 'connect device to enable uploading' : null }>
               <span style={ !file.url ? { color: Colors.white60 } : {} }>{ name }</span>
-              { Boolean(!segmentsFilesLoading && !file.url && file.progress === undefined && !file.requested) &&
+              { Boolean(!segmentsFilesLoading && !file.url && online && file.progress === undefined && !file.requested) &&
                 <Button className={ classes.uploadButton } onClick={ () => this.uploadFile(type) }>
                   request upload
                 </Button>
               }
-              { Boolean(!segmentsFilesLoading && !file.url && file.progress !== undefined) &&
+              { Boolean(!segmentsFilesLoading && !file.url && online && file.progress !== undefined) &&
                 <div className={ classes.fakeUploadButton }>
                   { file.current ? `${parseInt(file.progress * 100)}%` : 'pending' }
                 </div>
               }
-              { Boolean(!segmentsFilesLoading && !file.url && file.requested) &&
+              { Boolean(!segmentsFilesLoading && !file.url && online && file.requested) &&
                 <div className={ classes.fakeUploadButton }>
                   <CircularProgress style={{ color: Colors.white }} size={ 17 } />
                 </div>
