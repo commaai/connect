@@ -385,6 +385,7 @@ class Media extends Component {
     const { dongleId, currentSegment } = this.props;
     const routeNoDongleId = currentSegment.route.split('|')[1];
     const path = `${routeNoDongleId}--${this.currentSegmentNum()}/${FILE_NAMES[type]}`;
+
     let url;
     try {
       const resp = await RawApi.getUploadUrl(dongleId, path, 7);
@@ -397,6 +398,11 @@ class Media extends Component {
       console.log(err);
       Sentry.captureException(err, { fingerprint: 'media_uploadurl' });
     }
+
+    const uploading = {};
+    uploading[`${dongleId}|${routeNoDongleId}--${this.currentSegmentNum()}`] = {};
+    uploading[`${dongleId}|${routeNoDongleId}--${this.currentSegmentNum()}`][type] = { current: false, progress: 0 };
+    this.setState(this.updateSegmentsFiles(uploading));
 
     const payload = {
       id: 0,
@@ -529,14 +535,14 @@ class Media extends Component {
             <MenuItem key={ type } onClick={ file.url ? () => this.downloadFile(file.url) : null }
               className={ classes.filesItem } disabled={ !file.url } style={ !file.url ? disabledStyle : {} }>
               <span style={ !file.url ? { color: Colors.white60 } : {} }>{ name }</span>
-              { Boolean(!segmentsFilesLoading && !file.url && !file.progress) &&
+              { Boolean(!segmentsFilesLoading && !file.url && file.progress === undefined) &&
                 <Button className={ classes.uploadButton } onClick={ () => this.uploadFile(type) }>
                   request upload
                 </Button>
               }
-              { Boolean(!segmentsFilesLoading && !file.url && file.progress) &&
+              { Boolean(!segmentsFilesLoading && !file.url && file.progress !== undefined) &&
                 <div className={ classes.fakeUploadButton }>
-                  { file.current ? `${parseInt(file.progress * 100)}%` : 'upload pending' }
+                  { file.current ? `${parseInt(file.progress * 100)}%` : 'queued' }
                 </div>
               }
             </MenuItem>
