@@ -4,9 +4,9 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress } from '@material-ui/core';
+import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button } from '@material-ui/core';
 
-import { raw as RawApi } from '@commaai/comma-api';
+import { raw as RawApi, athena as AthenaApi } from '@commaai/comma-api';
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
 import ResizeHandler from '../ResizeHandler';
@@ -87,9 +87,39 @@ const styles = (theme) => ({
     left: '50%',
     transform: 'translate(-50%, -50%)',
   },
+  filesItem: {
+    justifyContent: 'space-between',
+    opacity: 1,
+  },
+  uploadButton: {
+    marginLeft: 8,
+    width: 120,
+    color: Colors.white,
+    borderRadius: 13,
+    fontSize: '0.8rem',
+    padding: '4px 12px',
+    minHeight: 19,
+  },
+  fakeUploadButton: {
+    marginLeft: 8,
+    width: 96,
+    color: Colors.white,
+    fontSize: '0.8rem',
+    padding: '4px 12px',
+    textAlign: 'center',
+  }
 });
 
+
 const FILE_TYPES = ['qcameras', 'cameras', 'dcameras', 'ecameras', 'qlogs', 'logs'];
+const FILE_NAMES = {
+  'qcameras': 'qcamera.ts',
+  'cameras': 'fcamera.hevc',
+  'dcameras': 'dcamera.hevc',
+  'ecameras': 'ecamera.hevc',
+  'qlogs': 'qlog.bz2',
+  'logs': 'rlog.bz2',
+};
 
 const MediaType = {
   VIDEO: 'video',
@@ -103,7 +133,7 @@ class Media extends Component {
     this.state = {
       inView: MediaType.VIDEO,
       windowWidth: window.innerWidth,
-      segmentsFiles: null,
+      segmentsFiles: {},
       segmentsFilesLoading: false,
       downloadMenu: null,
       moreInfoMenu: null,
@@ -118,9 +148,21 @@ class Media extends Component {
     this.routesInLoop = this.routesInLoop.bind(this);
     this.fetchFiles = this.fetchFiles.bind(this);
     this.currentSegmentNum = this.currentSegmentNum.bind(this);
+    this.uploadFile = this.uploadFile.bind(this);
+    this.listUploadQueue = this.listUploadQueue.bind(this);
+    this.athenaCall = this.athenaCall.bind(this);
+    this.listDataDirectory = this.listDataDirectory.bind(this);
+    this.uploadQueue = this.uploadQueue.bind(this);
+
+    this.uploadQueueIntv = null;
   }
 
-  componentDidUpdate(_, prevState) {
+  componentDidMount() {
+    this.componentDidUpdate({}, {});
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    const { dongleId } = this.props;
     const { windowWidth, inView, downloadMenu } = this.state;
     const showMapAlways = windowWidth >= 1536;
     if (showMapAlways && inView === MediaType.MAP) {
@@ -129,6 +171,28 @@ class Media extends Component {
 
     if (!prevState.downloadMenu && downloadMenu) {
       this.fetchFiles();
+    }
+
+    if (dongleId !== prevProps.dongleId) {
+      this.uploadQueue(true);
+    }
+  }
+
+  componentWillUnmount() {
+    this.uploadQueue(false);
+  }
+
+  uploadQueue(enable) {
+    if (enable) {
+      if (this.uploadQueueIntv) {
+        return;
+      }
+      this.uploadQueueIntv = setInterval(this.listUploadQueue, 5000);
+    } else {
+      if (this.uploadQueueIntv) {
+        clearInterval(this.uploadQueueIntv);
+        this.uploadQueueIntv = null;
+      }
     }
   }
 
@@ -221,18 +285,115 @@ class Media extends Component {
 
     const res = {};
     for (const [routeName, routeFiles] of files) {
-      res[routeName] = {};
       for (const type of FILE_TYPES) {
-        res[routeName][type] = {};
         for (const file of routeFiles[type]) {
           const urlName = routeName.replace('|', '/');
           const segmentNum = parseInt(file.split(urlName)[1].split('/')[1]);
-          res[routeName][type][segmentNum] = file;
+          const segName = `${routeName}--${segmentNum}`;
+          if (!res[segName]) {
+            res[segName] = {};
+          }
+          res[segName][type] = {
+            url: file,
+          };
         }
       }
     }
 
-    this.setState({ segmentsFiles: res, segmentsFilesLoading: false });
+    this.setState({
+      segmentsFilesLoading: false,
+      segmentsFiles: res,
+    });
+  }
+
+  async listDataDirectory(routeName) {
+    const payload = {
+      method: 'listDataDirectory',
+      params: { prefix: routeName },
+      jsonrpc: '2.0',
+      id: 0,
+    };
+    const dataDirectory = await this.athenaCall(payload, 'media_athena_datadirectory');
+    if (dataDirectory) {
+      this.setState({ dataDirectory });
+    }
+  }
+
+  async listUploadQueue() {
+
+    const payload = {
+      method: 'listUploadQueue',
+      jsonrpc: '2.0',
+      id: 0,
+    };
+    const uploadQueue = await this.athenaCall(payload, 'media_athena_uploadqueue');
+    if (!uploadQueue || !uploadQueue.result || !uploadQueue.result.length) {
+      this.uploadQueue(false);
+    } else {
+      let { segmentsFiles } = this.state;
+      for (const uploading of uploadQueue.result) {
+        const urlParts = uploading.url.split('?')[0].split('/');
+        const filename = urlParts[urlParts.length - 1];
+        const segNum = urlParts[urlParts.length - 2];
+        const datetime = urlParts[urlParts.length - 3];
+        const dongleId = urlParts[urlParts.length - 4];
+        const seg = `${dongleId}|${datetime}--${segNum}`;
+        const type = Object.entries(FILE_NAMES).find((e) => e[1] == filename)[0];
+        if (!segmentsFiles[seg]) {
+          segmentsFiles[seg] = {};
+        }
+        segmentsFiles[seg][type] = {
+          current: uploading.current,
+          progress: uploading.progress,
+        };
+      }
+      this.setState({ segmentsFiles });
+    }
+  }
+
+  async athenaCall(payload, sentry_fingerprint) {
+    const { dongleId } = this.props;
+    try {
+      const resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
+      if (dongleId === this.props.dongleId) {
+        return resp;
+      }
+    } catch(err) {
+      if (dongleId === this.props.dongleId) {
+        if (!err.message || err.message.indexOf('Device not registered') === -1) {
+          console.log(err);
+          Sentry.captureException(err, { fingerprint: sentry_fingerprint });
+        }
+        return { error: err.message };
+      }
+    }
+  }
+
+  async uploadFile(type) {
+    const { dongleId, currentSegment } = this.props;
+    const routeNoDongleId = currentSegment.route.split('|')[1];
+    const path = `${routeNoDongleId}--${this.currentSegmentNum()}/${FILE_NAMES[type]}`;
+    let url;
+    try {
+      const resp = await RawApi.getUploadUrl(dongleId, path, 7);
+      if (!resp.url) {
+        console.log(resp);
+        return;
+      }
+      url = resp.url;
+    } catch (err) {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'media_uploadurl' });
+    }
+
+    const payload = {
+      id: 0,
+      jsonrpc: "2.0",
+      method: "uploadFileToUrl",
+      params: [path, url, { "x-ms-blob-type": "BlockBlob" }],
+    };
+    await this.athenaCall(payload, 'media_athena_uploadfile');
+    this.uploadQueueIntv = setInterval(this.listUploadQueue, 1000);
   }
 
   render() {
@@ -312,22 +473,35 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { currentSegment, classes } = this.props;
+    const { currentSegment, segmentsFilesLoading, classes } = this.props;
     const { segmentsFiles } = this.state;
     const disabledStyle = {
       pointerEvents: 'auto',
     };
 
-    let qcam, fcam, ecam, dcam, qlog, rlog;
-    if (segmentsFiles && currentSegment && segmentsFiles[currentSegment.route]) {
-      const seg = this.currentSegmentNum();
-      qcam = segmentsFiles[currentSegment.route]['qcameras'][seg];
-      fcam = segmentsFiles[currentSegment.route]['cameras'][seg];
-      ecam = segmentsFiles[currentSegment.route]['ecameras'][seg];
-      dcam = segmentsFiles[currentSegment.route]['dcameras'][seg];
-      qlog = segmentsFiles[currentSegment.route]['qlogs'][seg];
-      rlog = segmentsFiles[currentSegment.route]['logs'][seg];
+    let qcam = {}, fcam = {}, ecam = {}, dcam = {}, qlog = {}, rlog = {};
+    if (segmentsFiles && currentSegment) {
+      const seg = `${currentSegment.route}--${this.currentSegmentNum()}`;
+      if (segmentsFiles[seg]) {
+        qcam = segmentsFiles[seg]['qcameras'] || {};
+        fcam = segmentsFiles[seg]['cameras'] || {};
+        ecam = segmentsFiles[seg]['ecameras'] || {};
+        dcam = segmentsFiles[seg]['dcameras'] || {};
+        qlog = segmentsFiles[seg]['qlogs'] || {};
+        rlog = segmentsFiles[seg]['logs'] || {};
+      }
     }
+
+    console.log(segmentsFiles);
+
+    const buttons = [
+      [qcam, 'Camera segment', 'qcameras'],
+      [fcam, 'Full resolution camera segment', 'cameras'],
+      [ecam, 'Wide road camera segment', 'ecameras'],
+      [dcam, 'Driver camera segment', 'dcameras'],
+      [qlog, 'Log segment', 'qlogs'],
+      [rlog, 'Raw log segment', 'logs'],
+    ];
 
     return (
       <>
@@ -335,40 +509,29 @@ class Media extends Component {
           anchorEl={ this.state.downloadMenu } onClose={ () => this.setState({ downloadMenu: null }) }
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
-          { !segmentsFiles &&
+          { segmentsFilesLoading &&
             <div className={ classes.menuLoading }>
               <CircularProgress size={ 36 } style={{ color: Colors.white }} />
             </div>
           }
-          <MenuItem onClick={ () => this.downloadFile(qcam) }
-            disabled={ !qcam } style={ !qcam ? disabledStyle : {} }>
-            Camera segment
-          </MenuItem>
-          <MenuItem onClick={ () => this.downloadFile(fcam) }
-            title={ !fcam ? 'not available, request upload in useradmin' : null }
-            disabled={ !fcam } style={ !fcam ? disabledStyle : {} }>
-            Full resolution camera segment
-          </MenuItem>
-          <MenuItem onClick={ () => this.downloadFile(ecam) }
-            title={ !ecam ? 'not available, request upload in useradmin' : null }
-            disabled={ !ecam } style={ !ecam ? disabledStyle : {} }>
-            Wide road camera segment
-          </MenuItem>
-          <MenuItem onClick={ () => this.downloadFile(dcam) }
-            title={ !dcam ? 'not available, request upload in useradmin' : null }
-            disabled={ !dcam } style={ !dcam ? disabledStyle : {} }>
-            Driver camera segment
-          </MenuItem>
-          <Divider />
-          <MenuItem onClick={ () => this.downloadFile(qlog) }
-            disabled={ !qlog } style={ !qlog ? disabledStyle : {} }>
-            Log segment
-          </MenuItem>
-          <MenuItem onClick={ () => this.downloadFile(rlog) }
-            title={ !rlog ? 'not available, request upload in useradmin' : null }
-            disabled={ !rlog } style={ !rlog ? disabledStyle : {} }>
-            Raw log segment
-          </MenuItem>
+          { buttons.reduce((res, [file, name, type]) => {
+            if (type === 'qlogs') { res.push( <Divider key={ 'divider' } /> ); }
+            res.push( <MenuItem key={ type } onClick={ () => this.downloadFile(file.url) } className={ classes.filesItem }
+              disabled={ !file.url } style={ !file.url ? disabledStyle : {} }>
+              <span style={ !file.url ? { color: Colors.white60 } : {} }>{ name }</span>
+              { Boolean(!segmentsFilesLoading && !file.url && !file.progress) &&
+                <Button className={ classes.uploadButton } onClick={ () => this.uploadFile(type) }>
+                  request upload
+                </Button>
+              }
+              { Boolean(!segmentsFilesLoading && !file.url && file.progress) &&
+                <div className={ classes.fakeUploadButton }>
+                  { file.current ? `${parseInt(file.progress * 100)}%` : 'upload pending' }
+                </div>
+              }
+            </MenuItem> );
+            return res;
+          }, []) }
         </Menu>
         <Menu id="menu-info" open={ alwaysOpen || Boolean(this.state.moreInfoMenu) }
           anchorEl={ this.state.moreInfoMenu } onClose={ () => this.setState({ moreInfoMenu: null }) }
@@ -389,6 +552,7 @@ class Media extends Component {
 }
 
 const stateToProps = Obstruction({
+  dongleId: 'dongleId',
   currentSegment: 'currentSegment',
   segments: 'segments',
   loop: 'loop',
