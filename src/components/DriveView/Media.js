@@ -106,7 +106,9 @@ const styles = (theme) => ({
     color: Colors.white,
     fontSize: '0.8rem',
     padding: '4px 12px',
-    textAlign: 'center',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
   }
 });
 
@@ -385,6 +387,12 @@ class Media extends Component {
     const { dongleId, currentSegment } = this.props;
     const routeNoDongleId = currentSegment.route.split('|')[1];
     const path = `${routeNoDongleId}--${this.currentSegmentNum()}/${FILE_NAMES[type]}`;
+    const seg = `${dongleId}|${routeNoDongleId}--${this.currentSegmentNum()}`;
+
+    const uploading = {};
+    uploading[seg] = {};
+    uploading[seg][type] = { requested: true };
+    this.setState(this.updateSegmentsFiles(uploading));
 
     let url;
     try {
@@ -399,19 +407,20 @@ class Media extends Component {
       Sentry.captureException(err, { fingerprint: 'media_uploadurl' });
     }
 
-    const uploading = {};
-    uploading[`${dongleId}|${routeNoDongleId}--${this.currentSegmentNum()}`] = {};
-    uploading[`${dongleId}|${routeNoDongleId}--${this.currentSegmentNum()}`][type] = { current: false, progress: 0 };
-    this.setState(this.updateSegmentsFiles(uploading));
-
     const payload = {
       id: 0,
       jsonrpc: "2.0",
       method: "uploadFileToUrl",
       params: [path, url, { "x-ms-blob-type": "BlockBlob" }],
     };
-    await this.athenaCall(payload, 'media_athena_uploadfile');
-    this.uploadQueue(true);
+    const resp = await this.athenaCall(payload, 'media_athena_uploadfile');
+    if (resp.error) {
+      uploading[seg][type] = {};
+    } else {
+      uploading[seg][type] = { current: false, progress: 0 };
+      this.uploadQueue(true);
+    }
+    this.setState(this.updateSegmentsFiles(uploading));
   }
 
   render() {
@@ -535,14 +544,19 @@ class Media extends Component {
             <MenuItem key={ type } onClick={ file.url ? () => this.downloadFile(file.url) : null }
               className={ classes.filesItem } disabled={ !file.url } style={ !file.url ? disabledStyle : {} }>
               <span style={ !file.url ? { color: Colors.white60 } : {} }>{ name }</span>
-              { Boolean(!segmentsFilesLoading && !file.url && file.progress === undefined) &&
+              { Boolean(!segmentsFilesLoading && !file.url && file.progress === undefined && !file.requested) &&
                 <Button className={ classes.uploadButton } onClick={ () => this.uploadFile(type) }>
                   request upload
                 </Button>
               }
               { Boolean(!segmentsFilesLoading && !file.url && file.progress !== undefined) &&
                 <div className={ classes.fakeUploadButton }>
-                  { file.current ? `${parseInt(file.progress * 100)}%` : 'queued' }
+                  { file.current ? `${parseInt(file.progress * 100)}%` : 'pending' }
+                </div>
+              }
+              { Boolean(!segmentsFilesLoading && !file.url && file.requested) &&
+                <div className={ classes.fakeUploadButton }>
+                  <CircularProgress style={{ color: Colors.white }} size={ 17 } />
                 </div>
               }
             </MenuItem>
