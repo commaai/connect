@@ -113,8 +113,6 @@ const styles = (theme) => ({
   }
 });
 
-
-const FILE_TYPES = ['qcameras', 'cameras', 'dcameras', 'ecameras', 'qlogs', 'logs'];
 const FILE_NAMES = {
   'qcameras': 'qcamera.ts',
   'cameras': 'fcamera.hevc',
@@ -278,7 +276,7 @@ class Media extends Component {
     }
 
     const res = {};
-    for (const type of FILE_TYPES) {
+    for (const type of Object.keys(FILE_NAMES)) {
       for (const file of files[type]) {
         const urlName = routeName.replace('|', '/');
         const segmentNum = parseInt(file.split(urlName)[1].split('/')[1]);
@@ -353,7 +351,6 @@ class Media extends Component {
         newCurrentUploading[uploading.id] = seg;
         delete currentUploading[uploading.id];
       }
-      console.log(currentUploading);
       if (Object.keys(currentUploading).length) { // some item is done uploading
         const routeName = Object.values(currentUploading)[0].split('--').slice(0, 2).join('--');
         this.fetchFiles(routeName, RawApi.getRouteFiles(routeName, true));
