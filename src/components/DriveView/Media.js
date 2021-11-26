@@ -195,6 +195,7 @@ class Media extends Component {
     this.updateSegmentsFiles = this.updateSegmentsFiles.bind(this);
     this.currentSegmentNum = this.currentSegmentNum.bind(this);
     this.uploadFile = this.uploadFile.bind(this);
+    this.uploadFilesAll = this.uploadFilesAll.bind(this);
     this.cancelUpload = this.cancelUpload.bind(this);
     this.athenaCall = this.athenaCall.bind(this);
     this.listDataDirectory = this.listDataDirectory.bind(this);
@@ -476,6 +477,70 @@ class Media extends Component {
     }
   }
 
+  async uploadFilesAll(types) {
+    const { dongleId, device, segmentData, loop } = this.props;
+    const { segmentsFiles } = this.state;
+    if (types === undefined) {
+      types = ['logs', 'cameras', 'dcameras'];
+      if (device.device_type === 'three') {
+        types.push('ecameras');
+      };
+    }
+
+    if (!segmentData.segments) {
+      return;
+    }
+
+    const uploading = {}
+    for (const segment of segmentData.segments) {
+      if (segment.start_time_utc_millis < loop.startTime + loop.duration &&
+        segment.start_time_utc_millis + segment.duration > loop.startTime)
+      {
+        for (const type of types) {
+          if (!segmentsFiles[segment.canonical_name] || !segmentsFiles[segment.canonical_name][type]) {
+            if (!uploading[segment.canonical_name]) {
+              uploading[segment.canonical_name] = {};
+            }
+            uploading[segment.canonical_name][type] = { requested: true };
+          }
+        }
+      }
+    }
+    this.setState(this.updateSegmentsFiles(uploading));
+
+    for (const seg in uploading) {
+      for (const type in uploading[seg]) {
+        const path = `${seg.split('|')[1]}/${FILE_NAMES[type]}`;
+        let url;
+        try {
+          const resp = await RawApi.getUploadUrl(dongleId, path, 7);
+          if (!resp.url) {
+            console.log(resp);
+            return;
+          }
+          url = resp.url;
+        } catch (err) {
+          console.log(err);
+          Sentry.captureException(err, { fingerprint: 'media_uploadallurl' });
+        }
+
+        const payload = {
+          id: 0,
+          jsonrpc: "2.0",
+          method: "uploadFileToUrl",
+          params: [path, url, { "x-ms-blob-type": "BlockBlob" }],
+        };
+        const resp = await this.athenaCall(payload, 'media_athena_uploadallfile');
+        if (resp.error) {
+          uploading[seg][type] = {};
+          this.setState(this.updateSegmentsFiles(uploading));
+        } else {
+          this.uploadQueue(true);
+        }
+      }
+    }
+  }
+
   async cancelUpload(id) {
     this.setState((prevState) => {
       const currentUploading = prevState.currentUploading;
@@ -644,6 +709,16 @@ class Media extends Component {
           </MenuItem>
         ]) }
         <Divider />
+        <MenuItem onClick={ !segmentsFilesLoading ? () => this.uploadFilesAll(['logs']) : null }
+          className={ classes.filesItem } disabled={ segmentsFilesLoading }
+          style={ segmentsFilesLoading ? { ...disabledStyle, color: Colors.white60 } : {} }>
+          Request upload all raw logs
+        </MenuItem>
+        <MenuItem onClick={ !segmentsFilesLoading ? () => this.uploadFilesAll() : null }
+          className={ classes.filesItem } disabled={ segmentsFilesLoading }
+          style={ segmentsFilesLoading ? { ...disabledStyle, color: Colors.white60 } : {} }>
+          Request upload all files
+        </MenuItem>
         <MenuItem onClick={ !segmentsFilesLoading ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
           className={ classes.filesItem } disabled={ segmentsFilesLoading }
           style={ segmentsFilesLoading ? { ...disabledStyle, color: Colors.white60 } : {} }>
@@ -729,6 +804,7 @@ const stateToProps = Obstruction({
   device: 'device',
   currentSegment: 'currentSegment',
   segments: 'segments',
+  segmentData: 'segmentData',
   loop: 'loop',
   filter: 'filter',
 });
