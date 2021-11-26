@@ -639,7 +639,9 @@ class Media extends Component {
           </MenuItem>
         ]) }
         <Divider />
-        <MenuItem onClick={ () => this.setState({ uploadModal: true, downloadMenu: null }) }>
+        <MenuItem onClick={ !segmentsFilesLoading ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
+          className={ classes.filesItem } disabled={ segmentsFilesLoading }
+          style={ segmentsFilesLoading ? { ...disabledStyle, color: Colors.white60 } : {} }>
           View upload queue
         </MenuItem>
       </Menu>
@@ -668,39 +670,43 @@ class Media extends Component {
             </Typography>
           </div>
           <Divider />
-          <table className={ classes.uploadTable }>
-            <thead>
-              <tr className={ classes.uploadRow }>
-                <th className={ classes.uploadCell }>segment</th>
-                <th className={ classes.uploadCell }>type</th>
-                <th className={ classes.uploadCell }>progress</th>
-                <th className={ classes.uploadCell }></th>
-              </tr>
-            </thead>
-            <tbody>
-              { Object.entries(currentUploading).reverse().map(([id, upload]) => {
-                return (
-                  <tr className={ classes.uploadRow } key={ id }>
-                    <td className={ classes.uploadCell }>{ upload.seg.split('|')[1] }</td>
-                    <td className={ classes.uploadCell }>{ upload.type }</td>
-                    <td className={ classes.uploadCell }>
-                      { upload.current ? `${parseInt(upload.progress * 100)}%` : 'pending' }
-                    </td>
-                    <td className={ classes.uploadCell }>
-                      { !upload.current &&
-                        <Button onClick={ !upload.cancel ? () => this.cancelUpload(id) : null }
-                          disabled={ upload.cancel }>
-                          { upload.cancel ?
-                            <CircularProgress style={{ color: Colors.white }} size={ 19 } /> :
-                            'cancel' }
-                        </Button>
-                      }
-                    </td>
-                  </tr>
-                );
-              }) }
-            </tbody>
-          </table>
+          { Object.entries(currentUploading).length ?
+            <table className={ classes.uploadTable }>
+              <thead>
+                <tr className={ classes.uploadRow }>
+                  <th className={ classes.uploadCell }>segment</th>
+                  <th className={ classes.uploadCell }>type</th>
+                  <th className={ classes.uploadCell }>progress</th>
+                  <th className={ classes.uploadCell }></th>
+                </tr>
+              </thead>
+              <tbody>
+                { Object.entries(currentUploading).reverse().map(([id, upload]) => {
+                  return (
+                    <tr className={ classes.uploadRow } key={ id }>
+                      <td className={ classes.uploadCell }>{ upload.seg.split('|')[1] }</td>
+                      <td className={ classes.uploadCell }>{ FILE_NAMES[upload.type].split('.')[0] }</td>
+                      <td className={ classes.uploadCell }>
+                        { upload.current ? `${parseInt(upload.progress * 100)}%` : 'pending' }
+                      </td>
+                      <td className={ classes.uploadCell }>
+                        { !upload.current &&
+                          <Button onClick={ !upload.cancel ? () => this.cancelUpload(id) : null }
+                            disabled={ upload.cancel }>
+                            { upload.cancel ?
+                              <CircularProgress style={{ color: Colors.white }} size={ 19 } /> :
+                              'cancel' }
+                          </Button>
+                        }
+                      </td>
+                    </tr>
+                  );
+                }) }
+              </tbody>
+            </table>
+          :
+            <p style={{ color: Colors.white }}>no uploads</p>
+          }
           <div className={classes.buttonGroup}>
             <Button variant="contained" className={ classes.cancelButton }
               onClick={ () => this.setState({ uploadModal: false }) }>
