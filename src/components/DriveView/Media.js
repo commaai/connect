@@ -127,6 +127,18 @@ const styles = (theme) => ({
     alignItems: 'baseline',
     marginBottom: 5,
   },
+  titleRow: {
+    display: 'flex',
+    alignItems: 'baseline',
+    '& button': {
+      marginLeft: 8,
+      fontWeight: 600,
+      borderRadius: 13,
+      fontSize: '0.8rem',
+      padding: '4px 12px',
+      minHeight: 19,
+    },
+  },
   buttonGroup: {
     textAlign: 'right'
   },
@@ -188,6 +200,7 @@ class Media extends Component {
       segmentsFilesLoading: false,
       segmentsFiles: {},
       currentUploading: {},
+      cancelQueue: [],
     };
 
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
@@ -547,37 +560,62 @@ class Media extends Component {
     }
   }
 
-  async cancelUpload(id) {
+  async cancelUpload(ids) {
+    if (ids === undefined) {
+      ids = Object.keys(this.state.currentUploading);
+    }
+
     this.setState((prevState) => {
-      const currentUploading = prevState.currentUploading;
-      currentUploading[id]['cancel'] = true;
-      return { currentUploading };
+      const { cancelQueue, currentUploading } = prevState;
+      for (const id in currentUploading) {
+        if (ids.includes(id) && !cancelQueue.includes(id) && !currentUploading[id].current) {
+          cancelQueue.push(id);
+        }
+      }
+      return { cancelQueue };
     });
 
-    const payload = {
-      id: 0,
-      jsonrpc: "2.0",
-      method: "cancelUpload",
-      params: { upload_id: id },
-    };
-    const resp = await this.athenaCall(payload, 'media_athena_cancelupload');
+    for (const id of ids) {
+      if (!this.state.currentUploading[id] || this.state.currentUploading[id].current) {
+        this.setState((prevState) => {
+          const { cancelQueue } = prevState;
+          const index = cancelQueue.indexOf(id);
+          if (index !== -1) {
+            cancelQueue.splice(index, 1);
+          }
+          return { cancelQueue };
+        });
+        continue;
+      }
+      const payload = {
+        id: 0,
+        jsonrpc: "2.0",
+        method: "cancelUpload",
+        params: { upload_id: id },
+      };
+      const resp = await this.athenaCall(payload, 'media_athena_cancelupload');
 
-    if (resp.result && resp.result.success) {
-      this.setState((prevState) => {
-        const currentUploading = prevState.currentUploading;
-        const segmentsFiles = prevState.segmentsFiles;
-        if (currentUploading[id]) {
-          const { seg, type } = currentUploading[id];
-          delete segmentsFiles[seg][type];
-        }
-        delete currentUploading[id];
-        return {
-          currentUploading,
-          segmentsFiles,
-        };
-      });
+      if (resp.result && resp.result.success) {
+        this.setState((prevState) => {
+          const { currentUploading, segmentsFiles, cancelQueue } = prevState;
+          if (currentUploading[id]) {
+            const { seg, type } = currentUploading[id];
+            delete segmentsFiles[seg][type];
+          }
+          delete currentUploading[id];
+          const index = cancelQueue.indexOf(id);
+          if (index !== -1) {
+            cancelQueue.splice(index, 1);
+          }
+          return {
+            currentUploading,
+            segmentsFiles,
+            cancelQueue,
+          };
+        });
+      }
+      this.uploadQueue(true);
     }
-    this.uploadQueue(true);
   }
 
   render() {
@@ -658,7 +696,8 @@ class Media extends Component {
 
   renderMenus(alwaysOpen = false) {
     const { currentSegment, device, classes } = this.props;
-    const { segmentsFiles, downloadMenu, moreInfoMenu, segmentsFilesLoading, uploadModal, currentUploading } = this.state;
+    const { segmentsFiles, downloadMenu, moreInfoMenu, segmentsFilesLoading, uploadModal, currentUploading,
+      cancelQueue } = this.state;
 
     if (!device) {
       return;
@@ -666,6 +705,7 @@ class Media extends Component {
 
     const disabledStyle = { pointerEvents: 'auto' };
     const online = deviceIsOnline(device);
+    const hasUploading = Object.entries(currentUploading).length > 0;
 
     let qcam = {}, fcam = {}, ecam = {}, dcam = {}, qlog = {}, rlog = {};
     if (segmentsFiles && currentSegment) {
@@ -756,16 +796,23 @@ class Media extends Component {
         onClose={ () => this.setState({ uploadModal: false }) }>
         <Paper className={ classes.modal }>
           <div className={ classes.titleContainer }>
-            <Typography variant="title">
-              Upload queue
-            </Typography>
+            <div className={ classes.titleRow }>
+              <Typography variant="title">
+                Upload queue
+              </Typography>
+              { hasUploading &&
+                <Button onClick={ () => this.cancelUpload() }>
+                  cancel all
+                </Button>
+              }
+            </div>
             <Typography variant="caption">
               { device.dongle_id }
             </Typography>
           </div>
           <Divider />
           <div className={ classes.uploadContainer }>
-            { Object.entries(currentUploading).length ?
+            { hasUploading ?
               <table className={ classes.uploadTable }>
                 <thead>
                   <tr className={ classes.uploadRow }>
@@ -777,6 +824,7 @@ class Media extends Component {
                 </thead>
                 <tbody>
                   { Object.entries(currentUploading).reverse().map(([id, upload]) => {
+                    const isCancelled = cancelQueue.includes(id);
                     return (
                       <tr className={ classes.uploadRow } key={ id }>
                         <td className={ classes.uploadCell }>{ upload.seg.split('|')[1] }</td>
@@ -786,10 +834,10 @@ class Media extends Component {
                         </td>
                         <td className={ classes.uploadCell }>
                           { !upload.current &&
-                            <Button onClick={ !upload.cancel ? () => this.cancelUpload(id) : null }
-                              disabled={ upload.cancel }>
-                              { upload.cancel ?
-                                <CircularProgress style={{ color: Colors.white }} size={ 19 } /> :
+                            <Button onClick={ !isCancelled ? () => this.cancelUpload([id]) : null }
+                              disabled={ isCancelled }>
+                              { isCancelled ?
+                                <CircularProgress style={{ color: Colors.white }} size={ 17 } /> :
                                 'cancel' }
                             </Button>
                           }
