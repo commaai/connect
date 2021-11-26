@@ -556,11 +556,17 @@ class Media extends Component {
     };
     const resp = await this.athenaCall(payload, 'media_athena_cancelupload');
 
-    if (!resp.error) {
+    if (resp.result && resp.result.success) {
       this.setState((prevState) => {
         const currentUploading = prevState.currentUploading;
+        const { seg, type } = currentUploading[id];
         delete currentUploading[id];
-        return { currentUploading };
+        const segmentsFiles = prevState.segmentsFiles;
+        delete segmentsFiles[seg][type];
+        return {
+          currentUploading,
+          segmentsFiles,
+        };
       });
     }
     this.uploadQueue(true);
