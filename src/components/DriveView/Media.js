@@ -209,7 +209,7 @@ class Media extends Component {
   }
 
   componentDidUpdate(_, prevState) {
-    const { windowWidth, inView, downloadMenu } = this.state;
+    const { windowWidth, inView, downloadMenu, uploadModal } = this.state;
     const showMapAlways = windowWidth >= 1536;
     if (showMapAlways && inView === MediaType.MAP) {
       this.setState({ inView: MediaType.VIDEO });
@@ -220,11 +220,16 @@ class Media extends Component {
       if (Demo.isDemo()) {
         this.fetchFiles('3533c53bb29502d1|2019-12-10--01-13-27', Promise.resolve(demoFiles));
       } else {
-        this.uploadQueue(true);
         for (const routeName of this.routesInLoop()) {
           this.fetchFiles(routeName, RawApi.getRouteFiles(routeName));
         }
       }
+    }
+
+    if (!(prevState.downloadMenu || prevState.uploadModal) && (downloadMenu || uploadModal)) {
+      this.uploadQueue(true);
+    } else if (!(downloadMenu || uploadModal) && (prevState.downloadMenu || prevState.uploadModal)) {
+      this.uploadQueue(false);
     }
   }
 
