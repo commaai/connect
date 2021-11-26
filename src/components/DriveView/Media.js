@@ -117,7 +117,7 @@ const styles = (theme) => ({
     padding: theme.spacing.unit * 2,
     maxWidth: '90%',
     left: '50%',
-    top: '40%',
+    top: '50%',
     transform: 'translate(-50%, -50%)',
     outline: 'none',
   },
@@ -130,20 +130,26 @@ const styles = (theme) => ({
   buttonGroup: {
     textAlign: 'right'
   },
-  uploadTable: {
-    paddingTop: theme.spacing.unit,
-    paddingBottom: theme.spacing.unit,
+  uploadContainer: {
+    margin: `${theme.spacing.unit}px 0`,
     color: Colors.white,
     textAlign: 'left',
+    maxHeight: 'calc(90vh - 73px)',
+    overflowY: 'auto',
+  },
+  uploadTable: {
   },
   uploadRow: {
-
   },
   uploadCell: {
+    height: 25,
     padding: '0 8px',
     '& button': {
-      width: 80,
       fontWeight: 600,
+      borderRadius: 13,
+      fontSize: '0.8rem',
+      padding: '4px 12px',
+      minHeight: 19,
     },
   },
   cancelButton: {
@@ -559,10 +565,12 @@ class Media extends Component {
     if (resp.result && resp.result.success) {
       this.setState((prevState) => {
         const currentUploading = prevState.currentUploading;
-        const { seg, type } = currentUploading[id];
-        delete currentUploading[id];
         const segmentsFiles = prevState.segmentsFiles;
-        delete segmentsFiles[seg][type];
+        if (currentUploading[id]) {
+          const { seg, type } = currentUploading[id];
+          delete segmentsFiles[seg][type];
+        }
+        delete currentUploading[id];
         return {
           currentUploading,
           segmentsFiles,
@@ -756,43 +764,45 @@ class Media extends Component {
             </Typography>
           </div>
           <Divider />
-          { Object.entries(currentUploading).length ?
-            <table className={ classes.uploadTable }>
-              <thead>
-                <tr className={ classes.uploadRow }>
-                  <th className={ classes.uploadCell }>segment</th>
-                  <th className={ classes.uploadCell }>type</th>
-                  <th className={ classes.uploadCell }>progress</th>
-                  <th className={ classes.uploadCell }></th>
-                </tr>
-              </thead>
-              <tbody>
-                { Object.entries(currentUploading).reverse().map(([id, upload]) => {
-                  return (
-                    <tr className={ classes.uploadRow } key={ id }>
-                      <td className={ classes.uploadCell }>{ upload.seg.split('|')[1] }</td>
-                      <td className={ classes.uploadCell }>{ FILE_NAMES[upload.type].split('.')[0] }</td>
-                      <td className={ classes.uploadCell }>
-                        { upload.current ? `${parseInt(upload.progress * 100)}%` : 'pending' }
-                      </td>
-                      <td className={ classes.uploadCell }>
-                        { !upload.current &&
-                          <Button onClick={ !upload.cancel ? () => this.cancelUpload(id) : null }
-                            disabled={ upload.cancel }>
-                            { upload.cancel ?
-                              <CircularProgress style={{ color: Colors.white }} size={ 19 } /> :
-                              'cancel' }
-                          </Button>
-                        }
-                      </td>
-                    </tr>
-                  );
-                }) }
-              </tbody>
-            </table>
-          :
-            <p style={{ color: Colors.white }}>no uploads</p>
-          }
+          <div className={ classes.uploadContainer }>
+            { Object.entries(currentUploading).length ?
+              <table className={ classes.uploadTable }>
+                <thead>
+                  <tr className={ classes.uploadRow }>
+                    <th className={ classes.uploadCell }>segment</th>
+                    <th className={ classes.uploadCell }>type</th>
+                    <th className={ classes.uploadCell }>progress</th>
+                    <th className={ classes.uploadCell }></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  { Object.entries(currentUploading).reverse().map(([id, upload]) => {
+                    return (
+                      <tr className={ classes.uploadRow } key={ id }>
+                        <td className={ classes.uploadCell }>{ upload.seg.split('|')[1] }</td>
+                        <td className={ classes.uploadCell }>{ FILE_NAMES[upload.type].split('.')[0] }</td>
+                        <td className={ classes.uploadCell }>
+                          { upload.current ? `${parseInt(upload.progress * 100)}%` : 'pending' }
+                        </td>
+                        <td className={ classes.uploadCell }>
+                          { !upload.current &&
+                            <Button onClick={ !upload.cancel ? () => this.cancelUpload(id) : null }
+                              disabled={ upload.cancel }>
+                              { upload.cancel ?
+                                <CircularProgress style={{ color: Colors.white }} size={ 19 } /> :
+                                'cancel' }
+                            </Button>
+                          }
+                        </td>
+                      </tr>
+                    );
+                  }) }
+                </tbody>
+              </table>
+            :
+              <p>no uploads</p>
+            }
+          </div>
           <div className={classes.buttonGroup}>
             <Button variant="contained" className={ classes.cancelButton }
               onClick={ () => this.setState({ uploadModal: false }) }>
