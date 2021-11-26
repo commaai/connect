@@ -4,9 +4,10 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button } from '@material-ui/core';
-
+import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Modal,
+  Paper } from '@material-ui/core';
 import { raw as RawApi, athena as AthenaApi } from '@commaai/comma-api';
+
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
 import ResizeHandler from '../ResizeHandler';
@@ -110,7 +111,48 @@ const styles = (theme) => ({
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-  }
+  },
+  modal: {
+    position: 'absolute',
+    padding: theme.spacing.unit * 2,
+    maxWidth: '90%',
+    left: '50%',
+    top: '40%',
+    transform: 'translate(-50%, -50%)',
+    outline: 'none',
+  },
+  titleContainer: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 5,
+  },
+  buttonGroup: {
+    textAlign: 'right'
+  },
+  uploadTable: {
+    paddingTop: theme.spacing.unit,
+    paddingBottom: theme.spacing.unit,
+    color: Colors.white,
+    textAlign: 'left',
+  },
+  uploadRow: {
+
+  },
+  uploadCell: {
+    padding: '0 8px',
+    '& button': {
+      width: 80,
+      fontWeight: 600,
+    },
+  },
+  cancelButton: {
+    backgroundColor: Colors.grey200,
+    color: Colors.white,
+    '&:hover': {
+      backgroundColor: Colors.grey400,
+    },
+  },
 });
 
 const FILE_NAMES = {
@@ -136,6 +178,7 @@ class Media extends Component {
       windowWidth: window.innerWidth,
       downloadMenu: null,
       moreInfoMenu: null,
+      uploadModal: false,
       segmentsFilesLoading: false,
       segmentsFiles: {},
       currentUploading: {},
@@ -152,6 +195,7 @@ class Media extends Component {
     this.updateSegmentsFiles = this.updateSegmentsFiles.bind(this);
     this.currentSegmentNum = this.currentSegmentNum.bind(this);
     this.uploadFile = this.uploadFile.bind(this);
+    this.cancelUpload = this.cancelUpload.bind(this);
     this.athenaCall = this.athenaCall.bind(this);
     this.listDataDirectory = this.listDataDirectory.bind(this);
     this.uploadQueue = this.uploadQueue.bind(this);
@@ -176,6 +220,7 @@ class Media extends Component {
       if (Demo.isDemo()) {
         this.fetchFiles('3533c53bb29502d1|2019-12-10--01-13-27', Promise.resolve(demoFiles));
       } else {
+        this.uploadQueue(true);
         for (const routeName of this.routesInLoop()) {
           this.fetchFiles(routeName, RawApi.getRouteFiles(routeName));
         }
@@ -348,11 +393,16 @@ class Media extends Component {
           current: uploading.current,
           progress: uploading.progress,
         };
-        newCurrentUploading[uploading.id] = seg;
+        newCurrentUploading[uploading.id] = {
+          seg,
+          type,
+          current: uploading.current,
+          progress: uploading.progress,
+        };
         delete currentUploading[uploading.id];
       }
       if (Object.keys(currentUploading).length) { // some item is done uploading
-        const routeName = Object.values(currentUploading)[0].split('--').slice(0, 2).join('--');
+        const routeName = Object.values(currentUploading)[0].seg.split('--').slice(0, 2).join('--');
         this.fetchFiles(routeName, RawApi.getRouteFiles(routeName, true));
       }
       this.setState(this.updateSegmentsFiles(uploadingFiles, { currentUploading: newCurrentUploading }));
@@ -419,6 +469,31 @@ class Media extends Component {
     } else {
       this.uploadQueue(true);
     }
+  }
+
+  async cancelUpload(id) {
+    this.setState((prevState) => {
+      const currentUploading = prevState.currentUploading;
+      currentUploading[id]['cancel'] = true;
+      return { currentUploading };
+    });
+
+    const payload = {
+      id: 0,
+      jsonrpc: "2.0",
+      method: "cancelUpload",
+      params: { upload_id: id },
+    };
+    const resp = await this.athenaCall(payload, 'media_athena_cancelupload');
+
+    if (!resp.error) {
+      this.setState((prevState) => {
+        const currentUploading = prevState.currentUploading;
+        delete currentUploading[id];
+        return { currentUploading };
+      });
+    }
+    this.uploadQueue(true);
   }
 
   render() {
@@ -499,7 +574,12 @@ class Media extends Component {
 
   renderMenus(alwaysOpen = false) {
     const { currentSegment, device, classes } = this.props;
-    const { segmentsFiles, downloadMenu, moreInfoMenu, segmentsFilesLoading } = this.state;
+    const { segmentsFiles, downloadMenu, moreInfoMenu, segmentsFilesLoading, uploadModal, currentUploading } = this.state;
+
+    if (!device) {
+      return;
+    }
+
     const disabledStyle = { pointerEvents: 'auto' };
     const online = deviceIsOnline(device);
 
@@ -525,56 +605,111 @@ class Media extends Component {
       [rlog, 'Raw log segment', 'logs'],
     ];
 
-    return (
-      <>
-        <Menu id="menu-download" open={ Boolean(alwaysOpen || downloadMenu) }
-          anchorEl={ downloadMenu } onClose={ () => this.setState({ downloadMenu: null }) }
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
-          { segmentsFilesLoading &&
-            <div className={ classes.menuLoading }>
-              <CircularProgress size={ 36 } style={{ color: Colors.white }} />
-            </div>
-          }
-          { buttons.filter((b) => Boolean(b)).flatMap(([file, name, type]) => [
-            type === 'qlogs' ? <Divider key={ 'divider' } /> : null,
-            <MenuItem key={ type } onClick={ file.url ? () => this.downloadFile(file.url) : null }
-              className={ classes.filesItem } disabled={ !file.url } style={ !file.url ? disabledStyle : {} }
-              title={ Boolean(!file.url && !online) ? 'connect device to enable uploading' : null }>
-              <span style={ !file.url ? { color: Colors.white60 } : {} }>{ name }</span>
-              { Boolean(!segmentsFilesLoading && !file.url && online && file.progress === undefined && !file.requested) &&
-                <Button className={ classes.uploadButton } onClick={ () => this.uploadFile(type) }>
-                  request upload
-                </Button>
-              }
-              { Boolean(!segmentsFilesLoading && !file.url && online && file.progress !== undefined) &&
-                <div className={ classes.fakeUploadButton }>
-                  { file.current ? `${parseInt(file.progress * 100)}%` : 'pending' }
-                </div>
-              }
-              { Boolean(!segmentsFilesLoading && !file.url && online && file.requested) &&
-                <div className={ classes.fakeUploadButton }>
-                  <CircularProgress style={{ color: Colors.white }} size={ 17 } />
-                </div>
-              }
-            </MenuItem>
-          ]) }
-        </Menu>
-        <Menu id="menu-info" open={ Boolean(alwaysOpen || moreInfoMenu) }
-          anchorEl={ moreInfoMenu } onClose={ () => this.setState({ moreInfoMenu: null }) }
-          transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
-          <MenuItem onClick={ this.openInCabana } id="openInCabana" >
-            View in cabana
+    return ( <>
+      <Menu id="menu-download" open={ Boolean(alwaysOpen || downloadMenu) }
+        anchorEl={ downloadMenu } onClose={ () => this.setState({ downloadMenu: null }) }
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        { segmentsFilesLoading &&
+          <div className={ classes.menuLoading }>
+            <CircularProgress size={ 36 } style={{ color: Colors.white }} />
+          </div>
+        }
+        { buttons.filter((b) => Boolean(b)).flatMap(([file, name, type]) => [
+          type === 'qlogs' ? <Divider key={ 'divider' } /> : null,
+          <MenuItem key={ type } onClick={ file.url ? () => this.downloadFile(file.url) : null }
+            className={ classes.filesItem } disabled={ !file.url } style={ !file.url ? disabledStyle : {} }
+            title={ Boolean(!file.url && !online) ? 'connect device to enable uploading' : null }>
+            <span style={ !file.url ? { color: Colors.white60 } : {} }>{ name }</span>
+            { Boolean(!segmentsFilesLoading && !file.url && online && file.progress === undefined && !file.requested) &&
+              <Button className={ classes.uploadButton } onClick={ () => this.uploadFile(type) }>
+                request upload
+              </Button>
+            }
+            { Boolean(!segmentsFilesLoading && !file.url && online && file.progress !== undefined) &&
+              <div className={ classes.fakeUploadButton }>
+                { file.current ? `${parseInt(file.progress * 100)}%` : 'pending' }
+              </div>
+            }
+            { Boolean(!segmentsFilesLoading && !file.url && online && file.requested) &&
+              <div className={ classes.fakeUploadButton }>
+                <CircularProgress style={{ color: Colors.white }} size={ 17 } />
+              </div>
+            }
           </MenuItem>
-          <MenuItem onClick={ this.openInUseradmin }>
-            View in useradmin
-          </MenuItem>
-          <MenuItem onClick={ this.copySegmentName }>
-            Copy to clipboard
-          </MenuItem>
-        </Menu>
-      </>
-    );
+        ]) }
+        <Divider />
+        <MenuItem onClick={ () => this.setState({ uploadModal: true, downloadMenu: null }) }>
+          View upload queue
+        </MenuItem>
+      </Menu>
+      <Menu id="menu-info" open={ Boolean(alwaysOpen || moreInfoMenu) }
+        anchorEl={ moreInfoMenu } onClose={ () => this.setState({ moreInfoMenu: null }) }
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <MenuItem onClick={ this.openInCabana } id="openInCabana" >
+          View in cabana
+        </MenuItem>
+        <MenuItem onClick={ this.openInUseradmin }>
+          View in useradmin
+        </MenuItem>
+        <MenuItem onClick={ this.copySegmentName }>
+          Copy to clipboard
+        </MenuItem>
+      </Menu>
+      <Modal aria-labelledby="upload-queue-modal" open={ uploadModal }
+        onClose={ () => this.setState({ uploadModal: false }) }>
+        <Paper className={ classes.modal }>
+          <div className={ classes.titleContainer }>
+            <Typography variant="title">
+              Upload queue
+            </Typography>
+            <Typography variant="caption">
+              { device.dongle_id }
+            </Typography>
+          </div>
+          <Divider />
+          <table className={ classes.uploadTable }>
+            <thead>
+              <tr className={ classes.uploadRow }>
+                <th className={ classes.uploadCell }>segment</th>
+                <th className={ classes.uploadCell }>type</th>
+                <th className={ classes.uploadCell }>progress</th>
+                <th className={ classes.uploadCell }></th>
+              </tr>
+            </thead>
+            <tbody>
+              { Object.entries(currentUploading).reverse().map(([id, upload]) => {
+                return (
+                  <tr className={ classes.uploadRow } key={ id }>
+                    <td className={ classes.uploadCell }>{ upload.seg.split('|')[1] }</td>
+                    <td className={ classes.uploadCell }>{ upload.type }</td>
+                    <td className={ classes.uploadCell }>
+                      { upload.current ? `${parseInt(upload.progress * 100)}%` : 'pending' }
+                    </td>
+                    <td className={ classes.uploadCell }>
+                      { !upload.current &&
+                        <Button onClick={ !upload.cancel ? () => this.cancelUpload(id) : null }
+                          disabled={ upload.cancel }>
+                          { upload.cancel ?
+                            <CircularProgress style={{ color: Colors.white }} size={ 19 } /> :
+                            'cancel' }
+                        </Button>
+                      }
+                    </td>
+                  </tr>
+                );
+              }) }
+            </tbody>
+          </table>
+          <div className={classes.buttonGroup}>
+            <Button variant="contained" className={ classes.cancelButton }
+              onClick={ () => this.setState({ uploadModal: false }) }>
+              Close
+            </Button>
+          </div>
+        </Paper>
+      </Modal>
+    </> );
   }
 }
 
