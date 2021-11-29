@@ -809,7 +809,7 @@ class Media extends Component {
                 </Button>
               }
             </div>
-            <Typography variant="caption">
+            <Typography variant="caption" style={{ marginLeft: 8 }}>
               { device.dongle_id }
             </Typography>
           </div>
