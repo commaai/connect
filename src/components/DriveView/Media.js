@@ -181,6 +181,8 @@ const FILE_NAMES = {
   'qlogs': 'qlog.bz2',
   'logs': 'rlog.bz2',
 };
+const MAX_OPEN_REQUESTS = 15;
+const MAX_RETRIES = 5;
 
 const MediaType = {
   VIDEO: 'video',
@@ -223,6 +225,7 @@ class Media extends Component {
     this._uploadQueue = this._uploadQueue.bind(this);
 
     this.uploadQueueIntv = null;
+    this.openRequests = 0;
   }
 
   componentDidMount() {
@@ -440,14 +443,23 @@ class Media extends Component {
     }
   }
 
-  async athenaCall(payload, sentry_fingerprint) {
+  async athenaCall(payload, sentry_fingerprint, retryCount = 0) {
     const { dongleId } = this.props;
     try {
+      while (this.openRequests > MAX_OPEN_REQUESTS) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+      this.openRequests += 1;
       const resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
+      this.openRequests -= 1;
       if (dongleId === this.props.dongleId) {
         return resp;
       }
     } catch(err) {
+      this.openRequests -= 1;
+      if (!err.resp && retryCount < MAX_RETRIES) {
+        setTimeout(() => this.athenaCall(payload, sentry_fingerprint, retryCount + 1), 2000);
+      }
       if (dongleId === this.props.dongleId) {
         if (!err.message || err.message.indexOf('Device not registered') === -1) {
           console.log(err);
@@ -511,18 +523,29 @@ class Media extends Component {
     }
   }
 
-  async doUpload(dongleId, seg, type, path) {
+  async doUpload(dongleId, seg, type, path, retryCount = 0) {
     let url;
     try {
+      while (this.openRequests > MAX_OPEN_REQUESTS) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+      this.openRequests += 1;
       const resp = await RawApi.getUploadUrl(dongleId, path, 7);
+      this.openRequests -= 1;
       if (!resp.url) {
         console.log(resp);
         return;
       }
       url = resp.url;
     } catch (err) {
-      console.log(err);
-      Sentry.captureException(err, { fingerprint: 'media_upload_geturl' });
+      this.openRequests -= 1;
+      if (!err.resp && retryCount < MAX_RETRIES) {
+        setTimeout(() => this.doUpload(dongleId, seg, type, path, retryCount + 1), 2000);
+      } else {
+        console.log(err);
+        Sentry.captureException(err, { fingerprint: 'media_upload_geturl' });
+      }
+      return;
     }
 
     const payload = {
