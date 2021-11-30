@@ -5,6 +5,7 @@ import fecha from 'fecha';
 
 import { withStyles, IconButton } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
+import CloseIcon from '@material-ui/icons/Close';
 
 import Media from './Media';
 import Timeline from '../Timeline';
@@ -85,13 +86,15 @@ class DriveView extends Component {
         <div className={classes.window} >
           <div className={classes.header}>
             <div className={classes.headerContext}>
-              <IconButton aria-label="Go Back" onClick={ filterRegularClick(this.close) } href={ `/${dongleId}` }>
+              <IconButton aria-label="Go Back" onClick={ () => window.history.back() }>
                 <KeyboardBackspaceIcon />
               </IconButton>
               <div className={ classes.headerInfo }>
                 { headerText }
               </div>
-              <div></div>
+              <IconButton onClick={ filterRegularClick(this.close) } aria-label="Close" href={ `/${dongleId}` }>
+                <CloseIcon />
+              </IconButton>
             </div>
             <Timeline className={classes.headerTimeline} hasRuler />
           </div>
