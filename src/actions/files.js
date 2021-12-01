@@ -135,3 +135,26 @@ export function updateFiles(files) {
     });
   };
 }
+
+export function cancelUpload(id) {
+  return async (dispatch, getState) => {
+    const { dongleId, filesUploading } = getState();
+
+    const fileName = filesUploading[id].fileName;
+    const payload = {
+      id: 0,
+      jsonrpc: "2.0",
+      method: "cancelUpload",
+      params: { upload_id: id },
+    };
+    const resp = await athenaCall(dongleId, payload, 'action_files_athena_cancelupload');
+    if (resp.result && resp.result.success) {
+      dispatch({
+        type: Types.ACTION_FILES_CANCELLED_UPLOAD,
+        dongleId,
+        id,
+        fileName,
+      });
+    }
+  };
+}

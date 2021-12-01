@@ -11,6 +11,7 @@ import {
   ACTION_FILES_URLS,
   ACTION_FILES_UPDATE,
   ACTION_FILES_UPLOADING,
+  ACTION_FILES_CANCELLED_UPLOAD,
 } from '../actions/types';
 import { emptyDevice } from '../utils';
 
@@ -176,6 +177,14 @@ export default function reducer(_state, action) {
         ...(state.files !== null ? { ...state.files } : {}),
         ...action.files,
       };
+      break;
+    case ACTION_FILES_CANCELLED_UPLOAD:
+      if (state.files) {
+        state.files = { ...state.files };
+      }
+      delete state.files[action.fileName];
+      state.filesUploading = { ...state.filesUploading };
+      delete state.filesUploading[action.id];
       break;
     default:
       return state;

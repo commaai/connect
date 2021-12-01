@@ -1,12 +1,10 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import * as Sentry from '@sentry/react';
 
 import { withStyles, Divider, Typography, CircularProgress, Button, Modal, Paper } from '@material-ui/core';
-import { athena as AthenaApi } from '@commaai/comma-api';
 
-import { fetchUploadQueue, updateFiles } from '../../actions/files';
+import { fetchUploadQueue, cancelUpload } from '../../actions/files';
 import Colors from '../../colors';
 
 const styles = (theme) => ({
@@ -75,8 +73,6 @@ const FILE_NAMES = {
   'qlogs': 'qlog.bz2',
   'logs': 'rlog.bz2',
 };
-const MAX_OPEN_REQUESTS = 15;
-const MAX_RETRIES = 5;
 
 class UploadQueue extends Component {
   constructor(props) {
@@ -86,12 +82,10 @@ class UploadQueue extends Component {
       cancelQueue: [],
     };
 
-    this.cancelUpload = this.cancelUpload.bind(this);
-    this.athenaCall = this.athenaCall.bind(this);
+    this.cancelUploads = this.cancelUploads.bind(this);
     this.uploadQueue = this.uploadQueue.bind(this);
 
     this.uploadQueueIntv = null;
-    this.openRequests = 0;
   }
 
   componentDidMount() {
@@ -120,34 +114,7 @@ class UploadQueue extends Component {
     }
   }
 
-  async athenaCall(payload, sentry_fingerprint, retryCount = 0) {
-    const { dongleId } = this.props;
-    try {
-      while (this.openRequests > MAX_OPEN_REQUESTS) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      }
-      this.openRequests += 1;
-      const resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
-      this.openRequests -= 1;
-      if (dongleId === this.props.dongleId) {
-        return resp;
-      }
-    } catch(err) {
-      this.openRequests -= 1;
-      if (!err.resp && retryCount < MAX_RETRIES) {
-        setTimeout(() => this.athenaCall(payload, sentry_fingerprint, retryCount + 1), 2000);
-      }
-      if (dongleId === this.props.dongleId) {
-        if (!err.message || err.message.indexOf('Device not registered') === -1) {
-          console.log(err);
-          Sentry.captureException(err, { fingerprint: sentry_fingerprint });
-        }
-        return { error: err.message };
-      }
-    }
-  }
-
-  async cancelUpload(ids) {
+  async cancelUploads(ids) {
     if (ids === undefined) {
       ids = Object.keys(this.props.filesUploading);
     }
@@ -168,20 +135,9 @@ class UploadQueue extends Component {
         });
         continue;
       }
-      const payload = {
-        id: 0,
-        jsonrpc: "2.0",
-        method: "cancelUpload",
-        params: { upload_id: id },
-      };
-      const fileName = this.props.filesUploading[id].fileName;
-      this.athenaCall(payload, 'media_athena_cancelupload').then((resp) => {
-        this.uploadQueue(true);
-        const files = {};
-        files[fileName] = {};
-        this.props.dispatch(updateFiles(files));
-      });
+      this.props.dispatch(cancelUpload(id));
     }
+    this.uploadQueue(true);
   }
 
   render() {
@@ -199,7 +155,7 @@ class UploadQueue extends Component {
                 Upload queue
               </Typography>
               { hasUploading &&
-                <Button onClick={ () => this.cancelUpload() }>
+                <Button onClick={ () => this.cancelUploads() }>
                   cancel all
                 </Button>
               }
@@ -231,7 +187,7 @@ class UploadQueue extends Component {
                         </td>
                         <td className={ classes.uploadCell }>
                           { !upload.current &&
-                            <Button onClick={ !isCancelled ? () => this.cancelUpload([id]) : null }
+                            <Button onClick={ !isCancelled ? () => this.cancelUploads([id]) : null }
                               disabled={ isCancelled }>
                               { isCancelled ?
                                 <CircularProgress style={{ color: Colors.white }} size={ 17 } /> :
