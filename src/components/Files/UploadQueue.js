@@ -10,98 +10,6 @@ import { fetchUploadQueue } from '../../actions/files';
 import Colors from '../../colors';
 
 const styles = (theme) => ({
-  root: {
-    display: 'flex',
-  },
-  mediaOptionsRoot: {
-    maxWidth: 964,
-    margin: '0 auto',
-    display: 'flex',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-  },
-  mediaOptions: {
-    marginBottom: 12,
-    display: 'flex',
-    width: 'max-content',
-    alignItems: 'center',
-    border: '1px solid rgba(255,255,255,.1)',
-    borderRadius: 50,
-    display: 'flex',
-  },
-  mediaOption: {
-    alignItems: 'center',
-    borderRight: '1px solid rgba(255,255,255,.1)',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    minHeight: 32,
-    minWidth: 44,
-    paddingLeft: 15,
-    paddingRight: 15,
-    '&.disabled': {
-      cursor: 'default',
-    },
-    '&:last-child': {
-      borderRight: 'none',
-    },
-  },
-  mediaOptionDisabled: {
-    cursor: 'auto',
-  },
-  mediaOptionIcon: {
-    backgroundColor: '#fff',
-    borderRadius: 3,
-    height: 20,
-    margin: '2px 0',
-    width: 30,
-  },
-  mediaOptionText: {
-    fontSize: 12,
-    fontWeight: 500,
-    textAlign: 'center',
-  },
-  mediaSource: {
-    width: '100%',
-  },
-  mediaSourceSelect: {
-    width: '100%',
-  },
-  timeDisplay: {
-    marginTop: 12,
-  },
-  menuLoading: {
-    position: 'absolute',
-    outline: 'none',
-    zIndex: 5,
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-  },
-  filesItem: {
-    justifyContent: 'space-between',
-    opacity: 1,
-  },
-  uploadButton: {
-    marginLeft: 8,
-    width: 120,
-    color: Colors.white,
-    borderRadius: 13,
-    fontSize: '0.8rem',
-    padding: '4px 12px',
-    minHeight: 19,
-  },
-  fakeUploadButton: {
-    marginLeft: 8,
-    width: 96,
-    color: Colors.white,
-    fontSize: '0.8rem',
-    padding: '4px 12px',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   modal: {
     position: 'absolute',
     padding: theme.spacing.unit * 2,
@@ -138,10 +46,6 @@ const styles = (theme) => ({
     textAlign: 'left',
     maxHeight: 'calc(90vh - 73px)',
     overflowY: 'auto',
-  },
-  uploadTable: {
-  },
-  uploadRow: {
   },
   uploadCell: {
     height: 25,
@@ -315,9 +219,9 @@ class UploadQueue extends Component {
           <Divider />
           <div className={ classes.uploadContainer }>
             { hasUploading ?
-              <table className={ classes.uploadTable }>
+              <table>
                 <thead>
-                  <tr className={ classes.uploadRow }>
+                  <tr>
                     <th className={ classes.uploadCell }>segment</th>
                     <th className={ classes.uploadCell }>type</th>
                     <th className={ classes.uploadCell }>progress</th>
@@ -328,7 +232,7 @@ class UploadQueue extends Component {
                   { Object.entries(filesUploading).reverse().map(([id, upload]) => {
                     const isCancelled = cancelQueue.includes(id);
                     return (
-                      <tr className={ classes.uploadRow } key={ id }>
+                      <tr key={ id }>
                         <td className={ classes.uploadCell }>{ upload.seg.split('|')[1] }</td>
                         <td className={ classes.uploadCell }>{ FILE_NAMES[upload.type].split('.')[0] }</td>
                         <td className={ classes.uploadCell }>

@@ -112,65 +112,6 @@ const styles = (theme) => ({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modal: {
-    position: 'absolute',
-    padding: theme.spacing.unit * 2,
-    maxWidth: '90%',
-    left: '50%',
-    top: '50%',
-    transform: 'translate(-50%, -50%)',
-    outline: 'none',
-  },
-  titleContainer: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 5,
-  },
-  titleRow: {
-    display: 'flex',
-    alignItems: 'baseline',
-    '& button': {
-      marginLeft: 8,
-      fontWeight: 600,
-      borderRadius: 13,
-      fontSize: '0.8rem',
-      padding: '4px 12px',
-      minHeight: 19,
-    },
-  },
-  buttonGroup: {
-    textAlign: 'right'
-  },
-  uploadContainer: {
-    margin: `${theme.spacing.unit}px 0`,
-    color: Colors.white,
-    textAlign: 'left',
-    maxHeight: 'calc(90vh - 73px)',
-    overflowY: 'auto',
-  },
-  uploadTable: {
-  },
-  uploadRow: {
-  },
-  uploadCell: {
-    height: 25,
-    padding: '0 8px',
-    '& button': {
-      fontWeight: 600,
-      borderRadius: 13,
-      fontSize: '0.8rem',
-      padding: '4px 12px',
-      minHeight: 19,
-    },
-  },
-  cancelButton: {
-    backgroundColor: Colors.grey200,
-    color: Colors.white,
-    '&:hover': {
-      backgroundColor: Colors.grey400,
-    },
-  },
 });
 
 const FILE_NAMES = {
