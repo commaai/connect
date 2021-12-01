@@ -13,11 +13,11 @@ import DriveVideo from '../DriveVideo';
 import ResizeHandler from '../ResizeHandler';
 import * as Demo from '../../demo';
 import TimeDisplay from '../TimeDisplay';
+import UploadQueue from '../Files/UploadQueue';
 import { currentOffset } from '../../timeline/playback';
 import Colors from '../../colors';
 import { deviceIsOnline } from '../../utils';
-
-const demoFiles = require('../../demo/files.json');
+import { fetchFiles, fetchUploadQueue, updateFiles } from '../../actions/files';
 
 const styles = (theme) => ({
   root: {
@@ -199,10 +199,6 @@ class Media extends Component {
       downloadMenu: null,
       moreInfoMenu: null,
       uploadModal: false,
-      segmentsFilesLoading: false,
-      segmentsFiles: {},
-      currentUploading: {},
-      cancelQueue: [],
     };
 
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
@@ -212,19 +208,12 @@ class Media extends Component {
     this.openInCabana = this.openInCabana.bind(this);
     this.openInUseradmin = this.openInUseradmin.bind(this);
     this.routesInLoop = this.routesInLoop.bind(this);
-    this.fetchFiles = this.fetchFiles.bind(this);
-    this.updateSegmentsFiles = this.updateSegmentsFiles.bind(this);
     this.currentSegmentNum = this.currentSegmentNum.bind(this);
     this.uploadFile = this.uploadFile.bind(this);
     this.uploadFilesAll = this.uploadFilesAll.bind(this);
     this.doUpload = this.doUpload.bind(this);
-    this.cancelUpload = this.cancelUpload.bind(this);
     this.athenaCall = this.athenaCall.bind(this);
-    this.listDataDirectory = this.listDataDirectory.bind(this);
-    this.uploadQueue = this.uploadQueue.bind(this);
-    this._uploadQueue = this._uploadQueue.bind(this);
 
-    this.uploadQueueIntv = null;
     this.openRequests = 0;
   }
 
@@ -233,41 +222,20 @@ class Media extends Component {
   }
 
   componentDidUpdate(_, prevState) {
-    const { windowWidth, inView, downloadMenu, uploadModal } = this.state;
+    const { windowWidth, inView, downloadMenu } = this.state;
     const showMapAlways = windowWidth >= 1536;
     if (showMapAlways && inView === MediaType.MAP) {
       this.setState({ inView: MediaType.VIDEO });
     }
 
     if (!prevState.downloadMenu && downloadMenu) {
-      this.setState({ segmentsFilesLoading: true });
       if (Demo.isDemo()) {
-        this.fetchFiles('3533c53bb29502d1|2019-12-10--01-13-27', Promise.resolve(demoFiles));
+        this.props.dispatch(fetchFiles('3533c53bb29502d1|2019-12-10--01-13-27'));
       } else {
         for (const routeName of this.routesInLoop()) {
-          this.fetchFiles(routeName, RawApi.getRouteFiles(routeName));
+          this.props.dispatch(fetchFiles(routeName));
         }
       }
-    }
-
-    if (!(prevState.downloadMenu || prevState.uploadModal) && (downloadMenu || uploadModal)) {
-      this.uploadQueue(true);
-    } else if (!(downloadMenu || uploadModal) && (prevState.downloadMenu || prevState.uploadModal)) {
-      this.uploadQueue(false);
-    }
-  }
-
-  componentWillUnmount() {
-    this.uploadQueue(false);
-  }
-
-  uploadQueue(enable) {
-    if (enable && !this.uploadQueueIntv) {
-      this.uploadQueueIntv = setInterval(this._uploadQueue, 2000);
-      this._uploadQueue();
-    } else if (!enable && this.uploadQueueIntv) {
-      clearInterval(this.uploadQueueIntv);
-      this.uploadQueueIntv = null;
     }
   }
 
@@ -338,111 +306,6 @@ class Media extends Component {
       .map((route) => route.route);
   }
 
-  async fetchFiles(routeName, filesPromise) {
-    let files;
-    try {
-      files = await filesPromise;
-    } catch (err) {
-      console.log(err);
-      Sentry.captureException(err, { fingerprint: 'media_fetch_files' });
-      this.setState({ segmentsFiles: null, segmentsFilesLoading: false });
-      return;
-    }
-
-    const res = {};
-    for (const type of Object.keys(FILE_NAMES)) {
-      for (const file of files[type]) {
-        const urlName = routeName.replace('|', '/');
-        const segmentNum = parseInt(file.split(urlName)[1].split('/')[1]);
-        const segName = `${routeName}--${segmentNum}`;
-        if (!res[segName]) {
-          res[segName] = {};
-        }
-        res[segName][type] = {
-          url: file,
-        };
-      }
-    }
-
-    this.setState(this.updateSegmentsFiles(res, { segmentsFilesLoading: false }));
-  }
-
-  updateSegmentsFiles(newFiles, otherState = {}) {
-    return (prevState) => {
-      const res = prevState.segmentsFiles;
-      for (const seg in newFiles) {
-        if (!res[seg]) {
-          res[seg] = {};
-        }
-        res[seg] = {
-          ...res[seg],
-          ...newFiles[seg],
-        };
-      }
-      return { ...otherState, segmentsFiles: res };
-    };
-  }
-
-  async listDataDirectory(routeName) {
-    const payload = {
-      method: 'listDataDirectory',
-      params: { prefix: routeName },
-      jsonrpc: '2.0',
-      id: 0,
-    };
-    const dataDirectory = await this.athenaCall(payload, 'media_athena_datadirectory');
-    if (dataDirectory) {
-      this.setState({ dataDirectory });
-    }
-  }
-
-  async _uploadQueue() {
-    const payload = {
-      method: 'listUploadQueue',
-      jsonrpc: '2.0',
-      id: 0,
-    };
-    const uploadQueue = await this.athenaCall(payload, 'media_athena_uploadqueue');
-    if (uploadQueue && uploadQueue.result) {
-      let { currentUploading } = this.state;
-      const uploadingFiles = {};
-      const newCurrentUploading = {};
-      for (const uploading of uploadQueue.result) {
-        const urlParts = uploading.url.split('?')[0].split('/');
-        const filename = urlParts[urlParts.length - 1];
-        const segNum = urlParts[urlParts.length - 2];
-        const datetime = urlParts[urlParts.length - 3];
-        const dongleId = urlParts[urlParts.length - 4];
-        const seg = `${dongleId}|${datetime}--${segNum}`;
-        const type = Object.entries(FILE_NAMES).find((e) => e[1] == filename)[0];
-        if (!uploadingFiles[seg]) {
-          uploadingFiles[seg] = {};
-        }
-        uploadingFiles[seg][type] = {
-          current: uploading.current,
-          progress: uploading.progress,
-        };
-        newCurrentUploading[uploading.id] = {
-          seg,
-          type,
-          current: uploading.current,
-          progress: uploading.progress,
-        };
-        delete currentUploading[uploading.id];
-      }
-      if (Object.keys(currentUploading).length) { // some item is done uploading
-        const routeName = Object.values(currentUploading)[0].seg.split('--').slice(0, 2).join('--');
-        this.fetchFiles(routeName, RawApi.getRouteFiles(routeName, true));
-      }
-      this.setState(this.updateSegmentsFiles(uploadingFiles, { currentUploading: newCurrentUploading }));
-      if (!uploadQueue.result.length) {
-        this.uploadQueue(false);
-      }
-    } else {
-      this.uploadQueue(false);
-    }
-  }
-
   async athenaCall(payload, sentry_fingerprint, retryCount = 0) {
     const { dongleId } = this.props;
     try {
@@ -479,14 +342,13 @@ class Media extends Component {
     const uploading = {};
     uploading[seg] = {};
     uploading[seg][type] = { requested: true };
-    this.setState(this.updateSegmentsFiles(uploading));
+    this.props.dispatch(updateFiles(uploading));
 
     this.doUpload(dongleId, seg, type, path);
   }
 
   async uploadFilesAll(types) {
-    const { dongleId, device, segmentData, loop } = this.props;
-    const { segmentsFiles } = this.state;
+    const { dongleId, device, segmentData, loop, files } = this.props;
     if (types === undefined) {
       types = ['logs', 'cameras', 'dcameras'];
       if (device.device_type === 'three') {
@@ -494,7 +356,7 @@ class Media extends Component {
       };
     }
 
-    if (!segmentData.segments) {
+    if (!segmentData.segments || !files) {
       return;
     }
 
@@ -504,7 +366,7 @@ class Media extends Component {
         segment.start_time_utc_millis + segment.duration > loop.startTime)
       {
         for (const type of types) {
-          if (!segmentsFiles[segment.canonical_name] || !segmentsFiles[segment.canonical_name][type]) {
+          if (!files[segment.canonical_name] || !files[segment.canonical_name][type]) {
             if (!uploading[segment.canonical_name]) {
               uploading[segment.canonical_name] = {};
             }
@@ -513,7 +375,7 @@ class Media extends Component {
         }
       }
     }
-    this.setState(this.updateSegmentsFiles(uploading));
+    this.props.dispatch(updateFiles(uploading));
 
     for (const seg in uploading) {
       for (const type in uploading[seg]) {
@@ -557,67 +419,9 @@ class Media extends Component {
     const resp = await this.athenaCall(payload, 'media_athena_upload');
     if (resp.error) {
       uploading[seg][type] = {};
-      this.setState(this.updateSegmentsFiles(uploading));
+      this.props.dispatch(updateFiles(uploading));
     } else {
-      this.uploadQueue(true);
-    }
-  }
-
-  async cancelUpload(ids) {
-    if (ids === undefined) {
-      ids = Object.keys(this.state.currentUploading);
-    }
-
-    this.setState((prevState) => {
-      const { cancelQueue, currentUploading } = prevState;
-      for (const id in currentUploading) {
-        if (ids.includes(id) && !cancelQueue.includes(id) && !currentUploading[id].current) {
-          cancelQueue.push(id);
-        }
-      }
-      return { cancelQueue };
-    });
-
-    for (const id of ids) {
-      if (!this.state.currentUploading[id] || this.state.currentUploading[id].current) {
-        this.setState((prevState) => {
-          const { cancelQueue } = prevState;
-          const index = cancelQueue.indexOf(id);
-          if (index !== -1) {
-            cancelQueue.splice(index, 1);
-          }
-          return { cancelQueue };
-        });
-        continue;
-      }
-      const payload = {
-        id: 0,
-        jsonrpc: "2.0",
-        method: "cancelUpload",
-        params: { upload_id: id },
-      };
-      this.athenaCall(payload, 'media_athena_cancelupload').then((resp) => {
-        if (resp.result && resp.result.success) {
-          this.setState((prevState) => {
-            const { currentUploading, segmentsFiles, cancelQueue } = prevState;
-            if (currentUploading[id]) {
-              const { seg, type } = currentUploading[id];
-              delete segmentsFiles[seg][type];
-            }
-            delete currentUploading[id];
-            const index = cancelQueue.indexOf(id);
-            if (index !== -1) {
-              cancelQueue.splice(index, 1);
-            }
-            return {
-              currentUploading,
-              segmentsFiles,
-              cancelQueue,
-            };
-          });
-        }
-        this.uploadQueue(true);
-      });
+      this.props.dispatch(fetchUploadQueue());
     }
   }
 
@@ -698,9 +502,8 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { currentSegment, device, classes } = this.props;
-    const { segmentsFiles, downloadMenu, moreInfoMenu, segmentsFilesLoading, uploadModal, currentUploading,
-      cancelQueue } = this.state;
+    const { currentSegment, device, classes, files } = this.props;
+    const { downloadMenu, moreInfoMenu, uploadModal } = this.state;
 
     if (!device) {
       return;
@@ -708,18 +511,17 @@ class Media extends Component {
 
     const disabledStyle = { pointerEvents: 'auto' };
     const online = deviceIsOnline(device);
-    const hasUploading = Object.entries(currentUploading).length > 0;
 
     let qcam = {}, fcam = {}, ecam = {}, dcam = {}, qlog = {}, rlog = {};
-    if (segmentsFiles && currentSegment) {
+    if (files && currentSegment) {
       const seg = `${currentSegment.route}--${this.currentSegmentNum()}`;
-      if (segmentsFiles[seg]) {
-        qcam = segmentsFiles[seg]['qcameras'] || {};
-        fcam = segmentsFiles[seg]['cameras'] || {};
-        ecam = segmentsFiles[seg]['ecameras'] || {};
-        dcam = segmentsFiles[seg]['dcameras'] || {};
-        qlog = segmentsFiles[seg]['qlogs'] || {};
-        rlog = segmentsFiles[seg]['logs'] || {};
+      if (files[seg]) {
+        qcam = files[seg]['qcameras'] || {};
+        fcam = files[seg]['cameras'] || {};
+        ecam = files[seg]['ecameras'] || {};
+        dcam = files[seg]['dcameras'] || {};
+        qlog = files[seg]['qlogs'] || {};
+        rlog = files[seg]['logs'] || {};
       }
     }
 
@@ -737,7 +539,7 @@ class Media extends Component {
         anchorEl={ downloadMenu } onClose={ () => this.setState({ downloadMenu: null }) }
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
-        { segmentsFilesLoading &&
+        { !files &&
           <div className={ classes.menuLoading }>
             <CircularProgress size={ 36 } style={{ color: Colors.white }} />
           </div>
@@ -748,17 +550,17 @@ class Media extends Component {
             className={ classes.filesItem } disabled={ !file.url } style={ !file.url ? disabledStyle : {} }
             title={ Boolean(!file.url && !online) ? 'connect device to enable uploading' : null }>
             <span style={ !file.url ? { color: Colors.white60 } : {} }>{ name }</span>
-            { Boolean(!segmentsFilesLoading && !file.url && online && file.progress === undefined && !file.requested) &&
+            { Boolean(files && !file.url && online && file.progress === undefined && !file.requested) &&
               <Button className={ classes.uploadButton } onClick={ () => this.uploadFile(type) }>
                 request upload
               </Button>
             }
-            { Boolean(!segmentsFilesLoading && !file.url && online && file.progress !== undefined) &&
+            { Boolean(files && !file.url && online && file.progress !== undefined) &&
               <div className={ classes.fakeUploadButton }>
                 { file.current ? `${parseInt(file.progress * 100)}%` : 'pending' }
               </div>
             }
-            { Boolean(!segmentsFilesLoading && !file.url && online && file.requested) &&
+            { Boolean(files && !file.url && online && file.requested) &&
               <div className={ classes.fakeUploadButton }>
                 <CircularProgress style={{ color: Colors.white }} size={ 17 } />
               </div>
@@ -766,19 +568,19 @@ class Media extends Component {
           </MenuItem>
         ]) }
         <Divider />
-        <MenuItem onClick={ !segmentsFilesLoading ? () => this.uploadFilesAll(['logs']) : null }
-          className={ classes.filesItem } disabled={ segmentsFilesLoading }
-          style={ segmentsFilesLoading ? { ...disabledStyle, color: Colors.white60 } : {} }>
+        <MenuItem onClick={ files ? () => this.uploadFilesAll(['logs']) : null }
+          className={ classes.filesItem } disabled={ !files }
+          style={ !files ? { ...disabledStyle, color: Colors.white60 } : {} }>
           Request upload all raw logs
         </MenuItem>
-        <MenuItem onClick={ !segmentsFilesLoading ? () => this.uploadFilesAll() : null }
-          className={ classes.filesItem } disabled={ segmentsFilesLoading }
-          style={ segmentsFilesLoading ? { ...disabledStyle, color: Colors.white60 } : {} }>
+        <MenuItem onClick={ files ? () => this.uploadFilesAll() : null }
+          className={ classes.filesItem } disabled={ !files }
+          style={ !files ? { ...disabledStyle, color: Colors.white60 } : {} }>
           Request upload all files
         </MenuItem>
-        <MenuItem onClick={ !segmentsFilesLoading ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
-          className={ classes.filesItem } disabled={ segmentsFilesLoading }
-          style={ segmentsFilesLoading ? { ...disabledStyle, color: Colors.white60 } : {} }>
+        <MenuItem onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
+          className={ classes.filesItem } disabled={ !files }
+          style={ !files ? { ...disabledStyle, color: Colors.white60 } : {} }>
           View upload queue
         </MenuItem>
       </Menu>
@@ -795,73 +597,8 @@ class Media extends Component {
           Copy to clipboard
         </MenuItem>
       </Menu>
-      <Modal aria-labelledby="upload-queue-modal" open={ uploadModal }
-        onClose={ () => this.setState({ uploadModal: false }) }>
-        <Paper className={ classes.modal }>
-          <div className={ classes.titleContainer }>
-            <div className={ classes.titleRow }>
-              <Typography variant="title">
-                Upload queue
-              </Typography>
-              { hasUploading &&
-                <Button onClick={ () => this.cancelUpload() }>
-                  cancel all
-                </Button>
-              }
-            </div>
-            <Typography variant="caption" style={{ marginLeft: 8 }}>
-              { device.dongle_id }
-            </Typography>
-          </div>
-          <Divider />
-          <div className={ classes.uploadContainer }>
-            { hasUploading ?
-              <table className={ classes.uploadTable }>
-                <thead>
-                  <tr className={ classes.uploadRow }>
-                    <th className={ classes.uploadCell }>segment</th>
-                    <th className={ classes.uploadCell }>type</th>
-                    <th className={ classes.uploadCell }>progress</th>
-                    <th className={ classes.uploadCell }></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  { Object.entries(currentUploading).reverse().map(([id, upload]) => {
-                    const isCancelled = cancelQueue.includes(id);
-                    return (
-                      <tr className={ classes.uploadRow } key={ id }>
-                        <td className={ classes.uploadCell }>{ upload.seg.split('|')[1] }</td>
-                        <td className={ classes.uploadCell }>{ FILE_NAMES[upload.type].split('.')[0] }</td>
-                        <td className={ classes.uploadCell }>
-                          { upload.current ? `${parseInt(upload.progress * 100)}%` : 'pending' }
-                        </td>
-                        <td className={ classes.uploadCell }>
-                          { !upload.current &&
-                            <Button onClick={ !isCancelled ? () => this.cancelUpload([id]) : null }
-                              disabled={ isCancelled }>
-                              { isCancelled ?
-                                <CircularProgress style={{ color: Colors.white }} size={ 17 } /> :
-                                'cancel' }
-                            </Button>
-                          }
-                        </td>
-                      </tr>
-                    );
-                  }) }
-                </tbody>
-              </table>
-            :
-              <p>no uploads</p>
-            }
-          </div>
-          <div className={classes.buttonGroup}>
-            <Button variant="contained" className={ classes.cancelButton }
-              onClick={ () => this.setState({ uploadModal: false }) }>
-              Close
-            </Button>
-          </div>
-        </Paper>
-      </Modal>
+      <UploadQueue open={ uploadModal } onClose={ () => this.setState({ uploadModal: false }) }
+        update={ Boolean(uploadModal || downloadMenu) } />
     </> );
   }
 }
@@ -874,6 +611,7 @@ const stateToProps = Obstruction({
   segmentData: 'segmentData',
   loop: 'loop',
   filter: 'filter',
+  files: 'files',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));

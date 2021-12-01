@@ -68,6 +68,9 @@ export default {
   subscription: null,
   subscribeInfo: null,
 
+  files: null,
+  filesUploading: null,
+
   filter: getDefaultFilter(),
   zoom: getZoom(window.location.pathname),
   loop: getDefaultLoop(window.location.pathname),

@@ -8,6 +8,9 @@ import {
   ACTION_PRIME_SUBSCRIPTION,
   ACTION_PRIME_SUBSCRIBE_INFO,
   ACTION_UPDATE_DEVICE_ONLINE,
+  ACTION_FILES_URLS,
+  ACTION_FILES_UPDATE,
+  ACTION_FILES_UPLOADING,
 } from '../actions/types';
 import { emptyDevice } from '../utils';
 
@@ -51,6 +54,8 @@ export default function reducer(_state, action) {
         primeNav: false,
         subscription: null,
         subscribeInfo: null,
+        files: null,
+        filesUploading: null,
       };
       if (state.devices) {
         state.device = state.devices.find((device) => device.dongle_id === action.dongleId);
@@ -152,6 +157,43 @@ export default function reducer(_state, action) {
         subscribeInfo: action.subscribeInfo,
         subscription: null,
       };
+      break;
+    case ACTION_FILES_URLS:
+      state.files = state.files !== null ? { ...state.files } : {};
+      for (const seg in action.urls) {
+        if (!state.files[seg]) {
+          state.files[seg] = {};
+        }
+        state.files[seg] = {
+          ...state.files[seg],
+          ...action.urls[seg],
+        };
+      }
+      break;
+    case ACTION_FILES_UPDATE:
+      state.files = state.files !== null ? { ...state.files } : {};
+      for (const seg in action.files) {
+        if (!state.files[seg]) {
+          state.files[seg] = {};
+        }
+        state.files[seg] = {
+          ...state.files[seg],
+          ...action.files[seg],
+        };
+      }
+      break;
+    case ACTION_FILES_UPLOADING:
+      state.filesUploading = action.uploading;
+      state.files = state.files !== null ? { ...state.files } : {};
+      for (const seg in action.files) {
+        if (!state.files[seg]) {
+          state.files[seg] = {};
+        }
+        state.files[seg] = {
+          ...state.files[seg],
+          ...action.files[seg],
+        };
+      }
       break;
     default:
       return state;
