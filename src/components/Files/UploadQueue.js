@@ -99,12 +99,10 @@ class UploadQueue extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.filesUploading !== this.props.filesUploading && this.props.filesUploading) {
-      this.uploadQueue(Boolean(Object.keys(this.props.filesUploading).length));
-    }
-
     if (prevProps.update !== this.props.update) {
-      this.uploadQueue(Boolean(this.props.update));
+      this.uploadQueue(this.props.update);
+    } else if (this.props.update && prevProps.filesUploading !== this.props.filesUploading) {
+      this.uploadQueue(Boolean(Object.keys(this.props.filesUploading).length));
     }
   }
 
@@ -178,9 +176,8 @@ class UploadQueue extends Component {
       };
       this.athenaCall(payload, 'media_athena_cancelupload').then((resp) => {
         this.uploadQueue(true);
-        const { fileName } = this.props.filesUploading[id];
         const files = {};
-        files[fileName] = {};
+        files[this.props.filesUploading[id].fileName] = {};
         this.props.dispatch(updateFiles(files));
       });
     }
