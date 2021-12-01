@@ -533,7 +533,7 @@ class Media extends Component {
         </MenuItem>
       </Menu>
       <UploadQueue open={ uploadModal } onClose={ () => this.setState({ uploadModal: false }) }
-        update={ Boolean(uploadModal || downloadMenu) } />
+        update={ Boolean(uploadModal || downloadMenu) } store={ this.props.store } />
     </> );
   }
 }
