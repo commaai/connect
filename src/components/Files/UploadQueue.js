@@ -6,7 +6,7 @@ import * as Sentry from '@sentry/react';
 import { withStyles, Divider, Typography, CircularProgress, Button, Modal, Paper } from '@material-ui/core';
 import { athena as AthenaApi } from '@commaai/comma-api';
 
-import { fetchUploadQueue } from '../../actions/files';
+import { fetchUploadQueue, updateFiles } from '../../actions/files';
 import Colors from '../../colors';
 
 const styles = (theme) => ({
@@ -89,7 +89,6 @@ class UploadQueue extends Component {
     this.cancelUpload = this.cancelUpload.bind(this);
     this.athenaCall = this.athenaCall.bind(this);
     this.uploadQueue = this.uploadQueue.bind(this);
-    this._uploadQueue = this._uploadQueue.bind(this);
 
     this.uploadQueueIntv = null;
     this.openRequests = 0;
@@ -115,16 +114,12 @@ class UploadQueue extends Component {
 
   uploadQueue(enable) {
     if (enable && !this.uploadQueueIntv) {
-      this.uploadQueueIntv = setInterval(this._uploadQueue, 2000);
-      this._uploadQueue();
+      this.uploadQueueIntv = setInterval(() => this.props.dispatch(fetchUploadQueue()), 2000);
+      this.props.dispatch(fetchUploadQueue());
     } else if (!enable && this.uploadQueueIntv) {
       clearInterval(this.uploadQueueIntv);
       this.uploadQueueIntv = null;
     }
-  }
-
-  _uploadQueue() {
-    this.props.dispatch(fetchUploadQueue());
   }
 
   async athenaCall(payload, sentry_fingerprint, retryCount = 0) {
@@ -160,14 +155,7 @@ class UploadQueue extends Component {
     }
 
     this.setState((prevState) => {
-      const { cancelQueue } = prevState;
-      const { filesUploading } = this.props;
-      for (const id in filesUploading) {
-        if (ids.includes(id) && !cancelQueue.includes(id) && !filesUploading[id].current) {
-          cancelQueue.push(id);
-        }
-      }
-      return { cancelQueue };
+      return { cancelQueue: prevState.cancelQueue.concat(ids) };
     });
 
     for (const id of ids) {
@@ -190,6 +178,10 @@ class UploadQueue extends Component {
       };
       this.athenaCall(payload, 'media_athena_cancelupload').then((resp) => {
         this.uploadQueue(true);
+        const { fileName } = this.props.filesUploading[id];
+        const files = {};
+        files[fileName] = {};
+        this.props.dispatch(updateFiles(files));
       });
     }
   }
@@ -231,10 +223,11 @@ class UploadQueue extends Component {
                 <tbody>
                   { Object.entries(filesUploading).reverse().map(([id, upload]) => {
                     const isCancelled = cancelQueue.includes(id);
+                    const [seg, type] = upload.fileName.split('/');
                     return (
                       <tr key={ id }>
-                        <td className={ classes.uploadCell }>{ upload.seg.split('|')[1] }</td>
-                        <td className={ classes.uploadCell }>{ FILE_NAMES[upload.type].split('.')[0] }</td>
+                        <td className={ classes.uploadCell }>{ seg.split('|')[1] }</td>
+                        <td className={ classes.uploadCell }>{ FILE_NAMES[type].split('.')[0] }</td>
                         <td className={ classes.uploadCell }>
                           { upload.current ? `${parseInt(upload.progress * 100)}%` : 'pending' }
                         </td>

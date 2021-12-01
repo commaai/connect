@@ -62,11 +62,8 @@ export function fetchFiles(routeName, nocache=false) {
     for (const type of Object.keys(FILE_NAMES)) {
       for (const file of files[type]) {
         const segmentNum = parseInt(file.split(urlName)[1].split('/')[1]);
-        const segName = `${routeName}--${segmentNum}`;
-        if (!res[segName]) {
-          res[segName] = {};
-        }
-        res[segName][type] = {
+        const fileName = `${routeName}--${segmentNum}/${type}`;
+        res[fileName] = {
           url: file,
         };
       }
@@ -102,25 +99,21 @@ export function fetchUploadQueue() {
       const segNum = urlParts[urlParts.length - 2];
       const datetime = urlParts[urlParts.length - 3];
       const dongleId = urlParts[urlParts.length - 4];
-      const seg = `${dongleId}|${datetime}--${segNum}`;
       const type = Object.entries(FILE_NAMES).find((e) => e[1] == filename)[0];
-      if (!uploadingFiles[seg]) {
-        uploadingFiles[seg] = {};
-      }
-      uploadingFiles[seg][type] = {
+      const fileName = `${dongleId}|${datetime}--${segNum}/${type}`;
+      uploadingFiles[fileName] = {
         current: uploading.current,
         progress: uploading.progress,
       };
       newCurrentUploading[uploading.id] = {
-        seg,
-        type,
+        fileName,
         current: uploading.current,
         progress: uploading.progress,
       };
       delete prevFilesUploading[uploading.id];
     }
     if (Object.keys(prevFilesUploading).length) { // some item is done uploading
-      const routeName = Object.values(prevFilesUploading)[0].seg.split('--').slice(0, 2).join('--');
+      const routeName = Object.values(prevFilesUploading)[0].fileName.split('--').slice(0, 2).join('--');
       dispatch(fetchFiles(routeName, true));
     }
     dispatch({

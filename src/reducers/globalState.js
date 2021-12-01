@@ -159,41 +159,23 @@ export default function reducer(_state, action) {
       };
       break;
     case ACTION_FILES_URLS:
-      state.files = state.files !== null ? { ...state.files } : {};
-      for (const seg in action.urls) {
-        if (!state.files[seg]) {
-          state.files[seg] = {};
-        }
-        state.files[seg] = {
-          ...state.files[seg],
-          ...action.urls[seg],
-        };
-      }
+      state.files = {
+        ...(state.files !== null ? { ...state.files } : {}),
+        ...action.urls,
+      };
       break;
     case ACTION_FILES_UPDATE:
-      state.files = state.files !== null ? { ...state.files } : {};
-      for (const seg in action.files) {
-        if (!state.files[seg]) {
-          state.files[seg] = {};
-        }
-        state.files[seg] = {
-          ...state.files[seg],
-          ...action.files[seg],
-        };
-      }
+      state.files = {
+        ...(state.files !== null ? { ...state.files } : {}),
+        ...action.files,
+      };
       break;
     case ACTION_FILES_UPLOADING:
       state.filesUploading = action.uploading;
-      state.files = state.files !== null ? { ...state.files } : {};
-      for (const seg in action.files) {
-        if (!state.files[seg]) {
-          state.files[seg] = {};
-        }
-        state.files[seg] = {
-          ...state.files[seg],
-          ...action.files[seg],
-        };
-      }
+      state.files = {
+        ...(state.files !== null ? { ...state.files } : {}),
+        ...action.files,
+      };
       break;
     default:
       return state;

@@ -278,14 +278,13 @@ class Media extends Component {
     const { dongleId, currentSegment } = this.props;
     const routeNoDongleId = currentSegment.route.split('|')[1];
     const path = `${routeNoDongleId}--${this.currentSegmentNum()}/${FILE_NAMES[type]}`;
-    const seg = `${dongleId}|${routeNoDongleId}--${this.currentSegmentNum()}`;
+    const fileName = `${dongleId}|${routeNoDongleId}--${this.currentSegmentNum()}/${type}`;
 
     const uploading = {};
-    uploading[seg] = {};
-    uploading[seg][type] = { requested: true };
+    uploading[fileName] = { requested: true };
     this.props.dispatch(updateFiles(uploading));
 
-    this.doUpload(dongleId, seg, type, path);
+    this.doUpload(dongleId, fileName, path);
   }
 
   async uploadFilesAll(types) {
@@ -307,26 +306,23 @@ class Media extends Component {
         segment.start_time_utc_millis + segment.duration > loop.startTime)
       {
         for (const type of types) {
-          if (!files[segment.canonical_name] || !files[segment.canonical_name][type]) {
-            if (!uploading[segment.canonical_name]) {
-              uploading[segment.canonical_name] = {};
-            }
-            uploading[segment.canonical_name][type] = { requested: true };
+          const fileName = `${segment.canonical_name}/${type}`;
+          if (!files[fileName]) {
+            uploading[fileName] = { requested: true };
           }
         }
       }
     }
     this.props.dispatch(updateFiles(uploading));
 
-    for (const seg in uploading) {
-      for (const type in uploading[seg]) {
-        const path = `${seg.split('|')[1]}/${FILE_NAMES[type]}`;
-        this.doUpload(dongleId, seg, type, path);
-      }
+    for (const fileName in uploading) {
+      const [seg, type] = fileName.split('/');
+      const path = `${seg.split('|')[1]}/${FILE_NAMES[type]}`;
+      this.doUpload(dongleId, fileName, path);
     }
   }
 
-  async doUpload(dongleId, seg, type, path, retryCount = 0) {
+  async doUpload(dongleId, fileName, path, retryCount = 0) {
     let url;
     try {
       while (this.openRequests > MAX_OPEN_REQUESTS) {
@@ -343,7 +339,7 @@ class Media extends Component {
     } catch (err) {
       this.openRequests -= 1;
       if (!err.resp && retryCount < MAX_RETRIES) {
-        setTimeout(() => this.doUpload(dongleId, seg, type, path, retryCount + 1), 2000);
+        setTimeout(() => this.doUpload(dongleId, fileName, path, retryCount + 1), 2000);
       } else {
         console.log(err);
         Sentry.captureException(err, { fingerprint: 'media_upload_geturl' });
@@ -359,7 +355,7 @@ class Media extends Component {
     };
     const resp = await this.athenaCall(payload, 'media_athena_upload');
     if (resp.error) {
-      uploading[seg][type] = {};
+      uploading[fileName] = {};
       this.props.dispatch(updateFiles(uploading));
     } else {
       this.props.dispatch(fetchUploadQueue());
@@ -456,14 +452,12 @@ class Media extends Component {
     let qcam = {}, fcam = {}, ecam = {}, dcam = {}, qlog = {}, rlog = {};
     if (files && currentSegment) {
       const seg = `${currentSegment.route}--${this.currentSegmentNum()}`;
-      if (files[seg]) {
-        qcam = files[seg]['qcameras'] || {};
-        fcam = files[seg]['cameras'] || {};
-        ecam = files[seg]['ecameras'] || {};
-        dcam = files[seg]['dcameras'] || {};
-        qlog = files[seg]['qlogs'] || {};
-        rlog = files[seg]['logs'] || {};
-      }
+      qcam = files[`${seg}/qcameras`] || {};
+      fcam = files[`${seg}/cameras`] || {};
+      ecam = files[`${seg}/ecameras`] || {};
+      dcam = files[`${seg}/dcameras`] || {};
+      qlog = files[`${seg}/qlogs`] || {};
+      rlog = files[`${seg}/logs`] || {};
     }
 
     const buttons = [
