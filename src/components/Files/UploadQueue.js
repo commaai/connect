@@ -256,7 +256,7 @@ class UploadQueue extends Component {
             :
               filesUploading ?
                 <p>no uploads</p> :
-                <CircularProgress style={{ color: Colors.white }} size={ 17 } />
+                <CircularProgress style={{ color: Colors.white, margin: 8 }} size={ 17 } />
             }
           </div>
           <div className={classes.buttonGroup}>
