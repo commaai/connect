@@ -174,10 +174,11 @@ class UploadQueue extends Component {
         method: "cancelUpload",
         params: { upload_id: id },
       };
+      const fileName = this.props.filesUploading[id].fileName;
       this.athenaCall(payload, 'media_athena_cancelupload').then((resp) => {
         this.uploadQueue(true);
         const files = {};
-        files[this.props.filesUploading[id].fileName] = {};
+        files[fileName] = {};
         this.props.dispatch(updateFiles(files));
       });
     }
