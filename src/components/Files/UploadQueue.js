@@ -104,6 +104,16 @@ const FILE_NAMES = {
   'logs': 'rlog.bz2',
 };
 
+function sortUploads([_1, a], [_2, b]) {
+  if (a.current) {
+    return -1;
+  } else if (b.current) {
+    return 1;
+  } else {
+    return a.createdAt - b.createdAt;
+  }
+}
+
 class UploadQueue extends Component {
   constructor(props) {
     super(props);
@@ -212,7 +222,7 @@ class UploadQueue extends Component {
                   </tr>
                 </thead>
                 <tbody>
-                  { Object.entries(filesUploading).map(([id, upload]) => {
+                  { Object.entries(filesUploading).reverse().sort(sortUploads).map(([id, upload]) => {
                     const isCancelled = cancelQueue.includes(id);
                     const [seg, type] = upload.fileName.split('/');
                     const prog = parseInt(upload.progress * 100);

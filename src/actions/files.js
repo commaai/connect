@@ -109,6 +109,7 @@ export function fetchUploadQueue(dongleId) {
         fileName,
         current: uploading.current,
         progress: uploading.progress,
+        createdAt: uploading.created_at,
       };
       delete prevFilesUploading[uploading.id];
     }
