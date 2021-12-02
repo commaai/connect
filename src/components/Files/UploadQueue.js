@@ -70,6 +70,10 @@ const styles = (theme) => ({
       },
     },
   },
+  uploadCancelled: {
+    marginLeft: 24,
+    color: Colors.white,
+  },
   uploadProgress: {
     display: 'flex',
     alignItems: 'center',
@@ -199,7 +203,7 @@ class UploadQueue extends Component {
           <div className={ classes.titleContainer }>
             <div className={ classes.titleRow }>
               <Typography variant="title">
-                Upload queue
+                { windowWidth < 450 ? 'Uploads' : 'Upload queue' }
               </Typography>
               { hasUploading &&
                 <Button onClick={ () => this.cancelUploads() }>
@@ -226,26 +230,28 @@ class UploadQueue extends Component {
                     const isCancelled = cancelQueue.includes(id);
                     const [seg, type] = upload.fileName.split('/');
                     const prog = parseInt(upload.progress * 100);
+                    const segString = seg.split('|')[1];
                     return (
                       <tr key={ id }>
-                        <td className={ classes.uploadCell }>{ seg.split('|')[1] }</td>
+                        <td className={ classes.uploadCell } style={{ whiteSpace: 'nowrap' }}>
+                          { segString.substring(0, 12) }<wbr />{ segString.substring(12)}
+                        </td>
                         <td className={ classes.uploadCell }>
                           { FILE_NAMES[type].split('.')[0].substring(0, logNameLength) }
                         </td>
                         { upload.current ?
-                          <td className={ `${classes.uploadCell} ${classes.uploadProgress}` }>
-                            <LinearProgress size={ 17 } variant="determinate" value={ prog } /> { prog }%
+                          <td className={ classes.uploadCell }>
+                            <div className={ classes.uploadProgress }>
+                              <LinearProgress variant="determinate" value={ prog } /> { prog }%
+                            </div>
                           </td>
                         :
                           <>
                             { windowWidth >= 600 && <td className={ classes.uploadCell }>pending</td> }
                             <td className={ classes.uploadCell }>
-                              <Button onClick={ !isCancelled ? () => this.cancelUploads([id]) : null }
-                                disabled={ isCancelled }>
-                                { isCancelled ?
-                                  <CircularProgress style={{ color: Colors.white }} size={ 17 } /> :
-                                  'cancel' }
-                              </Button>
+                              { isCancelled ?
+                                <CircularProgress className={ classes.uploadCancelled } size={ 15 } /> :
+                                <Button onClick={ () => this.cancelUploads([id]) }>cancel</Button> }
                             </td>
                           </>
                         }
