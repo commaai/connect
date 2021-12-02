@@ -2,7 +2,8 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
-import { withStyles, Divider, Typography, CircularProgress, Button, Modal, Paper } from '@material-ui/core';
+import { withStyles, Divider, Typography, CircularProgress, Button, Modal, Paper, LinearProgress
+  } from '@material-ui/core';
 
 import { fetchUploadQueue, cancelUpload } from '../../actions/files';
 import Colors from '../../colors';
@@ -40,7 +41,7 @@ const styles = (theme) => ({
   },
   uploadContainer: {
     margin: `${theme.spacing.unit}px 0`,
-    color: Colors.white,
+    color: Colors.white90,
     textAlign: 'left',
     maxHeight: 'calc(90vh - 73px)',
     overflowY: 'auto',
@@ -54,6 +55,22 @@ const styles = (theme) => ({
       fontSize: '0.8rem',
       padding: '4px 12px',
       minHeight: 19,
+    },
+  },
+  uploadProgress: {
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '0.8rem',
+    '& > div': {
+      width: 30,
+      height: 8,
+      marginRight: 6,
+      border: 'none',
+      backgroundColor: Colors.white30,
+      '& > div': {
+        backgroundColor: Colors.white80,
+        transition: 'transform 0.5s linear',
+      },
     },
   },
   cancelButton: {
@@ -178,13 +195,18 @@ class UploadQueue extends Component {
                   { Object.entries(filesUploading).reverse().map(([id, upload]) => {
                     const isCancelled = cancelQueue.includes(id);
                     const [seg, type] = upload.fileName.split('/');
+                    const prog = parseInt(upload.progress * 100);
                     return (
                       <tr key={ id }>
                         <td className={ classes.uploadCell }>{ seg.split('|')[1] }</td>
                         <td className={ classes.uploadCell }>{ FILE_NAMES[type].split('.')[0] }</td>
-                        <td className={ classes.uploadCell }>
-                          { upload.current ? `${parseInt(upload.progress * 100)}%` : 'pending' }
-                        </td>
+                        { upload.current ?
+                          <td className={ `${classes.uploadCell} ${classes.uploadProgress}` }>
+                            <LinearProgress size={ 17 } variant="determinate" value={ prog } /> { prog }%
+                          </td>
+                        :
+                          <td className={ classes.uploadCell }>pending</td>
+                        }
                         <td className={ classes.uploadCell }>
                           { !upload.current &&
                             <Button onClick={ !isCancelled ? () => this.cancelUploads([id]) : null }
