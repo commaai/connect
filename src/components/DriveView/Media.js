@@ -152,6 +152,8 @@ class Media extends Component {
     this.uploadFilesAll = this.uploadFilesAll.bind(this);
     this.doUpload = this.doUpload.bind(this);
     this.athenaCall = this.athenaCall.bind(this);
+    this.getUploadStats = this.getUploadStats.bind(this);
+    this._uploadStats = this._uploadStats.bind(this);
 
     this.openRequests = 0;
   }
@@ -360,6 +362,49 @@ class Media extends Component {
     }
   }
 
+  _uploadStats(types, uploaded, uploading, requested) {
+    const { segmentData, loop, files } = this.props;
+    for (const segment of segmentData.segments) {
+      if (segment.start_time_utc_millis < loop.startTime + loop.duration &&
+        segment.start_time_utc_millis + segment.duration > loop.startTime)
+      {
+        for (const type of types) {
+          const log = files[`${segment.canonical_name}/${type}`];
+          if (log) {
+            uploaded = uploaded && Boolean(log.url);
+            uploading = uploading && Boolean(log.url || log.progress !== undefined);
+            requested = requested && Boolean(log.url || log.progress !== undefined || log.requested);
+          } else {
+            uploaded = false;
+            uploading = false;
+            requested = false;
+          }
+
+          if (!uploaded && !uploading && !requested) {
+            return [ false, false, false ];
+          }
+        }
+      }
+    }
+
+    return [ uploaded, uploading, requested ];
+  }
+
+  getUploadStats() {
+    const { device, segmentData, files } = this.props;
+    if (!files || !segmentData || !segmentData.segments) {
+      return null;
+    }
+
+    const [ hasUploadedRlog, isUploadingRlog, hasRequestedRlog ] = this._uploadStats(['logs'], true, true, true);
+
+    const camTypes = ['cameras', 'dcameras'].concat(device.device_type === 'three' ? ['ecameras'] : []);
+    const [ hasUploadedAll, isUploadingAll, hasRequestedAll ] =
+      this._uploadStats(camTypes, hasUploadedRlog, isUploadingRlog, hasRequestedRlog);
+
+    return { hasUploadedAll, hasUploadedRlog, isUploadingAll, isUploadingRlog, hasRequestedAll, hasRequestedRlog };
+  }
+
   render() {
     const { classes } = this.props;
     const { inView, windowWidth } = this.state;
@@ -469,6 +514,10 @@ class Media extends Component {
       [rlog, 'Raw log segment', 'logs'],
     ];
 
+    const stats = this.getUploadStats();
+    const rlogUploadDisabled = !stats || stats.hasUploadedRlog || stats.isUploadingRlog || stats.hasRequestedRlog;
+    const allUploadDisabled = !stats || stats.hasUploadedAll || stats.isUploadingAll || stats.hasRequestedAll;
+
     return ( <>
       <Menu id="menu-download" open={ Boolean(alwaysOpen || downloadMenu) }
         anchorEl={ downloadMenu } onClose={ () => this.setState({ downloadMenu: null }) }
@@ -504,15 +553,29 @@ class Media extends Component {
           </MenuItem>
         ]) }
         <Divider />
-        <MenuItem onClick={ files ? () => this.uploadFilesAll(['logs']) : null }
-          className={ classes.filesItem } disabled={ !files }
-          style={ !files ? { ...disabledStyle, color: Colors.white60 } : {} }>
+        <MenuItem onClick={ !rlogUploadDisabled ? () => this.uploadFilesAll(['logs']) : null }
+          className={ classes.filesItem } disabled={ rlogUploadDisabled }
+          style={ rlogUploadDisabled ? { ...disabledStyle, color: Colors.white60 } : {} }>
           Request upload all raw logs
+          { Boolean(rlogUploadDisabled && stats) &&
+            <div className={ classes.fakeUploadButton } style={{ width: (uploadButtonWidth - 24) }}>
+              { stats.hasUploadedRlog ?
+                'uploaded' :
+                (stats.isUploadingRlog ? 'pending' :<CircularProgress style={{ color: Colors.white }} size={ 17 } /> ) }
+            </div>
+          }
         </MenuItem>
-        <MenuItem onClick={ files ? () => this.uploadFilesAll() : null }
-          className={ classes.filesItem } disabled={ !files }
-          style={ !files ? { ...disabledStyle, color: Colors.white60 } : {} }>
+        <MenuItem onClick={ !allUploadDisabled ? () => this.uploadFilesAll() : null }
+          className={ classes.filesItem } disabled={ allUploadDisabled }
+          style={ allUploadDisabled ? { ...disabledStyle, color: Colors.white60 } : {} }>
           Request upload all files
+          { Boolean(allUploadDisabled && stats) &&
+            <div className={ classes.fakeUploadButton } style={{ width: (uploadButtonWidth - 24) }}>
+              { stats.hasUploadedAll ?
+                'uploaded' :
+                (stats.isUploadingAll ? 'pending' :<CircularProgress style={{ color: Colors.white }} size={ 17 } /> ) }
+            </div>
+          }
         </MenuItem>
         <MenuItem onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
           className={ classes.filesItem } disabled={ !files }

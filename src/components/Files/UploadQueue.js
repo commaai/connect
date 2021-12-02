@@ -72,6 +72,7 @@ const styles = (theme) => ({
   },
   uploadCancelled: {
     marginLeft: 24,
+    marginRight: 24,
     color: Colors.white,
   },
   uploadProgress: {
