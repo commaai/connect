@@ -95,7 +95,6 @@ const styles = (theme) => ({
   },
   uploadButton: {
     marginLeft: 8,
-    width: 120,
     color: Colors.white,
     borderRadius: 13,
     fontSize: '0.8rem',
@@ -104,7 +103,6 @@ const styles = (theme) => ({
   },
   fakeUploadButton: {
     marginLeft: 8,
-    width: 96,
     color: Colors.white,
     fontSize: '0.8rem',
     padding: '4px 12px',
@@ -440,7 +438,7 @@ class Media extends Component {
 
   renderMenus(alwaysOpen = false) {
     const { currentSegment, device, dongleId, classes, files } = this.props;
-    const { downloadMenu, moreInfoMenu, uploadModal } = this.state;
+    const { downloadMenu, moreInfoMenu, uploadModal, windowWidth } = this.state;
 
     if (!device) {
       return;
@@ -460,9 +458,11 @@ class Media extends Component {
       rlog = files[`${seg}/logs`] || {};
     }
 
+    const resName = windowWidth < 425 ? 'res' : 'resolution';
+    const uploadButtonWidth = windowWidth < 425 ? 70 : 120;
     const buttons = [
       [qcam, 'Camera segment', 'qcameras'],
-      [fcam, 'Full resolution camera segment', 'cameras'],
+      [fcam, `Full ${resName} camera segment`, 'cameras'],
       device && device.device_type === 'three' ? [ecam, 'Wide road camera segment', 'ecameras'] : null,
       [dcam, 'Driver camera segment', 'dcameras'],
       [qlog, 'Log segment', 'qlogs'],
@@ -486,17 +486,18 @@ class Media extends Component {
             title={ Boolean(!file.url && !online) ? 'connect device to enable uploading' : null }>
             <span style={ !file.url ? { color: Colors.white60 } : {} }>{ name }</span>
             { Boolean(files && !file.url && online && file.progress === undefined && !file.requested) &&
-              <Button className={ classes.uploadButton } onClick={ () => this.uploadFile(type) }>
-                request upload
+              <Button className={ classes.uploadButton } style={{ width: uploadButtonWidth }}
+                onClick={ () => this.uploadFile(type) }>
+                { windowWidth < 425 ? 'upload' : 'request upload' }
               </Button>
             }
             { Boolean(files && !file.url && online && file.progress !== undefined) &&
-              <div className={ classes.fakeUploadButton }>
+              <div className={ classes.fakeUploadButton } style={{ width: (uploadButtonWidth - 24) }}>
                 { file.current ? `${parseInt(file.progress * 100)}%` : 'pending' }
               </div>
             }
             { Boolean(files && !file.url && online && file.requested) &&
-              <div className={ classes.fakeUploadButton }>
+              <div className={ classes.fakeUploadButton } style={{ width: (uploadButtonWidth - 24) }}>
                 <CircularProgress style={{ color: Colors.white }} size={ 17 } />
               </div>
             }
