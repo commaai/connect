@@ -34,6 +34,8 @@ describe('Media', () => {
     const offset = loopStartTime - start + Math.round(Math.random() * 10000);
     const getState = () => {
       return {
+        filesUploading: {},
+        filesUploadingMeta: {},
         currentSegment: { routeOffset },
         loop: { startTime: loopStartTime, duration: 15000 },
         filter: { start },
@@ -76,6 +78,8 @@ describe('Media', () => {
     currentOffset.mockImplementation(() => offset);
     const getState = () => {
       return {
+        filesUploading: {},
+        filesUploadingMeta: {},
         currentSegment: { routeOffset },
         filter: { start },
         device: { device_type: 'three' },
