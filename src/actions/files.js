@@ -113,7 +113,7 @@ export function fetchUploadQueue(dongleId) {
       };
       delete prevFilesUploading[uploading.id];
     }
-    if (Object.keys(prevFilesUploading).length) { // some item is done uploading
+    if (getState().dongleId === dongleId && Object.keys(prevFilesUploading).length) { // some item is done uploading
       const routeName = Object.values(prevFilesUploading)[0].fileName.split('--').slice(0, 2).join('--');
       dispatch(fetchFiles(routeName, true));
     }

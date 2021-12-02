@@ -8,6 +8,7 @@ import {
   ACTION_PRIME_SUBSCRIPTION,
   ACTION_PRIME_SUBSCRIBE_INFO,
   ACTION_UPDATE_DEVICE_ONLINE,
+  TIMELINE_SELECTION_CHANGED,
   ACTION_FILES_URLS,
   ACTION_FILES_UPDATE,
   ACTION_FILES_UPLOADING,
@@ -156,6 +157,18 @@ export default function reducer(_state, action) {
         ...state,
         subscribeInfo: action.subscribeInfo,
         subscription: null,
+      };
+      break;
+    case TIMELINE_SELECTION_CHANGED:
+      if (!state.zoom.expanded || !action.start || !action.end ||
+        action.start < state.zoom.start || action.end > state.zoom.end)
+      {
+        state.files = null;
+      }
+      state.zoom = {
+        start: action.start,
+        end: action.end,
+        expanded: Boolean(action.start && action.end),
       };
       break;
     case ACTION_FILES_URLS:
