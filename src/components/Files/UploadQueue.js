@@ -7,11 +7,13 @@ import { withStyles, Divider, Typography, CircularProgress, Button, Modal, Paper
 
 import { fetchUploadQueue, cancelUpload } from '../../actions/files';
 import Colors from '../../colors';
+import ResizeHandler from '../ResizeHandler';
 
 const styles = (theme) => ({
   modal: {
     position: 'absolute',
     padding: theme.spacing.unit * 2,
+    width: 'max-content',
     maxWidth: '90%',
     left: '50%',
     top: '50%',
@@ -32,8 +34,12 @@ const styles = (theme) => ({
       fontWeight: 600,
       borderRadius: 13,
       fontSize: '0.8rem',
-      padding: '4px 12px',
+      padding: '2px 10px',
       minHeight: 19,
+      backgroundColor: Colors.white05,
+      '&:hover': {
+        backgroundColor: Colors.white10,
+      },
     },
   },
   buttonGroup: {
@@ -46,6 +52,9 @@ const styles = (theme) => ({
     maxHeight: 'calc(90vh - 73px)',
     overflowY: 'auto',
   },
+  uploadTable: {
+    borderCollapse: 'collapse',
+  },
   uploadCell: {
     height: 25,
     padding: '0 8px',
@@ -53,8 +62,12 @@ const styles = (theme) => ({
       fontWeight: 600,
       borderRadius: 13,
       fontSize: '0.8rem',
-      padding: '4px 12px',
+      padding: '2px 10px',
       minHeight: 19,
+      backgroundColor: Colors.white05,
+      '&:hover': {
+        backgroundColor: Colors.white10,
+      },
     },
   },
   uploadProgress: {
@@ -96,6 +109,7 @@ class UploadQueue extends Component {
     super(props);
 
     this.state = {
+      windowWidth: window.innerWidth,
       cancelQueue: [],
     };
 
@@ -159,11 +173,13 @@ class UploadQueue extends Component {
 
   render() {
     const { dongleId, classes, filesUploading } = this.props;
-    const { cancelQueue } = this.state;
+    const { cancelQueue, windowWidth } = this.state;
 
     const hasUploading = filesUploading && Object.keys(filesUploading).length > 0;
+    const logNameLength = windowWidth < 600 ? 4 : 64;
 
-    return (
+    return ( <>
+      <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
       <Modal aria-labelledby="upload-queue-modal" open={ this.props.open } onClose={ this.props.onClose }>
         <Paper className={ classes.modal }>
           <div className={ classes.titleContainer }>
@@ -182,13 +198,13 @@ class UploadQueue extends Component {
           <Divider />
           <div className={ classes.uploadContainer }>
             { hasUploading ?
-              <table>
+              <table className={ classes.uploadTable }>
                 <thead>
                   <tr>
                     <th className={ classes.uploadCell }>segment</th>
                     <th className={ classes.uploadCell }>type</th>
                     <th className={ classes.uploadCell }>progress</th>
-                    <th className={ classes.uploadCell }></th>
+                    { windowWidth >= 600 && <th className={ classes.uploadCell }></th> }
                   </tr>
                 </thead>
                 <tbody>
@@ -199,24 +215,26 @@ class UploadQueue extends Component {
                     return (
                       <tr key={ id }>
                         <td className={ classes.uploadCell }>{ seg.split('|')[1] }</td>
-                        <td className={ classes.uploadCell }>{ FILE_NAMES[type].split('.')[0] }</td>
+                        <td className={ classes.uploadCell }>
+                          { FILE_NAMES[type].split('.')[0].substring(0, logNameLength) }
+                        </td>
                         { upload.current ?
                           <td className={ `${classes.uploadCell} ${classes.uploadProgress}` }>
                             <LinearProgress size={ 17 } variant="determinate" value={ prog } /> { prog }%
                           </td>
                         :
-                          <td className={ classes.uploadCell }>pending</td>
+                          <>
+                            { windowWidth >= 600 && <td className={ classes.uploadCell }>pending</td> }
+                            <td className={ classes.uploadCell }>
+                              <Button onClick={ !isCancelled ? () => this.cancelUploads([id]) : null }
+                                disabled={ isCancelled }>
+                                { isCancelled ?
+                                  <CircularProgress style={{ color: Colors.white }} size={ 17 } /> :
+                                  'cancel' }
+                              </Button>
+                            </td>
+                          </>
                         }
-                        <td className={ classes.uploadCell }>
-                          { !upload.current &&
-                            <Button onClick={ !isCancelled ? () => this.cancelUploads([id]) : null }
-                              disabled={ isCancelled }>
-                              { isCancelled ?
-                                <CircularProgress style={{ color: Colors.white }} size={ 17 } /> :
-                                'cancel' }
-                            </Button>
-                          }
-                        </td>
                       </tr>
                     );
                   }) }
@@ -235,7 +253,7 @@ class UploadQueue extends Component {
           </div>
         </Paper>
       </Modal>
-    );
+    </> );
   }
 }
 
