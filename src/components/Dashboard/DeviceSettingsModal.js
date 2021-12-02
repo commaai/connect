@@ -379,7 +379,7 @@ class DeviceSettingsModal extends Component {
         </Paper>
       </Modal>
       <UploadQueue open={ this.state.uploadModal } update={ this.state.uploadModal }
-        onClose={ () => this.setState({ uploadModal: false }) }/>
+        onClose={ () => this.setState({ uploadModal: false }) } dongleId={ device.dongle_id } />
     </> );
   }
 }

@@ -126,6 +126,8 @@ class UploadQueue extends Component {
   componentDidUpdate(prevProps) {
     if (prevProps.update !== this.props.update) {
       this.uploadQueue(this.props.update);
+    } else if (this.props.update && prevProps.dongleId !== this.props.dongleId) {
+      this.uploadQueue(true);
     } else if (this.props.update && prevProps.filesUploading !== this.props.filesUploading) {
       this.uploadQueue(Boolean(Object.keys(this.props.filesUploading).length));
     }
@@ -137,8 +139,9 @@ class UploadQueue extends Component {
 
   uploadQueue(enable) {
     if (enable && !this.uploadQueueIntv) {
-      this.uploadQueueIntv = setInterval(() => this.props.dispatch(fetchUploadQueue()), 2000);
-      this.props.dispatch(fetchUploadQueue());
+      const { dongleId } = this.props;
+      this.uploadQueueIntv = setInterval(() => this.props.dispatch(fetchUploadQueue(dongleId)), 2000);
+      this.props.dispatch(fetchUploadQueue(dongleId));
     } else if (!enable && this.uploadQueueIntv) {
       clearInterval(this.uploadQueueIntv);
       this.uploadQueueIntv = null;
@@ -172,10 +175,11 @@ class UploadQueue extends Component {
   }
 
   render() {
-    const { dongleId, classes, filesUploading } = this.props;
+    const { dongleId, classes, filesUploading, filesUploadingMeta } = this.props;
     const { cancelQueue, windowWidth } = this.state;
 
-    const hasUploading = filesUploading && Object.keys(filesUploading).length > 0;
+    const hasData = filesUploadingMeta.dongleId === dongleId;
+    const hasUploading = hasData && Object.keys(filesUploading).length > 0;
     const logNameLength = windowWidth < 600 ? 4 : 64;
 
     return ( <>
@@ -208,7 +212,7 @@ class UploadQueue extends Component {
                   </tr>
                 </thead>
                 <tbody>
-                  { Object.entries(filesUploading).reverse().map(([id, upload]) => {
+                  { Object.entries(filesUploading).map(([id, upload]) => {
                     const isCancelled = cancelQueue.includes(id);
                     const [seg, type] = upload.fileName.split('/');
                     const prog = parseInt(upload.progress * 100);
@@ -241,7 +245,7 @@ class UploadQueue extends Component {
                 </tbody>
               </table>
             :
-              filesUploading ?
+              hasData ?
                 <p>no uploads</p> :
                 <CircularProgress style={{ color: Colors.white, margin: 8 }} size={ 17 } />
             }
@@ -258,9 +262,8 @@ class UploadQueue extends Component {
 }
 
 const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  files: 'files',
   filesUploading: 'filesUploading',
+  filesUploadingMeta: 'filesUploadingMeta',
 });
 
 export default connect(stateToProps)(withStyles(styles)(UploadQueue));

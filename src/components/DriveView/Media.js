@@ -358,7 +358,7 @@ class Media extends Component {
       uploading[fileName] = {};
       this.props.dispatch(updateFiles(uploading));
     } else {
-      this.props.dispatch(fetchUploadQueue());
+      this.props.dispatch(fetchUploadQueue(dongleId));
     }
   }
 
@@ -439,7 +439,7 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { currentSegment, device, classes, files } = this.props;
+    const { currentSegment, device, dongleId, classes, files } = this.props;
     const { downloadMenu, moreInfoMenu, uploadModal } = this.state;
 
     if (!device) {
@@ -533,7 +533,7 @@ class Media extends Component {
         </MenuItem>
       </Menu>
       <UploadQueue open={ uploadModal } onClose={ () => this.setState({ uploadModal: false }) }
-        update={ Boolean(uploadModal || downloadMenu) } store={ this.props.store } />
+        update={ Boolean(uploadModal || downloadMenu) } store={ this.props.store } dongleId={ dongleId } />
     </> );
   }
 }

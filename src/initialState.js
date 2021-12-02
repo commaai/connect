@@ -69,7 +69,11 @@ export default {
   subscribeInfo: null,
 
   files: null,
-  filesUploading: null,
+  filesUploading: {},
+  filesUploadingMeta: {
+    dongleId: null,
+    fetchedAt: null,
+  },
 
   filter: getDefaultFilter(),
   zoom: getZoom(window.location.pathname),

@@ -77,9 +77,9 @@ export function fetchFiles(routeName, nocache=false) {
   };
 }
 
-export function fetchUploadQueue() {
+export function fetchUploadQueue(dongleId) {
   return async (dispatch, getState) => {
-    const { dongleId, filesUploading } = getState();
+    const { filesUploading } = getState();
     const payload = {
       method: 'listUploadQueue',
       jsonrpc: '2.0',

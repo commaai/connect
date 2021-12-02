@@ -56,7 +56,6 @@ export default function reducer(_state, action) {
         subscription: null,
         subscribeInfo: null,
         files: null,
-        filesUploading: null,
       };
       if (state.devices) {
         state.device = state.devices.find((device) => device.dongle_id === action.dongleId);
@@ -173,6 +172,10 @@ export default function reducer(_state, action) {
       break;
     case ACTION_FILES_UPLOADING:
       state.filesUploading = action.uploading;
+      state.filesUploadingMeta = {
+        dongleId: action.dongleId,
+        fetchedAt: parseInt(Date.now() / 1000),
+      };
       state.files = {
         ...(state.files !== null ? { ...state.files } : {}),
         ...action.files,
