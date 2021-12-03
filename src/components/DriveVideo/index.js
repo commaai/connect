@@ -10,6 +10,7 @@ import * as Sentry from '@sentry/react';
 
 import { video as VideoApi } from '@commaai/comma-api';
 
+import Colors from '../../colors';
 import { seek, bufferVideo, currentOffset } from '../../timeline/playback';
 import { updateSegments } from '../../timeline/segments';
 
@@ -197,7 +198,7 @@ class DriveVideo extends Component {
         { isBufferingVideo &&
           <div className={ classes.bufferingContainer }>
             <div className={ classes.bufferingSpinner }>
-              <CircularProgress style={{ color: Colors.white }} thickness={ 6 } size={ 50 } />
+              <CircularProgress style={{ color: Colors.white }} thickness={ 4 } size={ 50 } />
             </div>
           </div>
         }
