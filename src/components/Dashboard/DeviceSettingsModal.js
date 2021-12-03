@@ -21,6 +21,7 @@ import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 
 import { devices as DevicesApi } from '@commaai/comma-api';
 import { primeNav, selectDevice, updateDevice } from '../../actions';
+import UploadQueue from '../Files/UploadQueue';
 import Colors from '../../colors';
 
 const styles = (theme) => ({
@@ -124,6 +125,7 @@ class DeviceSettingsModal extends Component {
       loadingUnpair: false,
       error: null,
       unpairError: null,
+      uploadModal: false,
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -287,11 +289,15 @@ class DeviceSettingsModal extends Component {
           <Divider />
           <div className={ classes.topButtonGroup }>
             <Button variant="outlined" className={ classes.primeManageButton } onClick={ this.onPrimeSettings }>
-              Manage prime settings
+              Prime settings
+            </Button>
+            <Button variant="outlined" className={ classes.primeManageButton }
+              onClick={ () => this.setState({ uploadModal: true }) }>
+              Uploads
             </Button>
             <Button variant="outlined" className={ classes.primeManageButton }
               onClick={ () => this.setState({ unpairConfirm: true }) }>
-              Unpair device
+              Unpair
             </Button>
           </div>
           <div className={classes.form}>
@@ -372,6 +378,8 @@ class DeviceSettingsModal extends Component {
           </div>
         </Paper>
       </Modal>
+      <UploadQueue open={ this.state.uploadModal } update={ this.state.uploadModal }
+        onClose={ () => this.setState({ uploadModal: false }) } device={ device } />
     </> );
   }
 }

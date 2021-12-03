@@ -14,7 +14,6 @@ import { selectRange } from '../../actions';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
-import { currentOffset } from '../../timeline/playback';
 
 const styles = (theme) => ({
   window: {
@@ -59,18 +58,8 @@ class DriveView extends Component {
     this.setState({ windowWidth });
   }
 
-  visibleSegment(props = this.props) {
-    const offset = currentOffset();
-    const currSegment = props.currentSegment;
-    if (currSegment && currSegment.routeOffset <= offset && offset <= currSegment.routeOffset + currSegment.duration) {
-      return currSegment;
-    }
-    return null;
-  }
-
   render() {
-    const { classes, dongleId, zoom, loop, filter } = this.props;
-    const visibleSegment = this.visibleSegment();
+    const { classes, dongleId, zoom } = this.props;
     const viewerPadding = this.state.windowWidth < 768 ? 12 : 32
 
     const viewEndTime = fecha.format(new Date(zoom.end), 'HH:mm');
@@ -99,7 +88,7 @@ class DriveView extends Component {
             <Timeline className={classes.headerTimeline} hasRuler />
           </div>
           <div style={{ padding: viewerPadding }}>
-            <Media visibleSegment={ visibleSegment } loop={ loop } start={ filter.start } />
+            <Media />
           </div>
         </div>
       </>
@@ -108,11 +97,7 @@ class DriveView extends Component {
 }
 
 const stateToProps = Obstruction({
-  currentSegment: 'currentSegment',
   dongleId: 'dongleId',
-  device: 'device',
-  loop: 'loop',
-  filter: 'filter',
   zoom: 'zoom',
 });
 

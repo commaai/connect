@@ -109,7 +109,7 @@ const styles = (/* theme */) => ({
     position: 'absolute',
     top: 83,
     left: 0,
-    width: 70,
+    width: 80,
   },
 });
 
@@ -136,6 +136,7 @@ class Timeline extends Component {
     this.handlePointerUp = this.handlePointerUp.bind(this);
     this.handlePointerLeave = this.handlePointerLeave.bind(this);
     this.percentToOffset = this.percentToOffset.bind(this);
+    this.segmentNum = this.segmentNum.bind(this);
     this.renderSegment = this.renderSegment.bind(this);
 
     this.rulerRemaining = React.createRef();
@@ -261,6 +262,16 @@ class Timeline extends Component {
     return (offset - (zoom.start - filter.start)) / (zoom.end - zoom.start);
   }
 
+  segmentNum(offset) {
+    const { segments } = this.props;
+    for (const segment of segments) {
+      if (segment.offset <= offset && segment.offset + segment.duration >= offset) {
+        return Math.floor((offset - segment.offset) / 60000);
+      }
+    }
+    return null;
+  }
+
   renderSegment(segment) {
     const { classes, filter } = this.props;
     const { zoom } = this.state;
@@ -334,9 +345,13 @@ class Timeline extends Component {
     let hoverString, hoverStyle;
     if (rulerBounds && hoverX) {
       const hoverOffset = this.percentToOffset((hoverX - rulerBounds.x) / rulerBounds.width);
-      hoverStyle = { left: Math.max(-10, Math.min(rulerBounds.width - 60, hoverX - rulerBounds.x - 35)) };
+      hoverStyle = { left: Math.max(-10, Math.min(rulerBounds.width - 70, hoverX - rulerBounds.x - 40)) };
       if (!Number.isNaN(hoverOffset)) {
         hoverString = fecha.format(filter.start + hoverOffset, 'HH:mm:ss');
+        const segNum = this.segmentNum(hoverOffset);
+        if (segNum !== null) {
+          hoverString = `${segNum}, ${hoverString}`;
+        }
       }
     }
 

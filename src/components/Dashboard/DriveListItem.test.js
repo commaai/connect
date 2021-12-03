@@ -24,7 +24,9 @@ describe('drive list items', () => {
       drive={{
         startTime: 1570830798378,
         duration: 1234,
-        distanceMiles: 12.5212
+        distanceMiles: 12.5212,
+        startCoord: [0, 0],
+        endCoord: [0, 0],
       }}
     />);
     expect(elem.exists()).toBe(true);

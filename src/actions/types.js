@@ -25,3 +25,9 @@ export const ACTION_RESET = 'action_reset';
 export const ACTION_UPDATE_SEGMENTS = 'update_segments';
 export const ACTION_LOAD_SEGMENT_METADATA = 'load_segment_metadata';
 export const ACTION_SEGMENT_METADATA = 'segment_metadata';
+
+// files
+export const ACTION_FILES_URLS = 'files_urls';
+export const ACTION_FILES_UPDATE = 'files_update';
+export const ACTION_FILES_UPLOADING = 'files_uploading';
+export const ACTION_FILES_CANCELLED_UPLOAD = 'files_cancelled_upload';

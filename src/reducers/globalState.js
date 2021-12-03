@@ -8,6 +8,11 @@ import {
   ACTION_PRIME_SUBSCRIPTION,
   ACTION_PRIME_SUBSCRIBE_INFO,
   ACTION_UPDATE_DEVICE_ONLINE,
+  TIMELINE_SELECTION_CHANGED,
+  ACTION_FILES_URLS,
+  ACTION_FILES_UPDATE,
+  ACTION_FILES_UPLOADING,
+  ACTION_FILES_CANCELLED_UPLOAD,
 } from '../actions/types';
 import { emptyDevice } from '../utils';
 
@@ -51,6 +56,7 @@ export default function reducer(_state, action) {
         primeNav: false,
         subscription: null,
         subscribeInfo: null,
+        files: null,
       };
       if (state.devices) {
         state.device = state.devices.find((device) => device.dongle_id === action.dongleId);
@@ -152,6 +158,51 @@ export default function reducer(_state, action) {
         subscribeInfo: action.subscribeInfo,
         subscription: null,
       };
+      break;
+    case TIMELINE_SELECTION_CHANGED:
+      if (!state.zoom.expanded || !action.start || !action.end ||
+        action.start < state.zoom.start || action.end > state.zoom.end)
+      {
+        state.files = null;
+      }
+      state.zoom = {
+        start: action.start,
+        end: action.end,
+        expanded: Boolean(action.start && action.end),
+      };
+      break;
+    case ACTION_FILES_URLS:
+      state.files = {
+        ...(state.files !== null ? { ...state.files } : {}),
+        ...action.urls,
+      };
+      break;
+    case ACTION_FILES_UPDATE:
+      state.files = {
+        ...(state.files !== null ? { ...state.files } : {}),
+        ...action.files,
+      };
+      break;
+    case ACTION_FILES_UPLOADING:
+      state.filesUploading = action.uploading;
+      state.filesUploadingMeta = {
+        dongleId: action.dongleId,
+        fetchedAt: Date.now(),
+      };
+      if (Object.keys(action.files).length) {
+        state.files = {
+          ...(state.files !== null ? { ...state.files } : {}),
+          ...action.files,
+        };
+      }
+      break;
+    case ACTION_FILES_CANCELLED_UPLOAD:
+      if (state.files) {
+        state.files = { ...state.files };
+      }
+      delete state.files[action.fileName];
+      state.filesUploading = { ...state.filesUploading };
+      delete state.filesUploading[action.id];
       break;
     default:
       return state;

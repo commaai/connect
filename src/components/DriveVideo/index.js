@@ -136,7 +136,6 @@ class DriveVideo extends Component {
 
   syncVideo() {
     if (!this.visibleSegment()) {
-      console.log('segment update');
       this.props.dispatch(updateSegments());
       return;
     }

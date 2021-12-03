@@ -10,6 +10,7 @@ const winOpenMock = jest.fn(() => ({
   focus: jest.fn()
 }));
 window.open = winOpenMock;
+window.CABANA_URL_ROOT = 'https://cabana.comma.ai/';
 
 jest.mock('../../timeline/playback', () => {
   const originalModule = jest.requireActual('../../timeline/playback');
@@ -31,11 +32,18 @@ describe('Media', () => {
     const routeStartTime = start + routeOffset;
     const loopStartTime = routeStartTime + Math.round(Math.random() * 10000);
     const offset = loopStartTime - start + Math.round(Math.random() * 10000);
-    currentOffset.mockImplementationOnce(() => offset);
-    const media = mount(
-      <Media visibleSegment={{ routeOffset }} loop={{ startTime: loopStartTime, duration: 15000 }} start={start}
-        store={{ subscribe: () => {}, dispatch: () => {}, getState: () => {} }} menusOnly />
-    );
+    const getState = () => {
+      return {
+        filesUploading: {},
+        filesUploadingMeta: {},
+        currentSegment: { routeOffset },
+        loop: { startTime: loopStartTime, duration: 15000 },
+        filter: { start },
+        device: { device_type: 'three' },
+      };
+    }
+    currentOffset.mockImplementation(() => offset);
+    const media = mount( <Media store={{ subscribe: () => {}, dispatch: () => {}, getState }} menusOnly /> );
 
     expect(media.exists()).toBe(true);
     const openInCabana = media.find('#openInCabana').first();
@@ -67,12 +75,18 @@ describe('Media', () => {
     const routeStartTime = start + routeOffset;
     const loopStartTime = routeStartTime + Math.round(Math.random() * 10000);
     const offset = loopStartTime - start + Math.round(Math.random() * 10000);
-    currentOffset.mockImplementationOnce(() => offset);
-    const media = mount(
-      <Media visibleSegment={{ routeOffset }} start={start} menusOnly
-        store={{ subscribe: () => {}, dispatch: () => {}, getState: () => {} }}
-        loop={{ startTime: loopStartTime, duration: 181000 }} />
-    );
+    currentOffset.mockImplementation(() => offset);
+    const getState = () => {
+      return {
+        filesUploading: {},
+        filesUploadingMeta: {},
+        currentSegment: { routeOffset },
+        filter: { start },
+        device: { device_type: 'three' },
+        loop: { startTime: loopStartTime, duration: 181000 },
+      };
+    };
+    const media = mount( <Media store={{ subscribe: () => {}, dispatch: () => {}, getState }} menusOnly /> );
 
     expect(media.exists()).toBe(true);
     const openInCabana = media.find('#openInCabana').first();
