@@ -4,8 +4,9 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button  } from '@material-ui/core';
+import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, IconButton } from '@material-ui/core';
 import WarningIcon from '@material-ui/icons/Warning';
+import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import { raw as RawApi, athena as AthenaApi } from '@commaai/comma-api';
 
 import DriveMap from '../DriveMap';
@@ -117,6 +118,17 @@ const styles = (theme) => ({
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  copySegment: {
+    pointerEvents: 'auto',
+    opacity: 1,
+    '& div': {
+      fontSize: '0.8rem',
+      padding: '0 6px',
+      borderRadius: 4,
+      backgroundColor: Colors.white08,
+      marginRight: 4,
+    },
   },
 });
 
@@ -607,14 +619,15 @@ class Media extends Component {
       <Menu id="menu-info" open={ Boolean(alwaysOpen || moreInfoMenu) }
         anchorEl={ moreInfoMenu } onClose={ () => this.setState({ moreInfoMenu: null }) }
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <MenuItem className={ classes.copySegment } onClick={ this.copySegmentName }>
+          <div>{ currentSegment.route }--{ this.currentSegmentNum() }</div>
+          <ContentCopyIcon />
+        </MenuItem>
         <MenuItem onClick={ this.openInCabana } id="openInCabana" >
           View in cabana
         </MenuItem>
         <MenuItem onClick={ this.openInUseradmin }>
           View in useradmin
-        </MenuItem>
-        <MenuItem onClick={ this.copySegmentName }>
-          Copy to clipboard
         </MenuItem>
       </Menu>
       <UploadQueue open={ uploadModal } onClose={ () => this.setState({ uploadModal: false }) }
