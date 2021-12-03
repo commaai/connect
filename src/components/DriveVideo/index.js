@@ -44,11 +44,6 @@ const styles = () => ({
     textAlign: 'center',
     top: 'calc(50% - 25px)',
   },
-  bufferingText: {
-    position: 'relative',
-    textAlign: 'center',
-    top: '50%',
-  },
 });
 
 class DriveVideo extends Component {
@@ -202,10 +197,7 @@ class DriveVideo extends Component {
         { isBufferingVideo &&
           <div className={ classes.bufferingContainer }>
             <div className={ classes.bufferingSpinner }>
-              <CircularProgress color="secondary" thickness={ 6 } size={ 50 } />
-            </div>
-            <div className={ classes.bufferingText }>
-              <Typography>Buffering video</Typography>
+              <CircularProgress style={{ color: Colors.white }} thickness={ 6 } size={ 50 } />
             </div>
           </div>
         }
