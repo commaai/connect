@@ -27,22 +27,6 @@ const styles = (theme) => ({
     alignItems: 'baseline',
     marginBottom: 5,
   },
-  titleRow: {
-    display: 'flex',
-    alignItems: 'baseline',
-    '& button': {
-      marginLeft: 8,
-      fontWeight: 600,
-      borderRadius: 13,
-      fontSize: '0.8rem',
-      padding: '2px 10px',
-      minHeight: 19,
-      backgroundColor: Colors.white05,
-      '&:hover': {
-        backgroundColor: Colors.white10,
-      },
-    },
-  },
   buttonGroup: {
     textAlign: 'right'
   },
@@ -93,6 +77,7 @@ const styles = (theme) => ({
     },
   },
   cancelButton: {
+    marginLeft: 8,
     backgroundColor: Colors.grey200,
     color: Colors.white,
     '&:hover': {
@@ -199,16 +184,7 @@ class UploadQueue extends Component {
       <Modal aria-labelledby="upload-queue-modal" open={ this.props.open } onClose={ this.props.onClose }>
         <Paper className={ classes.modal }>
           <div className={ classes.titleContainer }>
-            <div className={ classes.titleRow }>
-              <Typography variant="title">
-                { windowWidth < 450 ? 'Uploads' : 'Upload queue' }
-              </Typography>
-              { hasUploading &&
-                <Button onClick={ () => this.cancelUploads() }>
-                  cancel all
-                </Button>
-              }
-            </div>
+            <Typography variant="title">Upload queue</Typography>
             <Typography variant="caption" style={{ marginLeft: 8 }}>{ device.dongle_id }</Typography>
           </div>
           <Divider />
@@ -267,6 +243,10 @@ class UploadQueue extends Component {
             }
           </div>
           <div className={classes.buttonGroup}>
+            <Button variant="contained" className={ classes.cancelButton } disabled={ !hasUploading }
+              onClick={ hasUploading ? () => this.cancelUploads() : null }>
+              cancel all
+            </Button>
             <Button variant="contained" className={ classes.cancelButton } onClick={ this.props.onClose }>
               Close
             </Button>
