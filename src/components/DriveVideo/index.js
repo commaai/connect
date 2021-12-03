@@ -10,6 +10,7 @@ import * as Sentry from '@sentry/react';
 
 import { video as VideoApi } from '@commaai/comma-api';
 
+import Colors from '../../colors';
 import { seek, bufferVideo, currentOffset } from '../../timeline/playback';
 import { updateSegments } from '../../timeline/segments';
 
@@ -43,11 +44,6 @@ const styles = () => ({
     position: 'relative',
     textAlign: 'center',
     top: 'calc(50% - 25px)',
-  },
-  bufferingText: {
-    position: 'relative',
-    textAlign: 'center',
-    top: '50%',
   },
 });
 
@@ -202,10 +198,7 @@ class DriveVideo extends Component {
         { isBufferingVideo &&
           <div className={ classes.bufferingContainer }>
             <div className={ classes.bufferingSpinner }>
-              <CircularProgress color="secondary" thickness={ 6 } size={ 50 } />
-            </div>
-            <div className={ classes.bufferingText }>
-              <Typography>Buffering video</Typography>
+              <CircularProgress style={{ color: Colors.white }} thickness={ 4 } size={ 50 } />
             </div>
           </div>
         }
