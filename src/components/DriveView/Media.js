@@ -95,15 +95,19 @@ const styles = (theme) => ({
     opacity: 1,
   },
   uploadButton: {
-    marginLeft: 8,
+    marginLeft: 12,
     color: Colors.white,
     borderRadius: 13,
     fontSize: '0.8rem',
     padding: '4px 12px',
     minHeight: 19,
+    backgroundColor: Colors.white05,
+    '&:hover': {
+      backgroundColor: Colors.white10,
+    },
   },
   fakeUploadButton: {
-    marginLeft: 8,
+    marginLeft: 12,
     color: Colors.white,
     fontSize: '0.8rem',
     padding: '4px 12px',
@@ -512,12 +516,12 @@ class Media extends Component {
     const resName = windowWidth < 425 ? 'res' : 'resolution';
     const uploadButtonWidth = windowWidth < 425 ? 70 : 120;
     const buttons = [
-      [qcam, 'Camera segment', 'qcameras'],
-      [fcam, `Full ${resName} camera segment`, 'cameras'],
-      device && device.device_type === 'three' ? [ecam, 'Wide road camera segment', 'ecameras'] : null,
-      [dcam, 'Driver camera segment', 'dcameras'],
-      [qlog, 'Log segment', 'qlogs'],
-      [rlog, 'Raw log segment', 'logs'],
+      // [qcam, 'Camera segment', 'qcameras'],
+      [fcam, `Road camera`, 'cameras'],
+      device && device.device_type === 'three' ? [ecam, 'Wide road camera', 'ecameras'] : null,
+      [dcam, 'Driver camera', 'dcameras'],
+      // [qlog, 'Log segment', 'qlogs'],
+      [rlog, 'Log', 'logs'],
     ];
 
     const stats = this.getUploadStats();
@@ -536,10 +540,15 @@ class Media extends Component {
         }
         { buttons.filter((b) => Boolean(b)).flatMap(([file, name, type]) => [
           type === 'qlogs' ? <Divider key={ 'divider' } /> : null,
-          <MenuItem key={ type } onClick={ file.url ? () => this.downloadFile(file.url) : null }
-            className={ classes.filesItem } disabled={ !file.url } style={ !file.url ? disabledStyle : {} }
+          <MenuItem key={ type } disabled={ true } style={ disabledStyle } className={ classes.filesItem }
             title={ Boolean(!file.url && !online) ? 'connect device to enable uploading' : null }>
-            <span style={ !file.url ? { color: Colors.white60 } : {} }>{ name }</span>
+            <span style={ !files ? { color: Colors.white60 } : {} }>{ name }</span>
+            { Boolean(files && file.url) &&
+              <Button className={ classes.uploadButton } style={{ width: uploadButtonWidth }}
+                onClick={ () => this.downloadFile(file.url) }>
+                download
+              </Button>
+            }
             { Boolean(files && !file.url && online && file.progress === undefined && !file.requested) &&
               <Button className={ classes.uploadButton } style={{ width: uploadButtonWidth }}
                 onClick={ () => this.uploadFile(type) }>
@@ -563,7 +572,7 @@ class Media extends Component {
           className={ classes.filesItem } disabled={ rlogUploadDisabled }
           title={ Boolean(stats && !stats.hasUploadedRlog && !online) ? 'connect device to enable uploading' : null }
           style={ rlogUploadDisabled ? { ...disabledStyle, color: Colors.white60 } : {} }>
-          Request upload all raw logs
+          Request upload all logs
           { Boolean(rlogUploadDisabled && stats) &&
             <div className={ classes.fakeUploadButton } style={{ width: (uploadButtonWidth - 24) }}>
               { stats.hasUploadedRlog ?
@@ -587,6 +596,7 @@ class Media extends Component {
             </div>
           }
         </MenuItem>
+        <Divider />
         <MenuItem onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
           className={ classes.filesItem } disabled={ !files }
           style={ !files ? { ...disabledStyle, color: Colors.white60 } : {} }>
