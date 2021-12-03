@@ -130,6 +130,40 @@ const styles = (theme) => ({
       marginRight: 4,
     },
   },
+  viewCabanaUploads: {
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '0.8rem',
+    padding: '0 6px 0 2px',
+    borderRadius: 4,
+    backgroundColor: Colors.white08,
+    marginLeft: 8,
+    '& svg': {
+      height: 18,
+    },
+    '& button': {
+      marginLeft: 8,
+      marginRight: -6,
+      color: Colors.white,
+      fontSize: '0.8rem',
+      padding: '4px 0',
+      minHeight: 19,
+      backgroundColor: Colors.white05,
+      '&:hover': {
+        backgroundColor: Colors.white10,
+      },
+    },
+  },
+  viewCabanaFakeUploads: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 100,
+    height: 25,
+    backgroundColor: Colors.white08,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
 });
 
 const FILE_NAMES = {
@@ -182,13 +216,13 @@ class Media extends Component {
   }
 
   componentDidUpdate(_, prevState) {
-    const { windowWidth, inView, downloadMenu } = this.state;
+    const { windowWidth, inView, downloadMenu, moreInfoMenu } = this.state;
     const showMapAlways = windowWidth >= 1536;
     if (showMapAlways && inView === MediaType.MAP) {
       this.setState({ inView: MediaType.VIDEO });
     }
 
-    if (!prevState.downloadMenu && downloadMenu) {
+    if ((!prevState.downloadMenu && downloadMenu) || (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu)) {
       if (Demo.isDemo()) {
         this.props.dispatch(fetchFiles('3533c53bb29502d1|2019-12-10--01-13-27'));
       } else {
@@ -626,13 +660,28 @@ class Media extends Component {
         </MenuItem>
         <MenuItem onClick={ this.openInCabana } id="openInCabana" >
           View in cabana
+          { Boolean(files && stats && stats.canRequestRlog) &&
+            <div className={ classes.viewCabanaUploads }>
+              <WarningIcon /> missing { stats.canRequestRlog } logs
+              { online &&
+                <Button onClick={ (ev) => { this.uploadFilesAll(['logs']); ev.stopPropagation(); } }>
+                  upload
+                </Button>
+              }
+            </div>
+          }
+          { Boolean(online && rlogUploadDisabled && stats && !stats.isUploadedRlog && !stats.isUploadingRlog) &&
+            <div className={ classes.viewCabanaFakeUploads }>
+              <CircularProgress style={{ color: Colors.white }} size={ 15 } />
+            </div>
+          }
         </MenuItem>
         <MenuItem onClick={ this.openInUseradmin }>
           View in useradmin
         </MenuItem>
       </Menu>
       <UploadQueue open={ uploadModal } onClose={ () => this.setState({ uploadModal: false }) }
-        update={ Boolean(uploadModal || downloadMenu) } store={ this.props.store } device={ device } />
+        update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) } store={ this.props.store } device={ device } />
     </> );
   }
 }

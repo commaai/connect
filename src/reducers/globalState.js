@@ -189,10 +189,12 @@ export default function reducer(_state, action) {
         dongleId: action.dongleId,
         fetchedAt: Date.now(),
       };
-      state.files = {
-        ...(state.files !== null ? { ...state.files } : {}),
-        ...action.files,
-      };
+      if (Object.keys(action.files).length) {
+        state.files = {
+          ...(state.files !== null ? { ...state.files } : {}),
+          ...action.files,
+        };
+      }
       break;
     case ACTION_FILES_CANCELLED_UPLOAD:
       if (state.files) {
