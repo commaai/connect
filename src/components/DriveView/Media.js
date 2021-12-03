@@ -621,7 +621,7 @@ class Media extends Component {
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
         <MenuItem className={ classes.copySegment } onClick={ this.copySegmentName }
           style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}>
-          <div>{ currentSegment.route }--{ this.currentSegmentNum() }</div>
+          <div>{ currentSegment ? `${currentSegment.route}--${this.currentSegmentNum()}` : '---' }</div>
           <ContentCopyIcon />
         </MenuItem>
         <MenuItem onClick={ this.openInCabana } id="openInCabana" >
