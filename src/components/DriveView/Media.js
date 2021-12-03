@@ -148,7 +148,6 @@ class Media extends Component {
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
     this.copySegmentName = this.copySegmentName.bind(this);
-    this.downloadFile = this.downloadFile.bind(this);
     this.openInCabana = this.openInCabana.bind(this);
     this.openInUseradmin = this.openInUseradmin.bind(this);
     this.routesInLoop = this.routesInLoop.bind(this);
@@ -198,13 +197,6 @@ class Media extends Component {
   currentSegmentNum() {
     const offset = currentOffset();
     return Math.floor((offset - this.props.currentSegment.routeOffset) / 60000);
-  }
-
-  async downloadFile(url) {
-    if (url) {
-      window.location.href = url;
-    }
-    this.setState({ downloadMenu: null });
   }
 
   openInCabana() {
@@ -541,7 +533,7 @@ class Media extends Component {
             <span style={ !files ? { color: Colors.white60 } : {} }>{ name }</span>
             { Boolean(files && file.url) &&
               <Button className={ classes.uploadButton } style={{ width: uploadButtonWidth }}
-                onClick={ () => this.downloadFile(file.url) }>
+                onClick={ () => window.location.href = file.url }>
                 download
               </Button>
             }
