@@ -4,8 +4,8 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Modal,
-  Paper } from '@material-ui/core';
+import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button  } from '@material-ui/core';
+import WarningIcon from '@material-ui/icons/Warning';
 import { raw as RawApi, athena as AthenaApi } from '@commaai/comma-api';
 
 import DriveMap from '../DriveMap';
@@ -93,6 +93,9 @@ const styles = (theme) => ({
   filesItem: {
     justifyContent: 'space-between',
     opacity: 1,
+  },
+  offlineMenuItem: {
+    '& svg': { marginRight: 8 },
   },
   uploadButton: {
     marginLeft: 12,
@@ -364,32 +367,25 @@ class Media extends Component {
     }
   }
 
-  _uploadStats(types, uploaded, uploading, requested) {
+  _uploadStats(types, count, uploaded, uploading, requested) {
     const { segmentData, loop, files } = this.props;
     for (const segment of segmentData.segments) {
       if (segment.start_time_utc_millis < loop.startTime + loop.duration &&
         segment.start_time_utc_millis + segment.duration > loop.startTime)
       {
         for (const type of types) {
+          count += 1;
           const log = files[`${segment.canonical_name}/${type}`];
           if (log) {
-            uploaded = uploaded && Boolean(log.url);
-            uploading = uploading && Boolean(log.url || log.progress !== undefined);
-            requested = requested && Boolean(log.url || log.progress !== undefined || log.requested);
-          } else {
-            uploaded = false;
-            uploading = false;
-            requested = false;
-          }
-
-          if (!uploaded && !uploading && !requested) {
-            return [ false, false, false ];
+            uploaded += Boolean(log.url);
+            uploading += Boolean(log.progress !== undefined);
+            requested += Boolean(log.requested);
           }
         }
       }
     }
 
-    return [ uploaded, uploading, requested ];
+    return [ count, uploaded, uploading, requested ];
   }
 
   getUploadStats() {
@@ -398,13 +394,20 @@ class Media extends Component {
       return null;
     }
 
-    const [ hasUploadedRlog, isUploadingRlog, hasRequestedRlog ] = this._uploadStats(['logs'], true, true, true);
+    const [ countRlog, uploadedRlog, uploadingRlog, requestedRlog ] = this._uploadStats(['logs'], 0, 0, 0, 0);
 
     const camTypes = ['cameras', 'dcameras'].concat(device.device_type === 'three' ? ['ecameras'] : []);
-    const [ hasUploadedAll, isUploadingAll, hasRequestedAll ] =
-      this._uploadStats(camTypes, hasUploadedRlog, isUploadingRlog, hasRequestedRlog);
+    const [ countAll, uploadedAll, uploadingAll, requestedAll ] =
+      this._uploadStats(camTypes, countRlog, uploadedRlog, uploadingRlog, requestedRlog);
 
-    return { hasUploadedAll, hasUploadedRlog, isUploadingAll, isUploadingRlog, hasRequestedAll, hasRequestedRlog };
+    return {
+      canRequestAll: countAll - uploadedAll - uploadingAll - requestedAll,
+      canRequestRlog: countRlog - uploadedRlog - uploadingRlog - requestedRlog,
+      isUploadingAll: !Boolean(countAll - uploadedAll - uploadingAll),
+      isUploadingRlog: !Boolean(countRlog - uploadedRlog - uploadingRlog),
+      isUploadedAll: !Boolean(countAll - uploadedAll),
+      isUploadedRlog: !Boolean(countRlog - uploadedRlog),
+    };
   }
 
   render() {
@@ -491,20 +494,16 @@ class Media extends Component {
       return;
     }
 
-    const disabledStyle = { pointerEvents: 'auto' };
-    const online = deviceIsOnline(device);
-
-    let qcam = {}, fcam = {}, ecam = {}, dcam = {}, qlog = {}, rlog = {};
+    let fcam = {}, ecam = {}, dcam = {}, rlog = {};
     if (files && currentSegment) {
       const seg = `${currentSegment.route}--${this.currentSegmentNum()}`;
-      qcam = files[`${seg}/qcameras`] || {};
       fcam = files[`${seg}/cameras`] || {};
       ecam = files[`${seg}/ecameras`] || {};
       dcam = files[`${seg}/dcameras`] || {};
-      qlog = files[`${seg}/qlogs`] || {};
       rlog = files[`${seg}/logs`] || {};
     }
 
+    const online = deviceIsOnline(device);
     const uploadButtonWidth = windowWidth < 425 ? 70 : 120;
     const buttons = [
       [fcam, `Road camera`, 'cameras'],
@@ -514,8 +513,8 @@ class Media extends Component {
     ];
 
     const stats = this.getUploadStats();
-    const rlogUploadDisabled = !online || !stats || stats.hasUploadedRlog || stats.isUploadingRlog || stats.hasRequestedRlog;
-    const allUploadDisabled = !online || !stats || stats.hasUploadedAll || stats.isUploadingAll || stats.hasRequestedAll;
+    const rlogUploadDisabled = !online || !stats || stats.isUploadedRlog || stats.isUploadingRlog || !stats.canRequestRlog;
+    const allUploadDisabled = !online || !stats || stats.isUploadedAll || stats.isUploadingAll || !stats.canRequestAll;
 
     return ( <>
       <Menu id="menu-download" open={ Boolean(alwaysOpen || downloadMenu) }
@@ -528,9 +527,9 @@ class Media extends Component {
           </div>
         }
         { buttons.filter((b) => Boolean(b)).map(([file, name, type]) => (
-          <MenuItem key={ type } disabled={ true } style={ disabledStyle } className={ classes.filesItem }
-            title={ Boolean(!file.url && !online) ? 'connect device to enable uploading' : null }>
-            <span style={ !files ? { color: Colors.white60 } : {} }>{ name }</span>
+          <MenuItem key={ type } disabled={ true } className={ classes.filesItem }
+            style={ Boolean(files && (file.url || online)) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
+            { name }
             { Boolean(files && file.url) &&
               <Button className={ classes.uploadButton } style={{ width: uploadButtonWidth }}
                 onClick={ () => window.location.href = file.url }>
@@ -556,28 +555,36 @@ class Media extends Component {
           </MenuItem>
         )) }
         <Divider />
-        <MenuItem onClick={ !rlogUploadDisabled ? () => this.uploadFilesAll(['logs']) : null }
-          className={ classes.filesItem } disabled={ rlogUploadDisabled }
-          title={ Boolean(stats && !stats.hasUploadedRlog && !online) ? 'connect device to enable uploading' : null }
-          style={ rlogUploadDisabled ? { ...disabledStyle, color: Colors.white60 } : {} }>
-          Request upload all logs
+        <MenuItem className={ classes.filesItem } disabled={ true }
+          style={ Boolean(files && (stats.isUploadedRlog || online)) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
+          All logs
+          { Boolean(files && online && !rlogUploadDisabled) &&
+            <Button className={ classes.uploadButton } style={{ width: uploadButtonWidth }}
+              onClick={ () => this.uploadFilesAll(['logs']) }>
+              upload { stats.canRequestRlog } logs
+            </Button>
+          }
           { Boolean(rlogUploadDisabled && stats) &&
             <div className={ classes.fakeUploadButton } style={{ width: (uploadButtonWidth - 24) }}>
-              { stats.hasUploadedRlog ?
+              { stats.isUploadedRlog ?
                 'uploaded' :
                 (stats.isUploadingRlog ? 'pending' :
                   ( online && <CircularProgress style={{ color: Colors.white }} size={ 17 } /> )) }
             </div>
           }
         </MenuItem>
-        <MenuItem onClick={ !allUploadDisabled ? () => this.uploadFilesAll() : null }
-          className={ classes.filesItem } disabled={ allUploadDisabled }
-          title={ Boolean(stats && !stats.hasUploadedAll && !online) ? 'connect device to enable uploading' : null }
-          style={ allUploadDisabled ? { ...disabledStyle, color: Colors.white60 } : {} }>
-          Request upload all files
+        <MenuItem className={ classes.filesItem } disabled={ true }
+          style={ Boolean(files && (stats.isUploadedAll || online)) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
+          All files
+          { Boolean(files && online && !allUploadDisabled) &&
+            <Button className={ classes.uploadButton } style={{ width: uploadButtonWidth }}
+              onClick={ () => this.uploadFilesAll() }>
+              upload { stats.canRequestAll } files
+            </Button>
+          }
           { Boolean(allUploadDisabled && stats) &&
             <div className={ classes.fakeUploadButton } style={{ width: (uploadButtonWidth - 24) }}>
-              { stats.hasUploadedAll ?
+              { stats.isUploadedAll ?
                 'uploaded' :
                 (stats.isUploadingAll ? 'pending' :
                   ( online && <CircularProgress style={{ color: Colors.white }} size={ 17 } /> )) }
@@ -585,11 +592,17 @@ class Media extends Component {
           }
         </MenuItem>
         <Divider />
-        <MenuItem onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
-          className={ classes.filesItem } disabled={ !files }
-          style={ !files ? { ...disabledStyle, color: Colors.white60 } : {} }>
-          View upload queue
-        </MenuItem>
+        { Boolean(online || !files) ?
+          <MenuItem onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
+            style={ Boolean(files) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
+            className={ classes.filesItem } disabled={ !files }>
+            View upload queue
+          </MenuItem>
+        :
+          <MenuItem className={ classes.offlineMenuItem } disabled={ true }>
+            <WarningIcon /> Device offline
+          </MenuItem>
+        }
       </Menu>
       <Menu id="menu-info" open={ Boolean(alwaysOpen || moreInfoMenu) }
         anchorEl={ moreInfoMenu } onClose={ () => this.setState({ moreInfoMenu: null }) }
