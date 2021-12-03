@@ -123,7 +123,7 @@ const styles = (theme) => ({
     pointerEvents: 'auto',
     opacity: 1,
     '& div': {
-      fontSize: '0.8rem',
+      whiteSpace: 'normal',
       padding: '0 6px',
       borderRadius: 4,
       backgroundColor: Colors.white08,
@@ -619,7 +619,8 @@ class Media extends Component {
       <Menu id="menu-info" open={ Boolean(alwaysOpen || moreInfoMenu) }
         anchorEl={ moreInfoMenu } onClose={ () => this.setState({ moreInfoMenu: null }) }
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
-        <MenuItem className={ classes.copySegment } onClick={ this.copySegmentName }>
+        <MenuItem className={ classes.copySegment } onClick={ this.copySegmentName }
+          style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}>
           <div>{ currentSegment.route }--{ this.currentSegmentNum() }</div>
           <ContentCopyIcon />
         </MenuItem>
