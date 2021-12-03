@@ -556,7 +556,7 @@ class Media extends Component {
         )) }
         <Divider />
         <MenuItem className={ classes.filesItem } disabled={ true }
-          style={ Boolean(files && (stats.isUploadedRlog || online)) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
+          style={ Boolean(files && stats && (stats.isUploadedRlog || online)) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
           All logs
           { Boolean(files && online && !rlogUploadDisabled) &&
             <Button className={ classes.uploadButton } style={{ width: uploadButtonWidth }}
@@ -574,7 +574,7 @@ class Media extends Component {
           }
         </MenuItem>
         <MenuItem className={ classes.filesItem } disabled={ true }
-          style={ Boolean(files && (stats.isUploadedAll || online)) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
+          style={ Boolean(files && stats && (stats.isUploadedAll || online)) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
           All files
           { Boolean(files && online && !allUploadDisabled) &&
             <Button className={ classes.uploadButton } style={{ width: uploadButtonWidth }}
