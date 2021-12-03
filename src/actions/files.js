@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 import { raw as RawApi, athena as AthenaApi } from '@commaai/comma-api';
 
+import { updateDeviceOnline } from './';
 import * as Types from './types';
 
 const demoLogUrls = require('../demo/logUrls.json');
@@ -32,13 +33,18 @@ async function athenaCall(dongleId, payload, sentry_fingerprint, retryCount = 0)
   } catch(err) {
     openRequests -= 1;
     if (!err.resp && retryCount < MAX_RETRIES) {
-      setTimeout(() => athenaCall(dongleId, payload, sentry_fingerprint, retryCount + 1), 2000);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      return await athenaCall(dongleId, payload, sentry_fingerprint, retryCount + 1);
     }
-    if (!err.message || err.message.indexOf('Device not registered') === -1) {
+    if (err.message && (err.message.indexOf('Timed out') === -1 ||
+      err.message.indexOf('Device not registered') === -1))
+    {
+      return { offline: true };
+    } else {
       console.log(err);
       Sentry.captureException(err, { fingerprint: sentry_fingerprint });
+      return { error: err.message };
     }
-    return { error: err.message };
   }
 }
 
@@ -101,6 +107,9 @@ export function fetchUploadQueue(dongleId) {
     };
     const uploadQueue = await athenaCall(dongleId, payload, 'action_files_athena_uploadqueue');
     if (!uploadQueue || !uploadQueue.result) {
+      if (uploadQueue && uploadQueue.offline) {
+        dispatch(updateDeviceOnline(dongleId, 0));
+      }
       return;
     }
 
@@ -170,13 +179,15 @@ export function cancelUpload(id) {
       params: { upload_id: id },
     };
     const resp = await athenaCall(dongleId, payload, 'action_files_athena_cancelupload');
-    if (resp.result && resp.result.success) {
+    if (resp && resp.result && resp.result.success) {
       dispatch({
         type: Types.ACTION_FILES_CANCELLED_UPLOAD,
         dongleId,
         id,
         fileName,
       });
+    } else if (resp && resp.offline) {
+      dispatch(updateDeviceOnline(dongleId, 0));
     }
   };
 }

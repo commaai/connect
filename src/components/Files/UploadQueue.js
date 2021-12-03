@@ -6,6 +6,7 @@ import { withStyles, Divider, Typography, CircularProgress, Button, Modal, Paper
   } from '@material-ui/core';
 
 import { fetchUploadQueue, cancelUpload, cancelFetchUploadQueue } from '../../actions/files';
+import { deviceIsOnline } from '../../utils';
 import Colors from '../../colors';
 import ResizeHandler from '../ResizeHandler';
 
@@ -139,7 +140,7 @@ class UploadQueue extends Component {
   componentDidUpdate(prevProps) {
     if (prevProps.update !== this.props.update) {
       this.uploadQueue(this.props.update);
-    } else if (this.props.update && prevProps.dongleId !== this.props.dongleId) {
+    } else if (this.props.update && prevProps.device.dongle_id !== this.props.device.dongle_id) {
       this.uploadQueue(true);
     } else if (this.props.update && prevProps.filesUploading !== this.props.filesUploading) {
       this.uploadQueue(Boolean(Object.keys(this.props.filesUploading).length));
@@ -152,7 +153,7 @@ class UploadQueue extends Component {
 
   uploadQueue(enable) {
     if (enable) {
-      this.props.dispatch(fetchUploadQueue(this.props.dongleId));
+      this.props.dispatch(fetchUploadQueue(this.props.device.dongle_id));
     } else {
       cancelFetchUploadQueue();
     }
@@ -185,11 +186,12 @@ class UploadQueue extends Component {
   }
 
   render() {
-    const { dongleId, classes, filesUploading, filesUploadingMeta } = this.props;
+    const { device, classes, filesUploading, filesUploadingMeta } = this.props;
     const { cancelQueue, windowWidth } = this.state;
 
-    const hasData = filesUploadingMeta.dongleId === dongleId;
-    const hasUploading = hasData && Object.keys(filesUploading).length > 0;
+    const deviceOffline = !deviceIsOnline(device);
+    const hasData = filesUploadingMeta.dongleId === device.dongle_id;
+    const hasUploading = !deviceOffline && hasData && Object.keys(filesUploading).length > 0;
     const logNameLength = windowWidth < 600 ? 4 : 64;
 
     return ( <>
@@ -207,7 +209,7 @@ class UploadQueue extends Component {
                 </Button>
               }
             </div>
-            <Typography variant="caption" style={{ marginLeft: 8 }}>{ dongleId }</Typography>
+            <Typography variant="caption" style={{ marginLeft: 8 }}>{ device.dongle_id }</Typography>
           </div>
           <Divider />
           <div className={ classes.uploadContainer }>
@@ -257,9 +259,11 @@ class UploadQueue extends Component {
                 </tbody>
               </table>
             :
-              hasData ?
-                <p>no uploads</p> :
-                <CircularProgress style={{ color: Colors.white, margin: 8 }} size={ 17 } />
+              deviceOffline ?
+                <p>device offline</p> :
+                ( hasData ?
+                  <p>no uploads</p> :
+                  <CircularProgress style={{ color: Colors.white, margin: 8 }} size={ 17 } /> )
             }
           </div>
           <div className={classes.buttonGroup}>

@@ -17,6 +17,7 @@ import UploadQueue from '../Files/UploadQueue';
 import { currentOffset } from '../../timeline/playback';
 import Colors from '../../colors';
 import { deviceIsOnline } from '../../utils';
+import { updateDeviceOnline } from '../../actions';
 import { fetchFiles, fetchUploadQueue, updateFiles } from '../../actions/files';
 
 const styles = (theme) => ({
@@ -262,10 +263,15 @@ class Media extends Component {
     } catch(err) {
       this.openRequests -= 1;
       if (!err.resp && retryCount < MAX_RETRIES) {
-        setTimeout(() => this.athenaCall(payload, sentry_fingerprint, retryCount + 1), 2000);
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        return await this.athenaCall(payload, sentry_fingerprint, retryCount + 1);
       }
       if (dongleId === this.props.dongleId) {
-        if (!err.message || err.message.indexOf('Device not registered') === -1) {
+        if (err.message && (err.message.indexOf('Timed out') === -1 ||
+          err.message.indexOf('Device not registered') === -1))
+        {
+          this.props.dispatch(updateDeviceOnline(dongleId, 0));
+        } else {
           console.log(err);
           Sentry.captureException(err, { fingerprint: sentry_fingerprint });
         }
@@ -354,10 +360,10 @@ class Media extends Component {
       params: [path, url, { "x-ms-blob-type": "BlockBlob" }],
     };
     const resp = await this.athenaCall(payload, 'media_athena_upload');
-    if (resp.error) {
+    if (!resp || resp.error) {
       uploading[fileName] = {};
       this.props.dispatch(updateFiles(uploading));
-    } else {
+    } else if (resp.result) {
       this.props.dispatch(fetchUploadQueue(dongleId));
     }
   }
@@ -482,7 +488,7 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { currentSegment, device, dongleId, classes, files } = this.props;
+    const { currentSegment, device, classes, files } = this.props;
     const { downloadMenu, moreInfoMenu, uploadModal, windowWidth } = this.state;
 
     if (!device) {
@@ -515,8 +521,8 @@ class Media extends Component {
     ];
 
     const stats = this.getUploadStats();
-    const rlogUploadDisabled = !stats || stats.hasUploadedRlog || stats.isUploadingRlog || stats.hasRequestedRlog;
-    const allUploadDisabled = !stats || stats.hasUploadedAll || stats.isUploadingAll || stats.hasRequestedAll;
+    const rlogUploadDisabled = !online || !stats || stats.hasUploadedRlog || stats.isUploadingRlog || stats.hasRequestedRlog;
+    const allUploadDisabled = !online || !stats || stats.hasUploadedAll || stats.isUploadingAll || stats.hasRequestedAll;
 
     return ( <>
       <Menu id="menu-download" open={ Boolean(alwaysOpen || downloadMenu) }
@@ -555,25 +561,29 @@ class Media extends Component {
         <Divider />
         <MenuItem onClick={ !rlogUploadDisabled ? () => this.uploadFilesAll(['logs']) : null }
           className={ classes.filesItem } disabled={ rlogUploadDisabled }
+          title={ Boolean(stats && !stats.hasUploadedRlog && !online) ? 'connect device to enable uploading' : null }
           style={ rlogUploadDisabled ? { ...disabledStyle, color: Colors.white60 } : {} }>
           Request upload all raw logs
           { Boolean(rlogUploadDisabled && stats) &&
             <div className={ classes.fakeUploadButton } style={{ width: (uploadButtonWidth - 24) }}>
               { stats.hasUploadedRlog ?
                 'uploaded' :
-                (stats.isUploadingRlog ? 'pending' :<CircularProgress style={{ color: Colors.white }} size={ 17 } /> ) }
+                (stats.isUploadingRlog ? 'pending' :
+                  ( online && <CircularProgress style={{ color: Colors.white }} size={ 17 } /> )) }
             </div>
           }
         </MenuItem>
         <MenuItem onClick={ !allUploadDisabled ? () => this.uploadFilesAll() : null }
           className={ classes.filesItem } disabled={ allUploadDisabled }
+          title={ Boolean(stats && !stats.hasUploadedAll && !online) ? 'connect device to enable uploading' : null }
           style={ allUploadDisabled ? { ...disabledStyle, color: Colors.white60 } : {} }>
           Request upload all files
           { Boolean(allUploadDisabled && stats) &&
             <div className={ classes.fakeUploadButton } style={{ width: (uploadButtonWidth - 24) }}>
               { stats.hasUploadedAll ?
                 'uploaded' :
-                (stats.isUploadingAll ? 'pending' :<CircularProgress style={{ color: Colors.white }} size={ 17 } /> ) }
+                (stats.isUploadingAll ? 'pending' :
+                  ( online && <CircularProgress style={{ color: Colors.white }} size={ 17 } /> )) }
             </div>
           }
         </MenuItem>
@@ -597,7 +607,7 @@ class Media extends Component {
         </MenuItem>
       </Menu>
       <UploadQueue open={ uploadModal } onClose={ () => this.setState({ uploadModal: false }) }
-        update={ Boolean(uploadModal || downloadMenu) } store={ this.props.store } dongleId={ dongleId } />
+        update={ Boolean(uploadModal || downloadMenu) } store={ this.props.store } device={ device } />
     </> );
   }
 }

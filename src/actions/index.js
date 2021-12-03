@@ -149,6 +149,17 @@ export function fetchDeviceOnline(dongleId) {
   };
 }
 
+export function updateDeviceOnline(dongleId, last_athena_ping) {
+  return (dispatch, getState) => {
+    dispatch({
+      type: Types.ACTION_UPDATE_DEVICE_ONLINE,
+      dongleId: dongleId,
+      last_athena_ping,
+      fetched_at: parseInt(Date.now() / 1000),
+    });
+  };
+}
+
 export function checkSegmentMetadata() {
   return (dispatch, getState) => {
     let state = getState();
