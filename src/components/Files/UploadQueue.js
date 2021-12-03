@@ -5,7 +5,7 @@ import Obstruction from 'obstruction';
 import { withStyles, Divider, Typography, CircularProgress, Button, Modal, Paper, LinearProgress
   } from '@material-ui/core';
 
-import { fetchUploadQueue, cancelUpload } from '../../actions/files';
+import { fetchUploadQueue, cancelUpload, cancelFetchUploadQueue } from '../../actions/files';
 import Colors from '../../colors';
 import ResizeHandler from '../ResizeHandler';
 
@@ -130,8 +130,6 @@ class UploadQueue extends Component {
 
     this.cancelUploads = this.cancelUploads.bind(this);
     this.uploadQueue = this.uploadQueue.bind(this);
-
-    this.uploadQueueIntv = null;
   }
 
   componentDidMount() {
@@ -153,13 +151,10 @@ class UploadQueue extends Component {
   }
 
   uploadQueue(enable) {
-    if (enable && !this.uploadQueueIntv) {
-      const { dongleId } = this.props;
-      this.uploadQueueIntv = setInterval(() => this.props.dispatch(fetchUploadQueue(dongleId)), 2000);
-      this.props.dispatch(fetchUploadQueue(dongleId));
-    } else if (!enable && this.uploadQueueIntv) {
-      clearInterval(this.uploadQueueIntv);
-      this.uploadQueueIntv = null;
+    if (enable) {
+      this.props.dispatch(fetchUploadQueue(this.props.dongleId));
+    } else {
+      cancelFetchUploadQueue();
     }
   }
 

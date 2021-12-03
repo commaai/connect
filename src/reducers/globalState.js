@@ -187,7 +187,7 @@ export default function reducer(_state, action) {
       state.filesUploading = action.uploading;
       state.filesUploadingMeta = {
         dongleId: action.dongleId,
-        fetchedAt: parseInt(Date.now() / 1000),
+        fetchedAt: Date.now(),
       };
       state.files = {
         ...(state.files !== null ? { ...state.files } : {}),

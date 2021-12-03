@@ -17,6 +17,7 @@ const FILE_NAMES = {
 const MAX_OPEN_REQUESTS = 15;
 const MAX_RETRIES = 5;
 
+let uploadQueueTimeout = null;
 let openRequests = 0;
 
 async function athenaCall(dongleId, payload, sentry_fingerprint, retryCount = 0) {
@@ -77,9 +78,22 @@ export function fetchFiles(routeName, nocache=false) {
   };
 }
 
+export function cancelFetchUploadQueue() {
+  if (uploadQueueTimeout) {
+    if (uploadQueueTimeout !== true) {
+      clearTimeout(uploadQueueTimeout);
+    }
+    uploadQueueTimeout = null;
+  }
+}
+
 export function fetchUploadQueue(dongleId) {
   return async (dispatch, getState) => {
-    const { filesUploading } = getState();
+    if (uploadQueueTimeout) {
+      return;
+    }
+    uploadQueueTimeout = true;
+
     const payload = {
       method: 'listUploadQueue',
       jsonrpc: '2.0',
@@ -90,7 +104,7 @@ export function fetchUploadQueue(dongleId) {
       return;
     }
 
-    let prevFilesUploading = filesUploading || {};
+    let prevFilesUploading = getState().filesUploading || {};
     const uploadingFiles = {};
     const newCurrentUploading = {};
     for (const uploading of uploadQueue.result) {
@@ -123,6 +137,13 @@ export function fetchUploadQueue(dongleId) {
       uploading: newCurrentUploading,
       files: uploadingFiles,
     });
+    if (uploadQueueTimeout === true && uploadQueue.result.length) {
+      cancelFetchUploadQueue();
+      uploadQueueTimeout = setTimeout(() => {
+        uploadQueueTimeout = null;
+        dispatch(fetchUploadQueue(dongleId));
+      }, 2000);
+    }
   };
 }
 
