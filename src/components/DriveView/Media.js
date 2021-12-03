@@ -513,15 +513,12 @@ class Media extends Component {
       rlog = files[`${seg}/logs`] || {};
     }
 
-    const resName = windowWidth < 425 ? 'res' : 'resolution';
     const uploadButtonWidth = windowWidth < 425 ? 70 : 120;
     const buttons = [
-      // [qcam, 'Camera segment', 'qcameras'],
       [fcam, `Road camera`, 'cameras'],
       device && device.device_type === 'three' ? [ecam, 'Wide road camera', 'ecameras'] : null,
       [dcam, 'Driver camera', 'dcameras'],
-      // [qlog, 'Log segment', 'qlogs'],
-      [rlog, 'Log', 'logs'],
+      [rlog, 'Log data', 'logs'],
     ];
 
     const stats = this.getUploadStats();
@@ -538,8 +535,7 @@ class Media extends Component {
             <CircularProgress size={ 36 } style={{ color: Colors.white }} />
           </div>
         }
-        { buttons.filter((b) => Boolean(b)).flatMap(([file, name, type]) => [
-          type === 'qlogs' ? <Divider key={ 'divider' } /> : null,
+        { buttons.filter((b) => Boolean(b)).map(([file, name, type]) => (
           <MenuItem key={ type } disabled={ true } style={ disabledStyle } className={ classes.filesItem }
             title={ Boolean(!file.url && !online) ? 'connect device to enable uploading' : null }>
             <span style={ !files ? { color: Colors.white60 } : {} }>{ name }</span>
@@ -566,7 +562,7 @@ class Media extends Component {
               </div>
             }
           </MenuItem>
-        ]) }
+        )) }
         <Divider />
         <MenuItem onClick={ !rlogUploadDisabled ? () => this.uploadFilesAll(['logs']) : null }
           className={ classes.filesItem } disabled={ rlogUploadDisabled }
