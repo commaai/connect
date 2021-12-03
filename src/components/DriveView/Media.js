@@ -406,6 +406,7 @@ class Media extends Component {
     };
     const resp = await this.athenaCall(payload, 'media_athena_upload');
     if (!resp || resp.error) {
+      const uploading = {};
       uploading[fileName] = {};
       this.props.dispatch(updateFiles(uploading));
     } else if (resp.result) {
@@ -605,13 +606,13 @@ class Media extends Component {
           style={ Boolean(files && stats && (stats.isUploadedRlog || online)) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
           All logs
           { Boolean(files && online && !rlogUploadDisabled) &&
-            <Button className={ classes.uploadButton } style={{ width: uploadButtonWidth }}
+            <Button className={ classes.uploadButton } style={{ width: 120 }}
               onClick={ () => this.uploadFilesAll(['logs']) }>
               upload { stats.canRequestRlog } logs
             </Button>
           }
           { Boolean(rlogUploadDisabled && stats) &&
-            <div className={ classes.fakeUploadButton } style={{ width: (uploadButtonWidth - 24) }}>
+            <div className={ classes.fakeUploadButton } style={{ width: 96 }}>
               { stats.isUploadedRlog ?
                 'uploaded' :
                 (stats.isUploadingRlog ? 'pending' :
@@ -623,13 +624,13 @@ class Media extends Component {
           style={ Boolean(files && stats && (stats.isUploadedAll || online)) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
           All files
           { Boolean(files && online && !allUploadDisabled) &&
-            <Button className={ classes.uploadButton } style={{ width: uploadButtonWidth }}
+            <Button className={ classes.uploadButton } style={{ width: 120 }}
               onClick={ () => this.uploadFilesAll() }>
               upload { stats.canRequestAll } files
             </Button>
           }
           { Boolean(allUploadDisabled && stats) &&
-            <div className={ classes.fakeUploadButton } style={{ width: (uploadButtonWidth - 24) }}>
+            <div className={ classes.fakeUploadButton } style={{ width: 96 }}>
               { stats.isUploadedAll ?
                 'uploaded' :
                 (stats.isUploadingAll ? 'pending' :
