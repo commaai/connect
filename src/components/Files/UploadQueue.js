@@ -2,8 +2,9 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
-import { withStyles, Divider, Typography, CircularProgress, Button, Modal, Paper, LinearProgress
+import { withStyles, Divider, Typography, CircularProgress, Button, Modal, Paper, LinearProgress,
   } from '@material-ui/core';
+import HighlightOffIcon from '@material-ui/icons/HighlightOff';
 
 import { fetchUploadQueue, cancelUpload, cancelFetchUploadQueue } from '../../actions/files';
 import { deviceIsOnline } from '../../utils';
@@ -44,21 +45,22 @@ const styles = (theme) => ({
     height: 25,
     padding: '0 8px',
     '& button': {
+      minWidth: 'unset',
+      padding: 0,
       fontWeight: 600,
       borderRadius: 13,
-      fontSize: '0.8rem',
-      padding: '2px 10px',
-      minHeight: 19,
-      backgroundColor: Colors.white05,
+      minHeight: 'unset',
       '&:hover': {
-        backgroundColor: Colors.white10,
+        backgroundColor: 'transparent',
+      },
+      '& svg': {
+        fontSize: 18,
       },
     },
   },
   uploadCancelled: {
-    marginLeft: 24,
-    marginRight: 24,
     color: Colors.white,
+    margin: 1.5,
   },
   uploadProgress: {
     display: 'flex',
@@ -225,7 +227,7 @@ class UploadQueue extends Component {
                             <td className={ classes.uploadCell }>
                               { isCancelled ?
                                 <CircularProgress className={ classes.uploadCancelled } size={ 15 } /> :
-                                <Button onClick={ () => this.cancelUploads([id]) }>cancel</Button> }
+                                <Button onClick={ () => this.cancelUploads([id]) }><HighlightOffIcon /></Button> }
                             </td>
                           </>
                         }
