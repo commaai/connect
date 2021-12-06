@@ -167,11 +167,10 @@ export function updateFiles(files) {
   };
 }
 
-export function cancelUpload(id) {
+export function cancelUpload(dongleId, id) {
   return async (dispatch, getState) => {
-    const { dongleId, filesUploading } = getState();
+    const { filesUploading } = getState();
 
-    const fileName = filesUploading[id].fileName;
     const payload = {
       id: 0,
       jsonrpc: "2.0",
@@ -179,12 +178,12 @@ export function cancelUpload(id) {
       params: { upload_id: id },
     };
     const resp = await athenaCall(dongleId, payload, 'action_files_athena_cancelupload');
-    if (resp && resp.result && resp.result.success) {
+    if (resp && resp.result && resp.result.success && filesUploading[id]) {
       dispatch({
         type: Types.ACTION_FILES_CANCELLED_UPLOAD,
         dongleId,
         id,
-        fileName,
+        fileName: filesUploading[id].fileName,
       });
     } else if (resp && resp.offline) {
       dispatch(updateDeviceOnline(dongleId, 0));

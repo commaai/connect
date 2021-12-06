@@ -177,7 +177,7 @@ class UploadQueue extends Component {
         });
         continue;
       }
-      this.props.dispatch(cancelUpload(id));
+      this.props.dispatch(cancelUpload(this.props.device.dongle_id, id));
     }
     this.uploadQueue(true);
   }
