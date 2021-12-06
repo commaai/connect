@@ -77,7 +77,7 @@ class DriveList extends Component {
   render() {
     const { classes, dongleId } = this.props;
 
-    const driveList = this.props.segments.reverse().map((segment) => ({
+    const driveList = Object.assign([], this.props.segments).reverse().map((segment) => ({
       ...segment,
       dongleId: dongleId,
     }));
