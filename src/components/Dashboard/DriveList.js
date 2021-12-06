@@ -9,8 +9,6 @@ import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import { checkSegmentMetadata } from '../../actions';
 
-const MIN_TIME_BETWEEN_ROUTES = 60000; // 1 minute
-
 const styles = (theme) => ({
   header: {
     alignItems: 'center',
@@ -79,35 +77,10 @@ class DriveList extends Component {
   render() {
     const { classes, dongleId } = this.props;
 
-    const driveList = [];
-    let lastEnd = 0;
-    let lastSegmentEnd = 0;
-    let curRideChunk = null;
-    this.props.segments.forEach((segment) => {
-      if (!curRideChunk || segment.startTime - lastEnd > MIN_TIME_BETWEEN_ROUTES) {
-        curRideChunk = {
-          dongleId: dongleId,
-          segments: 0,
-          startTime: segment.startTime,
-          offset: segment.offset,
-          duration: 0,
-          startCoord: segment.startCoord,
-          endCoord: segment.endCoord,
-          distanceMiles: 0,
-        };
-        driveList.unshift(curRideChunk);
-        lastSegmentEnd = segment.startTime;
-      }
-      curRideChunk.duration += segment.startTime - lastSegmentEnd;
-      curRideChunk.duration += segment.duration;
-      lastSegmentEnd = segment.startTime + segment.duration;
-      curRideChunk.segments++;
-      lastEnd = segment.startTime + segment.duration;
-      curRideChunk.distanceMiles += segment.distanceMiles;
-      curRideChunk.endCoord = (segment.endCoord && !(segment.endCoord[0] === 0 && segment.endCoord[1] === 0)) ?
-        segment.endCoord :
-        curRideChunk.endCoord;
-    });
+    const driveList = this.props.segments.reverse().map((segment) => ({
+      ...segment,
+      dongleId: dongleId,
+    }));
 
     return (
       <div className={ classes.drivesTable }>
