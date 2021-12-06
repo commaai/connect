@@ -551,7 +551,7 @@ class Media extends Component {
     }
 
     const online = deviceIsOnline(device);
-    const uploadButtonWidth = windowWidth < 425 ? 70 : 120;
+    const uploadButtonWidth = windowWidth < 425 ? 80 : 120;
     const buttons = [
       [fcam, `Road camera`, 'cameras'],
       device && device.device_type === 'three' ? [ecam, 'Wide road camera', 'ecameras'] : null,
@@ -578,24 +578,24 @@ class Media extends Component {
             style={ Boolean(files && (file.url || online)) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
             { name }
             { Boolean(files && file.url) &&
-              <Button className={ classes.uploadButton } style={{ width: uploadButtonWidth }}
+              <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
                 onClick={ () => window.location.href = file.url }>
                 download
               </Button>
             }
             { Boolean(files && !file.url && online && file.progress === undefined && !file.requested) &&
-              <Button className={ classes.uploadButton } style={{ width: uploadButtonWidth }}
+              <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
                 onClick={ () => this.uploadFile(type) }>
                 { windowWidth < 425 ? 'upload' : 'request upload' }
               </Button>
             }
             { Boolean(files && !file.url && online && file.progress !== undefined) &&
-              <div className={ classes.fakeUploadButton } style={{ width: (uploadButtonWidth - 24) }}>
+              <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
                 { file.current ? `${parseInt(file.progress * 100)}%` : 'pending' }
               </div>
             }
             { Boolean(files && !file.url && online && file.requested) &&
-              <div className={ classes.fakeUploadButton } style={{ width: (uploadButtonWidth - 24) }}>
+              <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
                 <CircularProgress style={{ color: Colors.white }} size={ 17 } />
               </div>
             }
@@ -606,13 +606,13 @@ class Media extends Component {
           style={ Boolean(files && stats && (stats.isUploadedRlog || online)) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
           All logs
           { Boolean(files && online && !rlogUploadDisabled) &&
-            <Button className={ classes.uploadButton } style={{ width: 120 }}
+            <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
               onClick={ () => this.uploadFilesAll(['logs']) }>
               upload { stats.canRequestRlog } logs
             </Button>
           }
           { Boolean(rlogUploadDisabled && stats) &&
-            <div className={ classes.fakeUploadButton } style={{ width: 96 }}>
+            <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
               { stats.isUploadedRlog ?
                 'uploaded' :
                 (stats.isUploadingRlog ? 'pending' :
@@ -624,13 +624,13 @@ class Media extends Component {
           style={ Boolean(files && stats && (stats.isUploadedAll || online)) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
           All files
           { Boolean(files && online && !allUploadDisabled) &&
-            <Button className={ classes.uploadButton } style={{ width: 120 }}
+            <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
               onClick={ () => this.uploadFilesAll() }>
               upload { stats.canRequestAll } files
             </Button>
           }
           { Boolean(allUploadDisabled && stats) &&
-            <div className={ classes.fakeUploadButton } style={{ width: 96 }}>
+            <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
               { stats.isUploadedAll ?
                 'uploaded' :
                 (stats.isUploadingAll ? 'pending' :
