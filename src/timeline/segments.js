@@ -55,7 +55,7 @@ export function getCurrentSegment(state, o) {
         videoAvailableBetweenOffsets: thisSegment.videoAvailableBetweenOffsets,
         hpgps: thisSegment.hpgps,
         hasVideo: thisSegment.hasVideo,
-        cameraStreamSegCount: thisSegment.cameraStreamSegCount,
+        segments: thisSegment.segments,
         distanceMiles: thisSegment.distanceMiles,
       };
     }
@@ -145,7 +145,7 @@ function segmentsFromMetadata(segmentsData) {
         startCoord: [segment.start_lng, segment.start_lat],
         duration: 0,
         segments: 0,
-        url: url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate-vzn.azureedge.net'),
+        url: url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
         events: [],
         videoAvailableBetweenOffsets: [],
         hasVideo: segmentHasVideo,
@@ -154,7 +154,6 @@ function segmentsFromMetadata(segmentsData) {
         locStart: '',
         locEnd: '',
         distanceMiles: 0.0,
-        cameraStreamSegCount: 0,
       };
       segments.push(curSegment);
     }
@@ -171,7 +170,6 @@ function segmentsFromMetadata(segmentsData) {
     curSegment.segments = Math.max(curSegment.segments, Number(segment.canonical_name.split('--').pop()) + 1);
     curSegment.events = curSegment.events.concat(segment.events);
     curSegment.distanceMiles += segment.length;
-    curSegment.cameraStreamSegCount += Math.floor(segmentHasVideo);
     if (!curSegment.endCoord || segment.end_lng !== 0 || segment.end_lat !== 0) {
       curSegment.endCoord = [segment.end_lng, segment.end_lat];
     }

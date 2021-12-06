@@ -106,7 +106,7 @@ class DriveVideo extends Component {
     if (this.state.src === '' || !prevSegment || prevSegment.route !== segment.route) {
       let videoApi = VideoApi(segment.url, '');
       videoApi.getQcameraStreamIndex().then(() => {
-        let src = videoApi.getQcameraStreamIndexUrl() + `?s=${segment.cameraStreamSegCount}`
+        let src = videoApi.getQcameraStreamIndexUrl() + `?s=${segment.segments}`
         if (src !== this.state.src) {
           this.setState({src});
           this.syncVideo();
