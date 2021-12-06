@@ -35,7 +35,6 @@ const styles = (theme) => ({
     margin: `${theme.spacing.unit}px 0`,
     color: Colors.white90,
     textAlign: 'left',
-    maxHeight: 'calc(90vh - 73px)',
     overflowY: 'auto',
   },
   uploadTable: {
@@ -43,7 +42,9 @@ const styles = (theme) => ({
   },
   uploadCell: {
     height: 25,
-    padding: '0 8px',
+  },
+  cancelCell: {
+    textAlign: 'center',
     '& button': {
       minWidth: 'unset',
       padding: 0,
@@ -58,6 +59,13 @@ const styles = (theme) => ({
       },
     },
   },
+  segmentName: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    '& span': {
+      whiteSpace: 'nowrap',
+    },
+  },
   uploadCancelled: {
     color: Colors.white,
     margin: 1.5,
@@ -65,9 +73,10 @@ const styles = (theme) => ({
   uploadProgress: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'center',
     fontSize: '0.8rem',
     '& > div': {
-      width: 30,
+      width: '80%',
       height: 8,
       marginRight: 6,
       border: 'none',
@@ -113,6 +122,7 @@ class UploadQueue extends Component {
 
     this.state = {
       windowWidth: window.innerWidth,
+      windowHeight: window.innerHeight,
       cancelQueue: [],
     };
 
@@ -174,15 +184,17 @@ class UploadQueue extends Component {
 
   render() {
     const { device, classes, filesUploading, filesUploadingMeta } = this.props;
-    const { cancelQueue, windowWidth } = this.state;
+    const { cancelQueue, windowWidth, windowHeight } = this.state;
 
     const deviceOffline = !deviceIsOnline(device);
     const hasData = filesUploadingMeta.dongleId === device.dongle_id;
     const hasUploading = !deviceOffline && hasData && Object.keys(filesUploading).length > 0;
     const logNameLength = windowWidth < 600 ? 4 : 64;
+    const segmentNameStyle = windowWidth < 450 ? { fontSize: windowWidth < 400 ? '0.8rem' : '0.9rem' } : {};
+    const cellStyle = { padding: windowWidth < 400 ? '0 2px' : (windowWidth < 450 ? '0 4px' : '0 8px') };
 
     return ( <>
-      <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
+      <ResizeHandler onResize={ (windowWidth, windowHeight) => this.setState({ windowWidth, windowHeight }) } />
       <Modal aria-labelledby="upload-queue-modal" open={ this.props.open } onClose={ this.props.onClose }>
         <Paper className={ classes.modal }>
           <div className={ classes.titleContainer }>
@@ -190,15 +202,15 @@ class UploadQueue extends Component {
             <Typography variant="caption" style={{ marginLeft: 8 }}>{ device.dongle_id }</Typography>
           </div>
           <Divider />
-          <div className={ classes.uploadContainer }>
+          <div className={ classes.uploadContainer } style={{ maxHeight: (windowHeight * 0.90) - 98 }}>
             { hasUploading ?
               <table className={ classes.uploadTable }>
                 <thead>
                   <tr>
-                    <th className={ classes.uploadCell }>segment</th>
-                    <th className={ classes.uploadCell }>type</th>
-                    <th className={ classes.uploadCell }>progress</th>
-                    { windowWidth >= 600 && <th className={ classes.uploadCell }></th> }
+                    <th className={ classes.uploadCell } style={ cellStyle }>segment</th>
+                    <th className={ classes.uploadCell } style={ cellStyle }>type</th>
+                    <th className={ classes.uploadCell } style={ cellStyle }>progress</th>
+                    { windowWidth >= 600 && <th className={ classes.uploadCell } style={ cellStyle }></th> }
                   </tr>
                 </thead>
                 <tbody>
@@ -209,22 +221,25 @@ class UploadQueue extends Component {
                     const segString = seg.split('|')[1];
                     return (
                       <tr key={ id }>
-                        <td className={ classes.uploadCell } style={{ whiteSpace: 'nowrap' }}>
-                          { segString.substring(0, 12) }<wbr />{ segString.substring(12)}
+                        <td className={ classes.uploadCell } style={ cellStyle }>
+                          <div className={ classes.segmentName } style={ segmentNameStyle }>
+                            <span>{ segString.substring(0, 12) }</span>
+                            <span>{ segString.substring(12)}</span>
+                          </div>
                         </td>
-                        <td className={ classes.uploadCell }>
+                        <td className={ classes.uploadCell } style={ cellStyle }>
                           { FILE_NAMES[type].split('.')[0].substring(0, logNameLength) }
                         </td>
                         { upload.current ?
-                          <td className={ classes.uploadCell }>
+                          <td className={ classes.uploadCell } style={ cellStyle }>
                             <div className={ classes.uploadProgress }>
-                              <LinearProgress variant="determinate" value={ prog } /> { prog }%
+                              <LinearProgress variant="determinate" value={ prog } />
                             </div>
                           </td>
                         :
                           <>
-                            { windowWidth >= 600 && <td className={ classes.uploadCell }>pending</td> }
-                            <td className={ classes.uploadCell }>
+                            { windowWidth >= 600 && <td className={ classes.uploadCell } style={ cellStyle }>pending</td> }
+                            <td className={ `${classes.uploadCell} ${classes.cancelCell}` } style={ cellStyle }>
                               { isCancelled ?
                                 <CircularProgress className={ classes.uploadCancelled } size={ 15 } /> :
                                 <Button onClick={ () => this.cancelUploads([id]) }><HighlightOffIcon /></Button> }
