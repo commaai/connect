@@ -12,6 +12,7 @@ import { MAPBOX_TOKEN } from '../../api/geocode';
 import { currentOffset } from '../../timeline/playback';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
+const INTERACTION_TIMEOUT = 5000;
 
 const styles = {
   mapContainer: {
@@ -29,56 +30,66 @@ class DriveMap extends Component {
   constructor(props) {
     super(props);
 
-    this.initMap = this.initMap.bind(this);
-    this.populateMap = this.populateMap.bind(this);
-    this.posAtOffset = this.posAtOffset.bind(this);
-    this.setPath = this.setPath.bind(this);
-    this.updateMarkerPos = this.updateMarkerPos.bind(this);
-
-    const nextRoute = props.currentSegment && props.currentSegment.route;
-
-    this.isLoadingCoords = false;
     this.state = {
       viewport: {
         latitude: 37.7577,
         longitude: -122.4376,
         zoom: 15,
       },
-      route: nextRoute,
       coords: [],
     };
-  }
 
-  componentWillReceiveProps(nextProps) {
-    const nextRoute = nextProps.currentSegment && nextProps.currentSegment.route;
-    if (nextRoute !== this.state.route) {
-      if (this.state.coords.length > 0) {
-        this.setPath([]);
-      }
-    }
+    this.initMap = this.initMap.bind(this);
+    this.populateMap = this.populateMap.bind(this);
+    this.posAtOffset = this.posAtOffset.bind(this);
+    this.setPath = this.setPath.bind(this);
+    this.updateMarkerPos = this.updateMarkerPos.bind(this);
+    this.onInteraction = this.onInteraction.bind(this);
 
-    const coordsNeedRefresh = nextRoute !== this.state.route || this.state.coords.length === 0;
-    const shouldRefreshMap = coordsNeedRefresh && this.map != null && !this.isLoadingCoords;
-    if (shouldRefreshMap) {
-      this.setState({ route: nextRoute }, this.populateMap.bind(this, nextProps));
-    }
-
-    if (nextProps.startTime !== this.props.startTime) {
-      this.shouldFlyTo = true;
-    }
+    this.isLoadingCoords = false;
+    this.shouldFlyTo = false;
+    this.isInteracting = false;
+    this.isInteractingTimeout = null;
+    this.isInteractingMouseDown = false;
   }
 
   componentDidMount() {
     this.mounted = true;
+    this.componentDidUpdate({}, {});
     this.updateMarkerPos();
+  }
+
+  componentDidUpdate(prevProps) {
+    const prevRoute = prevProps.currentSegment ? prevProps.currentSegment.route : null;
+    const route = this.props.currentSegment ? this.props.currentSegment.route : null;
+    if (prevRoute !== route) {
+      if (this.state.coords.length > 0) {
+        this.setPath([]);
+      }
+      if (route) {
+        this.populateMap();
+      };
+    }
+
+    if (prevProps.startTime && prevProps.startTime !== this.props.startTime) {
+      this.shouldFlyTo = true;
+    }
   }
 
   componentWillUnmount() {
     this.mounted = false;
   }
 
-  getMarkerSource() {
-    return this.map && this.map.getMap().getSource('seekPoint');
+  onInteraction(ev) {
+    if (ev.isDragging || ev.isRotating || ev.isZooming) {
+      this.shouldFlyTo = true;
+      this.isInteracting = true;
+
+      if (this.isInteractingTimeout !== null) {
+        clearTimeout(this.isInteractingTimeout);
+      }
+      this.isInteractingTimeout = setTimeout(() => this.isInteracting = false, INTERACTION_TIMEOUT);
+    }
   }
 
   updateMarkerPos() {
@@ -86,7 +97,7 @@ class DriveMap extends Component {
       return;
     }
 
-    const markerSource = this.getMarkerSource();
+    const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentSegment && this.state.coords.length > 0) {
         const { routeOffset } = this.props.currentSegment;
@@ -95,9 +106,11 @@ class DriveMap extends Component {
         if (pos) {
           markerSource.setData({
             type: 'Point',
-            coordinates: pos
+            coordinates: pos,
           });
-          this.moveViewportTo(pos);
+          if (!this.isInteracting) {
+            this.moveViewportTo(pos);
+          }
         }
       } else if (markerSource._data && markerSource._data.coordinates.length > 0) {
         markerSource.setData({
@@ -125,28 +138,24 @@ class DriveMap extends Component {
     this.setState({ viewport });
   }
 
-  populateMap = async (props) => {
-    if (!props) props = this.props;
-
-    if (!this.map || !props.currentSegment || !this.state.route) {
+  async populateMap() {
+    const { currentSegment } = this.props;
+    if (!this.map || !currentSegment) {
       return;
     }
     this.isLoadingCoords = true;
 
-    const { route } = this.state;
-    const routeSigUrl = props.currentSegment.url;
-
+    const { route, url, segments } = currentSegment;
     try {
-      const coords = await DerivedDataApi(routeSigUrl).getCoords();
-
-      if (this.state.route !== route) {
-        // handle race, if route changes while coords request was in flight
+      const coords = await DerivedDataApi(url).getCoords(segments);
+      if (this.props.currentSegment.route !== route) {
         return;
       }
 
       const coordsArr = coords.map((coord) => [coord.lng, coord.lat]);
       this.setPath(coordsArr);
     } catch(err) {
+      console.log(err);
       Sentry.captureException(err, { fingerprint: 'drivemap_populate_deriveddrivedata' });
     } finally {
       this.isLoadingCoords = false;
@@ -254,7 +263,7 @@ class DriveMap extends Component {
 
       this.map = mapComponent;
 
-      if (this.state.route && this.props.currentSegment) {
+      if (this.props.currentSegment) {
         this.populateMap();
       }
     });
@@ -264,9 +273,10 @@ class DriveMap extends Component {
     const { classes } = this.props;
     return (
       <div className={ classes.mapContainer }>
-        <ReactMapGL width="100%" height="100%" {...this.state.viewport} mapStyle={MAP_STYLE}
-          mapboxApiAccessToken={MAPBOX_TOKEN} ref={this.initMap}
-          onViewportChange={(viewport) => this.setState({ viewport })} attributionControl={false} dragPan={false} />
+        <ReactMapGL width="100%" height="100%" {...this.state.viewport} mapStyle={MAP_STYLE} maxPitch={ 0 }
+          mapboxApiAccessToken={MAPBOX_TOKEN} ref={this.initMap} onContextMenu={ null } dragRotate={ false }
+          onViewportChange={(viewport) => this.setState({ viewport })} attributionControl={ false }
+          onInteractionStateChange={ this.onInteraction } />
       </div>
     );
   }
@@ -275,9 +285,8 @@ class DriveMap extends Component {
 const stateToProps = Obstruction({
   offset: 'offset',
   segments: 'segments',
-  segmentNum: 'segment',
   currentSegment: 'currentSegment',
-  startTime: 'startTime'
+  startTime: 'startTime',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveMap));
