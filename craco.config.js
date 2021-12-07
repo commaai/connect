@@ -1,5 +1,6 @@
 const { removeLoaders, loaderByName, addBeforeLoader } = require('@craco/craco');
 const SentryCliPlugin = require('@sentry/webpack-plugin');
+const { GenerateSW } = require('workbox-webpack-plugin');
 
 module.exports = function ({ env }) {
   let sentryPlugin;
@@ -12,6 +13,13 @@ module.exports = function ({ env }) {
     });
   }
 
+  let workboxPlugin;
+  if (process.env.NODE_ENV === 'production') {
+    workboxPlugin = new GenerateSW({
+      skipWaiting: true,
+    });
+  }
+
   return {
     jest: {
       configure: (jestConfig, { env, paths }) => {
@@ -21,6 +29,9 @@ module.exports = function ({ env }) {
     },
     webpack: {
       configure: (webpackConfig, { env, paths }) => {
+        if (workboxPlugin) {
+          webpackConfig.plugins.push(workboxPlugin);
+        }
         if (sentryPlugin) {
           webpackConfig.plugins.push(sentryPlugin);
         }
