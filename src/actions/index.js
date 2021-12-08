@@ -170,7 +170,7 @@ export function checkSegmentMetadata() {
       // already has metadata, don't bother
       return;
     }
-    if (segmentsRequest) {
+    if (segmentsRequest && segmentsRequest.dongleId === state.dongleId) {
       return;
     }
     console.log('We need to update the segment metadata...');
@@ -178,13 +178,13 @@ export function checkSegmentMetadata() {
     const fetchRange = getSegmentFetchRange(state);
 
     if (Demo.isDemo()) {
-      segmentsRequest = Promise.resolve(demoSegments);
+      segmentsRequest = { req: Promise.resolve(demoSegments), dongleId: dongleId };
     } else {
-      segmentsRequest = Drives.getSegmentMetadata(fetchRange.start, fetchRange.end, dongleId);
+      segmentsRequest = { req: Drives.getSegmentMetadata(fetchRange.start, fetchRange.end, dongleId), dongleId: dongleId };
     }
     dispatch(fetchSegmentMetadata(fetchRange.start, fetchRange.end));
 
-    segmentsRequest.then((segmentData) => {
+    segmentsRequest.req.then((segmentData) => {
       state = getState();
       const currFetchRange = getSegmentFetchRange(state);
       if (currFetchRange.start !== fetchRange.start || currFetchRange.end !== fetchRange.end || state.dongleId !== dongleId) {
