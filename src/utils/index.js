@@ -145,3 +145,22 @@ export function filterRegularClick(func) {
     }
   }
 }
+
+export function deviceVersionAtLeast(device, version_string) {
+  if (!device['openpilot_version']) {
+    return false;
+  }
+
+  const dev_version_parts = device['openpilot_version'].split('.')
+  const version_parts = version_string.split('.')
+  for (const i in version_parts) {
+    if (!Number.isInteger(parseInt(dev_version_parts[i]))) {
+      return false;
+    } else if (parseInt(dev_version_parts[i]) > parseInt(version_parts[i])) {
+      return true;
+    } else if (parseInt(dev_version_parts[i]) < parseInt(version_parts[i])) {
+      return false;
+    }
+  }
+  return true;
+}

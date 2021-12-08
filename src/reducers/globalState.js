@@ -13,7 +13,7 @@ import {
   ACTION_FILES_URLS,
   ACTION_FILES_UPDATE,
   ACTION_FILES_UPLOADING,
-  ACTION_FILES_CANCELLED_UPLOAD,
+  ACTION_FILES_CANCELLED_UPLOADS,
 } from '../actions/types';
 import { emptyDevice } from '../utils';
 
@@ -203,13 +203,18 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case ACTION_FILES_CANCELLED_UPLOAD:
+    case ACTION_FILES_CANCELLED_UPLOADS:
       if (state.files) {
-        state.files = { ...state.files };
+        const cancelFileNames = Object.keys(state.filesUploading)
+          .filter((id) => action.ids.includes(id))
+          .map((id) => state.filesUploading[id].fileName);
+        state.files = Object.keys(state.files)
+          .filter((fileName) => !cancelFileNames.includes(fileName))
+          .reduce((obj, fileName) => { obj[fileName] = state.files[fileName]; return obj; },  {});
       }
-      delete state.files[action.fileName];
-      state.filesUploading = { ...state.filesUploading };
-      delete state.filesUploading[action.id];
+      state.filesUploading = Object.keys(state.filesUploading)
+        .filter((id) => !action.ids.includes(id))
+        .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
     default:
       return state;
