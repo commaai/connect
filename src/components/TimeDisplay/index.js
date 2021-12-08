@@ -112,6 +112,7 @@ class TimeDisplay extends Component {
     this.decreaseSpeed = this.decreaseSpeed.bind(this);
     this.jumpBack = this.jumpBack.bind(this);
     this.jumpForward = this.jumpForward.bind(this);
+    this.segmentNum = this.segmentNum.bind(this);
 
     this.state = {
       desiredPlaySpeed: 1,
@@ -143,7 +144,11 @@ class TimeDisplay extends Component {
       return '...';
     }
     const now = new Date(offset + filter.start);
-    const dateString = fecha.format(now, 'ddd, D MMM @ HH:mm:ss');
+    let dateString = fecha.format(now, 'D MMM \u2013 HH:mm:ss');
+    const seg = this.segmentNum(offset);
+    if (seg !== null) {
+      dateString = `${dateString} \u2013 ${seg}`;
+    }
 
     return dateString;
   }
@@ -188,6 +193,16 @@ class TimeDisplay extends Component {
     } else {
       this.props.dispatch(pause());
     }
+  }
+
+  segmentNum(offset) {
+    const { currentSegment } = this.props;
+    if (currentSegment && currentSegment.routeOffset <= offset &&
+      currentSegment.routeOffset + currentSegment.duration >= offset)
+    {
+      return Math.floor((offset - currentSegment.routeOffset) / 60000);
+    }
+    return null;
   }
 
   render() {
@@ -244,6 +259,7 @@ class TimeDisplay extends Component {
 }
 
 const stateToProps = Obstruction({
+  currentSegment: 'currentSegment',
   expanded: 'zoom.expanded',
   desiredPlaySpeed: 'desiredPlaySpeed',
   filter: 'filter',
