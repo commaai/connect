@@ -369,13 +369,14 @@ class PrimeManage extends Component {
               <div className={ classes.overviewBlock + " " + classes.paymentElement }>
                 <Button className={ classes.buttons } style={ buttonSmallStyle } onClick={ this.gotoUpdate }
                    disabled={ !hasPrimeSub }>
-                  Update payment method
+                  { subscription.cancel_at ? 'Renew subscription' : 'Update payment method' }
                 </Button>
-                <Button className={ `${classes.buttons} ${classes.cancelButton} primeCancel` } style={ buttonSmallStyle }
-                  onClick={ () => this.setState({ cancelModal: true }) }
-                  disabled={ Boolean(!hasPrimeSub || subscription.cancel_at) }>
-                  { subscription.cancel_at ? 'Already cancelled' : 'Cancel subscription' }
-                </Button>
+                { !subscription.cancel_at &&
+                  <Button className={ `${classes.buttons} ${classes.cancelButton} primeCancel` } style={ buttonSmallStyle }
+                    onClick={ () => this.setState({ cancelModal: true }) } disabled={ Boolean(!hasPrimeSub) }>
+                    Cancel subscription
+                  </Button>
+                }
               </div>
             </> }
           </div>
