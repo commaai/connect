@@ -4,9 +4,10 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, IconButton } from '@material-ui/core';
+import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper } from '@material-ui/core';
 import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
+import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
 import { raw as RawApi, athena as AthenaApi } from '@commaai/comma-api';
 
 import DriveMap from '../DriveMap';
@@ -164,6 +165,21 @@ const styles = (theme) => ({
     borderRadius: 4,
     marginLeft: 8,
   },
+  dcameraUploadIcon: {
+    fontSize: '1rem',
+    marginLeft: 4,
+  },
+  dcameraUploadInfo: {
+    zIndex: 2000,
+    textAlign: 'center',
+    borderRadius: 14,
+    fontSize: '0.8em',
+    padding: '6px 8px',
+    border: `1px solid ${Colors.white10}`,
+    backgroundColor: Colors.grey800,
+    color: Colors.white,
+    '& p': { fontSize: '0.8rem' },
+  },
 });
 
 const FILE_NAMES = {
@@ -192,6 +208,7 @@ class Media extends Component {
       downloadMenu: null,
       moreInfoMenu: null,
       uploadModal: false,
+      dcamUploadInfo: null,
     };
 
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
@@ -327,6 +344,9 @@ class Media extends Component {
 
   async uploadFile(type) {
     const { dongleId, currentSegment } = this.props;
+    if (!currentSegment) {
+      return;
+    }
     const routeNoDongleId = currentSegment.route.split('|')[1];
     const path = `${routeNoDongleId}--${this.currentSegmentNum()}/${FILE_NAMES[type]}`;
     const fileName = `${dongleId}|${routeNoDongleId}--${this.currentSegmentNum()}/${type}`;
@@ -408,6 +428,10 @@ class Media extends Component {
     if (!resp || resp.error) {
       const uploading = {};
       uploading[fileName] = {};
+      this.props.dispatch(updateFiles(uploading));
+    } else if (resp.result === 404) {
+      const uploading = {};
+      uploading[fileName] = { notFound: true };
       this.props.dispatch(updateFiles(uploading));
     } else if (resp.result) {
       this.props.dispatch(fetchUploadQueue(dongleId));
@@ -535,7 +559,7 @@ class Media extends Component {
 
   renderMenus(alwaysOpen = false) {
     const { currentSegment, device, classes, files } = this.props;
-    const { downloadMenu, moreInfoMenu, uploadModal, windowWidth } = this.state;
+    const { downloadMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo } = this.state;
 
     if (!device) {
       return;
@@ -583,7 +607,7 @@ class Media extends Component {
                 download
               </Button>
             }
-            { Boolean(files && !file.url && online && file.progress === undefined && !file.requested) &&
+            { Boolean(files && !file.url && online && file.progress === undefined && !file.requested && !file.notFound) &&
               <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
                 onClick={ () => this.uploadFile(type) }>
                 { windowWidth < 425 ? 'upload' : 'request upload' }
@@ -597,6 +621,17 @@ class Media extends Component {
             { Boolean(files && !file.url && online && file.requested) &&
               <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
                 <CircularProgress style={{ color: Colors.white }} size={ 17 } />
+              </div>
+            }
+            { Boolean(files && !file.url && online && file.notFound) &&
+              <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}
+                onMouseEnter={ type === 'dcameras' ? (ev) => this.setState({ dcamUploadInfo: ev.target }) : null }
+                onMouseLeave={ type === 'dcameras' ? () => this.setState({ dcamUploadInfo: null }) : null }>
+                not found
+                { type === 'dcameras' && <>
+                  <InfoOutlineIcon className={ classes.dcameraUploadIcon } />
+                  {/* make sure to enable drive camera upload */}
+                </> }
               </div>
             }
           </MenuItem>
@@ -683,6 +718,10 @@ class Media extends Component {
       </Menu>
       <UploadQueue open={ uploadModal } onClose={ () => this.setState({ uploadModal: false }) }
         update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) } store={ this.props.store } device={ device } />
+      <Popper open={ Boolean(dcamUploadInfo) } placement="bottom"
+        anchorEl={ dcamUploadInfo } className={ classes.dcameraUploadInfo }>
+        <Typography>make sure to enable the "Record and Upload Driver Camera" toggle</Typography>
+      </Popper>
     </> );
   }
 }
