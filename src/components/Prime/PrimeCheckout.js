@@ -222,7 +222,7 @@ class PrimeCheckout extends Component {
       this.setState({ error: 'Checkout cancelled' });
     }
 
-    if (!prevProps.subscribeInfo && prevProps.subscribeInfo !== subscribeInfo) {
+    if (this.state.selectedPlan === null && subscribeInfo) {
       const plan = subscribeInfo.sim_id && subscribeInfo.is_prime_sim ? 'data' : 'nodata';
       this.setState({ selectedPlan: plan });
     }

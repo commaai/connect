@@ -92,11 +92,11 @@ const styles = (theme) => ({
     },
     '&:disabled': {
       backgroundColor: 'transparent',
-      color: Colors.grey900,
+      color: Colors.grey500,
     },
     '&:disabled:hover': {
       backgroundColor: 'transparent',
-      color: Colors.grey900,
+      color: Colors.grey500,
     }
   },
   modal: {
@@ -168,7 +168,6 @@ class PrimeManage extends Component {
     };
 
     this.cancelPrime = this.cancelPrime.bind(this);
-    this.modalClose = this.modalClose.bind(this);
     this.fetchStripeSession = this.fetchStripeSession.bind(this);
     this.gotoUpdate = this.gotoUpdate.bind(this);
     this.fetchSubscription = this.fetchSubscription.bind(this);
@@ -196,6 +195,7 @@ class PrimeManage extends Component {
     Billing.cancelPrime(this.props.dongleId).then((resp) => {
       if (resp.success) {
         this.setState({ canceling: false, cancelError: null, cancelSuccess: 'Cancelled subscription.' });
+        this.fetchSubscription();
       } else if (resp.error) {
         this.setState({ canceling: false, cancelError: resp.description });
       } else {
@@ -205,14 +205,6 @@ class PrimeManage extends Component {
       Sentry.captureException(err, { fingerprint: 'primemanage_cancel_prime' });
       this.setState({ canceling: false, cancelError: 'Could not cancel due to unknown error. Please try again.' });
     });
-  }
-
-  modalClose() {
-    if (this.state.cancelSuccess) {
-      window.location = window.location.origin + '/' + this.props.dongleId;
-    } else {
-      this.setState({ cancelModal: false });
-    }
   }
 
   async gotoUpdate() {
@@ -288,11 +280,12 @@ class PrimeManage extends Component {
       return null;
     }
 
-    let joinDate, nextPaymentDate, planName, planSubtext;
+    let joinDate, nextPaymentDate, cancelAtDate, planName, planSubtext;
     if (hasPrimeSub) {
       joinDate = fecha.format(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0, 'MMMM Do, YYYY');
       nextPaymentDate = fecha.format(
         subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0, 'MMMM Do, YYYY');
+      cancelAtDate = fecha.format(subscription.cancel_at ? subscription.cancel_at * 1000 : 0, 'MMMM Do, YYYY');
       planName = subscription.plan === 'nodata' ? 'Basic' : 'Standard';
       planSubtext = subscription.plan === 'nodata' ? '(without data plan)' : '(with data plan)'
     }
@@ -353,10 +346,18 @@ class PrimeManage extends Component {
                 <Typography variant="subheading">Joined</Typography>
                 <Typography className={ classes.manageItem }>{ joinDate }</Typography>
               </div>
-              <div className={ classes.overviewBlock }>
-                <Typography variant="subheading">Next payment</Typography>
-                <Typography className={ classes.manageItem }>{ nextPaymentDate }</Typography>
-              </div>
+              { !subscription.cancel_at &&
+                <div className={ classes.overviewBlock }>
+                  <Typography variant="subheading">Next payment</Typography>
+                  <Typography className={ classes.manageItem }>{ nextPaymentDate }</Typography>
+                </div>
+              }
+              { subscription.cancel_at &&
+                <div className={ classes.overviewBlock }>
+                  <Typography variant="subheading">Subscription end</Typography>
+                  <Typography className={ classes.manageItem }>{ cancelAtDate }</Typography>
+                </div>
+              }
               <div className={ classes.overviewBlock }>
                 <Typography variant="subheading">Amount</Typography>
                 <Typography className={ classes.manageItem }>${ (subscription.amount / 100).toFixed(2) }</Typography>
@@ -371,14 +372,15 @@ class PrimeManage extends Component {
                   Update payment method
                 </Button>
                 <Button className={ `${classes.buttons} ${classes.cancelButton} primeCancel` } style={ buttonSmallStyle }
-                  onClick={ () => this.setState({ cancelModal: true }) } disabled={ !hasPrimeSub }>
-                  Cancel subscription
+                  onClick={ () => this.setState({ cancelModal: true }) }
+                  disabled={ Boolean(!hasPrimeSub || subscription.cancel_at) }>
+                  { subscription.cancel_at ? 'Already cancelled' : 'Cancel subscription' }
                 </Button>
               </div>
             </> }
           </div>
         </div>
-        <Modal open={ this.state.cancelModal } onClose={ this.modalClose }>
+        <Modal open={ this.state.cancelModal } onClose={ () => this.setState({ cancelModal: false }) }>
           <Paper className={classes.modal}>
             <Typography variant="title">Cancel prime subscription</Typography>
             { this.state.cancelError && <div className={ classes.cancelError }>
@@ -390,7 +392,8 @@ class PrimeManage extends Component {
             <Typography>Device: {alias} ({ dongleId })</Typography>
             <Typography>We're sorry to see you go.</Typography>
             <Typography>
-              Cancelling will immediately suspend billing and comma prime membership benefits.
+              Subscription will stay active until the end of this billing period
+              { nextPaymentDate ? ` (${nextPaymentDate})` : '' }
             </Typography>
             <Button variant="contained" className={ `${classes.cancelModalButton} primeModalCancel` }
               onClick={ this.cancelPrime } disabled={ Boolean(this.state.cancelSuccess || this.state.canceling) }>
@@ -400,7 +403,7 @@ class PrimeManage extends Component {
               }
             </Button>
             <Button variant="contained" className={ `${classes.closeButton} primeModalClose` }
-              onClick={ this.modalClose }>
+              onClick={ () => this.setState({ cancelModal: false }) }>
               Close
             </Button>
           </Paper>
