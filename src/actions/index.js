@@ -136,6 +136,24 @@ export function primeNav(nav, allowPathChange = true) {
   };
 }
 
+export function fetchSharedDevice(dongleId) {
+  return async (dispatch, getState) => {
+    try {
+      const resp = await DevicesApi.fetchDevice(dongleId);
+      dispatch({
+        type: Types.ACTION_UPDATE_SHARED_DEVICE,
+        dongleId,
+        device: resp,
+      });
+    } catch(err) {
+      if (!err.resp || err.resp.status !== 403) {
+        console.log(err);
+        Sentry.captureException(err, { fingerprint: 'action_fetch_shared_device' });
+      }
+    }
+  };
+}
+
 export function fetchDeviceOnline(dongleId) {
   return (dispatch, getState) => {
     DevicesApi.fetchDevice(dongleId).then((resp) => {

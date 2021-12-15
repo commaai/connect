@@ -3,7 +3,7 @@ import { devices as Devices, account as Account } from '@commaai/comma-api';
 
 import * as Demo from '../demo';
 import { ACTION_STARTUP_DATA } from '../actions/types';
-import { primeFetchSubscription, checkSegmentMetadata, selectDevice } from '../actions';
+import { primeFetchSubscription, checkSegmentMetadata, selectDevice, fetchSharedDevice } from '../actions';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 const demoProfile = require('../demo/profile.json');
@@ -65,9 +65,13 @@ export default function init() {
       if (!state.dongleId) {
         dispatch(selectDevice(devices[0].dongle_id));
       }
-      const dongleId = state.dongleId || devices[0].dongle_id;
+      const dongleId = state.dongleId || devices[0].dongle_id || null;
       const device = devices.find((dev) => dev.dongle_id === dongleId);
-      dispatch(primeFetchSubscription(dongleId, device, profile));
+      if (device) {
+        dispatch(primeFetchSubscription(dongleId, device, profile));
+      } else if (dongleId) {
+        dispatch(fetchSharedDevice(dongleId));
+      }
     }
 
     dispatch({

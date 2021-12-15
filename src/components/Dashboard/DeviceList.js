@@ -134,7 +134,7 @@ class DeviceList extends Component {
   }
 
   render() {
-    let { classes, devices } = this.props;
+    let { classes, device, devices } = this.props;
     const dongleId = this.props.selectedDevice;
 
     if (devices === null) {
@@ -142,7 +142,12 @@ class DeviceList extends Component {
     }
 
     let found = devices.some((device) => device.dongle_id === dongleId);
-    if (!found && dongleId) {
+    if (!found && device && dongleId === device.dongle_id) {
+      devices = [{
+        ...device,
+        alias: emptyDevice.alias,
+      }].concat(devices);
+    } else if (!found && dongleId) {
       devices = [{
         ...emptyDevice,
         dongle_id: dongleId,
@@ -215,6 +220,7 @@ class DeviceList extends Component {
 
 const stateToProps = Obstruction({
   devices: 'devices',
+  device: 'device',
   profile: 'profile',
 });
 

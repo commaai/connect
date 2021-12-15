@@ -4,6 +4,7 @@ import {
   ACTION_STARTUP_DATA,
   ACTION_UPDATE_DEVICES,
   ACTION_UPDATE_DEVICE,
+  ACTION_UPDATE_SHARED_DEVICE,
   ACTION_PRIME_NAV,
   ACTION_PRIME_SUBSCRIPTION,
   ACTION_PRIME_SUBSCRIBE_INFO,
@@ -101,6 +102,11 @@ export default function reducer(_state, action) {
         state.devices[deviceIndex] = populateFetchedAt(action.device);
       } else {
         state.devices.unshift(populateFetchedAt(action.device));
+      }
+      break;
+    case ACTION_UPDATE_SHARED_DEVICE:
+      if (action.dongleId === state.dongleId) {
+        state.device = populateFetchedAt(action.device);
       }
       break;
     case ACTION_UPDATE_DEVICE_ONLINE:
