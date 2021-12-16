@@ -60,7 +60,10 @@ export default function reducer(_state, action) {
         files: null,
       };
       if (state.devices) {
-        state.device = state.devices.find((device) => device.dongle_id === action.dongleId);
+        const new_device = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
+        if (!state.device || state.device.dongle_id !== action.dongleId) {
+          state.device = new_device;
+        }
       }
       if (state.segmentData && state.segmentData.dongleId !== state.dongleId) {
         state.segmentData = null;
@@ -84,11 +87,9 @@ export default function reducer(_state, action) {
         devices: action.devices.map(populateFetchedAt),
       };
       if (state.dongleId) {
-        state.device = state.devices.find((d) => d.dongle_id === state.dongleId);
-        if (!state.device) {
-          state.device = {
-            ...emptyDevice,
-          };
+        const new_device = state.devices.find((d) => d.dongle_id === state.dongleId);
+        if (new_device) {
+          state.device = new_device;
         }
       }
       break;
