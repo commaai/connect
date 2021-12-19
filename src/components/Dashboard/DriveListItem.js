@@ -7,7 +7,12 @@ import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 
 import { selectRange } from '../../actions';
-import { formatDriveDuration, getDrivePoints, filterRegularClick } from '../../utils';
+import {
+  formatDriveDuration,
+  getDrivePoints,
+  getDriveStats,
+  filterRegularClick,
+} from '../../utils';
 import GeocodeApi from '../../api/geocode';
 import Timeline from '../Timeline';
 import { RightArrow } from '../../icons';
@@ -50,6 +55,20 @@ const styles = (theme) => ({
   },
   firstLine: {
     fontWeight: 600,
+  },
+  stats: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    textAlign: 'center',
+    fontWeight: 900,
+    fontSize: '1.2em',
+    lineHeight: '40px',
+    backgroundColor: Colors.grey900,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: Colors.black,
+    color: Colors.green400,
   },
 });
 
@@ -97,26 +116,36 @@ class DriveListDrive extends Component {
     const endTime = fecha.format(new Date(endTs), 'HH:mm');
     const duration = formatDriveDuration(drive.duration);
     const points = getDrivePoints(drive.duration);
+    const stats = getDriveStats(drive);
 
     const gridStyle = small ? {
-      date:   { order: 1, maxWidth: '50%', flexBasis: '50%', marginBottom: 12 },
-      dur:    { order: 2, maxWidth: '28%', flexBasis: '28%', marginBottom: 12 },
-      dist:   { order: 3, maxWidth: '22%', flexBasis: '22%', marginBottom: 12 },
-      origin: { order: 4, maxWidth: '50%', flexBasis: '50%' },
-      dest:   { order: 5, maxWidth: '50%', flexBasis: '50%' },
+      stats:   { order: 1, maxWidth: '20%', flexBasis: '20%', marginBottom: 12 },
+      date:   { order: 2, maxWidth: '30%', flexBasis: '30%', marginBottom: 12 },
+      dur:    { order: 3, maxWidth: '28%', flexBasis: '28%', marginBottom: 12 },
+      dist:   { order: 4, maxWidth: '22%', flexBasis: '22%', marginBottom: 12 },
+      origin: { order: 5, maxWidth: '50%', flexBasis: '50%' },
+      dest:   { order: 6, maxWidth: '50%', flexBasis: '50%' },
     } : {
-      date:   { order: 1, maxWidth: '26%', flexBasis: '26%' },
-      dur:    { order: 2, maxWidth: '14%', flexBasis: '14%' },
-      origin: { order: 3, maxWidth: '22%', flexBasis: '22%' },
-      dest:   { order: 4, maxWidth: '22%', flexBasis: '22%' },
-      dist:   { order: 5, maxWidth: '10%', flexBasis: '10%' },
-      arrow:  { order: 6, maxWidth: '6%',  flexBasis: '6%' },
+      stats:   { order: 1, maxWidth: '6%', flexBasis: '6%' },
+      date:   { order: 2, maxWidth: '20%', flexBasis: '20%' },
+      dur:    { order: 3, maxWidth: '14%', flexBasis: '14%' },
+      origin: { order: 4, maxWidth: '22%', flexBasis: '22%' },
+      dest:   { order: 5, maxWidth: '22%', flexBasis: '22%' },
+      dist:   { order: 6, maxWidth: '10%', flexBasis: '10%' },
+      arrow:  { order: 7, maxWidth: '6%',  flexBasis: '6%' },
     };
     return (
       <a key={drive.startTime} className={ `${classes.drive} DriveEntry` } href={ `/${drive.dongleId}/${startTs}/${endTs}` }
         onClick={ filterRegularClick(() => this.props.dispatch(selectRange(startTs, endTs))) }>
         <div className={classes.driveHeader} style={ !small ? { padding: '18px 32px' } : { padding: 18 } }>
           <Grid container>
+            {stats ? (
+              <div className={classes.driveGridItem} style={gridStyle.stats}>
+                <Typography className={classes.stats}>
+                  {parseInt(stats.engagedPercentage * 100)}
+                </Typography>
+              </div>
+            ) : null}
             <div className={ classes.driveGridItem } style={ gridStyle.date }>
               <Typography className={ classes.firstLine }>
                 { startDate }

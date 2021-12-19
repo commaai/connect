@@ -62,6 +62,32 @@ export function getDrivePoints(duration) {
   return points;
 }
 
+export function getDriveStats(drive) {
+  if (!drive.events || !drive.duration) {
+    return 0.0;
+  }
+
+  let engagedDuration = 0;
+  let engagedAt;
+  let engaged = false;
+  drive.events.forEach((event) => {
+    if (event.type === "engage" && !engaged) {
+      engaged = true;
+      engagedAt = event.timestamp;
+    } else if (
+      event.type === "engage" ||
+      (event.type == "disengage_steer" && engaged)
+    ) {
+      engaged = false;
+      engagedDuration = engagedDuration + (event.timestamp - engagedAt);
+    }
+  });
+
+  return {
+    engagedPercentage: parseFloat(engagedDuration / drive.duration).toFixed(2),
+  };
+}
+
 export function deviceTypePretty(deviceType) {
   if (deviceType === 'neo') {
     return 'EON';
