@@ -144,7 +144,7 @@ class TimeDisplay extends Component {
       return '...';
     }
     const now = new Date(offset + filter.start);
-    let dateString = fecha.format(now, 'D MMM \u2013 HH:mm:ss');
+    let dateString = fecha.format(now, 'HH:mm:ss');
     const seg = this.segmentNum(offset);
     if (seg !== null) {
       dateString = `${dateString} \u2013 ${seg}`;
