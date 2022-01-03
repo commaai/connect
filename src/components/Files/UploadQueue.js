@@ -164,7 +164,7 @@ class UploadQueue extends Component {
     ids = ids.filter((id) => this.props.filesUploading[id] && !this.props.filesUploading[id].current);
     this.setState((prevState) => ({ cancelQueue: prevState.cancelQueue.concat(ids) }));
 
-    if (deviceVersionAtLeast(this.props.device, "0.8.12")) {
+    if (deviceVersionAtLeast(this.props.device, "0.8.13")) {
       this.props.dispatch(cancelUploads(this.props.device.dongle_id, ids));
     } else {
       for (const id of ids) {
