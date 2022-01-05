@@ -434,12 +434,10 @@ class Media extends Component {
       } else if (resp.result) {
         if (resp.result.failed) {
           const uploading = {};
-          for (const path in resp.result.failed) {
-            if (resp.result.failed[path] === 404) {
-              const idx = paths.indexOf(path);
-              if (idx !== -1) {
-                uploading[fileNames[idx]] = { notFound: true };
-              }
+          for (const path of resp.result.failed) {
+            const idx = paths.indexOf(path);
+            if (idx !== -1) {
+              uploading[fileNames[idx]] = { notFound: true };
             }
           }
           this.props.dispatch(updateFiles(uploading));
@@ -459,9 +457,7 @@ class Media extends Component {
           const uploading = {};
           uploading[fileNames[i]] = {};
           this.props.dispatch(updateFiles(uploading));
-        } else if (resp.result === 404 ||
-          (resp.result && resp.result.failed && resp.result.failed[paths[i]] === 404))
-        {
+        } else if (resp.result === 404 || (resp.result && resp.result.failed && resp.result.failed[0] === paths[i])) {
           const uploading = {};
           uploading[fileNames[i]] = { notFound: true };
           this.props.dispatch(updateFiles(uploading));
