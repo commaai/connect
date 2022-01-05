@@ -1,4 +1,4 @@
-import { getDriveStats } from './index';
+import { getDriveStats, EVENT_TYPES } from './index';
 
 describe('drive stats', () => {
   it('no events', () => {
@@ -11,11 +11,11 @@ describe('drive stats', () => {
       getDriveStats({
         duration: 600000,
         events: [
-          { type: 'engage', timestamp: startTimestamp },
-          { type: 'disengage', timestamp: startTimestamp + 1 * 60 * 1000 },
-          { type: 'engage', timestamp: startTimestamp + 2 * 60 * 1000 },
+          { type: EVENT_TYPES.ENGAGE, timestamp: startTimestamp },
+          { type: EVENT_TYPES.DISENGAGE, timestamp: startTimestamp + 1 * 60 * 1000 },
+          { type: EVENT_TYPES.ENGAGE, timestamp: startTimestamp + 2 * 60 * 1000 },
           {
-            type: 'disengage-steer',
+            type: EVENT_TYPES.DISENGAGE_STEER,
             timestamp: startTimestamp + 3 * 60 * 1000,
           },
         ],

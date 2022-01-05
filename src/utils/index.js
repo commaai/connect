@@ -13,6 +13,12 @@ export const emptyDevice = {
   serial: '00000000',
 };
 
+export const EVENT_TYPES = {
+  DISENGAGE: "disengage",
+  ENGAGE: "engage",
+  DISENGAGE_STEER: "disengage_steer",
+}
+
 export function filterEvent(event) {
   return (event.type === 'disengage' || event.type === 'disengage_steer');
 }
@@ -71,12 +77,13 @@ export function getDriveStats(drive) {
   let engagedAt;
   let engaged = false;
   drive.events.forEach((event) => {
-    if (event.type === "engage" && !engaged) {
+
+    if (event.type === EVENT_TYPES.ENGAGE && !engaged) {
       engaged = true;
       engagedAt = event.timestamp;
     } else if (
-      event.type === "engage" ||
-      (event.type == "disengage_steer" && engaged)
+      event.type === EVENT_TYPES.DISENGAGE ||
+      (event.type == EVENT_TYPES.DISENGAGE_STEER && engaged)
     ) {
       engaged = false;
       engagedDuration = engagedDuration + (event.timestamp - engagedAt);
