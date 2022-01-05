@@ -106,16 +106,6 @@ const FILE_NAMES = {
   'logs': 'rlog.bz2',
 };
 
-function sortUploads([_1, a], [_2, b]) {
-  if (a.current) {
-    return -1;
-  } else if (b.current) {
-    return 1;
-  } else {
-    return a.createdAt - b.createdAt;
-  }
-}
-
 class UploadQueue extends Component {
   constructor(props) {
     super(props);
@@ -186,6 +176,12 @@ class UploadQueue extends Component {
     const segmentNameStyle = windowWidth < 450 ? { fontSize: windowWidth < 400 ? '0.8rem' : '0.9rem' } : {};
     const cellStyle = { padding: windowWidth < 400 ? '0 2px' : (windowWidth < 450 ? '0 4px' : '0 8px') };
 
+    const uploadSorted = Object.entries(filesUploading);
+    if (uploadSorted.length && uploadSorted[uploadSorted.length - 1][1].current) {
+      const curr = uploadSorted.splice([uploadSorted.length - 1], 1);
+      uploadSorted.unshift(curr[0]);
+    }
+
     return ( <>
       <ResizeHandler onResize={ (windowWidth, windowHeight) => this.setState({ windowWidth, windowHeight }) } />
       <Modal aria-labelledby="upload-queue-modal" open={ this.props.open } onClose={ this.props.onClose }>
@@ -207,7 +203,7 @@ class UploadQueue extends Component {
                   </tr>
                 </thead>
                 <tbody>
-                  { Object.entries(filesUploading).reverse().sort(sortUploads).map(([id, upload]) => {
+                  { uploadSorted.map(([id, upload]) => {
                     const isCancelled = cancelQueue.includes(id);
                     const [seg, type] = upload.fileName.split('/');
                     const prog = parseInt(upload.progress * 100);
