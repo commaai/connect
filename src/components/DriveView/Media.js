@@ -431,13 +431,19 @@ class Media extends Component {
           newUploading[fileName] = {};
         }
         this.props.dispatch(updateFiles(newUploading));
-      } else if (resp.result === 404) {
-        const uploading = {};
-        for (const fileName of fileNames) {
-          uploading[fileName] = { notFound: true };
-        }
-        this.props.dispatch(updateFiles(uploading));
       } else if (resp.result) {
+        if (resp.result.failed) {
+          const uploading = {};
+          for (const path in resp.result.failed) {
+            if (resp.result.failed[path] === 404) {
+              const idx = paths.indexOf(path);
+              if (idx !== -1) {
+                uploading[fileNames[idx]] = { notFound: true };
+              }
+            }
+          }
+          this.props.dispatch(updateFiles(uploading));
+        }
         this.props.dispatch(fetchUploadQueue(dongleId));
       }
     } else {
@@ -453,7 +459,9 @@ class Media extends Component {
           const uploading = {};
           uploading[fileNames[i]] = {};
           this.props.dispatch(updateFiles(uploading));
-        } else if (resp.result === 404) {
+        } else if (resp.result === 404 ||
+          (resp.result && resp.result.failed && resp.result.failed[paths[i]] === 404))
+        {
           const uploading = {};
           uploading[fileNames[i]] = { notFound: true };
           this.props.dispatch(updateFiles(uploading));
@@ -474,7 +482,7 @@ class Media extends Component {
           count += 1;
           const log = files[`${segment.canonical_name}/${type}`];
           if (log) {
-            uploaded += Boolean(log.url);
+            uploaded += Boolean(log.url || log.notFound);
             uploading += Boolean(log.progress !== undefined);
             requested += Boolean(log.requested);
           }
@@ -654,10 +662,7 @@ class Media extends Component {
                 onMouseEnter={ type === 'dcameras' ? (ev) => this.setState({ dcamUploadInfo: ev.target }) : null }
                 onMouseLeave={ type === 'dcameras' ? () => this.setState({ dcamUploadInfo: null }) : null }>
                 not found
-                { type === 'dcameras' && <>
-                  <InfoOutlineIcon className={ classes.dcameraUploadIcon } />
-                  {/* make sure to enable drive camera upload */}
-                </> }
+                { type === 'dcameras' && <InfoOutlineIcon className={ classes.dcameraUploadIcon } /> }
               </div>
             }
           </MenuItem>
