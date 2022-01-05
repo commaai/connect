@@ -427,13 +427,13 @@ class Media extends Component {
       const resp = await this.athenaCall(payload, 'media_athena_uploads');
       if (!resp || resp.error) {
         const newUploading = {};
-        for (const fileName in fileNames) {
+        for (const fileName of fileNames) {
           newUploading[fileName] = {};
         }
         this.props.dispatch(updateFiles(newUploading));
       } else if (resp.result === 404) {
         const uploading = {};
-        for (const fileName in fileNames) {
+        for (const fileName of fileNames) {
           uploading[fileName] = { notFound: true };
         }
         this.props.dispatch(updateFiles(uploading));
@@ -446,7 +446,7 @@ class Media extends Component {
           id: 0,
           jsonrpc: "2.0",
           method: "uploadFileToUrl",
-          params: { files_data: [paths[i], urls[i], { "x-ms-blob-type": "BlockBlob" }] },
+          params: [paths[i], urls[i], { "x-ms-blob-type": "BlockBlob" }],
         };
         const resp = await this.athenaCall(payload, 'media_athena_upload');
         if (!resp || resp.error) {
