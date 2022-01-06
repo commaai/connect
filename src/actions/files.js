@@ -3,6 +3,7 @@ import { raw as RawApi, athena as AthenaApi } from '@commaai/comma-api';
 
 import { updateDeviceOnline } from './';
 import * as Types from './types';
+import { deviceVersionAtLeast } from  '../utils';
 
 const demoLogUrls = require('../demo/logUrls.json');
 const demoFiles = require('../demo/files.json');
@@ -167,23 +168,21 @@ export function updateFiles(files) {
   };
 }
 
-export function cancelUpload(dongleId, id) {
+export function cancelUploads(dongleId, ids) {
   return async (dispatch, getState) => {
-    const { filesUploading } = getState();
-
     const payload = {
       id: 0,
       jsonrpc: "2.0",
       method: "cancelUpload",
-      params: { upload_id: id },
+      params: { upload_id: ids },
     };
-    const resp = await athenaCall(dongleId, payload, 'action_files_athena_cancelupload');
-    if (resp && resp.result && resp.result.success && filesUploading[id]) {
+    const resp = await athenaCall(dongleId, payload, 'action_files_athena_canceluploads');
+    if (resp && resp.result && resp.result.success) {
+      const idsArray = Array.isArray(ids) ? ids : [ids];
       dispatch({
-        type: Types.ACTION_FILES_CANCELLED_UPLOAD,
+        type: Types.ACTION_FILES_CANCELLED_UPLOADS,
         dongleId,
-        id,
-        fileName: filesUploading[id].fileName,
+        ids: idsArray,
       });
     } else if (resp && resp.offline) {
       dispatch(updateDeviceOnline(dongleId, 0));

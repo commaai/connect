@@ -6,8 +6,8 @@ import { withStyles, Divider, Typography, CircularProgress, Button, Modal, Paper
   } from '@material-ui/core';
 import HighlightOffIcon from '@material-ui/icons/HighlightOff';
 
-import { fetchUploadQueue, cancelUpload, cancelFetchUploadQueue } from '../../actions/files';
-import { deviceIsOnline } from '../../utils';
+import { fetchUploadQueue, cancelUploads, cancelFetchUploadQueue } from '../../actions/files';
+import { deviceIsOnline, deviceVersionAtLeast } from '../../utils';
 import Colors from '../../colors';
 import ResizeHandler from '../ResizeHandler';
 
@@ -106,16 +106,6 @@ const FILE_NAMES = {
   'logs': 'rlog.bz2',
 };
 
-function sortUploads([_1, a], [_2, b]) {
-  if (a.current) {
-    return -1;
-  } else if (b.current) {
-    return 1;
-  } else {
-    return a.createdAt - b.createdAt;
-  }
-}
-
 class UploadQueue extends Component {
   constructor(props) {
     super(props);
@@ -126,7 +116,7 @@ class UploadQueue extends Component {
       cancelQueue: [],
     };
 
-    this.cancelUploads = this.cancelUploads.bind(this);
+    this.cancelUploading = this.cancelUploading.bind(this);
     this.uploadQueue = this.uploadQueue.bind(this);
   }
 
@@ -156,29 +146,22 @@ class UploadQueue extends Component {
     }
   }
 
-  async cancelUploads(ids) {
+  async cancelUploading(ids) {
     if (ids === undefined) {
       ids = Object.keys(this.props.filesUploading);
     }
 
-    this.setState((prevState) => {
-      return { cancelQueue: prevState.cancelQueue.concat(ids) };
-    });
+    ids = ids.filter((id) => this.props.filesUploading[id] && !this.props.filesUploading[id].current);
+    this.setState((prevState) => ({ cancelQueue: prevState.cancelQueue.concat(ids) }));
 
-    for (const id of ids) {
-      if (!this.props.filesUploading[id] || this.props.filesUploading[id].current) {
-        this.setState((prevState) => {
-          const { cancelQueue } = prevState;
-          const index = cancelQueue.indexOf(id);
-          if (index !== -1) {
-            cancelQueue.splice(index, 1);
-          }
-          return { cancelQueue };
-        });
-        continue;
+    if (deviceVersionAtLeast(this.props.device, "0.8.13")) {
+      this.props.dispatch(cancelUploads(this.props.device.dongle_id, ids));
+    } else {
+      for (const id of ids) {
+        this.props.dispatch(cancelUploads(this.props.device.dongle_id, id));
       }
-      this.props.dispatch(cancelUpload(this.props.device.dongle_id, id));
     }
+
     this.uploadQueue(true);
   }
 
@@ -192,6 +175,12 @@ class UploadQueue extends Component {
     const logNameLength = windowWidth < 600 ? 4 : 64;
     const segmentNameStyle = windowWidth < 450 ? { fontSize: windowWidth < 400 ? '0.8rem' : '0.9rem' } : {};
     const cellStyle = { padding: windowWidth < 400 ? '0 2px' : (windowWidth < 450 ? '0 4px' : '0 8px') };
+
+    const uploadSorted = Object.entries(filesUploading);
+    if (uploadSorted.length && uploadSorted[uploadSorted.length - 1][1].current) {
+      const curr = uploadSorted.splice([uploadSorted.length - 1], 1);
+      uploadSorted.unshift(curr[0]);
+    }
 
     return ( <>
       <ResizeHandler onResize={ (windowWidth, windowHeight) => this.setState({ windowWidth, windowHeight }) } />
@@ -214,7 +203,7 @@ class UploadQueue extends Component {
                   </tr>
                 </thead>
                 <tbody>
-                  { Object.entries(filesUploading).reverse().sort(sortUploads).map(([id, upload]) => {
+                  { uploadSorted.map(([id, upload]) => {
                     const isCancelled = cancelQueue.includes(id);
                     const [seg, type] = upload.fileName.split('/');
                     const prog = parseInt(upload.progress * 100);
@@ -242,7 +231,7 @@ class UploadQueue extends Component {
                             <td className={ `${classes.uploadCell} ${classes.cancelCell}` } style={ cellStyle }>
                               { isCancelled ?
                                 <CircularProgress className={ classes.uploadCancelled } size={ 15 } /> :
-                                <Button onClick={ () => this.cancelUploads([id]) }><HighlightOffIcon /></Button> }
+                                <Button onClick={ () => this.cancelUploading([id]) }><HighlightOffIcon /></Button> }
                             </td>
                           </>
                         }
@@ -261,7 +250,7 @@ class UploadQueue extends Component {
           </div>
           <div className={classes.buttonGroup}>
             <Button variant="contained" className={ classes.cancelButton } disabled={ !hasUploading }
-              onClick={ hasUploading ? () => this.cancelUploads() : null }>
+              onClick={ hasUploading ? () => this.cancelUploading() : null }>
               cancel all
             </Button>
             <Button variant="contained" className={ classes.cancelButton } onClick={ this.props.onClose }>

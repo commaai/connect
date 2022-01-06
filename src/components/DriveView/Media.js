@@ -18,7 +18,7 @@ import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
 import { currentOffset } from '../../timeline/playback';
 import Colors from '../../colors';
-import { deviceIsOnline } from '../../utils';
+import { deviceIsOnline, deviceVersionAtLeast } from '../../utils';
 import { updateDeviceOnline } from '../../actions';
 import { fetchFiles, fetchUploadQueue, updateFiles } from '../../actions/files';
 
@@ -220,6 +220,7 @@ class Media extends Component {
     this.currentSegmentNum = this.currentSegmentNum.bind(this);
     this.uploadFile = this.uploadFile.bind(this);
     this.uploadFilesAll = this.uploadFilesAll.bind(this);
+    this.fetchUploadUrls = this.fetchUploadUrls.bind(this);
     this.doUpload = this.doUpload.bind(this);
     this.athenaCall = this.athenaCall.bind(this);
     this.getUploadStats = this.getUploadStats.bind(this);
@@ -355,7 +356,10 @@ class Media extends Component {
     uploading[fileName] = { requested: true };
     this.props.dispatch(updateFiles(uploading));
 
-    this.doUpload(dongleId, fileName, path);
+    const urls = await this.fetchUploadUrls(dongleId, [path]);
+    if (urls) {
+      this.doUpload(dongleId, [fileName], [path], urls);
+    }
   }
 
   async uploadFilesAll(types) {
@@ -386,55 +390,81 @@ class Media extends Component {
     }
     this.props.dispatch(updateFiles(uploading));
 
-    for (const fileName in uploading) {
+    const paths = Object.keys(uploading).map((fileName) => {
       const [seg, type] = fileName.split('/');
-      const path = `${seg.split('|')[1]}/${FILE_NAMES[type]}`;
-      this.doUpload(dongleId, fileName, path);
+      return `${seg.split('|')[1]}/${FILE_NAMES[type]}`;
+    });
+
+    const urls = await this.fetchUploadUrls(dongleId, paths);
+    if (urls) {
+      this.doUpload(dongleId, Object.keys(uploading), paths, urls);
     }
   }
 
-  async doUpload(dongleId, fileName, path, retryCount = 0) {
-    let url;
+  async fetchUploadUrls(dongleId, paths) {
     try {
-      while (this.openRequests > MAX_OPEN_REQUESTS) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+      const resp = await RawApi.getUploadUrls(dongleId, paths, 7);
+      if (resp && !resp.error) {
+        return resp.map((r) => r.url);
       }
-      this.openRequests += 1;
-      const resp = await RawApi.getUploadUrl(dongleId, path, 7);
-      this.openRequests -= 1;
-      if (!resp.url) {
-        console.log(resp);
-        return;
-      }
-      url = resp.url;
     } catch (err) {
-      this.openRequests -= 1;
-      if (!err.resp && retryCount < MAX_RETRIES) {
-        setTimeout(() => this.doUpload(dongleId, fileName, path, retryCount + 1), 2000);
-      } else {
-        console.log(err);
-        Sentry.captureException(err, { fingerprint: 'media_upload_geturl' });
-      }
-      return;
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'media_upload_geturls' });
     }
+  }
 
-    const payload = {
-      id: 0,
-      jsonrpc: "2.0",
-      method: "uploadFileToUrl",
-      params: [path, url, { "x-ms-blob-type": "BlockBlob" }],
-    };
-    const resp = await this.athenaCall(payload, 'media_athena_upload');
-    if (!resp || resp.error) {
-      const uploading = {};
-      uploading[fileName] = {};
-      this.props.dispatch(updateFiles(uploading));
-    } else if (resp.result === 404) {
-      const uploading = {};
-      uploading[fileName] = { notFound: true };
-      this.props.dispatch(updateFiles(uploading));
-    } else if (resp.result) {
-      this.props.dispatch(fetchUploadQueue(dongleId));
+  async doUpload(dongleId, fileNames, paths, urls) {
+    if (deviceVersionAtLeast(this.props.device, "0.8.13")) {
+      const files_data = paths.map((path, i) => {
+        return [path, urls[i], { "x-ms-blob-type": "BlockBlob" }];
+      });
+      const payload = {
+        id: 0,
+        jsonrpc: "2.0",
+        method: "uploadFilesToUrls",
+        params: { files_data },
+      };
+      const resp = await this.athenaCall(payload, 'media_athena_uploads');
+      if (!resp || resp.error) {
+        const newUploading = {};
+        for (const fileName of fileNames) {
+          newUploading[fileName] = {};
+        }
+        this.props.dispatch(updateFiles(newUploading));
+      } else if (resp.result) {
+        if (resp.result.failed) {
+          const uploading = {};
+          for (const path of resp.result.failed) {
+            const idx = paths.indexOf(path);
+            if (idx !== -1) {
+              uploading[fileNames[idx]] = { notFound: true };
+            }
+          }
+          this.props.dispatch(updateFiles(uploading));
+        }
+        this.props.dispatch(fetchUploadQueue(dongleId));
+      }
+    } else {
+      for (let i=0; i<fileNames.length; i++) {
+        const payload = {
+          id: 0,
+          jsonrpc: "2.0",
+          method: "uploadFileToUrl",
+          params: [paths[i], urls[i], { "x-ms-blob-type": "BlockBlob" }],
+        };
+        const resp = await this.athenaCall(payload, 'media_athena_upload');
+        if (!resp || resp.error) {
+          const uploading = {};
+          uploading[fileNames[i]] = {};
+          this.props.dispatch(updateFiles(uploading));
+        } else if (resp.result === 404 || (resp.result && resp.result.failed && resp.result.failed[0] === paths[i])) {
+          const uploading = {};
+          uploading[fileNames[i]] = { notFound: true };
+          this.props.dispatch(updateFiles(uploading));
+        } else if (resp.result) {
+          this.props.dispatch(fetchUploadQueue(dongleId));
+        }
+      }
     }
   }
 
@@ -448,7 +478,7 @@ class Media extends Component {
           count += 1;
           const log = files[`${segment.canonical_name}/${type}`];
           if (log) {
-            uploaded += Boolean(log.url);
+            uploaded += Boolean(log.url || log.notFound);
             uploading += Boolean(log.progress !== undefined);
             requested += Boolean(log.requested);
           }
@@ -628,10 +658,7 @@ class Media extends Component {
                 onMouseEnter={ type === 'dcameras' ? (ev) => this.setState({ dcamUploadInfo: ev.target }) : null }
                 onMouseLeave={ type === 'dcameras' ? () => this.setState({ dcamUploadInfo: null }) : null }>
                 not found
-                { type === 'dcameras' && <>
-                  <InfoOutlineIcon className={ classes.dcameraUploadIcon } />
-                  {/* make sure to enable drive camera upload */}
-                </> }
+                { type === 'dcameras' && <InfoOutlineIcon className={ classes.dcameraUploadIcon } /> }
               </div>
             }
           </MenuItem>

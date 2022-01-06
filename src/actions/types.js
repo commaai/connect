@@ -31,4 +31,4 @@ export const ACTION_SEGMENT_METADATA = 'segment_metadata';
 export const ACTION_FILES_URLS = 'files_urls';
 export const ACTION_FILES_UPDATE = 'files_update';
 export const ACTION_FILES_UPLOADING = 'files_uploading';
-export const ACTION_FILES_CANCELLED_UPLOAD = 'files_cancelled_upload';
+export const ACTION_FILES_CANCELLED_UPLOADS = 'files_cancelled_uploads';
