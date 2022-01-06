@@ -149,6 +149,7 @@ export function fetchUploadQueue(dongleId) {
       }
       return;
     }
+    dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
 
     let prevFilesUploading = getState().filesUploading || {};
     const uploadingFiles = {};

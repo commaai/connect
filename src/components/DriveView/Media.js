@@ -438,6 +438,7 @@ class Media extends Component {
         for (const fileName of fileNames) {
           newUploading[fileName] = {};
         }
+        this.props.dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
         this.props.dispatch(updateFiles(newUploading));
       } else if (resp.result === 'Device offline, message queued') {
         const newUploading = {};
@@ -471,6 +472,7 @@ class Media extends Component {
         if (!resp || resp.error) {
           const uploading = {};
           uploading[fileNames[i]] = {};
+          this.props.dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
           this.props.dispatch(updateFiles(uploading));
         } else if (resp.result === 'Device offline, message queued') {
           const uploading = {};
