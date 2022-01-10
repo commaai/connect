@@ -609,7 +609,7 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { currentSegment, device, classes, files } = this.props;
+    const { currentSegment, device, classes, files, profile } = this.props;
     const { downloadMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo } = this.state;
 
     if (!device) {
@@ -625,6 +625,7 @@ class Media extends Component {
       rlog = files[`${seg}/logs`] || {};
     }
 
+    const canUpload = device.is_owner || (profile && profile.superuser);
     const online = deviceIsOnline(device);
     const uploadButtonWidth = windowWidth < 425 ? 80 : 120;
     const buttons = [
@@ -658,7 +659,7 @@ class Media extends Component {
                 download
               </Button>
             }
-            { Boolean(files && !file.url && file.progress === undefined && !file.requested && !file.notFound) &&
+            { Boolean(files && canUpload && !file.url && file.progress === undefined && !file.requested && !file.notFound) &&
               <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
                 onClick={ () => this.uploadFile(type) }>
                 { windowWidth < 425 ? 'upload' : 'request upload' }
@@ -688,13 +689,13 @@ class Media extends Component {
         <MenuItem className={ classes.filesItem } disabled={ true }
           style={ Boolean(files && stats) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
           All logs
-          { Boolean(files && !rlogUploadDisabled) &&
+          { Boolean(files && canUpload && !rlogUploadDisabled) &&
             <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
               onClick={ () => this.uploadFilesAll(['logs']) }>
               upload { stats.canRequestRlog } logs
             </Button>
           }
-          { Boolean(rlogUploadDisabled && stats) &&
+          { Boolean(canUpload && rlogUploadDisabled && stats) &&
             <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
               { stats.isUploadedRlog ?
                 'uploaded' :
@@ -705,13 +706,13 @@ class Media extends Component {
         <MenuItem className={ classes.filesItem } disabled={ true }
           style={ Boolean(files && stats) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
           All files
-          { Boolean(files && !allUploadDisabled) &&
+          { Boolean(files && canUpload && !allUploadDisabled) &&
             <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
               onClick={ () => this.uploadFilesAll() }>
               upload { stats.canRequestAll } files
             </Button>
           }
-          { Boolean(allUploadDisabled && stats) &&
+          { Boolean(canUpload && allUploadDisabled && stats) &&
             <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
               { stats.isUploadedAll ?
                 'uploaded' :
@@ -778,6 +779,7 @@ const stateToProps = Obstruction({
   loop: 'loop',
   filter: 'filter',
   files: 'files',
+  profile: 'profile',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));
