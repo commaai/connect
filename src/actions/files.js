@@ -1,9 +1,8 @@
 import * as Sentry from '@sentry/react';
-import { raw as RawApi, athena as AthenaApi } from '@commaai/comma-api';
+import { raw as RawApi, athena as AthenaApi, devices as DevicesApi } from '@commaai/comma-api';
 
 import { updateDeviceOnline } from './';
 import * as Types from './types';
-import { deviceVersionAtLeast } from  '../utils';
 
 const demoLogUrls = require('../demo/logUrls.json');
 const demoFiles = require('../demo/files.json');
@@ -21,6 +20,12 @@ const MAX_RETRIES = 5;
 
 let uploadQueueTimeout = null;
 let openRequests = 0;
+
+function pathToFileName(dongleId, path) {
+  const [seg, fileType] = path.split('/');
+  const type = Object.entries(FILE_NAMES).find((e) => e[1] == fileType)[0];
+  return `${dongleId}|${seg}/${type}`
+}
 
 async function athenaCall(dongleId, payload, sentry_fingerprint, retryCount = 0) {
   try {
@@ -85,6 +90,37 @@ export function fetchFiles(routeName, nocache=false) {
   };
 }
 
+export function fetchAthenaQueue(dongleId) {
+  return async (dispatch, getState) => {
+    let queue;
+    try {
+      queue = await DevicesApi.getAthenaQueue(dongleId);
+    } catch (err) {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'action_files_fetch_athena_queue' });
+      return;
+    }
+
+    const newUploading = {};
+    for (const q of queue) {
+      if (!q.method || !q.expiry || q.expiry < parseInt(Date.now()/1000)) {
+        continue;
+      }
+
+      if (q.method === 'uploadFileToUrl') {
+        const fileName = pathToFileName(dongleId, q.params[0]);
+        newUploading[fileName] = { progress: 0, current: false };
+      } else if (q.method === 'uploadFilesToUrls') {
+        for (const [path, _1, _2] of q.params.files_data) {
+          const fileName = pathToFileName(dongleId, path);
+          newUploading[fileName] = { progress: 0, current: false };
+        }
+      }
+    }
+    dispatch(updateFiles(newUploading));
+  };
+}
+
 export function cancelFetchUploadQueue() {
   if (uploadQueueTimeout) {
     if (uploadQueueTimeout !== true) {
@@ -113,6 +149,7 @@ export function fetchUploadQueue(dongleId) {
       }
       return;
     }
+    dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
 
     let prevFilesUploading = getState().filesUploading || {};
     const uploadingFiles = {};

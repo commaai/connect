@@ -20,7 +20,7 @@ import { currentOffset } from '../../timeline/playback';
 import Colors from '../../colors';
 import { deviceIsOnline, deviceVersionAtLeast } from '../../utils';
 import { updateDeviceOnline } from '../../actions';
-import { fetchFiles, fetchUploadQueue, updateFiles } from '../../actions/files';
+import { fetchFiles, fetchUploadQueue, fetchAthenaQueue, updateFiles } from '../../actions/files';
 
 const styles = (theme) => ({
   root: {
@@ -97,6 +97,12 @@ const styles = (theme) => ({
     opacity: 1,
   },
   offlineMenuItem: {
+    height: 'unset',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    '& div': {
+      display: 'flex',
+    },
     '& svg': { marginRight: 8 },
   },
   uploadButton: {
@@ -244,6 +250,7 @@ class Media extends Component {
       if (Demo.isDemo()) {
         this.props.dispatch(fetchFiles('3533c53bb29502d1|2019-12-10--01-13-27'));
       } else {
+        this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
         for (const routeName of this.routesInLoop()) {
           this.props.dispatch(fetchFiles(routeName));
         }
@@ -423,12 +430,20 @@ class Media extends Component {
         jsonrpc: "2.0",
         method: "uploadFilesToUrls",
         params: { files_data },
+        expiry: parseInt(Date.now()/1000) + (86400*7),
       };
       const resp = await this.athenaCall(payload, 'media_athena_uploads');
       if (!resp || resp.error) {
         const newUploading = {};
         for (const fileName of fileNames) {
           newUploading[fileName] = {};
+        }
+        this.props.dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
+        this.props.dispatch(updateFiles(newUploading));
+      } else if (resp.result === 'Device offline, message queued') {
+        const newUploading = {};
+        for (const fileName of fileNames) {
+          newUploading[fileName] = { progress: 0, current: false };
         }
         this.props.dispatch(updateFiles(newUploading));
       } else if (resp.result) {
@@ -451,11 +466,17 @@ class Media extends Component {
           jsonrpc: "2.0",
           method: "uploadFileToUrl",
           params: [paths[i], urls[i], { "x-ms-blob-type": "BlockBlob" }],
+          expiry: parseInt(Date.now()/1000) + (86400*7),
         };
         const resp = await this.athenaCall(payload, 'media_athena_upload');
         if (!resp || resp.error) {
           const uploading = {};
           uploading[fileNames[i]] = {};
+          this.props.dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
+          this.props.dispatch(updateFiles(uploading));
+        } else if (resp.result === 'Device offline, message queued') {
+          const uploading = {};
+          uploading[fileNames[i]] = { progress: 0, current: false };
           this.props.dispatch(updateFiles(uploading));
         } else if (resp.result === 404 || (resp.result && resp.result.failed && resp.result.failed[0] === paths[i])) {
           const uploading = {};
@@ -614,8 +635,8 @@ class Media extends Component {
     ];
 
     const stats = this.getUploadStats();
-    const rlogUploadDisabled = !online || !stats || stats.isUploadedRlog || stats.isUploadingRlog || !stats.canRequestRlog;
-    const allUploadDisabled = !online || !stats || stats.isUploadedAll || stats.isUploadingAll || !stats.canRequestAll;
+    const rlogUploadDisabled = !stats || stats.isUploadedRlog || stats.isUploadingRlog || !stats.canRequestRlog;
+    const allUploadDisabled = !stats || stats.isUploadedAll || stats.isUploadingAll || !stats.canRequestAll;
 
     return ( <>
       <Menu id="menu-download" open={ Boolean(alwaysOpen || downloadMenu) }
@@ -629,7 +650,7 @@ class Media extends Component {
         }
         { buttons.filter((b) => Boolean(b)).map(([file, name, type]) => (
           <MenuItem key={ type } disabled={ true } className={ classes.filesItem }
-            style={ Boolean(files && (file.url || online)) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
+            style={ Boolean(files) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
             { name }
             { Boolean(files && file.url) &&
               <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
@@ -637,23 +658,23 @@ class Media extends Component {
                 download
               </Button>
             }
-            { Boolean(files && !file.url && online && file.progress === undefined && !file.requested && !file.notFound) &&
+            { Boolean(files && !file.url && file.progress === undefined && !file.requested && !file.notFound) &&
               <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
                 onClick={ () => this.uploadFile(type) }>
                 { windowWidth < 425 ? 'upload' : 'request upload' }
               </Button>
             }
-            { Boolean(files && !file.url && online && file.progress !== undefined) &&
+            { Boolean(files && !file.url && file.progress !== undefined) &&
               <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
                 { file.current ? `${parseInt(file.progress * 100)}%` : 'pending' }
               </div>
             }
-            { Boolean(files && !file.url && online && file.requested) &&
+            { Boolean(files && !file.url && file.requested) &&
               <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
                 <CircularProgress style={{ color: Colors.white }} size={ 17 } />
               </div>
             }
-            { Boolean(files && !file.url && online && file.notFound) &&
+            { Boolean(files && !file.url && file.notFound) &&
               <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}
                 onMouseEnter={ type === 'dcameras' ? (ev) => this.setState({ dcamUploadInfo: ev.target }) : null }
                 onMouseLeave={ type === 'dcameras' ? () => this.setState({ dcamUploadInfo: null }) : null }>
@@ -665,9 +686,9 @@ class Media extends Component {
         )) }
         <Divider />
         <MenuItem className={ classes.filesItem } disabled={ true }
-          style={ Boolean(files && stats && (stats.isUploadedRlog || online)) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
+          style={ Boolean(files && stats) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
           All logs
-          { Boolean(files && online && !rlogUploadDisabled) &&
+          { Boolean(files && !rlogUploadDisabled) &&
             <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
               onClick={ () => this.uploadFilesAll(['logs']) }>
               upload { stats.canRequestRlog } logs
@@ -677,15 +698,14 @@ class Media extends Component {
             <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
               { stats.isUploadedRlog ?
                 'uploaded' :
-                (stats.isUploadingRlog ? 'pending' :
-                  ( online && <CircularProgress style={{ color: Colors.white }} size={ 17 } /> )) }
+                (stats.isUploadingRlog ? 'pending' : <CircularProgress style={{ color: Colors.white }} size={ 17 } /> )}
             </div>
           }
         </MenuItem>
         <MenuItem className={ classes.filesItem } disabled={ true }
-          style={ Boolean(files && stats && (stats.isUploadedAll || online)) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
+          style={ Boolean(files && stats) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
           All files
-          { Boolean(files && online && !allUploadDisabled) &&
+          { Boolean(files && !allUploadDisabled) &&
             <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
               onClick={ () => this.uploadFilesAll() }>
               upload { stats.canRequestAll } files
@@ -695,8 +715,7 @@ class Media extends Component {
             <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
               { stats.isUploadedAll ?
                 'uploaded' :
-                (stats.isUploadingAll ? 'pending' :
-                  ( online && <CircularProgress style={{ color: Colors.white }} size={ 17 } /> )) }
+                (stats.isUploadingAll ? 'pending' : <CircularProgress style={{ color: Colors.white }} size={ 17 } /> )}
             </div>
           }
         </MenuItem>
@@ -709,7 +728,8 @@ class Media extends Component {
           </MenuItem>
         :
           <MenuItem className={ classes.offlineMenuItem } disabled={ true }>
-            <WarningIcon /> Device offline
+            <div><WarningIcon /> Device offline</div>
+            <span style={{ fontSize: '0.8rem' }}>uploading will resume when device is online</span>
           </MenuItem>
         }
       </Menu>
@@ -726,14 +746,10 @@ class Media extends Component {
           { Boolean(files && stats && stats.canRequestRlog) &&
             <div className={ classes.viewCabanaUploads }>
               <WarningIcon /> missing { stats.canRequestRlog } logs
-              { online &&
-                <Button onClick={ (ev) => { this.uploadFilesAll(['logs']); ev.stopPropagation(); } }>
-                  upload
-                </Button>
-              }
+              <Button onClick={ (ev) => { this.uploadFilesAll(['logs']); ev.stopPropagation(); } }>upload</Button>
             </div>
           }
-          { Boolean(online && rlogUploadDisabled && stats && !stats.isUploadedRlog && !stats.isUploadingRlog) &&
+          { Boolean(rlogUploadDisabled && stats && !stats.isUploadedRlog && !stats.isUploadingRlog) &&
             <div className={ classes.viewCabanaFakeUploads }>
               <CircularProgress style={{ color: Colors.white }} size={ 15 } />
             </div>
