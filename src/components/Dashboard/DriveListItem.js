@@ -6,7 +6,7 @@ import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 
-import { selectRange } from '../../actions';
+import { selectRange, fetchEvents } from '../../actions';
 import { formatDriveDuration, getDrivePoints, filterRegularClick } from '../../utils';
 import GeocodeApi from '../../api/geocode';
 import Timeline from '../Timeline';
@@ -64,14 +64,13 @@ class DriveListDrive extends Component {
     };
 
     this.fetchLocations = this.fetchLocations.bind(this);
-    this.fetchEvents = this.fetchEvents.bind(this);
   }
 
   componentDidMount() {
     this.mounted = true;
 
     this.fetchLocations();
-    this.fetchEvents();
+    this.props.dispatch(fetchEvents(this.props.drive));
   }
 
   componentWillUnmount() {
@@ -92,51 +91,9 @@ class DriveListDrive extends Component {
     });
   }
 
-  async fetchEvents() {
-    const { drive } = this.props;
-    const promises = [];
-    for (let i = 0; i < drive.segments; i++) {
-      promises.push((async (i) => {
-        try {
-          const resp = await fetch(`${drive.url}/${i}/events.json`, { method: 'GET' });
-          const events = await resp.json();
-          return events;
-        } catch (err) {
-          console.log(err);
-          return [];
-        }
-      })(i));
-    }
-
-    let driveEvents = [].concat(...(await Promise.all(promises)));
-    driveEvents = driveEvents.filter((ev) => ev.type === 'engage' || ev.type === 'disengage');
-    driveEvents.sort((a, b) => {
-      if (a.route_offset_millis === b.route_offset_millis) {
-        return a.route_offset_nanos - b.route_offset_nanos;
-      }
-      return a.route_offset_millis - b.route_offset_millis;
-    });
-
-    let lastEngage = null;
-    for (const ev of driveEvents) {
-      if (ev.type === 'engage') {
-        lastEngage = ev;
-      } else if (ev.type === 'disengage' && lastEngage) {
-        lastEngage.data = {
-          end_offset_nanos: ev.offset_nanos,
-          end_offset_millis: ev.offset_millis,
-          end_route_offset_nanos: ev.route_offset_nanos,
-          end_route_offset_millis: ev.route_offset_millis,
-        };
-      }
-    }
-
-    this.setState({ events: driveEvents });
-  }
-
   render() {
     const { drive, classes, windowWidth } = this.props;
-    const { startLocation, endLocation, events } = this.state;
+    const { startLocation, endLocation } = this.state;
 
     const small = windowWidth < 640;
     const startTs = drive.startTime - 1000;
@@ -214,7 +171,7 @@ class DriveListDrive extends Component {
             }
           </Grid>
         </div>
-        <Timeline className={classes.driveTimeline} events={ events }
+        <Timeline className={classes.driveTimeline}
           zoomOverride={{ start: drive.startTime, end: drive.startTime + drive.duration }}
         />
       </a>

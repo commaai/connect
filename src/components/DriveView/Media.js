@@ -19,7 +19,7 @@ import UploadQueue from '../Files/UploadQueue';
 import { currentOffset } from '../../timeline/playback';
 import Colors from '../../colors';
 import { deviceIsOnline, deviceVersionAtLeast } from '../../utils';
-import { updateDeviceOnline } from '../../actions';
+import { updateDeviceOnline, fetchEvents } from '../../actions';
 import { fetchFiles, fetchUploadQueue, fetchAthenaQueue, updateFiles } from '../../actions/files';
 
 const styles = (theme) => ({
@@ -239,11 +239,15 @@ class Media extends Component {
     this.componentDidUpdate({}, {});
   }
 
-  componentDidUpdate(_, prevState) {
+  componentDidUpdate(prevProps, prevState) {
     const { windowWidth, inView, downloadMenu, moreInfoMenu } = this.state;
     const showMapAlways = windowWidth >= 1536;
     if (showMapAlways && inView === MediaType.MAP) {
       this.setState({ inView: MediaType.VIDEO });
+    }
+
+    if (prevProps.currentSegment !== this.props.currentSegment && this.props.currentSegment) {
+      this.props.dispatch(fetchEvents(this.props.currentSegment));
     }
 
     if ((!prevState.downloadMenu && downloadMenu) || (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu)) {
