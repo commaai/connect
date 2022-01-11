@@ -1,6 +1,7 @@
 import * as Types from './types';
 
 const eventsRequests = {};
+let hasExpired = false;
 let cacheDB = null;
 
 async function getCacheDB() {
@@ -32,6 +33,11 @@ async function getCacheItem(store, key) {
     return null;
   }
 
+  if (!hasExpired) {
+    setTimeout(() => expireCacheItems(store), 5000);
+    hasExpired = true;
+  }
+
   const db = await getCacheDB();
   const transaction = db.transaction([store]);
   const req = transaction.objectStore(store).get(key);
@@ -57,6 +63,26 @@ async function setCacheItem(store, key, expiry, data) {
     req.onsuccess = resolve;
     req.onerror = reject;
   })
+}
+
+async function expireCacheItems(store) {
+  if (!window.indexedDB) {
+    return null;
+  }
+
+  const db = await getCacheDB();
+  const transaction = db.transaction([store], 'readwrite');
+  const objStore = transaction.objectStore(store);
+
+  const idx = IDBKeyRange.upperBound(parseInt(Date.now()/1000));
+  const req = objStore.index('expiry').openCursor(idx);
+  req.onsuccess = (ev) => {
+    let cursor = ev.target.result;
+    if (cursor) {
+      objStore.delete(cursor.primaryKey);
+      cursor.continue();
+    }
+  };
 }
 
 export function fetchEvents(route) {
