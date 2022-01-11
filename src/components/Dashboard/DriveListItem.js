@@ -6,7 +6,8 @@ import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 
-import { selectRange, fetchEvents } from '../../actions';
+import { selectRange } from '../../actions';
+import { fetchEvents } from '../../actions/cached';
 import { formatDriveDuration, getDrivePoints, filterRegularClick } from '../../utils';
 import GeocodeApi from '../../api/geocode';
 import Timeline from '../Timeline';

@@ -223,63 +223,6 @@ export function checkSegmentMetadata() {
   }
 }
 
-export function fetchEvents(route) {
-  return async (dispatch, getState) => {
-    const state = getState();
-    for (const r of state.segments) {
-      if (r.route === route.route) {
-        if (r.events !== null) {
-          return;
-        }
-        break;
-      }
-    }
-
-    const promises = [];
-    for (let i = 0; i < route.segments; i++) {
-      promises.push((async (i) => {
-        try {
-          const resp = await fetch(`${route.url}/${i}/events.json`, { method: 'GET' });
-          const events = await resp.json();
-          return events;
-        } catch (err) {
-          console.log(err);
-          return [];
-        }
-      })(i));
-    }
-
-    let events = [].concat(...(await Promise.all(promises)));
-    events = events.filter((ev) => ev.type === 'engage' || ev.type === 'disengage');
-    events.sort((a, b) => {
-      if (a.route_offset_millis === b.route_offset_millis) {
-        return a.route_offset_nanos - b.route_offset_nanos;
-      }
-      return a.route_offset_millis - b.route_offset_millis;
-    });
-
-    let lastEngage = null;
-    for (const ev of events) {
-      if (ev.type === 'engage') {
-        lastEngage = ev;
-      } else if (ev.type === 'disengage' && lastEngage) {
-        lastEngage.data = {
-          end_offset_nanos: ev.offset_nanos,
-          end_offset_millis: ev.offset_millis,
-          end_route_offset_nanos: ev.route_offset_nanos,
-          end_route_offset_millis: ev.route_offset_millis,
-        };
-      }
-    }
-
-    dispatch({
-      type: Types.ACTION_UPDATE_ROUTE_EVENTS,
-      route: route.route,
-      events: events,
-    });
-  }
-}
-
 export function updateDevices(devices) {
   return {
     type: Types.ACTION_UPDATE_DEVICES,

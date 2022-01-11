@@ -19,7 +19,8 @@ import UploadQueue from '../Files/UploadQueue';
 import { currentOffset } from '../../timeline/playback';
 import Colors from '../../colors';
 import { deviceIsOnline, deviceVersionAtLeast } from '../../utils';
-import { updateDeviceOnline, fetchEvents } from '../../actions';
+import { updateDeviceOnline } from '../../actions';
+import { fetchEvents } from '../../actions/cached';
 import { fetchFiles, fetchUploadQueue, fetchAthenaQueue, updateFiles } from '../../actions/files';
 
 const styles = (theme) => ({

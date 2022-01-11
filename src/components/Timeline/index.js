@@ -327,7 +327,7 @@ class Timeline extends Component {
         const statusCls = event.data.alertStatus ? `${AlertStatusCodes[event.data.alertStatus]}` : '';
         return (
           <div
-            key={segment.route + event.time + event.type}
+            key={segment.route + event.route_offset_millis + event.type}
             style={style}
             className={ `${classes.segmentColor} ${event.type} ${statusCls}` }
           />
