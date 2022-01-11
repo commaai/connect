@@ -304,8 +304,12 @@ class Timeline extends Component {
   }
 
   renderSegmentEvents(segment) {
-    const { classes } = this.props;
-    return segment.events
+    const { classes, events } = this.props;
+    if (!segment.events && !events) {
+      return;
+    }
+
+    return (segment.events || events)
       .filter((event) => event.data && event.data.end_route_offset_millis)
       .map((event) => {
         const style = {
