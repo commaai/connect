@@ -76,6 +76,7 @@ class DriveListDrive extends Component {
   componentDidMount() {
     this.mounted = true;
     window.addEventListener('scroll', this.onScroll);
+    this.onScroll();
   }
 
   componentWillUnmount() {
@@ -101,10 +102,11 @@ class DriveListDrive extends Component {
     if (!this.visible && this.aRef.current &&
       window.visualViewport.height >= this.aRef.current.getBoundingClientRect().y)
     {
+      this.visible = true;
+      window.removeEventListener('scroll', this.onScroll);
+
       this.fetchLocations();
       this.props.dispatch(fetchEvents(this.props.drive));
-      window.removeEventListener('scroll', this.onScroll);
-      this.visible = true;
     }
   }
 
