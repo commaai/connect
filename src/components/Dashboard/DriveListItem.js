@@ -65,16 +65,21 @@ class DriveListDrive extends Component {
     };
 
     this.fetchLocations = this.fetchLocations.bind(this);
+    this.onScroll = this.onScroll.bind(this);
+
+    this.aRef = React.createRef();
+
+    this.visible = false;
+    this.mounted = false;
   }
 
   componentDidMount() {
     this.mounted = true;
-
-    this.fetchLocations();
-    this.props.dispatch(fetchEvents(this.props.drive));
+    window.addEventListener('scroll', this.onScroll);
   }
 
   componentWillUnmount() {
+    window.removeEventListener('scroll', this.onScroll);
     this.mounted = false;
   }
 
@@ -90,6 +95,17 @@ class DriveListDrive extends Component {
         this.setState({ endLocation });
       }
     });
+  }
+
+  onScroll() {
+    if (!this.visible && this.aRef.current &&
+      window.visualViewport.height >= this.aRef.current.getBoundingClientRect().y)
+    {
+      this.fetchLocations();
+      this.props.dispatch(fetchEvents(this.props.drive));
+      window.removeEventListener('scroll', this.onScroll);
+      this.visible = true;
+    }
   }
 
   render() {
@@ -121,7 +137,7 @@ class DriveListDrive extends Component {
     };
     return (
       <a key={drive.startTime} className={ `${classes.drive} DriveEntry` } href={ `/${drive.dongleId}/${startTs}/${endTs}` }
-        onClick={ filterRegularClick(() => this.props.dispatch(selectRange(startTs, endTs))) }>
+        onClick={ filterRegularClick(() => this.props.dispatch(selectRange(startTs, endTs))) } ref={ this.aRef }>
         <div className={classes.driveHeader} style={ !small ? { padding: '18px 32px' } : { padding: 18 } }>
           <Grid container>
             <div className={ classes.driveGridItem } style={ gridStyle.date }>
@@ -172,7 +188,7 @@ class DriveListDrive extends Component {
             }
           </Grid>
         </div>
-        <Timeline className={classes.driveTimeline}
+        <Timeline className={classes.driveTimeline} thumbnailsVisible={ this.visible }
           zoomOverride={{ start: drive.startTime, end: drive.startTime + drive.duration }}
         />
       </a>

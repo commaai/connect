@@ -34,7 +34,7 @@ async function getCacheItem(store, key) {
   }
 
   if (!hasExpired) {
-    setTimeout(() => expireCacheItems(store), 5000);
+    setTimeout(() => expireCacheItems(store), 5000);  // TODO: better expire time
     hasExpired = true;
   }
 

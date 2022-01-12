@@ -167,6 +167,10 @@ class Timeline extends Component {
     if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom) {
       this.setState({ zoom: this.props.zoomOverride || this.props.zoom });
     }
+
+    if (!prevProps.thumbnailsVisible && this.props.thumbnailsVisible) {
+
+    }
   }
 
   componentWillUnmount() {
@@ -336,7 +340,7 @@ class Timeline extends Component {
   }
 
   render() {
-    const { classes, hasRuler, filter, className, segments } = this.props;
+    const { classes, hasRuler, filter, className, segments, thumbnailsVisible } = this.props;
     const { thumbnail, hoverX, dragging } = this.state;
 
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
@@ -377,9 +381,11 @@ class Timeline extends Component {
           <Measure bounds onResize={(rect) => this.setState({ thumbnail: rect.bounds })}>
             { (options) => (
               <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
-                <Thumbnails getCurrentSegment={ (seg) => getCurrentSegment(this.props, seg) }
-                  percentToOffset={this.percentToOffset} thumbnail={thumbnail} className={classes.thumbnail}
-                  hasRuler={hasRuler} />
+                { thumbnailsVisible &&
+                  <Thumbnails getCurrentSegment={ (seg) => getCurrentSegment(this.props, seg) }
+                    percentToOffset={this.percentToOffset} thumbnail={thumbnail} className={classes.thumbnail}
+                    hasRuler={hasRuler} />
+                }
               </div>
             )}
           </Measure>
