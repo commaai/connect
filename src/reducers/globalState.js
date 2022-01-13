@@ -108,14 +108,16 @@ export default function reducer(_state, action) {
       }
       break;
     case ACTION_UPDATE_ROUTE_EVENTS:
-      state.segments = [...state.segments];
-      for (const i in state.segments) {
-        if (state.segments[i].route === action.route) {
-          state.segments[i] = {
-            ...state.segments[i],
-            events: action.events,
+      if (state.segments) {
+        state.segments = [...state.segments];
+        for (const i in state.segments) {
+          if (state.segments[i].route === action.route) {
+            state.segments[i] = {
+              ...state.segments[i],
+              events: action.events,
+            }
+            break;
           }
-          break;
         }
       }
       if (state.currentSegment && state.currentSegment.route === action.route) {
@@ -126,14 +128,16 @@ export default function reducer(_state, action) {
       }
       break;
     case ACTION_UPDATE_ROUTE_LOCATION:
-      state.segments = [...state.segments];
-      for (const i in state.segments) {
-        if (state.segments[i].route === action.route) {
-          state.segments[i] = {
-            ...state.segments[i],
+      if (state.segments) {
+        state.segments = [...state.segments];
+        for (const i in state.segments) {
+          if (state.segments[i].route === action.route) {
+            state.segments[i] = {
+              ...state.segments[i],
+            }
+            state.segments[i][action.locationKey] = action.location;
+            break;
           }
-          state.segments[i][action.locationKey] = action.location;
-          break;
         }
       }
       if (state.currentSegment && state.currentSegment.route === action.route) {

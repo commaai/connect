@@ -98,6 +98,10 @@ async function expireCacheItems(store) {
 export function fetchEvents(route) {
   return async (dispatch, getState) => {
     const state = getState();
+    if (!state.segments) {
+      return;
+    }
+
     // loaded?
     for (const r of state.segments) {
       if (r.route === route.route) {
@@ -201,11 +205,11 @@ export function fetchLocations(route) {
 
 export function fetchCoord(route, coord, locationKey) {
   return async (dispatch, getState) => {
-    if (coord[0] === 0 && coord[1] === 0) {
+    const state = getState();
+    if (!state.segments || (coord[0] === 0 && coord[1] === 0)) {
       return;
     }
 
-    const state = getState();
     // loaded?
     for (const r of state.segments) {
       if (r.route === route.route) {
