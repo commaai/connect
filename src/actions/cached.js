@@ -1,6 +1,10 @@
 import * as Types from './types';
 import GeocodeApi from '../api/geocode';
 
+import { isDemoRoute } from '../demo';
+
+const demoEvents = require('../demo/events.json');
+
 const eventsRequests = {};
 const coordsRequests = {};
 let hasExpired = false;
@@ -121,21 +125,30 @@ export function fetchEvents(route) {
       return;
     }
 
-    const promises = [];
-    for (let i = 0; i < route.segments; i++) {
-      promises.push((async (i) => {
-        try {
-          const resp = await fetch(`${route.url}/${i}/events.json`, { method: 'GET' });
-          const events = await resp.json();
-          return events;
-        } catch (err) {
-          console.log(err);
-          return [];
-        }
-      })(i));
+    let driveEvents;
+    if (isDemoRoute(route.route)) {
+      driveEvents = [].concat(...demoEvents);
+    } else {
+      const promises = [];
+      for (let i = 0; i < route.segments; i++) {
+        promises.push((async (i) => {
+          try {
+            const resp = await fetch(`${route.url}/${i}/events.json`, { method: 'GET' });
+            if (!resp.ok) {
+              return [];
+            }
+            const events = await resp.json();
+            return events;
+          } catch (err) {
+            console.log(err);
+            return [];
+          }
+        })(i));
+      }
+
+      driveEvents = [].concat(...(await Promise.all(promises)));
     }
 
-    let driveEvents = [].concat(...(await Promise.all(promises)));
     driveEvents = driveEvents.filter((ev) => ['engage', 'disengage', 'alert'].includes(ev.type));
     driveEvents.sort((a, b) => {
       if (a.route_offset_millis === b.route_offset_millis) {

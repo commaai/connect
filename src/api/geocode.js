@@ -57,6 +57,9 @@ export default function geocodeApi() {
           method: 'GET',
           cache: 'force-cache',
         });
+        if (!resp.ok) {
+          return null;
+        }
       } catch (err) {
         console.log(err);
         return null;
