@@ -77,8 +77,8 @@ class DriveListDrive extends Component {
   }
 
   onScroll() {
-    if (!this.visible && this.aRef.current &&
-      window.visualViewport.height >= this.aRef.current.getBoundingClientRect().y - 300)
+    if (!this.visible && this.aRef.current && window &&
+      (!window.visualViewport || window.visualViewport.height >= this.aRef.current.getBoundingClientRect().y - 300))
     {
       this.visible = true;
       window.removeEventListener('scroll', this.onScroll);

@@ -1,6 +1,7 @@
 /* eslint-env jest */
 import React from 'react';
 import * as Redux from 'redux';
+import thunk from 'redux-thunk';
 import { mount } from 'enzyme';
 import DriveListItem from './DriveListItem';
 
@@ -15,7 +16,7 @@ const store = Redux.createStore((state) => {
     return { ...defaultState };
   }
   return state;
-});
+}, Redux.applyMiddleware(thunk));
 
 describe('drive list items', () => {
   it('has DriveEntry class for puppeteer', () => {

@@ -195,7 +195,7 @@ export function fetchUploadQueue(dongleId) {
 }
 
 export function updateFiles(files) {
-  return async (dispatch, getState) => {
+  return (dispatch, getState) => {
     const { dongleId } = getState();
     dispatch({
       type: Types.ACTION_FILES_UPDATE,
