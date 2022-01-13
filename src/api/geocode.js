@@ -50,10 +50,17 @@ export default function geocodeApi() {
         access_token: MAPBOX_TOKEN,
         limit: 1,
       };
-      const resp = await fetch(`${endpoint}${coords[0]},${coords[1]}.json?${qs.stringify(params)}`, {
-        method: 'GET',
-        cache: 'force-cache',
-      });
+
+      let resp;
+      try {
+        resp = await fetch(`${endpoint}${coords[0]},${coords[1]}.json?${qs.stringify(params)}`, {
+          method: 'GET',
+          cache: 'force-cache',
+        });
+      } catch (err) {
+        console.log(err);
+        return null;
+      }
 
       try {
         const { features } = await resp.json();

@@ -220,8 +220,8 @@ export function fetchCoord(route, coord, locationKey) {
       return;
     }
 
-    let resolveLocation = null;
-    coordsRequests[cacheKey] = new Promise((resolve, reject) => { resolveLocation = resolve });
+    let resolveLocation;
+    coordsRequests[cacheKey] = new Promise((resolve) => { resolveLocation = resolve; });
 
     // in cache?
     const cacheCoords = await getCacheItem('coords', coord);
@@ -237,6 +237,9 @@ export function fetchCoord(route, coord, locationKey) {
     }
 
     const location = await GeocodeApi().reverseLookup(coord);
+    if (!location) {
+      return;
+    }
 
     setCacheItem('coords', coord, parseInt(Date.now()/1000) + (86400*14), location);
     dispatch({
