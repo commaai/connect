@@ -7,9 +7,8 @@ import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 
 import { selectRange } from '../../actions';
-import { fetchEvents } from '../../actions/cached';
+import { fetchEvents, fetchLocations } from '../../actions/cached';
 import { formatDriveDuration, getDrivePoints, filterRegularClick } from '../../utils';
-import GeocodeApi from '../../api/geocode';
 import Timeline from '../Timeline';
 import { RightArrow } from '../../icons';
 import { KM_PER_MI } from '../../utils/conversions';
@@ -58,13 +57,6 @@ class DriveListDrive extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      startLocation: null,
-      endLocation: null,
-      events: null,
-    };
-
-    this.fetchLocations = this.fetchLocations.bind(this);
     this.onScroll = this.onScroll.bind(this);
 
     this.aRef = React.createRef();
@@ -84,20 +76,6 @@ class DriveListDrive extends Component {
     this.mounted = false;
   }
 
-  fetchLocations() {
-    const { drive } = this.props;
-    GeocodeApi().reverseLookup(drive.startCoord).then((startLocation) => {
-      if (this.mounted) {
-        this.setState({ startLocation });
-      }
-    });
-    GeocodeApi().reverseLookup(drive.endCoord).then((endLocation) => {
-      if (this.mounted) {
-        this.setState({ endLocation });
-      }
-    });
-  }
-
   onScroll() {
     if (!this.visible && this.aRef.current &&
       window.visualViewport.height >= this.aRef.current.getBoundingClientRect().y - 300)
@@ -105,14 +83,13 @@ class DriveListDrive extends Component {
       this.visible = true;
       window.removeEventListener('scroll', this.onScroll);
 
-      this.fetchLocations();
       this.props.dispatch(fetchEvents(this.props.drive));
+      this.props.dispatch(fetchLocations(this.props.drive));
     }
   }
 
   render() {
     const { drive, classes, windowWidth } = this.props;
-    const { startLocation, endLocation } = this.state;
 
     const small = windowWidth < 640;
     const startTs = drive.startTime - 1000;
@@ -161,18 +138,18 @@ class DriveListDrive extends Component {
             </div>
             <div className={ classes.driveGridItem } style={ gridStyle.origin }>
               <Typography className={ classes.firstLine }>
-                { startLocation && startLocation.place }
+                { drive.startLocation && drive.startLocation.place }
               </Typography>
               <Typography>
-                { startLocation && startLocation.details }
+                { drive.startLocation && drive.startLocation.details }
               </Typography>
             </div>
             <div className={ classes.driveGridItem } style={ gridStyle.dest }>
               <Typography className={ classes.firstLine }>
-                { endLocation && endLocation.place }
+                { drive.endLocation && drive.endLocation.place }
               </Typography>
               <Typography>
-                { endLocation && endLocation.details }
+                { drive.endLocation && drive.endLocation.details }
               </Typography>
             </div>
             <div className={ classes.driveGridItem } style={ gridStyle.dist }>

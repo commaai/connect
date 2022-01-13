@@ -115,6 +115,8 @@ function segmentsFromMetadata(segmentsData) {
         route: segment.canonical_route_name,
         startTime: segment.start_time_utc_millis,
         startCoord: [segment.start_lng, segment.start_lat],
+        startLocation: null,
+        endLocation: null,
         duration: 0,
         segments: 0,
         url: url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
@@ -229,7 +231,6 @@ export function parseSegmentMetadata(state, _segments) {
     segment.routeOffset = routeStartTimes[segment.canonical_route_name];
 
     segment.duration = Math.round(segment.end_time_utc_millis - segment.start_time_utc_millis);
-    segment.events = null;
     return segment;
   });
 

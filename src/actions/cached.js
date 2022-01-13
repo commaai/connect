@@ -1,6 +1,8 @@
 import * as Types from './types';
+import GeocodeApi from '../api/geocode';
 
 const eventsRequests = {};
+const coordsRequests = {};
 let hasExpired = false;
 let cacheDB = null;
 
@@ -20,10 +22,14 @@ async function getCacheDB() {
       const routeStore = db.createObjectStore('events', { keyPath: 'key' });
       routeStore.createIndex('key', 'key', { unique: true });
       routeStore.createIndex('expiry', 'expiry', { unique: false });
+      const coordsStore = db.createObjectStore('coords', { keyPath: 'key' });
+      coordsStore.createIndex('key', 'key', { unique: true });
+      coordsStore.createIndex('expiry', 'expiry', { unique: false });
 
-      routeStore.transaction.oncomplete = () => {
-        resolve(db);
-      };
+      let completed = 0;
+      const allCompleted = () => { if (completed == 2) resolve(db); };
+      routeStore.transaction.oncomplete = () => { completed++; allCompleted(); };
+      coordsStore.transaction.oncomplete = () => { completed++; allCompleted(); };
     }
   });
 }
@@ -170,5 +176,75 @@ export function fetchEvents(route) {
       events: driveEvents,
     });
     delete eventsRequests[route.route];
+  }
+}
+
+export function fetchLocations(route) {
+  return (dispatch, getState) => {
+    dispatch(fetchCoord(route, route.startCoord, 'startLocation'));
+    dispatch(fetchCoord(route, route.endCoord, 'endLocation'));
+  }
+};
+
+export function fetchCoord(route, coord, locationKey) {
+  return async (dispatch, getState) => {
+    if (coord[0] === 0 && coord[1] === 0) {
+      return;
+    }
+
+    const state = getState();
+    // loaded?
+    for (const r of state.segments) {
+      if (r.route === route.route) {
+        if (r[locationKey] !== null) {
+          return;
+        }
+        break;
+      }
+    }
+
+    // round for better caching
+    coord[0] = Math.round(coord[0] * 1000) / 1000;
+    coord[1] = Math.round(coord[1] * 1000) / 1000;
+
+    // already requesting
+    const cacheKey = JSON.stringify(coord);
+    if (coordsRequests[cacheKey] !== undefined) {
+      const location = await coordsRequests[cacheKey];
+      dispatch({
+        type: Types.ACTION_UPDATE_ROUTE_LOCATION,
+        route: route.route,
+        locationKey,
+        location,
+      });
+      return;
+    }
+
+    let resolveLocation = null;
+    coordsRequests[cacheKey] = new Promise((resolve, reject) => { resolveLocation = resolve });
+
+    // in cache?
+    const cacheCoords = await getCacheItem('coords', coord);
+    if (cacheCoords !== null) {
+      dispatch({
+        type: Types.ACTION_UPDATE_ROUTE_LOCATION,
+        route: route.route,
+        locationKey,
+        location: cacheCoords,
+      });
+      resolveLocation(cacheCoords);
+      return;
+    }
+
+    const location = await GeocodeApi().reverseLookup(coord);
+
+    setCacheItem('coords', coord, parseInt(Date.now()/1000) + (86400*14), location);
+    dispatch({
+      type: Types.ACTION_UPDATE_ROUTE_LOCATION,
+      route: route.route,
+      locationKey,
+      location,
+    });
+    resolveLocation(location);
   }
 }
