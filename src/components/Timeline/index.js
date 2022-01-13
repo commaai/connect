@@ -24,7 +24,6 @@ const styles = (/* theme */) => ({
     width: '100%',
   },
   segments: {
-    backgroundColor: theme.palette.states.drivingBlue,
     position: 'relative',
     left: '0px',
     width: '100%',
@@ -279,6 +278,10 @@ class Timeline extends Component {
   renderSegment(segment) {
     const { classes, filter } = this.props;
     const { zoom } = this.state;
+
+    if (!segment.events) {
+      return null;
+    }
 
     const range = filter.start - filter.end;
     let startPerc = (100 * segment.offset) / range;
