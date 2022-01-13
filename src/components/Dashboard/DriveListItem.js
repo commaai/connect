@@ -68,11 +68,13 @@ class DriveListDrive extends Component {
   componentDidMount() {
     this.mounted = true;
     window.addEventListener('scroll', this.onScroll);
+    window.addEventListener('resize', this.onScroll);
     this.onScroll();
   }
 
   componentWillUnmount() {
     window.removeEventListener('scroll', this.onScroll);
+    window.removeEventListener('resize', this.onScroll);
     this.mounted = false;
   }
 
@@ -82,6 +84,7 @@ class DriveListDrive extends Component {
     {
       this.visible = true;
       window.removeEventListener('scroll', this.onScroll);
+      window.removeEventListener('resize', this.onScroll);
 
       this.props.dispatch(fetchEvents(this.props.drive));
       this.props.dispatch(fetchLocations(this.props.drive));
