@@ -7,6 +7,7 @@ const demoEvents = require('../demo/events.json');
 
 const eventsRequests = {};
 const coordsRequests = {};
+const driveCoordsRequests = {};
 let hasExpired = false;
 let cacheDB = null;
 
@@ -35,11 +36,15 @@ async function getCacheDB() {
       const coordsStore = db.createObjectStore('coords', { keyPath: 'key' });
       coordsStore.createIndex('key', 'key', { unique: true });
       coordsStore.createIndex('expiry', 'expiry', { unique: false });
+      const driveCoordsStore = db.createObjectStore('driveCoords', { keyPath: 'key' });
+      driveCoordsStore.createIndex('key', 'key', { unique: true });
+      driveCoordsStore.createIndex('expiry', 'expiry', { unique: false });
 
       let completed = 0;
-      const allCompleted = () => { if (completed == 2) resolve(db); };
+      const allCompleted = () => { if (completed == 3) resolve(db); };
       routeStore.transaction.oncomplete = () => { completed++; allCompleted(); };
       coordsStore.transaction.oncomplete = () => { completed++; allCompleted(); };
+      driveCoordsStore.transaction.oncomplete = () => { completed++; allCompleted(); };
     }
   });
 }
@@ -281,5 +286,83 @@ export function fetchCoord(route, coord, locationKey) {
     });
     resolveLocation(location);
     setCacheItem('coords', coord, parseInt(Date.now()/1000) + (86400*14), location);
+  }
+}
+
+export function fetchDriveCoords(route) {
+  return async (dispatch, getState) => {
+    const state = getState();
+    if (!state.segments) {
+      return;
+    }
+
+    // loaded?
+    for (const r of state.segments) {
+      if (r.route === route.route) {
+        if (r.driveCoords !== null) {
+          return;
+        }
+        break;
+      }
+    }
+
+    // already requesting
+    if (driveCoordsRequests[route.route] !== undefined) {
+      const driveCoords = await driveCoordsRequests[route.route];
+      dispatch({
+        type: Types.ACTION_UPDATE_ROUTE_DRIVE_COORDS,
+        route: route.route,
+        driveCoords,
+      });
+      return;
+    }
+
+    let resolveDriveCoords;
+    driveCoordsRequests[route.route] = new Promise((resolve) => { resolveDriveCoords = resolve; });
+
+    // in cache?
+    const cacheDriveCoords = await getCacheItem('driveCoords', route.route);
+    if (cacheDriveCoords !== null) {
+      dispatch({
+        type: Types.ACTION_UPDATE_ROUTE_DRIVE_COORDS,
+        route: route.route,
+        driveCoords: cacheDriveCoords,
+      });
+      resolveDriveCoords(cacheDriveCoords);
+      return;
+    }
+
+    const promises = [];
+    for (let i = 0; i < route.segments; i++) {
+      promises.push((async (i) => {
+        try {
+          const resp = await fetch(`${route.url}/${i}/coords.json`, { method: 'GET' });
+          if (!resp.ok) {
+            return [];
+          }
+          const events = await resp.json();
+          return events;
+        } catch (err) {
+          console.log(err);
+          return [];
+        }
+      })(i));
+    }
+
+    let driveCoords = await Promise.all(promises);
+    driveCoords = driveCoords.reduce((prev, curr, fakeI) => {
+      return prev.concat(curr.map((cs) => ({
+        t: ((fakeI - 1) * 60) + cs.t,
+        c: [cs.lng, cs.lat],
+      })));
+    }, []);
+
+    dispatch({
+      type: Types.ACTION_UPDATE_ROUTE_DRIVE_COORDS,
+      route: route.route,
+      driveCoords,
+    });
+    resolveDriveCoords(driveCoords);
+    setCacheItem('driveCoords', route.route, parseInt(Date.now()/1000) + (86400*14), driveCoords);
   }
 }

@@ -57,6 +57,9 @@ export function getCurrentSegment(state, o) {
         hasVideo: thisSegment.hasVideo,
         segments: thisSegment.segments,
         distanceMiles: thisSegment.distanceMiles,
+        startLocation: thisSegment.startLocation,
+        endLocation: thisSegment.endLocation,
+        driveCoords: thisSegment.driveCoords,
       };
     }
   }
@@ -117,6 +120,7 @@ function segmentsFromMetadata(segmentsData) {
         startCoord: [segment.start_lng, segment.start_lat],
         startLocation: null,
         endLocation: null,
+        driveCoords: null,
         duration: 0,
         segments: 0,
         url: url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),

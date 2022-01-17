@@ -10,6 +10,7 @@ import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 import { derived as DerivedDataApi } from '@commaai/comma-api';
 import { MAPBOX_TOKEN } from '../../api/geocode';
 import { currentOffset } from '../../timeline/playback';
+import { fetchDriveCoords } from '../../actions/cached';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 const INTERACTION_TIMEOUT = 5000;
@@ -36,7 +37,6 @@ class DriveMap extends Component {
         longitude: -122.4376,
         zoom: 15,
       },
-      coords: [],
     };
 
     this.initMap = this.initMap.bind(this);
@@ -46,7 +46,6 @@ class DriveMap extends Component {
     this.updateMarkerPos = this.updateMarkerPos.bind(this);
     this.onInteraction = this.onInteraction.bind(this);
 
-    this.isLoadingCoords = false;
     this.shouldFlyTo = false;
     this.isInteracting = false;
     this.isInteractingTimeout = null;
@@ -63,16 +62,21 @@ class DriveMap extends Component {
     const prevRoute = prevProps.currentSegment ? prevProps.currentSegment.route : null;
     const route = this.props.currentSegment ? this.props.currentSegment.route : null;
     if (prevRoute !== route) {
-      if (this.state.coords.length > 0) {
-        this.setPath([]);
-      }
+      this.setPath([]);
       if (route) {
-        this.populateMap();
+        this.props.dispatch(fetchDriveCoords(this.props.currentSegment));
       };
     }
 
     if (prevProps.startTime && prevProps.startTime !== this.props.startTime) {
       this.shouldFlyTo = true;
+    }
+
+
+    if (this.props.currentSegment && prevProps.currentSegment &&
+      prevProps.currentSegment.driveCoords !== this.props.currentSegment.driveCoords)
+    {
+      this.populateMap();
     }
   }
 
@@ -99,7 +103,7 @@ class DriveMap extends Component {
 
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
-      if (this.props.currentSegment && this.state.coords.length > 0) {
+      if (this.props.currentSegment && this.props.currentSegment.driveCoords) {
         const { routeOffset } = this.props.currentSegment;
 
         const pos = this.posAtOffset(currentOffset() - routeOffset);
@@ -140,31 +144,16 @@ class DriveMap extends Component {
 
   async populateMap() {
     const { currentSegment } = this.props;
-    if (!this.map || !currentSegment) {
+    if (!this.map || !currentSegment || !currentSegment.driveCoords) {
       return;
     }
-    this.isLoadingCoords = true;
 
-    const { route, url, segments } = currentSegment;
-    try {
-      const coords = await DerivedDataApi(url).getCoords(segments);
-      if (this.props.currentSegment.route !== route) {
-        return;
-      }
-
-      const coordsArr = coords.map((coord) => [coord.lng, coord.lat]);
-      this.setPath(coordsArr);
-    } catch(err) {
-      console.log(err);
-      Sentry.captureException(err, { fingerprint: 'drivemap_populate_deriveddrivedata' });
-    } finally {
-      this.isLoadingCoords = false;
-    }
+    const coordsArr = currentSegment.driveCoords.map((cs) => cs.c);
+    this.setPath(coordsArr);
   }
 
   setPath(coords) {
     const map = this.map && this.map.getMap();
-    this.setState({ coords });
 
     if (map) {
       map.getSource('route').setData({
@@ -179,22 +168,26 @@ class DriveMap extends Component {
   }
 
   posAtOffset(offset) {
+    if (!this.props.currentSegment.driveCoords) {
+      return null;
+    }
+
     const offsetSeconds = Math.floor(offset / 1e3);
     const offsetFractionalPart = (offset % 1e3) / 1000.0;
     const coordIdx = Math.min(
       offsetSeconds,
-      this.state.coords.length - 1
+      this.props.currentSegment.driveCoords.length - 1
     );
     const nextCoordIdx = Math.min(
       offsetSeconds + 1,
-      this.state.coords.length - 1
+      this.props.currentSegment.driveCoords.length - 1
     );
-    if (!this.state.coords[coordIdx]) {
+    if (!this.props.currentSegment.driveCoords[coordIdx]) {
       return null;
     }
 
-    const [floorLng, floorLat] = this.state.coords[coordIdx];
-    const [ceilLng, ceilLat] = this.state.coords[nextCoordIdx];
+    const [floorLng, floorLat] = this.props.currentSegment.driveCoords[coordIdx].c;
+    const [ceilLng, ceilLat] = this.props.currentSegment.driveCoords[nextCoordIdx].c;
 
     return [
       floorLng + ((ceilLng - floorLng) * offsetFractionalPart),
@@ -263,7 +256,7 @@ class DriveMap extends Component {
 
       this.map = mapComponent;
 
-      if (this.props.currentSegment) {
+      if (this.props.currentSegment && this.props.currentSegment.driveCoords) {
         this.populateMap();
       }
     });

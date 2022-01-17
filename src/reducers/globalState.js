@@ -6,6 +6,7 @@ import {
   ACTION_UPDATE_DEVICE,
   ACTION_UPDATE_ROUTE_EVENTS,
   ACTION_UPDATE_ROUTE_LOCATION,
+  ACTION_UPDATE_ROUTE_DRIVE_COORDS,
   ACTION_UPDATE_SHARED_DEVICE,
   ACTION_PRIME_NAV,
   ACTION_PRIME_SUBSCRIPTION,
@@ -145,6 +146,26 @@ export default function reducer(_state, action) {
           ...state.currentSegment,
         }
         state.currentSegment[action.locationKey] = action.location;
+      }
+      break;
+    case ACTION_UPDATE_ROUTE_DRIVE_COORDS:
+      if (state.segments) {
+        state.segments = [...state.segments];
+        for (const i in state.segments) {
+          if (state.segments[i].route === action.route) {
+            state.segments[i] = {
+              ...state.segments[i],
+              driveCoords: action.driveCoords,
+            }
+            break;
+          }
+        }
+      }
+      if (state.currentSegment && state.currentSegment.route === action.route) {
+        state.currentSegment = {
+          ...state.currentSegment,
+          driveCoords: action.driveCoords,
+        };
       }
       break;
     case ACTION_UPDATE_SHARED_DEVICE:
