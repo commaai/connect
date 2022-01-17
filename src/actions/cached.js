@@ -308,9 +308,17 @@ export function fetchDriveCoords(route) {
 
     // already requesting
     if (driveCoordsRequests[route.route] !== undefined) {
+      const driveCoords = await driveCoordsRequests[route.route];
+      dispatch({
+        type: Types.ACTION_UPDATE_ROUTE_DRIVE_COORDS,
+        route: route.route,
+        driveCoords,
+      });
       return;
     }
-    driveCoordsRequests[route.route] = true;
+
+    let resolveDriveCoords;
+    driveCoordsRequests[route.route] = new Promise((resolve) => { resolveDriveCoords = resolve; });
 
     // in cache?
     const cacheDriveCoords = await getCacheItem('driveCoords', route.route);
@@ -320,6 +328,7 @@ export function fetchDriveCoords(route) {
         route: route.route,
         driveCoords: cacheDriveCoords,
       });
+      resolveDriveCoords(cacheDriveCoords);
       return;
     }
 
@@ -348,12 +357,12 @@ export function fetchDriveCoords(route) {
       })));
     }, []);
 
-    setCacheItem('driveCoords', route.route, parseInt(Date.now()/1000) + (86400*14), driveCoords);
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_DRIVE_COORDS,
       route: route.route,
       driveCoords,
     });
-    delete driveCoordsRequests[route.route];
+    resolveDriveCoords(driveCoords);
+    setCacheItem('driveCoords', route.route, parseInt(Date.now()/1000) + (86400*14), driveCoords);
   }
 }
