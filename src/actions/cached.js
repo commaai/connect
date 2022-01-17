@@ -201,13 +201,13 @@ export function fetchEvents(route) {
       },
     }));
 
-    setCacheItem('events', route.route, parseInt(Date.now()/1000) + (86400*14), driveEvents);
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_EVENTS,
       route: route.route,
       events: driveEvents,
     });
     resolveEvents(driveEvents);
+    setCacheItem('events', route.route, parseInt(Date.now()/1000) + (86400*14), driveEvents);
   }
 }
 
@@ -273,7 +273,6 @@ export function fetchCoord(route, coord, locationKey) {
       return;
     }
 
-    setCacheItem('coords', coord, parseInt(Date.now()/1000) + (86400*14), location);
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LOCATION,
       route: route.route,
@@ -281,5 +280,6 @@ export function fetchCoord(route, coord, locationKey) {
       location,
     });
     resolveLocation(location);
+    setCacheItem('coords', coord, parseInt(Date.now()/1000) + (86400*14), location);
   }
 }
