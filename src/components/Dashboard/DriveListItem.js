@@ -7,8 +7,8 @@ import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 
 import { selectRange } from '../../actions';
+import { fetchEvents, fetchLocations } from '../../actions/cached';
 import { formatDriveDuration, getDrivePoints, filterRegularClick } from '../../utils';
-import GeocodeApi from '../../api/geocode';
 import Timeline from '../Timeline';
 import { RightArrow } from '../../icons';
 import { KM_PER_MI } from '../../utils/conversions';
@@ -57,39 +57,44 @@ class DriveListDrive extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      startLocation: null,
-      endLocation: null,
-    };
+    this.onScroll = this.onScroll.bind(this);
+
+    this.aRef = React.createRef();
+
+    this.visible = false;
+    this.mounted = false;
   }
 
   componentDidMount() {
-    const { drive } = this.props;
     this.mounted = true;
-    GeocodeApi().reverseLookup(drive.startCoord).then((startLocation) => {
-      if (!this.mounted) {
-        return;
-      }
-      this.setState({ startLocation });
-    });
-    GeocodeApi().reverseLookup(drive.endCoord).then((endLocation) => {
-      if (!this.mounted) {
-        return;
-      }
-      this.setState({ endLocation });
-    });
+    window.addEventListener('scroll', this.onScroll);
+    window.addEventListener('resize', this.onScroll);
+    this.onScroll();
   }
 
   componentWillUnmount() {
+    window.removeEventListener('scroll', this.onScroll);
+    window.removeEventListener('resize', this.onScroll);
     this.mounted = false;
+  }
+
+  onScroll() {
+    if (!this.visible && this.aRef.current && window &&
+      (!window.visualViewport || window.visualViewport.height >= this.aRef.current.getBoundingClientRect().y - 300))
+    {
+      this.visible = true;
+      window.removeEventListener('scroll', this.onScroll);
+      window.removeEventListener('resize', this.onScroll);
+
+      this.props.dispatch(fetchEvents(this.props.drive));
+      this.props.dispatch(fetchLocations(this.props.drive));
+    }
   }
 
   render() {
     const { drive, classes, windowWidth } = this.props;
 
     const small = windowWidth < 640;
-
-    const { startLocation, endLocation } = this.state;
     const startTs = drive.startTime - 1000;
     const endTs = drive.startTime + drive.duration + 1000;
     const startTime = fecha.format(new Date(drive.startTime), 'HH:mm');
@@ -114,7 +119,7 @@ class DriveListDrive extends Component {
     };
     return (
       <a key={drive.startTime} className={ `${classes.drive} DriveEntry` } href={ `/${drive.dongleId}/${startTs}/${endTs}` }
-        onClick={ filterRegularClick(() => this.props.dispatch(selectRange(startTs, endTs))) }>
+        onClick={ filterRegularClick(() => this.props.dispatch(selectRange(startTs, endTs))) } ref={ this.aRef }>
         <div className={classes.driveHeader} style={ !small ? { padding: '18px 32px' } : { padding: 18 } }>
           <Grid container>
             <div className={ classes.driveGridItem } style={ gridStyle.date }>
@@ -136,18 +141,18 @@ class DriveListDrive extends Component {
             </div>
             <div className={ classes.driveGridItem } style={ gridStyle.origin }>
               <Typography className={ classes.firstLine }>
-                { startLocation && startLocation.place }
+                { drive.startLocation && drive.startLocation.place }
               </Typography>
               <Typography>
-                { startLocation && startLocation.details }
+                { drive.startLocation && drive.startLocation.details }
               </Typography>
             </div>
             <div className={ classes.driveGridItem } style={ gridStyle.dest }>
               <Typography className={ classes.firstLine }>
-                { endLocation && endLocation.place }
+                { drive.endLocation && drive.endLocation.place }
               </Typography>
               <Typography>
-                { endLocation && endLocation.details }
+                { drive.endLocation && drive.endLocation.details }
               </Typography>
             </div>
             <div className={ classes.driveGridItem } style={ gridStyle.dist }>
@@ -165,12 +170,8 @@ class DriveListDrive extends Component {
             }
           </Grid>
         </div>
-        <Timeline
-          className={classes.driveTimeline}
-          zoomOverride={{
-            start: drive.startTime,
-            end: drive.startTime + drive.duration
-          }}
+        <Timeline className={classes.driveTimeline} thumbnailsVisible={ this.visible }
+          zoomOverride={{ start: drive.startTime, end: drive.startTime + drive.duration }}
         />
       </a>
     );

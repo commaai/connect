@@ -24,7 +24,6 @@ const styles = (/* theme */) => ({
     width: '100%',
   },
   segments: {
-    backgroundColor: theme.palette.states.drivingBlue,
     position: 'relative',
     left: '0px',
     width: '100%',
@@ -167,6 +166,10 @@ class Timeline extends Component {
     if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom) {
       this.setState({ zoom: this.props.zoomOverride || this.props.zoom });
     }
+
+    if (!prevProps.thumbnailsVisible && this.props.thumbnailsVisible) {
+
+    }
   }
 
   componentWillUnmount() {
@@ -276,6 +279,10 @@ class Timeline extends Component {
     const { classes, filter } = this.props;
     const { zoom } = this.state;
 
+    if (!segment.events) {
+      return null;
+    }
+
     const range = filter.start - filter.end;
     let startPerc = (100 * segment.offset) / range;
     let widthPerc = (100 * segment.duration) / range;
@@ -305,6 +312,10 @@ class Timeline extends Component {
 
   renderSegmentEvents(segment) {
     const { classes } = this.props;
+    if (!segment.events) {
+      return;
+    }
+
     return segment.events
       .filter((event) => event.data && event.data.end_route_offset_millis)
       .map((event) => {
@@ -323,7 +334,7 @@ class Timeline extends Component {
         const statusCls = event.data.alertStatus ? `${AlertStatusCodes[event.data.alertStatus]}` : '';
         return (
           <div
-            key={segment.route + event.time + event.type}
+            key={segment.route + event.route_offset_millis + event.type}
             style={style}
             className={ `${classes.segmentColor} ${event.type} ${statusCls}` }
           />
@@ -332,7 +343,7 @@ class Timeline extends Component {
   }
 
   render() {
-    const { classes, hasRuler, filter, className, segments } = this.props;
+    const { classes, hasRuler, filter, className, segments, thumbnailsVisible } = this.props;
     const { thumbnail, hoverX, dragging } = this.state;
 
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
@@ -373,9 +384,11 @@ class Timeline extends Component {
           <Measure bounds onResize={(rect) => this.setState({ thumbnail: rect.bounds })}>
             { (options) => (
               <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
-                <Thumbnails getCurrentSegment={ (seg) => getCurrentSegment(this.props, seg) }
-                  percentToOffset={this.percentToOffset} thumbnail={thumbnail} className={classes.thumbnail}
-                  hasRuler={hasRuler} />
+                { thumbnailsVisible &&
+                  <Thumbnails getCurrentSegment={ (seg) => getCurrentSegment(this.props, seg) }
+                    percentToOffset={this.percentToOffset} thumbnail={thumbnail} className={classes.thumbnail}
+                    hasRuler={hasRuler} />
+                }
               </div>
             )}
           </Measure>

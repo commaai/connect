@@ -4,6 +4,8 @@ import {
   ACTION_STARTUP_DATA,
   ACTION_UPDATE_DEVICES,
   ACTION_UPDATE_DEVICE,
+  ACTION_UPDATE_ROUTE_EVENTS,
+  ACTION_UPDATE_ROUTE_LOCATION,
   ACTION_UPDATE_SHARED_DEVICE,
   ACTION_PRIME_NAV,
   ACTION_PRIME_SUBSCRIPTION,
@@ -103,6 +105,46 @@ export default function reducer(_state, action) {
         state.devices[deviceIndex] = populateFetchedAt(action.device);
       } else {
         state.devices.unshift(populateFetchedAt(action.device));
+      }
+      break;
+    case ACTION_UPDATE_ROUTE_EVENTS:
+      if (state.segments) {
+        state.segments = [...state.segments];
+        for (const i in state.segments) {
+          if (state.segments[i].route === action.route) {
+            state.segments[i] = {
+              ...state.segments[i],
+              events: action.events,
+            }
+            break;
+          }
+        }
+      }
+      if (state.currentSegment && state.currentSegment.route === action.route) {
+        state.currentSegment = {
+          ...state.currentSegment,
+          events: action.events,
+        }
+      }
+      break;
+    case ACTION_UPDATE_ROUTE_LOCATION:
+      if (state.segments) {
+        state.segments = [...state.segments];
+        for (const i in state.segments) {
+          if (state.segments[i].route === action.route) {
+            state.segments[i] = {
+              ...state.segments[i],
+            }
+            state.segments[i][action.locationKey] = action.location;
+            break;
+          }
+        }
+      }
+      if (state.currentSegment && state.currentSegment.route === action.route) {
+        state.currentSegment = {
+          ...state.currentSegment,
+        }
+        state.currentSegment[action.locationKey] = action.location;
       }
       break;
     case ACTION_UPDATE_SHARED_DEVICE:

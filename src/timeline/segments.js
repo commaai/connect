@@ -64,8 +64,6 @@ export function getCurrentSegment(state, o) {
 }
 
 function finishSegment(segment) {
-  let lastEngage = null;
-
   if (segment.hasVideo) {
     const vidAvail = segment.videoAvailableBetweenOffsets;
     let lastVideoRange = vidAvail[vidAvail.length - 1];
@@ -77,32 +75,6 @@ function finishSegment(segment) {
       [lastVideoRange[0], segment.offset + segment.duration]
     ];
   }
-  segment.events = segment.events.sort((a, b) => { // eslint-disable-line no-param-reassign
-    if (a.route_offset_millis === b.route_offset_millis) {
-      return a.route_offset_nanos - b.route_offset_nanos;
-    }
-    return a.route_offset_millis - b.route_offset_millis;
-  });
-  segment.events.forEach((event) => {
-    // NOTE sometimes theres 2 disengages in a row and that is NONSENSE
-    switch (event.type) {
-      case 'engage':
-        lastEngage = event;
-        break;
-      case 'disengage':
-        if (lastEngage) {
-          lastEngage.data = {
-            end_offset_nanos: event.offset_nanos,
-            end_offset_millis: event.offset_millis,
-            end_route_offset_nanos: event.route_offset_nanos,
-            end_route_offset_millis: event.route_offset_millis
-          };
-        }
-        break;
-      default:
-        break;
-    }
-  });
 }
 
 function segmentsFromMetadata(segmentsData) {
@@ -143,10 +115,12 @@ function segmentsFromMetadata(segmentsData) {
         route: segment.canonical_route_name,
         startTime: segment.start_time_utc_millis,
         startCoord: [segment.start_lng, segment.start_lat],
+        startLocation: null,
+        endLocation: null,
         duration: 0,
         segments: 0,
         url: url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
-        events: [],
+        events: null,
         videoAvailableBetweenOffsets: [],
         hasVideo: segmentHasVideo,
         deviceType: segment.devicetype,
@@ -168,7 +142,6 @@ function segmentsFromMetadata(segmentsData) {
     curSegment.hpgps = (curSegment.hpgps || segment.hpgps);
     curSegment.duration = (segment.offset - curSegment.offset) + segment.duration;
     curSegment.segments = Math.max(curSegment.segments, Number(segment.canonical_name.split('--').pop()) + 1);
-    curSegment.events = curSegment.events.concat(segment.events);
     curSegment.distanceMiles += segment.length;
     if (!curSegment.endCoord || segment.end_lng !== 0 || segment.end_lat !== 0) {
       curSegment.endCoord = [segment.end_lng, segment.end_lat];
@@ -258,36 +231,6 @@ export function parseSegmentMetadata(state, _segments) {
     segment.routeOffset = routeStartTimes[segment.canonical_route_name];
 
     segment.duration = Math.round(segment.end_time_utc_millis - segment.start_time_utc_millis);
-    segment.events = JSON.parse(segment.events_json) || [];
-    const plannedDisengageEvents = segment.events.filter(
-      (event) => event.type === 'alert' && event.data && event.data.should_take_control
-    );
-
-    segment.events.forEach((_event) => {
-      const event = _event;
-      event.timestamp = segment.start_time_utc_millis + event.offset_millis;
-      event.canonical_segment_name = segment.canonical_name;
-
-      if (event.data && event.data.is_planned) {
-        let reason;
-
-        const alert = plannedDisengageEvents.reduce((closestAlert, nextAlert) => {
-          const closestAlertDiff = Math.abs(closestAlert.offset_millis - event.offset_millis);
-          if (Math.abs(nextAlert.offset_millis - event.offset_millis) < closestAlertDiff) {
-            return nextAlert;
-          }
-          return closestAlert;
-        }, plannedDisengageEvents[0]);
-        if (alert) {
-          reason = alert.data.alertText2;
-        } else {
-          console.warn('Expected alert corresponding to planned disengagement', event);
-          reason = 'Planned disengagement';
-        }
-
-        event.id = `planned_disengage_${event.time}`;
-      }
-    });
     return segment;
   });
 

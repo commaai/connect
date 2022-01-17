@@ -7,7 +7,6 @@ const HERE_API_KEY = 'FzdKQBdDlWNQfvlvreB9ukezD-fYi7uKW0rM_K9eE2E'
 
 const mbxGeocoding = require('@mapbox/mapbox-sdk/services/geocoding');
 const mbxDirections = require('@mapbox/mapbox-sdk/services/directions');
-const geocodeCache = new Map();
 
 let geocodingClient = mbxGeocoding({ accessToken: MAPBOX_TOKEN });;
 let directionsClient = mbxDirections({ accessToken: MAPBOX_TOKEN });;
@@ -40,57 +39,52 @@ export default function geocodeApi() {
     }
   }
 
-  async function noCacheReverseLookup(coords) {
-    const endpoint = 'https://api.mapbox.com/geocoding/v5/mapbox.places/';
-    const params = {
-      access_token: MAPBOX_TOKEN,
-      limit: 1,
-    };
-    const resp = await fetch(`${endpoint}${coords[0]},${coords[1]}.json?${qs.stringify(params)}`, {
-      method: 'GET',
-      cache: 'force-cache',
-    });
-
-    try {
-      const { features } = await resp.json();
-      if (features.length && features[0].context) {
-        let contexts = getFilteredContexts(features[0].context);
-        let place = '';
-        let details = '';
-        if (contexts.length > 0) {
-          place = getContextString(contexts.shift());
-        }
-        if (contexts.length > 0) {
-          details = getContextString(contexts.pop());
-        }
-        if (contexts.length > 0) {
-          details = `${getContextString(priorityGetContext(contexts))}, ${details}`;
-        }
-        return { place, details };
-      }
-    } catch (err) {
-      Sentry.captureException(err, { fingerprint: 'geocode_reverse_parse' });
-    }
-  }
-
   return {
     async reverseLookup(coords) {
       if (geocodingClient === null || (coords[0] === 0 && coords[1] === 0)) {
         return null;
       }
 
-      // round for better caching
-      coords[0] = Math.round(coords[0] * 1000) / 1000;
-      coords[1] = Math.round(coords[1] * 1000) / 1000;
+      const endpoint = 'https://api.mapbox.com/geocoding/v5/mapbox.places/';
+      const params = {
+        access_token: MAPBOX_TOKEN,
+        limit: 1,
+      };
 
-      const cacheKey = JSON.stringify(coords);
-      if (geocodeCache.has(cacheKey)) {
-        return await geocodeCache.get(cacheKey);
+      let resp;
+      try {
+        resp = await fetch(`${endpoint}${coords[0]},${coords[1]}.json?${qs.stringify(params)}`, {
+          method: 'GET',
+          cache: 'force-cache',
+        });
+        if (!resp.ok) {
+          return null;
+        }
+      } catch (err) {
+        console.log(err);
+        return null;
       }
 
-      const res = noCacheReverseLookup(coords);
-      geocodeCache.set(cacheKey, res);
-      return await res;
+      try {
+        const { features } = await resp.json();
+        if (features.length && features[0].context) {
+          let contexts = getFilteredContexts(features[0].context);
+          let place = '';
+          let details = '';
+          if (contexts.length > 0) {
+            place = getContextString(contexts.shift());
+          }
+          if (contexts.length > 0) {
+            details = getContextString(contexts.pop());
+          }
+          if (contexts.length > 0) {
+            details = `${getContextString(priorityGetContext(contexts))}, ${details}`;
+          }
+          return { place, details };
+        }
+      } catch (err) {
+        Sentry.captureException(err, { fingerprint: 'geocode_reverse_parse' });
+      }
     },
 
     async forwardLookup(query, proximity, viewport) {

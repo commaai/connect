@@ -47,19 +47,15 @@ class DriveList extends Component {
   constructor(props) {
     super(props);
 
-    this.filterShortDrives = this.filterShortDrives.bind(this);
-    this.onResize = this.onResize.bind(this);
-    this.onVisible = this.onVisible.bind(this);
-
     this.state = {
       windowWidth: window.innerWidth,
     };
-  }
 
-  componentWillReceiveProps(props) {
-    if (props.device && !this.state.deviceAliasSaved) {
-      this.setState({ deviceAliasSaved: props.device.alias });
-    }
+    this.fakeItemRef = React.createRef();
+
+    this.filterShortDrives = this.filterShortDrives.bind(this);
+    this.onResize = this.onResize.bind(this);
+    this.onVisible = this.onVisible.bind(this);
   }
 
   filterShortDrives(ride) {
@@ -88,8 +84,8 @@ class DriveList extends Component {
         <VisibilityHandler onVisible={ this.onVisible } minInterval={ 60 } />
         { driveList.length === 0 && this.renderZeroRides() }
         <div className={classes.drives}>
-          { driveList.filter(this.filterShortDrives).map((drive) => (
-            <DriveListItem key={drive.startTime} drive={drive} windowWidth={ this.state.windowWidth }/>
+          { driveList.filter(this.filterShortDrives).map((drive, i) => (
+            <DriveListItem key={drive.startTime} drive={drive} windowWidth={ this.state.windowWidth } />
           ))}
         </div>
       </div>
@@ -101,7 +97,7 @@ class DriveList extends Component {
     const { windowWidth } = this.state;
     let zeroRidesEle = null;
 
-    if (device && (segmentData === null || typeof segmentData.segments === 'undefined')) {
+    if (device && (segmentData === null || segmentData.segments === undefined)) {
       zeroRidesEle = <Typography>Loading...</Typography>;
     } else if (segmentData && segmentData.segments && segmentData.segments.length === 0) {
       zeroRidesEle = ( <Typography>Looks like you haven{'\''}t driven in the selected time range.</Typography> );
