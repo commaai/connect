@@ -120,9 +120,17 @@ export function fetchEvents(route) {
 
     // already requesting
     if (eventsRequests[route.route] !== undefined) {
+      const driveEvents = await eventsRequests[route.route];
+      dispatch({
+        type: Types.ACTION_UPDATE_ROUTE_EVENTS,
+        route: route.route,
+        events: driveEvents,
+      });
       return;
     }
-    eventsRequests[route.route] = true;
+
+    let resolveEvents;
+    eventsRequests[route.route] = new Promise((resolve) => { resolveEvents = resolve; });
 
     // in cache?
     const cacheEvents = await getCacheItem('events', route.route);
@@ -132,6 +140,7 @@ export function fetchEvents(route) {
         route: route.route,
         events: cacheEvents,
       });
+      resolveEvents(cacheEvents);
       return;
     }
 
@@ -198,7 +207,7 @@ export function fetchEvents(route) {
       route: route.route,
       events: driveEvents,
     });
-    delete eventsRequests[route.route];
+    resolveEvents(driveEvents);
   }
 }
 
