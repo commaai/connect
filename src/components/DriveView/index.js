@@ -85,7 +85,7 @@ class DriveView extends Component {
                 <CloseIcon />
               </IconButton>
             </div>
-            <Timeline className={classes.headerTimeline} hasRuler />
+            <Timeline className={classes.headerTimeline} thumbnailsVisible={ true } hasRuler />
           </div>
           <div style={{ padding: viewerPadding }}>
             <Media />

@@ -15,9 +15,15 @@ async function getCacheDB() {
     return Promise.resolve(cacheDB);
   }
 
+  if (!window.indexedDB) {
+    return Promise.resolve(null);
+  }
+
   let request = window.indexedDB.open('cacheDB', 1);
-  return new Promise((resolve, reject) => {
-    request.onerror = reject;
+  return new Promise((resolve) => {
+    request.onerror = () => {
+      resolve(null);
+    };
     request.onsuccess = (ev) => {
       resolve(ev.target.result);
     };
@@ -39,16 +45,16 @@ async function getCacheDB() {
 }
 
 async function getCacheItem(store, key) {
-  if (!window.indexedDB) {
-    return null;
-  }
-
   if (!hasExpired) {
     setTimeout(() => expireCacheItems(store), 5000);  // TODO: better expire time
     hasExpired = true;
   }
 
   const db = await getCacheDB();
+  if (!db) {
+    return null;
+  }
+
   const transaction = db.transaction([store]);
   const req = transaction.objectStore(store).get(key);
 
@@ -61,11 +67,11 @@ async function getCacheItem(store, key) {
 }
 
 async function setCacheItem(store, key, expiry, data) {
-  if (!window.indexedDB) {
+  const db = await getCacheDB();
+  if (!db) {
     return null;
   }
 
-  const db = await getCacheDB();
   const transaction = db.transaction([store], 'readwrite');
   const req = transaction.objectStore(store).add({ key, expiry, data });
 
@@ -76,11 +82,11 @@ async function setCacheItem(store, key, expiry, data) {
 }
 
 async function expireCacheItems(store) {
-  if (!window.indexedDB) {
+  const db = await getCacheDB();
+  if (!db) {
     return null;
   }
 
-  const db = await getCacheDB();
   const transaction = db.transaction([store], 'readwrite');
   const objStore = transaction.objectStore(store);
 
