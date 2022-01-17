@@ -156,21 +156,21 @@ export function fetchEvents(route) {
       const promises = [];
       for (let i = 0; i < route.segments; i++) {
         promises.push((async (i) => {
-          try {
-            const resp = await fetch(`${route.url}/${i}/events.json`, { method: 'GET' });
-            if (!resp.ok) {
-              return [];
-            }
-            const events = await resp.json();
-            return events;
-          } catch (err) {
-            console.log(err);
+          const resp = await fetch(`${route.url}/${i}/events.json`, { method: 'GET' });
+          if (!resp.ok) {
             return [];
           }
+          const events = await resp.json();
+          return events;
         })(i));
       }
 
-      driveEvents = [].concat(...(await Promise.all(promises)));
+      try {
+        driveEvents = [].concat(...(await Promise.all(promises)));
+      } catch (err) {
+        console.log(err);
+        return;
+      }
     }
 
     driveEvents = driveEvents.filter((ev) => ['engage', 'disengage', 'alert'].includes(ev.type));
@@ -335,21 +335,23 @@ export function fetchDriveCoords(route) {
     const promises = [];
     for (let i = 0; i < route.segments; i++) {
       promises.push((async (i) => {
-        try {
-          const resp = await fetch(`${route.url}/${i}/coords.json`, { method: 'GET' });
-          if (!resp.ok) {
-            return [];
-          }
-          const events = await resp.json();
-          return events;
-        } catch (err) {
-          console.log(err);
+        const resp = await fetch(`${route.url}/${i}/coords.json`, { method: 'GET' });
+        if (!resp.ok) {
           return [];
         }
+        const events = await resp.json();
+        return events;
       })(i));
     }
 
-    let driveCoords = await Promise.all(promises);
+    let driveCoords;
+    try {
+      driveCoords = await Promise.all(promises);
+    } catch (err) {
+      console.log(err);
+      return [];
+    }
+
     driveCoords = driveCoords.reduce((prev, curr, fakeI) => {
       return prev.concat(curr.map((cs) => ({
         t: ((fakeI - 1) * 60) + cs.t,
