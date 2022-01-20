@@ -57,11 +57,14 @@ class DriveListDrive extends Component {
   constructor(props) {
     super(props);
 
+    this.state = {
+      inView: false,
+    };
+
     this.onScroll = this.onScroll.bind(this);
 
     this.aRef = React.createRef();
 
-    this.visible = false;
     this.mounted = false;
   }
 
@@ -79,10 +82,10 @@ class DriveListDrive extends Component {
   }
 
   onScroll() {
-    if (!this.visible && this.aRef.current && window &&
+    if (!this.state.inView && this.aRef.current && window &&
       (!window.visualViewport || window.visualViewport.height >= this.aRef.current.getBoundingClientRect().y - 300))
     {
-      this.visible = true;
+      this.setState({ inView: true });
       window.removeEventListener('scroll', this.onScroll);
       window.removeEventListener('resize', this.onScroll);
 
@@ -170,7 +173,7 @@ class DriveListDrive extends Component {
             }
           </Grid>
         </div>
-        <Timeline className={classes.driveTimeline} thumbnailsVisible={ this.visible }
+        <Timeline className={classes.driveTimeline} thumbnailsVisible={ this.state.inView }
           zoomOverride={{ start: drive.startTime, end: drive.startTime + drive.duration }}
         />
       </a>

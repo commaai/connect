@@ -349,7 +349,7 @@ export function fetchDriveCoords(route) {
       driveCoords = await Promise.all(promises);
     } catch (err) {
       console.log(err);
-      return [];
+      return;
     }
 
     driveCoords = driveCoords.reduce((prev, curr, fakeI) => {

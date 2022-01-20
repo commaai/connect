@@ -166,10 +166,6 @@ class Timeline extends Component {
     if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom) {
       this.setState({ zoom: this.props.zoomOverride || this.props.zoom });
     }
-
-    if (!prevProps.thumbnailsVisible && this.props.thumbnailsVisible) {
-
-    }
   }
 
   componentWillUnmount() {
