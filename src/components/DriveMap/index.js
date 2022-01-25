@@ -37,6 +37,8 @@ class DriveMap extends Component {
         longitude: -122.4376,
         zoom: 15,
       },
+      driveCoordsMin: null,
+      driveCoordsMax: null,
     };
 
     this.initMap = this.initMap.bind(this);
@@ -76,6 +78,11 @@ class DriveMap extends Component {
     if (this.props.currentSegment && prevProps.currentSegment &&
       prevProps.currentSegment.driveCoords !== this.props.currentSegment.driveCoords)
     {
+      const keys = Object.keys(this.props.currentSegment.driveCoords);
+      this.setState({
+        driveCoordsMin: Math.min(...keys),
+        driveCoordsMax: Math.max(...keys),
+      });
       this.populateMap();
     }
   }
@@ -148,8 +155,7 @@ class DriveMap extends Component {
       return;
     }
 
-    const coordsArr = currentSegment.driveCoords.map((cs) => cs.c);
-    this.setPath(coordsArr);
+    this.setPath(Object.values(currentSegment.driveCoords));
   }
 
   setPath(coords) {
@@ -174,21 +180,25 @@ class DriveMap extends Component {
 
     const offsetSeconds = Math.floor(offset / 1e3);
     const offsetFractionalPart = (offset % 1e3) / 1000.0;
-    const coordIdx = Math.min(
+    const coordIdx = Math.max(this.state.driveCoordsMin, Math.min(
       offsetSeconds,
-      this.props.currentSegment.driveCoords.length - 1
-    );
-    const nextCoordIdx = Math.min(
+      this.state.driveCoordsMax,
+    ));
+    const nextCoordIdx = Math.max(this.state.driveCoordsMin, Math.min(
       offsetSeconds + 1,
-      this.props.currentSegment.driveCoords.length - 1
-    );
+      this.state.driveCoordsMax,
+    ));
+
     if (!this.props.currentSegment.driveCoords[coordIdx]) {
       return null;
     }
 
-    const [floorLng, floorLat] = this.props.currentSegment.driveCoords[coordIdx].c;
-    const [ceilLng, ceilLat] = this.props.currentSegment.driveCoords[nextCoordIdx].c;
+    const [floorLng, floorLat] = this.props.currentSegment.driveCoords[coordIdx];
+    if (!this.props.currentSegment.driveCoords[nextCoordIdx]) {
+      return [floorLng, floorLat];
+    }
 
+    const [ceilLng, ceilLat] = this.props.currentSegment.driveCoords[nextCoordIdx];
     return [
       floorLng + ((ceilLng - floorLng) * offsetFractionalPart),
       floorLat + ((ceilLat - floorLat) * offsetFractionalPart)

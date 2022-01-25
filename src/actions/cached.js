@@ -20,7 +20,7 @@ async function getCacheDB() {
     return Promise.resolve(null);
   }
 
-  let request = window.indexedDB.open('cacheDB', 1);
+  let request = window.indexedDB.open('cacheDB', 2);
   return new Promise((resolve) => {
     request.onerror = () => {
       resolve(null);
@@ -30,6 +30,12 @@ async function getCacheDB() {
     };
     request.onupgradeneeded = (ev) => {
       const db = ev.target.result;
+
+      if (ev.oldVersion === 1 && ev.newVersion === 2) {
+        ev.target.transaction.objectStore('driveCoords').clear();
+        return;
+      }
+
       const routeStore = db.createObjectStore('events', { keyPath: 'key' });
       routeStore.createIndex('key', 'key', { unique: true });
       routeStore.createIndex('expiry', 'expiry', { unique: false });
@@ -39,12 +45,6 @@ async function getCacheDB() {
       const driveCoordsStore = db.createObjectStore('driveCoords', { keyPath: 'key' });
       driveCoordsStore.createIndex('key', 'key', { unique: true });
       driveCoordsStore.createIndex('expiry', 'expiry', { unique: false });
-
-      let completed = 0;
-      const allCompleted = () => { if (completed == 3) resolve(db); };
-      routeStore.transaction.oncomplete = () => { completed++; allCompleted(); };
-      coordsStore.transaction.oncomplete = () => { completed++; allCompleted(); };
-      driveCoordsStore.transaction.oncomplete = () => { completed++; allCompleted(); };
     }
   });
 }
@@ -352,12 +352,15 @@ export function fetchDriveCoords(route) {
       return;
     }
 
-    driveCoords = driveCoords.reduce((prev, curr, fakeI) => {
-      return prev.concat(curr.map((cs) => ({
-        t: ((fakeI - 1) * 60) + cs.t,
-        c: [cs.lng, cs.lat],
-      })));
-    }, []);
+    driveCoords = driveCoords.reduce((prev, curr) => {
+      return {
+        ...prev,
+        ...curr.reduce((p, cs) => {
+          p[cs.t] = [cs.lng, cs.lat];
+          return p;
+        }, {}),
+      }
+    }, {});
 
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_DRIVE_COORDS,
