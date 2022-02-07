@@ -427,9 +427,15 @@ class Media extends Component {
   }
 
   async doUpload(dongleId, fileNames, paths, urls) {
-    if (deviceVersionAtLeast(this.props.device, "0.8.13")) {
+    let loopedUploads = !deviceVersionAtLeast(this.props.device, "0.8.13");
+    if (!loopedUploads) {
       const files_data = paths.map((path, i) => {
-        return [path, urls[i], { "x-ms-blob-type": "BlockBlob" }];
+        return {
+          fn: path,
+          url: urls[i],
+          headers: { "x-ms-blob-type": "BlockBlob" },
+          allow_cellular: false,
+        };
       });
       const payload = {
         id: 0,
@@ -439,7 +445,11 @@ class Media extends Component {
         expiry: parseInt(Date.now()/1000) + (86400*7),
       };
       const resp = await this.athenaCall(payload, 'media_athena_uploads');
-      if (!resp || resp.error) {
+      if (resp && resp.error && resp.error.code === -32000 &&
+        resp.error.data.message === 'too many values to unpack (expected 3)')
+      {
+        loopedUploads = true;
+      } else if (!resp || resp.error) {
         const newUploading = {};
         for (const fileName of fileNames) {
           newUploading[fileName] = {};
@@ -465,7 +475,9 @@ class Media extends Component {
         }
         this.props.dispatch(fetchUploadQueue(dongleId));
       }
-    } else {
+    }
+
+    if (loopedUploads) {
       for (let i=0; i<fileNames.length; i++) {
         const payload = {
           id: 0,
