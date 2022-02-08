@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/react';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import { withStyles, Typography, Button, Modal, Paper, IconButton, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
+import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
 
 import { billing as Billing} from '@commaai/comma-api'
 import { deviceTypePretty } from '../../utils';
@@ -53,6 +54,15 @@ const styles = (theme) => ({
     display: 'flex',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    '& p': { display: 'inline-block', marginLeft: 10 },
+  },
+  overviewBlockDisabled: {
+    marginTop: 12,
+    borderRadius: 12,
+    padding: '8px 12px',
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: Colors.white08,
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
   manageItem: {
@@ -368,7 +378,7 @@ class PrimeManage extends Component {
               </div> }
               <div className={ classes.overviewBlock + " " + classes.paymentElement }>
                 <Button className={ classes.buttons } style={ buttonSmallStyle } onClick={ this.gotoUpdate }
-                   disabled={ !hasPrimeSub }>
+                   disabled={ !hasPrimeSub || device.device_type !== 'three' }>
                   { subscription.cancel_at ? 'Renew subscription' : 'Update payment method' }
                 </Button>
                 { !subscription.cancel_at &&
@@ -378,6 +388,12 @@ class PrimeManage extends Component {
                   </Button>
                 }
               </div>
+              { subscription.cancel_at && device.device_type !== 'three' &&
+                <div className={ classes.overviewBlockDisabled }>
+                  <InfoOutlineIcon />
+                  <Typography>Standard comma prime discontinued for { deviceTypePretty(device.device_type) }</Typography>
+                </div>
+              }
             </> }
           </div>
         </div>

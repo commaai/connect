@@ -223,7 +223,7 @@ class PrimeCheckout extends Component {
     }
 
     if (this.state.selectedPlan === null && subscribeInfo) {
-      const canC2 = this.trialClaimable() || device.device_type !== 'two';
+      const canC2 = this.trialClaimable() || device.device_type === 'three';
       const plan = subscribeInfo.sim_id && subscribeInfo.is_prime_sim && canC2 ? 'data' : 'nodata';
       this.setState({ selectedPlan: plan });
     }
@@ -295,14 +295,14 @@ class PrimeCheckout extends Component {
     const paddingStyle = windowWidth > 520 ? { paddingLeft: 7, paddingRight: 7 } : { paddingLeft: 8, paddingRight: 8 };
     const selectedStyle = { border: '2px solid white' };
     const plansLoadingClass = !subscribeInfo ? classes.planInfoLoading : '';
-    const disabledDataPlan = Boolean((device.device_type === 'two' && !this.trialClaimable()) ||
+    const disabledDataPlan = Boolean((device.device_type !== 'three' && !this.trialClaimable()) ||
       !subscribeInfo || !subscribeInfo.sim_id || !subscribeInfo.is_prime_sim);
     const boxHeight = windowHeight > 600 ? { height: 140 } : { height: 110 };
 
     let disabledDataPlanText;
     if (subscribeInfo && disabledDataPlan) {
-      if (device.device_type === 'two' && !this.trialClaimable()) {
-        disabledDataPlanText = 'Standard plan is discontinued for comma two.';
+      if (device.device_type !== 'three' && !this.trialClaimable()) {
+        disabledDataPlanText = 'Standard plan is only available for comma three.';
       } else if (!subscribeInfo.sim_id && subscribeInfo.device_online) {
         disabledDataPlanText = 'Standard plan not available, no SIM was detected. Ensure SIM is securely inserted and try again.';
       } else if (!subscribeInfo.sim_id) {
