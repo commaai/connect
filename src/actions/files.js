@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 import { raw as RawApi, athena as AthenaApi, devices as DevicesApi } from '@commaai/comma-api';
 
-import { updateDeviceOnline } from './';
+import { updateDeviceOnline, fetchDeviceNetworkStatus } from './';
 import * as Types from './types';
 
 const demoLogUrls = require('../demo/logUrls.json');
@@ -111,8 +111,8 @@ export function fetchAthenaQueue(dongleId) {
         const fileName = pathToFileName(dongleId, q.params[0]);
         newUploading[fileName] = { progress: 0, current: false };
       } else if (q.method === 'uploadFilesToUrls') {
-        for (const [path, _1, _2] of q.params.files_data) {
-          const fileName = pathToFileName(dongleId, path);
+        for (const { fn } of q.params.files_data) {
+          const fileName = pathToFileName(dongleId, fn);
           newUploading[fileName] = { progress: 0, current: false };
         }
       }
@@ -136,6 +136,8 @@ export function fetchUploadQueue(dongleId) {
       return;
     }
     uploadQueueTimeout = true;
+
+    dispatch(fetchDeviceNetworkStatus(dongleId));
 
     const payload = {
       method: 'listUploadQueue',

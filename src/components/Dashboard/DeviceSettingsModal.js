@@ -110,22 +110,26 @@ const styles = (theme) => ({
   },
 });
 
+const initialState = {
+  deviceAlias: '',
+  loadingDeviceAlias: false,
+  loadingDeviceShare: false,
+  hasSavedAlias: false,
+  shareEmail: '',
+  unpairConfirm: false,
+  unpaired: false,
+  loadingUnpair: false,
+  error: null,
+  unpairError: null,
+  uploadModal: false,
+};
+
 class DeviceSettingsModal extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      deviceAlias: '',
-      loadingDeviceAlias: false,
-      loadingDeviceShare: false,
-      hasSavedAlias: false,
-      shareEmail: '',
-      unpairConfirm: false,
-      unpaired: false,
-      loadingUnpair: false,
-      error: null,
-      unpairError: null,
-      uploadModal: false,
+      ...initialState,
     };
 
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
@@ -141,6 +145,14 @@ class DeviceSettingsModal extends Component {
   componentWillReceiveProps(nextProps) {
     if (nextProps.device && nextProps.device.alias !== this.state.deviceAlias) {
       this.setState({ deviceAlias: nextProps.device.alias });
+    }
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.dongleId !== this.props.dongleId) {
+      this.setState({
+        ...initialState,
+      });
     }
   }
 
@@ -194,15 +206,12 @@ class DeviceSettingsModal extends Component {
       return;
     }
 
-    const { dongle_id } = this.props.device;
-    const { shareEmail } = this.state;
-
     this.setState({
       loadingDeviceShare: true,
       hasShared: false
     });
     try {
-      await DevicesApi.grantDeviceReadPermission(dongle_id, shareEmail.trim());
+      await DevicesApi.grantDeviceReadPermission(this.props.dongleId, this.state.shareEmail.trim());
       this.setState({
         loadingDeviceShare: false,
         shareEmail: '',
@@ -230,10 +239,10 @@ class DeviceSettingsModal extends Component {
       this.props.onClose();
     };
 
-    if (this.props.device.dongle_id !== this.props.stateDevice.dongle_id) {
-      this.props.dispatch(selectDevice(this.props.device.dongle_id));
+    if (this.props.dongleId !== this.props.globalDongleId) {
+      this.props.dispatch(selectDevice(this.props.dongleId));
       intv = setInterval(() => {
-        if (this.props.device.dongle_id === this.props.stateDevice.dongle_id) {
+        if (this.props.dongleId === this.props.globalDongleId) {
           doPrimeNav();
         }
       }, 100);
@@ -384,9 +393,13 @@ class DeviceSettingsModal extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  subscription: 'subscription',
-  stateDevice: 'device',
-});
+const stateToProps = (state, ownProps) => {
+  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId) || null;
+  return {
+    subscription: state.subscription,
+    device,
+    globalDongleId: state.dongleId,
+  };
+};
 
 export default connect(stateToProps)(withStyles(styles)(DeviceSettingsModal));

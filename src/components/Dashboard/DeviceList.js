@@ -94,8 +94,7 @@ class DeviceList extends Component {
     super(props);
 
     this.state = {
-      showDeviceSettingsModal: false,
-      deviceSettingsModalDevice: null,
+      settingsModalDongleId: null,
     };
 
     this.renderDevice = this.renderDevice.bind(this);
@@ -111,14 +110,14 @@ class DeviceList extends Component {
     }
   }
 
-  handleOpenedSettingsModal(device, ev) {
+  handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    this.setState({ showDeviceSettingsModal: true, deviceSettingsModalDevice: device });
+    this.setState({ settingsModalDongleId: dongleId });
   }
 
   handleClosedSettingsModal() {
-    this.setState({ showDeviceSettingsModal: false });
+    this.setState({ settingsModalDongleId: null });
   }
 
   async onVisible() {
@@ -178,8 +177,8 @@ class DeviceList extends Component {
           }
         </div>
         <div className={ classes.versionNumber }>{ version }</div>
-        <DeviceSettingsModal isOpen={this.state.showDeviceSettingsModal} device={ this.state.deviceSettingsModalDevice }
-          onClose={this.handleClosedSettingsModal} />
+        <DeviceSettingsModal isOpen={ Boolean(this.state.settingsModalDongleId) }
+          dongleId={ this.state.settingsModalDongleId } onClose={this.handleClosedSettingsModal}/>
       </>
     );
   }
@@ -204,8 +203,8 @@ class DeviceList extends Component {
           </div>
         </div>
         { (device.is_owner || (profile && profile.superuser)) &&
-          <IconButton className={classes.settingsButton} onClick={ (ev) => this.handleOpenedSettingsModal(device, ev) }
-            aria-label="device settings">
+          <IconButton className={classes.settingsButton} aria-label="device settings"
+            onClick={ (ev) => this.handleOpenedSettingsModal(device.dongle_id, ev) }>
             <SettingsIcon className={classes.settingsButtonIcon} />
           </IconButton>
         }

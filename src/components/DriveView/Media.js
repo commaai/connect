@@ -18,7 +18,7 @@ import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
 import { currentOffset } from '../../timeline/playback';
 import Colors from '../../colors';
-import { deviceIsOnline, deviceVersionAtLeast } from '../../utils';
+import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils';
 import { updateDeviceOnline } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { fetchFiles, fetchUploadQueue, fetchAthenaQueue, updateFiles } from '../../actions/files';
@@ -644,7 +644,6 @@ class Media extends Component {
     }
 
     const canUpload = device.is_owner || (profile && profile.superuser);
-    const online = deviceIsOnline(device);
     const uploadButtonWidth = windowWidth < 425 ? 80 : 120;
     const buttons = [
       [fcam, `Road camera`, 'cameras'],
@@ -704,7 +703,7 @@ class Media extends Component {
           }
         </MenuItem>
         <Divider />
-        { Boolean(online || !files) ?
+        { Boolean(deviceIsOnline(device) || !files) ?
           <MenuItem onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
             style={ Boolean(files) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
             className={ classes.filesItem } disabled={ !files }>
@@ -714,6 +713,12 @@ class Media extends Component {
           <MenuItem className={ classes.offlineMenuItem } disabled={ true }>
             <div><WarningIcon /> Device offline</div>
             <span style={{ fontSize: '0.8rem' }}>uploading will resume when device is online</span>
+          </MenuItem>
+        }
+        { deviceOnCellular(device) &&
+          <MenuItem className={ classes.offlineMenuItem } disabled={ true }>
+            <div><WarningIcon /> Connect to WiFi</div>
+            <span style={{ fontSize: '0.8rem' }}>uploading not allowed on cellular</span>
           </MenuItem>
         }
       </Menu>

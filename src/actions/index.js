@@ -1,7 +1,7 @@
 import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import document from 'global/document';
-import { billing as Billing, devices as DevicesApi, drives as Drives } from '@commaai/comma-api';
+import { billing as Billing, devices as DevicesApi, drives as Drives, athena as AthenaApi } from '@commaai/comma-api';
 
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback'
@@ -175,6 +175,34 @@ export function updateDeviceOnline(dongleId, last_athena_ping) {
       last_athena_ping,
       fetched_at: parseInt(Date.now() / 1000),
     });
+  };
+}
+
+// TODO add debounce
+export function fetchDeviceNetworkStatus(dongleId) {
+  return async (dispatch, getState) => {
+    const payload = {
+      id: 0,
+      jsonrpc: "2.0",
+      method: "getNetworkType",
+    };
+    try {
+      const resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
+      if (resp && resp.result) {
+        dispatch({
+          type: Types.ACTION_UPDATE_DEVICE_NETWORK,
+          dongleId,
+          networkType: resp.result,
+        });
+      }
+    } catch(err) {
+      if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
+        dispatch(updateDeviceOnline(dongleId, 0));
+      } else {
+        console.log(err);
+        Sentry.captureException(err, { fingerprint: sentry_fingerprint });
+      }
+    }
   };
 }
 

@@ -5,9 +5,10 @@ import Obstruction from 'obstruction';
 import { withStyles, Divider, Typography, CircularProgress, Button, Modal, Paper, LinearProgress,
   } from '@material-ui/core';
 import HighlightOffIcon from '@material-ui/icons/HighlightOff';
+import WarningIcon from '@material-ui/icons/Warning';
 
 import { fetchUploadQueue, cancelUploads, cancelFetchUploadQueue } from '../../actions/files';
-import { deviceIsOnline, deviceVersionAtLeast } from '../../utils';
+import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils';
 import Colors from '../../colors';
 import ResizeHandler from '../ResizeHandler';
 
@@ -93,6 +94,19 @@ const styles = (theme) => ({
     color: Colors.white,
     '&:hover': {
       backgroundColor: Colors.grey400,
+    },
+  },
+  cellularWarning: {
+    backgroundColor: Colors.white100,
+    borderRadius: 16,
+    display: 'flex',
+    flexDirection: 'column',
+    margin: 8,
+    '& div': {
+      display: 'flex',
+      alignItems: 'center',
+      marginBottom: 2,
+      '& svg': { marginRight: 8 },
     },
   },
 });
@@ -192,7 +206,13 @@ class UploadQueue extends Component {
           </div>
           <Divider />
           <div className={ classes.uploadContainer } style={{ maxHeight: (windowHeight * 0.90) - 98 }}>
-            { hasUploading ?
+            { hasUploading ? <>
+              { deviceOnCellular(device) &&
+                <div className={ classes.cellularWarning }>
+                  <div><WarningIcon /> Connect to WiFi</div>
+                  <span style={{ fontSize: '0.8rem' }}>uploading not allowed on cellular</span>
+                </div>
+              }
               <table className={ classes.uploadTable }>
                 <thead>
                   <tr>
@@ -240,7 +260,7 @@ class UploadQueue extends Component {
                   }) }
                 </tbody>
               </table>
-            :
+            </> :
               deviceOffline ?
                 <p>device offline</p> :
                 ( hasData ?
