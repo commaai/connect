@@ -302,7 +302,7 @@ class PrimeCheckout extends Component {
     let disabledDataPlanText;
     if (subscribeInfo && disabledDataPlan) {
       if (device.device_type === 'two' && !this.trialClaimable()) {
-        disabledDataPlanText = 'Standard plan no longer available for comma two.';
+        disabledDataPlanText = 'Standard plan is discontinued for comma two.';
       } else if (!subscribeInfo.sim_id && subscribeInfo.device_online) {
         disabledDataPlanText = 'Standard plan not available, no SIM was detected. Ensure SIM is securely inserted and try again.';
       } else if (!subscribeInfo.sim_id) {
