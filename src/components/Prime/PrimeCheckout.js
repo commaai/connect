@@ -217,13 +217,14 @@ class PrimeCheckout extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { stripe_cancelled, subscribeInfo } = this.props;
+    const { stripe_cancelled, subscribeInfo, device } = this.props;
     if (!prevProps.stripe_cancelled && stripe_cancelled) {
       this.setState({ error: 'Checkout cancelled' });
     }
 
     if (this.state.selectedPlan === null && subscribeInfo) {
-      const plan = subscribeInfo.sim_id && subscribeInfo.is_prime_sim ? 'data' : 'nodata';
+      const canC2 = this.trialClaimable() || device.device_type !== 'two';
+      const plan = subscribeInfo.sim_id && subscribeInfo.is_prime_sim && canC2 ? 'data' : 'nodata';
       this.setState({ selectedPlan: plan });
     }
   }
@@ -294,12 +295,15 @@ class PrimeCheckout extends Component {
     const paddingStyle = windowWidth > 520 ? { paddingLeft: 7, paddingRight: 7 } : { paddingLeft: 8, paddingRight: 8 };
     const selectedStyle = { border: '2px solid white' };
     const plansLoadingClass = !subscribeInfo ? classes.planInfoLoading : '';
-    const disabledDataPlan = Boolean(!subscribeInfo || !subscribeInfo.sim_id || !subscribeInfo.is_prime_sim);
+    const disabledDataPlan = Boolean((device.device_type === 'two' && !this.trialClaimable()) ||
+      !subscribeInfo || !subscribeInfo.sim_id || !subscribeInfo.is_prime_sim);
     const boxHeight = windowHeight > 600 ? { height: 140 } : { height: 110 };
 
     let disabledDataPlanText;
     if (subscribeInfo && disabledDataPlan) {
-      if (!subscribeInfo.sim_id && subscribeInfo.device_online) {
+      if (device.device_type === 'two' && !this.trialClaimable()) {
+        disabledDataPlanText = 'Standard plan is discontinued for comma two.';
+      } else if (!subscribeInfo.sim_id && subscribeInfo.device_online) {
         disabledDataPlanText = 'Standard plan not available, no SIM was detected. Ensure SIM is securely inserted and try again.';
       } else if (!subscribeInfo.sim_id) {
         disabledDataPlanText = 'Standard plan not available, device could not be reached. Connect device to the internet and try again.';
@@ -345,7 +349,7 @@ class PrimeCheckout extends Component {
             <div className={ `${classes.plan} ${plansLoadingClass}` }
               style={ selectedPlan === 'nodata' ? selectedStyle : {} }
               onClick={ Boolean(subscribeInfo) ? () => this.setState({ selectedPlan: 'nodata' }) : null }>
-              <p className={ classes.planName }>basic</p>
+              <p className={ classes.planName }>lite</p>
               <p className={ classes.planPrice }>$16/month</p>
               <p className={ classes.planSubtext }>bring your own<br />sim card</p>
             </div>
@@ -354,7 +358,7 @@ class PrimeCheckout extends Component {
               onClick={ !disabledDataPlan ? () => this.setState({ selectedPlan: 'data' }) : null }>
               <p className={ classes.planName }>standard</p>
               <p className={ classes.planPrice }>$24/month</p>
-              <p className={ classes.planSubtext }>unlimited 512kbps data<br />only offered in the U.S.</p>
+              <p className={ classes.planSubtext }>including data plan<br />only offered in the U.S.</p>
             </div>
           </div>
           { !subscribeInfo &&
