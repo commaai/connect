@@ -718,7 +718,7 @@ class Media extends Component {
         { deviceOnCellular(device) &&
           <MenuItem className={ classes.offlineMenuItem } disabled={ true }>
             <div><WarningIcon /> Connect to WiFi</div>
-            <span style={{ fontSize: '0.8rem' }}>uploading not allowed on cellular</span>
+            <span style={{ fontSize: '0.8rem' }}>uploading paused on cellular connection</span>
           </MenuItem>
         }
       </Menu>
@@ -777,7 +777,9 @@ class Media extends Component {
     } else if (file.progress !== undefined) {
       button = (
         <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
-          { file.current ? `${parseInt(file.progress * 100)}%` : 'pending' }
+          { file.current ?
+            `${parseInt(file.progress * 100)}%` :
+            (file.paused ? 'paused' : 'pending') }
         </div>
       );
     } else if (file.requested) {

@@ -196,6 +196,14 @@ class UploadQueue extends Component {
       uploadSorted.unshift(curr[0]);
     }
 
+    let allPaused = true;
+    for (const upload of uploadSorted) {
+      if (!upload.paused) {
+        allPaused = false;
+        break;
+      }
+    }
+
     return ( <>
       <ResizeHandler onResize={ (windowWidth, windowHeight) => this.setState({ windowWidth, windowHeight }) } />
       <Modal aria-labelledby="upload-queue-modal" open={ this.props.open } onClose={ this.props.onClose }>
@@ -207,10 +215,10 @@ class UploadQueue extends Component {
           <Divider />
           <div className={ classes.uploadContainer } style={{ maxHeight: (windowHeight * 0.90) - 98 }}>
             { hasUploading ? <>
-              { deviceOnCellular(device) &&
+              { deviceOnCellular(device) && allPaused &&
                 <div className={ classes.cellularWarning }>
                   <div><WarningIcon /> Connect to WiFi</div>
-                  <span style={{ fontSize: '0.8rem' }}>uploading not allowed on cellular</span>
+                  <span style={{ fontSize: '0.8rem' }}>uploading paused on cellular connection</span>
                 </div>
               }
               <table className={ classes.uploadTable }>
@@ -247,7 +255,11 @@ class UploadQueue extends Component {
                           </td>
                         :
                           <>
-                            { windowWidth >= 600 && <td className={ classes.uploadCell } style={ cellStyle }>pending</td> }
+                            { windowWidth >= 600 &&
+                              <td className={ classes.uploadCell } style={ cellStyle }>
+                                { upload.paused ? 'paused' : 'pending' }
+                              </td>
+                            }
                             <td className={ `${classes.uploadCell} ${classes.cancelCell}` } style={ cellStyle }>
                               { isCancelled ?
                                 <CircularProgress className={ classes.uploadCancelled } size={ 15 } /> :
