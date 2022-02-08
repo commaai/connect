@@ -345,7 +345,7 @@ class PrimeCheckout extends Component {
             <div className={ `${classes.plan} ${plansLoadingClass}` }
               style={ selectedPlan === 'nodata' ? selectedStyle : {} }
               onClick={ Boolean(subscribeInfo) ? () => this.setState({ selectedPlan: 'nodata' }) : null }>
-              <p className={ classes.planName }>basic</p>
+              <p className={ classes.planName }>lite</p>
               <p className={ classes.planPrice }>$16/month</p>
               <p className={ classes.planSubtext }>bring your own<br />sim card</p>
             </div>
@@ -354,7 +354,7 @@ class PrimeCheckout extends Component {
               onClick={ !disabledDataPlan ? () => this.setState({ selectedPlan: 'data' }) : null }>
               <p className={ classes.planName }>standard</p>
               <p className={ classes.planPrice }>$24/month</p>
-              <p className={ classes.planSubtext }>unlimited 512kbps data<br />only offered in the U.S.</p>
+              <p className={ classes.planSubtext }>including data plan<br />only offered in the U.S.</p>
             </div>
           </div>
           { !subscribeInfo &&

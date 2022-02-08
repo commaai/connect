@@ -286,7 +286,7 @@ class PrimeManage extends Component {
       nextPaymentDate = fecha.format(
         subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0, 'MMMM Do, YYYY');
       cancelAtDate = fecha.format(subscription.cancel_at ? subscription.cancel_at * 1000 : 0, 'MMMM Do, YYYY');
-      planName = subscription.plan === 'nodata' ? 'Basic' : 'Standard';
+      planName = subscription.plan === 'nodata' ? 'Lite' : 'Standard';
       planSubtext = subscription.plan === 'nodata' ? '(without data plan)' : '(with data plan)'
     }
 
