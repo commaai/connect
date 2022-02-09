@@ -12,6 +12,7 @@ import {
   ACTION_PRIME_SUBSCRIPTION,
   ACTION_PRIME_SUBSCRIBE_INFO,
   ACTION_UPDATE_DEVICE_ONLINE,
+  ACTION_UPDATE_DEVICE_NETWORK,
   TIMELINE_SELECTION_CHANGED,
   ACTION_FILES_URLS,
   ACTION_FILES_UPDATE,
@@ -196,6 +197,27 @@ export default function reducer(_state, action) {
         };
       }
       break;
+    case ACTION_UPDATE_DEVICE_NETWORK:
+      state = {
+        ...state,
+        devices: [...state.devices],
+      };
+      deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.dongleId);
+
+      if (deviceIndex !== -1) {
+        state.devices[deviceIndex] = {
+          ...state.devices[deviceIndex],
+          network_type: action.networkType,
+        };
+      }
+
+      if (state.device.dongle_id === action.dongleId) {
+        state.device = {
+          ...state.device,
+          network_type: action.networkType,
+        };
+      }
+      break;
     case ACTION_PRIME_NAV:
       state = {
         ...state,
@@ -282,5 +304,6 @@ export default function reducer(_state, action) {
     default:
       return state;
   }
+
   return state;
 }

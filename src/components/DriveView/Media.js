@@ -18,7 +18,7 @@ import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
 import { currentOffset } from '../../timeline/playback';
 import Colors from '../../colors';
-import { deviceIsOnline, deviceVersionAtLeast } from '../../utils';
+import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils';
 import { updateDeviceOnline } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { fetchFiles, fetchUploadQueue, fetchAthenaQueue, updateFiles } from '../../actions/files';
@@ -427,9 +427,15 @@ class Media extends Component {
   }
 
   async doUpload(dongleId, fileNames, paths, urls) {
-    if (deviceVersionAtLeast(this.props.device, "0.8.13")) {
+    let loopedUploads = !deviceVersionAtLeast(this.props.device, "0.8.13");
+    if (!loopedUploads) {
       const files_data = paths.map((path, i) => {
-        return [path, urls[i], { "x-ms-blob-type": "BlockBlob" }];
+        return {
+          fn: path,
+          url: urls[i],
+          headers: { "x-ms-blob-type": "BlockBlob" },
+          allow_cellular: false,
+        };
       });
       const payload = {
         id: 0,
@@ -439,7 +445,11 @@ class Media extends Component {
         expiry: parseInt(Date.now()/1000) + (86400*7),
       };
       const resp = await this.athenaCall(payload, 'media_athena_uploads');
-      if (!resp || resp.error) {
+      if (resp && resp.error && resp.error.code === -32000 &&
+        resp.error.data.message === 'too many values to unpack (expected 3)')
+      {
+        loopedUploads = true;
+      } else if (!resp || resp.error) {
         const newUploading = {};
         for (const fileName of fileNames) {
           newUploading[fileName] = {};
@@ -465,7 +475,9 @@ class Media extends Component {
         }
         this.props.dispatch(fetchUploadQueue(dongleId));
       }
-    } else {
+    }
+
+    if (loopedUploads) {
       for (let i=0; i<fileNames.length; i++) {
         const payload = {
           id: 0,
@@ -632,7 +644,6 @@ class Media extends Component {
     }
 
     const canUpload = device.is_owner || (profile && profile.superuser);
-    const online = deviceIsOnline(device);
     const uploadButtonWidth = windowWidth < 425 ? 80 : 120;
     const buttons = [
       [fcam, `Road camera`, 'cameras'],
@@ -692,7 +703,7 @@ class Media extends Component {
           }
         </MenuItem>
         <Divider />
-        { Boolean(online || !files) ?
+        { Boolean(deviceIsOnline(device) || !files) ?
           <MenuItem onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
             style={ Boolean(files) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
             className={ classes.filesItem } disabled={ !files }>
@@ -702,6 +713,12 @@ class Media extends Component {
           <MenuItem className={ classes.offlineMenuItem } disabled={ true }>
             <div><WarningIcon /> Device offline</div>
             <span style={{ fontSize: '0.8rem' }}>uploading will resume when device is online</span>
+          </MenuItem>
+        }
+        { deviceOnCellular(device) &&
+          <MenuItem className={ classes.offlineMenuItem } disabled={ true }>
+            <div><WarningIcon /> Connect to WiFi</div>
+            <span style={{ fontSize: '0.8rem' }}>uploading paused on cellular connection</span>
           </MenuItem>
         }
       </Menu>
@@ -760,7 +777,9 @@ class Media extends Component {
     } else if (file.progress !== undefined) {
       button = (
         <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
-          { file.current ? `${parseInt(file.progress * 100)}%` : 'pending' }
+          { file.current ?
+            `${parseInt(file.progress * 100)}%` :
+            (file.paused ? 'paused' : 'pending') }
         </div>
       );
     } else if (file.requested) {

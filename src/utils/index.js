@@ -81,6 +81,13 @@ export function deviceIsOnline(device) {
   return device.last_athena_ping >= (device.fetched_at - 120);
 }
 
+export function deviceOnCellular(device) {
+  if (!device || !device.network_type) {
+    return null;
+  }
+  return device.network_type !== 1 && device.network_type !== 6; // wifi or ethernet
+}
+
 export function isTouchDevice() {
   return (('ontouchstart' in window) ||
      (navigator.maxTouchPoints > 0) ||

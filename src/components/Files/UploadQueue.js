@@ -5,9 +5,10 @@ import Obstruction from 'obstruction';
 import { withStyles, Divider, Typography, CircularProgress, Button, Modal, Paper, LinearProgress,
   } from '@material-ui/core';
 import HighlightOffIcon from '@material-ui/icons/HighlightOff';
+import WarningIcon from '@material-ui/icons/Warning';
 
 import { fetchUploadQueue, cancelUploads, cancelFetchUploadQueue } from '../../actions/files';
-import { deviceIsOnline, deviceVersionAtLeast } from '../../utils';
+import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils';
 import Colors from '../../colors';
 import ResizeHandler from '../ResizeHandler';
 
@@ -93,6 +94,19 @@ const styles = (theme) => ({
     color: Colors.white,
     '&:hover': {
       backgroundColor: Colors.grey400,
+    },
+  },
+  cellularWarning: {
+    backgroundColor: Colors.white100,
+    borderRadius: 16,
+    display: 'flex',
+    flexDirection: 'column',
+    margin: 8,
+    '& div': {
+      display: 'flex',
+      alignItems: 'center',
+      marginBottom: 2,
+      '& svg': { marginRight: 8 },
     },
   },
 });
@@ -182,6 +196,14 @@ class UploadQueue extends Component {
       uploadSorted.unshift(curr[0]);
     }
 
+    let allPaused = true;
+    for (const upload of uploadSorted) {
+      if (!upload.paused) {
+        allPaused = false;
+        break;
+      }
+    }
+
     return ( <>
       <ResizeHandler onResize={ (windowWidth, windowHeight) => this.setState({ windowWidth, windowHeight }) } />
       <Modal aria-labelledby="upload-queue-modal" open={ this.props.open } onClose={ this.props.onClose }>
@@ -192,7 +214,13 @@ class UploadQueue extends Component {
           </div>
           <Divider />
           <div className={ classes.uploadContainer } style={{ maxHeight: (windowHeight * 0.90) - 98 }}>
-            { hasUploading ?
+            { hasUploading ? <>
+              { deviceOnCellular(device) && allPaused &&
+                <div className={ classes.cellularWarning }>
+                  <div><WarningIcon /> Connect to WiFi</div>
+                  <span style={{ fontSize: '0.8rem' }}>uploading paused on cellular connection</span>
+                </div>
+              }
               <table className={ classes.uploadTable }>
                 <thead>
                   <tr>
@@ -227,7 +255,11 @@ class UploadQueue extends Component {
                           </td>
                         :
                           <>
-                            { windowWidth >= 600 && <td className={ classes.uploadCell } style={ cellStyle }>pending</td> }
+                            { windowWidth >= 600 &&
+                              <td className={ classes.uploadCell } style={ cellStyle }>
+                                { upload.paused ? 'paused' : 'pending' }
+                              </td>
+                            }
                             <td className={ `${classes.uploadCell} ${classes.cancelCell}` } style={ cellStyle }>
                               { isCancelled ?
                                 <CircularProgress className={ classes.uploadCancelled } size={ 15 } /> :
@@ -240,7 +272,7 @@ class UploadQueue extends Component {
                   }) }
                 </tbody>
               </table>
-            :
+            </> :
               deviceOffline ?
                 <p>device offline</p> :
                 ( hasData ?

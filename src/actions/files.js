@@ -1,8 +1,9 @@
 import * as Sentry from '@sentry/react';
 import { raw as RawApi, athena as AthenaApi, devices as DevicesApi } from '@commaai/comma-api';
 
-import { updateDeviceOnline } from './';
+import { updateDeviceOnline, fetchDeviceNetworkStatus } from './';
 import * as Types from './types';
+import { deviceOnCellular } from '../utils';
 
 const demoLogUrls = require('../demo/logUrls.json');
 const demoFiles = require('../demo/files.json');
@@ -111,8 +112,8 @@ export function fetchAthenaQueue(dongleId) {
         const fileName = pathToFileName(dongleId, q.params[0]);
         newUploading[fileName] = { progress: 0, current: false };
       } else if (q.method === 'uploadFilesToUrls') {
-        for (const [path, _1, _2] of q.params.files_data) {
-          const fileName = pathToFileName(dongleId, path);
+        for (const { fn } of q.params.files_data) {
+          const fileName = pathToFileName(dongleId, fn);
           newUploading[fileName] = { progress: 0, current: false };
         }
       }
@@ -137,6 +138,8 @@ export function fetchUploadQueue(dongleId) {
     }
     uploadQueueTimeout = true;
 
+    dispatch(fetchDeviceNetworkStatus(dongleId));
+
     const payload = {
       method: 'listUploadQueue',
       jsonrpc: '2.0',
@@ -152,6 +155,7 @@ export function fetchUploadQueue(dongleId) {
     dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
 
     let prevFilesUploading = getState().filesUploading || {};
+    const device = getState().devices.find((d) => d.dongle_id === dongleId) || null;
     const uploadingFiles = {};
     const newCurrentUploading = {};
     for (const uploading of uploadQueue.result) {
@@ -162,15 +166,18 @@ export function fetchUploadQueue(dongleId) {
       const dongleId = urlParts[urlParts.length - 4];
       const type = Object.entries(FILE_NAMES).find((e) => e[1] == filename)[0];
       const fileName = `${dongleId}|${datetime}--${segNum}/${type}`;
+      const waitingWifi = Boolean(deviceOnCellular(device) && uploading.allow_cellular === false);
       uploadingFiles[fileName] = {
         current: uploading.current,
         progress: uploading.progress,
+        paused: waitingWifi,
       };
       newCurrentUploading[uploading.id] = {
         fileName,
         current: uploading.current,
         progress: uploading.progress,
         createdAt: uploading.created_at,
+        paused: waitingWifi,
       };
       delete prevFilesUploading[uploading.id];
     }
