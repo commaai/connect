@@ -507,7 +507,7 @@ class Media extends Component {
     }
   }
 
-  _uploadStats(types, count, uploaded, uploading, requested) {
+  _uploadStats(types, count, uploaded, uploading, paused, requested) {
     const { segmentData, loop, files } = this.props;
     for (const segment of segmentData.segments) {
       if (segment.start_time_utc_millis < loop.startTime + loop.duration &&
@@ -519,13 +519,14 @@ class Media extends Component {
           if (log) {
             uploaded += Boolean(log.url || log.notFound);
             uploading += Boolean(log.progress !== undefined);
+            paused += Boolean(log.paused);
             requested += Boolean(log.requested);
           }
         }
       }
     }
 
-    return [ count, uploaded, uploading, requested ];
+    return [ count, uploaded, uploading, paused, requested ];
   }
 
   getUploadStats() {
@@ -534,11 +535,12 @@ class Media extends Component {
       return null;
     }
 
-    const [ countRlog, uploadedRlog, uploadingRlog, requestedRlog ] = this._uploadStats(['logs'], 0, 0, 0, 0);
+    const [ countRlog, uploadedRlog, uploadingRlog, pausedRlog, requestedRlog ]
+      = this._uploadStats(['logs'], 0, 0, 0, 0, 0);
 
     const camTypes = ['cameras', 'dcameras'].concat(device.device_type === 'three' ? ['ecameras'] : []);
-    const [ countAll, uploadedAll, uploadingAll, requestedAll ] =
-      this._uploadStats(camTypes, countRlog, uploadedRlog, uploadingRlog, requestedRlog);
+    const [ countAll, uploadedAll, uploadingAll, pausedAll, requestedAll ] =
+      this._uploadStats(camTypes, countRlog, uploadedRlog, uploadingRlog, pausedRlog, requestedRlog);
 
     return {
       canRequestAll: countAll - uploadedAll - uploadingAll - requestedAll,
@@ -547,6 +549,7 @@ class Media extends Component {
       isUploadingRlog: !Boolean(countRlog - uploadedRlog - uploadingRlog),
       isUploadedAll: !Boolean(countAll - uploadedAll),
       isUploadedRlog: !Boolean(countRlog - uploadedRlog),
+      isPausedAll: Boolean(pausedAll > 0 && pausedAll === uploadingAll),
     };
   }
 
@@ -715,7 +718,7 @@ class Media extends Component {
             <span style={{ fontSize: '0.8rem' }}>uploading will resume when device is online</span>
           </MenuItem>
         }
-        { deviceOnCellular(device) &&
+        { stats && stats.isPausedAll && deviceOnCellular(device) &&
           <MenuItem className={ classes.offlineMenuItem } disabled={ true }>
             <div><WarningIcon /> Connect to WiFi</div>
             <span style={{ fontSize: '0.8rem' }}>uploading paused on cellular connection</span>
