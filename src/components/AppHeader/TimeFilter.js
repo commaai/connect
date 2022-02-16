@@ -110,11 +110,15 @@ class TimeSelect extends Component {
   }
 
   changeStart(event) {
-    this.setState({ start: event.target.valueAsNumber });
+    this.setState({
+      start: event.target.valueAsDate.setHours(0, 0, 0, 0),
+    });
   }
 
   changeEnd(event) {
-    this.setState({ end: event.target.valueAsNumber });
+    this.setState({
+      end: event.target.valueAsDate.setHours(23, 59, 59, 999),
+    });
   }
 
   handleSave() {
@@ -159,10 +163,10 @@ class TimeSelect extends Component {
 
   render() {
     const { classes } = this.props;
-    const minDate = new Date(Date.now() - LOOKBACK_WINDOW_MILLIS).toISOString().substr(0, 10);
-    const maxDate = new Date().toISOString().substr(0, 10);
-    const startDate = new Date(this.state.start || this.props.filter.start || 0).toISOString().substr(0, 10);
-    const endDate = new Date(this.state.end || this.props.filter.end || 0).toISOString().substr(0, 10);
+    const minDate = fecha.format(new Date(Date.now() - LOOKBACK_WINDOW_MILLIS), 'YYYY-MM-DD');
+    const maxDate = fecha.format(new Date(), 'YYYY-MM-DD');
+    const startDate = fecha.format(new Date(this.state.start || this.props.filter.start), 'YYYY-MM-DD');
+    const endDate = fecha.format(new Date(this.state.end || this.props.filter.end), 'YYYY-MM-DD');
 
     return (
       <>

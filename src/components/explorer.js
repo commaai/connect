@@ -16,13 +16,12 @@ import IosPwaPopup from './IosPwaPopup';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import AppDrawer from './AppDrawer';
 
-import { selectTimeFilter, selectDevice, updateDevice } from '../actions';
+import { selectDevice, updateDevice } from '../actions';
 import ResizeHandler from './ResizeHandler';
 import Colors from '../colors';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { play, pause } from '../timeline/playback';
 import init from '../actions/startup';
-import * as Demo from '../demo';
 
 const styles = (theme) => ({
   base: {
