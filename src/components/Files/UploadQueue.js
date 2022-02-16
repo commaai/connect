@@ -283,7 +283,7 @@ class UploadQueue extends Component {
           <div className={classes.buttonGroup}>
             <Button variant="contained" className={ classes.cancelButton } disabled={ !hasUploading }
               onClick={ hasUploading ? () => this.cancelUploading() : null }>
-              cancel all
+              Cancel All
             </Button>
             <Button variant="contained" className={ classes.cancelButton } onClick={ this.props.onClose }>
               Close
