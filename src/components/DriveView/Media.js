@@ -434,7 +434,7 @@ class Media extends Component {
           fn: path,
           url: urls[i],
           headers: { "x-ms-blob-type": "BlockBlob" },
-          allow_cellular: true,
+          allow_cellular: false,
         };
       });
       const payload = {
