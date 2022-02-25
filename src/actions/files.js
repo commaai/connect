@@ -155,7 +155,12 @@ export function fetchUploadQueue(dongleId) {
     dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
 
     let prevFilesUploading = getState().filesUploading || {};
-    const device = getState().devices.find((d) => d.dongle_id === dongleId) || null;
+    let device;
+    if (getState().device.dongle_id === dongleId) {
+      device = getState().device;
+    } else {
+      device = getState().devices.find((d) => d.dongle_id === dongleId) || null;
+    }
     const uploadingFiles = {};
     const newCurrentUploading = {};
     for (const uploading of uploadQueue.result) {
