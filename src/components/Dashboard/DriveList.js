@@ -53,13 +53,8 @@ class DriveList extends Component {
 
     this.fakeItemRef = React.createRef();
 
-    this.filterShortDrives = this.filterShortDrives.bind(this);
     this.onResize = this.onResize.bind(this);
     this.onVisible = this.onVisible.bind(this);
-  }
-
-  filterShortDrives(ride) {
-    return ride.duration > 60000;
   }
 
   onResize(windowWidth) {
@@ -84,7 +79,7 @@ class DriveList extends Component {
         <VisibilityHandler onVisible={ this.onVisible } minInterval={ 60 } />
         { driveList.length === 0 && this.renderZeroRides() }
         <div className={classes.drives}>
-          { driveList.filter(this.filterShortDrives).map((drive, i) => (
+          { driveList.map((drive, i) => (
             <DriveListItem key={drive.startTime} drive={drive} windowWidth={ this.state.windowWidth } />
           ))}
         </div>
