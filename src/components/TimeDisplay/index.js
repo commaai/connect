@@ -140,10 +140,10 @@ class TimeDisplay extends Component {
   getDisplayTime() {
     const offset = currentOffset();
     const { filter } = this.props;
-    if (!Number.isFinite(filter.start)) {
+    const now = new Date(offset + filter.start);
+    if (isNaN(now.getTime())) {
       return '...';
     }
-    const now = new Date(offset + filter.start);
     let dateString = fecha.format(now, 'HH:mm:ss');
     const seg = this.segmentNum(offset);
     if (seg !== null) {
