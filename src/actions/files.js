@@ -3,7 +3,7 @@ import { raw as RawApi, athena as AthenaApi, devices as DevicesApi } from '@comm
 
 import { updateDeviceOnline, fetchDeviceNetworkStatus } from './';
 import * as Types from './types';
-import { deviceOnCellular } from '../utils';
+import { deviceOnCellular, getDeviceFromState } from '../utils';
 
 const demoLogUrls = require('../demo/logUrls.json');
 const demoFiles = require('../demo/files.json');
@@ -155,12 +155,7 @@ export function fetchUploadQueue(dongleId) {
     dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
 
     let prevFilesUploading = getState().filesUploading || {};
-    let device;
-    if (getState().device.dongle_id === dongleId) {
-      device = getState().device;
-    } else {
-      device = getState().devices.find((d) => d.dongle_id === dongleId) || null;
-    }
+    const device = getDeviceFromState(getState(), dongleId);
     const uploadingFiles = {};
     const newCurrentUploading = {};
     for (const uploading of uploadQueue.result) {

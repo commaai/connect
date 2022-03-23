@@ -207,14 +207,14 @@ export default function reducer(_state, action) {
       if (deviceIndex !== -1) {
         state.devices[deviceIndex] = {
           ...state.devices[deviceIndex],
-          network_type: action.networkType,
+          network_metered: action.networkMetered,
         };
       }
 
       if (state.device.dongle_id === action.dongleId) {
         state.device = {
           ...state.device,
-          network_type: action.networkType,
+          network_metered: action.networkMetered,
         };
       }
       break;

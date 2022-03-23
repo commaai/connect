@@ -82,10 +82,10 @@ export function deviceIsOnline(device) {
 }
 
 export function deviceOnCellular(device) {
-  if (!device || !device.network_type) {
+  if (!device) {
     return null;
   }
-  return device.network_type !== 1 && device.network_type !== 6; // wifi or ethernet
+  return device.network_metered;
 }
 
 export function isTouchDevice() {
@@ -170,4 +170,11 @@ export function deviceVersionAtLeast(device, version_string) {
     }
   }
   return true;
+}
+
+export function getDeviceFromState(state, dongleId) {
+  if (state.device.dongle_id === dongleId) {
+    return state.device;
+  }
+  return state.devices.find((d) => d.dongle_id === dongleId) || null;
 }

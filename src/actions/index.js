@@ -8,6 +8,7 @@ import { resetPlayback, selectLoop } from '../timeline/playback'
 import { getSegmentFetchRange, hasSegmentMetadata, fetchSegmentMetadata, parseSegmentMetadata, insertSegmentMetadata
   } from '../timeline/segments';
 import * as Demo from '../demo';
+import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
 const demoSegments = require('../demo/segments.json');
 
@@ -178,29 +179,55 @@ export function updateDeviceOnline(dongleId, last_athena_ping) {
   };
 }
 
-// TODO add debounce
 export function fetchDeviceNetworkStatus(dongleId) {
   return async (dispatch, getState) => {
-    const payload = {
-      id: 0,
-      jsonrpc: "2.0",
-      method: "getNetworkType",
-    };
-    try {
-      const resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
-      if (resp && resp.result) {
-        dispatch({
-          type: Types.ACTION_UPDATE_DEVICE_NETWORK,
-          dongleId,
-          networkType: resp.result,
-        });
+    const device = getDeviceFromState(getState(), dongleId);
+    if (deviceVersionAtLeast(device, "0.8.14")) {
+      const payload = {
+        id: 0,
+        jsonrpc: "2.0",
+        method: "getNetworkMetered",
+      };
+      try {
+        const resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
+        if (resp && resp.result !== undefined) {
+          dispatch({
+            type: Types.ACTION_UPDATE_DEVICE_NETWORK,
+            dongleId,
+            networkMetered: resp.result,
+          });
+        }
+      } catch(err) {
+        if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
+          dispatch(updateDeviceOnline(dongleId, 0));
+        } else {
+          console.log(err);
+          Sentry.captureException(err, { fingerprint: 'athena_fetch_networkmetered' });
+        }
       }
-    } catch(err) {
-      if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
-        dispatch(updateDeviceOnline(dongleId, 0));
-      } else {
-        console.log(err);
-        Sentry.captureException(err, { fingerprint: sentry_fingerprint });
+    } else {
+      const payload = {
+        id: 0,
+        jsonrpc: "2.0",
+        method: "getNetworkType",
+      };
+      try {
+        const resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
+        if (resp && resp.result !== undefined) {
+          const metered = resp.result !== 1 && resp.result !== 6; // wifi or ethernet
+          dispatch({
+            type: Types.ACTION_UPDATE_DEVICE_NETWORK,
+            dongleId,
+            networkMetered: metered,
+          });
+        }
+      } catch(err) {
+        if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
+          dispatch(updateDeviceOnline(dongleId, 0));
+        } else {
+          console.log(err);
+          Sentry.captureException(err, { fingerprint: 'athena_fetch_networktype' });
+        }
       }
     }
   };
