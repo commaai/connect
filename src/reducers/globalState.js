@@ -100,7 +100,7 @@ export default function reducer(_state, action) {
     case ACTION_UPDATE_DEVICE:
       state = {
         ...state,
-        devices: [...state.devices],
+        devices: state.devices ? [...state.devices] : [],
       };
       deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.device.dongle_id);
       if (deviceIndex !== -1) {
