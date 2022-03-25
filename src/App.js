@@ -18,9 +18,6 @@ import AnonymousLanding from './components/anonymous';
 import { getZoom } from './url';
 import { isDemo } from './demo';
 import store, { history } from './store';
-import { initGoogleAnalytics } from './analytics';
-
-initGoogleAnalytics(history);
 
 class App extends Component {
   constructor(props) {
