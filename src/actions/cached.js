@@ -22,7 +22,8 @@ async function getCacheDB() {
 
   let request = window.indexedDB.open('cacheDB', 2);
   return new Promise((resolve) => {
-    request.onerror = () => {
+    request.onerror = (ev) => {
+      console.log(ev.target.error);
       resolve(null);
     };
     request.onsuccess = (ev) => {
@@ -67,7 +68,7 @@ async function getCacheItem(store, key) {
     req.onsuccess = (ev) => {
       resolve(ev.target.result !== undefined ? ev.target.result.data : null);
     };
-    req.onerror = reject;
+    req.onerror = (ev) => reject(ev.target.error);
   })
 }
 
@@ -81,8 +82,8 @@ async function setCacheItem(store, key, expiry, data) {
   const req = transaction.objectStore(store).add({ key, expiry, data });
 
   return new Promise((resolve, reject) => {
-    req.onsuccess = resolve;
-    req.onerror = reject;
+    req.onsuccess = (ev) => resolve(ev.target.result);
+    req.onerror = (ev) => reject(ev.target.error);
   })
 }
 
