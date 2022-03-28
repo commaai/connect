@@ -188,12 +188,14 @@ export function fetchEvents(route) {
         lastEngage = ev;
       } else if (ev.type === 'disengage' && lastEngage) {
         lastEngage.data = {
-          end_offset_nanos: ev.offset_nanos,
-          end_offset_millis: ev.offset_millis,
-          end_route_offset_nanos: ev.route_offset_nanos,
           end_route_offset_millis: ev.route_offset_millis,
         };
       }
+    }
+    if (lastEngage && lastEngage.data === undefined) {
+      lastEngage.data = {
+        end_route_offset_millis: route.duration,
+      };
     }
 
     // reduce size, keep only used data
