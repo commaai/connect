@@ -311,7 +311,7 @@ class PrimeCheckout extends Component {
       } else if (!subscribeInfo.is_prime_sim) {
         disabledDataPlanText = 'Standard plan not available, detected a third-party SIM.';
       } else if (subscribeInfo.sim_type !== 'blue') {
-        disabledDataPlanText = 'Standard plan not available, old SIM type detected, contact support to receive a new SIM.';
+        disabledDataPlanText = 'Standard plan not available, old SIM type detected, new SIM cards will be available in the store soon.';
       }
     }
 
