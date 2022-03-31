@@ -224,7 +224,8 @@ class PrimeCheckout extends Component {
 
     if (this.state.selectedPlan === null && subscribeInfo) {
       const canC2 = this.trialClaimable() || device.device_type === 'three';
-      const plan = subscribeInfo.sim_id && subscribeInfo.is_prime_sim && canC2 ? 'data' : 'nodata';
+      const plan = subscribeInfo.sim_id && subscribeInfo.is_prime_sim && subscribeInfo.sim_type === 'blue' && canC2 ?
+        'data' : 'nodata';
       this.setState({ selectedPlan: plan });
     }
   }
@@ -296,7 +297,7 @@ class PrimeCheckout extends Component {
     const selectedStyle = { border: '2px solid white' };
     const plansLoadingClass = !subscribeInfo ? classes.planInfoLoading : '';
     const disabledDataPlan = Boolean((device.device_type !== 'three' && !this.trialClaimable()) ||
-      !subscribeInfo || !subscribeInfo.sim_id || !subscribeInfo.is_prime_sim);
+      !subscribeInfo || !subscribeInfo.sim_id || !subscribeInfo.is_prime_sim || subscribeInfo.sim_type !== 'blue');
     const boxHeight = windowHeight > 600 ? { height: 140 } : { height: 110 };
 
     let disabledDataPlanText;
@@ -309,6 +310,8 @@ class PrimeCheckout extends Component {
         disabledDataPlanText = 'Standard plan not available, device could not be reached. Connect device to the internet and try again.';
       } else if (!subscribeInfo.is_prime_sim) {
         disabledDataPlanText = 'Standard plan not available, detected a third-party SIM.';
+      } else if (subscribeInfo.sim_type !== 'blue') {
+        disabledDataPlanText = 'Standard plan not available, old SIM type detected, new SIM cards will be available in the store soon.';
       }
     }
 
