@@ -62,14 +62,33 @@ const styles = () => ({
     cursor: 'pointer',
   },
   overlaySearchResults: {
-    marginTop: 5,
-    borderTop: `1px solid ${Colors.white20}`,
+    marginTop: 3,
+    paddingRight: 3,
     flexGrow: 1,
-    overflow: 'auto',
+    overflowY: 'auto',
+    scrollbarColor: `${Colors.white20} transparent`,
+    '&::-webkit-scrollbar': {
+      WebkitAppearance: 'none',
+      width: 6,
+    },
+    '&::-webkit-scrollbar-track': {
+      width: 6,
+    },
+    '&::-webkit-scrollbar-thumb': {
+      backgroundColor: Colors.white20,
+      borderRadius: 3,
+    },
+  },
+  overlaySearchResultsHr: {
+    marginTop: 2,
+    borderTop: `1px solid ${Colors.white20}`,
   },
   overlaySearchItem: {
     cursor: 'pointer',
     marginTop: 15,
+    '&:first-child': {
+      marginTop: 10,
+    },
   },
   overlaySearchNoResults: {
     marginTop: 10,
@@ -1070,7 +1089,8 @@ class Navigation extends Component {
               <InputAdornment position="end"><Search className={ classes.overlaySearchButton } /></InputAdornment>
             </>
           }} />
-        { search && !searchSelect && !searchLooking &&
+        { search && !searchSelect && !searchLooking && <>
+          <div className={ classes.overlaySearchResultsHr } />
           <div className={ `${classes.overlaySearchResults} scrollstyle` }>
             { !geoLocateCoords && !carLocation &&
               <Typography className={ classes.overlaySearchNoLocation }>
@@ -1089,7 +1109,7 @@ class Navigation extends Component {
               </div>
             )) }
           </div>
-        }
+        </> }
       </div>
     );
   }
