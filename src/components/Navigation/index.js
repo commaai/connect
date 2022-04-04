@@ -357,7 +357,7 @@ class Navigation extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { dongleId } = this.props;
+    const { dongleId, device } = this.props;
     const { geoLocateCoords, search, carLastLocation, carNetworkLocation, searchSelect } = this.state;
 
     if ((carLastLocation && !prevState.carLastLocation) || (carNetworkLocation && !prevState.carNetworkLocation) ||
@@ -375,6 +375,10 @@ class Navigation extends Component {
       if (this.searchInputRef.current) {
         this.searchInputRef.current.value = '';
       }
+    }
+
+    if (prevProps.device !== device) {
+      this.updateDevice();
     }
   }
 

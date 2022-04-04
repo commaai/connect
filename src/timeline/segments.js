@@ -1,5 +1,4 @@
 import * as Types from '../actions/types';
-import { currentOffset } from './playback';
 
 export const SEGMENT_LENGTH = 1000 * 60;
 
@@ -11,6 +10,22 @@ for example, caching url metadata
   segment: 5
 }
 */
+
+// duplicate from `timeline/playback.js` because of circular import
+function currentOffset(state) {
+  let playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
+  let offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
+
+  if (state.loop && state.loop.startTime) {
+    // respect the loop
+    const loopOffset = state.loop.startTime - state.filter.start;
+    if (offset > loopOffset + state.loop.duration) {
+      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
+    }
+  }
+
+  return offset;
+}
 
 export function getCurrentSegment(state, o) {
   const offset = o === undefined ? currentOffset(state) : o;

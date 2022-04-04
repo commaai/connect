@@ -15,7 +15,8 @@ import { auth as AuthApi, request as Request, billing as Billing, athena as Athe
 import Explorer from './components/explorer';
 import AnonymousLanding from './components/anonymous';
 
-import { getDongleID } from './url';
+import { getZoom } from './url';
+import { isDemo } from './demo';
 import store, { history } from './store';
 import { initGoogleAnalytics } from './analytics';
 
@@ -110,7 +111,7 @@ class App extends Component {
       return this.renderLoading();
     }
 
-    const showLogin = !MyCommaAuth.isAuthenticated() && !getDongleID(window.location.pathname);
+    const showLogin = !MyCommaAuth.isAuthenticated() && !isDemo() && !getZoom(window.location.pathname).expanded;
     return (
       <Provider store={store}>
         <ConnectedRouter history={history}>
