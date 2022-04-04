@@ -3,7 +3,7 @@
 import * as Types from '../actions/types';
 import store from '../store';
 
-// fetch current playback offset
+// fetch current playback offset, relative to `state.filter.start`
 export function currentOffset(state = null) {
   if (!state) {
     state = store.getState();

@@ -1,7 +1,7 @@
 import { getDongleID, getZoom, getPrimeNav } from './url';
 import * as Demo from './demo';
 
-function getDefaultFilter() {
+export function getDefaultFilter() {
   const d = new Date();
   d.setHours(d.getHours() + 1, 0, 0, 0);
   let start;
@@ -43,7 +43,7 @@ export default {
   currentSegment: null,
   desiredPlaySpeed: 1, // speed set by user
   isBufferingVideo: false, // if we're currently buffering for more data
-  offset: 0, // in miliseconds from the start
+  offset: 0, // in miliseconds, relative to `state.filter.start`
   startTime: Date.now(), // millisecond timestamp in which play began
 
   segments: [],

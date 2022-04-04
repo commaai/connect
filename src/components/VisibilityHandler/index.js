@@ -13,8 +13,8 @@ class VisibilityHandler extends Component {
 
   componentWillMount() {
     window.addEventListener('visibilitychange', this.handleVisibilityChange);
+    this.prevVisibleCall = Date.now() / 1000;
     if (this.props.onInit) {
-      this.prevVisibleCall = Date.now() / 1000;
       this.props.onVisible();
     }
   }
@@ -38,6 +38,10 @@ class VisibilityHandler extends Component {
       this.prevVisibleCall = newDate;
       this.props.onVisible();
     }
+
+    if (document.visibilityState === "hidden" && this.props.resetOnHidden) {
+      this.prevVisibleCall = newDate;
+    }
   }
 
   render() {
@@ -54,6 +58,7 @@ VisibilityHandler.propTypes = {
   onInit: PropTypes.bool,
   onDongleId: PropTypes.bool,
   minInterval: PropTypes.number, // in seconds, only for visibility changes
+  resetOnHidden: PropTypes.bool,
 };
 
 export default connect(stateToProps)(VisibilityHandler);

@@ -15,6 +15,8 @@ import Paper from '@material-ui/core/Paper';
 
 import Colors from '../../colors';
 import { selectTimeFilter } from '../../actions';
+import { getDefaultFilter } from '../../initialState';
+import VisibilityHandler from '../VisibilityHandler';
 
 const styles = (theme) => ({
   root: {},
@@ -67,15 +69,16 @@ class TimeSelect extends Component {
   constructor(props) {
     super(props);
 
+    this.state = {
+      showPicker: false
+    };
+
     this.handleSelectChange = this.handleSelectChange.bind(this);
     this.handleClose = this.handleClose.bind(this);
     this.changeStart = this.changeStart.bind(this);
     this.changeEnd = this.changeEnd.bind(this);
     this.handleSave = this.handleSave.bind(this);
-
-    this.state = {
-      showPicker: false
-    };
+    this.onVisible = this.onVisible.bind(this);
   }
 
   handleSelectChange(e) {
@@ -161,6 +164,11 @@ class TimeSelect extends Component {
     return 'Last 24 Hours';
   }
 
+  onVisible() {
+    const filter = getDefaultFilter();
+    this.props.dispatch(selectTimeFilter(filter.start, filter.end));
+  }
+
   render() {
     const { classes } = this.props;
     const minDate = fecha.format(new Date(Date.now() - LOOKBACK_WINDOW_MILLIS), 'YYYY-MM-DD');
@@ -170,6 +178,7 @@ class TimeSelect extends Component {
 
     return (
       <>
+        <VisibilityHandler onVisible={ this.onVisible } minInterval={ 1800 } resetOnHidden={ true } />
         <FormControl>
           <Select
             name="timerange"
