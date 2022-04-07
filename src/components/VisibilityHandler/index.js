@@ -2,6 +2,7 @@ import { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import PropTypes from 'prop-types';
+import debounce from 'debounce';
 
 class VisibilityHandler extends Component {
   constructor(props) {
@@ -9,10 +10,15 @@ class VisibilityHandler extends Component {
 
     this.prevVisibleCall = 0;
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
+    this.handleFocus = this.handleFocus.bind(this);
+    this.handleBlur = this.handleBlur.bind(this);
+    this.onVisibilityEvent = debounce(this.onVisibilityEvent.bind(this), 1000, true);
   }
 
   componentWillMount() {
     window.addEventListener('visibilitychange', this.handleVisibilityChange);
+    window.addEventListener('focus', this.handleFocus);
+    window.addEventListener('blur', this.handleBlur);
     this.prevVisibleCall = Date.now() / 1000;
     if (this.props.onInit) {
       this.props.onVisible();
@@ -29,17 +35,37 @@ class VisibilityHandler extends Component {
 
   componentWillUnmount() {
     window.removeEventListener('visibilitychange', this.handleVisibilityChange);
+    window.removeEventListener('focus', this.handleFocus);
+    window.removeEventListener('blur', this.handleBlur);
   }
 
-  handleVisibilityChange() {
+  handleFocus() {
+    this.onVisibilityEvent(true);
+  }
+
+  handleBlur() {
+    this.onVisibilityEvent(false);
+  }
+
+  handleVisibilityChange(visible) {
+    if (typeof visible === 'undefined') {
+      if (document.visibilityState === "visible") {
+        this.onVisibilityEvent(true);
+      } else if (document.visibilityState === "hidden") {
+        this.onVisibilityEvent(false);
+      }
+    }
+  }
+
+  onVisibilityEvent(visible) {
     const newDate = Date.now() / 1000;
     const dt = newDate - this.prevVisibleCall;
-    if (document.visibilityState === "visible" && (!this.props.minInterval || dt > this.props.minInterval)) {
+    if (visible && (!this.props.minInterval || dt > this.props.minInterval)) {
       this.prevVisibleCall = newDate;
       this.props.onVisible();
     }
 
-    if (document.visibilityState === "hidden" && this.props.resetOnHidden) {
+    if (!visible && this.props.resetOnHidden) {
       this.prevVisibleCall = newDate;
     }
   }
