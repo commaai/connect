@@ -78,6 +78,7 @@ const styles = (theme) => ({
     alignItems: 'center',
     backgroundColor: Colors.white08,
     '& p': { display: 'inline-block', marginLeft: 10 },
+    '& a': { color: Colors.white },
   },
   chargeText: {
     fontSize: 13,
@@ -311,7 +312,8 @@ class PrimeCheckout extends Component {
       } else if (!subscribeInfo.is_prime_sim) {
         disabledDataPlanText = 'Standard plan not available, detected a third-party SIM.';
       } else if (subscribeInfo.sim_type !== 'blue') {
-        disabledDataPlanText = 'Standard plan not available, old SIM type detected, new SIM cards will be available in the store soon.';
+        disabledDataPlanText = ['Standard plan not available, old SIM type detected, new SIM cards are available in the ',
+          <a key={1} href="https://comma.ai/shop/products/comma-prime-sim-card">shop</a>];
       }
     }
 
