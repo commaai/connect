@@ -300,6 +300,7 @@ class PrimeManage extends Component {
       planSubtext = subscription.plan === 'nodata' ? '(without data plan)' : '(with data plan)'
     }
 
+    const hasCancelAt = Boolean(subscription.cancel_at && subscription.cancel_at <= subscription.next_charge_at);
     const alias = device.alias || deviceTypePretty(device.device_type);
     const containerPadding = windowWidth > 520 ? 36 : 16;
     const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
@@ -356,13 +357,13 @@ class PrimeManage extends Component {
                 <Typography variant="subheading">Joined</Typography>
                 <Typography className={ classes.manageItem }>{ joinDate }</Typography>
               </div>
-              { !subscription.cancel_at &&
+              { !hasCancelAt &&
                 <div className={ classes.overviewBlock }>
                   <Typography variant="subheading">Next payment</Typography>
                   <Typography className={ classes.manageItem }>{ nextPaymentDate }</Typography>
                 </div>
               }
-              { subscription.cancel_at &&
+              { hasCancelAt &&
                 <div className={ classes.overviewBlock }>
                   <Typography variant="subheading">Subscription end</Typography>
                   <Typography className={ classes.manageItem }>{ cancelAtDate }</Typography>
@@ -378,17 +379,17 @@ class PrimeManage extends Component {
               </div> }
               <div className={ classes.overviewBlock + " " + classes.paymentElement }>
                 <Button className={ classes.buttons } style={ buttonSmallStyle } onClick={ this.gotoUpdate }
-                   disabled={ !hasPrimeSub || device.device_type !== 'three' }>
-                  { subscription.cancel_at ? 'Renew subscription' : 'Update payment method' }
+                   disabled={ !hasPrimeSub || (hasCancelAt && device.device_type !== 'three' && subscription.plan === 'data') }>
+                  { hasCancelAt ? 'Renew subscription' : 'Update payment method' }
                 </Button>
-                { !subscription.cancel_at &&
+                { !hasCancelAt &&
                   <Button className={ `${classes.buttons} ${classes.cancelButton} primeCancel` } style={ buttonSmallStyle }
                     onClick={ () => this.setState({ cancelModal: true }) } disabled={ Boolean(!hasPrimeSub) }>
                     Cancel subscription
                   </Button>
                 }
               </div>
-              { subscription.cancel_at && device.device_type !== 'three' &&
+              { hasCancelAt && device.device_type !== 'three' && subscription.plan === 'data' &&
                 <div className={ classes.overviewBlockDisabled }>
                   <InfoOutlineIcon />
                   <Typography>Standard comma prime discontinued for { deviceTypePretty(device.device_type) }</Typography>
