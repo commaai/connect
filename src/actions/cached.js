@@ -199,11 +199,12 @@ export function fetchEvents(route) {
     }
 
     // reduce size, keep only used data
-    driveEvents = driveEvents.filter((ev) => ['engage', 'alert'].includes(ev.type) && ev.data);
+    driveEvents = driveEvents.filter((ev) => ['engage', 'event', 'alert'].includes(ev.type) && ev.data);
     driveEvents = driveEvents.map((ev) => ({
       type: ev.type,
       route_offset_millis: ev.route_offset_millis,
       data: {
+        state: ev.data.state,
         alertStatus: ev.data.alertStatus,
         end_route_offset_millis: ev.data.end_route_offset_millis,
       },

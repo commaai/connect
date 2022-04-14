@@ -18,7 +18,7 @@ import { selectRange } from '../../actions';
 import Colors from '../../colors';
 import { seek, currentOffset } from '../../timeline/playback';
 
-const styles = (/* theme */) => ({
+const styles = () => ({
   base: {
     position: 'relative',
     width: '100%',
@@ -52,6 +52,9 @@ const styles = (/* theme */) => ({
     '&.active': {},
     '&.engage': {
       background: theme.palette.states.engagedGreen,
+      '&.overriding': {
+        background: theme.palette.states.engagedGrey,
+      },
     },
     '&.alert': {
       '&.userPrompt': {
@@ -59,7 +62,7 @@ const styles = (/* theme */) => ({
       },
       '&.critical': {
         background: theme.palette.states.alertRed,
-      }
+      },
     }
   },
   thumbnails: {
@@ -328,11 +331,12 @@ class Timeline extends Component {
           }
         }
         const statusCls = event.data.alertStatus ? `${AlertStatusCodes[event.data.alertStatus]}` : '';
+        const overridingCls = event.data.state === 'overriding' ? 'overriding' : '';
         return (
           <div
             key={segment.route + event.route_offset_millis + event.type}
             style={style}
-            className={ `${classes.segmentColor} ${event.type} ${statusCls}` }
+            className={ `${classes.segmentColor} ${event.type} ${statusCls} ${overridingCls}` }
           />
         );
       });
