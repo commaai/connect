@@ -392,6 +392,15 @@ class DeviceInfo extends Component {
     const buttonClass = windowWidth >= 520 ? classes.snapshotButton : classes.snapshotButtonSmall;
     const buttonOffline = deviceIsOnline(device) ? '' : classes.buttonOffline;
 
+    let error = null;
+    if (snapshot.error && snapshot.error.data && snapshot.error.data.message) {
+      error = snapshot.error.data.message;
+    } else if (snapshot.error && snapshot.error.message) {
+      error = snapshot.error.message;
+    } else if (snapshot.error) {
+      error = 'error while fetching snapshot';
+    }
+
     return (
       <>
         <div className={ classes.carBattery } style={{ backgroundColor: batteryBackground }}>
@@ -414,9 +423,9 @@ class DeviceInfo extends Component {
             }
           </Button>
         </div>
-        <Popper open={ Boolean(snapshot.error) } placement="bottom"
+        <Popper open={ Boolean(error) } placement="bottom"
           anchorEl={ this.snapshotButtonRef.current } className={ classes.snapshotErrorPopover }>
-          <Typography>{ snapshot.error }</Typography>
+          <Typography>{ error }</Typography>
         </Popper>
       </>
     );
