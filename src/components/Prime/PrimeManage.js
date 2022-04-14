@@ -300,7 +300,7 @@ class PrimeManage extends Component {
       planSubtext = subscription.plan === 'nodata' ? '(without data plan)' : '(with data plan)'
     }
 
-    const hasCancelAt = Boolean(subscription.cancel_at && subscription.cancel_at <= subscription.next_charge_at);
+    const hasCancelAt = Boolean(hasPrimeSub && subscription.cancel_at && subscription.cancel_at <= subscription.next_charge_at);
     const alias = device.alias || deviceTypePretty(device.device_type);
     const containerPadding = windowWidth > 520 ? 36 : 16;
     const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
