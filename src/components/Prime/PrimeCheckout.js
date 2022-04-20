@@ -328,6 +328,9 @@ class PrimeCheckout extends Component {
       } else if (!['blue', 'magenta_new'].includes(subscribeInfo.sim_type)) {
         disabledDataPlanText = ['Standard plan not available, old SIM type detected, new SIM cards are available in the ',
           <a key={1} href="https://comma.ai/shop/products/comma-prime-sim-card">shop</a>];
+      } else if (subscribeInfo.sim_usable === false && subscribeInfo.sim_type === 'blue') {
+        disabledDataPlanText = ['Standard plan not available, SIM has been canceled and is therefore no longer usable, new SIM cards are available in the ',
+          <a key={1} href="https://comma.ai/shop/products/comma-prime-sim-card">shop</a>];
       } else if (subscribeInfo.sim_usable === false) {
         disabledDataPlanText = ['Standard plan not available, SIM is no longer usable, new SIM cards are available in the ',
           <a key={1} href="https://comma.ai/shop/products/comma-prime-sim-card">shop</a>];
