@@ -74,12 +74,14 @@ export function fetchFiles(routeName, nocache=false) {
     const urlName = routeName.replace('|', '/');
     const res = {};
     for (const type of Object.keys(FILE_NAMES)) {
-      for (const file of files[type]) {
-        const segmentNum = parseInt(file.split(urlName)[1].split('/')[1]);
-        const fileName = `${routeName}--${segmentNum}/${type}`;
-        res[fileName] = {
-          url: file,
-        };
+      if (files[type]) {
+        for (const file of files[type]) {
+          const segmentNum = parseInt(file.split(urlName)[1].split('/')[1]);
+          const fileName = `${routeName}--${segmentNum}/${type}`;
+          res[fileName] = {
+            url: file,
+          };
+        }
       }
     }
 
