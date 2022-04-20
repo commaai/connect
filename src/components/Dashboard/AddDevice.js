@@ -237,6 +237,7 @@ class AddDevice extends Component {
     }
 
     if (pairDongleId && this.props.devices.length === 0) {
+      this.props.dispatch(analyticsEvent('pair_device', {method: 'add_device_new'}));
       window.location = window.location.origin + '/' + pairDongleId;
       return;
     }
@@ -302,6 +303,7 @@ class AddDevice extends Component {
         const device = await DevicesApi.fetchDevice(resp.dongle_id);
         if (this.props.devices.length > 0) { // state change from no device to a device requires reload.
           this.props.dispatch(updateDevice(device));
+          this.props.dispatch(analyticsEvent('pair_device', {method: 'add_device_sidebar'}));
         }
         this.setState({ pairLoading: false, pairDongleId: resp.dongle_id, pairError: null });
       } else {

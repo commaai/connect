@@ -4,6 +4,8 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
 import { getDongleID, getZoom } from './url'
+import { deviceIsOnline } from './utils';
+import { isDemoDevice } from './demo';
 
 function getPageViewEventLocation(pathname) {
   let page_location = pathname;
@@ -23,8 +25,45 @@ function getPageViewEventLocation(pathname) {
   return page_location;
 }
 
+const cluster_map = {
+  's': 1000,
+  'm': 60000,
+  'h': 3600000,
+};
+
+export function attachRelTime(obj, key, ms=true, cluster=null) {
+  if (!obj[key]) {
+    console.log(`${key} not in obj`);
+    return;
+  }
+
+  const now = Date.now();
+  const t = obj[key];
+  if (ms !== true) {
+    t *= 1000;
+  }
+
+  const dt = t - now;
+
+  obj[`rel_${key}_ms`] = dt;
+
+  if (cluster) {
+    obj[`rel_${key}_${cluster}`] = Math.round(dt / cluster_map[cluster]);
+  }
+}
+
+function getVideoPercent(state, offset) {
+  const { zoom, filter } = state;
+  if (!offset) {
+    offset = state.offset;
+  }
+  return (offset - (zoom.start - filter.start)) / (zoom.end - zoom.start);
+}
+
 export function analyticsMiddleware({ getState }) {
   return (next) => (action) => {
+    const prevState = getState();
+
     next(action);
 
     if (typeof gtag !== 'function') {
@@ -37,6 +76,8 @@ export function analyticsMiddleware({ getState }) {
       return;
     }
 
+    let percent;
+
     switch (action.type) {
     case LOCATION_CHANGE:
       gtag('event', 'page_view', {
@@ -44,30 +85,127 @@ export function analyticsMiddleware({ getState }) {
       });
       return;
 
+    case Types.TIMELINE_SELECTION_CHANGED:
+      if (!prevState.expanded && state.expanded) {
+        const params = {
+          start: state.zoom.start,
+          end: state.zoom.end,
+        };
+        attachRelTime(params, 'start', true, 'h');
+        attachRelTime(params, 'end', true, 'h');
+        gtag('event', 'select_zoom', params);
+      }
+      return;
+
     case Types.ACTION_STARTUP_DATA:
       gtag('set', {
         user_id: state.profile.user_id,
         user_properties: {
-          superuser: state.profile.superuser,  // TODO: filter these events?
-          prime: state.profile.prime,
-          regdate: state.profile.regdate,
-        }
+          superuser: state.profile?.superuser,
+          has_prime: state.profile?.prime,
+          devices_count: state.devices?.length,
+          device_is_demo: isDemoDevice(state.device?.dongle_id),
+          device_prime_type: state.device?.prime_type,
+          device_type: state.device?.device_type,
+          device_version: state.device?.openpilot_version,
+          device_owner: state.device?.is_owner,
+          device_online: state.device ? deviceIsOnline(state.device) : undefined,
+          device_sim_type: state.device?.sim_type,
+          device_trial_claimed: state.device?.trial_claimed,
+        },
       });
 
       gtag('event', 'page_view', {
         page_location: getPageViewEventLocation(window.location.pathname),
       });
-
-      gtag('event', 'startup_data', {
-        // TODO: PWA, device count, c3?
-      });
       return;
 
     case Types.ACTION_SELECT_DEVICE:
+      gtag('event', 'select_device', {
+        device_is_demo: isDemoDevice(state.device?.dongle_id),
+        device_prime_type: state.device?.prime_type,
+        device_type: state.device?.device_type,
+        device_version: state.device?.openpilot_version,
+        device_owner: state.device?.is_owner,
+        device_online: state.device ? deviceIsOnline(state.device) : undefined,
+        device_sim_type: state.device?.sim_type,
+        device_trial_claimed: state.device?.trial_claimed,
+      });
 
+      gtag('set', {
+        user_properties: {
+          device_is_demo: isDemoDevice(state.device?.dongle_id),
+          device_prime_type: state.device?.prime_type,
+          device_type: state.device?.device_type,
+          device_version: state.device?.openpilot_version,
+          device_owner: state.device?.is_owner,
+          device_online: state.device ? deviceIsOnline(state.device) : undefined,
+          device_sim_type: state.device?.sim_type,
+          device_trial_claimed: state.device?.trial_claimed,
+        },
+      });
+      return;
+
+    case Types.ACTION_SELECT_TIME_FILTER:
+      const params = {
+        start: action.start,
+        end: action.end,
+      };
+      attachRelTime(params, 'start', true, 'h');
+      attachRelTime(params, 'end', true, 'h');
+      gtag('event', 'select_time_filter', params);
+      return;
+
+    case Types.ACTION_UPDATE_DEVICE_ONLINE:
+      if (state.device?.dongleId === action.dongleId) {
+        gtag('set', {
+          user_properties: {
+            device_online: deviceIsOnline(state.device),
+          },
+        });
+      }
+      return;
+
+    case Types.ACTION_SEEK:
+      percent = getVideoPercent(state);
+      gtag('event', 'video_seek', {
+        play_speed: state.desiredPlaySpeed,
+        play_percentage: percent,
+        play_percentage_round: Math.round(percent * 10) / 10,
+      });
+      return;
+
+    case Types.ACTION_PAUSE:
+      percent = getVideoPercent(state);
+      gtag('event', 'video_pause', {
+        play_speed: state.desiredPlaySpeed,
+        play_percentage: percent,
+        play_percentage_round: Math.round(percent * 10) / 10,
+      });
+      return;
+
+    case Types.ACTION_PLAY:
+      percent = getVideoPercent(state);
+      gtag('event', 'video_play', {
+        play_speed: state.desiredPlaySpeed,
+        play_percentage: percent,
+        play_percentage_round: Math.round(percent * 10) / 10,
+      });
+      return;
+
+    case Types.ACTION_LOOP:
+      percent = state.loop && state.currentSegment ? state.loop.duration / state.currentSegment.duration : undefined;
+      gtag('event', 'video_loop', {
+        select_loop: true,
+        loop_duration: state.loop?.duration,
+        loop_duration_percentage: percent,
+        loop_duration_percentage_round: percent ? Math.round(percent * 10) / 10 : undefined,
+      });
+      return;
+
+    case Types.ANALYTICS_EVENT:
+      gtag('event', action.name, action.parameters);
       return;
     }
-
-    // TODO: more events
   };
 }

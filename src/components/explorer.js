@@ -16,7 +16,7 @@ import IosPwaPopup from './IosPwaPopup';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import AppDrawer from './AppDrawer';
 
-import { selectDevice, updateDevice } from '../actions';
+import { analyticsEvent, selectDevice, updateDevice } from '../actions';
 import ResizeHandler from './ResizeHandler';
 import Colors from '../colors';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
@@ -129,6 +129,7 @@ class ExplorerApp extends Component {
 
           const device = await DevicesApi.fetchDevice(resp.dongle_id);
           this.props.dispatch(updateDevice(device));
+          this.props.dispatch(analyticsEvent('pair_device', {method: 'url_string'}));
         } else {
           await localforage.removeItem('pairToken');
           console.log(resp);
