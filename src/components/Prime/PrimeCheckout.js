@@ -211,6 +211,7 @@ class PrimeCheckout extends Component {
 
     this.gotoCheckout = this.gotoCheckout.bind(this);
     this.trialClaimable = this.trialClaimable.bind(this);
+    this.dataPlanAvailable = this.dataPlanAvailable.bind(this);
   }
 
   componentDidMount() {
@@ -218,15 +219,13 @@ class PrimeCheckout extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { stripe_cancelled, subscribeInfo, device } = this.props;
+    const { stripe_cancelled, subscribeInfo } = this.props;
     if (!prevProps.stripe_cancelled && stripe_cancelled) {
       this.setState({ error: 'Checkout cancelled' });
     }
 
     if (this.state.selectedPlan === null && subscribeInfo) {
-      const canC2 = this.trialClaimable() || device.device_type === 'three';
-      const plan = subscribeInfo.sim_id && subscribeInfo.is_prime_sim && subscribeInfo.sim_type === 'blue' && canC2 ?
-        'data' : 'nodata';
+      const plan = this.dataPlanAvailable() ? 'data' : 'nodata';
       this.setState({ selectedPlan: plan });
     }
   }
@@ -256,6 +255,22 @@ class PrimeCheckout extends Component {
       console.log(err);
       Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_checkout' });
     }
+  }
+
+  dataPlanAvailable() {
+    const { device, subscribeInfo } = this.props;
+    if (!device || !subscribeInfo) {
+      return null;
+    }
+
+    return Boolean(
+      device.device_type === 'three' &&
+      subscribeInfo &&
+      subscribeInfo.sim_id &&
+      subscribeInfo.is_prime_sim &&
+      subscribeInfo.sim_usable !== false &&
+      ['blue', 'magenta_new'].includes(subscribeInfo.sim_type)
+    );
   }
 
   trialClaimable() {
@@ -297,13 +312,12 @@ class PrimeCheckout extends Component {
     const paddingStyle = windowWidth > 520 ? { paddingLeft: 7, paddingRight: 7 } : { paddingLeft: 8, paddingRight: 8 };
     const selectedStyle = { border: '2px solid white' };
     const plansLoadingClass = !subscribeInfo ? classes.planInfoLoading : '';
-    const disabledDataPlan = Boolean((device.device_type !== 'three' && !this.trialClaimable()) ||
-      !subscribeInfo || !subscribeInfo.sim_id || !subscribeInfo.is_prime_sim || subscribeInfo.sim_type !== 'blue');
+    const disabledDataPlan = Boolean(!subscribeInfo || !this.dataPlanAvailable());
     const boxHeight = windowHeight > 600 ? { height: 140 } : { height: 110 };
 
     let disabledDataPlanText;
     if (subscribeInfo && disabledDataPlan) {
-      if (device.device_type !== 'three' && !this.trialClaimable()) {
+      if (device.device_type !== 'three') {
         disabledDataPlanText = 'Standard plan is only available for comma three.';
       } else if (!subscribeInfo.sim_id && subscribeInfo.device_online) {
         disabledDataPlanText = 'Standard plan not available, no SIM was detected. Ensure SIM is securely inserted and try again.';
@@ -311,8 +325,14 @@ class PrimeCheckout extends Component {
         disabledDataPlanText = 'Standard plan not available, device could not be reached. Connect device to the internet and try again.';
       } else if (!subscribeInfo.is_prime_sim) {
         disabledDataPlanText = 'Standard plan not available, detected a third-party SIM.';
-      } else if (subscribeInfo.sim_type !== 'blue') {
+      } else if (!['blue', 'magenta_new'].includes(subscribeInfo.sim_type)) {
         disabledDataPlanText = ['Standard plan not available, old SIM type detected, new SIM cards are available in the ',
+          <a key={1} href="https://comma.ai/shop/products/comma-prime-sim-card">shop</a>];
+      } else if (subscribeInfo.sim_usable === false && subscribeInfo.sim_type === 'blue') {
+        disabledDataPlanText = ['Standard plan not available, SIM has been canceled and is therefore no longer usable, new SIM cards are available in the ',
+          <a key={1} href="https://comma.ai/shop/products/comma-prime-sim-card">shop</a>];
+      } else if (subscribeInfo.sim_usable === false) {
+        disabledDataPlanText = ['Standard plan not available, SIM is no longer usable, new SIM cards are available in the ',
           <a key={1} href="https://comma.ai/shop/products/comma-prime-sim-card">shop</a>];
       }
     }
