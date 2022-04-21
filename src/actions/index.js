@@ -324,3 +324,11 @@ function urlForState(dongleId, start, end, prime_nav) {
 
   return `/${path.join('/')}`;
 }
+
+export function analyticsEvent(name, parameters) {
+  return {
+    type: Types.ANALYTICS_EVENT,
+    name,
+    parameters,
+  };
+}

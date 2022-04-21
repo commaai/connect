@@ -9,7 +9,7 @@ import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuIt
 import { Search, Clear, Refresh } from '@material-ui/icons';
 import fecha from 'fecha';
 
-import { primeNav } from '../../actions';
+import { primeNav, analyticsEvent } from '../../actions';
 import { timeFromNow } from '../../utils';
 import { devices as Devices, navigation as NavigationAPI, athena as AthenaApi } from '@commaai/comma-api';
 import Colors from '../../colors';
@@ -358,7 +358,7 @@ class Navigation extends Component {
 
   componentDidUpdate(prevProps, prevState) {
     const { dongleId, device } = this.props;
-    const { geoLocateCoords, search, carLastLocation, carNetworkLocation, searchSelect } = this.state;
+    const { geoLocateCoords, search, carLastLocation, carNetworkLocation, searchSelect, favoriteLocations } = this.state;
 
     if ((carLastLocation && !prevState.carLastLocation) || (carNetworkLocation && !prevState.carNetworkLocation) ||
       (geoLocateCoords && !prevState.geoLocateCoords) || (searchSelect && prevState.searchSelect !== searchSelect) ||
@@ -379,6 +379,19 @@ class Navigation extends Component {
 
     if (prevProps.device !== device) {
       this.updateDevice();
+    }
+
+    if (!prevState.hasFocus && this.state.hasFocus) {
+      this.props.dispatch(analyticsEvent('nav_focus', {
+        has_car_location: Boolean(carLastLocation || carNetworkLocation),
+        has_favorites: Object.keys(favoriteLocations)?.length || 0,
+      }));
+    }
+
+    if (search && prevState.search !== search) {
+      this.props.dispatch(analyticsEvent('nav_search', {
+        panned: this.state.noFly || this.state.searchLooking,
+      }));
     }
   }
 
@@ -578,7 +591,14 @@ class Navigation extends Component {
     }
   }
 
-  onSearchSelect(item) {
+  onSearchSelect(item, source) {
+    this.props.dispatch(analyticsEvent('nav_search_select', {
+      source: source,
+      panned: this.state.noFly || this.state.noFly,
+      is_favorite: Boolean(item.favoriteId),
+      distance: item.distance,
+    }));
+
     this.setState({
       noFly: false,
       searchSelect: item,
@@ -614,7 +634,7 @@ class Navigation extends Component {
         lng: loc.longitude,
       },
     };
-    this.onSearchSelect(item);
+    this.onSearchSelect(item, 'pin');
   }
 
   onSearchBlur(ev) {
@@ -808,6 +828,10 @@ class Navigation extends Component {
     if (!hasNav) {
       return;
     }
+
+    this.props.dispatch(analyticsEvent('nav_navigate', {
+      distance: searchSelect.distance,
+    }));
 
     this.setState({ searchSelect: {
       ...searchSelect,
@@ -1033,7 +1057,7 @@ class Navigation extends Component {
             <Marker latitude={ this.itemLoc(item).lat } longitude={ this.itemLoc(item).lng } key={ item.id }
               offsetLeft={ -10 } offsetTop={ -30 } captureDrag={ false } captureClick={ false }
               captureDoubleClick={ false }>
-              <img className={ classes.pinClick } src={ pin_marker } onClick={ () => this.onSearchSelect(item) }
+              <img className={ classes.pinClick } src={ pin_marker } onClick={ () => this.onSearchSelect(item, 'pin') }
                 alt="pin-location" />
             </Marker>
           )}
@@ -1103,7 +1127,7 @@ class Navigation extends Component {
             { search.length === 0 &&
               <Typography className={ classes.overlaySearchNoResults }>no search results</Typography> }
             { search.map((item) => (
-              <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item) }>
+              <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item, 'list') }>
                 <Typography>
                   { this.formatSearchName(item) }
                   <span className={ classes.overlaySearchDetails }>

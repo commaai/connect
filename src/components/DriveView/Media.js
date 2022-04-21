@@ -19,8 +19,9 @@ import UploadQueue from '../Files/UploadQueue';
 import { currentOffset } from '../../timeline/playback';
 import Colors from '../../colors';
 import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils';
-import { updateDeviceOnline } from '../../actions';
+import { updateDeviceOnline, analyticsEvent } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
+import { attachRelTime } from '../../analytics';
 import { fetchFiles, fetchUploadQueue, fetchAthenaQueue, updateFiles } from '../../actions/files';
 
 const styles = (theme) => ({
@@ -233,6 +234,7 @@ class Media extends Component {
     this.athenaCall = this.athenaCall.bind(this);
     this.getUploadStats = this.getUploadStats.bind(this);
     this._uploadStats = this._uploadStats.bind(this);
+    this.downloadFile = this.downloadFile.bind(this);
 
     this.openRequests = 0;
   }
@@ -250,6 +252,10 @@ class Media extends Component {
 
     if (prevProps.currentSegment !== this.props.currentSegment && this.props.currentSegment) {
       this.props.dispatch(fetchEvents(this.props.currentSegment));
+    }
+
+    if (prevState.inView && prevState.inView !== this.state.inView) {
+      this.props.dispatch(analyticsEvent('media_switch_view', { in_view: this.state.inView }));
     }
 
     if ((!prevState.downloadMenu && downloadMenu) || (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu)) {
@@ -297,6 +303,12 @@ class Media extends Component {
       params.segments = [startTime, Math.floor(startTime + (loop.duration / 1000))].join(',');
     }
 
+    const event_parameters = {
+      route_start_time: filter.start + currentSegment.routeOffset,
+    };
+    attachRelTime(event_parameters, 'route_start_time', true, 'h');
+    this.props.dispatch(analyticsEvent('open_in_cabana', event_parameters));
+
     const win = window.open(`${window.CABANA_URL_ROOT}?${qs.stringify(params)}`, '_blank');
     if (win.focus) {
       win.focus();
@@ -304,10 +316,16 @@ class Media extends Component {
   }
 
   openInUseradmin() {
-    const { currentSegment } = this.props;
+    const { currentSegment, filter } = this.props;
     if (!currentSegment) {
       return;
     }
+
+    const event_parameters = {
+      route_start_time: filter.start + currentSegment.routeOffset,
+    };
+    attachRelTime(event_parameters, 'route_start_time', true, 'h');
+    this.props.dispatch(analyticsEvent('open_in_cabana', event_parameters));
 
     const params = { onebox: currentSegment.route };
     const win = window.open(`${window.USERADMIN_URL_ROOT}?${qs.stringify(params)}`, '_blank');
@@ -361,6 +379,11 @@ class Media extends Component {
     if (!currentSegment) {
       return;
     }
+
+    this.props.dispatch(analyticsEvent('files_upload', {
+      type: type,
+    }));
+
     const routeNoDongleId = currentSegment.route.split('|')[1];
     const path = `${routeNoDongleId}--${this.currentSegmentNum()}/${FILE_NAMES[type]}`;
     const fileName = `${dongleId}|${routeNoDongleId}--${this.currentSegmentNum()}/${type}`;
@@ -387,6 +410,10 @@ class Media extends Component {
     if (!segmentData.segments || !files) {
       return;
     }
+
+    this.props.dispatch(analyticsEvent('files_upload_all', {
+      types: types.length === 1 && types[0] === 'logs' ? 'logs' : 'all',
+    }));
 
     const uploading = {}
     for (const segment of segmentData.segments) {
@@ -551,6 +578,19 @@ class Media extends Component {
       isUploadedRlog: !Boolean(countRlog - uploadedRlog),
       isPausedAll: Boolean(pausedAll > 0 && pausedAll === uploadingAll),
     };
+  }
+
+  downloadFile(file, type) {
+    const { filter, currentSegment } = this.props;
+
+    const event_parameters = {
+      type,
+      route_start_time: filter.start + currentSegment.routeOffset,
+    };
+    attachRelTime(event_parameters, 'route_start_time', true, 'h');
+    this.props.dispatch(analyticsEvent('download_file', event_parameters));
+
+    window.location.href = file.url
   }
 
   render() {
@@ -773,7 +813,7 @@ class Media extends Component {
     } else if (file.url) {
       button = (
         <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
-          onClick={ () => window.location.href = file.url }>
+          onClick={ () => this.downloadFile(file, type) }>
           download
         </Button>
       );

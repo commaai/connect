@@ -14,7 +14,7 @@ import { billing as Billing } from '@commaai/comma-api';
 import { deviceTypePretty } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
-import { primeNav } from '../../actions';
+import { primeNav, analyticsEvent } from '../../actions';
 
 const styles = (theme) => ({
   primeBox: {
@@ -249,6 +249,7 @@ class PrimeCheckout extends Component {
     this.setState({ loadingCheckout: true });
     try {
       const resp = await Billing.getStripeCheckout(dongleId, subscribeInfo.sim_id, this.state.selectedPlan);
+      this.props.dispatch(analyticsEvent('prime_checkout', { plan: this.state.selectedPlan }));
       window.location = resp.url;
     } catch (err) {
       // TODO show error messages

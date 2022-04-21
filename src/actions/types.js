@@ -36,3 +36,6 @@ export const ACTION_FILES_URLS = 'files_urls';
 export const ACTION_FILES_UPDATE = 'files_update';
 export const ACTION_FILES_UPLOADING = 'files_uploading';
 export const ACTION_FILES_CANCELLED_UPLOADS = 'files_cancelled_uploads';
+
+// analytics
+export const ANALYTICS_EVENT = 'analytics_event';
