@@ -1,4 +1,5 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
+import * as Sentry from '@sentry/react';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
@@ -63,65 +64,56 @@ function getVideoPercent(state, offset) {
 export function analyticsMiddleware({ getState }) {
   return (next) => (action) => {
     const prevState = getState();
-
-    next(action);
-
-    if (typeof gtag !== 'function') {
-      return;
-    }
-
+    const res = next(action);
     const state = getState();
 
-    if (MyCommaAuth.isAuthenticated() && !state.profile) { // no startup data yet
-      return;
+    try {
+      log_action(action, prevState, state);
+    } catch (err) {
+      Sentry.captureException(err, { fingerprint: 'analytics_middleware' });
     }
 
-    let percent;
+    return res;
+  };
+}
 
-    switch (action.type) {
-    case LOCATION_CHANGE:
-      gtag('event', 'page_view', {
-        page_location: getPageViewEventLocation(action.payload.location.pathname),
-      });
-      return;
+function log_action(action, prevState, state) {
+  if (typeof gtag !== 'function') {
+    return;
+  }
 
-    case Types.TIMELINE_SELECTION_CHANGED:
-      if (!prevState.expanded && state.expanded) {
-        const params = {
-          start: state.zoom.start,
-          end: state.zoom.end,
-        };
-        attachRelTime(params, 'start', true, 'h');
-        attachRelTime(params, 'end', true, 'h');
-        gtag('event', 'select_zoom', params);
-      }
-      return;
+  if (MyCommaAuth.isAuthenticated() && !state.profile) { // no startup data yet
+    return;
+  }
 
-    case Types.ACTION_STARTUP_DATA:
-      gtag('set', {
-        user_id: state.profile.user_id,
-        user_properties: {
-          superuser: state.profile?.superuser,
-          has_prime: state.profile?.prime,
-          devices_count: state.devices?.length,
-          device_is_demo: isDemoDevice(state.device?.dongle_id),
-          device_prime_type: state.device?.prime_type,
-          device_type: state.device?.device_type,
-          device_version: state.device?.openpilot_version,
-          device_owner: state.device?.is_owner,
-          device_online: state.device ? deviceIsOnline(state.device) : undefined,
-          device_sim_type: state.device?.sim_type,
-          device_trial_claimed: state.device?.trial_claimed,
-        },
-      });
+  let percent;
 
-      gtag('event', 'page_view', {
-        page_location: getPageViewEventLocation(window.location.pathname),
-      });
-      return;
+  switch (action.type) {
+  case LOCATION_CHANGE:
+    gtag('event', 'page_view', {
+      page_location: getPageViewEventLocation(action.payload.location.pathname),
+    });
+    return;
 
-    case Types.ACTION_SELECT_DEVICE:
-      gtag('event', 'select_device', {
+  case Types.TIMELINE_SELECTION_CHANGED:
+    if (!prevState.expanded && state.expanded) {
+      const params = {
+        start: state.zoom.start,
+        end: state.zoom.end,
+      };
+      attachRelTime(params, 'start', true, 'h');
+      attachRelTime(params, 'end', true, 'h');
+      gtag('event', 'select_zoom', params);
+    }
+    return;
+
+  case Types.ACTION_STARTUP_DATA:
+    gtag('set', {
+      user_id: state.profile.user_id,
+      user_properties: {
+        superuser: state.profile?.superuser,
+        has_prime: state.profile?.prime,
+        devices_count: state.devices?.length,
         device_is_demo: isDemoDevice(state.device?.dongle_id),
         device_prime_type: state.device?.prime_type,
         device_type: state.device?.device_type,
@@ -130,82 +122,99 @@ export function analyticsMiddleware({ getState }) {
         device_online: state.device ? deviceIsOnline(state.device) : undefined,
         device_sim_type: state.device?.sim_type,
         device_trial_claimed: state.device?.trial_claimed,
-      });
+      },
+    });
 
+    gtag('event', 'page_view', {
+      page_location: getPageViewEventLocation(window.location.pathname),
+    });
+    return;
+
+  case Types.ACTION_SELECT_DEVICE:
+    gtag('event', 'select_device', {
+      device_is_demo: isDemoDevice(state.device?.dongle_id),
+      device_prime_type: state.device?.prime_type,
+      device_type: state.device?.device_type,
+      device_version: state.device?.openpilot_version,
+      device_owner: state.device?.is_owner,
+      device_online: state.device ? deviceIsOnline(state.device) : undefined,
+      device_sim_type: state.device?.sim_type,
+      device_trial_claimed: state.device?.trial_claimed,
+    });
+
+    gtag('set', {
+      user_properties: {
+        device_is_demo: isDemoDevice(state.device?.dongle_id),
+        device_prime_type: state.device?.prime_type,
+        device_type: state.device?.device_type,
+        device_version: state.device?.openpilot_version,
+        device_owner: state.device?.is_owner,
+        device_online: state.device ? deviceIsOnline(state.device) : undefined,
+        device_sim_type: state.device?.sim_type,
+        device_trial_claimed: state.device?.trial_claimed,
+      },
+    });
+    return;
+
+  case Types.ACTION_SELECT_TIME_FILTER:
+    const params = {
+      start: action.start,
+      end: action.end,
+    };
+    attachRelTime(params, 'start', true, 'h');
+    attachRelTime(params, 'end', true, 'h');
+    gtag('event', 'select_time_filter', params);
+    return;
+
+  case Types.ACTION_UPDATE_DEVICE_ONLINE:
+    if (state.device?.dongleId === action.dongleId) {
       gtag('set', {
         user_properties: {
-          device_is_demo: isDemoDevice(state.device?.dongle_id),
-          device_prime_type: state.device?.prime_type,
-          device_type: state.device?.device_type,
-          device_version: state.device?.openpilot_version,
-          device_owner: state.device?.is_owner,
-          device_online: state.device ? deviceIsOnline(state.device) : undefined,
-          device_sim_type: state.device?.sim_type,
-          device_trial_claimed: state.device?.trial_claimed,
+          device_online: deviceIsOnline(state.device),
         },
       });
-      return;
-
-    case Types.ACTION_SELECT_TIME_FILTER:
-      const params = {
-        start: action.start,
-        end: action.end,
-      };
-      attachRelTime(params, 'start', true, 'h');
-      attachRelTime(params, 'end', true, 'h');
-      gtag('event', 'select_time_filter', params);
-      return;
-
-    case Types.ACTION_UPDATE_DEVICE_ONLINE:
-      if (state.device?.dongleId === action.dongleId) {
-        gtag('set', {
-          user_properties: {
-            device_online: deviceIsOnline(state.device),
-          },
-        });
-      }
-      return;
-
-    case Types.ACTION_SEEK:
-      percent = getVideoPercent(state);
-      gtag('event', 'video_seek', {
-        play_speed: state.desiredPlaySpeed,
-        play_percentage: percent,
-        play_percentage_round: Math.round(percent * 10) / 10,
-      });
-      return;
-
-    case Types.ACTION_PAUSE:
-      percent = getVideoPercent(state);
-      gtag('event', 'video_pause', {
-        play_speed: state.desiredPlaySpeed,
-        play_percentage: percent,
-        play_percentage_round: Math.round(percent * 10) / 10,
-      });
-      return;
-
-    case Types.ACTION_PLAY:
-      percent = getVideoPercent(state);
-      gtag('event', 'video_play', {
-        play_speed: state.desiredPlaySpeed,
-        play_percentage: percent,
-        play_percentage_round: Math.round(percent * 10) / 10,
-      });
-      return;
-
-    case Types.ACTION_LOOP:
-      percent = state.loop && state.currentSegment ? state.loop.duration / state.currentSegment.duration : undefined;
-      gtag('event', 'video_loop', {
-        select_loop: true,
-        loop_duration: state.loop?.duration,
-        loop_duration_percentage: percent,
-        loop_duration_percentage_round: percent ? Math.round(percent * 10) / 10 : undefined,
-      });
-      return;
-
-    case Types.ANALYTICS_EVENT:
-      gtag('event', action.name, action.parameters);
-      return;
     }
-  };
+    return;
+
+  case Types.ACTION_SEEK:
+    percent = getVideoPercent(state);
+    gtag('event', 'video_seek', {
+      play_speed: state.desiredPlaySpeed,
+      play_percentage: percent,
+      play_percentage_round: Math.round(percent * 10) / 10,
+    });
+    return;
+
+  case Types.ACTION_PAUSE:
+    percent = getVideoPercent(state);
+    gtag('event', 'video_pause', {
+      play_speed: state.desiredPlaySpeed,
+      play_percentage: percent,
+      play_percentage_round: Math.round(percent * 10) / 10,
+    });
+    return;
+
+  case Types.ACTION_PLAY:
+    percent = getVideoPercent(state);
+    gtag('event', 'video_play', {
+      play_speed: state.desiredPlaySpeed,
+      play_percentage: percent,
+      play_percentage_round: Math.round(percent * 10) / 10,
+    });
+    return;
+
+  case Types.ACTION_LOOP:
+    percent = state.loop && state.currentSegment ? state.loop.duration / state.currentSegment.duration : undefined;
+    gtag('event', 'video_loop', {
+      select_loop: true,
+      loop_duration: state.loop?.duration,
+      loop_duration_percentage: percent,
+      loop_duration_percentage_round: percent ? Math.round(percent * 10) / 10 : undefined,
+    });
+    return;
+
+  case Types.ANALYTICS_EVENT:
+    gtag('event', action.name, action.parameters);
+    return;
+  }
 }
