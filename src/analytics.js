@@ -87,6 +87,28 @@ function log_action(action, prevState, state) {
   }
 
   let percent;
+  let params = {};
+
+  if (process.env.NODE_ENV !== 'production') {
+    params = {
+      ...params,
+      debug_mode: true,
+    };
+  }
+
+  if (state.profile?.superuser) {
+    params = {
+      ...params,
+      traffic_type: 'internal',
+    };
+  }
+
+  if (state.profile?.user_id === 'github_92103660' || new URLSearchParams(window.location.search).get('ci')) {
+    params = {
+      ...params,
+      traffic_type: 'ci',
+    };
+  }
 
   switch (action.type) {
   case LOCATION_CHANGE:
@@ -97,7 +119,8 @@ function log_action(action, prevState, state) {
 
   case Types.TIMELINE_SELECTION_CHANGED:
     if (!prevState.expanded && state.expanded) {
-      const params = {
+      params = {
+        ...params,
         start: state.zoom.start,
         end: state.zoom.end,
       };
@@ -126,12 +149,14 @@ function log_action(action, prevState, state) {
     });
 
     gtag('event', 'page_view', {
+      ...params,
       page_location: getPageViewEventLocation(window.location.pathname),
     });
     return;
 
   case Types.ACTION_SELECT_DEVICE:
     gtag('event', 'select_device', {
+      ...params,
       device_is_demo: isDemoDevice(state.device?.dongle_id),
       device_prime_type: state.device?.prime_type,
       device_type: state.device?.device_type,
@@ -157,7 +182,8 @@ function log_action(action, prevState, state) {
     return;
 
   case Types.ACTION_SELECT_TIME_FILTER:
-    const params = {
+    params = {
+      ...params,
       start: action.start,
       end: action.end,
     };
@@ -179,6 +205,7 @@ function log_action(action, prevState, state) {
   case Types.ACTION_SEEK:
     percent = getVideoPercent(state);
     gtag('event', 'video_seek', {
+      ...params,
       play_speed: state.desiredPlaySpeed,
       play_percentage: percent,
       play_percentage_round: Math.round(percent * 10) / 10,
@@ -188,6 +215,7 @@ function log_action(action, prevState, state) {
   case Types.ACTION_PAUSE:
     percent = getVideoPercent(state);
     gtag('event', 'video_pause', {
+      ...params,
       play_speed: state.desiredPlaySpeed,
       play_percentage: percent,
       play_percentage_round: Math.round(percent * 10) / 10,
@@ -197,6 +225,7 @@ function log_action(action, prevState, state) {
   case Types.ACTION_PLAY:
     percent = getVideoPercent(state);
     gtag('event', 'video_play', {
+      ...params,
       play_speed: state.desiredPlaySpeed,
       play_percentage: percent,
       play_percentage_round: Math.round(percent * 10) / 10,
@@ -206,6 +235,7 @@ function log_action(action, prevState, state) {
   case Types.ACTION_LOOP:
     percent = state.loop && state.currentSegment ? state.loop.duration / state.currentSegment.duration : undefined;
     gtag('event', 'video_loop', {
+      ...params,
       select_loop: true,
       loop_duration: state.loop?.duration,
       loop_duration_percentage: percent,
@@ -214,7 +244,10 @@ function log_action(action, prevState, state) {
     return;
 
   case Types.ANALYTICS_EVENT:
-    gtag('event', action.name, action.parameters);
+    gtag('event', action.name, {
+      ...params,
+      ...action.parameters,
+    });
     return;
   }
 }
