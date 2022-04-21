@@ -9,7 +9,7 @@ import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
 
 import { devices as DevicesApi } from '@commaai/comma-api';
-import { selectDevice, updateDevice } from '../../actions';
+import { selectDevice, updateDevice, analyticsEvent } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import Colors from '../../colors';
 
