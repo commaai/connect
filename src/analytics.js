@@ -233,14 +233,22 @@ function log_action(action, prevState, state) {
     return;
 
   case Types.ACTION_LOOP:
-    percent = state.loop && state.currentSegment ? state.loop.duration / state.currentSegment.duration : undefined;
-    gtag('event', 'video_loop', {
-      ...params,
-      select_loop: true,
-      loop_duration: state.loop?.duration,
-      loop_duration_percentage: percent,
-      loop_duration_percentage_round: percent ? Math.round(percent * 10) / 10 : undefined,
-    });
+    if (state.loop?.duration !== 0) {
+      if (!state.currentSegment) {  // not loaded yet, initial loop
+        gtag('event', 'drive_load', {
+          ...params,
+          loop_duration: state.loop?.duration,
+        });
+      } else {
+        percent = state.loop && state.currentSegment ? state.loop.duration / state.currentSegment.duration : undefined;
+        gtag('event', 'video_loop', {
+          ...params,
+          loop_duration: state.loop?.duration,
+          loop_duration_percentage: percent,
+          loop_duration_percentage_round: percent ? Math.round(percent * 10) / 10 : undefined,
+        });
+      }
+    }
     return;
 
   case Types.ANALYTICS_EVENT:

@@ -254,7 +254,7 @@ class Media extends Component {
       this.props.dispatch(fetchEvents(this.props.currentSegment));
     }
 
-    if (prevState.inView !== this.state.inView) {
+    if (prevState.inView && prevState.inView !== this.state.inView) {
       this.props.dispatch(analyticsEvent('media_switch_view', { in_view: this.state.inView }));
     }
 
