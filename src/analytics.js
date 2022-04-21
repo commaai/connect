@@ -118,7 +118,7 @@ function log_action(action, prevState, state) {
     return;
 
   case Types.TIMELINE_SELECTION_CHANGED:
-    if (!prevState.expanded && state.expanded) {
+    if (!prevState.zoom.expanded && state.zoom.expanded) {
       params = {
         ...params,
         start: state.zoom.start,
@@ -203,51 +203,50 @@ function log_action(action, prevState, state) {
     return;
 
   case Types.ACTION_SEEK:
-    percent = getVideoPercent(state);
-    gtag('event', 'video_seek', {
-      ...params,
-      play_speed: state.desiredPlaySpeed,
-      play_percentage: percent,
-      play_percentage_round: Math.round(percent * 10) / 10,
-    });
+    if (state.zoom?.expanded) {
+      percent = getVideoPercent(state);
+      gtag('event', 'video_seek', {
+        ...params,
+        play_speed: state.desiredPlaySpeed,
+        play_percentage: percent,
+        play_percentage_round: Math.round(percent * 10) / 10,
+      });
+    }
     return;
 
   case Types.ACTION_PAUSE:
-    percent = getVideoPercent(state);
-    gtag('event', 'video_pause', {
-      ...params,
-      play_speed: state.desiredPlaySpeed,
-      play_percentage: percent,
-      play_percentage_round: Math.round(percent * 10) / 10,
-    });
+    if (state.zoom?.expanded) {
+      percent = getVideoPercent(state);
+      gtag('event', 'video_pause', {
+        ...params,
+        play_speed: state.desiredPlaySpeed,
+        play_percentage: percent,
+        play_percentage_round: Math.round(percent * 10) / 10,
+      });
+    }
     return;
 
   case Types.ACTION_PLAY:
-    percent = getVideoPercent(state);
-    gtag('event', 'video_play', {
-      ...params,
-      play_speed: state.desiredPlaySpeed,
-      play_percentage: percent,
-      play_percentage_round: Math.round(percent * 10) / 10,
-    });
+    if (state.zoom?.expanded) {
+      percent = getVideoPercent(state);
+      gtag('event', 'video_play', {
+        ...params,
+        play_speed: state.desiredPlaySpeed,
+        play_percentage: percent,
+        play_percentage_round: Math.round(percent * 10) / 10,
+      });
+    }
     return;
 
   case Types.ACTION_LOOP:
-    if (state.loop?.duration !== 0) {
-      if (!state.currentSegment) {  // not loaded yet, initial loop
-        gtag('event', 'drive_load', {
-          ...params,
-          loop_duration: state.loop?.duration,
-        });
-      } else {
-        percent = state.loop && state.currentSegment ? state.loop.duration / state.currentSegment.duration : undefined;
-        gtag('event', 'video_loop', {
-          ...params,
-          loop_duration: state.loop?.duration,
-          loop_duration_percentage: percent,
-          loop_duration_percentage_round: percent ? Math.round(percent * 10) / 10 : undefined,
-        });
-      }
+    if (state.currentSegment && state.loop?.duration !== 0 && state.zoom?.expanded) {
+      percent = state.loop && state.currentSegment ? state.loop.duration / state.currentSegment.duration : undefined;
+      gtag('event', 'video_loop', {
+        ...params,
+        loop_duration: state.loop?.duration,
+        loop_duration_percentage: percent,
+        loop_duration_percentage_round: percent ? Math.round(percent * 10) / 10 : undefined,
+      });
     }
     return;
 
