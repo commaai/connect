@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import fecha from 'fecha';
 import Obstruction from 'obstruction';
 import { withStyles, Typography, Grid } from '@material-ui/core';
 
@@ -25,6 +26,11 @@ const styles = (theme) => ({
     margin: 0,
     padding: 16,
     flex: '1',
+  },
+  dateHeading: {
+    fontSize: '1.5em',
+    fontWeight: 600,
+    padding: '16px 8px',
   },
   zeroState: {
     flex: '0',
@@ -67,11 +73,23 @@ class DriveList extends Component {
 
   render() {
     const { classes, dongleId } = this.props;
+    const { windowWidth } = this.state;
 
     const driveList = this.props.segments.slice().reverse().map((segment) => ({
       ...segment,
       dongleId: dongleId,
     }));
+
+    const small = windowWidth < 640;
+
+    const drivesGroupedByDate = driveList.reduce((dates, drive) => {
+      const date = fecha.format(new Date(drive.startTime), small ? 'ddd, MMM D' : 'dddd, MMMM D');
+      if (!dates[date]) {
+        dates[date] = [];
+      }
+      dates[date].push(drive);
+      return dates;
+    }, {});
 
     return (
       <div className={ classes.drivesTable }>
@@ -79,8 +97,15 @@ class DriveList extends Component {
         <VisibilityHandler onVisible={ this.onVisible } minInterval={ 60 } />
         { driveList.length === 0 && this.renderZeroRides() }
         <div className={classes.drives}>
-          { driveList.map((drive, i) => (
-            <DriveListItem key={drive.startTime} drive={drive} windowWidth={ this.state.windowWidth } />
+          { Object.entries(drivesGroupedByDate).map(([startDate, drives]) => (
+            <>
+              <Typography className={ classes.dateHeading }>
+                { startDate }
+              </Typography>
+              { drives.map((drive) => (
+                <DriveListItem key={drive.startTime} drive={drive} windowWidth={windowWidth} />
+              ))}
+            </>
           ))}
         </div>
       </div>
