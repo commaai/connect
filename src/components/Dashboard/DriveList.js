@@ -2,9 +2,10 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import fecha from 'fecha';
 import Obstruction from 'obstruction';
-import { withStyles, Typography, Grid } from '@material-ui/core';
+import { withStyles, Grid, Typography } from '@material-ui/core';
 
 import Colors from '../../colors';
+import DriveListDivider from './DriveListDivider';
 import DriveListItem from './DriveListItem';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
@@ -26,11 +27,6 @@ const styles = (theme) => ({
     margin: 0,
     padding: 16,
     flex: '1',
-  },
-  dateHeading: {
-    fontSize: '1.5em',
-    fontWeight: 600,
-    padding: '16px 8px',
   },
   zeroState: {
     flex: '0',
@@ -97,11 +93,9 @@ class DriveList extends Component {
         <VisibilityHandler onVisible={ this.onVisible } minInterval={ 60 } />
         { driveList.length === 0 && this.renderZeroRides() }
         <div className={classes.drives}>
-          { Object.entries(drivesGroupedByDate).map(([startDate, drives]) => (
+          { Object.entries(drivesGroupedByDate).map(([date, drives]) => (
             <>
-              <Typography className={ classes.dateHeading }>
-                { startDate }
-              </Typography>
+              <DriveListDivider key={date} date={date} small={small} />
               { drives.map((drive) => (
                 <DriveListItem key={drive.startTime} drive={drive} windowWidth={windowWidth} />
               ))}
