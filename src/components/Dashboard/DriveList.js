@@ -95,7 +95,7 @@ class DriveList extends Component {
         <div className={classes.drives}>
           { Object.entries(drivesGroupedByDate).map(([date, drives]) => (
             <>
-              <DriveListDivider key={date} date={date} small={small} />
+              <DriveListDivider key={date} date={date} />
               { drives.map((drive) => (
                 <DriveListItem key={drive.startTime} drive={drive} windowWidth={windowWidth} />
               ))}
