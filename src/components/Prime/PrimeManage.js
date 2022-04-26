@@ -184,7 +184,7 @@ class PrimeManage extends Component {
   }
 
   componentDidMount() {
-    this.componentDidUpdate({});
+    this.componentDidUpdate({}, {});
     this.mounted = true;
   }
 
