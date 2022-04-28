@@ -7,6 +7,7 @@ import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import { withStyles, Typography, Button, Modal, Paper, IconButton, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
+import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
 
 import { billing as Billing} from '@commaai/comma-api'
 import { deviceTypePretty } from '../../utils';
@@ -64,6 +65,7 @@ const styles = (theme) => ({
     alignItems: 'center',
     backgroundColor: Colors.white08,
     '& p': { display: 'inline-block', marginLeft: 10 },
+    '& a': { color: 'white' },
   },
   manageItem: {
     marginLeft: 10,
@@ -400,6 +402,16 @@ class PrimeManage extends Component {
                   </Button>
                 }
               </div>
+              { hasPrimeSub && subscription.requires_migration &&
+                <div className={ classes.overviewBlockDisabled }>
+                  <PriorityHighIcon />
+                  <Typography>
+                    Your prime subscription will be canceled on May 15th unless you replace the SIM card in your device.
+                    A new SIM card can be ordered from the <a href="https://comma.ai/shop/products/comma-prime-sim-card">shop</a>.
+                    Use discount code SIMSWAP at checkout to receive a free SIM card.
+                  </Typography>
+                </div>
+              }
               { hasCancelAt && device.device_type !== 'three' && subscription.plan === 'data' &&
                 <div className={ classes.overviewBlockDisabled }>
                   <InfoOutlineIcon />
