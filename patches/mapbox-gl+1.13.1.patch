@@ -1,0 +1,12 @@
+diff --git a/node_modules/mapbox-gl/src/css/mapbox-gl.css b/node_modules/mapbox-gl/src/css/mapbox-gl.css
+index 17e5ed3..2ce1c1e 100644
+--- a/node_modules/mapbox-gl/src/css/mapbox-gl.css
++++ b/node_modules/mapbox-gl/src/css/mapbox-gl.css
+@@ -395,6 +395,7 @@
+ }
+ 
+ a.mapboxgl-ctrl-logo {
++    display: none !important;
+     width: 88px;
+     height: 23px;
+     margin: 0 0 -4px -4px;
