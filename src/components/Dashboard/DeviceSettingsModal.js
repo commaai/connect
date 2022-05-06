@@ -330,7 +330,7 @@ class DeviceSettingsModal extends Component {
               <TextField id="device_share" label="Share by email or user id" className={ classes.textField }
                 value={this.state.shareEmail} onChange={this.handleEmailChange} variant="outlined"
                 onKeyPress={ (ev) => this.callOnEnter(this.shareDevice, ev) }
-                helperText="give another user read access to to this device" />
+                helperText="give another user read access to this device" />
               { (this.state.shareEmail.length > 0 || this.state.hasShared) &&
                 <div className={classes.wrapper}>
                   <IconButton variant="fab" onClick={this.shareDevice}>
