@@ -113,15 +113,19 @@ class TimeSelect extends Component {
   }
 
   changeStart(event) {
-    this.setState({
-      start: event.target.valueAsDate.setHours(0, 0, 0, 0),
-    });
+    if (event.target.valueAsDate) {
+      this.setState({
+        start: event.target.valueAsDate.setHours(0, 0, 0, 0),
+      });
+    }
   }
 
   changeEnd(event) {
-    this.setState({
-      end: event.target.valueAsDate.setHours(23, 59, 59, 999),
-    });
+    if (event.target.valueAsDate) {
+      this.setState({
+        end: event.target.valueAsDate.setHours(23, 59, 59, 999),
+      });
+    }
   }
 
   handleSave() {
