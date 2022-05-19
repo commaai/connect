@@ -225,13 +225,10 @@ export function parseSegmentMetadata(state, _segments) {
   segments = segments.map((_segment) => {
     const segment = _segment;
     segment.offset = Math.round(segment.start_time_utc_millis) - state.filter.start;
+    const segmentNum = Number(segment.canonical_name.split('--')[2]);
+    segment.segment = segmentNum;
     if (!routeStartTimes[segment.canonical_route_name]) {
-      const segmentNum = Number(segment.canonical_name.split('--')[2]);
-      segment.segment = segmentNum;
-      routeStartTimes[segment.canonical_route_name] = segment.offset;
-      if (segmentNum > 0) {
-        routeStartTimes[segment.canonical_route_name] -= (SEGMENT_LENGTH * segmentNum);
-      }
+      routeStartTimes[segment.canonical_route_name] = segment.offset - (SEGMENT_LENGTH * segmentNum);
     }
     segment.routeOffset = routeStartTimes[segment.canonical_route_name];
 
