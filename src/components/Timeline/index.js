@@ -52,9 +52,9 @@ const styles = () => ({
     '&.active': {},
     '&.engage': {
       background: theme.palette.states.engagedGreen,
-      '&.overriding': {
-        background: theme.palette.states.engagedGrey,
-      },
+    },
+    '&.overriding': {
+      background: theme.palette.states.engagedGrey,
     },
     '&.alert': {
       '&.userPrompt': {
@@ -322,21 +322,12 @@ class Timeline extends Component {
           left: `${(event.route_offset_millis / segment.duration) * 100}%`,
           width: `${((event.data.end_route_offset_millis - event.route_offset_millis) / segment.duration) * 100}%`,
         };
-        if (localStorage.showCurrentEvent) {
-          const time = currentOffset();
-          const eventStart = event.route_offset_millis + segment.offset;
-          const eventEnd = event.data.end_route_offset_millis + segment.offset;
-          if (time > eventStart && time < eventEnd) {
-            console.log('Current event:', event);
-          }
-        }
         const statusCls = event.data.alertStatus ? `${AlertStatusCodes[event.data.alertStatus]}` : '';
-        const overridingCls = event.data.state === 'overriding' ? 'overriding' : '';
         return (
           <div
             key={segment.route + event.route_offset_millis + event.type}
             style={style}
-            className={ `${classes.segmentColor} ${event.type} ${statusCls} ${overridingCls}` }
+            className={ `${classes.segmentColor} ${event.type} ${statusCls}` }
           />
         );
       });
