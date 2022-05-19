@@ -108,7 +108,7 @@ async function expireCacheItems(store) {
 }
 
 function parseEvents(route, driveEvents) {
-  driveEvents = driveEvents.filter((ev) => ['state', 'engage', 'disengage', 'alert'].includes(ev.type));
+  driveEvents = driveEvents.filter((ev) => ['state', 'event', 'engage', 'disengage', 'alert'].includes(ev.type));
   driveEvents.sort((a, b) => {
     if (a.route_offset_millis === b.route_offset_millis) {
       return a.route_offset_nanos - b.route_offset_nanos;
@@ -178,6 +178,7 @@ function parseEvents(route, driveEvents) {
     type: ev.type,
     route_offset_millis: ev.route_offset_millis,
     data: {
+      event_type: ev.data.event_type,
       state: ev.data.state,
       alertStatus: ev.data.alertStatus,
       end_route_offset_millis: ev.data.end_route_offset_millis,
