@@ -108,7 +108,7 @@ async function expireCacheItems(store) {
 }
 
 function parseEvents(route, driveEvents) {
-  driveEvents = driveEvents.filter((ev) => ['state', 'event', 'engage', 'disengage', 'alert'].includes(ev.type));
+  // sort events
   driveEvents.sort((a, b) => {
     if (a.route_offset_millis === b.route_offset_millis) {
       return a.route_offset_nanos - b.route_offset_nanos;
@@ -116,6 +116,8 @@ function parseEvents(route, driveEvents) {
     return a.route_offset_millis - b.route_offset_millis;
   });
 
+  // create useful drive events from data
+  let res = [];
   let currEngaged = null;
   let currAlert = null;
   let currOverride = null;
@@ -127,8 +129,12 @@ function parseEvents(route, driveEvents) {
         currEngaged = null;
       }
       if (currEngaged === null && ev.data.enabled) {
-        currEngaged = ev;
-        currEngaged.type = 'engage';
+        currEngaged = {
+          ...ev,
+          data: { ...ev.data },
+          type: 'engage',
+        };
+        res.push(currEngaged);
       }
 
       if (currAlert !== null && ev.data.alertStatus !== currAlert.data.alertStatus) {
@@ -136,8 +142,12 @@ function parseEvents(route, driveEvents) {
         currAlert = null;
       }
       if (currAlert === null && ev.data.alertStatus !== 'normal') {
-        currAlert = ev;
-        currAlert.type = 'alert';
+        currAlert = {
+          ...ev,
+          data: { ...ev.data },
+          type: 'alert',
+        };
+        res.push(currAlert);
       }
 
       if (currOverride !== null && ev.data.state !== currOverride.data.state) {
@@ -145,18 +155,31 @@ function parseEvents(route, driveEvents) {
         currOverride = null;
       }
       if (currOverride === null && ['overriding', 'preEnabled'].includes(ev.data.state)) {
-        currOverride = ev;
-        currOverride.type = 'overriding';
+        currOverride = {
+          ...ev,
+          data: { ...ev.data },
+          type: 'overriding',
+        };
+        res.push(currOverride);
       }
     } else if (ev.type === 'engage') {
-      lastEngage = ev;
+      lastEngage = {
+        ...ev,
+        data: { ...ev.data },
+      };
+      res.push(lastEngage);
     } else if (ev.type === 'disengage' && lastEngage) {
       lastEngage.data = {
         end_route_offset_millis: ev.route_offset_millis,
       };
+    } else if (ev.type === 'alert') {
+      res.push(ev);
+    } else if (ev.type === 'event') {
+      res.push(ev);
     }
   }
 
+  // make sure events have an ending
   if (currEngaged !== null) {
     currEngaged.data.end_route_offset_millis = route.duration;
   }
@@ -166,26 +189,25 @@ function parseEvents(route, driveEvents) {
   if (currOverride !== null) {
     currOverride.data.end_route_offset_millis = route.duration;
   }
-  if (lastEngage && lastEngage.data === undefined) {
+  if (lastEngage && lastEngage.data?.end_route_offset_millis === undefined) {
     lastEngage.data = {
       end_route_offset_millis: route.duration,
     };
   }
 
   // reduce size, keep only used data
-  driveEvents = driveEvents.filter((ev) => ['engage', 'event', 'alert', 'overriding'].includes(ev.type) && ev.data);
-  driveEvents = driveEvents.map((ev) => ({
+  res = res.map((ev) => ({
     type: ev.type,
     route_offset_millis: ev.route_offset_millis,
     data: {
-      event_type: ev.data.event_type,
       state: ev.data.state,
+      event_type: ev.data.event_type,
       alertStatus: ev.data.alertStatus,
       end_route_offset_millis: ev.data.end_route_offset_millis,
     },
   }));
 
-  return driveEvents;
+  return res;
 }
 
 export function fetchEvents(route) {
