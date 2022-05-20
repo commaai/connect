@@ -283,12 +283,12 @@ export function getSegmentFetchRange(state) {
   }
   if (state.zoom.end < state.filter.start) {
     return {
-      start: state.zoom.start - 60000,
-      end: state.zoom.end + 60000,
+      start: state.zoom.start - 14400000,
+      end: state.zoom.end + 14400000,
     };
   }
   return {
-    start: Math.min(state.filter.start, state.zoom.start - 60000),
-    end: Math.max(state.filter.end, state.zoom.end + 60000),
+    start: Math.min(state.filter.start, state.zoom.start - 14400000),
+    end: Math.max(state.filter.end, state.zoom.end + 14400000),
   };
 }
