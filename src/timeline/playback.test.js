@@ -131,23 +131,4 @@ describe('playback', () => {
 
     expect(state.desiredPlaySpeed).toEqual(2);
   });
-
-  it('should expand start and end to fit loop', () => {
-    newNow();
-    let state = makeDefaultStruct();
-    const oldStart = state.filter.start;
-    const oldEnd = state.filter.end;
-    const newStart = oldStart - 15000;
-    const newEnd = oldEnd + 15000;
-
-    state = Playback.reducer(state, Playback.selectLoop(oldStart + 15000, 15000));
-    expect(state.filter.start).toBe(oldStart);
-    expect(state.filter.end).toBe(oldEnd);
-    state = Playback.reducer(state, Playback.selectLoop(newStart, 15000));
-    expect(state.filter.start).toBe(newStart);
-    expect(state.filter.end).toBe(oldEnd);
-    state = Playback.reducer(state, Playback.selectLoop(newStart, newEnd - newStart));
-    expect(state.filter.start).toBe(newStart);
-    expect(state.filter.end).toBe(newEnd);
-  });
 });
