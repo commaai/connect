@@ -107,6 +107,109 @@ async function expireCacheItems(store) {
   };
 }
 
+function parseEvents(route, driveEvents) {
+  // sort events
+  driveEvents.sort((a, b) => {
+    if (a.route_offset_millis === b.route_offset_millis) {
+      return a.route_offset_nanos - b.route_offset_nanos;
+    }
+    return a.route_offset_millis - b.route_offset_millis;
+  });
+
+  // create useful drive events from data
+  let res = [];
+  let currEngaged = null;
+  let currAlert = null;
+  let currOverride = null;
+  let lastEngage = null;
+  for (const ev of driveEvents) {
+    if (ev.type === 'state') {
+      if (currEngaged !== null && !ev.data.enabled) {
+        currEngaged.data.end_route_offset_millis = ev.route_offset_millis;
+        currEngaged = null;
+      }
+      if (currEngaged === null && ev.data.enabled) {
+        currEngaged = {
+          ...ev,
+          data: { ...ev.data },
+          type: 'engage',
+        };
+        res.push(currEngaged);
+      }
+
+      if (currAlert !== null && ev.data.alertStatus !== currAlert.data.alertStatus) {
+        currAlert.data.end_route_offset_millis = ev.route_offset_millis;
+        currAlert = null;
+      }
+      if (currAlert === null && ev.data.alertStatus !== 'normal') {
+        currAlert = {
+          ...ev,
+          data: { ...ev.data },
+          type: 'alert',
+        };
+        res.push(currAlert);
+      }
+
+      if (currOverride !== null && ev.data.state !== currOverride.data.state) {
+        currOverride.data.end_route_offset_millis = ev.route_offset_millis;
+        currOverride = null;
+      }
+      if (currOverride === null && ['overriding', 'preEnabled'].includes(ev.data.state)) {
+        currOverride = {
+          ...ev,
+          data: { ...ev.data },
+          type: 'overriding',
+        };
+        res.push(currOverride);
+      }
+    } else if (ev.type === 'engage') {
+      lastEngage = {
+        ...ev,
+        data: { ...ev.data },
+      };
+      res.push(lastEngage);
+    } else if (ev.type === 'disengage' && lastEngage) {
+      lastEngage.data = {
+        end_route_offset_millis: ev.route_offset_millis,
+      };
+    } else if (ev.type === 'alert') {
+      res.push(ev);
+    } else if (ev.type === 'event') {
+      res.push(ev);
+    }
+  }
+
+  // make sure events have an ending
+  if (currEngaged !== null) {
+    currEngaged.data.end_route_offset_millis = route.duration;
+  }
+  if (currAlert !== null) {
+    currAlert.data.end_route_offset_millis = route.duration;
+  }
+  if (currOverride !== null) {
+    currOverride.data.end_route_offset_millis = route.duration;
+  }
+  if (lastEngage && lastEngage.data?.end_route_offset_millis === undefined) {
+    lastEngage.data = {
+      end_route_offset_millis: route.duration,
+    };
+  }
+
+  // reduce size, keep only used data
+  res = res.map((ev) => ({
+    type: ev.type,
+    route_offset_millis: ev.route_offset_millis,
+    data: {
+      state: ev.data.state,
+      event_type: ev.data.event_type,
+      alertStatus: ev.data.alertStatus,
+      end_route_offset_millis: ev.data.end_route_offset_millis,
+    },
+  }));
+
+  return res;
+}
+
 export function fetchEvents(route) {
   return async (dispatch, getState) => {
     const state = getState();
@@ -174,40 +277,7 @@ export function fetchEvents(route) {
       }
     }
 
-    driveEvents = driveEvents.filter((ev) => ['engage', 'disengage', 'alert'].includes(ev.type));
-    driveEvents.sort((a, b) => {
-      if (a.route_offset_millis === b.route_offset_millis) {
-        return a.route_offset_nanos - b.route_offset_nanos;
-      }
-      return a.route_offset_millis - b.route_offset_millis;
-    });
-
-    let lastEngage = null;
-    for (const ev of driveEvents) {
-      if (ev.type === 'engage') {
-        lastEngage = ev;
-      } else if (ev.type === 'disengage' && lastEngage) {
-        lastEngage.data = {
-          end_route_offset_millis: ev.route_offset_millis,
-        };
-      }
-    }
-    if (lastEngage && lastEngage.data === undefined) {
-      lastEngage.data = {
-        end_route_offset_millis: route.duration,
-      };
-    }
-
-    // reduce size, keep only used data
-    driveEvents = driveEvents.filter((ev) => ['engage', 'alert'].includes(ev.type) && ev.data);
-    driveEvents = driveEvents.map((ev) => ({
-      type: ev.type,
-      route_offset_millis: ev.route_offset_millis,
-      data: {
-        alertStatus: ev.data.alertStatus,
-        end_route_offset_millis: ev.data.end_route_offset_millis,
-      },
-    }));
+    driveEvents = parseEvents(route, driveEvents);
 
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_EVENTS,
