@@ -71,12 +71,6 @@ export function reducer(_state, action) {
           duration: action.duration,
         }
       };
-      if (action.duration > 0 && action.startTime > 0) {
-        state.filter = {
-          start: Math.min(action.startTime, state.filter.start),
-          end: Math.max(action.startTime + action.duration, state.filter.end),
-        }
-      }
       break;
     case Types.ACTION_BUFFER_VIDEO:
       state = {
