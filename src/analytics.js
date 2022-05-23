@@ -132,7 +132,7 @@ function log_action(action, prevState, state) {
 
   case Types.ACTION_STARTUP_DATA:
     gtag('set', {
-      user_id: state.profile.user_id,
+      user_id: state.profile?.user_id,
       user_properties: {
         superuser: state.profile?.superuser,
         has_prime: state.profile?.prime,
