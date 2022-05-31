@@ -64,13 +64,14 @@ export function reducer(_state, action) {
       }
       break;
     case Types.ACTION_LOOP:
-      state = {
-        ...state,
-        loop: {
-          startTime: action.startTime,
-          duration: action.duration,
+      if (action.start && action.end) {
+        state.loop = {
+          startTime: action.start,
+          duration: action.end - action.start,
         }
-      };
+      } else {
+        state.loop = null;
+      }
       break;
     case Types.ACTION_BUFFER_VIDEO:
       state = {
@@ -136,11 +137,11 @@ export function play(speed = 1) {
   };
 }
 
-export function selectLoop(startTime, duration) {
+export function selectLoop(start, end) {
   return {
     type: Types.ACTION_LOOP,
-    startTime,
-    duration
+    start,
+    end,
   };
 }
 

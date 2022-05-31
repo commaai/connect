@@ -91,6 +91,22 @@ const styles = () => ({
     pointerEvents: 'none',
     width: '100%',
   },
+  loopStart: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRight: '1px solid rgba(0, 0, 0, 0.8)',
+    position: 'absolute',
+    left: 0,
+    height: 44,
+    pointerEvents: 'none',
+  },
+  loopEnd: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderLeft: '1px solid rgba(0, 0, 0, 0.8)',
+    position: 'absolute',
+    right: 0,
+    height: 44,
+    pointerEvents: 'none',
+  },
   dragHighlight: {
     pointerEvents: 'none',
     background: 'rgba(255, 255, 255, 0.1)',
@@ -334,7 +350,7 @@ class Timeline extends Component {
   }
 
   render() {
-    const { classes, hasRuler, filter, className, segments, thumbnailsVisible } = this.props;
+    const { classes, hasRuler, filter, className, segments, zoom, loop, thumbnailsVisible } = this.props;
     const { thumbnail, hoverX, dragging } = this.state;
 
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
@@ -342,6 +358,15 @@ class Timeline extends Component {
     let rulerBounds;
     if (this.rulerRef.current) {
       rulerBounds = this.rulerRef.current.getBoundingClientRect();
+    }
+
+    let loopStartPercent = null;
+    if (loop && zoom && loop.startTime > zoom.start) {
+      loopStartPercent = ((loop.startTime - zoom.start) / (zoom.end - zoom.start)) * 100.0;
+    }
+    let loopEndPercent = null;
+    if (loop && zoom && loop.startTime + loop.duration < zoom.end) {
+      loopEndPercent = ((zoom.end - loop.startTime - loop.duration) / (zoom.end - zoom.start)) * 100.0;
     }
 
     let hoverString, hoverStyle;
@@ -387,6 +412,8 @@ class Timeline extends Component {
             <div ref={ this.rulerRef } className={classes.ruler} onPointerDown={this.handlePointerDown}
               onPointerUp={this.handlePointerUp} onPointerMove={this.handlePointerMove} onPointerLeave={this.handlePointerLeave}
               onClick={this.handleClick} >
+              { loopStartPercent && <div className={ classes.loopStart } style={{ width: `${loopStartPercent}%` }} /> }
+              { loopEndPercent && <div className={ classes.loopEnd } style={{ width: `${loopEndPercent}%` }} /> }
               <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
               { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
             </div>
@@ -404,6 +431,7 @@ class Timeline extends Component {
 
 const stateToProps = Obstruction({
   zoom: 'zoom',
+  loop: 'loop',
   filter: 'filter',
   segments: 'segments',
 });

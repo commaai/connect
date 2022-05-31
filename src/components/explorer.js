@@ -79,16 +79,16 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, dongleId, expanded } = this.props;
+    const { pathname, dongleId, zoom } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
     }
 
-    if (!prevProps.expanded && expanded) {
+    if (!prevProps.zoom && zoom) {
       this.props.dispatch(play());
     }
-    if (prevProps.expanded && !expanded) {
+    if (prevProps.zoom && !zoom) {
       this.props.dispatch(pause());
     }
   }
@@ -167,7 +167,7 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, expanded, devices, dongleId } = this.props;
+    const { classes, zoom, devices, dongleId } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices && devices.length === 0 && !dongleId);
@@ -195,14 +195,14 @@ class ExplorerApp extends Component {
     return (
       <div className={classes.base}>
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
-        <AppHeader drawerIsOpen={ drawerIsOpen } annotating={ expanded } showDrawerButton={ !isLarge }
+        <AppHeader drawerIsOpen={ drawerIsOpen } annotating={ Boolean(zoom) } showDrawerButton={ !isLarge }
           handleDrawerStateChanged={this.handleDrawerStateChanged} forwardRef={ this.updateHeaderRef } />
         <AppDrawer drawerIsOpen={ drawerIsOpen } isPermanent={ isLarge } width={ sidebarWidth }
           handleDrawerStateChanged={this.handleDrawerStateChanged} style={ drawerStyles } />
         <div className={ classes.window } style={ containerStyles }>
           { noDevicesUpsell ?
             <NoDeviceUpsell /> :
-            (expanded ? <DriveView /> : <Dashboard />) }
+            (zoom ? <DriveView /> : <Dashboard />) }
         </div>
         <IosPwaPopup />
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -226,14 +226,8 @@ class ExplorerApp extends Component {
   }
 }
 
-ExplorerApp.propTypes = {
-  expanded: PropTypes.bool.isRequired,
-  dispatch: PropTypes.func.isRequired,
-  classes: PropTypes.object.isRequired
-};
-
 const stateToProps = Obstruction({
-  expanded: 'zoom.expanded',
+  zoom: 'zoom',
   pathname: 'router.location.pathname',
   dongleId: 'dongleId',
   devices: 'devices',

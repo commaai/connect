@@ -22,16 +22,13 @@ function getDefaultLoop(pathname) {
   // this makes it so that the timespan can change without this changing
   // thats helpful to shared links and other things probably...
   const zoom = getZoom(pathname);
-  if (zoom.expanded) {
+  if (zoom) {
     return {
       startTime: zoom.start,
       duration: zoom.end - zoom.start,
     };
   }
-  return {
-    startTime: null,
-    duration: null,
-  }
+  return null;
 }
 
 export default {

@@ -206,10 +206,10 @@ class TimeDisplay extends Component {
   }
 
   render() {
-    const { classes } = this.props;
-    const isPaused = this.props.desiredPlaySpeed === 0;
-    const isExpandedCls = this.props.expanded ? 'isExpanded' : '';
-    const isThinCls = this.props.isThin ? 'isThin' : '';
+    const { classes, zoom, desiredPlaySpeed, isThin } = this.props;
+    const isPaused = desiredPlaySpeed === 0;
+    const isExpandedCls = zoom ? 'isExpanded' : '';
+    const isThinCls = isThin ? 'isThin' : '';
     return (
       <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
         <div className={ classes.iconBox }>
@@ -260,7 +260,7 @@ class TimeDisplay extends Component {
 
 const stateToProps = Obstruction({
   currentSegment: 'currentSegment',
-  expanded: 'zoom.expanded',
+  zoom: 'zoom',
   desiredPlaySpeed: 'desiredPlaySpeed',
   filter: 'filter',
 });

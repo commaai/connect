@@ -15,7 +15,7 @@ function getPageViewEventLocation(pathname) {
     page_location = page_location.replace(dongleId, '<dongleId>');
   }
   const zoom = getZoom(page_location);
-  if (zoom.expanded) {
+  if (zoom) {
     page_location = page_location.replace(zoom.start.toString(), '<zoomStart>');
     page_location = page_location.replace(zoom.end.toString(), '<zoomEnd>');
   }
@@ -118,7 +118,7 @@ function log_action(action, prevState, state) {
     return;
 
   case Types.TIMELINE_SELECTION_CHANGED:
-    if (!prevState.zoom.expanded && state.zoom.expanded) {
+    if (!prevState.zoom && state.zoom) {
       params = {
         ...params,
         start: state.zoom.start,
@@ -203,7 +203,7 @@ function log_action(action, prevState, state) {
     return;
 
   case Types.ACTION_SEEK:
-    if (state.zoom?.expanded) {
+    if (state.zoom) {
       percent = getVideoPercent(state);
       gtag('event', 'video_seek', {
         ...params,
@@ -215,7 +215,7 @@ function log_action(action, prevState, state) {
     return;
 
   case Types.ACTION_PAUSE:
-    if (state.zoom?.expanded) {
+    if (state.zoom) {
       percent = getVideoPercent(state);
       gtag('event', 'video_pause', {
         ...params,
@@ -227,7 +227,7 @@ function log_action(action, prevState, state) {
     return;
 
   case Types.ACTION_PLAY:
-    if (state.zoom?.expanded) {
+    if (state.zoom) {
       percent = getVideoPercent(state);
       gtag('event', 'video_play', {
         ...params,
@@ -239,7 +239,7 @@ function log_action(action, prevState, state) {
     return;
 
   case Types.ACTION_LOOP:
-    if (state.currentSegment && state.loop?.duration !== 0 && state.zoom?.expanded) {
+    if (state.currentSegment && state.zoom && state.loop?.duration !== 0) {
       percent = state.loop && state.currentSegment ? state.loop.duration / state.currentSegment.duration : undefined;
       gtag('event', 'video_loop', {
         ...params,

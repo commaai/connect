@@ -17,7 +17,7 @@ let segmentsRequest = null;
 export function selectRange(start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
-    if (state.zoom.start !== start || state.zoom.end !== end) {
+    if (state.zoom?.start !== start || state.zoom?.end !== end) {
       dispatch({
         type: Types.TIMELINE_SELECTION_CHANGED,
         start,
@@ -27,13 +27,11 @@ export function selectRange(start, end, allowPathChange = true) {
 
     dispatch(checkSegmentMetadata());
 
-    if (!state.loop.startTime
-      || !state.loop.duration
-      || state.loop.startTime < start
-      || state.loop.startTime + state.loop.duration > end
-      || state.loop.duration < end - start) {
+    if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start ||
+      state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start)
+    {
       dispatch(resetPlayback());
-      dispatch(selectLoop(start, end - start));
+      dispatch(selectLoop(start, end));
     }
 
     if (allowPathChange) {

@@ -278,7 +278,7 @@ export function hasSegmentMetadata(state) {
 }
 
 export function getSegmentFetchRange(state) {
-  if (!state.zoom || !state.zoom.expanded) {
+  if (!state.zoom) {
     return state.filter;
   }
   if (state.zoom.end < state.filter.start) {

@@ -82,7 +82,7 @@ describe('playback', () => {
 
     // set up loop
     state = Playback.reducer(state, Playback.play());
-    state = Playback.reducer(state, Playback.selectLoop(state.filter.start + 1000, 1000));
+    state = Playback.reducer(state, Playback.selectLoop(state.filter.start + 1000, state.filter.start + 2000));
     expect(state.loop.startTime).toEqual(state.filter.start + 1000);
 
     // seek past loop end boundary a
@@ -97,7 +97,7 @@ describe('playback', () => {
 
     // set up loop
     state = Playback.reducer(state, Playback.play());
-    state = Playback.reducer(state, Playback.selectLoop(state.filter.start + 1000, 1000));
+    state = Playback.reducer(state, Playback.selectLoop(state.filter.start + 1000, state.filter.start + 2000));
     expect(state.loop.startTime).toEqual(state.filter.start + 1000);
 
     // seek past loop end boundary a

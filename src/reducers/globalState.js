@@ -224,11 +224,7 @@ export default function reducer(_state, action) {
         primeNav: action.primeNav,
       };
       if (action.primeNav) {
-        state.zoom = {
-          start: null,
-          end: null,
-          expanded: false,
-        };
+        state.zoom = null;
       }
       break;
     case ACTION_PRIME_SUBSCRIPTION:
@@ -252,16 +248,17 @@ export default function reducer(_state, action) {
       };
       break;
     case TIMELINE_SELECTION_CHANGED:
-      if (!state.zoom.expanded || !action.start || !action.end ||
-        action.start < state.zoom.start || action.end > state.zoom.end)
-      {
+      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }
-      state.zoom = {
-        start: action.start,
-        end: action.end,
-        expanded: Boolean(action.start && action.end),
-      };
+      if (action.start && action.end) {
+        state.zoom = {
+          start: action.start,
+          end: action.end,
+        };
+      } else {
+        state.zoom = null;
+      }
       break;
     case ACTION_FILES_URLS:
       state.files = {

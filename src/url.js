@@ -19,14 +19,9 @@ export function getZoom(pathname) {
     return {
       start: Number(parts[1]),
       end: Number(parts[2]),
-      expanded: true,
     };
   }
-  return {
-    start: null,
-    end: null,
-    expanded: false,
-  };
+  return null;
 }
 
 export function getPrimeNav(pathname) {
