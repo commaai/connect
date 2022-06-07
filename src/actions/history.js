@@ -14,8 +14,8 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
     }
 
     const pathZoom = getZoom(action.payload.location.pathname);
-    if (pathZoom && pathZoom !== state.zoom) {
-      dispatch(selectRange(pathZoom.start, pathZoom.end, false));
+    if (pathZoom !== state.zoom) {
+      dispatch(selectRange(pathZoom?.start, pathZoom?.end, false));
     }
 
     const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
