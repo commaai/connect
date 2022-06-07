@@ -50,7 +50,7 @@ async function getCacheDB() {
   });
 }
 
-async function getCacheItem(store, key) {
+async function getCacheItem(store, key, version=undefined) {
   if (!hasExpired) {
     setTimeout(() => expireCacheItems(store), 5000);  // TODO: better expire time
     hasExpired = true;
@@ -66,20 +66,28 @@ async function getCacheItem(store, key) {
 
   return new Promise((resolve, reject) => {
     req.onsuccess = (ev) => {
-      resolve(ev.target.result !== undefined ? ev.target.result.data : null);
+      if (ev.target.result !== undefined && (version === undefined || ev.target.result.version >= version)) {
+        resolve(ev.target.result.data);
+      } else {
+        resolve(null);
+      }
     };
     req.onerror = (ev) => reject(ev.target.error);
   })
 }
 
-async function setCacheItem(store, key, expiry, data) {
+async function setCacheItem(store, key, expiry, data, version=undefined) {
   const db = await getCacheDB();
   if (!db) {
     return null;
   }
 
   const transaction = db.transaction([store], 'readwrite');
-  const req = transaction.objectStore(store).add({ key, expiry, data });
+  const val = { key, expiry, data };
+  if (version !== undefined) {
+    val.version = version;
+  }
+  const req = transaction.objectStore(store).put(val);
 
   return new Promise((resolve, reject) => {
     req.onsuccess = (ev) => resolve(ev.target.result);
@@ -242,7 +250,7 @@ export function fetchEvents(route) {
     eventsRequests[route.route] = new Promise((resolve) => { resolveEvents = resolve; });
 
     // in cache?
-    const cacheEvents = await getCacheItem('events', route.route);
+    const cacheEvents = await getCacheItem('events', route.route, route.segments);
     if (cacheEvents !== null) {
       dispatch({
         type: Types.ACTION_UPDATE_ROUTE_EVENTS,
@@ -285,7 +293,7 @@ export function fetchEvents(route) {
       events: driveEvents,
     });
     resolveEvents(driveEvents);
-    setCacheItem('events', route.route, parseInt(Date.now()/1000) + (86400*14), driveEvents);
+    setCacheItem('events', route.route, parseInt(Date.now()/1000) + (86400*14), driveEvents, route.segments);
   }
 }
 
@@ -394,7 +402,7 @@ export function fetchDriveCoords(route) {
     driveCoordsRequests[route.route] = new Promise((resolve) => { resolveDriveCoords = resolve; });
 
     // in cache?
-    const cacheDriveCoords = await getCacheItem('driveCoords', route.route);
+    const cacheDriveCoords = await getCacheItem('driveCoords', route.route, route.segments);
     if (cacheDriveCoords !== null) {
       dispatch({
         type: Types.ACTION_UPDATE_ROUTE_DRIVE_COORDS,
@@ -441,6 +449,6 @@ export function fetchDriveCoords(route) {
       driveCoords,
     });
     resolveDriveCoords(driveCoords);
-    setCacheItem('driveCoords', route.route, parseInt(Date.now()/1000) + (86400*14), driveCoords);
+    setCacheItem('driveCoords', route.route, parseInt(Date.now()/1000) + (86400*14), driveCoords, route.segments);
   }
 }
