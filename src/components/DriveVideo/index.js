@@ -54,6 +54,7 @@ class DriveVideo extends Component {
     this.visibleSegment = this.visibleSegment.bind(this);
     this.isVideoBuffering = this.isVideoBuffering.bind(this);
     this.syncVideo = debounce(this.syncVideo.bind(this), 500);
+    this.firstSeek = true;
 
     this.videoPlayer = React.createRef();
 
@@ -122,6 +123,11 @@ class DriveVideo extends Component {
     const videoPlayer = this.videoPlayer.current;
     if (!videoPlayer || !this.visibleSegment() || !videoPlayer.getDuration()) {
       this.props.dispatch(bufferVideo(true));
+    }
+
+    if (this.firstSeek) {
+      this.firstSeek = false;
+      videoPlayer.seekTo(this.currentVideoTime(), 'seconds');
     }
 
     const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() > 30;
