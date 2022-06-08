@@ -39,7 +39,7 @@ export default {
 
   currentSegment: null,
   desiredPlaySpeed: 1, // speed set by user
-  isBufferingVideo: false, // if we're currently buffering for more data
+  isBufferingVideo: true, // if we're currently buffering for more data
   offset: 0, // in miliseconds, relative to `state.filter.start`
   startTime: Date.now(), // millisecond timestamp in which play began
 

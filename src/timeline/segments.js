@@ -29,7 +29,7 @@ function currentOffset(state) {
 
 export function getCurrentSegment(state, o) {
   const offset = o === undefined ? currentOffset(state) : o;
-  if (!state.segments) {
+  if (!state.segments || !offset) {
     return null;
   }
 

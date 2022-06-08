@@ -85,7 +85,7 @@ export function reducer(_state, action) {
       state = {
         ...state,
         desiredPlaySpeed: 1,
-        isBufferingVideo: false,
+        isBufferingVideo: true,
         offset: 0,
         startTime: Date.now(),
       };

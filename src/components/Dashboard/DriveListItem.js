@@ -98,7 +98,7 @@ class DriveListDrive extends Component {
     const { drive, classes, windowWidth } = this.props;
 
     const small = windowWidth < 640;
-    const startTs = drive.startTime - 1000;
+    const startTs = drive.startTime;
     const endTs = drive.startTime + drive.duration + 1000;
     const startTime = fecha.format(new Date(drive.startTime), 'HH:mm');
     const startDate = fecha.format(new Date(drive.startTime), small ? 'ddd, MMM D' : 'dddd, MMM D');
