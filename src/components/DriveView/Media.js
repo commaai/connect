@@ -22,6 +22,7 @@ import { analyticsEvent } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles } from '../../actions/files';
+import { clipInit } from '../../actions/clip';
 
 const styles = (theme) => ({
   root: {
@@ -547,6 +548,10 @@ class Media extends Component {
             </div>
           }
           <div className={classes.mediaOptions}>
+            <div className={classes.mediaOption} aria-haspopup="true"
+              onClick={ () => this.props.dispatch(clipInit()) }>
+              <Typography className={classes.mediaOptionText}>Create clip</Typography>
+            </div>
             <div className={classes.mediaOption} aria-haspopup="true"
               onClick={ (ev) => this.setState({ downloadMenu: ev.target }) }>
               <Typography className={classes.mediaOptionText}>Files</Typography>
