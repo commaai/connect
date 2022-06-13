@@ -310,14 +310,8 @@ class Timeline extends Component {
     document.addEventListener('pointermove', this.clipDragMove);
     this.setState({ clip: {
       type,
-      initLoop: {
-        start: loop.startTime,
-        end: loop.startTime + loop.duration,
-      },
-      loop: {
-        start: loop.startTime,
-        end: loop.startTime + loop.duration,
-      },
+      initLoop: { ...loop },
+      loop: { ...loop },
       startX: ev.pageX,
     } });
   }
@@ -326,16 +320,24 @@ class Timeline extends Component {
     const { zoom } = this.props;
     const { clip } = this.state;
 
-    const newLoop = { ...clip.loop };
     const rulerWidth = this.rulerRef.current.getBoundingClientRect().width;
     const changePercentage = (ev.pageX - clip.startX) / rulerWidth;
-    newLoop[clip.type] = clip.initLoop[clip.type] + ((zoom.end - zoom.start) * changePercentage);
+
+    let newStart, newEnd;
     if (clip.type === 'start') {
-      newLoop.start = Math.min(Math.max(newLoop.start, zoom.start), newLoop.end - 5000);
+      newEnd = clip.initLoop.startTime + clip.initLoop.duration;
+      newStart = clip.initLoop.startTime + ((zoom.end - zoom.start) * changePercentage);
+      newStart = Math.min(Math.max(newStart, zoom.start), newEnd - 5000);
     } else if (clip.type === 'end') {
-      newLoop.end = Math.max(Math.min(newLoop.end, zoom.end), newLoop.start + 5000);
+      newStart = clip.initLoop.startTime;
+      newEnd = clip.initLoop.startTime + clip.initLoop.duration + ((zoom.end - zoom.start) * changePercentage);
+      newEnd = Math.max(Math.min(newEnd, zoom.end), newStart + 5000);
     }
-    return newLoop;
+
+    return {
+      startTime: newStart,
+      duration: newEnd - newStart,
+    };
   }
 
   clipDragMove(ev) {
@@ -353,7 +355,7 @@ class Timeline extends Component {
     document.removeEventListener('pointermove', this.clipDragEnd);
     if (this.state.clip) {
       const newLoop = this.clipDragGetNewLoop(ev);
-      this.props.dispatch(selectLoop(newLoop.start, newLoop.end));
+      this.props.dispatch(selectLoop(newLoop.startTime, newLoop.startTime + newLoop.duration));
       this.setState({ clip: null });
     }
   }
@@ -443,11 +445,11 @@ class Timeline extends Component {
     const { classes, zoom, loop } = this.props;
     const { clip } = this.state;
 
-    const showLoop = clip ? clip.loop : { start: loop.startTime, end: loop.startTime + loop.duration };
+    const showLoop = clip ? clip.loop : loop;
 
-    const loopStartPercent = ((showLoop.start - zoom.start) / (zoom.end - zoom.start)) * 100.0;
-    const loopEndPercent = ((zoom.end - showLoop.end) / (zoom.end - zoom.start)) * 100.0;
-    const loopDurationPercent = ((showLoop.end - showLoop.start) / (zoom.end - zoom.start)) * 100.0;
+    const loopStartPercent = ((showLoop.startTime - zoom.start) / (zoom.end - zoom.start)) * 100.0;
+    const loopEndPercent = ((zoom.end - showLoop.startTime - showLoop.duration) / (zoom.end - zoom.start)) * 100.0;
+    const loopDurationPercent = (showLoop.duration / (zoom.end - zoom.start)) * 100.0;
 
     const dragBorderStyle = {
       left: `calc(${loopStartPercent}% - 12px)`,
