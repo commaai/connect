@@ -66,7 +66,7 @@ const styles = () => ({
     }
   },
   thumbnails: {
-    height: 24,
+    height: 20,
     width: '100%',
     overflow: 'hidden',
     whiteSpace: 'nowrap',

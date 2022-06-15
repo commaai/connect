@@ -5,7 +5,7 @@ export default function Thumbnails(props) {
   const imgStyles = {
     display: 'inline-block',
     height: thumbnail.height,
-    width: (1164 / 874) * thumbnail.height,
+    width: (128/80) * thumbnail.height,
   };
   const imgCount = Math.ceil(thumbnail.width / imgStyles.width);
 
@@ -82,10 +82,10 @@ export default function Thumbnails(props) {
       <div key={i} className="thumbnailImage images" style={{
         ...imgStyles,
         width: imgStyles.width * data.length,
-        backgroundSize: `auto ${imgStyles.height}px`,
+        backgroundSize: `auto ${imgStyles.height*1.2}px`,
         backgroundRepeat: 'repeat-x',
         backgroundImage: `url(${data.url})`,
-        backgroundPositionX: `-${data.startImage * imgStyles.width}px`
+        backgroundPositionX: `-${data.startImage * imgStyles.width}px`,
       }} />
   );
 }
