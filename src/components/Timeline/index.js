@@ -137,25 +137,25 @@ const styles = () => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    cursor: 'pointer',
   },
   clipDragHandle: {
     backgroundColor: Colors.white,
     width: 3,
     height: 24,
     borderRadius: 1.5,
-    cursor: 'pointer',
   },
   clipDragBorderTop: {
     backgroundColor: Colors.black,
     height: 3,
-    top: 33,
+    top: 29,
     position: 'absolute',
     borderRadius: '3px 3px 0 0',
   },
   clipDragBorderBottom: {
     backgroundColor: Colors.black,
     height: 3,
-    top: 80,
+    top: 76,
     position: 'absolute',
     borderRadius: '0 0 3px 3px',
   }

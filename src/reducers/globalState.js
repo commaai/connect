@@ -1,6 +1,7 @@
 import * as Types from '../actions/types';
 import { emptyDevice } from '../utils';
 
+
 function populateFetchedAt(d) {
   return {
     ...d,
@@ -278,14 +279,40 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_CLIP_EXIT:
-      state.clip = null;
+    case Types.ACTION_CLIP_BACK:
+      if (!state.clip.state || state.clip.state === 'create') {
+        state.clip = null;
+        if (state.zoom) {
+          state.loop = {
+            startTime: state.zoom.start,
+            duration: state.zoom.end - state.zoom.start,
+          };
+        } else {
+          state.loop = null;
+        }
+      } else if (state.clip?.state === 'upload') {
+        state.clip = {
+          ...state.clip,
+          state: 'create',
+        };
+      }
       break;
     case Types.ACTION_CLIP_INIT:
       state.clip = {
+        state: 'create',
         dongleId: action.dongleId,
+        route: action.route,
       };
       break;
+    case Types.ACTION_CLIP_CREATE:
+      state.clip = {
+        ...state.clip,
+        state: 'upload',
+        start_time: action.start_time,
+        end_time: action.end_time,
+        video_type: action.video_type,
+        label: action.label,
+      };
     default:
       return state;
   }
