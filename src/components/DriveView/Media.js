@@ -2,13 +2,11 @@ import React, { Component } from 'react';
 import qs from 'query-string';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import * as Sentry from '@sentry/react';
 
 import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper } from '@material-ui/core';
 import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
-import { raw as RawApi, athena as AthenaApi } from '@commaai/comma-api';
 
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
@@ -18,11 +16,11 @@ import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
 import { currentOffset } from '../../timeline/playback';
 import Colors from '../../colors';
-import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils';
-import { updateDeviceOnline, analyticsEvent } from '../../actions';
+import { deviceIsOnline, deviceOnCellular } from '../../utils';
+import { analyticsEvent } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
-import { fetchFiles, fetchUploadQueue, fetchAthenaQueue, updateFiles } from '../../actions/files';
+import { fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles } from '../../actions/files';
 
 const styles = (theme) => ({
   root: {
@@ -229,9 +227,6 @@ class Media extends Component {
     this.currentSegmentNum = this.currentSegmentNum.bind(this);
     this.uploadFile = this.uploadFile.bind(this);
     this.uploadFilesAll = this.uploadFilesAll.bind(this);
-    this.fetchUploadUrls = this.fetchUploadUrls.bind(this);
-    this.doUpload = this.doUpload.bind(this);
-    this.athenaCall = this.athenaCall.bind(this);
     this.getUploadStats = this.getUploadStats.bind(this);
     this._uploadStats = this._uploadStats.bind(this);
     this.downloadFile = this.downloadFile.bind(this);
@@ -342,38 +337,6 @@ class Media extends Component {
       .map((route) => route.route);
   }
 
-  async athenaCall(payload, sentry_fingerprint, retryCount = 0) {
-    const { dongleId } = this.props;
-    try {
-      while (this.openRequests > MAX_OPEN_REQUESTS) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      }
-      this.openRequests += 1;
-      const resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
-      this.openRequests -= 1;
-      if (dongleId === this.props.dongleId) {
-        return resp;
-      }
-    } catch(err) {
-      this.openRequests -= 1;
-      if (!err.resp && retryCount < MAX_RETRIES) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        return await this.athenaCall(payload, sentry_fingerprint, retryCount + 1);
-      }
-      if (dongleId === this.props.dongleId) {
-        if (err.message && (err.message.indexOf('Timed out') === -1 ||
-          err.message.indexOf('Device not registered') === -1))
-        {
-          this.props.dispatch(updateDeviceOnline(dongleId, 0));
-        } else {
-          console.log(err);
-          Sentry.captureException(err, { fingerprint: sentry_fingerprint });
-        }
-        return { error: err.message };
-      }
-    }
-  }
-
   async uploadFile(type) {
     const { dongleId, currentSegment } = this.props;
     if (!currentSegment) {
@@ -392,9 +355,9 @@ class Media extends Component {
     uploading[fileName] = { requested: true };
     this.props.dispatch(updateFiles(uploading));
 
-    const urls = await this.fetchUploadUrls(dongleId, [path]);
+    const urls = await fetchUploadUrls(dongleId, [path]);
     if (urls) {
-      this.doUpload(dongleId, [fileName], [path], urls);
+      this.props.dispatch(doUpload(dongleId, [fileName], [path], urls));
     }
   }
 
@@ -435,102 +398,9 @@ class Media extends Component {
       return `${seg.split('|')[1]}/${FILE_NAMES[type]}`;
     });
 
-    const urls = await this.fetchUploadUrls(dongleId, paths);
+    const urls = await fetchUploadUrls(dongleId, paths);
     if (urls) {
-      this.doUpload(dongleId, Object.keys(uploading), paths, urls);
-    }
-  }
-
-  async fetchUploadUrls(dongleId, paths) {
-    try {
-      const resp = await RawApi.getUploadUrls(dongleId, paths, 7);
-      if (resp && !resp.error) {
-        return resp.map((r) => r.url);
-      }
-    } catch (err) {
-      console.log(err);
-      Sentry.captureException(err, { fingerprint: 'media_upload_geturls' });
-    }
-  }
-
-  async doUpload(dongleId, fileNames, paths, urls) {
-    let loopedUploads = !deviceVersionAtLeast(this.props.device, "0.8.13");
-    if (!loopedUploads) {
-      const files_data = paths.map((path, i) => {
-        return {
-          fn: path,
-          url: urls[i],
-          headers: { "x-ms-blob-type": "BlockBlob" },
-          allow_cellular: false,
-        };
-      });
-      const payload = {
-        id: 0,
-        jsonrpc: "2.0",
-        method: "uploadFilesToUrls",
-        params: { files_data },
-        expiry: parseInt(Date.now()/1000) + (86400*7),
-      };
-      const resp = await this.athenaCall(payload, 'media_athena_uploads');
-      if (resp && resp.error && resp.error.code === -32000 &&
-        resp.error.data.message === 'too many values to unpack (expected 3)')
-      {
-        loopedUploads = true;
-      } else if (!resp || resp.error) {
-        const newUploading = {};
-        for (const fileName of fileNames) {
-          newUploading[fileName] = {};
-        }
-        this.props.dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
-        this.props.dispatch(updateFiles(newUploading));
-      } else if (resp.result === 'Device offline, message queued') {
-        const newUploading = {};
-        for (const fileName of fileNames) {
-          newUploading[fileName] = { progress: 0, current: false };
-        }
-        this.props.dispatch(updateFiles(newUploading));
-      } else if (resp.result) {
-        if (resp.result.failed) {
-          const uploading = {};
-          for (const path of resp.result.failed) {
-            const idx = paths.indexOf(path);
-            if (idx !== -1) {
-              uploading[fileNames[idx]] = { notFound: true };
-            }
-          }
-          this.props.dispatch(updateFiles(uploading));
-        }
-        this.props.dispatch(fetchUploadQueue(dongleId));
-      }
-    }
-
-    if (loopedUploads) {
-      for (let i=0; i<fileNames.length; i++) {
-        const payload = {
-          id: 0,
-          jsonrpc: "2.0",
-          method: "uploadFileToUrl",
-          params: [paths[i], urls[i], { "x-ms-blob-type": "BlockBlob" }],
-          expiry: parseInt(Date.now()/1000) + (86400*7),
-        };
-        const resp = await this.athenaCall(payload, 'media_athena_upload');
-        if (!resp || resp.error) {
-          const uploading = {};
-          uploading[fileNames[i]] = {};
-          this.props.dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
-          this.props.dispatch(updateFiles(uploading));
-        } else if (resp.result === 'Device offline, message queued') {
-          const uploading = {};
-          uploading[fileNames[i]] = { progress: 0, current: false };
-          this.props.dispatch(updateFiles(uploading));
-        } else if (resp.result === 404 || (resp.result && resp.result.failed && resp.result.failed[0] === paths[i])) {
-          const uploading = {};
-          uploading[fileNames[i]] = { notFound: true };
-          this.props.dispatch(updateFiles(uploading));
-        } else if (resp.result) {
-          this.props.dispatch(fetchUploadQueue(dongleId));
-        }
-      }
+      this.props.dispatch(doUpload(dongleId, Object.keys(uploading), paths, urls));
     }
   }
 

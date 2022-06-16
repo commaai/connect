@@ -3,7 +3,7 @@ import { raw as RawApi, athena as AthenaApi, devices as DevicesApi } from '@comm
 
 import { updateDeviceOnline, fetchDeviceNetworkStatus } from './';
 import * as Types from './types';
-import { deviceOnCellular, getDeviceFromState } from '../utils';
+import { deviceOnCellular, getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
 const demoLogUrls = require('../demo/logUrls.json');
 const demoFiles = require('../demo/files.json');
@@ -53,6 +53,106 @@ async function athenaCall(dongleId, payload, sentry_fingerprint, retryCount = 0)
       return { error: err.message };
     }
   }
+}
+
+export async function fetchUploadUrls(dongleId, paths) {
+  try {
+    const resp = await RawApi.getUploadUrls(dongleId, paths, 7);
+    if (resp && !resp.error) {
+      return resp.map((r) => r.url);
+    }
+  } catch (err) {
+    console.log(err);
+    Sentry.captureException(err, { fingerprint: 'action_files_upload_geturls' });
+  }
+}
+
+export function doUpload(dongleId, fileNames, paths, urls) {
+  return async (dispatch, getState) => {
+    const { device } = getState();
+    let loopedUploads = !deviceVersionAtLeast(device, "0.8.13");
+    if (!loopedUploads) {
+      const files_data = paths.map((path, i) => {
+        return {
+          fn: path,
+          url: urls[i],
+          headers: { "x-ms-blob-type": "BlockBlob" },
+          allow_cellular: false,
+        };
+      });
+      const payload = {
+        id: 0,
+        jsonrpc: "2.0",
+        method: "uploadFilesToUrls",
+        params: { files_data },
+        expiry: parseInt(Date.now()/1000) + (86400*7),
+      };
+      const resp = await athenaCall(dongleId, payload, 'action_files_athena_uploads');
+      if (resp && resp.error && resp.error.code === -32000 &&
+        resp.error.data.message === 'too many values to unpack (expected 3)')
+      {
+        loopedUploads = true;
+      } else if (!resp || resp.error) {
+        const newUploading = {};
+        for (const fileName of fileNames) {
+          newUploading[fileName] = {};
+        }
+        dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
+        dispatch(updateFiles(newUploading));
+      } else if (resp.offline) {
+        dispatch(updateDeviceOnline(dongleId, 0));
+      } else if (resp.result === 'Device offline, message queued') {
+        const newUploading = {};
+        for (const fileName of fileNames) {
+          newUploading[fileName] = { progress: 0, current: false };
+        }
+        dispatch(updateFiles(newUploading));
+      } else if (resp.result) {
+        if (resp.result.failed) {
+          const uploading = {};
+          for (const path of resp.result.failed) {
+            const idx = paths.indexOf(path);
+            if (idx !== -1) {
+              uploading[fileNames[idx]] = { notFound: true };
+            }
+          }
+          dispatch(updateFiles(uploading));
+        }
+        dispatch(fetchUploadQueue(dongleId));
+      }
+    }
+
+    if (loopedUploads) {
+      for (let i=0; i<fileNames.length; i++) {
+        const payload = {
+          id: 0,
+          jsonrpc: "2.0",
+          method: "uploadFileToUrl",
+          params: [paths[i], urls[i], { "x-ms-blob-type": "BlockBlob" }],
+          expiry: parseInt(Date.now()/1000) + (86400*7),
+        };
+        const resp = await athenaCall(dongleId, payload, 'files_actions_athena_upload');
+        if (!resp || resp.error) {
+          const uploading = {};
+          uploading[fileNames[i]] = {};
+          dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
+          dispatch(updateFiles(uploading));
+        } else if (resp.offline) {
+          dispatch(updateDeviceOnline(dongleId, 0));
+        } else if (resp.result === 'Device offline, message queued') {
+          const uploading = {};
+          uploading[fileNames[i]] = { progress: 0, current: false };
+          dispatch(updateFiles(uploading));
+        } else if (resp.result === 404 || (resp.result && resp.result.failed && resp.result.failed[0] === paths[i])) {
+          const uploading = {};
+          uploading[fileNames[i]] = { notFound: true };
+          dispatch(updateFiles(uploading));
+        } else if (resp.result) {
+          dispatch(fetchUploadQueue(dongleId));
+        }
+      }
+    }
+  };
 }
 
 export function fetchFiles(routeName, nocache=false) {
