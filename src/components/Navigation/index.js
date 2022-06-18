@@ -1,55 +1,81 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import * as Sentry from '@sentry/react';
-import debounce from 'debounce';
-import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer} from 'react-map-gl';
-import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress, Popper }
-  from '@material-ui/core';
-import { Search, Clear, Refresh } from '@material-ui/icons';
-import fecha from 'fecha';
+import React, { Component } from "react";
+import { connect } from "react-redux";
+import Obstruction from "obstruction";
+import * as Sentry from "@sentry/react";
+import debounce from "debounce";
+import ReactMapGL, {
+  GeolocateControl,
+  HTMLOverlay,
+  Marker,
+  Source,
+  WebMercatorViewport,
+  Layer,
+} from "react-map-gl";
+import {
+  withStyles,
+  TextField,
+  InputAdornment,
+  Typography,
+  Button,
+  Menu,
+  MenuItem,
+  CircularProgress,
+  Popper,
+} from "@material-ui/core";
+import { Search, Clear, Refresh } from "@material-ui/icons";
+import fecha from "fecha";
 
-import { primeNav, analyticsEvent } from '../../actions';
-import { timeFromNow } from '../../utils';
-import { devices as Devices, navigation as NavigationAPI, athena as AthenaApi } from '@commaai/comma-api';
-import Colors from '../../colors';
-import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
-import { pin_car, pin_marker, pin_home, pin_work, pin_pinned } from '../../icons';
-import ResizeHandler from '../ResizeHandler';
-import VisibilityHandler from '../VisibilityHandler';
-import * as Demo from '../../demo';
+import { primeNav, analyticsEvent } from "../../actions";
+import { timeFromNow } from "../../utils";
+import {
+  devices as Devices,
+  navigation as NavigationAPI,
+  athena as AthenaApi,
+} from "@commaai/comma-api";
+import Colors from "../../colors";
+import GeocodeApi, { MAPBOX_TOKEN } from "../../api/geocode";
+import {
+  pin_car,
+  pin_marker,
+  pin_home,
+  pin_work,
+  pin_pinned,
+} from "../../icons";
+import ResizeHandler from "../ResizeHandler";
+import VisibilityHandler from "../VisibilityHandler";
+import * as Demo from "../../demo";
 
-const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
+const MAP_STYLE = "mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w";
 const styles = () => ({
   noWrap: {
-    whiteSpace: 'nowrap',
+    whiteSpace: "nowrap",
   },
   mapContainer: {
     borderBottom: `1px solid ${Colors.white10}`,
   },
   mapError: {
-    position: 'relative',
+    position: "relative",
     marginTop: 20,
     marginLeft: 20,
-    '& p': { color: Colors.white50 },
+    "& p": { color: Colors.white50 },
   },
   geolocateControl: {
-    display: 'none',
+    display: "none",
   },
   overlay: {
     color: Colors.white,
     borderRadius: 22,
-    padding: '12px 16px',
+    padding: "12px 16px",
     border: `1px solid ${Colors.white10}`,
     backgroundColor: Colors.grey800,
-    maxHeight: 'calc(60vh - 100px)',
-    display: 'flex',
-    flexDirection: 'column',
-    outline: 'none !important',
+    maxHeight: "calc(60vh - 100px)",
+    display: "flex",
+    flexDirection: "column",
+    outline: "none !important",
   },
   overlayTextfield: {
     borderRadius: 0,
-    '& input': {
+    "& input": {
       padding: 0,
       height: 24,
     },
@@ -59,22 +85,22 @@ const styles = () => ({
   },
   overlayClearButton: {
     color: Colors.white30,
-    cursor: 'pointer',
+    cursor: "pointer",
   },
   overlaySearchResults: {
     marginTop: 3,
     paddingRight: 3,
     flexGrow: 1,
-    overflowY: 'auto',
+    overflowY: "auto",
     scrollbarColor: `${Colors.white20} transparent`,
-    '&::-webkit-scrollbar': {
-      WebkitAppearance: 'none',
+    "&::-webkit-scrollbar": {
+      WebkitAppearance: "none",
       width: 6,
     },
-    '&::-webkit-scrollbar-track': {
+    "&::-webkit-scrollbar-track": {
       width: 6,
     },
-    '&::-webkit-scrollbar-thumb': {
+    "&::-webkit-scrollbar-thumb": {
       backgroundColor: Colors.white20,
       borderRadius: 3,
     },
@@ -84,9 +110,9 @@ const styles = () => ({
     borderTop: `1px solid ${Colors.white20}`,
   },
   overlaySearchItem: {
-    cursor: 'pointer',
+    cursor: "pointer",
     marginTop: 15,
-    '&:first-child': {
+    "&:first-child": {
       marginTop: 10,
     },
   },
@@ -104,80 +130,80 @@ const styles = () => ({
   },
   searchSelectBox: {
     borderRadius: 22,
-    padding: '12px 16px',
+    padding: "12px 16px",
     border: `1px solid ${Colors.white10}`,
     backgroundColor: Colors.grey800,
     color: Colors.white,
-    display: 'flex',
-    flexDirection: 'column',
+    display: "flex",
+    flexDirection: "column",
   },
   searchSelectBoxHeader: {
-    display: 'flex',
-    width: '100%',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    display: "flex",
+    width: "100%",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 10,
   },
   searchSelectBoxTitle: {
-    flexBasis: 'auto',
+    flexBasis: "auto",
   },
   searchSelectBoxButtons: {
-    display: 'flex',
-    flexWrap: 'wrap-reverse',
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
+    display: "flex",
+    flexWrap: "wrap-reverse",
+    justifyContent: "flex-end",
+    alignItems: "flex-end",
   },
   bold: {
     fontWeight: 600,
   },
   primeAdTitle: {
-    lineHeight: '31px',
+    lineHeight: "31px",
     fontSize: 20,
     fontWeight: 600,
   },
   searchSelectButton: {
     marginLeft: 8,
-    padding: '6px 12px',
+    padding: "6px 12px",
     backgroundColor: Colors.white,
     borderRadius: 15,
     color: Colors.grey900,
-    textTransform: 'none',
-    minHeight: 'unset',
+    textTransform: "none",
+    minHeight: "unset",
     flexGrow: 1,
     maxWidth: 125,
-    '&:hover': {
-      background: '#ddd',
+    "&:hover": {
+      background: "#ddd",
       color: Colors.grey900,
     },
-    '&:disabled': {
-      background: '#ddd',
+    "&:disabled": {
+      background: "#ddd",
       color: Colors.grey900,
     },
   },
   searchSelectButtonFake: {
-    background: '#ddd',
+    background: "#ddd",
     minWidth: 81.4,
-    textAlign: 'center',
-    display: 'inline-flex',
-    justifyContent: 'center',
-    alignItems: 'center',
+    textAlign: "center",
+    display: "inline-flex",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 10,
-    '& p': {
+    "& p": {
       color: Colors.grey900,
-      lineHeight: '1.4em',
+      lineHeight: "1.4em",
       fontWeight: 500,
     },
   },
   searchSelectButtonSecondary: {
     marginLeft: 8,
-    padding: '4.5px 12px',
+    padding: "4.5px 12px",
     borderRadius: 15,
-    textTransform: 'none',
-    minHeight: 'unset',
+    textTransform: "none",
+    minHeight: "unset",
     flexGrow: 1,
     maxWidth: 125,
     border: `1.5px solid ${Colors.white50}`,
-    '&:disabled': {
+    "&:disabled": {
       border: `1.5px solid ${Colors.white20}`,
     },
   },
@@ -189,10 +215,10 @@ const styles = () => ({
     border: `1px solid ${Colors.grey700}`,
   },
   primeAdButton: {
-    padding: '6px 24px',
+    padding: "6px 24px",
     color: Colors.white,
     backgroundColor: Colors.primeBlue50,
-    '&:hover': {
+    "&:hover": {
       color: Colors.white,
       backgroundColor: Colors.primeBlue200,
     },
@@ -204,58 +230,58 @@ const styles = () => ({
   pinClick: {
     width: 22.5,
     height: 32,
-    cursor: 'pointer',
+    cursor: "pointer",
   },
   favoritePin: {
     width: 15,
     height: 24,
-    cursor: 'pointer',
+    cursor: "pointer",
   },
   carPinTooltip: {
-    textAlign: 'center',
+    textAlign: "center",
     borderRadius: 14,
-    fontSize: '0.8em',
-    padding: '6px 8px',
+    fontSize: "0.8em",
+    padding: "6px 8px",
     border: `1px solid ${Colors.white10}`,
     backgroundColor: Colors.grey800,
     color: Colors.white,
   },
   saveAsMenuItem: {
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   savedNextPopover: {
     borderRadius: 22,
-    padding: '8px 16px',
+    padding: "8px 16px",
     border: `1px solid ${Colors.white10}`,
     backgroundColor: Colors.grey800,
     marginTop: 5,
-    textAlign: 'center',
+    textAlign: "center",
     zIndex: 5,
-    '& p:first-child': {
+    "& p:first-child": {
       fontWeight: 500,
     },
   },
   researchArea: {
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 18,
-    padding: '6px 16px',
+    padding: "6px 16px",
     border: `1px solid ${Colors.white10}`,
     backgroundColor: Colors.grey800,
     color: Colors.white,
-    '&:hover': {
+    "&:hover": {
       backgroundColor: Colors.grey900,
     },
-    '& svg': {
+    "& svg": {
       marginRight: 6,
-    }
+    },
   },
   clearSearchSelect: {
     padding: 5,
     fontSize: 20,
-    cursor: 'pointer',
-    position: 'absolute',
+    cursor: "pointer",
+    position: "absolute",
     left: -6,
     top: -8,
     height: 24,
@@ -264,7 +290,7 @@ const styles = () => ({
     backgroundColor: Colors.grey900,
     color: Colors.white,
     border: `1px solid ${Colors.grey600}`,
-    '&:hover': {
+    "&:hover": {
       backgroundColor: Colors.grey700,
     },
   },
@@ -288,7 +314,7 @@ const initialState = {
   savingAs: false,
   savedAs: false,
   showPrimeAd: true,
-}
+};
 
 class Navigation extends Component {
   constructor(props) {
@@ -297,7 +323,7 @@ class Navigation extends Component {
     this.state = {
       ...initialState,
       viewport: {
-        longitude: -117.20,
+        longitude: -117.2,
         latitude: 32.73,
         zoom: 5,
       },
@@ -358,12 +384,22 @@ class Navigation extends Component {
 
   componentDidUpdate(prevProps, prevState) {
     const { dongleId, device } = this.props;
-    const { geoLocateCoords, search, carLastLocation, carNetworkLocation, searchSelect, favoriteLocations } = this.state;
+    const {
+      geoLocateCoords,
+      search,
+      carLastLocation,
+      carNetworkLocation,
+      searchSelect,
+      favoriteLocations,
+    } = this.state;
 
-    if ((carLastLocation && !prevState.carLastLocation) || (carNetworkLocation && !prevState.carNetworkLocation) ||
-      (geoLocateCoords && !prevState.geoLocateCoords) || (searchSelect && prevState.searchSelect !== searchSelect) ||
-      (search && prevState.search !== search))
-    {
+    if (
+      (carLastLocation && !prevState.carLastLocation) ||
+      (carNetworkLocation && !prevState.carNetworkLocation) ||
+      (geoLocateCoords && !prevState.geoLocateCoords) ||
+      (searchSelect && prevState.searchSelect !== searchSelect) ||
+      (search && prevState.search !== search)
+    ) {
       this.flyToMarkers();
     }
 
@@ -373,7 +409,7 @@ class Navigation extends Component {
         windowWidth: window.innerWidth,
       });
       if (this.searchInputRef.current) {
-        this.searchInputRef.current.value = '';
+        this.searchInputRef.current.value = "";
       }
     }
 
@@ -382,16 +418,20 @@ class Navigation extends Component {
     }
 
     if (!prevState.hasFocus && this.state.hasFocus) {
-      this.props.dispatch(analyticsEvent('nav_focus', {
-        has_car_location: Boolean(carLastLocation || carNetworkLocation),
-        has_favorites: Object.keys(favoriteLocations)?.length || 0,
-      }));
+      this.props.dispatch(
+        analyticsEvent("nav_focus", {
+          has_car_location: Boolean(carLastLocation || carNetworkLocation),
+          has_favorites: Object.keys(favoriteLocations)?.length || 0,
+        })
+      );
     }
 
     if (search && prevState.search !== search) {
-      this.props.dispatch(analyticsEvent('nav_search', {
-        panned: this.state.noFly || this.state.searchLooking,
-      }));
+      this.props.dispatch(
+        analyticsEvent("nav_search", {
+          panned: this.state.noFly || this.state.searchLooking,
+        })
+      );
     }
   }
 
@@ -401,9 +441,13 @@ class Navigation extends Component {
 
   checkWebGLSupport() {
     let canvas = document.createElement("canvas");
-    let gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+    let gl =
+      canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
     if (!gl || !(gl instanceof WebGLRenderingContext)) {
-      this.setState({ mapError: 'Failed to get WebGL context, your browser or device may not support WebGL.' });
+      this.setState({
+        mapError:
+          "Failed to get WebGL context, your browser or device may not support WebGL.",
+      });
     }
   }
 
@@ -425,15 +469,18 @@ class Navigation extends Component {
     try {
       const resp = await Devices.fetchLocation(dongleId);
       if (this.mounted && dongleId === this.props.dongleId) {
-        this.setState({
-          carLastLocation: [resp.lng, resp.lat],
-          carLastLocationTime: resp.time,
-        }, this.flyToMarkers);
+        this.setState(
+          {
+            carLastLocation: [resp.lng, resp.lat],
+            carLastLocationTime: resp.time,
+          },
+          this.flyToMarkers
+        );
       }
-    } catch(err) {
-      if (!err.message || err.message.indexOf('no_segments_uploaded') === -1) {
+    } catch (err) {
+      if (!err.message || err.message.indexOf("no_segments_uploaded") === -1) {
         console.log(err);
-        Sentry.captureException(err, { fingerprint: 'nav_fetch_location' });
+        Sentry.captureException(err, { fingerprint: "nav_fetch_location" });
       }
     }
   }
@@ -456,27 +503,42 @@ class Navigation extends Component {
       }
       resp = await GeocodeApi().networkPositioning(resp.result);
       if (resp && this.mounted && dongleId === this.props.dongleId) {
-        this.setState({
-          carNetworkLocation: [resp.lng, resp.lat],
-          carNetworkLocationAccuracy: resp.accuracy,
-        }, this.flyToMarkers);
+        this.setState(
+          {
+            carNetworkLocation: [resp.lng, resp.lat],
+            carNetworkLocationAccuracy: resp.accuracy,
+          },
+          this.flyToMarkers
+        );
       }
     } catch (err) {
-      if (this.mounted && dongleId === this.props.dongleId &&
-        (!err.message || err.message.indexOf('{"error": "Device not registered"}') === -1))
-      {
+      if (
+        this.mounted &&
+        dongleId === this.props.dongleId &&
+        (!err.message ||
+          err.message.indexOf('{"error": "Device not registered"}') === -1)
+      ) {
         console.log(err);
-        Sentry.captureException(err, { fingerprint: 'nav_fetch_network_location' });
+        Sentry.captureException(err, {
+          fingerprint: "nav_fetch_network_location",
+        });
       }
     }
   }
 
   getCarLocation() {
-    const { carLastLocation, carLastLocationTime, carNetworkLocation, carNetworkLocationAccuracy } = this.state;
+    const {
+      carLastLocation,
+      carLastLocationTime,
+      carNetworkLocation,
+      carNetworkLocationAccuracy,
+    } = this.state;
 
-    if (carNetworkLocation && carNetworkLocationAccuracy <= 10000 &&
-      (carNetworkLocationAccuracy <= 100 || !carLastLocation))
-    {
+    if (
+      carNetworkLocation &&
+      carNetworkLocationAccuracy <= 10000 &&
+      (carNetworkLocationAccuracy <= 100 || !carLastLocation)
+    ) {
       return {
         location: carNetworkLocation,
         accuracy: carNetworkLocationAccuracy,
@@ -499,39 +561,45 @@ class Navigation extends Component {
       return;
     }
 
-    NavigationAPI.getLocationsData(dongleId).then((resp) => {
-      if (this.mounted && dongleId === this.props.dongleId) {
-        let favorites = {};
-        resp.forEach((loc) => {
-          if (loc.save_type === 'favorite') {
-            favorites[loc.id] = {
-              ...loc,
-              icon: this.getFavoriteLabelIcon(loc.label),
-            };
-          }
+    NavigationAPI.getLocationsData(dongleId)
+      .then((resp) => {
+        if (this.mounted && dongleId === this.props.dongleId) {
+          let favorites = {};
+          resp.forEach((loc) => {
+            if (loc.save_type === "favorite") {
+              favorites[loc.id] = {
+                ...loc,
+                icon: this.getFavoriteLabelIcon(loc.label),
+              };
+            }
+          });
+          this.setState({ favoriteLocations: favorites });
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+        Sentry.captureException(err, {
+          fingerprint: "nav_fetch_locationsdata",
         });
-        this.setState({ favoriteLocations: favorites });
-      }
-    }).catch((err) => {
-      console.log(err);
-      Sentry.captureException(err, { fingerprint: 'nav_fetch_locationsdata' });
-    });
+      });
   }
 
   getFavoriteLabelIcon(label) {
     switch (label) {
-      case 'home':
+      case "home":
         return pin_home;
-      case 'work':
+      case "work":
         return pin_work;
       default:
         return pin_pinned;
-      }
+    }
   }
 
   onGeolocate(pos) {
     if (pos && pos.coords) {
-      this.setState({ geoLocateCoords: [pos.coords.longitude, pos.coords.latitude] });
+      this.setState({
+        geoLocateCoords: [pos.coords.longitude, pos.coords.latitude],
+      });
     }
   }
 
@@ -541,21 +609,35 @@ class Navigation extends Component {
     if (searchInput && searchInput.value.length >= 3) {
       const vp = this.state.viewport;
       const carLoc = this.getCarLocation();
-      const proximity = (carLoc ? carLoc.location : null) || this.state.geoLocateCoords || [vp.longitude, vp.latitude];
-      GeocodeApi().forwardLookup(searchInput.value, proximity).then((features) => {
-        this.setState({
-          noFly: false,
-          searchSelect: null,
-          search: features.filter((item) =>
-            !(['categoryQuery', 'chainQuery', 'administrativeArea'].includes(item.resultType))).slice(0, 10),
-          searchLooking: false,
-          savingAs: false,
-          savedAs: false,
+      const proximity = (carLoc ? carLoc.location : null) ||
+        this.state.geoLocateCoords || [vp.longitude, vp.latitude];
+      GeocodeApi()
+        .forwardLookup(searchInput.value, proximity)
+        .then((features) => {
+          this.setState({
+            noFly: false,
+            searchSelect: null,
+            search: features
+              .filter(
+                (item) =>
+                  ![
+                    "categoryQuery",
+                    "chainQuery",
+                    "administrativeArea",
+                  ].includes(item.resultType)
+              )
+              .slice(0, 10),
+            searchLooking: false,
+            savingAs: false,
+            savedAs: false,
+          });
+        })
+        .catch((err) => {
+          console.log(err);
+          Sentry.captureException(err, {
+            fingerprint: "nav_geocode_forward_lookup",
+          });
         });
-      }).catch((err) => {
-        console.log(err);
-        Sentry.captureException(err, { fingerprint: 'nav_geocode_forward_lookup' });
-      });
     } else {
       this.setState({
         noFly: false,
@@ -563,7 +645,7 @@ class Navigation extends Component {
         search: null,
         searchLooking: false,
         savingAs: false,
-        savedAs: false
+        savedAs: false,
       });
     }
   }
@@ -572,13 +654,16 @@ class Navigation extends Component {
     const searchInput = this.searchInputRef.current;
     this.focus();
     if (searchInput && searchInput.value.length >= 3) {
-      this.setState({
-        noFly: false,
-        searchSelect: null,
-        searchLooking: false,
-        savingAs: false,
-        savedAs: false,
-      }, this.flyToMarkers);
+      this.setState(
+        {
+          noFly: false,
+          searchSelect: null,
+          searchLooking: false,
+          savingAs: false,
+          savedAs: false,
+        },
+        this.flyToMarkers
+      );
     } else {
       this.setState({
         noFly: false,
@@ -586,18 +671,20 @@ class Navigation extends Component {
         search: null,
         searchLooking: false,
         savingAs: false,
-        savedAs: false
+        savedAs: false,
       });
     }
   }
 
   onSearchSelect(item, source) {
-    this.props.dispatch(analyticsEvent('nav_search_select', {
-      source: source,
-      panned: this.state.noFly || this.state.noFly,
-      is_favorite: Boolean(item.favoriteId),
-      distance: item.distance,
-    }));
+    this.props.dispatch(
+      analyticsEvent("nav_search_select", {
+        source: source,
+        panned: this.state.noFly || this.state.noFly,
+        is_favorite: Boolean(item.favoriteId),
+        distance: item.distance,
+      })
+    );
 
     this.setState({
       noFly: false,
@@ -605,17 +692,20 @@ class Navigation extends Component {
       searchLooking: false,
     });
     const carLoc = this.getCarLocation();
-    const startLocation = (carLoc ? carLoc.location : null) || this.state.geoLocateCoords || null;
+    const startLocation =
+      (carLoc ? carLoc.location : null) || this.state.geoLocateCoords || null;
     if (startLocation) {
-      GeocodeApi().getDirections([startLocation, this.itemLngLat(item)]).then((route) => {
-        this.setState({
-          searchSelect: {
-            ...item,
-            route: route[0],
-          },
-          searchLooking: false,
+      GeocodeApi()
+        .getDirections([startLocation, this.itemLngLat(item)])
+        .then((route) => {
+          this.setState({
+            searchSelect: {
+              ...item,
+              route: route[0],
+            },
+            searchLooking: false,
+          });
         });
-      });
     }
   }
 
@@ -628,26 +718,29 @@ class Navigation extends Component {
       address: {
         label: `${loc.place_name}, ${loc.place_details}`,
       },
-      resultType: 'place',
+      resultType: "place",
       position: {
         lat: loc.latitude,
         lng: loc.longitude,
       },
     };
-    this.onSearchSelect(item, 'pin');
+    this.onSearchSelect(item, "pin");
   }
 
   onSearchBlur(ev) {
-    if (this.state.search && this.searchInputRef.current &&
-      this.overlayRef.current && this.overlayRef.current !== ev.relatedTarget)
-    {
+    if (
+      this.state.search &&
+      this.searchInputRef.current &&
+      this.overlayRef.current &&
+      this.overlayRef.current !== ev.relatedTarget
+    ) {
       this.setState({ searchLooking: true });
     }
   }
 
   clearSearch() {
     if (this.searchInputRef.current) {
-      this.searchInputRef.current.value = '';
+      this.searchInputRef.current.value = "";
       this.searchInputRef.current.focus();
     }
     this.setState({
@@ -675,7 +768,14 @@ class Navigation extends Component {
 
   flyToMarkers() {
     const { hasNav } = this.props;
-    const { noFly, geoLocateCoords, search, searchSelect, windowWidth, viewport } = this.state;
+    const {
+      noFly,
+      geoLocateCoords,
+      search,
+      searchSelect,
+      windowWidth,
+      viewport,
+    } = this.state;
     const carLocation = this.getCarLocation();
 
     if (noFly) {
@@ -696,13 +796,28 @@ class Navigation extends Component {
     }
 
     if (bounds.length) {
-      const bbox = [[
-        Math.min.apply(null, bounds.map((e) => e[0][0])),
-        Math.min.apply(null, bounds.map((e) => e[0][1])),
-      ], [
-        Math.max.apply(null, bounds.map((e) => e[1][0])),
-        Math.max.apply(null, bounds.map((e) => e[1][1])),
-      ]];
+      const bbox = [
+        [
+          Math.min.apply(
+            null,
+            bounds.map((e) => e[0][0])
+          ),
+          Math.min.apply(
+            null,
+            bounds.map((e) => e[0][1])
+          ),
+        ],
+        [
+          Math.max.apply(
+            null,
+            bounds.map((e) => e[1][0])
+          ),
+          Math.max.apply(
+            null,
+            bounds.map((e) => e[1][1])
+          ),
+        ],
+      ];
 
       if (Math.abs(bbox[0][0] - bbox[1][0]) < 0.01) {
         bbox[0][0] -= 0.01;
@@ -713,8 +828,10 @@ class Navigation extends Component {
         bbox[1][1] += 0.01;
       }
 
-      const bottomBoxHeight = (this.searchSelectBoxRef.current && viewport.height > 200) ?
-        this.searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0;
+      const bottomBoxHeight =
+        this.searchSelectBoxRef.current && viewport.height > 200
+          ? this.searchSelectBoxRef.current.getBoundingClientRect().height + 10
+          : 0;
 
       let rightBoxWidth = 0;
       let topBoxHeight = hasNav ? 62 : 0;
@@ -722,34 +839,47 @@ class Navigation extends Component {
       const primeAdBox = this.primeAdBoxRef.current;
       if (primeAdBox) {
         if (windowWidth < 600) {
-          topBoxHeight = Math.max(topBoxHeight, primeAdBox.getBoundingClientRect().height + 10);
+          topBoxHeight = Math.max(
+            topBoxHeight,
+            primeAdBox.getBoundingClientRect().height + 10
+          );
         } else {
           rightBoxWidth = primeAdBox.getBoundingClientRect().width + 10;
         }
       }
 
       const padding = {
-        left: (windowWidth < 600 || !search) ? 20 : 390,
+        left: windowWidth < 600 || !search ? 20 : 390,
         right: rightBoxWidth + 20,
         top: topBoxHeight + 20,
         bottom: bottomBoxHeight + 20,
       };
       if (viewport.width) {
         try {
-          const newVp = new WebMercatorViewport(viewport).fitBounds(bbox, { padding: padding, maxZoom: 10 });
+          const newVp = new WebMercatorViewport(viewport).fitBounds(bbox, {
+            padding: padding,
+            maxZoom: 10,
+          });
           this.setState({ viewport: newVp });
         } catch (err) {
           console.log(err);
-          Sentry.captureException(err, { fingerprint: 'nav_flymarkers_viewport' });
+          Sentry.captureException(err, {
+            fingerprint: "nav_flymarkers_viewport",
+          });
         }
       }
     }
   }
 
   focus(ev) {
-    if (!this.state.hasFocus && (!ev || !ev.srcEvent || !ev.srcEvent.path || !this.mapContainerRef.current ||
-      ev.srcEvent.path.includes(this.mapContainerRef.current)))
-    {
+    if (
+      !this.state.hasFocus &&
+      (!ev ||
+        !ev.srcEvent ||
+        !ev.srcEvent.path ||
+        !this.mapContainerRef.current ||
+        ev.srcEvent.path.includes(this.mapContainerRef.current))
+    ) {
       this.setState({ hasFocus: true });
     }
   }
@@ -760,7 +890,7 @@ class Navigation extends Component {
     let metric = true;
     try {
       route.legs[0].admins.forEach((adm) => {
-        if (['US', 'GB'].includes(adm.iso_3166_1)) {
+        if (["US", "GB"].includes(adm.iso_3166_1)) {
           metric = false;
         }
       });
@@ -777,7 +907,7 @@ class Navigation extends Component {
   formatDuration(route) {
     const seconds = route.duration;
     let mins = Math.round(seconds / 60.0);
-    let res = '';
+    let res = "";
     if (mins >= 60) {
       const hours = Math.floor(mins / 60.0);
       mins -= hours * 60;
@@ -787,24 +917,24 @@ class Navigation extends Component {
   }
 
   formatSearchName(item) {
-    if (item.resultType === 'place') {
+    if (item.resultType === "place") {
       return item.title;
     } else {
-      return item.title.split(',', 1)[0];
+      return item.title.split(",", 1)[0];
     }
   }
 
-  formatSearchDetails(item, comma=false) {
+  formatSearchDetails(item, comma = false) {
     const name = this.formatSearchName(item);
-    const addrLabelName = item.address.label.split(',', 1)[0];
+    const addrLabelName = item.address.label.split(",", 1)[0];
     let res;
     if (name.substr(0, addrLabelName.length) === addrLabelName) {
-      res = item.address.label.split(', ').slice(1).join(', ');
+      res = item.address.label.split(", ").slice(1).join(", ");
     } else {
       res = item.address.label;
     }
     if (res.length) {
-      return (comma ? ', ' : '') + res;
+      return (comma ? ", " : "") + res;
     }
   }
 
@@ -815,7 +945,7 @@ class Navigation extends Component {
     return item.position;
   }
 
-  itemLngLat(item, bounds=false) {
+  itemLngLat(item, bounds = false) {
     const pos = this.itemLoc(item);
     const res = [pos.lng, pos.lat];
     return bounds ? [res, res] : res;
@@ -829,39 +959,53 @@ class Navigation extends Component {
       return;
     }
 
-    this.props.dispatch(analyticsEvent('nav_navigate', {
-      distance: searchSelect.distance,
-    }));
+    this.props.dispatch(
+      analyticsEvent("nav_navigate", {
+        distance: searchSelect.distance,
+      })
+    );
 
-    this.setState({ searchSelect: {
-      ...searchSelect,
-      settingDest: true,
-      success: false,
-    }});
-
-    const pos = this.itemLoc(searchSelect);
-    NavigationAPI.setDestination(dongleId, pos.lat, pos.lng,
-      this.formatSearchName(searchSelect), this.formatSearchDetails(searchSelect))
-    .then((resp) => {
-      if (resp.error) {
-        throw new Error(resp.error);
-      }
-
-      this.setState({ searchSelect: {
+    this.setState({
+      searchSelect: {
         ...searchSelect,
         settingDest: true,
-        success: resp.success,
-        saved_next: resp.saved_next,
-      }});
-    }).catch((err) => {
-      Sentry.captureException(err, { fingerprint: 'nav_set_destination' });
-      console.log(`failed to set destination: ${err.message}`);
-      this.setState({ searchSelect: {
-        ...searchSelect,
-        settingDest: false,
         success: false,
-      }});
+      },
     });
+
+    const pos = this.itemLoc(searchSelect);
+    NavigationAPI.setDestination(
+      dongleId,
+      pos.lat,
+      pos.lng,
+      this.formatSearchName(searchSelect),
+      this.formatSearchDetails(searchSelect)
+    )
+      .then((resp) => {
+        if (resp.error) {
+          throw new Error(resp.error);
+        }
+
+        this.setState({
+          searchSelect: {
+            ...searchSelect,
+            settingDest: true,
+            success: resp.success,
+            saved_next: resp.saved_next,
+          },
+        });
+      })
+      .catch((err) => {
+        Sentry.captureException(err, { fingerprint: "nav_set_destination" });
+        console.log(`failed to set destination: ${err.message}`);
+        this.setState({
+          searchSelect: {
+            ...searchSelect,
+            settingDest: false,
+            success: false,
+          },
+        });
+      });
   }
 
   onResize(windowWidth) {
@@ -871,7 +1015,7 @@ class Navigation extends Component {
   toggleCarPinTooltip(visible) {
     const tooltip = this.carPinTooltipRef.current;
     if (tooltip) {
-      tooltip.style.display = visible ? 'block' : 'none';
+      tooltip.style.display = visible ? "block" : "none";
     }
   }
 
@@ -881,24 +1025,32 @@ class Navigation extends Component {
     this.setState({ saveAsMenu: null, savingAs: true });
 
     const pos = this.itemLoc(searchSelect);
-    const label = as === 'pin' ? undefined : as;
-    NavigationAPI.putLocationSave(dongleId, pos.lat, pos.lng,
-      this.formatSearchName(searchSelect), this.formatSearchDetails(searchSelect), 'favorite', label)
-    .then((resp) => {
-      this.updateFavoriteLocations();
-      this.setState({
-        savingAs: false,
-        savedAs: true,
-        searchSelect: {
-          ...searchSelect,
-          favoriteIcon: this.getFavoriteLabelIcon(label),
-        },
+    const label = as === "pin" ? undefined : as;
+    NavigationAPI.putLocationSave(
+      dongleId,
+      pos.lat,
+      pos.lng,
+      this.formatSearchName(searchSelect),
+      this.formatSearchDetails(searchSelect),
+      "favorite",
+      label
+    )
+      .then((resp) => {
+        this.updateFavoriteLocations();
+        this.setState({
+          savingAs: false,
+          savedAs: true,
+          searchSelect: {
+            ...searchSelect,
+            favoriteIcon: this.getFavoriteLabelIcon(label),
+          },
+        });
+      })
+      .catch((err) => {
+        console.log(err);
+        Sentry.captureException(err, { fingerprint: "nav_save_favorite" });
+        this.setState({ savingAs: false, savedAs: false });
       });
-    }).catch((err) => {
-      console.log(err);
-      Sentry.captureException(err, { fingerprint: 'nav_save_favorite' });
-      this.setState({ savingAs: false, savedAs: false });
-    });
   }
 
   deleteFavorite() {
@@ -906,21 +1058,26 @@ class Navigation extends Component {
     const { searchSelect } = this.state;
     if (searchSelect.favoriteId) {
       this.setState({ savingAs: true });
-      NavigationAPI.deleteLocationSave(dongleId, searchSelect.favoriteId).then((resp) => {
-        this.updateFavoriteLocations();
-        this.setState({
-          noFly: false,
-          route: null,
-          searchSelect: null,
-          searchLooking: false,
-          savingAs: false,
-          savedAs: false,
-        }, this.flyToMarkers);
-      }).catch((err) => {
-        console.log(err);
-        Sentry.captureException(err, { fingerprint: 'nav_delete_favorite' });
-        this.setState({ savingAs: false, savedAs: false });
-      });
+      NavigationAPI.deleteLocationSave(dongleId, searchSelect.favoriteId)
+        .then((resp) => {
+          this.updateFavoriteLocations();
+          this.setState(
+            {
+              noFly: false,
+              route: null,
+              searchSelect: null,
+              searchLooking: false,
+              savingAs: false,
+              savedAs: false,
+            },
+            this.flyToMarkers
+          );
+        })
+        .catch((err) => {
+          console.log(err);
+          Sentry.captureException(err, { fingerprint: "nav_delete_favorite" });
+          this.setState({ savingAs: false, savedAs: false });
+        });
     }
   }
 
@@ -928,27 +1085,42 @@ class Navigation extends Component {
     const { viewport, windowWidth } = this.state;
     const searchInput = this.searchInputRef.current;
 
-    GeocodeApi().forwardLookup(searchInput.value, null, viewport).then((features) => {
-      this.setState({
-        noFly: true,
-        searchSelect: null,
-        search: features.filter((item) =>
-          !(['categoryQuery', 'chainQuery', 'administrativeArea'].includes(item.resultType))).slice(0, 10),
-        searchLooking: windowWidth < 600,
-        savingAs: false,
-        savedAs: false,
+    GeocodeApi()
+      .forwardLookup(searchInput.value, null, viewport)
+      .then((features) => {
+        this.setState({
+          noFly: true,
+          searchSelect: null,
+          search: features
+            .filter(
+              (item) =>
+                !["categoryQuery", "chainQuery", "administrativeArea"].includes(
+                  item.resultType
+                )
+            )
+            .slice(0, 10),
+          searchLooking: windowWidth < 600,
+          savingAs: false,
+          savedAs: false,
+        });
+      })
+      .catch((err) => {
+        console.log(err);
+        Sentry.captureException(err, {
+          fingerprint: "nav_research_geocode_forward",
+        });
       });
-    }).catch((err) => {
-      console.log(err);
-      Sentry.captureException(err, { fingerprint: 'nav_research_geocode_forward' });
-    });
   }
 
   viewportChange(viewport, interactionState) {
     const { search, searchSelect, searchLooking } = this.state;
     this.setState({ viewport });
 
-    if (interactionState.isPanning || interactionState.isZooming || interactionState.isRotating) {
+    if (
+      interactionState.isPanning ||
+      interactionState.isZooming ||
+      interactionState.isRotating
+    ) {
       this.focus();
 
       if (search && !searchSelect && !searchLooking) {
@@ -961,7 +1133,8 @@ class Navigation extends Component {
     const points = 128;
     const km = carLocation.accuracy / 1000;
 
-    const distanceX = km / (111.320 * Math.cos(carLocation.location[1] * Math.PI / 180));
+    const distanceX =
+      km / (111.32 * Math.cos((carLocation.location[1] * Math.PI) / 180));
     const distanceY = km / 110.574;
 
     let res = [];
@@ -976,119 +1149,285 @@ class Navigation extends Component {
     res.push(res[0]);
 
     return {
-      "type": "FeatureCollection",
-      "features": [{
-        "type": "Feature",
-        "geometry": {
-          "type": "Polygon",
-          "coordinates": [res],
-        }
-      }],
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [res],
+          },
+        },
+      ],
     };
-  };
+  }
 
   render() {
     const { classes, device, hasNav } = this.props;
-    const { mapError, hasFocus, search, searchLooking, searchSelect, favoriteLocations, viewport,
-      windowWidth, showPrimeAd } = this.state;
+    const {
+      mapError,
+      hasFocus,
+      search,
+      searchLooking,
+      searchSelect,
+      favoriteLocations,
+      viewport,
+      windowWidth,
+      showPrimeAd,
+    } = this.state;
     const carLocation = this.getCarLocation();
 
-    const cardStyle = windowWidth < 600 ?
-      { zIndex: 4, width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 } :
-      { zIndex: 4, width: 360, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
+    const cardStyle =
+      windowWidth < 600
+        ? {
+            zIndex: 4,
+            width: "auto",
+            height: "auto",
+            top: "auto",
+            bottom: "auto",
+            left: 10,
+            right: 10,
+          }
+        : {
+            zIndex: 4,
+            width: 360,
+            height: "auto",
+            top: "auto",
+            bottom: "auto",
+            left: 10,
+          };
 
-    let carPinTooltipStyle = { transform: 'translate(calc(-50% + 10px), -4px)' };
+    let carPinTooltipStyle = {
+      transform: "translate(calc(-50% + 10px), -4px)",
+    };
     if (carLocation) {
-      const pixelsAvailable = viewport.height - new WebMercatorViewport(viewport).project(carLocation.location)[1];
+      const pixelsAvailable =
+        viewport.height -
+        new WebMercatorViewport(viewport).project(carLocation.location)[1];
       if (pixelsAvailable < 50) {
-        carPinTooltipStyle = { transform: 'translate(calc(-50% + 10px), -81px)' };
+        carPinTooltipStyle = {
+          transform: "translate(calc(-50% + 10px), -81px)",
+        };
       }
     }
 
     return (
-      <div ref={ this.mapContainerRef } className={ classes.mapContainer }
-        style={{ height: (hasFocus && hasNav) ? '60vh' : 200 }}>
-        <ResizeHandler onResize={ this.onResize } />
-        <VisibilityHandler onVisible={ this.updateDevice } onInit={ true } onDongleId={ true } minInterval={ 60 } />
-        { mapError &&
-          <div className={ classes.mapError }>
+      <div
+        ref={this.mapContainerRef}
+        className={classes.mapContainer}
+        style={{ height: hasFocus && hasNav ? "60vh" : 350 }}
+      >
+        <ResizeHandler onResize={this.onResize} />
+        <VisibilityHandler
+          onVisible={this.updateDevice}
+          onInit={true}
+          onDongleId={true}
+          minInterval={60}
+        />
+        {mapError && (
+          <div className={classes.mapError}>
             <Typography>Could not initialize map.</Typography>
-            <Typography>{ mapError }</Typography>
+            <Typography>{mapError}</Typography>
           </div>
-        }
-        <ReactMapGL { ...viewport } onViewportChange={ this.viewportChange } onContextMenu={ null }
-          mapStyle={ MAP_STYLE } width="100%" height="100%" onNativeClick={ this.focus } maxPitch={ 0 }
-          mapboxApiAccessToken={ MAPBOX_TOKEN } attributionControl={ false } dragRotate={ false }
-          onError={ (err) => this.setState({ mapError: err.error.message }) }>
-          <GeolocateControl className={ classes.geolocateControl } positionOptions={{ enableHighAccuracy: true }}
-            showAccuracyCircle={ false } onGeolocate={ this.onGeolocate } auto={ hasFocus }
-            fitBoundsOptions={{ maxZoom: 10 }} trackUserLocation={true} onViewportChange={ () => {} } />
-          { searchSelect && searchSelect.route &&
-            <Source id="my-data" type="geojson" data={ searchSelect.route.geometry }>
-              <Layer type="line" layout={{ 'line-cap': 'round', 'line-join': 'bevel' }}
-                paint={{ 'line-color': '#31a1ee', 'line-width': 3, 'line-blur': 1 }}  />
+        )}
+        <ReactMapGL
+          {...viewport}
+          onViewportChange={this.viewportChange}
+          onContextMenu={null}
+          mapStyle={MAP_STYLE}
+          width="100%"
+          height="100%"
+          onNativeClick={this.focus}
+          maxPitch={0}
+          mapboxApiAccessToken={MAPBOX_TOKEN}
+          attributionControl={false}
+          dragRotate={false}
+          onError={(err) => this.setState({ mapError: err.error.message })}
+        >
+          <GeolocateControl
+            className={classes.geolocateControl}
+            positionOptions={{ enableHighAccuracy: true }}
+            showAccuracyCircle={false}
+            onGeolocate={this.onGeolocate}
+            auto={hasFocus}
+            fitBoundsOptions={{ maxZoom: 10 }}
+            trackUserLocation={true}
+            onViewportChange={() => {}}
+          />
+          {searchSelect && searchSelect.route && (
+            <Source
+              id="my-data"
+              type="geojson"
+              data={searchSelect.route.geometry}
+            >
+              <Layer
+                type="line"
+                layout={{ "line-cap": "round", "line-join": "bevel" }}
+                paint={{
+                  "line-color": "#31a1ee",
+                  "line-width": 3,
+                  "line-blur": 1,
+                }}
+              />
             </Source>
-          }
-          { !search && !searchSelect && favoriteLocations && Object.entries(favoriteLocations).map(([id, loc]) =>
-            <Marker latitude={ loc.latitude } longitude={ loc.longitude } key={ id } offsetLeft={ -7.5 }
-              offsetTop={ -24 } captureDrag={ false } captureClick={ false } captureDoubleClick={ false }>
-              <img className={ classes.favoritePin } src={ loc.icon } onClick={ () => this.onFavoriteSelect(id, loc) }
-                alt="favorite-location" />
-            </Marker>
           )}
-          { carLocation &&
-            <Marker latitude={ carLocation.location[1] } longitude={ carLocation.location[0] } offsetLeft={ -10 }
-              offsetTop={ -30 } captureDrag={ false } captureClick={ true } captureDoubleClick={ false }>
-              <img className={ classes.pin } src={ pin_car } onMouseEnter={ () => this.toggleCarPinTooltip(true) }
-                onMouseLeave={ () => this.toggleCarPinTooltip(false) } alt="car-location" />
-              <div className={ classes.carPinTooltip } ref={ this.carPinTooltipRef }
-                style={{ ...carPinTooltipStyle, display: 'none' }}>
-                { fecha.format(carLocation.time, 'h:mm a') },<br />{ timeFromNow(carLocation.time) }
+          {!search &&
+            !searchSelect &&
+            favoriteLocations &&
+            Object.entries(favoriteLocations).map(([id, loc]) => (
+              <Marker
+                latitude={loc.latitude}
+                longitude={loc.longitude}
+                key={id}
+                offsetLeft={-7.5}
+                offsetTop={-24}
+                captureDrag={false}
+                captureClick={false}
+                captureDoubleClick={false}
+              >
+                <img
+                  className={classes.favoritePin}
+                  src={loc.icon}
+                  onClick={() => this.onFavoriteSelect(id, loc)}
+                  alt="favorite-location"
+                />
+              </Marker>
+            ))}
+          {carLocation && (
+            <Marker
+              latitude={carLocation.location[1]}
+              longitude={carLocation.location[0]}
+              offsetLeft={-10}
+              offsetTop={-30}
+              captureDrag={false}
+              captureClick={true}
+              captureDoubleClick={false}
+            >
+              <img
+                className={classes.pin}
+                src={pin_car}
+                onMouseEnter={() => this.toggleCarPinTooltip(true)}
+                onMouseLeave={() => this.toggleCarPinTooltip(false)}
+                alt="car-location"
+              />
+              <div
+                className={classes.carPinTooltip}
+                ref={this.carPinTooltipRef}
+                style={{ ...carPinTooltipStyle, display: "none" }}
+              >
+                {fecha.format(carLocation.time, "h:mm a")},<br />
+                {timeFromNow(carLocation.time)}
               </div>
             </Marker>
-          }
-          { carLocation && Boolean(carLocation.accuracy) &&
-            <Source type="geojson" data={ this.carLocationCircle(carLocation) }>
-              <Layer id="polygon" type="fill" source="polygon" layout={{}}
-                paint={{ 'fill-color': '#31a1ee', 'fill-opacity': 0.3 }} />
+          )}
+          {carLocation && Boolean(carLocation.accuracy) && (
+            <Source type="geojson" data={this.carLocationCircle(carLocation)}>
+              <Layer
+                id="polygon"
+                type="fill"
+                source="polygon"
+                layout={{}}
+                paint={{ "fill-color": "#31a1ee", "fill-opacity": 0.3 }}
+              />
             </Source>
-          }
-          { search && !searchSelect && search.map((item) =>
-            <Marker latitude={ this.itemLoc(item).lat } longitude={ this.itemLoc(item).lng } key={ item.id }
-              offsetLeft={ -10 } offsetTop={ -30 } captureDrag={ false } captureClick={ false }
-              captureDoubleClick={ false }>
-              <img className={ classes.pinClick } src={ pin_marker } onClick={ () => this.onSearchSelect(item, 'pin') }
-                alt="pin-location" />
+          )}
+          {search &&
+            !searchSelect &&
+            search.map((item) => (
+              <Marker
+                latitude={this.itemLoc(item).lat}
+                longitude={this.itemLoc(item).lng}
+                key={item.id}
+                offsetLeft={-10}
+                offsetTop={-30}
+                captureDrag={false}
+                captureClick={false}
+                captureDoubleClick={false}
+              >
+                <img
+                  className={classes.pinClick}
+                  src={pin_marker}
+                  onClick={() => this.onSearchSelect(item, "pin")}
+                  alt="pin-location"
+                />
+              </Marker>
+            ))}
+          {searchSelect && (
+            <Marker
+              latitude={this.itemLoc(searchSelect).lat}
+              longitude={this.itemLoc(searchSelect).lng}
+              offsetLeft={-10}
+              offsetTop={-30}
+              captureDrag={false}
+              captureClick={false}
+              captureDoubleClick={false}
+            >
+              <img
+                className={classes.pin}
+                src={
+                  searchSelect.favoriteIcon
+                    ? searchSelect.favoriteIcon
+                    : pin_marker
+                }
+                alt="pin-location"
+              />
             </Marker>
           )}
-          { searchSelect &&
-            <Marker latitude={ this.itemLoc(searchSelect).lat } longitude={ this.itemLoc(searchSelect).lng }
-              offsetLeft={ -10 } offsetTop={ -30 } captureDrag={ false } captureClick={ false }
-              captureDoubleClick={ false }>
-              <img className={ classes.pin } src={ searchSelect.favoriteIcon ? searchSelect.favoriteIcon : pin_marker }
-                alt="pin-location" />
-            </Marker>
-          }
-          { hasNav &&
-            <HTMLOverlay redraw={ this.renderOverlay } style={{ ...cardStyle, top: 10 }}
-              captureScroll={ true } captureDrag={ true } captureClick={ true } captureDoubleClick={ true }
-              capturePointerMove={ true } />
-          }
-          { searchSelect &&
-            <HTMLOverlay redraw={ this.renderSearchOverlay } captureScroll={ true } captureDrag={ true }
-              captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
-              style={{ ...cardStyle, bottom: 10 }} />
-          }
-          { search && searchLooking && !searchSelect &&
-            <HTMLOverlay redraw={ this.renderResearchArea } captureScroll={ true } captureDrag={ true }
-              captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
-              style={{ ...cardStyle, bottom: 10, left: '50%', width: 180, transform: 'translate(-50%, 0)' }} />
-          }
-          { showPrimeAd && !hasNav && !device.prime && device.is_owner &&
-            <HTMLOverlay redraw={ this.renderPrimeAd } captureScroll={ true } captureDrag={ true }
-              captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
-              style={{ ...cardStyle, top: 10, left: windowWidth < 600 ? 10 : 'auto', right: 10 }} />
-          }
+          {hasNav && (
+            <HTMLOverlay
+              redraw={this.renderOverlay}
+              style={{ ...cardStyle, top: 10 }}
+              captureScroll={true}
+              captureDrag={true}
+              captureClick={true}
+              captureDoubleClick={true}
+              capturePointerMove={true}
+            />
+          )}
+          {searchSelect && (
+            <HTMLOverlay
+              redraw={this.renderSearchOverlay}
+              captureScroll={true}
+              captureDrag={true}
+              captureClick={true}
+              captureDoubleClick={true}
+              capturePointerMove={true}
+              style={{ ...cardStyle, bottom: 10 }}
+            />
+          )}
+          {search && searchLooking && !searchSelect && (
+            <HTMLOverlay
+              redraw={this.renderResearchArea}
+              captureScroll={true}
+              captureDrag={true}
+              captureClick={true}
+              captureDoubleClick={true}
+              capturePointerMove={true}
+              style={{
+                ...cardStyle,
+                bottom: 10,
+                left: "50%",
+                width: 180,
+                transform: "translate(-50%, 0)",
+              }}
+            />
+          )}
+          {showPrimeAd && !hasNav && !device.prime && device.is_owner && (
+            <HTMLOverlay
+              redraw={this.renderPrimeAd}
+              captureScroll={true}
+              captureDrag={true}
+              captureClick={true}
+              captureDoubleClick={true}
+              capturePointerMove={true}
+              style={{
+                ...cardStyle,
+                top: 10,
+                left: windowWidth < 600 ? 10 : "auto",
+                right: 10,
+              }}
+            />
+          )}
         </ReactMapGL>
       </div>
     );
@@ -1100,117 +1439,190 @@ class Navigation extends Component {
     const carLocation = this.getCarLocation();
 
     return (
-      <div className={ classes.overlay } ref={ this.overlayRef } tabIndex={ -1 } onBlur={ this.onSearchBlur }
-        onClick={ this.focus }>
-        <TextField onChange={ this.onSearch } fullWidth={ true } inputRef={ this.searchInputRef }
+      <div
+        className={classes.overlay}
+        ref={this.overlayRef}
+        tabIndex={-1}
+        onBlur={this.onSearchBlur}
+        onClick={this.focus}
+      >
+        <TextField
+          onChange={this.onSearch}
+          fullWidth={true}
+          inputRef={this.searchInputRef}
           placeholder="where do you want to go?"
           InputProps={{
             onFocus: this.onFocus,
             onBlur: this.onSearchBlur,
             classes: { root: classes.overlayTextfield },
-            endAdornment: <>
-              { this.searchInputRef.current && this.searchInputRef.current.value &&
+            endAdornment: (
+              <>
+                {this.searchInputRef.current &&
+                  this.searchInputRef.current.value && (
+                    <InputAdornment position="end">
+                      <Clear
+                        className={classes.overlayClearButton}
+                        onClick={this.clearSearch}
+                      />
+                    </InputAdornment>
+                  )}
                 <InputAdornment position="end">
-                  <Clear className={ classes.overlayClearButton } onClick={ this.clearSearch } />
+                  <Search className={classes.overlaySearchButton} />
                 </InputAdornment>
-              }
-              <InputAdornment position="end"><Search className={ classes.overlaySearchButton } /></InputAdornment>
-            </>
-          }} />
-        { search && !searchSelect && !searchLooking && <>
-          <div className={ classes.overlaySearchResultsHr } />
-          <div className={ `${classes.overlaySearchResults} scrollstyle` }>
-            { !geoLocateCoords && !carLocation &&
-              <Typography className={ classes.overlaySearchNoLocation }>
-                location unknown, turn on device for better results
-              </Typography> }
-            { search.length === 0 &&
-              <Typography className={ classes.overlaySearchNoResults }>no search results</Typography> }
-            { search.map((item) => (
-              <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item, 'list') }>
-                <Typography>
-                  { this.formatSearchName(item) }
-                  <span className={ classes.overlaySearchDetails }>
-                    { this.formatSearchDetails(item, true) }
-                  </span>
+              </>
+            ),
+          }}
+        />
+        {search && !searchSelect && !searchLooking && (
+          <>
+            <div className={classes.overlaySearchResultsHr} />
+            <div className={`${classes.overlaySearchResults} scrollstyle`}>
+              {!geoLocateCoords && !carLocation && (
+                <Typography className={classes.overlaySearchNoLocation}>
+                  location unknown, turn on device for better results
                 </Typography>
-              </div>
-            )) }
-          </div>
-        </> }
+              )}
+              {search.length === 0 && (
+                <Typography className={classes.overlaySearchNoResults}>
+                  no search results
+                </Typography>
+              )}
+              {search.map((item) => (
+                <div
+                  key={item.id}
+                  className={classes.overlaySearchItem}
+                  onClick={() => this.onSearchSelect(item, "list")}
+                >
+                  <Typography>
+                    {this.formatSearchName(item)}
+                    <span className={classes.overlaySearchDetails}>
+                      {this.formatSearchDetails(item, true)}
+                    </span>
+                  </Typography>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     );
   }
 
   renderSearchOverlay() {
     const { classes, device } = this.props;
-    const { searchSelect, geoLocateCoords, saveAsMenu, savingAs, savedAs } = this.state;
+    const { searchSelect, geoLocateCoords, saveAsMenu, savingAs, savedAs } =
+      this.state;
     const carLocation = this.getCarLocation();
 
     const noRoute = !searchSelect.route && (carLocation || geoLocateCoords);
 
     return (
-      <div className={ classes.searchSelectBox } ref={ this.searchSelectBoxRef }>
-        <Clear className={ classes.clearSearchSelect } onClick={ this.clearSearchSelect } />
-        <div className={ classes.searchSelectBoxHeader }>
-          <div className={ classes.searchSelectBoxTitle }>
-            <Typography className={ classes.bold }>{ this.formatSearchName(searchSelect) }</Typography>
-            { searchSelect.route &&
-              <Typography className={ classes.searchSelectBoxDetails }>
-                { this.formatDistance(searchSelect.route) } (
-                { this.formatDuration(searchSelect.route) })
+      <div className={classes.searchSelectBox} ref={this.searchSelectBoxRef}>
+        <Clear
+          className={classes.clearSearchSelect}
+          onClick={this.clearSearchSelect}
+        />
+        <div className={classes.searchSelectBoxHeader}>
+          <div className={classes.searchSelectBoxTitle}>
+            <Typography className={classes.bold}>
+              {this.formatSearchName(searchSelect)}
+            </Typography>
+            {searchSelect.route && (
+              <Typography className={classes.searchSelectBoxDetails}>
+                {this.formatDistance(searchSelect.route)} (
+                {this.formatDuration(searchSelect.route)})
               </Typography>
-            }
+            )}
           </div>
-          <div className={ classes.searchSelectBoxButtons }>
-            { searchSelect.favoriteId ?
-              <Button disabled={ savingAs || savedAs } onClick={ this.deleteFavorite }
-                classes={{ root: classes.searchSelectButtonSecondary, label: classes.noWrap }}>
-                { savingAs ? '...' : 'delete' }
+          <div className={classes.searchSelectBoxButtons}>
+            {searchSelect.favoriteId ? (
+              <Button
+                disabled={savingAs || savedAs}
+                onClick={this.deleteFavorite}
+                classes={{
+                  root: classes.searchSelectButtonSecondary,
+                  label: classes.noWrap,
+                }}
+              >
+                {savingAs ? "..." : "delete"}
               </Button>
-            :
-              <Button disabled={ savingAs || savedAs }
-                onClick={ (ev) => this.setState({ saveAsMenu: ev.target }) }
-                classes={{ root: classes.searchSelectButtonSecondary, label: classes.noWrap }}>
-                { savingAs ? '...' : (savedAs ? 'saved' :  'save as') }
+            ) : (
+              <Button
+                disabled={savingAs || savedAs}
+                onClick={(ev) => this.setState({ saveAsMenu: ev.target })}
+                classes={{
+                  root: classes.searchSelectButtonSecondary,
+                  label: classes.noWrap,
+                }}
+              >
+                {savingAs ? "..." : savedAs ? "saved" : "save as"}
               </Button>
-            }
-            <Menu id="menu-save-as" open={ Boolean(saveAsMenu) } anchorEl={ saveAsMenu }
-              onClose={ () => this.setState({ saveAsMenu: null }) }
-              anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
-              <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('home') }>
+            )}
+            <Menu
+              id="menu-save-as"
+              open={Boolean(saveAsMenu)}
+              anchorEl={saveAsMenu}
+              onClose={() => this.setState({ saveAsMenu: null })}
+              anchorOrigin={{ vertical: "top", horizontal: "right" }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
+            >
+              <MenuItem
+                classes={{ root: classes.saveAsMenuItem }}
+                onClick={() => this.saveSearchAs("home")}
+              >
                 home
               </MenuItem>
-              <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('work') }>
+              <MenuItem
+                classes={{ root: classes.saveAsMenuItem }}
+                onClick={() => this.saveSearchAs("work")}
+              >
                 work
               </MenuItem>
-              <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('pin') }>
+              <MenuItem
+                classes={{ root: classes.saveAsMenuItem }}
+                onClick={() => this.saveSearchAs("pin")}
+              >
                 favorite
               </MenuItem>
             </Menu>
-            { searchSelect.settingDest ?
-              <div className={ `${classes.searchSelectButton} ${classes.searchSelectButtonFake}` }
-                ref={ this.navigateFakeButtonRef }>
-                { searchSelect.success ?
-                  <Typography>destination set</Typography> :
-                  <CircularProgress size={ 19 } /> }
-                <Popper open={ Boolean(searchSelect.success && searchSelect.saved_next) } placement="bottom"
-                  anchorEl={ this.navigateFakeButtonRef.current } className={ classes.savedNextPopover }>
+            {searchSelect.settingDest ? (
+              <div
+                className={`${classes.searchSelectButton} ${classes.searchSelectButtonFake}`}
+                ref={this.navigateFakeButtonRef}
+              >
+                {searchSelect.success ? (
+                  <Typography>destination set</Typography>
+                ) : (
+                  <CircularProgress size={19} />
+                )}
+                <Popper
+                  open={Boolean(
+                    searchSelect.success && searchSelect.saved_next
+                  )}
+                  placement="bottom"
+                  anchorEl={this.navigateFakeButtonRef.current}
+                  className={classes.savedNextPopover}
+                >
                   <Typography>device offline</Typography>
-                  <Typography>destination will be set once device is online</Typography>
+                  <Typography>
+                    destination will be set once device is online
+                  </Typography>
                 </Popper>
               </div>
-            :
-              <Button disabled={ Boolean(noRoute) } onClick={ this.navigate }
-                classes={{ root: classes.searchSelectButton }} style={{ marginBottom: 8 }}>
-                { noRoute ? 'no route' : 'navigate' }
+            ) : (
+              <Button
+                disabled={Boolean(noRoute)}
+                onClick={this.navigate}
+                classes={{ root: classes.searchSelectButton }}
+                style={{ marginBottom: 8 }}
+              >
+                {noRoute ? "no route" : "navigate"}
               </Button>
-            }
+            )}
           </div>
         </div>
-        <Typography className={ classes.searchSelectBoxDetails }>
-          { this.formatSearchDetails(searchSelect, false) }
+        <Typography className={classes.searchSelectBoxDetails}>
+          {this.formatSearchDetails(searchSelect, false)}
         </Typography>
       </div>
     );
@@ -1220,7 +1632,7 @@ class Navigation extends Component {
     const { classes } = this.props;
 
     return (
-      <Button className={ classes.researchArea } onClick={ this.researchArea }>
+      <Button className={classes.researchArea} onClick={this.researchArea}>
         <Refresh />
         search this area
       </Button>
@@ -1228,24 +1640,35 @@ class Navigation extends Component {
   }
 
   renderPrimeAd() {
-    const { classes} = this.props;
+    const { classes } = this.props;
 
     return (
-      <div className={ `${classes.searchSelectBox} ${classes.primeAdContainer}` } ref={ this.primeAdBoxRef }>
-        <Clear className={ classes.clearSearchSelect }
-          onClick={ () => this.setState({ showPrimeAd: false }, this.flyToMarkers) } />
-        <div className={ classes.searchSelectBoxHeader }>
-          <div className={ classes.searchSelectBoxTitle }>
-            <Typography className={ classes.primeAdTitle }>comma prime</Typography>
+      <div
+        className={`${classes.searchSelectBox} ${classes.primeAdContainer}`}
+        ref={this.primeAdBoxRef}
+      >
+        <Clear
+          className={classes.clearSearchSelect}
+          onClick={() =>
+            this.setState({ showPrimeAd: false }, this.flyToMarkers)
+          }
+        />
+        <div className={classes.searchSelectBoxHeader}>
+          <div className={classes.searchSelectBoxTitle}>
+            <Typography className={classes.primeAdTitle}>
+              comma prime
+            </Typography>
           </div>
-          <div className={ classes.searchSelectBoxButtons }>
-            <Button onClick={ () => this.props.dispatch(primeNav(true)) }
-              className={ `${classes.searchSelectButton} ${classes.primeAdButton} primeSignUp` }>
+          <div className={classes.searchSelectBoxButtons}>
+            <Button
+              onClick={() => this.props.dispatch(primeNav(true))}
+              className={`${classes.searchSelectButton} ${classes.primeAdButton} primeSignUp`}
+            >
               sign up
             </Button>
           </div>
         </div>
-        <Typography className={ classes.primeAdDetails }>
+        <Typography className={classes.primeAdDetails}>
           Put your car on the internet with comma prime
         </Typography>
       </div>
@@ -1254,8 +1677,8 @@ class Navigation extends Component {
 }
 
 const stateToProps = Obstruction({
-  device: 'device',
-  dongleId: 'dongleId',
+  device: "device",
+  dongleId: "dongleId",
 });
 
 export default connect(stateToProps)(withStyles(styles)(Navigation));

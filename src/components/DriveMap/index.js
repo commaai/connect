@@ -1,30 +1,30 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import raf from 'raf';
-import { withStyles } from '@material-ui/core/styles';
-import * as Sentry from '@sentry/react';
+import React, { Component } from "react";
+import { connect } from "react-redux";
+import Obstruction from "obstruction";
+import raf from "raf";
+import { withStyles } from "@material-ui/core/styles";
+import * as Sentry from "@sentry/react";
 
-import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
+import ReactMapGL, { LinearInterpolator } from "react-map-gl";
 
-import { derived as DerivedDataApi } from '@commaai/comma-api';
-import { MAPBOX_TOKEN } from '../../api/geocode';
-import { currentOffset } from '../../timeline/playback';
-import { fetchDriveCoords } from '../../actions/cached';
+import { derived as DerivedDataApi } from "@commaai/comma-api";
+import { MAPBOX_TOKEN } from "../../api/geocode";
+import { currentOffset } from "../../timeline/playback";
+import { fetchDriveCoords } from "../../actions/cached";
 
-const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
+const MAP_STYLE = "mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w";
 const INTERACTION_TIMEOUT = 5000;
 
 const styles = {
   mapContainer: {
-    height: '100%',
-    cursor: 'default !important',
-    '& div': {
-      height: '100% !important',
-      width: '100% !important',
+    height: "100%",
+    cursor: "default !important",
+    "& div": {
+      height: "100% !important",
+      width: "100% !important",
       minHeight: 300,
     },
-  }
+  },
 };
 
 class DriveMap extends Component {
@@ -61,23 +61,29 @@ class DriveMap extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const prevRoute = prevProps.currentSegment ? prevProps.currentSegment.route : null;
-    const route = this.props.currentSegment ? this.props.currentSegment.route : null;
+    const prevRoute = prevProps.currentSegment
+      ? prevProps.currentSegment.route
+      : null;
+    const route = this.props.currentSegment
+      ? this.props.currentSegment.route
+      : null;
     if (prevRoute !== route) {
       this.setPath([]);
       if (route) {
         this.props.dispatch(fetchDriveCoords(this.props.currentSegment));
-      };
+      }
     }
 
     if (prevProps.startTime && prevProps.startTime !== this.props.startTime) {
       this.shouldFlyTo = true;
     }
 
-
-    if (this.props.currentSegment && prevProps.currentSegment &&
-      prevProps.currentSegment.driveCoords !== this.props.currentSegment.driveCoords)
-    {
+    if (
+      this.props.currentSegment &&
+      prevProps.currentSegment &&
+      prevProps.currentSegment.driveCoords !==
+        this.props.currentSegment.driveCoords
+    ) {
       const keys = Object.keys(this.props.currentSegment.driveCoords);
       this.setState({
         driveCoordsMin: Math.min(...keys),
@@ -99,7 +105,10 @@ class DriveMap extends Component {
       if (this.isInteractingTimeout !== null) {
         clearTimeout(this.isInteractingTimeout);
       }
-      this.isInteractingTimeout = setTimeout(() => this.isInteracting = false, INTERACTION_TIMEOUT);
+      this.isInteractingTimeout = setTimeout(
+        () => (this.isInteracting = false),
+        INTERACTION_TIMEOUT
+      );
     }
   }
 
@@ -108,7 +117,7 @@ class DriveMap extends Component {
       return;
     }
 
-    const markerSource = this.map && this.map.getMap().getSource('seekPoint');
+    const markerSource = this.map && this.map.getMap().getSource("seekPoint");
     if (markerSource) {
       if (this.props.currentSegment && this.props.currentSegment.driveCoords) {
         const { routeOffset } = this.props.currentSegment;
@@ -116,17 +125,20 @@ class DriveMap extends Component {
         const pos = this.posAtOffset(currentOffset() - routeOffset);
         if (pos) {
           markerSource.setData({
-            type: 'Point',
+            type: "Point",
             coordinates: pos,
           });
           if (!this.isInteracting) {
             this.moveViewportTo(pos);
           }
         }
-      } else if (markerSource._data && markerSource._data.coordinates.length > 0) {
+      } else if (
+        markerSource._data &&
+        markerSource._data.coordinates.length > 0
+      ) {
         markerSource.setData({
-          type: 'Point',
-          coordinates: []
+          type: "Point",
+          coordinates: [],
         });
       }
     }
@@ -162,13 +174,13 @@ class DriveMap extends Component {
     const map = this.map && this.map.getMap();
 
     if (map) {
-      map.getSource('route').setData({
-        type: 'Feature',
+      map.getSource("route").setData({
+        type: "Feature",
         properties: {},
         geometry: {
-          type: 'LineString',
+          type: "LineString",
           coordinates: coords,
-        }
+        },
       });
     }
   }
@@ -180,28 +192,30 @@ class DriveMap extends Component {
 
     const offsetSeconds = Math.floor(offset / 1e3);
     const offsetFractionalPart = (offset % 1e3) / 1000.0;
-    const coordIdx = Math.max(this.state.driveCoordsMin, Math.min(
-      offsetSeconds,
-      this.state.driveCoordsMax,
-    ));
-    const nextCoordIdx = Math.max(this.state.driveCoordsMin, Math.min(
-      offsetSeconds + 1,
-      this.state.driveCoordsMax,
-    ));
+    const coordIdx = Math.max(
+      this.state.driveCoordsMin,
+      Math.min(offsetSeconds, this.state.driveCoordsMax)
+    );
+    const nextCoordIdx = Math.max(
+      this.state.driveCoordsMin,
+      Math.min(offsetSeconds + 1, this.state.driveCoordsMax)
+    );
 
     if (!this.props.currentSegment.driveCoords[coordIdx]) {
       return null;
     }
 
-    const [floorLng, floorLat] = this.props.currentSegment.driveCoords[coordIdx];
+    const [floorLng, floorLat] =
+      this.props.currentSegment.driveCoords[coordIdx];
     if (!this.props.currentSegment.driveCoords[nextCoordIdx]) {
       return [floorLng, floorLat];
     }
 
-    const [ceilLng, ceilLat] = this.props.currentSegment.driveCoords[nextCoordIdx];
+    const [ceilLng, ceilLat] =
+      this.props.currentSegment.driveCoords[nextCoordIdx];
     return [
-      floorLng + ((ceilLng - floorLng) * offsetFractionalPart),
-      floorLat + ((ceilLat - floorLat) * offsetFractionalPart)
+      floorLng + (ceilLng - floorLng) * offsetFractionalPart,
+      floorLat + (ceilLat - floorLat) * offsetFractionalPart,
     ];
   }
 
@@ -217,49 +231,49 @@ class DriveMap extends Component {
       return;
     }
 
-    map.on('load', () => {
-      map.addSource('route', {
-        type: 'geojson',
+    map.on("load", () => {
+      map.addSource("route", {
+        type: "geojson",
         data: {
-          type: 'Feature',
+          type: "Feature",
           properties: {},
           geometry: {
-            type: 'LineString',
+            type: "LineString",
             coordinates: [],
-          }
-        }
+          },
+        },
       });
-      map.addSource('seekPoint', {
-        type: 'geojson',
+      map.addSource("seekPoint", {
+        type: "geojson",
         data: {
-          type: 'Point',
-          coordinates: []
-        }
+          type: "Point",
+          coordinates: [],
+        },
       });
 
       const lineGeoJson = {
-        id: 'routeLine',
-        type: 'line',
-        source: 'route',
+        id: "routeLine",
+        type: "line",
+        source: "route",
         layout: {
-          'line-join': 'round',
-          'line-cap': 'round'
+          "line-join": "round",
+          "line-cap": "round",
         },
         paint: {
-          'line-color': '#888',
-          'line-width': 8
-        }
+          "line-color": "#888",
+          "line-width": 8,
+        },
       };
       map.addLayer(lineGeoJson);
 
       const markerGeoJson = {
-        id: 'marker',
-        type: 'circle',
+        id: "marker",
+        type: "circle",
         paint: {
-          'circle-radius': 10,
-          'circle-color': '#007cbf'
+          "circle-radius": 10,
+          "circle-color": "#007cbf",
         },
-        source: 'seekPoint'
+        source: "seekPoint",
       };
 
       map.addLayer(markerGeoJson);
@@ -275,21 +289,31 @@ class DriveMap extends Component {
   render() {
     const { classes } = this.props;
     return (
-      <div className={ classes.mapContainer }>
-        <ReactMapGL width="100%" height="100%" {...this.state.viewport} mapStyle={MAP_STYLE} maxPitch={ 0 }
-          mapboxApiAccessToken={MAPBOX_TOKEN} ref={this.initMap} onContextMenu={ null } dragRotate={ false }
-          onViewportChange={(viewport) => this.setState({ viewport })} attributionControl={ false }
-          onInteractionStateChange={ this.onInteraction } />
+      <div className={classes.mapContainer}>
+        <ReactMapGL
+          width="100%"
+          height="100%"
+          {...this.state.viewport}
+          mapStyle={MAP_STYLE}
+          maxPitch={0}
+          mapboxApiAccessToken={MAPBOX_TOKEN}
+          ref={this.initMap}
+          onContextMenu={null}
+          dragRotate={false}
+          onViewportChange={(viewport) => this.setState({ viewport })}
+          attributionControl={false}
+          onInteractionStateChange={this.onInteraction}
+        />
       </div>
     );
   }
 }
 
 const stateToProps = Obstruction({
-  offset: 'offset',
-  segments: 'segments',
-  currentSegment: 'currentSegment',
-  startTime: 'startTime',
+  offset: "offset",
+  segments: "segments",
+  currentSegment: "currentSegment",
+  startTime: "startTime",
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveMap));

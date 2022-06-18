@@ -1,63 +1,68 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import fecha from 'fecha';
+import React, { Component } from "react";
+import { connect } from "react-redux";
+import Obstruction from "obstruction";
+import fecha from "fecha";
 
-import { withStyles } from '@material-ui/core/styles';
-import Typography from '@material-ui/core/Typography';
-import Button from '@material-ui/core/Button';
-import Divider from '@material-ui/core/Divider';
-import FormControl from '@material-ui/core/FormControl';
-import Select from '@material-ui/core/Select';
-import Modal from '@material-ui/core/Modal';
-import MenuItem from '@material-ui/core/MenuItem';
-import Paper from '@material-ui/core/Paper';
+import { withStyles } from "@material-ui/core/styles";
+import Typography from "@material-ui/core/Typography";
+import Button from "@material-ui/core/Button";
+import Divider from "@material-ui/core/Divider";
+import FormControl from "@material-ui/core/FormControl";
+import Select from "@material-ui/core/Select";
+import Modal from "@material-ui/core/Modal";
+import MenuItem from "@material-ui/core/MenuItem";
+import Paper from "@material-ui/core/Paper";
 
-import Colors from '../../colors';
-import { selectTimeFilter } from '../../actions';
-import { getDefaultFilter } from '../../initialState';
-import VisibilityHandler from '../VisibilityHandler';
+import { DateRangePicker, DateRange } from "materialui-daterange-picker";
+
+import Colors from "../../colors";
+import { selectTimeFilter } from "../../actions";
+import { getDefaultFilter } from "../../initialState";
+import VisibilityHandler from "../VisibilityHandler";
 
 const styles = (theme) => ({
   root: {},
   modal: {
-    position: 'absolute',
+    position: "absolute",
     padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
-    maxWidth: '90%',
-    margin: '0 auto',
-    left: '50%',
-    top: '40%',
-    transform: 'translate(-50%, -50%)',
-    outline: 'none',
+    //width: theme.spacing.unit * 50,
+    maxWidth: "90%",
+    margin: "0 auto",
+    left: "50%",
+    top: "40%",
+    transform: "translate(-50%, -50%)",
+    outline: "none",
   },
   buttonGroup: {
     marginTop: 20,
-    textAlign: 'right'
+    textAlign: "right",
   },
   headerDropdown: {
     fontWeight: 500,
     marginRight: 12,
     width: 310,
-    maxWidth: '90%',
-    textAlign: 'center',
+    maxWidth: "90%",
+    textAlign: "center",
   },
   datePickerContainer: {
-    display: 'flex',
+    display: "flex",
     marginBottom: 20,
-    '& aside': { width: 100 },
+    "& aside": { width: 100 },
+  },
+  datePicker: {
+    backgroundColor: "#30373B",
   },
   cancelButton: {
     backgroundColor: Colors.grey200,
     color: Colors.white,
-    '&:hover': {
+    "&:hover": {
       backgroundColor: Colors.grey400,
     },
   },
   saveButton: {
     backgroundColor: Colors.white,
     color: Colors.grey800,
-    '&:hover': {
+    "&:hover": {
       backgroundColor: Colors.white70,
     },
   },
@@ -70,7 +75,8 @@ class TimeSelect extends Component {
     super(props);
 
     this.state = {
-      showPicker: false
+      showPicker: false,
+      windowWidth: window.innerWidth,
     };
 
     this.handleSelectChange = this.handleSelectChange.bind(this);
@@ -87,20 +93,26 @@ class TimeSelect extends Component {
     d.setHours(d.getHours() + 1, 0, 0, 0);
 
     switch (selection) {
-      case '24-hours':
-        this.props.dispatch(selectTimeFilter(d.getTime() - (1000 * 60 * 60 * 24), d.getTime()));
+      case "24-hours":
+        this.props.dispatch(
+          selectTimeFilter(d.getTime() - 1000 * 60 * 60 * 24, d.getTime())
+        );
         break;
-      case '1-week':
-        this.props.dispatch(selectTimeFilter(d.getTime() - (1000 * 60 * 60 * 24 * 7), d.getTime()));
+      case "1-week":
+        this.props.dispatch(
+          selectTimeFilter(d.getTime() - 1000 * 60 * 60 * 24 * 7, d.getTime())
+        );
         break;
-      case '2-weeks':
-        this.props.dispatch(selectTimeFilter(d.getTime() - (1000 * 60 * 60 * 24 * 14), d.getTime()));
+      case "2-weeks":
+        this.props.dispatch(
+          selectTimeFilter(d.getTime() - 1000 * 60 * 60 * 24 * 14, d.getTime())
+        );
         break;
-      case 'custom':
+      case "custom":
         this.setState({
           showPicker: true,
           start: this.props.filter.start,
-          end: this.props.filter.end
+          end: this.props.filter.end,
         });
         break;
     }
@@ -108,7 +120,7 @@ class TimeSelect extends Component {
 
   handleClose() {
     this.setState({
-      showPicker: false
+      showPicker: false,
     });
   }
 
@@ -133,7 +145,7 @@ class TimeSelect extends Component {
     this.setState({
       showPicker: false,
       start: null,
-      end: null
+      end: null,
     });
   }
 
@@ -143,29 +155,37 @@ class TimeSelect extends Component {
     if (Math.abs(this.props.filter.end - Date.now()) < 1000 * 60 * 60) {
       // ends right around now
       if (timeRange === 1000 * 60 * 60 * 24 * 14) {
-        return '2-weeks';
-      } if (timeRange === 1000 * 60 * 60 * 24 * 7) {
-        return '1-week';
-      } if (timeRange === 1000 * 60 * 60 * 24) {
-        return '24-hours';
+        return "2-weeks";
+      }
+      if (timeRange === 1000 * 60 * 60 * 24 * 7) {
+        return "1-week";
+      }
+      if (timeRange === 1000 * 60 * 60 * 24) {
+        return "24-hours";
       }
     }
 
-    return 'custom';
+    return "custom";
   }
 
   lastWeekText() {
-    const weekAgo = Date.now() - (1000 * 60 * 60 * 24 * 7);
-    return `Last Week${fecha.format(new Date(weekAgo), ' (M/D - ')}${fecha.format(new Date(), 'M/D)')}`;
+    const weekAgo = Date.now() - 1000 * 60 * 60 * 24 * 7;
+    return `Last Week${fecha.format(
+      new Date(weekAgo),
+      " (M/D - "
+    )}${fecha.format(new Date(), "M/D)")}`;
   }
 
   last2WeeksText() {
-    const twoWeeksAgo = Date.now() - (1000 * 60 * 60 * 24 * 14);
-    return `2 Weeks${fecha.format(new Date(twoWeeksAgo), ' (M/D - ')}${fecha.format(new Date(), 'M/D)')}`;
+    const twoWeeksAgo = Date.now() - 1000 * 60 * 60 * 24 * 14;
+    return `2 Weeks${fecha.format(
+      new Date(twoWeeksAgo),
+      " (M/D - "
+    )}${fecha.format(new Date(), "M/D)")}`;
   }
 
   last24HoursText() {
-    return 'Last 24 Hours';
+    return "Last 24 Hours";
   }
 
   onVisible() {
@@ -175,14 +195,30 @@ class TimeSelect extends Component {
 
   render() {
     const { classes } = this.props;
-    const minDate = fecha.format(new Date(Date.now() - LOOKBACK_WINDOW_MILLIS), 'YYYY-MM-DD');
-    const maxDate = fecha.format(new Date(), 'YYYY-MM-DD');
-    const startDate = fecha.format(new Date(this.state.start || this.props.filter.start), 'YYYY-MM-DD');
-    const endDate = fecha.format(new Date(this.state.end || this.props.filter.end), 'YYYY-MM-DD');
+    const { windowWidth } = this.state;
+
+    const minDate = fecha.format(
+      new Date(Date.now() - LOOKBACK_WINDOW_MILLIS),
+      "YYYY-MM-DD"
+    );
+    const maxDate = fecha.format(new Date(), "YYYY-MM-DD");
+    const startDate = fecha.format(
+      new Date(this.state.start || this.props.filter.start),
+      "YYYY-MM-DD"
+    );
+    const endDate = fecha.format(
+      new Date(this.state.end || this.props.filter.end),
+      "YYYY-MM-DD"
+    );
 
     return (
       <>
-        <VisibilityHandler onVisible={ this.onVisible } minInterval={ 1800 } resetOnHidden={ true } />
+        <VisibilityHandler
+          onVisible={this.onVisible}
+          minInterval={1800}
+          resetOnHidden={true}
+        />
+
         <FormControl>
           <Select
             name="timerange"
@@ -191,31 +227,91 @@ class TimeSelect extends Component {
             className={classes.headerDropdown}
           >
             <MenuItem value="custom">Custom</MenuItem>
-            <MenuItem value="24-hours">{ this.last24HoursText() }</MenuItem>
-            <MenuItem value="1-week">{ this.lastWeekText() }</MenuItem>
-            <MenuItem value="2-weeks">{ this.last2WeeksText() }</MenuItem>
+            <MenuItem value="24-hours">{this.last24HoursText()}</MenuItem>
+            <MenuItem value="1-week">{this.lastWeekText()}</MenuItem>
+            <MenuItem value="2-weeks">{this.last2WeeksText()}</MenuItem>
           </Select>
         </FormControl>
-        <Modal aria-labelledby="simple-modal-title" aria-describedby="simple-modal-description"
-          open={this.state.showPicker} onClose={this.handleClose}>
+        <Modal
+          aria-labelledby="simple-modal-title"
+          aria-describedby="simple-modal-description"
+          open={this.state.showPicker}
+          onClose={this.handleClose}
+        >
           <Paper className={classes.modal}>
-            <div className={ classes.datePickerContainer }>
-              <Typography variant="body2">Start date:</Typography>
-              <input label="Start date" type="date" min={ minDate } max={ maxDate } onChange={this.changeStart}
-                value={ startDate } />
-            </div>
-            <div className={ classes.datePickerContainer }>
-              <Typography variant="body2">End date:</Typography>
-              <input label="End date" type="date" min={ minDate } max={ maxDate } onChange={this.changeEnd}
-                value={ endDate } />
-            </div>
+            {windowWidth >= 768 ? (
+              <div>
+                <DateRangePicker
+                  wrapperClassName={classes.datePicker}
+                  initialDateRange={{
+                    start: new Date(
+                      this.state.start || this.props.filter.start
+                    ),
+                    end: new Date(this.state.end || this.props.filter.end),
+                  }}
+                  minDate={new Date(Date.now() - LOOKBACK_WINDOW_MILLIS)}
+                  maxDate={new Date()}
+                  toggle={() => this.handleClose()}
+                  open={true}
+                  startDate={
+                    new Date(this.state.start || this.props.filter.start)
+                  }
+                  endDate={new Date(this.state.end || this.props.filter.end)}
+                  onChange={(dateRange) =>
+                    this.setState({
+                      showPicker: true,
+                      start: new Date(dateRange.startDate).setHours(0, 0, 0, 0),
+                      end: new Date(dateRange.endDate).setHours(
+                        23,
+                        59,
+                        59,
+                        999
+                      ),
+                    })
+                  }
+                />
+              </div>
+            ) : (
+              <>
+                <div className={classes.datePickerContainer}>
+                  <Typography variant="body2">Start date:</Typography>
+                  <input
+                    label="Start date"
+                    type="date"
+                    min={minDate}
+                    max={maxDate}
+                    onChange={this.changeStart}
+                    value={startDate}
+                  />
+                </div>
+                <div className={classes.datePickerContainer}>
+                  <Typography variant="body2">End date:</Typography>
+                  <input
+                    label="End date"
+                    type="date"
+                    min={minDate}
+                    max={maxDate}
+                    onChange={this.changeEnd}
+                    value={endDate}
+                  />
+                </div>
+              </>
+            )}
             <Divider />
             <div className={classes.buttonGroup}>
-              <Button variant="contained" className={ classes.cancelButton } onClick={this.handleClose}>
+              <Button
+                variant="contained"
+                className={classes.cancelButton}
+                onClick={this.handleClose}
+              >
                 Cancel
               </Button>
               &nbsp;
-              <Button variant="contained" className={ classes.saveButton } onClick={this.handleSave}>
+              <Button
+                variant="contained"
+                className={classes.saveButton}
+                onClick={this.handleSave}
+              >
                 Save
               </Button>
             </div>
@@ -227,7 +323,7 @@ class TimeSelect extends Component {
 }
 
 const stateToProps = Obstruction({
-  filter: 'filter',
+  filter: "filter",
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeSelect));

@@ -32,6 +32,7 @@
     "history": "^4.7.2",
     "jsonwebtoken": "^8.5.1",
     "localforage": "^1.7.1",
+    "materialui-daterange-picker": "^1.1.92",
     "obstruction": "^2.1.0",
     "prop-types": "^15.7.2",
     "qr-scanner": "^1.3.0",
