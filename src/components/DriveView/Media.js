@@ -6,6 +6,7 @@ import Obstruction from 'obstruction';
 import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper } from '@material-ui/core';
 import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
+import ShareIcon from '@material-ui/icons/Share';
 import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
 
 import DriveMap from '../DriveMap';
@@ -161,6 +162,11 @@ const styles = (theme) => ({
       },
     },
   },
+  shareButton: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   viewCabanaFakeUploads: {
     display: 'flex',
     alignItems: 'center',
@@ -223,6 +229,7 @@ class Media extends Component {
     this.copySegmentName = this.copySegmentName.bind(this);
     this.openInCabana = this.openInCabana.bind(this);
     this.openInUseradmin = this.openInUseradmin.bind(this);
+    this.shareCurrentRoute = this.shareCurrentRoute.bind(this);
     this.routesInLoop = this.routesInLoop.bind(this);
     this.currentSegmentNum = this.currentSegmentNum.bind(this);
     this.uploadFile = this.uploadFile.bind(this);
@@ -326,6 +333,18 @@ class Media extends Component {
     const win = window.open(`${window.USERADMIN_URL_ROOT}?${qs.stringify(params)}`, '_blank');
     if (win.focus) {
       win.focus();
+    }
+  }
+
+  async shareCurrentRoute() {
+    try {
+      await navigator.share({
+        title: 'comma connect',
+        url: window.location.href,
+      });
+    } catch (err) {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'media_navigator_share' });
     }
   }
 
@@ -660,6 +679,12 @@ class Media extends Component {
         <MenuItem onClick={ this.openInUseradmin }>
           View in useradmin
         </MenuItem>
+        { typeof navigator.share !== 'undefined' &&
+          <MenuItem onClick={ this.shareCurrentRoute } className={ classes.shareButton }>
+            Share this route
+            <ShareIcon />
+          </MenuItem>
+        }
       </Menu>
       <UploadQueue open={ uploadModal } onClose={ () => this.setState({ uploadModal: false }) }
         update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) } store={ this.props.store } device={ device } />
