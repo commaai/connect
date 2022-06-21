@@ -2,6 +2,7 @@ import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import document from 'global/document';
 import { billing as Billing, devices as DevicesApi, drives as Drives, athena as AthenaApi } from '@commaai/comma-api';
+import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback'
@@ -261,6 +262,9 @@ export function checkSegmentMetadata() {
       if (currFetchRange.start !== fetchRange.start || currFetchRange.end !== fetchRange.end || state.dongleId !== dongleId) {
         segmentsRequest = null;
         checkSegmentMetadata();
+        return;
+      } else if (segmentData && segmentData.length === 0 && !MyCommaAuth.isAuthenticated()) {
+        window.location = '/';  // redirect to login
         return;
       }
 
