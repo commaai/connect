@@ -166,8 +166,6 @@ const styles = (theme) => ({
   },
   shareButton: {
     display: 'flex',
-    width: '100%',
-    padding: '0 6px 0 0',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
@@ -344,15 +342,14 @@ class Media extends Component {
   }
 
   async shareCurrentRoute() {
-    const shareData = {
-      title: 'Drive replay',
-      url: window.location.href,
-    };
-    if (typeof navigator.share !== 'undefined') {
-      navigator.share(shareData);
-    } else if (navigator.clipboard) {
-      await navigator.clipboard.writeText(shareData.url);
-      this.setState({ moreInfoMenu: null });
+    try {
+      await navigator.share({
+        title: 'comma connect',
+        url: window.location.href,
+      });
+    } catch (err) {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'media_navigator_share' });
     }
   }
 
@@ -812,12 +809,12 @@ class Media extends Component {
         <MenuItem onClick={ this.openInUseradmin }>
           View in useradmin
         </MenuItem>
-        <MenuItem onClick={ this.shareCurrentRoute }>
-          <div className={ classes.shareButton }>
+        { typeof navigator.share !== 'undefined' &&
+          <MenuItem onClick={ this.shareCurrentRoute } className={ classes.shareButton }>
             Share this route
             <ShareIcon />
-          </div>
-        </MenuItem>
+          </MenuItem>
+        }
       </Menu>
       <UploadQueue open={ uploadModal } onClose={ () => this.setState({ uploadModal: false }) }
         update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) } store={ this.props.store } device={ device } />
