@@ -4,7 +4,7 @@ import { shallow } from 'enzyme';
 import Thumbnails from './thumbnails';
 
 const screenHeight = 1000;
-const screenWidth = 1350;
+const screenWidth = 1600;
 const gutter = 20;
 const percentToOffsetMock = jest.fn();
 const getCurrentSegmentMock = jest.fn();
@@ -18,6 +18,8 @@ const thumbnailBounds = {
   width: screenWidth - (gutter * 2),
   height: 100
 };
+
+const heightWithBlackBorder = 120;
 
 percentToOffsetMock.mockImplementation((percent) => Math.round(percent * 30000));
 getCurrentSegmentMock.mockImplementation((offset) => {
@@ -59,7 +61,7 @@ describe('timeline thumbnails', () => {
         const styles = entry.prop('style');
         const backgroundParts = styles.backgroundSize.split(' ');
         const height = Number(backgroundParts[1].replace('px', ''));
-        expect(height).toBe(thumbnailBounds.height);
+        expect(height).toBe(heightWithBlackBorder);
         // never stretch thumbnail images
         expect(backgroundParts[0]).toBe('auto');
       }
@@ -122,7 +124,7 @@ describe('timeline thumbnails', () => {
         const styles = entry.prop('style');
         const backgroundParts = styles.backgroundSize.split(' ');
         const height = Number(backgroundParts[1].replace('px', ''));
-        expect(height).toBe(thumbnailBounds.height);
+        expect(height).toBe(heightWithBlackBorder);
 
         // never stretch thumbnail images
         expect(backgroundParts[0]).toBe('auto');
