@@ -3,7 +3,7 @@ import { getDongleID, getZoom, getPrimeNav } from '../url';
 import { primeNav, selectDevice, selectRange } from './index';
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
-  if (action.type === LOCATION_CHANGE && action.payload.action === 'POP') {
+  if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
     const state = getState();
 
     next(action);  // must be first, otherwise breaks history

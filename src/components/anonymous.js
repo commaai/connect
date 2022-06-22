@@ -103,9 +103,8 @@ const styles = (/* theme */) => ({
 
 class AnonymousLanding extends Component {
   componentWillMount() {
-    if (typeof window.sessionStorage !== 'undefined') {
-      const { pathname } = this.props;
-      sessionStorage.redirectURL = pathname;
+    if (typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') === null) {
+      sessionStorage.setItem('redirectURL', this.props.pathname);
     }
   }
 

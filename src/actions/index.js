@@ -261,9 +261,12 @@ export function checkSegmentMetadata() {
       const currFetchRange = getSegmentFetchRange(state);
       if (currFetchRange.start !== fetchRange.start || currFetchRange.end !== fetchRange.end || state.dongleId !== dongleId) {
         segmentsRequest = null;
-        checkSegmentMetadata();
+        dispatch(checkSegmentMetadata());
         return;
       } else if (segmentData && segmentData.length === 0 && !MyCommaAuth.isAuthenticated()) {
+        if (typeof window.sessionStorage !== 'undefined') {
+          sessionStorage.setItem('redirectURL', window.location.pathname);
+        }
         window.location = '/';  // redirect to login
         return;
       }

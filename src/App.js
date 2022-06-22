@@ -69,8 +69,9 @@ class App extends Component {
 
   redirectLink() {
     let url = '/';
-    if (typeof window.sessionStorage !== 'undefined') {
-      url = sessionStorage.redirectURL || '/';
+    if (typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') !== null) {
+      url = sessionStorage.getItem('redirectURL');
+      sessionStorage.removeItem('redirectURL');
     }
     return url;
   }
@@ -78,7 +79,9 @@ class App extends Component {
   authRoutes() {
     return (
       <Switch>
-        <Route path="/auth/" render={() => <Redirect to={this.redirectLink()} />} />
+        <Route path="/auth/">
+          <Redirect to={this.redirectLink()} />
+        </Route>
         <Route path="/" component={Explorer} />
       </Switch>
     );
@@ -87,7 +90,9 @@ class App extends Component {
   ananymousRoutes() {
     return (
       <Switch>
-        <Route path="/auth/" render={() => <Redirect to="/" />} />
+        <Route path="/auth/">
+          <Redirect to="/" />
+        </Route>
         <Route path="/" component={AnonymousLanding} />
       </Switch>
     );
