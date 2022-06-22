@@ -15,7 +15,7 @@ import ResizeHandler from '../ResizeHandler';
 import * as Demo from '../../demo';
 import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
-import { currentOffset } from '../../timeline/playback';
+import { bufferVideo, currentOffset } from '../../timeline/playback';
 import Colors from '../../colors';
 import { deviceIsOnline, deviceOnCellular } from '../../utils';
 import { analyticsEvent } from '../../actions';
@@ -250,6 +250,10 @@ class Media extends Component {
     const showMapAlways = windowWidth >= 1536;
     if (showMapAlways && inView === MediaType.MAP) {
       this.setState({ inView: MediaType.VIDEO });
+    }
+
+    if (!showMapAlways && inView === MediaType.MAP && this.props.isBufferingVideo) {
+      this.props.dispatch(bufferVideo(false));
     }
 
     if (prevProps.currentSegment !== this.props.currentSegment && this.props.currentSegment) {
@@ -770,6 +774,7 @@ const stateToProps = Obstruction({
   filter: 'filter',
   files: 'files',
   profile: 'profile',
+  isBufferingVideo: 'isBufferingVideo',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));

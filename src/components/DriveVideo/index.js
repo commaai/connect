@@ -139,6 +139,9 @@ class DriveVideo extends Component {
   syncVideo() {
     if (!this.visibleSegment()) {
       this.props.dispatch(updateSegments());
+      if (this.props.segments && this.props.isBufferingVideo) {
+        this.props.dispatch(bufferVideo(false));
+      }
       return;
     }
 
@@ -227,6 +230,7 @@ const stateToProps = Obstruction({
   offset: 'offset',
   startTime: 'startTime',
   isBufferingVideo: 'isBufferingVideo',
+  segments: 'segments',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveVideo));
