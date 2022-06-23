@@ -109,6 +109,11 @@ class AnonymousLanding extends Component {
   }
 
   componentDidMount() {
+    const q = new URLSearchParams(window.location.search);
+    if (q.has('r')) {
+      sessionStorage.setItem('redirectURL', q.get('r'));
+    }
+
     const script = document.createElement("script");
     document.body.appendChild(script);
     script.onload = () => {

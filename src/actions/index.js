@@ -264,10 +264,7 @@ export function checkSegmentMetadata() {
         dispatch(checkSegmentMetadata());
         return;
       } else if (segmentData && segmentData.length === 0 && !MyCommaAuth.isAuthenticated()) {
-        if (typeof window.sessionStorage !== 'undefined') {
-          sessionStorage.setItem('redirectURL', window.location.pathname);
-        }
-        window.location = '/';  // redirect to login
+        window.location = `/?r=${encodeURI(window.location.pathname)}`;  // redirect to login
         return;
       }
 
