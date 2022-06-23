@@ -528,7 +528,7 @@ class Media extends Component {
   }
 
   renderMediaOptions(showMapAlways) {
-    const { classes } = this.props;
+    const { classes, drive, profile } = this.props;
     const { inView } = this.state;
     return (
       <>
@@ -548,10 +548,12 @@ class Media extends Component {
             </div>
           }
           <div className={classes.mediaOptions}>
-            <div className={classes.mediaOption} aria-haspopup="true"
-              onClick={ () => this.props.dispatch(clipInit()) }>
-              <Typography className={classes.mediaOptionText}>Create clip</Typography>
-            </div>
+            { Boolean(device.is_owner || (profile && profile.superuser)) &&
+              <div className={classes.mediaOption} aria-haspopup="true"
+                onClick={ () => this.props.dispatch(clipInit()) }>
+                <Typography className={classes.mediaOptionText}>Create clip</Typography>
+              </div>
+            }
             <div className={classes.mediaOption} aria-haspopup="true"
               onClick={ (ev) => this.setState({ downloadMenu: ev.target }) }>
               <Typography className={classes.mediaOptionText}>Files</Typography>
