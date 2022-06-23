@@ -528,7 +528,7 @@ class Media extends Component {
   }
 
   renderMediaOptions(showMapAlways) {
-    const { classes, drive, profile } = this.props;
+    const { classes, device, profile } = this.props;
     const { inView } = this.state;
     return (
       <>
@@ -548,7 +548,7 @@ class Media extends Component {
             </div>
           }
           <div className={classes.mediaOptions}>
-            { Boolean(device.is_owner || (profile && profile.superuser)) &&
+            { Boolean(device?.is_owner || (profile && profile.superuser)) &&
               <div className={classes.mediaOption} aria-haspopup="true"
                 onClick={ () => this.props.dispatch(clipInit()) }>
                 <Typography className={classes.mediaOptionText}>Create clip</Typography>

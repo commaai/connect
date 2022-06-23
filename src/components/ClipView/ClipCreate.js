@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import { withStyles, Typography, TextField, Button } from '@material-ui/core';
+import ErrorIcon from '@material-ui/icons/ErrorOutline';
 
 import ResizeHandler from '../ResizeHandler';
 import DriveVideo from '../DriveVideo';
@@ -55,6 +56,16 @@ const styles = (theme) => ({
       padding: '6px 16px',
     },
   },
+  overviewBlockError: {
+    borderRadius: 12,
+    marginBottom: 12,
+    padding: '8px 12px',
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 0, 0, 0.2)',
+    color: Colors.white,
+    '& p': { display: 'inline-block', marginLeft: 10 },
+  },
 });
 
 class ClipCreate extends Component {
@@ -65,6 +76,7 @@ class ClipCreate extends Component {
       windowWidth: window.innerWidth,
       videoTypeOption: 'f',
       clipLabel: null,
+      error: null,
     };
 
     this.onResize = this.onResize.bind(this);
@@ -80,6 +92,11 @@ class ClipCreate extends Component {
 
   onclipCreate() {
     const { videoTypeOption, clipLabel } = this.state;
+    const { loop } = this.props;
+    if (loop.duration > 300000) {  // 5 minutes
+      this.setState({ error: 'clip selection exceeds maximum length of 5 minutes' });
+      return;
+    }
     this.props.dispatch(clipCreate(videoTypeOption, clipLabel));
   }
 
@@ -89,7 +106,7 @@ class ClipCreate extends Component {
 
   render() {
     const { classes } = this.props;
-    const { windowWidth, videoTypeOption, clipLabel } = this.state;
+    const { windowWidth, videoTypeOption, clipLabel, error } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32
 
     return <>
@@ -123,6 +140,10 @@ class ClipCreate extends Component {
             onChange={ (ev) =>this.setState({ clipLabel: ev.target.value }) } />
         </div>
         <div className={ classes.clipOption }>
+          { error && <div className={ classes.overviewBlockError }>
+            <ErrorIcon />
+            <Typography>{ error }</Typography>
+          </div> }
           <Button variant="outlined" onClick={ this.onclipCreate }>
             Create clip
           </Button>
@@ -136,6 +157,7 @@ const stateToProps = Obstruction({
   currentSegment: 'currentSegment',
   dongleId: 'dongleId',
   clip: 'clip',
+  loop: 'loop',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ClipCreate));

@@ -6,10 +6,10 @@ import { CircularProgress, withStyles } from '@material-ui/core';
 import WarningIcon from '@material-ui/icons/Warning';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 
-import { deviceOnCellular } from '../../utils';
+import { deviceIsOnline, deviceOnCellular } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
-import { fetchFiles, fetchAthenaQueue, updateFiles, doUpload, fetchUploadUrls } from '../../actions/files';
+import { fetchFiles, fetchAthenaQueue, updateFiles, doUpload, fetchUploadUrls, fetchUploadQueue } from '../../actions/files';
 
 const FILE_NAMES = {
   'qcameras': 'qcamera.ts',
@@ -39,15 +39,24 @@ const styles = (theme) => ({
     },
   },
   clipWarning: {
-    color: Colors.white,
-    fontSize: '1rem',
     display: 'flex',
-    flexDirection: 'column',
+    borderRadius: 12,
+    marginBottom: 12,
+    padding: '8px 12px',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 0, 0, 0.2)',
+    color: Colors.white,
     '& div': {
+      marginLeft: 12,
       display: 'flex',
-      alignItems: 'center',
+      flexDirection: 'column',
     },
-    '& span': {
+    '& h6': {
+      margin: 0,
+      fontSize: '0.9rem',
+    },
+    '& p': {
+      margin: 0,
       fontSize: '0.8rem',
     },
   },
@@ -60,6 +69,9 @@ const styles = (theme) => ({
       margin: '0 0 5px 0',
       fontSize: '0.8rem',
     },
+  },
+  uploadState: {
+    minWidth: 120,
     '& p': {
       color: Colors.white,
       fontSize: '0.8rem',
@@ -129,7 +141,7 @@ class ClipUpload extends Component {
     if (!(prevProps.files && prevState.required_segments && prevState.required_file_types) &&
       files && required_segments && required_file_types)
     {
-      // this.uploadFiles();
+      this.uploadFiles();
     }
   }
 
@@ -202,17 +214,70 @@ class ClipUpload extends Component {
     if (urls) {
       this.props.dispatch(doUpload(dongleId, Object.keys(uploading), paths, urls));
     }
+    this.props.dispatch(fetchUploadQueue(dongleId));
   }
 
   render() {
-    const { classes } = this.props;
+    const { classes, device } = this.props;
     const { windowWidth, required_segments, required_file_types } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
-    let uploadItems = {};
+    let uploadingStates = [];
+    let errors = [];
+
+    if (!deviceIsOnline(device)) {
+      errors.push(
+        <div key={errors.length} className={classes.clipWarning}>
+          <WarningIcon />
+          <div>
+            <h6>Device offline</h6>
+            <span style={{ fontSize: '0.8rem' }}>uploading will resume when device is online</span>
+          </div>
+        </div>
+      );
+    }
+
     if (required_segments && required_file_types) {
       for (const type of required_file_types) {
-        uploadItems[type] = this.getUploadStats([type]);
+        const state = this.getUploadStats([type]);
+        if (state.paused > 0 && state.uploading === state.paused && deviceOnCellular(device)) {
+          errors.push(
+            <div key={errors.length} className={classes.clipWarning}>
+              <WarningIcon />
+              <div>
+                <h6>Connect to WiFi</h6>
+                <span style={{ fontSize: '0.8rem' }}>uploading paused on cellular connection</span>
+              </div>
+            </div>
+          );
+        }
+
+        if (state.notFound > 0) {
+          errors.push(
+            <div key={errors.length} className={classes.clipWarning}>
+              <ErrorIcon />
+              <div>
+                <h6>Not Found</h6>
+                <p>
+                  not all files are available on the device
+                  { type === 'dcameras' && ', make sure the "Record and Upload Driver Camera" toggle is enabled' }
+                </p>
+              </div>
+            </div>
+          );
+        }
+
+        uploadingStates.push(
+          <div key={uploadingStates.length} className={classes.uploadItem}>
+            <div>
+              <h5>{ FILE_TYPE_FRIENDLY[type] }:</h5>
+            </div>
+            <div className={classes.uploadState}>
+              <p>requested: {state.requested} / {state.count}</p>
+              <p>uploaded: {state.uploaded} / {state.count}</p>
+            </div>
+          </div>
+        );
       }
     }
 
@@ -221,33 +286,10 @@ class ClipUpload extends Component {
       <div style={{ padding: viewerPadding }}>
         <div className={ classes.clipOption }>
           <h4>Uploading files</h4>
-          { Object.keys(uploadItems).length === 0 && <CircularProgress style={{ color: Colors.white }} size={ 20 } /> }
-          { Object.entries(uploadItems).map(([type, state], i) => {
-            return <div key={i} className={classes.uploadItem}>
-              <div>
-                <h5>{ FILE_TYPE_FRIENDLY[type] }:</h5>
-                { Boolean(state.paused > 0 && state.uploading === state.paused && deviceOnCellular(device)) &&
-                  <div className={classes.clipWarning}>
-                    <WarningIcon /> Connect to WiFi
-                    <span style={{ fontSize: '0.8rem' }}>uploading paused on cellular connection</span>
-                  </div>
-                }
-                { Boolean(state.notFound > 0 || true/*TODO remove*/) &&
-                  <div className={classes.clipWarning}>
-                    <div><ErrorIcon /> Not Found<br /></div>
-                    <span style={{ fontSize: '0.8rem' }}>
-                      not all files are available on the device
-                      { type === 'dcameras' && ', make sure the "Record and Upload Driver Camera" toggle is enabled' }
-                    </span>
-                  </div>
-                }
-              </div>
-              <div>
-                <p>requested: {state.requested} / {state.count}</p>
-                <p>uploaded: {state.uploaded} / {state.count}</p>
-              </div>
-            </div>;
-          }) }
+          { uploadingStates.length === 0 &&
+            <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
+          { uploadingStates }
+          { errors }
         </div>
 
         <div className={ classes.clipOption }>
