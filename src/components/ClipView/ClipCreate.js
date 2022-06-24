@@ -1,8 +1,10 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
+import * as Sentry from '@sentry/react';
 
-import { withStyles, Typography, TextField, Button } from '@material-ui/core';
+import { withStyles, Typography, TextField, Button, CircularProgress } from '@material-ui/core';
+import { clips as ClipsApi } from '@commaai/comma-api';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 
 import ResizeHandler from '../ResizeHandler';
@@ -10,7 +12,7 @@ import DriveVideo from '../DriveVideo';
 import Timeline from '../Timeline';
 import TimeDisplay from '../TimeDisplay';
 import Colors from '../../colors';
-import { clipCreate } from '../../actions/clip';
+import { clipCreate } from '../../actions/clips';
 
 const styles = (theme) => ({
   clipOption: {
@@ -66,6 +68,27 @@ const styles = (theme) => ({
     color: Colors.white,
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
+  buttons: {
+    width: '100%',
+    maxWidth: 400,
+    height: 42,
+    borderRadius: 21,
+    background: Colors.white,
+    color: Colors.grey900,
+    textTransform: 'none',
+    '&:hover': {
+      backgroundColor: Colors.white70,
+      color: Colors.grey900,
+    },
+    '&:disabled': {
+      backgroundColor: Colors.white70,
+      color: Colors.grey900,
+    },
+    '&:disabled:hover': {
+      backgroundColor: Colors.white70,
+      color: Colors.grey900,
+    }
+  },
 });
 
 class ClipCreate extends Component {
@@ -75,12 +98,14 @@ class ClipCreate extends Component {
     this.state = {
       windowWidth: window.innerWidth,
       videoTypeOption: 'f',
+      isPublic: false,
       clipLabel: null,
+      createLoading: false,
       error: null,
     };
 
     this.onResize = this.onResize.bind(this);
-    this.onclipCreate = this.onclipCreate.bind(this);
+    this.onClipCreate = this.onClipCreate.bind(this);
   }
 
   componentDidMount() {
@@ -90,14 +115,29 @@ class ClipCreate extends Component {
   componentDidUpdate(prevProps, PrevState) {
   }
 
-  onclipCreate() {
-    const { videoTypeOption, clipLabel } = this.state;
-    const { loop } = this.props;
+  async onClipCreate() {
+    const { videoTypeOption, clipLabel, isPublic } = this.state;
+    const { loop, currentSegment } = this.props;
     if (loop.duration > 300000) {  // 5 minutes
       this.setState({ error: 'clip selection exceeds maximum length of 5 minutes' });
       return;
     }
-    this.props.dispatch(clipCreate(videoTypeOption, clipLabel));
+
+    this.setState({ createLoading: true });
+    try {
+      const resp = await ClipsApi.clipsCreate(currentSegment.route, clipLabel, loop.startTime, loop.startTime + loop.duration,
+        videoTypeOption, isPublic);
+      if (resp && resp.success) {
+        this.props.dispatch(clipCreate(resp.clid_id, videoTypeOption, clipLabel, isPublic));
+      } else {
+        this.setState({ error: 'failed to create clip', createLoading: false });
+        console.log(resp);
+      }
+    } catch (err) {
+      this.setState({ error: 'unable to create clip', createLoading: false });
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'clips_fetch_details' });
+    }
   }
 
   onResize(windowWidth) {
@@ -106,7 +146,7 @@ class ClipCreate extends Component {
 
   render() {
     const { classes } = this.props;
-    const { windowWidth, videoTypeOption, clipLabel, error } = this.state;
+    const { windowWidth, videoTypeOption, clipLabel, isPublic, createLoading, error } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32
 
     return <>
@@ -140,12 +180,28 @@ class ClipCreate extends Component {
             onChange={ (ev) =>this.setState({ clipLabel: ev.target.value }) } />
         </div>
         <div className={ classes.clipOption }>
+          <h4>Availability</h4>
+          <div className={classes.videoTypeOptions}>
+            <div className={ `${classes.videoTypeOption} ${!isPublic ? 'selected' : ''}` }
+              onClick={ () => this.setState({ isPublic: false }) }>
+              <Typography className={classes.mediaOptionText}>Private</Typography>
+            </div>
+            <div className={ `${classes.videoTypeOption} ${isPublic ? 'selected' : ''}` }
+              onClick={ () => this.setState({ isPublic: true }) }>
+              <Typography className={classes.mediaOptionText}>Public</Typography>
+            </div>
+          </div>
+        </div>
+        <div className={ classes.clipOption }>
           { error && <div className={ classes.overviewBlockError }>
             <ErrorIcon />
             <Typography>{ error }</Typography>
           </div> }
-          <Button variant="outlined" onClick={ this.onclipCreate }>
-            Create clip
+          <Button className={classes.buttons} onClick={ this.onClipCreate }
+            disabled={ createLoading }>
+            { createLoading ?
+              <CircularProgress style={{ margin: 0, color: Colors.white }} size={ 19 } /> :
+              'Create clip' }
           </Button>
         </div>
       </div>

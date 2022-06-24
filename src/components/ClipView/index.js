@@ -9,7 +9,7 @@ import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 
 import Colors from '../../colors';
 import { fetchEvents } from '../../actions/cached';
-import { clipBack } from '../../actions/clip';
+import { clipBack } from '../../actions/clips';
 import ClipCreate from './ClipCreate';
 import ClipUpload from './ClipUpload';
 

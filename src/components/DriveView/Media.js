@@ -22,7 +22,7 @@ import { analyticsEvent } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles } from '../../actions/files';
-import { clipInit } from '../../actions/clip';
+import { clipInit } from '../../actions/clips';
 
 const styles = (theme) => ({
   root: {

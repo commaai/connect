@@ -223,11 +223,11 @@ class ClipUpload extends Component {
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
     let uploadingStates = [];
-    let errors = [];
+    let uploadingErrors = [];
 
     if (!deviceIsOnline(device)) {
-      errors.push(
-        <div key={errors.length} className={classes.clipWarning}>
+      uploadingErrors.push(
+        <div key={uploadingErrors.length} className={classes.clipWarning}>
           <WarningIcon />
           <div>
             <h6>Device offline</h6>
@@ -240,9 +240,13 @@ class ClipUpload extends Component {
     if (required_segments && required_file_types) {
       for (const type of required_file_types) {
         const state = this.getUploadStats([type]);
+        if (state === null) {
+          continue;
+        }
+
         if (state.paused > 0 && state.uploading === state.paused && deviceOnCellular(device)) {
-          errors.push(
-            <div key={errors.length} className={classes.clipWarning}>
+          uploadingErrors.push(
+            <div key={uploadingErrors.length} className={classes.clipWarning}>
               <WarningIcon />
               <div>
                 <h6>Connect to WiFi</h6>
@@ -253,8 +257,8 @@ class ClipUpload extends Component {
         }
 
         if (state.notFound > 0) {
-          errors.push(
-            <div key={errors.length} className={classes.clipWarning}>
+          uploadingErrors.push(
+            <div key={uploadingErrors.length} className={classes.clipWarning}>
               <ErrorIcon />
               <div>
                 <h6>Not Found</h6>
@@ -286,10 +290,10 @@ class ClipUpload extends Component {
       <div style={{ padding: viewerPadding }}>
         <div className={ classes.clipOption }>
           <h4>Uploading files</h4>
+          { uploadingErrors }
           { uploadingStates.length === 0 &&
             <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
           { uploadingStates }
-          { errors }
         </div>
 
         <div className={ classes.clipOption }>
