@@ -74,8 +74,7 @@ class DriveMap extends Component {
       this.shouldFlyTo = true;
     }
 
-
-    if (this.props.currentSegment && prevProps.currentSegment &&
+    if (this.props.currentSegment && prevProps.currentSegment && this.props.currentSegment.driveCoords &&
       prevProps.currentSegment.driveCoords !== this.props.currentSegment.driveCoords)
     {
       const keys = Object.keys(this.props.currentSegment.driveCoords);

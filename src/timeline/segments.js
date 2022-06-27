@@ -175,6 +175,17 @@ export function reducer(_state, action) {
       };
       break;
     case Types.ACTION_SEGMENT_METADATA:
+      if (state.segments) {
+        for (const segment of action.segments) {
+          const oldSegment = state.segments.find((seg) => segment.route === seg.route && segment.segments === seg.segments);
+          if (oldSegment) {
+            segment.startLocation = oldSegment.startLocation;
+            segment.endLocation = oldSegment.endLocation;
+            segment.driveCoords = oldSegment.driveCoords;
+            segment.events = oldSegment.events;
+          }
+        }
+      }
       state = {
         ...state,
         segmentData: action.data,
