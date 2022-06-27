@@ -203,9 +203,9 @@ class ExplorerApp extends Component {
         <div className={ classes.window } style={ containerStyles }>
           { noDevicesUpsell ?
             <NoDeviceUpsell /> :
-            (zoom ?
-              (clip ? <ClipView /> : <DriveView />) :
-              <Dashboard />
+            (clip ?
+              <ClipView /> :
+              (zoom ? <DriveView /> : <Dashboard />)
           ) }
         </div>
         <IosPwaPopup />

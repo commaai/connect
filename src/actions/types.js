@@ -43,5 +43,4 @@ export const ANALYTICS_EVENT = 'analytics_event';
 // clips
 export const ACTION_CLIP_INIT = 'clip_init';
 export const ACTION_CLIP_CREATE = 'clip_create';
-export const ACTION_CLIP_UPDATE = 'clip_update';
-export const ACTION_CLIP_BACK = 'clip_back';
+export const ACTION_CLIP_EXIT = 'clip_exit';

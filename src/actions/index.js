@@ -314,7 +314,7 @@ export function primeGetSubscription(dongleId, subscription) {
   };
 }
 
-function urlForState(dongleId, start, end, prime_nav) {
+export function urlForState(dongleId, start, end, prime_nav) {
   const path = [dongleId];
 
   if (start && end) {

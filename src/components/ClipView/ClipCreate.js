@@ -50,7 +50,7 @@ const styles = (theme) => ({
       borderRight: `1px solid ${Colors.white10}`,
     },
   },
-  clipLabelInput: {
+  clipTitleInput: {
     '& div': {
       border: `1px solid ${Colors.white10}`,
     },
@@ -99,7 +99,7 @@ class ClipCreate extends Component {
       windowWidth: window.innerWidth,
       videoTypeOption: 'f',
       isPublic: false,
-      clipLabel: null,
+      clipTitle: null,
       createLoading: false,
       error: null,
     };
@@ -116,7 +116,7 @@ class ClipCreate extends Component {
   }
 
   async onClipCreate() {
-    const { videoTypeOption, clipLabel, isPublic } = this.state;
+    const { videoTypeOption, clipTitle, isPublic } = this.state;
     const { loop, currentSegment } = this.props;
     if (loop.duration > 300000) {  // 5 minutes
       this.setState({ error: 'clip selection exceeds maximum length of 5 minutes' });
@@ -125,10 +125,10 @@ class ClipCreate extends Component {
 
     this.setState({ createLoading: true });
     try {
-      const resp = await ClipsApi.clipsCreate(currentSegment.route, clipLabel, loop.startTime, loop.startTime + loop.duration,
+      const resp = await ClipsApi.clipsCreate(currentSegment.route, clipTitle, loop.startTime, loop.startTime + loop.duration,
         videoTypeOption, isPublic);
       if (resp && resp.success) {
-        this.props.dispatch(clipCreate(resp.clid_id, videoTypeOption, clipLabel, isPublic));
+        this.props.dispatch(clipCreate(resp.clip_id, videoTypeOption, clipTitle, isPublic));
       } else {
         this.setState({ error: 'failed to create clip', createLoading: false });
         console.log(resp);
@@ -146,7 +146,7 @@ class ClipCreate extends Component {
 
   render() {
     const { classes } = this.props;
-    const { windowWidth, videoTypeOption, clipLabel, isPublic, createLoading, error } = this.state;
+    const { windowWidth, videoTypeOption, clipTitle, isPublic, createLoading, error } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32
 
     return <>
@@ -176,8 +176,8 @@ class ClipCreate extends Component {
         </div>
         <div className={ classes.clipOption }>
           <h4>Clip title</h4>
-          <TextField className={ classes.clipLabelInput } value={ clipLabel ? clipLabel : '' }
-            onChange={ (ev) =>this.setState({ clipLabel: ev.target.value }) } />
+          <TextField className={ classes.clipTitleInput } value={ clipTitle ? clipTitle : '' }
+            onChange={ (ev) =>this.setState({ clipTitle: ev.target.value }) } />
         </div>
         <div className={ classes.clipOption }>
           <h4>Availability</h4>

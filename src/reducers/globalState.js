@@ -279,7 +279,7 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_CLIP_BACK:
+    case Types.ACTION_CLIP_EXIT:
       if (!state.clip.state || state.clip.state === 'create') {
         state.clip = null;
         if (state.zoom) {
@@ -291,10 +291,7 @@ export default function reducer(_state, action) {
           state.loop = null;
         }
       } else if (state.clip?.state === 'upload') {
-        state.clip = {
-          ...state.clip,
-          state: 'create',
-        };
+        state.clip = null;
       }
       break;
     case Types.ACTION_CLIP_INIT:
@@ -313,6 +310,7 @@ export default function reducer(_state, action) {
         video_type: action.video_type,
         label: action.label,
       };
+      break;
     default:
       return state;
   }

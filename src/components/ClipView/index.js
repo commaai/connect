@@ -61,7 +61,7 @@ class ClipView extends Component {
       <div className={classes.window} >
         <div className={classes.headerContext}>
           <IconButton onClick={ () => this.props.dispatch(clipBack()) }>
-            { clip.state === 'create' ? <CloseIcon /> : <ArrowBackIcon /> }
+            <CloseIcon />
           </IconButton>
           <div className={ classes.headerInfo }>
             Create a clip
