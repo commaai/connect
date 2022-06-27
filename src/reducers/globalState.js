@@ -310,8 +310,20 @@ export default function reducer(_state, action) {
         start_time: action.start_time,
         end_time: action.end_time,
         video_type: action.video_type,
-        label: action.label,
+        title: action.title,
         route: action.route,
+      };
+      break;
+    case Types.ACTION_CLIP_DONE:
+      state.clip = {
+        ...state.clip,
+        state: 'done',
+        start_time: action.start_time,
+        end_time: action.end_time,
+        video_type: action.video_type,
+        title: action.title,
+        route: action.route,
+        url: action.url,
       };
       break;
     default:

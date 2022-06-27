@@ -77,7 +77,18 @@ export function fetchClipDetails(clip_id) {
           pending_status: resp.pending_status,
         });
       } else if (resp.status === 'done') {
-        throw new Error('not implemented');
+        dispatch({
+          type: Types.ACTION_CLIP_DONE,
+          dongleId,
+          clip_id,
+          start_time: resp.start_time,
+          end_time: resp.end_time,
+          video_type: resp.video_type,
+          title: resp.title,
+          is_public: resp.is_public,
+          route: resp.route_name,
+          url: resp.url,
+        });
       }
     } catch (err) {
       console.log(err);

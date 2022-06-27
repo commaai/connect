@@ -12,6 +12,7 @@ import { fetchEvents } from '../../actions/cached';
 import { clipBack } from '../../actions/clips';
 import ClipCreate from './ClipCreate';
 import ClipUpload from './ClipUpload';
+import ClipDone from './ClipDone';
 
 const styles = (theme) => ({
   window: {
@@ -48,7 +49,7 @@ class ClipView extends Component {
     this.componentDidUpdate({}, {});
   }
 
-  componentDidUpdate(prevProps, PrevState) {
+  componentDidUpdate(prevProps, prevState) {
     if (prevProps.currentSegment !== this.props.currentSegment && this.props.currentSegment) {
       this.props.dispatch(fetchEvents(this.props.currentSegment));
     }
@@ -64,7 +65,7 @@ class ClipView extends Component {
             <CloseIcon />
           </IconButton>
           <div className={ classes.headerInfo }>
-            Create a clip
+            { clip.state === 'done' ? 'View clip' : 'Create a clip' }
           </div>
           <IconButton onClick={ () => this.setState({ modal: 'help' }) }>
             <HelpOutlineIcon />
@@ -72,6 +73,7 @@ class ClipView extends Component {
         </div>
         { clip.state === 'create' ? <ClipCreate /> : null }
         { clip.state === 'upload' ? <ClipUpload /> : null }
+        { clip.state === 'done' ? <ClipDone /> : null }
       </div>
     </>;
   }
