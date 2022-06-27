@@ -9,6 +9,7 @@ class VisibilityHandler extends Component {
     super(props);
 
     this.prevVisibleCall = 0;
+    this.intervalHandle = null;
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
     this.handleFocus = this.handleFocus.bind(this);
     this.handleBlur = this.handleBlur.bind(this);
@@ -16,12 +17,15 @@ class VisibilityHandler extends Component {
   }
 
   componentWillMount() {
-    window.addEventListener('visibilitychange', this.handleVisibilityChange);
-    window.addEventListener('focus', this.handleFocus);
-    window.addEventListener('blur', this.handleBlur);
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
+    document.addEventListener('focus', this.handleFocus);
+    document.addEventListener('blur', this.handleBlur);
     this.prevVisibleCall = Date.now() / 1000;
     if (this.props.onInit) {
       this.props.onVisible();
+    }
+    if (this.props.onInterval) {
+      this.intervalHandle = setInterval(this.handleVisibilityChange, this.props.onInterval * 1000);
     }
   }
 
@@ -34,9 +38,13 @@ class VisibilityHandler extends Component {
   }
 
   componentWillUnmount() {
-    window.removeEventListener('visibilitychange', this.handleVisibilityChange);
-    window.removeEventListener('focus', this.handleFocus);
-    window.removeEventListener('blur', this.handleBlur);
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+    document.removeEventListener('focus', this.handleFocus);
+    document.removeEventListener('blur', this.handleBlur);
+    if (this.intervalHandle) {
+      clearInterval(this.intervalHandle);
+      this.intervalHandle = null;
+    }
   }
 
   handleFocus() {
@@ -47,13 +55,11 @@ class VisibilityHandler extends Component {
     this.onVisibilityEvent(false);
   }
 
-  handleVisibilityChange(visible) {
-    if (typeof visible === 'undefined') {
-      if (document.visibilityState === "visible") {
-        this.onVisibilityEvent(true);
-      } else if (document.visibilityState === "hidden") {
-        this.onVisibilityEvent(false);
-      }
+  handleVisibilityChange() {
+    if (document.visibilityState === "visible") {
+      this.onVisibilityEvent(true);
+    } else if (document.visibilityState === "hidden") {
+      this.onVisibilityEvent(false);
     }
   }
 
@@ -83,6 +89,7 @@ VisibilityHandler.propTypes = {
   onVisible: PropTypes.func.isRequired,
   onInit: PropTypes.bool,
   onDongleId: PropTypes.bool,
+  onInterval: PropTypes.number,
   minInterval: PropTypes.number, // in seconds, only for visibility changes
   resetOnHidden: PropTypes.bool,
 };

@@ -43,6 +43,7 @@ export default function reducer(_state, action) {
         subscription: null,
         subscribeInfo: null,
         files: null,
+        clip: null,
       };
       if (state.devices) {
         const new_device = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
@@ -205,6 +206,7 @@ export default function reducer(_state, action) {
         primeNav: action.primeNav,
       };
       if (action.primeNav) {
+        state.clip = null;
         state.zoom = null;
       }
       break;
@@ -309,6 +311,7 @@ export default function reducer(_state, action) {
         end_time: action.end_time,
         video_type: action.video_type,
         label: action.label,
+        route: action.route,
       };
       break;
     default:

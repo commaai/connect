@@ -3,11 +3,11 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import { CircularProgress, withStyles } from '@material-ui/core';
-import WarningIcon from '@material-ui/icons/Warning';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 
 import { deviceIsOnline, deviceOnCellular } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
+import VisibilityHandler from '../VisibilityHandler';
 import Colors from '../../colors';
 import { fetchFiles, fetchAthenaQueue, updateFiles, doUpload, fetchUploadUrls, fetchUploadQueue } from '../../actions/files';
 
@@ -89,11 +89,14 @@ class ClipUpload extends Component {
       windowWidth: window.innerWidth,
       required_segments: null,
       required_file_types: null,
+      hasUploadedAll: false,
     };
 
     this.onResize = this.onResize.bind(this);
+    this.onVisible = this.onVisible.bind(this);
     this.getUploadStats = this.getUploadStats.bind(this);
     this.uploadFiles = this.uploadFiles.bind(this);
+    this.renderError = this.renderError.bind(this);
   }
 
   componentDidMount() {
@@ -147,6 +150,15 @@ class ClipUpload extends Component {
 
   onResize(windowWidth) {
     this.setState({ windowWidth });
+  }
+
+  async onVisible() {
+    if (!this.state.hasUploadedAll) {
+      return;
+    }
+
+    const { clip } = this.props;
+    this.props.dispatch(fetchClipDetails(clip.clip_id));
   }
 
   getUploadStats(types) {
@@ -218,24 +230,17 @@ class ClipUpload extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, clip } = this.props;
     const { windowWidth, required_segments, required_file_types } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
     let uploadingStates = [];
-    let uploadingErrors = [];
 
-    if (!deviceIsOnline(device)) {
-      uploadingErrors.push(
-        <div key={uploadingErrors.length} className={classes.clipWarning}>
-          <WarningIcon />
-          <div>
-            <h6>Device offline</h6>
-            <span style={{ fontSize: '0.8rem' }}>uploading will resume when device is online</span>
-          </div>
-        </div>
-      );
-    }
+    let deviceIsOffline = !deviceIsOnline(device);
+    let pausedUploadingError = false;
+    let someFileNotFound = false;
+    let someDCameraFileNotFound = false;
+    let hasUploadedAll = Boolean(required_segments && required_file_types && required_file_types.length);
 
     if (required_segments && required_file_types) {
       for (const type of required_file_types) {
@@ -245,30 +250,18 @@ class ClipUpload extends Component {
         }
 
         if (state.paused > 0 && state.uploading === state.paused && deviceOnCellular(device)) {
-          uploadingErrors.push(
-            <div key={uploadingErrors.length} className={classes.clipWarning}>
-              <WarningIcon />
-              <div>
-                <h6>Connect to WiFi</h6>
-                <span style={{ fontSize: '0.8rem' }}>uploading paused on cellular connection</span>
-              </div>
-            </div>
-          );
+          pausedUploadingError = true;
         }
 
         if (state.notFound > 0) {
-          uploadingErrors.push(
-            <div key={uploadingErrors.length} className={classes.clipWarning}>
-              <ErrorIcon />
-              <div>
-                <h6>Not Found</h6>
-                <p>
-                  not all files are available on the device
-                  { type === 'dcameras' && ', make sure the "Record and Upload Driver Camera" toggle is enabled' }
-                </p>
-              </div>
-            </div>
-          );
+          someFileNotFound = true;
+          if (type === 'dcameras') {
+            someDCameraFileNotFound = true;
+          }
+        }
+
+        if (state.uploaded < state.count) {
+          hasUploadedAll = false;
         }
 
         uploadingStates.push(
@@ -285,22 +278,48 @@ class ClipUpload extends Component {
       }
     }
 
+    if (hasUploadedAll && !this.state.hasUploadedAll) {
+      this.setState({ hasUploadedAll });
+    }
+
     return <>
       <ResizeHandler onResize={ this.onResize } />
-      <div style={{ padding: viewerPadding }}>
-        <div className={ classes.clipOption }>
-          <h4>Uploading files</h4>
-          { uploadingErrors }
-          { uploadingStates.length === 0 &&
-            <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
-          { uploadingStates }
-        </div>
+      <VisibilityHandler onVisible={ this.onVisible } onInterval={ 60 } />
 
+      { Boolean(!clip.pending_status || clip.pending_status === 'initializing') &&
+        <div style={{ padding: viewerPadding }}>
+          <div className={ classes.clipOption }>
+            <h4>Uploading files</h4>
+            { deviceIsOffline && this.renderError('Device offline', 'uploading will resume when device is online') }
+            { pausedUploadingError && this.renderError('Connect to WiFi', 'uploading paused on cellular connection') }
+            { someFileNotFound && this.renderError('Not Found', 'not all files are available on the device' +
+              (someDCameraFileNotFound ? ', make sure the "Record and Upload Driver Camera" toggle is enabled' : '')) }
+            { uploadingStates.length === 0 &&
+              <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
+            { uploadingStates }
+          </div>
+       </div>
+      }
+      { Boolean(this.state.hasUploadedAll && clip.pending_status !== 'initializing') &&
         <div className={ classes.clipOption }>
-          <h4>Processing</h4>
+          <h4>{ clip.pending_status }</h4>
+          <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } />
+        </div>
+      }
+      </>;
+  }
+
+  renderError(title, label) {
+    const { classes } = this.props;
+    return (
+      <div className={classes.clipWarning}>
+        <ErrorIcon />
+        <div>
+          <h6>{ title }</h6>
+          <span style={{ fontSize: '0.8rem' }}>{ label }</span>
         </div>
       </div>
-    </>;
+    );
   }
 }
 

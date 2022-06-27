@@ -36,7 +36,7 @@ export function clipInit() {
 
 export function clipCreate(clip_id, video_type, title, isPublic) {
   return (dispatch, getState) => {
-    const { dongleId, loop } = getState();
+    const { dongleId, loop, currentSegment } = getState();
     dispatch({
       type: Types.ACTION_CLIP_CREATE,
       dongleId,
@@ -46,6 +46,7 @@ export function clipCreate(clip_id, video_type, title, isPublic) {
       video_type,
       title,
       is_public: isPublic,
+      route: currentSegment.route,
     });
 
     dispatch(push(`/${dongleId}/clips/${clip_id}`));
@@ -73,6 +74,7 @@ export function fetchClipDetails(clip_id) {
           title: resp.title,
           is_public: resp.is_public,
           route: resp.route_name,
+          pending_status: resp.pending_status,
         });
       } else if (resp.status === 'done') {
         throw new Error('not implemented');
