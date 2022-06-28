@@ -104,28 +104,28 @@ class ClipUpload extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { clip, segmentData, files } = this.props;
+    const { clips, segmentData, files } = this.props;
     const { required_file_types, required_segments } = this.state;
 
-    if (prevProps.clip?.route !== clip.route) {
+    if (prevProps.clips?.route !== clips.route) {
       this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
-      this.props.dispatch(fetchFiles(clip.route));
+      this.props.dispatch(fetchFiles(clips.route));
     }
 
     if ((!prevProps.segmentData?.segments && segmentData?.segments) || (segmentData?.segments &&
-      (prevProps.clip?.start_time !== clip.start_time || prevProps.clip?.end_time !== clip.end_time)))
+      (prevProps.clips?.start_time !== clips.start_time || prevProps.clips?.end_time !== clips.end_time)))
     {
       let required_segments = [];
       for (const segment of segmentData.segments) {
-        if (segment.start_time_utc_millis < clip.end_time && segment.end_time_utc_millis > clip.start_time) {
+        if (segment.start_time_utc_millis < clips.end_time && segment.end_time_utc_millis > clips.start_time) {
           required_segments.push(segment.canonical_name);
         }
       }
       this.setState({ required_segments });
     }
 
-    if (prevProps.clip?.video_type !== clip.video_type) {
-      switch (clip.video_type) {
+    if (prevProps.clips?.video_type !== clips.video_type) {
+      switch (clips.video_type) {
       case 'q':
         this.setState({ required_file_types: ['qcameras'] });
         break;
@@ -157,8 +157,8 @@ class ClipUpload extends Component {
       return;
     }
 
-    const { clip } = this.props;
-    this.props.dispatch(fetchClipDetails(clip.clip_id));
+    const { clips } = this.props;
+    this.props.dispatch(fetchClipDetails(clips.clip_id));
   }
 
   getUploadStats(types) {
@@ -230,7 +230,7 @@ class ClipUpload extends Component {
   }
 
   render() {
-    const { classes, device, clip } = this.props;
+    const { classes, device, clips } = this.props;
     const { windowWidth, required_segments, required_file_types } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
@@ -286,7 +286,7 @@ class ClipUpload extends Component {
       <ResizeHandler onResize={ this.onResize } />
       <VisibilityHandler onVisible={ this.onVisible } onInterval={ 60 } />
 
-      { Boolean(!clip.pending_status || clip.pending_status === 'initializing') &&
+      { Boolean(!clips.pending_status || clips.pending_status === 'initializing') &&
         <div style={{ padding: viewerPadding }}>
           <div className={ classes.clipOption }>
             <h4>Uploading files</h4>
@@ -300,9 +300,9 @@ class ClipUpload extends Component {
           </div>
        </div>
       }
-      { Boolean(this.state.hasUploadedAll && clip.pending_status !== 'initializing') &&
+      { Boolean(this.state.hasUploadedAll && clips.pending_status !== 'initializing') &&
         <div className={ classes.clipOption }>
-          <h4>{ clip.pending_status }</h4>
+          <h4>{ clips.pending_status }</h4>
           <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } />
         </div>
       }
@@ -327,7 +327,7 @@ const stateToProps = Obstruction({
   segmentData: 'segmentData',
   dongleId: 'dongleId',
   device: 'device',
-  clip: 'clip',
+  clips: 'clips',
   files: 'files',
 });
 

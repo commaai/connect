@@ -10,10 +10,10 @@ import PlayArrowIcon from '@material-ui/icons/PlayCircleOutline';
 import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 
-import { formatDriveDuration, getDrivePoints, filterRegularClick } from '../../utils';
+import { filterRegularClick } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
-import { fetchClipDetails } from '../../actions/clips';
+import { navToClips } from '../../actions/clips';
 
 const styles = (theme) => ({
   clipOption: {
@@ -82,7 +82,7 @@ class ClipList extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { clip } = this.props;
+    const { clips } = this.props;
 
 
   }
@@ -92,7 +92,7 @@ class ClipList extends Component {
   }
 
   render() {
-    const { classes, device, clip } = this.props;
+    const { classes, device, clips } = this.props;
     const { windowWidth } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
@@ -105,9 +105,9 @@ class ClipList extends Component {
       <ResizeHandler onResize={ this.onResize } />
 
       <div style={{ padding: viewerPadding }}>
-        { !clip.list && <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
-        { Boolean(clip.list && clip.list.length === 0) && <p>no clips found</p> }
-        { Boolean(clip.list && clip.list.length > 0) &&
+        { !clips.list && <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
+        { Boolean(clips.list && clips.list.length === 0) && <p>no clips found</p> }
+        { Boolean(clips.list && clips.list.length > 0) &&
           <div className={classes.clipItemHeader}>
             <h6 style={ gridStyles[0] }></h6>
             <h6 style={ gridStyles[1] }>title</h6>
@@ -115,27 +115,25 @@ class ClipList extends Component {
             <h6 style={ gridStyles[3] }></h6>
           </div>
         }
-        { clip.list && clip.list.map((c) => this.renderClipItem(gridStyles, c)) }
+        { clips.list && clips.list.map((c) => this.renderClipItem(gridStyles, c)) }
       </div>
     </>;
   }
 
-  renderClipItem(gridStyles, clip) {
+  renderClipItem(gridStyles, c) {
     const { classes, dongleId } = this.props;
 
-    // const timeStr = '16/05 15:23\u00a0am';
-    const timeStr = fecha.format(new Date(clip.start_time), 'MMM\u00a0D h:mm\u00a0a').toLowerCase();
-    // const timeStr = clip.route_name.split('|')[1]
-    const StateIconType = clip.status === 'pending' ?
+    const timeStr = fecha.format(new Date(c.start_time), 'MMM\u00a0D h:mm\u00a0a').toLowerCase();
+    const StateIconType = c.status === 'pending' ?
       MoreHorizIcon :
-      (clip.status === 'failed' ? ErrorOutlineIcon : PlayArrowIcon);
-    const IsPublicIconType = clip.is_public ? LockOpenIcon : LockOutlineIcon;
+      (c.status === 'failed' ? ErrorOutlineIcon : PlayArrowIcon);
+    const IsPublicIconType = c.is_public ? LockOpenIcon : LockOutlineIcon;
 
     return (
-      <a key={clip.id} className={classes.clipItem} href={ `/${dongleId}/clips/${clip.id}` }
-        onClick={ filterRegularClick(() => this.props.dispatch(fetchClipDetails(clip.id))) }>
+      <a key={c.id} className={classes.clipItem} href={ `/${dongleId}/clips/${c.id}` }
+        onClick={ filterRegularClick(() => this.props.dispatch(navToClips(c.id))) }>
         <StateIconType style={ gridStyles[0] } className={ classes.clipPlayIcon } />
-        <p style={ gridStyles[1] } className={ classes.clipTitle }>{ clip.title }</p>
+        <p style={ gridStyles[1] } className={ classes.clipTitle }>{ c.title }</p>
         <p style={ gridStyles[2] }>{ timeStr }</p>
         <IsPublicIconType style={ gridStyles[3] } className={ classes.clipPublicIcon } />
       </a>
@@ -146,7 +144,7 @@ class ClipList extends Component {
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
-  clip: 'clip',
+  clips: 'clips',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ClipList));

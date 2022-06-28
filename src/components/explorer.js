@@ -168,7 +168,7 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, zoom, devices, dongleId, clip } = this.props;
+    const { classes, zoom, devices, dongleId, clips } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices && devices.length === 0 && !dongleId);
@@ -203,7 +203,7 @@ class ExplorerApp extends Component {
         <div className={ classes.window } style={ containerStyles }>
           { noDevicesUpsell ?
             <NoDeviceUpsell /> :
-            (clip ?
+            (clips ?
               <ClipView /> :
               (zoom ? <DriveView /> : <Dashboard />)
           ) }
@@ -235,7 +235,7 @@ const stateToProps = Obstruction({
   pathname: 'router.location.pathname',
   dongleId: 'dongleId',
   devices: 'devices',
-  clip: 'clip',
+  clips: 'clips',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

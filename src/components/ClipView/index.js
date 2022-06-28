@@ -9,7 +9,7 @@ import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 
 import Colors from '../../colors';
 import { fetchEvents } from '../../actions/cached';
-import { clipBack } from '../../actions/clips';
+import { clipsExit } from '../../actions/clips';
 import ClipList from './ClipList';
 import ClipCreate from './ClipCreate';
 import ClipUpload from './ClipUpload';
@@ -57,19 +57,19 @@ class ClipView extends Component {
   }
 
   render() {
-    const { classes, clip } = this.props;
+    const { classes, clips } = this.props;
 
     let title = 'Create a clip';
-    if (clip.state === 'done') {
+    if (clips.state === 'done') {
       title = 'View clip';
-    } else if (clip.state === 'list') {
+    } else if (clips.state === 'list') {
       title = 'View clips';
     }
 
     return <>
       <div className={classes.window} >
         <div className={classes.headerContext}>
-          <IconButton onClick={ () => this.props.dispatch(clipBack()) }>
+          <IconButton onClick={ () => this.props.dispatch(clipsExit()) }>
             <CloseIcon />
           </IconButton>
           <div className={ classes.headerInfo }>
@@ -79,10 +79,10 @@ class ClipView extends Component {
             <HelpOutlineIcon />
           </IconButton>
         </div>
-        { clip.state === 'list' ? <ClipList /> : null }
-        { clip.state === 'create' ? <ClipCreate /> : null }
-        { clip.state === 'upload' ? <ClipUpload /> : null }
-        { clip.state === 'done' ? <ClipDone /> : null }
+        { clips.state === 'list' ? <ClipList /> : null }
+        { clips.state === 'create' ? <ClipCreate /> : null }
+        { clips.state === 'upload' ? <ClipUpload /> : null }
+        { clips.state === 'done' ? <ClipDone /> : null }
       </div>
     </>;
   }
@@ -91,7 +91,7 @@ class ClipView extends Component {
 const stateToProps = Obstruction({
   currentSegment: 'currentSegment',
   dongleId: 'dongleId',
-  clip: 'clip',
+  clips: 'clips',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ClipView));

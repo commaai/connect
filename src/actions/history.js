@@ -1,7 +1,7 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
 import { getDongleID, getZoom, getPrimeNav, getClipsNav } from '../url';
 import { primeNav, selectDevice, selectRange } from './index';
-import { clipBack, fetchClipDetails, fetchClipsList } from  './clips';
+import { clipsExit, fetchClipsDetails, fetchClipsList } from  './clips';
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
   if (action.type === LOCATION_CHANGE && ['POP', 'REPLACE'].includes(action.payload.action)) {
@@ -26,7 +26,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
 
     const pathClipsNav = getClipsNav(action.payload.location.pathname);
     if (pathClipsNav === null && state.clips) {
-      dispatch(clipBack());
+      dispatch(clipsExit());
     } else if (pathClipsNav !== null && !state.clips) {
       if (pathClipsNav.clip_id) {
         dispatch(fetchClipDetails(pathClipsNav.clip_id));

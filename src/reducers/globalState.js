@@ -43,7 +43,7 @@ export default function reducer(_state, action) {
         subscription: null,
         subscribeInfo: null,
         files: null,
-        clip: null,
+        clips: null,
       };
       if (state.devices) {
         const new_device = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
@@ -206,7 +206,7 @@ export default function reducer(_state, action) {
         primeNav: action.primeNav,
       };
       if (action.primeNav) {
-        state.clip = null;
+        state.clips = null;
         state.zoom = null;
       }
       break;
@@ -281,9 +281,8 @@ export default function reducer(_state, action) {
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
-    case Types.ACTION_CLIP_EXIT:
-      if (!state.clip.state || state.clip.state === 'create') {
-        state.clip = null;
+    case Types.ACTION_CLIPS_EXIT:
+      if (state.clips && state.clips.state === 'create') {
         if (state.zoom) {
           state.loop = {
             startTime: state.zoom.start,
@@ -292,27 +291,26 @@ export default function reducer(_state, action) {
         } else {
           state.loop = null;
         }
-      } else if (state.clip?.state === 'upload') {
-        state.clip = null;
       }
+      state.clips = null;
       break;
-    case Types.ACTION_CLIP_LIST:
-      state.clip = {
+    case Types.ACTION_CLIPS_LIST:
+      state.clips = {
         state: 'list',
         dongleId: action.dongleId,
         list: action.list,
       };
       break;
-    case Types.ACTION_CLIP_INIT:
-      state.clip = {
+    case Types.ACTION_CLIPS_INIT:
+      state.clips = {
         state: 'create',
         dongleId: action.dongleId,
         route: action.route,
       };
       break;
-    case Types.ACTION_CLIP_CREATE:
-      state.clip = {
-        ...state.clip,
+    case Types.ACTION_CLIPS_CREATE:
+      state.clips = {
+        ...state.clips,
         state: 'upload',
         start_time: action.start_time,
         end_time: action.end_time,
@@ -321,9 +319,9 @@ export default function reducer(_state, action) {
         route: action.route,
       };
       break;
-    case Types.ACTION_CLIP_DONE:
-      state.clip = {
-        ...state.clip,
+    case Types.ACTION_CLIPS_DONE:
+      state.clips = {
+        ...state.clips,
         state: 'done',
         start_time: action.start_time,
         end_time: action.end_time,

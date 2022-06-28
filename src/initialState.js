@@ -72,7 +72,7 @@ export default {
     fetchedAt: null,
   },
 
-  clip: null,
+  clips: null,
 
   filter: getDefaultFilter(),
   zoom: getZoom(window.location.pathname),

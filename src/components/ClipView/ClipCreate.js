@@ -12,7 +12,7 @@ import DriveVideo from '../DriveVideo';
 import Timeline from '../Timeline';
 import TimeDisplay from '../TimeDisplay';
 import Colors from '../../colors';
-import { clipCreate } from '../../actions/clips';
+import { clipsCreate } from '../../actions/clips';
 
 const styles = (theme) => ({
   clipOption: {
@@ -128,7 +128,7 @@ class ClipCreate extends Component {
       const resp = await ClipsApi.clipsCreate(currentSegment.route, clipTitle, loop.startTime, loop.startTime + loop.duration,
         videoTypeOption, isPublic);
       if (resp && resp.success) {
-        this.props.dispatch(clipCreate(resp.clip_id, videoTypeOption, clipTitle, isPublic));
+        this.props.dispatch(clipsCreate(resp.clip_id, videoTypeOption, clipTitle, isPublic));
       } else {
         this.setState({ error: 'failed to create clip', createLoading: false });
         console.log(resp);
@@ -212,7 +212,7 @@ class ClipCreate extends Component {
 const stateToProps = Obstruction({
   currentSegment: 'currentSegment',
   dongleId: 'dongleId',
-  clip: 'clip',
+  clips: 'clips',
   loop: 'loop',
 });
 

@@ -22,7 +22,7 @@ import { analyticsEvent } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles } from '../../actions/files';
-import { clipInit } from '../../actions/clips';
+import { clipsInit } from '../../actions/clips';
 
 const styles = (theme) => ({
   root: {
@@ -550,7 +550,7 @@ class Media extends Component {
           <div className={classes.mediaOptions}>
             { Boolean(device?.is_owner || (profile && profile.superuser)) &&
               <div className={classes.mediaOption} aria-haspopup="true"
-                onClick={ () => this.props.dispatch(clipInit()) }>
+                onClick={ () => this.props.dispatch(clipsInit()) }>
                 <Typography className={classes.mediaOptionText}>Create clip</Typography>
               </div>
             }

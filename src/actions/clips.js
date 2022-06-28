@@ -7,18 +7,18 @@ import { getClipsNav } from '../url';
 import * as Types from './types';
 import { deviceOnCellular, getDeviceFromState } from '../utils';
 
-export function clipBack() {
+export function clipsExit() {
   return (dispatch, getState) => {
-    const { dongleId, clip, zoom } = getState();
+    const { dongleId, clips, zoom } = getState();
 
     const shouldPathChange = Boolean(getClipsNav(window.location.pathname));
     dispatch({
-      type: Types.ACTION_CLIP_EXIT,
+      type: Types.ACTION_CLIPS_EXIT,
       dongleId,
     });
 
     if (shouldPathChange) {
-      dispatch(push(urlForState(dongleId, zoom?.start || clip.start_time, zoom?.end || clip.end_time, false)));
+      dispatch(push(urlForState(dongleId, zoom?.start, zoom?.end, false)));
     }
   };
 }
@@ -32,7 +32,7 @@ export function fetchClipsList(dongleId) {
       }
 
       dispatch({
-        type: Types.ACTION_CLIP_LIST,
+        type: Types.ACTION_CLIPS_LIST,
         dongleId,
         list: null,
       });
@@ -41,7 +41,7 @@ export function fetchClipsList(dongleId) {
       const resp = await ClipsApi.clipsList(dongleId);
 
       dispatch({
-        type: Types.ACTION_CLIP_LIST,
+        type: Types.ACTION_CLIPS_LIST,
         dongleId,
         list: resp,
       });
@@ -52,22 +52,22 @@ export function fetchClipsList(dongleId) {
   };
 }
 
-export function clipInit() {
+export function clipsInit() {
   return (dispatch, getState) => {
     const { dongleId, currentSegment } = getState();
     dispatch({
-      type: Types.ACTION_CLIP_INIT,
+      type: Types.ACTION_CLIPS_INIT,
       dongleId,
       route: currentSegment.route,
     });
   };
 }
 
-export function clipCreate(clip_id, video_type, title, isPublic) {
+export function clipsCreate(clip_id, video_type, title, isPublic) {
   return (dispatch, getState) => {
     const { dongleId, loop, currentSegment } = getState();
     dispatch({
-      type: Types.ACTION_CLIP_CREATE,
+      type: Types.ACTION_CLIPS_CREATE,
       dongleId,
       clip_id,
       start_time: loop.startTime,
@@ -82,19 +82,28 @@ export function clipCreate(clip_id, video_type, title, isPublic) {
   };
 }
 
-export function fetchClipDetails(clip_id) {
+export function navToClips(clip_id) {
+  return async (dispatch, getState) => {
+    const { dongleId } = getState();
+    dispatch({
+      type: Types.ACTION_CLIPS_DONE,
+      dongleId,
+      clip_id,
+    });
+    dispatch(push(`/${dongleId}/clips/${clip_id}`));
+    dispatch(fetchClipsDetails(clip_id));
+  };
+}
+
+export function fetchClipsDetails(clip_id) {
   return async (dispatch, getState) => {
     const { dongleId, zoom } = getState();
     try {
       const resp = await ClipsApi.clipsDetails(dongleId, clip_id);
 
-      if (resp.start_time && resp.end_time && !zoom) {
-        dispatch(selectRange(resp.start_time, resp.end_time, false));
-      }
-
       if (resp.status === 'pending') {
         dispatch({
-          type: Types.ACTION_CLIP_CREATE,
+          type: Types.ACTION_CLIPS_CREATE,
           dongleId,
           clip_id,
           start_time: resp.start_time,
@@ -107,7 +116,7 @@ export function fetchClipDetails(clip_id) {
         });
       } else if (resp.status === 'done') {
         dispatch({
-          type: Types.ACTION_CLIP_DONE,
+          type: Types.ACTION_CLIPS_DONE,
           dongleId,
           clip_id,
           start_time: resp.start_time,
