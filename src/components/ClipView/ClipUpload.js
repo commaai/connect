@@ -149,6 +149,10 @@ class ClipUpload extends Component {
     {
       this.uploadFiles();
     }
+
+    if (!prevState.hasUploadedAll && this.state.hasUploadedAll) {
+      this.onVisible();
+    }
   }
 
   onResize(windowWidth) {
@@ -285,11 +289,16 @@ class ClipUpload extends Component {
       this.setState({ hasUploadedAll });
     }
 
+    let statusTitle = 'Initializing job';
+    if (clips.pending_status === 'processing') {
+      statusTitle = 'Processing files';
+    }
+
     return <>
       <ResizeHandler onResize={ this.onResize } />
-      <VisibilityHandler onVisible={ this.onVisible } onInterval={ 60 } />
+      <VisibilityHandler onVisible={ this.onVisible } onInterval={ 10 } />
 
-      { Boolean(!clips.pending_status || clips.pending_status === 'initializing') &&
+      { !this.state.hasUploadedAll &&
         <div style={{ padding: viewerPadding }}>
           <div className={ classes.clipOption }>
             <h4>Uploading files</h4>
@@ -303,10 +312,12 @@ class ClipUpload extends Component {
           </div>
        </div>
       }
-      { Boolean(this.state.hasUploadedAll && clips.pending_status !== 'initializing') &&
-        <div className={ classes.clipOption }>
-          <h4>{ clips.pending_status }</h4>
-          <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } />
+      { this.state.hasUploadedAll &&
+        <div style={{ padding: viewerPadding }}>
+          <div className={ classes.clipOption }>
+            <h4>{ statusTitle }</h4>
+            <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } />
+          </div>
         </div>
       }
       </>;

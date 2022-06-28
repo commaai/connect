@@ -108,7 +108,7 @@ export function navToClips(clip_id, state) {
 
 export function fetchClipsDetails(clip_id) {
   return async (dispatch, getState) => {
-    const { dongleId, zoom } = getState();
+    const { dongleId } = getState();
     try {
       const resp = await ClipsApi.clipsDetails(dongleId, clip_id);
 

@@ -321,11 +321,13 @@ export default function reducer(_state, action) {
       state.clips = {
         ...state.clips,
         state: 'upload',
+        clip_id: action.clip_id,
         start_time: action.start_time,
         end_time: action.end_time,
         video_type: action.video_type,
         title: action.title,
         route: action.route,
+        pending_status: action.pending_status,
       };
       break;
     case Types.ACTION_CLIPS_DONE:

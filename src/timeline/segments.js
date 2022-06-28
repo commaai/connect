@@ -292,13 +292,13 @@ export function getSegmentFetchRange(state) {
   if (!state.zoom && !(state.clips && state.clips.state === 'upload')) {
     return state.filter;
   }
-  if (state.clips.end_time < state.filter.start) {
+  if (state.clips && state.clips.end_time < state.filter.start) {
     return {
       start: state.clips.start_time - 60000,
       end: state.clips.end_time + 60000,
     };
   }
-  if (state.zoom.end < state.filter.start) {
+  if (state.zoom && state.zoom.end < state.filter.start) {
     return {
       start: state.zoom.start - 14400000,
       end: state.zoom.end + 14400000,
