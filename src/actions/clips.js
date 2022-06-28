@@ -2,10 +2,9 @@ import * as Sentry from '@sentry/react';
 import { push } from 'connected-react-router';
 import { clips as ClipsApi } from '@commaai/comma-api';
 
-import { selectDevice, selectRange, urlForState } from './';
+import { selectDevice, urlForState } from './';
 import { getClipsNav } from '../url';
 import * as Types from './types';
-import { deviceOnCellular, getDeviceFromState } from '../utils';
 
 export function clipsExit() {
   return (dispatch, getState) => {

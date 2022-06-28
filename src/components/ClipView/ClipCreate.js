@@ -108,13 +108,6 @@ class ClipCreate extends Component {
     this.onClipCreate = this.onClipCreate.bind(this);
   }
 
-  componentDidMount() {
-    this.componentDidUpdate({}, {});
-  }
-
-  componentDidUpdate(prevProps, PrevState) {
-  }
-
   async onClipCreate() {
     const { videoTypeOption, clipTitle, isPublic } = this.state;
     const { loop, currentSegment } = this.props;

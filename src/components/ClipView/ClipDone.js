@@ -2,14 +2,10 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
-import { CircularProgress, withStyles } from '@material-ui/core';
-import ErrorIcon from '@material-ui/icons/ErrorOutline';
+import { withStyles } from '@material-ui/core';
 
-import { deviceIsOnline, deviceOnCellular } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
-import VisibilityHandler from '../VisibilityHandler';
 import Colors from '../../colors';
-import { fetchFiles, fetchAthenaQueue, updateFiles, doUpload, fetchUploadUrls, fetchUploadQueue } from '../../actions/files';
 
 const styles = (theme) => ({
   clipOption: {
@@ -32,15 +28,6 @@ class ClipDone extends Component {
     };
 
     this.onResize = this.onResize.bind(this);
-  }
-
-  componentDidMount() {
-    this.componentDidUpdate({}, {});
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    const { clips } = this.props;
-
   }
 
   onResize(windowWidth) {

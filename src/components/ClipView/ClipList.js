@@ -16,15 +16,6 @@ import Colors from '../../colors';
 import { navToClips } from '../../actions/clips';
 
 const styles = (theme) => ({
-  clipOption: {
-    marginBottom: 12,
-    width: '100%',
-    '& h4': {
-      color: Colors.white,
-      margin: '0 0 5px 0',
-      fontSize: '1rem',
-    },
-  },
   clipItemHeader: {
     display: 'flex',
     alignItems: 'center',
@@ -75,16 +66,6 @@ class ClipList extends Component {
 
     this.onResize = this.onResize.bind(this);
     this.renderClipItem = this.renderClipItem.bind(this);
-  }
-
-  componentDidMount() {
-    this.componentDidUpdate({}, {});
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    const { clips } = this.props;
-
-
   }
 
   onResize(windowWidth) {
