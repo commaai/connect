@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 import { push } from 'connected-react-router';
 import { clips as ClipsApi } from '@commaai/comma-api';
 
-import { selectRange, urlForState } from './';
+import { selectDevice, selectRange, urlForState } from './';
 import { getClipsNav } from '../url';
 import * as Types from './types';
 import { deviceOnCellular, getDeviceFromState } from '../utils';
@@ -19,6 +19,35 @@ export function clipBack() {
 
     if (shouldPathChange) {
       dispatch(push(urlForState(dongleId, zoom?.start || clip.start_time, zoom?.end || clip.end_time, false)));
+    }
+  };
+}
+
+export function fetchClipsList(dongleId) {
+  return async (dispatch, getState) => {
+    const { globalDongleId } = getState();
+    try {
+      if (globalDongleId !== dongleId) {
+        dispatch(selectDevice(dongleId, false));
+      }
+
+      dispatch({
+        type: Types.ACTION_CLIP_LIST,
+        dongleId,
+        list: null,
+      });
+      dispatch(push(`/${dongleId}/clips`));
+
+      const resp = await ClipsApi.clipsList(dongleId);
+
+      dispatch({
+        type: Types.ACTION_CLIP_LIST,
+        dongleId,
+        list: resp,
+      });
+    } catch (err) {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'clips_fetch_list' });
     }
   };
 }

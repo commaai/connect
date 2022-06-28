@@ -296,6 +296,13 @@ export default function reducer(_state, action) {
         state.clip = null;
       }
       break;
+    case Types.ACTION_CLIP_LIST:
+      state.clip = {
+        state: 'list',
+        dongleId: action.dongleId,
+        list: action.list,
+      };
+      break;
     case Types.ACTION_CLIP_INIT:
       state.clip = {
         state: 'create',

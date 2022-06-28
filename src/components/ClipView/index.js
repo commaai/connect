@@ -10,6 +10,7 @@ import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 import Colors from '../../colors';
 import { fetchEvents } from '../../actions/cached';
 import { clipBack } from '../../actions/clips';
+import ClipList from './ClipList';
 import ClipCreate from './ClipCreate';
 import ClipUpload from './ClipUpload';
 import ClipDone from './ClipDone';
@@ -58,6 +59,13 @@ class ClipView extends Component {
   render() {
     const { classes, clip } = this.props;
 
+    let title = 'Create a clip';
+    if (clip.state === 'done') {
+      title = 'View clip';
+    } else if (clip.state === 'list') {
+      title = 'View clips';
+    }
+
     return <>
       <div className={classes.window} >
         <div className={classes.headerContext}>
@@ -65,12 +73,13 @@ class ClipView extends Component {
             <CloseIcon />
           </IconButton>
           <div className={ classes.headerInfo }>
-            { clip.state === 'done' ? 'View clip' : 'Create a clip' }
+            { title }
           </div>
           <IconButton onClick={ () => this.setState({ modal: 'help' }) }>
             <HelpOutlineIcon />
           </IconButton>
         </div>
+        { clip.state === 'list' ? <ClipList /> : null }
         { clip.state === 'create' ? <ClipCreate /> : null }
         { clip.state === 'upload' ? <ClipUpload /> : null }
         { clip.state === 'done' ? <ClipDone /> : null }

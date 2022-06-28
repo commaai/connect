@@ -58,7 +58,7 @@ class ClipDone extends Component {
       <div style={{ padding: viewerPadding }}>
         <div className={ classes.clipOption }>
           <h4>{ clip.title }</h4>
-          <video autoPlay={true} controls={true} muted={true} playsinline={true} width={ '100%' }>
+          <video autoPlay={true} controls={true} muted={true} playsInline={true} width={ '100%' }>
             <source src={ clip.url} type="video/mp4" />
           </video>
         </div>
