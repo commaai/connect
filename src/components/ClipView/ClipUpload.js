@@ -9,7 +9,9 @@ import { deviceIsOnline, deviceOnCellular } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import Colors from '../../colors';
+import { checkSegmentMetadata } from '../../actions';
 import { fetchFiles, fetchAthenaQueue, updateFiles, doUpload, fetchUploadUrls, fetchUploadQueue } from '../../actions/files';
+import { fetchClipsDetails } from '../../actions/clips';
 
 const FILE_NAMES = {
   'qcameras': 'qcamera.ts',
@@ -107,13 +109,14 @@ class ClipUpload extends Component {
     const { clips, segmentData, files } = this.props;
     const { required_file_types, required_segments } = this.state;
 
-    if (prevProps.clips?.route !== clips.route) {
+    if (prevProps.clips?.route !== clips.route && clips.route) {
+      this.props.dispatch(checkSegmentMetadata());
       this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
       this.props.dispatch(fetchFiles(clips.route));
     }
 
-    if ((!prevProps.segmentData?.segments && segmentData?.segments) || (segmentData?.segments &&
-      (prevProps.clips?.start_time !== clips.start_time || prevProps.clips?.end_time !== clips.end_time)))
+    if (segmentData?.segments && (prevProps.segmentData?.segments !== segmentData?.segments ||
+      prevProps.clips?.start_time !== clips.start_time || prevProps.clips?.end_time !== clips.end_time))
     {
       let required_segments = [];
       for (const segment of segmentData.segments) {
@@ -158,7 +161,7 @@ class ClipUpload extends Component {
     }
 
     const { clips } = this.props;
-    this.props.dispatch(fetchClipDetails(clips.clip_id));
+    this.props.dispatch(fetchClipsDetails(clips.clip_id));
   }
 
   getUploadStats(types) {
@@ -240,7 +243,7 @@ class ClipUpload extends Component {
     let pausedUploadingError = false;
     let someFileNotFound = false;
     let someDCameraFileNotFound = false;
-    let hasUploadedAll = Boolean(required_segments && required_file_types && required_file_types.length);
+    let hasUploadedAll = Boolean(required_segments && required_segments.length && required_file_types && required_file_types.length);
 
     if (required_segments && required_file_types) {
       for (const type of required_file_types) {
