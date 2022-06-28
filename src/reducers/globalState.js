@@ -292,7 +292,16 @@ export default function reducer(_state, action) {
           state.loop = null;
         }
       }
-      state.clips = null;
+
+      if (state.clips && state.clips.state !== 'list' && state.clips.list && state.clips.list.length) {
+        state.clips = {
+          state: 'list',
+          dongleId: state.clips.dongleId,
+          list: state.clips.list,
+        };
+      } else {
+        state.clips = null;
+      }
       break;
     case Types.ACTION_CLIPS_LIST:
       state.clips = {

@@ -131,7 +131,7 @@ class ClipList extends Component {
 
     return (
       <a key={c.id} className={classes.clipItem} href={ `/${dongleId}/clips/${c.id}` }
-        onClick={ filterRegularClick(() => this.props.dispatch(navToClips(c.id))) }>
+        onClick={ filterRegularClick(() => this.props.dispatch(navToClips(c.id, c.state))) }>
         <StateIconType style={ gridStyles[0] } className={ classes.clipPlayIcon } />
         <p style={ gridStyles[1] } className={ classes.clipTitle }>{ c.title }</p>
         <p style={ gridStyles[2] }>{ timeStr }</p>

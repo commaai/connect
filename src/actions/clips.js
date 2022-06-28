@@ -18,7 +18,11 @@ export function clipsExit() {
     });
 
     if (shouldPathChange) {
-      dispatch(push(urlForState(dongleId, zoom?.start, zoom?.end, false)));
+      if (clips.state !== 'list' && clips.list) {
+        dispatch(push(`/${dongleId}/clips`));
+      } else {
+        dispatch(push(urlForState(dongleId, zoom?.start, zoom?.end, false)));
+      }
     }
   };
 }
@@ -82,14 +86,22 @@ export function clipsCreate(clip_id, video_type, title, isPublic) {
   };
 }
 
-export function navToClips(clip_id) {
+export function navToClips(clip_id, state) {
   return async (dispatch, getState) => {
     const { dongleId } = getState();
-    dispatch({
-      type: Types.ACTION_CLIPS_DONE,
-      dongleId,
-      clip_id,
-    });
+    if (state === 'done') {
+      dispatch({
+        type: Types.ACTION_CLIPS_DONE,
+        dongleId,
+        clip_id,
+      });
+    } else if (state === 'upload') {
+      dispatch({
+        type: Types.ACTION_CLIPS_CREATE,
+        dongleId,
+        clip_id,
+      });
+    }
     dispatch(push(`/${dongleId}/clips/${clip_id}`));
     dispatch(fetchClipsDetails(clip_id));
   };
