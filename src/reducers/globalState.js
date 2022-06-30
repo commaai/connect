@@ -328,6 +328,7 @@ export default function reducer(_state, action) {
         title: action.title,
         route: action.route,
         pending_status: action.pending_status,
+        pending_progress: action.pending_progress,
       };
       break;
     case Types.ACTION_CLIPS_DONE:

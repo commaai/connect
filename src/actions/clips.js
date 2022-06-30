@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 import { push } from 'connected-react-router';
 import { clips as ClipsApi } from '@commaai/comma-api';
 
-import { selectDevice, urlForState } from './';
+import { checkSegmentMetadata, selectDevice, urlForState } from './';
 import { getClipsNav } from '../url';
 import * as Types from './types';
 
@@ -23,6 +23,8 @@ export function clipsExit() {
         dispatch(push(urlForState(dongleId, zoom?.start, zoom?.end, false)));
       }
     }
+
+    dispatch(checkSegmentMetadata());
   };
 }
 
@@ -124,6 +126,7 @@ export function fetchClipsDetails(clip_id) {
           is_public: resp.is_public,
           route: resp.route_name,
           pending_status: resp.pending_status,
+          pending_progress: resp.pending_progress,
         });
       } else if (resp.status === 'done') {
         dispatch({

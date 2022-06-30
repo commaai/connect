@@ -122,6 +122,8 @@ class ClipCreate extends Component {
         videoTypeOption, isPublic);
       if (resp && resp.success) {
         this.props.dispatch(clipsCreate(resp.clip_id, videoTypeOption, clipTitle, isPublic));
+      } else if (resp.error == 'too_many_pending') {
+        this.setState({ error: 'you already have a clip pending, please wait for it to complete', createLoading: false });
       } else {
         this.setState({ error: 'failed to create clip', createLoading: false });
         console.log(resp);

@@ -75,9 +75,10 @@ class ClipView extends Component {
           <div className={ classes.headerInfo }>
             { title }
           </div>
-          <IconButton onClick={ () => this.setState({ modal: 'help' }) }>
+          <div style={{ width: 48 }}/>
+          {/* <IconButton onClick={ () => this.setState({ modal: 'help' }) }>
             <HelpOutlineIcon />
-          </IconButton>
+          </IconButton> */}
         </div>
         { clips.state === 'list' ? <ClipList /> : null }
         { clips.state === 'create' ? <ClipCreate /> : null }

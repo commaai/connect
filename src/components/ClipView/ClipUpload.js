@@ -81,6 +81,15 @@ const styles = (theme) => ({
       margin: 0,
     },
   },
+  clipProgress: {
+    display: 'flex',
+    alignItems: 'center',
+    color: Colors.white,
+    '& span': {
+      marginLeft: 12,
+      fontSize: '0.8rem',
+    },
+  },
 });
 
 class ClipUpload extends Component {
@@ -253,6 +262,7 @@ class ClipUpload extends Component {
       for (const type of required_file_types) {
         const state = this.getUploadStats([type]);
         if (state === null) {
+          hasUploadedAll = false;
           continue;
         }
 
@@ -285,13 +295,19 @@ class ClipUpload extends Component {
       }
     }
 
+    hasUploadedAll = true;
+
     if (hasUploadedAll && !this.state.hasUploadedAll) {
       this.setState({ hasUploadedAll });
     }
 
     let statusTitle = 'Initializing job';
-    if (clips.pending_status === 'processing') {
+    let statusProgress = null;
+    if (clips.pending_status === 'waiting_jobs') {
+      statusTitle = 'Waiting on other jobs';
+    } else if (clips.pending_status === 'processing') {
       statusTitle = 'Processing files';
+      statusProgress = clips.pending_progress ? parseInt(parseFloat(clips.pending_progress) * 100) : null;
     }
 
     return <>
@@ -307,7 +323,7 @@ class ClipUpload extends Component {
             { someFileNotFound && this.renderError('Not Found', 'not all files are available on the device' +
               (someDCameraFileNotFound ? ', make sure the "Record and Upload Driver Camera" toggle is enabled' : '')) }
             { uploadingStates.length === 0 &&
-              <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
+              <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 24 } /> }
             { uploadingStates }
           </div>
        </div>
@@ -316,7 +332,10 @@ class ClipUpload extends Component {
         <div style={{ padding: viewerPadding }}>
           <div className={ classes.clipOption }>
             <h4>{ statusTitle }</h4>
-            <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } />
+              <div className={ classes.clipProgress }>
+                <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 24 } />
+                { statusProgress && <span>{ statusProgress}%</span> }
+              </div>
           </div>
         </div>
       }
