@@ -333,12 +333,12 @@ class ClipUpload extends Component {
       }
     }
 
-    let statusTitle = 'Initializing job';
+    let statusTitle = 'Preparing export';
     let statusProgress = null;
     if (clips.pending_status === 'waiting_jobs') {
-      statusTitle = 'Waiting on other jobs';
+      statusTitle = 'Export in queue';
     } else if (clips.pending_status === 'processing') {
-      statusTitle = 'Processing files';
+      statusTitle = 'Export in progress';
       statusProgress = clips.pending_progress ? parseInt(parseFloat(clips.pending_progress) * 100) : null;
     }
 
