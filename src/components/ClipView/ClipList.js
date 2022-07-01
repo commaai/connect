@@ -110,13 +110,28 @@ class ClipList extends Component {
       (c.status === 'failed' ? ErrorOutlineIcon : PlayArrowIcon);
     const IsPublicIconType = c.is_public ? LockOpenIcon : LockOutlineIcon;
 
+
+    if (c.status === 'failed') {
+      gridStyles[0] = { ...gridStyles[0], color: Colors.red300 };
+    }
+
+    const innerItem = <>
+      <StateIconType style={ gridStyles[0] } className={ classes.clipPlayIcon } />
+      <p style={ gridStyles[1] } className={ classes.clipTitle }>{ c.title }</p>
+      <p style={ gridStyles[2] }>{ timeStr }</p>
+      <IsPublicIconType style={ gridStyles[3] } className={ classes.clipPublicIcon } />
+    </>;
+
+    if (c.status === 'failed') {
+      return <div key={c.id} className={classes.clipItem}>
+        { innerItem }
+      </div>;
+    }
+
     return (
       <a key={c.id} className={classes.clipItem} href={ `/${dongleId}/clips/${c.id}` }
-        onClick={ filterRegularClick(() => this.props.dispatch(navToClips(c.id, c.state))) }>
-        <StateIconType style={ gridStyles[0] } className={ classes.clipPlayIcon } />
-        <p style={ gridStyles[1] } className={ classes.clipTitle }>{ c.title }</p>
-        <p style={ gridStyles[2] }>{ timeStr }</p>
-        <IsPublicIconType style={ gridStyles[3] } className={ classes.clipPublicIcon } />
+        onClick={ filterRegularClick(() => this.props.dispatch(navToClips(c.id, c.state))) } >
+        { innerItem }
       </a>
     );
   }

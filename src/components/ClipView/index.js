@@ -50,9 +50,13 @@ class ClipView extends Component {
     this.componentDidUpdate({}, {});
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps) {
     if (prevProps.currentSegment !== this.props.currentSegment && this.props.currentSegment) {
       this.props.dispatch(fetchEvents(this.props.currentSegment));
+    }
+
+    if (this.props.clips && this.props.clips.state === 'failed') {
+      this.props.dispatch(clipsExit());
     }
   }
 
