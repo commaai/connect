@@ -110,13 +110,13 @@ class ClipList extends Component {
       (c.status === 'failed' ? ErrorOutlineIcon : PlayArrowIcon);
     const IsPublicIconType = c.is_public ? LockOpenIcon : LockOutlineIcon;
 
-
+    let firstGridItemStyle = {...gridStyles[0]};
     if (c.status === 'failed') {
-      gridStyles[0] = { ...gridStyles[0], color: Colors.red300 };
+      firstGridItemStyle = { ...firstGridItemStyle, color: Colors.red300 };
     }
 
     const innerItem = <>
-      <StateIconType style={ gridStyles[0] } className={ classes.clipPlayIcon } />
+      <StateIconType style={ firstGridItemStyle } className={ classes.clipPlayIcon } />
       <p style={ gridStyles[1] } className={ classes.clipTitle }>{ c.title }</p>
       <p style={ gridStyles[2] }>{ timeStr }</p>
       <IsPublicIconType style={ gridStyles[3] } className={ classes.clipPublicIcon } />

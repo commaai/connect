@@ -115,7 +115,7 @@ export function fetchClipsDetails(clip_id) {
     try {
       if (!clips) {
         dispatch({
-          type: Types.ACTION_CLIPS_DONE,
+          type: Types.ACTION_CLIPS_LOADING,
           dongleId,
           clip_id,
         });
@@ -150,6 +150,8 @@ export function fetchClipsDetails(clip_id) {
           route: resp.route_name,
           url: resp.url,
         });
+      } else if (resp.status === 'failed') {
+        dispatch(fetchClipsList(dongleId));
       }
     } catch (err) {
       if (err.resp && err.resp.status === 404 && !MyCommaAuth.isAuthenticated()) {

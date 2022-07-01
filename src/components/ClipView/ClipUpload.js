@@ -10,7 +10,9 @@ import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import Colors from '../../colors';
 import { checkSegmentMetadata } from '../../actions';
-import { fetchFiles, fetchAthenaQueue, updateFiles, doUpload, fetchUploadUrls, fetchUploadQueue } from '../../actions/files';
+import UploadQueue from '../Files/UploadQueue';
+import { fetchFiles, fetchAthenaQueue, updateFiles, doUpload, fetchUploadUrls, fetchUploadQueue,
+  cancelFetchUploadQueue } from '../../actions/files';
 import { fetchClipsDetails } from '../../actions/clips';
 
 const FILE_NAMES = {
@@ -119,13 +121,14 @@ class ClipUpload extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { clips, segmentData, files } = this.props;
+    const { clips, segmentData, files, dongleId, device } = this.props;
     const { required_file_types, required_segments } = this.state;
 
-    if (prevProps.clips?.route !== clips.route && clips.route) {
+    if (clips.route && (prevProps.clips?.route !== clips.route ||
+      (!(prevProps.dongleId && prevProps.device) && dongleId && device)))
+    {
       this.props.dispatch(checkSegmentMetadata());
-      this.props.dispatch(fetchUploadQueue(this.props.dongleId));
-      this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
+      this.props.dispatch(fetchAthenaQueue(dongleId));
       this.props.dispatch(fetchFiles(clips.route));
     }
 
@@ -295,6 +298,7 @@ class ClipUpload extends Component {
     if (urls) {
       this.props.dispatch(doUpload(dongleId, Object.keys(uploading), paths, urls));
     }
+    cancelFetchUploadQueue();
     this.props.dispatch(fetchUploadQueue(dongleId));
   }
 
@@ -303,6 +307,10 @@ class ClipUpload extends Component {
     const { windowWidth, required_segments, required_file_types, pausedUploadingError, someFileNotFound,
       someDCameraFileNotFound, hasUploadedAll } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
+
+    if (!device) {
+      return null;
+    }
 
     let deviceIsOffline = !deviceIsOnline(device);
     let uploadingStates = [];
@@ -363,6 +371,9 @@ class ClipUpload extends Component {
           </div>
         </div>
       }
+
+      <UploadQueue open={ false } onClose={ () => this.setState({ uploadModal: false }) }
+        update={ !hasUploadedAll } store={ this.props.store } device={ device } />
       </>;
   }
 

@@ -54,10 +54,6 @@ class ClipView extends Component {
     if (prevProps.currentSegment !== this.props.currentSegment && this.props.currentSegment) {
       this.props.dispatch(fetchEvents(this.props.currentSegment));
     }
-
-    if (this.props.clips && this.props.clips.state === 'failed') {
-      this.props.dispatch(clipsExit());
-    }
   }
 
   render() {
@@ -68,6 +64,8 @@ class ClipView extends Component {
       title = 'View clip';
     } else if (clips.state === 'list') {
       title = 'View clips';
+    } else if (clips.state === 'loading') {
+      title = '';
     }
 
     return <>

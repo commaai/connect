@@ -303,6 +303,12 @@ export default function reducer(_state, action) {
         state.clips = null;
       }
       break;
+    case Types.ACTION_CLIPS_LOADING:
+      state.clips = {
+        state: 'loading',
+        dongleId: action.dongleId,
+      };
+      break;
     case Types.ACTION_CLIPS_LIST:
       state.clips = {
         state: 'list',
