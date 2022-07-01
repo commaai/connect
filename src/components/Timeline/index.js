@@ -327,11 +327,11 @@ class Timeline extends Component {
     if (clip.type === 'start') {
       newEnd = clip.initLoop.startTime + clip.initLoop.duration;
       newStart = clip.initLoop.startTime + ((zoom.end - zoom.start) * changePercentage);
-      newStart = Math.min(Math.max(newStart, zoom.start), newEnd - 5000);
+      newStart = Math.min(Math.max(newStart, zoom.start), newEnd - 1000);
     } else if (clip.type === 'end') {
       newStart = clip.initLoop.startTime;
       newEnd = clip.initLoop.startTime + clip.initLoop.duration + ((zoom.end - zoom.start) * changePercentage);
-      newEnd = Math.max(Math.min(newEnd, zoom.end), newStart + 5000);
+      newEnd = Math.max(Math.min(newEnd, zoom.end), newStart + 1000);
     }
 
     return {

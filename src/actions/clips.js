@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
 import { push } from 'connected-react-router';
+import MyCommaAuth from '@commaai/my-comma-auth';
 import { clips as ClipsApi } from '@commaai/comma-api';
 
 import { checkSegmentMetadata, selectDevice, urlForState } from './';
@@ -110,8 +111,16 @@ export function navToClips(clip_id, state) {
 
 export function fetchClipsDetails(clip_id) {
   return async (dispatch, getState) => {
-    const { dongleId } = getState();
+    const { dongleId, clips } = getState();
     try {
+      if (!clips) {
+        dispatch({
+          type: Types.ACTION_CLIPS_DONE,
+          dongleId,
+          clip_id,
+        });
+      }
+
       const resp = await ClipsApi.clipsDetails(dongleId, clip_id);
 
       if (resp.status === 'pending') {
@@ -143,6 +152,11 @@ export function fetchClipsDetails(clip_id) {
         });
       }
     } catch (err) {
+      if (err.resp && err.resp.status === 404 && !MyCommaAuth.isAuthenticated()) {
+        window.location = `/?r=${encodeURI(window.location.pathname)}`;  // redirect to login
+        return;
+      }
+
       console.log(err);
       Sentry.captureException(err, { fingerprint: 'clips_fetch_details' });
     }

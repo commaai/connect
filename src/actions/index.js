@@ -9,6 +9,7 @@ import { resetPlayback, selectLoop } from '../timeline/playback'
 import { getSegmentFetchRange, hasSegmentMetadata, fetchSegmentMetadata, parseSegmentMetadata, insertSegmentMetadata
   } from '../timeline/segments';
 import * as Demo from '../demo';
+import { getClipsNav } from '../url';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
 const demoSegments = require('../demo/segments.json');
@@ -263,7 +264,9 @@ export function checkSegmentMetadata() {
         segmentsRequest = null;
         dispatch(checkSegmentMetadata());
         return;
-      } else if (segmentData && segmentData.length === 0 && !MyCommaAuth.isAuthenticated()) {
+      } else if (segmentData && segmentData.length === 0 && !MyCommaAuth.isAuthenticated() &&
+        !getClipsNav(window.location.pathname)?.clip_id)
+      {
         window.location = `/?r=${encodeURI(window.location.pathname)}`;  // redirect to login
         return;
       }

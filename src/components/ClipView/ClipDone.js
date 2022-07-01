@@ -35,7 +35,7 @@ class ClipDone extends Component {
   }
 
   render() {
-    const { classes, device, clips } = this.props;
+    const { classes, clips } = this.props;
     const { windowWidth } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
@@ -45,8 +45,8 @@ class ClipDone extends Component {
       <div style={{ padding: viewerPadding }}>
         <div className={ classes.clipOption }>
           <h4>{ clips.title }</h4>
-          <video autoPlay={true} controls={true} muted={true} playsInline={true} width={ '100%' }>
-            <source src={ clips.url} type="video/mp4" />
+          <video autoPlay={true} controls={true} muted={true} playsInline={true} loop={true} width={ '100%' }>
+            { clips.url && <source src={ clips.url} /> }
           </video>
         </div>
       </div>
@@ -56,7 +56,6 @@ class ClipDone extends Component {
 
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
-  device: 'device',
   clips: 'clips',
 });
 
