@@ -660,6 +660,7 @@ class Media extends Component {
       </Menu>
       <Menu id="menu-info" open={ Boolean(alwaysOpen || moreInfoMenu) }
         anchorEl={ moreInfoMenu } onClose={ () => this.setState({ moreInfoMenu: null }) }
+        style={{margin: "0px 10px"}}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
         <MenuItem className={ classes.copySegment } onClick={ this.copySegmentName }
           style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}>
