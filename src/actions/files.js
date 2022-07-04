@@ -190,6 +190,11 @@ export function fetchFiles(routeName, nocache=false) {
       dongleId,
       urls: res,
     });
+    dispatch({
+      type: Types.ACTION_FILES_META,
+      dongleId,
+      filesUrls: true,
+    });
   };
 }
 
@@ -221,6 +226,11 @@ export function fetchAthenaQueue(dongleId) {
       }
     }
     dispatch(updateFiles(newUploading));
+    dispatch({
+      type: Types.ACTION_FILES_META,
+      dongleId,
+      athenaQueue: true,
+    });
   };
 }
 
@@ -292,6 +302,11 @@ export function fetchUploadQueue(dongleId) {
       dongleId,
       uploading: newCurrentUploading,
       files: uploadingFiles,
+    });
+    dispatch({
+      type: Types.ACTION_FILES_META,
+      dongleId,
+      filesUploading: true,
     });
     if (uploadQueueTimeout === true && uploadQueue.result.length) {
       cancelFetchUploadQueue();

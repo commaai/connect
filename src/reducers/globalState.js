@@ -257,10 +257,6 @@ export default function reducer(_state, action) {
       break;
     case Types.ACTION_FILES_UPLOADING:
       state.filesUploading = action.uploading;
-      state.filesUploadingMeta = {
-        dongleId: action.dongleId,
-        fetchedAt: Date.now(),
-      };
       if (Object.keys(action.files).length) {
         state.files = {
           ...(state.files !== null ? { ...state.files } : {}),
@@ -280,6 +276,16 @@ export default function reducer(_state, action) {
       state.filesUploading = Object.keys(state.filesUploading)
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
+      break;
+    case Types.ACTION_FILES_META:
+      const oldFilesMeta = ((state.filesMeta && state.filesMeta.dongleId === action.dongleId) ? state.filesMeta : {});
+      state.filesMeta = {
+        ...oldFilesMeta,
+        dongleId: action.dongleId,
+        athenaQueue: (action.athenaQueue ? Date.now() : oldFilesMeta.athenaQueue),
+        filesUploading: (action.filesUploading ? Date.now() : oldFilesMeta.filesUploading),
+        filesUrls: (action.filesUrls ? Date.now() : oldFilesMeta.filesUrls),
+      };
       break;
     case Types.ACTION_CLIPS_EXIT:
       if (state.clips && state.clips.state === 'create') {

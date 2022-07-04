@@ -121,7 +121,7 @@ class ClipUpload extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { clips, segmentData, files, dongleId, device } = this.props;
+    const { clips, segmentData, files, filesMeta, dongleId, device } = this.props;
     const { required_file_types, required_segments } = this.state;
 
     if (clips.route && (prevProps.clips?.route !== clips.route ||
@@ -161,8 +161,11 @@ class ClipUpload extends Component {
       }
     }
 
-    if (!(prevProps.files && prevState.required_segments && prevState.required_file_types) &&
-      files && required_segments && required_file_types)
+    if (!(prevProps.files && prevProps.filesMeta.dongleId === dongleId && prevProps.filesMeta.athenaQueue &&
+      prevProps.filesMeta.filesUploading && prevProps.filesMeta.filesUrls && prevState.required_segments &&
+      prevState.required_file_types) &&
+      files && filesMeta.dongleId === dongleId && filesMeta.athenaQueue && filesMeta.filesUploading &&
+      filesMeta.filesUrls && required_segments && required_file_types)
     {
       this.uploadFiles();
     }
@@ -397,6 +400,7 @@ const stateToProps = Obstruction({
   device: 'device',
   clips: 'clips',
   files: 'files',
+  filesMeta: 'filesMeta',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ClipUpload));

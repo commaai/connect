@@ -180,11 +180,11 @@ class UploadQueue extends Component {
   }
 
   render() {
-    const { device, classes, filesUploading, filesUploadingMeta } = this.props;
+    const { device, classes, filesUploading, filesMeta } = this.props;
     const { cancelQueue, windowWidth, windowHeight } = this.state;
 
     const deviceOffline = !deviceIsOnline(device);
-    const hasData = filesUploadingMeta.dongleId === device.dongle_id;
+    const hasData = filesMeta.dongleId === device.dongle_id && filesMeta.filesUploading;
     const hasUploading = !deviceOffline && hasData && Object.keys(filesUploading).length > 0;
     const logNameLength = windowWidth < 600 ? 4 : 64;
     const segmentNameStyle = windowWidth < 450 ? { fontSize: windowWidth < 400 ? '0.8rem' : '0.9rem' } : {};
@@ -297,7 +297,7 @@ class UploadQueue extends Component {
 
 const stateToProps = Obstruction({
   filesUploading: 'filesUploading',
-  filesUploadingMeta: 'filesUploadingMeta',
+  filesMeta: 'filesMeta',
 });
 
 export default connect(stateToProps)(withStyles(styles)(UploadQueue));

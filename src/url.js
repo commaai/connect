@@ -41,7 +41,7 @@ export function getClipsNav(pathname) {
   if (parts.length >= 2 && parts[0] !== 'auth' && parts[1] === 'clips') {
     if (parts.length === 3 && parts[2]) {
       return {
-        clip_id: parseInt(parts[2]),
+        clip_id: parts[2],
       };
     } else {
       return {};
