@@ -297,10 +297,13 @@ class ClipUpload extends Component {
       return `${seg.split('|')[1]}/${FILE_NAMES[type]}`;
     });
 
-    const urls = await fetchUploadUrls(dongleId, paths);
-    if (urls) {
-      this.props.dispatch(doUpload(dongleId, Object.keys(uploading), paths, urls));
+    if (paths.length) {
+      const urls = await fetchUploadUrls(dongleId, paths);
+      if (urls) {
+        this.props.dispatch(doUpload(dongleId, Object.keys(uploading), paths, urls));
+      }
     }
+
     cancelFetchUploadQueue();
     this.props.dispatch(fetchUploadQueue(dongleId));
   }
