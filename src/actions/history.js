@@ -27,7 +27,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
     const pathClipsNav = getClipsNav(action.payload.location.pathname);
     if (pathClipsNav === null && state.clips) {
       dispatch(clipsExit());
-    } else if (pathClipsNav !== null && !state.clips) {
+    } else if (pathClipsNav !== null) {
       if (pathClipsNav.clip_id) {
         dispatch(fetchClipsDetails(pathClipsNav.clip_id));
       } else {

@@ -130,6 +130,7 @@ class ClipUpload extends Component {
       this.props.dispatch(checkSegmentMetadata());
       this.props.dispatch(fetchAthenaQueue(dongleId));
       this.props.dispatch(fetchFiles(clips.route));
+      //  TODO: assure these are done before trying to upload anything
     }
 
     if (segmentData?.segments && (prevProps.segmentData?.segments !== segmentData?.segments ||
@@ -372,7 +373,7 @@ class ClipUpload extends Component {
             <h4>{ statusTitle }</h4>
               <div className={ classes.clipProgress }>
                 <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 24 } />
-                { statusProgress && <span>{ statusProgress}%</span> }
+                { statusProgress !== null && <span>{ statusProgress}%</span> }
               </div>
           </div>
         </div>

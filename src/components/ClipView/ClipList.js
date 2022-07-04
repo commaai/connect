@@ -13,7 +13,8 @@ import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import { filterRegularClick } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
-import { navToClips } from '../../actions/clips';
+import { fetchClipsList, navToClips } from '../../actions/clips';
+import VisibilityHandler from '../VisibilityHandler';
 
 const styles = (theme) => ({
   clipItemHeader: {
@@ -45,6 +46,10 @@ const styles = (theme) => ({
   },
   clipPlayIcon: {
     paddingRight: 3,
+  },
+  noClips: {
+    color: Colors.white,
+    fontSize: '1rem',
   },
 });
 
@@ -78,11 +83,13 @@ class ClipList extends Component {
     const itemStyle = windowWidth < 768 ? { fontSize: '0.8rem' } : { fontSize: '1rem' };
 
     return <>
+      <VisibilityHandler onVisible={ () => this.props.dispatch(fetchClipsList(this.props.dongleId)) }
+        onDongleId={ true } />
       <ResizeHandler onResize={ this.onResize } />
 
       <div style={{ ...itemStyle, padding: viewerPadding }}>
         { !clips.list && <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
-        { Boolean(clips.list && clips.list.length === 0) && <p>no clips found</p> }
+        { Boolean(clips.list && clips.list.length === 0) && <p className={ classes.noClips }>no clips found</p> }
         { Boolean(clips.list && clips.list.length > 0) &&
           <div className={classes.clipItemHeader} style={{ padding: (windowWidth < 768 ? 3 : 8) }}>
             <h6 style={{ ...itemStyle, ...gridStyles[0] }}></h6>
