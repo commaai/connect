@@ -52,6 +52,10 @@ const styles = (theme) => ({
       },
     },
   },
+  video: {
+    maxHeight: 'calc(100vh - 64px)',
+    maxWidth: '100%',
+  },
 });
 
 class ClipDone extends Component {
@@ -93,7 +97,7 @@ class ClipDone extends Component {
       <div style={{ padding: viewerPadding }}>
         <div className={ `${classes.clipOption} ${classes.clipHeader}` }>
           <h4>{ clips.title }</h4>
-          { typeof navigator.share !== 'undefined' &&
+          { Boolean(typeof navigator.share !== 'undefined' && clips.is_public) &&
             <Button onClick={ this.shareCurrentClip } className={ classes.shareButton }>
               share
               <ShareIcon />
@@ -101,7 +105,8 @@ class ClipDone extends Component {
           }
         </div>
         <div className={ classes.clipOption }>
-          <video autoPlay={true} controls={true} muted={true} playsInline={true} loop={true} width={ '100%' }>
+          <video autoPlay={true} controls={true} muted={true} playsInline={true} loop={true}
+            className={ classes.video }>
             { clips.url && <source src={ clips.url} /> }
           </video>
         </div>
