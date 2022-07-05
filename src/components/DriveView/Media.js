@@ -162,6 +162,30 @@ const styles = (theme) => ({
       },
     },
   },
+  viewCabanaUploadsSmall: {
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '0.5rem',
+    padding: '0 6px 0 2px',
+    borderRadius: 4,
+    backgroundColor: Colors.white08,
+    marginLeft: 8,
+    '& svg': {
+      height: 12,
+    },
+    '& button': {
+      marginLeft: 6,
+      marginRight: -6,
+      color: Colors.white,
+      fontSize: '0.5rem',
+      padding: '4px 0',
+      minHeight: 19,
+      backgroundColor: Colors.white05,
+      '&:hover': {
+        backgroundColor: Colors.white10,
+      },
+    },
+  },
   shareButton: {
     display: 'flex',
     alignItems: 'center',
@@ -663,13 +687,23 @@ class Media extends Component {
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
         <MenuItem className={ classes.copySegment } onClick={ this.copySegmentName }
           style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}>
-          <div>{ currentSegment ? `${currentSegment.route}--${this.currentSegmentNum()}` : '---' }</div>
+            { windowWidth > 400 ? (
+            <div>
+              { currentSegment ? `${currentSegment.route}--${this.currentSegmentNum()}` : '---' }
+            </div>
+              ) : (
+            <div>
+              { currentSegment ? `${currentSegment.route}--${this.currentSegmentNum()}`.substring(0,21) + '...' : '---' }
+            </div>
+            )}
           <ContentCopyIcon />
         </MenuItem>
         <MenuItem onClick={ this.openInCabana } id="openInCabana" >
+          <div style={{ fontSize: windowWidth > 400 ? '1rem' : '0.8rem' }}>
           View in cabana
+          </div>
           { Boolean(files && stats && stats.canRequestRlog) &&
-            <div className={ classes.viewCabanaUploads }>
+            <div className={ windowWidth > 400 ? classes.viewCabanaUploads : classes.viewCabanaUploadsSmall }>
               <WarningIcon /> missing { stats.canRequestRlog } logs
               <Button onClick={ (ev) => { this.uploadFilesAll(['logs']); ev.stopPropagation(); } }>upload</Button>
             </div>
@@ -681,7 +715,9 @@ class Media extends Component {
           }
         </MenuItem>
         <MenuItem onClick={ this.openInUseradmin }>
+        <div style={{ fontSize: windowWidth > 400 ? '1rem' : '0.8rem' }}>
           View in useradmin
+          </div>
         </MenuItem>
         { typeof navigator.share !== 'undefined' &&
           <MenuItem onClick={ this.shareCurrentRoute } className={ classes.shareButton }>
