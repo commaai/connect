@@ -2,8 +2,9 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
-import { CircularProgress, withStyles } from '@material-ui/core';
+import { CircularProgress, Button, withStyles } from '@material-ui/core';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
+import FileUploadIcon from '@material-ui/icons/FileUpload';
 
 import { deviceIsOnline, deviceOnCellular } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
@@ -92,6 +93,31 @@ const styles = (theme) => ({
       fontSize: '0.8rem',
     },
   },
+  uploadQueueButton: {
+    display: 'flex',
+    alignItems: 'center',
+    minHeight: 14,
+    fontSize: '0.8rem',
+    padding: '4px 8px',
+    borderRadius: 4,
+    backgroundColor: Colors.white08,
+    marginTop: 12,
+    '& svg': {
+      height: 18,
+    },
+    '& button': {
+      marginLeft: 8,
+      marginRight: -6,
+      color: Colors.white,
+      fontSize: '0.8rem',
+      padding: '4px 0',
+      minHeight: 19,
+      backgroundColor: Colors.white05,
+      '&:hover': {
+        backgroundColor: Colors.white10,
+      },
+    },
+  },
 });
 
 class ClipUpload extends Component {
@@ -100,6 +126,7 @@ class ClipUpload extends Component {
 
     this.state = {
       windowWidth: window.innerWidth,
+      uploadModal: false,
       required_segments: null,
       required_file_types: null,
       pausedUploadingError: null,
@@ -163,10 +190,10 @@ class ClipUpload extends Component {
     }
 
     if (!(prevProps.files && prevProps.filesMeta.dongleId === dongleId && prevProps.filesMeta.athenaQueue &&
-      prevProps.filesMeta.filesUploading && prevProps.filesMeta.filesUrls && prevState.required_segments &&
-      prevState.required_file_types) &&
+      prevProps.filesMeta.filesUploading && prevProps.filesMeta.filesUrls && prevProps.filesMeta.filesUrls[clips.route] &&
+      prevState.required_segments && prevState.required_file_types) &&
       files && filesMeta.dongleId === dongleId && filesMeta.athenaQueue && filesMeta.filesUploading &&
-      filesMeta.filesUrls && required_segments && required_file_types)
+      filesMeta.filesUrls && filesMeta.filesUrls[clips.route] && required_segments && required_file_types)
     {
       this.uploadFiles();
     }
@@ -365,6 +392,12 @@ class ClipUpload extends Component {
               <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 24 } /> }
             { uploadingStates }
           </div>
+          <div className={ classes.clipOption }>
+            <Button onClick={ () => this.setState({ uploadModal: true }) } className={ classes.uploadQueueButton }>
+              view upload queue
+              <FileUploadIcon />
+            </Button>
+          </div>
        </div>
       }
       { hasUploadedAll &&
@@ -379,9 +412,9 @@ class ClipUpload extends Component {
         </div>
       }
 
-      <UploadQueue open={ false } onClose={ () => this.setState({ uploadModal: false }) }
+      <UploadQueue open={ this.state.uploadModal } onClose={ () => this.setState({ uploadModal: false }) }
         update={ !hasUploadedAll } store={ this.props.store } device={ device } />
-      </>;
+    </>;
   }
 
   renderError(title, label) {

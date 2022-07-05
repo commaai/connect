@@ -193,7 +193,7 @@ export function fetchFiles(routeName, nocache=false) {
     dispatch({
       type: Types.ACTION_FILES_META,
       dongleId,
-      filesUrls: true,
+      filesUrls: routeName,
     });
   };
 }
@@ -261,6 +261,11 @@ export function fetchUploadQueue(dongleId) {
     if (!uploadQueue || !uploadQueue.result) {
       if (uploadQueue && uploadQueue.offline) {
         dispatch(updateDeviceOnline(dongleId, 0));
+        dispatch({
+          type: Types.ACTION_FILES_META,
+          dongleId,
+          filesUploading: true,
+        });
       }
       return;
     }
