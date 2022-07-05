@@ -35,7 +35,7 @@ describe('Media', () => {
     const getState = () => {
       return {
         filesUploading: {},
-        filesMeta: {},
+        filesUploadingMeta: {},
         currentSegment: { routeOffset },
         loop: { startTime: loopStartTime, duration: 15000 },
         filter: { start },
@@ -79,7 +79,7 @@ describe('Media', () => {
     const getState = () => {
       return {
         filesUploading: {},
-        filesMeta: {},
+        filesUploadingMeta: {},
         currentSegment: { routeOffset },
         filter: { start },
         device: { device_type: 'three' },

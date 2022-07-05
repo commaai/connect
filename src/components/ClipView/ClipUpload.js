@@ -12,8 +12,7 @@ import VisibilityHandler from '../VisibilityHandler';
 import Colors from '../../colors';
 import { checkSegmentMetadata } from '../../actions';
 import UploadQueue from '../Files/UploadQueue';
-import { fetchFiles, fetchAthenaQueue, updateFiles, doUpload, fetchUploadUrls, fetchUploadQueue,
-  cancelFetchUploadQueue } from '../../actions/files';
+import { fetchFiles, fetchAthenaQueue } from '../../actions/files';
 import { fetchClipsDetails } from '../../actions/clips';
 
 const FILE_NAMES = {
@@ -139,7 +138,6 @@ class ClipUpload extends Component {
     this.onVisible = this.onVisible.bind(this);
     this.getUploadStats = this.getUploadStats.bind(this);
     this.updateUploadStates = this.updateUploadStates.bind(this);
-    this.uploadFiles = this.uploadFiles.bind(this);
     this.renderError = this.renderError.bind(this);
   }
 
@@ -148,7 +146,7 @@ class ClipUpload extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { clips, segmentData, files, filesMeta, dongleId, device } = this.props;
+    const { clips, segmentData, files, dongleId, device } = this.props;
     const { required_file_types, required_segments } = this.state;
 
     if (clips.route && (prevProps.clips?.route !== clips.route ||
@@ -157,7 +155,6 @@ class ClipUpload extends Component {
       this.props.dispatch(checkSegmentMetadata());
       this.props.dispatch(fetchAthenaQueue(dongleId));
       this.props.dispatch(fetchFiles(clips.route));
-      //  TODO: assure these are done before trying to upload anything
     }
 
     if (segmentData?.segments && (prevProps.segmentData?.segments !== segmentData?.segments ||
@@ -187,15 +184,6 @@ class ClipUpload extends Component {
         this.setState({ required_file_types: ['dcameras'] });
         break;
       }
-    }
-
-    if (!(prevProps.files && prevProps.filesMeta.dongleId === dongleId && prevProps.filesMeta.athenaQueue &&
-      prevProps.filesMeta.filesUploading && prevProps.filesMeta.filesUrls && prevProps.filesMeta.filesUrls[clips.route] &&
-      prevState.required_segments && prevState.required_file_types) &&
-      files && filesMeta.dongleId === dongleId && filesMeta.athenaQueue && filesMeta.filesUploading &&
-      filesMeta.filesUrls && filesMeta.filesUrls[clips.route] && required_segments && required_file_types)
-    {
-      this.uploadFiles();
     }
 
     if (!prevState.hasUploadedAll && this.state.hasUploadedAll) {
@@ -301,41 +289,6 @@ class ClipUpload extends Component {
     });
   }
 
-  async uploadFiles() {
-    const { dongleId, files } = this.props;
-    const { required_file_types, required_segments } = this.state;
-
-    if (!files || !required_segments || !required_file_types) {
-      return;
-    }
-
-    const uploading = {}
-    for (const seg of required_segments) {
-      for (const type of required_file_types) {
-        const fileName = `${seg}/${type}`;
-        if (!files[fileName]) {
-          uploading[fileName] = { requested: true };
-        }
-      }
-    }
-    this.props.dispatch(updateFiles(uploading));
-
-    const paths = Object.keys(uploading).map((fileName) => {
-      const [seg, type] = fileName.split('/');
-      return `${seg.split('|')[1]}/${FILE_NAMES[type]}`;
-    });
-
-    if (paths.length) {
-      const urls = await fetchUploadUrls(dongleId, paths);
-      if (urls) {
-        this.props.dispatch(doUpload(dongleId, Object.keys(uploading), paths, urls));
-      }
-    }
-
-    cancelFetchUploadQueue();
-    this.props.dispatch(fetchUploadQueue(dongleId));
-  }
-
   render() {
     const { classes, device, clips } = this.props;
     const { windowWidth, required_segments, required_file_types, pausedUploadingError, someFileNotFound,
@@ -437,7 +390,6 @@ const stateToProps = Obstruction({
   device: 'device',
   clips: 'clips',
   files: 'files',
-  filesMeta: 'filesMeta',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ClipUpload));

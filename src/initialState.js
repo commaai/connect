@@ -67,7 +67,10 @@ export default {
 
   files: null,
   filesUploading: {},
-  filesMeta: {},
+  filesUploadingMeta: {
+    dongleId: null,
+    fetchedAt: null,
+  },
 
   clips: null,
 
