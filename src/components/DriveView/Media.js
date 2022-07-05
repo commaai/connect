@@ -672,7 +672,7 @@ class Media extends Component {
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         PaperProps={{sx: { width: windowWidth / 3 }}}
         >
-        { Boolean(currentSegment && this.nut) ?
+        { Boolean(currentSegment) ?
           <MenuItem className={ classes.copySegment } onClick={ this.copySegmentName }
             style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}>
             <div>
