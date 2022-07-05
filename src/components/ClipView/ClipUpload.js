@@ -15,14 +15,6 @@ import UploadQueue from '../Files/UploadQueue';
 import { fetchFiles, fetchAthenaQueue } from '../../actions/files';
 import { fetchClipsDetails } from '../../actions/clips';
 
-const FILE_NAMES = {
-  'qcameras': 'qcamera.ts',
-  'cameras': 'fcamera.hevc',
-  'dcameras': 'dcamera.hevc',
-  'ecameras': 'ecamera.hevc',
-  'qlogs': 'qlog.bz2',
-  'logs': 'rlog.bz2',
-};
 const FILE_TYPE_FRIENDLY = {
   'qcameras': 'Road camera (low-res)',
   'cameras': 'Road camera (HD)',

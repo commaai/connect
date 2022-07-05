@@ -3,7 +3,8 @@ import qs from 'query-string';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper } from '@material-ui/core';
+import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper,
+  Popover } from '@material-ui/core';
 import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
@@ -18,7 +19,7 @@ import UploadQueue from '../Files/UploadQueue';
 import { bufferVideo, currentOffset } from '../../timeline/playback';
 import Colors from '../../colors';
 import { deviceIsOnline, deviceOnCellular } from '../../utils';
-import { analyticsEvent } from '../../actions';
+import { analyticsEvent, primeNav } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles } from '../../actions/files';
@@ -193,6 +194,45 @@ const styles = (theme) => ({
     color: Colors.white,
     '& p': { fontSize: '0.8rem' },
   },
+  noPrimePopover: {
+    borderRadius: 16,
+    padding: 16,
+    border: `1px solid ${Colors.white10}`,
+    backgroundColor: Colors.grey800,
+    marginTop: 12,
+    zIndex: 5,
+    '& p': {
+      fontSize: '0.9rem',
+      color: Colors.white,
+      margin: 0,
+    },
+  },
+  noPrimeHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    '& p': {
+      fontSize: '1rem',
+      fontWeight: 500,
+    },
+  },
+  noPrimeButton: {
+    padding: '6px 24px',
+    borderRadius: 15,
+    textTransform: 'none',
+    minHeight: 'unset',
+    color: Colors.white,
+    backgroundColor: Colors.primeBlue50,
+    '&:disabled': {
+      background: '#ddd',
+      color: Colors.grey900,
+    },
+    '&:hover': {
+      color: Colors.white,
+      backgroundColor: Colors.primeBlue200,
+    },
+  },
 });
 
 const FILE_NAMES = {
@@ -203,8 +243,6 @@ const FILE_NAMES = {
   'qlogs': 'qlog.bz2',
   'logs': 'rlog.bz2',
 };
-const MAX_OPEN_REQUESTS = 15;
-const MAX_RETRIES = 5;
 
 const MediaType = {
   VIDEO: 'video',
@@ -222,6 +260,7 @@ class Media extends Component {
       moreInfoMenu: null,
       uploadModal: false,
       dcamUploadInfo: null,
+      createClipNoPrime: null,
     };
 
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
@@ -238,6 +277,7 @@ class Media extends Component {
     this.getUploadStats = this.getUploadStats.bind(this);
     this._uploadStats = this._uploadStats.bind(this);
     this.downloadFile = this.downloadFile.bind(this);
+    this.initCreateClip = this.initCreateClip.bind(this);
 
     this.openRequests = 0;
   }
@@ -487,6 +527,15 @@ class Media extends Component {
     window.location.href = file.url
   }
 
+  initCreateClip(ev) {
+    const { device, profile } = this.props;
+    if (false && device.prime || false && profile?.superuser) {
+      this.props.dispatch(clipsInit());
+    } else {
+      this.setState({ createClipNoPrime: ev.target });
+    }
+  }
+
   render() {
     const { classes } = this.props;
     const { inView, windowWidth } = this.state;
@@ -529,7 +578,7 @@ class Media extends Component {
 
   renderMediaOptions(showMapAlways) {
     const { classes, device, profile } = this.props;
-    const { inView } = this.state;
+    const { inView, createClipNoPrime } = this.state;
     return (
       <>
         <div className={classes.mediaOptionsRoot}>
@@ -549,8 +598,7 @@ class Media extends Component {
           }
           <div className={classes.mediaOptions}>
             { Boolean(device?.is_owner || (profile && profile.superuser)) &&
-              <div className={classes.mediaOption} aria-haspopup="true"
-                onClick={ () => this.props.dispatch(clipsInit()) }>
+              <div className={classes.mediaOption} aria-haspopup="true" onClick={ this.initCreateClip }>
                 <Typography className={classes.mediaOptionText}>Create clip</Typography>
               </div>
             }
@@ -565,6 +613,17 @@ class Media extends Component {
           </div>
         </div>
         { this.renderMenus() }
+        <Popover open={ Boolean(createClipNoPrime) } anchorEl={ createClipNoPrime }
+          onClose={ () => this.setState({ createClipNoPrime: null }) } classes={{ paper: classes.noPrimePopover }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+          <div className={ classes.noPrimeHeader }>
+            <p>comma prime</p>
+            <Button onClick={ () => this.props.dispatch(primeNav(true)) } className={ classes.noPrimeButton }>
+              sign up
+            </Button>
+          </div>
+          <p>clip export is a prime only feature</p>
+        </Popover>
       </>
     );
   }
