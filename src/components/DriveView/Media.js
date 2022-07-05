@@ -528,8 +528,12 @@ class Media extends Component {
   }
 
   initCreateClip(ev) {
-    const { device, profile } = this.props;
-    if (false && device.prime || false && profile?.superuser) {
+    const { device, profile, currentSegment } = this.props;
+    if (!currentSegment) {
+      return;
+    }
+
+    if (device.prime || profile?.superuser) {
       this.props.dispatch(clipsInit());
     } else {
       this.setState({ createClipNoPrime: ev.target });

@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
+import fecha from 'fecha';
 
 import { withStyles, Typography, TextField, Button, CircularProgress } from '@material-ui/core';
 import { clips as ClipsApi } from '@commaai/comma-api';
@@ -89,6 +90,24 @@ const styles = (theme) => ({
       color: Colors.grey900,
     }
   },
+  timeView: {
+    marginBottom: 8,
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'space-around',
+    color: Colors.white,
+    textAlign: 'center',
+    '& p': {
+      margin: 0,
+      fontSize: '0.9rem',
+      '&:first-child': { fontWeight: 500 },
+    },
+    '& span': {
+      fontSize: '0.7rem',
+      lineHeight: '0.7rem',
+      display: 'block',
+    },
+  },
 });
 
 class ClipCreate extends Component {
@@ -111,6 +130,11 @@ class ClipCreate extends Component {
   async onClipCreate() {
     const { videoTypeOption, clipTitle, isPublic } = this.state;
     const { loop, currentSegment } = this.props;
+    if (!clipTitle) {
+      this.setState({ error: 'please enter a clip title' });
+      return;
+    }
+
     if (loop.duration > 300000) {  // 5 minutes
       this.setState({ error: 'clip selection exceeds maximum length of 5 minutes' });
       return;
@@ -140,14 +164,35 @@ class ClipCreate extends Component {
   }
 
   render() {
-    const { classes } = this.props;
+    const { classes, loop } = this.props;
     const { windowWidth, videoTypeOption, clipTitle, isPublic, createLoading, error } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32
+
+    const startStr = fecha.format(new Date(loop.startTime), 'h:mm:ss\u00a0a').toLowerCase();
+    const endStr = fecha.format(new Date(loop.startTime + loop.duration), 'h:mm:ss\u00a0a').toLowerCase();
+    const durSeconds = Math.floor(loop.duration/1000);
+    let durationStr = (durSeconds >= 3600) ? `${Math.floor(durSeconds/3600)}:` : '';
+    durationStr += `${Math.floor((durSeconds%3600)/60)}:${durSeconds%60}`;
 
     return <>
       <ResizeHandler onResize={ this.onResize } />
       <Timeline className={classes.headerTimeline} thumbnailsVisible={ true } hasClip />
       <div style={{ padding: viewerPadding }}>
+        <div className={ classes.timeView }>
+          <div>
+            <p>start</p>
+            <p>{ startStr }</p>
+          </div>
+          <div>
+            <p>end</p>
+            <p>{ endStr }</p>
+          </div>
+          <div>
+            <p>duration</p>
+            <p>{ durationStr }</p>
+            <p><span>max 5 min</span></p>
+          </div>
+        </div>
         <DriveVideo />
         <div className={ classes.clipOption }>
           <TimeDisplay isThin />
