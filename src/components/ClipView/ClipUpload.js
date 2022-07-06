@@ -198,7 +198,7 @@ class ClipUpload extends Component {
     const { clips } = this.props;
 
     if (!this.state.hasRequestedAll) {
-      this.props.dispatch(fetchAthenaQueue(dongleId));
+      this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
       this.props.dispatch(fetchFiles(clips.route));
     }
 
