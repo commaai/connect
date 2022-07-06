@@ -347,6 +347,7 @@ export default function reducer(_state, action) {
         title: action.title,
         route: action.route,
         url: action.url,
+        is_public: action.is_public,
       };
       break;
     default:

@@ -171,8 +171,9 @@ class ClipCreate extends Component {
     const startStr = fecha.format(new Date(loop.startTime), 'h:mm:ss\u00a0a').toLowerCase();
     const endStr = fecha.format(new Date(loop.startTime + loop.duration), 'h:mm:ss\u00a0a').toLowerCase();
     const durSeconds = Math.floor(loop.duration/1000);
-    let durationStr = (durSeconds >= 3600) ? `${Math.floor(durSeconds/3600)}:` : '';
-    durationStr += `${Math.floor((durSeconds%3600)/60)}:${durSeconds%60}`;
+    let durationStr = durSeconds >= 3600 ? `${Math.floor(durSeconds/3600)}:` : '';
+    durationStr += Math.floor((durSeconds%3600)/60).toString().padStart(durSeconds >= 3600 ? 2 : 1, '0') + ':';
+    durationStr += (durSeconds%60).toString().padStart(2, '0');
 
     return <>
       <ResizeHandler onResize={ this.onResize } />

@@ -123,6 +123,7 @@ class ClipUpload extends Component {
       pausedUploadingError: null,
       someFileNotFound: null,
       someDCameraFileNotFound: null,
+      hasRequestedAll: null,
       hasUploadedAll: null,
     };
 
@@ -194,12 +195,16 @@ class ClipUpload extends Component {
   }
 
   async onVisible() {
-    if (!this.state.hasUploadedAll) {
-      return;
+    const { clips } = this.props;
+
+    if (!hasRequestedAll) {
+      this.props.dispatch(fetchAthenaQueue(dongleId));
+      this.props.dispatch(fetchFiles(clips.route));
     }
 
-    const { clips } = this.props;
-    this.props.dispatch(fetchClipsDetails(clips.clip_id));
+    if (!hasRequestedAll || hasUploadedAll) {
+      this.props.dispatch(fetchClipsDetails(clips.clip_id));
+    }
   }
 
   getUploadStats(types) {
@@ -245,6 +250,8 @@ class ClipUpload extends Component {
     let pausedUploadingError = false;
     let someFileNotFound = false;
     let someDCameraFileNotFound = false;
+    let hasRequestedAll = Boolean(required_segments && required_segments.length &&
+      required_file_types && required_file_types.length);
     let hasUploadedAll = Boolean(required_segments && required_segments.length &&
       required_file_types && required_file_types.length);
 
@@ -252,6 +259,7 @@ class ClipUpload extends Component {
       for (const type of required_file_types) {
         const state = this.getUploadStats([type]);
         if (state === null) {
+          hasRequestedAll = false;
           hasUploadedAll = false;
           continue;
         }
@@ -267,6 +275,9 @@ class ClipUpload extends Component {
           }
         }
 
+        if (state.requested < state.count) {
+          hasRequestedAll = false;
+        }
         if (state.uploaded < state.count) {
           hasUploadedAll = false;
         }
@@ -277,6 +288,7 @@ class ClipUpload extends Component {
       pausedUploadingError,
       someFileNotFound,
       someDCameraFileNotFound,
+      hasRequestedAll,
       hasUploadedAll,
     });
   }
