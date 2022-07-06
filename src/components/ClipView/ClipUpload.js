@@ -197,12 +197,12 @@ class ClipUpload extends Component {
   async onVisible() {
     const { clips } = this.props;
 
-    if (!hasRequestedAll) {
+    if (!this.state.hasRequestedAll) {
       this.props.dispatch(fetchAthenaQueue(dongleId));
       this.props.dispatch(fetchFiles(clips.route));
     }
 
-    if (!hasRequestedAll || hasUploadedAll) {
+    if (!this.state.hasRequestedAll || this.state.hasUploadedAll) {
       this.props.dispatch(fetchClipsDetails(clips.clip_id));
     }
   }
