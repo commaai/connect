@@ -12,7 +12,7 @@ import VisibilityHandler from '../VisibilityHandler';
 import Colors from '../../colors';
 import { checkSegmentMetadata } from '../../actions';
 import UploadQueue from '../Files/UploadQueue';
-import { fetchFiles, fetchAthenaQueue } from '../../actions/files';
+import { fetchFiles, fetchAthenaQueue, fetchUploadQueue } from '../../actions/files';
 import { fetchClipsDetails } from '../../actions/clips';
 
 const FILE_TYPE_FRIENDLY = {
@@ -198,6 +198,7 @@ class ClipUpload extends Component {
     const { clips } = this.props;
 
     if (!this.state.hasRequestedAll) {
+      this.props.dispatch(fetchUploadQueue(this.props.dongleId));
       this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
       this.props.dispatch(fetchFiles(clips.route));
     }
