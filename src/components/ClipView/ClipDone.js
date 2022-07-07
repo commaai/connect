@@ -114,7 +114,9 @@ class ClipDone extends Component {
 
       <div style={{ padding: viewerPadding }}>
         <div className={ `${classes.clipOption} ${classes.clipHeader}` }>
-          <h4>{ clips.title }</h4>
+          <h4>
+            { clips.title ? clips.title : clips.route.split('|')[1] }
+          </h4>
           <div className={classes.buttonView}>
             <Button onClick={ this.downloadFile } className={ classes.shareButton }>
               download
