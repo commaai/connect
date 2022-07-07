@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import * as Types from './types';
 import GeocodeApi from '../api/geocode';
 
@@ -20,21 +22,41 @@ async function getCacheDB() {
     return Promise.resolve(null);
   }
 
-  let request = window.indexedDB.open('cacheDB', 2);
+  let request;
+  try {
+    request = window.indexedDB.open('cacheDB', 2);
+  } catch (err) {
+    console.log(err);
+    Sentry.captureException(err, { fingerprint: 'cached_open_indexeddb' });
+    return Promise.resolve(null);
+  }
+
   return new Promise((resolve) => {
     request.onerror = (ev) => {
       console.log(ev.target.error);
       resolve(null);
     };
     request.onsuccess = (ev) => {
-      resolve(ev.target.result);
+      const db = ev.target.result;
+      for (const store of ['events', 'coords', 'driveCoords']) {
+        if (!db.objectStoreNames.contains(store)) {
+          console.log('cannot find store in indexedDB', store);
+          resolve(null);
+        }
+      }
+      resolve(db);
     };
     request.onupgradeneeded = (ev) => {
       const db = ev.target.result;
 
-      if (ev.oldVersion === 1 && ev.newVersion === 2) {
-        ev.target.transaction.objectStore('driveCoords').clear();
-        return;
+      for (const store of db.objectStoreNames) {
+        try {
+          db.deleteObjectStore(store);
+        } catch (err) {
+          console.log(err);
+          Sentry.captureException(err, { fingerprint: 'cached_delete_obj_store' });
+          return resolve(null);
+        }
       }
 
       const routeStore = db.createObjectStore('events', { keyPath: 'key' });
