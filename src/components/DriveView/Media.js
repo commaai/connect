@@ -660,7 +660,7 @@ class Media extends Component {
       </Menu>
       <Menu id="menu-info" open={ Boolean(alwaysOpen || moreInfoMenu) }
         anchorEl={ moreInfoMenu } onClose={ () => this.setState({ moreInfoMenu: null }) }
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        transformOrigin={{ vertical: 'top', horizontal: windowWidth > 400 ? 260 : 300 }}>
         <MenuItem className={ classes.copySegment } onClick={ this.copySegmentName }
           style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}>
           <div>{ currentSegment ? `${currentSegment.route}--${this.currentSegmentNum()}` : '---' }</div>
