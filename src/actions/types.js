@@ -39,3 +39,11 @@ export const ACTION_FILES_CANCELLED_UPLOADS = 'files_cancelled_uploads';
 
 // analytics
 export const ANALYTICS_EVENT = 'analytics_event';
+
+// clips
+export const ACTION_CLIPS_LOADING = 'clips_loading';
+export const ACTION_CLIPS_INIT = 'clips_init';
+export const ACTION_CLIPS_LIST = 'clips_list';
+export const ACTION_CLIPS_CREATE = 'clips_create';
+export const ACTION_CLIPS_DONE = 'clips_done';
+export const ACTION_CLIPS_EXIT = 'clips_exit';

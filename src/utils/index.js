@@ -154,7 +154,7 @@ export function filterRegularClick(func) {
 }
 
 export function deviceVersionAtLeast(device, version_string) {
-  if (!device['openpilot_version']) {
+  if (!device || !device['openpilot_version']) {
     return false;
   }
 

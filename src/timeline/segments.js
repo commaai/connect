@@ -289,17 +289,33 @@ export function hasSegmentMetadata(state) {
 }
 
 export function getSegmentFetchRange(state) {
-  if (!state.zoom) {
+  if (!state.zoom && !(state.clips && state.clips.state === 'upload')) {
     return state.filter;
   }
-  if (state.zoom.end < state.filter.start) {
+  if (state.clips && state.clips.end_time < state.filter.start) {
+    return {
+      start: state.clips.start_time - 60000,
+      end: state.clips.end_time + 60000,
+    };
+  }
+  if (state.zoom && state.zoom.end < state.filter.start) {
     return {
       start: state.zoom.start - 14400000,
       end: state.zoom.end + 14400000,
     };
   }
+  const mins = [state.filter.start];
+  const maxs = [state.filter.end];
+  if (state.clips && state.clips.state === 'upload') {
+    mins.push(state.clips.start_time - 60000);
+    maxs.push(state.clips.end_time + 60000);
+  }
+  if (state.zoom) {
+    mins.push(state.zoom.start - 14400000);
+    maxs.push(state.zoom.end + 14400000);
+  }
   return {
-    start: Math.min(state.filter.start, state.zoom.start - 14400000),
-    end: Math.max(state.filter.end, state.zoom.end + 14400000),
+    start: Math.min(...mins),
+    end: Math.max(...maxs),
   };
 }

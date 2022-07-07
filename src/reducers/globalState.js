@@ -1,25 +1,6 @@
-import {
-  ACTION_SELECT_DEVICE,
-  ACTION_SELECT_TIME_FILTER,
-  ACTION_STARTUP_DATA,
-  ACTION_UPDATE_DEVICES,
-  ACTION_UPDATE_DEVICE,
-  ACTION_UPDATE_ROUTE_EVENTS,
-  ACTION_UPDATE_ROUTE_LOCATION,
-  ACTION_UPDATE_ROUTE_DRIVE_COORDS,
-  ACTION_UPDATE_SHARED_DEVICE,
-  ACTION_PRIME_NAV,
-  ACTION_PRIME_SUBSCRIPTION,
-  ACTION_PRIME_SUBSCRIBE_INFO,
-  ACTION_UPDATE_DEVICE_ONLINE,
-  ACTION_UPDATE_DEVICE_NETWORK,
-  TIMELINE_SELECTION_CHANGED,
-  ACTION_FILES_URLS,
-  ACTION_FILES_UPDATE,
-  ACTION_FILES_UPLOADING,
-  ACTION_FILES_CANCELLED_UPLOADS,
-} from '../actions/types';
+import * as Types from '../actions/types';
 import { emptyDevice } from '../utils';
+
 
 function populateFetchedAt(d) {
   return {
@@ -32,7 +13,7 @@ export default function reducer(_state, action) {
   let state = { ..._state };
   let deviceIndex = null;
   switch (action.type) {
-    case ACTION_STARTUP_DATA:
+    case Types.ACTION_STARTUP_DATA:
       let devices = action.devices.map(populateFetchedAt);
       if (!state.dongleId && devices.length > 0) {
         state = {
@@ -54,7 +35,7 @@ export default function reducer(_state, action) {
       state.devices = devices;
       state.profile = action.profile;
       break;
-    case ACTION_SELECT_DEVICE:
+    case Types.ACTION_SELECT_DEVICE:
       state = {
         ...state,
         dongleId: action.dongleId,
@@ -62,6 +43,7 @@ export default function reducer(_state, action) {
         subscription: null,
         subscribeInfo: null,
         files: null,
+        clips: null,
       };
       if (state.devices) {
         const new_device = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
@@ -74,7 +56,7 @@ export default function reducer(_state, action) {
         state.segments = [];
       }
       break;
-    case ACTION_SELECT_TIME_FILTER:
+    case Types.ACTION_SELECT_TIME_FILTER:
       state = {
         ...state,
         filter: {
@@ -85,7 +67,7 @@ export default function reducer(_state, action) {
         segments: [],
       };
       break;
-    case ACTION_UPDATE_DEVICES:
+    case Types.ACTION_UPDATE_DEVICES:
       state = {
         ...state,
         devices: action.devices.map(populateFetchedAt),
@@ -97,7 +79,7 @@ export default function reducer(_state, action) {
         }
       }
       break;
-    case ACTION_UPDATE_DEVICE:
+    case Types.ACTION_UPDATE_DEVICE:
       state = {
         ...state,
         devices: state.devices ? [...state.devices] : [],
@@ -109,7 +91,7 @@ export default function reducer(_state, action) {
         state.devices.unshift(populateFetchedAt(action.device));
       }
       break;
-    case ACTION_UPDATE_ROUTE_EVENTS:
+    case Types.ACTION_UPDATE_ROUTE_EVENTS:
       if (state.segments) {
         state.segments = [...state.segments];
         for (const i in state.segments) {
@@ -129,7 +111,7 @@ export default function reducer(_state, action) {
         }
       }
       break;
-    case ACTION_UPDATE_ROUTE_LOCATION:
+    case Types.ACTION_UPDATE_ROUTE_LOCATION:
       if (state.segments) {
         state.segments = [...state.segments];
         for (const i in state.segments) {
@@ -149,7 +131,7 @@ export default function reducer(_state, action) {
         state.currentSegment[action.locationKey] = action.location;
       }
       break;
-    case ACTION_UPDATE_ROUTE_DRIVE_COORDS:
+    case Types.ACTION_UPDATE_ROUTE_DRIVE_COORDS:
       if (state.segments) {
         state.segments = [...state.segments];
         for (const i in state.segments) {
@@ -169,12 +151,12 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case ACTION_UPDATE_SHARED_DEVICE:
+    case Types.ACTION_UPDATE_SHARED_DEVICE:
       if (action.dongleId === state.dongleId) {
         state.device = populateFetchedAt(action.device);
       }
       break;
-    case ACTION_UPDATE_DEVICE_ONLINE:
+    case Types.ACTION_UPDATE_DEVICE_ONLINE:
       state = {
         ...state,
         devices: [...state.devices],
@@ -197,7 +179,7 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case ACTION_UPDATE_DEVICE_NETWORK:
+    case Types.ACTION_UPDATE_DEVICE_NETWORK:
       state = {
         ...state,
         devices: [...state.devices],
@@ -218,16 +200,17 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case ACTION_PRIME_NAV:
+    case Types.ACTION_PRIME_NAV:
       state = {
         ...state,
         primeNav: action.primeNav,
       };
       if (action.primeNav) {
+        state.clips = null;
         state.zoom = null;
       }
       break;
-    case ACTION_PRIME_SUBSCRIPTION:
+    case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId != state.dongleId) { // ignore outdated info
         break;
       }
@@ -237,7 +220,7 @@ export default function reducer(_state, action) {
         subscribeInfo: null,
       };
       break;
-    case ACTION_PRIME_SUBSCRIBE_INFO:
+    case Types.ACTION_PRIME_SUBSCRIBE_INFO:
       if (action.dongleId != state.dongleId) {
         break;
       }
@@ -247,7 +230,7 @@ export default function reducer(_state, action) {
         subscription: null,
       };
       break;
-    case TIMELINE_SELECTION_CHANGED:
+    case Types.TIMELINE_SELECTION_CHANGED:
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }
@@ -260,19 +243,19 @@ export default function reducer(_state, action) {
         state.zoom = null;
       }
       break;
-    case ACTION_FILES_URLS:
+    case Types.ACTION_FILES_URLS:
       state.files = {
         ...(state.files !== null ? { ...state.files } : {}),
         ...action.urls,
       };
       break;
-    case ACTION_FILES_UPDATE:
+    case Types.ACTION_FILES_UPDATE:
       state.files = {
         ...(state.files !== null ? { ...state.files } : {}),
         ...action.files,
       };
       break;
-    case ACTION_FILES_UPLOADING:
+    case Types.ACTION_FILES_UPLOADING:
       state.filesUploading = action.uploading;
       state.filesUploadingMeta = {
         dongleId: action.dongleId,
@@ -285,7 +268,7 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case ACTION_FILES_CANCELLED_UPLOADS:
+    case Types.ACTION_FILES_CANCELLED_UPLOADS:
       if (state.files) {
         const cancelFileNames = Object.keys(state.filesUploading)
           .filter((id) => action.ids.includes(id))
@@ -297,6 +280,75 @@ export default function reducer(_state, action) {
       state.filesUploading = Object.keys(state.filesUploading)
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
+      break;
+    case Types.ACTION_CLIPS_EXIT:
+      if (state.clips && state.clips.state === 'create') {
+        if (state.zoom) {
+          state.loop = {
+            startTime: state.zoom.start,
+            duration: state.zoom.end - state.zoom.start,
+          };
+        } else {
+          state.loop = null;
+        }
+      }
+
+      if (state.clips && state.clips.state !== 'list' && state.clips.list && state.clips.list.length) {
+        state.clips = {
+          state: 'list',
+          dongleId: state.clips.dongleId,
+          list: state.clips.list,
+        };
+      } else {
+        state.clips = null;
+      }
+      break;
+    case Types.ACTION_CLIPS_LOADING:
+      state.clips = {
+        state: 'loading',
+        dongleId: action.dongleId,
+      };
+      break;
+    case Types.ACTION_CLIPS_LIST:
+      state.clips = {
+        state: 'list',
+        dongleId: action.dongleId,
+        list: action.list,
+      };
+      break;
+    case Types.ACTION_CLIPS_INIT:
+      state.clips = {
+        state: 'create',
+        dongleId: action.dongleId,
+        route: action.route,
+      };
+      break;
+    case Types.ACTION_CLIPS_CREATE:
+      state.clips = {
+        ...state.clips,
+        state: 'upload',
+        clip_id: action.clip_id,
+        start_time: action.start_time,
+        end_time: action.end_time,
+        video_type: action.video_type,
+        title: action.title,
+        route: action.route,
+        pending_status: action.pending_status,
+        pending_progress: action.pending_progress,
+      };
+      break;
+    case Types.ACTION_CLIPS_DONE:
+      state.clips = {
+        ...state.clips,
+        state: 'done',
+        start_time: action.start_time,
+        end_time: action.end_time,
+        video_type: action.video_type,
+        title: action.title,
+        route: action.route,
+        url: action.url,
+        is_public: action.is_public,
+      };
       break;
     default:
       return state;

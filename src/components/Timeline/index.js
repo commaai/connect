@@ -16,12 +16,11 @@ import theme from '../../theme';
 import { getCurrentSegment } from '../../timeline/segments';
 import { selectRange } from '../../actions';
 import Colors from '../../colors';
-import { seek, currentOffset } from '../../timeline/playback';
+import { seek, currentOffset, selectLoop } from '../../timeline/playback';
 
 const styles = () => ({
   base: {
     position: 'relative',
-    width: '100%',
   },
   segments: {
     position: 'relative',
@@ -129,6 +128,50 @@ const styles = () => ({
     left: 0,
     width: 80,
   },
+  clip: {
+    position: 'absolute',
+    width: '100%',
+    height: 32,
+    top: 0,
+  },
+  clipRulerRemaining: {
+    borderLeft: `1px solid ${Colors.lightGrey200}`,
+    position: 'absolute',
+    left: 0,
+    height: 32,
+    pointerEvents: 'none',
+    width: '100%',
+  },
+  clipView: {
+    backgroundColor: Colors.black,
+    position: 'absolute',
+    width: 12,
+    height: 32,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+  },
+  clipDragHandle: {
+    backgroundColor: Colors.white,
+    width: 3,
+    height: 24,
+    borderRadius: 1.5,
+  },
+  clipDragBorderTop: {
+    backgroundColor: Colors.black,
+    height: 3,
+    top: -3,
+    position: 'absolute',
+    borderRadius: '3px 3px 0 0',
+  },
+  clipDragBorderBottom: {
+    backgroundColor: Colors.black,
+    height: 3,
+    top: 32,
+    position: 'absolute',
+    borderRadius: '0 0 3px 3px',
+  }
 });
 
 const AlertStatusCodes = [
@@ -153,9 +196,14 @@ class Timeline extends Component {
     this.handlePointerDown = this.handlePointerDown.bind(this);
     this.handlePointerUp = this.handlePointerUp.bind(this);
     this.handlePointerLeave = this.handlePointerLeave.bind(this);
+    this.clipDragStart = this.clipDragStart.bind(this);
+    this.clipDragGetNewLoop = this.clipDragGetNewLoop.bind(this);
+    this.clipDragMove = this.clipDragMove.bind(this);
+    this.clipDragEnd = this.clipDragEnd.bind(this);
     this.percentToOffset = this.percentToOffset.bind(this);
     this.segmentNum = this.segmentNum.bind(this);
     this.renderSegment = this.renderSegment.bind(this);
+    this.renderClipView = this.renderClipView.bind(this);
 
     this.rulerRemaining = React.createRef();
     this.rulerRef = React.createRef();
@@ -167,6 +215,7 @@ class Timeline extends Component {
       dragging: null,
       hoverX: null,
       zoom: zoomOverride || zoom,
+      clip: null,
       thumbnail: {
         height: 0,
         width: 0
@@ -209,8 +258,8 @@ class Timeline extends Component {
   }
 
   handleClick(e) {
-    const { dragging } = this.state;
-    if (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3) {
+    const { dragging, clip } = this.state;
+    if (clip === null && (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3)) {
       const percent = percentFromPointerEvent(e);
       this.props.dispatch(seek(this.percentToOffset(percent)));
     }
@@ -266,6 +315,63 @@ class Timeline extends Component {
 
   handlePointerLeave() {
     this.setState({ hoverX: null });
+  }
+
+  clipDragStart(type, ev) {
+    const { loop } = this.props;
+    ev.preventDefault();
+    document.addEventListener('pointerup', this.clipDragEnd);
+    document.addEventListener('pointermove', this.clipDragMove);
+    this.setState({ clip: {
+      type,
+      initLoop: { ...loop },
+      loop: { ...loop },
+      startX: ev.pageX,
+    } });
+  }
+
+  clipDragGetNewLoop(ev) {
+    const { zoom } = this.props;
+    const { clip } = this.state;
+
+    const rulerWidth = this.rulerRef.current.getBoundingClientRect().width;
+    const changePercentage = (ev.pageX - clip.startX) / rulerWidth;
+
+    let newStart, newEnd;
+    if (clip.type === 'start') {
+      newEnd = clip.initLoop.startTime + clip.initLoop.duration;
+      newStart = clip.initLoop.startTime + ((zoom.end - zoom.start) * changePercentage);
+      newStart = Math.min(Math.max(newStart, zoom.start), newEnd - 1000);
+    } else if (clip.type === 'end') {
+      newStart = clip.initLoop.startTime;
+      newEnd = clip.initLoop.startTime + clip.initLoop.duration + ((zoom.end - zoom.start) * changePercentage);
+      newEnd = Math.max(Math.min(newEnd, zoom.end), newStart + 1000);
+    }
+
+    return {
+      startTime: newStart,
+      duration: newEnd - newStart,
+    };
+  }
+
+  clipDragMove(ev) {
+    const { clip } = this.state;
+    if (clip) {
+      this.setState({ clip: {
+        ...clip,
+        loop: this.clipDragGetNewLoop(ev),
+      }});
+    }
+  }
+
+  clipDragEnd(ev) {
+    document.removeEventListener('pointerup', this.clipDragEnd);
+    document.removeEventListener('pointermove', this.clipDragEnd);
+    if (this.state.clip) {
+      const newLoop = this.clipDragGetNewLoop(ev);
+      this.props.dispatch(selectLoop(newLoop.startTime, newLoop.startTime + newLoop.duration));
+      this.setState({ clip: null });
+    }
   }
 
   percentToOffset(perc) {
@@ -349,8 +455,38 @@ class Timeline extends Component {
       });
   }
 
+  renderClipView() {
+    const { classes, zoom, loop } = this.props;
+    const { clip } = this.state;
+
+    const showLoop = clip ? clip.loop : loop;
+
+    const loopStartPercent = ((showLoop.startTime - zoom.start) / (zoom.end - zoom.start)) * 100.0;
+    const loopEndPercent = ((zoom.end - showLoop.startTime - showLoop.duration) / (zoom.end - zoom.start)) * 100.0;
+    const loopDurationPercent = (showLoop.duration / (zoom.end - zoom.start)) * 100.0;
+
+    const dragBorderStyle = {
+      left: `calc(${loopStartPercent}% - 12px)`,
+      width: `calc(${loopDurationPercent}% + 24px)`,
+    };
+
+    return <div ref={ this.rulerRef } className={classes.clip} onClick={this.handleClick}>
+      <div ref={this.rulerRemaining} className={classes.clipRulerRemaining} />
+      <div className={ classes.clipView } style={{ left: `calc(${loopStartPercent}% - 12px)` }}
+        onPointerDown={ (ev) => this.clipDragStart('start', ev) }>
+        <div className={ classes.clipDragHandle } />
+      </div>
+      <div className={ classes.clipView } style={{ right: `calc(${loopEndPercent}% - 12px)` }}
+        onPointerDown={ (ev) => this.clipDragStart('end', ev) }>
+        <div className={ classes.clipDragHandle } />
+      </div>
+      <div className={ classes.clipDragBorderTop } style={ dragBorderStyle } />
+      <div className={ classes.clipDragBorderBottom } style={ dragBorderStyle } />
+    </div>;
+  }
+
   render() {
-    const { classes, hasRuler, filter, className, segments, zoom, loop, thumbnailsVisible } = this.props;
+    const { classes, hasRuler, filter, className, segments, thumbnailsVisible, hasClip } = this.props;
     const { thumbnail, hoverX, dragging } = this.state;
 
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
@@ -358,15 +494,6 @@ class Timeline extends Component {
     let rulerBounds;
     if (this.rulerRef.current) {
       rulerBounds = this.rulerRef.current.getBoundingClientRect();
-    }
-
-    let loopStartPercent = null;
-    if (loop && zoom && loop.startTime > zoom.start) {
-      loopStartPercent = ((loop.startTime - zoom.start) / (zoom.end - zoom.start)) * 100.0;
-    }
-    let loopEndPercent = null;
-    if (loop && zoom && loop.startTime + loop.duration < zoom.end) {
-      loopEndPercent = ((zoom.end - loop.startTime - loop.duration) / (zoom.end - zoom.start)) * 100.0;
     }
 
     let hoverString, hoverStyle;
@@ -390,9 +517,11 @@ class Timeline extends Component {
       };
     };
 
+    const baseWidthStyle = hasClip ? { width: 'calc(100% - 24px)', margin: '0 12px' } : { width: '100%' };
+
     return (
       <div className={className}>
-        <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } >
+        <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } style={ baseWidthStyle }>
           <div className={ `${classes.segments} ${hasRulerCls}` }>
             { segments && segments.map(this.renderSegment) }
             <div className={ `${classes.statusGradient} ${hasRulerCls}` } />
@@ -412,8 +541,6 @@ class Timeline extends Component {
             <div ref={ this.rulerRef } className={classes.ruler} onPointerDown={this.handlePointerDown}
               onPointerUp={this.handlePointerUp} onPointerMove={this.handlePointerMove} onPointerLeave={this.handlePointerLeave}
               onClick={this.handleClick} >
-              { loopStartPercent && <div className={ classes.loopStart } style={{ width: `${loopStartPercent}%` }} /> }
-              { loopEndPercent && <div className={ classes.loopEnd } style={{ width: `${loopEndPercent}%` }} /> }
               <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
               { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
             </div>
@@ -423,6 +550,7 @@ class Timeline extends Component {
               </div>
             }
           </> }
+          { Boolean(hasClip) && this.renderClipView() }
         </div>
       </div>
     );

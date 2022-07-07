@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import * as Sentry from "@sentry/react";
 
 import { withStyles } from '@material-ui/core/styles';
@@ -23,6 +22,7 @@ import { devices as DevicesApi } from '@commaai/comma-api';
 import { primeNav, selectDevice, updateDevice } from '../../actions';
 import UploadQueue from '../Files/UploadQueue';
 import Colors from '../../colors';
+import { fetchClipsList } from '../../actions/clips';
 
 const styles = (theme) => ({
   modal: {
@@ -76,6 +76,8 @@ const styles = (theme) => ({
   },
   primeManageButton: {
     marginTop: 20,
+    marginRight: 20,
+    '&:last-child': { marginRight: 0 },
   },
   topButtonGroup: {
     display: 'flex',
@@ -296,17 +298,23 @@ class DeviceSettingsModal extends Component {
             </Typography>
           </div>
           <Divider />
-          <div className={ classes.topButtonGroup }>
+          <div>
             <Button variant="outlined" className={ classes.primeManageButton } onClick={ this.onPrimeSettings }>
               Prime settings
             </Button>
+            <Button variant="outlined" className={ classes.primeManageButton }
+              onClick={ () => this.setState({ unpairConfirm: true }) }>
+              Unpair
+            </Button>
+          </div>
+          <div>
             <Button variant="outlined" className={ classes.primeManageButton }
               onClick={ () => this.setState({ uploadModal: true }) }>
               Uploads
             </Button>
             <Button variant="outlined" className={ classes.primeManageButton }
-              onClick={ () => this.setState({ unpairConfirm: true }) }>
-              Unpair
+              onClick={ () => this.props.dispatch(fetchClipsList(this.props.dongleId)) }>
+              View Clips
             </Button>
           </div>
           <div className={classes.form}>

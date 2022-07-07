@@ -72,6 +72,8 @@ export default {
     fetchedAt: null,
   },
 
+  clips: null,
+
   filter: getDefaultFilter(),
   zoom: getZoom(window.location.pathname),
   loop: getDefaultLoop(window.location.pathname),

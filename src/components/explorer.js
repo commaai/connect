@@ -12,6 +12,7 @@ import { devices as DevicesApi } from '@commaai/comma-api';
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
 import DriveView from './DriveView';
+import ClipView from './ClipView';
 import IosPwaPopup from './IosPwaPopup';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import AppDrawer from './AppDrawer';
@@ -167,7 +168,7 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, zoom, devices, dongleId } = this.props;
+    const { classes, zoom, devices, dongleId, clips } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices && devices.length === 0 && !dongleId);
@@ -202,7 +203,10 @@ class ExplorerApp extends Component {
         <div className={ classes.window } style={ containerStyles }>
           { noDevicesUpsell ?
             <NoDeviceUpsell /> :
-            (zoom ? <DriveView /> : <Dashboard />) }
+            (clips ?
+              <ClipView /> :
+              (zoom ? <DriveView /> : <Dashboard />)
+          ) }
         </div>
         <IosPwaPopup />
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -231,6 +235,7 @@ const stateToProps = Obstruction({
   pathname: 'router.location.pathname',
   dongleId: 'dongleId',
   devices: 'devices',
+  clips: 'clips',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));
