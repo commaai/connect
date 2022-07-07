@@ -120,11 +120,11 @@ class ClipList extends Component {
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
     const gridWidths = windowWidth < 768 ?
-      [7, 66, 20, 7] :
-      [7, 66, 20, 7];
+      [8, 62, 24, 7] :
+      [8, 62, 24, 7];
     const gridStyles = gridWidths.map((w) => ({ maxWidth: `${w}%`, flexBasis: `${w}%` }));
 
-    const itemStyle = windowWidth < 768 ? { fontSize: '0.8rem' } : { fontSize: '1rem' };
+    const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1rem' };
 
     return <>
       <VisibilityHandler onVisible={ () => this.props.dispatch(fetchClipsList(this.props.dongleId)) }
@@ -137,8 +137,8 @@ class ClipList extends Component {
         { Boolean(clips.list && clips.list.length > 0) &&
           <div className={classes.clipItemHeader} style={{ padding: (windowWidth < 768 ? 3 : 8) }}>
             <h6 style={{ ...itemStyle, ...gridStyles[0] }}></h6>
-            <h6 style={{ ...itemStyle, ...gridStyles[1] }}>title</h6>
-            <h6 style={{ ...itemStyle, ...gridStyles[2], textAlign: 'center' }}>date</h6>
+            <h6 style={{ ...itemStyle, ...gridStyles[1] }}>Title</h6>
+            <h6 style={{ ...itemStyle, ...gridStyles[2], textAlign: 'center' }}>Date</h6>
             <h6 style={{ ...itemStyle, ...gridStyles[3] }}></h6>
           </div>
         }
@@ -157,7 +157,7 @@ class ClipList extends Component {
     const { classes, dongleId } = this.props;
     const { windowWidth } = this.state;
 
-    const itemStyle = windowWidth < 768 ? { fontSize: '0.8rem' } : { fontSize: '1.0rem' };
+    const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1.0rem' };
 
     const timeStr = fecha.format(new Date(c.start_time), 'MMM\u00a0D h:mm\u00a0a').toLowerCase();
     const StateIconType = c.status === 'pending' ?
