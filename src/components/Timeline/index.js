@@ -145,7 +145,6 @@ const styles = () => ({
   clipView: {
     backgroundColor: Colors.black,
     position: 'absolute',
-    width: 12,
     height: 32,
     display: 'flex',
     alignItems: 'center',
@@ -466,18 +465,21 @@ class Timeline extends Component {
     const loopEndPercent = ((zoom.end - showLoop.startTime - showLoop.duration) / (zoom.end - zoom.start)) * 100.0;
     const loopDurationPercent = (showLoop.duration / (zoom.end - zoom.start)) * 100.0;
 
+    const rulerWidth = this.rulerRef.current ? this.rulerRef.current.getBoundingClientRect().width : 640;
+    const handleWidth = rulerWidth < 640 ? 28 : 12;
+
     const dragBorderStyle = {
-      left: `calc(${loopStartPercent}% - 12px)`,
-      width: `calc(${loopDurationPercent}% + 24px)`,
+      left: `calc(${loopStartPercent}% - ${handleWidth}px)`,
+      width: `calc(${loopDurationPercent}% + ${handleWidth*2}px)`,
     };
 
     return <div ref={ this.rulerRef } className={classes.clip} onClick={this.handleClick}>
       <div ref={this.rulerRemaining} className={classes.clipRulerRemaining} />
-      <div className={ classes.clipView } style={{ left: `calc(${loopStartPercent}% - 12px)` }}
+      <div className={ classes.clipView } style={{ left: `calc(${loopStartPercent}% - ${handleWidth}px)`, width: handleWidth }}
         onPointerDown={ (ev) => this.clipDragStart('start', ev) }>
         <div className={ classes.clipDragHandle } />
       </div>
-      <div className={ classes.clipView } style={{ right: `calc(${loopEndPercent}% - 12px)` }}
+      <div className={ classes.clipView } style={{ right: `calc(${loopEndPercent}% - ${handleWidth}px)`, width: handleWidth }}
         onPointerDown={ (ev) => this.clipDragStart('end', ev) }>
         <div className={ classes.clipDragHandle } />
       </div>
@@ -518,7 +520,11 @@ class Timeline extends Component {
       };
     };
 
-    const baseWidthStyle = hasClip ? { width: 'calc(100% - 24px)', margin: '0 12px' } : { width: '100%' };
+    const rulerWidth = this.rulerRef.current ? this.rulerRef.current.getBoundingClientRect().width : 640;
+    const handleWidth = rulerWidth < 640 ? 28 : 12;
+    const baseWidthStyle = hasClip ?
+      { width: `calc(100% - ${handleWidth*2}px)`, margin: `0 ${handleWidth}px` } :
+      { width: '100%' };
 
     return (
       <div className={className}>
