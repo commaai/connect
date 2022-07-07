@@ -451,7 +451,7 @@ class Navigation extends Component {
     };
     try {
       let resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
-      if (!resp.result || !this.mounted || dongleId !== this.props.dongleId) {
+      if (!resp.result || Object.keys(resp.result).length === 0 || !this.mounted || dongleId !== this.props.dongleId) {
         return;
       }
       resp = await GeocodeApi().networkPositioning(resp.result);
