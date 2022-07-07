@@ -44,11 +44,6 @@ const styles = (theme) => ({
       textAlign: 'left',
     }
   },
-  clipTitleEmpty: {
-    'p&': {
-      color: Colors.white40,
-    }
-  },
   clipPlayIcon: {
     paddingRight: 3,
   },
@@ -174,12 +169,10 @@ class ClipList extends Component {
       firstGridItemStyle = { ...firstGridItemStyle, color: Colors.red300 };
     }
 
-    const emptyTitleClass = !c.title ? classes.clipTitleEmpty : '';
-
     const innerItem = <>
       <StateIconType className={ classes.clipPlayIcon }
         style={{ ...firstGridItemStyle, fontSize: (windowWidth < 768 ? '1.2rem' : '1.4rem') }} />
-      <p style={{ ...itemStyle, ...gridStyles[1] }} className={ `${classes.clipTitle} ${emptyTitleClass}` }>
+      <p style={{ ...itemStyle, ...gridStyles[1] }} className={ classes.clipTitle }>
         { c.title ? c.title : c.route_name.split('|')[1] }
       </p>
       <p style={{ ...itemStyle, ...gridStyles[2] }}>{ timeStr }</p>

@@ -62,10 +62,6 @@ const styles = (theme) => ({
       },
     },
   },
-  video: {
-    maxHeight: 'calc(100vh - 64px)',
-    width: '100%',
-  },
 });
 
 class ClipDone extends Component {
@@ -109,6 +105,10 @@ class ClipDone extends Component {
     const { windowWidth } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
+    const videoSizeStyle = windowWidth > 1080 ?
+      { maxHeight: 'calc(100vh - 224px)', width: '100%' } :
+      { maxHeight: 'calc(100vh - 64px)', width: '100%' };
+
     return <>
       <ResizeHandler onResize={ this.onResize } />
 
@@ -131,8 +131,7 @@ class ClipDone extends Component {
           </div>
         </div>
         <div className={ classes.clipOption }>
-          <video autoPlay={true} controls={true} muted={true} playsInline={true} loop={true}
-            className={ classes.video }>
+          <video autoPlay={true} controls={true} muted={true} playsInline={true} loop={true} style={ videoSizeStyle }>
             { clips.url && <source src={ clips.url} /> }
           </video>
         </div>
