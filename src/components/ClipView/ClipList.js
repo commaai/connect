@@ -3,9 +3,9 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import fecha from 'fecha';
 
-import { withStyles, CircularProgress } from '@material-ui/core';
+import { withStyles, Typography, CircularProgress, Popover } from '@material-ui/core';
 import LockOutlineIcon from '@material-ui/icons/LockOutline';
-import LockOpenIcon from '@material-ui/icons/LockOpen';
+import ShareIcon from '@material-ui/icons/Share';
 import PlayArrowIcon from '@material-ui/icons/PlayCircleOutline';
 import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
@@ -51,6 +51,19 @@ const styles = (theme) => ({
     color: Colors.white,
     fontSize: '1rem',
   },
+  copiedPopover: {
+    borderRadius: 16,
+    padding: '8px 16px',
+    border: `1px solid ${Colors.white10}`,
+    backgroundColor: Colors.grey800,
+    marginTop: 12,
+    zIndex: 5,
+    '& p': {
+      fontSize: '0.9rem',
+      color: Colors.white,
+      margin: 0,
+    },
+  },
 });
 
 class ClipList extends Component {
@@ -59,10 +72,41 @@ class ClipList extends Component {
 
     this.state = {
       windowWidth: window.innerWidth,
+      copiedPopover: null,
     };
 
     this.onResize = this.onResize.bind(this);
+    this.shareClip = this.shareClip.bind(this);
     this.renderClipItem = this.renderClipItem.bind(this);
+
+    this.popoverTimeout = null;
+  }
+
+  async shareClip(ev, c) {
+    console.log(c);
+    ev.stopPropagation();
+    ev.preventDefault();
+    try {
+      const url = `${window.location.origin}/${c.dongle_id}/clips/${c.id}`;
+      if (typeof navigator.share !== 'undefined') {
+        await navigator.share({
+          title: 'comma connect',
+          url: url,
+        });
+      } else {
+        await navigator.clipboard.writeText(url);
+        this.setState({ copiedPopover: ev.target });
+        if (this.popoverTimeout) {
+          clearTimeout(this.popoverTimeout);
+        }
+        this.popoverTimeout = setTimeout(() => {
+          this.setState({ copiedPopover: null });
+        }, 2000);
+      }
+    } catch (err) {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'clip_list_share' });
+    }
   }
 
   onResize(windowWidth) {
@@ -71,7 +115,7 @@ class ClipList extends Component {
 
   render() {
     const { classes, clips } = this.props;
-    const { windowWidth } = this.state;
+    const { windowWidth, copiedPopover } = this.state;
 
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
@@ -100,6 +144,12 @@ class ClipList extends Component {
         }
         { clips.list && clips.list.map((c) => this.renderClipItem(gridStyles, c)) }
       </div>
+
+      <Popover open={ Boolean(copiedPopover) } anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorEl={ copiedPopover } classes={{ paper: classes.copiedPopover }}
+        onClose={ () => this.setState({ copiedPopover: null }) }>
+        <Typography>copied to clipboard</Typography>
+      </Popover>
     </>;
   }
 
@@ -113,7 +163,6 @@ class ClipList extends Component {
     const StateIconType = c.status === 'pending' ?
       MoreHorizIcon :
       (c.status === 'failed' ? ErrorOutlineIcon : PlayArrowIcon);
-    const IsPublicIconType = c.is_public ? LockOpenIcon : LockOutlineIcon;
 
     let firstGridItemStyle = {...gridStyles[0]};
     if (c.status === 'failed') {
@@ -125,7 +174,11 @@ class ClipList extends Component {
         style={{ ...firstGridItemStyle, fontSize: (windowWidth < 768 ? '1.2rem' : '1.4rem') }} />
       <p style={{ ...itemStyle, ...gridStyles[1] }} className={ classes.clipTitle }>{ c.title }</p>
       <p style={{ ...itemStyle, ...gridStyles[2] }}>{ timeStr }</p>
-      <IsPublicIconType style={{ ...gridStyles[3], fontSize: (windowWidth < 768 ? '1.0rem' : '1.2rem') }} />
+      { c.is_public ?
+        <ShareIcon style={{ ...gridStyles[3], fontSize: (windowWidth < 768 ? '1.0rem' : '1.2rem') }}
+          onClick={ (ev) => { ev.persist(); this.shareClip(ev, c); } } /> :
+        <LockOutlineIcon style={{ ...gridStyles[3], fontSize: (windowWidth < 768 ? '1.0rem' : '1.2rem') }} />
+      }
     </>;
 
     if (c.status === 'failed') {
