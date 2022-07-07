@@ -3,7 +3,7 @@ import qs from 'query-string';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, LinearProgress } from '@material-ui/core';
+import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper } from '@material-ui/core';
 import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
@@ -136,15 +136,6 @@ const styles = (theme) => ({
       borderRadius: 4,
       backgroundColor: Colors.white08,
       marginRight: 4,
-    },
-  },
-  copySegmentLoading: {
-    pointerEvents: 'auto',
-    opacity: 1,
-    '& div': {
-      whiteSpace: 'normal',
-      borderRadius: 4,
-      backgroundColor: Colors.white08,
     },
   },
   viewCabanaUploads: {
@@ -669,26 +660,12 @@ class Media extends Component {
       </Menu>
       <Menu id="menu-info" open={ Boolean(alwaysOpen || moreInfoMenu) }
         anchorEl={ moreInfoMenu } onClose={ () => this.setState({ moreInfoMenu: null }) }
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        PaperProps={{sx: { width: windowWidth / 3 }}}
-        >
-        { Boolean(currentSegment) ?
-          <MenuItem className={ classes.copySegment } onClick={ this.copySegmentName }
-            style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}>
-            <div>
-              {`${currentSegment.route}--${this.currentSegmentNum()}`}
-            </div>
-            <ContentCopyIcon />
-          </MenuItem>
-        :
-          <MenuItem className={ classes.copySegmentLoading } onClick={ this.copySegmentName }
-            style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}
-            >
-            <div style={{ width: windowWidth > 400 ? windowWidth / 3 : windowWidth / 1.5 }}>
-              <LinearProgress/>
-            </div>
-          </MenuItem>
-        }
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <MenuItem className={ classes.copySegment } onClick={ this.copySegmentName }
+          style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}>
+          <div>{ currentSegment ? `${currentSegment.route}--${this.currentSegmentNum()}` : '---' }</div>
+          <ContentCopyIcon />
+        </MenuItem>
         <MenuItem onClick={ this.openInCabana } id="openInCabana" >
           View in cabana
           { Boolean(files && stats && stats.canRequestRlog) &&
