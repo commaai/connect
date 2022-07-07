@@ -316,7 +316,6 @@ class ClipUpload extends Component {
                 <h5>{ FILE_TYPE_FRIENDLY[type] }:</h5>
               </div>
               <div className={classes.uploadState}>
-                <p>requested: {state.requested} / {state.count}</p>
                 <p>uploaded: {state.uploaded} / {state.count}</p>
               </div>
             </div>
