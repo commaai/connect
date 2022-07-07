@@ -133,13 +133,13 @@ const styles = () => ({
     width: '100%',
     height: 32,
     top: 0,
+    touchAction: 'none',
   },
   clipRulerRemaining: {
     borderLeft: `1px solid ${Colors.lightGrey200}`,
     position: 'absolute',
     left: 0,
     height: 32,
-    pointerEvents: 'none',
     width: '100%',
   },
   clipView: {
@@ -151,6 +151,7 @@ const styles = () => ({
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
+    touchAction: 'none',
   },
   clipDragHandle: {
     backgroundColor: Colors.white,
