@@ -21,7 +21,6 @@ import { seek, currentOffset, selectLoop } from '../../timeline/playback';
 const styles = () => ({
   base: {
     position: 'relative',
-    width: '100%',
   },
   segments: {
     position: 'relative',
@@ -129,11 +128,25 @@ const styles = () => ({
     left: 0,
     width: 80,
   },
+  clip: {
+    position: 'absolute',
+    width: '100%',
+    height: 32,
+    top: 0,
+  },
+  clipRulerRemaining: {
+    borderLeft: `1px solid ${Colors.lightGrey200}`,
+    position: 'absolute',
+    left: 0,
+    height: 32,
+    pointerEvents: 'none',
+    width: '100%',
+  },
   clipView: {
     backgroundColor: Colors.black,
     position: 'absolute',
     width: 12,
-    height: 44,
+    height: 32,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -148,14 +161,14 @@ const styles = () => ({
   clipDragBorderTop: {
     backgroundColor: Colors.black,
     height: 3,
-    top: 29,
+    top: -3,
     position: 'absolute',
     borderRadius: '3px 3px 0 0',
   },
   clipDragBorderBottom: {
     backgroundColor: Colors.black,
     height: 3,
-    top: 76,
+    top: 32,
     position: 'absolute',
     borderRadius: '0 0 3px 3px',
   }
@@ -457,16 +470,14 @@ class Timeline extends Component {
       width: `calc(${loopDurationPercent}% + 24px)`,
     };
 
-    return <div ref={ this.rulerRef } className={classes.ruler} onClick={this.handleClick} >
-      <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
+    return <div ref={ this.rulerRef } className={classes.clip} onClick={this.handleClick}>
+      <div ref={this.rulerRemaining} className={classes.clipRulerRemaining} />
       <div className={ classes.clipView } style={{ left: `calc(${loopStartPercent}% - 12px)` }}
-        onPointerDown={ (ev) => this.clipDragStart('start', ev) } onPointerMove={ (ev) => ev.preventDefault() }
-        onTouchStart={ (ev) => ev.preventDefault() } onTouchMove={ (ev) => ev.preventDefault() }>
+        onPointerDown={ (ev) => this.clipDragStart('start', ev) }>
         <div className={ classes.clipDragHandle } />
       </div>
       <div className={ classes.clipView } style={{ right: `calc(${loopEndPercent}% - 12px)` }}
-        onPointerDown={ (ev) => this.clipDragStart('end', ev) } onPointerMove={ (ev) => ev.preventDefault() }
-        onTouchStart={ (ev) => ev.preventDefault() } onTouchMove={ (ev) => ev.preventDefault() }>
+        onPointerDown={ (ev) => this.clipDragStart('end', ev) }>
         <div className={ classes.clipDragHandle } />
       </div>
       <div className={ classes.clipDragBorderTop } style={ dragBorderStyle } />
@@ -506,9 +517,11 @@ class Timeline extends Component {
       };
     };
 
+    const baseWidthStyle = hasClip ? { width: 'calc(100% - 24px)', margin: '0 12px' } : { width: '100%' };
+
     return (
       <div className={className}>
-        <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } >
+        <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } style={ baseWidthStyle }>
           <div className={ `${classes.segments} ${hasRulerCls}` }>
             { segments && segments.map(this.renderSegment) }
             <div className={ `${classes.statusGradient} ${hasRulerCls}` } />

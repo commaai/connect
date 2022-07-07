@@ -108,6 +108,10 @@ const styles = (theme) => ({
       display: 'block',
     },
   },
+  headerTimeline: {
+    backgroundColor: Colors.grey900,
+    padding: '4px 0',
+  },
 });
 
 class ClipCreate extends Component {
@@ -160,7 +164,7 @@ class ClipCreate extends Component {
   }
 
   render() {
-    const { classes, loop } = this.props;
+    const { classes, loop, clips } = this.props;
     const { windowWidth, videoTypeOption, clipTitle, isPublic, createLoading, error } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32
 
@@ -214,7 +218,8 @@ class ClipCreate extends Component {
         <div className={ classes.clipOption }>
           <h4>Clip title</h4>
           <TextField className={ classes.clipTitleInput } value={ clipTitle ? clipTitle : '' }
-            onChange={ (ev) =>this.setState({ clipTitle: ev.target.value }) } />
+            onChange={ (ev) =>this.setState({ clipTitle: ev.target.value }) }
+            placeholder={ clips.route.split('|')[1] } />
         </div>
         <div className={ classes.clipOption }>
           <h4>Availability</h4>
