@@ -459,11 +459,13 @@ class Timeline extends Component {
     return <div ref={ this.rulerRef } className={classes.ruler} onClick={this.handleClick} >
       <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
       <div className={ classes.clipView } style={{ left: `calc(${loopStartPercent}% - 12px)` }}
-        onPointerDown={ (ev) => this.clipDragStart('start', ev) }>
+        onPointerDown={ (ev) => this.clipDragStart('start', ev) }
+        onTouchStart={ (ev) => ev.preventDefault() } onTouchMove={ (ev) => ev.preventDefault() }>
         <div className={ classes.clipDragHandle } />
       </div>
       <div className={ classes.clipView } style={{ right: `calc(${loopEndPercent}% - 12px)` }}
-        onPointerDown={ (ev) => this.clipDragStart('end', ev) }>
+        onPointerDown={ (ev) => this.clipDragStart('end', ev) }
+        onTouchStart={ (ev) => ev.preventDefault() } onTouchMove={ (ev) => ev.preventDefault() }>
         <div className={ classes.clipDragHandle } />
       </div>
       <div className={ classes.clipDragBorderTop } style={ dragBorderStyle } />
