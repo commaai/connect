@@ -19,7 +19,7 @@ const FILE_TYPE_FRIENDLY = {
   'qcameras': 'Road camera (low-res)',
   'cameras': 'Road camera (HD)',
   'ecameras': 'Road camera wide angle (HD)',
-  'dcameras': 'Cabin camera (driver, HD)',
+  'dcameras': 'Interior camera (driver, HD)',
   'qlogs': 'Logs',
   'logs': 'Raw logs',
 };

@@ -130,10 +130,6 @@ class ClipCreate extends Component {
   async onClipCreate() {
     const { videoTypeOption, clipTitle, isPublic } = this.state;
     const { loop, currentSegment } = this.props;
-    if (!clipTitle) {
-      this.setState({ error: 'please enter a clip title' });
-      return;
-    }
 
     if (loop.duration > 300000) {  // 5 minutes
       this.setState({ error: 'clip selection exceeds maximum length of 5 minutes' });
@@ -211,7 +207,7 @@ class ClipCreate extends Component {
             </div>
             <div className={ `${classes.videoTypeOption} ${videoTypeOption === 'd' ? 'selected' : ''}` }
               onClick={ () => this.setState({ videoTypeOption: 'd' }) }>
-              <Typography className={classes.mediaOptionText}>Cabin</Typography>
+              <Typography className={classes.mediaOptionText}>Interior</Typography>
             </div>
           </div>
         </div>
