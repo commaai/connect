@@ -194,6 +194,14 @@ class DriveVideo extends Component {
     }
     offset -= visibleSegment.routeOffset;
     offset -= visibleSegment.routeFirstSegment * 60000;
+
+    if (visibleSegment.events) {
+      const firstFrame = visibleSegment.events.find((ev) => ev.type === 'event' && ev.data.event_type === 'first_road_camera_frame');
+      if (firstFrame) {
+        offset -= firstFrame.route_offset_millis;
+      }
+    }
+
     offset = offset / 1000;
 
     return Math.max(0, offset);
