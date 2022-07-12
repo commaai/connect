@@ -180,9 +180,9 @@ const AlertStatusCodes = [
   'critical'
 ];
 
-function percentFromPointerEvent(e) {
-  const boundingBox = e.currentTarget.getBoundingClientRect();
-  const x = e.pageX - boundingBox.left;
+function percentFromPointerEvent(ev) {
+  const boundingBox = ev.currentTarget.getBoundingClientRect();
+  const x = ev.pageX - boundingBox.left;
   return x / boundingBox.width;
 }
 
@@ -257,10 +257,10 @@ class Timeline extends Component {
     }
   }
 
-  handleClick(e) {
+  handleClick(ev) {
     const { dragging, clip } = this.state;
     if (clip === null && (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3)) {
-      const percent = percentFromPointerEvent(e);
+      const percent = percentFromPointerEvent(ev);
       this.props.dispatch(seek(this.percentToOffset(percent)));
     }
   }
@@ -282,6 +282,7 @@ class Timeline extends Component {
     if (!this.rulerRef.current) {
       return;
     }
+    ev.preventDefault();
 
     const rulerBounds = this.rulerRef.current.getBoundingClientRect();
     const endDrag = Math.max(rulerBounds.x, Math.min(rulerBounds.x + rulerBounds.width, ev.pageX));
@@ -299,6 +300,7 @@ class Timeline extends Component {
     if (!dragging) {
       return;
     }
+    ev.preventDefault();
     this.setState({ dragging: null });
 
     const rulerBounds = this.rulerRef.current.getBoundingClientRect();
@@ -369,6 +371,7 @@ class Timeline extends Component {
   clipDragMove(ev) {
     const { clip } = this.state;
     if (clip) {
+      ev.preventDefault();
       this.setState({ clip: {
         ...clip,
         loop: this.clipDragGetNewLoop(ev),
@@ -380,6 +383,7 @@ class Timeline extends Component {
     document.removeEventListener('pointerup', this.clipDragEnd);
     document.removeEventListener('pointermove', this.clipDragEnd);
     if (this.state.clip) {
+      ev.preventDefault();
       const newLoop = this.clipDragGetNewLoop(ev);
       this.props.dispatch(selectLoop(newLoop.startTime, newLoop.startTime + newLoop.duration));
       this.setState({ clip: null });
