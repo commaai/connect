@@ -9,10 +9,15 @@ export function currentOffset(state = null) {
     state = store.getState();
   }
 
-  let playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-  let offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
+  let offset = null;
+  if (state.offset === null && state.loop?.startTime) {
+    offset = state.loop.startTime - state.filter.start;
+  } else {
+    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
+    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
+  }
 
-  if (state.loop && state.loop.startTime) {
+  if (offset !== null && state.loop?.startTime) {
     // respect the loop
     const loopOffset = state.loop.startTime - state.filter.start;
     if (offset > loopOffset + state.loop.duration) {
@@ -94,10 +99,10 @@ export function reducer(_state, action) {
       break;
   }
 
-  let playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-  const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
   // normalize over loop
-  if (state.loop && state.loop.startTime !== null) {
+  if (state.offset !== null && state.loop?.startTime) {
+    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
+    const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
     loopOffset = state.loop.startTime - state.filter.start;
     // has loop, trap offset within the loop
     if (offset < loopOffset) {

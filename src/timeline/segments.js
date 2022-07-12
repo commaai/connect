@@ -13,10 +13,15 @@ for example, caching url metadata
 
 // duplicate from `timeline/playback.js` because of circular import
 function currentOffset(state) {
-  let playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-  let offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
+  let offset = null;
+  if (state.offset === null && state.loop?.startTime) {
+    offset = state.loop.startTime - state.filter.start;
+  } else {
+    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
+    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
+  }
 
-  if (state.loop && state.loop.startTime) {
+  if (offset !== null && state.loop?.startTime) {
     // respect the loop
     const loopOffset = state.loop.startTime - state.filter.start;
     if (offset > loopOffset + state.loop.duration) {
