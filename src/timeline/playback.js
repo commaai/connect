@@ -99,16 +99,14 @@ export function reducer(_state, action) {
       break;
   }
 
-  if (state.currentSegment && state.currentSegment.events && state.loop && state.zoom && state.filter &&
+  if (state.currentSegment && state.currentSegment.videoStartOffset && state.loop && state.zoom && state.filter &&
     state.loop.startTime === state.zoom.start && state.filter.start + state.currentSegment.routeOffset === state.zoom.start)
   {
-    const firstFrame = state.currentSegment.events.find(
-      (ev) => ev.type === 'event' && ev.data.event_type === 'first_road_camera_frame');
     const loop_route_offset = state.loop.startTime - state.zoom.start;
-    if (firstFrame && firstFrame.route_offset_millis > loop_route_offset) {
+    if (state.currentSegment.videoStartOffset > loop_route_offset) {
       state.loop = {
-        startTime: state.zoom.start + firstFrame.route_offset_millis,
-        duration: state.loop.duration - (firstFrame.route_offset_millis - loop_route_offset),
+        startTime: state.zoom.start + state.currentSegment.videoStartOffset,
+        duration: state.loop.duration - (state.currentSegment.videoStartOffset - loop_route_offset),
       };
     }
   }
