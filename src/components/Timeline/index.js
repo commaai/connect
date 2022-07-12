@@ -265,27 +265,36 @@ class Timeline extends Component {
     }
   }
 
-  handlePointerDown(e) {
-    if (e.button === 0) {
-      this.setState({ dragging: [e.pageX, e.pageX] });
+  handlePointerDown(ev) {
+    if (ev.button !== 0) {
+      return;
     }
+
+    ev.preventDefault();
+    document.addEventListener('pointerup', this.handlePointerUp);
+    document.addEventListener('pointermove', this.handlePointerMove);
+    this.setState({ dragging: [ev.pageX, ev.pageX] });
   }
 
-  handlePointerMove(e) {
+  handlePointerMove(ev) {
+    ev.preventDefault();
     const { dragging } = this.state;
     if (!this.rulerRef.current) {
       return;
     }
 
     const rulerBounds = this.rulerRef.current.getBoundingClientRect();
-    const endDrag = Math.max(rulerBounds.x, Math.min(rulerBounds.x + rulerBounds.width, e.pageX));
+    const endDrag = Math.max(rulerBounds.x, Math.min(rulerBounds.x + rulerBounds.width, ev.pageX));
     if (dragging) {
       this.setState({ dragging: [dragging[0], endDrag] });
     }
     this.setState({ hoverX: endDrag });
   }
 
-  handlePointerUp(e) {
+  handlePointerUp(ev) {
+    ev.preventDefault();
+    document.removeEventListener('pointerup', this.handlePointerUp);
+    document.removeEventListener('pointermove', this.handlePointerMove);
     const { dragging } = this.state;
     if (!dragging) {
       return;
@@ -308,8 +317,8 @@ class Timeline extends Component {
       const endTime = endOffset + filter.start;
 
       dispatch(selectRange(startTime, endTime));
-    } else if (e.currentTarget !== document) {
-      this.handleClick(e);
+    } else if (ev.currentTarget !== document) {
+      this.handleClick(ev);
     }
   }
 
@@ -318,6 +327,9 @@ class Timeline extends Component {
   }
 
   clipDragStart(type, ev) {
+    if (ev.button !== 0) {
+      return;
+    }
     const { loop } = this.props;
     ev.preventDefault();
     document.addEventListener('pointerup', this.clipDragEnd);
@@ -546,8 +558,8 @@ class Timeline extends Component {
           </Measure>
           { hasRuler && <>
             <div ref={ this.rulerRef } className={classes.ruler} onPointerDown={this.handlePointerDown}
-              onPointerUp={this.handlePointerUp} onPointerMove={this.handlePointerMove} onPointerLeave={this.handlePointerLeave}
-              onClick={this.handleClick} >
+              onPointerUp={this.handlePointerUp} onPointerMove={this.handlePointerMove}
+              onPointerLeave={this.handlePointerLeave}>
               <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
               { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
             </div>
