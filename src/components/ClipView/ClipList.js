@@ -83,11 +83,10 @@ class ClipList extends Component {
   }
 
   async shareClip(ev, c) {
-    console.log(c);
     ev.stopPropagation();
     ev.preventDefault();
     try {
-      const url = `${window.location.origin}/${c.dongle_id}/clips/${c.id}`;
+      const url = `${window.location.origin}/${c.dongle_id}/clips/${c.clip_id}`;
       if (typeof navigator.share !== 'undefined') {
         await navigator.share({
           title: 'comma connect',
@@ -184,14 +183,14 @@ class ClipList extends Component {
     </>;
 
     if (c.status === 'failed') {
-      return <div key={c.id} className={classes.clipItem} style={{ padding: (windowWidth < 768 ? 3 : 8) }}>
+      return <div key={c.clip_id} className={classes.clipItem} style={{ padding: (windowWidth < 768 ? 3 : 8) }}>
         { innerItem }
       </div>;
     }
 
     return (
-      <a key={c.id} className={classes.clipItem} href={ `/${dongleId}/clips/${c.id}` }
-        onClick={ filterRegularClick(() => this.props.dispatch(navToClips(c.id, c.state))) }
+      <a key={c.clip_id} className={classes.clipItem} href={ `/${dongleId}/clips/${c.clip_id}` }
+        onClick={ filterRegularClick(() => this.props.dispatch(navToClips(c.clip_id, c.state))) }
         style={{ padding: (windowWidth < 768 ? 3 : 8) }}>
         { innerItem }
       </a>

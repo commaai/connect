@@ -154,13 +154,46 @@ export function fetchClipsDetails(clip_id) {
         dispatch(fetchClipsList(dongleId));
       }
     } catch (err) {
-      if (err.resp && err.resp.status === 404 && !MyCommaAuth.isAuthenticated()) {
-        window.location = `/?r=${encodeURI(window.location.pathname)}`;  // redirect to login
+      if (err.resp && err.resp.status === 404) {
+        if (!MyCommaAuth.isAuthenticated()) {
+          window.location = `/?r=${encodeURI(window.location.pathname)}`;  // redirect to login
+        } else {
+          dispatch({
+            type: Types.ACTION_CLIPS_ERROR,
+            dongleId,
+            clip_id,
+            error: 'clip_doesnt_exist',
+          });
+        }
         return;
       }
 
       console.log(err);
       Sentry.captureException(err, { fingerprint: 'clips_fetch_details' });
     }
+  };
+}
+
+export function clipsUpdateIsPublic(clip_id, is_public) {
+  return (dispatch, getState) => {
+    const { dongleId } = getState();
+    dispatch({
+      type: Types.ACTION_CLIPS_UPDATE,
+      dongleId,
+      clip_id,
+      is_public,
+    });
+  };
+}
+
+export function clipsDelete(clip_id) {
+  return (dispatch, getState) => {
+    const { dongleId } = getState();
+    dispatch({
+      type: Types.ACTION_CLIPS_DELETE,
+      dongleId,
+      clip_id,
+    });
+    dispatch(clipsExit());
   };
 }

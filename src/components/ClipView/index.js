@@ -35,6 +35,11 @@ const styles = (theme) => ({
     fontWeight: 500,
     paddingLeft: 12,
   },
+  error: {
+    color: Colors.white,
+    fontSize: '0.9rem',
+    padding: '12px 24px',
+  },
 });
 
 class ClipView extends Component {
@@ -60,10 +65,16 @@ class ClipView extends Component {
     const { classes, clips } = this.props;
 
     let title = 'Create a clip';
+    let text = null;
     if (clips.state === 'done') {
       title = 'View clip';
     } else if (clips.state === 'list') {
       title = 'View clips';
+    } else if (clips.state === 'error') {
+      title = 'View clip';
+      if (clips.error === 'clip_doesnt_exist') {
+        text = 'Could not find this clip';
+      }
     } else if (clips.state === 'loading') {
       title = '';
     }
@@ -86,6 +97,8 @@ class ClipView extends Component {
         { clips.state === 'create' ? <ClipCreate /> : null }
         { clips.state === 'upload' ? <ClipUpload /> : null }
         { clips.state === 'done' ? <ClipDone /> : null }
+        { clips.state === 'error' ? <div className={ classes.error }>{ text }</div> : null }
+
       </div>
     </>;
   }

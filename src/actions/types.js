@@ -47,3 +47,6 @@ export const ACTION_CLIPS_LIST = 'clips_list';
 export const ACTION_CLIPS_CREATE = 'clips_create';
 export const ACTION_CLIPS_DONE = 'clips_done';
 export const ACTION_CLIPS_EXIT = 'clips_exit';
+export const ACTION_CLIPS_UPDATE = 'clips_update';
+export const ACTION_CLIPS_DELETE = 'clips_delete';
+export const ACTION_CLIPS_ERROR = 'clips_error';

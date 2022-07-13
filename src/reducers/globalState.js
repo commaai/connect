@@ -314,10 +314,25 @@ export default function reducer(_state, action) {
       };
       break;
     case Types.ACTION_CLIPS_LIST:
+      let clipList = null;
+      if (action.list) {
+        clipList = action.list.map((c) => ({
+          clip_id: c.id,
+          dongle_id: c.dongle_id,
+          create_time: c.create_time,
+          route_name: c.route_name,
+          start_time: c.start_time,
+          end_time: c.end_time,
+          status: c.status,
+          title: c.title,
+          video_type: c.video_type,
+          is_public: c.is_public,
+        }));
+      }
       state.clips = {
         state: 'list',
         dongleId: action.dongleId,
-        list: action.list,
+        list: clipList,
       };
       break;
     case Types.ACTION_CLIPS_INIT:
@@ -345,6 +360,7 @@ export default function reducer(_state, action) {
       state.clips = {
         ...state.clips,
         state: 'done',
+        clip_id: action.clip_id,
         start_time: action.start_time,
         end_time: action.end_time,
         video_type: action.video_type,
@@ -352,6 +368,27 @@ export default function reducer(_state, action) {
         route: action.route,
         url: action.url,
         is_public: action.is_public,
+      };
+      break;
+    case Types.ACTION_CLIPS_UPDATE:
+      state.clips = {
+        ...state.clips,
+        is_public: action.is_public,
+      };
+      break;
+    case Types.ACTION_CLIPS_DELETE:
+      if (state.clips?.list?.length) {
+        state.clips = {
+          ...state.clips,
+          list: state.clips?.list.filter((c) => c.clip_id !== action.clip_id),
+        };
+      }
+      break;
+    case Types.ACTION_CLIPS_ERROR:
+      state.clips = {
+        state: 'error',
+        clip_id: action.clip_id,
+        error: action.error,
       };
       break;
     default:
