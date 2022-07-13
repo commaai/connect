@@ -92,6 +92,8 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.ACTION_UPDATE_ROUTE_EVENTS:
+      const firstFrame = action.events.find((ev) => ev.type === 'event' && ev.data.event_type === 'first_road_camera_frame');
+      const videoStartOffset = firstFrame ? firstFrame.route_offset_millis : null;
       if (state.segments) {
         state.segments = [...state.segments];
         for (const i in state.segments) {
@@ -99,6 +101,7 @@ export default function reducer(_state, action) {
             state.segments[i] = {
               ...state.segments[i],
               events: action.events,
+              videoStartOffset,
             }
             break;
           }
@@ -108,6 +111,7 @@ export default function reducer(_state, action) {
         state.currentSegment = {
           ...state.currentSegment,
           events: action.events,
+          videoStartOffset,
         }
       }
       break;

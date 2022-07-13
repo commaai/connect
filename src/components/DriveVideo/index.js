@@ -53,7 +53,7 @@ class DriveVideo extends Component {
 
     this.visibleSegment = this.visibleSegment.bind(this);
     this.isVideoBuffering = this.isVideoBuffering.bind(this);
-    this.syncVideo = debounce(this.syncVideo.bind(this), 500);
+    this.syncVideo = debounce(this.syncVideo.bind(this), 200);
     this.firstSeek = true;
 
     this.videoPlayer = React.createRef();
@@ -70,7 +70,7 @@ class DriveVideo extends Component {
     }
     this.updateVideoSource({});
     this.syncVideo();
-    this.videoSyncIntv = setInterval(this.syncVideo, 1000);
+    this.videoSyncIntv = setInterval(this.syncVideo, 500);
   }
 
   componentDidUpdate(prevProps) {
@@ -153,7 +153,8 @@ class DriveVideo extends Component {
     const internalPlayer = videoPlayer.getInternalPlayer();
 
     // sanity check required for ios
-    const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() > 30;
+    const sufficientBuffer = Math.min(videoPlayer.getDuration() - videoPlayer.getCurrentTime(), 30);
+    const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() >= sufficientBuffer;
     if (hasSufficientBuffer && internalPlayer.readyState >= 2 && this.props.isBufferingVideo) {
       this.props.dispatch(bufferVideo(false));
     }
@@ -194,6 +195,11 @@ class DriveVideo extends Component {
     }
     offset -= visibleSegment.routeOffset;
     offset -= visibleSegment.routeFirstSegment * 60000;
+
+    if (visibleSegment.videoStartOffset) {
+      offset -= visibleSegment.videoStartOffset;
+    }
+
     offset = offset / 1000;
 
     return Math.max(0, offset);

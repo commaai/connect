@@ -24,7 +24,9 @@ function currentOffset(state) {
   if (offset !== null && state.loop?.startTime) {
     // respect the loop
     const loopOffset = state.loop.startTime - state.filter.start;
-    if (offset > loopOffset + state.loop.duration) {
+    if (offset < loopOffset) {
+      offset = loopOffset;
+    } else if (offset > loopOffset + state.loop.duration) {
       offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
     }
   }
@@ -57,8 +59,8 @@ export function getCurrentSegment(state, o) {
         routeFirstSegment: thisSegment.firstSegment,
         duration: thisSegment.duration,
         events: thisSegment.events,
+        videoStartOffset: thisSegment.videoStartOffset,
         deviceType: thisSegment.deviceType,
-        videoAvailableBetweenOffsets: thisSegment.videoAvailableBetweenOffsets,
         hpgps: thisSegment.hpgps,
         hasVideo: thisSegment.hasVideo,
         segments: thisSegment.segments,
@@ -72,23 +74,8 @@ export function getCurrentSegment(state, o) {
   return null;
 }
 
-function finishSegment(segment) {
-  if (segment.hasVideo) {
-    const vidAvail = segment.videoAvailableBetweenOffsets;
-    let lastVideoRange = vidAvail[vidAvail.length - 1];
-    if (!lastVideoRange) {
-      lastVideoRange = [segment.offset, segment.offset + segment.duration];
-    }
-    segment.videoAvailableBetweenOffsets = [ // eslint-disable-line no-param-reassign
-      ...vidAvail.slice(0, vidAvail.length - 1),
-      [lastVideoRange[0], segment.offset + segment.duration]
-    ];
-  }
-}
-
 function segmentsFromMetadata(segmentsData) {
   let curSegment = null;
-  let curVideoStartOffset = null;
   const segments = [];
   segmentsData.segments.forEach((segment) => {
     if (!segment.url) {
@@ -98,9 +85,6 @@ function segmentsFromMetadata(segmentsData) {
       return;
     }
     const segmentHasVideo = (segment.proc_camera >= 0);
-    if (segmentHasVideo && curVideoStartOffset === null) {
-      curVideoStartOffset = segment.offset;
-    }
     /*
       route: '99c94dc769b5d96e|2018-04-09--11-29-08',
       offset: 41348000,
@@ -108,9 +92,6 @@ function segmentsFromMetadata(segmentsData) {
       segments: 4
     */
     if (!curSegment || curSegment.route !== segment.canonical_route_name) {
-      if (curSegment) {
-        finishSegment(curSegment);
-      }
       let { url } = segment;
       const parts = url.split('/');
 
@@ -131,7 +112,7 @@ function segmentsFromMetadata(segmentsData) {
         segments: 0,
         url: url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
         events: null,
-        videoAvailableBetweenOffsets: [],
+        videoStartOffset: null,
         hasVideo: segmentHasVideo,
         deviceType: segment.devicetype,
         hpgps: segment.hpgps,
@@ -144,10 +125,6 @@ function segmentsFromMetadata(segmentsData) {
     if (curSegment.startCoord[0] === 0 && curSegment.startCoord[1] === 0) {
       curSegment.startCoord = [segment.start_lng, segment.start_lat];
     }
-    if (!segmentHasVideo && curVideoStartOffset !== null) {
-      curSegment.videoAvailableBetweenOffsets.push([curVideoStartOffset, segment.offset]);
-      curVideoStartOffset = null;
-    }
     curSegment.hasVideo = (curSegment.hasVideo || segmentHasVideo);
     curSegment.hpgps = (curSegment.hpgps || segment.hpgps);
     curSegment.duration = (segment.offset - curSegment.offset) + segment.duration;
@@ -157,10 +134,6 @@ function segmentsFromMetadata(segmentsData) {
       curSegment.endCoord = [segment.end_lng, segment.end_lat];
     }
   });
-
-  if (curSegment) {
-    finishSegment(curSegment);
-  }
 
   return segments;
 }
@@ -188,6 +161,7 @@ export function reducer(_state, action) {
             segment.endLocation = oldSegment.endLocation;
             segment.driveCoords = oldSegment.driveCoords;
             segment.events = oldSegment.events;
+            segment.videoStartOffset = oldSegment.videoStartOffset;
           }
         }
       }

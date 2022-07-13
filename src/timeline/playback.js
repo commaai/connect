@@ -20,7 +20,9 @@ export function currentOffset(state = null) {
   if (offset !== null && state.loop?.startTime) {
     // respect the loop
     const loopOffset = state.loop.startTime - state.filter.start;
-    if (offset > loopOffset + state.loop.duration) {
+    if (offset < loopOffset) {
+      offset = loopOffset;
+    } else if (offset > loopOffset + state.loop.duration) {
       offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
     }
   }
@@ -97,6 +99,18 @@ export function reducer(_state, action) {
       break;
     default:
       break;
+  }
+
+  if (state.currentSegment && state.currentSegment.videoStartOffset && state.loop && state.zoom && state.filter &&
+    state.loop.startTime === state.zoom.start && state.filter.start + state.currentSegment.routeOffset === state.zoom.start)
+  {
+    const loop_route_offset = state.loop.startTime - state.zoom.start;
+    if (state.currentSegment.videoStartOffset > loop_route_offset) {
+      state.loop = {
+        startTime: state.zoom.start + state.currentSegment.videoStartOffset,
+        duration: state.loop.duration - (state.currentSegment.videoStartOffset - loop_route_offset),
+      };
+    }
   }
 
   // normalize over loop
