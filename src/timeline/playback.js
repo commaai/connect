@@ -20,7 +20,9 @@ export function currentOffset(state = null) {
   if (offset !== null && state.loop?.startTime) {
     // respect the loop
     const loopOffset = state.loop.startTime - state.filter.start;
-    if (offset > loopOffset + state.loop.duration) {
+    if (offset < loopOffset) {
+      offset = loopOffset;
+    } else if (offset > loopOffset + state.loop.duration) {
       offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
     }
   }
