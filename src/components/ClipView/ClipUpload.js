@@ -10,16 +10,16 @@ import { deviceIsOnline, deviceOnCellular } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import Colors from '../../colors';
-import { checkSegmentMetadata } from '../../actions';
+import { checkSegmentMetadata, fetchDeviceNetworkStatus } from '../../actions';
 import UploadQueue from '../Files/UploadQueue';
 import { fetchFiles, fetchAthenaQueue, fetchUploadQueue } from '../../actions/files';
 import { fetchClipsDetails } from '../../actions/clips';
 
 const FILE_TYPE_FRIENDLY = {
   'qcameras': 'Road camera (low-res)',
-  'cameras': 'Road camera (HD)',
-  'ecameras': 'Road camera wide angle (HD)',
-  'dcameras': 'Interior camera (driver, HD)',
+  'cameras': 'Road camera',
+  'ecameras': 'Road camera wide angle',
+  'dcameras': 'Interior camera',
   'qlogs': 'Logs',
   'logs': 'Raw logs',
 };
@@ -73,6 +73,14 @@ const styles = (theme) => ({
       fontSize: '0.8rem',
       textAlign: 'right',
       margin: 0,
+    },
+  },
+  uploadTable: {
+    color: Colors.white,
+    width: '100%',
+    maxWidth: 640,
+    '& tr': {
+      textAlign: 'left',
     },
   },
   clipProgress: {
@@ -150,6 +158,12 @@ class ClipUpload extends Component {
       this.props.dispatch(fetchFiles(clips.route));
     }
 
+    if (clips.route && prevProps.device && device && !deviceIsOnline(prevProps.device) && deviceIsOnline(device)) {
+      this.props.dispatch(fetchUploadQueue(dongleId));
+      this.props.dispatch(fetchAthenaQueue(dongleId));
+      this.props.dispatch(fetchFiles(clips.route));
+    }
+
     if (segmentData?.segments && (prevProps.segmentData?.segments !== segmentData?.segments ||
       prevProps.clips?.start_time !== clips.start_time || prevProps.clips?.end_time !== clips.end_time))
     {
@@ -195,7 +209,11 @@ class ClipUpload extends Component {
   }
 
   async onVisible() {
-    const { clips } = this.props;
+    const { clips, device } = this.props;
+
+    if (!deviceIsOnline(device)) {
+      this.props.dispatch(fetchDeviceNetworkStatus(this.props.dongleId));
+    }
 
     if (!this.state.hasRequestedAll) {
       this.props.dispatch(fetchUploadQueue(this.props.dongleId));
@@ -295,7 +313,7 @@ class ClipUpload extends Component {
   }
 
   render() {
-    const { classes, device, clips } = this.props;
+    const { classes, device, clips, files } = this.props;
     const { windowWidth, required_segments, required_file_types, pausedUploadingError, someFileNotFound,
       someDCameraFileNotFound, hasUploadedAll } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
@@ -306,20 +324,28 @@ class ClipUpload extends Component {
 
     let deviceIsOffline = !deviceIsOnline(device);
     let uploadingStates = [];
-    if (required_segments && required_file_types) {
-      for (const type of required_file_types) {
-        const state = this.getUploadStats([type]);
-        if (state) {
-          uploadingStates.push(
-            <div key={uploadingStates.length} className={classes.uploadItem}>
-              <div>
-                <h5>{ FILE_TYPE_FRIENDLY[type] }:</h5>
-              </div>
-              <div className={classes.uploadState}>
-                <p>uploaded: {state.uploaded} / {state.count}</p>
-              </div>
-            </div>
-          );
+    if (files && required_segments && required_file_types) {
+      for (const segment of required_segments) {
+        for (const type of required_file_types) {
+          let progress;
+          const file = files[`${segment}/${type}`] || {}
+          if (file.url) {
+            progress = 'uploaded';
+          } else if (file.progress !== undefined) {
+            progress = file.current ?
+              `${parseInt(file.progress * 100)}%` :
+              (file.paused ? 'paused' : 'pending');
+          }else if (file.notFound) {
+            progress = 'file not found';
+          } else {
+            progress = 'requesting';
+          }
+
+          uploadingStates.push({
+            segment,
+            type,
+            progress
+          });
         }
       }
     }
@@ -332,6 +358,9 @@ class ClipUpload extends Component {
       statusTitle = 'Export in progress';
       statusProgress = clips.pending_progress ? parseInt(parseFloat(clips.pending_progress) * 100) : null;
     }
+
+    const segmentNameStyle = windowWidth < 450 ? { fontSize: windowWidth < 400 ? '0.8rem' : '0.9rem' } : {};
+    const cellStyle = { padding: windowWidth < 400 ? '0 2px' : (windowWidth < 450 ? '0 4px' : '0 8px') };
 
     return <>
       <ResizeHandler onResize={ this.onResize } />
@@ -347,14 +376,36 @@ class ClipUpload extends Component {
               (someDCameraFileNotFound ? ', make sure the "Record and Upload Driver Camera" toggle is enabled' : '')) }
             { uploadingStates.length === 0 &&
               <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 24 } /> }
-            { uploadingStates }
           </div>
-          <div className={ classes.clipOption }>
-            <Button onClick={ () => this.setState({ uploadModal: true }) } className={ classes.uploadQueueButton }>
-              view upload queue
-              <FileUploadIcon />
-            </Button>
-          </div>
+          { Boolean(uploadingStates.length) && <>
+            <table className={ classes.uploadTable } style={ segmentNameStyle }>
+              <thead>
+                <tr>
+                  <th className={ classes.uploadCell } style={ cellStyle }>Segment</th>
+                  <th className={ classes.uploadCell } style={ cellStyle }>File type</th>
+                  <th className={ classes.uploadCell } style={ cellStyle }>Progress</th>
+                </tr>
+              </thead>
+              <tbody>
+                { uploadingStates.map(({ segment, type, progress }, i) => {
+                  const segNum = segment.split('--')[2];
+                  return (
+                    <tr key={ i }>
+                      <td className={ classes.uploadCell } style={ cellStyle }>{ segNum }</td>
+                      <td className={ classes.uploadCell } style={ cellStyle }>{ FILE_TYPE_FRIENDLY[type] }</td>
+                      <td className={ classes.uploadCell } style={ cellStyle }>{ progress }</td>
+                    </tr>
+                  );
+                }) }
+              </tbody>
+            </table>
+            <div className={ classes.clipOption }>
+              <Button onClick={ () => this.setState({ uploadModal: true }) } className={ classes.uploadQueueButton }>
+                view upload queue
+                <FileUploadIcon />
+              </Button>
+            </div>
+          </> }
        </div>
       }
       { hasUploadedAll &&

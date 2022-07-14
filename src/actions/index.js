@@ -196,6 +196,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
             dongleId,
             networkMetered: resp.result,
           });
+          dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
         }
       } catch(err) {
         if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
@@ -220,6 +221,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
             dongleId,
             networkMetered: metered,
           });
+          dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
         }
       } catch(err) {
         if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {

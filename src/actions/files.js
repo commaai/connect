@@ -252,6 +252,7 @@ export function fetchUploadQueue(dongleId) {
       if (uploadQueue && uploadQueue.offline) {
         dispatch(updateDeviceOnline(dongleId, 0));
       }
+      cancelFetchUploadQueue();
       return;
     }
     dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
