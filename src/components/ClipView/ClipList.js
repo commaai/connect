@@ -2,13 +2,15 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import fecha from 'fecha';
+import * as Sentry from '@sentry/react';
 
-import { withStyles, Typography, CircularProgress, Popover } from '@material-ui/core';
+import { withStyles, Typography, CircularProgress, Popper, Popover } from '@material-ui/core';
 import LockOutlineIcon from '@material-ui/icons/LockOutline';
 import ShareIcon from '@material-ui/icons/Share';
 import PlayArrowIcon from '@material-ui/icons/PlayCircleOutline';
 import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
+import { clips as ClipsApi } from '@commaai/comma-api';
 
 import { filterRegularClick } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
@@ -57,8 +59,10 @@ const styles = (theme) => ({
     border: `1px solid ${Colors.white10}`,
     backgroundColor: Colors.grey800,
     marginTop: 12,
-    zIndex: 5,
+    zIndex: 5000,
+    maxWidth: '95%',
     '& p': {
+      maxWidth: 400,
       fontSize: '0.9rem',
       color: Colors.white,
       margin: 0,
@@ -73,13 +77,18 @@ class ClipList extends Component {
     this.state = {
       windowWidth: window.innerWidth,
       copiedPopover: null,
+      errorPopper: null,
+      errorTexts: {},
     };
 
     this.onResize = this.onResize.bind(this);
     this.shareClip = this.shareClip.bind(this);
     this.renderClipItem = this.renderClipItem.bind(this);
+    this.fetchShowError = this.fetchShowError.bind(this);
+    this.clipErrorToText = this.clipErrorToText.bind(this);
 
     this.popoverTimeout = null;
+    this.clipErrors
   }
 
   async shareClip(ev, c) {
@@ -100,7 +109,7 @@ class ClipList extends Component {
         }
         this.popoverTimeout = setTimeout(() => {
           this.setState({ copiedPopover: null });
-        }, 2000);
+        }, 1500);
       }
     } catch (err) {
       console.log(err);
@@ -112,9 +121,55 @@ class ClipList extends Component {
     this.setState({ windowWidth });
   }
 
+  clipErrorToText(error_status) {
+    switch (error_status) {
+    case 'upload_failed_request':
+      return 'Was unable to request file upload from device.';
+    case 'upload_failed':
+      return 'Not all files needed for this clip could be found on the device.';
+    case 'upload_failed_dcam':
+      return 'Not all files needed for this clip could be found on the device, was the "Record and Upload Driver Camera" toggle active?';
+    case 'upload_timed_out':
+      return 'File upload timed out, the device must be on WiFi to upload the required files.';
+    case 'export_failed':
+      return 'An error occured while creating this clip.';
+    default:
+      return 'Was not able to create clip.';
+    }
+  }
+
+  async fetchShowError(target, c) {
+    const { errorTexts } = this.state;
+
+    let errorText;
+    if (errorTexts[c.clip_id]) {
+      errorText = errorTexts[c.clip_id];
+    } else {
+      this.setState({ errorPopper: { ref: target } });
+      try {
+        const resp = await ClipsApi.clipsDetails(this.props.dongleId, c.clip_id);
+        errorText = this.clipErrorToText(resp.error_status);
+        const newErrorTexts = { ...errorTexts };
+        newErrorTexts[resp.id] = errorText;
+        this.setState({ errorTexts: newErrorTexts });
+      } catch (err) {
+        console.log(err);
+        Sentry.captureException(err, { fingerprint: 'clips_list_failed_details' });
+        return;
+      }
+    }
+
+    this.setState({
+      errorPopper: {
+        ref: target,
+        text: errorText,
+      },
+    });
+  }
+
   render() {
     const { classes, clips } = this.props;
-    const { windowWidth, copiedPopover } = this.state;
+    const { windowWidth, copiedPopover, errorPopper } = this.state;
 
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
@@ -144,10 +199,17 @@ class ClipList extends Component {
         { clips.list && clips.list.map((c) => this.renderClipItem(gridStyles, c)) }
       </div>
 
-      <Popover open={ Boolean(copiedPopover) } anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        anchorEl={ copiedPopover } classes={{ paper: classes.copiedPopover }}
-        onClose={ () => this.setState({ copiedPopover: null }) }>
+      <Popper open={ Boolean(copiedPopover) } placement='bottom' anchorEl={ copiedPopover }
+        className={ classes.copiedPopover }>
         <Typography>copied to clipboard</Typography>
+      </Popper>
+      <Popover open={ Boolean(errorPopper) } anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorEl={ errorPopper?.ref } classes={{ paper: classes.copiedPopover }}
+        onClose={ () => this.setState({ errorPopper: null }) }>
+        { errorPopper?.text ?
+          <Typography>{ errorPopper?.text }</Typography> :
+          <CircularProgress style={{ margin: '2px 12px', color: Colors.white }} size={ 14 } />
+        }
       </Popover>
     </>;
   }
@@ -156,21 +218,23 @@ class ClipList extends Component {
     const { classes, dongleId } = this.props;
     const { windowWidth } = this.state;
 
+    // don't show old failed clips
+    if (c.status === 'failed' && (Date.now()/1000 - c.create_time) > 86400*7) {
+      return;
+    }
+
     const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1.0rem' };
 
     const timeStr = fecha.format(new Date(c.start_time), 'MMM\u00a0D h:mm\u00a0a').toLowerCase();
-    const StateIconType = c.status === 'pending' ?
-      MoreHorizIcon :
-      (c.status === 'failed' ? ErrorOutlineIcon : PlayArrowIcon);
-
-    let firstGridItemStyle = {...gridStyles[0]};
-    if (c.status === 'failed') {
-      firstGridItemStyle = { ...firstGridItemStyle, color: Colors.red300 };
-    }
+    const StateIconType = c.status === 'pending' ? MoreHorizIcon : PlayArrowIcon;
 
     const innerItem = <>
-      <StateIconType className={ classes.clipPlayIcon }
-        style={{ ...firstGridItemStyle, fontSize: (windowWidth < 768 ? '1.2rem' : '1.4rem') }} />
+      { c.status === 'failed' ?
+        <ErrorOutlineIcon className={ classes.clipPlayIcon }
+          style={{ ...gridStyles[0], fontSize: (windowWidth < 768 ? '1.2rem' : '1.4rem'), color: Colors.red300 }} /> :
+        <StateIconType className={ classes.clipPlayIcon }
+          style={{ ...gridStyles[0], fontSize: (windowWidth < 768 ? '1.2rem' : '1.4rem') }} />
+      }
       <p style={{ ...itemStyle, ...gridStyles[1] }} className={ classes.clipTitle }>
         { c.title ? c.title : c.route_name.split('|')[1] }
       </p>
@@ -183,7 +247,8 @@ class ClipList extends Component {
     </>;
 
     if (c.status === 'failed') {
-      return <div key={c.clip_id} className={classes.clipItem} style={{ padding: (windowWidth < 768 ? 3 : 8) }}>
+      return <div key={c.clip_id} className={classes.clipItem} onClick={ (ev) => this.fetchShowError(ev.target, c) }
+        style={{ padding: (windowWidth < 768 ? 3 : 8), cursor: 'pointer' }}>
         { innerItem }
       </div>;
     }

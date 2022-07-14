@@ -124,7 +124,7 @@ class AppHeader extends Component {
   }
 
   render() {
-    const { profile, classes, annotating, showDrawerButton, primeNav, dongleId } = this.props;
+    const { profile, classes, annotating, showDrawerButton, primeNav, clips, dongleId } = this.props;
     const { anchorEl } = this.state;
     const open = Boolean(anchorEl);
 
@@ -160,7 +160,7 @@ class AppHeader extends Component {
               </a>
             </div>
             <div className={ classes.headerWideItem } style={ reorderWideStyle }>
-              { !primeNav && !annotating && Boolean(dongleId) && <TimeFilter /> }
+              { Boolean(!primeNav && !clips && !annotating && dongleId) && <TimeFilter /> }
             </div>
             <IconButton aria-owns={open ? 'menu-appbar' : null} aria-haspopup="true" onClick={this.handleClickedAccount}
               aria-label="account menu">
@@ -195,6 +195,7 @@ const stateToProps = Obstruction({
   filter: 'filter',
   profile: 'profile',
   primeNav: 'primeNav',
+  clips: 'clips',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));
