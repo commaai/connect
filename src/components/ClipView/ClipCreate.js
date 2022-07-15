@@ -27,13 +27,11 @@ const styles = (theme) => ({
   },
   videoTypeOptions: {
     display: 'flex',
-    width: 'max-content',
     alignItems: 'center',
-    display: 'flex',
   },
   videoTypeOption: {
     height: 32,
-    width: 84,
+    flexGrow: 1,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -120,7 +118,7 @@ class ClipCreate extends Component {
 
     this.state = {
       windowWidth: window.innerWidth,
-      videoTypeOption: 'f',
+      videoTypeOption: 'q',
       isPublic: false,
       clipTitle: null,
       createLoading: false,
@@ -200,7 +198,11 @@ class ClipCreate extends Component {
         </div>
         <div className={ classes.clipOption }>
           <h4>Video type</h4>
-          <div className={classes.videoTypeOptions}>
+          <div className={classes.videoTypeOptions} style={{ maxWidth: 400 }}>
+            <div className={ `${classes.videoTypeOption} ${videoTypeOption === 'q' ? 'selected' : ''}` }
+              onClick={ () => this.setState({ videoTypeOption: 'q' }) }>
+              <Typography className={classes.mediaOptionText}>Front (low-res)</Typography>
+            </div>
             <div className={ `${classes.videoTypeOption} ${videoTypeOption === 'f' ? 'selected' : ''}` }
               onClick={ () => this.setState({ videoTypeOption: 'f' }) }>
               <Typography className={classes.mediaOptionText}>Front</Typography>
@@ -223,7 +225,7 @@ class ClipCreate extends Component {
         </div>
         <div className={ classes.clipOption }>
           <h4>Availability</h4>
-          <div className={classes.videoTypeOptions}>
+          <div className={classes.videoTypeOptions} style={{ maxWidth: 200 }}>
             <div className={ `${classes.videoTypeOption} ${!isPublic ? 'selected' : ''}` }
               onClick={ () => this.setState({ isPublic: false }) }>
               <Typography className={classes.mediaOptionText}>Private</Typography>

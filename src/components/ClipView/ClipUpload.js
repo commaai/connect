@@ -377,7 +377,7 @@ class ClipUpload extends Component {
             { uploadingStates.length === 0 &&
               <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 24 } /> }
           </div>
-          { Boolean(uploadingStates.length) && <>
+          { Boolean(uploadingStates.length && clips.video_type !== 'q') && <>
             <table className={ classes.uploadTable } style={ segmentNameStyle }>
               <thead>
                 <tr>
