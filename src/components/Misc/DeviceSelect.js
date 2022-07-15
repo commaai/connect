@@ -22,7 +22,7 @@ const styles = (theme) => ({
     flexDirection: 'column',
   },
   deviceList: {
-    overflow: 'scroll',
+    overflowY: 'auto',
   },
   titleContainer: {
     margin: theme.spacing.unit * 2,
@@ -96,7 +96,7 @@ class DeviceSelect extends Component {
             <Typography variant="title">Select device</Typography>
           </div>
           <Divider />
-          <div className={ classes.deviceList }>
+          <div className={ `${classes.deviceList} scrollstyle` }>
             { devices.filter(deviceFilter ? deviceFilter : () => true).map(this.renderDevice) }
           </div>
           <Button variant="contained" className={ classes.cancelButton } onClick={ this.props.onClose }>

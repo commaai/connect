@@ -313,7 +313,7 @@ class DeviceSettingsModal extends Component {
               Uploads
             </Button>
             <Button variant="outlined" className={ classes.primeManageButton }
-              onClick={ () => this.props.dispatch(fetchClipsList(this.props.dongleId)) }>
+              onClick={ () => { this.props.onClose(); this.props.dispatch(fetchClipsList(this.props.dongleId)); }}>
               View Clips
             </Button>
           </div>

@@ -66,17 +66,8 @@ const styles = () => ({
     paddingRight: 3,
     flexGrow: 1,
     overflowY: 'auto',
-    scrollbarColor: `${Colors.white20} transparent`,
-    '&::-webkit-scrollbar': {
-      WebkitAppearance: 'none',
-      width: 6,
-    },
-    '&::-webkit-scrollbar-track': {
-      width: 6,
-    },
     '&::-webkit-scrollbar-thumb': {
       backgroundColor: Colors.white20,
-      borderRadius: 3,
     },
   },
   overlaySearchResultsHr: {
