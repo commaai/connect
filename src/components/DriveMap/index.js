@@ -3,11 +3,9 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';
 import { withStyles } from '@material-ui/core/styles';
-import * as Sentry from '@sentry/react';
 
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
-import { derived as DerivedDataApi } from '@commaai/comma-api';
 import { MAPBOX_TOKEN } from '../../api/geocode';
 import { currentOffset } from '../../timeline/playback';
 import { fetchDriveCoords } from '../../actions/cached';
@@ -77,6 +75,7 @@ class DriveMap extends Component {
     if (this.props.currentSegment && prevProps.currentSegment && this.props.currentSegment.driveCoords &&
       prevProps.currentSegment.driveCoords !== this.props.currentSegment.driveCoords)
     {
+      this.shouldFlyTo = false
       const keys = Object.keys(this.props.currentSegment.driveCoords);
       this.setState({
         driveCoordsMin: Math.min(...keys),
@@ -266,6 +265,12 @@ class DriveMap extends Component {
       this.map = mapComponent;
 
       if (this.props.currentSegment && this.props.currentSegment.driveCoords) {
+        this.shouldFlyTo = false
+        const keys = Object.keys(this.props.currentSegment.driveCoords);
+        this.setState({
+          driveCoordsMin: Math.min(...keys),
+          driveCoordsMax: Math.max(...keys),
+        });
         this.populateMap();
       }
     });
