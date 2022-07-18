@@ -327,6 +327,7 @@ export default function reducer(_state, action) {
           title: c.title,
           video_type: c.video_type,
           is_public: c.is_public,
+          thumbnail: c.thumbnail,
         }));
       }
       state.clips = {
@@ -368,6 +369,7 @@ export default function reducer(_state, action) {
         route: action.route,
         url: action.url,
         is_public: action.is_public,
+        thumbnail: action.thumbnail,
       };
       break;
     case Types.ACTION_CLIPS_UPDATE:

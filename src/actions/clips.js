@@ -149,6 +149,7 @@ export function fetchClipsDetails(clip_id) {
           is_public: resp.is_public,
           route: resp.route_name,
           url: resp.url,
+          thumbnail: resp.thumbnail,
         });
       } else if (resp.status === 'failed') {
         dispatch(fetchClipsList(dongleId));

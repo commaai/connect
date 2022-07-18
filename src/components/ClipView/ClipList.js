@@ -23,6 +23,7 @@ const styles = (theme) => ({
     display: 'flex',
     alignItems: 'center',
     color: Colors.white,
+    padding: 3,
     '& h6': {
       padding: '0 3px',
       margin: 0,
@@ -34,6 +35,8 @@ const styles = (theme) => ({
     color: Colors.white,
     borderTop: '1px solid rgba(255, 255, 255, .05)',
     textDecoration: 'none',
+    padding: 3,
+    cursor: 'pointer',
     '&:hover': {},
     '& p': {
       padding: '0 3px',
@@ -48,6 +51,12 @@ const styles = (theme) => ({
   },
   clipPlayIcon: {
     paddingRight: 3,
+    fontSize: '1.4rem',
+  },
+  thumbnail: {
+    backgroundSize: 'contain',
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'center',
   },
   noClips: {
     color: Colors.white,
@@ -173,10 +182,12 @@ class ClipList extends Component {
 
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
+    const tbnWidth = (windowWidth < 768 ? 48 : 54) * (1928/1208);
+
     const gridWidths = windowWidth < 768 ?
-      [8, 62, 24, 7] :
-      [8, 62, 24, 7];
-    const gridStyles = gridWidths.map((w) => ({ maxWidth: `${w}%`, flexBasis: `${w}%` }));
+      [`calc(2% + ${tbnWidth}px)`, `calc(67% - ${tbnWidth}px)`, '24%', '7%'] :
+      [`calc(3% + ${tbnWidth}px)`, `calc(65% - ${tbnWidth}px)`, '24%', '7%'];
+    const gridStyles = gridWidths.map((w) => ({ maxWidth: w, flexBasis: w }));
 
     const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1rem' };
 
@@ -226,15 +237,24 @@ class ClipList extends Component {
     const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1.0rem' };
 
     const timeStr = fecha.format(new Date(c.start_time), 'MMM\u00a0D h:mm\u00a0a').toLowerCase();
-    const StateIconType = c.status === 'pending' ? MoreHorizIcon : PlayArrowIcon;
+
+    let thumbnail = null;
+    if (c.status === 'done') {
+      const thumbnailStyle = {
+        ...gridStyles[0],
+        backgroundImage: `url("${c.thumbnail}")`,
+        height: (windowWidth < 768 ? 48 : 54),
+      };
+      thumbnail = <div className={ classes.thumbnail } style={ thumbnailStyle } />
+    } else if (c.status === 'pending') {
+      thumbnail = <MoreHorizIcon className={ classes.clipPlayIcon } style={ gridStyles[0] } />;
+    } else if (c.status === 'failed') {
+      thumbnail = <ErrorOutlineIcon className={ classes.clipPlayIcon }
+        style={{ ...gridStyles[0], color: Colors.red300 }} />;
+    }
 
     const innerItem = <>
-      { c.status === 'failed' ?
-        <ErrorOutlineIcon className={ classes.clipPlayIcon }
-          style={{ ...gridStyles[0], fontSize: (windowWidth < 768 ? '1.2rem' : '1.4rem'), color: Colors.red300 }} /> :
-        <StateIconType className={ classes.clipPlayIcon }
-          style={{ ...gridStyles[0], fontSize: (windowWidth < 768 ? '1.2rem' : '1.4rem') }} />
-      }
+      { thumbnail }
       <p style={{ ...itemStyle, ...gridStyles[1] }} className={ classes.clipTitle }>
         { c.title ? c.title : c.route_name.split('|')[1] }
       </p>
@@ -247,16 +267,14 @@ class ClipList extends Component {
     </>;
 
     if (c.status === 'failed') {
-      return <div key={c.clip_id} className={classes.clipItem} onClick={ (ev) => this.fetchShowError(ev.target, c) }
-        style={{ padding: (windowWidth < 768 ? 3 : 8), cursor: 'pointer' }}>
+      return <div key={c.clip_id} className={classes.clipItem} onClick={ (ev) => this.fetchShowError(ev.target, c) }>
         { innerItem }
       </div>;
     }
 
     return (
       <a key={c.clip_id} className={classes.clipItem} href={ `/${dongleId}/clips/${c.clip_id}` }
-        onClick={ filterRegularClick(() => this.props.dispatch(navToClips(c.clip_id, c.state))) }
-        style={{ padding: (windowWidth < 768 ? 3 : 8) }}>
+        onClick={ filterRegularClick(() => this.props.dispatch(navToClips(c.clip_id, c.state))) }>
         { innerItem }
       </a>
     );
