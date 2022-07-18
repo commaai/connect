@@ -23,6 +23,7 @@ const styles = (theme) => ({
     display: 'flex',
     alignItems: 'center',
     color: Colors.white,
+    padding: 3,
     '& h6': {
       padding: '0 3px',
       margin: 0,
@@ -34,6 +35,8 @@ const styles = (theme) => ({
     color: Colors.white,
     borderTop: '1px solid rgba(255, 255, 255, .05)',
     textDecoration: 'none',
+    padding: 3,
+    cursor: 'pointer',
     '&:hover': {},
     '& p': {
       padding: '0 3px',
@@ -240,8 +243,6 @@ class ClipList extends Component {
         ...gridStyles[0],
         backgroundImage: `url("${c.thumbnail}")`,
         height: (windowWidth < 768 ? 48 : 58),
-        marginTop: (windowWidth < 768 ? -3 : -8),
-        marginBottom: (windowWidth < 768 ? -3 : -8),
       };
       thumbnail = <div className={ classes.thumbnail } style={ thumbnailStyle } />
     } else if (c.status === 'pending') {
@@ -266,16 +267,14 @@ class ClipList extends Component {
     </>;
 
     if (c.status === 'failed') {
-      return <div key={c.clip_id} className={classes.clipItem} onClick={ (ev) => this.fetchShowError(ev.target, c) }
-        style={{ padding: (windowWidth < 768 ? 3 : 8), cursor: 'pointer' }}>
+      return <div key={c.clip_id} className={classes.clipItem} onClick={ (ev) => this.fetchShowError(ev.target, c) }>
         { innerItem }
       </div>;
     }
 
     return (
       <a key={c.clip_id} className={classes.clipItem} href={ `/${dongleId}/clips/${c.clip_id}` }
-        onClick={ filterRegularClick(() => this.props.dispatch(navToClips(c.clip_id, c.state))) }
-        style={{ padding: (windowWidth < 768 ? 3 : 8) }}>
+        onClick={ filterRegularClick(() => this.props.dispatch(navToClips(c.clip_id, c.state))) }>
         { innerItem }
       </a>
     );
