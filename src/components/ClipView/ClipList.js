@@ -51,11 +51,12 @@ const styles = (theme) => ({
   },
   clipPlayIcon: {
     paddingRight: 3,
+    fontSize: '1.4rem',
   },
   thumbnail: {
     backgroundSize: 'contain',
     backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'left',
+    backgroundPosition: 'center',
   },
   noClips: {
     color: Colors.white,
@@ -181,7 +182,7 @@ class ClipList extends Component {
 
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
-    const tbnWidth = (windowWidth < 768 ? 48 : 58) * (1928/1208);
+    const tbnWidth = (windowWidth < 768 ? 48 : 54) * (1928/1208);
 
     const gridWidths = windowWidth < 768 ?
       [`calc(2% + ${tbnWidth}px)`, `calc(67% - ${tbnWidth}px)`, '24%', '7%'] :
@@ -242,15 +243,14 @@ class ClipList extends Component {
       const thumbnailStyle = {
         ...gridStyles[0],
         backgroundImage: `url("${c.thumbnail}")`,
-        height: (windowWidth < 768 ? 48 : 58),
+        height: (windowWidth < 768 ? 48 : 54),
       };
       thumbnail = <div className={ classes.thumbnail } style={ thumbnailStyle } />
     } else if (c.status === 'pending') {
-      thumbnail = <MoreHorizIcon className={ classes.clipPlayIcon }
-        style={{ ...gridStyles[0], fontSize: (windowWidth < 768 ? '1.2rem' : '1.4rem') }} />;
+      thumbnail = <MoreHorizIcon className={ classes.clipPlayIcon } style={ gridStyles[0] } />;
     } else if (c.status === 'failed') {
       thumbnail = <ErrorOutlineIcon className={ classes.clipPlayIcon }
-        style={{ ...gridStyles[0], fontSize: (windowWidth < 768 ? '1.2rem' : '1.4rem'), color: Colors.red300 }} />;
+        style={{ ...gridStyles[0], color: Colors.red300 }} />;
     }
 
     const innerItem = <>
