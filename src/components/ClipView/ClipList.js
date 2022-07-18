@@ -49,6 +49,11 @@ const styles = (theme) => ({
   clipPlayIcon: {
     paddingRight: 3,
   },
+  thumbnail: {
+    backgroundSize: 'contain',
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'left',
+  },
   noClips: {
     color: Colors.white,
     fontSize: '1rem',
@@ -173,10 +178,12 @@ class ClipList extends Component {
 
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
+    const tbnWidth = (windowWidth < 768 ? 48 : 58) * (1928/1208);
+
     const gridWidths = windowWidth < 768 ?
-      [8, 62, 24, 7] :
-      [8, 62, 24, 7];
-    const gridStyles = gridWidths.map((w) => ({ maxWidth: `${w}%`, flexBasis: `${w}%` }));
+      [`calc(2% + ${tbnWidth}px)`, `calc(67% - ${tbnWidth}px)`, '24%', '7%'] :
+      [`calc(3% + ${tbnWidth}px)`, `calc(65% - ${tbnWidth}px)`, '24%', '7%'];
+    const gridStyles = gridWidths.map((w) => ({ maxWidth: w, flexBasis: w }));
 
     const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1rem' };
 
@@ -226,15 +233,27 @@ class ClipList extends Component {
     const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1.0rem' };
 
     const timeStr = fecha.format(new Date(c.start_time), 'MMM\u00a0D h:mm\u00a0a').toLowerCase();
-    const StateIconType = c.status === 'pending' ? MoreHorizIcon : PlayArrowIcon;
+
+    let thumbnail = null;
+    if (c.status === 'done') {
+      const thumbnailStyle = {
+        ...gridStyles[0],
+        backgroundImage: `url("${c.thumbnail}")`,
+        height: (windowWidth < 768 ? 48 : 58),
+        marginTop: (windowWidth < 768 ? -3 : -8),
+        marginBottom: (windowWidth < 768 ? -3 : -8),
+      };
+      thumbnail = <div className={ classes.thumbnail } style={ thumbnailStyle } />
+    } else if (c.status === 'pending') {
+      thumbnail = <MoreHorizIcon className={ classes.clipPlayIcon }
+        style={{ ...gridStyles[0], fontSize: (windowWidth < 768 ? '1.2rem' : '1.4rem') }} />;
+    } else if (c.status === 'failed') {
+      thumbnail = <ErrorOutlineIcon className={ classes.clipPlayIcon }
+        style={{ ...gridStyles[0], fontSize: (windowWidth < 768 ? '1.2rem' : '1.4rem'), color: Colors.red300 }} />;
+    }
 
     const innerItem = <>
-      { c.status === 'failed' ?
-        <ErrorOutlineIcon className={ classes.clipPlayIcon }
-          style={{ ...gridStyles[0], fontSize: (windowWidth < 768 ? '1.2rem' : '1.4rem'), color: Colors.red300 }} /> :
-        <StateIconType className={ classes.clipPlayIcon }
-          style={{ ...gridStyles[0], fontSize: (windowWidth < 768 ? '1.2rem' : '1.4rem') }} />
-      }
+      { thumbnail }
       <p style={{ ...itemStyle, ...gridStyles[1] }} className={ classes.clipTitle }>
         { c.title ? c.title : c.route_name.split('|')[1] }
       </p>

@@ -211,7 +211,8 @@ class ClipDone extends Component {
           }
         </div>
         <div className={ classes.clipOption }>
-          <video autoPlay={true} controls={true} muted={true} playsInline={true} loop={true} style={ videoSizeStyle }>
+          <video autoPlay={true} controls={true} muted={true} playsInline={true} loop={true} style={ videoSizeStyle }
+            poster={clips.thumbnail}>
             { clips.url && <source src={ clips.url} /> }
           </video>
         </div>
