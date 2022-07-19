@@ -3,6 +3,8 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
+import { Viewer } from 'photo-sphere-viewer';
+
 import { withStyles, Button, Modal, Paper, Typography, CircularProgress, Popper } from '@material-ui/core';
 import ShareIcon from '@material-ui/icons/Share';
 import FileDownloadIcon from '@material-ui/icons/FileDownload';
@@ -129,12 +131,24 @@ class ClipDone extends Component {
       deleteModal: null,
     };
 
+    this.video360Container = React.createRef(null);
+    this.video360Viewer = null;
+
     this.onResize = this.onResize.bind(this);
     this.shareCurrentClip = this.shareCurrentClip.bind(this);
     this.downloadFile = this.downloadFile.bind(this);
     this.togglePublic = this.togglePublic.bind(this);
     this.deleteClip = this.deleteClip.bind(this);
     this.closeDeleteModal = this.closeDeleteModal.bind(this);
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (this.video360Container.current && this.video360Viewer === null) {
+      this.video360Viewer = new Viewer({
+        container: this.video360Container.current,
+        panorama: 'https://photo-sphere-viewer-data.netlify.app/assets/equirectangular-video/Ayutthaya_FHD.mp4',
+      });
+    }
   }
 
   onResize(windowWidth) {
@@ -243,10 +257,14 @@ class ClipDone extends Component {
           }
         </div>
         <div className={ classes.clipOption }>
-          <video autoPlay={true} controls={true} muted={true} playsInline={true} loop={true} style={ videoSizeStyle }
-            poster={clips.thumbnail}>
-            { clips.url && <source src={ clips.url} /> }
-          </video>
+          { clips.video_type === '360' ?
+            <div ref={ this.video360Container } />
+          :
+            <video autoPlay={true} controls={true} muted={true} playsInline={true} loop={true} style={ videoSizeStyle }
+              poster={clips.thumbnail}>
+              { clips.url && <source src={ clips.url} /> }
+            </video>
+          }
         </div>
         <div className={ classes.clipOption }>
           <div className={classes.buttonView}>
