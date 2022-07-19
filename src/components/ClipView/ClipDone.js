@@ -4,6 +4,8 @@ import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
 import { Viewer } from 'photo-sphere-viewer';
+import { EquirectangularVideoAdapter } from 'photo-sphere-viewer/dist/adapters/equirectangular-video';
+import { VideoPlugin } from 'photo-sphere-viewer/dist/plugins/video';
 
 import { withStyles, Button, Modal, Paper, Typography, CircularProgress, Popper } from '@material-ui/core';
 import ShareIcon from '@material-ui/icons/Share';
@@ -16,6 +18,9 @@ import { clips as ClipsApi } from '@commaai/comma-api';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { clipsDelete, clipsUpdateIsPublic } from '../../actions/clips';
+
+require('photo-sphere-viewer/dist/photo-sphere-viewer.css');
+require('photo-sphere-viewer/dist/plugins/video.css');
 
 const styles = (theme) => ({
   clipOption: {
@@ -146,7 +151,23 @@ class ClipDone extends Component {
     if (this.video360Container.current && this.video360Viewer === null) {
       this.video360Viewer = new Viewer({
         container: this.video360Container.current,
-        panorama: 'https://photo-sphere-viewer-data.netlify.app/assets/equirectangular-video/Ayutthaya_FHD.mp4',
+        adapter: [EquirectangularVideoAdapter, {
+          autoplay: true,
+          muted: true,
+        }],
+        defaultZoomLvl: 40,
+        loadingImg: null,
+        touchmoveTwoFingers: true,
+        mousewheelCtrlKey: true,
+        navbar: ['videoPlay', 'videoTime', 'caption', 'zoomOut', 'zoomIn', 'fullscreen'],
+        panorama: {
+          source: 'https://photo-sphere-viewer-data.netlify.app/assets/equirectangular-video/Ayutthaya_FHD.mp4',
+        },
+        plugins: [
+          [VideoPlugin, {
+            progressbar: true,
+          }],
+        ],
       });
     }
   }
@@ -257,8 +278,8 @@ class ClipDone extends Component {
           }
         </div>
         <div className={ classes.clipOption }>
-          { clips.video_type === '360' ?
-            <div ref={ this.video360Container } />
+          { clips.video_type === '360' || true ?
+            <div ref={ this.video360Container } style={{ ...videoSizeStyle, height: '50vh' }} />
           :
             <video autoPlay={true} controls={true} muted={true} playsInline={true} loop={true} style={ videoSizeStyle }
               poster={clips.thumbnail}>
