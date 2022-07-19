@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Button, Modal, Paper, Typography, CircularProgress } from '@material-ui/core';
+import { withStyles, Button, Modal, Paper, Typography, CircularProgress, Popper } from '@material-ui/core';
 import ShareIcon from '@material-ui/icons/Share';
 import FileDownloadIcon from '@material-ui/icons/FileDownload';
 import DeleteIcon from '@material-ui/icons/Delete';
@@ -102,6 +102,21 @@ const styles = (theme) => ({
       },
     },
   },
+  copiedPopover: {
+    borderRadius: 16,
+    padding: '8px 16px',
+    border: `1px solid ${Colors.white10}`,
+    backgroundColor: Colors.grey800,
+    marginTop: 12,
+    zIndex: 5000,
+    maxWidth: '95%',
+    '& p': {
+      maxWidth: 400,
+      fontSize: '0.9rem',
+      color: Colors.white,
+      margin: 0,
+    },
+  },
 });
 
 class ClipDone extends Component {
@@ -110,6 +125,7 @@ class ClipDone extends Component {
 
     this.state = {
       windowWidth: window.innerWidth,
+      copiedPopover: null,
       deleteModal: null,
     };
 
@@ -125,15 +141,30 @@ class ClipDone extends Component {
     this.setState({ windowWidth });
   }
 
-  async shareCurrentClip() {
+  async shareCurrentClip(ev) {
+    const { clips, dongleId } = this.props;
+    ev.stopPropagation();
+    ev.preventDefault();
     try {
-      await navigator.share({
-        title: 'comma connect',
-        url: window.location.href,
-      });
+      const url = `${window.location.origin}/${dongleId}/clips/${clips.clip_id}`;
+      if (typeof navigator.share !== 'undefined') {
+        await navigator.share({
+          title: 'comma connect',
+          url: url,
+        });
+      } else {
+        await navigator.clipboard.writeText(url);
+        this.setState({ copiedPopover: ev.target });
+        if (this.popoverTimeout) {
+          clearTimeout(this.popoverTimeout);
+        }
+        this.popoverTimeout = setTimeout(() => {
+          this.setState({ copiedPopover: null });
+        }, 1500);
+      }
     } catch (err) {
       console.log(err);
-      Sentry.captureException(err, { fingerprint: 'clip_navigator_share' });
+      Sentry.captureException(err, { fingerprint: 'clip_done_share' });
     }
   }
 
@@ -188,7 +219,7 @@ class ClipDone extends Component {
 
   render() {
     const { classes, clips, device, profile } = this.props;
-    const { windowWidth, deleteModal } = this.state;
+    const { windowWidth, deleteModal, copiedPopover } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
     const videoSizeStyle = windowWidth > 1080 ?
@@ -203,8 +234,9 @@ class ClipDone extends Component {
           <h4>
             { clips.title ? clips.title : clips.route.split('|')[1] }
           </h4>
-          { Boolean(typeof navigator.share !== 'undefined' && clips.is_public) &&
-            <Button onClick={ this.shareCurrentClip } className={ `${classes.button} ${classes.shareButton}` }>
+          { clips.is_public &&
+            <Button onClick={ (ev) => { ev.persist(); this.shareCurrentClip(ev); } }
+              className={ `${classes.button} ${classes.shareButton}` }>
               Share
               <ShareIcon />
             </Button>
@@ -236,6 +268,10 @@ class ClipDone extends Component {
           </div>
         </div>
       </div>
+      <Popper open={ Boolean(copiedPopover) } placement='bottom' anchorEl={ copiedPopover }
+        className={ classes.copiedPopover }>
+        <Typography>copied to clipboard</Typography>
+      </Popper>
       <Modal open={ Boolean(deleteModal) } onClose={ this.closeDeleteModal }>
         <Paper className={classes.modal}>
           { Boolean(deleteModal?.error) && <div className={ classes.deleteError }>
