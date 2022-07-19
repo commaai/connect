@@ -217,6 +217,10 @@ class ClipCreate extends Component {
               onClick={ () => this.setState({ videoTypeOption: 'd' }) }>
               <Typography className={classes.mediaOptionText}>Interior</Typography>
             </div>
+            <div className={ `${classes.videoTypeOption} ${videoTypeOption === '360' ? 'selected' : ''}` }
+              onClick={ () => this.setState({ videoTypeOption: '360' }) }>
+              <Typography className={classes.mediaOptionText}>360°</Typography>
+            </div>
           </div>
         </div>
         <div className={ classes.clipOption }>
