@@ -138,6 +138,7 @@ class ClipDone extends Component {
 
     this.video360Container = null;
     this.video360Viewer = null;
+    this.videoAttributesRetries = null;
 
     this.onResize = this.onResize.bind(this);
     this.shareCurrentClip = this.shareCurrentClip.bind(this);
@@ -146,6 +147,7 @@ class ClipDone extends Component {
     this.deleteClip = this.deleteClip.bind(this);
     this.closeDeleteModal = this.closeDeleteModal.bind(this);
     this.video360ContainerRef = this.video360ContainerRef.bind(this);
+    this.setVideoAttributes = this.setVideoAttributes.bind(this);
   }
 
   componentDidMount() {
@@ -162,6 +164,8 @@ class ClipDone extends Component {
   video360ContainerRef(ref) {
     if (ref) {
       this.video360Container = ref;
+      this.videoAttributesRetries = 0;
+      this.setVideoAttributes();
     }
     const { clips } = this.props;
     if (clips?.url && this.video360Container && this.video360Viewer === null) {
@@ -183,6 +187,16 @@ class ClipDone extends Component {
           }],
         ],
       });
+    }
+  }
+
+  setVideoAttributes() {  // hack to ensure playsinline is set
+    const video = this.video360Container.querySelector('video');
+    if (video) {
+      video.setAttribute('playsinline', '');
+    } else if (this.videoAttributesRetries < 300) {
+      this.videoAttributesRetries++;
+      setTimeout(this.setVideoAttributes, 100);
     }
   }
 
