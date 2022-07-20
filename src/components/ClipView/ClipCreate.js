@@ -162,7 +162,7 @@ class ClipCreate extends Component {
   }
 
   render() {
-    const { classes, loop, clips } = this.props;
+    const { classes, loop, device, clips } = this.props;
     const { windowWidth, videoTypeOption, clipTitle, isPublic, createLoading, error } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32
 
@@ -207,10 +207,12 @@ class ClipCreate extends Component {
               onClick={ () => this.setState({ videoTypeOption: 'f' }) }>
               <Typography className={classes.mediaOptionText}>Front</Typography>
             </div>
-            <div className={ `${classes.videoTypeOption} ${videoTypeOption === 'e' ? 'selected' : ''}` }
-              onClick={ () => this.setState({ videoTypeOption: 'e' }) }>
-              <Typography className={classes.mediaOptionText}>Wide</Typography>
-            </div>
+            { device.device_type === 'three' &&
+              <div className={ `${classes.videoTypeOption} ${videoTypeOption === 'e' ? 'selected' : ''}` }
+                onClick={ () => this.setState({ videoTypeOption: 'e' }) }>
+                <Typography className={classes.mediaOptionText}>Wide</Typography>
+              </div>
+            }
             <div className={ `${classes.videoTypeOption} ${videoTypeOption === 'd' ? 'selected' : ''}` }
               onClick={ () => this.setState({ videoTypeOption: 'd' }) }>
               <Typography className={classes.mediaOptionText}>Interior</Typography>
@@ -256,6 +258,7 @@ class ClipCreate extends Component {
 const stateToProps = Obstruction({
   currentSegment: 'currentSegment',
   dongleId: 'dongleId',
+  device: 'device',
   clips: 'clips',
   loop: 'loop',
 });
