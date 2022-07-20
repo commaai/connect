@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import PropTypes from 'prop-types';
 import localforage from 'localforage';
+import { replace } from 'connected-react-router';
 
 import { withStyles, Modal, Paper, Typography, Button, CircularProgress, Divider } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -98,6 +99,11 @@ class ExplorerApp extends Component {
     const { pairLoading, pairError, pairDongleId } = this.state;
 
     window.scrollTo({ top: 0 });  // for ios header
+
+    const q = new URLSearchParams(window.location.search);
+    if (q.has('r')) {
+      this.props.dispatch(replace(q.get('r')));
+    }
 
     this.props.dispatch(init());
 
