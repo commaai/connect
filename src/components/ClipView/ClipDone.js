@@ -15,6 +15,7 @@ import PublishIcon from '@material-ui/icons/LockOpen';
 import LockOutlineIcon from '@material-ui/icons/LockOutline';
 import { clips as ClipsApi } from '@commaai/comma-api';
 
+import { video_360 } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { clipsDelete, clipsUpdateIsPublic } from '../../actions/clips';
@@ -124,6 +125,14 @@ const styles = (theme) => ({
       margin: 0,
     },
   },
+  videoOverlay360: {
+    position: 'absolute',
+    height: 32,
+    width: 32,
+    top: 10,
+    left: 10,
+    zIndex: 50,
+  },
 });
 
 class ClipDone extends Component {
@@ -164,8 +173,6 @@ class ClipDone extends Component {
   video360ContainerRef(ref) {
     if (ref) {
       this.video360Container = ref;
-      this.videoAttributesRetries = 0;
-      this.setVideoAttributes();
     }
     const { clips } = this.props;
     if (clips?.url && this.video360Container && this.video360Viewer === null) {
@@ -186,6 +193,21 @@ class ClipDone extends Component {
             progressbar: true,
           }],
         ],
+      });
+
+      this.video360Viewer.once('ready', () => {
+        this.videoAttributesRetries = 0;
+        this.setVideoAttributes();
+
+        const img = document.createElement('img');
+        img.src = video_360;
+        img.className = this.props.classes.videoOverlay360;
+        this.video360Container.querySelector('video').parentElement.appendChild(img);
+
+        this.video360Viewer.notification.show({
+          content: 'Drag video to move around',
+          timeout: 2000,
+        });
       });
     }
   }
