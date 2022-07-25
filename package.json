@@ -33,6 +33,7 @@
     "jsonwebtoken": "^8.5.1",
     "localforage": "^1.7.1",
     "obstruction": "^2.1.0",
+    "photo-sphere-viewer": "^4.6.4",
     "prop-types": "^15.7.2",
     "qr-scanner": "^1.3.0",
     "query-string": "^5.0.1",

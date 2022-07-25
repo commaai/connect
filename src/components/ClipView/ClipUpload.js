@@ -190,6 +190,9 @@ class ClipUpload extends Component {
       case 'd':
         this.setState({ required_file_types: ['dcameras'] });
         break;
+      case '360':
+        this.setState({ required_file_types: ['ecameras', 'dcameras'] });
+        break;
       }
     }
 

@@ -201,7 +201,9 @@ class ClipCreate extends Component {
           <div className={classes.videoTypeOptions} style={{ maxWidth: 400 }}>
             <div className={ `${classes.videoTypeOption} ${videoTypeOption === 'q' ? 'selected' : ''}` }
               onClick={ () => this.setState({ videoTypeOption: 'q' }) }>
-              <Typography className={classes.mediaOptionText}>Front (low-res)</Typography>
+              <Typography className={classes.mediaOptionText}>
+                Front { windowWidth < 450 ? '(SD)' : '(low-res)' }
+              </Typography>
             </div>
             <div className={ `${classes.videoTypeOption} ${videoTypeOption === 'f' ? 'selected' : ''}` }
               onClick={ () => this.setState({ videoTypeOption: 'f' }) }>
@@ -217,6 +219,12 @@ class ClipCreate extends Component {
               onClick={ () => this.setState({ videoTypeOption: 'd' }) }>
               <Typography className={classes.mediaOptionText}>Interior</Typography>
             </div>
+            { device.device_type === 'three' &&
+              <div className={ `${classes.videoTypeOption} ${videoTypeOption === '360' ? 'selected' : ''}` }
+                onClick={ () => this.setState({ videoTypeOption: '360' }) }>
+                <Typography className={classes.mediaOptionText}>360°</Typography>
+              </div>
+            }
           </div>
         </div>
         <div className={ classes.clipOption }>

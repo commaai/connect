@@ -3,6 +3,10 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
+import { Viewer } from 'photo-sphere-viewer';
+import { EquirectangularVideoAdapter } from 'photo-sphere-viewer/dist/adapters/equirectangular-video';
+import { VideoPlugin } from 'photo-sphere-viewer/dist/plugins/video';
+
 import { withStyles, Button, Modal, Paper, Typography, CircularProgress, Popper } from '@material-ui/core';
 import ShareIcon from '@material-ui/icons/Share';
 import FileDownloadIcon from '@material-ui/icons/FileDownload';
@@ -11,9 +15,13 @@ import PublishIcon from '@material-ui/icons/LockOpen';
 import LockOutlineIcon from '@material-ui/icons/LockOutline';
 import { clips as ClipsApi } from '@commaai/comma-api';
 
+import { video_360 } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { clipsDelete, clipsUpdateIsPublic } from '../../actions/clips';
+
+require('photo-sphere-viewer/dist/photo-sphere-viewer.css');
+require('photo-sphere-viewer/dist/plugins/video.css');
 
 const styles = (theme) => ({
   clipOption: {
@@ -117,6 +125,14 @@ const styles = (theme) => ({
       margin: 0,
     },
   },
+  videoOverlay360: {
+    position: 'absolute',
+    height: 32,
+    width: 32,
+    top: 10,
+    left: 10,
+    zIndex: 50,
+  },
 });
 
 class ClipDone extends Component {
@@ -129,12 +145,81 @@ class ClipDone extends Component {
       deleteModal: null,
     };
 
+    this.video360Container = null;
+    this.video360Viewer = null;
+    this.videoAttributesRetries = null;
+
     this.onResize = this.onResize.bind(this);
     this.shareCurrentClip = this.shareCurrentClip.bind(this);
     this.downloadFile = this.downloadFile.bind(this);
     this.togglePublic = this.togglePublic.bind(this);
     this.deleteClip = this.deleteClip.bind(this);
     this.closeDeleteModal = this.closeDeleteModal.bind(this);
+    this.video360ContainerRef = this.video360ContainerRef.bind(this);
+    this.setVideoAttributes = this.setVideoAttributes.bind(this);
+  }
+
+  componentDidMount() {
+    this.componentDidUpdate({}, {});
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    const { clips } = this.props;
+    if (prevProps.clips?.url !== clips?.url && clips?.url) {
+      this.video360ContainerRef(null);
+    }
+  }
+
+  video360ContainerRef(ref) {
+    if (ref) {
+      this.video360Container = ref;
+    }
+    const { clips } = this.props;
+    if (clips?.url && this.video360Container && this.video360Viewer === null) {
+      this.video360Viewer = new Viewer({
+        container: this.video360Container,
+        adapter: [EquirectangularVideoAdapter, {
+          autoplay: true,
+          muted: true,
+        }],
+        defaultZoomLvl: 40,
+        touchmoveTwoFingers: true,
+        navbar: ['videoPlay', 'videoTime', 'caption', 'zoomOut', 'zoomIn', 'fullscreen'],
+        panorama: {
+          source: clips.url,
+        },
+        plugins: [
+          [VideoPlugin, {
+            progressbar: true,
+          }],
+        ],
+      });
+
+      this.video360Viewer.once('ready', () => {
+        this.videoAttributesRetries = 0;
+        this.setVideoAttributes();
+
+        const img = document.createElement('img');
+        img.src = video_360;
+        img.className = this.props.classes.videoOverlay360;
+        this.video360Container.querySelector('video').parentElement.appendChild(img);
+
+        this.video360Viewer.notification.show({
+          content: 'Drag video to move around',
+          timeout: 2000,
+        });
+      });
+    }
+  }
+
+  setVideoAttributes() {  // hack to ensure playsinline is set
+    const video = this.video360Container.querySelector('video');
+    if (video) {
+      video.setAttribute('playsinline', '');
+    } else if (this.videoAttributesRetries < 300) {
+      this.videoAttributesRetries++;
+      setTimeout(this.setVideoAttributes, 100);
+    }
   }
 
   onResize(windowWidth) {
@@ -243,10 +328,14 @@ class ClipDone extends Component {
           }
         </div>
         <div className={ classes.clipOption }>
-          <video autoPlay={true} controls={true} muted={true} playsInline={true} loop={true} style={ videoSizeStyle }
-            poster={clips.thumbnail}>
-            { clips.url && <source src={ clips.url} /> }
-          </video>
+          { clips.video_type === '360' ?
+            <div ref={ this.video360ContainerRef } style={{ ...videoSizeStyle, height: '50vh' }} />
+          :
+            <video autoPlay={true} controls={true} muted={true} playsInline={true} loop={true} style={ videoSizeStyle }
+              poster={clips.thumbnail}>
+              { clips.url && <source src={ clips.url} /> }
+            </video>
+          }
         </div>
         <div className={ classes.clipOption }>
           <div className={classes.buttonView}>

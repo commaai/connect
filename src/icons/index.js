@@ -14,6 +14,8 @@ export const pin_pinned = require('./pin-pinned.svg');
 export const pin_home = require('./pin-home.svg');
 export const pin_work = require('./pin-work.svg');
 
+export const video_360 = require('./360-degrees-video.svg');
+
 export function AccountIcon(props) {
   return (
     <SvgIcon {...props}>

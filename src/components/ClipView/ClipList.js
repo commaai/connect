@@ -7,11 +7,11 @@ import * as Sentry from '@sentry/react';
 import { withStyles, Typography, CircularProgress, Popper, Popover } from '@material-ui/core';
 import LockOutlineIcon from '@material-ui/icons/LockOutline';
 import ShareIcon from '@material-ui/icons/Share';
-import PlayArrowIcon from '@material-ui/icons/PlayCircleOutline';
 import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import { clips as ClipsApi } from '@commaai/comma-api';
 
+import { video_360 } from '../../icons';
 import { filterRegularClick } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
@@ -57,6 +57,12 @@ const styles = (theme) => ({
     backgroundSize: 'contain',
     backgroundRepeat: 'no-repeat',
     backgroundPosition: 'center',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    '& img': {
+      height: '50%',
+    },
   },
   noClips: {
     color: Colors.white,
@@ -245,7 +251,9 @@ class ClipList extends Component {
         backgroundImage: `url("${c.thumbnail}")`,
         height: (windowWidth < 768 ? 48 : 54),
       };
-      thumbnail = <div className={ classes.thumbnail } style={ thumbnailStyle } />
+      thumbnail = <div className={ classes.thumbnail } style={ thumbnailStyle }>
+        { c.video_type === '360' && <img src={ video_360 } /> }
+      </div>;
     } else if (c.status === 'pending') {
       thumbnail = <MoreHorizIcon className={ classes.clipPlayIcon } style={ gridStyles[0] } />;
     } else if (c.status === 'failed') {
