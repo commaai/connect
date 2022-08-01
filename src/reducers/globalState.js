@@ -1,5 +1,5 @@
 import * as Types from '../actions/types';
-import { emptyDevice } from '../utils';
+import { emptyDevice, deviceIsOnline } from '../utils';
 
 
 function populateFetchedAt(d) {
@@ -15,6 +15,20 @@ export default function reducer(_state, action) {
   switch (action.type) {
     case Types.ACTION_STARTUP_DATA:
       let devices = action.devices.map(populateFetchedAt);
+
+      devices = devices.sort((a, b) => {
+        if (deviceIsOnline(a) !== deviceIsOnline(b)) {
+          return deviceIsOnline(b) - deviceIsOnline(a);
+        }
+        if (!a.alias && !b.alias) {
+          return a.dongle_id.localeCompare(b.dongle_id);
+        }
+        if (Boolean(a.alias) !== Boolean(b.alias)) {
+          return Boolean(b.alias) - Boolean(a.alias);
+        }
+        return a.alias.localeCompare(b.alias);
+      });
+
       if (!state.dongleId && devices.length > 0) {
         state = {
           ...state,
