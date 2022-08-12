@@ -13,11 +13,14 @@ import FileDownloadIcon from '@material-ui/icons/FileDownload';
 import DeleteIcon from '@material-ui/icons/Delete';
 import PublishIcon from '@material-ui/icons/LockOpen';
 import LockOutlineIcon from '@material-ui/icons/LockOutline';
+import CropOriginalIcon from '@material-ui/icons/CropOriginal';
 import { clips as ClipsApi } from '@commaai/comma-api';
 
+import { filterRegularClick } from '../../utils';
 import { video_360 } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
+import { selectRange } from '../../actions';
 import { clipsDelete, clipsUpdateIsPublic } from '../../actions/clips';
 
 require('photo-sphere-viewer/dist/photo-sphere-viewer.css');
@@ -52,7 +55,8 @@ const styles = (theme) => ({
   button: {
     display: 'flex',
     alignItems: 'center',
-    minHeight: 14,
+    height: 26,
+    minHeight: 26,
     fontSize: '0.8rem',
     padding: '4px 10px',
     borderRadius: 4,
@@ -303,7 +307,7 @@ class ClipDone extends Component {
   }
 
   render() {
-    const { classes, clips, device, profile } = this.props;
+    const { classes, clips, dongleId, device, profile } = this.props;
     const { windowWidth, deleteModal, copiedPopover } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
@@ -347,6 +351,11 @@ class ClipDone extends Component {
               <Button onClick={ this.togglePublic } className={ classes.button }>
                 { clips.is_public ? 'Make private' : 'Make public' }
                 { clips.is_public ? <LockOutlineIcon /> : <PublishIcon /> }
+              </Button>
+              <Button className={ classes.button } href={ `/${dongleId}/${clips.start_time}/${clips.end_time}` }
+                onClick={ filterRegularClick(() => this.props.dispatch(selectRange(clips.start_time, clips.end_time))) }>
+                View route
+                <CropOriginalIcon />
               </Button>
               <Button className={ classes.button }
                 onClick={ () => this.setState({ deleteModal: {} }) }>

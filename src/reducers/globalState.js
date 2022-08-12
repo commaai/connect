@@ -252,6 +252,7 @@ export default function reducer(_state, action) {
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }
+      state.clips = null;
       if (action.start && action.end) {
         state.zoom = {
           start: action.start,
