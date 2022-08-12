@@ -62,7 +62,7 @@ export function selectDevice(dongleId, allowPathChange = true) {
     });
 
     dispatch(selectRange(null, null, false))
-    if (device && !device.shared) {
+    if ((device && !device.shared) || state.profile?.superuser) {
       dispatch(primeFetchSubscription(dongleId, device));
       dispatch(fetchDeviceOnline(dongleId));
     }
