@@ -78,7 +78,7 @@ class DriveList extends Component {
         { driveList.length === 0 && this.renderZeroRides() }
         <div className={classes.drives}>
           { driveList.map((drive, i) => (
-            <DriveListItem key={drive.start_time} drive={drive} windowWidth={ this.state.windowWidth } />
+            <DriveListItem key={drive.start_time_utc_millis} drive={drive} windowWidth={ this.state.windowWidth } />
           ))}
         </div>
       </div>

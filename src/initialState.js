@@ -37,26 +37,10 @@ export default {
   // dongleId: 'f1b4c567731f4a1b',
   dongleId: getDongleID(window.location.pathname),
 
-  currentSegment: null,
   desiredPlaySpeed: 1, // speed set by user
   isBufferingVideo: true, // if we're currently buffering for more data
   offset: null, // in miliseconds, relative to `state.filter.start`
   startTime: Date.now(), // millisecond timestamp in which play began
-
-  segments: [],
-  // this data should come from the API server instead
-  // segments: [{
-  //   route: '99c94dc769b5d96e|2018-04-09--10-10-00',
-  //   offset: 10000,
-  //   length: 2558000,
-  //   segments: 43
-  // }, {
-  //   route: '99c94dc769b5d96e|2018-04-09--11-29-08',
-  //   offset: 2658000,
-  //   length: 214000,
-  //   segments: 4
-  // }],
-  segmentData: null,
 
   routes: null,
   routesMeta: {
@@ -64,6 +48,7 @@ export default {
     start: null,
     end: null,
   },
+  currentRoute: null,
 
   profile: null,
   devices: null,

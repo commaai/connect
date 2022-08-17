@@ -173,7 +173,7 @@ class DriveLitemItem extends Component {
           </Grid>
         </div>
         <Timeline className={classes.driveTimeline} thumbnailsVisible={ this.state.inView }
-          zoomOverride={{ start: drive.startTime, end: drive.startTime + drive.duration }}
+          zoomOverride={{ start: drive.start_time_utc_millis, end: drive.end_time_utc_millis }}
         />
       </a>
     );

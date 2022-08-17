@@ -121,9 +121,9 @@ export default function reducer(_state, action) {
           }
         }
       }
-      if (state.currentSegment && state.currentSegment.fullname === action.fullname) {
-        state.currentSegment = {
-          ...state.currentSegment,
+      if (state.currentRoute && state.currentRoute.fullname === action.fullname) {
+        state.currentRoute = {
+          ...state.currentRoute,
           events: action.events,
           videoStartOffset,
         }
@@ -142,11 +142,11 @@ export default function reducer(_state, action) {
           }
         }
       }
-      if (state.currentSegment && state.currentSegment.fullname === action.fullname) {
-        state.currentSegment = {
-          ...state.currentSegment,
+      if (state.currentRoute && state.currentRoute.fullname === action.fullname) {
+        state.currentRoute = {
+          ...state.currentRoute,
         }
-        state.currentSegment[action.locationKey] = action.location;
+        state.currentRoute[action.locationKey] = action.location;
       }
       break;
     case Types.ACTION_UPDATE_ROUTE_DRIVE_COORDS:
@@ -162,9 +162,9 @@ export default function reducer(_state, action) {
           }
         }
       }
-      if (state.currentSegment && state.currentSegment.fullname === action.fullname) {
-        state.currentSegment = {
-          ...state.currentSegment,
+      if (state.currentRoute && state.currentRoute.fullname === action.fullname) {
+        state.currentRoute = {
+          ...state.currentRoute,
           driveCoords: action.driveCoords,
         };
       }
