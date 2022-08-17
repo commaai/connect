@@ -8,6 +8,7 @@ import DriveListItem from './DriveListItem';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import { checkSegmentMetadata } from '../../actions';
+import { hasRoutesData } from '../../timeline/segments';
 
 const styles = (theme) => ({
   header: {
@@ -66,12 +67,9 @@ class DriveList extends Component {
   }
 
   render() {
-    const { classes, dongleId } = this.props;
+    const { classes } = this.props;
 
-    const driveList = this.props.segments.slice().reverse().map((segment) => ({
-      ...segment,
-      dongleId: dongleId,
-    }));
+    const driveList = this.props.routes || [];
 
     return (
       <div className={ classes.drivesTable }>
@@ -80,7 +78,7 @@ class DriveList extends Component {
         { driveList.length === 0 && this.renderZeroRides() }
         <div className={classes.drives}>
           { driveList.map((drive, i) => (
-            <DriveListItem key={drive.startTime} drive={drive} windowWidth={ this.state.windowWidth } />
+            <DriveListItem key={drive.start_time} drive={drive} windowWidth={ this.state.windowWidth } />
           ))}
         </div>
       </div>
@@ -88,14 +86,14 @@ class DriveList extends Component {
   }
 
   renderZeroRides() {
-    const { classes, device, segmentData } = this.props;
+    const { classes, device, routes } = this.props;
     const { windowWidth } = this.state;
     let zeroRidesEle = null;
 
-    if (device && (segmentData === null || segmentData.segments === undefined)) {
+    if (device && routes === null) {
       zeroRidesEle = <Typography>Loading...</Typography>;
-    } else if (segmentData && segmentData.segments && segmentData.segments.length === 0) {
-      zeroRidesEle = ( <Typography>Looks like you haven{'\''}t driven in the selected time range.</Typography> );
+    } else if (hasRoutesData(this.props) && routes?.length === 0) {
+      zeroRidesEle = <Typography>Looks like you haven{'\''}t driven in the selected time range.</Typography>;
     }
 
     const containerPadding = windowWidth > 520 ? 36 : 16;
@@ -110,8 +108,8 @@ class DriveList extends Component {
 }
 
 const stateToProps = Obstruction({
-  segments: 'segments',
-  segmentData: 'segmentData',
+  routes: 'routes',
+  routesMeta: 'routesMeta',
   device: 'device',
   dongleId: 'dongleId',
 });

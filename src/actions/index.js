@@ -6,15 +6,14 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback'
-import { getSegmentFetchRange, hasSegmentMetadata, fetchSegmentMetadata, parseSegmentMetadata, insertSegmentMetadata
-  } from '../timeline/segments';
+import { getSegmentFetchRange, hasRoutesData, fetchSegmentMetadata } from '../timeline/segments';
 import * as Demo from '../demo';
 import { getClipsNav } from '../url';
-import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
+import { getDeviceFromState, deviceVersionAtLeast, dateFromRouteName } from '../utils';
 
 const demoSegments = require('../demo/segments.json');
 
-let segmentsRequest = null;
+let routesRequest = null;
 
 export function selectRange(start, end, allowPathChange = true) {
   return (dispatch, getState) => {
@@ -241,11 +240,11 @@ export function checkSegmentMetadata() {
     if (!state.dongleId) {
       return;
     }
-    if (hasSegmentMetadata(state)) {
+    if (hasRoutesData(state)) {
       // already has metadata, don't bother
       return;
     }
-    if (segmentsRequest && segmentsRequest.dongleId === state.dongleId) {
+    if (routesRequest && routesRequest.dongleId === state.dongleId) {
       return;
     }
     console.log('We need to update the segment metadata...');
@@ -253,34 +252,55 @@ export function checkSegmentMetadata() {
     const fetchRange = getSegmentFetchRange(state);
 
     if (Demo.isDemo()) {
-      segmentsRequest = { req: Promise.resolve(demoSegments), dongleId: dongleId };
+      routesRequest = { req: Promise.resolve(demoSegments), dongleId: dongleId };
+      // TODO
     } else {
-      segmentsRequest = { req: Drives.getSegmentMetadata(fetchRange.start, fetchRange.end, dongleId), dongleId: dongleId };
+      routesRequest = {
+        req: Drives.listRoutes(dongleId, undefined, undefined, fetchRange.start, fetchRange.end),
+        dongleId: dongleId,
+      };
     }
     dispatch(fetchSegmentMetadata(fetchRange.start, fetchRange.end));
 
-    segmentsRequest.req.then((segmentData) => {
+    routesRequest.req.then((routesData) => {
       state = getState();
       const currFetchRange = getSegmentFetchRange(state);
       if (currFetchRange.start !== fetchRange.start || currFetchRange.end !== fetchRange.end || state.dongleId !== dongleId) {
-        segmentsRequest = null;
+        routesRequest = null;
         dispatch(checkSegmentMetadata());
         return;
-      } else if (segmentData && segmentData.length === 0 && !MyCommaAuth.isAuthenticated() &&
+      } else if (routesData && routesData.length === 0 && !MyCommaAuth.isAuthenticated() &&
         !getClipsNav(window.location.pathname)?.clip_id)
       {
         window.location = `/?r=${encodeURI(window.location.pathname)}`;  // redirect to login
         return;
       }
 
-      segmentData = parseSegmentMetadata(state, segmentData);
-      dispatch(insertSegmentMetadata(segmentData));
+      const routes = routesData.map((r) => {
+        const start_time = dateFromRouteName(r.fullname);
+        const duration = r.end_time_utc_millis - r.start_time_utc_millis;
+        return {
+          ...r,
+          offset: Math.round(r.start_time_utc_millis) - state.filter.start,
+          duration: duration,
+          start_time: start_time,
+          end_time: start_time + duration,
+        };
+      });
 
-      segmentsRequest = null;
+      dispatch({
+        type: Types.ACTION_ROUTES_METADATA,
+        dongleId: dongleId,
+        start: fetchRange.start,
+        end: fetchRange.end,
+        routes: routes,
+      });
+
+      routesRequest = null;
     }).catch((err) => {
-      console.error('Failure fetching segment metadata', err);
-      Sentry.captureException(err, { fingerprint: 'timeline_fetch_segments' });
-      segmentsRequest = null;
+      console.error('Failure fetching routes metadata', err);
+      Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
+      routesRequest = null;
     });
   }
 }

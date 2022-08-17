@@ -200,41 +200,7 @@ export function fetchSegmentMetadata(start, end, promise) {
   };
 }
 
-export function insertSegmentMetadata(data) {
-  return {
-    type: Types.ACTION_SEGMENT_METADATA,
-    segments: segmentsFromMetadata(data),
-    data
-  };
-}
-
-export function parseSegmentMetadata(state, _segments) {
-  const routeStartTimes = {};
-  const fetchRange = getSegmentFetchRange(state);
-  let segments = _segments;
-  segments = segments.map((_segment) => {
-    const segment = _segment;
-    segment.offset = Math.round(segment.start_time_utc_millis) - state.filter.start;
-    const segmentNum = Number(segment.canonical_name.split('--')[2]);
-    segment.segment = segmentNum;
-    if (!routeStartTimes[segment.canonical_route_name]) {
-      routeStartTimes[segment.canonical_route_name] = segment.offset - (SEGMENT_LENGTH * segmentNum);
-    }
-    segment.routeOffset = routeStartTimes[segment.canonical_route_name];
-
-    segment.duration = Math.round(segment.end_time_utc_millis - segment.start_time_utc_millis);
-    return segment;
-  });
-
-  return {
-    start: fetchRange.start,
-    dongleId: state.dongleId,
-    end: fetchRange.end,
-    segments
-  };
-}
-
-export function hasSegmentMetadata(state) {
+export function hasRoutesData(state) {
   if (!state) {
     return false;
   }
@@ -242,24 +208,24 @@ export function hasSegmentMetadata(state) {
     // new users without devices won't have segment metadata
     return true;
   }
-  if (!state.segmentData) {
-    console.log('No segment data at all');
+  if (!state.routesMeta || !state.routesMeta.dongleId || !state.routesMeta.start ||  !state.routesMeta.end) {
+    console.log('No routes data at all');
     return false;
   }
-  if (!state.segmentData.segments) {
+  if (!state.routes) {
     console.log('Still loading...');
     return false;
   }
-  if (state.dongleId !== state.segmentData.dongleId) {
+  if (state.dongleId !== state.routesMeta.dongleId) {
     console.log('Bad dongle id');
     return false;
   }
   const fetchRange = getSegmentFetchRange(state);
-  if (fetchRange.start < state.segmentData.start) {
+  if (fetchRange.start < state.routesMeta.start) {
     console.log('Bad start offset');
     return false;
   }
-  if (fetchRange.end > state.segmentData.end) {
+  if (fetchRange.end > state.routesMeta.end) {
     console.log('Bad end offset');
     return false;
   }

@@ -178,3 +178,10 @@ export function getDeviceFromState(state, dongleId) {
   }
   return state.devices.find((d) => d.dongle_id === dongleId) || null;
 }
+
+export function dateFromRouteName(route_name) {
+  const datetime_str = route_name.split('|')[1];
+  let [date_str, time_str] = datetime_str.split('--');
+  time_str = time_str.replaceAll('-', ':')
+  return Date.parse(`${date_str}T${time_str}Z`);
+}

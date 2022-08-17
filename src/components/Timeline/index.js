@@ -403,10 +403,10 @@ class Timeline extends Component {
   }
 
   segmentNum(offset) {
-    const { segments } = this.props;
-    for (const segment of segments) {
-      if (segment.offset <= offset && segment.offset + segment.duration >= offset) {
-        return Math.floor((offset - segment.offset) / 60000);
+    const { routes } = this.props;
+    for (const r of routes) {
+      if (r.offset <= offset && r.offset + r.duration >= offset) {
+        return Math.floor((offset - r.offset) / 60000);
       }
     }
     return null;
@@ -584,7 +584,7 @@ const stateToProps = Obstruction({
   zoom: 'zoom',
   loop: 'loop',
   filter: 'filter',
-  segments: 'segments',
+  routes: 'routes',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));

@@ -58,6 +58,13 @@ export default {
   // }],
   segmentData: null,
 
+  routes: null,
+  routesMeta: {
+    dongleId: null,
+    start: null,
+    end: null,
+  },
+
   profile: null,
   devices: null,
 
