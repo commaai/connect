@@ -10,51 +10,52 @@ export default function Thumbnails(props) {
   const imgCount = Math.ceil(thumbnail.width / imgStyles.width);
 
   const imgArr = [];
-  let currentSegment = null;
+  let currentRoute = null;
 
   if (!Number.isFinite(imgCount)) {
     return [];
   }
   for (let i = 0; i < imgCount; ++i) {
     const offset = props.percentToOffset((i + 0.5) / imgCount);
-    const segment = props.getCurrentSegment(offset);
-    if (!segment) {
-      if (currentSegment && !currentSegment.blank) {
-        imgArr.push(currentSegment);
-        currentSegment = null;
+    const route = props.getCurrentRoute(offset);
+    if (!route) {
+      if (currentRoute && !currentRoute.blank) {
+        imgArr.push(currentRoute);
+        currentRoute = null;
       }
-      if (!currentSegment) {
-        currentSegment = {
+      if (!currentRoute) {
+        currentRoute = {
           blank: true,
           length: 0
         };
       }
-      currentSegment.length += 1;
+      currentRoute.length += 1;
     } else {
       // 12 per file, 5s each
-      let seconds = Math.floor((offset - segment.routeOffset) / 1000);
-      const url = `${segment.url}/${segment.segment}/sprite.jpg`;
+      let seconds = Math.floor((offset - route.offset) / 1000);
+      const segmentNum = Math.floor(seconds / 60);
+      const url = `${route.url}/${segmentNum}/sprite.jpg`;
       seconds %= 60;
 
-      if (currentSegment && (currentSegment.blank || currentSegment.segment !== segment.segment)) {
-        imgArr.push(currentSegment);
-        currentSegment = null;
+      if (currentRoute && (currentRoute.blank || currentRoute.segmentNum !== route.segmentNum)) {
+        imgArr.push(currentRoute);
+        currentRoute = null;
       }
 
       const imageIndex = Math.floor(seconds / 5);
 
-      if (currentSegment) {
-        if (imageIndex === currentSegment.endImage + 1) {
-          currentSegment.endImage = imageIndex;
+      if (currentRoute) {
+        if (imageIndex === currentRoute.endImage + 1) {
+          currentRoute.endImage = imageIndex;
         } else {
-          imgArr.push(currentSegment);
-          currentSegment = null;
+          imgArr.push(currentRoute);
+          currentRoute = null;
         }
       }
 
-      if (!currentSegment) {
-        currentSegment = {
-          segment: segment.segment,
+      if (!currentRoute) {
+        currentRoute = {
+          segmentNum: segmentNum,
           startOffset: seconds,
           startImage: imageIndex,
           endImage: imageIndex,
@@ -63,13 +64,13 @@ export default function Thumbnails(props) {
         };
       }
 
-      currentSegment.length += 1;
-      currentSegment.endOffset = seconds;
+      currentRoute.length += 1;
+      currentRoute.endOffset = seconds;
     }
   }
 
-  if (currentSegment) {
-    imgArr.push(currentSegment);
+  if (currentRoute) {
+    imgArr.push(currentRoute);
   }
 
   return imgArr.map((data, i) =>

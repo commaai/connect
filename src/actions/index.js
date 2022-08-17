@@ -276,17 +276,11 @@ export function checkSegmentMetadata() {
         return;
       }
 
-      const routes = routesData.map((r) => {
-        const start_time = dateFromRouteName(r.fullname);
-        const duration = r.end_time_utc_millis - r.start_time_utc_millis;
-        return {
-          ...r,
-          offset: Math.round(r.start_time_utc_millis) - state.filter.start,
-          duration: duration,
-          start_time: start_time,
-          end_time: start_time + duration,
-        };
-      });
+      const routes = routesData.map((r) => ({
+        ...r,
+        offset: Math.round(r.start_time_utc_millis) - state.filter.start,
+        duration: r.end_time_utc_millis - r.start_time_utc_millis,
+      }));
 
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,

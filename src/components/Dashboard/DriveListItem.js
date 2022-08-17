@@ -98,9 +98,9 @@ class DriveLitemItem extends Component {
     const { drive, classes, windowWidth } = this.props;
 
     const small = windowWidth < 640;
-    const startTime = fecha.format(new Date(drive.start_time), 'HH:mm');
-    const startDate = fecha.format(new Date(drive.start_time), small ? 'ddd, MMM D' : 'dddd, MMM D');
-    const endTime = fecha.format(new Date(drive.end_time), 'HH:mm');
+    const startTime = fecha.format(new Date(drive.start_time_utc_millis), 'HH:mm');
+    const startDate = fecha.format(new Date(drive.start_time_utc_millis), small ? 'ddd, MMM D' : 'dddd, MMM D');
+    const endTime = fecha.format(new Date(drive.end_time_utc_millis), 'HH:mm');
     const duration = formatDriveDuration(drive.duration);
     const points = getDrivePoints(drive.duration);
 

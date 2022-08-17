@@ -13,7 +13,7 @@ import Measure from 'react-measure';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { getCurrentSegment } from '../../timeline/segments';
+import { getCurrentRoute } from '../../timeline/segments';
 import { selectRange } from '../../actions';
 import Colors from '../../colors';
 import { seek, currentOffset, selectLoop } from '../../timeline/playback';
@@ -441,7 +441,7 @@ class Timeline extends Component {
       left: `${startPerc}%`,
     };
     return (
-      <div key={route.fullname + route.offset} className={classes.segment} style={style}>
+      <div key={route.start_time_utc_millis} className={classes.segment} style={style}>
         { this.renderRouteEvents(route) }
       </div>
     );
@@ -553,7 +553,7 @@ class Timeline extends Component {
             { (options) => (
               <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
                 { thumbnailsVisible &&
-                  <Thumbnails getCurrentSegment={ (seg) => getCurrentSegment(this.props, seg) }
+                  <Thumbnails getCurrentRoute={ (o) => getCurrentRoute(this.props, o) }
                     percentToOffset={this.percentToOffset} thumbnail={thumbnail} className={classes.thumbnail}
                     hasRuler={hasRuler} />
                 }
