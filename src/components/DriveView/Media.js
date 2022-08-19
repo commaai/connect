@@ -270,7 +270,6 @@ class Media extends Component {
     this.openInCabana = this.openInCabana.bind(this);
     this.openInUseradmin = this.openInUseradmin.bind(this);
     this.shareCurrentRoute = this.shareCurrentRoute.bind(this);
-    this.routesInLoop = this.routesInLoop.bind(this);
     this.currentSegmentNum = this.currentSegmentNum.bind(this);
     this.uploadFile = this.uploadFile.bind(this);
     this.uploadFilesAll = this.uploadFilesAll.bind(this);
@@ -297,8 +296,8 @@ class Media extends Component {
       this.props.dispatch(bufferVideo(false));
     }
 
-    if (prevProps.currentSegment !== this.props.currentSegment && this.props.currentSegment) {
-      this.props.dispatch(fetchEvents(this.props.currentSegment));
+    if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {
+      this.props.dispatch(fetchEvents(this.props.currentRoute));
     }
 
     if (prevState.inView && prevState.inView !== this.state.inView) {
@@ -310,9 +309,7 @@ class Media extends Component {
         this.props.dispatch(fetchFiles('3533c53bb29502d1|2019-12-10--01-13-27'));
       } else {
         this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
-        for (const routeName of this.routesInLoop()) {
-          this.props.dispatch(fetchFiles(routeName));
-        }
+        this.props.dispatch(fetchFiles(this.props.currentRoute.fullname));
       }
     }
   }
@@ -393,14 +390,6 @@ class Media extends Component {
     }
   }
 
-  routesInLoop() {
-    const { segments, loop } = this.props;
-    return segments
-      .filter((route) =>
-        route.startTime < loop.startTime + loop.duration && route.startTime + route.duration > loop.startTime)
-      .map((route) => route.route);
-  }
-
   async uploadFile(type) {
     const { dongleId, currentSegment } = this.props;
     if (!currentSegment) {
@@ -426,7 +415,7 @@ class Media extends Component {
   }
 
   async uploadFilesAll(types) {
-    const { dongleId, device, routes, loop, files } = this.props;
+    const { dongleId, device, currentRoute, loop, files } = this.props;
     if (types === undefined) {
       types = ['logs', 'cameras', 'dcameras'];
       if (device.device_type === 'three') {
@@ -434,7 +423,7 @@ class Media extends Component {
       };
     }
 
-    if (!routes || !files) {
+    if (!currentRoute || !files) {
       return;
     }
 
@@ -443,12 +432,12 @@ class Media extends Component {
     }));
 
     const uploading = {}
-    for (const r of routes) {
-      if (r.start_time_utc_millis < loop.startTime + loop.duration &&
-        r.end_time_utc_millis + segment.duration > loop.startTime)
+    for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
+      if (currentRoute.segment_start_times[i] < loop.startTime + loop.duration &&
+        currentRoute.segment_end_times[i] > loop.startTime)
       {
         for (const type of types) {
-          const fileName = `${segment.canonical_name}/${type}`;
+          const fileName = `${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`;
           if (!files[fileName]) {
             uploading[fileName] = { requested: true };
           }
@@ -469,14 +458,14 @@ class Media extends Component {
   }
 
   _uploadStats(types, count, uploaded, uploading, paused, requested) {
-    const { segmentData, loop, files } = this.props;
-    for (const segment of segmentData.segments) {
-      if (segment.start_time_utc_millis < loop.startTime + loop.duration &&
-        segment.start_time_utc_millis + segment.duration > loop.startTime)
+    const { currentRoute, loop, files } = this.props;
+    for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
+      if (currentRoute.segment_start_times[i] < loop.startTime + loop.duration &&
+        currentRoute.segment_end_times[i] > loop.startTime)
       {
         for (const type of types) {
           count += 1;
-          const log = files[`${segment.canonical_name}/${type}`];
+          const log = files[`${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`];
           if (log) {
             uploaded += Boolean(log.url || log.notFound);
             uploading += Boolean(log.progress !== undefined);
@@ -491,8 +480,8 @@ class Media extends Component {
   }
 
   getUploadStats() {
-    const { device, segmentData, files } = this.props;
-    if (!files || !segmentData || !segmentData.segments) {
+    const { device, currentRoute, files } = this.props;
+    if (!files || !currentRoute) {
       return null;
     }
 

@@ -41,7 +41,7 @@ export function getCurrentRoute(state, o) {
   }
 
   for (const r of state.routes) {
-    if (offset > r.offset && offset < r.offset + r.duration) {
+    if (offset >= r.offset && offset <= r.offset + r.duration) {
       return r;
     }
   }
@@ -90,7 +90,8 @@ export function reducer(_state, action) {
       break;
   }
 
-  state.currentRoute = getCurrentRoute(state);
+  const currentRoute = getCurrentRoute(state);
+  state.currentRoute = currentRoute ? { ...currentRoute } : null;
 
   return state;
 }
