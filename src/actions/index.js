@@ -1,7 +1,7 @@
 import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import document from 'global/document';
-import { billing as Billing, devices as DevicesApi, drives as Drives, athena as AthenaApi } from '@commaai/comma-api';
+import { billing as Billing, devices as DevicesApi, drives as DrivesApi, athena as AthenaApi } from '@commaai/comma-api';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
@@ -9,7 +9,7 @@ import { resetPlayback, selectLoop } from '../timeline/playback'
 import { getSegmentFetchRange, hasRoutesData, fetchSegmentMetadata } from '../timeline/segments';
 import * as Demo from '../demo';
 import { getClipsNav } from '../url';
-import { getDeviceFromState, deviceVersionAtLeast, dateFromRouteName } from '../utils';
+import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
 const demoSegments = require('../demo/segments.json');
 
@@ -256,7 +256,7 @@ export function checkSegmentMetadata() {
       // TODO
     } else {
       routesRequest = {
-        req: Drives.listRoutes(dongleId, undefined, undefined, fetchRange.start, fetchRange.end),
+        req: DrivesApi.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end),
         dongleId: dongleId,
       };
     }
@@ -276,11 +276,17 @@ export function checkSegmentMetadata() {
         return;
       }
 
-      const routes = routesData.map((r) => ({
-        ...r,
-        offset: Math.round(r.start_time_utc_millis) - state.filter.start,
-        duration: r.end_time_utc_millis - r.start_time_utc_millis,
-      }));
+      const routes = routesData.map((r) => {
+        const start_time = r.segment_start_times[0];
+        const end_time = r.segment_end_times[r.segment_end_times.length - 1];
+        return {
+          ...r,
+          offset: Math.round(start_time) - state.filter.start,
+          duration: end_time -start_time,
+          start_time_utc_millis: start_time,
+          end_time_utc_millis: end_time,
+        };
+      });
 
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,

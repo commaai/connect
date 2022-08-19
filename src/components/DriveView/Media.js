@@ -426,7 +426,7 @@ class Media extends Component {
   }
 
   async uploadFilesAll(types) {
-    const { dongleId, device, segmentData, loop, files } = this.props;
+    const { dongleId, device, routes, loop, files } = this.props;
     if (types === undefined) {
       types = ['logs', 'cameras', 'dcameras'];
       if (device.device_type === 'three') {
@@ -434,7 +434,7 @@ class Media extends Component {
       };
     }
 
-    if (!segmentData.segments || !files) {
+    if (!routes || !files) {
       return;
     }
 
@@ -443,9 +443,9 @@ class Media extends Component {
     }));
 
     const uploading = {}
-    for (const segment of segmentData.segments) {
-      if (segment.start_time_utc_millis < loop.startTime + loop.duration &&
-        segment.start_time_utc_millis + segment.duration > loop.startTime)
+    for (const r of routes) {
+      if (r.start_time_utc_millis < loop.startTime + loop.duration &&
+        r.end_time_utc_millis + segment.duration > loop.startTime)
       {
         for (const type of types) {
           const fileName = `${segment.canonical_name}/${type}`;
@@ -837,9 +837,8 @@ class Media extends Component {
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
-  currentSegment: 'currentSegment',
-  segments: 'segments',
-  segmentData: 'segmentData',
+  routes: 'routes',
+  currentRoute: 'currentRoute',
   loop: 'loop',
   filter: 'filter',
   files: 'files',
