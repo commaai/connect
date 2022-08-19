@@ -172,7 +172,7 @@ class ClipUpload extends Component {
         let required_segments = [];
         for (let i = 0; i < route.segment_start_times.length; i++) {
           if (route.segment_start_times[i] < clips.end_time && route.segment_end_times[i] > clips.start_time) {
-            required_segments.push(route.segment_numbers[i]);
+            required_segments.push(`${route.fullname}--${route.segment_numbers[i]}`);
           }
         }
         this.setState({ required_segments });
@@ -376,7 +376,8 @@ class ClipUpload extends Component {
         <div style={{ padding: viewerPadding }}>
           <div className={ classes.clipOption }>
             <h4>Uploading files</h4>
-            { deviceIsOffline && this.renderError('Device offline', 'uploading will resume when device is online') }
+            { Boolean(deviceIsOffline && clips.video_type !== 'q') &&
+              this.renderError('Device offline', 'uploading will resume when device is online') }
             { pausedUploadingError && this.renderError('Connect to WiFi', 'uploading paused on cellular connection') }
             { someFileNotFound && this.renderError('Not Found', 'not all files are available on the device' +
               (someDCameraFileNotFound ? ', make sure the "Record and Upload Driver Camera" toggle is enabled' : '')) }

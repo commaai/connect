@@ -117,7 +117,7 @@ export default function reducer(_state, action) {
       break;
     case Types.ACTION_UPDATE_ROUTE_EVENTS:
       const firstFrame = action.events.find((ev) => ev.type === 'event' && ev.data.event_type === 'first_road_camera_frame');
-      const videoStartOffset = firstFrame ? firstFrame.offset : null;
+      const videoStartOffset = firstFrame ? firstFrame.route_offset_millis : null;
       if (state.routes) {
         state.routes = [...state.routes];
         for (const i in state.routes) {

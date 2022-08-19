@@ -405,6 +405,9 @@ class Timeline extends Component {
 
   segmentNum(offset) {
     const { routes } = this.props;
+    if (!routes) {
+      return null;
+    }
     for (const r of routes) {
       if (r.offset <= offset && r.offset + r.duration >= offset) {
         return getSegmentNumber(r, offset);
