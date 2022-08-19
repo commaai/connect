@@ -23,9 +23,9 @@ describe('drive list items', () => {
     const elem = mount(<DriveListItem
       store={store}
       drive={{
-        startTime: 1570830798378,
-        duration: 1234,
-        distanceMiles: 12.5212,
+        start_time_utc_millis: 1570830798378,
+        end_time_utc_millis: 1570830798378 + 1234,
+        length: 12.5212,
         startCoord: [0, 0],
         endCoord: [0, 0],
       }}

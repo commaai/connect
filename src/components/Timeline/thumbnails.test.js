@@ -7,7 +7,7 @@ const screenHeight = 1000;
 const screenWidth = 1600;
 const gutter = 20;
 const percentToOffsetMock = jest.fn();
-const getCurrentSegmentMock = jest.fn();
+const getCurrentRouteMock = jest.fn();
 
 const thumbnailBounds = {
   top: 100,
@@ -22,19 +22,21 @@ const thumbnailBounds = {
 const heightWithBlackBorder = 120;
 
 percentToOffsetMock.mockImplementation((percent) => Math.round(percent * 30000));
-getCurrentSegmentMock.mockImplementation((offset) => {
+getCurrentRouteMock.mockImplementation((offset) => {
   if (offset < 1600 || offset > 20000) {
     return null;
   }
   return {
-    routeOffset: 1600
+    offset: 1600,
+    segment_numbers: Array.from(Array(4).keys()),
+    segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60),
   };
 });
 
 describe('timeline thumbnails', () => {
   beforeEach(() => {
     percentToOffsetMock.mockClear();
-    getCurrentSegmentMock.mockClear();
+    getCurrentRouteMock.mockClear();
   });
 
   it('should check the segment for every image', () => {
@@ -42,13 +44,13 @@ describe('timeline thumbnails', () => {
       <Thumbnails
         thumbnail={thumbnailBounds}
         percentToOffset={percentToOffsetMock}
-        getCurrentSegment={getCurrentSegmentMock}
+        getCurrentRoute={getCurrentRouteMock}
       />
     );
 
     expect(thumbnails.exists()).toBe(true);
     expect(percentToOffsetMock.mock.calls.length).toBe(10);
-    expect(getCurrentSegmentMock.mock.calls.length).toBe(10);
+    expect(getCurrentRouteMock.mock.calls.length).toBe(10);
     const imageEntries = thumbnails.find('.thumbnailImage');
     expect(imageEntries.length).toBe(5);
 
@@ -82,7 +84,7 @@ describe('timeline thumbnails', () => {
           bottom: 0
         }}
         percentToOffset={percentToOffsetMock}
-        getCurrentSegment={getCurrentSegmentMock}
+        getCurrentRoute={getCurrentRouteMock}
       />
     );
 
@@ -92,12 +94,14 @@ describe('timeline thumbnails', () => {
   });
 
   it('works when theres no blank at the end', () => {
-    getCurrentSegmentMock.mockImplementation((offset) => {
+    getCurrentRouteMock.mockImplementation((offset) => {
       if (offset < 1600) {
         return null;
       }
       return {
-        routeOffset: 1600
+        offset: 1600,
+        segment_numbers: Array.from(Array(4).keys()),
+        segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60),
       };
     });
 
@@ -105,13 +109,13 @@ describe('timeline thumbnails', () => {
       <Thumbnails
         thumbnail={thumbnailBounds}
         percentToOffset={percentToOffsetMock}
-        getCurrentSegment={getCurrentSegmentMock}
+        getCurrentRoute={getCurrentRouteMock}
       />
     );
 
     expect(thumbnails.exists()).toBe(true);
     expect(percentToOffsetMock.mock.calls.length).toBe(10);
-    expect(getCurrentSegmentMock.mock.calls.length).toBe(10);
+    expect(getCurrentRouteMock.mock.calls.length).toBe(10);
     const imageEntries = thumbnails.find('.thumbnailImage');
     expect(imageEntries.length).toBe(5);
 
@@ -146,13 +150,13 @@ describe('timeline thumbnails', () => {
           bottom: 100
         }}
         percentToOffset={percentToOffsetMock}
-        getCurrentSegment={getCurrentSegmentMock}
+        getCurrentRoute={getCurrentRouteMock}
       />
     );
 
     expect(thumbnails.exists()).toBe(false);
     expect(percentToOffsetMock.mock.calls.length).toBe(0);
-    expect(getCurrentSegmentMock.mock.calls.length).toBe(0);
+    expect(getCurrentRouteMock.mock.calls.length).toBe(0);
 
     thumbnails.unmount();
   });
