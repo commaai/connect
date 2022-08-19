@@ -239,8 +239,8 @@ function log_action(action, prevState, state) {
     return;
 
   case Types.ACTION_LOOP:
-    if (state.currentSegment && state.zoom && state.loop?.duration !== 0) {
-      percent = state.loop && state.currentSegment ? state.loop.duration / state.currentSegment.duration : undefined;
+    if (state.currentRoute && state.zoom && state.loop?.duration !== 0) {
+      percent = state.loop && state.currentRoute ? state.loop.duration / state.currentRoute.duration : undefined;
       gtag('event', 'video_loop', {
         ...params,
         loop_duration: state.loop?.duration,

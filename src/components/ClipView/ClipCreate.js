@@ -131,7 +131,7 @@ class ClipCreate extends Component {
 
   async onClipCreate() {
     const { videoTypeOption, clipTitle, isPublic } = this.state;
-    const { loop, currentSegment } = this.props;
+    const { loop, currentRoute } = this.props;
 
     if (loop.duration > 300000) {  // 5 minutes
       this.setState({ error: 'clip selection exceeds maximum length of 5 minutes' });
@@ -140,7 +140,7 @@ class ClipCreate extends Component {
 
     this.setState({ createLoading: true });
     try {
-      const resp = await ClipsApi.clipsCreate(currentSegment.route, clipTitle, loop.startTime, loop.startTime + loop.duration,
+      const resp = await ClipsApi.clipsCreate(currentRoute.fullname, clipTitle, loop.startTime, loop.startTime + loop.duration,
         videoTypeOption, isPublic);
       if (resp && resp.success) {
         this.props.dispatch(clipsCreate(resp.clip_id, videoTypeOption, clipTitle, isPublic));
@@ -264,7 +264,7 @@ class ClipCreate extends Component {
 }
 
 const stateToProps = Obstruction({
-  currentSegment: 'currentSegment',
+  currentRoute: 'currentRoute',
   dongleId: 'dongleId',
   device: 'device',
   clips: 'clips',

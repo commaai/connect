@@ -60,18 +60,18 @@ export function fetchClipsList(dongleId) {
 
 export function clipsInit() {
   return (dispatch, getState) => {
-    const { dongleId, currentSegment } = getState();
+    const { dongleId, currentRoute } = getState();
     dispatch({
       type: Types.ACTION_CLIPS_INIT,
       dongleId,
-      route: currentSegment.route,
+      route: currentRoute.fullname,
     });
   };
 }
 
 export function clipsCreate(clip_id, video_type, title, isPublic) {
   return (dispatch, getState) => {
-    const { dongleId, loop, currentSegment } = getState();
+    const { dongleId, loop, currentRoute } = getState();
     dispatch({
       type: Types.ACTION_CLIPS_CREATE,
       dongleId,
@@ -81,7 +81,7 @@ export function clipsCreate(clip_id, video_type, title, isPublic) {
       video_type,
       title,
       is_public: isPublic,
-      route: currentSegment.route,
+      route: currentRoute.fullname,
     });
 
     dispatch(push(`/${dongleId}/clips/${clip_id}`));

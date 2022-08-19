@@ -12,7 +12,7 @@ export default function Thumbnails(props) {
   const imgCount = Math.ceil(thumbnail.width / imgStyles.width);
 
   const imgArr = [];
-  let currentRoute = null;
+  let currSegment = null;
 
   if (!Number.isFinite(imgCount)) {
     return [];
@@ -21,17 +21,17 @@ export default function Thumbnails(props) {
     const offset = props.percentToOffset((i + 0.5) / imgCount);
     const route = props.getCurrentRoute(offset);
     if (!route) {
-      if (currentRoute && !currentRoute.blank) {
-        imgArr.push(currentRoute);
-        currentRoute = null;
+      if (currSegment && !currSegment.blank) {
+        imgArr.push(currSegment);
+        currSegment = null;
       }
-      if (!currentRoute) {
-        currentRoute = {
+      if (!currSegment) {
+        currSegment = {
           blank: true,
           length: 0
         };
       }
-      currentRoute.length += 1;
+      currSegment.length += 1;
     } else {
       // 12 per file, 5s each
       let seconds = Math.floor((offset - route.offset) / 1000);
@@ -39,24 +39,24 @@ export default function Thumbnails(props) {
       const url = `${route.url}/${segmentNum}/sprite.jpg`;
       seconds %= 60;
 
-      if (currentRoute && (currentRoute.blank || currentRoute.segmentNum !== route.segmentNum)) {
-        imgArr.push(currentRoute);
-        currentRoute = null;
+      if (currSegment && (currSegment.blank || currSegment.segmentNum !== segmentNum)) {
+        imgArr.push(currSegment);
+        currSegment = null;
       }
 
       const imageIndex = Math.floor(seconds / 5);
 
-      if (currentRoute) {
-        if (imageIndex === currentRoute.endImage + 1) {
-          currentRoute.endImage = imageIndex;
+      if (currSegment) {
+        if (imageIndex === currSegment.endImage + 1) {
+          currSegment.endImage = imageIndex;
         } else {
-          imgArr.push(currentRoute);
-          currentRoute = null;
+          imgArr.push(currSegment);
+          currSegment = null;
         }
       }
 
-      if (!currentRoute) {
-        currentRoute = {
+      if (!currSegment) {
+        currSegment = {
           segmentNum: segmentNum,
           startOffset: seconds,
           startImage: imageIndex,
@@ -66,13 +66,13 @@ export default function Thumbnails(props) {
         };
       }
 
-      currentRoute.length += 1;
-      currentRoute.endOffset = seconds;
+      currSegment.length += 1;
+      currSegment.endOffset = seconds;
     }
   }
 
-  if (currentRoute) {
-    imgArr.push(currentRoute);
+  if (currSegment) {
+    imgArr.push(currSegment);
   }
 
   return imgArr.map((data, i) =>

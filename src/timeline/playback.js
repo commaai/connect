@@ -101,14 +101,14 @@ export function reducer(_state, action) {
       break;
   }
 
-  if (state.currentSegment && state.currentSegment.videoStartOffset && state.loop && state.zoom && state.filter &&
-    state.loop.startTime === state.zoom.start && state.filter.start + state.currentSegment.routeOffset === state.zoom.start)
+  if (state.currentRoute && state.currentRoute.videoStartOffset && state.loop && state.zoom && state.filter &&
+    state.loop.startTime === state.zoom.start && state.filter.start + state.currentRoute.offset === state.zoom.start)
   {
     const loop_route_offset = state.loop.startTime - state.zoom.start;
-    if (state.currentSegment.videoStartOffset > loop_route_offset) {
+    if (state.currentRoute.videoStartOffset > loop_route_offset) {
       state.loop = {
-        startTime: state.zoom.start + state.currentSegment.videoStartOffset,
-        duration: state.loop.duration - (state.currentSegment.videoStartOffset - loop_route_offset),
+        startTime: state.zoom.start + state.currentRoute.videoStartOffset,
+        duration: state.loop.duration - (state.currentRoute.videoStartOffset - loop_route_offset),
       };
     }
   }
