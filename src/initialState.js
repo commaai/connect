@@ -32,9 +32,6 @@ function getDefaultLoop(pathname) {
 }
 
 export default {
-  // dongleId: '99c94dc769b5d96e',
-  // dongleId: 'ff83f397542ab647',
-  // dongleId: 'f1b4c567731f4a1b',
   dongleId: getDongleID(window.location.pathname),
 
   desiredPlaySpeed: 1, // speed set by user

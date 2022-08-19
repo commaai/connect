@@ -2,15 +2,6 @@ import * as Types from '../actions/types';
 
 export const SEGMENT_LENGTH = 1000 * 60;
 
-/*
-segments look like, but can contain additional data if they want
-for example, caching url metadata
-{
-  route: 'dongleid|date',
-  segment: 5
-}
-*/
-
 // duplicate from `timeline/playback.js` because of circular import
 function currentOffset(state) {
   let offset = null;
