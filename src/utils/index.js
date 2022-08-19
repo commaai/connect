@@ -1,6 +1,7 @@
 import fecha from 'fecha';
 import jwt from 'jsonwebtoken';
 import * as Sentry from '@sentry/react';
+import { currentOffset } from '../timeline/playback';
 
 export const emptyDevice = {
   alias: 'Shared device',
@@ -177,4 +178,21 @@ export function getDeviceFromState(state, dongleId) {
     return state.device;
   }
   return state.devices.find((d) => d.dongle_id === dongleId) || null;
+}
+
+export function getSegmentNumber(route, offset) {
+  if (!route) {
+    return null;
+  }
+  if (offset === undefined) {
+    offset = currentOffset();
+  }
+  for (let i = 0; i < route.segment_offsets.length; i++) {
+    if (offset >= route.segment_offsets[i] &&
+      (i === route.segment_offsets.length - 1 || offset < route.segment_offsets[i+1]))
+    {
+      return route.segment_numbers[i];
+    }
+  }
+  return null;
 }

@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { getSegmentNumber } from '../../utils';
+
 export default function Thumbnails(props) {
   const { thumbnail } = props;
   const imgStyles = {
@@ -33,15 +35,7 @@ export default function Thumbnails(props) {
     } else {
       // 12 per file, 5s each
       let seconds = Math.floor((offset - route.offset) / 1000);
-      let segmentNum = null;
-      for (let i = 0; i < route.segment_offsets.length; i++) {
-        if (offset >= route.segment_offsets[i] &&
-          (i === route.segment_offsets.length - 1 || offset < route.segment_offsets[i+1]))
-        {
-          segmentNum = i;
-          break;
-        }
-      }
+      const segmentNum = getSegmentNumber(route, offset);
       const url = `${route.url}/${segmentNum}/sprite.jpg`;
       seconds %= 60;
 

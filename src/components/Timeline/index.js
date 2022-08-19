@@ -17,6 +17,7 @@ import { getCurrentRoute } from '../../timeline/segments';
 import { selectRange } from '../../actions';
 import Colors from '../../colors';
 import { seek, currentOffset, selectLoop } from '../../timeline/playback';
+import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({
   base: {
@@ -406,13 +407,7 @@ class Timeline extends Component {
     const { routes } = this.props;
     for (const r of routes) {
       if (r.offset <= offset && r.offset + r.duration >= offset) {
-        for (let i = 0; i < r.segment_offsets.length; i++) {
-          if (offset >= r.segment_offsets[i] &&
-            (i === r.segment_offsets.length - 1 || offset < r.segment_offsets[i+1]))
-          {
-            return r.segment_numbers[i];
-          }
-        }
+        return getSegmentNumber(r, offset);
       }
     }
     return null;

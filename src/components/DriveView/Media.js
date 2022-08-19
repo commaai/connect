@@ -18,7 +18,7 @@ import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
 import { bufferVideo, currentOffset } from '../../timeline/playback';
 import Colors from '../../colors';
-import { deviceIsOnline, deviceOnCellular } from '../../utils';
+import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { analyticsEvent, primeNav } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
@@ -270,7 +270,6 @@ class Media extends Component {
     this.openInCabana = this.openInCabana.bind(this);
     this.openInUseradmin = this.openInUseradmin.bind(this);
     this.shareCurrentRoute = this.shareCurrentRoute.bind(this);
-    this.currentSegmentNum = this.currentSegmentNum.bind(this);
     this.uploadFile = this.uploadFile.bind(this);
     this.uploadFilesAll = this.uploadFilesAll.bind(this);
     this.getUploadStats = this.getUploadStats.bind(this);
@@ -320,20 +319,8 @@ class Media extends Component {
       return;
     }
 
-    await navigator.clipboard.writeText(`${currentRoute.fullname}--${this.currentSegmentNum()}`);
+    await navigator.clipboard.writeText(`${currentRoute.fullname}--${getSegmentNumber(currentRoute)}`);
     this.setState({ moreInfoMenu: null });
-  }
-
-  currentSegmentNum() {
-    const { currentRoute } = this.props;
-    const offset = currentOffset();
-    for (let i = 0; i < currentRoute.segment_offsets.length; i++) {
-      if (offset >= currentRoute.segment_offsets[i] &&
-        (i === currentRoute.segment_offsets.length - 1 || offset < currentRoute.segment_offsets[i+1]))
-      {
-        return currentRoute.segment_numbers[i];
-      }
-    }
   }
 
   openInCabana() {
@@ -407,8 +394,8 @@ class Media extends Component {
     }));
 
     const routeNoDongleId = currentRoute.fullname.split('|')[1];
-    const path = `${routeNoDongleId}--${this.currentSegmentNum()}/${FILE_NAMES[type]}`;
-    const fileName = `${dongleId}|${routeNoDongleId}--${this.currentSegmentNum()}/${type}`;
+    const path = `${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${FILE_NAMES[type]}`;
+    const fileName = `${dongleId}|${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${type}`;
 
     const uploading = {};
     uploading[fileName] = { requested: true };
@@ -637,7 +624,7 @@ class Media extends Component {
 
     let fcam = {}, ecam = {}, dcam = {}, rlog = {};
     if (files && currentRoute) {
-      const seg = `${currentRoute.fullname}--${this.currentSegmentNum()}`;
+      const seg = `${currentRoute.fullname}--${getSegmentNumber(currentRoute)}`;
       fcam = files[`${seg}/cameras`] || {};
       ecam = files[`${seg}/ecameras`] || {};
       dcam = files[`${seg}/dcameras`] || {};
@@ -728,7 +715,7 @@ class Media extends Component {
         transformOrigin={{ vertical: 'top', horizontal: windowWidth > 400 ? 260 : 300 }}>
         <MenuItem className={ classes.copySegment } onClick={ this.copySegmentName }
           style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}>
-          <div>{ currentRoute ? `${currentRoute.fullname}--${this.currentSegmentNum()}` : '---' }</div>
+          <div>{ currentRoute ? `${currentRoute.fullname}--${getSegmentNumber(currentRoute)}` : '---' }</div>
           <ContentCopyIcon />
         </MenuItem>
         <MenuItem onClick={ this.openInCabana } id="openInCabana" >
