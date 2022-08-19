@@ -65,9 +65,14 @@ export default function reducer(_state, action) {
           state.device = new_device;
         }
       }
-      if (state.segmentData && state.segmentData.dongleId !== state.dongleId) {
-        state.segmentData = null;
-        state.segments = [];
+      if (state.routesMeta && state.routesMeta.dongleId !== state.dongleId) {
+        state.routesMeta = {
+          dongleId: null,
+          start: null,
+          end: null,
+        };
+        state.routes = [];
+        state.currentRoute = null;
       }
       break;
     case Types.ACTION_SELECT_TIME_FILTER:
@@ -77,8 +82,13 @@ export default function reducer(_state, action) {
           start: action.start,
           end: action.end,
         },
-        segmentData: null,
-        segments: [],
+        routesMeta: {
+          dongleId: null,
+          start: null,
+          end: null,
+        },
+        routes: [],
+        currentRoute: null,
       };
       break;
     case Types.ACTION_UPDATE_DEVICES:

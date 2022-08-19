@@ -6,7 +6,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback'
-import { getSegmentFetchRange, hasRoutesData, fetchSegmentMetadata } from '../timeline/segments';
+import { getSegmentFetchRange, hasRoutesData } from '../timeline/segments';
 import * as Demo from '../demo';
 import { getClipsNav } from '../url';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
@@ -260,7 +260,6 @@ export function checkSegmentMetadata() {
         dongleId: dongleId,
       };
     }
-    dispatch(fetchSegmentMetadata(fetchRange.start, fetchRange.end));
 
     routesRequest.req.then((routesData) => {
       state = getState();

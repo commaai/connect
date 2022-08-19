@@ -28,8 +28,6 @@ export const ACTION_RESET = 'action_reset';
 
 // segments
 export const ACTION_UPDATE_SEGMENTS = 'update_segments';
-export const ACTION_LOAD_SEGMENT_METADATA = 'load_segment_metadata';
-export const ACTION_SEGMENT_METADATA = 'segment_metadata';
 export const ACTION_ROUTES_METADATA = 'routes_metadata';
 
 // files

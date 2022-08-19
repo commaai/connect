@@ -51,36 +51,6 @@ export function getCurrentRoute(state, o) {
 export function reducer(_state, action) {
   let state = { ..._state };
   switch (action.type) {
-    case Types.ACTION_LOAD_SEGMENT_METADATA:
-      state = {
-        ...state,
-        segmentData: {
-          promise: action.promise,
-          start: action.start,
-          end: action.end,
-          dongleId: state.dongleId
-        }
-      };
-      break;
-    case Types.ACTION_SEGMENT_METADATA:
-      if (state.segments) {
-        for (const segment of action.segments) {
-          const oldSegment = state.segments.find((seg) => segment.route === seg.route && segment.segments === seg.segments);
-          if (oldSegment) {
-            segment.startLocation = oldSegment.startLocation;
-            segment.endLocation = oldSegment.endLocation;
-            segment.driveCoords = oldSegment.driveCoords;
-            segment.events = oldSegment.events;
-            segment.videoStartOffset = oldSegment.videoStartOffset;
-          }
-        }
-      }
-      state = {
-        ...state,
-        segmentData: action.data,
-        segments: action.segments
-      };
-      break;
     case Types.ACTION_UPDATE_SEGMENTS:
       state = {
         ...state,
@@ -99,15 +69,6 @@ export function reducer(_state, action) {
 export function updateSegments() {
   return {
     type: Types.ACTION_UPDATE_SEGMENTS
-  };
-}
-
-export function fetchSegmentMetadata(start, end, promise) {
-  return {
-    type: Types.ACTION_LOAD_SEGMENT_METADATA,
-    start,
-    end,
-    promise
   };
 }
 
