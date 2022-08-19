@@ -111,25 +111,25 @@ export function getSegmentFetchRange(state) {
   }
   if (state.clips && state.clips.end_time < state.filter.start) {
     return {
-      start: state.clips.start_time - 60000,
-      end: state.clips.end_time + 60000,
+      start: state.clips.start_time,
+      end: state.clips.end_time,
     };
   }
   if (state.zoom && state.zoom.end < state.filter.start) {
     return {
-      start: state.zoom.start - 14400000,
-      end: state.zoom.end + 14400000,
+      start: state.zoom.start,
+      end: state.zoom.end,
     };
   }
   const mins = [state.filter.start];
   const maxs = [state.filter.end];
   if (state.clips && state.clips.state === 'upload') {
-    mins.push(state.clips.start_time - 60000);
-    maxs.push(state.clips.end_time + 60000);
+    mins.push(state.clips.start_time);
+    maxs.push(state.clips.end_time);
   }
   if (state.zoom) {
-    mins.push(state.zoom.start - 14400000);
-    maxs.push(state.zoom.end + 14400000);
+    mins.push(state.zoom.start);
+    maxs.push(state.zoom.end);
   }
   return {
     start: Math.min(...mins),
