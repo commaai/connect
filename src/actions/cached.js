@@ -377,7 +377,6 @@ export function fetchCoord(route, coord, locationKey) {
     }
 
     const location = await GeocodeApi().reverseLookup(coord);
-    console.log(coord, location);
     if (!location) {
       return;
     }

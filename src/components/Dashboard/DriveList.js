@@ -7,7 +7,7 @@ import Colors from '../../colors';
 import DriveListItem from './DriveListItem';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
-import { checkSegmentMetadata } from '../../actions';
+import { checkRoutesData } from '../../actions';
 import { hasRoutesData } from '../../timeline/segments';
 
 const styles = (theme) => ({
@@ -63,7 +63,7 @@ class DriveList extends Component {
   }
 
   async onVisible() {
-    this.props.dispatch(checkSegmentMetadata());
+    this.props.dispatch(checkRoutesData());
   }
 
   render() {

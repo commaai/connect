@@ -26,7 +26,7 @@ export function selectRange(start, end, allowPathChange = true) {
       });
     }
 
-    dispatch(checkSegmentMetadata());
+    dispatch(checkRoutesData());
 
     if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start ||
       state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start)
@@ -66,7 +66,7 @@ export function selectDevice(dongleId, allowPathChange = true) {
       dispatch(fetchDeviceOnline(dongleId));
     }
 
-    dispatch(checkSegmentMetadata());
+    dispatch(checkRoutesData());
 
     if (allowPathChange) {
       const desiredPath = urlForState(dongleId, null, null, null);
@@ -234,7 +234,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
   };
 }
 
-export function checkSegmentMetadata() {
+export function checkRoutesData() {
   return (dispatch, getState) => {
     let state = getState();
     if (!state.dongleId) {
@@ -266,7 +266,7 @@ export function checkSegmentMetadata() {
       const currFetchRange = getSegmentFetchRange(state);
       if (currFetchRange.start !== fetchRange.start || currFetchRange.end !== fetchRange.end || state.dongleId !== dongleId) {
         routesRequest = null;
-        dispatch(checkSegmentMetadata());
+        dispatch(checkRoutesData());
         return;
       } else if (routesData && routesData.length === 0 && !MyCommaAuth.isAuthenticated() &&
         !getClipsNav(window.location.pathname)?.clip_id)
@@ -327,7 +327,7 @@ export function selectTimeFilter(start, end) {
       end
     });
 
-    dispatch(checkSegmentMetadata());
+    dispatch(checkRoutesData());
   }
 }
 

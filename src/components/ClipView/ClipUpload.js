@@ -10,7 +10,7 @@ import { deviceIsOnline, deviceOnCellular } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import Colors from '../../colors';
-import { checkSegmentMetadata, fetchDeviceNetworkStatus } from '../../actions';
+import { checkRoutesData, fetchDeviceNetworkStatus } from '../../actions';
 import UploadQueue from '../Files/UploadQueue';
 import { fetchFiles, fetchAthenaQueue, fetchUploadQueue } from '../../actions/files';
 import { fetchClipsDetails } from '../../actions/clips';
@@ -147,13 +147,13 @@ class ClipUpload extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { clips, segmentData, files, dongleId, device } = this.props;
+    const { clips, routes, files, dongleId, device } = this.props;
     const { required_file_types, required_segments } = this.state;
 
     if (clips.route && (prevProps.clips?.route !== clips.route ||
       (!(prevProps.dongleId && prevProps.device) && dongleId && device)))
     {
-      this.props.dispatch(checkSegmentMetadata());
+      this.props.dispatch(checkRoutesData());
       this.props.dispatch(fetchAthenaQueue(dongleId));
       this.props.dispatch(fetchFiles(clips.route));
     }
@@ -164,16 +164,19 @@ class ClipUpload extends Component {
       this.props.dispatch(fetchFiles(clips.route));
     }
 
-    if (segmentData?.segments && (prevProps.segmentData?.segments !== segmentData?.segments ||
+    if (routes && (prevProps.routes !== routes ||
       prevProps.clips?.start_time !== clips.start_time || prevProps.clips?.end_time !== clips.end_time))
     {
-      let required_segments = [];
-      for (const segment of segmentData.segments) {
-        if (segment.start_time_utc_millis < clips.end_time && segment.end_time_utc_millis > clips.start_time) {
-          required_segments.push(segment.canonical_name);
+      const route = routes.find((r) => r.fullname === clips.route);
+      if (route) {
+        let required_segments = [];
+        for (let i = 0; i < route.segment_start_times.length; i++) {
+          if (route.segment_start_times[i] < clips.end_time && route.segment_end_times[i] > clips.start_time) {
+            required_segments.push(route.segment_numbers[i]);
+          }
         }
+        this.setState({ required_segments });
       }
-      this.setState({ required_segments });
     }
 
     if (prevProps.clips?.video_type !== clips.video_type) {
@@ -443,7 +446,7 @@ class ClipUpload extends Component {
 }
 
 const stateToProps = Obstruction({
-  segmentData: 'segmentData',
+  routes: 'routes',
   dongleId: 'dongleId',
   device: 'device',
   clips: 'clips',

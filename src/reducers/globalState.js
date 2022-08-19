@@ -71,7 +71,7 @@ export default function reducer(_state, action) {
           start: null,
           end: null,
         };
-        state.routes = [];
+        state.routes = null;
         state.currentRoute = null;
       }
       break;
@@ -87,7 +87,7 @@ export default function reducer(_state, action) {
           start: null,
           end: null,
         },
-        routes: [],
+        routes: null,
         currentRoute: null,
       };
       break;

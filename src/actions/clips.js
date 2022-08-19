@@ -3,7 +3,7 @@ import { push } from 'connected-react-router';
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { clips as ClipsApi } from '@commaai/comma-api';
 
-import { checkSegmentMetadata, selectDevice, urlForState } from './';
+import { checkRoutesData, selectDevice, urlForState } from './';
 import { getClipsNav } from '../url';
 import * as Types from './types';
 
@@ -25,7 +25,7 @@ export function clipsExit() {
       }
     }
 
-    dispatch(checkSegmentMetadata());
+    dispatch(checkRoutesData());
   };
 }
 
