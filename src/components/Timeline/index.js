@@ -410,7 +410,7 @@ class Timeline extends Component {
           if (offset >= r.segment_offsets[i] &&
             (i === r.segment_offsets.length - 1 || offset < r.segment_offsets[i+1]))
           {
-            return i;
+            return r.segment_numbers[i];
           }
         }
       }

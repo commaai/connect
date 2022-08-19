@@ -315,40 +315,46 @@ class Media extends Component {
   }
 
   async copySegmentName() {
-    const { currentSegment } = this.props;
-    if (!currentSegment || !navigator.clipboard) {
+    const { currentRoute } = this.props;
+    if (!currentRoute || !navigator.clipboard) {
       return;
     }
 
-    await navigator.clipboard.writeText(`${currentSegment.route}--${this.currentSegmentNum()}`);
+    await navigator.clipboard.writeText(`${currentRoute.fullname}--${this.currentSegmentNum()}`);
     this.setState({ moreInfoMenu: null });
   }
 
   currentSegmentNum() {
+    const { currentRoute } = this.props;
     const offset = currentOffset();
-    return Math.floor((offset - this.props.currentSegment.routeOffset) / 60000);
+    for (let i = 0; i < currentRoute.segment_offsets.length; i++) {
+      if (offset >= currentRoute.segment_offsets[i] &&
+        (i === currentRoute.segment_offsets.length - 1 || offset < currentRoute.segment_offsets[i+1]))
+      {
+        return currentRoute.segment_numbers[i];
+      }
+    }
   }
 
   openInCabana() {
-    const { currentSegment, loop, filter } = this.props;
-    if (!currentSegment) {
+    const { currentRoute, loop } = this.props;
+    if (!currentRoute) {
       return;
     }
     const offset = currentOffset();
     const params = {
-      route: currentSegment.route,
-      url: currentSegment.url,
-      seekTime: Math.floor((offset - currentSegment.routeOffset) / 1000)
+      route: currentRoute.fullname,
+      url: currentRoute.url,
+      seekTime: Math.floor((offset - currentRoute.offset) / 1000)
     };
-    const routeStartTime = (filter.start + currentSegment.routeOffset);
 
-    if (loop.startTime && loop.startTime > routeStartTime && loop.duration < 180000) {
-      const startTime = Math.floor((loop.startTime - routeStartTime) / 1000);
+    if (loop.startTime && loop.startTime > currentRoute.start_time_utc_millis && loop.duration < 180000) {
+      const startTime = Math.floor((loop.startTime - currentRoute.start_time_utc_millis) / 1000);
       params.segments = [startTime, Math.floor(startTime + (loop.duration / 1000))].join(',');
     }
 
     const event_parameters = {
-      route_start_time: filter.start + currentSegment.routeOffset,
+      route_start_time: currentRoute.start_time_utc_millis,
     };
     attachRelTime(event_parameters, 'route_start_time', true, 'h');
     this.props.dispatch(analyticsEvent('open_in_cabana', event_parameters));
@@ -360,18 +366,18 @@ class Media extends Component {
   }
 
   openInUseradmin() {
-    const { currentSegment, filter } = this.props;
-    if (!currentSegment) {
+    const { currentRoute } = this.props;
+    if (!currentRoute) {
       return;
     }
 
     const event_parameters = {
-      route_start_time: filter.start + currentSegment.routeOffset,
+      route_start_time: currentRoute.start_time_utc_millis,
     };
     attachRelTime(event_parameters, 'route_start_time', true, 'h');
     this.props.dispatch(analyticsEvent('open_in_cabana', event_parameters));
 
-    const params = { onebox: currentSegment.route };
+    const params = { onebox: currentRoute.fullname };
     const win = window.open(`${window.USERADMIN_URL_ROOT}?${qs.stringify(params)}`, '_blank');
     if (win.focus) {
       win.focus();
@@ -391,8 +397,8 @@ class Media extends Component {
   }
 
   async uploadFile(type) {
-    const { dongleId, currentSegment } = this.props;
-    if (!currentSegment) {
+    const { dongleId, currentRoute } = this.props;
+    if (!currentRoute) {
       return;
     }
 
@@ -400,7 +406,7 @@ class Media extends Component {
       type: type,
     }));
 
-    const routeNoDongleId = currentSegment.route.split('|')[1];
+    const routeNoDongleId = currentRoute.fullname.split('|')[1];
     const path = `${routeNoDongleId}--${this.currentSegmentNum()}/${FILE_NAMES[type]}`;
     const fileName = `${dongleId}|${routeNoDongleId}--${this.currentSegmentNum()}/${type}`;
 
@@ -504,11 +510,11 @@ class Media extends Component {
   }
 
   downloadFile(file, type) {
-    const { filter, currentSegment } = this.props;
+    const { currentRoute } = this.props;
 
     const event_parameters = {
       type,
-      route_start_time: filter.start + currentSegment.routeOffset,
+      route_start_time: currentRoute.start_time_utc_millis,
     };
     attachRelTime(event_parameters, 'route_start_time', true, 'h');
     this.props.dispatch(analyticsEvent('download_file', event_parameters));
@@ -517,8 +523,8 @@ class Media extends Component {
   }
 
   initCreateClip(ev) {
-    const { device, profile, currentSegment } = this.props;
-    if (!currentSegment) {
+    const { device, profile, currentRoute } = this.props;
+    if (!currentRoute) {
       return;
     }
 
@@ -622,7 +628,7 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { currentSegment, device, classes, files, profile } = this.props;
+    const { currentRoute, device, classes, files, profile } = this.props;
     const { downloadMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo } = this.state;
 
     if (!device) {
@@ -630,8 +636,8 @@ class Media extends Component {
     }
 
     let fcam = {}, ecam = {}, dcam = {}, rlog = {};
-    if (files && currentSegment) {
-      const seg = `${currentSegment.route}--${this.currentSegmentNum()}`;
+    if (files && currentRoute) {
+      const seg = `${currentRoute.fullname}--${this.currentSegmentNum()}`;
       fcam = files[`${seg}/cameras`] || {};
       ecam = files[`${seg}/ecameras`] || {};
       dcam = files[`${seg}/dcameras`] || {};
@@ -722,7 +728,7 @@ class Media extends Component {
         transformOrigin={{ vertical: 'top', horizontal: windowWidth > 400 ? 260 : 300 }}>
         <MenuItem className={ classes.copySegment } onClick={ this.copySegmentName }
           style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}>
-          <div>{ currentSegment ? `${currentSegment.route}--${this.currentSegmentNum()}` : '---' }</div>
+          <div>{ currentRoute ? `${currentRoute.fullname}--${this.currentSegmentNum()}` : '---' }</div>
           <ContentCopyIcon />
         </MenuItem>
         <MenuItem onClick={ this.openInCabana } id="openInCabana" >
