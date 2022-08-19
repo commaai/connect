@@ -282,9 +282,10 @@ export function checkSegmentMetadata() {
         return {
           ...r,
           offset: Math.round(start_time) - state.filter.start,
-          duration: end_time -start_time,
+          duration: end_time - start_time,
           start_time_utc_millis: start_time,
           end_time_utc_millis: end_time,
+          segment_offsets: r.segment_start_times.map((x) => x - state.filter.start),
         };
       });
 

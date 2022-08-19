@@ -406,7 +406,13 @@ class Timeline extends Component {
     const { routes } = this.props;
     for (const r of routes) {
       if (r.offset <= offset && r.offset + r.duration >= offset) {
-        return Math.floor((offset - r.offset) / 60000);
+        for (let i = 0; i < r.segment_offsets.length; i++) {
+          if (offset >= r.segment_offsets[i] &&
+            (i === r.segment_offsets.length - 1 || offset < r.segment_offsets[i+1]))
+          {
+            return i;
+          }
+        }
       }
     }
     return null;
