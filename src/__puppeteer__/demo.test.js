@@ -43,6 +43,7 @@ describe('demo mode', () => {
 
   it('should load', async () => {
     const list = await expect(page).toMatchElement('.DriveList');
+    console.log(list.toString());
     expect((await list.$$(':scope > a')).length).toBe(1);
 
     await expect(page).toClick('.DriveEntry');
