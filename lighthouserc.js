@@ -8,8 +8,8 @@ module.exports = {
       isSinglePageApplication: true,
       url: [
         'http://localhost/',
-        'http://localhost/3533c53bb29502d1',
-        'http://localhost/3533c53bb29502d1/1575969207023/1575976457225/',
+        'http://localhost/4cf7a6ad03080c90',
+        'http://localhost/4cf7a6ad03080c90/1632948396703/1632949028503/',
       ],
     },
   },
