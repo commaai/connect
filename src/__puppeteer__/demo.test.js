@@ -42,7 +42,7 @@ describe('demo mode', () => {
   });
 
   it('should load', async () => {
-    await expect(page).toClick('.DriveEntry', { timeout: 5000 });
+    await expect(page).toClick('.DriveEntry', { timeout: 30000 });
     await delay(3000);
 
     let video = await page.$('video');
