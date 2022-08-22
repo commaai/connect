@@ -108,6 +108,7 @@ class DriveList extends Component {
 }
 
 const stateToProps = Obstruction({
+  filter: 'filter',
   routes: 'routes',
   routesMeta: 'routesMeta',
   device: 'device',
