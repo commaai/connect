@@ -42,7 +42,10 @@ describe('demo mode', () => {
   });
 
   it('should load', async () => {
-    await expect(page).toClick('.DriveEntry', { timeout: 30000 });
+    const list = await expect(page).toMatchElement('.DriveList');
+    expect((await list.$$(':scope > a')).length).toBe(1);
+
+    await expect(page).toClick('.DriveEntry');
     await delay(3000);
 
     let video = await page.$('video');

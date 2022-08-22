@@ -76,7 +76,7 @@ class DriveList extends Component {
         <ResizeHandler onResize={ this.onResize } />
         <VisibilityHandler onVisible={ this.onVisible } minInterval={ 60 } />
         { driveList.length === 0 && this.renderZeroRides() }
-        <div className={classes.drives}>
+        <div className={ `${classes.drives} DriveList` }>
           { driveList.map((drive, i) => (
             <DriveListItem key={drive.start_time_utc_millis} drive={drive} windowWidth={ this.state.windowWidth } />
           ))}
