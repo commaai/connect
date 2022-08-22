@@ -31,7 +31,7 @@ describe('demo mode', () => {
     });
     await page.goto('http://localhost:3003/4cf7a6ad03080c90');
     // wait for the data to start loading...
-    await delay(30000);
+    await delay(8000);
 
     return true;
   });
@@ -43,7 +43,6 @@ describe('demo mode', () => {
 
   it('should load', async () => {
     const list = await expect(page).toMatchElement('.DriveList');
-    console.log(list);
     expect((await list.$$(':scope > a')).length).toBe(1);
 
     await expect(page).toClick('.DriveEntry');
