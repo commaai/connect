@@ -3,10 +3,6 @@ import * as Sentry from '@sentry/react';
 import * as Types from './types';
 import GeocodeApi from '../api/geocode';
 
-import { isDemoRoute } from '../demo';
-
-const demoEvents = require('../demo/events.json');
-
 const eventsRequests = {};
 const coordsRequests = {};
 const driveCoordsRequests = {};
@@ -284,27 +280,23 @@ export function fetchEvents(route) {
     }
 
     let driveEvents;
-    if (isDemoRoute(route.fullname)) {
-      driveEvents = [].concat(...demoEvents);
-    } else {
-      const promises = [];
-      for (let i = 0; i <= route.maxqlog; i++) {
-        promises.push((async (i) => {
-          const resp = await fetch(`${route.url}/${i}/events.json`, { method: 'GET' });
-          if (!resp.ok) {
-            return [];
-          }
-          const events = await resp.json();
-          return events;
-        })(i));
-      }
+    const promises = [];
+    for (let i = 0; i <= route.maxqlog; i++) {
+      promises.push((async (i) => {
+        const resp = await fetch(`${route.url}/${i}/events.json`, { method: 'GET' });
+        if (!resp.ok) {
+          return [];
+        }
+        const events = await resp.json();
+        return events;
+      })(i));
+    }
 
-      try {
-        driveEvents = [].concat(...(await Promise.all(promises)));
-      } catch (err) {
-        console.log(err);
-        return;
-      }
+    try {
+      driveEvents = [].concat(...(await Promise.all(promises)));
+    } catch (err) {
+      console.log(err);
+      return;
     }
 
     driveEvents = parseEvents(route, driveEvents);

@@ -5,9 +5,6 @@ import { updateDeviceOnline, fetchDeviceNetworkStatus } from './';
 import * as Types from './types';
 import { deviceOnCellular, getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
-const demoLogUrls = require('../demo/logUrls.json');
-const demoFiles = require('../demo/files.json');
-
 const FILE_NAMES = {
   'qcameras': 'qcamera.ts',
   'cameras': 'fcamera.hevc',
@@ -158,16 +155,12 @@ export function doUpload(dongleId, fileNames, paths, urls) {
 export function fetchFiles(routeName, nocache=false) {
   return async (dispatch, getState) => {
     let files;
-    if (Object.keys(demoLogUrls).includes(routeName)) {
-      files = demoFiles;
-    } else {
-      try {
-        files = await RawApi.getRouteFiles(routeName, nocache);
-      } catch (err) {
-        console.log(err);
-        Sentry.captureException(err, { fingerprint: 'action_files_fetch_files' });
-        return;
-      }
+    try {
+      files = await RawApi.getRouteFiles(routeName, nocache);
+    } catch (err) {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'action_files_fetch_files' });
+      return;
     }
 
     const dongleId = routeName.split('|')[0];

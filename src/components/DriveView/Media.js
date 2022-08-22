@@ -13,7 +13,6 @@ import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
 import ResizeHandler from '../ResizeHandler';
-import * as Demo from '../../demo';
 import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
 import { bufferVideo, currentOffset } from '../../timeline/playback';
@@ -304,12 +303,10 @@ class Media extends Component {
     }
 
     if ((!prevState.downloadMenu && downloadMenu) || (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu)) {
-      if (Demo.isDemo()) {
-        this.props.dispatch(fetchFiles('3533c53bb29502d1|2019-12-10--01-13-27'));
-      } else {
+      if ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser) {
         this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
-        this.props.dispatch(fetchFiles(this.props.currentRoute.fullname));
       }
+      this.props.dispatch(fetchFiles(this.props.currentRoute.fullname));
     }
   }
 

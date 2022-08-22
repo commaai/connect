@@ -7,11 +7,8 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback'
 import { getSegmentFetchRange, hasRoutesData } from '../timeline/segments';
-import * as Demo from '../demo';
 import { getClipsNav } from '../url';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
-
-const demoSegments = require('../demo/segments.json');
 
 let routesRequest = null;
 
@@ -251,15 +248,10 @@ export function checkRoutesData() {
     const { dongleId } = state;
     const fetchRange = getSegmentFetchRange(state);
 
-    if (Demo.isDemo()) {
-      routesRequest = { req: Promise.resolve(demoSegments), dongleId: dongleId };
-      // TODO
-    } else {
-      routesRequest = {
-        req: DrivesApi.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end),
-        dongleId: dongleId,
-      };
-    }
+    routesRequest = {
+      req: DrivesApi.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end),
+      dongleId: dongleId,
+    };
 
     routesRequest.req.then((routesData) => {
       state = getState();

@@ -4,15 +4,16 @@ import * as Demo from './demo';
 export function getDefaultFilter() {
   const d = new Date();
   d.setHours(d.getHours() + 1, 0, 0, 0);
-  let start;
+
   if (Demo.isDemo()) {
-    start = 1564443025000;
-  } else {
-    start = (new Date(d.getTime() - 1000 * 60 * 60 * 24 * 14)).getTime();
+    return {
+      start: 1632948396703,
+      end: 1632949028503,
+    };
   }
 
   return {
-    start,
+    start : (new Date(d.getTime() - 1000 * 60 * 60 * 24 * 14)).getTime(),
     end: d.getTime(),
   }
 }
