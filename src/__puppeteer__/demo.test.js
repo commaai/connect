@@ -29,7 +29,7 @@ describe('demo mode', () => {
       height,
       deviceScaleFactor: 1,
     });
-    await page.goto('http://localhost:3003/3533c53bb29502d1');
+    await page.goto('http://localhost:3003/4cf7a6ad03080c90');
     // wait for the data to start loading...
     await delay(8000);
 
