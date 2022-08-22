@@ -31,7 +31,7 @@ describe('demo mode', () => {
     });
     await page.goto('http://localhost:3003/4cf7a6ad03080c90');
     // wait for the data to start loading...
-    await delay(15000);
+    await delay(30000);
 
     return true;
   });
