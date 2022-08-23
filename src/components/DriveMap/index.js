@@ -59,12 +59,12 @@ class DriveMap extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const prevRoute = prevProps.currentSegment ? prevProps.currentSegment.route : null;
-    const route = this.props.currentSegment ? this.props.currentSegment.route : null;
+    const prevRoute = prevProps.currentRoute ? prevProps.currentRoute.fullname : null;
+    const route = this.props.currentRoute ? this.props.currentRoute.fullname : null;
     if (prevRoute !== route) {
       this.setPath([]);
       if (route) {
-        this.props.dispatch(fetchDriveCoords(this.props.currentSegment));
+        this.props.dispatch(fetchDriveCoords(this.props.currentRoute));
       };
     }
 
@@ -72,11 +72,11 @@ class DriveMap extends Component {
       this.shouldFlyTo = true;
     }
 
-    if (this.props.currentSegment && prevProps.currentSegment && this.props.currentSegment.driveCoords &&
-      prevProps.currentSegment.driveCoords !== this.props.currentSegment.driveCoords)
+    if (this.props.currentRoute && prevProps.currentRoute && this.props.currentRoute.driveCoords &&
+      prevProps.currentRoute.driveCoords !== this.props.currentRoute.driveCoords)
     {
       this.shouldFlyTo = false
-      const keys = Object.keys(this.props.currentSegment.driveCoords);
+      const keys = Object.keys(this.props.currentRoute.driveCoords);
       this.setState({
         driveCoordsMin: Math.min(...keys),
         driveCoordsMax: Math.max(...keys),
@@ -108,10 +108,10 @@ class DriveMap extends Component {
 
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
-      if (this.props.currentSegment && this.props.currentSegment.driveCoords) {
-        const { routeOffset } = this.props.currentSegment;
+      if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
+        const { offset } = this.props.currentRoute;
 
-        const pos = this.posAtOffset(currentOffset() - routeOffset);
+        const pos = this.posAtOffset(currentOffset() - offset);
         if (pos) {
           markerSource.setData({
             type: 'Point',
@@ -148,12 +148,12 @@ class DriveMap extends Component {
   }
 
   async populateMap() {
-    const { currentSegment } = this.props;
-    if (!this.map || !currentSegment || !currentSegment.driveCoords) {
+    const { currentRoute } = this.props;
+    if (!this.map || !currentRoute || !currentRoute.driveCoords) {
       return;
     }
 
-    this.setPath(Object.values(currentSegment.driveCoords));
+    this.setPath(Object.values(currentRoute.driveCoords));
   }
 
   setPath(coords) {
@@ -172,7 +172,7 @@ class DriveMap extends Component {
   }
 
   posAtOffset(offset) {
-    if (!this.props.currentSegment.driveCoords) {
+    if (!this.props.currentRoute.driveCoords) {
       return null;
     }
 
@@ -187,16 +187,16 @@ class DriveMap extends Component {
       this.state.driveCoordsMax,
     ));
 
-    if (!this.props.currentSegment.driveCoords[coordIdx]) {
+    if (!this.props.currentRoute.driveCoords[coordIdx]) {
       return null;
     }
 
-    const [floorLng, floorLat] = this.props.currentSegment.driveCoords[coordIdx];
-    if (!this.props.currentSegment.driveCoords[nextCoordIdx]) {
+    const [floorLng, floorLat] = this.props.currentRoute.driveCoords[coordIdx];
+    if (!this.props.currentRoute.driveCoords[nextCoordIdx]) {
       return [floorLng, floorLat];
     }
 
-    const [ceilLng, ceilLat] = this.props.currentSegment.driveCoords[nextCoordIdx];
+    const [ceilLng, ceilLat] = this.props.currentRoute.driveCoords[nextCoordIdx];
     return [
       floorLng + ((ceilLng - floorLng) * offsetFractionalPart),
       floorLat + ((ceilLat - floorLat) * offsetFractionalPart)
@@ -264,9 +264,9 @@ class DriveMap extends Component {
 
       this.map = mapComponent;
 
-      if (this.props.currentSegment && this.props.currentSegment.driveCoords) {
+      if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
         this.shouldFlyTo = false
-        const keys = Object.keys(this.props.currentSegment.driveCoords);
+        const keys = Object.keys(this.props.currentRoute.driveCoords);
         this.setState({
           driveCoordsMin: Math.min(...keys),
           driveCoordsMax: Math.max(...keys),
@@ -291,8 +291,7 @@ class DriveMap extends Component {
 
 const stateToProps = Obstruction({
   offset: 'offset',
-  segments: 'segments',
-  currentSegment: 'currentSegment',
+  currentRoute: 'currentRoute',
   startTime: 'startTime',
 });
 

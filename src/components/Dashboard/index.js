@@ -40,7 +40,6 @@ class Dashboard extends Component {
 }
 
 const stateToProps = Obstruction({
-  segments: 'segments',
   dongleId: 'dongleId',
   primeNav: 'primeNav',
   device: 'device',

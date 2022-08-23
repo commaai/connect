@@ -144,16 +144,12 @@ class DeviceSettingsModal extends Component {
     this.closeUnpair = this.closeUnpair.bind(this);
   }
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.device && nextProps.device.alias !== this.state.deviceAlias) {
-      this.setState({ deviceAlias: nextProps.device.alias });
-    }
-  }
-
   componentDidUpdate(prevProps) {
     if (prevProps.dongleId !== this.props.dongleId) {
+      const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
       this.setState({
         ...initialState,
+        deviceAlias: alias,
       });
     }
   }

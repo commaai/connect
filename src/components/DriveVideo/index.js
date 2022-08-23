@@ -51,7 +51,7 @@ class DriveVideo extends Component {
   constructor(props) {
     super(props);
 
-    this.visibleSegment = this.visibleSegment.bind(this);
+    this.visibleRoute = this.visibleRoute.bind(this);
     this.isVideoBuffering = this.isVideoBuffering.bind(this);
     this.syncVideo = debounce(this.syncVideo.bind(this), 200);
     this.firstSeek = true;
@@ -85,29 +85,29 @@ class DriveVideo extends Component {
     }
   }
 
-  visibleSegment(props = this.props) {
+  visibleRoute(props = this.props) {
     const offset = currentOffset();
-    const currSegment = props.currentSegment;
-    if (currSegment && currSegment.routeOffset <= offset && offset <= currSegment.routeOffset + currSegment.duration) {
-      return currSegment;
+    const currentRoute = props.currentRoute;
+    if (currentRoute && currentRoute.offset <= offset && offset <= currentRoute.offset + currentRoute.duration) {
+      return currentRoute;
     }
     return null;
   }
 
   updateVideoSource(prevProps) {
-    const segment = this.visibleSegment();
-    if (!segment) {
+    const r = this.visibleRoute();
+    if (!r) {
       if (this.state.src !== '') {
         this.setState({ src: '' });
       }
       return;
     }
 
-    const prevSegment = this.visibleSegment(prevProps);
-    if (this.state.src === '' || !prevSegment || prevSegment.route !== segment.route) {
-      let videoApi = VideoApi(segment.url, '');
+    const prevR = this.visibleRoute(prevProps);
+    if (this.state.src === '' || !prevR || prevR.fullname !== r.fullname) {
+      let videoApi = VideoApi(r.url, '');
       videoApi.getQcameraStreamIndex().then(() => {
-        let src = videoApi.getQcameraStreamIndexUrl() + `?s=${segment.segments}`
+        let src = videoApi.getQcameraStreamIndexUrl() + `?s=${r.maxqlog}`
         if (src !== this.state.src) {
           this.setState({src});
           this.syncVideo();
@@ -121,7 +121,7 @@ class DriveVideo extends Component {
 
   isVideoBuffering() {
     const videoPlayer = this.videoPlayer.current;
-    if (!videoPlayer || !this.visibleSegment() || !videoPlayer.getDuration()) {
+    if (!videoPlayer || !this.visibleRoute() || !videoPlayer.getDuration()) {
       this.props.dispatch(bufferVideo(true));
     }
 
@@ -137,9 +137,9 @@ class DriveVideo extends Component {
   }
 
   syncVideo() {
-    if (!this.visibleSegment()) {
+    if (!this.visibleRoute()) {
       this.props.dispatch(updateSegments());
-      if (this.props.segments && this.props.isBufferingVideo) {
+      if (this.props.routes && this.props.isBufferingVideo) {
         this.props.dispatch(bufferVideo(false));
       }
       return;
@@ -189,15 +189,14 @@ class DriveVideo extends Component {
   }
 
   currentVideoTime(offset = currentOffset()) {
-    const visibleSegment = this.visibleSegment();
-    if (!visibleSegment) {
+    const visibleRoute = this.visibleRoute();
+    if (!visibleRoute) {
       return 0;
     }
-    offset -= visibleSegment.routeOffset;
-    offset -= visibleSegment.routeFirstSegment * 60000;
+    offset -= visibleRoute.offset;
 
-    if (visibleSegment.videoStartOffset) {
-      offset -= visibleSegment.videoStartOffset;
+    if (visibleRoute.videoStartOffset) {
+      offset -= visibleRoute.videoStartOffset;
     }
 
     offset = offset / 1000;
@@ -218,7 +217,7 @@ class DriveVideo extends Component {
           </div>
         }
         <ReactPlayer ref={ this.videoPlayer } url={ this.state.src } playsinline={ true } muted={ true }
-          width="100%" height="unset" playing={ Boolean(this.visibleSegment()) && Boolean(playSpeed) }
+          width="100%" height="unset" playing={ Boolean(this.visibleRoute()) && Boolean(playSpeed) }
           config={{ hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false } }}
           playbackRate={ playSpeed }
           onBuffer={ () => this.isVideoBuffering() }
@@ -231,12 +230,12 @@ class DriveVideo extends Component {
 
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
-  currentSegment: 'currentSegment',
   desiredPlaySpeed: 'desiredPlaySpeed',
   offset: 'offset',
   startTime: 'startTime',
   isBufferingVideo: 'isBufferingVideo',
-  segments: 'segments',
+  routes: 'routes',
+  currentRoute: 'currentRoute',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveVideo));

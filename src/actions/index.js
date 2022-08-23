@@ -1,20 +1,16 @@
 import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import document from 'global/document';
-import { billing as Billing, devices as DevicesApi, drives as Drives, athena as AthenaApi } from '@commaai/comma-api';
+import { billing as Billing, devices as DevicesApi, drives as DrivesApi, athena as AthenaApi } from '@commaai/comma-api';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback'
-import { getSegmentFetchRange, hasSegmentMetadata, fetchSegmentMetadata, parseSegmentMetadata, insertSegmentMetadata
-  } from '../timeline/segments';
-import * as Demo from '../demo';
+import { getSegmentFetchRange, hasRoutesData } from '../timeline/segments';
 import { getClipsNav } from '../url';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
-const demoSegments = require('../demo/segments.json');
-
-let segmentsRequest = null;
+let routesRequest = null;
 
 export function selectRange(start, end, allowPathChange = true) {
   return (dispatch, getState) => {
@@ -27,7 +23,7 @@ export function selectRange(start, end, allowPathChange = true) {
       });
     }
 
-    dispatch(checkSegmentMetadata());
+    dispatch(checkRoutesData());
 
     if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start ||
       state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start)
@@ -67,7 +63,7 @@ export function selectDevice(dongleId, allowPathChange = true) {
       dispatch(fetchDeviceOnline(dongleId));
     }
 
-    dispatch(checkSegmentMetadata());
+    dispatch(checkRoutesData());
 
     if (allowPathChange) {
       const desiredPath = urlForState(dongleId, null, null, null);
@@ -235,52 +231,68 @@ export function fetchDeviceNetworkStatus(dongleId) {
   };
 }
 
-export function checkSegmentMetadata() {
+export function checkRoutesData() {
   return (dispatch, getState) => {
     let state = getState();
     if (!state.dongleId) {
       return;
     }
-    if (hasSegmentMetadata(state)) {
+    if (hasRoutesData(state)) {
       // already has metadata, don't bother
       return;
     }
-    if (segmentsRequest && segmentsRequest.dongleId === state.dongleId) {
+    if (routesRequest && routesRequest.dongleId === state.dongleId) {
       return;
     }
     console.log('We need to update the segment metadata...');
     const { dongleId } = state;
     const fetchRange = getSegmentFetchRange(state);
 
-    if (Demo.isDemo()) {
-      segmentsRequest = { req: Promise.resolve(demoSegments), dongleId: dongleId };
-    } else {
-      segmentsRequest = { req: Drives.getSegmentMetadata(fetchRange.start, fetchRange.end, dongleId), dongleId: dongleId };
-    }
-    dispatch(fetchSegmentMetadata(fetchRange.start, fetchRange.end));
+    routesRequest = {
+      req: DrivesApi.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end),
+      dongleId: dongleId,
+    };
 
-    segmentsRequest.req.then((segmentData) => {
+    routesRequest.req.then((routesData) => {
       state = getState();
       const currFetchRange = getSegmentFetchRange(state);
       if (currFetchRange.start !== fetchRange.start || currFetchRange.end !== fetchRange.end || state.dongleId !== dongleId) {
-        segmentsRequest = null;
-        dispatch(checkSegmentMetadata());
+        routesRequest = null;
+        dispatch(checkRoutesData());
         return;
-      } else if (segmentData && segmentData.length === 0 && !MyCommaAuth.isAuthenticated() &&
+      } else if (routesData && routesData.length === 0 && !MyCommaAuth.isAuthenticated() &&
         !getClipsNav(window.location.pathname)?.clip_id)
       {
         window.location = `/?r=${encodeURI(window.location.pathname)}`;  // redirect to login
         return;
       }
 
-      segmentData = parseSegmentMetadata(state, segmentData);
-      dispatch(insertSegmentMetadata(segmentData));
+      const routes = routesData.map((r) => {
+        const start_time = r.segment_start_times[0];
+        const end_time = r.segment_end_times[r.segment_end_times.length - 1];
+        return {
+          ...r,
+          offset: Math.round(start_time) - state.filter.start,
+          duration: end_time - start_time,
+          start_time_utc_millis: start_time,
+          end_time_utc_millis: end_time,
+          segment_offsets: r.segment_start_times.map((x) => x - state.filter.start),
+        };
+      });
 
-      segmentsRequest = null;
+      dispatch({
+        type: Types.ACTION_ROUTES_METADATA,
+        dongleId: dongleId,
+        start: fetchRange.start,
+        end: fetchRange.end,
+        routes: routes,
+      });
+
+      routesRequest = null;
     }).catch((err) => {
-      console.error('Failure fetching segment metadata', err);
-      Sentry.captureException(err, { fingerprint: 'timeline_fetch_segments' });
-      segmentsRequest = null;
+      console.error('Failure fetching routes metadata', err);
+      Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
+      routesRequest = null;
     });
   }
 }
@@ -307,7 +319,7 @@ export function selectTimeFilter(start, end) {
       end
     });
 
-    dispatch(checkSegmentMetadata());
+    dispatch(checkRoutesData());
   }
 }
 

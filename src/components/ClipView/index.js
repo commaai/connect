@@ -56,8 +56,8 @@ class ClipView extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.currentSegment !== this.props.currentSegment && this.props.currentSegment) {
-      this.props.dispatch(fetchEvents(this.props.currentSegment));
+    if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {
+      this.props.dispatch(fetchEvents(this.props.currentRoute));
     }
   }
 
@@ -105,7 +105,7 @@ class ClipView extends Component {
 }
 
 const stateToProps = Obstruction({
-  currentSegment: 'currentSegment',
+  currentRoute: 'currentRoute',
   dongleId: 'dongleId',
   clips: 'clips',
 });

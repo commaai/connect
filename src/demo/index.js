@@ -1,5 +1,4 @@
 const demoDevices = require('./devices.json');
-const demoSegments = require('./segments.json');
 
 export function isDemo() {
   if (!window.location || !window.location.pathname) {
@@ -13,5 +12,5 @@ export function isDemoDevice(dongleId) {
 }
 
 export function isDemoRoute(route) {
-  return demoSegments[0].canonical_route_name === route;
+  return route === '4cf7a6ad03080c90|2021-09-29--13-46-36';
 }

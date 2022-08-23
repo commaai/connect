@@ -3,10 +3,6 @@ import * as Sentry from '@sentry/react';
 import * as Types from './types';
 import GeocodeApi from '../api/geocode';
 
-import { isDemoRoute } from '../demo';
-
-const demoEvents = require('../demo/events.json');
-
 const eventsRequests = {};
 const coordsRequests = {};
 const driveCoordsRequests = {};
@@ -243,14 +239,14 @@ function parseEvents(route, driveEvents) {
 export function fetchEvents(route) {
   return async (dispatch, getState) => {
     const state = getState();
-    if (!state.segments) {
+    if (!state.routes) {
       return;
     }
 
     // loaded?
-    for (const r of state.segments) {
-      if (r.route === route.route) {
-        if (r.events !== null) {
+    for (const r of state.routes) {
+      if (r.fullname === route.fullname) {
+        if (r.events) {
           return;
         }
         break;
@@ -258,25 +254,25 @@ export function fetchEvents(route) {
     }
 
     // already requesting
-    if (eventsRequests[route.route] !== undefined) {
-      const driveEvents = await eventsRequests[route.route];
+    if (eventsRequests[route.fullname] !== undefined) {
+      const driveEvents = await eventsRequests[route.fullname];
       dispatch({
         type: Types.ACTION_UPDATE_ROUTE_EVENTS,
-        route: route.route,
+        fullname: route.fullname,
         events: driveEvents,
       });
       return;
     }
 
     let resolveEvents;
-    eventsRequests[route.route] = new Promise((resolve) => { resolveEvents = resolve; });
+    eventsRequests[route.fullname] = new Promise((resolve) => { resolveEvents = resolve; });
 
     // in cache?
-    const cacheEvents = await getCacheItem('events', route.route, route.segments);
+    const cacheEvents = await getCacheItem('events', route.fullname, route.maxqlog);
     if (cacheEvents !== null) {
       dispatch({
         type: Types.ACTION_UPDATE_ROUTE_EVENTS,
-        route: route.route,
+        fullname: route.fullname,
         events: cacheEvents,
       });
       resolveEvents(cacheEvents);
@@ -284,59 +280,55 @@ export function fetchEvents(route) {
     }
 
     let driveEvents;
-    if (isDemoRoute(route.route)) {
-      driveEvents = [].concat(...demoEvents);
-    } else {
-      const promises = [];
-      for (let i = 0; i < route.segments; i++) {
-        promises.push((async (i) => {
-          const resp = await fetch(`${route.url}/${i}/events.json`, { method: 'GET' });
-          if (!resp.ok) {
-            return [];
-          }
-          const events = await resp.json();
-          return events;
-        })(i));
-      }
+    const promises = [];
+    for (let i = 0; i <= route.maxqlog; i++) {
+      promises.push((async (i) => {
+        const resp = await fetch(`${route.url}/${i}/events.json`, { method: 'GET' });
+        if (!resp.ok) {
+          return [];
+        }
+        const events = await resp.json();
+        return events;
+      })(i));
+    }
 
-      try {
-        driveEvents = [].concat(...(await Promise.all(promises)));
-      } catch (err) {
-        console.log(err);
-        return;
-      }
+    try {
+      driveEvents = [].concat(...(await Promise.all(promises)));
+    } catch (err) {
+      console.log(err);
+      return;
     }
 
     driveEvents = parseEvents(route, driveEvents);
 
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_EVENTS,
-      route: route.route,
+      fullname: route.fullname,
       events: driveEvents,
     });
     resolveEvents(driveEvents);
-    setCacheItem('events', route.route, parseInt(Date.now()/1000) + (86400*14), driveEvents, route.segments);
+    setCacheItem('events', route.fullname, parseInt(Date.now()/1000) + (86400*14), driveEvents, route.maxqlog);
   }
 }
 
 export function fetchLocations(route) {
   return (dispatch, getState) => {
-    dispatch(fetchCoord(route, route.startCoord, 'startLocation'));
-    dispatch(fetchCoord(route, route.endCoord, 'endLocation'));
+    dispatch(fetchCoord(route, [route.start_lng, route.start_lat], 'startLocation'));
+    dispatch(fetchCoord(route, [route.end_lng, route.end_lat], 'endLocation'));
   }
 };
 
 export function fetchCoord(route, coord, locationKey) {
   return async (dispatch, getState) => {
     const state = getState();
-    if (!state.segments || (coord[0] === 0 && coord[1] === 0)) {
+    if (!state.routes || (!coord[0] && !coord[1])) {
       return;
     }
 
     // loaded?
-    for (const r of state.segments) {
-      if (r.route === route.route) {
-        if (r[locationKey] !== null) {
+    for (const r of state.routes) {
+      if (r.fullname === route.fullname) {
+        if (r[locationKey]) {
           return;
         }
         break;
@@ -353,7 +345,7 @@ export function fetchCoord(route, coord, locationKey) {
       const location = await coordsRequests[cacheKey];
       dispatch({
         type: Types.ACTION_UPDATE_ROUTE_LOCATION,
-        route: route.route,
+        fullname: route.fullname,
         locationKey,
         location,
       });
@@ -368,7 +360,7 @@ export function fetchCoord(route, coord, locationKey) {
     if (cacheCoords !== null) {
       dispatch({
         type: Types.ACTION_UPDATE_ROUTE_LOCATION,
-        route: route.route,
+        fullname: route.fullname,
         locationKey,
         location: cacheCoords,
       });
@@ -383,7 +375,7 @@ export function fetchCoord(route, coord, locationKey) {
 
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LOCATION,
-      route: route.route,
+      fullname: route.fullname,
       locationKey,
       location,
     });
@@ -395,14 +387,14 @@ export function fetchCoord(route, coord, locationKey) {
 export function fetchDriveCoords(route) {
   return async (dispatch, getState) => {
     const state = getState();
-    if (!state.segments) {
+    if (!state.routes) {
       return;
     }
 
     // loaded?
-    for (const r of state.segments) {
-      if (r.route === route.route) {
-        if (r.driveCoords !== null) {
+    for (const r of state.routes) {
+      if (r.fullname === route.fullname) {
+        if (r.driveCoords) {
           return;
         }
         break;
@@ -410,25 +402,25 @@ export function fetchDriveCoords(route) {
     }
 
     // already requesting
-    if (driveCoordsRequests[route.route] !== undefined) {
-      const driveCoords = await driveCoordsRequests[route.route];
+    if (driveCoordsRequests[route.fullname] !== undefined) {
+      const driveCoords = await driveCoordsRequests[route.fullname];
       dispatch({
         type: Types.ACTION_UPDATE_ROUTE_DRIVE_COORDS,
-        route: route.route,
+        fullname: route.fullname,
         driveCoords,
       });
       return;
     }
 
     let resolveDriveCoords;
-    driveCoordsRequests[route.route] = new Promise((resolve) => { resolveDriveCoords = resolve; });
+    driveCoordsRequests[route.fullname] = new Promise((resolve) => { resolveDriveCoords = resolve; });
 
     // in cache?
-    const cacheDriveCoords = await getCacheItem('driveCoords', route.route, route.segments);
+    const cacheDriveCoords = await getCacheItem('driveCoords', route.fullname, route.maxqlog);
     if (cacheDriveCoords !== null) {
       dispatch({
         type: Types.ACTION_UPDATE_ROUTE_DRIVE_COORDS,
-        route: route.route,
+        fullname: route.fullname,
         driveCoords: cacheDriveCoords,
       });
       resolveDriveCoords(cacheDriveCoords);
@@ -436,7 +428,7 @@ export function fetchDriveCoords(route) {
     }
 
     const promises = [];
-    for (let i = 0; i < route.segments; i++) {
+    for (let i = 0; i <= route.maxqlog; i++) {
       promises.push((async (i) => {
         const resp = await fetch(`${route.url}/${i}/coords.json`, { method: 'GET' });
         if (!resp.ok) {
@@ -467,10 +459,10 @@ export function fetchDriveCoords(route) {
 
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_DRIVE_COORDS,
-      route: route.route,
+      fullname: route.fullname,
       driveCoords,
     });
     resolveDriveCoords(driveCoords);
-    setCacheItem('driveCoords', route.route, parseInt(Date.now()/1000) + (86400*14), driveCoords, route.segments);
+    setCacheItem('driveCoords', route.fullname, parseInt(Date.now()/1000) + (86400*14), driveCoords, route.maxqlog);
   }
 }

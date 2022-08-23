@@ -13,10 +13,11 @@ import Measure from 'react-measure';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { getCurrentSegment } from '../../timeline/segments';
+import { getCurrentRoute } from '../../timeline/segments';
 import { selectRange } from '../../actions';
 import Colors from '../../colors';
 import { seek, currentOffset, selectLoop } from '../../timeline/playback';
+import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({
   base: {
@@ -202,7 +203,7 @@ class Timeline extends Component {
     this.clipDragEnd = this.clipDragEnd.bind(this);
     this.percentToOffset = this.percentToOffset.bind(this);
     this.segmentNum = this.segmentNum.bind(this);
-    this.renderSegment = this.renderSegment.bind(this);
+    this.renderRoute = this.renderRoute.bind(this);
     this.renderClipView = this.renderClipView.bind(this);
 
     this.rulerRemaining = React.createRef();
@@ -403,67 +404,70 @@ class Timeline extends Component {
   }
 
   segmentNum(offset) {
-    const { segments } = this.props;
-    for (const segment of segments) {
-      if (segment.offset <= offset && segment.offset + segment.duration >= offset) {
-        return Math.floor((offset - segment.offset) / 60000);
+    const { routes } = this.props;
+    if (!routes) {
+      return null;
+    }
+    for (const r of routes) {
+      if (r.offset <= offset && r.offset + r.duration >= offset) {
+        return getSegmentNumber(r, offset);
       }
     }
     return null;
   }
 
-  renderSegment(segment) {
+  renderRoute(route) {
     const { classes, filter } = this.props;
     const { zoom } = this.state;
 
-    if (!segment.events) {
+    if (!route.events) {
       return null;
     }
 
     const range = filter.start - filter.end;
-    let startPerc = (100 * segment.offset) / range;
-    let widthPerc = (100 * segment.duration) / range;
+    let startPerc = (100 * route.offset) / range;
+    let widthPerc = (100 * route.duration) / range;
 
     const startOffset = zoom.start - filter.start;
     const endOffset = zoom.end - filter.start;
     const zoomDuration = endOffset - startOffset;
-    if (segment.offset > endOffset) {
+    if (route.offset > endOffset) {
       return [];
     }
-    if (segment.offset + segment.duration < startOffset) {
+    if (route.offset + route.duration < startOffset) {
       return [];
     }
-    startPerc = (100 * (segment.offset - startOffset)) / zoomDuration;
-    widthPerc = (100 * segment.duration) / zoomDuration;
+    startPerc = (100 * (route.offset - startOffset)) / zoomDuration;
+    widthPerc = (100 * route.duration) / zoomDuration;
 
     const style = {
       width: `${widthPerc}%`,
       left: `${startPerc}%`,
     };
     return (
-      <div key={segment.route + segment.offset} className={classes.segment} style={style}>
-        { this.renderSegmentEvents(segment) }
+      <div key={route.start_time_utc_millis} className={classes.segment} style={style}>
+        { this.renderRouteEvents(route) }
       </div>
     );
   }
 
-  renderSegmentEvents(segment) {
+  renderRouteEvents(route) {
     const { classes } = this.props;
-    if (!segment.events) {
+    if (!route.events) {
       return;
     }
 
-    return segment.events
+    return route.events
       .filter((event) => event.data && event.data.end_route_offset_millis)
       .map((event) => {
         const style = {
-          left: `${(event.route_offset_millis / segment.duration) * 100}%`,
-          width: `${((event.data.end_route_offset_millis - event.route_offset_millis) / segment.duration) * 100}%`,
+          left: `${(event.route_offset_millis / route.duration) * 100}%`,
+          width: `${((event.data.end_route_offset_millis - event.route_offset_millis) / route.duration) * 100}%`,
         };
         const statusCls = event.data.alertStatus ? `${AlertStatusCodes[event.data.alertStatus]}` : '';
         return (
           <div
-            key={segment.route + event.route_offset_millis + event.type}
+            key={route.fullname + event.route_offset_millis + event.type}
             style={style}
             className={ `${classes.segmentColor} ${event.type} ${statusCls}` }
           />
@@ -505,7 +509,7 @@ class Timeline extends Component {
   }
 
   render() {
-    const { classes, hasRuler, filter, className, segments, thumbnailsVisible, hasClip } = this.props;
+    const { classes, hasRuler, filter, className, routes, thumbnailsVisible, hasClip } = this.props;
     const { thumbnail, hoverX, dragging } = this.state;
 
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
@@ -546,14 +550,14 @@ class Timeline extends Component {
       <div className={className}>
         <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } style={ baseWidthStyle }>
           <div className={ `${classes.segments} ${hasRulerCls}` }>
-            { segments && segments.map(this.renderSegment) }
+            { routes && routes.map(this.renderRoute) }
             <div className={ `${classes.statusGradient} ${hasRulerCls}` } />
           </div>
           <Measure bounds onResize={(rect) => this.setState({ thumbnail: rect.bounds })}>
             { (options) => (
               <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
                 { thumbnailsVisible &&
-                  <Thumbnails getCurrentSegment={ (seg) => getCurrentSegment(this.props, seg) }
+                  <Thumbnails getCurrentRoute={ (o) => getCurrentRoute(this.props, o) }
                     percentToOffset={this.percentToOffset} thumbnail={thumbnail} className={classes.thumbnail}
                     hasRuler={hasRuler} />
                 }
@@ -584,7 +588,7 @@ const stateToProps = Obstruction({
   zoom: 'zoom',
   loop: 'loop',
   filter: 'filter',
-  segments: 'segments',
+  routes: 'routes',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));

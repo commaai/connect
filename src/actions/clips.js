@@ -3,7 +3,7 @@ import { push } from 'connected-react-router';
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { clips as ClipsApi } from '@commaai/comma-api';
 
-import { checkSegmentMetadata, selectDevice, urlForState } from './';
+import { checkRoutesData, selectDevice, urlForState } from './';
 import { getClipsNav } from '../url';
 import * as Types from './types';
 
@@ -25,7 +25,7 @@ export function clipsExit() {
       }
     }
 
-    dispatch(checkSegmentMetadata());
+    dispatch(checkRoutesData());
   };
 }
 
@@ -60,18 +60,18 @@ export function fetchClipsList(dongleId) {
 
 export function clipsInit() {
   return (dispatch, getState) => {
-    const { dongleId, currentSegment } = getState();
+    const { dongleId, currentRoute } = getState();
     dispatch({
       type: Types.ACTION_CLIPS_INIT,
       dongleId,
-      route: currentSegment.route,
+      route: currentRoute.fullname,
     });
   };
 }
 
 export function clipsCreate(clip_id, video_type, title, isPublic) {
   return (dispatch, getState) => {
-    const { dongleId, loop, currentSegment } = getState();
+    const { dongleId, loop, currentRoute } = getState();
     dispatch({
       type: Types.ACTION_CLIPS_CREATE,
       dongleId,
@@ -81,7 +81,7 @@ export function clipsCreate(clip_id, video_type, title, isPublic) {
       video_type,
       title,
       is_public: isPublic,
-      route: currentSegment.route,
+      route: currentRoute.fullname,
     });
 
     dispatch(push(`/${dongleId}/clips/${clip_id}`));

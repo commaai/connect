@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';
 import fecha from 'fecha';
-import PropTypes from 'prop-types';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -13,6 +12,7 @@ import Pause from '@material-ui/icons/Pause';
 
 import { DownArrow, UpArrow, HistoryForwardIcon, HistoryBackIcon } from '../../icons';
 import { seek, play, pause, currentOffset } from '../../timeline/playback';
+import { getSegmentNumber } from '../../utils';
 
 const timerSteps = [
   0.1,
@@ -112,7 +112,6 @@ class TimeDisplay extends Component {
     this.decreaseSpeed = this.decreaseSpeed.bind(this);
     this.jumpBack = this.jumpBack.bind(this);
     this.jumpForward = this.jumpForward.bind(this);
-    this.segmentNum = this.segmentNum.bind(this);
 
     this.state = {
       desiredPlaySpeed: 1,
@@ -139,13 +138,13 @@ class TimeDisplay extends Component {
 
   getDisplayTime() {
     const offset = currentOffset();
-    const { filter } = this.props;
+    const { filter, currentRoute } = this.props;
     const now = new Date(offset + filter.start);
     if (isNaN(now.getTime())) {
       return '...';
     }
     let dateString = fecha.format(now, 'HH:mm:ss');
-    const seg = this.segmentNum(offset);
+    const seg = getSegmentNumber(currentRoute);
     if (seg !== null) {
       dateString = `${dateString} \u2013 ${seg}`;
     }
@@ -193,16 +192,6 @@ class TimeDisplay extends Component {
     } else {
       this.props.dispatch(pause());
     }
-  }
-
-  segmentNum(offset) {
-    const { currentSegment } = this.props;
-    if (currentSegment && currentSegment.routeOffset <= offset &&
-      currentSegment.routeOffset + currentSegment.duration >= offset)
-    {
-      return Math.floor((offset - currentSegment.routeOffset) / 60000);
-    }
-    return null;
   }
 
   render() {
@@ -259,7 +248,7 @@ class TimeDisplay extends Component {
 }
 
 const stateToProps = Obstruction({
-  currentSegment: 'currentSegment',
+  currentRoute: 'currentRoute',
   zoom: 'zoom',
   desiredPlaySpeed: 'desiredPlaySpeed',
   filter: 'filter',

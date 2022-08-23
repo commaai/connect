@@ -98,7 +98,6 @@ class AppDrawer extends Component {
 }
 
 const stateToProps = Obstruction({
-  segments: 'segments',
   selectedDongleId: 'dongleId',
   device: 'device',
 });

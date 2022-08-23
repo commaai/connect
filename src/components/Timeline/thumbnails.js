@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { getSegmentNumber } from '../../utils';
+
 export default function Thumbnails(props) {
   const { thumbnail } = props;
   const imgStyles = {
@@ -10,51 +12,52 @@ export default function Thumbnails(props) {
   const imgCount = Math.ceil(thumbnail.width / imgStyles.width);
 
   const imgArr = [];
-  let currentSegment = null;
+  let currSegment = null;
 
   if (!Number.isFinite(imgCount)) {
     return [];
   }
   for (let i = 0; i < imgCount; ++i) {
     const offset = props.percentToOffset((i + 0.5) / imgCount);
-    const segment = props.getCurrentSegment(offset);
-    if (!segment) {
-      if (currentSegment && !currentSegment.blank) {
-        imgArr.push(currentSegment);
-        currentSegment = null;
+    const route = props.getCurrentRoute(offset);
+    if (!route) {
+      if (currSegment && !currSegment.blank) {
+        imgArr.push(currSegment);
+        currSegment = null;
       }
-      if (!currentSegment) {
-        currentSegment = {
+      if (!currSegment) {
+        currSegment = {
           blank: true,
           length: 0
         };
       }
-      currentSegment.length += 1;
+      currSegment.length += 1;
     } else {
       // 12 per file, 5s each
-      let seconds = Math.floor((offset - segment.routeOffset) / 1000);
-      const url = `${segment.url}/${segment.segment}/sprite.jpg`;
+      let seconds = Math.floor((offset - route.offset) / 1000);
+      const segmentNum = getSegmentNumber(route, offset);
+      const url = `${route.url}/${segmentNum}/sprite.jpg`;
       seconds %= 60;
 
-      if (currentSegment && (currentSegment.blank || currentSegment.segment !== segment.segment)) {
-        imgArr.push(currentSegment);
-        currentSegment = null;
+      if (currSegment && (currSegment.blank || currSegment.segmentNum !== segmentNum)) {
+        imgArr.push(currSegment);
+        currSegment = null;
       }
 
       const imageIndex = Math.floor(seconds / 5);
 
-      if (currentSegment) {
-        if (imageIndex === currentSegment.endImage + 1) {
-          currentSegment.endImage = imageIndex;
+      if (currSegment) {
+        if (imageIndex === currSegment.endImage + 1) {
+          currSegment.endImage = imageIndex;
         } else {
-          imgArr.push(currentSegment);
-          currentSegment = null;
+          imgArr.push(currSegment);
+          currSegment = null;
         }
       }
 
-      if (!currentSegment) {
-        currentSegment = {
-          segment: segment.segment,
+      if (!currSegment) {
+        currSegment = {
+          segmentNum: segmentNum,
           startOffset: seconds,
           startImage: imageIndex,
           endImage: imageIndex,
@@ -63,13 +66,13 @@ export default function Thumbnails(props) {
         };
       }
 
-      currentSegment.length += 1;
-      currentSegment.endOffset = seconds;
+      currSegment.length += 1;
+      currSegment.endOffset = seconds;
     }
   }
 
-  if (currentSegment) {
-    imgArr.push(currentSegment);
+  if (currSegment) {
+    imgArr.push(currSegment);
   }
 
   return imgArr.map((data, i) =>

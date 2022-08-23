@@ -13,12 +13,11 @@ import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
 import ResizeHandler from '../ResizeHandler';
-import * as Demo from '../../demo';
 import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
 import { bufferVideo, currentOffset } from '../../timeline/playback';
 import Colors from '../../colors';
-import { deviceIsOnline, deviceOnCellular } from '../../utils';
+import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { analyticsEvent, primeNav } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
@@ -270,8 +269,6 @@ class Media extends Component {
     this.openInCabana = this.openInCabana.bind(this);
     this.openInUseradmin = this.openInUseradmin.bind(this);
     this.shareCurrentRoute = this.shareCurrentRoute.bind(this);
-    this.routesInLoop = this.routesInLoop.bind(this);
-    this.currentSegmentNum = this.currentSegmentNum.bind(this);
     this.uploadFile = this.uploadFile.bind(this);
     this.uploadFilesAll = this.uploadFilesAll.bind(this);
     this.getUploadStats = this.getUploadStats.bind(this);
@@ -297,8 +294,8 @@ class Media extends Component {
       this.props.dispatch(bufferVideo(false));
     }
 
-    if (prevProps.currentSegment !== this.props.currentSegment && this.props.currentSegment) {
-      this.props.dispatch(fetchEvents(this.props.currentSegment));
+    if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {
+      this.props.dispatch(fetchEvents(this.props.currentRoute));
     }
 
     if (prevState.inView && prevState.inView !== this.state.inView) {
@@ -306,52 +303,42 @@ class Media extends Component {
     }
 
     if ((!prevState.downloadMenu && downloadMenu) || (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu)) {
-      if (Demo.isDemo()) {
-        this.props.dispatch(fetchFiles('3533c53bb29502d1|2019-12-10--01-13-27'));
-      } else {
+      if ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser) {
         this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
-        for (const routeName of this.routesInLoop()) {
-          this.props.dispatch(fetchFiles(routeName));
-        }
       }
+      this.props.dispatch(fetchFiles(this.props.currentRoute.fullname));
     }
   }
 
   async copySegmentName() {
-    const { currentSegment } = this.props;
-    if (!currentSegment || !navigator.clipboard) {
+    const { currentRoute } = this.props;
+    if (!currentRoute || !navigator.clipboard) {
       return;
     }
 
-    await navigator.clipboard.writeText(`${currentSegment.route}--${this.currentSegmentNum()}`);
+    await navigator.clipboard.writeText(`${currentRoute.fullname}--${getSegmentNumber(currentRoute)}`);
     this.setState({ moreInfoMenu: null });
   }
 
-  currentSegmentNum() {
-    const offset = currentOffset();
-    return Math.floor((offset - this.props.currentSegment.routeOffset) / 60000);
-  }
-
   openInCabana() {
-    const { currentSegment, loop, filter } = this.props;
-    if (!currentSegment) {
+    const { currentRoute, loop } = this.props;
+    if (!currentRoute) {
       return;
     }
     const offset = currentOffset();
     const params = {
-      route: currentSegment.route,
-      url: currentSegment.url,
-      seekTime: Math.floor((offset - currentSegment.routeOffset) / 1000)
+      route: currentRoute.fullname,
+      url: currentRoute.url,
+      seekTime: Math.floor((offset - currentRoute.offset) / 1000)
     };
-    const routeStartTime = (filter.start + currentSegment.routeOffset);
 
-    if (loop.startTime && loop.startTime > routeStartTime && loop.duration < 180000) {
-      const startTime = Math.floor((loop.startTime - routeStartTime) / 1000);
+    if (loop.startTime && loop.startTime > currentRoute.start_time_utc_millis && loop.duration < 180000) {
+      const startTime = Math.floor((loop.startTime - currentRoute.start_time_utc_millis) / 1000);
       params.segments = [startTime, Math.floor(startTime + (loop.duration / 1000))].join(',');
     }
 
     const event_parameters = {
-      route_start_time: filter.start + currentSegment.routeOffset,
+      route_start_time: currentRoute.start_time_utc_millis,
     };
     attachRelTime(event_parameters, 'route_start_time', true, 'h');
     this.props.dispatch(analyticsEvent('open_in_cabana', event_parameters));
@@ -363,18 +350,18 @@ class Media extends Component {
   }
 
   openInUseradmin() {
-    const { currentSegment, filter } = this.props;
-    if (!currentSegment) {
+    const { currentRoute } = this.props;
+    if (!currentRoute) {
       return;
     }
 
     const event_parameters = {
-      route_start_time: filter.start + currentSegment.routeOffset,
+      route_start_time: currentRoute.start_time_utc_millis,
     };
     attachRelTime(event_parameters, 'route_start_time', true, 'h');
     this.props.dispatch(analyticsEvent('open_in_cabana', event_parameters));
 
-    const params = { onebox: currentSegment.route };
+    const params = { onebox: currentRoute.fullname };
     const win = window.open(`${window.USERADMIN_URL_ROOT}?${qs.stringify(params)}`, '_blank');
     if (win.focus) {
       win.focus();
@@ -393,17 +380,9 @@ class Media extends Component {
     }
   }
 
-  routesInLoop() {
-    const { segments, loop } = this.props;
-    return segments
-      .filter((route) =>
-        route.startTime < loop.startTime + loop.duration && route.startTime + route.duration > loop.startTime)
-      .map((route) => route.route);
-  }
-
   async uploadFile(type) {
-    const { dongleId, currentSegment } = this.props;
-    if (!currentSegment) {
+    const { dongleId, currentRoute } = this.props;
+    if (!currentRoute) {
       return;
     }
 
@@ -411,9 +390,9 @@ class Media extends Component {
       type: type,
     }));
 
-    const routeNoDongleId = currentSegment.route.split('|')[1];
-    const path = `${routeNoDongleId}--${this.currentSegmentNum()}/${FILE_NAMES[type]}`;
-    const fileName = `${dongleId}|${routeNoDongleId}--${this.currentSegmentNum()}/${type}`;
+    const routeNoDongleId = currentRoute.fullname.split('|')[1];
+    const path = `${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${FILE_NAMES[type]}`;
+    const fileName = `${dongleId}|${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${type}`;
 
     const uploading = {};
     uploading[fileName] = { requested: true };
@@ -426,7 +405,7 @@ class Media extends Component {
   }
 
   async uploadFilesAll(types) {
-    const { dongleId, device, segmentData, loop, files } = this.props;
+    const { dongleId, device, currentRoute, loop, files } = this.props;
     if (types === undefined) {
       types = ['logs', 'cameras', 'dcameras'];
       if (device.device_type === 'three') {
@@ -434,7 +413,7 @@ class Media extends Component {
       };
     }
 
-    if (!segmentData.segments || !files) {
+    if (!currentRoute || !files) {
       return;
     }
 
@@ -443,12 +422,12 @@ class Media extends Component {
     }));
 
     const uploading = {}
-    for (const segment of segmentData.segments) {
-      if (segment.start_time_utc_millis < loop.startTime + loop.duration &&
-        segment.start_time_utc_millis + segment.duration > loop.startTime)
+    for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
+      if (currentRoute.segment_start_times[i] < loop.startTime + loop.duration &&
+        currentRoute.segment_end_times[i] > loop.startTime)
       {
         for (const type of types) {
-          const fileName = `${segment.canonical_name}/${type}`;
+          const fileName = `${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`;
           if (!files[fileName]) {
             uploading[fileName] = { requested: true };
           }
@@ -469,14 +448,14 @@ class Media extends Component {
   }
 
   _uploadStats(types, count, uploaded, uploading, paused, requested) {
-    const { segmentData, loop, files } = this.props;
-    for (const segment of segmentData.segments) {
-      if (segment.start_time_utc_millis < loop.startTime + loop.duration &&
-        segment.start_time_utc_millis + segment.duration > loop.startTime)
+    const { currentRoute, loop, files } = this.props;
+    for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
+      if (currentRoute.segment_start_times[i] < loop.startTime + loop.duration &&
+        currentRoute.segment_end_times[i] > loop.startTime)
       {
         for (const type of types) {
           count += 1;
-          const log = files[`${segment.canonical_name}/${type}`];
+          const log = files[`${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`];
           if (log) {
             uploaded += Boolean(log.url || log.notFound);
             uploading += Boolean(log.progress !== undefined);
@@ -491,8 +470,8 @@ class Media extends Component {
   }
 
   getUploadStats() {
-    const { device, segmentData, files } = this.props;
-    if (!files || !segmentData || !segmentData.segments) {
+    const { device, currentRoute, files } = this.props;
+    if (!files || !currentRoute) {
       return null;
     }
 
@@ -515,11 +494,11 @@ class Media extends Component {
   }
 
   downloadFile(file, type) {
-    const { filter, currentSegment } = this.props;
+    const { currentRoute } = this.props;
 
     const event_parameters = {
       type,
-      route_start_time: filter.start + currentSegment.routeOffset,
+      route_start_time: currentRoute.start_time_utc_millis,
     };
     attachRelTime(event_parameters, 'route_start_time', true, 'h');
     this.props.dispatch(analyticsEvent('download_file', event_parameters));
@@ -528,8 +507,8 @@ class Media extends Component {
   }
 
   initCreateClip(ev) {
-    const { device, profile, currentSegment } = this.props;
-    if (!currentSegment) {
+    const { device, profile, currentRoute } = this.props;
+    if (!currentRoute) {
       return;
     }
 
@@ -633,7 +612,7 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { currentSegment, device, classes, files, profile } = this.props;
+    const { currentRoute, device, classes, files, profile } = this.props;
     const { downloadMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo } = this.state;
 
     if (!device) {
@@ -641,8 +620,8 @@ class Media extends Component {
     }
 
     let fcam = {}, ecam = {}, dcam = {}, rlog = {};
-    if (files && currentSegment) {
-      const seg = `${currentSegment.route}--${this.currentSegmentNum()}`;
+    if (files && currentRoute) {
+      const seg = `${currentRoute.fullname}--${getSegmentNumber(currentRoute)}`;
       fcam = files[`${seg}/cameras`] || {};
       ecam = files[`${seg}/ecameras`] || {};
       dcam = files[`${seg}/dcameras`] || {};
@@ -733,7 +712,7 @@ class Media extends Component {
         transformOrigin={{ vertical: 'top', horizontal: windowWidth > 400 ? 260 : 300 }}>
         <MenuItem className={ classes.copySegment } onClick={ this.copySegmentName }
           style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}>
-          <div>{ currentSegment ? `${currentSegment.route}--${this.currentSegmentNum()}` : '---' }</div>
+          <div>{ currentRoute ? `${currentRoute.fullname}--${getSegmentNumber(currentRoute)}` : '---' }</div>
           <ContentCopyIcon />
         </MenuItem>
         <MenuItem onClick={ this.openInCabana } id="openInCabana" >
@@ -837,9 +816,8 @@ class Media extends Component {
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
-  currentSegment: 'currentSegment',
-  segments: 'segments',
-  segmentData: 'segmentData',
+  routes: 'routes',
+  currentRoute: 'currentRoute',
   loop: 'loop',
   filter: 'filter',
   files: 'files',

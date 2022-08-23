@@ -65,9 +65,14 @@ export default function reducer(_state, action) {
           state.device = new_device;
         }
       }
-      if (state.segmentData && state.segmentData.dongleId !== state.dongleId) {
-        state.segmentData = null;
-        state.segments = [];
+      if (state.routesMeta && state.routesMeta.dongleId !== state.dongleId) {
+        state.routesMeta = {
+          dongleId: null,
+          start: null,
+          end: null,
+        };
+        state.routes = null;
+        state.currentRoute = null;
       }
       break;
     case Types.ACTION_SELECT_TIME_FILTER:
@@ -77,8 +82,13 @@ export default function reducer(_state, action) {
           start: action.start,
           end: action.end,
         },
-        segmentData: null,
-        segments: [],
+        routesMeta: {
+          dongleId: null,
+          start: null,
+          end: null,
+        },
+        routes: null,
+        currentRoute: null,
       };
       break;
     case Types.ACTION_UPDATE_DEVICES:
@@ -108,12 +118,12 @@ export default function reducer(_state, action) {
     case Types.ACTION_UPDATE_ROUTE_EVENTS:
       const firstFrame = action.events.find((ev) => ev.type === 'event' && ev.data.event_type === 'first_road_camera_frame');
       const videoStartOffset = firstFrame ? firstFrame.route_offset_millis : null;
-      if (state.segments) {
-        state.segments = [...state.segments];
-        for (const i in state.segments) {
-          if (state.segments[i].route === action.route) {
-            state.segments[i] = {
-              ...state.segments[i],
+      if (state.routes) {
+        state.routes = [...state.routes];
+        for (const i in state.routes) {
+          if (state.routes[i].fullname === action.fullname) {
+            state.routes[i] = {
+              ...state.routes[i],
               events: action.events,
               videoStartOffset,
             }
@@ -121,50 +131,50 @@ export default function reducer(_state, action) {
           }
         }
       }
-      if (state.currentSegment && state.currentSegment.route === action.route) {
-        state.currentSegment = {
-          ...state.currentSegment,
+      if (state.currentRoute && state.currentRoute.fullname === action.fullname) {
+        state.currentRoute = {
+          ...state.currentRoute,
           events: action.events,
           videoStartOffset,
         }
       }
       break;
     case Types.ACTION_UPDATE_ROUTE_LOCATION:
-      if (state.segments) {
-        state.segments = [...state.segments];
-        for (const i in state.segments) {
-          if (state.segments[i].route === action.route) {
-            state.segments[i] = {
-              ...state.segments[i],
+      if (state.routes) {
+        state.routes = [...state.routes];
+        for (const i in state.routes) {
+          if (state.routes[i].fullname === action.fullname) {
+            state.routes[i] = {
+              ...state.routes[i],
             }
-            state.segments[i][action.locationKey] = action.location;
+            state.routes[i][action.locationKey] = action.location;
             break;
           }
         }
       }
-      if (state.currentSegment && state.currentSegment.route === action.route) {
-        state.currentSegment = {
-          ...state.currentSegment,
+      if (state.currentRoute && state.currentRoute.fullname === action.fullname) {
+        state.currentRoute = {
+          ...state.currentRoute,
         }
-        state.currentSegment[action.locationKey] = action.location;
+        state.currentRoute[action.locationKey] = action.location;
       }
       break;
     case Types.ACTION_UPDATE_ROUTE_DRIVE_COORDS:
-      if (state.segments) {
-        state.segments = [...state.segments];
-        for (const i in state.segments) {
-          if (state.segments[i].route === action.route) {
-            state.segments[i] = {
-              ...state.segments[i],
+      if (state.routes) {
+        state.routes = [...state.routes];
+        for (const i in state.routes) {
+          if (state.routes[i].fullname === action.fullname) {
+            state.routes[i] = {
+              ...state.routes[i],
               driveCoords: action.driveCoords,
             }
             break;
           }
         }
       }
-      if (state.currentSegment && state.currentSegment.route === action.route) {
-        state.currentSegment = {
-          ...state.currentSegment,
+      if (state.currentRoute && state.currentRoute.fullname === action.fullname) {
+        state.currentRoute = {
+          ...state.currentRoute,
           driveCoords: action.driveCoords,
         };
       }
@@ -406,6 +416,14 @@ export default function reducer(_state, action) {
         state: 'error',
         clip_id: action.clip_id,
         error: action.error,
+      };
+      break;
+    case Types.ACTION_ROUTES_METADATA:
+      state.routes = action.routes;
+      state.routesMeta = {
+        dongleId: action.dongleId,
+        start: action.start,
+        end: action.end,
       };
       break;
     default:

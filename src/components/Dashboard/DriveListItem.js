@@ -53,7 +53,7 @@ const styles = (theme) => ({
   },
 });
 
-class DriveListDrive extends Component {
+class DriveLitemItem extends Component {
   constructor(props) {
     super(props);
 
@@ -98,11 +98,9 @@ class DriveListDrive extends Component {
     const { drive, classes, windowWidth } = this.props;
 
     const small = windowWidth < 640;
-    const startTs = drive.startTime;
-    const endTs = drive.startTime + drive.duration;
-    const startTime = fecha.format(new Date(drive.startTime), 'HH:mm');
-    const startDate = fecha.format(new Date(drive.startTime), small ? 'ddd, MMM D' : 'dddd, MMM D');
-    const endTime = fecha.format(new Date(endTs), 'HH:mm');
+    const startTime = fecha.format(new Date(drive.start_time_utc_millis), 'HH:mm');
+    const startDate = fecha.format(new Date(drive.start_time_utc_millis), small ? 'ddd, MMM D' : 'dddd, MMM D');
+    const endTime = fecha.format(new Date(drive.end_time_utc_millis), 'HH:mm');
     const duration = formatDriveDuration(drive.duration);
     const points = getDrivePoints(drive.duration);
 
@@ -121,8 +119,9 @@ class DriveListDrive extends Component {
       arrow:  { order: 6, maxWidth: '6%',  flexBasis: '6%' },
     };
     return (
-      <a key={drive.startTime} className={ `${classes.drive} DriveEntry` } href={ `/${drive.dongleId}/${startTs}/${endTs}` }
-        onClick={ filterRegularClick(() => this.props.dispatch(selectRange(startTs, endTs))) } ref={ this.aRef }>
+      <a key={drive.start_time} className={ `${classes.drive} DriveEntry` } ref={ this.aRef }
+        href={ `/${drive.dongle_id}/${drive.start_time_utc_millis}/${drive.end_time_utc_millis}` }
+        onClick={ filterRegularClick(() => this.props.dispatch(selectRange(drive.start_time_utc_millis, drive.end_time_utc_millis))) }>
         <div className={classes.driveHeader} style={ !small ? { padding: '18px 32px' } : { padding: 18 } }>
           <Grid container>
             <div className={ classes.driveGridItem } style={ gridStyle.date }>
@@ -160,10 +159,10 @@ class DriveListDrive extends Component {
             </div>
             <div className={ classes.driveGridItem } style={ gridStyle.dist }>
               <Typography className={ classes.firstLine }>
-                { `${+drive.distanceMiles.toFixed(1)} mi` }
+                { `${+drive.length.toFixed(1)} mi` }
               </Typography>
               <Typography>
-                { `${+(drive.distanceMiles * KM_PER_MI).toFixed(1)} km` }
+                { `${+(drive.length * KM_PER_MI).toFixed(1)} km` }
               </Typography>
             </div>
             { !small &&
@@ -174,11 +173,11 @@ class DriveListDrive extends Component {
           </Grid>
         </div>
         <Timeline className={classes.driveTimeline} thumbnailsVisible={ this.state.inView }
-          zoomOverride={{ start: drive.startTime, end: drive.startTime + drive.duration }}
+          zoomOverride={{ start: drive.start_time_utc_millis, end: drive.end_time_utc_millis }}
         />
       </a>
     );
   }
 }
 
-export default connect(() => ({}))(withStyles(styles)(DriveListDrive));
+export default connect(() => ({}))(withStyles(styles)(DriveLitemItem));

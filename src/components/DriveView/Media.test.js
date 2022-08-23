@@ -36,7 +36,12 @@ describe('Media', () => {
       return {
         filesUploading: {},
         filesUploadingMeta: {},
-        currentSegment: { routeOffset },
+        currentRoute: {
+          offset: routeOffset,
+          start_time_utc_millis: routeStartTime,
+          segment_numbers: Array.from(Array(4).keys()),
+          segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60 + routeOffset),
+        },
         loop: { startTime: loopStartTime, duration: 15000 },
         filter: { start },
         device: { device_type: 'three' },
@@ -60,6 +65,7 @@ describe('Media', () => {
     expect(winOpenMock).toBeCalledWith(expect.stringContaining(baseUrl), '_blank');
 
     const qsParams = queryString.parse(urlParams);
+    console.log(urlParams, qsParams);
     expect(qsParams.segments).toEqual(expect.stringContaining(','));
     const segmentParts = qsParams.segments.split(',');
 
@@ -80,7 +86,11 @@ describe('Media', () => {
       return {
         filesUploading: {},
         filesUploadingMeta: {},
-        currentSegment: { routeOffset },
+        currentRoute: {
+          offset: routeOffset,
+          segment_numbers: Array.from(Array(4).keys()),
+          segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60 + routeOffset),
+        },
         filter: { start },
         device: { device_type: 'three' },
         loop: { startTime: loopStartTime, duration: 181000 },
