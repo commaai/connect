@@ -207,7 +207,7 @@ function parseEvents(route, driveEvents) {
       res.push(ev);
     } else if (ev.type === 'event') {
       res.push(ev);
-    } else if (ev.type === 'flag') {
+    } else if (ev.type === 'user_flag') {
       currFlag = {
         ...ev,
         data: {
