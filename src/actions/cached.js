@@ -208,6 +208,10 @@ function parseEvents(route, driveEvents) {
     } else if (ev.type === 'event') {
       res.push(ev);
     } else if (ev.type === 'user_flag') {
+      if (currFlag && currFlag.data.end_route_offset_millis > ev.route_offset_millis) {
+        ev.route_offset_millis = currFlag.data.end_route_offset_millis;
+      }
+
       currFlag = {
         ...ev,
         data: {
