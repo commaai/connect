@@ -105,17 +105,9 @@ class DriveVideo extends Component {
 
     const prevR = this.visibleRoute(prevProps);
     if (this.state.src === '' || !prevR || prevR.fullname !== r.fullname) {
-      let videoApi = VideoApi(r.url, '');
-      videoApi.getQcameraStreamIndex().then(() => {
-        let src = videoApi.getQcameraStreamIndexUrl() + `?s=${r.maxqlog}`
-        if (src !== this.state.src) {
-          this.setState({src});
-          this.syncVideo();
-        }
-      }).catch((err) => {
-        console.log(err);
-        Sentry.captureException(err, { fingerprint: 'drive_video_source_get_qcam_index' });
-      });
+      const src = VideoApi.getQcameraStreamUrl(r.fullname, r.share_exp, r.share_sig);
+      this.setState({ src });
+      this.syncVideo();
     }
   }
 
