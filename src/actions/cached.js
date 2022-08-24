@@ -281,16 +281,18 @@ export function fetchEvents(route) {
     let resolveEvents;
     eventsRequests[route.fullname] = new Promise((resolve) => { resolveEvents = resolve; });
 
-    // in cache?
-    const cacheEvents = await getCacheItem('events', route.fullname, route.maxqlog);
-    if (cacheEvents !== null) {
-      dispatch({
-        type: Types.ACTION_UPDATE_ROUTE_EVENTS,
-        fullname: route.fullname,
-        events: cacheEvents,
-      });
-      resolveEvents(cacheEvents);
-      return;
+    if (!USE_LOCAL_EVENTS_DATA) {
+      // in cache?
+      const cacheEvents = await getCacheItem('events', route.fullname, route.maxqlog);
+      if (cacheEvents !== null) {
+        dispatch({
+          type: Types.ACTION_UPDATE_ROUTE_EVENTS,
+          fullname: route.fullname,
+          events: cacheEvents,
+        });
+        resolveEvents(cacheEvents);
+        return;
+      }
     }
 
     let driveEvents;
@@ -435,18 +437,20 @@ export function fetchDriveCoords(route) {
     let resolveDriveCoords;
     driveCoordsRequests[route.fullname] = new Promise((resolve) => { resolveDriveCoords = resolve; });
 
-    // in cache?
-    const cacheDriveCoords = await getCacheItem('driveCoords', route.fullname, route.maxqlog);
-    if (cacheDriveCoords !== null) {
-      dispatch({
-        type: Types.ACTION_UPDATE_ROUTE,
-        fullname: route.fullname,
-        route: {
-          driveCoords: cacheDriveCoords,
-        },
-      });
-      resolveDriveCoords(cacheDriveCoords);
-      return;
+    if (!USE_LOCAL_COORDS_DATA) {
+      // in cache?
+      const cacheDriveCoords = await getCacheItem('driveCoords', route.fullname, route.maxqlog);
+      if (cacheDriveCoords !== null) {
+        dispatch({
+          type: Types.ACTION_UPDATE_ROUTE,
+          fullname: route.fullname,
+          route: {
+            driveCoords: cacheDriveCoords,
+          },
+        });
+        resolveDriveCoords(cacheDriveCoords);
+        return;
+      }
     }
 
     const promises = [];
