@@ -3,7 +3,8 @@ import * as Sentry from '@sentry/react';
 import * as Types from './types';
 import GeocodeApi from '../api/geocode';
 
-const USE_LOCAL_CHFFR_DATA = !!process.env.REACT_APP_LOCAL_CHFFR_DATA;
+const USE_LOCAL_COORDS_DATA = !!process.env.REACT_APP_LOCAL_COORDS_DATA;
+const USE_LOCAL_EVENTS_DATA = !!process.env.REACT_APP_LOCAL_EVENTS_DATA;
 
 const eventsRequests = {};
 const coordsRequests = {};
@@ -297,7 +298,7 @@ export function fetchEvents(route) {
     for (let i = 0; i <= route.maxqlog; i++) {
       promises.push((async (i) => {
         const url = new URL(`${route.url}/${i}/events.json`);
-        if (USE_LOCAL_CHFFR_DATA) {
+        if (USE_LOCAL_EVENTS_DATA) {
           url.hostname = 'chffrprivate.azureedge.local';
         }
         const resp = await fetch(url, { method: 'GET' });
@@ -451,7 +452,11 @@ export function fetchDriveCoords(route) {
     const promises = [];
     for (let i = 0; i <= route.maxqlog; i++) {
       promises.push((async (i) => {
-        const resp = await fetch(`${route.url}/${i}/coords.json`, { method: 'GET' });
+        const url = new URL(`${route.url}/${i}/coords.json`);
+        if (USE_LOCAL_COORDS_DATA) {
+          url.hostname = 'chffrprivate.azureedge.local';
+        }
+        const resp = await fetch(url, { method: 'GET' });
         if (!resp.ok) {
           return [];
         }
