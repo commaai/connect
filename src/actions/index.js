@@ -272,6 +272,7 @@ export function checkRoutesData() {
         const end_time = r.segment_end_times[r.segment_end_times.length - 1];
         return {
           ...r,
+          url: r.url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
           offset: Math.round(start_time) - state.filter.start,
           duration: end_time - start_time,
           start_time_utc_millis: start_time,
