@@ -115,7 +115,7 @@ export default function geocodeApi() {
         apiKey: HERE_API_KEY,
         q: query,
         limit: 20,
-        details: '1',
+        show: ['details'],
       };
       if (proximity) {
         params.at = `${proximity[1]},${proximity[0]}`;
