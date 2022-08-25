@@ -115,6 +115,26 @@ export default function reducer(_state, action) {
         state.devices.unshift(populateFetchedAt(action.device));
       }
       break;
+    case Types.ACTION_UPDATE_ROUTE:
+      if (state.routes) {
+        state.routes = [...state.routes];
+        for (const i in state.routes) {
+          if (state.routes[i].fullname === action.fullname) {
+            state.routes[i] = {
+              ...state.routes[i],
+              ...action.route,
+            }
+            break;
+          }
+        }
+      }
+      if (state.currentRoute && state.currentRoute.fullname === action.fullname) {
+        state.currentRoute = {
+          ...state.currentRoute,
+          ...action.route,
+        }
+      }
+      break;
     case Types.ACTION_UPDATE_ROUTE_EVENTS:
       const firstFrame = action.events.find((ev) => ev.type === 'event' && ev.data.event_type === 'first_road_camera_frame');
       const videoStartOffset = firstFrame ? firstFrame.route_offset_millis : null;
@@ -157,26 +177,6 @@ export default function reducer(_state, action) {
           ...state.currentRoute,
         }
         state.currentRoute[action.locationKey] = action.location;
-      }
-      break;
-    case Types.ACTION_UPDATE_ROUTE_DRIVE_COORDS:
-      if (state.routes) {
-        state.routes = [...state.routes];
-        for (const i in state.routes) {
-          if (state.routes[i].fullname === action.fullname) {
-            state.routes[i] = {
-              ...state.routes[i],
-              driveCoords: action.driveCoords,
-            }
-            break;
-          }
-        }
-      }
-      if (state.currentRoute && state.currentRoute.fullname === action.fullname) {
-        state.currentRoute = {
-          ...state.currentRoute,
-          driveCoords: action.driveCoords,
-        };
       }
       break;
     case Types.ACTION_UPDATE_SHARED_DEVICE:

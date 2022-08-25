@@ -352,3 +352,11 @@ export function analyticsEvent(name, parameters) {
     parameters,
   };
 }
+
+export function updateRoute(fullname, route) {
+  return {
+    type: Types.ACTION_UPDATE_ROUTE,
+    fullname,
+    route,
+  };
+}
