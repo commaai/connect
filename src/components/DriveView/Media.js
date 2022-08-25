@@ -325,7 +325,9 @@ class Media extends Component {
       this.props.dispatch(fetchFiles(this.props.currentRoute.fullname));
     }
 
-    if (routePreserved === null && !prevState.moreInfoMenu && moreInfoMenu) {
+    if (routePreserved === null && !prevState.moreInfoMenu && moreInfoMenu &&
+      (this.props.device?.is_owner || this.props.profile?.superuser))
+    {
       this.fetchRoutePreserved();
     }
   }
