@@ -269,8 +269,7 @@ export function checkRoutesData() {
 
       const routes = routesData.map((r) => {
         const start_time = r.segment_start_times[0];
-        const valid_ends = r.segment_end_times.filter((x) => x !== null);
-        const end_time = valid_ends[valid_ends.length - 1];
+        const end_time = r.segment_end_times[r.segment_end_times.length - 1];
         return {
           ...r,
           url: r.url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
