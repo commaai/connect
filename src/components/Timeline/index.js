@@ -66,6 +66,7 @@ const styles = () => ({
     },
     '&.flag': {
       background: theme.palette.states.userFlag,
+      zIndex: 1,
     }
   },
   thumbnails: {
