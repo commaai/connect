@@ -151,10 +151,6 @@ function parseEvents(route, driveEvents) {
   let currFlag = null;
   for (const ev of driveEvents) {
     if (ev.type === 'state') {
-      if (currFlag && currFlag.end_route_offset_millis > ev.route_offset_millis) {
-        ev.route_offset_millis = currFlag.end_route_offset_millis;
-      }
-
       if (currEngaged !== null && !ev.data.enabled) {
         currEngaged.data.end_route_offset_millis = ev.route_offset_millis;
         currEngaged = null;
@@ -215,44 +211,7 @@ function parseEvents(route, driveEvents) {
           end_route_offset_millis: ev.route_offset_millis + 1e3,
         },
         type: 'flag',
-      }
-
-      // split any current event if it overlaps with flag
-      if (currEngaged && currEngaged.data.end_route_offset_millis > ev.route_offset_millis) {
-        const prev = currEngaged;
-        prev.data.end_route_offset_millis = ev.route_offset_millis;
-        res.push(prev);
-
-        currEngaged = {
-          ...currEngaged,
-          route_offset_millis: currFlag.data.end_route_offset_millis,
-          data: { ...currEngaged.data },
-          type: 'engage',
-        };
-      } else if (currAlert && currAlert.data.end_route_offset_millis > ev.route_offset_millis) {
-        const prev = currAlert;
-        prev.data.end_route_offset_millis = ev.route_offset_millis;
-        res.push(prev);
-
-        currAlert = {
-          ...currAlert,
-          route_offset_millis: currFlag.data.end_route_offset_millis,
-          data: { ...currAlert.data },
-          type: 'alert',
-        };
-      } else if (currOverride && currOverride.data.end_route_offset_millis > ev.route_offset_millis) {
-        const prev = currOverride;
-        prev.data.end_route_offset_millis = ev.route_offset_millis;
-        res.push(prev);
-
-        currOverride = {
-          ...currOverride,
-          route_offset_millis: currFlag.data.end_route_offset_millis,
-          data: { ...currOverride.data },
-          type: 'overriding',
-        };
-      }
-
+      };
       res.push(currFlag);
     }
   }
