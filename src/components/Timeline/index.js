@@ -63,6 +63,10 @@ const styles = () => ({
       '&.critical': {
         background: theme.palette.states.alertRed,
       },
+    },
+    '&.flag': {
+      background: theme.palette.states.userFlag,
+      zIndex: 1,
     }
   },
   thumbnails: {

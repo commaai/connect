@@ -121,6 +121,7 @@ const theme = createMuiTheme({
       engagedGrey: '#919b95',
       alertOrange: Colors.orange50,
       alertRed: Colors.red100,
+      userFlag: Colors.yellow500
     },
     grey: {
       50: Colors.grey50,
