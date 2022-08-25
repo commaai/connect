@@ -463,6 +463,7 @@ class Timeline extends Component {
         const style = {
           left: `${(event.route_offset_millis / route.duration) * 100}%`,
           width: `${((event.data.end_route_offset_millis - event.route_offset_millis) / route.duration) * 100}%`,
+          minWidth: '1px',
         };
         const statusCls = event.data.alertStatus ? `${AlertStatusCodes[event.data.alertStatus]}` : '';
         return (
