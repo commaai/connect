@@ -7,6 +7,17 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
+@keyframes circular-rotate {
+  0% {
+    transform: rotate(0deg);
+    /* Fix IE11 wobbly */
+    transform-origin: 50% 50%;
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 :root {
   color-scheme: dark;
 }

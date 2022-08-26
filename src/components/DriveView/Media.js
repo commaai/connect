@@ -2,23 +2,27 @@ import React, { Component } from 'react';
 import qs from 'query-string';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
+import * as Sentry from '@sentry/react';
 
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper,
+import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem,
   Popover } from '@material-ui/core';
 import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
 import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
 
+import { drives as DrivesApi } from '@commaai/comma-api';
+
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
 import ResizeHandler from '../ResizeHandler';
 import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
+import SwitchLoading from '../utils/SwitchLoading';
 import { bufferVideo, currentOffset } from '../../timeline/playback';
 import Colors from '../../colors';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
-import { analyticsEvent, primeNav } from '../../actions';
+import { analyticsEvent, primeNav, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles } from '../../actions/files';
@@ -97,6 +101,13 @@ const styles = (theme) => ({
   filesItem: {
     justifyContent: 'space-between',
     opacity: 1,
+  },
+  switchListItem: {
+    padding: '12px 16px',
+    boxSizing: 'content-box',
+    height: 24,
+    lineHeight: 1,
+    '& span': { fontSize: '1rem' },
   },
   offlineMenuItem: {
     height: 'unset',
@@ -260,6 +271,7 @@ class Media extends Component {
       uploadModal: false,
       dcamUploadInfo: null,
       createClipNoPrime: null,
+      routePreserved: null,
     };
 
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
@@ -275,6 +287,9 @@ class Media extends Component {
     this._uploadStats = this._uploadStats.bind(this);
     this.downloadFile = this.downloadFile.bind(this);
     this.initCreateClip = this.initCreateClip.bind(this);
+    this.onPublicToggle = this.onPublicToggle.bind(this);
+    this.fetchRoutePreserved = this.fetchRoutePreserved.bind(this);
+    this.onPreserveToggle = this.onPreserveToggle.bind(this);
 
     this.openRequests = 0;
   }
@@ -284,7 +299,7 @@ class Media extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { windowWidth, inView, downloadMenu, moreInfoMenu } = this.state;
+    const { windowWidth, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
     const showMapAlways = windowWidth >= 1536;
     if (showMapAlways && inView === MediaType.MAP) {
       this.setState({ inView: MediaType.VIDEO });
@@ -302,11 +317,20 @@ class Media extends Component {
       this.props.dispatch(analyticsEvent('media_switch_view', { in_view: this.state.inView }));
     }
 
-    if ((!prevState.downloadMenu && downloadMenu) || (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu)) {
+    if (this.props.currentRoute && ((!prevState.downloadMenu && downloadMenu) ||
+      (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu) ||
+      (!prevProps.currentRoute && (downloadMenu || moreInfoMenu))))
+    {
       if ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser) {
         this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
       }
       this.props.dispatch(fetchFiles(this.props.currentRoute.fullname));
+    }
+
+    if (routePreserved === null && (this.props.device?.is_owner || this.props.profile?.superuser) &&
+      (!prevState.moreInfoMenu && !prevProps.currentRoute) !== (moreInfoMenu && this.props.currentRoute))
+    {
+      this.fetchRoutePreserved();
     }
   }
 
@@ -519,6 +543,59 @@ class Media extends Component {
     }
   }
 
+  async onPublicToggle(ev) {
+    const is_public = ev.target.checked;
+    try {
+      const resp = await DrivesApi.setRoutePublic(this.props.currentRoute.fullname, is_public);
+      if (resp && resp.fullname === this.props.currentRoute.fullname) {
+        this.props.dispatch(updateRoute(this.props.currentRoute.fullname, { is_public: resp.is_public }));
+        if (resp.is_public !== is_public) {
+          return { error: 'unable to update' };
+        }
+      }
+    } catch (err) {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'media_toggle_public' });
+      return { error: 'could not update' };
+    }
+  }
+
+  async fetchRoutePreserved() {
+    try {
+      const resp = await DrivesApi.getPreservedRoutes(this.props.dongleId);
+      if (resp && Array.isArray(resp) && this.props.currentRoute) {
+        for (const r of resp) {
+          if (this.props.currentRoute.fullname === r.fullname) {
+            this.setState({ routePreserved: true });
+            return;
+          }
+        }
+        this.setState({ routePreserved: false });
+      }
+    } catch (err) {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'media_fetch_preserved' });
+    }
+  }
+
+  async onPreserveToggle(ev) {
+    const preserved = ev.target.checked;
+    try {
+      const resp = await DrivesApi.setRoutePreserved(this.props.currentRoute.fullname, preserved);
+      if (resp && resp.success) {
+        this.setState({ routePreserved: preserved });
+        return;
+      }
+      this.fetchRoutePreserved();
+      return { error: 'unable to update' };
+    } catch (err) {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'media_toggle_preserved' });
+      this.fetchRoutePreserved();
+      return { error: 'could not update' };
+    }
+  }
+
   render() {
     const { classes } = this.props;
     const { inView, windowWidth } = this.state;
@@ -613,7 +690,7 @@ class Media extends Component {
 
   renderMenus(alwaysOpen = false) {
     const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo } = this.state;
+    const { downloadMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
       return;
@@ -715,6 +792,13 @@ class Media extends Component {
           <div>{ currentRoute ? `${currentRoute.fullname}--${getSegmentNumber(currentRoute)}` : '---' }</div>
           <ContentCopyIcon />
         </MenuItem>
+        { typeof navigator.share !== 'undefined' &&
+          <MenuItem onClick={ this.shareCurrentRoute } className={ classes.shareButton }>
+            Share this route
+            <ShareIcon />
+          </MenuItem>
+        }
+        <Divider />
         <MenuItem onClick={ this.openInCabana } id="openInCabana" >
           View in cabana
           { Boolean(files && stats && stats.canRequestRlog) &&
@@ -732,12 +816,16 @@ class Media extends Component {
         <MenuItem onClick={ this.openInUseradmin }>
           View in useradmin
         </MenuItem>
-        { typeof navigator.share !== 'undefined' &&
-          <MenuItem onClick={ this.shareCurrentRoute } className={ classes.shareButton }>
-            Share this route
-            <ShareIcon />
-          </MenuItem>
-        }
+        { Boolean(device?.is_owner || (profile && profile.superuser)) && [
+          <Divider key="1" />,
+          <ListItem key="2" className={ classes.switchListItem }>
+            <SwitchLoading checked={ currentRoute?.is_public } onChange={ this.onPublicToggle } label="Public access" />
+          </ListItem>,
+          <ListItem key="3" className={ classes.switchListItem }>
+            <SwitchLoading checked={ Boolean(routePreserved) } loading={ routePreserved === null }
+              onChange={ this.onPreserveToggle } label="Preserved" />
+          </ListItem>,
+        ] }
       </Menu>
       <UploadQueue open={ uploadModal } onClose={ () => this.setState({ uploadModal: false }) }
         update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) } store={ this.props.store } device={ device } />
