@@ -107,6 +107,7 @@ const styles = (theme) => ({
     boxSizing: 'content-box',
     height: 24,
     lineHeight: 1,
+    '& span': { fontSize: '1rem' },
   },
   offlineMenuItem: {
     height: 'unset',
@@ -316,8 +317,9 @@ class Media extends Component {
       this.props.dispatch(analyticsEvent('media_switch_view', { in_view: this.state.inView }));
     }
 
-    if ((!prevState.downloadMenu && downloadMenu) || (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu) ||
-      (!prevProps.currentRoute && this.props.currentRoute && (downloadMenu || moreInfoMenu)))
+    if (this.props.currentRoute && ((!prevState.downloadMenu && downloadMenu) ||
+      (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu) ||
+      (!prevProps.currentRoute && (downloadMenu || moreInfoMenu))))
     {
       if ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser) {
         this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
@@ -325,8 +327,8 @@ class Media extends Component {
       this.props.dispatch(fetchFiles(this.props.currentRoute.fullname));
     }
 
-    if (routePreserved === null && !prevState.moreInfoMenu && moreInfoMenu &&
-      (this.props.device?.is_owner || this.props.profile?.superuser))
+    if (routePreserved === null && (this.props.device?.is_owner || this.props.profile?.superuser) &&
+      (!prevState.moreInfoMenu && !prevProps.currentRoute) !== (moreInfoMenu && this.props.currentRoute))
     {
       this.fetchRoutePreserved();
     }
