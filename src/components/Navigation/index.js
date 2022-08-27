@@ -1028,15 +1028,17 @@ class Navigation extends Component {
             </Marker>
           )}
           { carLocation &&
-            <Marker latitude={ carLocation.location[1] } longitude={ carLocation.location[0] } offsetLeft={ -10 }
-              offsetTop={ -30 } captureDrag={ false } captureClick={ true } captureDoubleClick={ false }>
-              <img className={ classes.pin } src={ pin_car } onMouseEnter={ () => this.toggleCarPinTooltip(true) }
-                onMouseLeave={ () => this.toggleCarPinTooltip(false) } alt="car-location" />
-              <div className={ classes.carPinTooltip } ref={ this.carPinTooltipRef }
-                style={{ ...carPinTooltipStyle, display: 'none' }}>
-                { fecha.format(carLocation.time, 'h:mm a') },<br />{ timeFromNow(carLocation.time) }
-              </div>
-            </Marker>
+            <div onMouseLeave={ () => this.toggleCarPinTooltip(false) } onMouseEnter={ () => this.toggleCarPinTooltip(true) }>
+              <Marker latitude={ carLocation.location[1] } longitude={ carLocation.location[0] } offsetLeft={ -10 }
+                offsetTop={ -30 } captureDrag={ false } captureClick={ true } captureDoubleClick={ false }>
+                <img className={ classes.pin } src={ pin_car } alt="car-location"/>
+                <div className={ classes.carPinTooltip } ref={ this.carPinTooltipRef }
+                  style={{ ...carPinTooltipStyle, display: 'none' }}>
+                  { fecha.format(carLocation.time, 'h:mm a') },<br />{ timeFromNow(carLocation.time) }<br />
+                  <a target='_blank' href={`https://www.google.com/maps/place/${carLocation.location[1]},${carLocation.location[0]}`}>Open in Maps</a>
+                </div>
+              </Marker>
+            </div>
           }
           { carLocation && Boolean(carLocation.accuracy) &&
             <Source type="geojson" data={ this.carLocationCircle(carLocation) }>
