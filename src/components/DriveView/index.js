@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import fecha from 'fecha';
 
-import { withStyles, IconButton } from '@material-ui/core';
+import { withStyles, IconButton, Typography } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import CloseIcon from '@material-ui/icons/Close';
 
@@ -59,7 +59,7 @@ class DriveView extends Component {
   }
 
   render() {
-    const { classes, dongleId, zoom } = this.props;
+    const { classes, dongleId, zoom, routes } = this.props;
     const viewerPadding = this.state.windowWidth < 768 ? 12 : 32
 
     const viewEndTime = fecha.format(new Date(zoom.end), 'HH:mm');
@@ -88,7 +88,10 @@ class DriveView extends Component {
             <Timeline className={classes.headerTimeline} thumbnailsVisible={ true } hasRuler />
           </div>
           <div style={{ padding: viewerPadding }}>
-            <Media />
+            { Boolean(routes && routes.length === 0) ?
+              <Typography>Route does not exist.</Typography> :
+              <Media />
+            }
           </div>
         </div>
       </>
@@ -98,6 +101,7 @@ class DriveView extends Component {
 
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
+  routes: 'routes',
   zoom: 'zoom',
 });
 
