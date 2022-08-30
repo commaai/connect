@@ -981,7 +981,9 @@ class Navigation extends Component {
 
   onContainerRef(el) {
     this.mapContainerRef.current = el;
-    el.addEventListener('touchstart', (ev) => ev.stopPropagation());
+    if (el) {
+      el.addEventListener('touchstart', (ev) => ev.stopPropagation());
+    }
   }
 
   render() {

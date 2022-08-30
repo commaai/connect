@@ -207,6 +207,7 @@ class Timeline extends Component {
     this.clipDragEnd = this.clipDragEnd.bind(this);
     this.percentToOffset = this.percentToOffset.bind(this);
     this.segmentNum = this.segmentNum.bind(this);
+    this.onRulerRef = this.onRulerRef.bind(this);
     this.renderRoute = this.renderRoute.bind(this);
     this.renderClipView = this.renderClipView.bind(this);
 
@@ -420,6 +421,13 @@ class Timeline extends Component {
     return null;
   }
 
+  onRulerRef(el) {
+    this.rulerRef.current = el;
+    if (el) {
+      el.addEventListener('touchstart', (ev) => ev.stopPropagation());
+    }
+  }
+
   renderRoute(route) {
     const { classes, filter } = this.props;
     const { zoom } = this.state;
@@ -498,7 +506,7 @@ class Timeline extends Component {
       width: `calc(${loopDurationPercent}% + ${handleWidth*2}px)`,
     };
 
-    return <div ref={ this.rulerRef } className={classes.clip} onClick={this.handleClick}>
+    return <div ref={ this.onRulerRef } className={classes.clip} onClick={this.handleClick}>
       <div ref={this.rulerRemaining} className={classes.clipRulerRemaining} />
       <div className={ classes.clipView } style={{ left: `calc(${loopStartPercent}% - ${handleWidth}px)`, width: handleWidth }}
         onPointerDown={ (ev) => this.clipDragStart('start', ev) }>
@@ -570,7 +578,7 @@ class Timeline extends Component {
             )}
           </Measure>
           { hasRuler && <>
-            <div ref={ this.rulerRef } className={classes.ruler} onPointerDown={this.handlePointerDown}
+            <div ref={ this.onRulerRef } className={classes.ruler} onPointerDown={this.handlePointerDown}
               onPointerUp={this.handlePointerUp} onPointerMove={this.handlePointerMove}
               onPointerLeave={this.handlePointerLeave}>
               <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
