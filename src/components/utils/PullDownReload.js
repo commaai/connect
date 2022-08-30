@@ -9,7 +9,7 @@ const styles = (theme) => ({
   root: {
     display: 'none',
     position: 'absolute',
-    zIndex: 1150,
+    zIndex: 5050,
     top: -48,
     left: 'calc(50% - 24px)',
     display: 'flex',
