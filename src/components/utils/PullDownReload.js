@@ -51,9 +51,11 @@ class PullDownReload extends Component {
   }
 
   touchStart(ev) {
-    if (document.scrollingElement.scrollTop === 0) {
-      this.setState({ startY: ev.touches[0].pageY });
+    if (document.scrollingElement.scrollTop !== 0 || ev.defaultPrevented) {
+      return;
     }
+
+    this.setState({ startY: ev.touches[0].pageY });
   }
 
   touchMove(ev) {
@@ -62,9 +64,14 @@ class PullDownReload extends Component {
     }
 
     const top = Math.min((ev.touches[0].pageY - this.state.startY) / 2 - 48, 32);
+    this.dragEl.current.style.transition = 'unset';
     this.dragEl.current.style.top = `${top}px`;
     if (ev.touches[0].pageY - this.state.startY > 0) {
       ev.preventDefault();
+    } else {
+      this.setState({ startY: null });
+      this.dragEl.current.style.transition = 'top 0.1s';
+      this.dragEl.current.style.top = `-48px`;
     }
   }
 
@@ -79,6 +86,7 @@ class PullDownReload extends Component {
       window.location.reload();
     } else {
       this.setState({ startY: null });
+      this.dragEl.current.style.transition = 'top 0.1s';
       this.dragEl.current.style.top = `-48px`;
     }
   }
@@ -86,8 +94,7 @@ class PullDownReload extends Component {
   render() {
     const { classes } = this.props;
 
-    const display = Boolean(this.state.startY !== null || this.state.reloading);
-    return <div className={ classes.root } ref={ this.dragEl } style={{ display: display ? 'flex' : 'none' }}>
+    return <div className={ classes.root } ref={ this.dragEl }>
       <ReplayIcon />
     </div>;
   }
