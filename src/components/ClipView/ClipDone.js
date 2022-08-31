@@ -331,7 +331,8 @@ class ClipDone extends Component {
             </Button>
           }
         </div>
-        <div className={ classes.clipOption }>
+        <div className={ classes.clipOption }
+          ref={ (el) => { if (el) el.addEventListener('touchstart', (ev) => ev.stopPropagation()); }}>
           { clips.video_type === '360' ?
             <div ref={ this.video360ContainerRef } style={{ ...videoSizeStyle, height: '50vh' }} />
           :

@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import PropTypes from 'prop-types';
 import localforage from 'localforage';
 import { replace } from 'connected-react-router';
 
@@ -17,6 +16,7 @@ import ClipView from './ClipView';
 import IosPwaPopup from './IosPwaPopup';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import AppDrawer from './AppDrawer';
+import PullDownReload from './utils/PullDownReload';
 
 import { analyticsEvent, selectDevice, updateDevice } from '../actions';
 import ResizeHandler from './ResizeHandler';
@@ -202,6 +202,7 @@ class ExplorerApp extends Component {
     return (
       <div className={classes.base}>
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
+        <PullDownReload />
         <AppHeader drawerIsOpen={ drawerIsOpen } annotating={ Boolean(zoom) } showDrawerButton={ !isLarge }
           handleDrawerStateChanged={this.handleDrawerStateChanged} forwardRef={ this.updateHeaderRef } />
         <AppDrawer drawerIsOpen={ drawerIsOpen } isPermanent={ isLarge } width={ sidebarWidth }

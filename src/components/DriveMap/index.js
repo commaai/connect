@@ -279,7 +279,8 @@ class DriveMap extends Component {
   render() {
     const { classes } = this.props;
     return (
-      <div className={ classes.mapContainer }>
+      <div className={ classes.mapContainer }
+        ref={ (el) => { if (el) el.addEventListener('touchstart', (ev) => ev.stopPropagation()); }}>
         <ReactMapGL width="100%" height="100%" {...this.state.viewport} mapStyle={MAP_STYLE} maxPitch={ 0 }
           mapboxApiAccessToken={MAPBOX_TOKEN} ref={this.initMap} onContextMenu={ null } dragRotate={ false }
           onViewportChange={(viewport) => this.setState({ viewport })} attributionControl={ false }
