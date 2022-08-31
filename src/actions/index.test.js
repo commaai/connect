@@ -1,6 +1,5 @@
 /* eslint-env jest */
 import { push } from 'connected-react-router';
-import window from 'global/window';
 import { selectRange } from './index';
 
 jest.mock('connected-react-router', () => {
