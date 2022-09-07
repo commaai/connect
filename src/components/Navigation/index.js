@@ -596,6 +596,8 @@ class Navigation extends Component {
       noFly: false,
       searchSelect: item,
       searchLooking: false,
+      savingAs: false,
+      savedAs: false,
     });
     const endLocation = this.itemLngLat(item);
     const carLoc = this.getCarLocation();
@@ -1208,6 +1210,10 @@ class Navigation extends Component {
             { isCar && <Typography className={ classes.searchSelectBoxDetails }>{ timeFromNow(carLocation.time) }</Typography> }
           </div>
           <div className={ classes.searchSelectBoxButtons }>
+            <Button classes={{ root: isCar ? classes.searchSelectButton : classes.searchSelectButtonSecondary }} target="_blank"
+              href={`https://www.google.com/maps/place/${searchSelect.position.lat},${searchSelect.position.lng}`}>
+              open in maps
+            </Button>
             { searchSelect.favoriteId ?
               <Button disabled={ savingAs || savedAs } onClick={ this.deleteFavorite }
                 classes={{ root: classes.searchSelectButtonSecondary, label: classes.noWrap }}>
