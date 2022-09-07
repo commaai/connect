@@ -1197,12 +1197,23 @@ class Navigation extends Component {
 
     const isCar = searchSelect.resultType === 'car';
 
+    const isApple = /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
+    const title = isCar ? device.alias : this.formatSearchName(searchSelect);
+    const { lat, lng } = searchSelect.position;
+
+    let geoUri;
+    if (isApple) {
+      geoUri = `https://maps.apple.com/?ll=${lat},${lng}&q=${title}`;
+    } else {
+      geoUri = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    }
+
     return (
       <div className={ classes.searchSelectBox } ref={ this.searchSelectBoxRef }>
         <Clear className={ classes.clearSearchSelect } onClick={ this.clearSearchSelect } />
         <div className={ classes.searchSelectBoxHeader }>
           <div className={ classes.searchSelectBoxTitle }>
-            <Typography className={ classes.bold }>{ isCar ? device.alias :  this.formatSearchName(searchSelect) }</Typography>
+            <Typography className={ classes.bold }>{ title }</Typography>
             { searchSelect.route &&
               <Typography className={ classes.searchSelectBoxDetails }>
                 { this.formatDistance(searchSelect.route) } (
@@ -1212,8 +1223,7 @@ class Navigation extends Component {
             { isCar && <Typography className={ classes.searchSelectBoxDetails }>{ timeFromNow(carLocation.time) }</Typography> }
           </div>
           <div className={ classes.searchSelectBoxButtons }>
-            <Button classes={{ root: isCar ? classes.searchSelectButton : classes.searchSelectButtonSecondary }} target="_blank"
-              href={`https://www.google.com/maps/place/${searchSelect.position.lat},${searchSelect.position.lng}`}>
+            <Button classes={{ root: isCar ? classes.searchSelectButton : classes.searchSelectButtonSecondary }} target="_blank" href={geoUri}>
               open in maps
             </Button>
             { searchSelect.favoriteId ?
