@@ -635,7 +635,7 @@ class Navigation extends Component {
     };
     this.onSearchSelect(item, 'car');
 
-    GeocodeApi().reverseLookup(carLoc.location, true).then((location) => {
+    GeocodeApi().reverseLookup(carLocation.location, true).then((location) => {
       if (!location) {
         return;
       }
