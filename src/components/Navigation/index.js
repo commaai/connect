@@ -602,6 +602,8 @@ class Navigation extends Component {
     const endLocation = this.itemLngLat(item);
     const carLoc = this.getCarLocation();
     const startLocation = (carLoc ? carLoc.location : null) || this.state.geoLocateCoords || null;
+
+    // don't compute route if start = destination (e.g. car to car)
     if (startLocation && (startLocation[0] !== endLocation[0] || startLocation[1] !== endLocation[1])) {
       GeocodeApi().getDirections([startLocation, endLocation]).then((route) => {
         this.setState({
