@@ -43,6 +43,7 @@ const styles = () => ({
     position: 'absolute',
     top: 0,
     width: '100%',
+    zIndex: 2,
   },
   segmentColor: {
     position: 'absolute',
@@ -67,7 +68,7 @@ const styles = () => ({
     '&.flag': {
       background: theme.palette.states.userFlag,
       zIndex: 1,
-    }
+    },
   },
   thumbnails: {
     height: 20,
