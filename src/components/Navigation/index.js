@@ -626,7 +626,7 @@ class Navigation extends Component {
     const [lng, lat] = carLoc.location;
     const item = {
       address: {
-        label: '',  // Taco Bell, Midway Dr, San Diego, CA 92110, United States
+        label: '',
       },
       favoriteIcon: pin_car,
       favoriteId: null,
@@ -634,11 +634,11 @@ class Navigation extends Component {
         lng, lat,
       },
       resultType: 'car',
-      title: '',  // Taco Bell
+      title: '',
     };
     this.onSearchSelect(item, 'car');
 
-    GeocodeApi().reverseLookup(carLoc.location).then((location) => {
+    GeocodeApi().reverseLookup(carLoc.location, true).then((location) => {
       if (!location) {
         return;
       }
@@ -647,9 +647,9 @@ class Navigation extends Component {
         searchSelect: {
           ...prevState.searchSelect,
           address: {
-            label: location.navDetails,
+            label: location.details,
           },
-          title: location.navName,
+          title: location.place,
         },
       }));
     });

@@ -49,7 +49,7 @@ export default function geocodeApi() {
   }
 
   return {
-    async reverseLookup(coords) {
+    async reverseLookup(coords, navFormat = false) {
       if (geocodingClient === null || (coords[0] === 0 && coords[1] === 0)) {
         return null;
       }
@@ -77,29 +77,33 @@ export default function geocodeApi() {
       try {
         const { features } = await resp.json();
         if (features.length && features[0].context) {
-          let contexts = getFilteredContexts(features[0].context);
+          if (navFormat) {
+            // Used for navigation locations API (saving favorites)
+            // Try to format location similarly to HERE, which is where the search results come from
+            // e.g. Mapbox returns "Street", "Avenue", etc.
+            const context = getContextMap(features[0].context);
+            const place = features[0].text;  // e.g. "State St", TODO: Street -> St, Avenue -> Ave, etc.
+            const details = `${context.place}, ${context.region} ${context.postcode}, ${context.country}`;  // e.g. "San Diego, CA 92101, United States"
 
-          // Used for location name/area in drive list
-          let place = '';  // e.g. "Little Italy"
-          let details = '';  // e.g. "San Diego, CA"
-          if (contexts.length > 0) {
-            place = getContextString(contexts.shift());
-          }
-          if (contexts.length > 0) {
-            details = getContextString(contexts.pop());
-          }
-          if (contexts.length > 0) {
-            details = `${getContextString(priorityGetContext(contexts))}, ${details}`;
-          }
+            return { place, details };
+          } else {
+            let contexts = getFilteredContexts(features[0].context);
 
-          // Used for navigation locations API (saving favorites)
-          // Try to format location similarly to HERE, which is where the search results come from
-          // e.g. Mapbox returns "Street", "Avenue", etc.
-          const navContext = getContextMap(features[0].context);
-          const navName = features[0].text;  // e.g. "State St", TODO: Street -> St, Avenue -> Ave, etc.
-          const navDetails = `${navContext.place}, ${navContext.region} ${navContext.postcode}, ${navContext.country}`;  // e.g. "San Diego, CA 92101, United States"
+            // Used for location name/area in drive list
+            let place = '';  // e.g. "Little Italy"
+            let details = '';  // e.g. "San Diego, CA"
+            if (contexts.length > 0) {
+              place = getContextString(contexts.shift());
+            }
+            if (contexts.length > 0) {
+              details = getContextString(contexts.pop());
+            }
+            if (contexts.length > 0) {
+              details = `${getContextString(priorityGetContext(contexts))}, ${details}`;
+            }
 
-          return { navName, navDetails, place, details };
+            return { place, details };
+          }
         }
       } catch (err) {
         Sentry.captureException(err, { fingerprint: 'geocode_reverse_parse' });
