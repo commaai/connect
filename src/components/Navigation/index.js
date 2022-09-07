@@ -314,6 +314,7 @@ class Navigation extends Component {
     this.onSearch = debounce(this.onSearch.bind(this), 200);
     this.onFocus = this.onFocus.bind(this);
     this.onSearchSelect = this.onSearchSelect.bind(this);
+    this.onCarSelect = this.onCarSelect.bind(this);
     this.researchArea = this.researchArea.bind(this);
     this.onFavoriteSelect = this.onFavoriteSelect.bind(this);
     this.onSearchBlur = this.onSearchBlur.bind(this);
@@ -596,10 +597,11 @@ class Navigation extends Component {
       searchSelect: item,
       searchLooking: false,
     });
+    const endLocation = this.itemLngLat(item);
     const carLoc = this.getCarLocation();
     const startLocation = (carLoc ? carLoc.location : null) || this.state.geoLocateCoords || null;
-    if (startLocation) {
-      GeocodeApi().getDirections([startLocation, this.itemLngLat(item)]).then((route) => {
+    if (startLocation && (startLocation[0] !== endLocation[0] || startLocation[1] !== endLocation[1])) {
+      GeocodeApi().getDirections([startLocation, endLocation]).then((route) => {
         this.setState({
           searchSelect: {
             ...item,
@@ -609,6 +611,46 @@ class Navigation extends Component {
         });
       });
     }
+  }
+
+  onCarSelect() {
+    this.focus();
+
+    const carLoc = this.getCarLocation();
+    if (!carLoc) {
+      return;
+    }
+
+    const [lng, lat] = carLoc.location;
+    const item = {
+      address: {
+        label: '',  // Taco Bell, Midway Dr, San Diego, CA 92110, United States
+      },
+      favoriteIcon: pin_car,
+      favoriteId: null,
+      position: {
+        lng, lat,
+      },
+      resultType: 'car',
+      title: '',  // Taco Bell
+    };
+    this.onSearchSelect(item, 'car');
+
+    GeocodeApi().reverseLookup(carLoc.location).then((location) => {
+      if (!location) {
+        return;
+      }
+
+      this.setState((prevState) => ({
+        searchSelect: {
+          ...prevState.searchSelect,
+          address: {
+            label: location.navDetails,
+          },
+          title: location.navName,
+        },
+      }));
+    });
   }
 
   onFavoriteSelect(id, loc) {
@@ -1039,7 +1081,8 @@ class Navigation extends Component {
             <Marker latitude={ carLocation.location[1] } longitude={ carLocation.location[0] } offsetLeft={ -10 }
               offsetTop={ -30 } captureDrag={ false } captureClick={ true } captureDoubleClick={ false }>
               <img className={ classes.pin } src={ pin_car } onMouseEnter={ () => this.toggleCarPinTooltip(true) }
-                onMouseLeave={ () => this.toggleCarPinTooltip(false) } alt="car-location" />
+                onMouseLeave={ () => this.toggleCarPinTooltip(false) } alt="car-location"
+                onClick={ () => this.onCarSelect(carLocation) } />
               <div className={ classes.carPinTooltip } ref={ this.carPinTooltipRef }
                 style={{ ...carPinTooltipStyle, display: 'none' }}>
                 { fecha.format(carLocation.time, 'h:mm a') },<br />{ timeFromNow(carLocation.time) }
@@ -1144,22 +1187,25 @@ class Navigation extends Component {
   renderSearchOverlay() {
     const { classes, device } = this.props;
     const { searchSelect, geoLocateCoords, saveAsMenu, savingAs, savedAs } = this.state;
-    const carLocation = this.getCarLocation();
 
+    const carLocation = this.getCarLocation();
     const noRoute = !searchSelect.route && (carLocation || geoLocateCoords);
+
+    const isCar = searchSelect.resultType === 'car';
 
     return (
       <div className={ classes.searchSelectBox } ref={ this.searchSelectBoxRef }>
         <Clear className={ classes.clearSearchSelect } onClick={ this.clearSearchSelect } />
         <div className={ classes.searchSelectBoxHeader }>
           <div className={ classes.searchSelectBoxTitle }>
-            <Typography className={ classes.bold }>{ this.formatSearchName(searchSelect) }</Typography>
+            <Typography className={ classes.bold }>{ isCar ? device.alias :  this.formatSearchName(searchSelect) }</Typography>
             { searchSelect.route &&
               <Typography className={ classes.searchSelectBoxDetails }>
                 { this.formatDistance(searchSelect.route) } (
                 { this.formatDuration(searchSelect.route) })
               </Typography>
             }
+            { isCar && <Typography className={ classes.searchSelectBoxDetails }>{ timeFromNow(carLocation.time) }</Typography> }
           </div>
           <div className={ classes.searchSelectBoxButtons }>
             { searchSelect.favoriteId ?
@@ -1200,12 +1246,12 @@ class Navigation extends Component {
                   <Typography>destination will be set once device is online</Typography>
                 </Popper>
               </div>
-            :
+            : (!isCar &&
               <Button disabled={ Boolean(noRoute) } onClick={ this.navigate }
                 classes={{ root: classes.searchSelectButton }} style={{ marginBottom: 8 }}>
                 { noRoute ? 'no route' : 'navigate' }
               </Button>
-            }
+            )}
           </div>
         </div>
         <Typography className={ classes.searchSelectBoxDetails }>
