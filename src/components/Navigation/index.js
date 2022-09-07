@@ -1213,7 +1213,7 @@ class Navigation extends Component {
     if (isIos) {
       geoUri = `https://maps.apple.com/?ll=${lat},${lng}&q=${title}`;
     } else {
-      geoUri = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+      geoUri = `https://maps.google.com/?q=${lat},${lng}`;
     }
 
     return (
