@@ -617,15 +617,10 @@ class Navigation extends Component {
     }
   }
 
-  onCarSelect() {
+  onCarSelect(carLocation) {
     this.focus();
 
-    const carLoc = this.getCarLocation();
-    if (!carLoc) {
-      return;
-    }
-
-    const [lng, lat] = carLoc.location;
+    const [lng, lat] = carLocation.location;
     const item = {
       address: {
         label: '',
