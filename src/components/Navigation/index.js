@@ -306,6 +306,7 @@ class Navigation extends Component {
 
     this.checkWebGLSupport = this.checkWebGLSupport.bind(this);
     this.flyToMarkers = this.flyToMarkers.bind(this);
+    this.renderSearchSelectMarker = this.renderSearchSelectMarker.bind(this);
     this.renderOverlay = this.renderOverlay.bind(this);
     this.renderSearchOverlay = this.renderSearchOverlay.bind(this);
     this.renderPrimeAd = this.renderPrimeAd.bind(this);
@@ -1102,14 +1103,7 @@ class Navigation extends Component {
                 alt="pin-location" />
             </Marker>
           )}
-          { searchSelect &&
-            <Marker latitude={ this.itemLoc(searchSelect).lat } longitude={ this.itemLoc(searchSelect).lng }
-              offsetLeft={ -10 } offsetTop={ -30 } captureDrag={ false } captureClick={ false }
-              captureDoubleClick={ false }>
-              <img className={ classes.pin } src={ searchSelect.favoriteIcon ? searchSelect.favoriteIcon : pin_marker }
-                alt="pin-location" />
-            </Marker>
-          }
+          { searchSelect && this.renderSearchSelectMarker(searchSelect) }
           { hasNav &&
             <HTMLOverlay redraw={ this.renderOverlay } style={{ ...cardStyle, top: 10 }}
               captureScroll={ true } captureDrag={ true } captureClick={ true } captureDoubleClick={ true }
@@ -1133,6 +1127,25 @@ class Navigation extends Component {
         </ReactMapGL>
       </div>
     );
+  }
+
+  renderSearchSelectMarker(searchSelect) {
+    const { classes } = this.props;
+
+    let lat, lng;
+    if (searchSelect.resultType === 'car') {
+      [lng, lat] = this.getCarLocation().location;
+    } else {
+      ({ lat, lng } = this.itemLoc(searchSelect));
+    }
+
+    return (
+      <Marker latitude={ lat } longitude={ lng } offsetLeft={ -10 } offsetTop={ -30 }
+        captureDrag={ false } captureClick={ false } captureDoubleClick={ false }>
+        <img className={ classes.pin } src={ searchSelect.favoriteIcon ? searchSelect.favoriteIcon : pin_marker }
+          alt="pin-location" />
+      </Marker>
+    )
   }
 
   renderOverlay() {
