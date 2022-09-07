@@ -821,7 +821,7 @@ class Navigation extends Component {
   }
 
   formatSearchName(item) {
-    if (item.resultType === 'place') {
+    if (item.resultType === 'place' || item.resultType === 'car') {
       return item.title;
     } else {
       return item.title.split(',', 1)[0];
