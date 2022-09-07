@@ -29,6 +29,15 @@ export default function geocodeApi() {
     return context.text;
   }
 
+  function getContextMap(context) {
+    const map = {};
+    context.forEach((ctx) => {
+      const key = ctx.id.split('.', 1)[0];
+      map[key] = getContextString(ctx);
+    });
+    return map;
+  }
+
   function priorityGetContext(contexts) {
     for (const prio of ['place', 'locality', 'district']) {
       for (const ctx of contexts) {
@@ -69,8 +78,10 @@ export default function geocodeApi() {
         const { features } = await resp.json();
         if (features.length && features[0].context) {
           let contexts = getFilteredContexts(features[0].context);
-          let place = '';
-          let details = '';
+
+          // Used for location name/area in drive list
+          let place = '';  // e.g. "Little Italy"
+          let details = '';  // e.g. "San Diego, CA"
           if (contexts.length > 0) {
             place = getContextString(contexts.shift());
           }
@@ -80,7 +91,15 @@ export default function geocodeApi() {
           if (contexts.length > 0) {
             details = `${getContextString(priorityGetContext(contexts))}, ${details}`;
           }
-          return { place, details };
+
+          // Used for navigation locations API (saving favorites)
+          // Try to format location similarly to HERE, which is where the search results come from
+          // e.g. Mapbox returns "Street", "Avenue", etc.
+          const navContext = getContextMap(features[0].context);
+          const navName = features[0].text;  // e.g. "State St", TODO: Street -> St, Avenue -> Ave, etc.
+          const navDetails = `${navContext.place}, ${navContext.region} ${navContext.postcode}, ${navContext.country}`;  // e.g. "San Diego, CA 92101, United States"
+
+          return { navName, navDetails, place, details };
         }
       } catch (err) {
         Sentry.captureException(err, { fingerprint: 'geocode_reverse_parse' });
