@@ -1197,12 +1197,12 @@ class Navigation extends Component {
 
     const isCar = searchSelect.resultType === 'car';
 
-    const isApple = /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
+    const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const title = isCar ? device.alias : this.formatSearchName(searchSelect);
     const { lat, lng } = searchSelect.position;
 
     let geoUri;
-    if (isApple) {
+    if (isIos) {
       geoUri = `https://maps.apple.com/?ll=${lat},${lng}&q=${title}`;
     } else {
       geoUri = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
