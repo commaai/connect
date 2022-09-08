@@ -3,6 +3,9 @@ import * as Sentry from '@sentry/react';
 import * as Types from './types';
 import GeocodeApi from '../api/geocode';
 
+const USE_LOCAL_COORDS_DATA = !!process.env.REACT_APP_LOCAL_COORDS_DATA;
+const USE_LOCAL_EVENTS_DATA = !!process.env.REACT_APP_LOCAL_EVENTS_DATA;
+
 const eventsRequests = {};
 const coordsRequests = {};
 const driveCoordsRequests = {};
@@ -278,23 +281,29 @@ export function fetchEvents(route) {
     let resolveEvents;
     eventsRequests[route.fullname] = new Promise((resolve) => { resolveEvents = resolve; });
 
-    // in cache?
-    const cacheEvents = await getCacheItem('events', route.fullname, route.maxqlog);
-    if (cacheEvents !== null) {
-      dispatch({
-        type: Types.ACTION_UPDATE_ROUTE_EVENTS,
-        fullname: route.fullname,
-        events: cacheEvents,
-      });
-      resolveEvents(cacheEvents);
-      return;
+    if (!USE_LOCAL_EVENTS_DATA) {
+      // in cache?
+      const cacheEvents = await getCacheItem('events', route.fullname, route.maxqlog);
+      if (cacheEvents !== null) {
+        dispatch({
+          type: Types.ACTION_UPDATE_ROUTE_EVENTS,
+          fullname: route.fullname,
+          events: cacheEvents,
+        });
+        resolveEvents(cacheEvents);
+        return;
+      }
     }
 
     let driveEvents;
     const promises = [];
     for (let i = 0; i <= route.maxqlog; i++) {
       promises.push((async (i) => {
-        const resp = await fetch(`${route.url}/${i}/events.json`, { method: 'GET' });
+        const url = new URL(`${route.url}/${i}/events.json`);
+        if (USE_LOCAL_EVENTS_DATA) {
+          url.hostname = 'chffrprivate.azureedge.local';
+        }
+        const resp = await fetch(url, { method: 'GET' });
         if (!resp.ok) {
           return [];
         }
@@ -318,7 +327,9 @@ export function fetchEvents(route) {
       events: driveEvents,
     });
     resolveEvents(driveEvents);
-    setCacheItem('events', route.fullname, parseInt(Date.now()/1000) + (86400*14), driveEvents, route.maxqlog);
+    if (!USE_LOCAL_EVENTS_DATA) {
+      setCacheItem('events', route.fullname, parseInt(Date.now()/1000) + (86400*14), driveEvents, route.maxqlog);
+    }
   }
 }
 
@@ -428,24 +439,30 @@ export function fetchDriveCoords(route) {
     let resolveDriveCoords;
     driveCoordsRequests[route.fullname] = new Promise((resolve) => { resolveDriveCoords = resolve; });
 
-    // in cache?
-    const cacheDriveCoords = await getCacheItem('driveCoords', route.fullname, route.maxqlog);
-    if (cacheDriveCoords !== null) {
-      dispatch({
-        type: Types.ACTION_UPDATE_ROUTE,
-        fullname: route.fullname,
-        route: {
-          driveCoords: cacheDriveCoords,
-        },
-      });
-      resolveDriveCoords(cacheDriveCoords);
-      return;
+    if (!USE_LOCAL_COORDS_DATA) {
+      // in cache?
+      const cacheDriveCoords = await getCacheItem('driveCoords', route.fullname, route.maxqlog);
+      if (cacheDriveCoords !== null) {
+        dispatch({
+          type: Types.ACTION_UPDATE_ROUTE,
+          fullname: route.fullname,
+          route: {
+            driveCoords: cacheDriveCoords,
+          },
+        });
+        resolveDriveCoords(cacheDriveCoords);
+        return;
+      }
     }
 
     const promises = [];
     for (let i = 0; i <= route.maxqlog; i++) {
       promises.push((async (i) => {
-        const resp = await fetch(`${route.url}/${i}/coords.json`, { method: 'GET' });
+        const url = new URL(`${route.url}/${i}/coords.json`);
+        if (USE_LOCAL_COORDS_DATA) {
+          url.hostname = 'chffrprivate.azureedge.local';
+        }
+        const resp = await fetch(url, { method: 'GET' });
         if (!resp.ok) {
           return [];
         }
@@ -480,6 +497,8 @@ export function fetchDriveCoords(route) {
       },
     });
     resolveDriveCoords(driveCoords);
-    setCacheItem('driveCoords', route.fullname, parseInt(Date.now()/1000) + (86400*14), driveCoords, route.maxqlog);
+    if (!USE_LOCAL_COORDS_DATA) {
+      setCacheItem('driveCoords', route.fullname, parseInt(Date.now()/1000) + (86400*14), driveCoords, route.maxqlog);
+    }
   }
 }
