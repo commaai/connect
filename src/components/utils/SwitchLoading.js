@@ -10,6 +10,12 @@ const styles = (theme) => ({
   root: {
     display: 'flex',
     alignItems: 'center',
+    width: '100%',
+  },
+  formControlLabel: {
+    width: '100%',
+    justifyContent: 'space-between',
+    marginLeft: 0,
   },
   switchThumbLoading: {
     '&::before': {
@@ -94,13 +100,13 @@ class SwitchLoading extends Component {
     const loadingCls = (loading || this.state.loading) ? { icon: classes.switchThumbLoading } : {};
 
     const switchEl = (
-      <Switch color="default" checked={ isChecked } onChange={ this.onChange } classes={ loadingCls }
+      <Switch color="secondary" checked={ isChecked } onChange={ this.onChange } classes={ loadingCls }
         disabled={ loading } />
     );
 
     return (
       <div className={ classes.root }>
-        <FormControlLabel control={ switchEl } label={ label } />
+        <FormControlLabel control={ switchEl } label={ label } labelPlacement='start' classes={{ root: classes.formControlLabel }} />
         { Boolean(this.state.error) && <>
           <ErrorOutlineIcon className={ classes.errorIcon } onMouseLeave={ () => this.setState({ errorPopper: null }) }
             onMouseEnter={ (ev) => this.setState({ errorPopper: ev.target }) } />
