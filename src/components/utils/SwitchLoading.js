@@ -124,7 +124,7 @@ SwitchLoading.propTypes = {
   checked: PropTypes.bool.isRequired,
   onChange: PropTypes.func.isRequired,
   loading: PropTypes.bool,
-  label: PropTypes.string,
+  label: PropTypes.oneOf([PropTypes.string, PropTypes.element]),
 };
 
 export default withStyles(styles)(SwitchLoading);
