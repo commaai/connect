@@ -14,6 +14,23 @@ export const emptyDevice = {
   serial: '00000000',
 };
 
+export function toBool(item) {
+  switch (typeof item) {
+    case 'boolean':
+      return item;
+    case 'number':
+      return item < 0 || item > 0;
+    case 'object':
+      return !!item;
+    case 'string':
+      return ['true', '1'].indexOf(item.toLowerCase()) >= 0;
+    case 'undefined':
+      return false;
+    default:
+      return true;
+  }
+}
+
 export function filterEvent(event) {
   return (event.type === 'disengage' || event.type === 'disengage_steer');
 }
