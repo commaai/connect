@@ -2,9 +2,10 @@ import * as Sentry from '@sentry/react';
 
 import * as Types from './types';
 import GeocodeApi from '../api/geocode';
+import { toBool } from '../utils';
 
-const USE_LOCAL_COORDS_DATA = !!process.env.REACT_APP_LOCAL_COORDS_DATA;
-const USE_LOCAL_EVENTS_DATA = !!process.env.REACT_APP_LOCAL_EVENTS_DATA;
+const USE_LOCAL_COORDS_DATA = toBool(process.env.REACT_APP_LOCAL_COORDS_DATA);
+const USE_LOCAL_EVENTS_DATA = toBool(process.env.REACT_APP_LOCAL_EVENTS_DATA);
 
 const eventsRequests = {};
 const coordsRequests = {};
