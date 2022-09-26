@@ -10,12 +10,6 @@ const styles = (theme) => ({
   root: {
     display: 'flex',
     alignItems: 'center',
-    width: '100%',
-  },
-  formControlLabel: {
-    width: '100%',
-    justifyContent: 'space-between',
-    marginLeft: 0,
   },
   switchThumbLoading: {
     '&::before': {
@@ -106,7 +100,7 @@ class SwitchLoading extends Component {
 
     return (
       <div className={ classes.root }>
-        <FormControlLabel control={ switchEl } label={ label } labelPlacement='start' classes={{ root: classes.formControlLabel }} />
+        <FormControlLabel control={ switchEl } label={ label } />
         { Boolean(this.state.error) && <>
           <ErrorOutlineIcon className={ classes.errorIcon } onMouseLeave={ () => this.setState({ errorPopper: null }) }
             onMouseEnter={ (ev) => this.setState({ errorPopper: ev.target }) } />
@@ -124,7 +118,7 @@ SwitchLoading.propTypes = {
   checked: PropTypes.bool.isRequired,
   onChange: PropTypes.func.isRequired,
   loading: PropTypes.bool,
-  label: PropTypes.oneOf([PropTypes.string, PropTypes.element]),
+  label: PropTypes.string,
 };
 
 export default withStyles(styles)(SwitchLoading);

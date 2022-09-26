@@ -4,7 +4,8 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem, Popover, ListItemText } from '@material-ui/core';
+import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem,
+  Popover } from '@material-ui/core';
 import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
@@ -101,19 +102,12 @@ const styles = (theme) => ({
     justifyContent: 'space-between',
     opacity: 1,
   },
-  switchListDivider: {
-    marginBottom: '4px',
-  },
   switchListItem: {
-    padding: '16px 0',
-    marginLeft: '14px',
+    padding: '12px 16px',
     boxSizing: 'content-box',
     height: 24,
     lineHeight: 1,
     '& span': { fontSize: '1rem' },
-  },
-  switchListItemText: {
-    padding: 0,
   },
   offlineMenuItem: {
     height: 'unset',
@@ -823,14 +817,13 @@ class Media extends Component {
           View in useradmin
         </MenuItem>
         { Boolean(device?.is_owner || (profile && profile.superuser)) && [
-          <Divider key="1" className={ classes.switchListDivider } />,
+          <Divider key="1" />,
           <ListItem key="2" className={ classes.switchListItem }>
-            <SwitchLoading checked={ currentRoute?.is_public } onChange={ this.onPublicToggle }
-             label={<ListItemText className={ classes.switchListItemText } primary="Public access" secondary="Accessible to any user with route name" />} />
+            <SwitchLoading checked={ currentRoute?.is_public } onChange={ this.onPublicToggle } label="Public access" />
           </ListItem>,
           <ListItem key="3" className={ classes.switchListItem }>
-            <SwitchLoading checked={ Boolean(routePreserved) } loading={ routePreserved === null } onChange={ this.onPreserveToggle }
-              label={<ListItemText className={ classes.switchListItemText } primary="Preserve" secondary="Prevent route expiring" />} />
+            <SwitchLoading checked={ Boolean(routePreserved) } loading={ routePreserved === null }
+              onChange={ this.onPreserveToggle } label="Preserved" />
           </ListItem>,
         ] }
       </Menu>
