@@ -372,7 +372,7 @@ class ClipDone extends Component {
             </Button>
             { Boolean(device?.is_owner || profile?.superuser) && <>
               <Button className={ classes.button } onClick={ (ev) => { ev.persist(); this.shareCurrentClip(ev); } }>
-                Share (make public)
+                Share { clips.is_public ? "" : "(make public)" }
                 <ShareIcon />
               </Button>
               <Button className={ classes.button } disabled={ !clips.is_public } onClick={ this.makePrivate }>
