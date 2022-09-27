@@ -154,6 +154,8 @@ class ClipDone extends Component {
     this.videoAttributesRetries = null;
 
     this.onResize = this.onResize.bind(this);
+    this.showCopiedPopover = this.showCopiedPopover.bind(this);
+    this.showErrorPopover = this.showErrorPopover.bind(this);
     this.shareCurrentClip = this.shareCurrentClip.bind(this);
     this.downloadFile = this.downloadFile.bind(this);
     this.makePublic = this.makePublic.bind(this);
@@ -251,7 +253,7 @@ class ClipDone extends Component {
     }
     this.errorPopoverTimeout = setTimeout(() => {
       this.setState({ errorPopover: null });
-    }, 1500);
+    }, 2000);
   }
 
   async shareCurrentClip(ev) {
@@ -259,7 +261,7 @@ class ClipDone extends Component {
     ev.stopPropagation();
     ev.preventDefault();
 
-    if (!clips.is_public && !this.makePublic()) {
+    if (!clips.is_public && !(await this.makePublic(ev))) {
       return;
     }
 
@@ -288,11 +290,8 @@ class ClipDone extends Component {
     }
   }
 
-  async makePublic() {
+  async makePublic(ev) {
     const { clips, dongleId } = this.props;
-    if (clips.is_public) {
-      return true;
-    }
 
     try {
       const resp = await ClipsApi.clipsUpdate(dongleId, clips.clip_id, true);
@@ -309,17 +308,14 @@ class ClipDone extends Component {
     return false;
   }
 
-  async makePrivate() {
+  async makePrivate(ev) {
     const { clips, dongleId } = this.props;
-    if (!clips.is_public) {
-      return true;
-    }
 
     try {
       const resp = await ClipsApi.clipsUpdate(dongleId, clips.clip_id, false);
       if (resp.success) {
         this.props.dispatch(clipsUpdateIsPublic(clips.clip_id, false));
-        return true;
+        return;
       }
     } catch (err) {
       console.log(err);
@@ -327,7 +323,6 @@ class ClipDone extends Component {
     }
 
     this.showErrorPopover(ev, 'failed to make clip private');
-    return false;
   }
 
   async deleteClip() {
@@ -360,7 +355,7 @@ class ClipDone extends Component {
 
   render() {
     const { classes, clips, dongleId, device, profile } = this.props;
-    const { windowWidth, deleteModal, copiedPopover, errorPopover } = this.state;
+    const { windowWidth, deleteModal, copiedPopover, errorPopover, errorMessage } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
     const videoSizeStyle = windowWidth > 1080 ?
@@ -398,7 +393,7 @@ class ClipDone extends Component {
                 Share { clips.is_public ? "" : "(make public)" }
                 <ShareIcon />
               </Button>
-              <Button className={ classes.button } disabled={ !clips.is_public } onClick={ this.makePrivate }>
+              <Button className={ classes.button } disabled={ !clips.is_public } onClick={ (ev) => this.makePrivate(ev) }>
                 Make private
                 <LockOutlineIcon />
               </Button>
@@ -421,7 +416,7 @@ class ClipDone extends Component {
       </Popper>
       <Popper open={ Boolean(errorPopover) } placement='bottom' anchorEl={ errorPopover }
         className={ classes.popover }>
-        <Typography>failed to share clip</Typography>
+        <Typography>{ errorMessage }</Typography>
       </Popper>
       <Modal open={ Boolean(deleteModal) } onClose={ this.closeDeleteModal }>
         <Paper className={classes.modal}>
@@ -434,7 +429,7 @@ class ClipDone extends Component {
           <Typography>Are you sure you want to permanently delete this clip?</Typography>
           <div className={ classes.modalButtons }>
             <Button variant="contained" onClick={ this.closeDeleteModal }>
-              Cancel
+              Close
             </Button>
             <Button variant="contained" disabled={ Boolean(deleteModal?.success || deleteModal?.loading) }
               onClick={ this.deleteClip }>
