@@ -389,7 +389,7 @@ class ClipDone extends Component {
               <FileDownloadIcon />
             </Button>
             { Boolean(device?.is_owner || profile?.superuser) && <>
-              <Button className={ classes.button } onClick={ (ev) => { ev.persist(); this.shareCurrentClip(ev); } }>
+              <Button className={ classes.button } title="Copy link to clipboard" onClick={ (ev) => { ev.persist(); this.shareCurrentClip(ev); } }>
                 Share { clips.is_public ? "" : "(make public)" }
                 <ShareIcon />
               </Button>
