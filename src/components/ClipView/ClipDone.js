@@ -109,7 +109,7 @@ const styles = (theme) => ({
       },
     },
   },
-  copiedPopover: {
+  popover: {
     borderRadius: 16,
     padding: '8px 16px',
     border: `1px solid ${Colors.white10}`,
@@ -141,8 +141,13 @@ class ClipDone extends Component {
     this.state = {
       windowWidth: window.innerWidth,
       copiedPopover: null,
+      errorPopover: null,
+      errorMessage: '',
       deleteModal: null,
     };
+
+    this.copiedPopoverTimeout = null;
+    this.errorPopoverTimeout = null;
 
     this.video360Container = null;
     this.video360Viewer = null;
@@ -226,13 +231,35 @@ class ClipDone extends Component {
     this.setState({ windowWidth });
   }
 
+  showCopiedPopover(ev) {
+    this.setState({ copiedPopover: ev.target });
+    if (this.copiedPopoverTimeout) {
+      clearTimeout(this.copiedPopoverTimeout);
+    }
+    this.copiedPopoverTimeout = setTimeout(() => {
+      this.setState({ copiedPopover: null });
+    }, 1500);
+  }
+
+  showErrorPopover(ev, message) {
+    this.setState({
+      errorPopover: ev.target,
+      errorMessage: message,
+    });
+    if (this.errorPopoverTimeout) {
+      clearTimeout(this.errorPopoverTimeout);
+    }
+    this.errorPopoverTimeout = setTimeout(() => {
+      this.setState({ errorPopover: null });
+    }, 1500);
+  }
+
   async shareCurrentClip(ev) {
     const { clips, dongleId } = this.props;
     ev.stopPropagation();
     ev.preventDefault();
 
     if (!clips.is_public && !this.makePublic()) {
-      // TODO: show error state
       return;
     }
 
@@ -245,17 +272,12 @@ class ClipDone extends Component {
         });
       } else {
         await navigator.clipboard.writeText(url);
-        this.setState({ copiedPopover: ev.target });
-        if (this.popoverTimeout) {
-          clearTimeout(this.popoverTimeout);
-        }
-        this.popoverTimeout = setTimeout(() => {
-          this.setState({ copiedPopover: null });
-        }, 1500);
+        this.showCopiedPopover(ev);
       }
     } catch (err) {
       console.log(err);
       Sentry.captureException(err, { fingerprint: 'clip_done_share' });
+      this.showErrorPopover(ev, 'failed to share clip');
     }
   }
 
@@ -283,13 +305,13 @@ class ClipDone extends Component {
       Sentry.captureException(err, { fingerprint: 'clips_update_public' });
     }
 
+    this.showErrorPopover(ev, 'failed to make clip public');
     return false;
   }
 
   async makePrivate() {
     const { clips, dongleId } = this.props;
     if (!clips.is_public) {
-      console.warn('clip is already private');
       return true;
     }
 
@@ -303,7 +325,8 @@ class ClipDone extends Component {
       console.log(err);
       Sentry.captureException(err, { fingerprint: 'clips_update_private' });
     }
-1
+
+    this.showErrorPopover(ev, 'failed to make clip private');
     return false;
   }
 
@@ -337,7 +360,7 @@ class ClipDone extends Component {
 
   render() {
     const { classes, clips, dongleId, device, profile } = this.props;
-    const { windowWidth, deleteModal, copiedPopover } = this.state;
+    const { windowWidth, deleteModal, copiedPopover, errorPopover } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
     const videoSizeStyle = windowWidth > 1080 ?
@@ -393,8 +416,12 @@ class ClipDone extends Component {
         </div>
       </div>
       <Popper open={ Boolean(copiedPopover) } placement='bottom' anchorEl={ copiedPopover }
-        className={ classes.copiedPopover }>
+        className={ classes.popover }>
         <Typography>copied to clipboard</Typography>
+      </Popper>
+      <Popper open={ Boolean(errorPopover) } placement='bottom' anchorEl={ errorPopover }
+        className={ classes.popover }>
+        <Typography>failed to share clip</Typography>
       </Popper>
       <Modal open={ Boolean(deleteModal) } onClose={ this.closeDeleteModal }>
         <Paper className={classes.modal}>
