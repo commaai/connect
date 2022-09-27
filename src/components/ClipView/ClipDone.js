@@ -11,7 +11,6 @@ import { withStyles, Button, Modal, Paper, Typography, CircularProgress, Popper 
 import ShareIcon from '@material-ui/icons/Share';
 import FileDownloadIcon from '@material-ui/icons/FileDownload';
 import DeleteIcon from '@material-ui/icons/Delete';
-import PublishIcon from '@material-ui/icons/LockOpen';
 import LockOutlineIcon from '@material-ui/icons/LockOutline';
 import CropOriginalIcon from '@material-ui/icons/CropOriginal';
 import { clips as ClipsApi } from '@commaai/comma-api';
@@ -70,10 +69,6 @@ const styles = (theme) => ({
       height: 18,
       width: 18,
     },
-  },
-  shareButton: {
-    marginLeft: 8,
-    marginRight: 0,
   },
   modal: {
     position: 'absolute',
@@ -156,7 +151,8 @@ class ClipDone extends Component {
     this.onResize = this.onResize.bind(this);
     this.shareCurrentClip = this.shareCurrentClip.bind(this);
     this.downloadFile = this.downloadFile.bind(this);
-    this.togglePublic = this.togglePublic.bind(this);
+    this.makePublic = this.makePublic.bind(this);
+    this.makePrivate = this.makePrivate.bind(this);
     this.deleteClip = this.deleteClip.bind(this);
     this.closeDeleteModal = this.closeDeleteModal.bind(this);
     this.video360ContainerRef = this.video360ContainerRef.bind(this);
@@ -234,6 +230,12 @@ class ClipDone extends Component {
     const { clips, dongleId } = this.props;
     ev.stopPropagation();
     ev.preventDefault();
+
+    if (!clips.is_public && !this.makePublic()) {
+      // TODO: show error state
+      return;
+    }
+
     try {
       const url = `${window.location.origin}/${dongleId}/clips/${clips.clip_id}`;
       if (typeof navigator.share !== 'undefined') {
@@ -264,18 +266,45 @@ class ClipDone extends Component {
     }
   }
 
-  async togglePublic() {
-    const { dongleId, clips } = this.props;
-    const new_is_public = !clips.is_public;
+  async makePublic() {
+    const { clips, dongleId } = this.props;
+    if (clips.is_public) {
+      return true;
+    }
+
     try {
-      const resp = await ClipsApi.clipsUpdate(dongleId, clips.clip_id, new_is_public);
+      const resp = await ClipsApi.clipsUpdate(dongleId, clips.clip_id, true);
       if (resp.success) {
-        this.props.dispatch(clipsUpdateIsPublic(clips.clip_id, new_is_public));
+        this.props.dispatch(clipsUpdateIsPublic(clips.clip_id, true));
+        return true;
       }
     } catch (err) {
       console.log(err);
-      Sentry.captureException(err, { fingerprint: 'clips_fetch_update_public' });
+      Sentry.captureException(err, { fingerprint: 'clips_update_public' });
     }
+
+    return false;
+  }
+
+  async makePrivate() {
+    const { clips, dongleId } = this.props;
+    if (!clips.is_public) {
+      console.warn('clip is already private');
+      return true;
+    }
+
+    try {
+      const resp = await ClipsApi.clipsUpdate(dongleId, clips.clip_id, false);
+      if (resp.success) {
+        this.props.dispatch(clipsUpdateIsPublic(clips.clip_id, false));
+        return true;
+      }
+    } catch (err) {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'clips_update_private' });
+    }
+1
+    return false;
   }
 
   async deleteClip() {
@@ -323,13 +352,6 @@ class ClipDone extends Component {
           <h4>
             { clips.title ? clips.title : clips.route.split('|')[1] }
           </h4>
-          { clips.is_public &&
-            <Button onClick={ (ev) => { ev.persist(); this.shareCurrentClip(ev); } }
-              className={ `${classes.button} ${classes.shareButton}` }>
-              Share
-              <ShareIcon />
-            </Button>
-          }
         </div>
         <div className={ classes.clipOption }
           ref={ (el) => { if (el) el.addEventListener('touchstart', (ev) => ev.stopPropagation()); }}>
@@ -349,17 +371,20 @@ class ClipDone extends Component {
               <FileDownloadIcon />
             </Button>
             { Boolean(device?.is_owner || profile?.superuser) && <>
-              <Button onClick={ this.togglePublic } className={ classes.button }>
-                { clips.is_public ? 'Make private' : 'Make public' }
-                { clips.is_public ? <LockOutlineIcon /> : <PublishIcon /> }
+              <Button className={ classes.button } onClick={ (ev) => { ev.persist(); this.shareCurrentClip(ev); } }>
+                Share (make public)
+                <ShareIcon />
+              </Button>
+              <Button className={ classes.button } disabled={ !clips.is_public } onClick={ this.makePrivate }>
+                Make private
+                <LockOutlineIcon />
               </Button>
               <Button className={ classes.button } href={ `/${dongleId}/${clips.start_time}/${clips.end_time}` }
                 onClick={ filterRegularClick(() => this.props.dispatch(selectRange(clips.start_time, clips.end_time))) }>
                 View route
                 <CropOriginalIcon />
               </Button>
-              <Button className={ classes.button }
-                onClick={ () => this.setState({ deleteModal: {} }) }>
+              <Button className={ classes.button } onClick={ () => this.setState({ deleteModal: {} }) }>
                 Delete
                 <DeleteIcon />
               </Button>
@@ -379,10 +404,10 @@ class ClipDone extends Component {
           { Boolean(deleteModal?.success) && <div className={ classes.deleteSuccess }>
             <Typography>{ deleteModal?.success }</Typography>
           </div> }
-          <Typography>Are you sure you want to permatently delete this clip?</Typography>
+          <Typography>Are you sure you want to permanently delete this clip?</Typography>
           <div className={ classes.modalButtons }>
             <Button variant="contained" onClick={ this.closeDeleteModal }>
-              Close
+              Cancel
             </Button>
             <Button variant="contained" disabled={ Boolean(deleteModal?.success || deleteModal?.loading) }
               onClick={ this.deleteClip }>
