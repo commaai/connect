@@ -11,7 +11,8 @@ import { withStyles, Button, Modal, Paper, Typography, CircularProgress, Popper 
 import ShareIcon from '@material-ui/icons/Share';
 import FileDownloadIcon from '@material-ui/icons/FileDownload';
 import DeleteIcon from '@material-ui/icons/Delete';
-import LockOutlineIcon from '@material-ui/icons/LockOutline';
+import PublishIcon from '@material-ui/icons/LockOpen';
+import LockIcon from '@material-ui/icons/LockOutline';
 import CropOriginalIcon from '@material-ui/icons/CropOriginal';
 import { clips as ClipsApi } from '@commaai/comma-api';
 
@@ -389,13 +390,23 @@ class ClipDone extends Component {
               <FileDownloadIcon />
             </Button>
             { Boolean(device?.is_owner || profile?.superuser) && <>
-              <Button className={ classes.button } title="Copy link to clipboard" onClick={ (ev) => { ev.persist(); this.shareCurrentClip(ev); } }>
-                Share { clips.is_public ? "" : "(make public)" }
+              { clips.is_public ?
+                <Button className={ classes.button } onClick={ this.makePrivate }>
+                  Make private
+                  <LockIcon />
+                </Button>
+              :
+                <Button className={ classes.button } onClick={ this.makePublic }>
+                  Make public
+                  <PublishIcon />
+                </Button>
+              }
+              <Button
+                className={ classes.button } title="Copy link to clipboard"
+                onClick={ (ev) => { ev.persist(); this.shareCurrentClip(ev); } }
+              >
+                Share
                 <ShareIcon />
-              </Button>
-              <Button className={ classes.button } disabled={ !clips.is_public } onClick={ (ev) => this.makePrivate(ev) }>
-                Make private
-                <LockOutlineIcon />
               </Button>
               <Button className={ classes.button } href={ `/${dongleId}/${clips.start_time}/${clips.end_time}` }
                 onClick={ filterRegularClick(() => this.props.dispatch(selectRange(clips.start_time, clips.end_time))) }>
