@@ -419,18 +419,20 @@ class ClipUpload extends Component {
         <div style={{ padding: viewerPadding }}>
           <div className={ classes.clipOption }>
             <h4>{ statusTitle }</h4>
-            <typography>Large files can take a while to process. Please be patient!</typography>
             <div className={ classes.clipProgress }>
               <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 24 } />
               { statusProgress !== null && <span>{ statusProgress }%</span> }
             </div>
-            <typography>You can leave this page and come back to view your clips at any time.</typography>
           </div>
         </div>
       }
 
       <UploadQueue open={ this.state.uploadModal } onClose={ () => this.setState({ uploadModal: false }) }
         update={ !hasUploadedAll } store={ this.props.store } device={ device } />
+
+      <div style={{ padding: viewerPadding }}>
+        <typography>This may take some time. You can leave this page and your clip will continue processing.</typography>
+      </div>
     </>;
   }
 
