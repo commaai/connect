@@ -11,11 +11,10 @@ import { withStyles, Button, Modal, Paper, Typography, CircularProgress, Popper 
 import ShareIcon from '@material-ui/icons/Share';
 import FileDownloadIcon from '@material-ui/icons/FileDownload';
 import DeleteIcon from '@material-ui/icons/Delete';
-import PublishIcon from '@material-ui/icons/LockOpen';
-import LockOutlineIcon from '@material-ui/icons/LockOutline';
 import CropOriginalIcon from '@material-ui/icons/CropOriginal';
 import { clips as ClipsApi } from '@commaai/comma-api';
 
+import SwitchLoading from '../utils/SwitchLoading';
 import { filterRegularClick } from '../../utils';
 import { video_360 } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
@@ -39,6 +38,10 @@ const styles = (theme) => ({
       margin: 0,
       fontSize: '1rem',
     },
+    minHeight: '32px',
+  },
+  publicSwitch: {
+    marginTop: '-16px',
   },
   buttonView: {
     display: 'flex',
@@ -70,10 +73,6 @@ const styles = (theme) => ({
       height: 18,
       width: 18,
     },
-  },
-  shareButton: {
-    marginLeft: 8,
-    marginRight: 0,
   },
   modal: {
     position: 'absolute',
@@ -114,7 +113,7 @@ const styles = (theme) => ({
       },
     },
   },
-  copiedPopover: {
+  popover: {
     borderRadius: 16,
     padding: '8px 16px',
     border: `1px solid ${Colors.white10}`,
@@ -146,17 +145,26 @@ class ClipDone extends Component {
     this.state = {
       windowWidth: window.innerWidth,
       copiedPopover: null,
+      errorPopover: null,
+      errorMessage: '',
       deleteModal: null,
     };
+
+    this.copiedPopoverTimeout = null;
+    this.errorPopoverTimeout = null;
 
     this.video360Container = null;
     this.video360Viewer = null;
     this.videoAttributesRetries = null;
 
     this.onResize = this.onResize.bind(this);
+    this.showCopiedPopover = this.showCopiedPopover.bind(this);
+    this.showErrorPopover = this.showErrorPopover.bind(this);
     this.shareCurrentClip = this.shareCurrentClip.bind(this);
     this.downloadFile = this.downloadFile.bind(this);
-    this.togglePublic = this.togglePublic.bind(this);
+    this.makePublic = this.makePublic.bind(this);
+    this.makePrivate = this.makePrivate.bind(this);
+    this.onPublicToggle = this.onPublicToggle.bind(this);
     this.deleteClip = this.deleteClip.bind(this);
     this.closeDeleteModal = this.closeDeleteModal.bind(this);
     this.video360ContainerRef = this.video360ContainerRef.bind(this);
@@ -230,10 +238,38 @@ class ClipDone extends Component {
     this.setState({ windowWidth });
   }
 
+  showCopiedPopover(ev) {
+    this.setState({ copiedPopover: ev.target });
+    if (this.copiedPopoverTimeout) {
+      clearTimeout(this.copiedPopoverTimeout);
+    }
+    this.copiedPopoverTimeout = setTimeout(() => {
+      this.setState({ copiedPopover: null });
+    }, 1500);
+  }
+
+  showErrorPopover(ev, message) {
+    this.setState({
+      errorPopover: ev.target,
+      errorMessage: message,
+    });
+    if (this.errorPopoverTimeout) {
+      clearTimeout(this.errorPopoverTimeout);
+    }
+    this.errorPopoverTimeout = setTimeout(() => {
+      this.setState({ errorPopover: null });
+    }, 2000);
+  }
+
   async shareCurrentClip(ev) {
     const { clips, dongleId } = this.props;
     ev.stopPropagation();
     ev.preventDefault();
+
+    if (!clips.is_public && !(await this.makePublic(ev))) {
+      return;
+    }
+
     try {
       const url = `${window.location.origin}/${dongleId}/clips/${clips.clip_id}`;
       if (typeof navigator.share !== 'undefined') {
@@ -243,17 +279,12 @@ class ClipDone extends Component {
         });
       } else {
         await navigator.clipboard.writeText(url);
-        this.setState({ copiedPopover: ev.target });
-        if (this.popoverTimeout) {
-          clearTimeout(this.popoverTimeout);
-        }
-        this.popoverTimeout = setTimeout(() => {
-          this.setState({ copiedPopover: null });
-        }, 1500);
+        this.showCopiedPopover(ev);
       }
     } catch (err) {
       console.log(err);
       Sentry.captureException(err, { fingerprint: 'clip_done_share' });
+      this.showErrorPopover(ev, 'failed to share clip');
     }
   }
 
@@ -264,17 +295,47 @@ class ClipDone extends Component {
     }
   }
 
-  async togglePublic() {
-    const { dongleId, clips } = this.props;
-    const new_is_public = !clips.is_public;
+  async makePublic(ev) {
+    const { clips, dongleId } = this.props;
+
     try {
-      const resp = await ClipsApi.clipsUpdate(dongleId, clips.clip_id, new_is_public);
+      const resp = await ClipsApi.clipsUpdate(dongleId, clips.clip_id, true);
       if (resp.success) {
-        this.props.dispatch(clipsUpdateIsPublic(clips.clip_id, new_is_public));
+        this.props.dispatch(clipsUpdateIsPublic(clips.clip_id, true));
+        return true;
       }
     } catch (err) {
       console.log(err);
-      Sentry.captureException(err, { fingerprint: 'clips_fetch_update_public' });
+      Sentry.captureException(err, { fingerprint: 'clips_update_public' });
+    }
+
+    this.showErrorPopover(ev, 'failed to make clip public');
+    return false;
+  }
+
+  async makePrivate(ev) {
+    const { clips, dongleId } = this.props;
+
+    try {
+      const resp = await ClipsApi.clipsUpdate(dongleId, clips.clip_id, false);
+      if (resp.success) {
+        this.props.dispatch(clipsUpdateIsPublic(clips.clip_id, false));
+        return;
+      }
+    } catch (err) {
+      console.log(err);
+      Sentry.captureException(err, { fingerprint: 'clips_update_private' });
+    }
+
+    this.showErrorPopover(ev, 'failed to make clip private');
+  }
+
+  async onPublicToggle(ev) {
+    const { clips } = this.props;
+    if (clips.is_public) {
+      return this.makePrivate(ev);
+    } else {
+      return this.makePublic(ev);
     }
   }
 
@@ -308,12 +369,14 @@ class ClipDone extends Component {
 
   render() {
     const { classes, clips, dongleId, device, profile } = this.props;
-    const { windowWidth, deleteModal, copiedPopover } = this.state;
+    const { windowWidth, deleteModal, copiedPopover, errorPopover, errorMessage } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
     const videoSizeStyle = windowWidth > 1080 ?
       { maxHeight: 'calc(100vh - 224px)', width: '100%' } :
       { maxHeight: 'calc(100vh - 64px)', width: '100%' };
+
+    const authorized = Boolean(device?.is_owner || profile?.superuser);
 
     return <>
       <ResizeHandler onResize={ this.onResize } />
@@ -323,12 +386,8 @@ class ClipDone extends Component {
           <h4>
             { clips.title ? clips.title : clips.route.split('|')[1] }
           </h4>
-          { clips.is_public &&
-            <Button onClick={ (ev) => { ev.persist(); this.shareCurrentClip(ev); } }
-              className={ `${classes.button} ${classes.shareButton}` }>
-              Share
-              <ShareIcon />
-            </Button>
+          { authorized &&
+            <SwitchLoading classes={{ root: classes.publicSwitch }} checked={ clips.is_public } onChange={ this.onPublicToggle } label="Public access" />
           }
         </div>
         <div className={ classes.clipOption }
@@ -348,18 +407,20 @@ class ClipDone extends Component {
               Download
               <FileDownloadIcon />
             </Button>
-            { Boolean(device?.is_owner || profile?.superuser) && <>
-              <Button onClick={ this.togglePublic } className={ classes.button }>
-                { clips.is_public ? 'Make private' : 'Make public' }
-                { clips.is_public ? <LockOutlineIcon /> : <PublishIcon /> }
+            { authorized && <>
+              <Button
+                className={ classes.button } title="Copy link to clipboard"
+                onClick={ (ev) => { ev.persist(); this.shareCurrentClip(ev); } }
+              >
+                Share
+                <ShareIcon />
               </Button>
               <Button className={ classes.button } href={ `/${dongleId}/${clips.start_time}/${clips.end_time}` }
                 onClick={ filterRegularClick(() => this.props.dispatch(selectRange(clips.start_time, clips.end_time))) }>
                 View route
                 <CropOriginalIcon />
               </Button>
-              <Button className={ classes.button }
-                onClick={ () => this.setState({ deleteModal: {} }) }>
+              <Button className={ classes.button } onClick={ () => this.setState({ deleteModal: {} }) }>
                 Delete
                 <DeleteIcon />
               </Button>
@@ -368,8 +429,12 @@ class ClipDone extends Component {
         </div>
       </div>
       <Popper open={ Boolean(copiedPopover) } placement='bottom' anchorEl={ copiedPopover }
-        className={ classes.copiedPopover }>
+        className={ classes.popover }>
         <Typography>copied to clipboard</Typography>
+      </Popper>
+      <Popper open={ Boolean(errorPopover) } placement='bottom' anchorEl={ errorPopover }
+        className={ classes.popover }>
+        <Typography>{ errorMessage }</Typography>
       </Popper>
       <Modal open={ Boolean(deleteModal) } onClose={ this.closeDeleteModal }>
         <Paper className={classes.modal}>
@@ -379,7 +444,7 @@ class ClipDone extends Component {
           { Boolean(deleteModal?.success) && <div className={ classes.deleteSuccess }>
             <Typography>{ deleteModal?.success }</Typography>
           </div> }
-          <Typography>Are you sure you want to permatently delete this clip?</Typography>
+          <Typography>Are you sure you want to permanently delete this clip?</Typography>
           <div className={ classes.modalButtons }>
             <Button variant="contained" onClick={ this.closeDeleteModal }>
               Close
