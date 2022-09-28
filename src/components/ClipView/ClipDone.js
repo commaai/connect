@@ -11,11 +11,10 @@ import { withStyles, Button, Modal, Paper, Typography, CircularProgress, Popper 
 import ShareIcon from '@material-ui/icons/Share';
 import FileDownloadIcon from '@material-ui/icons/FileDownload';
 import DeleteIcon from '@material-ui/icons/Delete';
-import PublishIcon from '@material-ui/icons/LockOpen';
-import LockIcon from '@material-ui/icons/LockOutline';
 import CropOriginalIcon from '@material-ui/icons/CropOriginal';
 import { clips as ClipsApi } from '@commaai/comma-api';
 
+import SwitchLoading from '../utils/SwitchLoading';
 import { filterRegularClick } from '../../utils';
 import { video_360 } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
@@ -39,6 +38,10 @@ const styles = (theme) => ({
       margin: 0,
       fontSize: '1rem',
     },
+    minHeight: '32px',
+  },
+  publicSwitch: {
+    marginTop: '-16px',
   },
   buttonView: {
     display: 'flex',
@@ -161,6 +164,7 @@ class ClipDone extends Component {
     this.downloadFile = this.downloadFile.bind(this);
     this.makePublic = this.makePublic.bind(this);
     this.makePrivate = this.makePrivate.bind(this);
+    this.onPublicToggle = this.onPublicToggle.bind(this);
     this.deleteClip = this.deleteClip.bind(this);
     this.closeDeleteModal = this.closeDeleteModal.bind(this);
     this.video360ContainerRef = this.video360ContainerRef.bind(this);
@@ -326,6 +330,15 @@ class ClipDone extends Component {
     this.showErrorPopover(ev, 'failed to make clip private');
   }
 
+  async onPublicToggle(ev) {
+    const { clips } = this.props;
+    if (clips.is_public) {
+      return this.makePrivate(ev);
+    } else {
+      return this.makePublic(ev);
+    }
+  }
+
   async deleteClip() {
     const { dongleId, clips } = this.props;
     this.setState({ deleteModal: { ...this.state.deleteModal, loading: true } });
@@ -363,6 +376,8 @@ class ClipDone extends Component {
       { maxHeight: 'calc(100vh - 224px)', width: '100%' } :
       { maxHeight: 'calc(100vh - 64px)', width: '100%' };
 
+    const authorized = Boolean(device?.is_owner || profile?.superuser);
+
     return <>
       <ResizeHandler onResize={ this.onResize } />
 
@@ -371,6 +386,9 @@ class ClipDone extends Component {
           <h4>
             { clips.title ? clips.title : clips.route.split('|')[1] }
           </h4>
+          { authorized &&
+            <SwitchLoading classes={{ root: classes.publicSwitch }} checked={ clips.is_public } onChange={ this.onPublicToggle } label="Public access" />
+          }
         </div>
         <div className={ classes.clipOption }
           ref={ (el) => { if (el) el.addEventListener('touchstart', (ev) => ev.stopPropagation()); }}>
@@ -389,18 +407,7 @@ class ClipDone extends Component {
               Download
               <FileDownloadIcon />
             </Button>
-            { Boolean(device?.is_owner || profile?.superuser) && <>
-              { clips.is_public ?
-                <Button className={ classes.button } onClick={ this.makePrivate }>
-                  Make private
-                  <LockIcon />
-                </Button>
-              :
-                <Button className={ classes.button } onClick={ this.makePublic }>
-                  Make public
-                  <PublishIcon />
-                </Button>
-              }
+            { authorized && <>
               <Button
                 className={ classes.button } title="Copy link to clipboard"
                 onClick={ (ev) => { ev.persist(); this.shareCurrentClip(ev); } }
