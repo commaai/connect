@@ -419,10 +419,12 @@ class ClipUpload extends Component {
         <div style={{ padding: viewerPadding }}>
           <div className={ classes.clipOption }>
             <h4>{ statusTitle }</h4>
-              <div className={ classes.clipProgress }>
-                <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 24 } />
-                { statusProgress !== null && <span>{ statusProgress}%</span> }
-              </div>
+            <typography>Large files can take a while to process. Please be patient!</typography>
+            <div className={ classes.clipProgress }>
+              <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 24 } />
+              { statusProgress !== null && <span>{ statusProgress }%</span> }
+            </div>
+            <typography>You can leave this page and come back to view your clips at any time.</typography>
           </div>
         </div>
       }
