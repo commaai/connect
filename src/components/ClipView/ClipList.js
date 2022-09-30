@@ -6,7 +6,7 @@ import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, CircularProgress, Popper, Popover } from '@material-ui/core';
 import LockOutlineIcon from '@material-ui/icons/LockOutline';
-import ShareIcon from '@material-ui/icons/Share';
+import PublicIcon from '@material-ui/icons/Public';
 import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import { clips as ClipsApi } from '@commaai/comma-api';
@@ -210,7 +210,7 @@ class ClipList extends Component {
             <h6 style={{ ...itemStyle, ...gridStyles[0] }}></h6>
             <h6 style={{ ...itemStyle, ...gridStyles[1] }}>Title</h6>
             <h6 style={{ ...itemStyle, ...gridStyles[2], textAlign: 'center' }}>Date</h6>
-            <h6 style={{ ...itemStyle, ...gridStyles[3] }}></h6>
+            <h6 style={{ ...itemStyle, ...gridStyles[3] }}>Public</h6>
           </div>
         }
         { clips.list && clips.list.map((c) => this.renderClipItem(gridStyles, c)) }
@@ -268,7 +268,7 @@ class ClipList extends Component {
       </p>
       <p style={{ ...itemStyle, ...gridStyles[2] }}>{ timeStr }</p>
       { c.is_public ?
-        <ShareIcon style={{ ...gridStyles[3], fontSize: (windowWidth < 768 ? '1.0rem' : '1.2rem') }}
+        <PublicIcon style={{ ...gridStyles[3], fontSize: (windowWidth < 768 ? '1.0rem' : '1.2rem') }}
           onClick={ (ev) => { ev.persist(); this.shareClip(ev, c); } } /> :
         <LockOutlineIcon style={{ ...gridStyles[3], fontSize: (windowWidth < 768 ? '1.0rem' : '1.2rem') }} />
       }
