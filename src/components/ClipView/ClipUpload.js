@@ -430,7 +430,7 @@ class ClipUpload extends Component {
       <UploadQueue open={ this.state.uploadModal } onClose={ () => this.setState({ uploadModal: false }) }
         update={ !hasUploadedAll } store={ this.props.store } device={ device } />
 
-      <div style={{ padding: viewerPadding }}>
+      <div style={{ padding: `0 ${viewerPadding}px ${viewerPadding}px ${viewerPadding}px` }}>
         <typography>This may take some time. You can leave this page and your clip will continue processing.</typography>
       </div>
     </>;
