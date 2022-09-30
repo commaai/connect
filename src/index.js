@@ -13,7 +13,7 @@ import { register, unregister } from './registerServiceWorker';
 
 if (window.SENTRY_ENV) {
   Sentry.init({
-    dsn: 'https://6a242abfa01b4660aa34f150e87de018@sentry.io/1234624',
+    dsn: 'https://6a242abfa01b4660aa34f150e87de018@o33823.ingest.sentry.io/1234624',
     environment: window.SENTRY_ENV,
     maxValueLength: 1000,
   });
