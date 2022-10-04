@@ -28,6 +28,9 @@ import { attachRelTime } from '../../analytics';
 import { fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles } from '../../actions/files';
 import { clipsInit } from '../../actions/clips';
 
+const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
+const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
+
 const styles = (theme) => ({
   root: {
     display: 'flex',
@@ -819,11 +822,12 @@ class Media extends Component {
         { Boolean(device?.is_owner || (profile && profile.superuser)) && [
           <Divider key="1" />,
           <ListItem key="2" className={ classes.switchListItem }>
-            <SwitchLoading checked={ currentRoute?.is_public } onChange={ this.onPublicToggle } label="Public access" />
+            <SwitchLoading checked={ currentRoute?.is_public } onChange={ this.onPublicToggle }
+              label="Public access" tooltip={publicTooltip} />
           </ListItem>,
           <ListItem key="3" className={ classes.switchListItem }>
             <SwitchLoading checked={ Boolean(routePreserved) } loading={ routePreserved === null }
-              onChange={ this.onPreserveToggle } label="Preserved" />
+              onChange={ this.onPreserveToggle } label="Preserved" tooltip={preservedTooltip} />
           </ListItem>,
         ] }
       </Menu>
