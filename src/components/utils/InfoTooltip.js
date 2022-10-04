@@ -5,6 +5,7 @@ import InfoIcon from '@material-ui/icons/InfoOutline';
 
 const styles = (theme) => ({
   arrowPopper: {
+    opacity: 1,
     '&[x-placement*="bottom"] $arrowArrow': {
       top: 0,
       left: 0,
