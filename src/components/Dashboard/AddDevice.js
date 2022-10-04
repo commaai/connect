@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import qs from 'query-string';
 import QrScanner from 'qr-scanner';
-import QrScannerWorkerPath from '!!file-loader!../../../node_modules/qr-scanner/qr-scanner-worker.min.js';
 import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress } from '@material-ui/core';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
@@ -12,8 +11,6 @@ import { devices as DevicesApi } from '@commaai/comma-api';
 import { selectDevice, updateDevice, analyticsEvent } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import Colors from '../../colors';
-
-QrScanner.WORKER_PATH = QrScannerWorkerPath;
 
 const styles = (theme) => ({
   titleContainer: {

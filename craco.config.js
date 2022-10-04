@@ -2,9 +2,9 @@ const { removeLoaders, loaderByName, addBeforeLoader } = require('@craco/craco')
 const SentryCliPlugin = require('@sentry/webpack-plugin');
 const { GenerateSW } = require('workbox-webpack-plugin');
 
-module.exports = function ({ env }) {
+module.exports = ({ env }) => {
   let sentryPlugin;
-  if (process.env.NODE_ENV === 'production' && process.env.SENTRY_AUTH_TOKEN) {
+  if (env === 'production' && process.env.SENTRY_AUTH_TOKEN) {
     sentryPlugin = new SentryCliPlugin({
       include: './build/',
       ignoreFile: '.sentrycliignore',
@@ -14,7 +14,7 @@ module.exports = function ({ env }) {
   }
 
   let workboxPlugin;
-  if (process.env.NODE_ENV === 'production') {
+  if (env === 'production') {
     workboxPlugin = new GenerateSW({
       skipWaiting: true,
     });
@@ -22,10 +22,10 @@ module.exports = function ({ env }) {
 
   return {
     jest: {
-      configure: (jestConfig, { env, paths }) => {
-        jestConfig.testPathIgnorePatterns = ['node_modules', '__puppeteer__'];
-        return jestConfig;
-      }
+      configure: (jestConfig, { env, paths }) => ({
+        ...jestConfig,
+        testPathIgnorePatterns: ['node_modules', 'src/__puppeteer__'],
+      }),
     },
     webpack: {
       configure: (webpackConfig, { env, paths }) => {
@@ -36,9 +36,9 @@ module.exports = function ({ env }) {
           webpackConfig.plugins.push(sentryPlugin);
         }
         webpackConfig.output.globalObject = 'this';
-        addBeforeLoader(webpackConfig, loaderByName("babel-loader"), {
+        addBeforeLoader(webpackConfig, loaderByName('babel-loader'), {
           test: /\.worker\.js/,
-          use: { loader: "worker-loader" }
+          use: { loader: 'worker-loader' },
         });
         removeLoaders(webpackConfig, loaderByName('eslint-loader'));
         webpackConfig.optimization.minimizer = webpackConfig.optimization.minimizer.map(function (plugin) {
@@ -49,7 +49,7 @@ module.exports = function ({ env }) {
           return plugin;
         });
         return webpackConfig;
-      }
-    }
+      },
+    },
   };
 };
