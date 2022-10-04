@@ -1,4 +1,4 @@
-const { removeLoaders, loaderByName, addBeforeLoader } = require('@craco/craco');
+const { loaderByName, addBeforeLoader, removeLoaders } = require('@craco/craco');
 const SentryCliPlugin = require('@sentry/webpack-plugin');
 const { GenerateSW } = require('workbox-webpack-plugin');
 
@@ -21,14 +21,8 @@ module.exports = ({ env }) => {
   }
 
   return {
-    jest: {
-      configure: (jestConfig, { env, paths }) => ({
-        ...jestConfig,
-        testPathIgnorePatterns: ['node_modules', 'src/__puppeteer__'],
-      }),
-    },
     webpack: {
-      configure: (webpackConfig, { env, paths }) => {
+      configure: (webpackConfig) => {
         if (workboxPlugin) {
           webpackConfig.plugins.push(workboxPlugin);
         }
@@ -50,6 +44,12 @@ module.exports = ({ env }) => {
         });
         return webpackConfig;
       },
+    },
+    jest: {
+      configure: (jestConfig) => ({
+        ...jestConfig,
+        testPathIgnorePatterns: ['node_modules', 'src/__puppeteer__'],
+      }),
     },
   };
 };
