@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Tooltip, Typography, withStyles } from '@material-ui/core';
+import { ClickAwayListener, Tooltip, Typography, withStyles } from '@material-ui/core';
 import InfoIcon from '@material-ui/icons/InfoOutline';
 
 const styles = (theme) => ({
@@ -68,6 +68,7 @@ const styles = (theme) => ({
     marginBottom: 8,
   },
   icon: {
+    marginLeft: theme.spacing.unit,
     fontSize: 18,
   },
 });
@@ -75,6 +76,7 @@ const styles = (theme) => ({
 class InfoTooltip extends Component {
   state = {
     arrowRef: null,
+    open: false,
   };
 
   handleArrowRef = node => {
@@ -82,6 +84,14 @@ class InfoTooltip extends Component {
       arrowRef: node,
     });
   };
+
+  handleTooltipOpen = () => {
+    this.setState({ open: true });
+  }
+
+  handleTooltipClose = () => {
+    this.setState({ open: false });
+  }
 
   render() {
     const {
@@ -91,28 +101,33 @@ class InfoTooltip extends Component {
     } = this.props;
 
     return (
-      <Tooltip
-        title={
-          <React.Fragment>
-            <Typography color="inherit">{ title }</Typography>
-            <span className={classes.arrowArrow} ref={this.handleArrowRef} />
-          </React.Fragment>
-        }
-        classes={{ tooltip: classes.tooltip, popper: classes.arrowPopper }}
-        placement={placement}
-        PopperProps={{
-          popperOptions: {
-            modifiers: {
-              arrow: {
-                enabled: Boolean(this.state.arrowRef),
-                element: this.state.arrowRef,
+      <ClickAwayListener onClickAway={this.handleTooltipClose}>
+        <Tooltip
+          PopperProps={{
+            popperOptions: {
+              modifiers: {
+                arrow: {
+                  enabled: Boolean(this.state.arrowRef),
+                  element: this.state.arrowRef,
+                },
               },
             },
-          },
-        }}
-      >
-        <InfoIcon className={classes.icon} />
-      </Tooltip>
+          }}
+          title={
+            <React.Fragment>
+              <Typography color="inherit">{ title }</Typography>
+              <span className={classes.arrowArrow} ref={this.handleArrowRef} />
+            </React.Fragment>
+          }
+          onOpen={this.handleTooltipOpen}
+          onClose={this.handleTooltipClose}
+          open={this.state.open}
+          classes={{ tooltip: classes.tooltip, popper: classes.arrowPopper }}
+          placement={placement}
+        >
+          <InfoIcon className={classes.icon} onClick={this.handleTooltipOpen} />
+        </Tooltip>
+      </ClickAwayListener>
     );
   }
 }
