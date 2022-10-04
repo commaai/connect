@@ -5,8 +5,9 @@ import { withStyles, Switch, FormControlLabel, Popper, Typography } from '@mater
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 
 import Colors from '../../colors';
+import InfoTooltip from './InfoTooltip';
 
-const styles = (theme) => ({
+const styles = () => ({
   root: {
     display: 'flex',
     alignItems: 'center',
@@ -88,7 +89,7 @@ class SwitchLoading extends Component {
   }
 
   render() {
-    const { classes, checked, label, loading } = this.props;
+    const { classes, checked, label, loading, tooltip } = this.props;
 
     const isChecked = this.state.checked !== null ? this.state.checked : checked;
     const loadingCls = (loading || this.state.loading) ? { icon: classes.switchThumbLoading } : {};
@@ -101,6 +102,7 @@ class SwitchLoading extends Component {
     return (
       <div className={ classes.root }>
         <FormControlLabel control={ switchEl } label={ label } />
+        { tooltip && <InfoTooltip title={tooltip} /> }
         { Boolean(this.state.error) && <>
           <ErrorOutlineIcon className={ classes.errorIcon } onMouseLeave={ () => this.setState({ errorPopper: null }) }
             onMouseEnter={ (ev) => this.setState({ errorPopper: ev.target }) } />
@@ -119,6 +121,7 @@ SwitchLoading.propTypes = {
   onChange: PropTypes.func.isRequired,
   loading: PropTypes.bool,
   label: PropTypes.string,
+  tooltip: PropTypes.string,
 };
 
 export default withStyles(styles)(SwitchLoading);
