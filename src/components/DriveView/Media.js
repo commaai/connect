@@ -29,7 +29,7 @@ import { fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles } 
 import { clipsInit } from '../../actions/clips';
 
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
-const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes.';
+const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
 
 const styles = (theme) => ({
   root: {
