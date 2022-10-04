@@ -38,8 +38,8 @@
     "qr-scanner": "^1.4.1",
     "query-string": "^6.14.1",
     "raf": "^3.4.1",
-    "react": "~16.8",
-    "react-dom": "~16.8",
+    "react": "~16.14",
+    "react-dom": "~16.14",
     "react-map-gl": "^5.3.15",
     "react-measure": "^2.5.2",
     "react-player": "^2.11.0",
@@ -55,20 +55,40 @@
   },
   "devDependencies": {
     "@craco/craco": "^5.5.0",
-    "babel-eslint": "^10.0.3",
     "env-cmd": "^8.0.2",
     "enzyme": "^3.10.0",
     "enzyme-adapter-react-16": "^1.14.0",
-    "eslint": "^6.1.0",
-    "eslint-config-airbnb": "18.0.1",
-    "eslint-plugin-import": "^2.18.2",
-    "eslint-plugin-jsx-a11y": "^6.2.3",
-    "eslint-plugin-react": "^7.14.3",
-    "eslint-plugin-react-hooks": "^1.7.0",
+    "eslint-config-airbnb": "19.0.4",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-jsx-a11y": "^6.6.1",
+    "eslint-plugin-react": "^7.31.8",
+    "eslint-plugin-react-hooks": "^4.6.0",
     "expect-puppeteer": "^5.0.4",
     "jest-puppeteer": "^5.0.4",
     "puppeteer": "^9.1.1",
     "serve": "^14.0.1"
+  },
+  "eslintConfig": {
+    "extends": [
+      "airbnb"
+    ],
+    "rules": {
+      "import/prefer-default-export": 0,
+      "import/no-named-as-default": 0,
+      "react/destructuring-assignment": "warn",
+      "react/jsx-curly-spacing": 0,
+      "react/jsx-filename-extension": 0,
+      "react/forbid-prop-types": 0,
+      "react/prop-types": "warn",
+      "react/require-default-props": 0,
+      "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }]
+    },
+    "env": {
+      "browser": true
+    },
+    "globals": {
+      "gtag": "readonly"
+    }
   },
   "jest": {
     "moduleNameMapper": {

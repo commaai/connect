@@ -2,19 +2,35 @@
 import React from 'react';
 import SvgIcon from '@material-ui/core/SvgIcon';
 
-export const auth_apple = require('./auth_apple.png');
-export const auth_github = require('./auth_github.png');
-export const auth_google = require('./auth_google.png');
+import auth_apple from './auth_apple.png';
+import auth_github from './auth_github.png';
+import auth_google from './auth_google.png';
 
-export const ios_share = require('./ios_share.png');
+import ios_share from './ios_share.png';
 
-export const pin_car = require('./pin-car.svg');
-export const pin_marker = require('./pin-marker.svg');
-export const pin_pinned = require('./pin-pinned.svg');
-export const pin_home = require('./pin-home.svg');
-export const pin_work = require('./pin-work.svg');
+import pin_car from './pin-car.svg';
+import pin_marker from './pin-marker.svg';
+import pin_pinned from './pin-pinned.svg';
+import pin_home from './pin-home.svg';
+import pin_work from './pin-work.svg';
 
-export const video_360 = require('./360-degrees-video.svg');
+import video_360 from './360-degrees-video.svg';
+
+export {
+  auth_apple,
+  auth_github,
+  auth_google,
+
+  ios_share,
+
+  pin_car,
+  pin_marker,
+  pin_pinned,
+  pin_home,
+  pin_work,
+
+  video_360,
+};
 
 export function AccountIcon(props) {
   return (
