@@ -20,6 +20,7 @@ import VisibilityHandler from '../VisibilityHandler';
 import * as Demo from '../../demo';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
+
 const styles = () => ({
   noWrap: {
     whiteSpace: 'nowrap',
