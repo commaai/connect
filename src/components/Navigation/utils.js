@@ -1,8 +1,8 @@
 export function formatDistance(meters, metric) {
   if (metric) {
-    return (meters / 1000.0).toFixed(1) + ' km';
+    return `${(meters / 1000.0).toFixed(1)} km`;
   }
-  return (meters / 1609.34).toFixed(1) + ' mi';
+  return `${(meters / 1609.34).toFixed(1)} mi`;
 }
 
 export function formatRouteDistance(route) {
@@ -32,31 +32,31 @@ export function formatDuration(seconds) {
 }
 
 export function formatRouteDuration(route) {
-  return formatRouteDuration(route.seconds);
+  return formatDuration(route.seconds);
 }
 
 export function formatSearchName(item) {
   if (item.resultType === 'place' || item.resultType === 'car') {
     return item.title;
-  } else {
-    return item.title.split(',', 1)[0];
   }
+  return item.title.split(',', 1)[0];
 }
 
-export function formatSearchAddress(item, state = true) {
+export function formatSearchAddress(item, full = true) {
   const { houseNumber, street, city } = item.address;
   let res = houseNumber ? `${houseNumber} ${street}, ${city}`.trimStart() : `${street}, ${city}`;
-  if (state) {
-    const { stateCode, postalCode } = item.address;
-    res += `, ${stateCode} ${postalCode}`;
+  if (full) {
+    const { stateCode, postalCode, countryName } = item.address;
+    res += `, ${stateCode} ${postalCode}, ${countryName}`;
   }
   return res;
 }
 
 export function formatSearchDetails(item) {
-  const address = formatSearchAddress(item, false);
-  if (address.length) {
-    return `, ${address} (${formatDistance(item.distance)})`;
+  const name = formatSearchName(item);
+  let address = formatSearchAddress(item, false);
+  if (address.startsWith(name)) {
+    address = address.substring(name.length + 2);
   }
-  return undefined;
+  return `, ${address} (${formatDistance(item.distance)})`;
 }
