@@ -32,7 +32,7 @@ export function formatDuration(seconds) {
 }
 
 export function formatRouteDuration(route) {
-  return formatDuration(route.seconds);
+  return formatDuration(route.duration_typical);
 }
 
 export function formatSearchName(item) {
