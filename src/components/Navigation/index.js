@@ -9,15 +9,16 @@ import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuIt
 import { Search, Clear, Refresh } from '@material-ui/icons';
 import fecha from 'fecha';
 
-import { primeNav, analyticsEvent } from '../../actions';
-import { timeFromNow } from '../../utils';
 import { devices as Devices, navigation as NavigationAPI, athena as AthenaApi } from '@commaai/comma-api';
-import Colors from '../../colors';
+import { primeNav, analyticsEvent } from '../../actions';
 import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
+import Colors from '../../colors';
+import * as Demo from '../../demo';
 import { pin_car, pin_marker, pin_home, pin_work, pin_pinned } from '../../icons';
+import { timeFromNow } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
-import * as Demo from '../../demo';
+import * as Utils from './utils';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 
@@ -324,16 +325,10 @@ class Navigation extends Component {
     this.updateDevice = this.updateDevice.bind(this);
     this.updateFavoriteLocations = this.updateFavoriteLocations.bind(this);
     this.getFavoriteLabelIcon = this.getFavoriteLabelIcon.bind(this);
-    this.formatDistance = this.formatDistance.bind(this);
-    this.formatRouteDistance = this.formatRouteDistance.bind(this);
-    this.formatDuration = this.formatDuration.bind(this);
     this.navigate = this.navigate.bind(this);
     this.onResize = this.onResize.bind(this);
     this.toggleCarPinTooltip = this.toggleCarPinTooltip.bind(this);
     this.clearSearch = this.clearSearch.bind(this);
-    this.formatSearchName = this.formatSearchName.bind(this);
-    this.formatSearchAddress = this.formatSearchAddress.bind(this);
-    this.formatSearchDetails = this.formatSearchDetails.bind(this);
     this.itemLoc = this.itemLoc.bind(this);
     this.itemLngLat = this.itemLngLat.bind(this);
     this.saveSearchAs = this.saveSearchAs.bind(this);
@@ -791,66 +786,6 @@ class Navigation extends Component {
     }
   }
 
-  formatDistance(meters, metric) {
-    if (metric) {
-      return (meters / 1000.0).toFixed(1) + " km";
-    }
-    return (meters / 1609.34).toFixed(1) + " mi";
-  }
-
-  formatRouteDistance(route) {
-    let metric = true;
-    try {
-      route.legs[0].admins.forEach((adm) => {
-        if (['US', 'GB'].includes(adm.iso_3166_1)) {
-          metric = false;
-        }
-      });
-    } catch (err) {
-      metric = false;
-    }
-
-    return this.formatDistance(route.distance, metric);
-  }
-
-  formatDuration(route) {
-    const seconds = route.duration;
-    let mins = Math.round(seconds / 60.0);
-    let res = '';
-    if (mins >= 60) {
-      const hours = Math.floor(mins / 60.0);
-      mins -= hours * 60;
-      res += `${hours} hr `;
-    }
-    return `${res}${mins} min`;
-  }
-
-  formatSearchName(item) {
-    if (item.resultType === 'place' || item.resultType === 'car') {
-      return item.title;
-    } else {
-      return item.title.split(',', 1)[0];
-    }
-  }
-
-  formatSearchAddress(item, state = true) {
-    const { houseNumber, street, city } = item.address;
-    let res = houseNumber ? `${houseNumber} ${street}, ${city}`.trimStart() : `${street}, ${city}`;
-    if (state) {
-      const { stateCode, postalCode } = item.address;
-      res += `, ${stateCode} ${postalCode}`;
-    }
-    return res;
-  }
-
-  formatSearchDetails(item) {
-    const address = this.formatSearchAddress(item, false);
-    if (address.length) {
-      return `, ${address} (${this.formatDistance(item.distance)})`;
-    }
-    return undefined;
-  }
-
   itemLoc(item) {
     if (item.access && item.access.length) {
       return item.access[0];
@@ -884,7 +819,7 @@ class Navigation extends Component {
 
     const pos = this.itemLoc(searchSelect);
     NavigationAPI.setDestination(dongleId, pos.lat, pos.lng,
-      this.formatSearchName(searchSelect), this.formatSearchAddress(searchSelect))
+      Utils.formatSearchName(searchSelect), Utils.formatSearchAddress(searchSelect))
     .then((resp) => {
       if (resp.error) {
         throw new Error(resp.error);
@@ -926,7 +861,7 @@ class Navigation extends Component {
     const pos = this.itemLoc(searchSelect);
     const label = as === 'pin' ? undefined : as;
     NavigationAPI.putLocationSave(dongleId, pos.lat, pos.lng,
-      this.formatSearchName(searchSelect), this.formatSearchAddress(searchSelect), 'favorite', label)
+      Utils.formatSearchName(searchSelect), Utils.formatSearchAddress(searchSelect), 'favorite', label)
     .then((resp) => {
       this.updateFavoriteLocations();
       this.setState({
@@ -1194,9 +1129,9 @@ class Navigation extends Component {
             { search.map((item) => (
               <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item, 'list') }>
                 <Typography>
-                  { this.formatSearchName(item) }
+                  { Utils.formatSearchName(item) }
                   <span className={ classes.overlaySearchDetails }>
-                    { this.formatSearchDetails(item) }
+                    { Utils.formatSearchDetails(item) }
                   </span>
                 </Typography>
               </div>
@@ -1217,7 +1152,7 @@ class Navigation extends Component {
     const isCar = searchSelect.resultType === 'car';
 
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
-    const title = isCar ? device.alias : this.formatSearchName(searchSelect);
+    const title = isCar ? device.alias : Utils.formatSearchName(searchSelect);
     const { lat, lng } = searchSelect.position;
 
     let geoUri;
@@ -1235,8 +1170,7 @@ class Navigation extends Component {
             <Typography className={ classes.bold }>{ title }</Typography>
             { searchSelect.route &&
               <Typography className={ classes.searchSelectBoxDetails }>
-                { this.formatRouteDistance(searchSelect.route) } (
-                { this.formatDuration(searchSelect.route) })
+                { Utils.formatRouteDistance(searchSelect.route) } ({ Utils.formatRouteDuration(searchSelect.route) })
               </Typography>
             }
             { isCar && <Typography className={ classes.searchSelectBoxDetails }>{ timeFromNow(carLocation.time) }</Typography> }
@@ -1292,7 +1226,7 @@ class Navigation extends Component {
           </div>
         </div>
         <Typography className={ classes.searchSelectBoxDetails }>
-          { this.formatSearchAddress(searchSelect) }
+          { Utils.formatSearchAddress(searchSelect) }
         </Typography>
       </div>
     );
