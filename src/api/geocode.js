@@ -165,7 +165,7 @@ export default function geocodeApi() {
 
       const resp = await directionsClient.getDirections({
         profile: 'driving-traffic',
-        waypoints: points.map((p) => { return { coordinates: p }; }),
+        waypoints: points.map((p) => ({ coordinates: p })),
         annotations: ['distance', 'duration'],
         geometries: 'geojson',
         overview: 'full',
