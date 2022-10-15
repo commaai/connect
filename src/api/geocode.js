@@ -115,7 +115,7 @@ export default function geocodeApi() {
         apiKey: HERE_API_KEY,
         q: query,
         limit: 20,
-        details: '1',
+        show: ['details'],
       };
       if (proximity) {
         params.at = `${proximity[1]},${proximity[0]}`;
@@ -165,7 +165,7 @@ export default function geocodeApi() {
 
       const resp = await directionsClient.getDirections({
         profile: 'driving-traffic',
-        waypoints: points.map((p) => { return { coordinates: p }; }),
+        waypoints: points.map((p) => ({ coordinates: p })),
         annotations: ['distance', 'duration'],
         geometries: 'geojson',
         overview: 'full',
