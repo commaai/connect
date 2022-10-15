@@ -6,9 +6,9 @@
     "build:development": "env-cmd .env.development craco build",
     "build:production": "REACT_APP_GIT_SHA=`git rev-parse --short HEAD` env-cmd .env.production craco build",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx src",
-    "test": "craco test --env=jsdom",
-    "test-ci": "CI=true craco test --env=jsdom",
-    "test-coverage": "CI=true craco test --env=jsdom --coverage",
+    "test": "craco test --env=jest-environment-jsdom-sixteen",
+    "test-ci": "CI=true craco test --env=jest-environment-jsdom-sixteen",
+    "test-coverage": "CI=true craco test --env=jest-environment-jsdom-sixteen --coverage",
     "test-puppeteer": "jest -c src/__puppeteer__/jest.config.js",
     "test-puppeteer-build": "JEST_PUPPETEER_CONFIG=jest-puppeteer.build.config.js yarn run test-puppeteer",
     "deploy": "npm run test-ci && npm run build:production && npm run test-puppeteer-build && gh-pages -d build"
@@ -56,6 +56,7 @@
   },
   "devDependencies": {
     "@craco/craco": "^5.5.0",
+    "@testing-library/react": "^12.1.5",
     "env-cmd": "^8.0.2",
     "enzyme": "^3.10.0",
     "enzyme-adapter-react-16": "^1.14.0",
@@ -65,6 +66,7 @@
     "eslint-plugin-react": "^7.31.8",
     "eslint-plugin-react-hooks": "^4.6.0",
     "expect-puppeteer": "^5.0.4",
+    "jest-environment-jsdom-sixteen": "^1.0.3",
     "jest-puppeteer": "^5.0.4",
     "puppeteer": "^9.1.1",
     "serve": "^14.0.1"
@@ -82,7 +84,12 @@
       "react/forbid-prop-types": 0,
       "react/prop-types": "warn",
       "react/require-default-props": 0,
-      "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }]
+      "no-plusplus": [
+        "error",
+        {
+          "allowForLoopAfterthoughts": true
+        }
+      ]
     },
     "env": {
       "browser": true

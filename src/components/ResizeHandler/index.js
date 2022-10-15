@@ -1,37 +1,37 @@
-import { Component } from 'react';
+import React, { useEffect } from 'react';
+import PropTypes from 'prop-types';
 
-class ResizeHandler extends Component {
-  constructor(props) {
-    super(props);
 
-    this.resizeTimeout = null;
-    this.handleResize = this.handleResize.bind(this);
-  }
+const ResizeHandler = (props) => {
+  let resizeTimeout;
 
-  componentWillMount() {
-    window.addEventListener('resize', this.handleResize);
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener('resize', this.handleResize);
-    if (this.resizeTimeout) {
-      clearTimeout(this.resizeTimeout);
+  const handleResize = () => {
+    if (resizeTimeout) {
+      window.clearTimeout(resizeTimeout);
     }
-  }
 
-  handleResize() {
-    if (this.resizeTimeout) {
-      clearTimeout(this.resizeTimeout);
-    }
-    this.resizeTimeout = setTimeout(() => {
-      this.props.onResize(window.innerWidth, window.innerHeight);
-      this.resizeTimeout = null;
+    resizeTimeout = window.setTimeout(() => {
+      props.onResize(window.innerWidth, window.innerHeight);
+      resizeTimeout = null;
     }, 150);
-  }
+  };
 
-  render() {
-    return null;
-  }
-}
+  useEffect(() => {
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (resizeTimeout) {
+        window.clearTimeout(resizeTimeout);
+      }
+    }
+  });
+
+  return null;
+};
+
+ResizeHandler.propTypes = {
+  onResize: PropTypes.func.isRequired,
+};
 
 export default ResizeHandler;
