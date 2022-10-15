@@ -406,15 +406,17 @@ class DeviceInfo extends Component {
     return (
       <>
         <div className={ classes.carBattery } style={{ backgroundColor: batteryBackground }}>
-          <Typography>
-            { deviceIsOnline(device) ?
-              (windowWidth >= 520 ? 'car ' : '') +
+          { deviceIsOnline(device) ?
+            <Typography>
+              { (windowWidth >= 520 ? 'car ' : '') +
               'battery: ' +
-              (batteryVoltage ? batteryVoltage.toFixed(1) + '\u00a0V' : 'N/A')
+              (batteryVoltage ? batteryVoltage.toFixed(1) + '\u00a0V' : 'N/A') }
+            </Typography>
             :
-              'device offline'
-            }
-          </Typography>
+            <Typography>
+              device offline
+            </Typography>
+          }
         </div>
         <div ref={ this.snapshotButtonRef }>
           <Button onClick={ this.takeSnapshot } disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
