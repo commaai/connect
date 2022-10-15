@@ -2,9 +2,10 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
-import { withStyles, Typography, Button, CircularProgress, Popper } from '@material-ui/core';
+import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } from '@material-ui/core';
 import "react-responsive-carousel/lib/styles/carousel.min.css"; // requires a loader
 import { Carousel } from 'react-responsive-carousel';
+import fecha from 'fecha';
 
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
@@ -129,14 +130,14 @@ const styles = () => ({
       },
     },
   },
-  snapshotErrorPopover: {
+  popover: {
     borderRadius: 22,
     padding: '8px 16px',
     border: `1px solid ${Colors.white10}`,
     backgroundColor: Colors.grey800,
+    fontSize: 12,
     marginTop: 5,
     textAlign: 'center',
-    maxWidth: '90%',
   },
 });
 
@@ -403,30 +404,47 @@ class DeviceInfo extends Component {
       error = 'error while fetching snapshot';
     }
 
+    const lastAthenaPing = new Date(device.last_athena_ping * 1000);
+
     return (
       <>
-        <div className={ classes.carBattery } style={{ backgroundColor: batteryBackground }}>
-          <Typography>
-            { deviceIsOnline(device) ?
-              (windowWidth >= 520 ? 'car ' : '') +
+        <div
+          className={ classes.carBattery }
+          style={{ backgroundColor: batteryBackground }}
+        >
+          { deviceIsOnline(device) ?
+            <Typography>
+              { (windowWidth >= 520 ? 'car ' : '') +
               'battery: ' +
-              (batteryVoltage ? batteryVoltage.toFixed(1) + '\u00a0V' : 'N/A')
+              (batteryVoltage ? batteryVoltage.toFixed(1) + '\u00a0V' : 'N/A') }
+            </Typography>
             :
-              'device offline'
-            }
-          </Typography>
+            <Tooltip
+              classes={{ tooltip: classes.popover }}
+              title={`Last ping on ${fecha.format(lastAthenaPing, 'mediumDate')} at ${fecha.format(lastAthenaPing, 'shortTime')}`}
+              placement="bottom"
+            >
+              <Typography>device offline</Typography>
+            </Tooltip>
+          }
         </div>
-        <div ref={ this.snapshotButtonRef }>
-          <Button onClick={ this.takeSnapshot } disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
-            classes={{ root: `${classes.button} ${buttonClass} ${buttonOffline}` }}>
-            { snapshot.fetching ?
-              <CircularProgress size={ 19 } /> :
-              'take snapshot'
-            }
-          </Button>
-        </div>
-        <Popper open={ Boolean(error) } placement="bottom"
-          anchorEl={ this.snapshotButtonRef.current } className={ classes.snapshotErrorPopover }>
+        <Button
+          ref={ this.snapshotButtonRef }
+          classes={{ root: `${classes.button} ${buttonClass} ${buttonOffline}` }}
+          onClick={ this.takeSnapshot }
+          disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
+        >
+          { snapshot.fetching ?
+            <CircularProgress size={ 19 } /> :
+            'take snapshot'
+          }
+        </Button>
+      <Popper
+          className={ classes.popover }
+          open={ Boolean(error) }
+          placement="bottom"
+          anchorEl={ this.snapshotButtonRef.current }
+        >
           <Typography>{ error }</Typography>
         </Popper>
       </>
