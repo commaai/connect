@@ -7,8 +7,8 @@
     "build:production": "REACT_APP_GIT_SHA=`git rev-parse --short HEAD` env-cmd .env.production craco build",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx src",
     "test": "craco test --env=jest-environment-jsdom-sixteen",
-    "test-ci": "CI=true craco test --env=jsdom",
-    "test-coverage": "CI=true craco test --env=jsdom --coverage",
+    "test-ci": "CI=true craco test --env=jest-environment-jsdom-sixteen",
+    "test-coverage": "CI=true craco test --env=jest-environment-jsdom-sixteen --coverage",
     "test-puppeteer": "jest -c src/__puppeteer__/jest.config.js",
     "test-puppeteer-build": "JEST_PUPPETEER_CONFIG=jest-puppeteer.build.config.js yarn run test-puppeteer",
     "deploy": "npm run test-ci && npm run build:production && npm run test-puppeteer-build && gh-pages -d build"
