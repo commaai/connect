@@ -422,7 +422,7 @@ class DeviceInfo extends Component {
             <Tooltip
               classes={{ tooltip: classes.popover }}
               title={`Last ping on ${fecha.format(lastAthenaPing, 'mediumDate')} at ${fecha.format(lastAthenaPing, 'shortTime')}`}
-              placement="top"
+              placement="bottom"
             >
               <Typography>device offline</Typography>
             </Tooltip>
