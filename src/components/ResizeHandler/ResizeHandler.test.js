@@ -8,7 +8,6 @@ import ResizeHandler from '.';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-
 describe('resize handler', () => {
   it('registers, triggers and unregistered resize listener', async () => {
     let aResizeEventListenerWasAddedToWindow = false;
