@@ -1188,7 +1188,7 @@ class Navigation extends Component {
               <Button disabled={ savingAs || savedAs }
                 onClick={ (ev) => this.setState({ saveAsMenu: ev.target }) }
                 classes={{ root: classes.searchSelectButtonSecondary, label: classes.noWrap }}>
-                { savingAs ? '...' : (savedAs ? 'saved' :  'save as') }
+                { savingAs ? '...' : (savedAs ? 'saved' : 'save as') }
               </Button>
             }
             <Menu id="menu-save-as" open={ Boolean(saveAsMenu) } anchorEl={ saveAsMenu }
