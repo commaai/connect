@@ -1169,7 +1169,9 @@ class Navigation extends Component {
                   <Clear className={ classes.overlayClearButton } onClick={ this.clearSearch } />
                 </InputAdornment>
               }
-              <InputAdornment position="end"><Search className={ classes.overlaySearchButton } /></InputAdornment>
+              <InputAdornment position="end">
+                <Search className={ classes.overlaySearchButton } onClick={ this.onSearchBlur } />
+              </InputAdornment>
             </>
           }} />
         { search && !searchSelect && !searchLooking && <>
