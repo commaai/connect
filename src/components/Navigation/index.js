@@ -1131,7 +1131,7 @@ class Navigation extends Component {
                 <Typography>
                   { Utils.formatSearchName(item) }
                   <span className={ classes.overlaySearchDetails }>
-                    { Utils.formatSearchDetails(item) }
+                    { Utils.formatSearchList(item) }
                   </span>
                 </Typography>
               </div>
@@ -1226,7 +1226,7 @@ class Navigation extends Component {
           </div>
         </div>
         <Typography className={ classes.searchSelectBoxDetails }>
-          { Utils.formatSearchAddress(searchSelect) }
+          { Utils.formatSearchDetails(searchSelect) }
         </Typography>
       </div>
     );

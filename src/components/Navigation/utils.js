@@ -43,20 +43,34 @@ export function formatSearchName(item) {
 }
 
 export function formatSearchAddress(item, full = true) {
-  const { houseNumber, street, city } = item.address;
-  let res = houseNumber ? `${houseNumber} ${street}, ${city}`.trimStart() : `${street}, ${city}`;
-  if (full) {
-    const { stateCode, postalCode, countryName } = item.address;
-    res += `, ${stateCode} ${postalCode}, ${countryName}`;
+  let res;
+
+  if (['street', 'city'].some((key) => !item.address[key])) {
+    res = item.address.label;
+  } else {
+    const { houseNumber, street, city } = item.address;
+    res = houseNumber ? `${houseNumber} ${street}, ${city}`.trimStart() : `${street}, ${city}`;
+    if (full) {
+      const { stateCode, postalCode, countryName } = item.address;
+      res += `, ${stateCode} ${postalCode}, ${countryName}`;
+    }
   }
+
+  if (!full) {
+    const name = formatSearchName(item);
+    if (res.startsWith(name)) {
+      res = res.substring(name.length + 2);
+    }
+  }
+
   return res;
 }
 
 export function formatSearchDetails(item) {
-  const name = formatSearchName(item);
-  let address = formatSearchAddress(item, false);
-  if (address.startsWith(name)) {
-    address = address.substring(name.length + 2);
-  }
+  return formatSearchAddress(item, false);
+}
+
+export function formatSearchList(item) {
+  const address = formatSearchAddress(item, false);
   return `, ${address} (${formatDistance(item.distance)})`;
 }
