@@ -103,9 +103,10 @@ class DeviceList extends Component {
     this.onVisible = this.onVisible.bind(this);
   }
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.selectedDevice !== this.props.selectedDevice
-        && nextProps.selectedDevice !== this.state.editingDevice) {
+  componentDidUpdate(prevProps) {
+    if (this.props.selectedDevice !== prevProps.selectedDevice
+        && this.props.selectedDevice !== this.state.editingDevice) {
+      // TODO: what is the purpose of this? editingDevice isn't used anywhere.
       this.setState({ editingDevice: null });
     }
   }

@@ -16,7 +16,7 @@ class VisibilityHandler extends Component {
     this.onVisibilityEvent = debounce(this.onVisibilityEvent.bind(this), 1000, true);
   }
 
-  componentWillMount() {
+  componentDidMount() {
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
     document.addEventListener('focus', this.handleFocus);
     document.addEventListener('blur', this.handleBlur);
