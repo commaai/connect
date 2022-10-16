@@ -103,14 +103,6 @@ class DeviceList extends Component {
     this.onVisible = this.onVisible.bind(this);
   }
 
-  componentDidUpdate(prevProps) {
-    if (this.props.selectedDevice !== prevProps.selectedDevice
-        && this.props.selectedDevice !== this.state.editingDevice) {
-      // TODO: what is the purpose of this? editingDevice isn't used anywhere.
-      this.setState({ editingDevice: null });
-    }
-  }
-
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
