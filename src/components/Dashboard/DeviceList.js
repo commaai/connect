@@ -103,13 +103,6 @@ class DeviceList extends Component {
     this.onVisible = this.onVisible.bind(this);
   }
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.selectedDevice !== this.props.selectedDevice
-        && nextProps.selectedDevice !== this.state.editingDevice) {
-      this.setState({ editingDevice: null });
-    }
-  }
-
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
@@ -133,14 +126,14 @@ class DeviceList extends Component {
   }
 
   render() {
-    let { classes, device, devices } = this.props;
-    const dongleId = this.props.selectedDevice;
+    const { classes, device, selectedDevice: dongleId } = this.props;
 
+    let { devices } = this.props;
     if (devices === null) {
       return null;
     }
 
-    let found = devices.some((device) => device.dongle_id === dongleId);
+    const found = devices.some((device) => device.dongle_id === dongleId);
     if (!found && device && dongleId === device.dongle_id) {
       devices = [{
         ...device,
