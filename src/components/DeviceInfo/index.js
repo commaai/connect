@@ -404,7 +404,11 @@ class DeviceInfo extends Component {
       error = 'error while fetching snapshot';
     }
 
-    const lastAthenaPing = new Date(device.last_athena_ping * 1000);
+    let pingTooltip = 'no ping received from device';
+    if (device.last_athena_ping) {
+      const lastAthenaPing = new Date(device.last_athena_ping * 1000);
+      pingTooltip = `Last ping on ${fecha.format(lastAthenaPing, 'mediumDate')} at ${fecha.format(lastAthenaPing, 'shortTime')}`;
+    }
 
     return (
       <>
@@ -421,7 +425,7 @@ class DeviceInfo extends Component {
             :
             <Tooltip
               classes={{ tooltip: classes.popover }}
-              title={`Last ping on ${fecha.format(lastAthenaPing, 'mediumDate')} at ${fecha.format(lastAthenaPing, 'shortTime')}`}
+              title={pingTooltip}
               placement="bottom"
             >
               <Typography>device offline</Typography>
