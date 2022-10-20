@@ -22,6 +22,10 @@
   color-scheme: dark;
 }
 
+html, body {
+  overscroll-behavior-y: none;
+}
+
 html {
   font-size: 16px;
 }
