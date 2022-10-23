@@ -87,7 +87,7 @@ class App extends Component {
     );
   }
 
-  ananymousRoutes() {
+  anonymousRoutes() {
     return (
       <Switch>
         <Route path="/auth/">
@@ -118,7 +118,7 @@ class App extends Component {
     return (
       <Provider store={store}>
         <ConnectedRouter history={history}>
-          { showLogin ? this.ananymousRoutes() : this.authRoutes() }
+          { showLogin ? this.anonymousRoutes() : this.authRoutes() }
         </ConnectedRouter>
       </Provider>
     );
