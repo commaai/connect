@@ -1,4 +1,4 @@
-const { loaderByName, addBeforeLoader, removeLoaders } = require('@craco/craco');
+const { loaderByName, addBeforeLoader } = require('@craco/craco');
 const SentryCliPlugin = require('@sentry/webpack-plugin');
 const { GenerateSW } = require('workbox-webpack-plugin');
 
@@ -21,6 +21,9 @@ module.exports = ({ env }) => {
   }
 
   return {
+    eslint: {
+      enable: false,
+    },
     webpack: {
       configure: (webpackConfig) => {
         if (workboxPlugin) {
@@ -34,7 +37,6 @@ module.exports = ({ env }) => {
           test: /\.worker\.js/,
           use: { loader: 'worker-loader' },
         });
-        removeLoaders(webpackConfig, loaderByName('eslint-loader'));
         webpackConfig.optimization.minimizer = webpackConfig.optimization.minimizer.map(function (plugin) {
           if (plugin.constructor.name !== 'TerserPlugin') {
             return plugin;
