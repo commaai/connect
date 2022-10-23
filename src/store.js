@@ -12,11 +12,14 @@ import { analyticsMiddleware } from './analytics';
 
 export const history = createBrowserHistory();
 
-let store = null;
-if (!store) {
-  store = Redux.createStore(
-    connectRouter(history)(reduceReducers(initialState, ...reducers)),
-    composeEnhancers(Redux.applyMiddleware(thunk, onHistoryMiddleware, routerMiddleware(history), analyticsMiddleware))
-  );
-}
+const store = Redux.createStore(
+  connectRouter(history)(reduceReducers(initialState, ...reducers)),
+  composeEnhancers(Redux.applyMiddleware(
+    thunk,
+    onHistoryMiddleware,
+    routerMiddleware(history),
+    analyticsMiddleware,
+  )),
+);
+
 export default store;

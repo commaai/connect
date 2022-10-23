@@ -1,22 +1,20 @@
-import * as Sentry from "@sentry/react";
+import * as Sentry from '@sentry/react';
 import qs from 'query-string';
 import { WebMercatorViewport } from 'react-map-gl';
 
-export const MAPBOX_TOKEN = 'pk.eyJ1IjoiY29tbWFhaSIsImEiOiJjangyYXV0c20wMGU2NDluMWR4amUydGl5In0.6Vb11S6tdX6Arpj6trRE_g'
-const HERE_API_KEY = 'FzdKQBdDlWNQfvlvreB9ukezD-fYi7uKW0rM_K9eE2E'
+export const MAPBOX_TOKEN = 'pk.eyJ1IjoiY29tbWFhaSIsImEiOiJjangyYXV0c20wMGU2NDluMWR4amUydGl5In0.6Vb11S6tdX6Arpj6trRE_g';
+const HERE_API_KEY = 'FzdKQBdDlWNQfvlvreB9ukezD-fYi7uKW0rM_K9eE2E';
 
 const mbxGeocoding = require('@mapbox/mapbox-sdk/services/geocoding');
 const mbxDirections = require('@mapbox/mapbox-sdk/services/directions');
 
-let geocodingClient = mbxGeocoding({ accessToken: MAPBOX_TOKEN });;
-let directionsClient = mbxDirections({ accessToken: MAPBOX_TOKEN });;
+const geocodingClient = mbxGeocoding({ accessToken: MAPBOX_TOKEN });
+const directionsClient = mbxDirections({ accessToken: MAPBOX_TOKEN });
 
 export default function geocodeApi() {
   function getFilteredContexts(context) {
-    const include_ctxs = ['region', 'district', 'place', 'locality', 'neighborhood'];
-    return context.filter((ctx) => {
-      return include_ctxs.some((c) => ctx.id.indexOf(c) !== -1);
-    });
+    const includeCtxs = ['region', 'district', 'place', 'locality', 'neighborhood'];
+    return context.filter((ctx) => includeCtxs.some((c) => ctx.id.indexOf(c) !== -1));
   }
 
   function getContextString(context) {
@@ -70,7 +68,7 @@ export default function geocodeApi() {
           return null;
         }
       } catch (err) {
-        console.log(err);
+        console.error(err);
         return null;
       }
 
@@ -82,16 +80,16 @@ export default function geocodeApi() {
             // Try to format location similarly to HERE, which is where the search results come from
             // e.g. Mapbox returns "Street", "Avenue", etc.
             const context = getContextMap(features[0].context);
-            const place = features[0].text;  // e.g. "State St", TODO: Street -> St, Avenue -> Ave, etc.
-            const details = `${context.place}, ${context.region} ${context.postcode}, ${context.country}`;  // e.g. "San Diego, CA 92101, United States"
+            const place = features[0].text; // e.g. "State St", TODO: Street -> St, Avenue -> Ave, etc.
+            const details = `${context.place}, ${context.region} ${context.postcode}, ${context.country}`; // e.g. "San Diego, CA 92101, United States"
 
             return { place, details };
           } else {
             let contexts = getFilteredContexts(features[0].context);
 
             // Used for location name/area in drive list
-            let place = '';  // e.g. "Little Italy"
-            let details = '';  // e.g. "San Diego, CA"
+            let place = ''; // e.g. "Little Italy"
+            let details = ''; // e.g. "San Diego, CA"
             if (contexts.length > 0) {
               place = getContextString(contexts.shift());
             }
@@ -111,7 +109,7 @@ export default function geocodeApi() {
     },
 
     async forwardLookup(query, proximity, viewport) {
-      let params = {
+      const params = {
         apiKey: HERE_API_KEY,
         q: query,
         limit: 20,
@@ -121,13 +119,13 @@ export default function geocodeApi() {
         params.at = `${proximity[1]},${proximity[0]}`;
       } else if (viewport) {
         const bbox = new WebMercatorViewport(viewport).getBounds();
-        let vals = [
+        const vals = [
           Math.max(-180, bbox[0][0]),
-          Math.max(-90,  bbox[0][1]),
-          Math.min( 180, bbox[1][0]),
-          Math.min( 90,  bbox[1][1]),
+          Math.max(-90, bbox[0][1]),
+          Math.min(180, bbox[1][0]),
+          Math.min(90, bbox[1][1]),
         ];
-        params.in = 'bbox:' + vals.join(',');
+        params.in = `bbox:${vals.join(',')}`;
       } else {
         params.in = 'bbox:-180,-90,180,90';
       }
@@ -136,7 +134,7 @@ export default function geocodeApi() {
         method: 'GET',
       });
       if (!resp.ok) {
-        console.log(resp);
+        console.error(resp);
         return [];
       }
 
@@ -151,7 +149,7 @@ export default function geocodeApi() {
         body: JSON.stringify(req),
       });
       if (!resp.ok) {
-        console.log(resp);
+        console.error(resp);
         return null;
       }
       const json = await resp.json();

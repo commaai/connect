@@ -22,7 +22,7 @@ const styles = {
       width: '100% !important',
       minHeight: 300,
     },
-  }
+  },
 };
 
 class DriveMap extends Component {
@@ -65,17 +65,16 @@ class DriveMap extends Component {
       this.setPath([]);
       if (route) {
         this.props.dispatch(fetchDriveCoords(this.props.currentRoute));
-      };
+      }
     }
 
     if (prevProps.startTime && prevProps.startTime !== this.props.startTime) {
       this.shouldFlyTo = true;
     }
 
-    if (this.props.currentRoute && prevProps.currentRoute && this.props.currentRoute.driveCoords &&
-      prevProps.currentRoute.driveCoords !== this.props.currentRoute.driveCoords)
-    {
-      this.shouldFlyTo = false
+    if (this.props.currentRoute && prevProps.currentRoute && this.props.currentRoute.driveCoords
+      && prevProps.currentRoute.driveCoords !== this.props.currentRoute.driveCoords) {
+      this.shouldFlyTo = false;
       const keys = Object.keys(this.props.currentRoute.driveCoords);
       this.setState({
         driveCoordsMin: Math.min(...keys),
@@ -97,7 +96,9 @@ class DriveMap extends Component {
       if (this.isInteractingTimeout !== null) {
         clearTimeout(this.isInteractingTimeout);
       }
-      this.isInteractingTimeout = setTimeout(() => this.isInteracting = false, INTERACTION_TIMEOUT);
+      this.isInteractingTimeout = setTimeout(() => {
+        this.isInteracting = false;
+      }, INTERACTION_TIMEOUT);
     }
   }
 
@@ -124,7 +125,7 @@ class DriveMap extends Component {
       } else if (markerSource._data && markerSource._data.coordinates.length > 0) {
         markerSource.setData({
           type: 'Point',
-          coordinates: []
+          coordinates: [],
         });
       }
     }
@@ -166,7 +167,7 @@ class DriveMap extends Component {
         geometry: {
           type: 'LineString',
           coordinates: coords,
-        }
+        },
       });
     }
   }
@@ -199,7 +200,7 @@ class DriveMap extends Component {
     const [ceilLng, ceilLat] = this.props.currentRoute.driveCoords[nextCoordIdx];
     return [
       floorLng + ((ceilLng - floorLng) * offsetFractionalPart),
-      floorLat + ((ceilLat - floorLat) * offsetFractionalPart)
+      floorLat + ((ceilLat - floorLat) * offsetFractionalPart),
     ];
   }
 
@@ -224,15 +225,15 @@ class DriveMap extends Component {
           geometry: {
             type: 'LineString',
             coordinates: [],
-          }
-        }
+          },
+        },
       });
       map.addSource('seekPoint', {
         type: 'geojson',
         data: {
           type: 'Point',
-          coordinates: []
-        }
+          coordinates: [],
+        },
       });
 
       const lineGeoJson = {
@@ -241,12 +242,12 @@ class DriveMap extends Component {
         source: 'route',
         layout: {
           'line-join': 'round',
-          'line-cap': 'round'
+          'line-cap': 'round',
         },
         paint: {
           'line-color': '#888',
-          'line-width': 8
-        }
+          'line-width': 8,
+        },
       };
       map.addLayer(lineGeoJson);
 
@@ -255,9 +256,9 @@ class DriveMap extends Component {
         type: 'circle',
         paint: {
           'circle-radius': 10,
-          'circle-color': '#007cbf'
+          'circle-color': '#007cbf',
         },
-        source: 'seekPoint'
+        source: 'seekPoint',
       };
 
       map.addLayer(markerGeoJson);
@@ -265,7 +266,7 @@ class DriveMap extends Component {
       this.map = mapComponent;
 
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        this.shouldFlyTo = false
+        this.shouldFlyTo = false;
         const keys = Object.keys(this.props.currentRoute.driveCoords);
         this.setState({
           driveCoordsMin: Math.min(...keys),
@@ -279,12 +280,24 @@ class DriveMap extends Component {
   render() {
     const { classes } = this.props;
     return (
-      <div className={ classes.mapContainer }
-        ref={ (el) => { if (el) el.addEventListener('touchstart', (ev) => ev.stopPropagation()); }}>
-        <ReactMapGL width="100%" height="100%" {...this.state.viewport} mapStyle={MAP_STYLE} maxPitch={ 0 }
-          mapboxApiAccessToken={MAPBOX_TOKEN} ref={this.initMap} onContextMenu={ null } dragRotate={ false }
-          onViewportChange={(viewport) => this.setState({ viewport })} attributionControl={ false }
-          onInteractionStateChange={ this.onInteraction } />
+      <div
+        className={ classes.mapContainer }
+        ref={ (el) => { if (el) el.addEventListener('touchstart', (ev) => ev.stopPropagation()); }}
+      >
+        <ReactMapGL
+          width="100%"
+          height="100%"
+          {...this.state.viewport}
+          mapStyle={MAP_STYLE}
+          maxPitch={ 0 }
+          mapboxApiAccessToken={MAPBOX_TOKEN}
+          ref={this.initMap}
+          onContextMenu={ null }
+          dragRotate={ false }
+          onViewportChange={(viewport) => this.setState({ viewport })}
+          attributionControl={ false }
+          onInteractionStateChange={ this.onInteraction }
+        />
       </div>
     );
   }

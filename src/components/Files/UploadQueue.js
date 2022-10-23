@@ -2,8 +2,10 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
-import { withStyles, Divider, Typography, CircularProgress, Button, Modal, Paper, LinearProgress,
-  } from '@material-ui/core';
+import {
+  withStyles,
+  Divider, Typography, CircularProgress, Button, Modal, Paper, LinearProgress,
+} from '@material-ui/core';
 import HighlightOffIcon from '@material-ui/icons/HighlightOff';
 import WarningIcon from '@material-ui/icons/Warning';
 
@@ -30,7 +32,7 @@ const styles = (theme) => ({
     marginBottom: 5,
   },
   buttonGroup: {
-    textAlign: 'right'
+    textAlign: 'right',
   },
   uploadContainer: {
     margin: `${theme.spacing.unit}px 0`,
@@ -112,12 +114,12 @@ const styles = (theme) => ({
 });
 
 const FILE_NAMES = {
-  'qcameras': 'qcamera.ts',
-  'cameras': 'fcamera.hevc',
-  'dcameras': 'dcamera.hevc',
-  'ecameras': 'ecamera.hevc',
-  'qlogs': 'qlog.bz2',
-  'logs': 'rlog.bz2',
+  qcameras: 'qcamera.ts',
+  cameras: 'fcamera.hevc',
+  dcameras: 'dcamera.hevc',
+  ecameras: 'ecamera.hevc',
+  qlogs: 'qlog.bz2',
+  logs: 'rlog.bz2',
 };
 
 class UploadQueue extends Component {
@@ -168,7 +170,7 @@ class UploadQueue extends Component {
     ids = ids.filter((id) => this.props.filesUploading[id] && !this.props.filesUploading[id].current);
     this.setState((prevState) => ({ cancelQueue: prevState.cancelQueue.concat(ids) }));
 
-    if (deviceVersionAtLeast(this.props.device, "0.8.13")) {
+    if (deviceVersionAtLeast(this.props.device, '0.8.13')) {
       this.props.dispatch(cancelUploads(this.props.device.dongle_id, ids));
     } else {
       for (const id of ids) {

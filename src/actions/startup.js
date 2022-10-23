@@ -1,10 +1,10 @@
 import * as Sentry from '@sentry/react';
 import { devices as Devices, account as Account } from '@commaai/comma-api';
+import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Demo from '../demo';
-import { ACTION_STARTUP_DATA } from '../actions/types';
-import { primeFetchSubscription, checkRoutesData, selectDevice, fetchSharedDevice } from '../actions';
-import MyCommaAuth from '@commaai/my-comma-auth';
+import { ACTION_STARTUP_DATA } from './types';
+import { primeFetchSubscription, checkRoutesData, selectDevice, fetchSharedDevice } from '.';
 
 const demoProfile = require('../demo/profile.json');
 const demoDevices = require('../demo/devices.json');
@@ -17,7 +17,7 @@ async function initProfile() {
       if (err.resp && err.resp.status === 401) {
         await MyCommaAuth.logOut();
       } else {
-        console.log(err);
+        console.error(err);
         Sentry.captureException(err, { fingerprint: 'init_api_get_profile' });
       }
     }
@@ -38,7 +38,7 @@ async function initDevices() {
       devices = devices.concat(await Devices.listDevices());
     } catch (err) {
       if (!err.resp || err.resp.status !== 401) {
-        console.log(err);
+        console.error(err);
         Sentry.captureException(err, { fingerprint: 'init_api_list_devices' });
       }
     }

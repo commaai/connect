@@ -22,7 +22,7 @@ const timerSteps = [
   2,
   3,
   4,
-  5
+  5,
 ];
 
 const styles = (theme) => ({
@@ -59,7 +59,7 @@ const styles = (theme) => ({
     width: '98%',
     height: '98%',
     '&.dim': {
-      color: theme.palette.grey[700]
+      color: theme.palette.grey[700],
     },
     '&.small': {
       width: '60%',
@@ -67,19 +67,19 @@ const styles = (theme) => ({
     },
     '&.circle': {
       border: `1px solid ${theme.palette.grey[900]}`,
-      borderRadius: '50%'
-    }
+      borderRadius: '50%',
+    },
   },
   tinyArrowIcon: {
     width: 12,
     height: 12,
-    color: theme.palette.grey[700]
+    color: theme.palette.grey[700],
   },
   iconBox: {
-    borderRight: `1px solid ${theme.palette.grey[900]}`
+    borderRight: `1px solid ${theme.palette.grey[900]}`,
   },
   playButtonBox: {
-    borderLeft: `1px solid ${theme.palette.grey[900]}`
+    borderLeft: `1px solid ${theme.palette.grey[900]}`,
   },
   currentTime: {
     margin: `0 ${theme.spacing.unit * 1}px`,
@@ -87,7 +87,7 @@ const styles = (theme) => ({
     fontWeight: 500,
     display: 'block',
     flexGrow: 1,
-  }
+  },
 });
 
 class TimeDisplay extends Component {
@@ -95,7 +95,7 @@ class TimeDisplay extends Component {
     if (props.desiredPlaySpeed !== 0 && props.desiredPlaySpeed !== state.desiredPlaySpeed) {
       return {
         ...state,
-        desiredPlaySpeed: props.desiredPlaySpeed
+        desiredPlaySpeed: props.desiredPlaySpeed,
       };
     }
     return state;
@@ -115,7 +115,7 @@ class TimeDisplay extends Component {
 
     this.state = {
       desiredPlaySpeed: 1,
-      displayTime: this.getDisplayTime()
+      displayTime: this.getDisplayTime(),
     };
   }
 
@@ -140,7 +140,7 @@ class TimeDisplay extends Component {
     const offset = currentOffset();
     const { filter, currentRoute } = this.props;
     const now = new Date(offset + filter.start);
-    if (isNaN(now.getTime())) {
+    if (Number.isNaN(now.getTime())) {
       return '...';
     }
     let dateString = fecha.format(now, 'HH:mm:ss');

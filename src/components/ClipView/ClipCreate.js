@@ -152,7 +152,7 @@ class ClipCreate extends Component {
       }
     } catch (err) {
       this.setState({ error: 'unable to create clip', createLoading: false });
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'clips_fetch_details' });
     }
   }

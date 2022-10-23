@@ -191,7 +191,7 @@ class AddDevice extends Component {
         if (err === 'Camera not found.') {
           this.setState({ hasCamera: false });
         } else {
-          console.log(err);
+          console.error(err);
         }
       }
     }
@@ -262,7 +262,7 @@ class AddDevice extends Component {
       }
       catch (err) {
         this.setState({ pairLoading: false, pairDongleId: null, pairError: 'Error: could not parse pair token from detected url' });
-        console.log(err);
+        console.error(err);
         return;
       }
     } else {
@@ -274,7 +274,7 @@ class AddDevice extends Component {
       }
       catch (err) {
         this.setState({ pairLoading: false, pairDongleId: null, pairError: 'Error: invalid QR code detected' });
-        console.log(err);
+        console.error(err);
         return;
       }
     }

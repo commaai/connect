@@ -4,8 +4,6 @@ import Obstruction from 'obstruction';
 
 import { withStyles, IconButton } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
-import HelpOutlineIcon from '@material-ui/icons/HelpOutline';
-import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 
 import Colors from '../../colors';
 import { fetchEvents } from '../../actions/cached';
@@ -79,28 +77,29 @@ class ClipView extends Component {
       title = '';
     }
 
-    return <>
-      <div className={classes.window} >
-        <div className={classes.headerContext}>
-          <IconButton onClick={ () => this.props.dispatch(clipsExit()) }>
-            <CloseIcon />
-          </IconButton>
-          <div className={ classes.headerInfo }>
-            { title }
-          </div>
-          <div style={{ width: 48 }}/>
-          {/* <IconButton onClick={ () => this.setState({ modal: 'help' }) }>
+    return (
+      <>
+        <div className={classes.window}>
+          <div className={classes.headerContext}>
+            <IconButton onClick={ () => this.props.dispatch(clipsExit()) }>
+              <CloseIcon />
+            </IconButton>
+            <div className={ classes.headerInfo }>
+              { title }
+            </div>
+            <div style={{ width: 48 }} />
+            {/* <IconButton onClick={ () => this.setState({ modal: 'help' }) }>
             <HelpOutlineIcon />
           </IconButton> */}
+          </div>
+          { clips.state === 'list' ? <ClipList /> : null }
+          { clips.state === 'create' ? <ClipCreate /> : null }
+          { clips.state === 'upload' ? <ClipUpload /> : null }
+          { clips.state === 'done' ? <ClipDone /> : null }
+          { clips.state === 'error' ? <div className={ classes.error }>{ text }</div> : null }
         </div>
-        { clips.state === 'list' ? <ClipList /> : null }
-        { clips.state === 'create' ? <ClipCreate /> : null }
-        { clips.state === 'upload' ? <ClipUpload /> : null }
-        { clips.state === 'done' ? <ClipDone /> : null }
-        { clips.state === 'error' ? <div className={ classes.error }>{ text }</div> : null }
-
-      </div>
-    </>;
+      </>
+    );
   }
 }
 

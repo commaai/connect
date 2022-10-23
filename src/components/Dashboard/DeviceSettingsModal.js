@@ -220,7 +220,7 @@ class DeviceSettingsModal extends Component {
       if (err.resp && err.resp.status === 404) {
         this.setState({ error: 'could not find user', loadingDeviceShare: false });
       } else {
-        console.log(err);
+        console.error(err);
         Sentry.captureException(err, { fingerprint: 'device_settings_share' });
         this.setState({ error: 'unable to share', loadingDeviceShare: false });
       }
@@ -262,7 +262,7 @@ class DeviceSettingsModal extends Component {
       }
     } catch (err) {
       Sentry.captureException(err, { fingerprint: 'device_settings_unpair' });
-      console.log(err);
+      console.error(err);
       this.setState({ loadingUnpair: false, unpaired: false, unpairError: 'Unable to unpair' })
     }
   }

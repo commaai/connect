@@ -90,7 +90,7 @@ export function primeFetchSubscription(dongleId, device, profile) {
         Billing.getSubscription(dongleId).then((subscription) => {
           dispatch(primeGetSubscription(dongleId, subscription));
         }).catch((err) => {
-          console.log(err);
+          console.error(err);
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' });
         });
       } else {
@@ -101,7 +101,7 @@ export function primeFetchSubscription(dongleId, device, profile) {
             subscribeInfo,
           });
         }).catch((err) => {
-          console.log(err);
+          console.error(err);
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' });
         });
       }
@@ -144,7 +144,7 @@ export function fetchSharedDevice(dongleId) {
       });
     } catch(err) {
       if (!err.resp || err.resp.status !== 403) {
-        console.log(err);
+        console.error(err);
         Sentry.captureException(err, { fingerprint: 'action_fetch_shared_device' });
       }
     }
@@ -198,7 +198,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
         if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
           dispatch(updateDeviceOnline(dongleId, 0));
         } else {
-          console.log(err);
+          console.error(err);
           Sentry.captureException(err, { fingerprint: 'athena_fetch_networkmetered' });
         }
       }
@@ -223,7 +223,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
         if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
           dispatch(updateDeviceOnline(dongleId, 0));
         } else {
-          console.log(err);
+          console.error(err);
           Sentry.captureException(err, { fingerprint: 'athena_fetch_networktype' });
         }
       }

@@ -1,17 +1,17 @@
 import * as Sentry from '@sentry/react';
 import { raw as RawApi, athena as AthenaApi, devices as DevicesApi } from '@commaai/comma-api';
 
-import { updateDeviceOnline, fetchDeviceNetworkStatus } from './';
+import { updateDeviceOnline, fetchDeviceNetworkStatus } from '.';
 import * as Types from './types';
 import { deviceOnCellular, getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
 const FILE_NAMES = {
-  'qcameras': 'qcamera.ts',
-  'cameras': 'fcamera.hevc',
-  'dcameras': 'dcamera.hevc',
-  'ecameras': 'ecamera.hevc',
-  'qlogs': 'qlog.bz2',
-  'logs': 'rlog.bz2',
+  qcameras: 'qcamera.ts',
+  cameras: 'fcamera.hevc',
+  dcameras: 'dcamera.hevc',
+  ecameras: 'ecamera.hevc',
+  qlogs: 'qlog.bz2',
+  logs: 'rlog.bz2',
 };
 const MAX_OPEN_REQUESTS = 15;
 const MAX_RETRIES = 5;
@@ -21,11 +21,11 @@ let openRequests = 0;
 
 function pathToFileName(dongleId, path) {
   const [seg, fileType] = path.split('/');
-  const type = Object.entries(FILE_NAMES).find((e) => e[1] == fileType)[0];
-  return `${dongleId}|${seg}/${type}`
+  const type = Object.entries(FILE_NAMES).find((e) => e[1] === fileType)[0];
+  return `${dongleId}|${seg}/${type}`;
 }
 
-async function athenaCall(dongleId, payload, sentry_fingerprint, retryCount = 0) {
+async function athenaCall(dongleId, payload, sentryFingerprint, retryCount = 0) {
   try {
     while (openRequests > MAX_OPEN_REQUESTS) {
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -34,21 +34,19 @@ async function athenaCall(dongleId, payload, sentry_fingerprint, retryCount = 0)
     const resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
     openRequests -= 1;
     return resp;
-  } catch(err) {
+  } catch (err) {
     openRequests -= 1;
     if (!err.resp && retryCount < MAX_RETRIES) {
       await new Promise((resolve) => setTimeout(resolve, 2000));
-      return await athenaCall(dongleId, payload, sentry_fingerprint, retryCount + 1);
+      return athenaCall(dongleId, payload, sentryFingerprint, retryCount + 1);
     }
-    if (err.message && (err.message.indexOf('Timed out') === -1 ||
-      err.message.indexOf('Device not registered') === -1))
-    {
+    if (err.message && (err.message.indexOf('Timed out') === -1
+      || err.message.indexOf('Device not registered') === -1)) {
       return { offline: true };
-    } else {
-      console.log(err);
-      Sentry.captureException(err, { fingerprint: sentry_fingerprint });
-      return { error: err.message };
     }
+    console.error(err);
+    Sentry.captureException(err, { fingerprint: sentryFingerprint });
+    return { error: err.message };
   }
 }
 
@@ -59,42 +57,40 @@ export async function fetchUploadUrls(dongleId, paths) {
       return resp.map((r) => r.url);
     }
   } catch (err) {
-    console.log(err);
+    console.error(err);
     Sentry.captureException(err, { fingerprint: 'action_files_upload_geturls' });
   }
+  return null;
 }
 
 export function doUpload(dongleId, fileNames, paths, urls) {
   return async (dispatch, getState) => {
     const { device } = getState();
-    let loopedUploads = !deviceVersionAtLeast(device, "0.8.13");
+    let loopedUploads = !deviceVersionAtLeast(device, '0.8.13');
     if (!loopedUploads) {
-      const files_data = paths.map((path, i) => {
-        return {
-          fn: path,
-          url: urls[i],
-          headers: { "x-ms-blob-type": "BlockBlob" },
-          allow_cellular: false,
-        };
-      });
+      const files_data = paths.map((path, i) => ({
+        fn: path,
+        url: urls[i],
+        headers: { 'x-ms-blob-type': 'BlockBlob' },
+        allow_cellular: false,
+      }));
       const payload = {
         id: 0,
-        jsonrpc: "2.0",
-        method: "uploadFilesToUrls",
+        jsonrpc: '2.0',
+        method: 'uploadFilesToUrls',
         params: { files_data },
-        expiry: parseInt(Date.now()/1000) + (86400*7),
+        expiry: Math.floor(Date.now() / 1000) + (86400 * 7),
       };
       const resp = await athenaCall(dongleId, payload, 'action_files_athena_uploads');
-      if (resp && resp.error && resp.error.code === -32000 &&
-        resp.error.data.message === 'too many values to unpack (expected 3)')
-      {
+      if (resp && resp.error && resp.error.code === -32000
+        && resp.error.data.message === 'too many values to unpack (expected 3)') {
         loopedUploads = true;
       } else if (!resp || resp.error) {
         const newUploading = {};
         for (const fileName of fileNames) {
           newUploading[fileName] = {};
         }
-        dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
+        dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
         dispatch(updateFiles(newUploading));
       } else if (resp.offline) {
         dispatch(updateDeviceOnline(dongleId, 0));
@@ -120,19 +116,19 @@ export function doUpload(dongleId, fileNames, paths, urls) {
     }
 
     if (loopedUploads) {
-      for (let i=0; i<fileNames.length; i++) {
+      for (let i = 0; i < fileNames.length; i++) {
         const payload = {
           id: 0,
-          jsonrpc: "2.0",
-          method: "uploadFileToUrl",
-          params: [paths[i], urls[i], { "x-ms-blob-type": "BlockBlob" }],
-          expiry: parseInt(Date.now()/1000) + (86400*7),
+          jsonrpc: '2.0',
+          method: 'uploadFileToUrl',
+          params: [paths[i], urls[i], { 'x-ms-blob-type': 'BlockBlob' }],
+          expiry: Math.floor(Date.now() / 1000) + (86400 * 7),
         };
         const resp = await athenaCall(dongleId, payload, 'files_actions_athena_upload');
         if (!resp || resp.error) {
           const uploading = {};
           uploading[fileNames[i]] = {};
-          dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
+          dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
           dispatch(updateFiles(uploading));
         } else if (resp.offline) {
           dispatch(updateDeviceOnline(dongleId, 0));
@@ -152,13 +148,13 @@ export function doUpload(dongleId, fileNames, paths, urls) {
   };
 }
 
-export function fetchFiles(routeName, nocache=false) {
+export function fetchFiles(routeName, nocache = false) {
   return async (dispatch, getState) => {
     let files;
     try {
       files = await RawApi.getRouteFiles(routeName, nocache);
     } catch (err) {
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'action_files_fetch_files' });
       return;
     }
@@ -169,7 +165,7 @@ export function fetchFiles(routeName, nocache=false) {
     for (const type of Object.keys(FILE_NAMES)) {
       if (files[type]) {
         for (const file of files[type]) {
-          const segmentNum = parseInt(file.split(urlName)[1].split('/')[1]);
+          const segmentNum = parseInt(file.split(urlName)[1].split('/')[1], 10);
           const fileName = `${routeName}--${segmentNum}/${type}`;
           res[fileName] = {
             url: file,
@@ -192,14 +188,14 @@ export function fetchAthenaQueue(dongleId) {
     try {
       queue = await DevicesApi.getAthenaQueue(dongleId);
     } catch (err) {
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'action_files_fetch_athena_queue' });
       return;
     }
 
     const newUploading = {};
     for (const q of queue) {
-      if (!q.method || !q.expiry || q.expiry < parseInt(Date.now()/1000)) {
+      if (!q.method || !q.expiry || q.expiry < Math.floor(Date.now() / 1000)) {
         continue;
       }
 
@@ -248,9 +244,9 @@ export function fetchUploadQueue(dongleId) {
       cancelFetchUploadQueue();
       return;
     }
-    dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
+    dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
 
-    let prevFilesUploading = getState().filesUploading || {};
+    const prevFilesUploading = getState().filesUploading || {};
     const device = getDeviceFromState(getState(), dongleId);
     const uploadingFiles = {};
     const newCurrentUploading = {};
@@ -312,8 +308,8 @@ export function cancelUploads(dongleId, ids) {
   return async (dispatch, getState) => {
     const payload = {
       id: 0,
-      jsonrpc: "2.0",
-      method: "cancelUpload",
+      jsonrpc: '2.0',
+      method: 'cancelUpload',
       params: { upload_id: ids },
     };
     const resp = await athenaCall(dongleId, payload, 'action_files_athena_canceluploads');

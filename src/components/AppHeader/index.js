@@ -158,63 +158,99 @@ class AppHeader extends Component {
       };
     }
 
-    return <>
-      <ResizeHandler onResize={ this.onResize } />
-      <AppBar position="sticky" elevation={ 1 }>
-        <div ref={ this.props.forwardRef } className={ classes.header }>
-          <div className={classes.titleContainer}>
-            { showDrawerButton ?
-              <IconButton aria-label="menu" className={classes.hamburger} onClick={this.toggleDrawer}>
-                <Icon>menu</Icon>
-              </IconButton>
-            :
-              <a href={ `/${dongleId}` } className={ classes.logoImgLink }
-                onClick={ filterRegularClick(() => this.props.dispatch(selectDevice(dongleId))) }>
-                <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+    return (
+      <>
+        <ResizeHandler onResize={ this.onResize } />
+        <AppBar position="sticky" elevation={ 1 }>
+          <div ref={ this.props.forwardRef } className={ classes.header }>
+            <div className={classes.titleContainer}>
+              { showDrawerButton ? (
+                <IconButton aria-label="menu" className={classes.hamburger} onClick={this.toggleDrawer}>
+                  <Icon>menu</Icon>
+                </IconButton>
+              )
+                : (
+                  <a
+                    href={ `/${dongleId}` }
+                    className={ classes.logoImgLink }
+                    onClick={ filterRegularClick(() => this.props.dispatch(selectDevice(dongleId))) }
+                  >
+                    <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+                  </a>
+                )}
+              <a
+                href={ `/${dongleId}` }
+                className={classes.logo}
+                onClick={ filterRegularClick(() => this.props.dispatch(selectDevice(dongleId))) }
+              >
+                <Typography className={classes.logoText}>connect</Typography>
               </a>
-            }
-            <a href={ `/${dongleId}` } className={classes.logo}
-              onClick={ filterRegularClick(() => this.props.dispatch(selectDevice(dongleId))) }>
-              <Typography className={classes.logoText}>connect</Typography>
-            </a>
+            </div>
+            <div className={ classes.headerWideItem } style={ reorderWideStyle }>
+              { Boolean(!primeNav && !clips && !annotating && dongleId) && <TimeFilter /> }
+            </div>
+            <IconButton
+              aria-owns={open ? 'menu-appbar' : null}
+              aria-haspopup="true"
+              onClick={this.handleClickedAccount}
+              aria-label="account menu"
+            >
+              <AccountIcon className={classes.accountIcon} />
+            </IconButton>
           </div>
-          <div className={ classes.headerWideItem } style={ reorderWideStyle }>
-            { Boolean(!primeNav && !clips && !annotating && dongleId) && <TimeFilter /> }
-          </div>
-          <IconButton aria-owns={open ? 'menu-appbar' : null} aria-haspopup="true" onClick={this.handleClickedAccount}
-            aria-label="account menu">
-            <AccountIcon className={classes.accountIcon} />
-          </IconButton>
-        </div>
-      </AppBar>
-      { Boolean(MyCommaAuth.isAuthenticated() && profile) && <>
-        <Menu id="menu-appbar" open={open} onClose={this.handleClose} anchorEl={anchorEl}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
-          <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>
-            <span>{ profile.email }</span>
-            <span>{ profile.user_id }</span>
-          </ListItem>
-          <ListItem className={ classes.accountListItem }>{ profile.points } points</ListItem>
-          <Divider />
-          { Boolean(devices.length) &&
-            <MenuItem className={ classes.accountMenuItem } component="a"
+        </AppBar>
+        { Boolean(MyCommaAuth.isAuthenticated() && profile) && (
+        <>
+          <Menu
+            id="menu-appbar"
+            open={open}
+            onClose={this.handleClose}
+            anchorEl={anchorEl}
+            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+            <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>
+              <span>{ profile.email }</span>
+              <span>{ profile.user_id }</span>
+            </ListItem>
+            <ListItem className={ classes.accountListItem }>
+              { profile.points }
+              {' '}
+              points
+            </ListItem>
+            <Divider />
+            { Boolean(devices.length)
+            && (
+            <MenuItem
+              className={ classes.accountMenuItem }
+              component="a"
               onClick={ devices.length === 1 ? filterRegularClick(this.viewClipsModal) : this.viewClipsModal }
-              href={ devices.length === 1 ? `/${devices[0].dongle_id}/clips` : null }>
+              href={ devices.length === 1 ? `/${devices[0].dongle_id}/clips` : null }
+            >
               View clips
             </MenuItem>
-          }
-          { Boolean(devices.length) && <Divider /> }
-          <MenuItem className={ classes.accountMenuItem } component="a" href="https://useradmin.comma.ai/"
-            target="_blank">
-            Manage Account
-          </MenuItem>
-          <MenuItem className={ classes.accountMenuItem } onClick={this.handleLogOut}>Log out</MenuItem>
-        </Menu>
-        <DeviceSelect open={ this.state.viewClips } onClose={ () => this.setState({ viewClips: false }) }
-          onSelect={this.viewClips} deviceHref={ (device) => `/${device.dongle_id}/clips`} />
-      </> }
-    </>;
+            )}
+            { Boolean(devices.length) && <Divider /> }
+            <MenuItem
+              className={ classes.accountMenuItem }
+              component="a"
+              href="https://useradmin.comma.ai/"
+              target="_blank"
+            >
+              Manage Account
+            </MenuItem>
+            <MenuItem className={ classes.accountMenuItem } onClick={this.handleLogOut}>Log out</MenuItem>
+          </Menu>
+          <DeviceSelect
+            open={ this.state.viewClips }
+            onClose={ () => this.setState({ viewClips: false }) }
+            onSelect={this.viewClips}
+            deviceHref={ (device) => `/${device.dongle_id}/clips`}
+          />
+        </>
+        ) }
+      </>
+    );
   }
 }
 

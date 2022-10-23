@@ -75,10 +75,10 @@ export default function Thumbnails(props) {
     imgArr.push(currSegment);
   }
 
-  return imgArr.map((data) => (data.blank
+  return imgArr.map((data, i) => (data.blank
     ? (
       <div
-        key={data.url}
+        key={i}
         className="thumbnailImage blank"
         style={{
           ...imgStyles,
@@ -88,7 +88,7 @@ export default function Thumbnails(props) {
     )
     : (
       <div
-        key={data.url}
+        key={i}
         className="thumbnailImage images"
         style={{
           ...imgStyles,

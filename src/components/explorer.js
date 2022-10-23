@@ -66,7 +66,6 @@ class ExplorerApp extends Component {
     super(props);
 
     this.state = {
-      settingDongle: false,
       drawerIsOpen: false,
       headerRef: null,
       pairLoading: false,
@@ -80,25 +79,10 @@ class ExplorerApp extends Component {
     this.closePair = this.closePair.bind(this);
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    const { pathname, dongleId, zoom } = this.props;
-
-    if (prevProps.pathname !== pathname) {
-      this.setState({ drawerIsOpen: false });
-    }
-
-    if (!prevProps.zoom && zoom) {
-      this.props.dispatch(play());
-    }
-    if (prevProps.zoom && !zoom) {
-      this.props.dispatch(pause());
-    }
-  }
-
   async componentDidMount() {
     const { pairLoading, pairError, pairDongleId } = this.state;
 
-    window.scrollTo({ top: 0 });  // for ios header
+    window.scrollTo({ top: 0 }); // for ios header
 
     const q = new URLSearchParams(window.location.search);
     if (q.has('r')) {
@@ -111,7 +95,7 @@ class ExplorerApp extends Component {
     try {
       pairToken = await localforage.getItem('pairToken');
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
     if (pairToken && !pairLoading && !pairError && !pairDongleId) {
       this.setState({ pairLoading: true });
@@ -136,20 +120,35 @@ class ExplorerApp extends Component {
 
           const device = await DevicesApi.fetchDevice(resp.dongle_id);
           this.props.dispatch(updateDevice(device));
-          this.props.dispatch(analyticsEvent('pair_device', {method: 'url_string'}));
+          this.props.dispatch(analyticsEvent('pair_device', { method: 'url_string' }));
         } else {
           await localforage.removeItem('pairToken');
           console.log(resp);
           this.setState({ pairDongleId: null, pairLoading: false, pairError: 'Error: could not pair, please try again' });
         }
-      } catch(err) {
+      } catch (err) {
         await localforage.removeItem('pairToken');
         const msg = pairErrorToMessage(err, 'explorer_pair_pairtoken');
         this.setState({ pairDongleId: null, pairLoading: false, pairError: `Error: ${msg}, please try again` });
       }
     }
 
-    this.componentDidUpdate({})
+    this.componentDidUpdate({});
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    const { pathname, zoom } = this.props;
+
+    if (prevProps.pathname !== pathname) {
+      this.setState({ drawerIsOpen: false });
+    }
+
+    if (!prevProps.zoom && zoom) {
+      this.props.dispatch(play());
+    }
+    if (prevProps.zoom && !zoom) {
+      this.props.dispatch(pause());
+    }
   }
 
   async closePair() {
@@ -158,12 +157,12 @@ class ExplorerApp extends Component {
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
     }
-    this.setState({ pairLoading: false, pairError: null, pairDongleId: null, settingDongle: pairDongleId });
+    this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }
 
   handleDrawerStateChanged(drawerOpen) {
     this.setState({
-      drawerIsOpen: drawerOpen
+      drawerIsOpen: drawerOpen,
     });
   }
 
@@ -181,9 +180,9 @@ class ExplorerApp extends Component {
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
-    const headerHeight = this.state.headerRef ?
-      this.state.headerRef.getBoundingClientRect().height :
-      (windowWidth < 640 ? 111 : 66);
+    const headerHeight = this.state.headerRef
+      ? this.state.headerRef.getBoundingClientRect().height
+      : (windowWidth < 640 ? 111 : 66);
     let containerStyles = {
       minHeight: `calc(100vh - ${headerHeight}px)`,
     };
@@ -195,7 +194,7 @@ class ExplorerApp extends Component {
       };
     }
 
-    let drawerStyles = {
+    const drawerStyles = {
       minHeight: `calc(100vh - ${headerHeight}px)`,
     };
 
@@ -208,12 +207,12 @@ class ExplorerApp extends Component {
         <AppDrawer drawerIsOpen={ drawerIsOpen } isPermanent={ isLarge } width={ sidebarWidth }
           handleDrawerStateChanged={this.handleDrawerStateChanged} style={ drawerStyles } />
         <div className={ classes.window } style={ containerStyles }>
-          { noDevicesUpsell ?
-            <NoDeviceUpsell /> :
-            (clips ?
-              <ClipView /> :
+          { noDevicesUpsell
+            ? <NoDeviceUpsell />
+            : (clips ?
+                <ClipView /> :
               (zoom ? <DriveView /> : <Dashboard />)
-          ) }
+            ) }
         </div>
         <IosPwaPopup />
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>

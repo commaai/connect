@@ -114,7 +114,7 @@ class AnonymousLanding extends Component {
       sessionStorage.setItem('redirectURL', q.get('r'));
     }
 
-    const script = document.createElement("script");
+    const script = document.createElement('script');
     document.body.appendChild(script);
     script.onload = () => {
       AppleID.auth.init({
@@ -124,7 +124,7 @@ class AnonymousLanding extends Component {
         state : AuthConfig.APPLE_STATE,
       });
     };
-    script.src = "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
+    script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
     script.async = true;
     document.addEventListener('AppleIDSignInOnSuccess', (data) => {
       const { code, state } = data.detail.authorization;
@@ -170,11 +170,11 @@ class AnonymousLanding extends Component {
 
 AnonymousLanding.propTypes = {
   pathname: PropTypes.string.isRequired,
-  classes: PropTypes.object.isRequired
+  classes: PropTypes.object.isRequired,
 };
 
 const stateToProps = Obstruction({
-  pathname: 'router.location.pathname'
+  pathname: 'router.location.pathname',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AnonymousLanding));

@@ -58,8 +58,8 @@ const styles = (theme) => ({
   },
   deviceBlock: {
     marginLeft: 10,
-    '& aside': { display: 'inline', marginRight: 5, },
-    '& span': { display: 'inline', },
+    '& aside': { display: 'inline', marginRight: 5 },
+    '& span': { display: 'inline' },
   },
   overviewBlockError: {
     borderRadius: 12,
@@ -101,7 +101,7 @@ const styles = (theme) => ({
     '&:disabled:hover': {
       backgroundColor: Colors.white70,
       color: Colors.grey900,
-    }
+    },
   },
   checkList: {
     marginLeft: 12,
@@ -219,8 +219,8 @@ class PrimeCheckout extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { stripe_cancelled, subscribeInfo } = this.props;
-    if (!prevProps.stripe_cancelled && stripe_cancelled) {
+    const { stripeCancelled, subscribeInfo } = this.props;
+    if (!prevProps.stripeCancelled && stripeCancelled) {
       this.setState({ error: 'Checkout cancelled' });
     }
 
@@ -236,7 +236,7 @@ class PrimeCheckout extends Component {
       Billing.getSubscription(this.props.dongleId).then((subscription) => {
         this.setState({ new_subscription: subscription });
       }).catch((err) => {
-        console.log(err);
+        console.error(err);
         Sentry.captureException(err, { fingerprint: 'prime_checkout_activated_fetch_sub' });
       });
     } else if (resp.error) {
@@ -253,7 +253,7 @@ class PrimeCheckout extends Component {
       window.location = resp.url;
     } catch (err) {
       // TODO show error messages
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_checkout' });
     }
   }
@@ -270,7 +270,7 @@ class PrimeCheckout extends Component {
       subscribeInfo.sim_id &&
       subscribeInfo.is_prime_sim &&
       subscribeInfo.sim_usable !== false &&
-      ['blue', 'magenta_new'].includes(subscribeInfo.sim_type)
+      ['blue', 'magenta_new'].includes(subscribeInfo.sim_type),
     );
   }
 
