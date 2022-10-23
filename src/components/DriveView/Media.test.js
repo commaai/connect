@@ -6,9 +6,7 @@ import { currentOffset } from '../../timeline/playback';
 
 import Media from './Media';
 
-const winOpenMock = jest.fn(() => ({
-  focus: jest.fn(),
-}));
+const winOpenMock = jest.fn();
 window.open = winOpenMock;
 window.CABANA_URL_ROOT = 'https://cabana.comma.ai/';
 
@@ -23,9 +21,12 @@ jest.mock('../../timeline/playback', () => {
 
 describe('Media', () => {
   beforeEach(() => {
-    winOpenMock.mockClear();
+    winOpenMock.mockImplementation(() => ({
+      focus: jest.fn(),
+    }));
     currentOffset.mockClear();
   });
+
   it('opens cabana at the current timestamp and loop', () => {
     const start = 123123123;
     const routeOffset = Math.round(Math.random() * 10000);
