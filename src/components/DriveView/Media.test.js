@@ -7,7 +7,7 @@ import { currentOffset } from '../../timeline/playback';
 import Media from './Media';
 
 const winOpenMock = jest.fn(() => ({
-  focus: jest.fn()
+  focus: jest.fn(),
 }));
 window.open = winOpenMock;
 window.CABANA_URL_ROOT = 'https://cabana.comma.ai/';
@@ -32,23 +32,23 @@ describe('Media', () => {
     const routeStartTime = start + routeOffset;
     const loopStartTime = routeStartTime + Math.round(Math.random() * 10000);
     const offset = loopStartTime - start + Math.round(Math.random() * 10000);
-    const getState = () => {
-      return {
-        filesUploading: {},
-        filesUploadingMeta: {},
-        currentRoute: {
-          offset: routeOffset,
-          start_time_utc_millis: routeStartTime,
-          segment_numbers: Array.from(Array(4).keys()),
-          segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60 + routeOffset),
-        },
-        loop: { startTime: loopStartTime, duration: 15000 },
-        filter: { start },
-        device: { device_type: 'three' },
-      };
-    }
+    const getState = () => ({
+      filesUploading: {},
+      filesUploadingMeta: {},
+      currentRoute: {
+        offset: routeOffset,
+        start_time_utc_millis: routeStartTime,
+        segment_numbers: Array.from(Array(4).keys()),
+        segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60 + routeOffset),
+      },
+      loop: { startTime: loopStartTime, duration: 15000 },
+      filter: { start },
+      device: { device_type: 'three' },
+    });
     currentOffset.mockImplementation(() => offset);
-    const media = mount( <Media store={{ subscribe: () => {}, dispatch: () => {}, getState }} menusOnly /> );
+    const media = mount(
+      <Media store={{ subscribe: () => {}, dispatch: () => {}, getState }} menusOnly />,
+    );
 
     expect(media.exists()).toBe(true);
     const openInCabana = media.find('#openInCabana').first();
@@ -65,7 +65,6 @@ describe('Media', () => {
     expect(winOpenMock).toBeCalledWith(expect.stringContaining(baseUrl), '_blank');
 
     const qsParams = queryString.parse(urlParams);
-    console.log(urlParams, qsParams);
     expect(qsParams.segments).toEqual(expect.stringContaining(','));
     const segmentParts = qsParams.segments.split(',');
 
@@ -82,21 +81,21 @@ describe('Media', () => {
     const loopStartTime = routeStartTime + Math.round(Math.random() * 10000);
     const offset = loopStartTime - start + Math.round(Math.random() * 10000);
     currentOffset.mockImplementation(() => offset);
-    const getState = () => {
-      return {
-        filesUploading: {},
-        filesUploadingMeta: {},
-        currentRoute: {
-          offset: routeOffset,
-          segment_numbers: Array.from(Array(4).keys()),
-          segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60 + routeOffset),
-        },
-        filter: { start },
-        device: { device_type: 'three' },
-        loop: { startTime: loopStartTime, duration: 181000 },
-      };
-    };
-    const media = mount( <Media store={{ subscribe: () => {}, dispatch: () => {}, getState }} menusOnly /> );
+    const getState = () => ({
+      filesUploading: {},
+      filesUploadingMeta: {},
+      currentRoute: {
+        offset: routeOffset,
+        segment_numbers: Array.from(Array(4).keys()),
+        segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60 + routeOffset),
+      },
+      filter: { start },
+      device: { device_type: 'three' },
+      loop: { startTime: loopStartTime, duration: 181000 },
+    });
+    const media = mount(
+      <Media store={{ subscribe: () => {}, dispatch: () => {}, getState }} menusOnly />,
+    );
 
     expect(media.exists()).toBe(true);
     const openInCabana = media.find('#openInCabana').first();
