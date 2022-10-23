@@ -16,6 +16,7 @@ module.exports = ({ env }) => {
   let workboxPlugin;
   if (env === 'production') {
     workboxPlugin = new GenerateSW({
+      maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       skipWaiting: true,
     });
   }
