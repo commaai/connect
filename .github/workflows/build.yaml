@@ -12,9 +12,9 @@ jobs:
       id: yarn-cache
       with:
         path: node_modules
-        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+        key: ${{ runner.os }}-cra4-${{ hashFiles('**/yarn.lock') }}
         restore-keys: |
-          ${{ runner.os }}-yarn-
+          ${{ runner.os }}-cra4-
     - name: yarn install
       if: steps.yarn-cache.outputs.cache-hit != 'true'
       run: yarn install
@@ -37,9 +37,9 @@ jobs:
       id: yarn-cache
       with:
         path: node_modules
-        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+        key: ${{ runner.os }}-cra4-${{ hashFiles('**/yarn.lock') }}
         restore-keys: |
-          ${{ runner.os }}-yarn-
+          ${{ runner.os }}-cra4-
     - name: yarn install
       if: steps.yarn-cache.outputs.cache-hit != 'true'
       run: yarn install
