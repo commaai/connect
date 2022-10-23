@@ -210,7 +210,7 @@ class DeviceInfo extends Component {
         this.setState({ deviceStats: { result: resp }});
       }
     } catch(err) {
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'device_info_device_stats' });
       this.setState({ deviceStats: { error: err.message }});
     }
@@ -238,7 +238,7 @@ class DeviceInfo extends Component {
     } catch(err) {
       if (this.mounted && dongleId === this.props.dongleId) {
         if (!err.message || err.message.indexOf('Device not registered') === -1) {
-          console.log(err);
+          console.error(err);
           Sentry.captureException(err, { fingerprint: 'device_info_athena_pandastate' });
         }
         this.setState({ carHealth: { error: err.message }});
@@ -272,7 +272,7 @@ class DeviceInfo extends Component {
       if (error.indexOf('Device not registered') !== -1) {
         error = 'device offline'
       } else {
-        console.log(err);
+        console.error(err);
         Sentry.captureException(err, { fingerprint: 'device_info_snapshot' });
         if (error.length > 5 && error[5] === '{') {
           try {

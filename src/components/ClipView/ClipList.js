@@ -127,7 +127,7 @@ class ClipList extends Component {
         }, 1500);
       }
     } catch (err) {
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'clip_list_share' });
     }
   }
@@ -168,7 +168,7 @@ class ClipList extends Component {
         newErrorTexts[resp.id] = errorText;
         this.setState({ errorTexts: newErrorTexts });
       } catch (err) {
-        console.log(err);
+        console.error(err);
         Sentry.captureException(err, { fingerprint: 'clips_list_failed_details' });
         return;
       }

@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
@@ -16,28 +16,25 @@ const styles = (/* theme */) => ({
   },
 });
 
-class Dashboard extends Component {
-  render() {
-    const { classes, primeNav, device, dongleId } = this.props;
+const Dashboard = ({ classes, primeNav, device, dongleId }) => {
+  if (!device || !dongleId) {
+    return null;
+  }
 
-    if (!device || !dongleId) {
-      return null;
-    }
-
-    return (
-      <div className={classes.base}>
-        { primeNav ?
-          <Prime /> :
+  return (
+    <div className={classes.base}>
+      { primeNav
+        ? <Prime />
+        : (
           <>
             <Navigation hasNav={ device.prime && device.device_type === 'three' } />
             <DeviceInfo />
             <DriveList />
           </>
-        }
-      </div>
-    );
-  }
-}
+        )}
+    </div>
+  );
+};
 
 const stateToProps = Obstruction({
   dongleId: 'dongleId',

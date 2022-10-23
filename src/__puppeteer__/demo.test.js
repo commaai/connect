@@ -48,8 +48,8 @@ describe('demo mode', () => {
     await expect(page).toClick('.DriveEntry');
     await delay(3000);
 
-    let video = await page.$('video');
-    let videoSrc = await page.evaluate(vid => vid.getAttribute('src'), video);
+    const video = await page.$('video');
+    const videoSrc = await page.evaluate((vid) => vid.getAttribute('src'), video);
     expect(videoSrc.startsWith('blob:')).toBeTruthy();
   });
 });

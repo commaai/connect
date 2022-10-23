@@ -7,7 +7,7 @@ export default function Thumbnails(props) {
   const imgStyles = {
     display: 'inline-block',
     height: thumbnail.height,
-    width: (128/80) * thumbnail.height,
+    width: (128 / 80) * thumbnail.height,
   };
   const imgCount = Math.ceil(thumbnail.width / imgStyles.width);
 
@@ -28,7 +28,7 @@ export default function Thumbnails(props) {
       if (!currSegment) {
         currSegment = {
           blank: true,
-          length: 0
+          length: 0,
         };
       }
       currSegment.length += 1;
@@ -57,12 +57,12 @@ export default function Thumbnails(props) {
 
       if (!currSegment) {
         currSegment = {
-          segmentNum: segmentNum,
+          segmentNum,
           startOffset: seconds,
           startImage: imageIndex,
           endImage: imageIndex,
           length: 0,
-          url
+          url,
         };
       }
 
@@ -75,20 +75,29 @@ export default function Thumbnails(props) {
     imgArr.push(currSegment);
   }
 
-  return imgArr.map((data, i) =>
-    data.blank ?
-      <div key={i} className="thumbnailImage blank" style={{
-        ...imgStyles,
-        width: imgStyles.width * data.length
-      }} />
-    :
-      <div key={i} className="thumbnailImage images" style={{
-        ...imgStyles,
-        width: imgStyles.width * data.length,
-        backgroundSize: `auto ${imgStyles.height*1.2}px`,
-        backgroundRepeat: 'repeat-x',
-        backgroundImage: `url(${data.url})`,
-        backgroundPositionX: `-${data.startImage * imgStyles.width}px`,
-      }} />
-  );
+  return imgArr.map((data, i) => (data.blank
+    ? (
+      <div
+        key={i}
+        className="thumbnailImage blank"
+        style={{
+          ...imgStyles,
+          width: imgStyles.width * data.length,
+        }}
+      />
+    )
+    : (
+      <div
+        key={i}
+        className="thumbnailImage images"
+        style={{
+          ...imgStyles,
+          width: imgStyles.width * data.length,
+          backgroundSize: `auto ${imgStyles.height * 1.2}px`,
+          backgroundRepeat: 'repeat-x',
+          backgroundImage: `url(${data.url})`,
+          backgroundPositionX: `-${data.startImage * imgStyles.width}px`,
+        }}
+      />
+    )));
 }

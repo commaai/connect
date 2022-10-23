@@ -14,7 +14,7 @@ const theme = createMuiTheme({
     },
     MuiPaper: {
       root: {
-        backgroundColor: '#30373B'
+        backgroundColor: '#30373B',
       },
     },
     MuiDrawer: {
@@ -43,20 +43,20 @@ const theme = createMuiTheme({
       icon: {
         marginRight: 20,
         color: Colors.white30,
-      }
+      },
     },
     MuiInput: {
       root: {
         position: 'relative',
         border: `1px solid ${Colors.grey800}`,
         borderRadius: 20,
-        overflow: 'hidden'
+        overflow: 'hidden',
       },
       input: {
         padding: '12px 16px',
         '&::placeholder': {
           opacity: 1,
-          color: Colors.white30
+          color: Colors.white30,
         },
         '&:focus': {
           outline: 'none',
@@ -73,7 +73,7 @@ const theme = createMuiTheme({
       root: {
         marginLeft: 16,
         marginTop: 4,
-      }
+      },
     },
     MuiFormHelperText: {
       root: {
@@ -84,7 +84,7 @@ const theme = createMuiTheme({
     MuiTab: {
       root: {
         minHeight: 40,
-      }
+      },
     },
     MuiListItem: {
       root: {
@@ -98,27 +98,27 @@ const theme = createMuiTheme({
   props: {
     MuiSelect: {
       disableUnderline: true,
-      IconComponent: ChevronIcon
+      IconComponent: ChevronIcon,
     },
     MuiInput: {
-      disableUnderline: true
-    }
+      disableUnderline: true,
+    },
   },
   palette: {
     type: 'dark',
     placeholder: Colors.white30,
     background: {
-      default: Colors.grey999
+      default: Colors.grey999,
     },
     primary: {
       light: Colors.grey50,
       main: Colors.grey900,
-      dark: Colors.grey999
+      dark: Colors.grey999,
     },
     secondary: {
       light: Colors.green100,
       main: Colors.green200,
-      dark: Colors.green500
+      dark: Colors.green500,
     },
     states: {
       drivingBlue: Colors.blue500,
@@ -126,7 +126,7 @@ const theme = createMuiTheme({
       engagedGrey: '#919b95',
       alertOrange: Colors.orange50,
       alertRed: Colors.red100,
-      userFlag: Colors.yellow500
+      userFlag: Colors.yellow500,
     },
     grey: {
       50: Colors.grey50,
@@ -140,7 +140,7 @@ const theme = createMuiTheme({
       800: Colors.grey800,
       900: Colors.grey900,
       950: Colors.grey950,
-      999: Colors.grey999
+      999: Colors.grey999,
     },
     lightGrey: {
       200: Colors.lightGrey200,
@@ -154,9 +154,9 @@ const theme = createMuiTheme({
       50: Colors.white50,
     },
     error: {
-      main: 'rgba(209,106,35,0.72)'
-    }
-  }
+      main: 'rgba(209,106,35,0.72)',
+    },
+  },
 });
 
 export default theme;

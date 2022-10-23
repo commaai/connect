@@ -77,8 +77,8 @@ const styles = () => ({
     whiteSpace: 'nowrap',
     userSelect: 'none',
     '& > div': {
-      display: 'inline-block'
-    }
+      display: 'inline-block',
+    },
   },
   ruler: {
     backgroundColor: 'rgb(37, 51, 61)',
@@ -177,13 +177,13 @@ const styles = () => ({
     top: 32,
     position: 'absolute',
     borderRadius: '0 0 3px 3px',
-  }
+  },
 });
 
 const AlertStatusCodes = [
   'normal',
   'userPrompt',
-  'critical'
+  'critical',
 ];
 
 function percentFromPointerEvent(ev) {
@@ -225,8 +225,8 @@ class Timeline extends Component {
       clip: null,
       thumbnail: {
         height: 0,
-        width: 0
-      }
+        width: 0,
+      },
     };
   }
 
@@ -343,12 +343,14 @@ class Timeline extends Component {
     ev.preventDefault();
     document.addEventListener('pointerup', this.clipDragEnd);
     document.addEventListener('pointermove', this.clipDragMove);
-    this.setState({ clip: {
-      type,
-      initLoop: { ...loop },
-      loop: { ...loop },
-      startX: ev.pageX,
-    } });
+    this.setState({
+      clip: {
+        type,
+        initLoop: { ...loop },
+        loop: { ...loop },
+        startX: ev.pageX,
+      },
+    });
   }
 
   clipDragGetNewLoop(ev) {
@@ -379,10 +381,12 @@ class Timeline extends Component {
     const { clip } = this.state;
     if (clip) {
       ev.preventDefault();
-      this.setState({ clip: {
-        ...clip,
-        loop: this.clipDragGetNewLoop(ev),
-      }});
+      this.setState({
+        clip: {
+          ...clip,
+          loop: this.clipDragGetNewLoop(ev),
+        },
+      });
     }
   }
 
@@ -556,9 +560,9 @@ class Timeline extends Component {
 
     const rulerWidth = this.rulerRef.current ? this.rulerRef.current.getBoundingClientRect().width : 640;
     const handleWidth = rulerWidth < 640 ? 28 : 12;
-    const baseWidthStyle = hasClip ?
-      { width: `calc(100% - ${handleWidth*2}px)`, margin: `0 ${handleWidth}px` } :
-      { width: '100%' };
+    const baseWidthStyle = hasClip
+      ? { width: `calc(100% - ${handleWidth * 2}px)`, margin: `0 ${handleWidth}px` }
+      : { width: '100%' };
 
     return (
       <div className={className}>

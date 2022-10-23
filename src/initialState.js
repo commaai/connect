@@ -13,9 +13,9 @@ export function getDefaultFilter() {
   }
 
   return {
-    start : (new Date(d.getTime() - 1000 * 60 * 60 * 24 * 14)).getTime(),
+    start: (new Date(d.getTime() - 1000 * 60 * 60 * 24 * 14)).getTime(),
     end: d.getTime(),
-  }
+  };
 }
 
 function getDefaultLoop(pathname) {

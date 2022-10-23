@@ -26,7 +26,7 @@ async function getCacheDB() {
   try {
     request = window.indexedDB.open('cacheDB', 2);
   } catch (err) {
-    console.log(err);
+    console.error(err);
     Sentry.captureException(err, { fingerprint: 'cached_open_indexeddb' });
     return Promise.resolve(null);
   }
@@ -53,7 +53,7 @@ async function getCacheDB() {
         try {
           db.deleteObjectStore(store);
         } catch (err) {
-          console.log(err);
+          console.error(err);
           Sentry.captureException(err, { fingerprint: 'cached_delete_obj_store' });
           return resolve(null);
         }
@@ -316,7 +316,7 @@ export function fetchEvents(route) {
     try {
       driveEvents = [].concat(...(await Promise.all(promises)));
     } catch (err) {
-      console.log(err);
+      console.error(err);
       return;
     }
 
@@ -476,7 +476,7 @@ export function fetchDriveCoords(route) {
     try {
       driveCoords = await Promise.all(promises);
     } catch (err) {
-      console.log(err);
+      console.error(err);
       return;
     }
 

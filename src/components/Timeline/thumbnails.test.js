@@ -16,27 +16,24 @@ const thumbnailBounds = {
   right: screenWidth - gutter,
 
   width: screenWidth - (gutter * 2),
-  height: 100
+  height: 100,
 };
 
 const heightWithBlackBorder = 120;
 
-percentToOffsetMock.mockImplementation((percent) => Math.round(percent * 30000));
-getCurrentRouteMock.mockImplementation((offset) => {
-  if (offset < 1600 || offset > 20000) {
-    return null;
-  }
-  return {
-    offset: 1600,
-    segment_numbers: Array.from(Array(4).keys()),
-    segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60),
-  };
-});
-
 describe('timeline thumbnails', () => {
   beforeEach(() => {
-    percentToOffsetMock.mockClear();
-    getCurrentRouteMock.mockClear();
+    percentToOffsetMock.mockImplementation((percent) => Math.round(percent * 30000));
+    getCurrentRouteMock.mockImplementation((offset) => {
+      if (offset < 1600 || offset > 20000) {
+        return null;
+      }
+      return {
+        offset: 1600,
+        segment_numbers: Array.from(Array(4).keys()),
+        segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60),
+      };
+    });
   });
 
   it('should check the segment for every image', () => {
@@ -45,7 +42,7 @@ describe('timeline thumbnails', () => {
         thumbnail={thumbnailBounds}
         percentToOffset={percentToOffsetMock}
         getCurrentRoute={getCurrentRouteMock}
-      />
+      />,
     );
 
     expect(thumbnails.exists()).toBe(true);
@@ -81,11 +78,11 @@ describe('timeline thumbnails', () => {
           left: 0,
           right: 0,
           top: 0,
-          bottom: 0
+          bottom: 0,
         }}
         percentToOffset={percentToOffsetMock}
         getCurrentRoute={getCurrentRouteMock}
-      />
+      />,
     );
 
     expect(thumbnails.exists()).toBe(false);
@@ -110,7 +107,7 @@ describe('timeline thumbnails', () => {
         thumbnail={thumbnailBounds}
         percentToOffset={percentToOffsetMock}
         getCurrentRoute={getCurrentRouteMock}
-      />
+      />,
     );
 
     expect(thumbnails.exists()).toBe(true);
@@ -147,11 +144,11 @@ describe('timeline thumbnails', () => {
           left: 10,
           right: 10,
           top: 100,
-          bottom: 100
+          bottom: 100,
         }}
         percentToOffset={percentToOffsetMock}
         getCurrentRoute={getCurrentRouteMock}
-      />
+      />,
     );
 
     expect(thumbnails.exists()).toBe(false);

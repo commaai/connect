@@ -424,7 +424,7 @@ class Navigation extends Component {
       }
     } catch(err) {
       if (!err.message || err.message.indexOf('no_segments_uploaded') === -1) {
-        console.log(err);
+        console.error(err);
         Sentry.captureException(err, { fingerprint: 'nav_fetch_location' });
       }
     }
@@ -457,7 +457,7 @@ class Navigation extends Component {
       if (this.mounted && dongleId === this.props.dongleId &&
         (!err.message || err.message.indexOf('{"error": "Device not registered"}') === -1))
       {
-        console.log(err);
+        console.error(err);
         Sentry.captureException(err, { fingerprint: 'nav_fetch_network_location' });
       }
     }
@@ -505,7 +505,7 @@ class Navigation extends Component {
         this.setState({ favoriteLocations: favorites });
       }
     }).catch((err) => {
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'nav_fetch_locationsdata' });
     });
   }
@@ -545,7 +545,7 @@ class Navigation extends Component {
           savedAs: false,
         });
       }).catch((err) => {
-        console.log(err);
+        console.error(err);
         Sentry.captureException(err, { fingerprint: 'nav_geocode_forward_lookup' });
       });
     } else {
@@ -771,7 +771,7 @@ class Navigation extends Component {
           const newVp = new WebMercatorViewport(viewport).fitBounds(bbox, { padding: padding, maxZoom: 10 });
           this.setState({ viewport: newVp });
         } catch (err) {
-          console.log(err);
+          console.error(err);
           Sentry.captureException(err, { fingerprint: 'nav_flymarkers_viewport' });
         }
       }
@@ -873,7 +873,7 @@ class Navigation extends Component {
         },
       });
     }).catch((err) => {
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'nav_save_favorite' });
       this.setState({ savingAs: false, savedAs: false });
     });
@@ -895,7 +895,7 @@ class Navigation extends Component {
           savedAs: false,
         }, this.flyToMarkers);
       }).catch((err) => {
-        console.log(err);
+        console.error(err);
         Sentry.captureException(err, { fingerprint: 'nav_delete_favorite' });
         this.setState({ savingAs: false, savedAs: false });
       });
@@ -917,7 +917,7 @@ class Navigation extends Component {
         savedAs: false,
       });
     }).catch((err) => {
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'nav_research_geocode_forward' });
     });
   }

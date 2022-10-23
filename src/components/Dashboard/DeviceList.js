@@ -119,7 +119,7 @@ class DeviceList extends Component {
         const devices = await DevicesApi.listDevices();
         this.props.dispatch(updateDevices(devices));
       } catch (err) {
-        console.log(err);
+        console.error(err);
         Sentry.captureException(err, { fingerprint: 'devicelist_visible_listdevices' });
       }
     }

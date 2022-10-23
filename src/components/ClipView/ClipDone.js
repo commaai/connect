@@ -282,7 +282,7 @@ class ClipDone extends Component {
         this.showCopiedPopover(ev);
       }
     } catch (err) {
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'clip_done_share' });
       this.showErrorPopover(ev, 'failed to share clip');
     }
@@ -305,7 +305,7 @@ class ClipDone extends Component {
         return true;
       }
     } catch (err) {
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'clips_update_public' });
     }
 
@@ -323,7 +323,7 @@ class ClipDone extends Component {
         return;
       }
     } catch (err) {
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'clips_update_private' });
     }
 
@@ -351,7 +351,7 @@ class ClipDone extends Component {
         this.setState({ deleteModal: { ...this.state.deleteModal, loading: false, error: 'Failed to delete clip' } });
       }
     } catch (err) {
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'clips_fetch_delete' });
       this.setState({ deleteModal: { ...this.state.deleteModal, loading: false, error: 'Could not delete clip' } });
     }

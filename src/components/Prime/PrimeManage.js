@@ -194,9 +194,9 @@ class PrimeManage extends Component {
     const { subscription } = this.props;
     const { stripeStatus } = this.state;
 
-    if (!prevProps.stripe_success && this.props.stripe_success) {
+    if (!prevProps.stripeSuccess && this.props.stripeSuccess) {
       this.setState({
-        stripeStatus: { sessionId: this.props.stripe_success, loading: true, paid: null },
+        stripeStatus: { sessionId: this.props.stripeSuccess, loading: true, paid: null },
       }, this.fetchStripeSession);
     }
 
@@ -237,7 +237,7 @@ class PrimeManage extends Component {
       window.location = resp.url;
     } catch (err) {
       // TODO show error messages
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_update' });
     }
   }
@@ -264,7 +264,7 @@ class PrimeManage extends Component {
       }
     } catch (err) {
       // TODO error handling
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'prime_fetch_stripe_session' });
     }
   }
@@ -287,7 +287,7 @@ class PrimeManage extends Component {
           setTimeout(() => this.fetchSubscription(true), 2000);
         }
       } else {
-        console.log(err);
+        console.error(err);
         Sentry.captureException(err, { fingerprint: 'prime_fetch_subscription' });
       }
     }

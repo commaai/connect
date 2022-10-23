@@ -56,9 +56,9 @@ class VisibilityHandler extends Component {
   }
 
   handleVisibilityChange() {
-    if (document.visibilityState === "visible") {
+    if (document.visibilityState === 'visible') {
       this.onVisibilityEvent(true);
-    } else if (document.visibilityState === "hidden") {
+    } else if (document.visibilityState === 'hidden') {
       this.onVisibilityEvent(false);
     }
   }

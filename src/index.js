@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/react";
+import * as Sentry from '@sentry/react';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import document from 'global/document';

@@ -402,7 +402,7 @@ class Media extends Component {
         url: window.location.href,
       });
     } catch (err) {
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'media_navigator_share' });
     }
   }
@@ -557,7 +557,7 @@ class Media extends Component {
         }
       }
     } catch (err) {
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'media_toggle_public' });
       return { error: 'could not update' };
     }
@@ -576,7 +576,7 @@ class Media extends Component {
         this.setState({ routePreserved: false });
       }
     } catch (err) {
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'media_fetch_preserved' });
     }
   }
@@ -592,7 +592,7 @@ class Media extends Component {
       this.fetchRoutePreserved();
       return { error: 'unable to update' };
     } catch (err) {
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'media_toggle_preserved' });
       this.fetchRoutePreserved();
       return { error: 'could not update' };

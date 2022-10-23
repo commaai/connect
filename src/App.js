@@ -36,7 +36,7 @@ class App extends Component {
       try {
         localforage.setItem('pairToken', pairToken);
       } catch (err) {
-        console.log(err);
+        console.error(err);
       }
     }
   }
@@ -51,7 +51,7 @@ class App extends Component {
             AuthStorage.setCommaAccessToken(token);
           }
         } catch (err) {
-          console.log(err);
+          console.error(err);
           Sentry.captureException(err, { fingerprint: 'app_auth_refresh_token' });
         }
       }
@@ -87,7 +87,7 @@ class App extends Component {
     );
   }
 
-  ananymousRoutes() {
+  anonymousRoutes() {
     return (
       <Switch>
         <Route path="/auth/">
@@ -118,7 +118,7 @@ class App extends Component {
     return (
       <Provider store={store}>
         <ConnectedRouter history={history}>
-          { showLogin ? this.ananymousRoutes() : this.authRoutes() }
+          { showLogin ? this.anonymousRoutes() : this.authRoutes() }
         </ConnectedRouter>
       </Provider>
     );

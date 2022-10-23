@@ -81,14 +81,15 @@ export function getDrivePoints(duration) {
 }
 
 export function deviceTypePretty(deviceType) {
-  if (deviceType === 'neo') {
-    return 'EON';
-  } else if (deviceType === 'freon') {
-    return 'freon';
-  } else if (deviceType === 'unknown') {
-    return 'unknown';
-  } else {
-    return `comma ${deviceType}`;
+  switch (deviceType) {
+    case 'neo':
+      return 'EON';
+    case 'freon':
+      return 'freon';
+    case 'unknown':
+      return 'unknown';
+    default:
+      return `comma ${deviceType}`;
   }
 }
 
@@ -107,12 +108,12 @@ export function deviceOnCellular(device) {
 }
 
 export function isTouchDevice() {
-  return (('ontouchstart' in window) ||
-     (navigator.maxTouchPoints > 0) ||
-     (navigator.msMaxTouchPoints > 0));
+  return (('ontouchstart' in window)
+     || (navigator.maxTouchPoints > 0)
+     || (navigator.msMaxTouchPoints > 0));
 }
 
-export function pairErrorToMessage(err, sentry_finterprint) {
+export function pairErrorToMessage(err, sentryFingerprint) {
   let msg;
   if (err.message.indexOf('400') === 0) {
     msg = 'invalid request';
@@ -126,15 +127,15 @@ export function pairErrorToMessage(err, sentry_finterprint) {
     msg = 'pair token not true';
   } else {
     msg = 'unable to pair';
-    console.log(err);
-    if (sentry_finterprint) {
-      Sentry.captureException(err, { fingerprint: sentry_finterprint });
+    console.error(err);
+    if (sentryFingerprint) {
+      Sentry.captureException(err, { fingerprint: sentryFingerprint });
     }
   }
   return msg;
 }
 
-export function verifyPairToken(pairToken, from_url, sentry_finterprint) {
+export function verifyPairToken(pairToken, fromUrl, sentryFingerprint) {
   let decoded;
   try {
     decoded = jwt.decode(pairToken, { complete: true });
@@ -144,7 +145,7 @@ export function verifyPairToken(pairToken, from_url, sentry_finterprint) {
       throw new Error('invalid QR code, could not decode pair token');
     } else {
       // unkown error, let server verify token
-      Sentry.captureException(err, { fingerprint: sentry_finterprint });
+      Sentry.captureException(err, { fingerprint: sentryFingerprint });
       return;
     }
   }
@@ -155,7 +156,7 @@ export function verifyPairToken(pairToken, from_url, sentry_finterprint) {
 
   if (!decoded.payload.identity) {
     let msg = 'could not get identity from payload';
-    if (!from_url) {
+    if (!fromUrl) {
       msg += ', make sure you are using openpilot 0.8.3 or newer';
     }
     throw new Error(msg);
@@ -168,22 +169,24 @@ export function filterRegularClick(func) {
       ev.preventDefault();
       func();
     }
-  }
+  };
 }
 
-export function deviceVersionAtLeast(device, version_string) {
-  if (!device || !device['openpilot_version']) {
+export function deviceVersionAtLeast(device, version) {
+  if (!device || !device.openpilot_version) {
     return false;
   }
 
-  const dev_version_parts = device['openpilot_version'].split('.')
-  const version_parts = version_string.split('.')
-  for (const i in version_parts) {
-    if (!Number.isInteger(parseInt(dev_version_parts[i]))) {
+  const deviceVersionParts = device.openpilot_version.split('.');
+  const versionParts = version.split('.');
+  for (const i in versionParts) {
+    const devicePart = parseInt(deviceVersionParts[i], 10);
+    const part = parseInt(versionParts[i], 10);
+    if (!Number.isInteger(devicePart)) {
       return false;
-    } else if (parseInt(dev_version_parts[i]) > parseInt(version_parts[i])) {
+    } else if (devicePart > part) {
       return true;
-    } else if (parseInt(dev_version_parts[i]) < parseInt(version_parts[i])) {
+    } else if (devicePart < part) {
       return false;
     }
   }
@@ -205,9 +208,8 @@ export function getSegmentNumber(route, offset) {
     offset = currentOffset();
   }
   for (let i = 0; i < route.segment_offsets.length; i++) {
-    if (offset >= route.segment_offsets[i] &&
-      (i === route.segment_offsets.length - 1 || offset < route.segment_offsets[i+1]))
-    {
+    if (offset >= route.segment_offsets[i]
+      && (i === route.segment_offsets.length - 1 || offset < route.segment_offsets[i + 1])) {
       return route.segment_numbers[i];
     }
   }

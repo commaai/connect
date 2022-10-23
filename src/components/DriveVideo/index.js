@@ -4,9 +4,8 @@ import { connect } from 'react-redux';
 import { withStyles, CircularProgress } from '@material-ui/core';
 import debounce from 'debounce';
 import Obstruction from 'obstruction';
-import ReactPlayer from 'react-player'
+import ReactPlayer from 'react-player';
 import Hls from '@commaai/hls.js';
-import * as Sentry from '@sentry/react';
 
 import { video as VideoApi } from '@commaai/comma-api';
 
@@ -18,7 +17,7 @@ window.Hls = Hls;
 
 const styles = () => ({
   hidden: {
-    display: 'none'
+    display: 'none',
   },
   videoContainer: {
     minHeight: 200,

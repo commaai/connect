@@ -1,5 +1,5 @@
 const { createJestConfig } = require('@craco/craco');
-const cracoConfig = require('../../craco.config.js');
+const cracoConfig = require('../../craco.config');
 
 const jestConfig = createJestConfig(cracoConfig({ env: process.env.NODE_ENV }));
 

@@ -71,7 +71,7 @@ class PullDownReload extends Component {
     } else {
       this.setState({ startY: null });
       this.dragEl.current.style.transition = 'top 0.1s';
-      this.dragEl.current.style.top = `-48px`;
+      this.dragEl.current.style.top = '-48px';
     }
   }
 
@@ -80,23 +80,25 @@ class PullDownReload extends Component {
       return;
     }
 
-    const top = parseInt(this.dragEl.current.style.top.substring(0, this.dragEl.current.style.top.length - 2));
+    const top = parseInt(this.dragEl.current.style.top.substring(0, this.dragEl.current.style.top.length - 2), 10);
     if (top >= 32 && !this.state.reloading) {
       this.setState({ reloading: true });
       window.location.reload();
     } else {
       this.setState({ startY: null });
       this.dragEl.current.style.transition = 'top 0.1s';
-      this.dragEl.current.style.top = `-48px`;
+      this.dragEl.current.style.top = '-48px';
     }
   }
 
   render() {
     const { classes } = this.props;
 
-    return <div className={ classes.root } ref={ this.dragEl }>
-      <ReplayIcon />
-    </div>;
+    return (
+      <div className={ classes.root } ref={ this.dragEl }>
+        <ReplayIcon />
+      </div>
+    );
   }
 }
 

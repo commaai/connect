@@ -6,7 +6,7 @@ import { mount } from 'enzyme';
 import DriveListItem from './DriveListItem';
 
 const defaultState = {
-  start: Date.now()
+  start: Date.now(),
 };
 
 jest.mock('../Timeline');

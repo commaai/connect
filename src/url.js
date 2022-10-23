@@ -28,7 +28,7 @@ export function getPrimeNav(pathname) {
   let parts = pathname.split('/');
   parts = parts.filter((m) => m.length);
 
-  if (parts.length == 2 && parts[0] !== 'auth' && parts[1] === 'prime') {
+  if (parts.length === 2 && parts[0] !== 'auth' && parts[1] === 'prime') {
     return true;
   }
   return false;
@@ -43,9 +43,8 @@ export function getClipsNav(pathname) {
       return {
         clip_id: parts[2],
       };
-    } else {
-      return {};
     }
+    return {};
   }
   return null;
 }

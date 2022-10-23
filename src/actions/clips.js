@@ -52,7 +52,7 @@ export function fetchClipsList(dongleId) {
         list: resp,
       });
     } catch (err) {
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'clips_fetch_list' });
     }
   };
@@ -169,7 +169,7 @@ export function fetchClipsDetails(clip_id) {
         return;
       }
 
-      console.log(err);
+      console.error(err);
       Sentry.captureException(err, { fingerprint: 'clips_fetch_details' });
     }
   };

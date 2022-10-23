@@ -1,34 +1,34 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import qs from 'query-string';
 
+import { Typography } from '@material-ui/core';
 import PrimeManage from './PrimeManage';
 import PrimeCheckout from './PrimeCheckout';
-import { Typography } from '@material-ui/core';
 
-class Prime extends Component {
-  render() {
-    let stripe_cancelled, stripe_success;
-    if (window.location) {
-      const params = qs.parse(window.location.search);
-      stripe_cancelled = params.stripe_cancelled;
-      stripe_success = params.stripe_success;
-    }
-
-    if (!this.props.profile) {
-      return null;
-    }
-
-    if (!this.props.device.is_owner && !this.props.profile.superuser) {
-      return ( <Typography>No access</Typography> );
-    }
-    if (this.props.device.prime || stripe_success) {
-      return ( <PrimeManage stripe_success={ stripe_success } /> );
-    }
-    return ( <PrimeCheckout stripe_cancelled={ stripe_cancelled } /> );
+const Prime = (props) => {
+  let stripeCancelled;
+  let stripeSuccess;
+  if (window.location) {
+    const params = qs.parse(window.location.search);
+    stripeCancelled = params.stripe_cancelled;
+    stripeSuccess = params.stripe_success;
   }
-}
+
+  const { device, profile } = props;
+  if (!profile) {
+    return null;
+  }
+
+  if (!device.is_owner && !profile.superuser) {
+    return (<Typography>No access</Typography>);
+  }
+  if (device.prime || stripeSuccess) {
+    return (<PrimeManage stripeSuccess={ stripeSuccess } />);
+  }
+  return (<PrimeCheckout stripeCancelled={ stripeCancelled } />);
+};
 
 const stateToProps = Obstruction({
   subscription: 'subscription',

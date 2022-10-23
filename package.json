@@ -20,6 +20,7 @@
     "@commaai/comma-api": "^2.6.0",
     "@commaai/hls.js": "^0.12.7",
     "@commaai/my-comma-auth": "^1.4.1",
+    "@craco/craco": "^6.4.3",
     "@mapbox/mapbox-sdk": "^0.13.5",
     "@material-ui/core": "^1.0.0",
     "@material-ui/icons": "^1.0.0",
@@ -48,14 +49,13 @@
     "react-responsive-carousel": "^3.2.23",
     "react-router": "^4.2.0",
     "react-router-dom": "^4.3.1",
-    "react-scripts": "^3.4.4",
+    "react-scripts": "4.0.3",
     "react-virtualized": "^9.22.3",
     "reduce-reducers": "^1.0.4",
     "redux": "^4.2.0",
     "redux-thunk": "^2.4.1"
   },
   "devDependencies": {
-    "@craco/craco": "^5.5.0",
     "@testing-library/react": "^12.1.5",
     "env-cmd": "^8.0.2",
     "enzyme": "^3.10.0",
@@ -82,7 +82,7 @@
       "react/jsx-curly-spacing": 0,
       "react/jsx-filename-extension": 0,
       "react/forbid-prop-types": 0,
-      "react/prop-types": "warn",
+      "react/prop-types": 0,
       "react/require-default-props": 0,
       "no-plusplus": [
         "error",
