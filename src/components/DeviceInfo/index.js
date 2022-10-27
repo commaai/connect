@@ -469,7 +469,7 @@ class DeviceInfo extends Component {
             'take snapshot'
           }
         </Button>
-        { (device.is_owner && device.prime) || profile?.superuser && (
+        { ((device.is_owner && device.prime) || profile?.superuser) && (
           <Button
             classes={{ root: `${classes.button} ${classes.clipsButton} ${actionButtonClass}` }}
             onClick={ () => this.props.dispatch(fetchClipsList(this.props.dongleId)) }
