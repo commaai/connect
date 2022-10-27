@@ -11,7 +11,7 @@ import { fetchEvents, fetchLocations } from '../../actions/cached';
 import { formatDriveDuration, getDrivePoints, filterRegularClick } from '../../utils';
 import Timeline from '../Timeline';
 import { RightArrow } from '../../icons';
-import { KM_PER_MI } from '../../utils/conversions';
+import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import Colors from '../../colors';
 
 const styles = (theme) => ({
@@ -104,6 +104,10 @@ class DriveLitemItem extends Component {
     const duration = formatDriveDuration(drive.duration);
     const points = getDrivePoints(drive.duration);
 
+    const distance = isMetric()
+      ? `${+(drive.length * KM_PER_MI).toFixed(1)} km`
+      : `${+drive.length.toFixed(1)} mi`;
+
     const gridStyle = small ? {
       date:   { order: 1, maxWidth: '50%', flexBasis: '50%', marginBottom: 12 },
       dur:    { order: 2, maxWidth: '28%', flexBasis: '28%', marginBottom: 12 },
@@ -159,17 +163,14 @@ class DriveLitemItem extends Component {
             </div>
             <div className={ classes.driveGridItem } style={ gridStyle.dist }>
               <Typography className={ classes.firstLine }>
-                { `${+drive.length.toFixed(1)} mi` }
-              </Typography>
-              <Typography>
-                { `${+(drive.length * KM_PER_MI).toFixed(1)} km` }
+                {distance}
               </Typography>
             </div>
-            { !small &&
+            { !small && (
               <div className={ classes.driveGridItem } style={ gridStyle.arrow }>
                 <RightArrow className={classes.driveArrow} />
               </div>
-            }
+            ) }
           </Grid>
         </div>
         <Timeline className={classes.driveTimeline} thumbnailsVisible={ this.state.inView }
