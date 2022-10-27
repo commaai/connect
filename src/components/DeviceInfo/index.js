@@ -3,19 +3,22 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } from '@material-ui/core';
+import { VideoLibrary } from '@material-ui/icons';
 import "react-responsive-carousel/lib/styles/carousel.min.css"; // requires a loader
 import { Carousel } from 'react-responsive-carousel';
 import fecha from 'fecha';
 
+import { devices as DevicesApi, athena as AthenaApi } from '@commaai/comma-api';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import Colors from '../../colors';
 import { analyticsEvent } from '../../actions';
+import { fetchClipsList } from '../../actions/clips';
 import { deviceTypePretty, deviceIsOnline } from '../../utils'
-import { devices as DevicesApi, athena as AthenaApi } from '@commaai/comma-api';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 
-const styles = () => ({
+
+const styles = (theme) => ({
   container: {
     borderBottom: `1px solid ${Colors.white10}`,
     paddingTop: 8,
@@ -84,12 +87,12 @@ const styles = () => ({
       lineHeight: '1.4em',
     },
   },
-  snapshotButton: {
+  actionButton: {
     minWidth: 130,
     padding: '5px 16px',
     borderRadius: 15,
   },
-  snapshotButtonSmall: {
+  actionButtonSmall: {
     minWidth: 90,
     padding: '5px 10px',
     borderRadius: 15,
@@ -129,6 +132,19 @@ const styles = () => ({
       '&:first-child': {
         fontWeight: 600,
       },
+    },
+  },
+  buttonIcon: {
+    fontSize: 20,
+    marginLeft: theme.spacing.unit,
+  },
+  clipsButton: {
+    backgroundColor: Colors.blue500,
+    color: Colors.white,
+    marginLeft: 10,
+    '&:hover': {
+      background: Colors.blue600,
+      color: Colors.white,
     },
   },
   popover: {
@@ -400,7 +416,9 @@ class DeviceInfo extends Component {
       batteryBackground = batteryVoltage < 11.0 ? Colors.red400: Colors.green400;
     }
 
-    const buttonClass = windowWidth >= 520 ? classes.snapshotButton : classes.snapshotButtonSmall;
+    const actionButtonClass = windowWidth >= 520
+      ? classes.actionButton
+      : classes.actionButtonSmall;
     const buttonOffline = deviceIsOnline(device) ? '' : classes.buttonOffline;
 
     let error = null;
@@ -442,7 +460,7 @@ class DeviceInfo extends Component {
         </div>
         <Button
           ref={ this.snapshotButtonRef }
-          classes={{ root: `${classes.button} ${buttonClass} ${buttonOffline}` }}
+          classes={{ root: `${classes.button} ${actionButtonClass} ${buttonOffline}` }}
           onClick={ this.takeSnapshot }
           disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
         >
@@ -451,7 +469,14 @@ class DeviceInfo extends Component {
             'take snapshot'
           }
         </Button>
-      <Popper
+        <Button
+          classes={{ root: `${classes.button} ${classes.clipsButton} ${actionButtonClass}` }}
+          onClick={ () => this.props.dispatch(fetchClipsList(this.props.dongleId)) }
+        >
+          view { windowWidth < 520 && <br /> } clips
+          { windowWidth >= 520 && <VideoLibrary className={ classes.buttonIcon } /> }
+        </Button>
+        <Popper
           className={ classes.popover }
           open={ Boolean(error) }
           placement="bottom"
