@@ -327,6 +327,8 @@ class DeviceInfo extends Component {
           : <>
             <div className={ classes.row }>
               <Typography variant="title">{ device.alias || deviceTypePretty(device.device_type) }</Typography>
+            </div>
+            <div className={ classes.row }>
               { this.renderButtons() }
             </div>
             { deviceStats.result &&
