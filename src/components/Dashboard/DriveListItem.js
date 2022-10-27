@@ -8,7 +8,7 @@ import Grid from '@material-ui/core/Grid';
 
 import { selectRange } from '../../actions';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
-import { formatDriveDuration, getDrivePoints, filterRegularClick } from '../../utils';
+import { formatDriveDuration, filterRegularClick } from '../../utils';
 import Timeline from '../Timeline';
 import { RightArrow } from '../../icons';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
@@ -102,7 +102,6 @@ class DriveLitemItem extends Component {
     const startDate = fecha.format(new Date(drive.start_time_utc_millis), small ? 'ddd, MMM D' : 'dddd, MMM D');
     const endTime = fecha.format(new Date(drive.end_time_utc_millis), 'HH:mm');
     const duration = formatDriveDuration(drive.duration);
-    const points = getDrivePoints(drive.duration);
 
     const distance = isMetric()
       ? `${+(drive.length * KM_PER_MI).toFixed(1)} km`
@@ -140,9 +139,6 @@ class DriveLitemItem extends Component {
               <Typography className={ classes.firstLine }>
                 { duration.hours > 0 && `${duration.hours.toString()}hr ` }
                 { `${duration.minutes} min` }
-              </Typography>
-              <Typography>
-                { `${points} points` }
               </Typography>
             </div>
             <div className={ classes.driveGridItem } style={ gridStyle.origin }>
