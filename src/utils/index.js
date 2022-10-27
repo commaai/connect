@@ -74,12 +74,6 @@ export function timeFromNow(ts) {
   return 'just now';
 }
 
-export function getDrivePoints(duration) {
-  const minutes = Math.floor(duration / (1000 * 60));
-  const points = Math.floor(minutes * 1.5); // panda
-  return points;
-}
-
 export function deviceTypePretty(deviceType) {
   switch (deviceType) {
     case 'neo':

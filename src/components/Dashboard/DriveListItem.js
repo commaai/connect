@@ -8,10 +8,10 @@ import Grid from '@material-ui/core/Grid';
 
 import { selectRange } from '../../actions';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
-import { formatDriveDuration, getDrivePoints, filterRegularClick } from '../../utils';
+import { formatDriveDuration, filterRegularClick } from '../../utils';
 import Timeline from '../Timeline';
 import { RightArrow } from '../../icons';
-import { KM_PER_MI } from '../../utils/conversions';
+import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import Colors from '../../colors';
 
 const styles = (theme) => ({
@@ -102,7 +102,10 @@ class DriveLitemItem extends Component {
     const startDate = fecha.format(new Date(drive.start_time_utc_millis), small ? 'ddd, MMM D' : 'dddd, MMM D');
     const endTime = fecha.format(new Date(drive.end_time_utc_millis), 'HH:mm');
     const duration = formatDriveDuration(drive.duration);
-    const points = getDrivePoints(drive.duration);
+
+    const distance = isMetric()
+      ? `${+(drive.length * KM_PER_MI).toFixed(1)} km`
+      : `${+drive.length.toFixed(1)} mi`;
 
     const gridStyle = small ? {
       date:   { order: 1, maxWidth: '50%', flexBasis: '50%', marginBottom: 12 },
@@ -137,9 +140,6 @@ class DriveLitemItem extends Component {
                 { duration.hours > 0 && `${duration.hours.toString()}hr ` }
                 { `${duration.minutes} min` }
               </Typography>
-              <Typography>
-                { `${points} points` }
-              </Typography>
             </div>
             <div className={ classes.driveGridItem } style={ gridStyle.origin }>
               <Typography className={ classes.firstLine }>
@@ -159,17 +159,14 @@ class DriveLitemItem extends Component {
             </div>
             <div className={ classes.driveGridItem } style={ gridStyle.dist }>
               <Typography className={ classes.firstLine }>
-                { `${+drive.length.toFixed(1)} mi` }
-              </Typography>
-              <Typography>
-                { `${+(drive.length * KM_PER_MI).toFixed(1)} km` }
+                {distance}
               </Typography>
             </div>
-            { !small &&
+            { !small && (
               <div className={ classes.driveGridItem } style={ gridStyle.arrow }>
                 <RightArrow className={classes.driveArrow} />
               </div>
-            }
+            ) }
           </Grid>
         </div>
         <Timeline className={classes.driveTimeline} thumbnailsVisible={ this.state.inView }

@@ -89,7 +89,8 @@
         {
           "allowForLoopAfterthoughts": true
         }
-      ]
+      ],
+      "no-underscore-dangle": 0
     },
     "env": {
       "browser": true

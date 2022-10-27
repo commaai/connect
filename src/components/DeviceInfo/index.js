@@ -13,6 +13,7 @@ import Colors from '../../colors';
 import { analyticsEvent } from '../../actions';
 import { deviceTypePretty, deviceIsOnline } from '../../utils'
 import { devices as DevicesApi, athena as AthenaApi } from '@commaai/comma-api';
+import { isMetric, KM_PER_MI } from '../../utils/conversions';
 
 const styles = () => ({
   container: {
@@ -355,13 +356,20 @@ class DeviceInfo extends Component {
       </>;
     }
 
+    const metric = isMetric();
+    const distance = metric
+      ? Math.round(deviceStats.result.all.distance * KM_PER_MI)
+      : Math.round(deviceStats.result.all.distance);
+
     return (
       <>
         <div className={ classes.deviceStat }>
           <Typography variant="subheading" className={ classes.bold }>
-            { Math.round(deviceStats.result.all.distance) }
+            { distance }
           </Typography>
-          <Typography variant="subheading">miles</Typography>
+          <Typography variant="subheading">
+            { metric ? 'kilometers' : 'miles' }
+          </Typography>
         </div>
         <div className={ classes.deviceStat }>
           <Typography variant="subheading" className={ classes.bold }>
