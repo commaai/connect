@@ -404,7 +404,7 @@ class DeviceInfo extends Component {
   }
 
   renderButtons() {
-    const { classes, device } = this.props;
+    const { classes, device, profile } = this.props;
     const { snapshot, carHealth, windowWidth } = this.state;
 
     let batteryVoltage;
@@ -469,13 +469,15 @@ class DeviceInfo extends Component {
             'take snapshot'
           }
         </Button>
-        <Button
-          classes={{ root: `${classes.button} ${classes.clipsButton} ${actionButtonClass}` }}
-          onClick={ () => this.props.dispatch(fetchClipsList(this.props.dongleId)) }
-        >
-          view { windowWidth < 520 && <br /> } clips
-          { windowWidth >= 520 && <VideoLibrary className={ classes.buttonIcon } /> }
-        </Button>
+        { (device.is_owner && device.prime) || profile?.superuser && (
+          <Button
+            classes={{ root: `${classes.button} ${classes.clipsButton} ${actionButtonClass}` }}
+            onClick={ () => this.props.dispatch(fetchClipsList(this.props.dongleId)) }
+          >
+            view { windowWidth < 520 && <br /> } clips
+            { windowWidth >= 520 && <VideoLibrary className={ classes.buttonIcon } /> }
+          </Button>
+        ) }
         <Popper
           className={ classes.popover }
           open={ Boolean(error) }
@@ -510,6 +512,7 @@ class DeviceInfo extends Component {
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
+  profile: 'profile',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));
