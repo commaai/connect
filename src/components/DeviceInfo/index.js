@@ -141,7 +141,7 @@ const styles = (theme) => ({
   clipsButton: {
     backgroundColor: Colors.blue500,
     color: Colors.white,
-    marginLeft: 10,
+    marginLeft: theme.spacing.unit,
     '&:hover': {
       background: Colors.blue600,
       color: Colors.white,
