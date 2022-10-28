@@ -476,7 +476,7 @@ class DeviceInfo extends Component {
             classes={{ root: `${classes.button} ${classes.clipsButton} ${actionButtonClass}` }}
             onClick={ () => this.props.dispatch(fetchClipsList(this.props.dongleId)) }
           >
-            view { windowWidth < 520 && <br /> } clips
+            view { windowWidth < 396 && <br /> } clips
             { windowWidth >= 520 && <VideoLibrary className={ classes.buttonIcon } /> }
           </Button>
         ) }
