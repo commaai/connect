@@ -1,6 +1,9 @@
-const { loaderByName, addBeforeLoader } = require('@craco/craco');
+const { loaderByName, addBeforeLoader, addPlugins } = require('@craco/craco');
+
 const SentryCliPlugin = require('@sentry/webpack-plugin');
 const { GenerateSW } = require('workbox-webpack-plugin');
+const CompressionPlugin = require('compression-webpack-plugin');
+const zlib = require('zlib');
 
 module.exports = ({ env }) => {
   let sentryPlugin;
@@ -38,13 +41,28 @@ module.exports = ({ env }) => {
           test: /\.worker\.js/,
           use: { loader: 'worker-loader' },
         });
-        webpackConfig.optimization.minimizer = webpackConfig.optimization.minimizer.map(function (plugin) {
-          if (plugin.constructor.name !== 'TerserPlugin') {
-            return plugin;
+        addPlugins(webpackConfig, [
+          new CompressionPlugin({
+            filename: '[path][base].br',
+            algorithm: 'brotliCompress',
+            test: /\.(js|css|html|svg)$/,
+            compressionOptions: {
+              params: {
+                [zlib.constants.BROTLI_PARAM_QUALITY]: 11,
+              },
+            },
+            threshold: 10240,
+            minRatio: 0.8,
+            deleteOriginalAssets: false,
+          }),
+        ]);
+        webpackConfig.optimization.minimizer = webpackConfig.optimization.minimizer.map((plugin) => {
+          if (plugin.constructor.name === 'TerserPlugin') {
+            plugin.options.terserOptions.keep_fnames = true;
           }
-          plugin.options.terserOptions.keep_fnames = true;
           return plugin;
         });
+        console.log({ webpackConfig });
         return webpackConfig;
       },
     },
