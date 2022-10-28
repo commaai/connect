@@ -119,7 +119,6 @@ class ClipCreate extends Component {
     this.state = {
       windowWidth: window.innerWidth,
       videoTypeOption: 'q',
-      isPublic: false,
       clipTitle: null,
       createLoading: false,
       error: null,
@@ -130,7 +129,7 @@ class ClipCreate extends Component {
   }
 
   async onClipCreate() {
-    const { videoTypeOption, clipTitle, isPublic } = this.state;
+    const { videoTypeOption, clipTitle } = this.state;
     const { loop, currentRoute } = this.props;
 
     if (loop.duration > 300000) { // 5 minutes
@@ -141,9 +140,9 @@ class ClipCreate extends Component {
     this.setState({ createLoading: true });
     try {
       const resp = await ClipsApi.clipsCreate(currentRoute.fullname, clipTitle, loop.startTime, loop.startTime + loop.duration,
-        videoTypeOption, isPublic);
+        videoTypeOption, false);
       if (resp && resp.success) {
-        this.props.dispatch(clipsCreate(resp.clip_id, videoTypeOption, clipTitle, isPublic));
+        this.props.dispatch(clipsCreate(resp.clip_id, videoTypeOption, clipTitle, false));
       } else if (resp.error == 'too_many_pending') {
         this.setState({ error: 'you already have a clip pending, please wait for it to complete', createLoading: false });
       } else {
@@ -163,7 +162,7 @@ class ClipCreate extends Component {
 
   render() {
     const { classes, loop, device, clips } = this.props;
-    const { windowWidth, videoTypeOption, clipTitle, isPublic, createLoading, error } = this.state;
+    const { windowWidth, videoTypeOption, clipTitle, createLoading, error } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
     const startStr = fecha.format(new Date(loop.startTime), 'h:mm:ss\u00a0a').toLowerCase();
@@ -246,23 +245,6 @@ class ClipCreate extends Component {
               onChange={ (ev) => this.setState({ clipTitle: ev.target.value }) }
               placeholder={ clips.route.split('|')[1] }
             />
-          </div>
-          <div className={ classes.clipOption }>
-            <h4>Availability</h4>
-            <div className={classes.videoTypeOptions} style={{ maxWidth: 200 }}>
-              <div
-                className={ `${classes.videoTypeOption} ${!isPublic ? 'selected' : ''}` }
-                onClick={ () => this.setState({ isPublic: false }) }
-              >
-                <Typography className={classes.mediaOptionText}>Private</Typography>
-              </div>
-              <div
-                className={ `${classes.videoTypeOption} ${isPublic ? 'selected' : ''}` }
-                onClick={ () => this.setState({ isPublic: true }) }
-              >
-                <Typography className={classes.mediaOptionText}>Public</Typography>
-              </div>
-            </div>
           </div>
           <div className={ classes.clipOption }>
             { error && (
