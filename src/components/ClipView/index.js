@@ -13,7 +13,7 @@ import ClipCreate from './ClipCreate';
 import ClipUpload from './ClipUpload';
 import ClipDone from './ClipDone';
 
-const styles = (theme) => ({
+const styles = () => ({
   window: {
     background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
     borderRadius: 8,
@@ -41,21 +41,14 @@ const styles = (theme) => ({
 });
 
 class ClipView extends Component {
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      modal: null,
-    };
-  }
-
   componentDidMount() {
     this.componentDidUpdate({}, {});
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {
-      this.props.dispatch(fetchEvents(this.props.currentRoute));
+    const { currentRoute } = this.props;
+    if (prevProps.currentRoute !== currentRoute && currentRoute) {
+      this.props.dispatch(fetchEvents(currentRoute));
     }
   }
 
@@ -88,9 +81,6 @@ class ClipView extends Component {
               { title }
             </div>
             <div style={{ width: 48 }} />
-            {/* <IconButton onClick={ () => this.setState({ modal: 'help' }) }>
-            <HelpOutlineIcon />
-          </IconButton> */}
           </div>
           { clips.state === 'list' ? <ClipList /> : null }
           { clips.state === 'create' ? <ClipCreate /> : null }
