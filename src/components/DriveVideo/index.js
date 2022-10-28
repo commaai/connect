@@ -48,7 +48,7 @@ class DriveVideo extends Component {
     super(props);
 
     this.visibleRoute = this.visibleRoute.bind(this);
-    this.isVideoBuffering = this.isVideoBuffering.bind(this);
+    this.onVideoBuffering = this.onVideoBuffering.bind(this);
     this.syncVideo = debounce(this.syncVideo.bind(this), 200);
     this.firstSeek = true;
 
@@ -107,7 +107,7 @@ class DriveVideo extends Component {
     }
   }
 
-  isVideoBuffering() {
+  onVideoBuffering() {
     const videoPlayer = this.videoPlayer.current;
     if (!videoPlayer || !this.visibleRoute() || !videoPlayer.getDuration()) {
       this.props.dispatch(bufferVideo(true));
@@ -148,7 +148,7 @@ class DriveVideo extends Component {
     }
 
     let newPlaybackRate = this.props.desiredPlaySpeed;
-    let desiredVideoTime = this.currentVideoTime();
+    const desiredVideoTime = this.currentVideoTime();
     const curVideoTime = videoPlayer.getCurrentTime();
     const timeDiff = desiredVideoTime - curVideoTime;
     if (Math.abs(timeDiff) <= 0.3) {
@@ -208,7 +208,7 @@ class DriveVideo extends Component {
           width="100%" height="unset" playing={ Boolean(this.visibleRoute()) && Boolean(playSpeed) }
           config={{ hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false } }}
           playbackRate={ playSpeed }
-          onBuffer={ () => this.isVideoBuffering() }
+          onBuffer={ () => this.onVideoBuffering() }
           onBufferEnd={ () => this.props.dispatch(bufferVideo(false)) }
           onPlay={ () => this.props.dispatch(bufferVideo(false)) } />
       </div>
