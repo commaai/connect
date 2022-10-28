@@ -38,6 +38,9 @@ const styles = (theme) => ({
   driveGridItem: {
     flexGrow: 1,
   },
+  driveGridItemRightAlign: {
+    textAlign: 'right',
+  },
   driveHeaderIntroSmall: {
     justifyContent: 'center',
   },
@@ -108,11 +111,10 @@ class DriveLitemItem extends Component {
       : `${+drive.length.toFixed(1)} mi`;
 
     const gridStyle = small ? {
-      date:   { order: 1, maxWidth: '50%', flexBasis: '50%', marginBottom: 12 },
+      date:   { order: 1, maxWidth: '72%', flexBasis: '72%', marginBottom: 12 },
       dur:    { order: 2, maxWidth: '28%', flexBasis: '28%', marginBottom: 12 },
-      dist:   { order: 3, maxWidth: '22%', flexBasis: '22%', marginBottom: 12 },
-      origin: { order: 4, maxWidth: '50%', flexBasis: '50%' },
-      dest:   { order: 5, maxWidth: '50%', flexBasis: '50%' },
+      origin: { order: 3, maxWidth: '50%', flexBasis: '50%' },
+      dest:   { order: 4, maxWidth: '50%', flexBasis: '50%' },
     } : {
       date:   { order: 1, maxWidth: '26%', flexBasis: '26%' },
       dur:    { order: 2, maxWidth: '14%', flexBasis: '14%' },
@@ -135,11 +137,16 @@ class DriveLitemItem extends Component {
                 { startTime } to { endTime }
               </Typography>
             </div>
-            <div className={ classes.driveGridItem } style={ gridStyle.dur }>
+            <div className={`${classes.driveGridItem} ${small && classes.driveGridItemRightAlign}`} style={ gridStyle.dur }>
               <Typography className={ classes.firstLine }>
                 { duration.hours > 0 && `${duration.hours.toString()}hr ` }
                 { `${duration.minutes} min` }
               </Typography>
+              { small && (
+                <Typography>
+                  {distance}
+                </Typography>
+              )}
             </div>
             <div className={ classes.driveGridItem } style={ gridStyle.origin }>
               <Typography className={ classes.firstLine }>
@@ -149,7 +156,7 @@ class DriveLitemItem extends Component {
                 { drive.startLocation && drive.startLocation.details }
               </Typography>
             </div>
-            <div className={ classes.driveGridItem } style={ gridStyle.dest }>
+            <div className={`${classes.driveGridItem} ${small && classes.driveGridItemRightAlign}`} style={ gridStyle.dest }>
               <Typography className={ classes.firstLine }>
                 { drive.endLocation && drive.endLocation.place }
               </Typography>
@@ -157,15 +164,17 @@ class DriveLitemItem extends Component {
                 { drive.endLocation && drive.endLocation.details }
               </Typography>
             </div>
-            <div className={ classes.driveGridItem } style={ gridStyle.dist }>
-              <Typography className={ classes.firstLine }>
-                {distance}
-              </Typography>
-            </div>
             { !small && (
-              <div className={ classes.driveGridItem } style={ gridStyle.arrow }>
-                <RightArrow className={classes.driveArrow} />
-              </div>
+              <>
+                <div className={ classes.driveGridItem } style={ gridStyle.dist }>
+                  <Typography className={ classes.firstLine }>
+                    {distance}
+                  </Typography>
+                </div>
+                <div className={ classes.driveGridItem } style={ gridStyle.arrow }>
+                  <RightArrow className={classes.driveArrow} />
+                </div>
+              </>
             ) }
           </Grid>
         </div>
