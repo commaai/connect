@@ -5,8 +5,8 @@ import * as Sentry from '@sentry/react';
 import fecha from 'fecha';
 
 import { withStyles, Typography, TextField, Button, CircularProgress } from '@material-ui/core';
-import { clips as ClipsApi } from '@commaai/comma-api';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
+import { clips as ClipsApi } from '@commaai/comma-api';
 
 import ResizeHandler from '../ResizeHandler';
 import DriveVideo from '../DriveVideo';
@@ -15,7 +15,7 @@ import TimeDisplay from '../TimeDisplay';
 import Colors from '../../colors';
 import { clipsCreate } from '../../actions/clips';
 
-const styles = (theme) => ({
+const styles = () => ({
   clipOption: {
     marginTop: 12,
     width: '100%',
@@ -133,7 +133,7 @@ class ClipCreate extends Component {
     const { videoTypeOption, clipTitle, isPublic } = this.state;
     const { loop, currentRoute } = this.props;
 
-    if (loop.duration > 300000) {  // 5 minutes
+    if (loop.duration > 300000) { // 5 minutes
       this.setState({ error: 'clip selection exceeds maximum length of 5 minutes' });
       return;
     }
@@ -164,102 +164,126 @@ class ClipCreate extends Component {
   render() {
     const { classes, loop, device, clips } = this.props;
     const { windowWidth, videoTypeOption, clipTitle, isPublic, createLoading, error } = this.state;
-    const viewerPadding = windowWidth < 768 ? 12 : 32
+    const viewerPadding = windowWidth < 768 ? 12 : 32;
 
     const startStr = fecha.format(new Date(loop.startTime), 'h:mm:ss\u00a0a').toLowerCase();
     const endStr = fecha.format(new Date(loop.startTime + loop.duration), 'h:mm:ss\u00a0a').toLowerCase();
-    const durSeconds = Math.floor(loop.duration/1000);
-    let durationStr = durSeconds >= 3600 ? `${Math.floor(durSeconds/3600)}:` : '';
-    durationStr += Math.floor((durSeconds%3600)/60).toString().padStart(durSeconds >= 3600 ? 2 : 1, '0') + ':';
-    durationStr += (durSeconds%60).toString().padStart(2, '0');
+    const durSeconds = Math.floor(loop.duration / 1000);
+    let durationStr = durSeconds >= 3600 ? `${Math.floor(durSeconds / 3600)}:` : '';
+    durationStr += `${Math.floor((durSeconds % 3600) / 60).toString().padStart(durSeconds >= 3600 ? 2 : 1, '0')}:`;
+    durationStr += (durSeconds % 60).toString().padStart(2, '0');
 
-    return <>
-      <ResizeHandler onResize={ this.onResize } />
-      <Timeline className={classes.headerTimeline} thumbnailsVisible={ true } hasClip />
-      <div style={{ padding: viewerPadding }}>
-        <div className={ classes.timeView }>
-          <div>
-            <p>start</p>
-            <p>{ startStr }</p>
-          </div>
-          <div>
-            <p>end</p>
-            <p>{ endStr }</p>
-          </div>
-          <div>
-            <p>duration</p>
-            <p>{ durationStr }</p>
-            <p><span>max 5 min</span></p>
-          </div>
-        </div>
-        <DriveVideo />
-        <div className={ classes.clipOption }>
-          <TimeDisplay isThin />
-        </div>
-        <div className={ classes.clipOption }>
-          <h4>Video type</h4>
-          <div className={classes.videoTypeOptions} style={{ maxWidth: 400 }}>
-            <div className={ `${classes.videoTypeOption} ${videoTypeOption === 'q' ? 'selected' : ''}` }
-              onClick={ () => this.setState({ videoTypeOption: 'q' }) }>
-              <Typography className={classes.mediaOptionText}>
-                Front { windowWidth < 450 ? '(SD)' : '(low-res)' }
-              </Typography>
+    return (
+      <>
+        <ResizeHandler onResize={ this.onResize } />
+        <Timeline className={classes.headerTimeline} thumbnailsVisible hasClip />
+        <div style={{ padding: viewerPadding }}>
+          <div className={ classes.timeView }>
+            <div>
+              <p>start</p>
+              <p>{ startStr }</p>
             </div>
-            <div className={ `${classes.videoTypeOption} ${videoTypeOption === 'f' ? 'selected' : ''}` }
-              onClick={ () => this.setState({ videoTypeOption: 'f' }) }>
-              <Typography className={classes.mediaOptionText}>Front</Typography>
+            <div>
+              <p>end</p>
+              <p>{ endStr }</p>
             </div>
-            { device.device_type === 'three' &&
-              <div className={ `${classes.videoTypeOption} ${videoTypeOption === 'e' ? 'selected' : ''}` }
-                onClick={ () => this.setState({ videoTypeOption: 'e' }) }>
-                <Typography className={classes.mediaOptionText}>Wide</Typography>
+            <div>
+              <p>duration</p>
+              <p>{ durationStr }</p>
+              <p><span>max 5 min</span></p>
+            </div>
+          </div>
+          <DriveVideo />
+          <div className={ classes.clipOption }>
+            <TimeDisplay isThin />
+          </div>
+          <div className={ classes.clipOption }>
+            <h4>Video type</h4>
+            <div className={classes.videoTypeOptions} style={{ maxWidth: 400 }}>
+              <div
+                className={ `${classes.videoTypeOption} ${videoTypeOption === 'q' ? 'selected' : ''}` }
+                onClick={ () => this.setState({ videoTypeOption: 'q' }) }
+              >
+                <Typography className={classes.mediaOptionText}>
+                  Front { windowWidth < 450 ? '(SD)' : '(low-res)' }
+                </Typography>
               </div>
-            }
-            <div className={ `${classes.videoTypeOption} ${videoTypeOption === 'd' ? 'selected' : ''}` }
-              onClick={ () => this.setState({ videoTypeOption: 'd' }) }>
-              <Typography className={classes.mediaOptionText}>Interior</Typography>
-            </div>
-            { device.device_type === 'three' &&
-              <div className={ `${classes.videoTypeOption} ${videoTypeOption === '360' ? 'selected' : ''}` }
-                onClick={ () => this.setState({ videoTypeOption: '360' }) }>
-                <Typography className={classes.mediaOptionText}>360°</Typography>
+              <div
+                className={ `${classes.videoTypeOption} ${videoTypeOption === 'f' ? 'selected' : ''}` }
+                onClick={ () => this.setState({ videoTypeOption: 'f' }) }
+              >
+                <Typography className={classes.mediaOptionText}>Front</Typography>
               </div>
-            }
+              { device.device_type === 'three' && (
+                <div
+                  className={ `${classes.videoTypeOption} ${videoTypeOption === 'e' ? 'selected' : ''}` }
+                  onClick={ () => this.setState({ videoTypeOption: 'e' }) }
+                >
+                  <Typography className={classes.mediaOptionText}>Wide</Typography>
+                </div>
+              ) }
+              <div
+                className={ `${classes.videoTypeOption} ${videoTypeOption === 'd' ? 'selected' : ''}` }
+                onClick={ () => this.setState({ videoTypeOption: 'd' }) }
+              >
+                <Typography className={classes.mediaOptionText}>Interior</Typography>
+              </div>
+              { device.device_type === 'three' && (
+                <div
+                  className={ `${classes.videoTypeOption} ${videoTypeOption === '360' ? 'selected' : ''}` }
+                  onClick={ () => this.setState({ videoTypeOption: '360' }) }
+                >
+                  <Typography className={classes.mediaOptionText}>360°</Typography>
+                </div>
+              ) }
+            </div>
+          </div>
+          <div className={ classes.clipOption }>
+            <h4>Clip title</h4>
+            <TextField
+              className={ classes.clipTitleInput }
+              value={ clipTitle || '' }
+              onChange={ (ev) => this.setState({ clipTitle: ev.target.value }) }
+              placeholder={ clips.route.split('|')[1] }
+            />
+          </div>
+          <div className={ classes.clipOption }>
+            <h4>Availability</h4>
+            <div className={classes.videoTypeOptions} style={{ maxWidth: 200 }}>
+              <div
+                className={ `${classes.videoTypeOption} ${!isPublic ? 'selected' : ''}` }
+                onClick={ () => this.setState({ isPublic: false }) }
+              >
+                <Typography className={classes.mediaOptionText}>Private</Typography>
+              </div>
+              <div
+                className={ `${classes.videoTypeOption} ${isPublic ? 'selected' : ''}` }
+                onClick={ () => this.setState({ isPublic: true }) }
+              >
+                <Typography className={classes.mediaOptionText}>Public</Typography>
+              </div>
+            </div>
+          </div>
+          <div className={ classes.clipOption }>
+            { error && (
+              <div className={ classes.overviewBlockError }>
+                <ErrorIcon />
+                <Typography>{ error }</Typography>
+              </div>
+            ) }
+            <Button
+              className={classes.buttons}
+              disabled={ createLoading }
+              onClick={ this.onClipCreate }
+            >
+              { createLoading
+                ? <CircularProgress style={{ margin: 0, color: Colors.white }} size={ 19 } />
+                : 'Create clip' }
+            </Button>
           </div>
         </div>
-        <div className={ classes.clipOption }>
-          <h4>Clip title</h4>
-          <TextField className={ classes.clipTitleInput } value={ clipTitle ? clipTitle : '' }
-            onChange={ (ev) =>this.setState({ clipTitle: ev.target.value }) }
-            placeholder={ clips.route.split('|')[1] } />
-        </div>
-        <div className={ classes.clipOption }>
-          <h4>Availability</h4>
-          <div className={classes.videoTypeOptions} style={{ maxWidth: 200 }}>
-            <div className={ `${classes.videoTypeOption} ${!isPublic ? 'selected' : ''}` }
-              onClick={ () => this.setState({ isPublic: false }) }>
-              <Typography className={classes.mediaOptionText}>Private</Typography>
-            </div>
-            <div className={ `${classes.videoTypeOption} ${isPublic ? 'selected' : ''}` }
-              onClick={ () => this.setState({ isPublic: true }) }>
-              <Typography className={classes.mediaOptionText}>Public</Typography>
-            </div>
-          </div>
-        </div>
-        <div className={ classes.clipOption }>
-          { error && <div className={ classes.overviewBlockError }>
-            <ErrorIcon />
-            <Typography>{ error }</Typography>
-          </div> }
-          <Button className={classes.buttons} onClick={ this.onClipCreate }
-            disabled={ createLoading }>
-            { createLoading ?
-              <CircularProgress style={{ margin: 0, color: Colors.white }} size={ 19 } /> :
-              'Create clip' }
-          </Button>
-        </div>
-      </div>
-    </>;
+      </>
+    );
   }
 }
 

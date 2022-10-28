@@ -18,7 +18,7 @@ import Colors from '../../colors';
 import { fetchClipsList, navToClips } from '../../actions/clips';
 import VisibilityHandler from '../VisibilityHandler';
 
-const styles = (theme) => ({
+const styles = () => ({
   clipItemHeader: {
     display: 'flex',
     alignItems: 'center',
