@@ -13,10 +13,8 @@ import { AccountIcon } from '../../icons';
 import Colors from '../../colors';
 import ResizeHandler from '../ResizeHandler';
 import { filterRegularClick } from '../../utils';
-import DeviceSelect from '../Misc/DeviceSelect';
-import { fetchClipsList } from '../../actions/clips';
 
-const styles = (theme) => ({
+const styles = () => ({
   header: {
     backgroundColor: '#1D2225',
     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
@@ -88,14 +86,11 @@ class AppHeader extends Component {
     this.handleClose = this.handleClose.bind(this);
     this.handleLogOut = this.handleLogOut.bind(this);
     this.toggleDrawer = this.toggleDrawer.bind(this);
-    this.viewClipsModal = this.viewClipsModal.bind(this);
-    this.viewClips = this.viewClips.bind(this);
     this.onResize = this.onResize.bind(this);
 
     this.state = {
       anchorEl: null,
       windowWidth: window.innerWidth,
-      viewClips: false,
     };
   }
 
@@ -124,27 +119,12 @@ class AppHeader extends Component {
     }
   }
 
-  viewClipsModal() {
-    const { devices } = this.props;
-    this.handleClose();
-    if (devices.length === 1) {
-      this.viewClips(devices[0]);
-    } else {
-      this.setState({ viewClips: true });
-    }
-  }
-
-  viewClips(device) {
-    this.setState({ viewClips: false });
-    this.props.dispatch(fetchClipsList(device.dongle_id));
-  }
-
   onResize(windowWidth) {
     this.setState({ windowWidth });
   }
 
   render() {
-    const { profile, classes, annotating, showDrawerButton, primeNav, clips, dongleId, devices } = this.props;
+    const { profile, classes, annotating, showDrawerButton, primeNav, clips, dongleId } = this.props;
     const { anchorEl } = this.state;
     const open = Boolean(anchorEl);
 
@@ -219,18 +199,6 @@ class AppHeader extends Component {
               points
             </ListItem>
             <Divider />
-            { Boolean(devices.length)
-            && (
-            <MenuItem
-              className={ classes.accountMenuItem }
-              component="a"
-              onClick={ devices.length === 1 ? filterRegularClick(this.viewClipsModal) : this.viewClipsModal }
-              href={ devices.length === 1 ? `/${devices[0].dongle_id}/clips` : null }
-            >
-              View clips
-            </MenuItem>
-            )}
-            { Boolean(devices.length) && <Divider /> }
             <MenuItem
               className={ classes.accountMenuItem }
               component="a"
@@ -239,14 +207,13 @@ class AppHeader extends Component {
             >
               Manage Account
             </MenuItem>
-            <MenuItem className={ classes.accountMenuItem } onClick={this.handleLogOut}>Log out</MenuItem>
+            <MenuItem
+              className={ classes.accountMenuItem }
+              onClick={this.handleLogOut}
+            >
+              Log out
+            </MenuItem>
           </Menu>
-          <DeviceSelect
-            open={ this.state.viewClips }
-            onClose={ () => this.setState({ viewClips: false }) }
-            onSelect={this.viewClips}
-            deviceHref={ (device) => `/${device.dongle_id}/clips`}
-          />
         </>
         ) }
       </>
@@ -260,7 +227,6 @@ const stateToProps = Obstruction({
   profile: 'profile',
   primeNav: 'primeNav',
   clips: 'clips',
-  devices: 'devices',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));
