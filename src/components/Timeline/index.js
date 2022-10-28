@@ -239,29 +239,12 @@ class Timeline extends Component {
   componentDidUpdate(prevProps) {
     const { zoomOverride, zoom } = this.props;
     if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom) {
-      this.setState({ zoom: this.props.zoomOverride || this.props.zoom });
+      this.setState({ zoom: zoomOverride || zoom });
     }
   }
 
   componentWillUnmount() {
     this.mounted = false;
-  }
-
-  getOffset() {
-    if (!this.mounted) {
-      return;
-    }
-    raf(this.getOffset);
-    let offset = currentOffset();
-    if (this.seekIndex) {
-      offset = this.seekIndex;
-    }
-    offset = Math.floor(offset);
-    const percent = this.offsetToPercent(offset);
-    if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
-      this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
-      this.rulerRemaining.current.style.width = `${100 - Math.floor(10000 * percent) / 100}%`;
-    }
   }
 
   handleClick(ev) {
@@ -333,6 +316,30 @@ class Timeline extends Component {
 
   handlePointerLeave() {
     this.setState({ hoverX: null });
+  }
+
+  onRulerRef(el) {
+    this.rulerRef.current = el;
+    if (el) {
+      el.addEventListener('touchstart', (ev) => ev.stopPropagation());
+    }
+  }
+
+  getOffset() {
+    if (!this.mounted) {
+      return;
+    }
+    raf(this.getOffset);
+    let offset = currentOffset();
+    if (this.seekIndex) {
+      offset = this.seekIndex;
+    }
+    offset = Math.floor(offset);
+    const percent = this.offsetToPercent(offset);
+    if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
+      this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
+      this.rulerRemaining.current.style.width = `${100 - Math.floor(10000 * percent) / 100}%`;
+    }
   }
 
   clipDragStart(type, ev) {
@@ -426,13 +433,6 @@ class Timeline extends Component {
     return null;
   }
 
-  onRulerRef(el) {
-    this.rulerRef.current = el;
-    if (el) {
-      el.addEventListener('touchstart', (ev) => ev.stopPropagation());
-    }
-  }
-
   renderRoute(route) {
     const { classes, filter } = this.props;
     const { zoom } = this.state;
@@ -471,7 +471,7 @@ class Timeline extends Component {
   renderRouteEvents(route) {
     const { classes } = this.props;
     if (!route.events) {
-      return;
+      return null;
     }
 
     return route.events
@@ -508,22 +508,34 @@ class Timeline extends Component {
 
     const dragBorderStyle = {
       left: `calc(${loopStartPercent}% - ${handleWidth}px)`,
-      width: `calc(${loopDurationPercent}% + ${handleWidth*2}px)`,
+      width: `calc(${loopDurationPercent}% + ${handleWidth * 2}px)`,
     };
 
-    return <div ref={ this.onRulerRef } className={classes.clip} onClick={this.handleClick}>
-      <div ref={this.rulerRemaining} className={classes.clipRulerRemaining} />
-      <div className={ classes.clipView } style={{ left: `calc(${loopStartPercent}% - ${handleWidth}px)`, width: handleWidth }}
-        onPointerDown={ (ev) => this.clipDragStart('start', ev) }>
-        <div className={ classes.clipDragHandle } />
+    return (
+      <div
+        ref={ this.onRulerRef }
+        className={classes.clip}
+        onClick={this.handleClick}
+      >
+        <div ref={this.rulerRemaining} className={classes.clipRulerRemaining} />
+        <div
+          className={ classes.clipView }
+          style={{ left: `calc(${loopStartPercent}% - ${handleWidth}px)`, width: handleWidth }}
+          onPointerDown={ (ev) => this.clipDragStart('start', ev) }
+        >
+          <div className={ classes.clipDragHandle } />
+        </div>
+        <div
+          className={ classes.clipView }
+          style={{ right: `calc(${loopEndPercent}% - ${handleWidth}px)`, width: handleWidth }}
+          onPointerDown={ (ev) => this.clipDragStart('end', ev) }
+        >
+          <div className={ classes.clipDragHandle } />
+        </div>
+        <div className={ classes.clipDragBorderTop } style={ dragBorderStyle } />
+        <div className={ classes.clipDragBorderBottom } style={ dragBorderStyle } />
       </div>
-      <div className={ classes.clipView } style={{ right: `calc(${loopEndPercent}% - ${handleWidth}px)`, width: handleWidth }}
-        onPointerDown={ (ev) => this.clipDragStart('end', ev) }>
-        <div className={ classes.clipDragHandle } />
-      </div>
-      <div className={ classes.clipDragBorderTop } style={ dragBorderStyle } />
-      <div className={ classes.clipDragBorderBottom } style={ dragBorderStyle } />
-    </div>;
+    );
   }
 
   render() {
@@ -574,27 +586,38 @@ class Timeline extends Component {
           <Measure bounds onResize={(rect) => this.setState({ thumbnail: rect.bounds })}>
             { (options) => (
               <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
-                { thumbnailsVisible &&
-                  <Thumbnails getCurrentRoute={ (o) => getCurrentRoute(this.props, o) }
-                    percentToOffset={this.percentToOffset} thumbnail={thumbnail} className={classes.thumbnail}
-                    hasRuler={hasRuler} />
-                }
+                { thumbnailsVisible && (
+                  <Thumbnails
+                    className={classes.thumbnail}
+                    getCurrentRoute={ (o) => getCurrentRoute(this.props, o) }
+                    percentToOffset={this.percentToOffset}
+                    thumbnail={thumbnail}
+                    hasRuler={hasRuler}
+                  />
+                ) }
               </div>
             )}
           </Measure>
-          { hasRuler && <>
-            <div ref={ this.onRulerRef } className={classes.ruler} onPointerDown={this.handlePointerDown}
-              onPointerUp={this.handlePointerUp} onPointerMove={this.handlePointerMove}
-              onPointerLeave={this.handlePointerLeave}>
-              <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
-              { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
-            </div>
-            { hoverString &&
-              <div ref={this.hoverBead} className={classes.hoverBead} style={hoverStyle}>
-                { hoverString }
+          { hasRuler && (
+            <>
+              <div
+                ref={ this.onRulerRef }
+                className={classes.ruler}
+                onPointerDown={this.handlePointerDown}
+                onPointerUp={this.handlePointerUp}
+                onPointerMove={this.handlePointerMove}
+                onPointerLeave={this.handlePointerLeave}
+              >
+                <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
+                { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
               </div>
-            }
-          </> }
+              { hoverString && (
+                <div ref={this.hoverBead} className={classes.hoverBead} style={hoverStyle}>
+                  { hoverString }
+                </div>
+              ) }
+            </>
+          ) }
           { Boolean(hasClip) && this.renderClipView() }
         </div>
       </div>

@@ -59,14 +59,15 @@ class PullDownReload extends Component {
   }
 
   touchMove(ev) {
-    if (this.state.startY === null || !this.dragEl.current) {
+    const { startY } = this.state;
+    if (startY === null || !this.dragEl.current) {
       return;
     }
 
-    const top = Math.min((ev.touches[0].pageY - this.state.startY) / 2 - 48, 32);
+    const top = Math.min((ev.touches[0].pageY - startY) / 2 - 48, 32);
     this.dragEl.current.style.transition = 'unset';
     this.dragEl.current.style.top = `${top}px`;
-    if (ev.touches[0].pageY - this.state.startY > 0) {
+    if (ev.touches[0].pageY - startY > 0) {
       ev.preventDefault();
     } else {
       this.setState({ startY: null });
