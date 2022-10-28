@@ -100,7 +100,7 @@ class DriveLitemItem extends Component {
   render() {
     const { drive, classes, windowWidth } = this.props;
 
-    const small = windowWidth < 640;
+    const small = windowWidth < 580;
     const startTime = fecha.format(new Date(drive.start_time_utc_millis), 'HH:mm');
     const startDate = fecha.format(new Date(drive.start_time_utc_millis), small ? 'ddd, MMM D' : 'dddd, MMM D');
     const endTime = fecha.format(new Date(drive.end_time_utc_millis), 'HH:mm');
