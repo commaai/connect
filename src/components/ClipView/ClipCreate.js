@@ -86,7 +86,7 @@ const styles = () => ({
     '&:disabled:hover': {
       backgroundColor: Colors.white70,
       color: Colors.grey900,
-    }
+    },
   },
   timeView: {
     marginBottom: 8,
