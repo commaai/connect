@@ -116,12 +116,11 @@ class DriveLitemItem extends Component {
       origin: { order: 3, maxWidth: '50%', flexBasis: '50%' },
       dest:   { order: 4, maxWidth: '50%', flexBasis: '50%' },
     } : {
-      date:   { order: 1, maxWidth: '26%', flexBasis: '26%' },
+      date:   { order: 1, maxWidth: '28%', flexBasis: '26%' },
       dur:    { order: 2, maxWidth: '14%', flexBasis: '14%' },
-      origin: { order: 3, maxWidth: '22%', flexBasis: '22%' },
-      dest:   { order: 4, maxWidth: '22%', flexBasis: '22%' },
-      dist:   { order: 5, maxWidth: '10%', flexBasis: '10%' },
-      arrow:  { order: 6, maxWidth: '6%',  flexBasis: '6%' },
+      origin: { order: 3, maxWidth: '26%', flexBasis: '22%' },
+      dest:   { order: 4, maxWidth: '26%', flexBasis: '22%' },
+      arrow:  { order: 5, maxWidth: '6%',  flexBasis: '6%' },
     };
     return (
       <a key={drive.start_time} className={ `${classes.drive} DriveEntry` } ref={ this.aRef }
@@ -142,11 +141,9 @@ class DriveLitemItem extends Component {
                 { duration.hours > 0 && `${duration.hours.toString()}hr ` }
                 { `${duration.minutes} min` }
               </Typography>
-              { small && (
-                <Typography>
-                  {distance}
-                </Typography>
-              )}
+              <Typography>
+                {distance}
+              </Typography>
             </div>
             <div className={ classes.driveGridItem } style={ gridStyle.origin }>
               <Typography className={ classes.firstLine }>
@@ -165,16 +162,9 @@ class DriveLitemItem extends Component {
               </Typography>
             </div>
             { !small && (
-              <>
-                <div className={ classes.driveGridItem } style={ gridStyle.dist }>
-                  <Typography className={ classes.firstLine }>
-                    {distance}
-                  </Typography>
-                </div>
-                <div className={ classes.driveGridItem } style={ gridStyle.arrow }>
-                  <RightArrow className={classes.driveArrow} />
-                </div>
-              </>
+              <div className={ classes.driveGridItem } style={ gridStyle.arrow }>
+                <RightArrow className={classes.driveArrow} />
+              </div>
             ) }
           </Grid>
         </div>
