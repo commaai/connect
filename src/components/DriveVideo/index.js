@@ -5,15 +5,12 @@ import { withStyles, CircularProgress } from '@material-ui/core';
 import debounce from 'debounce';
 import Obstruction from 'obstruction';
 import ReactPlayer from 'react-player';
-import Hls from '@commaai/hls.js';
 
 import { video as VideoApi } from '@commaai/comma-api';
 
 import Colors from '../../colors';
 import { seek, bufferVideo, currentOffset } from '../../timeline/playback';
 import { updateSegments } from '../../timeline/segments';
-
-window.Hls = Hls;
 
 const styles = () => ({
   hidden: {

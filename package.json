@@ -18,7 +18,6 @@
   "private": true,
   "dependencies": {
     "@commaai/comma-api": "^2.6.0",
-    "@commaai/hls.js": "^0.12.7",
     "@commaai/my-comma-auth": "^1.4.1",
     "@craco/craco": "^6.4.3",
     "@mapbox/mapbox-sdk": "^0.13.5",
@@ -102,7 +101,6 @@
   "jest": {
     "moduleNameMapper": {
       "^@commaai/pandajs$": "<rootDir>/node_modules/@commaai/pandajs/lib/index.js",
-      "^@commaai/hls.js$": "<rootDir>/node_modules/@commaai/hls.js/dist/hls.js",
       "^@commaai/(.*comma.*)$": "<rootDir>/node_modules/@commaai/$1/dist/index.js"
     }
   },

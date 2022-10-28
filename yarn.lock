@@ -1241,14 +1241,6 @@
     joi-browser "^13.4.0"
     query-string "^7.0.1"
 
-"@commaai/hls.js@^0.12.7":
-  version "0.12.7"
-  resolved "https://registry.yarnpkg.com/@commaai/hls.js/-/hls.js-0.12.7.tgz#1f93e0f0b1921bcd889c768df34eb018c25276fb"
-  integrity sha512-jISvZJRCg5nBv+jn9H7UDcdKPGdjyFcGDOJ9GBksOnXZPEwcVbsrH4FCr7fTju68eEH6rd4ydvYh2O1oYTdjPg==
-  dependencies:
-    eventemitter3 "3.1.0"
-    url-toolkit "^2.1.6"
-
 "@commaai/my-comma-auth@^1.4.1":
   version "1.4.1"
   resolved "https://registry.yarnpkg.com/@commaai/my-comma-auth/-/my-comma-auth-1.4.1.tgz#9c45cf18c5c42586c321aa3fb1bd4693a592487e"
@@ -5941,11 +5933,6 @@ etag@~1.8.1:
   version "1.8.1"
   resolved "https://registry.yarnpkg.com/etag/-/etag-1.8.1.tgz#41ae2eeb65efa62268aebfea83ac7d79299b0887"
   integrity sha512-aIL5Fx7mawVa300al2BnEE4iNvo1qETxLrPI/o05L7z6go7fCw1J6EQmbK4FmJ2AS7kgVF/KEZWufBfdClMcPg==
-
-eventemitter3@3.1.0:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/eventemitter3/-/eventemitter3-3.1.0.tgz#090b4d6cdbd645ed10bf750d4b5407942d7ba163"
-  integrity sha512-ivIvhpq/Y0uSjcHDcOIccjmYjGLcP09MFGE7ysAwkAvkXfpZlC985pH2/ui64DKazbTW/4kN3yqozUxlXzI6cA==
 
 eventemitter3@^3.1.0:
   version "3.1.2"
@@ -13761,11 +13748,6 @@ url-parse@^1.5.10, url-parse@^1.5.3:
   dependencies:
     querystringify "^2.1.1"
     requires-port "^1.0.0"
-
-url-toolkit@^2.1.6:
-  version "2.2.5"
-  resolved "https://registry.yarnpkg.com/url-toolkit/-/url-toolkit-2.2.5.tgz#58406b18e12c58803e14624df5e374f638b0f607"
-  integrity sha512-mtN6xk+Nac+oyJ/PrI7tzfmomRVNFIWKUbG8jdYFt52hxbiReFAXIjYskvu64/dvuW71IcB7lV8l0HvZMac6Jg==
 
 url@^0.11.0:
   version "0.11.0"
