@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, lazy, Suspense } from 'react';
 import { Provider } from 'react-redux';
 import { Route, Switch, Redirect } from 'react-router';
 import { ConnectedRouter } from 'connected-react-router';
@@ -6,18 +6,17 @@ import qs from 'query-string';
 import localforage from 'localforage';
 import * as Sentry from "@sentry/react";
 
-import CircularProgress from '@material-ui/core/CircularProgress';
-import Grid from '@material-ui/core/Grid';
+import { CircularProgress, Grid } from '@material-ui/core';
 
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 import { auth as AuthApi, request as Request, billing as Billing, athena as Athena } from '@commaai/comma-api';
 
-import Explorer from './components/explorer';
-import AnonymousLanding from './components/anonymous';
-
 import { getZoom, getClipsNav } from './url';
 import { isDemo } from './demo';
 import store, { history } from './store';
+
+const Explorer = lazy(() => import('./components/explorer'));
+const AnonymousLanding = lazy(() => import('./components/anonymous'));
 
 class App extends Component {
   constructor(props) {
@@ -118,7 +117,9 @@ class App extends Component {
     return (
       <Provider store={store}>
         <ConnectedRouter history={history}>
-          { showLogin ? this.anonymousRoutes() : this.authRoutes() }
+          <Suspense fallback={this.renderLoading()}>
+            { showLogin ? this.anonymousRoutes() : this.authRoutes() }
+          </Suspense>
         </ConnectedRouter>
       </Provider>
     );
