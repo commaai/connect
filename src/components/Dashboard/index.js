@@ -1,15 +1,16 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
 
 import DriveList from './DriveList';
-import Prime from '../Prime';
 import Navigation from '../Navigation';
 import DeviceInfo from '../DeviceInfo';
 
-const styles = (/* theme */) => ({
+const Prime = lazy(() => import('../Prime'));
+
+const styles = () => ({
   base: {
     display: 'flex',
     flexDirection: 'column',
@@ -23,15 +24,17 @@ const Dashboard = ({ classes, primeNav, device, dongleId }) => {
 
   return (
     <div className={classes.base}>
-      { primeNav
-        ? <Prime />
-        : (
-          <>
-            <Navigation hasNav={ device.prime && device.device_type === 'three' } />
-            <DeviceInfo />
-            <DriveList />
-          </>
-        )}
+      <Suspense>
+        { primeNav
+          ? <Prime />
+          : (
+            <>
+              <Navigation hasNav={ device.prime && device.device_type === 'three' } />
+              <DeviceInfo />
+              <DriveList />
+            </>
+          )}
+      </Suspense>
     </div>
   );
 };
