@@ -1,20 +1,17 @@
-import React, { Component } from 'react';
+import React, { Component, lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import localforage from 'localforage';
 import { replace } from 'connected-react-router';
 
-import { withStyles, Modal, Paper, Typography, Button, CircularProgress, Divider } from '@material-ui/core';
+import { withStyles, Button, CircularProgress, Divider, Grid, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
 
 import { devices as DevicesApi } from '@commaai/comma-api';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
-import DriveView from './DriveView';
-import ClipView from './ClipView';
 import IosPwaPopup from './IosPwaPopup';
-import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import AppDrawer from './AppDrawer';
 import PullDownReload from './utils/PullDownReload';
 
@@ -24,6 +21,10 @@ import Colors from '../colors';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { play, pause } from '../timeline/playback';
 import init from '../actions/startup';
+
+const ClipView = lazy(() => import('./ClipView'));
+const DriveView = lazy(() => import('./DriveView'));
+const NoDeviceUpsell = lazy(() => import('./DriveView/NoDeviceUpsell'));
 
 const styles = (theme) => ({
   base: {
@@ -172,6 +173,16 @@ class ExplorerApp extends Component {
     }
   }
 
+  renderLoading() {
+    return (
+      <Grid container alignItems="center" style={{ width: '100%', height: '100%' }}>
+        <Grid item align="center" xs={12}>
+          <CircularProgress size="10vh" style={{ color: '#525E66' }} />
+        </Grid>
+      </Grid>
+    );
+  }
+
   render() {
     const { classes, zoom, devices, dongleId, clips } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
@@ -207,12 +218,14 @@ class ExplorerApp extends Component {
         <AppDrawer drawerIsOpen={ drawerIsOpen } isPermanent={ isLarge } width={ sidebarWidth }
           handleDrawerStateChanged={this.handleDrawerStateChanged} style={ drawerStyles } />
         <div className={ classes.window } style={ containerStyles }>
-          { noDevicesUpsell
-            ? <NoDeviceUpsell />
-            : (clips ?
-                <ClipView /> :
-              (zoom ? <DriveView /> : <Dashboard />)
-            ) }
+          <Suspense fallback={this.renderLoading()}>
+            { noDevicesUpsell
+              ? <NoDeviceUpsell />
+              : (clips
+                  ? <ClipView />
+                  : (zoom ? <DriveView /> : <Dashboard />)
+              ) }
+          </Suspense>
         </div>
         <IosPwaPopup />
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>

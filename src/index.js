@@ -2,8 +2,7 @@ import * as Sentry from '@sentry/react';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import document from 'global/document';
-import CssBaseline from '@material-ui/core/CssBaseline';
-import { MuiThemeProvider } from '@material-ui/core/styles';
+import { CssBaseline, MuiThemeProvider } from '@material-ui/core';
 
 import './index.css';
 import 'react-virtualized/styles.css';

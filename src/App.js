@@ -6,8 +6,7 @@ import qs from 'query-string';
 import localforage from 'localforage';
 import * as Sentry from "@sentry/react";
 
-import CircularProgress from '@material-ui/core/CircularProgress';
-import Grid from '@material-ui/core/Grid';
+import { CircularProgress, Grid } from '@material-ui/core';
 
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 import { auth as AuthApi, request as Request, billing as Billing, athena as Athena } from '@commaai/comma-api';
