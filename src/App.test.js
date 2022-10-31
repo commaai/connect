@@ -1,10 +1,10 @@
 /* eslint-env jest */
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot, unmountComponentAtNode } from 'react-dom/client';
 import App from './App';
 
 it('renders without crashing', () => {
-  const div = document.createElement('div');
-  ReactDOM.render(<App />, div);
-  ReactDOM.unmountComponentAtNode(div);
+  const container = document.createElement('div');
+  createRoot(container).render(<App />);
+  unmountComponentAtNode(container);
 });
