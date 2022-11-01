@@ -230,10 +230,7 @@ class ClipList extends Component {
       <Popover open={ Boolean(errorPopper) } anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         anchorEl={ errorPopper?.ref } classes={{ paper: classes.copiedPopover }}
         onClose={ () => this.setState({ errorPopper: null }) }>
-        { errorPopper?.text ?
-          <Typography>{ errorPopper?.text }</Typography> :
-          <CircularProgress style={{ margin: '2px 12px', color: Colors.white }} size={ 14 } />
-        }
+        { errorPopper?.text || <CircularProgress style={{ margin: '2px 12px', color: Colors.white }} size={ 14 } /> }
       </Popover>
     </>;
   }
