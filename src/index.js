@@ -5,7 +5,6 @@ import document from 'global/document';
 import { CssBaseline, MuiThemeProvider } from '@material-ui/core';
 
 import './index.css';
-import 'react-virtualized/styles.css';
 import App from './App';
 import Theme from './theme';
 import { register, unregister } from './registerServiceWorker';
