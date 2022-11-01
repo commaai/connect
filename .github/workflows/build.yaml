@@ -1,67 +1,74 @@
 name: build
 
-on: [push]
+on: [push, workflow_dispatch]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref != 'refs/heads/master' && github.ref || github.run_id }}-${{ github.event_name }}
+  cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
-    - name: cache node modules
-      uses: actions/cache@v3
-      id: yarn-cache
+
+    - name: Setup Node 14
+      uses: actions/setup-node@v3
       with:
-        path: node_modules
-        key: ${{ runner.os }}-cra4-${{ hashFiles('**/yarn.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cra4-
-    - name: yarn install
-      if: steps.yarn-cache.outputs.cache-hit != 'true'
-      run: yarn install
-    - name: yarn build:development
+        node-version: 14
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: yarn install --immutable --immutable-cache --check-cache
+
+    - name: Build development
       run: yarn build:development
-    - name: run tests
+
+    - name: Run unit tests
       run: yarn test-ci
-    - name: run puppeteer tests
+
+    - name: Run puppeteer tests
       run: yarn test-puppeteer-build
+
   lighthouse:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
+    if: github.repository == 'commaai/connect'
     steps:
     - uses: actions/checkout@v3
-    - name: Use Node.js 14.x
-      uses: actions/setup-node@v1
+
+    - name: Setup Node 14
+      uses: actions/setup-node@v3
       with:
-        node-version: 14.x
-    - name: cache node modules
-      uses: actions/cache@v3
-      id: yarn-cache
-      with:
-        path: node_modules
-        key: ${{ runner.os }}-cra4-${{ hashFiles('**/yarn.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cra4-
-    - name: yarn install
-      if: steps.yarn-cache.outputs.cache-hit != 'true'
-      run: yarn install
-    - name: yarn build:production
+        node-version: 14
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: yarn install --immutable --immutable-cache --check-cache
+
+    - name: Build production
       run: yarn build:production
+
     - name: run Lighthouse CI
       run: |
         npm install -g @lhci/cli@0.9.x
         lhci autorun
       env:
         LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
   docker:
     runs-on: ubuntu-20.04
     needs: [test, lighthouse]
+    if: github.repository == 'commaai/connect'
     permissions:
       packages: write
       contents: read
     steps:
     - uses: actions/checkout@v3
+
     - name: Set up Docker Buildx
       id: buildx
       uses: docker/setup-buildx-action@v1
+
     - name: Cache Docker layers
       uses: actions/cache@v2
       with:
@@ -69,16 +76,19 @@ jobs:
         key: ${{ runner.os }}-buildx-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-buildx-
+
     - name: login to container registry
       uses: docker/login-action@v1
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+
     - name: get tags
       shell: bash
       run: echo "##[set-output name=tags;]ghcr.io/commaai/connect:${GITHUB_SHA},ghcr.io/commaai/connect:${GITHUB_REF#refs/heads/}$(if [ ${GITHUB_REF} = refs/heads/master ] ; then echo ,ghcr.io/commaai/connect:latest; fi;)"
       id: extract_tags
+
     - name: Build and push
       uses: docker/build-push-action@v2
       with:
@@ -89,6 +99,7 @@ jobs:
         tags: ${{ steps.extract_tags.outputs.tags }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache-new
+
     - name: Move cache
       run: |
         rm -rf /tmp/.buildx-cache
