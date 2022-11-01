@@ -16,7 +16,7 @@ import { clips as ClipsApi } from '@commaai/comma-api';
 
 import SwitchLoading from '../utils/SwitchLoading';
 import { filterRegularClick } from '../../utils';
-import { video_360 } from '../../icons';
+import { Video360Icon } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { selectRange } from '../../actions';
@@ -212,7 +212,7 @@ class ClipDone extends Component {
         this.setVideoAttributes();
 
         const img = document.createElement('img');
-        img.src = video_360;
+        img.src = Video360Icon;
         img.className = this.props.classes.videoOverlay360;
         this.video360Container.querySelector('video').parentElement.appendChild(img);
 

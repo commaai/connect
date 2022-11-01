@@ -10,7 +10,7 @@ import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import { clips as ClipsApi } from '@commaai/comma-api';
 
-import { video_360 } from '../../icons';
+import { Video360Icon } from '../../icons';
 import { filterRegularClick } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
@@ -250,7 +250,7 @@ class ClipList extends Component {
         height: (windowWidth < 768 ? 48 : 54),
       };
       thumbnail = <div className={ classes.thumbnail } style={ thumbnailStyle }>
-        { c.video_type === '360' && <img src={ video_360 } /> }
+        { c.video_type === '360' && <Video360Icon /> }
       </div>;
     } else if (c.status === 'pending') {
       thumbnail = <MoreHorizIcon className={ classes.clipPlayIcon } style={ gridStyles[0] } />;
