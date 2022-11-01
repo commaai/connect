@@ -204,15 +204,17 @@ class ClipList extends Component {
 
     const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1rem' };
 
+    console.log({ list: clips });
+
     return <>
       <VisibilityHandler onVisible={ () => this.props.dispatch(fetchClipsList(this.props.dongleId)) }
         onDongleId={ true } />
       <ResizeHandler onResize={ this.onResize } />
 
       <div style={{ ...itemStyle, padding: viewerPadding }}>
-        { !clips.list && <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
-        { Boolean(clips.list && clips.list.length === 0) && <p className={ classes.noClips }>no clips found</p> }
-        { Boolean(clips.list && clips.list.length > 0) &&
+        { !clips && <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
+        { Boolean(clips && clips.length === 0) && <p className={ classes.noClips }>no clips found</p> }
+        { Boolean(clips && clips.length > 0) &&
           <div className={classes.clipItemHeader} style={{ padding: (windowWidth < 768 ? 3 : 8) }}>
             <h6 style={{ ...itemStyle, ...gridStyles[0] }}></h6>
             <h6 style={{ ...itemStyle, ...gridStyles[1] }}>Title</h6>
@@ -220,7 +222,7 @@ class ClipList extends Component {
             <h6 style={{ ...itemStyle, ...gridStyles[3] }}>Public</h6>
           </div>
         }
-        { clips.list && clips.list.map((c) => this.renderClipItem(gridStyles, c)) }
+        { clips && clips.map((c) => this.renderClipItem(gridStyles, c)) }
       </div>
 
       <Popper open={ Boolean(copiedPopover) } placement='bottom' anchorEl={ copiedPopover }
@@ -238,11 +240,6 @@ class ClipList extends Component {
   renderClipItem(gridStyles, c) {
     const { classes, dongleId } = this.props;
     const { windowWidth } = this.state;
-
-    // don't show old failed clips
-    if (c.status === 'failed' && (Date.now()/1000 - c.create_time) > 86400*7) {
-      return;
-    }
 
     const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1.0rem' };
 
@@ -293,9 +290,15 @@ class ClipList extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  clips: 'clips',
-});
+const mapStateToProps = (state) => {
+  const { clips, dongleId } = state;
+  return {
+    clips: (clips?.list || []).filter((c) => {
+      // don't show old failed clips
+      return c.status !== 'failed' || (Date.now()/1000 - c.create_time) < 86400*7;
+    }),
+    dongleId,
+  };
+}
 
-export default connect(stateToProps)(withStyles(styles)(ClipList));
+export default connect(mapStateToProps)(withStyles(styles)(ClipList));
