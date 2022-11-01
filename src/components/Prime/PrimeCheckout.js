@@ -16,7 +16,7 @@ import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { primeNav, analyticsEvent } from '../../actions';
 
-const styles = (theme) => ({
+const styles = () => ({
   primeBox: {
     display: 'flex',
     flexDirection: 'column',
