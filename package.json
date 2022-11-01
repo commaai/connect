@@ -31,7 +31,7 @@
     "gh-pages": "^4.0.0",
     "global": "^4.4.0",
     "history": "^4.10.1",
-    "jsonwebtoken": "^8.5.1",
+    "jwt-decode": "^3.1.2",
     "localforage": "^1.10.0",
     "obstruction": "^2.1.0",
     "photo-sphere-viewer": "^4.7.3",

@@ -1,6 +1,7 @@
-import fecha from 'fecha';
-import jwt from 'jsonwebtoken';
 import * as Sentry from '@sentry/react';
+import fecha from 'fecha';
+import decodeJwt, { InvalidTokenError } from 'jwt-decode';
+
 import { currentOffset } from '../timeline/playback';
 
 export const emptyDevice = {
@@ -132,10 +133,10 @@ export function pairErrorToMessage(err, sentryFingerprint) {
 export function verifyPairToken(pairToken, fromUrl, sentryFingerprint) {
   let decoded;
   try {
-    decoded = jwt.decode(pairToken, { complete: true });
+    decoded = decodeJwt(pairToken);
   } catch (err) {
-    // https://github.com/auth0/node-jsonwebtoken#errors--codes
-    if (err instanceof jwt.JsonWebTokenError) {
+    // https://github.com/auth0/jwt-decode#getting-started
+    if (err instanceof InvalidTokenError) {
       throw new Error('invalid QR code, could not decode pair token');
     } else {
       // unkown error, let server verify token
@@ -144,11 +145,11 @@ export function verifyPairToken(pairToken, fromUrl, sentryFingerprint) {
     }
   }
 
-  if (!decoded || !decoded.payload) {
+  if (!decoded) {
     throw new Error('could not decode pair token');
   }
 
-  if (!decoded.payload.identity) {
+  if (!decoded.identity) {
     let msg = 'could not get identity from payload';
     if (!fromUrl) {
       msg += ', make sure you are using openpilot 0.8.3 or newer';
