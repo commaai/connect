@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import fecha from 'fecha';
 import * as Sentry from '@sentry/react';
 
@@ -103,7 +102,6 @@ class ClipList extends Component {
     this.clipErrorToText = this.clipErrorToText.bind(this);
 
     this.popoverTimeout = null;
-    this.clipErrors
   }
 
   async shareClip(ev, c) {
@@ -138,18 +136,18 @@ class ClipList extends Component {
 
   clipErrorToText(error_status) {
     switch (error_status) {
-    case 'upload_failed_request':
-      return 'Was unable to request file upload from device.';
-    case 'upload_failed':
-      return 'Not all files needed for this clip could be found on the device.';
-    case 'upload_failed_dcam':
-      return 'Not all files needed for this clip could be found on the device, was the "Record and Upload Driver Camera" toggle active?';
-    case 'upload_timed_out':
-      return 'File upload timed out, the device must be on WiFi to upload the required files.';
-    case 'export_failed':
-      return 'An error occured while creating this clip.';
-    default:
-      return 'Was not able to create clip.';
+      case 'upload_failed_request':
+        return 'Unable to request file upload from device.';
+      case 'upload_failed':
+        return 'Not all files needed for this clip could be found on the device.';
+      case 'upload_failed_dcam':
+        return 'Not all files needed for this clip could be found on the device, was the "Record and Upload Driver Camera" toggle active?';
+      case 'upload_timed_out':
+        return 'File upload timed out, the device must be on WiFi to upload the required files.';
+      case 'export_failed':
+        return 'An error occured while creating this clip.';
+      default:
+        return 'Unable to create clip.';
     }
   }
 
@@ -164,9 +162,12 @@ class ClipList extends Component {
       try {
         const resp = await ClipsApi.clipsDetails(this.props.dongleId, c.clip_id);
         errorText = this.clipErrorToText(resp.error_status);
-        const newErrorTexts = { ...errorTexts };
-        newErrorTexts[resp.id] = errorText;
-        this.setState({ errorTexts: newErrorTexts });
+        this.setState({
+          errorTexts: {
+            ...errorTexts,
+            [c.clip_id]: errorText,
+          },
+        });
       } catch (err) {
         console.error(err);
         Sentry.captureException(err, { fingerprint: 'clips_list_failed_details' });
@@ -177,7 +178,12 @@ class ClipList extends Component {
     this.setState({
       errorPopper: {
         ref: target,
-        text: errorText,
+        text: (
+          <>
+            <Typography variant="body1">{errorText}</Typography>
+            <Typography variant="caption">Clip ID: {c.clip_id}</Typography>
+          </>
+        ),
       },
     });
   }
@@ -203,9 +209,9 @@ class ClipList extends Component {
       <ResizeHandler onResize={ this.onResize } />
 
       <div style={{ ...itemStyle, padding: viewerPadding }}>
-        { !clips.list && <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
-        { Boolean(clips.list && clips.list.length === 0) && <p className={ classes.noClips }>no clips found</p> }
-        { Boolean(clips.list && clips.list.length > 0) &&
+        { !clips && <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
+        { Boolean(clips && clips.length === 0) && <p className={ classes.noClips }>no clips found</p> }
+        { Boolean(clips && clips.length > 0) &&
           <div className={classes.clipItemHeader} style={{ padding: (windowWidth < 768 ? 3 : 8) }}>
             <h6 style={{ ...itemStyle, ...gridStyles[0] }}></h6>
             <h6 style={{ ...itemStyle, ...gridStyles[1] }}>Title</h6>
@@ -213,7 +219,7 @@ class ClipList extends Component {
             <h6 style={{ ...itemStyle, ...gridStyles[3] }}>Public</h6>
           </div>
         }
-        { clips.list && clips.list.map((c) => this.renderClipItem(gridStyles, c)) }
+        { clips && clips.map((c) => this.renderClipItem(gridStyles, c)) }
       </div>
 
       <Popper open={ Boolean(copiedPopover) } placement='bottom' anchorEl={ copiedPopover }
@@ -223,10 +229,7 @@ class ClipList extends Component {
       <Popover open={ Boolean(errorPopper) } anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         anchorEl={ errorPopper?.ref } classes={{ paper: classes.copiedPopover }}
         onClose={ () => this.setState({ errorPopper: null }) }>
-        { errorPopper?.text ?
-          <Typography>{ errorPopper?.text }</Typography> :
-          <CircularProgress style={{ margin: '2px 12px', color: Colors.white }} size={ 14 } />
-        }
+        { errorPopper?.text || <CircularProgress style={{ margin: '2px 12px', color: Colors.white }} size={ 14 } /> }
       </Popover>
     </>;
   }
@@ -234,11 +237,6 @@ class ClipList extends Component {
   renderClipItem(gridStyles, c) {
     const { classes, dongleId } = this.props;
     const { windowWidth } = this.state;
-
-    // don't show old failed clips
-    if (c.status === 'failed' && (Date.now()/1000 - c.create_time) > 86400*7) {
-      return;
-    }
 
     const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1.0rem' };
 
@@ -289,9 +287,15 @@ class ClipList extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  clips: 'clips',
-});
+const mapStateToProps = (state) => {
+  const { clips, dongleId } = state;
+  return {
+    clips: (clips?.list || []).filter((c) => {
+      // don't show old failed clips
+      return c.status !== 'failed' || (Date.now()/1000 - c.create_time) < 86400*7;
+    }),
+    dongleId,
+  };
+}
 
-export default connect(stateToProps)(withStyles(styles)(ClipList));
+export default connect(mapStateToProps)(withStyles(styles)(ClipList));
