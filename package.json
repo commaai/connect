@@ -6,9 +6,9 @@
     "build:development": "env-cmd .env.development craco build",
     "build:production": "REACT_APP_GIT_SHA=`git rev-parse --short HEAD` env-cmd .env.production craco build",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx src",
-    "test": "craco test --env=jest-environment-jsdom-sixteen",
-    "test-ci": "CI=true craco test --env=jest-environment-jsdom-sixteen",
-    "test-coverage": "CI=true craco test --env=jest-environment-jsdom-sixteen --coverage",
+    "test": "craco test",
+    "test-ci": "CI=true craco test",
+    "test-coverage": "CI=true craco test --coverage",
     "test-puppeteer": "jest -c src/__puppeteer__/jest.config.js",
     "test-puppeteer-build": "JEST_PUPPETEER_CONFIG=jest-puppeteer.build.config.js yarn run test-puppeteer"
   },
@@ -18,7 +18,7 @@
   "dependencies": {
     "@commaai/comma-api": "^2.6.0",
     "@commaai/my-comma-auth": "^1.4.1",
-    "@craco/craco": "^6.4.3",
+    "@craco/craco": "^7.0.0-alpha.9",
     "@mapbox/mapbox-sdk": "^0.13.5",
     "@material-ui/core": "^1.0.0",
     "@material-ui/icons": "^1.0.0",
@@ -46,7 +46,7 @@
     "react-responsive-carousel": "^3.2.23",
     "react-router": "^5.3.4",
     "react-router-dom": "^5.3.4",
-    "react-scripts": "4.0.3",
+    "react-scripts": "5.0.1",
     "reduce-reducers": "^1.0.4",
     "redux": "^4.2.0",
     "redux-thunk": "^2.4.1"
@@ -63,7 +63,6 @@
     "eslint-plugin-react": "^7.31.8",
     "eslint-plugin-react-hooks": "^4.6.0",
     "expect-puppeteer": "^5.0.4",
-    "jest-environment-jsdom-sixteen": "^1.0.3",
     "jest-puppeteer": "^5.0.4",
     "puppeteer": "^9.1.1",
     "serve": "^14.0.1"
