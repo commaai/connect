@@ -103,7 +103,6 @@ class ClipList extends Component {
     this.clipErrorToText = this.clipErrorToText.bind(this);
 
     this.popoverTimeout = null;
-    this.clipErrors
   }
 
   async shareClip(ev, c) {
@@ -138,18 +137,18 @@ class ClipList extends Component {
 
   clipErrorToText(error_status) {
     switch (error_status) {
-    case 'upload_failed_request':
-      return 'Was unable to request file upload from device.';
-    case 'upload_failed':
-      return 'Not all files needed for this clip could be found on the device.';
-    case 'upload_failed_dcam':
-      return 'Not all files needed for this clip could be found on the device, was the "Record and Upload Driver Camera" toggle active?';
-    case 'upload_timed_out':
-      return 'File upload timed out, the device must be on WiFi to upload the required files.';
-    case 'export_failed':
-      return 'An error occured while creating this clip.';
-    default:
-      return 'Was not able to create clip.';
+      case 'upload_failed_request':
+        return 'Unable to request file upload from device.';
+      case 'upload_failed':
+        return 'Not all files needed for this clip could be found on the device.';
+      case 'upload_failed_dcam':
+        return 'Not all files needed for this clip could be found on the device, was the "Record and Upload Driver Camera" toggle active?';
+      case 'upload_timed_out':
+        return 'File upload timed out, the device must be on WiFi to upload the required files.';
+      case 'export_failed':
+        return 'An error occured while creating this clip.';
+      default:
+        return 'Unable to create clip.';
     }
   }
 
@@ -164,9 +163,12 @@ class ClipList extends Component {
       try {
         const resp = await ClipsApi.clipsDetails(this.props.dongleId, c.clip_id);
         errorText = this.clipErrorToText(resp.error_status);
-        const newErrorTexts = { ...errorTexts };
-        newErrorTexts[resp.id] = errorText;
-        this.setState({ errorTexts: newErrorTexts });
+        this.setState({
+          errorTexts: {
+            ...errorTexts,
+            [c.clip_id]: errorText,
+          },
+        });
       } catch (err) {
         console.error(err);
         Sentry.captureException(err, { fingerprint: 'clips_list_failed_details' });
@@ -177,7 +179,12 @@ class ClipList extends Component {
     this.setState({
       errorPopper: {
         ref: target,
-        text: errorText,
+        text: (
+          <>
+            <Typography variant="body1">{errorText}</Typography>
+            <Typography variant="caption">Clip ID: {c.clip_id}</Typography>
+          </>
+        ),
       },
     });
   }

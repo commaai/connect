@@ -70,6 +70,7 @@ class DriveView extends Component {
       const startDay = fecha.format(new Date(zoom.start), 'dddd');
       headerText = `${startDay} ${headerText}`;
     }
+
     return (
       <>
         <ResizeHandler onResize={ this.onResize } />
