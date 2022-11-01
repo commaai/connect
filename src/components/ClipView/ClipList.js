@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import fecha from 'fecha';
 import * as Sentry from '@sentry/react';
 
