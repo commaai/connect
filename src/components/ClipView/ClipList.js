@@ -203,8 +203,6 @@ class ClipList extends Component {
 
     const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1rem' };
 
-    console.log({ list: clips });
-
     return <>
       <VisibilityHandler onVisible={ () => this.props.dispatch(fetchClipsList(this.props.dongleId)) }
         onDongleId={ true } />
