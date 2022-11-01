@@ -10,8 +10,7 @@
     "test-ci": "CI=true craco test --env=jest-environment-jsdom-sixteen",
     "test-coverage": "CI=true craco test --env=jest-environment-jsdom-sixteen --coverage",
     "test-puppeteer": "jest -c src/__puppeteer__/jest.config.js",
-    "test-puppeteer-build": "JEST_PUPPETEER_CONFIG=jest-puppeteer.build.config.js yarn run test-puppeteer",
-    "deploy": "npm run test-ci && npm run build:production && npm run test-puppeteer-build && gh-pages -d build"
+    "test-puppeteer-build": "JEST_PUPPETEER_CONFIG=jest-puppeteer.build.config.js yarn run test-puppeteer"
   },
   "repository": "git@github.com:commaai/connect.git",
   "author": "Chris Vickery <chrisinajar@gmail.com>",
@@ -28,7 +27,6 @@
     "connected-react-router": "^4.5.0",
     "debounce": "^1.2.1",
     "fecha": "^3.0.3",
-    "gh-pages": "^4.0.0",
     "global": "^4.4.0",
     "history": "^4.10.1",
     "jwt-decode": "^3.1.2",
@@ -49,7 +47,6 @@
     "react-router": "^5.3.4",
     "react-router-dom": "^5.3.4",
     "react-scripts": "4.0.3",
-    "react-virtualized": "^9.22.3",
     "reduce-reducers": "^1.0.4",
     "redux": "^4.2.0",
     "redux-thunk": "^2.4.1"
