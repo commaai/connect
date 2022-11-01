@@ -82,9 +82,8 @@ const DriveListItem = (props) => {
     };
   }, []);
 
-  const onClick = filterRegularClick(
-    () => dispatch(selectRange(drive.start_time_utc_millis, drive.end_time_utc_millis)),
-  );
+  const onClick = filterRegularClick(() =>
+    dispatch(selectRange(drive.start_time_utc_millis, drive.end_time_utc_millis)));
 
   const small = windowWidth < 580;
   const startTime = fecha.format(new Date(drive.start_time_utc_millis), 'HH:mm');
@@ -122,41 +121,20 @@ const DriveListItem = (props) => {
       <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>
         <Grid container>
           <div className={classes.driveGridItem} style={gridStyle.date}>
-            <Typography className={classes.firstLine}>
-              {startDate}
-            </Typography>
-            <Typography>
-              {startTime}
-              {' '}
-              to
-              {' '}
-              {endTime}
-            </Typography>
+            <Typography className={classes.firstLine}>{startDate}</Typography>
+            <Typography>{`${startTime} to ${endTime}`}</Typography>
           </div>
           <div className={`${classes.driveGridItem} ${small && classes.driveGridItemRightAlign}`} style={gridStyle.dur}>
-            <Typography className={classes.firstLine}>
-              {duration.hours > 0 && `${duration.hours.toString()}hr `}
-              {`${duration.minutes} min`}
-            </Typography>
-            <Typography>
-              {distance}
-            </Typography>
+            <Typography className={classes.firstLine}>{duration}</Typography>
+            <Typography>{distance}</Typography>
           </div>
           <div className={classes.driveGridItem} style={gridStyle.origin}>
-            <Typography className={classes.firstLine}>
-              {drive.startLocation && drive.startLocation.place}
-            </Typography>
-            <Typography>
-              {drive.startLocation && drive.startLocation.details}
-            </Typography>
+            <Typography className={classes.firstLine}>{drive.startLocation?.place}</Typography>
+            <Typography>{drive.startLocation?.details}</Typography>
           </div>
           <div className={`${classes.driveGridItem} ${small && classes.driveGridItemRightAlign}`} style={gridStyle.dest}>
-            <Typography className={classes.firstLine}>
-              {drive.endLocation && drive.endLocation.place}
-            </Typography>
-            <Typography>
-              {drive.endLocation && drive.endLocation.details}
-            </Typography>
+            <Typography className={classes.firstLine}>{drive.endLocation?.place}</Typography>
+            <Typography>{drive.endLocation?.details}</Typography>
           </div>
           {!small && (
             <div className={classes.driveGridItem} style={gridStyle.arrow}>
