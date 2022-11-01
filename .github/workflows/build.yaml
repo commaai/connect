@@ -1,6 +1,6 @@
 name: build
 
-on: [push]
+on: [push, workflow_dispatch]
 
 jobs:
   test:
@@ -28,6 +28,7 @@ jobs:
 
   lighthouse:
     runs-on: ubuntu-20.04
+    if: github.repository == 'commaai/connect'
     steps:
     - uses: actions/checkout@v3
 
@@ -53,6 +54,7 @@ jobs:
   docker:
     runs-on: ubuntu-20.04
     needs: [test, lighthouse]
+    if: github.repository == 'commaai/connect'
     permissions:
       packages: write
       contents: read
