@@ -39,13 +39,7 @@ export function filterEvent(event) {
 export function formatDriveDuration(duration) {
   const hours = Math.floor((duration / (1000 * 60 * 60))) % 24;
   const minutes = Math.floor((duration / (1000 * 60))) % 60;
-
-  let formattedDuration = '';
-  if (hours > 0) {
-    formattedDuration += `${hours} hr `;
-  }
-  formattedDuration += `${minutes} min`;
-  return formattedDuration.trimEnd();
+  return `${hours > 0 ? `${hours} hr ` : ''}${minutes} min`;
 }
 
 export function timeFromNow(ts) {
