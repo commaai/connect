@@ -22,9 +22,6 @@ import Colors from '../../colors';
 import { selectRange } from '../../actions';
 import { clipsDelete, clipsUpdateIsPublic } from '../../actions/clips';
 
-require('photo-sphere-viewer/dist/photo-sphere-viewer.css');
-require('photo-sphere-viewer/dist/plugins/video.css');
-
 const styles = (theme) => ({
   clipOption: {
     marginBottom: 12,
