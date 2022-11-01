@@ -88,7 +88,8 @@
         }
       ],
       "no-underscore-dangle": 0,
-      "no-param-reassign": 0
+      "no-param-reassign": 0,
+      "object-curly-newline": ["error", { "consistent": true }]
     },
     "env": {
       "browser": true
