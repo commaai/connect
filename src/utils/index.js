@@ -37,19 +37,9 @@ export function filterEvent(event) {
 }
 
 export function formatDriveDuration(duration) {
-  const milliseconds = Math.floor((duration % 1000) / 100);
-  let seconds = Math.floor((duration / 1000) % 60);
-  let minutes = Math.floor((duration / (1000 * 60)) % 60);
-  let hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
-  hours = (hours < 10) ? hours : hours;
-  minutes = (minutes < 10) ? minutes : minutes;
-  seconds = (seconds < 10) ? seconds : seconds;
-  return {
-    hours,
-    minutes,
-    seconds,
-    milliseconds,
-  };
+  const hours = Math.floor((duration / (1000 * 60 * 60))) % 24;
+  const minutes = Math.floor((duration / (1000 * 60))) % 60;
+  return `${hours > 0 ? `${hours} hr ` : ''}${minutes} min`;
 }
 
 export function timeFromNow(ts) {
