@@ -6,9 +6,9 @@
     "build:development": "env-cmd .env.development craco build",
     "build:production": "REACT_APP_GIT_SHA=`git rev-parse --short HEAD` env-cmd .env.production craco build",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx src",
-    "test": "craco test --env=jest-environment-jsdom-sixteen",
-    "test-ci": "CI=true craco test --env=jest-environment-jsdom-sixteen",
-    "test-coverage": "CI=true craco test --env=jest-environment-jsdom-sixteen --coverage",
+    "test": "craco test",
+    "test-ci": "CI=true craco test",
+    "test-coverage": "CI=true craco test --coverage",
     "test-puppeteer": "jest -c src/__puppeteer__/jest.config.js",
     "test-puppeteer-build": "JEST_PUPPETEER_CONFIG=jest-puppeteer.build.config.js yarn run test-puppeteer"
   },
@@ -18,7 +18,7 @@
   "dependencies": {
     "@commaai/comma-api": "^2.6.0",
     "@commaai/my-comma-auth": "^1.4.1",
-    "@craco/craco": "^6.4.3",
+    "@craco/craco": "^7.0.0-alpha.9",
     "@mapbox/mapbox-sdk": "^0.13.5",
     "@material-ui/core": "^1.0.0",
     "@material-ui/icons": "^1.0.0",
@@ -32,7 +32,7 @@
     "jwt-decode": "^3.1.2",
     "localforage": "^1.10.0",
     "obstruction": "^2.1.0",
-    "photo-sphere-viewer": "^4.7.3",
+    "photo-sphere-viewer": "github:commaai/Photo-Sphere-Viewer#fix-threejs",
     "prop-types": "^15.8.1",
     "qr-scanner": "^1.4.1",
     "query-string": "^6.14.1",
@@ -46,7 +46,7 @@
     "react-responsive-carousel": "^3.2.23",
     "react-router": "^5.3.4",
     "react-router-dom": "^5.3.4",
-    "react-scripts": "4.0.3",
+    "react-scripts": "5.0.1",
     "reduce-reducers": "^1.0.4",
     "redux": "^4.2.0",
     "redux-thunk": "^2.4.1"
@@ -54,17 +54,16 @@
   "devDependencies": {
     "@testing-library/react": "^12.1.5",
     "@wojtekmaj/enzyme-adapter-react-17": "^0.6.7",
-    "compression-webpack-plugin": "^6.1.1",
+    "compression-webpack-plugin": "^7.1.2",
     "env-cmd": "^8.0.2",
     "enzyme": "^3.11.0",
-    "eslint-config-airbnb": "18.2.1",
+    "eslint-config-airbnb": "19.0.4",
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-jsx-a11y": "^6.6.1",
-    "eslint-plugin-react": "^7.31.8",
+    "eslint-plugin-react": "^7.31.10",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "expect-puppeteer": "^5.0.4",
-    "jest-environment-jsdom-sixteen": "^1.0.3",
-    "jest-puppeteer": "^5.0.4",
+    "expect-puppeteer": "^6.1.1",
+    "jest-puppeteer": "^6.1.1",
     "puppeteer": "^9.1.1",
     "serve": "^14.0.1"
   },
@@ -89,7 +88,12 @@
       ],
       "no-underscore-dangle": 0,
       "no-param-reassign": 0,
-      "object-curly-newline": ["error", { "consistent": true }]
+      "object-curly-newline": [
+        "error",
+        {
+          "consistent": true
+        }
+      ]
     },
     "env": {
       "browser": true

@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import ReactDOM from 'react-dom';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
@@ -7,23 +8,20 @@ import { Viewer } from 'photo-sphere-viewer';
 import { EquirectangularVideoAdapter } from 'photo-sphere-viewer/dist/adapters/equirectangular-video';
 import { VideoPlugin } from 'photo-sphere-viewer/dist/plugins/video';
 
-import { withStyles, Button, Modal, Paper, Typography, CircularProgress, Popper } from '@material-ui/core';
-import ShareIcon from '@material-ui/icons/Share';
-import FileDownloadIcon from '@material-ui/icons/FileDownload';
-import DeleteIcon from '@material-ui/icons/Delete';
-import CropOriginalIcon from '@material-ui/icons/CropOriginal';
 import { clips as ClipsApi } from '@commaai/comma-api';
+import { withStyles, Button, CircularProgress, Modal, Paper, Popper, Typography } from '@material-ui/core';
+import CropOriginalIcon from '@material-ui/icons/CropOriginal';
+import DeleteIcon from '@material-ui/icons/Delete';
+import FileDownloadIcon from '@material-ui/icons/FileDownload';
+import ShareIcon from '@material-ui/icons/Share';
 
-import SwitchLoading from '../utils/SwitchLoading';
-import { filterRegularClick } from '../../utils';
-import { video_360 } from '../../icons';
-import ResizeHandler from '../ResizeHandler';
-import Colors from '../../colors';
 import { selectRange } from '../../actions';
 import { clipsDelete, clipsUpdateIsPublic } from '../../actions/clips';
-
-require('photo-sphere-viewer/dist/photo-sphere-viewer.css');
-require('photo-sphere-viewer/dist/plugins/video.css');
+import Colors from '../../colors';
+import { Video360Icon } from '../../icons';
+import { filterRegularClick } from '../../utils';
+import SwitchLoading from '../utils/SwitchLoading';
+import ResizeHandler from '../ResizeHandler';
 
 const styles = (theme) => ({
   clipOption: {
@@ -211,10 +209,9 @@ class ClipDone extends Component {
         this.videoAttributesRetries = 0;
         this.setVideoAttributes();
 
-        const img = document.createElement('img');
-        img.src = video_360;
-        img.className = this.props.classes.videoOverlay360;
-        this.video360Container.querySelector('video').parentElement.appendChild(img);
+        const container = document.createElement('div');
+        this.video360Container.querySelector('video').parentElement.appendChild(container);
+        ReactDOM.render(<Video360Icon className={this.props.classes.videoOverlay360} />, container);
 
         this.video360Viewer.notification.show({
           content: 'Drag video to move around',

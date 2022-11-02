@@ -14,7 +14,7 @@ import { primeNav, analyticsEvent } from '../../actions';
 import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
 import Colors from '../../colors';
 import * as Demo from '../../demo';
-import { pin_car, pin_marker, pin_home, pin_work, pin_pinned } from '../../icons';
+import { PinCarIcon, PinMarkerIcon, PinHomeIcon, PinWorkIcon, PinPinnedIcon } from '../../icons';
 import { timeFromNow } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
@@ -513,11 +513,11 @@ class Navigation extends Component {
   getFavoriteLabelIcon(label) {
     switch (label) {
       case 'home':
-        return pin_home;
+        return PinHomeIcon;
       case 'work':
-        return pin_work;
+        return PinWorkIcon;
       default:
-        return pin_pinned;
+        return PinPinnedIcon;
       }
   }
 
@@ -624,7 +624,7 @@ class Navigation extends Component {
       address: {
         label: '',
       },
-      favoriteIcon: pin_car,
+      favoriteIcon: PinCarIcon,
       favoriteId: null,
       position: {
         lng, lat,
@@ -1014,17 +1014,18 @@ class Navigation extends Component {
                 paint={{ 'line-color': '#31a1ee', 'line-width': 3, 'line-blur': 1 }}  />
             </Source>
           }
-          { !search && !searchSelect && favoriteLocations && Object.entries(favoriteLocations).map(([id, loc]) =>
-            <Marker latitude={ loc.latitude } longitude={ loc.longitude } key={ id } offsetLeft={ -7.5 }
-              offsetTop={ -24 } captureDrag={ false } captureClick={ false } captureDoubleClick={ false }>
-              <img className={ classes.favoritePin } src={ loc.icon } onClick={ () => this.onFavoriteSelect(id, loc) }
+          { !search && !searchSelect && favoriteLocations && Object.entries(favoriteLocations).map(([id, loc]) => {
+            const Icon = loc.icon;
+            return <Marker latitude={loc.latitude} longitude={loc.longitude} key={id} offsetLeft={-7.5}
+              offsetTop={-24} captureDrag={false} captureClick={false} captureDoubleClick={false}>
+              <Icon className={classes.favoritePin} onClick={() => this.onFavoriteSelect(id, loc)}
                 alt="favorite-location" />
-            </Marker>
-          )}
+            </Marker>;
+          })}
           { carLocation &&
             <Marker latitude={ carLocation.location[1] } longitude={ carLocation.location[0] } offsetLeft={ -10 }
               offsetTop={ -30 } captureDrag={ false } captureClick={ true } captureDoubleClick={ false }>
-              <img className={ classes.pin } src={ pin_car } onMouseEnter={ () => this.toggleCarPinTooltip(true) }
+              <PinCarIcon className={ classes.pin } onMouseEnter={ () => this.toggleCarPinTooltip(true) }
                 onMouseLeave={ () => this.toggleCarPinTooltip(false) } alt="car-location"
                 onClick={ () => this.onCarSelect(carLocation) } />
               <div className={ classes.carPinTooltip } ref={ this.carPinTooltipRef }
@@ -1043,7 +1044,7 @@ class Navigation extends Component {
             <Marker latitude={ this.itemLoc(item).lat } longitude={ this.itemLoc(item).lng } key={ item.id }
               offsetLeft={ -10 } offsetTop={ -30 } captureDrag={ false } captureClick={ false }
               captureDoubleClick={ false }>
-              <img className={ classes.pinClick } src={ pin_marker } onClick={ () => this.onSearchSelect(item, 'pin') }
+              <PinMarkerIcon className={ classes.pinClick } onClick={ () => this.onSearchSelect(item, 'pin') }
                 alt="pin-location" />
             </Marker>
           )}
@@ -1083,11 +1084,11 @@ class Navigation extends Component {
       ({ lat, lng } = this.itemLoc(searchSelect));
     }
 
+    const Icon = searchSelect.favoriteIcon || PinMarkerIcon;
     return (
       <Marker latitude={ lat } longitude={ lng } offsetLeft={ -10 } offsetTop={ -30 }
         captureDrag={ false } captureClick={ false } captureDoubleClick={ false }>
-        <img className={ classes.pin } src={ searchSelect.favoriteIcon ? searchSelect.favoriteIcon : pin_marker }
-          alt="pin-location" />
+        <Icon className={ classes.pin } alt="pin-location" />
       </Marker>
     )
   }

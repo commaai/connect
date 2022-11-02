@@ -1,16 +1,16 @@
-FROM node:16.7-bullseye
+FROM node:16-bullseye
 
 WORKDIR /app
 
 COPY package.json yarn.lock /app/
-RUN yarn install --frozen-lockfile
+RUN yarn install --immutable --immutable-cache --check-cache
 
 COPY . /app/
 ARG SENTRY_AUTH_TOKEN
 RUN yarn build:production
 
 
-FROM nginx:1.21
+FROM nginx:1.22
 
 COPY config.js.template /etc/nginx/templates/config.js.template
 COPY nginx.conf /etc/nginx/conf.d/default.conf

@@ -46,26 +46,18 @@ module.exports = ({ env }) => {
       enable: false,
     },
     webpack: {
+      plugins: [sentryPlugin, workboxPlugin, compressionPlugin].filter(Boolean),
       configure: (webpackConfig) => {
-        if (workboxPlugin) {
-          webpackConfig.plugins.push(workboxPlugin);
-        }
-        if (sentryPlugin) {
-          webpackConfig.plugins.push(sentryPlugin);
-        }
-        if (compressionPlugin) {
-          webpackConfig.plugins.push(compressionPlugin);
-        }
         webpackConfig.output.globalObject = 'this';
         addBeforeLoader(webpackConfig, loaderByName('babel-loader'), {
           test: /\.worker\.js/,
           use: { loader: 'worker-loader' },
         });
-        webpackConfig.optimization.minimizer = webpackConfig.optimization.minimizer.map((plugin) => {
-          if (plugin.constructor.name === 'TerserPlugin') {
-            plugin.options.terserOptions.keep_fnames = true;
+        webpackConfig.optimization.minimizer.forEach((plugin) => {
+          if (plugin.constructor.name !== 'TerserPlugin') {
+            return;
           }
-          return plugin;
+          plugin.options.terserOptions = { keep_fnames: true };
         });
         return webpackConfig;
       },

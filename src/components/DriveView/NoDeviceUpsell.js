@@ -52,9 +52,16 @@ const styles = () => ({
 class NoDeviceUpsell extends Component {
   constructor(props) {
     super(props);
+
     this.state = {
       windowWidth: window.innerWidth,
     };
+
+    this.onResize = this.onResize.bind(this);
+  }
+
+  onResize(windowWidth) {
+    this.setState({ windowWidth });
   }
 
   render() {
@@ -65,18 +72,22 @@ class NoDeviceUpsell extends Component {
 
     return (
       <>
-        <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
+        <ResizeHandler onResize={this.onResize} />
         <div className={ classes.pairInstructions } style={{ padding: `8px ${containerPadding}px` }}>
           <Typography>Pair your device</Typography>
           <Typography>
             Pair your comma device by scanning the QR code on the device
           </Typography>
           <div className={ classes.addDeviceContainer }>
-            <AddDevice buttonText={ 'add new device' } />
+            <AddDevice buttonText="add new device" />
           </div>
         </div>
         <div className={classes.imageContainer}>
-          <img src="https://comma.ai/c3-nav.png" />
+          <picture>
+            <source type="image/webp" srcSet="/images/c3-nav.webp" />
+            <source type="image/png" srcSet="/images/c3-nav.png" />
+            <img alt="comma three" />
+          </picture>
         </div>
       </>
     );
