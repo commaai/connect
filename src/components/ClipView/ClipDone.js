@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import ReactDOM from 'react-dom';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
@@ -208,10 +209,9 @@ class ClipDone extends Component {
         this.videoAttributesRetries = 0;
         this.setVideoAttributes();
 
-        const img = document.createElement('img');
-        img.src = Video360Icon;
-        img.className = this.props.classes.videoOverlay360;
-        this.video360Container.querySelector('video').parentElement.appendChild(img);
+        const container = document.createElement('div');
+        this.video360Container.querySelector('video').parentElement.appendChild(container);
+        ReactDOM.render(<Video360Icon className={this.props.classes.videoOverlay360} />, container);
 
         this.video360Viewer.notification.show({
           content: 'Drag video to move around',
