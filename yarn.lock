@@ -8515,9 +8515,9 @@ performance-now@^2.1.0:
   resolved "https://registry.yarnpkg.com/performance-now/-/performance-now-2.1.0.tgz#6309f4e0e5fa913ec1c69307ae364b4b377c9e7b"
   integrity sha512-7EAHlyLHI56VEIdK57uwHdHKIaAGbnXPiw0yWbarQZOKaKpvUIgW0jWRVLiatnM+XXlSwsanIBH/hzGMJulMow==
 
-photo-sphere-viewer@incognitojam/Photo-Sphere-Viewer#fix-threejs:
+"photo-sphere-viewer@github:commaai/Photo-Sphere-Viewer#fix-threejs":
   version "4.0.0-SNAPSHOT"
-  resolved "https://codeload.github.com/incognitojam/Photo-Sphere-Viewer/tar.gz/63397cb8e7e1d5c450b5b9d78169598d75423450"
+  resolved "https://codeload.github.com/commaai/Photo-Sphere-Viewer/tar.gz/63397cb8e7e1d5c450b5b9d78169598d75423450"
   dependencies:
     three "0.136.0"
     uevent "^2.1.1"
