@@ -3,7 +3,7 @@ FROM node:16.7-bullseye
 WORKDIR /app
 
 COPY package.json yarn.lock /app/
-RUN yarn install --frozen-lockfile
+RUN yarn install --immutable --immutable-cache --check-cache
 
 COPY . /app/
 ARG SENTRY_AUTH_TOKEN
