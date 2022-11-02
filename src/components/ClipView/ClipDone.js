@@ -8,7 +8,7 @@ import { Viewer } from 'photo-sphere-viewer';
 import { EquirectangularVideoAdapter } from 'photo-sphere-viewer/dist/adapters/equirectangular-video';
 import { VideoPlugin } from 'photo-sphere-viewer/dist/plugins/video';
 
-import { clips as ClipsApi } from '@commaai/comma-api';
+import { clips as ClipsApi } from '@commaai/api';
 import { withStyles, Button, CircularProgress, Modal, Paper, Popper, Typography } from '@material-ui/core';
 import CropOriginalIcon from '@material-ui/icons/CropOriginal';
 import DeleteIcon from '@material-ui/icons/Delete';

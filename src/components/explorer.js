@@ -7,7 +7,7 @@ import { replace } from 'connected-react-router';
 import { withStyles, Button, CircularProgress, Divider, Grid, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
 
-import { devices as DevicesApi } from '@commaai/comma-api';
+import { devices as DevicesApi } from '@commaai/api';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';

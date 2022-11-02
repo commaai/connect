@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 import { push } from 'connected-react-router';
 import MyCommaAuth from '@commaai/my-comma-auth';
-import { clips as ClipsApi } from '@commaai/comma-api';
+import { clips as ClipsApi } from '@commaai/api';
 
 import { checkRoutesData, selectDevice, urlForState } from './';
 import { getClipsNav } from '../url';

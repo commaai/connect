@@ -9,7 +9,7 @@ import * as Sentry from "@sentry/react";
 import { CircularProgress, Grid } from '@material-ui/core';
 
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
-import { auth as AuthApi, request as Request, billing as Billing, athena as Athena } from '@commaai/comma-api';
+import { auth as AuthApi, request as Request, billing as Billing, athena as Athena } from '@commaai/api';
 
 import { getZoom, getClipsNav } from './url';
 import { isDemo } from './demo';

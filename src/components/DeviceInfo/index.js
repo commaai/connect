@@ -8,7 +8,7 @@ import "react-responsive-carousel/lib/styles/carousel.min.css"; // requires a lo
 import { Carousel } from 'react-responsive-carousel';
 import fecha from 'fecha';
 
-import { devices as DevicesApi, athena as AthenaApi } from '@commaai/comma-api';
+import { devices as DevicesApi, athena as AthenaApi } from '@commaai/api';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import Colors from '../../colors';

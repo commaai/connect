@@ -11,7 +11,7 @@ import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
 import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
 
-import { drives as DrivesApi } from '@commaai/comma-api';
+import { drives as DrivesApi } from '@commaai/api';
 
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';

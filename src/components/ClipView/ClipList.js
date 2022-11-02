@@ -8,7 +8,7 @@ import LockOutlineIcon from '@material-ui/icons/LockOutline';
 import PublicIcon from '@material-ui/icons/Public';
 import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
-import { clips as ClipsApi } from '@commaai/comma-api';
+import { clips as ClipsApi } from '@commaai/api';
 
 import { Video360Icon } from '../../icons';
 import { filterRegularClick } from '../../utils';

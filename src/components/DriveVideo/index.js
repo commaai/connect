@@ -6,7 +6,7 @@ import debounce from 'debounce';
 import Obstruction from 'obstruction';
 import ReactPlayer from 'react-player';
 
-import { video as VideoApi } from '@commaai/comma-api';
+import { video as VideoApi } from '@commaai/api';
 
 import Colors from '../../colors';
 import { seek, bufferVideo, currentOffset } from '../../timeline/playback';

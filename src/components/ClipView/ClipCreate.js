@@ -6,7 +6,7 @@ import fecha from 'fecha';
 
 import { withStyles, Typography, TextField, Button, CircularProgress } from '@material-ui/core';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
-import { clips as ClipsApi } from '@commaai/comma-api';
+import { clips as ClipsApi } from '@commaai/api';
 
 import ResizeHandler from '../ResizeHandler';
 import DriveVideo from '../DriveVideo';

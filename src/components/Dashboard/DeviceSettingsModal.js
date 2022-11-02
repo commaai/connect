@@ -18,7 +18,7 @@ import ShareIcon from '@material-ui/icons/Share';
 import WarningIcon from '@material-ui/icons/Warning';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 
-import { devices as DevicesApi } from '@commaai/comma-api';
+import { devices as DevicesApi } from '@commaai/api';
 import { primeNav, selectDevice, updateDevice } from '../../actions';
 import UploadQueue from '../Files/UploadQueue';
 import Colors from '../../colors';

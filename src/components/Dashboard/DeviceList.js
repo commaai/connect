@@ -6,7 +6,7 @@ import { withStyles, Typography, IconButton } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
-import { devices as DevicesApi } from '@commaai/comma-api';
+import { devices as DevicesApi } from '@commaai/api';
 
 import DeviceSettingsModal from './DeviceSettingsModal';
 import { deviceTypePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils'

@@ -9,7 +9,7 @@ import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuIt
 import { Search, Clear, Refresh } from '@material-ui/icons';
 import fecha from 'fecha';
 
-import { devices as Devices, navigation as NavigationAPI, athena as AthenaApi } from '@commaai/comma-api';
+import { devices as Devices, navigation as NavigationAPI, athena as AthenaApi } from '@commaai/api';
 import { primeNav, analyticsEvent } from '../../actions';
 import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
 import Colors from '../../colors';
