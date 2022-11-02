@@ -67,6 +67,9 @@
     "puppeteer": "^9.1.1",
     "serve": "^14.0.1"
   },
+  "resolutions": {
+    "three": "0.136.0"
+  },
   "eslintConfig": {
     "extends": [
       "airbnb"
@@ -88,7 +91,12 @@
       ],
       "no-underscore-dangle": 0,
       "no-param-reassign": 0,
-      "object-curly-newline": ["error", { "consistent": true }]
+      "object-curly-newline": [
+        "error",
+        {
+          "consistent": true
+        }
+      ]
     },
     "env": {
       "browser": true
