@@ -10,7 +10,7 @@ ARG SENTRY_AUTH_TOKEN
 RUN yarn build:production
 
 
-FROM nginx:1.21
+FROM nginx:1.22
 
 COPY config.js.template /etc/nginx/templates/config.js.template
 COPY nginx.conf /etc/nginx/conf.d/default.conf
