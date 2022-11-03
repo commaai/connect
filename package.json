@@ -53,7 +53,7 @@
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^5.16.5",
-    "@testing-library/react": "^12.1.5",
+    "@testing-library/react": "^13.4.0",
     "compression-webpack-plugin": "^7.1.2",
     "env-cmd": "^8.0.2",
     "eslint-config-airbnb": "19.0.4",
