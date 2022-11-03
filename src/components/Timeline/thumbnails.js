@@ -80,6 +80,7 @@ export default function Thumbnails(props) {
       <div
         key={i}
         className="thumbnailImage blank"
+        role="img"
         style={{
           ...imgStyles,
           width: imgStyles.width * data.length,
@@ -90,6 +91,7 @@ export default function Thumbnails(props) {
       <div
         key={i}
         className="thumbnailImage images"
+        role="img"
         style={{
           ...imgStyles,
           width: imgStyles.width * data.length,
