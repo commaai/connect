@@ -2,7 +2,6 @@
 import React from 'react';
 import * as Redux from 'redux';
 import thunk from 'redux-thunk';
-import { mount } from 'enzyme';
 import DriveListItem from './DriveListItem';
 
 const defaultState = {

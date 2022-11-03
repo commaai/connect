@@ -1,6 +1,5 @@
 /* eslint-env jest */
 import React from 'react';
-import { mount } from 'enzyme';
 import queryString from 'query-string';
 import { currentOffset } from '../../timeline/playback';
 

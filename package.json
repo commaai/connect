@@ -53,10 +53,8 @@
   },
   "devDependencies": {
     "@testing-library/react": "^12.1.5",
-    "@wojtekmaj/enzyme-adapter-react-17": "^0.6.7",
     "compression-webpack-plugin": "^7.1.2",
     "env-cmd": "^8.0.2",
-    "enzyme": "^3.11.0",
     "eslint-config-airbnb": "19.0.4",
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-jsx-a11y": "^6.6.1",
