@@ -33,6 +33,9 @@ const styles = (theme) => ({
     alignItems: 'center',
     marginBottom: 8,
   },
+  columnGap: {
+    columnGap: theme.spacing.unit * 4,
+  },
   bold: {
     fontWeight: 600,
   },
@@ -66,15 +69,24 @@ const styles = (theme) => ({
       color: Colors.lightGrey600,
     },
   },
+  buttonRow: {
+    justifyContent: 'center',
+  },
   spaceAround: {
     display: 'flex',
     justifyContent: 'space-around',
+  },
+  deviceStatContainer: {
+    display: 'flex',
+    flex: 1,
+    justifySelf: 'start',
   },
   deviceStat: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     maxWidth: 80,
+    padding: `0 ${theme.spacing.unit * 4}px`,
   },
   carBattery: {
     padding: '5px 16px',
@@ -319,10 +331,10 @@ class DeviceInfo extends Component {
         <VisibilityHandler onVisible={ this.onVisible } onInit={ true } onDongleId={ true } minInterval={ 60 } />
         <div className={ classes.container } style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
           { windowWidth >= 768 ?
-            <div className={ classes.row }>
+            <div className={`${classes.row} ${classes.columnGap}`}>
               <Typography variant="title">{ device.alias || deviceTypePretty(device.device_type) }</Typography>
-              { this.renderStats() }
-              { this.renderButtons() }
+              <div className={classes.deviceStatContainer}>{ this.renderStats() }</div>
+              <div className={`${classes.row} ${classes.buttonRow}`}>{ this.renderButtons() }</div>
             </div>
           : <>
             <div className={ classes.row }>
