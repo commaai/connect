@@ -2,7 +2,7 @@
 import React from 'react';
 import * as Redux from 'redux';
 import thunk from 'redux-thunk';
-import { mount } from 'enzyme';
+import { render, screen } from '@testing-library/react';
 import DriveListItem from './DriveListItem';
 
 const defaultState = {
@@ -19,8 +19,8 @@ const store = Redux.createStore((state) => {
 }, Redux.applyMiddleware(thunk));
 
 describe('drive list items', () => {
-  it('has DriveEntry class for puppeteer', () => {
-    const elem = mount(<DriveListItem
+  it('has DriveEntry class', () => {
+    render(<DriveListItem
       store={store}
       drive={{
         start_time_utc_millis: 1570830798378,
@@ -30,9 +30,6 @@ describe('drive list items', () => {
         endCoord: [0, 0],
       }}
     />);
-    expect(elem.exists()).toBe(true);
-    expect(elem.exists('.DriveEntry')).toBe(true);
-
-    elem.unmount();
+    expect(screen.getByRole('link')).toHaveClass('DriveEntry');
   });
 });

@@ -1,10 +1,8 @@
 /* eslint-env jest */
 import React from 'react';
-import { unmountComponentAtNode } from 'react-dom';
 import { fireEvent, render, waitFor } from '@testing-library/react';
 
 import ResizeHandler from '.';
-
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -39,7 +37,7 @@ describe('resize handler', () => {
 
     const container = document.createElement('div');
     const callback = jest.fn();
-    render(<ResizeHandler onResize={callback} />, { container });
+    const { unmount } = render(<ResizeHandler onResize={callback} />, { container });
 
     // Wait for the resize handler in the component to be registered (useEffect callback is async)
     await waitFor(() => expect(aResizeEventListenerWasAddedToWindow).toBeTruthy());
@@ -47,7 +45,7 @@ describe('resize handler', () => {
     await sleep(150);
     expect(callback).toHaveBeenCalled();
 
-    unmountComponentAtNode(container);
+    unmount();
 
     // Wait for resize handler in the component to be unregistered
     await waitFor(() => expect(aResizeEventListenerWasRemovedFromWindow).toBeTruthy());

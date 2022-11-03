@@ -23,7 +23,7 @@ const ResizeHandler = (props) => {
       if (resizeTimeout) {
         window.clearTimeout(resizeTimeout);
       }
-    }
+    };
   });
 
   return null;

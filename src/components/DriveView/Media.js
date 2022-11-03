@@ -31,7 +31,7 @@ import { clipsInit } from '../../actions/clips';
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
 
-const styles = (theme) => ({
+const styles = () => ({
   root: {
     display: 'flex',
   },
@@ -802,7 +802,7 @@ class Media extends Component {
           </MenuItem>
         }
         <Divider />
-        <MenuItem onClick={ this.openInCabana } id="openInCabana" >
+        <MenuItem onClick={ this.openInCabana }>
           View in cabana
           { Boolean(files && stats && stats.canRequestRlog) &&
             <div className={ classes.viewCabanaUploads }>

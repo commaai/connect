@@ -37,8 +37,8 @@
     "qr-scanner": "^1.4.1",
     "query-string": "^6.14.1",
     "raf": "^3.4.1",
-    "react": "~17.0",
-    "react-dom": "~17.0",
+    "react": "~18.2",
+    "react-dom": "~18.2",
     "react-map-gl": "^5.3.15",
     "react-measure": "^2.5.2",
     "react-player": "^2.11.0",
@@ -52,11 +52,11 @@
     "redux-thunk": "^2.4.1"
   },
   "devDependencies": {
-    "@testing-library/react": "^12.1.5",
-    "@wojtekmaj/enzyme-adapter-react-17": "^0.6.7",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^14.4.3",
     "compression-webpack-plugin": "^7.1.2",
     "env-cmd": "^8.0.2",
-    "enzyme": "^3.11.0",
     "eslint-config-airbnb": "19.0.4",
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-jsx-a11y": "^6.6.1",
@@ -78,6 +78,12 @@
       "react/jsx-curly-spacing": 0,
       "react/jsx-filename-extension": 0,
       "react/forbid-prop-types": 0,
+      "react/function-component-definition": [
+        "error",
+        {
+          "namedComponents": "arrow-function"
+        }
+      ],
       "react/prop-types": 0,
       "react/require-default-props": 0,
       "no-plusplus": [

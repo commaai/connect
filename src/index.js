@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import document from 'global/document';
 import { CssBaseline, MuiThemeProvider } from '@material-ui/core';
 
@@ -23,9 +23,9 @@ if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SERVICEWORKER
   unregister();
 }
 
-ReactDOM.render((
+createRoot(document.getElementById('root')).render((
   <MuiThemeProvider theme={Theme}>
     <CssBaseline />
     <App />
   </MuiThemeProvider>
-), document.getElementById('root'));
+));

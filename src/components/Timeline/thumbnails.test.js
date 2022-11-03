@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen } from '@testing-library/react';
 import Thumbnails from './thumbnails';
 
 const screenHeight = 1000;
@@ -37,7 +37,7 @@ describe('timeline thumbnails', () => {
   });
 
   it('should check the segment for every image', () => {
-    const thumbnails = shallow(
+    render(
       <Thumbnails
         thumbnail={thumbnailBounds}
         percentToOffset={percentToOffsetMock}
@@ -45,32 +45,27 @@ describe('timeline thumbnails', () => {
       />,
     );
 
-    expect(thumbnails.exists()).toBe(true);
     expect(percentToOffsetMock.mock.calls.length).toBe(10);
     expect(getCurrentRouteMock.mock.calls.length).toBe(10);
-    const imageEntries = thumbnails.find('.thumbnailImage');
-    expect(imageEntries.length).toBe(5);
+    const imageEntries = screen.getAllByRole('img');
+    expect(imageEntries).toHaveLength(5);
 
     imageEntries.forEach((entry, i) => {
-      expect(entry.exists()).toBe(true);
-      expect(entry.hasClass('thumbnailImage')).toBe(true);
+      expect([...entry.classList].indexOf('thumbnailImage')).toBeGreaterThan(-1);
       if (i === 0 || i === 4) {
-        expect(entry.hasClass('blank')).toBe(true);
+        expect([...entry.classList].indexOf('blank')).toBeGreaterThan(-1);
       } else {
-        const styles = entry.prop('style');
-        const backgroundParts = styles.backgroundSize.split(' ');
+        const backgroundParts = entry.style.backgroundSize.split(' ');
         const height = Number(backgroundParts[1].replace('px', ''));
         expect(height).toBe(heightWithBlackBorder);
         // never stretch thumbnail images
         expect(backgroundParts[0]).toBe('auto');
       }
     });
-
-    thumbnails.unmount();
   });
 
   it('doesn\'t render before bounds are set', () => {
-    const thumbnails = shallow(
+    render(
       <Thumbnails
         thumbnail={{
           width: 0,
@@ -85,9 +80,7 @@ describe('timeline thumbnails', () => {
       />,
     );
 
-    expect(thumbnails.exists()).toBe(false);
-
-    thumbnails.unmount();
+    expect(screen.queryAllByRole('img')).toHaveLength(0);
   });
 
   it('works when theres no blank at the end', () => {
@@ -102,7 +95,7 @@ describe('timeline thumbnails', () => {
       };
     });
 
-    const thumbnails = shallow(
+    render(
       <Thumbnails
         thumbnail={thumbnailBounds}
         percentToOffset={percentToOffsetMock}
@@ -110,20 +103,17 @@ describe('timeline thumbnails', () => {
       />,
     );
 
-    expect(thumbnails.exists()).toBe(true);
     expect(percentToOffsetMock.mock.calls.length).toBe(10);
     expect(getCurrentRouteMock.mock.calls.length).toBe(10);
-    const imageEntries = thumbnails.find('.thumbnailImage');
-    expect(imageEntries.length).toBe(5);
+    const imageEntries = screen.getAllByRole('img');
+    expect(imageEntries).toHaveLength(5);
 
     imageEntries.forEach((entry, i) => {
-      expect(entry.exists()).toBe(true);
-      expect(entry.hasClass('thumbnailImage')).toBe(true);
+      expect([...entry.classList].indexOf('thumbnailImage')).toBeGreaterThan(-1);
       if (i === 0) {
-        expect(entry.hasClass('blank')).toBe(true);
+        expect([...entry.classList].indexOf('blank')).toBeGreaterThan(-1);
       } else {
-        const styles = entry.prop('style');
-        const backgroundParts = styles.backgroundSize.split(' ');
+        const backgroundParts = entry.style.backgroundSize.split(' ');
         const height = Number(backgroundParts[1].replace('px', ''));
         expect(height).toBe(heightWithBlackBorder);
 
@@ -131,12 +121,10 @@ describe('timeline thumbnails', () => {
         expect(backgroundParts[0]).toBe('auto');
       }
     });
-
-    thumbnails.unmount();
   });
 
   it('works when its supermegaskinny', () => {
-    const thumbnails = shallow(
+    render(
       <Thumbnails
         thumbnail={{
           width: 0,
@@ -151,10 +139,8 @@ describe('timeline thumbnails', () => {
       />,
     );
 
-    expect(thumbnails.exists()).toBe(false);
+    expect(screen.queryAllByRole('img')).toHaveLength(0);
     expect(percentToOffsetMock.mock.calls.length).toBe(0);
     expect(getCurrentRouteMock.mock.calls.length).toBe(0);
-
-    thumbnails.unmount();
   });
 });

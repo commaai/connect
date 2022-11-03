@@ -1,9 +1,10 @@
 /* eslint-env jest */
 import React from 'react';
-import { mount } from 'enzyme';
 import queryString from 'query-string';
-import { currentOffset } from '../../timeline/playback';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
+import { currentOffset } from '../../timeline/playback';
 import Media from './Media';
 
 const winOpenMock = jest.fn();
@@ -27,7 +28,7 @@ describe('Media', () => {
     currentOffset.mockClear();
   });
 
-  it('opens cabana at the current timestamp and loop', () => {
+  it('opens cabana at the current timestamp and loop', async () => {
     const start = 123123123;
     const routeOffset = Math.round(Math.random() * 10000);
     const routeStartTime = start + routeOffset;
@@ -47,15 +48,14 @@ describe('Media', () => {
       device: { device_type: 'three' },
     });
     currentOffset.mockImplementation(() => offset);
-    const media = mount(
+
+    const user = userEvent.setup();
+    render(
       <Media store={{ subscribe: () => {}, dispatch: () => {}, getState }} menusOnly />,
     );
 
-    expect(media.exists()).toBe(true);
-    const openInCabana = media.find('#openInCabana').first();
-    expect(openInCabana.exists()).toBe(true);
-
-    openInCabana.simulate('click');
+    const viewInCabana = screen.getByRole('menuitem', { name: /view in cabana/i });
+    await user.click(viewInCabana);
 
     expect(winOpenMock.mock.calls.length).toBe(1);
     expect(currentOffset).toBeCalled();
@@ -72,10 +72,9 @@ describe('Media', () => {
     expect(Number(qsParams.seekTime)).toBe(Math.floor((offset - routeOffset) / 1000));
     expect(Number(segmentParts[0])).toBe(Math.floor((loopStartTime - routeStartTime) / 1000));
     expect(Number(segmentParts[1])).toBe(Math.floor((loopStartTime - routeStartTime) / 1000) + 15);
-
-    media.unmount();
   });
-  it('doesn\'t send cabana the loop when its greater than 3 minutes', () => {
+
+  it('doesn\'t send cabana the loop when its greater than 3 minutes', async () => {
     const start = 123123123;
     const routeOffset = Math.round(Math.random() * 10000);
     const routeStartTime = start + routeOffset;
@@ -94,15 +93,14 @@ describe('Media', () => {
       device: { device_type: 'three' },
       loop: { startTime: loopStartTime, duration: 181000 },
     });
-    const media = mount(
+
+    const user = userEvent.setup();
+    render(
       <Media store={{ subscribe: () => {}, dispatch: () => {}, getState }} menusOnly />,
     );
 
-    expect(media.exists()).toBe(true);
-    const openInCabana = media.find('#openInCabana').first();
-    expect(openInCabana.exists()).toBe(true);
-
-    openInCabana.simulate('click');
+    const viewInCabana = screen.getByRole('menuitem', { name: /view in cabana/i });
+    await user.click(viewInCabana);
 
     expect(winOpenMock.mock.calls.length).toBe(1);
     expect(currentOffset).toBeCalled();
@@ -114,7 +112,5 @@ describe('Media', () => {
 
     const qsParams = queryString.parse(urlParams);
     expect(qsParams.segments).toEqual(undefined);
-
-    media.unmount();
   });
 });
