@@ -37,7 +37,7 @@ describe('timeline thumbnails', () => {
   });
 
   it('should check the segment for every image', () => {
-    const thumbnails = render(
+    render(
       <Thumbnails
         thumbnail={thumbnailBounds}
         percentToOffset={percentToOffsetMock}
@@ -62,8 +62,6 @@ describe('timeline thumbnails', () => {
         expect(backgroundParts[0]).toBe('auto');
       }
     });
-
-    thumbnails.unmount();
   });
 
   it('doesn\'t render before bounds are set', () => {
@@ -85,50 +83,45 @@ describe('timeline thumbnails', () => {
     expect(screen.queryAllByRole('img')).toHaveLength(0);
   });
 
-  // it('works when theres no blank at the end', () => {
-  //   getCurrentRouteMock.mockImplementation((offset) => {
-  //     if (offset < 1600) {
-  //       return null;
-  //     }
-  //     return {
-  //       offset: 1600,
-  //       segment_numbers: Array.from(Array(4).keys()),
-  //       segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60),
-  //     };
-  //   });
+  it('works when theres no blank at the end', () => {
+    getCurrentRouteMock.mockImplementation((offset) => {
+      if (offset < 1600) {
+        return null;
+      }
+      return {
+        offset: 1600,
+        segment_numbers: Array.from(Array(4).keys()),
+        segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60),
+      };
+    });
 
-  //   const thumbnails = shallow(
-  //     <Thumbnails
-  //       thumbnail={thumbnailBounds}
-  //       percentToOffset={percentToOffsetMock}
-  //       getCurrentRoute={getCurrentRouteMock}
-  //     />,
-  //   );
+    render(
+      <Thumbnails
+        thumbnail={thumbnailBounds}
+        percentToOffset={percentToOffsetMock}
+        getCurrentRoute={getCurrentRouteMock}
+      />,
+    );
 
-  //   expect(thumbnails.exists()).toBe(true);
-  //   expect(percentToOffsetMock.mock.calls.length).toBe(10);
-  //   expect(getCurrentRouteMock.mock.calls.length).toBe(10);
-  //   const imageEntries = thumbnails.find('.thumbnailImage');
-  //   expect(imageEntries.length).toBe(5);
+    expect(percentToOffsetMock.mock.calls.length).toBe(10);
+    expect(getCurrentRouteMock.mock.calls.length).toBe(10);
+    const imageEntries = screen.getAllByRole('img');
+    expect(imageEntries).toHaveLength(5);
 
-  //   imageEntries.forEach((entry, i) => {
-  //     expect(entry.exists()).toBe(true);
-  //     expect(entry.hasClass('thumbnailImage')).toBe(true);
-  //     if (i === 0) {
-  //       expect(entry.hasClass('blank')).toBe(true);
-  //     } else {
-  //       const styles = entry.prop('style');
-  //       const backgroundParts = styles.backgroundSize.split(' ');
-  //       const height = Number(backgroundParts[1].replace('px', ''));
-  //       expect(height).toBe(heightWithBlackBorder);
+    imageEntries.forEach((entry, i) => {
+      expect([...entry.classList].indexOf('thumbnailImage')).toBeGreaterThan(-1);
+      if (i === 0) {
+        expect([...entry.classList].indexOf('blank')).toBeGreaterThan(-1);
+      } else {
+        const backgroundParts = entry.style.backgroundSize.split(' ');
+        const height = Number(backgroundParts[1].replace('px', ''));
+        expect(height).toBe(heightWithBlackBorder);
 
-  //       // never stretch thumbnail images
-  //       expect(backgroundParts[0]).toBe('auto');
-  //     }
-  //   });
-
-  //   thumbnails.unmount();
-  // });
+        // never stretch thumbnail images
+        expect(backgroundParts[0]).toBe('auto');
+      }
+    });
+  });
 
   it('works when its supermegaskinny', () => {
     render(
