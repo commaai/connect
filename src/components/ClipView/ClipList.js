@@ -247,7 +247,8 @@ class ClipList extends Component {
       const thumbnailStyle = {
         ...gridStyles[0],
         backgroundImage: `url("${c.thumbnail}")`,
-        height: (windowWidth < 768 ? 48 : 54),
+        height: (windowWidth < 768 ? 48 : 96),
+        marginRight: (windowWidth < 768 ? 3 : 8),
       };
       thumbnail = <div className={ classes.thumbnail } style={ thumbnailStyle }>
         { c.video_type === '360' && <Video360Icon /> }
