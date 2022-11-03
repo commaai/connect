@@ -45,11 +45,8 @@ describe('timeline thumbnails', () => {
       />,
     );
 
-    // expect(thumbnails.exists()).toBe(true);
     expect(percentToOffsetMock.mock.calls.length).toBe(10);
     expect(getCurrentRouteMock.mock.calls.length).toBe(10);
-    // const imageEntries = thumbnails.find('.thumbnailImage');
-    // expect(imageEntries.length).toBe(5);
     const imageEntries = screen.getAllByRole('img');
     expect(imageEntries).toHaveLength(5);
 
@@ -69,26 +66,24 @@ describe('timeline thumbnails', () => {
     thumbnails.unmount();
   });
 
-  // it('doesn\'t render before bounds are set', () => {
-  //   const thumbnails = shallow(
-  //     <Thumbnails
-  //       thumbnail={{
-  //         width: 0,
-  //         height: 0,
-  //         left: 0,
-  //         right: 0,
-  //         top: 0,
-  //         bottom: 0,
-  //       }}
-  //       percentToOffset={percentToOffsetMock}
-  //       getCurrentRoute={getCurrentRouteMock}
-  //     />,
-  //   );
+  it('doesn\'t render before bounds are set', () => {
+    render(
+      <Thumbnails
+        thumbnail={{
+          width: 0,
+          height: 0,
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
+        }}
+        percentToOffset={percentToOffsetMock}
+        getCurrentRoute={getCurrentRouteMock}
+      />,
+    );
 
-  //   expect(thumbnails.exists()).toBe(false);
-
-  //   thumbnails.unmount();
-  // });
+    expect(screen.queryAllByRole('img')).toHaveLength(0);
+  });
 
   // it('works when theres no blank at the end', () => {
   //   getCurrentRouteMock.mockImplementation((offset) => {
