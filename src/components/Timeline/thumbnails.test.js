@@ -130,26 +130,24 @@ describe('timeline thumbnails', () => {
   //   thumbnails.unmount();
   // });
 
-  // it('works when its supermegaskinny', () => {
-  //   const thumbnails = shallow(
-  //     <Thumbnails
-  //       thumbnail={{
-  //         width: 0,
-  //         height: 100,
-  //         left: 10,
-  //         right: 10,
-  //         top: 100,
-  //         bottom: 100,
-  //       }}
-  //       percentToOffset={percentToOffsetMock}
-  //       getCurrentRoute={getCurrentRouteMock}
-  //     />,
-  //   );
+  it('works when its supermegaskinny', () => {
+    render(
+      <Thumbnails
+        thumbnail={{
+          width: 0,
+          height: 100,
+          left: 10,
+          right: 10,
+          top: 100,
+          bottom: 100,
+        }}
+        percentToOffset={percentToOffsetMock}
+        getCurrentRoute={getCurrentRouteMock}
+      />,
+    );
 
-  //   expect(thumbnails.exists()).toBe(false);
-  //   expect(percentToOffsetMock.mock.calls.length).toBe(0);
-  //   expect(getCurrentRouteMock.mock.calls.length).toBe(0);
-
-  //   thumbnails.unmount();
-  // });
+    expect(screen.queryAllByRole('img')).toHaveLength(0);
+    expect(percentToOffsetMock.mock.calls.length).toBe(0);
+    expect(getCurrentRouteMock.mock.calls.length).toBe(0);
+  });
 });
