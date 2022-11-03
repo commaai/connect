@@ -19,7 +19,7 @@ const store = Redux.createStore((state) => {
 }, Redux.applyMiddleware(thunk));
 
 describe('drive list items', () => {
-  it('has DriveEntry class for puppeteer', () => {
+  it('has DriveEntry class', () => {
     render(<DriveListItem
       store={store}
       drive={{

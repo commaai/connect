@@ -1,5 +1,6 @@
 /* eslint-env jest */
-/* eslint-disable */
+import '@testing-library/jest-dom';
+
 jest.mock('localforage');
 
 jest.mock('mapbox-gl/dist/mapbox-gl', () => ({
