@@ -9,7 +9,7 @@ import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
 import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
 
-import { billing as Billing} from '@commaai/comma-api'
+import { billing as Billing } from '@commaai/api'
 import { deviceTypePretty } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';

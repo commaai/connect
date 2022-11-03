@@ -6,10 +6,10 @@ import { withStyles, Typography, IconButton } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
-import { devices as DevicesApi } from '@commaai/comma-api';
+import { devices as Devices } from '@commaai/api';
 
 import DeviceSettingsModal from './DeviceSettingsModal';
-import { deviceTypePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils'
+import { deviceTypePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import Colors from '../../colors';
 import VisibilityHandler from '../VisibilityHandler';
 import { updateDevices } from '../../actions';
@@ -116,7 +116,7 @@ class DeviceList extends Component {
   async onVisible() {
     if (MyCommaAuth.isAuthenticated()) {
       try {
-        const devices = await DevicesApi.listDevices();
+        const devices = await Devices.listDevices();
         this.props.dispatch(updateDevices(devices));
       } catch (err) {
         console.error(err);

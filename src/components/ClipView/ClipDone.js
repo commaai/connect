@@ -8,7 +8,7 @@ import { Viewer } from 'photo-sphere-viewer';
 import { EquirectangularVideoAdapter } from 'photo-sphere-viewer/dist/adapters/equirectangular-video';
 import { VideoPlugin } from 'photo-sphere-viewer/dist/plugins/video';
 
-import { clips as ClipsApi } from '@commaai/comma-api';
+import { clips as Clips } from '@commaai/api';
 import { withStyles, Button, CircularProgress, Modal, Paper, Popper, Typography } from '@material-ui/core';
 import CropOriginalIcon from '@material-ui/icons/CropOriginal';
 import DeleteIcon from '@material-ui/icons/Delete';
@@ -296,7 +296,7 @@ class ClipDone extends Component {
     const { clips, dongleId } = this.props;
 
     try {
-      const resp = await ClipsApi.clipsUpdate(dongleId, clips.clip_id, true);
+      const resp = await Clips.clipsUpdate(dongleId, clips.clip_id, true);
       if (resp.success) {
         this.props.dispatch(clipsUpdateIsPublic(clips.clip_id, true));
         return true;
@@ -314,7 +314,7 @@ class ClipDone extends Component {
     const { clips, dongleId } = this.props;
 
     try {
-      const resp = await ClipsApi.clipsUpdate(dongleId, clips.clip_id, false);
+      const resp = await Clips.clipsUpdate(dongleId, clips.clip_id, false);
       if (resp.success) {
         this.props.dispatch(clipsUpdateIsPublic(clips.clip_id, false));
         return;
@@ -340,7 +340,7 @@ class ClipDone extends Component {
     const { dongleId, clips } = this.props;
     this.setState({ deleteModal: { ...this.state.deleteModal, loading: true } });
     try {
-      const resp = await ClipsApi.clipsDelete(dongleId, clips.clip_id);
+      const resp = await Clips.clipsDelete(dongleId, clips.clip_id);
       if (resp.success) {
         this.setState({ deleteModal: { ...this.state.deleteModal, loading: false, error: null, success: 'Clip deleted' } });
       } else {

@@ -16,7 +16,7 @@
   "author": "Chris Vickery <chrisinajar@gmail.com>",
   "private": true,
   "dependencies": {
-    "@commaai/comma-api": "^2.6.0",
+    "@commaai/api": "github:commaai/comma-api#v3.0.1",
     "@commaai/my-comma-auth": "^1.4.1",
     "@craco/craco": "^7.0.0-alpha.9",
     "@mapbox/mapbox-sdk": "^0.13.5",
@@ -100,12 +100,6 @@
     },
     "globals": {
       "gtag": "readonly"
-    }
-  },
-  "jest": {
-    "moduleNameMapper": {
-      "^@commaai/pandajs$": "<rootDir>/node_modules/@commaai/pandajs/lib/index.js",
-      "^@commaai/(.*comma.*)$": "<rootDir>/node_modules/@commaai/$1/dist/index.js"
     }
   },
   "browserslist": {

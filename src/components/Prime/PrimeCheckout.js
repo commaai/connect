@@ -9,14 +9,14 @@ import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
 import CheckIcon from '@material-ui/icons/Check';
 
-import { billing as Billing } from '@commaai/comma-api';
+import { billing as Billing } from '@commaai/api';
 
 import { deviceTypePretty } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { primeNav, analyticsEvent } from '../../actions';
 
-const styles = (theme) => ({
+const styles = () => ({
   primeBox: {
     display: 'flex',
     flexDirection: 'column',

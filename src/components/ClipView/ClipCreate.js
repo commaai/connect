@@ -6,7 +6,7 @@ import fecha from 'fecha';
 
 import { withStyles, Typography, TextField, Button, CircularProgress } from '@material-ui/core';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
-import { clips as ClipsApi } from '@commaai/comma-api';
+import { clips as Clips } from '@commaai/api';
 
 import ResizeHandler from '../ResizeHandler';
 import DriveVideo from '../DriveVideo';
@@ -139,7 +139,7 @@ class ClipCreate extends Component {
 
     this.setState({ createLoading: true });
     try {
-      const resp = await ClipsApi.clipsCreate(currentRoute.fullname, clipTitle, loop.startTime, loop.startTime + loop.duration,
+      const resp = await Clips.clipsCreate(currentRoute.fullname, clipTitle, loop.startTime, loop.startTime + loop.duration,
         videoTypeOption, false);
       if (resp && resp.success) {
         this.props.dispatch(clipsCreate(resp.clip_id, videoTypeOption, clipTitle, false));

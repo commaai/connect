@@ -1170,6 +1170,13 @@
   dependencies:
     regenerator-runtime "^0.13.4"
 
+"@babel/runtime@^7.20.0":
+  version "7.20.1"
+  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.20.1.tgz#1148bb33ab252b165a06698fde7576092a78b4a9"
+  integrity sha512-mrzLkl6U9YLF8qpqI7TB82PESyEGjm/0Ly91jG575eVxMMlb8fYfOXFZIJ8XfLrJZQbm7dlKry2bJmXBUEkdFg==
+  dependencies:
+    regenerator-runtime "^0.13.10"
+
 "@babel/template@^7.18.10", "@babel/template@^7.3.3":
   version "7.18.10"
   resolved "https://registry.yarnpkg.com/@babel/template/-/template-7.18.10.tgz#6f9134835970d1dbf0835c0d100c9f38de0c5e71"
@@ -1259,13 +1266,11 @@
   resolved "https://registry.yarnpkg.com/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@commaai/comma-api@^2.6.0":
-  version "2.6.0"
-  resolved "https://registry.yarnpkg.com/@commaai/comma-api/-/comma-api-2.6.0.tgz#af031f2fefa4ad35485993b60346c72a01d201a1"
-  integrity sha512-Vy3BVaTNJDVLRDvpCzGMrrj4YE4cknyM/973Dqac0ZdH5BJ6Au6Ok1aKRAcWGlJqg4WKpojDfG6vSPSz9miJjg==
+"@commaai/api@github:commaai/comma-api#v3.0.1":
+  version "3.0.1"
+  resolved "https://codeload.github.com/commaai/comma-api/tar.gz/8a003e4f8e59d9244f3825a18d28c0b66cddd212"
   dependencies:
-    babel-runtime "^6.26.0"
-    joi-browser "^13.4.0"
+    "@babel/runtime" "^7.20.0"
     query-string "^7.0.1"
 
 "@commaai/my-comma-auth@^1.4.1":
@@ -7221,11 +7226,6 @@ jest@^27.4.3:
     "@jest/core" "^27.5.1"
     import-local "^3.0.2"
     jest-cli "^27.5.1"
-
-joi-browser@^13.4.0:
-  version "13.4.0"
-  resolved "https://registry.yarnpkg.com/joi-browser/-/joi-browser-13.4.0.tgz#b72ba61b610e3f58e51b563a14e0f5225cfb6896"
-  integrity sha512-TfzJd2JaJ/lg/gU+q5j9rLAjnfUNF9DUmXTP9w+GfmG79LjFOXFeM7hIFuXCBcZCivUDFwd9l1btTV9rhHumtQ==
 
 joi@^17.6.0:
   version "17.6.4"

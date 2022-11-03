@@ -11,7 +11,7 @@ import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
 import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
 
-import { drives as DrivesApi } from '@commaai/comma-api';
+import { drives as Drives } from '@commaai/api';
 
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
@@ -549,7 +549,7 @@ class Media extends Component {
   async onPublicToggle(ev) {
     const is_public = ev.target.checked;
     try {
-      const resp = await DrivesApi.setRoutePublic(this.props.currentRoute.fullname, is_public);
+      const resp = await Drives.setRoutePublic(this.props.currentRoute.fullname, is_public);
       if (resp && resp.fullname === this.props.currentRoute.fullname) {
         this.props.dispatch(updateRoute(this.props.currentRoute.fullname, { is_public: resp.is_public }));
         if (resp.is_public !== is_public) {
@@ -565,7 +565,7 @@ class Media extends Component {
 
   async fetchRoutePreserved() {
     try {
-      const resp = await DrivesApi.getPreservedRoutes(this.props.dongleId);
+      const resp = await Drives.getPreservedRoutes(this.props.dongleId);
       if (resp && Array.isArray(resp) && this.props.currentRoute) {
         for (const r of resp) {
           if (this.props.currentRoute.fullname === r.fullname) {
@@ -584,7 +584,7 @@ class Media extends Component {
   async onPreserveToggle(ev) {
     const preserved = ev.target.checked;
     try {
-      const resp = await DrivesApi.setRoutePreserved(this.props.currentRoute.fullname, preserved);
+      const resp = await Drives.setRoutePreserved(this.props.currentRoute.fullname, preserved);
       if (resp && resp.success) {
         this.setState({ routePreserved: preserved });
         return;

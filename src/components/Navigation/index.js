@@ -9,7 +9,7 @@ import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuIt
 import { Search, Clear, Refresh } from '@material-ui/icons';
 import fecha from 'fecha';
 
-import { devices as Devices, navigation as NavigationAPI, athena as AthenaApi } from '@commaai/comma-api';
+import { athena as Athena, devices as Devices, navigation as NavigationApi } from '@commaai/api';
 import { primeNav, analyticsEvent } from '../../actions';
 import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
 import Colors from '../../colors';
@@ -442,7 +442,7 @@ class Navigation extends Component {
       id: 0,
     };
     try {
-      let resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
+      let resp = await Athena.postJsonRpcPayload(dongleId, payload);
       if (!resp.result || Object.keys(resp.result).length === 0 || !this.mounted || dongleId !== this.props.dongleId) {
         return;
       }
@@ -491,7 +491,7 @@ class Navigation extends Component {
       return;
     }
 
-    NavigationAPI.getLocationsData(dongleId).then((resp) => {
+    NavigationApi.getLocationsData(dongleId).then((resp) => {
       if (this.mounted && dongleId === this.props.dongleId) {
         let favorites = {};
         resp.forEach((loc) => {
@@ -818,7 +818,7 @@ class Navigation extends Component {
     }});
 
     const pos = this.itemLoc(searchSelect);
-    NavigationAPI.setDestination(dongleId, pos.lat, pos.lng,
+    NavigationApi.setDestination(dongleId, pos.lat, pos.lng,
       Utils.formatSearchName(searchSelect), Utils.formatSearchAddress(searchSelect))
     .then((resp) => {
       if (resp.error) {
@@ -860,7 +860,7 @@ class Navigation extends Component {
 
     const pos = this.itemLoc(searchSelect);
     const label = as === 'pin' ? undefined : as;
-    NavigationAPI.putLocationSave(dongleId, pos.lat, pos.lng,
+    NavigationApi.putLocationSave(dongleId, pos.lat, pos.lng,
       Utils.formatSearchName(searchSelect), Utils.formatSearchAddress(searchSelect), 'favorite', label)
     .then((resp) => {
       this.updateFavoriteLocations();
@@ -884,7 +884,7 @@ class Navigation extends Component {
     const { searchSelect } = this.state;
     if (searchSelect.favoriteId) {
       this.setState({ savingAs: true });
-      NavigationAPI.deleteLocationSave(dongleId, searchSelect.favoriteId).then((resp) => {
+      NavigationApi.deleteLocationSave(dongleId, searchSelect.favoriteId).then((resp) => {
         this.updateFavoriteLocations();
         this.setState({
           noFly: false,

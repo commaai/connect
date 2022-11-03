@@ -9,7 +9,7 @@ import * as Sentry from "@sentry/react";
 import { CircularProgress, Grid } from '@material-ui/core';
 
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
-import { auth as AuthApi, request as Request, billing as Billing, athena as Athena } from '@commaai/comma-api';
+import { athena as Athena, auth as Auth, billing as Billing, request as Request } from '@commaai/api';
 
 import { getZoom, getClipsNav } from './url';
 import { isDemo } from './demo';
@@ -45,7 +45,7 @@ class App extends Component {
       if (window.location.pathname === AuthConfig.AUTH_PATH) {
         try {
           const { code, provider } = qs.parse(window.location.search);
-          const token = await AuthApi.refreshAccessToken(code, provider);
+          const token = await Auth.refreshAccessToken(code, provider);
           if (token) {
             AuthStorage.setCommaAccessToken(token);
           }

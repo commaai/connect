@@ -1,7 +1,7 @@
 import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import document from 'global/document';
-import { billing as Billing, devices as DevicesApi, drives as DrivesApi, athena as AthenaApi } from '@commaai/comma-api';
+import { athena as Athena, billing as Billing, devices as Devices, drives as Drives } from '@commaai/api';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
@@ -136,7 +136,7 @@ export function primeNav(nav, allowPathChange = true) {
 export function fetchSharedDevice(dongleId) {
   return async (dispatch, getState) => {
     try {
-      const resp = await DevicesApi.fetchDevice(dongleId);
+      const resp = await Devices.fetchDevice(dongleId);
       dispatch({
         type: Types.ACTION_UPDATE_SHARED_DEVICE,
         dongleId,
@@ -153,7 +153,7 @@ export function fetchSharedDevice(dongleId) {
 
 export function fetchDeviceOnline(dongleId) {
   return (dispatch, getState) => {
-    DevicesApi.fetchDevice(dongleId).then((resp) => {
+    Devices.fetchDevice(dongleId).then((resp) => {
       dispatch({
         type: Types.ACTION_UPDATE_DEVICE_ONLINE,
         dongleId: dongleId,
@@ -185,7 +185,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
         method: "getNetworkMetered",
       };
       try {
-        const resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
+        const resp = await Athena.postJsonRpcPayload(dongleId, payload);
         if (resp && resp.result !== undefined) {
           dispatch({
             type: Types.ACTION_UPDATE_DEVICE_NETWORK,
@@ -209,7 +209,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
         method: "getNetworkType",
       };
       try {
-        const resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
+        const resp = await Athena.postJsonRpcPayload(dongleId, payload);
         if (resp && resp.result !== undefined) {
           const metered = resp.result !== 1 && resp.result !== 6; // wifi or ethernet
           dispatch({
@@ -249,7 +249,7 @@ export function checkRoutesData() {
     const fetchRange = getSegmentFetchRange(state);
 
     routesRequest = {
-      req: DrivesApi.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end),
+      req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end),
       dongleId: dongleId,
     };
 

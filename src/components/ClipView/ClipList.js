@@ -8,7 +8,7 @@ import LockOutlineIcon from '@material-ui/icons/LockOutline';
 import PublicIcon from '@material-ui/icons/Public';
 import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
-import { clips as ClipsApi } from '@commaai/comma-api';
+import { clips as Clips } from '@commaai/api';
 
 import { Video360Icon } from '../../icons';
 import { filterRegularClick } from '../../utils';
@@ -160,7 +160,7 @@ class ClipList extends Component {
     } else {
       this.setState({ errorPopper: { ref: target } });
       try {
-        const resp = await ClipsApi.clipsDetails(this.props.dongleId, c.clip_id);
+        const resp = await Clips.clipsDetails(this.props.dongleId, c.clip_id);
         errorText = this.clipErrorToText(resp.error_status);
         this.setState({
           errorTexts: {

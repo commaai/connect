@@ -6,7 +6,7 @@ import debounce from 'debounce';
 import Obstruction from 'obstruction';
 import ReactPlayer from 'react-player';
 
-import { video as VideoApi } from '@commaai/comma-api';
+import { video as Video } from '@commaai/api';
 
 import Colors from '../../colors';
 import { seek, bufferVideo, currentOffset } from '../../timeline/playback';
@@ -101,7 +101,7 @@ class DriveVideo extends Component {
 
     const prevR = this.visibleRoute(prevProps);
     if (this.state.src === '' || !prevR || prevR.fullname !== r.fullname) {
-      const src = VideoApi.getQcameraStreamUrl(r.fullname, r.share_exp, r.share_sig);
+      const src = Video.getQcameraStreamUrl(r.fullname, r.share_exp, r.share_sig);
       this.setState({ src });
       this.syncVideo();
     }

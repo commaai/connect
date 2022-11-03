@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { raw as RawApi, athena as AthenaApi, devices as DevicesApi } from '@commaai/comma-api';
+import { athena as Athena, devices as Devices, raw as Raw } from '@commaai/api';
 
 import { updateDeviceOnline, fetchDeviceNetworkStatus } from '.';
 import * as Types from './types';
@@ -31,7 +31,7 @@ async function athenaCall(dongleId, payload, sentryFingerprint, retryCount = 0) 
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
     openRequests += 1;
-    const resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
+    const resp = await Athena.postJsonRpcPayload(dongleId, payload);
     openRequests -= 1;
     return resp;
   } catch (err) {
@@ -52,7 +52,7 @@ async function athenaCall(dongleId, payload, sentryFingerprint, retryCount = 0) 
 
 export async function fetchUploadUrls(dongleId, paths) {
   try {
-    const resp = await RawApi.getUploadUrls(dongleId, paths, 7);
+    const resp = await Raw.getUploadUrls(dongleId, paths, 7);
     if (resp && !resp.error) {
       return resp.map((r) => r.url);
     }
@@ -152,7 +152,7 @@ export function fetchFiles(routeName, nocache = false) {
   return async (dispatch, getState) => {
     let files;
     try {
-      files = await RawApi.getRouteFiles(routeName, nocache);
+      files = await Raw.getRouteFiles(routeName, nocache);
     } catch (err) {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'action_files_fetch_files' });
@@ -186,7 +186,7 @@ export function fetchAthenaQueue(dongleId) {
   return async (dispatch, getState) => {
     let queue;
     try {
-      queue = await DevicesApi.getAthenaQueue(dongleId);
+      queue = await Devices.getAthenaQueue(dongleId);
     } catch (err) {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'action_files_fetch_athena_queue' });

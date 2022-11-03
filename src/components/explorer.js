@@ -7,7 +7,7 @@ import { replace } from 'connected-react-router';
 import { withStyles, Button, CircularProgress, Divider, Grid, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
 
-import { devices as DevicesApi } from '@commaai/comma-api';
+import { devices as Devices } from '@commaai/api';
 
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
@@ -110,7 +110,7 @@ class ExplorerApp extends Component {
       }
 
       try {
-        const resp = await DevicesApi.pilotPair(pairToken);
+        const resp = await Devices.pilotPair(pairToken);
         if (resp.dongle_id) {
           await localforage.removeItem('pairToken');
           this.setState({
@@ -119,7 +119,7 @@ class ExplorerApp extends Component {
             pairDongleId: resp.dongle_id,
           });
 
-          const device = await DevicesApi.fetchDevice(resp.dongle_id);
+          const device = await Devices.fetchDevice(resp.dongle_id);
           this.props.dispatch(updateDevice(device));
           this.props.dispatch(analyticsEvent('pair_device', { method: 'url_string' }));
         } else {

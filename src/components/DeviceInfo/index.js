@@ -8,7 +8,7 @@ import "react-responsive-carousel/lib/styles/carousel.min.css"; // requires a lo
 import { Carousel } from 'react-responsive-carousel';
 import fecha from 'fecha';
 
-import { devices as DevicesApi, athena as AthenaApi } from '@commaai/comma-api';
+import { athena as Athena, devices as Devices } from '@commaai/api';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import Colors from '../../colors';
@@ -222,7 +222,7 @@ class DeviceInfo extends Component {
     }
     this.setState({ deviceStats: { fetching: true }});
     try {
-      const resp = await DevicesApi.fetchDeviceStats(dongleId);
+      const resp = await Devices.fetchDeviceStats(dongleId);
       if (this.mounted && dongleId === this.props.dongleId) {
         this.setState({ deviceStats: { result: resp }});
       }
@@ -248,7 +248,7 @@ class DeviceInfo extends Component {
         jsonrpc: '2.0',
         id: 0,
       };
-      const resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
+      const resp = await Athena.postJsonRpcPayload(dongleId, payload);
       if (this.mounted && dongleId === this.props.dongleId) {
         this.setState({ carHealth: resp });
       }
@@ -274,9 +274,9 @@ class DeviceInfo extends Component {
         jsonrpc: "2.0",
         id: 0,
       };
-      let resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
+      let resp = await Athena.postJsonRpcPayload(dongleId, payload);
       if (resp.result && !resp.result.jpegBack && !resp.result.jpegFront) {
-        resp = await AthenaApi.postJsonRpcPayload(dongleId, payload);
+        resp = await Athena.postJsonRpcPayload(dongleId, payload);
       }
       if (resp.result && !resp.result.jpegBack && !resp.result.jpegFront) {
         throw new Error('unable to fetch snapshot');

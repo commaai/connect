@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 import { push } from 'connected-react-router';
 import MyCommaAuth from '@commaai/my-comma-auth';
-import { clips as ClipsApi } from '@commaai/comma-api';
+import { clips as Clips } from '@commaai/api';
 
 import { checkRoutesData, selectDevice, urlForState } from './';
 import { getClipsNav } from '../url';
@@ -44,7 +44,7 @@ export function fetchClipsList(dongleId) {
       });
       dispatch(push(`/${dongleId}/clips`));
 
-      const resp = await ClipsApi.clipsList(dongleId);
+      const resp = await Clips.clipsList(dongleId);
 
       dispatch({
         type: Types.ACTION_CLIPS_LIST,
@@ -121,7 +121,7 @@ export function fetchClipsDetails(clip_id) {
         });
       }
 
-      const resp = await ClipsApi.clipsDetails(dongleId, clip_id);
+      const resp = await Clips.clipsDetails(dongleId, clip_id);
 
       if (resp.status === 'pending') {
         dispatch({
