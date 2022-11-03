@@ -52,6 +52,7 @@
     "redux-thunk": "^2.4.1"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^12.1.5",
     "compression-webpack-plugin": "^7.1.2",
     "env-cmd": "^8.0.2",
