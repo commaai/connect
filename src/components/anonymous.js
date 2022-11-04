@@ -10,12 +10,12 @@ import Typography from '@material-ui/core/Typography';
 
 import { config as AuthConfig } from '@commaai/my-comma-auth';
 
-import { auth_apple, auth_github, auth_google } from '../icons';
+import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon } from '../icons';
 import Colors from '../colors';
 
 const demoDevices = require('../demo/devices.json');
 
-const styles = (/* theme */) => ({
+const styles = () => ({
   baseContainer: {
     width: '100%',
     height: '100vh',
@@ -118,10 +118,10 @@ class AnonymousLanding extends Component {
     document.body.appendChild(script);
     script.onload = () => {
       AppleID.auth.init({
-        clientId : AuthConfig.APPLE_CLIENT_ID,
-        scope : AuthConfig.APPLE_SCOPES,
-        redirectURI : AuthConfig.APPLE_REDIRECT_URI,
-        state : AuthConfig.APPLE_STATE,
+        clientId: AuthConfig.APPLE_CLIENT_ID,
+        scope: AuthConfig.APPLE_SCOPES,
+        redirectURI: AuthConfig.APPLE_REDIRECT_URI,
+        state: AuthConfig.APPLE_STATE,
       });
     };
     script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
@@ -148,15 +148,15 @@ class AnonymousLanding extends Component {
             Manage your comma device, view your drives, and comma prime features
           </Typography>
           <a href={ AuthConfig.GOOGLE_REDIRECT_LINK } className={ classes.logInButton }>
-            <img className={ classes.buttonImage } src={ auth_google } />
+            <img className={ classes.buttonImage } src={ AuthGoogleIcon } />
             <Typography className={ classes.buttonText }>Sign in with Google</Typography>
           </a>
           <a onClick={ () => AppleID.auth.signIn() } className={classes.logInButton}>
-            <img className={ classes.buttonImage } src={ auth_apple } />
+            <img className={ classes.buttonImage } src={ AuthAppleIcon } />
             <Typography className={ classes.buttonText }>Sign in with Apple</Typography>
           </a>
           <a href={ AuthConfig.GITHUB_REDIRECT_LINK } className={ `${classes.logInButton} githubAuth` }>
-            <img className={ classes.buttonImage } src={ auth_github } />
+            <img className={ classes.buttonImage } src={ AuthGithubIcon } />
             <Typography className={ classes.buttonText }>Sign in with GitHub</Typography>
           </a>
           <a href={ `${window.location.origin}/${demoDevices[0].dongle_id}` } className={classes.demoLink}>

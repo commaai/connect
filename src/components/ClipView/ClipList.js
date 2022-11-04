@@ -46,7 +46,7 @@ const styles = () => ({
   clipTitle: {
     'p&': {
       textAlign: 'left',
-    }
+    },
   },
   clipPlayIcon: {
     paddingRight: 3,
@@ -104,6 +104,10 @@ class ClipList extends Component {
     this.popoverTimeout = null;
   }
 
+  onResize(windowWidth) {
+    this.setState({ windowWidth });
+  }
+
   async shareClip(ev, c) {
     ev.stopPropagation();
     ev.preventDefault();
@@ -112,7 +116,7 @@ class ClipList extends Component {
       if (typeof navigator.share !== 'undefined') {
         await navigator.share({
           title: 'comma connect',
-          url: url,
+          url,
         });
       } else {
         await navigator.clipboard.writeText(url);
@@ -130,12 +134,8 @@ class ClipList extends Component {
     }
   }
 
-  onResize(windowWidth) {
-    this.setState({ windowWidth });
-  }
-
-  clipErrorToText(error_status) {
-    switch (error_status) {
+  clipErrorToText(errorStatus) {
+    switch (errorStatus) {
       case 'upload_failed_request':
         return 'Unable to request file upload from device.';
       case 'upload_failed':
@@ -181,57 +181,11 @@ class ClipList extends Component {
         text: (
           <>
             <Typography variant="body1">{errorText}</Typography>
-            <Typography variant="caption">Clip ID: {c.clip_id}</Typography>
+            <Typography variant="caption">{`Clip ID: ${c.clip_id}`}</Typography>
           </>
         ),
       },
     });
-  }
-
-  render() {
-    const { classes, clips } = this.props;
-    const { windowWidth, copiedPopover, errorPopper } = this.state;
-
-    const viewerPadding = windowWidth < 768 ? 12 : 32;
-
-    const tbnWidth = (windowWidth < 768 ? 48 : 54) * (1928/1208);
-
-    const gridWidths = windowWidth < 768 ?
-      [`calc(2% + ${tbnWidth}px)`, `calc(67% - ${tbnWidth}px)`, '24%', '7%'] :
-      [`calc(3% + ${tbnWidth}px)`, `calc(65% - ${tbnWidth}px)`, '24%', '7%'];
-    const gridStyles = gridWidths.map((w) => ({ maxWidth: w, flexBasis: w }));
-
-    const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1rem' };
-
-    return <>
-      <VisibilityHandler onVisible={ () => this.props.dispatch(fetchClipsList(this.props.dongleId)) }
-        onDongleId={ true } />
-      <ResizeHandler onResize={ this.onResize } />
-
-      <div style={{ ...itemStyle, padding: viewerPadding }}>
-        { !clips && <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
-        { Boolean(clips && clips.length === 0) && <p className={ classes.noClips }>no clips found</p> }
-        { Boolean(clips && clips.length > 0) &&
-          <div className={classes.clipItemHeader} style={{ padding: (windowWidth < 768 ? 3 : 8) }}>
-            <h6 style={{ ...itemStyle, ...gridStyles[0] }}></h6>
-            <h6 style={{ ...itemStyle, ...gridStyles[1] }}>Title</h6>
-            <h6 style={{ ...itemStyle, ...gridStyles[2], textAlign: 'center' }}>Date</h6>
-            <h6 style={{ ...itemStyle, ...gridStyles[3] }}>Public</h6>
-          </div>
-        }
-        { clips && clips.map((c) => this.renderClipItem(gridStyles, c)) }
-      </div>
-
-      <Popper open={ Boolean(copiedPopover) } placement='bottom' anchorEl={ copiedPopover }
-        className={ classes.copiedPopover }>
-        <Typography>copied to clipboard</Typography>
-      </Popper>
-      <Popover open={ Boolean(errorPopper) } anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        anchorEl={ errorPopper?.ref } classes={{ paper: classes.copiedPopover }}
-        onClose={ () => this.setState({ errorPopper: null }) }>
-        { errorPopper?.text || <CircularProgress style={{ margin: '2px 12px', color: Colors.white }} size={ 14 } /> }
-      </Popover>
-    </>;
   }
 
   renderClipItem(gridStyles, c) {
@@ -250,40 +204,116 @@ class ClipList extends Component {
         height: (windowWidth < 768 ? 48 : 96),
         marginRight: (windowWidth < 768 ? 3 : 8),
       };
-      thumbnail = <div className={ classes.thumbnail } style={ thumbnailStyle }>
-        { c.video_type === '360' && <Video360Icon /> }
-      </div>;
+      thumbnail = (
+        <div className={ classes.thumbnail } style={ thumbnailStyle }>
+          { c.video_type === '360' && <Video360Icon /> }
+        </div>
+      );
     } else if (c.status === 'pending') {
       thumbnail = <MoreHorizIcon className={ classes.clipPlayIcon } style={ gridStyles[0] } />;
     } else if (c.status === 'failed') {
-      thumbnail = <ErrorOutlineIcon className={ classes.clipPlayIcon }
-        style={{ ...gridStyles[0], color: Colors.red300 }} />;
+      thumbnail = (
+        <ErrorOutlineIcon
+          className={ classes.clipPlayIcon }
+          style={{ ...gridStyles[0], color: Colors.red300 }}
+        />
+      );
     }
 
-    const innerItem = <>
-      { thumbnail }
-      <p style={{ ...itemStyle, ...gridStyles[1] }} className={ classes.clipTitle }>
-        { c.title ? c.title : c.route_name.split('|')[1] }
-      </p>
-      <p style={{ ...itemStyle, ...gridStyles[2] }}>{ timeStr }</p>
-      { c.is_public ?
-        <PublicIcon style={{ ...gridStyles[3], fontSize: (windowWidth < 768 ? '1.0rem' : '1.2rem') }}
-          onClick={ (ev) => { ev.persist(); this.shareClip(ev, c); } } /> :
-        <LockOutlineIcon style={{ ...gridStyles[3], fontSize: (windowWidth < 768 ? '1.0rem' : '1.2rem') }} />
-      }
-    </>;
+    const innerItem = (
+      <>
+        { thumbnail }
+        <p style={{ ...itemStyle, ...gridStyles[1] }} className={ classes.clipTitle }>
+          { c.title ? c.title : c.route_name.split('|')[1] }
+        </p>
+        <p style={{ ...itemStyle, ...gridStyles[2] }}>{ timeStr }</p>
+        { c.is_public
+          ? (
+            <PublicIcon
+              style={{ ...gridStyles[3], fontSize: (windowWidth < 768 ? '1.0rem' : '1.2rem') }}
+              onClick={ (ev) => { ev.persist(); this.shareClip(ev, c); } }
+            />
+          )
+          : <LockOutlineIcon style={{ ...gridStyles[3], fontSize: (windowWidth < 768 ? '1.0rem' : '1.2rem') }} />}
+      </>
+    );
 
     if (c.status === 'failed') {
-      return <div key={c.clip_id} className={classes.clipItem} onClick={ (ev) => this.fetchShowError(ev.target, c) }>
-        { innerItem }
-      </div>;
+      return (
+        <div key={c.clip_id} className={classes.clipItem} onClick={ (ev) => this.fetchShowError(ev.target, c) }>
+          { innerItem }
+        </div>
+      );
     }
 
     return (
-      <a key={c.clip_id} className={classes.clipItem} href={ `/${dongleId}/clips/${c.clip_id}` }
-        onClick={ filterRegularClick(() => this.props.dispatch(navToClips(c.clip_id, c.state))) }>
+      <a
+        key={c.clip_id}
+        className={classes.clipItem}
+        href={ `/${dongleId}/clips/${c.clip_id}` }
+        onClick={ filterRegularClick(() => this.props.dispatch(navToClips(c.clip_id, c.state))) }
+      >
         { innerItem }
       </a>
+    );
+  }
+
+  render() {
+    const { classes, clips } = this.props;
+    const { windowWidth, copiedPopover, errorPopper } = this.state;
+
+    const viewerPadding = windowWidth < 768 ? 12 : 32;
+
+    const tbnWidth = (windowWidth < 768 ? 48 : 72) * (1928 / 1208);
+
+    const gridWidths = windowWidth < 768
+      ? [`calc(2% + ${tbnWidth}px)`, `calc(67% - ${tbnWidth}px)`, '24%', '7%']
+      : [`calc(3% + ${tbnWidth}px)`, `calc(65% - ${tbnWidth}px)`, '24%', '7%'];
+    const gridStyles = gridWidths.map((w) => ({ maxWidth: w, flexBasis: w }));
+
+    const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1rem' };
+
+    return (
+      <>
+        <VisibilityHandler
+          onVisible={ () => this.props.dispatch(fetchClipsList(this.props.dongleId)) }
+          onDongleId
+        />
+        <ResizeHandler onResize={ this.onResize } />
+
+        <div style={{ ...itemStyle, padding: viewerPadding }}>
+          { !clips && <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
+          { Boolean(clips && clips.length === 0) && <p className={ classes.noClips }>no clips found</p> }
+          { Boolean(clips && clips.length > 0)
+          && (
+          <div className={classes.clipItemHeader} style={{ padding: (windowWidth < 768 ? 3 : 8) }}>
+            <span style={{ ...itemStyle, ...gridStyles[0] }} />
+            <h6 style={{ ...itemStyle, ...gridStyles[1] }}>Title</h6>
+            <h6 style={{ ...itemStyle, ...gridStyles[2], textAlign: 'center' }}>Date</h6>
+            <h6 style={{ ...itemStyle, ...gridStyles[3] }}>Public</h6>
+          </div>
+          )}
+          { clips && clips.map((c) => this.renderClipItem(gridStyles, c)) }
+        </div>
+
+        <Popper
+          open={ Boolean(copiedPopover) }
+          placement="bottom"
+          anchorEl={ copiedPopover }
+          className={ classes.copiedPopover }
+        >
+          <Typography>copied to clipboard</Typography>
+        </Popper>
+        <Popover
+          open={ Boolean(errorPopper) }
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          anchorEl={ errorPopper?.ref }
+          classes={{ paper: classes.copiedPopover }}
+          onClose={ () => this.setState({ errorPopper: null }) }
+        >
+          { errorPopper?.text || <CircularProgress style={{ margin: '2px 12px', color: Colors.white }} size={ 14 } /> }
+        </Popover>
+      </>
     );
   }
 }
@@ -291,12 +321,11 @@ class ClipList extends Component {
 const mapStateToProps = (state) => {
   const { clips, dongleId } = state;
   return {
-    clips: (clips?.list || []).filter((c) => {
-      // don't show old failed clips
-      return c.status !== 'failed' || (Date.now()/1000 - c.create_time) < 86400*7;
-    }),
+    // don't show old failed clips
+    clips: (clips?.list || []).filter((c) => c.status !== 'failed'
+      || (Date.now() / 1000 - c.create_time) < 86400 * 7),
     dongleId,
   };
-}
+};
 
 export default connect(mapStateToProps)(withStyles(styles)(ClipList));

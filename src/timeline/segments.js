@@ -31,12 +31,7 @@ export function getCurrentRoute(state, o) {
     return null;
   }
 
-  for (const r of state.routes) {
-    if (offset >= r.offset && offset <= r.offset + r.duration) {
-      return r;
-    }
-  }
-  return null;
+  return state.routes.find((r) => offset >= r.offset && offset <= r.offset + r.duration);
 }
 
 export function reducer(_state, action) {
@@ -45,7 +40,7 @@ export function reducer(_state, action) {
     case Types.ACTION_UPDATE_SEGMENTS:
       state = {
         ...state,
-      }
+      };
       break;
     default:
       break;
@@ -59,41 +54,8 @@ export function reducer(_state, action) {
 
 export function updateSegments() {
   return {
-    type: Types.ACTION_UPDATE_SEGMENTS
+    type: Types.ACTION_UPDATE_SEGMENTS,
   };
-}
-
-export function hasRoutesData(state) {
-  if (!state) {
-    return false;
-  }
-  if (state.devices && state.devices.length === 0 && !state.dongleId) {
-    // new users without devices won't have segment metadata
-    return true;
-  }
-  if (!state.routesMeta || !state.routesMeta.dongleId || state.routesMeta.start === null || state.routesMeta.end === null) {
-    console.log('No routes data at all');
-    return false;
-  }
-  if (!state.routes) {
-    console.log('Still loading...');
-    return false;
-  }
-  if (state.dongleId !== state.routesMeta.dongleId) {
-    console.log('Bad dongle id');
-    return false;
-  }
-  const fetchRange = getSegmentFetchRange(state);
-  if (fetchRange.start < state.routesMeta.start) {
-    console.log('Bad start offset');
-    return false;
-  }
-  if (fetchRange.end > state.routesMeta.end) {
-    console.log('Bad end offset');
-    return false;
-  }
-
-  return true;
 }
 
 export function getSegmentFetchRange(state) {
@@ -126,4 +88,38 @@ export function getSegmentFetchRange(state) {
     start: Math.min(...mins),
     end: Math.max(...maxs),
   };
+}
+
+export function hasRoutesData(state) {
+  if (!state) {
+    return false;
+  }
+  if (state.devices && state.devices.length === 0 && !state.dongleId) {
+    // new users without devices won't have segment metadata
+    return true;
+  }
+  if (!state.routesMeta || !state.routesMeta.dongleId || state.routesMeta.start === null
+    || state.routesMeta.end === null) {
+    console.log('No routes data at all');
+    return false;
+  }
+  if (!state.routes) {
+    console.log('Still loading...');
+    return false;
+  }
+  if (state.dongleId !== state.routesMeta.dongleId) {
+    console.log('Bad dongle id');
+    return false;
+  }
+  const fetchRange = getSegmentFetchRange(state);
+  if (fetchRange.start < state.routesMeta.start) {
+    console.log('Bad start offset');
+    return false;
+  }
+  if (fetchRange.end > state.routesMeta.end) {
+    console.log('Bad end offset');
+    return false;
+  }
+
+  return true;
 }

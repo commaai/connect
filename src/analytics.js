@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { getDongleID, getZoom } from './url'
+import { getDongleID, getZoom } from './url';
 import { deviceIsOnline } from './utils';
 import { isDemoDevice } from './demo';
 
@@ -27,12 +27,12 @@ function getPageViewEventLocation(pathname) {
 }
 
 const cluster_map = {
-  's': 1000,
-  'm': 60000,
-  'h': 3600000,
+  s: 1000,
+  m: 60000,
+  h: 3600000,
 };
 
-export function attachRelTime(obj, key, ms=true, cluster=null) {
+export function attachRelTime(obj, key, ms = true, cluster = null) {
   if (!obj[key]) {
     console.log(`${key} not in obj`);
     return;
@@ -111,150 +111,149 @@ function log_action(action, prevState, state) {
   }
 
   switch (action.type) {
-  case LOCATION_CHANGE:
-    gtag('event', 'page_view', {
-      page_location: getPageViewEventLocation(action.payload.location.pathname),
-    });
-    return;
+    case LOCATION_CHANGE:
+      gtag('event', 'page_view', {
+        page_location: getPageViewEventLocation(action.payload.location.pathname),
+      });
+      return;
 
-  case Types.TIMELINE_SELECTION_CHANGED:
-    if (!prevState.zoom && state.zoom) {
+    case Types.TIMELINE_SELECTION_CHANGED:
+      if (!prevState.zoom && state.zoom) {
+        params = {
+          ...params,
+          start: state.zoom.start,
+          end: state.zoom.end,
+        };
+        attachRelTime(params, 'start', true, 'h');
+        attachRelTime(params, 'end', true, 'h');
+        gtag('event', 'select_zoom', params);
+      }
+      return;
+
+    case Types.ACTION_STARTUP_DATA:
+      gtag('set', {
+        user_id: state.profile?.user_id,
+        user_properties: {
+          superuser: state.profile?.superuser,
+          has_prime: state.profile?.prime,
+          devices_count: state.devices?.length,
+          device_is_demo: isDemoDevice(state.device?.dongle_id),
+          device_prime_type: state.device?.prime_type,
+          device_type: state.device?.device_type,
+          device_version: state.device?.openpilot_version,
+          device_owner: state.device?.is_owner,
+          device_online: state.device ? deviceIsOnline(state.device) : undefined,
+          device_sim_type: state.device?.sim_type,
+          device_trial_claimed: state.device?.trial_claimed,
+        },
+      });
+
+      gtag('event', 'page_view', {
+        ...params,
+        page_location: getPageViewEventLocation(window.location.pathname),
+      });
+      return;
+
+    case Types.ACTION_SELECT_DEVICE:
+      gtag('event', 'select_device', {
+        ...params,
+        device_is_demo: isDemoDevice(state.device?.dongle_id),
+        device_prime_type: state.device?.prime_type,
+        device_type: state.device?.device_type,
+        device_version: state.device?.openpilot_version,
+        device_owner: state.device?.is_owner,
+        device_online: state.device ? deviceIsOnline(state.device) : undefined,
+        device_sim_type: state.device?.sim_type,
+        device_trial_claimed: state.device?.trial_claimed,
+      });
+
+      gtag('set', {
+        user_properties: {
+          device_is_demo: isDemoDevice(state.device?.dongle_id),
+          device_prime_type: state.device?.prime_type,
+          device_type: state.device?.device_type,
+          device_version: state.device?.openpilot_version,
+          device_owner: state.device?.is_owner,
+          device_online: state.device ? deviceIsOnline(state.device) : undefined,
+          device_sim_type: state.device?.sim_type,
+          device_trial_claimed: state.device?.trial_claimed,
+        },
+      });
+      return;
+
+    case Types.ACTION_SELECT_TIME_FILTER:
       params = {
         ...params,
-        start: state.zoom.start,
-        end: state.zoom.end,
+        start: action.start,
+        end: action.end,
       };
       attachRelTime(params, 'start', true, 'h');
       attachRelTime(params, 'end', true, 'h');
-      gtag('event', 'select_zoom', params);
-    }
-    return;
+      gtag('event', 'select_time_filter', params);
+      return;
 
-  case Types.ACTION_STARTUP_DATA:
-    gtag('set', {
-      user_id: state.profile?.user_id,
-      user_properties: {
-        superuser: state.profile?.superuser,
-        has_prime: state.profile?.prime,
-        devices_count: state.devices?.length,
-        device_is_demo: isDemoDevice(state.device?.dongle_id),
-        device_prime_type: state.device?.prime_type,
-        device_type: state.device?.device_type,
-        device_version: state.device?.openpilot_version,
-        device_owner: state.device?.is_owner,
-        device_online: state.device ? deviceIsOnline(state.device) : undefined,
-        device_sim_type: state.device?.sim_type,
-        device_trial_claimed: state.device?.trial_claimed,
-      },
-    });
+    case Types.ACTION_UPDATE_DEVICE_ONLINE:
+      if (state.device?.dongleId === action.dongleId) {
+        gtag('set', {
+          user_properties: {
+            device_online: deviceIsOnline(state.device),
+          },
+        });
+      }
+      return;
 
-    gtag('event', 'page_view', {
-      ...params,
-      page_location: getPageViewEventLocation(window.location.pathname),
-    });
-    return;
+    case Types.ACTION_SEEK:
+      if (state.zoom) {
+        percent = getVideoPercent(state);
+        gtag('event', 'video_seek', {
+          ...params,
+          play_speed: state.desiredPlaySpeed,
+          play_percentage: percent,
+          play_percentage_round: Math.round(percent * 10) / 10,
+        });
+      }
+      return;
 
-  case Types.ACTION_SELECT_DEVICE:
-    gtag('event', 'select_device', {
-      ...params,
-      device_is_demo: isDemoDevice(state.device?.dongle_id),
-      device_prime_type: state.device?.prime_type,
-      device_type: state.device?.device_type,
-      device_version: state.device?.openpilot_version,
-      device_owner: state.device?.is_owner,
-      device_online: state.device ? deviceIsOnline(state.device) : undefined,
-      device_sim_type: state.device?.sim_type,
-      device_trial_claimed: state.device?.trial_claimed,
-    });
+    case Types.ACTION_PAUSE:
+      if (state.zoom) {
+        percent = getVideoPercent(state);
+        gtag('event', 'video_pause', {
+          ...params,
+          play_speed: state.desiredPlaySpeed,
+          play_percentage: percent,
+          play_percentage_round: Math.round(percent * 10) / 10,
+        });
+      }
+      return;
 
-    gtag('set', {
-      user_properties: {
-        device_is_demo: isDemoDevice(state.device?.dongle_id),
-        device_prime_type: state.device?.prime_type,
-        device_type: state.device?.device_type,
-        device_version: state.device?.openpilot_version,
-        device_owner: state.device?.is_owner,
-        device_online: state.device ? deviceIsOnline(state.device) : undefined,
-        device_sim_type: state.device?.sim_type,
-        device_trial_claimed: state.device?.trial_claimed,
-      },
-    });
-    return;
+    case Types.ACTION_PLAY:
+      if (state.zoom) {
+        percent = getVideoPercent(state);
+        gtag('event', 'video_play', {
+          ...params,
+          play_speed: state.desiredPlaySpeed,
+          play_percentage: percent,
+          play_percentage_round: Math.round(percent * 10) / 10,
+        });
+      }
+      return;
 
-  case Types.ACTION_SELECT_TIME_FILTER:
-    params = {
-      ...params,
-      start: action.start,
-      end: action.end,
-    };
-    attachRelTime(params, 'start', true, 'h');
-    attachRelTime(params, 'end', true, 'h');
-    gtag('event', 'select_time_filter', params);
-    return;
+    case Types.ACTION_LOOP:
+      if (state.currentRoute && state.zoom && state.loop?.duration !== 0) {
+        percent = state.loop && state.currentRoute ? state.loop.duration / state.currentRoute.duration : undefined;
+        gtag('event', 'video_loop', {
+          ...params,
+          loop_duration: state.loop?.duration,
+          loop_duration_percentage: percent,
+          loop_duration_percentage_round: percent ? Math.round(percent * 10) / 10 : undefined,
+        });
+      }
+      return;
 
-  case Types.ACTION_UPDATE_DEVICE_ONLINE:
-    if (state.device?.dongleId === action.dongleId) {
-      gtag('set', {
-        user_properties: {
-          device_online: deviceIsOnline(state.device),
-        },
-      });
-    }
-    return;
-
-  case Types.ACTION_SEEK:
-    if (state.zoom) {
-      percent = getVideoPercent(state);
-      gtag('event', 'video_seek', {
+    case Types.ANALYTICS_EVENT:
+      gtag('event', action.name, {
         ...params,
-        play_speed: state.desiredPlaySpeed,
-        play_percentage: percent,
-        play_percentage_round: Math.round(percent * 10) / 10,
+        ...action.parameters,
       });
-    }
-    return;
-
-  case Types.ACTION_PAUSE:
-    if (state.zoom) {
-      percent = getVideoPercent(state);
-      gtag('event', 'video_pause', {
-        ...params,
-        play_speed: state.desiredPlaySpeed,
-        play_percentage: percent,
-        play_percentage_round: Math.round(percent * 10) / 10,
-      });
-    }
-    return;
-
-  case Types.ACTION_PLAY:
-    if (state.zoom) {
-      percent = getVideoPercent(state);
-      gtag('event', 'video_play', {
-        ...params,
-        play_speed: state.desiredPlaySpeed,
-        play_percentage: percent,
-        play_percentage_round: Math.round(percent * 10) / 10,
-      });
-    }
-    return;
-
-  case Types.ACTION_LOOP:
-    if (state.currentRoute && state.zoom && state.loop?.duration !== 0) {
-      percent = state.loop && state.currentRoute ? state.loop.duration / state.currentRoute.duration : undefined;
-      gtag('event', 'video_loop', {
-        ...params,
-        loop_duration: state.loop?.duration,
-        loop_duration_percentage: percent,
-        loop_duration_percentage_round: percent ? Math.round(percent * 10) / 10 : undefined,
-      });
-    }
-    return;
-
-  case Types.ANALYTICS_EVENT:
-    gtag('event', action.name, {
-      ...params,
-      ...action.parameters,
-    });
-    return;
   }
 }

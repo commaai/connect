@@ -44,7 +44,7 @@ const styles = (theme) => ({
     padding: '16px 32px',
     '&:hover': {
       backgroundColor: Colors.darken10,
-    }
+    },
   },
   deviceOnline: {
     width: 6,
@@ -77,34 +77,7 @@ class DeviceSelect extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {};
-
     this.renderDevice = this.renderDevice.bind(this);
-  }
-
-  render() {
-    const { classes, devices, deviceFilter } = this.props;
-
-    if (!devices) {
-      return null;
-    }
-
-    return <>
-      <Modal open={ this.props.open } onClose={ this.props.onClose }>
-        <Paper className={ classes.modal }>
-          <div className={ classes.titleContainer }>
-            <Typography variant="title">Select device</Typography>
-          </div>
-          <Divider />
-          <div className={ `${classes.deviceList} scrollstyle` }>
-            { devices.filter(deviceFilter ? deviceFilter : () => true).map(this.renderDevice) }
-          </div>
-          <Button variant="contained" className={ classes.cancelButton } onClick={ this.props.onClose }>
-            Cancel
-          </Button>
-        </Paper>
-      </Modal>
-    </>;
   }
 
   renderDevice(device) {
@@ -112,8 +85,12 @@ class DeviceSelect extends Component {
     const alias = device.alias || deviceTypePretty(device.device_type);
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
     return (
-      <a key={device.dongle_id} className={ classes.device } onClick={ filterRegularClick(() => onSelect(device)) }
-        href={ deviceHref ? deviceHref(device) : null }>
+      <a
+        key={device.dongle_id}
+        className={ classes.device }
+        onClick={ filterRegularClick(() => onSelect(device)) }
+        href={ deviceHref ? deviceHref(device) : null }
+      >
         <div className={classes.deviceInfo}>
           <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
           <div className={ classes.deviceName }>
@@ -126,6 +103,30 @@ class DeviceSelect extends Component {
           </div>
         </div>
       </a>
+    );
+  }
+
+  render() {
+    const { classes, devices, deviceFilter, onClose, open } = this.props;
+    if (!devices) {
+      return null;
+    }
+
+    return (
+      <Modal open={open} onClose={onClose}>
+        <Paper className={classes.modal}>
+          <div className={classes.titleContainer}>
+            <Typography variant="title">Select device</Typography>
+          </div>
+          <Divider />
+          <div className={`${classes.deviceList} scrollstyle`}>
+            {devices.filter(deviceFilter || (() => true)).map(this.renderDevice)}
+          </div>
+          <Button variant="contained" className={classes.cancelButton} onClick={onClose}>
+            Cancel
+          </Button>
+        </Paper>
+      </Modal>
     );
   }
 }

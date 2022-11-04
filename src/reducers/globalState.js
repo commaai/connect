@@ -1,11 +1,10 @@
 import * as Types from '../actions/types';
 import { emptyDevice, deviceIsOnline } from '../utils';
 
-
 function populateFetchedAt(d) {
   return {
     ...d,
-    fetched_at: parseInt(Date.now() / 1000),
+    fetched_at: Math.floor(Date.now() / 1000),
   };
 }
 
@@ -37,7 +36,7 @@ export default function reducer(_state, action) {
       } else {
         state = {
           ...state,
-          device: devices.find((device) => device.dongle_id === state.dongleId)
+          device: devices.find((device) => device.dongle_id === state.dongleId),
         };
         if (!state.device) {
           state.device = {
@@ -60,9 +59,9 @@ export default function reducer(_state, action) {
         clips: null,
       };
       if (state.devices) {
-        const new_device = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
+        const newDevice = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
         if (!state.device || state.device.dongle_id !== action.dongleId) {
-          state.device = new_device;
+          state.device = newDevice;
         }
       }
       if (state.routesMeta && state.routesMeta.dongleId !== state.dongleId) {
@@ -97,9 +96,9 @@ export default function reducer(_state, action) {
         devices: action.devices.map(populateFetchedAt),
       };
       if (state.dongleId) {
-        const new_device = state.devices.find((d) => d.dongle_id === state.dongleId);
-        if (new_device) {
-          state.device = new_device;
+        const newDevice = state.devices.find((d) => d.dongle_id === state.dongleId);
+        if (newDevice) {
+          state.device = newDevice;
         }
       }
       break;
@@ -123,7 +122,7 @@ export default function reducer(_state, action) {
             state.routes[i] = {
               ...state.routes[i],
               ...action.route,
-            }
+            };
             break;
           }
         }
@@ -132,7 +131,7 @@ export default function reducer(_state, action) {
         state.currentRoute = {
           ...state.currentRoute,
           ...action.route,
-        }
+        };
       }
       break;
     case Types.ACTION_UPDATE_ROUTE_EVENTS:
@@ -146,7 +145,7 @@ export default function reducer(_state, action) {
               ...state.routes[i],
               events: action.events,
               videoStartOffset,
-            }
+            };
             break;
           }
         }
@@ -156,7 +155,7 @@ export default function reducer(_state, action) {
           ...state.currentRoute,
           events: action.events,
           videoStartOffset,
-        }
+        };
       }
       break;
     case Types.ACTION_UPDATE_ROUTE_LOCATION:
@@ -166,7 +165,7 @@ export default function reducer(_state, action) {
           if (state.routes[i].fullname === action.fullname) {
             state.routes[i] = {
               ...state.routes[i],
-            }
+            };
             state.routes[i][action.locationKey] = action.location;
             break;
           }
@@ -175,7 +174,7 @@ export default function reducer(_state, action) {
       if (state.currentRoute && state.currentRoute.fullname === action.fullname) {
         state.currentRoute = {
           ...state.currentRoute,
-        }
+        };
         state.currentRoute[action.locationKey] = action.location;
       }
       break;
@@ -239,7 +238,7 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
-      if (action.dongleId != state.dongleId) { // ignore outdated info
+      if (action.dongleId !== state.dongleId) { // ignore outdated info
         break;
       }
       state = {
@@ -249,7 +248,7 @@ export default function reducer(_state, action) {
       };
       break;
     case Types.ACTION_PRIME_SUBSCRIBE_INFO:
-      if (action.dongleId != state.dongleId) {
+      if (action.dongleId !== state.dongleId) {
         break;
       }
       state = {
@@ -304,7 +303,7 @@ export default function reducer(_state, action) {
           .map((id) => state.filesUploading[id].fileName);
         state.files = Object.keys(state.files)
           .filter((fileName) => !cancelFileNames.includes(fileName))
-          .reduce((obj, fileName) => { obj[fileName] = state.files[fileName]; return obj; },  {});
+          .reduce((obj, fileName) => { obj[fileName] = state.files[fileName]; return obj; }, {});
       }
       state.filesUploading = Object.keys(state.filesUploading)
         .filter((id) => !action.ids.includes(id))

@@ -33,7 +33,7 @@ const styles = (theme) => ({
   },
   buttonGroup: {
     marginTop: 20,
-    textAlign: 'right'
+    textAlign: 'right',
   },
   headerDropdown: {
     fontWeight: 500,
@@ -70,7 +70,7 @@ class TimeSelect extends Component {
     super(props);
 
     this.state = {
-      showPicker: false
+      showPicker: false,
     };
 
     this.handleSelectChange = this.handleSelectChange.bind(this);
@@ -100,7 +100,7 @@ class TimeSelect extends Component {
         this.setState({
           showPicker: true,
           start: this.props.filter.start,
-          end: this.props.filter.end
+          end: this.props.filter.end,
         });
         break;
     }
@@ -108,7 +108,7 @@ class TimeSelect extends Component {
 
   handleClose() {
     this.setState({
-      showPicker: false
+      showPicker: false,
     });
   }
 
@@ -133,7 +133,7 @@ class TimeSelect extends Component {
     this.setState({
       showPicker: false,
       start: null,
-      end: null
+      end: null,
     });
   }
 
@@ -182,7 +182,7 @@ class TimeSelect extends Component {
 
     return (
       <>
-        <VisibilityHandler onVisible={ this.onVisible } minInterval={ 1800 } resetOnHidden={ true } />
+        <VisibilityHandler onVisible={ this.onVisible } minInterval={ 1800 } resetOnHidden />
         <FormControl>
           <Select
             name="timerange"
@@ -196,18 +196,34 @@ class TimeSelect extends Component {
             <MenuItem value="2-weeks">{ this.last2WeeksText() }</MenuItem>
           </Select>
         </FormControl>
-        <Modal aria-labelledby="simple-modal-title" aria-describedby="simple-modal-description"
-          open={this.state.showPicker} onClose={this.handleClose}>
+        <Modal
+          aria-labelledby="simple-modal-title"
+          aria-describedby="simple-modal-description"
+          open={this.state.showPicker}
+          onClose={this.handleClose}
+        >
           <Paper className={classes.modal}>
             <div className={ classes.datePickerContainer }>
               <Typography variant="body2">Start date:</Typography>
-              <input label="Start date" type="date" min={ minDate } max={ maxDate } onChange={this.changeStart}
-                value={ startDate } />
+              <input
+                label="Start date"
+                type="date"
+                min={ minDate }
+                max={ maxDate }
+                onChange={this.changeStart}
+                value={ startDate }
+              />
             </div>
             <div className={ classes.datePickerContainer }>
               <Typography variant="body2">End date:</Typography>
-              <input label="End date" type="date" min={ minDate } max={ maxDate } onChange={this.changeEnd}
-                value={ endDate } />
+              <input
+                label="End date"
+                type="date"
+                min={ minDate }
+                max={ maxDate }
+                onChange={this.changeEnd}
+                value={ endDate }
+              />
             </div>
             <Divider />
             <div className={classes.buttonGroup}>

@@ -1,4 +1,4 @@
-const dongleIdRegex = new RegExp('[a-f0-9]{16}');
+const dongleIdRegex = /[a-f0-9]{16}/;
 
 export function getDongleID(pathname) {
   let parts = pathname.split('/');

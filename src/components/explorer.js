@@ -213,17 +213,27 @@ class ExplorerApp extends Component {
       <div className={classes.base}>
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
         <PullDownReload />
-        <AppHeader drawerIsOpen={ drawerIsOpen } annotating={ Boolean(zoom) } showDrawerButton={ !isLarge }
-          handleDrawerStateChanged={this.handleDrawerStateChanged} forwardRef={ this.updateHeaderRef } />
-        <AppDrawer drawerIsOpen={ drawerIsOpen } isPermanent={ isLarge } width={ sidebarWidth }
-          handleDrawerStateChanged={this.handleDrawerStateChanged} style={ drawerStyles } />
+        <AppHeader
+          drawerIsOpen={ drawerIsOpen }
+          annotating={ Boolean(zoom) }
+          showDrawerButton={ !isLarge }
+          handleDrawerStateChanged={this.handleDrawerStateChanged}
+          forwardRef={ this.updateHeaderRef }
+        />
+        <AppDrawer
+          drawerIsOpen={ drawerIsOpen }
+          isPermanent={ isLarge }
+          width={ sidebarWidth }
+          handleDrawerStateChanged={this.handleDrawerStateChanged}
+          style={ drawerStyles }
+        />
         <div className={ classes.window } style={ containerStyles }>
           <Suspense fallback={this.renderLoading()}>
             { noDevicesUpsell
               ? <NoDeviceUpsell />
               : (clips
-                  ? <ClipView />
-                  : (zoom ? <DriveView /> : <Dashboard />)
+                ? <ClipView />
+                : (zoom ? <DriveView /> : <Dashboard />)
               ) }
           </Suspense>
         </div>
@@ -233,11 +243,14 @@ class ExplorerApp extends Component {
             <Typography variant="title">Pairing device</Typography>
             <Divider />
             { pairLoading && <CircularProgress size={32} className={classes.fabProgress} /> }
-            { pairDongleId &&
+            { pairDongleId
+              && (
               <Typography>
-                Successfully paired device <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
+                Successfully paired device
+                {' '}
+                <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
               </Typography>
-            }
+              )}
             { pairError && <Typography>{ pairError }</Typography> }
             <Button variant="contained" className={ classes.closeButton } onClick={ this.closePair }>
               Close

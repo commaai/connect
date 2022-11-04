@@ -74,22 +74,30 @@ const styles = (theme) => ({
 });
 
 class InfoTooltip extends Component {
-  state = {
-    arrowRef: null,
-    open: false,
-  };
+  constructor(props) {
+    super(props);
 
-  handleArrowRef = node => {
+    this.state = {
+      arrowRef: null,
+      open: false,
+    };
+
+    this.handleArrowRef = this.handleArrowRef.bind(this);
+    this.onTooltipOpen = this.onTooltipOpen.bind(this);
+    this.onTooltipClose = this.onTooltipClose.bind(this);
+  }
+
+  handleArrowRef(node) {
     this.setState({
       arrowRef: node,
     });
-  };
+  }
 
-  handleTooltipOpen = () => {
+  onTooltipOpen() {
     this.setState({ open: true });
   }
 
-  handleTooltipClose = () => {
+  onTooltipClose() {
     this.setState({ open: false });
   }
 
@@ -99,33 +107,34 @@ class InfoTooltip extends Component {
       title,
       placement = 'top',
     } = this.props;
+    const { arrowRef, open } = this.state;
 
     return (
-      <ClickAwayListener onClickAway={this.handleTooltipClose}>
+      <ClickAwayListener onClickAway={this.onTooltipClose}>
         <Tooltip
           PopperProps={{
             popperOptions: {
               modifiers: {
                 arrow: {
-                  enabled: Boolean(this.state.arrowRef),
-                  element: this.state.arrowRef,
+                  enabled: Boolean(arrowRef),
+                  element: arrowRef,
                 },
               },
             },
           }}
-          title={
-            <React.Fragment>
-              <Typography color="inherit">{ title }</Typography>
+          title={(
+            <>
+              <Typography color="inherit">{title}</Typography>
               <span className={classes.arrowArrow} ref={this.handleArrowRef} />
-            </React.Fragment>
-          }
-          onOpen={this.handleTooltipOpen}
-          onClose={this.handleTooltipClose}
-          open={this.state.open}
+            </>
+          )}
+          onOpen={this.onTooltipOpen}
+          onClose={this.onTooltipClose}
+          open={open}
           classes={{ tooltip: classes.tooltip, popper: classes.arrowPopper }}
           placement={placement}
         >
-          <InfoIcon className={classes.icon} onClick={this.handleTooltipOpen} />
+          <InfoIcon className={classes.icon} onClick={this.onTooltipOpen} />
         </Tooltip>
       </ClickAwayListener>
     );

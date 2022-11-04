@@ -19,7 +19,7 @@ const styles = () => ({
     alignSelf: 'center',
     '& img': {
       width: 800,
-      maxWidth: '100%'
+      maxWidth: '100%',
     },
   },
   shopLink: {
@@ -46,7 +46,7 @@ const styles = () => ({
     width: '80%',
     maxWidth: 250,
     margin: '0 auto',
-  }
+  },
 });
 
 class NoDeviceUpsell extends Component {

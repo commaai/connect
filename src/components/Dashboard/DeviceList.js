@@ -27,7 +27,7 @@ const styles = (theme) => ({
     padding: '16px 32px',
     '&.isSelected': {
       backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    }
+    },
   },
   settingsButton: {
     height: 46,
@@ -66,8 +66,8 @@ const styles = (theme) => ({
   editDeviceIcon: {
     color: 'white',
     '&:hover': {
-      color: theme.palette.grey[100]
-    }
+      color: theme.palette.grey[100],
+    },
   },
   nameField: {
     marginRight: theme.spacing.unit,
@@ -76,7 +76,7 @@ const styles = (theme) => ({
     marginRight: theme.spacing.unit,
   },
   textField: {
-    marginBottom: theme.spacing.unit
+    marginBottom: theme.spacing.unit,
   },
   addDeviceContainer: {
     '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.25)' },
@@ -114,10 +114,11 @@ class DeviceList extends Component {
   }
 
   async onVisible() {
+    const { dispatch } = this.props;
     if (MyCommaAuth.isAuthenticated()) {
       try {
         const devices = await Devices.listDevices();
-        this.props.dispatch(updateDevices(devices));
+        dispatch(updateDevices(devices));
       } catch (err) {
         console.error(err);
         Sentry.captureException(err, { fingerprint: 'devicelist_visible_listdevices' });
@@ -125,15 +126,53 @@ class DeviceList extends Component {
     }
   }
 
+  renderDevice(device) {
+    const { classes, profile, selectedDevice } = this.props;
+    const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
+    const alias = device.alias || deviceTypePretty(device.device_type);
+    const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
+    return (
+      <a
+        key={device.dongle_id}
+        className={ `${classes.device} ${isSelectedCls}` }
+        onClick={ filterRegularClick(() => this.props.handleDeviceSelected(device.dongle_id)) }
+        href={ `/${device.dongle_id}` }
+      >
+        <div className={classes.deviceInfo}>
+          <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
+          <div className={ classes.deviceName }>
+            <Typography className={classes.deviceAlias}>
+              { alias }
+            </Typography>
+            <Typography variant="caption" className={classes.deviceId}>
+              { device.dongle_id }
+            </Typography>
+          </div>
+        </div>
+        { (device.is_owner || (profile && profile.superuser))
+          && (
+          <IconButton
+            className={classes.settingsButton}
+            aria-label="device settings"
+            onClick={ (ev) => this.handleOpenedSettingsModal(device.dongle_id, ev) }
+          >
+            <SettingsIcon className={classes.settingsButtonIcon} />
+          </IconButton>
+          )}
+      </a>
+    );
+  }
+
   render() {
-    const { classes, device, selectedDevice: dongleId } = this.props;
+    const { settingsModalDongleId } = this.state;
+    const { classes, device, headerHeight, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
     if (devices === null) {
       return null;
     }
 
-    const found = devices.some((device) => device.dongle_id === dongleId);
+    const found = devices.some((d) => d.dongle_id === dongleId);
     if (!found && device && dongleId === device.dongle_id) {
       devices = [{
         ...device,
@@ -157,56 +196,30 @@ class DeviceList extends Component {
       padding: '16px 44px 16px 54px',
     };
 
+    const filterDrivingDevice = (d) => d.device_type !== 'panda';
+
     return (
       <>
         <VisibilityHandler onVisible={ this.onVisible } minInterval={ 10 } />
-        <div className={ `scrollstyle ${classes.deviceList}` }
-          style={{ height: `calc(100vh - ${this.props.headerHeight + 16}px)` }}>
-          { devices.filter(this.filterDrivingDevice).map(this.renderDevice) }
-          { MyCommaAuth.isAuthenticated() &&
-            <div className={ classes.addDeviceContainer }>
-              <AddDevice buttonText={ 'add new device' } buttonStyle={ addButtonStyle } buttonIcon={ true } />
+        <div
+          className={`scrollstyle ${classes.deviceList}`}
+          style={{ height: `calc(100vh - ${headerHeight + 16}px)` }}
+        >
+          {devices.filter(filterDrivingDevice).map(this.renderDevice)}
+          {MyCommaAuth.isAuthenticated() && (
+            <div className={classes.addDeviceContainer}>
+              <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon />
             </div>
-          }
+          )}
         </div>
-        <div className={ classes.versionNumber }>{ version }</div>
-        <DeviceSettingsModal isOpen={ Boolean(this.state.settingsModalDongleId) }
-          dongleId={ this.state.settingsModalDongleId } onClose={this.handleClosedSettingsModal}/>
+        <div className={classes.versionNumber}>{version}</div>
+        <DeviceSettingsModal
+          isOpen={Boolean(settingsModalDongleId)}
+          dongleId={settingsModalDongleId}
+          onClose={this.handleClosedSettingsModal}
+        />
       </>
     );
-  }
-
-  renderDevice(device) {
-    const { classes, profile } = this.props;
-    const isSelectedCls = (this.props.selectedDevice === device.dongle_id) ? 'isSelected' : '';
-    const alias = device.alias || deviceTypePretty(device.device_type);
-    const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
-    return (
-      <a key={device.dongle_id} className={ `${classes.device} ${isSelectedCls}` }
-        onClick={ filterRegularClick(() => this.props.handleDeviceSelected(device.dongle_id)) } href={ `/${device.dongle_id}` }>
-        <div className={classes.deviceInfo}>
-          <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
-          <div className={ classes.deviceName }>
-            <Typography className={classes.deviceAlias}>
-              { alias }
-            </Typography>
-            <Typography variant="caption" className={classes.deviceId}>
-              { device.dongle_id }
-            </Typography>
-          </div>
-        </div>
-        { (device.is_owner || (profile && profile.superuser)) &&
-          <IconButton className={classes.settingsButton} aria-label="device settings"
-            onClick={ (ev) => this.handleOpenedSettingsModal(device.dongle_id, ev) }>
-            <SettingsIcon className={classes.settingsButtonIcon} />
-          </IconButton>
-        }
-      </a>
-    );
-  }
-
-  filterDrivingDevice(device) {
-    return device.device_type !== 'panda';
   }
 }
 

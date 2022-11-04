@@ -82,8 +82,7 @@ const DriveListItem = (props) => {
     };
   }, []);
 
-  const onClick = filterRegularClick(() =>
-    dispatch(selectRange(drive.start_time_utc_millis, drive.end_time_utc_millis)));
+  const onClick = filterRegularClick(() => dispatch(selectRange(drive.start_time_utc_millis, drive.end_time_utc_millis)));
 
   const small = windowWidth < 580;
   const startTime = fecha.format(new Date(drive.start_time_utc_millis), 'HH:mm');

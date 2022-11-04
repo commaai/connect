@@ -180,41 +180,39 @@ class AppHeader extends Component {
           </div>
         </AppBar>
         { Boolean(MyCommaAuth.isAuthenticated() && profile) && (
-        <>
-          <Menu
-            id="menu-appbar"
-            open={open}
-            onClose={this.handleClose}
-            anchorEl={anchorEl}
-            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        <Menu
+          id="menu-appbar"
+          open={open}
+          onClose={this.handleClose}
+          anchorEl={anchorEl}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>
+            <span>{ profile.email }</span>
+            <span>{ profile.user_id }</span>
+          </ListItem>
+          <ListItem className={ classes.accountListItem }>
+            { profile.points }
+            {' '}
+            points
+          </ListItem>
+          <Divider />
+          <MenuItem
+            className={ classes.accountMenuItem }
+            component="a"
+            href="https://useradmin.comma.ai/"
+            target="_blank"
           >
-            <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>
-              <span>{ profile.email }</span>
-              <span>{ profile.user_id }</span>
-            </ListItem>
-            <ListItem className={ classes.accountListItem }>
-              { profile.points }
-              {' '}
-              points
-            </ListItem>
-            <Divider />
-            <MenuItem
-              className={ classes.accountMenuItem }
-              component="a"
-              href="https://useradmin.comma.ai/"
-              target="_blank"
-            >
-              Manage Account
-            </MenuItem>
-            <MenuItem
-              className={ classes.accountMenuItem }
-              onClick={this.handleLogOut}
-            >
-              Log out
-            </MenuItem>
-          </Menu>
-        </>
+            Manage Account
+          </MenuItem>
+          <MenuItem
+            className={ classes.accountMenuItem }
+            onClick={this.handleLogOut}
+          >
+            Log out
+          </MenuItem>
+        </Menu>
         ) }
       </>
     );

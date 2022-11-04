@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import debounce from 'debounce';
-import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer} from 'react-map-gl';
+import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
 import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress, Popper }
   from '@material-ui/core';
 import { Search, Clear, Refresh } from '@material-ui/icons';
@@ -242,7 +242,7 @@ const styles = () => ({
     },
     '& svg': {
       marginRight: 6,
-    }
+    },
   },
   clearSearchSelect: {
     padding: 5,
@@ -281,7 +281,7 @@ const initialState = {
   savingAs: false,
   savedAs: false,
   showPrimeAd: true,
-}
+};
 
 class Navigation extends Component {
   constructor(props) {
@@ -352,10 +352,9 @@ class Navigation extends Component {
     const { dongleId, device } = this.props;
     const { geoLocateCoords, search, carLastLocation, carNetworkLocation, searchSelect, favoriteLocations } = this.state;
 
-    if ((carLastLocation && !prevState.carLastLocation) || (carNetworkLocation && !prevState.carNetworkLocation) ||
-      (geoLocateCoords && !prevState.geoLocateCoords) || (searchSelect && prevState.searchSelect !== searchSelect) ||
-      (search && prevState.search !== search))
-    {
+    if ((carLastLocation && !prevState.carLastLocation) || (carNetworkLocation && !prevState.carNetworkLocation)
+      || (geoLocateCoords && !prevState.geoLocateCoords) || (searchSelect && prevState.searchSelect !== searchSelect)
+      || (search && prevState.search !== search)) {
       this.flyToMarkers();
     }
 
@@ -392,8 +391,8 @@ class Navigation extends Component {
   }
 
   checkWebGLSupport() {
-    let canvas = document.createElement("canvas");
-    let gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
     if (!gl || !(gl instanceof WebGLRenderingContext)) {
       this.setState({ mapError: 'Failed to get WebGL context, your browser or device may not support WebGL.' });
     }
@@ -422,7 +421,7 @@ class Navigation extends Component {
           carLastLocationTime: resp.time,
         }, this.flyToMarkers);
       }
-    } catch(err) {
+    } catch (err) {
       if (!err.message || err.message.indexOf('no_segments_uploaded') === -1) {
         console.error(err);
         Sentry.captureException(err, { fingerprint: 'nav_fetch_location' });
@@ -437,8 +436,8 @@ class Navigation extends Component {
     }
 
     const payload = {
-      method: "getNetworks",
-      jsonrpc: "2.0",
+      method: 'getNetworks',
+      jsonrpc: '2.0',
       id: 0,
     };
     try {
@@ -454,9 +453,8 @@ class Navigation extends Component {
         }, this.flyToMarkers);
       }
     } catch (err) {
-      if (this.mounted && dongleId === this.props.dongleId &&
-        (!err.message || err.message.indexOf('{"error": "Device not registered"}') === -1))
-      {
+      if (this.mounted && dongleId === this.props.dongleId
+        && (!err.message || err.message.indexOf('{"error": "Device not registered"}') === -1)) {
         console.error(err);
         Sentry.captureException(err, { fingerprint: 'nav_fetch_network_location' });
       }
@@ -466,9 +464,8 @@ class Navigation extends Component {
   getCarLocation() {
     const { carLastLocation, carLastLocationTime, carNetworkLocation, carNetworkLocationAccuracy } = this.state;
 
-    if (carNetworkLocation && carNetworkLocationAccuracy <= 10000 &&
-      (carNetworkLocationAccuracy <= 100 || !carLastLocation))
-    {
+    if (carNetworkLocation && carNetworkLocationAccuracy <= 10000
+      && (carNetworkLocationAccuracy <= 100 || !carLastLocation)) {
       return {
         location: carNetworkLocation,
         accuracy: carNetworkLocationAccuracy,
@@ -493,7 +490,7 @@ class Navigation extends Component {
 
     NavigationApi.getLocationsData(dongleId).then((resp) => {
       if (this.mounted && dongleId === this.props.dongleId) {
-        let favorites = {};
+        const favorites = {};
         resp.forEach((loc) => {
           if (loc.save_type === 'favorite') {
             favorites[loc.id] = {
@@ -518,7 +515,7 @@ class Navigation extends Component {
         return PinWorkIcon;
       default:
         return PinPinnedIcon;
-      }
+    }
   }
 
   onGeolocate(pos) {
@@ -538,8 +535,7 @@ class Navigation extends Component {
         this.setState({
           noFly: false,
           searchSelect: null,
-          search: features.filter((item) =>
-            !(['categoryQuery', 'chainQuery', 'administrativeArea'].includes(item.resultType))).slice(0, 10),
+          search: features.filter((item) => !(['categoryQuery', 'chainQuery', 'administrativeArea'].includes(item.resultType))).slice(0, 10),
           searchLooking: false,
           savingAs: false,
           savedAs: false,
@@ -555,7 +551,7 @@ class Navigation extends Component {
         search: null,
         searchLooking: false,
         savingAs: false,
-        savedAs: false
+        savedAs: false,
       });
     }
   }
@@ -578,14 +574,14 @@ class Navigation extends Component {
         search: null,
         searchLooking: false,
         savingAs: false,
-        savedAs: false
+        savedAs: false,
       });
     }
   }
 
   onSearchSelect(item, source) {
     this.props.dispatch(analyticsEvent('nav_search_select', {
-      source: source,
+      source,
       panned: this.state.noFly || this.state.noFly,
       is_favorite: Boolean(item.favoriteId),
       distance: item.distance,
@@ -670,9 +666,8 @@ class Navigation extends Component {
   }
 
   onSearchBlur(ev) {
-    if (this.state.search && this.searchInputRef.current &&
-      this.overlayRef.current && this.overlayRef.current !== ev.relatedTarget)
-    {
+    if (this.state.search && this.searchInputRef.current
+      && this.overlayRef.current && this.overlayRef.current !== ev.relatedTarget) {
       this.setState({ searchLooking: true });
     }
   }
@@ -745,8 +740,8 @@ class Navigation extends Component {
         bbox[1][1] += 0.01;
       }
 
-      const bottomBoxHeight = (this.searchSelectBoxRef.current && viewport.height > 200) ?
-        this.searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0;
+      const bottomBoxHeight = (this.searchSelectBoxRef.current && viewport.height > 200)
+        ? this.searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0;
 
       let rightBoxWidth = 0;
       let topBoxHeight = hasNav ? 62 : 0;
@@ -768,7 +763,7 @@ class Navigation extends Component {
       };
       if (viewport.width) {
         try {
-          const newVp = new WebMercatorViewport(viewport).fitBounds(bbox, { padding: padding, maxZoom: 10 });
+          const newVp = new WebMercatorViewport(viewport).fitBounds(bbox, { padding, maxZoom: 10 });
           this.setState({ viewport: newVp });
         } catch (err) {
           console.error(err);
@@ -779,9 +774,8 @@ class Navigation extends Component {
   }
 
   focus(ev) {
-    if (!this.state.hasFocus && (!ev || !ev.srcEvent || !ev.srcEvent.path || !this.mapContainerRef.current ||
-      ev.srcEvent.path.includes(this.mapContainerRef.current)))
-    {
+    if (!this.state.hasFocus && (!ev || !ev.srcEvent || !ev.srcEvent.path || !this.mapContainerRef.current
+      || ev.srcEvent.path.includes(this.mapContainerRef.current))) {
       this.setState({ hasFocus: true });
     }
   }
@@ -793,7 +787,7 @@ class Navigation extends Component {
     return item.position;
   }
 
-  itemLngLat(item, bounds=false) {
+  itemLngLat(item, bounds = false) {
     const pos = this.itemLoc(item);
     const res = [pos.lng, pos.lat];
     return bounds ? [res, res] : res;
@@ -815,31 +809,36 @@ class Navigation extends Component {
       ...searchSelect,
       settingDest: true,
       success: false,
-    }});
+    } });
 
     const pos = this.itemLoc(searchSelect);
-    NavigationApi.setDestination(dongleId, pos.lat, pos.lng,
-      Utils.formatSearchName(searchSelect), Utils.formatSearchAddress(searchSelect))
-    .then((resp) => {
-      if (resp.error) {
-        throw new Error(resp.error);
-      }
+    NavigationApi.setDestination(
+      dongleId,
+      pos.lat,
+      pos.lng,
+      Utils.formatSearchName(searchSelect),
+      Utils.formatSearchAddress(searchSelect),
+    )
+      .then((resp) => {
+        if (resp.error) {
+          throw new Error(resp.error);
+        }
 
-      this.setState({ searchSelect: {
-        ...searchSelect,
-        settingDest: true,
-        success: resp.success,
-        saved_next: resp.saved_next,
-      }});
-    }).catch((err) => {
-      Sentry.captureException(err, { fingerprint: 'nav_set_destination' });
-      console.log(`failed to set destination: ${err.message}`);
-      this.setState({ searchSelect: {
-        ...searchSelect,
-        settingDest: false,
-        success: false,
-      }});
-    });
+        this.setState({ searchSelect: {
+          ...searchSelect,
+          settingDest: true,
+          success: resp.success,
+          saved_next: resp.saved_next,
+        } });
+      }).catch((err) => {
+        Sentry.captureException(err, { fingerprint: 'nav_set_destination' });
+        console.log(`failed to set destination: ${err.message}`);
+        this.setState({ searchSelect: {
+          ...searchSelect,
+          settingDest: false,
+          success: false,
+        } });
+      });
   }
 
   onResize(windowWidth) {
@@ -860,23 +859,30 @@ class Navigation extends Component {
 
     const pos = this.itemLoc(searchSelect);
     const label = as === 'pin' ? undefined : as;
-    NavigationApi.putLocationSave(dongleId, pos.lat, pos.lng,
-      Utils.formatSearchName(searchSelect), Utils.formatSearchAddress(searchSelect), 'favorite', label)
-    .then((resp) => {
-      this.updateFavoriteLocations();
-      this.setState({
-        savingAs: false,
-        savedAs: true,
-        searchSelect: {
-          ...searchSelect,
-          favoriteIcon: this.getFavoriteLabelIcon(label),
-        },
+    NavigationApi.putLocationSave(
+      dongleId,
+      pos.lat,
+      pos.lng,
+      Utils.formatSearchName(searchSelect),
+      Utils.formatSearchAddress(searchSelect),
+      'favorite',
+      label,
+    )
+      .then((resp) => {
+        this.updateFavoriteLocations();
+        this.setState({
+          savingAs: false,
+          savedAs: true,
+          searchSelect: {
+            ...searchSelect,
+            favoriteIcon: this.getFavoriteLabelIcon(label),
+          },
+        });
+      }).catch((err) => {
+        console.error(err);
+        Sentry.captureException(err, { fingerprint: 'nav_save_favorite' });
+        this.setState({ savingAs: false, savedAs: false });
       });
-    }).catch((err) => {
-      console.error(err);
-      Sentry.captureException(err, { fingerprint: 'nav_save_favorite' });
-      this.setState({ savingAs: false, savedAs: false });
-    });
   }
 
   deleteFavorite() {
@@ -910,8 +916,7 @@ class Navigation extends Component {
       this.setState({
         noFly: true,
         searchSelect: null,
-        search: features.filter((item) =>
-          !(['categoryQuery', 'chainQuery', 'administrativeArea'].includes(item.resultType))).slice(0, 10),
+        search: features.filter((item) => !(['categoryQuery', 'chainQuery', 'administrativeArea'].includes(item.resultType))).slice(0, 10),
         searchLooking: windowWidth < 600,
         savingAs: false,
         savedAs: false,
@@ -942,8 +947,9 @@ class Navigation extends Component {
     const distanceX = km / (111.320 * Math.cos(carLocation.location[1] * Math.PI / 180));
     const distanceY = km / 110.574;
 
-    let res = [];
-    let theta, x, y;
+    const res = [];
+    let theta; let x; let
+      y;
     for (let i = 0; i < points; i++) {
       theta = (i / points) * (2 * Math.PI);
       x = distanceX * Math.cos(theta);
@@ -954,16 +960,16 @@ class Navigation extends Component {
     res.push(res[0]);
 
     return {
-      "type": "FeatureCollection",
-      "features": [{
-        "type": "Feature",
-        "geometry": {
-          "type": "Polygon",
-          "coordinates": [res],
-        }
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [res],
+        },
       }],
     };
-  };
+  }
 
   onContainerRef(el) {
     this.mapContainerRef.current = el;
@@ -978,9 +984,9 @@ class Navigation extends Component {
       windowWidth, showPrimeAd } = this.state;
     const carLocation = this.getCarLocation();
 
-    const cardStyle = windowWidth < 600 ?
-      { zIndex: 4, width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 } :
-      { zIndex: 4, width: 360, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
+    const cardStyle = windowWidth < 600
+      ? { zIndex: 4, width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 }
+      : { zIndex: 4, width: 360, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
 
     let carPinTooltipStyle = { transform: 'translate(calc(-50% + 10px), -4px)' };
     if (carLocation) {
@@ -991,84 +997,184 @@ class Navigation extends Component {
     }
 
     return (
-      <div ref={ this.onContainerRef } className={ classes.mapContainer }
-        style={{ height: (hasFocus && hasNav) ? '60vh' : 200 }}>
+      <div
+        ref={ this.onContainerRef }
+        className={ classes.mapContainer }
+        style={{ height: (hasFocus && hasNav) ? '60vh' : 200 }}
+      >
         <ResizeHandler onResize={ this.onResize } />
-        <VisibilityHandler onVisible={ this.updateDevice } onInit={ true } onDongleId={ true } minInterval={ 60 } />
-        { mapError &&
+        <VisibilityHandler onVisible={ this.updateDevice } onInit onDongleId minInterval={ 60 } />
+        { mapError
+          && (
           <div className={ classes.mapError }>
             <Typography>Could not initialize map.</Typography>
             <Typography>{ mapError }</Typography>
           </div>
-        }
-        <ReactMapGL { ...viewport } onViewportChange={ this.viewportChange } onContextMenu={ null }
-          mapStyle={ MAP_STYLE } width="100%" height="100%" onNativeClick={ this.focus } maxPitch={ 0 }
-          mapboxApiAccessToken={ MAPBOX_TOKEN } attributionControl={ false } dragRotate={ false }
-          onError={ (err) => this.setState({ mapError: err.error.message }) }>
-          <GeolocateControl className={ classes.geolocateControl } positionOptions={{ enableHighAccuracy: true }}
-            showAccuracyCircle={ false } onGeolocate={ this.onGeolocate } auto={ hasFocus }
-            fitBoundsOptions={{ maxZoom: 10 }} trackUserLocation={true} onViewportChange={ () => {} } />
-          { searchSelect && searchSelect.route &&
+          )}
+        <ReactMapGL
+          { ...viewport }
+          onViewportChange={ this.viewportChange }
+          onContextMenu={ null }
+          mapStyle={ MAP_STYLE }
+          width="100%"
+          height="100%"
+          onNativeClick={ this.focus }
+          maxPitch={ 0 }
+          mapboxApiAccessToken={ MAPBOX_TOKEN }
+          attributionControl={ false }
+          dragRotate={ false }
+          onError={ (err) => this.setState({ mapError: err.error.message }) }
+        >
+          <GeolocateControl
+            className={ classes.geolocateControl }
+            positionOptions={{ enableHighAccuracy: true }}
+            showAccuracyCircle={ false }
+            onGeolocate={ this.onGeolocate }
+            auto={ hasFocus }
+            fitBoundsOptions={{ maxZoom: 10 }}
+            trackUserLocation
+            onViewportChange={ () => {} }
+          />
+          { searchSelect && searchSelect.route
+            && (
             <Source id="my-data" type="geojson" data={ searchSelect.route.geometry }>
-              <Layer type="line" layout={{ 'line-cap': 'round', 'line-join': 'bevel' }}
-                paint={{ 'line-color': '#31a1ee', 'line-width': 3, 'line-blur': 1 }}  />
+              <Layer
+                type="line"
+                layout={{ 'line-cap': 'round', 'line-join': 'bevel' }}
+                paint={{ 'line-color': '#31a1ee', 'line-width': 3, 'line-blur': 1 }}
+              />
             </Source>
-          }
+            )}
           { !search && !searchSelect && favoriteLocations && Object.entries(favoriteLocations).map(([id, loc]) => {
             const Icon = loc.icon;
-            return <Marker latitude={loc.latitude} longitude={loc.longitude} key={id} offsetLeft={-7.5}
-              offsetTop={-24} captureDrag={false} captureClick={false} captureDoubleClick={false}>
-              <Icon className={classes.favoritePin} onClick={() => this.onFavoriteSelect(id, loc)}
-                alt="favorite-location" />
-            </Marker>;
+            return (
+              <Marker
+                latitude={loc.latitude}
+                longitude={loc.longitude}
+                key={id}
+                offsetLeft={-7.5}
+                offsetTop={-24}
+                captureDrag={false}
+                captureClick={false}
+                captureDoubleClick={false}
+              >
+                <Icon
+                  className={classes.favoritePin}
+                  onClick={() => this.onFavoriteSelect(id, loc)}
+                  alt="favorite-location"
+                />
+              </Marker>
+            );
           })}
-          { carLocation &&
-            <Marker latitude={ carLocation.location[1] } longitude={ carLocation.location[0] } offsetLeft={ -10 }
-              offsetTop={ -30 } captureDrag={ false } captureClick={ true } captureDoubleClick={ false }>
-              <PinCarIcon className={ classes.pin } onMouseEnter={ () => this.toggleCarPinTooltip(true) }
-                onMouseLeave={ () => this.toggleCarPinTooltip(false) } alt="car-location"
-                onClick={ () => this.onCarSelect(carLocation) } />
-              <div className={ classes.carPinTooltip } ref={ this.carPinTooltipRef }
-                style={{ ...carPinTooltipStyle, display: 'none' }}>
-                { fecha.format(carLocation.time, 'h:mm a') },<br />{ timeFromNow(carLocation.time) }
+          { carLocation
+            && (
+            <Marker
+              latitude={ carLocation.location[1] }
+              longitude={ carLocation.location[0] }
+              offsetLeft={ -10 }
+              offsetTop={ -30 }
+              captureDrag={ false }
+              captureClick
+              captureDoubleClick={ false }
+            >
+              <PinCarIcon
+                className={ classes.pin }
+                onMouseEnter={ () => this.toggleCarPinTooltip(true) }
+                onMouseLeave={ () => this.toggleCarPinTooltip(false) }
+                alt="car-location"
+                onClick={ () => this.onCarSelect(carLocation) }
+              />
+              <div
+                className={ classes.carPinTooltip }
+                ref={ this.carPinTooltipRef }
+                style={{ ...carPinTooltipStyle, display: 'none' }}
+              >
+                { fecha.format(carLocation.time, 'h:mm a') }
+                ,
+                <br />
+                { timeFromNow(carLocation.time) }
               </div>
             </Marker>
-          }
-          { carLocation && Boolean(carLocation.accuracy) &&
+            )}
+          { carLocation && Boolean(carLocation.accuracy)
+            && (
             <Source type="geojson" data={ this.carLocationCircle(carLocation) }>
-              <Layer id="polygon" type="fill" source="polygon" layout={{}}
-                paint={{ 'fill-color': '#31a1ee', 'fill-opacity': 0.3 }} />
+              <Layer
+                id="polygon"
+                type="fill"
+                source="polygon"
+                layout={{}}
+                paint={{ 'fill-color': '#31a1ee', 'fill-opacity': 0.3 }}
+              />
             </Source>
-          }
-          { search && !searchSelect && search.map((item) =>
-            <Marker latitude={ this.itemLoc(item).lat } longitude={ this.itemLoc(item).lng } key={ item.id }
-              offsetLeft={ -10 } offsetTop={ -30 } captureDrag={ false } captureClick={ false }
-              captureDoubleClick={ false }>
-              <PinMarkerIcon className={ classes.pinClick } onClick={ () => this.onSearchSelect(item, 'pin') }
-                alt="pin-location" />
+            )}
+          { search && !searchSelect && search.map((item) => (
+            <Marker
+              latitude={ this.itemLoc(item).lat }
+              longitude={ this.itemLoc(item).lng }
+              key={ item.id }
+              offsetLeft={ -10 }
+              offsetTop={ -30 }
+              captureDrag={ false }
+              captureClick={ false }
+              captureDoubleClick={ false }
+            >
+              <PinMarkerIcon
+                className={ classes.pinClick }
+                onClick={ () => this.onSearchSelect(item, 'pin') }
+                alt="pin-location"
+              />
             </Marker>
-          )}
+          ))}
           { searchSelect && this.renderSearchSelectMarker(searchSelect) }
-          { hasNav &&
-            <HTMLOverlay redraw={ this.renderOverlay } style={{ ...cardStyle, top: 10 }}
-              captureScroll={ true } captureDrag={ true } captureClick={ true } captureDoubleClick={ true }
-              capturePointerMove={ true } />
-          }
-          { searchSelect &&
-            <HTMLOverlay redraw={ this.renderSearchOverlay } captureScroll={ true } captureDrag={ true }
-              captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
-              style={{ ...cardStyle, bottom: 10 }} />
-          }
-          { search && searchLooking && !searchSelect &&
-            <HTMLOverlay redraw={ this.renderResearchArea } captureScroll={ true } captureDrag={ true }
-              captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
-              style={{ ...cardStyle, bottom: 10, left: '50%', width: 180, transform: 'translate(-50%, 0)' }} />
-          }
-          { showPrimeAd && !hasNav && !device.prime && device.is_owner &&
-            <HTMLOverlay redraw={ this.renderPrimeAd } captureScroll={ true } captureDrag={ true }
-              captureClick={ true } captureDoubleClick={ true } capturePointerMove={ true }
-              style={{ ...cardStyle, top: 10, left: windowWidth < 600 ? 10 : 'auto', right: 10 }} />
-          }
+          { hasNav
+            && (
+            <HTMLOverlay
+              redraw={ this.renderOverlay }
+              style={{ ...cardStyle, top: 10 }}
+              captureScroll
+              captureDrag
+              captureClick
+              captureDoubleClick
+              capturePointerMove
+            />
+            )}
+          { searchSelect
+            && (
+            <HTMLOverlay
+              redraw={ this.renderSearchOverlay }
+              captureScroll
+              captureDrag
+              captureClick
+              captureDoubleClick
+              capturePointerMove
+              style={{ ...cardStyle, bottom: 10 }}
+            />
+            )}
+          { search && searchLooking && !searchSelect
+            && (
+            <HTMLOverlay
+              redraw={ this.renderResearchArea }
+              captureScroll
+              captureDrag
+              captureClick
+              captureDoubleClick
+              capturePointerMove
+              style={{ ...cardStyle, bottom: 10, left: '50%', width: 180, transform: 'translate(-50%, 0)' }}
+            />
+            )}
+          { showPrimeAd && !hasNav && !device.prime && device.is_owner
+            && (
+            <HTMLOverlay
+              redraw={ this.renderPrimeAd }
+              captureScroll
+              captureDrag
+              captureClick
+              captureDoubleClick
+              capturePointerMove
+              style={{ ...cardStyle, top: 10, left: windowWidth < 600 ? 10 : 'auto', right: 10 }}
+            />
+            )}
         </ReactMapGL>
       </div>
     );
@@ -1077,7 +1183,8 @@ class Navigation extends Component {
   renderSearchSelectMarker(searchSelect) {
     const { classes } = this.props;
 
-    let lat, lng;
+    let lat; let
+      lng;
     if (searchSelect.resultType === 'car') {
       [lng, lat] = this.getCarLocation().location;
     } else {
@@ -1086,11 +1193,18 @@ class Navigation extends Component {
 
     const Icon = searchSelect.favoriteIcon || PinMarkerIcon;
     return (
-      <Marker latitude={ lat } longitude={ lng } offsetLeft={ -10 } offsetTop={ -30 }
-        captureDrag={ false } captureClick={ false } captureDoubleClick={ false }>
+      <Marker
+        latitude={ lat }
+        longitude={ lng }
+        offsetLeft={ -10 }
+        offsetTop={ -30 }
+        captureDrag={ false }
+        captureClick={ false }
+        captureDoubleClick={ false }
+      >
         <Icon className={ classes.pin } alt="pin-location" />
       </Marker>
-    )
+    );
   }
 
   renderOverlay() {
@@ -1099,34 +1213,47 @@ class Navigation extends Component {
     const carLocation = this.getCarLocation();
 
     return (
-      <div className={ classes.overlay } ref={ this.overlayRef } tabIndex={ -1 } onBlur={ this.onSearchBlur }
-        onClick={ this.focus }>
-        <TextField onChange={ this.onSearch } fullWidth={ true } inputRef={ this.searchInputRef }
+      <div
+        className={ classes.overlay }
+        ref={ this.overlayRef }
+        tabIndex={ -1 }
+        onBlur={ this.onSearchBlur }
+        onClick={ this.focus }
+      >
+        <TextField
+          onChange={ this.onSearch }
+          fullWidth
+          inputRef={ this.searchInputRef }
           placeholder="where do you want to go?"
           InputProps={{
             onFocus: this.onFocus,
             onBlur: this.onSearchBlur,
             classes: { root: classes.overlayTextfield },
             endAdornment: <>
-              { this.searchInputRef.current && this.searchInputRef.current.value &&
+              { this.searchInputRef.current && this.searchInputRef.current.value
+                && (
                 <InputAdornment position="end">
                   <Clear className={ classes.overlayClearButton } onClick={ this.clearSearch } />
                 </InputAdornment>
-              }
+                )}
               <InputAdornment position="end">
                 <Search className={ classes.overlaySearchButton } onClick={ this.onSearchBlur } />
               </InputAdornment>
-            </>
-          }} />
-        { search && !searchSelect && !searchLooking && <>
+            </>,
+          }}
+        />
+        { search && !searchSelect && !searchLooking && (
+        <>
           <div className={ classes.overlaySearchResultsHr } />
           <div className={ `${classes.overlaySearchResults} scrollstyle` }>
-            { !geoLocateCoords && !carLocation &&
+            { !geoLocateCoords && !carLocation
+              && (
               <Typography className={ classes.overlaySearchNoLocation }>
                 location unknown, turn on device for better results
-              </Typography> }
-            { search.length === 0 &&
-              <Typography className={ classes.overlaySearchNoResults }>no search results</Typography> }
+              </Typography>
+              ) }
+            { search.length === 0
+              && <Typography className={ classes.overlaySearchNoResults }>no search results</Typography> }
             { search.map((item) => (
               <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item, 'list') }>
                 <Typography>
@@ -1138,7 +1265,8 @@ class Navigation extends Component {
               </div>
             )) }
           </div>
-        </> }
+        </>
+        ) }
       </div>
     );
   }
@@ -1169,33 +1297,49 @@ class Navigation extends Component {
         <div className={ classes.searchSelectBoxHeader }>
           <div className={ classes.searchSelectBoxTitle }>
             <Typography className={ classes.bold }>{ title }</Typography>
-            { searchSelect.route &&
+            { searchSelect.route
+              && (
               <Typography className={ classes.searchSelectBoxDetails }>
-                { Utils.formatRouteDistance(searchSelect.route) } ({ Utils.formatRouteDuration(searchSelect.route) })
+                { Utils.formatRouteDistance(searchSelect.route) }
+                {' '}
+                (
+                { Utils.formatRouteDuration(searchSelect.route) }
+                )
               </Typography>
-            }
+              )}
             { isCar && <Typography className={ classes.searchSelectBoxDetails }>{ timeFromNow(carLocation.time) }</Typography> }
           </div>
           <div className={ classes.searchSelectBoxButtons }>
             <Button classes={{ root: isCar ? classes.searchSelectButton : classes.searchSelectButtonSecondary }} target="_blank" href={geoUri}>
               open in maps
             </Button>
-            { searchSelect.favoriteId ?
-              <Button disabled={ savingAs || savedAs } onClick={ this.deleteFavorite }
-                classes={{ root: classes.searchSelectButtonSecondary, label: classes.noWrap }}>
-                { savingAs ? '...' : 'delete' }
-              </Button>
-            :
-              <Button disabled={ savingAs || savedAs }
-                onClick={ (ev) => this.setState({ saveAsMenu: ev.target }) }
-                classes={{ root: classes.searchSelectButtonSecondary, label: classes.noWrap }}>
-                { savingAs ? '...' : (savedAs ? 'saved' : 'save as') }
-              </Button>
-            }
-            <Menu id="menu-save-as" open={ Boolean(saveAsMenu) } anchorEl={ saveAsMenu }
+            { searchSelect.favoriteId
+              ? (
+                <Button
+                  disabled={ savingAs || savedAs }
+                  onClick={ this.deleteFavorite }
+                  classes={{ root: classes.searchSelectButtonSecondary, label: classes.noWrap }}
+                >
+                  { savingAs ? '...' : 'delete' }
+                </Button>
+              )
+              : (
+                <Button
+                  disabled={ savingAs || savedAs }
+                  onClick={ (ev) => this.setState({ saveAsMenu: ev.target }) }
+                  classes={{ root: classes.searchSelectButtonSecondary, label: classes.noWrap }}
+                >
+                  { savingAs ? '...' : (savedAs ? 'saved' : 'save as') }
+                </Button>
+              )}
+            <Menu
+              id="menu-save-as"
+              open={ Boolean(saveAsMenu) }
+              anchorEl={ saveAsMenu }
               onClose={ () => this.setState({ saveAsMenu: null }) }
               anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
               <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('home') }>
                 home
               </MenuItem>
@@ -1206,24 +1350,38 @@ class Navigation extends Component {
                 favorite
               </MenuItem>
             </Menu>
-            { searchSelect.settingDest ?
-              <div className={ `${classes.searchSelectButton} ${classes.searchSelectButtonFake}` }
-                ref={ this.navigateFakeButtonRef }>
-                { searchSelect.success ?
-                  <Typography>destination set</Typography> :
-                  <CircularProgress size={ 19 } /> }
-                <Popper open={ Boolean(searchSelect.success && searchSelect.saved_next) } placement="bottom"
-                  anchorEl={ this.navigateFakeButtonRef.current } className={ classes.savedNextPopover }>
-                  <Typography>device offline</Typography>
-                  <Typography>destination will be set once device is online</Typography>
-                </Popper>
-              </div>
-            : (!isCar &&
-              <Button disabled={ Boolean(noRoute) } onClick={ this.navigate }
-                classes={{ root: classes.searchSelectButton }} style={{ marginBottom: 8 }}>
+            { searchSelect.settingDest
+              ? (
+                <div
+                  className={ `${classes.searchSelectButton} ${classes.searchSelectButtonFake}` }
+                  ref={ this.navigateFakeButtonRef }
+                >
+                  { searchSelect.success
+                    ? <Typography>destination set</Typography>
+                    : <CircularProgress size={ 19 } /> }
+                  <Popper
+                    open={ Boolean(searchSelect.success && searchSelect.saved_next) }
+                    placement="bottom"
+                    anchorEl={ this.navigateFakeButtonRef.current }
+                    className={ classes.savedNextPopover }
+                  >
+                    <Typography>device offline</Typography>
+                    <Typography>destination will be set once device is online</Typography>
+                  </Popper>
+                </div>
+              )
+              : (!isCar
+              && (
+              <Button
+                disabled={ Boolean(noRoute) }
+                onClick={ this.navigate }
+                classes={{ root: classes.searchSelectButton }}
+                style={{ marginBottom: 8 }}
+              >
                 { noRoute ? 'no route' : 'navigate' }
               </Button>
-            )}
+              )
+              )}
           </div>
         </div>
         <Typography className={ classes.searchSelectBoxDetails }>
@@ -1245,19 +1403,23 @@ class Navigation extends Component {
   }
 
   renderPrimeAd() {
-    const { classes} = this.props;
+    const { classes } = this.props;
 
     return (
       <div className={ `${classes.searchSelectBox} ${classes.primeAdContainer}` } ref={ this.primeAdBoxRef }>
-        <Clear className={ classes.clearSearchSelect }
-          onClick={ () => this.setState({ showPrimeAd: false }, this.flyToMarkers) } />
+        <Clear
+          className={ classes.clearSearchSelect }
+          onClick={ () => this.setState({ showPrimeAd: false }, this.flyToMarkers) }
+        />
         <div className={ classes.searchSelectBoxHeader }>
           <div className={ classes.searchSelectBoxTitle }>
             <Typography className={ classes.primeAdTitle }>comma prime</Typography>
           </div>
           <div className={ classes.searchSelectBoxButtons }>
-            <Button onClick={ () => this.props.dispatch(primeNav(true)) }
-              className={ `${classes.searchSelectButton} ${classes.primeAdButton} primeSignUp` }>
+            <Button
+              onClick={ () => this.props.dispatch(primeNav(true)) }
+              className={ `${classes.searchSelectButton} ${classes.primeAdButton} primeSignUp` }
+            >
               sign up
             </Button>
           </div>

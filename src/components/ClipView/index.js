@@ -46,14 +46,14 @@ class ClipView extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { currentRoute } = this.props;
+    const { currentRoute, dispatch } = this.props;
     if (prevProps.currentRoute !== currentRoute && currentRoute) {
-      this.props.dispatch(fetchEvents(currentRoute));
+      dispatch(fetchEvents(currentRoute));
     }
   }
 
   render() {
-    const { classes, clips } = this.props;
+    const { classes, clips, dispatch } = this.props;
 
     let title = 'Create a clip';
     let text = null;
@@ -71,24 +71,22 @@ class ClipView extends Component {
     }
 
     return (
-      <>
-        <div className={classes.window}>
-          <div className={classes.headerContext}>
-            <IconButton onClick={ () => this.props.dispatch(clipsExit()) }>
-              <CloseIcon />
-            </IconButton>
-            <div className={ classes.headerInfo }>
-              { title }
-            </div>
-            <div style={{ width: 48 }} />
+      <div className={classes.window}>
+        <div className={classes.headerContext}>
+          <IconButton onClick={ () => dispatch(clipsExit()) }>
+            <CloseIcon />
+          </IconButton>
+          <div className={ classes.headerInfo }>
+            { title }
           </div>
-          { clips.state === 'list' ? <ClipList /> : null }
-          { clips.state === 'create' ? <ClipCreate /> : null }
-          { clips.state === 'upload' ? <ClipUpload /> : null }
-          { clips.state === 'done' ? <ClipDone /> : null }
-          { clips.state === 'error' ? <div className={ classes.error }>{ text }</div> : null }
+          <div style={{ width: 48 }} />
         </div>
-      </>
+        { clips.state === 'list' ? <ClipList /> : null }
+        { clips.state === 'create' ? <ClipCreate /> : null }
+        { clips.state === 'upload' ? <ClipUpload /> : null }
+        { clips.state === 'done' ? <ClipDone /> : null }
+        { clips.state === 'error' ? <div className={ classes.error }>{ text }</div> : null }
+      </div>
     );
   }
 }

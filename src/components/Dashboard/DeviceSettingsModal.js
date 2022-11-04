@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import * as Sentry from "@sentry/react";
+import * as Sentry from '@sentry/react';
 
 import { withStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
@@ -46,14 +46,14 @@ const styles = (theme) => ({
     marginBottom: 5,
   },
   buttonGroup: {
-    textAlign: 'right'
+    textAlign: 'right',
   },
   form: {
     paddingTop: theme.spacing.unit,
-    paddingBottom: theme.spacing.unit
+    paddingBottom: theme.spacing.unit,
   },
   formRow: {
-    minHeight: 75
+    minHeight: 75,
   },
   formRowError: {
     padding: 10,
@@ -72,7 +72,7 @@ const styles = (theme) => ({
   wrapper: {
     margin: theme.spacing.unit,
     position: 'relative',
-    display: 'inline-block'
+    display: 'inline-block',
   },
   primeManageButton: {
     marginTop: 20,
@@ -157,7 +157,7 @@ class DeviceSettingsModal extends Component {
   handleAliasChange(e) {
     this.setState({
       deviceAlias: e.target.value,
-      hasSavedAlias: e.target.value === this.props.device.dongle_id ? this.state.hasSavedAlias : false
+      hasSavedAlias: e.target.value === this.props.device.dongle_id ? this.state.hasSavedAlias : false,
     });
   }
 
@@ -184,14 +184,14 @@ class DeviceSettingsModal extends Component {
 
     this.setState({
       loadingDeviceAlias: true,
-      hasSavedAlias: false
+      hasSavedAlias: false,
     });
     try {
       const device = await Devices.setDeviceAlias(dongle_id, this.state.deviceAlias.trim());
       this.props.dispatch(updateDevice(device));
       this.setState({
         loadingDeviceAlias: false,
-        hasSavedAlias: true
+        hasSavedAlias: true,
       });
     } catch (err) {
       Sentry.captureException(err, { fingerprint: 'device_settings_alias' });
@@ -206,7 +206,7 @@ class DeviceSettingsModal extends Component {
 
     this.setState({
       loadingDeviceShare: true,
-      hasShared: false
+      hasShared: false,
     });
     try {
       await Devices.grantDeviceReadPermission(this.props.dongleId, this.state.shareEmail.trim());
@@ -254,16 +254,16 @@ class DeviceSettingsModal extends Component {
     try {
       const resp = await Devices.unpair(this.props.device.dongle_id);
       if (resp.success) {
-        this.setState({ loadingUnpair: false, unpaired: true })
+        this.setState({ loadingUnpair: false, unpaired: true });
       } else if (resp.error) {
-        this.setState({ loadingUnpair: false, unpaired: false, unpairError: resp.error })
+        this.setState({ loadingUnpair: false, unpaired: false, unpairError: resp.error });
       } else {
-        this.setState({ loadingUnpair: false, unpaired: false, unpairError: 'Could not successfully unpair' })
+        this.setState({ loadingUnpair: false, unpaired: false, unpairError: 'Could not successfully unpair' });
       }
     } catch (err) {
       Sentry.captureException(err, { fingerprint: 'device_settings_unpair' });
       console.error(err);
-      this.setState({ loadingUnpair: false, unpaired: false, unpairError: 'Unable to unpair' })
+      this.setState({ loadingUnpair: false, unpaired: false, unpairError: 'Unable to unpair' });
     }
   }
 
@@ -281,125 +281,173 @@ class DeviceSettingsModal extends Component {
       return <></>;
     }
 
-    return ( <>
-      <Modal aria-labelledby="device-settings-modal" aria-describedby="device-settings-modal-description"
-        open={this.props.isOpen} onClose={this.props.onClose}>
-        <Paper className={classes.modal}>
-          <div className={ classes.titleContainer }>
-            <Typography variant="title">
-              Device settings
-            </Typography>
-            <Typography variant="caption">
-              { device.dongle_id }
-            </Typography>
-          </div>
-          <Divider />
-          <div>
-            <Button variant="outlined" className={ classes.primeManageButton } onClick={ this.onPrimeSettings }>
-              Prime settings
-            </Button>
-            <Button variant="outlined" className={ classes.primeManageButton }
-              onClick={ () => this.setState({ unpairConfirm: true }) }>
-              Unpair
-            </Button>
-          </div>
-          <div>
-            <Button variant="outlined" className={ classes.primeManageButton }
-              onClick={ () => this.setState({ uploadModal: true }) }>
-              Uploads
-            </Button>
-            <Button variant="outlined" className={ classes.primeManageButton }
-              onClick={ () => { this.props.onClose(); this.props.dispatch(fetchClipsList(this.props.dongleId)); }}>
-              View Clips
-            </Button>
-          </div>
-          <div className={classes.form}>
-            { this.state.error && <div className={ classes.formRowError }>
-              <Typography>{ this.state.error }</Typography>
-            </div> }
-            <div className={classes.formRow}>
-              <TextField id="device_alias" label="Device name" className={ classes.textField }
-                value={ this.state.deviceAlias ? this.state.deviceAlias : '' }
-                onChange={this.handleAliasChange} onKeyPress={ (ev) => this.callOnEnter(this.setDeviceAlias, ev) } />
-              { (this.props.device.alias !== this.state.deviceAlias || this.state.hasSavedAlias) &&
+    return (
+      <>
+        <Modal
+          aria-labelledby="device-settings-modal"
+          aria-describedby="device-settings-modal-description"
+          open={this.props.isOpen}
+          onClose={this.props.onClose}
+        >
+          <Paper className={classes.modal}>
+            <div className={ classes.titleContainer }>
+              <Typography variant="title">
+                Device settings
+              </Typography>
+              <Typography variant="caption">
+                { device.dongle_id }
+              </Typography>
+            </div>
+            <Divider />
+            <div>
+              <Button variant="outlined" className={ classes.primeManageButton } onClick={ this.onPrimeSettings }>
+                Prime settings
+              </Button>
+              <Button
+                variant="outlined"
+                className={ classes.primeManageButton }
+                onClick={ () => this.setState({ unpairConfirm: true }) }
+              >
+                Unpair
+              </Button>
+            </div>
+            <div>
+              <Button
+                variant="outlined"
+                className={ classes.primeManageButton }
+                onClick={ () => this.setState({ uploadModal: true }) }
+              >
+                Uploads
+              </Button>
+              <Button
+                variant="outlined"
+                className={ classes.primeManageButton }
+                onClick={ () => { this.props.onClose(); this.props.dispatch(fetchClipsList(this.props.dongleId)); }}
+              >
+                View Clips
+              </Button>
+            </div>
+            <div className={classes.form}>
+              { this.state.error && (
+              <div className={ classes.formRowError }>
+                <Typography>{ this.state.error }</Typography>
+              </div>
+              ) }
+              <div className={classes.formRow}>
+                <TextField
+                  id="device_alias"
+                  label="Device name"
+                  className={ classes.textField }
+                  value={ this.state.deviceAlias ? this.state.deviceAlias : '' }
+                  onChange={this.handleAliasChange}
+                  onKeyPress={ (ev) => this.callOnEnter(this.setDeviceAlias, ev) }
+                />
+                { (this.props.device.alias !== this.state.deviceAlias || this.state.hasSavedAlias)
+                && (
                 <div className={classes.wrapper}>
                   <IconButton variant="fab" onClick={this.setDeviceAlias}>
                     { this.state.hasSavedAlias && <CheckIcon /> || <SaveIcon /> }
                   </IconButton>
                   {this.state.loadingDeviceAlias && <CircularProgress size={48} className={classes.fabProgress} />}
                 </div>
-              }
-            </div>
-            <div className={classes.formRow}>
-              <TextField id="device_share" label="Share by email or user id" className={ classes.textField }
-                value={this.state.shareEmail} onChange={this.handleEmailChange} variant="outlined"
-                onKeyPress={ (ev) => this.callOnEnter(this.shareDevice, ev) }
-                helperText="give another user read access to this device" />
-              { (this.state.shareEmail.length > 0 || this.state.hasShared) &&
+                )}
+              </div>
+              <div className={classes.formRow}>
+                <TextField
+                  id="device_share"
+                  label="Share by email or user id"
+                  className={ classes.textField }
+                  value={this.state.shareEmail}
+                  onChange={this.handleEmailChange}
+                  variant="outlined"
+                  onKeyPress={ (ev) => this.callOnEnter(this.shareDevice, ev) }
+                  helperText="give another user read access to this device"
+                />
+                { (this.state.shareEmail.length > 0 || this.state.hasShared)
+                && (
                 <div className={classes.wrapper}>
                   <IconButton variant="fab" onClick={this.shareDevice}>
                     { this.state.hasShared && <CheckIcon /> || <ShareIcon /> }
                   </IconButton>
                   {this.state.loadingDeviceShare && <CircularProgress size={48} className={classes.fabProgress} />}
                 </div>
-              }
+                )}
+              </div>
             </div>
-          </div>
-          <div className={classes.buttonGroup}>
-            <Button variant="contained" className={ classes.cancelButton } onClick={this.props.onClose}>
-              Close
-            </Button>
-          </div>
-        </Paper>
-      </Modal>
-      <Modal aria-labelledby="device-settings-modal" aria-describedby="device-settings-modal-description"
-        open={this.state.unpairConfirm} onClose={ this.closeUnpair }>
-        <Paper className={ `${classes.modal} ${classes.modalUnpair}` }>
-          <div className={ classes.titleContainer }>
-            <Typography variant="title">
-              Unpair device
-            </Typography>
-            <Typography variant="caption">
-              { device.dongle_id }
-            </Typography>
-          </div>
-          <Divider />
-          { this.state.unpairError &&
+            <div className={classes.buttonGroup}>
+              <Button variant="contained" className={ classes.cancelButton } onClick={this.props.onClose}>
+                Close
+              </Button>
+            </div>
+          </Paper>
+        </Modal>
+        <Modal
+          aria-labelledby="device-settings-modal"
+          aria-describedby="device-settings-modal-description"
+          open={this.state.unpairConfirm}
+          onClose={ this.closeUnpair }
+        >
+          <Paper className={ `${classes.modal} ${classes.modalUnpair}` }>
+            <div className={ classes.titleContainer }>
+              <Typography variant="title">
+                Unpair device
+              </Typography>
+              <Typography variant="caption">
+                { device.dongle_id }
+              </Typography>
+            </div>
+            <Divider />
+            { this.state.unpairError
+            && (
             <div className={ classes.unpairError }>
               <ErrorOutlineIcon />
               <Typography>{ this.state.unpairError }</Typography>
             </div>
-          }
-          { this.props.device.prime &&
+            )}
+            { this.props.device.prime
+            && (
             <div className={ classes.unpairWarning }>
               <WarningIcon />
               <Typography>Unpairing will also cancel the comma prime subscription for this device.</Typography>
             </div>
-          }
-          <div className={ classes.topButtonGroup }>
-            <Button variant="contained" className={ `${classes.primeManageButton} ${classes.cancelButton}` }
-              onClick={ this.closeUnpair }>
-              { this.state.unpaired ? 'Close' : 'Cancel' }
-            </Button>
-            { this.state.unpaired ?
-              <Typography variant="body2">Unpaired</Typography> :
-              <Button variant="outlined" className={ classes.primeManageButton } onClick={ this.unpairDevice }
-                disabled={ this.state.loadingUnpair }>
-                { this.state.loadingUnpair ? 'Unpairing...' : 'Confirm' }
+            )}
+            <div className={ classes.topButtonGroup }>
+              <Button
+                variant="contained"
+                className={ `${classes.primeManageButton} ${classes.cancelButton}` }
+                onClick={ this.closeUnpair }
+              >
+                { this.state.unpaired ? 'Close' : 'Cancel' }
               </Button>
-            }
-          </div>
-        </Paper>
-      </Modal>
-      <UploadQueue open={ this.state.uploadModal } update={ this.state.uploadModal }
-        onClose={ () => this.setState({ uploadModal: false }) } device={ device } />
-    </> );
+              { this.state.unpaired
+                ? <Typography variant="body2">Unpaired</Typography>
+                : (
+                  <Button
+                    variant="outlined"
+                    className={ classes.primeManageButton }
+                    onClick={ this.unpairDevice }
+                    disabled={ this.state.loadingUnpair }
+                  >
+                    { this.state.loadingUnpair ? 'Unpairing...' : 'Confirm' }
+                  </Button>
+                )}
+            </div>
+          </Paper>
+        </Modal>
+        <UploadQueue
+          open={ this.state.uploadModal }
+          update={ this.state.uploadModal }
+          onClose={ () => this.setState({ uploadModal: false }) }
+          device={ device }
+        />
+      </>
+    );
   }
 }
 
 const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId) ||
-    ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
+  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId)
+    || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
     subscription: state.subscription,
     device,

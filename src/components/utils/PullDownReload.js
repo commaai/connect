@@ -5,9 +5,8 @@ import ReplayIcon from '@material-ui/icons/Replay';
 
 import Colors from '../../colors';
 
-const styles = (theme) => ({
+const styles = () => ({
   root: {
-    display: 'none',
     position: 'absolute',
     zIndex: 5050,
     top: -48,
@@ -60,35 +59,38 @@ class PullDownReload extends Component {
 
   touchMove(ev) {
     const { startY } = this.state;
-    if (startY === null || !this.dragEl.current) {
+    const { current: el } = this.dragEl;
+    if (startY === null || !el) {
       return;
     }
 
     const top = Math.min((ev.touches[0].pageY - startY) / 2 - 48, 32);
-    this.dragEl.current.style.transition = 'unset';
-    this.dragEl.current.style.top = `${top}px`;
+    el.style.transition = 'unset';
+    el.style.top = `${top}px`;
     if (ev.touches[0].pageY - startY > 0) {
       ev.preventDefault();
     } else {
       this.setState({ startY: null });
-      this.dragEl.current.style.transition = 'top 0.1s';
-      this.dragEl.current.style.top = '-48px';
+      el.style.transition = 'top 0.1s';
+      el.style.top = '-48px';
     }
   }
 
   touchEnd() {
-    if (this.state.startY === null || !this.dragEl.current) {
+    const { reloading, startY } = this.state;
+    const { current: el } = this.dragEl;
+    if (startY === null || !el) {
       return;
     }
 
-    const top = parseInt(this.dragEl.current.style.top.substring(0, this.dragEl.current.style.top.length - 2), 10);
-    if (top >= 32 && !this.state.reloading) {
+    const top = parseInt(el.style.top.substring(0, el.style.top.length - 2), 10);
+    if (top >= 32 && !reloading) {
       this.setState({ reloading: true });
       window.location.reload();
     } else {
       this.setState({ startY: null });
-      this.dragEl.current.style.transition = 'top 0.1s';
-      this.dragEl.current.style.top = '-48px';
+      el.style.transition = 'top 0.1s';
+      el.style.top = '-48px';
     }
   }
 
@@ -96,7 +98,7 @@ class PullDownReload extends Component {
     const { classes } = this.props;
 
     return (
-      <div className={ classes.root } ref={ this.dragEl }>
+      <div className={classes.root} ref={this.dragEl}>
         <ReplayIcon />
       </div>
     );

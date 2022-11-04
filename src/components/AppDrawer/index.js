@@ -12,7 +12,7 @@ import DeviceList from '../Dashboard/DeviceList';
 
 import { selectDevice } from '../../actions';
 
-const styles = (/* theme */) => ({
+const styles = () => ({
   header: {
     display: 'flex',
     height: 64,
@@ -78,19 +78,26 @@ class AppDrawer extends Component {
     const { classes, isPermanent, drawerIsOpen, selectedDongleId } = this.props;
 
     return (
-      <Drawer open={ isPermanent || drawerIsOpen } onClose={this.toggleDrawerOff}
-        variant={ isPermanent ? "permanent" : "temporary" }
-        PaperProps={{ style: { width: this.props.width, top: 'auto' }}}>
+      <Drawer
+        open={ isPermanent || drawerIsOpen }
+        onClose={this.toggleDrawerOff}
+        variant={ isPermanent ? 'permanent' : 'temporary' }
+        PaperProps={{ style: { width: this.props.width, top: 'auto' } }}
+      >
         <div className={classes.drawerContent}>
-          { !isPermanent &&
+          { !isPermanent
+            && (
             <Link to="/" className={ classes.logo }>
               <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
               <Typography className={ classes.logoText }>connect</Typography>
             </Link>
-          }
-          <div style={{ height: 24 }}></div>
-          <DeviceList selectedDevice={ selectedDongleId } handleDeviceSelected={this.handleDeviceSelected}
-            headerHeight={ 64 + 24 } />
+            )}
+          <div style={{ height: 24 }} />
+          <DeviceList
+            selectedDevice={ selectedDongleId }
+            handleDeviceSelected={this.handleDeviceSelected}
+            headerHeight={ 64 + 24 }
+          />
         </div>
       </Drawer>
     );

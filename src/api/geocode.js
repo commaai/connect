@@ -37,13 +37,8 @@ export default function geocodeApi() {
   }
 
   function priorityGetContext(contexts) {
-    for (const prio of ['place', 'locality', 'district']) {
-      for (const ctx of contexts) {
-        if (ctx.id.indexOf(prio) !== -1) {
-          return ctx;
-        }
-      }
-    }
+    const priority = ['place', 'locality', 'district'];
+    return priority.find((prio) => contexts.find((ctx) => ctx.id.indexOf(prio) > -1));
   }
 
   return {
@@ -78,34 +73,40 @@ export default function geocodeApi() {
           if (navFormat) {
             // Used for navigation locations API (saving favorites)
             // Try to format location similarly to HERE, which is where the search results come from
+
             // e.g. Mapbox returns "Street", "Avenue", etc.
             const context = getContextMap(features[0].context);
-            const place = features[0].text; // e.g. "State St", TODO: Street -> St, Avenue -> Ave, etc.
-            const details = `${context.place}, ${context.region} ${context.postcode}, ${context.country}`; // e.g. "San Diego, CA 92101, United States"
-
-            return { place, details };
-          } else {
-            let contexts = getFilteredContexts(features[0].context);
-
-            // Used for location name/area in drive list
-            let place = ''; // e.g. "Little Italy"
-            let details = ''; // e.g. "San Diego, CA"
-            if (contexts.length > 0) {
-              place = getContextString(contexts.shift());
-            }
-            if (contexts.length > 0) {
-              details = getContextString(contexts.pop());
-            }
-            if (contexts.length > 0) {
-              details = `${getContextString(priorityGetContext(contexts))}, ${details}`;
-            }
+            // e.g. "State St", TODO: Street -> St, Avenue -> Ave, etc.
+            const place = features[0].text;
+            // e.g. "San Diego, CA 92101, United States"
+            const details = `${context.place}, ${context.region} ${context.postcode}, ${context.country}`;
 
             return { place, details };
           }
+          const contexts = getFilteredContexts(features[0].context);
+
+          // Used for location name/area in drive list
+          // e.g. "Little Italy"
+          let place = '';
+          // e.g. "San Diego, CA"
+          let details = '';
+          if (contexts.length > 0) {
+            place = getContextString(contexts.shift());
+          }
+          if (contexts.length > 0) {
+            details = getContextString(contexts.pop());
+          }
+          if (contexts.length > 0) {
+            details = `${getContextString(priorityGetContext(contexts))}, ${details}`;
+          }
+
+          return { place, details };
         }
       } catch (err) {
         Sentry.captureException(err, { fingerprint: 'geocode_reverse_parse' });
       }
+
+      return null;
     },
 
     async forwardLookup(query, proximity, viewport) {

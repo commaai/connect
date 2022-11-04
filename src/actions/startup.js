@@ -24,6 +24,7 @@ async function initProfile() {
   } else if (Demo.isDemo()) {
     return demoProfile;
   }
+  return null;
 }
 
 async function initDevices() {

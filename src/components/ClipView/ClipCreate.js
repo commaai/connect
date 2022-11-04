@@ -139,8 +139,14 @@ class ClipCreate extends Component {
 
     this.setState({ createLoading: true });
     try {
-      const resp = await Clips.clipsCreate(currentRoute.fullname, clipTitle, loop.startTime, loop.startTime + loop.duration,
-        videoTypeOption, false);
+      const resp = await Clips.clipsCreate(
+        currentRoute.fullname,
+        clipTitle,
+        loop.startTime,
+        loop.startTime + loop.duration,
+        videoTypeOption,
+        false,
+      );
       if (resp && resp.success) {
         this.props.dispatch(clipsCreate(resp.clip_id, videoTypeOption, clipTitle, false));
       } else if (resp.error == 'too_many_pending') {
@@ -204,7 +210,9 @@ class ClipCreate extends Component {
                 onClick={ () => this.setState({ videoTypeOption: 'q' }) }
               >
                 <Typography className={classes.mediaOptionText}>
-                  Front { windowWidth < 450 ? '(SD)' : '(low-res)' }
+                  Front
+                  {' '}
+                  { windowWidth < 450 ? '(SD)' : '(low-res)' }
                 </Typography>
               </div>
               <div

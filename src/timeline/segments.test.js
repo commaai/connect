@@ -26,38 +26,41 @@ const routes = [{
 
 describe('segments', () => {
   it('finds current segment', async () => {
+    const [route] = routes;
     let r = getCurrentRoute({
       routes,
-      offset: routes[0].offset,
+      offset: route.offset,
       desiredPlaySpeed: 1,
       startTime: Date.now(),
     });
-    expect(r.fullname).toBe(routes[0].fullname);
-    expect(getSegmentNumber(r, routes[0].offset)).toBe(0);
+    expect(r.fullname).toBe(route.fullname);
+    expect(getSegmentNumber(r, route.offset)).toBe(0);
 
     r = getCurrentRoute({
       routes,
-      offset: routes[0].offset + SEGMENT_LENGTH * 1.1,
+      offset: route.offset + SEGMENT_LENGTH * 1.1,
       desiredPlaySpeed: 1,
       startTime: Date.now(),
     });
-    expect(getSegmentNumber(r, routes[0].offset + SEGMENT_LENGTH * 1.1)).toBe(1);
+    expect(getSegmentNumber(r, route.offset + SEGMENT_LENGTH * 1.1)).toBe(1);
   });
 
   it('finds last segment of a route', async () => {
-    const offset = routes[0].offset + SEGMENT_LENGTH * (routes[0].segment_offsets.length - 1) + 1000;
+    const [route] = routes;
+    const offset = route.offset + SEGMENT_LENGTH * (route.segment_offsets.length - 1) + 1000;
     const r = getCurrentRoute({
       routes,
       offset,
       desiredPlaySpeed: 1,
       startTime: Date.now(),
     });
-    expect(r.fullname).toBe(routes[0].fullname);
-    expect(getSegmentNumber(r, offset)).toBe(routes[0].segment_offsets.length - 1);
+    expect(r.fullname).toBe(route.fullname);
+    expect(getSegmentNumber(r, offset)).toBe(route.segment_offsets.length - 1);
   });
 
   it('ends last segment of a route', async () => {
-    const offset = routes[0].offset + routes[0].duration - 10;
+    const [route] = routes;
+    const offset = route.offset + route.duration - 10;
     const r = getCurrentRoute({
       routes,
       offset,

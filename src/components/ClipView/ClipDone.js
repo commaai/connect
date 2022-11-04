@@ -221,7 +221,7 @@ class ClipDone extends Component {
     }
   }
 
-  setVideoAttributes() {  // hack to ensure playsinline is set
+  setVideoAttributes() { // hack to ensure playsinline is set
     const video = this.video360Container.querySelector('video');
     if (video) {
       video.setAttribute('playsinline', '');
@@ -272,7 +272,7 @@ class ClipDone extends Component {
       if (typeof navigator.share !== 'undefined') {
         await navigator.share({
           title: 'comma connect',
-          url: url,
+          url,
         });
       } else {
         await navigator.clipboard.writeText(url);
@@ -331,9 +331,8 @@ class ClipDone extends Component {
     const { clips } = this.props;
     if (clips.is_public) {
       return this.makePrivate(ev);
-    } else {
-      return this.makePublic(ev);
     }
+    return this.makePublic(ev);
   }
 
   async deleteClip() {
@@ -369,91 +368,122 @@ class ClipDone extends Component {
     const { windowWidth, deleteModal, copiedPopover, errorPopover, errorMessage } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
-    const videoSizeStyle = windowWidth > 1080 ?
-      { maxHeight: 'calc(100vh - 224px)', width: '100%' } :
-      { maxHeight: 'calc(100vh - 64px)', width: '100%' };
+    const videoSizeStyle = windowWidth > 1080
+      ? { maxHeight: 'calc(100vh - 224px)', width: '100%' }
+      : { maxHeight: 'calc(100vh - 64px)', width: '100%' };
 
     const authorized = Boolean(device?.is_owner || profile?.superuser);
 
-    return <>
-      <ResizeHandler onResize={ this.onResize } />
+    return (
+      <>
+        <ResizeHandler onResize={ this.onResize } />
 
-      <div style={{ padding: viewerPadding }}>
-        <div className={ `${classes.clipOption} ${classes.clipHeader}` }>
-          <h4>
-            { clips.title ? clips.title : clips.route.split('|')[1] }
-          </h4>
-          { authorized &&
-            <SwitchLoading classes={{ root: classes.publicSwitch }} checked={ clips.is_public } onChange={ this.onPublicToggle } label="Public access" />
-          }
+        <div style={{ padding: viewerPadding }}>
+          <div className={ `${classes.clipOption} ${classes.clipHeader}` }>
+            <h4>
+              { clips.title ? clips.title : clips.route.split('|')[1] }
+            </h4>
+            { authorized
+            && <SwitchLoading classes={{ root: classes.publicSwitch }} checked={ clips.is_public } onChange={ this.onPublicToggle } label="Public access" />}
+          </div>
+          <div
+            className={ classes.clipOption }
+            ref={ (el) => { if (el) el.addEventListener('touchstart', (ev) => ev.stopPropagation()); }}
+          >
+            { clips.video_type === '360'
+              ? <div ref={ this.video360ContainerRef } style={{ ...videoSizeStyle, height: '50vh' }} />
+              : (
+                <video
+                  autoPlay
+                  controls
+                  muted
+                  playsInline
+                  loop
+                  style={ videoSizeStyle }
+                  poster={clips.thumbnail}
+                >
+                  { clips.url && <source src={ clips.url} /> }
+                </video>
+              )}
+          </div>
+          <div className={ classes.clipOption }>
+            <div className={classes.buttonView}>
+              <Button onClick={ this.downloadFile } className={ classes.button }>
+                Download
+                <FileDownloadIcon />
+              </Button>
+              { authorized && (
+              <>
+                <Button
+                  className={ classes.button }
+                  title="Copy link to clipboard"
+                  onClick={ (ev) => { ev.persist(); this.shareCurrentClip(ev); } }
+                >
+                  Share
+                  <ShareIcon />
+                </Button>
+                <Button
+                  className={ classes.button }
+                  href={ `/${dongleId}/${clips.start_time}/${clips.end_time}` }
+                  onClick={ filterRegularClick(() => this.props.dispatch(selectRange(clips.start_time, clips.end_time))) }
+                >
+                  View route
+                  <CropOriginalIcon />
+                </Button>
+                <Button className={ classes.button } onClick={ () => this.setState({ deleteModal: {} }) }>
+                  Delete
+                  <DeleteIcon />
+                </Button>
+              </>
+              ) }
+            </div>
+          </div>
         </div>
-        <div className={ classes.clipOption }
-          ref={ (el) => { if (el) el.addEventListener('touchstart', (ev) => ev.stopPropagation()); }}>
-          { clips.video_type === '360' ?
-            <div ref={ this.video360ContainerRef } style={{ ...videoSizeStyle, height: '50vh' }} />
-          :
-            <video autoPlay={true} controls={true} muted={true} playsInline={true} loop={true} style={ videoSizeStyle }
-              poster={clips.thumbnail}>
-              { clips.url && <source src={ clips.url} /> }
-            </video>
-          }
-        </div>
-        <div className={ classes.clipOption }>
-          <div className={classes.buttonView}>
-            <Button onClick={ this.downloadFile } className={ classes.button }>
-              Download
-              <FileDownloadIcon />
-            </Button>
-            { authorized && <>
+        <Popper
+          open={ Boolean(copiedPopover) }
+          placement="bottom"
+          anchorEl={ copiedPopover }
+          className={ classes.popover }
+        >
+          <Typography>copied to clipboard</Typography>
+        </Popper>
+        <Popper
+          open={ Boolean(errorPopover) }
+          placement="bottom"
+          anchorEl={ errorPopover }
+          className={ classes.popover }
+        >
+          <Typography>{ errorMessage }</Typography>
+        </Popper>
+        <Modal open={ Boolean(deleteModal) } onClose={ this.closeDeleteModal }>
+          <Paper className={classes.modal}>
+            { Boolean(deleteModal?.error) && (
+            <div className={ classes.deleteError }>
+              <Typography>{ deleteModal?.error }</Typography>
+            </div>
+            ) }
+            { Boolean(deleteModal?.success) && (
+            <div className={ classes.deleteSuccess }>
+              <Typography>{ deleteModal?.success }</Typography>
+            </div>
+            ) }
+            <Typography>Are you sure you want to permanently delete this clip?</Typography>
+            <div className={ classes.modalButtons }>
+              <Button variant="contained" onClick={ this.closeDeleteModal }>
+                Close
+              </Button>
               <Button
-                className={ classes.button } title="Copy link to clipboard"
-                onClick={ (ev) => { ev.persist(); this.shareCurrentClip(ev); } }
+                variant="contained"
+                disabled={ Boolean(deleteModal?.success || deleteModal?.loading) }
+                onClick={ this.deleteClip }
               >
-                Share
-                <ShareIcon />
+                { deleteModal?.loading ? <CircularProgress size={ 19 } style={{ color: Colors.white }} /> : 'Delete clip' }
               </Button>
-              <Button className={ classes.button } href={ `/${dongleId}/${clips.start_time}/${clips.end_time}` }
-                onClick={ filterRegularClick(() => this.props.dispatch(selectRange(clips.start_time, clips.end_time))) }>
-                View route
-                <CropOriginalIcon />
-              </Button>
-              <Button className={ classes.button } onClick={ () => this.setState({ deleteModal: {} }) }>
-                Delete
-                <DeleteIcon />
-              </Button>
-            </> }
-          </div>
-        </div>
-      </div>
-      <Popper open={ Boolean(copiedPopover) } placement='bottom' anchorEl={ copiedPopover }
-        className={ classes.popover }>
-        <Typography>copied to clipboard</Typography>
-      </Popper>
-      <Popper open={ Boolean(errorPopover) } placement='bottom' anchorEl={ errorPopover }
-        className={ classes.popover }>
-        <Typography>{ errorMessage }</Typography>
-      </Popper>
-      <Modal open={ Boolean(deleteModal) } onClose={ this.closeDeleteModal }>
-        <Paper className={classes.modal}>
-          { Boolean(deleteModal?.error) && <div className={ classes.deleteError }>
-            <Typography>{ deleteModal?.error }</Typography>
-          </div> }
-          { Boolean(deleteModal?.success) && <div className={ classes.deleteSuccess }>
-            <Typography>{ deleteModal?.success }</Typography>
-          </div> }
-          <Typography>Are you sure you want to permanently delete this clip?</Typography>
-          <div className={ classes.modalButtons }>
-            <Button variant="contained" onClick={ this.closeDeleteModal }>
-              Close
-            </Button>
-            <Button variant="contained" disabled={ Boolean(deleteModal?.success || deleteModal?.loading) }
-              onClick={ this.deleteClip }>
-              { deleteModal?.loading ? <CircularProgress size={ 19 } style={{ color: Colors.white }} /> : 'Delete clip' }
-            </Button>
-          </div>
-        </Paper>
-      </Modal>
-    </>;
+            </div>
+          </Paper>
+        </Modal>
+      </>
+    );
   }
 }
 

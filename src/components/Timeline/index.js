@@ -361,21 +361,22 @@ class Timeline extends Component {
   }
 
   clipDragGetNewLoop(ev) {
-    const { zoom } = this.props;
-    const { clip } = this.state;
+    const { zoom: { end: zoomEnd, start: zoomStart } } = this.props;
+    const { clip: { initLoop, startX, type } } = this.state;
 
     const rulerWidth = this.rulerRef.current.getBoundingClientRect().width;
-    const changePercentage = (ev.pageX - clip.startX) / rulerWidth;
+    const changePercentage = (ev.pageX - startX) / rulerWidth;
 
-    let newStart, newEnd;
-    if (clip.type === 'start') {
-      newEnd = clip.initLoop.startTime + clip.initLoop.duration;
-      newStart = clip.initLoop.startTime + ((zoom.end - zoom.start) * changePercentage);
-      newStart = Math.min(Math.max(newStart, zoom.start), newEnd - 1000);
-    } else if (clip.type === 'end') {
-      newStart = clip.initLoop.startTime;
-      newEnd = clip.initLoop.startTime + clip.initLoop.duration + ((zoom.end - zoom.start) * changePercentage);
-      newEnd = Math.max(Math.min(newEnd, zoom.end), newStart + 1000);
+    let newStart; let
+      newEnd;
+    if (type === 'start') {
+      newEnd = initLoop.startTime + initLoop.duration;
+      newStart = initLoop.startTime + ((zoomEnd - zoomStart) * changePercentage);
+      newStart = Math.min(Math.max(newStart, zoomStart), newEnd - 1000);
+    } else if (type === 'end') {
+      newStart = initLoop.startTime;
+      newEnd = initLoop.startTime + initLoop.duration + ((zoomEnd - zoomStart) * changePercentage);
+      newEnd = Math.max(Math.min(newEnd, zoomEnd), newStart + 1000);
     }
 
     return {
@@ -398,12 +399,16 @@ class Timeline extends Component {
   }
 
   clipDragEnd(ev) {
+    const { clip } = this.state;
+    const { dispatch } = this.props;
+
     document.removeEventListener('pointerup', this.clipDragEnd);
     document.removeEventListener('pointermove', this.clipDragEnd);
-    if (this.state.clip) {
+
+    if (clip) {
       ev.preventDefault();
       const newLoop = this.clipDragGetNewLoop(ev);
-      this.props.dispatch(selectLoop(newLoop.startTime, newLoop.startTime + newLoop.duration));
+      dispatch(selectLoop(newLoop.startTime, newLoop.startTime + newLoop.duration));
       this.setState({ clip: null });
     }
   }
@@ -425,10 +430,10 @@ class Timeline extends Component {
     if (!routes) {
       return null;
     }
-    for (const r of routes) {
-      if (r.offset <= offset && r.offset + r.duration >= offset) {
-        return getSegmentNumber(r, offset);
-      }
+
+    const route = routes.find((r) => r.offset <= offset && r.offset + r.duration >= offset);
+    if (route) {
+      return getSegmentNumber(route, offset);
     }
     return null;
   }
@@ -494,16 +499,16 @@ class Timeline extends Component {
   }
 
   renderClipView() {
-    const { classes, zoom, loop } = this.props;
+    const { classes, zoom: { end: zoomEnd, start: zoomStart }, loop } = this.props;
     const { clip } = this.state;
 
-    const showLoop = clip ? clip.loop : loop;
+    const { startTime, duration } = clip ? clip.loop : loop;
 
-    const loopStartPercent = ((showLoop.startTime - zoom.start) / (zoom.end - zoom.start)) * 100.0;
-    const loopEndPercent = ((zoom.end - showLoop.startTime - showLoop.duration) / (zoom.end - zoom.start)) * 100.0;
-    const loopDurationPercent = (showLoop.duration / (zoom.end - zoom.start)) * 100.0;
+    const loopStartPercent = ((startTime - zoomStart) / (zoomEnd - zoomStart)) * 100.0;
+    const loopEndPercent = ((zoomEnd - startTime - duration) / (zoomEnd - zoomStart)) * 100.0;
+    const loopDurationPercent = (duration / (zoomEnd - zoomStart)) * 100.0;
 
-    const rulerWidth = this.rulerRef.current ? this.rulerRef.current.getBoundingClientRect().width : 640;
+    const rulerWidth = this.rulerRef.current?.getBoundingClientRect()?.width || 640;
     const handleWidth = rulerWidth < 640 ? 28 : 12;
 
     const dragBorderStyle = {
@@ -549,7 +554,8 @@ class Timeline extends Component {
       rulerBounds = this.rulerRef.current.getBoundingClientRect();
     }
 
-    let hoverString, hoverStyle;
+    let hoverString; let
+      hoverStyle;
     if (rulerBounds && hoverX) {
       const hoverOffset = this.percentToOffset((hoverX - rulerBounds.x) / rulerBounds.width);
       hoverStyle = { left: Math.max(-10, Math.min(rulerBounds.width - 70, hoverX - rulerBounds.x - 40)) };
@@ -568,7 +574,7 @@ class Timeline extends Component {
         left: `${Math.min(dragging[1], dragging[0]) - rulerBounds.x}px`,
         width: `${Math.abs(dragging[1] - dragging[0])}px`,
       };
-    };
+    }
 
     const rulerWidth = this.rulerRef.current ? this.rulerRef.current.getBoundingClientRect().width : 640;
     const handleWidth = rulerWidth < 640 ? 28 : 12;

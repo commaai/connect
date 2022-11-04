@@ -4,7 +4,7 @@ import { Route, Switch, Redirect } from 'react-router';
 import { ConnectedRouter } from 'connected-react-router';
 import qs from 'query-string';
 import localforage from 'localforage';
-import * as Sentry from "@sentry/react";
+import * as Sentry from '@sentry/react';
 
 import { CircularProgress, Grid } from '@material-ui/core';
 
@@ -112,8 +112,8 @@ class App extends Component {
       return this.renderLoading();
     }
 
-    const showLogin = !MyCommaAuth.isAuthenticated() && !isDemo() && !getZoom(window.location.pathname) &&
-      !getClipsNav(window.location.pathname)?.clip_id;
+    const showLogin = !MyCommaAuth.isAuthenticated() && !isDemo() && !getZoom(window.location.pathname)
+      && !getClipsNav(window.location.pathname)?.clip_id;
     return (
       <Provider store={store}>
         <ConnectedRouter history={history}>
