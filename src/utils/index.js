@@ -162,20 +162,24 @@ export function deviceVersionAtLeast(device, version) {
     return false;
   }
 
-  const deviceVersionParts = device.openpilot_version.split('.');
+  const deviceParts = device.openpilot_version.split('.');
   const versionParts = version.split('.');
-  for (const i in versionParts) {
-    const devicePart = parseInt(deviceVersionParts[i], 10);
-    const part = parseInt(versionParts[i], 10);
-    if (!Number.isInteger(devicePart)) {
-      return false;
-    } else if (devicePart > part) {
-      return true;
-    } else if (devicePart < part) {
-      return false;
+  try {
+    for (let i = 0; i < versionParts.length; i++) {
+      const devicePart = deviceParts[i] ? parseInt(deviceParts[i], 10) : 0;
+      const versionPart = parseInt(versionParts[i], 10);
+      if (!Number.isInteger(devicePart) || devicePart < versionPart) {
+        return false;
+      }
+      if (devicePart > versionPart) {
+        return true;
+      }
     }
+    return true;
+  } catch (err) {
+    Sentry.captureException(err);
+    return false;
   }
-  return true;
 }
 
 export function getDeviceFromState(state, dongleId) {
