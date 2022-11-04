@@ -5,6 +5,8 @@ const { GenerateSW } = require('workbox-webpack-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const zlib = require('zlib');
 
+const eslintConfig = require('./.eslintrc');
+
 module.exports = ({ env }) => {
   let sentryPlugin;
   if (env === 'production' && process.env.SENTRY_AUTH_TOKEN) {
@@ -44,6 +46,7 @@ module.exports = ({ env }) => {
   return {
     eslint: {
       enable: false,
+      config: eslintConfig,
     },
     webpack: {
       plugins: [sentryPlugin, workboxPlugin, compressionPlugin].filter(Boolean),
