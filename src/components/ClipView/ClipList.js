@@ -181,10 +181,7 @@ class ClipList extends Component {
         text: (
           <>
             <Typography variant="body1">{errorText}</Typography>
-            <Typography variant="caption">
-              Clip ID:
-              {c.clip_id}
-            </Typography>
+            <Typography variant="caption">{`Clip ID: ${c.clip_id}`}</Typography>
           </>
         ),
       },
