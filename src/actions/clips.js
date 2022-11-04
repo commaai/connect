@@ -3,7 +3,7 @@ import { push } from 'connected-react-router';
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { clips as Clips } from '@commaai/api';
 
-import { checkRoutesData, selectDevice, urlForState } from './';
+import { checkRoutesData, selectDevice, urlForState } from '.';
 import { getClipsNav } from '../url';
 import * as Types from './types';
 
@@ -157,7 +157,7 @@ export function fetchClipsDetails(clip_id) {
     } catch (err) {
       if (err.resp && err.resp.status === 404) {
         if (!MyCommaAuth.isAuthenticated()) {
-          window.location = `/?r=${encodeURI(window.location.pathname)}`;  // redirect to login
+          window.location = `/?r=${encodeURI(window.location.pathname)}`; // redirect to login
         } else {
           dispatch({
             type: Types.ACTION_CLIPS_ERROR,

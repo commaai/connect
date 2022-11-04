@@ -37,7 +37,7 @@ const styles = (theme) => ({
   settingsButton: {
     position: 'relative',
     left: 12,
-    border: `1px solid ${Colors.white40}`
+    border: `1px solid ${Colors.white40}`,
   },
   settingsButtonIcon: {
     color: Colors.white40,
@@ -93,7 +93,13 @@ class DriveList extends Component {
     if (device && routes === null) {
       zeroRidesEle = <Typography>Loading...</Typography>;
     } else if (hasRoutesData(this.props) && routes?.length === 0) {
-      zeroRidesEle = <Typography>Looks like you haven{'\''}t driven in the selected time range.</Typography>;
+      zeroRidesEle = (
+        <Typography>
+          Looks like you haven
+          {'\''}
+          t driven in the selected time range.
+        </Typography>
+      );
     }
 
     const containerPadding = windowWidth > 520 ? 36 : 16;

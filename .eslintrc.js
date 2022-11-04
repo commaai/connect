@@ -19,6 +19,7 @@ module.exports = {
     ],
     'react/prop-types': 0,
     'react/require-default-props': 0,
+    'no-await-in-loop': 'warn',
     'no-plusplus': [
       'error',
       {

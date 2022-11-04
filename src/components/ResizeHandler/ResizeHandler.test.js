@@ -3,8 +3,7 @@ import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react';
 
 import ResizeHandler from '.';
-
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+import { asyncSleep } from '../../utils';
 
 describe('resize handler', () => {
   it('registers, triggers and unregistered resize listener', async () => {
@@ -42,7 +41,7 @@ describe('resize handler', () => {
     // Wait for the resize handler in the component to be registered (useEffect callback is async)
     await waitFor(() => expect(aResizeEventListenerWasAddedToWindow).toBeTruthy());
     fireEvent.resize(window);
-    await sleep(150);
+    await asyncSleep(150);
     expect(callback).toHaveBeenCalled();
 
     unmount();

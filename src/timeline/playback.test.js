@@ -1,4 +1,5 @@
 /* eslint-env jest */
+const { asyncSleep } = require('../utils');
 const Playback = require('./playback');
 
 const makeDefaultStruct = function makeDefaultStruct() {
@@ -26,10 +27,6 @@ function newNow() {
   return mostRecentNow;
 }
 
-async function delay(ms) {
-  return new Promise((resolve /* , reject */) => setTimeout(resolve, ms));
-}
-
 describe('playback', () => {
   it('has playback controls', async () => {
     newNow();
@@ -46,7 +43,7 @@ describe('playback', () => {
     expect(state.startTime).toEqual(playTime);
     expect(state.desiredPlaySpeed).toEqual(1);
 
-    await delay(100 + Math.random() * 200);
+    await asyncSleep(100 + Math.random() * 200);
     // should update offset
     let ellapsed = newNow() - playTime;
     state = Playback.reducer(state, Playback.pause());
@@ -60,7 +57,7 @@ describe('playback', () => {
     expect(state.startTime).toEqual(playTime);
     expect(state.desiredPlaySpeed).toEqual(0.5);
 
-    await delay(100 + Math.random() * 200);
+    await asyncSleep(100 + Math.random() * 200);
     // should update offset, playback speed 1/2
     ellapsed += (newNow() - playTime) / 2;
     expect(Playback.currentOffset(state)).toEqual(ellapsed);
@@ -82,7 +79,10 @@ describe('playback', () => {
 
     // set up loop
     state = Playback.reducer(state, Playback.play());
-    state = Playback.reducer(state, Playback.selectLoop(state.filter.start + 1000, state.filter.start + 2000));
+    state = Playback.reducer(state, Playback.selectLoop(
+      state.filter.start + 1000,
+      state.filter.start + 2000,
+    ));
     expect(state.loop.startTime).toEqual(state.filter.start + 1000);
 
     // seek past loop end boundary a
@@ -97,7 +97,10 @@ describe('playback', () => {
 
     // set up loop
     state = Playback.reducer(state, Playback.play());
-    state = Playback.reducer(state, Playback.selectLoop(state.filter.start + 1000, state.filter.start + 2000));
+    state = Playback.reducer(state, Playback.selectLoop(
+      state.filter.start + 1000,
+      state.filter.start + 2000,
+    ));
     expect(state.loop.startTime).toEqual(state.filter.start + 1000);
 
     // seek past loop end boundary a

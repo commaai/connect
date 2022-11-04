@@ -5,7 +5,7 @@ import { athena as Athena, billing as Billing, devices as Devices, drives as Dri
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
-import { resetPlayback, selectLoop } from '../timeline/playback'
+import { resetPlayback, selectLoop } from '../timeline/playback';
 import { getSegmentFetchRange, hasRoutesData } from '../timeline/segments';
 import { getClipsNav } from '../url';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
@@ -19,15 +19,14 @@ export function selectRange(start, end, allowPathChange = true) {
       dispatch({
         type: Types.TIMELINE_SELECTION_CHANGED,
         start,
-        end
+        end,
       });
     }
 
     dispatch(checkRoutesData());
 
-    if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start ||
-      state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start)
-    {
+    if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
+      || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
       dispatch(resetPlayback());
       dispatch(selectLoop(start, end));
     }
@@ -57,7 +56,7 @@ export function selectDevice(dongleId, allowPathChange = true) {
       dongleId,
     });
 
-    dispatch(selectRange(null, null, false))
+    dispatch(selectRange(null, null, false));
     if ((device && !device.shared) || state.profile?.superuser) {
       dispatch(primeFetchSubscription(dongleId, device));
       dispatch(fetchDeviceOnline(dongleId));
@@ -142,7 +141,7 @@ export function fetchSharedDevice(dongleId) {
         dongleId,
         device: resp,
       });
-    } catch(err) {
+    } catch (err) {
       if (!err.resp || err.resp.status !== 403) {
         console.error(err);
         Sentry.captureException(err, { fingerprint: 'action_fetch_shared_device' });
@@ -152,25 +151,25 @@ export function fetchSharedDevice(dongleId) {
 }
 
 export function fetchDeviceOnline(dongleId) {
-  return (dispatch, getState) => {
+  return (dispatch) => {
     Devices.fetchDevice(dongleId).then((resp) => {
       dispatch({
         type: Types.ACTION_UPDATE_DEVICE_ONLINE,
-        dongleId: dongleId,
+        dongleId,
         last_athena_ping: resp.last_athena_ping,
-        fetched_at: parseInt(Date.now() / 1000),
+        fetched_at: Math.floor(Date.now() / 1000),
       });
     }).catch(console.log);
   };
 }
 
-export function updateDeviceOnline(dongleId, last_athena_ping) {
-  return (dispatch, getState) => {
+export function updateDeviceOnline(dongleId, lastAthenaPing) {
+  return (dispatch) => {
     dispatch({
       type: Types.ACTION_UPDATE_DEVICE_ONLINE,
-      dongleId: dongleId,
-      last_athena_ping,
-      fetched_at: parseInt(Date.now() / 1000),
+      dongleId,
+      last_athena_ping: lastAthenaPing,
+      fetched_at: Math.floor(Date.now() / 1000),
     });
   };
 }
@@ -178,11 +177,11 @@ export function updateDeviceOnline(dongleId, last_athena_ping) {
 export function fetchDeviceNetworkStatus(dongleId) {
   return async (dispatch, getState) => {
     const device = getDeviceFromState(getState(), dongleId);
-    if (deviceVersionAtLeast(device, "0.8.14")) {
+    if (deviceVersionAtLeast(device, '0.8.14')) {
       const payload = {
         id: 0,
-        jsonrpc: "2.0",
-        method: "getNetworkMetered",
+        jsonrpc: '2.0',
+        method: 'getNetworkMetered',
       };
       try {
         const resp = await Athena.postJsonRpcPayload(dongleId, payload);
@@ -194,7 +193,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
           });
           dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
         }
-      } catch(err) {
+      } catch (err) {
         if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
           dispatch(updateDeviceOnline(dongleId, 0));
         } else {
@@ -205,8 +204,8 @@ export function fetchDeviceNetworkStatus(dongleId) {
     } else {
       const payload = {
         id: 0,
-        jsonrpc: "2.0",
-        method: "getNetworkType",
+        jsonrpc: '2.0',
+        method: 'getNetworkType',
       };
       try {
         const resp = await Athena.postJsonRpcPayload(dongleId, payload);
@@ -219,7 +218,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
           });
           dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
         }
-      } catch(err) {
+      } catch (err) {
         if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
           dispatch(updateDeviceOnline(dongleId, 0));
         } else {
@@ -250,7 +249,7 @@ export function checkRoutesData() {
 
     routesRequest = {
       req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end),
-      dongleId: dongleId,
+      dongleId,
     };
 
     routesRequest.req.then((routesData) => {
@@ -260,10 +259,9 @@ export function checkRoutesData() {
         routesRequest = null;
         dispatch(checkRoutesData());
         return;
-      } else if (routesData && routesData.length === 0 && !MyCommaAuth.isAuthenticated() &&
-        !getClipsNav(window.location.pathname)?.clip_id)
-      {
-        window.location = `/?r=${encodeURI(window.location.pathname)}`;  // redirect to login
+      } if (routesData && routesData.length === 0 && !MyCommaAuth.isAuthenticated()
+        && !getClipsNav(window.location.pathname)?.clip_id) {
+        window.location = `/?r=${encodeURI(window.location.pathname)}`; // redirect to login
         return;
       }
 
@@ -283,10 +281,10 @@ export function checkRoutesData() {
 
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,
-        dongleId: dongleId,
+        dongleId,
         start: fetchRange.start,
         end: fetchRange.end,
-        routes: routes,
+        routes,
       });
 
       routesRequest = null;
@@ -295,7 +293,7 @@ export function checkRoutesData() {
       Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
       routesRequest = null;
     });
-  }
+  };
 }
 
 export function updateDevices(devices) {
@@ -317,11 +315,11 @@ export function selectTimeFilter(start, end) {
     dispatch({
       type: Types.ACTION_SELECT_TIME_FILTER,
       start,
-      end
+      end,
     });
 
     dispatch(checkRoutesData());
-  }
+  };
 }
 
 export function primeGetSubscription(dongleId, subscription) {

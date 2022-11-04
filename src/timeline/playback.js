@@ -75,7 +75,7 @@ export function reducer(_state, action) {
         state.loop = {
           startTime: action.start,
           duration: action.end - action.start,
-        }
+        };
       } else {
         state.loop = null;
       }
@@ -86,7 +86,7 @@ export function reducer(_state, action) {
         isBufferingVideo: action.buffering,
         offset: currentOffset(state),
         startTime: Date.now(),
-      }
+      };
       break;
     case Types.ACTION_RESET:
       state = {
@@ -101,14 +101,13 @@ export function reducer(_state, action) {
       break;
   }
 
-  if (state.currentRoute && state.currentRoute.videoStartOffset && state.loop && state.zoom && state.filter &&
-    state.loop.startTime === state.zoom.start && state.filter.start + state.currentRoute.offset === state.zoom.start)
-  {
-    const loop_route_offset = state.loop.startTime - state.zoom.start;
-    if (state.currentRoute.videoStartOffset > loop_route_offset) {
+  if (state.currentRoute && state.currentRoute.videoStartOffset && state.loop && state.zoom && state.filter
+    && state.loop.startTime === state.zoom.start && state.filter.start + state.currentRoute.offset === state.zoom.start) {
+    const loopRouteOffset = state.loop.startTime - state.zoom.start;
+    if (state.currentRoute.videoStartOffset > loopRouteOffset) {
       state.loop = {
         startTime: state.zoom.start + state.currentRoute.videoStartOffset,
-        duration: state.loop.duration - (state.currentRoute.videoStartOffset - loop_route_offset),
+        duration: state.loop.duration - (state.currentRoute.videoStartOffset - loopRouteOffset),
       };
     }
   }
@@ -137,14 +136,14 @@ export function reducer(_state, action) {
 export function seek(offset) {
   return {
     type: Types.ACTION_SEEK,
-    offset
+    offset,
   };
 }
 
 // pause the playback
 export function pause() {
   return {
-    type: Types.ACTION_PAUSE
+    type: Types.ACTION_PAUSE,
   };
 }
 
@@ -152,7 +151,7 @@ export function pause() {
 export function play(speed = 1) {
   return {
     type: Types.ACTION_PLAY,
-    speed
+    speed,
   };
 }
 
@@ -168,7 +167,7 @@ export function selectLoop(start, end) {
 export function bufferVideo(buffering) {
   return {
     type: Types.ACTION_BUFFER_VIDEO,
-    buffering
+    buffering,
   };
 }
 

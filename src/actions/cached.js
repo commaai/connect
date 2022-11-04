@@ -11,7 +11,7 @@ const eventsRequests = {};
 const coordsRequests = {};
 const driveCoordsRequests = {};
 let hasExpired = false;
-let cacheDB = null;
+const cacheDB = null;
 
 async function getCacheDB() {
   if (cacheDB !== null) {
@@ -68,13 +68,13 @@ async function getCacheDB() {
       const driveCoordsStore = db.createObjectStore('driveCoords', { keyPath: 'key' });
       driveCoordsStore.createIndex('key', 'key', { unique: true });
       driveCoordsStore.createIndex('expiry', 'expiry', { unique: false });
-    }
+    };
   });
 }
 
-async function getCacheItem(store, key, version=undefined) {
+async function getCacheItem(store, key, version = undefined) {
   if (!hasExpired) {
-    setTimeout(() => expireCacheItems(store), 5000);  // TODO: better expire time
+    setTimeout(() => expireCacheItems(store), 5000); // TODO: better expire time
     hasExpired = true;
   }
 
@@ -95,10 +95,10 @@ async function getCacheItem(store, key, version=undefined) {
       }
     };
     req.onerror = (ev) => reject(ev.target.error);
-  })
+  });
 }
 
-async function setCacheItem(store, key, expiry, data, version=undefined) {
+async function setCacheItem(store, key, expiry, data, version = undefined) {
   const db = await getCacheDB();
   if (!db) {
     return null;
@@ -114,7 +114,7 @@ async function setCacheItem(store, key, expiry, data, version=undefined) {
   return new Promise((resolve, reject) => {
     req.onsuccess = (ev) => resolve(ev.target.result);
     req.onerror = (ev) => reject(ev.target.error);
-  })
+  });
 }
 
 async function expireCacheItems(store) {
@@ -126,10 +126,10 @@ async function expireCacheItems(store) {
   const transaction = db.transaction([store], 'readwrite');
   const objStore = transaction.objectStore(store);
 
-  const idx = IDBKeyRange.upperBound(parseInt(Date.now()/1000));
+  const idx = IDBKeyRange.upperBound(Math.floor(Date.now() / 1000));
   const req = objStore.index('expiry').openCursor(idx);
   req.onsuccess = (ev) => {
-    let cursor = ev.target.result;
+    const cursor = ev.target.result;
     if (cursor) {
       objStore.delete(cursor.primaryKey);
       cursor.continue();
@@ -329,17 +329,17 @@ export function fetchEvents(route) {
     });
     resolveEvents(driveEvents);
     if (!USE_LOCAL_EVENTS_DATA) {
-      setCacheItem('events', route.fullname, parseInt(Date.now()/1000) + (86400*14), driveEvents, route.maxqlog);
+      setCacheItem('events', route.fullname, Math.floor(Date.now() / 1000) + (86400 * 14), driveEvents, route.maxqlog);
     }
-  }
+  };
 }
 
 export function fetchLocations(route) {
   return (dispatch, getState) => {
     dispatch(fetchCoord(route, [route.start_lng, route.start_lat], 'startLocation'));
     dispatch(fetchCoord(route, [route.end_lng, route.end_lat], 'endLocation'));
-  }
-};
+  };
+}
 
 export function fetchCoord(route, coord, locationKey) {
   return async (dispatch, getState) => {
@@ -403,8 +403,8 @@ export function fetchCoord(route, coord, locationKey) {
       location,
     });
     resolveLocation(location);
-    setCacheItem('coords', coord, parseInt(Date.now()/1000) + (86400*14), location);
-  }
+    setCacheItem('coords', coord, Math.floor(Date.now() / 1000) + (86400 * 14), location);
+  };
 }
 
 export function fetchDriveCoords(route) {
@@ -431,7 +431,7 @@ export function fetchDriveCoords(route) {
         type: Types.ACTION_UPDATE_ROUTE,
         fullname: route.fullname,
         route: {
-          driveCoords: driveCoords,
+          driveCoords,
         },
       });
       return;
@@ -480,26 +480,24 @@ export function fetchDriveCoords(route) {
       return;
     }
 
-    driveCoords = driveCoords.reduce((prev, curr) => {
-      return {
-        ...prev,
-        ...curr.reduce((p, cs) => {
-          p[cs.t] = [cs.lng, cs.lat];
-          return p;
-        }, {}),
-      }
-    }, {});
+    driveCoords = driveCoords.reduce((prev, curr) => ({
+      ...prev,
+      ...curr.reduce((p, cs) => {
+        p[cs.t] = [cs.lng, cs.lat];
+        return p;
+      }, {}),
+    }), {});
 
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE,
       fullname: route.fullname,
       route: {
-        driveCoords: driveCoords,
+        driveCoords,
       },
     });
     resolveDriveCoords(driveCoords);
     if (!USE_LOCAL_COORDS_DATA) {
-      setCacheItem('driveCoords', route.fullname, parseInt(Date.now()/1000) + (86400*14), driveCoords, route.maxqlog);
+      setCacheItem('driveCoords', route.fullname, Math.floor(Date.now() / 1000) + (86400 * 14), driveCoords, route.maxqlog);
     }
-  }
+  };
 }

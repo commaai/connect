@@ -16,15 +16,15 @@ import { fetchFiles, fetchAthenaQueue, fetchUploadQueue } from '../../actions/fi
 import { fetchClipsDetails } from '../../actions/clips';
 
 const FILE_TYPE_FRIENDLY = {
-  'qcameras': 'Road camera (low-res)',
-  'cameras': 'Road camera',
-  'ecameras': 'Road camera wide angle',
-  'dcameras': 'Interior camera',
-  'qlogs': 'Logs',
-  'logs': 'Raw logs',
+  qcameras: 'Road camera (low-res)',
+  cameras: 'Road camera',
+  ecameras: 'Road camera wide angle',
+  dcameras: 'Interior camera',
+  qlogs: 'Logs',
+  logs: 'Raw logs',
 };
 
-const styles = (theme) => ({
+const styles = () => ({
   clipOption: {
     marginBottom: 12,
     width: '100%',
@@ -126,8 +126,8 @@ class ClipUpload extends Component {
     this.state = {
       windowWidth: window.innerWidth,
       uploadModal: false,
-      required_segments: null,
-      required_file_types: null,
+      requiredSegments: null,
+      requiredFileTypes: null,
       pausedUploadingError: null,
       someFileNotFound: null,
       someDCameraFileNotFound: null,
@@ -147,55 +147,53 @@ class ClipUpload extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { clips, routes, files, dongleId, device } = this.props;
-    const { required_file_types, required_segments } = this.state;
+    const { dispatch, clips, routes, files, dongleId, device } = this.props;
+    const { requiredFileTypes, requiredSegments } = this.state;
 
-    if (clips.route && (prevProps.clips?.route !== clips.route ||
-      (!(prevProps.dongleId && prevProps.device) && dongleId && device)))
-    {
-      this.props.dispatch(checkRoutesData());
-      this.props.dispatch(fetchAthenaQueue(dongleId));
-      this.props.dispatch(fetchFiles(clips.route));
+    if (clips.route && (prevProps.clips?.route !== clips.route
+      || (!(prevProps.dongleId && prevProps.device) && dongleId && device))) {
+      dispatch(checkRoutesData());
+      dispatch(fetchAthenaQueue(dongleId));
+      dispatch(fetchFiles(clips.route));
     }
 
     if (clips.route && prevProps.device && device && !deviceIsOnline(prevProps.device) && deviceIsOnline(device)) {
-      this.props.dispatch(fetchUploadQueue(dongleId));
-      this.props.dispatch(fetchAthenaQueue(dongleId));
-      this.props.dispatch(fetchFiles(clips.route));
+      dispatch(fetchUploadQueue(dongleId));
+      dispatch(fetchAthenaQueue(dongleId));
+      dispatch(fetchFiles(clips.route));
     }
 
-    if (routes && (prevProps.routes !== routes ||
-      prevProps.clips?.start_time !== clips.start_time || prevProps.clips?.end_time !== clips.end_time))
-    {
+    if (routes && (prevProps.routes !== routes
+      || prevProps.clips?.start_time !== clips.start_time || prevProps.clips?.end_time !== clips.end_time)) {
       const route = routes.find((r) => r.fullname === clips.route);
       if (route) {
-        let required_segments = [];
+        const requiredSegments = [];
         for (let i = 0; i < route.segment_start_times.length; i++) {
           if (route.segment_start_times[i] < clips.end_time && route.segment_end_times[i] > clips.start_time) {
-            required_segments.push(`${route.fullname}--${route.segment_numbers[i]}`);
+            requiredSegments.push(`${route.fullname}--${route.segment_numbers[i]}`);
           }
         }
-        this.setState({ required_segments });
+        this.setState({ requiredSegments });
       }
     }
 
     if (prevProps.clips?.video_type !== clips.video_type) {
       switch (clips.video_type) {
-      case 'q':
-        this.setState({ required_file_types: ['qcameras'] });
-        break;
-      case 'f':
-        this.setState({ required_file_types: ['cameras'] });
-        break;
-      case 'e':
-        this.setState({ required_file_types: ['ecameras'] });
-        break;
-      case 'd':
-        this.setState({ required_file_types: ['dcameras'] });
-        break;
-      case '360':
-        this.setState({ required_file_types: ['ecameras', 'dcameras'] });
-        break;
+        case 'q':
+          this.setState({ requiredFileTypes: ['qcameras'] });
+          break;
+        case 'f':
+          this.setState({ requiredFileTypes: ['cameras'] });
+          break;
+        case 'e':
+          this.setState({ requiredFileTypes: ['ecameras'] });
+          break;
+        case 'd':
+          this.setState({ requiredFileTypes: ['dcameras'] });
+          break;
+        case '360':
+          this.setState({ requiredFileTypes: ['ecameras', 'dcameras'] });
+          break;
       }
     }
 
@@ -203,9 +201,8 @@ class ClipUpload extends Component {
       this.onVisible();
     }
 
-    if (prevProps.files !== files || prevProps.clips !== clips ||
-      prevState.required_file_types !== required_file_types || prevState.required_segments !== required_segments)
-    {
+    if (prevProps.files !== files || prevProps.clips !== clips
+      || prevState.requiredFileTypes !== requiredFileTypes || prevState.requiredSegments !== requiredSegments) {
       this.updateUploadStates();
     }
   }
@@ -215,33 +212,33 @@ class ClipUpload extends Component {
   }
 
   async onVisible() {
-    const { clips, device } = this.props;
+    const { dispatch, clips, device, dongleId } = this.props;
 
     if (!deviceIsOnline(device)) {
-      this.props.dispatch(fetchDeviceNetworkStatus(this.props.dongleId));
+      dispatch(fetchDeviceNetworkStatus(dongleId));
     }
 
     if (!this.state.hasRequestedAll) {
-      this.props.dispatch(fetchUploadQueue(this.props.dongleId));
-      this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
-      this.props.dispatch(fetchFiles(clips.route));
+      dispatch(fetchUploadQueue(dongleId));
+      dispatch(fetchAthenaQueue(dongleId));
+      dispatch(fetchFiles(clips.route));
     }
 
     if (!this.state.hasRequestedAll || this.state.hasUploadedAll) {
-      this.props.dispatch(fetchClipsDetails(clips.clip_id));
+      dispatch(fetchClipsDetails(clips.clip_id));
     }
   }
 
   getUploadStats(types) {
     const { files } = this.props;
-    const { required_file_types, required_segments } = this.state;
+    const { requiredFileTypes, requiredSegments } = this.state;
 
-    if (!files || !required_segments || !(types || required_file_types)) {
+    if (!files || !requiredSegments || !(types || requiredFileTypes)) {
       return null;
     }
 
     if (types === undefined) {
-      types = required_file_types;
+      types = requiredFileTypes;
     }
 
     const res = {
@@ -252,7 +249,7 @@ class ClipUpload extends Component {
       notFound: 0,
       uploaded: 0,
     };
-    for (const seg of required_segments) {
+    for (const seg of requiredSegments) {
       for (const type of types) {
         res.count += 1;
         const log = files[`${seg}/${type}`];
@@ -270,18 +267,18 @@ class ClipUpload extends Component {
   }
 
   updateUploadStates() {
-    const { required_segments, required_file_types } = this.state;
+    const { requiredSegments, requiredFileTypes } = this.state;
 
     let pausedUploadingError = false;
     let someFileNotFound = false;
     let someDCameraFileNotFound = false;
-    let hasRequestedAll = Boolean(required_segments && required_segments.length &&
-      required_file_types && required_file_types.length);
-    let hasUploadedAll = Boolean(required_segments && required_segments.length &&
-      required_file_types && required_file_types.length);
+    let hasRequestedAll = Boolean(requiredSegments && requiredSegments.length
+      && requiredFileTypes && requiredFileTypes.length);
+    let hasUploadedAll = Boolean(requiredSegments && requiredSegments.length
+      && requiredFileTypes && requiredFileTypes.length);
 
-    if (required_segments && required_file_types) {
-      for (const type of required_file_types) {
+    if (requiredSegments && requiredFileTypes) {
+      for (const type of requiredFileTypes) {
         const state = this.getUploadStats([type]);
         if (state === null) {
           hasRequestedAll = false;
@@ -318,30 +315,43 @@ class ClipUpload extends Component {
     });
   }
 
+  renderError(title, label) {
+    const { classes } = this.props;
+    return (
+      <div className={classes.clipWarning}>
+        <ErrorIcon />
+        <div>
+          <h6>{ title }</h6>
+          <span style={{ fontSize: '0.8rem' }}>{ label }</span>
+        </div>
+      </div>
+    );
+  }
+
   render() {
     const { classes, device, clips, files } = this.props;
-    const { windowWidth, required_segments, required_file_types, pausedUploadingError, someFileNotFound,
-      someDCameraFileNotFound, hasUploadedAll } = this.state;
+    const { windowWidth, requiredSegments, requiredFileTypes, pausedUploadingError,
+      someFileNotFound, someDCameraFileNotFound, hasUploadedAll } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
     if (!device) {
       return null;
     }
 
-    let deviceIsOffline = !deviceIsOnline(device);
-    let uploadingStates = [];
-    if (files && required_segments && required_file_types) {
-      for (const segment of required_segments) {
-        for (const type of required_file_types) {
+    const deviceIsOffline = !deviceIsOnline(device);
+    const uploadingStates = [];
+    if (files && requiredSegments && requiredFileTypes) {
+      for (const segment of requiredSegments) {
+        for (const type of requiredFileTypes) {
           let progress;
-          const file = files[`${segment}/${type}`] || {}
+          const file = files[`${segment}/${type}`] || {};
           if (file.url) {
             progress = 'uploaded';
           } else if (file.progress !== undefined) {
-            progress = file.current ?
-              `${parseInt(file.progress * 100)}%` :
-              (file.paused ? 'paused' : 'pending');
-          }else if (file.notFound) {
+            progress = file.current
+              ? `${Math.floor(file.progress * 100)}%`
+              : (file.paused ? 'paused' : 'pending');
+          } else if (file.notFound) {
             progress = 'file not found';
           } else {
             progress = 'requesting';
@@ -350,7 +360,7 @@ class ClipUpload extends Component {
           uploadingStates.push({
             segment,
             type,
-            progress
+            progress,
           });
         }
       }
@@ -362,29 +372,34 @@ class ClipUpload extends Component {
       statusTitle = 'Export in queue';
     } else if (clips.pending_status === 'processing') {
       statusTitle = 'Export in progress';
-      statusProgress = clips.pending_progress ? parseInt(parseFloat(clips.pending_progress) * 100) : null;
+      statusProgress = clips.pending_progress
+        ? Math.floor(parseFloat(clips.pending_progress) * 100)
+        : null;
     }
 
     const segmentNameStyle = windowWidth < 450 ? { fontSize: windowWidth < 400 ? '0.8rem' : '0.9rem' } : {};
     const cellStyle = { padding: windowWidth < 400 ? '0 2px' : (windowWidth < 450 ? '0 4px' : '0 8px') };
 
-    return <>
-      <ResizeHandler onResize={ this.onResize } />
-      <VisibilityHandler onVisible={ this.onVisible } onInterval={ 10 } />
+    return (
+      <>
+        <ResizeHandler onResize={ this.onResize } />
+        <VisibilityHandler onVisible={ this.onVisible } onInterval={ 10 } />
 
-      { !hasUploadedAll &&
+        { !hasUploadedAll
+        && (
         <div style={{ padding: viewerPadding }}>
           <div className={ classes.clipOption }>
             <h4>Uploading files</h4>
-            { Boolean(deviceIsOffline && clips.video_type !== 'q') &&
-              this.renderError('Device offline', 'uploading will resume when device is online') }
+            { Boolean(deviceIsOffline && clips.video_type !== 'q')
+              && this.renderError('Device offline', 'uploading will resume when device is online') }
             { pausedUploadingError && this.renderError('Connect to WiFi', 'uploading paused on cellular connection') }
-            { someFileNotFound && this.renderError('Not Found', 'not all files are available on the device' +
-              (someDCameraFileNotFound ? ', make sure the "Record and Upload Driver Camera" toggle is enabled' : '')) }
-            { uploadingStates.length === 0 &&
-              <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 24 } /> }
+            { someFileNotFound && this.renderError('Not Found', `not all files are available on the device${
+              someDCameraFileNotFound ? ', make sure the "Record and Upload Driver Camera" toggle is enabled' : ''}`) }
+            { uploadingStates.length === 0
+              && <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 24 } /> }
           </div>
-          { Boolean(uploadingStates.length && clips.video_type !== 'q') && <>
+          { Boolean(uploadingStates.length && clips.video_type !== 'q') && (
+          <>
             <table className={ classes.uploadTable } style={ segmentNameStyle }>
               <thead>
                 <tr>
@@ -412,40 +427,39 @@ class ClipUpload extends Component {
                 <FileUploadIcon />
               </Button>
             </div>
-          </> }
-       </div>
-      }
-      { hasUploadedAll &&
-        <div style={{ padding: viewerPadding }}>
-          <div className={ classes.clipOption }>
-            <h4>{ statusTitle }</h4>
-            <div className={ classes.clipProgress }>
-              <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 24 } />
-              { statusProgress !== null && <span>{ statusProgress }%</span> }
+          </>
+          ) }
+        </div>
+        )}
+        { hasUploadedAll && (
+          <div style={{ padding: viewerPadding }}>
+            <div className={ classes.clipOption }>
+              <h4>{ statusTitle }</h4>
+              <div className={ classes.clipProgress }>
+                <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 24 } />
+                { statusProgress !== null && (
+                <span>
+                  { statusProgress }
+                  %
+                </span>
+                ) }
+              </div>
             </div>
           </div>
+        )}
+        <UploadQueue
+          open={ this.state.uploadModal }
+          onClose={ () => this.setState({ uploadModal: false }) }
+          update={ !hasUploadedAll }
+          store={ this.props.store }
+          device={ device }
+        />
+        <div style={{ padding: `0 ${viewerPadding}px ${viewerPadding}px ${viewerPadding}px` }}>
+          <typography>
+            This may take some time. You can leave this page and your clip will continue processing.
+          </typography>
         </div>
-      }
-
-      <UploadQueue open={ this.state.uploadModal } onClose={ () => this.setState({ uploadModal: false }) }
-        update={ !hasUploadedAll } store={ this.props.store } device={ device } />
-
-      <div style={{ padding: `0 ${viewerPadding}px ${viewerPadding}px ${viewerPadding}px` }}>
-        <typography>This may take some time. You can leave this page and your clip will continue processing.</typography>
-      </div>
-    </>;
-  }
-
-  renderError(title, label) {
-    const { classes } = this.props;
-    return (
-      <div className={classes.clipWarning}>
-        <ErrorIcon />
-        <div>
-          <h6>{ title }</h6>
-          <span style={{ fontSize: '0.8rem' }}>{ label }</span>
-        </div>
-      </div>
+      </>
     );
   }
 }

@@ -1,4 +1,5 @@
 /* eslint-env jest */
+/* eslint-disable no-import-assign */
 import { routerMiddleware, LOCATION_CHANGE } from 'connected-react-router';
 import thunk from 'redux-thunk';
 
@@ -9,19 +10,19 @@ import * as actionsIndex from './index';
 const create = (initialState) => {
   const store = {
     getState: jest.fn(() => initialState),
-    dispatch: jest.fn()
-  }
-  const next = jest.fn()
+    dispatch: jest.fn(),
+  };
+  const next = jest.fn();
 
-  const middleware = (store) => (next) => (action) => {
-    routerMiddleware(history)(store)(next)(action);
-    onHistoryMiddleware(store)(next)(action);
-    thunk(store)(next)(action);
-  }
-  const invoke = action => middleware(store)(next)(action)
+  const middleware = (s) => (n) => (action) => {
+    routerMiddleware(history)(s)(n)(action);
+    onHistoryMiddleware(s)(n)(action);
+    thunk(s)(n)(action);
+  };
+  const invoke = (action) => middleware(store)(next)(action);
 
-  return { store, next, invoke }
-}
+  return { store, next, invoke };
+};
 
 describe('history middleware', () => {
   it('passes through non-function action', () => {
@@ -41,8 +42,8 @@ describe('history middleware', () => {
   it('passes dispatch and getState', () => {
     const { store, invoke } = create();
     invoke((dispatch, getState) => {
-      dispatch('TEST DISPATCH')
-      getState()
+      dispatch('TEST DISPATCH');
+      getState();
     });
     expect(store.dispatch).toHaveBeenCalledWith('TEST DISPATCH');
   });

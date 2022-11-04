@@ -27,7 +27,7 @@ const styles = () => ({
     position: 'absolute',
     top: 0,
     width: '100%',
-    zIndex: 1
+    zIndex: 1,
   },
   bufferingContainer: {
     zIndex: 50,
@@ -83,7 +83,7 @@ class DriveVideo extends Component {
 
   visibleRoute(props = this.props) {
     const offset = currentOffset();
-    const currentRoute = props.currentRoute;
+    const { currentRoute } = props;
     if (currentRoute && currentRoute.offset <= offset && offset <= currentRoute.offset + currentRoute.duration) {
       return currentRoute;
     }
@@ -152,7 +152,7 @@ class DriveVideo extends Component {
     const curVideoTime = videoPlayer.getCurrentTime();
     const timeDiff = desiredVideoTime - curVideoTime;
     if (Math.abs(timeDiff) <= 0.3) {
-      newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff)
+      newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff);
     } else if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
       // logs start ealier than video, so skip to video ts 0
       this.props.dispatch(seek(currentOffset() - (timeDiff * 1000)));
@@ -187,7 +187,7 @@ class DriveVideo extends Component {
       offset -= visibleRoute.videoStartOffset;
     }
 
-    offset = offset / 1000;
+    offset /= 1000;
 
     return Math.max(0, offset);
   }
@@ -197,20 +197,28 @@ class DriveVideo extends Component {
     const playSpeed = this.props.desiredPlaySpeed;
     return (
       <div className={ classes.videoContainer }>
-        { isBufferingVideo &&
+        { isBufferingVideo
+          && (
           <div className={ classes.bufferingContainer }>
             <div className={ classes.bufferingSpinner }>
               <CircularProgress style={{ color: Colors.white }} thickness={ 4 } size={ 50 } />
             </div>
           </div>
-        }
-        <ReactPlayer ref={ this.videoPlayer } url={ this.state.src } playsinline={ true } muted={ true }
-          width="100%" height="unset" playing={ Boolean(this.visibleRoute()) && Boolean(playSpeed) }
+          )}
+        <ReactPlayer
+          ref={ this.videoPlayer }
+          url={ this.state.src }
+          playsinline
+          muted
+          width="100%"
+          height="unset"
+          playing={ Boolean(this.visibleRoute()) && Boolean(playSpeed) }
           config={{ hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false } }}
           playbackRate={ playSpeed }
           onBuffer={ () => this.onVideoBuffering() }
           onBufferEnd={ () => this.props.dispatch(bufferVideo(false)) }
-          onPlay={ () => this.props.dispatch(bufferVideo(false)) } />
+          onPlay={ () => this.props.dispatch(bufferVideo(false)) }
+        />
       </div>
     );
   }

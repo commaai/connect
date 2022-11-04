@@ -128,14 +128,6 @@ class TimeDisplay extends Component {
     this.mounted = false;
   }
 
-  jumpBack(amount) {
-    this.props.dispatch(seek(currentOffset() - amount));
-  }
-
-  jumpForward(amount) {
-    this.props.dispatch(seek(currentOffset() + amount));
-  }
-
   getDisplayTime() {
     const offset = currentOffset();
     const { filter, currentRoute } = this.props;
@@ -152,6 +144,14 @@ class TimeDisplay extends Component {
     return dateString;
   }
 
+  jumpBack(amount) {
+    this.props.dispatch(seek(currentOffset() - amount));
+  }
+
+  jumpForward(amount) {
+    this.props.dispatch(seek(currentOffset() + amount));
+  }
+
   updateTime() {
     if (!this.mounted || !this.textHolder.current) {
       return;
@@ -166,77 +166,95 @@ class TimeDisplay extends Component {
   }
 
   decreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
+    const { desiredPlaySpeed, dispatch } = this.state;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
     }
     curIndex = Math.max(0, curIndex - 1);
-    this.props.dispatch(play(timerSteps[curIndex]));
+    dispatch(play(timerSteps[curIndex]));
   }
 
   increaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
+    const { desiredPlaySpeed, dispatch } = this.state;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
     }
     curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
-    this.props.dispatch(play(timerSteps[curIndex]));
+    dispatch(play(timerSteps[curIndex]));
   }
 
-  togglePause(e) {
-    const { desiredPlaySpeed } = this.props;
+  togglePause() {
+    const { desiredPlaySpeed, dispatch } = this.props;
     if (desiredPlaySpeed === 0) {
-      this.props.dispatch(play(this.state.desiredPlaySpeed));
+      // eslint-disable-next-line react/destructuring-assignment
+      dispatch(play(this.state.desiredPlaySpeed));
     } else {
-      this.props.dispatch(pause());
+      dispatch(pause());
     }
   }
 
   render() {
     const { classes, zoom, desiredPlaySpeed, isThin } = this.props;
+    const { displayTime } = this.state;
     const isPaused = desiredPlaySpeed === 0;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
     return (
       <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
         <div className={ classes.iconBox }>
-          <IconButton className={ classes.iconButton } onClick={ () => this.jumpBack(10000) }
-            aria-label="Jump back 10 seconds">
+          <IconButton
+            className={ classes.iconButton }
+            onClick={ () => this.jumpBack(10000) }
+            aria-label="Jump back 10 seconds"
+          >
             <HistoryBackIcon className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
         <div className={ classes.iconBox }>
-          <IconButton className={ classes.iconButton } onClick={ () => this.jumpForward(10000) }
-            aria-label="Jump forward 10 seconds">
+          <IconButton
+            className={ classes.iconButton }
+            onClick={ () => this.jumpForward(10000) }
+            aria-label="Jump forward 10 seconds"
+          >
             <HistoryForwardIcon className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
-        { !this.props.isThin && (
+        { !isThin && (
           <Typography variant="caption" align="center" style={{ paddingTop: 4 }}>
             CURRENT PLAYBACK TIME
           </Typography>
         )}
         <Typography variant="body1" align="center" className={classes.currentTime}>
-          <span ref={this.textHolder}>{ this.state.displayTime }</span>
+          <span ref={this.textHolder}>{ displayTime }</span>
         </Typography>
         <div className={ classes.desiredPlaySpeedContainer }>
-          <IconButton className={classes.tinyArrowIcon} onClick={this.increaseSpeed}
-            aria-label="Increase play speed by 1 step">
+          <IconButton
+            className={classes.tinyArrowIcon}
+            onClick={this.increaseSpeed}
+            aria-label="Increase play speed by 1 step"
+          >
             <UpArrow className={classes.tinyArrowIcon} />
           </IconButton>
           <Typography variant="body2" align="center">
-            { this.state.desiredPlaySpeed }×
+            { this.state.desiredPlaySpeed }
+            ×
           </Typography>
-          <IconButton className={classes.tinyArrowIcon} onClick={this.decreaseSpeed}
-            aria-label="Decrease play speed by 1 step">
+          <IconButton
+            className={classes.tinyArrowIcon}
+            onClick={this.decreaseSpeed}
+            aria-label="Decrease play speed by 1 step"
+          >
             <DownArrow className={classes.tinyArrowIcon} />
           </IconButton>
         </div>
         <div className={ classes.playButtonBox }>
-          <IconButton className={ classes.iconButton } onClick={this.togglePause}
-            aria-label={isPaused ? 'Unpause' : 'Pause'}>
+          <IconButton
+            className={ classes.iconButton }
+            onClick={this.togglePause}
+            aria-label={isPaused ? 'Unpause' : 'Pause'}
+          >
             { isPaused
               ? (<PlayArrow className={`${classes.icon}`} />)
               : (<Pause className={`${classes.icon}`} />)}

@@ -249,17 +249,17 @@ const styles = () => ({
 });
 
 const FILE_NAMES = {
-  'qcameras': 'qcamera.ts',
-  'cameras': 'fcamera.hevc',
-  'dcameras': 'dcamera.hevc',
-  'ecameras': 'ecamera.hevc',
-  'qlogs': 'qlog.bz2',
-  'logs': 'rlog.bz2',
+  qcameras: 'qcamera.ts',
+  cameras: 'fcamera.hevc',
+  dcameras: 'dcamera.hevc',
+  ecameras: 'ecamera.hevc',
+  qlogs: 'qlog.bz2',
+  logs: 'rlog.bz2',
 };
 
 const MediaType = {
   VIDEO: 'video',
-  MAP: 'map'
+  MAP: 'map',
 };
 
 class Media extends Component {
@@ -320,19 +320,17 @@ class Media extends Component {
       this.props.dispatch(analyticsEvent('media_switch_view', { in_view: this.state.inView }));
     }
 
-    if (this.props.currentRoute && ((!prevState.downloadMenu && downloadMenu) ||
-      (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu) ||
-      (!prevProps.currentRoute && (downloadMenu || moreInfoMenu))))
-    {
+    if (this.props.currentRoute && ((!prevState.downloadMenu && downloadMenu)
+      || (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu)
+      || (!prevProps.currentRoute && (downloadMenu || moreInfoMenu)))) {
       if ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser) {
         this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
       }
       this.props.dispatch(fetchFiles(this.props.currentRoute.fullname));
     }
 
-    if (routePreserved === null && (this.props.device?.is_owner || this.props.profile?.superuser) &&
-      (!prevState.moreInfoMenu && !prevProps.currentRoute) !== (moreInfoMenu && this.props.currentRoute))
-    {
+    if (routePreserved === null && (this.props.device?.is_owner || this.props.profile?.superuser)
+      && (!prevState.moreInfoMenu && !prevProps.currentRoute) !== (moreInfoMenu && this.props.currentRoute)) {
       this.fetchRoutePreserved();
     }
   }
@@ -356,7 +354,7 @@ class Media extends Component {
     const params = {
       route: currentRoute.fullname,
       url: currentRoute.url,
-      seekTime: Math.floor((offset - currentRoute.offset) / 1000)
+      seekTime: Math.floor((offset - currentRoute.offset) / 1000),
     };
 
     if (loop.startTime && loop.startTime > currentRoute.start_time_utc_millis && loop.duration < 180000) {
@@ -414,7 +412,7 @@ class Media extends Component {
     }
 
     this.props.dispatch(analyticsEvent('files_upload', {
-      type: type,
+      type,
     }));
 
     const routeNoDongleId = currentRoute.fullname.split('|')[1];
@@ -437,7 +435,7 @@ class Media extends Component {
       types = ['logs', 'cameras', 'dcameras'];
       if (device.device_type === 'three') {
         types.push('ecameras');
-      };
+      }
     }
 
     if (!currentRoute || !files) {
@@ -448,11 +446,10 @@ class Media extends Component {
       types: types.length === 1 && types[0] === 'logs' ? 'logs' : 'all',
     }));
 
-    const uploading = {}
+    const uploading = {};
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      if (currentRoute.segment_start_times[i] < loop.startTime + loop.duration &&
-        currentRoute.segment_end_times[i] > loop.startTime)
-      {
+      if (currentRoute.segment_start_times[i] < loop.startTime + loop.duration
+        && currentRoute.segment_end_times[i] > loop.startTime) {
         for (const type of types) {
           const fileName = `${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`;
           if (!files[fileName]) {
@@ -477,9 +474,8 @@ class Media extends Component {
   _uploadStats(types, count, uploaded, uploading, paused, requested) {
     const { currentRoute, loop, files } = this.props;
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      if (currentRoute.segment_start_times[i] < loop.startTime + loop.duration &&
-        currentRoute.segment_end_times[i] > loop.startTime)
-      {
+      if (currentRoute.segment_start_times[i] < loop.startTime + loop.duration
+        && currentRoute.segment_end_times[i] > loop.startTime) {
         for (const type of types) {
           count += 1;
           const log = files[`${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`];
@@ -493,7 +489,7 @@ class Media extends Component {
       }
     }
 
-    return [ count, uploaded, uploading, paused, requested ];
+    return [count, uploaded, uploading, paused, requested];
   }
 
   getUploadStats() {
@@ -502,20 +498,18 @@ class Media extends Component {
       return null;
     }
 
-    const [ countRlog, uploadedRlog, uploadingRlog, pausedRlog, requestedRlog ]
-      = this._uploadStats(['logs'], 0, 0, 0, 0, 0);
+    const [countRlog, uploadedRlog, uploadingRlog, pausedRlog, requestedRlog] = this._uploadStats(['logs'], 0, 0, 0, 0, 0);
 
     const camTypes = ['cameras', 'dcameras'].concat(device.device_type === 'three' ? ['ecameras'] : []);
-    const [ countAll, uploadedAll, uploadingAll, pausedAll, requestedAll ] =
-      this._uploadStats(camTypes, countRlog, uploadedRlog, uploadingRlog, pausedRlog, requestedRlog);
+    const [countAll, uploadedAll, uploadingAll, pausedAll, requestedAll] = this._uploadStats(camTypes, countRlog, uploadedRlog, uploadingRlog, pausedRlog, requestedRlog);
 
     return {
       canRequestAll: countAll - uploadedAll - uploadingAll - requestedAll,
       canRequestRlog: countRlog - uploadedRlog - uploadingRlog - requestedRlog,
-      isUploadingAll: !Boolean(countAll - uploadedAll - uploadingAll),
-      isUploadingRlog: !Boolean(countRlog - uploadedRlog - uploadingRlog),
-      isUploadedAll: !Boolean(countAll - uploadedAll),
-      isUploadedRlog: !Boolean(countRlog - uploadedRlog),
+      isUploadingAll: !(countAll - uploadedAll - uploadingAll),
+      isUploadingRlog: !(countRlog - uploadedRlog - uploadingRlog),
+      isUploadedAll: !(countAll - uploadedAll),
+      isUploadedRlog: !(countRlog - uploadedRlog),
       isPausedAll: Boolean(pausedAll > 0 && pausedAll === uploadingAll),
     };
   }
@@ -530,7 +524,7 @@ class Media extends Component {
     attachRelTime(event_parameters, 'route_start_time', true, 'h');
     this.props.dispatch(analyticsEvent('download_file', event_parameters));
 
-    window.location.href = file.url
+    window.location.href = file.url;
   }
 
   initCreateClip(ev) {
@@ -603,38 +597,39 @@ class Media extends Component {
     const { classes } = this.props;
     const { inView, windowWidth } = this.state;
 
-    if (this.props.menusOnly) {  // for test
+    if (this.props.menusOnly) { // for test
       return this.renderMenus(true);
     }
 
     const showMapAlways = windowWidth >= 1536;
     const mediaContainerStyle = showMapAlways ? { width: '60%' } : { width: '100%' };
-    const mapContainerStyle = showMapAlways ?
-      { width: '40%', marginBottom: 62, marginTop: 46, paddingLeft: 24 } :
-      { width: '100%' };
+    const mapContainerStyle = showMapAlways
+      ? { width: '40%', marginBottom: 62, marginTop: 46, paddingLeft: 24 }
+      : { width: '100%' };
 
     return (
       <div className={ classes.root }>
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
         <div style={ mediaContainerStyle }>
           { this.renderMediaOptions(showMapAlways) }
-          { inView !== MediaType.MAP &&
-            <DriveVideo />
-          }
-          { (inView === MediaType.MAP && !showMapAlways) &&
+          { inView !== MediaType.MAP
+            && <DriveVideo />}
+          { (inView === MediaType.MAP && !showMapAlways)
+            && (
             <div style={ mapContainerStyle }>
               <DriveMap />
             </div>
-          }
+            )}
           <div className={ classes.timeDisplay }>
             <TimeDisplay isThin />
           </div>
         </div>
-        { (inView !== MediaType.MAP && showMapAlways) &&
+        { (inView !== MediaType.MAP && showMapAlways)
+          && (
           <div style={ mapContainerStyle }>
             <DriveMap />
           </div>
-        }
+          )}
       </div>
     );
   }
@@ -645,40 +640,57 @@ class Media extends Component {
     return (
       <>
         <div className={classes.mediaOptionsRoot}>
-          { showMapAlways ?
-            <div></div>
-          :
-            <div className={classes.mediaOptions}>
-              <div className={classes.mediaOption} style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
-                onClick={() => this.setState({ inView: MediaType.VIDEO })}>
-                <Typography className={classes.mediaOptionText}>Video</Typography>
+          { showMapAlways
+            ? <div />
+            : (
+              <div className={classes.mediaOptions}>
+                <div
+                  className={classes.mediaOption}
+                  style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
+                  onClick={() => this.setState({ inView: MediaType.VIDEO })}
+                >
+                  <Typography className={classes.mediaOptionText}>Video</Typography>
+                </div>
+                <div
+                  className={classes.mediaOption}
+                  style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
+                  onClick={() => this.setState({ inView: MediaType.MAP })}
+                >
+                  <Typography className={classes.mediaOptionText}>Map</Typography>
+                </div>
               </div>
-              <div className={classes.mediaOption} style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
-                onClick={() => this.setState({ inView: MediaType.MAP })}>
-                <Typography className={classes.mediaOptionText}>Map</Typography>
-              </div>
-            </div>
-          }
+            )}
           <div className={classes.mediaOptions}>
-            { Boolean(device?.is_owner || (profile && profile.superuser)) &&
+            { Boolean(device?.is_owner || (profile && profile.superuser))
+              && (
               <div className={classes.mediaOption} aria-haspopup="true" onClick={ this.initCreateClip }>
                 <Typography className={classes.mediaOptionText}>Create clip</Typography>
               </div>
-            }
-            <div className={classes.mediaOption} aria-haspopup="true"
-              onClick={ (ev) => this.setState({ downloadMenu: ev.target }) }>
+              )}
+            <div
+              className={classes.mediaOption}
+              aria-haspopup="true"
+              onClick={ (ev) => this.setState({ downloadMenu: ev.target }) }
+            >
               <Typography className={classes.mediaOptionText}>Files</Typography>
             </div>
-            <div className={classes.mediaOption} aria-haspopup="true"
-              onClick={ (ev) => this.setState({ moreInfoMenu: ev.target }) }>
+            <div
+              className={classes.mediaOption}
+              aria-haspopup="true"
+              onClick={ (ev) => this.setState({ moreInfoMenu: ev.target }) }
+            >
               <Typography className={classes.mediaOptionText}>More info</Typography>
             </div>
           </div>
         </div>
         { this.renderMenus() }
-        <Popover open={ Boolean(createClipNoPrime) } anchorEl={ createClipNoPrime }
-          onClose={ () => this.setState({ createClipNoPrime: null }) } classes={{ paper: classes.noPrimePopover }}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Popover
+          open={ Boolean(createClipNoPrime) }
+          anchorEl={ createClipNoPrime }
+          onClose={ () => this.setState({ createClipNoPrime: null }) }
+          classes={{ paper: classes.noPrimePopover }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
           <div className={ classes.noPrimeHeader }>
             <p>comma prime</p>
             <Button onClick={ () => this.props.dispatch(primeNav(true)) } className={ classes.noPrimeButton }>
@@ -699,7 +711,8 @@ class Media extends Component {
       return;
     }
 
-    let fcam = {}, ecam = {}, dcam = {}, rlog = {};
+    let fcam = {}; let ecam = {}; let dcam = {}; let
+      rlog = {};
     if (files && currentRoute) {
       const seg = `${currentRoute.fullname}--${getSegmentNumber(currentRoute)}`;
       fcam = files[`${seg}/cameras`] || {};
@@ -711,7 +724,7 @@ class Media extends Component {
     const canUpload = device.is_owner || (profile && profile.superuser);
     const uploadButtonWidth = windowWidth < 425 ? 80 : 120;
     const buttons = [
-      [fcam, `Road camera`, 'cameras'],
+      [fcam, 'Road camera', 'cameras'],
       device && device.device_type === 'three' ? [ecam, 'Wide road camera', 'ecameras'] : null,
       [dcam, 'Driver camera', 'dcameras'],
       [rlog, 'Log data', 'logs'],
@@ -721,123 +734,200 @@ class Media extends Component {
     const rlogUploadDisabled = !stats || stats.isUploadedRlog || stats.isUploadingRlog || !stats.canRequestRlog;
     const allUploadDisabled = !stats || stats.isUploadedAll || stats.isUploadingAll || !stats.canRequestAll;
 
-    return ( <>
-      <Menu id="menu-download" open={ Boolean(alwaysOpen || downloadMenu) }
-        anchorEl={ downloadMenu } onClose={ () => this.setState({ downloadMenu: null }) }
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
-        { !files &&
+    return (
+      <>
+        <Menu
+          id="menu-download"
+          open={ Boolean(alwaysOpen || downloadMenu) }
+          anchorEl={ downloadMenu }
+          onClose={ () => this.setState({ downloadMenu: null }) }
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          { !files
+          && (
           <div className={ classes.menuLoading }>
             <CircularProgress size={ 36 } style={{ color: Colors.white }} />
           </div>
-        }
-        { buttons.filter((b) => Boolean(b)).map(this.renderUploadMenuItem)}
-        <Divider />
-        <MenuItem className={ classes.filesItem } disabled={ true }
-          style={ Boolean(files && stats) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
-          All logs
-          { Boolean(files && canUpload && !rlogUploadDisabled) &&
-            <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
-              onClick={ () => this.uploadFilesAll(['logs']) }>
-              upload { stats.canRequestRlog } logs
+          )}
+          { buttons.filter((b) => Boolean(b)).map(this.renderUploadMenuItem)}
+          <Divider />
+          <MenuItem
+            className={ classes.filesItem }
+            disabled
+            style={ files && stats ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
+          >
+            All logs
+            { Boolean(files && canUpload && !rlogUploadDisabled)
+            && (
+            <Button
+              className={ classes.uploadButton }
+              style={{ minWidth: uploadButtonWidth }}
+              onClick={ () => this.uploadFilesAll(['logs']) }
+            >
+              upload
+              {' '}
+              { stats.canRequestRlog }
+              {' '}
+              logs
             </Button>
-          }
-          { Boolean(canUpload && rlogUploadDisabled && stats) &&
+            )}
+            { Boolean(canUpload && rlogUploadDisabled && stats)
+            && (
             <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
-              { stats.isUploadedRlog ?
-                'uploaded' :
-                (stats.isUploadingRlog ? 'pending' : <CircularProgress style={{ color: Colors.white }} size={ 17 } /> )}
+              { stats.isUploadedRlog
+                ? 'uploaded'
+                : (stats.isUploadingRlog ? 'pending' : <CircularProgress style={{ color: Colors.white }} size={ 17 } />)}
             </div>
-          }
-        </MenuItem>
-        <MenuItem className={ classes.filesItem } disabled={ true }
-          style={ Boolean(files && stats) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
-          All files
-          { Boolean(files && canUpload && !allUploadDisabled) &&
-            <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
-              onClick={ () => this.uploadFilesAll() }>
-              upload { stats.canRequestAll } files
+            )}
+          </MenuItem>
+          <MenuItem
+            className={ classes.filesItem }
+            disabled
+            style={ files && stats ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
+          >
+            All files
+            { Boolean(files && canUpload && !allUploadDisabled)
+            && (
+            <Button
+              className={ classes.uploadButton }
+              style={{ minWidth: uploadButtonWidth }}
+              onClick={ () => this.uploadFilesAll() }
+            >
+              upload
+              {' '}
+              { stats.canRequestAll }
+              {' '}
+              files
             </Button>
-          }
-          { Boolean(canUpload && allUploadDisabled && stats) &&
+            )}
+            { Boolean(canUpload && allUploadDisabled && stats)
+            && (
             <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
-              { stats.isUploadedAll ?
-                'uploaded' :
-                (stats.isUploadingAll ? 'pending' : <CircularProgress style={{ color: Colors.white }} size={ 17 } /> )}
+              { stats.isUploadedAll
+                ? 'uploaded'
+                : (stats.isUploadingAll ? 'pending' : <CircularProgress style={{ color: Colors.white }} size={ 17 } />)}
             </div>
-          }
-        </MenuItem>
-        <Divider />
-        { Boolean(deviceIsOnline(device) || !files) ?
-          <MenuItem onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
-            style={ Boolean(files) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
-            className={ classes.filesItem } disabled={ !files }>
-            View upload queue
+            )}
           </MenuItem>
-        :
-          <MenuItem className={ classes.offlineMenuItem } disabled={ true }>
-            <div><WarningIcon /> Device offline</div>
-            <span style={{ fontSize: '0.8rem' }}>uploading will resume when device is online</span>
-          </MenuItem>
-        }
-        { stats && stats.isPausedAll && deviceOnCellular(device) &&
-          <MenuItem className={ classes.offlineMenuItem } disabled={ true }>
-            <div><WarningIcon /> Connect to WiFi</div>
+          <Divider />
+          { deviceIsOnline(device) || !files ? (
+            <MenuItem
+              onClick={ files ? () => this.setState({ uploadModal: true, downloadMenu: null }) : null }
+              style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
+              className={ classes.filesItem }
+              disabled={ !files }
+            >
+              View upload queue
+            </MenuItem>
+          )
+            : (
+              <MenuItem className={ classes.offlineMenuItem } disabled>
+                <div>
+                  <WarningIcon />
+                  {' '}
+                  Device offline
+                </div>
+                <span style={{ fontSize: '0.8rem' }}>uploading will resume when device is online</span>
+              </MenuItem>
+            )}
+          { stats && stats.isPausedAll && deviceOnCellular(device)
+          && (
+          <MenuItem className={ classes.offlineMenuItem } disabled>
+            <div>
+              <WarningIcon />
+              {' '}
+              Connect to WiFi
+            </div>
             <span style={{ fontSize: '0.8rem' }}>uploading paused on cellular connection</span>
           </MenuItem>
-        }
-      </Menu>
-      <Menu id="menu-info" open={ Boolean(alwaysOpen || moreInfoMenu) }
-        anchorEl={ moreInfoMenu } onClose={ () => this.setState({ moreInfoMenu: null }) }
-        transformOrigin={{ vertical: 'top', horizontal: windowWidth > 400 ? 260 : 300 }}>
-        <MenuItem className={ classes.copySegment } onClick={ this.copySegmentName }
-          style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}>
-          <div>{ currentRoute ? `${currentRoute.fullname}--${getSegmentNumber(currentRoute)}` : '---' }</div>
-          <ContentCopyIcon />
-        </MenuItem>
-        { typeof navigator.share !== 'undefined' &&
+          )}
+        </Menu>
+        <Menu
+          id="menu-info"
+          open={ Boolean(alwaysOpen || moreInfoMenu) }
+          anchorEl={ moreInfoMenu }
+          onClose={ () => this.setState({ moreInfoMenu: null }) }
+          transformOrigin={{ vertical: 'top', horizontal: windowWidth > 400 ? 260 : 300 }}
+        >
+          <MenuItem
+            className={ classes.copySegment }
+            onClick={ this.copySegmentName }
+            style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}
+          >
+            <div>{ currentRoute ? `${currentRoute.fullname}--${getSegmentNumber(currentRoute)}` : '---' }</div>
+            <ContentCopyIcon />
+          </MenuItem>
+          { typeof navigator.share !== 'undefined'
+          && (
           <MenuItem onClick={ this.shareCurrentRoute } className={ classes.shareButton }>
             Share this route
             <ShareIcon />
           </MenuItem>
-        }
-        <Divider />
-        <MenuItem onClick={ this.openInCabana }>
-          View in cabana
-          { Boolean(files && stats && stats.canRequestRlog) &&
+          )}
+          <Divider />
+          <MenuItem onClick={ this.openInCabana }>
+            View in cabana
+            { Boolean(files && stats && stats.canRequestRlog)
+            && (
             <div className={ classes.viewCabanaUploads }>
-              <WarningIcon /> missing { stats.canRequestRlog } logs
+              <WarningIcon />
+              {' '}
+              missing
+              { stats.canRequestRlog }
+              {' '}
+              logs
               <Button onClick={ (ev) => { this.uploadFilesAll(['logs']); ev.stopPropagation(); } }>upload</Button>
             </div>
-          }
-          { Boolean(rlogUploadDisabled && stats && !stats.isUploadedRlog && !stats.isUploadingRlog) &&
+            )}
+            { Boolean(rlogUploadDisabled && stats && !stats.isUploadedRlog && !stats.isUploadingRlog)
+            && (
             <div className={ classes.viewCabanaFakeUploads }>
               <CircularProgress style={{ color: Colors.white }} size={ 15 } />
             </div>
-          }
-        </MenuItem>
-        <MenuItem onClick={ this.openInUseradmin }>
-          View in useradmin
-        </MenuItem>
-        { Boolean(device?.is_owner || (profile && profile.superuser)) && [
-          <Divider key="1" />,
-          <ListItem key="2" className={ classes.switchListItem }>
-            <SwitchLoading checked={ currentRoute?.is_public } onChange={ this.onPublicToggle }
-              label="Public access" tooltip={publicTooltip} />
-          </ListItem>,
-          <ListItem key="3" className={ classes.switchListItem }>
-            <SwitchLoading checked={ Boolean(routePreserved) } loading={ routePreserved === null }
-              onChange={ this.onPreserveToggle } label="Preserved" tooltip={preservedTooltip} />
-          </ListItem>,
-        ] }
-      </Menu>
-      <UploadQueue open={ uploadModal } onClose={ () => this.setState({ uploadModal: false }) }
-        update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) } store={ this.props.store } device={ device } />
-      <Popper open={ Boolean(dcamUploadInfo) } placement="bottom"
-        anchorEl={ dcamUploadInfo } className={ classes.dcameraUploadInfo }>
-        <Typography>make sure to enable the "Record and Upload Driver Camera" toggle</Typography>
-      </Popper>
-    </> );
+            )}
+          </MenuItem>
+          <MenuItem onClick={ this.openInUseradmin }>
+            View in useradmin
+          </MenuItem>
+          { Boolean(device?.is_owner || (profile && profile.superuser)) && [
+            <Divider key="1" />,
+            <ListItem key="2" className={ classes.switchListItem }>
+              <SwitchLoading
+                checked={ currentRoute?.is_public }
+                onChange={ this.onPublicToggle }
+                label="Public access"
+                tooltip={publicTooltip}
+              />
+            </ListItem>,
+            <ListItem key="3" className={ classes.switchListItem }>
+              <SwitchLoading
+                checked={ Boolean(routePreserved) }
+                loading={ routePreserved === null }
+                onChange={ this.onPreserveToggle }
+                label="Preserved"
+                tooltip={preservedTooltip}
+              />
+            </ListItem>,
+          ] }
+        </Menu>
+        <UploadQueue
+          open={ uploadModal }
+          onClose={ () => this.setState({ uploadModal: false }) }
+          update={ Boolean(moreInfoMenu || uploadModal || downloadMenu) }
+          store={ this.props.store }
+          device={ device }
+        />
+        <Popper
+          open={ Boolean(dcamUploadInfo) }
+          placement="bottom"
+          anchorEl={ dcamUploadInfo }
+          className={ classes.dcameraUploadInfo }
+        >
+          <Typography>make sure to enable the "Record and Upload Driver Camera" toggle</Typography>
+        </Popper>
+      </>
+    );
   }
 
   renderUploadMenuItem([file, name, type]) {
@@ -852,17 +942,20 @@ class Media extends Component {
       button = null;
     } else if (file.url) {
       button = (
-        <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
-          onClick={ () => this.downloadFile(file, type) }>
+        <Button
+          className={ classes.uploadButton }
+          style={{ minWidth: uploadButtonWidth }}
+          onClick={ () => this.downloadFile(file, type) }
+        >
           download
         </Button>
       );
     } else if (file.progress !== undefined) {
       button = (
         <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}>
-          { file.current ?
-            `${parseInt(file.progress * 100)}%` :
-            (file.paused ? 'paused' : 'pending') }
+          { file.current
+            ? `${Math.floor(file.progress * 100)}%`
+            : (file.paused ? 'paused' : 'pending') }
         </div>
       );
     } else if (file.requested) {
@@ -873,31 +966,41 @@ class Media extends Component {
       );
     } else if (file.notFound) {
       button = (
-        <div className={ classes.fakeUploadButton } style={{ minWidth: (uploadButtonWidth - 24) }}
+        <div
+          className={ classes.fakeUploadButton }
+          style={{ minWidth: (uploadButtonWidth - 24) }}
           onMouseEnter={ type === 'dcameras' ? (ev) => this.setState({ dcamUploadInfo: ev.target }) : null }
-          onMouseLeave={ type === 'dcameras' ? () => this.setState({ dcamUploadInfo: null }) : null }>
+          onMouseLeave={ type === 'dcameras' ? () => this.setState({ dcamUploadInfo: null }) : null }
+        >
           not found
           { type === 'dcameras' && <InfoOutlineIcon className={ classes.dcameraUploadIcon } /> }
         </div>
       );
     } else if (!canUpload) {
       button = (
-        <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }} disabled={ true }>
+        <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }} disabled>
           download
         </Button>
       );
     } else {
       button = (
-        <Button className={ classes.uploadButton } style={{ minWidth: uploadButtonWidth }}
-          onClick={ () => this.uploadFile(type) }>
+        <Button
+          className={ classes.uploadButton }
+          style={{ minWidth: uploadButtonWidth }}
+          onClick={ () => this.uploadFile(type) }
+        >
           { windowWidth < 425 ? 'upload' : 'request upload' }
         </Button>
       );
     }
 
     return (
-      <MenuItem key={ type } disabled={ true } className={ classes.filesItem }
-        style={ Boolean(files) ? { pointerEvents: 'auto' } : { color: Colors.white60 } }>
+      <MenuItem
+        key={ type }
+        disabled
+        className={ classes.filesItem }
+        style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
+      >
         { name }
         { button }
       </MenuItem>

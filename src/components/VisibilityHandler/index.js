@@ -21,19 +21,21 @@ class VisibilityHandler extends Component {
     document.addEventListener('focus', this.handleFocus);
     document.addEventListener('blur', this.handleBlur);
     this.prevVisibleCall = Date.now() / 1000;
-    if (this.props.onInit) {
-      this.props.onVisible();
+
+    const { onInit, onInterval, onVisible } = this.props;
+    if (onInit) {
+      onVisible();
     }
-    if (this.props.onInterval) {
-      this.intervalHandle = setInterval(this.handleVisibilityChange, this.props.onInterval * 1000);
+    if (onInterval) {
+      this.intervalHandle = setInterval(this.handleVisibilityChange, onInterval * 1000);
     }
   }
 
   componentDidUpdate(prevProps) {
-    const { dongleId } = this.props;
-    if (this.props.onDongleId && prevProps.dongleId !== dongleId) {
+    const { dongleId, onDongleId, onVisible } = this.props;
+    if (onDongleId && prevProps.dongleId !== dongleId) {
       this.prevVisibleCall = Date.now() / 1000;
-      this.props.onVisible();
+      onVisible();
     }
   }
 
@@ -64,14 +66,16 @@ class VisibilityHandler extends Component {
   }
 
   onVisibilityEvent(visible) {
+    const { minInterval, onVisible, resetOnHidden } = this.props;
+
     const newDate = Date.now() / 1000;
     const dt = newDate - this.prevVisibleCall;
-    if (visible && (!this.props.minInterval || dt > this.props.minInterval)) {
+    if (visible && (!minInterval || dt > minInterval)) {
       this.prevVisibleCall = newDate;
-      this.props.onVisible();
+      onVisible();
     }
 
-    if (!visible && this.props.resetOnHidden) {
+    if (!visible && resetOnHidden) {
       this.prevVisibleCall = newDate;
     }
   }

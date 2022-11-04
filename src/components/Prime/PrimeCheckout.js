@@ -42,14 +42,6 @@ const styles = () => ({
     '& p': { display: 'inline' },
     '& button': { display: 'inline', marginLeft: '15px' },
   },
-  checkList: {
-    marginLeft: 10,
-    marginBottom: 10,
-  },
-  checkListItem: {
-    padding: '5px 0',
-    '& svg': { margin: 0 },
-  },
   deviceId: {
     color: '#525E66',
   },
@@ -212,6 +204,7 @@ class PrimeCheckout extends Component {
     this.gotoCheckout = this.gotoCheckout.bind(this);
     this.trialClaimable = this.trialClaimable.bind(this);
     this.dataPlanAvailable = this.dataPlanAvailable.bind(this);
+    this.onResize = this.onResize.bind(this);
   }
 
   componentDidMount() {
@@ -230,26 +223,21 @@ class PrimeCheckout extends Component {
     }
   }
 
-  onPrimeActivated(resp) {
-    if (resp.success) {
-      this.setState({ activated: resp, error: null });
-      Billing.getSubscription(this.props.dongleId).then((subscription) => {
-        this.setState({ new_subscription: subscription });
-      }).catch((err) => {
-        console.error(err);
-        Sentry.captureException(err, { fingerprint: 'prime_checkout_activated_fetch_sub' });
-      });
-    } else if (resp.error) {
-      this.setState({ error: resp.error });
-    }
+  onResize(windowWidth, windowHeight) {
+    this.setState({ windowWidth, windowHeight });
   }
 
   async gotoCheckout() {
-    const { dongleId, subscribeInfo } =  this.props;
+    const { dispatch, dongleId, subscribeInfo } = this.props;
     this.setState({ loadingCheckout: true });
     try {
-      const resp = await Billing.getStripeCheckout(dongleId, subscribeInfo.sim_id, this.state.selectedPlan);
-      this.props.dispatch(analyticsEvent('prime_checkout', { plan: this.state.selectedPlan }));
+      const { selectedPlan: plan } = this.state;
+      const resp = await Billing.getStripeCheckout(
+        dongleId,
+        subscribeInfo.sim_id,
+        plan,
+      );
+      dispatch(analyticsEvent('prime_checkout', { plan }));
       window.location = resp.url;
     } catch (err) {
       // TODO show error messages
@@ -265,12 +253,12 @@ class PrimeCheckout extends Component {
     }
 
     return Boolean(
-      device.device_type === 'three' &&
-      subscribeInfo &&
-      subscribeInfo.sim_id &&
-      subscribeInfo.is_prime_sim &&
-      subscribeInfo.sim_usable !== false &&
-      ['blue', 'magenta_new'].includes(subscribeInfo.sim_type),
+      device.device_type === 'three'
+      && subscribeInfo
+      && subscribeInfo.sim_id
+      && subscribeInfo.is_prime_sim
+      && subscribeInfo.sim_usable !== false
+      && ['blue', 'magenta_new'].includes(subscribeInfo.sim_type),
     );
   }
 
@@ -282,15 +270,14 @@ class PrimeCheckout extends Component {
     }
     if (selectedPlan === 'data') {
       return Boolean(subscribeInfo.trial_end_data);
-    } else if (selectedPlan === 'nodata') {
+    } if (selectedPlan === 'nodata') {
       return Boolean(subscribeInfo.trial_end_nodata);
-    } else {
-      return Boolean(subscribeInfo.trial_end_data && subscribeInfo.trial_end_nodata);
     }
+    return Boolean(subscribeInfo.trial_end_data && subscribeInfo.trial_end_nodata);
   }
 
   render() {
-    const { classes, device, subscribeInfo } = this.props;
+    const { classes, dispatch, device, subscribeInfo } = this.props;
     const { windowWidth, windowHeight, error, loadingCheckout, selectedPlan } = this.state;
 
     let chargeText = null;
@@ -298,19 +285,21 @@ class PrimeCheckout extends Component {
       let trialEndDate = null;
       let claimEndDate = null;
       if (selectedPlan === 'data') {
-        trialEndDate = fecha.format(subscribeInfo.trial_end_data * 1000, "MMMM Do");
-        claimEndDate = fecha.format(subscribeInfo.claim_end_data * 1000, "MMMM Do");
+        trialEndDate = fecha.format(subscribeInfo.trial_end_data * 1000, 'MMMM Do');
+        claimEndDate = fecha.format(subscribeInfo.claim_end_data * 1000, 'MMMM Do');
       } else if (selectedPlan === 'nodata') {
-        trialEndDate = fecha.format(subscribeInfo.trial_end_nodata * 1000, "MMMM Do");
+        trialEndDate = fecha.format(subscribeInfo.trial_end_nodata * 1000, 'MMMM Do');
       }
-      chargeText = `Your first charge will be on ${trialEndDate}, then monthly thereafter.` +
-        (claimEndDate ? ` Trial offer only valid until ${claimEndDate}.` : '');
+      chargeText = `Your first charge will be on ${trialEndDate}, then monthly thereafter.${
+        claimEndDate ? ` Trial offer only valid until ${claimEndDate}.` : ''}`;
     }
 
     const alias = device.alias || deviceTypePretty(device.device_type);
     const containerPadding = windowWidth > 520 ? { margin: '18px 24px' } : { margin: '6px 12px' };
     const blockMargin = windowWidth > 520 ? { marginTop: 24 } : { marginTop: 8 };
-    const paddingStyle = windowWidth > 520 ? { paddingLeft: 7, paddingRight: 7 } : { paddingLeft: 8, paddingRight: 8 };
+    const paddingStyle = windowWidth > 520
+      ? { paddingLeft: 7, paddingRight: 7 }
+      : { paddingLeft: 8, paddingRight: 8 };
     const selectedStyle = { border: '2px solid white' };
     const plansLoadingClass = !subscribeInfo ? classes.planInfoLoading : '';
     const disabledDataPlan = Boolean(!subscribeInfo || !this.dataPlanAvailable());
@@ -338,92 +327,122 @@ class PrimeCheckout extends Component {
       }
     }
 
-    return ( <>
+    return (
       <div className={ classes.primeBox } style={ containerPadding }>
-        <ResizeHandler onResize={ (windowWidth, windowHeight) => this.setState({ windowWidth, windowHeight }) } />
+        <ResizeHandler onResize={this.onResize} />
         <div className={ classes.primeHeader }>
-          <IconButton aria-label="Go Back" onClick={() => this.props.dispatch(primeNav(false)) }>
+          <IconButton aria-label="Go Back" onClick={() => dispatch(primeNav(false)) }>
             <KeyboardBackspaceIcon />
           </IconButton>
           <div className={ classes.headerDevice }>
             <Typography variant="body2">{ alias }</Typography>
-            <Typography variant="caption" className={classes.deviceId}>({ device.dongle_id })</Typography>
+            <Typography variant="caption" className={classes.deviceId}>{`(${device.dongle_id})`}</Typography>
           </div>
         </div>
         <h2 className={ classes.primeTitle }>comma prime</h2>
         <div style={ blockMargin }>
           <div className={ classes.checkList }>
             <div className={ classes.checkListItem } style={ paddingStyle }>
-              <CheckIcon /><p>24/7 connectivity</p>
+              <CheckIcon />
+              <p>24/7 connectivity</p>
             </div>
             <div className={ classes.checkListItem } style={ paddingStyle }>
-              <CheckIcon /><p>Take pictures remotely</p>
+              <CheckIcon />
+              <p>Take pictures remotely</p>
             </div>
             <div className={ classes.checkListItem } style={ paddingStyle }>
-              <CheckIcon /><p>1 year storage of drive videos</p>
+              <CheckIcon />
+              <p>1 year storage of drive videos</p>
             </div>
             <div className={ classes.checkListItem } style={ paddingStyle }>
-              <CheckIcon /><p>Simple SSH for developers</p>
+              <CheckIcon />
+              <p>Simple SSH for developers</p>
             </div>
             <div className={ classes.checkListItem } style={ paddingStyle }>
-              <CheckIcon /><p>Turn-by-turn navigation <span>comma three only</span></p>
+              <CheckIcon />
+              <p>
+                Turn-by-turn navigation
+                {' '}
+                <span>comma three only</span>
+              </p>
             </div>
           </div>
         </div>
         <div className={ classes.planBoxContainer } style={ blockMargin }>
           <div className={ classes.planBox } style={ boxHeight }>
-            <div className={ `${classes.plan} ${plansLoadingClass}` }
+            <div
+              className={ `${classes.plan} ${plansLoadingClass}` }
               style={ selectedPlan === 'nodata' ? selectedStyle : {} }
-              onClick={ Boolean(subscribeInfo) ? () => this.setState({ selectedPlan: 'nodata' }) : null }>
+              onClick={ subscribeInfo ? () => this.setState({ selectedPlan: 'nodata' }) : null }
+            >
               <p className={ classes.planName }>lite</p>
               <p className={ classes.planPrice }>$16/month</p>
-              <p className={ classes.planSubtext }>bring your own<br />sim card</p>
+              <p className={ classes.planSubtext }>
+                bring your own
+                <br />
+                sim card
+              </p>
             </div>
-            <div className={ `${classes.plan} ${disabledDataPlan ? classes.planDisabled : ''} ${plansLoadingClass}` }
+            <div
+              className={ `${classes.plan} ${disabledDataPlan ? classes.planDisabled : ''} ${plansLoadingClass}` }
               style={ selectedPlan === 'data' ? selectedStyle : {} }
-              onClick={ !disabledDataPlan ? () => this.setState({ selectedPlan: 'data' }) : null }>
+              onClick={ !disabledDataPlan ? () => this.setState({ selectedPlan: 'data' }) : null }
+            >
               <p className={ classes.planName }>standard</p>
               <p className={ classes.planPrice }>$24/month</p>
-              <p className={ classes.planSubtext }>including data plan<br />only offered in the U.S.</p>
+              <p className={ classes.planSubtext }>
+                including data plan
+                <br />
+                only offered in the U.S.
+              </p>
             </div>
           </div>
-          { !subscribeInfo &&
+          { !subscribeInfo
+            && (
             <div className={ classes.planLoading }>
               <CircularProgress size={ 38 } style={{ color: Colors.white }} />
               <Typography>Fetching SIM data</Typography>
             </div>
-          }
+            )}
         </div>
-        { disabledDataPlanText && <div className={ classes.overviewBlockDisabled } style={ blockMargin }>
+        { disabledDataPlanText && (
+        <div className={ classes.overviewBlockDisabled } style={ blockMargin }>
           <InfoOutlineIcon />
           <Typography>{ disabledDataPlanText }</Typography>
-        </div> }
+        </div>
+        ) }
         <div style={ blockMargin }>
           <Typography className={ classes.learnMore }>
-            Learn more about comma prime from our <a target="_blank" href="https://comma.ai/prime#faq">FAQ</a>
+            Learn more about comma prime from our
+            {' '}
+            <a target="_blank" href="https://comma.ai/prime#faq" rel="noreferrer">FAQ</a>
           </Typography>
         </div>
-        { error && <div className={ classes.overviewBlockError }>
+        { error && (
+        <div className={ classes.overviewBlockError }>
           <ErrorIcon />
           <Typography>{ error }</Typography>
-        </div> }
+        </div>
+        ) }
         <div style={ blockMargin }>
-          <Button className={ `${classes.buttons} gotoCheckout` }
+          <Button
+            className={ `${classes.buttons} gotoCheckout` }
             onClick={ () => this.gotoCheckout() }
-            disabled={ Boolean(!subscribeInfo || loadingCheckout || !selectedPlan) }>
-            { loadingCheckout ?
-              <CircularProgress size={ 19 } /> :
-              (this.trialClaimable() ? 'Claim trial' : 'Go to checkout')
-            }
+            disabled={ Boolean(!subscribeInfo || loadingCheckout || !selectedPlan) }
+          >
+            { loadingCheckout
+              ? <CircularProgress size={ 19 } />
+              : (this.trialClaimable() ? 'Claim trial' : 'Go to checkout')}
           </Button>
         </div>
-        { chargeText &&
+        { chargeText
+          && (
           <div style={ blockMargin }>
             <Typography className={ classes.chargeText }>{ chargeText }</Typography>
           </div>
-        }
+          )}
       </div>
-    </> );
+    );
   }
 }
 
@@ -434,4 +453,3 @@ const stateToProps = Obstruction({
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeCheckout));
-

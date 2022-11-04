@@ -8,10 +8,10 @@ import { Clear } from '@material-ui/icons';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import Colors from '../../colors';
-import { ios_share } from '../../icons';
+import { IosShareIcon } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
 
-const styles = (theme) => ({
+const styles = () => ({
   container: {
     position: 'fixed',
     bottom: 10,
@@ -22,8 +22,6 @@ const styles = (theme) => ({
     margin: '0 auto',
     borderRadius: 22,
     padding: '12px 20px',
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
     color: Colors.white,
     display: 'flex',
     flexDirection: 'column',
@@ -105,7 +103,7 @@ class IosPwaPopup extends Component {
   }
 
   onWindowClick() {
-    this.windowEvents++;
+    this.windowEvents += 1;
     if (this.windowEvents >= 3) {
       this.hide();
     }
@@ -135,8 +133,14 @@ class IosPwaPopup extends Component {
             <Clear className={ classes.hide } onClick={ this.hide } />
             <Typography className={ classes.title }>Add to home screen</Typography>
             <Typography>
-              Install this webapp on your home screen: <br />
-              tap <img className={ classes.icon } src={ ios_share } width={ 35/2.2 } height={ 44/2.2 } /> and then 'Add to Home Screen'
+              Install this webapp on your home screen:
+              {' '}
+              <br />
+              tap
+              {' '}
+              <img className={classes.icon} src={IosShareIcon} width={35 / 2.2} height={44 / 2.2} />
+              {' '}
+              and then &lsquo;Add to Home Screen&rsquo;
             </Typography>
           </div>
         </div>

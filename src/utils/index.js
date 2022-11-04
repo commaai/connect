@@ -15,6 +15,12 @@ export const emptyDevice = {
   serial: '00000000',
 };
 
+export function asyncSleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 export function toBool(item) {
   switch (typeof item) {
     case 'boolean':
