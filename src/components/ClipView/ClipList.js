@@ -84,6 +84,23 @@ const styles = () => ({
   },
 });
 
+const clipErrorToText = (errorStatus) => {
+  switch (errorStatus) {
+    case 'upload_failed_request':
+      return 'Unable to request file upload from device.';
+    case 'upload_failed':
+      return 'Not all files needed for this clip could be found on the device.';
+    case 'upload_failed_dcam':
+      return 'Not all files needed for this clip could be found on the device, was the "Record and Upload Driver Camera" toggle active?';
+    case 'upload_timed_out':
+      return 'File upload timed out, the device must be on WiFi to upload the required files.';
+    case 'export_failed':
+      return 'An error occured while creating this clip.';
+    default:
+      return 'Unable to create clip.';
+  }
+};
+
 class ClipList extends Component {
   constructor(props) {
     super(props);
@@ -99,7 +116,6 @@ class ClipList extends Component {
     this.shareClip = this.shareClip.bind(this);
     this.renderClipItem = this.renderClipItem.bind(this);
     this.fetchShowError = this.fetchShowError.bind(this);
-    this.clipErrorToText = this.clipErrorToText.bind(this);
 
     this.popoverTimeout = null;
   }
@@ -134,24 +150,8 @@ class ClipList extends Component {
     }
   }
 
-  clipErrorToText(errorStatus) {
-    switch (errorStatus) {
-      case 'upload_failed_request':
-        return 'Unable to request file upload from device.';
-      case 'upload_failed':
-        return 'Not all files needed for this clip could be found on the device.';
-      case 'upload_failed_dcam':
-        return 'Not all files needed for this clip could be found on the device, was the "Record and Upload Driver Camera" toggle active?';
-      case 'upload_timed_out':
-        return 'File upload timed out, the device must be on WiFi to upload the required files.';
-      case 'export_failed':
-        return 'An error occured while creating this clip.';
-      default:
-        return 'Unable to create clip.';
-    }
-  }
-
   async fetchShowError(target, c) {
+    const { dongleId } = this.props;
     const { errorTexts } = this.state;
 
     let errorText;
@@ -160,8 +160,8 @@ class ClipList extends Component {
     } else {
       this.setState({ errorPopper: { ref: target } });
       try {
-        const resp = await Clips.clipsDetails(this.props.dongleId, c.clip_id);
-        errorText = this.clipErrorToText(resp.error_status);
+        const resp = await Clips.clipsDetails(dongleId, c.clip_id);
+        errorText = clipErrorToText(resp.error_status);
         this.setState({
           errorTexts: {
             ...errorTexts,
@@ -189,7 +189,7 @@ class ClipList extends Component {
   }
 
   renderClipItem(gridStyles, c) {
-    const { classes, dongleId } = this.props;
+    const { classes, dispatch, dongleId } = this.props;
     const { windowWidth } = this.state;
 
     const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1.0rem' };
@@ -205,16 +205,16 @@ class ClipList extends Component {
         marginRight: (windowWidth < 768 ? 3 : 8),
       };
       thumbnail = (
-        <div className={ classes.thumbnail } style={ thumbnailStyle }>
+        <div className={classes.thumbnail} style={thumbnailStyle}>
           { c.video_type === '360' && <Video360Icon /> }
         </div>
       );
     } else if (c.status === 'pending') {
-      thumbnail = <MoreHorizIcon className={ classes.clipPlayIcon } style={ gridStyles[0] } />;
+      thumbnail = <MoreHorizIcon className={classes.clipPlayIcon} style={gridStyles[0]} />;
     } else if (c.status === 'failed') {
       thumbnail = (
         <ErrorOutlineIcon
-          className={ classes.clipPlayIcon }
+          className={classes.clipPlayIcon}
           style={{ ...gridStyles[0], color: Colors.red300 }}
         />
       );
@@ -223,15 +223,15 @@ class ClipList extends Component {
     const innerItem = (
       <>
         { thumbnail }
-        <p style={{ ...itemStyle, ...gridStyles[1] }} className={ classes.clipTitle }>
+        <p style={{ ...itemStyle, ...gridStyles[1] }} className={classes.clipTitle}>
           { c.title ? c.title : c.route_name.split('|')[1] }
         </p>
-        <p style={{ ...itemStyle, ...gridStyles[2] }}>{ timeStr }</p>
+        <p style={{ ...itemStyle, ...gridStyles[2] }}>{timeStr}</p>
         { c.is_public
           ? (
             <PublicIcon
               style={{ ...gridStyles[3], fontSize: (windowWidth < 768 ? '1.0rem' : '1.2rem') }}
-              onClick={ (ev) => { ev.persist(); this.shareClip(ev, c); } }
+              onClick={(ev) => { ev.persist(); this.shareClip(ev, c); }}
             />
           )
           : <LockOutlineIcon style={{ ...gridStyles[3], fontSize: (windowWidth < 768 ? '1.0rem' : '1.2rem') }} />}
@@ -240,7 +240,11 @@ class ClipList extends Component {
 
     if (c.status === 'failed') {
       return (
-        <div key={c.clip_id} className={classes.clipItem} onClick={ (ev) => this.fetchShowError(ev.target, c) }>
+        <div
+          key={c.clip_id}
+          className={classes.clipItem}
+          onClick={(ev) => this.fetchShowError(ev.target, c)}
+        >
           { innerItem }
         </div>
       );
@@ -250,8 +254,8 @@ class ClipList extends Component {
       <a
         key={c.clip_id}
         className={classes.clipItem}
-        href={ `/${dongleId}/clips/${c.clip_id}` }
-        onClick={ filterRegularClick(() => this.props.dispatch(navToClips(c.clip_id, c.state))) }
+        href={`/${dongleId}/clips/${c.clip_id}`}
+        onClick={filterRegularClick(() => dispatch(navToClips(c.clip_id, c.state)))}
       >
         { innerItem }
       </a>
@@ -259,7 +263,7 @@ class ClipList extends Component {
   }
 
   render() {
-    const { classes, clips } = this.props;
+    const { classes, clips, dispatch, dongleId } = this.props;
     const { windowWidth, copiedPopover, errorPopper } = this.state;
 
     const viewerPadding = windowWidth < 768 ? 12 : 32;
@@ -275,17 +279,13 @@ class ClipList extends Component {
 
     return (
       <>
-        <VisibilityHandler
-          onVisible={ () => this.props.dispatch(fetchClipsList(this.props.dongleId)) }
-          onDongleId
-        />
+        <VisibilityHandler onVisible={() => dispatch(fetchClipsList(dongleId))} onDongleId />
         <ResizeHandler onResize={ this.onResize } />
 
         <div style={{ ...itemStyle, padding: viewerPadding }}>
           { !clips && <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
-          { Boolean(clips && clips.length === 0) && <p className={ classes.noClips }>no clips found</p> }
-          { Boolean(clips && clips.length > 0)
-          && (
+          { clips?.length === 0 && <p className={ classes.noClips }>no clips found</p> }
+          { clips?.length > 0 && (
           <div className={classes.clipItemHeader} style={{ padding: (windowWidth < 768 ? 3 : 8) }}>
             <span style={{ ...itemStyle, ...gridStyles[0] }} />
             <h6 style={{ ...itemStyle, ...gridStyles[1] }}>Title</h6>
