@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
-import { CircularProgress, Button, withStyles } from '@material-ui/core';
+import { Button, CircularProgress, Typography, withStyles } from '@material-ui/core';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import FileUploadIcon from '@material-ui/icons/FileUpload';
 
@@ -455,9 +455,9 @@ class ClipUpload extends Component {
           device={ device }
         />
         <div style={{ padding: `0 ${viewerPadding}px ${viewerPadding}px ${viewerPadding}px` }}>
-          <typography>
+          <Typography>
             This may take some time. You can leave this page and your clip will continue processing.
-          </typography>
+          </Typography>
         </div>
       </>
     );
