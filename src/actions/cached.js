@@ -1,17 +1,23 @@
 import * as Sentry from '@sentry/react';
 
 import * as Types from './types';
-import GeocodeApi from '../api/geocode';
+import { reverseLookup } from '../api/geocode';
 import { toBool } from '../utils';
 
 const USE_LOCAL_COORDS_DATA = toBool(process.env.REACT_APP_LOCAL_COORDS_DATA);
+if (USE_LOCAL_COORDS_DATA) {
+  console.warn('using local coords data');
+}
 const USE_LOCAL_EVENTS_DATA = toBool(process.env.REACT_APP_LOCAL_EVENTS_DATA);
+if (USE_LOCAL_EVENTS_DATA) {
+  console.warn('using local events data');
+}
 
 const eventsRequests = {};
 const coordsRequests = {};
 const driveCoordsRequests = {};
 let hasExpired = false;
-const cacheDB = null;
+let cacheDB = null;
 
 async function getCacheDB() {
   if (cacheDB !== null) {
@@ -44,6 +50,7 @@ async function getCacheDB() {
           resolve(null);
         }
       }
+      cacheDB = db;
       resolve(db);
     };
     request.onupgradeneeded = (ev) => {
@@ -391,7 +398,7 @@ export function fetchCoord(route, coord, locationKey) {
       return;
     }
 
-    const location = await GeocodeApi().reverseLookup(coord);
+    const location = await reverseLookup(coord);
     if (!location) {
       return;
     }

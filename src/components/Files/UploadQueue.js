@@ -197,13 +197,7 @@ class UploadQueue extends Component {
       uploadSorted.unshift(curr[0]);
     }
 
-    let allPaused = true;
-    for (const upload of uploadSorted) {
-      if (!upload.paused) {
-        allPaused = false;
-        break;
-      }
-    }
+    const allPaused = uploadSorted.every((upload) => upload.paused);
 
     return (
       <>
