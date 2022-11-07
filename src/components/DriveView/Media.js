@@ -872,11 +872,7 @@ class Media extends Component {
             && (
             <div className={ classes.viewCabanaUploads }>
               <WarningIcon />
-              {' '}
-              missing
-              { stats.canRequestRlog }
-              {' '}
-              logs
+              {`missing ${stats.canRequestRlog} logs`}
               <Button onClick={ (ev) => { this.uploadFilesAll(['logs']); ev.stopPropagation(); } }>upload</Button>
             </div>
             )}

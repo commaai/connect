@@ -52,8 +52,6 @@ class DriveList extends Component {
       windowWidth: window.innerWidth,
     };
 
-    this.fakeItemRef = React.createRef();
-
     this.onResize = this.onResize.bind(this);
     this.onVisible = this.onVisible.bind(this);
   }
@@ -64,25 +62,6 @@ class DriveList extends Component {
 
   async onVisible() {
     this.props.dispatch(checkRoutesData());
-  }
-
-  render() {
-    const { classes } = this.props;
-
-    const driveList = this.props.routes || [];
-
-    return (
-      <div className={ classes.drivesTable }>
-        <ResizeHandler onResize={ this.onResize } />
-        <VisibilityHandler onVisible={ this.onVisible } minInterval={ 60 } />
-        { driveList.length === 0 && this.renderZeroRides() }
-        <div className={ `${classes.drives} DriveList` }>
-          { driveList.map((drive, i) => (
-            <DriveListItem key={drive.start_time_utc_millis} drive={drive} windowWidth={ this.state.windowWidth } />
-          ))}
-        </div>
-      </div>
-    );
   }
 
   renderZeroRides() {
@@ -106,8 +85,32 @@ class DriveList extends Component {
     return (
       <div className={classes.zeroState} style={{ padding: `16px ${containerPadding}px` }}>
         <Grid container>
-          { zeroRidesEle }
+          {zeroRidesEle}
         </Grid>
+      </div>
+    );
+  }
+
+  render() {
+    const { classes, routes } = this.props;
+    const { windowWidth } = this.state;
+
+    const driveList = routes || [];
+
+    return (
+      <div className={classes.drivesTable}>
+        <ResizeHandler onResize={this.onResize} />
+        <VisibilityHandler onVisible={this.onVisible} minInterval={60} />
+        { driveList.length === 0 && this.renderZeroRides() }
+        <div className={`${classes.drives} DriveList`}>
+          { driveList.map((drive) => (
+            <DriveListItem
+              key={drive.start_time_utc_millis}
+              drive={drive}
+              windowWidth={windowWidth}
+            />
+          ))}
+        </div>
       </div>
     );
   }
