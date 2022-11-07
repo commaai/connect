@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
 import fecha from 'fecha';
 
@@ -54,14 +54,14 @@ const styles = () => ({
 });
 
 const DriveListItem = (props) => {
-  const ref = React.createRef();
+  const el = useRef();
   const [isVisible, setVisible] = useState(false);
   const { classes, dispatch, drive, windowWidth } = props;
 
   useEffect(() => {
     const onScroll = () => {
-      if (!isVisible && ref.current && window && (!window.visualViewport
-          || window.visualViewport.height >= ref.current.getBoundingClientRect().y - 300)
+      if (!isVisible && el.current && window && (!window.visualViewport
+          || window.visualViewport.height >= el.current.getBoundingClientRect().y - 300)
       ) {
         setVisible(true);
         dispatch(fetchEvents(drive));
@@ -80,9 +80,11 @@ const DriveListItem = (props) => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
     };
-  }, []);
+  }, [drive, dispatch, isVisible, el]);
 
-  const onClick = filterRegularClick(() => dispatch(selectRange(drive.start_time_utc_millis, drive.end_time_utc_millis)));
+  const onClick = filterRegularClick(
+    () => dispatch(selectRange(drive.start_time_utc_millis, drive.end_time_utc_millis)),
+  );
 
   const small = windowWidth < 580;
   const startTime = fecha.format(new Date(drive.start_time_utc_millis), 'HH:mm');
@@ -113,7 +115,7 @@ const DriveListItem = (props) => {
     <a
       key={drive.start_time}
       className={`${classes.drive} DriveEntry`}
-      ref={ref}
+      ref={el}
       href={`/${drive.dongle_id}/${drive.start_time_utc_millis}/${drive.end_time_utc_millis}`}
       onClick={onClick}
     >
