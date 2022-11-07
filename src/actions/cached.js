@@ -11,7 +11,7 @@ const eventsRequests = {};
 const coordsRequests = {};
 const driveCoordsRequests = {};
 let hasExpired = false;
-const cacheDB = null;
+let cacheDB = null;
 
 async function getCacheDB() {
   if (cacheDB !== null) {
