@@ -375,7 +375,6 @@ class PrimeManage extends Component {
                 <Typography variant="subheading">Plan</Typography>
                 <Typography className={ classes.manageItem }>
                   { planName }
-                  {' '}
                   <span>{ planSubtext }</span>
                 </Typography>
               </div>
@@ -436,9 +435,8 @@ class PrimeManage extends Component {
                 <div className={ classes.overviewBlockDisabled }>
                   <PriorityHighIcon />
                   <Typography>
-                    Your prime subscription will be canceled on May 15th unless you replace the SIM card in your device.
-                    A new SIM card can be ordered from the
-                    {' '}
+                    Your prime subscription will be canceled on May 15th unless you replace the SIM
+                    card in your device. A new SIM card can be ordered from the
                     <a href="https://comma.ai/shop/products/comma-prime-sim-card">shop</a>
                     .
                     Use discount code SIMSWAP at checkout to receive a free SIM card.
@@ -473,14 +471,11 @@ class PrimeManage extends Component {
             </div>
             ) }
             <Typography>
-              Device:
-              {alias}
-              {' '}
-              (
-              { dongleId }
-              )
+              {`Device: ${alias} (${dongleId})`}
             </Typography>
-            <Typography>We're sorry to see you go.</Typography>
+            <Typography>
+              We&apos;re sorry to see you go.
+            </Typography>
             <Typography>
               Subscription will stay active until the end of this billing period
               { nextPaymentDate ? ` (${nextPaymentDate})` : '' }

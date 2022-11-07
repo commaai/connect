@@ -247,7 +247,6 @@ class ExplorerApp extends Component {
               && (
               <Typography>
                 Successfully paired device
-                {' '}
                 <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
               </Typography>
               )}

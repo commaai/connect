@@ -193,9 +193,7 @@ class AppHeader extends Component {
             <span>{ profile.user_id }</span>
           </ListItem>
           <ListItem className={ classes.accountListItem }>
-            { profile.points }
-            {' '}
-            points
+            {`${profile.points} points`}
           </ListItem>
           <Divider />
           <MenuItem

@@ -223,7 +223,6 @@ class UploadQueue extends Component {
                 <div className={ classes.cellularWarning }>
                   <div>
                     <WarningIcon />
-                    {' '}
                     Connect to WiFi
                   </div>
                   <span style={{ fontSize: '0.8rem' }}>uploading paused on cellular connection</span>

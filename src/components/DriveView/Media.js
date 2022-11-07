@@ -765,11 +765,7 @@ class Media extends Component {
               style={{ minWidth: uploadButtonWidth }}
               onClick={ () => this.uploadFilesAll(['logs']) }
             >
-              upload
-              {' '}
-              { stats.canRequestRlog }
-              {' '}
-              logs
+              {`upload ${stats.canRequestRlog} logs`}
             </Button>
             )}
             { Boolean(canUpload && rlogUploadDisabled && stats)
@@ -794,11 +790,7 @@ class Media extends Component {
               style={{ minWidth: uploadButtonWidth }}
               onClick={ () => this.uploadFilesAll() }
             >
-              upload
-              {' '}
-              { stats.canRequestAll }
-              {' '}
-              files
+              {`upload ${stats.canRequestAll} files`}
             </Button>
             )}
             { Boolean(canUpload && allUploadDisabled && stats)
@@ -825,7 +817,6 @@ class Media extends Component {
               <MenuItem className={ classes.offlineMenuItem } disabled>
                 <div>
                   <WarningIcon />
-                  {' '}
                   Device offline
                 </div>
                 <span style={{ fontSize: '0.8rem' }}>uploading will resume when device is online</span>
@@ -836,7 +827,6 @@ class Media extends Component {
           <MenuItem className={ classes.offlineMenuItem } disabled>
             <div>
               <WarningIcon />
-              {' '}
               Connect to WiFi
             </div>
             <span style={{ fontSize: '0.8rem' }}>uploading paused on cellular connection</span>
