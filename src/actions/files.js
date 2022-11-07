@@ -225,7 +225,7 @@ export function doUpload(dongleId, fileNames, paths, urls) {
         const newUploading = fileNames.reduce((state, fn) => {
           state[fn] = { progress: 0, current: false };
           return state;
-        });
+        }, {});
         dispatch(updateFiles(newUploading));
       } else if (resp.result) {
         if (resp.result.failed) {
@@ -235,7 +235,7 @@ export function doUpload(dongleId, fileNames, paths, urls) {
               const fn = fileNames[paths.indexOf(path)];
               state[fn] = { notFound: true };
               return state;
-            });
+            }, {});
           dispatch(updateFiles(uploading));
         }
         dispatch(fetchUploadQueue(dongleId));
