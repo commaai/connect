@@ -44,6 +44,7 @@ async function getCacheDB() {
           resolve(null);
         }
       }
+      cacheDB = db;
       resolve(db);
     };
     request.onupgradeneeded = (ev) => {
