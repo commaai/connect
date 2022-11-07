@@ -36,4 +36,9 @@ test('compares versions correctly', () => {
   expect(deviceVersionAtLeast(device('0.8.0'), '1.0.0')).toEqual(false);
   expect(deviceVersionAtLeast(device('0.7.99'), '0.8.0')).toEqual(false);
   expect(deviceVersionAtLeast(device('1.0.0'), '2.0.0')).toEqual(false);
+
+  expect(deviceVersionAtLeast(device('0.8.14'), '0.8.14')).toEqual(true);
+  expect(deviceVersionAtLeast(device('0.8.14'), '0.8.13')).toEqual(true);
+  expect(deviceVersionAtLeast(device('0.8.13'), '0.8.14')).toEqual(false);
+  expect(deviceVersionAtLeast(device('0.8.13'), '0.8.13')).toEqual(true);
 });
