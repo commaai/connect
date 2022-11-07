@@ -5,7 +5,13 @@ import GeocodeApi from '../api/geocode';
 import { toBool } from '../utils';
 
 const USE_LOCAL_COORDS_DATA = toBool(process.env.REACT_APP_LOCAL_COORDS_DATA);
+if (USE_LOCAL_COORDS_DATA) {
+  console.warn('using local coords data');
+}
 const USE_LOCAL_EVENTS_DATA = toBool(process.env.REACT_APP_LOCAL_EVENTS_DATA);
+if (USE_LOCAL_EVENTS_DATA) {
+  console.warn('using local events data');
+}
 
 const eventsRequests = {};
 const coordsRequests = {};
