@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import * as Types from './types';
-import GeocodeApi from '../api/geocode';
+import { reverseLookup } from '../api/geocode';
 import { toBool } from '../utils';
 
 const USE_LOCAL_COORDS_DATA = toBool(process.env.REACT_APP_LOCAL_COORDS_DATA);
@@ -398,7 +398,7 @@ export function fetchCoord(route, coord, locationKey) {
       return;
     }
 
-    const location = await GeocodeApi().reverseLookup(coord);
+    const location = await reverseLookup(coord);
     if (!location) {
       return;
     }

@@ -11,7 +11,7 @@ import fecha from 'fecha';
 
 import { athena as Athena, devices as Devices, navigation as NavigationApi } from '@commaai/api';
 import { primeNav, analyticsEvent } from '../../actions';
-import GeocodeApi, { MAPBOX_TOKEN } from '../../api/geocode';
+import { forwardLookup, getDirections, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../api/geocode';
 import Colors from '../../colors';
 import * as Demo from '../../demo';
 import { PinCarIcon, PinMarkerIcon, PinHomeIcon, PinWorkIcon, PinPinnedIcon } from '../../icons';
@@ -445,7 +445,7 @@ class Navigation extends Component {
       if (!resp.result || Object.keys(resp.result).length === 0 || !this.mounted || dongleId !== this.props.dongleId) {
         return;
       }
-      resp = await GeocodeApi().networkPositioning(resp.result);
+      resp = await networkPositioning(resp.result);
       if (resp && this.mounted && dongleId === this.props.dongleId) {
         this.setState({
           carNetworkLocation: [resp.lng, resp.lat],
@@ -531,7 +531,7 @@ class Navigation extends Component {
       const vp = this.state.viewport;
       const carLoc = this.getCarLocation();
       const proximity = (carLoc ? carLoc.location : null) || this.state.geoLocateCoords || [vp.longitude, vp.latitude];
-      GeocodeApi().forwardLookup(searchInput.value, proximity).then((features) => {
+      forwardLookup(searchInput.value, proximity).then((features) => {
         this.setState({
           noFly: false,
           searchSelect: null,
@@ -600,7 +600,7 @@ class Navigation extends Component {
 
     // don't compute route if start = destination (e.g. car to car)
     if (startLocation && (startLocation[0] !== endLocation[0] || startLocation[1] !== endLocation[1])) {
-      GeocodeApi().getDirections([startLocation, endLocation]).then((route) => {
+      getDirections([startLocation, endLocation]).then((route) => {
         this.setState({
           searchSelect: {
             ...item,
@@ -630,7 +630,7 @@ class Navigation extends Component {
     };
     this.onSearchSelect(item, 'car');
 
-    GeocodeApi().reverseLookup(carLocation.location, true).then((location) => {
+    reverseLookup(carLocation.location, true).then((location) => {
       if (!location) {
         return;
       }
@@ -912,7 +912,7 @@ class Navigation extends Component {
     const { viewport, windowWidth } = this.state;
     const searchInput = this.searchInputRef.current;
 
-    GeocodeApi().forwardLookup(searchInput.value, null, viewport).then((features) => {
+    forwardLookup(searchInput.value, null, viewport).then((features) => {
       this.setState({
         noFly: true,
         searchSelect: null,
