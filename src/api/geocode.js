@@ -37,7 +37,7 @@ function getContextMap(context) {
 
 export function priorityGetContext(contexts) {
   const priority = ['place', 'locality', 'district'];
-  return priority.find((prio) => contexts.find((ctx) => ctx.id.indexOf(prio) > -1));
+  return priority.flatMap((prio) => contexts.filter((ctx) => ctx.id.indexOf(prio) !== -1))[0];
 }
 
 export async function reverseLookup(coords, navFormat = false) {
