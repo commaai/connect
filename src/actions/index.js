@@ -115,7 +115,7 @@ export function primeNav(nav, allowPathChange = true) {
       return;
     }
 
-    if (state.primeNav != nav) {
+    if (state.primeNav !== nav) {
       dispatch({
         type: Types.ACTION_PRIME_NAV,
         primeNav: nav,
@@ -133,7 +133,7 @@ export function primeNav(nav, allowPathChange = true) {
 }
 
 export function fetchSharedDevice(dongleId) {
-  return async (dispatch, getState) => {
+  return async (dispatch) => {
     try {
       const resp = await Devices.fetchDevice(dongleId);
       dispatch({
@@ -191,7 +191,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
             dongleId,
             networkMetered: resp.result,
           });
-          dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
+          dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
         }
       } catch (err) {
         if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
@@ -216,7 +216,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
             dongleId,
             networkMetered: metered,
           });
-          dispatch(updateDeviceOnline(dongleId, parseInt(Date.now() / 1000)));
+          dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
         }
       } catch (err) {
         if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
@@ -254,27 +254,31 @@ export function checkRoutesData() {
 
     routesRequest.req.then((routesData) => {
       state = getState();
-      const currFetchRange = getSegmentFetchRange(state);
-      if (currFetchRange.start !== fetchRange.start || currFetchRange.end !== fetchRange.end || state.dongleId !== dongleId) {
+      const currentRange = getSegmentFetchRange(state);
+      if (currentRange.start !== fetchRange.start
+        || currentRange.end !== fetchRange.end
+        || state.dongleId !== dongleId) {
         routesRequest = null;
         dispatch(checkRoutesData());
         return;
-      } if (routesData && routesData.length === 0 && !MyCommaAuth.isAuthenticated()
+      }
+      if (routesData && routesData.length === 0
+        && !MyCommaAuth.isAuthenticated()
         && !getClipsNav(window.location.pathname)?.clip_id) {
         window.location = `/?r=${encodeURI(window.location.pathname)}`; // redirect to login
         return;
       }
 
       const routes = routesData.map((r) => {
-        const start_time = r.segment_start_times[0];
-        const end_time = r.segment_end_times[r.segment_end_times.length - 1];
+        const startTime = r.segment_start_times[0];
+        const endTime = r.segment_end_times[r.segment_end_times.length - 1];
         return {
           ...r,
           url: r.url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
-          offset: Math.round(start_time) - state.filter.start,
-          duration: end_time - start_time,
-          start_time_utc_millis: start_time,
-          end_time_utc_millis: end_time,
+          offset: Math.round(startTime) - state.filter.start,
+          duration: endTime - startTime,
+          start_time_utc_millis: startTime,
+          end_time_utc_millis: endTime,
           segment_offsets: r.segment_start_times.map((x) => x - state.filter.start),
         };
       });
@@ -330,13 +334,13 @@ export function primeGetSubscription(dongleId, subscription) {
   };
 }
 
-export function urlForState(dongleId, start, end, prime_nav) {
+export function urlForState(dongleId, start, end, primeNav) {
   const path = [dongleId];
 
   if (start && end) {
     path.push(start);
     path.push(end);
-  } else if (prime_nav) {
+  } else if (primeNav) {
     path.push('prime');
   }
 
