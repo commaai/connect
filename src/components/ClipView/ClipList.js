@@ -290,7 +290,7 @@ class ClipList extends Component {
             <span style={{ ...itemStyle, ...gridStyles[0] }} />
             <h6 style={{ ...itemStyle, ...gridStyles[1] }}>Title</h6>
             <h6 style={{ ...itemStyle, ...gridStyles[2], textAlign: 'center' }}>Date</h6>
-            <h6 style={{ ...itemStyle, ...gridStyles[3] }} />
+            <span style={{ ...itemStyle, ...gridStyles[3] }} />
           </div>
           )}
           { clips && clips.map((c) => this.renderClipItem(gridStyles, c)) }
