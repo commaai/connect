@@ -30,7 +30,7 @@ const DriveList = (props) => {
     content = <DriveListEmpty device={device} routes={routes} />;
   } else {
     content = (
-      <div className={classes.drives}>
+      <div className={`${classes.drives} DriveList`}>
         {driveList.map((drive) => (
           <DriveListItem key={drive.start_time_utc_millis} drive={drive} />
         ))}
