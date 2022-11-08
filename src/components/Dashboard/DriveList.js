@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { withStyles } from '@material-ui/core';
 
-import DriveListItem from './DriveListItem';
-import ResizeHandler from '../ResizeHandler';
-import VisibilityHandler from '../VisibilityHandler';
 import { checkRoutesData } from '../../actions';
+import VisibilityHandler from '../VisibilityHandler';
 
 import DriveListEmpty from './DriveListEmpty';
+import DriveListItem from './DriveListItem';
 
 const styles = () => ({
   drivesTable: {
@@ -23,33 +22,26 @@ const styles = () => ({
 });
 
 const DriveList = (props) => {
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const { dispatch, classes, device, routes } = props;
-
   const driveList = routes || [];
+
+  let content;
+  if (!driveList.length) {
+    content = <DriveListEmpty device={device} routes={routes} />;
+  } else {
+    content = (
+      <div className={classes.drives}>
+        {driveList.map((drive) => (
+          <DriveListItem key={drive.start_time_utc_millis} drive={drive} />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className={classes.drivesTable}>
-      <ResizeHandler onResize={(width) => setWindowWidth(width)} />
       <VisibilityHandler onVisible={() => dispatch(checkRoutesData())} minInterval={60} />
-
-      { !driveList && (
-        <DriveListEmpty
-          device={device}
-          routes={routes}
-          windowWidth={windowWidth}
-        />
-      ) }
-
-      <div className={`${classes.drives} DriveList`}>
-        { driveList.map((drive) => (
-          <DriveListItem
-            key={drive.start_time_utc_millis}
-            drive={drive}
-            windowWidth={windowWidth}
-          />
-        ))}
-      </div>
+      {content}
     </div>
   );
 };

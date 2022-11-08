@@ -7,6 +7,7 @@ import { withStyles, Grid, Typography } from '@material-ui/core';
 import { selectRange } from '../../actions';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
 import Colors from '../../colors';
+import { useWindowWidth } from '../../hooks/window';
 import { RightArrow } from '../../icons';
 import { formatDriveDuration, filterRegularClick } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
@@ -56,7 +57,8 @@ const styles = () => ({
 const DriveListItem = (props) => {
   const el = useRef();
   const [isVisible, setVisible] = useState(false);
-  const { classes, dispatch, drive, windowWidth } = props;
+  const windowWidth = useWindowWidth();
+  const { classes, dispatch, drive } = props;
 
   useEffect(() => {
     const onScroll = () => {

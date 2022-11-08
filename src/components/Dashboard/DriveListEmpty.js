@@ -1,5 +1,7 @@
 import React from 'react';
 import { Grid, Typography, withStyles } from '@material-ui/core';
+
+import { useWindowWidth } from '../../hooks/window';
 import { hasRoutesData } from '../../timeline/segments';
 
 const styles = () => ({
@@ -9,18 +11,15 @@ const styles = () => ({
 });
 
 const DriveListEmpty = (props) => {
-  const { classes, device, routes, windowWidth } = props;
+  const windowWidth = useWindowWidth();
+  const { classes, device, routes } = props;
   let zeroRidesEle = null;
 
   if (device && routes === null) {
     zeroRidesEle = <Typography>Loading...</Typography>;
   } else if (hasRoutesData(props) && routes?.length === 0) {
     zeroRidesEle = (
-      <Typography>
-        Looks like you haven
-        {'\''}
-        t driven in the selected time range.
-      </Typography>
+      <Typography>Looks like you haven&apos;t driven in the selected time range.</Typography>
     );
   }
 
