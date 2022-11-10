@@ -14,7 +14,7 @@ const styles = () => ({
 
 const ServiceWorkerWrapper = (props) => {
   const { classes } = props;
-  const [showReload, setShowReload] = useState(true);
+  const [showReload, setShowReload] = useState(false);
   const [waitingWorker, setWaitingWorker] = useState(null);
   const windowWidth = useWindowWidth();
 
