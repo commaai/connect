@@ -39,6 +39,7 @@ class DriveMap extends Component {
       driveCoordsMax: null,
     };
 
+    this.onRef = this.onRef.bind(this);
     this.initMap = this.initMap.bind(this);
     this.populateMap = this.populateMap.bind(this);
     this.posAtOffset = this.posAtOffset.bind(this);
@@ -46,10 +47,11 @@ class DriveMap extends Component {
     this.updateMarkerPos = this.updateMarkerPos.bind(this);
     this.onInteraction = this.onInteraction.bind(this);
 
+    this.ref = React.createRef();
+
     this.shouldFlyTo = false;
     this.isInteracting = false;
     this.isInteractingTimeout = null;
-    this.isInteractingMouseDown = false;
   }
 
   componentDidMount() {
@@ -135,7 +137,6 @@ class DriveMap extends Component {
 
   moveViewportTo(pos) {
     const viewport = {
-      ...this.state.viewport,
       longitude: pos[0],
       latitude: pos[1],
     };
@@ -145,7 +146,12 @@ class DriveMap extends Component {
       this.shouldFlyTo = false;
     }
 
-    this.setState({ viewport });
+    this.setState((prevState) => ({
+      viewport: {
+        ...prevState.viewport,
+        ...viewport,
+      },
+    }));
   }
 
   async populateMap() {
@@ -155,6 +161,13 @@ class DriveMap extends Component {
     }
 
     this.setPath(Object.values(currentRoute.driveCoords));
+  }
+
+  onRef(el) {
+    this.ref.current = el;
+    if (el) {
+      el.addEventListener('touchstart', (ev) => ev.stopPropagation());
+    }
   }
 
   setPath(coords) {
@@ -281,8 +294,8 @@ class DriveMap extends Component {
     const { classes } = this.props;
     return (
       <div
+        ref={this.onRef}
         className={ classes.mapContainer }
-        ref={ (el) => { if (el) el.addEventListener('touchstart', (ev) => ev.stopPropagation()); }}
       >
         <ReactMapGL
           width="100%"
