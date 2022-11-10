@@ -49,6 +49,12 @@ class PullDownReload extends Component {
     }
   }
 
+  componentWillUnmount() {
+    document.removeEventListener('touchstart', this.touchStart);
+    document.removeEventListener('touchmove', this.touchMove);
+    document.removeEventListener('touchend', this.touchEnd);
+  }
+
   touchStart(ev) {
     if (document.scrollingElement.scrollTop !== 0 || ev.defaultPrevented) {
       return;
