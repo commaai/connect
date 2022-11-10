@@ -19,12 +19,14 @@ const ServiceWorkerWrapper = (props) => {
   const windowWidth = useWindowWidth();
 
   const onUpdate = (registration) => {
+    console.debug('[ServiceWorkerWrapper] onUpdate')
     setWaitingWorker(registration.waiting);
     setShowReload(true);
   };
 
   useEffect(() => {
     if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SERVICEWORKER) {
+      console.debug('[ServiceWorkerWrapper] Registering service worker...');
       register({ onUpdate });
     } else {
       unregister();
