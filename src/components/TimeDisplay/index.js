@@ -166,7 +166,8 @@ class TimeDisplay extends Component {
   }
 
   decreaseSpeed() {
-    const { desiredPlaySpeed, dispatch } = this.state;
+    const { dispatch } = this.props;
+    const { desiredPlaySpeed } = this.state;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
@@ -176,7 +177,8 @@ class TimeDisplay extends Component {
   }
 
   increaseSpeed() {
-    const { desiredPlaySpeed, dispatch } = this.state;
+    const { dispatch } = this.props;
+    const { desiredPlaySpeed } = this.state;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
