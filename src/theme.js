@@ -94,6 +94,12 @@ const theme = createMuiTheme({
         },
       },
     },
+    MuiSnackbarContent: {
+      root: {
+        backgroundColor: Colors.grey800,
+        color: Colors.white,
+      },
+    },
   },
   props: {
     MuiSelect: {

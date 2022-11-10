@@ -7,7 +7,7 @@ import { CssBaseline, MuiThemeProvider } from '@material-ui/core';
 import './index.css';
 import App from './App';
 import Theme from './theme';
-import { register, unregister } from './registerServiceWorker';
+import ServiceWorkerWrapper from './components/ServiceWorkerWrapper';
 
 if (window.SENTRY_ENV) {
   Sentry.init({
@@ -17,15 +17,10 @@ if (window.SENTRY_ENV) {
   });
 }
 
-if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SERVICEWORKER) {
-  register();
-} else {
-  unregister();
-}
-
 createRoot(document.getElementById('root')).render((
   <MuiThemeProvider theme={Theme}>
     <CssBaseline />
     <App />
+    <ServiceWorkerWrapper />
   </MuiThemeProvider>
 ));
