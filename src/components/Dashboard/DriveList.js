@@ -23,7 +23,10 @@ const styles = () => ({
 
 const DriveList = (props) => {
   const { dispatch, classes, device, routes } = props;
-  const driveList = routes || [];
+
+  // Filter out drives shorter than 10 seconds
+  const driveList = (routes || [])
+    .filter((drive) => drive.end_time_utc_millis - drive.start_time_utc_millis >= 10_000);
 
   let content;
   if (!driveList.length) {
