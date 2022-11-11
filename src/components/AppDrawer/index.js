@@ -55,6 +55,12 @@ const styles = () => ({
     backgroundColor: '#1D2225',
     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
   },
+  versionNumber: {
+    fontSize: 14,
+    height: 16,
+    color: 'transparent',
+    alignSelf: 'flex-end',
+  },
 });
 
 class AppDrawer extends Component {
@@ -77,6 +83,8 @@ class AppDrawer extends Component {
   render() {
     const { classes, isPermanent, drawerIsOpen, selectedDongleId } = this.props;
 
+    const version = process.env.REACT_APP_GIT_SHA || 'dev';
+
     return (
       <Drawer
         open={ isPermanent || drawerIsOpen }
@@ -87,17 +95,18 @@ class AppDrawer extends Component {
         <div className={classes.drawerContent}>
           { !isPermanent
             && (
-            <Link to="/" className={ classes.logo }>
-              <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
-              <Typography className={ classes.logoText }>connect</Typography>
-            </Link>
+              <Link to="/" className={ classes.logo }>
+                <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+                <Typography className={ classes.logoText }>connect</Typography>
+              </Link>
             )}
-          <div style={{ height: 24 }} />
+          { isPermanent && <div style={{ height: 24 }} /> }
           <DeviceList
             selectedDevice={ selectedDongleId }
             handleDeviceSelected={this.handleDeviceSelected}
-            headerHeight={ 64 + 24 }
+            headerHeight={ 64 + (isPermanent ? 24 + 16 : 0) }
           />
+          { isPermanent && <div className={classes.versionNumber}>{version}</div> }
         </div>
       </Drawer>
     );

@@ -81,12 +81,6 @@ const styles = (theme) => ({
   addDeviceContainer: {
     '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.25)' },
   },
-  versionNumber: {
-    fontSize: 14,
-    height: 16,
-    color: 'transparent',
-    alignSelf: 'flex-end',
-  },
 });
 
 class DeviceList extends Component {
@@ -185,8 +179,6 @@ class DeviceList extends Component {
       }].concat(devices);
     }
 
-    const version = process.env.REACT_APP_GIT_SHA ? process.env.REACT_APP_GIT_SHA : 'dev';
-
     const addButtonStyle = {
       borderRadius: 'unset',
       backgroundColor: 'transparent',
@@ -203,7 +195,7 @@ class DeviceList extends Component {
         <VisibilityHandler onVisible={ this.onVisible } minInterval={ 10 } />
         <div
           className={`scrollstyle ${classes.deviceList}`}
-          style={{ height: `calc(100vh - ${headerHeight + 16}px)` }}
+          style={{ height: `calc(100vh - ${headerHeight}px)` }}
         >
           {devices.filter(filterDrivingDevice).map(this.renderDevice)}
           {MyCommaAuth.isAuthenticated() && (
@@ -212,7 +204,6 @@ class DeviceList extends Component {
             </div>
           )}
         </div>
-        <div className={classes.versionNumber}>{version}</div>
         <DeviceSettingsModal
           isOpen={Boolean(settingsModalDongleId)}
           dongleId={settingsModalDongleId}
