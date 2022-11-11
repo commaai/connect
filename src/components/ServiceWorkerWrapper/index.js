@@ -33,6 +33,7 @@ const ServiceWorkerWrapper = (props) => {
     window.location.reload();
   };
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SERVICEWORKER) {
       console.debug('[ServiceWorkerWrapper] Registering service worker...');
@@ -43,6 +44,7 @@ const ServiceWorkerWrapper = (props) => {
       unregister();
     }
   }, []);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   const onReload = () => {
     setLoading(true);
