@@ -3,6 +3,7 @@ const { loaderByName, addBeforeLoader } = require('@craco/craco');
 const SentryCliPlugin = require('@sentry/webpack-plugin');
 const { GenerateSW } = require('workbox-webpack-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
+const CracoWorkboxPlugin = require('craco-workbox');
 const zlib = require('zlib');
 
 const eslintConfig = require('./.eslintrc');
@@ -44,6 +45,9 @@ module.exports = ({ env }) => {
   }
 
   return {
+    plugins: [{
+      plugin: CracoWorkboxPlugin,
+    }],
     eslint: {
       enable: false,
       config: eslintConfig,

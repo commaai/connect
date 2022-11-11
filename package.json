@@ -57,6 +57,7 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.4.3",
     "compression-webpack-plugin": "^7.1.2",
+    "craco-workbox": "^0.2.0",
     "env-cmd": "^8.0.2",
     "eslint-config-airbnb": "19.0.4",
     "eslint-plugin-import": "^2.26.0",
