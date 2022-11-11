@@ -40,6 +40,7 @@ class DriveMap extends Component {
     };
 
     this.onRef = this.onRef.bind(this);
+    this.onViewportChange = this.onViewportChange.bind(this);
     this.initMap = this.initMap.bind(this);
     this.populateMap = this.populateMap.bind(this);
     this.posAtOffset = this.posAtOffset.bind(this);
@@ -61,23 +62,25 @@ class DriveMap extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const prevRoute = prevProps.currentRoute ? prevProps.currentRoute.fullname : null;
-    const route = this.props.currentRoute ? this.props.currentRoute.fullname : null;
+    const { dispatch, currentRoute, startTime } = this.props;
+
+    const prevRoute = prevProps.currentRoute?.fullname || null;
+    const route = currentRoute?.fullname || null;
     if (prevRoute !== route) {
       this.setPath([]);
       if (route) {
-        this.props.dispatch(fetchDriveCoords(this.props.currentRoute));
+        dispatch(fetchDriveCoords(currentRoute));
       }
     }
 
-    if (prevProps.startTime && prevProps.startTime !== this.props.startTime) {
+    if (prevProps.startTime && prevProps.startTime !== startTime) {
       this.shouldFlyTo = true;
     }
 
-    if (this.props.currentRoute && prevProps.currentRoute && this.props.currentRoute.driveCoords
-      && prevProps.currentRoute.driveCoords !== this.props.currentRoute.driveCoords) {
+    if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords
+      && prevProps.currentRoute.driveCoords !== currentRoute.driveCoords) {
       this.shouldFlyTo = false;
-      const keys = Object.keys(this.props.currentRoute.driveCoords);
+      const keys = Object.keys(currentRoute.driveCoords);
       this.setState({
         driveCoordsMin: Math.min(...keys),
         driveCoordsMax: Math.max(...keys),
@@ -170,6 +173,10 @@ class DriveMap extends Component {
     }
   }
 
+  onViewportChange(viewport) {
+    this.setState({ viewport });
+  }
+
   setPath(coords) {
     const map = this.map && this.map.getMap();
 
@@ -186,7 +193,8 @@ class DriveMap extends Component {
   }
 
   posAtOffset(offset) {
-    if (!this.props.currentRoute.driveCoords) {
+    const { currentRoute } = this.props;
+    if (!currentRoute.driveCoords) {
       return null;
     }
 
@@ -201,16 +209,16 @@ class DriveMap extends Component {
       this.state.driveCoordsMax,
     ));
 
-    if (!this.props.currentRoute.driveCoords[coordIdx]) {
+    if (!currentRoute.driveCoords[coordIdx]) {
       return null;
     }
 
-    const [floorLng, floorLat] = this.props.currentRoute.driveCoords[coordIdx];
-    if (!this.props.currentRoute.driveCoords[nextCoordIdx]) {
+    const [floorLng, floorLat] = currentRoute.driveCoords[coordIdx];
+    if (!currentRoute.driveCoords[nextCoordIdx]) {
       return [floorLng, floorLat];
     }
 
-    const [ceilLng, ceilLat] = this.props.currentRoute.driveCoords[nextCoordIdx];
+    const [ceilLng, ceilLat] = currentRoute.driveCoords[nextCoordIdx];
     return [
       floorLng + ((ceilLng - floorLng) * offsetFractionalPart),
       floorLat + ((ceilLat - floorLat) * offsetFractionalPart),
@@ -278,9 +286,10 @@ class DriveMap extends Component {
 
       this.map = mapComponent;
 
-      if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
+      const { currentRoute } = this.props;
+      if (currentRoute?.driveCoords) {
         this.shouldFlyTo = false;
-        const keys = Object.keys(this.props.currentRoute.driveCoords);
+        const keys = Object.keys(currentRoute.driveCoords);
         this.setState({
           driveCoordsMin: Math.min(...keys),
           driveCoordsMax: Math.max(...keys),
@@ -292,24 +301,24 @@ class DriveMap extends Component {
 
   render() {
     const { classes } = this.props;
+    const { viewport } = this.state;
     return (
-      <div
-        ref={this.onRef}
-        className={ classes.mapContainer }
-      >
+      <div ref={this.onRef} className={classes.mapContainer}>
         <ReactMapGL
           width="100%"
           height="100%"
-          {...this.state.viewport}
+          latitude={viewport.latitude}
+          longitude={viewport.longitude}
+          zoom={viewport.zoom}
           mapStyle={MAP_STYLE}
-          maxPitch={ 0 }
+          maxPitch={0}
           mapboxApiAccessToken={MAPBOX_TOKEN}
           ref={this.initMap}
-          onContextMenu={ null }
-          dragRotate={ false }
-          onViewportChange={(viewport) => this.setState({ viewport })}
-          attributionControl={ false }
-          onInteractionStateChange={ this.onInteraction }
+          onContextMenu={null}
+          dragRotate={false}
+          onViewportChange={this.onViewportChange}
+          attributionControl={false}
+          onInteractionStateChange={this.onInteraction}
         />
       </div>
     );
