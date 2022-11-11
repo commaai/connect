@@ -2,7 +2,7 @@ import { Button, CircularProgress, Snackbar, withStyles } from '@material-ui/cor
 import React, { useEffect, useState } from 'react';
 
 import { useWindowWidth } from '../../hooks/window';
-import { register, unregister } from '../../registerServiceWorker';
+import { register, unregister } from '../../serviceWorkerRegistration';
 
 const styles = () => ({
   button: {
