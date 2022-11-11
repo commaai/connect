@@ -3,6 +3,7 @@ module.exports = {
   GenerateSW: (options) => {
     // override GenerateSW config here
     // e.g. options.skipWaiting = true;
+    options.skipWaiting = false;
     return options;
   },
   InjectManifest: (options) => {
