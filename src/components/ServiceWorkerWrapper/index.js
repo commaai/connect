@@ -1,59 +1,86 @@
-import { Button, Snackbar, withStyles } from '@material-ui/core';
+import { Button, CircularProgress, Snackbar, withStyles } from '@material-ui/core';
 import React, { useEffect, useState } from 'react';
-import Colors from '../../colors';
 
 import { useWindowWidth } from '../../hooks/window';
 import { register, unregister } from '../../registerServiceWorker';
 
 const styles = () => ({
-  reloadButton: {
-    color: Colors.lightBlue900,
+  button: {
     textTransform: 'uppercase',
   },
 });
 
 const ServiceWorkerWrapper = (props) => {
   const { classes } = props;
-  const [showReload, setShowReload] = useState(false);
-  const [waitingWorker, setWaitingWorker] = useState(null);
+
+  const [showUpdate, setShowUpdate] = useState(true);
+  const [loading, setLoading] = useState(false);
   const windowWidth = useWindowWidth();
 
-  const onUpdate = (registration) => {
-    console.debug('[ServiceWorkerWrapper] onUpdate')
+  const [waitingWorker, setWaitingWorker] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onSWUpdate = (registration) => {
+    console.debug('[ServiceWorkerWrapper] Update is available');
     setWaitingWorker(registration.waiting);
-    setShowReload(true);
+    setShowUpdate(true);
+  };
+
+  const onSWChange = () => {
+    console.debug('[ServiceWorkerWrapper] Controller changed');
+    if (refreshing) return;
+    setRefreshing(true);
+    window.location.reload();
   };
 
   useEffect(() => {
     if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SERVICEWORKER) {
       console.debug('[ServiceWorkerWrapper] Registering service worker...');
-      register({ onUpdate });
+      register({ onUpdate: onSWUpdate });
+
+      navigator.serviceWorker.addEventListener('controllerchange', onSWChange);
     } else {
       unregister();
     }
   });
 
   const onReload = () => {
+    setLoading(true);
     waitingWorker?.postMessage({ type: 'SKIP_WAITING' });
-    setShowReload(false);
-    window.location.reload();
+  };
+
+  const onDismiss = () => {
+    setShowUpdate(false);
   };
 
   const action = (
-    <Button
-      classes={{ root: classes.reloadButton }}
-      size="small"
-      onClick={onReload}
-    >
-      Reload
-    </Button>
+    <>
+      <Button
+        classes={{ root: classes.button }}
+        color="primary"
+        size="small"
+        disabled={loading}
+        onClick={onReload}
+      >
+        {loading ? <CircularProgress color="primary" size={20} /> : 'Reload'}
+      </Button>
+      <Button
+        classes={{ root: classes.button }}
+        color="primary"
+        size="small"
+        disabled={loading}
+        onClick={onDismiss}
+      >
+        Dismiss
+      </Button>
+    </>
   );
 
   const position = windowWidth >= 960 ? 'right' : 'center';
 
   return (
     <Snackbar
-      open={showReload}
+      open={showUpdate}
       message="An update is available. Reload to get the latest version."
       action={action}
       anchorOrigin={{ vertical: 'bottom', horizontal: position }}
