@@ -11,11 +11,11 @@
 // opt-in, read https://cra.link/PWA
 
 const isLocalhost = Boolean(
-  window.location.hostname === 'localhost' ||
+  window.location.hostname === 'localhost'
     // [::1] is the IPv6 localhost address.
-    window.location.hostname === '[::1]' ||
+    || window.location.hostname === '[::1]'
     // 127.0.0.0/8 are considered localhost for IPv4.
-    window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/)
+    || window.location.hostname.match(/^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/),
 );
 
 export function register(config) {
@@ -40,19 +40,18 @@ export function register(config) {
         // service worker/PWA documentation.
         navigator.serviceWorker.ready.then(() => {
           console.log(
-            'This web app is being served cache-first by a service ' +
-              'worker. To learn more, visit https://cra.link/PWA'
+            'This web app is being served cache-first by a service '
+              + 'worker. To learn more, visit https://cra.link/PWA',
           );
         });
 
         // Check for updates every minute.
-        setInterval(() => {
-          navigator.serviceWorker.getRegistrations()
-            .then((registrations) => {
-              registrations.forEach((registration) => {
-                registration.update();
-              });
+        setInterval(async () => {
+          navigator.serviceWorker.getRegistrations().then((registrations) => {
+            registrations.forEach((registration) => {
+              registration.update();
             });
+          });
         }, 60 * 1000);
       } else {
         // Is not localhost. Just register service worker
@@ -78,8 +77,8 @@ function registerValidSW(swUrl, config) {
               // but the previous service worker will still serve the older
               // content until all client tabs are closed.
               console.log(
-                'New content is available and will be used when all ' +
-                  'tabs for this page are closed. See https://cra.link/PWA.'
+                'New content is available and will be used when all '
+                  + 'tabs for this page are closed. See https://cra.link/PWA.',
               );
 
               // Execute callback
@@ -115,8 +114,8 @@ function checkValidServiceWorker(swUrl, config) {
       // Ensure service worker exists, and that we really are getting a JS file.
       const contentType = response.headers.get('content-type');
       if (
-        response.status === 404 ||
-        (contentType != null && contentType.indexOf('javascript') === -1)
+        response.status === 404
+        || (contentType != null && contentType.indexOf('javascript') === -1)
       ) {
         // No service worker found. Probably a different app. Reload the page.
         navigator.serviceWorker.ready.then((registration) => {
