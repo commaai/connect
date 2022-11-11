@@ -42,7 +42,7 @@ const ServiceWorkerWrapper = (props) => {
     } else {
       unregister();
     }
-  });
+  }, []);
 
   const onReload = () => {
     setLoading(true);
