@@ -44,6 +44,16 @@ export function register(config) {
               'worker. To learn more, visit https://cra.link/PWA'
           );
         });
+
+        // Check for updates every minute.
+        setInterval(() => {
+          navigator.serviceWorker.getRegistrations()
+            .then((registrations) => {
+              registrations.forEach((registration) => {
+                registration.update();
+              });
+            });
+        }, 60 * 1000);
       } else {
         // Is not localhost. Just register service worker
         registerValidSW(swUrl, config);

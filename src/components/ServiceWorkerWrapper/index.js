@@ -37,7 +37,13 @@ const ServiceWorkerWrapper = (props) => {
   useEffect(() => {
     if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SERVICEWORKER) {
       console.debug('[ServiceWorkerWrapper] Registering service worker...');
-      register({ onUpdate: onSWUpdate });
+      register({
+        // show update found message
+        onUpdate: onSWUpdate,
+
+        // TODO: show "connect now works offline" message
+        onSuccess: null,
+      });
 
       navigator.serviceWorker.addEventListener('controllerchange', onSWChange);
     } else {
