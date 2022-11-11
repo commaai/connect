@@ -13,7 +13,7 @@ const styles = () => ({
 const ServiceWorkerWrapper = (props) => {
   const { classes } = props;
 
-  const [showUpdate, setShowUpdate] = useState(true);
+  const [showUpdate, setShowUpdate] = useState(false);
   const [loading, setLoading] = useState(false);
   const windowWidth = useWindowWidth();
 
