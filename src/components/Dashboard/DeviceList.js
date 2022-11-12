@@ -2,18 +2,21 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
+
 import { withStyles, Typography, IconButton } from '@material-ui/core';
+import RefreshIcon from '@material-ui/icons/Refresh';
 import SettingsIcon from '@material-ui/icons/Settings';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { devices as Devices } from '@commaai/api';
 
-import DeviceSettingsModal from './DeviceSettingsModal';
-import { deviceTypePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
-import Colors from '../../colors';
-import VisibilityHandler from '../VisibilityHandler';
 import { updateDevices } from '../../actions';
+import Colors from '../../colors';
+import { deviceTypePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
+import VisibilityHandler from '../VisibilityHandler';
+
 import AddDevice from './AddDevice';
+import DeviceSettingsModal from './DeviceSettingsModal';
 
 const styles = (theme) => ({
   deviceList: {
@@ -61,7 +64,7 @@ const styles = (theme) => ({
     fontWeight: 600,
   },
   deviceId: {
-    color: '#525E66',
+    color: '#74838e',
   },
   editDeviceIcon: {
     color: 'white',
@@ -121,7 +124,7 @@ class DeviceList extends Component {
   }
 
   renderDevice(device) {
-    const { classes, profile, selectedDevice } = this.props;
+    const { classes, handleDeviceSelected, profile, selectedDevice } = this.props;
     const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
     const alias = device.alias || deviceTypePretty(device.device_type);
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
@@ -129,7 +132,7 @@ class DeviceList extends Component {
       <a
         key={device.dongle_id}
         className={ `${classes.device} ${isSelectedCls}` }
-        onClick={ filterRegularClick(() => this.props.handleDeviceSelected(device.dongle_id)) }
+        onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
         href={ `/${device.dongle_id}` }
       >
         <div className={classes.deviceInfo}>
