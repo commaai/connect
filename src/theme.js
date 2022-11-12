@@ -94,6 +94,12 @@ const theme = createMuiTheme({
         },
       },
     },
+    MuiSnackbarContent: {
+      root: {
+        backgroundColor: Colors.grey700,
+        color: Colors.white,
+      },
+    },
   },
   props: {
     MuiSelect: {
@@ -111,9 +117,9 @@ const theme = createMuiTheme({
       default: Colors.grey999,
     },
     primary: {
-      light: Colors.grey50,
-      main: Colors.grey900,
-      dark: Colors.grey999,
+      light: Colors.lightBlue700,
+      main: Colors.lightBlue900,
+      dark: Colors.blue100,
     },
     secondary: {
       light: Colors.green100,

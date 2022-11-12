@@ -293,8 +293,6 @@ class Media extends Component {
     this.onPublicToggle = this.onPublicToggle.bind(this);
     this.fetchRoutePreserved = this.fetchRoutePreserved.bind(this);
     this.onPreserveToggle = this.onPreserveToggle.bind(this);
-
-    this.openRequests = 0;
   }
 
   componentDidMount() {
