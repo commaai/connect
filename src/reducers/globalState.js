@@ -9,6 +9,9 @@ function populateFetchedAt(d) {
 }
 
 function deviceCompareFn(a, b) {
+  if (a.is_owner !== b.is_owner) {
+    return b.is_owner - a.is_owner;
+  }
   if (a.alias && b.alias) {
     return a.alias.localeCompare(b.alias);
   }
