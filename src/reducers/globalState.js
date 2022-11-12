@@ -16,16 +16,13 @@ export default function reducer(_state, action) {
       let devices = action.devices.map(populateFetchedAt);
 
       devices = devices.sort((a, b) => {
-        if (deviceIsOnline(a) !== deviceIsOnline(b)) {
-          return deviceIsOnline(b) - deviceIsOnline(a);
+        if (a.alias && b.alias) {
+          return a.alias.localeCompare(b.alias);
         }
         if (!a.alias && !b.alias) {
           return a.dongle_id.localeCompare(b.dongle_id);
         }
-        if (Boolean(a.alias) !== Boolean(b.alias)) {
-          return Boolean(b.alias) - Boolean(a.alias);
-        }
-        return a.alias.localeCompare(b.alias);
+        return Boolean(b.alias) - Boolean(a.alias);
       });
 
       if (!state.dongleId && devices.length > 0) {
