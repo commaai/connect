@@ -89,7 +89,7 @@ const ServiceWorkerWrapper = (props) => {
   return (
     <Snackbar
       open={showUpdate}
-      message="An update is available. Reload to get the latest version."
+      message="An update is ready. Reload to get the latest version."
       action={action}
       anchorOrigin={{ vertical: 'bottom', horizontal: position }}
     />
