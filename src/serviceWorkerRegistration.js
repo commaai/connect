@@ -64,7 +64,7 @@ function registerValidSW(swUrl, config) {
 
         console.log('[ServiceWorkerRegistration] Checking for updates...');
         registration.update();
-      }, 60 * 1000);
+      }, 10 * 60 * 1000);
 
       if (registration.waiting) {
         console.log('[ServiceWorkerRegistration] Update waiting');
