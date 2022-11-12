@@ -7,6 +7,7 @@ import { withStyles } from '@material-ui/core/styles';
 import DriveList from './DriveList';
 import Navigation from '../Navigation';
 import DeviceInfo from '../DeviceInfo';
+import { CircularProgress, Grid } from '@material-ui/core';
 
 const Prime = lazy(() => import('../Prime'));
 
@@ -17,6 +18,14 @@ const styles = () => ({
   },
 });
 
+const DashboardLoading = () => (
+  <Grid container alignItems="center" style={{ width: '100%', height: '100vh' }}>
+    <Grid item align="center" xs={12}>
+      <CircularProgress size="10vh" style={{ color: '#525E66' }} />
+    </Grid>
+  </Grid>
+);
+
 const Dashboard = ({ classes, primeNav, device, dongleId }) => {
   if (!device || !dongleId) {
     return null;
@@ -24,12 +33,12 @@ const Dashboard = ({ classes, primeNav, device, dongleId }) => {
 
   return (
     <div className={classes.base}>
-      <Suspense>
+      <Suspense fallback={<DashboardLoading />}>
         { primeNav
           ? <Prime />
           : (
             <>
-              <Navigation hasNav={ device.prime && device.device_type === 'three' } />
+              <Navigation hasNav={device.prime && device.device_type === 'three'} />
               <DeviceInfo />
               <DriveList />
             </>
