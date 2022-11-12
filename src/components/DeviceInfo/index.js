@@ -2,20 +2,21 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
-import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } from '@material-ui/core';
-import { VideoLibrary } from '@material-ui/icons';
 import 'react-responsive-carousel/lib/styles/carousel.min.css'; // requires a loader
 import { Carousel } from 'react-responsive-carousel';
 import fecha from 'fecha';
 
+import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } from '@material-ui/core';
+import { VideoLibrary } from '@material-ui/icons';
+
 import { athena as Athena, devices as Devices } from '@commaai/api';
-import ResizeHandler from '../ResizeHandler';
-import VisibilityHandler from '../VisibilityHandler';
-import Colors from '../../colors';
 import { analyticsEvent } from '../../actions';
 import { fetchClipsList } from '../../actions/clips';
+import Colors from '../../colors';
 import { deviceTypePretty, deviceIsOnline } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
+import ResizeHandler from '../ResizeHandler';
+import VisibilityHandler from '../VisibilityHandler';
 
 const styles = (theme) => ({
   container: {

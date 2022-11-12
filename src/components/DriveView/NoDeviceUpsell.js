@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-import { withStyles, Button, Typography } from '@material-ui/core';
+import { Typography, withStyles } from '@material-ui/core';
 
 import ResizeHandler from '../ResizeHandler';
 import AddDevice from '../Dashboard/AddDevice';

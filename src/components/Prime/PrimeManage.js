@@ -380,7 +380,7 @@ class PrimeManage extends Component {
                   <Typography variant="subheading">Plan</Typography>
                   <Typography className={classes.manageItem}>
                     {planName}
-                    <span>{planSubtext}</span>
+                    <span>{` ${planSubtext}`}</span>
                   </Typography>
                 </div>
                 <div className={classes.overviewBlock}>
@@ -404,8 +404,7 @@ class PrimeManage extends Component {
                 <div className={classes.overviewBlock}>
                   <Typography variant="subheading">Amount</Typography>
                   <Typography className={classes.manageItem}>
-                    $
-                    {(subscription.amount / 100).toFixed(2)}
+                    {`$${(subscription.amount / 100).toFixed(2)}`}
                   </Typography>
                 </div>
                 {this.state.error && (
