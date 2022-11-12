@@ -1,5 +1,5 @@
 import * as Types from '../actions/types';
-import { emptyDevice, deviceIsOnline } from '../utils';
+import { emptyDevice } from '../utils';
 
 function populateFetchedAt(d) {
   return {
@@ -8,22 +8,24 @@ function populateFetchedAt(d) {
   };
 }
 
+function deviceCompareFn(a, b) {
+  if (a.alias && b.alias) {
+    return a.alias.localeCompare(b.alias);
+  }
+  if (!a.alias && !b.alias) {
+    return a.dongle_id.localeCompare(b.dongle_id);
+  }
+  return Boolean(b.alias) - Boolean(a.alias);
+}
+
 export default function reducer(_state, action) {
   let state = { ..._state };
   let deviceIndex = null;
   switch (action.type) {
     case Types.ACTION_STARTUP_DATA:
-      let devices = action.devices.map(populateFetchedAt);
-
-      devices = devices.sort((a, b) => {
-        if (a.alias && b.alias) {
-          return a.alias.localeCompare(b.alias);
-        }
-        if (!a.alias && !b.alias) {
-          return a.dongle_id.localeCompare(b.dongle_id);
-        }
-        return Boolean(b.alias) - Boolean(a.alias);
-      });
+      const devices = action.devices
+        .map(populateFetchedAt)
+        .sort(deviceCompareFn);
 
       if (!state.dongleId && devices.length > 0) {
         state = {
@@ -91,7 +93,9 @@ export default function reducer(_state, action) {
     case Types.ACTION_UPDATE_DEVICES:
       state = {
         ...state,
-        devices: action.devices.map(populateFetchedAt),
+        devices: action.devices
+          .map(populateFetchedAt)
+          .sort(deviceCompareFn),
       };
       if (state.dongleId) {
         const newDevice = state.devices.find((d) => d.dongle_id === state.dongleId);
