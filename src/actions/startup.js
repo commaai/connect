@@ -65,8 +65,7 @@ export default function init() {
     if (devices.length > 0) {
       if (!state.dongleId) {
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
-        const selectedDevice = devices.find((d) => d.dongle_id === selectedDongleId);
-        if (selectedDevice) {
+        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
           dispatch(selectDevice(selectedDongleId));
         } else {
           dispatch(selectDevice(devices[0].dongle_id));
