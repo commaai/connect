@@ -59,7 +59,7 @@ jobs:
 
   docker:
     runs-on: ubuntu-20.04
-    needs: [test, lighthouse]
+    needs: test
     if: github.repository == 'commaai/connect'
     permissions:
       packages: write
