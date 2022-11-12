@@ -55,6 +55,7 @@ export default function reducer(_state, action) {
         files: null,
         clips: null,
       };
+      window.localStorage.setItem('selectedDongleId', action.dongleId);
       if (state.devices) {
         const newDevice = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
         if (!state.device || state.device.dongle_id !== action.dongleId) {
