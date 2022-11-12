@@ -99,11 +99,12 @@ const styles = (theme) => ({
     },
   },
   cellularWarning: {
-    backgroundColor: Colors.white100,
-    borderRadius: 16,
+    backgroundColor: Colors.grey500,
+    padding: `${theme.spacing.unit * 1.5}px ${theme.spacing.unit * 2}px`,
+    borderRadius: 4,
     display: 'flex',
     flexDirection: 'column',
-    margin: 8,
+    marginBottom: theme.spacing.unit,
     '& div': {
       display: 'flex',
       alignItems: 'center',
