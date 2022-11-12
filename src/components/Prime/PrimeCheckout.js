@@ -270,7 +270,8 @@ class PrimeCheckout extends Component {
     }
     if (selectedPlan === 'data') {
       return Boolean(subscribeInfo.trial_end_data);
-    } if (selectedPlan === 'nodata') {
+    }
+    if (selectedPlan === 'nodata') {
       return Boolean(subscribeInfo.trial_end_nodata);
     }
     return Boolean(subscribeInfo.trial_end_data && subscribeInfo.trial_end_nodata);

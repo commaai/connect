@@ -301,8 +301,11 @@ class PrimeManage extends Component {
       return null;
     }
 
-    let joinDate; let nextPaymentDate; let cancelAtDate; let planName; let
-      planSubtext;
+    let joinDate;
+    let nextPaymentDate;
+    let cancelAtDate;
+    let planName;
+    let planSubtext;
     if (hasPrimeSub) {
       joinDate = fecha.format(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0, 'MMMM Do, YYYY');
       nextPaymentDate = fecha.format(subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0, 'MMMM Do, YYYY');
@@ -363,9 +366,7 @@ class PrimeManage extends Component {
               <div className={ classes.manageItem }>
                 <Typography variant="body2">{ alias }</Typography>
                 <Typography variant="caption" className={classes.deviceId}>
-                  (
-                  { device.dongle_id }
-                  )
+                  {`(${device.dongle_id})`}
                 </Typography>
               </div>
             </div>
