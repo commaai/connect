@@ -84,14 +84,12 @@ const ServiceWorkerWrapper = (props) => {
     </>
   );
 
-  const position = windowWidth >= 960 ? 'right' : 'center';
-
   return (
     <Snackbar
       open={showUpdate}
       message="An update is ready. Reload to get the latest version."
       action={action}
-      anchorOrigin={{ vertical: 'bottom', horizontal: position }}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
     />
   );
 };
