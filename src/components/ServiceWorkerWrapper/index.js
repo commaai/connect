@@ -10,7 +10,7 @@ const styles = () => ({
   },
 });
 
-const SERVICE_WORKER_ATTEMPTS = 'serviceWorkerAttempts';
+const SERVICE_WORKER_ATTEMPTS = 'connect.serviceWorker.installAttempts';
 
 const getAttempts = () => {
   if (!window.localStorage) return 0;
