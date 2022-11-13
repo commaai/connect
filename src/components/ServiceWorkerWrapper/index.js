@@ -34,6 +34,8 @@ const ServiceWorkerWrapper = (props) => {
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SERVICEWORKER) {
+      navigator.serviceWorker.addEventListener('controllerchange', onSWChange);
+
       console.debug('[ServiceWorkerWrapper] Registering service worker...');
       register({
         // show update found message
@@ -42,8 +44,6 @@ const ServiceWorkerWrapper = (props) => {
         // TODO: show "connect now works offline" message
         onSuccess: null,
       });
-
-      navigator.serviceWorker.addEventListener('controllerchange', onSWChange);
     } else {
       unregister();
     }
