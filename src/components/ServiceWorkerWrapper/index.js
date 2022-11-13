@@ -24,13 +24,13 @@ const ServiceWorkerWrapper = (props) => {
       Sentry.captureMessage('[ServiceWorkerWrapper] Update is available but there is no waiting service worker to install', 'warning');
       return;
     }
-    console.debug('[ServiceWorkerWrapper] Update is available');
+    console.log('[ServiceWorkerWrapper] Update is available');
     setWaitingWorker(registration.waiting);
     setShowUpdate(true);
   };
 
   const onSWChange = () => {
-    console.debug('[ServiceWorkerWrapper] Controller changed');
+    console.log('[ServiceWorkerWrapper] Controller changed');
     if (refreshing) return;
     setRefreshing(true);
     window.location.reload();
@@ -41,7 +41,7 @@ const ServiceWorkerWrapper = (props) => {
     if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SERVICEWORKER) {
       navigator.serviceWorker.addEventListener('controllerchange', onSWChange);
 
-      console.debug('[ServiceWorkerWrapper] Registering service worker...');
+      console.log('[ServiceWorkerWrapper] Registering service worker...');
       register({
         // show update found message
         onUpdate: onSWUpdate,
