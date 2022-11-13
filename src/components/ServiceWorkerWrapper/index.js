@@ -10,6 +10,24 @@ const styles = () => ({
   },
 });
 
+const SERVICE_WORKER_ATTEMPTS = 'serviceWorkerAttempts';
+
+const getAttempts = () => {
+  if (!window.localStorage) return 0;
+  return window.localStorage.getItem(SERVICE_WORKER_ATTEMPTS) || 0;
+};
+
+const incrementAttempts = () => {
+  if (!window.localStorage) return;
+  const retries = getAttempts();
+  window.localStorage.setItem(SERVICE_WORKER_ATTEMPTS, retries + 1);
+};
+
+const resetAttempts = () => {
+  if (!window.localStorage) return;
+  window.localStorage.setItem(SERVICE_WORKER_ATTEMPTS, 0);
+};
+
 const ServiceWorkerWrapper = (props) => {
   const { classes } = props;
 
@@ -24,9 +42,26 @@ const ServiceWorkerWrapper = (props) => {
       Sentry.captureMessage('[ServiceWorkerWrapper] Update is available but there is no waiting service worker to install', 'warning');
       return;
     }
+    if (getAttempts() > 3) {
+      Sentry.captureMessage('[ServiceWorkerWrapper] Update is available but we have tried to install it too many times', 'error');
+      navigation.serviceWorker.getRegistration().then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister();
+        }
+      });
+      if (refreshing) return;
+      setRefreshing(true);
+      window.location.reload();
+      return;
+    }
     console.log('[ServiceWorkerWrapper] Update is available');
     setWaitingWorker(registration.waiting);
     setShowUpdate(true);
+  };
+
+  const onSWSuccess = () => {
+    console.log('[ServiceWorkerWrapper] Update successful');
+    resetAttempts();
   };
 
   const onSWChange = () => {
@@ -47,7 +82,7 @@ const ServiceWorkerWrapper = (props) => {
         onUpdate: onSWUpdate,
 
         // TODO: show "connect now works offline" message
-        onSuccess: null,
+        onSuccess: onSWSuccess,
       });
     } else {
       unregister();
@@ -62,9 +97,12 @@ const ServiceWorkerWrapper = (props) => {
       return;
     }
     setLoading(true);
+    incrementAttempts();
     waitingWorker.postMessage({ type: 'SKIP_WAITING' });
     setTimeout(() => {
       Sentry.captureMessage('[ServiceWorkerWrapper] Timed out waiting for controller change', 'error');
+      if (refreshing) return;
+      setRefreshing(true);
       window.location.reload();
     }, 60_000);
   };
