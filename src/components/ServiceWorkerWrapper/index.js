@@ -1,7 +1,6 @@
 import { Button, CircularProgress, Snackbar, withStyles } from '@material-ui/core';
 import React, { useEffect, useState } from 'react';
 
-import { useWindowWidth } from '../../hooks/window';
 import { register, unregister } from '../../serviceWorkerRegistration';
 
 const styles = () => ({
@@ -15,7 +14,6 @@ const ServiceWorkerWrapper = (props) => {
 
   const [showUpdate, setShowUpdate] = useState(false);
   const [loading, setLoading] = useState(false);
-  const windowWidth = useWindowWidth();
 
   const [waitingWorker, setWaitingWorker] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
