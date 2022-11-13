@@ -1,5 +1,6 @@
 import { Button, CircularProgress, Snackbar, withStyles } from '@material-ui/core';
 import React, { useEffect, useState } from 'react';
+import * as Sentry from '@sentry/react';
 
 import { register, unregister } from '../../serviceWorkerRegistration';
 
@@ -19,6 +20,10 @@ const ServiceWorkerWrapper = (props) => {
   const [refreshing, setRefreshing] = useState(false);
 
   const onSWUpdate = (registration) => {
+    if (!registration.waiting) {
+      Sentry.captureMessage('[ServiceWorkerWrapper] Update is available but there is no waiting service worker to install', 'warning');
+      return;
+    }
     console.debug('[ServiceWorkerWrapper] Update is available');
     setWaitingWorker(registration.waiting);
     setShowUpdate(true);
@@ -51,8 +56,17 @@ const ServiceWorkerWrapper = (props) => {
   /* eslint-enable react-hooks/exhaustive-deps */
 
   const onReload = () => {
+    if (!waitingWorker) {
+      Sentry.captureMessage('[ServiceWorkerWrapper] No waiting worker found', 'error');
+      setShowUpdate(false);
+      return;
+    }
     setLoading(true);
-    waitingWorker?.postMessage({ type: 'SKIP_WAITING' });
+    waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+    setTimeout(() => {
+      Sentry.captureMessage('[ServiceWorkerWrapper] Timed out waiting for controller change', 'error');
+      window.location.reload();
+    }, 60_000);
   };
 
   const onDismiss = () => {
