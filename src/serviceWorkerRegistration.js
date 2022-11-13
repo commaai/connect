@@ -48,7 +48,17 @@ export function register(config) {
         // Is not localhost. Just register service worker
         registerValidSW(swUrl, config);
       }
+
+      var refreshing;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('[ServiceWorkerRegistration] Controller changed');
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
     });
+  } else {
+    console.log('[ServiceWorkerRegistration] Service worker is not supported');
   }
 }
 

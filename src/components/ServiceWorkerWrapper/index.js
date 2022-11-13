@@ -64,18 +64,9 @@ const ServiceWorkerWrapper = (props) => {
     resetAttempts();
   };
 
-  const onSWChange = () => {
-    console.log('[ServiceWorkerWrapper] Controller changed');
-    if (refreshing) return;
-    setRefreshing(true);
-    window.location.reload();
-  };
-
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SERVICEWORKER) {
-      navigator.serviceWorker.addEventListener('controllerchange', onSWChange);
-
       console.log('[ServiceWorkerWrapper] Registering service worker...');
       register({
         // show update found message
