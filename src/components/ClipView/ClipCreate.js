@@ -14,6 +14,7 @@ import Timeline from '../Timeline';
 import TimeDisplay from '../TimeDisplay';
 import Colors from '../../colors';
 import { clipsCreate } from '../../actions/clips';
+import { formatClipTimestamp } from '../../utils/clips';
 
 const styles = () => ({
   clipOption: {
@@ -249,7 +250,7 @@ class ClipCreate extends Component {
               className={ classes.clipTitleInput }
               value={ clipTitle || '' }
               onChange={ (ev) => this.setState({ clipTitle: ev.target.value }) }
-              placeholder={ clips.route.split('|')[1] }
+              placeholder={ formatClipTimestamp(loop.startTime) }
             />
           </div>
           <div className={ classes.clipOption }>
