@@ -10,6 +10,9 @@
 // To learn more about the benefits of this model and instructions on how to
 // opt-in, read https://cra.link/PWA
 
+// eslint-disable-next-line no-var
+var refreshing;
+
 const isLocalhost = Boolean(
   window.location.hostname === 'localhost'
     // [::1] is the IPv6 localhost address.
@@ -49,7 +52,6 @@ export function register(config) {
         registerValidSW(swUrl, config);
       }
 
-      var refreshing;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         console.log('[ServiceWorkerRegistration] Controller changed');
         if (refreshing) return;
