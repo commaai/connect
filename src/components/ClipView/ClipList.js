@@ -191,7 +191,6 @@ class ClipList extends Component {
         </Tooltip>
       );
     } else if (clip.status === 'pending') {
-      clip.pending_progress = '0.2';
       if (clip.pending_progress) {
         const progress = parseFloat(clip.pending_progress) * 100;
         status = (
@@ -200,7 +199,11 @@ class ClipList extends Component {
           </Tooltip>
         );
       } else {
-        status = <CircularProgress size={24} />;
+        status = (
+          <Tooltip title="Export in queue">
+            <CircularProgress size={24} />
+          </Tooltip>
+        );
       }
     } else {
       if (clip.thumbnail) {
