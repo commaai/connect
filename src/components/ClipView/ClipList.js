@@ -317,7 +317,6 @@ class ClipList extends Component {
       );
     }
 
-    // TODO: render "no clips found" and loading spinner
     return (
       <>
         <VisibilityHandler onVisible={() => dispatch(fetchClipsList(dongleId))} onDongleId />
