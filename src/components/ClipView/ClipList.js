@@ -210,7 +210,11 @@ class ClipList extends Component {
     let thumbnail = null;
     let status;
     if (clip.status === 'failed') {
-      status = <ErrorOutlineIcon color="error" />;
+      status = (
+        <Tooltip title="Error">
+          <ErrorOutlineIcon color="error" />
+        </Tooltip>
+      );
     } else if (clip.status === 'pending') {
       clip.pending_progress = '0.2';
       if (clip.pending_progress) {
