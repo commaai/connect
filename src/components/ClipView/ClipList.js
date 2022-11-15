@@ -29,31 +29,6 @@ import { clipErrorToText, formatClipDuration, formatClipTimestamp } from '../../
 import VisibilityHandler from '../VisibilityHandler';
 
 const styles = (theme) => ({
-  clipItemHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    color: Colors.white,
-    padding: 3,
-    '& h6': {
-      padding: '0 3px',
-      margin: 0,
-    },
-  },
-  clipItem: {
-    display: 'flex',
-    alignItems: 'center',
-    color: Colors.white,
-    borderTop: '1px solid rgba(255, 255, 255, .05)',
-    textDecoration: 'none',
-    padding: 3,
-    cursor: 'pointer',
-    '&:hover': {},
-    '& p': {
-      padding: '0 3px',
-      margin: 0,
-      textAlign: 'center',
-    },
-  },
   clipTitle: {
     'p&': {
       textAlign: 'left',
@@ -73,7 +48,7 @@ const styles = (theme) => ({
       display: 'none',
     },
   },
-  clipRow: {
+  clipItem: {
     cursor: 'pointer',
     height: 96,
     [theme.breakpoints.down('sm')]: {
@@ -268,7 +243,7 @@ class ClipList extends Component {
     return (
       <TableRow
         key={clip.clip_id}
-        className={classes.clipRow}
+        className={classes.clipItem}
         onClick={onClick}
         hover
         role="link"
