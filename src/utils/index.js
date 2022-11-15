@@ -48,6 +48,12 @@ export function formatDriveDuration(duration) {
   return `${hours > 0 ? `${hours} hr ` : ''}${minutes} min`;
 }
 
+export function formatClipDuration(duration) {
+  const minutes = Math.floor((duration / (1000 * 60))) % 60;
+  const seconds = Math.floor((duration / 1000) % 60);
+  return `${minutes > 0 ? `${minutes} min ` : ''}${seconds} sec`;
+}
+
 export function timeFromNow(ts) {
   const dt = (Date.now() - ts) / 1000;
   if (dt > 3600 * 24 * 30) {

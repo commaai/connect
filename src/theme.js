@@ -160,7 +160,7 @@ const theme = createMuiTheme({
       50: Colors.white50,
     },
     error: {
-      main: 'rgba(209,106,35,0.72)',
+      main: 'rgba(209, 35, 35, 0.72)',
     },
   },
 });

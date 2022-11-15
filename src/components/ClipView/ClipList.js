@@ -3,21 +3,33 @@ import { connect } from 'react-redux';
 import fecha from 'fecha';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Typography, CircularProgress, Popper, Popover } from '@material-ui/core';
+import {
+  withStyles,
+  CircularProgress,
+  Popover,
+  Popper,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Typography, IconButton,
+} from '@material-ui/core';
 import LockOutlineIcon from '@material-ui/icons/LockOutline';
 import PublicIcon from '@material-ui/icons/Public';
 import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
+import SlideshowIcon from '@material-ui/icons/Slideshow';
 import { clips as Clips } from '@commaai/api';
 
-import { Video360Icon } from '../../icons';
-import { filterRegularClick } from '../../utils';
-import ResizeHandler from '../ResizeHandler';
-import Colors from '../../colors';
 import { fetchClipsList, navToClips } from '../../actions/clips';
+import Colors from '../../colors';
+import { Video360Icon } from '../../icons';
+import { filterRegularClick, formatClipDuration } from '../../utils';
+import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 
-const styles = () => ({
+const styles = (theme) => ({
   clipItemHeader: {
     display: 'flex',
     alignItems: 'center',
@@ -52,6 +64,16 @@ const styles = () => ({
     paddingRight: 3,
     fontSize: '1.4rem',
   },
+  clipDuration: {
+    [theme.breakpoints.down('xs')]: {
+      display: 'none',
+    },
+  },
+  clipCreationTime: {
+    [theme.breakpoints.down('sm')]: {
+      display: 'none',
+    },
+  },
   thumbnail: {
     backgroundSize: 'contain',
     backgroundRepeat: 'no-repeat',
@@ -59,8 +81,13 @@ const styles = () => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 12,
     '& img': {
       height: '50%',
+    },
+    height: 96,
+    [theme.breakpoints.down('xs')]: {
+      height: 48,
     },
   },
   noClips: {
@@ -95,7 +122,7 @@ const clipErrorToText = (errorStatus) => {
     case 'upload_timed_out':
       return 'File upload timed out, the device must be on WiFi to upload the required files.';
     case 'export_failed':
-      return 'An error occured while creating this clip.';
+      return 'An error occurred while creating this clip.';
     default:
       return 'Unable to create clip.';
   }
@@ -106,22 +133,16 @@ class ClipList extends Component {
     super(props);
 
     this.state = {
-      windowWidth: window.innerWidth,
       copiedPopover: null,
       errorPopper: null,
       errorTexts: {},
     };
 
-    this.onResize = this.onResize.bind(this);
     this.shareClip = this.shareClip.bind(this);
     this.renderClipItem = this.renderClipItem.bind(this);
     this.fetchShowError = this.fetchShowError.bind(this);
 
     this.popoverTimeout = null;
-  }
-
-  onResize(windowWidth) {
-    this.setState({ windowWidth });
   }
 
   async shareClip(ev, c) {
@@ -188,113 +209,196 @@ class ClipList extends Component {
     });
   }
 
-  renderClipItem(gridStyles, c) {
-    const { classes, dispatch, dongleId } = this.props;
-    const { windowWidth } = this.state;
+  renderClipItem(clip) {
+    const { classes } = this.props;
 
-    const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1.0rem' };
-
-    const timeStr = fecha.format(new Date(c.start_time), 'MMM\u00a0D h:mm\u00a0a').toLowerCase();
+    const formatMask = 'MMM Do, hh:mm a';
+    const clipTime = fecha.format(clip.start_time, formatMask);
 
     let thumbnail = null;
-    if (c.status === 'done') {
-      const thumbnailStyle = {
-        ...gridStyles[0],
-        backgroundImage: `url("${c.thumbnail}")`,
-        height: (windowWidth < 768 ? 48 : 96),
-        marginRight: (windowWidth < 768 ? 3 : 8),
-      };
-      thumbnail = (
-        <div className={classes.thumbnail} style={thumbnailStyle}>
-          { c.video_type === '360' && <Video360Icon /> }
-        </div>
-      );
-    } else if (c.status === 'pending') {
-      thumbnail = <MoreHorizIcon className={classes.clipPlayIcon} style={gridStyles[0]} />;
-    } else if (c.status === 'failed') {
-      thumbnail = (
-        <ErrorOutlineIcon
-          className={classes.clipPlayIcon}
-          style={{ ...gridStyles[0], color: Colors.red300 }}
-        />
-      );
-    }
+    let status;
 
-    const innerItem = (
-      <>
-        { thumbnail }
-        <p style={{ ...itemStyle, ...gridStyles[1] }} className={classes.clipTitle}>
-          { c.title ? c.title : c.route_name.split('|')[1] }
-        </p>
-        <p style={{ ...itemStyle, ...gridStyles[2] }}>{timeStr}</p>
-        { c.is_public
-          ? (
-            <PublicIcon
-              style={{ ...gridStyles[3], fontSize: (windowWidth < 768 ? '1.0rem' : '1.2rem') }}
-              onClick={(ev) => { ev.persist(); this.shareClip(ev, c); }}
-            />
-          )
-          : <LockOutlineIcon style={{ ...gridStyles[3], fontSize: (windowWidth < 768 ? '1.0rem' : '1.2rem') }} />}
-      </>
-    );
+    if (clip.status === 'failed') {
+      status = <ErrorOutlineIcon color="error" />;
+    } else if (clip.status === 'pending') {
+      status = <CircularProgress size={24} />;
+    } else {
+      if (clip.thumbnail) {
+        const thumbnailStyle = {
+          backgroundImage: `url("${clip.thumbnail}")`,
+        };
+        thumbnail = (
+          <div className={classes.thumbnail} style={thumbnailStyle}>
+            {clip.video_type === '360' && <Video360Icon />}
+          </div>
+        );
+      } else {
+        thumbnail = 'test';
+      }
 
-    if (c.status === 'failed') {
-      return (
-        <div
-          key={c.clip_id}
-          className={classes.clipItem}
-          onClick={(ev) => this.fetchShowError(ev.target, c)}
-        >
-          { innerItem }
-        </div>
-      );
+      if (clip.is_public) {
+        status = <PublicIcon />;
+      } else {
+        status = <LockOutlineIcon />;
+      }
     }
 
     return (
-      <a
-        key={c.clip_id}
-        className={classes.clipItem}
-        href={`/${dongleId}/clips/${c.clip_id}`}
-        onClick={filterRegularClick(() => dispatch(navToClips(c.clip_id, c.state)))}
-      >
-        { innerItem }
-      </a>
+      <TableRow key={clip.clip_id} hover>
+        <TableCell padding="none">
+          {thumbnail}
+        </TableCell>
+        <TableCell height="64px">
+          {clip.title ? (
+            <>
+              <Typography variant="body2">{clip.title}</Typography>
+              <Typography variant="caption">{`Recorded at ${clipTime}`}</Typography>
+            </>
+          ) : (
+            <Typography variant="body2">{clipTime}</Typography>
+          )}
+        </TableCell>
+        <TableCell className={classes.clipDuration}>
+          {formatClipDuration(clip.end_time - clip.start_time)}
+        </TableCell>
+        <TableCell className={classes.clipCreationTime}>
+          {fecha.format(clip.create_time, formatMask)}
+        </TableCell>
+        <TableCell>
+          {status}
+        </TableCell>
+      </TableRow>
     );
   }
 
   render() {
-    const { classes, clips, dispatch, dongleId } = this.props;
-    const { windowWidth, copiedPopover, errorPopper } = this.state;
+    const { classes, dispatch, dongleId } = this.props;
+    const { copiedPopover, errorPopper } = this.state;
 
-    const viewerPadding = windowWidth < 768 ? 12 : 32;
+    const clips = [
+      {
+        clip_id: '66acc12bed254e9598468c74ebe6af14',
+        dongle_id: '62241b0c7fea4589',
+        create_time: 1667944360,
+        route_name: '62241b0c7fea4589|2022-11-05--23-05-11',
+        start_time: 1667714789103,
+        end_time: 1667714879356,
+        status: 'pending',
+        title: null,
+        video_type: 'e',
+        is_public: false,
+      },
+      {
+        clip_id: '66acc12bed254e9598468c74ebe6af14',
+        dongle_id: '62241b0c7fea4589',
+        create_time: 1667944360,
+        route_name: '62241b0c7fea4589|2022-11-05--23-05-11',
+        start_time: 1667714789103,
+        end_time: 1667714879356,
+        status: 'failed',
+        title: null,
+        video_type: 'e',
+        is_public: false,
+      },
+      {
+        clip_id: 'a99687ba9c2d4e808d4419f360352f4d',
+        dongle_id: '62241b0c7fea4589',
+        create_time: 1667944171,
+        route_name: '62241b0c7fea4589|2022-11-05--22-48-32',
+        start_time: 1667714240806,
+        end_time: 1667714268667,
+        status: 'done',
+        title: null,
+        video_type: 'f',
+        is_public: false,
+        thumbnail: 'https://chffrprivate.blob.core.windows.net/clips/62241b0c7fea4589/2022-11-05--22-48-32_a99687ba9c2d4e808d4419f360352f4d_thumbnail.jpg?se=2022-11-16T19%3A32%3A26Z&sp=r&sv=2018-03-28&sr=b&rscd=attachment%3B%20filename%3D2022-11-05--22-48-32_a99687ba9c2d4e808d4419f360352f4d_thumbnail.jpg&sig=ZRor6MpC671JDzBzvcvYec3hjmwIWMuQDVKgTL1Sxio%3D',
+      },
+      {
+        clip_id: 'e4d91b3e041d47fbbc4129bbece532c9',
+        dongle_id: '62241b0c7fea4589',
+        create_time: 1666751146,
+        route_name: '62241b0c7fea4589|2022-10-25--18-52-09',
+        start_time: 1666750233803,
+        end_time: 1666750256171,
+        status: 'done',
+        title: 'man',
+        video_type: 'f',
+        is_public: false,
+        thumbnail: 'https://chffrprivate.blob.core.windows.net/clips/62241b0c7fea4589/2022-10-25--18-52-09_e4d91b3e041d47fbbc4129bbece532c9_thumbnail.jpg?se=2022-11-16T19%3A32%3A26Z&sp=r&sv=2018-03-28&sr=b&rscd=attachment%3B%20filename%3D2022-10-25--18-52-09_e4d91b3e041d47fbbc4129bbece532c9_thumbnail.jpg&sig=A6oHL73dw4VwWNFpCcNXg9fRzGeYmydjNkHVw4T9eSA%3D',
+      },
+      {
+        clip_id: 'd5f82c74080e4e389f80c9fd3aab8ebd',
+        dongle_id: '62241b0c7fea4589',
+        create_time: 1666742559,
+        route_name: '62241b0c7fea4589|2022-10-25--15-00-46',
+        start_time: 1666737647937,
+        end_time: 1666737669622,
+        status: 'done',
+        title: 'airplane front',
+        video_type: 'f',
+        is_public: false,
+        thumbnail: 'https://chffrprivate.blob.core.windows.net/clips/62241b0c7fea4589/2022-10-25--15-00-46_d5f82c74080e4e389f80c9fd3aab8ebd_thumbnail.jpg?se=2022-11-16T19%3A32%3A26Z&sp=r&sv=2018-03-28&sr=b&rscd=attachment%3B%20filename%3D2022-10-25--15-00-46_d5f82c74080e4e389f80c9fd3aab8ebd_thumbnail.jpg&sig=jGbtvoIbc5SugTTPGiNLMl9gfFdpVbHv%2BnJzPMaGbSk%3D',
+      },
+      {
+        clip_id: '62f079f940a64dd984f41c7191173872',
+        dongle_id: '62241b0c7fea4589',
+        create_time: 1666740380,
+        route_name: '62241b0c7fea4589|2022-10-25--15-00-46',
+        start_time: 1666737664453,
+        end_time: 1666737815106,
+        status: 'done',
+        title: null,
+        video_type: '360',
+        is_public: false,
+        thumbnail: 'https://chffrprivate.blob.core.windows.net/clips/62241b0c7fea4589/2022-10-25--15-00-46_62f079f940a64dd984f41c7191173872_thumbnail.jpg?se=2022-11-16T19%3A32%3A26Z&sp=r&sv=2018-03-28&sr=b&rscd=attachment%3B%20filename%3D2022-10-25--15-00-46_62f079f940a64dd984f41c7191173872_thumbnail.jpg&sig=iE6A8Ylqk9d3V7L3AuUq14iPMBNoT67scbx3yQJ1f5o%3D',
+      },
+      {
+        clip_id: 'c1221efeea2f42a1ad0b15ec03171fe8',
+        dongle_id: '62241b0c7fea4589',
+        create_time: 1666740372,
+        route_name: '62241b0c7fea4589|2022-10-25--15-00-46',
+        start_time: 1666737505506,
+        end_time: 1666737742405,
+        status: 'done',
+        title: null,
+        video_type: '360',
+        is_public: false,
+        thumbnail: 'https://chffrprivate.blob.core.windows.net/clips/62241b0c7fea4589/2022-10-25--15-00-46_c1221efeea2f42a1ad0b15ec03171fe8_thumbnail.jpg?se=2022-11-16T19%3A32%3A26Z&sp=r&sv=2018-03-28&sr=b&rscd=attachment%3B%20filename%3D2022-10-25--15-00-46_c1221efeea2f42a1ad0b15ec03171fe8_thumbnail.jpg&sig=C9PkunyAL0h1g7eqXqFvDtD0II0lhvldIq6MCXOsO1I%3D',
+      },
+      {
+        clip_id: '1e5094ff4c904901a7606cd50ddf72e4',
+        dongle_id: '62241b0c7fea4589',
+        create_time: 1666740352,
+        route_name: '62241b0c7fea4589|2022-10-25--15-00-46',
+        start_time: 1666737263079,
+        end_time: 1666737506059,
+        status: 'done',
+        title: null,
+        video_type: '360',
+        is_public: false,
+        thumbnail: 'https://chffrprivate.blob.core.windows.net/clips/62241b0c7fea4589/2022-10-25--15-00-46_1e5094ff4c904901a7606cd50ddf72e4_thumbnail.jpg?se=2022-11-16T19%3A32%3A26Z&sp=r&sv=2018-03-28&sr=b&rscd=attachment%3B%20filename%3D2022-10-25--15-00-46_1e5094ff4c904901a7606cd50ddf72e4_thumbnail.jpg&sig=lbB9GNUaEmTsUaXpeLHJQVLGanK6qdxKHYe/D3JPH2Q%3D',
+      },
+    ];
 
-    const tbnWidth = (windowWidth < 768 ? 48 : 72) * (1928 / 1208);
-
-    const gridWidths = windowWidth < 768
-      ? [`calc(2% + ${tbnWidth}px)`, `calc(67% - ${tbnWidth}px)`, '24%', '7%']
-      : [`calc(3% + ${tbnWidth}px)`, `calc(65% - ${tbnWidth}px)`, '24%', '7%'];
-    const gridStyles = gridWidths.map((w) => ({ maxWidth: w, flexBasis: w }));
-
-    const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1rem' };
-
+    // TODO: render "no clips found" and loading spinner
     return (
       <>
         <VisibilityHandler onVisible={() => dispatch(fetchClipsList(dongleId))} onDongleId />
-        <ResizeHandler onResize={ this.onResize } />
 
-        <div style={{ ...itemStyle, padding: viewerPadding }}>
-          { !clips && <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
-          { clips?.length === 0 && <p className={ classes.noClips }>no clips found</p> }
-          { clips?.length > 0 && (
-          <div className={classes.clipItemHeader} style={{ padding: (windowWidth < 768 ? 3 : 8) }}>
-            <span style={{ ...itemStyle, ...gridStyles[0] }} />
-            <h6 style={{ ...itemStyle, ...gridStyles[1] }}>Title</h6>
-            <h6 style={{ ...itemStyle, ...gridStyles[2], textAlign: 'center' }}>Date</h6>
-            <span style={{ ...itemStyle, ...gridStyles[3] }} />
-          </div>
-          )}
-          { clips && clips.map((c) => this.renderClipItem(gridStyles, c)) }
-        </div>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell />
+              <TableCell>Name</TableCell>
+              <TableCell className={classes.clipDuration}>Duration</TableCell>
+              <TableCell className={classes.clipCreationTime}>Created at</TableCell>
+              <TableCell />
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {clips && clips.map(this.renderClipItem)}
+          </TableBody>
+        </Table>
 
         <Popper
           open={ Boolean(copiedPopover) }
