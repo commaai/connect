@@ -13,7 +13,8 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  Typography, IconButton,
+  Tooltip,
+  Typography,
 } from '@material-ui/core';
 import LockOutlineIcon from '@material-ui/icons/LockOutline';
 import PublicIcon from '@material-ui/icons/Public';
@@ -210,18 +211,27 @@ class ClipList extends Component {
   }
 
   renderClipItem(clip) {
-    const { classes } = this.props;
+    const { classes, dispatch } = this.props;
 
     const formatMask = 'MMM Do, hh:mm a';
     const clipTime = fecha.format(clip.start_time, formatMask);
 
     let thumbnail = null;
     let status;
-
     if (clip.status === 'failed') {
       status = <ErrorOutlineIcon color="error" />;
     } else if (clip.status === 'pending') {
-      status = <CircularProgress size={24} />;
+      clip.pending_progress = '0.2';
+      if (clip.pending_progress) {
+        const progress = parseFloat(clip.pending_progress) * 100;
+        status = (
+          <Tooltip title={`Export in progress (${progress.toFixed(0)}%)`}>
+            <CircularProgress size={24} variant="static" value={progress} />
+          </Tooltip>
+        );
+      } else {
+        status = <CircularProgress size={24} />;
+      }
     } else {
       if (clip.thumbnail) {
         const thumbnailStyle = {
@@ -243,8 +253,15 @@ class ClipList extends Component {
       }
     }
 
+    let onClick;
+    if (clip.status === 'failed') {
+      onClick = (ev) => this.fetchShowError(ev.target, clip);
+    } else {
+      onClick = filterRegularClick(() => dispatch(navToClips(clip.clip_id, clip.state)));
+    }
+
     return (
-      <TableRow key={clip.clip_id} hover>
+      <TableRow key={clip.clip_id} onClick={onClick} hover={!!onClick}>
         <TableCell padding="none">
           {thumbnail}
         </TableCell>
@@ -272,17 +289,19 @@ class ClipList extends Component {
   }
 
   render() {
-    const { classes, dispatch, dongleId } = this.props;
+    const { classes, clips: real, dispatch, dongleId } = this.props;
     const { copiedPopover, errorPopper } = this.state;
+
+    console.log(real);
 
     const clips = [
       {
-        clip_id: '66acc12bed254e9598468c74ebe6af14',
+        clip_id: '66acc12bed254e9598468c74ebe6af15',
         dongle_id: '62241b0c7fea4589',
         create_time: 1667944360,
         route_name: '62241b0c7fea4589|2022-11-05--23-05-11',
-        start_time: 1667714789103,
-        end_time: 1667714879356,
+        start_time: 1667755789103,
+        end_time: 1667755999999,
         status: 'pending',
         title: null,
         video_type: 'e',
