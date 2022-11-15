@@ -25,5 +25,5 @@ export function formatClipDuration(duration) {
 
 export function formatClipTimestamp(timestamp) {
   const formatMask = 'MMM Do, hh:mm a';
-  return fecha.format(timestamp, formatMask);
+  return fecha.format(timestamp * (timestamp < 10000000000 ? 1000 : 1), formatMask);
 }
