@@ -3,18 +3,18 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import fecha from 'fecha';
+import { clips as Clips } from '@commaai/api';
 
 import { withStyles, Typography, TextField, Button, CircularProgress } from '@material-ui/core';
 import ErrorIcon from '@material-ui/icons/ErrorOutline';
-import { clips as Clips } from '@commaai/api';
 
-import ResizeHandler from '../ResizeHandler';
-import DriveVideo from '../DriveVideo';
-import Timeline from '../Timeline';
-import TimeDisplay from '../TimeDisplay';
-import Colors from '../../colors';
 import { clipsCreate } from '../../actions/clips';
+import Colors from '../../colors';
 import { formatClipTimestamp } from '../../utils/clips';
+import DriveVideo from '../DriveVideo';
+import ResizeHandler from '../ResizeHandler';
+import TimeDisplay from '../TimeDisplay';
+import Timeline from '../Timeline';
 
 const styles = () => ({
   clipOption: {

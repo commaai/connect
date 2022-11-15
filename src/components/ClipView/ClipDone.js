@@ -20,9 +20,9 @@ import { clipsDelete, clipsUpdateIsPublic } from '../../actions/clips';
 import Colors from '../../colors';
 import { Video360Icon } from '../../icons';
 import { filterRegularClick } from '../../utils';
+import { formatClipTimestamp } from '../../utils/clips';
 import SwitchLoading from '../utils/SwitchLoading';
 import ResizeHandler from '../ResizeHandler';
-import { formatClipTimestamp } from '../../utils/clips';
 
 const styles = (theme) => ({
   clipOption: {

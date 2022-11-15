@@ -25,8 +25,8 @@ import { fetchClipsList, navToClips } from '../../actions/clips';
 import Colors from '../../colors';
 import { Video360Icon } from '../../icons';
 import { filterRegularClick } from '../../utils';
-import VisibilityHandler from '../VisibilityHandler';
 import { clipErrorToText, formatClipDuration, formatClipTimestamp } from '../../utils/clips';
+import VisibilityHandler from '../VisibilityHandler';
 
 const styles = (theme) => ({
   clipItemHeader: {
