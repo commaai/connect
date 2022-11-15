@@ -65,12 +65,12 @@ const styles = (theme) => ({
     paddingRight: 3,
     fontSize: '1.4rem',
   },
-  clipDuration: {
+  columnDuration: {
     [theme.breakpoints.down('xs')]: {
       display: 'none',
     },
   },
-  clipCreationTime: {
+  columnCreationTime: {
     [theme.breakpoints.down('sm')]: {
       display: 'none',
     },
@@ -275,10 +275,10 @@ class ClipList extends Component {
             <Typography variant="body2">{clipTime}</Typography>
           )}
         </TableCell>
-        <TableCell className={classes.clipDuration}>
+        <TableCell className={classes.columnDuration}>
           {formatClipDuration(clip.end_time - clip.start_time)}
         </TableCell>
-        <TableCell className={classes.clipCreationTime}>
+        <TableCell className={classes.columnCreationTime}>
           {fecha.format(clip.create_time, formatMask)}
         </TableCell>
         <TableCell>
@@ -409,8 +409,8 @@ class ClipList extends Component {
             <TableRow>
               <TableCell />
               <TableCell>Name</TableCell>
-              <TableCell className={classes.clipDuration}>Duration</TableCell>
-              <TableCell className={classes.clipCreationTime}>Created at</TableCell>
+              <TableCell className={classes.columnDuration}>Duration</TableCell>
+              <TableCell className={classes.columnCreationTime}>Created at</TableCell>
               <TableCell />
             </TableRow>
           </TableHead>
