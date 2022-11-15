@@ -75,6 +75,13 @@ const styles = (theme) => ({
   },
   clipRow: {
     cursor: 'pointer',
+    height: 96,
+    [theme.breakpoints.down('sm')]: {
+      height: 64,
+    },
+    [theme.breakpoints.down('xs')]: {
+      height: 48,
+    },
   },
   thumbnail: {
     backgroundSize: 'contain',
@@ -88,6 +95,9 @@ const styles = (theme) => ({
       height: '50%',
     },
     height: 96,
+    [theme.breakpoints.down('sm')]: {
+      height: 64,
+    },
     [theme.breakpoints.down('xs')]: {
       height: 48,
     },
@@ -262,7 +272,7 @@ class ClipList extends Component {
         <TableCell padding="none">
           {thumbnail}
         </TableCell>
-        <TableCell height="64px">
+        <TableCell>
           {clip.title ? (
             <>
               <Typography variant="body2">{clip.title}</Typography>
