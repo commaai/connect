@@ -191,8 +191,6 @@ class DeviceList extends Component {
       padding: '16px 44px 16px 54px',
     };
 
-    const filterDrivingDevice = (d) => d.device_type !== 'panda';
-
     return (
       <>
         <VisibilityHandler onVisible={ this.onVisible } minInterval={ 10 } />
@@ -200,7 +198,7 @@ class DeviceList extends Component {
           className={`scrollstyle ${classes.deviceList}`}
           style={{ height: `calc(100vh - ${headerHeight}px)` }}
         >
-          {devices.filter(filterDrivingDevice).map(this.renderDevice)}
+          {devices.map(this.renderDevice)}
           {MyCommaAuth.isAuthenticated() && (
             <div className={classes.addDeviceContainer}>
               <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon />

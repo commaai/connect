@@ -1,5 +1,5 @@
 import * as Types from '../actions/types';
-import { emptyDevice, deviceIsOnline } from '../utils';
+import { emptyDevice } from '../utils';
 
 function populateFetchedAt(d) {
   return {
@@ -8,25 +8,27 @@ function populateFetchedAt(d) {
   };
 }
 
+function deviceCompareFn(a, b) {
+  if (a.is_owner !== b.is_owner) {
+    return b.is_owner - a.is_owner;
+  }
+  if (a.alias && b.alias) {
+    return a.alias.localeCompare(b.alias);
+  }
+  if (!a.alias && !b.alias) {
+    return a.dongle_id.localeCompare(b.dongle_id);
+  }
+  return Boolean(b.alias) - Boolean(a.alias);
+}
+
 export default function reducer(_state, action) {
   let state = { ..._state };
   let deviceIndex = null;
   switch (action.type) {
     case Types.ACTION_STARTUP_DATA:
-      let devices = action.devices.map(populateFetchedAt);
-
-      devices = devices.sort((a, b) => {
-        if (deviceIsOnline(a) !== deviceIsOnline(b)) {
-          return deviceIsOnline(b) - deviceIsOnline(a);
-        }
-        if (!a.alias && !b.alias) {
-          return a.dongle_id.localeCompare(b.dongle_id);
-        }
-        if (Boolean(a.alias) !== Boolean(b.alias)) {
-          return Boolean(b.alias) - Boolean(a.alias);
-        }
-        return a.alias.localeCompare(b.alias);
-      });
+      const devices = action.devices
+        .map(populateFetchedAt)
+        .sort(deviceCompareFn);
 
       if (!state.dongleId && devices.length > 0) {
         state = {
@@ -58,6 +60,7 @@ export default function reducer(_state, action) {
         files: null,
         clips: null,
       };
+      window.localStorage.setItem('selectedDongleId', action.dongleId);
       if (state.devices) {
         const newDevice = state.devices.find((device) => device.dongle_id === action.dongleId) || null;
         if (!state.device || state.device.dongle_id !== action.dongleId) {
@@ -93,7 +96,9 @@ export default function reducer(_state, action) {
     case Types.ACTION_UPDATE_DEVICES:
       state = {
         ...state,
-        devices: action.devices.map(populateFetchedAt),
+        devices: action.devices
+          .map(populateFetchedAt)
+          .sort(deviceCompareFn),
       };
       if (state.dongleId) {
         const newDevice = state.devices.find((d) => d.dongle_id === state.dongleId);
