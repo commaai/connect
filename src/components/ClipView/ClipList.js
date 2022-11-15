@@ -6,6 +6,7 @@ import { clips as Clips } from '@commaai/api';
 import {
   withStyles,
   CircularProgress,
+  Grid,
   Popover,
   Popper,
   Table,
@@ -80,6 +81,7 @@ const styles = (theme) => ({
   noClips: {
     color: Colors.white,
     fontSize: '1rem',
+    margin: '48px 32px',
   },
   copiedPopover: {
     borderRadius: 16,
@@ -281,11 +283,9 @@ class ClipList extends Component {
     const { classes, clips, dispatch, dongleId } = this.props;
     const { copiedPopover, errorPopper } = this.state;
 
-    // TODO: render "no clips found" and loading spinner
-    return (
-      <>
-        <VisibilityHandler onVisible={() => dispatch(fetchClipsList(dongleId))} onDongleId />
-
+    let content;
+    if (clips?.length > 0) {
+      content = (
         <Table>
           <TableHead>
             <TableRow>
@@ -300,6 +300,29 @@ class ClipList extends Component {
             {clips && clips.map(this.renderClipItem)}
           </TableBody>
         </Table>
+      );
+    } else if (clips?.length === 0) {
+      content = (
+        <Typography variant="body1" className={classes.noClips}>
+          no clips found
+        </Typography>
+      );
+    } else {
+      content = (
+        <Grid container alignItems="center" style={{ width: '100%', height: '30vh' }}>
+          <Grid item align="center" xs={12}>
+            <CircularProgress size="5vh" style={{ color: '#525E66' }} />
+          </Grid>
+        </Grid>
+      );
+    }
+
+    // TODO: render "no clips found" and loading spinner
+    return (
+      <>
+        <VisibilityHandler onVisible={() => dispatch(fetchClipsList(dongleId))} onDongleId />
+
+        {content}
 
         <Popper
           open={ Boolean(copiedPopover) }
@@ -324,11 +347,19 @@ class ClipList extends Component {
 }
 
 const mapStateToProps = (state) => {
-  const { clips, dongleId } = state;
+  const { clips: { list: clips }, dongleId } = state;
+
+  if (clips?.length > 0) {
+    return {
+      // don't show old failed clips
+      clips: clips.filter((c) => c.status !== 'failed'
+        || (Date.now() / 1000 - c.create_time) < 86400 * 7),
+      dongleId,
+    };
+  }
+
   return {
-    // don't show old failed clips
-    clips: (clips?.list || []).filter((c) => c.status !== 'failed'
-      || (Date.now() / 1000 - c.create_time) < 86400 * 7),
+    clips,
     dongleId,
   };
 };
