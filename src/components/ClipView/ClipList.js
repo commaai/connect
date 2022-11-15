@@ -247,9 +247,17 @@ class ClipList extends Component {
       }
 
       if (clip.is_public) {
-        status = <PublicIcon />;
+        status = (
+          <Tooltip title="Publicly accessible">
+            <PublicIcon />
+          </Tooltip>
+        );
       } else {
-        status = <LockOutlineIcon />;
+        status = (
+          <Tooltip title="Private">
+            <LockOutlineIcon />
+          </Tooltip>
+        );
       }
     }
 
