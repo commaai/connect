@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import fecha from 'fecha';
 import * as Sentry from '@sentry/react';
+import { clips as Clips } from '@commaai/api';
 
 import {
   withStyles,
@@ -16,19 +16,17 @@ import {
   Tooltip,
   Typography,
 } from '@material-ui/core';
+import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import LockOutlineIcon from '@material-ui/icons/LockOutline';
 import PublicIcon from '@material-ui/icons/Public';
-import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
-import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
-import SlideshowIcon from '@material-ui/icons/Slideshow';
-import { clips as Clips } from '@commaai/api';
+import WallpaperIcon from '@material-ui/icons/Wallpaper';
 
 import { fetchClipsList, navToClips } from '../../actions/clips';
 import Colors from '../../colors';
 import { Video360Icon } from '../../icons';
-import { filterRegularClick, formatClipDuration } from '../../utils';
-import ResizeHandler from '../ResizeHandler';
+import { filterRegularClick } from '../../utils';
 import VisibilityHandler from '../VisibilityHandler';
+import { clipErrorToText, formatClipDuration, formatClipTimestamp } from '../../utils/clips';
 
 const styles = (theme) => ({
   clipItemHeader: {
@@ -75,6 +73,9 @@ const styles = (theme) => ({
       display: 'none',
     },
   },
+  clipRow: {
+    cursor: 'pointer',
+  },
   thumbnail: {
     backgroundSize: 'contain',
     backgroundRepeat: 'no-repeat',
@@ -111,23 +112,6 @@ const styles = (theme) => ({
     },
   },
 });
-
-const clipErrorToText = (errorStatus) => {
-  switch (errorStatus) {
-    case 'upload_failed_request':
-      return 'Unable to request file upload from device.';
-    case 'upload_failed':
-      return 'Not all files needed for this clip could be found on the device.';
-    case 'upload_failed_dcam':
-      return 'Not all files needed for this clip could be found on the device, was the "Record and Upload Driver Camera" toggle active?';
-    case 'upload_timed_out':
-      return 'File upload timed out, the device must be on WiFi to upload the required files.';
-    case 'export_failed':
-      return 'An error occurred while creating this clip.';
-    default:
-      return 'Unable to create clip.';
-  }
-};
 
 class ClipList extends Component {
   constructor(props) {
@@ -213,9 +197,6 @@ class ClipList extends Component {
   renderClipItem(clip) {
     const { classes, dispatch } = this.props;
 
-    const formatMask = 'MMM Do, hh:mm a';
-    const clipTime = fecha.format(clip.start_time, formatMask);
-
     let thumbnail = null;
     let status;
     if (clip.status === 'failed') {
@@ -242,8 +223,6 @@ class ClipList extends Component {
             {clip.video_type === '360' && <Video360Icon />}
           </div>
         );
-      } else {
-        thumbnail = 'test';
       }
 
       if (clip.is_public) {
@@ -260,6 +239,9 @@ class ClipList extends Component {
         );
       }
     }
+    if (!thumbnail) {
+      thumbnail = <WallpaperIcon style={{ width: '100%', paddingLeft: 12 }} />;
+    }
 
     let onClick;
     if (clip.status === 'failed') {
@@ -268,8 +250,15 @@ class ClipList extends Component {
       onClick = filterRegularClick(() => dispatch(navToClips(clip.clip_id, clip.state)));
     }
 
+    const clipTime = formatClipTimestamp(clip.start_time);
     return (
-      <TableRow key={clip.clip_id} onClick={onClick} hover={!!onClick}>
+      <TableRow
+        key={clip.clip_id}
+        className={classes.clipRow}
+        onClick={onClick}
+        hover
+        role="link"
+      >
         <TableCell padding="none">
           {thumbnail}
         </TableCell>
@@ -287,7 +276,7 @@ class ClipList extends Component {
           {formatClipDuration(clip.end_time - clip.start_time)}
         </TableCell>
         <TableCell className={classes.columnCreationTime}>
-          {fecha.format(clip.create_time, formatMask)}
+          {formatClipTimestamp(clip.create_time)}
         </TableCell>
         <TableCell>
           {status}
@@ -297,115 +286,8 @@ class ClipList extends Component {
   }
 
   render() {
-    const { classes, clips: real, dispatch, dongleId } = this.props;
+    const { classes, clips, dispatch, dongleId } = this.props;
     const { copiedPopover, errorPopper } = this.state;
-
-    console.log(real);
-
-    const clips = [
-      {
-        clip_id: '66acc12bed254e9598468c74ebe6af15',
-        dongle_id: '62241b0c7fea4589',
-        create_time: 1667944360,
-        route_name: '62241b0c7fea4589|2022-11-05--23-05-11',
-        start_time: 1667755789103,
-        end_time: 1667755999999,
-        status: 'pending',
-        title: null,
-        video_type: 'e',
-        is_public: false,
-      },
-      {
-        clip_id: '66acc12bed254e9598468c74ebe6af14',
-        dongle_id: '62241b0c7fea4589',
-        create_time: 1667944360,
-        route_name: '62241b0c7fea4589|2022-11-05--23-05-11',
-        start_time: 1667714789103,
-        end_time: 1667714879356,
-        status: 'failed',
-        title: null,
-        video_type: 'e',
-        is_public: false,
-      },
-      {
-        clip_id: 'a99687ba9c2d4e808d4419f360352f4d',
-        dongle_id: '62241b0c7fea4589',
-        create_time: 1667944171,
-        route_name: '62241b0c7fea4589|2022-11-05--22-48-32',
-        start_time: 1667714240806,
-        end_time: 1667714268667,
-        status: 'done',
-        title: null,
-        video_type: 'f',
-        is_public: false,
-        thumbnail: 'https://chffrprivate.blob.core.windows.net/clips/62241b0c7fea4589/2022-11-05--22-48-32_a99687ba9c2d4e808d4419f360352f4d_thumbnail.jpg?se=2022-11-16T19%3A32%3A26Z&sp=r&sv=2018-03-28&sr=b&rscd=attachment%3B%20filename%3D2022-11-05--22-48-32_a99687ba9c2d4e808d4419f360352f4d_thumbnail.jpg&sig=ZRor6MpC671JDzBzvcvYec3hjmwIWMuQDVKgTL1Sxio%3D',
-      },
-      {
-        clip_id: 'e4d91b3e041d47fbbc4129bbece532c9',
-        dongle_id: '62241b0c7fea4589',
-        create_time: 1666751146,
-        route_name: '62241b0c7fea4589|2022-10-25--18-52-09',
-        start_time: 1666750233803,
-        end_time: 1666750256171,
-        status: 'done',
-        title: 'man',
-        video_type: 'f',
-        is_public: false,
-        thumbnail: 'https://chffrprivate.blob.core.windows.net/clips/62241b0c7fea4589/2022-10-25--18-52-09_e4d91b3e041d47fbbc4129bbece532c9_thumbnail.jpg?se=2022-11-16T19%3A32%3A26Z&sp=r&sv=2018-03-28&sr=b&rscd=attachment%3B%20filename%3D2022-10-25--18-52-09_e4d91b3e041d47fbbc4129bbece532c9_thumbnail.jpg&sig=A6oHL73dw4VwWNFpCcNXg9fRzGeYmydjNkHVw4T9eSA%3D',
-      },
-      {
-        clip_id: 'd5f82c74080e4e389f80c9fd3aab8ebd',
-        dongle_id: '62241b0c7fea4589',
-        create_time: 1666742559,
-        route_name: '62241b0c7fea4589|2022-10-25--15-00-46',
-        start_time: 1666737647937,
-        end_time: 1666737669622,
-        status: 'done',
-        title: 'airplane front',
-        video_type: 'f',
-        is_public: false,
-        thumbnail: 'https://chffrprivate.blob.core.windows.net/clips/62241b0c7fea4589/2022-10-25--15-00-46_d5f82c74080e4e389f80c9fd3aab8ebd_thumbnail.jpg?se=2022-11-16T19%3A32%3A26Z&sp=r&sv=2018-03-28&sr=b&rscd=attachment%3B%20filename%3D2022-10-25--15-00-46_d5f82c74080e4e389f80c9fd3aab8ebd_thumbnail.jpg&sig=jGbtvoIbc5SugTTPGiNLMl9gfFdpVbHv%2BnJzPMaGbSk%3D',
-      },
-      {
-        clip_id: '62f079f940a64dd984f41c7191173872',
-        dongle_id: '62241b0c7fea4589',
-        create_time: 1666740380,
-        route_name: '62241b0c7fea4589|2022-10-25--15-00-46',
-        start_time: 1666737664453,
-        end_time: 1666737815106,
-        status: 'done',
-        title: null,
-        video_type: '360',
-        is_public: false,
-        thumbnail: 'https://chffrprivate.blob.core.windows.net/clips/62241b0c7fea4589/2022-10-25--15-00-46_62f079f940a64dd984f41c7191173872_thumbnail.jpg?se=2022-11-16T19%3A32%3A26Z&sp=r&sv=2018-03-28&sr=b&rscd=attachment%3B%20filename%3D2022-10-25--15-00-46_62f079f940a64dd984f41c7191173872_thumbnail.jpg&sig=iE6A8Ylqk9d3V7L3AuUq14iPMBNoT67scbx3yQJ1f5o%3D',
-      },
-      {
-        clip_id: 'c1221efeea2f42a1ad0b15ec03171fe8',
-        dongle_id: '62241b0c7fea4589',
-        create_time: 1666740372,
-        route_name: '62241b0c7fea4589|2022-10-25--15-00-46',
-        start_time: 1666737505506,
-        end_time: 1666737742405,
-        status: 'done',
-        title: null,
-        video_type: '360',
-        is_public: false,
-        thumbnail: 'https://chffrprivate.blob.core.windows.net/clips/62241b0c7fea4589/2022-10-25--15-00-46_c1221efeea2f42a1ad0b15ec03171fe8_thumbnail.jpg?se=2022-11-16T19%3A32%3A26Z&sp=r&sv=2018-03-28&sr=b&rscd=attachment%3B%20filename%3D2022-10-25--15-00-46_c1221efeea2f42a1ad0b15ec03171fe8_thumbnail.jpg&sig=C9PkunyAL0h1g7eqXqFvDtD0II0lhvldIq6MCXOsO1I%3D',
-      },
-      {
-        clip_id: '1e5094ff4c904901a7606cd50ddf72e4',
-        dongle_id: '62241b0c7fea4589',
-        create_time: 1666740352,
-        route_name: '62241b0c7fea4589|2022-10-25--15-00-46',
-        start_time: 1666737263079,
-        end_time: 1666737506059,
-        status: 'done',
-        title: null,
-        video_type: '360',
-        is_public: false,
-        thumbnail: 'https://chffrprivate.blob.core.windows.net/clips/62241b0c7fea4589/2022-10-25--15-00-46_1e5094ff4c904901a7606cd50ddf72e4_thumbnail.jpg?se=2022-11-16T19%3A32%3A26Z&sp=r&sv=2018-03-28&sr=b&rscd=attachment%3B%20filename%3D2022-10-25--15-00-46_1e5094ff4c904901a7606cd50ddf72e4_thumbnail.jpg&sig=lbB9GNUaEmTsUaXpeLHJQVLGanK6qdxKHYe/D3JPH2Q%3D',
-      },
-    ];
 
     // TODO: render "no clips found" and loading spinner
     return (
