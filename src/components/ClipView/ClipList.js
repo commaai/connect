@@ -190,15 +190,6 @@ class ClipList extends Component {
   renderClipItem(clip) {
     const { classes, dispatch } = this.props;
 
-    const thumbnail = (
-      <BackgroundImage
-        className={classes.thumbnail}
-        src={clip.thumbnail}
-      >
-        <WallpaperIcon className={classes.thumbnailPlaceholder} />
-      </BackgroundImage>
-    );
-
     let status;
     if (clip.status === 'failed') {
       status = (
@@ -221,41 +212,30 @@ class ClipList extends Component {
           </Tooltip>
         );
       }
+    } else if (clip.is_public) {
+      status = (
+        <Tooltip title="Publicly accessible">
+          <PublicIcon />
+        </Tooltip>
+      );
     } else {
-      // if (clip.thumbnail) {
-      //   const thumbnailStyle = {
-      //     backgroundImage: `url("${clip.thumbnail}")`,
-      //   };
-      //   thumbnail = (
-      //     <div className={classes.thumbnail} style={thumbnailStyle}>
-      //       {clip.video_type === '360' && <Video360Icon />}
-      //     </div>
-      //   );
-      // }
-
-      if (clip.is_public) {
-        status = (
-          <Tooltip title="Publicly accessible">
-            <PublicIcon />
-          </Tooltip>
-        );
-      } else {
-        status = (
-          <Tooltip title="Private">
-            <LockOutlineIcon />
-          </Tooltip>
-        );
-      }
+      status = (
+        <Tooltip title="Private">
+          <LockOutlineIcon />
+        </Tooltip>
+      );
     }
-    // if (!thumbnail) {
-    //   thumbnail = <WallpaperIcon className={classes.thumbnailPlaceholder} />;
-    // }
 
     let onClick;
     if (clip.status === 'failed') {
       onClick = (ev) => this.fetchShowError(ev.target, clip);
     } else {
       onClick = filterRegularClick(() => dispatch(navToClips(clip.clip_id, clip.state)));
+    }
+
+    let overlay;
+    if (clip.video_type === '360') {
+      overlay = <Video360Icon className={classes.thumbnailPlaceholder} />;
     }
 
     const clipTime = formatClipTimestamp(clip.start_time);
@@ -268,7 +248,13 @@ class ClipList extends Component {
         role="link"
       >
         <TableCell padding="none">
-          {thumbnail}
+          <BackgroundImage
+            className={classes.thumbnail}
+            src={clip.thumbnail}
+            overlay={overlay}
+          >
+            <WallpaperIcon className={classes.thumbnailPlaceholder} />
+          </BackgroundImage>
         </TableCell>
         <TableCell>
           {clip.title ? (

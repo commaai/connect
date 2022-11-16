@@ -35,7 +35,16 @@ const styles = () => ({
     backgroundPosition: 'center',
     opacity: 0,
     transition: 'opacity 0.3s ease',
-    borderRadius: 4,
+  },
+  overlay: {
+    position: 'absolute',
+    zIndex: 3,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    opacity: 0,
+    transition: 'opacity 0.3s ease',
   },
   fadeIn: {
     opacity: 1,
@@ -46,19 +55,23 @@ const styles = () => ({
 const BackgroundImage = (props) => {
   const hdImageRef = createRef();
   const placeholderRef = createRef();
-  const { placeholder, classes, className, src, children, ...rest } = props;
+  const overlayRef = createRef();
+  const { placeholder, classes, className, src, children, overlay, ...rest } = props;
 
   useEffect(() => {
     const newImage = document.createElement('img');
     const hdImageEl = hdImageRef.current;
     const placeholderEl = placeholderRef.current;
+    const overlayEl = overlayRef.current;
     newImage.src = src;
     newImage.onload = () => {
       hdImageEl.setAttribute('style', `background-image: url(${src})`);
       hdImageEl.classList.add(classes.fadeIn);
+      overlayEl.classList.add(classes.fadeIn);
     };
     newImage.onerror = () => {
       placeholderEl.classList.add(classes.fadeIn);
+      overlayEl.classList.add(classes.fadeIn);
     };
 
     return () => {
@@ -79,6 +92,7 @@ const BackgroundImage = (props) => {
       >
         {children}
       </div>
+      <div className={classes.overlay} ref={overlayRef}>{overlay}</div>
     </div>
   );
 };
