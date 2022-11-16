@@ -197,7 +197,7 @@ class ClipList extends Component {
         );
       } else {
         status = (
-          <Tooltip title="Export in queue">
+          <Tooltip title="Export in progress">
             <CircularProgress size={24} />
           </Tooltip>
         );
