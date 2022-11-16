@@ -3,12 +3,12 @@ import ReactDOM from 'react-dom';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
+import { clips as Clips } from '@commaai/api';
 
 import { Viewer } from 'photo-sphere-viewer';
 import { EquirectangularVideoAdapter } from 'photo-sphere-viewer/dist/adapters/equirectangular-video';
 import { VideoPlugin } from 'photo-sphere-viewer/dist/plugins/video';
 
-import { clips as Clips } from '@commaai/api';
 import { withStyles, Button, CircularProgress, Modal, Paper, Popper, Typography } from '@material-ui/core';
 import CropOriginalIcon from '@material-ui/icons/CropOriginal';
 import DeleteIcon from '@material-ui/icons/Delete';
@@ -20,6 +20,7 @@ import { clipsDelete, clipsUpdateIsPublic } from '../../actions/clips';
 import Colors from '../../colors';
 import { Video360Icon } from '../../icons';
 import { filterRegularClick } from '../../utils';
+import { formatClipTimestamp } from '../../utils/clips';
 import SwitchLoading from '../utils/SwitchLoading';
 import ResizeHandler from '../ResizeHandler';
 
@@ -373,6 +374,7 @@ class ClipDone extends Component {
       : { maxHeight: 'calc(100vh - 64px)', width: '100%' };
 
     const authorized = Boolean(device?.is_owner || profile?.superuser);
+    const clipTime = formatClipTimestamp(clips.start_time);
 
     return (
       <>
@@ -380,9 +382,16 @@ class ClipDone extends Component {
 
         <div style={{ padding: viewerPadding }}>
           <div className={ `${classes.clipOption} ${classes.clipHeader}` }>
-            <h4>
-              { clips.title ? clips.title : clips.route.split('|')[1] }
-            </h4>
+            <div>
+              {clips.title ? (
+                <>
+                  <Typography variant="title" gutterBottom>{clips.title}</Typography>
+                  <Typography variant="caption">{`Recorded at ${clipTime}`}</Typography>
+                </>
+              ) : (
+                <Typography variant="title">{clipTime}</Typography>
+              )}
+            </div>
             { authorized
             && <SwitchLoading classes={{ root: classes.publicSwitch }} checked={ clips.is_public } onChange={ this.onPublicToggle } label="Public access" />}
           </div>

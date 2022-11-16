@@ -1,56 +1,55 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import fecha from 'fecha';
 import * as Sentry from '@sentry/react';
-
-import { withStyles, Typography, CircularProgress, Popper, Popover } from '@material-ui/core';
-import LockOutlineIcon from '@material-ui/icons/LockOutline';
-import PublicIcon from '@material-ui/icons/Public';
-import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
-import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import { clips as Clips } from '@commaai/api';
 
+import {
+  withStyles,
+  CircularProgress,
+  Grid,
+  Popover,
+  Popper,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Tooltip,
+  Typography,
+} from '@material-ui/core';
+import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
+import LockOutlineIcon from '@material-ui/icons/LockOutline';
+import PublicIcon from '@material-ui/icons/Public';
+import WallpaperIcon from '@material-ui/icons/Wallpaper';
+
+import { fetchClipsList, navToClips } from '../../actions/clips';
+import Colors from '../../colors';
 import { Video360Icon } from '../../icons';
 import { filterRegularClick } from '../../utils';
-import ResizeHandler from '../ResizeHandler';
-import Colors from '../../colors';
-import { fetchClipsList, navToClips } from '../../actions/clips';
+import { clipErrorToText, formatClipDuration, formatClipTimestamp } from '../../utils/clips';
 import VisibilityHandler from '../VisibilityHandler';
+import BackgroundImage from '../utils/BackgroundImage';
 
-const styles = () => ({
-  clipItemHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    color: Colors.white,
-    padding: 3,
-    '& h6': {
-      padding: '0 3px',
-      margin: 0,
+const styles = (theme) => ({
+  columnDuration: {
+    [theme.breakpoints.down('xs')]: {
+      display: 'none',
+    },
+  },
+  columnCreationTime: {
+    [theme.breakpoints.down('sm')]: {
+      display: 'none',
     },
   },
   clipItem: {
-    display: 'flex',
-    alignItems: 'center',
-    color: Colors.white,
-    borderTop: '1px solid rgba(255, 255, 255, .05)',
-    textDecoration: 'none',
-    padding: 3,
     cursor: 'pointer',
-    '&:hover': {},
-    '& p': {
-      padding: '0 3px',
-      margin: 0,
-      textAlign: 'center',
+    height: 96,
+    [theme.breakpoints.down('sm')]: {
+      height: 64,
     },
-  },
-  clipTitle: {
-    'p&': {
-      textAlign: 'left',
+    [theme.breakpoints.down('xs')]: {
+      height: 48,
     },
-  },
-  clipPlayIcon: {
-    paddingRight: 3,
-    fontSize: '1.4rem',
   },
   thumbnail: {
     backgroundSize: 'contain',
@@ -59,13 +58,26 @@ const styles = () => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 12,
     '& img': {
       height: '50%',
     },
+    height: 96,
+    [theme.breakpoints.down('sm')]: {
+      height: 64,
+    },
+    [theme.breakpoints.down('xs')]: {
+      height: 48,
+    },
+  },
+  thumbnailPlaceholder: {
+    padding: 24,
+    width: '100%',
+    height: '100%',
   },
   noClips: {
-    color: Colors.white,
     fontSize: '1rem',
+    margin: '48px 32px',
   },
   copiedPopover: {
     borderRadius: 16,
@@ -84,44 +96,21 @@ const styles = () => ({
   },
 });
 
-const clipErrorToText = (errorStatus) => {
-  switch (errorStatus) {
-    case 'upload_failed_request':
-      return 'Unable to request file upload from device.';
-    case 'upload_failed':
-      return 'Not all files needed for this clip could be found on the device.';
-    case 'upload_failed_dcam':
-      return 'Not all files needed for this clip could be found on the device, was the "Record and Upload Driver Camera" toggle active?';
-    case 'upload_timed_out':
-      return 'File upload timed out, the device must be on WiFi to upload the required files.';
-    case 'export_failed':
-      return 'An error occured while creating this clip.';
-    default:
-      return 'Unable to create clip.';
-  }
-};
-
 class ClipList extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      windowWidth: window.innerWidth,
       copiedPopover: null,
       errorPopper: null,
       errorTexts: {},
     };
 
-    this.onResize = this.onResize.bind(this);
     this.shareClip = this.shareClip.bind(this);
     this.renderClipItem = this.renderClipItem.bind(this);
     this.fetchShowError = this.fetchShowError.bind(this);
 
     this.popoverTimeout = null;
-  }
-
-  onResize(windowWidth) {
-    this.setState({ windowWidth });
   }
 
   async shareClip(ev, c) {
@@ -188,113 +177,141 @@ class ClipList extends Component {
     });
   }
 
-  renderClipItem(gridStyles, c) {
-    const { classes, dispatch, dongleId } = this.props;
-    const { windowWidth } = this.state;
+  renderClipItem(clip) {
+    const { classes, dispatch } = this.props;
 
-    const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1.0rem' };
-
-    const timeStr = fecha.format(new Date(c.start_time), 'MMM\u00a0D h:mm\u00a0a').toLowerCase();
-
-    let thumbnail = null;
-    if (c.status === 'done') {
-      const thumbnailStyle = {
-        ...gridStyles[0],
-        backgroundImage: `url("${c.thumbnail}")`,
-        height: (windowWidth < 768 ? 48 : 96),
-        marginRight: (windowWidth < 768 ? 3 : 8),
-      };
-      thumbnail = (
-        <div className={classes.thumbnail} style={thumbnailStyle}>
-          { c.video_type === '360' && <Video360Icon /> }
-        </div>
+    let status;
+    if (clip.status === 'failed') {
+      status = (
+        <Tooltip title="Error">
+          <ErrorOutlineIcon color="error" />
+        </Tooltip>
       );
-    } else if (c.status === 'pending') {
-      thumbnail = <MoreHorizIcon className={classes.clipPlayIcon} style={gridStyles[0]} />;
-    } else if (c.status === 'failed') {
-      thumbnail = (
-        <ErrorOutlineIcon
-          className={classes.clipPlayIcon}
-          style={{ ...gridStyles[0], color: Colors.red300 }}
-        />
+    } else if (clip.status === 'pending') {
+      if (clip.pending_progress) {
+        const progress = parseFloat(clip.pending_progress) * 100;
+        status = (
+          <Tooltip title={`Export in progress (${progress.toFixed(0)}%)`}>
+            <CircularProgress size={24} variant="static" value={progress} />
+          </Tooltip>
+        );
+      } else {
+        status = (
+          <Tooltip title="Export in progress">
+            <CircularProgress size={24} />
+          </Tooltip>
+        );
+      }
+    } else if (clip.is_public) {
+      status = (
+        <Tooltip title="Publicly accessible">
+          <PublicIcon />
+        </Tooltip>
       );
-    }
-
-    const innerItem = (
-      <>
-        { thumbnail }
-        <p style={{ ...itemStyle, ...gridStyles[1] }} className={classes.clipTitle}>
-          { c.title ? c.title : c.route_name.split('|')[1] }
-        </p>
-        <p style={{ ...itemStyle, ...gridStyles[2] }}>{timeStr}</p>
-        { c.is_public
-          ? (
-            <PublicIcon
-              style={{ ...gridStyles[3], fontSize: (windowWidth < 768 ? '1.0rem' : '1.2rem') }}
-              onClick={(ev) => { ev.persist(); this.shareClip(ev, c); }}
-            />
-          )
-          : <LockOutlineIcon style={{ ...gridStyles[3], fontSize: (windowWidth < 768 ? '1.0rem' : '1.2rem') }} />}
-      </>
-    );
-
-    if (c.status === 'failed') {
-      return (
-        <div
-          key={c.clip_id}
-          className={classes.clipItem}
-          onClick={(ev) => this.fetchShowError(ev.target, c)}
-        >
-          { innerItem }
-        </div>
+    } else {
+      status = (
+        <Tooltip title="Private">
+          <LockOutlineIcon />
+        </Tooltip>
       );
     }
 
+    let onClick;
+    if (clip.status === 'failed') {
+      onClick = (ev) => this.fetchShowError(ev.target, clip);
+    } else {
+      onClick = filterRegularClick(() => dispatch(navToClips(clip.clip_id, clip.state)));
+    }
+
+    let overlay;
+    if (clip.video_type === '360') {
+      overlay = <Video360Icon className={classes.thumbnailPlaceholder} />;
+    }
+
+    const clipTime = formatClipTimestamp(clip.start_time);
     return (
-      <a
-        key={c.clip_id}
+      <TableRow
+        key={clip.clip_id}
         className={classes.clipItem}
-        href={`/${dongleId}/clips/${c.clip_id}`}
-        onClick={filterRegularClick(() => dispatch(navToClips(c.clip_id, c.state)))}
+        onClick={onClick}
+        hover
+        role="link"
       >
-        { innerItem }
-      </a>
+        <TableCell padding="none">
+          <BackgroundImage
+            className={classes.thumbnail}
+            src={clip.thumbnail}
+            overlay={overlay}
+          >
+            <WallpaperIcon className={classes.thumbnailPlaceholder} />
+          </BackgroundImage>
+        </TableCell>
+        <TableCell>
+          {clip.title ? (
+            <>
+              <Typography variant="body2">{clip.title}</Typography>
+              <Typography variant="caption">{`Recorded at ${clipTime}`}</Typography>
+            </>
+          ) : (
+            <Typography variant="body2">{clipTime}</Typography>
+          )}
+        </TableCell>
+        <TableCell className={classes.columnDuration}>
+          {formatClipDuration(clip.end_time - clip.start_time)}
+        </TableCell>
+        <TableCell className={classes.columnCreationTime}>
+          {formatClipTimestamp(clip.create_time)}
+        </TableCell>
+        <TableCell>
+          {status}
+        </TableCell>
+      </TableRow>
     );
   }
 
   render() {
     const { classes, clips, dispatch, dongleId } = this.props;
-    const { windowWidth, copiedPopover, errorPopper } = this.state;
+    const { copiedPopover, errorPopper } = this.state;
 
-    const viewerPadding = windowWidth < 768 ? 12 : 32;
-
-    const tbnWidth = (windowWidth < 768 ? 48 : 72) * (1928 / 1208);
-
-    const gridWidths = windowWidth < 768
-      ? [`calc(2% + ${tbnWidth}px)`, `calc(67% - ${tbnWidth}px)`, '24%', '7%']
-      : [`calc(3% + ${tbnWidth}px)`, `calc(65% - ${tbnWidth}px)`, '24%', '7%'];
-    const gridStyles = gridWidths.map((w) => ({ maxWidth: w, flexBasis: w }));
-
-    const itemStyle = windowWidth < 768 ? { fontSize: '0.9rem' } : { fontSize: '1rem' };
+    let content;
+    if (clips?.length > 0) {
+      content = (
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell />
+              <TableCell>Name</TableCell>
+              <TableCell className={classes.columnDuration}>Duration</TableCell>
+              <TableCell className={classes.columnCreationTime}>Created at</TableCell>
+              <TableCell />
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {clips && clips.map(this.renderClipItem)}
+          </TableBody>
+        </Table>
+      );
+    } else if (clips?.length === 0) {
+      content = (
+        <Typography variant="body1" className={classes.noClips}>
+          no clips found
+        </Typography>
+      );
+    } else {
+      content = (
+        <Grid container alignItems="center" style={{ width: '100%', height: '30vh' }}>
+          <Grid item align="center" xs={12}>
+            <CircularProgress size="5vh" style={{ color: '#525E66' }} />
+          </Grid>
+        </Grid>
+      );
+    }
 
     return (
       <>
         <VisibilityHandler onVisible={() => dispatch(fetchClipsList(dongleId))} onDongleId />
-        <ResizeHandler onResize={ this.onResize } />
 
-        <div style={{ ...itemStyle, padding: viewerPadding }}>
-          { !clips && <CircularProgress style={{ margin: 12, color: Colors.white }} size={ 20 } /> }
-          { clips?.length === 0 && <p className={ classes.noClips }>no clips found</p> }
-          { clips?.length > 0 && (
-          <div className={classes.clipItemHeader} style={{ padding: (windowWidth < 768 ? 3 : 8) }}>
-            <span style={{ ...itemStyle, ...gridStyles[0] }} />
-            <h6 style={{ ...itemStyle, ...gridStyles[1] }}>Title</h6>
-            <h6 style={{ ...itemStyle, ...gridStyles[2], textAlign: 'center' }}>Date</h6>
-            <span style={{ ...itemStyle, ...gridStyles[3] }} />
-          </div>
-          )}
-          { clips && clips.map((c) => this.renderClipItem(gridStyles, c)) }
-        </div>
+        {content}
 
         <Popper
           open={ Boolean(copiedPopover) }
@@ -319,11 +336,19 @@ class ClipList extends Component {
 }
 
 const mapStateToProps = (state) => {
-  const { clips, dongleId } = state;
+  const { clips: { list: clips }, dongleId } = state;
+
+  if (clips?.length > 0) {
+    return {
+      // don't show old failed clips
+      clips: clips.filter((c) => c.status !== 'failed'
+        || (Date.now() / 1000 - c.create_time) < 86400 * 7),
+      dongleId,
+    };
+  }
+
   return {
-    // don't show old failed clips
-    clips: (clips?.list || []).filter((c) => c.status !== 'failed'
-      || (Date.now() / 1000 - c.create_time) < 86400 * 7),
+    clips,
     dongleId,
   };
 };
