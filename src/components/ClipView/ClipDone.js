@@ -32,15 +32,14 @@ const styles = (theme) => ({
   clipHeader: {
     display: 'flex',
     justifyContent: 'space-between',
-    '& h4': {
-      color: Colors.white,
-      margin: 0,
-      fontSize: '1rem',
+    marginLeft: 4,
+    minHeight: 32,
+    [theme.breakpoints.up('md')]: {
+      marginLeft: 8,
     },
-    minHeight: '32px',
   },
   publicSwitch: {
-    marginTop: '-16px',
+    marginTop: '-12px',
   },
   buttonView: {
     display: 'flex',
@@ -382,18 +381,16 @@ class ClipDone extends Component {
 
         <div style={{ padding: viewerPadding }}>
           <div className={ `${classes.clipOption} ${classes.clipHeader}` }>
-            <div>
-              {clips.title ? (
-                <>
-                  <Typography variant="title" gutterBottom>{clips.title}</Typography>
-                  <Typography variant="caption">{`Recorded ${clipTime}`}</Typography>
-                </>
-              ) : (
-                <Typography variant="title">{clipTime}</Typography>
-              )}
-            </div>
-            { authorized
-            && <SwitchLoading classes={{ root: classes.publicSwitch }} checked={ clips.is_public } onChange={ this.onPublicToggle } label="Public access" />}
+            {clips.title ? (
+              <div>
+                <Typography variant="subheading" gutterBottom>{clips.title}</Typography>
+                <Typography variant="caption">{`Recorded ${clipTime}`}</Typography>
+              </div>
+            ) : (
+              <Typography variant="subheading">{clipTime}</Typography>
+            )}
+            { windowWidth < 800 && <br /> }
+            { authorized && <SwitchLoading classes={{ root: classes.publicSwitch }} checked={ clips.is_public } onChange={ this.onPublicToggle } label="Public access" />}
           </div>
           <div
             className={ classes.clipOption }
