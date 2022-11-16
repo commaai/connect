@@ -998,42 +998,46 @@ class Navigation extends Component {
 
     return (
       <div
-        ref={ this.onContainerRef }
-        className={ classes.mapContainer }
+        ref={this.onContainerRef}
+        className={classes.mapContainer}
         style={{ height: (hasFocus && hasNav) ? '60vh' : 200 }}
       >
-        <ResizeHandler onResize={ this.onResize } />
-        <VisibilityHandler onVisible={ this.updateDevice } onInit onDongleId minInterval={ 60 } />
+        <ResizeHandler onResize={this.onResize} />
+        <VisibilityHandler onVisible={this.updateDevice} onInit onDongleId minInterval={60} />
         { mapError
           && (
           <div className={ classes.mapError }>
             <Typography>Could not initialize map.</Typography>
-            <Typography>{ mapError }</Typography>
+            <Typography>{mapError}</Typography>
           </div>
           )}
         <ReactMapGL
-          { ...viewport }
-          onViewportChange={ this.viewportChange }
-          onContextMenu={ null }
-          mapStyle={ MAP_STYLE }
+          latitude={viewport.latitude}
+          longitude={viewport.longitude}
+          zoom={viewport.zoom}
+          bearing={viewport.bearing}
+          pitch={viewport.pitch}
+          onViewportChange={this.viewportChange}
+          onContextMenu={null}
+          mapStyle={MAP_STYLE}
           width="100%"
           height="100%"
-          onNativeClick={ this.focus }
-          maxPitch={ 0 }
-          mapboxApiAccessToken={ MAPBOX_TOKEN }
-          attributionControl={ false }
-          dragRotate={ false }
-          onError={ (err) => this.setState({ mapError: err.error.message }) }
+          onNativeClick={this.focus}
+          maxPitch={0}
+          mapboxApiAccessToken={MAPBOX_TOKEN}
+          attributionControl={false}
+          dragRotate={false}
+          onError={(err) => this.setState({ mapError: err.error.message })}
         >
           <GeolocateControl
-            className={ classes.geolocateControl }
+            className={classes.geolocateControl}
             positionOptions={{ enableHighAccuracy: true }}
-            showAccuracyCircle={ false }
-            onGeolocate={ this.onGeolocate }
-            auto={ hasFocus }
+            showAccuracyCircle={false}
+            onGeolocate={this.onGeolocate}
+            auto={hasFocus}
             fitBoundsOptions={{ maxZoom: 10 }}
             trackUserLocation
-            onViewportChange={ () => {} }
+            onViewportChange={() => {}}
           />
           { searchSelect && searchSelect.route
             && (
