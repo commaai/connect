@@ -389,7 +389,7 @@ class ClipDone extends Component {
                   <Typography variant="caption">{`Recorded at ${clipTime}`}</Typography>
                 </>
               ) : (
-                <Typography variant="body2">{clipTime}</Typography>
+                <Typography variant="title">{clipTime}</Typography>
               )}
             </div>
             { authorized
