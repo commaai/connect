@@ -31,15 +31,6 @@ import VisibilityHandler from '../VisibilityHandler';
 import BackgroundImage from '../utils/BackgroundImage';
 
 const styles = (theme) => ({
-  clipTitle: {
-    'p&': {
-      textAlign: 'left',
-    },
-  },
-  clipPlayIcon: {
-    paddingRight: 3,
-    fontSize: '1.4rem',
-  },
   columnDuration: {
     [theme.breakpoints.down('xs')]: {
       display: 'none',
@@ -85,7 +76,6 @@ const styles = (theme) => ({
     height: '100%',
   },
   noClips: {
-    color: Colors.white,
     fontSize: '1rem',
     margin: '48px 32px',
   },
