@@ -168,7 +168,7 @@ class ClipCreate extends Component {
   }
 
   render() {
-    const { classes, loop, device, clips } = this.props;
+    const { classes, loop, device } = this.props;
     const { windowWidth, videoTypeOption, clipTitle, createLoading, error } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
@@ -280,7 +280,6 @@ const stateToProps = Obstruction({
   currentRoute: 'currentRoute',
   dongleId: 'dongleId',
   device: 'device',
-  clips: 'clips',
   loop: 'loop',
 });
 
