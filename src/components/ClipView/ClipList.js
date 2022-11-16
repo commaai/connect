@@ -28,6 +28,7 @@ import { Video360Icon } from '../../icons';
 import { filterRegularClick } from '../../utils';
 import { clipErrorToText, formatClipDuration, formatClipTimestamp } from '../../utils/clips';
 import VisibilityHandler from '../VisibilityHandler';
+import BackgroundImage from '../utils/BackgroundImage';
 
 const styles = (theme) => ({
   clipTitle: {
@@ -77,6 +78,11 @@ const styles = (theme) => ({
     [theme.breakpoints.down('xs')]: {
       height: 48,
     },
+  },
+  thumbnailPlaceholder: {
+    padding: 24,
+    width: '100%',
+    height: '100%',
   },
   noClips: {
     color: Colors.white,
@@ -184,7 +190,15 @@ class ClipList extends Component {
   renderClipItem(clip) {
     const { classes, dispatch } = this.props;
 
-    let thumbnail = null;
+    const thumbnail = (
+      <BackgroundImage
+        className={classes.thumbnail}
+        src={clip.thumbnail}
+      >
+        <WallpaperIcon className={classes.thumbnailPlaceholder} />
+      </BackgroundImage>
+    );
+
     let status;
     if (clip.status === 'failed') {
       status = (
@@ -208,16 +222,16 @@ class ClipList extends Component {
         );
       }
     } else {
-      if (clip.thumbnail) {
-        const thumbnailStyle = {
-          backgroundImage: `url("${clip.thumbnail}")`,
-        };
-        thumbnail = (
-          <div className={classes.thumbnail} style={thumbnailStyle}>
-            {clip.video_type === '360' && <Video360Icon />}
-          </div>
-        );
-      }
+      // if (clip.thumbnail) {
+      //   const thumbnailStyle = {
+      //     backgroundImage: `url("${clip.thumbnail}")`,
+      //   };
+      //   thumbnail = (
+      //     <div className={classes.thumbnail} style={thumbnailStyle}>
+      //       {clip.video_type === '360' && <Video360Icon />}
+      //     </div>
+      //   );
+      // }
 
       if (clip.is_public) {
         status = (
@@ -233,9 +247,9 @@ class ClipList extends Component {
         );
       }
     }
-    if (!thumbnail) {
-      thumbnail = <WallpaperIcon style={{ width: '100%', paddingLeft: 12 }} />;
-    }
+    // if (!thumbnail) {
+    //   thumbnail = <WallpaperIcon className={classes.thumbnailPlaceholder} />;
+    // }
 
     let onClick;
     if (clip.status === 'failed') {
