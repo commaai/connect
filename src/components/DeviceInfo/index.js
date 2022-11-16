@@ -31,7 +31,10 @@ const styles = (theme) => ({
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
+    [theme.breakpoints.down('xs')]: {
+      marginBottom: 8,
+    },
   },
   columnGap: {
     columnGap: theme.spacing.unit * 4,
