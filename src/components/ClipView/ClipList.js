@@ -250,7 +250,7 @@ class ClipList extends Component {
           {clip.title ? (
             <>
               <Typography variant="body2">{clip.title}</Typography>
-              <Typography variant="caption">{`Recorded at ${clipTime}`}</Typography>
+              <Typography variant="caption">{`Recorded ${clipTime}`}</Typography>
             </>
           ) : (
             <Typography variant="body2">{clipTime}</Typography>
@@ -282,7 +282,7 @@ class ClipList extends Component {
               <TableCell />
               <TableCell>Name</TableCell>
               <TableCell className={classes.columnDuration}>Duration</TableCell>
-              <TableCell className={classes.columnCreationTime}>Created at</TableCell>
+              <TableCell className={classes.columnCreationTime}>Created</TableCell>
               <TableCell />
             </TableRow>
           </TableHead>

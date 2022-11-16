@@ -386,7 +386,7 @@ class ClipDone extends Component {
               {clips.title ? (
                 <>
                   <Typography variant="title" gutterBottom>{clips.title}</Typography>
-                  <Typography variant="caption">{`Recorded at ${clipTime}`}</Typography>
+                  <Typography variant="caption">{`Recorded ${clipTime}`}</Typography>
                 </>
               ) : (
                 <Typography variant="title">{clipTime}</Typography>
