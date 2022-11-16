@@ -263,7 +263,7 @@ export function doUpload(dongleId, fileNames, paths, urls) {
           const uploading = {};
           uploading[fileNames[i]] = { progress: 0, current: false };
           dispatch(updateFiles(uploading));
-        } else if (resp.result === 404 || resp?.result?.failed[0] === paths[i]) {
+        } else if (resp.result === 404 || resp?.result?.failed?.[0] === paths[i]) {
           const uploading = {};
           uploading[fileNames[i]] = { notFound: true };
           dispatch(updateFiles(uploading));
