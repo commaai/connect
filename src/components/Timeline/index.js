@@ -438,6 +438,19 @@ class Timeline extends Component {
     return null;
   }
 
+  routeSec(offset) {
+    const { routes } = this.props;
+    if (!routes) {
+      return null;
+    }
+
+    const route = routes.find((r) => r.offset <= offset && r.offset + r.duration >= offset);
+    if (route) {
+      return ((offset - route.segment_offsets[0]) / 1000).toFixed(0);
+    }
+    return null;
+  }
+
   renderRoute(route) {
     const { classes, filter } = this.props;
     const { zoom } = this.state;
@@ -562,8 +575,9 @@ class Timeline extends Component {
       if (!Number.isNaN(hoverOffset)) {
         hoverString = fecha.format(filter.start + hoverOffset, 'HH:mm:ss');
         const segNum = this.segmentNum(hoverOffset);
+        const routeSec = this.routeSec(hoverOffset);
         if (segNum !== null) {
-          hoverString = `${segNum}, ${hoverString}`;
+          hoverString = `${segNum}, ${routeSec}s, ${hoverString}`;
         }
       }
     }
