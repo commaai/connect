@@ -38,10 +38,9 @@ describe('forwardLookup', () => {
   });
 
   it('should return taco bell', async () => {
-    const result = await forwardLookup('Taco Bell, Market St, San Diego, CA');
-    expect(result[1].position).toEqual({
-      lat: 32.71155,
-      lng: -117.11647,
-    });
+    const result = await forwardLookup('Taco Bell, 3195 Market St, San Diego, CA 92102');
+    const { lat, lng } = result[0].position;
+    expect(lat).toBeCloseTo(32.71137, 2);
+    expect(lng).toBeCloseTo(-117.12541, 2);
   });
 });

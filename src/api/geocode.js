@@ -108,6 +108,10 @@ export async function reverseLookup(coords, navFormat = false) {
 }
 
 export async function forwardLookup(query, proximity, viewport) {
+  if (!query) {
+    return [];
+  }
+
   const params = {
     apiKey: HERE_API_KEY,
     q: query,

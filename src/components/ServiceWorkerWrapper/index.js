@@ -45,6 +45,7 @@ const ServiceWorkerWrapper = (props) => {
         onSuccess: onSWSuccess,
       });
     } else {
+      console.log('[ServiceWorkerWrapper] Unregistering service worker...');
       unregister();
     }
   }, []);
