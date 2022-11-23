@@ -1,9 +1,11 @@
 name: build
 
-on: [push, workflow_dispatch]
+on:
+  push:
+  workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref != 'refs/heads/master' && github.ref || github.run_id }}-${{ github.event_name }}
+  group: ${{ github.ref == 'refs/heads/master' && github.run_id || github.head_ref || github.ref }}-${{ github.workflow }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
@@ -11,51 +13,19 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
-
-    - name: Setup Node 16
-      uses: actions/setup-node@v3
+    - uses: actions/setup-node@v3
       with:
         node-version: 16
-        check-latest: true
         cache: 'yarn'
 
-    - name: Install dependencies
-      run: yarn install --immutable --immutable-cache --check-cache
-
-    - name: Build development
-      run: yarn build:development
+    - run: yarn install --immutable --immutable-cache --check-cache
+    - run: yarn build:development
 
     - name: Run unit tests
       run: yarn test-ci
 
     - name: Run puppeteer tests
       run: yarn test-puppeteer-build
-
-  lighthouse:
-    runs-on: ubuntu-20.04
-    if: github.repository == 'commaai/connect'
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Setup Node 16
-      uses: actions/setup-node@v3
-      with:
-        node-version: 16
-        check-latest: true
-        cache: 'yarn'
-
-    - name: Install dependencies
-      run: yarn install --immutable --immutable-cache --check-cache
-
-    - name: Build production
-      run: yarn build:production
-
-    - name: run Lighthouse CI
-      run: |
-        npm install -g @lhci/cli@0.9.x
-        lhci autorun
-      env:
-        LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 
   docker:
     runs-on: ubuntu-20.04
@@ -66,9 +36,7 @@ jobs:
       contents: read
     steps:
     - uses: actions/checkout@v3
-
-    - name: Set up Docker Buildx
-      id: buildx
+    - id: buildx
       uses: docker/setup-buildx-action@v2
 
     - name: Cache Docker layers
