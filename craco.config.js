@@ -1,9 +1,7 @@
 const { loaderByName, addBeforeLoader } = require('@craco/craco');
 
 const SentryCliPlugin = require('@sentry/webpack-plugin');
-const { GenerateSW } = require('workbox-webpack-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
-const CracoWorkboxPlugin = require('craco-workbox');
 const zlib = require('zlib');
 
 const eslintConfig = require('./.eslintrc');
@@ -16,14 +14,6 @@ module.exports = ({ env }) => {
       ignoreFile: '.sentrycliignore',
       ignore: ['node_modules', 'webpack.config.js', 'craco.config.js'],
       configFile: 'sentry.properties',
-    });
-  }
-
-  let workboxPlugin;
-  if (env === 'production') {
-    workboxPlugin = new GenerateSW({
-      maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
-      skipWaiting: true,
     });
   }
 
@@ -45,15 +35,15 @@ module.exports = ({ env }) => {
   }
 
   return {
-    plugins: [{
-      plugin: CracoWorkboxPlugin,
-    }],
     eslint: {
       enable: false,
       config: eslintConfig,
     },
     webpack: {
-      plugins: [sentryPlugin, workboxPlugin, compressionPlugin].filter(Boolean),
+      plugins: [
+        sentryPlugin,
+        compressionPlugin,
+      ].filter(Boolean),
       configure: (webpackConfig) => {
         webpackConfig.output.globalObject = 'this';
         addBeforeLoader(webpackConfig, loaderByName('babel-loader'), {
