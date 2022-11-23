@@ -40,6 +40,7 @@ jobs:
           build-script: build:production
           pattern: "./build/static/js/*.js"
           strip-hash: "\\b\\w{8}\\."
+          minimum-change-threshold: 100
 
   lighthouse:
     runs-on: ubuntu-20.04
