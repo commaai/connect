@@ -39,6 +39,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           build-script: build:production
           pattern: "./build/static/js/*.js"
+          strip-hash: "\\b\\w{8}\\."
 
   lighthouse:
     runs-on: ubuntu-20.04
