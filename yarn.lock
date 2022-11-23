@@ -4142,11 +4142,6 @@ cosmiconfig@^7, cosmiconfig@^7.0.0, cosmiconfig@^7.0.1:
     path-type "^4.0.0"
     yaml "^1.10.0"
 
-craco-workbox@^0.2.0:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/craco-workbox/-/craco-workbox-0.2.0.tgz#13e5c3c87c49a67d3d64ad6d636868c623cd7d89"
-  integrity sha512-5UFq99GrBs+cvyxxHSlCPmEduUwCRLsmAmmaW6qLhpXeKwxzk1UguVYXbYZNILcjUTdOM1yuu0VLvi3a1mop/A==
-
 create-require@^1.1.0:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/create-require/-/create-require-1.1.1.tgz#c1d7e8f1e5f6cfc9ff65f9cd352d37348756c333"
