@@ -1,9 +1,14 @@
 name: build
 
-on: [push, workflow_dispatch]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref != 'refs/heads/master' && github.ref || github.run_id }}-${{ github.event_name }}
+  group: ${{ github.ref == 'refs/heads/master' && github.run_id || github.head_ref || github.ref }}-${{ github.workflow }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
@@ -11,19 +16,13 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
-
-    - name: Setup Node 16
-      uses: actions/setup-node@v3
+    - uses: actions/setup-node@v3
       with:
         node-version: 16
-        check-latest: true
         cache: 'yarn'
 
-    - name: Install dependencies
-      run: yarn install --immutable --immutable-cache --check-cache
-
-    - name: Build development
-      run: yarn build:development
+    - run: yarn install --immutable --immutable-cache --check-cache
+    - run: yarn build:development
 
     - name: Run unit tests
       run: yarn test-ci
@@ -31,44 +30,48 @@ jobs:
     - name: Run puppeteer tests
       run: yarn test-puppeteer-build
 
+  bundle_size:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: preactjs/compressed-size-action@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          build-script: build:production
+          pattern: "./build/static/js/*.js"
+          strip-hash: "\\b\\w{8}\\."
+          minimum-change-threshold: 100
+
   lighthouse:
     runs-on: ubuntu-20.04
-    if: github.repository == 'commaai/connect'
+    if: github.repository == 'commaai/connect' && (github.ref == 'refs/heads/master' || github.event_name != 'push')
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'yarn'
 
-    - name: Setup Node 16
-      uses: actions/setup-node@v3
-      with:
-        node-version: 16
-        check-latest: true
-        cache: 'yarn'
+      - run: yarn install --immutable --immutable-cache --check-cache
+      - run: yarn build:production
 
-    - name: Install dependencies
-      run: yarn install --immutable --immutable-cache --check-cache
-
-    - name: Build production
-      run: yarn build:production
-
-    - name: run Lighthouse CI
-      run: |
-        npm install -g @lhci/cli@0.9.x
-        lhci autorun
-      env:
-        LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+      - name: run Lighthouse CI
+        run: |
+          npm install -g @lhci/cli@0.9.x
+          lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 
   docker:
     runs-on: ubuntu-20.04
-    needs: test
+    needs: [test, bundle_size]
     if: github.repository == 'commaai/connect'
     permissions:
       packages: write
       contents: read
     steps:
     - uses: actions/checkout@v3
-
-    - name: Set up Docker Buildx
-      id: buildx
+    - id: buildx
       uses: docker/setup-buildx-action@v2
 
     - name: Cache Docker layers
@@ -86,10 +89,14 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: get tags
-      shell: bash
-      run: echo "##[set-output name=tags;]ghcr.io/commaai/connect:${GITHUB_SHA},ghcr.io/commaai/connect:${GITHUB_REF#refs/heads/}$(if [ ${GITHUB_REF} = refs/heads/master ] ; then echo ,ghcr.io/commaai/connect:latest; fi;)"
-      id: extract_tags
+    - id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: ghcr.io/commaai/connect
+        tags: |
+          type=ref,event=branch
+          type=raw,${{ github.sha }}
+          type=raw,enable=${{ github.event_name == 'pull_request' }},value=${{ github.head_ref }}
 
     - name: Build and push
       uses: docker/build-push-action@v3
@@ -98,7 +105,8 @@ jobs:
         builder: ${{ steps.buildx.outputs.name }}
         context: .
         push: true
-        tags: ${{ steps.extract_tags.outputs.tags }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache-new
 
