@@ -27,9 +27,19 @@ jobs:
     - name: Run puppeteer tests
       run: yarn test-puppeteer-build
 
+  bundle_size:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: preactjs/compressed-size-action@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          build-script: build:production
+          pattern: "**/dist/static/js/*.js"
+
   docker:
     runs-on: ubuntu-20.04
-    needs: test
+    needs: [test, bundle_size]
     if: github.repository == 'commaai/connect'
     permissions:
       packages: write
