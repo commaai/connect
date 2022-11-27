@@ -9,24 +9,24 @@ import { deviceIsOnline } from './utils';
 import { isDemoDevice } from './demo';
 
 function getPageViewEventLocation(pathname) {
-  let page_location = pathname;
-  const dongleId = getDongleID(page_location);
+  let pageLocation = pathname;
+  const dongleId = getDongleID(pageLocation);
   if (dongleId) {
-    page_location = page_location.replace(dongleId, '<dongleId>');
+    pageLocation = pageLocation.replace(dongleId, '<dongleId>');
   }
-  const zoom = getZoom(page_location);
+  const zoom = getZoom(pageLocation);
   if (zoom) {
-    page_location = page_location.replace(zoom.start.toString(), '<zoomStart>');
-    page_location = page_location.replace(zoom.end.toString(), '<zoomEnd>');
+    pageLocation = pageLocation.replace(zoom.start.toString(), '<zoomStart>');
+    pageLocation = pageLocation.replace(zoom.end.toString(), '<zoomEnd>');
   }
 
-  if (page_location.endsWith('/')) {
-    page_location = page_location.substring(0, page_location.length - 1);
+  if (pageLocation.endsWith('/')) {
+    pageLocation = pageLocation.substring(0, pageLocation.length - 1);
   }
-  return page_location;
+  return pageLocation;
 }
 
-const cluster_map = {
+const clusterMap = {
   s: 1000,
   m: 60000,
   h: 3600000,
@@ -39,7 +39,7 @@ export function attachRelTime(obj, key, ms = true, cluster = null) {
   }
 
   const now = Date.now();
-  const t = obj[key];
+  let t = obj[key];
   if (ms !== true) {
     t *= 1000;
   }
@@ -49,7 +49,7 @@ export function attachRelTime(obj, key, ms = true, cluster = null) {
   obj[`rel_${key}_ms`] = dt;
 
   if (cluster) {
-    obj[`rel_${key}_${cluster}`] = Math.round(dt / cluster_map[cluster]);
+    obj[`rel_${key}_${cluster}`] = Math.round(dt / clusterMap[cluster]);
   }
 }
 
@@ -68,7 +68,7 @@ export function analyticsMiddleware({ getState }) {
     const state = getState();
 
     try {
-      log_action(action, prevState, state);
+      logAction(action, prevState, state);
     } catch (err) {
       Sentry.captureException(err, { fingerprint: 'analytics_middleware' });
     }
@@ -77,7 +77,7 @@ export function analyticsMiddleware({ getState }) {
   };
 }
 
-function log_action(action, prevState, state) {
+function logAction(action, prevState, state) {
   if (typeof gtag !== 'function') {
     return;
   }
