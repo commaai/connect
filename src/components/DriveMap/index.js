@@ -6,7 +6,7 @@ import { withStyles } from '@material-ui/core/styles';
 
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
-import { MAPBOX_TOKEN } from '../../api/geocode';
+import { MAPBOX_TOKEN } from '../../utils/geocode';
 import { currentOffset } from '../../timeline/playback';
 import { fetchDriveCoords } from '../../actions/cached';
 

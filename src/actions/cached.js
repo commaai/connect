@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import * as Types from './types';
-import { reverseLookup } from '../api/geocode';
+import { reverseLookup } from '../utils/geocode';
 import { toBool } from '../utils';
 
 const USE_LOCAL_COORDS_DATA = toBool(process.env.REACT_APP_LOCAL_COORDS_DATA);

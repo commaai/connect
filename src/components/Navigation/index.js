@@ -11,7 +11,7 @@ import fecha from 'fecha';
 
 import { athena as Athena, devices as Devices, navigation as NavigationApi } from '@commaai/api';
 import { primeNav, analyticsEvent } from '../../actions';
-import { forwardLookup, getDirections, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../api/geocode';
+import { forwardLookup, getDirections, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
 import Colors from '../../colors';
 import * as Demo from '../../demo';
 import { PinCarIcon, PinMarkerIcon, PinHomeIcon, PinWorkIcon, PinPinnedIcon } from '../../icons';
