@@ -19,12 +19,12 @@ import ResizeHandler from '../ResizeHandler';
 import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
 import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo, currentOffset } from '../../timeline/playback';
+import { bufferVideo, currentOffset } from '../../store/reducers/timeline/playback';
 import Colors from '../../colors';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { analyticsEvent, primeNav, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
-import { attachRelTime } from '../../analytics';
+import { attachRelTime } from '../../store/middleware/analytics';
 import { fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles } from '../../actions/files';
 import { clipsInit } from '../../actions/clips';
 

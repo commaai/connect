@@ -108,12 +108,16 @@ class App extends Component {
   }
 
   render() {
-    if (!this.state.initialized) {
+    const { initialized } = this.state;
+    if (!initialized) {
       return this.renderLoading();
     }
 
-    const showLogin = !MyCommaAuth.isAuthenticated() && !isDemo() && !getZoom(window.location.pathname)
+    const showLogin = !MyCommaAuth.isAuthenticated()
+      && !isDemo()
+      && !getZoom(window.location.pathname)
       && !getClipsNav(window.location.pathname)?.clip_id;
+
     return (
       <Provider store={store}>
         <ConnectedRouter history={history}>

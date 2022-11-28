@@ -1,10 +1,10 @@
-import * as Types from '../actions/types';
+import * as Types from '../../../actions/types';
 
 export const SEGMENT_LENGTH = 1000 * 60;
 
 // duplicate from `timeline/playback.js` because of circular import
 function currentOffset(state) {
-  let offset = null;
+  let offset;
   if (state.offset === null && state.loop?.startTime) {
     offset = state.loop.startTime - state.filter.start;
   } else {

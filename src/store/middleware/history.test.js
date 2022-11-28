@@ -3,9 +3,9 @@
 import { routerMiddleware, LOCATION_CHANGE } from 'connected-react-router';
 import thunk from 'redux-thunk';
 
-import { history } from '../store';
+import { history } from '../index';
 import { onHistoryMiddleware } from './history';
-import * as actionsIndex from './index';
+import * as actionsIndex from '../../actions';
 
 const create = (initialState) => {
   const store = {

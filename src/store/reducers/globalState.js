@@ -1,5 +1,5 @@
-import * as Types from '../actions/types';
-import { emptyDevice } from '../utils';
+import * as Types from '../../actions/types';
+import { emptyDevice } from '../../utils';
 
 function populateFetchedAt(d) {
   return {

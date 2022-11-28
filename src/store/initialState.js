@@ -1,5 +1,5 @@
-import { getDongleID, getZoom, getPrimeNav } from './url';
-import * as Demo from './demo';
+import { getDongleID, getZoom, getPrimeNav } from '../url';
+import * as Demo from '../demo';
 
 export function getDefaultFilter() {
   const d = new Date();

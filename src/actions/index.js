@@ -5,8 +5,8 @@ import { athena as Athena, billing as Billing, devices as Devices, drives as Dri
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
-import { resetPlayback, selectLoop } from '../timeline/playback';
-import { getSegmentFetchRange, hasRoutesData } from '../timeline/segments';
+import { resetPlayback, selectLoop } from '../store/reducers/timeline/playback';
+import { getSegmentFetchRange, hasRoutesData } from '../store/reducers/timeline/segments';
 import { getClipsNav } from '../url';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 

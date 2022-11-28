@@ -4,7 +4,7 @@ import queryString from 'query-string';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { currentOffset } from '../../timeline/playback';
+import { currentOffset } from '../../store/reducers/timeline/playback';
 import Media from './Media';
 
 const winOpenMock = jest.fn();

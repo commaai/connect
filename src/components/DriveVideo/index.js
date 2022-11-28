@@ -9,8 +9,8 @@ import ReactPlayer from 'react-player';
 import { video as Video } from '@commaai/api';
 
 import Colors from '../../colors';
-import { seek, bufferVideo, currentOffset } from '../../timeline/playback';
-import { updateSegments } from '../../timeline/segments';
+import { seek, bufferVideo, currentOffset } from '../../store/reducers/timeline/playback';
+import { updateSegments } from '../../store/reducers/timeline/segments';
 
 const styles = () => ({
   hidden: {

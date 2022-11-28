@@ -7,7 +7,7 @@ import { Button, Divider, FormControl, MenuItem, Modal, Paper, Select, Typograph
 
 import Colors from '../../colors';
 import { selectTimeFilter } from '../../actions';
-import { getDefaultFilter } from '../../initialState';
+import { getDefaultFilter } from '../../store/initialState';
 import VisibilityHandler from '../VisibilityHandler';
 
 const styles = (theme) => ({

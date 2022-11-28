@@ -1,5 +1,5 @@
 /* eslint-env jest */
-const { asyncSleep } = require('../utils');
+const { asyncSleep } = require('../../../utils');
 const Playback = require('./playback');
 
 const makeDefaultStruct = function makeDefaultStruct() {
