@@ -19,7 +19,7 @@ import ResizeHandler from '../ResizeHandler';
 import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
 import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo, currentOffset } from '../../store/reducers/timeline/playback';
+import { setBuffering, currentOffset } from '../../store/reducers/timeline/playback';
 import Colors from '../../colors';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { analyticsEvent, primeNav, updateRoute } from '../../actions';
@@ -307,7 +307,7 @@ class Media extends Component {
     }
 
     if (!showMapAlways && inView === MediaType.MAP && this.props.isBufferingVideo) {
-      this.props.dispatch(bufferVideo(false));
+      this.props.dispatch(setBuffering(false));
     }
 
     if (prevProps.currentRoute !== this.props.currentRoute && this.props.currentRoute) {

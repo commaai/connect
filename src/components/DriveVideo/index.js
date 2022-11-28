@@ -9,7 +9,7 @@ import ReactPlayer from 'react-player';
 import { video as Video } from '@commaai/api';
 
 import Colors from '../../colors';
-import { seek, bufferVideo, currentOffset } from '../../store/reducers/timeline/playback';
+import { seek, setBuffering, currentOffset } from '../../store/reducers/timeline/playback';
 import { updateSegments } from '../../store/reducers/timeline/segments';
 
 const styles = () => ({
@@ -110,7 +110,7 @@ class DriveVideo extends Component {
   onVideoBuffering() {
     const videoPlayer = this.videoPlayer.current;
     if (!videoPlayer || !this.visibleRoute() || !videoPlayer.getDuration()) {
-      this.props.dispatch(bufferVideo(true));
+      this.props.dispatch(setBuffering(true));
     }
 
     if (this.firstSeek) {
@@ -120,7 +120,7 @@ class DriveVideo extends Component {
 
     const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() > 30;
     if (!hasSufficientBuffer || videoPlayer.getInternalPlayer().readyState < 2) {
-      this.props.dispatch(bufferVideo(true));
+      this.props.dispatch(setBuffering(true));
     }
   }
 
@@ -128,7 +128,7 @@ class DriveVideo extends Component {
     if (!this.visibleRoute()) {
       this.props.dispatch(updateSegments());
       if (this.props.routes && this.props.isBufferingVideo) {
-        this.props.dispatch(bufferVideo(false));
+        this.props.dispatch(setBuffering(false));
       }
       return;
     }
@@ -144,7 +144,7 @@ class DriveVideo extends Component {
     const sufficientBuffer = Math.min(videoPlayer.getDuration() - videoPlayer.getCurrentTime(), 30);
     const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() >= sufficientBuffer;
     if (hasSufficientBuffer && internalPlayer.readyState >= 2 && this.props.isBufferingVideo) {
-      this.props.dispatch(bufferVideo(false));
+      this.props.dispatch(setBuffering(false));
     }
 
     let newPlaybackRate = this.props.desiredPlaySpeed;
@@ -216,8 +216,8 @@ class DriveVideo extends Component {
           config={{ hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false } }}
           playbackRate={ playSpeed }
           onBuffer={ () => this.onVideoBuffering() }
-          onBufferEnd={ () => this.props.dispatch(bufferVideo(false)) }
-          onPlay={ () => this.props.dispatch(bufferVideo(false)) }
+          onBufferEnd={ () => this.props.dispatch(setBuffering(false)) }
+          onPlay={ () => this.props.dispatch(setBuffering(false)) }
         />
       </div>
     );
