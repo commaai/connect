@@ -11,7 +11,7 @@ import PlayArrow from '@material-ui/icons/PlayArrow';
 import Pause from '@material-ui/icons/Pause';
 
 import { DownArrow, UpArrow, HistoryForwardIcon, HistoryBackIcon } from '../../icons';
-import { seek, play, pause, currentOffset } from '../../store/reducers/timeline/playback';
+import { seek, play, pause, currentOffset } from '../../store/reducers/playback';
 import { getSegmentNumber } from '../../utils';
 
 const timerSteps = [

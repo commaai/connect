@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 import fecha from 'fecha';
 import decodeJwt, { InvalidTokenError } from 'jwt-decode';
 
-import { currentOffset } from '../store/reducers/timeline/playback';
+import { currentOffset } from '../store/reducers/playback';
 
 export const emptyDevice = {
   alias: 'Shared device',

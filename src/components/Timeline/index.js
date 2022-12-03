@@ -13,10 +13,10 @@ import Measure from 'react-measure';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { getCurrentRoute } from '../../store/reducers/timeline/segments';
+import { getCurrentRoute } from '../../store/reducers/playback/segments';
 import { selectRange } from '../../actions';
 import Colors from '../../colors';
-import { seek, currentOffset, selectLoop } from '../../store/reducers/timeline/playback';
+import { seek, currentOffset, selectLoop } from '../../store/reducers/playback';
 import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({

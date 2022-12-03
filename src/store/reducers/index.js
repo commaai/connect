@@ -1,7 +1,7 @@
 import { connectRouter } from 'connected-react-router';
 import { combineReducers } from '@reduxjs/toolkit';
 
-import { playbackReducer } from './timeline/playback';
+import { playbackReducer } from './playback';
 
 const createRootReducer = (initialState, history) => combineReducers({
   router: connectRouter(history),

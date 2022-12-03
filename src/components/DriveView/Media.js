@@ -19,7 +19,7 @@ import ResizeHandler from '../ResizeHandler';
 import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
 import SwitchLoading from '../utils/SwitchLoading';
-import { setBuffering, currentOffset } from '../../store/reducers/timeline/playback';
+import { setBuffering, currentOffset } from '../../store/reducers/playback';
 import Colors from '../../colors';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { analyticsEvent, primeNav, updateRoute } from '../../actions';

@@ -19,7 +19,7 @@ import { analyticsEvent, selectDevice, updateDevice } from '../actions';
 import ResizeHandler from './ResizeHandler';
 import Colors from '../colors';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
-import { play, pause } from '../store/reducers/timeline/playback';
+import { play, pause } from '../store/reducers/playback';
 import init from '../actions/startup';
 
 const ClipView = lazy(() => import('./ClipView'));

@@ -2,7 +2,7 @@ import React from 'react';
 import { Grid, Typography, withStyles } from '@material-ui/core';
 
 import { useWindowWidth } from '../../hooks/window';
-import { hasRoutesData } from '../../store/reducers/timeline/segments';
+import { hasRoutesData } from '../../store/reducers/playback/segments';
 
 const styles = () => ({
   zeroState: {
