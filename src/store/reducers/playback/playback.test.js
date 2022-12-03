@@ -1,6 +1,7 @@
 /* eslint-env jest */
-const { asyncSleep } = require('../../../utils');
-const { playbackReducer, seek, pause, play, selectLoop, setBuffering, currentOffset } = require('./index');
+import { asyncSleep } from '../../../utils';
+import { currentOffset } from './common';
+import playbackReducer, { seek, pause, play, selectLoop, setBuffering } from './playback';
 
 function makeDefaultStruct() {
   return {

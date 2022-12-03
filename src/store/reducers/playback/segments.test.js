@@ -1,6 +1,7 @@
 /* eslint-env jest */
-import { hasRoutesData, getCurrentRoute, SEGMENT_LENGTH } from './segments';
 import { getSegmentNumber } from '../../../utils';
+import { getCurrentRoute } from './common';
+import { hasRoutesData, SEGMENT_LENGTH } from './segments';
 
 const routes = [{
   fullname: '99c94dc769b5d96e|2018-04-09--10-10-00',

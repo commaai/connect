@@ -1,15 +1,8 @@
 import * as Types from '../../../actions/types';
 
+import { getCurrentRoute } from './common';
+
 export const SEGMENT_LENGTH = 1000 * 60;
-
-export function getCurrentRoute(state, o) {
-  const offset = o === undefined ? currentOffset(state) : o;
-  if (!state.routes || !offset) {
-    return null;
-  }
-
-  return state.routes.find((r) => offset >= r.offset && offset <= r.offset + r.duration);
-}
 
 export function reducer(_state, action) {
   let state = { ..._state };
