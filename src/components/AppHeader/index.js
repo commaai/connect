@@ -63,7 +63,6 @@ const styles = () => ({
   accountListEmail: {
     flexDirection: 'column',
     alignItems: 'flex-start',
-    paddingBottom: 4,
     '& :first-child': {
       fontWeight: 'bold',
       marginBottom: 2,
@@ -191,9 +190,6 @@ class AppHeader extends Component {
           <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>
             <span>{ profile.email }</span>
             <span>{ profile.user_id }</span>
-          </ListItem>
-          <ListItem className={ classes.accountListItem }>
-            {`${profile.points} points`}
           </ListItem>
           <Divider />
           <MenuItem
