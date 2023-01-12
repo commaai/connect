@@ -132,12 +132,10 @@ const DriveListItem = (props) => {
             <Typography>{distance}</Typography>
           </div>
           <div className={classes.driveGridItem} style={gridStyle.origin}>
-            <Typography className={classes.firstLine}>{drive.startLocation?.place}</Typography>
-            <Typography>{drive.startLocation?.details}</Typography>
+            <Typography className={classes.firstLine}>{drive.startLocation?.details}</Typography>
           </div>
           <div className={`${classes.driveGridItem} ${small && classes.driveGridItemRightAlign}`} style={gridStyle.dest}>
-            <Typography className={classes.firstLine}>{drive.endLocation?.place}</Typography>
-            <Typography>{drive.endLocation?.details}</Typography>
+            <Typography className={classes.firstLine}>{drive.endLocation?.details}</Typography>
           </div>
           {!small && (
             <div className={classes.driveGridItem} style={gridStyle.arrow}>
