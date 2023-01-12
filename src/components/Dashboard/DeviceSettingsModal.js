@@ -22,7 +22,6 @@ import WarningIcon from '@material-ui/icons/Warning';
 import { devices as Devices } from '@commaai/api';
 import { primeNav, selectDevice, updateDevice } from '../../actions';
 import Colors from '../../colors';
-import { fetchClipsList } from '../../actions/clips';
 import UploadQueue from '../Files/UploadQueue';
 
 const styles = (theme) => ({
@@ -319,13 +318,6 @@ class DeviceSettingsModal extends Component {
                 onClick={ () => this.setState({ uploadModal: true }) }
               >
                 Uploads
-              </Button>
-              <Button
-                variant="outlined"
-                className={ classes.primeManageButton }
-                onClick={ () => { this.props.onClose(); this.props.dispatch(fetchClipsList(this.props.dongleId)); }}
-              >
-                View Clips
               </Button>
             </div>
             <div className={classes.form}>
