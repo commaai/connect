@@ -95,7 +95,7 @@ jobs:
         images: ghcr.io/commaai/connect
         tags: |
           type=ref,event=branch
-          type=raw,${{ github.sha }}
+          type=raw,${{ github.event.workflow_run.head_sha }}
           type=raw,enable=${{ github.event_name == 'pull_request' }},value=${{ github.head_ref }}
 
     - name: Build and push
