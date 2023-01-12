@@ -10,7 +10,7 @@ import IconButton from '@material-ui/core/IconButton';
 import PlayArrow from '@material-ui/icons/PlayArrow';
 import Pause from '@material-ui/icons/Pause';
 
-import { DownArrow, UpArrow, HistoryForwardIcon, HistoryBackIcon } from '../../icons';
+import { DownArrow, UpArrow } from '../../icons';
 import { seek, play, pause, currentOffset } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 
@@ -74,9 +74,6 @@ const styles = (theme) => ({
     width: 12,
     height: 12,
     color: theme.palette.grey[700],
-  },
-  iconBox: {
-    borderRight: `1px solid ${theme.palette.grey[900]}`,
   },
   playButtonBox: {
     borderLeft: `1px solid ${theme.palette.grey[900]}`,
@@ -205,24 +202,6 @@ class TimeDisplay extends Component {
     const isThinCls = isThin ? 'isThin' : '';
     return (
       <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
-        <div className={ classes.iconBox }>
-          <IconButton
-            className={ classes.iconButton }
-            onClick={ () => this.jumpBack(10000) }
-            aria-label="Jump back 10 seconds"
-          >
-            <HistoryBackIcon className={`${classes.icon} small dim`} />
-          </IconButton>
-        </div>
-        <div className={ classes.iconBox }>
-          <IconButton
-            className={ classes.iconButton }
-            onClick={ () => this.jumpForward(10000) }
-            aria-label="Jump forward 10 seconds"
-          >
-            <HistoryForwardIcon className={`${classes.icon} small dim`} />
-          </IconButton>
-        </div>
         { !isThin && (
           <Typography variant="caption" align="center" style={{ paddingTop: 4 }}>
             CURRENT PLAYBACK TIME
