@@ -15,7 +15,7 @@ import Timeline from '../Timeline';
 
 const styles = () => ({
   drive: {
-    background: 'linear-gradient(to bottom, #30373B 0%, #1D2225 100%)',
+    background: 'linear-gradient(to bottom, #30373B -25%, #1D2225 125%)',
     borderTop: '1px solid rgba(255, 255, 255, .05)',
     borderRadius: 8,
     display: 'flex',
@@ -96,7 +96,7 @@ const DriveListItem = (props) => {
 
   const distance = isMetric()
     ? `${+(drive.length * KM_PER_MI).toFixed(1)} km`
-    : `${+drive.length.toFixed(1)} mi`;
+    : `${+drive.length.toFixed(1)} miles`;
 
   /* eslint-disable key-spacing, no-multi-spaces */
   const gridStyle = small ? {

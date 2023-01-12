@@ -15,11 +15,8 @@ import ClipDone from './ClipDone';
 
 const styles = () => ({
   window: {
-    background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
-    borderRadius: 8,
     display: 'flex',
     flexDirection: 'column',
-    margin: 18,
   },
   headerContext: {
     alignItems: 'center',
