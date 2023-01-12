@@ -166,6 +166,8 @@ class TimeSelect extends Component {
   }
 
   render() {
+    return null;
+
     const { classes } = this.props;
     const minDate = fecha.format(new Date(Date.now() - LOOKBACK_WINDOW_MILLIS), 'YYYY-MM-DD');
     const maxDate = fecha.format(new Date(), 'YYYY-MM-DD');
