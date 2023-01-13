@@ -52,7 +52,7 @@ const styles = (theme) => ({
     textAlign: 'right',
   },
   form: {
-    paddingTop: theme.spacing.unit,
+    paddingTop: theme.spacing.unit * 2,
     paddingBottom: theme.spacing.unit * 3,
   },
   formRow: {
