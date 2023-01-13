@@ -92,12 +92,12 @@ jobs:
     - id: meta
       uses: docker/metadata-action@v4
       with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=ref,enable=true,event=branch
-            type=ref,enable=true,event=tag
-            type=raw,value=${{ github.sha }},enable=${{ github.event_name != 'pull_request' }}
-            type=raw,value=${{ github.github.event.pull_request.head.sha }},enable=${{ github.event_name == 'pull_request' }}
+        images: ghcr.io/${{ github.repository }}
+        tags: |
+          type=ref,enable=true,event=branch
+          type=ref,enable=true,event=tag
+          type=raw,value=${{ github.sha }},enable=${{ github.event_name != 'pull_request' }}
+          type=raw,value=${{ github.event.pull_request.head.sha }},enable=${{ github.event_name == 'pull_request' }}
 
     - name: Build and push
       uses: docker/build-push-action@v3
