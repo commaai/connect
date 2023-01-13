@@ -4,8 +4,9 @@ import BottomNavigation from '@material-ui/core/BottomNavigation';
 import BottomNavigationAction from '@material-ui/core/BottomNavigationAction';
 import { withStyles } from '@material-ui/core/styles';
 
-import DirectionsCarIcon from '@material-ui/icons/DirectionsCar';
 import MapIcon from '@material-ui/icons/Map';
+import TimelineIcon from '@material-ui/icons/Timeline';
+import VideoLibraryIcon from '@material-ui/icons/VideoLibrary';
 
 const styles = () => ({
   root: {
@@ -31,8 +32,9 @@ const DashboardNavigation = ({ classes, page, setPage }) => {
       onChange={onChange}
       showLabels
     >
-      <BottomNavigationAction label="Navigation" icon={<MapIcon />} />
-      <BottomNavigationAction label="Drives" icon={<DirectionsCarIcon />} />
+      <BottomNavigationAction label="Map" icon={<MapIcon />} />
+      <BottomNavigationAction label="Timeline" icon={<TimelineIcon />} />
+      <BottomNavigationAction label="Clips" icon={<VideoLibraryIcon />} />
     </BottomNavigation>
   );
 };
