@@ -16,7 +16,7 @@ import { filterRegularClick } from '../../utils';
 
 const styles = () => ({
   header: {
-    backgroundColor: '#1D2225',
+    backgroundColor: '#101214',
     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
     display: 'flex',
     flexDirection: 'row',

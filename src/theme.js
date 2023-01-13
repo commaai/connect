@@ -9,7 +9,7 @@ const theme = createMuiTheme({
   overrides: {
     MuiBottomNavigation: {
       root: {
-        backgroundColor: '#30373B',
+        backgroundColor: '#101214',
       },
     },
     MuiBottomNavigationAction: {
@@ -24,7 +24,7 @@ const theme = createMuiTheme({
     },
     MuiPaper: {
       root: {
-        backgroundColor: '#30373B',
+        backgroundColor: '#101214',
       },
     },
     MuiDrawer: {
