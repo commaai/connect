@@ -90,7 +90,7 @@ class AppDrawer extends Component {
         onClose={() => handleDrawerStateChanged(false)}
         variant={ isPermanent ? 'permanent' : 'temporary' }
         disableBackdropTransition={false}
-        disableDiscovery={false}
+        disableDiscovery
         disableSwipeToOpen={false}
         PaperProps={{ style: { width, top: 'auto' } }}
       >
