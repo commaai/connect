@@ -44,7 +44,6 @@ const styles = () => ({
     width: '100%',
     display: 'flex',
     flexDirection: 'column',
-    background: 'linear-gradient(180deg, #1B2023 0%, #111516 100%)',
   },
   sidebarHeader: {
     alignItems: 'center',
