@@ -39,7 +39,6 @@ const Dashboard = ({ classes, device, dongleId, primeNav }) => {
         {page === 0 && (
           <>
             <Navigation
-              classes="test"
               hasNav={device.prime && device.device_type === 'three'}
               forceFocus
             />
