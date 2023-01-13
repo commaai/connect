@@ -7,6 +7,16 @@ const theme = createMuiTheme({
     fontFamily: "'Inter', sans-serif",
   },
   overrides: {
+    MuiBottomNavigation: {
+      root: {
+        backgroundColor: '#30373B',
+      },
+    },
+    MuiBottomNavigationAction: {
+      selected: {
+        color: '#175886',
+      },
+    },
     MuiButton: {
       root: {
         textTransform: 'none',

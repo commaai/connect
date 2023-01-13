@@ -979,7 +979,7 @@ class Navigation extends Component {
   }
 
   render() {
-    const { classes, device, hasNav } = this.props;
+    const { classes, device, hasNav, forceFocus } = this.props;
     const { mapError, hasFocus, search, searchLooking, searchSelect, favoriteLocations, viewport,
       windowWidth, showPrimeAd } = this.state;
     const carLocation = this.getCarLocation();
@@ -1000,7 +1000,7 @@ class Navigation extends Component {
       <div
         ref={this.onContainerRef}
         className={classes.mapContainer}
-        style={{ height: (hasFocus && hasNav) ? '60vh' : 200 }}
+        style={{ height: (forceFocus || (hasFocus && hasNav)) ? '60vh' : 200 }}
       >
         <ResizeHandler onResize={this.onResize} />
         <VisibilityHandler onVisible={this.updateDevice} onInit onDongleId minInterval={60} />

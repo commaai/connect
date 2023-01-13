@@ -1,48 +1,61 @@
-import React, { lazy, Suspense } from 'react';
+import React, { useState } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
-import { CircularProgress, Grid, withStyles } from '@material-ui/core';
+import { withStyles } from '@material-ui/core/styles';
 
+import DashboardNavigation from './DashboardNavigation';
 import DriveList from './DriveList';
 import Navigation from '../Navigation';
 import DeviceInfo from '../DeviceInfo';
+import Prime from '../Prime';
 
-const Prime = lazy(() => import('../Prime'));
+import { useWindowWidth } from '../../hooks/window';
 
 const styles = () => ({
   base: {
     display: 'flex',
     flexDirection: 'column',
   },
+  mobile: {
+    paddingBottom: 56,
+  },
 });
 
-const DashboardLoading = () => (
-  <Grid container alignItems="center" style={{ width: '100%', height: '100vh' }}>
-    <Grid item align="center" xs={12}>
-      <CircularProgress size="10vh" style={{ color: '#525E66' }} />
-    </Grid>
-  </Grid>
-);
+const Dashboard = ({ classes, device, dongleId, primeNav }) => {
+  const [page, setPage] = useState(0);
+  const windowWidth = useWindowWidth();
 
-const Dashboard = ({ classes, primeNav, device, dongleId }) => {
   if (!device || !dongleId) {
     return null;
+  }
+  if (primeNav) {
+    return <Prime />;
+  }
+
+  if (windowWidth < 768) {
+    return (
+      <div className={`${classes.base} ${classes.mobile}`}>
+        {page === 0 && (
+          <>
+            <Navigation
+              hasNav={device.prime && device.device_type === 'three'}
+              forceFocus
+            />
+            <DeviceInfo />
+          </>
+        )}
+        {page === 1 && <DriveList />}
+        <DashboardNavigation page={page} setPage={setPage} />
+      </div>
+    );
   }
 
   return (
     <div className={classes.base}>
-      <Suspense fallback={<DashboardLoading />}>
-        { primeNav
-          ? <Prime />
-          : (
-            <>
-              <Navigation hasNav={device.prime && device.device_type === 'three'} />
-              <DeviceInfo />
-              <DriveList />
-            </>
-          )}
-      </Suspense>
+      <Navigation hasNav={device.prime && device.device_type === 'three'} />
+      <DeviceInfo />
+      <DriveList />
     </div>
   );
 };
