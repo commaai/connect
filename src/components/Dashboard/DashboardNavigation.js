@@ -1,5 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
+import Obstruction from 'obstruction';
 
 import BottomNavigation from '@material-ui/core/BottomNavigation';
 import BottomNavigationAction from '@material-ui/core/BottomNavigationAction';
@@ -10,7 +11,6 @@ import TimelineIcon from '@material-ui/icons/Timeline';
 import VideoLibraryIcon from '@material-ui/icons/VideoLibrary';
 
 import { fetchClipsList } from '../../actions/clips';
-import Obstruction from 'obstruction'
 
 const styles = () => ({
   root: {

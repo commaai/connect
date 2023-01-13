@@ -95,6 +95,7 @@ jobs:
         images: ghcr.io/${{ github.repository }}
         tags: |
           type=ref,enable=true,event=branch
+          type=ref,enable=true,prefix=,event=pr
           type=ref,enable=true,event=tag
           type=raw,value=${{ github.sha }},enable=${{ github.event_name != 'pull_request' }}
           type=raw,value=${{ github.event.pull_request.head.sha }},enable=${{ github.event_name == 'pull_request' }}

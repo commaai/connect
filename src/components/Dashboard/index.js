@@ -1,4 +1,4 @@
-import React, { lazy, useState } from 'react';
+import React, { useState } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
