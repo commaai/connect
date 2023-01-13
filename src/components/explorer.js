@@ -13,7 +13,6 @@ import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
-import PullDownReload from './utils/PullDownReload';
 
 import { analyticsEvent, selectDevice, updateDevice } from '../actions';
 import ResizeHandler from './ResizeHandler';
@@ -212,7 +211,6 @@ class ExplorerApp extends Component {
     return (
       <div className={classes.base}>
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
-        <PullDownReload />
         <AppHeader
           drawerIsOpen={ drawerIsOpen }
           annotating={ Boolean(zoom) }
@@ -227,6 +225,7 @@ class ExplorerApp extends Component {
           handleDrawerStateChanged={this.handleDrawerStateChanged}
           style={ drawerStyles }
         />
+
         <div className={ classes.window } style={ containerStyles }>
           <Suspense fallback={this.renderLoading()}>
             { noDevicesUpsell
@@ -237,7 +236,9 @@ class ExplorerApp extends Component {
               ) }
           </Suspense>
         </div>
+
         <IosPwaPopup />
+
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
           <Paper className={classes.modal}>
             <Typography variant="title">Pairing device</Typography>
