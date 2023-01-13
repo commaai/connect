@@ -36,7 +36,7 @@ const styles = () => ({
     background: theme.palette.states.drivingBlue,
   },
   statusGradient: {
-    background: 'linear-gradient(rgba(0, 0, 0, 0.0) 4%, rgba(255, 255, 255, 0.025) 10%, rgba(0, 0, 0, 0.1) 25%, rgba(0, 0, 0, 0.4))',
+    background: 'linear-gradient(rgba(0, 0, 0, 0.05) 4%, rgba(0, 0, 0, 0.15) 25%, rgba(0, 0, 0, 0.3))',
     height: 12,
     left: 0,
     pointerEvents: 'none',

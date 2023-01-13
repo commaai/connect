@@ -11,14 +11,10 @@ import DriveListEmpty from './DriveListEmpty';
 import DriveListItem from './DriveListItem';
 
 const styles = () => ({
-  drivesTable: {
+  drives: {
     display: 'flex',
     flexDirection: 'column',
-    flexGrow: 1,
-  },
-  drives: {
-    padding: 16,
-    flex: '1',
+    padding: 8,
   },
   mobile: {
     paddingBottom: 48,
@@ -47,7 +43,7 @@ const DriveList = (props) => {
   }
 
   return (
-    <div className={`${classes.drivesTable} ${windowWidth < 768 && classes.mobile}`}>
+    <div className={`${windowWidth < 768 && classes.mobile}`}>
       <VisibilityHandler onVisible={() => dispatch(checkRoutesData())} minInterval={60} />
       {content}
     </div>
