@@ -47,6 +47,14 @@ a:focus {
   box-shadow: none;
 }
 
+input,
+textarea,
+button,
+select,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /*
   Scrollbar
   ~~~~~~~~~~
