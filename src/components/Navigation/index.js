@@ -29,6 +29,9 @@ const styles = () => ({
   mapContainer: {
     borderBottom: `1px solid ${Colors.white10}`,
   },
+  mobileContainer: {
+    flexGrow: 1,
+  },
   mapError: {
     position: 'relative',
     marginTop: 20,
@@ -999,7 +1002,7 @@ class Navigation extends Component {
     return (
       <div
         ref={this.onContainerRef}
-        className={classes.mapContainer}
+        className={`${classes.mapContainer} ${windowWidth < 768 && classes.mobileContainer}`}
         style={{ height: (forceFocus || (hasFocus && hasNav)) ? '60vh' : 200 }}
       >
         <ResizeHandler onResize={this.onResize} />

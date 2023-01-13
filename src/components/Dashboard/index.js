@@ -13,12 +13,12 @@ import Prime from '../Prime';
 import { useWindowWidth } from '../../hooks/window';
 
 const styles = () => ({
-  base: {
+  root: {
     display: 'flex',
     flexDirection: 'column',
   },
   mobile: {
-    paddingBottom: 56,
+    height: 'calc(100vh - 64px - 56px)',
   },
 });
 
@@ -35,10 +35,11 @@ const Dashboard = ({ classes, device, dongleId, primeNav }) => {
 
   if (windowWidth < 768) {
     return (
-      <div className={`${classes.base} ${page === 1 && classes.mobile}`}>
+      <div className={`${classes.root} ${classes.mobile}`}>
         {page === 0 && (
           <>
             <Navigation
+              classes="test"
               hasNav={device.prime && device.device_type === 'three'}
               forceFocus
             />
@@ -52,7 +53,7 @@ const Dashboard = ({ classes, device, dongleId, primeNav }) => {
   }
 
   return (
-    <div className={classes.base}>
+    <div className={classes.root}>
       <Navigation hasNav={device.prime && device.device_type === 'three'} />
       <DeviceInfo />
       <DriveList />

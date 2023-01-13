@@ -193,6 +193,7 @@ class ExplorerApp extends Component {
     const headerHeight = this.state.headerRef
       ? this.state.headerRef.getBoundingClientRect().height
       : (windowWidth < 640 ? 111 : 66);
+
     let containerStyles = {
       minHeight: `calc(100vh - ${headerHeight}px)`,
     };
