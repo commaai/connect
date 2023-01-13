@@ -35,7 +35,7 @@ const Dashboard = ({ classes, device, dongleId, primeNav }) => {
 
   if (windowWidth < 768) {
     return (
-      <div className={`${classes.base} ${classes.mobile}`}>
+      <div className={`${classes.base} ${page === 1 && classes.mobile}`}>
         {page === 0 && (
           <>
             <Navigation
