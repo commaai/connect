@@ -14,6 +14,8 @@ const styles = () => ({
     left: 0,
     right: 0,
     zIndex: 10,
+    padding: 'env(safe-area-inset-bottom) 0 env(safe-area-inset-bottom) 0',
+    height: 'calc(56px + env(safe-area-inset-bottom))',
   },
 });
 
