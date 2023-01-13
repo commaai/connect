@@ -15,7 +15,7 @@ import Timeline from '../Timeline';
 
 const styles = () => ({
   drive: {
-    background: 'linear-gradient(to bottom, #30373B -25%, #1D2225 125%)',
+    background: 'linear-gradient(to bottom, #202527 0%, #161a1d 100%)',
     borderTop: '1px solid rgba(255, 255, 255, .05)',
     borderRadius: 8,
     display: 'flex',
