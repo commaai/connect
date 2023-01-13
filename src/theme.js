@@ -14,7 +14,7 @@ const theme = createMuiTheme({
     },
     MuiBottomNavigationAction: {
       selected: {
-        color: '#175886',
+        color: '#1b69a1',
       },
     },
     MuiButton: {

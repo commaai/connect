@@ -20,7 +20,6 @@ import VisibilityHandler from '../VisibilityHandler';
 
 const styles = (theme) => ({
   container: {
-    borderBottom: `1px solid ${Colors.white10}`,
     paddingTop: 16,
     display: 'flex',
     flexDirection: 'column',
