@@ -29,7 +29,6 @@ const styles = (theme) => ({
   base: {
   },
   window: {
-    background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
     display: 'flex',
     flexDirection: 'column',
   },
