@@ -35,19 +35,19 @@ const Dashboard = ({ classes, device, dongleId, primeNav }) => {
 
   if (windowWidth < 768) {
     return (
-      <>
-        <div className={`${classes.root} ${classes.mobile}`} style={ page === 0 ? {} : { display: 'none' } }>
-          <Navigation
-            hasNav={device.prime && device.device_type === 'three'}
-            forceFocus
-          />
-          <DeviceInfo />
-        </div>
-        <div className={`${classes.root} ${classes.mobile}`} style={ page === 1 ? {} : { display: 'none' } }>
-          <DriveList />
-        </div>
+      <div className={`${classes.root} ${classes.mobile}`}>
+        {page === 0 && (
+          <>
+            <Navigation
+              hasNav={device.prime && device.device_type === 'three'}
+              forceFocus
+            />
+            <DeviceInfo />
+          </>
+        )}
+        {page === 1 && <DriveList />}
         <DashboardNavigation page={page} setPage={setPage} />
-      </>
+      </div>
     );
   }
 
