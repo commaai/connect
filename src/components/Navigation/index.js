@@ -586,7 +586,7 @@ class Navigation extends Component {
   onSearchSelect(item, source) {
     this.props.dispatch(analyticsEvent('nav_search_select', {
       source,
-      panned: this.state.noFly || this.state.noFly,
+      panned: this.state.noFly,
       is_favorite: Boolean(item.favoriteId),
       distance: item.distance,
     }));
@@ -1016,11 +1016,7 @@ class Navigation extends Component {
           </div>
           )}
         <ReactMapGL
-          latitude={viewport.latitude}
-          longitude={viewport.longitude}
-          zoom={viewport.zoom}
-          bearing={viewport.bearing}
-          pitch={viewport.pitch}
+          {...viewport}
           onViewportChange={this.viewportChange}
           onContextMenu={null}
           mapStyle={MAP_STYLE}
