@@ -348,12 +348,9 @@ class DeviceInfo extends Component {
                 <div className={ classes.row }>
                   { this.renderButtons() }
                 </div>
-                { deviceStats.result
-              && (
-              <div className={ `${classes.row} ${classes.spaceAround}` }>
-                { this.renderStats() }
-              </div>
-              )}
+                <div className={ `${classes.row} ${classes.spaceAround}` } style={{ height: 48 }}>
+                  { deviceStats.result && this.renderStats() }
+                </div>
               </>
             ) }
         </div>
