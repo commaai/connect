@@ -54,6 +54,7 @@ const styles = () => ({
   },
   overlayTextfield: {
     borderRadius: 0,
+    border: 'none',
     '& input': {
       padding: 0,
       height: 24,
