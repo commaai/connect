@@ -89,10 +89,14 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: get tags
-      shell: bash
-      run: echo "##[set-output name=tags;]ghcr.io/commaai/connect:${GITHUB_SHA},ghcr.io/commaai/connect:${GITHUB_REF#refs/heads/}$(if [ ${GITHUB_REF} = refs/heads/master ] ; then echo ,ghcr.io/commaai/connect:latest; fi;)"
-      id: extract_tags
+    - id: meta
+      uses: docker/metadata-action@v4
+      with:
+          images: ghcr.io/commaai/connect
+          tags: |
+            type=ref,enable=true,event=branch
+            type=ref,enable=true,event=tag
+            type=sha,enable=true,prefix=,format=long
 
     - name: Build and push
       uses: docker/build-push-action@v3
@@ -101,7 +105,8 @@ jobs:
         builder: ${{ steps.buildx.outputs.name }}
         context: .
         push: true
-        tags: ${{ steps.extract_tags.outputs.tags }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache-new
 
