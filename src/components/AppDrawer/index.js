@@ -103,11 +103,10 @@ class AppDrawer extends Component {
                 <Typography className={ classes.logoText }>connect</Typography>
               </Link>
             )}
-          { isPermanent && <div style={{ height: 24 }} /> }
           <DeviceList
             selectedDevice={ selectedDongleId }
             handleDeviceSelected={this.handleDeviceSelected}
-            headerHeight={ 64 + (isPermanent ? 24 + 16 : 0) }
+            headerHeight={ 64 + (isPermanent ? 16 : 0) }
           />
           { isPermanent && <div className={classes.versionNumber}>{version}</div> }
         </div>
