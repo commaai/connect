@@ -72,26 +72,28 @@ class AppDrawer extends Component {
   }
 
   handleDeviceSelected(dongleId) {
-    this.props.dispatch(selectDevice(dongleId));
-    this.props.handleDrawerStateChanged(false)
+    const { dispatch, handleDrawerStateChanged } = this.props;
+    dispatch(selectDevice(dongleId));
+    handleDrawerStateChanged(false);
   }
 
   render() {
-    const { classes, isPermanent, drawerIsOpen, selectedDongleId } = this.props;
+    const { classes, isPermanent, drawerIsOpen, handleDrawerStateChanged, selectedDongleId, width } = this.props;
 
     const version = process.env.REACT_APP_GIT_SHA || 'dev';
 
-    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    // const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
     return (
       <SwipeableDrawer
         open={ isPermanent || drawerIsOpen }
-        onOpen={() => this.props.handleDrawerStateChanged(true)}
-        onClose={() => this.props.handleDrawerStateChanged(false)}
+        onOpen={() => handleDrawerStateChanged(true)}
+        onClose={() => handleDrawerStateChanged(false)}
         variant={ isPermanent ? 'permanent' : 'temporary' }
-        disableBackdropTransition={!iOS}
-        disableDiscovery={iOS}
-        PaperProps={{ style: { width: this.props.width, top: 'auto' } }}
+        disableBackdropTransition={false}
+        disableDiscovery={false}
+        disableSwipeToOpen={false}
+        PaperProps={{ style: { width, top: 'auto' } }}
       >
         <div className={classes.drawerContent}>
           { !isPermanent
