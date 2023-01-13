@@ -89,14 +89,17 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - id: sha
+      name: Get the commit SHA
+      run: echo "::set-output name=sha::$(git rev-parse HEAD)"
+
     - id: meta
       uses: docker/metadata-action@v4
       with:
         images: ghcr.io/commaai/connect
         tags: |
           type=ref,event=branch
-          type=sha,prefix=,format=long
-          type=raw,enable=${{ github.event_name == 'pull_request' }},value=${{ github.head_ref }}
+          type=raw,value=${{ steps.sha.outputs.sha }}
 
     - name: Build and push
       uses: docker/build-push-action@v3
