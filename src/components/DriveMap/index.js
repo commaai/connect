@@ -10,7 +10,7 @@ import { MAPBOX_TOKEN } from '../../utils/geocode';
 import { currentOffset } from '../../timeline/playback';
 import { fetchDriveCoords } from '../../actions/cached';
 
-const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
+const MAP_STYLE = 'mapbox://styles/commaai/clcgvbi4f000q15t6o2s8gys3';
 const INTERACTION_TIMEOUT = 5000;
 
 const styles = {
