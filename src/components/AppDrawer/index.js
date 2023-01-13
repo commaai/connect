@@ -3,10 +3,11 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { Link } from 'react-router-dom';
 
-import { withStyles } from '@material-ui/core/styles';
-import 'mapbox-gl/src/css/mapbox-gl.css';
+import SwipeableDrawer from '@material-ui/core/SwipeableDrawer';
 import Typography from '@material-ui/core/Typography';
-import Drawer from '@material-ui/core/Drawer';
+import { withStyles } from '@material-ui/core/styles';
+
+import 'mapbox-gl/src/css/mapbox-gl.css';
 
 import DeviceList from '../Dashboard/DeviceList';
 
@@ -68,16 +69,11 @@ class AppDrawer extends Component {
     super(props);
 
     this.handleDeviceSelected = this.handleDeviceSelected.bind(this);
-    this.toggleDrawerOff = this.toggleDrawerOff.bind(this);
   }
 
   handleDeviceSelected(dongleId) {
     this.props.dispatch(selectDevice(dongleId));
-    this.toggleDrawerOff();
-  }
-
-  toggleDrawerOff() {
-    this.props.handleDrawerStateChanged(false);
+    this.props.handleDrawerStateChanged(false)
   }
 
   render() {
@@ -85,11 +81,16 @@ class AppDrawer extends Component {
 
     const version = process.env.REACT_APP_GIT_SHA || 'dev';
 
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
     return (
-      <Drawer
+      <SwipeableDrawer
         open={ isPermanent || drawerIsOpen }
-        onClose={this.toggleDrawerOff}
+        onOpen={() => this.props.handleDrawerStateChanged(true)}
+        onClose={() => this.props.handleDrawerStateChanged(false)}
         variant={ isPermanent ? 'permanent' : 'temporary' }
+        disableBackdropTransition={!iOS}
+        disableDiscovery={iOS}
         PaperProps={{ style: { width: this.props.width, top: 'auto' } }}
       >
         <div className={classes.drawerContent}>
@@ -108,7 +109,7 @@ class AppDrawer extends Component {
           />
           { isPermanent && <div className={classes.versionNumber}>{version}</div> }
         </div>
-      </Drawer>
+      </SwipeableDrawer>
     );
   }
 }
