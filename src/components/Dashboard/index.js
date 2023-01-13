@@ -18,7 +18,7 @@ const styles = () => ({
     flexDirection: 'column',
   },
   mobile: {
-    height: 'calc(100vh - 64px - 56px)',
+    height: 'calc(100vh - 64px - 56px - (2 * env(safe-area-inset-bottom)))',
   },
 });
 
@@ -35,19 +35,19 @@ const Dashboard = ({ classes, device, dongleId, primeNav }) => {
 
   if (windowWidth < 768) {
     return (
-      <div className={`${classes.root} ${classes.mobile}`}>
-        {page === 0 && (
-          <>
-            <Navigation
-              hasNav={device.prime && device.device_type === 'three'}
-              forceFocus
-            />
-            <DeviceInfo />
-          </>
-        )}
-        {page === 1 && <DriveList />}
+      <>
+        <div className={`${classes.root} ${classes.mobile}`} style={ page === 0 ? {} : { display: 'none' } }>
+          <Navigation
+            hasNav={device.prime && device.device_type === 'three'}
+            forceFocus
+          />
+          <DeviceInfo />
+        </div>
+        <div className={`${classes.root} ${classes.mobile}`} style={ page === 1 ? {} : { display: 'none' } }>
+          <DriveList />
+        </div>
         <DashboardNavigation page={page} setPage={setPage} />
-      </div>
+      </>
     );
   }
 
