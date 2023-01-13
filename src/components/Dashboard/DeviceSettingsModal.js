@@ -46,11 +46,14 @@ const styles = (theme) => ({
     marginBottom: 5,
   },
   buttonGroup: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginTop: 24,
     textAlign: 'right',
   },
   form: {
     paddingTop: theme.spacing.unit,
-    paddingBottom: theme.spacing.unit,
+    paddingBottom: theme.spacing.unit * 3,
   },
   formRow: {
     minHeight: 75,
@@ -75,9 +78,11 @@ const styles = (theme) => ({
     display: 'inline-block',
   },
   primeManageButton: {
-    marginTop: 20,
     marginRight: 20,
     '&:last-child': { marginRight: 0 },
+  },
+  unpairButton: {
+    backgroundColor: '#682525',
   },
   topButtonGroup: {
     display: 'flex',
@@ -299,27 +304,6 @@ class DeviceSettingsModal extends Component {
               </Typography>
             </div>
             <Divider />
-            <div>
-              <Button variant="outlined" className={ classes.primeManageButton } onClick={ this.onPrimeSettings }>
-                Prime settings
-              </Button>
-              <Button
-                variant="outlined"
-                className={ classes.primeManageButton }
-                onClick={ () => this.setState({ unpairConfirm: true }) }
-              >
-                Unpair
-              </Button>
-            </div>
-            <div>
-              <Button
-                variant="outlined"
-                className={ classes.primeManageButton }
-                onClick={ () => this.setState({ uploadModal: true }) }
-              >
-                Uploads
-              </Button>
-            </div>
             <div className={classes.form}>
               { this.state.error && (
               <div className={ classes.formRowError }>
@@ -367,8 +351,35 @@ class DeviceSettingsModal extends Component {
                 )}
               </div>
             </div>
+            <div>
+              <Button
+                variant="outlined"
+                className={ classes.primeManageButton }
+                onClick={ this.onPrimeSettings }
+              >
+                Prime settings
+              </Button>
+              <Button
+                variant="outlined"
+                className={ classes.primeManageButton }
+                onClick={ () => this.setState({ uploadModal: true }) }
+              >
+                Upload queue
+              </Button>
+            </div>
             <div className={classes.buttonGroup}>
-              <Button variant="contained" className={ classes.cancelButton } onClick={this.props.onClose}>
+              <Button
+                variant="contained"
+                className={ classes.unpairButton }
+                onClick={ () => this.setState({ unpairConfirm: true }) }
+              >
+                Unpair
+              </Button>
+              <Button
+                variant="contained"
+                className={ classes.cancelButton }
+                onClick={this.props.onClose}
+              >
                 Close
               </Button>
             </div>
