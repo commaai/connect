@@ -69,15 +69,17 @@ class ClipView extends Component {
 
     return (
       <div className={classes.window}>
-        <div className={classes.headerContext}>
-          <IconButton onClick={ () => dispatch(clipsExit()) }>
-            <CloseIcon />
-          </IconButton>
-          <div className={ classes.headerInfo }>
-            { title }
+        { clips.state !== 'list' && (
+          <div className={classes.headerContext}>
+            <IconButton onClick={ () => dispatch(clipsExit()) }>
+              <CloseIcon />
+            </IconButton>
+            <div className={ classes.headerInfo }>
+              { title }
+            </div>
+            <div style={{ width: 48 }} />
           </div>
-          <div style={{ width: 48 }} />
-        </div>
+        )}
         { clips.state === 'list' ? <ClipList /> : null }
         { clips.state === 'create' ? <ClipCreate /> : null }
         { clips.state === 'upload' ? <ClipUpload /> : null }

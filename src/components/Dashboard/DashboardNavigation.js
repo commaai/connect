@@ -1,4 +1,5 @@
 import React from 'react';
+import { connect } from 'react-redux';
 
 import BottomNavigation from '@material-ui/core/BottomNavigation';
 import BottomNavigationAction from '@material-ui/core/BottomNavigationAction';
@@ -7,6 +8,9 @@ import { withStyles } from '@material-ui/core/styles';
 import MapIcon from '@material-ui/icons/Map';
 import TimelineIcon from '@material-ui/icons/Timeline';
 import VideoLibraryIcon from '@material-ui/icons/VideoLibrary';
+
+import { fetchClipsList } from '../../actions/clips';
+import Obstruction from 'obstruction'
 
 const styles = () => ({
   root: {
@@ -20,8 +24,12 @@ const styles = () => ({
   },
 });
 
-const DashboardNavigation = ({ classes, page, setPage }) => {
+const DashboardNavigation = ({ classes, dispatch, dongleId, page, setPage }) => {
   const onChange = (event, value) => {
+    if (value === 2) {
+      dispatch(fetchClipsList(dongleId));
+    }
+
     setPage(value);
   };
 
@@ -39,4 +47,9 @@ const DashboardNavigation = ({ classes, page, setPage }) => {
   );
 };
 
-export default withStyles(styles)(DashboardNavigation);
+const stateToProps = Obstruction({
+  dongleId: 'dongleId',
+  clips: 'clips',
+});
+
+export default connect(stateToProps)(withStyles(styles)(DashboardNavigation));

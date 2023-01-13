@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { lazy, useState } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
 
-import DashboardNavigation from './DashboardNavigation';
 import DriveList from './DriveList';
-import Navigation from '../Navigation';
+import ClipView from '../ClipView';
 import DeviceInfo from '../DeviceInfo';
+import Navigation from '../Navigation';
 import Prime from '../Prime';
+import DashboardNavigation from './DashboardNavigation';
 
 import { useWindowWidth } from '../../hooks/window';
 
@@ -46,6 +47,7 @@ const Dashboard = ({ classes, device, dongleId, primeNav }) => {
           </>
         )}
         {page === 1 && <DriveList />}
+        {page === 2 && <ClipView />}
         <DashboardNavigation page={page} setPage={setPage} />
       </div>
     );

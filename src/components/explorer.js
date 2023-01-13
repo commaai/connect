@@ -21,7 +21,6 @@ import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { play, pause } from '../timeline/playback';
 import init from '../actions/startup';
 
-const ClipView = lazy(() => import('./ClipView'));
 const DriveView = lazy(() => import('./DriveView'));
 const NoDeviceUpsell = lazy(() => import('./DriveView/NoDeviceUpsell'));
 
@@ -182,7 +181,7 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, zoom, devices, dongleId, clips } = this.props;
+    const { classes, zoom, devices, dongleId } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices && devices.length === 0 && !dongleId);
@@ -230,10 +229,9 @@ class ExplorerApp extends Component {
           <Suspense fallback={this.renderLoading()}>
             { noDevicesUpsell
               ? <NoDeviceUpsell />
-              : (clips
-                ? <ClipView />
-                : (zoom ? <DriveView /> : <Dashboard />)
-              ) }
+              : (zoom
+                ? <DriveView />
+                : <Dashboard />) }
           </Suspense>
         </div>
 
@@ -267,7 +265,6 @@ const stateToProps = Obstruction({
   pathname: 'router.location.pathname',
   dongleId: 'dongleId',
   devices: 'devices',
-  clips: 'clips',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));
