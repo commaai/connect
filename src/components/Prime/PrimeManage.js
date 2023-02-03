@@ -442,7 +442,7 @@ class PrimeManage extends Component {
                         Your prime subscription will be canceled on May 15th unless you replace the
                         SIM
                         card in your device. A new SIM card can be ordered from the
-                        <a href="https://comma.ai/shop/products/comma-prime-sim-card">shop</a>
+                        <a href="https://comma.ai/shop/comma-prime-sim">shop</a>
                         .
                         Use discount code SIMSWAP at checkout to receive a free SIM card.
                       </Typography>
