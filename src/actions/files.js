@@ -190,7 +190,7 @@ export function fetchUploadQueue(dongleId) {
   };
 }
 
-export function doUpload(dongleId, fileNames, paths, urls) {
+export function doUpload(dongleId, fileNames, paths, urls, allow_cellular) {
   return async (dispatch, getState) => {
     const { device } = getState();
     let loopedUploads = !deviceVersionAtLeast(device, '0.8.13');
@@ -199,7 +199,7 @@ export function doUpload(dongleId, fileNames, paths, urls) {
         fn: path,
         url: urls[i],
         headers: { 'x-ms-blob-type': 'BlockBlob' },
-        allow_cellular: false,
+        allow_cellular: allow_cellular,
       }));
       const payload = {
         id: 0,

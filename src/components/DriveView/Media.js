@@ -403,7 +403,7 @@ class Media extends Component {
     }
   }
 
-  async uploadFile(type) {
+  async uploadFile(type, allow_cellular) {
     const { dongleId, currentRoute } = this.props;
     if (!currentRoute) {
       return;
@@ -423,7 +423,7 @@ class Media extends Component {
 
     const urls = await fetchUploadUrls(dongleId, [path]);
     if (urls) {
-      this.props.dispatch(doUpload(dongleId, [fileName], [path], urls));
+      this.props.dispatch(doUpload(dongleId, [fileName], [path], urls, allow_cellular && profile.superuser));
     }
   }
 
@@ -465,7 +465,7 @@ class Media extends Component {
 
     const urls = await fetchUploadUrls(dongleId, paths);
     if (urls) {
-      this.props.dispatch(doUpload(dongleId, Object.keys(uploading), paths, urls));
+      this.props.dispatch(doUpload(dongleId, Object.keys(uploading), paths, urls, false));
     }
   }
 
@@ -971,7 +971,7 @@ class Media extends Component {
         <Button
           className={ classes.uploadButton }
           style={{ minWidth: uploadButtonWidth }}
-          onClick={ () => this.uploadFile(type) }
+          onClick={ () => this.uploadFile(type, event.altKey) }
         >
           { windowWidth < 425 ? 'upload' : 'request upload' }
         </Button>
