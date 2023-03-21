@@ -37,7 +37,7 @@ const Dashboard = ({ classes, primeNav, device, dongleId }) => {
           ? <Prime />
           : (
             <>
-              <Navigation hasNav={device.prime && device.device_type === 'three'} />
+              <Navigation hasNav={device.prime && device.eligible_features?.nav} />
               <DeviceInfo />
               <DriveList />
             </>

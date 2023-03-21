@@ -418,7 +418,7 @@ class PrimeManage extends Component {
                     className={classes.buttons}
                     style={buttonSmallStyle}
                     onClick={this.gotoUpdate}
-                    disabled={!hasPrimeSub || (hasCancelAt && device.device_type !== 'three' && subscription.plan === 'data')}
+                    disabled={!hasPrimeSub || (hasCancelAt && !device.eligible_features?.prime_data && subscription.plan === 'data')}
                   >
                     {hasCancelAt ? 'Renew subscription' : 'Update payment method'}
                   </Button>
@@ -448,7 +448,7 @@ class PrimeManage extends Component {
                       </Typography>
                     </div>
                   )}
-                {hasCancelAt && device.device_type !== 'three' && subscription.plan === 'data'
+                {hasCancelAt && !device.eligible_features?.prime_data && subscription.plan === 'data'
                   && (
                     <div className={classes.overviewBlockDisabled}>
                       <InfoOutlineIcon />

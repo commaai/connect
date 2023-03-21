@@ -253,7 +253,7 @@ class PrimeCheckout extends Component {
     }
 
     return Boolean(
-      device.device_type === 'three'
+      device.eligible_features?.prime_data
       && subscribeInfo
       && subscribeInfo.sim_id
       && subscribeInfo.is_prime_sim
@@ -308,8 +308,8 @@ class PrimeCheckout extends Component {
 
     let disabledDataPlanText;
     if (subscribeInfo && disabledDataPlan) {
-      if (device.device_type !== 'three') {
-        disabledDataPlanText = 'Standard plan is only available for comma three.';
+      if (!device.eligible_features?.prime_data) {
+        disabledDataPlanText = 'Standard plan is not available for your device.';
       } else if (!subscribeInfo.sim_id && subscribeInfo.device_online) {
         disabledDataPlanText = 'Standard plan not available, no SIM was detected. Ensure SIM is securely inserted and try again.';
       } else if (!subscribeInfo.sim_id) {
