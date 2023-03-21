@@ -2,14 +2,7 @@ name: build
 
 on:
   push:
-    branches:
-      - master
-  pull_request:
   workflow_dispatch:
-
-concurrency:
-  group: ${{ github.ref == 'refs/heads/master' && github.run_id || github.head_ref || github.ref }}-${{ github.workflow }}-${{ github.event_name }}
-  cancel-in-progress: true
 
 jobs:
   test:
@@ -44,7 +37,7 @@ jobs:
 
   lighthouse:
     runs-on: ubuntu-20.04
-    if: github.repository == 'commaai/connect' && (github.ref == 'refs/heads/master' || github.event_name != 'push')
+    if: github.repository == 'commaai/connect'
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -94,9 +87,12 @@ jobs:
       with:
         images: ghcr.io/commaai/connect
         tags: |
+          type=raw,value=latest,enable={{is_default_branch}}
           type=ref,event=branch
-          type=raw,${{ github.sha }}
-          type=raw,enable=${{ github.event_name == 'pull_request' }},value=${{ github.head_ref }}
+          type=ref,event=pr,prefix=
+          type=sha,format=long,prefix=
+      env:
+        DOCKER_METADATA_PR_HEAD_SHA: true
 
     - name: Build and push
       uses: docker/build-push-action@v3
