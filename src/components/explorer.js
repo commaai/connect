@@ -27,8 +27,6 @@ const DriveView = lazy(() => import('./DriveView'));
 const NoDeviceUpsell = lazy(() => import('./DriveView/NoDeviceUpsell'));
 
 const styles = (theme) => ({
-  base: {
-  },
   window: {
     background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
     display: 'flex',
@@ -210,7 +208,7 @@ class ExplorerApp extends Component {
     };
 
     return (
-      <div className={classes.base}>
+      <div>
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
         <PullDownReload />
         <AppHeader

@@ -11,7 +11,6 @@ import { getDefaultFilter } from '../../initialState';
 import VisibilityHandler from '../VisibilityHandler';
 
 const styles = (theme) => ({
-  root: {},
   modal: {
     position: 'absolute',
     padding: theme.spacing.unit * 2,

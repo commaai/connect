@@ -42,7 +42,6 @@ const styles = () => ({
   driveHeaderIntroSmall: {
     justifyContent: 'center',
   },
-  driveTimeline: {},
   driveArrow: {
     color: Colors.grey500,
     height: '100%',
@@ -147,7 +146,6 @@ const DriveListItem = (props) => {
         </Grid>
       </div>
       <Timeline
-        className={classes.driveTimeline}
         thumbnailsVisible={isVisible}
         zoomOverride={{ start: drive.start_time_utc_millis, end: drive.end_time_utc_millis }}
       />

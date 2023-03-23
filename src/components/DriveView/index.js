@@ -23,7 +23,6 @@ const styles = () => ({
     flexDirection: 'column',
     margin: 18,
   },
-  header: {},
   headerContext: {
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -75,7 +74,7 @@ class DriveView extends Component {
       <>
         <ResizeHandler onResize={ this.onResize } />
         <div className={classes.window}>
-          <div className={classes.header}>
+          <div>
             <div className={classes.headerContext}>
               <IconButton aria-label="Go Back" onClick={ () => window.history.back() }>
                 <KeyboardBackspaceIcon />
