@@ -220,7 +220,7 @@ class ClipCreate extends Component {
               >
                 <Typography className={classes.mediaOptionText}>Front</Typography>
               </div>
-              { device.device_type === 'three' && (
+              { device.device_type?.startsWith('three') && (
                 <div
                   className={ `${classes.videoTypeOption} ${videoTypeOption === 'e' ? 'selected' : ''}` }
                   onClick={ () => this.setState({ videoTypeOption: 'e' }) }
@@ -234,7 +234,7 @@ class ClipCreate extends Component {
               >
                 <Typography className={classes.mediaOptionText}>Interior</Typography>
               </div>
-              { device.device_type === 'three' && (
+              { device.device_type?.startsWith('three') && (
                 <div
                   className={ `${classes.videoTypeOption} ${videoTypeOption === '360' ? 'selected' : ''}` }
                   onClick={ () => this.setState({ videoTypeOption: '360' }) }

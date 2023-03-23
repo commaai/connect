@@ -431,7 +431,7 @@ class Media extends Component {
     const { dongleId, device, currentRoute, loop, files } = this.props;
     if (types === undefined) {
       types = ['logs', 'cameras', 'dcameras'];
-      if (device.device_type === 'three') {
+      if (device.device_type?.startsWith('three')) {
         types.push('ecameras');
       }
     }
@@ -498,7 +498,7 @@ class Media extends Component {
 
     const [countRlog, uploadedRlog, uploadingRlog, pausedRlog, requestedRlog] = this._uploadStats(['logs'], 0, 0, 0, 0, 0);
 
-    const camTypes = ['cameras', 'dcameras'].concat(device.device_type === 'three' ? ['ecameras'] : []);
+    const camTypes = ['cameras', 'dcameras'].concat(device.device_type?.startsWith('three') ? ['ecameras'] : []);
     const [countAll, uploadedAll, uploadingAll, pausedAll, requestedAll] = this._uploadStats(camTypes, countRlog, uploadedRlog, uploadingRlog, pausedRlog, requestedRlog);
 
     return {
@@ -723,7 +723,7 @@ class Media extends Component {
     const uploadButtonWidth = windowWidth < 425 ? 80 : 120;
     const buttons = [
       [fcam, 'Road camera', 'cameras'],
-      device && device.device_type === 'three' ? [ecam, 'Wide road camera', 'ecameras'] : null,
+      device && device.device_type?.startsWith('three') ? [ecam, 'Wide road camera', 'ecameras'] : null,
       [dcam, 'Driver camera', 'dcameras'],
       [rlog, 'Log data', 'logs'],
     ];
