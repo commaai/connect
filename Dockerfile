@@ -6,6 +6,7 @@ COPY package.json yarn.lock /app/
 RUN yarn install --immutable --immutable-cache --check-cache
 
 COPY . /app/
+ENV GENERATE_SOURCEMAP false
 ARG SENTRY_AUTH_TOKEN
 RUN yarn build:production
 
