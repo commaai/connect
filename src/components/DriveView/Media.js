@@ -153,44 +153,10 @@ const styles = () => ({
       marginRight: 4,
     },
   },
-  viewCabanaUploads: {
-    display: 'flex',
-    alignItems: 'center',
-    fontSize: '0.8rem',
-    padding: '0 6px 0 2px',
-    borderRadius: 4,
-    backgroundColor: Colors.white08,
-    marginLeft: 8,
-    '& svg': {
-      height: 18,
-    },
-    '& button': {
-      marginLeft: 8,
-      marginRight: -6,
-      color: Colors.white,
-      fontSize: '0.8rem',
-      padding: '4px 0',
-      minHeight: 19,
-      backgroundColor: Colors.white05,
-      '&:hover': {
-        backgroundColor: Colors.white10,
-      },
-    },
-  },
   shareButton: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  viewCabanaFakeUploads: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 100,
-    height: 25,
-    backgroundColor: Colors.white08,
-    borderRadius: 4,
-    marginLeft: 8,
   },
   dcameraUploadIcon: {
     fontSize: '1rem',
@@ -281,7 +247,6 @@ class Media extends Component {
     this.renderMenus = this.renderMenus.bind(this);
     this.renderUploadMenuItem = this.renderUploadMenuItem.bind(this);
     this.copySegmentName = this.copySegmentName.bind(this);
-    this.openInCabana = this.openInCabana.bind(this);
     this.openInUseradmin = this.openInUseradmin.bind(this);
     this.shareCurrentRoute = this.shareCurrentRoute.bind(this);
     this.uploadFile = this.uploadFile.bind(this);
@@ -343,35 +308,6 @@ class Media extends Component {
     this.setState({ moreInfoMenu: null });
   }
 
-  openInCabana() {
-    const { currentRoute, loop } = this.props;
-    if (!currentRoute) {
-      return;
-    }
-    const offset = currentOffset();
-    const params = {
-      route: currentRoute.fullname,
-      url: currentRoute.url,
-      seekTime: Math.floor((offset - currentRoute.offset) / 1000),
-    };
-
-    if (loop.startTime && loop.startTime > currentRoute.start_time_utc_millis && loop.duration < 180000) {
-      const startTime = Math.floor((loop.startTime - currentRoute.start_time_utc_millis) / 1000);
-      params.segments = [startTime, Math.floor(startTime + (loop.duration / 1000))].join(',');
-    }
-
-    const event_parameters = {
-      route_start_time: currentRoute.start_time_utc_millis,
-    };
-    attachRelTime(event_parameters, 'route_start_time', true, 'h');
-    this.props.dispatch(analyticsEvent('open_in_cabana', event_parameters));
-
-    const win = window.open(`${window.CABANA_URL_ROOT}?${qs.stringify(params)}`, '_blank');
-    if (win.focus) {
-      win.focus();
-    }
-  }
-
   openInUseradmin() {
     const { currentRoute } = this.props;
     if (!currentRoute) {
@@ -382,7 +318,7 @@ class Media extends Component {
       route_start_time: currentRoute.start_time_utc_millis,
     };
     attachRelTime(event_parameters, 'route_start_time', true, 'h');
-    this.props.dispatch(analyticsEvent('open_in_cabana', event_parameters));
+    this.props.dispatch(analyticsEvent('open_in_useradmin', event_parameters));
 
     const params = { onebox: currentRoute.fullname };
     const win = window.open(`${window.USERADMIN_URL_ROOT}?${qs.stringify(params)}`, '_blank');
@@ -854,23 +790,6 @@ class Media extends Component {
           </MenuItem>
           )}
           <Divider />
-          <MenuItem onClick={ this.openInCabana }>
-            View in cabana
-            { Boolean(files && stats && stats.canRequestRlog)
-            && (
-            <div className={ classes.viewCabanaUploads }>
-              <WarningIcon />
-              {`missing ${stats.canRequestRlog} logs`}
-              <Button onClick={ (ev) => { this.uploadFilesAll(['logs']); ev.stopPropagation(); } }>upload</Button>
-            </div>
-            )}
-            { Boolean(rlogUploadDisabled && stats && !stats.isUploadedRlog && !stats.isUploadingRlog)
-            && (
-            <div className={ classes.viewCabanaFakeUploads }>
-              <CircularProgress style={{ color: Colors.white }} size={ 15 } />
-            </div>
-            )}
-          </MenuItem>
           <MenuItem onClick={ this.openInUseradmin }>
             View in useradmin
           </MenuItem>
