@@ -43,7 +43,7 @@
     "react-dom": "~18.2",
     "react-map-gl": "^5.3.15",
     "react-measure": "^2.5.2",
-    "react-player": "^2.11.0",
+    "react-player": "^2.12.0",
     "react-redux": "^5.0.7",
     "react-responsive-carousel": "^3.2.23",
     "react-router": "^5.3.4",

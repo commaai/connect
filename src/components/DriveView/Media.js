@@ -49,7 +49,6 @@ const styles = () => ({
     alignItems: 'center',
     border: '1px solid rgba(255,255,255,.1)',
     borderRadius: 50,
-    display: 'flex',
   },
   mediaOption: {
     alignItems: 'center',
