@@ -219,20 +219,18 @@ class DriveVideo extends Component {
     const { src, videoError } = this.state;
     return (
       <div className={ classes.videoContainer }>
-        { isBufferingVideo
+        {(isBufferingVideo || videoError)
           && (
-          <div className={ classes.bufferingContainer }>
-            <div className={ classes.bufferingSpinner }>
-              <CircularProgress style={{ color: Colors.white }} thickness={ 4 } size={ 50 } />
-            </div>
-          </div>
-          )}
-        { videoError
-          && (
-            <div className={ classes.bufferingContainer }>
-              <div className={ classes.bufferingSpinner }>
-                <ErrorOutlineIcon />
-                <Typography>{ videoError }</Typography>
+            <div className={classes.bufferingContainer}>
+              <div className={classes.bufferingSpinner}>
+                {isBufferingVideo
+                  ? <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />
+                  : (
+                    <>
+                      <ErrorOutlineIcon />
+                      <Typography>{videoError}</Typography>
+                    </>
+                  )}
               </div>
             </div>
           )}
