@@ -137,7 +137,12 @@ class DriveVideo extends Component {
       console.error('Unknown video error', msg, e);
       return;
     }
-    this.setState({ videoError: e.response.text });
+
+    let videoError = e.response.text;
+    if (e.response.code === 404) {
+      videoError = 'This video segment has not uploaded yet or has been deleted.';
+    }
+    this.setState({ videoError });
   }
 
   syncVideo() {
