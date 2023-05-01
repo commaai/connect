@@ -1,7 +1,8 @@
 /* eslint-disable camelcase */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { withStyles, CircularProgress } from '@material-ui/core';
+import { CircularProgress, Typography, withStyles } from '@material-ui/core';
+import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import debounce from 'debounce';
 import Obstruction from 'obstruction';
 import ReactPlayer from 'react-player';
@@ -49,6 +50,7 @@ class DriveVideo extends Component {
 
     this.visibleRoute = this.visibleRoute.bind(this);
     this.onVideoBuffering = this.onVideoBuffering.bind(this);
+    this.onVideoError = this.onVideoError.bind(this);
     this.syncVideo = debounce(this.syncVideo.bind(this), 200);
     this.firstSeek = true;
 
@@ -56,6 +58,7 @@ class DriveVideo extends Component {
 
     this.state = {
       src: null,
+      videoError: null,
     };
   }
 
@@ -91,26 +94,28 @@ class DriveVideo extends Component {
   }
 
   updateVideoSource(prevProps) {
+    let { src } = this.state;
     const r = this.visibleRoute();
     if (!r) {
-      if (this.state.src !== '') {
-        this.setState({ src: '' });
+      if (src !== '') {
+        this.setState({ src: '', videoError: null });
       }
       return;
     }
 
     const prevR = this.visibleRoute(prevProps);
-    if (this.state.src === '' || !prevR || prevR.fullname !== r.fullname) {
-      const src = Video.getQcameraStreamUrl(r.fullname, r.share_exp, r.share_sig);
-      this.setState({ src });
+    if (src === '' || !prevR || prevR.fullname !== r.fullname) {
+      src = Video.getQcameraStreamUrl(r.fullname, r.share_exp, r.share_sig);
+      this.setState({ src, videoError: null });
       this.syncVideo();
     }
   }
 
   onVideoBuffering() {
+    const { dispatch } = this.props;
     const videoPlayer = this.videoPlayer.current;
     if (!videoPlayer || !this.visibleRoute() || !videoPlayer.getDuration()) {
-      this.props.dispatch(bufferVideo(true));
+      dispatch(bufferVideo(true));
     }
 
     if (this.firstSeek) {
@@ -120,15 +125,32 @@ class DriveVideo extends Component {
 
     const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() > 30;
     if (!hasSufficientBuffer || videoPlayer.getInternalPlayer().readyState < 2) {
-      this.props.dispatch(bufferVideo(true));
+      dispatch(bufferVideo(true));
     }
   }
 
+  onVideoError(msg, e) {
+    const { dispatch } = this.props;
+    dispatch(bufferVideo(false));
+    if (!e || !e.response) {
+      this.setState({ videoError: 'Unable to load video' });
+      console.error('Unknown video error', msg, e);
+      return;
+    }
+
+    let videoError = e.response.text;
+    if (e.response.code === 404) {
+      videoError = 'This video segment has not uploaded yet or has been deleted.';
+    }
+    this.setState({ videoError });
+  }
+
   syncVideo() {
+    const { dispatch, isBufferingVideo, routes } = this.props;
     if (!this.visibleRoute()) {
-      this.props.dispatch(updateSegments());
-      if (this.props.routes && this.props.isBufferingVideo) {
-        this.props.dispatch(bufferVideo(false));
+      dispatch(updateSegments());
+      if (routes && isBufferingVideo) {
+        dispatch(bufferVideo(false));
       }
       return;
     }
@@ -143,19 +165,19 @@ class DriveVideo extends Component {
     // sanity check required for ios
     const sufficientBuffer = Math.min(videoPlayer.getDuration() - videoPlayer.getCurrentTime(), 30);
     const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() >= sufficientBuffer;
-    if (hasSufficientBuffer && internalPlayer.readyState >= 2 && this.props.isBufferingVideo) {
-      this.props.dispatch(bufferVideo(false));
+    if (hasSufficientBuffer && internalPlayer.readyState >= 2 && isBufferingVideo) {
+      dispatch(bufferVideo(false));
     }
 
-    let newPlaybackRate = this.props.desiredPlaySpeed;
+    let { desiredPlaySpeed: newPlaybackRate } = this.props;
     const desiredVideoTime = this.currentVideoTime();
     const curVideoTime = videoPlayer.getCurrentTime();
     const timeDiff = desiredVideoTime - curVideoTime;
     if (Math.abs(timeDiff) <= 0.3) {
       newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff);
     } else if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
-      // logs start ealier than video, so skip to video ts 0
-      this.props.dispatch(seek(currentOffset() - (timeDiff * 1000)));
+      // logs start earlier than video, so skip to video ts 0
+      dispatch(seek(currentOffset() - (timeDiff * 1000)));
     } else {
       videoPlayer.seekTo(desiredVideoTime, 'seconds');
     }
@@ -193,21 +215,28 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { classes, isBufferingVideo } = this.props;
-    const playSpeed = this.props.desiredPlaySpeed;
+    const { classes, desiredPlaySpeed: playSpeed, dispatch, isBufferingVideo } = this.props;
+    const { src, videoError } = this.state;
     return (
       <div className={ classes.videoContainer }>
-        { isBufferingVideo
+        {(isBufferingVideo || videoError)
           && (
-          <div className={ classes.bufferingContainer }>
-            <div className={ classes.bufferingSpinner }>
-              <CircularProgress style={{ color: Colors.white }} thickness={ 4 } size={ 50 } />
+            <div className={classes.bufferingContainer}>
+              <div className={classes.bufferingSpinner}>
+                {isBufferingVideo
+                  ? <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />
+                  : (
+                    <>
+                      <ErrorOutlineIcon />
+                      <Typography>{videoError}</Typography>
+                    </>
+                  )}
+              </div>
             </div>
-          </div>
           )}
         <ReactPlayer
           ref={ this.videoPlayer }
-          url={ this.state.src }
+          url={ src }
           playsinline
           muted
           width="100%"
@@ -215,9 +244,10 @@ class DriveVideo extends Component {
           playing={ Boolean(this.visibleRoute()) && Boolean(playSpeed) }
           config={{ hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false } }}
           playbackRate={ playSpeed }
-          onBuffer={ () => this.onVideoBuffering() }
-          onBufferEnd={ () => this.props.dispatch(bufferVideo(false)) }
-          onPlay={ () => this.props.dispatch(bufferVideo(false)) }
+          onBuffer={ this.onVideoBuffering }
+          onBufferEnd={ () => dispatch(bufferVideo(false)) }
+          onPlay={ () => dispatch(bufferVideo(false)) }
+          onError={ this.onVideoError }
         />
       </div>
     );
