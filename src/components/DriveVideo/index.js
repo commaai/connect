@@ -131,11 +131,19 @@ class DriveVideo extends Component {
   }
 
   onVideoError(msg, e) {
+    if (msg?.target?.src?.startsWith(window.location.origin) && msg?.target?.src?.endsWith('undefined')) {
+      // TODO: figure out why the src isn't set properly
+      // Sometimes an error will be thrown because we try to play
+      // src: "https://connect.comma.ai/.../undefined"
+      console.warn('Video error with undefined src, ignoring', { msg, e });
+      return;
+    }
+
     const { dispatch } = this.props;
     dispatch(bufferVideo(false));
     if (!e || !e.response) {
+      console.error('Unknown video error', { msg, e });
       this.setState({ videoError: 'Unable to load video' });
-      console.error('Unknown video error', msg, e);
       return;
     }
 
