@@ -51,6 +51,7 @@ class DriveVideo extends Component {
     this.visibleRoute = this.visibleRoute.bind(this);
     this.onVideoBuffering = this.onVideoBuffering.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
+    this.onVideoResume = this.onVideoResume.bind(this);
     this.syncVideo = debounce(this.syncVideo.bind(this), 200);
     this.firstSeek = true;
 
@@ -143,6 +144,12 @@ class DriveVideo extends Component {
       videoError = 'This video segment has not uploaded yet or has been deleted.';
     }
     this.setState({ videoError });
+  }
+
+  onVideoResume() {
+    const { dispatch } = this.props;
+    dispatch(bufferVideo(false));
+    this.setState({ videoError: null });
   }
 
   syncVideo() {
@@ -246,7 +253,7 @@ class DriveVideo extends Component {
           playbackRate={ playSpeed }
           onBuffer={ this.onVideoBuffering }
           onBufferEnd={ () => dispatch(bufferVideo(false)) }
-          onPlay={ () => dispatch(bufferVideo(false)) }
+          onPlay={ this.onVideoResume }
           onError={ this.onVideoError }
         />
       </div>
