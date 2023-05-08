@@ -63,14 +63,14 @@ const styles = () => ({
   accountListEmail: {
     flexDirection: 'column',
     alignItems: 'flex-start',
-  },
-  title: {
-    fontWeight: 'bold',
-    marginBottom: 2,
-  },
-  caption: {
-    fontSize: '0.75em',
-    color: Colors.white40,
+    '& :first-child': {
+      fontWeight: 'bold',
+    },
+    '& :not(:first-child)': {
+      fontSize: '0.75em',
+      color: Colors.white40,
+      paddingTop: 8,
+    },
   },
   accountMenuItem: {
     padding: '12px 16px',
@@ -190,11 +190,9 @@ class AppHeader extends Component {
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         >
           <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>
-            <span className={classes.title}>{ profile.email }</span>
-            <span className={classes.caption}>{ profile.user_id }</span>
-          </ListItem>
-          <ListItem className={classes.accountListItem}>
-            <span className={classes.caption}>Version: { version }</span>
+            <span>{ profile.email }</span>
+            <span>{ profile.user_id }</span>
+            <span>{`Version: ${version}`}</span>
           </ListItem>
           <Divider />
           <MenuItem
