@@ -63,14 +63,14 @@ const styles = () => ({
   accountListEmail: {
     flexDirection: 'column',
     alignItems: 'flex-start',
-    '& :first-child': {
-      fontWeight: 'bold',
-      marginBottom: 2,
-    },
-    '& :last-child': {
-      fontSize: '0.75em',
-      color: Colors.white40,
-    },
+  },
+  title: {
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  caption: {
+    fontSize: '0.75em',
+    color: Colors.white40,
   },
   accountMenuItem: {
     padding: '12px 16px',
@@ -137,6 +137,8 @@ class AppHeader extends Component {
       };
     }
 
+    const version = process.env.REACT_APP_GIT_SHA || 'dev';
+
     return (
       <>
         <ResizeHandler onResize={ this.onResize } />
@@ -188,8 +190,11 @@ class AppHeader extends Component {
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         >
           <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>
-            <span>{ profile.email }</span>
-            <span>{ profile.user_id }</span>
+            <span className={classes.title}>{ profile.email }</span>
+            <span className={classes.caption}>{ profile.user_id }</span>
+          </ListItem>
+          <ListItem className={classes.accountListItem}>
+            <span className={classes.caption}>Version: { version }</span>
           </ListItem>
           <Divider />
           <MenuItem
