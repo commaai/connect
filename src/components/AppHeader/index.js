@@ -65,11 +65,11 @@ const styles = () => ({
     alignItems: 'flex-start',
     '& :first-child': {
       fontWeight: 'bold',
-      marginBottom: 2,
     },
-    '& :last-child': {
+    '& :not(:first-child)': {
       fontSize: '0.75em',
       color: Colors.white40,
+      paddingTop: 8,
     },
   },
   accountMenuItem: {
@@ -137,6 +137,8 @@ class AppHeader extends Component {
       };
     }
 
+    const version = process.env.REACT_APP_GIT_SHA || 'dev';
+
     return (
       <>
         <ResizeHandler onResize={ this.onResize } />
@@ -190,6 +192,7 @@ class AppHeader extends Component {
           <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>
             <span>{ profile.email }</span>
             <span>{ profile.user_id }</span>
+            <span>{`Version: ${version}`}</span>
           </ListItem>
           <Divider />
           <MenuItem
