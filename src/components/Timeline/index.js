@@ -147,6 +147,7 @@ const styles = () => ({
     left: 0,
     height: 32,
     width: '100%',
+    zIndex: 3,
   },
   clipView: {
     backgroundColor: Colors.black,
@@ -157,6 +158,7 @@ const styles = () => ({
     justifyContent: 'center',
     cursor: 'pointer',
     touchAction: 'none',
+    zIndex: 3,
   },
   clipDragHandle: {
     backgroundColor: Colors.white,
