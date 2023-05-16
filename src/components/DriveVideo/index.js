@@ -260,7 +260,11 @@ class DriveVideo extends Component {
           config={{ hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false } }}
           playbackRate={ playSpeed }
           onBuffer={ this.onVideoBuffering }
-          onBufferEnd={ () => dispatch(bufferVideo(false)) }
+          onBufferEnd={() => {
+            dispatch(bufferVideo(false));
+            this.onVideoResume();
+          }}
+          onStart={ this.onVideoResume }
           onPlay={ this.onVideoResume }
           onError={ this.onVideoError }
         />
