@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
+import { sendEvent } from './analytics-v2';
 import { getDongleID, getZoom } from './url';
 import { deviceIsOnline } from './utils';
 import { isDemoDevice } from './demo';
@@ -61,22 +62,6 @@ function getVideoPercent(state, offset) {
   return (offset - (zoom.start - filter.start)) / (zoom.end - zoom.start);
 }
 
-export function analyticsMiddleware({ getState }) {
-  return (next) => (action) => {
-    const prevState = getState();
-    const res = next(action);
-    const state = getState();
-
-    try {
-      logAction(action, prevState, state);
-    } catch (err) {
-      Sentry.captureException(err, { fingerprint: 'analytics_middleware' });
-    }
-
-    return res;
-  };
-}
-
 function logAction(action, prevState, state) {
   if (typeof gtag !== 'function') {
     return;
@@ -108,6 +93,11 @@ function logAction(action, prevState, state) {
       ...params,
       traffic_type: 'ci',
     };
+  }
+
+  function tag(event, properties) {
+    gtag(event, properties);
+    sendEvent({ event, ...properties });
   }
 
   switch (action.type) {
@@ -251,9 +241,25 @@ function logAction(action, prevState, state) {
       return;
 
     case Types.ANALYTICS_EVENT:
-      gtag('event', action.name, {
+      tag(action.name, {
         ...params,
         ...action.parameters,
       });
   }
+}
+
+export function analyticsMiddleware({ getState }) {
+  return (next) => (action) => {
+    const prevState = getState();
+    const res = next(action);
+    const state = getState();
+
+    try {
+      logAction(action, prevState, state);
+    } catch (err) {
+      Sentry.captureException(err, { fingerprint: 'analytics_middleware' });
+    }
+
+    return res;
+  };
 }
