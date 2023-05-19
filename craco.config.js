@@ -62,9 +62,6 @@ module.exports = ({ env }) => {
     jest: {
       configure: (jestConfig) => ({
         ...jestConfig,
-        moduleNameMapper: {
-          '^@commaai/(.+)$': '<rootDir>/node_modules/@commaai/$1/dist/index.js',
-        },
         testPathIgnorePatterns: ['node_modules', 'src/__puppeteer__'],
         transformIgnorePatterns: ['node_modules/(?!(@commaai/(.+))/)'],
       }),
