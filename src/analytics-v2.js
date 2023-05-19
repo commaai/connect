@@ -16,14 +16,9 @@ async function reportEvent(event) {
 }
 
 async function sendToAnalytics(metric) {
-  const { name, id, rating, navigationType, value } = metric;
   await reportEvent({
     event: 'web_vitals',
-    id,
-    name,
-    value,
-    rating,
-    navigationType,
+    ...metric,
   });
 }
 
