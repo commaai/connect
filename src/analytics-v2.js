@@ -2,8 +2,15 @@ import { onCLS, onFID, onLCP } from 'web-vitals';
 
 import { getCommaAccessToken } from '@commaai/my-comma-auth/storage';
 
-const queue = new Set();
+const ATTRIBUTES = {
+  app: 'connect',
+  gitCommit: process.env.REACT_APP_GIT_SHA || 'dev',
+  environment: process.env.NODE_ENV || 'development',
+  ci: new URLSearchParams(window.location.search).get('ci') || false,
+};
+const RESERVED_KEYS = new Set(['_id', ...Object.keys(ATTRIBUTES)]);
 
+const queue = new Set();
 let counter = 0;
 
 function uniqueId() {
@@ -36,8 +43,13 @@ export function sendEvent(event) {
   if (!event.event) {
     throw new Error('Analytics event must have an event property');
   }
+  const collisions = Object.keys(event).filter((key) => RESERVED_KEYS.has(key));
+  if (collisions.length > 0) {
+    throw new Error(`Analytics event cannot have reserved keys ${collisions.join(', ')}`);
+  }
   queue.add({
     _id: uniqueId(),
+    ...ATTRIBUTES,
     ...event,
   });
 }

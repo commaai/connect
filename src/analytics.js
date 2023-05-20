@@ -63,10 +63,6 @@ function getVideoPercent(state, offset) {
 }
 
 function logAction(action, prevState, state) {
-  if (typeof gtag !== 'function') {
-    return;
-  }
-
   if (MyCommaAuth.isAuthenticated() && !state.profile) { // no startup data yet
     return;
   }
@@ -96,8 +92,13 @@ function logAction(action, prevState, state) {
   }
 
   function tag(event, properties) {
-    gtag(event, properties);
     sendEvent({ event, ...properties });
+    if (typeof gtag === 'function') {
+      gtag(event, {
+        ...params,
+        ...properties,
+      });
+    }
   }
 
   switch (action.type) {
@@ -241,10 +242,7 @@ function logAction(action, prevState, state) {
       return;
 
     case Types.ANALYTICS_EVENT:
-      tag(action.name, {
-        ...params,
-        ...action.parameters,
-      });
+      tag(action.name, action.parameters);
   }
 }
 
