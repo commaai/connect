@@ -4,7 +4,7 @@
   "scripts": {
     "start": "craco start",
     "build:development": "env-cmd .env.development craco build",
-    "build:production": "REACT_APP_GIT_SHA=`git rev-parse --short HEAD` env-cmd .env.production craco build",
+    "build:production": "REACT_APP_GIT_SHA=`git rev-parse HEAD` env-cmd .env.production craco build",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx src",
     "test": "craco test",
     "test-ci": "CI=true craco test",

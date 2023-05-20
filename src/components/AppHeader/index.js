@@ -137,8 +137,7 @@ class AppHeader extends Component {
       };
     }
 
-    const version = process.env.REACT_APP_GIT_SHA || 'dev';
-
+    const version = process.env.REACT_APP_GIT_SHA?.substring(0, 7) || 'dev';
     return (
       <>
         <ResizeHandler onResize={ this.onResize } />
