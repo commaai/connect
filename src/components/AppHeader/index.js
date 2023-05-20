@@ -123,12 +123,12 @@ class AppHeader extends Component {
   }
 
   render() {
-    const { profile, classes, annotating, showDrawerButton, primeNav, clips, dongleId } = this.props;
-    const { anchorEl } = this.state;
+    const { profile, classes, dispatch, annotating, forwardRef, showDrawerButton, primeNav, clips, dongleId } = this.props;
+    const { anchorEl, windowWidth } = this.state;
     const open = Boolean(anchorEl);
 
     let reorderWideStyle = {};
-    if (this.state.windowWidth < 640) {
+    if (windowWidth < 640) {
       reorderWideStyle = {
         order: 4,
         width: '100%',
@@ -142,7 +142,7 @@ class AppHeader extends Component {
       <>
         <ResizeHandler onResize={ this.onResize } />
         <AppBar position="sticky" elevation={ 1 }>
-          <div ref={ this.props.forwardRef } className={ classes.header }>
+          <div ref={ forwardRef } className={ classes.header }>
             <div className={classes.titleContainer}>
               { showDrawerButton ? (
                 <IconButton aria-label="menu" className={classes.hamburger} onClick={this.toggleDrawer}>
@@ -153,7 +153,7 @@ class AppHeader extends Component {
                   <a
                     href={ `/${dongleId}` }
                     className={ classes.logoImgLink }
-                    onClick={ filterRegularClick(() => this.props.dispatch(selectDevice(dongleId))) }
+                    onClick={ filterRegularClick(() => dispatch(selectDevice(dongleId))) }
                   >
                     <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
                   </a>
@@ -161,7 +161,7 @@ class AppHeader extends Component {
               <a
                 href={ `/${dongleId}` }
                 className={classes.logo}
-                onClick={ filterRegularClick(() => this.props.dispatch(selectDevice(dongleId))) }
+                onClick={ filterRegularClick(() => dispatch(selectDevice(dongleId))) }
               >
                 <Typography className={classes.logoText}>connect</Typography>
               </a>
