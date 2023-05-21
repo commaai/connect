@@ -41,7 +41,7 @@
     "raf": "^3.4.1",
     "react": "~18.2",
     "react-dom": "~18.2",
-    "react-map-gl": "^5.3.15",
+    "react-map-gl": "^7.0.23",
     "react-measure": "^2.5.2",
     "react-player": "^2.12.0",
     "react-redux": "^5.0.7",
@@ -52,6 +52,7 @@
     "reduce-reducers": "^1.0.4",
     "redux": "^4.2.0",
     "redux-thunk": "^2.4.1",
+    "viewport-mercator-project": "^7.0.4",
     "web-vitals": "^3.3.1"
   },
   "devDependencies": {

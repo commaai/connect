@@ -538,7 +538,7 @@ class Media extends Component {
     const mediaContainerStyle = showMapAlways ? { width: '60%' } : { width: '100%' };
     const mapContainerStyle = showMapAlways
       ? { width: '40%', marginBottom: 62, marginTop: 46, paddingLeft: 24 }
-      : { width: '100%' };
+      : { width: '100%', height: 300 };
 
     return (
       <div className={ classes.root }>
