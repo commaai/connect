@@ -1,4 +1,4 @@
-import { onCLS, onFID, onLCP } from 'web-vitals';
+import { onCLS, onFCP, onFID, onLCP, onTTFB } from 'web-vitals';
 
 import { getCommaAccessToken } from '@commaai/my-comma-auth/storage';
 
@@ -62,8 +62,10 @@ function sendToAnalytics(metric) {
 }
 
 onCLS(sendToAnalytics);
+onFCP(sendToAnalytics);
 onFID(sendToAnalytics);
 onLCP(sendToAnalytics);
+onTTFB(sendToAnalytics);
 
 // Report all available metrics whenever the page is backgrounded or unloaded.
 window.addEventListener('visibilitychange', () => {
