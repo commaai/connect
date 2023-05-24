@@ -285,14 +285,18 @@ class Timeline extends Component {
   }
 
   handlePointerUp(ev) {
-    ev.preventDefault();
+
+    // prevent preventDefault for back(3) and forward(4) mouse buttons
+    if (ev.button !== 3 && ev.button !== 4) {
+      ev.preventDefault();
+    }
+
     document.removeEventListener('pointerup', this.handlePointerUp);
     document.removeEventListener('pointermove', this.handlePointerMove);
     const { dragging } = this.state;
     if (!dragging) {
       return;
     }
-    ev.preventDefault();
     this.setState({ dragging: null });
 
     const rulerBounds = this.rulerRef.current.getBoundingClientRect();
