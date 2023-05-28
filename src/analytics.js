@@ -143,6 +143,11 @@ function logAction(action, prevState, state) {
         ...params,
         page_location: getPageViewEventLocation(window.location.pathname),
       });
+      sendEvent({
+        event: 'startup_device',
+        dongle_id: state.device?.dongle_id,
+        device_type: state.device?.device_type,
+      });
       return;
 
     case Types.ACTION_SELECT_DEVICE:
@@ -156,6 +161,11 @@ function logAction(action, prevState, state) {
         device_online: state.device ? deviceIsOnline(state.device) : undefined,
         device_sim_type: state.device?.sim_type,
         device_trial_claimed: state.device?.trial_claimed,
+      });
+      sendEvent({
+        event: 'select_device',
+        dongle_id: state.device?.dongle_id,
+        device_type: state.device?.device_type,
       });
 
       gtag('set', {
