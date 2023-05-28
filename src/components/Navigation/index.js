@@ -3,7 +3,9 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import debounce from 'debounce';
-import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
+import ReactMapGL, { GeolocateControl, Marker, Source, Layer } from 'react-map-gl';
+import { WebMercatorViewport } from 'viewport-mercator-project';
+import MapOverlay from './mapoverlay';
 import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress, Popper }
   from '@material-ui/core';
 import { Search, Clear, Refresh } from '@material-ui/icons';
@@ -305,6 +307,7 @@ class Navigation extends Component {
     this.overlayRef = React.createRef();
     this.carPinTooltipRef = React.createRef();
     this.navigateFakeButtonRef = React.createRef();
+    this.geolocateControlRef = React.createRef();
 
     this.checkWebGLSupport = this.checkWebGLSupport.bind(this);
     this.flyToMarkers = this.flyToMarkers.bind(this);
@@ -1012,24 +1015,25 @@ class Navigation extends Component {
           </div>
           )}
         <ReactMapGL
-          latitude={viewport.latitude}
-          longitude={viewport.longitude}
-          zoom={viewport.zoom}
-          bearing={viewport.bearing}
-          pitch={viewport.pitch}
+          initialViewState={{
+            longitude: viewport.longitude,
+            latitude: viewport.latitude,
+            zoom: viewport.zoom,
+          }}
+          onClick={e => this.geolocateControlRef.current && this.geolocateControlRef.current.trigger()}
           onViewportChange={this.viewportChange}
           onContextMenu={null}
           mapStyle={MAP_STYLE}
           width="100%"
           height="100%"
           onNativeClick={this.focus}
-          maxPitch={0}
-          mapboxApiAccessToken={MAPBOX_TOKEN}
+          mapboxAccessToken={MAPBOX_TOKEN}
           attributionControl={false}
           dragRotate={false}
           onError={(err) => this.setState({ mapError: err.error.message })}
         >
           <GeolocateControl
+            ref={this.geolocateControlRef}
             className={classes.geolocateControl}
             positionOptions={{ enableHighAccuracy: true }}
             showAccuracyCircle={false}
@@ -1038,6 +1042,7 @@ class Navigation extends Component {
             fitBoundsOptions={{ maxZoom: 10 }}
             trackUserLocation
             onViewportChange={() => {}}
+            style={{display: 'none'}}
           />
           { searchSelect && searchSelect.route
             && (
@@ -1133,7 +1138,7 @@ class Navigation extends Component {
           { searchSelect && this.renderSearchSelectMarker(searchSelect) }
           { hasNav
             && (
-            <HTMLOverlay
+            <MapOverlay
               redraw={ this.renderOverlay }
               style={{ ...cardStyle, top: 10 }}
               captureScroll
@@ -1145,7 +1150,7 @@ class Navigation extends Component {
             )}
           { searchSelect
             && (
-            <HTMLOverlay
+            <MapOverlay
               redraw={ this.renderSearchOverlay }
               captureScroll
               captureDrag
@@ -1157,7 +1162,7 @@ class Navigation extends Component {
             )}
           { search && searchLooking && !searchSelect
             && (
-            <HTMLOverlay
+            <MapOverlay
               redraw={ this.renderResearchArea }
               captureScroll
               captureDrag
@@ -1169,7 +1174,7 @@ class Navigation extends Component {
             )}
           { showPrimeAd && !hasNav && !device.prime && device.is_owner
             && (
-            <HTMLOverlay
+            <MapOverlay
               redraw={ this.renderPrimeAd }
               captureScroll
               captureDrag
