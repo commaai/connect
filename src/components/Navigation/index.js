@@ -1020,7 +1020,7 @@ class Navigation extends Component {
             latitude: viewport.latitude,
             zoom: viewport.zoom,
           }}
-          onLoad={e => this.geolocateControlRef.current && this.geolocateControlRef.current.trigger()}
+          onClick={e => this.geolocateControlRef.current && this.geolocateControlRef.current.trigger()}
           onViewportChange={this.viewportChange}
           onContextMenu={null}
           mapStyle={MAP_STYLE}
