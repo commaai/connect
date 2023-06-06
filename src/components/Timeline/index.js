@@ -16,7 +16,8 @@ import theme from '../../theme';
 import { getCurrentRoute } from '../../timeline/segments';
 import { selectRange } from '../../actions';
 import Colors from '../../colors';
-import { seek, currentOffset, selectLoop } from '../../timeline/playback';
+import { seek, selectLoop } from '../../timeline/playback';
+import { currentOffset } from '../../timeline/offset';
 import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({
