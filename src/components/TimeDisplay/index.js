@@ -12,7 +12,7 @@ import Pause from '@material-ui/icons/Pause';
 
 import { DownArrow, UpArrow, HistoryForwardIcon, HistoryBackIcon } from '../../icons';
 import { seek, play, pause } from '../../timeline/playback';
-import { currentOffset } from '../../timeline/offset';
+import { currentOffset } from '../../timeline';
 import { getSegmentNumber } from '../../utils';
 
 const timerSteps = [

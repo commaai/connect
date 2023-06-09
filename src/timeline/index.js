@@ -1,7 +1,7 @@
 import store from '../store';
 
 /**
- * fetch current playback offset
+ * determine current playback offset
  * @param {object} state
  * @returns {number}
  */
@@ -30,4 +30,20 @@ export function currentOffset(state = null) {
   }
 
   return offset;
+}
+
+/**
+ * determine current route from state
+ * @param {object} state
+ * @param {number} [offset]
+ * @returns {*|null}
+ */
+export function getCurrentRoute(state, offset) {
+  if (!state.routes) return null;
+
+  offset = offset || currentOffset(state);
+  if (!offset) return null;
+
+  return state.routes
+    .find((route) => offset >= route.offset && offset <= route.offset + route.duration);
 }

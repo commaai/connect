@@ -11,7 +11,7 @@ import { video as Video } from '@commaai/api';
 
 import Colors from '../../colors';
 import { seek, bufferVideo } from '../../timeline/playback';
-import { currentOffset } from '../../timeline/offset';
+import { currentOffset } from '../../timeline';
 import { updateSegments } from '../../timeline/segments';
 
 const styles = () => ({
