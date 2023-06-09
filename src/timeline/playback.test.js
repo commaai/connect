@@ -1,6 +1,7 @@
 /* eslint-env jest */
 const { asyncSleep } = require('../utils');
 const Playback = require('./playback');
+const { currentOffset } = require('./index');
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
@@ -60,7 +61,7 @@ describe('playback', () => {
     await asyncSleep(100 + Math.random() * 200);
     // should update offset, playback speed 1/2
     ellapsed += (newNow() - playTime) / 2;
-    expect(Playback.currentOffset(state)).toEqual(ellapsed);
+    expect(currentOffset(state)).toEqual(ellapsed);
     state = Playback.reducer(state, Playback.pause());
 
     expect(state.offset).toEqual(ellapsed);
@@ -70,7 +71,7 @@ describe('playback', () => {
     state = Playback.reducer(state, Playback.seek(123));
     expect(state.offset).toEqual(123);
     expect(state.startTime).toEqual(Date.now());
-    expect(Playback.currentOffset(state)).toEqual(123);
+    expect(currentOffset(state)).toEqual(123);
   });
 
   it('should clamp loop when seeked after loop end time', () => {
