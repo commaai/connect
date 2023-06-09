@@ -1,6 +1,7 @@
 /* eslint-env jest */
-const { asyncSleep } = require('../utils');
-const Playback = require('./playback');
+import { asyncSleep } from '../utils';
+import { currentOffset } from '.';
+import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
@@ -33,12 +34,12 @@ describe('playback', () => {
     let state = makeDefaultStruct();
 
     // should do nothing
-    state = Playback.reducer(state, Playback.pause());
+    state = reducer(state, pause());
     expect(state.desiredPlaySpeed).toEqual(0);
 
     // start playing, should set start time and such
     let playTime = newNow();
-    state = Playback.reducer(state, Playback.play());
+    state = reducer(state, play());
     // this is a (usually 1ms) race condition
     expect(state.startTime).toEqual(playTime);
     expect(state.desiredPlaySpeed).toEqual(1);
@@ -46,13 +47,13 @@ describe('playback', () => {
     await asyncSleep(100 + Math.random() * 200);
     // should update offset
     let ellapsed = newNow() - playTime;
-    state = Playback.reducer(state, Playback.pause());
+    state = reducer(state, pause());
 
     expect(state.offset).toEqual(ellapsed);
 
     // start playing, should set start time and such
     playTime = newNow();
-    state = Playback.reducer(state, Playback.play(0.5));
+    state = reducer(state, play(0.5));
     // this is a (usually 1ms) race condition
     expect(state.startTime).toEqual(playTime);
     expect(state.desiredPlaySpeed).toEqual(0.5);
@@ -60,17 +61,17 @@ describe('playback', () => {
     await asyncSleep(100 + Math.random() * 200);
     // should update offset, playback speed 1/2
     ellapsed += (newNow() - playTime) / 2;
-    expect(Playback.currentOffset(state)).toEqual(ellapsed);
-    state = Playback.reducer(state, Playback.pause());
+    expect(currentOffset(state)).toEqual(ellapsed);
+    state = reducer(state, pause());
 
     expect(state.offset).toEqual(ellapsed);
 
     // seek!
     newNow();
-    state = Playback.reducer(state, Playback.seek(123));
+    state = reducer(state, seek(123));
     expect(state.offset).toEqual(123);
     expect(state.startTime).toEqual(Date.now());
-    expect(Playback.currentOffset(state)).toEqual(123);
+    expect(currentOffset(state)).toEqual(123);
   });
 
   it('should clamp loop when seeked after loop end time', () => {
@@ -78,15 +79,15 @@ describe('playback', () => {
     let state = makeDefaultStruct();
 
     // set up loop
-    state = Playback.reducer(state, Playback.play());
-    state = Playback.reducer(state, Playback.selectLoop(
+    state = reducer(state, play());
+    state = reducer(state, selectLoop(
       state.filter.start + 1000,
       state.filter.start + 2000,
     ));
     expect(state.loop.startTime).toEqual(state.filter.start + 1000);
 
     // seek past loop end boundary a
-    state = Playback.reducer(state, Playback.seek(3000));
+    state = reducer(state, seek(3000));
     expect(state.loop.startTime).toEqual(state.filter.start + 1000);
     expect(state.offset).toEqual(2000);
   });
@@ -96,15 +97,15 @@ describe('playback', () => {
     let state = makeDefaultStruct();
 
     // set up loop
-    state = Playback.reducer(state, Playback.play());
-    state = Playback.reducer(state, Playback.selectLoop(
+    state = reducer(state, play());
+    state = reducer(state, selectLoop(
       state.filter.start + 1000,
       state.filter.start + 2000,
     ));
     expect(state.loop.startTime).toEqual(state.filter.start + 1000);
 
     // seek past loop end boundary a
-    state = Playback.reducer(state, Playback.seek(0));
+    state = reducer(state, seek(0));
     expect(state.loop.startTime).toEqual(state.filter.start + 1000);
     expect(state.offset).toEqual(1000);
   });
@@ -113,22 +114,22 @@ describe('playback', () => {
     newNow();
     let state = makeDefaultStruct();
 
-    state = Playback.reducer(state, Playback.play());
+    state = reducer(state, play());
     expect(state.desiredPlaySpeed).toEqual(1);
 
     // claim the video is buffering
-    state = Playback.reducer(state, Playback.bufferVideo(true));
+    state = reducer(state, bufferVideo(true));
     expect(state.desiredPlaySpeed).toEqual(1);
     expect(state.isBufferingVideo).toEqual(true);
 
-    state = Playback.reducer(state, Playback.play(0.5));
+    state = reducer(state, play(0.5));
     expect(state.desiredPlaySpeed).toEqual(0.5);
     expect(state.isBufferingVideo).toEqual(true);
 
     expect(state.desiredPlaySpeed).toEqual(0.5);
 
-    state = Playback.reducer(state, Playback.play(2));
-    state = Playback.reducer(state, Playback.bufferVideo(false));
+    state = reducer(state, play(2));
+    state = reducer(state, bufferVideo(false));
     expect(state.desiredPlaySpeed).toEqual(2);
     expect(state.isBufferingVideo).toEqual(false);
 

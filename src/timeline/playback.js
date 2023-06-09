@@ -1,34 +1,7 @@
 // basic helper functions for controlling playback
 // we shouldn't want to edit the raw state most of the time, helper functions are better
 import * as Types from '../actions/types';
-import store from '../store';
-
-// fetch current playback offset, relative to `state.filter.start`
-export function currentOffset(state = null) {
-  if (!state) {
-    state = store.getState();
-  }
-
-  let offset = null;
-  if (state.offset === null && state.loop?.startTime) {
-    offset = state.loop.startTime - state.filter.start;
-  } else {
-    const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
-  }
-
-  if (offset !== null && state.loop?.startTime) {
-    // respect the loop
-    const loopOffset = state.loop.startTime - state.filter.start;
-    if (offset < loopOffset) {
-      offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
-    }
-  }
-
-  return offset;
-}
+import { currentOffset } from '.';
 
 export function reducer(_state, action) {
   let state = { ..._state };

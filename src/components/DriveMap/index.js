@@ -7,7 +7,7 @@ import { withStyles } from '@material-ui/core/styles';
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
 import { MAPBOX_TOKEN } from '../../utils/geocode';
-import { currentOffset } from '../../timeline/playback';
+import { currentOffset } from '../../timeline';
 import { fetchDriveCoords } from '../../actions/cached';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';

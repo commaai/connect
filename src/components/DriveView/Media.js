@@ -19,7 +19,7 @@ import ResizeHandler from '../ResizeHandler';
 import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
 import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo, currentOffset } from '../../timeline/playback';
+import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { analyticsEvent, primeNav, updateRoute } from '../../actions';

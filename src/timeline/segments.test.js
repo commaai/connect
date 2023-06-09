@@ -1,5 +1,6 @@
 /* eslint-env jest */
-import { hasRoutesData, getCurrentRoute, SEGMENT_LENGTH } from './segments';
+import { getCurrentRoute } from '.';
+import { hasRoutesData, SEGMENT_LENGTH } from './segments';
 import { getSegmentNumber } from '../utils';
 
 const routes = [{
