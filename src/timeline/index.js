@@ -1,7 +1,8 @@
 import store from '../store';
 
 /**
- * determine current playback offset
+ * Get current playback offset, relative to `state.filter.start`
+ *
  * @param {object} state
  * @returns {number}
  */
@@ -33,7 +34,8 @@ export function currentOffset(state = null) {
 }
 
 /**
- * determine current route from state
+ * Get current route
+ *
  * @param {object} state
  * @param {number} [offset]
  * @returns {*|null}
