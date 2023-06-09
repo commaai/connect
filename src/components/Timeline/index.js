@@ -15,8 +15,8 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { selectRange } from '../../actions';
 import Colors from '../../colors';
-import { seek, selectLoop } from '../../timeline/playback';
 import { currentOffset, getCurrentRoute } from '../../timeline';
+import { seek, selectLoop } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({
