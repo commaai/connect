@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';
-import { withStyles } from '@material-ui/core/styles';
 
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
@@ -12,18 +11,6 @@ import { fetchDriveCoords } from '../../actions/cached';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 const INTERACTION_TIMEOUT = 5000;
-
-const styles = {
-  mapContainer: {
-    height: '100%',
-    cursor: 'default !important',
-    '& div': {
-      height: '100% !important',
-      width: '100% !important',
-      minHeight: 300,
-    },
-  },
-};
 
 class DriveMap extends Component {
   constructor(props) {
@@ -300,11 +287,11 @@ class DriveMap extends Component {
   }
 
   render() {
-    const { classes } = this.props;
     const { viewport } = this.state;
     return (
-      <div ref={this.onRef} className={classes.mapContainer}>
+      <div ref={this.onRef} className="h-full cursor-default">
         <ReactMapGL
+          className="min-h-[300px]"
           width="100%"
           height="100%"
           latitude={viewport.latitude}
@@ -331,4 +318,4 @@ const stateToProps = Obstruction({
   startTime: 'startTime',
 });
 
-export default connect(stateToProps)(withStyles(styles)(DriveMap));
+export default connect(stateToProps)(DriveMap);
