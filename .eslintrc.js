@@ -5,9 +5,7 @@ module.exports = {
     'plugin:react/jsx-runtime',
     'airbnb',
     'airbnb/hooks',
-  ],
-  plugins: [
-    'jest-dom',
+    'plugin:jest-dom/recommended',
   ],
   rules: {
     'import/prefer-default-export': 0,
