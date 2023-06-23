@@ -21,7 +21,7 @@ ENV GENERATE_SOURCEMAP false
 RUN pnpm build:production
 
 
-FROM nginx:1.22
+FROM nginx:1.24
 
 COPY config.js.template /etc/nginx/templates/config.js.template
 COPY nginx.conf /etc/nginx/conf.d/default.conf
