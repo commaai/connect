@@ -7,6 +7,7 @@ const config = {
     '!src/mocks/**',
   ],
   coveragePathIgnorePatterns: [],
+  setupFilesAfterEnv: ['<rootDir>/config/jest/setupTests.js'],
   testEnvironment: 'jsdom',
   testPathIgnorePatterns: ['node_modules', 'src/__puppeteer__'],
   transform: {

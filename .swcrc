@@ -9,9 +9,6 @@
       "react": {
         "runtime": "automatic",
         "development": false
-      },
-      "hidden": {
-        "jest": true
       }
     }
   },

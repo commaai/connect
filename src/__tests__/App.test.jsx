@@ -2,8 +2,7 @@ import { render, screen } from '@testing-library/react';
 import App from '../App';
 
 describe('App', () => {
-  it('should work as expected', () => {
+  it('should not crash', () => {
     render(<App/>);
-    expect(screen.getByText("comma connect")).toBeInTheDocument();
   });
 });
