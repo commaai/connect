@@ -295,7 +295,7 @@ class DriveMap extends Component {
           zoom={viewport.zoom}
           mapStyle={MAP_STYLE}
           maxPitch={0}
-          mapboxApiAccessToken={MAPBOX_TOKEN}
+          mapboxAccessToken={MAPBOX_TOKEN}
           ref={this.initMap}
           onContextMenu={null}
           dragRotate={false}

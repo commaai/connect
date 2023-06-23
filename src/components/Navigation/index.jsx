@@ -1022,7 +1022,7 @@ class Navigation extends Component {
           height="100%"
           onNativeClick={this.focus}
           maxPitch={0}
-          mapboxApiAccessToken={MAPBOX_TOKEN}
+          mapboxAccessToken={MAPBOX_TOKEN}
           attributionControl={false}
           dragRotate={false}
           onError={(err) => this.setState({ mapError: err.error.message })}
