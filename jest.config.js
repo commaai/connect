@@ -23,7 +23,7 @@ const config = {
   modulePaths: ['<rootDir>/src'],
   moduleNameMapper: {
     // '^react-native$': 'react-native-web',
-    // '^.+\\.module\\.(css|sass|scss)$': 'identity-obj-proxy',
+    '^.+\\.module\\.(css|sass|scss)$': 'identity-obj-proxy',
   },
   moduleFileExtensions: [
     // Place tsx and ts to beginning as suggestion from Jest team
