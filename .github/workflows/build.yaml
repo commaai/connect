@@ -42,7 +42,7 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           build-script: build:production
-          pattern: "./build/static/js/*.js"
+          pattern: "./dist/static/js/*.js"
           strip-hash: "\\b\\w{8}\\."
           minimum-change-threshold: 100
 
