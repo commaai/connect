@@ -1,4 +1,4 @@
-const config = require ('./jest-puppeteer.config');
+import config from './jest-puppeteer.config';
 
 config['server']['command'] = 'serve -s -l 3003 build';
 
