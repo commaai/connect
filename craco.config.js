@@ -64,5 +64,10 @@ module.exports = ({ env }) => {
         transformIgnorePatterns: ['node_modules/(?!(.*@commaai.*)/)'],
       }),
     },
+    style: {
+      postcss: {
+        mode: 'file',
+      },
+    },
   };
 };
