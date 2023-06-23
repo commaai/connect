@@ -6,8 +6,8 @@ import * as Demo from '../demo';
 import { ACTION_STARTUP_DATA } from './types';
 import { primeFetchSubscription, checkRoutesData, selectDevice, fetchSharedDevice } from '.';
 
-const demoProfile = require('../demo/profile.json');
-const demoDevices = require('../demo/devices.json');
+import demoProfile from '../demo/profile';
+import demoDevices from '../demo/devices';
 
 async function initProfile() {
   if (MyCommaAuth.isAuthenticated()) {
