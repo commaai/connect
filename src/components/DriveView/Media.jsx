@@ -86,9 +86,6 @@ const styles = () => ({
   mediaSource: {
     width: '100%',
   },
-  mediaSourceSelect: {
-    width: '100%',
-  },
   timeDisplay: {
     marginTop: 12,
   },

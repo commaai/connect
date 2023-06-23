@@ -22,12 +22,6 @@ const styles = () => ({
       maxWidth: '100%',
     },
   },
-  shopLink: {
-    display: 'inline-block',
-    marginTop: 8,
-    marginLeft: 16,
-    textDecoration: 'none',
-  },
   pairInstructions: {
     alignSelf: 'center',
     maxWidth: 600,

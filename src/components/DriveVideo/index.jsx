@@ -15,21 +15,11 @@ import { seek, bufferVideo } from '../../timeline/playback';
 import { updateSegments } from '../../timeline/segments';
 
 const styles = () => ({
-  hidden: {
-    display: 'none',
-  },
   videoContainer: {
     minHeight: 200,
     position: 'relative',
     maxWidth: 964,
     margin: '0 auto',
-  },
-  videoImage: {
-    height: 'auto',
-    position: 'absolute',
-    top: 0,
-    width: '100%',
-    zIndex: 1,
   },
   bufferingContainer: {
     zIndex: 50,
