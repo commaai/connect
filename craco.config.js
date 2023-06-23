@@ -4,8 +4,6 @@ const SentryCliPlugin = require('@sentry/webpack-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const zlib = require('zlib');
 
-const eslintConfig = require('./.eslintrc');
-
 module.exports = ({ env }) => {
   let sentryPlugin;
   if (env === 'production' && process.env.SENTRY_AUTH_TOKEN) {
@@ -37,7 +35,7 @@ module.exports = ({ env }) => {
   return {
     eslint: {
       enable: false,
-      config: eslintConfig,
+      config: require('./.eslintrc'),
     },
     webpack: {
       plugins: [
@@ -63,7 +61,7 @@ module.exports = ({ env }) => {
       configure: (jestConfig) => ({
         ...jestConfig,
         testPathIgnorePatterns: ['node_modules', 'src/__puppeteer__'],
-        transformIgnorePatterns: ['node_modules/(?!(@commaai/(.+))/)'],
+        transformIgnorePatterns: ['node_modules/(?!(.*@commaai.*)/)'],
       }),
     },
   };

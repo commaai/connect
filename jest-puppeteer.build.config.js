@@ -1,8 +1,5 @@
-module.exports = {
-  server: {
-    command: 'serve -s -l 3003 build',
-    port: 3003,
-    launchTimeout: 10000,
-    debug: true,
-  },
-};
+const config = require ('./jest-puppeteer.config');
+
+config['server']['command'] = 'serve -s -l 3003 build';
+
+module.exports = config;

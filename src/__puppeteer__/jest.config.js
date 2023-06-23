@@ -3,6 +3,8 @@ const cracoConfig = require('../../craco.config');
 
 const jestConfig = createJestConfig(cracoConfig({ env: process.env.NODE_ENV }));
 
+delete jestConfig['testEnvironment'];
+
 module.exports = {
   ...jestConfig,
   preset: 'jest-puppeteer',
