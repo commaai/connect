@@ -1,0 +1,21 @@
+{
+  "jsc": {
+    "target": "es2017",
+    "parser": {
+      "syntax": "ecmascript",
+      "jsx": true
+    },
+    "transform": {
+      "react": {
+        "runtime": "automatic",
+        "development": false
+      },
+      "hidden": {
+        "jest": true
+      }
+    }
+  },
+  "module": {
+    "type": "commonjs"
+  }
+}

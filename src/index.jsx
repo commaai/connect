@@ -17,11 +17,9 @@ if (window.SENTRY_ENV) {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render((
-  <React.StrictMode>
-    <MuiThemeProvider theme={Theme}>
-      <CssBaseline />
-      <App />
-      <ServiceWorkerWrapper />
-    </MuiThemeProvider>
-  </React.StrictMode>
+  <MuiThemeProvider theme={Theme}>
+    <CssBaseline />
+    <App />
+    <ServiceWorkerWrapper />
+  </MuiThemeProvider>
 ));
