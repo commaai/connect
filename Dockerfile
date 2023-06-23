@@ -8,10 +8,10 @@ WORKDIR /app
 FROM base AS build
 
 COPY ./pnpm-lock.yaml .
-RUN pnpm fetch --prod
+RUN pnpm fetch
 
 ADD . ./
-RUN pnpm install --offline --prod
+RUN pnpm install --offline
 
 ARG REACT_APP_GIT_SHA=production
 ARG SENTRY_AUTH_TOKEN
