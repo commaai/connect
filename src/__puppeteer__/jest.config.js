@@ -1,4 +1,4 @@
-import jestConfig from '../../jest.config';
+const jestConfig = require('../../jest.config');
 
 delete jestConfig['testEnvironment'];
 
