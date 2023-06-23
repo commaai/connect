@@ -1,8 +1,12 @@
 module.exports = {
   extends: [
-    'react-app',
+    'eslint:recommended',
+    'plugin:react/recommended',
     'airbnb',
     'airbnb/hooks',
+  ],
+  plugins: [
+    'jest-dom',
   ],
   rules: {
     'import/prefer-default-export': 0,

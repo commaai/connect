@@ -3,7 +3,7 @@ const height = 1200;
 
 module.exports = {
   launch: {
-    headless: "new",
+    headless: 'new',
     slowMo: 80,
     args: [`--window-size=${width},${height}`],
   },
