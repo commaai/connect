@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import debounce from 'debounce';
-import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
+import Map, { GeolocateControl, Marker, Source, Layer } from 'react-map-gl';
 import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress, Popper }
   from '@material-ui/core';
 import { Search, Clear, Refresh } from '@material-ui/icons';
@@ -18,6 +18,7 @@ import { PinCarIcon, PinMarkerIcon, PinHomeIcon, PinWorkIcon, PinPinnedIcon } fr
 import { timeFromNow } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
+import CustomOverlay from './CustomOverlay';
 import * as Utils from './utils';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
@@ -1007,7 +1008,7 @@ class Navigation extends Component {
             <Typography>{mapError}</Typography>
           </div>
           )}
-        <ReactMapGL
+        <Map
           latitude={viewport.latitude}
           longitude={viewport.longitude}
           zoom={viewport.zoom}
@@ -1129,7 +1130,7 @@ class Navigation extends Component {
           { searchSelect && this.renderSearchSelectMarker(searchSelect) }
           { hasNav
             && (
-            <HTMLOverlay
+            <CustomOverlay
               redraw={ this.renderOverlay }
               style={{ ...cardStyle, top: 10 }}
               captureScroll
@@ -1141,7 +1142,7 @@ class Navigation extends Component {
             )}
           { searchSelect
             && (
-            <HTMLOverlay
+            <CustomOverlay
               redraw={ this.renderSearchOverlay }
               captureScroll
               captureDrag
@@ -1153,7 +1154,7 @@ class Navigation extends Component {
             )}
           { search && searchLooking && !searchSelect
             && (
-            <HTMLOverlay
+            <CustomOverlay
               redraw={ this.renderResearchArea }
               captureScroll
               captureDrag
@@ -1165,7 +1166,7 @@ class Navigation extends Component {
             )}
           { showPrimeAd && !hasNav && !device.prime && device.is_owner
             && (
-            <HTMLOverlay
+            <CustomOverlay
               redraw={ this.renderPrimeAd }
               captureScroll
               captureDrag
@@ -1175,7 +1176,7 @@ class Navigation extends Component {
               style={{ ...cardStyle, top: 10, left: windowWidth < 600 ? 10 : 'auto', right: 10 }}
             />
             )}
-        </ReactMapGL>
+        </Map>
       </div>
     );
   }
