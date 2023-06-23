@@ -33,7 +33,16 @@ export default defineConfig(({ mode }) => {
       sentryPlugin,
     ].filter(Boolean),
     define: {
-      "process.env": JSON.stringify(env),
+      'process.env': JSON.stringify(env),
+    },
+    optimizeDeps: {
+      esbuildOptions: {
+        // Node.js global to browser globalThis
+        // Required for Material UI v1
+        define: {
+          global: 'globalThis',
+        },
+      },
     },
   };
 });
