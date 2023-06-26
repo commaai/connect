@@ -3,7 +3,7 @@
   "version": "0.8.0",
   "scripts": {
     "start": "vite",
-    "build:development": "env-cmd .env.development vite build",
+    "build:development": "env-cmd .env.development vite build --mode development",
     "build:production": "vite build",
     "serve": "vite preview",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx src",

@@ -103,7 +103,7 @@ jobs:
       - uses: docker/build-push-action@v4
         with:
           build-args: |
-            REACT_APP_GIT_SHA=${{ github.sha }}
+            VITE_APP_GIT_SHA=${{ github.sha }}
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
           builder: ${{ steps.buildx.outputs.name }}
           context: .
