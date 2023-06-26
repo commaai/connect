@@ -25,31 +25,12 @@ const styles = () => ({
     padding: 7.5,
     flexWrap: 'wrap',
   },
-  titleContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    flexWrap: 'nowrap',
-  },
-  hamburger: {
-    marginRight: 10,
-  },
-  logo: {
-    alignItems: 'center',
-    display: 'flex',
-    maxWidth: 200,
-    textDecoration: 'none',
-  },
   accountIcon: {
     color: Colors.white30,
     height: 34,
     width: 34,
   },
-  accountListItem: {
-    color: Colors.white,
-    padding: '12px 16px',
-  },
   accountListEmail: {
-    flexDirection: 'column',
     alignItems: 'flex-start',
     '& :first-child': {
       fontWeight: 'bold',
@@ -59,9 +40,6 @@ const styles = () => ({
       color: Colors.white40,
       paddingTop: 8,
     },
-  },
-  accountMenuItem: {
-    padding: '12px 16px',
   },
 });
 
@@ -131,9 +109,9 @@ class AppHeader extends Component {
         <ResizeHandler onResize={ this.onResize } />
         <AppBar position="sticky" elevation={ 1 }>
           <div ref={ forwardRef } className={ classes.header }>
-            <div className={classes.titleContainer}>
+            <div className="flex items-center flex-nowrap">
               { showDrawerButton ? (
-                <IconButton aria-label="menu" className={classes.hamburger} onClick={this.toggleDrawer}>
+                <IconButton aria-label="menu" onClick={this.toggleDrawer}>
                   <Icon>menu</Icon>
                 </IconButton>
               )
@@ -147,7 +125,7 @@ class AppHeader extends Component {
                 )}
               <a
                 href={ `/${dongleId}` }
-                className={classes.logo}
+                className={`items-center flex m-w-[200px] no-underline ml-2`}
                 onClick={ filterRegularClick(() => dispatch(selectDevice(dongleId))) }
               >
                 <p className="text-xl font-extrabold text-white">connect</p>
@@ -175,24 +153,21 @@ class AppHeader extends Component {
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         >
-          <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>
+          <ListItem className={`flex-col text-white py-3 px-4 ${classes.accountListEmail}`}>
             <span>{ profile.email }</span>
             <span>{ profile.user_id }</span>
             <span>{`Version: ${version}`}</span>
           </ListItem>
           <Divider />
           <MenuItem
-            className={ classes.accountMenuItem }
+            className="py-3 px-4"
             component="a"
             href="https://useradmin.comma.ai/"
             target="_blank"
           >
             Manage Account
           </MenuItem>
-          <MenuItem
-            className={ classes.accountMenuItem }
-            onClick={this.handleLogOut}
-          >
+          <MenuItem className="py-3 px-4" onClick={this.handleLogOut}>
             Log out
           </MenuItem>
         </Menu>
