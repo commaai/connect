@@ -4,8 +4,8 @@ import { getCommaAccessToken } from '@commaai/my-comma-auth/storage';
 
 const ATTRIBUTES = {
   app: 'connect',
-  gitCommit: process.env.REACT_APP_GIT_SHA || 'dev',
-  environment: process.env.NODE_ENV || 'development',
+  gitCommit: import.meta.env.VITE_APP_GIT_SHA || 'dev',
+  environment: import.meta.env.MODE || 'unknown',
   ci: new URLSearchParams(window.location.search).get('ci') || false,
 };
 const RESERVED_KEYS = new Set(['_id', ...Object.keys(ATTRIBUTES)]);

@@ -13,7 +13,7 @@ import { config as AuthConfig } from '@commaai/my-comma-auth';
 import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon } from '../icons';
 import Colors from '../colors';
 
-const demoDevices = require('../demo/devices.json');
+import demoDevices from '../demo/devices.json';
 
 const styles = () => ({
   baseContainer: {

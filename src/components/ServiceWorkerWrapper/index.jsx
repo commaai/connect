@@ -35,7 +35,7 @@ const ServiceWorkerWrapper = (props) => {
 
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
-    if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_SERVICEWORKER) {
+    if (import.meta.env.PROD && import.meta.env.VITE_APP_SERVICEWORKER) {
       console.log('[ServiceWorkerWrapper] Registering service worker...');
       register({
         // show update found message

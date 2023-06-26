@@ -70,7 +70,7 @@ function logAction(action, prevState, state) {
   let percent;
   let params = {};
 
-  if (process.env.NODE_ENV !== 'production') {
+  if (import.meta.env.DEV) {
     params = {
       ...params,
       debug_mode: true,

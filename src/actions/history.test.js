@@ -7,6 +7,12 @@ import { history } from '../store';
 import { onHistoryMiddleware } from './history';
 import * as actionsIndex from './index';
 
+jest.mock('./index', () => ({
+  selectDevice: jest.fn(),
+  selectRange: jest.fn(),
+  primeNav: jest.fn(),
+}));
+
 const create = (initialState) => {
   const store = {
     getState: jest.fn(() => initialState),
@@ -23,6 +29,10 @@ const create = (initialState) => {
 
   return { store, next, invoke };
 };
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
 describe('history middleware', () => {
   it('passes through non-function action', () => {
@@ -50,7 +60,7 @@ describe('history middleware', () => {
 
   it('should call select dongle with history', async () => {
     const fakeInner = { id: 'kahjfiowenv' };
-    actionsIndex.selectDevice = jest.fn(() => fakeInner);
+    actionsIndex.selectDevice.mockReturnValue(fakeInner);
 
     const { store, next, invoke } = create({
       dongleId: null,
@@ -74,7 +84,7 @@ describe('history middleware', () => {
 
   it('should call select zoom with history', async () => {
     const fakeInner = { id: 'asdfsd83242' };
-    actionsIndex.selectRange = jest.fn(() => fakeInner);
+    actionsIndex.selectRange.mockReturnValue(fakeInner);
 
     const { store, next, invoke } = create({
       dongleId: '0000aaaa0000aaaa',
@@ -99,8 +109,8 @@ describe('history middleware', () => {
   it('should call prime nav with history', async () => {
     const fakeInner = { id: 'n27u3n9va' };
     const fakeInner2 = { id: 'vmklxmsd' };
-    actionsIndex.selectRange = jest.fn(() => fakeInner);
-    actionsIndex.primeNav = jest.fn(() => fakeInner2);
+    actionsIndex.selectRange.mockReturnValue(fakeInner);
+    actionsIndex.primeNav.mockReturnValue(fakeInner2);
 
     const { store, next, invoke } = create({
       dongleId: '0000aaaa0000aaaa',

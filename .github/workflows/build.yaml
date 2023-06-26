@@ -2,6 +2,9 @@ name: build
 
 on:
   push:
+    branches:
+      - master
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -30,7 +33,7 @@ jobs:
       - name: Run unit tests
         run: pnpm test
 
-      - name: Run puppeteer tests
+      - name: Run end-to-end tests
         run: pnpm test-puppeteer-build
 
   bundle_size:
@@ -42,8 +45,8 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           build-script: build:production
-          pattern: "./build/static/js/*.js"
-          strip-hash: "\\b\\w{8}\\."
+          pattern: "./dist/assets/*.{css,js}"
+          strip-hash: "\\b-\\w{8}"
           minimum-change-threshold: 100
 
   lighthouse:
@@ -103,7 +106,7 @@ jobs:
       - uses: docker/build-push-action@v4
         with:
           build-args: |
-            REACT_APP_GIT_SHA=${{ github.sha }}
+            VITE_APP_GIT_SHA=${{ github.sha }}
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
           builder: ${{ steps.buildx.outputs.name }}
           context: .

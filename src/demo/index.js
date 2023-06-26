@@ -1,4 +1,4 @@
-const demoDevices = require('./devices.json');
+import demoDevices from './devices.json';
 
 export function isDemoDevice(dongleId) {
   return demoDevices.some((d) => d.dongle_id === dongleId);

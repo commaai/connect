@@ -1,5 +1,4 @@
 /* eslint-env jest */
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import Thumbnails from './thumbnails';
 
@@ -23,6 +22,7 @@ const heightWithBlackBorder = 120;
 
 describe('timeline thumbnails', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     percentToOffsetMock.mockImplementation((percent) => Math.round(percent * 30000));
     getCurrentRouteMock.mockImplementation((offset) => {
       if (offset < 1600 || offset > 20000) {

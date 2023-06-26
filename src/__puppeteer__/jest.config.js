@@ -1,12 +1,10 @@
-const { createJestConfig } = require('@craco/craco');
-const cracoConfig = require('../../craco.config');
-
-const jestConfig = createJestConfig(cracoConfig({ env: process.env.NODE_ENV }));
+const jestConfig = require('../../jest.config');
 
 delete jestConfig['testEnvironment'];
 
 module.exports = {
   ...jestConfig,
+  rootDir: '../../',
   preset: 'jest-puppeteer',
   setupFilesAfterEnv: [...jestConfig.setupFilesAfterEnv, 'expect-puppeteer'],
   testMatch: ['<rootDir>/src/__puppeteer__/**/*.test.{js,jsx,ts,tsx}'],

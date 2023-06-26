@@ -1,5 +1,9 @@
-const config = require ('./jest-puppeteer.config');
+const config = require('./jest-puppeteer.config');
 
-config['server']['command'] = 'serve -s -l 3003 build';
-
-module.exports = config;
+module.exports = {
+  ...config,
+  server: {
+    ...config['server'],
+    command: 'pnpm serve --port 3003',
+  },
+};
