@@ -4,20 +4,14 @@ import Obstruction from 'obstruction';
 import { Link } from 'react-router-dom';
 
 import { withStyles } from '@material-ui/core/styles';
-import Typography from '@material-ui/core/Typography';
 import Drawer from '@material-ui/core/Drawer';
+import Typography from '@material-ui/core/Typography';
 
 import DeviceList from '../Dashboard/DeviceList';
 
 import { selectDevice } from '../../actions';
 
 const styles = () => ({
-  logo: {
-    alignItems: 'center',
-    display: 'flex',
-    textDecoration: 'none',
-    minHeight: 64,
-  },
   logoImg: {
     height: 34,
     width: 18.9,
@@ -66,7 +60,7 @@ class AppDrawer extends Component {
         <div className={classes.drawerContent}>
           { !isPermanent
             && (
-              <Link to="/" className={ classes.logo }>
+              <Link to="/" className="items-center flex min-h-[64px] no-underline">
                 <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
                 <Typography className={ classes.logoText }>connect</Typography>
               </Link>
