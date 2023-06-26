@@ -1,3 +1,5 @@
+const cwd = process.cwd();
+
 /** @type {import('jest').Config} */
 const config = {
   roots: ['<rootDir>/src'],
@@ -11,7 +13,15 @@ const config = {
   testEnvironment: 'jsdom',
   testPathIgnorePatterns: ['node_modules', 'src/__puppeteer__'],
   transform: {
-    '^.+\\.(t|j)sx?$': '@swc/jest',
+    '^.+\\.(t|j)sx?$': [
+      'jest-chain-transform',
+      {
+        transformers: [
+          `${cwd}/config/jest/importMetaTransform.js`,
+          '@swc/jest',
+        ],
+      },
+    ],
     '^.+\\.css$': '<rootDir>/config/jest/cssTransform.js',
     '^(?!.*\\.(js|jsx|mjs|cjs|ts|tsx|css|json)$)': '<rootDir>/config/jest/fileTransform.js',
   },

@@ -172,6 +172,9 @@ devDependencies:
   jest:
     specifier: ^27.5.1
     version: 27.5.1
+  jest-chain-transform:
+    specifier: ^0.0.5
+    version: 0.0.5(@jest/transform@27.5.1)
   jest-environment-jsdom:
     specifier: ^27.5.1
     version: 27.5.1
@@ -4390,6 +4393,14 @@ packages:
     dependencies:
       html-escaper: 2.0.2
       istanbul-lib-report: 3.0.0
+    dev: true
+
+  /jest-chain-transform@0.0.5(@jest/transform@27.5.1):
+    resolution: {integrity: sha512-5lmLEPg2Ygm5m+KqXx6pFAPTHATxLoL472r0Shv1261jMWr83EwucDfsnVFWhjCBdNxCH4fM/HXWGdrTQC0NcA==}
+    peerDependencies:
+      '@jest/transform': ^27.0.6
+    dependencies:
+      '@jest/transform': 27.5.1
     dev: true
 
   /jest-changed-files@27.5.1:
