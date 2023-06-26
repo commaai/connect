@@ -39,9 +39,6 @@ const styles = () => ({
     maxWidth: 200,
     textDecoration: 'none',
   },
-  logoImgLink: {
-    lineHeight: 0,
-  },
   accountIcon: {
     color: Colors.white30,
     height: 34,
@@ -143,7 +140,6 @@ class AppHeader extends Component {
                 : (
                   <a
                     href={ `/${dongleId}` }
-                    className={ classes.logoImgLink }
                     onClick={ filterRegularClick(() => dispatch(selectDevice(dongleId))) }
                   >
                     <img alt="comma" src="/images/comma-white.png" className="h-[34px] mx-7" />

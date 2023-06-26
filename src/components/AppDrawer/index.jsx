@@ -3,23 +3,11 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { Link } from 'react-router-dom';
 
-import { withStyles } from '@material-ui/core/styles';
 import Drawer from '@material-ui/core/Drawer';
-import Typography from '@material-ui/core/Typography';
 
 import DeviceList from '../Dashboard/DeviceList';
 
 import { selectDevice } from '../../actions';
-
-const styles = () => ({
-  drawerContent: {
-    height: '100%',
-    width: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    background: 'linear-gradient(180deg, #1B2023 0%, #111516 100%)',
-  },
-});
 
 class AppDrawer extends Component {
   constructor(props) {
@@ -48,7 +36,7 @@ class AppDrawer extends Component {
         variant={ isPermanent ? 'permanent' : 'temporary' }
         PaperProps={{ style: { width: this.props.width, top: 'auto' } }}
       >
-        <div className={classes.drawerContent}>
+        <div className="h-full w-full flex flex-col bg-[linear-gradient(180deg,_#1B2023_0%,_#111516_100%)]">
           { !isPermanent
             && (
               <Link to="/" className="items-center flex min-h-[64px] no-underline">
@@ -73,4 +61,4 @@ const stateToProps = Obstruction({
   device: 'device',
 });
 
-export default connect(stateToProps)(withStyles(styles)(AppDrawer));
+export default connect(stateToProps)(AppDrawer);
