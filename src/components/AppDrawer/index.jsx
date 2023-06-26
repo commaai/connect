@@ -4,14 +4,30 @@ import Obstruction from 'obstruction';
 import { Link } from 'react-router-dom';
 
 import { withStyles } from '@material-ui/core/styles';
-import Drawer from '@material-ui/core/Drawer';
+import 'mapbox-gl/src/css/mapbox-gl.css';
 import Typography from '@material-ui/core/Typography';
+import Drawer from '@material-ui/core/Drawer';
 
 import DeviceList from '../Dashboard/DeviceList';
 
 import { selectDevice } from '../../actions';
 
 const styles = () => ({
+  logo: {
+    alignItems: 'center',
+    display: 'flex',
+    textDecoration: 'none',
+    minHeight: 64,
+  },
+  logoImg: {
+    height: 34,
+    width: 18.9,
+    margin: '0px 28px',
+  },
+  logoText: {
+    fontSize: 20,
+    fontWeight: 800,
+  },
   drawerContent: {
     height: '100%',
     width: '100%',
@@ -51,9 +67,9 @@ class AppDrawer extends Component {
         <div className={classes.drawerContent}>
           { !isPermanent
             && (
-              <Link to="/" className="items-center flex min-h-[64px] no-underline">
-                <img alt="comma" src="/images/comma-white.png" className="h-[34px] mx-7" />
-                <p className="text-xl font-extrabold">connect</p>
+              <Link to="/" className={ classes.logo }>
+                <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+                <Typography className={ classes.logoText }>connect</Typography>
               </Link>
             )}
           { isPermanent && <div style={{ height: 24 }} /> }
