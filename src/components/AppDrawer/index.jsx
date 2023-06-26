@@ -4,7 +4,6 @@ import Obstruction from 'obstruction';
 import { Link } from 'react-router-dom';
 
 import { withStyles } from '@material-ui/core/styles';
-import 'mapbox-gl/src/css/mapbox-gl.css';
 import Typography from '@material-ui/core/Typography';
 import Drawer from '@material-ui/core/Drawer';
 
