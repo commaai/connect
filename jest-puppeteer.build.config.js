@@ -1,5 +1,9 @@
-import config from './jest-puppeteer.config';
+const config = require('./jest-puppeteer.config');
 
-config['server']['command'] = 'pnpm serve --port 3003';
-
-module.exports = config;
+module.exports = {
+  ...config,
+  server: {
+    ...config['server'],
+    command: 'pnpm serve --port 3003',
+  },
+};
