@@ -1,5 +1,5 @@
 import config from './jest-puppeteer.config';
 
-config['server']['command'] = 'serve -s -l 3003 build';
+config['server']['command'] = 'pnpm serve --port 3003';
 
 module.exports = config;

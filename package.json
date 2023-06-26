@@ -12,7 +12,7 @@
     "test-puppeteer": "jest -c src/__puppeteer__/jest.config.js",
     "test-puppeteer-build": "JEST_PUPPETEER_CONFIG=jest-puppeteer.build.config.js pnpm test-puppeteer"
   },
-  "repository": "git@github.com:commaai/connect.git",
+  "repository": "https://github.com/commaai/connect.git",
   "author": "Chris Vickery <chrisinajar@gmail.com>",
   "contributors": [
     "Joost Wooning <jwooning@gmail.com>",
@@ -79,11 +79,10 @@
     "identity-obj-proxy": "^3.0.0",
     "jest": "^27.5.1",
     "jest-environment-jsdom": "^27.5.1",
-    "jest-environment-puppeteer": "^9.0.0",
-    "jest-puppeteer": "^9.0.0",
-    "puppeteer": "^20.7.2",
+    "jest-environment-puppeteer": "^6.2.0",
+    "jest-puppeteer": "^6.2.0",
+    "puppeteer": "^19.11.1",
     "react-test-renderer": "^18.2.0",
-    "serve": "^14.2.0",
     "vite": "^4.3.9",
     "vite-plugin-svgr": "^3.2.0",
     "whatwg-fetch": "^3.6.2"

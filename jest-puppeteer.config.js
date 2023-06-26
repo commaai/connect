@@ -8,7 +8,7 @@ module.exports = {
     args: [`--window-size=${width},${height}`],
   },
   server: {
-    command: 'PORT=3003 env-cmd .env.development craco start',
+    command: 'env-cmd .env.development pnpm start --port 3003',
     port: 3003,
     launchTimeout: 15000,
     debug: true,
