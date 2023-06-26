@@ -20,6 +20,9 @@
     "Cameron Clough <cameronjclough@gmail.com>"
   ],
   "private": true,
+  "engines": {
+    "node": ">=16"
+  },
   "dependencies": {
     "@commaai/api": "github:commaai/comma-api#3.0.1",
     "@commaai/my-comma-auth": "^1.4.1",
