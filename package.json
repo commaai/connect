@@ -9,7 +9,8 @@
     "lint": "eslint --ext .js,.jsx,.ts,.tsx src",
     "test": "jest",
     "test-coverage": "jest --coverage",
-    "test-e2e": "jest -c src/__puppeteer__/jest.config.js"
+    "test-puppeteer": "jest -c src/__puppeteer__/jest.config.js",
+    "test-puppeteer-build": "JEST_PUPPETEER_CONFIG=jest-puppeteer.build.config.js pnpm test-puppeteer"
   },
   "repository": "https://github.com/commaai/connect.git",
   "author": "Chris Vickery <chrisinajar@gmail.com>",
