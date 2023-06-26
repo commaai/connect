@@ -2,20 +2,13 @@ import React, { lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
-import { CircularProgress, Grid, withStyles } from '@material-ui/core';
+import { CircularProgress, Grid } from '@material-ui/core';
 
 import DriveList from './DriveList';
 import Navigation from '../Navigation';
 import DeviceInfo from '../DeviceInfo';
 
 const Prime = lazy(() => import('../Prime'));
-
-const styles = () => ({
-  base: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-});
 
 const DashboardLoading = () => (
   <Grid container alignItems="center" style={{ width: '100%', height: '100vh' }}>
@@ -25,13 +18,13 @@ const DashboardLoading = () => (
   </Grid>
 );
 
-const Dashboard = ({ classes, primeNav, device, dongleId }) => {
+const Dashboard = ({ primeNav, device, dongleId }) => {
   if (!device || !dongleId) {
     return null;
   }
 
   return (
-    <div className={classes.base}>
+    <div className="flex flex-col">
       <Suspense fallback={<DashboardLoading />}>
         { primeNav
           ? <Prime />
@@ -53,4 +46,4 @@ const stateToProps = Obstruction({
   device: 'device',
 });
 
-export default connect(stateToProps)(withStyles(styles)(Dashboard));
+export default connect(stateToProps)(Dashboard);

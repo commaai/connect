@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { CircularProgress, Typography, withStyles } from '@material-ui/core';
+import { CircularProgress, Typography } from '@material-ui/core';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import debounce from 'debounce';
 import Obstruction from 'obstruction';
@@ -13,37 +13,6 @@ import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
 import { seek, bufferVideo } from '../../timeline/playback';
 import { updateSegments } from '../../timeline/segments';
-
-const styles = () => ({
-  hidden: {
-    display: 'none',
-  },
-  videoContainer: {
-    minHeight: 200,
-    position: 'relative',
-    maxWidth: 964,
-    margin: '0 auto',
-  },
-  videoImage: {
-    height: 'auto',
-    position: 'absolute',
-    top: 0,
-    width: '100%',
-    zIndex: 1,
-  },
-  bufferingContainer: {
-    zIndex: 50,
-    position: 'absolute',
-    height: '100%',
-    width: '100%',
-    backgroundColor: '#16181Aaa',
-  },
-  bufferingSpinner: {
-    position: 'relative',
-    textAlign: 'center',
-    top: 'calc(50% - 25px)',
-  },
-});
 
 class DriveVideo extends Component {
   constructor(props) {
@@ -234,11 +203,11 @@ class DriveVideo extends Component {
     const { classes, desiredPlaySpeed: playSpeed, dispatch, isBufferingVideo } = this.props;
     const { src, videoError } = this.state;
     return (
-      <div className={ classes.videoContainer }>
+      <div className="min-h-[200px] relative max-w-[964px] m-[0_auto]">
         {(isBufferingVideo || videoError)
           && (
-            <div className={classes.bufferingContainer}>
-              <div className={classes.bufferingSpinner}>
+            <div className="z-50 absolute h-full w-full bg-[#16181AAA]">
+              <div className="relative text-center top-[calc(50%_-_25px)]">
                 {isBufferingVideo
                   ? <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />
                   : (
@@ -284,4 +253,4 @@ const stateToProps = Obstruction({
   currentRoute: 'currentRoute',
 });
 
-export default connect(stateToProps)(withStyles(styles)(DriveVideo));
+export default connect(stateToProps)(DriveVideo);

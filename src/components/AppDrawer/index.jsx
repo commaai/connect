@@ -13,16 +13,6 @@ import DeviceList from '../Dashboard/DeviceList';
 import { selectDevice } from '../../actions';
 
 const styles = () => ({
-  header: {
-    display: 'flex',
-    height: 64,
-    minHeight: 64,
-  },
-  window: {
-    display: 'flex',
-    flexGrow: 1,
-    minHeight: 0,
-  },
   logo: {
     alignItems: 'center',
     display: 'flex',
@@ -44,16 +34,6 @@ const styles = () => ({
     display: 'flex',
     flexDirection: 'column',
     background: 'linear-gradient(180deg, #1B2023 0%, #111516 100%)',
-  },
-  sidebarHeader: {
-    alignItems: 'center',
-    padding: 14.5,
-    color: '#fff',
-    display: 'flex',
-    width: '100%',
-    paddingLeft: 0,
-    backgroundColor: '#1D2225',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
   },
 });
 
