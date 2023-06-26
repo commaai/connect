@@ -1,18 +1,9 @@
-import React from 'react';
-import { Grid, Typography, withStyles } from '@material-ui/core';
+import { Grid, Typography } from '@material-ui/core';
 
-import { useWindowWidth } from '../../hooks/window';
 import { hasRoutesData } from '../../timeline/segments';
 
-const styles = () => ({
-  zeroState: {
-    flex: '0',
-  },
-});
-
 const DriveListEmpty = (props) => {
-  const windowWidth = useWindowWidth();
-  const { classes, device, routes } = props;
+  const { device, routes } = props;
   let zeroRidesEle = null;
 
   if (device && routes === null) {
@@ -23,12 +14,11 @@ const DriveListEmpty = (props) => {
     );
   }
 
-  const containerPadding = windowWidth > 520 ? 36 : 16;
   return (
-    <Grid container className={classes.zeroState} style={{ padding: `16px ${containerPadding}px` }}>
+    <Grid container className="flex-grow-0 px-4 py-4 sm:py-9">
       {zeroRidesEle}
     </Grid>
   );
 };
 
-export default withStyles(styles)(DriveListEmpty);
+export default DriveListEmpty;
