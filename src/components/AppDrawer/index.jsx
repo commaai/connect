@@ -12,15 +12,6 @@ import DeviceList from '../Dashboard/DeviceList';
 import { selectDevice } from '../../actions';
 
 const styles = () => ({
-  logoImg: {
-    height: 34,
-    width: 18.9,
-    margin: '0px 28px',
-  },
-  logoText: {
-    fontSize: 20,
-    fontWeight: 800,
-  },
   drawerContent: {
     height: '100%',
     width: '100%',
@@ -61,8 +52,8 @@ class AppDrawer extends Component {
           { !isPermanent
             && (
               <Link to="/" className="items-center flex min-h-[64px] no-underline">
-                <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
-                <Typography className={ classes.logoText }>connect</Typography>
+                <img alt="comma" src="/images/comma-white.png" className="h-[34px] mx-7" />
+                <p className="text-xl font-extrabold">connect</p>
               </Link>
             )}
           { isPermanent && <div style={{ height: 24 }} /> }

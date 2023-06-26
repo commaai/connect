@@ -42,15 +42,6 @@ const styles = () => ({
   logoImgLink: {
     lineHeight: 0,
   },
-  logoImg: {
-    height: 34,
-    width: 18.9,
-    margin: '0px 28px',
-  },
-  logoText: {
-    fontSize: 20,
-    fontWeight: 800,
-  },
   accountIcon: {
     color: Colors.white30,
     height: 34,
@@ -155,7 +146,7 @@ class AppHeader extends Component {
                     className={ classes.logoImgLink }
                     onClick={ filterRegularClick(() => dispatch(selectDevice(dongleId))) }
                   >
-                    <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+                    <img alt="comma" src="/images/comma-white.png" className="h-[34px] mx-7" />
                   </a>
                 )}
               <a
@@ -163,7 +154,7 @@ class AppHeader extends Component {
                 className={classes.logo}
                 onClick={ filterRegularClick(() => dispatch(selectDevice(dongleId))) }
               >
-                <Typography className={classes.logoText}>connect</Typography>
+                <p className="text-xl font-extrabold text-white">connect</p>
               </a>
             </div>
             <div className={ classes.headerWideItem } style={ reorderWideStyle }>
