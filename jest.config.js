@@ -11,7 +11,7 @@ const config = {
   testEnvironment: 'jsdom',
   testPathIgnorePatterns: ['node_modules', 'src/__puppeteer__'],
   transform: {
-    '^.+\\.(ts|js|tsx|jsx)$': '@swc/jest',
+    '^.+\\.(t|j)sx?$': '@swc/jest',
     '^.+\\.css$': '<rootDir>/config/jest/cssTransform.js',
     '^(?!.*\\.(js|jsx|mjs|cjs|ts|tsx|css|json)$)': '<rootDir>/config/jest/fileTransform.js',
   },
