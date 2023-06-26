@@ -3,39 +3,14 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import fecha from 'fecha';
 
-import { withStyles, IconButton, Typography } from '@material-ui/core';
-import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
-import CloseIcon from '@material-ui/icons/Close';
-
-import Media from './Media';
-import Timeline from '../Timeline';
+import Typography from '@material-ui/core/Typography';
 
 import { selectRange } from '../../actions';
-import ResizeHandler from '../ResizeHandler';
-import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
-
-const styles = () => ({
-  window: {
-    background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
-    borderRadius: 8,
-    display: 'flex',
-    flexDirection: 'column',
-    margin: 18,
-  },
-  headerContext: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    display: 'flex',
-    padding: 12,
-  },
-  headerInfo: {
-    color: Colors.white,
-    fontSize: 18,
-    fontWeight: 500,
-    paddingLeft: 12,
-  },
-});
+import ConnectWindow from '../ConnectWindow';
+import ResizeHandler from '../ResizeHandler';
+import Timeline from '../Timeline';
+import Media from './Media';
 
 class DriveView extends Component {
   constructor(props) {
@@ -58,9 +33,8 @@ class DriveView extends Component {
   }
 
   render() {
-    const { classes, dongleId, zoom, routes } = this.props;
+    const { zoom, routes } = this.props;
     const { windowWidth } = this.state;
-    const viewerPadding = windowWidth < 768 ? 12 : 32;
 
     const viewEndTime = fecha.format(new Date(zoom.end), 'HH:mm');
     const startTime = fecha.format(new Date(zoom.start), 'MMM D @ HH:mm');
@@ -73,31 +47,18 @@ class DriveView extends Component {
     return (
       <>
         <ResizeHandler onResize={ this.onResize } />
-        <div className={classes.window}>
-          <div>
-            <div className={classes.headerContext}>
-              <IconButton aria-label="Go Back" onClick={ () => window.history.back() }>
-                <KeyboardBackspaceIcon />
-              </IconButton>
-              <div className={ classes.headerInfo }>
-                { headerText }
-              </div>
-              <IconButton
-                onClick={ filterRegularClick(this.close) }
-                aria-label="Close"
-                href={ `/${dongleId}` }
-              >
-                <CloseIcon />
-              </IconButton>
-            </div>
-            <Timeline className={classes.headerTimeline} thumbnailsVisible hasRuler />
-          </div>
-          <div style={{ padding: viewerPadding }}>
+        <ConnectWindow
+          title={headerText}
+          onBack={() => window.history.back()}
+          onClose={() => filterRegularClick(this.close)}
+        >
+          <Timeline thumbnailsVisible hasRuler />
+          <div className="p-3 md:p-8">
             { (routes && routes.length === 0)
               ? <Typography>Route does not exist.</Typography>
               : <Media /> }
           </div>
-        </div>
+        </ConnectWindow>
       </>
     );
   }
@@ -109,4 +70,4 @@ const stateToProps = Obstruction({
   zoom: 'zoom',
 });
 
-export default connect(stateToProps)(withStyles(styles)(DriveView));
+export default connect(stateToProps)(DriveView);
