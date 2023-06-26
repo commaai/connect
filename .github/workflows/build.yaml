@@ -33,7 +33,7 @@ jobs:
       - name: Run unit tests
         run: pnpm test
 
-      - name: Run puppeteer tests
+      - name: Run e2e tests
         run: pnpm test-puppeteer-build
 
   bundle_size:
