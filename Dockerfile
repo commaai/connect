@@ -25,7 +25,7 @@ FROM nginx:1.24
 
 COPY config.js.template /etc/nginx/templates/config.js.template
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/build /usr/share/nginx/html
+COPY --from=build /app/dist /usr/share/nginx/html
 
 ENV NGINX_ENVSUBST_OUTPUT_DIR /usr/share/nginx/html
 
