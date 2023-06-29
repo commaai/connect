@@ -14,6 +14,27 @@ import { currentOffset } from '../../timeline';
 import { seek, bufferVideo } from '../../timeline/playback';
 import { updateSegments } from '../../timeline/segments';
 
+const VideoOverlay = ({ loading, error }) => {
+  let content;
+  if (error) {
+    content = (
+      <>
+        <ErrorOutlineIcon />
+        <Typography>{error}</Typography>
+      </>
+    );
+  } else if (loading) {
+    content = <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />
+  }
+  return (
+    <div className="z-50 absolute h-full w-full bg-[#16181AAA]">
+      <div className="relative text-center top-[calc(50%_-_25px)]">
+        {content}
+      </div>
+    </div>
+  );
+}
+
 class DriveVideo extends Component {
   constructor(props) {
     super(props);
@@ -204,21 +225,7 @@ class DriveVideo extends Component {
     const { src, videoError } = this.state;
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto]">
-        {(isBufferingVideo || videoError)
-          && (
-            <div className="z-50 absolute h-full w-full bg-[#16181AAA]">
-              <div className="relative text-center top-[calc(50%_-_25px)]">
-                {isBufferingVideo
-                  ? <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />
-                  : (
-                    <>
-                      <ErrorOutlineIcon />
-                      <Typography>{videoError}</Typography>
-                    </>
-                  )}
-              </div>
-            </div>
-          )}
+        <VideoOverlay loading={isBufferingVideo} error={videoError} />
         <ReactPlayer
           ref={ this.videoPlayer }
           url={ src }
