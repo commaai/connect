@@ -19,7 +19,7 @@ const VideoOverlay = ({ loading, error }) => {
   if (error) {
     content = (
       <>
-        <ErrorOutlineIcon />
+        <ErrorOutlineIcon className="mb-2" />
         <Typography>{error}</Typography>
       </>
     );
