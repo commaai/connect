@@ -144,7 +144,6 @@ class DriveVideo extends Component {
     const { dispatch } = this.props;
     dispatch(bufferVideo(true));
 
-    console.log("onVideoError", { msg, e });
     if (e.type === "mediaError" && e.details === "bufferStalledError") {
       return;
     } else if (e.type === "networkError") {
