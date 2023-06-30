@@ -223,7 +223,7 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { desiredPlaySpeed: playSpeed, dispatch, isBufferingVideo } = this.props;
+    const { desiredPlaySpeed, dispatch, isBufferingVideo } = this.props;
     const { src, videoError } = this.state;
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
@@ -235,9 +235,9 @@ class DriveVideo extends Component {
           muted
           width="100%"
           height="unset"
-          playing={ Boolean(this.visibleRoute()) && Boolean(playSpeed) }
+          playing={ Boolean(this.visibleRoute()) && Boolean(desiredPlaySpeed) }
           config={{ hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false } }}
-          playbackRate={ playSpeed }
+          playbackRate={ desiredPlaySpeed }
           onBuffer={ this.onVideoBuffering }
           onBufferEnd={() => {
             dispatch(bufferVideo(false));
