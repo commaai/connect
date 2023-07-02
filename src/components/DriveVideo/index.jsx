@@ -212,6 +212,16 @@ class DriveVideo extends Component {
     if (internalPlayer.playbackRate !== newPlaybackRate) {
       internalPlayer.playbackRate = newPlaybackRate;
     }
+
+    // pausing and unpausing is required on some browsers
+    if (internalPlayer.paused && internalPlayer.playbackRate !== 0 && hasSufficientBuffer) {
+      const playRes = internalPlayer.play();
+      if (playRes) {
+        playRes.catch(() => console.log('play interrupted by pause'));
+      }
+    } else if (!internalPlayer.paused && internalPlayer.playbackRate === 0) {
+      internalPlayer.pause();
+    }
   }
 
   currentVideoTime(offset = currentOffset()) {
