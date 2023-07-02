@@ -128,7 +128,7 @@ class DriveVideo extends Component {
       e = msg;
       msg = e.message;
     }
-    if (e.name === "AbortError") {
+    if (e.name === 'AbortError') {
       // ignore
       return;
     }
@@ -144,9 +144,9 @@ class DriveVideo extends Component {
     const { dispatch } = this.props;
     dispatch(bufferVideo(true));
 
-    if (e.type === "mediaError" && e.details === "bufferStalledError") {
+    if (e.type === 'mediaError' && e.details === 'bufferStalledError') {
       return;
-    } else if (e.type === "networkError") {
+    } else if (e.type === 'networkError') {
       console.error('Network error', { msg, e });
       this.setState({ videoError: 'Unable to load video. Check network connection.'});
       return;
