@@ -12,12 +12,6 @@ import { IosShareIcon } from '../../icons';
 import ResizeHandler from '../ResizeHandler';
 
 const styles = () => ({
-  container: {
-    position: 'fixed',
-    bottom: 10,
-    left: 10,
-    right: 10,
-  },
   box: {
     margin: '0 auto',
     borderRadius: 22,
@@ -128,7 +122,7 @@ class IosPwaPopup extends Component {
     return (
       <>
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
-        <div className={ classes.container }>
+        <div className="fixed bottom-3 left-3 right-3 z-20">
           <div className={ classes.box } style={{ width: boxWidth }}>
             <Clear className={ classes.hide } onClick={ this.hide } />
             <Typography className={ classes.title }>Add to home screen</Typography>
