@@ -5,12 +5,12 @@ import raf from 'raf';
 import fecha from 'fecha';
 
 import { withStyles } from '@material-ui/core/styles';
-import Forward from '@material-ui/icons/Forward10';
-import Replay from '@material-ui/icons/Replay10';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
+import Forward from '@material-ui/icons/Forward10';
 import PlayArrow from '@material-ui/icons/PlayArrow';
 import Pause from '@material-ui/icons/Pause';
+import Replay from '@material-ui/icons/Replay10';
 
 import { DownArrow, UpArrow } from '../../icons';
 import { currentOffset } from '../../timeline';
