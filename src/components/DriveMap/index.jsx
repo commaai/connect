@@ -289,9 +289,8 @@ class DriveMap extends Component {
   render() {
     const { viewport } = this.state;
     return (
-      <div ref={this.onRef} className="h-full cursor-default">
+      <div ref={this.onRef} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
         <ReactMapGL
-          className="min-h-[300px]"
           width="100%"
           height="100%"
           latitude={viewport.latitude}

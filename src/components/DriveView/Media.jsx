@@ -86,9 +86,6 @@ const styles = () => ({
   mediaSource: {
     width: '100%',
   },
-  timeDisplay: {
-    marginTop: 12,
-  },
   menuLoading: {
     position: 'absolute',
     outline: 'none',
@@ -538,28 +535,25 @@ class Media extends Component {
       : { width: '100%' };
 
     return (
-      <div className={ classes.root }>
-        <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
-        <div style={ mediaContainerStyle }>
-          { this.renderMediaOptions(showMapAlways) }
-          { inView !== MediaType.MAP
-            && <DriveVideo />}
-          { (inView === MediaType.MAP && !showMapAlways)
-            && (
-            <div style={ mapContainerStyle }>
+      <div className={classes.root}>
+        <ResizeHandler onResize={(windowWidth) => this.setState({ windowWidth })} />
+        <div style={mediaContainerStyle}>
+          {this.renderMediaOptions(showMapAlways)}
+          {inView === MediaType.VIDEO && <DriveVideo />}
+          {(inView === MediaType.MAP && !showMapAlways) && (
+            <div style={mapContainerStyle}>
               <DriveMap />
             </div>
-            )}
-          <div className={ classes.timeDisplay }>
+          )}
+          <div className="mt-3">
             <TimeDisplay isThin />
           </div>
         </div>
-        { (inView !== MediaType.MAP && showMapAlways)
-          && (
-          <div style={ mapContainerStyle }>
+        {(inView === MediaType.VIDEO && showMapAlways) && (
+          <div style={mapContainerStyle}>
             <DriveMap />
           </div>
-          )}
+        )}
       </div>
     );
   }
