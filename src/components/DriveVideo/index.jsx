@@ -228,7 +228,7 @@ class DriveVideo extends Component {
           height="unset"
           playing={ Boolean(this.visibleRoute()) && Boolean(playSpeed) }
           config={{
-            forceSafariHLS: true,
+            forceHLS: true,
             hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false },
           }}
           playbackRate={ playSpeed }
