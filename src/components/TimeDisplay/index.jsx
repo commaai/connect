@@ -55,6 +55,7 @@ const styles = (theme) => ({
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
+    minWidth: '40px',
   },
   icon: {
     width: '98%',
@@ -75,6 +76,9 @@ const styles = (theme) => ({
     width: 12,
     height: 12,
     color: theme.palette.grey[700],
+    '&[disabled]': {
+      visibility: 'hidden',
+    },
   },
   iconBox: {
     borderRight: `1px solid ${theme.palette.grey[900]}`,
@@ -177,6 +181,15 @@ class TimeDisplay extends Component {
     dispatch(play(timerSteps[curIndex]));
   }
 
+  canDecreaseSpeed() {
+    const { desiredPlaySpeed } = this.state;
+    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
+    if (curIndex === -1) {
+      curIndex = timerSteps.indexOf(1);
+    }
+    return curIndex > 0;
+  }
+
   increaseSpeed() {
     const { dispatch } = this.props;
     const { desiredPlaySpeed } = this.state;
@@ -186,6 +199,15 @@ class TimeDisplay extends Component {
     }
     curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
     dispatch(play(timerSteps[curIndex]));
+  }
+
+  canIncreaseSpeed() {
+    const { desiredPlaySpeed } = this.state;
+    let curIndex = timerSteps.indexOf(desiredPlaySpeed);
+    if (curIndex === -1) {
+      curIndex = timerSteps.indexOf(1);
+    }
+    return curIndex < timerSteps.length - 1;
   }
 
   togglePause() {
@@ -236,6 +258,7 @@ class TimeDisplay extends Component {
           <IconButton
             className={classes.tinyArrowIcon}
             onClick={this.increaseSpeed}
+            disabled={!this.canIncreaseSpeed()}
             aria-label="Increase play speed by 1 step"
           >
             <UpArrow className={classes.tinyArrowIcon} />
@@ -247,6 +270,7 @@ class TimeDisplay extends Component {
           <IconButton
             className={classes.tinyArrowIcon}
             onClick={this.decreaseSpeed}
+            disabled={!this.canDecreaseSpeed()}
             aria-label="Decrease play speed by 1 step"
           >
             <DownArrow className={classes.tinyArrowIcon} />
