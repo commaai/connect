@@ -5,7 +5,7 @@ import { CircularProgress, Typography } from '@material-ui/core';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import debounce from 'debounce';
 import Obstruction from 'obstruction';
-import ReactPlayer from 'react-player';
+import ReactPlayer from 'react-player/file';
 
 import { video as Video } from '@commaai/api';
 
@@ -13,6 +13,29 @@ import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
 import { seek, bufferVideo } from '../../timeline/playback';
 import { updateSegments } from '../../timeline/segments';
+
+const VideoOverlay = ({ loading, error }) => {
+  let content;
+  if (error) {
+    content = (
+      <>
+        <ErrorOutlineIcon className="mb-2" />
+        <Typography>{error}</Typography>
+      </>
+    );
+  } else if (loading) {
+    content = <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />
+  } else {
+    return;
+  }
+  return (
+    <div className="z-50 absolute h-full w-full bg-[#16181AAA]">
+      <div className="relative text-center top-[calc(50%_-_25px)]">
+        {content}
+      </div>
+    </div>
+  );
+}
 
 class DriveVideo extends Component {
   constructor(props) {
@@ -101,7 +124,16 @@ class DriveVideo extends Component {
   }
 
   onVideoError(msg, e) {
-    if (msg?.target?.src?.startsWith(window.location.origin) && msg?.target?.src?.endsWith('undefined')) {
+    if (msg instanceof Error) {
+      e = msg;
+      msg = e.message;
+    }
+    if (e.name === 'AbortError') {
+      // ignore
+      return;
+    }
+
+    if (e?.target?.src?.startsWith(window.location.origin) && e?.target?.src?.endsWith('undefined')) {
       // TODO: figure out why the src isn't set properly
       // Sometimes an error will be thrown because we try to play
       // src: "https://connect.comma.ai/.../undefined"
@@ -110,7 +142,16 @@ class DriveVideo extends Component {
     }
 
     const { dispatch } = this.props;
-    dispatch(bufferVideo(false));
+    dispatch(bufferVideo(true));
+
+    if (e.type === 'mediaError' && e.details === 'bufferStalledError') {
+      return;
+    } else if (e.type === 'networkError') {
+      console.error('Network error', { msg, e });
+      this.setState({ videoError: 'Unable to load video. Check network connection.'});
+      return;
+    }
+
     if (!e || !e.response) {
       console.error('Unknown video error', { msg, e });
       this.setState({ videoError: 'Unable to load video' });
@@ -200,25 +241,11 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { classes, desiredPlaySpeed: playSpeed, dispatch, isBufferingVideo } = this.props;
+    const { desiredPlaySpeed, dispatch, isBufferingVideo } = this.props;
     const { src, videoError } = this.state;
     return (
-      <div className="min-h-[200px] relative max-w-[964px] m-[0_auto]">
-        {(isBufferingVideo || videoError)
-          && (
-            <div className="z-50 absolute h-full w-full bg-[#16181AAA]">
-              <div className="relative text-center top-[calc(50%_-_25px)]">
-                {isBufferingVideo
-                  ? <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />
-                  : (
-                    <>
-                      <ErrorOutlineIcon />
-                      <Typography>{videoError}</Typography>
-                    </>
-                  )}
-              </div>
-            </div>
-          )}
+      <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
+        <VideoOverlay loading={isBufferingVideo} error={videoError} />
         <ReactPlayer
           ref={ this.videoPlayer }
           url={ src }
@@ -226,9 +253,9 @@ class DriveVideo extends Component {
           muted
           width="100%"
           height="unset"
-          playing={ Boolean(this.visibleRoute()) && Boolean(playSpeed) }
+          playing={ Boolean(this.visibleRoute()) && Boolean(desiredPlaySpeed) }
           config={{ hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false } }}
-          playbackRate={ playSpeed }
+          playbackRate={ desiredPlaySpeed }
           onBuffer={ this.onVideoBuffering }
           onBufferEnd={() => {
             dispatch(bufferVideo(false));
