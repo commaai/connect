@@ -26,7 +26,7 @@ describe('demo mode', () => {
     expect((await list.$$(':scope > a')).length).toBe(1);
 
     await expect(page).toClick('.DriveEntry');
-    await sleep(3000);
+    await sleep(6000);
 
     const video = await page.$('video');
     const videoSrc = await page.evaluate((vid) => vid.getAttribute('src'), video);
