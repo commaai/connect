@@ -5,12 +5,14 @@ import raf from 'raf';
 import fecha from 'fecha';
 
 import { withStyles } from '@material-ui/core/styles';
+import Forward from '@material-ui/icons/Forward10';
+import Replay from '@material-ui/icons/Replay10';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 import PlayArrow from '@material-ui/icons/PlayArrow';
 import Pause from '@material-ui/icons/Pause';
 
-import { DownArrow, UpArrow, HistoryForwardIcon, HistoryBackIcon } from '../../icons';
+import { DownArrow, UpArrow } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
@@ -61,16 +63,20 @@ const styles = (theme) => ({
     width: '98%',
     height: '98%',
     '&.dim': {
-      color: theme.palette.grey[700],
+      color: theme.palette.grey[500],
     },
     '&.small': {
-      width: '60%',
-      height: '60%',
+      width: '80%',
+      height: '80%',
     },
     '&.circle': {
       border: `1px solid ${theme.palette.grey[900]}`,
       borderRadius: '50%',
     },
+  },
+  iconButton: {
+    width: '40px',
+    height: '40px',
   },
   tinyArrowIcon: {
     width: 12,
@@ -234,7 +240,7 @@ class TimeDisplay extends Component {
             onClick={ () => this.jumpBack(10000) }
             aria-label="Jump back 10 seconds"
           >
-            <HistoryBackIcon className={`${classes.icon} small dim`} />
+            <Replay className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
         <div className={ classes.iconBox }>
@@ -243,7 +249,7 @@ class TimeDisplay extends Component {
             onClick={ () => this.jumpForward(10000) }
             aria-label="Jump forward 10 seconds"
           >
-            <HistoryForwardIcon className={`${classes.icon} small dim`} />
+            <Forward className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
         { !isThin && (
@@ -278,7 +284,6 @@ class TimeDisplay extends Component {
         </div>
         <div className={ classes.playButtonBox }>
           <IconButton
-            className={ classes.iconButton }
             onClick={this.togglePause}
             aria-label={isPaused ? 'Unpause' : 'Pause'}
           >
