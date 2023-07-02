@@ -17,7 +17,8 @@ describe('demo mode', () => {
       height,
       deviceScaleFactor: 1,
     });
-    await page.goto('http://localhost:3003/4cf7a6ad03080c90', { waitUntil: 'domcontentloaded' });
+    await page.goto('http://localhost:3003/4cf7a6ad03080c90', { waitUntil: 'networkidle2' });
+    await sleep(2000);
   });
 
   it('should load', async () => {
