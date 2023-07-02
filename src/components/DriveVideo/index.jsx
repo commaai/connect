@@ -217,7 +217,7 @@ class DriveVideo extends Component {
 
     if (newPlaybackRate === 0 && !internalPlayer.paused) {
       internalPlayer.pause();
-    } else if (newPlaybackRate !== 0 && internalPlayer.paused) {
+    } else if (newPlaybackRate !== 0 && internalPlayer.paused && hasSufficientBuffer) {
       internalPlayer.play();
     }
   }
