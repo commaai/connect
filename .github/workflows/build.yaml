@@ -106,7 +106,7 @@ jobs:
       - uses: docker/build-push-action@v4
         with:
           build-args: |
-            VITE_APP_GIT_SHA=${{ github.sha }}
+            VITE_APP_GIT_SHA=${{ github.event_name == 'push' && github.sha || github.event.pull_request.head.sha }}
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
           builder: ${{ steps.buildx.outputs.name }}
           context: .
