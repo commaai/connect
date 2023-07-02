@@ -227,7 +227,10 @@ class DriveVideo extends Component {
           width="100%"
           height="unset"
           playing={ Boolean(this.visibleRoute()) && Boolean(playSpeed) }
-          config={{ hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false } }}
+          config={{
+            forceSafariHLS: true,
+            hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false },
+          }}
           playbackRate={ playSpeed }
           onBuffer={ this.onVideoBuffering }
           onBufferEnd={() => {
