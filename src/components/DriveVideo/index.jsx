@@ -133,7 +133,7 @@ class DriveVideo extends Component {
       return;
     }
 
-    if (e?.target?.src?.startsWith(window.location.origin) && e?.target?.src?.endsWith('undefined')) {
+    if (e?.target?.src?.startsWith(window.location.origin) && e.target.src.endsWith('undefined')) {
       // TODO: figure out why the src isn't set properly
       // Sometimes an error will be thrown because we try to play
       // src: "https://connect.comma.ai/.../undefined"
@@ -144,9 +144,9 @@ class DriveVideo extends Component {
     const { dispatch } = this.props;
     dispatch(bufferVideo(true));
 
-    if (e.type === 'mediaError' && e.details === 'bufferStalledError') {
+    if (e?.type === 'mediaError' && e.details === 'bufferStalledError') {
       return;
-    } else if (e.type === 'networkError') {
+    } else if (e?.type === 'networkError') {
       console.error('Network error', { msg, e });
       this.setState({ videoError: 'Unable to load video. Check network connection.'});
       return;
