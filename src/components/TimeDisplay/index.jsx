@@ -81,7 +81,7 @@ const styles = (theme) => ({
   tinyArrowIcon: {
     width: 12,
     height: 12,
-    color: theme.palette.grey[700],
+    color: theme.palette.grey[500],
     '&[disabled]': {
       visibility: 'hidden',
     },
