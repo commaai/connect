@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import React, { Component } from 'react';
+import React, { Component, useEffect, useState } from 'react';
 import { connect } from 'react-redux';
 import { CircularProgress, Typography } from '@material-ui/core';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
@@ -36,6 +36,44 @@ const VideoOverlay = ({ loading, error }) => {
     </div>
   );
 }
+
+const DebugBuffer = ({ player }) => {
+  const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    if (!player) return;
+    const onTimeUpdate = () => setCurrentTime(player.currentTime);
+    player.addEventListener('timeupdate', onTimeUpdate);
+    return () => player.removeEventListener('timeupdate', onTimeUpdate);
+  }, [player]);
+
+  if (!player) {
+    return;
+  }
+
+  const { buffered, duration } = player;
+  const length = (secs) => `${100 * secs / duration}%`;
+
+  console.log(player ? {
+    buffered, duration, currentTime,
+  } : undefined);
+
+  return (
+    <div className="absolute bottom-0 left-0 right-0 h-4 bg-red-500 overflow-hidden">
+      {Array.from({ length: buffered.length }).map((_, i) => (
+        <div
+          key={i}
+          className="h-full bg-green-500 absolute"
+          style={{
+            width: length(buffered.end(i) - buffered.start(i)),
+            left: length(buffered.start(i)),
+          }}
+        />
+      ))}
+      <div className="h-full bg-blue-500 absolute" style={{ left: length(currentTime), width: "1%" }} />
+    </div>
+  );
+};
 
 class DriveVideo extends Component {
   constructor(props) {
@@ -244,6 +282,8 @@ class DriveVideo extends Component {
   render() {
     const { desiredPlaySpeed, isBufferingVideo } = this.props;
     const { src, videoError } = this.state;
+    const videoPlayer = this.videoPlayer.current;
+
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
         <VideoOverlay loading={isBufferingVideo} error={videoError} />
@@ -269,6 +309,7 @@ class DriveVideo extends Component {
           onPlay={this.onVideoResume}
           onError={this.onVideoError}
         />
+        <DebugBuffer player={videoPlayer?.getInternalPlayer()} />
       </div>
     );
   }
