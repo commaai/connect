@@ -214,7 +214,7 @@ class DriveVideo extends Component {
     if (internalPlayer.paused && newPlaybackRate !== 0 && hasSufficientBuffer) {
       const playPromise = internalPlayer.play();
       if (playPromise) {
-        playPromise.catch((e) => console.warn('play was interrupted', e));
+        playPromise.catch((e) => console.warn('play was interrupted', { e }));
       }
     } else if (newPlaybackRate === 0 && !internalPlayer.paused) {
       internalPlayer.pause();
@@ -242,34 +242,31 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { desiredPlaySpeed, dispatch, isBufferingVideo } = this.props;
+    const { desiredPlaySpeed, isBufferingVideo } = this.props;
     const { src, videoError } = this.state;
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
         <VideoOverlay loading={isBufferingVideo} error={videoError} />
         <ReactPlayer
-          ref={ this.videoPlayer }
-          url={ src }
+          ref={this.videoPlayer}
+          url={src}
           playsinline
           muted
           width="100%"
           height="unset"
-          playing={ Boolean(this.visibleRoute()) && Boolean(desiredPlaySpeed) }
+          playing={Boolean(this.visibleRoute() && desiredPlaySpeed)}
           config={{
             hlsVersion: '1.4.7',
             hlsOptions: {
               maxBufferLength: 40,
             },
           }}
-          playbackRate={ desiredPlaySpeed }
-          onBuffer={ this.onVideoBuffering }
-          onBufferEnd={() => {
-            dispatch(bufferVideo(false));
-            this.onVideoResume();
-          }}
-          onStart={ this.onVideoResume }
-          onPlay={ this.onVideoResume }
-          onError={ this.onVideoError }
+          playbackRate={desiredPlaySpeed}
+          onBuffer={this.onVideoBuffering}
+          onBufferEnd={this.onVideoResume}
+          onStart={this.onVideoResume}
+          onPlay={this.onVideoResume}
+          onError={this.onVideoError}
         />
       </div>
     );
