@@ -211,14 +211,17 @@ class DriveVideo extends Component {
     newPlaybackRate = Math.round(newPlaybackRate * 10) / 10;
     const playerPlaybackRate = internalPlayer.paused ? 0 : internalPlayer.playbackRate;
 
-    if (playerPlaybackRate !== newPlaybackRate && newPlaybackRate !== 0) {
-      internalPlayer.playbackRate = newPlaybackRate;
+    if (internalPlayer.paused && newPlaybackRate !== 0 && hasSufficientBuffer) {
+      const playPromise = internalPlayer.play();
+      if (playPromise) {
+        playPromise.catch((e) => console.warn('play was interrupted', e));
+      }
+    } else if (newPlaybackRate === 0 && !internalPlayer.paused) {
+      internalPlayer.pause();
     }
 
-    if (newPlaybackRate === 0 && !internalPlayer.paused) {
-      internalPlayer.pause();
-    } else if (newPlaybackRate !== 0 && internalPlayer.paused && hasSufficientBuffer) {
-      internalPlayer.play();
+    if (playerPlaybackRate !== newPlaybackRate && newPlaybackRate !== 0) {
+      internalPlayer.playbackRate = newPlaybackRate;
     }
   }
 
