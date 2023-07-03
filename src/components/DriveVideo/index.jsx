@@ -128,7 +128,7 @@ class DriveVideo extends Component {
       e = msg;
       msg = e.message;
     }
-    if (e.name === 'AbortError') {
+    if (e?.name === 'AbortError') {
       // ignore
       return;
     }
@@ -255,7 +255,7 @@ class DriveVideo extends Component {
           width="100%"
           height="unset"
           playing={ Boolean(this.visibleRoute()) && Boolean(desiredPlaySpeed) }
-          config={{ hlsOptions: { enableWorker: false, disablePtsDtsCorrectionInMp4Remux: false } }}
+          config={{ hlsOptions: { enableWorker: true, disablePtsDtsCorrectionInMp4Remux: false } }}
           playbackRate={ desiredPlaySpeed }
           onBuffer={ this.onVideoBuffering }
           onBufferEnd={() => {
