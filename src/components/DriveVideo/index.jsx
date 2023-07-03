@@ -101,7 +101,7 @@ class DriveVideo extends Component {
     }
     this.updateVideoSource({});
     this.syncVideo();
-    this.videoSyncIntv = setInterval(this.syncVideo, 500);
+    this.videoSyncIntv = setInterval(this.syncVideo, 250);
   }
 
   componentDidUpdate(prevProps) {
