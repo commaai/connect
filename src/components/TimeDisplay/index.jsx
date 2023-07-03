@@ -63,7 +63,7 @@ const styles = (theme) => ({
     width: '98%',
     height: '98%',
     '&.dim': {
-      color: theme.palette.grey[500],
+      color: theme.palette.grey[300],
     },
     '&.small': {
       width: '80%',
