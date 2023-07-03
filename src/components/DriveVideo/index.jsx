@@ -258,6 +258,7 @@ class DriveVideo extends Component {
           config={{
             hlsVersion: '1.4.7',
             hlsOptions: {
+              enableWorker: false,
               maxBufferLength: 40,
             },
           }}
