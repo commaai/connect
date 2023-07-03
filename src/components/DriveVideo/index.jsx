@@ -54,9 +54,9 @@ const DebugBuffer = ({ player }) => {
   const { buffered, duration } = player;
   const length = (secs) => `${100 * secs / duration}%`;
 
-  console.log(player ? {
-    buffered, duration, currentTime,
-  } : undefined);
+  // console.log(player ? {
+  //   buffered, duration, currentTime,
+  // } : undefined);
 
   return (
     <div className="absolute bottom-0 left-0 right-0 h-4 bg-red-500 overflow-hidden">
