@@ -296,7 +296,7 @@ class DriveVideo extends Component {
           height="unset"
           playing={Boolean(this.visibleRoute() && desiredPlaySpeed)}
           config={{
-            hlsVersion: '1.4.7',
+            hlsVersion: '1.4.8',
             hlsOptions: {
               enableWorker: false,
               maxBufferLength: 40,
