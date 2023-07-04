@@ -238,7 +238,10 @@ class DriveVideo extends Component {
         internalPlayer.playbackRate = newPlaybackRate;
       }
       if (internalPlayer.paused && newPlaybackRate !== 0) {
-        internalPlayer.play();
+        const playRes = internalPlayer.play();
+        if (playRes) {
+          playRes.catch(() => console.log('play interrupted by pause'));
+        }
       }
     } else {
       // TODO: fix iOS bug where video doesn't stop buffering while paused
