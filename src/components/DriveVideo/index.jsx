@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import React, { Component, useEffect, useState } from 'react';
+import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { CircularProgress, Typography } from '@material-ui/core';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
@@ -36,44 +36,6 @@ const VideoOverlay = ({ loading, error }) => {
     </div>
   );
 }
-
-const DebugBuffer = ({ player }) => {
-  const [currentTime, setCurrentTime] = useState(0);
-
-  useEffect(() => {
-    if (!player) return;
-    const onTimeUpdate = () => setCurrentTime(player.currentTime);
-    player.addEventListener('timeupdate', onTimeUpdate);
-    return () => player.removeEventListener('timeupdate', onTimeUpdate);
-  }, [player]);
-
-  if (!player) {
-    return;
-  }
-
-  const { buffered, duration } = player;
-  const length = (secs) => `${100 * secs / duration}%`;
-
-  // console.log(player ? {
-  //   buffered, duration, currentTime,
-  // } : undefined);
-
-  return (
-    <div className="absolute bottom-0 left-0 right-0 h-4 bg-red-500 overflow-hidden">
-      {Array.from({ length: buffered.length }).map((_, i) => (
-        <div
-          key={i}
-          className="h-full bg-green-500 absolute"
-          style={{
-            width: length(buffered.end(i) - buffered.start(i)),
-            left: length(buffered.start(i)),
-          }}
-        />
-      ))}
-      <div className="h-full bg-blue-500 absolute" style={{ left: length(currentTime), width: "1%" }} />
-    </div>
-  );
-};
 
 class DriveVideo extends Component {
   constructor(props) {
@@ -149,7 +111,6 @@ class DriveVideo extends Component {
     const videoPlayer = this.videoPlayer.current;
     if (!videoPlayer || !this.visibleRoute() || !videoPlayer.getDuration()) {
       dispatch(bufferVideo(true));
-      console.debug('buffering (150)');
     }
 
     if (this.firstSeek) {
@@ -161,7 +122,6 @@ class DriveVideo extends Component {
     const { readyState } = videoPlayer.getInternalPlayer();
     if (!hasLoaded || readyState < 2) {
       dispatch(bufferVideo(true));
-      console.debug('buffering (162)', { hasLoaded, readyState });
     }
   }
 
@@ -169,11 +129,8 @@ class DriveVideo extends Component {
    * @param {Error} e
    */
   onHlsError(e) {
-    console.debug('onHlsError', { e });
-
     const { dispatch } = this.props;
     dispatch(bufferVideo(true));
-    console.debug('buffering (173)');
 
     if (e.type === 'mediaError' && (e.details === 'bufferStalledError' || e.details === 'bufferNudgeOnStall')) {
       // buffer but no error
@@ -198,8 +155,6 @@ class DriveVideo extends Component {
       return;
     }
 
-    console.debug('onVideoError', { e, data });
-
     if (e.name === 'AbortError') {
       // ignore
       return;
@@ -215,7 +170,6 @@ class DriveVideo extends Component {
 
     const { dispatch } = this.props;
     dispatch(bufferVideo(true));
-    console.debug('buffering (213)');
 
     if (e.type === 'networkError') {
       console.error('Network error', { e, data });
@@ -239,7 +193,6 @@ class DriveVideo extends Component {
     if (!this.visibleRoute()) {
       dispatch(updateSegments());
       if (routes && isBufferingVideo) {
-        console.debug('stop buffering (245)');
         dispatch(bufferVideo(false));
       }
       return;
@@ -270,28 +223,21 @@ class DriveVideo extends Component {
     const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() >= sufficientBuffer;
     const hasLoaded = videoPlayer.getSecondsLoaded() > videoPlayer.getCurrentTime();
     if (isBufferingVideo && hasSufficientBuffer && internalPlayer.readyState >= 2) {
-      console.debug('stop buffering (284)');
       dispatch(bufferVideo(false));
-    } else if (!hasLoaded || internalPlayer.readyState < 2) {
+    } else if (isBufferingVideo || !hasLoaded || internalPlayer.readyState < 2) {
       if (!isBufferingVideo) {
-        console.debug('buffering (287)');
         dispatch(bufferVideo(true));
       }
-      console.debug('setting playbackRate to 0');
-      newPlaybackRate = 0;
-    } else if (isBufferingVideo) {
       newPlaybackRate = 0;
     }
 
     if (videoPlayer.getInternalPlayer('hls')) {
       if (!internalPlayer.paused && newPlaybackRate === 0) {
-        console.debug('pause');
         internalPlayer.pause();
       } else if (internalPlayer.playbackRate !== newPlaybackRate && newPlaybackRate !== 0) {
         internalPlayer.playbackRate = newPlaybackRate;
       }
       if (internalPlayer.paused && newPlaybackRate !== 0) {
-        console.debug('play');
         internalPlayer.play();
       }
     } else {
@@ -344,7 +290,6 @@ class DriveVideo extends Component {
           onPlay={this.onVideoResume}
           onError={this.onVideoError}
         />
-        <DebugBuffer player={videoPlayer?.getInternalPlayer()} />
       </div>
     );
   }
