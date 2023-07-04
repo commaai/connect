@@ -232,6 +232,7 @@ class TimeDisplay extends Component {
     const isPaused = desiredPlaySpeed === 0;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
+    const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     return (
       <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
         <div className={ classes.iconBox }>
@@ -260,28 +261,30 @@ class TimeDisplay extends Component {
         <Typography variant="body1" align="center" className={classes.currentTime}>
           <span ref={this.textHolder}>{ displayTime }</span>
         </Typography>
-        <div className={ classes.desiredPlaySpeedContainer }>
-          <IconButton
-            className={classes.tinyArrowIcon}
-            onClick={this.increaseSpeed}
-            disabled={!this.canIncreaseSpeed()}
-            aria-label="Increase play speed by 1 step"
-          >
-            <UpArrow className={classes.tinyArrowIcon} />
-          </IconButton>
-          <Typography variant="body2" align="center">
-            { this.state.desiredPlaySpeed }
-            ×
-          </Typography>
-          <IconButton
-            className={classes.tinyArrowIcon}
-            onClick={this.decreaseSpeed}
-            disabled={!this.canDecreaseSpeed()}
-            aria-label="Decrease play speed by 1 step"
-          >
-            <DownArrow className={classes.tinyArrowIcon} />
-          </IconButton>
-        </div>
+        {!isIos && (
+          <div className={ classes.desiredPlaySpeedContainer }>
+            <IconButton
+              className={classes.tinyArrowIcon}
+              onClick={this.increaseSpeed}
+              disabled={!this.canIncreaseSpeed()}
+              aria-label="Increase play speed by 1 step"
+            >
+              <UpArrow className={classes.tinyArrowIcon} />
+            </IconButton>
+            <Typography variant="body2" align="center">
+              {this.state.desiredPlaySpeed}
+              ×
+            </Typography>
+            <IconButton
+              className={classes.tinyArrowIcon}
+              onClick={this.decreaseSpeed}
+              disabled={!this.canDecreaseSpeed()}
+              aria-label="Decrease play speed by 1 step"
+            >
+              <DownArrow className={classes.tinyArrowIcon} />
+            </IconButton>
+          </div>
+        )}
         <div className={ classes.playButtonBox }>
           <IconButton
             onClick={this.togglePause}
