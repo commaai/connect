@@ -268,8 +268,6 @@ class DriveVideo extends Component {
   render() {
     const { desiredPlaySpeed, isBufferingVideo } = this.props;
     const { src, videoError } = this.state;
-    const videoPlayer = this.videoPlayer.current;
-
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
         <VideoOverlay loading={isBufferingVideo} error={videoError} />
