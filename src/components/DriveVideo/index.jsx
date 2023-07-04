@@ -233,7 +233,7 @@ class DriveVideo extends Component {
     const { dispatch } = this.props;
     const { videoError } = this.state;
     dispatch(bufferVideo(false));
-    console.debug(`stop buffering (230, ${source})`);
+    console.debug(`stop buffering (236, ${source})`);
     if (videoError) this.setState({ videoError: null });
   }
 
@@ -242,7 +242,7 @@ class DriveVideo extends Component {
     if (!this.visibleRoute()) {
       dispatch(updateSegments());
       if (routes && isBufferingVideo) {
-        console.debug('stop buffering (241)');
+        console.debug('stop buffering (245)');
         dispatch(bufferVideo(false));
       }
       return;
@@ -266,12 +266,12 @@ class DriveVideo extends Component {
     const sufficientBuffer = Math.min(videoPlayer.getDuration() - videoPlayer.getCurrentTime(), 30);
     const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() >= sufficientBuffer;
     if (hasSufficientBuffer && internalPlayer.readyState >= 2 && isBufferingVideo) {
-      console.debug('stop buffering (265)');
+      console.debug('stop buffering (269)');
       dispatch(bufferVideo(false));
     }
     if (!isBufferingVideo && videoPlayer.getCurrentTime() >= videoPlayer.getSecondsLoaded()) {
       dispatch(bufferVideo(true));
-      console.debug('buffering (270)');
+      console.debug('buffering (274)');
     }
 
     let { desiredPlaySpeed: newPlaybackRate } = this.props;
