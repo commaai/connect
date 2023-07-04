@@ -3,7 +3,7 @@
 The frontend to the comma connect progressive web app. This a react app using [Create React App](https://github.com/facebookincubator/create-react-app)
 
 ## Environments
- * Development (local machine) http://localhost:3000
+ * Development (local machine) http://localhost:5173
  * Staging (docker)
    * packages/images are build by CI, and put on staging branch
  * Production (docker) https://connect.comma.ai

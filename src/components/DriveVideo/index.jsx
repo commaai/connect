@@ -229,11 +229,8 @@ class DriveVideo extends Component {
     this.setState({ videoError });
   }
 
-  onVideoResume(source) {
-    const { dispatch } = this.props;
+  onVideoResume() {
     const { videoError } = this.state;
-    dispatch(bufferVideo(false));
-    console.debug(`stop buffering (236, ${source})`);
     if (videoError) this.setState({ videoError: null });
   }
 
@@ -253,27 +250,6 @@ class DriveVideo extends Component {
       return;
     }
 
-    const internalPlayer = videoPlayer.getInternalPlayer();
-    console.debug('syncVideo', {
-      loaded: videoPlayer.getSecondsLoaded().toFixed(2),
-      current: videoPlayer.getCurrentTime().toFixed(2),
-      buffer: (videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime()).toFixed(2),
-      sufficientBuffer: videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() >= 30,
-      internalPlayer: videoPlayer.getInternalPlayer('hls'),
-    });
-
-    // sanity check required for ios
-    const sufficientBuffer = Math.min(videoPlayer.getDuration() - videoPlayer.getCurrentTime(), 30);
-    const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() >= sufficientBuffer;
-    if (hasSufficientBuffer && internalPlayer.readyState >= 2 && isBufferingVideo) {
-      console.debug('stop buffering (269)');
-      dispatch(bufferVideo(false));
-    }
-    if (!isBufferingVideo && videoPlayer.getCurrentTime() >= videoPlayer.getSecondsLoaded()) {
-      dispatch(bufferVideo(true));
-      console.debug('buffering (274)');
-    }
-
     let { desiredPlaySpeed: newPlaybackRate } = this.props;
     const desiredVideoTime = this.currentVideoTime();
     const curVideoTime = videoPlayer.getCurrentTime();
@@ -286,20 +262,40 @@ class DriveVideo extends Component {
     } else {
       videoPlayer.seekTo(desiredVideoTime, 'seconds');
     }
-
     newPlaybackRate = Math.round(newPlaybackRate * 10) / 10;
-    const playerPlaybackRate = internalPlayer.paused ? 0 : internalPlayer.playbackRate;
 
-    if (internalPlayer.paused && newPlaybackRate !== 0 && hasSufficientBuffer) {
-      const playPromise = internalPlayer.play();
-      if (playPromise) {
-        playPromise.catch((e) => console.warn('play was interrupted', { e }));
+    const internalPlayer = videoPlayer.getInternalPlayer();
+
+    const sufficientBuffer = Math.min(videoPlayer.getDuration() - videoPlayer.getCurrentTime(), 30);
+    const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() >= sufficientBuffer;
+    const hasLoaded = videoPlayer.getSecondsLoaded() > videoPlayer.getCurrentTime();
+    if (isBufferingVideo && hasSufficientBuffer && internalPlayer.readyState >= 2) {
+      console.debug('stop buffering (284)');
+      dispatch(bufferVideo(false));
+    } else if (!hasLoaded || internalPlayer.readyState < 2) {
+      if (!isBufferingVideo) {
+        console.debug('buffering (287)');
+        dispatch(bufferVideo(true));
       }
-    } else if (newPlaybackRate === 0 && !internalPlayer.paused) {
-      internalPlayer.pause();
+      console.debug('setting playbackRate to 0');
+      newPlaybackRate = 0;
+    } else if (isBufferingVideo) {
+      newPlaybackRate = 0;
     }
 
-    if (playerPlaybackRate !== newPlaybackRate && newPlaybackRate !== 0) {
+    if (videoPlayer.getInternalPlayer('hls')) {
+      if (!internalPlayer.paused && newPlaybackRate === 0) {
+        console.debug('pause');
+        internalPlayer.pause();
+      } else if (internalPlayer.playbackRate !== newPlaybackRate && newPlaybackRate !== 0) {
+        internalPlayer.playbackRate = newPlaybackRate;
+      }
+      if (internalPlayer.paused && newPlaybackRate !== 0) {
+        console.debug('play');
+        internalPlayer.play();
+      }
+    } else {
+      // TODO: fix iOS bug where video doesn't stop buffering while paused
       internalPlayer.playbackRate = newPlaybackRate;
     }
   }
@@ -344,9 +340,8 @@ class DriveVideo extends Component {
           }}
           playbackRate={desiredPlaySpeed}
           onBuffer={this.onVideoBuffering}
-          onBufferEnd={() => this.onVideoResume('onBufferEnd')}
-          // onStart={() => this.onVideoResume('onStart')}
-          onPlay={() => this.onVideoResume('onPlay')}
+          onBufferEnd={this.onVideoResume}
+          onPlay={this.onVideoResume}
           onError={this.onVideoError}
         />
         <DebugBuffer player={videoPlayer?.getInternalPlayer()} />
