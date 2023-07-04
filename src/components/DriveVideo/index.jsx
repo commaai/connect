@@ -157,10 +157,11 @@ class DriveVideo extends Component {
       videoPlayer.seekTo(this.currentVideoTime(), 'seconds');
     }
 
-    const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() > 30;
-    if (!hasSufficientBuffer || videoPlayer.getInternalPlayer().readyState < 2) {
+    const hasLoaded = videoPlayer.getSecondsLoaded() > videoPlayer.getCurrentTime();
+    const { readyState } = videoPlayer.getInternalPlayer();
+    if (!hasLoaded || readyState < 2) {
       dispatch(bufferVideo(true));
-      console.debug('buffering (162)');
+      console.debug('buffering (162)', { hasLoaded, readyState });
     }
   }
 
@@ -170,9 +171,11 @@ class DriveVideo extends Component {
   onHlsError(e) {
     console.debug('onHlsError', { e });
 
+    const { dispatch } = this.props;
     dispatch(bufferVideo(true));
     console.debug('buffering (173)');
-    if (e.type === 'mediaError' && e.details === 'bufferStalledError') {
+
+    if (e.type === 'mediaError' && (e.details === 'bufferStalledError' || e.details === 'bufferNudgeOnStall')) {
       // buffer but no error
       return;
     }
@@ -228,9 +231,10 @@ class DriveVideo extends Component {
 
   onVideoResume(source) {
     const { dispatch } = this.props;
+    const { videoError } = this.state;
     dispatch(bufferVideo(false));
     console.debug(`stop buffering (230, ${source})`);
-    this.setState({ videoError: null });
+    if (videoError) this.setState({ videoError: null });
   }
 
   syncVideo() {
@@ -251,9 +255,9 @@ class DriveVideo extends Component {
 
     const internalPlayer = videoPlayer.getInternalPlayer();
     console.debug('syncVideo', {
-      loaded: videoPlayer.getSecondsLoaded(),
-      current: videoPlayer.getCurrentTime(),
-      buffer: videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime(),
+      loaded: videoPlayer.getSecondsLoaded().toFixed(2),
+      current: videoPlayer.getCurrentTime().toFixed(2),
+      buffer: (videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime()).toFixed(2),
       sufficientBuffer: videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() >= 30,
       internalPlayer: videoPlayer.getInternalPlayer('hls'),
     });
@@ -335,14 +339,13 @@ class DriveVideo extends Component {
           config={{
             hlsVersion: '1.4.8',
             hlsOptions: {
-              enableWorker: false,
               maxBufferLength: 40,
             },
           }}
           playbackRate={desiredPlaySpeed}
           onBuffer={this.onVideoBuffering}
           onBufferEnd={() => this.onVideoResume('onBufferEnd')}
-          onStart={() => this.onVideoResume('onStart')}
+          // onStart={() => this.onVideoResume('onStart')}
           onPlay={() => this.onVideoResume('onPlay')}
           onError={this.onVideoError}
         />
