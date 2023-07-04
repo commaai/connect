@@ -7,10 +7,12 @@ import fecha from 'fecha';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
+import Forward from '@material-ui/icons/Forward10';
 import PlayArrow from '@material-ui/icons/PlayArrow';
 import Pause from '@material-ui/icons/Pause';
+import Replay from '@material-ui/icons/Replay10';
 
-import { DownArrow, UpArrow, HistoryForwardIcon, HistoryBackIcon } from '../../icons';
+import { DownArrow, UpArrow } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
@@ -61,21 +63,25 @@ const styles = (theme) => ({
     width: '98%',
     height: '98%',
     '&.dim': {
-      color: theme.palette.grey[700],
+      color: theme.palette.grey[300],
     },
     '&.small': {
-      width: '60%',
-      height: '60%',
+      width: '80%',
+      height: '80%',
     },
     '&.circle': {
       border: `1px solid ${theme.palette.grey[900]}`,
       borderRadius: '50%',
     },
   },
+  iconButton: {
+    width: '40px',
+    height: '40px',
+  },
   tinyArrowIcon: {
     width: 12,
     height: 12,
-    color: theme.palette.grey[700],
+    color: theme.palette.grey[500],
     '&[disabled]': {
       visibility: 'hidden',
     },
@@ -226,6 +232,7 @@ class TimeDisplay extends Component {
     const isPaused = desiredPlaySpeed === 0;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
+    const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     return (
       <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
         <div className={ classes.iconBox }>
@@ -234,7 +241,7 @@ class TimeDisplay extends Component {
             onClick={ () => this.jumpBack(10000) }
             aria-label="Jump back 10 seconds"
           >
-            <HistoryBackIcon className={`${classes.icon} small dim`} />
+            <Replay className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
         <div className={ classes.iconBox }>
@@ -243,7 +250,7 @@ class TimeDisplay extends Component {
             onClick={ () => this.jumpForward(10000) }
             aria-label="Jump forward 10 seconds"
           >
-            <HistoryForwardIcon className={`${classes.icon} small dim`} />
+            <Forward className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
         { !isThin && (
@@ -254,31 +261,32 @@ class TimeDisplay extends Component {
         <Typography variant="body1" align="center" className={classes.currentTime}>
           <span ref={this.textHolder}>{ displayTime }</span>
         </Typography>
-        <div className={ classes.desiredPlaySpeedContainer }>
-          <IconButton
-            className={classes.tinyArrowIcon}
-            onClick={this.increaseSpeed}
-            disabled={!this.canIncreaseSpeed()}
-            aria-label="Increase play speed by 1 step"
-          >
-            <UpArrow className={classes.tinyArrowIcon} />
-          </IconButton>
-          <Typography variant="body2" align="center">
-            { this.state.desiredPlaySpeed }
-            ×
-          </Typography>
-          <IconButton
-            className={classes.tinyArrowIcon}
-            onClick={this.decreaseSpeed}
-            disabled={!this.canDecreaseSpeed()}
-            aria-label="Decrease play speed by 1 step"
-          >
-            <DownArrow className={classes.tinyArrowIcon} />
-          </IconButton>
-        </div>
+        {!isIos && (
+          <div className={ classes.desiredPlaySpeedContainer }>
+            <IconButton
+              className={classes.tinyArrowIcon}
+              onClick={this.increaseSpeed}
+              disabled={!this.canIncreaseSpeed()}
+              aria-label="Increase play speed by 1 step"
+            >
+              <UpArrow className={classes.tinyArrowIcon} />
+            </IconButton>
+            <Typography variant="body2" align="center">
+              {this.state.desiredPlaySpeed}
+              ×
+            </Typography>
+            <IconButton
+              className={classes.tinyArrowIcon}
+              onClick={this.decreaseSpeed}
+              disabled={!this.canDecreaseSpeed()}
+              aria-label="Decrease play speed by 1 step"
+            >
+              <DownArrow className={classes.tinyArrowIcon} />
+            </IconButton>
+          </div>
+        )}
         <div className={ classes.playButtonBox }>
           <IconButton
-            className={ classes.iconButton }
             onClick={this.togglePause}
             aria-label={isPaused ? 'Unpause' : 'Pause'}
           >
