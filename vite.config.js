@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 import svgrPlugin from 'vite-plugin-svgr';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 
@@ -23,6 +24,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       // TODO: compression plugin
       react(),
+      VitePWA(),
       svgrPlugin(),
       sentryPlugin,
     ].filter(Boolean),
