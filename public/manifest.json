@@ -3,6 +3,11 @@
   "name": "connect",
   "icons": [
     {
+      "src": "/icon-vector.svg",
+      "sizes": "128x128",
+      "type": "image/svg+xml"
+    },
+    {
       "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
@@ -23,17 +28,16 @@
       "type": "image/png"
     },
     {
-      "src": "/icon-maskable.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "/icon-maskable.svg",
+      "sizes": "128x128",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ],
   "lang": "en-US",
   "start_url": "/",
-  "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "theme_color": "#16181a",
-  "background_color": "#16181a"
+  "theme_color": "#141414",
+  "background_color": "#141414"
 }

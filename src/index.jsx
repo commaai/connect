@@ -6,7 +6,6 @@ import * as Sentry from '@sentry/react';
 import './index.css';
 import App from './App';
 import Theme from './theme';
-import ServiceWorkerWrapper from './components/ServiceWorkerWrapper';
 
 if (window.SENTRY_ENV) {
   Sentry.init({
@@ -23,6 +22,5 @@ ReactDOM.createRoot(document.getElementById('root')).render((
   <MuiThemeProvider theme={Theme}>
     <CssBaseline />
     <App />
-    <ServiceWorkerWrapper />
   </MuiThemeProvider>
 ));

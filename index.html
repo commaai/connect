@@ -2,11 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <script src="/config.js"></script>
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-touch-fullscreen" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="connect" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="connect">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <link rel="apple-touch-icon" href="/icon-192x192.png">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <link rel="apple-touch-icon" href="/icon-192x192.png" />
     <link rel="apple-touch-startup-image" href="/images/splash-1170x2532.png"
       media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" />
     <link rel="apple-touch-startup-image" href="/images/splash-1080x2340.png"
@@ -40,15 +41,18 @@
 
     <style>body { background: #16181A; }</style>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, shrink-to-fit=no">
-    <meta name="theme-color" content="#151719">
+    <meta name="theme-color" content="#141414">
     <link rel="manifest" href="/manifest.json">
-    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="shortcut icon" href="/favicon.ico" sizes="any">
+    <link ref="shortcut icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,700" rel="stylesheet">
     <title>connect</title>
 
     <!-- Plausible.io -->
     <script defer data-domain="connect.comma.ai" src="https://plausible.io/js/script.js"></script>
+
+    <script src="/config.js"></script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
