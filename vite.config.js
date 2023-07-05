@@ -26,6 +26,9 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
+        workbox: {
+          sourcemap: true,
+        },
       }),
       svgrPlugin(),
       sentryPlugin,
