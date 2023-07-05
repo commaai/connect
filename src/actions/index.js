@@ -243,7 +243,7 @@ export function checkRoutesData() {
     if (routesRequest && routesRequest.dongleId === state.dongleId) {
       return;
     }
-    console.log('We need to update the segment metadata...');
+    console.debug('We need to update the segment metadata...');
     const { dongleId } = state;
     const fetchRange = getSegmentFetchRange(state);
 

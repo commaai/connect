@@ -240,7 +240,7 @@ class DriveVideo extends Component {
       if (internalPlayer.paused && newPlaybackRate !== 0) {
         const playRes = internalPlayer.play();
         if (playRes) {
-          playRes.catch(() => console.log('play interrupted by pause'));
+          playRes.catch(() => console.log('[DriveVideo] play interrupted by pause'));
         }
       }
     } else {
