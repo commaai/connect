@@ -237,7 +237,7 @@ class TimeDisplay extends Component {
             onClick={ () => this.jumpBack(10000) }
             aria-label="Jump back 10 seconds"
           >
-            <Replay10 className={`${classes.icon} small`} />
+            <Replay10 className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
         <div className={ classes.iconBox }>
@@ -246,7 +246,7 @@ class TimeDisplay extends Component {
             onClick={ () => this.jumpForward(10000) }
             aria-label="Jump forward 10 seconds"
           >
-            <Forward10 className={`${classes.icon} small`} />
+            <Forward10 className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
         { !isThin && (
