@@ -35,19 +35,23 @@ const ServiceWorkerWrapper = (props) => {
 
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
-    if (import.meta.env.PROD && import.meta.env.VITE_APP_SERVICEWORKER) {
-      console.log('[ServiceWorkerWrapper] Registering service worker...');
-      register({
-        // show update found message
-        onUpdate: onSWUpdate,
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      console.log(`[ServiceWorkerWrapper] Found ${registrations.length} registrations:`, registrations);
 
-        // TODO: show "connect now works offline" message
-        onSuccess: onSWSuccess,
-      });
-    } else {
-      console.log('[ServiceWorkerWrapper] Unregistering service worker...');
-      unregister();
-    }
+      if (import.meta.env.PROD && import.meta.env.VITE_APP_SERVICEWORKER) {
+        console.log('[ServiceWorkerWrapper] Registering service worker...');
+        register({
+          // show update found message
+          onUpdate: onSWUpdate,
+
+          // TODO: show "connect now works offline" message
+          onSuccess: onSWSuccess,
+        });
+      } else {
+        console.log('[ServiceWorkerWrapper] Unregistering service worker...');
+        unregister();
+      }
+    });
   }, []);
   /* eslint-enable react-hooks/exhaustive-deps */
 

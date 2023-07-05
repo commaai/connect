@@ -14,7 +14,6 @@ import { athena as Athena, auth as Auth, billing as Billing, request as Request 
 import { getZoom, getClipsNav } from './url';
 import { isDemo } from './demo';
 import store, { history } from './store';
-import { analyticsEvent } from './actions'
 
 const Explorer = lazy(() => import('./components/explorer'));
 const AnonymousLanding = lazy(() => import('./components/anonymous'));

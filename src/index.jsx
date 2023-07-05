@@ -16,6 +16,9 @@ if (window.SENTRY_ENV) {
   });
 }
 
+console.info('Mode:', import.meta.env.MODE || 'unknown');
+console.info('App version:', import.meta.env.VITE_APP_GIT_SHA || 'dev');
+
 ReactDOM.createRoot(document.getElementById('root')).render((
   <MuiThemeProvider theme={Theme}>
     <CssBaseline />
