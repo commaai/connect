@@ -7,10 +7,8 @@ import fecha from 'fecha';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
-import PlayArrow from '@material-ui/icons/PlayArrow';
-import Pause from '@material-ui/icons/Pause';
 
-import { DownArrow, ForwardIcon, ReplayIcon, UpArrow } from '../../icons';
+import { DownArrow, ForwardIcon, PauseIcon, PlayIcon, ReplayIcon, UpArrow } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
@@ -289,8 +287,8 @@ class TimeDisplay extends Component {
             aria-label={isPaused ? 'Unpause' : 'Pause'}
           >
             { isPaused
-              ? (<PlayArrow className={`${classes.icon}`} />)
-              : (<Pause className={`${classes.icon}`} />)}
+              ? (<PlayIcon className={`${classes.icon}`} />)
+              : (<PauseIcon className={`${classes.icon}`} />)}
           </IconButton>
         </div>
       </div>
