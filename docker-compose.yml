@@ -1,0 +1,14 @@
+version: '3.2'
+
+services:
+  connect:
+    image: connect
+    build: .
+    ports:
+      - "3000:80"
+    environment:
+      COMMA_URL_ROOT: https://api.comma.ai/
+      ATHENA_URL_ROOT: https://athena.comma.ai/
+      BILLING_URL_ROOT: https://billing.comma.ai/
+      USERADMIN_URL_ROOT: https://useradmin.comma.ai/
+      SENTRY_ENV: connect-development
