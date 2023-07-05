@@ -24,7 +24,9 @@ export default defineConfig(({ mode }) => {
     plugins: [
       // TODO: compression plugin
       react(),
-      VitePWA(),
+      VitePWA({
+        registerType: 'autoUpdate',
+      }),
       svgrPlugin(),
       sentryPlugin,
     ].filter(Boolean),
