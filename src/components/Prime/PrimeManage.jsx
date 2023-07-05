@@ -3,16 +3,16 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import fecha from 'fecha';
 import * as Sentry from '@sentry/react';
-import ErrorIcon from '@material-ui/icons/ErrorOutline';
+
 import { withStyles, Typography, Button, Modal, Paper, IconButton, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
-import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
 import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
 
 import { billing as Billing } from '@commaai/api';
 import { deviceTypePretty } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
+import { ErrorOutline, InfoOutline } from '../../icons';
 import { primeNav, primeGetSubscription, analyticsEvent } from '../../actions';
 
 const styles = (theme) => ({
@@ -409,7 +409,7 @@ class PrimeManage extends Component {
                 </div>
                 {this.state.error && (
                   <div className={classes.overviewBlockError}>
-                    <ErrorIcon />
+                    <ErrorOutline />
                     <Typography>{this.state.error}</Typography>
                   </div>
                 )}
@@ -451,7 +451,7 @@ class PrimeManage extends Component {
                 {hasCancelAt && !device.eligible_features?.prime_data && subscription.plan === 'data'
                   && (
                     <div className={classes.overviewBlockDisabled}>
-                      <InfoOutlineIcon />
+                      <InfoOutline />
                       <Typography>
                         Standard comma prime discontinued for
                         {deviceTypePretty(device.device_type)}

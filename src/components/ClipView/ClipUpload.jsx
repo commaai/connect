@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import { Button, CircularProgress, Typography, withStyles } from '@material-ui/core';
-import ErrorIcon from '@material-ui/icons/ErrorOutline';
 import FileUploadIcon from '@material-ui/icons/FileUpload';
 
 import { deviceIsOnline, deviceOnCellular } from '../../utils';
@@ -11,6 +10,7 @@ import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import Colors from '../../colors';
 import { checkRoutesData, fetchDeviceNetworkStatus } from '../../actions';
+import { ErrorOutline } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
 import { fetchFiles, fetchAthenaQueue, fetchUploadQueue } from '../../actions/files';
 import { fetchClipsDetails } from '../../actions/clips';
@@ -319,7 +319,7 @@ class ClipUpload extends Component {
     const { classes } = this.props;
     return (
       <div className={classes.clipWarning}>
-        <ErrorIcon />
+        <ErrorOutline />
         <div>
           <h6>{ title }</h6>
           <span style={{ fontSize: '0.8rem' }}>{ label }</span>

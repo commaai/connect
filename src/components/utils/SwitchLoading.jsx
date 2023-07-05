@@ -2,9 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
 import { withStyles, Switch, FormControlLabel, Popper, Typography } from '@material-ui/core';
-import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 
 import Colors from '../../colors';
+import { ErrorOutline } from '../../icons';
 import InfoTooltip from './InfoTooltip';
 
 const styles = () => ({
@@ -110,7 +110,7 @@ class SwitchLoading extends Component {
         { tooltip && <InfoTooltip title={tooltip} /> }
         { Boolean(this.state.error) && (
         <>
-          <ErrorOutlineIcon
+          <ErrorOutline
             className={ classes.errorIcon }
             onMouseLeave={ () => this.setState({ errorPopper: null }) }
             onMouseEnter={ (ev) => this.setState({ errorPopper: ev.target }) }

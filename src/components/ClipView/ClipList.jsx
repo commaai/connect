@@ -17,14 +17,13 @@ import {
   Tooltip,
   Typography,
 } from '@material-ui/core';
-import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import LockOutlineIcon from '@material-ui/icons/LockOutline';
 import PublicIcon from '@material-ui/icons/Public';
 import WallpaperIcon from '@material-ui/icons/Wallpaper';
 
 import { fetchClipsList, navToClips } from '../../actions/clips';
 import Colors from '../../colors';
-import { Video360Icon } from '../../icons';
+import { ErrorOutline, Video360Icon } from '../../icons';
 import { filterRegularClick } from '../../utils';
 import { clipErrorToText, formatClipDuration, formatClipTimestamp } from '../../utils/clips';
 import VisibilityHandler from '../VisibilityHandler';
@@ -184,7 +183,7 @@ class ClipList extends Component {
     if (clip.status === 'failed') {
       status = (
         <Tooltip title="Error">
-          <ErrorOutlineIcon color="error" />
+          <ErrorOutline color="error" />
         </Tooltip>
       );
     } else if (clip.status === 'pending') {

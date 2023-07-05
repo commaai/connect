@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { ClickAwayListener, Tooltip, Typography, withStyles } from '@material-ui/core';
-import InfoIcon from '@material-ui/icons/InfoOutline';
+
+import { InfoOutline } from '../../icons';
 
 const styles = (theme) => ({
   arrowPopper: {
@@ -134,7 +135,7 @@ class InfoTooltip extends Component {
           classes={{ tooltip: classes.tooltip, popper: classes.arrowPopper }}
           placement={placement}
         >
-          <InfoIcon className={classes.icon} onClick={this.onTooltipOpen} />
+          <InfoOutline className={classes.icon} onClick={this.onTooltipOpen} />
         </Tooltip>
       </ClickAwayListener>
     );

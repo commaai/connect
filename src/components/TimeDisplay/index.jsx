@@ -8,7 +8,7 @@ import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 
-import { DownArrow, ForwardIcon, PauseIcon, PlayIcon, ReplayIcon, UpArrow } from '../../icons';
+import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
@@ -237,7 +237,7 @@ class TimeDisplay extends Component {
             onClick={ () => this.jumpBack(10000) }
             aria-label="Jump back 10 seconds"
           >
-            <ReplayIcon className={`${classes.icon} small dim`} />
+            <Replay10 className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
         <div className={ classes.iconBox }>
@@ -246,7 +246,7 @@ class TimeDisplay extends Component {
             onClick={ () => this.jumpForward(10000) }
             aria-label="Jump forward 10 seconds"
           >
-            <ForwardIcon className={`${classes.icon} small dim`} />
+            <Forward10 className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
         { !isThin && (
@@ -287,8 +287,8 @@ class TimeDisplay extends Component {
             aria-label={isPaused ? 'Unpause' : 'Pause'}
           >
             { isPaused
-              ? (<PlayIcon className={`${classes.icon}`} />)
-              : (<PauseIcon className={`${classes.icon}`} />)}
+              ? (<PlayArrow className={`${classes.icon}`} />)
+              : (<Pause className={`${classes.icon}`} />)}
           </IconButton>
         </div>
       </div>

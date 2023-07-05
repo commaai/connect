@@ -2,7 +2,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { CircularProgress, Typography } from '@material-ui/core';
-import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import debounce from 'debounce';
 import Obstruction from 'obstruction';
 import ReactPlayer from 'react-player/file';
@@ -10,6 +9,7 @@ import ReactPlayer from 'react-player/file';
 import { video as Video } from '@commaai/api';
 
 import Colors from '../../colors';
+import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, bufferVideo } from '../../timeline/playback';
 import { updateSegments } from '../../timeline/segments';
@@ -19,7 +19,7 @@ const VideoOverlay = ({ loading, error }) => {
   if (error) {
     content = (
       <>
-        <ErrorOutlineIcon className="mb-2" />
+        <ErrorOutline className="mb-2" />
         <Typography>{error}</Typography>
       </>
     );

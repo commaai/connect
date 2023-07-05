@@ -5,8 +5,6 @@ import fecha from 'fecha';
 import * as Sentry from '@sentry/react';
 import { withStyles, Typography, IconButton, Button, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
-import ErrorIcon from '@material-ui/icons/ErrorOutline';
-import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
 import CheckIcon from '@material-ui/icons/Check';
 
 import { billing as Billing } from '@commaai/api';
@@ -15,6 +13,7 @@ import { deviceTypePretty } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { primeNav, analyticsEvent } from '../../actions';
+import { ErrorOutline, InfoOutline } from '../../icons';
 
 const styles = () => ({
   primeBox: {
@@ -408,7 +407,7 @@ class PrimeCheckout extends Component {
         </div>
         { disabledDataPlanText && (
         <div className={ classes.overviewBlockDisabled } style={ blockMargin }>
-          <InfoOutlineIcon />
+          <InfoOutline />
           <Typography>{ disabledDataPlanText }</Typography>
         </div>
         ) }
@@ -419,7 +418,7 @@ class PrimeCheckout extends Component {
         </div>
         { error && (
         <div className={ classes.overviewBlockError }>
-          <ErrorIcon />
+          <ErrorOutline />
           <Typography>{ error }</Typography>
         </div>
         ) }

@@ -9,7 +9,6 @@ import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Butt
 import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
-import InfoOutlineIcon from '@material-ui/icons/InfoOutline';
 
 import { drives as Drives } from '@commaai/api';
 
@@ -21,6 +20,7 @@ import UploadQueue from '../Files/UploadQueue';
 import SwitchLoading from '../utils/SwitchLoading';
 import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
+import { InfoOutline } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
 import { analyticsEvent, primeNav, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
@@ -866,7 +866,7 @@ class Media extends Component {
           onMouseLeave={ type === 'dcameras' ? () => this.setState({ dcamUploadInfo: null }) : null }
         >
           not found
-          { type === 'dcameras' && <InfoOutlineIcon className={ classes.dcameraUploadIcon } /> }
+          { type === 'dcameras' && <InfoOutline className={ classes.dcameraUploadIcon } /> }
         </div>
       );
     } else if (!canUpload) {

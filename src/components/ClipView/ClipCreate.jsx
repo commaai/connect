@@ -6,10 +6,10 @@ import fecha from 'fecha';
 import { clips as Clips } from '@commaai/api';
 
 import { withStyles, Typography, TextField, Button, CircularProgress } from '@material-ui/core';
-import ErrorIcon from '@material-ui/icons/ErrorOutline';
 
 import { clipsCreate } from '../../actions/clips';
 import Colors from '../../colors';
+import { ErrorOutline } from '../../icons';
 import { formatClipTimestamp } from '../../utils/clips';
 import DriveVideo from '../DriveVideo';
 import ResizeHandler from '../ResizeHandler';
@@ -256,7 +256,7 @@ class ClipCreate extends Component {
           <div className={ classes.clipOption }>
             { error && (
               <div className={ classes.overviewBlockError }>
-                <ErrorIcon />
+                <ErrorOutline />
                 <Typography>{ error }</Typography>
               </div>
             ) }

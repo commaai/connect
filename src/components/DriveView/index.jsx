@@ -4,16 +4,15 @@ import Obstruction from 'obstruction';
 import fecha from 'fecha';
 
 import { withStyles, IconButton, Typography } from '@material-ui/core';
-import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
-import CloseIcon from '@material-ui/icons/Close';
+
+import { selectRange } from '../../actions';
+import Colors from '../../colors';
+import { ArrowBackBold, CloseBold } from '../../icons';
+import { filterRegularClick } from '../../utils';
+import ResizeHandler from '../ResizeHandler';
 
 import Media from './Media';
 import Timeline from '../Timeline';
-
-import { selectRange } from '../../actions';
-import ResizeHandler from '../ResizeHandler';
-import Colors from '../../colors';
-import { filterRegularClick } from '../../utils';
 
 const styles = () => ({
   window: {
@@ -77,7 +76,7 @@ class DriveView extends Component {
           <div>
             <div className={classes.headerContext}>
               <IconButton aria-label="Go Back" onClick={ () => window.history.back() }>
-                <KeyboardBackspaceIcon />
+                <ArrowBackBold />
               </IconButton>
               <div className={ classes.headerInfo }>
                 { headerText }
@@ -87,7 +86,7 @@ class DriveView extends Component {
                 aria-label="Close"
                 href={ `/${dongleId}` }
               >
-                <CloseIcon />
+                <CloseBold />
               </IconButton>
             </div>
             <Timeline className={classes.headerTimeline} thumbnailsVisible hasRuler />

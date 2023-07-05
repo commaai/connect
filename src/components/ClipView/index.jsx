@@ -3,11 +3,11 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import { withStyles, IconButton } from '@material-ui/core';
-import CloseIcon from '@material-ui/icons/Close';
 
 import { fetchEvents } from '../../actions/cached';
 import { clipsExit } from '../../actions/clips';
 import Colors from '../../colors';
+import { CloseBold } from '../../icons';
 import ClipList from './ClipList';
 import ClipCreate from './ClipCreate';
 import ClipUpload from './ClipUpload';
@@ -74,7 +74,7 @@ class ClipView extends Component {
       <div className={classes.window}>
         <div className={classes.headerContext}>
           <IconButton onClick={ () => dispatch(clipsExit()) }>
-            <CloseIcon />
+            <CloseBold />
           </IconButton>
           <div className={ classes.headerInfo }>
             { title }

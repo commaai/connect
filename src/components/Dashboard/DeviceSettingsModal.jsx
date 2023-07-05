@@ -14,7 +14,6 @@ import {
   withStyles,
 } from '@material-ui/core';
 import CheckIcon from '@material-ui/icons/Check';
-import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import SaveIcon from '@material-ui/icons/Save';
 import ShareIcon from '@material-ui/icons/Share';
 import WarningIcon from '@material-ui/icons/Warning';
@@ -23,6 +22,7 @@ import { devices as Devices } from '@commaai/api';
 import { primeNav, selectDevice, updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { fetchClipsList } from '../../actions/clips';
+import { ErrorOutline } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
 
 const styles = (theme) => ({
@@ -401,7 +401,7 @@ class DeviceSettingsModal extends Component {
             { this.state.unpairError
             && (
             <div className={ classes.unpairError }>
-              <ErrorOutlineIcon />
+              <ErrorOutline />
               <Typography>{ this.state.unpairError }</Typography>
             </div>
             )}
