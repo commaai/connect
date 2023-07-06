@@ -12,7 +12,11 @@ export default defineConfig(({ mode }) => {
       authToken: process.env.SENTRY_AUTH_TOKEN,
       org: 'commaai',
       project: 'connect',
-      cleanSourcemapsAfterUpload: true,
+      debug: true,
+      telemetry: false,
+      sourcemaps: {
+        filesToDeleteAfterUpload: ['**/*.map'],
+      },
     });
   }
 
