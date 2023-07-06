@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { CssBaseline, MuiThemeProvider } from '@material-ui/core';
 import * as Sentry from '@sentry/react';
 
+import 'virtual:vite-plugin-sentry/sentry-config';
+
 import './index.css';
 import App from './App';
 import Theme from './theme';
@@ -12,6 +14,8 @@ if (window.SENTRY_ENV) {
     dsn: 'https://6a242abfa01b4660aa34f150e87de018@o33823.ingest.sentry.io/1234624',
     environment: window.SENTRY_ENV,
     maxValueLength: 1000,
+    dist: import.meta.env.VITE_PLUGIN_SENTRY_CONFIG.dist,
+    release: import.meta.env.VITE_PLUGIN_SENTRY_CONFIG.release,
   });
 }
 
