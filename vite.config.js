@@ -9,16 +9,18 @@ export default defineConfig(({ mode }) => {
   let sentryPlugin;
   if (mode === 'production' && process.env.SENTRY_AUTH_TOKEN) {
     sentryPlugin = sentryVitePlugin({
+      authToken: process.env.SENTRY_AUTH_TOKEN,
       org: 'commaai',
       project: 'connect',
-      authToken: process.env.SENTRY_AUTH_TOKEN,
+      sourcemaps: {
+        filesToDeleteAfterUpload: ['**/*.map'],
+      },
     });
   }
 
   return {
     build: {
       // Required for Sentry
-      // TODO: delete source maps
       sourcemap: true,
     },
     plugins: [
