@@ -17,6 +17,7 @@ if (window.SENTRY_ENV) {
 
 console.info('Mode:', import.meta.env.MODE || 'unknown');
 console.info('App version:', import.meta.env.VITE_APP_GIT_SHA || 'dev');
+console.info('Build timestamp:', import.meta.env.VITE_APP_BUILD_TIMESTAMP || 'unknown');
 
 ReactDOM.createRoot(document.getElementById('root')).render((
   <MuiThemeProvider theme={Theme}>
