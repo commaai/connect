@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
+import dayjs from 'dayjs';
 
 import { withStyles } from '@material-ui/core/styles';
 import { Divider, Typography, Menu, MenuItem, ListItem, IconButton, Icon, AppBar } from '@material-ui/core';
@@ -138,6 +139,11 @@ class AppHeader extends Component {
     }
 
     const version = import.meta.env.VITE_APP_GIT_SHA?.substring(0, 7) || 'dev';
+    const buildDate = import.meta.env.VITE_APP_BUILD_TIMESTAMP;
+    let buildTimestamp = ''
+    if (buildDate) {
+      buildTimestamp = `, ${dayjs(buildDate).fromNow()}`;
+    }
     return (
       <>
         <ResizeHandler onResize={ this.onResize } />
@@ -191,7 +197,7 @@ class AppHeader extends Component {
           <ListItem className={ `${classes.accountListItem} ${classes.accountListEmail}` }>
             <span>{ profile.email }</span>
             <span>{ profile.user_id }</span>
-            <span>{`Version: ${version}`}</span>
+            <span>{`Version: ${version}${buildTimestamp}`}</span>
           </ListItem>
           <Divider />
           <MenuItem
