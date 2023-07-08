@@ -147,16 +147,12 @@ class TimeSelect extends Component {
 
   lastWeekText() {
     const weekAgo = dayjs().subtract(1, 'week');
-    return `Last Week${weekAgo.format('M/D')} - ${dayjs().format('M/D')})`;
+    return `Last Week (${weekAgo.format('MMM D')} - ${dayjs().format('MMM D')})`;
   }
 
   last2WeeksText() {
     const twoWeeksAgo = dayjs().subtract(14, 'day');
-    return `2 Weeks Ago (${twoWeeksAgo.format('M/D')} - ${dayjs().format('M/D')})`;
-  }
-
-  last24HoursText() {
-    return 'Last 24 Hours';
+    return `2 Weeks Ago (${twoWeeksAgo.format('MMM D')} - ${dayjs().format('MMM D')})`;
   }
 
   onVisible() {
@@ -182,7 +178,7 @@ class TimeSelect extends Component {
             className={classes.headerDropdown}
           >
             <MenuItem value="custom">Custom</MenuItem>
-            <MenuItem value="24-hours">{ this.last24HoursText() }</MenuItem>
+            <MenuItem value="24-hours">Last 24 Hours</MenuItem>
             <MenuItem value="1-week">{ this.lastWeekText() }</MenuItem>
             <MenuItem value="2-weeks">{ this.last2WeeksText() }</MenuItem>
           </Select>
