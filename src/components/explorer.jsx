@@ -227,10 +227,12 @@ class ExplorerApp extends Component {
           style={ drawerStyles }
         />
         <div className={ classes.window } style={ containerStyles }>
-          <Sentry.ErrorBoundary fallback={<div>
-            <p>An error has occurred</p>
-            <a href="" className="text-blue-500 underline">Reload the page.</a>
-          </div>}>
+          <Sentry.ErrorBoundary
+            fallback={<div>
+              <p>An error has occurred</p>
+              <a href="" className="text-blue-500 underline">Reload the page.</a>
+            </div>}
+          >
             <Suspense fallback={this.renderLoading()}>
               { noDevicesUpsell
                 ? <NoDeviceUpsell />
