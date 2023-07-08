@@ -208,6 +208,7 @@ class ExplorerApp extends Component {
       minHeight: `calc(100vh - ${headerHeight}px)`,
     };
 
+    const version = import.meta.env.VITE_APP_GIT_SHA || 'unknown';
     return (
       <div>
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
@@ -228,9 +229,21 @@ class ExplorerApp extends Component {
         />
         <div className={ classes.window } style={ containerStyles }>
           <Sentry.ErrorBoundary
-            fallback={<div>
-              <p>An error has occurred</p>
-              <a href="" className="text-blue-500 underline">Reload the page.</a>
+            fallback={<div className="m-4 prose prose-invert">
+              <h2 className="text-3xl font-bold">Oops!</h2>
+              <p>Something went wrong. Please try reloading the page.</p>
+              <p>
+                If you continue having problems, let us know on{` `}
+                <a href="https://discord.comma.ai" target="_blank">Discord</a>{` `}
+                in the <span className="whitespace-nowrap">#connect-feedback</span> channel. Include the following information:
+              </p>
+              <ul>
+                <li>What device you're using</li>
+                <li>The operating system and browser</li>
+                <li>Any errors in the console</li>
+                <li>connect version: <code>{version}</code></li>
+              </ul>
+              <a href="">Click to reload the page</a>
             </div>}
           >
             <Suspense fallback={this.renderLoading()}>
