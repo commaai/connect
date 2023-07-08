@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import localforage from 'localforage';
 import { replace } from 'connected-react-router';
+import * as Sentry from '@sentry/react';
 
 import { withStyles, Button, CircularProgress, Divider, Grid, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -226,14 +227,19 @@ class ExplorerApp extends Component {
           style={ drawerStyles }
         />
         <div className={ classes.window } style={ containerStyles }>
-          <Suspense fallback={this.renderLoading()}>
-            { noDevicesUpsell
-              ? <NoDeviceUpsell />
-              : (clips
-                ? <ClipView />
-                : (zoom ? <DriveView /> : <Dashboard />)
-              ) }
-          </Suspense>
+          <Sentry.ErrorBoundary fallback={<div>
+            <p>An error has occurred</p>
+            <a href="" className="text-blue-500 underline">Reload the page.</a>
+          </div>}>
+            <Suspense fallback={this.renderLoading()}>
+              { noDevicesUpsell
+                ? <NoDeviceUpsell />
+                : (clips
+                  ? <ClipView />
+                  : (zoom ? <DriveView /> : <Dashboard />)
+                ) }
+            </Suspense>
+          </Sentry.ErrorBoundary>
         </div>
         <IosPwaPopup />
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
