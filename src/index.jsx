@@ -12,6 +12,7 @@ if (window.SENTRY_ENV) {
     dsn: 'https://6a242abfa01b4660aa34f150e87de018@o33823.ingest.sentry.io/1234624',
     environment: window.SENTRY_ENV,
     maxValueLength: 1000,
+    release: import.meta.env.VITE_APP_GIT_SHA,
   });
 }
 
