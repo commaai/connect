@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import localforage from 'localforage';
 import { replace } from 'connected-react-router';
+import * as Sentry from '@sentry/react';
 
 import { withStyles, Button, CircularProgress, Divider, Grid, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -207,6 +208,7 @@ class ExplorerApp extends Component {
       minHeight: `calc(100vh - ${headerHeight}px)`,
     };
 
+    const version = import.meta.env.VITE_APP_GIT_SHA || 'unknown';
     return (
       <div>
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
@@ -226,14 +228,33 @@ class ExplorerApp extends Component {
           style={ drawerStyles }
         />
         <div className={ classes.window } style={ containerStyles }>
-          <Suspense fallback={this.renderLoading()}>
-            { noDevicesUpsell
-              ? <NoDeviceUpsell />
-              : (clips
-                ? <ClipView />
-                : (zoom ? <DriveView /> : <Dashboard />)
-              ) }
-          </Suspense>
+          <Sentry.ErrorBoundary
+            fallback={<div className="m-4 prose prose-invert">
+              <h2 className="text-3xl font-bold">Oops!</h2>
+              <p>Something went wrong. Please try reloading the page.</p>
+              <p>
+                If you continue having problems, let us know on{` `}
+                <a href="https://discord.comma.ai" target="_blank">Discord</a>{` `}
+                in the <span className="whitespace-nowrap">#connect-feedback</span> channel. Include the following information:
+              </p>
+              <ul>
+                <li>What device you're using</li>
+                <li>The operating system and browser</li>
+                <li>Any errors in the console</li>
+                <li>connect version: <code>{version}</code></li>
+              </ul>
+              <a href="">Click to reload the page</a>
+            </div>}
+          >
+            <Suspense fallback={this.renderLoading()}>
+              { noDevicesUpsell
+                ? <NoDeviceUpsell />
+                : (clips
+                  ? <ClipView />
+                  : (zoom ? <DriveView /> : <Dashboard />)
+                ) }
+            </Suspense>
+          </Sentry.ErrorBoundary>
         </div>
         <IosPwaPopup />
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
