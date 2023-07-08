@@ -4,7 +4,7 @@ import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import 'react-responsive-carousel/lib/styles/carousel.min.css'; // requires a loader
 import { Carousel } from 'react-responsive-carousel';
-import fecha from 'fecha';
+import dayjs from 'dayjs';
 
 import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } from '@material-ui/core';
 import { VideoLibrary } from '@material-ui/icons';
@@ -463,8 +463,8 @@ class DeviceInfo extends Component {
 
     let pingTooltip = 'no ping received from device';
     if (device.last_athena_ping) {
-      const lastAthenaPing = new Date(device.last_athena_ping * 1000);
-      pingTooltip = `Last ping on ${fecha.format(lastAthenaPing, 'mediumDate')} at ${fecha.format(lastAthenaPing, 'shortTime')}`;
+      const lastAthenaPing = dayjs(device.last_athena_ping * 1000);
+      pingTooltip = `Last ping on ${lastAthenaPing.format('MMM D, YYYY')} at ${lastAthenaPing.format('h:mm A')}`;
     }
 
     return (

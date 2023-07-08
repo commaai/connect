@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import fecha from 'fecha';
+import dayjs from 'dayjs';
 import * as Sentry from '@sentry/react';
 import { withStyles, Typography, IconButton, Button, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
@@ -285,10 +285,10 @@ class PrimeCheckout extends Component {
       let trialEndDate = null;
       let claimEndDate = null;
       if (selectedPlan === 'data') {
-        trialEndDate = fecha.format(subscribeInfo.trial_end_data * 1000, 'MMMM Do');
-        claimEndDate = fecha.format(subscribeInfo.claim_end_data * 1000, 'MMMM Do');
+        trialEndDate = dayjs(subscribeInfo.trial_end_data * 1000).format('MMMM D');
+        claimEndDate = dayjs(subscribeInfo.claim_end_data * 1000).format('MMMM D');
       } else if (selectedPlan === 'nodata') {
-        trialEndDate = fecha.format(subscribeInfo.trial_end_nodata * 1000, 'MMMM Do');
+        trialEndDate = dayjs(subscribeInfo.trial_end_nodata * 1000).format('MMMM D');
       }
       chargeText = `Your first charge will be on ${trialEndDate}, then monthly thereafter.${
         claimEndDate ? ` Trial offer only valid until ${claimEndDate}.` : ''}`;

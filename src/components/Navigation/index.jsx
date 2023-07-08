@@ -7,7 +7,8 @@ import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorV
 import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress, Popper }
   from '@material-ui/core';
 import { Search, Clear, Refresh } from '@material-ui/icons';
-import fecha from 'fecha';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 
 import { athena as Athena, devices as Devices, navigation as NavigationApi } from '@commaai/api';
 import { primeNav, analyticsEvent } from '../../actions';
@@ -1093,7 +1094,7 @@ class Navigation extends Component {
                 ref={ this.carPinTooltipRef }
                 style={{ ...carPinTooltipStyle, display: 'none' }}
               >
-                { fecha.format(carLocation.time, 'h:mm a') }
+                { dayjs(carLocation.time).format('h:mm A') }
                 ,
                 <br />
                 { timeFromNow(carLocation.time) }

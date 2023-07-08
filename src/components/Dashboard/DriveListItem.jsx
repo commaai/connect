@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
-import fecha from 'fecha';
+import dayjs from 'dayjs';
 
 import { withStyles, Grid, Typography } from '@material-ui/core';
 
@@ -88,9 +88,9 @@ const DriveListItem = (props) => {
   );
 
   const small = windowWidth < 580;
-  const startTime = fecha.format(new Date(drive.start_time_utc_millis), 'HH:mm');
-  const startDate = fecha.format(new Date(drive.start_time_utc_millis), small ? 'ddd, MMM D' : 'dddd, MMM D');
-  const endTime = fecha.format(new Date(drive.end_time_utc_millis), 'HH:mm');
+  const startTime = dayjs(drive.start_time_utc_millis).format('HH:mm');
+  const startDate = dayjs(drive.start_time_utc_millis).format(small ? 'ddd, MMM D' : 'dddd, MMM D');
+  const endTime = dayjs(drive.end_time_utc_millis).format('HH:mm');
   const duration = formatDriveDuration(drive.duration);
 
   const distance = isMetric()

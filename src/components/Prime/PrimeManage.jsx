@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import fecha from 'fecha';
+import dayjs from 'dayjs';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, Button, Modal, Paper, IconButton, CircularProgress } from '@material-ui/core';
@@ -312,9 +312,9 @@ class PrimeManage extends Component {
     let planName;
     let planSubtext;
     if (hasPrimeSub) {
-      joinDate = fecha.format(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0, 'MMMM Do, YYYY');
-      nextPaymentDate = fecha.format(subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0, 'MMMM Do, YYYY');
-      cancelAtDate = fecha.format(subscription.cancel_at ? subscription.cancel_at * 1000 : 0, 'MMMM Do, YYYY');
+      joinDate = dayjs(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0).format('MMMM D, YYYY');
+      nextPaymentDate = dayjs(subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0).format('MMMM D, YYYY');
+      cancelAtDate = dayjs(subscription.cancel_at ? subscription.cancel_at * 1000 : 0).format('MMMM D, YYYY');
       planName = subscription.plan === 'nodata' ? 'Lite' : 'Standard';
       planSubtext = subscription.plan === 'nodata' ? '(without data plan)' : '(with data plan)';
     }

@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';
-import fecha from 'fecha';
+import dayjs from 'dayjs';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -142,7 +142,7 @@ class TimeDisplay extends Component {
     if (Number.isNaN(now.getTime())) {
       return '...';
     }
-    let dateString = fecha.format(now, 'HH:mm:ss');
+    let dateString = dayjs(now).format('HH:mm:ss');
     const seg = getSegmentNumber(currentRoute);
     if (seg !== null) {
       dateString = `${dateString} \u2013 ${seg}`;

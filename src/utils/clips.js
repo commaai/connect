@@ -1,4 +1,4 @@
-import fecha from 'fecha';
+import dayjs from 'dayjs';
 
 export function clipErrorToText(errorStatus) {
   switch (errorStatus) {
@@ -24,6 +24,5 @@ export function formatClipDuration(duration) {
 }
 
 export function formatClipTimestamp(timestamp) {
-  const formatMask = 'MMM Do, HH:mm';
-  return fecha.format(timestamp * (timestamp < 10000000000 ? 1000 : 1), formatMask);
+  return dayjs(timestamp, 'MMM Do, HH:mm');
 }

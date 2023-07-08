@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
-import fecha from 'fecha';
+import dayjs from 'dayjs';
 import { clips as Clips } from '@commaai/api';
 
 import { withStyles, Typography, TextField, Button, CircularProgress } from '@material-ui/core';
@@ -172,8 +172,8 @@ class ClipCreate extends Component {
     const { windowWidth, videoTypeOption, clipTitle, createLoading, error } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
-    const startStr = fecha.format(new Date(loop.startTime), 'h:mm:ss\u00a0a').toLowerCase();
-    const endStr = fecha.format(new Date(loop.startTime + loop.duration), 'h:mm:ss\u00a0a').toLowerCase();
+    const startStr = dayjs(loop.startTime).format('h:mm:ss A').toLowerCase();
+    const endStr = dayjs(loop.startTime + loop.duration).format('h:mm:ss A').toLowerCase();
     const durSeconds = Math.floor(loop.duration / 1000);
     let durationStr = durSeconds >= 3600 ? `${Math.floor(durSeconds / 3600)}:` : '';
     durationStr += `${Math.floor((durSeconds % 3600) / 60).toString().padStart(durSeconds >= 3600 ? 2 : 1, '0')}:`;

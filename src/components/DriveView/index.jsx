@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import fecha from 'fecha';
+import dayjs from 'dayjs';
 
 import { withStyles, IconButton, Typography } from '@material-ui/core';
 
@@ -61,11 +61,11 @@ class DriveView extends Component {
     const { windowWidth } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
-    const viewEndTime = fecha.format(new Date(zoom.end), 'HH:mm');
-    const startTime = fecha.format(new Date(zoom.start), 'MMM D @ HH:mm');
+    const viewEndTime = dayjs(zoom.end).format('HH:mm');
+    const startTime = dayjs(zoom.start).format('MMM D @ HH:mm');
     let headerText = `${startTime} - ${viewEndTime}`;
     if (windowWidth >= 640) {
-      const startDay = fecha.format(new Date(zoom.start), 'dddd');
+      const startDay = dayjs(zoom.start).format('dddd');
       headerText = `${startDay} ${headerText}`;
     }
 

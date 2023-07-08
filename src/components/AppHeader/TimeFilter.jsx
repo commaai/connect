@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import fecha from 'fecha';
+import dayjs from 'dayjs';
 
 import { Button, Divider, FormControl, MenuItem, Modal, Paper, Select, Typography, withStyles } from '@material-ui/core';
 
@@ -146,13 +146,13 @@ class TimeSelect extends Component {
   }
 
   lastWeekText() {
-    const weekAgo = Date.now() - (1000 * 60 * 60 * 24 * 7);
-    return `Last Week${fecha.format(new Date(weekAgo), ' (M/D - ')}${fecha.format(new Date(), 'M/D)')}`;
+    const weekAgo = dayjs().subtract(1, 'week');
+    return `Last Week${weekAgo.format('M/D')} - ${dayjs().format('M/D')})`;
   }
 
   last2WeeksText() {
-    const twoWeeksAgo = Date.now() - (1000 * 60 * 60 * 24 * 14);
-    return `2 Weeks${fecha.format(new Date(twoWeeksAgo), ' (M/D - ')}${fecha.format(new Date(), 'M/D)')}`;
+    const twoWeeksAgo = dayjs().subtract(14, 'day');
+    return `2 Weeks Ago (${twoWeeksAgo.format('M/D')} - ${dayjs().format('M/D')})`;
   }
 
   last24HoursText() {
@@ -166,10 +166,10 @@ class TimeSelect extends Component {
 
   render() {
     const { classes } = this.props;
-    const minDate = fecha.format(new Date(Date.now() - LOOKBACK_WINDOW_MILLIS), 'YYYY-MM-DD');
-    const maxDate = fecha.format(new Date(), 'YYYY-MM-DD');
-    const startDate = fecha.format(new Date(this.state.start || this.props.filter.start), 'YYYY-MM-DD');
-    const endDate = fecha.format(new Date(this.state.end || this.props.filter.end), 'YYYY-MM-DD');
+    const minDate = dayjs().subtract(LOOKBACK_WINDOW_MILLIS, 'millisecond').format('YYYY-MM-DD');
+    const maxDate = dayjs().format('YYYY-MM-DD');
+    const startDate = dayjs(this.state.start || this.props.filter.start).format('YYYY-MM-DD');
+    const endDate = dayjs(this.state.end || this.props.filter.end).format('YYYY-MM-DD');
 
     return (
       <>
