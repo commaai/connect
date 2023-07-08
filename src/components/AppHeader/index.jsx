@@ -139,7 +139,7 @@ class AppHeader extends Component {
     }
 
     const version = import.meta.env.VITE_APP_GIT_SHA?.substring(0, 7) || 'dev';
-    const buildDate = import.meta.env.VITE_APP_BUILD_DATE;
+    const buildDate = import.meta.env.VITE_APP_BUILD_TIMESTAMP;
     let buildTimestamp = ''
     if (buildDate) {
       buildTimestamp = `, ${dayjs(buildDate).fromNow()}`;
