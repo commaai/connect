@@ -1,8 +1,11 @@
 import * as Sentry from '@sentry/react';
-import fecha from 'fecha';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import decodeJwt, { InvalidTokenError } from 'jwt-decode';
 
 import { currentOffset } from '../timeline';
+
+dayjs.extend(relativeTime);
 
 export const emptyDevice = {
   alias: 'Shared device',
@@ -51,24 +54,12 @@ export function formatDriveDuration(duration) {
 export function timeFromNow(ts) {
   const dt = (Date.now() - ts) / 1000;
   if (dt > 3600 * 24 * 30) {
-    return fecha.format(ts, 'MMM Do YYYY');
+    return dayjs(ts).format('MMM Do YYYY');
+  } else if (dt > 60) {
+    return dayjs(ts).fromNow();
+  } else {
+    return 'just now';
   }
-  if (dt > 3600 * 24) {
-    const days = Math.floor(dt / (3600 * 24));
-    const plural = days === 1 ? 'day' : 'days';
-    return `${days} ${plural} ago`;
-  }
-  if (dt > 3600) {
-    const hours = Math.floor(dt / 3600);
-    const plural = hours === 1 ? 'hour' : 'hours';
-    return `${hours} ${plural} ago`;
-  }
-  if (dt > 60) {
-    const mins = Math.floor(dt / 60);
-    const plural = mins === 1 ? 'minute' : 'minutes';
-    return `${mins} ${plural} ago`;
-  }
-  return 'just now';
 }
 
 export function deviceTypePretty(deviceType) {

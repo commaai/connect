@@ -32,12 +32,12 @@ dependencies:
   connected-react-router:
     specifier: ^4.5.0
     version: 4.5.0(react-redux@5.1.2)(react-router@5.3.4)(react@18.2.0)(redux@4.2.1)
+  dayjs:
+    specifier: ^1.11.9
+    version: 1.11.9
   debounce:
     specifier: ^1.2.1
     version: 1.2.1
-  fecha:
-    specifier: ^3.0.3
-    version: 3.0.3
   global:
     specifier: ^4.4.0
     version: 4.4.0
@@ -3920,6 +3920,10 @@ packages:
       whatwg-url: 8.7.0
     dev: true
 
+  /dayjs@1.11.9:
+    resolution: {integrity: sha512-QvzAURSbQ0pKdIye2txOzNaHmxtUBXerpY0FJsFXUMKbIZeFm5ht1LS/jFsrncjnmtv8HsG0W2g6c0zUjZWmpA==}
+    dev: false
+
   /debounce@1.2.1:
     resolution: {integrity: sha512-XRRe6Glud4rd/ZGQfiV1ruXSfbvfJedlV9Y6zOlP+2K04vBYiJEte6stfFkCP03aMnY5tsipamumUjL14fofug==}
     dev: false
@@ -4717,10 +4721,6 @@ packages:
     dependencies:
       pend: 1.2.0
     dev: true
-
-  /fecha@3.0.3:
-    resolution: {integrity: sha512-6LQK/1jud/FZnfEEZJ7y81vw7ge81DNd/XEsX0hgMUjhS+QMljkb1C0czBaP7dMNRVrd5mw/J2J7qI2Nw+TWZw==}
-    dev: false
 
   /file-entry-cache@6.0.1:
     resolution: {integrity: sha512-7Gps/XWymbLk2QLYK4NzpMOrYjMhdIxXuIvy2QBsLE6ljuodKvdkWs/cpyJJ3CVIVpH0Oi1Hvg1ovbMzLdFBBg==}

@@ -7,7 +7,7 @@ import Obstruction from 'obstruction';
 import { withStyles } from '@material-ui/core/styles';
 import raf from 'raf';
 import document from 'global/document';
-import fecha from 'fecha';
+import dayjs from 'dayjs';
 
 import Measure from 'react-measure';
 
@@ -566,7 +566,7 @@ class Timeline extends Component {
       const hoverOffset = this.percentToOffset((hoverX - rulerBounds.x) / rulerBounds.width);
       hoverStyle = { left: Math.max(-10, Math.min(rulerBounds.width - 70, hoverX - rulerBounds.x - 40)) };
       if (!Number.isNaN(hoverOffset)) {
-        hoverString = fecha.format(filter.start + hoverOffset, 'HH:mm:ss');
+        hoverString = dayjs(filter.start + hoverOffset).format('HH:mm:ss');
         const segNum = this.segmentNum(hoverOffset);
         if (segNum !== null) {
           hoverString = `${segNum}, ${hoverString}`;
