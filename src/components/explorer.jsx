@@ -1,4 +1,4 @@
-import React, { Component, lazy, Suspense, useRef, useState } from 'react';
+import React, { Component, lazy, Suspense, useMemo, useRef, useState } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import localforage from 'localforage';
@@ -70,14 +70,14 @@ const ErrorFallback = ({ error, componentStack }) => {
   const userAgent = window.navigator.userAgent;
   const platform = window.navigator.platform;
 
-  const information = `connect version: ${version}
+  const information = useMemo(() => `connect version: ${version}
 URL: ${window.location.href}
 
 Device: ${platform}
 Browser: ${userAgent}
 Window: ${window.innerWidth}x${window.innerHeight}
 
-${error.toString()}${componentStack}`;
+${error.toString()}${componentStack}`, [version, userAgent, platform, error, componentStack]);
 
   const copyError = async () => {
     if (copiedInterval.current) {
@@ -114,6 +114,7 @@ ${error.toString()}${componentStack}`;
           <button
             className={`absolute right-1 top-1 flex rounded-md pl-2 pr-2 py-1 text-white font-bold transition-colors ${copied ? 'bg-green-500' : 'bg-gray-700 hover:bg-gray-600'}`}
             onClick={copyError}
+            aria-label={copied ? 'Copied' : 'Copy error'}
           >
             {copied ? <Check /> : <ContentCopy />}
             <span className="ml-1">{copied ? 'Copied' : 'Copy error'}</span>
