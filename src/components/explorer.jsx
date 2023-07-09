@@ -14,7 +14,6 @@ import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
-import PullDownReload from './utils/PullDownReload';
 
 import { analyticsEvent, selectDevice, updateDevice } from '../actions';
 import ResizeHandler from './ResizeHandler';
@@ -275,7 +274,6 @@ class ExplorerApp extends Component {
     return (
       <div>
         <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
-        <PullDownReload />
         <AppHeader
           drawerIsOpen={ drawerIsOpen }
           annotating={ Boolean(zoom) }
