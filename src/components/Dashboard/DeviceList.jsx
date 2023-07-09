@@ -161,7 +161,7 @@ class DeviceList extends Component {
 
   render() {
     const { settingsModalDongleId } = this.state;
-    const { classes, device, headerHeight, selectedDevice: dongleId } = this.props;
+    const { classes, device, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
     if (devices === null) {
@@ -195,7 +195,7 @@ class DeviceList extends Component {
         <VisibilityHandler onVisible={ this.onVisible } minInterval={ 10 } />
         <div
           className={`scrollstyle ${classes.deviceList}`}
-          style={{ height: `calc(100vh - ${headerHeight}px)` }}
+          style={{ height: 'calc(100vh - 64px)' }}
         >
           {devices.map(this.renderDevice)}
           {MyCommaAuth.isAuthenticated() && (
