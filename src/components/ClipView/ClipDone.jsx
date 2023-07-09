@@ -379,7 +379,7 @@ class ClipDone extends Component {
       <>
         <ResizeHandler onResize={ this.onResize } />
 
-        <div style={{ padding: viewerPadding }}>
+        <div className="touch-none" style={{ padding: viewerPadding }}>
           <div className={ `${classes.clipOption} ${classes.clipHeader}` }>
             {clips.title ? (
               <div>
