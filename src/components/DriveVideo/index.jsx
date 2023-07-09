@@ -217,6 +217,9 @@ class DriveVideo extends Component {
     }
     newPlaybackRate = Math.round(newPlaybackRate * 10) / 10;
 
+    // most browsers don't support more than 16x playback rate
+    newPlaybackRate = Math.max(0, Math.min(16, newPlaybackRate));
+
     const internalPlayer = videoPlayer.getInternalPlayer();
 
     const sufficientBuffer = Math.min(videoPlayer.getDuration() - videoPlayer.getCurrentTime(), 30);
