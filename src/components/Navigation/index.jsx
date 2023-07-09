@@ -340,7 +340,6 @@ class Navigation extends Component {
     this.getCarLocation = this.getCarLocation.bind(this);
     this.carLocationCircle = this.carLocationCircle.bind(this);
     this.clearSearchSelect = this.clearSearchSelect.bind(this);
-    this.onContainerRef = this.onContainerRef.bind(this);
   }
 
   componentDidMount() {
@@ -972,13 +971,6 @@ class Navigation extends Component {
     };
   }
 
-  onContainerRef(el) {
-    this.mapContainerRef.current = el;
-    if (el) {
-      el.addEventListener('touchstart', (ev) => ev.stopPropagation());
-    }
-  }
-
   render() {
     const { classes, device, hasNav } = this.props;
     const { mapError, hasFocus, search, searchLooking, searchSelect, favoriteLocations, viewport,
@@ -999,7 +991,7 @@ class Navigation extends Component {
 
     return (
       <div
-        ref={this.onContainerRef}
+        ref={this.mapContainerRef}
         className={classes.mapContainer}
         style={{ height: (hasFocus && hasNav) ? '60vh' : 200 }}
       >

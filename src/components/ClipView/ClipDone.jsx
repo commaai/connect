@@ -392,10 +392,7 @@ class ClipDone extends Component {
             { windowWidth < 800 && <br /> }
             { authorized && <SwitchLoading classes={{ root: classes.publicSwitch }} checked={ clips.is_public } onChange={ this.onPublicToggle } label="Public access" />}
           </div>
-          <div
-            className={ classes.clipOption }
-            ref={ (el) => { if (el) el.addEventListener('touchstart', (ev) => ev.stopPropagation()); }}
-          >
+          <div className={ classes.clipOption }>
             { clips.video_type === '360'
               ? <div ref={ this.video360ContainerRef } style={{ ...videoSizeStyle, height: '50vh' }} />
               : (

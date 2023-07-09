@@ -89,12 +89,6 @@ export function deviceOnCellular(device) {
   return device.network_metered;
 }
 
-export function isTouchDevice() {
-  return (('ontouchstart' in window)
-     || (navigator.maxTouchPoints > 0)
-     || (navigator.msMaxTouchPoints > 0));
-}
-
 export function pairErrorToMessage(err, sentryFingerprint) {
   let msg;
   if (err.message.indexOf('400') === 0) {
