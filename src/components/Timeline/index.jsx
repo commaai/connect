@@ -210,6 +210,7 @@ class Timeline extends Component {
     this.clipDragEnd = this.clipDragEnd.bind(this);
     this.percentToOffset = this.percentToOffset.bind(this);
     this.segmentNum = this.segmentNum.bind(this);
+    this.onRulerRef = this.onRulerRef.bind(this);
     this.renderRoute = this.renderRoute.bind(this);
     this.renderClipView = this.renderClipView.bind(this);
 
@@ -321,6 +322,13 @@ class Timeline extends Component {
 
   handlePointerLeave() {
     this.setState({ hoverX: null });
+  }
+
+  onRulerRef(el) {
+    this.rulerRef.current = el;
+    if (el) {
+      el.addEventListener('touchstart', (ev) => ev.stopPropagation());
+    }
   }
 
   getOffset() {
@@ -516,7 +524,7 @@ class Timeline extends Component {
 
     return (
       <div
-        ref={this.rulerRef}
+        ref={this.onRulerRef}
         className={classes.clip}
         onClick={this.handleClick}
       >
