@@ -24,5 +24,5 @@ export function formatClipDuration(duration) {
 }
 
 export function formatClipTimestamp(timestamp) {
-  return dayjs(timestamp).format('MMM Do, HH:mm');
+  return dayjs(timestamp).format('MMM D, HH:mm');
 }
