@@ -97,9 +97,8 @@ ${error.toString()}${componentStack}`;
       <h2>Oops!</h2>
       <p>Something went wrong. Please reload the page.</p>
       <p>
-        If you continue having problems, let us know on{` `}
-        <a href="https://discord.comma.ai" target="_blank">Discord</a>{` `}
-        in the <span className="whitespace-nowrap">#connect-feedback</span> channel.
+        If you continue to have problems, let us know on <a href="https://discord.comma.ai" target="_blank">Discord</a>{` `}
+        in the <span className="whitespace-nowrap"><strong>#connect-feedback</strong></span> channel.
       </p>
       <p>
         <a className="bg-blue-600 rounded-md px-4 py-2 font-bold hover:bg-blue-500 transition-colors no-underline" href="">
