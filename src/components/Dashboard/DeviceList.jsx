@@ -93,10 +93,13 @@ class DeviceList extends Component {
       settingsModalDongleId: null,
     };
 
+    this.container = React.createRef();
+
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
     this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
     this.onVisible = this.onVisible.bind(this);
+    this.onRef = this.onRef.bind(this);
   }
 
   handleOpenedSettingsModal(dongleId, ev) {
@@ -107,6 +110,13 @@ class DeviceList extends Component {
 
   handleClosedSettingsModal() {
     this.setState({ settingsModalDongleId: null });
+  }
+
+  onRef(el) {
+    this.container.current = el;
+    if (el) {
+      el.addEventListener('touchstart', (ev) => ev.stopPropagation());
+    }
   }
 
   async onVisible() {
@@ -194,6 +204,7 @@ class DeviceList extends Component {
       <>
         <VisibilityHandler onVisible={ this.onVisible } minInterval={ 10 } />
         <div
+          ref={this.onRef}
           className={`scrollstyle ${classes.deviceList}`}
           style={{ height: 'calc(100vh - 64px)' }}
         >
