@@ -274,6 +274,7 @@ export default function reducer(_state, action) {
         };
       } else {
         state.zoom = null;
+        state.loop = null;
       }
       break;
     case Types.ACTION_FILES_URLS:
