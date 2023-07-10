@@ -93,7 +93,6 @@ class SwitchLoading extends Component {
 
     const isChecked = this.state.checked !== null ? this.state.checked : checked;
     const loadingCls = (loading || this.state.loading) ? { icon: classes.switchThumbLoading } : {};
-    console.debug('just a test');
 
     const switchEl = (
       <Switch
