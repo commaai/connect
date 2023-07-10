@@ -41,6 +41,9 @@ class AppDrawer extends Component {
   constructor(props) {
     super(props);
 
+    this.ref = React.createRef();
+
+    this.onRef = this.onRef.bind(this);
     this.handleDeviceSelected = this.handleDeviceSelected.bind(this);
     this.toggleDrawerOff = this.toggleDrawerOff.bind(this);
   }
@@ -48,6 +51,13 @@ class AppDrawer extends Component {
   handleDeviceSelected(dongleId) {
     this.props.dispatch(selectDevice(dongleId));
     this.toggleDrawerOff();
+  }
+
+  onRef(el) {
+    this.ref.current = el;
+    if (el) {
+      el.addEventListener('touchstart', (ev) => ev.stopPropagation());
+    }
   }
 
   toggleDrawerOff() {
@@ -64,7 +74,7 @@ class AppDrawer extends Component {
         variant={ isPermanent ? 'permanent' : 'temporary' }
         PaperProps={{ style: { width: this.props.width, top: 'auto' } }}
       >
-        <div className={classes.drawerContent}>
+        <div ref={this.onRef} className={classes.drawerContent}>
           { !isPermanent
             && (
               <Link to="/" className={ classes.logo }>
