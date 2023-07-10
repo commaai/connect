@@ -15,6 +15,8 @@ import { getZoom, getClipsNav } from './url';
 import { isDemo } from './demo';
 import store, { history } from './store';
 
+import ErrorFallback from './components/ErrorFallback';
+
 const Explorer = lazy(() => import('./components/explorer'));
 const AnonymousLanding = lazy(() => import('./components/anonymous'));
 
@@ -120,9 +122,11 @@ class App extends Component {
     return (
       <Provider store={store}>
         <ConnectedRouter history={history}>
-          <Suspense fallback={this.renderLoading()}>
-            { showLogin ? this.anonymousRoutes() : this.authRoutes() }
-          </Suspense>
+          <Sentry.ErrorBoundary fallback={props => <ErrorFallback {...props} />}>
+            <Suspense fallback={this.renderLoading()}>
+              { showLogin ? this.anonymousRoutes() : this.authRoutes() }
+            </Suspense>
+          </Sentry.ErrorBoundary>
         </ConnectedRouter>
       </Provider>
     );

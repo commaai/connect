@@ -1,4 +1,4 @@
-import React, { Component, lazy, Suspense, useMemo, useRef, useState } from 'react';
+import React, { Component, lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import localforage from 'localforage';
@@ -17,12 +17,11 @@ import AppDrawer from './AppDrawer';
 import PullDownReload from './utils/PullDownReload';
 
 import { analyticsEvent, selectDevice, updateDevice } from '../actions';
-import ResizeHandler from './ResizeHandler';
+import init from '../actions/startup';
 import Colors from '../colors';
-import { Check, ContentCopy } from '../icons';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { play, pause } from '../timeline/playback';
-import init from '../actions/startup';
+import ResizeHandler from './ResizeHandler';
 
 const ClipView = lazy(() => import('./ClipView'));
 const DriveView = lazy(() => import('./DriveView'));
@@ -61,69 +60,6 @@ const styles = (theme) => ({
     fontWeight: 'bold',
   },
 });
-
-const ErrorFallback = ({ error, componentStack }) => {
-  const [copied, setCopied] = useState(false);
-  const copiedInterval = useRef(null);
-
-  const version = import.meta.env.VITE_APP_GIT_SHA || 'unknown';
-  const userAgent = window.navigator.userAgent;
-  const platform = window.navigator.platform;
-
-  const information = useMemo(() => `connect version: ${version}
-URL: ${window.location.href}
-
-Device: ${platform}
-Browser: ${userAgent}
-Window: ${window.innerWidth}x${window.innerHeight}
-
-${error.toString()}${componentStack}`, [version, userAgent, platform, error, componentStack]);
-
-  const copyError = async () => {
-    if (copiedInterval.current) {
-      clearTimeout(copiedInterval.current);
-    }
-    try {
-      await navigator.clipboard.writeText('```' + information + '```');
-      setCopied(true);
-      copiedInterval.current = setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
-  };
-
-  return (
-    <div className="m-4 prose prose-invert">
-      <h2>Oops!</h2>
-      <p>Something went wrong. Please reload the page.</p>
-      <p>
-        If you continue to have problems, let us know on <a href="https://discord.comma.ai" target="_blank">Discord</a>{` `}
-        in the <span className="whitespace-nowrap"><strong>#connect-feedback</strong></span> channel.
-      </p>
-      <p>
-        <a className="bg-blue-600 rounded-md px-4 py-2 font-bold hover:bg-blue-500 transition-colors no-underline" href="">
-          Reload
-        </a>
-      </p>
-      <details>
-        <summary>Show debugging information</summary>
-        <div className="relative">
-          <pre className="select-all">
-            {information}
-          </pre>
-          <button
-            className={`absolute right-1 top-1 flex rounded-md pl-2 pr-2 py-1 text-white font-bold transition-colors ${copied ? 'bg-green-500' : 'bg-gray-700 hover:bg-gray-600'}`}
-            onClick={copyError}
-            aria-label={copied ? 'Copied' : 'Copy error'}
-          >
-            {copied ? <Check /> : <ContentCopy />}
-            <span className="ml-1">{copied ? 'Copied' : 'Copy error'}</span>
-          </button>
-        </div>
-      </details>
-    </div>
-  );
-};
 
 class ExplorerApp extends Component {
   constructor(props) {
@@ -291,16 +227,14 @@ class ExplorerApp extends Component {
           style={ drawerStyles }
         />
         <div className={ classes.window } style={ containerStyles }>
-          <Sentry.ErrorBoundary fallback={props => <ErrorFallback {...props} />}>
-            <Suspense fallback={this.renderLoading()}>
-              { noDevicesUpsell
-                ? <NoDeviceUpsell />
-                : (clips
-                  ? <ClipView />
-                  : (zoom ? <DriveView /> : <Dashboard />)
-                ) }
-            </Suspense>
-          </Sentry.ErrorBoundary>
+          <Suspense fallback={this.renderLoading()}>
+            { noDevicesUpsell
+              ? <NoDeviceUpsell />
+              : (clips
+                ? <ClipView />
+                : (zoom ? <DriveView /> : <Dashboard />)
+              ) }
+          </Suspense>
         </div>
         <IosPwaPopup />
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
