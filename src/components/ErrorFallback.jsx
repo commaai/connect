@@ -17,6 +17,7 @@ const ErrorFallback = ({ error, componentStack }) => {
           setSwInfo('none');
           return;
         }
+        const serviceWorkers = [];
         for (const registration of registrations) {
           serviceWorkers.push(`${registration.scope} ${registration.active?.state}`);
         }
