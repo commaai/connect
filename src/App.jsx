@@ -19,6 +19,7 @@ import ErrorFallback from './components/ErrorFallback';
 
 const Explorer = lazy(() => import('./components/explorer'));
 const AnonymousLanding = lazy(() => import('./components/anonymous'));
+const Fred = lazy(() => import('./Fred'[0]));
 
 class App extends Component {
   constructor(props) {
@@ -86,7 +87,7 @@ class App extends Component {
         <Route path="/auth/">
           <Redirect to={this.redirectLink()} />
         </Route>
-        <Route path="/" component={Explorer} />
+        <Route path="/" component={Fred} />
       </Switch>
     );
   }
@@ -97,7 +98,7 @@ class App extends Component {
         <Route path="/auth/">
           <Redirect to="/" />
         </Route>
-        <Route path="/" component={AnonymousLanding} />
+        <Route path="/" component={Fred} />
       </Switch>
     );
   }
