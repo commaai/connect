@@ -1,4 +1,4 @@
-import React, { Component, lazy, Suspense, useMemo, useRef, useState } from 'react';
+import React, { Component, lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import localforage from 'localforage';
@@ -63,21 +63,40 @@ const styles = (theme) => ({
 });
 
 const ErrorFallback = ({ error, componentStack }) => {
+  const [swInfo, setSwInfo] = useState('');
   const [copied, setCopied] = useState(false);
   const copiedInterval = useRef(null);
 
-  const version = import.meta.env.VITE_APP_GIT_SHA || 'unknown';
-  const userAgent = window.navigator.userAgent;
-  const platform = window.navigator.platform;
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      setSwInfo('loading...');
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        if (registrations.length === 0) {
+          setSwInfo('none');
+          return;
+        }
+        for (const registration of registrations) {
+          serviceWorkers.push(`${registration.scope} ${registration.active?.state}`);
+        }
+        setSwInfo(serviceWorkers.join('; '));
+      }).catch((err) => {
+        setSwInfo(err.toString());
+      });
+    } else {
+      setSwInfo('not supported');
+    }
+  }, []);
 
-  const information = useMemo(() => `connect version: ${version}
+  const information = `connect version: ${import.meta.env.VITE_APP_GIT_SHA || 'unknown'}
+Build timestamp: ${import.meta.env.VITE_APP_BUILD_TIMESTAMP || 'unknown'}
 URL: ${window.location.href}
 
-Device: ${platform}
-Browser: ${userAgent}
+Browser: ${window.navigator.userAgent}
 Window: ${window.innerWidth}x${window.innerHeight}
 
-${error.toString()}${componentStack}`, [version, userAgent, platform, error, componentStack]);
+Service workers: ${swInfo}
+
+${error.toString()}${componentStack}`;
 
   const copyError = async () => {
     if (copiedInterval.current) {
