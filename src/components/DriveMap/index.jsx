@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';
 
-import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
+import Map, { LinearInterpolator } from 'react-map-gl';
 
 import { MAPBOX_TOKEN } from '../../utils/geocode';
 import { currentOffset } from '../../timeline';
@@ -287,7 +287,7 @@ class DriveMap extends Component {
     const { viewport } = this.state;
     return (
       <div ref={this.onRef} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
-        <ReactMapGL
+        <Map
           width="100%"
           height="100%"
           latitude={viewport.latitude}
