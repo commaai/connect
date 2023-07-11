@@ -35,8 +35,6 @@ class DriveMap extends Component {
     this.updateMarkerPos = this.updateMarkerPos.bind(this);
     this.onInteraction = this.onInteraction.bind(this);
 
-    this.ref = React.createRef();
-
     this.shouldFlyTo = false;
     this.isInteracting = false;
     this.isInteractingTimeout = null;
@@ -154,7 +152,6 @@ class DriveMap extends Component {
   }
 
   onRef(el) {
-    this.ref.current = el;
     if (el) {
       el.addEventListener('touchstart', (ev) => ev.stopPropagation());
     }
