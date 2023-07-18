@@ -104,7 +104,7 @@ jobs:
           DOCKER_METADATA_PR_HEAD_SHA: true
 
       - name: get date
-        run: echo "BUILD_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_ENV
+        run: echo "BUILD_TIMESTAMP=$(git show -s --format=%cI)" >> $GITHUB_ENV
 
       - uses: docker/build-push-action@v4
         with:
