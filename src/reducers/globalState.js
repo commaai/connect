@@ -431,6 +431,9 @@ export default function reducer(_state, action) {
         end: action.end,
       };
       break;
+    case Types.ACTION_SET_NAVIGATION_DESTINATION:
+      state.navigationDestination = action.navigationDestination
+      break;
     default:
       return state;
   }

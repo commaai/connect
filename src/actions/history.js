@@ -1,6 +1,6 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getPrimeNav, getClipsNav } from '../url';
-import { primeNav, selectDevice, selectRange } from './index';
+import { getDongleID, getZoom, getPrimeNav, getClipsNav, getNavigationNav } from '../url';
+import { primeNav, selectDevice, selectRange, navigateToDestination } from './index';
 import { clipsExit, fetchClipsDetails, fetchClipsList } from './clips';
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
@@ -22,6 +22,11 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
     const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
     if (pathPrimeNav !== state.primeNav) {
       dispatch(primeNav(pathPrimeNav));
+    }
+
+    const pathNavigationNav = getNavigationNav(action.payload.location.pathname, action.payload.location.search);
+    if (pathNavigationNav && pathNavigationNav != state.navigationNav) {
+      dispatch(navigateToDestination(pathNavigationNav.lat, pathNavigationNav.long));
     }
 
     const pathClipsNav = getClipsNav(action.payload.location.pathname);

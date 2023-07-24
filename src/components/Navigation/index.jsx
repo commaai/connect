@@ -350,13 +350,19 @@ class Navigation extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { dongleId, device } = this.props;
+    const { dongleId, device, navigationDestination } = this.props;
     const { geoLocateCoords, search, carLastLocation, carNetworkLocation, searchSelect, favoriteLocations } = this.state;
 
     if ((carLastLocation && !prevState.carLastLocation) || (carNetworkLocation && !prevState.carNetworkLocation)
       || (geoLocateCoords && !prevState.geoLocateCoords) || (searchSelect && prevState.searchSelect !== searchSelect)
       || (search && prevState.search !== search)) {
       this.flyToMarkers();
+    }
+
+    if (prevProps.navigationDestination !== navigationDestination) {
+      this.getDeviceLastLocation().then(() => {
+        this.setDestination(navigationDestination.latitude, navigationDestination.longitude);
+      })
     }
 
     if (prevProps.dongleId !== dongleId) {
@@ -397,6 +403,40 @@ class Navigation extends Component {
     if (!gl || !(gl instanceof WebGLRenderingContext)) {
       this.setState({ mapError: 'Failed to get WebGL context, your browser or device may not support WebGL.' });
     }
+  }
+
+  setDestination(latitude, longitude) {
+    this.focus();
+
+    const item = {
+      favoriteId: null,
+      favoriteIcon: null,
+      address: {
+        label: '',
+      },
+      title: '',
+      resultType: 'place',
+      position: {
+        lat: latitude,
+        lng: longitude,
+      },
+    };
+    this.onSearchSelect(item, 'pin');
+    reverseLookup([longitude, latitude], false).then((location) => {
+      if (!location) {
+        return;
+      }
+
+      this.setState((prevState) => ({
+        searchSelect: {
+          ...prevState.searchSelect,
+          address: {
+            label: location.details,
+          },
+          title: location.place,
+        },
+      }));
+    });
   }
 
   updateDevice() {

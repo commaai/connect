@@ -132,6 +132,26 @@ export function primeNav(nav, allowPathChange = true) {
   };
 }
 
+export function navigateToDestination(lat, long) {
+  return (dispatch, getState) => {
+    const state = getState();
+    if (!state.dongleId) {
+      return;
+    }
+
+    let destination = {
+      latitude: lat,
+      longitude: long,
+    };
+    if (state.navigationDestination !== destination) {
+      dispatch({
+        type: Types.ACTION_SET_NAVIGATION_DESTINATION,
+        navigationDestination: destination,
+      });
+    }
+  };
+}
+
 export function fetchSharedDevice(dongleId) {
   return async (dispatch) => {
     try {

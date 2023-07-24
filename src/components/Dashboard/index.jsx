@@ -18,7 +18,7 @@ const DashboardLoading = () => (
   </Grid>
 );
 
-const Dashboard = ({ primeNav, device, dongleId }) => {
+const Dashboard = ({ primeNav, device, dongleId, navigationDestination }) => {
   if (!device || !dongleId) {
     return null;
   }
@@ -30,7 +30,7 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
           ? <Prime />
           : (
             <>
-              <Navigation hasNav={device.prime && device.eligible_features?.nav} />
+              <Navigation hasNav={device.prime && device.eligible_features?.nav} navigationDestination={navigationDestination} />
               <DeviceInfo />
               <DriveList />
             </>
@@ -44,6 +44,7 @@ const stateToProps = Obstruction({
   dongleId: 'dongleId',
   primeNav: 'primeNav',
   device: 'device',
+  navigationDestination: 'navigationDestination',
 });
 
 export default connect(stateToProps)(Dashboard);

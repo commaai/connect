@@ -48,3 +48,20 @@ export function getClipsNav(pathname) {
   }
   return null;
 }
+
+export function getNavigationNav(pathname, search) {
+  let parts = pathname.split('/');
+  parts = parts.filter((m) => m.length);
+
+  if (parts.length >= 2 && parts[0] !== 'auth' && parts[1] == 'navigate') {
+    let params = new URLSearchParams(search);
+    if (params.has('lat') && params.has('long')) {
+      return {
+        lat: parseFloat(params.get('lat')),
+        long: parseFloat(params.get('long')),
+      };
+    }
+    return {};
+  }
+  return null;
+}
