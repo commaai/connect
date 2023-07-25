@@ -14,6 +14,12 @@ const PWAIcon = () => {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
+    onOfflineReady: () => {
+      console.debug('[PWA] onOfflineReady');
+    },
+    onNeedRefresh: () => {
+      console.debug('[PWA] onNeedRefresh');
+    },
     onRegistered: (registration) => {
       console.debug('[PWA] onRegistered', registration);
 
@@ -24,8 +30,11 @@ const PWAIcon = () => {
         }, intervalMS);
       }
     },
+    onRegisteredSW() {
+      console.debug('[PWA] onRegisteredSW', ...arguments);  // eslint-disable-line prefer-rest-params
+    },
     onRegisterError: (error) => {
-      console.log('onRegisterError', error);
+      console.debug('[PWA] onRegisterError', error);
     },
   });
   const [installing, setInstalling] = useState(false);
