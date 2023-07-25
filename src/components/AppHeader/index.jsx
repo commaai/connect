@@ -14,7 +14,7 @@ import ResizeHandler from '../ResizeHandler';
 import { filterRegularClick } from '../../utils';
 
 import AccountMenu from './AccountMenu';
-import { PWAIcon } from '../PWAElements';
+import PWAIcon from '../PWAIcon';
 import TimeFilter from './TimeFilter';
 
 const styles = () => ({

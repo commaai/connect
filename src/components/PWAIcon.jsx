@@ -6,14 +6,14 @@ import { IconButton, Tooltip } from '@material-ui/core';
 
 import { CheckCircle, Download } from '../icons';
 
-export const PWAIcon = () => {
+const PWAIcon = () => {
   const {
     offlineReady: [offlineReady, setOfflineReady],
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
     onRegistered: (registration) => {
-      console.log('onRegistered', registration);
+      console.debug('[PWA] onRegistered', registration);
     },
     onRegisterError: (error) => {
       console.log('onRegisterError', error);
@@ -67,3 +67,5 @@ export const PWAIcon = () => {
     </Tooltip>
   );
 };
+
+export default PWAIcon;
