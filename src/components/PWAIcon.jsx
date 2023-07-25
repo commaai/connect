@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
-import { IconButton, Tooltip } from '@material-ui/core';
+import { CircularProgress, IconButton, Tooltip } from '@material-ui/core';
 
 import { CheckCircle, Download } from '../icons';
 
@@ -44,18 +44,16 @@ const PWAIcon = () => {
     setNeedRefresh(false);
   };
 
-  console.debug({
-    offlineReady,
-    needRefresh,
-  });
-
   if (!offlineReady && !needRefresh) {
     return null;
   }
 
   if (installing) {
-    // TODO: loading spinner
-    return <span>Installing</span>;
+    return (
+      <div className="w-12 flex justify-center self-center">
+        <CircularProgress className="flex text-[rgba(128,255,128,0.5)]" size={24} />
+      </div>
+    );
   }
 
   let title;
@@ -65,7 +63,7 @@ const PWAIcon = () => {
   if (needRefresh) {
     title = 'Install update';
     Icon = Download;
-    color = 'text-[rgba(128,_255,_128,_0.5)]';
+    color = 'text-[rgba(128,255,128,0.5)]';
     callback = () => {
       setInstalling(true);
       updateServiceWorker(true);
@@ -73,13 +71,13 @@ const PWAIcon = () => {
   } else if (offlineReady) {
     title = 'No updates available';
     Icon = CheckCircle;
-    color = 'text-[rgba(255,_255,_255,_0.5)]';
+    color = 'text-[rgba(255,255,255,0.5)]';
     callback = close;
   }
 
   return (
     <Tooltip title={<span className="text-xs">{title}</span>}>
-      <IconButton onClick={callback}>
+      <IconButton className="animate-fadein" onClick={callback}>
         <Icon className={`w-7 h-7 ${color}`} />
       </IconButton>
     </Tooltip>
