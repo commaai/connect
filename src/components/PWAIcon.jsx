@@ -6,6 +6,8 @@ import { IconButton, Tooltip } from '@material-ui/core';
 
 import { CheckCircle, Download } from '../icons';
 
+const intervalMS = 60 * 60 * 1000;  // 1 hour
+
 const PWAIcon = () => {
   const {
     offlineReady: [offlineReady, setOfflineReady],
@@ -14,6 +16,13 @@ const PWAIcon = () => {
   } = useRegisterSW({
     onRegistered: (registration) => {
       console.debug('[PWA] onRegistered', registration);
+
+      if (registration) {
+        // Check for updates regularly
+        setInterval(() => {
+          registration.update();
+        }, intervalMS);
+      }
     },
     onRegisterError: (error) => {
       console.log('onRegisterError', error);

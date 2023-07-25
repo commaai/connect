@@ -23,6 +23,9 @@ module.exports = {
     'react/prop-types': 0,
     'react/require-default-props': 0,
     'no-await-in-loop': 'warn',
+    'no-multi-spaces': ['error', {
+      ignoreEOLComments: true,
+    }],
     'no-plusplus': [
       'error',
       {
