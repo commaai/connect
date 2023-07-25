@@ -214,6 +214,9 @@ devDependencies:
   whatwg-fetch:
     specifier: ^3.6.2
     version: 3.6.2
+  workbox-window:
+    specifier: ^7.0.0
+    version: 7.0.0
 
 packages:
 
