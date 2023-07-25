@@ -26,6 +26,11 @@ export const PWAIcon = () => {
     setNeedRefresh(false);
   };
 
+  console.debug({
+    offlineReady,
+    needRefresh,
+  });
+
   if (!offlineReady && !needRefresh) {
     return null;
   }
