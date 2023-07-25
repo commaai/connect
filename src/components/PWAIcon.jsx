@@ -40,7 +40,7 @@ const PWAIcon = () => {
   };
 
   if (!offlineReady && !needRefresh) {
-    return null;
+    return <div className="w-12" />;
   }
 
   if (installing) {
