@@ -6,7 +6,7 @@ import { CircularProgress, IconButton, Tooltip } from '@material-ui/core';
 
 import { CheckCircle, Download } from '../icons';
 
-const intervalMS = 60 * 60 * 1000;  // 1 hour
+const intervalMS = 30 * 1000;  // 30 seconds
 
 const PWAIcon = () => {
   const {
