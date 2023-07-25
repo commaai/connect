@@ -18,8 +18,9 @@ import PullDownReload from './utils/PullDownReload';
 import { analyticsEvent, selectDevice, updateDevice } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
-import { verifyPairToken, pairErrorToMessage } from '../utils';
 import { play, pause } from '../timeline/playback';
+import { verifyPairToken, pairErrorToMessage } from '../utils';
+
 import ResizeHandler from './ResizeHandler';
 
 const ClipView = lazy(() => import('./ClipView'));
