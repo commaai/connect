@@ -6,7 +6,7 @@ import { CircularProgress, IconButton, Tooltip } from '@material-ui/core';
 
 import { CheckCircle, Download } from '../icons';
 
-const intervalMS = 30 * 1000;  // 30 seconds
+const intervalMS = 60 * 60 * 1000;  // 1 hour
 
 const PWAIcon = () => {
   const {
@@ -15,7 +15,7 @@ const PWAIcon = () => {
     updateServiceWorker,
   } = useRegisterSW({
     onOfflineReady: () => {
-      console.debug('[PWA] onOfflineReady');
+      console.debug('[PWA] Ready to work offline');
     },
     onRegistered: (registration) => {
       console.debug('[PWA] Service worker registered');
@@ -29,7 +29,7 @@ const PWAIcon = () => {
       }
     },
     onRegisterError: (error) => {
-      console.error('[PWA] onRegisterError', error);
+      console.error('[PWA]', error);
     },
   });
   const [installing, setInstalling] = useState(false);
