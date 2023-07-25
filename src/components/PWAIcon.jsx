@@ -23,6 +23,7 @@ const PWAIcon = () => {
       if (registration) {
         // Check for updates regularly
         setInterval(() => {
+          console.debug('[PWA] Checking for updates');
           registration.update();
         }, intervalMS);
       }
