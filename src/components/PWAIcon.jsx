@@ -1,14 +1,17 @@
-/* eslint-disable no-console */
 import React, { useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
-import { CircularProgress, IconButton, Tooltip } from '@material-ui/core';
+import {
+  CircularProgress,
+  IconButton,
+  Tooltip,
+} from '@material-ui/core';
 
 import { CheckCircle, Download } from '../icons';
 
 const intervalMS = 60 * 60 * 1000;  // 1 hour
 
-const PWAIcon = () => {
+const PWAIcon = ({ immediate }) => {
   const {
     offlineReady: [offlineReady, setOfflineReady],
     needRefresh: [needRefresh, setNeedRefresh],
@@ -34,6 +37,13 @@ const PWAIcon = () => {
   });
   const [installing, setInstalling] = useState(false);
 
+  if (immediate) {
+    if (needRefresh) {
+      updateServiceWorker(true);
+    }
+    return null;
+  }
+
   const close = () => {
     setOfflineReady(false);
     setNeedRefresh(false);
@@ -41,14 +51,6 @@ const PWAIcon = () => {
 
   if (!offlineReady && !needRefresh) {
     return <div className="w-12" />;
-  }
-
-  if (installing) {
-    return (
-      <div className="w-12 flex justify-center self-center">
-        <CircularProgress className="flex text-[rgba(128,255,128,0.5)]" size={24} />
-      </div>
-    );
   }
 
   let title;
@@ -71,9 +73,20 @@ const PWAIcon = () => {
   }
 
   return (
-    <Tooltip title={<span className="text-xs">{title}</span>}>
-      <IconButton className="animate-fadein" onClick={callback}>
-        <Icon className={`w-7 h-7 ${color}`} />
+    <Tooltip
+      className="w-12 flex justify-center self-center"
+      title={<span className="text-xs">{title}</span>}
+    >
+      <IconButton
+        className="animate-fadein"
+        onClick={callback}
+        disabled={installing}
+      >
+        {installing ? (
+          <CircularProgress className="flex text-[rgba(128,255,128,0.5)]" size={24} />
+        ) : (
+          <Icon className={`w-7 h-7 ${color}`} />
+        )}
       </IconButton>
     </Tooltip>
   );
