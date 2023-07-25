@@ -17,11 +17,8 @@ const PWAIcon = () => {
     onOfflineReady: () => {
       console.debug('[PWA] onOfflineReady');
     },
-    onNeedRefresh: () => {
-      console.debug('[PWA] onNeedRefresh');
-    },
     onRegistered: (registration) => {
-      console.debug('[PWA] onRegistered', registration);
+      console.debug('[PWA] Service worker registered');
 
       if (registration) {
         // Check for updates regularly
@@ -30,11 +27,8 @@ const PWAIcon = () => {
         }, intervalMS);
       }
     },
-    onRegisteredSW() {
-      console.debug('[PWA] onRegisteredSW', ...arguments);  // eslint-disable-line prefer-rest-params
-    },
     onRegisterError: (error) => {
-      console.debug('[PWA] onRegisterError', error);
+      console.error('[PWA] onRegisterError', error);
     },
   });
   const [installing, setInstalling] = useState(false);
