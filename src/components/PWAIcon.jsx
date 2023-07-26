@@ -17,6 +17,12 @@ const PWAIcon = ({ immediate }) => {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
+    onNeedrefresh: () => {
+      console.debug('[PWA] Update available');
+      if (immediate) {
+        updateServiceWorker(true);
+      }
+    },
     onOfflineReady: () => {
       console.debug('[PWA] Ready to work offline');
     },
@@ -38,9 +44,6 @@ const PWAIcon = ({ immediate }) => {
   const [installing, setInstalling] = useState(false);
 
   if (immediate) {
-    if (needRefresh) {
-      updateServiceWorker(true);
-    }
     return null;
   }
 
