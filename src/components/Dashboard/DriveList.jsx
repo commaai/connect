@@ -26,7 +26,7 @@ const DriveList = (props) => {
 
   // Filter out drives shorter than 10 seconds
   const driveList = (routes || [])
-    .filter((drive) => drive.end_time_utc_millis - drive.start_time_utc_millis >= 10_000);
+    .filter((drive) => drive.end_time_utc_millis - drive.start_time_utc_millis >= 10000);
 
   let content;
   if (driveList.length === 0) {

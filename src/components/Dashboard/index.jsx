@@ -8,21 +8,19 @@ import DeviceInfo from '../DeviceInfo';
 
 const Prime = lazy(() => import('../Prime'));
 
-const Dashboard = ({ primeNav, device }) => {
-  return (
-    <div className="flex flex-col">
-      { primeNav
-        ? <Prime />
-        : (
-          <>
-            <Navigation hasNav={device.prime && device.eligible_features?.nav} />
-            <DeviceInfo />
-            <DriveList />
-          </>
-        )}
-    </div>
-  );
-};
+const Dashboard = ({ primeNav, device }) => (
+  <div className="flex flex-col">
+    { primeNav
+      ? <Prime />
+      : (
+        <>
+          <Navigation hasNav={device.prime && device.eligible_features?.nav} />
+          <DeviceInfo />
+          <DriveList />
+        </>
+      )}
+  </div>
+);
 
 const stateToProps = Obstruction({
   primeNav: 'primeNav',
