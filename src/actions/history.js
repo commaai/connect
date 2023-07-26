@@ -26,7 +26,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
 
     const pathNavigationNav = getNavigationNav(action.payload.location.pathname, action.payload.location.search);
     if (pathNavigationNav && pathNavigationNav != state.navigationNav) {
-      dispatch(navigateToDestination(pathNavigationNav.lat, pathNavigationNav.long));
+      dispatch(navigateToDestination(pathNavigationNav));
     }
 
     const pathClipsNav = getClipsNav(action.payload.location.pathname);

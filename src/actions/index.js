@@ -9,6 +9,7 @@ import { resetPlayback, selectLoop } from '../timeline/playback';
 import { getSegmentFetchRange, hasRoutesData } from '../timeline/segments';
 import { getClipsNav } from '../url';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
+import { coordinatesFromMapsUrl } from '../utils/maps';
 
 let routesRequest = null;
 
@@ -132,23 +133,37 @@ export function primeNav(nav, allowPathChange = true) {
   };
 }
 
-export function navigateToDestination(lat, long) {
+export function navigateToDestination(destination) {
   return (dispatch, getState) => {
     const state = getState();
     if (!state.dongleId) {
       return;
     }
-
-    let destination = {
-      latitude: lat,
-      longitude: long,
-    };
-    if (state.navigationDestination !== destination) {
-      dispatch({
-        type: Types.ACTION_SET_NAVIGATION_DESTINATION,
-        navigationDestination: destination,
-      });
+    
+    console.log(destination);
+    let {url, lat, long} = destination;
+    var latLongPromise = null;
+    if (url) {
+      latLongPromise = coordinatesFromMapsUrl(url);
+    } else if (lat && long) {
+      latLongPromise = Promise.resolve([lat, long]);
+    } else {
+      return;
     }
+
+    latLongPromise.then((coords) => {
+      let destination = {
+        latitude: coords[0],
+        longitude: coords[1],
+      };
+
+      if (state.navigationDestination !== destination) {
+        dispatch({
+          type: Types.ACTION_SET_NAVIGATION_DESTINATION,
+          navigationDestination: destination,
+        });
+      }
+    });
   };
 }
 
