@@ -24,7 +24,7 @@ const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
   useEffect(() => {
     setVersion(import.meta.env.VITE_APP_GIT_SHA?.substring(0, 7) || 'dev');
 
-    const buildDate = import.meta.env.VITE_APP_BUILD_TIMESTAMP;
+    const buildDate = import.meta.env.VITE_APP_GIT_TIMESTAMP;
     if (buildDate) {
       setBuildTimestamp(`, ${dayjs(buildDate).fromNow()}`);
     }
