@@ -31,7 +31,7 @@ const ErrorFallback = ({ error, componentStack }) => {
   }, []);
 
   const information = `connect version: ${import.meta.env.VITE_APP_GIT_SHA || 'unknown'}
-Build timestamp: ${import.meta.env.VITE_APP_COMMIT_TIMESTAMP || 'unknown'}
+Build timestamp: ${import.meta.env.VITE_APP_GIT_TIMESTAMP || 'unknown'}
 URL: ${window.location.href}
 
 Browser: ${window.navigator.userAgent}
