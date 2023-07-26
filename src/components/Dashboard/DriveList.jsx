@@ -29,7 +29,7 @@ const DriveList = (props) => {
     .filter((drive) => drive.end_time_utc_millis - drive.start_time_utc_millis >= 10_000);
 
   let content;
-  if (!driveList.length) {
+  if (driveList.length === 0) {
     content = <DriveListEmpty device={device} routes={routes} />;
   } else {
     content = (
