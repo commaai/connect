@@ -14,6 +14,7 @@ import ResizeHandler from '../ResizeHandler';
 import { filterRegularClick } from '../../utils';
 
 import AccountMenu from './AccountMenu';
+import PWAIcon from '../PWAIcon';
 import TimeFilter from './TimeFilter';
 
 const styles = () => ({
@@ -130,14 +131,17 @@ const AppHeader = ({
           <div className={classes.headerWideItem} style={reorderWideStyle}>
             {Boolean(!primeNav && !clips && !annotating && dongleId) && <TimeFilter />}
           </div>
-          <IconButton
-            aria-owns={open ? 'menu-appbar' : null}
-            aria-haspopup="true"
-            onClick={handleClickedAccount}
-            aria-label="account menu"
-          >
-            <AccountIcon className={classes.accountIcon} />
-          </IconButton>
+          <div className="flex flex-row gap-2">
+            <PWAIcon />
+            <IconButton
+              aria-owns={open ? 'menu-appbar' : null}
+              aria-haspopup="true"
+              onClick={handleClickedAccount}
+              aria-label="account menu"
+            >
+              <AccountIcon className={classes.accountIcon} />
+            </IconButton>
+          </div>
         </div>
       </AppBar>
       {Boolean(MyCommaAuth.isAuthenticated() && profile) && (
