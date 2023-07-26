@@ -119,25 +119,14 @@ class App extends Component {
 
     const showLogin = !MyCommaAuth.isAuthenticated() && !isDemo() && !getZoom(window.location.pathname)
       && !getClipsNav(window.location.pathname)?.clip_id;
-    let content = (
-      <Suspense fallback={this.renderLoading()}>
-        { showLogin ? this.anonymousRoutes() : this.authRoutes() }
-      </Suspense>
-    );
-
-    // Use ErrorBoundary in production only
-    if (import.meta.env.PROD) {
-      content = (
-        <Sentry.ErrorBoundary fallback={props => <ErrorFallback {...props} />}>
-          {content}
-        </Sentry.ErrorBoundary>
-      );
-    }
-
     return (
       <Provider store={store}>
         <ConnectedRouter history={history}>
-          {content}
+          <Sentry.ErrorBoundary fallback={props => <ErrorFallback {...props} />}>
+            <Suspense fallback={this.renderLoading()}>
+              { showLogin ? this.anonymousRoutes() : this.authRoutes() }
+            </Suspense>
+          </Sentry.ErrorBoundary>
         </ConnectedRouter>
       </Provider>
     );
