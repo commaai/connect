@@ -145,14 +145,23 @@ class TimeSelect extends Component {
     return 'custom';
   }
 
+  customText() {
+    const { filter } = this.props;
+    const start = dayjs(filter.start).format('MMM D');
+    const end = dayjs(filter.end).format('MMM D');
+    let text = `Custom: ${start}`;
+    if (start !== end) text += ` - ${end}`;
+    return text;
+  }
+
   lastWeekText() {
     const weekAgo = dayjs().subtract(1, 'week');
-    return `Last Week (${weekAgo.format('MMM D')} - ${dayjs().format('MMM D')})`;
+    return `Last week (since ${weekAgo.format('MMM D')})`;
   }
 
   last2WeeksText() {
     const twoWeeksAgo = dayjs().subtract(14, 'day');
-    return `2 Weeks Ago (${twoWeeksAgo.format('MMM D')} - ${dayjs().format('MMM D')})`;
+    return `Last 2 weeks (since ${twoWeeksAgo.format('MMM D')})`;
   }
 
   onVisible() {
@@ -177,10 +186,10 @@ class TimeSelect extends Component {
             onChange={this.handleSelectChange}
             className={classes.headerDropdown}
           >
-            <MenuItem value="custom">Custom</MenuItem>
+            <MenuItem value="custom">{this.customText()}</MenuItem>
             <MenuItem value="24-hours">Last 24 Hours</MenuItem>
-            <MenuItem value="1-week">{ this.lastWeekText() }</MenuItem>
-            <MenuItem value="2-weeks">{ this.last2WeeksText() }</MenuItem>
+            <MenuItem value="1-week">{this.lastWeekText()}</MenuItem>
+            <MenuItem value="2-weeks">{this.last2WeeksText()}</MenuItem>
           </Select>
         </FormControl>
         <Modal
