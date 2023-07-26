@@ -104,13 +104,13 @@ jobs:
           DOCKER_METADATA_PR_HEAD_SHA: true
 
       - name: get date
-        run: echo "BUILD_TIMESTAMP=$(git show -s --format=%cI)" >> $GITHUB_ENV
+        run: echo "GIT_TIMESTAMP=$(git show -s --format=%cI)" >> $GITHUB_ENV
 
       - uses: docker/build-push-action@v4
         with:
           build-args: |
             VITE_APP_GIT_SHA=${{ github.event_name == 'push' && github.sha || github.event.pull_request.head.sha }}
-            VITE_APP_BUILD_TIMESTAMP=${{ env.BUILD_TIMESTAMP }}
+            VITE_APP_GIT_TIMESTAMP=${{ env.GIT_TIMESTAMP }}
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
             SENTRY_RELEASE=${{ github.event_name == 'push' && github.sha || github.event.pull_request.head.sha }}
           builder: ${{ steps.buildx.outputs.name }}
