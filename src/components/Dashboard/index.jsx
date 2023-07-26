@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { lazy } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
-import DeviceInfo from '../DeviceInfo';
 import DriveList from './DriveList';
 import Navigation from '../Navigation';
-import Prime from '../Prime';
+import DeviceInfo from '../DeviceInfo';
+
+const Prime = lazy(() => import('../Prime'));
 
 const Dashboard = ({ primeNav, device }) => (
   <div className="flex flex-col">
