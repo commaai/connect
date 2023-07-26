@@ -178,7 +178,7 @@ class TimeSelect extends Component {
 
     return (
       <>
-        <VisibilityHandler onVisible={ this.onVisible } minInterval={ 1800 } resetOnHidden />
+        <VisibilityHandler onVisible={ this.onVisible } minInterval={ 300 } resetOnHidden />
         <FormControl>
           <Select
             name="timerange"
