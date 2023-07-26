@@ -22,10 +22,10 @@ import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 
 import ResizeHandler from './ResizeHandler';
-import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 
 const ClipView = lazy(() => import('./ClipView'));
 const DriveView = lazy(() => import('./DriveView'));
+const NoDeviceUpsell = lazy(() => import('./DriveView/NoDeviceUpsell'));
 
 const styles = (theme) => ({
   window: {
@@ -52,6 +52,9 @@ const styles = (theme) => ({
     '&:hover': {
       backgroundColor: Colors.grey400,
     },
+  },
+  fabProgress: {
+    marginTop: 10,
   },
   pairedDongleId: {
     fontWeight: 'bold',
@@ -180,10 +183,10 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, zoom, device, devices, dongleId, clips } = this.props;
+    const { classes, zoom, devices, dongleId, clips } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
-    const noDevicesUpsell = (devices?.length === 0 && !dongleId);
+    const noDevicesUpsell = (devices && devices.length === 0 && !dongleId);
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -207,41 +210,47 @@ class ExplorerApp extends Component {
 
     return (
       <div>
-        <ResizeHandler onResize={(windowWidth) => this.setState({ windowWidth })} />
+        <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
         <PullDownReload />
         <AppHeader
-          drawerIsOpen={drawerIsOpen}
-          annotating={Boolean(zoom)}
-          showDrawerButton={!isLarge}
+          drawerIsOpen={ drawerIsOpen }
+          annotating={ Boolean(zoom) }
+          showDrawerButton={ !isLarge }
           handleDrawerStateChanged={this.handleDrawerStateChanged}
-          forwardRef={this.updateHeaderRef}
+          forwardRef={ this.updateHeaderRef }
         />
         <AppDrawer
-          drawerIsOpen={drawerIsOpen}
-          isPermanent={isLarge}
-          width={sidebarWidth}
+          drawerIsOpen={ drawerIsOpen }
+          isPermanent={ isLarge }
+          width={ sidebarWidth }
           handleDrawerStateChanged={this.handleDrawerStateChanged}
-          style={drawerStyles}
+          style={ drawerStyles }
         />
-        <div className={classes.window} style={containerStyles}>
+        <div className={ classes.window } style={ containerStyles }>
           <Suspense fallback={this.renderLoading()}>
-            {noDevicesUpsell
+            { noDevicesUpsell
               ? <NoDeviceUpsell />
-              : (device && (clips
+              : (clips
                 ? <ClipView />
                 : (zoom ? <DriveView /> : <Dashboard />)
-              ))}
+              ) }
           </Suspense>
         </div>
         <IosPwaPopup />
-        <Modal open={Boolean(pairLoading || pairError || pairDongleId)} onClose={this.closePair}>
+        <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
           <Paper className={classes.modal}>
             <Typography variant="title">Pairing device</Typography>
             <Divider />
-            {pairLoading && <CircularProgress size={32} className="mt-3" />}
-            {pairDongleId && <Typography className="font-bold">{pairDongleId}</Typography>}
-            {pairError && <Typography>{pairError}</Typography>}
-            <Button variant="contained" className={classes.closeButton} onClick={this.closePair}>
+            { pairLoading && <CircularProgress size={32} className={classes.fabProgress} /> }
+            { pairDongleId
+              && (
+              <Typography>
+                {'Successfully paired device '}
+                <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
+              </Typography>
+              )}
+            { pairError && <Typography>{ pairError }</Typography> }
+            <Button variant="contained" className={ classes.closeButton } onClick={ this.closePair }>
               Close
             </Button>
           </Paper>
@@ -255,7 +264,6 @@ const stateToProps = Obstruction({
   zoom: 'zoom',
   pathname: 'router.location.pathname',
   dongleId: 'dongleId',
-  device: 'device',
   devices: 'devices',
   clips: 'clips',
 });
