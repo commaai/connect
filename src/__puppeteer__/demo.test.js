@@ -1,27 +1,17 @@
 /* eslint-env jest */
-const sleep = async (ms) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
-const width = 1600;
-const height = 1200;
+import { configureViewport, goto, sleep } from './utils';
 
 jest.setTimeout(60000);
 
 describe('demo mode', () => {
-  beforeEach(async () => {
-    await sleep(500);
-  });
   beforeAll(async () => {
-    await page.setViewport({
-      width,
-      height,
-      deviceScaleFactor: 1,
-    });
-    await page.goto('http://localhost:3003/4cf7a6ad03080c90', { waitUntil: 'networkidle2' });
-    await sleep(2000);
+    configureViewport();
   });
 
   it('should load', async () => {
+    await goto('/4cf7a6ad03080c90', { waitUntil: 'networkidle2' });
+    await sleep(2500);
+
     const list = await expect(page).toMatchElement('.DriveList');
     expect((await list.$$(':scope > a')).length).toBe(1);
 
