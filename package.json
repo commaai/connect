@@ -87,6 +87,7 @@
     "jest-environment-jsdom": "^27.5.1",
     "jest-environment-puppeteer": "^6.2.0",
     "jest-puppeteer": "^6.2.0",
+    "msw": "^1.2.3",
     "postcss": "^8.4.27",
     "puppeteer": "^19.11.1",
     "react-test-renderer": "^18.2.0",
@@ -108,5 +109,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "msw": {
+    "workerDirectory": "public"
   }
 }

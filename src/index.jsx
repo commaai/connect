@@ -22,6 +22,13 @@ if (import.meta.env.VITE_APP_GIT_COMMIT_TIMESTAMP) {
   console.info('commit date:', import.meta.env.VITE_APP_GIT_COMMIT_TIMESTAMP || 'unknown');
 }
 
+if (import.meta.env.DEV) {
+  // Mock service worker
+  import('./mocks/browser').then(({ worker }) => {
+    worker.start();
+  });
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render((
   <MuiThemeProvider theme={Theme}>
     <CssBaseline />
