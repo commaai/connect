@@ -1,4 +1,4 @@
-import React, { Component, lazy, Suspense } from 'react';
+import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import localforage from 'localforage';
@@ -23,9 +23,9 @@ import { verifyPairToken, pairErrorToMessage } from '../utils';
 
 import ResizeHandler from './ResizeHandler';
 
-const ClipView = lazy(() => import('./ClipView'));
-const DriveView = lazy(() => import('./DriveView'));
-const NoDeviceUpsell = lazy(() => import('./DriveView/NoDeviceUpsell'));
+import ClipView from './ClipView';
+import DriveView from './DriveView';
+import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 
 const styles = (theme) => ({
   window: {
@@ -186,7 +186,7 @@ class ExplorerApp extends Component {
     const { classes, zoom, devices, dongleId, clips } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
-    const noDevicesUpsell = (devices && devices.length === 0 && !dongleId);
+    const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
@@ -227,14 +227,12 @@ class ExplorerApp extends Component {
           style={ drawerStyles }
         />
         <div className={ classes.window } style={ containerStyles }>
-          <Suspense fallback={this.renderLoading()}>
-            { noDevicesUpsell
-              ? <NoDeviceUpsell />
-              : (clips
-                ? <ClipView />
-                : (zoom ? <DriveView /> : <Dashboard />)
-              ) }
-          </Suspense>
+          { noDevicesUpsell
+            ? <NoDeviceUpsell />
+            : (clips
+              ? <ClipView />
+              : (zoom ? <DriveView /> : <Dashboard />)
+            ) }
         </div>
         <IosPwaPopup />
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
