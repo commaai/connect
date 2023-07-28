@@ -26,7 +26,8 @@ describe('navigation formatting utils', () => {
 
         // expected
         name: 'Taco Bell',
-        address: '2011 Camino del Rio N, San Diego, CA 92108, United States',
+        fullAddress: '2011 Camino del Rio N, San Diego, CA 92108, United States',
+        address: '2011 Camino del Rio N, San Diego',
         details: '2011 Camino del Rio N, San Diego',
         searchList: ', 2011 Camino del Rio N, San Diego (0.8 mi)',
       },
@@ -52,9 +53,36 @@ describe('navigation formatting utils', () => {
 
         // expected
         name: '1441 State St',
-        address: '1441 State St, San Diego, CA 92101-3421, United States',
+        fullAddress: '1441 State St, San Diego, CA 92101-3421, United States',
+        address: 'San Diego',
         details: 'San Diego',
         searchList: ', San Diego (0.8 mi)',
+      },
+      {
+        // from mapbox api
+        item: {
+          title: 'Taco Bell',
+          address: {
+            label: 'Taco Bell, Irlam Drive, Liverpool, L32 8, United Kingdom',
+            countryCode: 'GBR',
+            countryName: 'United Kingdom',
+            state: 'England',
+            countyCode: 'MSY',
+            county: 'Merseyside',
+            city: 'Liverpool',
+            district: 'Kirkby',
+            street: 'Irlam Drive',
+            postalCode: 'L32 8',
+          },
+          distance: 38190,
+        },
+
+        // expected
+        name: 'Taco Bell',
+        fullAddress: 'Irlam Drive, Liverpool, L32 8, United Kingdom',
+        address: 'Irlam Drive, Liverpool',
+        details: 'Irlam Drive, Liverpool',
+        searchList: ', Irlam Drive, Liverpool (23.7 mi)',
       },
     ];
 
@@ -62,7 +90,8 @@ describe('navigation formatting utils', () => {
       const { item } = testCase;
 
       expect(Utils.formatSearchName(item)).toBe(testCase.name);
-      expect(Utils.formatSearchAddress(item)).toBe(testCase.address);
+      expect(Utils.formatSearchAddress(item, true)).toBe(testCase.fullAddress);
+      expect(Utils.formatSearchAddress(item, false)).toBe(testCase.address);
       expect(Utils.formatSearchDetails(item)).toBe(testCase.details);
       expect(Utils.formatSearchList(item)).toBe(testCase.searchList);
     });

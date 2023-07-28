@@ -52,7 +52,11 @@ export function formatSearchAddress(item, full = true) {
     res = houseNumber ? `${houseNumber} ${street}, ${city}`.trimStart() : `${street}, ${city}`;
     if (full) {
       const { stateCode, postalCode, countryName } = item.address;
-      res += `, ${stateCode} ${postalCode}, ${countryName}`;
+      res += ',';
+      if (stateCode) {
+        res += ` ${stateCode}`;
+      }
+      res += ` ${postalCode}, ${countryName}`;
     }
   }
 
