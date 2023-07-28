@@ -7,6 +7,9 @@ module.exports = {
     'airbnb/hooks',
     'plugin:jest-dom/recommended',
   ],
+  parserOptions: {
+    ecmaVersion: 2020,
+  },
   rules: {
     'import/prefer-default-export': 0,
     'import/no-named-as-default': 0,
@@ -23,6 +26,12 @@ module.exports = {
     'react/prop-types': 0,
     'react/require-default-props': 0,
     'no-await-in-loop': 'warn',
+    'no-console': ['error', {
+      allow: ['debug', 'info', 'warn', 'error'],
+    }],
+    'no-multi-spaces': ['error', {
+      ignoreEOLComments: true,
+    }],
     'no-plusplus': [
       'error',
       {
