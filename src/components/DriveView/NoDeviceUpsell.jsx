@@ -23,7 +23,7 @@ const NoDeviceUpsell = () => (
         <AddDevice buttonText="add new device" />
       </div>
     </div>
-    <picture>
+    <picture className="max-w-4xl">
       <source type="image/webp" srcSet="/images/c3-nav.webp" />
       <source type="image/png" srcSet="/images/c3-nav.png" />
       <img alt="comma three" />
