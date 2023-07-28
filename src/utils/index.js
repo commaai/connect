@@ -90,9 +90,9 @@ export function pairErrorToMessage(err, sentryFingerprint) {
   if (err.message.indexOf('400') === 0) {
     msg = 'invalid request';
   } else if (err.message.indexOf('401') === 0) {
-    msg = 'could not decode token';
+    msg = 'could not decode token - make sure your comma device is connected to the internet';
   } else if (err.message.indexOf('403') === 0) {
-    msg = 'device paired with different owner';
+    msg = 'device paired with different owner - make sure you logged in with the correct account';
   } else if (err.message.indexOf('404') === 0) {
     msg = 'tried to pair invalid device';
   } else if (err.message.indexOf('417') === 0) {
