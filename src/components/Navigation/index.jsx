@@ -8,7 +8,6 @@ import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuIt
   from '@material-ui/core';
 import { Search, Clear, Refresh } from '@material-ui/icons';
 import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
 
 import { athena as Athena, devices as Devices, navigation as NavigationApi } from '@commaai/api';
 import { primeNav, analyticsEvent } from '../../actions';
