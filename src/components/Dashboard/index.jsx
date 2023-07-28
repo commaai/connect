@@ -20,7 +20,7 @@ const DashboardLoading = () => (
 
 const Dashboard = ({ primeNav, device, dongleId }) => {
   if (!device || !dongleId) {
-    return null;
+    return <DashboardLoading />;
   }
 
   return (
