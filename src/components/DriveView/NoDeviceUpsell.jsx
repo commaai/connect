@@ -1,91 +1,32 @@
-import React, { Component } from 'react';
+import React from 'react';
 
-import { Typography, withStyles } from '@material-ui/core';
-
-import ResizeHandler from '../ResizeHandler';
 import AddDevice from '../Dashboard/AddDevice';
 
-const styles = () => ({
-  content: {
-    alignSelf: 'center',
-    textAlign: 'center',
-    minWidth: 120,
-    '& p': {
-      fontSize: '1rem',
-      fontWeight: 600,
-    },
-  },
-  imageContainer: {
-    alignSelf: 'center',
-    '& img': {
-      width: 800,
-      maxWidth: '100%',
-    },
-  },
-  pairInstructions: {
-    alignSelf: 'center',
-    maxWidth: 600,
-    minHeight: 150,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    textAlign: 'center',
-    '& p': {
-      fontSize: '1rem',
-      '&:first-child': { fontWeight: 600 },
-    },
-  },
-  addDeviceContainer: {
-    marginTop: 10,
-    width: '80%',
-    maxWidth: 250,
-    margin: '0 auto',
-  },
-});
+const NoDeviceUpsell = () => (
+  <div className="flex flex-col items-center mx-4 md:mx-6 lg:mx-8 mt-4 sm:mt-8 md:mt-16">
+    <div className="flex flex-col prose prose-invert py-2 items-center max-w-sm">
+      <h2>Pair your device</h2>
+      <p>
+        Scan the QR code on your device.
+        If you cannot see a QR code, check the following:
+        <ul>
+          <li>Your device is connected to the internet</li>
+          <li>You have installed the latest version of openpilot</li>
+        </ul>
+        If you still cannot see a QR code, your device may already be paired to
+        another account. Make sure you have signed in with the same account you
+        may have used previously.
+      </p>
+      <div className="mt-2 w-full">
+        <AddDevice buttonText="add new device" />
+      </div>
+    </div>
+    <picture>
+      <source type="image/webp" srcSet="/images/c3-nav.webp" />
+      <source type="image/png" srcSet="/images/c3-nav.png" />
+      <img alt="comma three" />
+    </picture>
+  </div>
+);
 
-class NoDeviceUpsell extends Component {
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      windowWidth: window.innerWidth,
-    };
-
-    this.onResize = this.onResize.bind(this);
-  }
-
-  onResize(windowWidth) {
-    this.setState({ windowWidth });
-  }
-
-  render() {
-    const { classes } = this.props;
-    const { windowWidth } = this.state;
-
-    const containerPadding = windowWidth > 520 ? 36 : 16;
-
-    return (
-      <>
-        <ResizeHandler onResize={this.onResize} />
-        <div className={ classes.pairInstructions } style={{ padding: `8px ${containerPadding}px` }}>
-          <Typography>Pair your device</Typography>
-          <Typography>
-            Pair your comma device by scanning the QR code on the device
-          </Typography>
-          <div className={ classes.addDeviceContainer }>
-            <AddDevice buttonText="add new device" />
-          </div>
-        </div>
-        <div className={classes.imageContainer}>
-          <picture>
-            <source type="image/webp" srcSet="/images/c3-nav.webp" />
-            <source type="image/png" srcSet="/images/c3-nav.png" />
-            <img alt="comma three" />
-          </picture>
-        </div>
-      </>
-    );
-  }
-}
-
-export default withStyles(styles)(NoDeviceUpsell);
+export default NoDeviceUpsell;
