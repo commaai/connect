@@ -10,8 +10,10 @@ import Typography from '@material-ui/core/Typography';
 
 import { config as AuthConfig } from '@commaai/my-comma-auth';
 
-import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon } from '../icons';
 import Colors from '../colors';
+import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon } from '../icons';
+
+import PWAIcon from './PWAIcon';
 
 import demoDevices from '../demo/devices.json';
 
@@ -130,7 +132,7 @@ class AnonymousLanding extends Component {
       const { code, state } = data.detail.authorization;
       window.location = [AuthConfig.APPLE_REDIRECT_PATH, qs.stringify({ code, state })].join('?');
     });
-    document.addEventListener('AppleIDSignInOnFailure', console.log);
+    document.addEventListener('AppleIDSignInOnFailure', console.warn);
   }
 
   render() {
@@ -163,6 +165,7 @@ class AnonymousLanding extends Component {
             <Typography className={classes.demoLinkText}>Try the demo</Typography>
           </a>
         </div>
+        <PWAIcon immediate />
       </div>
     );
   }

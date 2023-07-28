@@ -3,7 +3,7 @@ version: '3.2'
 services:
   connect:
     image: connect
-    build: .
+    build: ..
     ports:
       - "3000:80"
     environment:

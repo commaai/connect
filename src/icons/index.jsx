@@ -26,6 +26,12 @@ export const Check = (props) => (
   </SvgIcon>
 );
 
+export const CheckCircle = (props) => (
+  <SvgIcon {...props} viewBox="0 -960 960 960">
+    <path d="m421-298 283-283-46-45-237 237-120-120-45 45 165 166Zm59 218q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-83 31.5-156t86-127Q252-817 325-848.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 82-31.5 155T763-197.5q-54 54.5-127 86T480-80Zm0-60q142 0 241-99.5T820-480q0-142-99-241t-241-99q-141 0-240.5 99T140-480q0 141 99.5 240.5T480-140Zm0-340Z" />
+  </SvgIcon>
+);
+
 export const CloseBold = (props) => (
   <SvgIcon {...props} viewBox="0 -960 960 960">
     <path d="m249-183-66-66 231-231-231-231 66-66 231 231 231-231 66 66-231 231 231 231-66 66-231-231-231 231Z" />
@@ -35,6 +41,12 @@ export const CloseBold = (props) => (
 export const ContentCopy = (props) => (
   <SvgIcon {...props} viewBox="0 -960 960 960">
     <path d="M180-81q-24 0-42-18t-18-42v-603h60v603h474v60H180Zm120-120q-24 0-42-18t-18-42v-560q0-24 18-42t42-18h440q24 0 42 18t18 42v560q0 24-18 42t-42 18H300Zm0-60h440v-560H300v560Zm0 0v-560 560Z" />
+  </SvgIcon>
+);
+
+export const Download = (props) => (
+  <SvgIcon {...props} viewBox="0 -960 960 960">
+    <path d="M480-313 287-506l43-43 120 120v-371h60v371l120-120 43 43-193 193ZM220-160q-24 0-42-18t-18-42v-143h60v143h520v-143h60v143q0 24-18 42t-42 18H220Z" />
   </SvgIcon>
 );
 

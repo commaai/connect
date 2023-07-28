@@ -2,7 +2,6 @@ import React from 'react';
 import { Grid, Typography, withStyles } from '@material-ui/core';
 
 import { useWindowWidth } from '../../hooks/window';
-import { hasRoutesData } from '../../timeline/segments';
 
 const styles = () => ({
   zeroState: {
@@ -17,9 +16,9 @@ const DriveListEmpty = (props) => {
 
   if (device && routes === null) {
     zeroRidesEle = <Typography>Loading...</Typography>;
-  } else if (hasRoutesData(props) && routes?.length === 0) {
+  } else if (routes?.length === 0) {
     zeroRidesEle = (
-      <Typography>Looks like you haven&apos;t driven in the selected time range.</Typography>
+      <Typography>No routes found in selected time range.</Typography>
     );
   }
 
