@@ -9,7 +9,7 @@ import CheckIcon from '@material-ui/icons/Check';
 
 import { billing as Billing } from '@commaai/api';
 
-import { deviceTypePretty } from '../../utils';
+import { deviceNamePretty } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { primeNav, analyticsEvent } from '../../actions';
@@ -294,7 +294,6 @@ class PrimeCheckout extends Component {
         claimEndDate ? ` Trial offer only valid until ${claimEndDate}.` : ''}`;
     }
 
-    const alias = device.alias || deviceTypePretty(device.device_type);
     const containerPadding = windowWidth > 520 ? { margin: '18px 24px' } : { margin: '6px 12px' };
     const blockMargin = windowWidth > 520 ? { marginTop: 24 } : { marginTop: 8 };
     const paddingStyle = windowWidth > 520
@@ -335,7 +334,7 @@ class PrimeCheckout extends Component {
             <KeyboardBackspaceIcon />
           </IconButton>
           <div className={ classes.headerDevice }>
-            <Typography variant="body2">{ alias }</Typography>
+            <Typography variant="body2">{deviceNamePretty(device)}</Typography>
             <Typography variant="caption" className={classes.deviceId}>{`(${device.dongle_id})`}</Typography>
           </div>
         </div>

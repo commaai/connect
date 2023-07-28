@@ -71,6 +71,10 @@ export function deviceTypePretty(deviceType) {
   }
 }
 
+export function deviceNamePretty(device) {
+  return device.alias || deviceTypePretty(device.device_type);
+}
+
 export function deviceIsOnline(device) {
   if (!device || !device.last_athena_ping) {
     return false;

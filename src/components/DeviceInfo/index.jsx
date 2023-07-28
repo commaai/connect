@@ -13,7 +13,7 @@ import { athena as Athena, devices as Devices } from '@commaai/api';
 import { analyticsEvent } from '../../actions';
 import { fetchClipsList } from '../../actions/clips';
 import Colors from '../../colors';
-import { deviceTypePretty, deviceIsOnline } from '../../utils';
+import { deviceNamePretty, deviceIsOnline } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
@@ -336,7 +336,7 @@ class DeviceInfo extends Component {
           { windowWidth >= 768
             ? (
               <div className={`${classes.row} ${classes.columnGap}`}>
-                <Typography variant="title">{ device.alias || deviceTypePretty(device.device_type) }</Typography>
+                <Typography variant="title">{deviceNamePretty(device)}</Typography>
                 <div className={classes.deviceStatContainer}>{ this.renderStats() }</div>
                 <div className={`${classes.row} ${classes.buttonRow}`}>{ this.renderButtons() }</div>
               </div>
@@ -344,7 +344,7 @@ class DeviceInfo extends Component {
             : (
               <>
                 <div className={ classes.row }>
-                  <Typography variant="title">{ device.alias || deviceTypePretty(device.device_type) }</Typography>
+                  <Typography variant="title">{deviceNamePretty(device)}</Typography>
                 </div>
                 <div className={ classes.row }>
                   { this.renderButtons() }
