@@ -267,7 +267,7 @@ class TimeDisplay extends Component {
               <UpArrow className={classes.tinyArrowIcon} />
             </IconButton>
             <Typography variant="body2" align="center">
-              {this.state.desiredPlaySpeed}
+              {desiredPlaySpeed}
               ×
             </Typography>
             <IconButton
@@ -285,9 +285,9 @@ class TimeDisplay extends Component {
             onClick={this.togglePause}
             aria-label={isPaused ? 'Unpause' : 'Pause'}
           >
-            { isPaused
-              ? (<PlayArrow className={`${classes.icon}`} />)
-              : (<Pause className={`${classes.icon}`} />)}
+            {isPaused
+              ? (<PlayArrow className={classes.icon} />)
+              : (<Pause className={classes.icon} />)}
           </IconButton>
         </div>
       </div>
