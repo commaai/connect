@@ -50,7 +50,7 @@ export function formatDriveDuration(duration) {
 export function timeFromNow(ts) {
   const dt = (Date.now() - ts) / 1000;
   if (dt > 3600 * 24 * 30) {
-    return dayjs(ts).format('MMM Do YYYY');
+    return dayjs(ts).format('MMM D YYYY');
   } else if (dt > 60) {
     return dayjs(ts).fromNow();
   } else {
