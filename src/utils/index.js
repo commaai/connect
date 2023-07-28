@@ -41,10 +41,6 @@ export function toBool(item) {
   }
 }
 
-export function filterEvent(event) {
-  return (event.type === 'disengage' || event.type === 'disengage_steer');
-}
-
 export function formatDriveDuration(duration) {
   const hours = Math.floor((duration / (1000 * 60 * 60))) % 24;
   const minutes = Math.floor((duration / (1000 * 60))) % 60;
@@ -87,12 +83,6 @@ export function deviceOnCellular(device) {
     return null;
   }
   return device.network_metered;
-}
-
-export function isTouchDevice() {
-  return (('ontouchstart' in window)
-     || (navigator.maxTouchPoints > 0)
-     || (navigator.msMaxTouchPoints > 0));
 }
 
 export function pairErrorToMessage(err, sentryFingerprint) {
