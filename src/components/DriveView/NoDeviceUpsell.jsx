@@ -9,10 +9,12 @@ const NoDeviceUpsell = () => (
       <p>
         Scan the QR code on your device.
         If you cannot see a QR code, check the following:
-        <ul>
-          <li>Your device is connected to the internet</li>
-          <li>You have installed the latest version of openpilot</li>
-        </ul>
+      </p>
+      <ul className="my-0">
+        <li>Your device is connected to the internet</li>
+        <li>You have installed the latest version of openpilot</li>
+      </ul>
+      <p>
         If you still cannot see a QR code, your device may already be paired to
         another account. Make sure you have signed in with the same account you
         may have used previously.
