@@ -32,17 +32,15 @@ export default function Thumbnails(props) {
       currSegment.length += 1;
     } else {
       // 12 per file, 5s each
-      let seconds = Math.floor((offset - route.offset) / 1000);
+      const seconds = Math.floor((offset - route.offset) / 1000);
+      const imageIndex = Math.max(0, Math.min(Math.floor(seconds / 5), 11));
       const segmentNum = getSegmentNumber(route, offset);
       const url = `${route.url}/${segmentNum}/sprite.jpg`;
-      seconds %= 60;
 
       if (currSegment && (currSegment.blank || currSegment.segmentNum !== segmentNum)) {
         imgArr.push(currSegment);
         currSegment = null;
       }
-
-      const imageIndex = Math.floor(seconds / 5);
 
       if (currSegment) {
         if (imageIndex === currSegment.endImage + 1) {
