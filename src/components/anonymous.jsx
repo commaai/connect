@@ -138,7 +138,7 @@ class AnonymousLanding extends Component {
           <div className={classes.logoSpacer}>&nbsp;</div>
           <Typography className={classes.logoText}>comma connect</Typography>
           <Typography className={classes.tagline}>
-            Manage your comma device, view your drives, and comma prime features
+            Manage your comma device, view your drives, and use comma prime features
           </Typography>
           <a href={AuthConfig.GOOGLE_REDIRECT_LINK} className={classes.logInButton}>
             <img className={classes.buttonImage} src={AuthGoogleIcon} alt="" />
@@ -153,8 +153,13 @@ class AnonymousLanding extends Component {
             <Typography className={classes.buttonText}>Sign in with GitHub</Typography>
           </a>
 
+          <span className="max-w-sm text-center mt-2 mb-8 text-sm">
+            Make sure to sign in with the same account if you have previously
+            paired your comma device.
+          </span>
+
           <a
-            className="flex items-center pl-4 pr-3 py-2 mt-4 font-medium border border-white rounded-full hover:bg-[rgba(255,255,255,0.1)] active:bg-[rgba(255,255,255,0.2)] transition-colors"
+            className="flex items-center pl-4 pr-3 py-2 font-medium border border-white rounded-full hover:bg-[rgba(255,255,255,0.1)] active:bg-[rgba(255,255,255,0.2)] transition-colors"
             href={`${window.location.origin}/${demoDevices[0].dongle_id}`}
           >
             Try the demo
