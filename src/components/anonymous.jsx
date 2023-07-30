@@ -11,7 +11,7 @@ import Typography from '@material-ui/core/Typography';
 import { config as AuthConfig } from '@commaai/my-comma-auth';
 
 import Colors from '../colors';
-import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon } from '../icons';
+import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon, RightArrow } from '../icons';
 
 import PWAIcon from './PWAIcon';
 
@@ -91,22 +91,13 @@ const styles = () => ({
   buttonImage: {
     height: 40,
   },
-  demoLink: {
-    textDecoration: 'none',
-    justifyContent: 'center',
-    height: '40px',
-    display: 'flex',
-  },
-  demoLinkText: {
-    textDecoration: 'underline',
-    fontSize: '16px',
-  },
 });
 
 class AnonymousLanding extends Component {
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     if (typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') === null) {
-      sessionStorage.setItem('redirectURL', this.props.pathname);
+      const { pathname } = this.props;
+      sessionStorage.setItem('redirectURL', pathname);
     }
   }
 
@@ -139,30 +130,35 @@ class AnonymousLanding extends Component {
     const { classes } = this.props;
 
     return (
-      <div className={ classes.baseContainer }>
-        <div className={ classes.base }>
-          <div className={ classes.logoContainer }>
+      <div className={classes.baseContainer}>
+        <div className={classes.base}>
+          <div className={classes.logoContainer}>
             <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
           </div>
-          <div className={ classes.logoSpacer }>&nbsp;</div>
+          <div className={classes.logoSpacer}>&nbsp;</div>
           <Typography className={classes.logoText}>comma connect</Typography>
           <Typography className={classes.tagline}>
             Manage your comma device, view your drives, and comma prime features
           </Typography>
-          <a href={ AuthConfig.GOOGLE_REDIRECT_LINK } className={ classes.logInButton }>
-            <img className={ classes.buttonImage } src={ AuthGoogleIcon } />
-            <Typography className={ classes.buttonText }>Sign in with Google</Typography>
+          <a href={AuthConfig.GOOGLE_REDIRECT_LINK} className={classes.logInButton}>
+            <img className={classes.buttonImage} src={AuthGoogleIcon} alt="" />
+            <Typography className={classes.buttonText}>Sign in with Google</Typography>
           </a>
-          <a onClick={ () => AppleID.auth.signIn() } className={classes.logInButton}>
-            <img className={ classes.buttonImage } src={ AuthAppleIcon } />
-            <Typography className={ classes.buttonText }>Sign in with Apple</Typography>
+          <a onClick={() => AppleID.auth.signIn()} className={classes.logInButton}>
+            <img className={classes.buttonImage} src={AuthAppleIcon} alt="" />
+            <Typography className={classes.buttonText}>Sign in with Apple</Typography>
           </a>
-          <a href={ AuthConfig.GITHUB_REDIRECT_LINK } className={ `${classes.logInButton} githubAuth` }>
-            <img className={ classes.buttonImage } src={ AuthGithubIcon } />
-            <Typography className={ classes.buttonText }>Sign in with GitHub</Typography>
+          <a href={AuthConfig.GITHUB_REDIRECT_LINK} className={`${classes.logInButton} githubAuth`}>
+            <img className={classes.buttonImage} src={AuthGithubIcon} alt="" />
+            <Typography className={classes.buttonText}>Sign in with GitHub</Typography>
           </a>
-          <a href={ `${window.location.origin}/${demoDevices[0].dongle_id}` } className={classes.demoLink}>
-            <Typography className={classes.demoLinkText}>Try the demo</Typography>
+
+          <a
+            className="flex items-center pl-4 pr-3 py-2 mt-4 font-medium border border-white rounded-full hover:bg-[rgba(255,255,255,0.1)] active:bg-[rgba(255,255,255,0.2)] transition-colors"
+            href={`${window.location.origin}/${demoDevices[0].dongle_id}`}
+          >
+            Try the demo
+            <RightArrow className="ml-1 h-4" />
           </a>
         </div>
         <PWAIcon immediate />
