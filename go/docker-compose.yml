@@ -5,7 +5,7 @@ services:
     image: connect
     build: ..
     ports:
-      - "3000:80"
+      - "8080:80"
     environment:
       COMMA_URL_ROOT: https://api.comma.ai/
       ATHENA_URL_ROOT: https://athena.comma.ai/
