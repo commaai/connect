@@ -24,9 +24,9 @@ const VideoOverlay = ({ loading, error }) => {
       </>
     );
   } else if (loading) {
-    content = <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />
+    content = <CircularProgress style={{ color: Colors.white }} thickness={4} size={50} />;
   } else {
-    return;
+    return null;
   }
   return (
     <div className="z-50 absolute h-full w-full bg-[#16181AAA]">
@@ -35,7 +35,7 @@ const VideoOverlay = ({ loading, error }) => {
       </div>
     </div>
   );
-}
+};
 
 class DriveVideo extends Component {
   constructor(props) {
@@ -76,33 +76,6 @@ class DriveVideo extends Component {
     if (this.videoSyncIntv) {
       clearTimeout(this.videoSyncIntv);
       this.videoSyncIntv = null;
-    }
-  }
-
-  visibleRoute(props = this.props) {
-    const offset = currentOffset();
-    const { currentRoute } = props;
-    if (currentRoute && currentRoute.offset <= offset && offset <= currentRoute.offset + currentRoute.duration) {
-      return currentRoute;
-    }
-    return null;
-  }
-
-  updateVideoSource(prevProps) {
-    let { src } = this.state;
-    const r = this.visibleRoute();
-    if (!r) {
-      if (src !== '') {
-        this.setState({ src: '', videoError: null });
-      }
-      return;
-    }
-
-    const prevR = this.visibleRoute(prevProps);
-    if (src === '' || !prevR || prevR.fullname !== r.fullname) {
-      src = Video.getQcameraStreamUrl(r.fullname, r.share_exp, r.share_sig);
-      this.setState({ src, videoError: null });
-      this.syncVideo();
     }
   }
 
@@ -173,7 +146,7 @@ class DriveVideo extends Component {
 
     if (e.type === 'networkError') {
       console.error('Network error', { e, data });
-      this.setState({ videoError: 'Unable to load video. Check network connection.'});
+      this.setState({ videoError: 'Unable to load video. Check network connection.' });
       return;
     }
 
@@ -186,6 +159,33 @@ class DriveVideo extends Component {
   onVideoResume() {
     const { videoError } = this.state;
     if (videoError) this.setState({ videoError: null });
+  }
+
+  updateVideoSource(prevProps) {
+    let { src } = this.state;
+    const r = this.visibleRoute();
+    if (!r) {
+      if (src !== '') {
+        this.setState({ src: '', videoError: null });
+      }
+      return;
+    }
+
+    const prevR = this.visibleRoute(prevProps);
+    if (src === '' || !prevR || prevR.fullname !== r.fullname) {
+      src = Video.getQcameraStreamUrl(r.fullname, r.share_exp, r.share_sig);
+      this.setState({ src, videoError: null });
+      this.syncVideo();
+    }
+  }
+
+  visibleRoute(props = this.props) {
+    const offset = currentOffset();
+    const { currentRoute } = props;
+    if (currentRoute && currentRoute.offset <= offset && offset <= currentRoute.offset + currentRoute.duration) {
+      return currentRoute;
+    }
+    return null;
   }
 
   syncVideo() {
@@ -243,7 +243,7 @@ class DriveVideo extends Component {
       if (internalPlayer.paused && newPlaybackRate !== 0) {
         const playRes = internalPlayer.play();
         if (playRes) {
-          playRes.catch(() => console.log('[DriveVideo] play interrupted by pause'));
+          playRes.catch(() => console.debug('[DriveVideo] play interrupted by pause'));
         }
       }
     } else {
