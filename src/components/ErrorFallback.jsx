@@ -35,7 +35,6 @@ Window: ${window.innerWidth}x${window.innerHeight}
 Service workers: ${swInfo}
 
 ${error.toString()}${componentStack}`;
-  console.debug('[ErrorFallback]', information);
 
   const copyError = async () => {
     if (copiedInterval.current) {
