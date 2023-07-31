@@ -280,7 +280,7 @@ class DriveVideo extends Component {
           playsinline
           muted
           width="100%"
-          height="unset"
+          height="100%"
           playing={Boolean(this.visibleRoute() && desiredPlaySpeed)}
           config={{
             hlsVersion: '1.4.8',
