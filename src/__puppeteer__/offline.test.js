@@ -13,6 +13,7 @@ describe('offline', () => {
     await page.waitForSelector('.DriveEntry', { timeout: 10000 });
 
     await page.setOfflineMode(true);
+    await page.setCacheEnabled(false);
     await page.reload({ waitUntil: 'networkidle0' });
 
     expect(await page.$x('//*[contains(string(), "Rav4")]')).toBeTruthy();
