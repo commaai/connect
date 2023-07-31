@@ -222,9 +222,9 @@ class TimeDisplay extends Component {
   }
 
   render() {
-    const { classes, zoom, desiredPlaySpeed, isThin } = this.props;
-    const { displayTime } = this.state;
-    const isPaused = desiredPlaySpeed === 0;
+    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin } = this.props;
+    const { displayTime, desiredPlaySpeed } = this.state;
+    const isPaused = videoPlaySpeed === 0;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
