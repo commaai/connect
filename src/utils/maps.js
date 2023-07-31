@@ -10,15 +10,7 @@ export async function coordinatesFromMapsUrl(urlString) {
     let ll = url.searchParams.get('ll');
     let coords = ll.split(',').map((x) => parseFloat(x));
     return coords;
-  } else if (['maps.google.com', 'google.com', 'maps.app.goo.gl'].includes(url.hostname)) {
-    if (url.hostname === 'maps.app.goo.gl') {
-      let resp = await fetch(urlString, {method: 'HEAD', redirect: 'manual'});
-      if (!resp.headers.get('location')) {
-        return null
-      }
-      url = new URL(resp.headers.get('location'));
-    }
-
+  } else if (['maps.google.com', 'google.com'].includes(url.hostname)) {
     if (!url.searchParams.has('q')) {
       return null;
     }
