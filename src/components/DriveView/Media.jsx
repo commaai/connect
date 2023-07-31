@@ -21,7 +21,7 @@ import SwitchLoading from '../utils/SwitchLoading';
 import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
 import { InfoOutline } from '../../icons';
-import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
+import { deviceIsOnline, deviceOnCellular, getSegmentNumber, parseGitRemote } from '../../utils';
 import { analyticsEvent, primeNav, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
@@ -632,7 +632,7 @@ class Media extends Component {
     const { downloadMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
-      return;
+      return null;
     }
 
     let fcam = {}; let ecam = {}; let dcam = {}; let
@@ -765,11 +765,12 @@ class Media extends Component {
           transformOrigin={{ vertical: 'top', horizontal: windowWidth > 400 ? 260 : 300 }}
         >
           <MenuItem
-            className={ classes.copySegment }
+            className={classes.copySegment}
             onClick={ this.copySegmentName }
-            style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}
           >
-            <div>{ currentRoute ? `${currentRoute.fullname}--${getSegmentNumber(currentRoute)}` : '---' }</div>
+            <div className="bg-gray-700 text-white rounded-md px-2 py-1 text-xs">
+              { currentRoute ? `${currentRoute.fullname}--${getSegmentNumber(currentRoute)}` : '---' }
+            </div>
             <ContentCopyIcon />
           </MenuItem>
           { typeof navigator.share !== 'undefined'
@@ -782,6 +783,22 @@ class Media extends Component {
           <Divider />
           <MenuItem onClick={ this.openInUseradmin }>
             View in useradmin
+          </MenuItem>
+          <MenuItem className="text-sm h-auto cursor-auto">
+            <div className="flex flex-col flex-grow gap-2 max-w-xs">
+              <div className="flex flex-grow items-center justify-between">
+                <span>Platform:</span>
+                <pre className="bg-gray-700 text-white rounded-md px-2 py-1 text-xs">{currentRoute?.platform || '---'}</pre>
+              </div>
+              <div className="flex flex-grow items-center justify-between">
+                <span>Remote:</span>
+                <pre className="bg-gray-700 text-white rounded-md px-2 py-1 text-xs">{parseGitRemote(currentRoute?.git_remote) || '---'}</pre>
+              </div>
+              <div className="flex flex-grow items-center justify-between">
+                <span>Branch:</span>
+                <pre className="bg-gray-700 text-white rounded-md px-2 py-1 text-xs">{currentRoute?.git_branch || '---'}</pre>
+              </div>
+            </div>
           </MenuItem>
           { Boolean(device?.is_owner || (profile && profile.superuser)) && [
             <Divider key="1" />,

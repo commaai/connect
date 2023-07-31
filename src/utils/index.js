@@ -195,3 +195,29 @@ export function getSegmentNumber(route, offset) {
   }
   return null;
 }
+
+/**
+ * @param {string} gitRemote
+ * @returns {string|null} - null if not a valid git remote
+ */
+export function parseGitRemote(gitRemote) {
+  // Trim protocol
+  let url = gitRemote.replace(/(^\w+:|^)\/\//, '');
+
+  // If username and password
+  if (/^[^@]+@/.test(url)) {
+    // Trim username and password
+    url = url.replace(/^[^@]+@/, '');
+
+    // Replace colon with slash
+    url = url.replace(/:/, '/');
+  }
+
+  // Trim domain and port
+  url = url.replace(/^[^/]+\//, '');
+
+  // Trim .git suffix
+  url = url.replace(/\.git$/, '');
+
+  return url;
+}

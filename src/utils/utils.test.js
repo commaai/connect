@@ -1,5 +1,5 @@
 /* eslint-env jest */
-import { deviceVersionAtLeast, formatDriveDuration } from '.';
+import { deviceVersionAtLeast, formatDriveDuration, parseGitRemote } from '.';
 
 test('formats durations correctly', () => {
   // 1 hour, 59 minutes, 59 seconds
@@ -41,4 +41,26 @@ test('compares versions correctly', () => {
   expect(deviceVersionAtLeast(device('0.8.14'), '0.8.13')).toEqual(true);
   expect(deviceVersionAtLeast(device('0.8.13'), '0.8.14')).toEqual(false);
   expect(deviceVersionAtLeast(device('0.8.13'), '0.8.13')).toEqual(true);
+});
+
+describe('parse git remote url', () => {
+  [
+    'github.com/commaai/openpilot',
+    'github.com:1337/commaai/openpilot',
+    'http://github.com/commaai/openpilot',
+    'https://github.com/commaai/openpilot',
+    'https://github.com/commaai/openpilot.git',
+    'git@github.com:commaai/openpilot.git',
+    'git@github.com/commaai/openpilot.git',
+    'ssh://git@github.com/commaai/openpilot.git',
+    'ssh://git@github.com:commaai/openpilot.git',
+    'git://github.com/commaai/openpilot.git',
+    'ssh+git://git@github.com/commaai/openpilot.git',
+    'user@github.com:commaai/openpilot.git',
+    'user:pass@github.com:commaai/openpilot.git',
+  ].forEach((url) => {
+    test(url, () => {
+      expect(parseGitRemote(url)).toEqual('commaai/openpilot');
+    });
+  });
 });
