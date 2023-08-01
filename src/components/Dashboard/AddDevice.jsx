@@ -369,7 +369,7 @@ class AddDevice extends Component {
                     { pairDongleId && (
                     <>
                       <Typography>
-                        Successfully paired device
+                        {'Successfully paired device '}
                         <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
                       </Typography>
                       <Button className={ classes.retryButton } onClick={ this.modalClose }>
