@@ -7,6 +7,15 @@ const ATTRIBUTES = {
   gitCommit: import.meta.env.VITE_APP_GIT_SHA || 'dev',
   environment: import.meta.env.MODE || 'unknown',
   ci: new URLSearchParams(window.location.search).get('ci') || false,
+
+  webFeatures: {
+    barcodeDetection: 'BarcodeDetector' in window,
+    bluetooth: 'bluetooth' in navigator,
+    gamepad: 'getGamepads' in navigator,
+    networkInformation: 'connection' in navigator,
+    serviceWorkers: 'serviceWorker' in navigator,
+    usb: 'usb' in navigator,
+  },
 };
 const RESERVED_KEYS = new Set(['_id', ...Object.keys(ATTRIBUTES)]);
 
