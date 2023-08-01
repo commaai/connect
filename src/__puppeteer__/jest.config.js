@@ -1,6 +1,6 @@
 const jestConfig = require('../../jest.config');
 
-delete jestConfig['testEnvironment'];
+delete jestConfig.testEnvironment;
 
 module.exports = {
   ...jestConfig,
