@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-import { Check, ContentCopy } from '../icons';
+import { Check, ContentCopy, Refresh } from '../icons';
 
 const ErrorFallback = ({ error, componentStack }) => {
   const [swInfo, setSwInfo] = useState('');
@@ -49,6 +49,17 @@ ${error.toString()}${componentStack}`;
     }
   };
 
+  const reload = async () => {
+    // Unregister all service workers
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((r) => r.unregister()));
+    }
+
+    // Reload the page
+    window.location.reload();
+  };
+
   return (
     <div className="m-4">
       <div className=" prose prose-invert">
@@ -65,14 +76,16 @@ ${error.toString()}${componentStack}`;
           {' '}
           channel.
         </p>
-        <p>
-          <a
-            className="bg-blue-600 rounded-md px-4 py-2 font-bold hover:bg-blue-500 transition-colors no-underline"
-            href=""
+        <div className="flex flex-row gap-4">
+          <button
+            className="flex items-center gap-1 bg-blue-600 rounded-md px-4 py-2 font-bold hover:bg-blue-500 transition-colors"
+            type="button"
+            onClick={reload}
           >
             Reload
-          </a>
-        </p>
+            <Refresh />
+          </button>
+        </div>
       </div>
       <details className="mt-8">
         <summary>Show debugging information</summary>
