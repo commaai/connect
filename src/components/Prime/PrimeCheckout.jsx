@@ -362,7 +362,7 @@ class PrimeCheckout extends Component {
               <p>
                 Turn-by-turn navigation
                 {' '}
-                <span>comma three only</span>
+                <span>comma 3/3X only</span>
               </p>
             </div>
           </div>
