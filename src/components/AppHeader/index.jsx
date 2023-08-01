@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { Suspense, useCallback, useState } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
@@ -14,8 +14,8 @@ import ResizeHandler from '../ResizeHandler';
 import { filterRegularClick } from '../../utils';
 
 import AccountMenu from './AccountMenu';
-import PWAIcon from '../PWAIcon';
 import TimeFilter from './TimeFilter';
+import PWAIcon from '../PWAIcon';
 
 const styles = () => ({
   header: {
@@ -132,7 +132,7 @@ const AppHeader = ({
             {Boolean(!primeNav && !clips && !annotating && dongleId) && <TimeFilter />}
           </div>
           <div className="flex flex-row gap-2">
-            <PWAIcon />
+            <Suspense><PWAIcon /></Suspense>
             <IconButton
               aria-owns={open ? 'menu-appbar' : null}
               aria-haspopup="true"

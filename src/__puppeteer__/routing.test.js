@@ -8,6 +8,11 @@ describe('routing', () => {
     await configureViewport();
   });
 
+  it('login page', async () => {
+    await goto('/');
+    await page.waitForXPath('//*[contains(string(), "Try the demo")]');
+  });
+
   it('load route list', async () => {
     await goto('/4cf7a6ad03080c90');
     await sleep(2000);

@@ -8,7 +8,7 @@ describe('demo mode', () => {
     configureViewport();
   });
 
-  it('should load', async () => {
+  it('should load demo route', async () => {
     await goto('/4cf7a6ad03080c90', { waitUntil: 'networkidle2' });
     await sleep(2500);
 
