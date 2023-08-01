@@ -2,3 +2,20 @@ node_modules/
 coverage/
 build/
 go/
+
+.idea
+*.iml
+.vscode
+*.swp
+
+*.log
+.DS_Store
+
+# env files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Sentry Auth Token
+.env.sentry-build-plugin
