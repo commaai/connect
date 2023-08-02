@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 
 import { withStyles, Grid, Typography } from '@material-ui/core';
 
-import { selectRange } from '../../actions';
+import { pushTimelineRange } from '../../actions';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
 import Colors from '../../colors';
 import { useWindowWidth } from '../../hooks/window';
@@ -84,7 +84,7 @@ const DriveListItem = (props) => {
   }, [drive, dispatch, isVisible, el]);
 
   const onClick = filterRegularClick(
-    () => dispatch(selectRange(drive.start_time_utc_millis, drive.end_time_utc_millis)),
+    () => dispatch(pushTimelineRange(drive.start_time_utc_millis, drive.end_time_utc_millis)),
   );
 
   const small = windowWidth < 580;

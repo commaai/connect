@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 
 import { withStyles, IconButton, Typography } from '@material-ui/core';
 
-import { selectRange } from '../../actions';
+import { popTimelineRange, pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
@@ -52,12 +52,22 @@ class DriveView extends Component {
     this.setState({ windowWidth });
   }
 
+  onBack(zoom, currentRoute) {
+    if (zoom.previousZoom) {
+      this.props.dispatch(popTimelineRange());
+    } else if (currentRoute) { 
+      this.props.dispatch(
+        pushTimelineRange(currentRoute.start_time_utc_millis, currentRoute.end_time_utc_millis)
+      );
+    }
+  }
+
   close() {
-    this.props.dispatch(selectRange(null, null));
+    this.props.dispatch(pushTimelineRange(null, null));
   }
 
   render() {
-    const { classes, dongleId, zoom, routes } = this.props;
+    const { classes, dongleId, zoom, routes, currentRoute } = this.props;
     const { windowWidth } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
@@ -75,7 +85,7 @@ class DriveView extends Component {
         <div className={classes.window}>
           <div>
             <div className={classes.headerContext}>
-              <IconButton aria-label="Go Back" onClick={ () => window.history.back() }>
+              <IconButton aria-label="Go Back" onClick={ () => this.onBack(zoom, currentRoute) }>
                 <ArrowBackBold />
               </IconButton>
               <div className={ classes.headerInfo }>
@@ -106,6 +116,7 @@ const stateToProps = Obstruction({
   dongleId: 'dongleId',
   routes: 'routes',
   zoom: 'zoom',
+  currentRoute: 'currentRoute',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveView));

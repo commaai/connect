@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import { push } from 'connected-react-router';
-import { selectRange } from './index';
+import { pushTimelineRange } from './index';
 
 jest.mock('connected-react-router', () => {
   const originalModule = jest.requireActual('connected-react-router');
@@ -15,7 +15,7 @@ describe('timeline actions', () => {
   it('should push history state when editing zoom', () => {
     const dispatch = jest.fn();
     const getState = jest.fn();
-    const actionThunk = selectRange(123, 1234);
+    const actionThunk = pushTimelineRange(123, 1234);
 
     getState.mockImplementationOnce(() => ({
       dongleId: 'statedongle',
