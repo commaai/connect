@@ -16,7 +16,7 @@ describe('offline', () => {
     await page.setCacheEnabled(false);
     await page.reload({ waitUntil: 'networkidle0' });
 
-    expect(await page.$x('//*[contains(string(), "Rav4")]')).toBeTruthy();
+    expect(await page.$x('//*[contains(string(), "Corolla")]')).toBeTruthy();
     expect(await page.$x('//*[contains(string(), "Loading...")]')).toBeTruthy();
   });
 });
