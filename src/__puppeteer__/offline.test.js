@@ -9,7 +9,7 @@ describe('offline', () => {
   });
 
   it('should not crash when navigating while offline', async () => {
-    await goto('/4cf7a6ad03080c90');
+    await goto('/a2a0ccea32023010');
     await page.waitForSelector('.DriveEntry', { timeout: 10000 });
 
     await page.setOfflineMode(true);

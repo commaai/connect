@@ -9,7 +9,7 @@ describe('demo mode', () => {
   });
 
   it('should load demo route', async () => {
-    await goto('/4cf7a6ad03080c90', { waitUntil: 'networkidle2' });
+    await goto('/a2a0ccea32023010', { waitUntil: 'networkidle2' });
     await sleep(2500);
 
     const list = await expect(page).toMatchElement('.DriveList');
