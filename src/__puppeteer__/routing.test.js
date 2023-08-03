@@ -25,18 +25,13 @@ describe('routing', () => {
   });
 
   it('load route from URL', async () => {
-    await goto('/a2a0ccea32023010/1690488081496/1690488851596', { timeout: 60000 });
-
-    const video = await page.waitForSelector('video');
+    await goto('/a2a0ccea32023010/1690488081496/1690488851596', { timeout: 50000 });
 
     // Wait for video src to be set
     await page.waitForFunction(
-      (vid) => vid.getAttribute('src') !== '',
+      (video) => video.getAttribute('src')?.startsWith('blob:'),
       {},
-      video,
+      await page.waitForSelector('video'),
     );
-
-    const videoSrc = await page.evaluate((vid) => vid.getAttribute('src'), video);
-    expect(videoSrc.startsWith('blob:')).toBeTruthy();
-  }, 60000);
+  }, 80000);
 });
