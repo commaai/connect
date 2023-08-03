@@ -87,7 +87,11 @@ class DriveView extends Component {
         <div className={classes.window}>
           <div>
             <div className={classes.headerContext}>
-              <IconButton aria-label="Go Back" onClick={ () => this.onBack(zoom, currentRoute) } disabled={ backButtonDisabled }>
+              <IconButton
+                onClick={ () => this.onBack(zoom, currentRoute) }
+                aria-label="Go Back"
+                disabled={ backButtonDisabled }
+              >
                 <ArrowBackBold />
               </IconButton>
               <div className={ classes.headerInfo }>
