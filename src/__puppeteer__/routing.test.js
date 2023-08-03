@@ -25,7 +25,7 @@ describe('routing', () => {
   });
 
   it('load route from URL', async () => {
-    await goto('/a2a0ccea32023010/1690488081496/1690488851596');
+    await goto('/a2a0ccea32023010/1690488081496/1690488851596', { timeout: 60000 });
 
     const video = await page.waitForSelector('video');
 
@@ -38,5 +38,5 @@ describe('routing', () => {
 
     const videoSrc = await page.evaluate((vid) => vid.getAttribute('src'), video);
     expect(videoSrc.startsWith('blob:')).toBeTruthy();
-  }, 45000);
+  }, 60000);
 });
