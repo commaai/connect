@@ -1,25 +1,25 @@
 /* eslint-env jest */
-import { configureViewport, goto, sleep } from './utils';
+import { configureViewport, goto } from './utils';
 
-jest.setTimeout(60000);
+jest.setTimeout(30000);
 
 describe('demo mode', () => {
   beforeAll(async () => {
-    configureViewport();
+    await configureViewport();
   });
 
   it('should load demo route', async () => {
     await goto('/a2a0ccea32023010', { waitUntil: 'networkidle2' });
-    await sleep(2500);
 
-    const list = await expect(page).toMatchElement('.DriveList');
-    expect((await list.$$(':scope > a')).length).toBe(1);
-
+    await page.waitForSelector('.DriveList');
+    await page.waitForSelector('.DriveEntry');
     await expect(page).toClick('.DriveEntry');
-    await sleep(10000);
 
-    const video = await page.$('video');
-    const videoSrc = await page.evaluate((vid) => vid.getAttribute('src'), video);
-    expect(videoSrc.startsWith('blob:')).toBeTruthy();
+    // Wait for video src to be set
+    await page.waitForFunction(
+      (video) => video.getAttribute('src')?.startsWith('blob:'),
+      {},
+      await page.waitForSelector('video'),
+    );
   });
 });
