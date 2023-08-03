@@ -73,6 +73,8 @@ class DriveView extends Component {
 
     const viewEndTime = dayjs(zoom.end).format('HH:mm');
     const startTime = dayjs(zoom.start).format('MMM D @ HH:mm');
+    const currentRouteBoundsSelected = (currentRoute && (currentRoute.start_time_utc_millis == zoom.start && currentRoute.end_time_utc_millis == zoom.end))
+    const backButtonDisabled = !zoom.previousZoom && currentRouteBoundsSelected;
     let headerText = `${startTime} - ${viewEndTime}`;
     if (windowWidth >= 640) {
       const startDay = dayjs(zoom.start).format('dddd');
@@ -85,7 +87,7 @@ class DriveView extends Component {
         <div className={classes.window}>
           <div>
             <div className={classes.headerContext}>
-              <IconButton aria-label="Go Back" onClick={ () => this.onBack(zoom, currentRoute) }>
+              <IconButton aria-label="Go Back" onClick={ () => this.onBack(zoom, currentRoute) } disabled={ backButtonDisabled }>
                 <ArrowBackBold />
               </IconButton>
               <div className={ classes.headerInfo }>
