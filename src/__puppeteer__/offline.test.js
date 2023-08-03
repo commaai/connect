@@ -1,16 +1,16 @@
 /* eslint-env jest */
 import { configureViewport, goto } from './utils';
 
-jest.setTimeout(60000);
+jest.setTimeout(30000);
 
 describe('offline', () => {
   beforeAll(async () => {
-    configureViewport();
+    await configureViewport();
   });
 
   it('should not crash when navigating while offline', async () => {
     await goto('/a2a0ccea32023010');
-    await page.waitForSelector('.DriveEntry', { timeout: 10000 });
+    await page.waitForSelector('.DriveEntry');
 
     await page.setOfflineMode(true);
     await page.setCacheEnabled(false);

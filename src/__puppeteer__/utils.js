@@ -17,7 +17,3 @@ export const goto = async (path, options) => {
     ...options,
   });
 };
-
-export const sleep = async (ms) => new Promise((resolve) => {
-  setTimeout(resolve, ms);
-});
