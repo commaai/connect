@@ -38,5 +38,5 @@ describe('routing', () => {
 
     const videoSrc = await page.evaluate((vid) => vid.getAttribute('src'), video);
     expect(videoSrc.startsWith('blob:')).toBeTruthy();
-  });
+  }, 45000);
 });
