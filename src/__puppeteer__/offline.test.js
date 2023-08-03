@@ -9,14 +9,14 @@ describe('offline', () => {
   });
 
   it('should not crash when navigating while offline', async () => {
-    await goto('/4cf7a6ad03080c90');
+    await goto('/a2a0ccea32023010');
     await page.waitForSelector('.DriveEntry', { timeout: 10000 });
 
     await page.setOfflineMode(true);
     await page.setCacheEnabled(false);
     await page.reload({ waitUntil: 'networkidle0' });
 
-    expect(await page.$x('//*[contains(string(), "Rav4")]')).toBeTruthy();
+    expect(await page.$x('//*[contains(string(), "Corolla")]')).toBeTruthy();
     expect(await page.$x('//*[contains(string(), "Loading...")]')).toBeTruthy();
   });
 });

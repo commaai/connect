@@ -14,7 +14,7 @@ describe('routing', () => {
   });
 
   it('load route list', async () => {
-    await goto('/4cf7a6ad03080c90');
+    await goto('/a2a0ccea32023010');
     await sleep(2000);
 
     // ".DriveList" should be visible
@@ -27,7 +27,7 @@ describe('routing', () => {
   });
 
   it('load route from URL', async () => {
-    await goto('/4cf7a6ad03080c90/1632948396703/1632949028503');
+    await goto('/a2a0ccea32023010/1690488081496/1690488851596');
     await sleep(10000);
 
     // Should load video with src

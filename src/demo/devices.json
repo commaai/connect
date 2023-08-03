@@ -1,13 +1,13 @@
 [
   {
-    "alias": "Rav4",
+    "alias": "Corolla",
     "device_type": "three",
-    "dongle_id": "4cf7a6ad03080c90",
+    "dongle_id": "a2a0ccea32023010",
     "ignore_uploads": null,
     "is_owner": false,
     "shared": true,
     "is_paired": true,
-    "last_athena_ping": 1565453808,
+    "last_athena_ping": 1691040268,
     "sim_id": "0000000000000000000"
   }
 ]
