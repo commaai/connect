@@ -272,7 +272,6 @@ const initialState = {
   favoriteLocations: [],
   geoLocateCoords: null,
   search: null,
-  route: null,
   searchSelect: null,
   searchLooking: false,
   noFly: false,
@@ -680,7 +679,6 @@ class Navigation extends Component {
     this.setState({
       noFly: false,
       search: null,
-      route: null,
       searchSelect: null,
       searchLooking: false,
       savingAs: false,
@@ -691,7 +689,6 @@ class Navigation extends Component {
   clearSearchSelect() {
     this.setState({
       noFly: false,
-      route: null,
       searchSelect: null,
       searchLooking: false,
       savingAs: false,
@@ -894,7 +891,6 @@ class Navigation extends Component {
         this.updateFavoriteLocations();
         this.setState({
           noFly: false,
-          route: null,
           searchSelect: null,
           searchLooking: false,
           savingAs: false,
