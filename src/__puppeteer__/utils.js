@@ -13,7 +13,7 @@ export const configureViewport = async () => {
 
 export const goto = async (path, options) => {
   await page.goto(`http://localhost:${PORT}${path}`, {
-    waitUntil: 'networkidle2',
+    waitUntil: 'domcontentloaded',
     ...options,
   });
 };
