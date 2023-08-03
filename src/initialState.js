@@ -7,8 +7,8 @@ export function getDefaultFilter() {
 
   if (Demo.isDemo()) {
     return {
-      start: 1632948396703,
-      end: 1632949028503,
+      start: 1690488081496,
+      end: 1690488851596,
     };
   }
 
