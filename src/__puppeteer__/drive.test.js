@@ -49,7 +49,7 @@ describe('drive view', () => {
       page.waitForNavigation(),
       closeButton.click(),
     ]);
-    
+
     expect(page.url().endsWith(`/${ROOT_DEMO_URL.split('/')[1]}`)).toBeTruthy();
   });
 });

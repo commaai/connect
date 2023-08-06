@@ -55,9 +55,9 @@ class DriveView extends Component {
   onBack(zoom, currentRoute) {
     if (zoom.previous) {
       this.props.dispatch(popTimelineRange());
-    } else if (currentRoute) { 
+    } else if (currentRoute) {
       this.props.dispatch(
-        pushTimelineRange(currentRoute.start_time_utc_millis, currentRoute.end_time_utc_millis)
+        pushTimelineRange(currentRoute.start_time_utc_millis, currentRoute.end_time_utc_millis),
       );
     }
   }
@@ -73,7 +73,7 @@ class DriveView extends Component {
 
     const viewEndTime = dayjs(zoom.end).format('HH:mm');
     const startTime = dayjs(zoom.start).format('MMM D @ HH:mm');
-    const currentRouteBoundsSelected = (currentRoute && (currentRoute.start_time_utc_millis == zoom.start && currentRoute.end_time_utc_millis == zoom.end))
+    const currentRouteBoundsSelected = currentRoute?.start_time_utc_millis === zoom.start && currentRoute?.end_time_utc_millis === zoom.end;
     const backButtonDisabled = !zoom.previousZoom && currentRouteBoundsSelected;
     let headerText = `${startTime} - ${viewEndTime}`;
     if (windowWidth >= 640) {
@@ -82,7 +82,7 @@ class DriveView extends Component {
     }
 
     return (
-      <div className='DriveView'>
+      <div className="DriveView">
         <ResizeHandler onResize={ this.onResize } />
         <div className={classes.window}>
           <div>
