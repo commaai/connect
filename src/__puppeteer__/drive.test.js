@@ -1,8 +1,8 @@
 /* eslint-env jest */
 import { configureViewport, goto } from './utils';
 
-const ROOT_DEMO_URL = '/4cf7a6ad03080c90/1632948396703/1632949028503'
-const ZOOMED_DEMO_URL = '/4cf7a6ad03080c90/1632948397703/1632949027503'
+const ROOT_DEMO_URL = '/4cf7a6ad03080c90/1632948396703/1632949028503';
+const ZOOMED_DEMO_URL = '/4cf7a6ad03080c90/1632948397703/1632949027503';
 
 jest.setTimeout(60000);
 
@@ -43,7 +43,7 @@ describe('drive view', () => {
 
     const closeButton = await page.$('.DriveView a[aria-label="Close"]');
 
-    expect(closeButton).toBeTruthy()
+    expect(closeButton).toBeTruthy();
 
     await Promise.all([
       page.waitForNavigation(),
