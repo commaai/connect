@@ -10,7 +10,6 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import { selectDevice } from '../../actions';
 import { AccountIcon } from '../../icons';
 import Colors from '../../colors';
-import ResizeHandler from '../ResizeHandler';
 import { filterRegularClick } from '../../utils';
 
 import AccountMenu from './AccountMenu';
@@ -63,7 +62,6 @@ const AppHeader = ({
   forwardRef, clips, handleDrawerStateChanged, primeNav, dongleId,
 }) => {
   const [anchorEl, setAnchorEl] = useState(null);
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   const handleClickedAccount = useCallback((event) => {
     if (MyCommaAuth.isAuthenticated()) {
@@ -81,25 +79,10 @@ const AppHeader = ({
     dispatch(handleDrawerStateChanged(!drawerIsOpen));
   }, [dispatch, drawerIsOpen, handleDrawerStateChanged]);
 
-  const onResize = useCallback((width) => {
-    setWindowWidth(width);
-  }, []);
-
   const open = Boolean(anchorEl);
-
-  let reorderWideStyle = {};
-  if (windowWidth < 640) {
-    reorderWideStyle = {
-      order: 4,
-      width: '100%',
-      display: 'flex',
-      justifyContent: 'center',
-    };
-  }
 
   return (
     <>
-      <ResizeHandler onResize={onResize} />
       <AppBar position="sticky" elevation={1}>
         <div ref={forwardRef} className={classes.header}>
           <div className={classes.titleContainer}>
@@ -128,7 +111,7 @@ const AppHeader = ({
               <Typography className={classes.logoText}>connect</Typography>
             </a>
           </div>
-          <div className={classes.headerWideItem} style={reorderWideStyle}>
+          <div className="flex order-4 w-full justify-center sm:order-none sm:w-auto">
             {Boolean(!primeNav && !clips && !annotating && dongleId) && <TimeFilter />}
           </div>
           <div className="flex flex-row gap-2">
