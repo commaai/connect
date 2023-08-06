@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 
 import { withStyles, IconButton, Typography } from '@material-ui/core';
 
-import { selectRange } from '../../actions';
+import { popTimelineRange, pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
@@ -52,17 +52,29 @@ class DriveView extends Component {
     this.setState({ windowWidth });
   }
 
+  onBack(zoom, currentRoute) {
+    if (zoom.previous) {
+      this.props.dispatch(popTimelineRange());
+    } else if (currentRoute) {
+      this.props.dispatch(
+        pushTimelineRange(currentRoute.start_time_utc_millis, currentRoute.end_time_utc_millis),
+      );
+    }
+  }
+
   close() {
-    this.props.dispatch(selectRange(null, null));
+    this.props.dispatch(pushTimelineRange(null, null));
   }
 
   render() {
-    const { classes, dongleId, zoom, routes } = this.props;
+    const { classes, dongleId, zoom, routes, currentRoute } = this.props;
     const { windowWidth } = this.state;
     const viewerPadding = windowWidth < 768 ? 12 : 32;
 
     const viewEndTime = dayjs(zoom.end).format('HH:mm');
     const startTime = dayjs(zoom.start).format('MMM D @ HH:mm');
+    const currentRouteBoundsSelected = currentRoute?.start_time_utc_millis === zoom.start && currentRoute?.end_time_utc_millis === zoom.end;
+    const backButtonDisabled = !zoom.previousZoom && currentRouteBoundsSelected;
     let headerText = `${startTime} - ${viewEndTime}`;
     if (windowWidth >= 640) {
       const startDay = dayjs(zoom.start).format('dddd');
@@ -70,12 +82,16 @@ class DriveView extends Component {
     }
 
     return (
-      <>
+      <div className="DriveView">
         <ResizeHandler onResize={ this.onResize } />
         <div className={classes.window}>
           <div>
             <div className={classes.headerContext}>
-              <IconButton aria-label="Go Back" onClick={ () => window.history.back() }>
+              <IconButton
+                onClick={ () => this.onBack(zoom, currentRoute) }
+                aria-label="Go Back"
+                disabled={ backButtonDisabled }
+              >
                 <ArrowBackBold />
               </IconButton>
               <div className={ classes.headerInfo }>
@@ -97,7 +113,7 @@ class DriveView extends Component {
               : <Media /> }
           </div>
         </div>
-      </>
+      </div>
     );
   }
 }
@@ -106,6 +122,7 @@ const stateToProps = Obstruction({
   dongleId: 'dongleId',
   routes: 'routes',
   zoom: 'zoom',
+  currentRoute: 'currentRoute',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveView));

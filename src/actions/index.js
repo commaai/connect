@@ -12,31 +12,50 @@ import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
 let routesRequest = null;
 
-export function selectRange(start, end, allowPathChange = true) {
+function updateTimeline(state, dispatch, start, end, allowPathChange) {
+  dispatch(checkRoutesData());
+
+  if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
+    || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
+    dispatch(resetPlayback());
+    dispatch(selectLoop(start, end));
+  }
+
+  if (allowPathChange) {
+    const desiredPath = urlForState(state.dongleId, start, end, false);
+    if (window.location.pathname !== desiredPath) {
+      dispatch(push(desiredPath));
+    }
+  }
+}
+
+export function popTimelineRange(allowPathChange = true) {
+  return (dispatch, getState) => {
+    const state = getState();
+    if (state.zoom.previous) {
+      dispatch({
+        type: Types.TIMELINE_POP_SELECTION,
+      })
+
+      const { start, end } = state.zoom.previous;
+      updateTimeline(state, dispatch, start, end, allowPathChange);
+    }
+  };
+
+}
+
+export function pushTimelineRange(start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
     if (state.zoom?.start !== start || state.zoom?.end !== end) {
       dispatch({
-        type: Types.TIMELINE_SELECTION_CHANGED,
+        type: Types.TIMELINE_PUSH_SELECTION,
         start,
         end,
       });
     }
-
-    dispatch(checkRoutesData());
-
-    if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
-      || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
-      dispatch(resetPlayback());
-      dispatch(selectLoop(start, end));
-    }
-
-    if (allowPathChange) {
-      const desiredPath = urlForState(state.dongleId, start, end, false);
-      if (window.location.pathname !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
+    
+    updateTimeline(state, dispatch, start, end, allowPathChange);
   };
 }
 
@@ -56,7 +75,7 @@ export function selectDevice(dongleId, allowPathChange = true) {
       dongleId,
     });
 
-    dispatch(selectRange(null, null, false));
+    dispatch(pushTimelineRange(null, null, false));
     if ((device && !device.shared) || state.profile?.superuser) {
       dispatch(primeFetchSubscription(dongleId, device));
       dispatch(fetchDeviceOnline(dongleId));

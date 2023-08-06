@@ -9,7 +9,7 @@ import * as actionsIndex from './index';
 
 jest.mock('./index', () => ({
   selectDevice: jest.fn(),
-  selectRange: jest.fn(),
+  pushTimelineRange: jest.fn(),
   primeNav: jest.fn(),
 }));
 
@@ -84,7 +84,7 @@ describe('history middleware', () => {
 
   it('should call select zoom with history', async () => {
     const fakeInner = { id: 'asdfsd83242' };
-    actionsIndex.selectRange.mockReturnValue(fakeInner);
+    actionsIndex.pushTimelineRange.mockReturnValue(fakeInner);
 
     const { store, next, invoke } = create({
       dongleId: '0000aaaa0000aaaa',
@@ -103,13 +103,13 @@ describe('history middleware', () => {
     expect(next).toHaveBeenCalledWith(action);
     expect(store.dispatch).toHaveBeenCalledTimes(1);
     expect(store.dispatch).toHaveBeenCalledWith(fakeInner);
-    expect(actionsIndex.selectRange).toHaveBeenCalledWith(1230, 1234, false);
+    expect(actionsIndex.pushTimelineRange).toHaveBeenCalledWith(1230, 1234, false);
   });
 
   it('should call prime nav with history', async () => {
     const fakeInner = { id: 'n27u3n9va' };
     const fakeInner2 = { id: 'vmklxmsd' };
-    actionsIndex.selectRange.mockReturnValue(fakeInner);
+    actionsIndex.pushTimelineRange.mockReturnValue(fakeInner);
     actionsIndex.primeNav.mockReturnValue(fakeInner2);
 
     const { store, next, invoke } = create({
@@ -130,7 +130,7 @@ describe('history middleware', () => {
     expect(store.dispatch).toHaveBeenCalledTimes(2);
     expect(store.dispatch).toHaveBeenCalledWith(fakeInner);
     expect(store.dispatch).toHaveBeenCalledWith(fakeInner2);
-    expect(actionsIndex.selectRange).toHaveBeenCalledWith(undefined, undefined, false);
+    expect(actionsIndex.pushTimelineRange).toHaveBeenCalledWith(undefined, undefined, false);
     expect(actionsIndex.primeNav).toHaveBeenCalledWith(true);
   });
 });
