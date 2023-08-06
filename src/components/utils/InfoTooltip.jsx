@@ -7,18 +7,7 @@ import { InfoOutline } from '../../icons';
 const styles = (theme) => ({
   arrowPopper: {
     opacity: 1,
-    '&[x-placement*="bottom"] $arrowArrow': {
-      top: 0,
-      left: 0,
-      marginTop: '-0.9em',
-      width: '3em',
-      height: '1em',
-      '&::before': {
-        borderWidth: '0 1em 1em 1em',
-        borderColor: `transparent transparent ${theme.palette.grey[900]} transparent`,
-      },
-    },
-    '&[x-placement*="top"] $arrowArrow': {
+    '& $arrowArrow': {
       bottom: 0,
       left: 0,
       marginBottom: '-0.9em',
@@ -27,26 +16,6 @@ const styles = (theme) => ({
       '&::before': {
         borderWidth: '1em 1em 0 1em',
         borderColor: `${theme.palette.grey[900]} transparent transparent transparent`,
-      },
-    },
-    '&[x-placement*="right"] $arrowArrow': {
-      left: 0,
-      marginLeft: '-0.9em',
-      height: '3em',
-      width: '1em',
-      '&::before': {
-        borderWidth: '1em 1em 1em 0',
-        borderColor: `transparent ${theme.palette.grey[900]} transparent transparent`,
-      },
-    },
-    '&[x-placement*="left"] $arrowArrow': {
-      right: 0,
-      marginRight: '-0.9em',
-      height: '3em',
-      width: '1em',
-      '&::before': {
-        borderWidth: '1em 0 1em 1em',
-        borderColor: `transparent transparent transparent ${theme.palette.grey[900]}`,
       },
     },
   },
@@ -106,7 +75,6 @@ class InfoTooltip extends Component {
     const {
       classes,
       title,
-      placement = 'top',
     } = this.props;
     const { arrowRef, open } = this.state;
 
@@ -133,7 +101,7 @@ class InfoTooltip extends Component {
           onClose={this.onTooltipClose}
           open={open}
           classes={{ tooltip: classes.tooltip, popper: classes.arrowPopper }}
-          placement={placement}
+          placement="top"
         >
           <InfoOutline className={classes.icon} onClick={this.onTooltipOpen} />
         </Tooltip>
@@ -144,7 +112,6 @@ class InfoTooltip extends Component {
 
 InfoTooltip.propTypes = {
   title: PropTypes.string.isRequired,
-  placement: PropTypes.string,
 };
 
 export default withStyles(styles)(InfoTooltip);
