@@ -3,53 +3,19 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 
-import { withStyles, IconButton, Typography } from '@material-ui/core';
+import { IconButton, Typography } from '@material-ui/core';
 
 import { popTimelineRange, pushTimelineRange } from '../../actions';
-import Colors from '../../colors';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
-import ResizeHandler from '../ResizeHandler';
 
 import Media from './Media';
 import Timeline from '../Timeline';
 
-const styles = () => ({
-  window: {
-    background: 'linear-gradient(to bottom, #30373B 0%, #272D30 10%, #1D2225 100%)',
-    borderRadius: 8,
-    display: 'flex',
-    flexDirection: 'column',
-    margin: 18,
-  },
-  headerContext: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    display: 'flex',
-    padding: 12,
-  },
-  headerInfo: {
-    color: Colors.white,
-    fontSize: 18,
-    fontWeight: 500,
-    paddingLeft: 12,
-  },
-});
-
 class DriveView extends Component {
   constructor(props) {
     super(props);
-
-    this.state = {
-      windowWidth: window.innerWidth,
-    };
-
     this.close = this.close.bind(this);
-    this.onResize = this.onResize.bind(this);
-  }
-
-  onResize(windowWidth) {
-    this.setState({ windowWidth });
   }
 
   onBack(zoom, currentRoute) {
@@ -67,26 +33,21 @@ class DriveView extends Component {
   }
 
   render() {
-    const { classes, dongleId, zoom, routes, currentRoute } = this.props;
-    const { windowWidth } = this.state;
-    const viewerPadding = windowWidth < 768 ? 12 : 32;
+    const { dongleId, zoom, routes, currentRoute } = this.props;
 
-    const viewEndTime = dayjs(zoom.end).format('HH:mm');
-    const startTime = dayjs(zoom.start).format('MMM D @ HH:mm');
     const currentRouteBoundsSelected = currentRoute?.start_time_utc_millis === zoom.start && currentRoute?.end_time_utc_millis === zoom.end;
     const backButtonDisabled = !zoom.previousZoom && currentRouteBoundsSelected;
-    let headerText = `${startTime} - ${viewEndTime}`;
-    if (windowWidth >= 640) {
-      const startDay = dayjs(zoom.start).format('dddd');
-      headerText = `${startDay} ${headerText}`;
-    }
+
+    // FIXME: end time not always same day as start time
+    const startDay = dayjs(zoom.start).format('dddd');
+    const startTime = dayjs(zoom.start).format('MMM D @ HH:mm');
+    const endTime = dayjs(zoom.end).format('HH:mm');
 
     return (
       <div className="DriveView">
-        <ResizeHandler onResize={ this.onResize } />
-        <div className={classes.window}>
+        <div className="flex flex-col rounded-lg m-4 bg-[linear-gradient(to_bottom,#30373B_0%,#272D30_10%,#1D2225_100%)]">
           <div>
-            <div className={classes.headerContext}>
+            <div className="items-center justify-between flex p-3 gap-2">
               <IconButton
                 onClick={ () => this.onBack(zoom, currentRoute) }
                 aria-label="Go Back"
@@ -94,8 +55,9 @@ class DriveView extends Component {
               >
                 <ArrowBackBold />
               </IconButton>
-              <div className={ classes.headerInfo }>
-                { headerText }
+              <div className="text-white text-lg font-medium">
+                <span className="hidden sm:inline">{`${startDay} `}</span>
+                {`${startTime} - ${endTime}`}
               </div>
               <IconButton
                 onClick={ filterRegularClick(this.close) }
@@ -105,12 +67,12 @@ class DriveView extends Component {
                 <CloseBold />
               </IconButton>
             </div>
-            <Timeline className={classes.headerTimeline} thumbnailsVisible hasRuler />
+            <Timeline thumbnailsVisible hasRuler />
           </div>
-          <div style={{ padding: viewerPadding }}>
-            { (routes && routes.length === 0)
+          <div className="p-3 md:p-8">
+            {(routes && routes.length === 0)
               ? <Typography>Route does not exist.</Typography>
-              : <Media /> }
+              : <Media />}
           </div>
         </div>
       </div>
@@ -125,4 +87,4 @@ const stateToProps = Obstruction({
   currentRoute: 'currentRoute',
 });
 
-export default connect(stateToProps)(withStyles(styles)(DriveView));
+export default connect(stateToProps)(DriveView);
