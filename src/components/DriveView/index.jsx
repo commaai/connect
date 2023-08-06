@@ -82,7 +82,7 @@ class DriveView extends Component {
     }
 
     return (
-      <>
+      <div className='DriveView'>
         <ResizeHandler onResize={ this.onResize } />
         <div className={classes.window}>
           <div>
@@ -113,7 +113,7 @@ class DriveView extends Component {
               : <Media /> }
           </div>
         </div>
-      </>
+      </div>
     );
   }
 }
