@@ -1,7 +1,8 @@
 /* eslint-env jest */
 import { configureViewport, goto } from './utils';
 
-const ROOT_DEMO_URL = '/4cf7a6ad03080c90/1632948396703/1632949028503';
+const DEMO_DEVICE_URL = '/4cf7a6ad03080c90';
+const DEMO_ROUTE_URL = '/4cf7a6ad03080c90/1632948396703/1632949028503';
 const ZOOMED_DEMO_URL = '/4cf7a6ad03080c90/1632948397703/1632949027503';
 
 jest.setTimeout(60000);
@@ -12,7 +13,7 @@ describe('drive view', () => {
   });
 
   it('back button disabled when in route bounds', async () => {
-    await goto(ROOT_DEMO_URL);
+    await goto(DEMO_ROUTE_URL);
     await page.waitForSelector('.DriveView', { timeout: 10000 });
 
     const backButton = await page.$('.DriveView button[aria-label="Go Back"]');
@@ -34,11 +35,11 @@ describe('drive view', () => {
       backButton.click(),
     ]);
 
-    expect(page.url().endsWith(ROOT_DEMO_URL)).toBeTruthy();
+    expect(page.url().endsWith(DEMO_ROUTE_URL)).toBeTruthy();
   });
 
   it('close button navigates to drive list when clicked', async () => {
-    await goto(ROOT_DEMO_URL);
+    await goto(DEMO_ROUTE_URL);
     await page.waitForSelector('.DriveView', { timeout: 10000 });
 
     const closeButton = await page.$('.DriveView a[aria-label="Close"]');
@@ -50,6 +51,6 @@ describe('drive view', () => {
       closeButton.click(),
     ]);
 
-    expect(page.url().endsWith(`/${ROOT_DEMO_URL.split('/')[1]}`)).toBeTruthy();
+    expect(page.url().endsWith(DEMO_DEVICE_URL)).toBeTruthy();
   });
 });
