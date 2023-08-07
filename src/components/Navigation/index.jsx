@@ -865,7 +865,7 @@ class Navigation extends Component {
       'favorite',
       label,
     )
-      .then((resp) => {
+      .then(() => {
         this.updateFavoriteLocations();
         this.setState({
           savingAs: false,
@@ -887,7 +887,7 @@ class Navigation extends Component {
     const { searchSelect } = this.state;
     if (searchSelect.favoriteId) {
       this.setState({ savingAs: true });
-      NavigationApi.deleteLocationSave(dongleId, searchSelect.favoriteId).then((resp) => {
+      NavigationApi.deleteLocationSave(dongleId, searchSelect.favoriteId).then(() => {
         this.updateFavoriteLocations();
         this.setState({
           noFly: false,
@@ -940,7 +940,7 @@ class Navigation extends Component {
     const points = 128;
     const km = carLocation.accuracy / 1000;
 
-    const distanceX = km / (111.320 * Math.cos(carLocation.location[1] * Math.PI / 180));
+    const distanceX = km / (111.320 * Math.cos(carLocation.location[1] * (Math.PI / 180)));
     const distanceY = km / 110.574;
 
     const res = [];

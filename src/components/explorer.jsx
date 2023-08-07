@@ -4,7 +4,7 @@ import Obstruction from 'obstruction';
 import localforage from 'localforage';
 import { replace } from 'connected-react-router';
 
-import { withStyles, Button, CircularProgress, Divider, Grid, Modal, Paper, Typography } from '@material-ui/core';
+import { withStyles, Button, CircularProgress, Divider, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
 
 import { devices as Devices } from '@commaai/api';
@@ -170,16 +170,6 @@ class ExplorerApp extends Component {
     if (!this.state.headerRef) {
       this.setState({ headerRef: ref });
     }
-  }
-
-  renderLoading() {
-    return (
-      <Grid container alignItems="center" style={{ width: '100%', height: '100%' }}>
-        <Grid item align="center" xs={12}>
-          <CircularProgress size="10vh" style={{ color: '#525E66' }} />
-        </Grid>
-      </Grid>
-    );
   }
 
   render() {

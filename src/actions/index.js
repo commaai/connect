@@ -35,13 +35,12 @@ export function popTimelineRange(allowPathChange = true) {
     if (state.zoom.previous) {
       dispatch({
         type: Types.TIMELINE_POP_SELECTION,
-      })
+      });
 
       const { start, end } = state.zoom.previous;
       updateTimeline(state, dispatch, start, end, allowPathChange);
     }
   };
-
 }
 
 export function pushTimelineRange(start, end, allowPathChange = true) {
@@ -54,7 +53,7 @@ export function pushTimelineRange(start, end, allowPathChange = true) {
         end,
       });
     }
-    
+
     updateTimeline(state, dispatch, start, end, allowPathChange);
   };
 }

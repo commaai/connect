@@ -211,7 +211,7 @@ class ClipCreate extends Component {
                 onClick={ () => this.setState({ videoTypeOption: 'q' }) }
               >
                 <Typography className={classes.mediaOptionText}>
-                  {`Front ${windowWidth < 450 ? '(SD)': '(low-res)'}`}
+                  {`Front ${windowWidth < 450 ? '(SD)' : '(low-res)'}`}
                 </Typography>
               </div>
               <div

@@ -127,7 +127,7 @@ async function setCacheItem(store, key, expiry, data, version = undefined) {
 async function expireCacheItems(store) {
   const db = await getCacheDB();
   if (!db) {
-    return null;
+    return;
   }
 
   const transaction = db.transaction([store], 'readwrite');

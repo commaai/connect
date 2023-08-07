@@ -495,7 +495,7 @@ class PrimeManage extends Component {
               disabled={Boolean(this.state.cancelSuccess || this.state.canceling)}
             >
               {this.state.canceling
-                ? <CircularProgress size={19} style={{ color: Colors.white }}/>
+                ? <CircularProgress size={19} style={{ color: Colors.white }} />
                 : 'Cancel subscription'}
             </Button>
             <Button

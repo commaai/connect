@@ -468,15 +468,16 @@ class Media extends Component {
   }
 
   async onPublicToggle(ev) {
-    const is_public = ev.target.checked;
+    const isPublic = ev.target.checked;
     try {
-      const resp = await Drives.setRoutePublic(this.props.currentRoute.fullname, is_public);
+      const resp = await Drives.setRoutePublic(this.props.currentRoute.fullname, isPublic);
       if (resp && resp.fullname === this.props.currentRoute.fullname) {
         this.props.dispatch(updateRoute(this.props.currentRoute.fullname, { is_public: resp.is_public }));
-        if (resp.is_public !== is_public) {
+        if (resp.is_public !== isPublic) {
           return { error: 'unable to update' };
         }
       }
+      return null;
     } catch (err) {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'media_toggle_public' });
@@ -817,7 +818,7 @@ class Media extends Component {
           anchorEl={ dcamUploadInfo }
           className={ classes.dcameraUploadInfo }
         >
-          <Typography>make sure to enable the "Record and Upload Driver Camera" toggle</Typography>
+          <Typography>make sure to enable the &ldquo;Record and Upload Driver Camera&rdqou; toggle</Typography>
         </Popper>
       </>
     );

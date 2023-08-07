@@ -156,10 +156,10 @@ class DeviceSettingsModal extends Component {
   }
 
   handleAliasChange(e) {
-    this.setState({
+    this.setState((state, props) => ({
       deviceAlias: e.target.value,
-      hasSavedAlias: e.target.value === this.props.device.dongle_id ? this.state.hasSavedAlias : false,
-    });
+      hasSavedAlias: e.target.value === props.device.dongle_id ? state.hasSavedAlias : false,
+    }));
   }
 
   handleEmailChange(e) {
@@ -177,7 +177,7 @@ class DeviceSettingsModal extends Component {
   }
 
   async setDeviceAlias() {
-    const { dongle_id } = this.props.device;
+    const { dongle_id: dongleId } = this.props.device;
 
     if (this.state.loadingDeviceAlias) {
       return;
@@ -188,7 +188,7 @@ class DeviceSettingsModal extends Component {
       hasSavedAlias: false,
     });
     try {
-      const device = await Devices.setDeviceAlias(dongle_id, this.state.deviceAlias.trim());
+      const device = await Devices.setDeviceAlias(dongleId, this.state.deviceAlias.trim());
       this.props.dispatch(updateDevice(device));
       this.setState({
         loadingDeviceAlias: false,
@@ -279,7 +279,7 @@ class DeviceSettingsModal extends Component {
   render() {
     const { classes, device } = this.props;
     if (!device) {
-      return <></>;
+      return null;
     }
 
     return (
@@ -347,7 +347,7 @@ class DeviceSettingsModal extends Component {
                 && (
                 <div className={classes.wrapper}>
                   <IconButton variant="fab" onClick={this.setDeviceAlias}>
-                    { this.state.hasSavedAlias && <CheckIcon /> || <SaveIcon /> }
+                    { this.state.hasSavedAlias ? <CheckIcon /> : <SaveIcon /> }
                   </IconButton>
                   {this.state.loadingDeviceAlias && <CircularProgress size={48} className={classes.fabProgress} />}
                 </div>
@@ -368,7 +368,7 @@ class DeviceSettingsModal extends Component {
                 && (
                 <div className={classes.wrapper}>
                   <IconButton variant="fab" onClick={this.shareDevice}>
-                    { this.state.hasShared && <CheckIcon /> || <ShareIcon /> }
+                    { this.state.hasShared ? <CheckIcon /> : <ShareIcon /> }
                   </IconButton>
                   {this.state.loadingDeviceShare && <CircularProgress size={48} className={classes.fabProgress} />}
                 </div>

@@ -152,7 +152,7 @@ export function fetchUploadQueue(dongleId) {
       const segNum = urlParts[urlParts.length - 2];
       const datetime = urlParts[urlParts.length - 3];
       const dongle = urlParts[urlParts.length - 4];
-      const type = Object.entries(FILE_NAMES).find((e) => e[1] == filename)[0];
+      const type = Object.entries(FILE_NAMES).find((e) => e[1] === filename)[0];
       const fileName = `${dongle}|${datetime}--${segNum}/${type}`;
       const waitingWifi = Boolean(deviceOnCellular(device) && uploading.allow_cellular === false);
       uploadingFiles[fileName] = {
