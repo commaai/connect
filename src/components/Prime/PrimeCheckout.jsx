@@ -412,7 +412,8 @@ class PrimeCheckout extends Component {
         ) }
         <div style={ blockMargin }>
           <Typography className={ classes.learnMore }>
-            Learn more about comma prime from our <a target="_blank" href="https://comma.ai/connect#faq" rel="noreferrer">FAQ</a>
+            {'Learn more about comma prime from our '}
+            <a target="_blank" href="https://comma.ai/connect#faq" rel="noreferrer">FAQ</a>
           </Typography>
         </div>
         { error && (

@@ -14,6 +14,7 @@ import { ErrorOutline } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
 import { fetchFiles, fetchAthenaQueue, fetchUploadQueue } from '../../actions/files';
 import { fetchClipsDetails } from '../../actions/clips';
+import { cartesianProduct } from '../../utils/array';
 
 const FILE_TYPE_FRIENDLY = {
   qcameras: 'Road camera (low-res)',
@@ -249,19 +250,20 @@ class ClipUpload extends Component {
       notFound: 0,
       uploaded: 0,
     };
-    for (const seg of requiredSegments) {
-      for (const type of types) {
+
+    cartesianProduct(requiredSegments, types)
+      .map((seg, type) => {
         res.count += 1;
-        const log = files[`${seg}/${type}`];
-        if (log) {
-          res.requested += Boolean(log.requested || log.progress !== undefined || log.url || log.notFound);
-          res.uploading += Boolean(log.progress !== undefined);
-          res.paused += Boolean(log.paused);
-          res.uploaded += Boolean(log.url);
-          res.notFound += Boolean(log.notFound);
-        }
-      }
-    }
+        return files[`${seg}/${type}`];
+      })
+      .filter(Boolean)
+      .forEach((log) => {
+        res.requested += Boolean(log.requested || log.progress !== undefined || log.url || log.notFound);
+        res.uploading += Boolean(log.progress !== undefined);
+        res.paused += Boolean(log.paused);
+        res.uploaded += Boolean(log.url);
+        res.notFound += Boolean(log.notFound);
+      });
 
     return res;
   }
@@ -278,12 +280,12 @@ class ClipUpload extends Component {
       && requiredFileTypes && requiredFileTypes.length);
 
     if (requiredSegments && requiredFileTypes) {
-      for (const type of requiredFileTypes) {
+      requiredFileTypes.forEach((type) => {
         const state = this.getUploadStats([type]);
         if (state === null) {
           hasRequestedAll = false;
           hasUploadedAll = false;
-          continue;
+          return;
         }
 
         if (state.paused > 0 && state.uploading === state.paused && deviceOnCellular(this.props.device)) {
@@ -303,7 +305,7 @@ class ClipUpload extends Component {
         if (state.uploaded < state.count) {
           hasUploadedAll = false;
         }
-      }
+      });
     }
 
     this.setState({
@@ -339,10 +341,10 @@ class ClipUpload extends Component {
     }
 
     const deviceIsOffline = !deviceIsOnline(device);
-    const uploadingStates = [];
+    let uploadingStates = [];
     if (files && requiredSegments && requiredFileTypes) {
-      for (const segment of requiredSegments) {
-        for (const type of requiredFileTypes) {
+      uploadingStates = cartesianProduct(requiredSegments, requiredFileTypes)
+        .map((segment, type) => {
           let progress;
           const file = files[`${segment}/${type}`] || {};
           if (file.url) {
@@ -357,13 +359,12 @@ class ClipUpload extends Component {
             progress = 'requesting';
           }
 
-          uploadingStates.push({
+          return {
             segment,
             type,
             progress,
-          });
-        }
-      }
+          };
+        });
     }
 
     let statusTitle = 'Preparing export';

@@ -377,12 +377,12 @@ class Media extends Component {
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
       if (currentRoute.segment_start_times[i] < loop.startTime + loop.duration
         && currentRoute.segment_end_times[i] > loop.startTime) {
-        for (const type of types) {
+        types.forEach((type) => {
           const fileName = `${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`;
           if (!files[fileName]) {
             uploading[fileName] = { requested: true };
           }
-        }
+        });
       }
     }
     this.props.dispatch(updateFiles(uploading));
@@ -403,9 +403,9 @@ class Media extends Component {
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
       if (currentRoute.segment_start_times[i] < loop.startTime + loop.duration
         && currentRoute.segment_end_times[i] > loop.startTime) {
-        for (const type of types) {
+        for (let j = 0; j < types.length; j++) {
           count += 1;
-          const log = files[`${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`];
+          const log = files[`${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${types[j]}`];
           if (log) {
             uploaded += Boolean(log.url || log.notFound);
             uploading += Boolean(log.progress !== undefined);
@@ -444,12 +444,12 @@ class Media extends Component {
   downloadFile(file, type) {
     const { currentRoute } = this.props;
 
-    const event_parameters = {
+    const eventParameters = {
       type,
       route_start_time: currentRoute.start_time_utc_millis,
     };
-    attachRelTime(event_parameters, 'route_start_time', true, 'h');
-    this.props.dispatch(analyticsEvent('download_file', event_parameters));
+    attachRelTime(eventParameters, 'route_start_time', true, 'h');
+    this.props.dispatch(analyticsEvent('download_file', eventParameters));
 
     window.location.href = file.url;
   }
@@ -468,15 +468,16 @@ class Media extends Component {
   }
 
   async onPublicToggle(ev) {
-    const is_public = ev.target.checked;
+    const isPublic = ev.target.checked;
     try {
-      const resp = await Drives.setRoutePublic(this.props.currentRoute.fullname, is_public);
+      const resp = await Drives.setRoutePublic(this.props.currentRoute.fullname, isPublic);
       if (resp && resp.fullname === this.props.currentRoute.fullname) {
         this.props.dispatch(updateRoute(this.props.currentRoute.fullname, { is_public: resp.is_public }));
-        if (resp.is_public !== is_public) {
+        if (resp.is_public !== isPublic) {
           return { error: 'unable to update' };
         }
       }
+      return null;
     } catch (err) {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'media_toggle_public' });
@@ -488,11 +489,9 @@ class Media extends Component {
     try {
       const resp = await Drives.getPreservedRoutes(this.props.dongleId);
       if (resp && Array.isArray(resp) && this.props.currentRoute) {
-        for (const r of resp) {
-          if (this.props.currentRoute.fullname === r.fullname) {
-            this.setState({ routePreserved: true });
-            return;
-          }
+        if (resp.find((r) => r.fullname === this.props.currentRoute.fullname)) {
+          this.setState({ routePreserved: true });
+          return;
         }
         this.setState({ routePreserved: false });
       }
@@ -508,7 +507,7 @@ class Media extends Component {
       const resp = await Drives.setRoutePreserved(this.props.currentRoute.fullname, preserved);
       if (resp && resp.success) {
         this.setState({ routePreserved: preserved });
-        return;
+        return null;
       }
       this.fetchRoutePreserved();
       return { error: 'unable to update' };
@@ -817,7 +816,7 @@ class Media extends Component {
           anchorEl={ dcamUploadInfo }
           className={ classes.dcameraUploadInfo }
         >
-          <Typography>make sure to enable the "Record and Upload Driver Camera" toggle</Typography>
+          <Typography>make sure to enable the &ldquo;Record and Upload Driver Camera&rdqou; toggle</Typography>
         </Popper>
       </>
     );
