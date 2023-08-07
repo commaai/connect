@@ -41,10 +41,6 @@ export function toBool(item) {
   }
 }
 
-export function filterEvent(event) {
-  return (event.type === 'disengage' || event.type === 'disengage_steer');
-}
-
 export function formatDriveDuration(duration) {
   const hours = Math.floor((duration / (1000 * 60 * 60))) % 24;
   const minutes = Math.floor((duration / (1000 * 60))) % 60;
@@ -54,7 +50,7 @@ export function formatDriveDuration(duration) {
 export function timeFromNow(ts) {
   const dt = (Date.now() - ts) / 1000;
   if (dt > 3600 * 24 * 30) {
-    return dayjs(ts).format('MMM Do YYYY');
+    return dayjs(ts).format('MMM D YYYY');
   } else if (dt > 60) {
     return dayjs(ts).fromNow();
   } else {
@@ -75,6 +71,10 @@ export function deviceTypePretty(deviceType) {
   }
 }
 
+export function deviceNamePretty(device) {
+  return device.alias || deviceTypePretty(device.device_type);
+}
+
 export function deviceIsOnline(device) {
   if (!device || !device.last_athena_ping) {
     return false;
@@ -89,20 +89,14 @@ export function deviceOnCellular(device) {
   return device.network_metered;
 }
 
-export function isTouchDevice() {
-  return (('ontouchstart' in window)
-     || (navigator.maxTouchPoints > 0)
-     || (navigator.msMaxTouchPoints > 0));
-}
-
 export function pairErrorToMessage(err, sentryFingerprint) {
   let msg;
   if (err.message.indexOf('400') === 0) {
     msg = 'invalid request';
   } else if (err.message.indexOf('401') === 0) {
-    msg = 'could not decode token';
+    msg = 'could not decode token - make sure your comma device is connected to the internet';
   } else if (err.message.indexOf('403') === 0) {
-    msg = 'device paired with different owner';
+    msg = 'device paired with different owner - make sure you logged in with the correct account';
   } else if (err.message.indexOf('404') === 0) {
     msg = 'tried to pair invalid device';
   } else if (err.message.indexOf('417') === 0) {

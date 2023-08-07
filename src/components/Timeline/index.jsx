@@ -13,7 +13,7 @@ import Measure from 'react-measure';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { selectRange } from '../../actions';
+import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
 import { currentOffset, getCurrentRoute } from '../../timeline';
 import { seek, selectLoop } from '../../timeline/playback';
@@ -314,7 +314,7 @@ class Timeline extends Component {
       const startTime = startOffset + filter.start;
       const endTime = endOffset + filter.start;
 
-      dispatch(selectRange(startTime, endTime));
+      dispatch(pushTimelineRange(startTime, endTime));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }

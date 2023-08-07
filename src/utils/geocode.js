@@ -35,6 +35,83 @@ function getContextMap(context) {
   return map;
 }
 
+/**
+ * Shorten street suffixes like "Street" to "St".
+ * https://en.wikipedia.org/wiki/Street_or_road_name#Suffix_abbreviations
+ *
+ * Don't shorten:
+ * - Bridge
+ * - Embankment
+ * - Gardens
+ * - Gate
+ * - Grove
+ * - Hill
+ * - Mall
+ * - Row
+ * - Square
+ * - Terrace
+ * - Walk
+ * - Way
+ */
+const STREET_SUFFIXES = {
+  Avenue: 'Ave',
+  Boulevard: 'Blvd',
+  Circle: 'Cir',
+  Close: 'Cl',
+  Court: 'Ct',
+  Crescent: 'Cres',
+  Drive: 'Dr',
+  Expressway: 'Expy',
+  Highway: 'Hwy',
+  Lane: 'Ln',
+  Place: 'Pl',
+  Road: 'Rd',
+  Street: 'St',
+};
+
+const STREET_DIRECTIONS = {
+  North: 'N',
+  Northeast: 'NE',
+  East: 'E',
+  Southeast: 'SE',
+  South: 'S',
+  Southwest: 'SW',
+  West: 'W',
+  Northwest: 'NW',
+};
+
+// shorten suffixes like "Street" to "St"
+function shortenPlaceName(place) {
+  const parts = place.split(' ');
+  const newParts = [];
+
+  let last = parts.pop();
+
+  // Shorten direction, which can be at beginning or end of a street name
+  const first = parts.shift();
+  let direction = STREET_DIRECTIONS[first];
+  if (direction) {
+    parts.unshift(direction);
+  } else {
+    parts.unshift(first);
+
+    direction = STREET_DIRECTIONS[last];
+    if (direction) {
+      newParts.push(direction);
+      last = parts.pop();
+    }
+  }
+
+  // Shorten suffix
+  const suffix = STREET_SUFFIXES[last];
+  if (suffix) {
+    newParts.push(suffix);
+  }
+
+  parts.push(...newParts.reverse());
+  return parts.join(' ');
+}
+
 export function priorityGetContext(contexts) {
   const priority = ['place', 'locality', 'district'];
   return priority.flatMap((prio) => contexts.filter((ctx) => ctx.id.indexOf(prio) !== -1))[0];
@@ -74,10 +151,17 @@ export async function reverseLookup(coords, navFormat = false) {
 
         // e.g. Mapbox returns "Street", "Avenue", etc.
         const context = getContextMap(features[0].context);
-        // e.g. "State St", TODO: Street -> St, Avenue -> Ave, etc.
-        const place = features[0].text;
+        // e.g. "State St"
+        const place = shortenPlaceName(features[0].text);
         // e.g. "San Diego, CA 92101, United States"
-        const details = `${context.place}, ${context.region} ${context.postcode}, ${context.country}`;
+
+        let postcode;
+        if (context.country === 'United Kingdom') {
+          postcode = context.postcode;
+        } else {
+          postcode = `${context.region} ${context.postcode}`;
+        }
+        const details = `${context.place}, ${postcode}, ${context.country}`;
 
         return { place, details };
       }

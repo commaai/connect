@@ -9,7 +9,7 @@ import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
 
 import { billing as Billing } from '@commaai/api';
-import { deviceTypePretty } from '../../utils';
+import { deviceNamePretty, deviceTypePretty } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { ErrorOutline, InfoOutline } from '../../icons';
@@ -320,7 +320,7 @@ class PrimeManage extends Component {
     }
 
     const hasCancelAt = Boolean(hasPrimeSub && subscription.cancel_at && subscription.cancel_at <= subscription.next_charge_at);
-    const alias = device.alias || deviceTypePretty(device.device_type);
+    const alias = deviceNamePretty(device);
     const containerPadding = windowWidth > 520 ? 36 : 16;
     const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
 

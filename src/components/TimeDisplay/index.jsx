@@ -222,9 +222,9 @@ class TimeDisplay extends Component {
   }
 
   render() {
-    const { classes, zoom, desiredPlaySpeed, isThin } = this.props;
-    const { displayTime } = this.state;
-    const isPaused = desiredPlaySpeed === 0;
+    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin } = this.props;
+    const { displayTime, desiredPlaySpeed } = this.state;
+    const isPaused = videoPlaySpeed === 0;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
@@ -267,7 +267,7 @@ class TimeDisplay extends Component {
               <UpArrow className={classes.tinyArrowIcon} />
             </IconButton>
             <Typography variant="body2" align="center">
-              {this.state.desiredPlaySpeed}
+              {desiredPlaySpeed}
               ×
             </Typography>
             <IconButton
@@ -285,9 +285,9 @@ class TimeDisplay extends Component {
             onClick={this.togglePause}
             aria-label={isPaused ? 'Unpause' : 'Pause'}
           >
-            { isPaused
-              ? (<PlayArrow className={`${classes.icon}`} />)
-              : (<Pause className={`${classes.icon}`} />)}
+            {isPaused
+              ? (<PlayArrow className={classes.icon} />)
+              : (<Pause className={classes.icon} />)}
           </IconButton>
         </div>
       </div>

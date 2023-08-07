@@ -632,7 +632,7 @@ class Media extends Component {
     const { downloadMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
-      return;
+      return null;
     }
 
     let fcam = {}; let ecam = {}; let dcam = {}; let

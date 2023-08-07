@@ -54,6 +54,21 @@ export function sendEvent(event) {
   });
 }
 
+function sendInitData() {
+  sendEvent({
+    event: 'init',
+
+    webFeatures: {
+      barcodeDetection: 'BarcodeDetector' in window,
+      bluetooth: 'bluetooth' in navigator,
+      gamepad: 'getGamepads' in navigator,
+      networkInformation: 'connection' in navigator,
+      serviceWorkers: 'serviceWorker' in navigator,
+      usb: 'usb' in navigator,
+    },
+  });
+}
+
 function sendToAnalytics(metric) {
   sendEvent({
     event: 'web_vitals',
@@ -66,6 +81,7 @@ onFCP(sendToAnalytics);
 onFID(sendToAnalytics);
 onLCP(sendToAnalytics);
 onTTFB(sendToAnalytics);
+sendInitData();
 
 // Report all available metrics whenever the page is backgrounded or unloaded.
 window.addEventListener('visibilitychange', () => {

@@ -8,7 +8,6 @@ import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuIt
   from '@material-ui/core';
 import { Search, Clear, Refresh } from '@material-ui/icons';
 import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
 
 import { athena as Athena, devices as Devices, navigation as NavigationApi } from '@commaai/api';
 import { primeNav, analyticsEvent } from '../../actions';
@@ -273,7 +272,6 @@ const initialState = {
   favoriteLocations: [],
   geoLocateCoords: null,
   search: null,
-  route: null,
   searchSelect: null,
   searchLooking: false,
   noFly: false,
@@ -721,7 +719,6 @@ class Navigation extends Component {
     this.setState({
       noFly: false,
       search: null,
-      route: null,
       searchSelect: null,
       searchLooking: false,
       savingAs: false,
@@ -732,7 +729,6 @@ class Navigation extends Component {
   clearSearchSelect() {
     this.setState({
       noFly: false,
-      route: null,
       searchSelect: null,
       searchLooking: false,
       savingAs: false,
@@ -935,7 +931,6 @@ class Navigation extends Component {
         this.updateFavoriteLocations();
         this.setState({
           noFly: false,
-          route: null,
           searchSelect: null,
           searchLooking: false,
           savingAs: false,
@@ -1430,7 +1425,8 @@ class Navigation extends Component {
           </div>
         </div>
         <Typography className={ classes.searchSelectBoxDetails }>
-          { Utils.formatSearchDetails(searchSelect) }
+          {isCar && `${Utils.formatSearchName(searchSelect)}, `}
+          {Utils.formatSearchDetails(searchSelect)}
         </Typography>
       </div>
     );

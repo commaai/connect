@@ -15,7 +15,7 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import FileDownloadIcon from '@material-ui/icons/FileDownload';
 import ShareIcon from '@material-ui/icons/Share';
 
-import { selectRange } from '../../actions';
+import { pushTimelineRange } from '../../actions';
 import { clipsDelete, clipsUpdateIsPublic } from '../../actions/clips';
 import Colors from '../../colors';
 import { Video360Icon } from '../../icons';
@@ -431,7 +431,7 @@ class ClipDone extends Component {
                 <Button
                   className={ classes.button }
                   href={ `/${dongleId}/${clips.start_time}/${clips.end_time}` }
-                  onClick={ filterRegularClick(() => this.props.dispatch(selectRange(clips.start_time, clips.end_time))) }
+                  onClick={ filterRegularClick(() => this.props.dispatch(pushTimelineRange(clips.start_time, clips.end_time))) }
                 >
                   View route
                   <CropOriginalIcon />

@@ -3,9 +3,9 @@ version: '3.2'
 services:
   connect:
     image: connect
-    build: .
+    build: ..
     ports:
-      - "3000:80"
+      - "80:80"
     environment:
       COMMA_URL_ROOT: https://api.comma.ai/
       ATHENA_URL_ROOT: https://athena.comma.ai/

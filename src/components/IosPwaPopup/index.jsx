@@ -9,7 +9,6 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 
 import Colors from '../../colors';
 import { IosShareIcon } from '../../icons';
-import ResizeHandler from '../ResizeHandler';
 
 const styles = () => ({
   box: {
@@ -54,7 +53,6 @@ class IosPwaPopup extends Component {
     super(props);
 
     this.state = {
-      windowWidth: window.innerWidth,
       show: false,
     };
 
@@ -112,33 +110,28 @@ class IosPwaPopup extends Component {
 
   render() {
     const { classes } = this.props;
-
-    if (!this.state.show) {
+    const { show } = this.state;
+    if (!show) {
       return null;
     }
 
-    const boxWidth = this.state.windowWidth <= 400 ? 'auto' : 'fit-content';
-
     return (
-      <>
-        <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
-        <div className="fixed bottom-3 left-3 right-3 z-20">
-          <div className={ classes.box } style={{ width: boxWidth }}>
-            <Clear className={ classes.hide } onClick={ this.hide } />
-            <Typography className={ classes.title }>Add to home screen</Typography>
-            <Typography>
-              Install this webapp on your home screen:
-              {' '}
-              <br />
-              tap
-              {' '}
-              <img className={classes.icon} src={IosShareIcon} width={35 / 2.2} height={44 / 2.2} />
-              {' '}
-              and then &lsquo;Add to Home Screen&rsquo;
-            </Typography>
-          </div>
+      <div className="fixed bottom-3 left-3 right-3 z-20">
+        <div className={`${classes.box} xs:w-fit`}>
+          <Clear className={ classes.hide } onClick={ this.hide } />
+          <Typography className={ classes.title }>Add to home screen</Typography>
+          <Typography>
+            Install this webapp on your home screen:
+            {' '}
+            <br />
+            tap
+            {' '}
+            <img className={classes.icon} src={IosShareIcon} width={35 / 2.2} height={44 / 2.2} alt="share" />
+            {' '}
+            and then &lsquo;Add to Home Screen&rsquo;
+          </Typography>
         </div>
-      </>
+      </div>
     );
   }
 }

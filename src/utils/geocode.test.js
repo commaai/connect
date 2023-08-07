@@ -20,11 +20,26 @@ describe('reverseLookup', () => {
     expect(result).toBeNull();
   });
 
-  it('should return market street', async () => {
-    const result = await reverseLookup([-117.12547, 32.71137], true);
-    expect(result).toEqual({
+  it('should return place names', async () => {
+    expect(await reverseLookup([-117.12547, 32.71137], true)).toEqual({
       details: 'San Diego, CA 92102, United States',
-      place: 'Market Street',
+      place: 'Market St',
+    });
+    expect(await reverseLookup([-117.166409, 32.731369], true)).toEqual({
+      details: 'San Diego, CA 92101, United States',
+      place: 'W Laurel St',
+    });
+    expect(await reverseLookup([-77.036551, 38.898104], true)).toEqual({
+      details: 'Washington, DC 20500, United States',
+      place: 'White House Lawn',
+    });
+    expect(await reverseLookup([-0.106640, 51.514209], true)).toEqual({
+      details: 'London, EC4A 2BJ, United Kingdom',
+      place: 'Fleet St',
+    });
+    expect(await reverseLookup([-2.076843, 51.894799], true)).toEqual({
+      details: 'Cheltenham, GL50 1TX, United Kingdom',
+      place: 'Montpellier Dr',
     });
   });
 });

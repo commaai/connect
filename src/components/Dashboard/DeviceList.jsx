@@ -11,7 +11,7 @@ import { devices as Devices } from '@commaai/api';
 
 import { updateDevices } from '../../actions';
 import Colors from '../../colors';
-import { deviceTypePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
+import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
@@ -125,7 +125,6 @@ class DeviceList extends Component {
   renderDevice(device) {
     const { classes, handleDeviceSelected, profile, selectedDevice } = this.props;
     const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
-    const alias = device.alias || deviceTypePretty(device.device_type);
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
     return (
       <a
@@ -138,7 +137,7 @@ class DeviceList extends Component {
           <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
           <div className={ classes.deviceName }>
             <Typography className={classes.deviceAlias}>
-              { alias }
+              {deviceNamePretty(device)}
             </Typography>
             <Typography variant="caption" className={classes.deviceId}>
               { device.dongle_id }
