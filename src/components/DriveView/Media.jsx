@@ -444,12 +444,12 @@ class Media extends Component {
   downloadFile(file, type) {
     const { currentRoute } = this.props;
 
-    const event_parameters = {
+    const eventParameters = {
       type,
       route_start_time: currentRoute.start_time_utc_millis,
     };
-    attachRelTime(event_parameters, 'route_start_time', true, 'h');
-    this.props.dispatch(analyticsEvent('download_file', event_parameters));
+    attachRelTime(eventParameters, 'route_start_time', true, 'h');
+    this.props.dispatch(analyticsEvent('download_file', eventParameters));
 
     window.location.href = file.url;
   }
@@ -509,7 +509,7 @@ class Media extends Component {
       const resp = await Drives.setRoutePreserved(this.props.currentRoute.fullname, preserved);
       if (resp && resp.success) {
         this.setState({ routePreserved: preserved });
-        return;
+        return null;
       }
       this.fetchRoutePreserved();
       return { error: 'unable to update' };

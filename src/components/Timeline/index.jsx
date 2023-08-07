@@ -285,7 +285,6 @@ class Timeline extends Component {
   }
 
   handlePointerUp(ev) {
-
     // prevent preventDefault for back(3) and forward(4) mouse buttons
     if (ev.button !== 3 && ev.button !== 4) {
       ev.preventDefault();

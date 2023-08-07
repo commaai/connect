@@ -62,7 +62,8 @@ async function getCacheDB() {
         } catch (err) {
           console.error(err);
           Sentry.captureException(err, { fingerprint: 'cached_delete_obj_store' });
-          return resolve(null);
+          resolve(null);
+          return;
         }
       }
 
