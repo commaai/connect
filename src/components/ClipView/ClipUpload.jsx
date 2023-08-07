@@ -14,6 +14,7 @@ import { ErrorOutline } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
 import { fetchFiles, fetchAthenaQueue, fetchUploadQueue } from '../../actions/files';
 import { fetchClipsDetails } from '../../actions/clips';
+import { cartesianProduct } from '../../utils/array';
 
 const FILE_TYPE_FRIENDLY = {
   qcameras: 'Road camera (low-res)',
@@ -249,19 +250,20 @@ class ClipUpload extends Component {
       notFound: 0,
       uploaded: 0,
     };
-    for (const seg of requiredSegments) {
-      for (const type of types) {
+
+    cartesianProduct(requiredSegments, types)
+      .map((seg, type) => {
         res.count += 1;
-        const log = files[`${seg}/${type}`];
-        if (log) {
-          res.requested += Boolean(log.requested || log.progress !== undefined || log.url || log.notFound);
-          res.uploading += Boolean(log.progress !== undefined);
-          res.paused += Boolean(log.paused);
-          res.uploaded += Boolean(log.url);
-          res.notFound += Boolean(log.notFound);
-        }
-      }
-    }
+        return files[`${seg}/${type}`];
+      })
+      .filter(Boolean)
+      .forEach((log) => {
+        res.requested += Boolean(log.requested || log.progress !== undefined || log.url || log.notFound);
+        res.uploading += Boolean(log.progress !== undefined);
+        res.paused += Boolean(log.paused);
+        res.uploaded += Boolean(log.url);
+        res.notFound += Boolean(log.notFound);
+      });
 
     return res;
   }

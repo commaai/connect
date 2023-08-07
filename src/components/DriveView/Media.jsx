@@ -377,12 +377,12 @@ class Media extends Component {
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
       if (currentRoute.segment_start_times[i] < loop.startTime + loop.duration
         && currentRoute.segment_end_times[i] > loop.startTime) {
-        for (const type of types) {
+        types.forEach((type) => {
           const fileName = `${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`;
           if (!files[fileName]) {
             uploading[fileName] = { requested: true };
           }
-        }
+        });
       }
     }
     this.props.dispatch(updateFiles(uploading));
@@ -403,9 +403,9 @@ class Media extends Component {
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
       if (currentRoute.segment_start_times[i] < loop.startTime + loop.duration
         && currentRoute.segment_end_times[i] > loop.startTime) {
-        for (const type of types) {
+        for (let j = 0; j < types.length; j++) {
           count += 1;
-          const log = files[`${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`];
+          const log = files[`${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${types[j]}`];
           if (log) {
             uploaded += Boolean(log.url || log.notFound);
             uploading += Boolean(log.progress !== undefined);
@@ -489,11 +489,9 @@ class Media extends Component {
     try {
       const resp = await Drives.getPreservedRoutes(this.props.dongleId);
       if (resp && Array.isArray(resp) && this.props.currentRoute) {
-        for (const r of resp) {
-          if (this.props.currentRoute.fullname === r.fullname) {
-            this.setState({ routePreserved: true });
-            return;
-          }
+        if (resp.find((r) => r.fullname === this.props.currentRoute.fullname)) {
+          this.setState({ routePreserved: true });
+          return;
         }
         this.setState({ routePreserved: false });
       }
