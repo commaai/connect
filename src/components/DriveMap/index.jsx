@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';
 
-import Map, { LinearInterpolator } from 'react-map-gl';
+import Map from 'react-map-gl';
 
 import { MAPBOX_TOKEN } from '../../utils/geocode';
 import { currentOffset } from '../../timeline';
@@ -129,8 +129,10 @@ class DriveMap extends Component {
       latitude: pos[1],
     };
     if (this.shouldFlyTo) {
-      viewport.transitionDuration = 200;
-      viewport.transitionInterpolator = new LinearInterpolator();
+      this.initMap.flyTo({
+        center: [viewport.longitude, viewport.latitude],
+        maxDuration: 200,
+      });
       this.shouldFlyTo = false;
     }
 
@@ -286,7 +288,7 @@ class DriveMap extends Component {
   render() {
     const { viewport } = this.state;
     return (
-      <div ref={this.onRef} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
+      <div ref={this.onRef} className="h-full cursor-default w-full min-h-[300px]">
         <Map
           width="100%"
           height="100%"
