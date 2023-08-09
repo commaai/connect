@@ -3,7 +3,8 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import debounce from 'debounce';
-import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
+import Map, { GeolocateControl, Marker, Source, Layer } from 'react-map-gl';
+import { WebMercatorViewport } from 'viewport-mercator-project';
 import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress, Popper }
   from '@material-ui/core';
 import { Search, Clear, Refresh } from '@material-ui/icons';
@@ -11,13 +12,14 @@ import dayjs from 'dayjs';
 
 import { athena as Athena, devices as Devices, navigation as NavigationApi } from '@commaai/api';
 import { primeNav, analyticsEvent } from '../../actions';
-import { forwardLookup, getDirections, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
+import { DEFAULT_LOCATION, forwardLookup, getDirections, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
 import Colors from '../../colors';
 import * as Demo from '../../demo';
 import { PinCarIcon, PinMarkerIcon, PinHomeIcon, PinWorkIcon, PinPinnedIcon } from '../../icons';
 import { timeFromNow } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
+import CustomOverlay from './CustomOverlay';
 import * as Utils from './utils';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
@@ -282,6 +284,61 @@ const initialState = {
   showPrimeAd: true,
 };
 
+const getFavoriteLabelIcon = (label) => {
+  switch (label) {
+    case 'home':
+      return PinHomeIcon;
+    case 'work':
+      return PinWorkIcon;
+    default:
+      return PinPinnedIcon;
+  }
+};
+
+const itemLoc = (item) => {
+  if (item.access && item.access.length) {
+    return item.access[0];
+  }
+  return item.position;
+};
+
+const itemLngLat = (item, bounds = false) => {
+  const pos = itemLoc(item);
+  const res = [pos.lng, pos.lat];
+  return bounds ? [res, res] : res;
+};
+
+const carLocationCircle = (carLocation) => {
+  const points = 128;
+  const km = carLocation.accuracy / 1000;
+
+  const distanceX = km / (111.320 * Math.cos(carLocation.location[1] * (Math.PI / 180)));
+  const distanceY = km / 110.574;
+
+  const res = [];
+  let theta; let x; let
+    y;
+  for (let i = 0; i < points; i++) {
+    theta = (i / points) * (2 * Math.PI);
+    x = distanceX * Math.cos(theta);
+    y = distanceY * Math.sin(theta);
+
+    res.push([carLocation.location[0] + x, carLocation.location[1] + y]);
+  }
+  res.push(res[0]);
+
+  return {
+    type: 'FeatureCollection',
+    features: [{
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [res],
+      },
+    }],
+  };
+};
+
 class Navigation extends Component {
   constructor(props) {
     super(props);
@@ -289,8 +346,7 @@ class Navigation extends Component {
     this.state = {
       ...initialState,
       viewport: {
-        longitude: -117.20,
-        latitude: 32.73,
+        ...DEFAULT_LOCATION,
         zoom: 5,
       },
       mapError: null,
@@ -323,20 +379,16 @@ class Navigation extends Component {
     this.focus = this.focus.bind(this);
     this.updateDevice = this.updateDevice.bind(this);
     this.updateFavoriteLocations = this.updateFavoriteLocations.bind(this);
-    this.getFavoriteLabelIcon = this.getFavoriteLabelIcon.bind(this);
     this.navigate = this.navigate.bind(this);
     this.onResize = this.onResize.bind(this);
     this.toggleCarPinTooltip = this.toggleCarPinTooltip.bind(this);
     this.clearSearch = this.clearSearch.bind(this);
-    this.itemLoc = this.itemLoc.bind(this);
-    this.itemLngLat = this.itemLngLat.bind(this);
     this.saveSearchAs = this.saveSearchAs.bind(this);
     this.deleteFavorite = this.deleteFavorite.bind(this);
     this.viewportChange = this.viewportChange.bind(this);
     this.getDeviceLastLocation = this.getDeviceLastLocation.bind(this);
     this.getDeviceNetworkLocation = this.getDeviceNetworkLocation.bind(this);
     this.getCarLocation = this.getCarLocation.bind(this);
-    this.carLocationCircle = this.carLocationCircle.bind(this);
     this.clearSearchSelect = this.clearSearchSelect.bind(this);
     this.onContainerRef = this.onContainerRef.bind(this);
   }
@@ -494,7 +546,7 @@ class Navigation extends Component {
           if (loc.save_type === 'favorite') {
             favorites[loc.id] = {
               ...loc,
-              icon: this.getFavoriteLabelIcon(loc.label),
+              icon: getFavoriteLabelIcon(loc.label),
             };
           }
         });
@@ -504,17 +556,6 @@ class Navigation extends Component {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'nav_fetch_locationsdata' });
     });
-  }
-
-  getFavoriteLabelIcon(label) {
-    switch (label) {
-      case 'home':
-        return PinHomeIcon;
-      case 'work':
-        return PinWorkIcon;
-      default:
-        return PinPinnedIcon;
-    }
   }
 
   onGeolocate(pos) {
@@ -593,7 +634,7 @@ class Navigation extends Component {
       savingAs: false,
       savedAs: false,
     });
-    const endLocation = this.itemLngLat(item);
+    const endLocation = itemLngLat(item);
     const carLoc = this.getCarLocation();
     const startLocation = (carLoc ? carLoc.location : null) || this.state.geoLocateCoords || null;
 
@@ -714,9 +755,9 @@ class Navigation extends Component {
       bounds.push([carLocation.location, carLocation.location]);
     }
     if (searchSelect) {
-      bounds.push(this.itemLngLat(searchSelect, true));
+      bounds.push(itemLngLat(searchSelect, true));
     } else if (search) {
-      search.forEach((item) => bounds.push(this.itemLngLat(item, true)));
+      search.forEach((item) => bounds.push(itemLngLat(item, true)));
     }
 
     if (bounds.length) {
@@ -777,19 +818,6 @@ class Navigation extends Component {
     }
   }
 
-  itemLoc(item) {
-    if (item.access && item.access.length) {
-      return item.access[0];
-    }
-    return item.position;
-  }
-
-  itemLngLat(item, bounds = false) {
-    const pos = this.itemLoc(item);
-    const res = [pos.lng, pos.lat];
-    return bounds ? [res, res] : res;
-  }
-
   navigate() {
     const { dongleId, hasNav } = this.props;
     const { searchSelect } = this.state;
@@ -808,7 +836,7 @@ class Navigation extends Component {
       success: false,
     } });
 
-    const pos = this.itemLoc(searchSelect);
+    const pos = itemLoc(searchSelect);
     NavigationApi.setDestination(
       dongleId,
       pos.lat,
@@ -854,7 +882,7 @@ class Navigation extends Component {
     const { searchSelect } = this.state;
     this.setState({ saveAsMenu: null, savingAs: true });
 
-    const pos = this.itemLoc(searchSelect);
+    const pos = itemLoc(searchSelect);
     const label = as === 'pin' ? undefined : as;
     NavigationApi.putLocationSave(
       dongleId,
@@ -872,7 +900,7 @@ class Navigation extends Component {
           savedAs: true,
           searchSelect: {
             ...searchSelect,
-            favoriteIcon: this.getFavoriteLabelIcon(label),
+            favoriteIcon: getFavoriteLabelIcon(label),
           },
         });
       }).catch((err) => {
@@ -936,37 +964,6 @@ class Navigation extends Component {
     }
   }
 
-  carLocationCircle(carLocation) {
-    const points = 128;
-    const km = carLocation.accuracy / 1000;
-
-    const distanceX = km / (111.320 * Math.cos(carLocation.location[1] * (Math.PI / 180)));
-    const distanceY = km / 110.574;
-
-    const res = [];
-    let theta; let x; let
-      y;
-    for (let i = 0; i < points; i++) {
-      theta = (i / points) * (2 * Math.PI);
-      x = distanceX * Math.cos(theta);
-      y = distanceY * Math.sin(theta);
-
-      res.push([carLocation.location[0] + x, carLocation.location[1] + y]);
-    }
-    res.push(res[0]);
-
-    return {
-      type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        geometry: {
-          type: 'Polygon',
-          coordinates: [res],
-        },
-      }],
-    };
-  }
-
   onContainerRef(el) {
     this.mapContainerRef.current = el;
     if (el) {
@@ -1007,7 +1004,7 @@ class Navigation extends Component {
             <Typography>{mapError}</Typography>
           </div>
           )}
-        <ReactMapGL
+        <Map
           latitude={viewport.latitude}
           longitude={viewport.longitude}
           zoom={viewport.zoom}
@@ -1020,7 +1017,7 @@ class Navigation extends Component {
           height="100%"
           onNativeClick={this.focus}
           maxPitch={0}
-          mapboxApiAccessToken={MAPBOX_TOKEN}
+          mapboxAccessToken={MAPBOX_TOKEN}
           attributionControl={false}
           dragRotate={false}
           onError={(err) => this.setState({ mapError: err.error.message })}
@@ -1098,7 +1095,7 @@ class Navigation extends Component {
             )}
           { carLocation && Boolean(carLocation.accuracy)
             && (
-            <Source type="geojson" data={ this.carLocationCircle(carLocation) }>
+            <Source type="geojson" data={ carLocationCircle(carLocation) }>
               <Layer
                 id="polygon"
                 type="fill"
@@ -1110,8 +1107,8 @@ class Navigation extends Component {
             )}
           { search && !searchSelect && search.map((item) => (
             <Marker
-              latitude={ this.itemLoc(item).lat }
-              longitude={ this.itemLoc(item).lng }
+              latitude={ itemLoc(item).lat }
+              longitude={ itemLoc(item).lng }
               key={ item.id }
               offsetLeft={ -10 }
               offsetTop={ -30 }
@@ -1129,7 +1126,7 @@ class Navigation extends Component {
           { searchSelect && this.renderSearchSelectMarker(searchSelect) }
           { hasNav
             && (
-            <HTMLOverlay
+            <CustomOverlay
               redraw={ this.renderOverlay }
               style={{ ...cardStyle, top: 10 }}
               captureScroll
@@ -1141,7 +1138,7 @@ class Navigation extends Component {
             )}
           { searchSelect
             && (
-            <HTMLOverlay
+            <CustomOverlay
               redraw={ this.renderSearchOverlay }
               captureScroll
               captureDrag
@@ -1153,7 +1150,7 @@ class Navigation extends Component {
             )}
           { search && searchLooking && !searchSelect
             && (
-            <HTMLOverlay
+            <CustomOverlay
               redraw={ this.renderResearchArea }
               captureScroll
               captureDrag
@@ -1165,7 +1162,7 @@ class Navigation extends Component {
             )}
           { showPrimeAd && !hasNav && !device.prime && device.is_owner
             && (
-            <HTMLOverlay
+            <CustomOverlay
               redraw={ this.renderPrimeAd }
               captureScroll
               captureDrag
@@ -1175,7 +1172,7 @@ class Navigation extends Component {
               style={{ ...cardStyle, top: 10, left: windowWidth < 600 ? 10 : 'auto', right: 10 }}
             />
             )}
-        </ReactMapGL>
+        </Map>
       </div>
     );
   }
@@ -1188,7 +1185,7 @@ class Navigation extends Component {
     if (searchSelect.resultType === 'car') {
       [lng, lat] = this.getCarLocation().location;
     } else {
-      ({ lat, lng } = this.itemLoc(searchSelect));
+      ({ lat, lng } = itemLoc(searchSelect));
     }
 
     const Icon = searchSelect.favoriteIcon || PinMarkerIcon;
@@ -1229,17 +1226,19 @@ class Navigation extends Component {
             onFocus: this.onFocus,
             onBlur: this.onSearchBlur,
             classes: { root: classes.overlayTextfield },
-            endAdornment: <>
-              { this.searchInputRef.current && this.searchInputRef.current.value
-                && (
+            endAdornment: (
+              <>
+                { this.searchInputRef.current && this.searchInputRef.current.value
+                  && (
+                  <InputAdornment position="end">
+                    <Clear className={ classes.overlayClearButton } onClick={ this.clearSearch } />
+                  </InputAdornment>
+                  )}
                 <InputAdornment position="end">
-                  <Clear className={ classes.overlayClearButton } onClick={ this.clearSearch } />
+                  <Search className={ classes.overlaySearchButton } onClick={ this.onSearchBlur } />
                 </InputAdornment>
-                )}
-              <InputAdornment position="end">
-                <Search className={ classes.overlaySearchButton } onClick={ this.onSearchBlur } />
-              </InputAdornment>
-            </>,
+              </>
+            ),
           }}
         />
         { search && !searchSelect && !searchLooking && (
@@ -1255,7 +1254,11 @@ class Navigation extends Component {
             { search.length === 0
               && <Typography className={ classes.overlaySearchNoResults }>no search results</Typography> }
             { search.map((item) => (
-              <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item, 'list') }>
+              <div
+                key={ item.id }
+                className={ classes.overlaySearchItem }
+                onClick={ () => this.onSearchSelect(item, 'list') }
+              >
                 <Typography>
                   { Utils.formatSearchName(item) }
                   <span className={ classes.overlaySearchDetails }>
