@@ -423,13 +423,8 @@ export function fetchDriveCoords(route) {
     }
 
     // loaded?
-    for (const r of state.routes) {
-      if (r.fullname === route.fullname) {
-        if (r.driveCoords) {
-          return;
-        }
-        break;
-      }
+    if (state.routes.find((r) => r.fullname === route.fullname && r.driveCoords)) {
+      return;
     }
 
     // already requesting
