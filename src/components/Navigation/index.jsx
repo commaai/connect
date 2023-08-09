@@ -11,7 +11,7 @@ import dayjs from 'dayjs';
 
 import { athena as Athena, devices as Devices, navigation as NavigationApi } from '@commaai/api';
 import { primeNav, analyticsEvent } from '../../actions';
-import { DEFAULT_LOCATION, forwardLookup, getDirections, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
+import { DEFAULT_LOCATION, forwardLookup, getDirections, MAPBOX_STYLE, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
 import Colors from '../../colors';
 import * as Demo from '../../demo';
 import { PinCarIcon, PinMarkerIcon, PinHomeIcon, PinWorkIcon, PinPinnedIcon } from '../../icons';
@@ -19,8 +19,6 @@ import { timeFromNow } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import * as Utils from './utils';
-
-const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 
 const styles = () => ({
   noWrap: {
@@ -1014,7 +1012,7 @@ class Navigation extends Component {
           pitch={viewport.pitch}
           onViewportChange={this.viewportChange}
           onContextMenu={null}
-          mapStyle={MAP_STYLE}
+          mapStyle={MAPBOX_STYLE}
           width="100%"
           height="100%"
           onNativeClick={this.focus}
