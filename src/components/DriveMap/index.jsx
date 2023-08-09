@@ -7,16 +7,15 @@ import Map from 'react-map-gl';
 import { fetchDriveCoords } from '../../actions/cached';
 import { currentOffset } from '../../timeline';
 import { useAnimationFrame } from '../../utils/animation';
-import { MAPBOX_TOKEN } from '../../utils/geocode';
+import { DEFAULT_LOCATION, MAPBOX_TOKEN } from '../../utils/geocode';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 const INTERACTION_TIMEOUT = 5000;
 
 const DriveMap = ({ currentRoute, dispatch, startTime }) => {
   const [viewState, setViewState] = useState({
-    latitude: 37.7577,
-    longitude: -122.4376,
-    zoom: 15,
+    ...DEFAULT_LOCATION,
+    zoom: 13,
   });
   const [driveCoordsRange, setDriveCoordsRange] = useState(null);
 
