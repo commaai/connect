@@ -15,7 +15,7 @@ const INTERACTION_TIMEOUT = 5000;
 const DriveMap = ({ currentRoute, dispatch, startTime }) => {
   const [viewState, setViewState] = useState({
     ...DEFAULT_LOCATION,
-    zoom: 13,
+    zoom: 15,
   });
   const [driveCoordsRange, setDriveCoordsRange] = useState(null);
 
