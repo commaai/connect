@@ -11,7 +11,7 @@ import dayjs from 'dayjs';
 
 import { athena as Athena, devices as Devices, navigation as NavigationApi } from '@commaai/api';
 import { primeNav, analyticsEvent } from '../../actions';
-import { forwardLookup, getDirections, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
+import { DEFAULT_LOCATION, forwardLookup, getDirections, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
 import Colors from '../../colors';
 import * as Demo from '../../demo';
 import { PinCarIcon, PinMarkerIcon, PinHomeIcon, PinWorkIcon, PinPinnedIcon } from '../../icons';
@@ -289,8 +289,7 @@ class Navigation extends Component {
     this.state = {
       ...initialState,
       viewport: {
-        longitude: -117.20,
-        latitude: 32.73,
+        ...DEFAULT_LOCATION,
         zoom: 5,
       },
       mapError: null,
