@@ -9,7 +9,7 @@ import { currentOffset } from '../../timeline';
 import { fetchDriveCoords } from '../../actions/cached';
 
 const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
-// const INTERACTION_TIMEOUT = 5000;
+const INTERACTION_TIMEOUT = 5000;
 
 const useAnimationFrame = (handler) => {
   const frame = useRef(0);
@@ -25,7 +25,7 @@ const useAnimationFrame = (handler) => {
   }, [animate]);
 };
 
-const DriveMap = ({ currentRoute, dispatch/* , startTime */ }) => {
+const DriveMap = ({ currentRoute, dispatch, startTime }) => {
   const [viewState, setViewState] = useState({
     latitude: 37.7577,
     longitude: -122.4376,
@@ -33,11 +33,11 @@ const DriveMap = ({ currentRoute, dispatch/* , startTime */ }) => {
   });
   const [driveCoordsRange, setDriveCoordsRange] = useState(null);
 
-  // const [shouldFlyTo, setShouldFlyTo] = useState(false);
-  // const [interacting, setInteracting] = useState(false);
-  // const interactingTimeout = useRef(null);
+  const [shouldFlyTo, setShouldFlyTo] = useState(false);
+  const [interacting, setInteracting] = useState(false);
+  const interactingTimeout = useRef(null);
 
-  // const containerRef = useRef();
+  const containerRef = useRef();
   const mapRef = useRef();
   const innerMapRef = useRef();
 
@@ -75,23 +75,26 @@ const DriveMap = ({ currentRoute, dispatch/* , startTime */ }) => {
   }, [currentRoute, driveCoordsRange]);
 
   const moveViewStateTo = useCallback((pos) => {
+    const map = mapRef.current;
+    if (!map || map.isMoving()) return;
+
     const newViewState = {
       longitude: pos[0],
       latitude: pos[1],
     };
-    // if (shouldFlyTo) {
-    //   mapRef.current?.flyTo({
-    //     center: [newViewState.longitude, newViewState.latitude],
-    //     maxDuration: 200,
-    //   });
-    //   setShouldFlyTo(false);
-    // }
-
-    setViewState((prevState) => ({
-      ...prevState,
-      ...newViewState,
-    }));
-  }, []);  // , [shouldFlyTo]);
+    if (shouldFlyTo) {
+      map.flyTo({
+        center: [newViewState.longitude, newViewState.latitude],
+        maxDuration: 1000,
+      });
+      setShouldFlyTo(false);
+    } else {
+      setViewState((prevState) => ({
+        ...prevState,
+        ...newViewState,
+      }));
+    }
+  }, [shouldFlyTo]);
 
   const updatePath = useCallback((coords) => {
     const mapRoute = innerMapRef.current?.getSource('route');
@@ -124,7 +127,7 @@ const DriveMap = ({ currentRoute, dispatch/* , startTime */ }) => {
 
     const keys = Object.keys(driveCoords);
     setDriveCoordsRange([Math.min(...keys), Math.max(...keys)]);
-    // setShouldFlyTo(false);
+    setShouldFlyTo(false);
     updatePath(Object.values(driveCoords));
   }, [currentRoute, dispatch, updatePath]);
 
@@ -140,9 +143,9 @@ const DriveMap = ({ currentRoute, dispatch/* , startTime */ }) => {
           type: 'Point',
           coordinates: pos,
         });
-        // if (!interacting) {
-        moveViewStateTo(pos);
-        // }
+        if (!interacting) {
+          moveViewStateTo(pos);
+        }
       }
     } else if (markerSource._data && markerSource._data.coordinates.length > 0) {
       markerSource.setData({
@@ -150,7 +153,7 @@ const DriveMap = ({ currentRoute, dispatch/* , startTime */ }) => {
         coordinates: [],
       });
     }
-  }, [currentRoute, /* interacting, */ moveViewStateTo, posAtOffset]);
+  }, [currentRoute, interacting, moveViewStateTo, posAtOffset]);
 
   // update marker position every frame
   useAnimationFrame(() => {
@@ -163,106 +166,117 @@ const DriveMap = ({ currentRoute, dispatch/* , startTime */ }) => {
   });
 
   // fly to new map position when seeking
-  // useEffect(() => {
-  //   setShouldFlyTo(true);
-  // }, [startTime]);
+  useEffect(() => {
+    setShouldFlyTo(true);
+  }, [startTime]);
 
   // TODO: what is this for?
-  // useEffect(() => {
-  //   const el = containerRef.current;
-  //   const listener = (ev) => ev.stopPropagation();
-  //   el?.addEventListener('touchstart', listener);
-  //   return () => el?.removeEventListener('touchstart', listener);
-  // }, [containerRef]);
+  useEffect(() => {
+    const el = containerRef.current;
+    const listener = (ev) => ev.stopPropagation();
+    el?.addEventListener('touchstart', listener);
+    return () => el?.removeEventListener('touchstart', listener);
+  }, [containerRef]);
 
   const onLoad = useCallback((evt) => {
     const map = evt.target;
 
-    map.addSource('route', {
-      type: 'geojson',
-      data: {
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
+    if (!map.getSource('route')) {
+      map.addSource('route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: [],
+          },
+        },
+      });
+    }
+    if (!map.getSource('seekPoint')) {
+      map.addSource('seekPoint', {
+        type: 'geojson',
+        data: {
+          type: 'Point',
           coordinates: [],
         },
-      },
-    });
-    map.addSource('seekPoint', {
-      type: 'geojson',
-      data: {
-        type: 'Point',
-        coordinates: [],
-      },
-    });
+      });
+    }
 
-    const lineGeoJson = {
-      id: 'routeLine',
-      type: 'line',
-      source: 'route',
-      layout: {
-        'line-join': 'round',
-        'line-cap': 'round',
-      },
-      paint: {
-        'line-color': '#888',
-        'line-width': 8,
-      },
-    };
-    map.addLayer(lineGeoJson);
-
-    const markerGeoJson = {
-      id: 'marker',
-      type: 'circle',
-      paint: {
-        'circle-radius': 10,
-        'circle-color': '#007cbf',
-      },
-      source: 'seekPoint',
-    };
-    map.addLayer(markerGeoJson);
+    if (!map.getLayer('routeLine')) {
+      map.addLayer({
+        id: 'routeLine',
+        type: 'line',
+        source: 'route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#888',
+          'line-width': 8,
+        },
+      });
+    }
+    if (!map.getLayer('marker')) {
+      map.addLayer({
+        id: 'marker',
+        type: 'circle',
+        paint: {
+          'circle-radius': 10,
+          'circle-color': '#007cbf',
+        },
+        source: 'seekPoint',
+      });
+    }
 
     innerMapRef.current = map;
   }, []);
 
-  // const onInteraction = useCallback((ev) => {
-  //   if (ev.isDragging || ev.isRotating || ev.isZooming) {
-  //     setShouldFlyTo(true);
-  //     setInteracting(true);
+  // 5 seconds after the last interaction (last mouse, wheel or touch event), setInteracting to false
+  const onInteraction = useCallback((evt) => {
+    console.debug('onInteraction', evt);
 
-  //     if (interactingTimeout.current !== null) {
-  //       clearTimeout(interactingTimeout.current);
-  //     }
-  //     interactingTimeout.current = setTimeout(() => {
-  //       setInteracting(false);
-  //     }, INTERACTION_TIMEOUT);
-  //   }
-  // }, []);
+    setShouldFlyTo(true);
+    setInteracting(true);
+
+    if (interactingTimeout.current !== null) {
+      clearTimeout(interactingTimeout.current);
+    }
+    interactingTimeout.current = setTimeout(() => {
+      setInteracting(false);
+    }, INTERACTION_TIMEOUT);
+  }, []);
 
   return (
     <div
-      // ref={containerRef}
+      ref={containerRef}
       className="h-full cursor-default w-full min-h-[300px]"
     >
       <Map
+        ref={mapRef}
+        mapStyle={MAP_STYLE}
+        mapboxAccessToken={MAPBOX_TOKEN}
+        reuseMaps
+        width="100%"
+        height="100%"
         latitude={viewState.latitude}
         longitude={viewState.longitude}
         zoom={viewState.zoom}
-        ref={mapRef}
-        width="100%"
-        height="100%"
-        mapStyle={MAP_STYLE}
         maxPitch={0}
-        mapboxAccessToken={MAPBOX_TOKEN}
-        onLoad={onLoad}
-        onMove={(event) => setViewState(event.viewState)}
-        // onContextMenu={null}
-        dragRotate={false}
         touchPitch={false}
-        // touchZoomRotate={false}
+        onLoad={onLoad}
+        onMove={(evt) => setViewState(evt.viewState)}
         attributionControl={false}
-        // onInteractionStateChange={onInteraction}
+        onMouseDown={onInteraction}
+        onMouseUp={onInteraction}
+        onClick={onInteraction}
+        onDblClick={onInteraction}
+        onWheel={onInteraction}
+        onTouchStart={onInteraction}
+        onTouchMove={onInteraction}
+        onTouchEnd={onInteraction}
       />
     </div>
   );
