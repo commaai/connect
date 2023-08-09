@@ -284,6 +284,17 @@ const initialState = {
   showPrimeAd: true,
 };
 
+const getFavoriteLabelIcon = (label) => {
+  switch (label) {
+    case 'home':
+      return PinHomeIcon;
+    case 'work':
+      return PinWorkIcon;
+    default:
+      return PinPinnedIcon;
+  }
+};
+
 class Navigation extends Component {
   constructor(props) {
     super(props);
@@ -325,7 +336,6 @@ class Navigation extends Component {
     this.focus = this.focus.bind(this);
     this.updateDevice = this.updateDevice.bind(this);
     this.updateFavoriteLocations = this.updateFavoriteLocations.bind(this);
-    this.getFavoriteLabelIcon = this.getFavoriteLabelIcon.bind(this);
     this.navigate = this.navigate.bind(this);
     this.onResize = this.onResize.bind(this);
     this.toggleCarPinTooltip = this.toggleCarPinTooltip.bind(this);
@@ -496,7 +506,7 @@ class Navigation extends Component {
           if (loc.save_type === 'favorite') {
             favorites[loc.id] = {
               ...loc,
-              icon: this.getFavoriteLabelIcon(loc.label),
+              icon: getFavoriteLabelIcon(loc.label),
             };
           }
         });
@@ -506,17 +516,6 @@ class Navigation extends Component {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'nav_fetch_locationsdata' });
     });
-  }
-
-  getFavoriteLabelIcon(label) {
-    switch (label) {
-      case 'home':
-        return PinHomeIcon;
-      case 'work':
-        return PinWorkIcon;
-      default:
-        return PinPinnedIcon;
-    }
   }
 
   onGeolocate(pos) {
@@ -874,7 +873,7 @@ class Navigation extends Component {
           savedAs: true,
           searchSelect: {
             ...searchSelect,
-            favoriteIcon: this.getFavoriteLabelIcon(label),
+            favoriteIcon: getFavoriteLabelIcon(label),
           },
         });
       }).catch((err) => {
