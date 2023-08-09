@@ -74,24 +74,21 @@ const DriveMap = ({ currentRoute, dispatch, startTime }) => {
     ];
   }, [currentRoute, driveCoordsRange]);
 
-  const moveViewStateTo = useCallback((pos) => {
+  const moveViewStateTo = useCallback((center) => {
     const map = mapRef.current;
     if (!map || map.isMoving()) return;
 
-    const newViewState = {
-      longitude: pos[0],
-      latitude: pos[1],
-    };
     if (shouldFlyTo) {
       map.flyTo({
-        center: [newViewState.longitude, newViewState.latitude],
+        center,
         maxDuration: 1000,
       });
       setShouldFlyTo(false);
     } else {
       setViewState((prevState) => ({
         ...prevState,
-        ...newViewState,
+        longitude: center[0],
+        latitude: center[1],
       }));
     }
   }, [shouldFlyTo]);
@@ -234,10 +231,8 @@ const DriveMap = ({ currentRoute, dispatch, startTime }) => {
     innerMapRef.current = map;
   }, []);
 
-  // 5 seconds after the last interaction (last mouse, wheel or touch event), setInteracting to false
+  // Some time after the last interaction (last mouse, wheel or touch event), setInteracting to false
   const onInteraction = useCallback((evt) => {
-    console.debug('onInteraction', evt);
-
     setShouldFlyTo(true);
     setInteracting(true);
 
