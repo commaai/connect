@@ -280,6 +280,37 @@ const initialState = {
   showPrimeAd: true,
 };
 
+const carLocationCircle = (carLocation) => {
+  const points = 128;
+  const km = carLocation.accuracy / 1000;
+
+  const distanceX = km / (111.320 * Math.cos(carLocation.location[1] * (Math.PI / 180)));
+  const distanceY = km / 110.574;
+
+  const res = [];
+  let theta; let x; let
+    y;
+  for (let i = 0; i < points; i++) {
+    theta = (i / points) * (2 * Math.PI);
+    x = distanceX * Math.cos(theta);
+    y = distanceY * Math.sin(theta);
+
+    res.push([carLocation.location[0] + x, carLocation.location[1] + y]);
+  }
+  res.push(res[0]);
+
+  return {
+    type: 'FeatureCollection',
+    features: [{
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [res],
+      },
+    }],
+  };
+};
+
 class Navigation extends Component {
   constructor(props) {
     super(props);
@@ -333,7 +364,6 @@ class Navigation extends Component {
     this.getDeviceLastLocation = this.getDeviceLastLocation.bind(this);
     this.getDeviceNetworkLocation = this.getDeviceNetworkLocation.bind(this);
     this.getCarLocation = this.getCarLocation.bind(this);
-    this.carLocationCircle = this.carLocationCircle.bind(this);
     this.clearSearchSelect = this.clearSearchSelect.bind(this);
     this.onContainerRef = this.onContainerRef.bind(this);
   }
@@ -933,37 +963,6 @@ class Navigation extends Component {
     }
   }
 
-  carLocationCircle(carLocation) {
-    const points = 128;
-    const km = carLocation.accuracy / 1000;
-
-    const distanceX = km / (111.320 * Math.cos(carLocation.location[1] * (Math.PI / 180)));
-    const distanceY = km / 110.574;
-
-    const res = [];
-    let theta; let x; let
-      y;
-    for (let i = 0; i < points; i++) {
-      theta = (i / points) * (2 * Math.PI);
-      x = distanceX * Math.cos(theta);
-      y = distanceY * Math.sin(theta);
-
-      res.push([carLocation.location[0] + x, carLocation.location[1] + y]);
-    }
-    res.push(res[0]);
-
-    return {
-      type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        geometry: {
-          type: 'Polygon',
-          coordinates: [res],
-        },
-      }],
-    };
-  }
-
   onContainerRef(el) {
     this.mapContainerRef.current = el;
     if (el) {
@@ -1095,7 +1094,7 @@ class Navigation extends Component {
             )}
           { carLocation && Boolean(carLocation.accuracy)
             && (
-            <Source type="geojson" data={ this.carLocationCircle(carLocation) }>
+            <Source type="geojson" data={ carLocationCircle(carLocation) }>
               <Layer
                 id="polygon"
                 type="fill"
