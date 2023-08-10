@@ -226,7 +226,7 @@ const styles = () => ({
       fontWeight: 500,
     },
   },
-  researchArea: {
+  searchArea: {
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
@@ -308,13 +308,13 @@ class Navigation extends Component {
     this.renderOverlay = this.renderOverlay.bind(this);
     this.renderSearchOverlay = this.renderSearchOverlay.bind(this);
     this.renderPrimeAd = this.renderPrimeAd.bind(this);
-    this.renderResearchArea = this.renderResearchArea.bind(this);
+    this.renderSearchArea = this.renderSearchArea.bind(this);
     this.onGeolocate = this.onGeolocate.bind(this);
     this.onSearch = debounce(this.onSearch.bind(this), 200);
     this.onFocus = this.onFocus.bind(this);
     this.onSearchSelect = this.onSearchSelect.bind(this);
     this.onCarSelect = this.onCarSelect.bind(this);
-    this.researchArea = this.researchArea.bind(this);
+    this.searchArea = this.searchArea.bind(this);
     this.onFavoriteSelect = this.onFavoriteSelect.bind(this);
     this.onSearchBlur = this.onSearchBlur.bind(this);
     this.focus = this.focus.bind(this);
@@ -901,7 +901,7 @@ class Navigation extends Component {
     }
   }
 
-  researchArea() {
+  searchArea() {
     const { viewport, windowWidth } = this.state;
     const searchInput = this.searchInputRef.current;
 
@@ -1151,7 +1151,7 @@ class Navigation extends Component {
           { search && searchLooking && !searchSelect
             && (
             <HTMLOverlay
-              redraw={ this.renderResearchArea }
+              redraw={ this.renderSearchArea }
               captureScroll
               captureDrag
               captureClick
@@ -1389,11 +1389,11 @@ class Navigation extends Component {
     );
   }
 
-  renderResearchArea() {
+  renderSearchArea() {
     const { classes } = this.props;
 
     return (
-      <Button className={ classes.researchArea } onClick={ this.researchArea }>
+      <Button className={ classes.searchArea } onClick={ this.searchArea }>
         <Refresh />
         search this area
       </Button>
