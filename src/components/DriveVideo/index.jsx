@@ -91,7 +91,17 @@ class DriveVideo extends Component {
       videoPlayer.seekTo(this.currentVideoTime(), 'seconds');
     }
 
-    const hasLoaded = videoPlayer.getSecondsLoaded() > videoPlayer.getCurrentTime();
+    // TODO: refactor and re-use this logic in syncVideo
+    const { buffered } = videoPlayer.getInternalPlayer();
+    const currentTime = videoPlayer.getCurrentTime();
+
+    let hasLoaded = false;
+    for (let i = 0; i < buffered.length; i++) {
+      if (currentTime >= buffered.start(i) && currentTime <= buffered.end(i)) {
+        hasLoaded = true;
+      }
+    }
+
     const { readyState } = videoPlayer.getInternalPlayer();
     if (!hasLoaded || readyState < 2) {
       dispatch(bufferVideo(true));
