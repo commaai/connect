@@ -10,20 +10,21 @@ import { Search, Clear, Refresh } from '@material-ui/icons';
 import dayjs from 'dayjs';
 
 import { athena as Athena, devices as Devices, navigation as NavigationApi } from '@commaai/api';
+
 import { primeNav, analyticsEvent } from '../../actions';
-import { DEFAULT_LOCATION, forwardLookup, getDirections, MAPBOX_STYLE, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
 import Colors from '../../colors';
 import * as Demo from '../../demo';
 import { PinCarIcon, PinMarkerIcon, PinHomeIcon, PinWorkIcon, PinPinnedIcon } from '../../icons';
 import { timeFromNow } from '../../utils';
+import { DEFAULT_LOCATION, forwardLookup, getDirections, MAPBOX_STYLE, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
+
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
+
+import { SearchSelectBox, SearchSelectButton, SearchSelectFakeButton } from './components';
 import * as Utils from './utils';
 
 const styles = () => ({
-  noWrap: {
-    whiteSpace: 'nowrap',
-  },
   mapContainer: {
     borderBottom: `1px solid ${Colors.white10}`,
   },
@@ -93,31 +94,6 @@ const styles = () => ({
   overlaySearchDetails: {
     color: Colors.white40,
   },
-  searchSelectBox: {
-    borderRadius: 22,
-    padding: '12px 16px',
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    color: Colors.white,
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  searchSelectBoxHeader: {
-    display: 'flex',
-    width: '100%',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
-  searchSelectBoxTitle: {
-    flexBasis: 'auto',
-  },
-  searchSelectBoxButtons: {
-    display: 'flex',
-    flexWrap: 'wrap-reverse',
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
-  },
   bold: {
     fontWeight: 600,
   },
@@ -125,52 +101,6 @@ const styles = () => ({
     lineHeight: '31px',
     fontSize: 20,
     fontWeight: 600,
-  },
-  searchSelectButton: {
-    marginLeft: 8,
-    padding: '6px 12px',
-    backgroundColor: Colors.white,
-    borderRadius: 15,
-    color: Colors.grey900,
-    textTransform: 'none',
-    minHeight: 'unset',
-    flexGrow: 1,
-    maxWidth: 125,
-    '&:hover': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-    '&:disabled': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-  },
-  searchSelectButtonFake: {
-    background: '#ddd',
-    minWidth: 81.4,
-    textAlign: 'center',
-    display: 'inline-flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-    '& p': {
-      color: Colors.grey900,
-      lineHeight: '1.4em',
-      fontWeight: 500,
-    },
-  },
-  searchSelectButtonSecondary: {
-    marginLeft: 8,
-    padding: '4.5px 12px',
-    borderRadius: 15,
-    textTransform: 'none',
-    minHeight: 'unset',
-    flexGrow: 1,
-    maxWidth: 125,
-    border: `1.5px solid ${Colors.white50}`,
-    '&:disabled': {
-      border: `1.5px solid ${Colors.white20}`,
-    },
   },
   searchSelectBoxDetails: {
     color: Colors.white40,
@@ -242,23 +172,6 @@ const styles = () => ({
       marginRight: 6,
     },
   },
-  clearSearchSelect: {
-    padding: 5,
-    fontSize: 20,
-    cursor: 'pointer',
-    position: 'absolute',
-    left: -6,
-    top: -8,
-    height: 24,
-    width: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.grey900,
-    color: Colors.white,
-    border: `1px solid ${Colors.grey600}`,
-    '&:hover': {
-      backgroundColor: Colors.grey700,
-    },
-  },
 });
 
 const initialState = {
@@ -311,6 +224,17 @@ const carLocationCircle = (carLocation) => {
   };
 };
 
+const getFavoriteLabelIcon = (label) => {
+  switch (label) {
+    case 'home':
+      return PinHomeIcon;
+    case 'work':
+      return PinWorkIcon;
+    default:
+      return PinPinnedIcon;
+  }
+};
+
 class Navigation extends Component {
   constructor(props) {
     super(props);
@@ -327,7 +251,6 @@ class Navigation extends Component {
 
     this.mapContainerRef = React.createRef();
     this.searchInputRef = React.createRef();
-    this.searchSelectBoxRef = React.createRef();
     this.primeAdBoxRef = React.createRef();
     this.overlayRef = React.createRef();
     this.carPinTooltipRef = React.createRef();
@@ -351,7 +274,6 @@ class Navigation extends Component {
     this.focus = this.focus.bind(this);
     this.updateDevice = this.updateDevice.bind(this);
     this.updateFavoriteLocations = this.updateFavoriteLocations.bind(this);
-    this.getFavoriteLabelIcon = this.getFavoriteLabelIcon.bind(this);
     this.navigate = this.navigate.bind(this);
     this.onResize = this.onResize.bind(this);
     this.toggleCarPinTooltip = this.toggleCarPinTooltip.bind(this);
@@ -521,7 +443,7 @@ class Navigation extends Component {
           if (loc.save_type === 'favorite') {
             favorites[loc.id] = {
               ...loc,
-              icon: this.getFavoriteLabelIcon(loc.label),
+              icon: getFavoriteLabelIcon(loc.label),
             };
           }
         });
@@ -531,17 +453,6 @@ class Navigation extends Component {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'nav_fetch_locationsdata' });
     });
-  }
-
-  getFavoriteLabelIcon(label) {
-    switch (label) {
-      case 'home':
-        return PinHomeIcon;
-      case 'work':
-        return PinWorkIcon;
-      default:
-        return PinPinnedIcon;
-    }
   }
 
   onGeolocate(pos) {
@@ -764,9 +675,6 @@ class Navigation extends Component {
         bbox[1][1] += 0.01;
       }
 
-      const bottomBoxHeight = (this.searchSelectBoxRef.current && viewport.height > 200)
-        ? this.searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0;
-
       let rightBoxWidth = 0;
       let topBoxHeight = hasNav ? 62 : 0;
 
@@ -783,7 +691,7 @@ class Navigation extends Component {
         left: (windowWidth < 600 || !search) ? 20 : 390,
         right: rightBoxWidth + 20,
         top: topBoxHeight + 20,
-        bottom: bottomBoxHeight + 20,
+        bottom: 25,
       };
       if (viewport.width) {
         try {
@@ -899,7 +807,7 @@ class Navigation extends Component {
           savedAs: true,
           searchSelect: {
             ...searchSelect,
-            favoriteIcon: this.getFavoriteLabelIcon(label),
+            favoriteIcon: getFavoriteLabelIcon(label),
           },
         });
       }).catch((err) => {
@@ -1288,10 +1196,10 @@ class Navigation extends Component {
     }
 
     return (
-      <div className={ classes.searchSelectBox } ref={ this.searchSelectBoxRef }>
-        <Clear className={ classes.clearSearchSelect } onClick={ this.clearSearchSelect } />
-        <div className={ classes.searchSelectBoxHeader }>
-          <div className={ classes.searchSelectBoxTitle }>
+      <SearchSelectBox
+        ref={this.searchSelectBoxRef}
+        title={(
+          <>
             <Typography className={ classes.bold }>{ title }</Typography>
             { searchSelect.route
               && (
@@ -1304,87 +1212,83 @@ class Navigation extends Component {
               </Typography>
               )}
             { isCar && <Typography className={ classes.searchSelectBoxDetails }>{ timeFromNow(carLocation.time) }</Typography> }
-          </div>
-          <div className={ classes.searchSelectBoxButtons }>
-            <Button classes={{ root: isCar ? classes.searchSelectButton : classes.searchSelectButtonSecondary }} target="_blank" href={geoUri}>
-              open in maps
-            </Button>
-            { searchSelect.favoriteId
-              ? (
-                <Button
-                  disabled={ savingAs || savedAs }
-                  onClick={ this.deleteFavorite }
-                  classes={{ root: classes.searchSelectButtonSecondary, label: classes.noWrap }}
-                >
-                  { savingAs ? '...' : 'delete' }
-                </Button>
-              )
-              : (
-                <Button
-                  disabled={ savingAs || savedAs }
-                  onClick={ (ev) => this.setState({ saveAsMenu: ev.target }) }
-                  classes={{ root: classes.searchSelectButtonSecondary, label: classes.noWrap }}
-                >
-                  { savingAs ? '...' : (savedAs ? 'saved' : 'save as') }
-                </Button>
-              )}
-            <Menu
-              id="menu-save-as"
-              open={ Boolean(saveAsMenu) }
-              anchorEl={ saveAsMenu }
-              onClose={ () => this.setState({ saveAsMenu: null }) }
-              anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          </>
+        )}
+        footer={(
+          <Typography className={ classes.searchSelectBoxDetails }>
+            {isCar && `${Utils.formatSearchName(searchSelect)}, `}
+            {Utils.formatSearchDetails(searchSelect)}
+          </Typography>
+        )}
+        onClear={this.clearSearchSelect}
+      >
+        <SearchSelectButton secondary={!isCar} href={geoUri}>
+          open in maps
+        </SearchSelectButton>
+        { searchSelect.favoriteId
+          ? (
+            <SearchSelectButton
+              secondary
+              disabled={ savingAs || savedAs }
+              onClick={ this.deleteFavorite }
             >
-              <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('home') }>
-                home
-              </MenuItem>
-              <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('work') }>
-                work
-              </MenuItem>
-              <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('pin') }>
-                favorite
-              </MenuItem>
-            </Menu>
-            { searchSelect.settingDest
-              ? (
-                <div
-                  className={ `${classes.searchSelectButton} ${classes.searchSelectButtonFake}` }
-                  ref={ this.navigateFakeButtonRef }
-                >
-                  { searchSelect.success
-                    ? <Typography>destination set</Typography>
-                    : <CircularProgress size={ 19 } /> }
-                  <Popper
-                    open={ Boolean(searchSelect.success && searchSelect.saved_next) }
-                    placement="bottom"
-                    anchorEl={ this.navigateFakeButtonRef.current }
-                    className={ classes.savedNextPopover }
-                  >
-                    <Typography>device offline</Typography>
-                    <Typography>destination will be set once device is online</Typography>
-                  </Popper>
-                </div>
-              )
-              : (!isCar
-              && (
-              <Button
-                disabled={ Boolean(noRoute) }
-                onClick={ this.navigate }
-                classes={{ root: classes.searchSelectButton }}
-                style={{ marginBottom: 8 }}
+              { savingAs ? '...' : 'delete' }
+            </SearchSelectButton>
+          )
+          : (
+            <SearchSelectButton
+              secondary
+              disabled={ savingAs || savedAs }
+              onClick={ (ev) => this.setState({ saveAsMenu: ev.target }) }
+            >
+              { savingAs ? '...' : (savedAs ? 'saved' : 'save as') }
+            </SearchSelectButton>
+          )}
+        <Menu
+          id="menu-save-as"
+          open={ Boolean(saveAsMenu) }
+          anchorEl={ saveAsMenu }
+          onClose={ () => this.setState({ saveAsMenu: null }) }
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('home') }>
+            home
+          </MenuItem>
+          <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('work') }>
+            work
+          </MenuItem>
+          <MenuItem classes={{ root: classes.saveAsMenuItem }} onClick={ () => this.saveSearchAs('pin') }>
+            favorite
+          </MenuItem>
+        </Menu>
+        { searchSelect.settingDest
+          ? (
+            <SearchSelectFakeButton ref={this.navigateFakeButtonRef}>
+              { searchSelect.success
+                ? <Typography>destination set</Typography>
+                : <CircularProgress size={ 19 } /> }
+              <Popper
+                open={ Boolean(searchSelect.success && searchSelect.saved_next) }
+                placement="bottom"
+                anchorEl={ this.navigateFakeButtonRef.current }
+                className={ classes.savedNextPopover }
               >
-                { noRoute ? 'no route' : 'navigate' }
-              </Button>
-              )
-              )}
-          </div>
-        </div>
-        <Typography className={ classes.searchSelectBoxDetails }>
-          {isCar && `${Utils.formatSearchName(searchSelect)}, `}
-          {Utils.formatSearchDetails(searchSelect)}
-        </Typography>
-      </div>
+                <Typography>device offline</Typography>
+                <Typography>destination will be set once device is online</Typography>
+              </Popper>
+            </SearchSelectFakeButton>
+          )
+          : (!isCar && (
+            <SearchSelectButton
+              disabled={Boolean(noRoute)}
+              onClick={this.navigate}
+              style={{ marginBottom: 8 }}
+            >
+              { noRoute ? 'no route' : 'navigate' }
+            </SearchSelectButton>
+          ))}
+      </SearchSelectBox>
     );
   }
 

@@ -7,7 +7,7 @@ module.exports = {
     'plugin:jest-dom/recommended',
   ],
   parserOptions: {
-    ecmaVersion: 2020,
+    ecmaVersion: 2022,
   },
   rules: {
     'camelcase': 'warn',
@@ -28,6 +28,9 @@ module.exports = {
     'react/prop-types': 0,
     'react/require-default-props': 0,
     'react/sort-comp': 0,
+    'lines-between-class-members': ['error', 'always', {
+      exceptAfterSingleLine: true,
+    }],
     'max-len': 0,
     'no-await-in-loop': 'warn',
     'no-case-declarations': 'warn',
