@@ -241,10 +241,9 @@ class DriveVideo extends Component {
 
     const internalPlayer = videoPlayer.getInternalPlayer();
 
-    // TODO: refactor
     const sufficientBuffer = Math.min(videoPlayer.getDuration() - videoPlayer.getCurrentTime(), 30);
-    const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() >= sufficientBuffer;
-    const hasLoaded = videoPlayer.getSecondsLoaded() > videoPlayer.getCurrentTime();
+    const { hasLoaded, bufferRemaining } = getVideoState(videoPlayer);
+    const hasSufficientBuffer = bufferRemaining >= sufficientBuffer;
     if (isBufferingVideo && hasSufficientBuffer && internalPlayer.readyState >= 2) {
       dispatch(bufferVideo(false));
     } else if (isBufferingVideo || !hasLoaded || internalPlayer.readyState < 2) {
