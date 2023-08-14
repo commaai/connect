@@ -41,15 +41,19 @@ const getVideoState = (videoPlayer) => {
   const currentTime = videoPlayer.getCurrentTime();
   const { buffered } = videoPlayer.getInternalPlayer();
 
-  // TOOD: calculate buffer remaining
-  let hasLoaded = false;
+  let bufferRemaining = -1;
   for (let i = 0; i < buffered.length; i++) {
-    if (currentTime >= buffered.start(i) && currentTime <= buffered.end(i)) {
-      hasLoaded = true;
+    const end = buffered.end(i);
+    if (currentTime >= buffered.start(i) && currentTime <= end) {
+      bufferRemaining = end - currentTime;
+      break;
     }
   }
 
-  return { hasLoaded };
+  return {
+    bufferRemaining,
+    hasLoaded: bufferRemaining > 0,
+  };
 };
 
 class DriveVideo extends Component {
