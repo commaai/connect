@@ -37,6 +37,21 @@ const VideoOverlay = ({ loading, error }) => {
   );
 };
 
+const getVideoState = (videoPlayer) => {
+  const currentTime = videoPlayer.getCurrentTime();
+  const { buffered } = videoPlayer.getInternalPlayer();
+
+  // TOOD: calculate buffer remaining
+  let hasLoaded = false;
+  for (let i = 0; i < buffered.length; i++) {
+    if (currentTime >= buffered.start(i) && currentTime <= buffered.end(i)) {
+      hasLoaded = true;
+    }
+  }
+
+  return { hasLoaded };
+};
+
 class DriveVideo extends Component {
   constructor(props) {
     super(props);
@@ -91,17 +106,7 @@ class DriveVideo extends Component {
       videoPlayer.seekTo(this.currentVideoTime(), 'seconds');
     }
 
-    // TODO: refactor and re-use this logic in syncVideo
-    const { buffered } = videoPlayer.getInternalPlayer();
-    const currentTime = videoPlayer.getCurrentTime();
-
-    let hasLoaded = false;
-    for (let i = 0; i < buffered.length; i++) {
-      if (currentTime >= buffered.start(i) && currentTime <= buffered.end(i)) {
-        hasLoaded = true;
-      }
-    }
-
+    const { hasLoaded } = getVideoState(videoPlayer);
     const { readyState } = videoPlayer.getInternalPlayer();
     if (!hasLoaded || readyState < 2) {
       dispatch(bufferVideo(true));
@@ -232,6 +237,7 @@ class DriveVideo extends Component {
 
     const internalPlayer = videoPlayer.getInternalPlayer();
 
+    // TODO: refactor
     const sufficientBuffer = Math.min(videoPlayer.getDuration() - videoPlayer.getCurrentTime(), 30);
     const hasSufficientBuffer = videoPlayer.getSecondsLoaded() - videoPlayer.getCurrentTime() >= sufficientBuffer;
     const hasLoaded = videoPlayer.getSecondsLoaded() > videoPlayer.getCurrentTime();
