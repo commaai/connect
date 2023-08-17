@@ -539,7 +539,7 @@ class DeviceInfo extends Component {
           { isFront
             && (
             <Typography>
-              Enable &lquo;Record and Upload Driver Camera&rquo; on your device for interior camera snapshots
+              Enable &ldquo;Record and Upload Driver Camera&rdquo; on your device for interior camera snapshots
             </Typography>
             )}
         </div>
