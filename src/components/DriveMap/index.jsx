@@ -5,11 +5,10 @@ import raf from 'raf';
 
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
-import { MAPBOX_TOKEN } from '../../utils/geocode';
-import { currentOffset } from '../../timeline';
 import { fetchDriveCoords } from '../../actions/cached';
+import { currentOffset } from '../../timeline';
+import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
 
-const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 const INTERACTION_TIMEOUT = 5000;
 
 class DriveMap extends Component {
@@ -18,9 +17,8 @@ class DriveMap extends Component {
 
     this.state = {
       viewport: {
-        latitude: 37.7577,
-        longitude: -122.4376,
-        zoom: 15,
+        ...DEFAULT_LOCATION,
+        zoom: 14,
       },
       driveCoordsMin: null,
       driveCoordsMax: null,
@@ -293,7 +291,7 @@ class DriveMap extends Component {
           latitude={viewport.latitude}
           longitude={viewport.longitude}
           zoom={viewport.zoom}
-          mapStyle={MAP_STYLE}
+          mapStyle={MAPBOX_STYLE}
           maxPitch={0}
           mapboxApiAccessToken={MAPBOX_TOKEN}
           ref={this.initMap}

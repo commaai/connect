@@ -11,7 +11,7 @@ import dayjs from 'dayjs';
 
 import { athena as Athena, devices as Devices, navigation as NavigationApi } from '@commaai/api';
 import { primeNav, analyticsEvent } from '../../actions';
-import { forwardLookup, getDirections, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
+import { DEFAULT_LOCATION, forwardLookup, getDirections, MAPBOX_STYLE, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
 import Colors from '../../colors';
 import * as Demo from '../../demo';
 import { PinCarIcon, PinMarkerIcon, PinHomeIcon, PinWorkIcon, PinPinnedIcon } from '../../icons';
@@ -19,8 +19,6 @@ import { timeFromNow } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import * as Utils from './utils';
-
-const MAP_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 
 const styles = () => ({
   noWrap: {
@@ -289,8 +287,7 @@ class Navigation extends Component {
     this.state = {
       ...initialState,
       viewport: {
-        longitude: -117.20,
-        latitude: 32.73,
+        ...DEFAULT_LOCATION,
         zoom: 5,
       },
       mapError: null,
@@ -905,7 +902,7 @@ class Navigation extends Component {
       'favorite',
       label,
     )
-      .then((resp) => {
+      .then(() => {
         this.updateFavoriteLocations();
         this.setState({
           savingAs: false,
@@ -927,7 +924,7 @@ class Navigation extends Component {
     const { searchSelect } = this.state;
     if (searchSelect.favoriteId) {
       this.setState({ savingAs: true });
-      NavigationApi.deleteLocationSave(dongleId, searchSelect.favoriteId).then((resp) => {
+      NavigationApi.deleteLocationSave(dongleId, searchSelect.favoriteId).then(() => {
         this.updateFavoriteLocations();
         this.setState({
           noFly: false,
@@ -980,7 +977,7 @@ class Navigation extends Component {
     const points = 128;
     const km = carLocation.accuracy / 1000;
 
-    const distanceX = km / (111.320 * Math.cos(carLocation.location[1] * Math.PI / 180));
+    const distanceX = km / (111.320 * Math.cos(carLocation.location[1] * (Math.PI / 180)));
     const distanceY = km / 110.574;
 
     const res = [];
@@ -1055,7 +1052,7 @@ class Navigation extends Component {
           pitch={viewport.pitch}
           onViewportChange={this.viewportChange}
           onContextMenu={null}
-          mapStyle={MAP_STYLE}
+          mapStyle={MAPBOX_STYLE}
           width="100%"
           height="100%"
           onNativeClick={this.focus}

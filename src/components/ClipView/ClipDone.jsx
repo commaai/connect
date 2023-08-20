@@ -226,7 +226,7 @@ class ClipDone extends Component {
     if (video) {
       video.setAttribute('playsinline', '');
     } else if (this.videoAttributesRetries < 300) {
-      this.videoAttributesRetries++;
+      this.videoAttributesRetries += 1;
       setTimeout(this.setVideoAttributes, 100);
     }
   }
@@ -337,19 +337,19 @@ class ClipDone extends Component {
 
   async deleteClip() {
     const { dongleId, clips } = this.props;
-    this.setState({ deleteModal: { ...this.state.deleteModal, loading: true } });
+    this.setState((state) => ({ deleteModal: { ...state.deleteModal, loading: true } }));
     try {
       const resp = await Clips.clipsDelete(dongleId, clips.clip_id);
       if (resp.success) {
-        this.setState({ deleteModal: { ...this.state.deleteModal, loading: false, error: null, success: 'Clip deleted' } });
+        this.setState((state) => ({ deleteModal: { ...state.deleteModal, loading: false, error: null, success: 'Clip deleted' } }));
       } else {
         console.log(resp);
-        this.setState({ deleteModal: { ...this.state.deleteModal, loading: false, error: 'Failed to delete clip' } });
+        this.setState((state) => ({ deleteModal: { ...state.deleteModal, loading: false, error: 'Failed to delete clip' } }));
       }
     } catch (err) {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'clips_fetch_delete' });
-      this.setState({ deleteModal: { ...this.state.deleteModal, loading: false, error: 'Could not delete clip' } });
+      this.setState((state) => ({ deleteModal: { ...state.deleteModal, loading: false, error: 'Could not delete clip' } }));
     }
   }
 

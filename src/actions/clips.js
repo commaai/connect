@@ -69,47 +69,47 @@ export function clipsInit() {
   };
 }
 
-export function clipsCreate(clip_id, video_type, title, isPublic) {
+export function clipsCreate(clipId, videoType, title, isPublic) {
   return (dispatch, getState) => {
     const { dongleId, loop, currentRoute } = getState();
     dispatch({
       type: Types.ACTION_CLIPS_CREATE,
       dongleId,
-      clip_id,
+      clip_id: clipId,
       start_time: loop.startTime,
       end_time: loop.startTime + loop.duration,
-      video_type,
+      video_type: videoType,
       title,
       is_public: isPublic,
       route: currentRoute.fullname,
     });
 
-    dispatch(push(`/${dongleId}/clips/${clip_id}`));
+    dispatch(push(`/${dongleId}/clips/${clipId}`));
   };
 }
 
-export function navToClips(clip_id, state) {
+export function navToClips(clipId, state) {
   return async (dispatch, getState) => {
     const { dongleId } = getState();
     if (state === 'done') {
       dispatch({
         type: Types.ACTION_CLIPS_DONE,
         dongleId,
-        clip_id,
+        clip_id: clipId,
       });
     } else if (state === 'upload') {
       dispatch({
         type: Types.ACTION_CLIPS_CREATE,
         dongleId,
-        clip_id,
+        clip_id: clipId,
       });
     }
-    dispatch(push(`/${dongleId}/clips/${clip_id}`));
-    dispatch(fetchClipsDetails(clip_id));
+    dispatch(push(`/${dongleId}/clips/${clipId}`));
+    dispatch(fetchClipsDetails(clipId));
   };
 }
 
-export function fetchClipsDetails(clip_id) {
+export function fetchClipsDetails(clipId) {
   return async (dispatch, getState) => {
     const { dongleId, clips } = getState();
     try {
@@ -117,17 +117,17 @@ export function fetchClipsDetails(clip_id) {
         dispatch({
           type: Types.ACTION_CLIPS_LOADING,
           dongleId,
-          clip_id,
+          clip_id: clipId,
         });
       }
 
-      const resp = await Clips.clipsDetails(dongleId, clip_id);
+      const resp = await Clips.clipsDetails(dongleId, clipId);
 
       if (resp.status === 'pending') {
         dispatch({
           type: Types.ACTION_CLIPS_CREATE,
           dongleId,
-          clip_id,
+          clip_id: clipId,
           start_time: resp.start_time,
           end_time: resp.end_time,
           video_type: resp.video_type,
@@ -141,7 +141,7 @@ export function fetchClipsDetails(clip_id) {
         dispatch({
           type: Types.ACTION_CLIPS_DONE,
           dongleId,
-          clip_id,
+          clip_id: clipId,
           start_time: resp.start_time,
           end_time: resp.end_time,
           video_type: resp.video_type,
@@ -162,7 +162,7 @@ export function fetchClipsDetails(clip_id) {
           dispatch({
             type: Types.ACTION_CLIPS_ERROR,
             dongleId,
-            clip_id,
+            clip_id: clipId,
             error: 'clip_doesnt_exist',
           });
         }
@@ -175,25 +175,25 @@ export function fetchClipsDetails(clip_id) {
   };
 }
 
-export function clipsUpdateIsPublic(clip_id, is_public) {
+export function clipsUpdateIsPublic(clipId, isPublic) {
   return (dispatch, getState) => {
     const { dongleId } = getState();
     dispatch({
       type: Types.ACTION_CLIPS_UPDATE,
       dongleId,
-      clip_id,
-      is_public,
+      clip_id: clipId,
+      is_public: isPublic,
     });
   };
 }
 
-export function clipsDelete(clip_id) {
+export function clipsDelete(clipId) {
   return (dispatch, getState) => {
     const { dongleId } = getState();
     dispatch({
       type: Types.ACTION_CLIPS_DELETE,
       dongleId,
-      clip_id,
+      clip_id: clipId,
     });
     dispatch(clipsExit());
   };

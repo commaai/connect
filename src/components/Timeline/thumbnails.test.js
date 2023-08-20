@@ -1,4 +1,5 @@
 /* eslint-env jest */
+import React from 'react';
 import { render, screen } from '@testing-library/react';
 import Thumbnails from './thumbnails';
 
@@ -80,7 +81,7 @@ describe('timeline thumbnails', () => {
       />,
     );
 
-    expect(screen.queryAllByRole('img')).toHaveLength(0);
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
   it('works when theres no blank at the end', () => {
@@ -139,7 +140,7 @@ describe('timeline thumbnails', () => {
       />,
     );
 
-    expect(screen.queryAllByRole('img')).toHaveLength(0);
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(percentToOffsetMock.mock.calls.length).toBe(0);
     expect(getCurrentRouteMock.mock.calls.length).toBe(0);
   });

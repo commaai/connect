@@ -121,16 +121,15 @@ export default function reducer(_state, action) {
       break;
     case Types.ACTION_UPDATE_ROUTE:
       if (state.routes) {
-        state.routes = [...state.routes];
-        for (const i in state.routes) {
-          if (state.routes[i].fullname === action.fullname) {
-            state.routes[i] = {
-              ...state.routes[i],
+        state.routes = state.routes.map((route) => {
+          if (route.fullname === action.fullname) {
+            return {
+              ...route,
               ...action.route,
             };
-            break;
           }
-        }
+          return route;
+        });
       }
       if (state.currentRoute && state.currentRoute.fullname === action.fullname) {
         state.currentRoute = {
@@ -143,17 +142,16 @@ export default function reducer(_state, action) {
       const firstFrame = action.events.find((ev) => ev.type === 'event' && ev.data.event_type === 'first_road_camera_frame');
       const videoStartOffset = firstFrame ? firstFrame.route_offset_millis : null;
       if (state.routes) {
-        state.routes = [...state.routes];
-        for (const i in state.routes) {
-          if (state.routes[i].fullname === action.fullname) {
-            state.routes[i] = {
-              ...state.routes[i],
+        state.routes = state.routes.map((route) => {
+          if (route.fullname === action.fullname) {
+            return {
+              ...route,
               events: action.events,
               videoStartOffset,
             };
-            break;
           }
-        }
+          return route;
+        });
       }
       if (state.currentRoute && state.currentRoute.fullname === action.fullname) {
         state.currentRoute = {
@@ -165,16 +163,15 @@ export default function reducer(_state, action) {
       break;
     case Types.ACTION_UPDATE_ROUTE_LOCATION:
       if (state.routes) {
-        state.routes = [...state.routes];
-        for (const i in state.routes) {
-          if (state.routes[i].fullname === action.fullname) {
-            state.routes[i] = {
-              ...state.routes[i],
+        state.routes = state.routes.map((route) => {
+          if (route.fullname === action.fullname) {
+            return {
+              ...route,
+              [action.locationKey]: action.location,
             };
-            state.routes[i][action.locationKey] = action.location;
-            break;
           }
-        }
+          return route;
+        });
       }
       if (state.currentRoute && state.currentRoute.fullname === action.fullname) {
         state.currentRoute = {

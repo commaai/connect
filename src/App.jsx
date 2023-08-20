@@ -128,7 +128,7 @@ class App extends Component {
     // Use ErrorBoundary in production only
     if (import.meta.env.PROD) {
       content = (
-        <Sentry.ErrorBoundary fallback={props => <ErrorFallback {...props} />}>
+        <Sentry.ErrorBoundary fallback={(props) => <ErrorFallback {...props} />}>
           {content}
         </Sentry.ErrorBoundary>
       );
