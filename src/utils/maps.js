@@ -20,15 +20,8 @@ export async function coordinatesFromMapsUrl(urlString) {
   
       let position = places[0].position;
       return position ? [position.lat, position.lng] : null;
-    } else { // google.com/maps/@..., google.com/maps/place/**/@...
-      let parts = url.pathname.split('/');
-      let llPart = parts.find((p) => p.startsWith('@'));
-      if (!llPart) {
-        return null;
-      }
-
-      let coords = llPart.slice(1).split(',').slice(0, 2).map((x) => parseFloat(x));
-      return coords;
+    } else {
+      return null;
     }
   }
 
