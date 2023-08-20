@@ -59,8 +59,7 @@ export function getNavigationNav(pathname, search) {
       return {
         url: params.get('url'),
       }
-    }
-    else if (params.has('lat') && params.has('long')) {
+    } else if (params.has('lat') && params.has('long')) {
       return {
         lat: parseFloat(params.get('lat')),
         long: parseFloat(params.get('long')),
