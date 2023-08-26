@@ -113,8 +113,8 @@ describe('navigation formatting utils', () => {
       const { item } = testCase;
 
       expect(Utils.formatSearchName(item)).toBe(testCase.name);
-      expect(Utils.formatSearchAddress(item)).toBe(testCase.address);
       expect(Utils.formatSearchDetails(item)).toBe(testCase.details);
+      expect(Utils.formatSearchAddress(item)).toBe(testCase.address);
       expect(Utils.formatSearchList(item)).toBe(testCase.searchList);
     });
   });
