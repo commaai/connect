@@ -2,40 +2,40 @@
 import * as Utils from './utils';
 
 describe('navigation formatting utils', () => {
-  describe('formats search results correctly', () => {
+  describe('location formatting', () => {
     const testCases = [
       {
         // from mapbox api
         item: {
           title: 'Taco Bell',
-          distance: 1234,
+          resultType: 'place',
           address: {
-            label: 'Taco Bell, 2011 Camino del Rio N, San Diego, CA 92108, United States',
+            label: 'Taco Bell, 2626 El Cajon Blvd, San Diego, CA 92104, United States',
             countryCode: 'USA',
             countryName: 'United States',
             stateCode: 'CA',
             state: 'California',
             county: 'San Diego',
             city: 'San Diego',
-            district: 'Mission Valley East',
-            street: 'Camino del Rio N',
-            postalCode: '92108',
-            houseNumber: '2011',
+            district: 'North Park',
+            street: 'El Cajon Blvd',
+            postalCode: '92104',
+            houseNumber: '2626',
           },
+          distance: 5614,
         },
 
         // expected
         name: 'Taco Bell',
-        fullAddress: '2011 Camino del Rio N, San Diego, CA 92108, United States',
-        address: '2011 Camino del Rio N, San Diego',
-        details: '2011 Camino del Rio N, San Diego',
-        searchList: ', 2011 Camino del Rio N, San Diego (0.8 mi)',
+        address: '2626 El Cajon Blvd, San Diego, CA 92104, United States',
+        details: '2626 El Cajon Blvd, San Diego, CA 92104',
+        searchList: ', 2626 El Cajon Blvd, San Diego (3.5 mi)',
       },
       {
         // from mapbox api
         item: {
           title: '1441 State St, San Diego, CA 92101-3421, United States',
-          distance: 1234,
+          resultType: 'houseNumber',
           address: {
             label: '1441 State St, San Diego, CA 92101-3421, United States',
             countryCode: 'USA',
@@ -49,19 +49,20 @@ describe('navigation formatting utils', () => {
             postalCode: '92101-3421',
             houseNumber: '1441',
           },
+          distance: 1234,
         },
 
         // expected
         name: '1441 State St',
-        fullAddress: '1441 State St, San Diego, CA 92101-3421, United States',
-        address: 'San Diego',
-        details: 'San Diego',
+        address: '1441 State St, San Diego, CA 92101-3421, United States',
+        details: 'San Diego, CA 92101-3421',
         searchList: ', San Diego (0.8 mi)',
       },
       {
         // from mapbox api
         item: {
           title: 'Taco Bell',
+          resultType: 'place',
           address: {
             label: 'Taco Bell, Irlam Drive, Liverpool, L32 8, United Kingdom',
             countryCode: 'GBR',
@@ -79,30 +80,86 @@ describe('navigation formatting utils', () => {
 
         // expected
         name: 'Taco Bell',
-        fullAddress: 'Irlam Drive, Liverpool, L32 8, United Kingdom',
-        address: 'Irlam Drive, Liverpool',
-        details: 'Irlam Drive, Liverpool',
+        address: 'Irlam Drive, Liverpool, L32 8, United Kingdom',
+        details: 'Irlam Drive, Liverpool, L32 8',
         searchList: ', Irlam Drive, Liverpool (23.7 mi)',
+      },
+      {
+        // from mapbox api
+        item: {
+          title: '123 Victoria Street, London, SW1E 6, United Kingdom',
+          resultType: 'houseNumber',
+          address: {
+            label: '123 Victoria Street, London, SW1E 6, United Kingdom',
+            countryCode: 'GBR',
+            countryName: 'United Kingdom',
+            state: 'England',
+            countyCode: 'LDN',
+            county: 'London',
+            city: 'London',
+            district: 'St James\'s Park',
+            street: 'Victoria Street',
+            postalCode: 'SW1E 6',
+            houseNumber: '123',
+          },
+          distance: 1234,
+        },
+
+        // expected
+        name: '123 Victoria Street',
+        address: '123 Victoria Street, London, SW1E 6, United Kingdom',
+        details: 'London, SW1E 6',
+        searchList: ', London (0.8 mi)',
+      },
+      {
+        // from mapbox api
+        item: {
+          title: '1441 Rd & State Road 76, Chimayo, NM 87522, United States',
+          resultType: 'intersection',
+          address: {
+            label: '1441 Rd & State Road 76, Chimayo, NM 87522, United States',
+            countryCode: 'USA',
+            countryName: 'United States',
+            stateCode: 'NM',
+            state: 'New Mexico',
+            county: 'Rio Arriba',
+            city: 'Chimayo',
+            streets: [
+              '1441 Rd',
+              'State Road 76',
+            ],
+            postalCode: '87522',
+          },
+          distance: 1092925,
+        },
+
+        // expected
+        name: '1441 Rd & State Road 76',
+        address: '1441 Rd & State Road 76, Chimayo, NM 87522, United States',
+        details: 'Chimayo, NM 87522',
+        searchList: ', Chimayo (679.1 mi)',
       },
     ];
 
     testCases.forEach((testCase) => {
-      const { item } = testCase;
+      test(testCase.address, () => {
+        const { item } = testCase;
 
-      expect(Utils.formatSearchName(item)).toBe(testCase.name);
-      expect(Utils.formatSearchAddress(item, true)).toBe(testCase.fullAddress);
-      expect(Utils.formatSearchAddress(item, false)).toBe(testCase.address);
-      expect(Utils.formatSearchDetails(item)).toBe(testCase.details);
-      expect(Utils.formatSearchList(item)).toBe(testCase.searchList);
+        expect(Utils.formatPlaceName(item)).toBe(testCase.name);
+        expect(Utils.formatPlaceAddress(item, 'all')).toBe(testCase.address);
+        expect(Utils.formatPlaceAddress(item, 'state')).toBe(testCase.details);
+        expect(Utils.formatSearchList(item)).toBe(testCase.searchList);
+      });
     });
   });
 
-  it('formats favorites correctly', () => {
+  describe('favorite formatting', () => {
     const testCases = [
       {
         // from favorites
         item: {
           title: '123 San Diego St',
+          resultType: 'houseNumber',
           distance: 1234,
           address: {
             label: '123 San Diego St, San Diego, CA 92123, United States',
@@ -118,11 +175,13 @@ describe('navigation formatting utils', () => {
     ];
 
     testCases.forEach((testCase) => {
-      const { item } = testCase;
+      test(testCase.address, () => {
+        const { item } = testCase;
 
-      expect(Utils.formatSearchName(item)).toBe(testCase.name);
-      expect(Utils.formatSearchAddress(item)).toBe(testCase.address);
-      expect(Utils.formatSearchDetails(item)).toBe(testCase.details);
+        expect(Utils.formatPlaceName(item)).toBe(testCase.name);
+        expect(Utils.formatPlaceAddress(item, 'all')).toBe(testCase.address);
+        expect(Utils.formatPlaceAddress(item, 'state')).toBe(testCase.details);
+      });
     });
   });
 });

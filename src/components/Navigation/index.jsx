@@ -806,12 +806,13 @@ class Navigation extends Component {
     } });
 
     const pos = this.itemLoc(searchSelect);
+    console.log(searchSelect);
     NavigationApi.setDestination(
       dongleId,
       pos.lat,
       pos.lng,
-      Utils.formatSearchName(searchSelect),
-      Utils.formatSearchAddress(searchSelect),
+      Utils.formatPlaceName(searchSelect),
+      Utils.formatPlaceAddress(searchSelect, 'state'),
     )
       .then((resp) => {
         if (resp.error) {
@@ -857,8 +858,8 @@ class Navigation extends Component {
       dongleId,
       pos.lat,
       pos.lng,
-      Utils.formatSearchName(searchSelect),
-      Utils.formatSearchAddress(searchSelect),
+      Utils.formatPlaceName(searchSelect),
+      Utils.formatPlaceAddress(searchSelect, 'state'),
       'favorite',
       label,
     )
@@ -1254,7 +1255,7 @@ class Navigation extends Component {
             { search.map((item) => (
               <div key={ item.id } className={ classes.overlaySearchItem } onClick={ () => this.onSearchSelect(item, 'list') }>
                 <Typography>
-                  { Utils.formatSearchName(item) }
+                  { Utils.formatPlaceName(item) }
                   <span className={ classes.overlaySearchDetails }>
                     { Utils.formatSearchList(item) }
                   </span>
@@ -1278,7 +1279,7 @@ class Navigation extends Component {
     const isCar = searchSelect.resultType === 'car';
 
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
-    const title = isCar ? device.alias : Utils.formatSearchName(searchSelect);
+    const title = isCar ? device.alias : Utils.formatPlaceName(searchSelect);
     const { lat, lng } = searchSelect.position;
 
     let geoUri;
@@ -1382,8 +1383,8 @@ class Navigation extends Component {
           </div>
         </div>
         <Typography className={ classes.searchSelectBoxDetails }>
-          {isCar && `${Utils.formatSearchName(searchSelect)}, `}
-          {Utils.formatSearchDetails(searchSelect)}
+          {isCar && `${Utils.formatPlaceName(searchSelect)}, `}
+          {Utils.formatPlaceAddress(searchSelect, 'state')}
         </Typography>
       </div>
     );

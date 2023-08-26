@@ -35,46 +35,66 @@ export function formatRouteDuration(route) {
   return formatDuration(route.duration_typical);
 }
 
-export function formatSearchName(item) {
+export function formatPlaceName(item) {
   if (item.resultType === 'place' || item.resultType === 'car') {
     return item.title;
   }
   return item.title.split(',', 1)[0];
 }
 
-export function formatSearchAddress(item, full = true) {
+/**
+ * @param {*} item
+ * @param {'none'|'state'|'all'} details
+ * @returns {string}
+ */
+export function formatPlaceAddress(item, details = 'all') {
+  const { address, resultType } = item;
   let res;
 
-  if (['street', 'city'].some((key) => !item.address[key])) {
-    res = item.address.label;
+  if (!address.city || ['street', 'streets'].every((key) => !address[key])) {
+    res = address.label;
   } else {
-    const { houseNumber, street, city } = item.address;
-    res = houseNumber ? `${houseNumber} ${street}, ${city}`.trimStart() : `${street}, ${city}`;
-    if (full) {
-      const { stateCode, postalCode, countryName } = item.address;
-      res += ',';
-      if (stateCode) {
-        res += ` ${stateCode}`;
+    if (!resultType) console.warn('formatSearchAddress: missing resultType', item);
+
+    res = '';
+
+    if (details === 'all' || ['car', 'place'].includes(resultType)) {
+      const { houseNumber, street, streets } = address;
+      if (houseNumber) res += `${houseNumber} `;
+      if (streets) {
+        res += streets.join(' & ');
+      } else {
+        res += street;
       }
-      res += ` ${postalCode}, ${countryName}`;
+      res += ', ';
+    }
+
+    const { city } = address;
+    res += `${city}`;
+
+    if (['state', 'all'].includes(details)) {
+      const { stateCode, postalCode, countryName } = address;
+      if (stateCode || postalCode) {
+        res += ',';
+        if (stateCode) res += ` ${stateCode}`;
+        res += ` ${postalCode}`;
+      }
+      if (details === 'all' && countryName) res += `, ${countryName}`;
     }
   }
 
-  if (!full) {
-    const name = formatSearchName(item);
-    if (res.startsWith(name)) {
-      res = res.substring(name.length + 2);
-    }
+  // NOTE: this is a hack to remove the name from the address. it's necessary
+  //       for cases where we only have the address label, without individual
+  //       address components (search results and favorites).
+  if (details !== 'all') {
+    const name = formatPlaceName(item);
+    if (res.startsWith(name)) res = res.substring(name.length + 2);
   }
 
   return res;
 }
 
-export function formatSearchDetails(item) {
-  return formatSearchAddress(item, false);
-}
-
 export function formatSearchList(item) {
-  const address = formatSearchAddress(item, false);
+  const address = formatPlaceAddress(item, 'none');
   return `, ${address} (${formatDistance(item.distance)})`;
 }
