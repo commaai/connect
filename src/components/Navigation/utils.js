@@ -71,15 +71,12 @@ export function formatPlaceAddress(item, details = 'all') {
     }
   }
 
+  // NOTE: this is a hack to remove the name from the address. it's necessary
+  //       for cases where we only have the address label, without individual
+  //       address components (search results and favourites).
   if (details !== 'all') {
     const name = formatPlaceName(item);
-    if (res.startsWith(name)) {
-      // NOTE: this is a hack to remove the name from the address.
-      //       it's needed for situations where we only have the address label
-      //       and not the individual address components.
-      console.warn('formatSearchAddress: removing name from address', { name, address: res, details });
-      res = res.substring(name.length + 2);
-    }
+    if (res.startsWith(name)) res = res.substring(name.length + 2);
   }
 
   return res;
