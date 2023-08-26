@@ -2,7 +2,7 @@
 import * as Utils from './utils';
 
 describe('navigation formatting utils', () => {
-  describe('formats search results correctly', () => {
+  describe('location formatting', () => {
     const testCases = [
       {
         // from mapbox api
@@ -111,19 +111,49 @@ describe('navigation formatting utils', () => {
         details: 'London, SW1E 6',
         searchList: ', London (0.8 mi)',
       },
+      {
+        // from mapbox api
+        item: {
+          title: '1441 Rd & State Road 76, Chimayo, NM 87522, United States',
+          resultType: 'intersection',
+          address: {
+            label: '1441 Rd & State Road 76, Chimayo, NM 87522, United States',
+            countryCode: 'USA',
+            countryName: 'United States',
+            stateCode: 'NM',
+            state: 'New Mexico',
+            county: 'Rio Arriba',
+            city: 'Chimayo',
+            streets: [
+              '1441 Rd',
+              'State Road 76',
+            ],
+            postalCode: '87522',
+          },
+          distance: 1092925,
+        },
+
+        // expected
+        name: '1441 Rd & State Road 76',
+        address: '1441 Rd & State Road 76, Chimayo, NM 87522, United States',
+        details: 'Chimayo, NM 87522',
+        searchList: ', Chimayo (679.1 mi)',
+      },
     ];
 
     testCases.forEach((testCase) => {
-      const { item } = testCase;
+      test(testCase.address, () => {
+        const { item } = testCase;
 
-      expect(Utils.formatPlaceName(item)).toBe(testCase.name);
-      expect(Utils.formatPlaceAddress(item, 'all')).toBe(testCase.address);
-      expect(Utils.formatPlaceAddress(item, 'state')).toBe(testCase.details);
-      expect(Utils.formatSearchList(item)).toBe(testCase.searchList);
+        expect(Utils.formatPlaceName(item)).toBe(testCase.name);
+        expect(Utils.formatPlaceAddress(item, 'all')).toBe(testCase.address);
+        expect(Utils.formatPlaceAddress(item, 'state')).toBe(testCase.details);
+        expect(Utils.formatSearchList(item)).toBe(testCase.searchList);
+      });
     });
   });
 
-  it('formats favorites correctly', () => {
+  describe('favorite formatting', () => {
     const testCases = [
       {
         // from favorites
@@ -145,11 +175,13 @@ describe('navigation formatting utils', () => {
     ];
 
     testCases.forEach((testCase) => {
-      const { item } = testCase;
+      test(testCase.address, () => {
+        const { item } = testCase;
 
-      expect(Utils.formatPlaceName(item)).toBe(testCase.name);
-      expect(Utils.formatPlaceAddress(item, 'all')).toBe(testCase.address);
-      expect(Utils.formatPlaceAddress(item, 'state')).toBe(testCase.details);
+        expect(Utils.formatPlaceName(item)).toBe(testCase.name);
+        expect(Utils.formatPlaceAddress(item, 'all')).toBe(testCase.address);
+        expect(Utils.formatPlaceAddress(item, 'state')).toBe(testCase.details);
+      });
     });
   });
 });
