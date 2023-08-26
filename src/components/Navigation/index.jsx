@@ -1384,7 +1384,7 @@ class Navigation extends Component {
         </div>
         <Typography className={ classes.searchSelectBoxDetails }>
           {isCar && `${Utils.formatPlaceName(searchSelect)}, `}
-          {Utils.formatPlaceAddress(searchSelect, 'all')}
+          {Utils.formatPlaceAddress(searchSelect, 'state')}
         </Typography>
       </div>
     );
