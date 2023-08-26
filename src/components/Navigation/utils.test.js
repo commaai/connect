@@ -26,9 +26,8 @@ describe('navigation formatting utils', () => {
 
         // expected
         name: 'Taco Bell',
-        fullAddress: '2011 Camino del Rio N, San Diego, CA 92108, United States',
-        address: '2011 Camino del Rio N, San Diego',
-        details: '2011 Camino del Rio N, San Diego',
+        details: '2011 Camino del Rio N, San Diego, CA 92108',
+        address: '2011 Camino del Rio N, San Diego, CA 92108, United States',
         searchList: ', 2011 Camino del Rio N, San Diego (0.8 mi)',
       },
       {
@@ -53,15 +52,15 @@ describe('navigation formatting utils', () => {
 
         // expected
         name: '1441 State St',
-        fullAddress: '1441 State St, San Diego, CA 92101-3421, United States',
-        address: 'San Diego',
-        details: 'San Diego',
+        details: 'San Diego, CA 92101-3421',
+        address: '1441 State St, San Diego, CA 92101-3421, United States',
         searchList: ', San Diego (0.8 mi)',
       },
       {
         // from mapbox api
         item: {
           title: 'Taco Bell',
+          distance: 38190,
           address: {
             label: 'Taco Bell, Irlam Drive, Liverpool, L32 8, United Kingdom',
             countryCode: 'GBR',
@@ -74,15 +73,39 @@ describe('navigation formatting utils', () => {
             street: 'Irlam Drive',
             postalCode: 'L32 8',
           },
-          distance: 38190,
         },
 
         // expected
         name: 'Taco Bell',
-        fullAddress: 'Irlam Drive, Liverpool, L32 8, United Kingdom',
-        address: 'Irlam Drive, Liverpool',
-        details: 'Irlam Drive, Liverpool',
+        details: 'Irlam Drive, Liverpool, L32 8',
+        address: 'Irlam Drive, Liverpool, L32 8, United Kingdom',
         searchList: ', Irlam Drive, Liverpool (23.7 mi)',
+      },
+      {
+        // from mapbox api
+        item: {
+          title: '123 Victoria Street, London, SW1E 6, United Kingdom',
+          distance: 1234,
+          address: {
+            label: '123 Victoria Street, London, SW1E 6, United Kingdom',
+            countryCode: 'GBR',
+            countryName: 'United Kingdom',
+            state: 'England',
+            countyCode: 'LDN',
+            county: 'London',
+            city: 'London',
+            district: 'St James\'s Park',
+            street: 'Victoria Street',
+            postalCode: 'SW1E 6',
+            houseNumber: '123',
+          },
+        },
+
+        // expected
+        name: '123 Victoria Street',
+        details: 'London, SW1E 6',
+        address: '123 Victoria Street, London, SW1E 6, United Kingdom',
+        searchList: ', London (0.8 mi)',
       },
     ];
 
@@ -90,8 +113,7 @@ describe('navigation formatting utils', () => {
       const { item } = testCase;
 
       expect(Utils.formatSearchName(item)).toBe(testCase.name);
-      expect(Utils.formatSearchAddress(item, true)).toBe(testCase.fullAddress);
-      expect(Utils.formatSearchAddress(item, false)).toBe(testCase.address);
+      expect(Utils.formatSearchAddress(item)).toBe(testCase.address);
       expect(Utils.formatSearchDetails(item)).toBe(testCase.details);
       expect(Utils.formatSearchList(item)).toBe(testCase.searchList);
     });

@@ -811,7 +811,7 @@ class Navigation extends Component {
       pos.lat,
       pos.lng,
       Utils.formatSearchName(searchSelect),
-      Utils.formatSearchAddress(searchSelect),
+      Utils.formatSearchDetails(searchSelect),
     )
       .then((resp) => {
         if (resp.error) {
@@ -858,7 +858,7 @@ class Navigation extends Component {
       pos.lat,
       pos.lng,
       Utils.formatSearchName(searchSelect),
-      Utils.formatSearchAddress(searchSelect),
+      Utils.formatSearchDetails(searchSelect),
       'favorite',
       label,
     )
@@ -1383,7 +1383,7 @@ class Navigation extends Component {
         </div>
         <Typography className={ classes.searchSelectBoxDetails }>
           {isCar && `${Utils.formatSearchName(searchSelect)}, `}
-          {Utils.formatSearchDetails(searchSelect)}
+          {Utils.formatSearchAddress(searchSelect)}
         </Typography>
       </div>
     );
