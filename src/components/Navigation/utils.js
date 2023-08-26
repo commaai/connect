@@ -35,34 +35,49 @@ export function formatRouteDuration(route) {
   return formatDuration(route.duration_typical);
 }
 
-export function formatSearchName(item) {
+export function formatPlaceName(item) {
   if (item.resultType === 'place' || item.resultType === 'car') {
     return item.title;
   }
   return item.title.split(',', 1)[0];
 }
 
-export function formatSearchAddress(item, full = true) {
+/**
+ * @param {*} item
+ * @param {'none'|'state'|'all'} details
+ * @returns {string}
+ */
+export function formatPlaceAddress(item, details = 'all') {
   let res;
 
   if (['street', 'city'].some((key) => !item.address[key])) {
     res = item.address.label;
   } else {
-    const { houseNumber, street, city } = item.address;
-    res = houseNumber ? `${houseNumber} ${street}, ${city}`.trimStart() : `${street}, ${city}`;
-    if (full) {
-      const { stateCode, postalCode, countryName } = item.address;
+    if (!item.resultType) console.warn('formatSearchAddress: missing resultType', item);
+
+    res = '';
+    if (details === 'all' || ['car', 'place'].includes(item.resultType)) {
+      const { houseNumber, street } = item.address;
+      if (houseNumber) res += `${houseNumber} `;
+      res += `${street}, `;
+    }
+    const { city, stateCode, postalCode, countryName } = item.address;
+    res += `${city}`;
+    if (['state', 'all'].includes(details)) {
       res += ',';
-      if (stateCode) {
-        res += ` ${stateCode}`;
-      }
-      res += ` ${postalCode}, ${countryName}`;
+      if (stateCode) res += ` ${stateCode}`;
+      res += ` ${postalCode}`;
+      if (details === 'all' && countryName) res += `, ${countryName}`;
     }
   }
 
-  if (!full) {
-    const name = formatSearchName(item);
+  if (details !== 'all') {
+    const name = formatPlaceName(item);
     if (res.startsWith(name)) {
+      // NOTE: this is a hack to remove the name from the address.
+      //       it's needed for situations where we only have the address label
+      //       and not the individual address components.
+      console.warn('formatSearchAddress: removing name from address', { name, address: res, details });
       res = res.substring(name.length + 2);
     }
   }
@@ -70,11 +85,7 @@ export function formatSearchAddress(item, full = true) {
   return res;
 }
 
-export function formatSearchDetails(item) {
-  return formatSearchAddress(item, false);
-}
-
 export function formatSearchList(item) {
-  const address = formatSearchAddress(item, false);
+  const address = formatPlaceAddress(item, 'none');
   return `, ${address} (${formatDistance(item.distance)})`;
 }
