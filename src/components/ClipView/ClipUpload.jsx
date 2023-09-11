@@ -252,7 +252,7 @@ class ClipUpload extends Component {
     };
 
     cartesianProduct(requiredSegments, types)
-      .map((seg, type) => {
+      .map(([seg, type]) => {
         res.count += 1;
         return files[`${seg}/${type}`];
       })
@@ -344,7 +344,7 @@ class ClipUpload extends Component {
     let uploadingStates = [];
     if (files && requiredSegments && requiredFileTypes) {
       uploadingStates = cartesianProduct(requiredSegments, requiredFileTypes)
-        .map((segment, type) => {
+        .map(([segment, type]) => {
           let progress;
           const file = files[`${segment}/${type}`] || {};
           if (file.url) {
