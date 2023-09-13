@@ -816,7 +816,7 @@ class Media extends Component {
           anchorEl={ dcamUploadInfo }
           className={ classes.dcameraUploadInfo }
         >
-          <Typography>make sure to enable the &ldquo;Record and Upload Driver Camera&rdqou; toggle</Typography>
+          <Typography>make sure to enable the &ldquo;Record and Upload Driver Camera&rdquo; toggle</Typography>
         </Popper>
       </>
     );
