@@ -58,7 +58,6 @@ export default function reducer(_state, action) {
         subscription: null,
         subscribeInfo: null,
         files: null,
-        clips: null,
       };
       window.localStorage.setItem('selectedDongleId', action.dongleId);
       if (state.devices) {
@@ -235,7 +234,6 @@ export default function reducer(_state, action) {
         primeNav: action.primeNav,
       };
       if (action.primeNav) {
-        state.clips = null;
         state.zoom = null;
       }
       break;
@@ -260,7 +258,6 @@ export default function reducer(_state, action) {
       };
       break;
     case Types.TIMELINE_POP_SELECTION:
-      state.clips = null;
       if (state.zoom.previous) {
         state.zoom = state.zoom.previous;
       } else {
@@ -272,7 +269,6 @@ export default function reducer(_state, action) {
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }
-      state.clips = null;
       if (action.start && action.end) {
         state.zoom = {
           start: action.start,
@@ -321,114 +317,6 @@ export default function reducer(_state, action) {
       state.filesUploading = Object.keys(state.filesUploading)
         .filter((id) => !action.ids.includes(id))
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
-      break;
-    case Types.ACTION_CLIPS_EXIT:
-      if (state.clips && state.clips.state === 'create') {
-        if (state.zoom) {
-          state.loop = {
-            startTime: state.zoom.start,
-            duration: state.zoom.end - state.zoom.start,
-          };
-        } else {
-          state.loop = null;
-        }
-      }
-
-      if (state.clips && state.clips.state !== 'list' && state.clips.list && state.clips.list.length) {
-        state.clips = {
-          state: 'list',
-          dongleId: state.clips.dongleId,
-          list: state.clips.list,
-        };
-      } else {
-        state.clips = null;
-      }
-      break;
-    case Types.ACTION_CLIPS_LOADING:
-      state.clips = {
-        state: 'loading',
-        dongleId: action.dongleId,
-      };
-      break;
-    case Types.ACTION_CLIPS_LIST:
-      let clipList = null;
-      if (action.list) {
-        clipList = action.list.map((c) => ({
-          clip_id: c.id,
-          dongle_id: c.dongle_id,
-          create_time: c.create_time,
-          route_name: c.route_name,
-          start_time: c.start_time,
-          end_time: c.end_time,
-          status: c.status,
-          title: c.title,
-          video_type: c.video_type,
-          is_public: c.is_public,
-          thumbnail: c.thumbnail,
-        }));
-      }
-      state.clips = {
-        state: 'list',
-        dongleId: action.dongleId,
-        list: clipList,
-      };
-      break;
-    case Types.ACTION_CLIPS_INIT:
-      state.clips = {
-        state: 'create',
-        dongleId: action.dongleId,
-        route: action.route,
-      };
-      break;
-    case Types.ACTION_CLIPS_CREATE:
-      state.clips = {
-        ...state.clips,
-        state: 'upload',
-        clip_id: action.clip_id,
-        start_time: action.start_time,
-        end_time: action.end_time,
-        video_type: action.video_type,
-        title: action.title,
-        route: action.route,
-        pending_status: action.pending_status,
-        pending_progress: action.pending_progress,
-      };
-      break;
-    case Types.ACTION_CLIPS_DONE:
-      state.clips = {
-        ...state.clips,
-        state: 'done',
-        clip_id: action.clip_id,
-        start_time: action.start_time,
-        end_time: action.end_time,
-        video_type: action.video_type,
-        title: action.title,
-        route: action.route,
-        url: action.url,
-        is_public: action.is_public,
-        thumbnail: action.thumbnail,
-      };
-      break;
-    case Types.ACTION_CLIPS_UPDATE:
-      state.clips = {
-        ...state.clips,
-        is_public: action.is_public,
-      };
-      break;
-    case Types.ACTION_CLIPS_DELETE:
-      if (state.clips?.list?.length) {
-        state.clips = {
-          ...state.clips,
-          list: state.clips?.list.filter((c) => c.clip_id !== action.clip_id),
-        };
-      }
-      break;
-    case Types.ACTION_CLIPS_ERROR:
-      state.clips = {
-        state: 'error',
-        clip_id: action.clip_id,
-        error: action.error,
-      };
       break;
     case Types.ACTION_ROUTES_METADATA:
       state.routes = action.routes;

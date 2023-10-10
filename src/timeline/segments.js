@@ -28,7 +28,7 @@ export function updateSegments() {
 }
 
 export function getSegmentFetchRange(state) {
-  if (!state.zoom && !(state.clips && state.clips.state === 'upload')) {
+  if (!state.zoom && !(state.clips.state === 'upload')) {
     return state.filter;
   }
   if (state.clips && state.clips.end_time < state.filter.start) {
