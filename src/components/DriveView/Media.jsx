@@ -26,7 +26,6 @@ import { analyticsEvent, primeNav, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles } from '../../actions/files';
-import { clipsInit } from '../../actions/clips';
 
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
@@ -452,19 +451,6 @@ class Media extends Component {
     this.props.dispatch(analyticsEvent('download_file', eventParameters));
 
     window.location.href = file.url;
-  }
-
-  initCreateClip(ev) {
-    const { device, profile, currentRoute } = this.props;
-    if (!currentRoute) {
-      return;
-    }
-
-    if (device.prime || profile?.superuser) {
-      this.props.dispatch(clipsInit());
-    } else {
-      this.setState({ createClipNoPrime: ev.target });
-    }
   }
 
   async onPublicToggle(ev) {

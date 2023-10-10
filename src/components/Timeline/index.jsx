@@ -134,52 +134,6 @@ const styles = () => ({
     left: 0,
     width: 80,
   },
-  clip: {
-    position: 'absolute',
-    width: '100%',
-    height: 32,
-    top: 0,
-    touchAction: 'none',
-  },
-  clipRulerRemaining: {
-    borderLeft: `1px solid ${Colors.lightGrey200}`,
-    position: 'absolute',
-    left: 0,
-    height: 32,
-    width: '100%',
-    zIndex: 3,
-  },
-  clipView: {
-    backgroundColor: Colors.black,
-    position: 'absolute',
-    height: 32,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    touchAction: 'none',
-    zIndex: 3,
-  },
-  clipDragHandle: {
-    backgroundColor: Colors.white,
-    width: 3,
-    height: 24,
-    borderRadius: 1.5,
-  },
-  clipDragBorderTop: {
-    backgroundColor: Colors.black,
-    height: 3,
-    top: -3,
-    position: 'absolute',
-    borderRadius: '3px 3px 0 0',
-  },
-  clipDragBorderBottom: {
-    backgroundColor: Colors.black,
-    height: 3,
-    top: 32,
-    position: 'absolute',
-    borderRadius: '0 0 3px 3px',
-  },
 });
 
 const AlertStatusCodes = [
@@ -204,15 +158,10 @@ class Timeline extends Component {
     this.handlePointerDown = this.handlePointerDown.bind(this);
     this.handlePointerUp = this.handlePointerUp.bind(this);
     this.handlePointerLeave = this.handlePointerLeave.bind(this);
-    this.clipDragStart = this.clipDragStart.bind(this);
-    this.clipDragGetNewLoop = this.clipDragGetNewLoop.bind(this);
-    this.clipDragMove = this.clipDragMove.bind(this);
-    this.clipDragEnd = this.clipDragEnd.bind(this);
     this.percentToOffset = this.percentToOffset.bind(this);
     this.segmentNum = this.segmentNum.bind(this);
     this.onRulerRef = this.onRulerRef.bind(this);
     this.renderRoute = this.renderRoute.bind(this);
-    this.renderClipView = this.renderClipView.bind(this);
 
     this.rulerRemaining = React.createRef();
     this.rulerRef = React.createRef();
@@ -224,7 +173,6 @@ class Timeline extends Component {
       dragging: null,
       hoverX: null,
       zoom: zoomOverride || zoom,
-      clip: null,
       thumbnail: {
         height: 0,
         width: 0,
@@ -250,8 +198,8 @@ class Timeline extends Component {
   }
 
   handleClick(ev) {
-    const { dragging, clip } = this.state;
-    if (clip === null && (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3)) {
+    const { dragging } = this.state;
+    if (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3) {
       const percent = percentFromPointerEvent(ev);
       this.props.dispatch(seek(this.percentToOffset(percent)));
     }
@@ -347,77 +295,6 @@ class Timeline extends Component {
     }
   }
 
-  clipDragStart(type, ev) {
-    if (ev.button !== 0) {
-      return;
-    }
-    const { loop } = this.props;
-    ev.preventDefault();
-    document.addEventListener('pointerup', this.clipDragEnd);
-    document.addEventListener('pointermove', this.clipDragMove);
-    this.setState({
-      clip: {
-        type,
-        initLoop: { ...loop },
-        loop: { ...loop },
-        startX: ev.pageX,
-      },
-    });
-  }
-
-  clipDragGetNewLoop(ev) {
-    const { zoom: { end: zoomEnd, start: zoomStart } } = this.props;
-    const { clip: { initLoop, startX, type } } = this.state;
-
-    const rulerWidth = this.rulerRef.current.getBoundingClientRect().width;
-    const changePercentage = (ev.pageX - startX) / rulerWidth;
-
-    let newStart; let
-      newEnd;
-    if (type === 'start') {
-      newEnd = initLoop.startTime + initLoop.duration;
-      newStart = initLoop.startTime + ((zoomEnd - zoomStart) * changePercentage);
-      newStart = Math.min(Math.max(newStart, zoomStart), newEnd - 1000);
-    } else if (type === 'end') {
-      newStart = initLoop.startTime;
-      newEnd = initLoop.startTime + initLoop.duration + ((zoomEnd - zoomStart) * changePercentage);
-      newEnd = Math.max(Math.min(newEnd, zoomEnd), newStart + 1000);
-    }
-
-    return {
-      startTime: newStart,
-      duration: newEnd - newStart,
-    };
-  }
-
-  clipDragMove(ev) {
-    const { clip } = this.state;
-    if (clip) {
-      ev.preventDefault();
-      this.setState({
-        clip: {
-          ...clip,
-          loop: this.clipDragGetNewLoop(ev),
-        },
-      });
-    }
-  }
-
-  clipDragEnd(ev) {
-    const { clip } = this.state;
-    const { dispatch } = this.props;
-
-    document.removeEventListener('pointerup', this.clipDragEnd);
-    document.removeEventListener('pointermove', this.clipDragEnd);
-
-    if (clip) {
-      ev.preventDefault();
-      const newLoop = this.clipDragGetNewLoop(ev);
-      dispatch(selectLoop(newLoop.startTime, newLoop.startTime + newLoop.duration));
-      this.setState({ clip: null });
-    }
-  }
-
   percentToOffset(perc) {
     const { zoom } = this.state;
     const { filter } = this.props;
@@ -501,138 +378,6 @@ class Timeline extends Component {
           />
         );
       });
-  }
-
-  renderClipView() {
-    const { classes, zoom: { end: zoomEnd, start: zoomStart }, loop } = this.props;
-    const { clip } = this.state;
-
-    const { startTime, duration } = clip ? clip.loop : loop;
-
-    const loopStartPercent = ((startTime - zoomStart) / (zoomEnd - zoomStart)) * 100.0;
-    const loopEndPercent = ((zoomEnd - startTime - duration) / (zoomEnd - zoomStart)) * 100.0;
-    const loopDurationPercent = (duration / (zoomEnd - zoomStart)) * 100.0;
-
-    const rulerWidth = this.rulerRef.current?.getBoundingClientRect()?.width || 640;
-    const handleWidth = rulerWidth < 640 ? 28 : 12;
-
-    const dragBorderStyle = {
-      left: `calc(${loopStartPercent}% - ${handleWidth}px)`,
-      width: `calc(${loopDurationPercent}% + ${handleWidth * 2}px)`,
-    };
-
-    return (
-      <div
-        ref={ this.onRulerRef }
-        className={classes.clip}
-        onClick={this.handleClick}
-      >
-        <div ref={this.rulerRemaining} className={classes.clipRulerRemaining} />
-        <div
-          className={ classes.clipView }
-          style={{ left: `calc(${loopStartPercent}% - ${handleWidth}px)`, width: handleWidth }}
-          onPointerDown={ (ev) => this.clipDragStart('start', ev) }
-        >
-          <div className={ classes.clipDragHandle } />
-        </div>
-        <div
-          className={ classes.clipView }
-          style={{ right: `calc(${loopEndPercent}% - ${handleWidth}px)`, width: handleWidth }}
-          onPointerDown={ (ev) => this.clipDragStart('end', ev) }
-        >
-          <div className={ classes.clipDragHandle } />
-        </div>
-        <div className={ classes.clipDragBorderTop } style={ dragBorderStyle } />
-        <div className={ classes.clipDragBorderBottom } style={ dragBorderStyle } />
-      </div>
-    );
-  }
-
-  render() {
-    const { classes, hasRuler, filter, className, routes, thumbnailsVisible, hasClip } = this.props;
-    const { thumbnail, hoverX, dragging } = this.state;
-
-    const hasRulerCls = hasRuler ? 'hasRuler' : '';
-
-    let rulerBounds;
-    if (this.rulerRef.current) {
-      rulerBounds = this.rulerRef.current.getBoundingClientRect();
-    }
-
-    let hoverString; let
-      hoverStyle;
-    if (rulerBounds && hoverX) {
-      const hoverOffset = this.percentToOffset((hoverX - rulerBounds.x) / rulerBounds.width);
-      hoverStyle = { left: Math.max(-10, Math.min(rulerBounds.width - 70, hoverX - rulerBounds.x - 40)) };
-      if (!Number.isNaN(hoverOffset)) {
-        hoverString = dayjs(filter.start + hoverOffset).format('HH:mm:ss');
-        const segNum = this.segmentNum(hoverOffset);
-        if (segNum !== null) {
-          hoverString = `${segNum}, ${hoverString}`;
-        }
-      }
-    }
-
-    let draggerStyle;
-    if (rulerBounds && dragging && Math.abs(dragging[1] - dragging[0]) > 0) {
-      draggerStyle = {
-        left: `${Math.min(dragging[1], dragging[0]) - rulerBounds.x}px`,
-        width: `${Math.abs(dragging[1] - dragging[0])}px`,
-      };
-    }
-
-    const rulerWidth = this.rulerRef.current ? this.rulerRef.current.getBoundingClientRect().width : 640;
-    const handleWidth = rulerWidth < 640 ? 28 : 12;
-    const baseWidthStyle = hasClip
-      ? { width: `calc(100% - ${handleWidth * 2}px)`, margin: `0 ${handleWidth}px` }
-      : { width: '100%' };
-
-    return (
-      <div className={className}>
-        <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } style={ baseWidthStyle }>
-          <div className={ `${classes.segments} ${hasRulerCls}` }>
-            { routes && routes.map(this.renderRoute) }
-            <div className={ `${classes.statusGradient} ${hasRulerCls}` } />
-          </div>
-          <Measure bounds onResize={(rect) => this.setState({ thumbnail: rect.bounds })}>
-            { (options) => (
-              <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
-                { thumbnailsVisible && (
-                  <Thumbnails
-                    className={classes.thumbnail}
-                    getCurrentRoute={ (o) => getCurrentRoute(this.props, o) }
-                    percentToOffset={this.percentToOffset}
-                    thumbnail={thumbnail}
-                    hasRuler={hasRuler}
-                  />
-                ) }
-              </div>
-            )}
-          </Measure>
-          { hasRuler && (
-            <>
-              <div
-                ref={ this.onRulerRef }
-                className={classes.ruler}
-                onPointerDown={this.handlePointerDown}
-                onPointerUp={this.handlePointerUp}
-                onPointerMove={this.handlePointerMove}
-                onPointerLeave={this.handlePointerLeave}
-              >
-                <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
-                { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
-              </div>
-              { hoverString && (
-                <div ref={this.hoverBead} className={classes.hoverBead} style={hoverStyle}>
-                  { hoverString }
-                </div>
-              ) }
-            </>
-          ) }
-          { Boolean(hasClip) && this.renderClipView() }
-        </div>
-      </div>
-    );
   }
 }
 

@@ -23,7 +23,6 @@ import { verifyPairToken, pairErrorToMessage } from '../utils';
 
 import ResizeHandler from './ResizeHandler';
 
-import ClipView from './ClipView';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 
@@ -219,10 +218,8 @@ class ExplorerApp extends Component {
         <div className={ classes.window } style={ containerStyles }>
           { noDevicesUpsell
             ? <NoDeviceUpsell />
-            : (clips
-              ? <ClipView />
-              : (zoom ? <DriveView /> : <Dashboard />)
-            ) }
+            : (zoom ? <DriveView /> : <Dashboard />)
+            }
         </div>
         <IosPwaPopup />
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -253,7 +250,6 @@ const stateToProps = Obstruction({
   pathname: 'router.location.pathname',
   dongleId: 'dongleId',
   devices: 'devices',
-  clips: 'clips',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));
