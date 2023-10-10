@@ -375,7 +375,7 @@ class PrimeCheckout extends Component {
               onClick={ subscribeInfo ? () => this.setState({ selectedPlan: 'nodata' }) : null }
             >
               <p className={ classes.planName }>lite</p>
-              <p className={ classes.planPrice }>$16/month</p>
+              <p className={ classes.planPrice }>$10/month</p>
               <p className={ classes.planSubtext }>
                 bring your own
                 <br />
