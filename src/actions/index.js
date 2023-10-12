@@ -7,7 +7,6 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 import { getSegmentFetchRange, hasRoutesData } from '../timeline/segments';
-import { getClipsNav } from '../url';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
 let routesRequest = null;
@@ -281,8 +280,7 @@ export function checkRoutesData() {
         return;
       }
       if (routesData && routesData.length === 0
-        && !MyCommaAuth.isAuthenticated()
-        && !getClipsNav(window.location.pathname)?.clip_id) {
+        && !MyCommaAuth.isAuthenticated()) {
         window.location = `/?r=${encodeURI(window.location.pathname)}`; // redirect to login
         return;
       }
