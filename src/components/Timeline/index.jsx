@@ -381,7 +381,7 @@ class Timeline extends Component {
   }
 
   render() {
-    const { classes, hasRuler, filter, className, routes, thumbnailsVisible, hasClip } = this.props;
+    const { classes, hasRuler, filter, className, routes, thumbnailsVisible } = this.props;
     const { thumbnail, hoverX, dragging } = this.state;
 
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
@@ -415,9 +415,7 @@ class Timeline extends Component {
 
     const rulerWidth = this.rulerRef.current ? this.rulerRef.current.getBoundingClientRect().width : 640;
     const handleWidth = rulerWidth < 640 ? 28 : 12;
-    const baseWidthStyle = hasClip
-      ? { width: `calc(100% - ${handleWidth * 2}px)`, margin: `0 ${handleWidth}px` }
-      : { width: '100%' };
+    const baseWidthStyle = { width: '100%' };
 
     return (
       <div className={className}>
@@ -461,7 +459,6 @@ class Timeline extends Component {
               ) }
             </>
           ) }
-          { Boolean(hasClip) && this.renderClipView() }
         </div>
       </div>
     );

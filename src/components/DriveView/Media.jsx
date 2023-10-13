@@ -231,7 +231,6 @@ class Media extends Component {
       moreInfoMenu: null,
       uploadModal: false,
       dcamUploadInfo: null,
-      createClipNoPrime: null,
       routePreserved: null,
     };
 
@@ -544,7 +543,7 @@ class Media extends Component {
 
   renderMediaOptions(showMapAlways) {
     const { classes, device, profile } = this.props;
-    const { inView, createClipNoPrime } = this.state;
+    const { inView } = this.state;
     return (
       <>
         <div className={classes.mediaOptionsRoot}>
@@ -569,12 +568,6 @@ class Media extends Component {
               </div>
             )}
           <div className={classes.mediaOptions}>
-            { Boolean(device?.is_owner || (profile && profile.superuser))
-              && (
-              <div className={classes.mediaOption} aria-haspopup="true" onClick={ this.initCreateClip }>
-                <Typography className={classes.mediaOptionText}>Create clip</Typography>
-              </div>
-              )}
             <div
               className={classes.mediaOption}
               aria-haspopup="true"
@@ -592,21 +585,6 @@ class Media extends Component {
           </div>
         </div>
         { this.renderMenus() }
-        <Popover
-          open={ Boolean(createClipNoPrime) }
-          anchorEl={ createClipNoPrime }
-          onClose={ () => this.setState({ createClipNoPrime: null }) }
-          classes={{ paper: classes.noPrimePopover }}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          <div className={ classes.noPrimeHeader }>
-            <p>comma prime</p>
-            <Button onClick={ () => this.props.dispatch(primeNav(true)) } className={ classes.noPrimeButton }>
-              sign up
-            </Button>
-          </div>
-          <p>clip export is a prime only feature</p>
-        </Popover>
       </>
     );
   }
