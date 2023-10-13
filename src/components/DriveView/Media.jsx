@@ -246,7 +246,6 @@ class Media extends Component {
     this.getUploadStats = this.getUploadStats.bind(this);
     this._uploadStats = this._uploadStats.bind(this);
     this.downloadFile = this.downloadFile.bind(this);
-    this.initCreateClip = this.initCreateClip.bind(this);
     this.onPublicToggle = this.onPublicToggle.bind(this);
     this.fetchRoutePreserved = this.fetchRoutePreserved.bind(this);
     this.onPreserveToggle = this.onPreserveToggle.bind(this);

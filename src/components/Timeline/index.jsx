@@ -379,6 +379,93 @@ class Timeline extends Component {
         );
       });
   }
+
+  render() {
+    const { classes, hasRuler, filter, className, routes, thumbnailsVisible, hasClip } = this.props;
+    const { thumbnail, hoverX, dragging } = this.state;
+
+    const hasRulerCls = hasRuler ? 'hasRuler' : '';
+
+    let rulerBounds;
+    if (this.rulerRef.current) {
+      rulerBounds = this.rulerRef.current.getBoundingClientRect();
+    }
+
+    let hoverString; let
+      hoverStyle;
+    if (rulerBounds && hoverX) {
+      const hoverOffset = this.percentToOffset((hoverX - rulerBounds.x) / rulerBounds.width);
+      hoverStyle = { left: Math.max(-10, Math.min(rulerBounds.width - 70, hoverX - rulerBounds.x - 40)) };
+      if (!Number.isNaN(hoverOffset)) {
+        hoverString = dayjs(filter.start + hoverOffset).format('HH:mm:ss');
+        const segNum = this.segmentNum(hoverOffset);
+        if (segNum !== null) {
+          hoverString = `${segNum}, ${hoverString}`;
+        }
+      }
+    }
+
+    let draggerStyle;
+    if (rulerBounds && dragging && Math.abs(dragging[1] - dragging[0]) > 0) {
+      draggerStyle = {
+        left: `${Math.min(dragging[1], dragging[0]) - rulerBounds.x}px`,
+        width: `${Math.abs(dragging[1] - dragging[0])}px`,
+      };
+    }
+
+    const rulerWidth = this.rulerRef.current ? this.rulerRef.current.getBoundingClientRect().width : 640;
+    const handleWidth = rulerWidth < 640 ? 28 : 12;
+    const baseWidthStyle = hasClip
+      ? { width: `calc(100% - ${handleWidth * 2}px)`, margin: `0 ${handleWidth}px` }
+      : { width: '100%' };
+
+    return (
+      <div className={className}>
+        <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } style={ baseWidthStyle }>
+          <div className={ `${classes.segments} ${hasRulerCls}` }>
+            { routes && routes.map(this.renderRoute) }
+            <div className={ `${classes.statusGradient} ${hasRulerCls}` } />
+          </div>
+          <Measure bounds onResize={(rect) => this.setState({ thumbnail: rect.bounds })}>
+            { (options) => (
+              <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
+                { thumbnailsVisible && (
+                  <Thumbnails
+                    className={classes.thumbnail}
+                    getCurrentRoute={ (o) => getCurrentRoute(this.props, o) }
+                    percentToOffset={this.percentToOffset}
+                    thumbnail={thumbnail}
+                    hasRuler={hasRuler}
+                  />
+                ) }
+              </div>
+            )}
+          </Measure>
+          { hasRuler && (
+            <>
+              <div
+                ref={ this.onRulerRef }
+                className={classes.ruler}
+                onPointerDown={this.handlePointerDown}
+                onPointerUp={this.handlePointerUp}
+                onPointerMove={this.handlePointerMove}
+                onPointerLeave={this.handlePointerLeave}
+              >
+                <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
+                { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
+              </div>
+              { hoverString && (
+                <div ref={this.hoverBead} className={classes.hoverBead} style={hoverStyle}>
+                  { hoverString }
+                </div>
+              ) }
+            </>
+          ) }
+          { Boolean(hasClip) && this.renderClipView() }
+        </div>
+      </div>
+    );
+  }
 }
 
 const stateToProps = Obstruction({
