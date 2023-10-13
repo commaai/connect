@@ -11,7 +11,6 @@ import { VideoLibrary } from '@material-ui/icons';
 
 import { athena as Athena, devices as Devices } from '@commaai/api';
 import { analyticsEvent } from '../../actions';
-import { fetchClipsList } from '../../actions/clips';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
@@ -152,15 +151,6 @@ const styles = (theme) => ({
   buttonIcon: {
     fontSize: 20,
     marginLeft: theme.spacing.unit,
-  },
-  clipsButton: {
-    backgroundColor: Colors.blue500,
-    color: Colors.white,
-    marginLeft: theme.spacing.unit,
-    '&:hover': {
-      background: Colors.blue600,
-      color: Colors.white,
-    },
   },
   popover: {
     borderRadius: 22,
@@ -501,19 +491,6 @@ class DeviceInfo extends Component {
             ? <CircularProgress size={ 19 } />
             : 'take snapshot'}
         </Button>
-        { ((device.is_owner && device.prime) || profile?.superuser) && (
-          <Button
-            classes={{ root: `${classes.button} ${classes.clipsButton} ${actionButtonClass}` }}
-            onClick={ () => this.props.dispatch(fetchClipsList(this.props.dongleId)) }
-          >
-            view
-            {' '}
-            { windowWidth < 396 && <br /> }
-            {' '}
-            clips
-            { windowWidth >= 520 && <VideoLibrary className={ classes.buttonIcon } /> }
-          </Button>
-        ) }
         <Popper
           className={ classes.popover }
           open={ Boolean(error) }

@@ -59,7 +59,7 @@ const styles = () => ({
 
 const AppHeader = ({
   profile, classes, dispatch, drawerIsOpen, annotating, showDrawerButton,
-  forwardRef, clips, handleDrawerStateChanged, primeNav, dongleId,
+  forwardRef, handleDrawerStateChanged, primeNav, dongleId,
 }) => {
   const [anchorEl, setAnchorEl] = useState(null);
 
@@ -112,7 +112,7 @@ const AppHeader = ({
             </a>
           </div>
           <div className="flex order-4 w-full justify-center sm:order-none sm:w-auto">
-            {Boolean(!primeNav && !clips && !annotating && dongleId) && <TimeFilter />}
+            {Boolean(!primeNav && !annotating && dongleId) && <TimeFilter />}
           </div>
           <div className="flex flex-row gap-2">
             <Suspense><PWAIcon /></Suspense>
@@ -145,7 +145,6 @@ const stateToProps = Obstruction({
   filter: 'filter',
   profile: 'profile',
   primeNav: 'primeNav',
-  clips: 'clips',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));

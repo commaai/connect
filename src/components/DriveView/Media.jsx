@@ -26,7 +26,6 @@ import { analyticsEvent, primeNav, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles } from '../../actions/files';
-import { clipsInit } from '../../actions/clips';
 
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
@@ -232,7 +231,6 @@ class Media extends Component {
       moreInfoMenu: null,
       uploadModal: false,
       dcamUploadInfo: null,
-      createClipNoPrime: null,
       routePreserved: null,
     };
 
@@ -247,7 +245,6 @@ class Media extends Component {
     this.getUploadStats = this.getUploadStats.bind(this);
     this._uploadStats = this._uploadStats.bind(this);
     this.downloadFile = this.downloadFile.bind(this);
-    this.initCreateClip = this.initCreateClip.bind(this);
     this.onPublicToggle = this.onPublicToggle.bind(this);
     this.fetchRoutePreserved = this.fetchRoutePreserved.bind(this);
     this.onPreserveToggle = this.onPreserveToggle.bind(this);
@@ -454,19 +451,6 @@ class Media extends Component {
     window.location.href = file.url;
   }
 
-  initCreateClip(ev) {
-    const { device, profile, currentRoute } = this.props;
-    if (!currentRoute) {
-      return;
-    }
-
-    if (device.prime || profile?.superuser) {
-      this.props.dispatch(clipsInit());
-    } else {
-      this.setState({ createClipNoPrime: ev.target });
-    }
-  }
-
   async onPublicToggle(ev) {
     const isPublic = ev.target.checked;
     try {
@@ -559,7 +543,7 @@ class Media extends Component {
 
   renderMediaOptions(showMapAlways) {
     const { classes, device, profile } = this.props;
-    const { inView, createClipNoPrime } = this.state;
+    const { inView } = this.state;
     return (
       <>
         <div className={classes.mediaOptionsRoot}>
@@ -584,12 +568,6 @@ class Media extends Component {
               </div>
             )}
           <div className={classes.mediaOptions}>
-            { Boolean(device?.is_owner || (profile && profile.superuser))
-              && (
-              <div className={classes.mediaOption} aria-haspopup="true" onClick={ this.initCreateClip }>
-                <Typography className={classes.mediaOptionText}>Create clip</Typography>
-              </div>
-              )}
             <div
               className={classes.mediaOption}
               aria-haspopup="true"
@@ -607,21 +585,6 @@ class Media extends Component {
           </div>
         </div>
         { this.renderMenus() }
-        <Popover
-          open={ Boolean(createClipNoPrime) }
-          anchorEl={ createClipNoPrime }
-          onClose={ () => this.setState({ createClipNoPrime: null }) }
-          classes={{ paper: classes.noPrimePopover }}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          <div className={ classes.noPrimeHeader }>
-            <p>comma prime</p>
-            <Button onClick={ () => this.props.dispatch(primeNav(true)) } className={ classes.noPrimeButton }>
-              sign up
-            </Button>
-          </div>
-          <p>clip export is a prime only feature</p>
-        </Popover>
       </>
     );
   }

@@ -28,14 +28,8 @@ export function updateSegments() {
 }
 
 export function getSegmentFetchRange(state) {
-  if (!state.zoom && !(state.clips && state.clips.state === 'upload')) {
+  if (!state.zoom) {
     return state.filter;
-  }
-  if (state.clips && state.clips.end_time < state.filter.start) {
-    return {
-      start: state.clips.start_time,
-      end: state.clips.end_time,
-    };
   }
   if (state.zoom && state.zoom.end < state.filter.start) {
     return {
@@ -45,10 +39,6 @@ export function getSegmentFetchRange(state) {
   }
   const mins = [state.filter.start];
   const maxs = [state.filter.end];
-  if (state.clips && state.clips.state === 'upload') {
-    mins.push(state.clips.start_time);
-    maxs.push(state.clips.end_time);
-  }
   if (state.zoom) {
     mins.push(state.zoom.start);
     maxs.push(state.zoom.end);
