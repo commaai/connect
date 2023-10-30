@@ -305,9 +305,10 @@ class DriveVideo extends Component {
           config={{
             file: {
               forceHLS: true,
+              forceSafariHLS: true,
               hlsVersion: '1.4.8',
               hlsOptions: {
-                "debug": true,
+                //"debug": true,
                 "maxBufferLength": 40,
               },
             },
