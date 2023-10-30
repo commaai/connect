@@ -129,7 +129,7 @@ class DriveVideo extends Component {
       return;
     }
 
-    this.setState({ videoError: 'Unable to load video' });
+    this.setState({ videoError: 'Unable to load video (HLS error)' });
   }
 
   /**
@@ -173,6 +173,7 @@ class DriveVideo extends Component {
       ? 'This video segment has not uploaded yet or has been deleted.'
       : (e.response?.text || 'Unable to load video');
     this.setState({ videoError });
+    console.warn('Unable to load video', { e, data });
   }
 
   onVideoResume() {
@@ -302,9 +303,13 @@ class DriveVideo extends Component {
           height="100%"
           playing={Boolean(this.visibleRoute() && desiredPlaySpeed)}
           config={{
-            hlsVersion: '1.4.8',
-            hlsOptions: {
-              maxBufferLength: 40,
+            file: {
+              forceHLS: true,
+              hlsVersion: '1.4.8',
+              hlsOptions: {
+                "debug": true,
+                "maxBufferLength": 40,
+              },
             },
           }}
           playbackRate={desiredPlaySpeed}
