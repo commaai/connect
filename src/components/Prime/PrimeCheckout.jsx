@@ -283,15 +283,12 @@ class PrimeCheckout extends Component {
     let chargeText = null;
     if (selectedPlan && this.trialClaimable()) {
       let trialEndDate = null;
-      let claimEndDate = null;
       if (selectedPlan === 'data') {
         trialEndDate = dayjs(subscribeInfo.trial_end_data * 1000).format('MMMM D');
-        claimEndDate = dayjs(subscribeInfo.claim_end_data * 1000).format('MMMM D');
       } else if (selectedPlan === 'nodata') {
         trialEndDate = dayjs(subscribeInfo.trial_end_nodata * 1000).format('MMMM D');
       }
-      chargeText = `Your first charge will be on ${trialEndDate}, then monthly thereafter.${
-        claimEndDate ? ` Trial offer only valid until ${claimEndDate}.` : ''}`;
+      chargeText = `Your first charge will be on ${trialEndDate}, then monthly thereafter.`;
     }
 
     const containerPadding = windowWidth > 520 ? { margin: '18px 24px' } : { margin: '6px 12px' };
