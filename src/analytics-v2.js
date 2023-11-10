@@ -19,6 +19,9 @@ function uniqueId() {
 }
 
 async function flushQueue() {
+  // TODO: reimplement this properly (on the backend)
+  return;
+
   if (queue.size === 0) return;
 
   // TODO: flush queue when auth state changes
