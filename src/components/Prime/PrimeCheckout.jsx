@@ -257,7 +257,7 @@ class PrimeCheckout extends Component {
       && subscribeInfo.sim_id
       && subscribeInfo.is_prime_sim
       && subscribeInfo.sim_usable !== false
-      && ['blue', 'magenta_new'].includes(subscribeInfo.sim_type),
+      && ['blue', 'magenta_new', 'webbing'].includes(subscribeInfo.sim_type),
     );
   }
 
@@ -311,7 +311,7 @@ class PrimeCheckout extends Component {
         disabledDataPlanText = 'Standard plan not available, device could not be reached. Connect device to the internet and try again.';
       } else if (!subscribeInfo.is_prime_sim) {
         disabledDataPlanText = 'Standard plan not available, detected a third-party SIM.';
-      } else if (!['blue', 'magenta_new'].includes(subscribeInfo.sim_type)) {
+      } else if (!['blue', 'magenta_new', 'webbing'].includes(subscribeInfo.sim_type)) {
         disabledDataPlanText = ['Standard plan not available, old SIM type detected, new SIM cards are available in the ',
           <a key={1} href="https://comma.ai/shop/comma-prime-sim">shop</a>];
       } else if (subscribeInfo.sim_usable === false && subscribeInfo.sim_type === 'blue') {
