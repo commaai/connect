@@ -42,6 +42,12 @@ class App extends Component {
     }
   }
 
+  apiErrorResponseCallback(resp) {
+    if (resp.status === 401) {
+      MyCommaAuth.logOut();
+    }
+  }
+
   async componentDidMount() {
     if (window.location) {
       if (window.location.pathname === AuthConfig.AUTH_PATH) {
@@ -60,9 +66,9 @@ class App extends Component {
 
     const token = await MyCommaAuth.init();
     if (token) {
-      Request.configure(token);
-      Billing.configure(token);
-      Athena.configure(token);
+      Request.configure(token, this.apiErrorResponseCallback);
+      Billing.configure(token, this.apiErrorResponseCallback);
+      Athena.configure(token, this.apiErrorResponseCallback);
     }
 
     this.setState({ initialized: true });
