@@ -290,7 +290,6 @@ class Media extends Component {
       && (!prevState.moreInfoMenu && !prevProps.currentRoute) !== (moreInfoMenu && this.props.currentRoute)) {
       this.fetchRoutePreserved();
     }
-  
   }
 
   async copySegmentName() {
