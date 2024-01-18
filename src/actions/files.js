@@ -51,6 +51,23 @@ async function athenaCall(dongleId, payload, sentryFingerprint, retryCount = 0) 
   }
 }
 
+export function setRouteViewed(dongleId, route) {
+  return async (dispatch, getState) => {
+    const { device } = getState();
+    if (!deviceVersionAtLeast(device, '0.9.6')) {
+      return;
+    }
+
+    const payload = {
+      id: 0,
+      jsonrpc: '2.0',
+      method: 'setRouteViewed',
+      params: { route: route },
+    };
+    await athenaCall(dongleId, payload, 'action_files_set_route_viewed');
+  };
+}
+
 export async function fetchUploadUrls(dongleId, paths) {
   try {
     const resp = await Raw.getUploadUrls(dongleId, paths, 7);

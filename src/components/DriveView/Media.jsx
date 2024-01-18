@@ -25,7 +25,7 @@ import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils'
 import { analyticsEvent, primeNav, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
-import { fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles } from '../../actions/files';
+import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles } from '../../actions/files';
 
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
@@ -252,6 +252,10 @@ class Media extends Component {
 
   componentDidMount() {
     this.componentDidUpdate({}, {});
+  
+    if (this.props.currentRoute && ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser)) {
+      this.props.dispatch(setRouteViewed(this.props.dongleId, this.props.currentRoute.fullname));
+    }
   }
 
   componentDidUpdate(prevProps, prevState) {
