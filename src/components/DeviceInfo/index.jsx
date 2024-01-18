@@ -431,7 +431,7 @@ class DeviceInfo extends Component {
 
     let batteryVoltage;
     let batteryBackground = Colors.grey400;
-    if (deviceIsOnline(device) && carHealth.result && carHealth.result.peripheralState
+    if (deviceIsOnline(device) && carHealth?.result && carHealth.result.peripheralState
       && carHealth.result.peripheralState.voltage) {
       batteryVoltage = carHealth.result.peripheralState.voltage / 1000.0;
       batteryBackground = batteryVoltage < 11.0 ? Colors.red400 : Colors.green400;
