@@ -129,7 +129,11 @@ class DriveVideo extends Component {
       return;
     }
 
-    this.setState({ videoError: 'Unable to load video' });
+    if (e.type == 'networkError' && (e.response?.code === 404)) {
+      this.setState({ videoError: 'This video segment has not uploaded yet or has been deleted.' });
+    } else {
+      this.setState({ videoError: 'Unable to load video' });
+    }
   }
 
   /**
