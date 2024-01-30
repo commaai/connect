@@ -485,8 +485,7 @@ class PrimeManage extends Component {
               We&apos;re sorry to see you go.
             </Typography>
             <Typography>
-              Subscription will stay active until the end of this billing period
-              {nextPaymentDate ? ` (${nextPaymentDate})` : ''}
+              Your subscription will be cancelled immediately and can be resumed at any time.
             </Typography>
             <Button
               variant="contained"
