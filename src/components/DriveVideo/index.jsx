@@ -196,7 +196,7 @@ class DriveVideo extends Component {
 
     const prevR = this.visibleRoute(prevProps);
     if (src === '' || !prevR || prevR.fullname !== r.fullname) {
-      src = Video.getQcameraStreamUrl(r.fullname, r.share_exp, r.share_sig);
+      src = Video.getQcameraStreamUrl(r.fullname.replace('/', '|'), r.share_exp, r.share_sig);
       this.setState({ src, videoError: null });
       this.syncVideo();
     }
