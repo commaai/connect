@@ -290,6 +290,7 @@ export function checkRoutesData() {
         const endTime = r.segment_end_times[r.segment_end_times.length - 1];
         return {
           ...r,
+          fullname: r.fullname.replace('|', '/'),
           url: r.url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
           offset: Math.round(startTime) - state.filter.start,
           duration: endTime - startTime,
