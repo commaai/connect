@@ -406,7 +406,7 @@ class Media extends Component {
         && currentRoute.segment_end_times[i] > loop.startTime) {
         for (let j = 0; j < types.length; j++) {
           count += 1;
-          const log = files[`${currentRoute.fullname}/${currentRoute.segment_numbers[i]}/${types[j]}`];
+          const log = files[`${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${types[j]}`];
           if (log) {
             uploaded += Boolean(log.url || log.notFound);
             uploading += Boolean(log.progress !== undefined);
