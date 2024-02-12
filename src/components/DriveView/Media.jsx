@@ -298,7 +298,7 @@ class Media extends Component {
       return;
     }
 
-    await navigator.clipboard.writeText(`${currentRoute.fullname}--${getSegmentNumber(currentRoute)}`);
+    await navigator.clipboard.writeText(`${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute)}`);
     this.setState({ moreInfoMenu: null });
   }
 
@@ -406,7 +406,7 @@ class Media extends Component {
         && currentRoute.segment_end_times[i] > loop.startTime) {
         for (let j = 0; j < types.length; j++) {
           count += 1;
-          const log = files[`${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${types[j]}`];
+          const log = files[`${currentRoute.fullname}/${currentRoute.segment_numbers[i]}/${types[j]}`];
           if (log) {
             uploaded += Boolean(log.url || log.notFound);
             uploading += Boolean(log.progress !== undefined);
@@ -735,7 +735,7 @@ class Media extends Component {
             onClick={ this.copySegmentName }
             style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}
           >
-            <div>{ currentRoute ? `${currentRoute.fullname}--${getSegmentNumber(currentRoute)}` : '---' }</div>
+            <div>{ currentRoute ? `${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute)}` : '---' }</div>
             <ContentCopyIcon />
           </MenuItem>
           { typeof navigator.share !== 'undefined'
