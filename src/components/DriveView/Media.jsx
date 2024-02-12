@@ -252,7 +252,7 @@ class Media extends Component {
 
   componentDidMount() {
     this.componentDidUpdate({}, {});
-
+  
     if (this.props.currentRoute && ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser)) {
       this.props.dispatch(setRouteViewed(this.props.dongleId, this.props.currentRoute.fullname));
     }
@@ -298,7 +298,7 @@ class Media extends Component {
       return;
     }
 
-    await navigator.clipboard.writeText(`${currentRoute.fullname}/${getSegmentNumber(currentRoute)}`);
+    await navigator.clipboard.writeText(`${currentRoute.fullname}--${getSegmentNumber(currentRoute)}`);
     this.setState({ moreInfoMenu: null });
   }
 
@@ -735,7 +735,7 @@ class Media extends Component {
             onClick={ this.copySegmentName }
             style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}
           >
-            <div>{ currentRoute ? `${currentRoute.fullname}/${getSegmentNumber(currentRoute)}` : '---' }</div>
+            <div>{ currentRoute ? `${currentRoute.fullname}--${getSegmentNumber(currentRoute)}` : '---' }</div>
             <ContentCopyIcon />
           </MenuItem>
           { typeof navigator.share !== 'undefined'

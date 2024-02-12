@@ -22,7 +22,7 @@ let openRequests = 0;
 function pathToFileName(dongleId, path) {
   const [seg, fileType] = path.split('/');
   const type = Object.entries(FILE_NAMES).find((e) => e[1] === fileType)[0];
-  return `${dongleId}/${seg}/${type}`;
+  return `${dongleId}|${seg}/${type}`;
 }
 
 async function athenaCall(dongleId, payload, sentryFingerprint, retryCount = 0) {
