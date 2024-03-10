@@ -360,10 +360,7 @@ class Media extends Component {
   async uploadFilesAll(types) {
     const { dongleId, device, currentRoute, loop, files } = this.props;
     if (types === undefined) {
-      types = ['logs', 'cameras', 'dcameras'];
-      if (device.device_type?.startsWith('three')) {
-        types.push('ecameras');
-      }
+      types = ['logs', 'cameras', 'dcameras', 'ecameras'];
     }
 
     if (!currentRoute || !files) {
@@ -428,7 +425,7 @@ class Media extends Component {
 
     const [countRlog, uploadedRlog, uploadingRlog, pausedRlog, requestedRlog] = this._uploadStats(['logs'], 0, 0, 0, 0, 0);
 
-    const camTypes = ['cameras', 'dcameras'].concat(device.device_type?.startsWith('three') ? ['ecameras'] : []);
+    const camTypes = ['cameras', 'dcameras', 'ecameras'];
     const [countAll, uploadedAll, uploadingAll, pausedAll, requestedAll] = this._uploadStats(camTypes, countRlog, uploadedRlog, uploadingRlog, pausedRlog, requestedRlog);
 
     return {
@@ -615,7 +612,7 @@ class Media extends Component {
     const uploadButtonWidth = windowWidth < 425 ? 80 : 120;
     const buttons = [
       [fcam, 'Road camera', 'cameras'],
-      device && device.device_type?.startsWith('three') ? [ecam, 'Wide road camera', 'ecameras'] : null,
+      [ecam, 'Wide road camera', 'ecameras'],
       [dcam, 'Driver camera', 'dcameras'],
       [rlog, 'Log data', 'logs'],
     ];
