@@ -286,16 +286,23 @@ export function checkRoutesData() {
       }
 
       const routes = routesData.map((r) => {
-        const startTime = r.segment_start_times[0];
-        const endTime = r.segment_end_times[r.segment_end_times.length - 1];
+        console.log(r)
+        const startTime = r.start_time_utc_millis;
+        const endTime = r.end_time_utc_millis;
+        const segment_numbers = Array.from(Array(r.maxqlog + 1).keys());
+        const segment_start_times = segment_numbers.map((x) => startTime + (x*60*1000));
+        const segment_end_times = segment_numbers.map((x) => Math.min(startTime + ((x+1)*60*1000), endTime));
         return {
           ...r,
           url: r.url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
           offset: Math.round(startTime) - state.filter.start,
           duration: endTime - startTime,
-          start_time_utc_millis: startTime,
-          end_time_utc_millis: endTime,
-          segment_offsets: r.segment_start_times.map((x) => x - state.filter.start),
+
+          // TODO: just assuming 60s segments and all segments are uploaded
+          segment_numbers: segment_numbers,
+          segment_start_times: segment_start_times,
+          segment_end_times: segment_end_times,
+          segment_offsets: segment_start_times.map((x) => x - state.filter.start),
         };
       });
 
