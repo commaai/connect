@@ -84,7 +84,7 @@ const DriveListItem = (props) => {
   }, [drive, dispatch, isVisible, el]);
 
   const onClick = filterRegularClick(
-    () => dispatch(pushTimelineRange(0, -1)),
+    () => dispatch(pushTimelineRange(drive.start_time_utc_millis, drive.end_time_utc_millis)),
   );
 
   const small = windowWidth < 580;
@@ -147,7 +147,7 @@ const DriveListItem = (props) => {
       </div>
       <Timeline
         thumbnailsVisible={isVisible}
-        zoomOverride={{ start: 0, end: -1 }}
+        zoomOverride={{ start: drive.start_time_utc_millis, end: drive.end_time_utc_millis }}
       />
     </a>
   );
