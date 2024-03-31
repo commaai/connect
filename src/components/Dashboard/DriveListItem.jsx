@@ -114,7 +114,7 @@ const DriveListItem = (props) => {
 
   return (
     <a
-      key={drive.start_time}
+      key={drive.fullname}
       className={`${classes.drive} DriveEntry`}
       ref={el}
       href={`/${drive.dongle_id}/${drive.start_time_utc_millis}/${drive.end_time_utc_millis}`}

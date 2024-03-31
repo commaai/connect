@@ -349,7 +349,7 @@ class Timeline extends Component {
       left: `${startPerc}%`,
     };
     return (
-      <div key={route.start_time_utc_millis} className={classes.segment} style={style}>
+      <div key={route.fullname} className={classes.segment} style={style}>
         { this.renderRouteEvents(route) }
       </div>
     );

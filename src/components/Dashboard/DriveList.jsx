@@ -34,7 +34,7 @@ const DriveList = (props) => {
     content = (
       <div className={`${classes.drives} DriveList`}>
         {driveList.map((drive) => (
-          <DriveListItem key={drive.start_time_utc_millis} drive={drive} />
+          <DriveListItem key={drive.fullname} drive={drive} />
         ))}
       </div>
     );
