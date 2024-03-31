@@ -289,20 +289,20 @@ export function checkRoutesData() {
         console.log(r)
         const startTime = r.start_time_utc_millis;
         const endTime = r.end_time_utc_millis;
-        const segment_numbers = Array.from(Array(r.maxqlog + 1).keys());
-        const segment_start_times = segment_numbers.map((x) => startTime + (x*60*1000));
-        const segment_end_times = segment_numbers.map((x) => Math.min(startTime + ((x+1)*60*1000), endTime));
+
+        // TODO: these will all be relative times soon
+        if (Math.abs(r.start_time_utc_millis - r.segment_start_times[0]) > 10 * 1000) {
+          // fix segment boundary times for routes that have the wrong time at the start
+          console.log("fixing %s", r.fullname);
+          r.segment_start_times = r.segment_numbers.map((x) => startTime + (x*60*1000));
+          r.segment_end_times = r.segment_numbers.map((x) => Math.min(startTime + ((x+1)*60*1000), endTime));
+        }
         return {
           ...r,
           url: r.url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
           offset: Math.round(startTime) - state.filter.start,
           duration: endTime - startTime,
-
-          // TODO: just assuming 60s segments and all segments are uploaded
-          segment_numbers: segment_numbers,
-          segment_start_times: segment_start_times,
-          segment_end_times: segment_end_times,
-          segment_offsets: segment_start_times.map((x) => x - state.filter.start),
+          segment_offsets: r.segment_start_times.map((x) => x - state.filter.start),
         };
       });
 
