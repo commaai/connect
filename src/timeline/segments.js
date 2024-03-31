@@ -1,8 +1,6 @@
 import * as Types from '../actions/types';
 import { getCurrentRoute } from '.';
 
-export const SEGMENT_LENGTH = 1000 * 60;
-
 export function reducer(_state, action) {
   let state = { ..._state };
   switch (action.type) {
