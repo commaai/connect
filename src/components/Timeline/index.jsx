@@ -168,10 +168,11 @@ class Timeline extends Component {
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
 
-    const { zoomOverride, zoom } = this.props;
+    const { route, zoomOverride, zoom } = this.props;
     this.state = {
       dragging: null,
       hoverX: null,
+      route: route,
       zoom: zoomOverride || zoom,
       thumbnail: {
         height: 0,
@@ -187,9 +188,9 @@ class Timeline extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { zoomOverride, zoom } = this.props;
-    if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom) {
-      this.setState({ zoom: zoomOverride || zoom });
+    const { route, zoomOverride, zoom } = this.props;
+    if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom || prevProps.route !== route) {
+      this.setState({ zoom: zoomOverride || zoom, route: route});
     }
   }
 
@@ -308,71 +309,56 @@ class Timeline extends Component {
   }
 
   segmentNum(offset) {
-    const { routes } = this.props;
-    if (!routes) {
-      return null;
-    }
-
-    const route = routes.find((r) => r.offset <= offset && r.offset + r.duration >= offset);
-    if (route) {
-      return getSegmentNumber(route, offset);
-    }
-    return null;
+    return getSegmentNumber(this.state.route, offset);
   }
 
-  renderRoute(route) {
+  renderRoute() {
     const { classes, filter } = this.props;
     const { zoom } = this.state;
 
-    if (!route.events) {
+    if (!this.state.route?.events) {
       return null;
     }
 
     const range = filter.start - filter.end;
-    let startPerc = (100 * route.offset) / range;
-    let widthPerc = (100 * route.duration) / range;
+    let startPerc = (100 * this.state.route.offset) / range;
+    let widthPerc = (100 * this.state.route.duration) / range;
 
     const startOffset = zoom.start - filter.start;
     const endOffset = zoom.end - filter.start;
     const zoomDuration = endOffset - startOffset;
-    if (route.offset > endOffset) {
-      return [];
-    }
-    if (route.offset + route.duration < startOffset) {
-      return [];
-    }
-    startPerc = (100 * (route.offset - startOffset)) / zoomDuration;
-    widthPerc = (100 * route.duration) / zoomDuration;
+    startPerc = (100 * (this.state.route.offset - startOffset)) / zoomDuration;
+    widthPerc = (100 * this.state.route.duration) / zoomDuration;
 
     const style = {
       width: `${widthPerc}%`,
       left: `${startPerc}%`,
     };
     return (
-      <div key={route.fullname} className={classes.segment} style={style}>
-        { this.renderRouteEvents(route) }
+      <div key={this.state.route.fullname} className={classes.segment} style={style}>
+        { this.renderRouteEvents() }
       </div>
     );
   }
 
-  renderRouteEvents(route) {
+  renderRouteEvents() {
     const { classes } = this.props;
-    if (!route.events) {
+    if (!this.state.route.events) {
       return null;
     }
 
-    return route.events
+    return this.state.route.events
       .filter((event) => event.data && event.data.end_route_offset_millis)
       .map((event) => {
         const style = {
-          left: `${(event.route_offset_millis / route.duration) * 100}%`,
-          width: `${((event.data.end_route_offset_millis - event.route_offset_millis) / route.duration) * 100}%`,
+          left: `${(event.route_offset_millis / this.state.route.duration) * 100}%`,
+          width: `${((event.data.end_route_offset_millis - event.route_offset_millis) / this.state.route.duration) * 100}%`,
           minWidth: '1px',
         };
         const statusCls = event.data.alertStatus ? `${AlertStatusCodes[event.data.alertStatus]}` : '';
         return (
           <div
-            key={route.fullname + event.route_offset_millis + event.type}
+            key={this.state.route.fullname + event.route_offset_millis + event.type}
             style={style}
             className={ `${classes.segmentColor} ${event.type} ${statusCls}` }
           />
@@ -421,7 +407,7 @@ class Timeline extends Component {
       <div className={className}>
         <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } style={ baseWidthStyle }>
           <div className={ `${classes.segments} ${hasRulerCls}` }>
-            { routes && routes.map(this.renderRoute) }
+            { this.renderRoute() }
             <div className={ `${classes.statusGradient} ${hasRulerCls}` } />
           </div>
           <Measure bounds onResize={(rect) => this.setState({ thumbnail: rect.bounds })}>
@@ -469,7 +455,7 @@ const stateToProps = Obstruction({
   zoom: 'zoom',
   loop: 'loop',
   filter: 'filter',
-  routes: 'routes',
+  routes: 'routes'
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));
