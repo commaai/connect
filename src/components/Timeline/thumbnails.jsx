@@ -18,7 +18,7 @@ export default function Thumbnails(props) {
   }
   for (let i = 0; i < imgCount; ++i) {
     const offset = props.percentToOffset((i + 0.5) / imgCount);
-    const route = props.getCurrentRoute(offset);
+    const route = props.currentRoute;
     if (!route) {
       if (currSegment && !currSegment.blank) {
         imgArr.push(currSegment);

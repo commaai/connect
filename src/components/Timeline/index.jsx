@@ -15,7 +15,7 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
-import { currentOffset, getCurrentRoute } from '../../timeline';
+import { currentOffset } from '../../timeline';
 import { seek, selectLoop } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 
@@ -426,7 +426,7 @@ class Timeline extends Component {
                 { thumbnailsVisible && (
                   <Thumbnails
                     className={classes.thumbnail}
-                    getCurrentRoute={ (o) => getCurrentRoute(this.props, o) }
+                    currentRoute={route}
                     percentToOffset={this.percentToOffset}
                     thumbnail={thumbnail}
                     hasRuler={hasRuler}
