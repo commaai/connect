@@ -146,6 +146,7 @@ const DriveListItem = (props) => {
         </Grid>
       </div>
       <Timeline
+        route={drive}
         thumbnailsVisible={isVisible}
         zoomOverride={{ start: drive.start_time_utc_millis, end: drive.end_time_utc_millis }}
       />

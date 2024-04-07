@@ -26,9 +26,7 @@ export default function reducer(_state, action) {
   let deviceIndex = null;
   switch (action.type) {
     case Types.ACTION_STARTUP_DATA:
-      const devices = action.devices
-        .map(populateFetchedAt)
-        .sort(deviceCompareFn);
+      const devices = action.devices.map(populateFetchedAt).sort(deviceCompareFn);
 
       if (!state.dongleId && devices.length > 0) {
         state = {

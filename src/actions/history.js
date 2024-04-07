@@ -24,10 +24,9 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
     }
 
     const pathSegmentRange = getSegmentRange(action.payload.location.pathname);
-    if (true) {
-    //if (pathSegmentRange != state.segmentRange) {
-      //dispatch(pushSegmentRange(pathSegmentRange?.log_id, pathSegmentRange?.start, pathSegmentRange?.end));
+    if (pathSegmentRange != state.segmentRange) {
       console.log("segment range", pathSegmentRange);
+      //dispatch(pushSegmentRange(pathSegmentRange?.log_id, pathSegmentRange?.start, pathSegmentRange?.end));
     }
 
     const pathPrimeNav = getPrimeNav(action.payload.location.pathname);

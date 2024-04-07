@@ -67,7 +67,7 @@ class DriveView extends Component {
                 <CloseBold />
               </IconButton>
             </div>
-            <Timeline thumbnailsVisible hasRuler />
+            <Timeline route={currentRoute} thumbnailsVisible hasRuler />
           </div>
           <div className="p-3 md:p-8">
             {(routes && routes.length === 0)
