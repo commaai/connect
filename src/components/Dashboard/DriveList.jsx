@@ -24,16 +24,13 @@ const styles = () => ({
 const DriveList = (props) => {
   const { dispatch, classes, device, routes } = props;
 
-  // Filter out drives shorter than 10 seconds
-  const driveList = (routes || []).filter((drive) => drive.duration >= 10000);
-
   let content;
-  if (driveList.length === 0) {
+  if (!routes || routes.length === 0) {
     content = <DriveListEmpty device={device} routes={routes} />;
   } else {
     content = (
       <div className={`${classes.drives} DriveList`}>
-        {driveList.map((drive) => (
+        {routes.map((drive) => (
           <DriveListItem key={drive.fullname} drive={drive} />
         ))}
       </div>
