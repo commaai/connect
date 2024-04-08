@@ -2,11 +2,12 @@ FROM oven/bun:1 AS base
 
 WORKDIR /app
 
+FROM base as build
+
 COPY ./pnpm-lock.yaml .
-RUN pnpm fetch
 
 ADD . ./
-RUN bun install --offline
+RUN bun install
 
 ARG VITE_APP_GIT_SHA=unknown
 ARG VITE_APP_GIT_TIMESTAMP=1970-01-01T00:00:00Z
