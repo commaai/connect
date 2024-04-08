@@ -60,7 +60,6 @@ class DriveVideo extends Component {
   constructor(props) {
     super(props);
 
-    this.visibleRoute = this.visibleRoute.bind(this);
     this.onVideoBuffering = this.onVideoBuffering.bind(this);
     this.onHlsError = this.onHlsError.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
@@ -99,9 +98,9 @@ class DriveVideo extends Component {
   }
 
   onVideoBuffering() {
-    const { dispatch } = this.props;
+    const { dispatch, currentRoute } = this.props;
     const videoPlayer = this.videoPlayer.current;
-    if (!videoPlayer || !this.visibleRoute() || !videoPlayer.getDuration()) {
+    if (!videoPlayer || !currentRoute || !videoPlayer.getDuration()) {
       dispatch(bufferVideo(true));
     }
 
@@ -186,36 +185,26 @@ class DriveVideo extends Component {
 
   updateVideoSource(prevProps) {
     let { src } = this.state;
-    const r = this.visibleRoute();
-    if (!r) {
+    let { currentRoute } = this.props;
+    if (!currentRoute) {
       if (src !== '') {
         this.setState({ src: '', videoError: null });
       }
       return;
     }
 
-    const prevR = this.visibleRoute(prevProps);
-    if (src === '' || !prevR || prevR.fullname !== r.fullname) {
-      src = Video.getQcameraStreamUrl(r.fullname, r.share_exp, r.share_sig);
+    if (src === '' || !prevProps.currentRoute || prevProps.currentRoute?.fullname !== currentRoute.fullname) {
+      src = Video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
       this.setState({ src, videoError: null });
       this.syncVideo();
     }
   }
 
-  visibleRoute(props = this.props) {
-    const offset = currentOffset();
-    const { currentRoute } = props;
-    if (currentRoute && currentRoute.offset <= offset && offset <= currentRoute.offset + currentRoute.duration) {
-      return currentRoute;
-    }
-    return null;
-  }
-
   syncVideo() {
-    const { dispatch, isBufferingVideo, routes } = this.props;
-    if (!this.visibleRoute()) {
+    const { dispatch, isBufferingVideo, currentRoute } = this.props;
+    if (!currentRoute) {
       dispatch(updateSegments());
-      if (routes && isBufferingVideo) {
+      if (currentRoute && isBufferingVideo) {
         dispatch(bufferVideo(false));
       }
       return;
@@ -276,14 +265,14 @@ class DriveVideo extends Component {
   }
 
   currentVideoTime(offset = currentOffset()) {
-    const visibleRoute = this.visibleRoute();
-    if (!visibleRoute) {
+    const { currentRoute } = this.props;
+    if (!currentRoute) {
       return 0;
     }
-    offset -= visibleRoute.offset;
+    offset -= currentRoute.offset;
 
-    if (visibleRoute.videoStartOffset) {
-      offset -= visibleRoute.videoStartOffset;
+    if (currentRoute.videoStartOffset) {
+      offset -= currentRoute.videoStartOffset;
     }
 
     offset /= 1000;
@@ -292,7 +281,7 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { desiredPlaySpeed, isBufferingVideo } = this.props;
+    const { desiredPlaySpeed, isBufferingVideo, currentRoute } = this.props;
     const { src, videoError } = this.state;
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
@@ -304,7 +293,7 @@ class DriveVideo extends Component {
           muted
           width="100%"
           height="100%"
-          playing={Boolean(this.visibleRoute() && desiredPlaySpeed)}
+          playing={Boolean(currentRoute && desiredPlaySpeed)}
           config={{
             hlsVersion: '1.4.8',
             hlsOptions: {
@@ -328,7 +317,6 @@ const stateToProps = Obstruction({
   offset: 'offset',
   startTime: 'startTime',
   isBufferingVideo: 'isBufferingVideo',
-  routes: 'routes',
   currentRoute: 'currentRoute',
 });
 

@@ -286,7 +286,6 @@ export function checkRoutesData() {
       }
 
       const routes = routesData.map((r) => {
-        console.log(r)
         let startTime = r.segment_start_times[0];
         let endTime = r.segment_end_times[r.segment_end_times.length - 1];
 

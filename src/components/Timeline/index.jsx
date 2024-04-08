@@ -15,7 +15,7 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
-import { currentOffset, getCurrentRoute } from '../../timeline';
+import { currentOffset } from '../../timeline';
 import { seek, selectLoop } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 
@@ -168,11 +168,12 @@ class Timeline extends Component {
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
 
-    const { zoomOverride, zoom } = this.props;
+    const { zoomOverride, route, zoom } = this.props;
     this.state = {
       dragging: null,
       hoverX: null,
       zoom: zoomOverride || zoom,
+      route: route,
       thumbnail: {
         height: 0,
         width: 0,
@@ -308,20 +309,15 @@ class Timeline extends Component {
   }
 
   segmentNum(offset) {
-    const { routes } = this.props;
-    if (!routes) {
-      return null;
-    }
-
-    const route = routes.find((r) => r.offset <= offset && r.offset + r.duration >= offset);
+    const { route } = this.props;
     if (route) {
       return getSegmentNumber(route, offset);
     }
     return null;
   }
 
-  renderRoute(route) {
-    const { classes, filter } = this.props;
+  renderRoute() {
+    const { classes, route, filter } = this.props;
     const { zoom } = this.state;
 
     if (!route.events) {
@@ -381,7 +377,7 @@ class Timeline extends Component {
   }
 
   render() {
-    const { classes, hasRuler, filter, className, routes, thumbnailsVisible } = this.props;
+    const { classes, hasRuler, filter, className, route, thumbnailsVisible } = this.props;
     const { thumbnail, hoverX, dragging } = this.state;
 
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
@@ -421,7 +417,7 @@ class Timeline extends Component {
       <div className={className}>
         <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } style={ baseWidthStyle }>
           <div className={ `${classes.segments} ${hasRulerCls}` }>
-            { routes && routes.map(this.renderRoute) }
+            { route && this.renderRoute() }
             <div className={ `${classes.statusGradient} ${hasRulerCls}` } />
           </div>
           <Measure bounds onResize={(rect) => this.setState({ thumbnail: rect.bounds })}>
@@ -430,7 +426,7 @@ class Timeline extends Component {
                 { thumbnailsVisible && (
                   <Thumbnails
                     className={classes.thumbnail}
-                    getCurrentRoute={ (o) => getCurrentRoute(this.props, o) }
+                    currentRoute={route}
                     percentToOffset={this.percentToOffset}
                     thumbnail={thumbnail}
                     hasRuler={hasRuler}
@@ -469,7 +465,6 @@ const stateToProps = Obstruction({
   zoom: 'zoom',
   loop: 'loop',
   filter: 'filter',
-  routes: 'routes',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));

@@ -7,7 +7,11 @@ const screenHeight = 1000;
 const screenWidth = 1600;
 const gutter = 20;
 const percentToOffsetMock = jest.fn();
-const getCurrentRouteMock = jest.fn();
+const mockRoute = {
+  offset: 1600,
+  segment_numbers: Array.from(Array(4).keys()),
+  segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60),
+};
 
 const thumbnailBounds = {
   top: 100,
@@ -25,16 +29,6 @@ describe('timeline thumbnails', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     percentToOffsetMock.mockImplementation((percent) => Math.round(percent * 30000));
-    getCurrentRouteMock.mockImplementation((offset) => {
-      if (offset < 1600 || offset > 20000) {
-        return null;
-      }
-      return {
-        offset: 1600,
-        segment_numbers: Array.from(Array(4).keys()),
-        segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60),
-      };
-    });
   });
 
   it('should check the segment for every image', () => {
@@ -42,26 +36,22 @@ describe('timeline thumbnails', () => {
       <Thumbnails
         thumbnail={thumbnailBounds}
         percentToOffset={percentToOffsetMock}
-        getCurrentRoute={getCurrentRouteMock}
+        currentRoute={mockRoute}
       />,
     );
 
     expect(percentToOffsetMock.mock.calls.length).toBe(10);
-    expect(getCurrentRouteMock.mock.calls.length).toBe(10);
     const imageEntries = screen.getAllByRole('img');
     expect(imageEntries).toHaveLength(5);
 
     imageEntries.forEach((entry, i) => {
       expect([...entry.classList].indexOf('thumbnailImage')).toBeGreaterThan(-1);
-      if (i === 0 || i === 4) {
-        expect([...entry.classList].indexOf('blank')).toBeGreaterThan(-1);
-      } else {
-        const backgroundParts = entry.style.backgroundSize.split(' ');
-        const height = Number(backgroundParts[1].replace('px', ''));
-        expect(height).toBe(heightWithBlackBorder);
-        // never stretch thumbnail images
-        expect(backgroundParts[0]).toBe('auto');
-      }
+
+      const backgroundParts = entry.style.backgroundSize.split(' ');
+      const height = Number(backgroundParts[1].replace('px', ''));
+      expect(height).toBe(heightWithBlackBorder);
+      // never stretch thumbnail images
+      expect(backgroundParts[0]).toBe('auto');
     });
   });
 
@@ -77,7 +67,7 @@ describe('timeline thumbnails', () => {
           bottom: 0,
         }}
         percentToOffset={percentToOffsetMock}
-        getCurrentRoute={getCurrentRouteMock}
+        currentRoute={mockRoute}
       />,
     );
 
@@ -85,46 +75,37 @@ describe('timeline thumbnails', () => {
   });
 
   it('works when theres no blank at the end', () => {
-    getCurrentRouteMock.mockImplementation((offset) => {
-      if (offset < 1600) {
-        return null;
-      }
-      return {
-        offset: 1600,
-        segment_numbers: Array.from(Array(4).keys()),
-        segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60),
-      };
-    });
+    const route = {
+      offset: 1600,
+      segment_numbers: Array.from(Array(4).keys()),
+      segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60),
+    };
 
     render(
       <Thumbnails
         thumbnail={thumbnailBounds}
         percentToOffset={percentToOffsetMock}
-        getCurrentRoute={getCurrentRouteMock}
+        currentRoute={route}
       />,
     );
 
     expect(percentToOffsetMock.mock.calls.length).toBe(10);
-    expect(getCurrentRouteMock.mock.calls.length).toBe(10);
     const imageEntries = screen.getAllByRole('img');
     expect(imageEntries).toHaveLength(5);
 
     imageEntries.forEach((entry, i) => {
       expect([...entry.classList].indexOf('thumbnailImage')).toBeGreaterThan(-1);
-      if (i === 0) {
-        expect([...entry.classList].indexOf('blank')).toBeGreaterThan(-1);
-      } else {
-        const backgroundParts = entry.style.backgroundSize.split(' ');
-        const height = Number(backgroundParts[1].replace('px', ''));
-        expect(height).toBe(heightWithBlackBorder);
 
-        // never stretch thumbnail images
-        expect(backgroundParts[0]).toBe('auto');
-      }
+      const backgroundParts = entry.style.backgroundSize.split(' ');
+      const height = Number(backgroundParts[1].replace('px', ''));
+      expect(height).toBe(heightWithBlackBorder);
+
+      // never stretch thumbnail images
+      expect(backgroundParts[0]).toBe('auto');
     });
   });
 
-  it('works when its supermegaskinny', () => {
+  it('works when it\'s supermegaskinny', () => {
     render(
       <Thumbnails
         thumbnail={{
@@ -136,12 +117,11 @@ describe('timeline thumbnails', () => {
           bottom: 100,
         }}
         percentToOffset={percentToOffsetMock}
-        getCurrentRoute={getCurrentRouteMock}
+        currentRoute={mockRoute}
       />,
     );
 
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(percentToOffsetMock.mock.calls.length).toBe(0);
-    expect(getCurrentRouteMock.mock.calls.length).toBe(0);
   });
 });
