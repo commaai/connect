@@ -12,35 +12,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: ./.github/actions/setup-pnpm
+      - uses: oven-sh/setup-bun@v1
 
-      - run: pnpm install
-      - run: pnpm build:development
+      - run: bun install
+      - run: bun build:development
 
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: ./.github/actions/setup-pnpm
+      - uses: oven-sh/setup-bun@v1
 
       - run: |
-          pnpm install
+          bun install
           cd ./node_modules/puppeteer
-          pnpm install
+          bun install
 
-      - run: pnpm run build:development
+      - run: bun run build:development
 
       - name: Run unit tests
-        run: pnpm test
+        run: bun test
 
       - name: Run end-to-end tests
-        run: pnpm test-puppeteer-build
+        run: bun test-puppeteer-build
 
   # bundle_size:
   #   runs-on: ubuntu-latest
   #   steps:
   #     - uses: actions/checkout@v3
-  #     - uses: ./.github/actions/setup-pnpm
+  #     - uses: oven-sh/setup-bun@v1
+
   #     - uses: preactjs/compressed-size-action@v2
   #       with:
   #         repo-token: ${{ secrets.GITHUB_TOKEN }}
@@ -54,14 +55,14 @@ jobs:
     if: github.repository == 'commaai/connect'
     steps:
       - uses: actions/checkout@v3
-      - uses: ./.github/actions/setup-pnpm
+      - uses: oven-sh/setup-bun@v1
 
-      - run: pnpm install
-      - run: pnpm build:production
+      - run: bun install
+      - run: bun build:production
 
       - name: run Lighthouse CI
         run: |
-          pnpm add -g @lhci/cli@0.12.x
+          bun add -g @lhci/cli@0.12.x
           lhci autorun
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}

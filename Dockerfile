@@ -1,17 +1,12 @@
-FROM node:20-alpine AS base
+FROM oven/bun:1 AS base
 
-ARG PNPM_VERSION=8.6.3
-RUN npm install -g pnpm@$PNPM_VERSION
 WORKDIR /app
-
-
-FROM base AS build
 
 COPY ./pnpm-lock.yaml .
 RUN pnpm fetch
 
 ADD . ./
-RUN pnpm install --offline
+RUN bun install --offline
 
 ARG VITE_APP_GIT_SHA=unknown
 ARG VITE_APP_GIT_TIMESTAMP=1970-01-01T00:00:00Z
@@ -21,7 +16,7 @@ ENV VITE_APP_GIT_SHA $VITE_APP_GIT_SHA
 ENV VITE_APP_GIT_TIMESTAMP $VITE_APP_GIT_TIMESTAMP
 ENV SENTRY_AUTH_TOKEN $SENTRY_AUTH_TOKEN
 ENV SENTRY_RELEASE $SENTRY_RELEASE
-RUN pnpm build:production
+RUN bun build:production
 
 
 FROM nginx:1.24
