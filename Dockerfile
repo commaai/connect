@@ -4,7 +4,7 @@ WORKDIR /app
 
 FROM base as build
 
-COPY ./pnpm-lock.yaml .
+COPY ./bun.lockb .
 
 ADD . ./
 RUN bun install

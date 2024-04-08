@@ -31,7 +31,7 @@ jobs:
       - run: bun run build:development
 
       - name: Run unit tests
-        run: bun test
+        run: bun jest
 
       - name: Run end-to-end tests
         run: bun test-puppeteer-build
