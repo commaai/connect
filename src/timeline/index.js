@@ -44,7 +44,7 @@ export function getCurrentRoute(state, offset) {
   if (!state.routes) return null;
 
   offset = offset || currentOffset(state);
-  if (!offset) return null;
+  if (offset === null) return null;
 
   return state.routes
     .find((route) => offset >= route.offset && offset <= route.offset + route.duration);
