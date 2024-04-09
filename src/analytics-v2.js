@@ -20,7 +20,7 @@ function uniqueId() {
 
 async function flushQueue() {
   // TODO: reimplement this properly (on the backend)
-  return;
+  if (true) return;  // eslint-disable-line
 
   if (queue.size === 0) return;
 

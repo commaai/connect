@@ -168,7 +168,7 @@ class Timeline extends Component {
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
 
-    const { zoomOverride, route, zoom } = this.props;
+    const { zoomOverride, zoom } = this.props;
     this.state = {
       dragging: null,
       hoverX: null,
@@ -408,7 +408,6 @@ class Timeline extends Component {
       };
     }
 
-    const rulerWidth = this.rulerRef.current ? this.rulerRef.current.getBoundingClientRect().width : 640;
     const baseWidthStyle = { width: '100%' };
 
     return (

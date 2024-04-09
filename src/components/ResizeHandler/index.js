@@ -16,7 +16,6 @@ const ResizeHandler = (props) => {
     }, 150);
   };
 
-  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     window.addEventListener('resize', handleResize);
 
@@ -27,7 +26,6 @@ const ResizeHandler = (props) => {
       }
     };
   }, [onResize]);
-  /* eslint-enable react-hooks/exhaustive-deps */
 
   return null;
 };

@@ -51,7 +51,7 @@ const styles = () => ({
   },
 });
 
-/* eslint-disable react/jsx-props-no-spreading, react-hooks/exhaustive-deps */
+/* eslint-disable react/jsx-props-no-spreading */
 const BackgroundImage = (props) => {
   const hdImageRef = createRef();
   const placeholderRef = createRef();
