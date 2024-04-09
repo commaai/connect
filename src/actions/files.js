@@ -62,7 +62,7 @@ export function setRouteViewed(dongleId, route) {
       id: 0,
       jsonrpc: '2.0',
       method: 'setRouteViewed',
-      params: { route: route },
+      params: { route },
     };
     await athenaCall(dongleId, payload, 'action_files_set_route_viewed');
   };

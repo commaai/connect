@@ -7,7 +7,6 @@ import { Carousel } from 'react-responsive-carousel';
 import dayjs from 'dayjs';
 
 import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } from '@material-ui/core';
-import { VideoLibrary } from '@material-ui/icons';
 
 import { athena as Athena, devices as Devices } from '@commaai/api';
 import { analyticsEvent } from '../../actions';
@@ -426,7 +425,7 @@ class DeviceInfo extends Component {
   }
 
   renderButtons() {
-    const { classes, device, profile } = this.props;
+    const { classes, device } = this.props;
     const { snapshot, carHealth, windowWidth } = this.state;
 
     let batteryVoltage;
@@ -530,7 +529,6 @@ class DeviceInfo extends Component {
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
-  profile: 'profile',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));
