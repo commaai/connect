@@ -307,8 +307,8 @@ export function fetchEvents(route) {
     let driveEvents;
     const promises = [];
     for (let i = 0; i <= route.maxqlog; i++) {
-      promises.push((async (i) => {
-        const url = new URL(`${route.url}/${i}/events.json`);
+      promises.push((async (j) => {
+        const url = new URL(`${route.url}/${j}/events.json`);
         if (USE_LOCAL_EVENTS_DATA) {
           url.hostname = 'chffrprivate.azureedge.local';
         }
@@ -466,8 +466,8 @@ export function fetchDriveCoords(route) {
 
     const promises = [];
     for (let i = 0; i <= route.maxqlog; i++) {
-      promises.push((async (i) => {
-        const url = new URL(`${route.url}/${i}/coords.json`);
+      promises.push((async (j) => {
+        const url = new URL(`${route.url}/${j}/coords.json`);
         if (USE_LOCAL_COORDS_DATA) {
           url.hostname = 'chffrprivate.azureedge.local';
         }

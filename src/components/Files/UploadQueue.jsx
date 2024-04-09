@@ -202,7 +202,7 @@ class UploadQueue extends Component {
 
     return (
       <>
-        <ResizeHandler onResize={ (windowWidth, windowHeight) => this.setState({ windowWidth, windowHeight }) } />
+        <ResizeHandler onResize={ (ww, wh) => this.setState({ windowWidth: ww, windowHeight: wh }) } />
         <Modal aria-labelledby="upload-queue-modal" open={ this.props.open } onClose={ this.props.onClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>

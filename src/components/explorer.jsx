@@ -199,7 +199,7 @@ class ExplorerApp extends Component {
 
     return (
       <div>
-        <ResizeHandler onResize={ (windowWidth) => this.setState({ windowWidth }) } />
+        <ResizeHandler onResize={ (ww) => this.setState({ windowWidth: ww }) } />
         <PullDownReload />
         <AppHeader
           drawerIsOpen={ drawerIsOpen }

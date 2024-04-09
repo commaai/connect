@@ -519,7 +519,7 @@ class Media extends Component {
 
     return (
       <div className={classes.root}>
-        <ResizeHandler onResize={(windowWidth) => this.setState({ windowWidth })} />
+        <ResizeHandler onResize={(ww) => this.setState({ windowWidth: ww })} />
         <div style={mediaContainerStyle}>
           {this.renderMediaOptions(showMapAlways)}
           {inView === MediaType.VIDEO && <DriveVideo />}

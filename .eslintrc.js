@@ -9,7 +9,7 @@ module.exports = {
     sourceType: "module",
   },
   rules: {
-    'camelcase': 'warn',
+    'camelcase': 0,
     'class-methods-use-this': 'warn',
     'default-case': 'warn',
     'import/prefer-default-export': 0,
@@ -44,7 +44,7 @@ module.exports = {
       },
     ],
     'no-param-reassign': 0,
-    'no-shadow': 'warn',
+    'no-shadow': 'error',
     'no-underscore-dangle': 0,
     'no-unused-vars': ['error', {
       args: 'none',

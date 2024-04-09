@@ -361,13 +361,13 @@ export function primeGetSubscription(dongleId, subscription) {
   };
 }
 
-export function urlForState(dongleId, start, end, primeNav) {
+export function urlForState(dongleId, start, end, prime) {
   const path = [dongleId];
 
   if (start && end) {
     path.push(start);
     path.push(end);
-  } else if (primeNav) {
+  } else if (prime) {
     path.push('prime');
   }
 
