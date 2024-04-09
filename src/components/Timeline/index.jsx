@@ -323,13 +323,9 @@ class Timeline extends Component {
       return null;
     }
 
-    const range = route.duration;
-    let startPerc = (100 * 0) / range;
-    let widthPerc = (100 * route.duration) / range;
-
     const zoomDuration = zoom.end - zoom.start;
-    startPerc = (100 * (route.offset - zoom.start)) / zoomDuration;
-    widthPerc = (100 * route.duration) / zoomDuration;
+    const startPerc = (100 * (-zoom.start)) / zoomDuration;
+    const widthPerc = (100 * route.duration) / zoomDuration;
 
     const style = {
       width: `${widthPerc}%`,

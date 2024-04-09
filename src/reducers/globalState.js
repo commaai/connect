@@ -341,10 +341,17 @@ export default function reducer(_state, action) {
           state.currentRoute = {
             ...r,
           };
-          state.zoom = {
-            start: 0,
-            end: state.currentRoute.duration,
-          };
+          if (state.segmentRange.start && state.segmentRange.end) {
+            state.zoom = {
+              start: state.segmentRange.start,
+              end: state.segmentRange.end,
+            };
+          } else {
+            state.zoom = {
+              start: 0,
+              end: state.currentRoute.duration,
+            };
+          }
         }
       }
       break;

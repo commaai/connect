@@ -39,9 +39,10 @@ class DriveView extends Component {
     const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
 
     // FIXME: end time not always same day as start time
-    const startDay = dayjs(currentRoute.start_time_utc_millis).format('dddd');
-    const startTime = dayjs(currentRoute.start_time_utc_millis).format('MMM D @ HH:mm');
-    const endTime = dayjs(currentRoute.end_time_utc_millis).format('HH:mm');
+    const start = currentRoute.start_time_utc_millis + zoom.start;
+    const startDay = dayjs(start).format('dddd');
+    const startTime = dayjs(start).format('MMM D @ HH:mm');
+    const endTime = dayjs(start + (zoom.end - zoom.start)).format('HH:mm');
 
     return (
       <div className="DriveView">
