@@ -1,5 +1,3 @@
-import * as Types from '../actions/types';
-
 export function getSegmentFetchRange(state) {
   // TODO: fix this for relative routes
   return state.filter;

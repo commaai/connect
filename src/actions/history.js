@@ -17,15 +17,15 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
       dispatch(selectDevice(pathDongleId, false));
     }
 
-    // TODO: this should redirect to a log id
     const pathZoom = getZoom(action.payload.location.pathname);
     if (pathZoom !== state.zoom) {
+      console.debug("TODO: this should redirect to a log id")
       //dispatch(pushTimelineRange(pathZoom?.start, pathZoom?.end, false));
     }
 
     const pathSegmentRange = getSegmentRange(action.payload.location.pathname);
-    if (pathSegmentRange != state.segmentRange) {
-      dispatch(pushTimelineRange(pathSegmentRange?.log_id, pathSegmentRange?.start, pathSegmentRange?.end, true));
+    if (pathSegmentRange !== state.segmentRange) {
+      dispatch(pushTimelineRange(pathSegmentRange?.log_id, pathSegmentRange?.start, pathSegmentRange?.end, false));
     }
 
     const pathPrimeNav = getPrimeNav(action.payload.location.pathname);

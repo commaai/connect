@@ -305,7 +305,6 @@ export function checkRoutesData() {
           ...r,
           url: r.url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
           log_id: r.fullname.split('|')[1],
-          //offset: Math.round(startTime),
           duration: endTime - startTime,
           start_time_utc_millis: startTime,
           end_time_utc_millis: endTime,

@@ -336,10 +336,10 @@ export default function reducer(_state, action) {
       };
 
       if (!state.currentRoute && state.segmentRange) {
-        const r = state.routes?.find((route) => route.log_id === state.segmentRange.log_id);
-        if (r) {
+        const curr = state.routes?.find((route) => route.log_id === state.segmentRange.log_id);
+        if (curr) {
           state.currentRoute = {
-            ...r,
+            ...curr,
           };
           if (state.segmentRange.start && state.segmentRange.end) {
             state.zoom = {

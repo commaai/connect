@@ -1,4 +1,4 @@
-import { getDongleID, getZoom, getPrimeNav, getSegmentRange } from './url';
+import { getDongleID, getPrimeNav, getSegmentRange } from './url';
 import * as Demo from './demo';
 
 export function getDefaultFilter() {

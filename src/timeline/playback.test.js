@@ -5,11 +5,7 @@ import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback'
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {
-    filter: {
-      start: Date.now(),
-      end: Date.now() + 100000,
-    },
-    desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed... multiplier on speed
+    desiredPlaySpeed: 1, // 0 = stopped, 1 = playing, 2 = 2x speed
     offset: 0, // in miliseconds from the start
     startTime: Date.now(), // millisecond timestamp in which play began
 
@@ -81,14 +77,14 @@ describe('playback', () => {
     // set up loop
     state = reducer(state, play());
     state = reducer(state, selectLoop(
-      state.filter.start + 1000,
-      state.filter.start + 2000,
+      1000,
+      2000,
     ));
-    expect(state.loop.startTime).toEqual(state.filter.start + 1000);
+    expect(state.loop.startTime).toEqual(1000);
 
     // seek past loop end boundary a
     state = reducer(state, seek(3000));
-    expect(state.loop.startTime).toEqual(state.filter.start + 1000);
+    expect(state.loop.startTime).toEqual(1000);
     expect(state.offset).toEqual(2000);
   });
 
@@ -99,14 +95,14 @@ describe('playback', () => {
     // set up loop
     state = reducer(state, play());
     state = reducer(state, selectLoop(
-      state.filter.start + 1000,
-      state.filter.start + 2000,
+      1000,
+      2000,
     ));
-    expect(state.loop.startTime).toEqual(state.filter.start + 1000);
+    expect(state.loop.startTime).toEqual(1000);
 
     // seek past loop end boundary a
     state = reducer(state, seek(0));
-    expect(state.loop.startTime).toEqual(state.filter.start + 1000);
+    expect(state.loop.startTime).toEqual(1000);
     expect(state.offset).toEqual(1000);
   });
 

@@ -136,7 +136,7 @@ class TimeDisplay extends Component {
 
   getDisplayTime() {
     const offset = currentOffset();
-    const { filter, currentRoute } = this.props;
+    const { currentRoute } = this.props;
     const now = new Date(offset + currentRoute.start_time_utc_millis);
     if (Number.isNaN(now.getTime())) {
       return '...';
@@ -299,7 +299,6 @@ const stateToProps = Obstruction({
   currentRoute: 'currentRoute',
   zoom: 'zoom',
   desiredPlaySpeed: 'desiredPlaySpeed',
-  filter: 'filter',
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));
