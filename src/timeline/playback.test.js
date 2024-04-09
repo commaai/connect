@@ -84,11 +84,11 @@ describe('playback', () => {
       state.filter.start + 1000,
       state.filter.start + 2000,
     ));
-    expect(state.loop.startTime).toEqual(state.filter.start + 1000);
+    expect(state.zoom.start).toEqual(state.filter.start + 1000);
 
     // seek past loop end boundary a
     state = reducer(state, seek(3000));
-    expect(state.loop.startTime).toEqual(state.filter.start + 1000);
+    expect(state.zoom.start).toEqual(state.filter.start + 1000);
     expect(state.offset).toEqual(2000);
   });
 
@@ -102,11 +102,11 @@ describe('playback', () => {
       state.filter.start + 1000,
       state.filter.start + 2000,
     ));
-    expect(state.loop.startTime).toEqual(state.filter.start + 1000);
+    expect(state.zoom.start).toEqual(state.filter.start + 1000);
 
     // seek past loop end boundary a
     state = reducer(state, seek(0));
-    expect(state.loop.startTime).toEqual(state.filter.start + 1000);
+    expect(state.zoom.start).toEqual(state.filter.start + 1000);
     expect(state.offset).toEqual(1000);
   });
 

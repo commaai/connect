@@ -18,20 +18,6 @@ export function getDefaultFilter() {
   };
 }
 
-function getDefaultLoop(pathname) {
-  // in time instead of offset
-  // this makes it so that the timespan can change without this changing
-  // thats helpful to shared links and other things probably...
-  const zoom = getZoom(pathname);
-  if (zoom) {
-    return {
-      startTime: zoom.start,
-      duration: zoom.end - zoom.start,
-    };
-  }
-  return null;
-}
-
 export default {
   dongleId: getDongleID(window.location.pathname),
 
@@ -64,5 +50,4 @@ export default {
 
   filter: getDefaultFilter(),
   zoom: getZoom(window.location.pathname),
-  loop: getDefaultLoop(window.location.pathname),
 };

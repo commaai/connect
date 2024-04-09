@@ -14,8 +14,8 @@ let routesRequest = null;
 function updateTimeline(state, dispatch, start, end, allowPathChange) {
   dispatch(checkRoutesData());
 
-  if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
-    || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
+  if (!state.zoom || !state.zoom.start || !state.zoom.duration || state.zoom.start < start
+    || state.zoom.start + state.zoom.duration > end || state.zoom.duration < end - start) {
     dispatch(resetPlayback());
     dispatch(selectLoop(start, end));
   }

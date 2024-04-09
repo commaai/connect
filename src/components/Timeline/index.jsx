@@ -460,7 +460,6 @@ class Timeline extends Component {
 
 const stateToProps = Obstruction({
   zoom: 'zoom',
-  loop: 'loop',
   filter: 'filter',
 });
 
