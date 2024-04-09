@@ -5,6 +5,8 @@
 .vscode
 *.swp
 
+.lighthouseci/
+
 # dependencies
 /node_modules
 
