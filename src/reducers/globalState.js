@@ -273,11 +273,13 @@ export default function reducer(_state, action) {
           end: action.end,
           previous: state.zoom,
         };
+        state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id);
       } else {
         state.zoom = null;
         state.loop = null;
+        state.currentRoute = null;
       }
-      break;
+     break;
     case Types.ACTION_FILES_URLS:
       state.files = {
         ...(state.files !== null ? { ...state.files } : {}),
@@ -323,6 +325,15 @@ export default function reducer(_state, action) {
         start: action.start,
         end: action.end,
       };
+
+      if (!state.currentRoute && state.segmentRange) {
+        const r = state.routes?.find((route) => route.log_id === state.segmentRange.log_id);
+        if (r) {
+          state.currentRoute = {
+            ...r,
+          };
+        }
+      }
       break;
     default:
       return state;

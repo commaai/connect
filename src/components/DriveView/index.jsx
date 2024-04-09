@@ -23,13 +23,13 @@ class DriveView extends Component {
       this.props.dispatch(popTimelineRange());
     } else if (currentRoute) {
       this.props.dispatch(
-        pushTimelineRange(currentRoute.start_time_utc_millis, currentRoute.end_time_utc_millis),
+        pushTimelineRange(currentRoute.log_id, currentRoute.start_time_utc_millis, currentRoute.end_time_utc_millis),
       );
     }
   }
 
   close() {
-    this.props.dispatch(pushTimelineRange(null, null));
+    this.props.dispatch(pushTimelineRange(null, null, null));
   }
 
   render() {

@@ -1,5 +1,5 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getPrimeNav } from '../url';
+import { getDongleID, getZoom, getSegmentRange, getPrimeNav } from '../url';
 import { primeNav, selectDevice, pushTimelineRange } from './index';
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
@@ -17,9 +17,15 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
       dispatch(selectDevice(pathDongleId, false));
     }
 
+    // TODO: this should redirect to a log id
     const pathZoom = getZoom(action.payload.location.pathname);
     if (pathZoom !== state.zoom) {
-      dispatch(pushTimelineRange(pathZoom?.start, pathZoom?.end, false));
+      //dispatch(pushTimelineRange(pathZoom?.start, pathZoom?.end, false));
+    }
+
+    const pathSegmentRange = getSegmentRange(action.payload.location.pathname);
+    if (pathSegmentRange != state.segmentRange) {
+      dispatch(pushTimelineRange(pathSegmentRange?.log_id, pathSegmentRange?.start, pathSegmentRange?.end, true));
     }
 
     const pathPrimeNav = getPrimeNav(action.payload.location.pathname);

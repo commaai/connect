@@ -233,6 +233,8 @@ class Timeline extends Component {
   }
 
   handlePointerUp(ev) {
+    const { route } = this.props;
+
     // prevent preventDefault for back(3) and forward(4) mouse buttons
     if (ev.button !== 3 && ev.button !== 4) {
       ev.preventDefault();
@@ -261,7 +263,7 @@ class Timeline extends Component {
       const startTime = startOffset + filter.start;
       const endTime = endOffset + filter.start;
 
-      dispatch(pushTimelineRange(startTime, endTime));
+      dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }

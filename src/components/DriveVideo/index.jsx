@@ -12,7 +12,6 @@ import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, bufferVideo } from '../../timeline/playback';
-import { updateSegments } from '../../timeline/segments';
 
 const VideoOverlay = ({ loading, error }) => {
   let content;
@@ -203,10 +202,6 @@ class DriveVideo extends Component {
   syncVideo() {
     const { dispatch, isBufferingVideo, currentRoute } = this.props;
     if (!currentRoute) {
-      dispatch(updateSegments());
-      if (currentRoute && isBufferingVideo) {
-        dispatch(bufferVideo(false));
-      }
       return;
     }
 

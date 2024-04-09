@@ -32,20 +32,3 @@ export function currentOffset(state = null) {
 
   return offset;
 }
-
-/**
- * Get current route
- *
- * @param {object} state
- * @param {number} [offset]
- * @returns {*|null}
- */
-export function getCurrentRoute(state, offset) {
-  if (!state.routes) return null;
-
-  offset = offset || currentOffset(state);
-  if (offset === null) return null;
-
-  return state.routes
-    .find((route) => offset >= route.offset && offset <= route.offset + route.duration);
-}
