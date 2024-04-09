@@ -271,10 +271,10 @@ export default function reducer(_state, action) {
         state.zoom = {
           start: action.start,
           end: action.end,
+          duration: action.end - action.start,
           previous: state.zoom,
         };
       } else {
-        state.zoom = null;
         state.zoom = null;
       }
       break;
@@ -328,7 +328,7 @@ export default function reducer(_state, action) {
       return state;
   }
 
-  console.log(state.zoom, state.zoom);
+  console.log(state.zoom, state.loop);
 
   return state;
 }
