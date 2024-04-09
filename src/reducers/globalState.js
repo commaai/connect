@@ -267,13 +267,22 @@ export default function reducer(_state, action) {
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }
-      if (action.start && action.end) {
-        state.zoom = {
-          start: action.start,
-          end: action.end,
-          previous: state.zoom,
-        };
-        state.currentRoute = state.routes?.find((route) => route.log_id === action.log_id);
+      const r = state.routes?.find((route) => route.log_id === action.log_id);
+      if (action.log_id && r) {
+        state.currentRoute = r;
+        if (!action.start) {
+          state.zoom = {
+            start: 0,
+            end: state.currentRoute.duration,
+            previous: state.zoom,
+          }
+        } else {
+          state.zoom = {
+            start: action.start,
+            end: action.end,
+            previous: state.zoom,
+          };
+        }
       } else {
         state.zoom = null;
         state.loop = null;

@@ -197,7 +197,7 @@ class ExplorerApp extends Component {
       minHeight: `calc(100vh - ${headerHeight}px)`,
     };
 
-    console.log("zoom here", zoom)
+    console.log("current route", currentRoute, zoom)
 
     return (
       <div>

@@ -35,9 +35,7 @@ class DriveView extends Component {
   render() {
     const { dongleId, zoom, currentRoute, routes } = this.props;
 
-    // TODO: fix this
-    //const currentRouteBoundsSelected = currentRoute?.start_time_utc_millis === zoom.start && currentRoute?.end_time_utc_millis === zoom.end;
-    const currentRouteBoundsSelected = false;
+    const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute?.duration;
     const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
 
     // FIXME: end time not always same day as start time
