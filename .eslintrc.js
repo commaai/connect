@@ -2,12 +2,11 @@ module.exports = {
   extends: [
     'eslint:recommended',
     'plugin:react/recommended',
-    'airbnb',
-    'airbnb/hooks',
     'plugin:jest-dom/recommended',
   ],
   parserOptions: {
     ecmaVersion: 2020,
+    sourceType: "module",
   },
   rules: {
     'camelcase': 'warn',
@@ -62,6 +61,8 @@ module.exports = {
     }],
   },
   env: {
+    es6: true,
+    node: true,
     browser: true,
   },
   globals: {

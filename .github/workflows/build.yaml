@@ -30,6 +30,9 @@ jobs:
 
       - run: pnpm run build:development
 
+      - name: Lint
+        run: pnpm lint
+
       - name: Run unit tests
         run: pnpm test
 

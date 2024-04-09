@@ -16,7 +16,7 @@ import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
-import { seek, selectLoop } from '../../timeline/playback';
+import { seek } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({
@@ -168,12 +168,11 @@ class Timeline extends Component {
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
 
-    const { zoomOverride, route, zoom } = this.props;
+    const { zoomOverride, zoom } = this.props;
     this.state = {
       dragging: null,
       hoverX: null,
       zoom: zoomOverride || zoom,
-      route: route,
       thumbnail: {
         height: 0,
         width: 0,
@@ -409,8 +408,6 @@ class Timeline extends Component {
       };
     }
 
-    const rulerWidth = this.rulerRef.current ? this.rulerRef.current.getBoundingClientRect().width : 640;
-    const handleWidth = rulerWidth < 640 ? 28 : 12;
     const baseWidthStyle = { width: '100%' };
 
     return (

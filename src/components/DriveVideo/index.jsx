@@ -128,7 +128,7 @@ class DriveVideo extends Component {
       return;
     }
 
-    if (e.type == 'networkError' && (e.response?.code === 404)) {
+    if (e.type === 'networkError' && (e.response?.code === 404)) {
       this.setState({ videoError: 'This video segment has not uploaded yet or has been deleted.' });
     } else {
       this.setState({ videoError: 'Unable to load video' });
@@ -185,7 +185,7 @@ class DriveVideo extends Component {
 
   updateVideoSource(prevProps) {
     let { src } = this.state;
-    let { currentRoute } = this.props;
+    const { currentRoute } = this.props;
     if (!currentRoute) {
       if (src !== '') {
         this.setState({ src: '', videoError: null });

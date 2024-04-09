@@ -218,8 +218,7 @@ class ExplorerApp extends Component {
         <div className={ classes.window } style={ containerStyles }>
           { noDevicesUpsell
             ? <NoDeviceUpsell />
-            : (zoom ? <DriveView /> : <Dashboard />)
-            }
+            : (zoom ? <DriveView /> : <Dashboard />)}
         </div>
         <IosPwaPopup />
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>

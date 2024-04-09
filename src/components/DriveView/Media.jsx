@@ -4,8 +4,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem,
-  Popover } from '@material-ui/core';
+import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem } from '@material-ui/core';
 import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
@@ -22,7 +21,7 @@ import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
 import { InfoOutline } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
-import { analyticsEvent, primeNav, updateRoute } from '../../actions';
+import { analyticsEvent, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles } from '../../actions/files';
@@ -252,7 +251,7 @@ class Media extends Component {
 
   componentDidMount() {
     this.componentDidUpdate({}, {});
-  
+
     if (this.props.currentRoute && ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser)) {
       this.props.dispatch(setRouteViewed(this.props.dongleId, this.props.currentRoute.fullname));
     }
@@ -358,7 +357,7 @@ class Media extends Component {
   }
 
   async uploadFilesAll(types) {
-    const { dongleId, device, currentRoute, loop, files } = this.props;
+    const { dongleId, currentRoute, loop, files } = this.props;
     if (types === undefined) {
       types = ['logs', 'cameras', 'dcameras', 'ecameras'];
     }
@@ -418,7 +417,7 @@ class Media extends Component {
   }
 
   getUploadStats() {
-    const { device, currentRoute, files } = this.props;
+    const { currentRoute, files } = this.props;
     if (!files || !currentRoute) {
       return null;
     }
@@ -543,7 +542,7 @@ class Media extends Component {
   }
 
   renderMediaOptions(showMapAlways) {
-    const { classes, device, profile } = this.props;
+    const { classes } = this.props;
     const { inView } = this.state;
     return (
       <>

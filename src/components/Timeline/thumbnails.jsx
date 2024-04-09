@@ -75,7 +75,7 @@ export default function Thumbnails(props) {
   return imgArr.map((data, i) => (data.blank
     ? (
       <div
-        key={i}
+        key={data.segmentNum}
         className="thumbnailImage blank"
         role="img"
         style={{
@@ -86,7 +86,7 @@ export default function Thumbnails(props) {
     )
     : (
       <div
-        key={i}
+        key={data.segmentNum}
         className="thumbnailImage images"
         role="img"
         style={{
