@@ -305,11 +305,12 @@ export function checkRoutesData() {
           ...r,
           url: r.url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
           log_id: r.fullname.split('|')[1],
-          offset: Math.round(startTime) - state.filter.start,
+          //offset: Math.round(startTime),
           duration: endTime - startTime,
           start_time_utc_millis: startTime,
           end_time_utc_millis: endTime,
-          segment_offsets: r.segment_start_times.map((x) => x - state.filter.start),
+          // TODO: get this from the API, this isn't correct for segments with a time jump
+          segment_durations: r.segment_start_times.map((x, i) => r.segment_end_times[i] - x),
         };
       });
 
@@ -369,7 +370,7 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 
   if (log_id) {
     path.push(log_id);
-    if (start && end) {
+    if (start && end && start > 0 && start > end) {
       path.push(start);
       path.push(end);
     }

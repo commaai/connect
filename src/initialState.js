@@ -35,10 +35,10 @@ function getDefaultLoop(pathname) {
 export default {
   dongleId: getDongleID(window.location.pathname),
 
-  desiredPlaySpeed: 1, // speed set by user
+  desiredPlaySpeed: 1,    // speed set by user
   isBufferingVideo: true, // if we're currently buffering for more data
-  offset: null, // in miliseconds, relative to `state.filter.start`
-  startTime: Date.now(), // millisecond timestamp in which play began
+  offset: null,           // in miliseconds, relative to state.zoom.start
+  startTime: Date.now(),  // millisecond timestamp in which play began
 
   routes: null,
   routesMeta: {

@@ -33,7 +33,7 @@ export default function Thumbnails(props) {
       currSegment.length += 1;
     } else {
       // 12 per file, 5s each
-      const seconds = Math.floor((offset - route.offset) / 1000);
+      const seconds = Math.floor(offset / 1000);
       const imageIndex = Math.max(0, Math.min(Math.floor(seconds / 5), 11));
       const segmentNum = getSegmentNumber(route, offset);
       const url = `${route.url}/${segmentNum}/sprite.jpg`;
@@ -75,7 +75,7 @@ export default function Thumbnails(props) {
   return imgArr.map((data, i) => (data.blank
     ? (
       <div
-        key={data.segmentNum}
+        key={i}
         className="thumbnailImage blank"
         role="img"
         style={{
@@ -86,7 +86,7 @@ export default function Thumbnails(props) {
     )
     : (
       <div
-        key={data.segmentNum}
+        key={i}
         className="thumbnailImage images"
         role="img"
         style={{

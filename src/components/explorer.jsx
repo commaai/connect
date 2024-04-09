@@ -172,7 +172,7 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, zoom, devices, dongleId } = this.props;
+    const { classes, zoom, currentRoute, devices, dongleId } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
@@ -197,13 +197,15 @@ class ExplorerApp extends Component {
       minHeight: `calc(100vh - ${headerHeight}px)`,
     };
 
+    console.log("zoom here", zoom)
+
     return (
       <div>
         <ResizeHandler onResize={ (ww) => this.setState({ windowWidth: ww }) } />
         <PullDownReload />
         <AppHeader
           drawerIsOpen={ drawerIsOpen }
-          annotating={ Boolean(zoom) }
+          viewingRoute={ Boolean(currentRoute) }
           showDrawerButton={ !isLarge }
           handleDrawerStateChanged={this.handleDrawerStateChanged}
           forwardRef={ this.updateHeaderRef }
@@ -218,7 +220,7 @@ class ExplorerApp extends Component {
         <div className={ classes.window } style={ containerStyles }>
           { noDevicesUpsell
             ? <NoDeviceUpsell />
-            : (zoom ? <DriveView /> : <Dashboard />)}
+            : (currentRoute ? <DriveView /> : <Dashboard />)}
         </div>
         <IosPwaPopup />
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
@@ -249,6 +251,7 @@ const stateToProps = Obstruction({
   pathname: 'router.location.pathname',
   dongleId: 'dongleId',
   devices: 'devices',
+  currentRoute: 'currentRoute',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

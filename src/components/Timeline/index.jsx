@@ -259,9 +259,9 @@ class Timeline extends Component {
       if (offset < startOffset || offset > endOffset) {
         this.props.dispatch(seek(startOffset));
       }
-      const { filter, dispatch } = this.props;
-      const startTime = startOffset + filter.start;
-      const endTime = endOffset + filter.start;
+      const { dispatch } = this.props;
+      const startTime = startOffset;
+      const endTime = endOffset;
 
       dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
     } else if (ev.currentTarget !== document) {
@@ -299,14 +299,12 @@ class Timeline extends Component {
 
   percentToOffset(perc) {
     const { zoom } = this.state;
-    const { filter } = this.props;
-    return perc * (zoom.end - zoom.start) + (zoom.start - filter.start);
+    return perc * (zoom.end - zoom.start) + zoom.start;
   }
 
   offsetToPercent(offset) {
     const { zoom } = this.state;
-    const { filter } = this.props;
-    return (offset - (zoom.start - filter.start)) / (zoom.end - zoom.start);
+    return (offset - zoom.start) / (zoom.end - zoom.start);
   }
 
   segmentNum(offset) {
@@ -318,27 +316,19 @@ class Timeline extends Component {
   }
 
   renderRoute() {
-    const { classes, route, filter } = this.props;
+    const { classes, route } = this.props;
     const { zoom } = this.state;
 
     if (!route.events) {
       return null;
     }
 
-    const range = filter.start - filter.end;
-    let startPerc = (100 * route.offset) / range;
+    const range = route.duration;
+    let startPerc = (100 * 0) / range;
     let widthPerc = (100 * route.duration) / range;
 
-    const startOffset = zoom.start - filter.start;
-    const endOffset = zoom.end - filter.start;
-    const zoomDuration = endOffset - startOffset;
-    if (route.offset > endOffset) {
-      return [];
-    }
-    if (route.offset + route.duration < startOffset) {
-      return [];
-    }
-    startPerc = (100 * (route.offset - startOffset)) / zoomDuration;
+    const zoomDuration = zoom.end - zoom.start;
+    startPerc = (100 * (route.offset - zoom.start)) / zoomDuration;
     widthPerc = (100 * route.duration) / zoomDuration;
 
     const style = {
@@ -378,7 +368,7 @@ class Timeline extends Component {
   }
 
   render() {
-    const { classes, hasRuler, filter, className, route, thumbnailsVisible } = this.props;
+    const { classes, hasRuler, className, route, thumbnailsVisible } = this.props;
     const { thumbnail, hoverX, dragging } = this.state;
 
     const hasRulerCls = hasRuler ? 'hasRuler' : '';
@@ -394,7 +384,7 @@ class Timeline extends Component {
       const hoverOffset = this.percentToOffset((hoverX - rulerBounds.x) / rulerBounds.width);
       hoverStyle = { left: Math.max(-10, Math.min(rulerBounds.width - 70, hoverX - rulerBounds.x - 40)) };
       if (!Number.isNaN(hoverOffset)) {
-        hoverString = dayjs(filter.start + hoverOffset).format('HH:mm:ss');
+        hoverString = dayjs(route.start_time_utc_millis + hoverOffset).format('HH:mm:ss');
         const segNum = this.segmentNum(hoverOffset);
         if (segNum !== null) {
           hoverString = `${segNum}, ${hoverString}`;
@@ -463,7 +453,6 @@ class Timeline extends Component {
 const stateToProps = Obstruction({
   zoom: 'zoom',
   loop: 'loop',
-  filter: 'filter',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));

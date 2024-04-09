@@ -17,14 +17,6 @@ There's a ton of them, but these are worth mentioning because they sort of affec
  * `@material-ui` - Lots of fully featured highly customizable components for building the UIs with. Theming system with global and per-component overrides of any CSS values.
  * `react-router-redux` - the newer one, 5.x.... Mindlessly simple routing with convenient global access due to redux
 
-## How things works
-The current playback is tracked not by storing the current offset, but instead storing the local time that the player began, the offset it began at, and the playback rate. Any time any of these values change, it rebases them all back to the current time. It means that at any arbitrary moment you can calculate the current offset with...
-```js
-(Date.now() - state.startTime) * state.playSpeed + state.offset
-```
-
-With this central authority on current offset time, it becomes much easier to have each data source keep themselves in sync instead of trying to manage synchronizing all of them.
-
 ## Development
 `pnpm start`
 

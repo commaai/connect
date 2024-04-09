@@ -264,7 +264,6 @@ class DriveVideo extends Component {
     if (!currentRoute) {
       return 0;
     }
-    offset -= currentRoute.offset;
 
     if (currentRoute.videoStartOffset) {
       offset -= currentRoute.videoStartOffset;

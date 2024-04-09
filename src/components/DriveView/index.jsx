@@ -23,7 +23,7 @@ class DriveView extends Component {
       this.props.dispatch(popTimelineRange());
     } else if (currentRoute) {
       this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, currentRoute.start_time_utc_millis, currentRoute.end_time_utc_millis),
+        pushTimelineRange(currentRoute.log_id, null, null),
       );
     }
   }
@@ -33,15 +33,17 @@ class DriveView extends Component {
   }
 
   render() {
-    const { dongleId, zoom, routes, currentRoute } = this.props;
+    const { dongleId, zoom, currentRoute, routes } = this.props;
 
-    const currentRouteBoundsSelected = currentRoute?.start_time_utc_millis === zoom.start && currentRoute?.end_time_utc_millis === zoom.end;
-    const backButtonDisabled = !zoom.previousZoom && currentRouteBoundsSelected;
+    // TODO: fix this
+    //const currentRouteBoundsSelected = currentRoute?.start_time_utc_millis === zoom.start && currentRoute?.end_time_utc_millis === zoom.end;
+    const currentRouteBoundsSelected = false;
+    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
 
     // FIXME: end time not always same day as start time
-    const startDay = dayjs(zoom.start).format('dddd');
-    const startTime = dayjs(zoom.start).format('MMM D @ HH:mm');
-    const endTime = dayjs(zoom.end).format('HH:mm');
+    const startDay = dayjs(currentRoute.start_time_utc_millis).format('dddd');
+    const startTime = dayjs(currentRoute.start_time_utc_millis).format('MMM D @ HH:mm');
+    const endTime = dayjs(currentRoute.end_time_utc_millis).format('HH:mm');
 
     return (
       <div className="DriveView">

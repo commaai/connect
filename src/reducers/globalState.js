@@ -332,6 +332,10 @@ export default function reducer(_state, action) {
           state.currentRoute = {
             ...r,
           };
+          state.zoom = {
+            start: 0,
+            end: state.currentRoute.duration,
+          };
         }
       }
       break;
