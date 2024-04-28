@@ -62,7 +62,6 @@ class TimeSelect extends Component {
 
     this.state = {
       showPicker: false,
-      showError: false,
     };
 
     this.handleSelectChange = this.handleSelectChange.bind(this);
@@ -101,14 +100,13 @@ class TimeSelect extends Component {
   handleClose() {
     this.setState({
       showPicker: false,
-      showError: false,
     });
   }
 
   changeStart(event) {
     if (event.target.valueAsDate) {
       this.setState({
-        start: event.target.valueAsDate.setHours(0, 0, 0, 0),
+        start: new Date(event.target.valueAsDate.getUTCFullYear(),  event.target.valueAsDate.getUTCMonth(),  event.target.valueAsDate.getUTCDate()).getTime(),
       });
     }
   }
@@ -116,17 +114,12 @@ class TimeSelect extends Component {
   changeEnd(event) {
     if (event.target.valueAsDate) {
       this.setState({
-        end: event.target.valueAsDate.setHours(23, 59, 59, 999),
+        end: new Date(event.target.valueAsDate.getUTCFullYear(),  event.target.valueAsDate.getUTCMonth(),  event.target.valueAsDate.getUTCDate()).getTime(),
       });
     }
   }
 
   handleSave() {
-    if (this.state.end - this.state.start < 0){
-      this.setState({
-        showError: true,
-      });
-    } else {
       this.props.dispatch(selectTimeFilter(this.state.start, this.state.end));
       this.setState({
         showPicker: false,
@@ -134,7 +127,6 @@ class TimeSelect extends Component {
         start: null,
         end: null,
       });
-    }
   }
 
   selectedOption() {
@@ -224,14 +216,13 @@ class TimeSelect extends Component {
               <input
                 label="End date"
                 type="date"
-                min={ minDate }
+                min={ startDate }
                 max={ maxDate }
                 onChange={this.changeEnd}
                 value={ endDate }
               />
             </div>
             <Divider />
-            {this.state.showError? <Typography variant="body2">Invalid TimeFilter</Typography> : null}
             <div className={classes.buttonGroup}>
               <Button variant="contained" className={ classes.cancelButton } onClick={this.handleClose}>
                 Cancel
