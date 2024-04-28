@@ -62,6 +62,7 @@ class TimeSelect extends Component {
 
     this.state = {
       showPicker: false,
+      showError: false,
     };
 
     this.handleSelectChange = this.handleSelectChange.bind(this);
@@ -100,6 +101,7 @@ class TimeSelect extends Component {
   handleClose() {
     this.setState({
       showPicker: false,
+      showError: false,
     });
   }
 
@@ -120,12 +122,19 @@ class TimeSelect extends Component {
   }
 
   handleSave() {
-    this.props.dispatch(selectTimeFilter(this.state.start, this.state.end));
-    this.setState({
-      showPicker: false,
-      start: null,
-      end: null,
-    });
+    if (this.state.end - this.state.start < 0){
+      this.setState({
+        showError: true,
+      });
+    } else {
+      this.props.dispatch(selectTimeFilter(this.state.start, this.state.end));
+      this.setState({
+        showPicker: false,
+        showError: false,
+        start: null,
+        end: null,
+      });
+    }
   }
 
   selectedOption() {
@@ -222,6 +231,7 @@ class TimeSelect extends Component {
               />
             </div>
             <Divider />
+            {this.state.showError? <Typography variant="body2">Invalid TimeFilter</Typography> : null}
             <div className={classes.buttonGroup}>
               <Button variant="contained" className={ classes.cancelButton } onClick={this.handleClose}>
                 Cancel
