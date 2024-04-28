@@ -120,12 +120,12 @@ class TimeSelect extends Component {
   }
 
   handleSave() {
-      this.props.dispatch(selectTimeFilter(this.state.start, this.state.end));
-      this.setState({
-        showPicker: false,
-        start: null,
-        end: null,
-      });
+    this.props.dispatch(selectTimeFilter(this.state.start, this.state.end));
+    this.setState({
+      showPicker: false,
+      start: null,
+      end: null,
+    });
   }
 
   selectedOption() {
