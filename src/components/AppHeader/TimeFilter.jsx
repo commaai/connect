@@ -123,7 +123,6 @@ class TimeSelect extends Component {
       this.props.dispatch(selectTimeFilter(this.state.start, this.state.end));
       this.setState({
         showPicker: false,
-        showError: false,
         start: null,
         end: null,
       });
