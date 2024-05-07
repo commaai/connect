@@ -28,6 +28,11 @@ const DriveList = (props) => {
   if (!routes || routes.length === 0) {
     content = <DriveListEmpty device={device} routes={routes} />;
   } else {
+    // sort routes by start_time_utc_millis with the latest drive first
+    // Workaround upstream sorting issue for now
+    // possibly from https://github.com/commaai/connect/issues/451
+    routes.sort((a, b) => b.start_time_utc_millis - a.start_time_utc_millis);
+
     content = (
       <div className={`${classes.drives} DriveList`}>
         {routes.map((drive) => (
