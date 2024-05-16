@@ -54,7 +54,6 @@ jobs:
 
   lighthouse:
     runs-on: ubuntu-latest
-    if: github.repository == 'commaai/connect'
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/setup-pnpm
@@ -72,7 +71,7 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     needs: [test]
-    if: github.repository == 'commaai/connect'
+    if: github.ref == 'refs/heads/master' && github.repository == 'commaai/connect'
     permissions:
       packages: write
       contents: read
