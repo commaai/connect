@@ -18,16 +18,19 @@ import { primeNav, primeGetSubscription, analyticsEvent } from '../../actions';
 const styles = (theme) => ({
   linkHighlight: {
     '&:link': {
+      textDecoration: "underline",
       color: Colors.green300,
     },
     '&:visited': {
+      textDecoration: "underline",
       color: Colors.green300,
     },
     '&:active': {
+      textDecoration: "underline",
       color: Colors.green300,
     },
-    
     '&:hover': {
+      textDecoration: "underline",
       color: Colors.green400,
     },
   },
