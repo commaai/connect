@@ -40,10 +40,6 @@ body {
   padding: 0;
 }
 
-a {
-  color: hwb(128 0% 16%); 
-}
-
 a:focus {
   outline: none;
   box-shadow: none;

@@ -16,6 +16,21 @@ import { ErrorOutline, InfoOutline } from '../../icons';
 import { primeNav, primeGetSubscription, analyticsEvent } from '../../actions';
 
 const styles = (theme) => ({
+  linkHighlight: {
+    '&:link': {
+      color: Colors.green300,
+    },
+    '&:visited': {
+      color: Colors.green300,
+    },
+    '&:active': {
+      color: Colors.green300,
+    },
+    
+    '&:hover': {
+      color: Colors.green400,
+    },
+  },
   primeBox: {
     display: 'flex',
     flexDirection: 'column',
@@ -442,7 +457,7 @@ class PrimeManage extends Component {
                         Your prime subscription will be canceled on May 15th unless you replace the
                         SIM
                         card in your device. A new SIM card can be ordered from the
-                        <a href="https://comma.ai/shop/comma-prime-sim">shop</a>
+                        <a className={ classes.linkHighlight} href="https://comma.ai/shop/comma-prime-sim">shop</a>
                         .
                         Use discount code SIMSWAP at checkout to receive a free SIM card.
                       </Typography>
