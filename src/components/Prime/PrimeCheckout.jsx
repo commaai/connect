@@ -16,6 +16,24 @@ import { primeNav, analyticsEvent } from '../../actions';
 import { ErrorOutline, InfoOutline } from '../../icons';
 
 const styles = () => ({
+  linkHighlight: {
+    '&:link': {
+      textDecoration: "underline",
+      color: Colors.green300,
+    },
+    '&:visited': {
+      textDecoration: "underline",
+      color: Colors.green300,
+    },
+    '&:active': {
+      textDecoration: "underline",
+      color: Colors.green300,
+    },
+    '&:hover': {
+      textDecoration: "underline",
+      color: Colors.green400,
+    },
+  },
   primeBox: {
     display: 'flex',
     flexDirection: 'column',
@@ -313,13 +331,13 @@ class PrimeCheckout extends Component {
         disabledDataPlanText = 'Standard plan not available, detected a third-party SIM.';
       } else if (!['blue', 'magenta_new', 'webbing'].includes(subscribeInfo.sim_type)) {
         disabledDataPlanText = ['Standard plan not available, old SIM type detected, new SIM cards are available in the ',
-          <a key={1} href="https://comma.ai/shop/comma-prime-sim">shop</a>];
+          <a className={ classes.linkHighlight} key={1} href="https://comma.ai/shop/comma-prime-sim">shop</a>];
       } else if (subscribeInfo.sim_usable === false && subscribeInfo.sim_type === 'blue') {
         disabledDataPlanText = ['Standard plan not available, SIM has been canceled and is therefore no longer usable, new SIM cards are available in the ',
-          <a key={1} href="https://comma.ai/shop/comma-prime-sim">shop</a>];
+          <a className={ classes.linkHighlight} key={1} href="https://comma.ai/shop/comma-prime-sim">shop</a>];
       } else if (subscribeInfo.sim_usable === false) {
         disabledDataPlanText = ['Standard plan not available, SIM is no longer usable, new SIM cards are available in the ',
-          <a key={1} href="https://comma.ai/shop/comma-prime-sim">shop</a>];
+          <a className={ classes.linkHighlight} key={1} href="https://comma.ai/shop/comma-prime-sim">shop</a>];
       }
     }
 
@@ -408,7 +426,7 @@ class PrimeCheckout extends Component {
         <div style={ blockMargin }>
           <Typography className={ classes.learnMore }>
             {'Learn more about comma prime from our '}
-            <a target="_blank" href="https://comma.ai/connect#faq" rel="noreferrer">FAQ</a>
+            <a className={ classes.linkHighlight} target="_blank" href="https://comma.ai/connect#faq" rel="noreferrer">FAQ</a>
           </Typography>
         </div>
         { error && (
