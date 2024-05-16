@@ -106,7 +106,7 @@ class TimeSelect extends Component {
   changeStart(event) {
     if (event.target.valueAsDate) {
       this.setState({
-        start: event.target.valueAsDate.setHours(0, 0, 0, 0),
+        start: new Date(event.target.valueAsDate.getUTCFullYear(), event.target.valueAsDate.getUTCMonth(), event.target.valueAsDate.getUTCDate()).getTime(),
       });
     }
   }
@@ -114,7 +114,7 @@ class TimeSelect extends Component {
   changeEnd(event) {
     if (event.target.valueAsDate) {
       this.setState({
-        end: event.target.valueAsDate.setHours(23, 59, 59, 999),
+        end: new Date(event.target.valueAsDate.getUTCFullYear(), event.target.valueAsDate.getUTCMonth(), event.target.valueAsDate.getUTCDate(),23,59,59).getTime(),
       });
     }
   }
@@ -215,7 +215,7 @@ class TimeSelect extends Component {
               <input
                 label="End date"
                 type="date"
-                min={ minDate }
+                min={ startDate }
                 max={ maxDate }
                 onChange={this.changeEnd}
                 value={ endDate }
