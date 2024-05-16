@@ -106,7 +106,7 @@ class TimeSelect extends Component {
   changeStart(event) {
     if (event.target.valueAsDate) {
       this.setState({
-        start: new Date(event.target.valueAsDate.getUTCFullYear(),  event.target.valueAsDate.getUTCMonth(),  event.target.valueAsDate.getUTCDate()).getTime(),
+        start: new Date(event.target.valueAsDate.getUTCFullYear(), event.target.valueAsDate.getUTCMonth(), event.target.valueAsDate.getUTCDate()).getTime(),
       });
     }
   }
@@ -114,7 +114,7 @@ class TimeSelect extends Component {
   changeEnd(event) {
     if (event.target.valueAsDate) {
       this.setState({
-        end: new Date(event.target.valueAsDate.getUTCFullYear(),  event.target.valueAsDate.getUTCMonth(),  event.target.valueAsDate.getUTCDate(),23,59,59).getTime(),
+        end: new Date(event.target.valueAsDate.getUTCFullYear(), event.target.valueAsDate.getUTCMonth(), event.target.valueAsDate.getUTCDate(),23,59,59).getTime(),
       });
     }
   }
