@@ -204,10 +204,8 @@ class DriveVideo extends Component {
     const { dispatch, isBufferingVideo, currentRoute } = this.props;
     if (!currentRoute) {
       dispatch(updateSegments());
-      console.log('updateSegments')
       // FIXME: currentRoute can't be true if it was just false?
       if (currentRoute && isBufferingVideo) {
-        console.log('buffering6!')
         dispatch(bufferVideo(false));
       }
       return;
