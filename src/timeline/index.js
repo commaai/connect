@@ -46,6 +46,16 @@ export function getCurrentRoute(state, offset) {
   offset = offset || currentOffset(state);
   if (offset === null) return null;
 
+
+  // loop through state.routes:
+  for (let i = 0; i < state.routes.length; i++) {
+    const route = state.routes[i];
+    console.log('route off', route.offset)
+    console.log('route', offset >= (route.offset - 0) && offset <= route.offset + route.duration + 0)
+  }
+
+
+  // Add 1s of tolerance as route start/end times are only second precision while segment times are millisecond
   return state.routes
-    .find((route) => offset >= route.offset && offset <= route.offset + route.duration);
+    .find((route) => offset >= route.offset - 1000 && offset <= route.offset + route.duration + 1000);
 }
