@@ -204,7 +204,7 @@ class DriveVideo extends Component {
     const { dispatch, isBufferingVideo, currentRoute } = this.props;
     if (!currentRoute) {
       dispatch(updateSegments());
-      if (currentRoute && isBufferingVideo) {
+      if (isBufferingVideo) {
         dispatch(bufferVideo(false));
       }
       return;
