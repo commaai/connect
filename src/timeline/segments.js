@@ -14,7 +14,6 @@ export function reducer(_state, action) {
   }
 
   const currentRoute = getCurrentRoute(state);
-  console.log("updating segments", currentRoute)
   state.currentRoute = currentRoute ? { ...currentRoute } : null;
 
   return state;

@@ -101,7 +101,6 @@ class DriveMap extends Component {
         const { offset } = this.props.currentRoute;
 
         const pos = this.posAtOffset(currentOffset() - offset);
-        console.log('fds', currentOffset())
         if (pos) {
           markerSource.setData({
             type: 'Point',
