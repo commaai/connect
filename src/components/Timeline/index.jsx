@@ -284,6 +284,7 @@ class Timeline extends Component {
     }
     raf(this.getOffset);
     let offset = currentOffset();
+    console.log('getOffset', offset)
     if (this.seekIndex) {
       offset = this.seekIndex;
     }

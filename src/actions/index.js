@@ -289,6 +289,8 @@ export function checkRoutesData() {
         let startTime = r.segment_start_times[0];
         let endTime = r.segment_end_times[r.segment_end_times.length - 1];
 
+        // console.log('offset bullshit', startTime, Math.round(startTime), state.filter.start, Math.round(startTime) - state.filter.start)
+
         // TODO: these will all be relative times soon
         // fix segment boundary times for routes that have the wrong time at the start
         if ((Math.abs(r.start_time_utc_millis - startTime) > 24 * 60 * 60 * 1000)

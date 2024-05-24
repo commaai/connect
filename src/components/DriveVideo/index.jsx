@@ -76,6 +76,7 @@ class DriveVideo extends Component {
   }
 
   componentDidMount() {
+    console.log('componentDidMount')
     const { playSpeed } = this.props;
     if (this.videoPlayer.current) {
       this.videoPlayer.current.playbackRate = playSpeed || 1;
@@ -86,6 +87,21 @@ class DriveVideo extends Component {
   }
 
   componentDidUpdate(prevProps) {
+    console.log('componentDidUpdate')
+
+    // Compare props
+    if (prevProps.src !== this.props.src) {
+      console.log('Prop src changed from', prevProps.src, 'to', this.props.src);
+    }
+    if (prevProps.currentRoute !== this.props.currentRoute) {
+      console.log('Prop currentRoute changed from', prevProps.currentRoute, 'to', this.props.currentRoute);
+    }
+    if (prevProps.isBufferingVideo !== this.props.isBufferingVideo) {
+      console.log('Prop isBufferingVideo changed from', prevProps.isBufferingVideo, 'to', this.props.isBufferingVideo);
+    }
+
+    console.log("didUpdate currentRoute", this.props.currentRoute)
+
     this.updateVideoSource(prevProps);
     this.syncVideo();
   }
@@ -98,9 +114,11 @@ class DriveVideo extends Component {
   }
 
   onVideoBuffering() {
+    console.log('onVideoBuffering')
     const { dispatch, currentRoute } = this.props;
     const videoPlayer = this.videoPlayer.current;
     if (!videoPlayer || !currentRoute || !videoPlayer.getDuration()) {
+      console.log('buffering1')
       dispatch(bufferVideo(true));
     }
 
@@ -112,6 +130,7 @@ class DriveVideo extends Component {
     const { hasLoaded } = getVideoState(videoPlayer);
     const { readyState } = videoPlayer.getInternalPlayer();
     if (!hasLoaded || readyState < 2) {
+      console.log('buffering2')
       dispatch(bufferVideo(true));
     }
   }
@@ -120,7 +139,9 @@ class DriveVideo extends Component {
    * @param {Error} e
    */
   onHlsError(e) {
+    console.error('HLS error', e);
     const { dispatch } = this.props;
+      console.log('buffering3')
     dispatch(bufferVideo(true));
 
     if (e.type === 'mediaError' && (e.details === 'bufferStalledError' || e.details === 'bufferNudgeOnStall')) {
@@ -164,6 +185,7 @@ class DriveVideo extends Component {
     }
 
     const { dispatch } = this.props;
+      console.log('buffering4')
     dispatch(bufferVideo(true));
 
     if (e.type === 'networkError') {
@@ -179,13 +201,16 @@ class DriveVideo extends Component {
   }
 
   onVideoResume() {
+    console.log("onVideoResume")
     const { videoError } = this.state;
     if (videoError) this.setState({ videoError: null });
   }
 
   updateVideoSource(prevProps) {
+    console.log("updateVideoSource")
     let { src } = this.state;
     const { currentRoute } = this.props;
+    console.log('currentRoute', currentRoute)
     if (!currentRoute) {
       if (src !== '') {
         this.setState({ src: '', videoError: null });
@@ -193,14 +218,17 @@ class DriveVideo extends Component {
       return;
     }
 
+    console.log('getting src!')
     if (src === '' || !prevProps.currentRoute || prevProps.currentRoute?.fullname !== currentRoute.fullname) {
       src = Video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
+      console.log('got src', src)
       this.setState({ src, videoError: null });
       this.syncVideo();
     }
   }
 
   syncVideo() {
+    console.log('syncVideo')
     const { dispatch, isBufferingVideo, currentRoute } = this.props;
     if (!currentRoute) {
       dispatch(updateSegments());
@@ -241,9 +269,11 @@ class DriveVideo extends Component {
     const { hasLoaded, bufferRemaining } = getVideoState(videoPlayer);
     const hasSufficientBuffer = bufferRemaining >= sufficientBuffer;
     if (isBufferingVideo && hasSufficientBuffer && internalPlayer.readyState >= 2) {
+      console.log('buffering7')
       dispatch(bufferVideo(false));
     } else if (isBufferingVideo || !hasLoaded || internalPlayer.readyState < 2) {
       if (!isBufferingVideo) {
+      console.log('buffering8')
         dispatch(bufferVideo(true));
       }
       newPlaybackRate = 0;
@@ -268,6 +298,7 @@ class DriveVideo extends Component {
   }
 
   currentVideoTime(offset = currentOffset()) {
+    console.log('currentVideoTime', offset)
     const { currentRoute } = this.props;
     if (!currentRoute) {
       return 0;
@@ -279,6 +310,7 @@ class DriveVideo extends Component {
     }
 
     offset /= 1000;
+    console.log('currentVideoTime2', offset)
 
     return Math.max(0, offset);
   }
@@ -286,6 +318,7 @@ class DriveVideo extends Component {
   render() {
     const { desiredPlaySpeed, isBufferingVideo, currentRoute } = this.props;
     const { src, videoError } = this.state;
+    console.log('src', src, videoError)
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
         <VideoOverlay loading={isBufferingVideo} error={videoError} />

@@ -11,13 +11,19 @@ export function currentOffset(state = null) {
     state = store.getState();
   }
 
+  console.log('in currentOffset', state.offset)
+  console.log('is buffering', state.isBufferingVideo)
+
   /** @type {number} */
   let offset;
   if (state.offset === null && state.loop?.startTime) {
+    console.log('null offset')
     offset = state.loop.startTime - state.filter.start;
   } else {
+    console.log('not null offset', state.offset)
     const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
     offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
+    console.log('new offset', offset)
   }
 
   if (offset !== null && state.loop?.startTime) {
@@ -25,8 +31,10 @@ export function currentOffset(state = null) {
     const loopOffset = state.loop.startTime - state.filter.start;
     if (offset < loopOffset) {
       offset = loopOffset;
+      console.log('loop offset', offset)
     } else if (offset > loopOffset + state.loop.duration) {
       offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
+      console.log('loop offset2', offset)
     }
   }
 
@@ -41,21 +49,23 @@ export function currentOffset(state = null) {
  * @returns {*|null}
  */
 export function getCurrentRoute(state, offset) {
+  console.log('state.routes', state.routes)
   if (!state.routes) return null;
 
   offset = offset || currentOffset(state);
+  console.log('offset123', offset)
   if (offset === null) return null;
 
 
   // loop through state.routes:
   for (let i = 0; i < state.routes.length; i++) {
     const route = state.routes[i];
-    console.log('route off', route.offset)
-    console.log('route', offset >= (route.offset - 0) && offset <= route.offset + route.duration + 0)
+    // console.log('route off', route.offset)
+    // console.log('route', offset >= (route.offset - 0) && offset <= route.offset + route.duration + 0)
   }
 
 
   // Add 1s of tolerance as route start/end times are only second precision while segment times are millisecond
   return state.routes
-    .find((route) => offset >= route.offset - 1000 && offset <= route.offset + route.duration + 1000);
+    .find((route) => offset >= route.offset - 0 && offset <= route.offset + route.duration + 0);
 }
