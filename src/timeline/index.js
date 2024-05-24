@@ -47,6 +47,7 @@ export function getCurrentRoute(state, offset) {
   if (offset === null) return null;
 
   // Add 1s of tolerance as route start/end times are only second precision while segment times are millisecond
+  // TODO: use route times instead of segment times
   return state.routes
     .find((route) => offset >= route.offset - 1000 && offset <= route.offset + route.duration + 1000);
 }
