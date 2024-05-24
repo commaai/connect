@@ -63,7 +63,7 @@ describe('segments', () => {
 
   it('ends last segment of a route', async () => {
     const [route] = routes;
-    const offset = route.offset + route.duration - 10;
+    const offset = route.offset + route.duration - 10 + 1000;
     const r = getCurrentRoute({
       routes,
       offset,
