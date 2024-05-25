@@ -201,10 +201,10 @@ class DriveVideo extends Component {
   }
 
   syncVideo() {
-    const { dispatch, isBufferingVideo, currentRoute } = this.props;
+    const { dispatch, isBufferingVideo, currentRoute, routes } = this.props;
     if (!currentRoute) {
       dispatch(updateSegments());
-      if (currentRoute && isBufferingVideo) {
+      if (routes && isBufferingVideo) {
         dispatch(bufferVideo(false));
       }
       return;
@@ -317,6 +317,7 @@ const stateToProps = Obstruction({
   offset: 'offset',
   startTime: 'startTime',
   isBufferingVideo: 'isBufferingVideo',
+  routes: 'routes',
   currentRoute: 'currentRoute',
 });
 
