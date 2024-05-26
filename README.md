@@ -2,12 +2,19 @@
 
 The frontend to the comma connect progressive web app. This a react app using [Create React App](https://github.com/facebookincubator/create-react-app)
 
-## Environments
- * Development (local machine) http://localhost:5173
- * Staging (docker)
-   * packages/images are build by CI, and put on staging branch
- * Production (docker) https://connect.comma.ai
-   * pushed manually
+## Development
+* Install pnpm: https://pnpm.io/installation
+* Install dependencies: `pnpm install`
+* Start dev server: `pnpm start`
+
+## Contributing
+
+If you don't have a comma device, connect has a demo mode with an example drive. This should allow for testing most functionality except for interactions with the device, such as getting the car battery voltage.
+
+* Use best practices
+* Write test cases
+* Keep files small and clean
+* Use branches / pull requests to isolate work. Don't do work that can't be merged quickly, find ways to break it up
 
 ## Libraries Used
 There's a ton of them, but these are worth mentioning because they sort of affect everything.
@@ -25,12 +32,4 @@ The current playback is tracked not by storing the current offset, but instead s
 
 With this central authority on current offset time, it becomes much easier to have each data source keep themselves in sync instead of trying to manage synchronizing all of them.
 
-## Development
-`pnpm start`
 
-## Contributing
-
- * Use best practices
- * Write test cases
- * Keep files small and clean
- * Use branches / pull requests to isolate work. Don't do work that can't be merged quickly, find ways to break it up
