@@ -387,7 +387,6 @@ class DeviceInfo extends Component {
                 </div>
               )
               : (
-                //CSS scroll-snap-type replaces react-responsive-carousel
                 <div className={ classes.scrollSnapContainer }>
                   <div className={ classes.scrollSnapItem }>
                     { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
