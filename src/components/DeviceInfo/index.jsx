@@ -2,8 +2,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
-import 'react-responsive-carousel/lib/styles/carousel.min.css'; // requires a loader
-import { Carousel } from 'react-responsive-carousel';
 import dayjs from 'dayjs';
 
 import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } from '@material-ui/core';
@@ -146,6 +144,29 @@ const styles = (theme) => ({
         fontWeight: 600,
       },
     },
+  },
+  scrollSnapContainer: {
+    display: 'flex',
+    overflowX: 'scroll',
+    scrollSnapType: 'x mandatory',
+    scrollBehavior: 'smooth',
+    '&::-webkit-scrollbar': {
+      height: '10px',
+    },
+    '&::-webkit-scrollbar-thumb': {
+      backgroundColor: '#d1d1d1',
+      borderRadius: '8px',
+    },
+    '&::-webkit-scrollbar-track': {
+      backgroundColor: '#272c2f',
+    },
+  },
+  scrollSnapItem: {
+    flex: '0 0 auto',
+    scrollSnapAlign: 'start',
+    width: '100%',
+    maxWidth: '450px',
+    margin: '0',
   },
   buttonIcon: {
     fontSize: 20,
@@ -362,16 +383,14 @@ class DeviceInfo extends Component {
                 </div>
               )
               : (
-                <Carousel
-                  autoPlay={ false }
-                  interval={ 2147483647 }
-                  showThumbs={ false }
-                  showStatus={ false }
-                  showArrows={ false }
-                >
-                  { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
-                  { this.renderSnapshotImage(snapshot.result.jpegFront, true) }
-                </Carousel>
+                <div className={ classes.scrollSnapContainer }>
+                  <div className={ classes.scrollSnapItem }>
+                    { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
+                  </div>
+                  <div className={ classes.scrollSnapItem }>
+                    { this.renderSnapshotImage(snapshot.result.jpegFront, true) }
+                  </div>
+                </div>
               )}
           </div>
           )}

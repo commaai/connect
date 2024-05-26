@@ -83,9 +83,6 @@ dependencies:
   react-redux:
     specifier: ^5.1.2
     version: 5.1.2(react@18.2.0)(redux@4.2.1)
-  react-responsive-carousel:
-    specifier: ^3.2.23
-    version: 3.2.23
   react-router:
     specifier: ^5.3.4
     version: 5.3.4(react@18.2.0)
@@ -7838,13 +7835,6 @@ packages:
       react: 18.2.0
       scheduler: 0.23.0
 
-  /react-easy-swipe@0.0.21:
-    resolution: {integrity: sha512-OeR2jAxdoqUMHIn/nS9fgreI5hSpgGoL5ezdal4+oO7YSSgJR8ga+PkYGJrSrJ9MKlPcQjMQXnketrD7WNmNsg==}
-    engines: {node: '>= 6'}
-    dependencies:
-      prop-types: 15.8.1
-    dev: false
-
   /react-event-listener@0.6.6(react@18.2.0):
     resolution: {integrity: sha512-+hCNqfy7o9wvO6UgjqFmBzARJS7qrNoda0VqzvOuioEpoEXKutiKuv92dSz6kP7rYLmyHPyYNLesi5t/aH1gfw==}
     peerDependencies:
@@ -7954,14 +7944,6 @@ packages:
     resolution: {integrity: sha512-wViHqhAd8OHeLS/IRMJjTSDHF3U9eWi62F/MledQGPdJGDhodXJ9PBLNGr6WWL7qlH12Mt3TyTpbS+hGXMjCzQ==}
     engines: {node: '>=0.10.0'}
     dev: true
-
-  /react-responsive-carousel@3.2.23:
-    resolution: {integrity: sha512-pqJLsBaKHWJhw/ItODgbVoziR2z4lpcJg+YwmRlSk4rKH32VE633mAtZZ9kDXjy4wFO+pgUZmDKPsPe1fPmHCg==}
-    dependencies:
-      classnames: 2.3.2
-      prop-types: 15.8.1
-      react-easy-swipe: 0.0.21
-    dev: false
 
   /react-router-dom@5.3.4(react@18.2.0):
     resolution: {integrity: sha512-m4EqFMHv/Ih4kpcBCONHbkT68KoAeHN4p3lAGoNryfHi0dMy0kCzEZakiKRsvg5wHZ/JLrLW8o8KomWiz/qbYQ==}
@@ -9595,6 +9577,7 @@ packages:
 
   /workbox-google-analytics@7.0.0:
     resolution: {integrity: sha512-MEYM1JTn/qiC3DbpvP2BVhyIH+dV/5BjHk756u9VbwuAhu0QHyKscTnisQuz21lfRpOwiS9z4XdqeVAKol0bzg==}
+    deprecated: It is not compatible with newer versions of GA starting with v4, as long as you are using GAv3 it should be ok, but the package is not longer being maintained
     dependencies:
       workbox-background-sync: 7.0.0
       workbox-core: 7.0.0
