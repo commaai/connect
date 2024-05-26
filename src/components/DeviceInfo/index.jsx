@@ -111,13 +111,11 @@ const styles = (theme) => ({
   snapshotContainer: {
     borderBottom: `1px solid ${Colors.white10}`,
   },
-  // IF windowWidth >= 640
   snapshotContainerLarge: {
     maxWidth: 1050,
     margin: '0 auto',
     display: 'flex',
   },
-  // IF windowWidth >= 640
   snapshotImageContainerLarge: {
     width: '50%',
     display: 'flex',
@@ -147,14 +145,13 @@ const styles = (theme) => ({
       },
     },
   },
-  // IF on mobile
   scrollSnapContainer: {
     display: 'flex',
     overflowX: 'scroll',
     scrollSnapType: 'x mandatory',
-    scrollBehavior: 'smooth', 
+    scrollBehavior: 'smooth',
     '&::-webkit-scrollbar': {
-      height: '10px', /* Chrome, Brave, Vivaldi */
+      height: '10px',
     },
     '&::-webkit-scrollbar-thumb': {
       backgroundColor: '#d1d1d1',
@@ -164,7 +161,6 @@ const styles = (theme) => ({
       backgroundColor: '#272c2f',
     },
   },
-  // IF on mobile
   scrollSnapItem: {
     flex: '0 0 auto',
     scrollSnapAlign: 'start',
