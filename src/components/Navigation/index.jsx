@@ -324,7 +324,6 @@ class Navigation extends Component {
     this.onResize = this.onResize.bind(this);
     this.toggleCarPinTooltip = this.toggleCarPinTooltip.bind(this);
     this.clearSearch = this.clearSearch.bind(this);
-    this.itemLngLat = this.itemLngLat.bind(this);
     this.saveSearchAs = this.saveSearchAs.bind(this);
     this.deleteFavorite = this.deleteFavorite.bind(this);
     this.viewportChange = this.viewportChange.bind(this);
@@ -587,7 +586,7 @@ class Navigation extends Component {
       savingAs: false,
       savedAs: false,
     });
-    const endLocation = this.itemLngLat(item);
+    const endLocation = Navigation.itemLngLat(item);
     const carLoc = this.getCarLocation();
     const startLocation = (carLoc ? carLoc.location : null) || this.state.geoLocateCoords || null;
 
@@ -708,9 +707,9 @@ class Navigation extends Component {
       bounds.push([carLocation.location, carLocation.location]);
     }
     if (searchSelect) {
-      bounds.push(this.itemLngLat(searchSelect, true));
+      bounds.push(Navigation.itemLngLat(searchSelect, true));
     } else if (search) {
-      search.forEach((item) => bounds.push(this.itemLngLat(item, true)));
+      search.forEach((item) => bounds.push(Navigation.itemLngLat(item, true)));
     }
 
     if (bounds.length) {
@@ -778,7 +777,7 @@ class Navigation extends Component {
     return item.position;
   }
 
-  itemLngLat(item, bounds = false) {
+  static itemLngLat(item, bounds = false) {
     const pos = Navigation.itemLoc(item);
     const res = [pos.lng, pos.lat];
     return bounds ? [res, res] : res;
