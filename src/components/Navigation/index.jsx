@@ -3,9 +3,11 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import debounce from 'debounce';
-import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
+import ReactMapGL, { GeolocateControl, Marker, Source, Layer, Map } from 'react-map-gl';
+import WebMercatorViewport from '@math.gl/web-mercator';
 import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress, Popper }
   from '@material-ui/core';
+import CustomOverlay from '../../utils/CustomOverlay';
 import { Search, Clear, Refresh } from '@material-ui/icons';
 import dayjs from 'dayjs';
 
@@ -329,7 +331,7 @@ class Navigation extends Component {
     this.itemLngLat = this.itemLngLat.bind(this);
     this.saveSearchAs = this.saveSearchAs.bind(this);
     this.deleteFavorite = this.deleteFavorite.bind(this);
-    this.viewportChange = this.viewportChange.bind(this);
+    this.onMove = this.onMove.bind(this);
     this.getDeviceLastLocation = this.getDeviceLastLocation.bind(this);
     this.getDeviceNetworkLocation = this.getDeviceNetworkLocation.bind(this);
     this.getCarLocation = this.getCarLocation.bind(this);
@@ -921,11 +923,11 @@ class Navigation extends Component {
     });
   }
 
-  viewportChange(viewport, interactionState) {
+  onMove({viewState,type}) {
     const { search, searchSelect, searchLooking } = this.state;
-    this.setState({ viewport });
+    this.setState({ viewport:viewState });
 
-    if (interactionState.isPanning || interactionState.isZooming || interactionState.isRotating) {
+    if (type=="move") {
       this.focus();
 
       if (search && !searchSelect && !searchLooking) {
@@ -1005,20 +1007,20 @@ class Navigation extends Component {
             <Typography>{mapError}</Typography>
           </div>
           )}
-        <ReactMapGL
+        <Map
           latitude={viewport.latitude}
           longitude={viewport.longitude}
           zoom={viewport.zoom}
-          bearing={viewport.bearing}
-          pitch={viewport.pitch}
-          onViewportChange={this.viewportChange}
+          // bearing={viewport.bearing}
+          // pitch={viewport.pitch}
+          onMove={this.onMove}
           onContextMenu={null}
           mapStyle={MAPBOX_STYLE}
           width="100%"
           height="100%"
           onNativeClick={this.focus}
           maxPitch={0}
-          mapboxApiAccessToken={MAPBOX_TOKEN}
+          mapboxAccessToken={MAPBOX_TOKEN}
           attributionControl={false}
           dragRotate={false}
           onError={(err) => this.setState({ mapError: err.error.message })}
@@ -1127,7 +1129,7 @@ class Navigation extends Component {
           { searchSelect && this.renderSearchSelectMarker(searchSelect) }
           { hasNav
             && (
-            <HTMLOverlay
+            <CustomOverlay
               redraw={ this.renderOverlay }
               style={{ ...cardStyle, top: 10 }}
               captureScroll
@@ -1139,7 +1141,7 @@ class Navigation extends Component {
             )}
           { searchSelect
             && (
-            <HTMLOverlay
+            <CustomOverlay
               redraw={ this.renderSearchOverlay }
               captureScroll
               captureDrag
@@ -1151,7 +1153,7 @@ class Navigation extends Component {
             )}
           { search && searchLooking && !searchSelect
             && (
-            <HTMLOverlay
+            <CustomOverlay
               redraw={ this.renderResearchArea }
               captureScroll
               captureDrag
@@ -1163,7 +1165,7 @@ class Navigation extends Component {
             )}
           { showPrimeAd && !hasNav && !device.prime && device.is_owner
             && (
-            <HTMLOverlay
+            <CustomOverlay
               redraw={ this.renderPrimeAd }
               captureScroll
               captureDrag
@@ -1173,7 +1175,7 @@ class Navigation extends Component {
               style={{ ...cardStyle, top: 10, left: windowWidth < 600 ? 10 : 'auto', right: 10 }}
             />
             )}
-        </ReactMapGL>
+        </Map>
       </div>
     );
   }

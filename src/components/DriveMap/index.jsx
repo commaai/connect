@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';
 
-import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
+import ReactMapGL, { Map } from 'react-map-gl';
 
 import { fetchDriveCoords } from '../../actions/cached';
 import { currentOffset } from '../../timeline';
@@ -25,13 +25,14 @@ class DriveMap extends Component {
     };
 
     this.onRef = this.onRef.bind(this);
-    this.onViewportChange = this.onViewportChange.bind(this);
+    // this.onViewportChange = this.onViewportChange.bind(this);
     this.initMap = this.initMap.bind(this);
     this.populateMap = this.populateMap.bind(this);
     this.posAtOffset = this.posAtOffset.bind(this);
     this.setPath = this.setPath.bind(this);
     this.updateMarkerPos = this.updateMarkerPos.bind(this);
-    this.onInteraction = this.onInteraction.bind(this);
+    // this.onInteraction = this.onInteraction.bind(this);
+    this.onMove = this.onMove.bind(this)
 
     this.shouldFlyTo = false;
     this.isInteracting = false;
@@ -76,19 +77,6 @@ class DriveMap extends Component {
     this.mounted = false;
   }
 
-  onInteraction(ev) {
-    if (ev.isDragging || ev.isRotating || ev.isZooming) {
-      this.shouldFlyTo = true;
-      this.isInteracting = true;
-
-      if (this.isInteractingTimeout !== null) {
-        clearTimeout(this.isInteractingTimeout);
-      }
-      this.isInteractingTimeout = setTimeout(() => {
-        this.isInteracting = false;
-      }, INTERACTION_TIMEOUT);
-    }
-  }
 
   updateMarkerPos() {
     if (!this.mounted) {
@@ -128,7 +116,8 @@ class DriveMap extends Component {
     };
     if (this.shouldFlyTo) {
       viewport.transitionDuration = 200;
-      viewport.transitionInterpolator = new LinearInterpolator();
+      console.log("this.map",this.map)
+      viewport.transitionInterpolator = this.map.easeTo;
       this.shouldFlyTo = false;
     }
 
@@ -157,6 +146,24 @@ class DriveMap extends Component {
 
   onViewportChange(viewport) {
     this.setState({ viewport });
+  }
+  
+  onMove({viewState,type}){
+    console.log(type)
+
+    this.setState({ viewport:viewState });
+
+    if (type=="move") {
+      this.shouldFlyTo = true;
+      this.isInteracting = true;
+
+      if (this.isInteractingTimeout !== null) {
+        clearTimeout(this.isInteractingTimeout);
+      }
+      this.isInteractingTimeout = setTimeout(() => {
+        this.isInteracting = false;
+      }, INTERACTION_TIMEOUT);
+    }
   }
 
   setPath(coords) {
@@ -285,21 +292,20 @@ class DriveMap extends Component {
     const { viewport } = this.state;
     return (
       <div ref={this.onRef} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
-        <ReactMapGL
-          width="100%"
-          height="100%"
+        <Map
+          style={{width: "100%", height: "100% !important"}}
           latitude={viewport.latitude}
           longitude={viewport.longitude}
           zoom={viewport.zoom}
           mapStyle={MAPBOX_STYLE}
           maxPitch={0}
-          mapboxApiAccessToken={MAPBOX_TOKEN}
+          mapboxAccessToken={MAPBOX_TOKEN}
           ref={this.initMap}
           onContextMenu={null}
           dragRotate={false}
-          onViewportChange={this.onViewportChange}
+          onMove={this.onMove}
           attributionControl={false}
-          onInteractionStateChange={this.onInteraction}
+          // onInteractionStateChange={this.onInteraction}
         />
       </div>
     );

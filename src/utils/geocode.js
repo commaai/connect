@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/react';
 import qs from 'query-string';
-import { WebMercatorViewport } from 'react-map-gl';
-
+import WebMercatorViewport from '@math.gl/web-mercator';
 import mbxGeocoding from '@mapbox/mapbox-sdk/services/geocoding';
 import mbxDirections from '@mapbox/mapbox-sdk/services/directions';
 
