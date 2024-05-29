@@ -90,7 +90,7 @@ class App extends Component {
     return (
       <Switch>
         <Route path="/auth/">
-          <Redirect to={this.redirectLink()} />
+          <Redirect to={App.redirectLink()} />
         </Route>
         <Route path="/" component={Explorer} />
       </Switch>
@@ -125,8 +125,8 @@ class App extends Component {
 
     const showLogin = !MyCommaAuth.isAuthenticated() && !isDemo() && !getZoom(window.location.pathname);
     let content = (
-      <Suspense fallback={this.renderLoading()}>
-        { showLogin ? this.anonymousRoutes() : this.authRoutes() }
+      <Suspense fallback={App.renderLoading()}>
+        { showLogin ? App.anonymousRoutes() : this.authRoutes() }
       </Suspense>
     );
 
