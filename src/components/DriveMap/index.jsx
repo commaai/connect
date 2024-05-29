@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';
+
 import ReactMapGL from 'react-map-gl';
 
 import { fetchDriveCoords } from '../../actions/cached';
@@ -121,21 +122,22 @@ class DriveMap extends Component {
   }
 
   moveViewportTo(pos) {
-    if (this.map && this.map.getMap()) {
-      const map = this.map.getMap();
-      if (this.shouldFlyTo) {
-        map.flyTo({
-          center: pos,
-          duration: 200,
-        });
-        this.shouldFlyTo = false;
-      } else {
-        map.easeTo({
-          center: pos,
-          duration: 200,
-        });
-      }
+    const viewport = {
+      longitude: pos[0],
+      latitude: pos[1],
+    };
+    if (this.shouldFlyTo) {
+      viewport.transitionDuration = 200;
+      viewport.transitionInterpolator = new LinearInterpolator();
+      this.shouldFlyTo = false;
     }
+
+    this.setState((prevState) => ({
+      viewport: {
+        ...prevState.viewport,
+        ...viewport,
+      },
+    }));
   }
 
   async populateMap() {

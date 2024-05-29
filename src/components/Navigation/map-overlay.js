@@ -1,14 +1,14 @@
 import * as React from "react";
+import { useControl } from "react-map-gl";
 import { useState, cloneElement } from "react";
 import { createPortal } from "react-dom";
 
 class OverlayControl {
-  _map = null;
-  _container;
-  _redraw;
-
   constructor(redraw) {
+    this._map = null;
+    this._container = null;
     this._redraw = redraw;
+    this.handleEvent = this.handleEvent.bind(this);
   }
 
   onAdd(map) {
@@ -43,9 +43,9 @@ class OverlayControl {
     this._container.removeEventListener("pointermove", this.handleEvent, true);
   }
 
-  handleEvent = (e) => {
-    e.stopPropagation(); // Prevent event from affecting underlying map
-  };
+  handleEvent(e) {
+    e.stopPropagation();
+  }
 
   getMap() {
     return this._map;
@@ -56,8 +56,9 @@ class OverlayControl {
   }
 }
 
-function CustomOverlay(props) {
+const CustomOverlay = (props) => {
   const [, setVersion] = useState(0);
+  console.log("CustomOverlay constructor");
 
   const ctrl = useControl(() => {
     const forceUpdate = () => setVersion((v) => v + 1);
@@ -71,6 +72,6 @@ function CustomOverlay(props) {
   }
 
   return createPortal(cloneElement(props.children, { map }), ctrl.getElement());
-}
+};
 
 export default React.memo(CustomOverlay);

@@ -3,8 +3,8 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import debounce from 'debounce';
-import ReactMapGL, { GeolocateControl, Marker, Source, Layer } from 'react-map-gl';
 import { WebMercatorViewport } from "@math.gl/web-mercator";
+import ReactMapGL, { GeolocateControl, Marker, Source, Layer } from 'react-map-gl';
 import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress, Popper }
   from '@material-ui/core';
 import { Search, Clear, Refresh } from '@material-ui/icons';
@@ -20,7 +20,6 @@ import { timeFromNow } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import * as Utils from './utils';
-import CustomOverlay from './map-overlay';
 
 const styles = () => ({
   noWrap: {
@@ -1129,7 +1128,7 @@ class Navigation extends Component {
           { searchSelect && this.renderSearchSelectMarker(searchSelect) }
           { hasNav
             && (
-            <CustomOverlay
+            <HTMLOverlay
               redraw={ this.renderOverlay }
               style={{ ...cardStyle, top: 10 }}
               captureScroll
@@ -1141,7 +1140,7 @@ class Navigation extends Component {
             )}
           { searchSelect
             && (
-            <CustomOverlay
+            <HTMLOverlay
               redraw={ this.renderSearchOverlay }
               captureScroll
               captureDrag
@@ -1153,7 +1152,7 @@ class Navigation extends Component {
             )}
           { search && searchLooking && !searchSelect
             && (
-            <CustomOverlay
+            <HTMLOverlay
               redraw={ this.renderResearchArea }
               captureScroll
               captureDrag
@@ -1165,7 +1164,7 @@ class Navigation extends Component {
             )}
           { showPrimeAd && !hasNav && !device.prime && device.is_owner
             && (
-            <CustomOverlay
+            <HTMLOverlay
               redraw={ this.renderPrimeAd }
               captureScroll
               captureDrag
