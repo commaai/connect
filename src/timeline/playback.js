@@ -6,8 +6,8 @@ import { currentOffset } from '.';
 export function reducer(_state, action) {
   let state = { ..._state };
   let loopOffset = null;
-  if (state.loop && state.loop.startTime !== null) {
-    loopOffset = state.loop.startTime - state.filter.start;
+  if (state.zoom && state.zoom.start !== null) {
+    loopOffset = state.zoom.start - state.filter.start;
   }
   switch (action.type) {
     case Types.ACTION_SEEK:
@@ -20,8 +20,8 @@ export function reducer(_state, action) {
       if (loopOffset !== null) {
         if (state.offset < loopOffset) {
           state.offset = loopOffset;
-        } else if (state.offset > (loopOffset + state.loop.duration)) {
-          state.offset = loopOffset + state.loop.duration;
+        } else if (state.offset > (loopOffset + state.zoom.duration)) {
+          state.offset = loopOffset + state.zoom.duration;
         }
       }
       break;
@@ -45,12 +45,13 @@ export function reducer(_state, action) {
       break;
     case Types.ACTION_LOOP:
       if (action.start && action.end) {
-        state.loop = {
-          startTime: action.start,
+        state.zoom = {
+          start: action.start,
+          end: action.end,
           duration: action.end - action.start,
         };
       } else {
-        state.loop = null;
+        state.zoom = null;
       }
       break;
     case Types.ACTION_BUFFER_VIDEO:
@@ -74,28 +75,29 @@ export function reducer(_state, action) {
       break;
   }
 
-  if (state.currentRoute && state.currentRoute.videoStartOffset && state.loop && state.zoom && state.filter
-    && state.loop.startTime === state.zoom.start && state.filter.start + state.currentRoute.offset === state.zoom.start) {
-    const loopRouteOffset = state.loop.startTime - state.zoom.start;
+  if (state.currentRoute && state.currentRoute.videoStartOffset && state.zoom && state.zoom && state.filter
+    && state.zoom.start === state.zoom.start && state.filter.start + state.currentRoute.offset === state.zoom.start) {
+    const loopRouteOffset = state.zoom.start - state.zoom.start;
     if (state.currentRoute.videoStartOffset > loopRouteOffset) {
-      state.loop = {
-        startTime: state.zoom.start + state.currentRoute.videoStartOffset,
-        duration: state.loop.duration - (state.currentRoute.videoStartOffset - loopRouteOffset),
+      state.zoom = {
+        ...state.zoom,
+        start: state.zoom.start + state.currentRoute.videoStartOffset,
+        duration: state.zoom.duration - (state.currentRoute.videoStartOffset - loopRouteOffset),
       };
     }
   }
 
   // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
+  if (state.offset !== null && state.zoom?.start) {
     const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
     const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
-    loopOffset = state.loop.startTime - state.filter.start;
+    loopOffset = state.zoom.start - state.filter.start;
     // has loop, trap offset within the loop
     if (offset < loopOffset) {
       state.startTime = Date.now();
       state.offset = loopOffset;
-    } else if (offset > loopOffset + state.loop.duration) {
-      state.offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
+    } else if (offset > loopOffset + state.zoom.duration) {
+      state.offset = ((offset - loopOffset) % state.zoom.duration) + loopOffset;
       state.startTime = Date.now();
     }
   }

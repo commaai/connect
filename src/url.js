@@ -19,6 +19,7 @@ export function getZoom(pathname) {
     return {
       start: Number(parts[1]),
       end: Number(parts[2]),
+      duration: Number(parts[2]) - Number(parts[1]),
     };
   }
   return null;

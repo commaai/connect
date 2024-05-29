@@ -260,7 +260,7 @@ export default function reducer(_state, action) {
         state.zoom = state.zoom.previous;
       } else {
         state.zoom = null;
-        state.loop = null;
+        state.zoom = null;
       }
       break;
     case Types.TIMELINE_PUSH_SELECTION:
@@ -271,11 +271,11 @@ export default function reducer(_state, action) {
         state.zoom = {
           start: action.start,
           end: action.end,
+          duration: action.end - action.start,
           previous: state.zoom,
         };
       } else {
         state.zoom = null;
-        state.loop = null;
       }
       break;
     case Types.ACTION_FILES_URLS:
@@ -327,6 +327,8 @@ export default function reducer(_state, action) {
     default:
       return state;
   }
+
+  console.log(state.zoom, state.loop);
 
   return state;
 }

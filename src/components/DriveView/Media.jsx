@@ -357,7 +357,7 @@ class Media extends Component {
   }
 
   async uploadFilesAll(types) {
-    const { dongleId, currentRoute, loop, files } = this.props;
+    const { dongleId, currentRoute, zoom, files } = this.props;
     if (types === undefined) {
       types = ['logs', 'cameras', 'dcameras', 'ecameras'];
     }
@@ -372,8 +372,8 @@ class Media extends Component {
 
     const uploading = {};
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      if (currentRoute.segment_start_times[i] < loop.startTime + loop.duration
-        && currentRoute.segment_end_times[i] > loop.startTime) {
+      if (currentRoute.segment_start_times[i] < zoom.start + zoom.duration
+        && currentRoute.segment_end_times[i] > zoom.start) {
         types.forEach((type) => {
           const fileName = `${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`;
           if (!files[fileName]) {
@@ -396,10 +396,10 @@ class Media extends Component {
   }
 
   _uploadStats(types, count, uploaded, uploading, paused, requested) {
-    const { currentRoute, loop, files } = this.props;
+    const { currentRoute, zoom, files } = this.props;
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      if (currentRoute.segment_start_times[i] < loop.startTime + loop.duration
-        && currentRoute.segment_end_times[i] > loop.startTime) {
+      if (currentRoute.segment_start_times[i] < zoom.start + zoom.duration
+        && currentRoute.segment_end_times[i] > zoom.start) {
         for (let j = 0; j < types.length; j++) {
           count += 1;
           const log = files[`${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${types[j]}`];
@@ -868,7 +868,7 @@ const stateToProps = Obstruction({
   device: 'device',
   routes: 'routes',
   currentRoute: 'currentRoute',
-  loop: 'loop',
+  zoom: 'zoom',
   filter: 'filter',
   files: 'files',
   profile: 'profile',

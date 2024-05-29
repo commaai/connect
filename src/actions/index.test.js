@@ -19,7 +19,6 @@ describe('timeline actions', () => {
 
     getState.mockImplementationOnce(() => ({
       dongleId: 'statedongle',
-      loop: {},
       zoom: {},
     }));
     actionThunk(dispatch, getState);

@@ -240,11 +240,11 @@ function logAction(action, prevState, state) {
       return;
 
     case Types.ACTION_LOOP:
-      if (state.currentRoute && state.zoom && state.loop?.duration !== 0) {
-        percent = state.loop && state.currentRoute ? state.loop.duration / state.currentRoute.duration : undefined;
+      if (state.currentRoute && state.zoom && state.zoom?.duration !== 0) {
+        percent = state.zoom && state.currentRoute ? state.zoom.duration / state.currentRoute.duration : undefined;
         gtag('event', 'video_loop', {
           ...params,
-          loop_duration: state.loop?.duration,
+          loop_duration: state.zoom?.duration,
           loop_duration_percentage: percent,
           loop_duration_percentage_round: percent ? Math.round(percent * 10) / 10 : undefined,
         });
