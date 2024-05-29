@@ -66,9 +66,9 @@ class App extends Component {
 
     const token = await MyCommaAuth.init();
     if (token) {
-      Request.configure(token, this.apiErrorResponseCallback);
-      Billing.configure(token, this.apiErrorResponseCallback);
-      Athena.configure(token, this.apiErrorResponseCallback);
+      Request.configure(token, App.apiErrorResponseCallback);
+      Billing.configure(token, App.apiErrorResponseCallback);
+      Athena.configure(token, App.apiErrorResponseCallback);
     }
 
     this.setState({ initialized: true });
