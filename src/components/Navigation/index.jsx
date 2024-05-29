@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import debounce from 'debounce';
-import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, Layer } from 'react-map-gl';
+import ReactMapGL, { GeolocateControl, Marker, Source, Layer } from 'react-map-gl';
 import { WebMercatorViewport } from "@math.gl/web-mercator";
 import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress, Popper }
   from '@material-ui/core';
@@ -20,6 +20,7 @@ import { timeFromNow } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import * as Utils from './utils';
+import MapOverlay from './map-overlay';
 
 const styles = () => ({
   noWrap: {
@@ -1128,7 +1129,7 @@ class Navigation extends Component {
           { searchSelect && this.renderSearchSelectMarker(searchSelect) }
           { hasNav
             && (
-            <HTMLOverlay
+            <MapOverlay
               redraw={ this.renderOverlay }
               style={{ ...cardStyle, top: 10 }}
               captureScroll
@@ -1140,7 +1141,7 @@ class Navigation extends Component {
             )}
           { searchSelect
             && (
-            <HTMLOverlay
+            <MapOverlay
               redraw={ this.renderSearchOverlay }
               captureScroll
               captureDrag
@@ -1152,7 +1153,7 @@ class Navigation extends Component {
             )}
           { search && searchLooking && !searchSelect
             && (
-            <HTMLOverlay
+            <MapOverlay
               redraw={ this.renderResearchArea }
               captureScroll
               captureDrag
@@ -1164,7 +1165,7 @@ class Navigation extends Component {
             )}
           { showPrimeAd && !hasNav && !device.prime && device.is_owner
             && (
-            <HTMLOverlay
+            <MapOverlay
               redraw={ this.renderPrimeAd }
               captureScroll
               captureDrag
