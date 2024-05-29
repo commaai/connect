@@ -28,7 +28,7 @@ module.exports = {
     'react/require-default-props': 0,
     'react/sort-comp': 0,
     'max-len': 0,
-    'no-await-in-loop': 'warn',
+    // 'no-await-in-loop': 'warn',
     'no-case-declarations': 'warn',
     'no-console': 0,
     'no-else-return': 0,
@@ -36,7 +36,7 @@ module.exports = {
     'no-multi-spaces': ['error', {
       ignoreEOLComments: true,
     }],
-    'no-nested-ternary': 'warn',
+    // 'no-nested-ternary': 'warn',
     'no-plusplus': [
       'error',
       {

@@ -80,7 +80,7 @@ class VisibilityHandler extends Component {
     }
   }
 
-  render() {
+  static render() {
     return null;
   }
 }

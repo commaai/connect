@@ -149,7 +149,7 @@ class DriveMap extends Component {
     this.setPath(Object.values(currentRoute.driveCoords));
   }
 
-  onRef(el) {
+  static onRef(el) {
     if (el) {
       el.addEventListener('touchstart', (ev) => ev.stopPropagation());
     }

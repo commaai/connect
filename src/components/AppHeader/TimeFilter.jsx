@@ -94,6 +94,8 @@ class TimeSelect extends Component {
           end: this.props.filter.end,
         });
         break;
+      default:
+        break;
     }
   }
 
@@ -154,12 +156,12 @@ class TimeSelect extends Component {
     return text;
   }
 
-  lastWeekText() {
+  static lastWeekText() {
     const weekAgo = dayjs().subtract(1, 'week');
     return `Last week (since ${weekAgo.format('MMM D')})`;
   }
 
-  last2WeeksText() {
+  static last2WeeksText() {
     const twoWeeksAgo = dayjs().subtract(14, 'day');
     return `Last 2 weeks (since ${twoWeeksAgo.format('MMM D')})`;
   }

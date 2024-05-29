@@ -169,7 +169,7 @@ class DeviceSettingsModal extends Component {
     });
   }
 
-  callOnEnter(method, e) {
+  static callOnEnter(method, e) {
     if (e.key === 'Enter') {
       method();
     }

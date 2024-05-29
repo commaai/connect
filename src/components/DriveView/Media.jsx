@@ -320,7 +320,7 @@ class Media extends Component {
     }
   }
 
-  async shareCurrentRoute() {
+  static async shareCurrentRoute() {
     try {
       await navigator.share({
         title: 'comma connect',

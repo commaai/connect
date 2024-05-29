@@ -25,7 +25,7 @@ export default function reducer(_state, action) {
   let state = { ..._state };
   let deviceIndex = null;
   switch (action.type) {
-    case Types.ACTION_STARTUP_DATA:
+    case Types.ACTION_STARTUP_DATA: {
       const devices = action.devices.map(populateFetchedAt).sort(deviceCompareFn);
 
       if (!state.dongleId && devices.length > 0) {
@@ -48,6 +48,7 @@ export default function reducer(_state, action) {
       state.devices = devices;
       state.profile = action.profile;
       break;
+    }
     case Types.ACTION_SELECT_DEVICE:
       state = {
         ...state,
@@ -135,7 +136,7 @@ export default function reducer(_state, action) {
         };
       }
       break;
-    case Types.ACTION_UPDATE_ROUTE_EVENTS:
+    case Types.ACTION_UPDATE_ROUTE_EVENTS: {
       const firstFrame = action.events.find((ev) => ev.type === 'event' && ev.data.event_type === 'first_road_camera_frame');
       const videoStartOffset = firstFrame ? firstFrame.route_offset_millis : null;
       if (state.routes) {
@@ -158,6 +159,7 @@ export default function reducer(_state, action) {
         };
       }
       break;
+    }
     case Types.ACTION_UPDATE_ROUTE_LOCATION:
       if (state.routes) {
         state.routes = state.routes.map((route) => {

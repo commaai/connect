@@ -42,7 +42,7 @@ class App extends Component {
     }
   }
 
-  apiErrorResponseCallback(resp) {
+  static apiErrorResponseCallback(resp) {
     if (resp.status === 401) {
       MyCommaAuth.logOut();
     }
@@ -77,7 +77,7 @@ class App extends Component {
     import('./analytics-v2');
   }
 
-  redirectLink() {
+  static redirectLink() {
     let url = '/';
     if (typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') !== null) {
       url = sessionStorage.getItem('redirectURL');
@@ -97,7 +97,7 @@ class App extends Component {
     );
   }
 
-  anonymousRoutes() {
+  static anonymousRoutes() {
     return (
       <Switch>
         <Route path="/auth/">
@@ -108,7 +108,7 @@ class App extends Component {
     );
   }
 
-  renderLoading() {
+  static renderLoading() {
     return (
       <Grid container alignItems="center" style={{ width: '100%', height: '100vh' }}>
         <Grid item align="center" xs={12}>

@@ -253,6 +253,10 @@ function logAction(action, prevState, state) {
 
     case Types.ANALYTICS_EVENT:
       tag(action.name, action.parameters);
+      return;
+
+    default:
+      return;
   }
 }
 

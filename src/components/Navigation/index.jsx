@@ -503,7 +503,7 @@ class Navigation extends Component {
     });
   }
 
-  getFavoriteLabelIcon(label) {
+  static getFavoriteLabelIcon(label) {
     switch (label) {
       case 'home':
         return PinHomeIcon;
@@ -774,7 +774,7 @@ class Navigation extends Component {
     }
   }
 
-  itemLoc(item) {
+  static itemLoc(item) {
     if (item.access && item.access.length) {
       return item.access[0];
     }
@@ -934,7 +934,7 @@ class Navigation extends Component {
     }
   }
 
-  carLocationCircle(carLocation) {
+  static carLocationCircle(carLocation) {
     const points = 128;
     const km = carLocation.accuracy / 1000;
 
