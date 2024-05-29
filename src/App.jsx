@@ -86,7 +86,7 @@ class App extends Component {
     return url;
   }
 
-  authRoutes() {
+  static authRoutes() {
     return (
       <Switch>
         <Route path="/auth/">
@@ -126,7 +126,7 @@ class App extends Component {
     const showLogin = !MyCommaAuth.isAuthenticated() && !isDemo() && !getZoom(window.location.pathname);
     let content = (
       <Suspense fallback={App.renderLoading()}>
-        { showLogin ? App.anonymousRoutes() : this.authRoutes() }
+        { showLogin ? App.anonymousRoutes() : App.authRoutes() }
       </Suspense>
     );
 
