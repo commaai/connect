@@ -3,7 +3,8 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import debounce from 'debounce';
-import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
+import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, Layer } from 'react-map-gl';
+import { WebMercatorViewport } from "@math.gl/web-mercator";
 import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress, Popper }
   from '@material-ui/core';
 import { Search, Clear, Refresh } from '@material-ui/icons';
