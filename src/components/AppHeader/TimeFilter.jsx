@@ -190,8 +190,8 @@ class TimeSelect extends Component {
           >
             <MenuItem value="custom">{this.customText()}</MenuItem>
             <MenuItem value="24-hours">Last 24 Hours</MenuItem>
-            <MenuItem value="1-week">{this.lastWeekText()}</MenuItem>
-            <MenuItem value="2-weeks">{this.last2WeeksText()}</MenuItem>
+            <MenuItem value="1-week">{TimeSelect.lastWeekText()}</MenuItem>
+            <MenuItem value="2-weeks">{TimeSelect.last2WeeksText()}</MenuItem>
           </Select>
         </FormControl>
         <Modal

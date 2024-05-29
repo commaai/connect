@@ -137,7 +137,6 @@ class DeviceSettingsModal extends Component {
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
     this.handleAliasChange = this.handleAliasChange.bind(this);
     this.handleEmailChange = this.handleEmailChange.bind(this);
-    this.callOnEnter = this.callOnEnter.bind(this);
     this.setDeviceAlias = this.setDeviceAlias.bind(this);
     this.shareDevice = this.shareDevice.bind(this);
     this.unpairDevice = this.unpairDevice.bind(this);
@@ -333,7 +332,7 @@ class DeviceSettingsModal extends Component {
                   className={ classes.textField }
                   value={ this.state.deviceAlias ? this.state.deviceAlias : '' }
                   onChange={this.handleAliasChange}
-                  onKeyPress={ (ev) => this.callOnEnter(this.setDeviceAlias, ev) }
+                  onKeyPress={ (ev) => DeviceSettingsModal.callOnEnter(this.setDeviceAlias, ev) }
                 />
                 { (this.props.device.alias !== this.state.deviceAlias || this.state.hasSavedAlias)
                 && (
@@ -353,7 +352,7 @@ class DeviceSettingsModal extends Component {
                   value={this.state.shareEmail}
                   onChange={this.handleEmailChange}
                   variant="outlined"
-                  onKeyPress={ (ev) => this.callOnEnter(this.shareDevice, ev) }
+                  onKeyPress={ (ev) => DeviceSettingsModal.callOnEnter(this.shareDevice, ev) }
                   helperText="give another user read access to this device"
                 />
                 { (this.state.shareEmail.length > 0 || this.state.hasShared)

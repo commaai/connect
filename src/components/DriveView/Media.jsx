@@ -238,7 +238,6 @@ class Media extends Component {
     this.renderUploadMenuItem = this.renderUploadMenuItem.bind(this);
     this.copySegmentName = this.copySegmentName.bind(this);
     this.openInUseradmin = this.openInUseradmin.bind(this);
-    this.shareCurrentRoute = this.shareCurrentRoute.bind(this);
     this.uploadFile = this.uploadFile.bind(this);
     this.uploadFilesAll = this.uploadFilesAll.bind(this);
     this.getUploadStats = this.getUploadStats.bind(this);
@@ -736,7 +735,7 @@ class Media extends Component {
           </MenuItem>
           { typeof navigator.share !== 'undefined'
           && (
-          <MenuItem onClick={ this.shareCurrentRoute } className={ classes.shareButton }>
+          <MenuItem onClick={ Media.shareCurrentRoute } className={ classes.shareButton }>
             Share this route
             <ShareIcon />
           </MenuItem>

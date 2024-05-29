@@ -24,7 +24,6 @@ class DriveMap extends Component {
       driveCoordsMax: null,
     };
 
-    this.onRef = this.onRef.bind(this);
     this.onViewportChange = this.onViewportChange.bind(this);
     this.initMap = this.initMap.bind(this);
     this.populateMap = this.populateMap.bind(this);
@@ -284,7 +283,7 @@ class DriveMap extends Component {
   render() {
     const { viewport } = this.state;
     return (
-      <div ref={this.onRef} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
+      <div ref={DriveMap.onRef} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">
         <ReactMapGL
           width="100%"
           height="100%"

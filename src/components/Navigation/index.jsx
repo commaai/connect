@@ -320,12 +320,10 @@ class Navigation extends Component {
     this.focus = this.focus.bind(this);
     this.updateDevice = this.updateDevice.bind(this);
     this.updateFavoriteLocations = this.updateFavoriteLocations.bind(this);
-    this.getFavoriteLabelIcon = this.getFavoriteLabelIcon.bind(this);
     this.navigate = this.navigate.bind(this);
     this.onResize = this.onResize.bind(this);
     this.toggleCarPinTooltip = this.toggleCarPinTooltip.bind(this);
     this.clearSearch = this.clearSearch.bind(this);
-    this.itemLoc = this.itemLoc.bind(this);
     this.itemLngLat = this.itemLngLat.bind(this);
     this.saveSearchAs = this.saveSearchAs.bind(this);
     this.deleteFavorite = this.deleteFavorite.bind(this);
@@ -333,7 +331,6 @@ class Navigation extends Component {
     this.getDeviceLastLocation = this.getDeviceLastLocation.bind(this);
     this.getDeviceNetworkLocation = this.getDeviceNetworkLocation.bind(this);
     this.getCarLocation = this.getCarLocation.bind(this);
-    this.carLocationCircle = this.carLocationCircle.bind(this);
     this.clearSearchSelect = this.clearSearchSelect.bind(this);
     this.onContainerRef = this.onContainerRef.bind(this);
   }
@@ -491,7 +488,7 @@ class Navigation extends Component {
           if (loc.save_type === 'favorite') {
             favorites[loc.id] = {
               ...loc,
-              icon: this.getFavoriteLabelIcon(loc.label),
+              icon: Navigation.getFavoriteLabelIcon(loc.label),
             };
           }
         });
@@ -782,7 +779,7 @@ class Navigation extends Component {
   }
 
   itemLngLat(item, bounds = false) {
-    const pos = this.itemLoc(item);
+    const pos = Navigation.itemLoc(item);
     const res = [pos.lng, pos.lat];
     return bounds ? [res, res] : res;
   }
@@ -805,7 +802,7 @@ class Navigation extends Component {
       success: false,
     } });
 
-    const pos = this.itemLoc(searchSelect);
+    const pos = Navigation.itemLoc(searchSelect);
     console.log(searchSelect);
     NavigationApi.setDestination(
       dongleId,
@@ -852,7 +849,7 @@ class Navigation extends Component {
     const { searchSelect } = this.state;
     this.setState({ saveAsMenu: null, savingAs: true });
 
-    const pos = this.itemLoc(searchSelect);
+    const pos = Navigation.itemLoc(searchSelect);
     const label = as === 'pin' ? undefined : as;
     NavigationApi.putLocationSave(
       dongleId,
@@ -870,7 +867,7 @@ class Navigation extends Component {
           savedAs: true,
           searchSelect: {
             ...searchSelect,
-            favoriteIcon: this.getFavoriteLabelIcon(label),
+            favoriteIcon: Navigation.getFavoriteLabelIcon(label),
           },
         });
       }).catch((err) => {
@@ -1096,7 +1093,7 @@ class Navigation extends Component {
             )}
           { carLocation && Boolean(carLocation.accuracy)
             && (
-            <Source type="geojson" data={ this.carLocationCircle(carLocation) }>
+            <Source type="geojson" data={ Navigation.carLocationCircle(carLocation) }>
               <Layer
                 id="polygon"
                 type="fill"
@@ -1108,8 +1105,8 @@ class Navigation extends Component {
             )}
           { search && !searchSelect && search.map((item) => (
             <Marker
-              latitude={ this.itemLoc(item).lat }
-              longitude={ this.itemLoc(item).lng }
+              latitude={ Navigation.itemLoc(item).lat }
+              longitude={ Navigation.itemLoc(item).lng }
               key={ item.id }
               offsetLeft={ -10 }
               offsetTop={ -30 }
@@ -1186,7 +1183,7 @@ class Navigation extends Component {
     if (searchSelect.resultType === 'car') {
       [lng, lat] = this.getCarLocation().location;
     } else {
-      ({ lat, lng } = this.itemLoc(searchSelect));
+      ({ lat, lng } = Navigation.itemLoc(searchSelect));
     }
 
     const Icon = searchSelect.favoriteIcon || PinMarkerIcon;
