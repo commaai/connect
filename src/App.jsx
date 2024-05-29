@@ -120,7 +120,7 @@ class App extends Component {
 
   render() {
     if (!this.state.initialized) {
-      return this.renderLoading();
+      return App.renderLoading();
     }
 
     const showLogin = !MyCommaAuth.isAuthenticated() && !isDemo() && !getZoom(window.location.pathname);
