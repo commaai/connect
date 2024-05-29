@@ -20,7 +20,7 @@ import { timeFromNow } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import * as Utils from './utils';
-import MapOverlay from './map-overlay';
+import CustomOverlay from './map-overlay';
 
 const styles = () => ({
   noWrap: {
@@ -1129,7 +1129,7 @@ class Navigation extends Component {
           { searchSelect && this.renderSearchSelectMarker(searchSelect) }
           { hasNav
             && (
-            <MapOverlay
+            <CustomOverlay
               redraw={ this.renderOverlay }
               style={{ ...cardStyle, top: 10 }}
               captureScroll
@@ -1141,7 +1141,7 @@ class Navigation extends Component {
             )}
           { searchSelect
             && (
-            <MapOverlay
+            <CustomOverlay
               redraw={ this.renderSearchOverlay }
               captureScroll
               captureDrag
@@ -1153,7 +1153,7 @@ class Navigation extends Component {
             )}
           { search && searchLooking && !searchSelect
             && (
-            <MapOverlay
+            <CustomOverlay
               redraw={ this.renderResearchArea }
               captureScroll
               captureDrag
@@ -1165,7 +1165,7 @@ class Navigation extends Component {
             )}
           { showPrimeAd && !hasNav && !device.prime && device.is_owner
             && (
-            <MapOverlay
+            <CustomOverlay
               redraw={ this.renderPrimeAd }
               captureScroll
               captureDrag

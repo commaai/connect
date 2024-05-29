@@ -1,6 +1,5 @@
 import * as React from "react";
 import { useState, cloneElement } from "react";
-import { useControl } from "react-map-gl";
 import { createPortal } from "react-dom";
 
 class OverlayControl {
@@ -57,7 +56,7 @@ class OverlayControl {
   }
 }
 
-function MapOverlay(props) {
+function CustomOverlay(props) {
   const [, setVersion] = useState(0);
 
   const ctrl = useControl(() => {
@@ -74,4 +73,4 @@ function MapOverlay(props) {
   return createPortal(cloneElement(props.children, { map }), ctrl.getElement());
 }
 
-export default React.memo(MapOverlay);
+export default React.memo(CustomOverlay);
