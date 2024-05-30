@@ -300,6 +300,7 @@ class Navigation extends Component {
     this.overlayRef = React.createRef();
     this.carPinTooltipRef = React.createRef();
     this.navigateFakeButtonRef = React.createRef();
+    this.geoControlRef = React.createRef();
 
     this.checkWebGLSupport = this.checkWebGLSupport.bind(this);
     this.flyToMarkers = this.flyToMarkers.bind(this);
@@ -767,12 +768,10 @@ class Navigation extends Component {
   }
 
   focus(ev) {
-    console.log("focus",ev)
-    this.setState({ hasFocus: true });
-
     if (!this.state.hasFocus && (!ev || !ev.srcEvent || !ev.srcEvent.path || !this.mapContainerRef.current
       || ev.srcEvent.path.includes(this.mapContainerRef.current))) {
-      this.setState({ hasFocus: true });
+        this.geoControlRef.current?.trigger();
+        this.setState({ hasFocus: true });
     }
   }
 
@@ -1016,7 +1015,7 @@ class Navigation extends Component {
           onMove={this.onMove}
           onContextMenu={null}
           mapStyle={MAPBOX_STYLE}
-          onClick={this.focus}
+          onNativeClick={this.focus}
           maxPitch={0}
           mapboxAccessToken={MAPBOX_TOKEN}
           attributionControl={false}
@@ -1024,6 +1023,7 @@ class Navigation extends Component {
           onError={(err) => this.setState({ mapError: err.error.message })}
         >
           <GeolocateControl
+            ref={this.geoControlRef}
             style={{display: 'none',}}
             positionOptions={{ enableHighAccuracy: true }}
             showAccuracyCircle={false}
