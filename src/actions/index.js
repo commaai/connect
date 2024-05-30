@@ -9,6 +9,8 @@ import { resetPlayback, selectLoop } from '../timeline/playback';
 import { getSegmentFetchRange, hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
+/* eslint-disable no-use-before-define */
+
 let routesRequest = null;
 
 function updateTimeline(state, dispatch, start, end, allowPathChange) {

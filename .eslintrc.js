@@ -11,7 +11,7 @@ module.exports = {
   rules: {
     'camelcase': 0,
     'class-methods-use-this': 0,
-    'default-case': 'warn',
+    'default-case': 'error',
     'import/prefer-default-export': 0,
     'import/no-named-as-default': 0,
     'react/destructuring-assignment': 0,
@@ -28,11 +28,11 @@ module.exports = {
     'react/require-default-props': 0,
     'react/sort-comp': 0,
     'max-len': 0,
-    'no-await-in-loop': 'warn',
-    'no-case-declarations': 'warn',
+    'no-await-in-loop': 'error',
+    'no-case-declarations': 'error',
     'no-console': 0,
     'no-else-return': 0,
-    'no-empty': 'warn',
+    'no-empty': 'error',
     'no-multi-spaces': ['error', {
       ignoreEOLComments: true,
     }],
@@ -49,7 +49,7 @@ module.exports = {
     'no-unused-vars': ['error', {
       args: 'none',
     }],
-    'no-use-before-define': 'warn',
+    'no-use-before-define': 'error',
     'object-curly-newline': [
       'error',
       {
