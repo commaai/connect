@@ -3,12 +3,7 @@ import {useState, cloneElement} from 'react';
 import {useControl} from 'react-map-gl';
 import {createPortal} from 'react-dom';
 
-// Based on template in https://docs.mapbox.com/mapbox-gl-js/api/markers/#icontrol
 class OverlayControl {
-  _map = null;
-  _container;
-  _redraw;
-
   constructor(redraw) {
     this._redraw = redraw;
   }
@@ -16,7 +11,6 @@ class OverlayControl {
   onAdd(map) {
     this._map = map;
     map.on('move', this._redraw);
-    /* global document */
     this._container = document.createElement('div');
     this._redraw();
     return this._container;

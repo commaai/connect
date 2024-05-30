@@ -3,11 +3,11 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import debounce from 'debounce';
-import ReactMapGL, { GeolocateControl, Marker, Source, Layer, Map } from 'react-map-gl';
+import { GeolocateControl, Marker, Source, Layer, Map } from 'react-map-gl';
 import WebMercatorViewport from '@math.gl/web-mercator';
 import { withStyles, TextField, InputAdornment, Typography, Button, Menu, MenuItem, CircularProgress, Popper }
   from '@material-ui/core';
-import CustomOverlay from '../../utils/CustomOverlay';
+import CustomOverlay from './CustomOverlay';
 import { Search, Clear, Refresh } from '@material-ui/icons';
 import dayjs from 'dayjs';
 
@@ -34,9 +34,6 @@ const styles = () => ({
     marginTop: 20,
     marginLeft: 20,
     '& p': { color: Colors.white50 },
-  },
-  geolocateControl: {
-    display: 'none',
   },
   overlay: {
     color: Colors.white,
@@ -770,6 +767,9 @@ class Navigation extends Component {
   }
 
   focus(ev) {
+    console.log("focus",ev)
+    this.setState({ hasFocus: true });
+
     if (!this.state.hasFocus && (!ev || !ev.srcEvent || !ev.srcEvent.path || !this.mapContainerRef.current
       || ev.srcEvent.path.includes(this.mapContainerRef.current))) {
       this.setState({ hasFocus: true });
@@ -839,6 +839,7 @@ class Navigation extends Component {
   }
 
   onResize(windowWidth) {
+    console.log('windowWidth',windowWidth)
     this.setState({ windowWidth });
   }
 
@@ -1008,16 +1009,14 @@ class Navigation extends Component {
           </div>
           )}
         <Map
+          style={{width: "100%", height: "100%"}}
           latitude={viewport.latitude}
           longitude={viewport.longitude}
           zoom={viewport.zoom}
-          // bearing={viewport.bearing}
-          // pitch={viewport.pitch}
           onMove={this.onMove}
           onContextMenu={null}
           mapStyle={MAPBOX_STYLE}
-          style={{width: "100%", height: "100%"}}
-          onNativeClick={this.focus}
+          onClick={this.focus}
           maxPitch={0}
           mapboxAccessToken={MAPBOX_TOKEN}
           attributionControl={false}
@@ -1025,7 +1024,7 @@ class Navigation extends Component {
           onError={(err) => this.setState({ mapError: err.error.message })}
         >
           <GeolocateControl
-            className={classes.geolocateControl}
+            style={{display: 'none',}}
             positionOptions={{ enableHighAccuracy: true }}
             showAccuracyCircle={false}
             onGeolocate={this.onGeolocate}
