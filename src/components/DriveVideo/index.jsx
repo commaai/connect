@@ -11,7 +11,7 @@ import { video as Video } from '@commaai/api';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
-import { seek, bufferVideo } from '../../timeline/playback';
+import { seek, bufferVideo, play, pause } from '../../timeline/playback';
 import { updateSegments } from '../../timeline/segments';
 
 const VideoOverlay = ({ loading, error }) => {
@@ -65,6 +65,7 @@ class DriveVideo extends Component {
     this.onVideoError = this.onVideoError.bind(this);
     this.onVideoResume = this.onVideoResume.bind(this);
     this.syncVideo = debounce(this.syncVideo.bind(this), 200, true);
+    this.onVisibilityChange = this.onVisibilityChange.bind(this);
     this.firstSeek = true;
 
     this.videoPlayer = React.createRef();
@@ -83,6 +84,7 @@ class DriveVideo extends Component {
     this.updateVideoSource({});
     this.syncVideo();
     this.videoSyncIntv = setInterval(this.syncVideo, 500);
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
   }
 
   componentDidUpdate(prevProps) {
@@ -94,6 +96,18 @@ class DriveVideo extends Component {
     if (this.videoSyncIntv) {
       clearTimeout(this.videoSyncIntv);
       this.videoSyncIntv = null;
+    }
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+  }
+
+  onVisibilityChange() {
+    const { dispatch, desiredPlaySpeed} = this.props;
+    if (document.visibilityState === 'hidden') {
+      dispatch(pause());
+    } else if (document.visibilityState === 'visible') {
+      console.log('visibility change', desiredPlaySpeed);
+      dispatch(play(desiredPlaySpeed));
+      this.syncVideo();
     }
   }
 
