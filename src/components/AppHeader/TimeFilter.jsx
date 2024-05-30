@@ -77,6 +77,7 @@ class TimeSelect extends Component {
     const d = new Date();
     d.setHours(d.getHours() + 1, 0, 0, 0);
 
+    // eslint-disable-next-line default-case
     switch (selection) {
       case '24-hours':
         this.props.dispatch(selectTimeFilter(d.getTime() - (1000 * 60 * 60 * 24), d.getTime()));

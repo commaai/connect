@@ -10,7 +10,7 @@ module.exports = {
   },
   rules: {
     'camelcase': 0,
-    'class-methods-use-this': 'warn',
+    'class-methods-use-this': 0,
     'default-case': 'warn',
     'import/prefer-default-export': 0,
     'import/no-named-as-default': 0,

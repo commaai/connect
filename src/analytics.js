@@ -101,6 +101,7 @@ function logAction(action, prevState, state) {
     }
   }
 
+  // eslint-disable-next-line default-case
   switch (action.type) {
     case LOCATION_CHANGE:
       gtag('event', 'page_view', {
