@@ -11,7 +11,7 @@ import { video as Video } from '@commaai/api';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
-import { seek, bufferVideo, play, pause } from '../../timeline/playback';
+import { seek, bufferVideo } from '../../timeline/playback';
 import { updateSegments } from '../../timeline/segments';
 
 const VideoOverlay = ({ loading, error }) => {
