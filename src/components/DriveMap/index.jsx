@@ -164,25 +164,6 @@ class DriveMap extends Component {
     }
   }
 
-  onInteraction(event){
-    console.log(event)
-    // console.log(type)
-
-    // this.setState({ viewport:viewState });
-
-    // if (type=="move") {
-    //   this.shouldFlyTo = true;
-    //   this.isInteracting = true;
-
-    //   if (this.isInteractingTimeout !== null) {
-    //     clearTimeout(this.isInteractingTimeout);
-    //   }
-    //   this.isInteractingTimeout = setTimeout(() => {
-    //     this.isInteracting = false;
-    //   }, INTERACTION_TIMEOUT);
-    // }
-  }
-
   setPath(coords) {
     const map = this.map && this.map.getMap();
 
@@ -310,7 +291,7 @@ class DriveMap extends Component {
     return (
       <div ref={this.onRef} className="h-full cursor-default w-full min-h-[300px]">
         <Map
-          style={{width: "100%", height: "100%"}}
+          style={{width: "100%", height: "100%", minHeight:"300px"}}
           latitude={viewport.latitude}
           longitude={viewport.longitude}
           zoom={viewport.zoom}
@@ -322,7 +303,6 @@ class DriveMap extends Component {
           dragRotate={false}
           onMove={this.onMove}
           attributionControl={false}
-          onError={(err) => console.log("err",err)}
         />
       </div>
     );
