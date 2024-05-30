@@ -1016,8 +1016,7 @@ class Navigation extends Component {
           onMove={this.onMove}
           onContextMenu={null}
           mapStyle={MAPBOX_STYLE}
-          width="100%"
-          height="100%"
+          style={{width: "100%", height: "100%"}}
           onNativeClick={this.focus}
           maxPitch={0}
           mapboxAccessToken={MAPBOX_TOKEN}
