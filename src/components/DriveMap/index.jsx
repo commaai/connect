@@ -25,7 +25,6 @@ class DriveMap extends Component {
     };
 
     this.onRef = this.onRef.bind(this);
-    // this.onViewportChange = this.onViewportChange.bind(this);
     this.initMap = this.initMap.bind(this);
     this.populateMap = this.populateMap.bind(this);
     this.posAtOffset = this.posAtOffset.bind(this);
@@ -115,7 +114,6 @@ class DriveMap extends Component {
     };
     if (this.shouldFlyTo) {
       viewport.transitionDuration = 200;
-      console.log("this.map",this.map)
       viewport.transitionInterpolator = this.map.easeTo;
       this.shouldFlyTo = false;
     }
