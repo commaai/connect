@@ -80,6 +80,26 @@ async function getCacheDB() {
   });
 }
 
+async function expireCacheItems(store) {
+  const db = await getCacheDB();
+  if (!db) {
+    return;
+  }
+
+  const transaction = db.transaction([store], 'readwrite');
+  const objStore = transaction.objectStore(store);
+
+  const idx = IDBKeyRange.upperBound(Math.floor(Date.now() / 1000));
+  const req = objStore.index('expiry').openCursor(idx);
+  req.onsuccess = (ev) => {
+    const cursor = ev.target.result;
+    if (cursor) {
+      objStore.delete(cursor.primaryKey);
+      cursor.continue();
+    }
+  };
+}
+
 async function getCacheItem(store, key, version = undefined) {
   if (!hasExpired) {
     setTimeout(() => expireCacheItems(store), 5000); // TODO: better expire time
@@ -123,26 +143,6 @@ async function setCacheItem(store, key, expiry, data, version = undefined) {
     req.onsuccess = (ev) => resolve(ev.target.result);
     req.onerror = (ev) => reject(ev.target.error);
   });
-}
-
-async function expireCacheItems(store) {
-  const db = await getCacheDB();
-  if (!db) {
-    return;
-  }
-
-  const transaction = db.transaction([store], 'readwrite');
-  const objStore = transaction.objectStore(store);
-
-  const idx = IDBKeyRange.upperBound(Math.floor(Date.now() / 1000));
-  const req = objStore.index('expiry').openCursor(idx);
-  req.onsuccess = (ev) => {
-    const cursor = ev.target.result;
-    if (cursor) {
-      objStore.delete(cursor.primaryKey);
-      cursor.continue();
-    }
-  };
 }
 
 function parseEvents(route, driveEvents) {
@@ -342,13 +342,6 @@ export function fetchEvents(route) {
   };
 }
 
-export function fetchLocations(route) {
-  return (dispatch, getState) => {
-    dispatch(fetchCoord(route, [route.start_lng, route.start_lat], 'startLocation'));
-    dispatch(fetchCoord(route, [route.end_lng, route.end_lat], 'endLocation'));
-  };
-}
-
 export function fetchCoord(route, coord, locationKey) {
   return async (dispatch, getState) => {
     const state = getState();
@@ -412,6 +405,13 @@ export function fetchCoord(route, coord, locationKey) {
     });
     resolveLocation(location);
     setCacheItem('coords', coord, Math.floor(Date.now() / 1000) + (86400 * 14), location);
+  };
+}
+
+export function fetchLocations(route) {
+  return (dispatch, getState) => {
+    dispatch(fetchCoord(route, [route.start_lng, route.start_lat], 'startLocation'));
+    dispatch(fetchCoord(route, [route.end_lng, route.end_lat], 'endLocation'));
   };
 }
 

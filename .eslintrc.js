@@ -36,7 +36,7 @@ module.exports = {
     'no-multi-spaces': ['error', {
       ignoreEOLComments: true,
     }],
-    'no-nested-ternary': 'warn',
+    'no-nested-ternary': 0,
     'no-plusplus': [
       'error',
       {
