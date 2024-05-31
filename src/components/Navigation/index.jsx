@@ -980,9 +980,10 @@ class Navigation extends Component {
       windowWidth, showPrimeAd } = this.state;
     const carLocation = this.getCarLocation();
 
+    const HTMLOverlayStyle={}
     const cardStyle = windowWidth < 600
-      ? { zIndex: 4, pointerEvents:'all', width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 }
-      : { zIndex: 4, pointerEvents:'all', width: 360, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
+      ? { position: 'absolute',top: 0, zIndex: 4, pointerEvents:'all', width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 }
+      : { position: 'absolute',top: 0, zIndex: 4, pointerEvents:'all', width: 360, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
 
     let carPinTooltipStyle = { transform: 'translate(calc(-50% + 10px), -4px)' };
     if (carLocation) {
@@ -1124,58 +1125,44 @@ class Navigation extends Component {
               />
             </Marker>
           ))}
+        
           { searchSelect && this.renderSearchSelectMarker(searchSelect) }
-          
+         
+         
             <CustomOverlay>
-              <div style={{ ...cardStyle, top: 10 }}>
+              <div style={{...cardStyle, top: 10 }}>
                {this.renderOverlay() }
               </div>
             </CustomOverlay>
             
+
           { searchSelect
             && (
-            <CustomOverlay
-              captureScroll
-              captureDrag
-              captureClick
-              captureDoubleClick
-              capturePointerMove
-            >
-              <div style={{ ...cardStyle, bottom: 10 }}>
+            <CustomOverlay>
+              <div style={{...cardStyle, bottom: 10 }}>
                 { this.renderSearchOverlay() }
               </div>
             </CustomOverlay>
             )}
+
           { search && searchLooking && !searchSelect
             && (
-            <CustomOverlay
-              captureScroll
-              captureDrag
-              captureClick
-              captureDoubleClick
-              capturePointerMove
-            >
-              <div style={{ ...cardStyle, bottom: 10, left: '50%', width: 180, transform: 'translate(-50%, 0)' }}>
+            <CustomOverlay>
+              <div style={{...cardStyle, bottom: 10, left: '50%', width: 180, transform: 'translate(-50%, 0)' }}>
                 {this.renderResearchArea()}
               </div>
             </CustomOverlay>
-
             )}
+            
           { showPrimeAd && !hasNav && !device.prime && device.is_owner
             && (
-            <CustomOverlay
-              captureScroll
-              captureDrag
-              captureClick
-              captureDoubleClick
-              capturePointerMove
-            >
-              <div style={{ ...cardStyle, top: 10, left: windowWidth < 600 ? 10 : 'auto', right: 10 }}>
+            <CustomOverlay>
+              <div style={{...cardStyle, top: 10, left: windowWidth < 600 ? 10 : 'auto', right: 10 }}>
                 {this.renderPrimeAd()}
               </div>
             </CustomOverlay>
-            )
-          }
+            )}
+          
         </Map>
       </div>
     );
