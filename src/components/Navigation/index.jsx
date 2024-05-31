@@ -980,10 +980,9 @@ class Navigation extends Component {
       windowWidth, showPrimeAd } = this.state;
     const carLocation = this.getCarLocation();
 
-    const HTMLOverlayStyle={}
     const cardStyle = windowWidth < 600
-      ? { position: 'absolute',top: 0, zIndex: 4, pointerEvents:'all', width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 }
-      : { position: 'absolute',top: 0, zIndex: 4, pointerEvents:'all', width: 360, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
+      ? { position: 'absolute', zIndex: 4, pointerEvents:'all', width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 }
+      : { position: 'absolute', zIndex: 4, pointerEvents:'all', width: 360, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
 
     let carPinTooltipStyle = { transform: 'translate(calc(-50% + 10px), -4px)' };
     if (carLocation) {
