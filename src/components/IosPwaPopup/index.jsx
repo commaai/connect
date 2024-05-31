@@ -104,7 +104,9 @@ class IosPwaPopup extends Component {
   hide() {
     try {
       localforage.setItem('hideIosPwaPopup', true);
-    } catch (err) {}
+    } catch (err) {
+      // pass
+    }
     this.setState({ show: false });
   }
 
