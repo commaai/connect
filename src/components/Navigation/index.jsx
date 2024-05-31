@@ -1128,13 +1128,14 @@ class Navigation extends Component {
         
           { searchSelect && this.renderSearchSelectMarker(searchSelect) }
          
-         
+          { hasNav
+            && (
             <CustomOverlay>
               <div style={{...cardStyle, top: 10 }}>
                {this.renderOverlay() }
               </div>
             </CustomOverlay>
-            
+            )}
 
           { searchSelect
             && (
