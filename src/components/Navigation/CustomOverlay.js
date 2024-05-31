@@ -41,7 +41,7 @@ const CustomOverlay = ({ children }) => {
     return new OverlayControl(forceUpdate);
   });
 
-  const map = ctrl.getMap();
+  const map = ctrl?.getMap();
   return map && createPortal(cloneElement(children, {map}), ctrl.getElement());
 }
 

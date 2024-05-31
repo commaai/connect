@@ -136,7 +136,6 @@ class DriveMap extends Component {
   }
 
   onRef(el) {
-    console.log("el",el)
     if (el) {
       el.addEventListener('touchstart', (ev) => ev.stopPropagation());
     }
