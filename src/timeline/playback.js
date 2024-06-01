@@ -7,7 +7,7 @@ export function reducer(_state, action) {
   let state = { ..._state };
   let loopOffset = null;
   if (state.loop && state.loop.startTime !== null) {
-    loopOffset = state.loop.startTime - state.filter.start;
+    loopOffset = state.loop.startTime;
   }
   switch (action.type) {
     case Types.ACTION_SEEK:
