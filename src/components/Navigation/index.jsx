@@ -1021,6 +1021,7 @@ class Navigation extends Component {
           attributionControl={false}
           dragRotate={false}
           onError={(err) => this.setState({ mapError: err.error.message })}
+          onRender={(event) => event.target.resize()}
         >
           <GeolocateControl
             ref={this.geoControlRef}
