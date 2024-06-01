@@ -268,6 +268,7 @@ export function doUpload(dongleId, fileNames, paths, urls) {
           params: [paths[i], urls[i], { 'x-ms-blob-type': 'BlockBlob' }],
           expiry: Math.floor(Date.now() / 1000) + (86400 * 7),
         };
+        // eslint-disable-next-line no-await-in-loop
         const resp = await athenaCall(dongleId, payload, 'files_actions_athena_upload');
         if (!resp || resp.error) {
           const uploading = {};

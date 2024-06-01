@@ -319,7 +319,9 @@ class DeviceInfo extends Component {
         if (error.length > 5 && error[5] === '{') {
           try {
             error = JSON.parse(error.substr(5)).error;
-          } catch { }
+          } catch { 
+            //pass 
+          }
         }
       }
       this.setState({ snapshot: { error } });
