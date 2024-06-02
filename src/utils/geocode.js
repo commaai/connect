@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/react';
 import qs from 'query-string';
-import WebMercatorViewport from '@math.gl/web-mercator';
 import mbxGeocoding from '@mapbox/mapbox-sdk/services/geocoding';
 import mbxDirections from '@mapbox/mapbox-sdk/services/directions';
 
@@ -196,7 +195,7 @@ export async function reverseLookup(coords, navFormat = false) {
   return null;
 }
 
-export async function forwardLookup(query, proximity, viewport) {
+export async function forwardLookup(query, proximity, bbox) {
   if (!query) {
     return [];
   }
@@ -209,13 +208,12 @@ export async function forwardLookup(query, proximity, viewport) {
   };
   if (proximity) {
     params.at = `${proximity[1]},${proximity[0]}`;
-  } else if (viewport) {
-    const bbox = new WebMercatorViewport(viewport).getBounds();
+  } else if (bbox) {
     const vals = [
-      Math.max(-180, bbox[0][0]),
-      Math.max(-90, bbox[0][1]),
-      Math.min(180, bbox[1][0]),
-      Math.min(90, bbox[1][1]),
+      Math.max(-180, bbox["_sw"]["lng"]),
+      Math.max(-90, bbox["_sw"]["lat"]),
+      Math.min(180, bbox["_ne"]["lng"]),
+      Math.min(90, bbox["_ne"]["lat"]),
     ];
     params.in = `bbox:${vals.join(',')}`;
   } else {

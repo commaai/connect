@@ -301,6 +301,7 @@ class Navigation extends Component {
     this.carPinTooltipRef = React.createRef();
     this.navigateFakeButtonRef = React.createRef();
     this.geoControlRef = React.createRef();
+    this.mapRef = React.createRef();
 
     this.checkWebGLSupport = this.checkWebGLSupport.bind(this);
     this.flyToMarkers = this.flyToMarkers.bind(this);
@@ -347,6 +348,8 @@ class Navigation extends Component {
   componentDidUpdate(prevProps, prevState) {
     const { dongleId, device } = this.props;
     const { geoLocateCoords, search, carLastLocation, carNetworkLocation, searchSelect, favoriteLocations } = this.state;
+
+    this.mapRef.current?.resize();
 
     if ((carLastLocation && !prevState.carLastLocation) || (carNetworkLocation && !prevState.carNetworkLocation)
       || (geoLocateCoords && !prevState.geoLocateCoords) || (searchSelect && prevState.searchSelect !== searchSelect)
@@ -905,10 +908,10 @@ class Navigation extends Component {
   }
 
   researchArea() {
-    const { viewport, windowWidth } = this.state;
+    const { windowWidth } = this.state;
     const searchInput = this.searchInputRef.current;
-
-    forwardLookup(searchInput.value, null, viewport).then((features) => {
+    const bbox =this.mapRef.current.getBounds()
+    forwardLookup(searchInput.value, null, bbox).then((features) => {
       this.setState({
         noFly: true,
         searchSelect: null,
@@ -1008,6 +1011,7 @@ class Navigation extends Component {
           </div>
           )}
         <Map
+          ref={this.mapRef}
           style={{width: "100%", height: "100%"}}
           latitude={viewport.latitude}
           longitude={viewport.longitude}
@@ -1129,7 +1133,8 @@ class Navigation extends Component {
           { searchSelect && this.renderSearchSelectMarker(searchSelect) }
          
           { hasNav
-            && (
+            &&
+            (
             <CustomOverlay>
               <div style={{...cardStyle, top: 10 }}>
                {this.renderOverlay() }
@@ -1233,6 +1238,7 @@ class Navigation extends Component {
         />
         { search && !searchSelect && !searchLooking && (
         <>
+          {console.log(search)}
           <div className={ classes.overlaySearchResultsHr } />
           <div className={ `${classes.overlaySearchResults} scrollstyle` }>
             { !geoLocateCoords && !carLocation
