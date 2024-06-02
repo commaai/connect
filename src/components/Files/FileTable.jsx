@@ -135,14 +135,14 @@ class FileTable extends Component {
 
   render() {
     const { classes, currentRoute, files } = this.props;
-    const { windowWidth, windowHeight } = this.state;
+    const { windowHeight } = this.state;
 
     const columns = [
       { field: 'id', headerName: "#", type: 'number', width: 5 },
       { field: 'segmentName', headerName: 'Segment', width: 325 },
     ];
 
-    columns.push(...Object.entries(FILE_NAMES).map(([key, { filename, label }]) => {
+    columns.push(...Object.entries(FILE_NAMES).map(([key, { label }]) => {
       return {
         field: key,
         headerName: label,
