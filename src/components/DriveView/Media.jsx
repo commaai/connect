@@ -16,6 +16,7 @@ import DriveVideo from '../DriveVideo';
 import ResizeHandler from '../ResizeHandler';
 import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
+import FileTable from '../Files/FileTable';
 import SwitchLoading from '../utils/SwitchLoading';
 import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
@@ -229,6 +230,7 @@ class Media extends Component {
       downloadMenu: null,
       moreInfoMenu: null,
       uploadModal: false,
+      fileTableModal: false,
       dcamUploadInfo: null,
       routePreserved: null,
     };
@@ -236,6 +238,7 @@ class Media extends Component {
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
     this.renderUploadMenuItem = this.renderUploadMenuItem.bind(this);
+    this.renderFileTableMenuItem = this.renderFileTableMenuItem.bind(this);
     this.copySegmentName = this.copySegmentName.bind(this);
     this.openInUseradmin = this.openInUseradmin.bind(this);
     this.shareCurrentRoute = this.shareCurrentRoute.bind(this);
@@ -591,7 +594,7 @@ class Media extends Component {
 
   renderMenus(alwaysOpen = false) {
     const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const { downloadMenu, moreInfoMenu, uploadModal, fileTableModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
       return null;
@@ -637,6 +640,7 @@ class Media extends Component {
           </div>
           )}
           { buttons.filter((b) => Boolean(b)).map(this.renderUploadMenuItem)}
+          { this.renderFileTableMenuItem() }
           <Divider />
           <MenuItem
             className={ classes.filesItem }
@@ -773,6 +777,12 @@ class Media extends Component {
           store={ this.props.store }
           device={ device }
         />
+        <FileTable
+          open={ fileTableModal }
+          onClose={ () => this.setState({ fileTableModal: false }) }
+          update={ Boolean(moreInfoMenu || fileTableModal || downloadMenu) }
+          store={ this.props.store }
+        />
         <Popper
           open={ Boolean(dcamUploadInfo) }
           placement="bottom"
@@ -857,6 +867,40 @@ class Media extends Component {
         style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
       >
         { name }
+        { button }
+      </MenuItem>
+    );
+  }
+
+  renderFileTableMenuItem() {
+    const { classes, files } = this.props;
+    const { windowWidth } = this.state;
+
+    const uploadButtonWidth = windowWidth < 425 ? 80 : 120;
+
+    let button;
+    if (!files) {
+      button = null;
+    } else {
+      button = (
+        <Button
+          className={ classes.uploadButton }
+          style={{ minWidth: uploadButtonWidth }}
+          onClick={ files ? () => this.setState({ fileTableModal: true, downloadMenu: null }) : null }
+        >
+          view
+        </Button>
+      );
+    }
+
+    return (
+      <MenuItem
+        key={ 'routeFiles' }
+        disabled
+        className={ classes.filesItem }
+        style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
+      >
+        Route Files
         { button }
       </MenuItem>
     );
