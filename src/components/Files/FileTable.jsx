@@ -54,7 +54,7 @@ const styles = (theme) => ({
     border: 'none',
     '& .MuiDataGrid-row': {
       color: theme.palette.common.white,
-      '--DataGrid-row-border-color': 'transparent',
+      '--DataGrid-rowBorderColor': 'transparent',
     },
     '& .MuiDataGrid-columnHeader': {
       backgroundColor: theme.palette.grey[300],
