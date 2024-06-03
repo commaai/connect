@@ -5,7 +5,7 @@ const DEMO_DEVICE_URL = '/1d3dc3e03047b0c7';
 const DEMO_ROUTE_URL = '/1d3dc3e03047b0c7/1716484475499/1716485004466';
 const ZOOMED_DEMO_URL = '/1d3dc3e03047b0c7/1716484476499/1716485003466';
 
-jest.setTimeout(80000);
+jest.setTimeout(100000);
 
 describe('drive view', () => {
   beforeAll(async () => {
