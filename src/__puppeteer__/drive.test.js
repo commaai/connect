@@ -1,15 +1,19 @@
 /* eslint-env jest */
 import { configureViewport, goto } from './utils';
 
-const DEMO_DEVICE_URL = '/4cf7a6ad03080c90';
-const DEMO_ROUTE_URL = '/4cf7a6ad03080c90/1632948396703/1632949028503';
-const ZOOMED_DEMO_URL = '/4cf7a6ad03080c90/1632948397703/1632949027503';
+const DEMO_DEVICE_URL = '/1d3dc3e03047b0c7';
+const DEMO_ROUTE_URL = '/1d3dc3e03047b0c7/1716484475499/1716485004466';
+const ZOOMED_DEMO_URL = '/1d3dc3e03047b0c7/1716484476499/1716485003466';
 
 jest.setTimeout(60000);
 
 describe('drive view', () => {
   beforeAll(async () => {
     await configureViewport();
+
+    // Log in to demo account
+    await goto('/');
+    await page.click('xpath=//a[contains(string(), "Try the demo")]');
   });
 
   it('back button disabled when in route bounds', async () => {

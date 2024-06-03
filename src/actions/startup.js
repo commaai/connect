@@ -2,12 +2,8 @@ import * as Sentry from '@sentry/react';
 import { account as Account, devices as Devices } from '@commaai/api';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
-import * as Demo from '../demo';
 import { ACTION_STARTUP_DATA } from './types';
 import { primeFetchSubscription, checkRoutesData, selectDevice, fetchSharedDevice } from '.';
-
-import demoProfile from '../demo/profile.json';
-import demoDevices from '../demo/devices.json';
 
 async function initProfile() {
   if (MyCommaAuth.isAuthenticated()) {
@@ -21,18 +17,12 @@ async function initProfile() {
         Sentry.captureException(err, { fingerprint: 'init_api_get_profile' });
       }
     }
-  } else if (Demo.isDemo()) {
-    return demoProfile;
   }
   return null;
 }
 
 async function initDevices() {
   let devices = [];
-
-  if (Demo.isDemo()) {
-    devices = devices.concat(demoDevices);
-  }
 
   if (MyCommaAuth.isAuthenticated()) {
     try {

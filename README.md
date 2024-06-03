@@ -9,7 +9,7 @@ The frontend to the comma connect progressive web app. This a react app using [C
 
 ## Contributing
 
-If you don't have a comma device, connect has a demo mode with an example drive. This should allow for testing most functionality except for interactions with the device, such as getting the car battery voltage.
+If you don't have a comma device, connect has a demo mode with some example drives. This should allow for testing most functionality except for interactions with the device, such as getting the car battery voltage.
 
 * Use best practices
 * Write test cases
