@@ -9,7 +9,8 @@ describe('demo mode', () => {
   });
 
   it('should load demo route', async () => {
-    await goto('/a2a0ccea32023010', { waitUntil: 'networkidle2' });
+    await goto('/');
+    await page.click('xpath=//a[contains(string(), "Try the demo")]');
 
     await page.waitForSelector('.DriveList');
     await page.waitForSelector('.DriveEntry');
