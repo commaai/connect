@@ -171,7 +171,7 @@ class FileTable extends Component {
           <Paper className={classes.modal}>
             <div className={classes.titleContainer}>
               <Typography variant="title"><DownloadIcon className={classes.titleIcon}/>Route Files</Typography>
-              <Typography vfd ariant="caption" style={{ marginLeft: 8 }}>{currentRoute.fullname}</Typography>
+              <Typography variant="caption" style={{ marginLeft: 8 }}>{currentRoute.fullname}</Typography>
             </div>
             <Divider/>
             <div className={classes.uploadContainer} style={{ maxHeight: (windowHeight * 0.80) }}>
