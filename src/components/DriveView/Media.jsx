@@ -233,7 +233,6 @@ class Media extends Component {
       fileTableModal: false,
       dcamUploadInfo: null,
       routePreserved: null,
-      isModalOpen: false,
     };
 
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
@@ -893,33 +892,17 @@ class Media extends Component {
         </Button>
       );
     }
-      const handleOpenModal = () => {
-        this.setState({ isModalOpen: true });
-      };
-
-      const handleCloseModal = () => {
-        this.setState({ isModalOpen: false })
-      };
 
     return (
-      <div>
       <MenuItem
         key={ 'routeFiles' }
         disabled
         className={ classes.filesItem }
         style={ files ? { pointerEvents: 'auto' } : { color: Colors.white60 } }
-        onClick={ handleOpenModal }
       >
         Route Files
         { button }
       </MenuItem>
-      <FileTable
-      open={this.state.isModalOpen}
-      onClose={handleCloseModal}
-      files={files}
-      currentRoute={this.props.currentRoute}
-    />
-    </div>
     );
   }
 }
