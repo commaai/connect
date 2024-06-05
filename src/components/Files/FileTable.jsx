@@ -1,9 +1,9 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
+import React, {Component} from 'react';
+import {connect} from 'react-redux';
 import Obstruction from 'obstruction';
 
-import { withStyles, Divider, Typography, Button, Modal, Paper } from '@material-ui/core';
-import { DataGrid } from '@mui/x-data-grid';
+import {withStyles, Divider, Typography, Button, Modal, Paper} from '@material-ui/core';
+import {DataGrid} from '@mui/x-data-grid';
 
 import DownloadIcon from '@material-ui/icons/FileDownload';
 import Colors from '../../colors';
@@ -94,23 +94,24 @@ class FileTable extends Component {
 
     this.state = {
       windowWidth: window.innerWidth,
-      windowHeight: window.innerHeight,
+      windowHeight: window.innerHeight
     };
   }
 
   getSegmentIndex(segmentName) {
-    return segmentName.split('--').slice(-1)[0];
+    return segmentName.split("--").slice(-1)[0]
   }
 
   filesToRows(files) {
     if (files) {
       const segments = {};
       for (let [key, data] of Object.entries(files)) {
-        const [segment, file_type] = key.split('/');
+        const [segment, file_type] = key.split("/");
         segments[segment] = { ...segments[segment], ...{ [file_type]: data.url } };
       }
 
       const sortedSegments = Object.entries(segments).sort((a, b) => {
+        // Sort the entries by segment number
         const aSegmentIndex = parseInt(this.getSegmentIndex(a[0]));
         const bSegmentIndex = parseInt(this.getSegmentIndex(b[0]));
         if (aSegmentIndex < bSegmentIndex) return -1;
@@ -118,13 +119,13 @@ class FileTable extends Component {
         return 0;
       });
 
-      const rows = [];
+      const rows = []
 
       for (let [segmentName, segmentFiles] of sortedSegments) {
         rows.push({
           id: this.getSegmentIndex(segmentName),
           segmentName: segmentName,
-          ...segmentFiles,
+          ...segmentFiles
         });
       }
 
@@ -137,32 +138,27 @@ class FileTable extends Component {
     const { windowHeight } = this.state;
 
     const columns = [
-      { field: 'id', headerName: '#', type: 'number', width: 5 },
+      { field: 'id', headerName: "#", type: 'number', width: 5 },
       { field: 'segmentName', headerName: 'Segment', width: 325 },
     ];
 
-    columns.push(
-      ...Object.entries(FILE_NAMES).map(([key, { label }]) => {
-        return {
-          field: key,
-          headerName: label,
-          headerAlign: 'center',
-          align: 'center',
-          display: 'flex',
-          minWidth: label.includes('Camera') ? 120 : 100,
-          sortable: false,
-          filterable: false,
-          renderCell: (params) => {
-            const url = params.value;
-            return url ? (
-              <Button className={classes.uploadButton} href={url} target="_blank" rel="noopener noreferrer">
-                {url.match(/(?<=\/)[\w.]+(?=\?)/gm)?.[0] || 'Download'}
-              </Button>
-            ) : null;
-          },
-        };
-      })
-    );
+    columns.push(...Object.entries(FILE_NAMES).map(([key, { label }]) => {
+      return {
+        field: key,
+        headerName: label,
+        headerAlign: 'center',
+        align: 'center',
+        display: 'flex',
+        minWidth: label.includes("Camera") ? 120 : 100,
+        sortable: false,
+        filterable: false,
+        renderCell: (params) => (
+          <Button className={classes.uploadButton} href={params.value} target="_blank" rel="noopener noreferrer">
+            {params.value.match(/(?<=\/)[\w.]+(?=\?)/gm)[0]}
+          </Button>
+        ),
+      }
+    }));
     columns.slice(-1)[0].width = null;
     columns.slice(-1)[0].flex = 1;
 
@@ -170,26 +166,23 @@ class FileTable extends Component {
 
     return (
       <>
-        <ResizeHandler onResize={(ww, wh) => this.setState({ windowWidth: ww, windowHeight: wh })} />
+        <ResizeHandler onResize={(ww, wh) => this.setState({ windowWidth: ww, windowHeight: wh })}/>
         <Modal aria-labelledby="file-table-modal" open={this.props.open} onClose={this.props.onClose}>
           <Paper className={classes.modal}>
             <div className={classes.titleContainer}>
-              <Typography variant="title">
-                <DownloadIcon className={classes.titleIcon} />
-                Route Files
-              </Typography>
-              <Typography variant="caption" style={{ marginLeft: 8 }}>
-                {currentRoute.fullname}
-              </Typography>
+              <Typography variant="title"><DownloadIcon className={classes.titleIcon}/>Route Files</Typography>
+              <Typography variant="caption" style={{ marginLeft: 8 }}>{currentRoute.fullname}</Typography>
             </div>
-            <Divider />
-            <div className={classes.uploadContainer} style={{ maxHeight: windowHeight * 0.8 }}>
+            <Divider/>
+            <div className={classes.uploadContainer} style={{ maxHeight: (windowHeight * 0.80) }}>
               <DataGrid
                 columns={columns}
                 rows={rows}
                 pageSize={2}
-                density="compact"
-                getRowClassName={(params) => (params.indexRelativeToCurrentPage % 2 === 0 ? 'even' : 'odd')}
+                density='compact'
+                getRowClassName={(params) =>
+                  params.indexRelativeToCurrentPage % 2 === 0 ? 'even' : 'odd'
+                }
                 sx={styles(Theme).dataGrid}
               />
             </div>
@@ -207,7 +200,7 @@ class FileTable extends Component {
 
 const stateToProps = Obstruction({
   files: 'files',
-  currentRoute: 'currentRoute',
+  currentRoute: 'currentRoute'
 });
 
 export default connect(stateToProps)(withStyles(styles)(FileTable));
