@@ -21,6 +21,8 @@ jobs:
         with:
           name: build-artifacts-${{ github.event.number }}
           path: ./dist
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       # deploy
       - name: Deploy to Cloudflare Pages
