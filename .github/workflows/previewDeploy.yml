@@ -2,51 +2,42 @@ name: Deploy to Cloudflare Pages
 
 on:
   pull_request:
+    branches:
+      - master
 
 jobs:
   deploy:
+    if: |
+      github.event.repository.full_name == 'commaai/connect' && (
+        github.event_name == 'pull_request' ||
+        github.event.pull_request.head.repo.full_name == 'commaai/connect'
+      )
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
+      - name: Set up Node.js and PNPM
+        uses: commaai/setup-pnpm@v1
         with:
           node-version: '16'
+          pnpm-version: '8'
 
       - name: Install dependencies
-        run: npm install
+        run: pnpm install
 
       - name: Build project
-        run: npm run build:development
+        run: npm run build:production
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/cloudflare-pages-action@main
+        uses: cloudflare/cloudflare-pages-action@v1.5.0
         with:
           api_token: ${{ secrets.CF_API_TOKEN }}
           build_dir: dist
 
-      - name: Get deployment URL
-        id: get_url
-        run: echo "::set-output name=url::$(curl -sS -X GET -H 'Authorization: token ${{ secrets.GITHUB_TOKEN }}' ${{ github.event.pull_request.url }}/comments | jq -r '.[].body' | grep -o 'https://[^ ]*' | head -n1)"
-
       - name: Comment URL on PR
-        uses: actions/github-script@0.9.0
+        uses: thollander/actions-comment-pull-request@v2
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { context, github } = require('@actions/github');
-            const { data: comments } = await github.issues.listComments({
-              ...context.repo,
-              issue_number: context.issue.number
-            });
-            const existingComment = comments.find(comment => comment.body.includes('Deploy Preview'));
-            if (!existingComment) {
-              await github.issues.createComment({
-                ...context.repo,
-                issue_number: context.issue.number,
-                body: `Deploy Preview: ${process.env.url}`
-              });
-            }
+          message: 'Deploy Preview: ${{ steps.cloudflare-publish.outputs.url }}'
+
