@@ -27,7 +27,7 @@ jobs:
         id: cloudflare-publish
         uses: cloudflare/pages-action@v1.5.0
         with:
-          branch: testing
+          alias: testing
           projectName: connect
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
@@ -41,4 +41,4 @@ jobs:
             * mark your PR as a draft until it's ready to review
             * post the preview on [Discord](https://discord.comma.ai); feedback from users will speedup the PR review
 
-            deployed preview: ${{ steps.cloudflare-publish.outputs.url }}'
+            deployed preview: ${{ steps.cloudflare-publish.outputs.url }}
