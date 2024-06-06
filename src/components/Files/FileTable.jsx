@@ -72,7 +72,7 @@ const styles = (theme) => ({
     '& .MuiTablePagination-root, & .MuiTablePagination-selectIcon': {
       color: theme.palette.common.white,
     },
-    '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+    '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within, & .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within': {
       outline: 'none',
     },
   },
@@ -152,6 +152,7 @@ class FileTable extends Component {
         minWidth: label.includes("Camera") ? 120 : 100,
         sortable: false,
         filterable: false,
+        disableColumnMenu: true,
         renderCell: (params) => {
           if (params.value) {
             return (
