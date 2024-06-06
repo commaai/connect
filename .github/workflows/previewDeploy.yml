@@ -27,6 +27,7 @@ jobs:
         id: cloudflare-publish
         uses: cloudflare/pages-action@v1.5.0
         with:
+          branch: testing
           projectName: connect
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
@@ -34,4 +35,10 @@ jobs:
       - name: Comment URL on PR
         uses: thollander/actions-comment-pull-request@v2
         with:
-          message: 'Deploy Preview: ${{ steps.cloudflare-publish.outputs.url }}'
+          message: |
+            Welcome to connect! Make sure to:
+            * read the [contributing guidelines](https://github.com/commaai/connect?tab=readme-ov-file#contributing)
+            * mark your PR as a draft until it's ready to review
+            * post the preview on [Discord](https://discord.comma.ai); feedback from users will speedup the PR review
+
+            deployed preview: ${{ steps.cloudflare-publish.outputs.url }}'
