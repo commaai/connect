@@ -33,8 +33,8 @@ jobs:
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1.5.0
         with:
-          api_token: ${{ secrets.CF_API_TOKEN }}
-          build_dir: dist
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          directory: dist
 
       - name: Comment URL on PR
         uses: thollander/actions-comment-pull-request@v2
