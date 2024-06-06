@@ -5,7 +5,7 @@ description: Setup PNPM for use in GitHub Actions
 inputs:
   node-version:
     description: "The version of Node.js to use"
-    default: "24"
+    default: "20"
   pnpm-version:
     description: "The version of PNPM to use"
     default: "9"
