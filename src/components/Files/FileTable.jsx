@@ -56,7 +56,7 @@ const styles = (theme) => ({
       color: theme.palette.common.white,
       '--DataGrid-rowBorderColor': 'transparent',
     },
-    '& .MuiDataGrid-columnHeader': {
+    '& .MuiDataGrid-columnHeader, & .MuiDataGrid-filler': {
       backgroundColor: theme.palette.grey[300],
       color: theme.palette.common.white,
       textAlign: 'center',
@@ -137,7 +137,7 @@ class FileTable extends Component {
     const { classes, currentRoute, files } = this.props;
     const { windowHeight } = this.state;
 
-    const columns = [
+    let columns = [
       { field: 'id', headerName: "#", type: 'number', width: 5 },
       { field: 'segmentName', headerName: 'Segment', width: 325 },
     ];
@@ -152,17 +152,32 @@ class FileTable extends Component {
         minWidth: label.includes("Camera") ? 120 : 100,
         sortable: false,
         filterable: false,
-        renderCell: (params) => (
-          <Button className={classes.uploadButton} href={params.value} target="_blank" rel="noopener noreferrer">
-            {params.value.match(/(?<=\/)[\w.]+(?=\?)/gm)[0]}
-          </Button>
-        ),
+        renderCell: (params) => {
+          if (params.value) {
+            return (
+              <Button className={classes.uploadButton} href={params.value} target="_blank" rel="noopener noreferrer">
+                {params.value.match(/(?<=\/)[\w.]+(?=\?)/gm)[0] || "Download"}
+              </Button>
+            )
+          }
+        },
       }
     }));
     columns.slice(-1)[0].width = null;
     columns.slice(-1)[0].flex = 1;
 
     const rows = this.filesToRows(files);
+
+    if (rows) {
+      // Hide empty columns
+      columns = columns.filter((column) => {
+        if (column.field === 'id' || column.field === 'segmentName') {
+          return true;
+        }
+        return rows.some((row) => row[column.field]);
+      });
+
+    }
 
     return (
       <>
