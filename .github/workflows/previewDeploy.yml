@@ -42,6 +42,5 @@ jobs:
             * mark your PR as a draft until it's ready to review
             * post the preview on [Discord](https://discord.comma.ai); feedback from users will speedup the PR review
 
-            deployed preview: ${{ steps.cloudflare-publish.outputs.url }}
-            deployed preview: ${{ steps.cloudflare-publish.outputs.alias }}
+            deployed preview: https://${{ github.event.number }}.connect-d5y.pages.dev
           comment_tag: run_id
