@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   preview:
-    #if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +29,7 @@ jobs:
         id: cloudflare-publish
         uses: cloudflare/pages-action@v1.5.0
         with:
-          branch: ${{ github.event.number }}
+          branch: ${{ github.event.workflow_run.pull_requests[0].number }}
           projectName: connect
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
@@ -45,5 +45,5 @@ jobs:
             * mark your PR as a draft until it's ready to review
             * post the preview on [Discord](https://discord.comma.ai); feedback from users will speedup the PR review
 
-            deployed preview: https://${{ github.event.number }}.connect-d5y.pages.dev
+            deployed preview: https://${{ github.event.workflow_run.pull_requests[0].number }}.connect-d5y.pages.dev
           comment_tag: run_id
