@@ -31,7 +31,7 @@ jobs:
         run: npm run build:production
 
       - name: Deploy to Cloudflare Pages
-        uses: ./path/to/your/commaai/connect/.github/actions/cloudflare-pages-action/
+        uses: cloudflare/cloudflare-pages-action@v1.5.0
         with:
           api_token: ${{ secrets.CF_API_TOKEN }}
           build_dir: dist
