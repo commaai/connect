@@ -23,4 +23,4 @@ jobs:
           path: ./dist
           overwrite: true
           retention-days: 1
-          name: build-artifacts-${{ github.event.number }}
+          name: build-artifacts-${{ github.run_id }}
