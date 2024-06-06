@@ -18,8 +18,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Node.js and PNPM
-        uses: ./path/to/your/commaai/connect/.github/actions/setup-pnpm/
+      - name: Set up PNPM
+        uses: ./.github/actions/setup-pnpm/
         with:
           node-version: '16'
           pnpm-version: '8'
