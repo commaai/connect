@@ -24,6 +24,7 @@ jobs:
       - name: Build project
         run: npm run build:production
       - name: Deploy to Cloudflare Pages
+        id: cloudflare-publish
         uses: cloudflare/pages-action@v1.5.0
         with:
           projectName: connect
