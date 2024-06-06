@@ -19,7 +19,7 @@ jobs:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: build-artifacts-${{ github.event.number }}
+          name: build-artifacts-${{ github.event.workflow_run.id }}
           path: ./dist
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
