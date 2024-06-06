@@ -12,7 +12,6 @@ import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@comm
 import { athena as Athena, auth as Auth, billing as Billing, request as Request } from '@commaai/api';
 
 import { getZoom } from './url';
-import { isDemo } from './demo';
 import store, { history } from './store';
 
 import ErrorFallback from './components/ErrorFallback';
@@ -123,7 +122,7 @@ class App extends Component {
       return this.renderLoading();
     }
 
-    const showLogin = !MyCommaAuth.isAuthenticated() && !isDemo() && !getZoom(window.location.pathname);
+    const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(window.location.pathname);
     let content = (
       <Suspense fallback={this.renderLoading()}>
         { showLogin ? this.anonymousRoutes() : this.authRoutes() }

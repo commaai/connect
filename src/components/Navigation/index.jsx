@@ -15,7 +15,6 @@ import { athena as Athena, devices as Devices, navigation as NavigationApi } fro
 import { primeNav, analyticsEvent } from '../../actions';
 import { DEFAULT_LOCATION, forwardLookup, getDirections, MAPBOX_STYLE, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
 import Colors from '../../colors';
-import * as Demo from '../../demo';
 import { PinCarIcon, PinMarkerIcon, PinHomeIcon, PinWorkIcon, PinPinnedIcon } from '../../icons';
 import { timeFromNow } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
@@ -398,10 +397,6 @@ class Navigation extends Component {
   }
 
   updateDevice() {
-    if (Demo.isDemo()) {
-      return;
-    }
-
     this.getDeviceLastLocation();
     this.getDeviceNetworkLocation();
     this.updateFavoriteLocations();
@@ -483,7 +478,7 @@ class Navigation extends Component {
 
   updateFavoriteLocations() {
     const { dongleId, hasNav } = this.props;
-    if (!hasNav || Demo.isDemo()) {
+    if (!hasNav) {
       return;
     }
 

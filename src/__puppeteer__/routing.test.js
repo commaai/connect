@@ -6,26 +6,25 @@ jest.setTimeout(30000);
 describe('routing', () => {
   beforeAll(async () => {
     await configureViewport();
-  });
 
-  it('login page', async () => {
+    // Log in to demo account
     await goto('/');
-    await page.waitForXPath('//*[contains(string(), "Try the demo")]');
+    await page.click('xpath=//a[contains(string(), "Try the demo")]');
   });
 
   it('load route list', async () => {
-    await goto('/a2a0ccea32023010');
+    await goto('/1d3dc3e03047b0c7');
 
     await page.waitForSelector('.DriveList');
     await page.waitForSelector('.DriveEntry');
 
-    // Page should have one ".DriveEntry" element
+    // Page should have at least one ".DriveEntry" element
     const driveEntries = await page.$$('.DriveEntry');
-    expect(driveEntries.length).toBe(1);
+    expect(driveEntries.length).toBeGreaterThanOrEqual(1);
   });
 
   it('load route from URL', async () => {
-    await goto('/a2a0ccea32023010/1690488081496/1690488851596', { timeout: 50000 });
+    await goto('/1d3dc3e03047b0c7/1716484475499/1716485004466', { timeout: 50000 });
 
     // Wait for video src to be set
     await page.waitForFunction(
