@@ -145,13 +145,11 @@ class DriveMap extends Component {
     this.setState({ viewport });
   }
   
-  onMove({viewState,type}){
-    this.setState({ viewport:viewState });
-
-    if (type=="move") {
+  onMove({viewState,type}) {
+    this.setState({ viewport : viewState });
+    if (type == "move") {
       this.shouldFlyTo = true;
       this.isInteracting = true;
-
       if (this.isInteractingTimeout !== null) {
         clearTimeout(this.isInteractingTimeout);
       }

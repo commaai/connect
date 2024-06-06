@@ -841,7 +841,6 @@ class Navigation extends Component {
   }
 
   onResize(windowWidth) {
-    console.log('windowWidth',windowWidth)
     this.setState({ windowWidth });
   }
 
@@ -910,7 +909,7 @@ class Navigation extends Component {
   researchArea() {
     const { windowWidth } = this.state;
     const searchInput = this.searchInputRef.current;
-    const bbox =this.mapRef.current.getBounds()
+    const bbox = this.mapRef.current.getBounds()
     forwardLookup(searchInput.value, null, bbox).then((features) => {
       this.setState({
         noFly: true,
@@ -930,9 +929,8 @@ class Navigation extends Component {
     const { search, searchSelect, searchLooking } = this.state;
     this.setState({ viewport:viewState });
 
-    if (type=="move") {
+    if (type=="move") { 
       this.focus();
-
       if (search && !searchSelect && !searchLooking) {
         this.setState({ searchLooking: true, noFly: true });
       }
@@ -1238,7 +1236,6 @@ class Navigation extends Component {
         />
         { search && !searchSelect && !searchLooking && (
         <>
-          {console.log(search)}
           <div className={ classes.overlaySearchResultsHr } />
           <div className={ `${classes.overlaySearchResults} scrollstyle` }>
             { !geoLocateCoords && !carLocation
