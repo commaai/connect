@@ -909,7 +909,7 @@ class Navigation extends Component {
   researchArea() {
     const { windowWidth } = this.state;
     const searchInput = this.searchInputRef.current;
-    const bbox = this.mapRef.current.getBounds()
+    const bbox = this.mapRef.current.getBounds();
     forwardLookup(searchInput.value, null, bbox).then((features) => {
       this.setState({
         noFly: true,
