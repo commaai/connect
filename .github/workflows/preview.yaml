@@ -2,7 +2,7 @@ name: preview
 
 on:
   pull_request_target:
-    types: [opened, reopened, synchronize, edited, edited]
+    types: [opened, reopened, synchronize, edited]
 
 permissions:
   contents: read
@@ -10,11 +10,6 @@ permissions:
 
 jobs:
   preview:
-    if: |
-      github.event.repository.full_name == 'commaai/connect' && (
-        github.event_name == 'pull_request' ||
-        github.event.pull_request.head.repo.full_name == 'commaai/connect'
-      )
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
