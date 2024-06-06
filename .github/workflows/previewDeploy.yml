@@ -26,6 +26,7 @@ jobs:
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1.5.0
         with:
+          projectName: connect
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
           directory: dist
