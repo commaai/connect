@@ -20,5 +20,7 @@ jobs:
       - name: Upload built project
         uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts
           path: ./dist
+          overwrite: true
+          retention-days: 1
+          name: build-artifacts-${{ github.event.number }}
