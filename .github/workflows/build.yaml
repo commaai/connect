@@ -15,7 +15,7 @@ jobs:
       - uses: ./.github/actions/setup-pnpm
 
       - run: pnpm install
-      - run: pnpm build:prodcution
+      - run: pnpm build:production
 
       - name: Upload built project
         uses: actions/upload-artifact@v4
