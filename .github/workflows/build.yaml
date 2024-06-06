@@ -11,16 +11,22 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-pnpm
 
       - run: pnpm install
-      - run: pnpm build:development
+      - run: pnpm build:production
+
+      - name: Upload built project
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: ./dist
 
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-pnpm
 
       - run: |

@@ -1,8 +1,10 @@
 name: preview
 
 on:
-  pull_request_target:
-    types: [opened, reopened, synchronize, edited]
+  workflow_run:
+    workflows: ["build"]
+    types:
+      - completed
 
 permissions:
   contents: read
@@ -10,19 +12,17 @@ permissions:
 
 jobs:
   preview:
+    #if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Set up PNPM
-        uses: ./.github/actions/setup-pnpm/
+      - uses: actions/checkout@v4
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
-          node-version: '16'
-          pnpm-version: '8'
-      - name: Install dependencies
-        run: pnpm install
-      - name: Build project
-        run: npm run build:production
+          name: build-artifacts
+          path: ./dist
+
+      # deploy
       - name: Deploy to Cloudflare Pages
         id: cloudflare-publish
         uses: cloudflare/pages-action@v1.5.0
@@ -32,6 +32,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
           directory: dist
+
       - name: Comment URL on PR
         uses: thollander/actions-comment-pull-request@v2
         with:
