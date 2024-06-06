@@ -43,4 +43,5 @@ jobs:
             * post the preview on [Discord](https://discord.comma.ai); feedback from users will speedup the PR review
 
             deployed preview: ${{ steps.cloudflare-publish.outputs.url }}
+            deployed preview: ${{ steps.cloudflare-publish.outputs.alias }}
           comment_tag: run_id
