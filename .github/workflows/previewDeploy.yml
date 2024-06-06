@@ -24,11 +24,23 @@ jobs:
       - name: Build project
         run: npm run build:production
       - name: Deploy to Cloudflare Pages
+        id: cloudflare-publish
         uses: cloudflare/pages-action@v1.5.0
         with:
+          branch: ${{ github.event.number }}
+          projectName: connect
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
           directory: dist
       - name: Comment URL on PR
         uses: thollander/actions-comment-pull-request@v2
         with:
-          message: 'Deploy Preview: ${{ steps.cloudflare-publish.outputs.url }}'
+          message: |
+            <!-- _(run_id **${{ github.run_id }}**)_ -->
+            Welcome to connect! Make sure to:
+            * read the [contributing guidelines](https://github.com/commaai/connect?tab=readme-ov-file#contributing)
+            * mark your PR as a draft until it's ready to review
+            * post the preview on [Discord](https://discord.comma.ai); feedback from users will speedup the PR review
+
+            deployed preview: https://${{ github.event.number }}.connect-d5y.pages.dev
+          comment_tag: run_id
