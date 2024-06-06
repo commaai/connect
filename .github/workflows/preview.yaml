@@ -47,3 +47,4 @@ jobs:
 
             deployed preview: https://${{ github.event.workflow_run.pull_requests[0].number }}.connect-d5y.pages.dev
           comment_tag: run_id
+          pr_number: ${{ github.event.workflow_run.pull_requests[0].number }}
