@@ -319,6 +319,7 @@ export default function reducer(_state, action) {
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
     case Types.ACTION_ROUTES_METADATA:
+      state.lastRoutes = action.routes
       state.routes = action.routes;
       state.routesMeta = {
         dongleId: action.dongleId,

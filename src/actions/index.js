@@ -10,6 +10,7 @@ import { getSegmentFetchRange, hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
 let routesRequest = null;
+let routesRequestPromise = null;
 
 export function checkRoutesData() {
   return (dispatch, getState) => {
@@ -22,7 +23,8 @@ export function checkRoutesData() {
       return;
     }
     if (routesRequest && routesRequest.dongleId === state.dongleId) {
-      return;
+      // there is already an pending request
+      return routesRequestPromise;
     }
     console.debug('We need to update the segment metadata...');
     const { dongleId } = state;
@@ -33,7 +35,7 @@ export function checkRoutesData() {
       dongleId,
     };
 
-    routesRequest.req.then((routesData) => {
+    routesRequestPromise = routesRequest.req.then((routesData) => {
       state = getState();
       const currentRange = getSegmentFetchRange(state);
       if (currentRange.start !== fetchRange.start
@@ -83,11 +85,15 @@ export function checkRoutesData() {
       });
 
       routesRequest = null;
+
+      return routes
     }).catch((err) => {
       console.error('Failure fetching routes metadata', err);
       Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
       routesRequest = null;
     });
+
+    return routesRequestPromise
   };
 }
 
@@ -387,5 +393,68 @@ export function updateRoute(fullname, route) {
     type: Types.ACTION_UPDATE_ROUTE,
     fullname,
     route,
+  };
+}
+
+const ONE_DAY = 1000 * 60 * 60 * 24
+const ONE_WEEK = ONE_DAY * 7
+const TWO_WEEK = ONE_WEEK * 2
+const ONE_MONTH = ONE_WEEK * 4
+const TWO_MONTH = ONE_MONTH * 2
+const SIX_MONTH = ONE_MONTH * 6
+const ONE_YEAR = SIX_MONTH * 2
+const lookBackIntervalArray = [
+  ONE_DAY, ONE_DAY * 2, ONE_DAY * 3, ONE_DAY * 4, ONE_DAY * 5,
+  ONE_WEEK,
+  TWO_WEEK,
+  ONE_MONTH,
+  TWO_MONTH,
+  SIX_MONTH,
+  ONE_YEAR,
+]
+let checkRoutesDataWithLookBackInProgress = false
+
+// check routes and keep extending the start time to 10 days earlier
+// until we have more routes
+export function checkRoutesDataWithLookBack() {
+  if (checkRoutesDataWithLookBackInProgress) {
+    return
+  }
+
+  return async (dispatch, getState) => {
+    checkRoutesDataWithLookBackInProgress = true
+    const state = getState()
+    const routes = state.routes;
+    let {start, end} = state.filter
+    let counter = 0
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      console.info('fetch with window: ',new Date(start).toDateString())
+
+      if (counter >= lookBackIntervalArray.length) {
+        break
+      }
+
+      try {
+        dispatch(selectTimeFilter(start, end));
+        // eslint-disable-next-line no-await-in-loop
+        const data = await dispatch(checkRoutesData());
+        if (data && (
+            !routes && data.length > 1 ||
+            routes && data.length > routes.length)
+          ) {
+            checkRoutesDataWithLookBackInProgress = false
+            break;
+        } else {
+          start = start - lookBackIntervalArray[counter];
+          counter = counter + 1
+        }
+      } catch (error) {
+        checkRoutesDataWithLookBackInProgress = false
+        console.debug('Fetching data failed: ', error);
+        break;
+      }
+    }
   };
 }

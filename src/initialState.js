@@ -5,7 +5,7 @@ export function getDefaultFilter() {
   d.setHours(d.getHours() + 1, 0, 0, 0);
 
   return {
-    start: (new Date(d.getTime() - 1000 * 60 * 60 * 24 * 14)).getTime(),
+    start: (new Date(d.getTime() - 1000 * 60 * 60 * 24 * 10)).getTime(),
     end: d.getTime(),
   };
 }
@@ -39,6 +39,7 @@ export default {
     end: null,
   },
   currentRoute: null,
+  lastRoutes: null,
 
   profile: null,
   devices: null,

@@ -6,7 +6,7 @@ import dayjs from 'dayjs';
 import { Button, Divider, FormControl, MenuItem, Modal, Paper, Select, Typography, withStyles } from '@material-ui/core';
 
 import Colors from '../../colors';
-import { selectTimeFilter } from '../../actions';
+import { selectTimeFilter, checkRoutesDataWithLookBack } from '../../actions';
 import { getDefaultFilter } from '../../initialState';
 import VisibilityHandler from '../VisibilityHandler';
 
@@ -140,6 +140,8 @@ class TimeSelect extends Component {
         return '1-week';
       } if (timeRange === 1000 * 60 * 60 * 24) {
         return '24-hours';
+      } if (timeRange % (1000 * 60 * 60 * 24 * 10) === 0) {
+        return 'last'
       }
     }
 
@@ -167,7 +169,7 @@ class TimeSelect extends Component {
 
   onVisible() {
     const filter = getDefaultFilter();
-    this.props.dispatch(selectTimeFilter(filter.start, filter.end));
+    this.props.dispatch(checkRoutesDataWithLookBack(filter.start, filter.end));
   }
 
   render() {
@@ -179,7 +181,7 @@ class TimeSelect extends Component {
 
     return (
       <>
-        <VisibilityHandler onVisible={ this.onVisible } minInterval={ 300 } resetOnHidden />
+        <VisibilityHandler onVisible={ this.onVisible } minInterval={ 300 } resetOnHidden onInit />
         <FormControl>
           <Select
             name="timerange"
@@ -191,6 +193,7 @@ class TimeSelect extends Component {
             <MenuItem value="24-hours">Last 24 Hours</MenuItem>
             <MenuItem value="1-week">{this.lastWeekText()}</MenuItem>
             <MenuItem value="2-weeks">{this.last2WeeksText()}</MenuItem>
+            <MenuItem value="last">Last Rides</MenuItem>
           </Select>
         </FormControl>
         <Modal
