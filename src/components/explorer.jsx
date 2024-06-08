@@ -15,7 +15,7 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import PullDownReload from './utils/PullDownReload';
 
-import { analyticsEvent, selectDevice, updateDevice } from '../actions';
+import { analyticsEvent, selectDevice, updateDevice, checkLastRoutesData } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -136,7 +136,7 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom } = this.props;
+    const { pathname, zoom, dongleId } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
@@ -147,6 +147,12 @@ class ExplorerApp extends Component {
     }
     if (prevProps.zoom && !zoom) {
       this.props.dispatch(pause());
+    }
+
+    if (prevProps.dongleId !== dongleId) {
+      const d = new Date();
+      d.setHours(d.getHours() + 1, 0, 0, 0);
+      this.props.dispatch(checkLastRoutesData());
     }
   }
 
