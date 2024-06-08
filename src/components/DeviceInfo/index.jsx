@@ -462,8 +462,6 @@ class DeviceInfo extends Component {
     const { classes, device } = this.props;
     const { snapshot, carHealth, windowWidth, isTimeSelectOpen } = this.state;
 
-    console.log({isTimeSelectOpen})
-
     let batteryVoltage;
     let batteryBackground = Colors.grey400;
     if (deviceIsOnline(device) && carHealth?.result && carHealth.result.peripheralState

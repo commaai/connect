@@ -91,6 +91,12 @@ export default function reducer(_state, action) {
         currentRoute: null,
       };
       break;
+    case Types.ACTION_UPDATE_ROUTE_LIMIT:
+      state = {
+        ...state,
+        limit: action.limit,
+      };
+      break;
     case Types.ACTION_UPDATE_DEVICES:
       state = {
         ...state,

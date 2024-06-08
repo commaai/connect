@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { withStyles } from '@material-ui/core';
 
-import { checkRoutesData, checkRoutesDataWithLookBack } from '../../actions';
+import { checkRoutesData, checkLastRoutesData } from '../../actions';
 import VisibilityHandler from '../VisibilityHandler';
 
 import DriveListEmpty from './DriveListEmpty';
@@ -44,7 +44,7 @@ const DriveList = (props) => {
         {displayRoutes.map((drive, index) => {
             // when the second to last item is in view, we fetch the next routes
             return (index === routesSize - 2 ?
-              <ScrollIntoView key={drive.fullname} onInView={() => dispatch(checkRoutesDataWithLookBack())}>
+              <ScrollIntoView key={drive.fullname} onInView={() => dispatch(checkLastRoutesData())}>
                 <DriveListItem drive={drive} />
               </ScrollIntoView> :
               <DriveListItem key={drive.fullname} drive={drive} />)
