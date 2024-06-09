@@ -17,9 +17,11 @@ const logOut = async () => {
   }
 };
 
-const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
+const AccountMenu = ({ profile, open, anchorEl, onClose, latestRoute, ...rest }) => {
   const [buildTimestamp, setBuildTimestamp] = useState('');
   const [version, setVersion] = useState('');
+
+  const gitCommitHash = latestRoute.git_commit;
 
   useEffect(() => {
     setVersion(import.meta.env.VITE_APP_GIT_SHA?.substring(0, 7) || 'dev');
@@ -35,6 +37,8 @@ const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
     logOut();
   }, [onClose]);
 
+  const gitCommitUrl = `https://github.com/commaai/openpilot/commit/${gitCommitHash}`;
+
   return (
     <Menu
       open={open}
@@ -46,8 +50,10 @@ const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
     >
       <ListItem className="text-white py-3 px-4 flex-col items-start">
         <span className="font-bold">{profile.email}</span>
-        <span className="text-xs text-[#ffffff66] pt-2">{ profile.user_id }</span>
-        <span className="text-xs text-[#ffffff66] pt-2">{`Version: ${version}${buildTimestamp}`}</span>
+        <span className="text-xs text-[#ffffff66] pt-2">{profile.user_id}</span>
+        <span className="text-xs text-[#ffffff66] pt-2">
+          Version: <a href={gitCommitUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#007bff' }} >{gitCommitHash}</a>
+        </span>
       </ListItem>
       <Divider />
       <MenuItem

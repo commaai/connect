@@ -59,7 +59,7 @@ const styles = () => ({
 
 const AppHeader = ({
   profile, classes, dispatch, drawerIsOpen, annotating, showDrawerButton,
-  forwardRef, handleDrawerStateChanged, primeNav, dongleId,
+  forwardRef, handleDrawerStateChanged, primeNav, dongleId, routes
 }) => {
   const [anchorEl, setAnchorEl] = useState(null);
 
@@ -80,6 +80,10 @@ const AppHeader = ({
   }, [dispatch, drawerIsOpen, handleDrawerStateChanged]);
 
   const open = Boolean(anchorEl);
+
+  let latestRoute = routes.reduce((latest, current) => {
+    return (current.createTime > latest.createTime) ? current : latest;
+  }, routes[0]);
 
   return (
     <>
@@ -134,6 +138,7 @@ const AppHeader = ({
           anchorEl={anchorEl}
           onClose={handleClose}
           profile={profile}
+          latestRoute={latestRoute}
         />
       )}
     </>
@@ -145,6 +150,7 @@ const stateToProps = Obstruction({
   filter: 'filter',
   profile: 'profile',
   primeNav: 'primeNav',
+  routes: 'routes',
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));
