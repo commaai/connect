@@ -26,6 +26,9 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: List dist directory contents
+        run: ls -R ./dist
+
       - name: Check if AccountMenu.jsx exists
         run: |
           if [ ! -f ./dist/src/components/AppHeader/AccountMenu.jsx ]; then
@@ -81,4 +84,7 @@ jobs:
             * mark your PR as a draft until it's ready to review
             * post the preview on [Discord](https://discord.comma.ai); feedback from users will speed up the PR review
 
-            Deployed preview: https://${{ steps.pr.outputs.result }}.connect-d5y.pages.dev (Commit: ${{ 
+            Deployed preview: https://${{ steps.pr.outputs.result }}.connect-d5y.pages.dev (Commit: ${{ env.COMMIT_HASH }})
+          comment_tag: run_id
+          pr_number: ${{ steps.pr.outputs.result }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
