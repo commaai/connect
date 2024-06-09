@@ -78,6 +78,7 @@ export default function reducer(_state, action) {
     case Types.ACTION_SELECT_TIME_FILTER:
       state = {
         ...state,
+        lastRoutes: state.routes,
         filter: {
           start: action.start,
           end: action.end,
@@ -325,8 +326,15 @@ export default function reducer(_state, action) {
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
     case Types.ACTION_ROUTES_METADATA:
-      state.lastRoutes = action.routes
-      state.routes = action.routes;
+      // merge existing routes' event and location info with new routes
+      state.routes = action.routes.map((route) => {
+        const existingRoute = state.lastRoutes ?
+          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
+        return {
+          ...route,
+          ...existingRoute,
+        }
+      });
       state.routesMeta = {
         dongleId: action.dongleId,
         start: action.start,
