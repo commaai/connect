@@ -16,6 +16,16 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Big Eye-catching Banner
+        run: |
+          echo "::warning::"
+          echo "******************************************************************************"
+          echo "*                                                                            *"
+          echo "*                       🚀 Running Preview Workflow boiiiiii 🚀                        *"
+          echo "*                                                                            *"
+          echo "******************************************************************************"
+          echo "::end::"
+
       - uses: actions/checkout@v4
 
       - name: Download build artifacts
@@ -32,7 +42,7 @@ jobs:
       - name: Check if AccountMenu.jsx exists
         run: |
           if [ ! -f ./dist/src/components/AppHeader/AccountMenu.jsx ]; then
-            echo "AccountMenu.jsx not found!"
+            echo "::error:: AccountMenu.jsx not found!"
             exit 1
           fi
 
