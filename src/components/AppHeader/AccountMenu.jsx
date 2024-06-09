@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import dayjs from 'dayjs';
+import React, { useCallback } from 'react';
 
 import {
   Divider,
@@ -18,25 +17,12 @@ const logOut = async () => {
 };
 
 const AccountMenu = ({ profile, open, anchorEl, onClose, latestRoute, ...rest }) => {
-  const [buildTimestamp, setBuildTimestamp] = useState('');
-  const [version, setVersion] = useState('');
-
-  const gitCommitHash = latestRoute.git_commit;
-
-  useEffect(() => {
-    setVersion(import.meta.env.VITE_APP_GIT_SHA?.substring(0, 7) || 'dev');
-
-    const buildDate = import.meta.env.VITE_APP_GIT_TIMESTAMP;
-    if (buildDate) {
-      setBuildTimestamp(`, ${dayjs(buildDate).fromNow()}`);
-    }
-  }, []);
-
   const onLogOut = useCallback(() => {
     onClose();
     logOut();
   }, [onClose]);
 
+  const gitCommitHash = latestRoute?.git_commit;
   const gitCommitUrl = `https://github.com/commaai/openpilot/commit/${gitCommitHash}`;
 
   return (

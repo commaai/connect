@@ -81,9 +81,12 @@ const AppHeader = ({
 
   const open = Boolean(anchorEl);
 
-  let latestRoute = routes.reduce((latest, current) => {
-    return (current.createTime > latest.createTime) ? current : latest;
-  }, routes[0]);
+  let latestRoute;
+  if (routes) {
+    latestRoute = routes.reduce((latest, current) => {
+      return (current.createTime > latest.createTime) ? current : latest;
+    }, routes[0]);
+  }
 
   return (
     <>
