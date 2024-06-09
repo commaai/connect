@@ -26,12 +26,19 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check if AccountMenu.jsx exists
+        run: |
+          if [ ! -f ./dist/src/components/AppHeader/AccountMenu.jsx ]; then
+            echo "AccountMenu.jsx not found!"
+            exit 1
+          fi
+
       - name: Get Git Commit Hash
         id: commit_hash
         run: echo "COMMIT_HASH=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
       - name: Inject Git Commit Hash
-        run: sed -i "s/REACT_APP_GIT_COMMIT_HASH/${{ env.COMMIT_HASH }}/g" ./dist/src/components/AppHeader/AccountMenu.jsx
+        run: sed -i "s/REACT_APP_GIT_COMMIT_HASH_PLACEHOLDER/${{ env.COMMIT_HASH }}/g" ./dist/src/components/AppHeader/AccountMenu.jsx
 
       - name: Find PR number
         id: pr
@@ -74,7 +81,4 @@ jobs:
             * mark your PR as a draft until it's ready to review
             * post the preview on [Discord](https://discord.comma.ai); feedback from users will speed up the PR review
 
-            Deployed preview: https://${{ steps.pr.outputs.result }}.connect-d5y.pages.dev (Commit: ${{ env.COMMIT_HASH }})
-          comment_tag: run_id
-          pr_number: ${{ steps.pr.outputs.result }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            Deployed preview: https://${{ steps.pr.outputs.result }}.connect-d5y.pages.dev (Commit: ${{ 
