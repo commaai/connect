@@ -41,7 +41,7 @@ const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
         <span className="font-bold">{profile.email}</span>
         <span className="text-xs text-[#ffffff66] pt-2">{profile.user_id}</span>
         <span className="text-xs text-[#ffffff66] pt-2">
-          Version: <a href={gitCommitUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#007bff' }} >{gitCommitHash}</a>
+          Version: <a href={gitCommitUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#007bff' }} >{shortGitCommitHash}</a>
         </span>
       </ListItem>
       <Divider />
