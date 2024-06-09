@@ -22,8 +22,10 @@ const AccountMenu = ({ profile, open, anchorEl, onClose, latestRoute, ...rest })
     logOut();
   }, [onClose]);
 
-  const gitCommitHash = latestRoute?.git_commit;
-  const gitCommitUrl = `https://github.com/commaai/openpilot/commit/${gitCommitHash}`;
+  const shortenGitHash = fullHash => fullHash ? fullHash.substring(0, 7) : '';
+
+  const gitCommitHash = shortenGitHash(latestRoute?.git_commit);
+  const gitCommitUrl = gitCommitHash ? `https://github.com/commaai/openpilot/commit/${gitCommitHash}` : '';
 
   return (
     <Menu
