@@ -42,8 +42,8 @@ const DriveList = (props) => {
     content = (
       <div className={`${classes.drives} DriveList`}>
         {displayRoutes.map((drive, index) => {
-            // when the second to last item is in view, we fetch the next routes
-            return (index === routesSize - 2 ?
+            // when the last item is in view, we fetch the next routes
+            return (index === routesSize - 1 ?
               <ScrollIntoView key={drive.fullname} onInView={() => dispatch(checkLastRoutesData())}>
                 <DriveListItem drive={drive} />
               </ScrollIntoView> :

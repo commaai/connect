@@ -136,7 +136,7 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId } = this.props;
+    const { pathname, zoom, dongleId, limit } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
@@ -149,9 +149,10 @@ class ExplorerApp extends Component {
       this.props.dispatch(pause());
     }
 
-    if (prevProps.dongleId !== dongleId) {
-      const d = new Date();
-      d.setHours(d.getHours() + 1, 0, 0, 0);
+    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
+    // so init() will not successfully fetch routes data
+    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
+    if (prevProps.dongleId !== dongleId && limit === 0) {
       this.props.dispatch(checkLastRoutesData());
     }
   }
@@ -255,6 +256,7 @@ const stateToProps = Obstruction({
   pathname: 'router.location.pathname',
   dongleId: 'dongleId',
   devices: 'devices',
+  limit: 'limit',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

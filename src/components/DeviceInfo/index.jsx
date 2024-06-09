@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 
 import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } from '@material-ui/core';
+import AccessTime from '@material-ui/icons/AccessTime';
 
 import { athena as Athena, devices as Devices } from '@commaai/api';
 import { analyticsEvent } from '../../actions';
@@ -108,6 +109,11 @@ const styles = (theme) => ({
   actionButtonSmall: {
     minWidth: 90,
     padding: '5px 10px',
+    borderRadius: 15,
+  },
+  actionButtonIcon: {
+    minWidth: 60,
+    padding: '8px 16px',
     borderRadius: 15,
   },
   snapshotContainer: {
@@ -525,10 +531,10 @@ class DeviceInfo extends Component {
             : 'take snapshot'}
         </Button>
         <Button
-          classes={{ root: `${classes.button} ${actionButtonClass}` }}
+          classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
           onClick={ this.onOpenTimeSelect }
         >
-          set time filter
+          <AccessTime fontSize="inherit"/>
         </Button>
         <Popper
           className={ classes.popover }

@@ -41,7 +41,7 @@ async function initDevices() {
 export default function init() {
   return async (dispatch, getState) => {
     let state = getState();
-    if (state.dongleId) {
+    if (state.dongleId && !state.routes) {
       dispatch(checkLastRoutesData());
     }
 
