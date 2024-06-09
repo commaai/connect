@@ -28,7 +28,7 @@ jobs:
 
       - name: Get Git Commit Hash
         id: commit_hash
-        run: echo "::set-output name=commit_hash::$(git rev-parse HEAD)"
+        run: echo "COMMIT_HASH=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
       - name: Find PR number
         id: pr
@@ -49,16 +49,13 @@ jobs:
             return pullRequestNumber
 
       - name: Inject Git Commit Hash
-        run: sed -i "s/REACT_APP_GIT_COMMIT_HASH/${{ steps.commit_hash.outputs.commit_hash }}/g" ./src/components/AppHeader/AccountMenu.jsx
-
-      - name: Set React Environment Variable
-        run: echo "REACT_APP_GIT_COMMIT_HASH=${{ steps.commit_hash.outputs.commit_hash }}" >> $GITHUB_ENV
+        run: sed -i "s/REACT_APP_GIT_COMMIT_HASH_PLACEHOLDER/${{ env.COMMIT_HASH }}/g" ./src/components/AppHeader/AccountMenu.jsx
 
       - name: Deploy to Cloudflare Pages
         id: cloudflare-publish
         uses: cloudflare/pages-action@v1.5.0
         with:
-          branch: ${{ steps.pr.outputs.result }}
+          branch: ${{ github.head_ref }}
           projectName: connect
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
@@ -74,7 +71,7 @@ jobs:
             * mark your PR as a draft until it's ready to review
             * post the preview on [Discord](https://discord.comma.ai); feedback from users will speed up the PR review
 
-            Deployed preview: https://${{ steps.pr.outputs.result }}.connect-d5y.pages.dev (Commit: ${{ steps.commit_hash.outputs.commit_hash }})
+            Deployed preview: https://${{ steps.pr.outputs.result }}.connect-d5y.pages.dev (Commit: ${{ env.COMMIT_HASH }})
           comment_tag: run_id
           pr_number: ${{ steps.pr.outputs.result }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

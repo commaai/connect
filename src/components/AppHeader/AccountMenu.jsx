@@ -24,7 +24,7 @@ const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
 
   const shortenGitHash = fullHash => fullHash ? fullHash.substring(0, 7) : '';
 
-  const gitCommitHash = process.env.REACT_APP_GIT_COMMIT_HASH || '';
+  const gitCommitHash = process.env.REACT_APP_GIT_COMMIT_HASH_PLACEHOLDER || '';
   const shortGitCommitHash = shortenGitHash(gitCommitHash);
   const gitCommitUrl = gitCommitHash ? `https://github.com/commaai/openpilot/commit/${shortGitCommitHash}` : '';
 
