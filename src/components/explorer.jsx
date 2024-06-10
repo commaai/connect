@@ -137,23 +137,29 @@ class ExplorerApp extends Component {
 
   componentDidUpdate(prevProps, prevState) {
     const { pathname, zoom, dongleId } = this.props;
-
+  
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
     }
-
+  
     if (!prevProps.zoom && zoom) {
       this.props.dispatch(play());
     }
     if (prevProps.zoom && !zoom) {
       this.props.dispatch(pause());
     }
-
+  
+    console.log(dongleId)
+  
     // FIXME: ensures demo routes stay visible. can be removed once we're infinite scrolling
     if (prevProps.dongleId !== dongleId) {
       const d = new Date();
       d.setHours(d.getHours() + 1, 0, 0, 0);
-      this.props.dispatch(selectTimeFilter(d.getTime() - (1000 * 60 * 60 * 24 * 365), d.getTime()));
+      if (dongleId === '1d3dc3e03047b0c7') {
+        this.props.dispatch(selectTimeFilter(d.getTime() - (1000 * 60 * 60 * 24 * 365), d.getTime()));
+      } else {
+        this.props.dispatch(selectTimeFilter(d.getTime() - (1000 * 60 * 60 * 24 * 14), d.getTime()));
+      }
     }
   }
 
