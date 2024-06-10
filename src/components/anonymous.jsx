@@ -9,14 +9,12 @@ import qs from 'query-string';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 
-import { config as AuthConfig } from '@commaai/my-comma-auth';
+import {config as AuthConfig, storage as AuthStorage} from '@commaai/my-comma-auth';
 
 import Colors from '../colors';
 import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon, RightArrow } from '../icons';
 
 import PWAIcon from './PWAIcon';
-
-import demoDevices from '../demo/devices.json';
 
 const styles = () => ({
   baseContainer: {
@@ -130,6 +128,11 @@ class AnonymousLanding extends Component {
   render() {
     const { classes } = this.props;
 
+    const loginAsDemoUser = function() {
+      AuthStorage.setCommaAccessToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDg1ODI0NjUsIm5iZiI6MTcxNzA0NjQ2NSwiaWF0IjoxNzE3MDQ2NDY1LCJpZGVudGl0eSI6IjBkZWNkZGNmZGYyNDFhNjAifQ.g3khyJgOkNvZny6Vh579cuQj1HLLGSDeauZbfZri9jw');
+      window.location = window.location.origin;
+    };
+
     return (
       <div className={classes.baseContainer}>
         <div className={classes.base}>
@@ -159,9 +162,8 @@ class AnonymousLanding extends Component {
             paired your comma device.
           </span>
 
-          <a
+          <a onClick={loginAsDemoUser}
             className="flex items-center pl-4 pr-3 py-2 font-medium border border-white rounded-full hover:bg-[rgba(255,255,255,0.1)] active:bg-[rgba(255,255,255,0.2)] transition-colors"
-            href={`${window.location.origin}/${demoDevices[0].dongle_id}`}
           >
             Try the demo
             <RightArrow className="ml-1 h-4" />

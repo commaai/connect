@@ -1,4 +1,4 @@
-lockfileVersion: '6.1'
+lockfileVersion: '6.0'
 
 settings:
   autoInstallPeers: true
@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@commaai/api':
-    specifier: github:commaai/comma-api#3.1.1
-    version: github.com/commaai/comma-api/68f1f9ac7629d2e859199ff6601e8c2ecce1c595
+    specifier: github:commaai/comma-api#3.1.2
+    version: github.com/commaai/comma-api/d23b152ea64bfcd0de0937d2d525d556870820b6
   '@commaai/my-comma-auth':
     specifier: ^1.4.1
     version: 1.4.1
@@ -9779,10 +9779,10 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  github.com/commaai/comma-api/68f1f9ac7629d2e859199ff6601e8c2ecce1c595:
-    resolution: {tarball: https://codeload.github.com/commaai/comma-api/tar.gz/68f1f9ac7629d2e859199ff6601e8c2ecce1c595}
+  github.com/commaai/comma-api/d23b152ea64bfcd0de0937d2d525d556870820b6:
+    resolution: {tarball: https://codeload.github.com/commaai/comma-api/tar.gz/d23b152ea64bfcd0de0937d2d525d556870820b6}
     name: '@commaai/api'
-    version: 3.1.1
+    version: 3.1.2
     dependencies:
       '@babel/runtime': 7.23.5
       query-string: 7.1.3

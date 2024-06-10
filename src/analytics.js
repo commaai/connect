@@ -7,7 +7,6 @@ import * as Types from './actions/types';
 import { sendEvent } from './analytics-v2';
 import { getDongleID, getZoom } from './url';
 import { deviceIsOnline } from './utils';
-import { isDemoDevice } from './demo';
 
 function getPageViewEventLocation(pathname) {
   let pageLocation = pathname;
@@ -129,7 +128,6 @@ function logAction(action, prevState, state) {
           superuser: state.profile?.superuser,
           has_prime: state.profile?.prime,
           devices_count: state.devices?.length,
-          device_is_demo: isDemoDevice(state.device?.dongle_id),
           device_prime_type: state.device?.prime_type,
           device_type: state.device?.device_type,
           device_version: state.device?.openpilot_version,
@@ -154,7 +152,6 @@ function logAction(action, prevState, state) {
     case Types.ACTION_SELECT_DEVICE:
       gtag('event', 'select_device', {
         ...params,
-        device_is_demo: isDemoDevice(state.device?.dongle_id),
         device_prime_type: state.device?.prime_type,
         device_type: state.device?.device_type,
         device_version: state.device?.openpilot_version,
@@ -171,7 +168,6 @@ function logAction(action, prevState, state) {
 
       gtag('set', {
         user_properties: {
-          device_is_demo: isDemoDevice(state.device?.dongle_id),
           device_prime_type: state.device?.prime_type,
           device_type: state.device?.device_type,
           device_version: state.device?.openpilot_version,
