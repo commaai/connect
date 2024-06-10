@@ -331,8 +331,8 @@ export default function reducer(_state, action) {
         const existingRoute = state.lastRoutes ?
           state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
         return {
-          ...route,
           ...existingRoute,
+          ...route,
         }
       });
       state.routesMeta = {

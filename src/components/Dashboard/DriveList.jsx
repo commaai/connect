@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import { withStyles } from '@material-ui/core';
+import { withStyles, Typography } from '@material-ui/core';
 
 import { checkRoutesData, checkLastRoutesData } from '../../actions';
 import VisibilityHandler from '../VisibilityHandler';
@@ -20,14 +20,24 @@ const styles = () => ({
     padding: 16,
     flex: '1',
   },
+  endMessage: {
+    padding: 8,
+    textAlign: 'center',
+  },
 });
 
 const DriveList = (props) => {
   const { dispatch, classes, device, routes, lastRoutes } = props;
-  let emptyContent;
+  let contentStatus;
   let content;
   if (!routes || routes.length === 0) {
-    emptyContent = <DriveListEmpty device={device} routes={routes} />;
+    contentStatus = <DriveListEmpty device={device} routes={routes} />;
+  } else if (routes && routes.length > 5) {
+    contentStatus = (
+      <div className={classes.endMessage}>
+        <Typography>There are no more routes found in selected time range.</Typography>
+      </div>
+    );
   }
 
   // we clean up routes during data fetching, fallback to using lastRoutes to display current data
@@ -57,7 +67,7 @@ const DriveList = (props) => {
     <div className={classes.drivesTable}>
       <VisibilityHandler onVisible={() => dispatch(checkRoutesData())} minInterval={60} />
       {content}
-      {emptyContent}
+      {contentStatus}
     </div>
   );
 };

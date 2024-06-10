@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-const ScrollIntoView = ({ onInView, children, key }) => {
+const ScrollIntoView = ({ onInView, children }) => {
   const elementRef = useRef(null);
   const hasDispatched = useRef(false);
 

@@ -104,8 +104,8 @@ export function checkLastRoutesData() {
     const limit = getState().limit
     const routes = getState().routes
 
-    // if current routes are not a multiple of LIMIT_INCREMENT, that means the last fetch already fetched all the routes
-    if (routes && routes.length % LIMIT_INCREMENT !== 0) {
+    // if current routes are fewer than limit, that means the last fetch already fetched all the routes
+    if (routes && routes.length > limit) {
       return
     }
 

@@ -63,6 +63,22 @@ class TimeSelect extends Component {
     this.handleSave = this.handleSave.bind(this);
   }
 
+  componentDidMount() {
+    this.setState({
+      start: this.props.filter.start,
+      end: this.props.filter.end,
+    });
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.filter !== this.props.filter) {
+      this.setState({
+        start: this.props.filter.start,
+        end: this.props.filter.end,
+      });
+    }
+  }
+
   handleClose() {
     this.props.onClose()
   }
@@ -84,6 +100,7 @@ class TimeSelect extends Component {
   }
 
   handleSave() {
+    console.log({start: this.state.start, end: this.state.end})
     this.props.dispatch(selectTimeFilter(this.state.start, this.state.end));
     this.props.onClose()
   }
