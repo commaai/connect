@@ -1,7 +1,31 @@
-export function getSegmentFetchRange(state) {
-  // TODO: fix this for relative routes
-  return state.filter;
+import * as Types from '../actions/types';
+import { getCurrentRoute } from '.';
 
+export function reducer(_state, action) {
+  let state = { ..._state };
+  switch (action.type) {
+    case Types.ACTION_UPDATE_SEGMENTS:
+      state = {
+        ...state,
+      };
+      break;
+    default:
+      break;
+  }
+
+  const currentRoute = getCurrentRoute(state);
+  state.currentRoute = currentRoute ? { ...currentRoute } : null;
+
+  return state;
+}
+
+export function updateSegments() {
+  return {
+    type: Types.ACTION_UPDATE_SEGMENTS,
+  };
+}
+
+export function getSegmentFetchRange(state) {
   if (!state.zoom) {
     return state.filter;
   }
