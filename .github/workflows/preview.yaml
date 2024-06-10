@@ -48,12 +48,12 @@ jobs:
             console.info("Pull request number is", pullRequestNumber)
             return pullRequestNumber
 
-      - name: Inject Git Commit Hash
-        run: sed -i "s/REACT_APP_GIT_COMMIT_HASH/${{ steps.commit_hash.outputs.commit_hash }}/g" ./src/components/AppHeader/AccountMenu.jsx
-
       - name: Set React Environment Variable
         run: echo "REACT_APP_GIT_COMMIT_HASH=${{ steps.commit_hash.outputs.commit_hash }}" >> $GITHUB_ENV
-fix
+
+      - name: Inject Git Commit Hash
+        run: sed -i "s/REACT_APP_GIT_COMMIT_HASH/${{ steps.commit_hash.outputs.commit_hash }}/g" ./dist/src/components/AppHeader/AccountMenu.jsx
+
       - name: Deploy to Cloudflare Pages
         id: cloudflare-publish
         uses: cloudflare/pages-action@v1.5.0

@@ -25,7 +25,7 @@ const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
   const shortenGitHash = fullHash => fullHash ? fullHash.substring(0, 7) : '';
 
   // Read the commit hash from the environment variable set during the build process
-  const gitCommitHash = process.env.REACT_APP_GIT_COMMIT_HASH_PLACEHOLDER || '';
+  const gitCommitHash = process.env.REACT_APP_GIT_COMMIT_HASH || '';
   const shortGitCommitHash = shortenGitHash(gitCommitHash);
   const gitCommitUrl = gitCommitHash ? `https://github.com/commaai/openpilot/commit/${gitCommitHash}` : '';
   console.log(gitCommitHash)
