@@ -149,8 +149,6 @@ class ExplorerApp extends Component {
       this.props.dispatch(pause());
     }
   
-    console.log(dongleId)
-  
     // FIXME: ensures demo routes stay visible. can be removed once we're infinite scrolling
     if (prevProps.dongleId !== dongleId) {
       const d = new Date();
