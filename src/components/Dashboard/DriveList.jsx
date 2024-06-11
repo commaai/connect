@@ -23,6 +23,7 @@ const styles = () => ({
   endMessage: {
     padding: 8,
     textAlign: 'center',
+    marginBottom: 32,
   },
 });
 
