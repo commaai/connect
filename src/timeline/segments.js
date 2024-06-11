@@ -1,49 +1,14 @@
-import * as Types from '../actions/types';
-import { getCurrentRoute } from '.';
-
-export function reducer(_state, action) {
-  let state = { ..._state };
-  switch (action.type) {
-    case Types.ACTION_UPDATE_SEGMENTS:
-      state = {
-        ...state,
-      };
-      break;
-    default:
-      break;
-  }
-
-  const currentRoute = getCurrentRoute(state);
-  state.currentRoute = currentRoute ? { ...currentRoute } : null;
-
-  return state;
-}
-
-export function updateSegments() {
-  return {
-    type: Types.ACTION_UPDATE_SEGMENTS,
-  };
-}
-
 export function getSegmentFetchRange(state) {
   if (!state.zoom) {
-    return state.filter;
-  }
-  if (state.zoom && state.zoom.end < state.filter.start) {
     return {
-      start: state.zoom.start,
-      end: state.zoom.end,
+      start: 0,
+      end: state.currentRoute ? state.currentRoute.duration : 0,
     };
   }
-  const mins = [state.filter.start];
-  const maxs = [state.filter.end];
-  if (state.zoom) {
-    mins.push(state.zoom.start);
-    maxs.push(state.zoom.end);
-  }
+
   return {
-    start: Math.min(...mins),
-    end: Math.max(...maxs),
+    start: state.zoom.start,
+    end: state.zoom.end,
   };
 }
 

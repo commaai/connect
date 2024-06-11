@@ -84,7 +84,7 @@ const DriveListItem = (props) => {
   }, [drive, dispatch, isVisible, el]);
 
   const onClick = filterRegularClick(
-    () => dispatch(pushTimelineRange(drive.start_time_utc_millis, drive.end_time_utc_millis)),
+    () => dispatch(pushTimelineRange(drive.log_id, 0, drive.duration, true)),
   );
 
   const small = windowWidth < 580;
@@ -117,7 +117,7 @@ const DriveListItem = (props) => {
       key={drive.fullname}
       className={`${classes.drive} DriveEntry`}
       ref={el}
-      href={`/${drive.dongle_id}/${drive.start_time_utc_millis}/${drive.end_time_utc_millis}`}
+      href={`/${drive.dongle_id}/${drive.log_id}`}
       onClick={onClick}
     >
       <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>
@@ -148,7 +148,7 @@ const DriveListItem = (props) => {
       <Timeline
         route={drive}
         thumbnailsVisible={isVisible}
-        zoomOverride={{ start: drive.start_time_utc_millis, end: drive.end_time_utc_millis }}
+        zoomOverride={{ start: 0, end: drive.duration }}
       />
     </a>
   );

@@ -265,21 +265,33 @@ export default function reducer(_state, action) {
         state.loop = null;
       }
       break;
-    case Types.TIMELINE_PUSH_SELECTION:
+    case Types.TIMELINE_PUSH_SELECTION: {
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }
-      if (action.start && action.end) {
-        state.zoom = {
-          start: action.start,
-          end: action.end,
-          previous: state.zoom,
-        };
+      const r = state.routes?.find((route) => route.log_id === action.log_id);
+      if (action.log_id && r) {
+        state.currentRoute = r;
+        if (!action.start) {
+          state.zoom = {
+            start: 0,
+            end: state.currentRoute.duration,
+            previous: state.zoom,
+          }
+        } else {
+          state.zoom = {
+            start: action.start,
+            end: action.end,
+            previous: state.zoom,
+          };
+        }
       } else {
         state.zoom = null;
         state.loop = null;
+        state.currentRoute = null;
       }
       break;
+    }
     case Types.ACTION_FILES_URLS:
       state.files = {
         ...(state.files !== null ? { ...state.files } : {}),
@@ -325,6 +337,25 @@ export default function reducer(_state, action) {
         start: action.start,
         end: action.end,
       };
+      if (!state.currentRoute && state.segmentRange) {
+        const curr = state.routes?.find((route) => route.log_id === state.segmentRange.log_id);
+        if (curr) {
+          state.currentRoute = {
+            ...curr,
+          };
+          if (state.segmentRange.start && state.segmentRange.end) {
+            state.zoom = {
+              start: state.segmentRange.start,
+              end: state.segmentRange.end,
+            };
+          } else {
+            state.zoom = {
+              start: 0,
+              end: state.currentRoute.duration,
+            };
+          }
+        }
+      }
       break;
     default:
       return state;
