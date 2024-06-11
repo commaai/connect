@@ -331,6 +331,8 @@ export default function reducer(_state, action) {
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
     case Types.ACTION_ROUTES_METADATA:
+      console.log("routesData", action);
+      console.log("state", state);
       state.routes = action.routes;
       state.routesMeta = {
         dongleId: action.dongleId,
@@ -357,6 +359,13 @@ export default function reducer(_state, action) {
         }
       }
       break;
+    case Types.ACTION_UPDATE_SEGMENT_RANGE:
+        state.segmentRange = {
+          log_id: action.log_id,
+          start: action.start,
+          end: action.end,
+        };
+        break;
     default:
       return state;
   }

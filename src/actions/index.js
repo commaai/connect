@@ -75,6 +75,7 @@ export function checkRoutesData() {
         };
       });
 
+      console.log('Fetched routes metadata', routes.length, fetchRange.start, fetchRange.end);
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,
         dongleId,
@@ -143,6 +144,7 @@ export function popTimelineRange(allowPathChange = true) {
 export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
+    console.log("pushTimelineRange", state);
     if (state.zoom?.start !== start || state.zoom?.end !== end || state.segmentRange?.log_id !== log_id) {
       dispatch({
         type: Types.TIMELINE_PUSH_SELECTION,
@@ -366,6 +368,15 @@ export function updateDevice(device) {
   return {
     type: Types.ACTION_UPDATE_DEVICE,
     device,
+  };
+}
+
+export function updateSegmentRange(log_id, start, end) {
+  return {
+    type: Types.ACTION_UPDATE_SEGMENT_RANGE,
+    log_id,
+    start,
+    end,
   };
 }
 
