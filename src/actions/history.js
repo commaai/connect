@@ -1,8 +1,9 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
 import { getDongleID, getZoom, getSegmentRange, getPrimeNav } from '../url';
 import { primeNav, selectDevice, pushTimelineRange, checkRoutesData } from './index';
+import { drives as Drives } from '@commaai/api';
 
-export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action) => {
+export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
   if (!action) {
     return;
   }
@@ -20,16 +21,15 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => (action
     const pathZoom = getZoom(action.payload.location.pathname);
     const pathSegmentRange = getSegmentRange(action.payload.location.pathname);
 
-    if (pathSegmentRange && pathSegmentRange.log_id) {
-      // Fetch metadata for the log ID if not already present
+    if (!pathSegmentRange && pathZoom && pathDongleId) {
+      // fetch drives
+    } else if (pathSegmentRange && pathSegmentRange.log_id) {
       if (!state.routesMeta || state.routesMeta.log_id !== pathSegmentRange.log_id) {
         dispatch(checkRoutesData());
       }
 
-      // Push timeline range with the log ID and the associated start and end times
       dispatch(pushTimelineRange(pathSegmentRange.log_id, pathSegmentRange.start, pathSegmentRange.end, false));
     } else if (pathZoom) {
-      // Handle only zoom changes when no segment range is present
       dispatch(pushTimelineRange(null, pathZoom.start, pathZoom.end, false));
     }
 

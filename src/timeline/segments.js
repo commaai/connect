@@ -1,4 +1,7 @@
 export function getSegmentFetchRange(state) {
+
+  return state.filter;
+
   if (!state.zoom) {
     return {
       start: 0,
