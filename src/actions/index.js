@@ -109,7 +109,6 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  
   dispatch(checkRoutesData());
 
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
@@ -141,7 +140,6 @@ export function popTimelineRange(log_id, allowPathChange = true) {
 }
 
 export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
-  
   return (dispatch, getState) => {
     const state = getState();
 
