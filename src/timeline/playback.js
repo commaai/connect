@@ -44,9 +44,7 @@ export function reducer(_state, action) {
       }
       break;
     case Types.ACTION_LOOP:
-      
-      console.log('loop', action.start, action.end, state);
-      if (action.start && action.end) {
+      if (action.start !== null && action.start !== undefined && action.end !== null && action.end !== undefined) {
         state.loop = {
           startTime: action.start,
           duration: action.end - action.start,

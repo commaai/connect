@@ -266,7 +266,6 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.TIMELINE_PUSH_SELECTION: {
-      console.log("TIMELINE_PUSH_SELECTION", state);
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }
@@ -292,6 +291,12 @@ export default function reducer(_state, action) {
           end: state.currentRoute.end_time_utc_millis,
         };
 
+        if (!state.loop) {
+          state.loop = {
+            startTime: state.zoom.start,
+            duration: state.zoom.end - state.zoom.start,
+          };
+        }
       } else {
         state.zoom = null;
         state.loop = null;
@@ -362,22 +367,22 @@ export default function reducer(_state, action) {
             };
           }
 
-          console.log("FOUND CURRENT ROUTE", state.currentRoute, state.segmentRange, state.zoom);
-
           state.segmentRange = {
             log_id: curr.log_id,
             start: state.currentRoute.start_time_utc_millis,
             end: state.currentRoute.end_time_utc_millis,
           };
+
+          if (!state.loop) {
+            state.loop = {
+              startTime: state.zoom.start,
+              duration: state.zoom.end - state.zoom.start,
+            };
+          }
         }
       }
       break;
     case Types.ACTION_UPDATE_SEGMENT_RANGE: { 
-        console.log("ACTION_UPDATE_SEGMENT_RANGE");
-        const r = state.routes?.find((route) => route.log_id === action.log_id);
-
-        console.log("r", r);
-
         state.segmentRange = {
           log_id: action.log_id,
           start: action.start,

@@ -75,7 +75,6 @@ export function checkRoutesData() {
         };
       });
 
-      console.log('Fetched routes metadata', routes.length, fetchRange.start, fetchRange.end);
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,
         dongleId,
@@ -125,11 +124,9 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
       dispatch(push(desiredPath));
     }
   }
-  console.log("updateTimeline", log_id, start, end, allowPathChange);
 }
 
-export function popTimelineRange(allowPathChange = true) {
-  console.log("popTimelineRange");
+export function popTimelineRange(log_id, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
     if (state.zoom.previous) {
@@ -138,7 +135,7 @@ export function popTimelineRange(allowPathChange = true) {
       });
 
       const { start, end } = state.zoom.previous;
-      updateTimeline(state, dispatch, start, end, allowPathChange);
+      updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
     }
   };
 }
@@ -147,8 +144,6 @@ export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
   
   return (dispatch, getState) => {
     const state = getState();
-
-    console.log("pushTimelineRange", state);
 
     if (state.zoom?.start !== start || state.zoom?.end !== end || state.segmentRange?.log_id !== log_id) {
       dispatch({

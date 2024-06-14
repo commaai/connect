@@ -179,7 +179,7 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, zoom, currentRoute, devices, dongleId } = this.props;
+    const { classes, currentRoute, devices, dongleId } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);

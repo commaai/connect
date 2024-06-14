@@ -2,17 +2,17 @@ export function getSegmentFetchRange(state) {
 
   return state.filter;
 
-  if (!state.zoom) {
-    return {
-      start: 0,
-      end: state.currentRoute ? state.currentRoute.duration : 0,
-    };
-  }
+  // if (!state.zoom) {
+  //   return {
+  //     start: 0,
+  //     end: state.currentRoute ? state.currentRoute.duration : 0,
+  //   };
+  // }
 
-  return {
-    start: state.zoom.start,
-    end: state.zoom.end,
-  };
+  // return {
+  //   start: state.zoom.start,
+  //   end: state.zoom.end,
+  // };
 }
 
 export function hasRoutesData(state) {

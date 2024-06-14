@@ -122,6 +122,7 @@ class App extends Component {
       return this.renderLoading();
     }
 
+    //TODO: refactor
     const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(window.location.pathname);
     let content = (
       <Suspense fallback={this.renderLoading()}>
