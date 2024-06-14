@@ -22,6 +22,7 @@ class DriveView extends Component {
     if (zoom.previous) {
       this.props.dispatch(popTimelineRange());
     } else if (currentRoute) {
+      console.log("on back");
       this.props.dispatch(
         pushTimelineRange(currentRoute.log_id, null, null),
       );

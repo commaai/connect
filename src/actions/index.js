@@ -110,7 +110,7 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  console.log("updateTimeline", state, dispatch, log_id, start, end, allowPathChange);
+  
   dispatch(checkRoutesData());
 
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
@@ -125,9 +125,11 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
       dispatch(push(desiredPath));
     }
   }
+  console.log("updateTimeline", log_id, start, end, allowPathChange);
 }
 
 export function popTimelineRange(allowPathChange = true) {
+  console.log("popTimelineRange");
   return (dispatch, getState) => {
     const state = getState();
     if (state.zoom.previous) {
@@ -142,9 +144,12 @@ export function popTimelineRange(allowPathChange = true) {
 }
 
 export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
+  
   return (dispatch, getState) => {
     const state = getState();
+
     console.log("pushTimelineRange", state);
+
     if (state.zoom?.start !== start || state.zoom?.end !== end || state.segmentRange?.log_id !== log_id) {
       dispatch({
         type: Types.TIMELINE_PUSH_SELECTION,
@@ -156,6 +161,7 @@ export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
 
     updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
   };
+  
 }
 
 

@@ -266,6 +266,7 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.TIMELINE_PUSH_SELECTION: {
+      console.log("TIMELINE_PUSH_SELECTION", state);
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }
@@ -285,6 +286,12 @@ export default function reducer(_state, action) {
             previous: state.zoom,
           };
         }
+        state.segmentRange = {
+          log_id: state.currentRoute.log_id,
+          start: state.currentRoute.start_time_utc_millis,
+          end: state.currentRoute.end_time_utc_millis,
+        };
+
       } else {
         state.zoom = null;
         state.loop = null;
@@ -331,8 +338,6 @@ export default function reducer(_state, action) {
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
     case Types.ACTION_ROUTES_METADATA:
-      console.log("routesData", action);
-      console.log("state", state);
       state.routes = action.routes;
       state.routesMeta = {
         dongleId: action.dongleId,
@@ -356,16 +361,30 @@ export default function reducer(_state, action) {
               end: state.currentRoute.duration,
             };
           }
+
+          console.log("FOUND CURRENT ROUTE", state.currentRoute, state.segmentRange, state.zoom);
+
+          state.segmentRange = {
+            log_id: curr.log_id,
+            start: state.currentRoute.start_time_utc_millis,
+            end: state.currentRoute.end_time_utc_millis,
+          };
         }
       }
       break;
-    case Types.ACTION_UPDATE_SEGMENT_RANGE:
+    case Types.ACTION_UPDATE_SEGMENT_RANGE: { 
+        console.log("ACTION_UPDATE_SEGMENT_RANGE");
+        const r = state.routes?.find((route) => route.log_id === action.log_id);
+
+        console.log("r", r);
+
         state.segmentRange = {
           log_id: action.log_id,
           start: action.start,
           end: action.end,
         };
         break;
+      }
     default:
       return state;
   }

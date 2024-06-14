@@ -19,47 +19,25 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
     }
 
     const pathZoom = getZoom(action.payload.location.pathname);
-    const pathSegmentRange = getSegmentRange(action.payload.location.pathname);
-
-    if (!pathSegmentRange && pathZoom && pathDongleId) {
-
+    if (pathZoom !== state.zoom) {
       const [start, end] = [pathZoom.start, pathZoom.end];
-
       Drives.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
         if (routesData && routesData.length > 0) {
           const log_id = routesData[0].fullname.split('|')[1]; 
           const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
 
-
-          
-
-          // if ( updatedState.routesMeta && updatedState.routesMeta.log_id === logId) {
-          //   console.log("logId", logId);
-          //   dispatch(pushTimelineRange(logId, 0, duration, true));
-          // }
-          dispatch(pushTimelineRange(log_id, 0, duration, true));
-          dispatch(updateSegmentRange(log_id, pathSegmentRange?.start, pathSegmentRange?.end));
-
-
-          // const updatedState = getState();
-          dispatch(checkRoutesData());
-          
-
-          // dispatch(pushTimelineRange(logId, 0, duration, true));
-
-          console.log("history state", state);
+          dispatch(pushTimelineRange(log_id, null, null, true));
+          dispatch(updateSegmentRange(log_id, 0, duration));
         }
       }).catch((err) => {
         console.error('Error fetching routes data for log ID conversion', err);
       });
-    } else if (pathSegmentRange && pathSegmentRange.log_id) {
-      if (!state.routesMeta || state.routesMeta.log_id !== pathSegmentRange.log_id) {
-        dispatch(checkRoutesData());
-      }
+    }
 
-      dispatch(pushTimelineRange(pathSegmentRange.log_id, pathSegmentRange.start, pathSegmentRange.end, false));
-    } else if (pathZoom) {
-      dispatch(pushTimelineRange(null, pathZoom.start, pathZoom.end, false));
+    const pathSegmentRange = getSegmentRange(action.payload.location.pathname);
+    if (pathSegmentRange !== state.segmentRange) {
+      // dispatch(pushTimelineRange(pathSegmentRange?.log_id, pathSegmentRange?.start, pathSegmentRange?.end, false));
+      dispatch(pushTimelineRange(state.segmentRange.log_id, null, null, false));
     }
 
     const pathPrimeNav = getPrimeNav(action.payload.location.pathname);

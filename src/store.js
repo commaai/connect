@@ -22,4 +22,7 @@ const store = Redux.createStore(
   )),
 );
 
+//TODO: REMOVE THIS (ONLY FOR DEBUG)
+window.store = store;
+
 export default store;

@@ -29,6 +29,5 @@ export function currentOffset(state = null) {
       offset = ((offset - loopOffset) % state.loop.duration) + loopOffset;
     }
   }
-
   return offset;
 }
