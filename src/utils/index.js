@@ -188,6 +188,8 @@ export function getSegmentNumber(route, offset) {
     offset = currentOffset();
   }
 
+  
+
   return Math.floor(offset / (60*1000));
 
   /*

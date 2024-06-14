@@ -98,9 +98,7 @@ class DriveMap extends Component {
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        const { offset } = this.props.currentRoute;
-
-        const pos = this.posAtOffset(currentOffset() - offset);
+        const pos = this.posAtOffset(currentOffset());
         if (pos) {
           markerSource.setData({
             type: 'Point',

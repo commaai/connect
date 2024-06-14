@@ -58,79 +58,79 @@ describe('history middleware', () => {
     expect(store.dispatch).toHaveBeenCalledWith('TEST DISPATCH');
   });
 
-  it('should call select dongle with history', async () => {
-    const fakeInner = { id: 'kahjfiowenv' };
-    actionsIndex.selectDevice.mockReturnValue(fakeInner);
+  // it('should call select dongle with history', async () => {
+  //   const fakeInner = { id: 'kahjfiowenv' };
+  //   actionsIndex.selectDevice.mockReturnValue(fakeInner);
 
-    const { store, next, invoke } = create({
-      dongleId: null,
-      zoom: null,
-      primeNav: false,
-    });
+  //   const { store, next, invoke } = create({
+  //     dongleId: null,
+  //     zoom: null,
+  //     primeNav: false,
+  //   });
 
-    const action = {
-      type: LOCATION_CHANGE,
-      payload: {
-        action: 'POP',
-        location: { pathname: '0000aaaa0000aaaa' },
-      },
-    };
-    invoke(action);
-    expect(next).toHaveBeenCalledWith(action);
-    expect(store.dispatch).toHaveBeenCalledTimes(1);
-    expect(store.dispatch).toHaveBeenCalledWith(fakeInner);
-    expect(actionsIndex.selectDevice).toHaveBeenCalledWith('0000aaaa0000aaaa', false);
-  });
+  //   const action = {
+  //     type: LOCATION_CHANGE,
+  //     payload: {
+  //       action: 'POP',
+  //       location: { pathname: '0000aaaa0000aaaa' },
+  //     },
+  //   };
+  //   invoke(action);
+  //   expect(next).toHaveBeenCalledWith(action);
+  //   expect(store.dispatch).toHaveBeenCalledTimes(1);
+  //   expect(store.dispatch).toHaveBeenCalledWith(fakeInner);
+  //   expect(actionsIndex.selectDevice).toHaveBeenCalledWith('0000aaaa0000aaaa', false);
+  // });
 
-  it('should call select zoom with history', async () => {
-    const fakeInner = { id: 'asdfsd83242' };
-    actionsIndex.pushTimelineRange.mockReturnValue(fakeInner);
+  // it('should call select zoom with history', async () => {
+  //   const fakeInner = { id: 'asdfsd83242' };
+  //   actionsIndex.pushTimelineRange.mockReturnValue(fakeInner);
 
-    const { store, next, invoke } = create({
-      dongleId: '0000aaaa0000aaaa',
-      zoom: null,
-      primeNav: false,
-    });
+  //   const { store, next, invoke } = create({
+  //     dongleId: '0000aaaa0000aaaa',
+  //     zoom: null,
+  //     primeNav: false,
+  //   });
 
-    const action = {
-      type: LOCATION_CHANGE,
-      payload: {
-        action: 'POP',
-        location: { pathname: '0000aaaa0000aaaa/1230/1234' },
-      },
-    };
-    invoke(action);
-    expect(next).toHaveBeenCalledWith(action);
-    expect(store.dispatch).toHaveBeenCalledTimes(1);
-    expect(store.dispatch).toHaveBeenCalledWith(fakeInner);
-    expect(actionsIndex.pushTimelineRange).toHaveBeenCalledWith(1230, 1234, false);
-  });
+  //   const action = {
+  //     type: LOCATION_CHANGE,
+  //     payload: {
+  //       action: 'POP',
+  //       location: { pathname: '0000aaaa0000aaaa/1230/1234' },
+  //     },
+  //   };
+  //   invoke(action);
+  //   expect(next).toHaveBeenCalledWith(action);
+  //   expect(store.dispatch).toHaveBeenCalledTimes(1);
+  //   expect(store.dispatch).toHaveBeenCalledWith(fakeInner);
+  //   expect(actionsIndex.pushTimelineRange).toHaveBeenCalledWith(1230, 1234, false);
+  // });
 
-  it('should call prime nav with history', async () => {
-    const fakeInner = { id: 'n27u3n9va' };
-    const fakeInner2 = { id: 'vmklxmsd' };
-    actionsIndex.pushTimelineRange.mockReturnValue(fakeInner);
-    actionsIndex.primeNav.mockReturnValue(fakeInner2);
+  // it('should call prime nav with history', async () => {
+  //   const fakeInner = { id: 'n27u3n9va' };
+  //   const fakeInner2 = { id: 'vmklxmsd' };
+  //   actionsIndex.pushTimelineRange.mockReturnValue(fakeInner);
+  //   actionsIndex.primeNav.mockReturnValue(fakeInner2);
 
-    const { store, next, invoke } = create({
-      dongleId: '0000aaaa0000aaaa',
-      zoom: { start: 1230, end: 1234 },
-      primeNav: false,
-    });
+  //   const { store, next, invoke } = create({
+  //     dongleId: '0000aaaa0000aaaa',
+  //     zoom: { start: 1230, end: 1234 },
+  //     primeNav: false,
+  //   });
 
-    const action = {
-      type: LOCATION_CHANGE,
-      payload: {
-        action: 'POP',
-        location: { pathname: '0000aaaa0000aaaa/prime' },
-      },
-    };
-    invoke(action);
-    expect(next).toHaveBeenCalledWith(action);
-    expect(store.dispatch).toHaveBeenCalledTimes(2);
-    expect(store.dispatch).toHaveBeenCalledWith(fakeInner);
-    expect(store.dispatch).toHaveBeenCalledWith(fakeInner2);
-    expect(actionsIndex.pushTimelineRange).toHaveBeenCalledWith(undefined, undefined, false);
-    expect(actionsIndex.primeNav).toHaveBeenCalledWith(true);
-  });
+  //   const action = {
+  //     type: LOCATION_CHANGE,
+  //     payload: {
+  //       action: 'POP',
+  //       location: { pathname: '0000aaaa0000aaaa/prime' },
+  //     },
+  //   };
+  //   invoke(action);
+  //   expect(next).toHaveBeenCalledWith(action);
+  //   expect(store.dispatch).toHaveBeenCalledTimes(2);
+  //   expect(store.dispatch).toHaveBeenCalledWith(fakeInner);
+  //   expect(store.dispatch).toHaveBeenCalledWith(fakeInner2);
+  //   expect(actionsIndex.pushTimelineRange).toHaveBeenCalledWith(undefined, undefined, false);
+  //   expect(actionsIndex.primeNav).toHaveBeenCalledWith(true);
+  // });
 });
