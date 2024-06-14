@@ -19,9 +19,8 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
     }
 
     const pathZoom = getZoom(action.payload.location.pathname);
-    if (pathZoom !== state.zoom) {
+    if ((pathZoom !== state.zoom) && pathZoom) {
       const [start, end] = [pathZoom.start, pathZoom.end];
-      //TODO: Get this out of the middleware
       Drives.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
         if (routesData && routesData.length > 0) {
           const log_id = routesData[0].fullname.split('|')[1]; 

@@ -188,17 +188,5 @@ export function getSegmentNumber(route, offset) {
     offset = currentOffset();
   }
 
-  
-
   return Math.floor(offset / (60*1000));
-
-  /*
-  for (let i = 0; i < route.segment_durations.length; i++) {
-    console.log(offset, route.segment_durations.slice(0, i+1).reduce((acc, val) => acc + val, 0))
-    if (offset >= route.segment_durations.slice(0, i+1).reduce((acc, val) => acc + val, 0)) {
-      return route.segment_numbers[i];
-    }
-  }
-  return null;
-  */
 }
