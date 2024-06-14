@@ -141,7 +141,6 @@ class DriveMap extends Component {
   async populateMap() {
     const { currentRoute } = this.props;
 
-    console.log("currentRoute", currentRoute);
     if (!this.map || !currentRoute || !currentRoute.driveCoords) {
       return;
     }

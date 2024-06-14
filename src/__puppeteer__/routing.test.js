@@ -24,7 +24,7 @@ describe('routing', () => {
   });
 
   it('load route from URL', async () => {
-    await goto('/1d3dc3e03047b0c7/1716484475499/1716485004466', { timeout: 50000 });
+    await goto('/1d3dc3e03047b0c7/000000dd--455f14369d', { timeout: 50000 });
 
     // Wait for video src to be set
     await page.waitForFunction(
