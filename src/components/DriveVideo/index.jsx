@@ -200,15 +200,7 @@ class DriveVideo extends Component {
   }
 
   syncVideo() {
-    const { dispatch, isBufferingVideo, currentRoute } = this.props;
-    if (!currentRoute) {
-      // dispatch(updateSegments());
-      // if (routes && isBufferingVideo) {
-      //   dispatch(bufferVideo(false));
-      // }
-      return;
-    }
-
+    const { dispatch, isBufferingVideo } = this.props;
     const videoPlayer = this.videoPlayer.current;
     if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
       return;

@@ -6,7 +6,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
-import { getSegmentFetchRange, hasRoutesData } from '../timeline/segments';
+import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
 let routesRequest = null;
@@ -26,7 +26,7 @@ export function checkRoutesData() {
     }
     console.debug('We need to update the segment metadata...');
     const { dongleId } = state;
-    const fetchRange = getSegmentFetchRange(state);
+    const fetchRange = state.filter;
 
     routesRequest = {
       req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end),
@@ -35,7 +35,7 @@ export function checkRoutesData() {
 
     routesRequest.req.then((routesData) => {
       state = getState();
-      const currentRange = getSegmentFetchRange(state);
+      const currentRange = state.filter;
       if (currentRange.start !== fetchRange.start
         || currentRange.end !== fetchRange.end
         || state.dongleId !== dongleId) {

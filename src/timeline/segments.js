@@ -1,7 +1,3 @@
-export function getSegmentFetchRange(state) {
-  return state.filter;
-}
-
 export function hasRoutesData(state) {
   if (!state) {
     return false;
@@ -23,7 +19,7 @@ export function hasRoutesData(state) {
     console.debug('Bad dongle id');
     return false;
   }
-  const fetchRange = getSegmentFetchRange(state);
+  const fetchRange = state.filter;
   if (fetchRange.start < state.routesMeta.start) {
     console.debug('Bad start offset');
     return false;
