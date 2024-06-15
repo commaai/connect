@@ -15,7 +15,6 @@ export function getDongleID(pathname) {
 export function getZoom(pathname) {
   let parts = pathname.split('/');
   parts = parts.filter((m) => m.length);
-
   if (parts.length >= 3 && parts[0] !== 'auth') {
     return {
       start: Number(parts[1]),
@@ -32,8 +31,8 @@ export function getSegmentRange(pathname) {
   if (parts.length >= 2 && logIdRegex.test(parts[1])) {
     return {
       log_id: parts[1],
-      start: Number(parts[2]),
-      end: Number(parts[3]),
+      start: Number(parts[2]) * 1000,
+      end: Number(parts[3]) * 1000,
     };
   }
   return null;

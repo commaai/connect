@@ -19,8 +19,12 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
     }
 
     const pathZoom = getZoom(action.payload.location.pathname);
-    if ((pathZoom !== state.zoom) && pathZoom) {
+    const pathSegmentRange = getSegmentRange(action.payload.location.pathname);
+
+    if ((pathZoom !== state.zoom) && pathZoom && !pathSegmentRange) {
       const [start, end] = [pathZoom.start, pathZoom.end];
+
+      console.log('Fetching routes data for log ID conversion', pathDongleId, start, end);
       Drives.getRoutesSegments(pathDongleId, start, end).then((routesData) => {
         if (routesData && routesData.length > 0) {
           const log_id = routesData[0].fullname.split('|')[1]; 
@@ -34,7 +38,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
       });
     }
 
-    const pathSegmentRange = getSegmentRange(action.payload.location.pathname);
+    
     if (pathSegmentRange !== state.segmentRange) {
       dispatch(pushTimelineRange(pathSegmentRange?.log_id, pathSegmentRange?.start, pathSegmentRange?.end, false));
     }
