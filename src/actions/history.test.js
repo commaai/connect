@@ -103,7 +103,7 @@ describe('history middleware', () => {
     expect(next).toHaveBeenCalledWith(action);
     expect(store.dispatch).toHaveBeenCalledTimes(1);
     expect(store.dispatch).toHaveBeenCalledWith(fakeInner);
-    expect(actionsIndex.pushTimelineRange).toHaveBeenCalledWith("00000000--000f00000d", 1230, 1234, false);
+    expect(actionsIndex.pushTimelineRange).toHaveBeenCalledWith("00000000--000f00000d", 1230000, 1234000, false);
   });
 
   it('should call prime nav with history', async () => {

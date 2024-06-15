@@ -23,6 +23,6 @@ describe('timeline actions', () => {
       zoom: {},
     }));
     actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id/123/1234');
+    expect(push).toBeCalledWith('/statedongle/log_id');
   });
 });
