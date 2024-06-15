@@ -119,7 +119,6 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
 
   if (allowPathChange) {
     const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start/1000), Math.floor(end/1000), false);
-    // const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start), Math.floor(end), false);
     if (window.location.pathname !== desiredPath) {
       dispatch(push(desiredPath));
     }
