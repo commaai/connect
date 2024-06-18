@@ -78,7 +78,7 @@ export function checkRoutesData() {
           segment_durations: r.segment_start_times.map((x, i) => r.segment_end_times[i] - x),
         };
       }).sort((a, b) => {
-        return b.create_time - a.create_time; 
+        return b.create_time - a.create_time;
       });
 
       dispatch({
@@ -108,7 +108,7 @@ export function checkLastRoutesData() {
     const routes = getState().routes
 
     // if current routes are fewer than limit, that means the last fetch already fetched all the routes
-    if (routes && routes.length > limit) {
+    if (routes && routes.length < limit) {
       return
     }
 
@@ -194,7 +194,7 @@ export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
 
     updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
   };
-  
+
 }
 
 

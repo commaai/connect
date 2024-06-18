@@ -1,6 +1,9 @@
 import * as Types from '../actions/types';
 import { emptyDevice } from '../utils';
 
+const eventsMap = {};
+const locationMap = {};
+
 function populateFetchedAt(d) {
   return {
     ...d,
@@ -146,13 +149,18 @@ export default function reducer(_state, action) {
     case Types.ACTION_UPDATE_ROUTE_EVENTS: {
       const firstFrame = action.events.find((ev) => ev.type === 'event' && ev.data.event_type === 'first_road_camera_frame');
       const videoStartOffset = firstFrame ? firstFrame.route_offset_millis : null;
+      eventsMap[action.fullname] = {
+        events: action.events,
+        videoStartOffset,
+      }
       if (state.routes) {
         state.routes = state.routes.map((route) => {
-          if (route.fullname === action.fullname) {
+          const ev = eventsMap[route.fullname];
+          if (ev) {
             return {
               ...route,
-              events: action.events,
-              videoStartOffset,
+              events: ev.events,
+              videoStartOffset: ev.videoStartOffset,
             };
           }
           return route;
@@ -167,13 +175,18 @@ export default function reducer(_state, action) {
       }
       break;
     }
-    case Types.ACTION_UPDATE_ROUTE_LOCATION:
+    case Types.ACTION_UPDATE_ROUTE_LOCATION: {
+      locationMap[action.fullname] = {
+        location: action.location,
+        locationKey: action.locationKey,
+      }
       if (state.routes) {
         state.routes = state.routes.map((route) => {
-          if (route.fullname === action.fullname) {
+          const loc = locationMap[route.fullname];
+          if (loc) {
             return {
               ...route,
-              [action.locationKey]: action.location,
+              [loc.locationKey]: loc.location,
             };
           }
           return route;
@@ -186,6 +199,7 @@ export default function reducer(_state, action) {
         state.currentRoute[action.locationKey] = action.location;
       }
       break;
+    }
     case Types.ACTION_UPDATE_SHARED_DEVICE:
       if (action.dongleId === state.dongleId) {
         state.device = populateFetchedAt(action.device);
@@ -397,9 +411,9 @@ export default function reducer(_state, action) {
         }
       }
       break;
-    case Types.ACTION_UPDATE_SEGMENT_RANGE: { 
+    case Types.ACTION_UPDATE_SEGMENT_RANGE: {
 
-        if (!action.log_id) { 
+        if (!action.log_id) {
           state.segmentRange = null;
         }
         state.segmentRange = {
