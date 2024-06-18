@@ -13,7 +13,6 @@ import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
 
 import AccountMenu from './AccountMenu';
-import TimeFilter from './TimeFilter';
 import PWAIcon from '../PWAIcon';
 
 const styles = () => ({
@@ -110,9 +109,6 @@ const AppHeader = ({
             >
               <Typography className={classes.logoText}>connect</Typography>
             </a>
-          </div>
-          <div className="flex order-4 w-full justify-center sm:order-none sm:w-auto">
-            {Boolean(!primeNav && !viewingRoute && dongleId) && <TimeFilter />}
           </div>
           <div className="flex flex-row gap-2">
             <Suspense><PWAIcon /></Suspense>

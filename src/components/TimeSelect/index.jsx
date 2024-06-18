@@ -2,13 +2,12 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
+import PropTypes from 'prop-types';
 
-import { Button, Divider, FormControl, MenuItem, Modal, Paper, Select, Typography, withStyles } from '@material-ui/core';
+import { Button, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
 
 import Colors from '../../colors';
 import { selectTimeFilter } from '../../actions';
-import { getDefaultFilter } from '../../initialState';
-import VisibilityHandler from '../VisibilityHandler';
 
 const styles = (theme) => ({
   modal: {
@@ -25,13 +24,6 @@ const styles = (theme) => ({
   buttonGroup: {
     marginTop: 20,
     textAlign: 'right',
-  },
-  headerDropdown: {
-    fontWeight: 500,
-    marginRight: 12,
-    width: 310,
-    maxWidth: '90%',
-    textAlign: 'center',
   },
   datePickerContainer: {
     display: 'flex',
@@ -61,47 +53,34 @@ class TimeSelect extends Component {
     super(props);
 
     this.state = {
-      showPicker: false,
-    };
+      start: null,
+      end: null,
+    }
 
-    this.handleSelectChange = this.handleSelectChange.bind(this);
     this.handleClose = this.handleClose.bind(this);
     this.changeStart = this.changeStart.bind(this);
     this.changeEnd = this.changeEnd.bind(this);
     this.handleSave = this.handleSave.bind(this);
-    this.onVisible = this.onVisible.bind(this);
   }
 
-  handleSelectChange(e) {
-    const selection = e.target.value;
-    const d = new Date();
-    d.setHours(d.getHours() + 1, 0, 0, 0);
+  componentDidMount() {
+    this.setState({
+      start: this.props.filter.start,
+      end: this.props.filter.end,
+    });
+  }
 
-    // eslint-disable-next-line default-case
-    switch (selection) {
-      case '24-hours':
-        this.props.dispatch(selectTimeFilter(d.getTime() - (1000 * 60 * 60 * 24), d.getTime()));
-        break;
-      case '1-week':
-        this.props.dispatch(selectTimeFilter(d.getTime() - (1000 * 60 * 60 * 24 * 7), d.getTime()));
-        break;
-      case '2-weeks':
-        this.props.dispatch(selectTimeFilter(d.getTime() - (1000 * 60 * 60 * 24 * 14), d.getTime()));
-        break;
-      case 'custom':
-        this.setState({
-          showPicker: true,
-          start: this.props.filter.start,
-          end: this.props.filter.end,
-        });
-        break;
+  componentDidUpdate(prevProps) {
+    if (prevProps.filter !== this.props.filter) {
+      this.setState({
+        start: this.props.filter.start,
+        end: this.props.filter.end,
+      });
     }
   }
 
   handleClose() {
-    this.setState({
-      showPicker: false,
-    });
+    this.props.onClose()
   }
 
   changeStart(event) {
@@ -121,57 +100,13 @@ class TimeSelect extends Component {
   }
 
   handleSave() {
+    console.log({start: this.state.start, end: this.state.end})
     this.props.dispatch(selectTimeFilter(this.state.start, this.state.end));
-    this.setState({
-      showPicker: false,
-      start: null,
-      end: null,
-    });
-  }
-
-  selectedOption() {
-    const timeRange = this.props.filter.end - this.props.filter.start;
-
-    if (Math.abs(this.props.filter.end - Date.now()) < 1000 * 60 * 60) {
-      // ends right around now
-      if (timeRange === 1000 * 60 * 60 * 24 * 14) {
-        return '2-weeks';
-      } if (timeRange === 1000 * 60 * 60 * 24 * 7) {
-        return '1-week';
-      } if (timeRange === 1000 * 60 * 60 * 24) {
-        return '24-hours';
-      }
-    }
-
-    return 'custom';
-  }
-
-  customText() {
-    const { filter } = this.props;
-    const start = dayjs(filter.start).format('MMM D');
-    const end = dayjs(filter.end).format('MMM D');
-    let text = `Custom: ${start}`;
-    if (start !== end) text += ` - ${end}`;
-    return text;
-  }
-
-  lastWeekText() {
-    const weekAgo = dayjs().subtract(1, 'week');
-    return `Last week (since ${weekAgo.format('MMM D')})`;
-  }
-
-  last2WeeksText() {
-    const twoWeeksAgo = dayjs().subtract(14, 'day');
-    return `Last 2 weeks (since ${twoWeeksAgo.format('MMM D')})`;
-  }
-
-  onVisible() {
-    const filter = getDefaultFilter();
-    this.props.dispatch(selectTimeFilter(filter.start, filter.end));
+    this.props.onClose()
   }
 
   render() {
-    const { classes } = this.props;
+    const { classes, isOpen } = this.props;
     const minDate = dayjs().subtract(LOOKBACK_WINDOW_MILLIS, 'millisecond').format('YYYY-MM-DD');
     const maxDate = dayjs().format('YYYY-MM-DD');
     const startDate = dayjs(this.state.start || this.props.filter.start).format('YYYY-MM-DD');
@@ -179,24 +114,10 @@ class TimeSelect extends Component {
 
     return (
       <>
-        <VisibilityHandler onVisible={ this.onVisible } minInterval={ 300 } resetOnHidden />
-        <FormControl>
-          <Select
-            name="timerange"
-            value={this.selectedOption()}
-            onChange={this.handleSelectChange}
-            className={classes.headerDropdown}
-          >
-            <MenuItem value="custom">{this.customText()}</MenuItem>
-            <MenuItem value="24-hours">Last 24 Hours</MenuItem>
-            <MenuItem value="1-week">{this.lastWeekText()}</MenuItem>
-            <MenuItem value="2-weeks">{this.last2WeeksText()}</MenuItem>
-          </Select>
-        </FormControl>
         <Modal
           aria-labelledby="simple-modal-title"
           aria-describedby="simple-modal-description"
-          open={this.state.showPicker}
+          open={isOpen}
           onClose={this.handleClose}
         >
           <Paper className={classes.modal}>
@@ -242,5 +163,10 @@ class TimeSelect extends Component {
 const stateToProps = Obstruction({
   filter: 'filter',
 });
+
+TimeSelect.propTypes = {
+  onClose: PropTypes.func.isRequired,
+  isOpen: PropTypes.bool.isRequired,
+};
 
 export default connect(stateToProps)(withStyles(styles)(TimeSelect));
