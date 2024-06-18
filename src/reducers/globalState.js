@@ -383,6 +383,10 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.ACTION_UPDATE_SEGMENT_RANGE: { 
+
+        if (!action.log_id) { 
+          state.segmentRange = null;
+        }
         state.segmentRange = {
           log_id: action.log_id,
           start: action.start,

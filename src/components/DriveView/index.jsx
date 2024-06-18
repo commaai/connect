@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { popTimelineRange, pushTimelineRange, updateSegmentRange } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
@@ -30,6 +30,7 @@ class DriveView extends Component {
 
   close() {
     this.props.dispatch(pushTimelineRange(null, null, null));
+    this.props.dispatch(updateSegmentRange(null, null, null));
   }
 
   render() {
