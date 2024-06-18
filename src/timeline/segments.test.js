@@ -1,5 +1,4 @@
 /* eslint-env jest */
-import { getCurrentRoute } from '.';
 import { hasRoutesData } from './segments';
 import { getSegmentNumber } from '../utils';
 
@@ -30,47 +29,7 @@ const routes = [{
 describe('segments', () => {
   it('finds current segment', async () => {
     const [route] = routes;
-    let r = getCurrentRoute({
-      routes,
-      offset: route.offset,
-      desiredPlaySpeed: 1,
-      startTime: Date.now(),
-    });
-    expect(r.fullname).toBe(route.fullname);
-    expect(getSegmentNumber(r, route.offset)).toBe(0);
-
-    r = getCurrentRoute({
-      routes,
-      offset: route.offset + SEGMENT_LENGTH * 1.1,
-      desiredPlaySpeed: 1,
-      startTime: Date.now(),
-    });
-    expect(getSegmentNumber(r, route.offset + SEGMENT_LENGTH * 1.1)).toBe(1);
-  });
-
-  it('finds last segment of a route', async () => {
-    const [route] = routes;
-    const offset = route.offset + SEGMENT_LENGTH * (route.segment_offsets.length - 1) + 1000;
-    const r = getCurrentRoute({
-      routes,
-      offset,
-      desiredPlaySpeed: 1,
-      startTime: Date.now(),
-    });
-    expect(r.fullname).toBe(route.fullname);
-    expect(getSegmentNumber(r, offset)).toBe(route.segment_offsets.length - 1);
-  });
-
-  it('ends last segment of a route', async () => {
-    const [route] = routes;
-    const offset = route.offset + route.duration - 10;
-    const r = getCurrentRoute({
-      routes,
-      offset,
-      desiredPlaySpeed: 1,
-      startTime: Date.now() - 50,
-    });
-    expect(getSegmentNumber(r, offset)).toBe(null);
+    expect(getSegmentNumber(route)).toBe(0);
   });
 
   it('can check if it has segment metadata', () => {

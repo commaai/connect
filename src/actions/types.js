@@ -28,7 +28,7 @@ export const ACTION_BUFFER_VIDEO = 'action_buffer_video';
 export const ACTION_RESET = 'action_reset';
 
 // segments
-export const ACTION_UPDATE_SEGMENTS = 'update_segments';
+export const ACTION_UPDATE_SEGMENT_RANGE = 'update_segment_range';
 export const ACTION_ROUTES_METADATA = 'routes_metadata';
 
 // files

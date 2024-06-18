@@ -54,11 +54,11 @@ export function attachRelTime(obj, key, ms = true, cluster = null) {
 }
 
 function getVideoPercent(state, offset) {
-  const { zoom, filter } = state;
+  const { zoom } = state;
   if (!offset) {
     offset = state.offset;
   }
-  return (offset - (zoom.start - filter.start)) / (zoom.end - zoom.start);
+  return (offset - (zoom.start)) / (zoom.end - zoom.start);
 }
 
 function logAction(action, prevState, state) {

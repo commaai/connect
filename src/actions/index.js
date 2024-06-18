@@ -6,7 +6,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
-import { getSegmentFetchRange, hasRoutesData } from '../timeline/segments';
+import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
 let routesRequest = null;
@@ -26,7 +26,7 @@ export function checkRoutesData() {
     }
     console.debug('We need to update the segment metadata...');
     const { dongleId } = state;
-    const fetchRange = getSegmentFetchRange(state);
+    const fetchRange = state.filter;
 
     routesRequest = {
       req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end),
@@ -35,7 +35,7 @@ export function checkRoutesData() {
 
     routesRequest.req.then((routesData) => {
       state = getState();
-      const currentRange = getSegmentFetchRange(state);
+      const currentRange = state.filter;
       if (currentRange.start !== fetchRange.start
         || currentRange.end !== fetchRange.end
         || state.dongleId !== dongleId) {
@@ -66,12 +66,15 @@ export function checkRoutesData() {
         return {
           ...r,
           url: r.url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
-          offset: Math.round(startTime) - state.filter.start,
+          log_id: r.fullname.split('|')[1],
           duration: endTime - startTime,
           start_time_utc_millis: startTime,
           end_time_utc_millis: endTime,
-          segment_offsets: r.segment_start_times.map((x) => x - state.filter.start),
+          // TODO: get this from the API, this isn't correct for segments with a time jump
+          segment_durations: r.segment_start_times.map((x, i) => r.segment_end_times[i] - x),
         };
+      }).sort((a, b) => {
+        return b.create_time - a.create_time; 
       });
 
       dispatch({
@@ -91,12 +94,15 @@ export function checkRoutesData() {
   };
 }
 
-export function urlForState(dongleId, start, end, prime) {
+export function urlForState(dongleId, log_id, start, end, prime) {
   const path = [dongleId];
 
-  if (start && end) {
-    path.push(start);
-    path.push(end);
+  if (log_id) {
+    path.push(log_id);
+    if (start && end && start > 0) {
+      path.push(start);
+      path.push(end);
+    }
   } else if (prime) {
     path.push('prime');
   }
@@ -104,7 +110,7 @@ export function urlForState(dongleId, start, end, prime) {
   return `/${path.join('/')}`;
 }
 
-function updateTimeline(state, dispatch, start, end, allowPathChange) {
+function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   dispatch(checkRoutesData());
 
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
@@ -114,14 +120,14 @@ function updateTimeline(state, dispatch, start, end, allowPathChange) {
   }
 
   if (allowPathChange) {
-    const desiredPath = urlForState(state.dongleId, start, end, false);
+    const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start/1000), Math.floor(end/1000), false);
     if (window.location.pathname !== desiredPath) {
       dispatch(push(desiredPath));
     }
   }
 }
 
-export function popTimelineRange(allowPathChange = true) {
+export function popTimelineRange(log_id, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
     if (state.zoom.previous) {
@@ -130,25 +136,29 @@ export function popTimelineRange(allowPathChange = true) {
       });
 
       const { start, end } = state.zoom.previous;
-      updateTimeline(state, dispatch, start, end, allowPathChange);
+      updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
     }
   };
 }
 
-export function pushTimelineRange(start, end, allowPathChange = true) {
+export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
-    if (state.zoom?.start !== start || state.zoom?.end !== end) {
+
+    if (state.zoom?.start !== start || state.zoom?.end !== end || state.segmentRange?.log_id !== log_id) {
       dispatch({
         type: Types.TIMELINE_PUSH_SELECTION,
+        log_id,
         start,
         end,
       });
     }
 
-    updateTimeline(state, dispatch, start, end, allowPathChange);
+    updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
   };
+  
 }
+
 
 export function primeGetSubscription(dongleId, subscription) {
   return {
@@ -206,6 +216,15 @@ export function fetchDeviceOnline(dongleId) {
   };
 }
 
+export function updateSegmentRange(log_id, start, end) {
+  return {
+    type: Types.ACTION_UPDATE_SEGMENT_RANGE,
+    log_id,
+    start,
+    end,
+  };
+}
+
 export function selectDevice(dongleId, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
@@ -222,7 +241,8 @@ export function selectDevice(dongleId, allowPathChange = true) {
       dongleId,
     });
 
-    dispatch(pushTimelineRange(null, null, false));
+    dispatch(pushTimelineRange(null, null, null, false));
+    dispatch(updateSegmentRange(null, null, null));
     if ((device && !device.shared) || state.profile?.superuser) {
       dispatch(primeFetchSubscription(dongleId, device));
       dispatch(fetchDeviceOnline(dongleId));
@@ -231,7 +251,7 @@ export function selectDevice(dongleId, allowPathChange = true) {
     dispatch(checkRoutesData());
 
     if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null);
+      const desiredPath = urlForState(dongleId, null, null, null, null);
       if (window.location.pathname !== desiredPath) {
         dispatch(push(desiredPath));
       }
@@ -255,7 +275,7 @@ export function primeNav(nav, allowPathChange = true) {
 
     if (allowPathChange) {
       const curPath = document.location.pathname;
-      const desiredPath = urlForState(state.dongleId, null, null, nav);
+      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
       }

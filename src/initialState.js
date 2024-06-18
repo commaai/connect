@@ -1,4 +1,4 @@
-import { getDongleID, getZoom, getPrimeNav } from './url';
+import { getDongleID, getSegmentRange, getPrimeNav } from './url';
 
 export function getDefaultFilter() {
   const d = new Date();
@@ -10,27 +10,13 @@ export function getDefaultFilter() {
   };
 }
 
-function getDefaultLoop(pathname) {
-  // in time instead of offset
-  // this makes it so that the timespan can change without this changing
-  // thats helpful to shared links and other things probably...
-  const zoom = getZoom(pathname);
-  if (zoom) {
-    return {
-      startTime: zoom.start,
-      duration: zoom.end - zoom.start,
-    };
-  }
-  return null;
-}
-
 export default {
   dongleId: getDongleID(window.location.pathname),
 
-  desiredPlaySpeed: 1, // speed set by user
+  desiredPlaySpeed: 1,    // speed set by user
   isBufferingVideo: true, // if we're currently buffering for more data
-  offset: null, // in miliseconds, relative to `state.filter.start`
-  startTime: Date.now(), // millisecond timestamp in which play began
+  offset: null,           // in miliseconds, relative to state.zoom.start
+  startTime: Date.now(),  // millisecond timestamp in which play began
 
   routes: null,
   routesMeta: {
@@ -55,6 +41,7 @@ export default {
   },
 
   filter: getDefaultFilter(),
-  zoom: getZoom(window.location.pathname),
-  loop: getDefaultLoop(window.location.pathname),
+  zoom: null,
+  loop: null,
+  segmentRange: getSegmentRange(window.location.pathname),
 };

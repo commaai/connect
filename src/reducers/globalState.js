@@ -265,21 +265,45 @@ export default function reducer(_state, action) {
         state.loop = null;
       }
       break;
-    case Types.TIMELINE_PUSH_SELECTION:
+    case Types.TIMELINE_PUSH_SELECTION: {
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }
-      if (action.start && action.end) {
-        state.zoom = {
-          start: action.start,
-          end: action.end,
-          previous: state.zoom,
+      const r = state.routes?.find((route) => route.log_id === action.log_id);
+      if (action.log_id && r) {
+        state.currentRoute = r;
+        if (!action.start) {
+          state.zoom = {
+            start: 0,
+            end: state.currentRoute.duration,
+            previous: state.zoom,
+          }
+        } else {
+          state.zoom = {
+            start: action.start,
+            end: action.end,
+            previous: state.zoom,
+          };
+        }
+        state.segmentRange = {
+          log_id: state.currentRoute.log_id,
+          start: state.currentRoute.start_time_utc_millis,
+          end: state.currentRoute.end_time_utc_millis,
         };
+
+        if (!state.loop) {
+          state.loop = {
+            startTime: state.zoom.start,
+            duration: state.zoom.end - state.zoom.start,
+          };
+        }
       } else {
         state.zoom = null;
         state.loop = null;
+        state.currentRoute = null;
       }
       break;
+    }
     case Types.ACTION_FILES_URLS:
       state.files = {
         ...(state.files !== null ? { ...state.files } : {}),
@@ -325,7 +349,51 @@ export default function reducer(_state, action) {
         start: action.start,
         end: action.end,
       };
+      if (!state.currentRoute && state.segmentRange) {
+        const curr = state.routes?.find((route) => route.log_id === state.segmentRange.log_id);
+        if (curr) {
+          state.currentRoute = {
+            ...curr,
+          };
+          if (state.segmentRange.start && state.segmentRange.end) {
+            state.zoom = {
+              start: state.segmentRange.start,
+              end: state.segmentRange.end,
+            };
+          } else {
+            state.zoom = {
+              start: 0,
+              end: state.currentRoute.duration,
+            };
+          }
+
+          state.segmentRange = {
+            log_id: curr.log_id,
+            start: state.currentRoute.start_time_utc_millis,
+            end: state.currentRoute.end_time_utc_millis,
+          };
+
+          if (!state.loop || !state.loop.startTime || !state.loop.duration) {
+            state.loop = {
+              startTime: state.zoom.start,
+              duration: state.zoom.end - state.zoom.start,
+            };
+          }
+        }
+      }
       break;
+    case Types.ACTION_UPDATE_SEGMENT_RANGE: { 
+
+        if (!action.log_id) { 
+          state.segmentRange = null;
+        }
+        state.segmentRange = {
+          log_id: action.log_id,
+          start: action.start,
+          end: action.end,
+        };
+        break;
+      }
     default:
       return state;
   }

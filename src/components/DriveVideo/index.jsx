@@ -12,7 +12,6 @@ import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, bufferVideo } from '../../timeline/playback';
-import { updateSegments } from '../../timeline/segments';
 
 const VideoOverlay = ({ loading, error }) => {
   let content;
@@ -201,15 +200,7 @@ class DriveVideo extends Component {
   }
 
   syncVideo() {
-    const { dispatch, isBufferingVideo, currentRoute, routes } = this.props;
-    if (!currentRoute) {
-      dispatch(updateSegments());
-      if (routes && isBufferingVideo) {
-        dispatch(bufferVideo(false));
-      }
-      return;
-    }
-
+    const { dispatch, isBufferingVideo } = this.props;
     const videoPlayer = this.videoPlayer.current;
     if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
       return;
@@ -269,7 +260,6 @@ class DriveVideo extends Component {
     if (!currentRoute) {
       return 0;
     }
-    offset -= currentRoute.offset;
 
     if (currentRoute.videoStartOffset) {
       offset -= currentRoute.videoStartOffset;

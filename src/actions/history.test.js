@@ -77,7 +77,7 @@ describe('history middleware', () => {
     };
     invoke(action);
     expect(next).toHaveBeenCalledWith(action);
-    expect(store.dispatch).toHaveBeenCalledTimes(1);
+    expect(store.dispatch).toHaveBeenCalledTimes(2);
     expect(store.dispatch).toHaveBeenCalledWith(fakeInner);
     expect(actionsIndex.selectDevice).toHaveBeenCalledWith('0000aaaa0000aaaa', false);
   });
@@ -96,14 +96,14 @@ describe('history middleware', () => {
       type: LOCATION_CHANGE,
       payload: {
         action: 'POP',
-        location: { pathname: '0000aaaa0000aaaa/1230/1234' },
+        location: { pathname: '0000aaaa0000aaaa/00000000--000f00000d/1230/1234' },
       },
     };
     invoke(action);
     expect(next).toHaveBeenCalledWith(action);
     expect(store.dispatch).toHaveBeenCalledTimes(1);
     expect(store.dispatch).toHaveBeenCalledWith(fakeInner);
-    expect(actionsIndex.pushTimelineRange).toHaveBeenCalledWith(1230, 1234, false);
+    expect(actionsIndex.pushTimelineRange).toHaveBeenCalledWith("00000000--000f00000d", 1230000, 1234000, false);
   });
 
   it('should call prime nav with history', async () => {
@@ -130,7 +130,7 @@ describe('history middleware', () => {
     expect(store.dispatch).toHaveBeenCalledTimes(2);
     expect(store.dispatch).toHaveBeenCalledWith(fakeInner);
     expect(store.dispatch).toHaveBeenCalledWith(fakeInner2);
-    expect(actionsIndex.pushTimelineRange).toHaveBeenCalledWith(undefined, undefined, false);
+    expect(actionsIndex.pushTimelineRange).toHaveBeenCalledWith(undefined, undefined, undefined, false);
     expect(actionsIndex.primeNav).toHaveBeenCalledWith(true);
   });
 });

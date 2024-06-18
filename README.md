@@ -31,5 +31,3 @@ The current playback is tracked not by storing the current offset, but instead s
 ```
 
 With this central authority on current offset time, it becomes much easier to have each data source keep themselves in sync instead of trying to manage synchronizing all of them.
-
-
