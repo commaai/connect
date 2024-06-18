@@ -698,7 +698,7 @@ class Navigation extends Component {
         </div>
         <Typography className={classes.searchSelectBoxDetails}>
           {Utils.formatPlaceName(searchSelect)}
-          {Utils.formatPlaceAddress(searchSelect, 'state')}
+          {Utils.formatPlaceAddress(searchSelect)}
         </Typography>
       </div>
     );
