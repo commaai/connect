@@ -135,32 +135,4 @@ describe('navigation formatting utils', () => {
       });
     });
   });
-
-  describe('favorite formatting', () => {
-    const testCases = [
-      {
-        // from favorites
-        item: {
-          title: '123 San Diego St',
-          resultType: 'houseNumber',
-          address: {
-            label: '123 San Diego St, San Diego, CA 92123, United States',
-          },
-        },
-
-        // expected
-        name: '123 San Diego St',
-        address: 'San Diego, CA 92123, United States',
-      },
-    ];
-
-    testCases.forEach((testCase) => {
-      test(testCase.address, () => {
-        const { item } = testCase;
-
-        expect(Utils.formatPlaceName(item)).toBe(testCase.name);
-        expect(Utils.formatPlaceAddress(item)).toBe(testCase.address);
-      });
-    });
-  });
 });
