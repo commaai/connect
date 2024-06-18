@@ -11,7 +11,7 @@ import { CircularProgress, Grid } from '@material-ui/core';
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 import { athena as Athena, auth as Auth, billing as Billing, request as Request } from '@commaai/api';
 
-import { getZoom } from './url';
+import { getZoom, getSegmentRange } from './url';
 import store, { history } from './store';
 
 import ErrorFallback from './components/ErrorFallback';
@@ -122,7 +122,7 @@ class App extends Component {
       return this.renderLoading();
     }
 
-    const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(window.location.pathname);
+    const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(window.location.pathname) && !getSegmentRange(window.location.pathname);
     let content = (
       <Suspense fallback={this.renderLoading()}>
         { showLogin ? this.anonymousRoutes() : this.authRoutes() }

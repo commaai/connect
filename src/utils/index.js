@@ -187,11 +187,6 @@ export function getSegmentNumber(route, offset) {
   if (offset === undefined) {
     offset = currentOffset();
   }
-  for (let i = 0; i < route.segment_offsets.length; i++) {
-    if (offset >= route.segment_offsets[i]
-      && (i === route.segment_offsets.length - 1 || offset < route.segment_offsets[i + 1])) {
-      return route.segment_numbers[i];
-    }
-  }
-  return null;
+
+  return Math.floor(offset / (60*1000));
 }

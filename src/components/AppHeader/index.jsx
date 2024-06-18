@@ -57,7 +57,7 @@ const styles = () => ({
 });
 
 const AppHeader = ({
-  profile, classes, dispatch, drawerIsOpen, annotating, showDrawerButton,
+  profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
   forwardRef, handleDrawerStateChanged, primeNav, dongleId,
 }) => {
   const [anchorEl, setAnchorEl] = useState(null);

@@ -2,8 +2,8 @@
 import { configureViewport, goto } from './utils';
 
 const DEMO_DEVICE_URL = '/1d3dc3e03047b0c7';
-const DEMO_ROUTE_URL = '/1d3dc3e03047b0c7/1716484475499/1716485004466';
-const ZOOMED_DEMO_URL = '/1d3dc3e03047b0c7/1716484476499/1716485003466';
+const DEMO_ROUTE_URL = '/1d3dc3e03047b0c7/000000dd--455f14369d';
+const ZOOMED_DEMO_URL = '/1d3dc3e03047b0c7/000000dd--455f14369d/109/423';
 
 jest.setTimeout(60000);
 

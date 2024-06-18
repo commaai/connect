@@ -15,7 +15,7 @@ describe('timeline actions', () => {
   it('should push history state when editing zoom', () => {
     const dispatch = jest.fn();
     const getState = jest.fn();
-    const actionThunk = pushTimelineRange(123, 1234);
+    const actionThunk = pushTimelineRange("log_id", 123, 1234);
 
     getState.mockImplementationOnce(() => ({
       dongleId: 'statedongle',
@@ -23,6 +23,6 @@ describe('timeline actions', () => {
       zoom: {},
     }));
     actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/123/1234');
+    expect(push).toBeCalledWith('/statedongle/log_id');
   });
 });

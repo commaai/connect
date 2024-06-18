@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange } from '../../actions';
+import { popTimelineRange, pushTimelineRange, updateSegmentRange } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
@@ -20,28 +20,30 @@ class DriveView extends Component {
 
   onBack(zoom, currentRoute) {
     if (zoom.previous) {
-      this.props.dispatch(popTimelineRange());
+      this.props.dispatch(popTimelineRange(currentRoute?.log_id));
     } else if (currentRoute) {
       this.props.dispatch(
-        pushTimelineRange(currentRoute.start_time_utc_millis, currentRoute.end_time_utc_millis),
+        pushTimelineRange(currentRoute.log_id, null, null),
       );
     }
   }
 
   close() {
-    this.props.dispatch(pushTimelineRange(null, null));
+    this.props.dispatch(pushTimelineRange(null, null, null));
+    this.props.dispatch(updateSegmentRange(null, null, null));
   }
 
   render() {
-    const { dongleId, zoom, routes, currentRoute } = this.props;
+    const { dongleId, zoom, currentRoute, routes } = this.props;
 
-    const currentRouteBoundsSelected = currentRoute?.start_time_utc_millis === zoom.start && currentRoute?.end_time_utc_millis === zoom.end;
-    const backButtonDisabled = !zoom.previousZoom && currentRouteBoundsSelected;
+    const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute?.duration;
+    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
 
     // FIXME: end time not always same day as start time
-    const startDay = dayjs(zoom.start).format('dddd');
-    const startTime = dayjs(zoom.start).format('MMM D @ HH:mm');
-    const endTime = dayjs(zoom.end).format('HH:mm');
+    const start = currentRoute.start_time_utc_millis + zoom.start;
+    const startDay = dayjs(start).format('dddd');
+    const startTime = dayjs(start).format('MMM D @ HH:mm');
+    const endTime = dayjs(start + (zoom.end - zoom.start)).format('HH:mm');
 
     return (
       <div className="DriveView">
