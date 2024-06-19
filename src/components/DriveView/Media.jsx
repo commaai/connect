@@ -8,6 +8,7 @@ import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Butt
 import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
+import XIcon from './XIcon';
 
 import { drives as Drives } from '@commaai/api';
 
@@ -761,7 +762,7 @@ class Media extends Component {
           )}
           <MenuItem onClick={ this.tweetRoute } className={ classes.shareButton }>
             Post on X
-            <ShareIcon />
+            <XIcon />
           </MenuItem>
           <Divider />
           <MenuItem onClick={ this.openInUseradmin }>
