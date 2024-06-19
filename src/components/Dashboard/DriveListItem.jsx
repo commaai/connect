@@ -89,7 +89,7 @@ const DriveListItem = (props) => {
 
   const small = windowWidth < 580;
   const startTime = dayjs(drive.start_time_utc_millis).format('HH:mm');
-  const startDate = dayjs(drive.start_time_utc_millis).format(small ? 'ddd, MMM D' : 'dddd, MMM D');
+  const startDate = dayjs(drive.start_time_utc_millis).format(small ? 'ddd, MMM D, YYYY' : 'dddd, MMM D, YYYY');
   const endTime = dayjs(drive.end_time_utc_millis).format('HH:mm');
   const duration = formatDriveDuration(drive.duration);
 
