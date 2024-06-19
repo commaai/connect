@@ -123,6 +123,7 @@ class TimeDisplay extends Component {
     this.state = {
       desiredPlaySpeed: 1,
       displayTime: this.getDisplayTime(),
+      manual: false
     };
   }
 
@@ -141,7 +142,7 @@ class TimeDisplay extends Component {
     const { dispatch } = this.props;
     if (document.visibilityState === 'hidden') {
       dispatch(pause());
-    } else if (document.visibilityState === 'visible') {
+    } else if (document.visibilityState === 'visible' && !this.state.manual) {
       const { desiredPlaySpeed } = this.state;
       let curIndex = timerSteps.indexOf(desiredPlaySpeed);
       dispatch(play(timerSteps[curIndex]));
@@ -228,9 +229,11 @@ class TimeDisplay extends Component {
   togglePause() {
     const { desiredPlaySpeed, dispatch } = this.props;
     if (desiredPlaySpeed === 0) {
+      this.state.manual = false;
       // eslint-disable-next-line react/destructuring-assignment
       dispatch(play(this.state.desiredPlaySpeed));
     } else {
+      this.state.manual = true;
       dispatch(pause());
     }
   }
