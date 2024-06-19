@@ -100,7 +100,7 @@ class DriveMap extends Component {
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
         const pos = this.posAtOffset(currentOffset());
-        if (pos && pos.every((coordinate, index) => coordinate != this.lastMapPos[index])) {
+        if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
           this.lastMapPos = pos;
           markerSource.setData({
             type: 'Point',
