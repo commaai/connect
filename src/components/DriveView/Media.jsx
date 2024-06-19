@@ -343,7 +343,7 @@ class Media extends Component {
       .forEach(event => {
         if(event.type === 'engage') {
           percentage += parseInt(((event.data.end_route_offset_millis - event.route_offset_millis) / currentRoute.duration) * 100);
-          engagements++;
+          engagements += 1;
         }
       })
     
