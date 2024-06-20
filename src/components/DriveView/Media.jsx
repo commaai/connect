@@ -411,7 +411,7 @@ class Media extends Component {
             uploading += Boolean(log.progress !== undefined);
             paused += Boolean(log.paused);
             requested += Boolean(log.requested);
-          } 
+          }
         }
       }
     }
