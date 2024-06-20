@@ -56,7 +56,7 @@ const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
       {...rest}
     >
       <ListItem className="text-white pt-3 pb-4 px-4 flex-col items-start gap-2">
-        <div className="font-bold">{profile.email}</div>
+        <span className="font-bold">{profile.email}</span>
         <span className="text-xs text-[#ffffff66]">{profile.user_id}</span>
         {version}
       </ListItem>
