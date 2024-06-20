@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import dayjs from 'dayjs';
 
 import {
@@ -17,18 +17,29 @@ const logOut = async () => {
   }
 };
 
-const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
-  const [buildTimestamp, setBuildTimestamp] = useState('');
-  const [version, setVersion] = useState('');
+const Version = () => {
+  const sha = import.meta.env.VITE_APP_GIT_SHA;
+  const timestamp = import.meta.env.VITE_APP_GIT_TIMESTAMP;
 
-  useEffect(() => {
-    setVersion(import.meta.env.VITE_APP_GIT_SHA?.substring(0, 7) || 'dev');
+  let content = ['Version: '];
 
-    const buildDate = import.meta.env.VITE_APP_GIT_TIMESTAMP;
-    if (buildDate) {
-      setBuildTimestamp(`, ${dayjs(buildDate).fromNow()}`);
+  if (sha) {
+    const commitUrl = `https://github.com/commaai/connect/commit/${sha}`;
+    content.push(<a key="0" className="text-blue-400 underline" href={commitUrl} target="_blank" rel="noreferrer">{sha.substring(0, 7)}</a>);
+
+    if (timestamp) {
+      const buildDate = dayjs(timestamp).fromNow();
+      content.push(`, ${buildDate}`);
     }
-  }, []);
+  } else {
+    content.push('dev');
+  }
+
+  return <span className="text-xs text-[#ffffff66]">{content}</span>
+};
+
+const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
+  const version = useMemo(() => <Version />, []);
 
   const onLogOut = useCallback(() => {
     onClose();
@@ -44,10 +55,10 @@ const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
       transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       {...rest}
     >
-      <ListItem className="text-white py-3 px-4 flex-col items-start">
+      <ListItem className="text-white pt-3 pb-4 px-4 flex-col items-start gap-2">
         <span className="font-bold">{profile.email}</span>
-        <span className="text-xs text-[#ffffff66] pt-2">{ profile.user_id }</span>
-        <span className="text-xs text-[#ffffff66] pt-2">{`Version: ${version}${buildTimestamp}`}</span>
+        <span className="text-xs text-[#ffffff66]">{profile.user_id}</span>
+        {version}
       </ListItem>
       <Divider />
       <MenuItem
