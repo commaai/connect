@@ -1,4 +1,3 @@
-import { act } from 'react';
 import * as Types from '../actions/types';
 import { emptyDevice } from '../utils';
 
