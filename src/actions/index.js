@@ -6,7 +6,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
-import {hasRoutesData } from '../timeline/segments';
+import { hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
 let routesRequest = null;
@@ -60,7 +60,7 @@ export function checkRoutesData() {
         // TODO: these will all be relative times soon
         // fix segment boundary times for routes that have the wrong time at the start
         if ((Math.abs(r.start_time_utc_millis - startTime) > 24 * 60 * 60 * 1000)
-            && (Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000)) {
+          && (Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000)) {
           console.log('fixing %s', r.fullname);
           startTime = r.start_time_utc_millis;
           endTime = r.end_time_utc_millis;
@@ -102,7 +102,7 @@ export function checkRoutesData() {
   };
 }
 
-export function checkLastRoutesData() {
+export function checkLastRoutesData(loadAll = false) {
   return (dispatch, getState) => {
     const limit = getState().limit
     const routes = getState().routes
@@ -112,10 +112,9 @@ export function checkLastRoutesData() {
       return
     }
 
-    console.log(`fetching ${limit +LIMIT_INCREMENT } routes`)
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
-      limit: limit + LIMIT_INCREMENT,
+      limit: loadAll ? null : limit + LIMIT_INCREMENT,
     })
 
     const d = new Date();
@@ -158,7 +157,7 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   }
 
   if (allowPathChange) {
-    const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start/1000), Math.floor(end/1000), false);
+    const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start / 1000), Math.floor(end / 1000), false);
     if (window.location.pathname !== desiredPath) {
       dispatch(push(desiredPath));
     }
