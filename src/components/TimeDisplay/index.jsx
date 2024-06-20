@@ -123,6 +123,7 @@ class TimeDisplay extends Component {
     this.state = {
       desiredPlaySpeed: 1,
       displayTime: this.getDisplayTime(),
+      manual: false
     };
   }
 
@@ -141,7 +142,7 @@ class TimeDisplay extends Component {
     const { dispatch } = this.props;
     if (document.visibilityState === 'hidden') {
       dispatch(pause());
-    } else if (document.visibilityState === 'visible') {
+    } else if (document.visibilityState === 'visible' && !this.state.manual) {
       const { desiredPlaySpeed } = this.state;
       let curIndex = timerSteps.indexOf(desiredPlaySpeed);
       dispatch(play(timerSteps[curIndex]));
@@ -228,9 +229,11 @@ class TimeDisplay extends Component {
   togglePause() {
     const { desiredPlaySpeed, dispatch } = this.props;
     if (desiredPlaySpeed === 0) {
+      this.setState({ manual: false });
       // eslint-disable-next-line react/destructuring-assignment
       dispatch(play(this.state.desiredPlaySpeed));
     } else {
+      this.setState({ manual: true });
       dispatch(pause());
     }
   }
@@ -243,35 +246,35 @@ class TimeDisplay extends Component {
     const isThinCls = isThin ? 'isThin' : '';
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     return (
-      <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
-        <div className={ classes.iconBox }>
+      <div className={`${classes.base} ${isExpandedCls} ${isThinCls}`}>
+        <div className={classes.iconBox}>
           <IconButton
-            className={ classes.iconButton }
-            onClick={ () => this.jumpBack(10000) }
+            className={classes.iconButton}
+            onClick={() => this.jumpBack(10000)}
             aria-label="Jump back 10 seconds"
           >
             <Replay10 className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
-        <div className={ classes.iconBox }>
+        <div className={classes.iconBox}>
           <IconButton
-            className={ classes.iconButton }
-            onClick={ () => this.jumpForward(10000) }
+            className={classes.iconButton}
+            onClick={() => this.jumpForward(10000)}
             aria-label="Jump forward 10 seconds"
           >
             <Forward10 className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
-        { !isThin && (
+        {!isThin && (
           <Typography variant="caption" align="center" style={{ paddingTop: 4 }}>
             CURRENT PLAYBACK TIME
           </Typography>
         )}
         <Typography variant="body1" align="center" className={classes.currentTime}>
-          <span ref={this.textHolder}>{ displayTime }</span>
+          <span ref={this.textHolder}>{displayTime}</span>
         </Typography>
         {!isIos && (
-          <div className={ classes.desiredPlaySpeedContainer }>
+          <div className={classes.desiredPlaySpeedContainer}>
             <IconButton
               className={classes.tinyArrowIcon}
               onClick={this.increaseSpeed}
@@ -294,7 +297,7 @@ class TimeDisplay extends Component {
             </IconButton>
           </div>
         )}
-        <div className={ classes.playButtonBox }>
+        <div className={classes.playButtonBox}>
           <IconButton
             onClick={this.togglePause}
             aria-label={isPaused ? 'Unpause' : 'Pause'}
