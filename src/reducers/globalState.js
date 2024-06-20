@@ -60,6 +60,7 @@ export default function reducer(_state, action) {
         subscription: null,
         subscribeInfo: null,
         files: null,
+        limit: 0,
       };
       window.localStorage.setItem('selectedDongleId', action.dongleId);
       if (state.devices) {
@@ -75,6 +76,7 @@ export default function reducer(_state, action) {
           end: null,
         };
         state.routes = null;
+        state.lastRoutes = null;
         state.currentRoute = null;
       }
       break;
