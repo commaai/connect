@@ -371,8 +371,8 @@ class Media extends Component {
     }));
 
     const uploading = {};
+    const adjusted_start_time = currentRoute.start_time_utc_millis + loop.startTime;
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      const adjusted_start_time = currentRoute.start_time_utc_millis + loop.startTime;
       if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration
         && currentRoute.segment_end_times[i] > adjusted_start_time) {
         types.forEach((type) => {
