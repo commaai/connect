@@ -36,6 +36,7 @@ class DriveMap extends Component {
     this.shouldFlyTo = false;
     this.isInteracting = false;
     this.isInteractingTimeout = null;
+    this.lastMapPos = [0, 0];
   }
 
   componentDidMount() {
@@ -99,7 +100,8 @@ class DriveMap extends Component {
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
         const pos = this.posAtOffset(currentOffset());
-        if (pos) {
+        if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
+          this.lastMapPos = pos;
           markerSource.setData({
             type: 'Point',
             coordinates: pos,
