@@ -43,7 +43,7 @@ class DriveView extends Component {
     const start = currentRoute.start_time_utc_millis + zoom.start;
     const startDateObj = dayjs(start);
     const startDay = startDateObj.format('dddd');
-    const startTime = startDateObj.format(`MMM D ${dayjs().year() === startDateObj.year() ? '' : ', YYYY'} @ HH:mm`);
+    const startTime = startDateObj.format(`MMM D${dayjs().year() === startDateObj.year() ? '' : ', YYYY'} @ HH:mm`);
     const endTime = dayjs(start + (zoom.end - zoom.start)).format('HH:mm');
 
     return (
