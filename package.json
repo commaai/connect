@@ -26,9 +26,13 @@
   "dependencies": {
     "@commaai/api": "github:commaai/comma-api#3.1.2",
     "@commaai/my-comma-auth": "^1.4.1",
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.5",
     "@mapbox/mapbox-sdk": "^0.15.3",
     "@material-ui/core": "^1.5.1",
     "@material-ui/icons": "^1.1.1",
+    "@mui/styled-engine": "^5.15.14",
+    "@mui/x-data-grid": "^7.7.1",
     "@sentry/react": "^7.64.0",
     "@sentry/vite-plugin": "^2.7.0",
     "connected-react-router": "^4.5.0",
