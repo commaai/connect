@@ -60,6 +60,7 @@ export default function reducer(_state, action) {
         subscription: null,
         subscribeInfo: null,
         files: null,
+        limit: 0,
       };
       window.localStorage.setItem('selectedDongleId', action.dongleId);
       if (state.devices) {
@@ -75,6 +76,7 @@ export default function reducer(_state, action) {
           end: null,
         };
         state.routes = null;
+        state.lastRoutes = null;
         state.currentRoute = null;
       }
       break;
@@ -417,17 +419,17 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.ACTION_UPDATE_SEGMENT_RANGE: {
-        if (!action.log_id) {
-          state.segmentRange = null;
-        } else {
-          state.segmentRange = {
-            log_id: action.log_id,
-            start: action.start,
-            end: action.end,
-          };
-        }
-        break;
+      if (!action.log_id) {
+        state.segmentRange = null;
+      } else {
+        state.segmentRange = {
+          log_id: action.log_id,
+          start: action.start,
+          end: action.end,
+        };
       }
+      break;
+    }
     default:
       return state;
   }
