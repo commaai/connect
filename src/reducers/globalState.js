@@ -292,6 +292,11 @@ export default function reducer(_state, action) {
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }
+
+      if (!action.log_id) {
+        state.segmentRange = null;
+      }
+
       const r = state.routes?.find((route) => route.log_id === action.log_id);
       if (action.log_id && r) {
         state.currentRoute = r;
@@ -416,12 +421,13 @@ export default function reducer(_state, action) {
     case Types.ACTION_UPDATE_SEGMENT_RANGE: {
       if (!action.log_id) {
         state.segmentRange = null;
+      } else {
+        state.segmentRange = {
+          log_id: action.log_id,
+          start: action.start,
+          end: action.end,
+        };
       }
-      state.segmentRange = {
-        log_id: action.log_id,
-        start: action.start,
-        end: action.end,
-      };
       break;
     }
     default:
