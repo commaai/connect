@@ -38,7 +38,7 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
     }
     
     if (pathSegmentRange !== state.segmentRange) {
-      if (state.zoom.previous) {
+      if (state.zoom?.previous) {
         dispatch(pushTimelineRange(pathSegmentRange?.log_id, state.zoom?.previous.start, state.zoom?.previous.end, false));
       } else {
         dispatch(pushTimelineRange(pathSegmentRange?.log_id, pathSegmentRange?.start, pathSegmentRange?.end, false));
