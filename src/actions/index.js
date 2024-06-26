@@ -37,7 +37,7 @@ export function checkRoutesData() {
       dongleId,
     };
 
-    routesRequestPromise = routesRequest.req.then((routesData) => {
+    routesRequestPromise = routesRequest.req.then(async (routesData) => {
       state = getState();
       const currentRange = state.filter;
       if (currentRange.start !== fetchRange.start
@@ -51,6 +51,15 @@ export function checkRoutesData() {
         && !MyCommaAuth.isAuthenticated()) {
         window.location = `/?r=${encodeURI(window.location.pathname)}`; // redirect to login
         return;
+      }
+
+      if (!state.currentRoute && state.segmentRange) {
+        const curr = routesData.find((route) => route.log_id === state.segmentRange.log_id);
+        if(!curr) {
+          await Drives.getRouteInfo(state.segmentRange.log_id)
+          .then(res => routesData.push(res))
+          .catch(err => console.error(`Couldn't load route: ${err}`))
+        }
       }
 
       const routes = routesData.map((r) => {
