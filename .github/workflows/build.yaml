@@ -14,8 +14,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-pnpm
 
+      - name: get build info
+        id: build_info
+        run: echo timestamp=$(git show -s --format=%cI) >> $GITHUB_OUTPUT
+
       - run: pnpm install
       - run: pnpm build:production
+        env:
+          VITE_APP_GIT_SHA: ${{ github.sha }}
+          VITE_APP_GIT_TIMESTAMP: ${{ steps.build_info.outputs.timestamp }}
 
       - name: Upload built project
         uses: actions/upload-artifact@v4
