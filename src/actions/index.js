@@ -6,7 +6,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
-import {hasRoutesData } from '../timeline/segments';
+import { hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
 let routesRequest = null;
@@ -37,7 +37,7 @@ export function checkRoutesData() {
       dongleId,
     };
 
-    routesRequestPromise = routesRequest.req.then((routesData) => {
+    routesRequestPromise = routesRequest.req.then(async (routesData) => {
       state = getState();
       const currentRange = state.filter;
       if (currentRange.start !== fetchRange.start
@@ -51,6 +51,15 @@ export function checkRoutesData() {
         && !MyCommaAuth.isAuthenticated()) {
         window.location = `/?r=${encodeURI(window.location.pathname)}`; // redirect to login
         return;
+      }
+
+      if (!state.currentRoute && state.segmentRange) {
+        const curr = routesData.find((route) => route.log_id === state.segmentRange.log_id);
+        if(!curr) {
+          await Drives.getRouteInfo(state.segmentRange.log_id)
+          .then(res => routesData.push(res))
+          .catch(err => console.error(`Couldn't load route: ${err}`))
+        }
       }
 
       const routes = routesData.map((r) => {
@@ -111,7 +120,6 @@ export function checkLastRoutesData() {
       return
     }
 
-    console.log(`fetching ${limit +LIMIT_INCREMENT } routes`)
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
       limit: limit + LIMIT_INCREMENT,
@@ -157,7 +165,7 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   }
 
   if (allowPathChange) {
-    const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start/1000), Math.floor(end/1000), false);
+    const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start / 1000), Math.floor(end / 1000), false);
     if (window.location.pathname !== desiredPath) {
       dispatch(push(desiredPath));
     }
