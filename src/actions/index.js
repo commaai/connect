@@ -101,7 +101,7 @@ export function checkRoutesData() {
   };
 }
 
-export function checkLastRoutesData(loadAll = false) {
+export function checkLastRoutesData() {
   return (dispatch, getState) => {
     const limit = getState().limit
     const routes = getState().routes
@@ -113,7 +113,7 @@ export function checkLastRoutesData(loadAll = false) {
 
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
-      limit: loadAll ? null : limit + LIMIT_INCREMENT,
+      limit: limit + LIMIT_INCREMENT,
     })
 
     const d = new Date();
