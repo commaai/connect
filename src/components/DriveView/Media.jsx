@@ -372,11 +372,11 @@ class Media extends Component {
 
     const uploading = {};
     const adjusted_start_time = currentRoute.start_time_utc_millis + loop.startTime;
-    for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration
-        && currentRoute.segment_end_times[i] > adjusted_start_time) {
+    for (let segmentIdx = 0; segmentIdx < currentRoute.segment_start_times.length; segmentIdx++) {
+      if (currentRoute.segment_start_times[segmentIdx] < adjusted_start_time + loop.duration
+          && currentRoute.segment_end_times[segmentIdx] > adjusted_start_time) {
         types.forEach((type) => {
-          const fileName = `${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`;
+          const fileName = `${currentRoute.fullname}--${segmentIdx}/${type}`;
           if (!files[fileName]) {
             uploading[fileName] = { requested: true };
           }
@@ -399,13 +399,12 @@ class Media extends Component {
   _uploadStats(types, count, uploaded, uploading, paused, requested) {
     const { currentRoute, loop, files } = this.props;
     const adjusted_start_time = currentRoute.start_time_utc_millis + loop.startTime;
-
-    for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration
-        && currentRoute.segment_end_times[i] > adjusted_start_time) {
+    for (let segmentIdx = 0; segmentIdx < currentRoute.segment_start_times.length; segmentIdx++) {
+      if (currentRoute.segment_start_times[segmentIdx] < adjusted_start_time + loop.duration
+        && currentRoute.segment_end_times[segmentIdx] > adjusted_start_time) {
         for (let j = 0; j < types.length; j++) {
           count += 1;
-          const log = files[`${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${types[j]}`];
+          const log = files[`${currentRoute.fullname}--${segmentIdx}/${types[j]}`];
           if (log) {
             uploaded += Boolean(log.url || log.notFound);
             uploading += Boolean(log.progress !== undefined);
