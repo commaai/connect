@@ -5,13 +5,13 @@ import { updateDeviceOnline, fetchDeviceNetworkStatus } from '.';
 import * as Types from './types';
 import { deviceOnCellular, getDeviceFromState, deviceVersionAtLeast, asyncSleep } from '../utils';
 
-const FILE_NAMES = {
+export const FILE_NAMES = {
   qcameras: 'qcamera.ts',
   cameras: 'fcamera.hevc',
   dcameras: 'dcamera.hevc',
   ecameras: 'ecamera.hevc',
-  qlogs: 'qlog.bz2',
-  logs: 'rlog.bz2',
+  qlogs: 'qlog.zst',
+  logs: 'rlog.zst',
 };
 const MAX_OPEN_REQUESTS = 15;
 const MAX_RETRIES = 5;
@@ -102,6 +102,7 @@ export function fetchFiles(routeName, nocache = false) {
       Sentry.captureException(err, { fingerprint: 'action_files_fetch_files' });
       return;
     }
+    console.log('files', files)
 
     const dongleId = routeName.split('|')[0];
     const urlName = routeName.replace('|', '/');
