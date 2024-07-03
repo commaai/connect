@@ -8,6 +8,7 @@ import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 import { hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
+import { getCommaAccessToken } from '@commaai/my-comma-auth/storage';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -54,22 +55,23 @@ export function checkRoutesData() {
       }
 
       if (!state.currentRoute && state.segmentRange) {
-        const curr = routesData.find((route) => route.log_id === state.segmentRange.log_id);
-        if(!curr) {
-          await Drives.getRouteInfo(state.segmentRange.log_id)
-          .then(res => routesData.push(res))
-          .catch(err => console.error(`Couldn't load route: ${err}`))
-        }
+        await fetch(`https://api.aks.comma.ai/v1/devices/${dongleId}/routes_segments?route_str=${`${dongleId}|${state.segmentRange.log_id}`.replace(/%7C/g, '|')}`, {
+          headers: { 'Authorization': `JWT ${await getCommaAccessToken()}` }
+        })
+        .then(res => res.json())
+        .then(res => {
+          routesData.push(res[0])
+        }).catch(err => console.error(err.message))
       }
 
-      const routes = routesData.map((r) => {
+      let routes = routesData.map((r) => {
         let startTime = r.segment_start_times[0];
         let endTime = r.segment_end_times[r.segment_end_times.length - 1];
 
         // TODO: these will all be relative times soon
         // fix segment boundary times for routes that have the wrong time at the start
         if ((Math.abs(r.start_time_utc_millis - startTime) > 24 * 60 * 60 * 1000)
-            && (Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000)) {
+          && (Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000)) {
           startTime = r.start_time_utc_millis;
           endTime = r.end_time_utc_millis;
           r.segment_start_times = r.segment_numbers.map((x) => startTime + (x * 60 * 1000));
