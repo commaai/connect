@@ -54,7 +54,8 @@ export function checkRoutesData() {
         return;
       }
 
-      if (!state.currentRoute && state.segmentRange) {
+      // fix for drives outside date range not loading. checks whether the route in the url exists and if not, gets it from the staging API.
+      if (state.segmentRange && !routesData.some(route => route.log_id === state.segmentRange?.log_id)) {
         await fetch(`https://api.aks.comma.ai/v1/devices/${dongleId}/routes_segments?route_str=${`${dongleId}|${state.segmentRange.log_id}`.replace(/%7C/g, '|')}`, {
           headers: { 'Authorization': `JWT ${await getCommaAccessToken()}` }
         })
