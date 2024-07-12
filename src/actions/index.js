@@ -118,6 +118,7 @@ export function checkLastRoutesData() {
       return
     }
 
+    console.log(`fetching ${limit +LIMIT_INCREMENT } routes`)
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
       limit: limit + LIMIT_INCREMENT,
@@ -183,7 +184,6 @@ export function popTimelineRange(log_id, allowPathChange = true) {
 }
 
 export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
-
   return (dispatch, getState) => {
     const state = getState();
 
