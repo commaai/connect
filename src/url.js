@@ -29,6 +29,7 @@ export function getSegmentRange(pathname) {
   parts = parts.filter((m) => m.length);
 
   if (parts.length >= 2 && logIdRegex.test(parts[1])) {
+    console.log('getSegmentRange', parts[1], Number(parts[2]) * 1000, Number(parts[3]) * 1000);
     return {
       log_id: parts[1],
       start: Number(parts[2]) * 1000,
