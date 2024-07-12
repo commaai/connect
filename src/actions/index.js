@@ -17,7 +17,6 @@ const FIVE_YEARS = 1000 * 60 * 60 * 24 * 365 * 5;
 export function checkRoutesData() {
   return (dispatch, getState) => {
     let state = getState();
-    console.log('current routes', state.lastRoutes)
     if (!state.dongleId) {
       return;
     }
@@ -33,16 +32,12 @@ export function checkRoutesData() {
     const { dongleId } = state;
     const fetchRange = state.filter;
 
-    // console.log('currentRoute', state.currentRoute, 'segmentRange', state.segmentRange)
-    // if (state.segmentRange && !state.lastRoutes.some(route => route.log_id === state.segmentRange?.log_id)) {
-    if (state.segmentRange) { // && state.lastRoutes?.length !== 0) {
-      console.log("has segmentRange, doing log_id query for", `${dongleId}|${state.segmentRange.log_id}`)
+    if (state.segmentRange) {
       routesRequest = {
         req: Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
         dongleId,
       };
     } else {
-      console.log("no segmentRange, doing multiquery", dongleId, fetchRange.start, fetchRange.end, state.limit)
       routesRequest = {
         req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, state.limit),
         dongleId,
@@ -50,14 +45,12 @@ export function checkRoutesData() {
     }
 
     routesRequestPromise = routesRequest.req.then((routesData) => {
-      console.log("routesData from routesRequest", routesData)
       state = getState();
       const currentRange = state.filter;
       if (currentRange.start !== fetchRange.start
         || currentRange.end !== fetchRange.end
         || state.dongleId !== dongleId) {
         routesRequest = null;
-        console.log('dispatch checkRoutesData: inside checkRoutesData?!')
         dispatch(checkRoutesData());
         return;
       }
@@ -94,7 +87,6 @@ export function checkRoutesData() {
         return b.create_time - a.create_time;
       });
 
-      console.log('dispatch ACTION_ROUTES_METADATA', routes.length)
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,
         dongleId,
@@ -117,7 +109,6 @@ export function checkRoutesData() {
 }
 
 export function checkLastRoutesData() {
-  console.log('checkLastRoutesData')
   return (dispatch, getState) => {
     const limit = getState().limit
     const routes = getState().routes
@@ -127,12 +118,10 @@ export function checkLastRoutesData() {
       return
     }
 
-    console.log(`fetching ${limit +LIMIT_INCREMENT } routes`)
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
       limit: limit + LIMIT_INCREMENT,
     })
-    console.log('fetched those routes')
 
     const d = new Date();
     const end = d.getTime();
@@ -144,7 +133,6 @@ export function checkLastRoutesData() {
       end,
     });
 
-    console.log('dispatch checkRoutesData: from checkLastRoutesData')
     dispatch(checkRoutesData());
   };
 }
@@ -166,13 +154,6 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  // if (!state.currentRoute) {
-  //   return;
-  // }
-  console.log('dispatch checkRoutesData: from updateTimeline')
-  // dispatch(checkRoutesData());
-  console.log('updateTimeline state', state)
-
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
     dispatch(resetPlayback());
@@ -196,7 +177,6 @@ export function popTimelineRange(log_id, allowPathChange = true) {
       });
 
       const { start, end } = state.zoom.previous;
-      console.log('calling updateTimeline from popTimelineRange')
       updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
     }
   };
@@ -216,7 +196,6 @@ export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
       });
     }
 
-    console.log('calling updateTimeline from pushTimelineRange')
     updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
   };
 
@@ -311,7 +290,6 @@ export function selectDevice(dongleId, allowPathChange = true) {
       dispatch(fetchDeviceOnline(dongleId));
     }
 
-    console.log('dispatch checkRoutesData: from selectDevice')
     dispatch(checkRoutesData());
 
     if (allowPathChange) {
@@ -459,7 +437,6 @@ export function selectTimeFilter(start, end) {
       limit: undefined,
     })
 
-    console.log('dispatch checkRoutesData: from selectTimeFilter')
     dispatch(checkRoutesData());
   };
 }
