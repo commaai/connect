@@ -319,7 +319,6 @@ export default function reducer(_state, action) {
           end: state.currentRoute.end_time_utc_millis,
         };
 
-
         if (!state.loop) {
           state.loop = {
             startTime: state.zoom.start,
