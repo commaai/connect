@@ -281,14 +281,18 @@ export default function reducer(_state, action) {
       };
       break;
     case Types.TIMELINE_POP_SELECTION:
+      console.log('pop', state.zoom, state.loop)
       if (state.zoom.previous) {
+        console.log('pop first')
         state.zoom = state.zoom.previous;
       } else {
+        console.log('pop second')
         state.zoom = null;
         state.loop = null;
       }
       break;
     case Types.TIMELINE_PUSH_SELECTION: {
+      console.log('timeline push', state.zoom, state.loop)
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }
@@ -296,10 +300,12 @@ export default function reducer(_state, action) {
       if (!action.log_id) {
         state.segmentRange = null;
       }
+      console.log('push', state.segmentRange)
 
       const r = state.routes?.find((route) => route.log_id === action.log_id);
       if (action.log_id && r) {
         state.currentRoute = r;
+        console.log('found currentRoute from click!', state.currentRoute)
         if (!action.start) {
           state.zoom = {
             start: 0,
@@ -318,6 +324,8 @@ export default function reducer(_state, action) {
           start: state.currentRoute.start_time_utc_millis,
           end: state.currentRoute.end_time_utc_millis,
         };
+        console.log('updating segmentRange1')
+
 
         if (!state.loop) {
           state.loop = {
@@ -326,6 +334,7 @@ export default function reducer(_state, action) {
           };
         }
       } else {
+        console.log('push all reset')
         state.zoom = null;
         state.loop = null;
         state.currentRoute = null;
@@ -387,10 +396,15 @@ export default function reducer(_state, action) {
       };
       if (!state.currentRoute && state.segmentRange) {
         const curr = state.routes?.find((route) => route.log_id === state.segmentRange.log_id);
+        console.log('ACTION_ROUTES_METADATA state.routes ', state.routes)
         if (curr) {
+          console.log('prev currentRoute', state.currentRoute)
           state.currentRoute = {
             ...curr,
           };
+          // state.segmentRange.start = NaN
+          // state.segmentRange.end = NaN
+          console.log('found currentRoute from url loading', state.currentRoute, state.segmentRange)
           if (state.segmentRange.start && state.segmentRange.end) {
             state.zoom = {
               start: state.segmentRange.start,
@@ -408,6 +422,8 @@ export default function reducer(_state, action) {
             start: state.currentRoute.start_time_utc_millis,
             end: state.currentRoute.end_time_utc_millis,
           };
+          console.log('updating segmentRange2')
+
 
           if (!state.loop || !state.loop.startTime || !state.loop.duration) {
             state.loop = {
@@ -422,6 +438,7 @@ export default function reducer(_state, action) {
       if (!action.log_id) {
         state.segmentRange = null;
       } else {
+        console.log('updating segmentRange3')
         state.segmentRange = {
           log_id: action.log_id,
           start: action.start,
