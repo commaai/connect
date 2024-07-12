@@ -6,7 +6,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
-import {hasRoutesData } from '../timeline/segments';
+import { hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
 let routesRequest = null;
@@ -55,19 +55,9 @@ export function checkRoutesData() {
 
       // if requested segment range not in loaded routes, fetch it explicitly
       if (state.segmentRange && !routesData.some(route => route.log_id === state.segmentRange?.log_id)) {
-        console.log("fetching segment range explicitly", state.segmentRange, `${dongleId}|${state.segmentRange.log_id}`)
-        console.log('result', await Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`))
-        routesData.push(await Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`)[0])
-
-
-
-        // await fetch(`https://api.aks.comma.ai/v1/devices/${dongleId}/routes_segments?route_str=${`${dongleId}|${state.segmentRange.log_id}`.replace(/%7C/g, '|')}`, {
-        //   headers: { 'Authorization': `JWT ${await getCommaAccessToken()}` }
-        // })
-        // .then(res => res.json())
-        // .then(res => {
-        //   routesData.push(res[0])
-        // }).catch(err => console.error(err.message))
+        await Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`)
+        .then(route => routesData.push(route[0]))
+        .catch(err => console.error(err))
       }
 
       let routes = routesData.map((r) => {
@@ -128,7 +118,6 @@ export function checkLastRoutesData() {
       return
     }
 
-    console.log(`fetching ${limit +LIMIT_INCREMENT } routes`)
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
       limit: limit + LIMIT_INCREMENT,
