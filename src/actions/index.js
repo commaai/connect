@@ -32,6 +32,7 @@ export function checkRoutesData() {
     const { dongleId } = state;
     const fetchRange = state.filter;
 
+    // if requested segment range not in loaded routes, fetch it explicitly
     if (state.segmentRange) {
       routesRequest = {
         req: Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
