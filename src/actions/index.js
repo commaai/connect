@@ -6,7 +6,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
-import { hasRoutesData } from '../timeline/segments';
+import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
 let routesRequest = null;
@@ -37,7 +37,7 @@ export function checkRoutesData() {
       dongleId,
     };
 
-    routesRequestPromise = routesRequest.req.then(async (routesData) => {
+    routesRequestPromise = routesRequest.req.then((routesData) => {
       state = getState();
       const currentRange = state.filter;
       if (currentRange.start !== fetchRange.start
@@ -53,14 +53,7 @@ export function checkRoutesData() {
         return;
       }
 
-      // if requested segment range not in loaded routes, fetch it explicitly
-      if (state.segmentRange && !routesData.some(route => route.log_id === state.segmentRange?.log_id)) {
-        await Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`)
-        .then(route => routesData.push(route[0]))
-        .catch(err => console.error(err))
-      }
-
-      let routes = routesData.map((r) => {
+      const routes = routesData.map((r) => {
         let startTime = r.segment_start_times[0];
         let endTime = r.segment_end_times[r.segment_end_times.length - 1];
 
@@ -118,6 +111,7 @@ export function checkLastRoutesData() {
       return
     }
 
+    console.log(`fetching ${limit +LIMIT_INCREMENT } routes`)
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
       limit: limit + LIMIT_INCREMENT,

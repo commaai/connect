@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@commaai/api':
-    specifier: github:commaai/comma-api#3.1.3
-    version: github.com/commaai/comma-api/eaae69b722eb0666c1d0f126f1cd1514a7993fb6
+    specifier: github:commaai/comma-api#3.1.2
+    version: github.com/commaai/comma-api/d23b152ea64bfcd0de0937d2d525d556870820b6
   '@commaai/my-comma-auth':
     specifier: ^1.4.1
     version: 1.4.1
@@ -9779,10 +9779,10 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  github.com/commaai/comma-api/eaae69b722eb0666c1d0f126f1cd1514a7993fb6:
-    resolution: {tarball: https://codeload.github.com/commaai/comma-api/tar.gz/eaae69b722eb0666c1d0f126f1cd1514a7993fb6}
+  github.com/commaai/comma-api/d23b152ea64bfcd0de0937d2d525d556870820b6:
+    resolution: {tarball: https://codeload.github.com/commaai/comma-api/tar.gz/d23b152ea64bfcd0de0937d2d525d556870820b6}
     name: '@commaai/api'
-    version: 3.1.3
+    version: 3.1.2
     dependencies:
       '@babel/runtime': 7.23.5
       query-string: 7.1.3
