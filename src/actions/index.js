@@ -6,9 +6,8 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
-import { hasRoutesData } from '../timeline/segments';
+import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
-import { getCommaAccessToken } from '@commaai/my-comma-auth/storage';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -54,15 +53,21 @@ export function checkRoutesData() {
         return;
       }
 
-      // fix for drives outside date range not loading. checks whether the route in the url exists and if not, gets it from the staging API.
+      // if requested segment range not in loaded routes, fetch it explicitly
       if (state.segmentRange && !routesData.some(route => route.log_id === state.segmentRange?.log_id)) {
-        await fetch(`https://api.aks.comma.ai/v1/devices/${dongleId}/routes_segments?route_str=${`${dongleId}|${state.segmentRange.log_id}`.replace(/%7C/g, '|')}`, {
-          headers: { 'Authorization': `JWT ${await getCommaAccessToken()}` }
-        })
-        .then(res => res.json())
-        .then(res => {
-          routesData.push(res[0])
-        }).catch(err => console.error(err.message))
+        console.log("fetching segment range explicitly", state.segmentRange, `${dongleId}|${state.segmentRange.log_id}`)
+        console.log('result', await Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`))
+        routesData.push(await Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`)[0])
+
+
+
+        // await fetch(`https://api.aks.comma.ai/v1/devices/${dongleId}/routes_segments?route_str=${`${dongleId}|${state.segmentRange.log_id}`.replace(/%7C/g, '|')}`, {
+        //   headers: { 'Authorization': `JWT ${await getCommaAccessToken()}` }
+        // })
+        // .then(res => res.json())
+        // .then(res => {
+        //   routesData.push(res[0])
+        // }).catch(err => console.error(err.message))
       }
 
       let routes = routesData.map((r) => {
@@ -72,7 +77,7 @@ export function checkRoutesData() {
         // TODO: these will all be relative times soon
         // fix segment boundary times for routes that have the wrong time at the start
         if ((Math.abs(r.start_time_utc_millis - startTime) > 24 * 60 * 60 * 1000)
-          && (Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000)) {
+            && (Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000)) {
           startTime = r.start_time_utc_millis;
           endTime = r.end_time_utc_millis;
           r.segment_start_times = r.segment_numbers.map((x) => startTime + (x * 60 * 1000));
@@ -123,6 +128,7 @@ export function checkLastRoutesData() {
       return
     }
 
+    console.log(`fetching ${limit +LIMIT_INCREMENT } routes`)
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
       limit: limit + LIMIT_INCREMENT,
@@ -168,7 +174,7 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   }
 
   if (allowPathChange) {
-    const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start / 1000), Math.floor(end / 1000), false);
+    const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start/1000), Math.floor(end/1000), false);
     if (window.location.pathname !== desiredPath) {
       dispatch(push(desiredPath));
     }
