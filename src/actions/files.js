@@ -6,12 +6,12 @@ import * as Types from './types';
 import { deviceOnCellular, getDeviceFromState, deviceVersionAtLeast, asyncSleep } from '../utils';
 
 export const FILE_NAMES = {
-  qcameras: 'qcamera.ts',
-  cameras: 'fcamera.hevc',
-  dcameras: 'dcamera.hevc',
-  ecameras: 'ecamera.hevc',
-  qlogs: 'qlog.zst',
-  logs: 'rlog.zst',
+  qcameras: ['qcamera.ts'],
+  cameras: ['fcamera.hevc'],
+  dcameras: ['dcamera.hevc'],
+  ecameras: ['ecamera.hevc'],
+  qlogs: ['qlog.bz2', 'qlog.zst'],
+  logs: ['rlog.bz2', 'rlog.zst'],
 };
 const MAX_OPEN_REQUESTS = 15;
 const MAX_RETRIES = 5;
@@ -21,7 +21,7 @@ let openRequests = 0;
 
 function pathToFileName(dongleId, path) {
   const [seg, fileType] = path.split('/');
-  const type = Object.entries(FILE_NAMES).find((e) => e[1] === fileType)[0];
+  const type = Object.entries(FILE_NAMES).find((e) => e[1] === fileType)[0][0];
   return `${dongleId}|${seg}/${type}`;
 }
 
@@ -118,6 +118,7 @@ export function fetchFiles(routeName, nocache = false) {
         };
         return state;
       }, {});
+    console.log('urls', urls)
 
     dispatch({
       type: Types.ACTION_FILES_URLS,
@@ -170,7 +171,7 @@ export function fetchUploadQueue(dongleId) {
       const segNum = urlParts[urlParts.length - 2];
       const datetime = urlParts[urlParts.length - 3];
       const dongle = urlParts[urlParts.length - 4];
-      const type = Object.entries(FILE_NAMES).find((e) => e[1] === filename)[0];
+      const type = Object.entries(FILE_NAMES).find((e) => e[1].includes(filename))[0];
       const fileName = `${dongle}|${datetime}--${segNum}/${type}`;
       const waitingWifi = Boolean(deviceOnCellular(device) && uploading.allow_cellular === false);
       uploadingFiles[fileName] = {

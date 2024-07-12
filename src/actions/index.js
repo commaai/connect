@@ -11,7 +11,7 @@ import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
 let routesRequest = null;
 let routesRequestPromise = null;
-const LIMIT_INCREMENT = 5
+const LIMIT_INCREMENT = 1000
 const FIVE_YEARS = 1000 * 60 * 60 * 24 * 365 * 5;
 
 export function checkRoutesData() {
