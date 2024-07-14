@@ -1,15 +1,15 @@
+import { Navigate, useLocation, type RouteSectionProps } from '@solidjs/router'
+import type { Component } from 'solid-js'
 import {
   Accessor,
-  createContext,
-  createResource,
-  createSignal,
   Match,
   Setter,
   Show,
   Switch,
+  createContext,
+  createResource,
+  createSignal,
 } from 'solid-js'
-import type { Component } from 'solid-js'
-import { Navigate, type RouteSectionProps, useLocation } from '@solidjs/router'
 
 import { getDevices } from '~/api/devices'
 import { getProfile } from '~/api/profile'
@@ -20,10 +20,10 @@ import Drawer from '~/components/material/Drawer'
 import IconButton from '~/components/material/IconButton'
 import TopAppBar from '~/components/material/TopAppBar'
 
-import DeviceList from './components/DeviceList'
+import storage from '~/utils/storage'
 import DeviceActivity from './activities/DeviceActivity'
 import RouteActivity from './activities/RouteActivity'
-import storage from '~/utils/storage'
+import DeviceList from './components/DeviceList'
 
 type DashboardState = {
   drawer: Accessor<boolean>
@@ -45,15 +45,15 @@ const DashboardDrawer = (props: {
       >
         comma connect
       </TopAppBar>
-      <h2 class="mx-4 mb-2 text-label-sm">
-        Devices
-      </h2>
+      <h2 class="mx-4 mb-2 text-label-sm">Devices</h2>
       <Show when={props.devices} keyed>
         {(devices: Device[]) => <DeviceList class="p-2" devices={devices} />}
       </Show>
       <div class="grow" />
       <hr class="mx-4 opacity-20" />
-      <Button class="m-4" href="/logout">Sign out</Button>
+      <Button class="m-4" href="/logout">
+        Sign out
+      </Button>
     </>
   )
 }
@@ -78,7 +78,8 @@ const DashboardLayout: Component<RouteSectionProps> = () => {
     if (dongleId()) return undefined
 
     const lastSelectedDongleId = storage.getItem('lastSelectedDongleId')
-    if (devices()?.some((device) => device.dongle_id === lastSelectedDongleId)) return lastSelectedDongleId
+    if (devices()?.some((device) => device.dongle_id === lastSelectedDongleId))
+      return lastSelectedDongleId
     return devices()?.[0]?.dongle_id
   }
 
@@ -108,9 +109,8 @@ const DashboardLayout: Component<RouteSectionProps> = () => {
           <Match when={dongleId()} keyed>
             <DeviceActivity dongleId={dongleId()} />
           </Match>
-          <Match when={getDefaultDongleId()} keyed>{(defaultDongleId) => (
-            <Navigate href={`/${defaultDongleId}`} />
-          )}
+          <Match when={getDefaultDongleId()} keyed>
+            {(defaultDongleId) => <Navigate href={`/${defaultDongleId}`} />}
           </Match>
         </Switch>
       </Drawer>
