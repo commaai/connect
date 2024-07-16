@@ -306,6 +306,9 @@ export default function reducer(_state, action) {
             end: state.currentRoute.duration,
             previous: state.zoom,
           }
+
+          // fix loop on last zoom level
+          state.loop = null;
         } else {
           state.zoom = {
             start: action.start,
@@ -318,13 +321,6 @@ export default function reducer(_state, action) {
           start: state.currentRoute.start_time_utc_millis,
           end: state.currentRoute.end_time_utc_millis,
         };
-
-        if (!state.loop) {
-          state.loop = {
-            startTime: state.zoom.start,
-            duration: state.zoom.end - state.zoom.start,
-          };
-        }
       } else {
         state.zoom = null;
         state.loop = null;
