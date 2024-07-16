@@ -307,7 +307,8 @@ export default function reducer(_state, action) {
             previous: state.zoom,
           }
 
-          state.loop = null
+          // fix loop on last zoom level
+          state.loop = null;
         } else {
           state.zoom = {
             start: action.start,
