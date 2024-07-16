@@ -307,10 +307,7 @@ export default function reducer(_state, action) {
             previous: state.zoom,
           }
 
-          state.loop = {
-            startTime: state.zoom.start,
-            duration: state.zoom.end - state.zoom.start,
-          };
+          state.loop = null
         } else {
           state.zoom = {
             start: action.start,
