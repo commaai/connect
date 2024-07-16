@@ -41,8 +41,9 @@ class DriveView extends Component {
 
     // FIXME: end time not always same day as start time
     const start = currentRoute.start_time_utc_millis + zoom.start;
-    const startDay = dayjs(start).format('dddd');
-    const startTime = dayjs(start).format('MMM D @ HH:mm');
+    const startDateObj = dayjs(start);
+    const startDay = startDateObj.format('dddd');
+    const startTime = startDateObj.format(`MMM D${dayjs().year() === startDateObj.year() ? '' : ', YYYY'} @ HH:mm`);
     const endTime = dayjs(start + (zoom.end - zoom.start)).format('HH:mm');
 
     return (

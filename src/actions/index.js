@@ -32,10 +32,18 @@ export function checkRoutesData() {
     const { dongleId } = state;
     const fetchRange = state.filter;
 
-    routesRequest = {
-      req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, state.limit),
-      dongleId,
-    };
+    // if requested segment range not in loaded routes, fetch it explicitly
+    if (state.segmentRange) {
+      routesRequest = {
+        req: Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
+        dongleId,
+      };
+    } else {
+      routesRequest = {
+        req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, state.limit),
+        dongleId,
+      };
+    }
 
     routesRequestPromise = routesRequest.req.then((routesData) => {
       state = getState();
@@ -61,7 +69,6 @@ export function checkRoutesData() {
         // fix segment boundary times for routes that have the wrong time at the start
         if ((Math.abs(r.start_time_utc_millis - startTime) > 24 * 60 * 60 * 1000)
             && (Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000)) {
-          console.log('fixing %s', r.fullname);
           startTime = r.start_time_utc_millis;
           endTime = r.end_time_utc_millis;
           r.segment_start_times = r.segment_numbers.map((x) => startTime + (x * 60 * 1000));
@@ -149,8 +156,6 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  dispatch(checkRoutesData());
-
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
     dispatch(resetPlayback());
