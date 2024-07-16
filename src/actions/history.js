@@ -36,13 +36,10 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
         console.error('Error fetching routes data for log ID conversion', err);
       });
     }
+
     
     if (pathSegmentRange !== state.segmentRange) {
-      if (state.zoom?.previous) {
-        dispatch(pushTimelineRange(pathSegmentRange?.log_id, state.zoom?.previous.start, state.zoom?.previous.end, false));
-      } else {
-        dispatch(pushTimelineRange(pathSegmentRange?.log_id, pathSegmentRange?.start, pathSegmentRange?.end, false));
-      }
+      dispatch(pushTimelineRange(pathSegmentRange?.log_id, pathSegmentRange?.start, pathSegmentRange?.end, false));
     }
 
     const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
