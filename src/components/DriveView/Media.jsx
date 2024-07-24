@@ -24,7 +24,7 @@ import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils'
 import { analyticsEvent, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
-import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles } from '../../actions/files';
+import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
 
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
@@ -204,15 +204,6 @@ const styles = () => ({
     },
   },
 });
-
-const FILE_NAMES = {
-  qcameras: 'qcamera.ts',
-  cameras: 'fcamera.hevc',
-  dcameras: 'dcamera.hevc',
-  ecameras: 'ecamera.hevc',
-  qlogs: 'qlog.bz2',
-  logs: 'rlog.bz2',
-};
 
 const MediaType = {
   VIDEO: 'video',

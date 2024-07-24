@@ -9,7 +9,7 @@ import {
 import HighlightOffIcon from '@material-ui/icons/HighlightOff';
 import WarningIcon from '@material-ui/icons/Warning';
 
-import { fetchUploadQueue, cancelUploads, cancelFetchUploadQueue } from '../../actions/files';
+import { fetchUploadQueue, cancelUploads, cancelFetchUploadQueue, FILE_NAMES } from '../../actions/files';
 import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils';
 import Colors from '../../colors';
 import ResizeHandler from '../ResizeHandler';
@@ -113,15 +113,6 @@ const styles = (theme) => ({
     },
   },
 });
-
-const FILE_NAMES = {
-  qcameras: 'qcamera.ts',
-  cameras: 'fcamera.hevc',
-  dcameras: 'dcamera.hevc',
-  ecameras: 'ecamera.hevc',
-  qlogs: 'qlog.bz2',
-  logs: 'rlog.bz2',
-};
 
 class UploadQueue extends Component {
   constructor(props) {

@@ -5,7 +5,7 @@ import { updateDeviceOnline, fetchDeviceNetworkStatus } from '.';
 import * as Types from './types';
 import { deviceOnCellular, getDeviceFromState, deviceVersionAtLeast, asyncSleep } from '../utils';
 
-const FILE_NAMES = {
+export const FILE_NAMES = {
   qcameras: 'qcamera.ts',
   cameras: 'fcamera.hevc',
   dcameras: 'dcamera.hevc',
