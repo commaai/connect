@@ -221,6 +221,7 @@ export function doUpload(dongleId, fileNames, paths, urls) {
         headers: { 'x-ms-blob-type': 'BlockBlob' },
         allow_cellular: false,
       }));
+      console.log('files_data', filesData)
       const payload = {
         id: 0,
         jsonrpc: '2.0',
