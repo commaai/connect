@@ -335,32 +335,23 @@ class Media extends Component {
 
     const routeNoDongleId = currentRoute.fullname.split('|')[1];
 
+    const fileName = `${dongleId}|${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${type}`;
+    const uploading = {};
+    uploading[fileName] = { requested: true };
+    this.props.dispatch(updateFiles(uploading));
+
     let paths = [];
-    let fileNames = [];
     let url_promises = [];
 
-    // request any possible file names
+    // request all possible file names
     for (let fn of FILE_NAMES[type]){
-      const path = `${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${fn}`;
-      const fileName = `${dongleId}|${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${type}`;
-
-      paths.push(path);
-      fileNames.push(fileName);
-
-      const uploading = {};
-      uploading[fileName] = { requested: true };
-      this.props.dispatch(updateFiles(uploading));
-
-      url_promises.push(fetchUploadUrls(dongleId, [path]));
-
-      // const urls = await fetchUploadUrls(dongleId, [path]);
-      // if (urls) {
-      //   this.props.dispatch(doUpload(dongleId, [fileName], [path], urls));
-      // }
+      paths.push(`${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${fn}`);
+      url_promises.push(fetchUploadUrls(dongleId, [paths[paths.length - 1]]).then(urls => urls[0]));
     }
 
-    const urls = (await Promise.all(url_promises)).map((_urls) => _urls[0]);
+    const urls = await Promise.all(url_promises);
     if (urls) {
+      let fileNames = Array(paths.length).fill(fileName);
       console.log('123. fileNames', fileNames)
       console.log('123. paths', paths)
       console.log('123. urls', urls)
