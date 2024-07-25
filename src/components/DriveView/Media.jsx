@@ -351,13 +351,8 @@ class Media extends Component {
 
     const urls = await Promise.all(url_promises);
     if (urls) {
-      let fileNames = Array(paths.length).fill(fileName);
-      console.log('123. fileNames', fileNames)
-      console.log('123. paths', paths)
-      console.log('123. urls', urls)
       this.props.dispatch(doUpload(dongleId, paths, urls));
     }
-
   }
 
   async uploadFilesAll(types) {
@@ -389,17 +384,10 @@ class Media extends Component {
     }
     this.props.dispatch(updateFiles(uploading));
 
-    // const paths = Object.keys(uploading).map((fileName) => {
-    //   const [seg, type] = fileName.split('/');
-    //   console.log('returning', `${seg.split('|')[1]}/${FILE_NAMES[type]}`)
-    //   return `${seg.split('|')[1]}/${FILE_NAMES[type]}`;
-    // });
-
     const paths = Object.keys(uploading).flatMap((fileName) => {
       const [seg, type] = fileName.split('/');
       return FILE_NAMES[type].map(file => `${seg.split('|')[1]}/${file}`);
     });
-    console.log('paths v2', paths)
 
     const urls = await fetchUploadUrls(dongleId, paths);
     if (urls) {
@@ -801,7 +789,6 @@ class Media extends Component {
   renderUploadMenuItem([file, name, type]) {
     const { device, classes, files, profile } = this.props;
     const { windowWidth } = this.state;
-    console.log('file', file, 'name', name, 'type', type)
 
     const canUpload = device.is_owner || (profile && profile.superuser);
     const uploadButtonWidth = windowWidth < 425 ? 80 : 120;
