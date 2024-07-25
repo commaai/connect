@@ -22,7 +22,6 @@ let openRequests = 0;
 function pathToFileName(dongleId, path) {
   const [seg, fileType] = path.split('/');
   const type = Object.entries(FILE_NAMES).find((e) => e[1].includes(fileType))[0];
-  console.log('pathToFileName', path, type)
   return `${dongleId}|${seg}/${type}`;
 }
 
@@ -98,7 +97,6 @@ export function fetchFiles(routeName, nocache = false) {
     let files;
     try {
       files = await Raw.getRouteFiles(routeName, nocache);
-      console.log('files', files)
     } catch (err) {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'action_files_fetch_files' });
@@ -119,7 +117,6 @@ export function fetchFiles(routeName, nocache = false) {
         };
         return state;
       }, {});
-    console.log('urls', urls)
 
     dispatch({
       type: Types.ACTION_FILES_URLS,
@@ -310,7 +307,6 @@ export function doUpload(dongleId, paths, urls) {
 
 export function fetchAthenaQueue(dongleId) {
   return async (dispatch) => {
-    console.log('fetchAthenaQueue')
     let queue;
     try {
       queue = await Devices.getAthenaQueue(dongleId);
@@ -328,12 +324,10 @@ export function fetchAthenaQueue(dongleId) {
 
       if (q.method === 'uploadFileToUrl') {
         const fileName = pathToFileName(dongleId, q.params[0]);
-        console.log('uploadFileToUrl', q.params[0], fileName)
         newUploading[fileName] = { progress: 0, current: false };
       } else if (q.method === 'uploadFilesToUrls') {
         for (const { fn } of q.params.files_data) {
           const fileName = pathToFileName(dongleId, fn);
-          console.log(['uploadFilesToUrls', fn, fileName])
           newUploading[fileName] = { progress: 0, current: false };
         }
       }
