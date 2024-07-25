@@ -6,12 +6,12 @@ import * as Types from './types';
 import { deviceOnCellular, getDeviceFromState, deviceVersionAtLeast, asyncSleep } from '../utils';
 
 export const FILE_NAMES = {
-  qcameras: 'qcamera.ts',
-  cameras: 'fcamera.hevc',
-  dcameras: 'dcamera.hevc',
-  ecameras: 'ecamera.hevc',
-  qlogs: 'qlog.bz2',
-  logs: 'rlog.bz2',
+  qcameras: ['qcamera.ts'],
+  cameras: ['fcamera.hevc'],
+  dcameras: ['dcamera.hevc'],
+  ecameras: ['ecamera.hevc'],
+  qlogs: ['qlog.bz2', 'qlog.zst'],
+  logs: ['rlog.bz2', 'rlog.zst'],
 };
 const MAX_OPEN_REQUESTS = 15;
 const MAX_RETRIES = 5;
@@ -21,7 +21,7 @@ let openRequests = 0;
 
 function pathToFileName(dongleId, path) {
   const [seg, fileType] = path.split('/');
-  const type = Object.entries(FILE_NAMES).find((e) => e[1] === fileType)[0];
+  const type = Object.entries(FILE_NAMES).find((e) => e[1].includes(fileType))[0];
   return `${dongleId}|${seg}/${type}`;
 }
 
@@ -169,7 +169,7 @@ export function fetchUploadQueue(dongleId) {
       const segNum = urlParts[urlParts.length - 2];
       const datetime = urlParts[urlParts.length - 3];
       const dongle = urlParts[urlParts.length - 4];
-      const type = Object.entries(FILE_NAMES).find((e) => e[1] === filename)[0];
+      const type = Object.entries(FILE_NAMES).find((e) => e[1].includes(filename))[0];
       const fileName = `${dongle}|${datetime}--${segNum}/${type}`;
       const waitingWifi = Boolean(deviceOnCellular(device) && uploading.allow_cellular === false);
       uploadingFiles[fileName] = {
@@ -207,7 +207,7 @@ export function fetchUploadQueue(dongleId) {
   };
 }
 
-export function doUpload(dongleId, fileNames, paths, urls) {
+export function doUpload(dongleId, paths, urls) {
   return async (dispatch, getState) => {
     const { device } = getState();
     let loopedUploads = !deviceVersionAtLeast(device, '0.8.13');
@@ -230,8 +230,8 @@ export function doUpload(dongleId, fileNames, paths, urls) {
         && resp.error.data.message === 'too many values to unpack (expected 3)') {
         loopedUploads = true;
       } else if (!resp || resp.error) {
-        const newUploading = fileNames.reduce((state, fn) => {
-          state[fn] = {};
+        const newUploading = paths.reduce((state, path) => {
+          state[pathToFileName(dongleId, path)] = {};
           return state;
         }, {});
         dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
@@ -239,17 +239,28 @@ export function doUpload(dongleId, fileNames, paths, urls) {
       } else if (resp.offline) {
         dispatch(updateDeviceOnline(dongleId, 0));
       } else if (resp.result === 'Device offline, message queued') {
-        const newUploading = fileNames.reduce((state, fn) => {
-          state[fn] = { progress: 0, current: false };
+        const newUploading = paths.reduce((state, path) => {
+          state[pathToFileName(dongleId, path)] = { progress: 0, current: false };
           return state;
         }, {});
         dispatch(updateFiles(newUploading));
       } else if (resp.result) {
-        if (resp.result.failed) {
-          const uploading = resp.result.failed
-            .filter((path) => paths.indexOf(path) > -1)
+        let failed = resp.result.failed || [];
+
+        // only if all file names for a segment file type failed
+        let failedFiltered = [];
+        for (const f of failed) {
+          let failedCnt = failed.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
+          let requestedCnt = paths.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
+          if (failedCnt >= requestedCnt) {
+            failedFiltered.push(f);
+          }
+        }
+
+        if (failedFiltered) {
+          const uploading = failedFiltered
             .reduce((state, path) => {
-              const fn = fileNames[paths.indexOf(path)];
+              const fn = pathToFileName(dongleId, path);
               state[fn] = { notFound: true };
               return state;
             }, {});
@@ -260,7 +271,7 @@ export function doUpload(dongleId, fileNames, paths, urls) {
     }
 
     if (loopedUploads) {
-      for (let i = 0; i < fileNames.length; i++) {
+      for (let i = 0; i < paths.length; i++) {
         const payload = {
           id: 0,
           jsonrpc: '2.0',
@@ -272,18 +283,18 @@ export function doUpload(dongleId, fileNames, paths, urls) {
         const resp = await athenaCall(dongleId, payload, 'files_actions_athena_upload');
         if (!resp || resp.error) {
           const uploading = {};
-          uploading[fileNames[i]] = {};
+          uploading[pathToFileName(dongleId, paths[i])] = {};
           dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
           dispatch(updateFiles(uploading));
         } else if (resp.offline) {
           dispatch(updateDeviceOnline(dongleId, 0));
         } else if (resp.result === 'Device offline, message queued') {
           const uploading = {};
-          uploading[fileNames[i]] = { progress: 0, current: false };
+          uploading[pathToFileName(dongleId, paths[i])] = { progress: 0, current: false };
           dispatch(updateFiles(uploading));
         } else if (resp.result === 404 || resp?.result?.failed?.[0] === paths[i]) {
           const uploading = {};
-          uploading[fileNames[i]] = { notFound: true };
+          uploading[pathToFileName(dongleId, paths[i])] = { notFound: true };
           dispatch(updateFiles(uploading));
         } else if (resp.result) {
           dispatch(fetchUploadQueue(dongleId));

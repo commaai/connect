@@ -238,7 +238,7 @@ class UploadQueue extends Component {
                               </div>
                             </td>
                             <td className={ classes.uploadCell } style={ cellStyle }>
-                              { FILE_NAMES[type].split('.')[0].substring(0, logNameLength) }
+                              { FILE_NAMES[type][0].split('.')[0].substring(0, logNameLength) }
                             </td>
                             { upload.current
                               ? (

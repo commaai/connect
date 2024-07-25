@@ -334,16 +334,25 @@ class Media extends Component {
     }));
 
     const routeNoDongleId = currentRoute.fullname.split('|')[1];
-    const path = `${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${FILE_NAMES[type]}`;
     const fileName = `${dongleId}|${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${type}`;
 
     const uploading = {};
     uploading[fileName] = { requested: true };
     this.props.dispatch(updateFiles(uploading));
 
-    const urls = await fetchUploadUrls(dongleId, [path]);
+    let paths = [];
+    let url_promises = [];
+
+    // request all possible file names
+    for (const fn of FILE_NAMES[type]) {
+      const path = `${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${fn}`;
+      paths.push(path);
+      url_promises.push(fetchUploadUrls(dongleId, [path]).then(urls => urls[0]));
+    }
+
+    const urls = await Promise.all(url_promises);
     if (urls) {
-      this.props.dispatch(doUpload(dongleId, [fileName], [path], urls));
+      this.props.dispatch(doUpload(dongleId, paths, urls));
     }
   }
 
@@ -376,14 +385,14 @@ class Media extends Component {
     }
     this.props.dispatch(updateFiles(uploading));
 
-    const paths = Object.keys(uploading).map((fileName) => {
+    const paths = Object.keys(uploading).flatMap((fileName) => {
       const [seg, type] = fileName.split('/');
-      return `${seg.split('|')[1]}/${FILE_NAMES[type]}`;
+      return FILE_NAMES[type].map(file => `${seg.split('|')[1]}/${file}`);
     });
 
     const urls = await fetchUploadUrls(dongleId, paths);
     if (urls) {
-      this.props.dispatch(doUpload(dongleId, Object.keys(uploading), paths, urls));
+      this.props.dispatch(doUpload(dongleId, paths, urls));
     }
   }
 
