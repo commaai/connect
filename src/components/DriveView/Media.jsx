@@ -355,7 +355,7 @@ class Media extends Component {
       console.log('123. fileNames', fileNames)
       console.log('123. paths', paths)
       console.log('123. urls', urls)
-      this.props.dispatch(doUpload(dongleId, fileNames, paths, urls));
+      this.props.dispatch(doUpload(dongleId, paths, urls));
     }
 
   }
@@ -403,7 +403,7 @@ class Media extends Component {
 
     const urls = await fetchUploadUrls(dongleId, paths);
     if (urls) {
-      this.props.dispatch(doUpload(dongleId, Object.keys(uploading), paths, urls));
+      this.props.dispatch(doUpload(dongleId, paths, urls));
     }
   }
 
@@ -801,6 +801,7 @@ class Media extends Component {
   renderUploadMenuItem([file, name, type]) {
     const { device, classes, files, profile } = this.props;
     const { windowWidth } = this.state;
+    console.log('file', file, 'name', name, 'type', type)
 
     const canUpload = device.is_owner || (profile && profile.superuser);
     const uploadButtonWidth = windowWidth < 425 ? 80 : 120;
