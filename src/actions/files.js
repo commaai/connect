@@ -10,7 +10,7 @@ export const FILE_NAMES = {
   cameras: ['fcamera.hevc'],
   dcameras: ['dcamera.hevc'],
   ecameras: ['ecamera.hevc'],
-  qlogs: ['qlog.bz2'],
+  qlogs: ['qlog.bz2', 'qlog.zst'],
   logs: ['rlog.bz2', 'rlog.zst'],
 };
 const MAX_OPEN_REQUESTS = 15;
