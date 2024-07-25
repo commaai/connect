@@ -6,12 +6,12 @@ import * as Types from './types';
 import { deviceOnCellular, getDeviceFromState, deviceVersionAtLeast, asyncSleep } from '../utils';
 
 export const FILE_NAMES = {
-  qcameras: 'qcamera.ts',
-  cameras: 'fcamera.hevc',
-  dcameras: 'dcamera.hevc',
-  ecameras: 'ecamera.hevc',
-  qlogs: 'qlog.bz2',
-  logs: 'rlog.bz2',
+  qcameras: ['qcamera.ts'],
+  cameras: ['fcamera.hevc'],
+  dcameras: ['dcamera.hevc'],
+  ecameras: ['ecamera.hevc'],
+  qlogs: ['qlog.bz2'],
+  logs: ['rlog.bz2', 'rlog.zst'],
 };
 const MAX_OPEN_REQUESTS = 15;
 const MAX_RETRIES = 5;
@@ -21,7 +21,8 @@ let openRequests = 0;
 
 function pathToFileName(dongleId, path) {
   const [seg, fileType] = path.split('/');
-  const type = Object.entries(FILE_NAMES).find((e) => e[1] === fileType)[0];
+  const type = Object.entries(FILE_NAMES).find((e) => e[1].includes(fileType))[0];
+  console.log('pathToFileName', path, type)
   return `${dongleId}|${seg}/${type}`;
 }
 
@@ -97,6 +98,7 @@ export function fetchFiles(routeName, nocache = false) {
     let files;
     try {
       files = await Raw.getRouteFiles(routeName, nocache);
+      console.log('files', files)
     } catch (err) {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'action_files_fetch_files' });
@@ -117,6 +119,7 @@ export function fetchFiles(routeName, nocache = false) {
         };
         return state;
       }, {});
+    console.log('urls', urls)
 
     dispatch({
       type: Types.ACTION_FILES_URLS,
@@ -169,7 +172,7 @@ export function fetchUploadQueue(dongleId) {
       const segNum = urlParts[urlParts.length - 2];
       const datetime = urlParts[urlParts.length - 3];
       const dongle = urlParts[urlParts.length - 4];
-      const type = Object.entries(FILE_NAMES).find((e) => e[1] === filename)[0];
+      const type = Object.entries(FILE_NAMES).find((e) => e[1].includes(filename))[0];
       const fileName = `${dongle}|${datetime}--${segNum}/${type}`;
       const waitingWifi = Boolean(deviceOnCellular(device) && uploading.allow_cellular === false);
       uploadingFiles[fileName] = {
@@ -295,6 +298,7 @@ export function doUpload(dongleId, fileNames, paths, urls) {
 
 export function fetchAthenaQueue(dongleId) {
   return async (dispatch) => {
+    console.log('fetchAthenaQueue')
     let queue;
     try {
       queue = await Devices.getAthenaQueue(dongleId);
@@ -312,10 +316,12 @@ export function fetchAthenaQueue(dongleId) {
 
       if (q.method === 'uploadFileToUrl') {
         const fileName = pathToFileName(dongleId, q.params[0]);
+        console.log('uploadFileToUrl', q.params[0], fileName)
         newUploading[fileName] = { progress: 0, current: false };
       } else if (q.method === 'uploadFilesToUrls') {
         for (const { fn } of q.params.files_data) {
           const fileName = pathToFileName(dongleId, fn);
+          console.log(['uploadFilesToUrls', fn, fileName])
           newUploading[fileName] = { progress: 0, current: false };
         }
       }
