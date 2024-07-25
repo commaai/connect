@@ -221,7 +221,6 @@ export function doUpload(dongleId, paths, urls) {
         headers: { 'x-ms-blob-type': 'BlockBlob' },
         allow_cellular: false,
       }));
-      console.log('files_data', filesData)
       const payload = {
         id: 0,
         jsonrpc: '2.0',
@@ -230,7 +229,6 @@ export function doUpload(dongleId, paths, urls) {
         expiry: Math.floor(Date.now() / 1000) + (86400 * 7),
       };
       const resp = await athenaCall(dongleId, payload, 'action_files_athena_uploads');
-      console.log('resp', resp)
       if (resp && resp.error && resp.error.code === -32000
         && resp.error.data.message === 'too many values to unpack (expected 3)') {
         loopedUploads = true;
@@ -255,32 +253,20 @@ export function doUpload(dongleId, paths, urls) {
           // only if all file names for a segment file type failed
           let failedFiltered = [];
           for (let f of resp.result.failed) {
-            console.log('resp failed', f)
             let failedCnt = resp.result.failed.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
             let requestedCnt = paths.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
             if (failedCnt >= requestedCnt) {
               failedFiltered.push(f);
             }
-            console.log('resp failed_type_cnt', failedCnt, 'requested_type_cnt', requestedCnt)
           }
 
-          console.log('resp paths', paths)
-          console.log('resp failed', resp.result.failed.map((f) => f.split('--').pop()))
-          // let failed = resp.result.failed.map((f) => pathToFileName(dongleId, f));
-          // let requested = new Set(paths.map((f) => pathToFileName(dongleId, f)));
-          // let diff = failed.filter((f) => requested.has(f));
-          // // console.log(['resp custom failed', failed, requested, diff])
-
           if (failedFiltered) {
-            // console.log('resp failed', resp_result_failed, paths)
-
             const uploading = failedFiltered
               .reduce((state, path) => {
                 const fn = pathToFileName(dongleId, path);
                 state[fn] = { notFound: true };
                 return state;
               }, {});
-
             dispatch(updateFiles(uploading));
           }
         }
