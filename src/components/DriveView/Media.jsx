@@ -358,6 +358,8 @@ class Media extends Component {
 
   async uploadFilesAll(types) {
     const { dongleId, currentRoute, loop, files } = this.props;
+    const durations = currentRoute.duration;
+    const segments = ceil(durations/(60*1000))  
     if (types === undefined) {
       types = ['logs', 'cameras', 'dcameras', 'ecameras'];
     }
@@ -372,11 +374,15 @@ class Media extends Component {
 
     const uploading = {};
     const adjusted_start_time = currentRoute.start_time_utc_millis + loop.startTime;
-    for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration
-        && currentRoute.segment_end_times[i] > adjusted_start_time) {
+    for (let i = 0; i < segments; i++) {
+      const segmentStartTime = adjusted_start_time + i*(60*1000);
+      const segmentEndTime = segmentStartTime + (60*1000);
+      // if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration
+      //   && currentRoute.segment_end_times[i] > adjusted_start_time) {
+        if(segmentStartTime < adjusted_start_time+loop.duration 
+          && segmentEndTime > adjusted_start_time) {
         types.forEach((type) => {
-          const fileName = `${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`;
+          const fileName = `${currentRoute.fullname}--${i}/${type}`;
           if (!files[fileName]) {
             uploading[fileName] = { requested: true };
           }
@@ -400,12 +406,19 @@ class Media extends Component {
     const { currentRoute, loop, files } = this.props;
     const adjusted_start_time = currentRoute.start_time_utc_millis + loop.startTime;
 
-    for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration
-        && currentRoute.segment_end_times[i] > adjusted_start_time) {
+    const durations = currentRoute.duration;
+    const segments = Math.ceil(durations/(60*1000));
+
+    for (let i = 0; i < segments; i++) {
+      const segmentStartTime = adjusted_start_time + i*(60*1000);
+      const segmentEndTime = segmentStartTime + (60*1000);
+      // if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration
+      //   && currentRoute.segment_end_times[i] > adjusted_start_time) {
+      if(segmentStartTime < adjusted_start_time+loop.duration 
+        && segmentEndTime > adjusted_start_time) {
         for (let j = 0; j < types.length; j++) {
           count += 1;
-          const log = files[`${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${types[j]}`];
+          const log = files[`${currentRoute.fullname}--${i}/${types[j]}`];
           if (log) {
             uploaded += Boolean(log.url || log.notFound);
             uploading += Boolean(log.progress !== undefined);

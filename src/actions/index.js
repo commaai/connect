@@ -62,18 +62,20 @@ export function checkRoutesData() {
       }
 
       const routes = routesData.map((r) => {
-        let startTime = r.segment_start_times[0];
-        let endTime = r.segment_end_times[r.segment_end_times.length - 1];
+        // let startTime = r.segment_start_times[0];
+        let startTime = this.props.currentRoute.start_time_utc_millis;
+        // let endTime = r.segment_end_times[r.segment_end_times.length - 1];
+        let endTime = this.props.currentRoute.end_time_utc_millis
 
         // TODO: these will all be relative times soon
         // fix segment boundary times for routes that have the wrong time at the start
-        if ((Math.abs(r.start_time_utc_millis - startTime) > 24 * 60 * 60 * 1000)
-            && (Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000)) {
-          startTime = r.start_time_utc_millis;
-          endTime = r.end_time_utc_millis;
-          r.segment_start_times = r.segment_numbers.map((x) => startTime + (x * 60 * 1000));
-          r.segment_end_times = r.segment_numbers.map((x) => Math.min(startTime + ((x + 1) * 60 * 1000), endTime));
-        }
+        // if ((Math.abs(r.start_time_utc_millis - startTime) > 24 * 60 * 60 * 1000)
+        //     && (Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000)) {
+        //   startTime = r.start_time_utc_millis;
+        //   endTime = r.end_time_utc_millis;
+          // r.segment_start_times = r.segment_numbers.map((x) => startTime + (x * 60 * 1000));
+          // r.segment_end_times = r.segment_numbers.map((x) => Math.min(startTime + ((x + 1) * 60 * 1000), endTime));
+        // }
         return {
           ...r,
           url: r.url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
@@ -82,7 +84,7 @@ export function checkRoutesData() {
           start_time_utc_millis: startTime,
           end_time_utc_millis: endTime,
           // TODO: get this from the API, this isn't correct for segments with a time jump
-          segment_durations: r.segment_start_times.map((x, i) => r.segment_end_times[i] - x),
+          // segment_durations: r.segment_start_times.map((x, i) => r.segment_end_times[i] - x),
         };
       }).sort((a, b) => {
         return b.create_time - a.create_time;

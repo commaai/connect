@@ -163,7 +163,7 @@ class UploadQueue extends Component {
     }
   }
 
-  async cancelUploading(ids) {
+  async  cancelUploading(ids) {
     const { device, dispatch, filesUploading } = this.props;
     if (ids === undefined) {
       ids = Object.keys(filesUploading);
