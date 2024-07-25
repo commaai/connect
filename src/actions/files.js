@@ -249,7 +249,7 @@ export function doUpload(dongleId, paths, urls) {
 
         // only if all file names for a segment file type failed
         let failedFiltered = [];
-        for (let f of failed) {
+        for (const f of failed) {
           let failedCnt = failed.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
           let requestedCnt = paths.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
           if (failedCnt >= requestedCnt) {
