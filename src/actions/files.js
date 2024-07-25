@@ -245,27 +245,26 @@ export function doUpload(dongleId, paths, urls) {
         }, {});
         dispatch(updateFiles(newUploading));
       } else if (resp.result) {
-        if (resp.result.failed) {
+        let failed = resp.result.failed || [];
 
-          // only if all file names for a segment file type failed
-          let failedFiltered = [];
-          for (let f of resp.result.failed) {
-            let failedCnt = resp.result.failed.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
-            let requestedCnt = paths.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
-            if (failedCnt >= requestedCnt) {
-              failedFiltered.push(f);
-            }
+        // only if all file names for a segment file type failed
+        let failedFiltered = [];
+        for (let f of failed) {
+          let failedCnt = failed.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
+          let requestedCnt = paths.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
+          if (failedCnt >= requestedCnt) {
+            failedFiltered.push(f);
           }
+        }
 
-          if (failedFiltered) {
-            const uploading = failedFiltered
-              .reduce((state, path) => {
-                const fn = pathToFileName(dongleId, path);
-                state[fn] = { notFound: true };
-                return state;
-              }, {});
-            dispatch(updateFiles(uploading));
-          }
+        if (failedFiltered) {
+          const uploading = failedFiltered
+            .reduce((state, path) => {
+              const fn = pathToFileName(dongleId, path);
+              state[fn] = { notFound: true };
+              return state;
+            }, {});
+          dispatch(updateFiles(uploading));
         }
         dispatch(fetchUploadQueue(dongleId));
       }
