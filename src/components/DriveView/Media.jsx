@@ -344,7 +344,7 @@ class Media extends Component {
     let url_promises = [];
 
     // request all possible file names
-    for (let fn of FILE_NAMES[type]) {
+    for (const fn of FILE_NAMES[type]) {
       const path = `${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${fn}`;
       paths.push(path);
       url_promises.push(fetchUploadUrls(dongleId, [path]).then(urls => urls[0]));
