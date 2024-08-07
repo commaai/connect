@@ -359,7 +359,7 @@ class Media extends Component {
   async uploadFilesAll(types) {
     const { dongleId, currentRoute, loop, files } = this.props;
     const durations = currentRoute.duration;
-    const segments = ceil(durations/(60*1000))  
+    const segments = Math.ceil(durations/(60*1000))  
     if (types === undefined) {
       types = ['logs', 'cameras', 'dcameras', 'ecameras'];
     }
