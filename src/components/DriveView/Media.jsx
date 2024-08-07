@@ -379,7 +379,7 @@ class Media extends Component {
       const segmentEndTime = segmentStartTime + (60*1000);
       // if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration
       //   && currentRoute.segment_end_times[i] > adjusted_start_time) {
-        if(segmentStartTime < adjusted_start_time+loop.duration 
+        if(segmentStartTime <= adjusted_start_time+loop.duration 
           && segmentEndTime > adjusted_start_time) {
         types.forEach((type) => {
           const fileName = `${currentRoute.fullname}--${i}/${type}`;
@@ -414,7 +414,7 @@ class Media extends Component {
       const segmentEndTime = segmentStartTime + (60*1000);
       // if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration
       //   && currentRoute.segment_end_times[i] > adjusted_start_time) {
-      if(segmentStartTime < adjusted_start_time+loop.duration 
+      if(segmentStartTime <= adjusted_start_time+loop.duration 
         && segmentEndTime > adjusted_start_time) {
         for (let j = 0; j < types.length; j++) {
           count += 1;
