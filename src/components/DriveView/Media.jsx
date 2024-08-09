@@ -8,6 +8,7 @@ import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Butt
 import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
+import XIcon from './XIcon';
 
 import { drives as Drives } from '@commaai/api';
 
@@ -230,6 +231,7 @@ class Media extends Component {
     this.copySegmentName = this.copySegmentName.bind(this);
     this.openInUseradmin = this.openInUseradmin.bind(this);
     this.shareCurrentRoute = this.shareCurrentRoute.bind(this);
+    this.tweetRoute = this.tweetRoute.bind(this);
     this.uploadFile = this.uploadFile.bind(this);
     this.uploadFilesAll = this.uploadFilesAll.bind(this);
     this.getUploadStats = this.getUploadStats.bind(this);
@@ -321,6 +323,23 @@ class Media extends Component {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'media_navigator_share' });
     }
+  }
+
+  tweetRoute() {
+    const { currentRoute } = this.props;
+
+    let percentage = 0, engagements = 0;
+    currentRoute.events
+      .filter((event) => event.data && event.data.end_route_offset_millis)
+      .forEach(event => {
+        if(event.type === 'engage') {
+          percentage += parseInt(((event.data.end_route_offset_millis - event.route_offset_millis) / currentRoute.duration) * 100);
+          engagements += 1;
+        }
+      })
+    
+    const post = `I went on a pretty chill drive ${currentRoute.startLocation?.place ? `from ${currentRoute.startLocation.place}` : ''}${currentRoute.endLocation?.place ? ` to ${currentRoute.endLocation.place}` : ''} in my ${currentRoute.platform.replace("_", ' ').toLowerCase()} as openpilot drove ~${percentage}% of the route with less than ${engagements+1} disengagements!\nCheck out the full drive on comma connect at ${window.location.href}.`; 
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(post)}`, '_blank').focus();
   }
 
   async uploadFile(type) {
@@ -743,6 +762,10 @@ class Media extends Component {
             <ShareIcon />
           </MenuItem>
           )}
+          <MenuItem onClick={ this.tweetRoute } className={ classes.shareButton }>
+            Post on X
+            <XIcon />
+          </MenuItem>
           <Divider />
           <MenuItem onClick={ this.openInUseradmin }>
             View in useradmin
