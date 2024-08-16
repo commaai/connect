@@ -19,7 +19,7 @@ export const CardHeader: VoidComponent<CardHeaderProps> = (props) => {
       {props.leading}
       <div class="flex h-12 grow flex-col justify-between">
         {props.headline && <span class="text-title-sm">{props.headline}</span>}
-        {props.subhead && <span class="text-body-lg">{props.subhead}</span>}
+        {props.subhead && <span class="text-body-lg font-semibold">{props.subhead}</span>}
       </div>
       {props.trailing}
     </div>
