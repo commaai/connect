@@ -23,8 +23,7 @@ const RouteHeader = (props: { route: RouteSegments }) => {
       subhead={subhead()}
       trailing={
         <Show when={timeline()?.userFlags}>
-          <Icon 
-            class="-mt-2 font-bold text-yellow-300" size="40">bookmark</Icon>
+          <Icon class="-mt-2 font-bold text-yellow-300" size="40">bookmark</Icon>
         </Show>
       }
     />
