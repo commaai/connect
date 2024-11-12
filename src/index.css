@@ -213,4 +213,13 @@
       display: none; /* Safari and Chrome */
     }
   }
+
+  .custom-card {
+    cursor: pointer;
+    background-color: var(--color-surface-container-low);
+  }
+
+  .custom-card:hover {
+    background-color: var(--color-surface-container);
+  }
 }

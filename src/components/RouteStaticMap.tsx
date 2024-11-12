@@ -25,11 +25,13 @@ const getStaticMapUrl = (gpsPoints: GPSPathPoint[]): string | undefined => {
   if (gpsPoints.length === 0) {
     return undefined
   }
+
   const path: Coords = []
   gpsPoints.forEach(({ lng, lat }) => {
     path.push([lng, lat])
   })
   const themeId = getThemeId()
+
   return getPathStaticMapUrl(themeId, path, 380, 192, true)
 }
 
@@ -41,7 +43,7 @@ const State = (props: {
   return (
     <div
       class={clsx(
-        'absolute flex size-full items-center justify-center gap-2',
+        'absolute flex h-[192px] w-full items-center justify-center gap-2',
         props.opaque && 'bg-surface text-on-surface',
       )}
     >
@@ -64,7 +66,7 @@ const RouteStaticMap: VoidComponent<RouteStaticMapProps> = (props) => {
   return (
     <div
       class={clsx(
-        'relative isolate flex h-full flex-col justify-end self-stretch bg-surface text-on-surface',
+        'flex size-full flex-col',
         props.class,
       )}
     >
@@ -81,7 +83,7 @@ const RouteStaticMap: VoidComponent<RouteStaticMapProps> = (props) => {
         </Match>
         <Match when={url() && loadedUrl()} keyed>
           <img
-            class="pointer-events-none size-full object-cover"
+            class="pointer-events-none size-full rounded-t-lg object-contain md:rounded-none md:rounded-l-lg"
             src={loadedUrl()}
             alt=""
           />

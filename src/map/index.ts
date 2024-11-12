@@ -7,6 +7,8 @@ import {
   MAPBOX_TOKEN,
 } from './config'
 
+import type { GeocodeResult } from '~/types'
+
 export type Coords = [number, number][]
 
 const POLYLINE_SAMPLE_SIZE = 50
@@ -49,4 +51,16 @@ export function getPathStaticMapUrl(
     encodedPolyline,
   )})`
   return `https://api.mapbox.com/styles/v1/${MAPBOX_USERNAME}/${styleId}/static/${path}/auto/${width}x${height}${hidpiStr}?logo=false&attribution=false&padding=30,30,30,30&access_token=${MAPBOX_TOKEN}`
+}
+
+export async function reverseGeocode(lng: number, lat: number): Promise<GeocodeResult> {
+  const url = `https://api.mapbox.com/search/geocode/v6/reverse?longitude=${lng}&latitude=${lat}&types=address&worldview=us&access_token=${MAPBOX_TOKEN}`
+  try {
+    const response = await fetch(url)
+    const data = await (response.json() as Promise<GeocodeResult>)
+    return data
+  } catch (error) {
+    console.error(error)
+    throw error
+  }
 }

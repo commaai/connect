@@ -54,6 +54,8 @@ export interface Route extends ApiResponseBase {
   create_time: number
   devicetype: number
   dongle_id: string
+  start_lng?: number
+  start_lat?: number
   end_lat?: number
   end_lng?: number
   end_time?: string
@@ -79,11 +81,22 @@ export interface Route extends ApiResponseBase {
   procqcamera: number
   procqlog: number
   radar?: boolean
-  start_time: string
+  start_time?: string
   url: string
   user_id: string | null
   version?: string
   vin?: string
+}
+
+export interface RouteSegments extends Route {
+  end_time_utc_millis?: number
+  is_preserved?: boolean
+  segment_end_times?: number[]
+  segment_numbers?: number[]
+  segment_start_times?: number[]
+  share_exp?: RouteShareSignature['exp']
+  share_sig?: RouteShareSignature['sig']
+  start_time_utc_millis?: number
 }
 
 export interface RouteShareSignature extends Record<string, string> {
@@ -92,9 +105,19 @@ export interface RouteShareSignature extends Record<string, string> {
 }
 
 export interface RouteSegments extends Route {
-  end_time_utc_millis: number
-  is_preserved: boolean
-  share_exp: RouteShareSignature['exp']
-  share_sig: RouteShareSignature['sig']
-  start_time_utc_millis: number
+  end_time_utc_millis?: number
+  is_preserved?: boolean
+  share_exp?: RouteShareSignature['exp']
+  share_sig?: RouteShareSignature['sig']
+  start_time_utc_millis?: number
+}
+
+export interface GeocodeResult {
+  formatted_address: string;
+  geometry: {
+    location: {
+      lat: number;
+      lng: number;
+    };
+  };
 }
