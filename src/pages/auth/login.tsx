@@ -3,8 +3,23 @@ import { setAccessToken } from '~/api/auth/client'
 
 import Button from '~/components/material/Button'
 
+interface AuthButtonProps {
+  href: string
+  logo: string
+  text: string
+}
+
+const AuthButton = (props: AuthButtonProps) => {
+  return <Button
+    class="h-16 gap-4"
+    href={props.href}
+    leading={<img src={`/images/logo-${props.logo}.svg`} alt="" width={32} height={32} />}>
+    {props.text}
+  </Button >
+}
+
 export default function Login() {
-  const loginAsDemoUser = function () {
+  const loginAsDemoUser = function() {
     setAccessToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDg1ODI0NjUsIm5iZiI6MTcxNzA0NjQ2NSwiaWF0IjoxNzE3MDQ2NDY1LCJpZGVudGl0eSI6IjBkZWNkZGNmZGYyNDFhNjAifQ.g3khyJgOkNvZny6Vh579cuQj1HLLGSDeauZbfZri9jw')
     window.location.href = window.location.origin
   }
@@ -25,48 +40,9 @@ export default function Login() {
         </div>
 
         <div class="flex flex-col items-stretch gap-4 self-stretch">
-          <Button
-            class="h-16 gap-4"
-            href={getGoogleAuthUrl()}
-            leading={
-              <img
-                src="/images/logo-google.svg"
-                alt=""
-                width={32}
-                height={32}
-              />
-            }
-          >
-            Sign in with Google
-          </Button>
-          <Button
-            class="h-16 gap-4"
-            href={getAppleAuthUrl()}
-            leading={
-              <img
-                src="/images/logo-apple.svg"
-                alt=""
-                width={32}
-                height={32}
-              />
-            }
-          >
-            Sign in with Apple&nbsp&nbsp
-          </Button>
-          <Button
-            class="h-16 gap-4"
-            href={getGitHubAuthUrl()}
-            leading={
-              <img
-                src="/images/logo-github.svg"
-                alt=""
-                width={32}
-                height={32}
-              />
-            }
-          >
-            Sign in with GitHub
-          </Button>
+          <AuthButton href={getGoogleAuthUrl()} logo="google" text="Sign in with Google" />
+          <AuthButton href={getAppleAuthUrl()} logo="apple" text="Sign in with Apple" />
+          <AuthButton href={getGitHubAuthUrl()} logo="github" text="Sign in with GitHub" />
         </div>
 
         <div class="flex justify-between gap-4">

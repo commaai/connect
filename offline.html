@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Comma Connect</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #1B1B1F;
+            color: #FFFFFF;
+            text-align: center;
+            padding: 1rem;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            max-width: 20rem;
+        }
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin: 0;
+            margin-bottom: 8px;
+        }
+        p {
+            font-size: 1rem;
+            margin: 0.5rem 0 0;
+        }
+        .button {
+            background-color: #3B3B3F;
+            color: #FFFFFF;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #4B4B4F;
+        }
+        .int_check {
+            margin: 0;
+        }
+        .status-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .status-circle {
+            width: 0.5rem;
+            height: 0.5rem;
+            background-color: #FF0000;
+            border-radius: 50%;
+        }
+        .status-container p {
+            margin: 0;
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="/images/logo-connect-light.svg" alt="comma connect" width="96" height="96" />
+        <div>
+            <h1>comma connect</h1>
+            <div class="status-container">
+                <div class="status-circle"></div>
+                <p>offline</p>
+            </div>
+        </div>
+        <p class="int_check">Please check your internet connection and try again.</p>
+        <button class="button" onclick="window.location.reload()">Try Again</button>
+    </div>
+    <script>
+        // This script will attempt to reload the page when online
+        window.addEventListener('online', () => window.location.reload());
+    </script>
+</body>
+</html>
