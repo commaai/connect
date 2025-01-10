@@ -11,7 +11,11 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
+    "generate-pwa-assets": "npx pwa-asset-generator ./public/images/icon-vector.svg ./pwa-assets -m ./public/manifest.json -i ./index.html --sizes \"72x72,96x96,128x128,144x144,152x152,192x192,384x384,512x512\" --quality 75 --background \"#ffffff\" --padding \"10%\" --platform android,ios --opaque false",
+    "move-pwa-assets": "rm -rf ./public/pwa-assets && mv ./pwa-assets ./public/",
+    "pwa-setup": "npm run generate-pwa-assets && npm run move-pwa-assets",
     "serve": "vite prefix",
+    "start": "vite preview",
     "lint": "eslint --cache --cache-location node_modules/.eslintcache",
     "prepare": "husky",
     "pre-commit": "bun lint",
@@ -78,6 +82,7 @@
     "solid-js": "JS ui framework"
   },
   "dependencies": {
+    "@lhci/cli": "^0.14.0",
     "@mapbox/polyline": "^1.2.1",
     "@solid-primitives/state-machine": "^0.0.3",
     "@solidjs/router": "^0.13.5",

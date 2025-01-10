@@ -11,7 +11,7 @@ export default [
     languageOptions: { globals: globals.browser },
   },
   {
-    ignores: ['.github', '.husky', '.vscode', 'node_modules', 'dist'],
+    ignores: ['.github', '.husky', '.vscode', 'node_modules', 'dist', 'src/service-worker.js'],
   },
   js.configs.recommended,
   ...ts.configs.recommendedTypeChecked,

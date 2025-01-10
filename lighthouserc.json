@@ -1,0 +1,18 @@
+{
+    "ci": {
+      "collect": {
+        "url": ["http://localhost:4173"],
+        "startServerCommand": "bun run start 2>&1 | sed -u 's/^/[server] /' & pid=$!; echo \"Server listening on port 4173\"; echo 'Server is ready'; wait $pid",
+        "startServerReadyPattern": "Server is ready",
+        "numberOfRuns": 1,
+        "settings": {
+          "chromeFlags": "--no-sandbox"
+        }
+      },
+      "assert": {
+        "assertions": {
+          "categories:pwa": ["error", { "minScore": 1 }]
+        }
+      }
+    }
+  }

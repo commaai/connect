@@ -25,6 +25,29 @@ jobs:
           bun src/ci/dependency_report.ts dist/ | column -t -s ":"
       - run: ./check-bundle-size.sh
 
+      - name: Build for Lighthouse
+        run: bun run build
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v10
+        id: lighthouse
+        with:
+          configPath: './lighthouserc.json'
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+      - name: Upload Lighthouse reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: ${{ steps.lighthouse.outputs.resultsPath }}
+
+      - name: Check Lighthouse CI status
+        if: steps.lighthouse.outputs.assertionResults != '[]'
+        run: |
+          echo "Lighthouse CI assertions failed. Check the report for details."
+          exit 1
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 1

@@ -1,5 +1,6 @@
 /* @refresh reload */
 import './index.css'
+import { registerServiceWorker } from './utils/register-service-worker'
 
 import { render } from 'solid-js/web'
 import App from './App'
@@ -13,3 +14,4 @@ if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
 }
 
 render(() => <App />, root!)
+registerServiceWorker()
