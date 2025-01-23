@@ -9,8 +9,11 @@
     "url": "https://github.com/commaai/connect-beta.git"
   },
   "scripts": {
-    "build": "vite build",
+    "build": "npm run pwa-setup && vite build",
     "dev": "vite",
+    "generate-pwa-assets": "npx pwa-asset-generator ./public/images/icon-vector.svg ./pwa-assets -m ./public/manifest.json -i ./index.html --sizes \"72x72,96x96,128x128,144x144,152x152,192x192,384x384,512x512\" --quality 75 --padding \"10%\" --platform android,ios --opaque false",
+    "move-pwa-assets": "rm -rf ./public/pwa-assets && mv ./pwa-assets ./public/",
+    "pwa-setup": "npm run generate-pwa-assets && npm run move-pwa-assets",
     "serve": "vite prefix",
     "lint": "eslint --cache --cache-location node_modules/.eslintcache",
     "test": "vitest run"

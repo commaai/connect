@@ -22,6 +22,10 @@ bun install
 bun dev
 ```
 
+## PWA Setup
+
+PWA icons and splash screens are automatically generated using [pwa-asset-generator](https://github.com/elegantapp/pwa-asset-generator), which also updates the HTML metadata tags accordingly. Asset generation settings can be configured in the generate-pwa-assets script in package.json.
+
 ## Contributing
 
 Join the `#dev-connect-web` channel on our [Discord](https://discord.comma.ai).

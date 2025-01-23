@@ -20,6 +20,7 @@ worker
 # production
 /build
 stats.html
+**/pwa-assets
 
 # misc
 .DS_Store
