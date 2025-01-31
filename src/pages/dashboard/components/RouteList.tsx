@@ -18,14 +18,15 @@ import Button from '~/components/material/Button'
 const PAGE_SIZE = 3
 
 type RouteListProps = {
-  class?: string
-  dongleId: string
+  class?: string;
+  dongleId: string;
 }
 
 const pages: Promise<RouteSegments[]>[] = []
 
 const RouteList: VoidComponent<RouteListProps> = (props) => {
-  const endpoint = () => `/v1/devices/${props.dongleId}/routes_segments?limit=${PAGE_SIZE}`
+  const endpoint = () =>
+    `/v1/devices/${props.dongleId}/routes_segments?limit=${PAGE_SIZE}`
   const getKey = (previousPageData?: RouteSegments[]): string | undefined => {
     if (!previousPageData) return endpoint()
     if (previousPageData.length === 0) return undefined
@@ -38,7 +39,12 @@ const RouteList: VoidComponent<RouteListProps> = (props) => {
       pages[page] = new Promise(async (resolve) => {
         const previousPageData = page > 0 ? await getPage(page - 1) : undefined
         const key = getKey(previousPageData)
-        resolve(key ? fetcher<RouteSegments[]>(key) : [])
+        if (!key) {
+          resolve([])
+          return
+        }
+        const fetchedData = await fetcher<RouteSegments[]>(key)
+        resolve(fetchedData.sort((a, b) => a.create_time - b.create_time))
       })
     }
     return pages[page]
@@ -76,7 +82,9 @@ const RouteList: VoidComponent<RouteListProps> = (props) => {
               }
             >
               <For each={routes()}>
-                {(route) => <RouteCard route={route} />}
+                {(route) => {
+                  return <RouteCard route={route} />
+                }}
               </For>
             </Suspense>
           )

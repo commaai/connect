@@ -1,4 +1,4 @@
-import { Suspense, type VoidComponent } from 'solid-js'
+import { Show, Suspense, type VoidComponent } from 'solid-js'
 import dayjs from 'dayjs'
 
 import Avatar from '~/components/material/Avatar'
@@ -8,8 +8,11 @@ import RouteStaticMap from '~/components/RouteStaticMap'
 import RouteStatistics from '~/components/RouteStatistics'
 
 import type { RouteSegments } from '~/types'
+import { hasValidEndTime } from '~/utils/date'
 
-const RouteHeader = (props: { route: RouteSegments }) => {
+const RouteHeader: VoidComponent<{ route: RouteSegments }> = (props) => {
+  // Each of these is now a tiny reactive getter:
+  const hasEnd = () => hasValidEndTime(props.route)
   const startTime = () => dayjs(props.route.start_time_utc_millis)
   const endTime = () => dayjs(props.route.end_time_utc_millis)
 
@@ -17,15 +20,28 @@ const RouteHeader = (props: { route: RouteSegments }) => {
   const subhead = () => `${startTime().format('h:mm A')} to ${endTime().format('h:mm A')}`
 
   return (
-    <CardHeader
-      headline={headline()}
-      subhead={subhead()}
-      leading={
-        <Avatar>
-          <Icon>directions_car</Icon>
-        </Avatar>
+    <Show
+      when={hasEnd()}
+      fallback={
+        <CardHeader
+          leading={
+            <Avatar>
+              <Icon>directions_car</Icon>
+            </Avatar>
+          }
+        />
       }
-    />
+    >
+      <CardHeader
+        headline={headline()}
+        subhead={subhead()}
+        leading={
+          <Avatar>
+            <Icon>directions_car</Icon>
+          </Avatar>
+        }
+      />
+    </Show>
   )
 }
 

@@ -4,7 +4,7 @@ import clsx from 'clsx'
 
 import { TimelineStatistics, getTimelineStatistics } from '~/api/derived'
 import type { Route } from '~/types'
-import { formatRouteDistance, formatRouteDuration } from '~/utils/date'
+import { formatRouteDistance, formatRouteDuration, hasValidEndTime } from '~/utils/date'
 
 const formatEngagement = (timeline?: TimelineStatistics): string => {
   if (!timeline) return ''
@@ -31,17 +31,22 @@ const RouteStatistics: VoidComponent<RouteStatisticsProps> = (props) => {
         <span class="font-mono text-label-lg uppercase">{formatRouteDistance(props.route)}</span>
       </div>
 
-      <div class="flex grow flex-col justify-between">
-        <span class="text-body-sm text-on-surface-variant">Duration</span>
-        <span class="font-mono text-label-lg uppercase">{formatRouteDuration(props.route)}</span>
-      </div>
+      {hasValidEndTime(props.route) ? (<>
+        <div class="flex grow flex-col justify-between">
+          <span class="text-body-sm text-on-surface-variant">Duration</span>
+          <span class="font-mono text-label-lg uppercase">{formatRouteDuration(props.route)}</span>
+        </div>
 
-      <div class="hidden grow flex-col justify-between xs:flex">
-        <span class="text-body-sm text-on-surface-variant">Engaged</span>
-        <Suspense>
-          <span class="font-mono text-label-lg uppercase">{formatEngagement(timeline())}</span>
-        </Suspense>
-      </div>
+        <div class="hidden grow flex-col justify-between xs:flex">
+          <span class="text-body-sm text-on-surface-variant">Engaged</span>
+          <Suspense>
+            <span class="font-mono text-label-lg uppercase">{formatEngagement(timeline())}</span>
+          </Suspense>
+        </div>
+      </>
+      )
+        :
+        (<div class="flex grow justify-between"/>)}
 
       <div class="flex grow flex-col justify-between">
         <span class="text-body-sm text-on-surface-variant">User flags</span>

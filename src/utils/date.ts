@@ -62,3 +62,8 @@ export const formatDate = (input: dayjs.ConfigType) => {
   const yearStr = date.year() === dayjs().year() ? '' : ', YYYY'
   return date.format('MMMM Do' + yearStr)
 }
+
+export const hasValidEndTime = (route: Route|undefined): boolean => {
+  if (!route) return false
+  return route.end_time !== undefined && route.end_time !== null
+}
