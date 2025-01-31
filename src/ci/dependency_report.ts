@@ -1,7 +1,6 @@
 import fs from 'node:fs'
 
-const bundle = process.argv[2]
-const dir = bundle + '/assets/'
+const dir = process.argv[2]
 const extension = '.map'
 const mapFiles = fs.readdirSync(dir).filter(fn => fn.endsWith(extension))
 

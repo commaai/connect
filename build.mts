@@ -5,6 +5,7 @@ const build = await Bun.build({
   sourcemap: 'linked',
   splitting: true,
   minify: {
+    identifiers: true,
     whitespace: true,
     syntax: true,
   },
@@ -17,17 +18,15 @@ const build = await Bun.build({
 
 const outputs = await Promise.all(build.outputs
   .filter((output) => output.kind !== 'sourcemap')
-  .map(async ({ path, kind, size }) => {
-    return {
-      path,
-      kind,
-      size,
-      compressedSize: Bun.gzipSync(await Bun.file(path).bytes()).byteLength
-    }
-  }))
+  .map(async ({ path, kind, size }) => ({
+    path,
+    kind,
+    size,
+    compressedSize: Bun.gzipSync(await Bun.file(path).bytes()).byteLength,
+  })))
 
 console.log('Build outputs:')
-console.table(outputs)
+console.table(outputs.toSorted((a, b) => b.compressedSize - a.compressedSize))
 
 const size = outputs.reduce((acc, { size }) => acc + size, 0) / 1024
 const compressedSize = outputs.reduce((acc, { compressedSize: size }) => acc + size, 0) / 1024
