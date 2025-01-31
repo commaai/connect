@@ -6,7 +6,7 @@ const Login = lazy(() => import('./pages/auth/login'))
 const Logout = lazy(() => import('./pages/auth/logout'))
 const Auth = lazy(() => import('./pages/auth/auth'))
 
-const Dashboard = lazy(() => import('./pages/dashboard'))
+const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'))
 
 const App: VoidComponent = () => {
   return (

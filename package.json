@@ -47,9 +47,10 @@
   "devDependencies": {
     "@solidjs/testing-library": "^0.8.10",
     "@stylistic/eslint-plugin": "^2.12.1",
+    "@types/bun": "^1.2.1",
     "@types/eslint__js": "^8.42.3",
-    "@types/mapbox__polyline": "^1.0.5",
     "@types/leaflet": "^1.9.15",
+    "@types/mapbox__polyline": "^1.0.5",
     "@typescript-eslint/eslint-plugin": "^8.19.1",
     "@typescript-eslint/parser": "^8.19.1",
     "@vitest/browser": "^2.1.8",

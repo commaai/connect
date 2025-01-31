@@ -10,7 +10,7 @@
     "allowJs": true,
     "noEmit": true,
     "strict": true,
-    "types": ["vite/client"],
+    "types": ["vite/client", "bun"],
     "isolatedModules": true,
     "paths": {
       "~/*": ["./src/*"]
