@@ -14,23 +14,32 @@ const RouteHeader = (props: { route: RouteSegments }) => {
   const endTime = () => dayjs(props.route.end_time_utc_millis)
 
   const headline = () => startTime().format('ddd, MMM D, YYYY')
-  const subhead = () => `${startTime().format('h:mm A')} to ${endTime().format('h:mm A')}`
+  const subhead = () =>
+    `${startTime().format('h:mm A')} to ${endTime().format('h:mm A')}`
 
   return (
-    <CardHeader
-      headline={headline()}
-      subhead={subhead()}
-      leading={
-        <Avatar>
-          <Icon>directions_car</Icon>
-        </Avatar>
-      }
-    />
+    <>
+      {props.route.start_time_utc_millis ? (
+        <CardHeader
+          headline={headline()}
+          subhead={subhead()}
+          leading={
+            <>
+              <Avatar>
+                <Icon>directions_car</Icon>
+              </Avatar>
+            </>
+          }
+        />
+      ) : (
+        <div class="flex h-[10px] items-center gap-4 px-4 py-3" />
+      )}
+    </>
   )
 }
 
 interface RouteCardProps {
-  route: RouteSegments
+  route: RouteSegments;
 }
 
 const RouteCard: VoidComponent<RouteCardProps> = (props) => {

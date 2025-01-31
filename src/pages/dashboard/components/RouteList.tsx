@@ -18,14 +18,15 @@ import Button from '~/components/material/Button'
 const PAGE_SIZE = 3
 
 type RouteListProps = {
-  class?: string
-  dongleId: string
+  class?: string;
+  dongleId: string;
 }
 
 const pages: Promise<RouteSegments[]>[] = []
 
 const RouteList: VoidComponent<RouteListProps> = (props) => {
-  const endpoint = () => `/v1/devices/${props.dongleId}/routes_segments?limit=${PAGE_SIZE}`
+  const endpoint = () =>
+    `/v1/devices/${props.dongleId}/routes_segments?limit=${PAGE_SIZE}`
   const getKey = (previousPageData?: RouteSegments[]): string | undefined => {
     if (!previousPageData) return endpoint()
     if (previousPageData.length === 0) return undefined
@@ -54,6 +55,9 @@ const RouteList: VoidComponent<RouteListProps> = (props) => {
   const [size, setSize] = createSignal(1)
   const onLoadMore = () => setSize(size() + 1)
   const pageNumbers = () => Array.from(Array(size()).keys())
+  const sortByCreateTime = (array: RouteSegments[]) => {
+    return array.sort((a, b) => b.create_time - a.create_time)
+  }
 
   return (
     <div
@@ -75,9 +79,11 @@ const RouteList: VoidComponent<RouteListProps> = (props) => {
                 </>
               }
             >
-              <For each={routes()}>
-                {(route) => <RouteCard route={route} />}
-              </For>
+              {routes() && (
+                <For each={sortByCreateTime(routes())}>
+                  {(route) => <RouteCard route={route} />}
+                </For>
+              )}
             </Suspense>
           )
         }}
