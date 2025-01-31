@@ -1,5 +1,10 @@
-import type { Route } from '~/types'
+import dayjs from 'dayjs'
+import type { Route, RouteSegments } from '~/types'
 import { getRouteDuration } from '~/utils/date'
+import { fetcher } from '~/api/index'
+
+export const PAGE_SIZE = 7
+export const DEFAULT_DAYS = 7
 
 export interface GPSPathPoint {
   t: number
@@ -85,14 +90,33 @@ export interface TimelineStatistics {
   userFlags: number
 }
 
-const getDerived = <T>(route: Route, fn: string): Promise<T[]> => {
-  let urls: string[] = []
-  if (route) {
-    const segmentNumbers = Array.from({ length: route.maxqlog }, (_, i) => i)
-    urls = segmentNumbers.map((i) => `${route.url}/${i}/${fn}`)
+export interface RouteSegmentsWithStats extends RouteSegments {
+  timelineStatistics: TimelineStatistics
+}
+
+const fetchWithRetry = async <T>(url: string, attempts: number = 3): Promise<T | null> => {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      console.log(`Fetching ${url}, attempt ${attempt + 1}`)
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`Failed to fetch: ${res.statusText}`)
+      return await res.json() as T
+    } catch (error) {
+      console.error(`Attempt ${attempt + 1} failed for ${url}:`, error)
+      if (attempt === attempts - 1) {
+        console.error(`Failed to fetch after ${attempts} attempts: ${url}`)
+        return null
+      }
+    }
   }
-  const results = urls.map((url) => fetch(url).then((res) => res.json() as T))
-  return Promise.all(results)
+  return null
+}
+
+const getDerived = async <T>(route: Route, fn: string): Promise<T[]> => {
+  const segmentNumbers = Array.from({ length: route.maxqlog }, (_, i) => i)
+  const urls = segmentNumbers.map((i) => `${route.url}/${i}/${fn}`)
+  const results = await Promise.all(urls.map((url) => fetchWithRetry<T>(url)))
+  return results.flat().filter(item => item !== null) as T[]
 }
 
 export const getCoords = (route: Route): Promise<GPSPathPoint[]> =>
@@ -109,12 +133,8 @@ const generateTimelineEvents = (
 ): TimelineEvent[] => {
   const routeDuration = getRouteDuration(route)?.asMilliseconds() ?? 0
 
-  // sort events by timestamp
-  events.sort((a, b) => {
-    return a.route_offset_millis - b.route_offset_millis
-  })
+  events.sort((a, b) => a.route_offset_millis - b.route_offset_millis)
 
-  // convert events to timeline events
   const res: TimelineEvent[] = []
   let lastEngaged: StateDriveEvent | undefined
   let lastAlert: StateDriveEvent | undefined
@@ -170,7 +190,6 @@ const generateTimelineEvents = (
     }
   })
 
-  // ensure events have an end timestamp
   if (lastEngaged) {
     res.push({
       type: 'engaged',
@@ -227,3 +246,47 @@ export const getTimelineStatistics = async (
   getTimelineEvents(route).then((timeline) =>
     generateTimelineStatistics(route, timeline),
   )
+
+export const fetchRoutesWithinDays = async (dongleId: string, days: number): Promise<RouteSegments[]> => {
+  const now = dayjs().valueOf()
+  const pastDate = dayjs().subtract(days, 'day').valueOf()
+  const endpoint = (end: number) => `/v1/devices/${dongleId}/routes_segments?limit=${PAGE_SIZE}&end=${end}`
+
+  let allRoutes: RouteSegments[] = []
+  let end = now
+
+  while (true) {
+    const key = `${endpoint(end)}`
+    try {
+      const routes = await fetcher<RouteSegments[]>(key)
+      if (!routes || routes.length === 0) break
+      allRoutes = [...allRoutes, ...routes]
+      end = (routes.at(-1)?.end_time_utc_millis ?? 0) - 1
+      if (end < pastDate) break
+    } catch (error) {
+      console.error('Error fetching routes:', error)
+      break
+    }
+  }
+  return allRoutes.filter(route => route.end_time_utc_millis >= pastDate)
+}
+
+export const fetchRoutesWithStats = async (dongleId: string, days: number): Promise<RouteSegmentsWithStats[]> => {
+  const routes = await fetchRoutesWithinDays(dongleId, days)
+  console.log('Fetched routes:', routes.length)
+  const routesWithStats = await Promise.all(
+    routes.map(async (route): Promise<RouteSegmentsWithStats> => {
+      const stats = await getTimelineStatistics(route).catch((error) => {
+        console.error(`Error fetching statistics for route ${route.fullname}:`, error)
+        return { duration: 0, engagedDuration: 0, userFlags: 0 }
+      })
+      console.log(`Route ${route.fullname} stats:`, stats)
+      return {
+        ...route,
+        timelineStatistics: stats,
+      }
+    }),
+  )
+  console.log('Routes with stats:', routesWithStats.length)
+  return routesWithStats
+}
