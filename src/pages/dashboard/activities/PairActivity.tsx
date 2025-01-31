@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { onCleanup, onMount, type JSX, type VoidComponent } from 'solid-js'
 import { useLocation, useNavigate } from '@solidjs/router'
 import { createMachine } from '@solid-primitives/state-machine'
