@@ -12,7 +12,7 @@ const formatEngagement = (timeline?: TimelineStatistics): string => {
   return `${(100 * (engagedDuration / duration)).toFixed(0)}%`
 }
 
-const formatUserFlags = (timeline?: TimelineStatistics): string => {
+export const formatUserFlags = (timeline?: TimelineStatistics): string => {
   return timeline?.userFlags.toString() ?? ''
 }
 

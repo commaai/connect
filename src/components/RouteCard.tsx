@@ -1,15 +1,16 @@
-import { Suspense, type VoidComponent } from 'solid-js'
+import { createResource, Show, Suspense, type VoidComponent } from 'solid-js'
 import dayjs from 'dayjs'
 
-import Avatar from '~/components/material/Avatar'
 import Card, { CardContent, CardHeader } from '~/components/material/Card'
 import Icon from '~/components/material/Icon'
 import RouteStaticMap from '~/components/RouteStaticMap'
 import RouteStatistics from '~/components/RouteStatistics'
 
 import type { RouteSegments } from '~/types'
+import { getTimelineStatistics } from '~/api/derived'
 
 const RouteHeader = (props: { route: RouteSegments }) => {
+  const [timeline] = createResource(() => props.route, getTimelineStatistics)
   const startTime = () => dayjs(props.route.start_time_utc_millis)
   const endTime = () => dayjs(props.route.end_time_utc_millis)
 
@@ -20,10 +21,10 @@ const RouteHeader = (props: { route: RouteSegments }) => {
     <CardHeader
       headline={headline()}
       subhead={subhead()}
-      leading={
-        <Avatar>
-          <Icon>directions_car</Icon>
-        </Avatar>
+      trailing={
+        <Show when={timeline()?.userFlags}>
+          <Icon class="-mt-2 font-bold text-yellow-300" size="40">bookmark</Icon>
+        </Show>
       }
     />
   )
