@@ -8,6 +8,7 @@ import RouteStaticMap from '~/components/RouteStaticMap'
 import RouteStatistics from '~/components/RouteStatistics'
 
 import type { RouteSegments } from '~/types'
+import MediaMenu from './material/MediaMenu'
 
 const RouteHeader = (props: { route: RouteSegments }) => {
   const startTime = () => dayjs(props.route.start_time_utc_millis)
@@ -24,6 +25,9 @@ const RouteHeader = (props: { route: RouteSegments }) => {
         <Avatar>
           <Icon>directions_car</Icon>
         </Avatar>
+      }
+      trailing={
+        <MediaMenu />
       }
     />
   )
