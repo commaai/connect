@@ -52,9 +52,9 @@ export async function getPlaceDetails(position: Position): Promise<{
     context.place?.name,
     context.locality?.name,
     context.district?.name,
-  ].filter((it) => it !== name).find(Boolean)
+  ].filter((it) => it !== name).find(Boolean) || ''
   if (context.country?.country_code === 'US' && context.region?.region_code) {
-    details = `${details}, ${context.region?.region_code}`
+    details = details ? `${details}, ${context.region.region_code}` : context.region.region_code
   }
   return {
     name,
