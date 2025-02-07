@@ -40,15 +40,15 @@ describe('getPlaceDetails', () => {
     })
     expect(await getPlaceDetails([-0.113643, 51.504546])).toEqual({
       name: 'Waterloo',
-      details: 'London, ENG',
+      details: 'London',
     })
     expect(await getPlaceDetails([5.572254, 50.644280])).toEqual({
       name: 'Liege',
-      details: 'Liège, WLG',
+      details: 'Liège',
     })
     expect(await getPlaceDetails([-2.236802, 53.480931])).toEqual({
       name: 'Northern Quarter',
-      details: 'Manchester, ENG',
+      details: 'Manchester',
     })
   })
 })
