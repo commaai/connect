@@ -47,21 +47,14 @@ export async function getPlaceDetails(position: Position): Promise<{
     context.locality?.name,
     context.place?.name,
     context.district?.name,
-  ].find((name) => name !== undefined) || ''
-  const lower = [
+  ].find(Boolean) || ''
+  let details = [
     context.place?.name,
     context.locality?.name,
     context.district?.name,
-  ].filter((detail) => detail !== name).find((detail) => detail !== undefined)
-  const upper = [
-    context.region?.region_code,
-    context.country?.country_code,
-  ].find((detail) => detail !== undefined)
-  let details = ''
-  if (lower && upper && context.country?.country_code === 'US') {
-    details = `${lower}, ${upper}`
-  } else {
-    details = lower || upper || ''
+  ].filter((it) => it !== name).find(Boolean)
+  if (context.country?.country_code === 'US' && context.region?.region_code) {
+    details = `${details}, ${context.region?.region_code}`
   }
   return {
     name,

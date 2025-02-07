@@ -50,5 +50,9 @@ describe('getPlaceDetails', () => {
       name: 'Northern Quarter',
       details: 'Manchester',
     })
+    expect(await getPlaceDetails([-8.626736, 52.663829])).toEqual({
+      name: 'Prior\'s-Land',
+      details: 'Limerick',
+    })
   })
 })
