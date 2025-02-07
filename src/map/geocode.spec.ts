@@ -54,5 +54,9 @@ describe('getPlaceDetails', () => {
       name: 'Prior\'s-Land',
       details: 'Limerick',
     })
+    expect(await getPlaceDetails([-75.704956, 45.410103])).toEqual({
+      name: 'Centretown',
+      details: 'Ottawa, ON',
+    })
   })
 })

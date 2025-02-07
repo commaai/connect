@@ -4,6 +4,9 @@ import type { ReverseGeocodingResponse, ReverseGeocodingFeature } from '~/map/ap
 import { MAPBOX_TOKEN } from '~/map/config'
 
 
+const INCLUDE_REGION_CODE = ['US', 'CA']
+
+
 export async function reverseGeocode(position: Position): Promise<ReverseGeocodingFeature | null> {
   if (position[0] === 0 && position[1] === 0) {
     return null
@@ -53,7 +56,7 @@ export async function getPlaceDetails(position: Position): Promise<{
     context.locality?.name,
     context.district?.name,
   ].filter((it) => it !== name).find(Boolean) || ''
-  if (context.country?.country_code === 'US' && context.region?.region_code) {
+  if (context.region?.region_code && INCLUDE_REGION_CODE.includes(context.country?.country_code || '')) {
     details = details ? `${details}, ${context.region.region_code}` : context.region.region_code
   }
   return {
