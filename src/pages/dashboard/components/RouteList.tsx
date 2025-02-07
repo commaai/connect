@@ -16,6 +16,31 @@ import Card, { CardContent, CardHeader } from '~/components/material/Card'
 import RouteStatistics from '~/components/RouteStatistics'
 import type { RouteSegments } from '~/types'
 import { useDimensions } from '~/utils/window'
+import { getPlaceDetails } from '~/map/geocode'
+import Icon from '~/components/material/Icon'
+
+
+interface RouteLocationProps {
+  route: RouteSegments
+}
+
+const RouteLocation: VoidComponent<RouteLocationProps> = (props) => {
+  const startPosition = () => [props.route.start_lng || 0, props.route.start_lat || 0] as number[]
+  const endPosition = () => [props.route.end_lng || 0, props.route.end_lat || 0] as number[]
+  const [startDetails] = createResource(startPosition, getPlaceDetails)
+  const [endDetails] = createResource(endPosition, getPlaceDetails)
+  return <div class="flex items-center gap-4">
+    <div>
+      <div>{startDetails()?.name}</div>
+      <div>{startDetails()?.details}</div>
+    </div>
+    <Icon>arrow_right_alt</Icon>
+    <div>
+      <div>{endDetails()?.name}</div>
+      <div>{endDetails()?.details}</div>
+    </div>
+  </div>
+}
 
 
 interface RouteCardProps {
@@ -35,6 +60,9 @@ const RouteCard: VoidComponent<RouteCardProps> = (props) => {
       <CardHeader
         headline={startTime().format('ddd, MMM D, YYYY')}
         subhead={`${startTime().format('h:mm A')} to ${endTime().format('h:mm A')}`}
+        trailing={<Suspense fallback={<div class="skeleton-loader h-8 w-16" />}>
+          <RouteLocation route={props.route} />
+        </Suspense>}
       />
 
       <CardContent>

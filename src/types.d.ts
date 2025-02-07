@@ -88,6 +88,8 @@ export interface Route extends ApiResponseBase {
   procqcamera: number
   procqlog: number
   radar?: boolean
+  start_lat?: number
+  start_lng?: number
   start_time: string
   url: string
   user_id: string | null
