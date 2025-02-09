@@ -45,6 +45,8 @@ jobs:
           retention-days: 1
           name: build-artifacts-${{ github.run_id }}
 
+      - run: bun .github/actions/combine_artifacts.ts
+
       - name: Deploy to Cloudflare Pages
         if: github.ref == 'refs/heads/master' && github.repository == 'commaai/new-connect'
         uses: cloudflare/wrangler-action@v3

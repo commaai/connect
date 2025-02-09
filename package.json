@@ -39,6 +39,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
+    "@octokit/action": "^7.0.0",
     "@solidjs/testing-library": "^0.8.10",
     "@types/bun": "^1.2.2",
     "@types/geojson": "^7946.0.16",
