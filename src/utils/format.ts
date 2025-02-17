@@ -1,12 +1,10 @@
 import dayjs from 'dayjs'
 import advanced from 'dayjs/plugin/advancedFormat'
-import customParseFormat from 'dayjs/plugin/customParseFormat'
 import duration, { type Duration } from 'dayjs/plugin/duration'
 
 import type { Route } from '~/types'
 
 dayjs.extend(advanced)
-dayjs.extend(customParseFormat)
 dayjs.extend(duration)
 
 export { dayjs }
@@ -31,6 +29,17 @@ export const formatDuration = (minutes: number | undefined): string => {
     minutes: Math.round(minutes % 60),
   })
   return _formatDuration(duration)
+}
+
+export const formatVideoTime = (seconds: number): string => {
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const remainingSeconds = Math.floor(seconds % 60)
+  
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
+  }
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
 }
 
 export const getRouteDuration = (route: Route): Duration | undefined => {

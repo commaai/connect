@@ -5,7 +5,7 @@ export type IconProps = {
   class?: string
   children: string
   filled?: boolean
-  size?: '20' | '24' | '40' | '48'
+  size?: '20' | '24' | '34' | '40' | '48'
 }
 
 const Icon: Component<IconProps> = (props) => {

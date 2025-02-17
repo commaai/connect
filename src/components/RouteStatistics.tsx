@@ -25,7 +25,7 @@ const RouteStatistics: VoidComponent<RouteStatisticsProps> = (props) => {
   const [timeline] = createResource(() => props.route, getTimelineStatistics)
 
   return (
-    <div class={clsx('flex size-full items-stretch gap-8', props.class)}>
+    <div class={clsx('flex items-stretch gap-8', props.class)}>
       <div class="flex grow flex-col justify-between">
         <span class="text-body-sm text-on-surface-variant">Distance</span>
         <span class="font-mono text-label-lg uppercase">{formatDistance(props.route?.length)}</span>

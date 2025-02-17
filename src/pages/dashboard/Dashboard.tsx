@@ -1,4 +1,5 @@
 import { createResource, lazy, Match, Show, SuspenseList, Switch } from 'solid-js'
+import { Suspense } from 'solid-js'
 import type { Component, JSXElement, VoidComponent } from 'solid-js'
 import { Navigate, type RouteSectionProps, useLocation } from '@solidjs/router'
 import clsx from 'clsx'
@@ -16,10 +17,10 @@ import TopAppBar from '~/components/material/TopAppBar'
 
 import DeviceList from './components/DeviceList'
 import DeviceActivity from './activities/DeviceActivity'
-import RouteActivity from './activities/RouteActivity'
 import SettingsActivity from './activities/SettingsActivity'
 
 const PairActivity = lazy(() => import('./activities/PairActivity'))
+const RouteActivityLazy = lazy(() => import('./activities/RouteActivity'))
 
 interface DashboardDrawerProps {
   devices?: Device[]
@@ -119,7 +120,17 @@ const Dashboard: Component<RouteSectionProps> = () => {
                 <SettingsActivity dongleId={id} />
               </Match>
               <Match when={dateStr()} keyed>
-                {(date) => <RouteActivity dongleId={id} dateStr={date} />}
+                {(date) => (
+                  <Suspense
+                    fallback={
+                      <div class="flex h-full items-center justify-center">
+                        <div class="aspect-square w-12 animate-spin rounded-full border-8 border-surface-variant border-t-primary" />
+                      </div>
+                    }
+                  >
+                    <RouteActivityLazy dongleId={id} dateStr={date} />
+                  </Suspense>
+                )}
               </Match>
             </Switch>}
             paneTwoContent={!!dateStr()}

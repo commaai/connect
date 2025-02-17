@@ -74,6 +74,7 @@ export interface Route extends ApiResponseBase {
   hpgps?: boolean
   init_logmonotime?: number
   is_public: boolean
+  is_preserved: boolean
   length?: number
   maxcamera: number
   maxdcamera: number

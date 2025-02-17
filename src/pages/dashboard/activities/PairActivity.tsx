@@ -1,7 +1,7 @@
 import { onCleanup, onMount, type JSX, type VoidComponent } from 'solid-js'
 import { useLocation, useNavigate } from '@solidjs/router'
 import { createMachine } from '@solid-primitives/state-machine'
-import QrScanner from 'qr-scanner'
+import type { default as QrScannerType } from 'qr-scanner'
 
 import { pairDevice } from '~/api/devices'
 import Button from '~/components/material/Button'
@@ -38,9 +38,12 @@ const PairActivity: VoidComponent = () => {
     states: {
       scanning(_input, to) {
         let videoRef!: HTMLVideoElement
-        let qrScanner: QrScanner
+        let qrScanner: QrScannerType
 
-        onMount(() => {
+        onMount(async () => {
+          const { default: QrScanner } = await import('qr-scanner')
+          await import('qr-scanner/qr-scanner-worker.min.js')
+
           qrScanner = new QrScanner(
             videoRef,
             (result) => {

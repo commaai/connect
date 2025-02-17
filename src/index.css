@@ -191,6 +191,11 @@
       font-size: 24px;
     }
 
+    &.size-34 {
+      --font-opsz: 34;
+      font-size: 34px;
+    }
+
     &.size-40 {
       --font-opsz: 40;
       font-size: 40px;
