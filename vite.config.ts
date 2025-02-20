@@ -5,7 +5,14 @@ import { sentryVitePlugin } from '@sentry/vite-plugin'
 
 export default defineConfig({
   plugins: [
-    devtools(),
+    devtools({
+      autoname: process.env.NODE_ENV === 'development',
+      locator: {
+        targetIDE: 'webstorm',
+        componentLocation: true,
+        jsxLocation: true,
+      },
+    }),
     solid({
       ssr: false,
     }),

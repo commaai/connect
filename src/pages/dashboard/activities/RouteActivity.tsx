@@ -11,9 +11,11 @@ import { getRoute } from '~/api/route'
 import IconButton from '~/components/material/IconButton'
 import TopAppBar from '~/components/material/TopAppBar'
 import RouteStaticMap from '~/components/RouteStaticMap'
+import RouteStatistics from '~/components/RouteStatistics'
 import Timeline from '~/components/Timeline'
 import { dayjs } from '~/utils/format'
-import RouteInfo from '~/components/RouteInfo'
+
+import RouteActions from '../components/RouteActions'
 
 const RouteVideoPlayer = lazy(() => import('~/components/RouteVideoPlayer'))
 
@@ -42,11 +44,7 @@ const RouteActivity: VoidComponent<RouteActivityProps> = (props) => {
       </TopAppBar>
 
       <div class="flex flex-col gap-6 px-4 pb-4">
-        <Suspense
-          fallback={
-            <div class="skeleton-loader aspect-[241/151] rounded-lg bg-surface-container-low" />
-          }
-        >
+        <Suspense fallback={<div class="skeleton-loader aspect-[241/151] rounded-lg bg-surface-container-low" />}>
           <RouteVideoPlayer ref={setVideoRef} routeName={routeName()} onProgress={setSeekTime} />
         </Suspense>
 
@@ -62,7 +60,10 @@ const RouteActivity: VoidComponent<RouteActivityProps> = (props) => {
 
         <div class="flex flex-col gap-2">
           <h3 class="text-label-sm uppercase">Route Info</h3>
-          <RouteInfo route={route()} routeName={routeName()} />
+          <div class="flex flex-col gap-6 p-5 bg-surface-container-lowest rounded-md overflow-hidden">
+            <RouteStatistics route={route()} />
+            <RouteActions routeName={routeName()} />
+          </div>
         </div>
 
         <div class="flex flex-col gap-2">

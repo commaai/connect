@@ -1,6 +1,7 @@
 /* @refresh reload */
 import './index.css'
 
+import 'solid-devtools'
 import * as Sentry from '@sentry/solid'
 import { render } from 'solid-js/web'
 import App from './App'

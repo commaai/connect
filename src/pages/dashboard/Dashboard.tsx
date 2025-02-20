@@ -1,4 +1,4 @@
-import { createResource, lazy, Match, Show, SuspenseList, Switch } from 'solid-js'
+import { createResource, lazy, Match, Show, Switch } from 'solid-js'
 import type { Component, JSXElement, VoidComponent } from 'solid-js'
 import { Navigate, type RouteSectionProps, useLocation } from '@solidjs/router'
 import clsx from 'clsx'
@@ -63,14 +63,12 @@ const DashboardLayout: Component<{
         class={clsx(
           'mx-auto size-full max-w-[1560px] md:grid md:grid-cols-2 lg:gap-2',
           // Flex layout for mobile with horizontal transition
-          'flex transition-transform duration-300 ease-in-out',
+          'flex transition-transform duration-[400ms] ease-in-out',
           props.paneTwoContent ? '-translate-x-full md:translate-x-0' : 'translate-x-0',
         )}
       >
-        <SuspenseList revealOrder="forwards">
-          <div class="min-w-full overflow-y-scroll">{props.paneOne}</div>
-          <div class="min-w-full overflow-y-scroll">{props.paneTwo}</div>
-        </SuspenseList>
+        <div class="min-w-full overflow-y-scroll">{props.paneOne}</div>
+        <div class="min-w-full overflow-y-scroll">{props.paneTwo}</div>
       </div>
     </div>
   )

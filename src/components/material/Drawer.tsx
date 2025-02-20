@@ -1,4 +1,4 @@
-import { createContext, createSignal, Show, useContext } from 'solid-js'
+import { createContext, createSignal, Show, Suspense, useContext } from 'solid-js'
 import type { Accessor, JSXElement, ParentComponent, Setter, VoidComponent } from 'solid-js'
 
 import IconButton from '~/components/material/IconButton'
@@ -27,6 +27,7 @@ const PEEK = 56
 
 interface DrawerProps {
   drawer: JSXElement
+  fallback?: JSXElement
 }
 
 const Drawer: ParentComponent<DrawerProps> = (props) => {
@@ -60,7 +61,7 @@ const Drawer: ParentComponent<DrawerProps> = (props) => {
           width: contentWidth(),
         }}
       >
-        {props.children}
+        <Suspense fallback={props.fallback}>{props.children}</Suspense>
         <div
           class="absolute inset-0 z-[9999] bg-background transition-drawer duration-500"
           style={{
