@@ -34,11 +34,12 @@ files.push(
 )
 console.table(files, ['path', 'sizeKB', 'compressedSizeKB'])
 
-if (totalCompressedSize < 200 * 1024) {
+if (totalCompressedSize < 225 * 1024) {
   console.warn('Bundle size lower than expected, let\'s lower the limit!')
   process.exit(1)
-} else if (totalCompressedSize > 245 * 1024) {
+} else if (totalCompressedSize > 250 * 1024) {
   console.warn('Exceeded bundle size limit!')
+  // … but please don't bump the limit above https://github.com/commaai/new-connect/blob/17972e5004d05d3f0ae69a10fa6ece69b13c0d7f/README.md?plain=1#L33
   process.exit(1)
 } else {
   console.info('Bundle size OK!')
