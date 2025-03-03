@@ -28,27 +28,28 @@ const RouteCard: VoidComponent<RouteCardProps> = (props) => {
   const startTime = () => dayjs(props.route.start_time_utc_millis)
   const endTime = () => dayjs(props.route.end_time_utc_millis)
 
+
+  // The idea here is to color code with some sort of "sunlight" color temperature, based on latitude & longitude and time of day
+  // * @returns {number} between 0.0 for twilight and 1.0 for daytime, `Number.POSITIVE_INFINITY` at full brightness, and `null` at night
   const dayNightFraction = () => {
     const times = SunCalc.getTimes(endTime(), props.route.end_lat, props.route.end_lng);
     const now_ts = endTime().valueOf();
 
     if (times.goldenHourEnd.valueOf() < now_ts && now_ts < times.goldenHour.valueOf()) {
-      // "Daytime"
+      // "Broad daylight"
       return Number.POSITIVE_INFINITY;
     } else if (times.nightEnd.valueOf() <= now_ts && now_ts <= times.night.valueOf()) {
-      // The idea here is to color code with some sort of "sunlight" color temperature, based on latitude & longitude and time of day
-      var percentage = 1.0;
 
       // Temperature calculation from https://github.com/claytonjn/hass-circadian_lighting/blob/2f87bdaf86c602983c054b3f6fcd51a5198c1c20/custom_components/circadian_lighting/__init__.py#L295 instead
       if(now_ts < times.solarNoon.valueOf()) {
-        percentage = 1.0 - Math.pow((times.solarNoon.valueOf() - now_ts)/(times.solarNoon.valueOf() - times.nightEnd.valueOf()), 2);
+        return 1.0 - Math.pow((times.solarNoon.valueOf() - now_ts)/(times.solarNoon.valueOf() - times.nightEnd.valueOf()), 2);
       }
       if(now_ts > times.solarNoon.valueOf()) {
-        percentage = 1.0 - Math.pow((now_ts - times.solarNoon.valueOf())/(times.night.valueOf() - times.solarNoon.valueOf()), 2);
+        return 1.0 - Math.pow((now_ts - times.solarNoon.valueOf())/(times.night.valueOf() - times.solarNoon.valueOf()), 2);
       }
 
-      // INVARIANT: If you get here, `percentage` is between 0.0 and 1.0
-      return percentage;
+      return 1.0;
+
     } else {
       // "Nighttime"
       return null;
@@ -67,7 +68,7 @@ const RouteCard: VoidComponent<RouteCardProps> = (props) => {
       const w = Math.sin(SunCalc.getPosition(endTime(), props.route.end_lat, props.route.end_lng).altitude) / max_w;
       const sunBorderPx = 1 * (1 - w) + 3 * (w); // interpolate from 1px to 3px
 
-      var sunColorRgb;
+      let sunColorRgb : [number, number, number];
       if (0.0 <= percentage && percentage <= 1.0) {
         const k = 2500 * (1 - percentage) + 5500 * (percentage); // interpolate from 2500K to 5500K
         sunColorRgb = kelvinToRgb(k);
