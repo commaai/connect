@@ -66,7 +66,7 @@ const RouteCard: VoidComponent<RouteCardProps> = (props) => {
     } else {
       const max_w = Math.PI / 2;
       const w = Math.sin(SunCalc.getPosition(endTime(), props.route.end_lat, props.route.end_lng).altitude) / max_w;
-      const sunBorderPx = 1 * (1 - w) + 3 * (w); // interpolate from 1px to 3px
+      const sunBorderPx = 1 * (1 - w) + 4 * (w); // interpolate from 1px to 3px
 
       let sunColorRgb : [number, number, number];
       if (0.0 <= percentage && percentage <= 1.0) {
@@ -86,7 +86,8 @@ const RouteCard: VoidComponent<RouteCardProps> = (props) => {
   return (
     <div
       style:border-radius="1.5ex"
-      style:border={sunlightBorderStyle()}
+      style:border-top={sunlightBorderStyle()}
+      style:border-right={sunlightBorderStyle()}
     >
       <Card
         class="max-w-none"
