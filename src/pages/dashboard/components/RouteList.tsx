@@ -57,16 +57,15 @@ const RouteCard: VoidComponent<RouteCardProps> = (props) => {
 
   };
 
-  const sunlightBorderStyle = () => {
+  const sunlightBackgroundStyle = () => {
     const percentage = dayNightFraction();
 
     if (percentage === null) {
-      // No border at night. (There's no sun at night, anyway.)
-      return '0px none transparent';
+      // No styling at night. (There's no sun at night, anyway.)
+      return 'none';
     } else {
       const max_w = Math.PI / 2;
-      const w = Math.sin(SunCalc.getPosition(endTime(), props.route.end_lat, props.route.end_lng).altitude) / max_w;
-      const sunBorderPx = 1 * (1 - w) + 4 * (w); // interpolate from 1px to 3px
+      const w = SunCalc.getPosition(endTime(), props.route.end_lat, props.route.end_lng).altitude / max_w;
 
       let sunColorRgb : [number, number, number];
       if (0.0 <= percentage && percentage <= 1.0) {
@@ -78,21 +77,21 @@ const RouteCard: VoidComponent<RouteCardProps> = (props) => {
         sunColorRgb = kelvinToRgb(40000);
       }
 
-      return sunBorderPx + 'px solid rgb(' + sunColorRgb[0] + ',' + sunColorRgb[1] + ',' + sunColorRgb[2] + ')';
+      return 'linear-gradient(rgba(' + sunColorRgb[0] + ' ' + sunColorRgb[1] + ' ' + sunColorRgb[2] + ' / ' + Math.round((1.0 + w) * 50) + '% ), rgb(27 27 33))';
+      // rgb(27, 27, 33) is the tailwind-material-colors background color for bg-surface-container-low
     }
 
   };
 
   return (
-    <div
-      style:border-radius="1.5ex"
-      style:border-top={sunlightBorderStyle()}
-      style:border-right={sunlightBorderStyle()}
+
+    <Card
+      class="max-w-none"
+      href={`/${props.route.dongle_id}/${props.route.fullname.slice(17)}`}
+      activeClass="md:before:bg-primary"
     >
-      <Card
-        class="max-w-none"
-        href={`/${props.route.dongle_id}/${props.route.fullname.slice(17)}`}
-        activeClass="md:before:bg-primary"
+      <div
+        style:background-image={sunlightBackgroundStyle()}
       >
         <CardHeader
           headline={startTime().format('ddd, MMM D, YYYY')}
@@ -102,8 +101,8 @@ const RouteCard: VoidComponent<RouteCardProps> = (props) => {
         <CardContent>
           <RouteStatistics route={props.route} />
         </CardContent>
-      </Card>
-    </div>
+      </div>
+    </Card>
   )
 }
 
