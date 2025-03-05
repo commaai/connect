@@ -78,7 +78,7 @@ const RouteCard: VoidComponent<RouteCardProps> = (props) => {
       }
 
       return 'linear-gradient(rgba(' + sunColorRgb[0] + ' ' + sunColorRgb[1] + ' ' + sunColorRgb[2] + ' / ' + Math.round((1.0 + w) * 50) + '% ), rgb(27 27 33))';
-      // rgb(27, 27, 33) is the tailwind-material-colors background color for bg-surface-container-low
+      // rgb(27, 27, 33) is the tailwind-material-colors background color for bg-surface-container-low (see Card in src/components/material/Card.tsx)
     }
 
   };
