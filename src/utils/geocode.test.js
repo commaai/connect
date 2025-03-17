@@ -1,5 +1,5 @@
 /* eslint-env jest */
-import { priorityGetContext, reverseLookup, forwardLookup } from './geocode';
+import { priorityGetContext, reverseLookup } from './geocode';
 
 describe('priorityGetContext', () => {
   it('should return the first context with a priority', () => {
@@ -41,21 +41,5 @@ describe('reverseLookup', () => {
       details: 'Cheltenham, GL50 1TX, United Kingdom',
       place: 'Montpellier Dr',
     });
-  });
-});
-
-describe('forwardLookup', () => {
-  jest.setTimeout(10000);
-
-  it('should return null if query is empty', async () => {
-    const result = await forwardLookup('');
-    expect(result).toHaveLength(0);
-  });
-
-  it('should return taco bell', async () => {
-    const result = await forwardLookup('Taco Bell, 3195 Market St, San Diego, CA 92102');
-    const { lat, lng } = result[0].position;
-    expect(lat).toBeCloseTo(32.71137, 2);
-    expect(lng).toBeCloseTo(-117.12541, 2);
   });
 });

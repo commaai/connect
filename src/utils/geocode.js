@@ -1,9 +1,7 @@
 import * as Sentry from '@sentry/react';
 import qs from 'query-string';
-import { WebMercatorViewport } from 'react-map-gl';
 
 import mbxGeocoding from '@mapbox/mapbox-sdk/services/geocoding';
-import mbxDirections from '@mapbox/mapbox-sdk/services/directions';
 
 export const DEFAULT_LOCATION = {
   latitude: 32.711483,
@@ -15,7 +13,6 @@ export const MAPBOX_TOKEN = 'pk.eyJ1IjoiY29tbWFhaSIsImEiOiJjangyYXV0c20wMGU2NDlu
 const HERE_API_KEY = 'O0atgmTwzKnwYJL2hk5N5qqG2R9y78f5GdHlvr_mtiw';
 
 const geocodingClient = mbxGeocoding({ accessToken: MAPBOX_TOKEN });
-const directionsClient = mbxDirections({ accessToken: MAPBOX_TOKEN });
 
 export function getFilteredContexts(context) {
   const includeCtxs = ['region', 'district', 'place', 'locality', 'neighborhood'];
@@ -197,44 +194,6 @@ export async function reverseLookup(coords, navFormat = false) {
   return null;
 }
 
-export async function forwardLookup(query, proximity, viewport) {
-  if (!query) {
-    return [];
-  }
-
-  const params = {
-    apiKey: HERE_API_KEY,
-    q: query,
-    limit: 20,
-    show: ['details'],
-  };
-  if (proximity) {
-    params.at = `${proximity[1]},${proximity[0]}`;
-  } else if (viewport) {
-    const bbox = new WebMercatorViewport(viewport).getBounds();
-    const vals = [
-      Math.max(-180, bbox[0][0]),
-      Math.max(-90, bbox[0][1]),
-      Math.min(180, bbox[1][0]),
-      Math.min(90, bbox[1][1]),
-    ];
-    params.in = `bbox:${vals.join(',')}`;
-  } else {
-    params.in = 'bbox:-180,-90,180,90';
-  }
-
-  const resp = await fetch(`https://autosuggest.search.hereapi.com/v1/autosuggest?${qs.stringify(params)}`, {
-    method: 'GET',
-  });
-  if (!resp.ok) {
-    console.error(resp);
-    return [];
-  }
-
-  const json = await resp.json();
-  return json.items;
-}
-
 export async function networkPositioning(req) {
   const resp = await fetch(`https://positioning.hereapi.com/v2/locate?apiKey=${HERE_API_KEY}&fallback=any,singleWifi`, {
     method: 'POST',
@@ -247,20 +206,4 @@ export async function networkPositioning(req) {
   }
   const json = await resp.json();
   return json.location;
-}
-
-export async function getDirections(points) {
-  if (!directionsClient) {
-    return null;
-  }
-
-  const resp = await directionsClient.getDirections({
-    profile: 'driving-traffic',
-    waypoints: points.map((p) => ({ coordinates: p })),
-    annotations: ['distance', 'duration'],
-    geometries: 'geojson',
-    overview: 'full',
-  }).send();
-
-  return resp.body.routes;
 }

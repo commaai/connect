@@ -372,12 +372,6 @@ class PrimeCheckout extends Component {
               <CheckIcon />
               <p>Simple SSH for developers</p>
             </div>
-            <div className={ classes.checkListItem } style={ paddingStyle }>
-              <CheckIcon />
-              <p>
-                Turn-by-turn navigation
-              </p>
-            </div>
           </div>
         </div>
         <div className={ classes.planBoxContainer } style={ blockMargin }>
