@@ -584,16 +584,6 @@ class Navigation extends Component {
             trackUserLocation
             onViewportChange={() => { }}
           />
-          {searchSelect && searchSelect.route
-            && (
-              <Source id="my-data" type="geojson" data={searchSelect.route.geometry}>
-                <Layer
-                  type="line"
-                  layout={{ 'line-cap': 'round', 'line-join': 'bevel' }}
-                  paint={{ 'line-color': '#31a1ee', 'line-width': 3, 'line-blur': 1 }}
-                />
-              </Source>
-            )}
           {carLocation
             && (
               <Marker
