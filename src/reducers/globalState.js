@@ -1,6 +1,9 @@
 import * as Types from '../actions/types';
 import { emptyDevice } from '../utils';
 
+const eventsMap = {};
+const locationMap = {};
+
 function populateFetchedAt(d) {
   return {
     ...d,
@@ -57,6 +60,7 @@ export default function reducer(_state, action) {
         subscription: null,
         subscribeInfo: null,
         files: null,
+        limit: 0,
       };
       window.localStorage.setItem('selectedDongleId', action.dongleId);
       if (state.devices) {
@@ -72,12 +76,14 @@ export default function reducer(_state, action) {
           end: null,
         };
         state.routes = null;
+        state.lastRoutes = null;
         state.currentRoute = null;
       }
       break;
     case Types.ACTION_SELECT_TIME_FILTER:
       state = {
         ...state,
+        lastRoutes: state.routes,
         filter: {
           start: action.start,
           end: action.end,
@@ -89,6 +95,12 @@ export default function reducer(_state, action) {
         },
         routes: null,
         currentRoute: null,
+      };
+      break;
+    case Types.ACTION_UPDATE_ROUTE_LIMIT:
+      state = {
+        ...state,
+        limit: action.limit,
       };
       break;
     case Types.ACTION_UPDATE_DEVICES:
@@ -139,13 +151,18 @@ export default function reducer(_state, action) {
     case Types.ACTION_UPDATE_ROUTE_EVENTS: {
       const firstFrame = action.events.find((ev) => ev.type === 'event' && ev.data.event_type === 'first_road_camera_frame');
       const videoStartOffset = firstFrame ? firstFrame.route_offset_millis : null;
+      eventsMap[action.fullname] = {
+        events: action.events,
+        videoStartOffset,
+      }
       if (state.routes) {
         state.routes = state.routes.map((route) => {
-          if (route.fullname === action.fullname) {
+          const ev = eventsMap[route.fullname];
+          if (ev) {
             return {
               ...route,
-              events: action.events,
-              videoStartOffset,
+              events: ev.events,
+              videoStartOffset: ev.videoStartOffset,
             };
           }
           return route;
@@ -160,13 +177,18 @@ export default function reducer(_state, action) {
       }
       break;
     }
-    case Types.ACTION_UPDATE_ROUTE_LOCATION:
+    case Types.ACTION_UPDATE_ROUTE_LOCATION: {
+      locationMap[action.fullname] = {
+        location: action.location,
+        locationKey: action.locationKey,
+      }
       if (state.routes) {
         state.routes = state.routes.map((route) => {
-          if (route.fullname === action.fullname) {
+          const loc = locationMap[route.fullname];
+          if (loc) {
             return {
               ...route,
-              [action.locationKey]: action.location,
+              [loc.locationKey]: loc.location,
             };
           }
           return route;
@@ -179,6 +201,7 @@ export default function reducer(_state, action) {
         state.currentRoute[action.locationKey] = action.location;
       }
       break;
+    }
     case Types.ACTION_UPDATE_SHARED_DEVICE:
       if (action.dongleId === state.dongleId) {
         state.device = populateFetchedAt(action.device);
@@ -269,6 +292,11 @@ export default function reducer(_state, action) {
       if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }
+
+      if (!action.log_id) {
+        state.segmentRange = null;
+      }
+
       const r = state.routes?.find((route) => route.log_id === action.log_id);
       if (action.log_id && r) {
         state.currentRoute = r;
@@ -278,6 +306,9 @@ export default function reducer(_state, action) {
             end: state.currentRoute.duration,
             previous: state.zoom,
           }
+
+          // fix loop on last zoom level
+          state.loop = null;
         } else {
           state.zoom = {
             start: action.start,
@@ -290,13 +321,6 @@ export default function reducer(_state, action) {
           start: state.currentRoute.start_time_utc_millis,
           end: state.currentRoute.end_time_utc_millis,
         };
-
-        if (!state.loop) {
-          state.loop = {
-            startTime: state.zoom.start,
-            duration: state.zoom.end - state.zoom.start,
-          };
-        }
       } else {
         state.zoom = null;
         state.loop = null;
@@ -343,7 +367,15 @@ export default function reducer(_state, action) {
         .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
       break;
     case Types.ACTION_ROUTES_METADATA:
-      state.routes = action.routes;
+      // merge existing routes' event and location info with new routes
+      state.routes = action.routes.map((route) => {
+        const existingRoute = state.lastRoutes ?
+          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
+        return {
+          ...existingRoute,
+          ...route,
+        }
+      });
       state.routesMeta = {
         dongleId: action.dongleId,
         start: action.start,
@@ -382,18 +414,18 @@ export default function reducer(_state, action) {
         }
       }
       break;
-    case Types.ACTION_UPDATE_SEGMENT_RANGE: { 
-
-        if (!action.log_id) { 
-          state.segmentRange = null;
-        }
+    case Types.ACTION_UPDATE_SEGMENT_RANGE: {
+      if (!action.log_id) {
+        state.segmentRange = null;
+      } else {
         state.segmentRange = {
           log_id: action.log_id,
           start: action.start,
           end: action.end,
         };
-        break;
       }
+      break;
+    }
     default:
       return state;
   }

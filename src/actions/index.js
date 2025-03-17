@@ -10,6 +10,9 @@ import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 
 let routesRequest = null;
+let routesRequestPromise = null;
+const LIMIT_INCREMENT = 5
+const FIVE_YEARS = 1000 * 60 * 60 * 24 * 365 * 5;
 
 export function checkRoutesData() {
   return (dispatch, getState) => {
@@ -22,18 +25,27 @@ export function checkRoutesData() {
       return;
     }
     if (routesRequest && routesRequest.dongleId === state.dongleId) {
-      return;
+      // there is already an pending request
+      return routesRequestPromise;
     }
     console.debug('We need to update the segment metadata...');
     const { dongleId } = state;
     const fetchRange = state.filter;
 
-    routesRequest = {
-      req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end),
-      dongleId,
-    };
+    // if requested segment range not in loaded routes, fetch it explicitly
+    if (state.segmentRange) {
+      routesRequest = {
+        req: Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
+        dongleId,
+      };
+    } else {
+      routesRequest = {
+        req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, state.limit),
+        dongleId,
+      };
+    }
 
-    routesRequest.req.then((routesData) => {
+    routesRequestPromise = routesRequest.req.then((routesData) => {
       state = getState();
       const currentRange = state.filter;
       if (currentRange.start !== fetchRange.start
@@ -57,7 +69,6 @@ export function checkRoutesData() {
         // fix segment boundary times for routes that have the wrong time at the start
         if ((Math.abs(r.start_time_utc_millis - startTime) > 24 * 60 * 60 * 1000)
             && (Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000)) {
-          console.log('fixing %s', r.fullname);
           startTime = r.start_time_utc_millis;
           endTime = r.end_time_utc_millis;
           r.segment_start_times = r.segment_numbers.map((x) => startTime + (x * 60 * 1000));
@@ -74,7 +85,7 @@ export function checkRoutesData() {
           segment_durations: r.segment_start_times.map((x, i) => r.segment_end_times[i] - x),
         };
       }).sort((a, b) => {
-        return b.create_time - a.create_time; 
+        return b.create_time - a.create_time;
       });
 
       dispatch({
@@ -86,11 +97,45 @@ export function checkRoutesData() {
       });
 
       routesRequest = null;
+
+      return routes
     }).catch((err) => {
       console.error('Failure fetching routes metadata', err);
       Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
       routesRequest = null;
     });
+
+    return routesRequestPromise
+  };
+}
+
+export function checkLastRoutesData() {
+  return (dispatch, getState) => {
+    const limit = getState().limit
+    const routes = getState().routes
+
+    // if current routes are fewer than limit, that means the last fetch already fetched all the routes
+    if (routes && routes.length < limit) {
+      return
+    }
+
+    console.log(`fetching ${limit +LIMIT_INCREMENT } routes`)
+    dispatch({
+      type: Types.ACTION_UPDATE_ROUTE_LIMIT,
+      limit: limit + LIMIT_INCREMENT,
+    })
+
+    const d = new Date();
+    const end = d.getTime();
+    const start = end - FIVE_YEARS;
+
+    dispatch({
+      type: Types.ACTION_SELECT_TIME_FILTER,
+      start,
+      end,
+    });
+
+    dispatch(checkRoutesData());
   };
 }
 
@@ -111,8 +156,6 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  dispatch(checkRoutesData());
-
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
     dispatch(resetPlayback());
@@ -156,7 +199,7 @@ export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
 
     updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
   };
-  
+
 }
 
 
@@ -390,6 +433,11 @@ export function selectTimeFilter(start, end) {
       end,
     });
 
+    dispatch({
+      type: Types.ACTION_UPDATE_ROUTE_LIMIT,
+      limit: undefined,
+    })
+
     dispatch(checkRoutesData());
   };
 }
@@ -409,3 +457,4 @@ export function updateRoute(fullname, route) {
     route,
   };
 }
+

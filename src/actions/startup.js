@@ -3,7 +3,7 @@ import { account as Account, devices as Devices } from '@commaai/api';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
 
 async function initProfile() {
   if (MyCommaAuth.isAuthenticated()) {
@@ -41,8 +41,8 @@ async function initDevices() {
 export default function init() {
   return async (dispatch, getState) => {
     let state = getState();
-    if (state.dongleId) {
-      dispatch(checkRoutesData());
+    if (state.dongleId && !state.routes) {
+      dispatch(checkLastRoutesData());
     }
 
     const [profile, devices] = await Promise.all([initProfile(), initDevices()]);

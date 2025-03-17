@@ -24,7 +24,7 @@ import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils'
 import { analyticsEvent, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
-import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles } from '../../actions/files';
+import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
 
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
@@ -205,15 +205,6 @@ const styles = () => ({
   },
 });
 
-const FILE_NAMES = {
-  qcameras: 'qcamera.ts',
-  cameras: 'fcamera.hevc',
-  dcameras: 'dcamera.hevc',
-  ecameras: 'ecamera.hevc',
-  qlogs: 'qlog.bz2',
-  logs: 'rlog.bz2',
-};
-
 const MediaType = {
   VIDEO: 'video',
   MAP: 'map',
@@ -343,16 +334,25 @@ class Media extends Component {
     }));
 
     const routeNoDongleId = currentRoute.fullname.split('|')[1];
-    const path = `${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${FILE_NAMES[type]}`;
     const fileName = `${dongleId}|${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${type}`;
 
     const uploading = {};
     uploading[fileName] = { requested: true };
     this.props.dispatch(updateFiles(uploading));
 
-    const urls = await fetchUploadUrls(dongleId, [path]);
+    let paths = [];
+    let url_promises = [];
+
+    // request all possible file names
+    for (const fn of FILE_NAMES[type]) {
+      const path = `${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${fn}`;
+      paths.push(path);
+      url_promises.push(fetchUploadUrls(dongleId, [path]).then(urls => urls[0]));
+    }
+
+    const urls = await Promise.all(url_promises);
     if (urls) {
-      this.props.dispatch(doUpload(dongleId, [fileName], [path], urls));
+      this.props.dispatch(doUpload(dongleId, paths, urls));
     }
   }
 
@@ -371,9 +371,10 @@ class Media extends Component {
     }));
 
     const uploading = {};
+    const adjusted_start_time = currentRoute.start_time_utc_millis + loop.startTime;
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      if (currentRoute.segment_start_times[i] < loop.startTime + loop.duration
-        && currentRoute.segment_end_times[i] > loop.startTime) {
+      if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration
+        && currentRoute.segment_end_times[i] > adjusted_start_time) {
         types.forEach((type) => {
           const fileName = `${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`;
           if (!files[fileName]) {
@@ -384,22 +385,24 @@ class Media extends Component {
     }
     this.props.dispatch(updateFiles(uploading));
 
-    const paths = Object.keys(uploading).map((fileName) => {
+    const paths = Object.keys(uploading).flatMap((fileName) => {
       const [seg, type] = fileName.split('/');
-      return `${seg.split('|')[1]}/${FILE_NAMES[type]}`;
+      return FILE_NAMES[type].map(file => `${seg.split('|')[1]}/${file}`);
     });
 
     const urls = await fetchUploadUrls(dongleId, paths);
     if (urls) {
-      this.props.dispatch(doUpload(dongleId, Object.keys(uploading), paths, urls));
+      this.props.dispatch(doUpload(dongleId, paths, urls));
     }
   }
 
   _uploadStats(types, count, uploaded, uploading, paused, requested) {
     const { currentRoute, loop, files } = this.props;
+    const adjusted_start_time = currentRoute.start_time_utc_millis + loop.startTime;
+
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      if (currentRoute.segment_start_times[i] < loop.startTime + loop.duration
-        && currentRoute.segment_end_times[i] > loop.startTime) {
+      if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration
+        && currentRoute.segment_end_times[i] > adjusted_start_time) {
         for (let j = 0; j < types.length; j++) {
           count += 1;
           const log = files[`${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${types[j]}`];
@@ -421,7 +424,6 @@ class Media extends Component {
     if (!files || !currentRoute) {
       return null;
     }
-
     const [countRlog, uploadedRlog, uploadingRlog, pausedRlog, requestedRlog] = this._uploadStats(['logs'], 0, 0, 0, 0, 0);
 
     const camTypes = ['cameras', 'dcameras', 'ecameras'];

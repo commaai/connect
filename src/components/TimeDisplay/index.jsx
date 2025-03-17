@@ -118,7 +118,6 @@ class TimeDisplay extends Component {
     this.decreaseSpeed = this.decreaseSpeed.bind(this);
     this.jumpBack = this.jumpBack.bind(this);
     this.jumpForward = this.jumpForward.bind(this);
-    this.onVisibilityChange = this.onVisibilityChange.bind(this);
 
     this.state = {
       desiredPlaySpeed: 1,
@@ -129,23 +128,10 @@ class TimeDisplay extends Component {
   componentDidMount() {
     this.mounted = true;
     raf(this.updateTime);
-    document.addEventListener('visibilitychange', this.onVisibilityChange);
   }
 
   componentWillUnmount() {
     this.mounted = false;
-    document.removeEventListener('visibilitychange', this.onVisibilityChange);
-  }
-
-  onVisibilityChange() {
-    const { dispatch } = this.props;
-    if (document.visibilityState === 'hidden') {
-      dispatch(pause());
-    } else if (document.visibilityState === 'visible') {
-      const { desiredPlaySpeed } = this.state;
-      let curIndex = timerSteps.indexOf(desiredPlaySpeed);
-      dispatch(play(timerSteps[curIndex]));
-    }
   }
 
   getDisplayTime() {

@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 
 import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } from '@material-ui/core';
+import AccessTime from '@material-ui/icons/AccessTime';
 
 import { athena as Athena, devices as Devices } from '@commaai/api';
 import { analyticsEvent } from '../../actions';
@@ -13,6 +14,7 @@ import { deviceNamePretty, deviceIsOnline } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
+import TimeSelect from '../TimeSelect'
 
 const styles = (theme) => ({
   container: {
@@ -43,6 +45,7 @@ const styles = (theme) => ({
     color: Colors.grey900,
     textTransform: 'none',
     minHeight: 'unset',
+    marginRight: '8px',
     '&:hover': {
       background: '#ddd',
       color: Colors.grey900,
@@ -106,6 +109,11 @@ const styles = (theme) => ({
   actionButtonSmall: {
     minWidth: 90,
     padding: '5px 10px',
+    borderRadius: 15,
+  },
+  actionButtonIcon: {
+    minWidth: 60,
+    padding: '8px 16px',
     borderRadius: 15,
   },
   snapshotContainer: {
@@ -192,6 +200,7 @@ class DeviceInfo extends Component {
       carHealth: {},
       snapshot: {},
       windowWidth: window.innerWidth,
+      isTimeSelectOpen: false,
     };
 
     this.snapshotButtonRef = React.createRef();
@@ -205,6 +214,8 @@ class DeviceInfo extends Component {
     this.renderButtons = this.renderButtons.bind(this);
     this.renderStats = this.renderStats.bind(this);
     this.renderSnapshotImage = this.renderSnapshotImage.bind(this);
+    this.onOpenTimeSelect = this.onOpenTimeSelect.bind(this);
+    this.onCloseTimeSelect = this.onCloseTimeSelect.bind(this);
   }
 
   componentDidMount() {
@@ -319,8 +330,8 @@ class DeviceInfo extends Component {
         if (error.length > 5 && error[5] === '{') {
           try {
             error = JSON.parse(error.substr(5)).error;
-          } catch { 
-            //pass 
+          } catch {
+            //pass
           }
         }
       }
@@ -331,6 +342,14 @@ class DeviceInfo extends Component {
   snapshotType(showFront) {
     const { snapshot } = this.state;
     this.setState({ snapshot: { ...snapshot, showFront } });
+  }
+
+  onOpenTimeSelect() {
+    this.setState({ isTimeSelectOpen: true });
+  }
+
+  onCloseTimeSelect() {
+    this.setState({ isTimeSelectOpen: false });
   }
 
   render() {
@@ -447,7 +466,7 @@ class DeviceInfo extends Component {
 
   renderButtons() {
     const { classes, device } = this.props;
-    const { snapshot, carHealth, windowWidth } = this.state;
+    const { snapshot, carHealth, windowWidth, isTimeSelectOpen } = this.state;
 
     let batteryVoltage;
     let batteryBackground = Colors.grey400;
@@ -511,6 +530,12 @@ class DeviceInfo extends Component {
             ? <CircularProgress size={ 19 } />
             : 'take snapshot'}
         </Button>
+        <Button
+          classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
+          onClick={ this.onOpenTimeSelect }
+        >
+          <AccessTime fontSize="inherit"/>
+        </Button>
         <Popper
           className={ classes.popover }
           open={ Boolean(error) }
@@ -519,6 +544,7 @@ class DeviceInfo extends Component {
         >
           <Typography>{ error }</Typography>
         </Popper>
+        <TimeSelect isOpen={isTimeSelectOpen} onClose={this.onCloseTimeSelect}/>
       </>
     );
   }

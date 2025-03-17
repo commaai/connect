@@ -15,7 +15,7 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import PullDownReload from './utils/PullDownReload';
 
-import { analyticsEvent, selectDevice, updateDevice, selectTimeFilter } from '../actions';
+import { analyticsEvent, selectDevice, updateDevice, checkLastRoutesData } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -136,7 +136,7 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId } = this.props;
+    const { pathname, zoom, dongleId, limit } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
@@ -149,11 +149,11 @@ class ExplorerApp extends Component {
       this.props.dispatch(pause());
     }
 
-    // FIXME: ensures demo routes stay visible. can be removed once we're infinite scrolling
-    if (prevProps.dongleId !== dongleId) {
-      const d = new Date();
-      d.setHours(d.getHours() + 1, 0, 0, 0);
-      this.props.dispatch(selectTimeFilter(d.getTime() - (1000 * 60 * 60 * 24 * 365), d.getTime()));
+    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
+    // so init() will not successfully fetch routes data
+    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
+    if (prevProps.dongleId !== dongleId && limit === 0) {
+      this.props.dispatch(checkLastRoutesData());
     }
   }
 
@@ -257,6 +257,7 @@ const stateToProps = Obstruction({
   dongleId: 'dongleId',
   devices: 'devices',
   currentRoute: 'currentRoute',
+  limit: 'limit',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

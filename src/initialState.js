@@ -25,6 +25,7 @@ export default {
     end: null,
   },
   currentRoute: null,
+  lastRoutes: null,
 
   profile: null,
   devices: null,
@@ -44,4 +45,5 @@ export default {
   zoom: null,
   loop: null,
   segmentRange: getSegmentRange(window.location.pathname),
+  limit: 0,
 };
