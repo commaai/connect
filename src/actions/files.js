@@ -16,6 +16,9 @@ export const FILE_NAMES = {
 const MAX_OPEN_REQUESTS = 15;
 const MAX_RETRIES = 5;
 
+// connect uploads should be high priority as they are user requested (lower is higher)
+const HIGH_PRIORITY = 0;
+
 let uploadQueueTimeout = null;
 let openRequests = 0;
 
@@ -217,6 +220,7 @@ export function doUpload(dongleId, paths, urls) {
         url: urls[i],
         headers: { 'x-ms-blob-type': 'BlockBlob' },
         allow_cellular: false,
+        priority: HIGH_PRIORITY,
       }));
       const payload = {
         id: 0,
