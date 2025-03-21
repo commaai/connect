@@ -1,3 +1,6 @@
+> [!CAUTION]
+> This is the old connect PWA. Check out the [new one](https://github.com/commaai/connect).
+
 # comma connect
 
 The frontend to the comma connect progressive web app. This a react app using [Create React App](https://github.com/facebookincubator/create-react-app)
