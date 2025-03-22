@@ -45,7 +45,7 @@ export const makeAthenaCall = async <REQ, RES>(dongleId: string, method: string,
       "Content-Type": "application/json",
       Authorization: `JWT ${getAccessToken()}`,
     },
-    body: JSON.stringify({ id: 0, method, params, expiry }),
+    body: JSON.stringify({ id: 0, jsonrpc: "2.0", method, params: params ?? {}, expiry }),
   }
 
   return fetcher<BackendAthenaCallResponse<RES> | BackendAthenaCallResponseError>(`/${dongleId}`, opts, ATHENA_URL)
