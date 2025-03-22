@@ -96,6 +96,11 @@ export interface Route extends ApiResponseBase {
   vin?: string
 }
 
+export interface RouteInfo {
+  dongleId: string
+  routeId: string
+}
+
 export interface RouteShareSignature extends Record<string, string> {
   exp: string
   sig: string
@@ -107,4 +112,97 @@ export interface RouteSegments extends Route {
   share_exp: RouteShareSignature['exp']
   share_sig: RouteShareSignature['sig']
   start_time_utc_millis: number
+}
+
+export interface Files {
+  cameras: string[]
+  dcameras: string[]
+  ecameras: string[]
+  logs: string[]
+  qcameras: string[]
+  qlogs: string[]
+}
+
+export type AthenaOfflineQueueResponse = AthenaOfflineQueueItem[]
+
+export interface AthenaOfflineQueueItemParams {
+  files_data: [string, string, Record<string, string>][]
+}
+
+export interface AthenaOfflineQueueItem extends ApiResponseBase, AthenaCallRequest<UploadFilesToUrlsRequest> {
+  method: 'uploadFilesToUrls'
+  expiry: number
+}
+
+export interface AthenaCallRequest<T> {
+  expiry?: number
+  id: number
+  jsonrpc: '2.0'
+  method: string
+  params: T
+}
+
+export interface AthenaCallResponse<T> {
+  queued: boolean
+  error?: string
+  result?: T
+}
+
+export interface BackendAthenaCallResponse<T> {
+  id: string
+  jsonrpc: '2.0'
+  result: T | string
+}
+
+export interface BackendAthenaCallResponseError {
+  error: string
+}
+
+export interface DataFile {
+  allow_cellular: boolean
+  fn: string
+  headers: Record<string, string>
+  url: string
+}
+
+export interface UploadFilesToUrlsRequest {
+  files_data: DataFile[]
+}
+
+export interface UploadFilesToUrlsResponse {
+  enqueued: number,
+  failed: string[],
+  items: UploadQueueItem[]
+}
+
+export interface UploadFileMetadata {
+  headers: Record<string, string>
+  url: string
+}
+
+export type UploadFileMetadataResponse = UploadFileMetadata[]
+
+export interface UploadFile extends UploadFileMetadata {
+  filePath: string
+}
+
+export interface CancelUploadRequest {
+  upload_id: string | string[]
+}
+
+export interface CancelUploadResponse {
+  [key: string]: number | string
+}
+
+export interface UploadQueueItem {
+  allow_cellular: boolean
+  created_at: number
+  current: boolean
+  headers: Record<string, string>
+  id: string
+  path: string
+  priority: number
+  progress: number
+  retry_count: number
+  url: string
 }
