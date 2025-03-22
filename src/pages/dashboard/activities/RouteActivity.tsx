@@ -6,7 +6,8 @@ import {
   type VoidComponent,
 } from 'solid-js'
 
-import { getRoute } from '~/api/route'
+import { getRouteWithSegments } from '~/api/route'
+import { uploadAllSegments } from '~/api/upload'
 import { dayjs } from '~/utils/format'
 
 import IconButton from '~/components/material/IconButton'
@@ -29,7 +30,7 @@ const RouteActivity: VoidComponent<RouteActivityProps> = (props) => {
   const [videoRef, setVideoRef] = createSignal<HTMLVideoElement>()
 
   const routeName = () => `${props.dongleId}|${props.dateStr}`
-  const [route] = createResource(routeName, getRoute)
+  const [route] = createResource(routeName, getRouteWithSegments)
   const [startTime] = createResource(route, (route) => dayjs(route.start_time)?.format('ddd, MMM D, YYYY'))
 
   function onTimelineChange(newTime: number) {
@@ -39,7 +40,10 @@ const RouteActivity: VoidComponent<RouteActivityProps> = (props) => {
 
   return (
     <>
-      <TopAppBar leading={<IconButton class="md:hidden" href={`/${props.dongleId}`}>arrow_back</IconButton>}>
+      <TopAppBar 
+        leading={<IconButton class="md:hidden" href={`/${props.dongleId}`}>arrow_back</IconButton>} 
+        trailing={<IconButton name='Upload' onClick={() => uploadAllSegments(routeName(), route()?.segment_numbers.length || 0)}>upload</IconButton>}
+      >
         {startTime()}
       </TopAppBar>
 

@@ -6,6 +6,7 @@ export type IconProps = {
   children: string
   filled?: boolean
   size?: '20' | '24' | '40' | '48'
+  tooltip?: string
 }
 
 const Icon: Component<IconProps> = (props) => {
@@ -13,6 +14,7 @@ const Icon: Component<IconProps> = (props) => {
   const size = () => `size-${props.size || '24'}`
   return (
     <span
+      title={props.tooltip}
       class={clsx(
         'material-symbols-outlined flex',
         props.filled ? 'icon-filled' : 'icon-outline',
