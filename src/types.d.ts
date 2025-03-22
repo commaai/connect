@@ -124,7 +124,7 @@ export interface AthenaCallRequest<T> { expiry?: number, id: number, jsonrpc: "2
 export interface AthenaCallResponse<T> { queued: boolean, error?: string, result?: T }
 export interface BackendAthenaCallResponse<T> { id: string, jsonrpc: "2.0", result: T | string }
 export interface BackendAthenaCallResponseError { error: string }
-export interface DataFile { allow_cellular: boolean, fn: string, headers: Record<string, string>, url: string }
+export interface DataFile { allow_cellular: boolean, fn: string, headers: Record<string, string>, priority: number, url: string }
 export interface UploadFilesToUrlsRequest { files_data: DataFile[] }
 export interface UploadFilesToUrlsResponse { enqueued: number, failed: string[], items: UploadQueueItem[] }
 export interface UploadFileMetadata { headers: Record<string, string>, url: string }

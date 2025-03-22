@@ -1,4 +1,5 @@
 import { createSignal, createMemo, onCleanup, onMount } from 'solid-js'
+import { createStore, reconcile } from 'solid-js/store'
 import { cancelUpload, getUploadQueue } from '~/api/athena'
 import { getAthenaOfflineQueue } from '~/api/devices'
 import type { UploadItem } from '~/types'
@@ -8,7 +9,7 @@ const POLL_INTERVAL = 500
 const ERROR_POLL_INTERVAL = 3000
 
 export const useUploadQueue = (dongleId: string) => {
-  const [items, setItems] = createSignal<UploadItem[]>([])
+  const [items, setItems] = createStore<UploadItem[]>([])
   const [loading, setLoading] = createSignal(true)
   const [error, setError] = createSignal(false)
   const [offline, setOffline] = createSignal(false)
@@ -26,7 +27,7 @@ export const useUploadQueue = (dongleId: string) => {
         name: file.url.split('/').pop() || file.fn,
         uploadUrl: file.url,
         progress: 0,
-        priority: 99,
+        priority: file.priority,
         retryCount: 0,
         status: 'waiting_for_network' as const
       }))
@@ -59,7 +60,7 @@ export const useUploadQueue = (dongleId: string) => {
     try {
       const response = await getUploadQueue(dongleId)
       if (!response.queued) {
-        setItems(mapQueueData(response.result!))
+        setItems(reconcile(mapQueueData(response.result!)))
         setOffline(false)
         setError(false)
       }
@@ -68,7 +69,7 @@ export const useUploadQueue = (dongleId: string) => {
       
       try {
         const offlineData = await getAthenaOfflineQueue(dongleId)
-        setItems(processOfflineQueueData(offlineData))
+        setItems(reconcile(processOfflineQueueData(offlineData)))
         setOffline(true)
         setError(false)
       } catch (offlineErr) {
@@ -82,7 +83,7 @@ export const useUploadQueue = (dongleId: string) => {
 
   const clearQueue = async () => {
     try {
-      await cancelUpload(dongleId, items().map(item => item.id))
+      await cancelUpload(dongleId, items.map(item => item.id))
       await fetchQueue()
       return true
     } catch (err) {

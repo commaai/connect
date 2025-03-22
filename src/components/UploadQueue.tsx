@@ -190,7 +190,7 @@ const UploadQueue: Component<UploadQueueProps> = (props) => {
       <div class="flex">
         <div class="flex-auto">
           <Suspense fallback={<div class="skeleton-loader w-full" />}>
-            <QueueStatistics loading={loading()} items={items()} class="p-4" />
+            <QueueStatistics loading={loading()} items={items} class="p-4" />
           </Suspense>
         </div>
         <div class="flex p-4">
@@ -200,7 +200,7 @@ const UploadQueue: Component<UploadQueueProps> = (props) => {
       <div class="rounded-md border-2 border-surface-container-high mx-4 mb-4 p-4">
         <QueueList
           loading={loading()}
-          items={items()}
+          items={items}
           error={error()}
           offline={offline()}
         />
