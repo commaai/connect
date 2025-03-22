@@ -1,7 +1,8 @@
-import { createResource, Suspense, createSignal, For, Show } from 'solid-js'
+import { createResource, Suspense, Show, For, createSignal } from 'solid-js'
 import type { VoidComponent } from 'solid-js'
 
 import { getDevice } from '~/api/devices'
+import { getDeviceName } from '~/utils/device'
 import { ATHENA_URL } from '~/api/config'
 import { getAccessToken } from '~/api/auth/client'
 
@@ -10,9 +11,11 @@ import IconButton from '~/components/material/IconButton'
 import TopAppBar from '~/components/material/TopAppBar'
 import DeviceLocation from '~/components/DeviceLocation'
 import DeviceStatistics from '~/components/DeviceStatistics'
-import { getDeviceName } from '~/utils/device'
 
 import RouteList from '../components/RouteList'
+import Icon from '~/components/material/Icon'
+import UploadQueue from '~/components/UploadQueue'
+import clsx from 'clsx'
 
 type DeviceActivityProps = {
   dongleId: string
@@ -28,6 +31,7 @@ interface SnapshotResponse {
 const DeviceActivity: VoidComponent<DeviceActivityProps> = (props) => {
   const [device] = createResource(() => props.dongleId, getDevice)
   const [deviceName] = createResource(device, getDeviceName)
+  const [expanded, setExpanded] = createSignal(false)
   const [snapshot, setSnapshot] = createSignal<{
     error: string | null
     fetching: boolean
@@ -123,6 +127,20 @@ const DeviceActivity: VoidComponent<DeviceActivityProps> = (props) => {
               <IconButton onClick={() => void takeSnapshot()}>camera</IconButton>
             </div>
           </div>
+          <Show when={expanded()}>
+            <UploadQueue dongleId={props.dongleId} />
+          </Show>
+          <button
+            class={clsx(
+              'flex w-full cursor-pointer justify-center rounded-b-lg bg-surface-container-lowest p-2 hover:bg-black/45',
+              expanded() ? 'border-2 border-t-0 border-surface-container-high' : '',
+            )}
+            onClick={() => setExpanded(!expanded())}
+          >
+            <Icon class={clsx(expanded() ? "text-yellow-400" : "text-zinc-500")}>
+              {expanded() ? "keyboard_arrow_up" : "keyboard_arrow_down"}
+            </Icon>
+          </button>
         </div>
         <div class="flex flex-col gap-2">
           <For each={snapshot().images}>
@@ -156,7 +174,9 @@ const DeviceActivity: VoidComponent<DeviceActivityProps> = (props) => {
         </div>
         <div class="flex flex-col gap-2">
           <span class="text-label-sm uppercase">Routes</span>
-          <RouteList dongleId={props.dongleId} />
+            <Suspense>
+              <RouteList dongleId={props.dongleId} />
+            </Suspense>
         </div>
       </div>
     </>

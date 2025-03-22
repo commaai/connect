@@ -1,18 +1,14 @@
 import { createSignal, Show, type VoidComponent, createEffect, createResource } from 'solid-js'
 import clsx from 'clsx'
 
-import { setRoutePublic, setRoutePreserved, getRoute, getPreservedRoutes } from '~/api/route'
+import { setRoutePublic, setRoutePreserved, getPreservedRoutes, getRoute } from '~/api/route'
 import Icon from '~/components/material/Icon'
 
 interface RouteActionsProps {
   routeName: string
 }
 
-const ToggleButton: VoidComponent<{
-  label: string
-  active: boolean | undefined
-  onToggle: () => void
-}> = (props) => (
+const ToggleButton: VoidComponent<{ label: string, active: boolean | undefined, onToggle: () => void }> = (props) => (
   <button
     class="flex w-full items-center justify-between p-2 transition-colors hover:bg-surface-container-low"
     onClick={() => props.onToggle()}
