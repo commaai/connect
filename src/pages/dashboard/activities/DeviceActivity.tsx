@@ -28,6 +28,7 @@ interface SnapshotResponse {
 const DeviceActivity: VoidComponent<DeviceActivityProps> = (props) => {
   const [device] = createResource(() => props.dongleId, getDevice)
   const [deviceName] = createResource(device, getDeviceName)
+  const [isDeviceOwner] = createResource(device, (device) => device.is_owner)
   const [snapshot, setSnapshot] = createSignal<{
     error: string | null
     fetching: boolean
@@ -113,16 +114,18 @@ const DeviceActivity: VoidComponent<DeviceActivityProps> = (props) => {
           <Show when={deviceName()} fallback={<div class="skeleton-loader size-full" />}>
             <DeviceLocation dongleId={props.dongleId} deviceName={deviceName()!} />
           </Show>
-          <div class="flex">
-            <div class="flex-auto">
-              <Suspense fallback={<div class="skeleton-loader size-full" />}>
-                <DeviceStatistics dongleId={props.dongleId} class="p-4" />
-              </Suspense>
+          <Show when={isDeviceOwner()}>
+            <div class="flex">
+              <div class="flex-auto">
+                <Suspense fallback={<div class="skeleton-loader size-full" />}>
+                  <DeviceStatistics dongleId={props.dongleId} class="p-4" />
+                </Suspense>
+              </div>
+              <div class="flex p-4">
+                <IconButton onClick={() => void takeSnapshot()}>camera</IconButton>
+              </div>
             </div>
-            <div class="flex p-4">
-              <IconButton onClick={() => void takeSnapshot()}>camera</IconButton>
-            </div>
-          </div>
+          </Show>
         </div>
         <div class="flex flex-col gap-2">
           <For each={snapshot().images}>

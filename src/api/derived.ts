@@ -85,23 +85,21 @@ export interface TimelineStatistics {
   userFlags: number
 }
 
-const getDerived = <T>(route: Route, fn: string): Promise<T[]> => {
+const getDerived = <T>(route: Route, fn: string): Promise<(T | null)[]> => {
   let urls: string[] = []
   if (route) {
     const segmentNumbers = Array.from({ length: route.maxqlog }, (_, i) => i)
     urls = segmentNumbers.map((i) => `${route.url}/${i}/${fn}`)
   }
-  const results = urls.map((url) => fetch(url).then((res) => res.json() as T))
+  const results = urls.map((url) => fetch(url).then((res) => res.json() as T).catch(() => null))
   return Promise.all(results)
 }
 
 export const getCoords = (route: Route): Promise<GPSPathPoint[]> =>
-  getDerived<GPSPathPoint[]>(route, 'coords.json').then((coords) =>
-    coords.flat(),
-  )
+  getDerived<GPSPathPoint[]>(route, 'coords.json').then((coords) => coords.filter(it => it !== null).flat())
 
 export const getDriveEvents = (route: Route): Promise<DriveEvent[]> =>
-  getDerived<DriveEvent[]>(route, 'events.json').then((events) => events.flat())
+  getDerived<DriveEvent[]>(route, 'events.json').then((events) => events.filter(it => it !== null).flat())
 
 const generateTimelineEvents = (
   route: Route,
