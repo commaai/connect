@@ -1,5 +1,4 @@
-import type { Device, DeviceLocation, DrivingStatistics } from '~/types'
-
+import type { AthenaOfflineQueueResponse, Device, DeviceLocation, DrivingStatistics } from '~/types'
 import { fetcher } from '.'
 
 const sortDevices = (devices: Device[]) => devices.sort((a, b) => {
@@ -14,19 +13,11 @@ const sortDevices = (devices: Device[]) => devices.sort((a, b) => {
   }
 })
 
-export const getDevice = async (dongleId: string) =>
-  fetcher<Device>(`/v1.1/devices/${dongleId}/`)
-
-export const getDeviceLocation = async (dongleId: string) =>
-  fetcher<DeviceLocation>(`/v1/devices/${dongleId}/location`)
-
-export const getDeviceStats = async (dongleId: string) =>
-  fetcher<DrivingStatistics>(`/v1.1/devices/${dongleId}/stats`)
-
-export const getDevices = async () =>
-  fetcher<Device[]>('/v1/me/devices/')
-    .then(sortDevices)
-    .catch(() => [])
+export const getAthenaOfflineQueue = async (dongleId: string) => fetcher<AthenaOfflineQueueResponse>(`/v1/devices/${dongleId}/athena_offline_queue`)
+export const getDevice = async (dongleId: string) => fetcher<Device>(`/v1.1/devices/${dongleId}/`)
+export const getDeviceLocation = async (dongleId: string) => fetcher<DeviceLocation>(`/v1/devices/${dongleId}/location`)
+export const getDeviceStats = async (dongleId: string) => fetcher<DrivingStatistics>(`/v1.1/devices/${dongleId}/stats`)
+export const getDevices = async () => fetcher<Device[]>('/v1/me/devices/').then(sortDevices).catch(() => [])
 
 const validatePairToken = (input: string): {
   identity: string
