@@ -65,8 +65,10 @@
     "clsx": "construct className strings conditionally",
     "dayjs": "work with dates (e.g., parse, validate, etc.)",
     "hls.js": "stream video data",
+    "kelvin-to-rgb": "approximate sunrise and sunset colors, so we can color code RouteList",
     "leaflet": "interactive maps",
-    "solid-js": "JS ui framework"
+    "solid-js": "JS ui framework",
+    "suncalc": "get sunrise and sunset times, so we can color code RouteList"
   },
   "dependencies": {
     "@mapbox/polyline": "^1.2.1",
@@ -77,9 +79,11 @@
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
     "hls.js": "^1.5.20",
+    "kelvin-to-rgb": "^1.0.2",
     "leaflet": "^1.9.4",
     "qr-scanner": "^1.4.2",
-    "solid-js": "^1.9.5"
+    "solid-js": "^1.9.5",
+    "suncalc": "^1.9.0"
   },
   "engines": {
     "node": ">=20.11.0"
