@@ -5,9 +5,9 @@ import clsx from 'clsx'
 // https://developers.google.com/fonts/docs/material_symbols#optimize_the_icon_font
 // biome-ignore format: the array should not be formatted
 export const Icons = [
-  'add', 'arrow_back', 'camera', 'check', 'chevron_right', 'clear', 'close', 'description', 'directions_car', 'download', 'error',
-  'file_copy', 'info', 'menu', 'my_location', 'open_in_new', 'payments', 'person', 'progress_activity', 'satellite_alt', 'search',
-  'settings', 'sync', 'upload', 'videocam',
+  'add', 'arrow_back', 'camera', 'check', 'chevron_right', 'clear', 'close', 'description', 'directions_car', 'download',
+  'error', 'file_copy', 'info', 'menu', 'mouse', 'my_location', 'location_searching', 'open_in_new', 'payments', 'person',
+  'progress_activity', 'satellite_alt', 'search', 'settings', 'sync', 'touch_app', 'upload', 'videocam',
 ] as const
 
 export type IconName = (typeof Icons)[number]
