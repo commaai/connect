@@ -1,23 +1,36 @@
 import { Accessor, Component, createEffect, createSignal, onMount, onCleanup } from 'solid-js'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { getTileUrl } from '~/map' // Assuming this provides a tile URL compatible with Leaflet
+import { getTileUrl } from '~/map'
 import { GPSPathPoint } from '~/api/derived'
+import IconButton from './material/IconButton'
+import Icon from './material/Icon'
+import { render } from 'solid-js/web'
 
-// Utility to find the closest GPS point to a clicked location
-function findClosestPoint(lng: number, lat: number, coords: GPSPathPoint[]): number {
+const findClosestPoint = (lng: number, lat: number, coords: GPSPathPoint[]): number => {
   let minDist = Infinity
   let closestIndex = 0
-
-  coords.forEach((point, index) => {
+  coords.forEach((point, i) => {
     const dist = Math.sqrt((point.lng - lng) ** 2 + (point.lat - lat) ** 2)
     if (dist < minDist) {
       minDist = dist
-      closestIndex = index
+      closestIndex = i
     }
   })
-
   return closestIndex
+}
+
+const createCarIcon = () => {
+  const el = document.createElement('div')
+  render(
+    () => (
+      <div class="flex size-[40px] items-center justify-center rounded-full bg-primary-container">
+        <Icon name="directions_car" />
+      </div>
+    ),
+    el,
+  )
+  return L.divIcon({ className: 'car-icon', html: el.innerHTML, iconSize: [40, 40], iconAnchor: [20, 20] })
 }
 
 export const PathMap: Component<{
@@ -31,108 +44,81 @@ export const PathMap: Component<{
   color?: string
   opacity?: number
 }> = (props) => {
-  // Reference for the map container
   let mapRef!: HTMLDivElement
-
-  // Signals for the map instance and current position
   const [map, setMap] = createSignal<L.Map | null>(null)
   const [position, setPosition] = createSignal(0)
+  const [isLocked, setIsLocked] = createSignal(true)
+  const [isDragging, setIsDragging] = createSignal(false)
 
-  // Coordinate transformation functions (Leaflet uses [lat, lng] order)
-  const mapCoords = () => props.coords.map((point) => [point.lat, point.lng] as [number, number])
+  const mapCoords = () => props.coords.map((p) => [p.lat, p.lng] as [number, number])
   const pastCoords = () => mapCoords().slice(0, position() + 1)
   const futureCoords = () => mapCoords().slice(position())
   const currentCoord = () => mapCoords()[position()]
 
-  // Leaflet layer variables
+  let marker: L.Marker | null = null
   let pastPolyline: L.Polyline | null = null
   let futurePolyline: L.Polyline | null = null
   let pastHitboxPolyline: L.Polyline | null = null
   let futureHitboxPolyline: L.Polyline | null = null
-  let marker: L.CircleMarker | null = null
 
-  // Initialize the Leaflet map on mount
   onMount(() => {
-    const m = L.map(mapRef, { zoomControl: false })
+    const m = L.map(mapRef, { zoomControl: false, attributionControl: false })
     L.tileLayer(getTileUrl()).addTo(m)
+    m.setView(props.coords[0] || [32.711483, -117.161052], props.coords.length ? 14 : 10)
 
-    // Set initial view to the first coordinate or a default if coords are empty
-    if (props.coords.length > 0) {
-      m.setView(mapCoords()[0], 14)
-    } else {
-      m.setView([32.711483, -117.161052], 10) // Default to San Diego
+    pastPolyline = L.polyline([], { color: props.color || '#6F707F', weight: props.strokeWidth || 4 }).addTo(m)
+    futurePolyline = L.polyline([], { color: props.color || '#dfe0ff', weight: props.strokeWidth || 4 }).addTo(m)
+    pastHitboxPolyline = L.polyline([], { color: 'transparent', weight: 20, opacity: 0 }).addTo(m)
+    futureHitboxPolyline = L.polyline([], { color: 'transparent', weight: 20, opacity: 0 }).addTo(m)
+    marker = L.marker([0, 0], { icon: createCarIcon(), draggable: true }).addTo(m)
+
+    const updatePosition = (lng: number, lat: number) => {
+      const idx = findClosestPoint(lng, lat, props.coords)
+      const point = mapCoords()[idx]
+      marker?.setLatLng(point)
+      setPosition(idx)
+      props.updateTime(props.coords[idx].t)
     }
 
-    // Create polylines and marker with initial empty coordinates
-    pastPolyline = L.polyline([], {
-      color: props.color || '#6F707F',
-      weight: props.strokeWidth || 4,
-    }).addTo(m)
-
-    futurePolyline = L.polyline([], {
-      color: props.color || '#dfe0ff',
-      weight: props.strokeWidth || 4,
-    }).addTo(m)
-
-    pastHitboxPolyline = L.polyline([], {
-      color: 'transparent',
-      weight: 20,
-      opacity: 0,
-    }).addTo(m)
-
-    futureHitboxPolyline = L.polyline([], {
-      color: 'transparent',
-      weight: 20,
-      opacity: 0,
-    }).addTo(m)
-
-    marker = L.circleMarker([0, 0], {
-      radius: 6,
-      fillOpacity: 1,
-      color: '#7578CC',
-    }).addTo(m)
-
-    // Click handler for the hitbox polylines
-    const handleLineClick = (e: L.LeafletMouseEvent) => {
-      const { lng, lat } = e.latlng
-      const newPos = findClosestPoint(lng, lat, props.coords)
-      setPosition(newPos)
-      props.updateTime(props.coords[newPos].t)
+    const startDrag = () => {
+      setIsDragging(true)
+      m.dragging.disable()
     }
 
-    pastHitboxPolyline.on('click', handleLineClick)
-    futureHitboxPolyline.on('click', handleLineClick)
+    const endDrag = () => {
+      setIsDragging(false)
+      m.dragging.enable()
+      if (isLocked()) m.setView(currentCoord(), m.getZoom())
+    }
+
+    marker.on('dragstart', startDrag)
+    marker.on('drag', (e) => updatePosition(e.target.getLatLng().lng, e.target.getLatLng().lat))
+    marker.on('dragend', endDrag)
+
+    const handleMouseDown = (e: L.LeafletMouseEvent) => {
+      startDrag()
+      updatePosition(e.latlng.lng, e.latlng.lat)
+    }
+
+    m.on('mousemove', (e) => isDragging() && updatePosition(e.latlng.lng, e.latlng.lat))
+    m.on('mouseup', endDrag)
+    m.on('dragstart', () => setIsLocked(false))
+
+    ;[pastHitboxPolyline, futureHitboxPolyline].forEach((poly) => poly?.on('mousedown', handleMouseDown))
 
     setMap(m)
-
-    // Cleanup the map on unmount
-    onCleanup(() => {
-      m.remove()
-    })
+    onCleanup(() => m.remove())
   })
 
-  // Effect to update position based on seekTime
   createEffect(() => {
-    const currentTime = props.seekTime()
+    const t = props.seekTime()
     if (!props.coords.length) return
-
-    let newPos = 0
-    for (let i = 0; i < props.coords.length - 1; i++) {
-      if (currentTime >= props.coords[i].t && currentTime < props.coords[i + 1].t) {
-        newPos = i
-        break
-      }
-    }
-    if (currentTime >= props.coords[props.coords.length - 1].t) {
-      newPos = props.coords.length - 1
-    }
-    setPosition(newPos)
+    const newPos = props.coords.findIndex((p, i) => i === props.coords.length - 1 || (t >= p.t && t < props.coords[i + 1].t))
+    setPosition(newPos === -1 ? props.coords.length - 1 : newPos)
   })
 
-  // Effect to update map layers and view based on position
   createEffect(() => {
     if (!map() || !props.coords.length) return
-
     const past = pastCoords()
     const future = futureCoords()
     const current = currentCoord()
@@ -142,8 +128,21 @@ export const PathMap: Component<{
     pastHitboxPolyline?.setLatLngs(past)
     futureHitboxPolyline?.setLatLngs(future)
     marker?.setLatLng(current)
-    map()?.setView(current, map()?.getZoom())
+
+    if (isLocked() && !isDragging()) map()?.setView(current, map()?.getZoom())
   })
 
-  return <div ref={mapRef} class="h-full" />
+  return (
+    <div ref={mapRef} class="h-full relative" style={{ 'background-color': 'rgb(19 19 24)' }}>
+      <IconButton
+        name="my_location"
+        size="24"
+        class={`absolute z-[1000] left-4 top-4 bg-primary-container ${isLocked() && 'hidden'}`}
+        onClick={() => {
+          setIsLocked(true)
+          map()?.setView(currentCoord(), map()?.getZoom())
+        }}
+      />
+    </div>
+  )
 }
