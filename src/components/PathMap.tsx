@@ -49,6 +49,7 @@ export const PathMap: Component<{
   const [position, setPosition] = createSignal(0)
   const [isLocked, setIsLocked] = createSignal(true)
   const [isDragging, setIsDragging] = createSignal(false)
+  const [isMapInteractive, setIsMapInteractive] = createSignal(false)
 
   const mapCoords = () => props.coords.map((p) => [p.lat, p.lng] as [number, number])
   const pastCoords = () => mapCoords().slice(0, position() + 1)
@@ -62,7 +63,16 @@ export const PathMap: Component<{
   let futureHitboxPolyline: L.Polyline | null = null
 
   onMount(() => {
-    const m = L.map(mapRef, { zoomControl: false, attributionControl: false })
+    const m = L.map(mapRef, {
+      zoomControl: false,
+      attributionControl: false,
+      dragging: false,
+      touchZoom: false,
+      doubleClickZoom: false,
+      scrollWheelZoom: false,
+      boxZoom: false,
+    })
+
     L.tileLayer(getTileUrl()).addTo(m)
     m.setView([props.coords[0].lat, props.coords[0].lng], props.coords.length ? 14 : 10)
 
@@ -80,30 +90,30 @@ export const PathMap: Component<{
       props.updateTime(props.coords[idx].t)
     }
 
-    const startDrag = () => {
-      setIsDragging(true)
-      m.dragging.disable()
-    }
-
-    const endDrag = () => {
-      setIsDragging(false)
+    const enableMap = () => {
+      setIsMapInteractive(true)
       m.dragging.enable()
-      if (isLocked()) m.setView(currentCoord(), m.getZoom())
+      m.touchZoom.enable()
+      m.doubleClickZoom.enable()
+      m.scrollWheelZoom.enable()
+      m.boxZoom.enable()
     }
 
-    marker.on('dragstart', startDrag)
-    marker.on('drag', (e) => updatePosition(e.target.getLatLng().lng, e.target.getLatLng().lat))
-    marker.on('dragend', endDrag)
-
-    const handleMouseDown = (e: L.LeafletMouseEvent) => {
-      startDrag()
-      updatePosition(e.latlng.lng, e.latlng.lat)
+    const handleDrag = (e: L.LeafletMouseEvent | L.LeafletEvent) => {
+      setIsLocked(false)
+      if (!isMapInteractive()) enableMap()
+      const { lng, lat } = 'latlng' in e ? e.latlng : e.target.getLatLng()
+      updatePosition(lng, lat)
     }
 
-    m.on('mousemove', (e) => isDragging() && updatePosition(e.latlng.lng, e.latlng.lat))
-    m.on('mouseup', endDrag)
-    m.on('dragstart', () => setIsLocked(false))
-    ;[pastHitboxPolyline, futureHitboxPolyline].forEach((poly) => poly?.on('mousedown', handleMouseDown))
+    marker
+      .on('dragstart', () => setIsDragging(true))
+      .on('drag', handleDrag)
+      .on('dragend', () => setIsDragging(false))
+
+    m.on('mousemove', (e) => isDragging() && handleDrag(e)).on('mouseup', () => setIsDragging(false))
+
+    ;[pastHitboxPolyline, futureHitboxPolyline].forEach((poly) => poly?.on('mousedown', handleDrag))
 
     setMap(m)
     onCleanup(() => m.remove())
@@ -114,10 +124,10 @@ export const PathMap: Component<{
     if (!props.coords.length) return
     if (t < props.coords[0].t) {
       setPosition(0)
-    } else {
-      const newPos = props.coords.findIndex((p, i) => i === props.coords.length - 1 || (t >= p.t && t < props.coords[i + 1].t))
-      setPosition(newPos === -1 ? props.coords.length - 1 : newPos)
+      return
     }
+    const newPos = props.coords.findIndex((p, i) => i === props.coords.length - 1 || (t >= p.t && t < props.coords[i + 1].t))
+    setPosition(newPos === -1 ? props.coords.length - 1 : newPos)
   })
 
   createEffect(() => {
@@ -139,11 +149,19 @@ export const PathMap: Component<{
     <div ref={mapRef} class="h-full relative" style={{ 'background-color': 'rgb(19 19 24)' }}>
       <IconButton
         name="my_location"
-        size="24"
         class={`absolute z-[1000] left-4 top-4 bg-primary-container ${isLocked() && 'hidden'}`}
         onClick={() => {
           setIsLocked(true)
           map()?.setView(currentCoord(), map()?.getZoom())
+          setIsMapInteractive(false) // Reset to non-interactable
+          const m = map()
+          if (m) {
+            m.dragging.disable()
+            m.touchZoom.disable()
+            m.doubleClickZoom.disable()
+            m.scrollWheelZoom.disable()
+            m.boxZoom.disable()
+          }
         }}
       />
     </div>
