@@ -64,13 +64,13 @@ export const PathMap: Component<{
   onMount(() => {
     const m = L.map(mapRef, { zoomControl: false, attributionControl: false })
     L.tileLayer(getTileUrl()).addTo(m)
-    m.setView(props.coords[0] || [32.711483, -117.161052], props.coords.length ? 14 : 10)
+    m.setView([props.coords[0].lat, props.coords[0].lng], props.coords.length ? 14 : 10)
 
     pastPolyline = L.polyline([], { color: props.color || '#6F707F', weight: props.strokeWidth || 4 }).addTo(m)
     futurePolyline = L.polyline([], { color: props.color || '#dfe0ff', weight: props.strokeWidth || 4 }).addTo(m)
     pastHitboxPolyline = L.polyline([], { color: 'transparent', weight: 20, opacity: 0 }).addTo(m)
     futureHitboxPolyline = L.polyline([], { color: 'transparent', weight: 20, opacity: 0 }).addTo(m)
-    marker = L.marker([0, 0], { icon: createCarIcon(), draggable: true }).addTo(m)
+    marker = L.marker([props.coords[0].lat, props.coords[0].lng], { icon: createCarIcon(), draggable: true }).addTo(m)
 
     const updatePosition = (lng: number, lat: number) => {
       const idx = findClosestPoint(lng, lat, props.coords)
@@ -103,7 +103,6 @@ export const PathMap: Component<{
     m.on('mousemove', (e) => isDragging() && updatePosition(e.latlng.lng, e.latlng.lat))
     m.on('mouseup', endDrag)
     m.on('dragstart', () => setIsLocked(false))
-
     ;[pastHitboxPolyline, futureHitboxPolyline].forEach((poly) => poly?.on('mousedown', handleMouseDown))
 
     setMap(m)
@@ -113,8 +112,12 @@ export const PathMap: Component<{
   createEffect(() => {
     const t = props.seekTime()
     if (!props.coords.length) return
-    const newPos = props.coords.findIndex((p, i) => i === props.coords.length - 1 || (t >= p.t && t < props.coords[i + 1].t))
-    setPosition(newPos === -1 ? props.coords.length - 1 : newPos)
+    if (t < props.coords[0].t) {
+      setPosition(0)
+    } else {
+      const newPos = props.coords.findIndex((p, i) => i === props.coords.length - 1 || (t >= p.t && t < props.coords[i + 1].t))
+      setPosition(newPos === -1 ? props.coords.length - 1 : newPos)
+    }
   })
 
   createEffect(() => {

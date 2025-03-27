@@ -55,7 +55,6 @@ const RouteActivity: VoidComponent<RouteActivityProps> = (props) => {
         </Suspense>
 
         <div class="flex flex-col gap-2">
-          <h3 class="text-label-sm uppercase">Route Map</h3>
           <div class="aspect-square max-h-64 overflow-hidden rounded-lg">
             <Suspense fallback={<div class="skeleton-loader size-full bg-surface" />}>
               <RouteDynamicMap route={route()} routeName={routeName()} seekTime={seekTime} updateTime={onTimelineChange} />
@@ -64,7 +63,7 @@ const RouteActivity: VoidComponent<RouteActivityProps> = (props) => {
         </div>
 
         <div class="flex flex-col gap-2">
-          <h3 class="text-label-sm">Timeline</h3>
+          <h3 class="text-label-sm uppercase">Timeline</h3>
           <Timeline class="mb-1" routeName={routeName()} seekTime={seekTime} updateTime={onTimelineChange} />
         </div>
 
