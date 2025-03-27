@@ -8,7 +8,7 @@ import { dayjs } from '~/utils/format'
 
 import IconButton from '~/components/material/IconButton'
 import TopAppBar from '~/components/material/TopAppBar'
-import RouteStaticMap from '~/components/RouteStaticMap'
+import RouteDynamicMap from '~/components/RouteDynamicMap'
 import RouteStatistics from '~/components/RouteStatistics'
 import RouteActions from '~/components/RouteActions'
 import RouteUploadButtons from '~/components/RouteUploadButtons'
@@ -55,6 +55,15 @@ const RouteActivity: VoidComponent<RouteActivityProps> = (props) => {
         </Suspense>
 
         <div class="flex flex-col gap-2">
+          <h3 class="text-label-sm uppercase">Route Map</h3>
+          <div class="aspect-square max-h-64 overflow-hidden rounded-lg">
+            <Suspense fallback={<div class="skeleton-loader size-full bg-surface" />}>
+              <RouteDynamicMap route={route()} routeName={routeName()} seekTime={seekTime} updateTime={onTimelineChange} />
+            </Suspense>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
           <h3 class="text-label-sm">Timeline</h3>
           <Timeline class="mb-1" routeName={routeName()} seekTime={seekTime} updateTime={onTimelineChange} />
         </div>
@@ -75,15 +84,6 @@ const RouteActivity: VoidComponent<RouteActivityProps> = (props) => {
           <div class="flex flex-col rounded-md overflow-hidden bg-surface-container-low">
             <Suspense fallback={<div class="skeleton-loader min-h-48" />}>
               <RouteUploadButtons routeName={routeName()} />
-            </Suspense>
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-2">
-          <h3 class="text-label-sm uppercase">Route Map</h3>
-          <div class="aspect-square overflow-hidden rounded-lg">
-            <Suspense fallback={<div class="skeleton-loader size-full bg-surface" />}>
-              <RouteStaticMap route={route()} />
             </Suspense>
           </div>
         </div>
