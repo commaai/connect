@@ -12,7 +12,7 @@ const formatEngagement = (timeline?: TimelineStatistics): string | undefined => 
   return `${(100 * (engagedDuration / duration)).toFixed(0)}%`
 }
 
-const RouteStatistics: VoidComponent<{ class?: string; route: Route }> = (props) => {
+const RouteStatistics: VoidComponent<{ class?: string; route: Route | undefined }> = (props) => {
   const [timeline] = createResource(() => props.route, getTimelineStatistics)
 
   return (
