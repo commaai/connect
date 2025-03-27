@@ -112,7 +112,6 @@ export const PathMap: Component<{
       .on('dragend', () => setIsDragging(false))
 
     m.on('mousemove', (e) => isDragging() && handleDrag(e)).on('mouseup', () => setIsDragging(false))
-
     ;[pastHitboxPolyline, futureHitboxPolyline].forEach((poly) => poly?.on('mousedown', handleDrag))
 
     setMap(m)
