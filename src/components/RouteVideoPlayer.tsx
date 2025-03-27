@@ -41,7 +41,7 @@ const RouteVideoPlayer: VoidComponent<RouteVideoPlayerProps> = (props) => {
   return (
     <div
       class={clsx(
-        'relative flex aspect-[241/151] items-center justify-center self-stretch overflow-hidden rounded-lg bg-surface-container-low',
+        'relative flex max-h-96 aspect-[241/151] items-center justify-center self-stretch overflow-hidden rounded-lg bg-surface-container-low',
         props.class,
       )}
     >
