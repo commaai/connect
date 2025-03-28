@@ -42,6 +42,14 @@ export const formatDuration = (minutes: number | undefined): string | undefined 
   return _formatDuration(duration)
 }
 
+export const formatVideoTime = (seconds: number): string => {
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60).toString()
+  const remainingSeconds = Math.floor(seconds % 60).toString()
+  if (hours > 0) return `${hours}:${minutes.padStart(2, '0')}:${remainingSeconds.padStart(2, '0')}`
+  return `${minutes}:${remainingSeconds.padStart(2, '0')}`
+}
+
 export const getRouteDuration = (route: Route): Duration | undefined => {
   if (!route || !route.end_time) return undefined
   const startTime = dayjs(route.start_time)

@@ -149,8 +149,8 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
     <div
       ref={ref!}
       class={clsx(
-        'relative isolate flex h-6 cursor-pointer touch-none self-stretch overflow-hidden rounded-sm bg-blue-900',
-        'after:absolute after:inset-0 after:bg-gradient-to-b after:from-[rgba(0,0,0,0)] after:via-[rgba(0,0,0,0.1)] after:to-[rgba(0,0,0,0.2)]',
+        'relative isolate flex h-8 cursor-pointer touch-none self-stretch rounded-b-md bg-blue-900',
+        'after:absolute after:inset-0 after:rounded-b-md after:bg-gradient-to-b after:from-[rgba(0,0,0,0)] after:via-[rgba(0,0,0,0.1)] after:to-[rgba(0,0,0,0.6)]',
         props.class,
       )}
       title="Disengaged"
@@ -180,7 +180,12 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
                   width: '3px',
                   left: `${markerOffsetPct()}%`,
                 }}
-              />
+              >
+                <div class="absolute inset-x-0 h-full w-px bg-white" />
+                <div class="absolute -bottom-1.5 left-1/2 -translate-x-1/2">
+                  <div class="size-0 border-x-8 border-b-[12px] border-x-transparent border-b-yellow-500" />
+                </div>
+              </div>
             </>
           )}
         </Show>
