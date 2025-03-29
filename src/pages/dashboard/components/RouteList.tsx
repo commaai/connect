@@ -3,7 +3,7 @@ import dayjs from 'dayjs'
 
 import { fetcher } from '~/api'
 import { getTimelineStatistics } from '~/api/derived'
-import Card, { CardContent, CardHeader } from '~/components/material/Card'
+import Card from '~/components/material/Card'
 import Icon from '~/components/material/Icon'
 import RouteStatistics from '~/components/RouteStatistics'
 import { getPlaceName } from '~/map/geocode'
@@ -21,29 +21,36 @@ const RouteCard: VoidComponent<RouteCardProps> = (props) => {
   const [startPlace] = createResource(startPosition, getPlaceName)
   const [endPlace] = createResource(endPosition, getPlaceName)
   const [timeline] = createResource(() => props.route, getTimelineStatistics)
-  const [location] = createResource(
-    () => [startPlace(), endPlace()],
-    ([startPlace, endPlace]) => {
-      if (!startPlace && !endPlace) return ''
-      if (!endPlace || startPlace === endPlace) return startPlace
-      if (!startPlace) return endPlace
-      return `${startPlace} to ${endPlace}`
-    },
-  )
+  const showFromLocation = () => !!startPlace()
+  const showToLocation = () => !!endPlace() && (!startPlace() || startPlace() !== endPlace())
+  const isSingleLocation = () => showFromLocation() && !showToLocation()
 
   return (
     <Card class="max-w-none" href={`/${props.route.dongle_id}/${props.route.fullname.slice(17)}`} activeClass="md:before:bg-primary">
-      <CardHeader
-        headline={
-          <div class="flex gap-2">
-            <span>{startTime().format('ddd, MMM D, YYYY')}</span>&middot;
-            <span>
-              {startTime().format('h:mm A')} to {endTime().format('h:mm A')}
-            </span>
+      <div class="p-4 flex flex-col gap-5">
+        <div class="flex justify-between items-start">
+          <div class="flex flex-col gap-5 flex-1 mr-4">
+            <div class="flex flex-col">
+              <div class="font-light">{startTime().format('ddd, MMM D, YYYY')}</div>
+              <div class="text-2xl font-bold">
+                {startTime().format('h:mm A')} to {endTime().format('h:mm A')}
+              </div>
+            </div>
+            <div class="flex flex-col">
+              <Show when={showFromLocation()}>
+                <div class="flex gap-2">
+                  <span class="shrink-0 font-bold">{isSingleLocation() ? 'Stayed near:' : 'From:'}</span>
+                  <span class="break-words overflow-hidden font-light">{startPlace()}</span>
+                </div>
+              </Show>
+              <Show when={showToLocation()}>
+                <div class="flex gap-2">
+                  <span class="shrink-0 font-bold">To:</span>
+                  <span class="break-words overflow-hidden font-light">{endPlace()}</span>
+                </div>
+              </Show>
+            </div>
           </div>
-        }
-        subhead={location()}
-        trailing={
           <Suspense>
             <Show when={timeline()?.userFlags}>
               <div class="flex items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-amber-900 p-2 border border-amber-300 shadow-inner shadow-black/20">
@@ -51,12 +58,9 @@ const RouteCard: VoidComponent<RouteCardProps> = (props) => {
               </div>
             </Show>
           </Suspense>
-        }
-      />
-
-      <CardContent>
+        </div>
         <RouteStatistics route={props.route} />
-      </CardContent>
+      </div>
     </Card>
   )
 }
