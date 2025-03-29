@@ -64,10 +64,8 @@ const RouteVideoPlayer: VoidComponent<RouteVideoPlayerProps> = (props) => {
   function togglePlayback() {
     if (video.paused) {
       void video.play()
-      setIsPlaying(true)
     } else {
       video.pause()
-      setIsPlaying(false)
     }
   }
 
