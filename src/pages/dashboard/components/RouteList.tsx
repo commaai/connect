@@ -7,15 +7,15 @@ import Card, { CardContent, CardHeader } from '~/components/material/Card'
 import Icon from '~/components/material/Icon'
 import RouteStatistics from '~/components/RouteStatistics'
 import { getPlaceName } from '~/map/geocode'
-import type { RouteSegments } from '~/types'
+import type { Route } from '~/types'
 
 interface RouteCardProps {
-  route: RouteSegments
+  route: Route
 }
 
 const RouteCard: VoidComponent<RouteCardProps> = (props) => {
-  const startTime = () => dayjs(props.route.start_time_utc_millis)
-  const endTime = () => dayjs(props.route.end_time_utc_millis)
+  const startTime = () => dayjs(props.route.start_time)
+  const endTime = () => dayjs(props.route.end_time)
   const startPosition = () => [props.route.start_lng || 0, props.route.start_lat || 0] as number[]
   const endPosition = () => [props.route.end_lng || 0, props.route.end_lat || 0] as number[]
   const [startPlace] = createResource(startPosition, getPlaceName)
@@ -64,24 +64,24 @@ const RouteCard: VoidComponent<RouteCardProps> = (props) => {
 const PAGE_SIZE = 10
 
 const RouteList: VoidComponent<{ dongleId: string }> = (props) => {
-  const endpoint = () => `/v1/devices/${props.dongleId}/routes_segments?limit=${PAGE_SIZE}`
-  const getKey = (previousPageData?: RouteSegments[]): string | undefined => {
+  const endpoint = () => `/v1/devices/${props.dongleId}/routes?limit=${PAGE_SIZE}`
+  const getKey = (previousPageData?: Route[]): string | undefined => {
     if (!previousPageData) return endpoint()
     if (previousPageData.length === 0) return undefined
-    return `${endpoint()}&end=${previousPageData.at(-1)!.start_time_utc_millis - 1}`
+    return `${endpoint()}&created_before=${previousPageData.at(-1)!.create_time}`
   }
-  const getPage = (page: number): Promise<RouteSegments[]> => {
+  const getPage = (page: number): Promise<Route[]> => {
     if (pages[page] === undefined) {
       pages[page] = (async () => {
         const previousPageData = page > 0 ? await getPage(page - 1) : undefined
         const key = getKey(previousPageData)
-        return key ? fetcher<RouteSegments[]>(key) : []
+        return key ? fetcher<Route[]>(key) : []
       })()
     }
     return pages[page]
   }
 
-  const pages: Promise<RouteSegments[]>[] = []
+  const pages: Promise<Route[]>[] = []
   const [size, setSize] = createSignal(1)
   const pageNumbers = () => Array.from({ length: size() })
 
