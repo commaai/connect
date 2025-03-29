@@ -88,6 +88,8 @@ function renderTimelineEvents(route: Route | undefined, events: TimelineEvent[])
   )
 }
 
+const MARKER_WIDTH = 3
+
 interface TimelineProps {
   class?: string
   routeName: string
@@ -106,7 +108,7 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
   let handledTouchStart = false
 
   function updateMarker(clientX: number, rect: DOMRect) {
-    const x = clientX - rect.left
+    const x = Math.min(Math.max(clientX - rect.left, 0), rect.width - MARKER_WIDTH)
     const fraction = x / rect.width
     // Update marker immediately without waiting for video
     setMarkerOffsetPct(fraction * 100)
@@ -117,22 +119,18 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
   function onMouseDownOrTouchStart(ev: MouseEvent | TouchEvent) {
     if (handledTouchStart || !props.route()) return
 
-    const rect = ref.getBoundingClientRect()
+    const rect = ref()!.getBoundingClientRect()
 
     if (ev.type === 'mousedown') {
       ev = ev as MouseEvent
       updateMarker(ev.clientX, rect)
-      const onMove = (moveEv: MouseEvent) => {
-        updateMarker(moveEv.clientX, rect)
-      }
+      const onMove = (moveEv: MouseEvent) => updateMarker(moveEv.clientX, rect)
       const onUpOrLeave = () => {
-        ref.removeEventListener('mousemove', onMove)
-        ref.removeEventListener('mouseup', onUpOrLeave)
-        ref.removeEventListener('mouseleave', onUpOrLeave)
+        window.removeEventListener('mousemove', onMove)
+        window.removeEventListener('mouseup', onUpOrLeave)
       }
-      ref.addEventListener('mousemove', onMove)
-      ref.addEventListener('mouseup', onUpOrLeave)
-      ref.addEventListener('mouseleave', onUpOrLeave)
+      window.addEventListener('mousemove', onMove)
+      window.addEventListener('mouseup', onUpOrLeave)
     } else {
       ev = ev as TouchEvent
       if (ev.touches.length === 1) {
@@ -177,7 +175,7 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
                 class="absolute top-0 z-10 h-full"
                 style={{
                   'background-color': 'rgba(255,255,255,0.7)',
-                  width: '3px',
+                  width: `${MARKER_WIDTH}px`,
                   left: `${markerOffsetPct()}%`,
                 }}
               >
