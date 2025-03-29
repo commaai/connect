@@ -1,4 +1,4 @@
-import { createResource, lazy, Match, Show, Suspense, SuspenseList, Switch } from 'solid-js'
+import { createResource, lazy, Match, ParentComponent, Show, Suspense, SuspenseList, Switch } from 'solid-js'
 import type { Component, JSXElement, VoidComponent } from 'solid-js'
 import { Navigate, type RouteSectionProps, useLocation } from '@solidjs/router'
 import clsx from 'clsx'
@@ -77,29 +77,36 @@ const DashboardDrawer: VoidComponent = () => {
   )
 }
 
-const DashboardLayout: Component<{
+const SinglePaneLayout: ParentComponent = (props) => (
+  <div class="relative size-full overflow-hidden">
+    <div class="flex flex-col mx-auto size-full max-w-[800px]">
+      <TopAppBar class="xl:hidden" leading={<DrawerToggleButton />}></TopAppBar>
+      <div class="min-w-full overflow-y-scroll">{props.children}</div>
+    </div>
+  </div>
+)
+
+const TwoPaneLayout: Component<{
   paneOne: JSXElement
   paneTwo: JSXElement
   paneTwoContent: boolean
-}> = (props) => {
-  return (
-    <div class="relative size-full overflow-hidden">
-      <div
-        class={clsx(
-          'mx-auto size-full max-w-[1560px] md:grid md:grid-cols-2 lg:gap-2',
-          // Flex layout for mobile with horizontal transition
-          'flex transition-transform duration-300 ease-in-out',
-          props.paneTwoContent ? '-translate-x-full md:translate-x-0' : 'translate-x-0',
-        )}
-      >
-        <SuspenseList revealOrder="forwards">
-          <div class="min-w-full overflow-y-scroll">{props.paneOne}</div>
-          <div class="min-w-full overflow-y-scroll">{props.paneTwo}</div>
-        </SuspenseList>
-      </div>
+}> = (props) => (
+  <div class="relative size-full overflow-hidden">
+    <div
+      class={clsx(
+        'mx-auto size-full max-w-[1560px] md:grid md:grid-cols-2 lg:gap-2',
+        // Flex layout for mobile with horizontal transition
+        'flex transition-transform duration-300 ease-in-out',
+        props.paneTwoContent ? '-translate-x-full md:translate-x-0' : 'translate-x-0',
+      )}
+    >
+      <SuspenseList revealOrder="forwards">
+        <div class="min-w-full overflow-y-scroll">{props.paneOne}</div>
+        <div class="min-w-full overflow-y-scroll">{props.paneTwo}</div>
+      </SuspenseList>
     </div>
-  )
-}
+  </div>
+)
 
 const Dashboard: Component<RouteSectionProps> = () => {
   const location = useLocation()
@@ -113,6 +120,11 @@ const Dashboard: Component<RouteSectionProps> = () => {
 
   const [devices] = createResource(getDevices)
   const [profile] = createResource(getProfile)
+  const [isSharedDevice] = createResource(
+    () => ({ devices: devices(), dongleId: dongleId(), profile: profile() }),
+    ({ devices, dongleId, profile }) =>
+      !profile?.superuser && devices && dongleId && !devices.find((device) => device.dongle_id === dongleId),
+  )
 
   const getDefaultDongleId = () => {
     // Do not redirect if dongle ID already selected
@@ -129,9 +141,16 @@ const Dashboard: Component<RouteSectionProps> = () => {
         <Match when={dongleId() === 'pair' || pairToken()}>
           <PairActivity />
         </Match>
+        <Match when={isSharedDevice()}>
+          <Show when={dateStr()} fallback={<Navigate href="/" />}>
+            <SinglePaneLayout>
+              <RouteActivity dongleId={dongleId()} dateStr={dateStr()} startTime={startTime()} />
+            </SinglePaneLayout>
+          </Show>
+        </Match>
         <Match when={dongleId()} keyed>
           {(id) => (
-            <DashboardLayout
+            <TwoPaneLayout
               paneOne={<DeviceActivity dongleId={id} />}
               paneTwo={
                 <Switch
