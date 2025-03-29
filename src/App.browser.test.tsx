@@ -33,11 +33,12 @@ describe('Demo mode', () => {
   })
 })
 
+// TODO: write tests/setup second demo for read-only access tests
+
 describe('Public routes', () => {
-  test('View shared device', async () => {
+  test('Require route ID in URL', async () => {
     const { findByText } = renderApp(`/${Demo.DONGLE_ID}`)
-    expect(await findByText('Not signed in')).toBeTruthy()
-    expect(await findByText('Shared Device')).toBeTruthy()
+    expect(await findByText('Sign in with Google')).toBeTruthy()
   })
 
   test('View public route without signing in', async () => {
@@ -46,5 +47,11 @@ describe('Public routes', () => {
     // Videos do not load, yet
     // const video = (await findByTestId('route-video')) as HTMLVideoElement
     // await waitFor(() => expect(video.src).toBeTruthy())
+  })
+
+  test('View public route while signed in as another user', async () => {
+    setAccessToken(Demo.ACCESS_TOKEN)
+    const { findByText } = renderApp(`/e886087f430e7fe7/00000221--604653e929`)
+    expect(await findByText('00000221--604653e929')).toBeTruthy()
   })
 })
