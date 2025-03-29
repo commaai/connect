@@ -10,6 +10,20 @@ import { getPlaceName } from '~/map/geocode'
 import type { RouteSegments } from '~/types'
 import { useDimensions } from '~/utils/window'
 
+function groupRoutes(all_routes: RouteSegments[] | undefined): { day: string; segments: RouteSegments[] }[] {
+  if (!all_routes) return []
+  const groups = new Map<string, RouteSegments[]>()
+  for (const route of all_routes) {
+    const day = dayjs(route.start_time_utc_millis).format('ddd, MMM D, YYYY')
+    if (!groups.has(day)) {
+      console.log("adding day", day)
+      groups.set(day, [])
+    }
+    groups.get(day)!.push(route)
+  }
+  return Array.from(groups, ([day, segments]) => ({ day, segments }))
+}
+
 interface RouteCardProps {
   route: RouteSegments
 }
@@ -36,12 +50,9 @@ const RouteCard: VoidComponent<RouteCardProps> = (props) => {
     <Card class="max-w-none" href={`/${props.route.dongle_id}/${props.route.fullname.slice(17)}`} activeClass="md:before:bg-primary">
       <CardHeader
         headline={
-          <div class="flex gap-2">
-            <span>{startTime().format('ddd, MMM D, YYYY')}</span>&middot;
-            <span>
-              {startTime().format('h:mm A')} to {endTime().format('h:mm A')}
-            </span>
-          </div>
+          <span>
+            {startTime().format('h:mm A')} to {endTime().format('h:mm A')}
+          </span>
         }
         subhead={location()}
         trailing={
@@ -68,7 +79,7 @@ type RouteListProps = {
 
 const RouteList: VoidComponent<RouteListProps> = (props) => {
   const dimensions = useDimensions()
-  const pageSize = () => Math.max(Math.ceil(dimensions().height / 2 / 140), 1)
+  const pageSize = () => Math.max(Math.ceil(dimensions().height / 140), 1) * 4
   const endpoint = () => `/v1/devices/${props.dongleId}/routes_segments?limit=${pageSize()}`
   const getKey = (previousPageData?: RouteSegments[]): string | undefined => {
     if (!previousPageData) return endpoint()
@@ -116,6 +127,7 @@ const RouteList: VoidComponent<RouteListProps> = (props) => {
 
   return (
     <div class="flex w-full flex-col justify-items-stretch gap-4">
+      {/*TODO: this results in duplicate headers*/}
       <For each={pageNumbers()}>
         {(_, i) => {
           const [routes] = createResource(() => i(), getPage)
@@ -125,7 +137,15 @@ const RouteList: VoidComponent<RouteListProps> = (props) => {
                 <Index each={new Array(pageSize())}>{() => <div class="skeleton-loader flex h-[140px] flex-col rounded-lg" />}</Index>
               }
             >
-              <For each={routes()}>{(route) => <RouteCard route={route} />}</For>
+              <For each={groupRoutes(routes())}>
+                {(group) => (
+                  <>
+                    <h2 class="px-4 text-xl font-bold">{group.day}</h2>
+                    <For each={group.segments}>{(route) => <RouteCard route={route} />}</For>
+                    <div class="6 w-full" />
+                  </>
+                )}
+              </For>
             </Suspense>
           )
         }}
