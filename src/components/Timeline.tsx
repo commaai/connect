@@ -60,7 +60,7 @@ function renderTimelineEvents(route: Route, events: TimelineEvent[]) {
             break
           case 'user_flag':
             title = 'User flag'
-            classes = 'bg-yellow-500  min-w-[2px]'
+            classes = 'bg-yellow-500 min-w-[2px]'
         }
 
         const zIndex = {
