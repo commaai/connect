@@ -104,7 +104,7 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
   const [markerOffsetPct, setMarkerOffsetPct] = createSignal(0)
   const duration = createMemo(() => (props.route() ? (getRouteDuration(props.route()!)?.asSeconds() ?? 0) : 0))
 
-  let ref: HTMLDivElement
+  const [ref, setRef] = createSignal<HTMLDivElement>()
   let handledTouchStart = false
 
   function updateMarker(clientX: number, rect: DOMRect) {
@@ -145,7 +145,7 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
 
   return (
     <div
-      ref={ref!}
+      ref={setRef}
       class={clsx(
         'relative isolate flex h-8 cursor-pointer touch-none self-stretch rounded-b-md bg-blue-900',
         'after:absolute after:inset-0 after:rounded-b-md after:bg-gradient-to-b after:from-[rgba(0,0,0,0)] after:via-[rgba(0,0,0,0.1)] after:to-[rgba(0,0,0,0.5)]',
@@ -160,7 +160,7 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
       }}
       onTouchMove={(ev) => {
         if (ev.touches.length !== 1 || !props.route()) return
-        const rect = ref.getBoundingClientRect()
+        const rect = ref()!.getBoundingClientRect()
         updateMarker(ev.touches[0].clientX, rect)
       }}
     >
