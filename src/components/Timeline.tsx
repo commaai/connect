@@ -150,7 +150,7 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
       ref={ref!}
       class={clsx(
         'relative isolate flex h-8 cursor-pointer touch-none self-stretch rounded-b-md bg-blue-900',
-        'after:absolute after:inset-0 after:rounded-b-md after:bg-gradient-to-b after:from-[rgba(0,0,0,0)] after:via-[rgba(0,0,0,0.1)] after:to-[rgba(0,0,0,0.6)]',
+        'after:absolute after:inset-0 after:rounded-b-md after:bg-gradient-to-b after:from-[rgba(0,0,0,0)] after:via-[rgba(0,0,0,0.1)] after:to-[rgba(0,0,0,0.5)]',
         props.class,
       )}
       title="Disengaged"
