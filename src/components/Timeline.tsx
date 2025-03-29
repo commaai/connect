@@ -107,7 +107,8 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
   const [ref, setRef] = createSignal<HTMLDivElement>()
   let handledTouchStart = false
 
-  function updateMarker(clientX: number, rect: DOMRect) {
+  function updateMarker(clientX: number) {
+    const rect = ref()!.getBoundingClientRect()
     const x = Math.min(Math.max(clientX - rect.left, 0), rect.width - MARKER_WIDTH)
     const fraction = x / rect.width
     // Update marker immediately without waiting for video
@@ -119,12 +120,10 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
   function onMouseDownOrTouchStart(ev: MouseEvent | TouchEvent) {
     if (handledTouchStart || !props.route()) return
 
-    const rect = ref()!.getBoundingClientRect()
-
     if (ev.type === 'mousedown') {
       ev = ev as MouseEvent
-      updateMarker(ev.clientX, rect)
-      const onMove = (moveEv: MouseEvent) => updateMarker(moveEv.clientX, rect)
+      updateMarker(ev.clientX)
+      const onMove = (moveEv: MouseEvent) => updateMarker(moveEv.clientX)
       const onUpOrLeave = () => {
         window.removeEventListener('mousemove', onMove)
         window.removeEventListener('mouseup', onUpOrLeave)
@@ -134,7 +133,7 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
     } else {
       ev = ev as TouchEvent
       if (ev.touches.length === 1) {
-        updateMarker(ev.touches[0].clientX, rect)
+        updateMarker(ev.touches[0].clientX)
       }
     }
   }
@@ -160,8 +159,7 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
       }}
       onTouchMove={(ev) => {
         if (ev.touches.length !== 1 || !props.route()) return
-        const rect = ref()!.getBoundingClientRect()
-        updateMarker(ev.touches[0].clientX, rect)
+        updateMarker(ev.touches[0].clientX)
       }}
     >
       <Suspense fallback={<div class="skeleton-loader size-full" />}>
