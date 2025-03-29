@@ -156,8 +156,8 @@ const RouteVideoPlayer: VoidComponent<RouteVideoPlayerProps> = (props) => {
       </div>
 
       {/* Progress bar */}
-      <div class="absolute inset-x-0 bottom-0 h-2 bg-surface-container-high">
-        <div class="h-full bg-yellow-400 transition-[width]" style={{ width: `${progress()}%` }} />
+      <div class="absolute inset-x-0 bottom-0 h-1 bg-surface-container-high">
+        <div class="h-full bg-yellow-400" style={{ width: `${progress()}%` }} />
       </div>
     </div>
   )
