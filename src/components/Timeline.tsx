@@ -86,6 +86,8 @@ function renderTimelineEvents(route: Route, events: TimelineEvent[]) {
   )
 }
 
+const MARKER_WIDTH = 3
+
 interface TimelineProps {
   class?: string
   routeName: string
@@ -100,11 +102,12 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
   const [markerOffsetPct, setMarkerOffsetPct] = createSignal(0)
   const duration = createMemo(() => (props.route() ? (getRouteDuration(props.route()!)?.asSeconds() ?? 0) : 0))
 
-  let ref: HTMLDivElement
+  const [ref, setRef] = createSignal<HTMLDivElement>()
   let handledTouchStart = false
 
-  function updateMarker(clientX: number, rect: DOMRect) {
-    const x = clientX - rect.left
+  function updateMarker(clientX: number) {
+    const rect = ref()!.getBoundingClientRect()
+    const x = Math.min(Math.max(clientX - rect.left, 0), rect.width - MARKER_WIDTH)
     const fraction = x / rect.width
     // Update marker immediately without waiting for video
     setMarkerOffsetPct(fraction * 100)
@@ -115,26 +118,20 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
   function onMouseDownOrTouchStart(ev: MouseEvent | TouchEvent) {
     if (handledTouchStart || !props.route()) return
 
-    const rect = ref.getBoundingClientRect()
-
     if (ev.type === 'mousedown') {
       ev = ev as MouseEvent
-      updateMarker(ev.clientX, rect)
-      const onMove = (moveEv: MouseEvent) => {
-        updateMarker(moveEv.clientX, rect)
-      }
+      updateMarker(ev.clientX)
+      const onMove = (moveEv: MouseEvent) => updateMarker(moveEv.clientX)
       const onUpOrLeave = () => {
-        ref.removeEventListener('mousemove', onMove)
-        ref.removeEventListener('mouseup', onUpOrLeave)
-        ref.removeEventListener('mouseleave', onUpOrLeave)
+        window.removeEventListener('mousemove', onMove)
+        window.removeEventListener('mouseup', onUpOrLeave)
       }
-      ref.addEventListener('mousemove', onMove)
-      ref.addEventListener('mouseup', onUpOrLeave)
-      ref.addEventListener('mouseleave', onUpOrLeave)
+      window.addEventListener('mousemove', onMove)
+      window.addEventListener('mouseup', onUpOrLeave)
     } else {
       ev = ev as TouchEvent
       if (ev.touches.length === 1) {
-        updateMarker(ev.touches[0].clientX, rect)
+        updateMarker(ev.touches[0].clientX)
       }
     }
   }
@@ -145,10 +142,10 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
 
   return (
     <div
-      ref={ref!}
+      ref={setRef}
       class={clsx(
-        'relative isolate flex h-6 cursor-pointer touch-none self-stretch overflow-hidden rounded-sm bg-blue-900',
-        'after:absolute after:inset-0 after:bg-gradient-to-b after:from-[rgba(0,0,0,0)] after:via-[rgba(0,0,0,0.1)] after:to-[rgba(0,0,0,0.2)]',
+        'relative isolate flex h-8 cursor-pointer touch-none self-stretch rounded-b-md bg-blue-900',
+        'after:absolute after:inset-0 after:rounded-b-md after:bg-gradient-to-b after:from-[rgba(0,0,0,0)] after:via-[rgba(0,0,0,0.1)] after:to-[rgba(0,0,0,0.5)]',
         props.class,
       )}
       title="Disengaged"
@@ -160,8 +157,7 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
       }}
       onTouchMove={(ev) => {
         if (ev.touches.length !== 1 || !props.route()) return
-        const rect = ref.getBoundingClientRect()
-        updateMarker(ev.touches[0].clientX, rect)
+        updateMarker(ev.touches[0].clientX)
       }}
     >
       <Suspense fallback={<div class="skeleton-loader size-full" />}>
@@ -175,10 +171,15 @@ const Timeline: VoidComponent<TimelineProps> = (props) => {
                 class="absolute top-0 z-10 h-full"
                 style={{
                   'background-color': 'rgba(255,255,255,0.7)',
-                  width: '3px',
+                  width: `${MARKER_WIDTH}px`,
                   left: `${markerOffsetPct()}%`,
                 }}
-              />
+              >
+                <div class="absolute inset-x-0 h-full w-px bg-white" />
+                <div class="absolute -bottom-1.5 left-1/2 -translate-x-1/2">
+                  <div class="size-0 border-x-8 border-b-[12px] border-x-transparent border-b-yellow-500" />
+                </div>
+              </div>
             </>
           )}
         </Show>
