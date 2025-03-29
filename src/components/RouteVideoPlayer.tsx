@@ -43,20 +43,18 @@ const RouteVideoPlayer: VoidComponent<RouteVideoPlayerProps> = (props) => {
   })
 
   function updateProgressOnTimeUpdate() {
-    if (video.paused) {
-      const currentProgress = (video.currentTime / video.duration) * 100
-      setProgress(currentProgress)
-      props.onProgress?.(video.currentTime)
-    }
+    if (!video.paused) return
+    const currentProgress = (video.currentTime / video.duration) * 100
+    setProgress(currentProgress)
+    props.onProgress?.(video.currentTime)
   }
 
   function updateProgressContinuously() {
-    if (video && !video.paused) {
-      const currentProgress = (video.currentTime / video.duration) * 100
-      setProgress(currentProgress)
-      props.onProgress?.(video.currentTime)
-      requestAnimationFrame(updateProgressContinuously)
-    }
+    if (!video || video.paused) return
+    const currentProgress = (video.currentTime / video.duration) * 100
+    setProgress(currentProgress)
+    props.onProgress?.(video.currentTime)
+    requestAnimationFrame(updateProgressContinuously)
   }
 
   function startProgressTracking() {
@@ -89,9 +87,8 @@ const RouteVideoPlayer: VoidComponent<RouteVideoPlayerProps> = (props) => {
 
     video.addEventListener('loadedmetadata', () => {
       setDuration(video.duration)
-      if (!('ontouchstart' in window)) {
-        void video.play().catch(() => {})
-      }
+      if ('ontouchstart' in window) return
+      void video.play().catch(() => {})
     })
 
     onCleanup(() => {
