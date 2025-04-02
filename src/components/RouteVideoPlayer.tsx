@@ -9,7 +9,7 @@ import type Hls from '~/utils/hls'
 
 type RouteVideoPlayerProps = {
   class?: string
-  route?: Route
+  route: Route | undefined
   startTime: number
   onProgress: (seekTime: number) => void
   ref: (el?: HTMLVideoElement) => void
