@@ -90,8 +90,21 @@ const getDerived = async <T>(route: Route, fn: string): Promise<T[]> => {
   return (await Promise.all(results)).filter((it) => it !== undefined)
 }
 
-export const getCoords = (route: Route): Promise<GPSPathPoint[]> =>
-  getDerived<GPSPathPoint[]>(route, 'coords.json').then((coords) => coords.flat())
+const getCacheKey = (route: Route) => `${route.fullname}|${route.maxqlog}`
+
+const useRouteCache = <T>(fn: (route: Route) => Promise<T>): ((route: Route) => Promise<T>) => {
+  const cache = new Map<string, Promise<T>>()
+  return (route: Route) => {
+    const key = getCacheKey(route)
+    let res = cache.get(key)
+    if (res) return res
+    res = fn(route)
+    cache.set(key, res)
+    return res
+  }
+}
+
+export const getCoords = useRouteCache((route: Route) => getDerived<GPSPathPoint[]>(route, 'coords.json').then((coords) => coords.flat()))
 
 const getDriveEvents = (route: Route): Promise<DriveEvent[]> =>
   getDerived<DriveEvent[]>(route, 'events.json').then((events) => events.flat())
@@ -186,8 +199,9 @@ const generateTimelineEvents = (route: Route, events: DriveEvent[]): TimelineEve
   return res
 }
 
-export const getTimelineEvents = (route: Route): Promise<TimelineEvent[]> =>
-  getDriveEvents(route).then((events) => generateTimelineEvents(route, events))
+export const getTimelineEvents = useRouteCache<TimelineEvent[]>((route: Route) =>
+  getDriveEvents(route).then((events) => generateTimelineEvents(route, events)),
+)
 
 export const generateTimelineStatistics = (route: Route | undefined, timeline: TimelineEvent[]): TimelineStatistics => {
   let engagedDuration = 0
