@@ -1,4 +1,5 @@
 import type { Route } from '~/api/types'
+import { useRouteCache } from '~/utils/cache'
 import { getRouteDuration } from '~/utils/format'
 
 export interface GPSPathPoint {
@@ -88,20 +89,6 @@ const getDerived = async <T>(route: Route, fn: string): Promise<T[]> => {
       }),
   )
   return (await Promise.all(results)).filter((it) => it !== undefined)
-}
-
-const getCacheKey = (route: Route) => `${route.fullname}|${route.maxqlog}`
-
-const useRouteCache = <T>(fn: (route: Route) => Promise<T>): ((route: Route) => Promise<T>) => {
-  const cache = new Map<string, Promise<T>>()
-  return (route: Route) => {
-    const key = getCacheKey(route)
-    let res = cache.get(key)
-    if (res) return res
-    res = fn(route)
-    cache.set(key, res)
-    return res
-  }
 }
 
 export const getCoords = useRouteCache((route: Route) => getDerived<GPSPathPoint[]>(route, 'coords.json').then((coords) => coords.flat()))
