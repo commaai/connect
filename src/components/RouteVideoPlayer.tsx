@@ -126,6 +126,8 @@ const RouteVideoPlayer: VoidComponent<RouteVideoPlayerProps> = (props) => {
   // State reset on route change
   createEffect(() => {
     props.routeName // track changes
+    setCurrentTime(0)
+    setDuration(0)
     setVideoLoading(true)
     setErrored(false)
   })

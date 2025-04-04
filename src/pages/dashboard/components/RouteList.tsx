@@ -1,22 +1,36 @@
-import { createEffect, createResource, createSignal, For, Index, onCleanup, onMount, Show, Suspense, type VoidComponent } from 'solid-js'
+import {
+  createEffect,
+  createMemo,
+  createResource,
+  createSignal,
+  For,
+  Index,
+  onCleanup,
+  onMount,
+  Show,
+  Suspense,
+  type VoidComponent,
+} from 'solid-js'
 import dayjs from 'dayjs'
 
 import { fetcher } from '~/api'
-import { getTimelineStatistics } from '~/api/derived'
+import { generateTimelineStatistics, getTimelineEvents } from '~/api/derived'
 import Card, { CardContent, CardHeader } from '~/components/material/Card'
 import Icon from '~/components/material/Icon'
 import RouteStatistics from '~/components/RouteStatistics'
 import { getPlaceName } from '~/map/geocode'
 import type { RouteSegments } from '~/api/types'
+import { useAppContext } from '~/AppContext'
 
 interface RouteCardProps {
   route: RouteSegments
 }
 
 const RouteCard: VoidComponent<RouteCardProps> = (props) => {
+  const [_, { setCurrentRoute, setCurrentEvents, setCurrentTimelineStatistics }] = useAppContext()
   const startTime = () => dayjs(props.route.start_time_utc_millis)
   const endTime = () => dayjs(props.route.end_time_utc_millis)
-  const [timeline] = createResource(() => props.route, getTimelineStatistics)
+  const [events] = createResource(() => props.route, getTimelineEvents)
   const [location] = createResource(async () => {
     const startPos = [props.route.start_lng || 0, props.route.start_lat || 0]
     const endPos = [props.route.end_lng || 0, props.route.end_lat || 0]
@@ -28,8 +42,28 @@ const RouteCard: VoidComponent<RouteCardProps> = (props) => {
     return `${startPlace} to ${endPlace}`
   })
 
+  const timeline = createMemo(() => {
+    if (!events()) return undefined
+    return generateTimelineStatistics(props.route, events() ?? [])
+  })
+
+  const setRoute = () => {
+    const route = props.route
+    const e = events() ?? []
+    const t = timeline() ?? undefined
+    console.log('setting route', route, e, t)
+    setCurrentRoute(route)
+    setCurrentEvents(e)
+    setCurrentTimelineStatistics(t)
+  }
+
   return (
-    <Card class="max-w-none" href={`/${props.route.dongle_id}/${props.route.fullname.slice(17)}`} activeClass="md:before:bg-primary">
+    <Card
+      class="max-w-none"
+      href={`/${props.route.dongle_id}/${props.route.fullname.slice(17)}`}
+      activeClass="md:before:bg-primary"
+      onClick={setRoute}
+    >
       <CardHeader
         headline={
           <span>

@@ -7,6 +7,7 @@ import List, { ListItem, ListItemContent } from '~/components/material/List'
 import type { Device } from '~/api/types'
 import { getDeviceName, deviceIsOnline } from '~/utils/device'
 import storage from '~/utils/storage'
+import { useAppContext } from '~/AppContext'
 
 type DeviceListProps = {
   class?: string
@@ -16,11 +17,13 @@ type DeviceListProps = {
 const DeviceList: VoidComponent<DeviceListProps> = (props) => {
   const location = useLocation()
   const { setOpen } = useDrawerContext()
+  const [_, { setCurrentDevice }] = useAppContext()
 
   const isSelected = (device: Device) => location.pathname.includes(device.dongle_id)
   const onClick = (device: Device) => () => {
     setOpen(false)
     storage.setItem('lastSelectedDongleId', device.dongle_id)
+    setCurrentDevice(device)
   }
 
   return (

@@ -55,6 +55,7 @@ export const CardActions: ParentComponent<CardActionsProps> = (props) => {
 type CardProps = {
   class?: string
   onClick?: () => void
+  onHover?: () => void
   href?: string
   activeClass?: string
 }
@@ -62,10 +63,11 @@ type CardProps = {
 const Card: ParentComponent<CardProps> = (props) => {
   const cardStyle = 'flex max-w-md flex-col rounded-lg bg-surface-container text-on-surface before:bg-on-surface'
   return (
-    <Show when={props.onClick || props.href} fallback={<div class={clsx(cardStyle, props.class)}>{props.children}</div>}>
+    <Show when={props.onClick || props.onHover || props.href} fallback={<div class={clsx(cardStyle, props.class)}>{props.children}</div>}>
       <ButtonBase
         class={clsx(cardStyle, (props.href || props.onClick) && 'state-layer', props.class)}
         onClick={props.onClick}
+        onHover={props.onHover}
         href={props.href}
         activeClass={clsx('before:opacity-[.12]', props.activeClass)}
       >
