@@ -120,7 +120,10 @@
      * fill visible viewport
      * https://developers.google.com/web/updates/2016/12/url-bar-resizing
      */
-    @apply h-full overflow-hidden;
+    @apply h-full;
+
+    /* prevent horizontal scrolling, e.g. when drawer is open */
+    @apply overflow-x-hidden;
   }
 
   ::-webkit-scrollbar {
