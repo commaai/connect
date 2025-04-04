@@ -175,7 +175,6 @@ const RouteVideoPlayer: VoidComponent<RouteVideoPlayerProps> = (props) => {
           muted
           controls={false}
           playsinline
-          loop
           disablepictureinpicture
         />
       </div>
