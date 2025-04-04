@@ -2,20 +2,21 @@ import { Show, createEffect, createResource, createSignal, onCleanup, onMount, t
 import clsx from 'clsx'
 
 import { getQCameraStreamUrl } from '~/api/route'
+import { Route } from '~/api/types'
 import IconButton from '~/components/material/IconButton'
 import { formatVideoTime } from '~/utils/format'
 import type Hls from '~/utils/hls'
 
 type RouteVideoPlayerProps = {
   class?: string
-  routeName: string
+  route: Route | undefined
   startTime: number
   onProgress: (seekTime: number) => void
   ref: (el?: HTMLVideoElement) => void
 }
 
 const RouteVideoPlayer: VoidComponent<RouteVideoPlayerProps> = (props) => {
-  const [streamUrl] = createResource(() => props.routeName, getQCameraStreamUrl)
+  const [streamUrl] = createResource(() => props.route, getQCameraStreamUrl)
   const [hls, setHls] = createSignal<Hls | null>()
   let video!: HTMLVideoElement
   let controls!: HTMLDivElement
