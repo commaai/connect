@@ -77,3 +77,18 @@ export const formatDate = (input: dayjs.ConfigType): string => {
   const yearStr = date.year() === dayjs().year() ? '' : ', YYYY'
   return date.format('MMMM Do' + yearStr)
 }
+
+export const dateTimeToColorBetween = (date: Date, startColor: string, endColor: string): string => {
+  const toRGB = (hex: string): number[] => hex.match(/\w\w/g)!.map((x) => parseInt(x, 16))
+  const toHex = (rgb: number[]): string => rgb.map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')
+
+  const minutes = date.getHours() * 60 + date.getMinutes()
+  const t = minutes / 720
+  const blendFactor = t <= 1 ? t : 2 - t
+
+  const rgb1 = toRGB(startColor)
+  const rgb2 = toRGB(endColor)
+  const blended = rgb1.map((c, i) => c + (rgb2[i] - c) * blendFactor)
+
+  return `#${toHex(blended)}`
+}
