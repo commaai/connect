@@ -118,46 +118,54 @@ const Dashboard: Component<RouteSectionProps> = () => {
   }
 
   return (
-    <Drawer drawer={<DashboardDrawer devices={devices()} />}>
-      <Switch>
-        <Match when={!isSignedIn()}>
-          <Navigate href="/login" />
-        </Match>
-        <Match when={urlState().dongleId === 'pair' || !!location.query.pair}>
-          <PairActivity onPaired={refetch} />
-        </Match>
-        <Match when={urlState().dongleId} keyed>
-          {(dongleId) => (
-            <DashboardLayout
-              paneOne={<DeviceActivity dongleId={dongleId} />}
-              paneTwo={
-                <Switch
-                  fallback={
-                    <div class="hidden size-full flex-col items-center justify-center gap-4 md:flex">
-                      <Icon name="search" size="48" />
-                      <span class="text-title-md">Select a route to view</span>
-                    </div>
-                  }
-                >
-                  <Match when={urlState().dateStr === 'settings' || urlState().dateStr === 'prime'}>
-                    <SettingsActivity dongleId={dongleId} />
-                  </Match>
-                  <Match when={urlState().dateStr} keyed>
-                    {(dateStr) => (
-                      <RouteActivity dongleId={dongleId} dateStr={dateStr} startTime={urlState().startTime} endTime={urlState().endTime} />
-                    )}
-                  </Match>
-                </Switch>
-              }
-              paneTwoContent={!!urlState().dateStr}
-            />
-          )}
-        </Match>
-        <Match when={getDefaultDongleId()} keyed>
-          {(defaultDongleId) => <Navigate href={`/${defaultDongleId}`} />}
-        </Match>
-      </Switch>
-    </Drawer>
+    <div class="relative">
+      <AppHeader />
+      <Drawer drawer={<DashboardDrawer devices={devices()} />}>
+        <Switch>
+          <Match when={!isSignedIn()}>
+            <Navigate href="/login" />
+          </Match>
+          <Match when={urlState().dongleId === 'pair' || !!location.query.pair}>
+            <PairActivity onPaired={refetch} />
+          </Match>
+          <Match when={urlState().dongleId} keyed>
+            {(dongleId) => (
+              <DashboardLayout
+                paneOne={<DeviceActivity dongleId={dongleId} />}
+                paneTwo={
+                  <Switch
+                    fallback={
+                      <div class="hidden size-full flex-col items-center justify-center gap-4 md:flex">
+                        <Icon name="search" size="48" />
+                        <span class="text-title-md">Select a route to view</span>
+                      </div>
+                    }
+                  >
+                    <Match when={urlState().dateStr === 'settings' || urlState().dateStr === 'prime'}>
+                      <SettingsActivity dongleId={dongleId} />
+                    </Match>
+                    <Match when={urlState().dateStr} keyed>
+                      {(dateStr) => (
+                        <RouteActivity
+                          dongleId={dongleId}
+                          dateStr={dateStr}
+                          startTime={urlState().startTime}
+                          endTime={urlState().endTime}
+                        />
+                      )}
+                    </Match>
+                  </Switch>
+                }
+                paneTwoContent={!!urlState().dateStr}
+              />
+            )}
+          </Match>
+          <Match when={getDefaultDongleId()} keyed>
+            {(defaultDongleId) => <Navigate href={`/${defaultDongleId}`} />}
+          </Match>
+        </Switch>
+      </Drawer>
+    </div>
   )
 }
 
