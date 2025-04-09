@@ -1,7 +1,5 @@
-import { createContext, createSignal, Show, useContext } from 'solid-js'
-import type { Accessor, JSXElement, ParentComponent, Setter, VoidComponent } from 'solid-js'
-
-import IconButton from '~/components/material/IconButton'
+import { createContext, createSignal, useContext } from 'solid-js'
+import type { Accessor, JSXElement, ParentComponent, Setter } from 'solid-js'
 import { useDimensions } from '~/utils/window'
 
 interface DrawerContext {
@@ -16,15 +14,6 @@ export function useDrawerContext() {
   const context = useContext(DrawerContext)
   if (!context) throw new Error("can't find DrawerContext")
   return context
-}
-
-export const DrawerToggleButton: VoidComponent = () => {
-  const { modal, setOpen } = useDrawerContext()
-  return (
-    <Show when={modal()}>
-      <IconButton name="menu" onClick={() => setOpen((prev) => !prev)} />
-    </Show>
-  )
 }
 
 const PEEK = 56
@@ -52,9 +41,7 @@ const Drawer: ParentComponent<DrawerProps> = (props) => {
           width: `${drawerWidth()}px`,
         }}
       >
-        <div class="flex size-full flex-col rounded-r-lg bg-surface-container-low text-on-surface-variant sm:rounded-r-none">
-          {props.drawer}
-        </div>
+        <div class="flex size-full flex-col rounded-r-lg text-on-surface-variant sm:rounded-r-none">{props.drawer}</div>
       </nav>
 
       <main

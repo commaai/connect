@@ -1,69 +1,70 @@
-import { createMemo, createResource, lazy, Match, Show, Suspense, Switch } from 'solid-js'
+import { createMemo, createResource, lazy, Match, Show, Switch } from 'solid-js'
 import type { Component, JSXElement, VoidComponent } from 'solid-js'
-import { Navigate, type RouteSectionProps, useLocation } from '@solidjs/router'
+import { Navigate, type RouteSectionProps, useLocation, useNavigate } from '@solidjs/router'
 import clsx from 'clsx'
 
 import { isSignedIn } from '~/api/auth/client'
-import { USERADMIN_URL } from '~/api/config'
 import { getDevices } from '~/api/devices'
-import { getProfile } from '~/api/profile'
 import storage from '~/utils/storage'
 import type { Device } from '~/api/types'
 
 import Button from '~/components/material/Button'
-import ButtonBase from '~/components/material/ButtonBase'
-import Drawer, { DrawerToggleButton, useDrawerContext } from '~/components/material/Drawer'
+import Drawer, { useDrawerContext } from '~/components/material/Drawer'
 import Icon from '~/components/material/Icon'
-import IconButton from '~/components/material/IconButton'
-import TopAppBar from '~/components/material/TopAppBar'
 
 import DeviceList from './components/DeviceList'
 import DeviceActivity from './activities/DeviceActivity'
 import RouteActivity from './activities/RouteActivity'
 import SettingsActivity from './activities/SettingsActivity'
+import IconButton from '~/components/material/IconButton'
+import TopAppBar from '~/components/material/TopAppBar'
+import { USERADMIN_URL } from '~/api/config'
 
 const PairActivity = lazy(() => import('./activities/PairActivity'))
 
-const DashboardDrawer: VoidComponent<{ devices: Device[] }> = (props) => {
-  const { modal, setOpen } = useDrawerContext()
-  const onClose = () => setOpen(false)
-
-  const [profile] = createResource(getProfile)
+const AppHeader: VoidComponent = () => {
+  const navigate = useNavigate()
+  const { modal, open, setOpen } = useDrawerContext()
+  const goHome = () => {
+    setOpen(false)
+    navigate('/')
+  }
 
   return (
+    <TopAppBar
+      class="fixed top-0 inset-x-0"
+      leading={
+        <Show
+          when={modal()}
+          fallback={<img onClick={goHome} class="cursor-pointer" alt="comma logo" src="/images/comma-white.svg" height="32" width="32" />}
+        >
+          <IconButton name={open() ? 'close' : 'menu'} onClick={() => setOpen((prev) => !prev)} />
+        </Show>
+      }
+      trailing={
+        <div class="flex items-center gap-3">
+          <IconButton href={USERADMIN_URL} name="person" filled target="_blank" title="Useradmin" />
+          <IconButton href="/logout" name="logout" title="Sign out" />
+        </div>
+      }
+    >
+      <span class="cursor-pointer font-bold" onClick={goHome}>
+        connect
+      </span>
+    </TopAppBar>
+  )
+}
+
+const DashboardDrawer: VoidComponent<{ devices: Device[] }> = (props) => {
+  const { setOpen } = useDrawerContext()
+  const onClose = () => setOpen(false)
+  return (
     <>
-      <TopAppBar
-        component="h1"
-        leading={
-          <Show when={modal()}>
-            <IconButton name="arrow_back" onClick={onClose} />
-          </Show>
-        }
-      >
-        Devices
-      </TopAppBar>
-      <DeviceList class="overflow-y-auto p-2" devices={props.devices} />
+      <DeviceList class="overflow-y-auto px-2" devices={props.devices} />
       <div class="grow" />
       <Button class="m-4" leading={<Icon name="add" />} href="/pair" onClick={onClose}>
         Add new device
       </Button>
-      <div class="m-4 mt-0">
-        <ButtonBase href={USERADMIN_URL}>
-          <Suspense fallback={<div class="min-h-16 rounded-md skeleton-loader" />}>
-            <div class="flex max-w-full items-center px-3 rounded-md outline outline-1 outline-outline-variant min-h-16">
-              <div class="shrink-0 size-10 inline-flex items-center justify-center rounded-full bg-primary-container text-on-primary-container">
-                <Icon name="person" filled />
-              </div>
-              <div class="min-w-0 mx-3">
-                <div class="truncate text-body-md text-on-surface">{profile()?.email}</div>
-                <div class="truncate text-label-sm text-on-surface-variant">{profile()?.user_id}</div>
-              </div>
-              <div class="grow" />
-              <IconButton name="logout" href="/logout" />
-            </div>
-          </Suspense>
-        </ButtonBase>
-      </div>
     </>
   )
 }
@@ -75,6 +76,7 @@ const DashboardLayout: Component<{
 }> = (props) => {
   return (
     <div class="relative size-full overflow-hidden">
+      <AppHeader />
       <div
         class={clsx(
           'mx-auto size-full max-w-[1600px] md:grid md:grid-cols-2 lg:gap-2',
@@ -117,7 +119,7 @@ const Dashboard: Component<RouteSectionProps> = () => {
 
   return (
     <Drawer drawer={<DashboardDrawer devices={devices()} />}>
-      <Switch fallback={<TopAppBar leading={<DrawerToggleButton />}>No device</TopAppBar>}>
+      <Switch>
         <Match when={!isSignedIn()}>
           <Navigate href="/login" />
         </Match>
