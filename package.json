@@ -41,7 +41,7 @@
     "wrangler": "used for deploying assets to cloudflare"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
+    "@biomejs/biome": "2.0.0-beta.1",
     "@solidjs/testing-library": "^0.8.10",
     "@tanstack/solid-query-devtools": "^5.72.2",
     "@types/bun": "^1.2.9",
@@ -91,5 +91,11 @@
   "engines": {
     "node": ">=20.11.0"
   },
-  "trustedDependencies": ["@biomejs/biome", "@sentry/cli", "esbuild", "lefthook", "workerd"]
+  "trustedDependencies": [
+    "@biomejs/biome",
+    "@sentry/cli",
+    "esbuild",
+    "lefthook",
+    "workerd"
+  ]
 }

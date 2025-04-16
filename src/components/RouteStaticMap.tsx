@@ -33,11 +33,7 @@ const getStaticMapUrl = (gpsPoints: GPSPathPoint[]): string | undefined => {
   return getPathStaticMapUrl(themeId, path, 512, 512, true)
 }
 
-const State = (props: {
-  children: JSXElement
-  trailing?: JSXElement
-  opaque?: boolean
-}) => {
+const State = (props: { children: JSXElement; trailing?: JSXElement; opaque?: boolean }) => {
   return (
     <div class={clsx('absolute flex size-full items-center justify-center gap-2', props.opaque && 'bg-surface text-on-surface')}>
       <span class="text-xs">{props.children}</span>
