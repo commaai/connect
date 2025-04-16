@@ -48,7 +48,8 @@ const Drawer: ParentComponent<DrawerProps> = (props) => {
         class="hide-scrollbar fixed inset-y-0 left-0 h-full touch-pan-y overflow-y-auto overscroll-y-contain transition-drawer ease-in-out duration-300"
         style={{
           left: drawerVisible() ? 0 : `${-PEEK}px`,
-          opacity: drawerVisible() ? 1 : 0.5,
+          // Opacity should be 0 when drawer is closed, otherwise it can be visible when overscrolling
+          opacity: drawerVisible() ? 1 : 0,
           width: `${drawerWidth()}px`,
         }}
       >
