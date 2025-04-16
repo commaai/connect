@@ -62,7 +62,11 @@ const RouteActivity: VoidComponent<RouteActivityProps> = (props) => {
 
   return (
     <>
-      <TopAppBar component="h2" leading={<IconButton class="md:hidden" name="arrow_back" href={`/${props.dongleId}`} />}>
+      <TopAppBar
+        class="mx-4 mb-4 h-[28px]"
+        component="h2"
+        leading={<IconButton class="md:hidden" name="arrow_back" href={`/${props.dongleId}`} />}
+      >
         <Suspense fallback={<div class="skeleton-loader max-w-64 rounded-xs h-[28px]" />}>{startTime()}</Suspense>
       </TopAppBar>
 

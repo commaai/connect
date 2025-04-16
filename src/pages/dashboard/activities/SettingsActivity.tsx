@@ -429,7 +429,7 @@ const SettingsActivity: VoidComponent<PrimeActivityProps> = (props) => {
 
   return (
     <>
-      <TopAppBar component="h2" leading={<IconButton class="md:hidden" name="arrow_back" href={`/${props.dongleId}`} />}>
+      <TopAppBar class="mx-4 mb-4" component="h2" leading={<IconButton class="md:hidden" name="arrow_back" href={`/${props.dongleId}`} />}>
         Device Settings
       </TopAppBar>
       <div class="flex flex-col gap-4 max-w-lg px-4">

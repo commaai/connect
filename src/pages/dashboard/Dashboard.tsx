@@ -1,4 +1,4 @@
-import { createMemo, createResource, ErrorBoundary, lazy, Match, Show, Suspense, Switch } from 'solid-js'
+import { createMemo, createResource, ErrorBoundary, lazy, Match, Suspense, Switch } from 'solid-js'
 import type { Component, JSXElement, VoidComponent } from 'solid-js'
 import { Navigate, type RouteSectionProps, useLocation } from '@solidjs/router'
 import clsx from 'clsx'
@@ -26,24 +26,15 @@ import BuildInfo from '~/components/BuildInfo'
 const PairActivity = lazy(() => import('./activities/PairActivity'))
 
 const DashboardDrawer: VoidComponent<{ devices: Device[] | undefined }> = (props) => {
-  const { modal, setOpen } = useDrawerContext()
+  const { setOpen } = useDrawerContext()
   const onClose = () => setOpen(false)
 
   const [profile] = createResource(getProfile)
 
   return (
     <>
-      <TopAppBar
-        component="h2"
-        leading={
-          <Show when={modal()}>
-            <IconButton name="arrow_back" onClick={onClose} />
-          </Show>
-        }
-      >
-        Devices
-      </TopAppBar>
-      <DeviceList class="overflow-y-auto p-2" devices={props.devices} />
+      <AppHeader />
+      <DeviceList class="overflow-y-auto p-4" devices={props.devices} />
       <div class="grow" />
       <Button class="m-4" leading={<Icon name="add" />} href="/pair" onClick={onClose}>
         Add new device
@@ -71,6 +62,18 @@ const DashboardDrawer: VoidComponent<{ devices: Device[] | undefined }> = (props
   )
 }
 
+const AppHeader: VoidComponent<{ class?: string; leading?: JSXElement }> = (props) => {
+  return (
+    <TopAppBar
+      component="h2"
+      class={clsx('text-white p-4 bg-surface-container-highest border-b-2 border-b-outline-variant h-[4rem]', props.class)}
+      leading={props.leading || <img src="/images/comma-white.svg" height="32" width="32" />}
+    >
+      connect
+    </TopAppBar>
+  )
+}
+
 const DashboardLayout: Component<{
   paneOne: JSXElement
   paneTwo: JSXElement
@@ -78,35 +81,26 @@ const DashboardLayout: Component<{
 }> = (props) => {
   return (
     <div class="relative size-full overflow-hidden">
+      <AppHeader class="fixed top-0 inset-x-0 left-0 right-0" leading={<DrawerToggleButton />} />
       <div
         class={clsx(
-          'mx-auto size-full max-w-[1600px] md:grid md:grid-cols-2 lg:gap-2',
+          'mt-16 mx-auto size-full max-w-[1600px] md:grid md:grid-cols-2 lg:gap-2',
           // Flex layout for mobile with horizontal transition
           'flex transition-transform duration-300 ease-in-out',
           props.paneTwoContent ? '-translate-x-full md:translate-x-0' : 'translate-x-0',
         )}
       >
-        <div class="min-w-full overflow-y-scroll">{props.paneOne}</div>
-        <div class="min-w-full overflow-y-scroll">{props.paneTwo}</div>
+        <div class="pt-4 min-w-full overflow-y-scroll">{props.paneOne}</div>
+        <div class="pt-4 min-w-full overflow-y-scroll">{props.paneTwo}</div>
       </div>
     </div>
   )
 }
 
 const FirstPairActivity: Component = () => {
-  const { modal } = useDrawerContext()
   return (
     <>
-      <TopAppBar
-        class="font-bold"
-        leading={
-          <Show when={!modal()} fallback={<DrawerToggleButton />}>
-            <img alt="" src="/images/comma-white.png" class="h-8" />
-          </Show>
-        }
-      >
-        connect
-      </TopAppBar>
+      <AppHeader class="fixed top-0 inset-x-0 left-0 right-0" />
       <section class="flex flex-col gap-4 py-2 items-center mx-auto max-w-md px-4 mt-4 sm:mt-8 md:mt-16">
         <h2 class="text-xl">Pair your device</h2>
         <p class="text-lg">Scan the QR code on your device</p>

@@ -20,7 +20,7 @@ export default defineConfig({
         short_name: 'connect',
         description: 'manage your openpilot experience',
         background_color: '#131318',
-        theme_color: '#131318',
+        theme_color: '#34343a',
         start_url: '/',
         id: '/',
       },

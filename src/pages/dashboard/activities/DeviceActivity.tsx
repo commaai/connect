@@ -4,10 +4,8 @@ import clsx from 'clsx'
 
 import { takeSnapshot } from '~/api/athena'
 import { getDevice, SHARED_DEVICE } from '~/api/devices'
-import { DrawerToggleButton, useDrawerContext } from '~/components/material/Drawer'
 import Icon from '~/components/material/Icon'
 import IconButton from '~/components/material/IconButton'
-import TopAppBar from '~/components/material/TopAppBar'
 import DeviceLocation from '~/components/DeviceLocation'
 import DeviceStatistics from '~/components/DeviceStatistics'
 import UploadQueue from '~/components/UploadQueue'
@@ -74,20 +72,8 @@ const DeviceActivity: VoidComponent<DeviceActivityProps> = (props) => {
 
   const clearError = () => setSnapshot('error', null)
 
-  const { modal } = useDrawerContext()
-
   return (
     <>
-      <TopAppBar
-        class="font-bold"
-        leading={
-          <Show when={!modal()} fallback={<DrawerToggleButton />}>
-            <img alt="" src="/images/comma-white.png" class="h-8" />
-          </Show>
-        }
-      >
-        connect
-      </TopAppBar>
       <div class="flex flex-col gap-4 px-4 pb-4">
         <div class="h-min overflow-hidden rounded-lg bg-surface-container-low">
           <Suspense fallback={<div class="h-[240px] skeleton-loader size-full" />}>
