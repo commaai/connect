@@ -74,6 +74,27 @@ export const unpairDevice = async (dongleId: string) =>
     method: 'POST',
   })
 
+export const grantDeviceReadPermission = async (dongleId: string, email: string) =>
+  fetcher<{ success: number }>(`/v1/devices/${dongleId}/add_user`, {
+    method: 'POST',
+    body: JSON.stringify({ email: email }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+export const removeDeviceReadPermission = async (dongleId: string, email: string) =>
+  fetcher<{ success: number }>(`/v1/devices/${dongleId}/del_user`, {
+    method: 'POST',
+    body: JSON.stringify({ email: email }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+export const getDeviceUsers = async (dongleId: string): Promise<{ email: string; permission: string }[]> =>
+  fetcher<{ email: string; permission: string }[]>(`/v1/devices/${dongleId}/users`)
+
 const validatePairToken = (
   input: string,
 ): {

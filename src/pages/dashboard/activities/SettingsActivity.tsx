@@ -1,9 +1,9 @@
 import { createResource, Match, Show, Suspense, Switch, children, createMemo, For, createSignal, createEffect } from 'solid-js'
-import type { Accessor, VoidComponent, Setter, ParentComponent, Resource, JSXElement } from 'solid-js'
+import type { Accessor, VoidComponent, Setter, ParentComponent, Resource, JSXElement, JSX } from 'solid-js'
 import { useLocation } from '@solidjs/router'
 import clsx from 'clsx'
 
-import { getDevice, unpairDevice } from '~/api/devices'
+import { getDevice, getDeviceUsers, grantDeviceReadPermission, unpairDevice, removeDeviceReadPermission } from '~/api/devices'
 import {
   cancelSubscription,
   getStripeCheckout,
@@ -22,6 +22,7 @@ import IconButton from '~/components/material/IconButton'
 import TopAppBar from '~/components/material/TopAppBar'
 import { createQuery } from '~/utils/createQuery'
 import { getDeviceName } from '~/utils/device'
+import TextField from '~/components/material/TextField'
 
 const useAction = <T,>(action: () => Promise<T>): [() => void, Resource<T>] => {
   const [source, setSource] = createSignal(false)
@@ -401,15 +402,64 @@ const PrimeManage: VoidComponent<{ dongleId: string }> = (props) => {
 
 const DeviceSettingsForm: VoidComponent<{ dongleId: string; device: Resource<Device> }> = (props) => {
   const [deviceName] = createResource(props.device, getDeviceName)
-
+  const [deviceUsers, { refetch: refetchDeviceUsers }] = createResource(props.dongleId, getDeviceUsers)
   const [unpair, unpairData] = useAction(async () => {
     const { success } = await unpairDevice(props.dongleId)
     if (success) window.location.href = window.location.origin
   })
+  const [shareLoading, setShareLoading] = createSignal(false)
+  const share: JSX.EventHandler<HTMLFormElement, SubmitEvent> = async (event) => {
+    event.preventDefault()
+    setShareLoading(true)
+    const formData = new FormData(event.target as HTMLFormElement)
+    console.log(formData)
+    const email = formData.get('email') as string
+    const { success } = await grantDeviceReadPermission(props.dongleId, email)
+    setShareLoading(false)
+    if (success) {
+      refetchDeviceUsers()
+      formRef?.reset()
+    }
+  }
+
+  const [unshareLoading, setUnshareLoading] = createSignal(false)
+
+  const unshare = async (email: string) => {
+    setUnshareLoading(true)
+    const { success } = await removeDeviceReadPermission(props.dongleId, email)
+    if (success) refetchDeviceUsers()
+    setUnshareLoading(false)
+  }
+
+  let formRef: HTMLFormElement | undefined
 
   return (
     <div class="flex flex-col gap-4">
       <h2 class="text-lg">{deviceName()}</h2>
+      <Show when={props.device()?.is_owner}>
+        <div class="flex flex-col gap-2">
+          <h3 class="text-md">{(deviceUsers() || []).length - 1 > 0 ? 'shared with:' : 'share device'}</h3>
+          <For each={deviceUsers()} fallback={<div>loading</div>}>
+            {(user, _index) => (
+              <Show when={user.permission !== 'owner'}>
+                <div class="flex items-center gap-2 justify-between">
+                  <div>{user.email}</div>
+                  <Button color="error" onClick={() => unshare(user.email)} loading={unshareLoading()}>
+                    <Icon name="delete" />
+                  </Button>
+                </div>
+              </Show>
+            )}
+          </For>
+          <form onSubmit={share} class="flex items-center gap-2 justify-between" method="post" ref={formRef}>
+            <TextField label="email" id="email-box" name="email" class="w-full" />
+            <Button color="secondary" type="submit" loading={shareLoading()}>
+              <Icon name="share" />
+            </Button>
+          </form>
+        </div>
+      </Show>
+
       <Show when={unpairData.error}>
         <div class="flex gap-2 rounded-sm bg-surface-container-high p-2 text-sm text-on-surface">
           <Icon class="text-error" name="error" size="20" />
