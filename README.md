@@ -1,5 +1,5 @@
 > [!CAUTION]
-> This is the old connect PWA. Check out the [new one](https://github.com/commaai/connect).
+> This is the old connect PWA. It will only receive bug fixes for the time being. Check out the [new one](https://github.com/commaai/connect).
 
 # comma connect
 
