@@ -279,11 +279,9 @@ class Media extends Component {
       this.fetchRoutePreserved();
     }
 
-    if (!this.routeViewed) {
-      if (this.props.currentRoute && ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser)) {
-        this.props.dispatch(setRouteViewed(this.props.dongleId, this.props.currentRoute.fullname));
-        this.routeViewed = true;
-      }
+    if (!this.routeViewed && this.props.currentRoute && ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser)) {
+      this.props.dispatch(setRouteViewed(this.props.dongleId, this.props.currentRoute.fullname));
+      this.routeViewed = true;
     }
   }
 
