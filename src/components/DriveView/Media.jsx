@@ -238,14 +238,12 @@ class Media extends Component {
     this.onPublicToggle = this.onPublicToggle.bind(this);
     this.fetchRoutePreserved = this.fetchRoutePreserved.bind(this);
     this.onPreserveToggle = this.onPreserveToggle.bind(this);
+
+    this.routeViewed = false;
   }
 
   componentDidMount() {
     this.componentDidUpdate({}, {});
-
-    if (this.props.currentRoute && ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser)) {
-      this.props.dispatch(setRouteViewed(this.props.dongleId, this.props.currentRoute.fullname));
-    }
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -279,6 +277,11 @@ class Media extends Component {
     if (routePreserved === null && (this.props.device?.is_owner || this.props.profile?.superuser)
       && (!prevState.moreInfoMenu && !prevProps.currentRoute) !== (moreInfoMenu && this.props.currentRoute)) {
       this.fetchRoutePreserved();
+    }
+
+    if (!this.routeViewed && this.props.currentRoute && ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser)) {
+      this.props.dispatch(setRouteViewed(this.props.dongleId, this.props.currentRoute.fullname));
+      this.routeViewed = true;
     }
   }
 
