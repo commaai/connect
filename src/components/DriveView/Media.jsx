@@ -1,4 +1,4 @@
-import React, { Component , useEffect } from 'react';
+import React, { Component } from 'react';
 import qs from 'query-string';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
@@ -244,19 +244,9 @@ class Media extends Component {
 
   componentDidMount() {
     this.componentDidUpdate({}, {});
-    // console.log("here", this.props.currentRoute);
-    // console.log("currentRoute", this.props.currentRoute);
-    // console.log("device", this.props.device);
-    // console.log("profile", this.props.profile?.superuser);
-
-    // if (this.props.currentRoute && ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser)) {
-    //   console.log("dispatching setRouteViewed");
-    //   this.props.dispatch(setRouteViewed(this.props.dongleId, this.props.currentRoute.fullname));
-    // }
   }
 
   componentDidUpdate(prevProps, prevState) {
-    // console.log("componentDidUpdate", this.props.currentRoute, this.props.device);
     const { windowWidth, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
     const showMapAlways = windowWidth >= 1536;
     if (showMapAlways && inView === MediaType.MAP) {
@@ -289,12 +279,8 @@ class Media extends Component {
       this.fetchRoutePreserved();
     }
 
-    console.log("currentRoute", this.props.currentRoute, "device", this.props.device, "profile", this.props.profile);
-    console.log("routeViewed", this.routeViewed);
-    console.log("\n");
     if (!this.routeViewed) {
       if (this.props.currentRoute && ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser)) {
-        console.log("dispatching setRouteViewed");
         this.props.dispatch(setRouteViewed(this.props.dongleId, this.props.currentRoute.fullname));
         this.routeViewed = true;
       }
