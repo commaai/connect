@@ -60,6 +60,8 @@ export function timeFromNow(ts) {
 
 export function deviceTypePretty(deviceType) {
   switch (deviceType) {
+    case 'threex':
+      return 'comma 3X';
     case 'neo':
       return 'EON';
     case 'freon':
