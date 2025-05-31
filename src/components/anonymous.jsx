@@ -129,7 +129,7 @@ class AnonymousLanding extends Component {
     const { classes } = this.props;
 
     const loginAsDemoUser = function() {
-      AuthStorage.setCommaAccessToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDg1ODI0NjUsIm5iZiI6MTcxNzA0NjQ2NSwiaWF0IjoxNzE3MDQ2NDY1LCJpZGVudGl0eSI6IjBkZWNkZGNmZGYyNDFhNjAifQ.g3khyJgOkNvZny6Vh579cuQj1HLLGSDeauZbfZri9jw');
+      AuthStorage.setCommaAccessToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDk1Nzc0OTYsIm5iZiI6MTc0ODcxMzQ5NiwiaWF0IjoxNzQ4NzEzNDk2LCJpZGVudGl0eSI6IjBkZWNkZGNmZGYyNDFhNjAifQ.ElXnjUdc0EMAI3cILcAcDgdcb-Xfv8AifKD4oXb9t0Y');
       window.location = window.location.origin;
     };
 
