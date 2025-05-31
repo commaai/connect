@@ -13,6 +13,7 @@ const NoDeviceUpsell = () => (
       <ul className="my-0">
         <li>Your device is connected to the internet</li>
         <li>You have installed the latest version of openpilot</li>
+        <li>You may need to look for "Pair Device" in Settings</li>
       </ul>
       <p>
         If you still cannot see a QR code, your device may already be paired to
