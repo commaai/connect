@@ -7,6 +7,9 @@ import dayjs from 'dayjs';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
+import VolumeUp from '@material-ui/icons/VolumeUp';
+import VolumeOff from '@material-ui/icons/VolumeOff';
+import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow } from '../../icons';
 import { currentOffset } from '../../timeline';
@@ -280,6 +283,21 @@ class TimeDisplay extends Component {
             </IconButton>
           </div>
         )}
+        <div className={ classes.iconBox }>
+          <Tooltip title={ !this.props.hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
+            <div>
+              <IconButton
+                onClick={this.props.onMuteToggle}
+                disabled={!this.props.hasAudio}
+                aria-label={this.props.isMuted ? 'Unmute' : 'Mute'}
+              >
+                {this.props.isMuted
+                  ? (<VolumeOff className={`${classes.icon} small ${!this.props.hasAudio ? 'dim' : ''}`} />)
+                  : (<VolumeUp className={`${classes.icon} small`} />)}
+              </IconButton>
+            </div>
+          </Tooltip>
+        </div>
         <div className={ classes.playButtonBox }>
           <IconButton
             onClick={this.togglePause}

@@ -222,8 +222,12 @@ class Media extends Component {
       uploadModal: false,
       dcamUploadInfo: null,
       routePreserved: null,
+      isMuted: true,
+      hasAudio: false,
     };
 
+    this.handleMuteToggle = this.handleMuteToggle.bind(this);
+    this.handleAudioStatusChange = this.handleAudioStatusChange.bind(this);
     this.renderMediaOptions = this.renderMediaOptions.bind(this);
     this.renderMenus = this.renderMenus.bind(this);
     this.renderUploadMenuItem = this.renderUploadMenuItem.bind(this);
@@ -240,6 +244,14 @@ class Media extends Component {
     this.onPreserveToggle = this.onPreserveToggle.bind(this);
 
     this.routeViewed = false;
+  }
+
+  handleMuteToggle() {
+    this.setState(prevState => ({ isMuted: !prevState.isMuted }));
+  }
+
+  handleAudioStatusChange(hasAudio) {
+    this.setState({ hasAudio });
   }
 
   componentDidMount() {
@@ -510,7 +522,7 @@ class Media extends Component {
 
   render() {
     const { classes } = this.props;
-    const { inView, windowWidth } = this.state;
+    const { inView, windowWidth, isMuted, hasAudio } = this.state;
 
     if (this.props.menusOnly) { // for test
       return this.renderMenus(true);
@@ -527,14 +539,24 @@ class Media extends Component {
         <ResizeHandler onResize={(ww) => this.setState({ windowWidth: ww })} />
         <div style={mediaContainerStyle}>
           {this.renderMediaOptions(showMapAlways)}
-          {inView === MediaType.VIDEO && <DriveVideo />}
+          {inView === MediaType.VIDEO && (
+            <DriveVideo
+              isMuted={isMuted}
+              onAudioStatusChange={this.handleAudioStatusChange}
+            />
+          )}
           {(inView === MediaType.MAP && !showMapAlways) && (
             <div style={mapContainerStyle}>
               <DriveMap />
             </div>
           )}
           <div className="mt-3">
-            <TimeDisplay isThin />
+            <TimeDisplay
+              isThin
+              isMuted={isMuted}
+              hasAudio={hasAudio}
+              onMuteToggle={this.handleMuteToggle}
+            />
           </div>
         </div>
         {(inView === MediaType.VIDEO && showMapAlways) && (

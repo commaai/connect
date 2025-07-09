@@ -271,8 +271,20 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { desiredPlaySpeed, isBufferingVideo, currentRoute } = this.props;
+    const { desiredPlaySpeed, isBufferingVideo, currentRoute, onAudioStatusChange } = this.props;
     const { src, videoError } = this.state;
+
+    const onPlayerReady = (player) => {
+      const hlsPlayer = player.getInternalPlayer('hls');
+      if (hlsPlayer) {
+        hlsPlayer.on('hlsBufferCodecs', (event, data) => {
+          if (onAudioStatusChange) {
+            onAudioStatusChange(!!data.audio);
+          }
+        });
+      }
+    };
+
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
         <VideoOverlay loading={isBufferingVideo} error={videoError} />
@@ -280,10 +292,11 @@ class DriveVideo extends Component {
           ref={this.videoPlayer}
           url={src}
           playsinline
-          muted
+          muted={this.props.isMuted}
           width="100%"
           height="100%"
           playing={Boolean(currentRoute && desiredPlaySpeed)}
+          onReady={onPlayerReady}
           config={{
             hlsVersion: '1.4.8',
             hlsOptions: {
