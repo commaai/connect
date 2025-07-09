@@ -287,6 +287,7 @@ class TimeDisplay extends Component {
           <Tooltip title={ !this.props.hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
             <div>
               <IconButton
+                className={ classes.iconButton }
                 onClick={this.props.onMuteToggle}
                 disabled={!this.props.hasAudio}
                 aria-label={this.props.isMuted ? 'Unmute' : 'Mute'}
