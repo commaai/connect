@@ -84,10 +84,10 @@ const styles = (theme) => ({
       visibility: 'hidden',
     },
   },
-  iconBox: {
+  rightBorderBox: {
     borderRight: `1px solid ${theme.palette.grey[900]}`,
   },
-  playButtonBox: {
+  leftBorderBox: {
     borderLeft: `1px solid ${theme.palette.grey[900]}`,
   },
   currentTime: {
@@ -225,7 +225,7 @@ class TimeDisplay extends Component {
   }
 
   render() {
-    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin } = this.props;
+    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
     const { displayTime, desiredPlaySpeed } = this.state;
     const isPaused = videoPlaySpeed === 0;
     const isExpandedCls = zoom ? 'isExpanded' : '';
@@ -233,7 +233,7 @@ class TimeDisplay extends Component {
     const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     return (
       <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
-        <div className={ classes.iconBox }>
+        <div className={ classes.rightBorderBox }>
           <IconButton
             className={ classes.iconButton }
             onClick={ () => this.jumpBack(10000) }
@@ -242,7 +242,7 @@ class TimeDisplay extends Component {
             <Replay10 className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
-        <div className={ classes.iconBox }>
+        <div className={ classes.rightBorderBox }>
           <IconButton
             className={ classes.iconButton }
             onClick={ () => this.jumpForward(10000) }
@@ -283,23 +283,23 @@ class TimeDisplay extends Component {
             </IconButton>
           </div>
         )}
-        <div className={ classes.iconBox }>
+        <div className={ classes.leftBorderBox }>
           <Tooltip title={ !this.props.hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
             <div>
               <IconButton
                 className={ classes.iconButton }
-                onClick={this.props.onMuteToggle}
-                disabled={!this.props.hasAudio}
-                aria-label={this.props.isMuted ? 'Unmute' : 'Mute'}
+                onClick={onMuteToggle}
+                disabled={!hasAudio}
+                aria-label={isMuted ? 'Unmute' : 'Mute'}
               >
-                {this.props.isMuted
-                  ? (<VolumeOff className={`${classes.icon} small ${!this.props.hasAudio ? 'dim' : ''}`} />)
+                {isMuted
+                  ? (<VolumeOff className={`${classes.icon} small ${!hasAudio ? 'dim' : ''}`} />)
                   : (<VolumeUp className={`${classes.icon} small`} />)}
               </IconButton>
             </div>
           </Tooltip>
         </div>
-        <div className={ classes.playButtonBox }>
+        <div className={ classes.leftBorderBox }>
           <IconButton
             onClick={this.togglePause}
             aria-label={isPaused ? 'Unpause' : 'Pause'}

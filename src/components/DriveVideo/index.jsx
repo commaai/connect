@@ -271,7 +271,7 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { desiredPlaySpeed, isBufferingVideo, currentRoute, onAudioStatusChange } = this.props;
+    const { desiredPlaySpeed, isBufferingVideo, currentRoute, onAudioStatusChange, isMuted } = this.props;
     const { src, videoError } = this.state;
 
     const onPlayerReady = (player) => {
@@ -292,7 +292,7 @@ class DriveVideo extends Component {
           ref={this.videoPlayer}
           url={src}
           playsinline
-          muted={this.props.isMuted}
+          muted={isMuted}
           width="100%"
           height="100%"
           playing={Boolean(currentRoute && desiredPlaySpeed)}
