@@ -275,15 +275,30 @@ class DriveVideo extends Component {
     const { src, videoError } = this.state;
 
     const onPlayerReady = (player) => {
-      const hlsPlayer = player.getInternalPlayer('hls');
-      if (hlsPlayer) {
-        hlsPlayer.on('hlsBufferCodecs', (event, data) => {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      
+      if (isIOS) {
+        // Use native video element for iOS
+        const videoElement = player.getInternalPlayer();
+        if (videoElement && videoElement.audioTracks) {
+          const hasAudio = videoElement.audioTracks.length > 0;
           if (onAudioStatusChange) {
-            onAudioStatusChange(!!data.audio);
+            onAudioStatusChange(hasAudio);
           }
-        });
+        }
+      } else {
+        // Use hls.js for other platforms
+        const hlsPlayer = player.getInternalPlayer('hls');
+        if (hlsPlayer) {
+          hlsPlayer.on('hlsBufferCodecs', (event, data) => {
+            if (onAudioStatusChange) {
+              onAudioStatusChange(!!data.audio);
+            }
+          });
+        }
       }
     };
+
 
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
