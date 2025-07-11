@@ -235,8 +235,8 @@ class DriveVideo extends Component {
     } else if (isBufferingVideo || !hasLoaded || internalPlayer.readyState < 2) {
       if (!isBufferingVideo) {
         dispatch(bufferVideo(true));
+        newPlaybackRate = 0;
       } 
-      newPlaybackRate = 0;
     }
 
     if (videoPlayer.getInternalPlayer('hls')) {
