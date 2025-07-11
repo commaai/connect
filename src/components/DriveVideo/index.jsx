@@ -233,7 +233,7 @@ class DriveVideo extends Component {
     } else if (isBufferingVideo || !hasLoaded || internalPlayer.readyState < 2) {
       if (!isBufferingVideo) {
         dispatch(bufferVideo(true));
-      }
+      } 
       newPlaybackRate = 0;
     }
 
@@ -275,13 +275,24 @@ class DriveVideo extends Component {
     const { src, videoError } = this.state;
 
     const onPlayerReady = (player) => {
-      const hlsPlayer = player.getInternalPlayer('hls');
-      if (hlsPlayer) {
-        hlsPlayer.on('hlsBufferCodecs', (event, data) => {
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      if (isIOS) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
+        const videoElement = player.getInternalPlayer();
+        if (videoElement && videoElement.audioTracks) {
+          const hasAudio = videoElement.audioTracks.length > 0;
           if (onAudioStatusChange) {
-            onAudioStatusChange(!!data.audio);
+            onAudioStatusChange(hasAudio);
           }
-        });
+        }
+      } else { // on other platforms, inspect audio tracks before hls.js changes things
+        const hlsPlayer = player.getInternalPlayer('hls');
+        if (hlsPlayer) {
+          hlsPlayer.on('hlsBufferCodecs', (event, data) => {
+            if (onAudioStatusChange) {
+              onAudioStatusChange(!!data.audio);
+            }
+          });
+        }
       }
     };
 
