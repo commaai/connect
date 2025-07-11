@@ -200,28 +200,30 @@ class DriveVideo extends Component {
   }
 
   syncVideo() {
-    const { dispatch, isBufferingVideo } = this.props;
+    const { dispatch, isBufferingVideo, isMuted } = this.props;
     const videoPlayer = this.videoPlayer.current;
     if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
       return;
     }
-
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
     let { desiredPlaySpeed: newPlaybackRate } = this.props;
     const desiredVideoTime = this.currentVideoTime();
     const curVideoTime = videoPlayer.getCurrentTime();
     const timeDiff = desiredVideoTime - curVideoTime;
-    if (Math.abs(timeDiff) <= 0.3) {
-      newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff);
+    
+    if (Math.abs(timeDiff) <= 0.5 * newPlaybackRate) {
+      if (!isIOS) {
+        newPlaybackRate = newPlaybackRate + Math.round(timeDiff * 10) / 10;
+      }
     } else if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
       // logs start earlier than video, so skip to video ts 0
       dispatch(seek(currentOffset() - (timeDiff * 1000)));
     } else {
       videoPlayer.seekTo(desiredVideoTime, 'seconds');
     }
-    newPlaybackRate = Math.round(newPlaybackRate * 10) / 10;
-
-    // most browsers don't support more than 16x playback rate
-    newPlaybackRate = Math.max(0, Math.min(16, newPlaybackRate));
+    // most browsers don't support more than 16x playback rate, firefox mutes audio above 8x causing audio to cut in and out with timeDiff rate shifts
+    newPlaybackRate = Math.max(0, Math.min((isFirefox && !isMuted) ? 8 : 16, newPlaybackRate));
 
     const internalPlayer = videoPlayer.getInternalPlayer();
 
