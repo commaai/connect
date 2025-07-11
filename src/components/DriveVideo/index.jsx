@@ -102,7 +102,7 @@ class DriveVideo extends Component {
     // No interval to clean up anymore
   }
 
-  handleProgress = ({ playedSeconds, loadedSeconds }) => {
+  handleProgress({ playedSeconds, loadedSeconds }) {
     const { dispatch, desiredPlaySpeed, isBufferingVideo } = this.props;
     const videoPlayer = this.videoPlayer.current;
     
@@ -116,7 +116,7 @@ class DriveVideo extends Component {
     
     let newPlaybackRate = desiredPlaySpeed;
 
-    console.log(timeDiff)
+    console.log(timeDiff);
 
     // YouTube-like sync logic: small diffs use playback rate adjustment
     if (Math.abs(timeDiff) <= 3) {
@@ -152,14 +152,15 @@ class DriveVideo extends Component {
 
     // Apply playback rate changes
     this.applyPlaybackRate(newPlaybackRate);
-  };
+  }
 
-  handleSeek = (seconds) => {
+  handleSeek(seconds) {
     const { dispatch } = this.props;
     // When user seeks, update the timeline store to keep other components in sync
     const newOffset = (seconds * 1000) + (this.props.currentRoute?.videoStartOffset || 0);
     dispatch(seek(newOffset));
-  };
+  }
+
 
   applyPlaybackRate(newPlaybackRate) {
     const videoPlayer = this.videoPlayer.current;
@@ -186,7 +187,7 @@ class DriveVideo extends Component {
 
   // Keep this for manual sync calls when needed
   syncVideoPlaybackRate() {
-    const { dispatch, isBufferingVideo, desiredPlaySpeed } = this.props;
+    const { desiredPlaySpeed } = this.props;
     const videoPlayer = this.videoPlayer.current;
     
     if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
