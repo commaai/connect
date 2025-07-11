@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { CircularProgress, Typography } from '@material-ui/core';
 import debounce from 'debounce';
 import Obstruction from 'obstruction';
-import ReactPlayer from 'react-player/file';
+import ReactPlayer from 'react-player';
 
 import { video as Video } from '@commaai/api';
 
