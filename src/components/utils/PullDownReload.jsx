@@ -4,6 +4,7 @@ import { withStyles } from '@material-ui/core';
 import ReplayIcon from '@material-ui/icons/Replay';
 
 import Colors from '../../colors';
+import { isIos } from '../../utils/browser.js';
 
 const styles = () => ({
   root: {
@@ -39,9 +40,8 @@ class PullDownReload extends Component {
 
   async componentDidMount() {
     if (window && window.navigator) {
-      const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
       const isStandalone = window.navigator.standalone === true;
-      if (isIos && isStandalone) {
+      if (isIos() && isStandalone) {
         document.addEventListener('touchstart', this.touchStart, { passive: false });
         document.addEventListener('touchmove', this.touchMove, { passive: false });
         document.addEventListener('touchend', this.touchEnd, { passive: false });

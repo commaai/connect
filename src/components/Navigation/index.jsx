@@ -16,6 +16,7 @@ import { timeFromNow } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import * as Utils from './utils';
+import { isIos } from '../../utils/browser.js';
 
 const styles = () => ({
   mapContainer: {
@@ -661,12 +662,11 @@ class Navigation extends Component {
 
     const carLocation = this.getCarLocation();
 
-    const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const title = device.alias;
     const { lat, lng } = searchSelect.position;
 
     let geoUri;
-    if (isIos) {
+    if (isIos()) {
       geoUri = `https://maps.apple.com/?ll=${lat},${lng}&q=${title}`;
     } else {
       geoUri = `https://maps.google.com/?q=${lat},${lng}`;

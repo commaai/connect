@@ -15,6 +15,7 @@ import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow } from '../..
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
+import { isIos } from '../../utils/browser.js';
 
 const timerSteps = [
   0.1,
@@ -230,7 +231,6 @@ class TimeDisplay extends Component {
     const isPaused = videoPlaySpeed === 0;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
-    const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     return (
       <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
         <div className={ classes.rightBorderBox }>
@@ -259,7 +259,7 @@ class TimeDisplay extends Component {
         <Typography variant="body1" align="center" className={classes.currentTime}>
           <span ref={this.textHolder}>{ displayTime }</span>
         </Typography>
-        {!isIos && (
+        {!isIos() && (
           <div className={ classes.desiredPlaySpeedContainer }>
             <IconButton
               className={classes.tinyArrowIcon}

@@ -12,6 +12,7 @@ import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, bufferVideo } from '../../timeline/playback';
+import { isIos, isFirefox } from '../../utils/browser.js';
 
 const VideoOverlay = ({ loading, error }) => {
   let content;
@@ -205,15 +206,14 @@ class DriveVideo extends Component {
     if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
       return;
     }
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
+
     let { desiredPlaySpeed: newPlaybackRate } = this.props;
     const desiredVideoTime = this.currentVideoTime();
     const curVideoTime = videoPlayer.getCurrentTime();
     const timeDiff = desiredVideoTime - curVideoTime;
     
     if (Math.abs(timeDiff) <= 0.5 * newPlaybackRate) {
-      if (!isIOS) {
+      if (!isIos()) {
         newPlaybackRate = newPlaybackRate + Math.round(timeDiff * 10) / 10;
       }
     } else if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
@@ -223,7 +223,7 @@ class DriveVideo extends Component {
       videoPlayer.seekTo(desiredVideoTime, 'seconds');
     }
     // most browsers don't support more than 16x playback rate, firefox mutes audio above 8x causing audio to cut in and out with timeDiff rate shifts
-    newPlaybackRate = Math.max(0, Math.min((isFirefox && !isMuted) ? 8 : 16, newPlaybackRate));
+    newPlaybackRate = Math.max(0, Math.min((isFirefox() && !isMuted) ? 8 : 16, newPlaybackRate));
 
     const internalPlayer = videoPlayer.getInternalPlayer();
 
@@ -277,8 +277,7 @@ class DriveVideo extends Component {
     const { src, videoError } = this.state;
 
     const onPlayerReady = (player) => {
-      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-      if (isIOS) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
+      if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
         const videoElement = player.getInternalPlayer();
         if (videoElement && videoElement.audioTracks) {
           const hasAudio = videoElement.audioTracks.length > 0;
