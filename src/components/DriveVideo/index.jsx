@@ -212,9 +212,9 @@ class DriveVideo extends Component {
     const curVideoTime = videoPlayer.getCurrentTime();
     const timeDiff = desiredVideoTime - curVideoTime;
     
-    if (Math.abs(timeDiff) <= 0.5 * newPlaybackRate) {
+    if (Math.abs(timeDiff) <= Math.max(0.1, 0.5 * newPlaybackRate)) { // newPlaybackRate = 0 when paused, set minimum 0.1 to prevent seeking when paused
       if (!isIos()) {
-        newPlaybackRate = newPlaybackRate + Math.round(timeDiff * 10) / 10;
+        newPlaybackRate = Math.max(0, newPlaybackRate + Math.round(timeDiff * 10) / 10);
       }
     } else if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
       // logs start earlier than video, so skip to video ts 0
