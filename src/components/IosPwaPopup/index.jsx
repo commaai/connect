@@ -9,6 +9,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 
 import Colors from '../../colors';
 import { IosShareIcon } from '../../icons';
+import { isIos } from '../../utils/browser.js';
 
 const styles = () => ({
   box: {
@@ -63,10 +64,9 @@ class IosPwaPopup extends Component {
   }
 
   async componentDidMount() {
-    if (window && window.navigator) {
-      const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+    if (window && window.navigator) { 
       const isStandalone = window.navigator.standalone === true;
-      if (isIos && !isStandalone && MyCommaAuth.isAuthenticated()) {
+      if (isIos() && !isStandalone && MyCommaAuth.isAuthenticated()) {
         let isHidden;
         try {
           isHidden = await localforage.getItem('hideIosPwaPopup');

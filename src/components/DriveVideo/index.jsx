@@ -12,6 +12,7 @@ import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, bufferVideo } from '../../timeline/playback';
+import { isIos, isFirefox } from '../../utils/browser.js';
 
 const VideoOverlay = ({ loading, error }) => {
   let content;
@@ -200,7 +201,7 @@ class DriveVideo extends Component {
   }
 
   syncVideo() {
-    const { dispatch, isBufferingVideo } = this.props;
+    const { dispatch, isBufferingVideo, isMuted } = this.props;
     const videoPlayer = this.videoPlayer.current;
     if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
       return;
@@ -210,31 +211,30 @@ class DriveVideo extends Component {
     const desiredVideoTime = this.currentVideoTime();
     const curVideoTime = videoPlayer.getCurrentTime();
     const timeDiff = desiredVideoTime - curVideoTime;
-    if (Math.abs(timeDiff) <= 0.3) {
-      newPlaybackRate = Math.max(0, newPlaybackRate + timeDiff);
+    
+    if (Math.abs(timeDiff) <= Math.max(0.1, 0.5 * newPlaybackRate)) { // newPlaybackRate = 0 when paused, set minimum 0.1 to prevent seeking when paused
+      if (!isIos()) {
+        newPlaybackRate = Math.max(0, newPlaybackRate + Math.round(timeDiff * 10) / 10);
+      }
     } else if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
       // logs start earlier than video, so skip to video ts 0
       dispatch(seek(currentOffset() - (timeDiff * 1000)));
     } else {
       videoPlayer.seekTo(desiredVideoTime, 'seconds');
     }
-    newPlaybackRate = Math.round(newPlaybackRate * 10) / 10;
-
-    // most browsers don't support more than 16x playback rate
-    newPlaybackRate = Math.max(0, Math.min(16, newPlaybackRate));
+    // most browsers don't support more than 16x playback rate, firefox mutes audio above 8x causing audio to cut in and out with timeDiff rate shifts
+    newPlaybackRate = Math.max(0, Math.min((isFirefox() && !isMuted) ? 8 : 16, newPlaybackRate));
 
     const internalPlayer = videoPlayer.getInternalPlayer();
 
-    const sufficientBuffer = Math.min(videoPlayer.getDuration() - videoPlayer.getCurrentTime(), 30);
-    const { hasLoaded, bufferRemaining } = getVideoState(videoPlayer);
-    const hasSufficientBuffer = bufferRemaining >= sufficientBuffer;
-    if (isBufferingVideo && hasSufficientBuffer && internalPlayer.readyState >= 2) {
+    const { hasLoaded } = getVideoState(videoPlayer);
+    if (isBufferingVideo && internalPlayer.readyState >= 4) {
       dispatch(bufferVideo(false));
     } else if (isBufferingVideo || !hasLoaded || internalPlayer.readyState < 2) {
       if (!isBufferingVideo) {
         dispatch(bufferVideo(true));
-      }
-      newPlaybackRate = 0;
+      } 
+      newPlaybackRate = 0; // in some circumstances, iOS won't update readyState unless temporarily paused
     }
 
     if (videoPlayer.getInternalPlayer('hls')) {
@@ -271,8 +271,29 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { desiredPlaySpeed, isBufferingVideo, currentRoute } = this.props;
+    const { desiredPlaySpeed, isBufferingVideo, currentRoute, onAudioStatusChange, isMuted } = this.props;
     const { src, videoError } = this.state;
+
+    const onPlayerReady = (player) => {
+      if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
+        const videoElement = player.getInternalPlayer();
+        if (videoElement && videoElement.audioTracks && videoElement.audioTracks.length > 0) {
+          if (onAudioStatusChange) {
+            onAudioStatusChange(true);
+          }
+        }
+      } else { // on other platforms, inspect audio tracks before hls.js changes things
+        const hlsPlayer = player.getInternalPlayer('hls');
+        if (hlsPlayer) {
+          hlsPlayer.on('hlsBufferCodecs', (event, data) => {
+            if (onAudioStatusChange) {
+              onAudioStatusChange(!!data.audio);
+            }
+          });
+        }
+      }
+    };
+
     return (
       <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
         <VideoOverlay loading={isBufferingVideo} error={videoError} />
@@ -280,10 +301,11 @@ class DriveVideo extends Component {
           ref={this.videoPlayer}
           url={src}
           playsinline
-          muted
+          muted={isMuted}
           width="100%"
           height="100%"
           playing={Boolean(currentRoute && desiredPlaySpeed)}
+          onReady={onPlayerReady}
           config={{
             hlsVersion: '1.4.8',
             hlsOptions: {

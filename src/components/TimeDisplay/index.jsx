@@ -7,11 +7,15 @@ import dayjs from 'dayjs';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
+import VolumeUp from '@material-ui/icons/VolumeUp';
+import VolumeOff from '@material-ui/icons/VolumeOff';
+import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
+import { isIos } from '../../utils/browser.js';
 
 const timerSteps = [
   0.1,
@@ -81,10 +85,10 @@ const styles = (theme) => ({
       visibility: 'hidden',
     },
   },
-  iconBox: {
+  rightBorderBox: {
     borderRight: `1px solid ${theme.palette.grey[900]}`,
   },
-  playButtonBox: {
+  leftBorderBox: {
     borderLeft: `1px solid ${theme.palette.grey[900]}`,
   },
   currentTime: {
@@ -222,15 +226,14 @@ class TimeDisplay extends Component {
   }
 
   render() {
-    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin } = this.props;
+    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
     const { displayTime, desiredPlaySpeed } = this.state;
     const isPaused = videoPlaySpeed === 0;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
-    const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     return (
       <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
-        <div className={ classes.iconBox }>
+        <div className={ classes.rightBorderBox }>
           <IconButton
             className={ classes.iconButton }
             onClick={ () => this.jumpBack(10000) }
@@ -239,7 +242,7 @@ class TimeDisplay extends Component {
             <Replay10 className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
-        <div className={ classes.iconBox }>
+        <div className={ classes.rightBorderBox }>
           <IconButton
             className={ classes.iconButton }
             onClick={ () => this.jumpForward(10000) }
@@ -256,7 +259,7 @@ class TimeDisplay extends Component {
         <Typography variant="body1" align="center" className={classes.currentTime}>
           <span ref={this.textHolder}>{ displayTime }</span>
         </Typography>
-        {!isIos && (
+        {!isIos() && (
           <div className={ classes.desiredPlaySpeedContainer }>
             <IconButton
               className={classes.tinyArrowIcon}
@@ -280,7 +283,23 @@ class TimeDisplay extends Component {
             </IconButton>
           </div>
         )}
-        <div className={ classes.playButtonBox }>
+        <div className={ classes.leftBorderBox }>
+          <Tooltip title={ !this.props.hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
+            <div>
+              <IconButton
+                className={ classes.iconButton }
+                onClick={onMuteToggle}
+                disabled={!hasAudio}
+                aria-label={isMuted ? 'Unmute' : 'Mute'}
+              >
+                {isMuted
+                  ? (<VolumeOff className={`${classes.icon} small ${!hasAudio ? 'dim' : ''}`} />)
+                  : (<VolumeUp className={`${classes.icon} small`} />)}
+              </IconButton>
+            </div>
+          </Tooltip>
+        </div>
+        <div className={ classes.leftBorderBox }>
           <IconButton
             onClick={this.togglePause}
             aria-label={isPaused ? 'Unpause' : 'Pause'}
