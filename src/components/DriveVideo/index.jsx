@@ -227,16 +227,14 @@ class DriveVideo extends Component {
 
     const internalPlayer = videoPlayer.getInternalPlayer();
 
-    const sufficientBuffer = Math.min(videoPlayer.getDuration() - videoPlayer.getCurrentTime(), 30);
-    const { hasLoaded, bufferRemaining } = getVideoState(videoPlayer);
-    const hasSufficientBuffer = bufferRemaining >= sufficientBuffer;
-    if (isBufferingVideo && hasSufficientBuffer && internalPlayer.readyState >= 2) {
+    const { hasLoaded } = getVideoState(videoPlayer);
+    if (isBufferingVideo && internalPlayer.readyState >= 4) {
       dispatch(bufferVideo(false));
     } else if (isBufferingVideo || !hasLoaded || internalPlayer.readyState < 2) {
       if (!isBufferingVideo) {
         dispatch(bufferVideo(true));
-        newPlaybackRate = 0;
       } 
+      newPlaybackRate = 0; // in some circumstances, iOS won't update readyState unless temporarily paused
     }
 
     if (videoPlayer.getInternalPlayer('hls')) {
@@ -279,6 +277,7 @@ class DriveVideo extends Component {
     const onPlayerReady = (player) => {
       if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
         const videoElement = player.getInternalPlayer();
+        console.log(videoElement.audioTracks)
         if (videoElement && videoElement.audioTracks && videoElement.audioTracks.length > 0) {
           if (onAudioStatusChange) {
             onAudioStatusChange(true);
