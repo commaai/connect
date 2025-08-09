@@ -65,8 +65,8 @@ const styles = () => ({
         background: theme.palette.states.alertRed,
       },
     },
-    '&.flag': {
-      background: theme.palette.states.userFlag,
+    '&.bookmark': {
+      background: theme.palette.states.userBookmark,
       zIndex: 1,
     },
   },

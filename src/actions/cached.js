@@ -160,7 +160,7 @@ function parseEvents(route, driveEvents) {
   let currAlert = null;
   let currOverride = null;
   let lastEngage = null;
-  let currFlag = null;
+  let currBookmark = null;
   for (const ev of driveEvents) {
     if (ev.type === 'state') {
       if (currEngaged !== null && !ev.data.enabled) {
@@ -215,16 +215,16 @@ function parseEvents(route, driveEvents) {
       res.push(ev);
     } else if (ev.type === 'event') {
       res.push(ev);
-    } else if (ev.type === 'user_flag') {
-      currFlag = {
+    } else if (ev.type === 'user_bookmark' || ev.type === 'user_flag') {
+      currBookmark = {
         ...ev,
         data: {
           ...ev.data,
           end_route_offset_millis: ev.route_offset_millis + 1e3,
         },
-        type: 'flag',
+        type: 'bookmark',
       };
-      res.push(currFlag);
+      res.push(currBookmark);
     }
   }
 
