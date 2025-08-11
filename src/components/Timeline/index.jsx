@@ -65,7 +65,7 @@ const styles = () => ({
         background: theme.palette.states.alertRed,
       },
     },
-    '&.bookmark': {
+    '&.bookmark, &.flag': {  // TODO: remove flag selector once 14 days expires old events caches
       background: theme.palette.states.userBookmark,
       zIndex: 1,
     },
