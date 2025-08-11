@@ -260,6 +260,7 @@ function parseEvents(route, driveEvents) {
 }
 
 export function fetchEvents(route) {
+  console.log('fetching events for route', route.fullname);
   return async (dispatch, getState) => {
     const state = getState();
     if (!state.routes) {
@@ -293,6 +294,7 @@ export function fetchEvents(route) {
     if (!USE_LOCAL_EVENTS_DATA) {
       // in cache?
       const cacheEvents = await getCacheItem('events', route.fullname, route.maxqlog);
+      console.log('cacheEvents', cacheEvents);
       if (cacheEvents !== null) {
         dispatch({
           type: Types.ACTION_UPDATE_ROUTE_EVENTS,
