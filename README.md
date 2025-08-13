@@ -1,8 +1,6 @@
-> [!CAUTION]
-> This is the old connect PWA. It will only receive bug fixes for the time being. Check out the [new one](https://github.com/commaai/connect).
-
-# comma connect
-
+<!-- [!CAUTION]
+> This is the old connect PWA. It will only receive bug fixes for the time being. Check out the [new one](https://github.com# comma connect
+-->
 The frontend to the comma connect progressive web app. This a react app using [Create React App](https://github.com/facebookincubator/create-react-app)
 
 ## Development
