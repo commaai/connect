@@ -96,8 +96,8 @@ const DriveListItem = (props) => {
   const duration = formatDriveDuration(drive.duration);
 
   const distance = isMetric()
-    ? `${+(drive.length * KM_PER_MI).toFixed(1)} km`
-    : `${+drive.length.toFixed(1)} mi`;
+    ? `${+(drive.distance * KM_PER_MI).toFixed(1)} km`
+    : `${+drive.distance.toFixed(1)} mi`;
 
   /* eslint-disable key-spacing, no-multi-spaces */
   const gridStyle = small ? {
