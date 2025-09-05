@@ -78,6 +78,8 @@ export function checkRoutesData() {
           ...r,
           url: r.url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
           log_id: r.fullname.split('|')[1],
+          // TODO: backwards compatiblity, remove later
+          distance: r.distance || r.length,
           duration: endTime - startTime,
           start_time_utc_millis: startTime,
           end_time_utc_millis: endTime,
