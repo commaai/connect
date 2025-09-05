@@ -23,11 +23,13 @@ describe('drive list items', () => {
     render(<DriveListItem
       store={store}
       drive={{
+        fullname: '1d3dc3e03047b0c7/000000dd--455f14369d',
+        dongle_id: '1d3dc3e03047b0c7',
+        log_id: '000000dd--455f14369d',
         start_time_utc_millis: 1570830798378,
         end_time_utc_millis: 1570830798378 + 1234,
-        length: 12.5212,
-        startCoord: [0, 0],
-        endCoord: [0, 0],
+        distance: 12.5212,
+        duration: 1234,
       }}
     />);
     expect(screen.getByRole('link')).toHaveClass('DriveEntry');

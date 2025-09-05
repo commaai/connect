@@ -87,6 +87,7 @@ const DriveListItem = (props) => {
     () => dispatch(pushTimelineRange(drive.log_id, 0, drive.duration, true)),
   );
 
+  console.log(drive)
   const small = windowWidth < 580;
   const dateFormat = small ? 'ddd, MMM D' : 'dddd, MMM D';
   const startDateObj = dayjs(drive.start_time_utc_millis);
@@ -94,10 +95,11 @@ const DriveListItem = (props) => {
   const startDate = startDateObj.format(dayjs().year() === startDateObj.year() ? dateFormat : `${dateFormat}, YYYY`);
   const endTime = dayjs(drive.end_time_utc_millis).format('HH:mm');
   const duration = formatDriveDuration(drive.duration);
+  console.log(duration)
 
   const distance = isMetric()
-    ? `${+(drive.length * KM_PER_MI).toFixed(1)} km`
-    : `${+drive.length.toFixed(1)} mi`;
+    ? `${+(drive.distance * KM_PER_MI).toFixed(1)} km`
+    : `${+drive.distance.toFixed(1)} mi`;
 
   /* eslint-disable key-spacing, no-multi-spaces */
   const gridStyle = small ? {
