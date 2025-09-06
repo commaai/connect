@@ -74,12 +74,14 @@ export function checkRoutesData() {
           r.segment_start_times = r.segment_numbers.map((x) => startTime + (x * 60 * 1000));
           r.segment_end_times = r.segment_numbers.map((x) => Math.min(startTime + ((x + 1) * 60 * 1000), endTime));
         }
+        // TODO: backwards compatiblity, remove later
+        if (r.distance == null && r.length != null) {
+          r.distance = r.length;
+        }
         return {
           ...r,
           url: r.url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
           log_id: r.fullname.split('|')[1],
-          // TODO: backwards compatiblity, remove later
-          distance: r.distance || r.length,
           duration: endTime - startTime,
           start_time_utc_millis: startTime,
           end_time_utc_millis: endTime,
