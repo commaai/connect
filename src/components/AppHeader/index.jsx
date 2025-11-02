@@ -1,5 +1,5 @@
 import React, { Suspense, useCallback, useState } from 'react';
-import { connect } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 
 import { withStyles } from '@material-ui/core/styles';
 import { Typography, IconButton, Icon, AppBar } from '@material-ui/core';
@@ -56,9 +56,12 @@ const styles = () => ({
 });
 
 const AppHeader = ({
-  profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
-  forwardRef, handleDrawerStateChanged, dongleId,
+  classes, drawerIsOpen, viewingRoute, showDrawerButton,
+  forwardRef, handleDrawerStateChanged,
 }) => {
+  const dispatch = useDispatch();
+  const dongleId = useSelector((state) => state.dongleId);
+  const profile = useSelector((state) => state.profile);
   const [anchorEl, setAnchorEl] = useState(null);
 
   const handleClickedAccount = useCallback((event) => {
@@ -135,9 +138,4 @@ const AppHeader = ({
   );
 };
 
-const stateToProps = (state) => ({
-  dongleId: state.dongleId,
-  profile: state.profile,
-});
-
-export default connect(stateToProps)(withStyles(styles)(AppHeader));
+export default withStyles(styles)(AppHeader);

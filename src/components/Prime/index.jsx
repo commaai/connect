@@ -1,11 +1,14 @@
 import React from 'react';
-import { connect } from 'react-redux';
+import { useSelector } from 'react-redux';
 
 import { Typography } from '@material-ui/core';
 import PrimeManage from './PrimeManage';
 import PrimeCheckout from './PrimeCheckout';
 
-const Prime = (props) => {
+const Prime = () => {
+  const device = useSelector((state) => state.device);
+  const profile = useSelector((state) => state.profile);
+
   let stripeCancelled;
   let stripeSuccess;
   if (window.location) {
@@ -13,8 +16,6 @@ const Prime = (props) => {
     stripeCancelled = params.get('stripe_cancelled');
     stripeSuccess = params.get('stripe_success');
   }
-
-  const { device, profile } = props;
   if (!profile) {
     return null;
   }
@@ -28,10 +29,4 @@ const Prime = (props) => {
   return (<PrimeCheckout stripeCancelled={ stripeCancelled } />);
 };
 
-const stateToProps = (state) => ({
-  subscription: state.subscription,
-  device: state.device,
-  profile: state.profile,
-});
-
-export default connect(stateToProps)(Prime);
+export default Prime;

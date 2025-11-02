@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { connect } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import dayjs from 'dayjs';
 
 import { withStyles, Grid, Typography } from '@material-ui/core';
@@ -54,10 +54,11 @@ const styles = () => ({
 });
 
 const DriveListItem = (props) => {
+  const dispatch = useDispatch();
   const el = useRef();
   const [isVisible, setVisible] = useState(false);
   const windowWidth = useWindowWidth();
-  const { classes, dispatch, drive } = props;
+  const { classes, drive } = props;
 
   useEffect(() => {
     const onScroll = () => {
@@ -156,4 +157,4 @@ const DriveListItem = (props) => {
   );
 };
 
-export default connect(() => ({}))(withStyles(styles)(DriveListItem));
+export default withStyles(styles)(DriveListItem);

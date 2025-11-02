@@ -1,90 +1,81 @@
-import { Component } from 'react';
-import { connect } from 'react-redux';
+import { useEffect, useRef, useCallback } from 'react';
+import { useSelector } from 'react-redux';
 import debounce from 'debounce';
 
-class VisibilityHandler extends Component {
-  constructor(props) {
-    super(props);
+const VisibilityHandler = (props) => {
+  const { onInit, onInterval, onVisible, minInterval, resetOnHidden, onDongleId } = props;
+  const dongleId = useSelector((state) => state.dongleId);
 
-    this.prevVisibleCall = 0;
-    this.intervalHandle = null;
-    this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
-    this.handleFocus = this.handleFocus.bind(this);
-    this.handleBlur = this.handleBlur.bind(this);
-    this.onVisibilityEvent = debounce(this.onVisibilityEvent.bind(this), 1000, true);
-  }
+  const prevVisibleCall = useRef(0);
+  const intervalHandle = useRef(null);
 
-  componentDidMount() {
-    document.addEventListener('visibilitychange', this.handleVisibilityChange);
-    document.addEventListener('focus', this.handleFocus);
-    document.addEventListener('blur', this.handleBlur);
-    this.prevVisibleCall = Date.now() / 1000;
-
-    const { onInit, onInterval, onVisible } = this.props;
-    if (onInit) {
-      onVisible();
-    }
-    if (onInterval) {
-      this.intervalHandle = setInterval(this.handleVisibilityChange, onInterval * 1000);
-    }
-  }
-
-  componentDidUpdate(prevProps) {
-    const { dongleId, onDongleId, onVisible } = this.props;
-    if (onDongleId && prevProps.dongleId !== dongleId) {
-      this.prevVisibleCall = Date.now() / 1000;
-      onVisible();
-    }
-  }
-
-  componentWillUnmount() {
-    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
-    document.removeEventListener('focus', this.handleFocus);
-    document.removeEventListener('blur', this.handleBlur);
-    if (this.intervalHandle) {
-      clearInterval(this.intervalHandle);
-      this.intervalHandle = null;
-    }
-  }
-
-  handleFocus() {
-    this.onVisibilityEvent(true);
-  }
-
-  handleBlur() {
-    this.onVisibilityEvent(false);
-  }
-
-  handleVisibilityChange() {
-    if (document.visibilityState === 'visible') {
-      this.onVisibilityEvent(true);
-    } else if (document.visibilityState === 'hidden') {
-      this.onVisibilityEvent(false);
-    }
-  }
-
-  onVisibilityEvent(visible) {
-    const { minInterval, onVisible, resetOnHidden } = this.props;
-
+  const onVisibilityEvent = useCallback((visible) => {
     const newDate = Date.now() / 1000;
-    const dt = newDate - this.prevVisibleCall;
+    const dt = newDate - prevVisibleCall.current;
     if (visible && (!minInterval || dt > minInterval)) {
-      this.prevVisibleCall = newDate;
+      prevVisibleCall.current = newDate;
       onVisible();
     }
 
     if (!visible && resetOnHidden) {
-      this.prevVisibleCall = newDate;
+      prevVisibleCall.current = newDate;
     }
-  }
+  }, [minInterval, onVisible, resetOnHidden]);
 
-  render() {
-    return null;
-  }
-}
+  const debouncedVisibilityEvent = useRef(debounce(onVisibilityEvent, 1000, true));
 
-const stateToProps = (state) => ({
-  dongleId: state.dongleId,
-});
+  const handleFocus = useCallback(() => {
+    debouncedVisibilityEvent.current(true);
+  }, []);
 
-export default connect(stateToProps)(VisibilityHandler);
+  const handleBlur = useCallback(() => {
+    debouncedVisibilityEvent.current(false);
+  }, []);
+
+  const handleVisibilityChange = useCallback(() => {
+    if (document.visibilityState === 'visible') {
+      debouncedVisibilityEvent.current(true);
+    } else if (document.visibilityState === 'hidden') {
+      debouncedVisibilityEvent.current(false);
+    }
+  }, []);
+
+  // Mount effect
+  useEffect(() => {
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('focus', handleFocus);
+    document.addEventListener('blur', handleBlur);
+    prevVisibleCall.current = Date.now() / 1000;
+
+    if (onInit) {
+      onVisible();
+    }
+    if (onInterval) {
+      intervalHandle.current = setInterval(handleVisibilityChange, onInterval * 1000);
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('focus', handleFocus);
+      document.removeEventListener('blur', handleBlur);
+      if (intervalHandle.current) {
+        clearInterval(intervalHandle.current);
+        intervalHandle.current = null;
+      }
+    };
+  }, [onInit, onInterval, onVisible, handleVisibilityChange, handleFocus, handleBlur]);
+
+  // DongleId change effect
+  const prevDongleId = useRef(dongleId);
+  useEffect(() => {
+    if (onDongleId && prevDongleId.current !== dongleId) {
+      prevVisibleCall.current = Date.now() / 1000;
+      onVisible();
+    }
+    prevDongleId.current = dongleId;
+  }, [dongleId, onDongleId, onVisible]);
+
+  return null;
+};
+
+export default VisibilityHandler;

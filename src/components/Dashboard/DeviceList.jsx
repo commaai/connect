@@ -1,5 +1,5 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
+import React, { useState, useCallback } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
@@ -84,32 +84,26 @@ const styles = (theme) => ({
   },
 });
 
-class DeviceList extends Component {
-  constructor(props) {
-    super(props);
+const DeviceList = (props) => {
+  const { classes, handleDeviceSelected, selectedDevice } = props;
+  const dispatch = useDispatch();
+  const devices = useSelector((state) => state.devices);
+  const device = useSelector((state) => state.device);
+  const profile = useSelector((state) => state.profile);
 
-    this.state = {
-      settingsModalDongleId: null,
-    };
+  const [settingsModalDongleId, setSettingsModalDongleId] = useState(null);
 
-    this.renderDevice = this.renderDevice.bind(this);
-    this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
-    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
-    this.onVisible = this.onVisible.bind(this);
-  }
-
-  handleOpenedSettingsModal(dongleId, ev) {
+  const handleOpenedSettingsModal = useCallback((dongleId, ev) => {
     ev.stopPropagation();
     ev.preventDefault();
-    this.setState({ settingsModalDongleId: dongleId });
-  }
+    setSettingsModalDongleId(dongleId);
+  }, []);
 
-  handleClosedSettingsModal() {
-    this.setState({ settingsModalDongleId: null });
-  }
+  const handleClosedSettingsModal = useCallback(() => {
+    setSettingsModalDongleId(null);
+  }, []);
 
-  async onVisible() {
-    const { dispatch } = this.props;
+  const onVisible = useCallback(async () => {
     if (MyCommaAuth.isAuthenticated()) {
       try {
         const devices = await Devices.listDevices();
@@ -119,10 +113,9 @@ class DeviceList extends Component {
         Sentry.captureException(err, { fingerprint: 'devicelist_visible_listdevices' });
       }
     }
-  }
+  }, [dispatch]);
 
-  renderDevice(device) {
-    const { classes, handleDeviceSelected, profile, selectedDevice } = this.props;
+  const renderDevice = useCallback((device) => {
     const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
     return (
@@ -148,74 +141,64 @@ class DeviceList extends Component {
           <IconButton
             className={classes.settingsButton}
             aria-label="device settings"
-            onClick={ (ev) => this.handleOpenedSettingsModal(device.dongle_id, ev) }
+            onClick={ (ev) => handleOpenedSettingsModal(device.dongle_id, ev) }
           >
             <SettingsIcon className={classes.settingsButtonIcon} />
           </IconButton>
           )}
       </a>
     );
+  }, [classes, handleDeviceSelected, profile, selectedDevice, handleOpenedSettingsModal]);
+
+  if (devices === null) {
+    return null;
   }
 
-  render() {
-    const { settingsModalDongleId } = this.state;
-    const { classes, device, selectedDevice: dongleId } = this.props;
-
-    let { devices } = this.props;
-    if (devices === null) {
-      return null;
-    }
-
-    const found = devices.some((d) => d.dongle_id === dongleId);
-    if (!found && device && dongleId === device.dongle_id) {
-      devices = [{
-        ...device,
-        alias: emptyDevice.alias,
-      }].concat(devices);
-    } else if (!found && dongleId) {
-      devices = [{
-        ...emptyDevice,
-        dongle_id: dongleId,
-      }].concat(devices);
-    }
-
-    const addButtonStyle = {
-      borderRadius: 'unset',
-      backgroundColor: 'transparent',
-      color: 'white',
-      fontWeight: 600,
-      justifyContent: 'space-between',
-      padding: '16px 44px 16px 54px',
-    };
-
-    return (
-      <>
-        <VisibilityHandler onVisible={ this.onVisible } minInterval={ 10 } />
-        <div
-          className={`scrollstyle ${classes.deviceList}`}
-          style={{ height: 'calc(100vh - 64px)' }}
-        >
-          {devices.map(this.renderDevice)}
-          {MyCommaAuth.isAuthenticated() && (
-            <div className={classes.addDeviceContainer}>
-              <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon />
-            </div>
-          )}
-        </div>
-        <DeviceSettingsModal
-          isOpen={Boolean(settingsModalDongleId)}
-          dongleId={settingsModalDongleId}
-          onClose={this.handleClosedSettingsModal}
-        />
-      </>
-    );
+  let devicesList = devices;
+  const dongleId = selectedDevice;
+  const found = devicesList.some((d) => d.dongle_id === dongleId);
+  if (!found && device && dongleId === device.dongle_id) {
+    devicesList = [{
+      ...device,
+      alias: emptyDevice.alias,
+    }].concat(devicesList);
+  } else if (!found && dongleId) {
+    devicesList = [{
+      ...emptyDevice,
+      dongle_id: dongleId,
+    }].concat(devicesList);
   }
-}
 
-const stateToProps = (state) => ({
-  devices: state.devices,
-  device: state.device,
-  profile: state.profile,
-});
+  const addButtonStyle = {
+    borderRadius: 'unset',
+    backgroundColor: 'transparent',
+    color: 'white',
+    fontWeight: 600,
+    justifyContent: 'space-between',
+    padding: '16px 44px 16px 54px',
+  };
 
-export default connect(stateToProps)(withStyles(styles)(DeviceList));
+  return (
+    <>
+      <VisibilityHandler onVisible={ onVisible } minInterval={ 10 } />
+      <div
+        className={`scrollstyle ${classes.deviceList}`}
+        style={{ height: 'calc(100vh - 64px)' }}
+      >
+        {devicesList.map(renderDevice)}
+        {MyCommaAuth.isAuthenticated() && (
+          <div className={classes.addDeviceContainer}>
+            <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon />
+          </div>
+        )}
+      </div>
+      <DeviceSettingsModal
+        isOpen={Boolean(settingsModalDongleId)}
+        dongleId={settingsModalDongleId}
+        onClose={handleClosedSettingsModal}
+      />
+    </>
+  );
+};
+
+export default withStyles(styles)(DeviceList);

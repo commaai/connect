@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { connect } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { withRouter } from 'react-router';
 
 import { CircularProgress, Grid } from '@material-ui/core';
@@ -20,7 +20,10 @@ const DashboardLoading = () => (
 
 import { getPrimeNav } from '../../url';
 
-const Dashboard = ({ location, device, dongleId }) => {
+const Dashboard = ({ location }) => {
+  const device = useSelector((state) => state.device);
+  const dongleId = useSelector((state) => state.dongleId);
+
   const primeNav = getPrimeNav(location?.pathname || '/');
   if (!device || !dongleId) {
     return <DashboardLoading />;
@@ -43,9 +46,4 @@ const Dashboard = ({ location, device, dongleId }) => {
   );
 };
 
-const stateToProps = (state) => ({
-  dongleId: state.dongleId,
-  device: state.device,
-});
-
-export default withRouter(connect(stateToProps)(Dashboard));
+export default withRouter(Dashboard);

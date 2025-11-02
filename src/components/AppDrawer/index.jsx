@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { connect } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 
 import Drawer from '@material-ui/core/Drawer';
@@ -11,8 +11,10 @@ import { selectDevice } from '../../actions';
 const listener = (ev) => ev.stopPropagation();
 
 const AppDrawer = ({
-  dispatch, isPermanent, drawerIsOpen, selectedDongleId, handleDrawerStateChanged, width,
+  isPermanent, drawerIsOpen, handleDrawerStateChanged, width,
 }) => {
+  const dispatch = useDispatch();
+  const selectedDongleId = useSelector((state) => state.dongleId);
   const contentRef = useRef(null);
 
   useEffect(() => {
@@ -56,9 +58,4 @@ const AppDrawer = ({
   );
 };
 
-const stateToProps = (state) => ({
-  selectedDongleId: state.dongleId,
-  device: state.device,
-});
-
-export default connect(stateToProps)(AppDrawer);
+export default AppDrawer;

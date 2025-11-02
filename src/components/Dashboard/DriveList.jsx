@@ -1,5 +1,5 @@
 import React from 'react';
-import { connect } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { withStyles, Typography } from '@material-ui/core';
 
 import { checkRoutesData, checkLastRoutesData } from '../../actions';
@@ -27,7 +27,11 @@ const styles = () => ({
 });
 
 const DriveList = (props) => {
-  const { dispatch, classes, device, routes, lastRoutes } = props;
+  const { classes } = props;
+  const dispatch = useDispatch();
+  const device = useSelector((state) => state.device);
+  const routes = useSelector((state) => state.routes);
+  const lastRoutes = useSelector((state) => state.lastRoutes);
   let contentStatus;
   let content;
   if (!routes || routes.length === 0) {
@@ -72,10 +76,4 @@ const DriveList = (props) => {
   );
 };
 
-const stateToProps = (state) => ({
-  routes: state.routes,
-  lastRoutes: state.lastRoutes,
-  device: state.device,
-});
-
-export default connect(stateToProps)(withStyles(styles)(DriveList));
+export default withStyles(styles)(DriveList);

@@ -14,8 +14,7 @@
   },
   "repository": "https://github.com/commaai/connect.git",
   "author": "Vehicle Researcher <user@comma.ai>",
-  "contributors": [
-  ],
+  "contributors": [],
   "private": true,
   "packageManager": "bun@1.3.1",
   "engines": {
@@ -41,7 +40,7 @@
     "react-dom": "~18.2.0",
     "react-map-gl": "^5.3.21",
     "react-player": "^2.12.0",
-    "react-redux": "^5.1.2",
+    "react-redux": "^8.1.0",
     "react-router": "^5.3.4",
     "react-router-dom": "^5.3.4",
     "redux": "^4.2.1",
