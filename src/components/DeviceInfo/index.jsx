@@ -8,7 +8,6 @@ import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } fro
 import AccessTime from '@material-ui/icons/AccessTime';
 
 import { athena as Athena, devices as Devices } from '@commaai/api';
-import { analyticsEvent } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
@@ -303,7 +302,6 @@ class DeviceInfo extends Component {
     const { dongleId } = this.props;
     const { snapshot } = this.state;
     this.setState({ snapshot: { ...snapshot, error: null, fetching: true } });
-    this.props.dispatch(analyticsEvent('take_snapshot'));
     try {
       const payload = {
         method: 'takeSnapshot',

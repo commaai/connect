@@ -12,7 +12,7 @@ import { billing as Billing } from '@commaai/api';
 import { deviceNamePretty } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
-import { primeNav, analyticsEvent } from '../../actions';
+import { primeNav } from '../../actions';
 import { ErrorOutline, InfoOutline } from '../../icons';
 
 const styles = () => ({
@@ -254,7 +254,6 @@ class PrimeCheckout extends Component {
         subscribeInfo.sim_id,
         plan,
       );
-      dispatch(analyticsEvent('prime_checkout', { plan }));
       window.location = resp.url;
     } catch (err) {
       // TODO show error messages

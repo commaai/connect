@@ -65,7 +65,4 @@ module.exports = {
     node: true,
     browser: true,
   },
-  globals: {
-    gtag: 'readonly',
-  },
 };

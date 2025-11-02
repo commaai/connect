@@ -8,7 +8,7 @@ import { Clear } from '@material-ui/icons';
 import dayjs from 'dayjs';
 
 import { athena as Athena, devices as Devices } from '@commaai/api';
-import { primeNav, analyticsEvent } from '../../actions';
+import { primeNav } from '../../actions';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
 import Colors from '../../colors';
 import { PinCarIcon } from '../../icons';
@@ -212,17 +212,6 @@ class Navigation extends Component {
       this.updateDevice();
     }
 
-    if (!prevState.hasFocus && this.state.hasFocus) {
-      this.props.dispatch(analyticsEvent('nav_focus', {
-        has_car_location: Boolean(carLastLocation || carNetworkLocation),
-      }));
-    }
-
-    if (search && prevState.search !== search) {
-      this.props.dispatch(analyticsEvent('nav_search', {
-        panned: this.state.noFly || this.state.searchLooking,
-      }));
-    }
   }
 
   componentWillUnmount() {
@@ -333,12 +322,6 @@ class Navigation extends Component {
       resultType: 'car',
       title: '',
     };
-
-    this.props.dispatch(analyticsEvent('nav_search_select', {
-      source: 'car',
-      panned: this.state.noFly,
-      distance: item.distance,
-    }));
 
     this.setState({
       noFly: false,

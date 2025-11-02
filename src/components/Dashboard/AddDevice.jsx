@@ -8,7 +8,7 @@ import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
 
 import { devices as Devices } from '@commaai/api';
-import { selectDevice, updateDevice, analyticsEvent } from '../../actions';
+import { selectDevice, updateDevice } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import Colors from '../../colors';
 
@@ -236,7 +236,6 @@ class AddDevice extends Component {
     }
 
     if (pairDongleId && this.props.devices.length === 0) {
-      this.props.dispatch(analyticsEvent('pair_device', { method: 'add_device_new' }));
       window.location = `${window.location.origin}/${pairDongleId}`;
       return;
     }
@@ -303,7 +302,6 @@ class AddDevice extends Component {
         const device = await Devices.fetchDevice(resp.dongle_id);
         if (devices.length > 0) { // state change from no device to a device requires reload.
           dispatch(updateDevice(device));
-          dispatch(analyticsEvent('pair_device', { method: 'add_device_sidebar' }));
         }
         this.setState({ pairLoading: false, pairDongleId: resp.dongle_id, pairError: null });
       } else {
