@@ -1,6 +1,4 @@
-import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
-import document from 'global/document';
 import { athena as Athena, billing as Billing, devices as Devices, drives as Drives } from '@commaai/api';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
@@ -8,6 +6,7 @@ import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
+import { navigate } from '../navigation';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -169,7 +168,7 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   if (allowPathChange) {
     const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start/1000), Math.floor(end/1000), false);
     if (window.location.pathname !== desiredPath) {
-      dispatch(push(desiredPath));
+      navigate(desiredPath);
     }
   }
 }
@@ -300,7 +299,7 @@ export function selectDevice(dongleId, allowPathChange = true) {
     if (allowPathChange) {
       const desiredPath = urlForState(dongleId, null, null, null, null);
       if (window.location.pathname !== desiredPath) {
-        dispatch(push(desiredPath));
+        navigate(desiredPath);
       }
     }
   };
@@ -321,10 +320,10 @@ export function primeNav(nav, allowPathChange = true) {
     }
 
     if (allowPathChange) {
-      const curPath = document.location.pathname;
+      const curPath = window.location.pathname;
       const desiredPath = urlForState(state.dongleId, null, null, null, nav);
       if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
+        navigate(desiredPath);
       }
     }
   };
@@ -461,4 +460,3 @@ export function updateRoute(fullname, route) {
     route,
   };
 }
-

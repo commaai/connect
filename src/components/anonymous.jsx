@@ -1,7 +1,6 @@
 /* global AppleID */
 import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
+import { withRouter } from 'react-router';
 import PropTypes from 'prop-types';
 import qs from 'query-string';
 
@@ -175,12 +174,7 @@ class AnonymousLanding extends Component {
 }
 
 AnonymousLanding.propTypes = {
-  pathname: PropTypes.string.isRequired,
   classes: PropTypes.object.isRequired,
 };
 
-const stateToProps = Obstruction({
-  pathname: 'router.location.pathname',
-});
-
-export default connect(stateToProps)(withStyles(styles)(AnonymousLanding));
+export default withRouter(withStyles(styles)(AnonymousLanding));

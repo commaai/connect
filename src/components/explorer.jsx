@@ -2,7 +2,8 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import localforage from 'localforage';
-import { replace } from 'connected-react-router';
+import { withRouter } from 'react-router';
+import { replace } from '../navigation';
 
 import { withStyles, Button, CircularProgress, Divider, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
@@ -85,7 +86,7 @@ class ExplorerApp extends Component {
 
     const q = new URLSearchParams(window.location.search);
     if (q.has('r')) {
-      this.props.dispatch(replace(q.get('r')));
+      replace(q.get('r'));
     }
 
     this.props.dispatch(init());
@@ -135,9 +136,10 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { location, zoom, dongleId, limit } = this.props;
+    const pathname = location?.pathname;
 
-    if (prevProps.pathname !== pathname) {
+    if (prevProps.location?.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
     }
 
@@ -252,11 +254,10 @@ class ExplorerApp extends Component {
 
 const stateToProps = Obstruction({
   zoom: 'zoom',
-  pathname: 'router.location.pathname',
   dongleId: 'dongleId',
   devices: 'devices',
   currentRoute: 'currentRoute',
   limit: 'limit',
 });
 
-export default connect(stateToProps)(withStyles(styles)(ExplorerApp));
+export default withRouter(connect(stateToProps)(withStyles(styles)(ExplorerApp)));

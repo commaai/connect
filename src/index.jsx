@@ -5,6 +5,9 @@ import * as Sentry from '@sentry/react';
 
 import './index.css';
 import App from './App';
+import store from './store';
+import { history } from './history';
+import installHistorySync from './historySync';
 import Theme from './theme';
 
 if (window.SENTRY_ENV) {
@@ -28,3 +31,6 @@ ReactDOM.createRoot(document.getElementById('root')).render((
     <App />
   </MuiThemeProvider>
 ));
+
+// Install router -> store sync
+installHistorySync(store, history);

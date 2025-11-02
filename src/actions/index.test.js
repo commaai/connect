@@ -1,15 +1,11 @@
 /* eslint-env jest */
-import { push } from 'connected-react-router';
+import { navigate } from '../navigation';
 import { pushTimelineRange } from './index';
 
-jest.mock('connected-react-router', () => {
-  const originalModule = jest.requireActual('connected-react-router');
-  return {
-    __esModule: true,
-    ...originalModule,
-    push: jest.fn(),
-  };
-});
+jest.mock('../navigation', () => ({
+  navigate: jest.fn(),
+  replace: jest.fn(),
+}));
 
 describe('timeline actions', () => {
   it('should push history state when editing zoom', () => {
@@ -23,6 +19,6 @@ describe('timeline actions', () => {
       zoom: {},
     }));
     actionThunk(dispatch, getState);
-    expect(push).toBeCalledWith('/statedongle/log_id');
+    expect(navigate).toBeCalledWith('/statedongle/log_id');
   });
 });

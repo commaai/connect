@@ -1,7 +1,7 @@
 import React, { Component, lazy, Suspense } from 'react';
 import { Provider } from 'react-redux';
 import { Route, Switch, Redirect } from 'react-router';
-import { ConnectedRouter } from 'connected-react-router';
+import { Router } from 'react-router';
 import qs from 'query-string';
 import localforage from 'localforage';
 import * as Sentry from '@sentry/react';
@@ -12,7 +12,8 @@ import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@comm
 import { athena as Athena, auth as Auth, billing as Billing, request as Request } from '@commaai/api';
 
 import { getZoom, getSegmentRange } from './url';
-import store, { history } from './store';
+import store from './store';
+import { history } from './history';
 
 import ErrorFallback from './components/ErrorFallback';
 
@@ -137,9 +138,9 @@ class App extends Component {
 
     return (
       <Provider store={store}>
-        <ConnectedRouter history={history}>
+        <Router history={history}>
           {content}
-        </ConnectedRouter>
+        </Router>
       </Provider>
     );
   }

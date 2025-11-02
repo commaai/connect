@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
+import { withRouter } from 'react-router';
 import localforage from 'localforage';
 import { withStyles, Typography } from '@material-ui/core';
 import { Clear } from '@material-ui/icons';
@@ -85,7 +84,7 @@ class IosPwaPopup extends Component {
       window.removeEventListener('click', this.onWindowClick);
     }
 
-    if (prevProps.pathname !== this.props.pathname) {
+    if (prevProps.location?.pathname !== this.props.location?.pathname) {
       this.hide();
     }
   }
@@ -138,8 +137,4 @@ class IosPwaPopup extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  pathname: 'router.location.pathname',
-});
-
-export default connect(stateToProps)(withStyles(styles)(IosPwaPopup));
+export default withRouter(withStyles(styles)(IosPwaPopup));
