@@ -2,7 +2,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import window from 'global/window';
 import PropTypes from 'prop-types';
 import qs from 'query-string';
 
@@ -94,14 +93,14 @@ const styles = () => ({
 
 class AnonymousLanding extends Component {
   UNSAFE_componentWillMount() {
-    if (typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') === null) {
+    if (typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') === null) {
       const { pathname } = this.props;
       sessionStorage.setItem('redirectURL', pathname);
     }
   }
 
   componentDidMount() {
-    const q = new URLSearchParams(window.location.search);
+    const q = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams('');
     if (q.has('r')) {
       sessionStorage.setItem('redirectURL', q.get('r'));
     }
