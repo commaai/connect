@@ -30,9 +30,6 @@ const config = {
     'node_modules/(?!(.*@commaai.*)/)',
   ],
   modulePaths: ['<rootDir>/src'],
-  moduleNameMapper: {
-    '^.+\\.module\\.(css|sass|scss)$': 'identity-obj-proxy',
-  },
 };
 
 module.exports = config;

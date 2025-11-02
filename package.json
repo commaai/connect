@@ -13,11 +13,8 @@
     "test-puppeteer-build": "JEST_PUPPETEER_CONFIG=jest-puppeteer.build.config.js bun run test-puppeteer"
   },
   "repository": "https://github.com/commaai/connect.git",
-  "author": "Chris Vickery <chrisinajar@gmail.com>",
+  "author": "Vehicle Researcher <user@comma.ai>",
   "contributors": [
-    "Joost Wooning <jwooning@gmail.com>",
-    "Chris Vickery <chrisinajar@gmail.com>",
-    "Cameron Clough <cameronjclough@gmail.com>"
   ],
   "private": true,
   "packageManager": "bun@1.3.1",
@@ -71,7 +68,6 @@
     "eslint-plugin-jest-dom": "^5.1.0",
     "eslint-plugin-react": "^7.33.2",
     "expect-puppeteer": "^9.0.0",
-    "identity-obj-proxy": "^3.0.0",
     "jest": "^27.5.1",
     "jest-chain-transform": "^0.0.5",
     "jest-environment-jsdom": "^27.5.1",
