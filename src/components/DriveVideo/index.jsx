@@ -3,7 +3,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { CircularProgress, Typography } from '@material-ui/core';
 import debounce from 'debounce';
-import Obstruction from 'obstruction';
+import { selectCurrentRoute } from '../../selectors/route';
 import ReactPlayer from 'react-player/file';
 
 import { video as Video } from '@commaai/api';
@@ -323,14 +323,14 @@ class DriveVideo extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  desiredPlaySpeed: 'desiredPlaySpeed',
-  offset: 'offset',
-  startTime: 'startTime',
-  isBufferingVideo: 'isBufferingVideo',
-  routes: 'routes',
-  currentRoute: 'currentRoute',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  desiredPlaySpeed: state.desiredPlaySpeed,
+  offset: state.offset,
+  startTime: state.startTime,
+  isBufferingVideo: state.isBufferingVideo,
+  routes: state.routes,
+  currentRoute: selectCurrentRoute(state),
 });
 
 export default connect(stateToProps)(DriveVideo);

@@ -12,7 +12,7 @@ import { billing as Billing } from '@commaai/api';
 import { deviceNamePretty } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
-import { primeNav } from '../../actions';
+import { navigate } from '../../navigation';
 import { ErrorOutline, InfoOutline } from '../../icons';
 
 const styles = () => ({
@@ -344,7 +344,7 @@ class PrimeCheckout extends Component {
       <div className={ classes.primeBox } style={ containerPadding }>
         <ResizeHandler onResize={this.onResize} />
         <div className={ classes.primeHeader }>
-          <IconButton aria-label="Go Back" onClick={() => dispatch(primeNav(false)) }>
+          <IconButton aria-label="Go Back" onClick={() => navigate(`/${dongleId}`) }>
             <KeyboardBackspaceIcon />
           </IconButton>
           <div className={ classes.headerDevice }>

@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import localforage from 'localforage';
 import { withRouter } from 'react-router';
 import { replace } from '../navigation';
@@ -252,12 +251,25 @@ class ExplorerApp extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  zoom: 'zoom',
-  dongleId: 'dongleId',
-  devices: 'devices',
-  currentRoute: 'currentRoute',
-  limit: 'limit',
-});
+import { getSegmentRange } from '../url';
+
+const stateToProps = (state, ownProps) => {
+  const seg = getSegmentRange(ownProps.location?.pathname || '/');
+  const currentRoute = seg && state.routes && state.routes.find((r) => r.log_id === seg.log_id) || null;
+  let zoom = null;
+  if (currentRoute) {
+    const hasTimes = typeof seg.start === 'number' && typeof seg.end === 'number' && !Number.isNaN(seg.start) && !Number.isNaN(seg.end);
+    zoom = hasTimes
+      ? { start: seg.start - currentRoute.start_time_utc_millis, end: seg.end - currentRoute.start_time_utc_millis }
+      : { start: 0, end: currentRoute.duration };
+  }
+  return {
+    zoom,
+    dongleId: state.dongleId,
+    devices: state.devices,
+    currentRoute,
+    limit: state.limit,
+  };
+};
 
 export default withRouter(connect(stateToProps)(withStyles(styles)(ExplorerApp)));

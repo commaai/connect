@@ -19,7 +19,8 @@ import ShareIcon from '@material-ui/icons/Share';
 import WarningIcon from '@material-ui/icons/Warning';
 
 import { devices as Devices } from '@commaai/api';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
+import { selectDevice, updateDevice } from '../../actions';
+import { navigate } from '../../navigation';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
@@ -233,7 +234,7 @@ class DeviceSettingsModal extends Component {
       if (intv) {
         clearInterval(intv);
       }
-      this.props.dispatch(primeNav(true));
+      navigate(`/${this.props.globalDongleId || this.props.dongleId}/prime`);
       this.props.onClose();
     };
 

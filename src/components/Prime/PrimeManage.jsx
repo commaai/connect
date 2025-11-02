@@ -13,7 +13,8 @@ import { deviceNamePretty, deviceTypePretty } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { ErrorOutline, InfoOutline } from '../../icons';
-import { primeNav, primeGetSubscription } from '../../actions';
+import { primeGetSubscription } from '../../actions';
+import { navigate } from '../../navigation';
 
 const styles = (theme) => ({
   linkHighlight: {
@@ -341,7 +342,7 @@ class PrimeManage extends Component {
         <ResizeHandler onResize={this.onResize} />
         <div className={classes.primeBox}>
           <div className={classes.primeContainer} style={{ padding: `8px ${containerPadding}px` }}>
-            <IconButton aria-label="Go Back" onClick={() => dispatch(primeNav(false))}>
+            <IconButton aria-label="Go Back" onClick={() => navigate(`/${dongleId}`)}>
               <KeyboardBackspaceIcon />
             </IconButton>
           </div>

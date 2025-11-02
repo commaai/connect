@@ -1,11 +1,11 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
 
-import { popTimelineRange, pushTimelineRange, updateSegmentRange } from '../../actions';
+import { navigate } from '../../navigation';
+import { selectRouteZoom, selectCurrentRoute } from '../../selectors/route';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { filterRegularClick } from '../../utils';
 
@@ -19,25 +19,20 @@ class DriveView extends Component {
   }
 
   onBack(zoom, currentRoute) {
-    if (zoom.previous) {
-      this.props.dispatch(popTimelineRange(currentRoute?.log_id));
-    } else if (currentRoute) {
-      this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, null, null),
-      );
+    if (currentRoute) {
+      navigate(`/${this.props.dongleId}/${currentRoute.log_id}`);
     }
   }
 
   close() {
-    this.props.dispatch(pushTimelineRange(null, null, null));
-    this.props.dispatch(updateSegmentRange(null, null, null));
+    navigate(`/${this.props.dongleId}`);
   }
 
   render() {
     const { dongleId, zoom, currentRoute, routes } = this.props;
 
     const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute?.duration;
-    const backButtonDisabled = !zoom?.previousZoom && currentRouteBoundsSelected;
+    const backButtonDisabled = currentRouteBoundsSelected;
 
     // FIXME: end time not always same day as start time
     const start = currentRoute.start_time_utc_millis + zoom.start;
@@ -63,9 +58,8 @@ class DriveView extends Component {
                 {`${startTime} - ${endTime}`}
               </div>
               <IconButton
-                onClick={ filterRegularClick(this.close) }
+                onClick={ this.close }
                 aria-label="Close"
-                href={ `/${dongleId}` }
               >
                 <CloseBold />
               </IconButton>
@@ -83,11 +77,11 @@ class DriveView extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  routes: 'routes',
-  zoom: 'zoom',
-  currentRoute: 'currentRoute',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  routes: state.routes,
+  zoom: selectRouteZoom(state),
+  currentRoute: selectCurrentRoute(state),
 });
 
 export default connect(stateToProps)(DriveView);

@@ -8,7 +8,7 @@ import { Clear } from '@material-ui/icons';
 import dayjs from 'dayjs';
 
 import { athena as Athena, devices as Devices } from '@commaai/api';
-import { primeNav } from '../../actions';
+import { navigate } from '../../navigation';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
 import Colors from '../../colors';
 import { PinCarIcon } from '../../icons';
@@ -692,7 +692,7 @@ class Navigation extends Component {
           </div>
           <div className={classes.searchSelectBoxButtons}>
             <Button
-              onClick={() => this.props.dispatch(primeNav(true))}
+              onClick={() => navigate(`/${this.props.dongleId}/prime`)}
               className={`${classes.searchSelectButton} ${classes.primeAdButton} primeSignUp`}
             >
               sign up

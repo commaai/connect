@@ -1,6 +1,7 @@
-import { getDongleID, getZoom, getSegmentRange, getPrimeNav } from './url';
-import { primeNav, selectDevice, pushTimelineRange, updateSegmentRange } from './actions';
+import { getDongleID, getZoom, getSegmentRange } from './url';
+import { selectDevice, pushTimelineRange } from './actions';
 import { drives as Drives } from '@commaai/api';
+import { replace } from './navigation';
 
 export function installHistorySync(store, history) {
   async function handle(location, action) {
@@ -15,29 +16,24 @@ export function installHistorySync(store, history) {
     const pathZoom = getZoom(pathname);
     const pathSegmentRange = getSegmentRange(pathname);
 
-    if ((pathZoom !== state.zoom) && pathZoom && !pathSegmentRange) {
+    if (pathZoom && !pathSegmentRange) {
       try {
         const routesData = await Drives.getRoutesSegments(pathDongleId, pathZoom.start, pathZoom.end);
         if (routesData && routesData.length > 0) {
           const log_id = routesData[0].fullname.split('|')[1];
-          const duration = routesData[0].end_time_utc_millis - routesData[0].start_time_utc_millis;
-
-          store.dispatch(pushTimelineRange(log_id, null, null, true));
-          store.dispatch(updateSegmentRange(log_id, 0, duration));
+          // Replace zoom-only path with canonical segmentRange path (seconds in URL)
+          replace(`/${pathDongleId}/${log_id}/${pathZoom.start}/${pathZoom.end}`);
         }
       } catch (err) {
         console.error('Error fetching routes data for log ID conversion', err);
       }
     }
 
-    if (pathSegmentRange !== state.segmentRange) {
-      store.dispatch(pushTimelineRange(pathSegmentRange?.log_id, pathSegmentRange?.start, pathSegmentRange?.end, false));
+    if (pathSegmentRange) {
+      store.dispatch(pushTimelineRange(pathSegmentRange.log_id, pathSegmentRange.start, pathSegmentRange.end, false));
     }
 
-    const pathPrimeNav = getPrimeNav(pathname);
-    if (pathPrimeNav !== state.primeNav) {
-      store.dispatch(primeNav(pathPrimeNav));
-    }
+    // Prime view is derived from URL; no store state needed
   }
 
   // Subscribe to future changes
@@ -47,4 +43,3 @@ export function installHistorySync(store, history) {
 }
 
 export default installHistorySync;
-

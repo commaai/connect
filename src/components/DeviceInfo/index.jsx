@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 
@@ -571,9 +570,9 @@ class DeviceInfo extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  device: 'device',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  device: state.device,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));

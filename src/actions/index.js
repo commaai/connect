@@ -5,6 +5,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
+import { selectSegmentRange } from '../selectors/route';
 import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
 import { navigate } from '../navigation';
 
@@ -31,10 +32,11 @@ export function checkRoutesData() {
     const { dongleId } = state;
     const fetchRange = state.filter;
 
-    // if requested segment range not in loaded routes, fetch it explicitly
-    if (state.segmentRange) {
+    // if requested segment range (from URL) not in loaded routes, fetch it explicitly
+    const urlSeg = selectSegmentRange();
+    if (urlSeg) {
       routesRequest = {
-        req: Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
+        req: Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${urlSeg.log_id}`),
         dongleId,
       };
     } else {
@@ -142,7 +144,7 @@ export function checkLastRoutesData() {
   };
 }
 
-export function urlForState(dongleId, log_id, start, end, prime) {
+export function urlForState(dongleId, log_id, start, end) {
   const path = [dongleId];
 
   if (log_id) {
@@ -151,8 +153,6 @@ export function urlForState(dongleId, log_id, start, end, prime) {
       path.push(start);
       path.push(end);
     }
-  } else if (prime) {
-    path.push('prime');
   }
 
   return `/${path.join('/')}`;
@@ -166,7 +166,7 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   }
 
   if (allowPathChange) {
-    const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start/1000), Math.floor(end/1000), false);
+    const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start/1000), Math.floor(end/1000));
     if (window.location.pathname !== desiredPath) {
       navigate(desiredPath);
     }
@@ -176,13 +176,8 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
 export function popTimelineRange(log_id, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
-    if (state.zoom.previous) {
-      dispatch({
-        type: Types.TIMELINE_POP_SELECTION,
-      });
-
-      const { start, end } = state.zoom.previous;
-      updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
+    if (allowPathChange && state.dongleId) {
+      navigate(`/${state.dongleId}/${log_id || ''}`.replace(/\/$/, ''));
     }
   };
 }
@@ -190,19 +185,18 @@ export function popTimelineRange(log_id, allowPathChange = true) {
 export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
-
-    if (state.zoom?.start !== start || state.zoom?.end !== end || state.segmentRange?.log_id !== log_id) {
-      dispatch({
-        type: Types.TIMELINE_PUSH_SELECTION,
-        log_id,
-        start,
-        end,
-      });
+    if (allowPathChange && state.dongleId) {
+      const desiredPath = urlForState(state.dongleId, log_id, Math.floor((start||0)/1000), Math.floor((end||0)/1000));
+      if (window.location.pathname !== desiredPath) {
+        navigate(desiredPath);
+      }
     }
-
-    updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
+    // update loop to reflect new selection
+    if (start != null && end != null) {
+      dispatch(resetPlayback());
+      dispatch(selectLoop(start, end));
+    }
   };
-
 }
 
 
@@ -262,14 +256,7 @@ export function fetchDeviceOnline(dongleId) {
   };
 }
 
-export function updateSegmentRange(log_id, start, end) {
-  return {
-    type: Types.ACTION_UPDATE_SEGMENT_RANGE,
-    log_id,
-    start,
-    end,
-  };
-}
+// segment range is derived from URL; no update action needed
 
 export function selectDevice(dongleId, allowPathChange = true) {
   return (dispatch, getState) => {
@@ -288,7 +275,6 @@ export function selectDevice(dongleId, allowPathChange = true) {
     });
 
     dispatch(pushTimelineRange(null, null, null, false));
-    dispatch(updateSegmentRange(null, null, null));
     if ((device && !device.shared) || state.profile?.superuser) {
       dispatch(primeFetchSubscription(dongleId, device));
       dispatch(fetchDeviceOnline(dongleId));
@@ -297,7 +283,7 @@ export function selectDevice(dongleId, allowPathChange = true) {
     dispatch(checkRoutesData());
 
     if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
+      const desiredPath = urlForState(dongleId, null, null, null);
       if (window.location.pathname !== desiredPath) {
         navigate(desiredPath);
       }
@@ -305,29 +291,7 @@ export function selectDevice(dongleId, allowPathChange = true) {
   };
 }
 
-export function primeNav(nav, allowPathChange = true) {
-  return (dispatch, getState) => {
-    const state = getState();
-    if (!state.dongleId) {
-      return;
-    }
-
-    if (state.primeNav !== nav) {
-      dispatch({
-        type: Types.ACTION_PRIME_NAV,
-        primeNav: nav,
-      });
-    }
-
-    if (allowPathChange) {
-      const curPath = window.location.pathname;
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
-      if (curPath !== desiredPath) {
-        navigate(desiredPath);
-      }
-    }
-  };
-}
+// prime view is now derived from URL
 
 export function fetchSharedDevice(dongleId) {
   return async (dispatch) => {

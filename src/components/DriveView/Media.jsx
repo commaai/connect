@@ -864,16 +864,18 @@ class Media extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  device: 'device',
-  routes: 'routes',
-  currentRoute: 'currentRoute',
-  loop: 'loop',
-  filter: 'filter',
-  files: 'files',
-  profile: 'profile',
-  isBufferingVideo: 'isBufferingVideo',
+import { selectCurrentRoute } from '../../selectors/route';
+
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  device: state.device,
+  routes: state.routes,
+  currentRoute: selectCurrentRoute(state),
+  loop: state.loop,
+  filter: state.filter,
+  files: state.files,
+  profile: state.profile,
+  isBufferingVideo: state.isBufferingVideo,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));

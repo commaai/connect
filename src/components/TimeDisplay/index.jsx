@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 
 import { withStyles } from '@material-ui/core/styles';
@@ -15,6 +14,7 @@ import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
+import { selectRouteZoom, selectCurrentRoute } from '../../selectors/route';
 
 const timerSteps = [
   0.1,
@@ -313,10 +313,10 @@ class TimeDisplay extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  currentRoute: 'currentRoute',
-  zoom: 'zoom',
-  desiredPlaySpeed: 'desiredPlaySpeed'
+const stateToProps = (state) => ({
+  currentRoute: selectCurrentRoute(state),
+  zoom: selectRouteZoom(state),
+  desiredPlaySpeed: state.desiredPlaySpeed,
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));

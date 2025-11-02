@@ -11,7 +11,8 @@ import Measure from 'react-measure';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
-import { pushTimelineRange } from '../../actions';
+import { navigate } from '../../navigation';
+import { selectRouteZoom } from '../../selectors/route';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
@@ -231,7 +232,7 @@ class Timeline extends Component {
   }
 
   handlePointerUp(ev) {
-    const { route } = this.props;
+    const { route, dongleId } = this.props;
 
     // prevent preventDefault for back(3) and forward(4) mouse buttons
     if (ev.button !== 3 && ev.button !== 4) {
@@ -253,15 +254,9 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
-      if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
-      }
-      const { dispatch } = this.props;
-      const startTime = startOffset;
-      const endTime = endOffset;
-
-      dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
+      const startSec = Math.floor(startOffset / 1000);
+      const endSec = Math.floor(endOffset / 1000);
+      navigate(`/${dongleId}/${route.log_id}/${startSec}/${endSec}`);
     } else if (ev.currentTarget !== document) {
       this.handleClick(ev);
     }
@@ -444,9 +439,10 @@ class Timeline extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  zoom: 'zoom',
-  loop: 'loop',
+const stateToProps = (state) => ({
+  zoom: selectRouteZoom(state),
+  loop: state.loop,
+  dongleId: state.dongleId,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));

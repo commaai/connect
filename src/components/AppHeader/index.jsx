@@ -1,6 +1,5 @@
 import React, { Suspense, useCallback, useState } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
 import { Typography, IconButton, Icon, AppBar } from '@material-ui/core';
@@ -58,7 +57,7 @@ const styles = () => ({
 
 const AppHeader = ({
   profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
-  forwardRef, handleDrawerStateChanged, primeNav, dongleId,
+  forwardRef, handleDrawerStateChanged, dongleId,
 }) => {
   const [anchorEl, setAnchorEl] = useState(null);
 
@@ -136,11 +135,9 @@ const AppHeader = ({
   );
 };
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  filter: 'filter',
-  profile: 'profile',
-  primeNav: 'primeNav',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  profile: state.profile,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));

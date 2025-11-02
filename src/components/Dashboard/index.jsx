@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
+import { withRouter } from 'react-router';
 
 import { CircularProgress, Grid } from '@material-ui/core';
 
@@ -18,7 +19,10 @@ const DashboardLoading = () => (
   </Grid>
 );
 
-const Dashboard = ({ primeNav, device, dongleId }) => {
+import { getPrimeNav } from '../../url';
+
+const Dashboard = ({ location, device, dongleId }) => {
+  const primeNav = getPrimeNav(location?.pathname || '/');
   if (!device || !dongleId) {
     return <DashboardLoading />;
   }
@@ -42,8 +46,7 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
 
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
-  primeNav: 'primeNav',
   device: 'device',
 });
 
-export default connect(stateToProps)(Dashboard);
+export default withRouter(connect(stateToProps)(Dashboard));

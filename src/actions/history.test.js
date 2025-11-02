@@ -3,11 +3,11 @@ import { history } from '../history';
 import installHistorySync from '../historySync';
 import * as actionsIndex from './index';
 import { drives as Drives } from '@commaai/api';
+import { replace } from '../navigation';
 
 jest.mock('./index', () => ({
   selectDevice: jest.fn(),
   pushTimelineRange: jest.fn(),
-  primeNav: jest.fn(),
   updateSegmentRange: jest.fn(),
 }));
 
@@ -16,6 +16,14 @@ jest.mock('@commaai/api', () => ({
     getRoutesSegments: jest.fn(),
   },
 }));
+
+jest.mock('../navigation', () => {
+  const { history } = require('../history');
+  const mock = {
+    replace: jest.fn((path) => history.replace(path)),
+  };
+  return mock;
+});
 
 const makeStore = (initialState) => ({
   getState: jest.fn(() => initialState),
@@ -35,7 +43,7 @@ describe('history sync', () => {
     expect(actionsIndex.selectDevice).toHaveBeenCalledWith('0000aaaa0000aaaa', false);
   });
 
-  it('dispatches conversion for zoom route', async () => {
+  it('dispatches conversion for zoom route (canonicalize URL)', async () => {
     Drives.getRoutesSegments.mockResolvedValueOnce([
       {
         fullname: '0000aaaa0000aaaa|00000000--000f00000d',
@@ -48,15 +56,19 @@ describe('history sync', () => {
     history.push('/0000aaaa0000aaaa/1230/1234');
     // Allow async conversion to resolve
     await new Promise((r) => setTimeout(r, 0));
-    expect(actionsIndex.pushTimelineRange).toHaveBeenCalledWith('00000000--000f00000d', null, null, true);
-    expect(actionsIndex.updateSegmentRange).toHaveBeenCalledWith('00000000--000f00000d', 0, 1000);
+    expect(replace).toHaveBeenCalledWith('/0000aaaa0000aaaa/00000000--000f00000d/1230/1234');
+    // After replace, pathSegmentRange processing should dispatch updates
+    await new Promise((r) => setTimeout(r, 0));
+    expect(actionsIndex.pushTimelineRange).toHaveBeenCalledWith('00000000--000f00000d', 1230000, 1234000, false);
   });
 
-  it('dispatches primeNav and clears selection for prime route', () => {
-    const store = makeStore({ dongleId: '0000aaaa0000aaaa', zoom: { start: 1, end: 2 }, segmentRange: undefined, primeNav: false });
+  it('handles prime route via URL (no dispatch)', () => {
+    history.replace('/');
+    const store = makeStore({ dongleId: '0000aaaa0000aaaa', zoom: { start: 1, end: 2 }, segmentRange: undefined });
     installHistorySync(store, history);
+    store.dispatch.mockClear();
     history.push('/0000aaaa0000aaaa/prime');
-    expect(actionsIndex.pushTimelineRange).toHaveBeenCalledWith(undefined, undefined, undefined, false);
-    expect(actionsIndex.primeNav).toHaveBeenCalledWith(true);
+    // no store dispatch needed for prime; components derive from URL
+    expect(store.dispatch).not.toHaveBeenCalled();
   });
 });
