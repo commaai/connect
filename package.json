@@ -65,8 +65,6 @@
     "@tailwindcss/typography": "^0.5.9",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
-    "@types/react": "^18.2.21",
-    "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.0.4",
     "autoprefixer": "^10.4.15",
     "camelcase": "^6.3.0",
@@ -75,7 +73,6 @@
     "eslint-plugin-import": "^2.28.1",
     "eslint-plugin-jest-dom": "^5.1.0",
     "eslint-plugin-react": "^7.33.2",
-    "eslint-plugin-react-hooks": "^4.6.0",
     "expect-puppeteer": "^9.0.0",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^27.5.1",
@@ -85,13 +82,11 @@
     "jest-puppeteer": "^6.2.0",
     "postcss": "^8.4.28",
     "puppeteer": "^19.11.1",
-    "react-test-renderer": "^18.2.0",
     "tailwindcss": "^3.3.3",
     "vite": "^4.5.3",
     "vite-plugin-pwa": "^0.16.4",
     "vite-plugin-svgr": "^3.2.0",
-    "whatwg-fetch": "^3.6.17",
-    "workbox-window": "^7.0.0"
+    "whatwg-fetch": "^3.6.17"
   },
   "browserslist": {
     "production": [
