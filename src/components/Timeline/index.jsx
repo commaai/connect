@@ -5,7 +5,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { withStyles } from '@material-ui/core/styles';
-import raf from 'raf';
 import document from 'global/document';
 import dayjs from 'dayjs';
 
@@ -182,7 +181,7 @@ class Timeline extends Component {
 
   componentDidMount() {
     this.mounted = true;
-    raf(this.getOffset);
+    requestAnimationFrame(this.getOffset);
     this.componentDidUpdate({});
   }
 
@@ -284,7 +283,7 @@ class Timeline extends Component {
     if (!this.mounted) {
       return;
     }
-    raf(this.getOffset);
+    requestAnimationFrame(this.getOffset);
     let offset = currentOffset();
     if (this.seekIndex) {
       offset = this.seekIndex;

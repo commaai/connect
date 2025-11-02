@@ -12,3 +12,11 @@ jest.mock('mapbox-gl/dist/mapbox-gl', () => ({
     remove: jest.fn(),
   })),
 }));
+
+// Provide requestAnimationFrame in the Jest/jsdom environment
+if (!global.requestAnimationFrame) {
+  global.requestAnimationFrame = (cb) => setTimeout(cb, 0);
+}
+if (!global.cancelAnimationFrame) {
+  global.cancelAnimationFrame = (id) => clearTimeout(id);
+}

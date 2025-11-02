@@ -8,7 +8,7 @@ module.exports = {
     args: [`--window-size=${width},${height}`],
   },
   server: {
-    command: 'env-cmd .env.development bun run start --port 3003',
+    command: 'bun run start --port 3003',
     port: 3003,
     launchTimeout: 15000,
     debug: true,

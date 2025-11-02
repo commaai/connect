@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import raf from 'raf';
 
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
@@ -118,7 +117,7 @@ class DriveMap extends Component {
       }
     }
 
-    raf(this.updateMarkerPos);
+    requestAnimationFrame(this.updateMarkerPos);
   }
 
   moveViewportTo(pos) {
