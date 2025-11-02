@@ -1,6 +1,5 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import { withStyles, Typography } from '@material-ui/core';
 
 import { checkRoutesData, checkLastRoutesData } from '../../actions';
@@ -73,10 +72,10 @@ const DriveList = (props) => {
   );
 };
 
-const stateToProps = Obstruction({
-  routes: 'routes',
-  lastRoutes : 'lastRoutes',
-  device: 'device',
+const stateToProps = (state) => ({
+  routes: state.routes,
+  lastRoutes: state.lastRoutes,
+  device: state.device,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveList));

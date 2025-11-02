@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
 import { withStyles, Typography, Button } from '@material-ui/core';
@@ -707,9 +706,9 @@ class Navigation extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  device: 'device',
-  dongleId: 'dongleId',
+const stateToProps = (state) => ({
+  device: state.device,
+  dongleId: state.dongleId,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Navigation));

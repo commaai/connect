@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 import * as Sentry from '@sentry/react';
 
@@ -524,10 +523,10 @@ class PrimeManage extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  device: 'device',
-  subscription: 'subscription',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  device: state.device,
+  subscription: state.subscription,
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeManage));

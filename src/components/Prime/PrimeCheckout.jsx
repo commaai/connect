@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 import * as Sentry from '@sentry/react';
 import { withStyles, Typography, IconButton, Button, CircularProgress } from '@material-ui/core';
@@ -450,10 +449,10 @@ class PrimeCheckout extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  device: 'device',
-  subscribeInfo: 'subscribeInfo',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  device: state.device,
+  subscribeInfo: state.subscribeInfo,
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeCheckout));

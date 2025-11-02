@@ -3,11 +3,9 @@
 // rapid seeking, etc
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import { withStyles } from '@material-ui/core/styles';
 import dayjs from 'dayjs';
 
-import Measure from 'react-measure';
 
 import Thumbnails from './thumbnails';
 import theme from '../../theme';
@@ -166,6 +164,7 @@ class Timeline extends Component {
     this.rulerRef = React.createRef();
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
+    this.thumbnailsRef = React.createRef();
 
     const { zoomOverride, zoom } = this.props;
     this.state = {
@@ -183,6 +182,17 @@ class Timeline extends Component {
     this.mounted = true;
     requestAnimationFrame(this.getOffset);
     this.componentDidUpdate({});
+
+    // Set up ResizeObserver for thumbnails
+    if (this.thumbnailsRef.current) {
+      this.resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+          this.setState({ thumbnail: { width, height } });
+        }
+      });
+      this.resizeObserver.observe(this.thumbnailsRef.current);
+    }
   }
 
   componentDidUpdate(prevProps) {
@@ -194,6 +204,9 @@ class Timeline extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
   }
 
   handleClick(ev) {
@@ -398,21 +411,17 @@ class Timeline extends Component {
             { route && this.renderRoute() }
             <div className={ `${classes.statusGradient} ${hasRulerCls}` } />
           </div>
-          <Measure bounds onResize={(rect) => this.setState({ thumbnail: rect.bounds })}>
-            { (options) => (
-              <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
-                { thumbnailsVisible && (
-                  <Thumbnails
-                    className={classes.thumbnail}
-                    currentRoute={route}
-                    percentToOffset={this.percentToOffset}
-                    thumbnail={thumbnail}
-                    hasRuler={hasRuler}
-                  />
-                ) }
-              </div>
-            )}
-          </Measure>
+          <div ref={this.thumbnailsRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
+            { thumbnailsVisible && (
+              <Thumbnails
+                className={classes.thumbnail}
+                currentRoute={route}
+                percentToOffset={this.percentToOffset}
+                thumbnail={thumbnail}
+                hasRuler={hasRuler}
+              />
+            ) }
+          </div>
           { hasRuler && (
             <>
               <div

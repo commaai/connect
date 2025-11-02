@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Typography, IconButton } from '@material-ui/core';
@@ -213,10 +212,10 @@ class DeviceList extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  devices: 'devices',
-  device: 'device',
-  profile: 'profile',
+const stateToProps = (state) => ({
+  devices: state.devices,
+  device: state.device,
+  profile: state.profile,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));

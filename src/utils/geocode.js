@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react';
-import qs from 'query-string';
 
 import mbxGeocoding from '@mapbox/mapbox-sdk/services/geocoding';
 
@@ -133,7 +132,7 @@ export async function reverseLookup(coords, navFormat = false) {
 
   let resp;
   try {
-    resp = await fetch(`${endpoint}${coords[0]},${coords[1]}.json?${qs.stringify(params)}`, {
+    resp = await fetch(`${endpoint}${coords[0]},${coords[1]}.json?${new URLSearchParams(params).toString()}`, {
       method: 'GET',
       cache: 'force-cache',
     });

@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import PropTypes from 'prop-types';
 
 const ResizeHandler = (props) => {
   const { onResize } = props;
@@ -28,10 +27,6 @@ const ResizeHandler = (props) => {
   }, [onResize]);
 
   return null;
-};
-
-ResizeHandler.propTypes = {
-  onResize: PropTypes.func.isRequired,
 };
 
 export default ResizeHandler;

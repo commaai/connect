@@ -1,7 +1,5 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import qs from 'query-string';
 
 import { Typography } from '@material-ui/core';
 import PrimeManage from './PrimeManage';
@@ -11,9 +9,9 @@ const Prime = (props) => {
   let stripeCancelled;
   let stripeSuccess;
   if (window.location) {
-    const params = qs.parse(window.location.search);
-    stripeCancelled = params.stripe_cancelled;
-    stripeSuccess = params.stripe_success;
+    const params = new URLSearchParams(window.location.search);
+    stripeCancelled = params.get('stripe_cancelled');
+    stripeSuccess = params.get('stripe_success');
   }
 
   const { device, profile } = props;
@@ -30,10 +28,10 @@ const Prime = (props) => {
   return (<PrimeCheckout stripeCancelled={ stripeCancelled } />);
 };
 
-const stateToProps = Obstruction({
-  subscription: 'subscription',
-  device: 'device',
-  profile: 'profile',
+const stateToProps = (state) => ({
+  subscription: state.subscription,
+  device: state.device,
+  profile: state.profile,
 });
 
 export default connect(stateToProps)(Prime);

@@ -1,7 +1,5 @@
 import React, { Component } from 'react';
-import qs from 'query-string';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem } from '@material-ui/core';
@@ -309,7 +307,7 @@ class Media extends Component {
     }
 
     const params = { onebox: currentRoute.fullname };
-    const win = window.open(`${window.USERADMIN_URL_ROOT}?${qs.stringify(params)}`, '_blank');
+    const win = window.open(`${window.USERADMIN_URL_ROOT}?${new URLSearchParams(params).toString()}`, '_blank');
     if (win.focus) {
       win.focus();
     }

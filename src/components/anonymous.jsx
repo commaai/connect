@@ -1,8 +1,6 @@
 /* global AppleID */
 import React, { Component } from 'react';
 import { withRouter } from 'react-router';
-import PropTypes from 'prop-types';
-import qs from 'query-string';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -118,7 +116,7 @@ class AnonymousLanding extends Component {
     script.async = true;
     document.addEventListener('AppleIDSignInOnSuccess', (data) => {
       const { code, state } = data.detail.authorization;
-      window.location = [AuthConfig.APPLE_REDIRECT_PATH, qs.stringify({ code, state })].join('?');
+      window.location = [AuthConfig.APPLE_REDIRECT_PATH, new URLSearchParams({ code, state }).toString()].join('?');
     });
     document.addEventListener('AppleIDSignInOnFailure', console.warn);
   }
@@ -172,9 +170,5 @@ class AnonymousLanding extends Component {
     );
   }
 }
-
-AnonymousLanding.propTypes = {
-  classes: PropTypes.object.isRequired,
-};
 
 export default withRouter(withStyles(styles)(AnonymousLanding));
