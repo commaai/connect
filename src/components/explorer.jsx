@@ -6,7 +6,7 @@ import { withRouter } from 'react-router';
 import { replace } from '../navigation';
 
 import { withStyles, Button, CircularProgress, Divider, Modal, Paper, Typography } from '@material-ui/core';
-import 'mapbox-gl/src/css/mapbox-gl.css';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 import { devices as Devices } from '@commaai/api';
 

@@ -22,6 +22,17 @@ export default defineConfig(({ mode }) => {
     build: {
       // Required for Sentry
       sourcemap: true,
+      chunkSizeWarningLimit: 1500,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom'],
+            'mui': ['@material-ui/core', '@material-ui/icons'],
+            'mapbox': ['mapbox-gl', 'react-map-gl'],
+            'sentry': ['@sentry/react'],
+          },
+        },
+      },
     },
     plugins: [
       // TODO: compression plugin
