@@ -4,8 +4,8 @@ import CheckIcon from '@material-ui/icons/Check';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
-import { Component } from 'react';
-import { connect } from 'react-redux';
+import { useCallback, useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import Colors from '../../colors';
 import { ErrorOutline, InfoOutline } from '../../icons';
 import { navigate } from '../../navigation';
@@ -203,60 +203,19 @@ const styles = () => ({
   },
 });
 
-class PrimeCheckout extends Component {
-  constructor(props) {
-    super(props);
+const PrimeCheckout = ({ classes }) => {
+  const dongleId = useSelector((state) => state.dongleId);
+  const device = useSelector((state) => state.device);
+  const subscribeInfo = useSelector((state) => state.subscribeInfo);
+  const stripeCancelled = useSelector((state) => state.stripeCancelled);
 
-    this.state = {
-      error: null,
-      loadingCheckout: false,
-      selectedPlan: null,
-      windowWidth: window.innerWidth,
-      windowHeight: window.innerHeight,
-    };
+  const [error, setError] = useState(null);
+  const [loadingCheckout, setLoadingCheckout] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [windowHeight, setWindowHeight] = useState(window.innerHeight);
 
-    this.gotoCheckout = this.gotoCheckout.bind(this);
-    this.trialClaimable = this.trialClaimable.bind(this);
-    this.dataPlanAvailable = this.dataPlanAvailable.bind(this);
-    this.onResize = this.onResize.bind(this);
-  }
-
-  componentDidMount() {
-    this.componentDidUpdate({});
-  }
-
-  componentDidUpdate(prevProps) {
-    const { stripeCancelled, subscribeInfo } = this.props;
-    if (!prevProps.stripeCancelled && stripeCancelled) {
-      this.setState({ error: 'Checkout cancelled' });
-    }
-
-    if (this.state.selectedPlan === null && subscribeInfo) {
-      const plan = this.dataPlanAvailable() ? 'data' : 'nodata';
-      this.setState({ selectedPlan: plan });
-    }
-  }
-
-  onResize(windowWidth, windowHeight) {
-    this.setState({ windowWidth, windowHeight });
-  }
-
-  async gotoCheckout() {
-    const { dongleId, subscribeInfo } = this.props;
-    this.setState({ loadingCheckout: true });
-    try {
-      const { selectedPlan: plan } = this.state;
-      const resp = await Billing.getStripeCheckout(dongleId, subscribeInfo.sim_id, plan);
-      window.location = resp.url;
-    } catch (err) {
-      // TODO show error messages
-      console.error(err);
-      Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_checkout' });
-    }
-  }
-
-  dataPlanAvailable() {
-    const { device, subscribeInfo } = this.props;
+  const dataPlanAvailable = useCallback(() => {
     if (!device || !subscribeInfo) {
       return null;
     }
@@ -269,11 +228,9 @@ class PrimeCheckout extends Component {
         subscribeInfo.sim_usable !== false &&
         ['blue', 'magenta_new', 'webbing'].includes(subscribeInfo.sim_type),
     );
-  }
+  }, [device, subscribeInfo]);
 
-  trialClaimable() {
-    const { subscribeInfo } = this.props;
-    const { selectedPlan } = this.state;
+  const trialClaimable = () => {
     if (!subscribeInfo) {
       return null;
     }
@@ -284,68 +241,96 @@ class PrimeCheckout extends Component {
       return Boolean(subscribeInfo.trial_end_nodata);
     }
     return Boolean(subscribeInfo.trial_end_data && subscribeInfo.trial_end_nodata);
+  };
+
+  const onResize = (width, height) => {
+    setWindowWidth(width);
+    setWindowHeight(height);
+  };
+
+  const gotoCheckout = async () => {
+    setLoadingCheckout(true);
+    try {
+      const resp = await Billing.getStripeCheckout(dongleId, subscribeInfo.sim_id, selectedPlan);
+      window.location = resp.url;
+    } catch (err) {
+      // TODO show error messages
+      console.error(err);
+      Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_checkout' });
+    }
+  };
+
+  // Handle stripe cancellation
+  useEffect(() => {
+    if (stripeCancelled) {
+      setError('Checkout cancelled');
+    }
+  }, [stripeCancelled]);
+
+  // Set default plan when subscribeInfo loads
+  useEffect(() => {
+    if (selectedPlan === null && subscribeInfo) {
+      const plan = dataPlanAvailable() ? 'data' : 'nodata';
+      setSelectedPlan(plan);
+    }
+  }, [subscribeInfo, selectedPlan, dataPlanAvailable]);
+
+  let chargeText = null;
+  if (selectedPlan && trialClaimable()) {
+    let trialEndDate = null;
+    if (selectedPlan === 'data') {
+      trialEndDate = dayjs(subscribeInfo.trial_end_data * 1000).format('MMMM D');
+    } else if (selectedPlan === 'nodata') {
+      trialEndDate = dayjs(subscribeInfo.trial_end_nodata * 1000).format('MMMM D');
+    }
+    chargeText = `Your first charge will be on ${trialEndDate}, then monthly thereafter.`;
   }
 
-  render() {
-    const { classes, device, subscribeInfo } = this.props;
-    const { windowWidth, windowHeight, error, loadingCheckout, selectedPlan } = this.state;
+  const containerPadding = windowWidth > 520 ? { margin: '18px 24px' } : { margin: '6px 12px' };
+  const blockMargin = windowWidth > 520 ? { marginTop: 24 } : { marginTop: 8 };
+  const paddingStyle = windowWidth > 520 ? { paddingLeft: 7, paddingRight: 7 } : { paddingLeft: 8, paddingRight: 8 };
+  const selectedStyle = { border: '2px solid white' };
+  const plansLoadingClass = !subscribeInfo ? classes.planInfoLoading : '';
+  const disabledDataPlan = Boolean(!subscribeInfo || !dataPlanAvailable());
+  const boxHeight = windowHeight > 600 ? { height: 140 } : { height: 110 };
 
-    let chargeText = null;
-    if (selectedPlan && this.trialClaimable()) {
-      let trialEndDate = null;
-      if (selectedPlan === 'data') {
-        trialEndDate = dayjs(subscribeInfo.trial_end_data * 1000).format('MMMM D');
-      } else if (selectedPlan === 'nodata') {
-        trialEndDate = dayjs(subscribeInfo.trial_end_nodata * 1000).format('MMMM D');
-      }
-      chargeText = `Your first charge will be on ${trialEndDate}, then monthly thereafter.`;
+  let disabledDataPlanText;
+  if (subscribeInfo && disabledDataPlan) {
+    if (!device.eligible_features?.prime_data) {
+      disabledDataPlanText = 'Standard plan is not available for your device.';
+    } else if (!subscribeInfo.sim_id && subscribeInfo.device_online) {
+      disabledDataPlanText = 'Standard plan not available, no SIM was detected. Ensure SIM is securely inserted and try again.';
+    } else if (!subscribeInfo.sim_id) {
+      disabledDataPlanText = 'Standard plan not available, device could not be reached. Connect device to the internet and try again.';
+    } else if (!subscribeInfo.is_prime_sim) {
+      disabledDataPlanText = 'Standard plan not available, detected a third-party SIM.';
+    } else if (!['blue', 'magenta_new', 'webbing'].includes(subscribeInfo.sim_type)) {
+      disabledDataPlanText = [
+        'Standard plan not available, old SIM type detected, new SIM cards are available in the ',
+        <a className={classes.linkHighlight} key={1} href="https://comma.ai/shop/comma-prime-sim">
+          shop
+        </a>,
+      ];
+    } else if (subscribeInfo.sim_usable === false && subscribeInfo.sim_type === 'blue') {
+      disabledDataPlanText = [
+        'Standard plan not available, SIM has been canceled and is therefore no longer usable, new SIM cards are available in the ',
+        <a className={classes.linkHighlight} key={1} href="https://comma.ai/shop/comma-prime-sim">
+          shop
+        </a>,
+      ];
+    } else if (subscribeInfo.sim_usable === false) {
+      disabledDataPlanText = [
+        'Standard plan not available, SIM is no longer usable, new SIM cards are available in the ',
+        <a className={classes.linkHighlight} key={1} href="https://comma.ai/shop/comma-prime-sim">
+          shop
+        </a>,
+      ];
     }
+  }
 
-    const containerPadding = windowWidth > 520 ? { margin: '18px 24px' } : { margin: '6px 12px' };
-    const blockMargin = windowWidth > 520 ? { marginTop: 24 } : { marginTop: 8 };
-    const paddingStyle = windowWidth > 520 ? { paddingLeft: 7, paddingRight: 7 } : { paddingLeft: 8, paddingRight: 8 };
-    const selectedStyle = { border: '2px solid white' };
-    const plansLoadingClass = !subscribeInfo ? classes.planInfoLoading : '';
-    const disabledDataPlan = Boolean(!subscribeInfo || !this.dataPlanAvailable());
-    const boxHeight = windowHeight > 600 ? { height: 140 } : { height: 110 };
-
-    let disabledDataPlanText;
-    if (subscribeInfo && disabledDataPlan) {
-      if (!device.eligible_features?.prime_data) {
-        disabledDataPlanText = 'Standard plan is not available for your device.';
-      } else if (!subscribeInfo.sim_id && subscribeInfo.device_online) {
-        disabledDataPlanText = 'Standard plan not available, no SIM was detected. Ensure SIM is securely inserted and try again.';
-      } else if (!subscribeInfo.sim_id) {
-        disabledDataPlanText = 'Standard plan not available, device could not be reached. Connect device to the internet and try again.';
-      } else if (!subscribeInfo.is_prime_sim) {
-        disabledDataPlanText = 'Standard plan not available, detected a third-party SIM.';
-      } else if (!['blue', 'magenta_new', 'webbing'].includes(subscribeInfo.sim_type)) {
-        disabledDataPlanText = [
-          'Standard plan not available, old SIM type detected, new SIM cards are available in the ',
-          <a className={classes.linkHighlight} key={1} href="https://comma.ai/shop/comma-prime-sim">
-            shop
-          </a>,
-        ];
-      } else if (subscribeInfo.sim_usable === false && subscribeInfo.sim_type === 'blue') {
-        disabledDataPlanText = [
-          'Standard plan not available, SIM has been canceled and is therefore no longer usable, new SIM cards are available in the ',
-          <a className={classes.linkHighlight} key={1} href="https://comma.ai/shop/comma-prime-sim">
-            shop
-          </a>,
-        ];
-      } else if (subscribeInfo.sim_usable === false) {
-        disabledDataPlanText = [
-          'Standard plan not available, SIM is no longer usable, new SIM cards are available in the ',
-          <a className={classes.linkHighlight} key={1} href="https://comma.ai/shop/comma-prime-sim">
-            shop
-          </a>,
-        ];
-      }
-    }
-
-    return (
-      <div className={classes.primeBox} style={containerPadding}>
-        <ResizeHandler onResize={this.onResize} />
+  return (
+    <div className={classes.primeBox} style={containerPadding}>
+      <ResizeHandler onResize={onResize} />
         <div className={classes.primeHeader}>
           <IconButton aria-label="Go Back" onClick={() => navigate(`/${dongleId}`)}>
             <KeyboardBackspaceIcon />
@@ -381,7 +366,7 @@ class PrimeCheckout extends Component {
             <div
               className={`${classes.plan} ${plansLoadingClass}`}
               style={selectedPlan === 'nodata' ? selectedStyle : {}}
-              onClick={subscribeInfo ? () => this.setState({ selectedPlan: 'nodata' }) : null}
+              onClick={subscribeInfo ? () => setSelectedPlan('nodata') : null}
             >
               <p className={classes.planName}>lite</p>
               <p className={classes.planPrice}>$10/month</p>
@@ -394,7 +379,7 @@ class PrimeCheckout extends Component {
             <div
               className={`${classes.plan} ${disabledDataPlan ? classes.planDisabled : ''} ${plansLoadingClass}`}
               style={selectedPlan === 'data' ? selectedStyle : {}}
-              onClick={!disabledDataPlan ? () => this.setState({ selectedPlan: 'data' }) : null}
+              onClick={!disabledDataPlan ? () => setSelectedPlan('data') : null}
             >
               <p className={classes.planName}>standard</p>
               <p className={classes.planPrice}>$24/month</p>
@@ -433,8 +418,8 @@ class PrimeCheckout extends Component {
           </div>
         )}
         <div style={blockMargin}>
-          <Button className={`${classes.buttons} gotoCheckout`} onClick={() => this.gotoCheckout()} disabled={Boolean(!subscribeInfo || loadingCheckout || !selectedPlan)}>
-            {loadingCheckout ? <CircularProgress size={19} /> : this.trialClaimable() ? 'Claim trial' : 'Go to checkout'}
+          <Button className={`${classes.buttons} gotoCheckout`} onClick={() => gotoCheckout()} disabled={Boolean(!subscribeInfo || loadingCheckout || !selectedPlan)}>
+            {loadingCheckout ? <CircularProgress size={19} /> : trialClaimable() ? 'Claim trial' : 'Go to checkout'}
           </Button>
         </div>
         {chargeText && (
@@ -444,13 +429,6 @@ class PrimeCheckout extends Component {
         )}
       </div>
     );
-  }
-}
+};
 
-const stateToProps = (state) => ({
-  dongleId: state.dongleId,
-  device: state.device,
-  subscribeInfo: state.subscribeInfo,
-});
-
-export default connect(stateToProps)(withStyles(styles)(PrimeCheckout));
+export default withStyles(styles)(PrimeCheckout);

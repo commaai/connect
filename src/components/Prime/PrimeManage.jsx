@@ -4,8 +4,8 @@ import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
-import { Component } from 'react';
-import { connect } from 'react-redux';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { primeGetSubscription } from '../../actions';
 import Colors from '../../colors';
 import { ErrorOutline, InfoOutline } from '../../icons';
@@ -183,163 +183,156 @@ const styles = (theme) => ({
   },
 });
 
-class PrimeManage extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      error: null,
-      cancelError: null,
-      cancelModal: false,
-      canceling: false,
-      stripeStatus: null,
-      windowWidth: window.innerWidth,
-    };
+const PrimeManage = ({ classes }) => {
+  const dispatch = useDispatch();
+  const dongleId = useSelector((state) => state.dongleId);
+  const device = useSelector((state) => state.device);
+  const subscription = useSelector((state) => state.subscription);
+  const stripeSuccess = useSelector((state) => state.stripeSuccess);
 
-    this.cancelPrime = this.cancelPrime.bind(this);
-    this.fetchStripeSession = this.fetchStripeSession.bind(this);
-    this.gotoUpdate = this.gotoUpdate.bind(this);
-    this.fetchSubscription = this.fetchSubscription.bind(this);
-    this.onResize = this.onResize.bind(this);
-  }
+  const [error] = useState(null);
+  const [cancelError, setCancelError] = useState(null);
+  const [cancelSuccess, setCancelSuccess] = useState(null);
+  const [cancelModal, setCancelModal] = useState(false);
+  const [canceling, setCanceling] = useState(false);
+  const [stripeStatus, setStripeStatus] = useState(null);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  componentDidMount() {
-    this.componentDidUpdate({}, {});
-    this.mounted = true;
-  }
+  const mounted = useRef(false);
 
-  componentDidUpdate(prevProps, prevState) {
-    if (!prevProps.stripeSuccess && this.props.stripeSuccess) {
-      this.setState(
-        {
-          stripeStatus: { sessionId: this.props.stripeSuccess, loading: true, paid: null },
-        },
-        this.fetchStripeSession,
-      );
-    }
-  }
+  const onResize = (width) => {
+    setWindowWidth(width);
+  };
 
-  componentWillUnmount() {
-    this.mounted = false;
-  }
-
-  cancelPrime() {
-    this.setState({ canceling: true });
-    Billing.cancelPrime(this.props.dongleId)
-      .then((resp) => {
-        if (resp.success) {
-          this.setState({ canceling: false, cancelError: null, cancelSuccess: 'Cancelled subscription.' });
-          this.fetchSubscription();
-        } else if (resp.error) {
-          this.setState({ canceling: false, cancelError: resp.description });
+  const fetchSubscription = useCallback(
+    async (repeat = false) => {
+      if (!mounted.current) {
+        return;
+      }
+      try {
+        const subscriptionData = await Billing.getSubscription(dongleId);
+        if (subscriptionData.user_id) {
+          dispatch(primeGetSubscription(dongleId, subscriptionData));
         } else {
-          this.setState({ canceling: false, cancelError: 'Could not cancel due to unknown error. Please try again.' });
+          setTimeout(() => fetchSubscription(true), 2000);
         }
-      })
-      .catch((err) => {
-        Sentry.captureException(err, { fingerprint: 'primemanage_cancel_prime' });
-        this.setState({ canceling: false, cancelError: 'Could not cancel due to unknown error. Please try again.' });
-      });
-  }
+      } catch (err) {
+        if (err.message && err.message.indexOf('404') === 0) {
+          if (repeat) {
+            setTimeout(() => fetchSubscription(true), 2000);
+          }
+        } else {
+          console.error(err);
+          Sentry.captureException(err, { fingerprint: 'prime_fetch_subscription' });
+        }
+      }
+    },
+    [dongleId, dispatch],
+  );
 
-  async gotoUpdate() {
-    try {
-      const resp = await Billing.getStripePortal(this.props.dongleId);
-      window.location = resp.url;
-    } catch (err) {
-      // TODO show error messages
-      console.error(err);
-      Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_update' });
-    }
-  }
-
-  async fetchStripeSession() {
-    const { dongleId } = this.props;
-    const { stripeStatus } = this.state;
-    if (!stripeStatus || !this.mounted) {
+  const fetchStripeSession = useCallback(async () => {
+    if (!stripeStatus || !mounted.current) {
       return;
     }
 
     try {
       const resp = await Billing.getStripeSession(dongleId, stripeStatus.sessionId);
       const status = resp.payment_status;
-      this.setState({
-        stripeStatus: {
-          ...stripeStatus,
-          paid: status,
-          loading: status !== 'paid',
-        },
+      setStripeStatus({
+        ...stripeStatus,
+        paid: status,
+        loading: status !== 'paid',
       });
       if (status === 'paid') {
-        this.fetchSubscription(true);
+        fetchSubscription(true);
       } else {
-        setTimeout(this.fetchStripeSession, 2000);
+        setTimeout(fetchStripeSession, 2000);
       }
     } catch (err) {
       // TODO error handling
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'prime_fetch_stripe_session' });
     }
-  }
+  }, [dongleId, stripeStatus, fetchSubscription]);
 
-  async fetchSubscription(repeat = false) {
-    const { dongleId } = this.props;
-    if (!this.mounted) {
-      return;
-    }
-    try {
-      const subscription = await Billing.getSubscription(dongleId);
-      if (subscription.user_id) {
-        this.props.dispatch(primeGetSubscription(dongleId, subscription));
-      } else {
-        setTimeout(() => this.fetchSubscription(true), 2000);
-      }
-    } catch (err) {
-      if (err.message && err.message.indexOf('404') === 0) {
-        if (repeat) {
-          setTimeout(() => this.fetchSubscription(true), 2000);
+  const cancelPrime = () => {
+    setCanceling(true);
+    Billing.cancelPrime(dongleId)
+      .then((resp) => {
+        if (resp.success) {
+          setCanceling(false);
+          setCancelError(null);
+          setCancelSuccess('Cancelled subscription.');
+          fetchSubscription();
+        } else if (resp.error) {
+          setCanceling(false);
+          setCancelError(resp.description);
+        } else {
+          setCanceling(false);
+          setCancelError('Could not cancel due to unknown error. Please try again.');
         }
-      } else {
-        console.error(err);
-        Sentry.captureException(err, { fingerprint: 'prime_fetch_subscription' });
-      }
+      })
+      .catch((err) => {
+        Sentry.captureException(err, { fingerprint: 'primemanage_cancel_prime' });
+        setCanceling(false);
+        setCancelError('Could not cancel due to unknown error. Please try again.');
+      });
+  };
+
+  const gotoUpdate = async () => {
+    try {
+      const resp = await Billing.getStripePortal(dongleId);
+      window.location = resp.url;
+    } catch (err) {
+      // TODO show error messages
+      console.error(err);
+      Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_update' });
     }
+  };
+
+  // Set mounted ref
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  // Handle stripe success
+  useEffect(() => {
+    if (stripeSuccess) {
+      setStripeStatus({ sessionId: stripeSuccess, loading: true, paid: null });
+      fetchStripeSession();
+    }
+  }, [stripeSuccess, fetchStripeSession]);
+
+  const hasPrimeSub = subscription && subscription.user_id;
+
+  if (!hasPrimeSub && !stripeStatus) {
+    return null;
   }
 
-  onResize(windowWidth) {
-    this.setState({ windowWidth });
+  let joinDate;
+  let nextPaymentDate;
+  let cancelAtDate;
+  let planName;
+  let planSubtext;
+  if (hasPrimeSub) {
+    joinDate = dayjs(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0).format('MMMM D, YYYY');
+    nextPaymentDate = dayjs(subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0).format('MMMM D, YYYY');
+    cancelAtDate = dayjs(subscription.cancel_at ? subscription.cancel_at * 1000 : 0).format('MMMM D, YYYY');
+    planName = subscription.plan === 'nodata' ? 'Lite' : 'Standard';
+    planSubtext = subscription.plan === 'nodata' ? '(without data plan)' : '(with data plan)';
   }
 
-  render() {
-    const { dongleId, subscription, classes, device } = this.props;
-    const { windowWidth, stripeStatus } = this.state;
+  const hasCancelAt = Boolean(hasPrimeSub && subscription.cancel_at && subscription.cancel_at <= subscription.next_charge_at);
+  const alias = deviceNamePretty(device);
+  const containerPadding = windowWidth > 520 ? 36 : 16;
+  const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
 
-    const hasPrimeSub = subscription && subscription.user_id;
-
-    if (!hasPrimeSub && !stripeStatus) {
-      return null;
-    }
-
-    let joinDate;
-    let nextPaymentDate;
-    let cancelAtDate;
-    let planName;
-    let planSubtext;
-    if (hasPrimeSub) {
-      joinDate = dayjs(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0).format('MMMM D, YYYY');
-      nextPaymentDate = dayjs(subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0).format('MMMM D, YYYY');
-      cancelAtDate = dayjs(subscription.cancel_at ? subscription.cancel_at * 1000 : 0).format('MMMM D, YYYY');
-      planName = subscription.plan === 'nodata' ? 'Lite' : 'Standard';
-      planSubtext = subscription.plan === 'nodata' ? '(without data plan)' : '(with data plan)';
-    }
-
-    const hasCancelAt = Boolean(hasPrimeSub && subscription.cancel_at && subscription.cancel_at <= subscription.next_charge_at);
-    const alias = deviceNamePretty(device);
-    const containerPadding = windowWidth > 520 ? 36 : 16;
-    const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
-
-    return (
-      <>
-        <ResizeHandler onResize={this.onResize} />
+  return (
+    <>
+      <ResizeHandler onResize={onResize} />
         <div className={classes.primeBox}>
           <div className={classes.primeContainer} style={{ padding: `8px ${containerPadding}px` }}>
             <IconButton aria-label="Go Back" onClick={() => navigate(`/${dongleId}`)}>
@@ -410,17 +403,17 @@ class PrimeManage extends Component {
                   <Typography variant="subheading">Amount</Typography>
                   <Typography className={classes.manageItem}>{`$${(subscription.amount / 100).toFixed(2)}`}</Typography>
                 </div>
-                {this.state.error && (
+                {error && (
                   <div className={classes.overviewBlockError}>
                     <ErrorOutline />
-                    <Typography>{this.state.error}</Typography>
+                    <Typography>{error}</Typography>
                   </div>
                 )}
                 <div className={`${classes.overviewBlock} ${classes.paymentElement}`}>
                   <Button
                     className={classes.buttons}
                     style={buttonSmallStyle}
-                    onClick={this.gotoUpdate}
+                    onClick={gotoUpdate}
                     disabled={!hasPrimeSub || (hasCancelAt && !device.eligible_features?.prime_data && subscription.plan === 'data')}
                   >
                     {hasCancelAt ? 'Renew subscription' : 'Update payment method'}
@@ -429,7 +422,7 @@ class PrimeManage extends Component {
                     <Button
                       className={`${classes.buttons} ${classes.cancelButton} primeCancel`}
                       style={buttonSmallStyle}
-                      onClick={() => this.setState({ cancelModal: true })}
+                      onClick={() => setCancelModal(true)}
                       disabled={Boolean(!hasPrimeSub)}
                     >
                       Cancel subscription
@@ -461,17 +454,17 @@ class PrimeManage extends Component {
             )}
           </div>
         </div>
-        <Modal open={this.state.cancelModal} onClose={() => this.setState({ cancelModal: false })}>
+        <Modal open={cancelModal} onClose={() => setCancelModal(false)}>
           <Paper className={classes.modal}>
             <Typography variant="title">Cancel prime subscription</Typography>
-            {this.state.cancelError && (
+            {cancelError && (
               <div className={classes.cancelError}>
-                <Typography>{this.state.cancelError}</Typography>
+                <Typography>{cancelError}</Typography>
               </div>
             )}
-            {this.state.cancelSuccess && (
+            {cancelSuccess && (
               <div className={classes.cancelSuccess}>
-                <Typography>{this.state.cancelSuccess}</Typography>
+                <Typography>{cancelSuccess}</Typography>
               </div>
             )}
             <Typography>{`Device: ${alias} (${dongleId})`}</Typography>
@@ -480,25 +473,18 @@ class PrimeManage extends Component {
             <Button
               variant="contained"
               className={`${classes.cancelModalButton} primeModalCancel`}
-              onClick={this.cancelPrime}
-              disabled={Boolean(this.state.cancelSuccess || this.state.canceling)}
+              onClick={cancelPrime}
+              disabled={Boolean(cancelSuccess || canceling)}
             >
-              {this.state.canceling ? <CircularProgress size={19} style={{ color: Colors.white }} /> : 'Cancel subscription'}
+              {canceling ? <CircularProgress size={19} style={{ color: Colors.white }} /> : 'Cancel subscription'}
             </Button>
-            <Button variant="contained" className={`${classes.closeButton} primeModalClose`} onClick={() => this.setState({ cancelModal: false })}>
+            <Button variant="contained" className={`${classes.closeButton} primeModalClose`} onClick={() => setCancelModal(false)}>
               Close
             </Button>
           </Paper>
         </Modal>
       </>
     );
-  }
-}
+};
 
-const stateToProps = (state) => ({
-  dongleId: state.dongleId,
-  device: state.device,
-  subscription: state.subscription,
-});
-
-export default connect(stateToProps)(withStyles(styles)(PrimeManage));
+export default withStyles(styles)(PrimeManage);

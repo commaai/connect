@@ -5,8 +5,8 @@ import SaveIcon from '@material-ui/icons/Save';
 import ShareIcon from '@material-ui/icons/Share';
 import WarningIcon from '@material-ui/icons/Warning';
 import * as Sentry from '@sentry/react';
-import { Component } from 'react';
-import { connect } from 'react-redux';
+import { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { selectDevice, updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
@@ -101,295 +101,278 @@ const styles = (theme) => ({
   },
 });
 
-const initialState = {
-  deviceAlias: '',
-  loadingDeviceAlias: false,
-  loadingDeviceShare: false,
-  hasSavedAlias: false,
-  shareEmail: '',
-  unpairConfirm: false,
-  unpaired: false,
-  loadingUnpair: false,
-  error: null,
-  unpairError: null,
-  uploadModal: false,
-};
+const DeviceSettingsModal = ({ classes, dongleId, isOpen, onClose }) => {
+  const dispatch = useDispatch();
+  const globalDongleId = useSelector((state) => state.dongleId);
+  const devices = useSelector((state) => state.devices);
+  const currentDevice = useSelector((state) => state.device);
+  const device = devices.find((d) => d.dongle_id === dongleId) || (currentDevice && currentDevice.dongle_id === dongleId ? currentDevice : null);
 
-class DeviceSettingsModal extends Component {
-  constructor(props) {
-    super(props);
+  const [deviceAlias, setDeviceAlias] = useState('');
+  const [loadingDeviceAlias, setLoadingDeviceAlias] = useState(false);
+  const [loadingDeviceShare, setLoadingDeviceShare] = useState(false);
+  const [hasSavedAlias, setHasSavedAlias] = useState(false);
+  const [shareEmail, setShareEmail] = useState('');
+  const [hasShared, setHasShared] = useState(false);
+  const [unpairConfirm, setUnpairConfirm] = useState(false);
+  const [unpaired, setUnpaired] = useState(false);
+  const [loadingUnpair, setLoadingUnpair] = useState(false);
+  const [error, setError] = useState(null);
+  const [unpairError, setUnpairError] = useState(null);
+  const [uploadModal, setUploadModal] = useState(false);
 
-    this.state = {
-      ...initialState,
-    };
+  // Reset state when dongleId changes
+  useEffect(() => {
+    const alias = device?.dongle_id === dongleId ? device.alias : '';
+    setDeviceAlias(alias);
+    setLoadingDeviceAlias(false);
+    setLoadingDeviceShare(false);
+    setHasSavedAlias(false);
+    setShareEmail('');
+    setHasShared(false);
+    setUnpairConfirm(false);
+    setUnpaired(false);
+    setLoadingUnpair(false);
+    setError(null);
+    setUnpairError(null);
+    setUploadModal(false);
+  }, [dongleId, device]);
 
-    this.onPrimeSettings = this.onPrimeSettings.bind(this);
-    this.handleAliasChange = this.handleAliasChange.bind(this);
-    this.handleEmailChange = this.handleEmailChange.bind(this);
-    this.callOnEnter = this.callOnEnter.bind(this);
-    this.setDeviceAlias = this.setDeviceAlias.bind(this);
-    this.shareDevice = this.shareDevice.bind(this);
-    this.unpairDevice = this.unpairDevice.bind(this);
-    this.closeUnpair = this.closeUnpair.bind(this);
-  }
+  const handleAliasChange = (e) => {
+    setDeviceAlias(e.target.value);
+    setHasSavedAlias(e.target.value === device.dongle_id ? hasSavedAlias : false);
+  };
 
-  componentDidUpdate(prevProps) {
-    if (prevProps.dongleId !== this.props.dongleId) {
-      const alias = this.props.device?.dongle_id === this.props.dongleId ? this.props.device.alias : '';
-      this.setState({
-        ...initialState,
-        deviceAlias: alias,
-      });
-    }
-  }
+  const handleEmailChange = (e) => {
+    setShareEmail(e.target.value);
+    setHasShared(false);
+    setError(null);
+  };
 
-  handleAliasChange(e) {
-    this.setState((state, props) => ({
-      deviceAlias: e.target.value,
-      hasSavedAlias: e.target.value === props.device.dongle_id ? state.hasSavedAlias : false,
-    }));
-  }
-
-  handleEmailChange(e) {
-    this.setState({
-      shareEmail: e.target.value,
-      hasShared: false,
-      error: null,
-    });
-  }
-
-  callOnEnter(method, e) {
+  const callOnEnter = (method, e) => {
     if (e.key === 'Enter') {
       method();
     }
-  }
+  };
 
-  async setDeviceAlias() {
-    const { dongle_id: dongleId } = this.props.device;
-
-    if (this.state.loadingDeviceAlias) {
+  const setDeviceAliasAction = async () => {
+    if (loadingDeviceAlias || !device) {
       return;
     }
 
-    this.setState({
-      loadingDeviceAlias: true,
-      hasSavedAlias: false,
-    });
+    setLoadingDeviceAlias(true);
+    setHasSavedAlias(false);
     try {
-      const device = await Devices.setDeviceAlias(dongleId, this.state.deviceAlias.trim());
-      this.props.dispatch(updateDevice(device));
-      this.setState({
-        loadingDeviceAlias: false,
-        hasSavedAlias: true,
-      });
+      const updatedDevice = await Devices.setDeviceAlias(device.dongle_id, deviceAlias.trim());
+      dispatch(updateDevice(updatedDevice));
+      setLoadingDeviceAlias(false);
+      setHasSavedAlias(true);
     } catch (err) {
       Sentry.captureException(err, { fingerprint: 'device_settings_alias' });
-      this.setState({ error: err.message, loadingDeviceAlias: false });
+      setError(err.message);
+      setLoadingDeviceAlias(false);
     }
-  }
+  };
 
-  async shareDevice() {
-    if (this.state.loadingDeviceShare) {
+  const shareDevice = async () => {
+    if (loadingDeviceShare) {
       return;
     }
 
-    this.setState({
-      loadingDeviceShare: true,
-      hasShared: false,
-    });
+    setLoadingDeviceShare(true);
+    setHasShared(false);
     try {
-      await Devices.grantDeviceReadPermission(this.props.dongleId, this.state.shareEmail.trim());
-      this.setState({
-        loadingDeviceShare: false,
-        shareEmail: '',
-        hasShared: true,
-        error: null,
-      });
+      await Devices.grantDeviceReadPermission(dongleId, shareEmail.trim());
+      setLoadingDeviceShare(false);
+      setShareEmail('');
+      setHasShared(true);
+      setError(null);
     } catch (err) {
       if (err.resp && err.resp.status === 404) {
-        this.setState({ error: 'could not find user', loadingDeviceShare: false });
+        setError('could not find user');
+        setLoadingDeviceShare(false);
       } else {
         console.error(err);
         Sentry.captureException(err, { fingerprint: 'device_settings_share' });
-        this.setState({ error: 'unable to share', loadingDeviceShare: false });
+        setError('unable to share');
+        setLoadingDeviceShare(false);
       }
     }
-  }
+  };
 
-  onPrimeSettings() {
+  const onPrimeSettings = () => {
     let intv = null;
     const doPrimeNav = () => {
       if (intv) {
         clearInterval(intv);
       }
-      navigate(`/${this.props.globalDongleId || this.props.dongleId}/prime`);
-      this.props.onClose();
+      navigate(`/${globalDongleId || dongleId}/prime`);
+      onClose();
     };
 
-    if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId));
+    if (dongleId !== globalDongleId) {
+      dispatch(selectDevice(dongleId));
       intv = setInterval(() => {
-        if (this.props.dongleId === this.props.globalDongleId) {
+        if (dongleId === globalDongleId) {
           doPrimeNav();
         }
       }, 100);
     } else {
       doPrimeNav();
     }
-  }
+  };
 
-  async unpairDevice() {
-    this.setState({ loadingUnpair: true });
+  const unpairDevice = async () => {
+    if (!device) {
+      return;
+    }
+
+    setLoadingUnpair(true);
     try {
-      const resp = await Devices.unpair(this.props.device.dongle_id);
+      const resp = await Devices.unpair(device.dongle_id);
       if (resp.success) {
-        this.setState({ loadingUnpair: false, unpaired: true });
+        setLoadingUnpair(false);
+        setUnpaired(true);
       } else if (resp.error) {
-        this.setState({ loadingUnpair: false, unpaired: false, unpairError: resp.error });
+        setLoadingUnpair(false);
+        setUnpaired(false);
+        setUnpairError(resp.error);
       } else {
-        this.setState({ loadingUnpair: false, unpaired: false, unpairError: 'Could not successfully unpair' });
+        setLoadingUnpair(false);
+        setUnpaired(false);
+        setUnpairError('Could not successfully unpair');
       }
     } catch (err) {
       Sentry.captureException(err, { fingerprint: 'device_settings_unpair' });
       console.error(err);
-      this.setState({ loadingUnpair: false, unpaired: false, unpairError: 'Unable to unpair' });
+      setLoadingUnpair(false);
+      setUnpaired(false);
+      setUnpairError('Unable to unpair');
     }
-  }
+  };
 
-  closeUnpair() {
-    if (this.state.unpaired) {
+  const closeUnpair = () => {
+    if (unpaired) {
       window.location = window.location.origin;
     } else {
-      this.setState({ unpairConfirm: false });
+      setUnpairConfirm(false);
     }
+  };
+
+  if (!device) {
+    return null;
   }
 
-  render() {
-    const { classes, device } = this.props;
-    if (!device) {
-      return null;
-    }
-
-    return (
-      <>
-        <Modal aria-labelledby="device-settings-modal" aria-describedby="device-settings-modal-description" open={this.props.isOpen} onClose={this.props.onClose}>
-          <Paper className={classes.modal}>
-            <div className={classes.titleContainer}>
-              <Typography variant="title">Device settings</Typography>
-              <Typography variant="caption">{device.dongle_id}</Typography>
-            </div>
-            <Divider />
-            <div>
-              <Button variant="outlined" className={classes.primeManageButton} onClick={this.onPrimeSettings}>
-                Prime settings
-              </Button>
-              <Button variant="outlined" className={classes.primeManageButton} onClick={() => this.setState({ unpairConfirm: true })}>
-                Unpair
-              </Button>
-            </div>
-            <div>
-              <Button variant="outlined" className={classes.primeManageButton} onClick={() => this.setState({ uploadModal: true })}>
-                Uploads
-              </Button>
-            </div>
-            <div className={classes.form}>
-              {this.state.error && (
-                <div className={classes.formRowError}>
-                  <Typography>{this.state.error}</Typography>
+  return (
+    <>
+      <Modal aria-labelledby="device-settings-modal" aria-describedby="device-settings-modal-description" open={isOpen} onClose={onClose}>
+        <Paper className={classes.modal}>
+          <div className={classes.titleContainer}>
+            <Typography variant="title">Device settings</Typography>
+            <Typography variant="caption">{device.dongle_id}</Typography>
+          </div>
+          <Divider />
+          <div>
+            <Button variant="outlined" className={classes.primeManageButton} onClick={onPrimeSettings}>
+              Prime settings
+            </Button>
+            <Button variant="outlined" className={classes.primeManageButton} onClick={() => setUnpairConfirm(true)}>
+              Unpair
+            </Button>
+          </div>
+          <div>
+            <Button variant="outlined" className={classes.primeManageButton} onClick={() => setUploadModal(true)}>
+              Uploads
+            </Button>
+          </div>
+          <div className={classes.form}>
+            {error && (
+              <div className={classes.formRowError}>
+                <Typography>{error}</Typography>
+              </div>
+            )}
+            <div className={classes.formRow}>
+              <TextField
+                id="device_alias"
+                label="Device name"
+                className={classes.textField}
+                value={deviceAlias || ''}
+                onChange={handleAliasChange}
+                onKeyPress={(ev) => callOnEnter(setDeviceAliasAction, ev)}
+              />
+              {(device.alias !== deviceAlias || hasSavedAlias) && (
+                <div className={classes.wrapper}>
+                  <IconButton variant="fab" onClick={setDeviceAliasAction}>
+                    {hasSavedAlias ? <CheckIcon /> : <SaveIcon />}
+                  </IconButton>
+                  {loadingDeviceAlias && <CircularProgress size={48} className={classes.fabProgress} />}
                 </div>
               )}
-              <div className={classes.formRow}>
-                <TextField
-                  id="device_alias"
-                  label="Device name"
-                  className={classes.textField}
-                  value={this.state.deviceAlias ? this.state.deviceAlias : ''}
-                  onChange={this.handleAliasChange}
-                  onKeyPress={(ev) => this.callOnEnter(this.setDeviceAlias, ev)}
-                />
-                {(this.props.device.alias !== this.state.deviceAlias || this.state.hasSavedAlias) && (
-                  <div className={classes.wrapper}>
-                    <IconButton variant="fab" onClick={this.setDeviceAlias}>
-                      {this.state.hasSavedAlias ? <CheckIcon /> : <SaveIcon />}
-                    </IconButton>
-                    {this.state.loadingDeviceAlias && <CircularProgress size={48} className={classes.fabProgress} />}
-                  </div>
-                )}
-              </div>
-              <div className={classes.formRow}>
-                <TextField
-                  id="device_share"
-                  label="Share by email or user id"
-                  className={classes.textField}
-                  value={this.state.shareEmail}
-                  onChange={this.handleEmailChange}
-                  variant="outlined"
-                  onKeyPress={(ev) => this.callOnEnter(this.shareDevice, ev)}
-                  helperText="give another user read access to this device"
-                />
-                {(this.state.shareEmail.length > 0 || this.state.hasShared) && (
-                  <div className={classes.wrapper}>
-                    <IconButton variant="fab" onClick={this.shareDevice}>
-                      {this.state.hasShared ? <CheckIcon /> : <ShareIcon />}
-                    </IconButton>
-                    {this.state.loadingDeviceShare && <CircularProgress size={48} className={classes.fabProgress} />}
-                  </div>
-                )}
-              </div>
             </div>
-            <div className={classes.buttonGroup}>
-              <Button variant="contained" className={classes.cancelButton} onClick={this.props.onClose}>
-                Close
-              </Button>
-            </div>
-          </Paper>
-        </Modal>
-        <Modal aria-labelledby="device-settings-modal" aria-describedby="device-settings-modal-description" open={this.state.unpairConfirm} onClose={this.closeUnpair}>
-          <Paper className={`${classes.modal} ${classes.modalUnpair}`}>
-            <div className={classes.titleContainer}>
-              <Typography variant="title">Unpair device</Typography>
-              <Typography variant="caption">{device.dongle_id}</Typography>
-            </div>
-            <Divider />
-            {this.state.unpairError && (
-              <div className={classes.unpairError}>
-                <ErrorOutline />
-                <Typography>{this.state.unpairError}</Typography>
-              </div>
-            )}
-            {this.props.device.prime && (
-              <div className={classes.unpairWarning}>
-                <WarningIcon />
-                <Typography>Unpairing will also cancel the comma prime subscription for this device.</Typography>
-              </div>
-            )}
-            <div className={classes.topButtonGroup}>
-              <Button variant="contained" className={`${classes.primeManageButton} ${classes.cancelButton}`} onClick={this.closeUnpair}>
-                {this.state.unpaired ? 'Close' : 'Cancel'}
-              </Button>
-              {this.state.unpaired ? (
-                <Typography variant="body2">Unpaired</Typography>
-              ) : (
-                <Button variant="outlined" className={classes.primeManageButton} onClick={this.unpairDevice} disabled={this.state.loadingUnpair}>
-                  {this.state.loadingUnpair ? 'Unpairing...' : 'Confirm'}
-                </Button>
+            <div className={classes.formRow}>
+              <TextField
+                id="device_share"
+                label="Share by email or user id"
+                className={classes.textField}
+                value={shareEmail}
+                onChange={handleEmailChange}
+                variant="outlined"
+                onKeyPress={(ev) => callOnEnter(shareDevice, ev)}
+                helperText="give another user read access to this device"
+              />
+              {(shareEmail.length > 0 || hasShared) && (
+                <div className={classes.wrapper}>
+                  <IconButton variant="fab" onClick={shareDevice}>
+                    {hasShared ? <CheckIcon /> : <ShareIcon />}
+                  </IconButton>
+                  {loadingDeviceShare && <CircularProgress size={48} className={classes.fabProgress} />}
+                </div>
               )}
             </div>
-          </Paper>
-        </Modal>
-        <UploadQueue open={this.state.uploadModal} update={this.state.uploadModal} onClose={() => this.setState({ uploadModal: false })} device={device} />
-      </>
-    );
-  }
-}
-
-const stateToProps = (state, ownProps) => {
-  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId) || (state.device && state.device.dongle_id === ownProps.dongleId ? state.device : null);
-  return {
-    subscription: state.subscription,
-    device,
-    globalDongleId: state.dongleId,
-  };
+          </div>
+          <div className={classes.buttonGroup}>
+            <Button variant="contained" className={classes.cancelButton} onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        </Paper>
+      </Modal>
+      <Modal aria-labelledby="device-settings-modal" aria-describedby="device-settings-modal-description" open={unpairConfirm} onClose={closeUnpair}>
+        <Paper className={`${classes.modal} ${classes.modalUnpair}`}>
+          <div className={classes.titleContainer}>
+            <Typography variant="title">Unpair device</Typography>
+            <Typography variant="caption">{device.dongle_id}</Typography>
+          </div>
+          <Divider />
+          {unpairError && (
+            <div className={classes.unpairError}>
+              <ErrorOutline />
+              <Typography>{unpairError}</Typography>
+            </div>
+          )}
+          {device.prime && (
+            <div className={classes.unpairWarning}>
+              <WarningIcon />
+              <Typography>Unpairing will also cancel the comma prime subscription for this device.</Typography>
+            </div>
+          )}
+          <div className={classes.topButtonGroup}>
+            <Button variant="contained" className={`${classes.primeManageButton} ${classes.cancelButton}`} onClick={closeUnpair}>
+              {unpaired ? 'Close' : 'Cancel'}
+            </Button>
+            {unpaired ? (
+              <Typography variant="body2">Unpaired</Typography>
+            ) : (
+              <Button variant="outlined" className={classes.primeManageButton} onClick={unpairDevice} disabled={loadingUnpair}>
+                {loadingUnpair ? 'Unpairing...' : 'Confirm'}
+              </Button>
+            )}
+          </div>
+        </Paper>
+      </Modal>
+      <UploadQueue open={uploadModal} update={uploadModal} onClose={() => setUploadModal(false)} device={device} />
+    </>
+  );
 };
 
-export default connect(stateToProps)(withStyles(styles)(DeviceSettingsModal));
+export default withStyles(styles)(DeviceSettingsModal);
