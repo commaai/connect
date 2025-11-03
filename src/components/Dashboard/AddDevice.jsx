@@ -1,14 +1,13 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import QrScanner from 'qr-scanner';
-import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress } from '@material-ui/core';
+import { devices as Devices } from '@commaai/api';
+import { Button, CircularProgress, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
-
-import { devices as Devices } from '@commaai/api';
+import QrScanner from 'qr-scanner';
+import { Component } from 'react';
+import { connect } from 'react-redux';
 import { selectDevice, updateDevice } from '../../actions';
-import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import Colors from '../../colors';
+import { pairErrorToMessage, verifyPairToken } from '../../utils';
 
 const styles = (theme) => ({
   titleContainer: {

@@ -1,19 +1,17 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import dayjs from 'dayjs';
-import * as Sentry from '@sentry/react';
-
-import { withStyles, Typography, Button, Modal, Paper, IconButton, CircularProgress } from '@material-ui/core';
+import { billing as Billing } from '@commaai/api';
+import { Button, CircularProgress, IconButton, Modal, Paper, Typography, withStyles } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
-
-import { billing as Billing } from '@commaai/api';
-import { deviceNamePretty, deviceTypePretty } from '../../utils';
-import ResizeHandler from '../ResizeHandler';
+import * as Sentry from '@sentry/react';
+import dayjs from 'dayjs';
+import { Component } from 'react';
+import { connect } from 'react-redux';
+import { primeGetSubscription } from '../../actions';
 import Colors from '../../colors';
 import { ErrorOutline, InfoOutline } from '../../icons';
-import { primeGetSubscription } from '../../actions';
 import { navigate } from '../../navigation';
+import { deviceNamePretty, deviceTypePretty } from '../../utils';
+import ResizeHandler from '../ResizeHandler';
 
 const styles = (theme) => ({
   linkHighlight: {
@@ -210,9 +208,6 @@ class PrimeManage extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { subscription } = this.props;
-    const { stripeStatus } = this.state;
-
     if (!prevProps.stripeSuccess && this.props.stripeSuccess) {
       this.setState({
         stripeStatus: { sessionId: this.props.stripeSuccess, loading: true, paid: null },
@@ -309,7 +304,7 @@ class PrimeManage extends Component {
   }
 
   render() {
-    const { dispatch, dongleId, subscription, classes, device } = this.props;
+    const { dongleId, subscription, classes, device } = this.props;
     const { windowWidth, stripeStatus } = this.state;
 
     const hasPrimeSub = subscription && subscription.user_id;

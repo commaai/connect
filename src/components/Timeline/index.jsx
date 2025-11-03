@@ -1,20 +1,19 @@
 // timeline minimap
 // rapidly change high level timeline stuff
 // rapid seeking, etc
-import React, { useState, useEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+
 import { withStyles } from '@material-ui/core/styles';
 import dayjs from 'dayjs';
-
-
-import Thumbnails from './thumbnails';
-import theme from '../../theme';
+import { useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import Colors from '../../colors';
 import { navigate } from '../../navigation';
 import { selectRouteZoom } from '../../selectors/route';
-import Colors from '../../colors';
+import theme from '../../theme';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
+import Thumbnails from './thumbnails';
 
 const styles = () => ({
   base: {
@@ -318,6 +317,7 @@ const Timeline = ({ classes, hasRuler, className, route, thumbnailsVisible, zoom
   };
 
   // Initialize on mount - RAF loop
+  // biome-ignore lint/correctness/useExhaustiveDependencies: getOffset intentionally not in deps to avoid infinite RAF loop
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(getOffset);
 

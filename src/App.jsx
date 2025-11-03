@@ -1,20 +1,15 @@
-import React, { Component, lazy, Suspense } from 'react';
-import { Provider } from 'react-redux';
-import { Route, Switch, Redirect } from 'react-router';
-import { Router } from 'react-router';
-import localforage from 'localforage';
-import * as Sentry from '@sentry/react';
-
-import { CircularProgress, Grid } from '@material-ui/core';
-
-import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 import { athena as Athena, auth as Auth, billing as Billing, request as Request } from '@commaai/api';
-
-import { getZoom, getSegmentRange } from './url';
-import store from './store';
-import { history } from './history';
-
+import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
+import { CircularProgress, Grid } from '@material-ui/core';
+import * as Sentry from '@sentry/react';
+import localforage from 'localforage';
+import { Component, lazy, Suspense } from 'react';
+import { Provider } from 'react-redux';
+import { Redirect, Route, Router, Switch } from 'react-router';
 import ErrorFallback from './components/ErrorFallback';
+import { history } from './history';
+import store from './store';
+import { getSegmentRange, getZoom } from './url';
 
 const Explorer = lazy(() => import('./components/explorer'));
 const AnonymousLanding = lazy(() => import('./components/anonymous'));

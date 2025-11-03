@@ -1,30 +1,25 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
+import { Button, CircularProgress, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
 import localforage from 'localforage';
+import { Component } from 'react';
+import { connect } from 'react-redux';
 import { withRouter } from 'react-router';
 import { replace } from '../navigation';
-
-import { withStyles, Button, CircularProgress, Divider, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 import { devices as Devices } from '@commaai/api';
-
-import AppHeader from './AppHeader';
-import Dashboard from './Dashboard';
-import IosPwaPopup from './IosPwaPopup';
-import AppDrawer from './AppDrawer';
-import PullDownReload from './utils/PullDownReload';
-
-import { selectDevice, updateDevice, checkLastRoutesData } from '../actions';
+import { checkLastRoutesData, selectDevice, updateDevice } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
-import { play, pause } from '../timeline/playback';
-import { verifyPairToken, pairErrorToMessage } from '../utils';
-
-import ResizeHandler from './ResizeHandler';
-
+import { pause, play } from '../timeline/playback';
+import { pairErrorToMessage, verifyPairToken } from '../utils';
+import AppDrawer from './AppDrawer';
+import AppHeader from './AppHeader';
+import Dashboard from './Dashboard';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
+import IosPwaPopup from './IosPwaPopup';
+import ResizeHandler from './ResizeHandler';
+import PullDownReload from './utils/PullDownReload';
 
 const styles = (theme) => ({
   window: {

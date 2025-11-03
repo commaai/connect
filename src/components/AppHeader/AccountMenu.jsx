@@ -1,14 +1,12 @@
-import React, { useCallback, useMemo } from 'react';
-import dayjs from 'dayjs';
-
+import MyCommaAuth from '@commaai/my-comma-auth';
 import {
   Divider,
   ListItem,
   Menu,
   MenuItem,
 } from '@material-ui/core';
-
-import MyCommaAuth from '@commaai/my-comma-auth';
+import dayjs from 'dayjs';
+import { useCallback, useMemo } from 'react';
 
 const logOut = async () => {
   await MyCommaAuth.logOut();
@@ -21,7 +19,7 @@ const Version = () => {
   const sha = import.meta.env.VITE_APP_GIT_SHA;
   const timestamp = import.meta.env.VITE_APP_GIT_TIMESTAMP;
 
-  let content = ['Version: '];
+  const content = ['Version: '];
 
   if (sha) {
     const commitUrl = `https://github.com/commaai/connect/commit/${sha}`;

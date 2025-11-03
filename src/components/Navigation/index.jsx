@@ -1,21 +1,20 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import * as Sentry from '@sentry/react';
-import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
-import { withStyles, Typography, Button } from '@material-ui/core';
-import { Clear } from '@material-ui/icons';
-import dayjs from 'dayjs';
-
 import { athena as Athena, devices as Devices } from '@commaai/api';
-import { navigate } from '../../navigation';
-import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
+import { Button, Typography, withStyles } from '@material-ui/core';
+import { Clear } from '@material-ui/icons';
+import * as Sentry from '@sentry/react';
+import dayjs from 'dayjs';
+import React, { Component } from 'react';
+import ReactMapGL, { GeolocateControl, HTMLOverlay, Layer, Marker, Source, WebMercatorViewport } from 'react-map-gl';
+import { connect } from 'react-redux';
 import Colors from '../../colors';
 import { PinCarIcon } from '../../icons';
+import { navigate } from '../../navigation';
 import { timeFromNow } from '../../utils';
+import { isIos } from '../../utils/browser.js';
+import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import * as Utils from './utils';
-import { isIos } from '../../utils/browser.js';
 
 const styles = () => ({
   mapContainer: {
@@ -371,6 +370,7 @@ class Navigation extends Component {
     if (searchSelect) {
       bounds.push(this.itemLngLat(searchSelect, true));
     } else if (search) {
+      // biome-ignore lint/suspicious/useIterableCallbackReturn: push intentionally returns array length, forEach usage is correct for side effects
       search.forEach((item) => bounds.push(this.itemLngLat(item, true)));
     }
 

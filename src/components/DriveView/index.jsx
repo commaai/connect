@@ -1,16 +1,12 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import dayjs from 'dayjs';
-
 import { IconButton, Typography } from '@material-ui/core';
-
-import { navigate } from '../../navigation';
-import { selectRouteZoom, selectCurrentRoute } from '../../selectors/route';
+import dayjs from 'dayjs';
+import { Component } from 'react';
+import { connect } from 'react-redux';
 import { ArrowBackBold, CloseBold } from '../../icons';
-import { filterRegularClick } from '../../utils';
-
-import Media from './Media';
+import { navigate } from '../../navigation';
+import { selectCurrentRoute, selectRouteZoom } from '../../selectors/route';
 import Timeline from '../Timeline';
+import Media from './Media';
 
 class DriveView extends Component {
   constructor(props) {
@@ -29,7 +25,7 @@ class DriveView extends Component {
   }
 
   render() {
-    const { dongleId, zoom, currentRoute, routes } = this.props;
+    const { zoom, currentRoute, routes } = this.props;
 
     const currentRouteBoundsSelected = zoom.start === 0 && zoom.end === currentRoute?.duration;
     const backButtonDisabled = currentRouteBoundsSelected;

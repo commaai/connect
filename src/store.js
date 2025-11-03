@@ -1,10 +1,9 @@
 import * as Redux from 'redux';
 import thunk from 'redux-thunk';
-
-import rootReducer from './reducers';
 import composeEnhancers from './devtools';
-import initialState from './initialState';
 import { history } from './history';
+import initialState from './initialState';
+import rootReducer from './reducers';
 
 const store = Redux.createStore(
   rootReducer,

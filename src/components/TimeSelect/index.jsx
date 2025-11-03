@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import dayjs from 'dayjs';
-
 import { Button, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
-
-import Colors from '../../colors';
+import dayjs from 'dayjs';
+import { useCallback, useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { selectTimeFilter } from '../../actions';
+import Colors from '../../colors';
 
 const styles = (theme) => ({
   modal: {
@@ -96,8 +94,7 @@ const TimeSelect = (props) => {
   const endDate = dayjs(end || filter.end).format('YYYY-MM-DD');
 
   return (
-      <>
-        <Modal
+      <Modal
           aria-labelledby="simple-modal-title"
           aria-describedby="simple-modal-description"
           open={isOpen}
@@ -138,7 +135,6 @@ const TimeSelect = (props) => {
             </div>
           </Paper>
         </Modal>
-      </>
     );
 };
 

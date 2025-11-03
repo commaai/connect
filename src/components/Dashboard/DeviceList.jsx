@@ -1,16 +1,14 @@
-import React, { useState, useCallback } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import * as Sentry from '@sentry/react';
-
-import { withStyles, Typography, IconButton } from '@material-ui/core';
-import SettingsIcon from '@material-ui/icons/Settings';
-
-import MyCommaAuth from '@commaai/my-comma-auth';
 import { devices as Devices } from '@commaai/api';
+import MyCommaAuth from '@commaai/my-comma-auth';
+import { IconButton, Typography, withStyles } from '@material-ui/core';
+import SettingsIcon from '@material-ui/icons/Settings';
+import * as Sentry from '@sentry/react';
+import { useCallback, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 
 import { updateDevices } from '../../actions';
 import Colors from '../../colors';
-import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
+import { deviceIsOnline, deviceNamePretty, emptyDevice, filterRegularClick } from '../../utils';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';

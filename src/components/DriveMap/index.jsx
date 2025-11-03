@@ -1,11 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-
-import { selectCurrentRoute } from '../../selectors/route';
-
+import { useEffect, useRef, useState } from 'react';
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
-
+import { useDispatch, useSelector } from 'react-redux';
 import { fetchDriveCoords } from '../../actions/cached';
+import { selectCurrentRoute } from '../../selectors/route';
 import { currentOffset } from '../../timeline';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
 
@@ -123,7 +120,7 @@ const DriveMap = () => {
       const route = currentRouteRef.current;
       if (route && route.driveCoords) {
         const pos = posAtOffset(currentOffset(), route, driveCoordsMinRef.current, driveCoordsMaxRef.current);
-        if (pos && pos.some((coordinate, index) => coordinate != lastMapPosRef.current[index])) {
+        if (pos && pos.some((coordinate, index) => coordinate !== lastMapPosRef.current[index])) {
           lastMapPosRef.current = pos;
           markerSource.setData({
             type: 'Point',
@@ -249,6 +246,7 @@ const DriveMap = () => {
   };
 
   // Initialize on mount - fetch coords and start animation
+  // biome-ignore lint/correctness/useExhaustiveDependencies: updateMarkerPos intentionally not in deps to avoid infinite RAF loop
   useEffect(() => {
     const route = currentRoute?.fullname || null;
     if (route) {
@@ -262,9 +260,10 @@ const DriveMap = () => {
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, []);
+  }, [currentRoute, dispatch]);
 
   // Handle route changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: setPath intentionally not in deps to avoid re-running on every render
   useEffect(() => {
     const route = currentRoute?.fullname || null;
     if (route) {
@@ -272,7 +271,7 @@ const DriveMap = () => {
     } else {
       setPath([]);
     }
-  }, [currentRoute?.fullname]);
+  }, [currentRoute?.fullname, dispatch, currentRoute]);
 
   // Handle startTime changes
   useEffect(() => {
@@ -282,6 +281,7 @@ const DriveMap = () => {
   }, [startTime]);
 
   // Handle driveCoords updates
+  // biome-ignore lint/correctness/useExhaustiveDependencies: populateMap intentionally not in deps to avoid re-running on every render
   useEffect(() => {
     if (currentRoute?.driveCoords) {
       shouldFlyToRef.current = false;
@@ -290,7 +290,7 @@ const DriveMap = () => {
       setDriveCoordsMax(Math.max(...keys));
       populateMap(currentRoute);
     }
-  }, [currentRoute?.driveCoords]);
+  }, [currentRoute?.driveCoords, currentRoute]);
 
   return (
     <div ref={onRef} className="h-full cursor-default [&_div]:h-full [&_div]:w-full [&_div]:min-h-[300px]">

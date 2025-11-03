@@ -1,18 +1,18 @@
 /* eslint-disable camelcase */
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import { CircularProgress, Typography } from '@material-ui/core';
-import debounce from 'debounce';
-import { selectCurrentRoute } from '../../selectors/route';
-import ReactPlayer from 'react-player/file';
+
 
 import { video as Video } from '@commaai/api';
-
+import { CircularProgress, Typography } from '@material-ui/core';
+import debounce from 'debounce';
+import React, { Component } from 'react';
+import ReactPlayer from 'react-player/file';
+import { connect } from 'react-redux';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
+import { selectCurrentRoute } from '../../selectors/route';
 import { currentOffset } from '../../timeline';
-import { seek, bufferVideo } from '../../timeline/playback';
-import { isIos, isFirefox } from '../../utils/browser.js';
+import { bufferVideo, seek } from '../../timeline/playback';
+import { isFirefox, isIos } from '../../utils/browser.js';
 
 const VideoOverlay = ({ loading, error }) => {
   let content;

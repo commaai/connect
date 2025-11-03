@@ -1,6 +1,5 @@
-import React, { Component } from 'react';
-
-import { withStyles, Switch, FormControlLabel, Popper, Typography } from '@material-ui/core';
+import { FormControlLabel, Popper, Switch, Typography, withStyles } from '@material-ui/core';
+import { Component } from 'react';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';

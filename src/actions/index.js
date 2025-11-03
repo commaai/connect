@@ -1,13 +1,12 @@
-import * as Sentry from '@sentry/react';
 import { athena as Athena, billing as Billing, devices as Devices, drives as Drives } from '@commaai/api';
 import MyCommaAuth from '@commaai/my-comma-auth';
-
-import * as Types from './types';
+import * as Sentry from '@sentry/react';
+import { navigate } from '../navigation';
+import { selectSegmentRange } from '../selectors/route';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
-import { selectSegmentRange } from '../selectors/route';
-import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
-import { navigate } from '../navigation';
+import { deviceVersionAtLeast, getDeviceFromState } from '../utils';
+import * as Types from './types';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -158,7 +157,7 @@ export function urlForState(dongleId, log_id, start, end) {
   return `/${path.join('/')}`;
 }
 
-function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
+function _updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
     || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
     dispatch(resetPlayback());

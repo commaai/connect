@@ -1,18 +1,16 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
+import { athena as Athena, devices as Devices } from '@commaai/api';
+import { Button, CircularProgress, Popper, Tooltip, Typography, withStyles } from '@material-ui/core';
+import AccessTime from '@material-ui/icons/AccessTime';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
-
-import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } from '@material-ui/core';
-import AccessTime from '@material-ui/icons/AccessTime';
-
-import { athena as Athena, devices as Devices } from '@commaai/api';
+import React, { Component } from 'react';
+import { connect } from 'react-redux';
 import Colors from '../../colors';
-import { deviceNamePretty, deviceIsOnline } from '../../utils';
+import { deviceIsOnline, deviceNamePretty } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import ResizeHandler from '../ResizeHandler';
-import VisibilityHandler from '../VisibilityHandler';
 import TimeSelect from '../TimeSelect'
+import VisibilityHandler from '../VisibilityHandler';
 
 const styles = (theme) => ({
   container: {

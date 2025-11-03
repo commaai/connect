@@ -1,20 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import dayjs from 'dayjs';
-
+import { Tooltip } from '@material-ui/core';
+import IconButton from '@material-ui/core/IconButton';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
-import IconButton from '@material-ui/core/IconButton';
-import VolumeUp from '@material-ui/icons/VolumeUp';
 import VolumeOff from '@material-ui/icons/VolumeOff';
-import { Tooltip } from '@material-ui/core';
+import VolumeUp from '@material-ui/icons/VolumeUp';
+import dayjs from 'dayjs';
+import { useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow } from '../../icons';
+import { selectCurrentRoute, selectRouteZoom } from '../../selectors/route';
 import { currentOffset } from '../../timeline';
-import { seek, play, pause } from '../../timeline/playback';
+import { pause, play, seek } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
-import { selectRouteZoom, selectCurrentRoute } from '../../selectors/route';
 
 const timerSteps = [
   0.1,
@@ -192,6 +191,7 @@ const TimeDisplay = ({ classes, isThin, onMuteToggle, isMuted, hasAudio }) => {
   };
 
   // Initialize RAF loop on mount
+  // biome-ignore lint/correctness/useExhaustiveDependencies: updateTime intentionally not in deps to avoid infinite RAF loop
   useEffect(() => {
     animationFrameId.current = requestAnimationFrame(updateTime);
     return () => {

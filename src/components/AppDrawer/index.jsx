@@ -1,12 +1,9 @@
-import React, { useCallback, useEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { Link } from 'react-router-dom';
-
 import Drawer from '@material-ui/core/Drawer';
-
-import DeviceList from '../Dashboard/DeviceList';
-
+import { useCallback, useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
 import { selectDevice } from '../../actions';
+import DeviceList from '../Dashboard/DeviceList';
 
 const listener = (ev) => ev.stopPropagation();
 
@@ -23,7 +20,7 @@ const AppDrawer = ({
     return () => {
       if (el) el.removeEventListener('touchstart', listener);
     };
-  }, [contentRef]);
+  }, []);
 
   const toggleDrawerOff = useCallback(() => {
     handleDrawerStateChanged(false);

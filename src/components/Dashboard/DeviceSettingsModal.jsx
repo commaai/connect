@@ -1,7 +1,4 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import * as Sentry from '@sentry/react';
-
+import { devices as Devices } from '@commaai/api';
 import {
   Button,
   CircularProgress,
@@ -17,12 +14,13 @@ import CheckIcon from '@material-ui/icons/Check';
 import SaveIcon from '@material-ui/icons/Save';
 import ShareIcon from '@material-ui/icons/Share';
 import WarningIcon from '@material-ui/icons/Warning';
-
-import { devices as Devices } from '@commaai/api';
+import * as Sentry from '@sentry/react';
+import { Component } from 'react';
+import { connect } from 'react-redux';
 import { selectDevice, updateDevice } from '../../actions';
-import { navigate } from '../../navigation';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
+import { navigate } from '../../navigation';
 import UploadQueue from '../Files/UploadQueue';
 
 const styles = (theme) => ({

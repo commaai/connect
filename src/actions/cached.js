@@ -1,8 +1,7 @@
 import * as Sentry from '@sentry/react';
-
-import * as Types from './types';
-import { reverseLookup } from '../utils/geocode';
 import { toBool } from '../utils';
+import { reverseLookup } from '../utils/geocode';
+import * as Types from './types';
 
 const USE_LOCAL_COORDS_DATA = toBool(import.meta.env.VITE_APP_LOCAL_COORDS_DATA);
 if (USE_LOCAL_COORDS_DATA) {
@@ -489,6 +488,7 @@ export function fetchDriveCoords(route) {
     }
 
     driveCoords = driveCoords.reduce((prev, curr) => ({
+      // biome-ignore lint/performance/noAccumulatingSpread: existing code pattern, refactoring would require testing to ensure behavior unchanged
       ...prev,
       ...curr.reduce((p, cs) => {
         p[cs.t] = [cs.lng, cs.lat];

@@ -1,16 +1,15 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-
-import {
+import {Button, CircularProgress, 
+  Divider, LinearProgress,Modal, Paper, Typography, 
   withStyles,
-  Divider, Typography, CircularProgress, Button, Modal, Paper, LinearProgress,
 } from '@material-ui/core';
 import HighlightOffIcon from '@material-ui/icons/HighlightOff';
 import WarningIcon from '@material-ui/icons/Warning';
+import { Component } from 'react';
+import { connect } from 'react-redux';
 
-import { fetchUploadQueue, cancelUploads, cancelFetchUploadQueue, FILE_NAMES } from '../../actions/files';
-import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils';
+import { cancelFetchUploadQueue, cancelUploads, FILE_NAMES, fetchUploadQueue } from '../../actions/files';
 import Colors from '../../colors';
+import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 
 const styles = (theme) => ({
@@ -165,6 +164,7 @@ class UploadQueue extends Component {
     if (deviceVersionAtLeast(device, '0.8.13')) {
       dispatch(cancelUploads(device.dongle_id, ids));
     } else {
+      // biome-ignore lint/suspicious/useIterableCallbackReturn: dispatch intentionally returns an action, forEach usage is correct here
       ids.forEach((id) => dispatch(cancelUploads(device.dongle_id, id)));
     }
 

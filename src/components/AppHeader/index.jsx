@@ -1,18 +1,16 @@
-import React, { Suspense, useCallback, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import MyCommaAuth from '@commaai/my-comma-auth';
+import { AppBar, Icon, IconButton, Typography } from '@material-ui/core';
 
 import { withStyles } from '@material-ui/core/styles';
-import { Typography, IconButton, Icon, AppBar } from '@material-ui/core';
-
-import MyCommaAuth from '@commaai/my-comma-auth';
+import { Suspense, useCallback, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 
 import { selectDevice } from '../../actions';
-import { AccountIcon } from '../../icons';
 import Colors from '../../colors';
+import { AccountIcon } from '../../icons';
 import { filterRegularClick } from '../../utils';
-
-import AccountMenu from './AccountMenu';
 import PWAIcon from '../PWAIcon';
+import AccountMenu from './AccountMenu';
 
 const styles = () => ({
   header: {

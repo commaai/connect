@@ -1,8 +1,8 @@
 /* eslint-env jest */
-import React from 'react';
+
+import { render, screen } from '@testing-library/react';
 import * as Redux from 'redux';
 import thunk from 'redux-thunk';
-import { render, screen } from '@testing-library/react';
 import DriveListItem from './DriveListItem';
 
 const defaultState = {

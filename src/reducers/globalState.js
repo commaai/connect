@@ -1,6 +1,5 @@
 import * as Types from '../actions/types';
 import { emptyDevice } from '../utils';
-import { getSegmentRange } from '../url';
 
 const eventsMap = {};
 const locationMap = {};

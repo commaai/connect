@@ -1,11 +1,11 @@
 /* global AppleID */
-import React, { Component } from 'react';
-import { withRouter } from 'react-router';
 
-import { withStyles } from '@material-ui/core/styles';
-import Typography from '@material-ui/core/Typography';
 
 import {config as AuthConfig, storage as AuthStorage} from '@commaai/my-comma-auth';
+import { withStyles } from '@material-ui/core/styles';
+import Typography from '@material-ui/core/Typography';
+import { Component } from 'react';
+import { withRouter } from 'react-router';
 
 import Colors from '../colors';
 import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon, RightArrow } from '../icons';
@@ -124,7 +124,7 @@ class AnonymousLanding extends Component {
   render() {
     const { classes } = this.props;
 
-    const loginAsDemoUser = function() {
+    const loginAsDemoUser = () => {
       AuthStorage.setCommaAccessToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjEwMzg5NTgwNzM1LCJuYmYiOjE3NDk1ODA3MzUsImlhdCI6MTc0OTU4MDczNSwiaWRlbnRpdHkiOiIwZGVjZGRjZmRmMjQxYTYwIn0.KsDzqJxgkYhAs4tCgrMJIdORyxO0CQNb0gHXIf8aUT0');
       window.location = window.location.origin;
     };

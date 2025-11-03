@@ -1,9 +1,10 @@
 /* eslint-env jest */
+
+import { drives as Drives } from '@commaai/api';
 import { history } from '../history';
 import installHistorySync from '../historySync';
-import * as actionsIndex from './index';
-import { drives as Drives } from '@commaai/api';
 import { replace } from '../navigation';
+import * as actionsIndex from './index';
 
 jest.mock('./index', () => ({
   selectDevice: jest.fn(),

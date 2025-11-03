@@ -1,18 +1,16 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import dayjs from 'dayjs';
-import * as Sentry from '@sentry/react';
-import { withStyles, Typography, IconButton, Button, CircularProgress } from '@material-ui/core';
-import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
-import CheckIcon from '@material-ui/icons/Check';
-
 import { billing as Billing } from '@commaai/api';
-
+import { Button, CircularProgress, IconButton, Typography, withStyles } from '@material-ui/core';
+import CheckIcon from '@material-ui/icons/Check';
+import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
+import * as Sentry from '@sentry/react';
+import dayjs from 'dayjs';
+import { Component } from 'react';
+import { connect } from 'react-redux';
+import Colors from '../../colors';
+import { ErrorOutline, InfoOutline } from '../../icons';
+import { navigate } from '../../navigation';
 import { deviceNamePretty } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
-import Colors from '../../colors';
-import { navigate } from '../../navigation';
-import { ErrorOutline, InfoOutline } from '../../icons';
 
 const styles = () => ({
   linkHighlight: {
@@ -244,7 +242,7 @@ class PrimeCheckout extends Component {
   }
 
   async gotoCheckout() {
-    const { dispatch, dongleId, subscribeInfo } = this.props;
+    const { dongleId, subscribeInfo } = this.props;
     this.setState({ loadingCheckout: true });
     try {
       const { selectedPlan: plan } = this.state;
@@ -293,7 +291,7 @@ class PrimeCheckout extends Component {
   }
 
   render() {
-    const { classes, dispatch, device, subscribeInfo } = this.props;
+    const { classes, device, subscribeInfo } = this.props;
     const { windowWidth, windowHeight, error, loadingCheckout, selectedPlan } = this.state;
 
     let chargeText = null;

@@ -1,12 +1,10 @@
-import React, { lazy, Suspense } from 'react';
+import { CircularProgress, Grid } from '@material-ui/core';
+import { lazy, Suspense } from 'react';
 import { useSelector } from 'react-redux';
 import { withRouter } from 'react-router';
-
-import { CircularProgress, Grid } from '@material-ui/core';
-
-import DriveList from './DriveList';
-import Navigation from '../Navigation';
 import DeviceInfo from '../DeviceInfo';
+import Navigation from '../Navigation';
+import DriveList from './DriveList';
 
 const Prime = lazy(() => import('../Prime'));
 

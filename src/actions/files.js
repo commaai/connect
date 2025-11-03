@@ -1,9 +1,8 @@
-import * as Sentry from '@sentry/react';
 import { athena as Athena, devices as Devices, raw as Raw } from '@commaai/api';
-
-import { updateDeviceOnline, fetchDeviceNetworkStatus } from '.';
+import * as Sentry from '@sentry/react';
+import { asyncSleep, deviceOnCellular, deviceVersionAtLeast, getDeviceFromState } from '../utils';
+import { fetchDeviceNetworkStatus, updateDeviceOnline } from '.';
 import * as Types from './types';
-import { deviceOnCellular, getDeviceFromState, deviceVersionAtLeast, asyncSleep } from '../utils';
 
 export const FILE_NAMES = {
   qcameras: ['qcamera.ts'],
@@ -249,13 +248,13 @@ export function doUpload(dongleId, paths, urls) {
         }, {});
         dispatch(updateFiles(newUploading));
       } else if (resp.result) {
-        let failed = resp.result.failed || [];
+        const failed = resp.result.failed || [];
 
         // only if all file names for a segment file type failed
-        let failedFiltered = [];
+        const failedFiltered = [];
         for (const f of failed) {
-          let failedCnt = failed.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
-          let requestedCnt = paths.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
+          const failedCnt = failed.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
+          const requestedCnt = paths.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
           if (failedCnt >= requestedCnt) {
             failedFiltered.push(f);
           }

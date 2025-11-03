@@ -1,9 +1,7 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
-
 import { Typography } from '@material-ui/core';
-import PrimeManage from './PrimeManage';
+import { useSelector } from 'react-redux';
 import PrimeCheckout from './PrimeCheckout';
+import PrimeManage from './PrimeManage';
 
 const Prime = () => {
   const device = useSelector((state) => state.device);

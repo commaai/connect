@@ -1,5 +1,5 @@
-import React, { Component } from 'react';
 import { ClickAwayListener, Tooltip, Typography, withStyles } from '@material-ui/core';
+import { Component } from 'react';
 
 import { InfoOutline } from '../../icons';
 

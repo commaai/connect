@@ -1,27 +1,24 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import * as Sentry from '@sentry/react';
-
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem } from '@material-ui/core';
-import WarningIcon from '@material-ui/icons/Warning';
+import { drives as Drives } from '@commaai/api';
+import { Button, CircularProgress, Divider, ListItem, Menu, MenuItem, Popper, Typography, withStyles } from '@material-ui/core';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
-
-import { drives as Drives } from '@commaai/api';
-
-import DriveMap from '../DriveMap';
-import DriveVideo from '../DriveVideo';
-import ResizeHandler from '../ResizeHandler';
-import TimeDisplay from '../TimeDisplay';
-import UploadQueue from '../Files/UploadQueue';
-import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo } from '../../timeline/playback';
-import Colors from '../../colors';
-import { InfoOutline } from '../../icons';
-import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
+import WarningIcon from '@material-ui/icons/Warning';
+import * as Sentry from '@sentry/react';
+import { Component } from 'react';
+import { connect } from 'react-redux';
 import { updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
-import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
+import { doUpload, FILE_NAMES, fetchAthenaQueue, fetchFiles, fetchUploadUrls, setRouteViewed, updateFiles } from '../../actions/files';
+import Colors from '../../colors';
+import { InfoOutline } from '../../icons';
+import { bufferVideo } from '../../timeline/playback';
+import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
+import DriveMap from '../DriveMap';
+import DriveVideo from '../DriveVideo';
+import UploadQueue from '../Files/UploadQueue';
+import ResizeHandler from '../ResizeHandler';
+import TimeDisplay from '../TimeDisplay';
+import SwitchLoading from '../utils/SwitchLoading';
 
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
@@ -338,8 +335,8 @@ class Media extends Component {
     uploading[fileName] = { requested: true };
     this.props.dispatch(updateFiles(uploading));
 
-    let paths = [];
-    let url_promises = [];
+    const paths = [];
+    const url_promises = [];
 
     // request all possible file names
     for (const fn of FILE_NAMES[type]) {
@@ -435,8 +432,6 @@ class Media extends Component {
   }
 
   downloadFile(file, type) {
-    const { currentRoute } = this.props;
-
     window.location.href = file.url;
   }
 

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { useSelector } from 'react-redux';
 import debounce from 'debounce';
+import { useCallback, useEffect, useRef } from 'react';
+import { useSelector } from 'react-redux';
 
 const VisibilityHandler = (props) => {
   const { onInit, onInterval, onVisible, minInterval, resetOnHidden, onDongleId } = props;

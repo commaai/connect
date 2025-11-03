@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { getSegmentNumber } from '../../utils';
 
 export default function Thumbnails(props) {

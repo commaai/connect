@@ -1,7 +1,6 @@
-import React, { Component } from 'react';
-
 import { withStyles } from '@material-ui/core';
 import ReplayIcon from '@material-ui/icons/Replay';
+import React, { Component } from 'react';
 
 import Colors from '../../colors';
 import { isIos } from '../../utils/browser.js';

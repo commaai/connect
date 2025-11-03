@@ -1,6 +1,7 @@
 /* eslint-env jest */
-import { hasRoutesData } from './segments';
+
 import { getSegmentNumber } from '../utils';
+import { hasRoutesData } from './segments';
 
 export const SEGMENT_LENGTH = 1000 * 60;
 

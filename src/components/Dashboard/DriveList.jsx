@@ -1,13 +1,11 @@
-import React from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { withStyles, Typography } from '@material-ui/core';
+import { Typography, withStyles } from '@material-ui/core';
+import { useDispatch, useSelector } from 'react-redux';
 
-import { checkRoutesData, checkLastRoutesData } from '../../actions';
+import { checkLastRoutesData, checkRoutesData } from '../../actions';
+import ScrollIntoView from '../ScrollIntoView'
 import VisibilityHandler from '../VisibilityHandler';
-
 import DriveListEmpty from './DriveListEmpty';
 import DriveListItem from './DriveListItem';
-import ScrollIntoView from '../ScrollIntoView'
 
 const styles = () => ({
   drivesTable: {

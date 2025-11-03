@@ -1,7 +1,7 @@
-import { getDongleID, getZoom, getSegmentRange } from './url';
-import { selectDevice, pushTimelineRange } from './actions';
 import { drives as Drives } from '@commaai/api';
+import { pushTimelineRange, selectDevice } from './actions';
 import { replace } from './navigation';
+import { getDongleID, getSegmentRange, getZoom } from './url';
 
 export function installHistorySync(store, history) {
   async function handle(location, action) {
