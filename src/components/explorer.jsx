@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation } from 'react-router';
 import { replace } from '../navigation';
-import 'mapbox-gl/dist/mapbox-gl.css';
 
 import { devices as Devices } from '@commaai/api';
 import { checkLastRoutesData, selectDevice, updateDevice } from '../actions';

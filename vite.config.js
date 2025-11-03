@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             'react-vendor': ['react', 'react-dom'],
             'mui': ['@mui/material', '@mui/icons-material', '@mui/styles'],
-            'mapbox': ['mapbox-gl', 'react-map-gl'],
+            'mapbox': ['react-map-gl'],
             'sentry': ['@sentry/react'],
           },
         },
