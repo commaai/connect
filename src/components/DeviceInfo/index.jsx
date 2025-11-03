@@ -32,6 +32,16 @@ const Row = styled(Box)(({ theme }) => ({
   },
 }));
 
+const ButtonRow = styled(Box)({
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+});
+
+const StatsRow = styled(Row)(({ theme }) => ({
+  columnGap: theme.spacing(4),
+}));
+
 const DeviceStat = styled(Box)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
@@ -411,13 +421,24 @@ const DeviceInfo = () => {
     <>
       <ResizeHandler onResize={onResize} />
       <VisibilityHandler onVisible={onVisible} onInit onDongleId minInterval={60} />
-      <Container sx={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
+      <Box
+        sx={{
+          borderBottom: `1px solid ${Colors.white10}`,
+          paddingTop: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 64,
+          justifyContent: 'center',
+          paddingLeft: `${containerPadding}px`,
+          paddingRight: `${containerPadding}px`,
+        }}
+      >
         {windowWidth >= 768 ? (
-          <Row sx={{ columnGap: 4 }}>
+          <StatsRow>
             <Typography variant="h6">{deviceNamePretty(device)}</Typography>
-            <Box sx={{ display: 'flex', flex: 1, justifySelf: 'start' }}>{renderStats()}</Box>
-            <Row sx={{ justifyContent: 'center' }}>{renderButtons()}</Row>
-          </Row>
+            <Box sx={{ display: 'flex', flex: 1 }}>{renderStats()}</Box>
+            <ButtonRow>{renderButtons()}</ButtonRow>
+          </StatsRow>
         ) : (
           <>
             <Row>
@@ -427,7 +448,7 @@ const DeviceInfo = () => {
             {deviceStats.result && <Row sx={{ display: 'flex', justifyContent: 'space-around' }}>{renderStats()}</Row>}
           </>
         )}
-      </Container>
+      </Box>
       {snapshot.result && (
         <SnapshotContainer>
           {windowWidth >= 640 ? (
