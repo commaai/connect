@@ -3,8 +3,8 @@
 import { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
-import { Component } from 'react';
-import { withRouter } from 'react-router';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router';
 
 import Colors from '../colors';
 import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon, RightArrow } from '../icons';
@@ -87,12 +87,13 @@ const styles = () => ({
   },
 });
 
-class AnonymousLanding extends Component {
-  componentDidMount() {
+const AnonymousLanding = ({ classes }) => {
+  const location = useLocation();
+
+  useEffect(() => {
     // Set default redirectURL from pathname if not already set
     if (typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') === null) {
-      const { pathname } = this.props;
-      sessionStorage.setItem('redirectURL', pathname);
+      sessionStorage.setItem('redirectURL', location.pathname);
     }
 
     // Override with query param 'r' if present
@@ -118,54 +119,50 @@ class AnonymousLanding extends Component {
       window.location = [AuthConfig.APPLE_REDIRECT_PATH, new URLSearchParams({ code, state }).toString()].join('?');
     });
     document.addEventListener('AppleIDSignInOnFailure', console.warn);
-  }
+  }, [location.pathname]);
 
-  render() {
-    const { classes } = this.props;
-
-    const loginAsDemoUser = () => {
-      AuthStorage.setCommaAccessToken(
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjEwMzg5NTgwNzM1LCJuYmYiOjE3NDk1ODA3MzUsImlhdCI6MTc0OTU4MDczNSwiaWRlbnRpdHkiOiIwZGVjZGRjZmRmMjQxYTYwIn0.KsDzqJxgkYhAs4tCgrMJIdORyxO0CQNb0gHXIf8aUT0',
-      );
-      window.location = window.location.origin;
-    };
-
-    return (
-      <div className={classes.baseContainer}>
-        <div className={classes.base}>
-          <div className={classes.logoContainer}>
-            <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
-          </div>
-          <div className={classes.logoSpacer}>&nbsp;</div>
-          <Typography className={classes.logoText}>comma connect</Typography>
-          <Typography className={classes.tagline}>Manage your comma device, view your drives, and use comma prime features</Typography>
-          <a href={AuthConfig.GOOGLE_REDIRECT_LINK} className={classes.logInButton}>
-            <img className={classes.buttonImage} src={AuthGoogleIcon} alt="" />
-            <Typography className={classes.buttonText}>Sign in with Google</Typography>
-          </a>
-          <a onClick={() => AppleID.auth.signIn()} className={classes.logInButton}>
-            <img className={classes.buttonImage} src={AuthAppleIcon} alt="" />
-            <Typography className={classes.buttonText}>Sign in with Apple</Typography>
-          </a>
-          <a href={AuthConfig.GITHUB_REDIRECT_LINK} className={`${classes.logInButton} githubAuth`}>
-            <img className={classes.buttonImage} src={AuthGithubIcon} alt="" />
-            <Typography className={classes.buttonText}>Sign in with GitHub</Typography>
-          </a>
-
-          <span className="max-w-sm text-center mt-2 mb-8 text-sm">Make sure to sign in with the same account if you have previously paired your comma device.</span>
-
-          <a
-            onClick={loginAsDemoUser}
-            className="flex items-center pl-4 pr-3 py-2 font-medium border border-white rounded-full hover:bg-[rgba(255,255,255,0.1)] active:bg-[rgba(255,255,255,0.2)] transition-colors"
-          >
-            Try the demo
-            <RightArrow className="ml-1 h-4" />
-          </a>
-        </div>
-        <PWAIcon immediate />
-      </div>
+  const loginAsDemoUser = () => {
+    AuthStorage.setCommaAccessToken(
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjEwMzg5NTgwNzM1LCJuYmYiOjE3NDk1ODA3MzUsImlhdCI6MTc0OTU4MDczNSwiaWRlbnRpdHkiOiIwZGVjZGRjZmRmMjQxYTYwIn0.KsDzqJxgkYhAs4tCgrMJIdORyxO0CQNb0gHXIf8aUT0',
     );
-  }
-}
+    window.location = window.location.origin;
+  };
 
-export default withRouter(withStyles(styles)(AnonymousLanding));
+  return (
+    <div className={classes.baseContainer}>
+      <div className={classes.base}>
+        <div className={classes.logoContainer}>
+          <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+        </div>
+        <div className={classes.logoSpacer}>&nbsp;</div>
+        <Typography className={classes.logoText}>comma connect</Typography>
+        <Typography className={classes.tagline}>Manage your comma device, view your drives, and use comma prime features</Typography>
+        <a href={AuthConfig.GOOGLE_REDIRECT_LINK} className={classes.logInButton}>
+          <img className={classes.buttonImage} src={AuthGoogleIcon} alt="" />
+          <Typography className={classes.buttonText}>Sign in with Google</Typography>
+        </a>
+        <a onClick={() => AppleID.auth.signIn()} className={classes.logInButton}>
+          <img className={classes.buttonImage} src={AuthAppleIcon} alt="" />
+          <Typography className={classes.buttonText}>Sign in with Apple</Typography>
+        </a>
+        <a href={AuthConfig.GITHUB_REDIRECT_LINK} className={`${classes.logInButton} githubAuth`}>
+          <img className={classes.buttonImage} src={AuthGithubIcon} alt="" />
+          <Typography className={classes.buttonText}>Sign in with GitHub</Typography>
+        </a>
+
+        <span className="max-w-sm text-center mt-2 mb-8 text-sm">Make sure to sign in with the same account if you have previously paired your comma device.</span>
+
+        <a
+          onClick={loginAsDemoUser}
+          className="flex items-center pl-4 pr-3 py-2 font-medium border border-white rounded-full hover:bg-[rgba(255,255,255,0.1)] active:bg-[rgba(255,255,255,0.2)] transition-colors"
+        >
+          Try the demo
+          <RightArrow className="ml-1 h-4" />
+        </a>
+      </div>
+      <PWAIcon immediate />
+    </div>
+  );
+};
+
+export default withStyles(styles)(AnonymousLanding);

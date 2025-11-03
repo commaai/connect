@@ -331,104 +331,104 @@ const PrimeCheckout = ({ classes }) => {
   return (
     <div className={classes.primeBox} style={containerPadding}>
       <ResizeHandler onResize={onResize} />
-        <div className={classes.primeHeader}>
-          <IconButton aria-label="Go Back" onClick={() => navigate(`/${dongleId}`)}>
-            <KeyboardBackspaceIcon />
-          </IconButton>
-          <div className={classes.headerDevice}>
-            <Typography variant="body2">{deviceNamePretty(device)}</Typography>
-            <Typography variant="caption" className={classes.deviceId}>{`(${device.dongle_id})`}</Typography>
+      <div className={classes.primeHeader}>
+        <IconButton aria-label="Go Back" onClick={() => navigate(`/${dongleId}`)}>
+          <KeyboardBackspaceIcon />
+        </IconButton>
+        <div className={classes.headerDevice}>
+          <Typography variant="body2">{deviceNamePretty(device)}</Typography>
+          <Typography variant="caption" className={classes.deviceId}>{`(${device.dongle_id})`}</Typography>
+        </div>
+      </div>
+      <h2 className={classes.primeTitle}>comma prime</h2>
+      <div style={blockMargin}>
+        <div className={classes.checkList}>
+          <div className={classes.checkListItem} style={paddingStyle}>
+            <CheckIcon />
+            <p>24/7 connectivity</p>
+          </div>
+          <div className={classes.checkListItem} style={paddingStyle}>
+            <CheckIcon />
+            <p>Take pictures remotely</p>
+          </div>
+          <div className={classes.checkListItem} style={paddingStyle}>
+            <CheckIcon />
+            <p>1 year storage of drive videos</p>
+          </div>
+          <div className={classes.checkListItem} style={paddingStyle}>
+            <CheckIcon />
+            <p>Simple SSH for developers</p>
           </div>
         </div>
-        <h2 className={classes.primeTitle}>comma prime</h2>
-        <div style={blockMargin}>
-          <div className={classes.checkList}>
-            <div className={classes.checkListItem} style={paddingStyle}>
-              <CheckIcon />
-              <p>24/7 connectivity</p>
-            </div>
-            <div className={classes.checkListItem} style={paddingStyle}>
-              <CheckIcon />
-              <p>Take pictures remotely</p>
-            </div>
-            <div className={classes.checkListItem} style={paddingStyle}>
-              <CheckIcon />
-              <p>1 year storage of drive videos</p>
-            </div>
-            <div className={classes.checkListItem} style={paddingStyle}>
-              <CheckIcon />
-              <p>Simple SSH for developers</p>
-            </div>
+      </div>
+      <div className={classes.planBoxContainer} style={blockMargin}>
+        <div className={classes.planBox} style={boxHeight}>
+          <div
+            className={`${classes.plan} ${plansLoadingClass}`}
+            style={selectedPlan === 'nodata' ? selectedStyle : {}}
+            onClick={subscribeInfo ? () => setSelectedPlan('nodata') : null}
+          >
+            <p className={classes.planName}>lite</p>
+            <p className={classes.planPrice}>$10/month</p>
+            <p className={classes.planSubtext}>
+              bring your own
+              <br />
+              sim card
+            </p>
+          </div>
+          <div
+            className={`${classes.plan} ${disabledDataPlan ? classes.planDisabled : ''} ${plansLoadingClass}`}
+            style={selectedPlan === 'data' ? selectedStyle : {}}
+            onClick={!disabledDataPlan ? () => setSelectedPlan('data') : null}
+          >
+            <p className={classes.planName}>standard</p>
+            <p className={classes.planPrice}>$24/month</p>
+            <p className={classes.planSubtext}>
+              including data plan
+              <br />
+              only offered in the U.S.
+            </p>
           </div>
         </div>
-        <div className={classes.planBoxContainer} style={blockMargin}>
-          <div className={classes.planBox} style={boxHeight}>
-            <div
-              className={`${classes.plan} ${plansLoadingClass}`}
-              style={selectedPlan === 'nodata' ? selectedStyle : {}}
-              onClick={subscribeInfo ? () => setSelectedPlan('nodata') : null}
-            >
-              <p className={classes.planName}>lite</p>
-              <p className={classes.planPrice}>$10/month</p>
-              <p className={classes.planSubtext}>
-                bring your own
-                <br />
-                sim card
-              </p>
-            </div>
-            <div
-              className={`${classes.plan} ${disabledDataPlan ? classes.planDisabled : ''} ${plansLoadingClass}`}
-              style={selectedPlan === 'data' ? selectedStyle : {}}
-              onClick={!disabledDataPlan ? () => setSelectedPlan('data') : null}
-            >
-              <p className={classes.planName}>standard</p>
-              <p className={classes.planPrice}>$24/month</p>
-              <p className={classes.planSubtext}>
-                including data plan
-                <br />
-                only offered in the U.S.
-              </p>
-            </div>
-          </div>
-          {!subscribeInfo && (
-            <div className={classes.planLoading}>
-              <CircularProgress size={38} style={{ color: Colors.white }} />
-              <Typography>Fetching SIM data</Typography>
-            </div>
-          )}
-        </div>
-        {disabledDataPlanText && (
-          <div className={classes.overviewBlockDisabled} style={blockMargin}>
-            <InfoOutline />
-            <Typography>{disabledDataPlanText}</Typography>
-          </div>
-        )}
-        <div style={blockMargin}>
-          <Typography className={classes.learnMore}>
-            {'Learn more about comma prime from our '}
-            <a className={classes.linkHighlight} target="_blank" href="https://comma.ai/connect#faq" rel="noreferrer">
-              FAQ
-            </a>
-          </Typography>
-        </div>
-        {error && (
-          <div className={classes.overviewBlockError}>
-            <ErrorOutline />
-            <Typography>{error}</Typography>
-          </div>
-        )}
-        <div style={blockMargin}>
-          <Button className={`${classes.buttons} gotoCheckout`} onClick={() => gotoCheckout()} disabled={Boolean(!subscribeInfo || loadingCheckout || !selectedPlan)}>
-            {loadingCheckout ? <CircularProgress size={19} /> : trialClaimable() ? 'Claim trial' : 'Go to checkout'}
-          </Button>
-        </div>
-        {chargeText && (
-          <div style={blockMargin}>
-            <Typography className={classes.chargeText}>{chargeText}</Typography>
+        {!subscribeInfo && (
+          <div className={classes.planLoading}>
+            <CircularProgress size={38} style={{ color: Colors.white }} />
+            <Typography>Fetching SIM data</Typography>
           </div>
         )}
       </div>
-    );
+      {disabledDataPlanText && (
+        <div className={classes.overviewBlockDisabled} style={blockMargin}>
+          <InfoOutline />
+          <Typography>{disabledDataPlanText}</Typography>
+        </div>
+      )}
+      <div style={blockMargin}>
+        <Typography className={classes.learnMore}>
+          {'Learn more about comma prime from our '}
+          <a className={classes.linkHighlight} target="_blank" href="https://comma.ai/connect#faq" rel="noreferrer">
+            FAQ
+          </a>
+        </Typography>
+      </div>
+      {error && (
+        <div className={classes.overviewBlockError}>
+          <ErrorOutline />
+          <Typography>{error}</Typography>
+        </div>
+      )}
+      <div style={blockMargin}>
+        <Button className={`${classes.buttons} gotoCheckout`} onClick={() => gotoCheckout()} disabled={Boolean(!subscribeInfo || loadingCheckout || !selectedPlan)}>
+          {loadingCheckout ? <CircularProgress size={19} /> : trialClaimable() ? 'Claim trial' : 'Go to checkout'}
+        </Button>
+      </div>
+      {chargeText && (
+        <div style={blockMargin}>
+          <Typography className={classes.chargeText}>{chargeText}</Typography>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default withStyles(styles)(PrimeCheckout);

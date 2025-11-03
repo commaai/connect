@@ -3,9 +3,9 @@ import { Button, Typography, withStyles } from '@material-ui/core';
 import { Clear } from '@material-ui/icons';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
-import React, { Component } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactMapGL, { GeolocateControl, HTMLOverlay, Layer, Marker, Source, WebMercatorViewport } from 'react-map-gl';
-import { connect } from 'react-redux';
+import { useSelector } from 'react-redux';
 import Colors from '../../colors';
 import { PinCarIcon } from '../../icons';
 import { navigate } from '../../navigation';
@@ -129,167 +129,54 @@ const styles = () => ({
   },
 });
 
-const initialState = {
-  hasFocus: false,
-  carLastLocation: null,
-  carLastLocationTime: null,
-  carNetworkLocation: null,
-  carNetworkLocationAccuracy: null,
-  geoLocateCoords: null,
-  searchSelect: null,
-  searchLooking: false,
-  noFly: false,
-  windowWidth: window.innerWidth,
-  showPrimeAd: true,
-};
+const Navigation = ({ classes }) => {
+  // Redux state
+  const dongleId = useSelector((state) => state.dongleId);
+  const device = useSelector((state) => state.device);
 
-class Navigation extends Component {
-  constructor(props) {
-    super(props);
-    this.mounted = null;
-    this.state = {
-      ...initialState,
-      viewport: {
-        ...DEFAULT_LOCATION,
-        zoom: 5,
-      },
-      mapError: null,
-      windowWidth: window.innerWidth,
-    };
+  // State
+  const [hasFocus, setHasFocus] = useState(false);
+  const [carLastLocation, setCarLastLocation] = useState(null);
+  const [carLastLocationTime, setCarLastLocationTime] = useState(null);
+  const [carNetworkLocation, setCarNetworkLocation] = useState(null);
+  const [carNetworkLocationAccuracy, setCarNetworkLocationAccuracy] = useState(null);
+  const [geoLocateCoords, setGeoLocateCoords] = useState(null);
+  const [searchSelect, setSearchSelect] = useState(null);
+  const [searchLooking, setSearchLooking] = useState(false);
+  const [noFly, setNoFly] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [showPrimeAd, setShowPrimeAd] = useState(true);
+  const [viewport, setViewport] = useState({
+    ...DEFAULT_LOCATION,
+    zoom: 5,
+  });
+  const [mapError, setMapError] = useState(null);
 
-    this.mapContainerRef = React.createRef();
-    this.searchSelectBoxRef = React.createRef();
-    this.primeAdBoxRef = React.createRef();
-    this.carPinTooltipRef = React.createRef();
+  // Refs
+  const mounted = useRef(false);
+  const mapContainerRef = useRef(null);
+  const searchSelectBoxRef = useRef(null);
+  const primeAdBoxRef = useRef(null);
+  const carPinTooltipRef = useRef(null);
 
-    this.checkWebGLSupport = this.checkWebGLSupport.bind(this);
-    this.flyToMarkers = this.flyToMarkers.bind(this);
-    this.renderSearchOverlay = this.renderSearchOverlay.bind(this);
-    this.renderPrimeAd = this.renderPrimeAd.bind(this);
-    this.onGeolocate = this.onGeolocate.bind(this);
-    this.onCarSelect = this.onCarSelect.bind(this);
-    this.focus = this.focus.bind(this);
-    this.updateDevice = this.updateDevice.bind(this);
-    this.onResize = this.onResize.bind(this);
-    this.toggleCarPinTooltip = this.toggleCarPinTooltip.bind(this);
-    this.itemLoc = this.itemLoc.bind(this);
-    this.itemLngLat = this.itemLngLat.bind(this);
-    this.viewportChange = this.viewportChange.bind(this);
-    this.getDeviceLastLocation = this.getDeviceLastLocation.bind(this);
-    this.getDeviceNetworkLocation = this.getDeviceNetworkLocation.bind(this);
-    this.getCarLocation = this.getCarLocation.bind(this);
-    this.carLocationCircle = this.carLocationCircle.bind(this);
-    this.clearSearchSelect = this.clearSearchSelect.bind(this);
-    this.onContainerRef = this.onContainerRef.bind(this);
-  }
-
-  componentDidMount() {
-    this.mounted = true;
-    this.checkWebGLSupport();
-    this.componentDidUpdate({}, {});
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    const { dongleId, device } = this.props;
-    const { geoLocateCoords, search, carLastLocation, carNetworkLocation, searchSelect } = this.state;
-
-    if (
-      (carLastLocation && !prevState.carLastLocation) ||
-      (carNetworkLocation && !prevState.carNetworkLocation) ||
-      (geoLocateCoords && !prevState.geoLocateCoords) ||
-      (searchSelect && prevState.searchSelect !== searchSelect) ||
-      (search && prevState.search !== search)
-    ) {
-      this.flyToMarkers();
+  // Helper functions
+  const itemLoc = useCallback((item) => {
+    if (item.access && item.access.length) {
+      return item.access[0];
     }
+    return item.position;
+  }, []);
 
-    if (prevProps.dongleId !== dongleId) {
-      this.setState({
-        ...initialState,
-        windowWidth: window.innerWidth,
-      });
-    }
+  const itemLngLat = useCallback(
+    (item, bounds = false) => {
+      const pos = itemLoc(item);
+      const res = [pos.lng, pos.lat];
+      return bounds ? [res, res] : res;
+    },
+    [itemLoc],
+  );
 
-    if (prevProps.device !== device) {
-      this.updateDevice();
-    }
-  }
-
-  componentWillUnmount() {
-    this.mounted = false;
-  }
-
-  checkWebGLSupport() {
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    if (!gl || !(gl instanceof WebGLRenderingContext)) {
-      this.setState({ mapError: 'Failed to get WebGL context, your browser or device may not support WebGL.' });
-    }
-  }
-
-  updateDevice() {
-    this.getDeviceLastLocation();
-    this.getDeviceNetworkLocation();
-  }
-
-  async getDeviceLastLocation() {
-    const { dongleId, device } = this.props;
-    if (device.shared) {
-      return;
-    }
-    try {
-      const resp = await Devices.fetchLocation(dongleId);
-      if (this.mounted && dongleId === this.props.dongleId) {
-        this.setState(
-          {
-            carLastLocation: [resp.lng, resp.lat],
-            carLastLocationTime: resp.time,
-          },
-          this.flyToMarkers,
-        );
-      }
-    } catch (err) {
-      if (!err.message || err.message.indexOf('no_segments_uploaded') === -1) {
-        console.error(err);
-        Sentry.captureException(err, { fingerprint: 'nav_fetch_location' });
-      }
-    }
-  }
-
-  async getDeviceNetworkLocation() {
-    const { dongleId } = this.props;
-
-    const payload = {
-      method: 'getNetworks',
-      jsonrpc: '2.0',
-      id: 0,
-    };
-    try {
-      let resp = await Athena.postJsonRpcPayload(dongleId, payload);
-      if (!resp.result || Object.keys(resp.result).length === 0 || !this.mounted || dongleId !== this.props.dongleId) {
-        return;
-      }
-      resp = await networkPositioning(resp.result);
-      if (resp && this.mounted && dongleId === this.props.dongleId) {
-        this.setState(
-          {
-            carNetworkLocation: [resp.lng, resp.lat],
-            carNetworkLocationAccuracy: resp.accuracy,
-          },
-          this.flyToMarkers,
-        );
-      }
-    } catch (err) {
-      if (this.mounted && dongleId === this.props.dongleId && (!err.message || err.message.indexOf('{"error": "Device not registered"}') === -1)) {
-        console.error(err);
-        Sentry.captureException(err, { fingerprint: 'nav_fetch_network_location' });
-      }
-    }
-  }
-
-  getCarLocation() {
-    const { carLastLocation, carLastLocationTime, carNetworkLocation, carNetworkLocationAccuracy } = this.state;
-
+  const getCarLocation = useCallback(() => {
     if (carNetworkLocation && carNetworkLocationAccuracy <= 10000 && (carNetworkLocationAccuracy <= 100 || !carLastLocation)) {
       return {
         location: carNetworkLocation,
@@ -305,64 +192,44 @@ class Navigation extends Component {
       };
     }
     return null;
-  }
+  }, [carLastLocation, carLastLocationTime, carNetworkLocation, carNetworkLocationAccuracy]);
 
-  onGeolocate(pos) {
-    if (pos && pos.coords) {
-      this.setState({ geoLocateCoords: [pos.coords.longitude, pos.coords.latitude] });
+  const carLocationCircle = useCallback((carLocation) => {
+    const points = 128;
+    const km = carLocation.accuracy / 1000;
+
+    const distanceX = km / (111.32 * Math.cos(carLocation.location[1] * (Math.PI / 180)));
+    const distanceY = km / 110.574;
+
+    const res = [];
+    let theta;
+    let x;
+    let y;
+    for (let i = 0; i < points; i++) {
+      theta = (i / points) * (2 * Math.PI);
+      x = distanceX * Math.cos(theta);
+      y = distanceY * Math.sin(theta);
+
+      res.push([carLocation.location[0] + x, carLocation.location[1] + y]);
     }
-  }
+    res.push(res[0]);
 
-  onCarSelect(carLocation) {
-    this.focus();
-
-    const [lng, lat] = carLocation.location;
-    const item = {
-      address: {
-        label: '',
-      },
-      position: {
-        lng,
-        lat,
-      },
-      resultType: 'car',
-      title: '',
-    };
-
-    this.setState({
-      noFly: false,
-      searchSelect: item,
-      searchLooking: false,
-    });
-
-    reverseLookup(carLocation.location, true).then((location) => {
-      if (!location) {
-        return;
-      }
-
-      this.setState((prevState) => ({
-        searchSelect: {
-          ...prevState.searchSelect,
-          address: {
-            label: location.details,
+    return {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [res],
           },
-          title: location.place,
         },
-      }));
-    });
-  }
+      ],
+    };
+  }, []);
 
-  clearSearchSelect() {
-    this.setState({
-      noFly: false,
-      searchSelect: null,
-      searchLooking: false,
-    });
-  }
-
-  flyToMarkers() {
-    const { noFly, geoLocateCoords, search, searchSelect, windowWidth, viewport } = this.state;
-    const carLocation = this.getCarLocation();
+  const flyToMarkers = useCallback(() => {
+    const carLocation = getCarLocation();
 
     if (noFly) {
       return;
@@ -376,10 +243,7 @@ class Navigation extends Component {
       bounds.push([carLocation.location, carLocation.location]);
     }
     if (searchSelect) {
-      bounds.push(this.itemLngLat(searchSelect, true));
-    } else if (search) {
-      // biome-ignore lint/suspicious/useIterableCallbackReturn: push intentionally returns array length, forEach usage is correct for side effects
-      search.forEach((item) => bounds.push(this.itemLngLat(item, true)));
+      bounds.push(itemLngLat(searchSelect, true));
     }
 
     if (bounds.length) {
@@ -415,12 +279,12 @@ class Navigation extends Component {
         bbox[1][1] += 0.01;
       }
 
-      const bottomBoxHeight = this.searchSelectBoxRef.current && viewport.height > 200 ? this.searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0;
+      const bottomBoxHeight = searchSelectBoxRef.current && viewport.height > 200 ? searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0;
 
       let rightBoxWidth = 0;
       let topBoxHeight = 0;
 
-      const primeAdBox = this.primeAdBoxRef.current;
+      const primeAdBox = primeAdBoxRef.current;
       if (primeAdBox) {
         if (windowWidth < 600) {
           topBoxHeight = Math.max(topBoxHeight, primeAdBox.getBoundingClientRect().height + 10);
@@ -430,7 +294,7 @@ class Navigation extends Component {
       }
 
       const padding = {
-        left: windowWidth < 600 || !search ? 20 : 390,
+        left: 20,
         right: rightBoxWidth + 20,
         top: topBoxHeight + 20,
         bottom: bottomBoxHeight + 20,
@@ -438,209 +302,165 @@ class Navigation extends Component {
       if (viewport.width) {
         try {
           const newVp = new WebMercatorViewport(viewport).fitBounds(bbox, { padding, maxZoom: 10 });
-          this.setState({ viewport: newVp });
+          setViewport(newVp);
         } catch (err) {
           console.error(err);
           Sentry.captureException(err, { fingerprint: 'nav_flymarkers_viewport' });
         }
       }
     }
-  }
+  }, [noFly, geoLocateCoords, searchSelect, windowWidth, viewport, itemLngLat, getCarLocation]);
 
-  focus(ev) {
-    if (!this.state.hasFocus && (!ev || !ev.srcEvent || !ev.srcEvent.path || !this.mapContainerRef.current || ev.srcEvent.path.includes(this.mapContainerRef.current))) {
-      this.setState({ hasFocus: true });
+  const checkWebGLSupport = useCallback(() => {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    if (!gl || !(gl instanceof WebGLRenderingContext)) {
+      setMapError('Failed to get WebGL context, your browser or device may not support WebGL.');
     }
-  }
+  }, []);
 
-  itemLoc(item) {
-    if (item.access && item.access.length) {
-      return item.access[0];
+  const getDeviceLastLocation = useCallback(async () => {
+    if (device.shared) {
+      return;
     }
-    return item.position;
-  }
+    try {
+      const resp = await Devices.fetchLocation(dongleId);
+      if (mounted.current) {
+        setCarLastLocation([resp.lng, resp.lat]);
+        setCarLastLocationTime(resp.time);
+      }
+    } catch (err) {
+      if (!err.message || err.message.indexOf('no_segments_uploaded') === -1) {
+        console.error(err);
+        Sentry.captureException(err, { fingerprint: 'nav_fetch_location' });
+      }
+    }
+  }, [dongleId, device.shared]);
 
-  itemLngLat(item, bounds = false) {
-    const pos = this.itemLoc(item);
-    const res = [pos.lng, pos.lat];
-    return bounds ? [res, res] : res;
-  }
+  const getDeviceNetworkLocation = useCallback(async () => {
+    const payload = {
+      method: 'getNetworks',
+      jsonrpc: '2.0',
+      id: 0,
+    };
+    try {
+      let resp = await Athena.postJsonRpcPayload(dongleId, payload);
+      if (!resp.result || Object.keys(resp.result).length === 0 || !mounted.current) {
+        return;
+      }
+      resp = await networkPositioning(resp.result);
+      if (resp && mounted.current) {
+        setCarNetworkLocation([resp.lng, resp.lat]);
+        setCarNetworkLocationAccuracy(resp.accuracy);
+      }
+    } catch (err) {
+      if (mounted.current && (!err.message || err.message.indexOf('{"error": "Device not registered"}') === -1)) {
+        console.error(err);
+        Sentry.captureException(err, { fingerprint: 'nav_fetch_network_location' });
+      }
+    }
+  }, [dongleId]);
 
-  onResize(windowWidth) {
-    this.setState({ windowWidth });
-  }
+  const updateDevice = useCallback(() => {
+    getDeviceLastLocation();
+    getDeviceNetworkLocation();
+  }, [getDeviceLastLocation, getDeviceNetworkLocation]);
 
-  toggleCarPinTooltip(visible) {
-    const tooltip = this.carPinTooltipRef.current;
+  const onGeolocate = (pos) => {
+    if (pos && pos.coords) {
+      setGeoLocateCoords([pos.coords.longitude, pos.coords.latitude]);
+    }
+  };
+
+  const focus = useCallback(
+    (ev) => {
+      if (!hasFocus && (!ev || !ev.srcEvent || !ev.srcEvent.path || !mapContainerRef.current || ev.srcEvent.path.includes(mapContainerRef.current))) {
+        setHasFocus(true);
+      }
+    },
+    [hasFocus],
+  );
+
+  const onCarSelect = useCallback(
+    (carLocation) => {
+      focus();
+
+      const [lng, lat] = carLocation.location;
+      const item = {
+        address: {
+          label: '',
+        },
+        position: {
+          lng,
+          lat,
+        },
+        resultType: 'car',
+        title: '',
+      };
+
+      setNoFly(false);
+      setSearchSelect(item);
+      setSearchLooking(false);
+
+      reverseLookup(carLocation.location, true).then((location) => {
+        if (!location) {
+          return;
+        }
+
+        setSearchSelect((prevSearchSelect) => ({
+          ...prevSearchSelect,
+          address: {
+            label: location.details,
+          },
+          title: location.place,
+        }));
+      });
+    },
+    [focus],
+  );
+
+  const clearSearchSelect = () => {
+    setNoFly(false);
+    setSearchSelect(null);
+    setSearchLooking(false);
+  };
+
+  const onResize = (newWindowWidth) => {
+    setWindowWidth(newWindowWidth);
+  };
+
+  const toggleCarPinTooltip = (visible) => {
+    const tooltip = carPinTooltipRef.current;
     if (tooltip) {
       tooltip.style.display = visible ? 'block' : 'none';
     }
-  }
+  };
 
-  viewportChange(viewport, interactionState) {
-    const { search, searchSelect, searchLooking } = this.state;
-    this.setState({ viewport });
+  const viewportChange = useCallback(
+    (newViewport, interactionState) => {
+      setViewport(newViewport);
 
-    if (interactionState.isPanning || interactionState.isZooming || interactionState.isRotating) {
-      this.focus();
+      if (interactionState.isPanning || interactionState.isZooming || interactionState.isRotating) {
+        focus();
 
-      if (search && !searchSelect && !searchLooking) {
-        this.setState({ searchLooking: true, noFly: true });
+        if (!searchSelect && !searchLooking) {
+          setSearchLooking(true);
+          setNoFly(true);
+        }
       }
-    }
-  }
+    },
+    [focus, searchSelect, searchLooking],
+  );
 
-  carLocationCircle(carLocation) {
-    const points = 128;
-    const km = carLocation.accuracy / 1000;
-
-    const distanceX = km / (111.32 * Math.cos(carLocation.location[1] * (Math.PI / 180)));
-    const distanceY = km / 110.574;
-
-    const res = [];
-    let theta;
-    let x;
-    let y;
-    for (let i = 0; i < points; i++) {
-      theta = (i / points) * (2 * Math.PI);
-      x = distanceX * Math.cos(theta);
-      y = distanceY * Math.sin(theta);
-
-      res.push([carLocation.location[0] + x, carLocation.location[1] + y]);
-    }
-    res.push(res[0]);
-
-    return {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          geometry: {
-            type: 'Polygon',
-            coordinates: [res],
-          },
-        },
-      ],
-    };
-  }
-
-  onContainerRef(el) {
-    this.mapContainerRef.current = el;
+  const onContainerRef = (el) => {
+    mapContainerRef.current = el;
     if (el) {
       el.addEventListener('touchstart', (ev) => ev.stopPropagation());
     }
-  }
+  };
 
-  render() {
-    const { classes, device } = this.props;
-    const { mapError, hasFocus, searchSelect, viewport, windowWidth, showPrimeAd } = this.state;
-    const carLocation = this.getCarLocation();
-
-    const cardStyle =
-      windowWidth < 600
-        ? { zIndex: 4, width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 }
-        : { zIndex: 4, width: 360, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
-
-    let carPinTooltipStyle = { transform: 'translate(calc(-50% + 10px), -4px)' };
-    if (carLocation) {
-      const pixelsAvailable = viewport.height - new WebMercatorViewport(viewport).project(carLocation.location)[1];
-      if (pixelsAvailable < 50) {
-        carPinTooltipStyle = { transform: 'translate(calc(-50% + 10px), -81px)' };
-      }
-    }
-
-    return (
-      <div ref={this.onContainerRef} className={classes.mapContainer} style={{ height: 200 }}>
-        <ResizeHandler onResize={this.onResize} />
-        <VisibilityHandler onVisible={this.updateDevice} onInit onDongleId minInterval={60} />
-        {mapError && (
-          <div className={classes.mapError}>
-            <Typography>Could not initialize map.</Typography>
-            <Typography>{mapError}</Typography>
-          </div>
-        )}
-        <ReactMapGL
-          latitude={viewport.latitude}
-          longitude={viewport.longitude}
-          zoom={viewport.zoom}
-          bearing={viewport.bearing}
-          pitch={viewport.pitch}
-          onViewportChange={this.viewportChange}
-          onContextMenu={null}
-          mapStyle={MAPBOX_STYLE}
-          width="100%"
-          height="100%"
-          onNativeClick={this.focus}
-          maxPitch={0}
-          mapboxApiAccessToken={MAPBOX_TOKEN}
-          attributionControl={false}
-          dragRotate={false}
-          onError={(err) => this.setState({ mapError: err.error.message })}
-        >
-          <GeolocateControl
-            className={classes.geolocateControl}
-            positionOptions={{ enableHighAccuracy: true }}
-            showAccuracyCircle={false}
-            onGeolocate={this.onGeolocate}
-            auto={hasFocus}
-            fitBoundsOptions={{ maxZoom: 10 }}
-            trackUserLocation
-            onViewportChange={() => {}}
-          />
-          {carLocation && (
-            <Marker
-              latitude={carLocation.location[1]}
-              longitude={carLocation.location[0]}
-              offsetLeft={-10}
-              offsetTop={-30}
-              captureDrag={false}
-              captureClick
-              captureDoubleClick={false}
-            >
-              <PinCarIcon
-                className={classes.pin}
-                onMouseEnter={() => this.toggleCarPinTooltip(true)}
-                onMouseLeave={() => this.toggleCarPinTooltip(false)}
-                alt="car-location"
-                onClick={() => this.onCarSelect(carLocation)}
-              />
-              <div className={classes.carPinTooltip} ref={this.carPinTooltipRef} style={{ ...carPinTooltipStyle, display: 'none' }}>
-                {dayjs(carLocation.time).format('h:mm A')}
-                ,
-                <br />
-                {timeFromNow(carLocation.time)}
-              </div>
-            </Marker>
-          )}
-          {carLocation && Boolean(carLocation.accuracy) && (
-            <Source type="geojson" data={this.carLocationCircle(carLocation)}>
-              <Layer id="polygon" type="fill" source="polygon" layout={{}} paint={{ 'fill-color': '#31a1ee', 'fill-opacity': 0.3 }} />
-            </Source>
-          )}
-          {searchSelect && (
-            <HTMLOverlay redraw={this.renderSearchOverlay} captureScroll captureDrag captureClick captureDoubleClick capturePointerMove style={{ ...cardStyle, bottom: 10 }} />
-          )}
-          {showPrimeAd && !device.prime && device.is_owner && (
-            <HTMLOverlay
-              redraw={this.renderPrimeAd}
-              captureScroll
-              captureDrag
-              captureClick
-              captureDoubleClick
-              capturePointerMove
-              style={{ ...cardStyle, top: 10, left: windowWidth < 600 ? 10 : 'auto', right: 10 }}
-            />
-          )}
-        </ReactMapGL>
-      </div>
-    );
-  }
-
-  renderSearchOverlay() {
-    const { classes, device } = this.props;
-    const { searchSelect } = this.state;
-
-    const carLocation = this.getCarLocation();
+  const renderSearchOverlay = () => {
+    const carLocation = getCarLocation();
 
     const title = device.alias;
     const { lat, lng } = searchSelect.position;
@@ -653,8 +473,8 @@ class Navigation extends Component {
     }
 
     return (
-      <div className={classes.searchSelectBox} ref={this.searchSelectBoxRef}>
-        <Clear className={classes.clearSearchSelect} onClick={this.clearSearchSelect} />
+      <div className={classes.searchSelectBox} ref={searchSelectBoxRef}>
+        <Clear className={classes.clearSearchSelect} onClick={clearSearchSelect} />
         <div className={classes.searchSelectBoxHeader}>
           <div className={classes.searchSelectBoxTitle}>
             <Typography className={classes.bold}>{title}</Typography>
@@ -672,20 +492,24 @@ class Navigation extends Component {
         </Typography>
       </div>
     );
-  }
+  };
 
-  renderPrimeAd() {
-    const { classes } = this.props;
-
+  const renderPrimeAd = () => {
     return (
-      <div className={`${classes.searchSelectBox} ${classes.primeAdContainer}`} ref={this.primeAdBoxRef}>
-        <Clear className={classes.clearSearchSelect} onClick={() => this.setState({ showPrimeAd: false }, this.flyToMarkers)} />
+      <div className={`${classes.searchSelectBox} ${classes.primeAdContainer}`} ref={primeAdBoxRef}>
+        <Clear
+          className={classes.clearSearchSelect}
+          onClick={() => {
+            setShowPrimeAd(false);
+            flyToMarkers();
+          }}
+        />
         <div className={classes.searchSelectBoxHeader}>
           <div className={classes.searchSelectBoxTitle}>
             <Typography className={classes.primeAdTitle}>comma prime</Typography>
           </div>
           <div className={classes.searchSelectBoxButtons}>
-            <Button onClick={() => navigate(`/${this.props.dongleId}/prime`)} className={`${classes.searchSelectButton} ${classes.primeAdButton} primeSignUp`}>
+            <Button onClick={() => navigate(`/${dongleId}/prime`)} className={`${classes.searchSelectButton} ${classes.primeAdButton} primeSignUp`}>
               sign up
             </Button>
           </div>
@@ -693,12 +517,148 @@ class Navigation extends Component {
         <Typography className={classes.primeAdDetails}>Put your car on the internet with comma prime</Typography>
       </div>
     );
+  };
+
+  // Set mounted on initial mount
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  // Check WebGL support on mount
+  useEffect(() => {
+    checkWebGLSupport();
+  }, [checkWebGLSupport]);
+
+  // Update device on mount and when device changes
+  useEffect(() => {
+    updateDevice();
+  }, [updateDevice]);
+
+  // Fly to markers when location states change
+  useEffect(() => {
+    flyToMarkers();
+  }, [flyToMarkers]);
+
+  // Reset state when dongleId changes
+  useEffect(() => {
+    if (dongleId) {
+      setHasFocus(false);
+      setCarLastLocation(null);
+      setCarLastLocationTime(null);
+      setCarNetworkLocation(null);
+      setCarNetworkLocationAccuracy(null);
+      setGeoLocateCoords(null);
+      setSearchSelect(null);
+      setSearchLooking(false);
+      setNoFly(false);
+      setWindowWidth(window.innerWidth);
+      setShowPrimeAd(true);
+    }
+  }, [dongleId]);
+
+  const carLocation = getCarLocation();
+
+  const cardStyle =
+    windowWidth < 600
+      ? { zIndex: 4, width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 }
+      : { zIndex: 4, width: 360, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
+
+  let carPinTooltipStyle = { transform: 'translate(calc(-50% + 10px), -4px)' };
+  if (carLocation) {
+    const pixelsAvailable = viewport.height - new WebMercatorViewport(viewport).project(carLocation.location)[1];
+    if (pixelsAvailable < 50) {
+      carPinTooltipStyle = { transform: 'translate(calc(-50% + 10px), -81px)' };
+    }
   }
-}
 
-const stateToProps = (state) => ({
-  device: state.device,
-  dongleId: state.dongleId,
-});
+  return (
+    <div ref={onContainerRef} className={classes.mapContainer} style={{ height: 200 }}>
+      <ResizeHandler onResize={onResize} />
+      <VisibilityHandler onVisible={updateDevice} onInit onDongleId minInterval={60} />
+      {mapError && (
+        <div className={classes.mapError}>
+          <Typography>Could not initialize map.</Typography>
+          <Typography>{mapError}</Typography>
+        </div>
+      )}
+      <ReactMapGL
+        latitude={viewport.latitude}
+        longitude={viewport.longitude}
+        zoom={viewport.zoom}
+        bearing={viewport.bearing}
+        pitch={viewport.pitch}
+        onViewportChange={viewportChange}
+        onContextMenu={null}
+        mapStyle={MAPBOX_STYLE}
+        width="100%"
+        height="100%"
+        onNativeClick={focus}
+        maxPitch={0}
+        mapboxApiAccessToken={MAPBOX_TOKEN}
+        attributionControl={false}
+        dragRotate={false}
+        onError={(err) => setMapError(err.error.message)}
+      >
+        <GeolocateControl
+          className={classes.geolocateControl}
+          positionOptions={{ enableHighAccuracy: true }}
+          showAccuracyCircle={false}
+          onGeolocate={onGeolocate}
+          auto={hasFocus}
+          fitBoundsOptions={{ maxZoom: 10 }}
+          trackUserLocation
+          onViewportChange={() => {}}
+        />
+        {carLocation && (
+          <Marker
+            latitude={carLocation.location[1]}
+            longitude={carLocation.location[0]}
+            offsetLeft={-10}
+            offsetTop={-30}
+            captureDrag={false}
+            captureClick
+            captureDoubleClick={false}
+          >
+            <PinCarIcon
+              className={classes.pin}
+              onMouseEnter={() => toggleCarPinTooltip(true)}
+              onMouseLeave={() => toggleCarPinTooltip(false)}
+              alt="car-location"
+              onClick={() => onCarSelect(carLocation)}
+            />
+            <div className={classes.carPinTooltip} ref={carPinTooltipRef} style={{ ...carPinTooltipStyle, display: 'none' }}>
+              {dayjs(carLocation.time).format('h:mm A')}
+              ,
+              <br />
+              {timeFromNow(carLocation.time)}
+            </div>
+          </Marker>
+        )}
+        {carLocation && Boolean(carLocation.accuracy) && (
+          <Source type="geojson" data={carLocationCircle(carLocation)}>
+            <Layer id="polygon" type="fill" source="polygon" layout={{}} paint={{ 'fill-color': '#31a1ee', 'fill-opacity': 0.3 }} />
+          </Source>
+        )}
+        {searchSelect && (
+          <HTMLOverlay redraw={renderSearchOverlay} captureScroll captureDrag captureClick captureDoubleClick capturePointerMove style={{ ...cardStyle, bottom: 10 }} />
+        )}
+        {showPrimeAd && !device.prime && device.is_owner && (
+          <HTMLOverlay
+            redraw={renderPrimeAd}
+            captureScroll
+            captureDrag
+            captureClick
+            captureDoubleClick
+            capturePointerMove
+            style={{ ...cardStyle, top: 10, left: windowWidth < 600 ? 10 : 'auto', right: 10 }}
+          />
+        )}
+      </ReactMapGL>
+    </div>
+  );
+};
 
-export default connect(stateToProps)(withStyles(styles)(Navigation));
+export default withStyles(styles)(Navigation);

@@ -3,8 +3,8 @@ import { Button, CircularProgress, Popper, Tooltip, Typography, withStyles } fro
 import AccessTime from '@material-ui/icons/AccessTime';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
 import Colors from '../../colors';
 import { deviceIsOnline, deviceNamePretty } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
@@ -187,92 +187,65 @@ const styles = (theme) => ({
   },
 });
 
-class DeviceInfo extends Component {
-  constructor(props) {
-    super(props);
-    this.mounted = null;
-    this.state = {
-      deviceStats: {},
-      carHealth: {},
-      snapshot: {},
-      windowWidth: window.innerWidth,
-      isTimeSelectOpen: false,
+const DeviceInfo = ({ classes }) => {
+  const dongleId = useSelector((state) => state.dongleId);
+  const device = useSelector((state) => state.device);
+
+  const [deviceStats, setDeviceStats] = useState({});
+  const [carHealth, setCarHealth] = useState({});
+  const [snapshot, setSnapshot] = useState({});
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [isTimeSelectOpen, setIsTimeSelectOpen] = useState(false);
+
+  const snapshotButtonRef = useRef(null);
+  const mounted = useRef(false);
+
+  // Set mounted on initial mount
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
     };
+  }, []);
 
-    this.snapshotButtonRef = React.createRef();
-
-    this.onResize = this.onResize.bind(this);
-    this.onVisible = this.onVisible.bind(this);
-    this.fetchDeviceInfo = this.fetchDeviceInfo.bind(this);
-    this.fetchDeviceCarHealth = this.fetchDeviceCarHealth.bind(this);
-    this.takeSnapshot = this.takeSnapshot.bind(this);
-    this.snapshotType = this.snapshotType.bind(this);
-    this.renderButtons = this.renderButtons.bind(this);
-    this.renderStats = this.renderStats.bind(this);
-    this.renderSnapshotImage = this.renderSnapshotImage.bind(this);
-    this.onOpenTimeSelect = this.onOpenTimeSelect.bind(this);
-    this.onCloseTimeSelect = this.onCloseTimeSelect.bind(this);
-  }
-
-  componentDidMount() {
-    this.mounted = true;
-  }
-
-  componentDidUpdate(prevProps) {
-    const { dongleId } = this.props;
-
-    if (prevProps.dongleId !== dongleId) {
-      this.setState({
-        deviceStats: {},
-        carHealth: {},
-        snapshot: {},
-        windowWidth: window.innerWidth,
-      });
+  // Reset state when dongleId changes
+  useEffect(() => {
+    if (dongleId) {
+      setDeviceStats({});
+      setCarHealth({});
+      setSnapshot({});
+      setWindowWidth(window.innerWidth);
     }
-  }
+  }, [dongleId]);
 
-  componentWillUnmount() {
-    this.mounted = false;
-  }
+  const onResize = (newWindowWidth) => {
+    setWindowWidth(newWindowWidth);
+  };
 
-  onResize(windowWidth) {
-    this.setState({ windowWidth });
-  }
-
-  onVisible() {
-    const { device } = this.props;
-    if (!device.shared) {
-      this.fetchDeviceInfo();
-      this.fetchDeviceCarHealth();
-    }
-  }
-
-  async fetchDeviceInfo() {
-    const { dongleId, device } = this.props;
+  const fetchDeviceInfo = useCallback(async () => {
     if (device.shared) {
       return;
     }
-    this.setState({ deviceStats: { fetching: true } });
+    setDeviceStats({ fetching: true });
     try {
       const resp = await Devices.fetchDeviceStats(dongleId);
-      if (this.mounted && dongleId === this.props.dongleId) {
-        this.setState({ deviceStats: { result: resp } });
+      if (mounted.current) {
+        setDeviceStats({ result: resp });
       }
     } catch (err) {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'device_info_device_stats' });
-      this.setState({ deviceStats: { error: err.message } });
+      setDeviceStats({ error: err.message });
     }
-  }
+  }, [dongleId, device.shared]);
 
-  async fetchDeviceCarHealth() {
-    const { dongleId, device } = this.props;
+  const fetchDeviceCarHealth = useCallback(async () => {
     if (!deviceIsOnline(device)) {
-      this.setState({ carHealth: {} });
+      setCarHealth({});
       return;
     }
 
-    this.setState({ carHealth: { fetching: true } });
+    setCarHealth({ fetching: true });
     try {
       const payload = {
         method: 'getMessage',
@@ -281,24 +254,29 @@ class DeviceInfo extends Component {
         id: 0,
       };
       const resp = await Athena.postJsonRpcPayload(dongleId, payload);
-      if (this.mounted && dongleId === this.props.dongleId) {
-        this.setState({ carHealth: resp });
+      if (mounted.current) {
+        setCarHealth(resp);
       }
     } catch (err) {
-      if (this.mounted && dongleId === this.props.dongleId) {
+      if (mounted.current) {
         if (!err.message || err.message.indexOf('Device not registered') === -1) {
           console.error(err);
           Sentry.captureException(err, { fingerprint: 'device_info_athena_pandastate' });
         }
-        this.setState({ carHealth: { error: err.message } });
+        setCarHealth({ error: err.message });
       }
     }
-  }
+  }, [dongleId, device]);
 
-  async takeSnapshot() {
-    const { dongleId } = this.props;
-    const { snapshot } = this.state;
-    this.setState({ snapshot: { ...snapshot, error: null, fetching: true } });
+  const onVisible = useCallback(() => {
+    if (!device.shared) {
+      fetchDeviceInfo();
+      fetchDeviceCarHealth();
+    }
+  }, [device.shared, fetchDeviceInfo, fetchDeviceCarHealth]);
+
+  const takeSnapshot = async () => {
+    setSnapshot((prev) => ({ ...prev, error: null, fetching: true }));
     try {
       const payload = {
         method: 'takeSnapshot',
@@ -312,9 +290,7 @@ class DeviceInfo extends Component {
       if (resp.result && !resp.result.jpegBack && !resp.result.jpegFront) {
         throw new Error('unable to fetch snapshot');
       }
-      if (dongleId === this.props.dongleId) {
-        this.setState({ snapshot: resp });
-      }
+      setSnapshot(resp);
     } catch (err) {
       let error = err.message;
       if (error.indexOf('Device not registered') !== -1) {
@@ -330,74 +306,19 @@ class DeviceInfo extends Component {
           }
         }
       }
-      this.setState({ snapshot: { error } });
+      setSnapshot({ error });
     }
-  }
+  };
 
-  snapshotType(showFront) {
-    const { snapshot } = this.state;
-    this.setState({ snapshot: { ...snapshot, showFront } });
-  }
+  const onOpenTimeSelect = () => {
+    setIsTimeSelectOpen(true);
+  };
 
-  onOpenTimeSelect() {
-    this.setState({ isTimeSelectOpen: true });
-  }
+  const onCloseTimeSelect = () => {
+    setIsTimeSelectOpen(false);
+  };
 
-  onCloseTimeSelect() {
-    this.setState({ isTimeSelectOpen: false });
-  }
-
-  render() {
-    const { classes, device } = this.props;
-    const { snapshot, deviceStats, windowWidth } = this.state;
-
-    const containerPadding = windowWidth > 520 ? 36 : 16;
-    const largeSnapshotPadding = windowWidth > 1440 ? '12px 0' : 0;
-
-    return (
-      <>
-        <ResizeHandler onResize={this.onResize} />
-        <VisibilityHandler onVisible={this.onVisible} onInit onDongleId minInterval={60} />
-        <div className={classes.container} style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
-          {windowWidth >= 768 ? (
-            <div className={`${classes.row} ${classes.columnGap}`}>
-              <Typography variant="title">{deviceNamePretty(device)}</Typography>
-              <div className={classes.deviceStatContainer}>{this.renderStats()}</div>
-              <div className={`${classes.row} ${classes.buttonRow}`}>{this.renderButtons()}</div>
-            </div>
-          ) : (
-            <>
-              <div className={classes.row}>
-                <Typography variant="title">{deviceNamePretty(device)}</Typography>
-              </div>
-              <div className={classes.row}>{this.renderButtons()}</div>
-              {deviceStats.result && <div className={`${classes.row} ${classes.spaceAround}`}>{this.renderStats()}</div>}
-            </>
-          )}
-        </div>
-        {snapshot.result && (
-          <div className={classes.snapshotContainer}>
-            {windowWidth >= 640 ? (
-              <div className={classes.snapshotContainerLarge} style={{ padding: largeSnapshotPadding }}>
-                <div className={classes.snapshotImageContainerLarge}>{this.renderSnapshotImage(snapshot.result.jpegBack, false)}</div>
-                <div className={classes.snapshotImageContainerLarge}>{this.renderSnapshotImage(snapshot.result.jpegFront, true)}</div>
-              </div>
-            ) : (
-              <div className={classes.scrollSnapContainer}>
-                <div className={classes.scrollSnapItem}>{this.renderSnapshotImage(snapshot.result.jpegBack, false)}</div>
-                <div className={classes.scrollSnapItem}>{this.renderSnapshotImage(snapshot.result.jpegFront, true)}</div>
-              </div>
-            )}
-          </div>
-        )}
-      </>
-    );
-  }
-
-  renderStats() {
-    const { classes } = this.props;
-    const { deviceStats } = this.state;
-
+  const renderStats = () => {
     if (!deviceStats.result) {
       return (
         <>
@@ -433,12 +354,9 @@ class DeviceInfo extends Component {
         </div>
       </>
     );
-  }
+  };
 
-  renderButtons() {
-    const { classes, device } = this.props;
-    const { snapshot, carHealth, windowWidth, isTimeSelectOpen } = this.state;
-
+  const renderButtons = () => {
     let batteryVoltage;
     let batteryBackground = Colors.grey400;
     if (deviceIsOnline(device) && carHealth?.result && carHealth.result.peripheralState && carHealth.result.peripheralState.voltage) {
@@ -476,26 +394,25 @@ class DeviceInfo extends Component {
           )}
         </div>
         <Button
-          ref={this.snapshotButtonRef}
+          ref={snapshotButtonRef}
           classes={{ root: `${classes.button} ${actionButtonClass} ${buttonOffline}` }}
-          onClick={this.takeSnapshot}
+          onClick={takeSnapshot}
           disabled={Boolean(snapshot.fetching || !deviceIsOnline(device))}
         >
           {snapshot.fetching ? <CircularProgress size={19} /> : 'take snapshot'}
         </Button>
-        <Button classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }} onClick={this.onOpenTimeSelect}>
+        <Button classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }} onClick={onOpenTimeSelect}>
           <AccessTime fontSize="inherit" />
         </Button>
-        <Popper className={classes.popover} open={Boolean(error)} placement="bottom" anchorEl={this.snapshotButtonRef.current}>
+        <Popper className={classes.popover} open={Boolean(error)} placement="bottom" anchorEl={snapshotButtonRef.current}>
           <Typography>{error}</Typography>
         </Popper>
-        <TimeSelect isOpen={isTimeSelectOpen} onClose={this.onCloseTimeSelect} />
+        <TimeSelect isOpen={isTimeSelectOpen} onClose={onCloseTimeSelect} />
       </>
     );
-  }
+  };
 
-  renderSnapshotImage(src, isFront) {
-    const { classes } = this.props;
+  const renderSnapshotImage = (src, isFront) => {
     if (!src) {
       return (
         <div className={classes.snapshotImageError}>
@@ -506,12 +423,49 @@ class DeviceInfo extends Component {
     }
 
     return <img src={`data:image/jpeg;base64,${src}`} className={classes.snapshotImage} />;
-  }
-}
+  };
 
-const stateToProps = (state) => ({
-  dongleId: state.dongleId,
-  device: state.device,
-});
+  const containerPadding = windowWidth > 520 ? 36 : 16;
+  const largeSnapshotPadding = windowWidth > 1440 ? '12px 0' : 0;
 
-export default connect(stateToProps)(withStyles(styles)(DeviceInfo));
+  return (
+    <>
+      <ResizeHandler onResize={onResize} />
+      <VisibilityHandler onVisible={onVisible} onInit onDongleId minInterval={60} />
+      <div className={classes.container} style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
+        {windowWidth >= 768 ? (
+          <div className={`${classes.row} ${classes.columnGap}`}>
+            <Typography variant="title">{deviceNamePretty(device)}</Typography>
+            <div className={classes.deviceStatContainer}>{renderStats()}</div>
+            <div className={`${classes.row} ${classes.buttonRow}`}>{renderButtons()}</div>
+          </div>
+        ) : (
+          <>
+            <div className={classes.row}>
+              <Typography variant="title">{deviceNamePretty(device)}</Typography>
+            </div>
+            <div className={classes.row}>{renderButtons()}</div>
+            {deviceStats.result && <div className={`${classes.row} ${classes.spaceAround}`}>{renderStats()}</div>}
+          </>
+        )}
+      </div>
+      {snapshot.result && (
+        <div className={classes.snapshotContainer}>
+          {windowWidth >= 640 ? (
+            <div className={classes.snapshotContainerLarge} style={{ padding: largeSnapshotPadding }}>
+              <div className={classes.snapshotImageContainerLarge}>{renderSnapshotImage(snapshot.result.jpegBack, false)}</div>
+              <div className={classes.snapshotImageContainerLarge}>{renderSnapshotImage(snapshot.result.jpegFront, true)}</div>
+            </div>
+          ) : (
+            <div className={classes.scrollSnapContainer}>
+              <div className={classes.scrollSnapItem}>{renderSnapshotImage(snapshot.result.jpegBack, false)}</div>
+              <div className={classes.scrollSnapItem}>{renderSnapshotImage(snapshot.result.jpegFront, true)}</div>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+};
+
+export default withStyles(styles)(DeviceInfo);

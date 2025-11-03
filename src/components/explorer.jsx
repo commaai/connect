@@ -1,8 +1,8 @@
 import { Button, CircularProgress, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
 import localforage from 'localforage';
-import { Component } from 'react';
-import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useLocation } from 'react-router';
 import { replace } from '../navigation';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -12,6 +12,7 @@ import init from '../actions/startup';
 import Colors from '../colors';
 import { pause, play } from '../timeline/playback';
 import { pairErrorToMessage, verifyPairToken } from '../utils';
+import { getSegmentRange } from '../url';
 import AppDrawer from './AppDrawer';
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
@@ -55,27 +56,35 @@ const styles = (theme) => ({
   },
 });
 
-class ExplorerApp extends Component {
-  constructor(props) {
-    super(props);
+const ExplorerApp = ({ classes }) => {
+  const dispatch = useDispatch();
+  const location = useLocation();
 
-    this.state = {
-      drawerIsOpen: false,
-      headerRef: null,
-      pairLoading: false,
-      pairError: null,
-      pairDongleId: null,
-      windowWidth: window.innerWidth,
-    };
+  const [drawerIsOpen, setDrawerIsOpen] = useState(false);
+  const [pairLoading, setPairLoading] = useState(false);
+  const [pairError, setPairError] = useState(null);
+  const [pairDongleId, setPairDongleId] = useState(null);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-    this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
-    this.updateHeaderRef = this.updateHeaderRef.bind(this);
-    this.closePair = this.closePair.bind(this);
+  const headerRef = useRef(null);
+
+  // Get Redux state
+  const dongleId = useSelector((state) => state.dongleId);
+  const devices = useSelector((state) => state.devices);
+  const limit = useSelector((state) => state.limit);
+  const routes = useSelector((state) => state.routes);
+
+  // Calculate current route and zoom from location
+  const seg = getSegmentRange(location?.pathname || '/');
+  const currentRoute = (seg && routes && routes.find((r) => r.log_id === seg.log_id)) || null;
+  let zoom = null;
+  if (currentRoute) {
+    const hasTimes = typeof seg.start === 'number' && typeof seg.end === 'number' && !Number.isNaN(seg.start) && !Number.isNaN(seg.end);
+    zoom = hasTimes ? { start: seg.start - currentRoute.start_time_utc_millis, end: seg.end - currentRoute.start_time_utc_millis } : { start: 0, end: currentRoute.duration };
   }
 
-  async componentDidMount() {
-    const { pairLoading, pairError, pairDongleId } = this.state;
-
+  // Initial mount effect
+  useEffect(() => {
     window.scrollTo({ top: 0 }); // for ios header
 
     const q = new URLSearchParams(window.location.search);
@@ -83,175 +92,159 @@ class ExplorerApp extends Component {
       replace(q.get('r'));
     }
 
-    this.props.dispatch(init());
+    dispatch(init());
+  }, [dispatch]);
 
-    let pairToken;
-    try {
-      pairToken = await localforage.getItem('pairToken');
-    } catch (err) {
-      console.error(err);
-    }
-    if (pairToken && !pairLoading && !pairError && !pairDongleId) {
-      this.setState({ pairLoading: true });
-
+  // Handle pairing on mount
+  useEffect(() => {
+    const handlePairing = async () => {
+      let pairToken;
       try {
-        verifyPairToken(pairToken, true, 'explorer_pair_verify_pairtoken');
+        pairToken = await localforage.getItem('pairToken');
       } catch (err) {
-        this.setState({ pairLoading: false, pairDongleId: null, pairError: `Error: ${err.message}` });
-        await localforage.removeItem('pairToken');
-        return;
+        console.error(err);
       }
+      if (pairToken && !pairLoading && !pairError && !pairDongleId) {
+        setPairLoading(true);
 
-      try {
-        const resp = await Devices.pilotPair(pairToken);
-        if (resp.dongle_id) {
+        try {
+          verifyPairToken(pairToken, true, 'explorer_pair_verify_pairtoken');
+        } catch (err) {
+          setPairLoading(false);
+          setPairDongleId(null);
+          setPairError(`Error: ${err.message}`);
           await localforage.removeItem('pairToken');
-          this.setState({
-            pairLoading: false,
-            pairError: null,
-            pairDongleId: resp.dongle_id,
-          });
-
-          const device = await Devices.fetchDevice(resp.dongle_id);
-          this.props.dispatch(updateDevice(device));
-        } else {
-          await localforage.removeItem('pairToken');
-          console.log(resp);
-          this.setState({ pairDongleId: null, pairLoading: false, pairError: 'Error: could not pair, please try again' });
+          return;
         }
-      } catch (err) {
-        await localforage.removeItem('pairToken');
-        const msg = pairErrorToMessage(err, 'explorer_pair_pairtoken');
-        this.setState({ pairDongleId: null, pairLoading: false, pairError: `Error: ${msg}, please try again` });
+
+        try {
+          const resp = await Devices.pilotPair(pairToken);
+          if (resp.dongle_id) {
+            await localforage.removeItem('pairToken');
+            setPairLoading(false);
+            setPairError(null);
+            setPairDongleId(resp.dongle_id);
+
+            const device = await Devices.fetchDevice(resp.dongle_id);
+            dispatch(updateDevice(device));
+          } else {
+            await localforage.removeItem('pairToken');
+            console.log(resp);
+            setPairDongleId(null);
+            setPairLoading(false);
+            setPairError('Error: could not pair, please try again');
+          }
+        } catch (err) {
+          await localforage.removeItem('pairToken');
+          const msg = pairErrorToMessage(err, 'explorer_pair_pairtoken');
+          setPairDongleId(null);
+          setPairLoading(false);
+          setPairError(`Error: ${msg}, please try again`);
+        }
       }
+    };
+
+    handlePairing();
+  }, [dispatch, pairLoading, pairError, pairDongleId]);
+
+  // Close drawer on pathname change
+  useEffect(() => {
+    if (location.pathname) {
+      setDrawerIsOpen(false);
     }
+  }, [location.pathname]);
 
-    this.componentDidUpdate({});
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    const { location, zoom, dongleId, limit } = this.props;
-    const pathname = location?.pathname;
-
-    if (prevProps.location?.pathname !== pathname) {
-      this.setState({ drawerIsOpen: false });
+  // Handle zoom changes for playback
+  useEffect(() => {
+    if (zoom) {
+      dispatch(play());
+    } else {
+      dispatch(pause());
     }
+  }, [zoom, dispatch]);
 
-    if (!prevProps.zoom && zoom) {
-      this.props.dispatch(play());
+  // Check routes data when dongleId changes
+  useEffect(() => {
+    if (dongleId && limit === 0) {
+      dispatch(checkLastRoutesData());
     }
-    if (prevProps.zoom && !zoom) {
-      this.props.dispatch(pause());
-    }
+  }, [dongleId, limit, dispatch]);
 
-    // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet
-    // so init() will not successfully fetch routes data
-    // when checkLastRoutesData is called within init(), it would set limit so we don't need to check again
-    if (prevProps.dongleId !== dongleId && limit === 0) {
-      this.props.dispatch(checkLastRoutesData());
-    }
-  }
-
-  async closePair() {
-    const { pairDongleId } = this.state;
+  const closePair = async () => {
     await localforage.removeItem('pairToken');
     if (pairDongleId) {
-      this.props.dispatch(selectDevice(pairDongleId));
+      dispatch(selectDevice(pairDongleId));
     }
-    this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
-  }
-
-  handleDrawerStateChanged(drawerOpen) {
-    this.setState({
-      drawerIsOpen: drawerOpen,
-    });
-  }
-
-  updateHeaderRef(ref) {
-    if (!this.state.headerRef) {
-      this.setState({ headerRef: ref });
-    }
-  }
-
-  render() {
-    const { classes, currentRoute, devices, dongleId } = this.props;
-    const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
-
-    const noDevicesUpsell = devices?.length === 0 && !dongleId;
-    const isLarge = noDevicesUpsell || windowWidth > 1080;
-
-    const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
-    const headerHeight = this.state.headerRef ? this.state.headerRef.getBoundingClientRect().height : windowWidth < 640 ? 111 : 66;
-    let containerStyles = {
-      minHeight: `calc(100vh - ${headerHeight}px)`,
-    };
-    if (isLarge) {
-      containerStyles = {
-        ...containerStyles,
-        width: `calc(100% - ${sidebarWidth}px)`,
-        marginLeft: sidebarWidth,
-      };
-    }
-
-    const drawerStyles = {
-      minHeight: `calc(100vh - ${headerHeight}px)`,
-    };
-
-    return (
-      <div>
-        <ResizeHandler onResize={(ww) => this.setState({ windowWidth: ww })} />
-        <PullDownReload />
-        <AppHeader
-          drawerIsOpen={drawerIsOpen}
-          viewingRoute={Boolean(currentRoute)}
-          showDrawerButton={!isLarge}
-          handleDrawerStateChanged={this.handleDrawerStateChanged}
-          forwardRef={this.updateHeaderRef}
-        />
-        <AppDrawer drawerIsOpen={drawerIsOpen} isPermanent={isLarge} width={sidebarWidth} handleDrawerStateChanged={this.handleDrawerStateChanged} style={drawerStyles} />
-        <div className={classes.window} style={containerStyles}>
-          {noDevicesUpsell ? <NoDeviceUpsell /> : currentRoute ? <DriveView /> : <Dashboard />}
-        </div>
-        <IosPwaPopup />
-        <Modal open={Boolean(pairLoading || pairError || pairDongleId)} onClose={this.closePair}>
-          <Paper className={classes.modal}>
-            <Typography variant="title">Pairing device</Typography>
-            <Divider />
-            {pairLoading && <CircularProgress size={32} className={classes.fabProgress} />}
-            {pairDongleId && (
-              <Typography>
-                {'Successfully paired device '}
-                <span className={classes.pairedDongleId}>{pairDongleId}</span>
-              </Typography>
-            )}
-            {pairError && <Typography>{pairError}</Typography>}
-            <Button variant="contained" className={classes.closeButton} onClick={this.closePair}>
-              Close
-            </Button>
-          </Paper>
-        </Modal>
-      </div>
-    );
-  }
-}
-
-import { getSegmentRange } from '../url';
-
-const stateToProps = (state, ownProps) => {
-  const seg = getSegmentRange(ownProps.location?.pathname || '/');
-  const currentRoute = (seg && state.routes && state.routes.find((r) => r.log_id === seg.log_id)) || null;
-  let zoom = null;
-  if (currentRoute) {
-    const hasTimes = typeof seg.start === 'number' && typeof seg.end === 'number' && !Number.isNaN(seg.start) && !Number.isNaN(seg.end);
-    zoom = hasTimes ? { start: seg.start - currentRoute.start_time_utc_millis, end: seg.end - currentRoute.start_time_utc_millis } : { start: 0, end: currentRoute.duration };
-  }
-  return {
-    zoom,
-    dongleId: state.dongleId,
-    devices: state.devices,
-    currentRoute,
-    limit: state.limit,
+    setPairLoading(false);
+    setPairError(null);
+    setPairDongleId(null);
   };
+
+  const handleDrawerStateChanged = (drawerOpen) => {
+    setDrawerIsOpen(drawerOpen);
+  };
+
+  const updateHeaderRef = (ref) => {
+    if (!headerRef.current) {
+      headerRef.current = ref;
+    }
+  };
+
+  const noDevicesUpsell = devices?.length === 0 && !dongleId;
+  const isLarge = noDevicesUpsell || windowWidth > 1080;
+
+  const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
+  const headerHeight = headerRef.current ? headerRef.current.getBoundingClientRect().height : windowWidth < 640 ? 111 : 66;
+  let containerStyles = {
+    minHeight: `calc(100vh - ${headerHeight}px)`,
+  };
+  if (isLarge) {
+    containerStyles = {
+      ...containerStyles,
+      width: `calc(100% - ${sidebarWidth}px)`,
+      marginLeft: sidebarWidth,
+    };
+  }
+
+  const drawerStyles = {
+    minHeight: `calc(100vh - ${headerHeight}px)`,
+  };
+
+  return (
+    <div>
+      <ResizeHandler onResize={(ww) => setWindowWidth(ww)} />
+      <PullDownReload />
+      <AppHeader
+        drawerIsOpen={drawerIsOpen}
+        viewingRoute={Boolean(currentRoute)}
+        showDrawerButton={!isLarge}
+        handleDrawerStateChanged={handleDrawerStateChanged}
+        forwardRef={updateHeaderRef}
+      />
+      <AppDrawer drawerIsOpen={drawerIsOpen} isPermanent={isLarge} width={sidebarWidth} handleDrawerStateChanged={handleDrawerStateChanged} style={drawerStyles} />
+      <div className={classes.window} style={containerStyles}>
+        {noDevicesUpsell ? <NoDeviceUpsell /> : currentRoute ? <DriveView /> : <Dashboard />}
+      </div>
+      <IosPwaPopup />
+      <Modal open={Boolean(pairLoading || pairError || pairDongleId)} onClose={closePair}>
+        <Paper className={classes.modal}>
+          <Typography variant="title">Pairing device</Typography>
+          <Divider />
+          {pairLoading && <CircularProgress size={32} className={classes.fabProgress} />}
+          {pairDongleId && (
+            <Typography>
+              {'Successfully paired device '}
+              <span className={classes.pairedDongleId}>{pairDongleId}</span>
+            </Typography>
+          )}
+          {pairError && <Typography>{pairError}</Typography>}
+          <Button variant="contained" className={classes.closeButton} onClick={closePair}>
+            Close
+          </Button>
+        </Paper>
+      </Modal>
+    </div>
+  );
 };
 
-export default withRouter(connect(stateToProps)(withStyles(styles)(ExplorerApp)));
+export default withStyles(styles)(ExplorerApp);
