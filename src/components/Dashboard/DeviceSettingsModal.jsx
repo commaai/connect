@@ -17,8 +17,8 @@ import UploadQueue from '../Files/UploadQueue';
 const styles = (theme) => ({
   modal: {
     position: 'absolute',
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
+    padding: theme.spacing(2),
+    width: theme.spacing(50),
     maxWidth: '90%',
     left: '50%',
     top: '40%',
@@ -26,7 +26,7 @@ const styles = (theme) => ({
     outline: 'none',
   },
   modalUnpair: {
-    width: theme.spacing.unit * 45,
+    width: theme.spacing(45),
     maxWidth: '80%',
   },
   titleContainer: {
@@ -37,10 +37,11 @@ const styles = (theme) => ({
   },
   buttonGroup: {
     textAlign: 'right',
+    marginTop: theme.spacing(2),
   },
   form: {
-    paddingTop: theme.spacing.unit,
-    paddingBottom: theme.spacing.unit,
+    paddingTop: theme.spacing(1),
+    paddingBottom: theme.spacing(1),
   },
   formRow: {
     minHeight: 75,
@@ -60,7 +61,7 @@ const styles = (theme) => ({
     zIndex: 1,
   },
   wrapper: {
-    margin: theme.spacing.unit,
+    margin: theme.spacing(1),
     position: 'relative',
     display: 'inline-block',
   },

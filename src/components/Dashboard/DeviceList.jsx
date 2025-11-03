@@ -70,13 +70,13 @@ const styles = (theme) => ({
     },
   },
   nameField: {
-    marginRight: theme.spacing.unit,
+    marginRight: theme.spacing(1),
   },
   saveButton: {
-    marginRight: theme.spacing.unit,
+    marginRight: theme.spacing(1),
   },
   textField: {
-    marginBottom: theme.spacing.unit,
+    marginBottom: theme.spacing(1),
   },
   addDeviceContainer: {
     '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.25)' },

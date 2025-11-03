@@ -38,7 +38,7 @@ const styles = (theme) => ({
     marginBottom: 8,
   },
   icon: {
-    marginLeft: theme.spacing.unit,
+    marginLeft: theme.spacing(1),
     fontSize: 18,
   },
 });

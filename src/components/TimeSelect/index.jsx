@@ -9,8 +9,8 @@ import Colors from '../../colors';
 const styles = (theme) => ({
   modal: {
     position: 'absolute',
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
+    padding: theme.spacing(2),
+    width: theme.spacing(50),
     maxWidth: '90%',
     margin: '0 auto',
     left: '50%',

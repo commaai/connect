@@ -32,7 +32,7 @@ const styles = (theme) => ({
     },
   },
   columnGap: {
-    columnGap: theme.spacing.unit * 4,
+    columnGap: theme.spacing(4),
   },
   bold: {
     fontWeight: 600,
@@ -85,7 +85,7 @@ const styles = (theme) => ({
     flexDirection: 'column',
     alignItems: 'center',
     maxWidth: 80,
-    padding: `0 ${theme.spacing.unit * 4}px`,
+    padding: `0 ${theme.spacing(2)}`,
   },
   carBattery: {
     padding: '5px 16px',
@@ -175,7 +175,7 @@ const styles = (theme) => ({
   },
   buttonIcon: {
     fontSize: 20,
-    marginLeft: theme.spacing.unit,
+    marginLeft: theme.spacing(1),
   },
   popover: {
     borderRadius: 22,

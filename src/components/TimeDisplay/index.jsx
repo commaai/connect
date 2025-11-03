@@ -24,7 +24,7 @@ const styles = (theme) => ({
     backgroundColor: theme.palette.grey[999],
     height: '64px',
     borderRadius: '32px',
-    padding: theme.spacing.unit,
+    padding: theme.spacing(1),
     width: 400,
     maxWidth: '100%',
     margin: '0 auto',
@@ -42,7 +42,7 @@ const styles = (theme) => ({
     },
   },
   desiredPlaySpeedContainer: {
-    marginRight: theme.spacing.unit * 1,
+    marginRight: theme.spacing(1),
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -82,7 +82,7 @@ const styles = (theme) => ({
     borderLeft: `1px solid ${theme.palette.grey[900]}`,
   },
   currentTime: {
-    margin: `0 ${theme.spacing.unit * 1}px`,
+    margin: `0 ${theme.spacing(1)}`,
     fontSize: 15,
     fontWeight: 500,
     display: 'block',
@@ -204,12 +204,12 @@ const TimeDisplay = ({ classes, isThin, onMuteToggle, isMuted, hasAudio }) => {
     <div className={`${classes.base} ${isExpandedCls} ${isThinCls}`}>
       <div className={classes.rightBorderBox}>
         <IconButton className={classes.iconButton} onClick={() => jumpBack(10000)} aria-label="Jump back 10 seconds">
-          <Replay10 className={`${classes.icon} small dim`} />
+          <Replay10 className={`${classes.icon} small`} />
         </IconButton>
       </div>
       <div className={classes.rightBorderBox}>
         <IconButton className={classes.iconButton} onClick={() => jumpForward(10000)} aria-label="Jump forward 10 seconds">
-          <Forward10 className={`${classes.icon} small dim`} />
+          <Forward10 className={`${classes.icon} small`} />
         </IconButton>
       </div>
       {!isThin && (
@@ -243,8 +243,8 @@ const TimeDisplay = ({ classes, isThin, onMuteToggle, isMuted, hasAudio }) => {
         </Tooltip>
       </div>
       <div className={classes.leftBorderBox}>
-        <IconButton onClick={togglePause} aria-label={isPaused ? 'Unpause' : 'Pause'}>
-          {isPaused ? <PlayArrow className={classes.icon} /> : <Pause className={classes.icon} />}
+        <IconButton className={classes.iconButton} onClick={togglePause} aria-label={isPaused ? 'Unpause' : 'Pause'}>
+          {isPaused ? <PlayArrow className={`${classes.icon} small`} /> : <Pause className={`${classes.icon} small`} />}
         </IconButton>
       </div>
     </div>

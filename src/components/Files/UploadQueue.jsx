@@ -13,7 +13,7 @@ import ResizeHandler from '../ResizeHandler';
 const styles = (theme) => ({
   modal: {
     position: 'absolute',
-    padding: theme.spacing.unit * 2,
+    padding: theme.spacing(2),
     width: 'max-content',
     maxWidth: '90%',
     left: '50%',
@@ -29,10 +29,11 @@ const styles = (theme) => ({
   },
   buttonGroup: {
     textAlign: 'right',
+    marginTop: theme.spacing(2),
   },
   uploadContainer: {
-    margin: `${theme.spacing.unit}px 0`,
-    color: Colors.white90,
+    margin: `${theme.spacing(1)} 0`,
+    color: Colors.white,
     textAlign: 'left',
     overflowY: 'auto',
   },
@@ -96,11 +97,11 @@ const styles = (theme) => ({
   },
   cellularWarning: {
     backgroundColor: Colors.grey500,
-    padding: `${theme.spacing.unit * 1.5}px ${theme.spacing.unit * 2}px`,
+    padding: `${theme.spacing(1.5)} ${theme.spacing(2)}`,
     borderRadius: 4,
     display: 'flex',
     flexDirection: 'column',
-    marginBottom: theme.spacing.unit,
+    marginBottom: theme.spacing(1),
     '& div': {
       display: 'flex',
       alignItems: 'center',
