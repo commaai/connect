@@ -1,5 +1,5 @@
 import { FormControlLabel, Popper, Switch, Typography, withStyles } from '@material-ui/core';
-import { Component } from 'react';
+import { useState } from 'react';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
@@ -45,75 +45,53 @@ const styles = () => ({
   },
 });
 
-class SwitchLoading extends Component {
-  constructor(props) {
-    super(props);
+const SwitchLoading = ({ classes, checked, label, loading, tooltip, onChange: propsOnChange }) => {
+  const [internalLoading, setInternalLoading] = useState(false);
+  const [internalChecked, setInternalChecked] = useState(null);
+  const [error, setError] = useState(null);
+  const [errorPopper, setErrorPopper] = useState(null);
 
-    this.state = {
-      loading: false,
-      checked: null,
-      error: null,
-      errorPopper: null,
-    };
-
-    this.onChange = this.onChange.bind(this);
-  }
-
-  async onChange(ev) {
-    if (this.state.loading) {
+  const onChange = async (ev) => {
+    if (internalLoading) {
       return;
     }
 
-    this.setState({
-      loading: true,
-      checked: ev.target.checked,
-      error: null,
-    });
+    setInternalLoading(true);
+    setInternalChecked(ev.target.checked);
+    setError(null);
 
-    const res = await this.props.onChange(ev);
+    const res = await propsOnChange(ev);
     if (res?.error) {
-      this.setState({
-        loading: false,
-        checked: null,
-        error: res.error,
-      });
+      setInternalLoading(false);
+      setInternalChecked(null);
+      setError(res.error);
       return;
     }
 
-    this.setState({
-      loading: false,
-      checked: null,
-      error: null,
-    });
-  }
+    setInternalLoading(false);
+    setInternalChecked(null);
+    setError(null);
+  };
 
-  render() {
-    const { classes, checked, label, loading, tooltip } = this.props;
+  const isChecked = internalChecked !== null ? internalChecked : checked;
+  const loadingCls = loading || internalLoading ? { icon: classes.switchThumbLoading } : {};
 
-    const isChecked = this.state.checked !== null ? this.state.checked : checked;
-    const loadingCls = loading || this.state.loading ? { icon: classes.switchThumbLoading } : {};
+  const switchEl = <Switch color="secondary" checked={isChecked} onChange={onChange} classes={loadingCls} disabled={loading} />;
 
-    const switchEl = <Switch color="secondary" checked={isChecked} onChange={this.onChange} classes={loadingCls} disabled={loading} />;
-
-    return (
-      <div className={classes.root}>
-        <FormControlLabel control={switchEl} label={label} />
-        {tooltip && <InfoTooltip title={tooltip} />}
-        {Boolean(this.state.error) && (
-          <>
-            <ErrorOutline
-              className={classes.errorIcon}
-              onMouseLeave={() => this.setState({ errorPopper: null })}
-              onMouseEnter={(ev) => this.setState({ errorPopper: ev.target })}
-            />
-            <Popper open={Boolean(this.state.errorPopper)} placement="bottom" anchorEl={this.state.errorPopper} className={classes.copiedPopover}>
-              <Typography>{this.state.error}</Typography>
-            </Popper>
-          </>
-        )}
-      </div>
-    );
-  }
-}
+  return (
+    <div className={classes.root}>
+      <FormControlLabel control={switchEl} label={label} />
+      {tooltip && <InfoTooltip title={tooltip} />}
+      {Boolean(error) && (
+        <>
+          <ErrorOutline className={classes.errorIcon} onMouseLeave={() => setErrorPopper(null)} onMouseEnter={(ev) => setErrorPopper(ev.target)} />
+          <Popper open={Boolean(errorPopper)} placement="bottom" anchorEl={errorPopper} className={classes.copiedPopover}>
+            <Typography>{error}</Typography>
+          </Popper>
+        </>
+      )}
+    </div>
+  );
+};
 
 export default withStyles(styles)(SwitchLoading);

@@ -1,6 +1,6 @@
 import { withStyles } from '@material-ui/core';
 import ReplayIcon from '@material-ui/icons/Replay';
-import React, { Component } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import Colors from '../../colors';
 import { isIos } from '../../utils/browser.js';
@@ -21,93 +21,79 @@ const styles = () => ({
   },
 });
 
-class PullDownReload extends Component {
-  constructor(props) {
-    super(props);
+const PullDownReload = ({ classes }) => {
+  const [startY, setStartY] = useState(null);
+  const [reloading, setReloading] = useState(false);
+  const dragEl = useRef(null);
 
-    this.state = {
-      startY: null,
-      reloading: false,
-    };
-
-    this.dragEl = React.createRef(null);
-
-    this.touchStart = this.touchStart.bind(this);
-    this.touchMove = this.touchMove.bind(this);
-    this.touchEnd = this.touchEnd.bind(this);
-  }
-
-  async componentDidMount() {
-    if (window && window.navigator) {
-      const isStandalone = window.navigator.standalone === true;
-      if (isIos() && isStandalone) {
-        document.addEventListener('touchstart', this.touchStart, { passive: false });
-        document.addEventListener('touchmove', this.touchMove, { passive: false });
-        document.addEventListener('touchend', this.touchEnd, { passive: false });
-      }
-    }
-  }
-
-  componentWillUnmount() {
-    document.removeEventListener('touchstart', this.touchStart);
-    document.removeEventListener('touchmove', this.touchMove);
-    document.removeEventListener('touchend', this.touchEnd);
-  }
-
-  touchStart(ev) {
+  const touchStart = useCallback((ev) => {
     if (document.scrollingElement.scrollTop !== 0 || ev.defaultPrevented) {
       return;
     }
 
-    this.setState({ startY: ev.touches[0].pageY });
-  }
+    setStartY(ev.touches[0].pageY);
+  }, []);
 
-  touchMove(ev) {
-    const { startY } = this.state;
-    const { current: el } = this.dragEl;
-    if (startY === null || !el) {
-      return;
-    }
+  const touchMove = useCallback(
+    (ev) => {
+      const el = dragEl.current;
+      if (startY === null || !el) {
+        return;
+      }
 
-    const top = Math.min((ev.touches[0].pageY - startY) / 2 - 48, 32);
-    el.style.transition = 'unset';
-    el.style.top = `${top}px`;
-    if (ev.touches[0].pageY - startY > 0) {
-      ev.preventDefault();
-    } else {
-      this.setState({ startY: null });
-      el.style.transition = 'top 0.1s';
-      el.style.top = '-48px';
-    }
-  }
+      const top = Math.min((ev.touches[0].pageY - startY) / 2 - 48, 32);
+      el.style.transition = 'unset';
+      el.style.top = `${top}px`;
+      if (ev.touches[0].pageY - startY > 0) {
+        ev.preventDefault();
+      } else {
+        setStartY(null);
+        el.style.transition = 'top 0.1s';
+        el.style.top = '-48px';
+      }
+    },
+    [startY],
+  );
 
-  touchEnd() {
-    const { reloading, startY } = this.state;
-    const { current: el } = this.dragEl;
+  const touchEnd = useCallback(() => {
+    const el = dragEl.current;
     if (startY === null || !el) {
       return;
     }
 
     const top = parseInt(el.style.top.substring(0, el.style.top.length - 2), 10);
     if (top >= 32 && !reloading) {
-      this.setState({ reloading: true });
+      setReloading(true);
       window.location.reload();
     } else {
-      this.setState({ startY: null });
+      setStartY(null);
       el.style.transition = 'top 0.1s';
       el.style.top = '-48px';
     }
-  }
+  }, [startY, reloading]);
 
-  render() {
-    const { classes } = this.props;
+  useEffect(() => {
+    if (window && window.navigator) {
+      const isStandalone = window.navigator.standalone === true;
+      if (isIos() && isStandalone) {
+        document.addEventListener('touchstart', touchStart, { passive: false });
+        document.addEventListener('touchmove', touchMove, { passive: false });
+        document.addEventListener('touchend', touchEnd, { passive: false });
 
-    return (
-      <div className={classes.root} ref={this.dragEl}>
-        <ReplayIcon />
-      </div>
-    );
-  }
-}
+        return () => {
+          document.removeEventListener('touchstart', touchStart);
+          document.removeEventListener('touchmove', touchMove);
+          document.removeEventListener('touchend', touchEnd);
+        };
+      }
+    }
+  }, [touchStart, touchMove, touchEnd]);
+
+  return (
+    <div className={classes.root} ref={dragEl}>
+      <ReplayIcon />
+    </div>
+  );
+};
 
 export default withStyles(styles)(PullDownReload);

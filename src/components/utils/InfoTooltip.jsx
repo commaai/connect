@@ -1,5 +1,5 @@
 import { ClickAwayListener, Tooltip, Typography, withStyles } from '@material-ui/core';
-import { Component } from 'react';
+import { useState } from 'react';
 
 import { InfoOutline } from '../../icons';
 
@@ -42,68 +42,51 @@ const styles = (theme) => ({
   },
 });
 
-class InfoTooltip extends Component {
-  constructor(props) {
-    super(props);
+const InfoTooltip = ({ classes, title }) => {
+  const [arrowRef, setArrowRef] = useState(null);
+  const [open, setOpen] = useState(false);
 
-    this.state = {
-      arrowRef: null,
-      open: false,
-    };
+  const handleArrowRef = (node) => {
+    setArrowRef(node);
+  };
 
-    this.handleArrowRef = this.handleArrowRef.bind(this);
-    this.onTooltipOpen = this.onTooltipOpen.bind(this);
-    this.onTooltipClose = this.onTooltipClose.bind(this);
-  }
+  const onTooltipOpen = () => {
+    setOpen(true);
+  };
 
-  handleArrowRef(node) {
-    this.setState({
-      arrowRef: node,
-    });
-  }
+  const onTooltipClose = () => {
+    setOpen(false);
+  };
 
-  onTooltipOpen() {
-    this.setState({ open: true });
-  }
-
-  onTooltipClose() {
-    this.setState({ open: false });
-  }
-
-  render() {
-    const { classes, title } = this.props;
-    const { arrowRef, open } = this.state;
-
-    return (
-      <ClickAwayListener onClickAway={this.onTooltipClose}>
-        <Tooltip
-          PopperProps={{
-            popperOptions: {
-              modifiers: {
-                arrow: {
-                  enabled: Boolean(arrowRef),
-                  element: arrowRef,
-                },
+  return (
+    <ClickAwayListener onClickAway={onTooltipClose}>
+      <Tooltip
+        PopperProps={{
+          popperOptions: {
+            modifiers: {
+              arrow: {
+                enabled: Boolean(arrowRef),
+                element: arrowRef,
               },
             },
-          }}
-          title={
-            <>
-              <Typography color="inherit">{title}</Typography>
-              <span className={classes.arrowArrow} ref={this.handleArrowRef} />
-            </>
-          }
-          onOpen={this.onTooltipOpen}
-          onClose={this.onTooltipClose}
-          open={open}
-          classes={{ tooltip: classes.tooltip, popper: classes.arrowPopper }}
-          placement="top"
-        >
-          <InfoOutline className={classes.icon} onClick={this.onTooltipOpen} />
-        </Tooltip>
-      </ClickAwayListener>
-    );
-  }
-}
+          },
+        }}
+        title={
+          <>
+            <Typography color="inherit">{title}</Typography>
+            <span className={classes.arrowArrow} ref={handleArrowRef} />
+          </>
+        }
+        onOpen={onTooltipOpen}
+        onClose={onTooltipClose}
+        open={open}
+        classes={{ tooltip: classes.tooltip, popper: classes.arrowPopper }}
+        placement="top"
+      >
+        <InfoOutline className={classes.icon} onClick={onTooltipOpen} />
+      </Tooltip>
+    </ClickAwayListener>
+  );
+};
 
 export default withStyles(styles)(InfoTooltip);

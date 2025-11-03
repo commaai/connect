@@ -88,6 +88,9 @@ const styles = (theme) => ({
     display: 'block',
     flexGrow: 1,
   },
+  playbackLabel: {
+    paddingTop: 4,
+  },
 });
 
 const TimeDisplay = ({ classes, isThin, onMuteToggle, isMuted, hasAudio }) => {
@@ -210,7 +213,7 @@ const TimeDisplay = ({ classes, isThin, onMuteToggle, isMuted, hasAudio }) => {
         </IconButton>
       </div>
       {!isThin && (
-        <Typography variant="caption" align="center" style={{ paddingTop: 4 }}>
+        <Typography variant="caption" align="center" className={classes.playbackLabel}>
           CURRENT PLAYBACK TIME
         </Typography>
       )}

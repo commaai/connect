@@ -88,14 +88,14 @@ const styles = () => ({
 });
 
 class AnonymousLanding extends Component {
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
+    // Set default redirectURL from pathname if not already set
     if (typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') === null) {
       const { pathname } = this.props;
       sessionStorage.setItem('redirectURL', pathname);
     }
-  }
 
-  componentDidMount() {
+    // Override with query param 'r' if present
     const q = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams('');
     if (q.has('r')) {
       sessionStorage.setItem('redirectURL', q.get('r'));
