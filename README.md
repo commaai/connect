@@ -3,12 +3,17 @@
 
 # comma connect
 
-The frontend to the comma connect progressive web app. This a react app using [Create React App](https://github.com/facebookincubator/create-react-app)
+The frontend to the comma connect progressive web app. This is a React app built with Vite.
 
 ## Development
-* Install pnpm: https://pnpm.io/installation
-* Install dependencies: `pnpm install`
-* Start dev server: `pnpm start`
+- Install Bun: https://bun.sh
+- Install dependencies: `bun install`
+- Start dev server: `bun run start`
+
+### Other scripts
+- Run unit tests: `bun run test`
+- Run e2e tests: `bun run test-puppeteer`
+- Build (production): `bun run build:production`
 
 ## Contributing
 

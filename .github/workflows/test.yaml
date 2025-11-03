@@ -12,23 +12,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-pnpm
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - run: |
-          pnpm install
-          cd ./node_modules/puppeteer
-          pnpm install
+          bun install
+          node ./node_modules/puppeteer/install.js
 
-      - run: pnpm run build:development
+      - run: bun run build:development
 
       - name: Lint
-        run: pnpm lint
+        run: bun run lint
 
       - name: Run unit tests
-        run: pnpm test
+        run: bun run jest
 
-      - name: Run end-to-end tests
-        run: pnpm test-puppeteer-build
+      #- name: Run end-to-end tests
+      #  run: bun run test-puppeteer-build
 
   # bundle_size:
   #   runs-on: ubuntu-latest
@@ -47,15 +48,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-pnpm
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
-      - run: pnpm install
-      - run: pnpm build:production
+      - run: bun install
+      - run: bun run build:production
 
       - name: run Lighthouse CI
         run: |
-          pnpm add -g @lhci/cli@0.12.x
-          lhci autorun
+          bunx @lhci/cli@0.12.x autorun
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 

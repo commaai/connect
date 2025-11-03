@@ -1,7 +1,4 @@
 import * as Sentry from '@sentry/react';
-import qs from 'query-string';
-
-import mbxGeocoding from '@mapbox/mapbox-sdk/services/geocoding';
 
 export const DEFAULT_LOCATION = {
   latitude: 32.711483,
@@ -11,8 +8,6 @@ export const DEFAULT_LOCATION = {
 export const MAPBOX_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 export const MAPBOX_TOKEN = 'pk.eyJ1IjoiY29tbWFhaSIsImEiOiJjangyYXV0c20wMGU2NDluMWR4amUydGl5In0.6Vb11S6tdX6Arpj6trRE_g';
 const HERE_API_KEY = 'O0atgmTwzKnwYJL2hk5N5qqG2R9y78f5GdHlvr_mtiw';
-
-const geocodingClient = mbxGeocoding({ accessToken: MAPBOX_TOKEN });
 
 export function getFilteredContexts(context) {
   const includeCtxs = ['region', 'district', 'place', 'locality', 'neighborhood'];
@@ -121,7 +116,7 @@ export function priorityGetContext(contexts) {
 }
 
 export async function reverseLookup(coords, navFormat = false) {
-  if (geocodingClient === null || (coords[0] === 0 && coords[1] === 0)) {
+  if (!coords || coords.length < 2 || (coords[0] === 0 && coords[1] === 0)) {
     return null;
   }
 
@@ -133,7 +128,7 @@ export async function reverseLookup(coords, navFormat = false) {
 
   let resp;
   try {
-    resp = await fetch(`${endpoint}${coords[0]},${coords[1]}.json?${qs.stringify(params)}`, {
+    resp = await fetch(`${endpoint}${coords[0]},${coords[1]}.json?${new URLSearchParams(params).toString()}`, {
       method: 'GET',
       cache: 'force-cache',
     });

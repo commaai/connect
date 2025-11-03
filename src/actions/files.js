@@ -1,9 +1,8 @@
-import * as Sentry from '@sentry/react';
 import { athena as Athena, devices as Devices, raw as Raw } from '@commaai/api';
-
-import { updateDeviceOnline, fetchDeviceNetworkStatus } from '.';
+import * as Sentry from '@sentry/react';
+import { asyncSleep, deviceOnCellular, deviceVersionAtLeast, getDeviceFromState } from '../utils';
+import { fetchDeviceNetworkStatus, updateDeviceOnline } from '.';
 import * as Types from './types';
-import { deviceOnCellular, getDeviceFromState, deviceVersionAtLeast, asyncSleep } from '../utils';
 
 export const FILE_NAMES = {
   qcameras: ['qcamera.ts'],
@@ -44,8 +43,7 @@ async function athenaCall(dongleId, payload, sentryFingerprint, retryCount = 0) 
       await asyncSleep(2000);
       return athenaCall(dongleId, payload, sentryFingerprint, retryCount + 1);
     }
-    if (err.message && (err.message.indexOf('Timed out') === -1
-      || err.message.indexOf('Device not registered') === -1)) {
+    if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
       return { offline: true };
     }
     console.error(err);
@@ -108,10 +106,9 @@ export function fetchFiles(routeName, nocache = false) {
 
     const dongleId = routeName.split('|')[0];
     const urlName = routeName.replace('|', '/');
-    const urls = Object
-      .keys(FILE_NAMES)
+    const urls = Object.keys(FILE_NAMES)
       .filter((type) => files[type])
-      .flatMap((type) => files[type].map((file) => ([type, file])))
+      .flatMap((type) => files[type].map((file) => [type, file]))
       .reduce((state, [type, file]) => {
         const segmentNum = parseInt(file.split(urlName)[1].split('/')[1], 10);
         const fileName = `${routeName}--${segmentNum}/${type}`;
@@ -227,11 +224,10 @@ export function doUpload(dongleId, paths, urls) {
         jsonrpc: '2.0',
         method: 'uploadFilesToUrls',
         params: { files_data: filesData },
-        expiry: Math.floor(Date.now() / 1000) + (86400 * 7),
+        expiry: Math.floor(Date.now() / 1000) + 86400 * 7,
       };
       const resp = await athenaCall(dongleId, payload, 'action_files_athena_uploads');
-      if (resp && resp.error && resp.error.code === -32000
-        && resp.error.data.message === 'too many values to unpack (expected 3)') {
+      if (resp && resp.error && resp.error.code === -32000 && resp.error.data.message === 'too many values to unpack (expected 3)') {
         loopedUploads = true;
       } else if (!resp || resp.error) {
         const newUploading = paths.reduce((state, path) => {
@@ -249,25 +245,24 @@ export function doUpload(dongleId, paths, urls) {
         }, {});
         dispatch(updateFiles(newUploading));
       } else if (resp.result) {
-        let failed = resp.result.failed || [];
+        const failed = resp.result.failed || [];
 
         // only if all file names for a segment file type failed
-        let failedFiltered = [];
+        const failedFiltered = [];
         for (const f of failed) {
-          let failedCnt = failed.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
-          let requestedCnt = paths.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
+          const failedCnt = failed.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
+          const requestedCnt = paths.filter((p) => pathToFileName(dongleId, p) === pathToFileName(dongleId, f)).length;
           if (failedCnt >= requestedCnt) {
             failedFiltered.push(f);
           }
         }
 
         if (failedFiltered) {
-          const uploading = failedFiltered
-            .reduce((state, path) => {
-              const fn = pathToFileName(dongleId, path);
-              state[fn] = { notFound: true };
-              return state;
-            }, {});
+          const uploading = failedFiltered.reduce((state, path) => {
+            const fn = pathToFileName(dongleId, path);
+            state[fn] = { notFound: true };
+            return state;
+          }, {});
           dispatch(updateFiles(uploading));
         }
         dispatch(fetchUploadQueue(dongleId));
@@ -281,7 +276,7 @@ export function doUpload(dongleId, paths, urls) {
           jsonrpc: '2.0',
           method: 'uploadFileToUrl',
           params: [paths[i], urls[i], { 'x-ms-blob-type': 'BlockBlob' }],
-          expiry: Math.floor(Date.now() / 1000) + (86400 * 7),
+          expiry: Math.floor(Date.now() / 1000) + 86400 * 7,
         };
         // eslint-disable-next-line no-await-in-loop
         const resp = await athenaCall(dongleId, payload, 'files_actions_athena_upload');

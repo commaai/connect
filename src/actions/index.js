@@ -1,17 +1,16 @@
-import { push } from 'connected-react-router';
-import * as Sentry from '@sentry/react';
-import document from 'global/document';
 import { athena as Athena, billing as Billing, devices as Devices, drives as Drives } from '@commaai/api';
 import MyCommaAuth from '@commaai/my-comma-auth';
-
-import * as Types from './types';
+import * as Sentry from '@sentry/react';
+import { navigate } from '../navigation';
+import { selectSegmentRange } from '../selectors/route';
 import { resetPlayback, selectLoop } from '../timeline/playback';
-import {hasRoutesData } from '../timeline/segments';
-import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
+import { hasRoutesData } from '../timeline/segments';
+import { deviceVersionAtLeast, getDeviceFromState } from '../utils';
+import * as Types from './types';
 
 let routesRequest = null;
 let routesRequestPromise = null;
-const LIMIT_INCREMENT = 5
+const LIMIT_INCREMENT = 5;
 const FIVE_YEARS = 1000 * 60 * 60 * 24 * 365 * 5;
 
 export function checkRoutesData() {
@@ -28,106 +27,109 @@ export function checkRoutesData() {
       // there is already an pending request
       return routesRequestPromise;
     }
-    console.debug('We need to update the segment metadata...');
     const { dongleId } = state;
     const fetchRange = state.filter;
 
-    // if requested segment range not in loaded routes, fetch it explicitly
-    if (state.segmentRange) {
+    // Use a minimum limit to ensure we always fetch at least some routes
+    const limit = state.limit || LIMIT_INCREMENT;
+
+    // if requested segment range (from URL) not in loaded routes, fetch it explicitly
+    const urlSeg = selectSegmentRange();
+    if (urlSeg) {
       routesRequest = {
-        req: Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
+        req: Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${urlSeg.log_id}`),
         dongleId,
       };
     } else {
       routesRequest = {
-        req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, state.limit),
+        req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, limit),
         dongleId,
       };
     }
 
-    routesRequestPromise = routesRequest.req.then((routesData) => {
-      state = getState();
-      const currentRange = state.filter;
-      if (currentRange.start !== fetchRange.start
-        || currentRange.end !== fetchRange.end
-        || state.dongleId !== dongleId) {
+    routesRequestPromise = routesRequest.req
+      .then((routesData) => {
+        state = getState();
+        const currentRange = state.filter;
+        if (currentRange.start !== fetchRange.start || currentRange.end !== fetchRange.end || state.dongleId !== dongleId) {
+          routesRequest = null;
+          dispatch(checkRoutesData());
+          return;
+        }
+        if (routesData && routesData.length === 0 && !MyCommaAuth.isAuthenticated()) {
+          window.location = `/?r=${encodeURI(window.location.pathname)}`; // redirect to login
+          return;
+        }
+
+        const routes = routesData
+          .map((r) => {
+            let startTime = r.segment_start_times[0];
+            let endTime = r.segment_end_times[r.segment_end_times.length - 1];
+
+            // TODO: these will all be relative times soon
+            // fix segment boundary times for routes that have the wrong time at the start
+            if (Math.abs(r.start_time_utc_millis - startTime) > 24 * 60 * 60 * 1000 && Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000) {
+              startTime = r.start_time_utc_millis;
+              endTime = r.end_time_utc_millis;
+              r.segment_start_times = r.segment_numbers.map((x) => startTime + x * 60 * 1000);
+              r.segment_end_times = r.segment_numbers.map((x) => Math.min(startTime + (x + 1) * 60 * 1000, endTime));
+            }
+            // TODO: backwards compatiblity, remove later
+            if (r.distance == null && r.length != null) {
+              r.distance = r.length;
+            }
+            return {
+              ...r,
+              url: r.url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
+              log_id: r.fullname.split('|')[1],
+              duration: endTime - startTime,
+              start_time_utc_millis: startTime,
+              end_time_utc_millis: endTime,
+              // TODO: get this from the API, this isn't correct for segments with a time jump
+              segment_durations: r.segment_start_times.map((x, i) => r.segment_end_times[i] - x),
+            };
+          })
+          .sort((a, b) => {
+            return b.create_time - a.create_time;
+          });
+
+        dispatch({
+          type: Types.ACTION_ROUTES_METADATA,
+          dongleId,
+          start: fetchRange.start,
+          end: fetchRange.end,
+          routes,
+        });
+
         routesRequest = null;
-        dispatch(checkRoutesData());
-        return;
-      }
-      if (routesData && routesData.length === 0
-        && !MyCommaAuth.isAuthenticated()) {
-        window.location = `/?r=${encodeURI(window.location.pathname)}`; // redirect to login
-        return;
-      }
 
-      const routes = routesData.map((r) => {
-        let startTime = r.segment_start_times[0];
-        let endTime = r.segment_end_times[r.segment_end_times.length - 1];
-
-        // TODO: these will all be relative times soon
-        // fix segment boundary times for routes that have the wrong time at the start
-        if ((Math.abs(r.start_time_utc_millis - startTime) > 24 * 60 * 60 * 1000)
-            && (Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000)) {
-          startTime = r.start_time_utc_millis;
-          endTime = r.end_time_utc_millis;
-          r.segment_start_times = r.segment_numbers.map((x) => startTime + (x * 60 * 1000));
-          r.segment_end_times = r.segment_numbers.map((x) => Math.min(startTime + ((x + 1) * 60 * 1000), endTime));
-        }
-        // TODO: backwards compatiblity, remove later
-        if (r.distance == null && r.length != null) {
-          r.distance = r.length;
-        }
-        return {
-          ...r,
-          url: r.url.replace('chffrprivate.blob.core.windows.net', 'chffrprivate.azureedge.net'),
-          log_id: r.fullname.split('|')[1],
-          duration: endTime - startTime,
-          start_time_utc_millis: startTime,
-          end_time_utc_millis: endTime,
-          // TODO: get this from the API, this isn't correct for segments with a time jump
-          segment_durations: r.segment_start_times.map((x, i) => r.segment_end_times[i] - x),
-        };
-      }).sort((a, b) => {
-        return b.create_time - a.create_time;
+        return routes;
+      })
+      .catch((err) => {
+        console.error('Failure fetching routes metadata', err);
+        Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
+        routesRequest = null;
       });
 
-      dispatch({
-        type: Types.ACTION_ROUTES_METADATA,
-        dongleId,
-        start: fetchRange.start,
-        end: fetchRange.end,
-        routes,
-      });
-
-      routesRequest = null;
-
-      return routes
-    }).catch((err) => {
-      console.error('Failure fetching routes metadata', err);
-      Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
-      routesRequest = null;
-    });
-
-    return routesRequestPromise
+    return routesRequestPromise;
   };
 }
 
 export function checkLastRoutesData() {
   return (dispatch, getState) => {
-    const limit = getState().limit
-    const routes = getState().routes
+    const limit = getState().limit;
+    const routes = getState().routes;
 
     // if current routes are fewer than limit, that means the last fetch already fetched all the routes
     if (routes && routes.length < limit) {
-      return
+      return;
     }
 
-    console.log(`fetching ${limit +LIMIT_INCREMENT } routes`)
+    console.log(`fetching ${limit + LIMIT_INCREMENT} routes`);
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
       limit: limit + LIMIT_INCREMENT,
-    })
+    });
 
     const d = new Date();
     const end = d.getTime();
@@ -143,7 +145,7 @@ export function checkLastRoutesData() {
   };
 }
 
-export function urlForState(dongleId, log_id, start, end, prime) {
+export function urlForState(dongleId, log_id, start, end) {
   const path = [dongleId];
 
   if (log_id) {
@@ -152,24 +154,28 @@ export function urlForState(dongleId, log_id, start, end, prime) {
       path.push(start);
       path.push(end);
     }
-  } else if (prime) {
-    path.push('prime');
   }
 
   return `/${path.join('/')}`;
 }
 
-function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
-    || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
+function _updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
+  if (
+    !state.loop ||
+    !state.loop.startTime ||
+    !state.loop.duration ||
+    state.loop.startTime < start ||
+    state.loop.startTime + state.loop.duration > end ||
+    state.loop.duration < end - start
+  ) {
     dispatch(resetPlayback());
     dispatch(selectLoop(start, end));
   }
 
   if (allowPathChange) {
-    const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start/1000), Math.floor(end/1000), false);
+    const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start / 1000), Math.floor(end / 1000));
     if (window.location.pathname !== desiredPath) {
-      dispatch(push(desiredPath));
+      navigate(desiredPath);
     }
   }
 }
@@ -177,13 +183,8 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
 export function popTimelineRange(log_id, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
-    if (state.zoom.previous) {
-      dispatch({
-        type: Types.TIMELINE_POP_SELECTION,
-      });
-
-      const { start, end } = state.zoom.previous;
-      updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
+    if (allowPathChange && state.dongleId) {
+      navigate(`/${state.dongleId}/${log_id || ''}`.replace(/\/$/, ''));
     }
   };
 }
@@ -191,21 +192,19 @@ export function popTimelineRange(log_id, allowPathChange = true) {
 export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
-
-    if (state.zoom?.start !== start || state.zoom?.end !== end || state.segmentRange?.log_id !== log_id) {
-      dispatch({
-        type: Types.TIMELINE_PUSH_SELECTION,
-        log_id,
-        start,
-        end,
-      });
+    if (allowPathChange && state.dongleId) {
+      const desiredPath = urlForState(state.dongleId, log_id, Math.floor((start || 0) / 1000), Math.floor((end || 0) / 1000));
+      if (window.location.pathname !== desiredPath) {
+        navigate(desiredPath);
+      }
     }
-
-    updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
+    // update loop to reflect new selection
+    if (start != null && end != null) {
+      dispatch(resetPlayback());
+      dispatch(selectLoop(start, end));
+    }
   };
-
 }
-
 
 export function primeGetSubscription(dongleId, subscription) {
   return {
@@ -228,23 +227,27 @@ export function primeFetchSubscription(dongleId, device, profile) {
 
     if (device && (device.is_owner || profile.superuser)) {
       if (device.prime) {
-        Billing.getSubscription(dongleId).then((subscription) => {
-          dispatch(primeGetSubscription(dongleId, subscription));
-        }).catch((err) => {
-          console.error(err);
-          Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' });
-        });
-      } else {
-        Billing.getSubscribeInfo(dongleId).then((subscribeInfo) => {
-          dispatch({
-            type: Types.ACTION_PRIME_SUBSCRIBE_INFO,
-            dongleId,
-            subscribeInfo,
+        Billing.getSubscription(dongleId)
+          .then((subscription) => {
+            dispatch(primeGetSubscription(dongleId, subscription));
+          })
+          .catch((err) => {
+            console.error(err);
+            Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' });
           });
-        }).catch((err) => {
-          console.error(err);
-          Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' });
-        });
+      } else {
+        Billing.getSubscribeInfo(dongleId)
+          .then((subscribeInfo) => {
+            dispatch({
+              type: Types.ACTION_PRIME_SUBSCRIBE_INFO,
+              dongleId,
+              subscribeInfo,
+            });
+          })
+          .catch((err) => {
+            console.error(err);
+            Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' });
+          });
       }
     }
   };
@@ -252,25 +255,20 @@ export function primeFetchSubscription(dongleId, device, profile) {
 
 export function fetchDeviceOnline(dongleId) {
   return (dispatch) => {
-    Devices.fetchDevice(dongleId).then((resp) => {
-      dispatch({
-        type: Types.ACTION_UPDATE_DEVICE_ONLINE,
-        dongleId,
-        last_athena_ping: resp.last_athena_ping,
-        fetched_at: Math.floor(Date.now() / 1000),
-      });
-    }).catch(console.log);
+    Devices.fetchDevice(dongleId)
+      .then((resp) => {
+        dispatch({
+          type: Types.ACTION_UPDATE_DEVICE_ONLINE,
+          dongleId,
+          last_athena_ping: resp.last_athena_ping,
+          fetched_at: Math.floor(Date.now() / 1000),
+        });
+      })
+      .catch(console.log);
   };
 }
 
-export function updateSegmentRange(log_id, start, end) {
-  return {
-    type: Types.ACTION_UPDATE_SEGMENT_RANGE,
-    log_id,
-    start,
-    end,
-  };
-}
+// segment range is derived from URL; no update action needed
 
 export function selectDevice(dongleId, allowPathChange = true) {
   return (dispatch, getState) => {
@@ -288,8 +286,11 @@ export function selectDevice(dongleId, allowPathChange = true) {
       dongleId,
     });
 
-    dispatch(pushTimelineRange(null, null, null, false));
-    dispatch(updateSegmentRange(null, null, null));
+    // Don't clear routes immediately - let them persist while new routes load
+    // This prevents flashing when switching devices since routes-based conditional rendering
+    // won't unmount components during the async data fetch
+    // dispatch(pushTimelineRange(null, null, null, false));
+
     if ((device && !device.shared) || state.profile?.superuser) {
       dispatch(primeFetchSubscription(dongleId, device));
       dispatch(fetchDeviceOnline(dongleId));
@@ -298,37 +299,15 @@ export function selectDevice(dongleId, allowPathChange = true) {
     dispatch(checkRoutesData());
 
     if (allowPathChange) {
-      const desiredPath = urlForState(dongleId, null, null, null, null);
+      const desiredPath = urlForState(dongleId, null, null, null);
       if (window.location.pathname !== desiredPath) {
-        dispatch(push(desiredPath));
+        navigate(desiredPath);
       }
     }
   };
 }
 
-export function primeNav(nav, allowPathChange = true) {
-  return (dispatch, getState) => {
-    const state = getState();
-    if (!state.dongleId) {
-      return;
-    }
-
-    if (state.primeNav !== nav) {
-      dispatch({
-        type: Types.ACTION_PRIME_NAV,
-        primeNav: nav,
-      });
-    }
-
-    if (allowPathChange) {
-      const curPath = document.location.pathname;
-      const desiredPath = urlForState(state.dongleId, null, null, null, nav);
-      if (curPath !== desiredPath) {
-        dispatch(push(desiredPath));
-      }
-    }
-  };
-}
+// prime view is now derived from URL
 
 export function fetchSharedDevice(dongleId) {
   return async (dispatch) => {
@@ -440,7 +419,7 @@ export function selectTimeFilter(start, end) {
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
       limit: undefined,
-    })
+    });
 
     dispatch(checkRoutesData());
   };
@@ -461,4 +440,3 @@ export function updateRoute(fullname, route) {
     route,
   };
 }
-

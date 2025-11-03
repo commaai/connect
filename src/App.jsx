@@ -1,35 +1,27 @@
-import React, { Component, lazy, Suspense } from 'react';
-import { Provider } from 'react-redux';
-import { Route, Switch, Redirect } from 'react-router';
-import { ConnectedRouter } from 'connected-react-router';
-import qs from 'query-string';
-import localforage from 'localforage';
-import * as Sentry from '@sentry/react';
-
-import { CircularProgress, Grid } from '@material-ui/core';
-
-import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 import { athena as Athena, auth as Auth, billing as Billing, request as Request } from '@commaai/api';
-
-import { getZoom, getSegmentRange } from './url';
-import store, { history } from './store';
-
+import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
+import { CircularProgress, Grid } from '@mui/material';
+import * as Sentry from '@sentry/react';
+import localforage from 'localforage';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { Provider } from 'react-redux';
+import { Redirect, Route, Router, Switch } from 'react-router';
 import ErrorFallback from './components/ErrorFallback';
+import { history } from './history';
+import store from './store';
+import { getSegmentRange, getZoom } from './url';
 
 const Explorer = lazy(() => import('./components/explorer'));
 const AnonymousLanding = lazy(() => import('./components/anonymous'));
 
-class App extends Component {
-  constructor(props) {
-    super(props);
+const App = () => {
+  const [initialized, setInitialized] = useState(false);
 
-    this.state = {
-      initialized: false,
-    };
-
+  // Handle pair token from URL
+  useEffect(() => {
     let pairToken;
     if (window.location) {
-      pairToken = qs.parse(window.location.search).pair;
+      pairToken = new URLSearchParams(window.location.search).get('pair');
     }
 
     if (pairToken) {
@@ -39,64 +31,68 @@ class App extends Component {
         console.error(err);
       }
     }
-  }
+  }, []);
 
-  apiErrorResponseCallback(resp) {
+  const apiErrorResponseCallback = useCallback((resp) => {
     if (resp.status === 401) {
       MyCommaAuth.logOut();
     }
-  }
+  }, []);
 
-  async componentDidMount() {
-    if (window.location) {
-      if (window.location.pathname === AuthConfig.AUTH_PATH) {
-        try {
-          const { code, provider } = qs.parse(window.location.search);
-          const token = await Auth.refreshAccessToken(code, provider);
-          if (token) {
-            AuthStorage.setCommaAccessToken(token);
+  // Initialize authentication and API
+  useEffect(() => {
+    const initialize = async () => {
+      if (window.location) {
+        if (window.location.pathname === AuthConfig.AUTH_PATH) {
+          try {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            const provider = params.get('provider');
+            const token = await Auth.refreshAccessToken(code, provider);
+            if (token) {
+              AuthStorage.setCommaAccessToken(token);
+            }
+          } catch (err) {
+            console.error(err);
+            Sentry.captureException(err, { fingerprint: 'app_auth_refresh_token' });
           }
-        } catch (err) {
-          console.error(err);
-          Sentry.captureException(err, { fingerprint: 'app_auth_refresh_token' });
         }
       }
-    }
 
-    const token = await MyCommaAuth.init();
-    if (token) {
-      Request.configure(token, this.apiErrorResponseCallback);
-      Billing.configure(token, this.apiErrorResponseCallback);
-      Athena.configure(token, this.apiErrorResponseCallback);
-    }
+      const token = await MyCommaAuth.init();
+      if (token) {
+        Request.configure(token, apiErrorResponseCallback);
+        Billing.configure(token, apiErrorResponseCallback);
+        Athena.configure(token, apiErrorResponseCallback);
+      }
 
-    this.setState({ initialized: true });
+      setInitialized(true);
+    };
 
-    // set up analytics, low priority, so we do this last
-    import('./analytics-v2');
-  }
+    initialize();
+  }, [apiErrorResponseCallback]);
 
-  redirectLink() {
+  const redirectLink = () => {
     let url = '/';
     if (typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') !== null) {
       url = sessionStorage.getItem('redirectURL');
       sessionStorage.removeItem('redirectURL');
     }
     return url;
-  }
+  };
 
-  authRoutes() {
+  const authRoutes = () => {
     return (
       <Switch>
         <Route path="/auth/">
-          <Redirect to={this.redirectLink()} />
+          <Redirect to={redirectLink()} />
         </Route>
         <Route path="/" component={Explorer} />
       </Switch>
     );
-  }
+  };
 
-  anonymousRoutes() {
+  const anonymousRoutes = () => {
     return (
       <Switch>
         <Route path="/auth/">
@@ -105,9 +101,9 @@ class App extends Component {
         <Route path="/" component={AnonymousLanding} />
       </Switch>
     );
-  }
+  };
 
-  renderLoading() {
+  const renderLoading = () => {
     return (
       <Grid container alignItems="center" style={{ width: '100%', height: '100vh' }}>
         <Grid item align="center" xs={12}>
@@ -115,37 +111,25 @@ class App extends Component {
         </Grid>
       </Grid>
     );
+  };
+
+  if (!initialized) {
+    return renderLoading();
   }
 
-  render() {
-    if (!this.state.initialized) {
-      return this.renderLoading();
-    }
+  const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(window.location.pathname) && !getSegmentRange(window.location.pathname);
+  let content = <Suspense fallback={renderLoading()}>{showLogin ? anonymousRoutes() : authRoutes()}</Suspense>;
 
-    const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(window.location.pathname) && !getSegmentRange(window.location.pathname);
-    let content = (
-      <Suspense fallback={this.renderLoading()}>
-        { showLogin ? this.anonymousRoutes() : this.authRoutes() }
-      </Suspense>
-    );
-
-    // Use ErrorBoundary in production only
-    if (import.meta.env.PROD) {
-      content = (
-        <Sentry.ErrorBoundary fallback={(props) => <ErrorFallback {...props} />}>
-          {content}
-        </Sentry.ErrorBoundary>
-      );
-    }
-
-    return (
-      <Provider store={store}>
-        <ConnectedRouter history={history}>
-          {content}
-        </ConnectedRouter>
-      </Provider>
-    );
+  // Use ErrorBoundary in production only
+  if (import.meta.env.PROD) {
+    content = <Sentry.ErrorBoundary fallback={(props) => <ErrorFallback {...props} />}>{content}</Sentry.ErrorBoundary>;
   }
-}
+
+  return (
+    <Provider store={store}>
+      <Router history={history}>{content}</Router>
+    </Provider>
+  );
+};
 
 export default App;

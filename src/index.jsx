@@ -1,10 +1,12 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { CssBaseline, MuiThemeProvider } from '@material-ui/core';
+import { CssBaseline, ThemeProvider } from '@mui/material';
 import * as Sentry from '@sentry/react';
+import ReactDOM from 'react-dom/client';
 
 import './index.css';
 import App from './App';
+import { history } from './history';
+import installHistorySync from './historySync';
+import store from './store';
 import Theme from './theme';
 
 if (window.SENTRY_ENV) {
@@ -18,13 +20,16 @@ if (window.SENTRY_ENV) {
 
 console.info('mode:', import.meta.env.MODE || 'unknown');
 console.info('connect version:', import.meta.env.VITE_APP_GIT_SHA || 'dev');
-if (import.meta.env.VITE_APP_GIT_COMMIT_TIMESTAMP) {
-  console.info('commit date:', import.meta.env.VITE_APP_GIT_COMMIT_TIMESTAMP || 'unknown');
+if (import.meta.env.VITE_APP_GIT_TIMESTAMP) {
+  console.info('commit date:', import.meta.env.VITE_APP_GIT_TIMESTAMP || 'unknown');
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render((
-  <MuiThemeProvider theme={Theme}>
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <ThemeProvider theme={Theme}>
     <CssBaseline />
     <App />
-  </MuiThemeProvider>
-));
+  </ThemeProvider>,
+);
+
+// Install router -> store sync
+installHistorySync(store, history);

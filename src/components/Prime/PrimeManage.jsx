@@ -1,538 +1,493 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import dayjs from 'dayjs';
-import * as Sentry from '@sentry/react';
-
-import { withStyles, Typography, Button, Modal, Paper, IconButton, CircularProgress } from '@material-ui/core';
-import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
-import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
-
 import { billing as Billing } from '@commaai/api';
-import { deviceNamePretty, deviceTypePretty } from '../../utils';
-import ResizeHandler from '../ResizeHandler';
+import { Box, Button, CircularProgress, IconButton, Modal, Paper, Typography } from '@mui/material';
+import { styled } from '@mui/material/styles';
+import KeyboardBackspaceIcon from '@mui/icons-material/KeyboardBackspace';
+import PriorityHighIcon from '@mui/icons-material/PriorityHigh';
+import * as Sentry from '@sentry/react';
+import dayjs from 'dayjs';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { primeGetSubscription } from '../../actions';
 import Colors from '../../colors';
 import { ErrorOutline, InfoOutline } from '../../icons';
-import { primeNav, primeGetSubscription, analyticsEvent } from '../../actions';
+import { navigate } from '../../navigation';
+import { deviceNamePretty, deviceTypePretty } from '../../utils';
+import ResizeHandler from '../ResizeHandler';
 
-const styles = (theme) => ({
-  linkHighlight: {
-    '&:link': {
-      textDecoration: "underline",
-      color: Colors.green300,
-    },
-    '&:visited': {
-      textDecoration: "underline",
-      color: Colors.green300,
-    },
-    '&:active': {
-      textDecoration: "underline",
-      color: Colors.green300,
-    },
-    '&:hover': {
-      textDecoration: "underline",
-      color: Colors.green400,
-    },
+const LinkHighlight = styled('a')({
+  '&:link': {
+    textDecoration: 'underline',
+    color: Colors.green300,
   },
-  primeBox: {
-    display: 'flex',
-    flexDirection: 'column',
+  '&:visited': {
+    textDecoration: 'underline',
+    color: Colors.green300,
   },
-  primeContainer: {
-    borderBottom: `1px solid ${Colors.white10}`,
-    color: '#fff',
+  '&:active': {
+    textDecoration: 'underline',
+    color: Colors.green300,
   },
-  primeBlock: {
-    marginTop: 10,
-  },
-  overviewBlock: {
-    marginTop: 20,
-  },
-  overviewBlockError: {
-    marginTop: 15,
-    padding: 10,
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 0, 0, 0.2)',
-    '& p': { display: 'inline-block', marginLeft: 10 },
-  },
-  overviewBlockSuccess: {
-    marginTop: 15,
-    padding: 10,
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 255, 0, 0.2)',
-    '& p': {
-      display: 'inline-block',
-      marginLeft: 10,
-      '&:first-child': { fontWeight: 600 },
-    },
-  },
-  overviewBlockLoading: {
-    marginTop: 15,
-    padding: 10,
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    '& p': { display: 'inline-block', marginLeft: 10 },
-  },
-  overviewBlockDisabled: {
-    marginTop: 12,
-    borderRadius: 12,
-    padding: '8px 12px',
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: Colors.white08,
-    '& p': { display: 'inline-block', marginLeft: 10 },
-    '& a': { color: 'white' },
-  },
-  manageItem: {
-    marginLeft: 10,
-    '& span': {
-      color: Colors.white70,
-      fontSize: '0.9em',
-    },
-  },
-  buttons: {
-    marginTop: 10,
-    background: Colors.white,
-    borderRadius: 18,
-    color: Colors.grey900,
-    textTransform: 'none',
-    width: 220,
-    '&:hover': {
-      backgroundColor: Colors.white70,
-      color: Colors.grey900,
-    },
-    '&:disabled': {
-      backgroundColor: Colors.white70,
-      color: Colors.grey900,
-    },
-    '&:disabled:hover': {
-      backgroundColor: Colors.white70,
-      color: Colors.grey900,
-    },
-  },
-  cancelButton: {
-    color: Colors.white,
-    background: 'transparent',
-    border: `1px solid ${Colors.grey500}`,
-    '&:hover': {
-      backgroundColor: Colors.white10,
-      color: Colors.white,
-    },
-    '&:disabled': {
-      backgroundColor: 'transparent',
-      color: Colors.grey500,
-    },
-    '&:disabled:hover': {
-      backgroundColor: 'transparent',
-      color: Colors.grey500,
-    },
-  },
-  modal: {
-    position: 'absolute',
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
-    maxWidth: '90%',
-    left: '50%',
-    top: '40%',
-    transform: 'translate(-50%, -50%)',
-    '& p': {
-      marginTop: 10,
-    },
-  },
-  closeButton: {
-    marginTop: 10,
-    float: 'right',
-    backgroundColor: Colors.grey200,
-    color: Colors.white,
-    '&:hover': {
-      backgroundColor: Colors.grey400,
-    },
-  },
-  cancelModalButton: {
-    width: 170,
-    marginTop: 10,
-    backgroundColor: Colors.grey200,
-    color: Colors.white,
-    '&:hover': {
-      backgroundColor: Colors.grey400,
-    },
-    '&:disabled': {
-      backgroundColor: Colors.grey400,
-    },
-    '&:disabled:hover': {
-      backgroundColor: Colors.grey400,
-    },
-  },
-  cancelError: {
-    backgroundColor: 'rgba(255, 0, 0, 0.3)',
-    marginTop: 10,
-    padding: 10,
-    '& p': { margin: 0 },
-  },
-  cancelSuccess: {
-    backgroundColor: 'rgba(0, 255, 0, 0.3)',
-    marginTop: 10,
-    padding: 10,
-    '& p': { margin: 0 },
-  },
-  paymentElement: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    maxWidth: 450,
+  '&:hover': {
+    textDecoration: 'underline',
+    color: Colors.green400,
   },
 });
 
-class PrimeManage extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      error: null,
-      cancelError: null,
-      cancelModal: false,
-      canceling: false,
-      stripeStatus: null,
-      windowWidth: window.innerWidth,
-    };
+const PrimeBox = styled(Box)({
+  display: 'flex',
+  flexDirection: 'column',
+});
 
-    this.cancelPrime = this.cancelPrime.bind(this);
-    this.fetchStripeSession = this.fetchStripeSession.bind(this);
-    this.gotoUpdate = this.gotoUpdate.bind(this);
-    this.fetchSubscription = this.fetchSubscription.bind(this);
-    this.onResize = this.onResize.bind(this);
-  }
+const PrimeContainer = styled(Box)({
+  borderBottom: `1px solid ${Colors.white10}`,
+  color: '#fff',
+});
 
-  componentDidMount() {
-    this.componentDidUpdate({}, {});
-    this.mounted = true;
-  }
+const OverviewBlock = styled(Box)({
+  marginTop: 20,
+});
 
-  componentDidUpdate(prevProps, prevState) {
-    const { subscription } = this.props;
-    const { stripeStatus } = this.state;
+const OverviewBlockError = styled(Box)({
+  marginTop: 15,
+  padding: 10,
+  display: 'flex',
+  alignItems: 'center',
+  backgroundColor: 'rgba(255, 0, 0, 0.2)',
+  '& p': { display: 'inline-block', marginLeft: 10 },
+});
 
-    if (!prevProps.stripeSuccess && this.props.stripeSuccess) {
-      this.setState({
-        stripeStatus: { sessionId: this.props.stripeSuccess, loading: true, paid: null },
-      }, this.fetchStripeSession);
-    }
+const OverviewBlockSuccess = styled(Box)({
+  marginTop: 15,
+  padding: 10,
+  alignItems: 'center',
+  backgroundColor: 'rgba(0, 255, 0, 0.2)',
+  '& p': {
+    display: 'inline-block',
+    marginLeft: 10,
+    '&:first-child': { fontWeight: 600 },
+  },
+});
 
-    if ((subscription?.user_id && prevState.stripeStatus?.paid !== 'paid' && stripeStatus?.paid === 'paid')
-      || (stripeStatus?.paid === 'paid' && !prevProps.subscription?.user_id && subscription?.user_id)) {
-      this.props.dispatch(analyticsEvent('prime_paid', { plan: subscription.plan }));
-    }
-  }
+const OverviewBlockLoading = styled(Box)({
+  marginTop: 15,
+  padding: 10,
+  display: 'flex',
+  alignItems: 'center',
+  backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  '& p': { display: 'inline-block', marginLeft: 10 },
+});
 
-  componentWillUnmount() {
-    this.mounted = false;
-  }
+const OverviewBlockDisabled = styled(Box)({
+  marginTop: 12,
+  borderRadius: 12,
+  padding: '8px 12px',
+  display: 'flex',
+  alignItems: 'center',
+  backgroundColor: Colors.white08,
+  '& p': { display: 'inline-block', marginLeft: 10 },
+  '& a': { color: 'white' },
+});
 
-  cancelPrime() {
-    this.setState({ canceling: true });
-    this.props.dispatch(analyticsEvent('prime_cancel', { plan: this.props.subscription.plan }));
-    Billing.cancelPrime(this.props.dongleId).then((resp) => {
-      if (resp.success) {
-        this.setState({ canceling: false, cancelError: null, cancelSuccess: 'Cancelled subscription.' });
-        this.fetchSubscription();
-      } else if (resp.error) {
-        this.setState({ canceling: false, cancelError: resp.description });
-      } else {
-        this.setState({ canceling: false, cancelError: 'Could not cancel due to unknown error. Please try again.' });
+const ManageItem = styled(Typography)({
+  marginLeft: 10,
+  '& span': {
+    color: Colors.white70,
+    fontSize: '0.9em',
+  },
+});
+
+const StyledButton = styled(Button)({
+  marginTop: 10,
+  background: Colors.white,
+  borderRadius: 18,
+  color: Colors.grey900,
+  textTransform: 'none',
+  width: 220,
+  '&:hover': {
+    backgroundColor: Colors.white70,
+    color: Colors.grey900,
+  },
+  '&:disabled': {
+    backgroundColor: Colors.white70,
+    color: Colors.grey900,
+  },
+  '&:disabled:hover': {
+    backgroundColor: Colors.white70,
+    color: Colors.grey900,
+  },
+});
+
+const CancelButton = styled(Button)({
+  marginTop: 10,
+  color: Colors.white,
+  background: 'transparent',
+  border: `1px solid ${Colors.grey500}`,
+  borderRadius: 18,
+  textTransform: 'none',
+  width: 220,
+  '&:hover': {
+    backgroundColor: Colors.white10,
+    color: Colors.white,
+  },
+  '&:disabled': {
+    backgroundColor: 'transparent',
+    color: Colors.grey500,
+  },
+  '&:disabled:hover': {
+    backgroundColor: 'transparent',
+    color: Colors.grey500,
+  },
+});
+
+const StyledModal = styled(Paper)(({ theme }) => ({
+  position: 'absolute',
+  padding: theme.spacing(2),
+  width: theme.spacing(50),
+  maxWidth: '90%',
+  left: '50%',
+  top: '40%',
+  transform: 'translate(-50%, -50%)',
+  '& p': {
+    marginTop: 10,
+  },
+}));
+
+const CloseButton = styled(Button)({
+  marginTop: 10,
+  float: 'right',
+  backgroundColor: Colors.grey200,
+  color: Colors.white,
+  '&:hover': {
+    backgroundColor: Colors.grey400,
+  },
+});
+
+const CancelModalButton = styled(Button)({
+  width: 170,
+  marginTop: 10,
+  backgroundColor: Colors.grey200,
+  color: Colors.white,
+  '&:hover': {
+    backgroundColor: Colors.grey400,
+  },
+  '&:disabled': {
+    backgroundColor: Colors.grey400,
+  },
+  '&:disabled:hover': {
+    backgroundColor: Colors.grey400,
+  },
+});
+
+const CancelError = styled(Box)({
+  backgroundColor: 'rgba(255, 0, 0, 0.3)',
+  marginTop: 10,
+  padding: 10,
+  '& p': { margin: 0 },
+});
+
+const CancelSuccess = styled(Box)({
+  backgroundColor: 'rgba(0, 255, 0, 0.3)',
+  marginTop: 10,
+  padding: 10,
+  '& p': { margin: 0 },
+});
+
+const PaymentElement = styled(Box)({
+  marginTop: 20,
+  display: 'flex',
+  flexWrap: 'wrap',
+  justifyContent: 'space-between',
+  maxWidth: 450,
+});
+
+const PrimeManage = () => {
+  const dispatch = useDispatch();
+  const dongleId = useSelector((state) => state.dongleId);
+  const device = useSelector((state) => state.device);
+  const subscription = useSelector((state) => state.subscription);
+  const stripeSuccess = useSelector((state) => state.stripeSuccess);
+
+  const [error] = useState(null);
+  const [cancelError, setCancelError] = useState(null);
+  const [cancelSuccess, setCancelSuccess] = useState(null);
+  const [cancelModal, setCancelModal] = useState(false);
+  const [canceling, setCanceling] = useState(false);
+  const [stripeStatus, setStripeStatus] = useState(null);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  const mounted = useRef(false);
+
+  const onResize = (width) => {
+    setWindowWidth(width);
+  };
+
+  const fetchSubscription = useCallback(
+    async (repeat = false) => {
+      if (!mounted.current) {
+        return;
       }
-    }).catch((err) => {
-      Sentry.captureException(err, { fingerprint: 'primemanage_cancel_prime' });
-      this.setState({ canceling: false, cancelError: 'Could not cancel due to unknown error. Please try again.' });
-    });
-  }
+      try {
+        const subscriptionData = await Billing.getSubscription(dongleId);
+        if (subscriptionData.user_id) {
+          dispatch(primeGetSubscription(dongleId, subscriptionData));
+        } else {
+          setTimeout(() => fetchSubscription(true), 2000);
+        }
+      } catch (err) {
+        if (err.message && err.message.indexOf('404') === 0) {
+          if (repeat) {
+            setTimeout(() => fetchSubscription(true), 2000);
+          }
+        } else {
+          console.error(err);
+          Sentry.captureException(err, { fingerprint: 'prime_fetch_subscription' });
+        }
+      }
+    },
+    [dongleId, dispatch],
+  );
 
-  async gotoUpdate() {
-    this.props.dispatch(analyticsEvent('prime_stripe_update', { plan: this.props.subscription.plan }));
-    try {
-      const resp = await Billing.getStripePortal(this.props.dongleId);
-      window.location = resp.url;
-    } catch (err) {
-      // TODO show error messages
-      console.error(err);
-      Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_update' });
-    }
-  }
-
-  async fetchStripeSession() {
-    const { dongleId } = this.props;
-    const { stripeStatus } = this.state;
-    if (!stripeStatus || !this.mounted) {
+  const fetchStripeSession = useCallback(async () => {
+    if (!stripeStatus || !mounted.current) {
       return;
     }
 
     try {
       const resp = await Billing.getStripeSession(dongleId, stripeStatus.sessionId);
       const status = resp.payment_status;
-      this.setState({ stripeStatus: {
+      setStripeStatus({
         ...stripeStatus,
         paid: status,
         loading: status !== 'paid',
-      } });
+      });
       if (status === 'paid') {
-        this.fetchSubscription(true);
+        fetchSubscription(true);
       } else {
-        setTimeout(this.fetchStripeSession, 2000);
+        setTimeout(fetchStripeSession, 2000);
       }
     } catch (err) {
       // TODO error handling
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'prime_fetch_stripe_session' });
     }
-  }
+  }, [dongleId, stripeStatus, fetchSubscription]);
 
-  async fetchSubscription(repeat = false) {
-    const { dongleId } = this.props;
-    if (!this.mounted) {
-      return;
-    }
-    try {
-      const subscription = await Billing.getSubscription(dongleId);
-      if (subscription.user_id) {
-        this.props.dispatch(primeGetSubscription(dongleId, subscription));
-      } else {
-        setTimeout(() => this.fetchSubscription(true), 2000);
-      }
-    } catch (err) {
-      if (err.message && err.message.indexOf('404') === 0) {
-        if (repeat) {
-          setTimeout(() => this.fetchSubscription(true), 2000);
+  const cancelPrime = () => {
+    setCanceling(true);
+    Billing.cancelPrime(dongleId)
+      .then((resp) => {
+        if (resp.success) {
+          setCanceling(false);
+          setCancelError(null);
+          setCancelSuccess('Cancelled subscription.');
+          fetchSubscription();
+        } else if (resp.error) {
+          setCanceling(false);
+          setCancelError(resp.description);
+        } else {
+          setCanceling(false);
+          setCancelError('Could not cancel due to unknown error. Please try again.');
         }
-      } else {
-        console.error(err);
-        Sentry.captureException(err, { fingerprint: 'prime_fetch_subscription' });
-      }
+      })
+      .catch((err) => {
+        Sentry.captureException(err, { fingerprint: 'primemanage_cancel_prime' });
+        setCanceling(false);
+        setCancelError('Could not cancel due to unknown error. Please try again.');
+      });
+  };
+
+  const gotoUpdate = async () => {
+    try {
+      const resp = await Billing.getStripePortal(dongleId);
+      window.location = resp.url;
+    } catch (err) {
+      // TODO show error messages
+      console.error(err);
+      Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_update' });
     }
+  };
+
+  // Set mounted ref
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  // Handle stripe success
+  useEffect(() => {
+    if (stripeSuccess) {
+      setStripeStatus({ sessionId: stripeSuccess, loading: true, paid: null });
+      fetchStripeSession();
+    }
+  }, [stripeSuccess, fetchStripeSession]);
+
+  const hasPrimeSub = subscription && subscription.user_id;
+
+  if (!hasPrimeSub && !stripeStatus) {
+    return null;
   }
 
-  onResize(windowWidth) {
-    this.setState({ windowWidth });
+  let joinDate;
+  let nextPaymentDate;
+  let cancelAtDate;
+  let planName;
+  let planSubtext;
+  if (hasPrimeSub) {
+    joinDate = dayjs(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0).format('MMMM D, YYYY');
+    nextPaymentDate = dayjs(subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0).format('MMMM D, YYYY');
+    cancelAtDate = dayjs(subscription.cancel_at ? subscription.cancel_at * 1000 : 0).format('MMMM D, YYYY');
+    planName = subscription.plan === 'nodata' ? 'Lite' : 'Standard';
+    planSubtext = subscription.plan === 'nodata' ? '(without data plan)' : '(with data plan)';
   }
 
-  render() {
-    const { dispatch, dongleId, subscription, classes, device } = this.props;
-    const { windowWidth, stripeStatus } = this.state;
+  const hasCancelAt = Boolean(hasPrimeSub && subscription.cancel_at && subscription.cancel_at <= subscription.next_charge_at);
+  const alias = deviceNamePretty(device);
+  const containerPadding = windowWidth > 520 ? 36 : 16;
+  const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
 
-    const hasPrimeSub = subscription && subscription.user_id;
-
-    if (!hasPrimeSub && !stripeStatus) {
-      return null;
-    }
-
-    let joinDate;
-    let nextPaymentDate;
-    let cancelAtDate;
-    let planName;
-    let planSubtext;
-    if (hasPrimeSub) {
-      joinDate = dayjs(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0).format('MMMM D, YYYY');
-      nextPaymentDate = dayjs(subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0).format('MMMM D, YYYY');
-      cancelAtDate = dayjs(subscription.cancel_at ? subscription.cancel_at * 1000 : 0).format('MMMM D, YYYY');
-      planName = subscription.plan === 'nodata' ? 'Lite' : 'Standard';
-      planSubtext = subscription.plan === 'nodata' ? '(without data plan)' : '(with data plan)';
-    }
-
-    const hasCancelAt = Boolean(hasPrimeSub && subscription.cancel_at && subscription.cancel_at <= subscription.next_charge_at);
-    const alias = deviceNamePretty(device);
-    const containerPadding = windowWidth > 520 ? 36 : 16;
-    const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
-
-    return (
-      <>
-        <ResizeHandler onResize={this.onResize} />
-        <div className={classes.primeBox}>
-          <div className={classes.primeContainer} style={{ padding: `8px ${containerPadding}px` }}>
-            <IconButton aria-label="Go Back" onClick={() => dispatch(primeNav(false))}>
-              <KeyboardBackspaceIcon />
-            </IconButton>
-          </div>
-          <div className={classes.primeContainer} style={{ padding: `16px ${containerPadding}px` }}>
-            <Typography variant="title">comma prime</Typography>
-            {stripeStatus && (
-              <>
-                {stripeStatus.paid !== 'paid'
-                  && (
-                    <div className={classes.overviewBlockLoading}>
-                      <CircularProgress size={19} style={{ color: Colors.white }} />
-                      <Typography>Waiting for confirmed payment</Typography>
-                    </div>
+  return (
+    <>
+      <ResizeHandler onResize={onResize} />
+      <PrimeBox>
+        <PrimeContainer style={{ padding: `8px ${containerPadding}px` }}>
+          <IconButton aria-label="Go Back" onClick={() => navigate(`/${dongleId}`)}>
+            <KeyboardBackspaceIcon />
+          </IconButton>
+        </PrimeContainer>
+        <PrimeContainer style={{ padding: `16px ${containerPadding}px` }}>
+          <Typography variant="h6">comma prime</Typography>
+          {stripeStatus && (
+            <>
+              {stripeStatus.paid !== 'paid' && (
+                <OverviewBlockLoading>
+                  <CircularProgress size={19} style={{ color: Colors.white }} />
+                  <Typography>Waiting for confirmed payment</Typography>
+                </OverviewBlockLoading>
+              )}
+              {Boolean(stripeStatus.paid === 'paid' && !hasPrimeSub) && (
+                <OverviewBlockLoading>
+                  <CircularProgress size={19} style={{ color: Colors.white }} />
+                  <Typography>Processing subscription</Typography>
+                </OverviewBlockLoading>
+              )}
+              {Boolean(stripeStatus.paid === 'paid' && hasPrimeSub) && (
+                <OverviewBlockSuccess>
+                  <Typography>comma prime activated</Typography>
+                  {subscription.is_prime_sim && (
+                    <Typography>Connectivity will be enabled as soon as activation propagates to your local cell tower. Rebooting your device may help.</Typography>
                   )}
-                {Boolean(stripeStatus.paid === 'paid' && !hasPrimeSub)
-                  && (
-                    <div className={classes.overviewBlockLoading}>
-                      <CircularProgress size={19} style={{ color: Colors.white }} />
-                      <Typography>Processing subscription</Typography>
-                    </div>
-                  )}
-                {Boolean(stripeStatus.paid === 'paid' && hasPrimeSub)
-                  && (
-                    <div className={classes.overviewBlockSuccess}>
-                      <Typography>comma prime activated</Typography>
-                      {subscription.is_prime_sim && (
-                        <Typography>
-                          Connectivity will be enabled as soon as activation propagates to your
-                          local cell tower. Rebooting your device may help.
-                        </Typography>
-                      )}
-                    </div>
-                  )}
-              </>
-            )}
-            <div className={classes.overviewBlock}>
-              <Typography variant="subheading">Device</Typography>
-              <div className={classes.manageItem}>
-                <Typography variant="body2">{alias}</Typography>
-                <Typography variant="caption" className={classes.deviceId}>
-                  {`(${device.dongle_id})`}
-                </Typography>
-              </div>
-            </div>
-            {hasPrimeSub && (
-              <>
-                <div className={classes.overviewBlock}>
-                  <Typography variant="subheading">Plan</Typography>
-                  <Typography className={classes.manageItem}>
-                    {planName}
-                    <span>{` ${planSubtext}`}</span>
-                  </Typography>
-                </div>
-                <div className={classes.overviewBlock}>
-                  <Typography variant="subheading">Joined</Typography>
-                  <Typography className={classes.manageItem}>{joinDate}</Typography>
-                </div>
-                {!hasCancelAt
-                  && (
-                    <div className={classes.overviewBlock}>
-                      <Typography variant="subheading">Next payment</Typography>
-                      <Typography className={classes.manageItem}>{nextPaymentDate}</Typography>
-                    </div>
-                  )}
-                {hasCancelAt
-                  && (
-                    <div className={classes.overviewBlock}>
-                      <Typography variant="subheading">Subscription end</Typography>
-                      <Typography className={classes.manageItem}>{cancelAtDate}</Typography>
-                    </div>
-                  )}
-                <div className={classes.overviewBlock}>
-                  <Typography variant="subheading">Amount</Typography>
-                  <Typography className={classes.manageItem}>
-                    {`$${(subscription.amount / 100).toFixed(2)}`}
-                  </Typography>
-                </div>
-                {this.state.error && (
-                  <div className={classes.overviewBlockError}>
-                    <ErrorOutline />
-                    <Typography>{this.state.error}</Typography>
-                  </div>
+                </OverviewBlockSuccess>
+              )}
+            </>
+          )}
+          <OverviewBlock>
+            <Typography variant="subtitle1">Device</Typography>
+            <ManageItem variant="body2">
+              {alias}
+              <Typography variant="caption" component="span">
+                {` (${device.dongle_id})`}
+              </Typography>
+            </ManageItem>
+          </OverviewBlock>
+          {hasPrimeSub && (
+            <>
+              <OverviewBlock>
+                <Typography variant="subtitle1">Plan</Typography>
+                <ManageItem>
+                  {planName}
+                  <span>{` ${planSubtext}`}</span>
+                </ManageItem>
+              </OverviewBlock>
+              <OverviewBlock>
+                <Typography variant="subtitle1">Joined</Typography>
+                <ManageItem>{joinDate}</ManageItem>
+              </OverviewBlock>
+              {!hasCancelAt && (
+                <OverviewBlock>
+                  <Typography variant="subtitle1">Next payment</Typography>
+                  <ManageItem>{nextPaymentDate}</ManageItem>
+                </OverviewBlock>
+              )}
+              {hasCancelAt && (
+                <OverviewBlock>
+                  <Typography variant="subtitle1">Subscription end</Typography>
+                  <ManageItem>{cancelAtDate}</ManageItem>
+                </OverviewBlock>
+              )}
+              <OverviewBlock>
+                <Typography variant="subtitle1">Amount</Typography>
+                <ManageItem>{`$${(subscription.amount / 100).toFixed(2)}`}</ManageItem>
+              </OverviewBlock>
+              {error && (
+                <OverviewBlockError>
+                  <ErrorOutline />
+                  <Typography>{error}</Typography>
+                </OverviewBlockError>
+              )}
+              <PaymentElement>
+                <StyledButton
+                  style={buttonSmallStyle}
+                  onClick={gotoUpdate}
+                  disabled={!hasPrimeSub || (hasCancelAt && !device.eligible_features?.prime_data && subscription.plan === 'data')}
+                >
+                  {hasCancelAt ? 'Renew subscription' : 'Update payment method'}
+                </StyledButton>
+                {!hasCancelAt && (
+                  <CancelButton className="primeCancel" style={buttonSmallStyle} onClick={() => setCancelModal(true)} disabled={Boolean(!hasPrimeSub)}>
+                    Cancel subscription
+                  </CancelButton>
                 )}
-                <div className={`${classes.overviewBlock} ${classes.paymentElement}`}>
-                  <Button
-                    className={classes.buttons}
-                    style={buttonSmallStyle}
-                    onClick={this.gotoUpdate}
-                    disabled={!hasPrimeSub || (hasCancelAt && !device.eligible_features?.prime_data && subscription.plan === 'data')}
-                  >
-                    {hasCancelAt ? 'Renew subscription' : 'Update payment method'}
-                  </Button>
-                  {!hasCancelAt
-                    && (
-                      <Button
-                        className={`${classes.buttons} ${classes.cancelButton} primeCancel`}
-                        style={buttonSmallStyle}
-                        onClick={() => this.setState({ cancelModal: true })}
-                        disabled={Boolean(!hasPrimeSub)}
-                      >
-                        Cancel subscription
-                      </Button>
-                    )}
-                </div>
-                {hasPrimeSub && subscription.requires_migration
-                  && (
-                    <div className={classes.overviewBlockDisabled}>
-                      <PriorityHighIcon />
-                      <Typography>
-                        Your prime subscription will be canceled on May 15th unless you replace the
-                        SIM
-                        card in your device. A new SIM card can be ordered from the
-                        <a className={ classes.linkHighlight} href="https://comma.ai/shop/comma-prime-sim">shop</a>
-                        .
-                        Use discount code SIMSWAP at checkout to receive a free SIM card.
-                      </Typography>
-                    </div>
-                  )}
-                {hasCancelAt && !device.eligible_features?.prime_data && subscription.plan === 'data'
-                  && (
-                    <div className={classes.overviewBlockDisabled}>
-                      <InfoOutline />
-                      <Typography>
-                        Standard comma prime discontinued for
-                        {deviceTypePretty(device.device_type)}
-                      </Typography>
-                    </div>
-                  )}
-              </>
-            )}
-          </div>
-        </div>
-        <Modal
-          open={this.state.cancelModal}
-          onClose={() => this.setState({ cancelModal: false })}
-        >
-          <Paper className={classes.modal}>
-            <Typography variant="title">Cancel prime subscription</Typography>
-            {this.state.cancelError && (
-              <div className={classes.cancelError}>
-                <Typography>{this.state.cancelError}</Typography>
-              </div>
-            )}
-            {this.state.cancelSuccess && (
-              <div className={classes.cancelSuccess}>
-                <Typography>{this.state.cancelSuccess}</Typography>
-              </div>
-            )}
-            <Typography>
-              {`Device: ${alias} (${dongleId})`}
-            </Typography>
-            <Typography>
-              We&apos;re sorry to see you go.
-            </Typography>
-            <Typography>
-              Your subscription will be cancelled immediately and can be resumed at any time.
-            </Typography>
-            <Button
-              variant="contained"
-              className={`${classes.cancelModalButton} primeModalCancel`}
-              onClick={this.cancelPrime}
-              disabled={Boolean(this.state.cancelSuccess || this.state.canceling)}
-            >
-              {this.state.canceling
-                ? <CircularProgress size={19} style={{ color: Colors.white }} />
-                : 'Cancel subscription'}
-            </Button>
-            <Button
-              variant="contained"
-              className={`${classes.closeButton} primeModalClose`}
-              onClick={() => this.setState({ cancelModal: false })}
-            >
-              Close
-            </Button>
-          </Paper>
-        </Modal>
-      </>
-    );
-  }
-}
+              </PaymentElement>
+              {hasPrimeSub && subscription.requires_migration && (
+                <OverviewBlockDisabled>
+                  <PriorityHighIcon />
+                  <Typography>
+                    Your prime subscription will be canceled on May 15th unless you replace the SIM card in your device. A new SIM card can be ordered from the
+                    <LinkHighlight href="https://comma.ai/shop/comma-prime-sim">shop</LinkHighlight>. Use discount code SIMSWAP at checkout to receive a free SIM card.
+                  </Typography>
+                </OverviewBlockDisabled>
+              )}
+              {hasCancelAt && !device.eligible_features?.prime_data && subscription.plan === 'data' && (
+                <OverviewBlockDisabled>
+                  <InfoOutline />
+                  <Typography>
+                    Standard comma prime discontinued for
+                    {deviceTypePretty(device.device_type)}
+                  </Typography>
+                </OverviewBlockDisabled>
+              )}
+            </>
+          )}
+        </PrimeContainer>
+      </PrimeBox>
+      <Modal open={cancelModal} onClose={() => setCancelModal(false)}>
+        <StyledModal>
+          <Typography variant="h6">Cancel prime subscription</Typography>
+          {cancelError && (
+            <CancelError>
+              <Typography>{cancelError}</Typography>
+            </CancelError>
+          )}
+          {cancelSuccess && (
+            <CancelSuccess>
+              <Typography>{cancelSuccess}</Typography>
+            </CancelSuccess>
+          )}
+          <Typography>{`Device: ${alias} (${dongleId})`}</Typography>
+          <Typography>We&apos;re sorry to see you go.</Typography>
+          <Typography>Your subscription will be cancelled immediately and can be resumed at any time.</Typography>
+          <CancelModalButton variant="contained" className="primeModalCancel" onClick={cancelPrime} disabled={Boolean(cancelSuccess || canceling)}>
+            {canceling ? <CircularProgress size={19} style={{ color: Colors.white }} /> : 'Cancel subscription'}
+          </CancelModalButton>
+          <CloseButton variant="contained" className="primeModalClose" onClick={() => setCancelModal(false)}>
+            Close
+          </CloseButton>
+        </StyledModal>
+      </Modal>
+    </>
+  );
+};
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  device: 'device',
-  subscription: 'subscription',
-});
-
-export default connect(stateToProps)(withStyles(styles)(PrimeManage));
+export default PrimeManage;

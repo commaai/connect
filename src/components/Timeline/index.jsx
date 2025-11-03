@@ -1,146 +1,131 @@
 // timeline minimap
 // rapidly change high level timeline stuff
 // rapid seeking, etc
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import { withStyles } from '@material-ui/core/styles';
-import raf from 'raf';
-import document from 'global/document';
+
+import { Box } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import dayjs from 'dayjs';
-
-import Measure from 'react-measure';
-
-import Thumbnails from './thumbnails';
-import theme from '../../theme';
-import { pushTimelineRange } from '../../actions';
+import { useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import Colors from '../../colors';
+import { navigate } from '../../navigation';
+import { selectRouteZoom } from '../../selectors/route';
+import theme from '../../theme';
 import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
+import Thumbnails from './thumbnails';
 
-const styles = () => ({
-  base: {
-    position: 'relative',
+const TimelineBase = styled(Box)({
+  position: 'relative',
+});
+
+const TimelineSegments = styled(Box)({
+  position: 'relative',
+  left: '0px',
+  width: '100%',
+  overflow: 'hidden',
+  height: 12,
+});
+
+const TimelineSegment = styled(Box)({
+  position: 'absolute',
+  height: 12,
+  background: theme.palette.states.drivingBlue,
+});
+
+const StatusGradient = styled(Box)({
+  background: 'linear-gradient(rgba(0, 0, 0, 0.0) 4%, rgba(255, 255, 255, 0.025) 10%, rgba(0, 0, 0, 0.1) 25%, rgba(0, 0, 0, 0.4))',
+  height: 12,
+  left: 0,
+  pointerEvents: 'none',
+  position: 'absolute',
+  top: 0,
+  width: '100%',
+  zIndex: 2,
+});
+
+const SegmentColor = styled(Box)({
+  position: 'absolute',
+  display: 'inline-block',
+  height: 12,
+  width: '100%',
+  '&.active': {},
+  '&.engage': {
+    background: theme.palette.states.engagedGreen,
   },
-  segments: {
-    position: 'relative',
-    left: '0px',
-    width: '100%',
-    overflow: 'hidden',
-    height: 12,
+  '&.overriding': {
+    background: theme.palette.states.engagedGrey,
   },
-  segment: {
-    position: 'absolute',
-    height: 12,
-    background: theme.palette.states.drivingBlue,
-  },
-  statusGradient: {
-    background: 'linear-gradient(rgba(0, 0, 0, 0.0) 4%, rgba(255, 255, 255, 0.025) 10%, rgba(0, 0, 0, 0.1) 25%, rgba(0, 0, 0, 0.4))',
-    height: 12,
-    left: 0,
-    pointerEvents: 'none',
-    position: 'absolute',
-    top: 0,
-    width: '100%',
-    zIndex: 2,
-  },
-  segmentColor: {
-    position: 'absolute',
-    display: 'inline-block',
-    height: 12,
-    width: '100%',
-    '&.active': {},
-    '&.engage': {
-      background: theme.palette.states.engagedGreen,
+  '&.alert': {
+    '&.userPrompt': {
+      background: theme.palette.states.alertOrange,
     },
-    '&.overriding': {
-      background: theme.palette.states.engagedGrey,
-    },
-    '&.alert': {
-      '&.userPrompt': {
-        background: theme.palette.states.alertOrange,
-      },
-      '&.critical': {
-        background: theme.palette.states.alertRed,
-      },
-    },
-    '&.bookmark, &.flag': {  // TODO: remove flag selector once 14 days expires old events caches
-      background: theme.palette.states.userBookmark,
-      zIndex: 1,
+    '&.critical': {
+      background: theme.palette.states.alertRed,
     },
   },
-  thumbnails: {
-    height: 20,
-    width: '100%',
-    overflow: 'hidden',
-    whiteSpace: 'nowrap',
-    userSelect: 'none',
-    '& > div': {
-      display: 'inline-block',
-    },
-  },
-  ruler: {
-    backgroundColor: 'rgb(37, 51, 61)',
-    touchAction: 'none',
-    width: '100%',
-    height: 44,
-  },
-  rulerRemaining: {
-    backgroundColor: 'rgba(29, 34, 37, 0.9)',
-    borderLeft: '1px solid #D8DDDF',
-    position: 'absolute',
-    left: 0,
-    height: 44,
-    opacity: 0.45,
-    pointerEvents: 'none',
-    width: '100%',
-  },
-  loopStart: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRight: '1px solid rgba(0, 0, 0, 0.8)',
-    position: 'absolute',
-    left: 0,
-    height: 44,
-    pointerEvents: 'none',
-  },
-  loopEnd: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderLeft: '1px solid rgba(0, 0, 0, 0.8)',
-    position: 'absolute',
-    right: 0,
-    height: 44,
-    pointerEvents: 'none',
-  },
-  dragHighlight: {
-    pointerEvents: 'none',
-    background: 'rgba(255, 255, 255, 0.1)',
-    borderLeft: '1px solid rgba(255, 255, 255, 0.3)',
-    borderRight: '1px solid rgba(255, 255, 255, 0.3)',
-    position: 'absolute',
-    height: 44,
-  },
-  hoverBead: {
-    zIndex: 3,
-    textAlign: 'center',
-    borderRadius: 14,
-    fontSize: '0.7em',
-    padding: '3px 4px',
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    color: Colors.white,
-    position: 'absolute',
-    top: 83,
-    left: 0,
-    width: 80,
+  '&.bookmark, &.flag': {
+    // TODO: remove flag selector once 14 days expires old events caches
+    background: theme.palette.states.userBookmark,
+    zIndex: 1,
   },
 });
 
-const AlertStatusCodes = [
-  'normal',
-  'userPrompt',
-  'critical',
-];
+const ThumbnailsContainer = styled(Box)({
+  height: 20,
+  width: '100%',
+  overflow: 'hidden',
+  whiteSpace: 'nowrap',
+  userSelect: 'none',
+  '& > div': {
+    display: 'inline-block',
+  },
+});
+
+const Ruler = styled(Box)({
+  backgroundColor: 'rgb(37, 51, 61)',
+  touchAction: 'none',
+  width: '100%',
+  height: 44,
+});
+
+const RulerRemaining = styled(Box)({
+  backgroundColor: 'rgba(29, 34, 37, 0.9)',
+  borderLeft: '1px solid #D8DDDF',
+  position: 'absolute',
+  left: 0,
+  height: 44,
+  opacity: 0.45,
+  pointerEvents: 'none',
+  width: '100%',
+});
+
+const DragHighlight = styled(Box)({
+  pointerEvents: 'none',
+  background: 'rgba(255, 255, 255, 0.1)',
+  borderLeft: '1px solid rgba(255, 255, 255, 0.3)',
+  borderRight: '1px solid rgba(255, 255, 255, 0.3)',
+  position: 'absolute',
+  height: 44,
+});
+
+const HoverBead = styled(Box)({
+  zIndex: 3,
+  textAlign: 'center',
+  borderRadius: 14,
+  fontSize: '0.7em',
+  padding: '3px 4px',
+  border: `1px solid ${Colors.white10}`,
+  backgroundColor: Colors.grey800,
+  color: Colors.white,
+  position: 'absolute',
+  top: 83,
+  left: 0,
+  width: 80,
+});
+
+const AlertStatusCodes = ['normal', 'userPrompt', 'critical'];
 
 function percentFromPointerEvent(ev) {
   const boundingBox = ev.currentTarget.getBoundingClientRect();
@@ -148,198 +133,134 @@ function percentFromPointerEvent(ev) {
   return x / boundingBox.width;
 }
 
-class Timeline extends Component {
-  constructor(props) {
-    super(props);
+const Timeline = ({ hasRuler, className, route, thumbnailsVisible, zoomOverride }) => {
+  const dispatch = useDispatch();
+  const propsZoom = useSelector((state) => selectRouteZoom(state));
+  const dongleId = useSelector((state) => state.dongleId);
 
-    this.getOffset = this.getOffset.bind(this);
-    this.handleClick = this.handleClick.bind(this);
-    this.handlePointerMove = this.handlePointerMove.bind(this);
-    this.handlePointerDown = this.handlePointerDown.bind(this);
-    this.handlePointerUp = this.handlePointerUp.bind(this);
-    this.handlePointerLeave = this.handlePointerLeave.bind(this);
-    this.percentToOffset = this.percentToOffset.bind(this);
-    this.segmentNum = this.segmentNum.bind(this);
-    this.onRulerRef = this.onRulerRef.bind(this);
-    this.renderRoute = this.renderRoute.bind(this);
+  const rulerRemaining = useRef(null);
+  const rulerRef = useRef(null);
+  const dragBar = useRef(null);
+  const hoverBead = useRef(null);
+  const thumbnailsRef = useRef(null);
+  const animationFrameId = useRef(null);
+  const seekIndexRef = useRef(null);
+  const resizeObserverRef = useRef(null);
 
-    this.rulerRemaining = React.createRef();
-    this.rulerRef = React.createRef();
-    this.dragBar = React.createRef();
-    this.hoverBead = React.createRef();
+  // Store zoom in a ref to avoid triggering state updates
+  const zoomRef = useRef(zoomOverride || propsZoom);
+  const [dragging, setDragging] = useState(null);
+  const [hoverX, setHoverX] = useState(null);
+  const [thumbnail, setThumbnail] = useState({ height: 0, width: 0 });
 
-    const { zoomOverride, zoom } = this.props;
-    this.state = {
-      dragging: null,
-      hoverX: null,
-      zoom: zoomOverride || zoom,
-      thumbnail: {
-        height: 0,
-        width: 0,
-      },
-    };
-  }
+  // Update zoom ref when props change
+  useEffect(() => {
+    zoomRef.current = zoomOverride || propsZoom;
+  }, [zoomOverride, propsZoom]);
 
-  componentDidMount() {
-    this.mounted = true;
-    raf(this.getOffset);
-    this.componentDidUpdate({});
-  }
+  const percentToOffset = (perc) => {
+    const zoom = zoomRef.current;
+    return perc * (zoom.end - zoom.start) + zoom.start;
+  };
 
-  componentDidUpdate(prevProps) {
-    const { zoomOverride, zoom } = this.props;
-    if (prevProps.zoomOverride !== zoomOverride || prevProps.zoom !== zoom) {
-      this.setState({ zoom: zoomOverride || zoom });
+  const offsetToPercent = (offset) => {
+    const zoom = zoomRef.current;
+    return (offset - zoom.start) / (zoom.end - zoom.start);
+  };
+
+  const segmentNum = (offset) => {
+    if (route) {
+      return getSegmentNumber(route, offset);
     }
-  }
+    return null;
+  };
 
-  componentWillUnmount() {
-    this.mounted = false;
-  }
+  const getOffset = () => {
+    animationFrameId.current = requestAnimationFrame(getOffset);
+    let offset = currentOffset();
+    if (seekIndexRef.current) {
+      offset = seekIndexRef.current;
+    }
+    offset = Math.floor(offset);
+    const percent = offsetToPercent(offset);
+    if (rulerRemaining.current && rulerRemaining.current.parentElement) {
+      rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
+      rulerRemaining.current.style.width = `${100 - Math.floor(10000 * percent) / 100}%`;
+    }
+  };
 
-  handleClick(ev) {
-    const { dragging } = this.state;
+  const handleClick = (ev) => {
     if (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3) {
       const percent = percentFromPointerEvent(ev);
-      this.props.dispatch(seek(this.percentToOffset(percent)));
+      dispatch(seek(percentToOffset(percent)));
     }
-  }
+  };
 
-  handlePointerDown(ev) {
-    if (ev.button !== 0) {
+  const handlePointerMove = (ev) => {
+    ev.preventDefault();
+    if (!rulerRef.current) {
       return;
     }
 
-    ev.preventDefault();
-    document.addEventListener('pointerup', this.handlePointerUp);
-    document.addEventListener('pointermove', this.handlePointerMove);
-    this.setState({ dragging: [ev.pageX, ev.pageX] });
-  }
-
-  handlePointerMove(ev) {
-    ev.preventDefault();
-    const { dragging } = this.state;
-    if (!this.rulerRef.current) {
-      return;
-    }
-    ev.preventDefault();
-
-    const rulerBounds = this.rulerRef.current.getBoundingClientRect();
+    const rulerBounds = rulerRef.current.getBoundingClientRect();
     const endDrag = Math.max(rulerBounds.x, Math.min(rulerBounds.x + rulerBounds.width, ev.pageX));
     if (dragging) {
-      this.setState({ dragging: [dragging[0], endDrag] });
+      setDragging([dragging[0], endDrag]);
     }
-    this.setState({ hoverX: endDrag });
-  }
+    setHoverX(endDrag);
+  };
 
-  handlePointerUp(ev) {
-    const { route } = this.props;
-
+  const handlePointerUp = (ev) => {
     // prevent preventDefault for back(3) and forward(4) mouse buttons
     if (ev.button !== 3 && ev.button !== 4) {
       ev.preventDefault();
     }
 
-    document.removeEventListener('pointerup', this.handlePointerUp);
-    document.removeEventListener('pointermove', this.handlePointerMove);
-    const { dragging } = this.state;
+    document.removeEventListener('pointerup', handlePointerUp);
+    document.removeEventListener('pointermove', handlePointerMove);
     if (!dragging) {
       return;
     }
-    this.setState({ dragging: null });
+    setDragging(null);
 
-    const rulerBounds = this.rulerRef.current.getBoundingClientRect();
+    const rulerBounds = rulerRef.current.getBoundingClientRect();
     const startPercent = (Math.min(dragging[0], dragging[1]) - rulerBounds.x) / rulerBounds.width;
     const endPercent = (Math.max(dragging[0], dragging[1]) - rulerBounds.x) / rulerBounds.width;
-    const startOffset = Math.round(this.percentToOffset(startPercent));
-    const endOffset = Math.round(this.percentToOffset(endPercent));
+    const startOffset = Math.round(percentToOffset(startPercent));
+    const endOffset = Math.round(percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
-      if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
-      }
-      const { dispatch } = this.props;
-      const startTime = startOffset;
-      const endTime = endOffset;
-
-      dispatch(pushTimelineRange(route.log_id, startTime, endTime, true));
+      const startSec = Math.floor(startOffset / 1000);
+      const endSec = Math.floor(endOffset / 1000);
+      navigate(`/${dongleId}/${route.log_id}/${startSec}/${endSec}`);
     } else if (ev.currentTarget !== document) {
-      this.handleClick(ev);
+      handleClick(ev);
     }
-  }
+  };
 
-  handlePointerLeave() {
-    this.setState({ hoverX: null });
-  }
+  const handlePointerDown = (ev) => {
+    if (ev.button !== 0) {
+      return;
+    }
 
-  onRulerRef(el) {
-    this.rulerRef.current = el;
+    ev.preventDefault();
+    document.addEventListener('pointerup', handlePointerUp);
+    document.addEventListener('pointermove', handlePointerMove);
+    setDragging([ev.pageX, ev.pageX]);
+  };
+
+  const handlePointerLeave = () => {
+    setHoverX(null);
+  };
+
+  const onRulerRef = (el) => {
+    rulerRef.current = el;
     if (el) {
       el.addEventListener('touchstart', (ev) => ev.stopPropagation());
     }
-  }
+  };
 
-  getOffset() {
-    if (!this.mounted) {
-      return;
-    }
-    raf(this.getOffset);
-    let offset = currentOffset();
-    if (this.seekIndex) {
-      offset = this.seekIndex;
-    }
-    offset = Math.floor(offset);
-    const percent = this.offsetToPercent(offset);
-    if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
-      this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
-      this.rulerRemaining.current.style.width = `${100 - Math.floor(10000 * percent) / 100}%`;
-    }
-  }
-
-  percentToOffset(perc) {
-    const { zoom } = this.state;
-    return perc * (zoom.end - zoom.start) + zoom.start;
-  }
-
-  offsetToPercent(offset) {
-    const { zoom } = this.state;
-    return (offset - zoom.start) / (zoom.end - zoom.start);
-  }
-
-  segmentNum(offset) {
-    const { route } = this.props;
-    if (route) {
-      return getSegmentNumber(route, offset);
-    }
-    return null;
-  }
-
-  renderRoute() {
-    const { classes, route } = this.props;
-    const { zoom } = this.state;
-
-    if (!route.events) {
-      return null;
-    }
-
-    const zoomDuration = zoom.end - zoom.start;
-    const startPerc = (100 * (-zoom.start)) / zoomDuration;
-    const widthPerc = (100 * route.duration) / zoomDuration;
-
-    const style = {
-      width: `${widthPerc}%`,
-      left: `${startPerc}%`,
-    };
-    return (
-      <div key={route.fullname} className={classes.segment} style={style}>
-        { this.renderRouteEvents(route) }
-      </div>
-    );
-  }
-
-  renderRouteEvents(route) {
-    const { classes } = this.props;
+  const renderRouteEvents = (route) => {
     if (!route.events) {
       return null;
     }
@@ -353,102 +274,119 @@ class Timeline extends Component {
           minWidth: '1px',
         };
         const statusCls = event.data.alertStatus ? `${AlertStatusCodes[event.data.alertStatus]}` : '';
-        return (
-          <div
-            key={route.fullname + event.route_offset_millis + event.type}
-            style={style}
-            className={ `${classes.segmentColor} ${event.type} ${statusCls}` }
-          />
-        );
+        return <SegmentColor key={route.fullname + event.route_offset_millis + event.type} style={style} className={`${event.type} ${statusCls}`} />;
       });
-  }
+  };
 
-  render() {
-    const { classes, hasRuler, className, route, thumbnailsVisible } = this.props;
-    const { thumbnail, hoverX, dragging } = this.state;
-
-    const hasRulerCls = hasRuler ? 'hasRuler' : '';
-
-    let rulerBounds;
-    if (this.rulerRef.current) {
-      rulerBounds = this.rulerRef.current.getBoundingClientRect();
+  const renderRoute = () => {
+    const zoom = zoomRef.current;
+    if (!route.events) {
+      return null;
     }
 
-    let hoverString; let
-      hoverStyle;
-    if (rulerBounds && hoverX) {
-      const hoverOffset = this.percentToOffset((hoverX - rulerBounds.x) / rulerBounds.width);
-      hoverStyle = { left: Math.max(-10, Math.min(rulerBounds.width - 70, hoverX - rulerBounds.x - 40)) };
-      if (!Number.isNaN(hoverOffset)) {
-        hoverString = dayjs(route.start_time_utc_millis + hoverOffset).format('HH:mm:ss');
-        const segNum = this.segmentNum(hoverOffset);
-        if (segNum !== null) {
-          hoverString = `${segNum}, ${hoverString}`;
-        }
+    const zoomDuration = zoom.end - zoom.start;
+    const startPerc = (100 * -zoom.start) / zoomDuration;
+    const widthPerc = (100 * route.duration) / zoomDuration;
+
+    const style = {
+      width: `${widthPerc}%`,
+      left: `${startPerc}%`,
+    };
+    return (
+      <TimelineSegment key={route.fullname} style={style}>
+        {renderRouteEvents(route)}
+      </TimelineSegment>
+    );
+  };
+
+  // Initialize on mount - RAF loop
+  // biome-ignore lint/correctness/useExhaustiveDependencies: getOffset intentionally not in deps to avoid infinite RAF loop
+  useEffect(() => {
+    animationFrameId.current = requestAnimationFrame(getOffset);
+
+    return () => {
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
       }
-    }
+    };
+  }, []);
 
-    let draggerStyle;
-    if (rulerBounds && dragging && Math.abs(dragging[1] - dragging[0]) > 0) {
-      draggerStyle = {
-        left: `${Math.min(dragging[1], dragging[0]) - rulerBounds.x}px`,
-        width: `${Math.abs(dragging[1] - dragging[0])}px`,
+  // Set up ResizeObserver for thumbnails
+  useEffect(() => {
+    if (thumbnailsRef.current) {
+      resizeObserverRef.current = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+          setThumbnail({ width, height });
+        }
+      });
+      resizeObserverRef.current.observe(thumbnailsRef.current);
+
+      return () => {
+        if (resizeObserverRef.current) {
+          resizeObserverRef.current.disconnect();
+        }
       };
     }
+  }, []);
 
-    const baseWidthStyle = { width: '100%' };
+  const hasRulerCls = hasRuler ? 'hasRuler' : '';
 
-    return (
-      <div className={className}>
-        <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } style={ baseWidthStyle }>
-          <div className={ `${classes.segments} ${hasRulerCls}` }>
-            { route && this.renderRoute() }
-            <div className={ `${classes.statusGradient} ${hasRulerCls}` } />
-          </div>
-          <Measure bounds onResize={(rect) => this.setState({ thumbnail: rect.bounds })}>
-            { (options) => (
-              <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
-                { thumbnailsVisible && (
-                  <Thumbnails
-                    className={classes.thumbnail}
-                    currentRoute={route}
-                    percentToOffset={this.percentToOffset}
-                    thumbnail={thumbnail}
-                    hasRuler={hasRuler}
-                  />
-                ) }
-              </div>
-            )}
-          </Measure>
-          { hasRuler && (
-            <>
-              <div
-                ref={ this.onRulerRef }
-                className={classes.ruler}
-                onPointerDown={this.handlePointerDown}
-                onPointerUp={this.handlePointerUp}
-                onPointerMove={this.handlePointerMove}
-                onPointerLeave={this.handlePointerLeave}
-              >
-                <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
-                { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
-              </div>
-              { hoverString && (
-                <div ref={this.hoverBead} className={classes.hoverBead} style={hoverStyle}>
-                  { hoverString }
-                </div>
-              ) }
-            </>
-          ) }
-        </div>
-      </div>
-    );
+  let rulerBounds;
+  if (rulerRef.current) {
+    rulerBounds = rulerRef.current.getBoundingClientRect();
   }
-}
 
-const stateToProps = Obstruction({
-  zoom: 'zoom',
-  loop: 'loop',
-});
+  let hoverString;
+  let hoverStyle;
+  if (rulerBounds && hoverX) {
+    const hoverOffset = percentToOffset((hoverX - rulerBounds.x) / rulerBounds.width);
+    hoverStyle = { left: Math.max(-10, Math.min(rulerBounds.width - 70, hoverX - rulerBounds.x - 40)) };
+    if (!Number.isNaN(hoverOffset)) {
+      hoverString = dayjs(route.start_time_utc_millis + hoverOffset).format('HH:mm:ss');
+      const segNum = segmentNum(hoverOffset);
+      if (segNum !== null) {
+        hoverString = `${segNum}, ${hoverString}`;
+      }
+    }
+  }
 
-export default connect(stateToProps)(withStyles(styles)(Timeline));
+  let draggerStyle;
+  if (rulerBounds && dragging && Math.abs(dragging[1] - dragging[0]) > 0) {
+    draggerStyle = {
+      left: `${Math.min(dragging[1], dragging[0]) - rulerBounds.x}px`,
+      width: `${Math.abs(dragging[1] - dragging[0])}px`,
+    };
+  }
+
+  const baseWidthStyle = { width: '100%' };
+
+  return (
+    <Box className={className}>
+      <TimelineBase role="presentation" className={hasRulerCls} style={baseWidthStyle}>
+        <TimelineSegments className={hasRulerCls}>
+          {route && renderRoute()}
+          <StatusGradient className={hasRulerCls} />
+        </TimelineSegments>
+        <ThumbnailsContainer ref={thumbnailsRef} className={hasRulerCls}>
+          {thumbnailsVisible && <Thumbnails currentRoute={route} percentToOffset={percentToOffset} thumbnail={thumbnail} hasRuler={hasRuler} />}
+        </ThumbnailsContainer>
+        {hasRuler && (
+          <>
+            <Ruler ref={onRulerRef} onPointerDown={handlePointerDown} onPointerUp={handlePointerUp} onPointerMove={handlePointerMove} onPointerLeave={handlePointerLeave}>
+              <RulerRemaining ref={rulerRemaining} />
+              {draggerStyle && <DragHighlight ref={dragBar} style={draggerStyle} />}
+            </Ruler>
+            {hoverString && (
+              <HoverBead ref={hoverBead} style={hoverStyle}>
+                {hoverString}
+              </HoverBead>
+            )}
+          </>
+        )}
+      </TimelineBase>
+    </Box>
+  );
+};
+
+export default Timeline;

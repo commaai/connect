@@ -1,24 +1,25 @@
-import React, { lazy, Suspense } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-
-import { CircularProgress, Grid } from '@material-ui/core';
-
+import { CircularProgress, Grid } from '@mui/material';
+import { lazy, memo, Suspense } from 'react';
+import { useSelector } from 'react-redux';
+import { withRouter } from 'react-router';
 import DriveList from './DriveList';
-import Navigation from '../Navigation';
-import DeviceInfo from '../DeviceInfo';
+import { getPrimeNav } from '../../url';
 
 const Prime = lazy(() => import('../Prime'));
 
 const DashboardLoading = () => (
-  <Grid container alignItems="center" style={{ width: '100%', height: '100vh' }}>
+  <Grid container alignItems="center" className="w-full h-screen">
     <Grid item align="center" xs={12}>
-      <CircularProgress size="10vh" style={{ color: '#525E66' }} />
+      <CircularProgress size="10vh" className="text-[#525E66]" />
     </Grid>
   </Grid>
 );
 
-const Dashboard = ({ primeNav, device, dongleId }) => {
+const Dashboard = memo(({ location }) => {
+  const device = useSelector((state) => state.device);
+  const dongleId = useSelector((state) => state.dongleId);
+
+  const primeNav = getPrimeNav(location?.pathname || '/');
   if (!device || !dongleId) {
     return <DashboardLoading />;
   }
@@ -26,24 +27,16 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
   return (
     <div className="flex flex-col">
       <Suspense fallback={<DashboardLoading />}>
-        { primeNav
-          ? <Prime />
-          : (
-            <>
-              <Navigation />
-              <DeviceInfo />
-              <DriveList />
-            </>
-          )}
+        {primeNav ? (
+          <Prime />
+        ) : (
+          <DriveList />
+        )}
       </Suspense>
     </div>
   );
-};
-
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  primeNav: 'primeNav',
-  device: 'device',
 });
 
-export default connect(stateToProps)(Dashboard);
+Dashboard.displayName = 'Dashboard';
+
+export default withRouter(Dashboard);

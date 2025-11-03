@@ -1,4 +1,3 @@
-import React from 'react';
 import { getSegmentNumber } from '../../utils';
 
 export default function Thumbnails(props) {
@@ -72,8 +71,8 @@ export default function Thumbnails(props) {
     imgArr.push(currSegment);
   }
 
-  return imgArr.map((data, i) => (data.blank
-    ? (
+  return imgArr.map((data, i) =>
+    data.blank ? (
       <div
         key={i}
         className="thumbnailImage blank"
@@ -83,8 +82,7 @@ export default function Thumbnails(props) {
           width: imgStyles.width * data.length,
         }}
       />
-    )
-    : (
+    ) : (
       <div
         key={i}
         className="thumbnailImage images"
@@ -98,5 +96,6 @@ export default function Thumbnails(props) {
           backgroundPositionX: `-${data.startImage * imgStyles.width}px`,
         }}
       />
-    )));
+    ),
+  );
 }

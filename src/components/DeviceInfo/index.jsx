@@ -1,186 +1,157 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
+import { athena as Athena, devices as Devices } from '@commaai/api';
+import { Box, Button, CircularProgress, Popper, Tooltip, Typography } from '@mui/material';
+import { styled } from '@mui/material/styles';
+import AccessTime from '@mui/icons-material/AccessTime';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
-
-import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } from '@material-ui/core';
-import AccessTime from '@material-ui/icons/AccessTime';
-
-import { athena as Athena, devices as Devices } from '@commaai/api';
-import { analyticsEvent } from '../../actions';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
 import Colors from '../../colors';
-import { deviceNamePretty, deviceIsOnline } from '../../utils';
+import { deviceIsOnline, deviceNamePretty } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import ResizeHandler from '../ResizeHandler';
+import TimeSelect from '../TimeSelect';
 import VisibilityHandler from '../VisibilityHandler';
-import TimeSelect from '../TimeSelect'
 
-const styles = (theme) => ({
-  container: {
-    borderBottom: `1px solid ${Colors.white10}`,
-    paddingTop: 8,
-    display: 'flex',
-    flexDirection: 'column',
-    minHeight: 64,
-    justifyContent: 'center',
+const Row = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 4,
+  [theme.breakpoints.down('xs')]: {
+    marginBottom: 8,
   },
-  row: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-    [theme.breakpoints.down('xs')]: {
-      marginBottom: 8,
-    },
+}));
+
+const ButtonRow = styled(Box)({
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+});
+
+const StatsRow = styled(Row)(({ theme }) => ({
+  columnGap: theme.spacing(4),
+}));
+
+const DeviceStat = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  maxWidth: 80,
+  padding: `0 ${theme.spacing(2)}`,
+}));
+
+const CarBattery = styled(Box)({
+  padding: '5px 16px',
+  borderRadius: 15,
+  margin: '0 10px',
+  textAlign: 'center',
+  '& p': {
+    fontSize: 14,
+    fontWeight: 500,
+    lineHeight: '1.4em',
   },
-  columnGap: {
-    columnGap: theme.spacing.unit * 4,
+});
+
+const StyledButton = styled(Button)(({ offline }) => ({
+  backgroundColor: offline ? Colors.grey400 : Colors.white,
+  color: offline ? Colors.lightGrey600 : Colors.grey900,
+  textTransform: 'none',
+  minHeight: 'unset',
+  marginRight: '8px',
+  '&:hover': {
+    background: offline ? Colors.grey400 : '#ddd',
+    color: offline ? Colors.lightGrey600 : Colors.grey900,
   },
-  bold: {
-    fontWeight: 600,
+  '&:disabled': {
+    background: offline ? Colors.grey400 : '#ddd',
+    color: offline ? Colors.lightGrey600 : Colors.grey900,
   },
-  button: {
-    backgroundColor: Colors.white,
-    color: Colors.grey900,
-    textTransform: 'none',
-    minHeight: 'unset',
-    marginRight: '8px',
-    '&:hover': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-    '&:disabled': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-    '&:disabled:hover': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
+  '&:disabled:hover': {
+    background: offline ? Colors.grey400 : '#ddd',
+    color: offline ? Colors.lightGrey600 : Colors.grey900,
   },
-  buttonOffline: {
-    background: Colors.grey400,
-    color: Colors.lightGrey600,
-    '&:disabled': {
-      background: Colors.grey400,
-      color: Colors.lightGrey600,
-    },
-    '&:disabled:hover': {
-      background: Colors.grey400,
-      color: Colors.lightGrey600,
-    },
-  },
-  buttonRow: {
-    justifyContent: 'center',
-  },
-  spaceAround: {
-    display: 'flex',
-    justifyContent: 'space-around',
-  },
-  deviceStatContainer: {
-    display: 'flex',
-    flex: 1,
-    justifySelf: 'start',
-  },
-  deviceStat: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    maxWidth: 80,
-    padding: `0 ${theme.spacing.unit * 4}px`,
-  },
-  carBattery: {
-    padding: '5px 16px',
-    borderRadius: 15,
-    margin: '0 10px',
+}));
+
+const SnapshotContainer = styled(Box)({
+  borderBottom: `1px solid ${Colors.white10}`,
+});
+
+const SnapshotContainerLarge = styled(Box)({
+  maxWidth: 1050,
+  margin: '0 auto',
+  display: 'flex',
+});
+
+const SnapshotImageContainerLarge = styled(Box)({
+  width: '50%',
+  display: 'flex',
+  justifyContent: 'center',
+});
+
+const SnapshotImage = styled('img')({
+  display: 'block',
+  width: '450px !important',
+  maxWidth: '100%',
+});
+
+const SnapshotImageError = styled(Box)({
+  width: 450,
+  maxWidth: '100%',
+  backgroundColor: Colors.grey950,
+  padding: '0 80px',
+  margin: '0 auto',
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  '& p': {
     textAlign: 'center',
-    '& p': {
-      fontSize: 14,
-      fontWeight: 500,
-      lineHeight: '1.4em',
+    fontSize: '1rem',
+    '&:first-child': {
+      fontWeight: 600,
     },
   },
-  actionButton: {
-    minWidth: 130,
-    padding: '5px 16px',
-    borderRadius: 15,
+});
+
+const ScrollSnapContainer = styled(Box)({
+  display: 'flex',
+  overflowX: 'scroll',
+  scrollSnapType: 'x mandatory',
+  scrollBehavior: 'smooth',
+  '&::-webkit-scrollbar': {
+    height: '10px',
   },
-  actionButtonSmall: {
-    minWidth: 90,
-    padding: '5px 10px',
-    borderRadius: 15,
+  '&::-webkit-scrollbar-thumb': {
+    backgroundColor: '#d1d1d1',
+    borderRadius: '8px',
   },
-  actionButtonIcon: {
-    minWidth: 60,
-    padding: '8px 16px',
-    borderRadius: 15,
+  '&::-webkit-scrollbar-track': {
+    backgroundColor: '#272c2f',
   },
-  snapshotContainer: {
-    borderBottom: `1px solid ${Colors.white10}`,
-  },
-  snapshotContainerLarge: {
-    maxWidth: 1050,
-    margin: '0 auto',
-    display: 'flex',
-  },
-  snapshotImageContainerLarge: {
-    width: '50%',
-    display: 'flex',
-    justifyContent: 'center',
-  },
-  snapshotImage: {
-    display: 'block',
-    width: '450px !important',
-    maxWidth: '100%',
-  },
-  snapshotImageError: {
-    width: 450,
-    maxWidth: '100%',
-    backgroundColor: Colors.grey950,
-    padding: '0 80px',
-    margin: '0 auto',
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    '& p': {
-      textAlign: 'center',
-      fontSize: '1rem',
-      '&:first-child': {
-        fontWeight: 600,
-      },
-    },
-  },
-  scrollSnapContainer: {
-    display: 'flex',
-    overflowX: 'scroll',
-    scrollSnapType: 'x mandatory',
-    scrollBehavior: 'smooth',
-    '&::-webkit-scrollbar': {
-      height: '10px',
-    },
-    '&::-webkit-scrollbar-thumb': {
-      backgroundColor: '#d1d1d1',
-      borderRadius: '8px',
-    },
-    '&::-webkit-scrollbar-track': {
-      backgroundColor: '#272c2f',
-    },
-  },
-  scrollSnapItem: {
-    flex: '0 0 auto',
-    scrollSnapAlign: 'start',
-    width: '100%',
-    maxWidth: '450px',
-    margin: '0',
-  },
-  buttonIcon: {
-    fontSize: 20,
-    marginLeft: theme.spacing.unit,
-  },
-  popover: {
+});
+
+const ScrollSnapItem = styled(Box)({
+  flex: '0 0 auto',
+  scrollSnapAlign: 'start',
+  width: '100%',
+  maxWidth: '450px',
+  margin: '0',
+});
+
+const StyledPopper = styled(Popper)({
+  borderRadius: 22,
+  padding: '8px 16px',
+  border: `1px solid ${Colors.white10}`,
+  backgroundColor: Colors.grey800,
+  fontSize: 12,
+  marginTop: 5,
+  textAlign: 'center',
+});
+
+const StyledTooltip = styled(Tooltip)({
+  '& .MuiTooltip-tooltip': {
     borderRadius: 22,
     padding: '8px 16px',
     border: `1px solid ${Colors.white10}`,
@@ -191,92 +162,64 @@ const styles = (theme) => ({
   },
 });
 
-class DeviceInfo extends Component {
-  constructor(props) {
-    super(props);
-    this.mounted = null;
-    this.state = {
-      deviceStats: {},
-      carHealth: {},
-      snapshot: {},
-      windowWidth: window.innerWidth,
-      isTimeSelectOpen: false,
+const DeviceInfo = () => {
+  const dongleId = useSelector((state) => state.dongleId);
+  const device = useSelector((state) => state.device);
+
+  const [deviceStats, setDeviceStats] = useState({});
+  const [carHealth, setCarHealth] = useState({});
+  const [snapshot, setSnapshot] = useState({});
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [isTimeSelectOpen, setIsTimeSelectOpen] = useState(false);
+
+  const snapshotButtonRef = useRef(null);
+  const mounted = useRef(false);
+  const prevDongleIdRef = useRef(dongleId);
+
+  // Set mounted on initial mount
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
     };
+  }, []);
 
-    this.snapshotButtonRef = React.createRef();
-
-    this.onResize = this.onResize.bind(this);
-    this.onVisible = this.onVisible.bind(this);
-    this.fetchDeviceInfo = this.fetchDeviceInfo.bind(this);
-    this.fetchDeviceCarHealth = this.fetchDeviceCarHealth.bind(this);
-    this.takeSnapshot = this.takeSnapshot.bind(this);
-    this.snapshotType = this.snapshotType.bind(this);
-    this.renderButtons = this.renderButtons.bind(this);
-    this.renderStats = this.renderStats.bind(this);
-    this.renderSnapshotImage = this.renderSnapshotImage.bind(this);
-    this.onOpenTimeSelect = this.onOpenTimeSelect.bind(this);
-    this.onCloseTimeSelect = this.onCloseTimeSelect.bind(this);
-  }
-
-  componentDidMount() {
-    this.mounted = true;
-  }
-
-  componentDidUpdate(prevProps) {
-    const { dongleId } = this.props;
-
-    if (prevProps.dongleId !== dongleId) {
-      this.setState({
-        deviceStats: {},
-        carHealth: {},
-        snapshot: {},
-        windowWidth: window.innerWidth,
-      });
+  // Clear snapshot when dongleId changes (keep stats and car health for smoother transitions)
+  useEffect(() => {
+    if (dongleId && prevDongleIdRef.current !== dongleId) {
+      prevDongleIdRef.current = dongleId;
+      setSnapshot({});
     }
-  }
+  }, [dongleId]);
 
-  componentWillUnmount() {
-    this.mounted = false;
-  }
+  const onResize = (newWindowWidth) => {
+    setWindowWidth(newWindowWidth);
+  };
 
-  onResize(windowWidth) {
-    this.setState({ windowWidth });
-  }
-
-  onVisible() {
-    const { device } = this.props;
-    if (!device.shared) {
-      this.fetchDeviceInfo();
-      this.fetchDeviceCarHealth();
-    }
-  }
-
-  async fetchDeviceInfo() {
-    const { dongleId, device } = this.props;
-    if (device.shared) {
+  const fetchDeviceInfo = useCallback(async () => {
+    if (!device || device.shared) {
       return;
     }
-    this.setState({ deviceStats: { fetching: true } });
+    setDeviceStats((prev) => ({ ...prev, fetching: true }));
     try {
       const resp = await Devices.fetchDeviceStats(dongleId);
-      if (this.mounted && dongleId === this.props.dongleId) {
-        this.setState({ deviceStats: { result: resp } });
+      if (mounted.current) {
+        setDeviceStats({ result: resp });
       }
     } catch (err) {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'device_info_device_stats' });
-      this.setState({ deviceStats: { error: err.message } });
+      setDeviceStats((prev) => ({ ...prev, error: err.message }));
     }
-  }
+  }, [dongleId, device]);
 
-  async fetchDeviceCarHealth() {
-    const { dongleId, device } = this.props;
+  const fetchDeviceCarHealth = useCallback(async () => {
     if (!deviceIsOnline(device)) {
-      this.setState({ carHealth: {} });
+      setCarHealth({});
       return;
     }
 
-    this.setState({ carHealth: { fetching: true } });
+    setCarHealth((prev) => ({ ...prev, fetching: true }));
     try {
       const payload = {
         method: 'getMessage',
@@ -285,25 +228,29 @@ class DeviceInfo extends Component {
         id: 0,
       };
       const resp = await Athena.postJsonRpcPayload(dongleId, payload);
-      if (this.mounted && dongleId === this.props.dongleId) {
-        this.setState({ carHealth: resp });
+      if (mounted.current) {
+        setCarHealth(resp);
       }
     } catch (err) {
-      if (this.mounted && dongleId === this.props.dongleId) {
+      if (mounted.current) {
         if (!err.message || err.message.indexOf('Device not registered') === -1) {
           console.error(err);
           Sentry.captureException(err, { fingerprint: 'device_info_athena_pandastate' });
         }
-        this.setState({ carHealth: { error: err.message } });
+        setCarHealth((prev) => ({ ...prev, error: err.message }));
       }
     }
-  }
+  }, [dongleId, device]);
 
-  async takeSnapshot() {
-    const { dongleId } = this.props;
-    const { snapshot } = this.state;
-    this.setState({ snapshot: { ...snapshot, error: null, fetching: true } });
-    this.props.dispatch(analyticsEvent('take_snapshot'));
+  const onVisible = useCallback(() => {
+    if (device && !device.shared) {
+      fetchDeviceInfo();
+      fetchDeviceCarHealth();
+    }
+  }, [device, fetchDeviceInfo, fetchDeviceCarHealth]);
+
+  const takeSnapshot = async () => {
+    setSnapshot((prev) => ({ ...prev, error: null, fetching: true }));
     try {
       const payload = {
         method: 'takeSnapshot',
@@ -317,9 +264,7 @@ class DeviceInfo extends Component {
       if (resp.result && !resp.result.jpegBack && !resp.result.jpegFront) {
         throw new Error('unable to fetch snapshot');
       }
-      if (dongleId === this.props.dongleId) {
-        this.setState({ snapshot: resp });
-      }
+      setSnapshot(resp);
     } catch (err) {
       let error = err.message;
       if (error.indexOf('Device not registered') !== -1) {
@@ -335,151 +280,91 @@ class DeviceInfo extends Component {
           }
         }
       }
-      this.setState({ snapshot: { error } });
+      setSnapshot({ error });
     }
-  }
+  };
 
-  snapshotType(showFront) {
-    const { snapshot } = this.state;
-    this.setState({ snapshot: { ...snapshot, showFront } });
-  }
+  const onOpenTimeSelect = () => {
+    setIsTimeSelectOpen(true);
+  };
 
-  onOpenTimeSelect() {
-    this.setState({ isTimeSelectOpen: true });
-  }
+  const onCloseTimeSelect = () => {
+    setIsTimeSelectOpen(false);
+  };
 
-  onCloseTimeSelect() {
-    this.setState({ isTimeSelectOpen: false });
-  }
-
-  render() {
-    const { classes, device } = this.props;
-    const { snapshot, deviceStats, windowWidth } = this.state;
-
-    const containerPadding = windowWidth > 520 ? 36 : 16;
-    const largeSnapshotPadding = windowWidth > 1440 ? '12px 0' : 0;
-
-    return (
-      <>
-        <ResizeHandler onResize={ this.onResize } />
-        <VisibilityHandler onVisible={ this.onVisible } onInit onDongleId minInterval={ 60 } />
-        <div className={ classes.container } style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
-          { windowWidth >= 768
-            ? (
-              <div className={`${classes.row} ${classes.columnGap}`}>
-                <Typography variant="title">{deviceNamePretty(device)}</Typography>
-                <div className={classes.deviceStatContainer}>{ this.renderStats() }</div>
-                <div className={`${classes.row} ${classes.buttonRow}`}>{ this.renderButtons() }</div>
-              </div>
-            )
-            : (
-              <>
-                <div className={ classes.row }>
-                  <Typography variant="title">{deviceNamePretty(device)}</Typography>
-                </div>
-                <div className={ classes.row }>
-                  { this.renderButtons() }
-                </div>
-                { deviceStats.result
-              && (
-              <div className={ `${classes.row} ${classes.spaceAround}` }>
-                { this.renderStats() }
-              </div>
-              )}
-              </>
-            ) }
-        </div>
-        { snapshot.result
-          && (
-          <div className={ classes.snapshotContainer }>
-            { windowWidth >= 640
-              ? (
-                <div className={ classes.snapshotContainerLarge } style={{ padding: largeSnapshotPadding }}>
-                  <div className={ classes.snapshotImageContainerLarge }>
-                    { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
-                  </div>
-                  <div className={ classes.snapshotImageContainerLarge }>
-                    { this.renderSnapshotImage(snapshot.result.jpegFront, true) }
-                  </div>
-                </div>
-              )
-              : (
-                <div className={ classes.scrollSnapContainer }>
-                  <div className={ classes.scrollSnapItem }>
-                    { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
-                  </div>
-                  <div className={ classes.scrollSnapItem }>
-                    { this.renderSnapshotImage(snapshot.result.jpegFront, true) }
-                  </div>
-                </div>
-              )}
-          </div>
-          )}
-      </>
-    );
-  }
-
-  renderStats() {
-    const { classes } = this.props;
-    const { deviceStats } = this.state;
-
+  const renderStats = () => {
     if (!deviceStats.result) {
       return (
         <>
-          <div />
-          <div />
-          <div />
+          <DeviceStat sx={{ visibility: 'hidden' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              0
+            </Typography>
+            <Typography variant="subtitle1">miles</Typography>
+          </DeviceStat>
+          <DeviceStat sx={{ visibility: 'hidden' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              0
+            </Typography>
+            <Typography variant="subtitle1">drives</Typography>
+          </DeviceStat>
+          <DeviceStat sx={{ visibility: 'hidden' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              0
+            </Typography>
+            <Typography variant="subtitle1">hours</Typography>
+          </DeviceStat>
         </>
       );
     }
 
     const metric = isMetric();
-    const distance = metric
-      ? Math.round(deviceStats.result.all.distance * KM_PER_MI)
-      : Math.round(deviceStats.result.all.distance);
+    const distance = metric ? Math.round(deviceStats.result.all.distance * KM_PER_MI) : Math.round(deviceStats.result.all.distance);
 
     return (
       <>
-        <div className={ classes.deviceStat }>
-          <Typography variant="subheading" className={ classes.bold }>
-            { distance }
+        <DeviceStat>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+            {distance}
           </Typography>
-          <Typography variant="subheading">
-            { metric ? 'kilometers' : 'miles' }
+          <Typography variant="subtitle1">{metric ? 'kilometers' : 'miles'}</Typography>
+        </DeviceStat>
+        <DeviceStat>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+            {deviceStats.result.all.routes}
           </Typography>
-        </div>
-        <div className={ classes.deviceStat }>
-          <Typography variant="subheading" className={ classes.bold }>
-            { deviceStats.result.all.routes }
+          <Typography variant="subtitle1">drives</Typography>
+        </DeviceStat>
+        <DeviceStat>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+            {Math.round(deviceStats.result.all.minutes / 60.0)}
           </Typography>
-          <Typography variant="subheading">drives</Typography>
-        </div>
-        <div className={ classes.deviceStat }>
-          <Typography variant="subheading" className={ classes.bold }>
-            { Math.round(deviceStats.result.all.minutes / 60.0) }
-          </Typography>
-          <Typography variant="subheading">hours</Typography>
-        </div>
+          <Typography variant="subtitle1">hours</Typography>
+        </DeviceStat>
       </>
     );
-  }
+  };
 
-  renderButtons() {
-    const { classes, device } = this.props;
-    const { snapshot, carHealth, windowWidth, isTimeSelectOpen } = this.state;
-
+  const renderButtons = () => {
     let batteryVoltage;
     let batteryBackground = Colors.grey400;
-    if (deviceIsOnline(device) && carHealth?.result && carHealth.result.peripheralState
-      && carHealth.result.peripheralState.voltage) {
+    if (deviceIsOnline(device) && carHealth?.result && carHealth.result.peripheralState && carHealth.result.peripheralState.voltage) {
       batteryVoltage = carHealth.result.peripheralState.voltage / 1000.0;
       batteryBackground = batteryVoltage < 11.0 ? Colors.red400 : Colors.green400;
     }
 
-    const actionButtonClass = windowWidth >= 520
-      ? classes.actionButton
-      : classes.actionButtonSmall;
-    const buttonOffline = deviceIsOnline(device) ? '' : classes.buttonOffline;
+    const isOffline = !deviceIsOnline(device);
+    const buttonSx = {
+      minWidth: windowWidth >= 520 ? 130 : 90,
+      padding: '5px 16px',
+      borderRadius: 15,
+    };
+
+    const iconButtonSx = {
+      minWidth: 60,
+      padding: '8px 16px',
+      borderRadius: 15,
+    };
 
     let error = null;
     if (snapshot.error && snapshot.error.data && snapshot.error.data.message) {
@@ -498,84 +383,99 @@ class DeviceInfo extends Component {
 
     return (
       <>
-        <div
-          className={ classes.carBattery }
-          style={{ backgroundColor: batteryBackground }}
-        >
-          { deviceIsOnline(device)
-            ? (
-              <Typography>
-                { `${windowWidth >= 520 ? 'car ' : ''
-                }battery: ${
-                  batteryVoltage ? `${batteryVoltage.toFixed(1)}\u00a0V` : 'N/A'}` }
-              </Typography>
-            )
-            : (
-              <Tooltip
-                classes={{ tooltip: classes.popover }}
-                title={pingTooltip}
-                placement="bottom"
-              >
-                <Typography>device offline</Typography>
-              </Tooltip>
-            )}
-        </div>
-        <Button
-          ref={ this.snapshotButtonRef }
-          classes={{ root: `${classes.button} ${actionButtonClass} ${buttonOffline}` }}
-          onClick={ this.takeSnapshot }
-          disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
-        >
-          { snapshot.fetching
-            ? <CircularProgress size={ 19 } />
-            : 'take snapshot'}
-        </Button>
-        <Button
-          classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
-          onClick={ this.onOpenTimeSelect }
-        >
-          <AccessTime fontSize="inherit"/>
-        </Button>
-        <Popper
-          className={ classes.popover }
-          open={ Boolean(error) }
-          placement="bottom"
-          anchorEl={ this.snapshotButtonRef.current }
-        >
-          <Typography>{ error }</Typography>
-        </Popper>
-        <TimeSelect isOpen={isTimeSelectOpen} onClose={this.onCloseTimeSelect}/>
+        <CarBattery sx={{ backgroundColor: batteryBackground }}>
+          {deviceIsOnline(device) ? (
+            <Typography>{`${windowWidth >= 520 ? 'car ' : ''}battery: ${batteryVoltage ? `${batteryVoltage.toFixed(1)}\u00a0V` : 'N/A'}`}</Typography>
+          ) : (
+            <StyledTooltip title={pingTooltip} placement="bottom">
+              <Typography>device offline</Typography>
+            </StyledTooltip>
+          )}
+        </CarBattery>
+        <StyledButton ref={snapshotButtonRef} offline={isOffline} sx={buttonSx} onClick={takeSnapshot} disabled={Boolean(snapshot.fetching || !deviceIsOnline(device))}>
+          {snapshot.fetching ? <CircularProgress size={19} /> : 'take snapshot'}
+        </StyledButton>
+        <StyledButton sx={iconButtonSx} onClick={onOpenTimeSelect}>
+          <AccessTime fontSize="inherit" />
+        </StyledButton>
+        <StyledPopper open={Boolean(error)} placement="bottom" anchorEl={snapshotButtonRef.current}>
+          <Typography>{error}</Typography>
+        </StyledPopper>
+        <TimeSelect isOpen={isTimeSelectOpen} onClose={onCloseTimeSelect} />
       </>
     );
-  }
+  };
 
-  renderSnapshotImage(src, isFront) {
-    const { classes } = this.props;
+  const renderSnapshotImage = (src, isFront) => {
     if (!src) {
       return (
-        <div className={ classes.snapshotImageError }>
-          <Typography>
-            { isFront && 'Interior' }
-            {' '}
-            snapshot not available
-          </Typography>
-          { isFront
-            && (
-            <Typography>
-              Enable &ldquo;Record and Upload Driver Camera&rdquo; on your device for interior camera snapshots
-            </Typography>
-            )}
-        </div>
+        <SnapshotImageError>
+          <Typography>{isFront && 'Interior'} snapshot not available</Typography>
+          {isFront && <Typography>Enable &ldquo;Record and Upload Driver Camera&rdquo; on your device for interior camera snapshots</Typography>}
+        </SnapshotImageError>
       );
     }
 
-    return (<img src={ `data:image/jpeg;base64,${src}` } className={ classes.snapshotImage } />);
+    return <SnapshotImage src={`data:image/jpeg;base64,${src}`} />;
+  };
+
+  const containerPadding = windowWidth > 520 ? 36 : 16;
+  const largeSnapshotPadding = windowWidth > 1440 ? '12px 0' : 0;
+
+  // Don't render if no device is selected
+  if (!dongleId || !device) {
+    return null;
   }
-}
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  device: 'device',
-});
+  return (
+    <>
+      <ResizeHandler onResize={onResize} />
+      <VisibilityHandler onVisible={onVisible} onInit onDongleId minInterval={60} />
+      <Box
+        sx={{
+          borderBottom: `1px solid ${Colors.white10}`,
+          paddingTop: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 64,
+          justifyContent: 'center',
+          paddingLeft: `${containerPadding}px`,
+          paddingRight: `${containerPadding}px`,
+        }}
+      >
+        {windowWidth >= 768 ? (
+          <StatsRow>
+            <Typography variant="h6">{deviceNamePretty(device)}</Typography>
+            <Box sx={{ display: 'flex', flex: 1 }}>{renderStats()}</Box>
+            <ButtonRow>{renderButtons()}</ButtonRow>
+          </StatsRow>
+        ) : (
+          <>
+            <Row>
+              <Typography variant="h6">{deviceNamePretty(device)}</Typography>
+            </Row>
+            <Row>{renderButtons()}</Row>
+            <Row sx={{ display: 'flex', justifyContent: 'space-around' }}>{renderStats()}</Row>
+          </>
+        )}
+      </Box>
+      {snapshot.result && (
+        <SnapshotContainer>
+          {windowWidth >= 640 ? (
+            <SnapshotContainerLarge sx={{ padding: largeSnapshotPadding }}>
+              <SnapshotImageContainerLarge>{renderSnapshotImage(snapshot.result.jpegBack, false)}</SnapshotImageContainerLarge>
+              <SnapshotImageContainerLarge>{renderSnapshotImage(snapshot.result.jpegFront, true)}</SnapshotImageContainerLarge>
+            </SnapshotContainerLarge>
+          ) : (
+            <ScrollSnapContainer>
+              <ScrollSnapItem>{renderSnapshotImage(snapshot.result.jpegBack, false)}</ScrollSnapItem>
+              <ScrollSnapItem>{renderSnapshotImage(snapshot.result.jpegFront, true)}</ScrollSnapItem>
+            </ScrollSnapContainer>
+          )}
+        </SnapshotContainer>
+      )}
+    </>
+  );
+};
 
-export default connect(stateToProps)(withStyles(styles)(DeviceInfo));
+export default DeviceInfo;

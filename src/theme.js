@@ -1,117 +1,137 @@
-import { createMuiTheme } from '@material-ui/core/styles';
+import { createTheme } from '@mui/material/styles';
 import Colors from './colors';
 import { ChevronIcon } from './icons';
 
-const theme = createMuiTheme({
+const theme = createTheme({
   typography: {
     fontFamily: "'Inter', sans-serif",
   },
-  overrides: {
+  components: {
     MuiButton: {
-      root: {
-        textTransform: 'none',
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+        },
       },
     },
     MuiPaper: {
-      root: {
-        backgroundColor: '#30373B',
+      styleOverrides: {
+        root: {
+          backgroundColor: '#30373B',
+        },
       },
     },
     MuiDrawer: {
-      paper: {
-        overflowY: null,
-      },
-      paperAnchorDockedLeft: {
-        borderRight: 'none',
+      styleOverrides: {
+        paper: {
+          overflowY: null,
+        },
+        paperAnchorDockedLeft: {
+          borderRight: 'none',
+        },
       },
     },
     MuiSelect: {
-      select: {
-        padding: '12px',
-        paddingRight: '48px',
-        margin: '0px',
-        '&>div': {
-          margin: '0',
-        },
-        '&:focus': {
-          background: 'inherit',
-        },
+      defaultProps: {
+        disableUnderline: true,
+        IconComponent: ChevronIcon,
       },
-      selectMenu: {
-        paddingRight: 54,
-      },
-      icon: {
-        marginRight: 20,
-        color: Colors.white30,
+      styleOverrides: {
+        select: {
+          padding: '12px',
+          paddingRight: '48px',
+          margin: '0px',
+          '&>div': {
+            margin: '0',
+          },
+          '&:focus': {
+            background: 'inherit',
+          },
+        },
+        selectMenu: {
+          paddingRight: 54,
+        },
+        icon: {
+          marginRight: 20,
+          color: Colors.white30,
+        },
       },
     },
     MuiInput: {
-      root: {
-        position: 'relative',
-        border: `1px solid ${Colors.grey800}`,
-        borderRadius: 20,
-        overflow: 'hidden',
+      defaultProps: {
+        disableUnderline: true,
       },
-      input: {
-        padding: '12px 16px',
-        '&::placeholder': {
-          opacity: 1,
-          color: Colors.white30,
+      styleOverrides: {
+        root: {
+          position: 'relative',
+          border: `1px solid ${Colors.grey800}`,
+          borderRadius: 20,
+          overflow: 'hidden',
         },
-        '&:focus': {
-          outline: 'none',
-          boxShadow: 'none',
+        input: {
+          padding: '12px 16px',
+          '&::placeholder': {
+            opacity: 1,
+            color: Colors.white30,
+          },
+          '&:focus': {
+            outline: 'none',
+            boxShadow: 'none',
+          },
         },
       },
     },
     MuiInputLabel: {
-      shrink: {
-        transform: 'translate(0, -2px) scale(0.75)',
+      styleOverrides: {
+        shrink: {
+          transform: 'translate(0, -2px) scale(0.75)',
+        },
       },
     },
     MuiFormLabel: {
-      root: {
-        marginLeft: 16,
-        marginTop: 4,
+      styleOverrides: {
+        root: {
+          marginLeft: 16,
+          marginTop: 4,
+        },
       },
     },
     MuiFormHelperText: {
-      root: {
-        marginLeft: 8,
-        marginTop: 4,
+      styleOverrides: {
+        root: {
+          marginLeft: 8,
+          marginTop: 4,
+        },
       },
     },
     MuiTab: {
-      root: {
-        minHeight: 40,
+      styleOverrides: {
+        root: {
+          minHeight: 40,
+        },
       },
     },
     MuiListItem: {
-      root: {
-        '&:focus': {
-          outline: 'none',
-          boxShadow: 'none',
+      styleOverrides: {
+        root: {
+          '&:focus': {
+            outline: 'none',
+            boxShadow: 'none',
+          },
         },
       },
     },
     MuiSnackbarContent: {
-      root: {
-        backgroundColor: Colors.grey700,
-        color: Colors.white,
+      styleOverrides: {
+        root: {
+          backgroundColor: Colors.grey700,
+          color: Colors.white,
+        },
       },
     },
   },
-  props: {
-    MuiSelect: {
-      disableUnderline: true,
-      IconComponent: ChevronIcon,
-    },
-    MuiInput: {
-      disableUnderline: true,
-    },
-  },
   palette: {
-    type: 'dark',
+    mode: 'dark',
     placeholder: Colors.white30,
     background: {
       default: Colors.grey999,

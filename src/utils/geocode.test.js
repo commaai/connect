@@ -3,11 +3,7 @@ import { priorityGetContext, reverseLookup } from './geocode';
 
 describe('priorityGetContext', () => {
   it('should return the first context with a priority', () => {
-    const contexts = [
-      { id: 'place.123' },
-      { id: 'locality.123' },
-      { id: 'district.123' },
-    ];
+    const contexts = [{ id: 'place.123' }, { id: 'locality.123' }, { id: 'district.123' }];
     expect(priorityGetContext(contexts)).toEqual(contexts[0]);
   });
 });
@@ -33,7 +29,7 @@ describe('reverseLookup', () => {
     //   details: 'Washington, DC 20500, United States',
     //   place: 'White House Lawn',
     // });
-    expect(await reverseLookup([-0.106640, 51.514209], true)).toEqual({
+    expect(await reverseLookup([-0.10664, 51.514209], true)).toEqual({
       details: 'London, EC4A 2BB, United Kingdom',
       place: 'Fleet St',
     });

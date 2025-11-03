@@ -1,39 +1,30 @@
-import React from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import qs from 'query-string';
-
-import { Typography } from '@material-ui/core';
-import PrimeManage from './PrimeManage';
+import { Typography } from '@mui/material';
+import { useSelector } from 'react-redux';
 import PrimeCheckout from './PrimeCheckout';
+import PrimeManage from './PrimeManage';
 
-const Prime = (props) => {
+const Prime = () => {
+  const device = useSelector((state) => state.device);
+  const profile = useSelector((state) => state.profile);
+
   let stripeCancelled;
   let stripeSuccess;
   if (window.location) {
-    const params = qs.parse(window.location.search);
-    stripeCancelled = params.stripe_cancelled;
-    stripeSuccess = params.stripe_success;
+    const params = new URLSearchParams(window.location.search);
+    stripeCancelled = params.get('stripe_cancelled');
+    stripeSuccess = params.get('stripe_success');
   }
-
-  const { device, profile } = props;
   if (!profile) {
     return null;
   }
 
   if (!device.is_owner && !profile.superuser) {
-    return (<Typography>No access</Typography>);
+    return <Typography>No access</Typography>;
   }
   if (device.prime || stripeSuccess) {
-    return (<PrimeManage stripeSuccess={ stripeSuccess } />);
+    return <PrimeManage stripeSuccess={stripeSuccess} />;
   }
-  return (<PrimeCheckout stripeCancelled={ stripeCancelled } />);
+  return <PrimeCheckout stripeCancelled={stripeCancelled} />;
 };
 
-const stateToProps = Obstruction({
-  subscription: 'subscription',
-  device: 'device',
-  profile: 'profile',
-});
-
-export default connect(stateToProps)(Prime);
+export default Prime;

@@ -1,9 +1,8 @@
 /* eslint-env jest */
-import React from 'react';
-import { fireEvent, render, waitFor } from '@testing-library/react';
 
-import ResizeHandler from '.';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import { asyncSleep } from '../../utils';
+import ResizeHandler from '.';
 
 describe('resize handler', () => {
   it('registers, triggers and unregistered resize listener', async () => {

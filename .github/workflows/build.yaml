@@ -12,14 +12,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-pnpm
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: get build info
         id: build_info
         run: echo timestamp=$(git show -s --format=%cI) >> $GITHUB_OUTPUT
 
-      - run: pnpm install
-      - run: pnpm build:production
+      - run: bun install
+      - run: bun run build:production
         env:
           VITE_APP_GIT_SHA: ${{ github.sha }}
           VITE_APP_GIT_TIMESTAMP: ${{ steps.build_info.outputs.timestamp }}

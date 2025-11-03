@@ -17,7 +17,7 @@ export function currentOffset(state = null) {
     offset = state.loop.startTime;
   } else {
     const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
-    offset = state.offset + ((Date.now() - state.startTime) * playSpeed);
+    offset = state.offset + (Date.now() - state.startTime) * playSpeed;
   }
 
   if (offset !== null && state.loop?.startTime) {

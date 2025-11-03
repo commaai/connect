@@ -1,8 +1,7 @@
 import * as Sentry from '@sentry/react';
-
-import * as Types from './types';
-import { reverseLookup } from '../utils/geocode';
 import { toBool } from '../utils';
+import { reverseLookup } from '../utils/geocode';
+import * as Types from './types';
 
 const USE_LOCAL_COORDS_DATA = toBool(import.meta.env.VITE_APP_LOCAL_COORDS_DATA);
 if (USE_LOCAL_COORDS_DATA) {
@@ -288,7 +287,9 @@ export function fetchEvents(route) {
     }
 
     let resolveEvents;
-    eventsRequests[route.fullname] = new Promise((resolve) => { resolveEvents = resolve; });
+    eventsRequests[route.fullname] = new Promise((resolve) => {
+      resolveEvents = resolve;
+    });
 
     if (!USE_LOCAL_EVENTS_DATA) {
       // in cache?
@@ -307,18 +308,20 @@ export function fetchEvents(route) {
     let driveEvents;
     const promises = [];
     for (let i = 0; i <= route.maxqlog; i++) {
-      promises.push((async (j) => {
-        const url = new URL(`${route.url}/${j}/events.json`);
-        if (USE_LOCAL_EVENTS_DATA) {
-          url.hostname = 'chffrprivate.azureedge.local';
-        }
-        const resp = await fetch(url, { method: 'GET' });
-        if (!resp.ok) {
-          return [];
-        }
-        const events = await resp.json();
-        return events;
-      })(i));
+      promises.push(
+        (async (j) => {
+          const url = new URL(`${route.url}/${j}/events.json`);
+          if (USE_LOCAL_EVENTS_DATA) {
+            url.hostname = 'chffrprivate.azureedge.local';
+          }
+          const resp = await fetch(url, { method: 'GET' });
+          if (!resp.ok) {
+            return [];
+          }
+          const events = await resp.json();
+          return events;
+        })(i),
+      );
     }
 
     try {
@@ -337,7 +340,7 @@ export function fetchEvents(route) {
     });
     resolveEvents(driveEvents);
     if (!USE_LOCAL_EVENTS_DATA) {
-      setCacheItem('events', route.fullname, Math.floor(Date.now() / 1000) + (86400 * 14), driveEvents, route.maxqlog);
+      setCacheItem('events', route.fullname, Math.floor(Date.now() / 1000) + 86400 * 14, driveEvents, route.maxqlog);
     }
   };
 }
@@ -377,7 +380,9 @@ export function fetchCoord(route, coord, locationKey) {
     }
 
     let resolveLocation;
-    coordsRequests[cacheKey] = new Promise((resolve) => { resolveLocation = resolve; });
+    coordsRequests[cacheKey] = new Promise((resolve) => {
+      resolveLocation = resolve;
+    });
 
     // in cache?
     const cacheCoords = await getCacheItem('coords', coord);
@@ -404,7 +409,7 @@ export function fetchCoord(route, coord, locationKey) {
       location,
     });
     resolveLocation(location);
-    setCacheItem('coords', coord, Math.floor(Date.now() / 1000) + (86400 * 14), location);
+    setCacheItem('coords', coord, Math.floor(Date.now() / 1000) + 86400 * 14, location);
   };
 }
 
@@ -446,7 +451,9 @@ export function fetchDriveCoords(route) {
     }
 
     let resolveDriveCoords;
-    driveCoordsRequests[route.fullname] = new Promise((resolve) => { resolveDriveCoords = resolve; });
+    driveCoordsRequests[route.fullname] = new Promise((resolve) => {
+      resolveDriveCoords = resolve;
+    });
 
     if (!USE_LOCAL_COORDS_DATA) {
       // in cache?
@@ -466,18 +473,20 @@ export function fetchDriveCoords(route) {
 
     const promises = [];
     for (let i = 0; i <= route.maxqlog; i++) {
-      promises.push((async (j) => {
-        const url = new URL(`${route.url}/${j}/coords.json`);
-        if (USE_LOCAL_COORDS_DATA) {
-          url.hostname = 'chffrprivate.azureedge.local';
-        }
-        const resp = await fetch(url, { method: 'GET' });
-        if (!resp.ok) {
-          return [];
-        }
-        const events = await resp.json();
-        return events;
-      })(i));
+      promises.push(
+        (async (j) => {
+          const url = new URL(`${route.url}/${j}/coords.json`);
+          if (USE_LOCAL_COORDS_DATA) {
+            url.hostname = 'chffrprivate.azureedge.local';
+          }
+          const resp = await fetch(url, { method: 'GET' });
+          if (!resp.ok) {
+            return [];
+          }
+          const events = await resp.json();
+          return events;
+        })(i),
+      );
     }
 
     let driveCoords;
@@ -488,13 +497,17 @@ export function fetchDriveCoords(route) {
       return;
     }
 
-    driveCoords = driveCoords.reduce((prev, curr) => ({
-      ...prev,
-      ...curr.reduce((p, cs) => {
-        p[cs.t] = [cs.lng, cs.lat];
-        return p;
-      }, {}),
-    }), {});
+    driveCoords = driveCoords.reduce(
+      (prev, curr) => ({
+        // biome-ignore lint/performance/noAccumulatingSpread: existing code pattern, refactoring would require testing to ensure behavior unchanged
+        ...prev,
+        ...curr.reduce((p, cs) => {
+          p[cs.t] = [cs.lng, cs.lat];
+          return p;
+        }, {}),
+      }),
+      {},
+    );
 
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE,
@@ -505,7 +518,7 @@ export function fetchDriveCoords(route) {
     });
     resolveDriveCoords(driveCoords);
     if (!USE_LOCAL_COORDS_DATA) {
-      setCacheItem('driveCoords', route.fullname, Math.floor(Date.now() / 1000) + (86400 * 14), driveCoords, route.maxqlog);
+      setCacheItem('driveCoords', route.fullname, Math.floor(Date.now() / 1000) + 86400 * 14, driveCoords, route.maxqlog);
     }
   };
 }
