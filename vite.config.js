@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks: {
             'react-vendor': ['react', 'react-dom'],
-            'mui': ['@mui/material', '@mui/icons-material', '@mui/styles'],
+            'mui': ['@mui/material', '@mui/icons-material'],
             'mapbox': ['react-map-gl'],
             'sentry': ['@sentry/react'],
           },

@@ -1,27 +1,25 @@
-import { withStyles } from '@mui/styles';
+import { styled } from '@mui/material/styles';
 import ReplayIcon from '@mui/icons-material/Replay';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import Colors from '../../colors';
 import { isIos } from '../../utils/browser.js';
 
-const styles = () => ({
-  root: {
-    position: 'absolute',
-    zIndex: 5050,
-    top: -48,
-    left: 'calc(50% - 24px)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 48,
-    height: 48,
-    backgroundColor: Colors.grey100,
-    borderRadius: 24,
-  },
+const Root = styled('div')({
+  position: 'absolute',
+  zIndex: 5050,
+  top: -48,
+  left: 'calc(50% - 24px)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 48,
+  height: 48,
+  backgroundColor: Colors.grey100,
+  borderRadius: 24,
 });
 
-const PullDownReload = ({ classes }) => {
+const PullDownReload = () => {
   const [startY, setStartY] = useState(null);
   const [reloading, setReloading] = useState(false);
   const dragEl = useRef(null);
@@ -90,10 +88,10 @@ const PullDownReload = ({ classes }) => {
   }, [touchStart, touchMove, touchEnd]);
 
   return (
-    <div className={classes.root} ref={dragEl}>
+    <Root ref={dragEl}>
       <ReplayIcon />
-    </div>
+    </Root>
   );
 };
 
-export default withStyles(styles)(PullDownReload);
+export default PullDownReload;

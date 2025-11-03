@@ -1,6 +1,6 @@
 import { Tooltip } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
-import { withStyles } from '@mui/styles';
+import { styled } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import VolumeOff from '@mui/icons-material/VolumeOff';
 import VolumeUp from '@mui/icons-material/VolumeUp';
@@ -17,83 +17,73 @@ import { isIos } from '../../utils/browser.js';
 
 const timerSteps = [0.1, 0.25, 0.5, 1, 2, 4, 8];
 
-const styles = (theme) => ({
-  base: {
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: theme.palette.grey[999],
-    height: '64px',
-    borderRadius: '32px',
-    padding: theme.spacing(1),
-    width: 400,
-    maxWidth: '100%',
-    margin: '0 auto',
-    opacity: 0,
-    pointerEvents: 'none',
-    transition: 'opacity 0.1s ease-in-out',
-    '&.isExpanded': {
-      opacity: 1,
-      pointerEvents: 'auto',
-    },
-    '&.isThin': {
-      height: 50,
-      paddingBottom: 0,
-      paddingTop: 0,
-    },
+const Base = styled('div')(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  backgroundColor: theme.palette.grey[999],
+  height: '64px',
+  borderRadius: '32px',
+  padding: theme.spacing(1),
+  width: 400,
+  maxWidth: '100%',
+  margin: '0 auto',
+  opacity: 0,
+  pointerEvents: 'none',
+  transition: 'opacity 0.1s ease-in-out',
+  '&.isExpanded': {
+    opacity: 1,
+    pointerEvents: 'auto',
   },
-  desiredPlaySpeedContainer: {
-    marginRight: theme.spacing(1),
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    minWidth: '40px',
+  '&.isThin': {
+    height: 50,
+    paddingBottom: 0,
+    paddingTop: 0,
   },
-  icon: {
-    width: '98%',
-    height: '98%',
-    '&.dim': {
-      color: theme.palette.grey[300],
-    },
-    '&.small': {
-      width: '80%',
-      height: '80%',
-    },
-    '&.circle': {
-      border: `1px solid ${theme.palette.grey[900]}`,
-      borderRadius: '50%',
-    },
-  },
-  iconButton: {
-    width: '40px',
-    height: '40px',
-  },
-  tinyArrowIcon: {
-    width: 12,
-    height: 12,
-    color: theme.palette.grey[500],
-    '&[disabled]': {
-      visibility: 'hidden',
-    },
-  },
-  rightBorderBox: {
-    borderRight: `1px solid ${theme.palette.grey[900]}`,
-  },
-  leftBorderBox: {
-    borderLeft: `1px solid ${theme.palette.grey[900]}`,
-  },
-  currentTime: {
-    margin: `0 ${theme.spacing(1)}`,
-    fontSize: 15,
-    fontWeight: 500,
-    display: 'block',
-    flexGrow: 1,
-  },
-  playbackLabel: {
-    paddingTop: 4,
-  },
+}));
+
+const DesiredPlaySpeedContainer = styled('div')(({ theme }) => ({
+  marginRight: theme.spacing(1),
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  minWidth: '40px',
+}));
+
+const StyledIconButton = styled(IconButton)({
+  width: '40px',
+  height: '40px',
 });
 
-const TimeDisplay = ({ classes, isThin, onMuteToggle, isMuted, hasAudio }) => {
+const TinyArrowIcon = styled(IconButton)(({ theme }) => ({
+  width: 12,
+  height: 12,
+  color: theme.palette.grey[500],
+  '&[disabled]': {
+    visibility: 'hidden',
+  },
+}));
+
+const RightBorderBox = styled('div')(({ theme }) => ({
+  borderRight: `1px solid ${theme.palette.grey[900]}`,
+}));
+
+const LeftBorderBox = styled('div')(({ theme }) => ({
+  borderLeft: `1px solid ${theme.palette.grey[900]}`,
+}));
+
+const CurrentTime = styled(Typography)(({ theme }) => ({
+  margin: `0 ${theme.spacing(1)}`,
+  fontSize: 15,
+  fontWeight: 500,
+  display: 'block',
+  flexGrow: 1,
+}));
+
+const PlaybackLabel = styled(Typography)({
+  paddingTop: 4,
+});
+
+const TimeDisplay = ({ isThin, onMuteToggle, isMuted, hasAudio }) => {
   const dispatch = useDispatch();
   const currentRoute = useSelector((state) => selectCurrentRoute(state));
   const zoom = useSelector((state) => selectRouteZoom(state));
@@ -201,54 +191,58 @@ const TimeDisplay = ({ classes, isThin, onMuteToggle, isMuted, hasAudio }) => {
   const isThinCls = isThin ? 'isThin' : '';
 
   return (
-    <div className={`${classes.base} ${isExpandedCls} ${isThinCls}`}>
-      <div className={classes.rightBorderBox}>
-        <IconButton className={classes.iconButton} onClick={() => jumpBack(10000)} aria-label="Jump back 10 seconds">
-          <Replay10 className={`${classes.icon} small`} />
-        </IconButton>
-      </div>
-      <div className={classes.rightBorderBox}>
-        <IconButton className={classes.iconButton} onClick={() => jumpForward(10000)} aria-label="Jump forward 10 seconds">
-          <Forward10 className={`${classes.icon} small`} />
-        </IconButton>
-      </div>
+    <Base className={`${isExpandedCls} ${isThinCls}`}>
+      <RightBorderBox>
+        <StyledIconButton onClick={() => jumpBack(10000)} aria-label="Jump back 10 seconds">
+          <Replay10 sx={{ width: '80%', height: '80%' }} />
+        </StyledIconButton>
+      </RightBorderBox>
+      <RightBorderBox>
+        <StyledIconButton onClick={() => jumpForward(10000)} aria-label="Jump forward 10 seconds">
+          <Forward10 sx={{ width: '80%', height: '80%' }} />
+        </StyledIconButton>
+      </RightBorderBox>
       {!isThin && (
-        <Typography variant="caption" align="center" className={classes.playbackLabel}>
+        <PlaybackLabel variant="caption" align="center">
           CURRENT PLAYBACK TIME
-        </Typography>
+        </PlaybackLabel>
       )}
-      <Typography variant="body1" align="center" className={classes.currentTime}>
+      <CurrentTime variant="body1" align="center">
         <span ref={textHolder}>{getDisplayTime()}</span>
-      </Typography>
+      </CurrentTime>
       {!isIos() && (
-        <div className={classes.desiredPlaySpeedContainer}>
-          <IconButton className={classes.tinyArrowIcon} onClick={increaseSpeed} disabled={!canIncreaseSpeed()} aria-label="Increase play speed by 1 step">
-            <UpArrow className={classes.tinyArrowIcon} />
-          </IconButton>
+        <DesiredPlaySpeedContainer>
+          <TinyArrowIcon onClick={increaseSpeed} disabled={!canIncreaseSpeed()} aria-label="Increase play speed by 1 step">
+            <UpArrow sx={{ width: 12, height: 12 }} />
+          </TinyArrowIcon>
           <Typography variant="body2" align="center">
             {desiredPlaySpeed}×
           </Typography>
-          <IconButton className={classes.tinyArrowIcon} onClick={decreaseSpeed} disabled={!canDecreaseSpeed()} aria-label="Decrease play speed by 1 step">
-            <DownArrow className={classes.tinyArrowIcon} />
-          </IconButton>
-        </div>
+          <TinyArrowIcon onClick={decreaseSpeed} disabled={!canDecreaseSpeed()} aria-label="Decrease play speed by 1 step">
+            <DownArrow sx={{ width: 12, height: 12 }} />
+          </TinyArrowIcon>
+        </DesiredPlaySpeedContainer>
       )}
-      <div className={classes.leftBorderBox}>
+      <LeftBorderBox>
         <Tooltip title={!hasAudio ? 'Enable audio recording through the "Record and Upload Microphone Audio" toggle on your device' : ''}>
           <div>
-            <IconButton className={classes.iconButton} onClick={onMuteToggle} disabled={!hasAudio} aria-label={isMuted ? 'Unmute' : 'Mute'}>
-              {isMuted ? <VolumeOff className={`${classes.icon} small ${!hasAudio ? 'dim' : ''}`} /> : <VolumeUp className={`${classes.icon} small`} />}
-            </IconButton>
+            <StyledIconButton onClick={onMuteToggle} disabled={!hasAudio} aria-label={isMuted ? 'Unmute' : 'Mute'}>
+              {isMuted ? (
+                <VolumeOff sx={(theme) => ({ width: '80%', height: '80%', color: !hasAudio ? theme.palette.grey[300] : undefined })} />
+              ) : (
+                <VolumeUp sx={{ width: '80%', height: '80%' }} />
+              )}
+            </StyledIconButton>
           </div>
         </Tooltip>
-      </div>
-      <div className={classes.leftBorderBox}>
-        <IconButton className={classes.iconButton} onClick={togglePause} aria-label={isPaused ? 'Unpause' : 'Pause'}>
-          {isPaused ? <PlayArrow className={`${classes.icon} small`} /> : <Pause className={`${classes.icon} small`} />}
-        </IconButton>
-      </div>
-    </div>
+      </LeftBorderBox>
+      <LeftBorderBox>
+        <StyledIconButton onClick={togglePause} aria-label={isPaused ? 'Unpause' : 'Pause'}>
+          {isPaused ? <PlayArrow sx={{ width: '80%', height: '80%' }} /> : <Pause sx={{ width: '80%', height: '80%' }} />}
+        </StyledIconButton>
+      </LeftBorderBox>
+    </Base>
   );
 };
 
-export default withStyles(styles)(TimeDisplay);
+export default TimeDisplay;

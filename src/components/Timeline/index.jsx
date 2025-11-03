@@ -2,7 +2,8 @@
 // rapidly change high level timeline stuff
 // rapid seeking, etc
 
-import { withStyles } from '@mui/styles';
+import { Box } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -15,122 +16,113 @@ import { seek } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 import Thumbnails from './thumbnails';
 
-const styles = () => ({
-  base: {
-    position: 'relative',
+const TimelineBase = styled(Box)({
+  position: 'relative',
+});
+
+const TimelineSegments = styled(Box)({
+  position: 'relative',
+  left: '0px',
+  width: '100%',
+  overflow: 'hidden',
+  height: 12,
+});
+
+const TimelineSegment = styled(Box)({
+  position: 'absolute',
+  height: 12,
+  background: theme.palette.states.drivingBlue,
+});
+
+const StatusGradient = styled(Box)({
+  background: 'linear-gradient(rgba(0, 0, 0, 0.0) 4%, rgba(255, 255, 255, 0.025) 10%, rgba(0, 0, 0, 0.1) 25%, rgba(0, 0, 0, 0.4))',
+  height: 12,
+  left: 0,
+  pointerEvents: 'none',
+  position: 'absolute',
+  top: 0,
+  width: '100%',
+  zIndex: 2,
+});
+
+const SegmentColor = styled(Box)({
+  position: 'absolute',
+  display: 'inline-block',
+  height: 12,
+  width: '100%',
+  '&.active': {},
+  '&.engage': {
+    background: theme.palette.states.engagedGreen,
   },
-  segments: {
-    position: 'relative',
-    left: '0px',
-    width: '100%',
-    overflow: 'hidden',
-    height: 12,
+  '&.overriding': {
+    background: theme.palette.states.engagedGrey,
   },
-  segment: {
-    position: 'absolute',
-    height: 12,
-    background: theme.palette.states.drivingBlue,
+  '&.alert': {
+    '&.userPrompt': {
+      background: theme.palette.states.alertOrange,
+    },
+    '&.critical': {
+      background: theme.palette.states.alertRed,
+    },
   },
-  statusGradient: {
-    background: 'linear-gradient(rgba(0, 0, 0, 0.0) 4%, rgba(255, 255, 255, 0.025) 10%, rgba(0, 0, 0, 0.1) 25%, rgba(0, 0, 0, 0.4))',
-    height: 12,
-    left: 0,
-    pointerEvents: 'none',
-    position: 'absolute',
-    top: 0,
-    width: '100%',
-    zIndex: 2,
+  '&.bookmark, &.flag': {
+    // TODO: remove flag selector once 14 days expires old events caches
+    background: theme.palette.states.userBookmark,
+    zIndex: 1,
   },
-  segmentColor: {
-    position: 'absolute',
+});
+
+const ThumbnailsContainer = styled(Box)({
+  height: 20,
+  width: '100%',
+  overflow: 'hidden',
+  whiteSpace: 'nowrap',
+  userSelect: 'none',
+  '& > div': {
     display: 'inline-block',
-    height: 12,
-    width: '100%',
-    '&.active': {},
-    '&.engage': {
-      background: theme.palette.states.engagedGreen,
-    },
-    '&.overriding': {
-      background: theme.palette.states.engagedGrey,
-    },
-    '&.alert': {
-      '&.userPrompt': {
-        background: theme.palette.states.alertOrange,
-      },
-      '&.critical': {
-        background: theme.palette.states.alertRed,
-      },
-    },
-    '&.bookmark, &.flag': {
-      // TODO: remove flag selector once 14 days expires old events caches
-      background: theme.palette.states.userBookmark,
-      zIndex: 1,
-    },
   },
-  thumbnails: {
-    height: 20,
-    width: '100%',
-    overflow: 'hidden',
-    whiteSpace: 'nowrap',
-    userSelect: 'none',
-    '& > div': {
-      display: 'inline-block',
-    },
-  },
-  ruler: {
-    backgroundColor: 'rgb(37, 51, 61)',
-    touchAction: 'none',
-    width: '100%',
-    height: 44,
-  },
-  rulerRemaining: {
-    backgroundColor: 'rgba(29, 34, 37, 0.9)',
-    borderLeft: '1px solid #D8DDDF',
-    position: 'absolute',
-    left: 0,
-    height: 44,
-    opacity: 0.45,
-    pointerEvents: 'none',
-    width: '100%',
-  },
-  loopStart: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRight: '1px solid rgba(0, 0, 0, 0.8)',
-    position: 'absolute',
-    left: 0,
-    height: 44,
-    pointerEvents: 'none',
-  },
-  loopEnd: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderLeft: '1px solid rgba(0, 0, 0, 0.8)',
-    position: 'absolute',
-    right: 0,
-    height: 44,
-    pointerEvents: 'none',
-  },
-  dragHighlight: {
-    pointerEvents: 'none',
-    background: 'rgba(255, 255, 255, 0.1)',
-    borderLeft: '1px solid rgba(255, 255, 255, 0.3)',
-    borderRight: '1px solid rgba(255, 255, 255, 0.3)',
-    position: 'absolute',
-    height: 44,
-  },
-  hoverBead: {
-    zIndex: 3,
-    textAlign: 'center',
-    borderRadius: 14,
-    fontSize: '0.7em',
-    padding: '3px 4px',
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    color: Colors.white,
-    position: 'absolute',
-    top: 83,
-    left: 0,
-    width: 80,
-  },
+});
+
+const Ruler = styled(Box)({
+  backgroundColor: 'rgb(37, 51, 61)',
+  touchAction: 'none',
+  width: '100%',
+  height: 44,
+});
+
+const RulerRemaining = styled(Box)({
+  backgroundColor: 'rgba(29, 34, 37, 0.9)',
+  borderLeft: '1px solid #D8DDDF',
+  position: 'absolute',
+  left: 0,
+  height: 44,
+  opacity: 0.45,
+  pointerEvents: 'none',
+  width: '100%',
+});
+
+const DragHighlight = styled(Box)({
+  pointerEvents: 'none',
+  background: 'rgba(255, 255, 255, 0.1)',
+  borderLeft: '1px solid rgba(255, 255, 255, 0.3)',
+  borderRight: '1px solid rgba(255, 255, 255, 0.3)',
+  position: 'absolute',
+  height: 44,
+});
+
+const HoverBead = styled(Box)({
+  zIndex: 3,
+  textAlign: 'center',
+  borderRadius: 14,
+  fontSize: '0.7em',
+  padding: '3px 4px',
+  border: `1px solid ${Colors.white10}`,
+  backgroundColor: Colors.grey800,
+  color: Colors.white,
+  position: 'absolute',
+  top: 83,
+  left: 0,
+  width: 80,
 });
 
 const AlertStatusCodes = ['normal', 'userPrompt', 'critical'];
@@ -141,7 +133,7 @@ function percentFromPointerEvent(ev) {
   return x / boundingBox.width;
 }
 
-const Timeline = ({ classes, hasRuler, className, route, thumbnailsVisible, zoomOverride }) => {
+const Timeline = ({ hasRuler, className, route, thumbnailsVisible, zoomOverride }) => {
   const dispatch = useDispatch();
   const propsZoom = useSelector((state) => selectRouteZoom(state));
   const dongleId = useSelector((state) => state.dongleId);
@@ -282,7 +274,7 @@ const Timeline = ({ classes, hasRuler, className, route, thumbnailsVisible, zoom
           minWidth: '1px',
         };
         const statusCls = event.data.alertStatus ? `${AlertStatusCodes[event.data.alertStatus]}` : '';
-        return <div key={route.fullname + event.route_offset_millis + event.type} style={style} className={`${classes.segmentColor} ${event.type} ${statusCls}`} />;
+        return <SegmentColor key={route.fullname + event.route_offset_millis + event.type} style={style} className={`${event.type} ${statusCls}`} />;
       });
   };
 
@@ -301,9 +293,9 @@ const Timeline = ({ classes, hasRuler, className, route, thumbnailsVisible, zoom
       left: `${startPerc}%`,
     };
     return (
-      <div key={route.fullname} className={classes.segment} style={style}>
+      <TimelineSegment key={route.fullname} style={style}>
         {renderRouteEvents(route)}
-      </div>
+      </TimelineSegment>
     );
   };
 
@@ -370,38 +362,31 @@ const Timeline = ({ classes, hasRuler, className, route, thumbnailsVisible, zoom
   const baseWidthStyle = { width: '100%' };
 
   return (
-    <div className={className}>
-      <div role="presentation" className={`${classes.base} ${hasRulerCls}`} style={baseWidthStyle}>
-        <div className={`${classes.segments} ${hasRulerCls}`}>
+    <Box className={className}>
+      <TimelineBase role="presentation" className={hasRulerCls} style={baseWidthStyle}>
+        <TimelineSegments className={hasRulerCls}>
           {route && renderRoute()}
-          <div className={`${classes.statusGradient} ${hasRulerCls}`} />
-        </div>
-        <div ref={thumbnailsRef} className={`${classes.thumbnails} ${hasRulerCls}`}>
-          {thumbnailsVisible && <Thumbnails className={classes.thumbnail} currentRoute={route} percentToOffset={percentToOffset} thumbnail={thumbnail} hasRuler={hasRuler} />}
-        </div>
+          <StatusGradient className={hasRulerCls} />
+        </TimelineSegments>
+        <ThumbnailsContainer ref={thumbnailsRef} className={hasRulerCls}>
+          {thumbnailsVisible && <Thumbnails currentRoute={route} percentToOffset={percentToOffset} thumbnail={thumbnail} hasRuler={hasRuler} />}
+        </ThumbnailsContainer>
         {hasRuler && (
           <>
-            <div
-              ref={onRulerRef}
-              className={classes.ruler}
-              onPointerDown={handlePointerDown}
-              onPointerUp={handlePointerUp}
-              onPointerMove={handlePointerMove}
-              onPointerLeave={handlePointerLeave}
-            >
-              <div ref={rulerRemaining} className={classes.rulerRemaining} />
-              {draggerStyle && <div ref={dragBar} className={classes.dragHighlight} style={draggerStyle} />}
-            </div>
+            <Ruler ref={onRulerRef} onPointerDown={handlePointerDown} onPointerUp={handlePointerUp} onPointerMove={handlePointerMove} onPointerLeave={handlePointerLeave}>
+              <RulerRemaining ref={rulerRemaining} />
+              {draggerStyle && <DragHighlight ref={dragBar} style={draggerStyle} />}
+            </Ruler>
             {hoverString && (
-              <div ref={hoverBead} className={classes.hoverBead} style={hoverStyle}>
+              <HoverBead ref={hoverBead} style={hoverStyle}>
                 {hoverString}
-              </div>
+              </HoverBead>
             )}
           </>
         )}
-      </div>
-    </div>
+      </TimelineBase>
+    </Box>
   );
 };
 
-export default withStyles(styles)(Timeline);
+export default Timeline;

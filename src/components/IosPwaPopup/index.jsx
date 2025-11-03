@@ -1,6 +1,6 @@
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { Typography } from '@mui/material';
-import { withStyles } from '@mui/styles';
+import { styled } from '@mui/material/styles';
 import { Clear } from '@mui/icons-material';
 import localforage from 'localforage';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -10,45 +10,46 @@ import Colors from '../../colors';
 import { IosShareIcon } from '../../icons';
 import { isIos } from '../../utils/browser.js';
 
-const styles = () => ({
-  box: {
-    margin: '0 auto',
-    borderRadius: 22,
-    padding: '12px 20px',
-    color: Colors.white,
-    display: 'flex',
-    flexDirection: 'column',
-    backgroundColor: Colors.grey500,
-    border: `1px solid ${Colors.grey700}`,
-  },
-  hide: {
-    cursor: 'pointer',
-    padding: 5,
-    fontSize: 20,
-    position: 'relative',
-    left: -30,
-    top: -24,
-    marginBottom: -32,
-    height: 32,
-    width: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.grey900,
-    color: Colors.white,
-    border: `1px solid ${Colors.grey600}`,
-  },
-  title: {
-    lineHeight: '31px',
-    fontSize: 20,
-    fontWeight: 600,
-  },
-  icon: {
-    display: 'inline',
-    verticalAlign: 'text-bottom',
-    margin: '0 3px',
-  },
+const PopupBox = styled('div')({
+  margin: '0 auto',
+  borderRadius: 22,
+  padding: '12px 20px',
+  color: Colors.white,
+  display: 'flex',
+  flexDirection: 'column',
+  backgroundColor: Colors.grey500,
+  border: `1px solid ${Colors.grey700}`,
 });
 
-const IosPwaPopup = ({ classes }) => {
+const HideButton = styled(Clear)({
+  cursor: 'pointer',
+  padding: 5,
+  fontSize: 20,
+  position: 'relative',
+  left: -30,
+  top: -24,
+  marginBottom: -32,
+  height: 32,
+  width: 32,
+  borderRadius: 16,
+  backgroundColor: Colors.grey900,
+  color: Colors.white,
+  border: `1px solid ${Colors.grey600}`,
+});
+
+const Title = styled(Typography)({
+  lineHeight: '31px',
+  fontSize: 20,
+  fontWeight: 600,
+});
+
+const ShareIconImg = styled('img')({
+  display: 'inline',
+  verticalAlign: 'text-bottom',
+  margin: '0 3px',
+});
+
+const IosPwaPopup = () => {
   const [show, setShow] = useState(false);
   const windowEventsRef = useRef(0);
   const location = useLocation();
@@ -114,16 +115,16 @@ const IosPwaPopup = ({ classes }) => {
 
   return (
     <div className="fixed bottom-3 left-3 right-3 z-20">
-      <div className={`${classes.box} xs:w-fit`}>
-        <Clear className={classes.hide} onClick={hide} />
-        <Typography className={classes.title}>Add to home screen</Typography>
+      <PopupBox className="xs:w-fit">
+        <HideButton onClick={hide} />
+        <Title>Add to home screen</Title>
         <Typography>
           Install this webapp on your home screen: <br />
-          tap <img className={classes.icon} src={IosShareIcon} width={35 / 2.2} height={44 / 2.2} alt="share" /> and then &lsquo;Add to Home Screen&rsquo;
+          tap <ShareIconImg src={IosShareIcon} width={35 / 2.2} height={44 / 2.2} alt="share" /> and then &lsquo;Add to Home Screen&rsquo;
         </Typography>
-      </div>
+      </PopupBox>
     </div>
   );
 };
 
-export default withStyles(styles)(IosPwaPopup);
+export default IosPwaPopup;

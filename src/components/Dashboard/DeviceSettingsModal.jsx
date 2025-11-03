@@ -1,6 +1,6 @@
 import { devices as Devices } from '@commaai/api';
 import { Button, CircularProgress, Divider, IconButton, Modal, Paper, TextField, Typography } from '@mui/material';
-import { withStyles } from '@mui/styles';
+import { styled } from '@mui/material/styles';
 import CheckIcon from '@mui/icons-material/Check';
 import SaveIcon from '@mui/icons-material/Save';
 import ShareIcon from '@mui/icons-material/Share';
@@ -14,96 +14,108 @@ import { ErrorOutline } from '../../icons';
 import { navigate } from '../../navigation';
 import UploadQueue from '../Files/UploadQueue';
 
-const styles = (theme) => ({
-  modal: {
-    position: 'absolute',
-    padding: theme.spacing(2),
-    width: theme.spacing(50),
-    maxWidth: '90%',
-    left: '50%',
-    top: '40%',
-    transform: 'translate(-50%, -50%)',
-    outline: 'none',
-  },
-  modalUnpair: {
-    width: theme.spacing(45),
-    maxWidth: '80%',
-  },
-  titleContainer: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 5,
-  },
-  buttonGroup: {
-    textAlign: 'right',
-    marginTop: theme.spacing(2),
-  },
-  form: {
-    paddingTop: theme.spacing(1),
-    paddingBottom: theme.spacing(1),
-  },
-  formRow: {
-    minHeight: 75,
-  },
-  formRowError: {
-    padding: 10,
-    marginBottom: 5,
-    backgroundColor: Colors.red500,
-  },
-  textField: {
-    maxWidth: '70%',
-  },
-  fabProgress: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    zIndex: 1,
-  },
-  wrapper: {
-    margin: theme.spacing(1),
-    position: 'relative',
-    display: 'inline-block',
-  },
-  primeManageButton: {
-    marginTop: 20,
-    marginRight: 20,
-    '&:last-child': { marginRight: 0 },
-  },
-  topButtonGroup: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap-reverse',
-    alignItems: 'baseline',
-  },
-  cancelButton: {
-    backgroundColor: Colors.grey200,
-    color: Colors.white,
-    '&:hover': {
-      backgroundColor: Colors.grey400,
-    },
-  },
-  unpairError: {
-    marginTop: 15,
-    padding: 10,
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 0, 0, 0.3)',
-    '& p': { display: 'inline-block', marginLeft: 10 },
-    color: Colors.white,
-  },
-  unpairWarning: {
-    marginTop: 15,
-    padding: 10,
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: Colors.orange200,
-    '& p': { display: 'inline-block', marginLeft: 10 },
-    color: Colors.white,
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  position: 'absolute',
+  padding: theme.spacing(2),
+  width: theme.spacing(50),
+  maxWidth: '90%',
+  left: '50%',
+  top: '40%',
+  transform: 'translate(-50%, -50%)',
+  outline: 'none',
+}));
+
+const UnpairPaper = styled(StyledPaper)(({ theme }) => ({
+  width: theme.spacing(45),
+  maxWidth: '80%',
+}));
+
+const TitleContainer = styled('div')({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'baseline',
+  marginBottom: 5,
+});
+
+const ButtonGroup = styled('div')(({ theme }) => ({
+  textAlign: 'right',
+  marginTop: theme.spacing(2),
+}));
+
+const FormContainer = styled('div')(({ theme }) => ({
+  paddingTop: theme.spacing(1),
+  paddingBottom: theme.spacing(1),
+}));
+
+const FormRow = styled('div')({
+  minHeight: 75,
+});
+
+const FormRowError = styled('div')({
+  padding: 10,
+  marginBottom: 5,
+  backgroundColor: Colors.red500,
+});
+
+const StyledTextField = styled(TextField)({
+  maxWidth: '70%',
+});
+
+const FabProgress = styled(CircularProgress)({
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  zIndex: 1,
+});
+
+const IconButtonWrapper = styled('div')(({ theme }) => ({
+  margin: theme.spacing(1),
+  position: 'relative',
+  display: 'inline-block',
+}));
+
+const PrimeManageButton = styled(Button)({
+  marginTop: 20,
+  marginRight: 20,
+  '&:last-child': { marginRight: 0 },
+});
+
+const TopButtonGroup = styled('div')({
+  display: 'flex',
+  justifyContent: 'space-between',
+  flexWrap: 'wrap-reverse',
+  alignItems: 'baseline',
+});
+
+const CancelButton = styled(Button)({
+  backgroundColor: Colors.grey200,
+  color: Colors.white,
+  '&:hover': {
+    backgroundColor: Colors.grey400,
   },
 });
 
-const DeviceSettingsModal = ({ classes, dongleId, isOpen, onClose }) => {
+const UnpairError = styled('div')({
+  marginTop: 15,
+  padding: 10,
+  display: 'flex',
+  alignItems: 'center',
+  backgroundColor: 'rgba(255, 0, 0, 0.3)',
+  '& p': { display: 'inline-block', marginLeft: 10 },
+  color: Colors.white,
+});
+
+const UnpairWarning = styled('div')({
+  marginTop: 15,
+  padding: 10,
+  display: 'flex',
+  alignItems: 'center',
+  backgroundColor: Colors.orange200,
+  '& p': { display: 'inline-block', marginLeft: 10 },
+  color: Colors.white,
+});
+
+const DeviceSettingsModal = ({ dongleId, isOpen, onClose }) => {
   const dispatch = useDispatch();
   const globalDongleId = useSelector((state) => state.dongleId);
   const devices = useSelector((state) => state.devices);
@@ -268,54 +280,52 @@ const DeviceSettingsModal = ({ classes, dongleId, isOpen, onClose }) => {
   return (
     <>
       <Modal aria-labelledby="device-settings-modal" aria-describedby="device-settings-modal-description" open={isOpen} onClose={onClose}>
-        <Paper className={classes.modal}>
-          <div className={classes.titleContainer}>
+        <StyledPaper>
+          <TitleContainer>
             <Typography variant="h6">Device settings</Typography>
             <Typography variant="caption">{device.dongle_id}</Typography>
-          </div>
+          </TitleContainer>
           <Divider />
           <div>
-            <Button variant="outlined" className={classes.primeManageButton} onClick={onPrimeSettings}>
+            <PrimeManageButton variant="outlined" onClick={onPrimeSettings}>
               Prime settings
-            </Button>
-            <Button variant="outlined" className={classes.primeManageButton} onClick={() => setUnpairConfirm(true)}>
+            </PrimeManageButton>
+            <PrimeManageButton variant="outlined" onClick={() => setUnpairConfirm(true)}>
               Unpair
-            </Button>
+            </PrimeManageButton>
           </div>
           <div>
-            <Button variant="outlined" className={classes.primeManageButton} onClick={() => setUploadModal(true)}>
+            <PrimeManageButton variant="outlined" onClick={() => setUploadModal(true)}>
               Uploads
-            </Button>
+            </PrimeManageButton>
           </div>
-          <div className={classes.form}>
+          <FormContainer>
             {error && (
-              <div className={classes.formRowError}>
+              <FormRowError>
                 <Typography>{error}</Typography>
-              </div>
+              </FormRowError>
             )}
-            <div className={classes.formRow}>
-              <TextField
+            <FormRow>
+              <StyledTextField
                 id="device_alias"
                 label="Device name"
-                className={classes.textField}
                 value={deviceAlias || ''}
                 onChange={handleAliasChange}
                 onKeyPress={(ev) => callOnEnter(setDeviceAliasAction, ev)}
               />
               {(device.alias !== deviceAlias || hasSavedAlias) && (
-                <div className={classes.wrapper}>
+                <IconButtonWrapper>
                   <IconButton variant="fab" onClick={setDeviceAliasAction}>
                     {hasSavedAlias ? <CheckIcon /> : <SaveIcon />}
                   </IconButton>
-                  {loadingDeviceAlias && <CircularProgress size={48} className={classes.fabProgress} />}
-                </div>
+                  {loadingDeviceAlias && <FabProgress size={48} />}
+                </IconButtonWrapper>
               )}
-            </div>
-            <div className={classes.formRow}>
-              <TextField
+            </FormRow>
+            <FormRow>
+              <StyledTextField
                 id="device_share"
                 label="Share by email or user id"
-                className={classes.textField}
                 value={shareEmail}
                 onChange={handleEmailChange}
                 variant="outlined"
@@ -323,58 +333,58 @@ const DeviceSettingsModal = ({ classes, dongleId, isOpen, onClose }) => {
                 helperText="give another user read access to this device"
               />
               {(shareEmail.length > 0 || hasShared) && (
-                <div className={classes.wrapper}>
+                <IconButtonWrapper>
                   <IconButton variant="fab" onClick={shareDevice}>
                     {hasShared ? <CheckIcon /> : <ShareIcon />}
                   </IconButton>
-                  {loadingDeviceShare && <CircularProgress size={48} className={classes.fabProgress} />}
-                </div>
+                  {loadingDeviceShare && <FabProgress size={48} />}
+                </IconButtonWrapper>
               )}
-            </div>
-          </div>
-          <div className={classes.buttonGroup}>
-            <Button variant="contained" className={classes.cancelButton} onClick={onClose}>
+            </FormRow>
+          </FormContainer>
+          <ButtonGroup>
+            <CancelButton variant="contained" onClick={onClose}>
               Close
-            </Button>
-          </div>
-        </Paper>
+            </CancelButton>
+          </ButtonGroup>
+        </StyledPaper>
       </Modal>
       <Modal aria-labelledby="device-settings-modal" aria-describedby="device-settings-modal-description" open={unpairConfirm} onClose={closeUnpair}>
-        <Paper className={`${classes.modal} ${classes.modalUnpair}`}>
-          <div className={classes.titleContainer}>
+        <UnpairPaper>
+          <TitleContainer>
             <Typography variant="h6">Unpair device</Typography>
             <Typography variant="caption">{device.dongle_id}</Typography>
-          </div>
+          </TitleContainer>
           <Divider />
           {unpairError && (
-            <div className={classes.unpairError}>
+            <UnpairError>
               <ErrorOutline />
               <Typography>{unpairError}</Typography>
-            </div>
+            </UnpairError>
           )}
           {device.prime && (
-            <div className={classes.unpairWarning}>
+            <UnpairWarning>
               <WarningIcon />
               <Typography>Unpairing will also cancel the comma prime subscription for this device.</Typography>
-            </div>
+            </UnpairWarning>
           )}
-          <div className={classes.topButtonGroup}>
-            <Button variant="contained" className={`${classes.primeManageButton} ${classes.cancelButton}`} onClick={closeUnpair}>
+          <TopButtonGroup>
+            <CancelButton variant="contained" sx={{ marginTop: '20px', marginRight: '20px' }} onClick={closeUnpair}>
               {unpaired ? 'Close' : 'Cancel'}
-            </Button>
+            </CancelButton>
             {unpaired ? (
               <Typography variant="body2">Unpaired</Typography>
             ) : (
-              <Button variant="outlined" className={classes.primeManageButton} onClick={unpairDevice} disabled={loadingUnpair}>
+              <PrimeManageButton variant="outlined" onClick={unpairDevice} disabled={loadingUnpair}>
                 {loadingUnpair ? 'Unpairing...' : 'Confirm'}
-              </Button>
+              </PrimeManageButton>
             )}
-          </div>
-        </Paper>
+          </TopButtonGroup>
+        </UnpairPaper>
       </Modal>
       <UploadQueue open={uploadModal} update={uploadModal} onClose={() => setUploadModal(false)} device={device} />
     </>
   );
 };
 
-export default withStyles(styles)(DeviceSettingsModal);
+export default DeviceSettingsModal;

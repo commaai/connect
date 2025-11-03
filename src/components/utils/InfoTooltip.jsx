@@ -1,49 +1,40 @@
 import { ClickAwayListener, Tooltip, Typography } from '@mui/material';
-import { withStyles } from '@mui/styles';
+import { styled } from '@mui/material/styles';
 import { useState } from 'react';
 
 import { InfoOutline } from '../../icons';
 
-const styles = (theme) => ({
-  arrowPopper: {
-    opacity: 1,
-    '& $arrowArrow': {
-      bottom: 0,
-      left: 0,
-      marginBottom: '-0.9em',
-      width: '3em',
-      height: '1em',
-      '&::before': {
-        borderWidth: '1em 1em 0 1em',
-        borderColor: `${theme.palette.grey[900]} transparent transparent transparent`,
-      },
-    },
-  },
-  arrowArrow: {
-    position: 'absolute',
-    fontSize: 7,
-    width: '3em',
-    height: '3em',
-    '&::before': {
-      content: '""',
-      margin: 'auto',
-      display: 'block',
-      width: 0,
-      height: 0,
-      borderStyle: 'solid',
-    },
-  },
-  tooltip: {
+const StyledTooltip = styled(Tooltip)(({ theme }) => ({
+  '& .MuiTooltip-tooltip': {
     background: theme.palette.grey[900],
     marginBottom: 8,
   },
-  icon: {
-    marginLeft: theme.spacing(1),
-    fontSize: 18,
+  '& .MuiTooltip-popper': {
+    opacity: 1,
   },
-});
+}));
 
-const InfoTooltip = ({ classes, title }) => {
+const ArrowSpan = styled('span')(({ theme }) => ({
+  position: 'absolute',
+  fontSize: 7,
+  width: '3em',
+  height: '3em',
+  bottom: 0,
+  left: 0,
+  marginBottom: '-0.9em',
+  '&::before': {
+    content: '""',
+    margin: 'auto',
+    display: 'block',
+    width: 0,
+    height: 0,
+    borderStyle: 'solid',
+    borderWidth: '1em 1em 0 1em',
+    borderColor: `${theme.palette.grey[900]} transparent transparent transparent`,
+  },
+}));
+
+const InfoTooltip = ({ title }) => {
   const [arrowRef, setArrowRef] = useState(null);
   const [open, setOpen] = useState(false);
 
@@ -61,7 +52,7 @@ const InfoTooltip = ({ classes, title }) => {
 
   return (
     <ClickAwayListener onClickAway={onTooltipClose}>
-      <Tooltip
+      <StyledTooltip
         PopperProps={{
           popperOptions: {
             modifiers: {
@@ -75,19 +66,18 @@ const InfoTooltip = ({ classes, title }) => {
         title={
           <>
             <Typography color="inherit">{title}</Typography>
-            <span className={classes.arrowArrow} ref={handleArrowRef} />
+            <ArrowSpan ref={handleArrowRef} />
           </>
         }
         onOpen={onTooltipOpen}
         onClose={onTooltipClose}
         open={open}
-        classes={{ tooltip: classes.tooltip, popper: classes.arrowPopper }}
         placement="top"
       >
-        <InfoOutline className={classes.icon} onClick={onTooltipOpen} />
-      </Tooltip>
+        <InfoOutline sx={{ ml: 1, fontSize: 18 }} onClick={onTooltipOpen} />
+      </StyledTooltip>
     </ClickAwayListener>
   );
 };
 
-export default withStyles(styles)(InfoTooltip);
+export default InfoTooltip;

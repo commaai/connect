@@ -1,6 +1,6 @@
 import { athena as Athena, devices as Devices } from '@commaai/api';
-import { Button, Typography } from '@mui/material';
-import { withStyles } from '@mui/styles';
+import { Box, Button, Typography } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import { Clear } from '@mui/icons-material';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
@@ -17,120 +17,133 @@ import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import * as Utils from './utils';
 
-const styles = () => ({
-  mapContainer: {
-    borderBottom: `1px solid ${Colors.white10}`,
-  },
-  mapError: {
-    position: 'relative',
-    marginTop: 20,
-    marginLeft: 20,
-    '& p': { color: Colors.white50 },
-  },
-  geolocateControl: {
-    display: 'none',
-  },
-  searchSelectBox: {
-    borderRadius: 22,
-    padding: '12px 16px',
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    color: Colors.white,
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  searchSelectBoxHeader: {
-    display: 'flex',
-    width: '100%',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
-  searchSelectBoxTitle: {
-    flexBasis: 'auto',
-  },
-  searchSelectBoxButtons: {
-    display: 'flex',
-    flexWrap: 'wrap-reverse',
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
-  },
-  bold: {
-    fontWeight: 600,
-  },
-  primeAdTitle: {
-    lineHeight: '31px',
-    fontSize: 20,
-    fontWeight: 600,
-  },
-  searchSelectButton: {
-    marginLeft: 8,
-    padding: '6px 12px',
-    backgroundColor: Colors.white,
-    borderRadius: 15,
+const MapContainer = styled(Box)({
+  borderBottom: `1px solid ${Colors.white10}`,
+});
+
+const MapError = styled(Box)({
+  position: 'relative',
+  marginTop: 20,
+  marginLeft: 20,
+  '& p': { color: Colors.white50 },
+});
+
+const GeolocateControlStyled = styled(GeolocateControl)({
+  display: 'none',
+});
+
+const SearchSelectBox = styled(Box)({
+  borderRadius: 22,
+  padding: '12px 16px',
+  border: `1px solid ${Colors.white10}`,
+  backgroundColor: Colors.grey800,
+  color: Colors.white,
+  display: 'flex',
+  flexDirection: 'column',
+});
+
+const SearchSelectBoxHeader = styled(Box)({
+  display: 'flex',
+  width: '100%',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  marginBottom: 10,
+});
+
+const SearchSelectBoxTitle = styled(Box)({
+  flexBasis: 'auto',
+});
+
+const SearchSelectBoxButtons = styled(Box)({
+  display: 'flex',
+  flexWrap: 'wrap-reverse',
+  justifyContent: 'flex-end',
+  alignItems: 'flex-end',
+});
+
+const BoldTypography = styled(Typography)({
+  fontWeight: 600,
+});
+
+const PrimeAdTitle = styled(Typography)({
+  lineHeight: '31px',
+  fontSize: 20,
+  fontWeight: 600,
+});
+
+const SearchSelectButton = styled(Button)({
+  marginLeft: 8,
+  padding: '6px 12px',
+  backgroundColor: Colors.white,
+  borderRadius: 15,
+  color: Colors.grey900,
+  textTransform: 'none',
+  minHeight: 'unset',
+  flexGrow: 1,
+  maxWidth: 125,
+  '&:hover': {
+    background: '#ddd',
     color: Colors.grey900,
-    textTransform: 'none',
-    minHeight: 'unset',
-    flexGrow: 1,
-    maxWidth: 125,
-    '&:hover': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-    '&:disabled': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
   },
-  searchSelectBoxDetails: {
-    color: Colors.white40,
-  },
-  primeAdContainer: {
-    backgroundColor: Colors.grey500,
-    border: `1px solid ${Colors.grey700}`,
-  },
-  primeAdButton: {
-    padding: '6px 24px',
-    color: Colors.white,
-    backgroundColor: Colors.primeBlue50,
-    '&:hover': {
-      color: Colors.white,
-      backgroundColor: Colors.primeBlue200,
-    },
-  },
-  pin: {
-    width: 20,
-    height: 32,
-  },
-  carPinTooltip: {
-    textAlign: 'center',
-    borderRadius: 14,
-    fontSize: '0.8em',
-    padding: '6px 8px',
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    color: Colors.white,
-  },
-  clearSearchSelect: {
-    padding: 5,
-    fontSize: 20,
-    cursor: 'pointer',
-    position: 'absolute',
-    left: -6,
-    top: -8,
-    height: 24,
-    width: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.grey900,
-    color: Colors.white,
-    border: `1px solid ${Colors.grey600}`,
-    '&:hover': {
-      backgroundColor: Colors.grey700,
-    },
+  '&:disabled': {
+    background: '#ddd',
+    color: Colors.grey900,
   },
 });
 
-const Navigation = ({ classes }) => {
+const SearchSelectBoxDetails = styled(Typography)({
+  color: Colors.white40,
+});
+
+const PrimeAdContainer = styled(SearchSelectBox)({
+  backgroundColor: Colors.grey500,
+  border: `1px solid ${Colors.grey700}`,
+});
+
+const PrimeAdButton = styled(SearchSelectButton)({
+  padding: '6px 24px',
+  color: Colors.white,
+  backgroundColor: Colors.primeBlue50,
+  '&:hover': {
+    color: Colors.white,
+    backgroundColor: Colors.primeBlue200,
+  },
+});
+
+const Pin = styled(PinCarIcon)({
+  width: 20,
+  height: 32,
+});
+
+const CarPinTooltip = styled(Box)({
+  textAlign: 'center',
+  borderRadius: 14,
+  fontSize: '0.8em',
+  padding: '6px 8px',
+  border: `1px solid ${Colors.white10}`,
+  backgroundColor: Colors.grey800,
+  color: Colors.white,
+});
+
+const ClearSearchSelect = styled(Clear)({
+  padding: 5,
+  fontSize: 20,
+  cursor: 'pointer',
+  position: 'absolute',
+  left: -6,
+  top: -8,
+  height: 24,
+  width: 24,
+  borderRadius: 12,
+  backgroundColor: Colors.grey900,
+  color: Colors.white,
+  border: `1px solid ${Colors.grey600}`,
+  '&:hover': {
+    backgroundColor: Colors.grey700,
+  },
+});
+
+const Navigation = () => {
   // Redux state
   const dongleId = useSelector((state) => state.dongleId);
   const device = useSelector((state) => state.device);
@@ -474,49 +487,48 @@ const Navigation = ({ classes }) => {
     }
 
     return (
-      <div className={classes.searchSelectBox} ref={searchSelectBoxRef}>
-        <Clear className={classes.clearSearchSelect} onClick={clearSearchSelect} />
-        <div className={classes.searchSelectBoxHeader}>
-          <div className={classes.searchSelectBoxTitle}>
-            <Typography className={classes.bold}>{title}</Typography>
-            <Typography className={classes.searchSelectBoxDetails}>{timeFromNow(carLocation.time)}</Typography>
-          </div>
-          <div className={classes.searchSelectBoxButtons}>
-            <Button classes={{ root: classes.searchSelectButton }} target="_blank" href={geoUri}>
+      <SearchSelectBox ref={searchSelectBoxRef}>
+        <ClearSearchSelect onClick={clearSearchSelect} />
+        <SearchSelectBoxHeader>
+          <SearchSelectBoxTitle>
+            <BoldTypography>{title}</BoldTypography>
+            <SearchSelectBoxDetails>{timeFromNow(carLocation.time)}</SearchSelectBoxDetails>
+          </SearchSelectBoxTitle>
+          <SearchSelectBoxButtons>
+            <SearchSelectButton target="_blank" href={geoUri}>
               open in maps
-            </Button>
-          </div>
-        </div>
-        <Typography className={classes.searchSelectBoxDetails}>
+            </SearchSelectButton>
+          </SearchSelectBoxButtons>
+        </SearchSelectBoxHeader>
+        <SearchSelectBoxDetails>
           {Utils.formatPlaceName(searchSelect)}
           {Utils.formatPlaceAddress(searchSelect)}
-        </Typography>
-      </div>
+        </SearchSelectBoxDetails>
+      </SearchSelectBox>
     );
   };
 
   const renderPrimeAd = () => {
     return (
-      <div className={`${classes.searchSelectBox} ${classes.primeAdContainer}`} ref={primeAdBoxRef}>
-        <Clear
-          className={classes.clearSearchSelect}
+      <PrimeAdContainer ref={primeAdBoxRef}>
+        <ClearSearchSelect
           onClick={() => {
             setShowPrimeAd(false);
             flyToMarkers();
           }}
         />
-        <div className={classes.searchSelectBoxHeader}>
-          <div className={classes.searchSelectBoxTitle}>
-            <Typography className={classes.primeAdTitle}>comma prime</Typography>
-          </div>
-          <div className={classes.searchSelectBoxButtons}>
-            <Button onClick={() => navigate(`/${dongleId}/prime`)} className={`${classes.searchSelectButton} ${classes.primeAdButton} primeSignUp`}>
+        <SearchSelectBoxHeader>
+          <SearchSelectBoxTitle>
+            <PrimeAdTitle>comma prime</PrimeAdTitle>
+          </SearchSelectBoxTitle>
+          <SearchSelectBoxButtons>
+            <PrimeAdButton onClick={() => navigate(`/${dongleId}/prime`)} className="primeSignUp">
               sign up
-            </Button>
-          </div>
-        </div>
-        <Typography className={classes.primeAdDetails}>Put your car on the internet with comma prime</Typography>
-      </div>
+            </PrimeAdButton>
+          </SearchSelectBoxButtons>
+        </SearchSelectBoxHeader>
+        <SearchSelectBoxDetails>Put your car on the internet with comma prime</SearchSelectBoxDetails>
+      </PrimeAdContainer>
     );
   };
 
@@ -576,14 +588,14 @@ const Navigation = ({ classes }) => {
   }
 
   return (
-    <div ref={onContainerRef} className={classes.mapContainer} style={{ height: 200 }}>
+    <MapContainer ref={onContainerRef} style={{ height: 200 }}>
       <ResizeHandler onResize={onResize} />
       <VisibilityHandler onVisible={updateDevice} onInit onDongleId minInterval={60} />
       {mapError && (
-        <div className={classes.mapError}>
+        <MapError>
           <Typography>Could not initialize map.</Typography>
           <Typography>{mapError}</Typography>
-        </div>
+        </MapError>
       )}
       <ReactMapGL
         latitude={viewport.latitude}
@@ -603,8 +615,7 @@ const Navigation = ({ classes }) => {
         dragRotate={false}
         onError={(err) => setMapError(err.error.message)}
       >
-        <GeolocateControl
-          className={classes.geolocateControl}
+        <GeolocateControlStyled
           positionOptions={{ enableHighAccuracy: true }}
           showAccuracyCircle={false}
           onGeolocate={onGeolocate}
@@ -623,19 +634,13 @@ const Navigation = ({ classes }) => {
             captureClick
             captureDoubleClick={false}
           >
-            <PinCarIcon
-              className={classes.pin}
-              onMouseEnter={() => toggleCarPinTooltip(true)}
-              onMouseLeave={() => toggleCarPinTooltip(false)}
-              alt="car-location"
-              onClick={() => onCarSelect(carLocation)}
-            />
-            <div className={classes.carPinTooltip} ref={carPinTooltipRef} style={{ ...carPinTooltipStyle, display: 'none' }}>
+            <Pin onMouseEnter={() => toggleCarPinTooltip(true)} onMouseLeave={() => toggleCarPinTooltip(false)} alt="car-location" onClick={() => onCarSelect(carLocation)} />
+            <CarPinTooltip ref={carPinTooltipRef} style={{ ...carPinTooltipStyle, display: 'none' }}>
               {dayjs(carLocation.time).format('h:mm A')}
               ,
               <br />
               {timeFromNow(carLocation.time)}
-            </div>
+            </CarPinTooltip>
           </Marker>
         )}
         {carLocation && Boolean(carLocation.accuracy) && (
@@ -658,8 +663,8 @@ const Navigation = ({ classes }) => {
           />
         )}
       </ReactMapGL>
-    </div>
+    </MapContainer>
   );
 };
 
-export default withStyles(styles)(Navigation);
+export default Navigation;

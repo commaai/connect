@@ -1,6 +1,6 @@
 import { athena as Athena, devices as Devices } from '@commaai/api';
-import { Button, CircularProgress, Popper, Tooltip, Typography } from '@mui/material';
-import { withStyles } from '@mui/styles';
+import { Box, Button, CircularProgress, Popper, Tooltip, Typography } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import AccessTime from '@mui/icons-material/AccessTime';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
@@ -13,171 +13,144 @@ import ResizeHandler from '../ResizeHandler';
 import TimeSelect from '../TimeSelect';
 import VisibilityHandler from '../VisibilityHandler';
 
-const styles = (theme) => ({
-  container: {
-    borderBottom: `1px solid ${Colors.white10}`,
-    paddingTop: 8,
-    display: 'flex',
-    flexDirection: 'column',
-    minHeight: 64,
-    justifyContent: 'center',
+const Container = styled(Box)(({ theme }) => ({
+  borderBottom: `1px solid ${Colors.white10}`,
+  paddingTop: 8,
+  display: 'flex',
+  flexDirection: 'column',
+  minHeight: 64,
+  justifyContent: 'center',
+}));
+
+const Row = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 4,
+  [theme.breakpoints.down('xs')]: {
+    marginBottom: 8,
   },
-  row: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-    [theme.breakpoints.down('xs')]: {
-      marginBottom: 8,
-    },
+}));
+
+const DeviceStat = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  maxWidth: 80,
+  padding: `0 ${theme.spacing(2)}`,
+}));
+
+const CarBattery = styled(Box)({
+  padding: '5px 16px',
+  borderRadius: 15,
+  margin: '0 10px',
+  textAlign: 'center',
+  '& p': {
+    fontSize: 14,
+    fontWeight: 500,
+    lineHeight: '1.4em',
   },
-  columnGap: {
-    columnGap: theme.spacing(4),
+});
+
+const StyledButton = styled(Button)(({ offline }) => ({
+  backgroundColor: offline ? Colors.grey400 : Colors.white,
+  color: offline ? Colors.lightGrey600 : Colors.grey900,
+  textTransform: 'none',
+  minHeight: 'unset',
+  marginRight: '8px',
+  '&:hover': {
+    background: offline ? Colors.grey400 : '#ddd',
+    color: offline ? Colors.lightGrey600 : Colors.grey900,
   },
-  bold: {
-    fontWeight: 600,
+  '&:disabled': {
+    background: offline ? Colors.grey400 : '#ddd',
+    color: offline ? Colors.lightGrey600 : Colors.grey900,
   },
-  button: {
-    backgroundColor: Colors.white,
-    color: Colors.grey900,
-    textTransform: 'none',
-    minHeight: 'unset',
-    marginRight: '8px',
-    '&:hover': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-    '&:disabled': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-    '&:disabled:hover': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
+  '&:disabled:hover': {
+    background: offline ? Colors.grey400 : '#ddd',
+    color: offline ? Colors.lightGrey600 : Colors.grey900,
   },
-  buttonOffline: {
-    background: Colors.grey400,
-    color: Colors.lightGrey600,
-    '&:disabled': {
-      background: Colors.grey400,
-      color: Colors.lightGrey600,
-    },
-    '&:disabled:hover': {
-      background: Colors.grey400,
-      color: Colors.lightGrey600,
-    },
-  },
-  buttonRow: {
-    justifyContent: 'center',
-  },
-  spaceAround: {
-    display: 'flex',
-    justifyContent: 'space-around',
-  },
-  deviceStatContainer: {
-    display: 'flex',
-    flex: 1,
-    justifySelf: 'start',
-  },
-  deviceStat: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    maxWidth: 80,
-    padding: `0 ${theme.spacing(2)}`,
-  },
-  carBattery: {
-    padding: '5px 16px',
-    borderRadius: 15,
-    margin: '0 10px',
+}));
+
+const SnapshotContainer = styled(Box)({
+  borderBottom: `1px solid ${Colors.white10}`,
+});
+
+const SnapshotContainerLarge = styled(Box)({
+  maxWidth: 1050,
+  margin: '0 auto',
+  display: 'flex',
+});
+
+const SnapshotImageContainerLarge = styled(Box)({
+  width: '50%',
+  display: 'flex',
+  justifyContent: 'center',
+});
+
+const SnapshotImage = styled('img')({
+  display: 'block',
+  width: '450px !important',
+  maxWidth: '100%',
+});
+
+const SnapshotImageError = styled(Box)({
+  width: 450,
+  maxWidth: '100%',
+  backgroundColor: Colors.grey950,
+  padding: '0 80px',
+  margin: '0 auto',
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  '& p': {
     textAlign: 'center',
-    '& p': {
-      fontSize: 14,
-      fontWeight: 500,
-      lineHeight: '1.4em',
+    fontSize: '1rem',
+    '&:first-child': {
+      fontWeight: 600,
     },
   },
-  actionButton: {
-    minWidth: 130,
-    padding: '5px 16px',
-    borderRadius: 15,
+});
+
+const ScrollSnapContainer = styled(Box)({
+  display: 'flex',
+  overflowX: 'scroll',
+  scrollSnapType: 'x mandatory',
+  scrollBehavior: 'smooth',
+  '&::-webkit-scrollbar': {
+    height: '10px',
   },
-  actionButtonSmall: {
-    minWidth: 90,
-    padding: '5px 10px',
-    borderRadius: 15,
+  '&::-webkit-scrollbar-thumb': {
+    backgroundColor: '#d1d1d1',
+    borderRadius: '8px',
   },
-  actionButtonIcon: {
-    minWidth: 60,
-    padding: '8px 16px',
-    borderRadius: 15,
+  '&::-webkit-scrollbar-track': {
+    backgroundColor: '#272c2f',
   },
-  snapshotContainer: {
-    borderBottom: `1px solid ${Colors.white10}`,
-  },
-  snapshotContainerLarge: {
-    maxWidth: 1050,
-    margin: '0 auto',
-    display: 'flex',
-  },
-  snapshotImageContainerLarge: {
-    width: '50%',
-    display: 'flex',
-    justifyContent: 'center',
-  },
-  snapshotImage: {
-    display: 'block',
-    width: '450px !important',
-    maxWidth: '100%',
-  },
-  snapshotImageError: {
-    width: 450,
-    maxWidth: '100%',
-    backgroundColor: Colors.grey950,
-    padding: '0 80px',
-    margin: '0 auto',
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    '& p': {
-      textAlign: 'center',
-      fontSize: '1rem',
-      '&:first-child': {
-        fontWeight: 600,
-      },
-    },
-  },
-  scrollSnapContainer: {
-    display: 'flex',
-    overflowX: 'scroll',
-    scrollSnapType: 'x mandatory',
-    scrollBehavior: 'smooth',
-    '&::-webkit-scrollbar': {
-      height: '10px',
-    },
-    '&::-webkit-scrollbar-thumb': {
-      backgroundColor: '#d1d1d1',
-      borderRadius: '8px',
-    },
-    '&::-webkit-scrollbar-track': {
-      backgroundColor: '#272c2f',
-    },
-  },
-  scrollSnapItem: {
-    flex: '0 0 auto',
-    scrollSnapAlign: 'start',
-    width: '100%',
-    maxWidth: '450px',
-    margin: '0',
-  },
-  buttonIcon: {
-    fontSize: 20,
-    marginLeft: theme.spacing(1),
-  },
-  popover: {
+});
+
+const ScrollSnapItem = styled(Box)({
+  flex: '0 0 auto',
+  scrollSnapAlign: 'start',
+  width: '100%',
+  maxWidth: '450px',
+  margin: '0',
+});
+
+const StyledPopper = styled(Popper)({
+  borderRadius: 22,
+  padding: '8px 16px',
+  border: `1px solid ${Colors.white10}`,
+  backgroundColor: Colors.grey800,
+  fontSize: 12,
+  marginTop: 5,
+  textAlign: 'center',
+});
+
+const StyledTooltip = styled(Tooltip)({
+  '& .MuiTooltip-tooltip': {
     borderRadius: 22,
     padding: '8px 16px',
     border: `1px solid ${Colors.white10}`,
@@ -188,7 +161,7 @@ const styles = (theme) => ({
   },
 });
 
-const DeviceInfo = ({ classes }) => {
+const DeviceInfo = () => {
   const dongleId = useSelector((state) => state.dongleId);
   const device = useSelector((state) => state.device);
 
@@ -335,24 +308,24 @@ const DeviceInfo = ({ classes }) => {
 
     return (
       <>
-        <div className={classes.deviceStat}>
-          <Typography variant="subtitle1" className={classes.bold}>
+        <DeviceStat>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
             {distance}
           </Typography>
           <Typography variant="subtitle1">{metric ? 'kilometers' : 'miles'}</Typography>
-        </div>
-        <div className={classes.deviceStat}>
-          <Typography variant="subtitle1" className={classes.bold}>
+        </DeviceStat>
+        <DeviceStat>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
             {deviceStats.result.all.routes}
           </Typography>
           <Typography variant="subtitle1">drives</Typography>
-        </div>
-        <div className={classes.deviceStat}>
-          <Typography variant="subtitle1" className={classes.bold}>
+        </DeviceStat>
+        <DeviceStat>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
             {Math.round(deviceStats.result.all.minutes / 60.0)}
           </Typography>
           <Typography variant="subtitle1">hours</Typography>
-        </div>
+        </DeviceStat>
       </>
     );
   };
@@ -365,8 +338,18 @@ const DeviceInfo = ({ classes }) => {
       batteryBackground = batteryVoltage < 11.0 ? Colors.red400 : Colors.green400;
     }
 
-    const actionButtonClass = windowWidth >= 520 ? classes.actionButton : classes.actionButtonSmall;
-    const buttonOffline = deviceIsOnline(device) ? '' : classes.buttonOffline;
+    const isOffline = !deviceIsOnline(device);
+    const buttonSx = {
+      minWidth: windowWidth >= 520 ? 130 : 90,
+      padding: '5px 16px',
+      borderRadius: 15,
+    };
+
+    const iconButtonSx = {
+      minWidth: 60,
+      padding: '8px 16px',
+      borderRadius: 15,
+    };
 
     let error = null;
     if (snapshot.error && snapshot.error.data && snapshot.error.data.message) {
@@ -385,29 +368,24 @@ const DeviceInfo = ({ classes }) => {
 
     return (
       <>
-        <div className={classes.carBattery} style={{ backgroundColor: batteryBackground }}>
+        <CarBattery sx={{ backgroundColor: batteryBackground }}>
           {deviceIsOnline(device) ? (
             <Typography>{`${windowWidth >= 520 ? 'car ' : ''}battery: ${batteryVoltage ? `${batteryVoltage.toFixed(1)}\u00a0V` : 'N/A'}`}</Typography>
           ) : (
-            <Tooltip classes={{ tooltip: classes.popover }} title={pingTooltip} placement="bottom">
+            <StyledTooltip title={pingTooltip} placement="bottom">
               <Typography>device offline</Typography>
-            </Tooltip>
+            </StyledTooltip>
           )}
-        </div>
-        <Button
-          ref={snapshotButtonRef}
-          classes={{ root: `${classes.button} ${actionButtonClass} ${buttonOffline}` }}
-          onClick={takeSnapshot}
-          disabled={Boolean(snapshot.fetching || !deviceIsOnline(device))}
-        >
+        </CarBattery>
+        <StyledButton ref={snapshotButtonRef} offline={isOffline} sx={buttonSx} onClick={takeSnapshot} disabled={Boolean(snapshot.fetching || !deviceIsOnline(device))}>
           {snapshot.fetching ? <CircularProgress size={19} /> : 'take snapshot'}
-        </Button>
-        <Button classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }} onClick={onOpenTimeSelect}>
+        </StyledButton>
+        <StyledButton sx={iconButtonSx} onClick={onOpenTimeSelect}>
           <AccessTime fontSize="inherit" />
-        </Button>
-        <Popper className={classes.popover} open={Boolean(error)} placement="bottom" anchorEl={snapshotButtonRef.current}>
+        </StyledButton>
+        <StyledPopper open={Boolean(error)} placement="bottom" anchorEl={snapshotButtonRef.current}>
           <Typography>{error}</Typography>
-        </Popper>
+        </StyledPopper>
         <TimeSelect isOpen={isTimeSelectOpen} onClose={onCloseTimeSelect} />
       </>
     );
@@ -416,14 +394,14 @@ const DeviceInfo = ({ classes }) => {
   const renderSnapshotImage = (src, isFront) => {
     if (!src) {
       return (
-        <div className={classes.snapshotImageError}>
+        <SnapshotImageError>
           <Typography>{isFront && 'Interior'} snapshot not available</Typography>
           {isFront && <Typography>Enable &ldquo;Record and Upload Driver Camera&rdquo; on your device for interior camera snapshots</Typography>}
-        </div>
+        </SnapshotImageError>
       );
     }
 
-    return <img src={`data:image/jpeg;base64,${src}`} className={classes.snapshotImage} />;
+    return <SnapshotImage src={`data:image/jpeg;base64,${src}`} />;
   };
 
   const containerPadding = windowWidth > 520 ? 36 : 16;
@@ -433,40 +411,40 @@ const DeviceInfo = ({ classes }) => {
     <>
       <ResizeHandler onResize={onResize} />
       <VisibilityHandler onVisible={onVisible} onInit onDongleId minInterval={60} />
-      <div className={classes.container} style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
+      <Container sx={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
         {windowWidth >= 768 ? (
-          <div className={`${classes.row} ${classes.columnGap}`}>
+          <Row sx={{ columnGap: 4 }}>
             <Typography variant="h6">{deviceNamePretty(device)}</Typography>
-            <div className={classes.deviceStatContainer}>{renderStats()}</div>
-            <div className={`${classes.row} ${classes.buttonRow}`}>{renderButtons()}</div>
-          </div>
+            <Box sx={{ display: 'flex', flex: 1, justifySelf: 'start' }}>{renderStats()}</Box>
+            <Row sx={{ justifyContent: 'center' }}>{renderButtons()}</Row>
+          </Row>
         ) : (
           <>
-            <div className={classes.row}>
+            <Row>
               <Typography variant="h6">{deviceNamePretty(device)}</Typography>
-            </div>
-            <div className={classes.row}>{renderButtons()}</div>
-            {deviceStats.result && <div className={`${classes.row} ${classes.spaceAround}`}>{renderStats()}</div>}
+            </Row>
+            <Row>{renderButtons()}</Row>
+            {deviceStats.result && <Row sx={{ display: 'flex', justifyContent: 'space-around' }}>{renderStats()}</Row>}
           </>
         )}
-      </div>
+      </Container>
       {snapshot.result && (
-        <div className={classes.snapshotContainer}>
+        <SnapshotContainer>
           {windowWidth >= 640 ? (
-            <div className={classes.snapshotContainerLarge} style={{ padding: largeSnapshotPadding }}>
-              <div className={classes.snapshotImageContainerLarge}>{renderSnapshotImage(snapshot.result.jpegBack, false)}</div>
-              <div className={classes.snapshotImageContainerLarge}>{renderSnapshotImage(snapshot.result.jpegFront, true)}</div>
-            </div>
+            <SnapshotContainerLarge sx={{ padding: largeSnapshotPadding }}>
+              <SnapshotImageContainerLarge>{renderSnapshotImage(snapshot.result.jpegBack, false)}</SnapshotImageContainerLarge>
+              <SnapshotImageContainerLarge>{renderSnapshotImage(snapshot.result.jpegFront, true)}</SnapshotImageContainerLarge>
+            </SnapshotContainerLarge>
           ) : (
-            <div className={classes.scrollSnapContainer}>
-              <div className={classes.scrollSnapItem}>{renderSnapshotImage(snapshot.result.jpegBack, false)}</div>
-              <div className={classes.scrollSnapItem}>{renderSnapshotImage(snapshot.result.jpegFront, true)}</div>
-            </div>
+            <ScrollSnapContainer>
+              <ScrollSnapItem>{renderSnapshotImage(snapshot.result.jpegBack, false)}</ScrollSnapItem>
+              <ScrollSnapItem>{renderSnapshotImage(snapshot.result.jpegFront, true)}</ScrollSnapItem>
+            </ScrollSnapContainer>
           )}
-        </div>
+        </SnapshotContainer>
       )}
     </>
   );
 };
 
-export default withStyles(styles)(DeviceInfo);
+export default DeviceInfo;

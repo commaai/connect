@@ -1,6 +1,6 @@
 import { drives as Drives } from '@commaai/api';
-import { Button, CircularProgress, Divider, ListItem, Menu, MenuItem, Popper, Typography } from '@mui/material';
-import { withStyles } from '@mui/styles';
+import { Box, Button, CircularProgress, Divider, ListItem, Menu, MenuItem, Popper, Typography } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ShareIcon from '@mui/icons-material/Share';
 import WarningIcon from '@mui/icons-material/Warning';
@@ -25,180 +25,140 @@ import SwitchLoading from '../utils/SwitchLoading';
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
 
-const styles = () => ({
-  root: {
+const Root = styled(Box)({
+  display: 'flex',
+});
+
+const MediaOptionsRoot = styled(Box)({
+  maxWidth: 964,
+  margin: '0 auto',
+  display: 'flex',
+  justifyContent: 'space-between',
+  flexWrap: 'wrap',
+});
+
+const MediaOptions = styled(Box)({
+  marginBottom: 12,
+  display: 'flex',
+  width: 'max-content',
+  alignItems: 'center',
+  border: '1px solid rgba(255,255,255,.1)',
+  borderRadius: 50,
+});
+
+const MediaOption = styled(Box)({
+  alignItems: 'center',
+  borderRight: '1px solid rgba(255,255,255,.1)',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  minHeight: 32,
+  minWidth: 44,
+  paddingLeft: 15,
+  paddingRight: 15,
+  '&.disabled': {
+    cursor: 'default',
+  },
+  '&:last-child': {
+    borderRight: 'none',
+  },
+});
+
+const MediaOptionText = styled(Typography)({
+  fontSize: 12,
+  fontWeight: 500,
+  textAlign: 'center',
+});
+
+const MenuLoading = styled(Box)({
+  position: 'absolute',
+  outline: 'none',
+  zIndex: 5,
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+});
+
+const FilesItem = styled(MenuItem)({
+  justifyContent: 'space-between',
+  opacity: 1,
+});
+
+const SwitchListItem = styled(ListItem)({
+  padding: '12px 16px',
+  boxSizing: 'content-box',
+  height: 24,
+  lineHeight: 1,
+  '& span': { fontSize: '1rem' },
+});
+
+const OfflineMenuItem = styled(MenuItem)({
+  height: 'unset',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  '& div': {
     display: 'flex',
   },
-  mediaOptionsRoot: {
-    maxWidth: 964,
-    margin: '0 auto',
-    display: 'flex',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
+  '& svg': { marginRight: 8 },
+});
+
+const UploadButton = styled(Button)({
+  marginLeft: 12,
+  color: Colors.white,
+  borderRadius: 13,
+  fontSize: '0.8rem',
+  padding: '4px 12px',
+  minHeight: 19,
+  backgroundColor: Colors.white05,
+  '&:hover': {
+    backgroundColor: Colors.white10,
   },
-  mediaOptions: {
-    marginBottom: 12,
-    display: 'flex',
-    width: 'max-content',
-    alignItems: 'center',
-    border: '1px solid rgba(255,255,255,.1)',
-    borderRadius: 50,
+});
+
+const FakeUploadButton = styled(Box)({
+  marginLeft: 12,
+  color: Colors.white,
+  fontSize: '0.8rem',
+  padding: '4px 12px',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+});
+
+const CopySegment = styled(MenuItem)({
+  pointerEvents: 'auto',
+  opacity: 1,
+  '& div': {
+    whiteSpace: 'normal',
+    padding: '0 6px',
+    borderRadius: 4,
+    backgroundColor: Colors.white08,
+    marginRight: 4,
   },
-  mediaOption: {
-    alignItems: 'center',
-    borderRight: '1px solid rgba(255,255,255,.1)',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    minHeight: 32,
-    minWidth: 44,
-    paddingLeft: 15,
-    paddingRight: 15,
-    '&.disabled': {
-      cursor: 'default',
-    },
-    '&:last-child': {
-      borderRight: 'none',
-    },
-  },
-  mediaOptionDisabled: {
-    cursor: 'auto',
-  },
-  mediaOptionIcon: {
-    backgroundColor: '#fff',
-    borderRadius: 3,
-    height: 20,
-    margin: '2px 0',
-    width: 30,
-  },
-  mediaOptionText: {
-    fontSize: 12,
-    fontWeight: 500,
-    textAlign: 'center',
-  },
-  mediaSource: {
-    width: '100%',
-  },
-  menuLoading: {
-    position: 'absolute',
-    outline: 'none',
-    zIndex: 5,
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-  },
-  filesItem: {
-    justifyContent: 'space-between',
-    opacity: 1,
-  },
-  switchListItem: {
-    padding: '12px 16px',
-    boxSizing: 'content-box',
-    height: 24,
-    lineHeight: 1,
-    '& span': { fontSize: '1rem' },
-  },
-  offlineMenuItem: {
-    height: 'unset',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    '& div': {
-      display: 'flex',
-    },
-    '& svg': { marginRight: 8 },
-  },
-  uploadButton: {
-    marginLeft: 12,
-    color: Colors.white,
-    borderRadius: 13,
-    fontSize: '0.8rem',
-    padding: '4px 12px',
-    minHeight: 19,
-    backgroundColor: Colors.white05,
-    '&:hover': {
-      backgroundColor: Colors.white10,
-    },
-  },
-  fakeUploadButton: {
-    marginLeft: 12,
-    color: Colors.white,
-    fontSize: '0.8rem',
-    padding: '4px 12px',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  copySegment: {
-    pointerEvents: 'auto',
-    opacity: 1,
-    '& div': {
-      whiteSpace: 'normal',
-      padding: '0 6px',
-      borderRadius: 4,
-      backgroundColor: Colors.white08,
-      marginRight: 4,
-    },
-  },
-  shareButton: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dcameraUploadIcon: {
-    fontSize: '1rem',
-    marginLeft: 4,
-  },
-  dcameraUploadInfo: {
-    zIndex: 2000,
-    textAlign: 'center',
-    borderRadius: 14,
-    fontSize: '0.8em',
-    padding: '6px 8px',
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    color: Colors.white,
-    '& p': { fontSize: '0.8rem' },
-  },
-  noPrimePopover: {
-    borderRadius: 16,
-    padding: 16,
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    marginTop: 12,
-    zIndex: 5,
-    '& p': {
-      fontSize: '0.9rem',
-      color: Colors.white,
-      margin: 0,
-    },
-  },
-  noPrimeHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    '& p': {
-      fontSize: '1rem',
-      fontWeight: 500,
-    },
-  },
-  noPrimeButton: {
-    padding: '6px 24px',
-    borderRadius: 15,
-    textTransform: 'none',
-    minHeight: 'unset',
-    color: Colors.white,
-    backgroundColor: Colors.primeBlue50,
-    '&:disabled': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-    '&:hover': {
-      color: Colors.white,
-      backgroundColor: Colors.primeBlue200,
-    },
-  },
+});
+
+const ShareButton = styled(MenuItem)({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+});
+
+const DcameraUploadIcon = styled(InfoOutline)({
+  fontSize: '1rem',
+  marginLeft: 4,
+});
+
+const DcameraUploadInfo = styled(Popper)({
+  zIndex: 2000,
+  textAlign: 'center',
+  borderRadius: 14,
+  fontSize: '0.8em',
+  padding: '6px 8px',
+  border: `1px solid ${Colors.white10}`,
+  backgroundColor: Colors.grey800,
+  color: Colors.white,
+  '& p': { fontSize: '0.8rem' },
 });
 
 const MediaType = {
@@ -206,7 +166,7 @@ const MediaType = {
   MAP: 'map',
 };
 
-const Media = ({ classes, menusOnly }) => {
+const Media = ({ menusOnly }) => {
   // Redux state
   const dispatch = useDispatch();
   const dongleId = useSelector((state) => state.dongleId);
@@ -448,53 +408,50 @@ const Media = ({ classes, menusOnly }) => {
       button = null;
     } else if (file.url) {
       button = (
-        <Button className={classes.uploadButton} style={{ minWidth: uploadButtonWidth }} onClick={() => downloadFile(file, type)}>
+        <UploadButton sx={{ minWidth: uploadButtonWidth }} onClick={() => downloadFile(file, type)}>
           download
-        </Button>
+        </UploadButton>
       );
     } else if (file.progress !== undefined) {
       button = (
-        <div className={classes.fakeUploadButton} style={{ minWidth: uploadButtonWidth - 24 }}>
-          {file.current ? `${Math.floor(file.progress * 100)}%` : file.paused ? 'paused' : 'pending'}
-        </div>
+        <FakeUploadButton sx={{ minWidth: uploadButtonWidth - 24 }}>{file.current ? `${Math.floor(file.progress * 100)}%` : file.paused ? 'paused' : 'pending'}</FakeUploadButton>
       );
     } else if (file.requested) {
       button = (
-        <div className={classes.fakeUploadButton} style={{ minWidth: uploadButtonWidth - 24 }}>
+        <FakeUploadButton sx={{ minWidth: uploadButtonWidth - 24 }}>
           <CircularProgress style={{ color: Colors.white }} size={17} />
-        </div>
+        </FakeUploadButton>
       );
     } else if (file.notFound) {
       button = (
-        <div
-          className={classes.fakeUploadButton}
-          style={{ minWidth: uploadButtonWidth - 24 }}
+        <FakeUploadButton
+          sx={{ minWidth: uploadButtonWidth - 24 }}
           onMouseEnter={type === 'dcameras' ? (ev) => setDcamUploadInfo(ev.target) : null}
           onMouseLeave={type === 'dcameras' ? () => setDcamUploadInfo(null) : null}
         >
           not found
-          {type === 'dcameras' && <InfoOutline className={classes.dcameraUploadIcon} />}
-        </div>
+          {type === 'dcameras' && <DcameraUploadIcon />}
+        </FakeUploadButton>
       );
     } else if (!canUpload) {
       button = (
-        <Button className={classes.uploadButton} style={{ minWidth: uploadButtonWidth }} disabled>
+        <UploadButton sx={{ minWidth: uploadButtonWidth }} disabled>
           download
-        </Button>
+        </UploadButton>
       );
     } else {
       button = (
-        <Button className={classes.uploadButton} style={{ minWidth: uploadButtonWidth }} onClick={() => uploadFile(type)}>
+        <UploadButton sx={{ minWidth: uploadButtonWidth }} onClick={() => uploadFile(type)}>
           {windowWidth < 425 ? 'upload' : 'request upload'}
-        </Button>
+        </UploadButton>
       );
     }
 
     return (
-      <MenuItem key={type} disabled className={classes.filesItem} style={files ? { pointerEvents: 'auto' } : { color: Colors.white60 }}>
+      <FilesItem key={type} disabled sx={files ? { pointerEvents: 'auto' } : { color: Colors.white60 }}>
         {name}
         {button}
-      </MenuItem>
+      </FilesItem>
     );
   };
 
@@ -539,41 +496,41 @@ const Media = ({ classes, menusOnly }) => {
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         >
           {!files && (
-            <div className={classes.menuLoading}>
+            <MenuLoading>
               <CircularProgress size={36} style={{ color: Colors.white }} />
-            </div>
+            </MenuLoading>
           )}
           {buttons.filter((b) => Boolean(b)).map(renderUploadMenuItem)}
           <Divider />
-          <MenuItem className={classes.filesItem} disabled style={files && stats ? { pointerEvents: 'auto' } : { color: Colors.white60 }}>
+          <FilesItem disabled sx={files && stats ? { pointerEvents: 'auto' } : { color: Colors.white60 }}>
             All logs
             {Boolean(files && canUpload && !rlogUploadDisabled) && (
-              <Button className={classes.uploadButton} style={{ minWidth: uploadButtonWidth }} onClick={() => uploadFilesAll(['logs'])}>
+              <UploadButton sx={{ minWidth: uploadButtonWidth }} onClick={() => uploadFilesAll(['logs'])}>
                 {`upload ${stats.canRequestRlog} logs`}
-              </Button>
+              </UploadButton>
             )}
             {Boolean(canUpload && rlogUploadDisabled && stats) && (
-              <div className={classes.fakeUploadButton} style={{ minWidth: uploadButtonWidth - 24 }}>
+              <FakeUploadButton sx={{ minWidth: uploadButtonWidth - 24 }}>
                 {stats.isUploadedRlog ? 'uploaded' : stats.isUploadingRlog ? 'pending' : <CircularProgress style={{ color: Colors.white }} size={17} />}
-              </div>
+              </FakeUploadButton>
             )}
-          </MenuItem>
-          <MenuItem className={classes.filesItem} disabled style={files && stats ? { pointerEvents: 'auto' } : { color: Colors.white60 }}>
+          </FilesItem>
+          <FilesItem disabled sx={files && stats ? { pointerEvents: 'auto' } : { color: Colors.white60 }}>
             All files
             {Boolean(files && canUpload && !allUploadDisabled) && (
-              <Button className={classes.uploadButton} style={{ minWidth: uploadButtonWidth }} onClick={() => uploadFilesAll()}>
+              <UploadButton sx={{ minWidth: uploadButtonWidth }} onClick={() => uploadFilesAll()}>
                 {`upload ${stats.canRequestAll} files`}
-              </Button>
+              </UploadButton>
             )}
             {Boolean(canUpload && allUploadDisabled && stats) && (
-              <div className={classes.fakeUploadButton} style={{ minWidth: uploadButtonWidth - 24 }}>
+              <FakeUploadButton sx={{ minWidth: uploadButtonWidth - 24 }}>
                 {stats.isUploadedAll ? 'uploaded' : stats.isUploadingAll ? 'pending' : <CircularProgress style={{ color: Colors.white }} size={17} />}
-              </div>
+              </FakeUploadButton>
             )}
-          </MenuItem>
+          </FilesItem>
           <Divider />
           {deviceIsOnline(device) || !files ? (
-            <MenuItem
+            <FilesItem
               onClick={
                 files
                   ? () => {
@@ -582,29 +539,28 @@ const Media = ({ classes, menusOnly }) => {
                     }
                   : null
               }
-              style={files ? { pointerEvents: 'auto' } : { color: Colors.white60 }}
-              className={classes.filesItem}
+              sx={files ? { pointerEvents: 'auto' } : { color: Colors.white60 }}
               disabled={!files}
             >
               View upload queue
-            </MenuItem>
+            </FilesItem>
           ) : (
-            <MenuItem className={classes.offlineMenuItem} disabled>
+            <OfflineMenuItem disabled>
               <div>
                 <WarningIcon />
                 Device offline
               </div>
               <span style={{ fontSize: '0.8rem' }}>uploading will resume when device is online</span>
-            </MenuItem>
+            </OfflineMenuItem>
           )}
           {stats && stats.isPausedAll && deviceOnCellular(device) && (
-            <MenuItem className={classes.offlineMenuItem} disabled>
+            <OfflineMenuItem disabled>
               <div>
                 <WarningIcon />
                 Connect to WiFi
               </div>
               <span style={{ fontSize: '0.8rem' }}>uploading paused on cellular connection</span>
-            </MenuItem>
+            </OfflineMenuItem>
           )}
         </Menu>
         <Menu
@@ -614,32 +570,32 @@ const Media = ({ classes, menusOnly }) => {
           onClose={() => setMoreInfoMenu(null)}
           transformOrigin={{ vertical: 'top', horizontal: windowWidth > 400 ? 260 : 300 }}
         >
-          <MenuItem className={classes.copySegment} onClick={copySegmentName} style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}>
+          <CopySegment onClick={copySegmentName} sx={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}>
             <div>{currentRoute ? `${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute)}` : '---'}</div>
             <ContentCopyIcon />
-          </MenuItem>
+          </CopySegment>
           {typeof navigator.share !== 'undefined' && (
-            <MenuItem onClick={shareCurrentRoute} className={classes.shareButton}>
+            <ShareButton onClick={shareCurrentRoute}>
               Share this route
               <ShareIcon />
-            </MenuItem>
+            </ShareButton>
           )}
           <Divider />
           <MenuItem onClick={openInUseradmin}>View in useradmin</MenuItem>
           {Boolean(device?.is_owner || (profile && profile.superuser)) && [
             <Divider key="1" />,
-            <ListItem key="2" className={classes.switchListItem}>
+            <SwitchListItem key="2">
               <SwitchLoading checked={currentRoute?.is_public} onChange={onPublicToggle} label="Public access" tooltip={publicTooltip} />
-            </ListItem>,
-            <ListItem key="3" className={classes.switchListItem}>
+            </SwitchListItem>,
+            <SwitchListItem key="3">
               <SwitchLoading checked={Boolean(routePreserved)} loading={routePreserved === null} onChange={onPreserveToggle} label="Preserved" tooltip={preservedTooltip} />
-            </ListItem>,
+            </SwitchListItem>,
           ]}
         </Menu>
         <UploadQueue open={uploadModal} onClose={() => setUploadModal(false)} update={Boolean(moreInfoMenu || uploadModal || downloadMenu)} device={device} />
-        <Popper open={Boolean(dcamUploadInfo)} placement="bottom" anchorEl={dcamUploadInfo} className={classes.dcameraUploadInfo}>
+        <DcameraUploadInfo open={Boolean(dcamUploadInfo)} placement="bottom" anchorEl={dcamUploadInfo}>
           <Typography>make sure to enable the &ldquo;Record and Upload Driver Camera&rdquo; toggle</Typography>
-        </Popper>
+        </DcameraUploadInfo>
       </>
     );
   };
@@ -647,28 +603,28 @@ const Media = ({ classes, menusOnly }) => {
   const renderMediaOptions = (showMapAlways) => {
     return (
       <>
-        <div className={classes.mediaOptionsRoot}>
+        <MediaOptionsRoot>
           {showMapAlways ? (
-            <div />
+            <Box />
           ) : (
-            <div className={classes.mediaOptions}>
-              <div className={classes.mediaOption} style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}} onClick={() => setInView(MediaType.VIDEO)}>
-                <Typography className={classes.mediaOptionText}>Video</Typography>
-              </div>
-              <div className={classes.mediaOption} style={inView !== MediaType.MAP ? { opacity: 0.6 } : {}} onClick={() => setInView(MediaType.MAP)}>
-                <Typography className={classes.mediaOptionText}>Map</Typography>
-              </div>
-            </div>
+            <MediaOptions>
+              <MediaOption sx={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}} onClick={() => setInView(MediaType.VIDEO)}>
+                <MediaOptionText>Video</MediaOptionText>
+              </MediaOption>
+              <MediaOption sx={inView !== MediaType.MAP ? { opacity: 0.6 } : {}} onClick={() => setInView(MediaType.MAP)}>
+                <MediaOptionText>Map</MediaOptionText>
+              </MediaOption>
+            </MediaOptions>
           )}
-          <div className={classes.mediaOptions}>
-            <div className={classes.mediaOption} aria-haspopup="true" onClick={(ev) => setDownloadMenu(ev.target)}>
-              <Typography className={classes.mediaOptionText}>Files</Typography>
-            </div>
-            <div className={classes.mediaOption} aria-haspopup="true" onClick={(ev) => setMoreInfoMenu(ev.target)}>
-              <Typography className={classes.mediaOptionText}>More info</Typography>
-            </div>
-          </div>
-        </div>
+          <MediaOptions>
+            <MediaOption aria-haspopup="true" onClick={(ev) => setDownloadMenu(ev.target)}>
+              <MediaOptionText>Files</MediaOptionText>
+            </MediaOption>
+            <MediaOption aria-haspopup="true" onClick={(ev) => setMoreInfoMenu(ev.target)}>
+              <MediaOptionText>More info</MediaOptionText>
+            </MediaOption>
+          </MediaOptions>
+        </MediaOptionsRoot>
         {renderMenus()}
       </>
     );
@@ -733,27 +689,27 @@ const Media = ({ classes, menusOnly }) => {
   const mapContainerStyle = showMapAlways ? { width: '40%', marginBottom: 62, marginTop: 46, paddingLeft: 24 } : { width: '100%' };
 
   return (
-    <div className={classes.root}>
+    <Root>
       <ResizeHandler onResize={(ww) => setWindowWidth(ww)} />
-      <div style={mediaContainerStyle}>
+      <Box sx={mediaContainerStyle}>
         {renderMediaOptions(showMapAlways)}
         {inView === MediaType.VIDEO && <DriveVideo isMuted={isMuted} onAudioStatusChange={handleAudioStatusChange} />}
         {inView === MediaType.MAP && !showMapAlways && (
-          <div style={mapContainerStyle}>
+          <Box sx={mapContainerStyle}>
             <DriveMap />
-          </div>
+          </Box>
         )}
-        <div className="mt-3">
+        <Box className="mt-3">
           <TimeDisplay isThin isMuted={isMuted} hasAudio={hasAudio} onMuteToggle={handleMuteToggle} />
-        </div>
-      </div>
+        </Box>
+      </Box>
       {inView === MediaType.VIDEO && showMapAlways && (
-        <div style={mapContainerStyle}>
+        <Box sx={mapContainerStyle}>
           <DriveMap />
-        </div>
+        </Box>
       )}
-    </div>
+    </Root>
   );
 };
 
-export default withStyles(styles)(Media);
+export default Media;

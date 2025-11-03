@@ -1,7 +1,7 @@
 /* global AppleID */
 
 import { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
-import { withStyles } from '@mui/styles';
+import { styled } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router';
@@ -11,83 +11,90 @@ import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon, RightArrow } from '../ic
 
 import PWAIcon from './PWAIcon';
 
-const styles = () => ({
-  baseContainer: {
-    width: '100%',
-    height: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  base: {
-    overflowY: 'auto',
-    padding: 20,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    width: '100%',
-  },
-  logoImg: {
-    height: 45,
-    width: 'auto',
-  },
-  logoContainer: {
-    width: 84,
-    height: 84,
-    backgroundColor: Colors.grey900,
-    borderRadius: 17,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  logoSpacer: {
-    height: 60,
-    flexShrink: 2,
-  },
-  logoText: {
-    fontSize: 36,
-    fontWeight: 800,
-    textAlign: 'center',
-  },
-  tagline: {
-    width: 380,
-    maxWidth: '90%',
-    textAlign: 'center',
-    margin: '10px 0 30px',
-    fontSize: '18px',
-  },
-  logInButton: {
-    cursor: 'pointer',
-    alignItems: 'center',
-    background: '#ffffff',
-    display: 'flex',
-    borderRadius: 80,
-    fontSize: 21,
-    height: 80,
-    justifyContent: 'center',
-    textDecoration: 'none',
-    width: 400,
-    maxWidth: '90%',
-    marginBottom: 10,
-    '&:hover': {
-      background: '#eee',
-    },
-  },
-  buttonText: {
-    fontSize: 18,
-    width: 190,
-    textAlign: 'center',
-    color: 'black',
-    fontWeight: 600,
-  },
-  buttonImage: {
-    height: 40,
+const BaseContainer = styled('div')({
+  width: '100%',
+  height: '100vh',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+});
+
+const Base = styled('div')({
+  overflowY: 'auto',
+  padding: 20,
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  width: '100%',
+});
+
+const LogoImg = styled('img')({
+  height: 45,
+  width: 'auto',
+});
+
+const LogoContainer = styled('div')({
+  width: 84,
+  height: 84,
+  backgroundColor: Colors.grey900,
+  borderRadius: 17,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
+});
+
+const LogoSpacer = styled('div')({
+  height: 60,
+  flexShrink: 2,
+});
+
+const LogoText = styled(Typography)({
+  fontSize: 36,
+  fontWeight: 800,
+  textAlign: 'center',
+});
+
+const Tagline = styled(Typography)({
+  width: 380,
+  maxWidth: '90%',
+  textAlign: 'center',
+  margin: '10px 0 30px',
+  fontSize: '18px',
+});
+
+const LogInButton = styled('a')({
+  cursor: 'pointer',
+  alignItems: 'center',
+  background: '#ffffff',
+  display: 'flex',
+  borderRadius: 80,
+  fontSize: 21,
+  height: 80,
+  justifyContent: 'center',
+  textDecoration: 'none',
+  width: 400,
+  maxWidth: '90%',
+  marginBottom: 10,
+  '&:hover': {
+    background: '#eee',
   },
 });
 
-const AnonymousLanding = ({ classes }) => {
+const ButtonText = styled(Typography)({
+  fontSize: 18,
+  width: 190,
+  textAlign: 'center',
+  color: 'black',
+  fontWeight: 600,
+});
+
+const ButtonImage = styled('img')({
+  height: 40,
+});
+
+const AnonymousLanding = () => {
   const location = useLocation();
 
   useEffect(() => {
@@ -129,26 +136,26 @@ const AnonymousLanding = ({ classes }) => {
   };
 
   return (
-    <div className={classes.baseContainer}>
-      <div className={classes.base}>
-        <div className={classes.logoContainer}>
-          <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
-        </div>
-        <div className={classes.logoSpacer}>&nbsp;</div>
-        <Typography className={classes.logoText}>comma connect</Typography>
-        <Typography className={classes.tagline}>Manage your comma device, view your drives, and use comma prime features</Typography>
-        <a href={AuthConfig.GOOGLE_REDIRECT_LINK} className={classes.logInButton}>
-          <img className={classes.buttonImage} src={AuthGoogleIcon} alt="" />
-          <Typography className={classes.buttonText}>Sign in with Google</Typography>
-        </a>
-        <a onClick={() => AppleID.auth.signIn()} className={classes.logInButton}>
-          <img className={classes.buttonImage} src={AuthAppleIcon} alt="" />
-          <Typography className={classes.buttonText}>Sign in with Apple</Typography>
-        </a>
-        <a href={AuthConfig.GITHUB_REDIRECT_LINK} className={`${classes.logInButton} githubAuth`}>
-          <img className={classes.buttonImage} src={AuthGithubIcon} alt="" />
-          <Typography className={classes.buttonText}>Sign in with GitHub</Typography>
-        </a>
+    <BaseContainer>
+      <Base>
+        <LogoContainer>
+          <LogoImg alt="comma" src="/images/comma-white.png" />
+        </LogoContainer>
+        <LogoSpacer>&nbsp;</LogoSpacer>
+        <LogoText>comma connect</LogoText>
+        <Tagline>Manage your comma device, view your drives, and use comma prime features</Tagline>
+        <LogInButton href={AuthConfig.GOOGLE_REDIRECT_LINK}>
+          <ButtonImage src={AuthGoogleIcon} alt="" />
+          <ButtonText>Sign in with Google</ButtonText>
+        </LogInButton>
+        <LogInButton onClick={() => AppleID.auth.signIn()}>
+          <ButtonImage src={AuthAppleIcon} alt="" />
+          <ButtonText>Sign in with Apple</ButtonText>
+        </LogInButton>
+        <LogInButton href={AuthConfig.GITHUB_REDIRECT_LINK} className="githubAuth">
+          <ButtonImage src={AuthGithubIcon} alt="" />
+          <ButtonText>Sign in with GitHub</ButtonText>
+        </LogInButton>
 
         <span className="max-w-sm text-center mt-2 mb-8 text-sm">Make sure to sign in with the same account if you have previously paired your comma device.</span>
 
@@ -159,10 +166,10 @@ const AnonymousLanding = ({ classes }) => {
           Try the demo
           <RightArrow className="ml-1 h-4" />
         </a>
-      </div>
+      </Base>
       <PWAIcon immediate />
-    </div>
+    </BaseContainer>
   );
 };
 
-export default withStyles(styles)(AnonymousLanding);
+export default AnonymousLanding;

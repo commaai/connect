@@ -1,5 +1,4 @@
-import { Typography } from '@mui/material';
-import { withStyles } from '@mui/styles';
+import { Box, Typography } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { checkLastRoutesData, checkRoutesData } from '../../actions';
@@ -8,25 +7,7 @@ import VisibilityHandler from '../VisibilityHandler';
 import DriveListEmpty from './DriveListEmpty';
 import DriveListItem from './DriveListItem';
 
-const styles = () => ({
-  drivesTable: {
-    display: 'flex',
-    flexDirection: 'column',
-    flexGrow: 1,
-  },
-  drives: {
-    padding: 16,
-    flex: '1',
-  },
-  endMessage: {
-    padding: 8,
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-});
-
-const DriveList = (props) => {
-  const { classes } = props;
+const DriveList = () => {
   const dispatch = useDispatch();
   const device = useSelector((state) => state.device);
   const routes = useSelector((state) => state.routes);
@@ -37,9 +18,9 @@ const DriveList = (props) => {
     contentStatus = <DriveListEmpty device={device} routes={routes} />;
   } else if (routes && routes.length > 5) {
     contentStatus = (
-      <div className={classes.endMessage}>
+      <Box sx={{ padding: 1, textAlign: 'center', mb: 4 }}>
         <Typography>There are no more routes found in selected time range.</Typography>
-      </div>
+      </Box>
     );
   }
 
@@ -53,7 +34,7 @@ const DriveList = (props) => {
     const routesSize = displayRoutes.length;
 
     content = (
-      <div className={`${classes.drives} DriveList`}>
+      <Box className="DriveList" sx={{ padding: 2, flex: '1' }}>
         {displayRoutes.map((drive, index) => {
           // when the last item is in view, we fetch the next routes
           return index === routesSize - 1 ? (
@@ -64,17 +45,17 @@ const DriveList = (props) => {
             <DriveListItem key={drive.fullname} drive={drive} />
           );
         })}
-      </div>
+      </Box>
     );
   }
 
   return (
-    <div className={classes.drivesTable}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
       <VisibilityHandler onVisible={() => dispatch(checkRoutesData())} minInterval={60} />
       {content}
       {contentStatus}
-    </div>
+    </Box>
   );
 };
 
-export default withStyles(styles)(DriveList);
+export default DriveList;

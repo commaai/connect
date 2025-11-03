@@ -1,6 +1,6 @@
 import { billing as Billing } from '@commaai/api';
-import { Button, CircularProgress, IconButton, Modal, Paper, Typography } from '@mui/material';
-import { withStyles } from '@mui/styles';
+import { Box, Button, CircularProgress, IconButton, Modal, Paper, Typography } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import KeyboardBackspaceIcon from '@mui/icons-material/KeyboardBackspace';
 import PriorityHighIcon from '@mui/icons-material/PriorityHigh';
 import * as Sentry from '@sentry/react';
@@ -14,177 +14,193 @@ import { navigate } from '../../navigation';
 import { deviceNamePretty, deviceTypePretty } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 
-const styles = (theme) => ({
-  linkHighlight: {
-    '&:link': {
-      textDecoration: 'underline',
-      color: Colors.green300,
-    },
-    '&:visited': {
-      textDecoration: 'underline',
-      color: Colors.green300,
-    },
-    '&:active': {
-      textDecoration: 'underline',
-      color: Colors.green300,
-    },
-    '&:hover': {
-      textDecoration: 'underline',
-      color: Colors.green400,
-    },
+const LinkHighlight = styled('a')({
+  '&:link': {
+    textDecoration: 'underline',
+    color: Colors.green300,
   },
-  primeBox: {
-    display: 'flex',
-    flexDirection: 'column',
+  '&:visited': {
+    textDecoration: 'underline',
+    color: Colors.green300,
   },
-  primeContainer: {
-    borderBottom: `1px solid ${Colors.white10}`,
-    color: '#fff',
+  '&:active': {
+    textDecoration: 'underline',
+    color: Colors.green300,
   },
-  primeBlock: {
-    marginTop: 10,
-  },
-  overviewBlock: {
-    marginTop: 20,
-  },
-  overviewBlockError: {
-    marginTop: 15,
-    padding: 10,
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 0, 0, 0.2)',
-    '& p': { display: 'inline-block', marginLeft: 10 },
-  },
-  overviewBlockSuccess: {
-    marginTop: 15,
-    padding: 10,
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 255, 0, 0.2)',
-    '& p': {
-      display: 'inline-block',
-      marginLeft: 10,
-      '&:first-child': { fontWeight: 600 },
-    },
-  },
-  overviewBlockLoading: {
-    marginTop: 15,
-    padding: 10,
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    '& p': { display: 'inline-block', marginLeft: 10 },
-  },
-  overviewBlockDisabled: {
-    marginTop: 12,
-    borderRadius: 12,
-    padding: '8px 12px',
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: Colors.white08,
-    '& p': { display: 'inline-block', marginLeft: 10 },
-    '& a': { color: 'white' },
-  },
-  manageItem: {
-    marginLeft: 10,
-    '& span': {
-      color: Colors.white70,
-      fontSize: '0.9em',
-    },
-  },
-  buttons: {
-    marginTop: 10,
-    background: Colors.white,
-    borderRadius: 18,
-    color: Colors.grey900,
-    textTransform: 'none',
-    width: 220,
-    '&:hover': {
-      backgroundColor: Colors.white70,
-      color: Colors.grey900,
-    },
-    '&:disabled': {
-      backgroundColor: Colors.white70,
-      color: Colors.grey900,
-    },
-    '&:disabled:hover': {
-      backgroundColor: Colors.white70,
-      color: Colors.grey900,
-    },
-  },
-  cancelButton: {
-    color: Colors.white,
-    background: 'transparent',
-    border: `1px solid ${Colors.grey500}`,
-    '&:hover': {
-      backgroundColor: Colors.white10,
-      color: Colors.white,
-    },
-    '&:disabled': {
-      backgroundColor: 'transparent',
-      color: Colors.grey500,
-    },
-    '&:disabled:hover': {
-      backgroundColor: 'transparent',
-      color: Colors.grey500,
-    },
-  },
-  modal: {
-    position: 'absolute',
-    padding: theme.spacing(2),
-    width: theme.spacing(50),
-    maxWidth: '90%',
-    left: '50%',
-    top: '40%',
-    transform: 'translate(-50%, -50%)',
-    '& p': {
-      marginTop: 10,
-    },
-  },
-  closeButton: {
-    marginTop: 10,
-    float: 'right',
-    backgroundColor: Colors.grey200,
-    color: Colors.white,
-    '&:hover': {
-      backgroundColor: Colors.grey400,
-    },
-  },
-  cancelModalButton: {
-    width: 170,
-    marginTop: 10,
-    backgroundColor: Colors.grey200,
-    color: Colors.white,
-    '&:hover': {
-      backgroundColor: Colors.grey400,
-    },
-    '&:disabled': {
-      backgroundColor: Colors.grey400,
-    },
-    '&:disabled:hover': {
-      backgroundColor: Colors.grey400,
-    },
-  },
-  cancelError: {
-    backgroundColor: 'rgba(255, 0, 0, 0.3)',
-    marginTop: 10,
-    padding: 10,
-    '& p': { margin: 0 },
-  },
-  cancelSuccess: {
-    backgroundColor: 'rgba(0, 255, 0, 0.3)',
-    marginTop: 10,
-    padding: 10,
-    '& p': { margin: 0 },
-  },
-  paymentElement: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    maxWidth: 450,
+  '&:hover': {
+    textDecoration: 'underline',
+    color: Colors.green400,
   },
 });
 
-const PrimeManage = ({ classes }) => {
+const PrimeBox = styled(Box)({
+  display: 'flex',
+  flexDirection: 'column',
+});
+
+const PrimeContainer = styled(Box)({
+  borderBottom: `1px solid ${Colors.white10}`,
+  color: '#fff',
+});
+
+const OverviewBlock = styled(Box)({
+  marginTop: 20,
+});
+
+const OverviewBlockError = styled(Box)({
+  marginTop: 15,
+  padding: 10,
+  display: 'flex',
+  alignItems: 'center',
+  backgroundColor: 'rgba(255, 0, 0, 0.2)',
+  '& p': { display: 'inline-block', marginLeft: 10 },
+});
+
+const OverviewBlockSuccess = styled(Box)({
+  marginTop: 15,
+  padding: 10,
+  alignItems: 'center',
+  backgroundColor: 'rgba(0, 255, 0, 0.2)',
+  '& p': {
+    display: 'inline-block',
+    marginLeft: 10,
+    '&:first-child': { fontWeight: 600 },
+  },
+});
+
+const OverviewBlockLoading = styled(Box)({
+  marginTop: 15,
+  padding: 10,
+  display: 'flex',
+  alignItems: 'center',
+  backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  '& p': { display: 'inline-block', marginLeft: 10 },
+});
+
+const OverviewBlockDisabled = styled(Box)({
+  marginTop: 12,
+  borderRadius: 12,
+  padding: '8px 12px',
+  display: 'flex',
+  alignItems: 'center',
+  backgroundColor: Colors.white08,
+  '& p': { display: 'inline-block', marginLeft: 10 },
+  '& a': { color: 'white' },
+});
+
+const ManageItem = styled(Typography)({
+  marginLeft: 10,
+  '& span': {
+    color: Colors.white70,
+    fontSize: '0.9em',
+  },
+});
+
+const StyledButton = styled(Button)({
+  marginTop: 10,
+  background: Colors.white,
+  borderRadius: 18,
+  color: Colors.grey900,
+  textTransform: 'none',
+  width: 220,
+  '&:hover': {
+    backgroundColor: Colors.white70,
+    color: Colors.grey900,
+  },
+  '&:disabled': {
+    backgroundColor: Colors.white70,
+    color: Colors.grey900,
+  },
+  '&:disabled:hover': {
+    backgroundColor: Colors.white70,
+    color: Colors.grey900,
+  },
+});
+
+const CancelButton = styled(Button)({
+  marginTop: 10,
+  color: Colors.white,
+  background: 'transparent',
+  border: `1px solid ${Colors.grey500}`,
+  borderRadius: 18,
+  textTransform: 'none',
+  width: 220,
+  '&:hover': {
+    backgroundColor: Colors.white10,
+    color: Colors.white,
+  },
+  '&:disabled': {
+    backgroundColor: 'transparent',
+    color: Colors.grey500,
+  },
+  '&:disabled:hover': {
+    backgroundColor: 'transparent',
+    color: Colors.grey500,
+  },
+});
+
+const StyledModal = styled(Paper)(({ theme }) => ({
+  position: 'absolute',
+  padding: theme.spacing(2),
+  width: theme.spacing(50),
+  maxWidth: '90%',
+  left: '50%',
+  top: '40%',
+  transform: 'translate(-50%, -50%)',
+  '& p': {
+    marginTop: 10,
+  },
+}));
+
+const CloseButton = styled(Button)({
+  marginTop: 10,
+  float: 'right',
+  backgroundColor: Colors.grey200,
+  color: Colors.white,
+  '&:hover': {
+    backgroundColor: Colors.grey400,
+  },
+});
+
+const CancelModalButton = styled(Button)({
+  width: 170,
+  marginTop: 10,
+  backgroundColor: Colors.grey200,
+  color: Colors.white,
+  '&:hover': {
+    backgroundColor: Colors.grey400,
+  },
+  '&:disabled': {
+    backgroundColor: Colors.grey400,
+  },
+  '&:disabled:hover': {
+    backgroundColor: Colors.grey400,
+  },
+});
+
+const CancelError = styled(Box)({
+  backgroundColor: 'rgba(255, 0, 0, 0.3)',
+  marginTop: 10,
+  padding: 10,
+  '& p': { margin: 0 },
+});
+
+const CancelSuccess = styled(Box)({
+  backgroundColor: 'rgba(0, 255, 0, 0.3)',
+  marginTop: 10,
+  padding: 10,
+  '& p': { margin: 0 },
+});
+
+const PaymentElement = styled(Box)({
+  marginTop: 20,
+  display: 'flex',
+  flexWrap: 'wrap',
+  justifyContent: 'space-between',
+  maxWidth: 450,
+});
+
+const PrimeManage = () => {
   const dispatch = useDispatch();
   const dongleId = useSelector((state) => state.dongleId);
   const device = useSelector((state) => state.device);
@@ -334,153 +350,144 @@ const PrimeManage = ({ classes }) => {
   return (
     <>
       <ResizeHandler onResize={onResize} />
-      <div className={classes.primeBox}>
-        <div className={classes.primeContainer} style={{ padding: `8px ${containerPadding}px` }}>
+      <PrimeBox>
+        <PrimeContainer style={{ padding: `8px ${containerPadding}px` }}>
           <IconButton aria-label="Go Back" onClick={() => navigate(`/${dongleId}`)}>
             <KeyboardBackspaceIcon />
           </IconButton>
-        </div>
-        <div className={classes.primeContainer} style={{ padding: `16px ${containerPadding}px` }}>
+        </PrimeContainer>
+        <PrimeContainer style={{ padding: `16px ${containerPadding}px` }}>
           <Typography variant="h6">comma prime</Typography>
           {stripeStatus && (
             <>
               {stripeStatus.paid !== 'paid' && (
-                <div className={classes.overviewBlockLoading}>
+                <OverviewBlockLoading>
                   <CircularProgress size={19} style={{ color: Colors.white }} />
                   <Typography>Waiting for confirmed payment</Typography>
-                </div>
+                </OverviewBlockLoading>
               )}
               {Boolean(stripeStatus.paid === 'paid' && !hasPrimeSub) && (
-                <div className={classes.overviewBlockLoading}>
+                <OverviewBlockLoading>
                   <CircularProgress size={19} style={{ color: Colors.white }} />
                   <Typography>Processing subscription</Typography>
-                </div>
+                </OverviewBlockLoading>
               )}
               {Boolean(stripeStatus.paid === 'paid' && hasPrimeSub) && (
-                <div className={classes.overviewBlockSuccess}>
+                <OverviewBlockSuccess>
                   <Typography>comma prime activated</Typography>
                   {subscription.is_prime_sim && (
                     <Typography>Connectivity will be enabled as soon as activation propagates to your local cell tower. Rebooting your device may help.</Typography>
                   )}
-                </div>
+                </OverviewBlockSuccess>
               )}
             </>
           )}
-          <div className={classes.overviewBlock}>
+          <OverviewBlock>
             <Typography variant="subtitle1">Device</Typography>
-            <div className={classes.manageItem}>
-              <Typography variant="body2">{alias}</Typography>
-              <Typography variant="caption" className={classes.deviceId}>
-                {`(${device.dongle_id})`}
+            <ManageItem variant="body2">
+              {alias}
+              <Typography variant="caption" component="span">
+                {` (${device.dongle_id})`}
               </Typography>
-            </div>
-          </div>
+            </ManageItem>
+          </OverviewBlock>
           {hasPrimeSub && (
             <>
-              <div className={classes.overviewBlock}>
+              <OverviewBlock>
                 <Typography variant="subtitle1">Plan</Typography>
-                <Typography className={classes.manageItem}>
+                <ManageItem>
                   {planName}
                   <span>{` ${planSubtext}`}</span>
-                </Typography>
-              </div>
-              <div className={classes.overviewBlock}>
+                </ManageItem>
+              </OverviewBlock>
+              <OverviewBlock>
                 <Typography variant="subtitle1">Joined</Typography>
-                <Typography className={classes.manageItem}>{joinDate}</Typography>
-              </div>
+                <ManageItem>{joinDate}</ManageItem>
+              </OverviewBlock>
               {!hasCancelAt && (
-                <div className={classes.overviewBlock}>
+                <OverviewBlock>
                   <Typography variant="subtitle1">Next payment</Typography>
-                  <Typography className={classes.manageItem}>{nextPaymentDate}</Typography>
-                </div>
+                  <ManageItem>{nextPaymentDate}</ManageItem>
+                </OverviewBlock>
               )}
               {hasCancelAt && (
-                <div className={classes.overviewBlock}>
+                <OverviewBlock>
                   <Typography variant="subtitle1">Subscription end</Typography>
-                  <Typography className={classes.manageItem}>{cancelAtDate}</Typography>
-                </div>
+                  <ManageItem>{cancelAtDate}</ManageItem>
+                </OverviewBlock>
               )}
-              <div className={classes.overviewBlock}>
+              <OverviewBlock>
                 <Typography variant="subtitle1">Amount</Typography>
-                <Typography className={classes.manageItem}>{`$${(subscription.amount / 100).toFixed(2)}`}</Typography>
-              </div>
+                <ManageItem>{`$${(subscription.amount / 100).toFixed(2)}`}</ManageItem>
+              </OverviewBlock>
               {error && (
-                <div className={classes.overviewBlockError}>
+                <OverviewBlockError>
                   <ErrorOutline />
                   <Typography>{error}</Typography>
-                </div>
+                </OverviewBlockError>
               )}
-              <div className={`${classes.overviewBlock} ${classes.paymentElement}`}>
-                <Button
-                  className={classes.buttons}
+              <PaymentElement>
+                <StyledButton
                   style={buttonSmallStyle}
                   onClick={gotoUpdate}
                   disabled={!hasPrimeSub || (hasCancelAt && !device.eligible_features?.prime_data && subscription.plan === 'data')}
                 >
                   {hasCancelAt ? 'Renew subscription' : 'Update payment method'}
-                </Button>
+                </StyledButton>
                 {!hasCancelAt && (
-                  <Button
-                    className={`${classes.buttons} ${classes.cancelButton} primeCancel`}
-                    style={buttonSmallStyle}
-                    onClick={() => setCancelModal(true)}
-                    disabled={Boolean(!hasPrimeSub)}
-                  >
+                  <CancelButton className="primeCancel" style={buttonSmallStyle} onClick={() => setCancelModal(true)} disabled={Boolean(!hasPrimeSub)}>
                     Cancel subscription
-                  </Button>
+                  </CancelButton>
                 )}
-              </div>
+              </PaymentElement>
               {hasPrimeSub && subscription.requires_migration && (
-                <div className={classes.overviewBlockDisabled}>
+                <OverviewBlockDisabled>
                   <PriorityHighIcon />
                   <Typography>
                     Your prime subscription will be canceled on May 15th unless you replace the SIM card in your device. A new SIM card can be ordered from the
-                    <a className={classes.linkHighlight} href="https://comma.ai/shop/comma-prime-sim">
-                      shop
-                    </a>
-                    . Use discount code SIMSWAP at checkout to receive a free SIM card.
+                    <LinkHighlight href="https://comma.ai/shop/comma-prime-sim">shop</LinkHighlight>. Use discount code SIMSWAP at checkout to receive a free SIM card.
                   </Typography>
-                </div>
+                </OverviewBlockDisabled>
               )}
               {hasCancelAt && !device.eligible_features?.prime_data && subscription.plan === 'data' && (
-                <div className={classes.overviewBlockDisabled}>
+                <OverviewBlockDisabled>
                   <InfoOutline />
                   <Typography>
                     Standard comma prime discontinued for
                     {deviceTypePretty(device.device_type)}
                   </Typography>
-                </div>
+                </OverviewBlockDisabled>
               )}
             </>
           )}
-        </div>
-      </div>
+        </PrimeContainer>
+      </PrimeBox>
       <Modal open={cancelModal} onClose={() => setCancelModal(false)}>
-        <Paper className={classes.modal}>
+        <StyledModal>
           <Typography variant="h6">Cancel prime subscription</Typography>
           {cancelError && (
-            <div className={classes.cancelError}>
+            <CancelError>
               <Typography>{cancelError}</Typography>
-            </div>
+            </CancelError>
           )}
           {cancelSuccess && (
-            <div className={classes.cancelSuccess}>
+            <CancelSuccess>
               <Typography>{cancelSuccess}</Typography>
-            </div>
+            </CancelSuccess>
           )}
           <Typography>{`Device: ${alias} (${dongleId})`}</Typography>
           <Typography>We&apos;re sorry to see you go.</Typography>
           <Typography>Your subscription will be cancelled immediately and can be resumed at any time.</Typography>
-          <Button variant="contained" className={`${classes.cancelModalButton} primeModalCancel`} onClick={cancelPrime} disabled={Boolean(cancelSuccess || canceling)}>
+          <CancelModalButton variant="contained" className="primeModalCancel" onClick={cancelPrime} disabled={Boolean(cancelSuccess || canceling)}>
             {canceling ? <CircularProgress size={19} style={{ color: Colors.white }} /> : 'Cancel subscription'}
-          </Button>
-          <Button variant="contained" className={`${classes.closeButton} primeModalClose`} onClick={() => setCancelModal(false)}>
+          </CancelModalButton>
+          <CloseButton variant="contained" className="primeModalClose" onClick={() => setCancelModal(false)}>
             Close
-          </Button>
-        </Paper>
+          </CloseButton>
+        </StyledModal>
       </Modal>
     </>
   );
 };
 
-export default withStyles(styles)(PrimeManage);
+export default PrimeManage;

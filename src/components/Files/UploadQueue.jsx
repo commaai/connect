@@ -1,5 +1,5 @@
-import { Button, CircularProgress, Divider, LinearProgress, Modal, Paper, Typography } from '@mui/material';
-import { withStyles } from '@mui/styles';
+import { Box, Button, CircularProgress, Divider, LinearProgress, Modal, Paper, Typography } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import WarningIcon from '@mui/icons-material/Warning';
 import { useCallback, useEffect, useState } from 'react';
@@ -10,108 +10,27 @@ import Colors from '../../colors';
 import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 
-const styles = (theme) => ({
-  modal: {
-    position: 'absolute',
-    padding: theme.spacing(2),
-    width: 'max-content',
-    maxWidth: '90%',
-    left: '50%',
-    top: '50%',
-    transform: 'translate(-50%, -50%)',
-    outline: 'none',
-  },
-  titleContainer: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 5,
-  },
-  buttonGroup: {
-    textAlign: 'right',
-    marginTop: theme.spacing(2),
-  },
-  uploadContainer: {
-    margin: `${theme.spacing(1)} 0`,
-    color: Colors.white,
-    textAlign: 'left',
-    overflowY: 'auto',
-  },
-  uploadTable: {
-    borderCollapse: 'collapse',
-  },
-  uploadCell: {
-    height: 25,
-  },
-  cancelCell: {
-    textAlign: 'center',
-    '& button': {
-      minWidth: 'unset',
-      padding: 0,
-      fontWeight: 600,
-      borderRadius: 13,
-      minHeight: 'unset',
-      '&:hover': {
-        backgroundColor: 'transparent',
-      },
-      '& svg': {
-        fontSize: 18,
-      },
-    },
-  },
-  segmentName: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    '& span': {
-      whiteSpace: 'nowrap',
-    },
-  },
-  uploadCancelled: {
-    color: Colors.white,
-    margin: 1.5,
-  },
-  uploadProgress: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '0.8rem',
-    '& > div': {
-      width: '80%',
-      height: 8,
-      marginRight: 6,
-      border: 'none',
-      backgroundColor: Colors.white30,
-      '& > div': {
-        backgroundColor: Colors.white80,
-        transition: 'transform 0.5s linear',
-      },
-    },
-  },
-  cancelButton: {
-    marginLeft: 8,
-    backgroundColor: Colors.grey200,
-    color: Colors.white,
-    '&:hover': {
-      backgroundColor: Colors.grey400,
-    },
-  },
-  cellularWarning: {
-    backgroundColor: Colors.grey500,
-    padding: `${theme.spacing(1.5)} ${theme.spacing(2)}`,
-    borderRadius: 4,
-    display: 'flex',
-    flexDirection: 'column',
-    marginBottom: theme.spacing(1),
-    '& div': {
-      display: 'flex',
-      alignItems: 'center',
-      marginBottom: 2,
-      '& svg': { marginRight: 8 },
-    },
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  position: 'absolute',
+  padding: theme.spacing(2),
+  width: 'max-content',
+  maxWidth: '90%',
+  left: '50%',
+  top: '50%',
+  transform: 'translate(-50%, -50%)',
+  outline: 'none',
+}));
+
+const CancelButton = styled(Button)({
+  marginLeft: 8,
+  backgroundColor: Colors.grey200,
+  color: Colors.white,
+  '&:hover': {
+    backgroundColor: Colors.grey400,
   },
 });
 
-const UploadQueue = ({ classes, device, open, onClose, update }) => {
+const UploadQueue = ({ device, open, onClose, update }) => {
   const dispatch = useDispatch();
   const filesUploading = useSelector((state) => state.filesUploading);
   const filesUploadingMeta = useSelector((state) => state.filesUploadingMeta);
@@ -202,39 +121,62 @@ const UploadQueue = ({ classes, device, open, onClose, update }) => {
         }}
       />
       <Modal aria-labelledby="upload-queue-modal" open={open} onClose={onClose}>
-        <Paper className={classes.modal}>
-          <div className={classes.titleContainer}>
+        <StyledPaper>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '5px' }}>
             <Typography variant="h6">Upload queue</Typography>
             <Typography variant="caption" style={{ marginLeft: 8 }}>
               {device.dongle_id}
             </Typography>
-          </div>
+          </Box>
           <Divider />
-          <div className={classes.uploadContainer} style={{ maxHeight: windowHeight * 0.9 - 98 }}>
+          <Box
+            sx={(theme) => ({
+              margin: `${theme.spacing(1)} 0`,
+              color: Colors.white,
+              textAlign: 'left',
+              overflowY: 'auto',
+            })}
+            style={{ maxHeight: windowHeight * 0.9 - 98 }}
+          >
             {hasUploading ? (
               <>
                 {deviceOnCellular(device) && allPaused && (
-                  <div className={classes.cellularWarning}>
+                  <Box
+                    sx={(theme) => ({
+                      backgroundColor: Colors.grey500,
+                      padding: `${theme.spacing(1.5)} ${theme.spacing(2)}`,
+                      borderRadius: '4px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      marginBottom: theme.spacing(1),
+                      '& div': {
+                        display: 'flex',
+                        alignItems: 'center',
+                        marginBottom: '2px',
+                        '& svg': { marginRight: '8px' },
+                      },
+                    })}
+                  >
                     <div>
                       <WarningIcon />
                       Connect to WiFi
                     </div>
                     <span style={{ fontSize: '0.8rem' }}>uploading paused on cellular connection</span>
-                  </div>
+                  </Box>
                 )}
-                <table className={classes.uploadTable}>
+                <Box component="table" sx={{ borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
-                      <th className={classes.uploadCell} style={cellStyle}>
+                      <Box component="th" sx={{ height: 25 }} style={cellStyle}>
                         segment
-                      </th>
-                      <th className={classes.uploadCell} style={cellStyle}>
+                      </Box>
+                      <Box component="th" sx={{ height: 25 }} style={cellStyle}>
                         type
-                      </th>
-                      <th className={classes.uploadCell} style={cellStyle}>
+                      </Box>
+                      <Box component="th" sx={{ height: 25 }} style={cellStyle}>
                         progress
-                      </th>
-                      {windowWidth >= 600 && <th className={classes.uploadCell} style={cellStyle} />}
+                      </Box>
+                      {windowWidth >= 600 && <Box component="th" sx={{ height: 25 }} style={cellStyle} />}
                     </tr>
                   </thead>
                   <tbody>
@@ -245,44 +187,91 @@ const UploadQueue = ({ classes, device, open, onClose, update }) => {
                       const segString = seg.split('|')[1];
                       return (
                         <tr key={id}>
-                          <td className={classes.uploadCell} style={cellStyle}>
-                            <div className={classes.segmentName} style={segmentNameStyle}>
+                          <Box component="td" sx={{ height: 25 }} style={cellStyle}>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                '& span': {
+                                  whiteSpace: 'nowrap',
+                                },
+                              }}
+                              style={segmentNameStyle}
+                            >
                               <span>{segString.substring(0, 12)}</span>
                               <span>{segString.substring(12)}</span>
-                            </div>
-                          </td>
-                          <td className={classes.uploadCell} style={cellStyle}>
+                            </Box>
+                          </Box>
+                          <Box component="td" sx={{ height: 25 }} style={cellStyle}>
                             {FILE_NAMES[type][0].split('.')[0].substring(0, logNameLength)}
-                          </td>
+                          </Box>
                           {upload.current ? (
-                            <td className={classes.uploadCell} style={cellStyle}>
-                              <div className={classes.uploadProgress}>
+                            <Box component="td" sx={{ height: 25 }} style={cellStyle}>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '0.8rem',
+                                  '& > div': {
+                                    width: '80%',
+                                    height: 8,
+                                    marginRight: '6px',
+                                    border: 'none',
+                                    backgroundColor: Colors.white30,
+                                    '& > div': {
+                                      backgroundColor: Colors.white80,
+                                      transition: 'transform 0.5s linear',
+                                    },
+                                  },
+                                }}
+                              >
                                 <LinearProgress variant="determinate" value={prog} />
-                              </div>
-                            </td>
+                              </Box>
+                            </Box>
                           ) : (
                             <>
                               {windowWidth >= 600 && (
-                                <td className={classes.uploadCell} style={cellStyle}>
+                                <Box component="td" sx={{ height: 25 }} style={cellStyle}>
                                   {upload.paused ? 'paused' : 'pending'}
-                                </td>
+                                </Box>
                               )}
-                              <td className={`${classes.uploadCell} ${classes.cancelCell}`} style={cellStyle}>
+                              <Box
+                                component="td"
+                                sx={{
+                                  height: 25,
+                                  textAlign: 'center',
+                                  '& button': {
+                                    minWidth: 'unset',
+                                    padding: 0,
+                                    fontWeight: 600,
+                                    borderRadius: '13px',
+                                    minHeight: 'unset',
+                                    '&:hover': {
+                                      backgroundColor: 'transparent',
+                                    },
+                                    '& svg': {
+                                      fontSize: 18,
+                                    },
+                                  },
+                                }}
+                                style={cellStyle}
+                              >
                                 {isCancelled ? (
-                                  <CircularProgress className={classes.uploadCancelled} size={15} />
+                                  <CircularProgress sx={{ color: Colors.white, margin: '1.5px' }} size={15} />
                                 ) : (
                                   <Button onClick={() => cancelUploading([id])}>
                                     <HighlightOffIcon />
                                   </Button>
                                 )}
-                              </td>
+                              </Box>
                             </>
                           )}
                         </tr>
                       );
                     })}
                   </tbody>
-                </table>
+                </Box>
               </>
             ) : deviceOffline ? (
               <p>device offline</p>
@@ -291,19 +280,19 @@ const UploadQueue = ({ classes, device, open, onClose, update }) => {
             ) : (
               <CircularProgress style={{ color: Colors.white, margin: 8 }} size={17} />
             )}
-          </div>
-          <div className={classes.buttonGroup}>
-            <Button variant="contained" className={classes.cancelButton} disabled={!hasUploading} onClick={hasUploading ? () => cancelUploading() : null}>
+          </Box>
+          <Box sx={(theme) => ({ textAlign: 'right', marginTop: theme.spacing(2) })}>
+            <CancelButton variant="contained" disabled={!hasUploading} onClick={hasUploading ? () => cancelUploading() : null}>
               Cancel All
-            </Button>
-            <Button variant="contained" className={classes.cancelButton} onClick={onClose}>
+            </CancelButton>
+            <CancelButton variant="contained" onClick={onClose}>
               Close
-            </Button>
-          </div>
-        </Paper>
+            </CancelButton>
+          </Box>
+        </StyledPaper>
       </Modal>
     </>
   );
 };
 
-export default withStyles(styles)(UploadQueue);
+export default UploadQueue;

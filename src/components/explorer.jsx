@@ -1,5 +1,5 @@
-import { Button, CircularProgress, Divider, Modal, Paper, Typography } from '@mui/material';
-import { withStyles } from '@mui/styles';
+import { Box, Button, CircularProgress, Divider, Modal, Paper, Typography } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import localforage from 'localforage';
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -22,41 +22,29 @@ import IosPwaPopup from './IosPwaPopup';
 import ResizeHandler from './ResizeHandler';
 import PullDownReload from './utils/PullDownReload';
 
-const styles = (theme) => ({
-  window: {
-    background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  modal: {
-    position: 'absolute',
-    padding: theme.spacing(2),
-    width: theme.spacing(50),
-    maxWidth: '90%',
-    left: '50%',
-    top: '40%',
-    transform: 'translate(-50%, -50%)',
-    outline: 'none',
-    '& p': { marginTop: 10 },
-  },
-  closeButton: {
-    marginTop: 10,
-    float: 'right',
-    backgroundColor: Colors.grey200,
-    color: Colors.white,
-    '&:hover': {
-      backgroundColor: Colors.grey400,
-    },
-  },
-  fabProgress: {
-    marginTop: 10,
-  },
-  pairedDongleId: {
-    fontWeight: 'bold',
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  position: 'absolute',
+  padding: theme.spacing(2),
+  width: theme.spacing(50),
+  maxWidth: '90%',
+  left: '50%',
+  top: '40%',
+  transform: 'translate(-50%, -50%)',
+  outline: 'none',
+  '& p': { marginTop: 10 },
+}));
+
+const CloseButton = styled(Button)({
+  marginTop: 10,
+  float: 'right',
+  backgroundColor: Colors.grey200,
+  color: Colors.white,
+  '&:hover': {
+    backgroundColor: Colors.grey400,
   },
 });
 
-const ExplorerApp = ({ classes }) => {
+const ExplorerApp = () => {
   const dispatch = useDispatch();
   const location = useLocation();
 
@@ -222,29 +210,38 @@ const ExplorerApp = ({ classes }) => {
         forwardRef={updateHeaderRef}
       />
       <AppDrawer drawerIsOpen={drawerIsOpen} isPermanent={isLarge} width={sidebarWidth} handleDrawerStateChanged={handleDrawerStateChanged} style={drawerStyles} />
-      <div className={classes.window} style={containerStyles}>
+      <Box
+        sx={{
+          background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+        style={containerStyles}
+      >
         {noDevicesUpsell ? <NoDeviceUpsell /> : currentRoute ? <DriveView /> : <Dashboard />}
-      </div>
+      </Box>
       <IosPwaPopup />
       <Modal open={Boolean(pairLoading || pairError || pairDongleId)} onClose={closePair}>
-        <Paper className={classes.modal}>
+        <StyledPaper>
           <Typography variant="h6">Pairing device</Typography>
           <Divider />
-          {pairLoading && <CircularProgress size={32} className={classes.fabProgress} />}
+          {pairLoading && <CircularProgress size={32} sx={{ mt: 1.25 }} />}
           {pairDongleId && (
             <Typography>
               {'Successfully paired device '}
-              <span className={classes.pairedDongleId}>{pairDongleId}</span>
+              <Box component="span" sx={{ fontWeight: 'bold' }}>
+                {pairDongleId}
+              </Box>
             </Typography>
           )}
           {pairError && <Typography>{pairError}</Typography>}
-          <Button variant="contained" className={classes.closeButton} onClick={closePair}>
+          <CloseButton variant="contained" onClick={closePair}>
             Close
-          </Button>
-        </Paper>
+          </CloseButton>
+        </StyledPaper>
       </Modal>
     </div>
   );
 };
 
-export default withStyles(styles)(ExplorerApp);
+export default ExplorerApp;

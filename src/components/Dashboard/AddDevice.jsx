@@ -1,6 +1,6 @@
 import { devices as Devices } from '@commaai/api';
-import { Button, CircularProgress, Divider, Modal, Paper, Typography } from '@mui/material';
-import { withStyles } from '@mui/styles';
+import { Box, Button, CircularProgress, Divider, Modal, Paper, Typography } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import * as Sentry from '@sentry/react';
 import QrScanner from 'qr-scanner';
@@ -10,58 +10,52 @@ import { selectDevice, updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { pairErrorToMessage, verifyPairToken } from '../../utils';
 
-const styles = (theme) => ({
-  titleContainer: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 5,
+const StyledButton = styled(Button)({
+  width: '100%',
+  background: Colors.white,
+  borderRadius: 18,
+  color: Colors.grey900,
+  textTransform: 'none',
+  '&:hover': {
+    backgroundColor: Colors.white70,
+    color: Colors.grey900,
   },
-  addButton: {
+});
+
+const RetryButton = styled(Button)({
+  marginTop: 10,
+  background: Colors.white,
+  borderRadius: 18,
+  color: Colors.grey900,
+  textTransform: 'none',
+  '&:hover': {
+    backgroundColor: Colors.white70,
+    color: Colors.grey900,
+  },
+});
+
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  position: 'absolute',
+  padding: theme.spacing(2),
+  width: theme.spacing(50),
+  maxWidth: '90%',
+  left: '50%',
+  top: '50%',
+  transform: 'translate(-50%, -50%)',
+  outline: 'none',
+}));
+
+const VideoContainer = styled('div', {
+  shouldForwardProp: (prop) => prop !== 'showOverlay',
+})(({ showOverlay }) => ({
+  position: 'relative',
+  margin: '0 auto',
+  '& video': {
+    display: 'block',
     width: '100%',
-    background: Colors.white,
-    borderRadius: 18,
-    color: Colors.grey900,
-    textTransform: 'none',
-    '&:hover': {
-      backgroundColor: Colors.white70,
-      color: Colors.grey900,
-    },
+    maxWidth: '100%',
   },
-  retryButton: {
-    marginTop: 10,
-    background: Colors.white,
-    borderRadius: 18,
-    color: Colors.grey900,
-    textTransform: 'none',
-    '&:hover': {
-      backgroundColor: Colors.white70,
-      color: Colors.grey900,
-    },
-  },
-  modal: {
-    position: 'absolute',
-    padding: theme.spacing(2),
-    width: theme.spacing(50),
-    maxWidth: '90%',
-    left: '50%',
-    top: '50%',
-    transform: 'translate(-50%, -50%)',
-    outline: 'none',
-  },
-  divider: {
-    marginBottom: 10,
-  },
-  videoContainer: {
-    position: 'relative',
-    margin: '0 auto',
-    '& video': {
-      display: 'block',
-      width: '100%',
-      maxWidth: '100%',
-    },
-  },
-  videoContainerOverlay: {
+  ...(showOverlay && {
     '&::before': {
       content: "''",
       position: 'absolute',
@@ -72,31 +66,30 @@ const styles = (theme) => ({
       left: -1,
       zIndex: 3,
     },
-  },
-  videoOverlay: {
-    position: 'absolute',
-    zIndex: 4,
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'column',
-    textAlign: 'center',
-    '& p': { fontSize: '1rem' },
-  },
-  pairedDongleId: {
-    fontWeight: 'bold',
-  },
-  canvas: {
-    position: 'absolute',
-    zIndex: 2,
-    width: '100%',
-    height: '100%',
-  },
+  }),
+}));
+
+const VideoOverlay = styled('div')({
+  position: 'absolute',
+  zIndex: 4,
+  width: '100%',
+  height: '100%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexDirection: 'column',
+  textAlign: 'center',
+  '& p': { fontSize: '1rem' },
 });
 
-const AddDevice = ({ classes, buttonText, buttonStyle, buttonIcon }) => {
+const StyledCanvas = styled('canvas')({
+  position: 'absolute',
+  zIndex: 2,
+  width: '100%',
+  height: '100%',
+});
+
+const AddDevice = ({ buttonText, buttonStyle, buttonIcon }) => {
   const dispatch = useDispatch();
   const devices = useSelector((state) => state.devices);
 
@@ -324,58 +317,56 @@ const AddDevice = ({ classes, buttonText, buttonStyle, buttonIcon }) => {
     setModalOpen(true);
   };
 
-  const videoContainerOverlay = pairLoading || pairDongleId || pairError ? classes.videoContainerOverlay : '';
+  const showOverlay = pairLoading || pairDongleId || pairError;
 
   return (
     <>
-      <Button onClick={onOpenModal} className={classes.addButton} style={buttonStyle}>
+      <StyledButton onClick={onOpenModal} style={buttonStyle}>
         {buttonText}
         {buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} />}
-      </Button>
+      </StyledButton>
       <Modal aria-labelledby="add-device-modal" open={modalOpen} onClose={modalClose}>
-        <Paper className={classes.modal}>
-          <div className={classes.titleContainer}>
+        <StyledPaper>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.625 }}>
             <Typography variant="h6">Pair device</Typography>
             <Typography variant="caption">scan QR code</Typography>
-          </div>
-          <Divider className={classes.divider} />
+          </Box>
+          <Divider sx={{ mb: 1.25 }} />
           {hasCamera === false ? (
             <>
-              <Typography style={{ marginBottom: 5 }}>Camera not found, please enable camera access.</Typography>
+              <Typography sx={{ mb: 0.625 }}>Camera not found, please enable camera access.</Typography>
               <Typography>You can also scan the QR code on your comma device using any other QR code reader application.</Typography>
             </>
           ) : (
-            <div className={`${classes.videoContainer} ${videoContainerOverlay}`}>
-              <canvas className={classes.canvas} ref={canvasRef} />
-              <div className={classes.videoOverlay}>
+            <VideoContainer showOverlay={showOverlay}>
+              <StyledCanvas ref={canvasRef} />
+              <VideoOverlay>
                 {pairLoading && <CircularProgress size="10vw" style={{ color: '#525E66' }} />}
                 {pairError && (
                   <>
                     <Typography>{pairError}</Typography>
-                    <Button className={classes.retryButton} onClick={restart}>
-                      try again
-                    </Button>
+                    <RetryButton onClick={restart}>try again</RetryButton>
                   </>
                 )}
                 {pairDongleId && (
                   <>
                     <Typography>
                       {'Successfully paired device '}
-                      <span className={classes.pairedDongleId}>{pairDongleId}</span>
+                      <Box component="span" sx={{ fontWeight: 'bold' }}>
+                        {pairDongleId}
+                      </Box>
                     </Typography>
-                    <Button className={classes.retryButton} onClick={modalClose}>
-                      close
-                    </Button>
+                    <RetryButton onClick={modalClose}>close</RetryButton>
                   </>
                 )}
-              </div>
-              <video className={classes.video} ref={videoRef} />
-            </div>
+              </VideoOverlay>
+              <video ref={videoRef} />
+            </VideoContainer>
           )}
-        </Paper>
+        </StyledPaper>
       </Modal>
     </>
   );
 };
 
-export default withStyles(styles)(AddDevice);
+export default AddDevice;
