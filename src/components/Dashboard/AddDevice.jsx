@@ -62,7 +62,7 @@ const styles = (theme) => ({
   },
   videoContainerOverlay: {
     '&::before': {
-      content: '\'\'',
+      content: "''",
       position: 'absolute',
       backgroundColor: 'rgba(0, 0, 0, 0.8)',
       top: -1,
@@ -145,8 +145,8 @@ class AddDevice extends Component {
       if (canvasWidth !== width || canvasHeight !== height) {
         this.setState({ canvasWidth: width, canvasHeight: height });
         const size = Math.min(width, height);
-        const x = (width - size) / 2 + (size / 6);
-        const y = (height - size) / 2 + (size / 6);
+        const x = (width - size) / 2 + size / 6;
+        const y = (height - size) / 2 + size / 6;
         const rect = size * (2 / 3);
         const stroke = size / 6;
 
@@ -297,7 +297,8 @@ class AddDevice extends Component {
       const resp = await Devices.pilotPair(pairToken);
       if (resp.dongle_id) {
         const device = await Devices.fetchDevice(resp.dongle_id);
-        if (devices.length > 0) { // state change from no device to a device requires reload.
+        if (devices.length > 0) {
+          // state change from no device to a device requires reload.
           dispatch(updateDevice(device));
         }
         this.setState({ pairLoading: false, pairDongleId: resp.dongle_id, pairError: null });
@@ -319,63 +320,54 @@ class AddDevice extends Component {
     const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
     const { modalOpen, hasCamera, pairLoading, pairDongleId, pairError } = this.state;
 
-    const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
+    const videoContainerOverlay = pairLoading || pairDongleId || pairError ? classes.videoContainerOverlay : '';
 
     return (
       <>
-        <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
-          { buttonText }
-          { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
+        <Button onClick={this.onOpenModal} className={classes.addButton} style={buttonStyle}>
+          {buttonText}
+          {buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} />}
         </Button>
-        <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
-          <Paper className={ classes.modal }>
-            <div className={ classes.titleContainer }>
+        <Modal aria-labelledby="add-device-modal" open={modalOpen} onClose={this.modalClose}>
+          <Paper className={classes.modal}>
+            <div className={classes.titleContainer}>
               <Typography variant="title">Pair device</Typography>
-              <Typography variant="caption">
-                scan QR code
-              </Typography>
+              <Typography variant="caption">scan QR code</Typography>
             </div>
-            <Divider className={ classes.divider } />
-            { hasCamera === false
-              ? (
-                <>
-                  <Typography style={{ marginBottom: 5 }}>
-                    Camera not found, please enable camera access.
-                  </Typography>
-                  <Typography>
-                    You can also scan the QR code on your comma device using any other QR code
-                    reader application.
-                  </Typography>
-                </>
-              )
-              : (
-                <div className={ `${classes.videoContainer} ${videoContainerOverlay}` }>
-                  <canvas className={ classes.canvas } ref={ this.onCanvasRef } />
-                  <div className={ classes.videoOverlay }>
-                    { pairLoading && <CircularProgress size="10vw" style={{ color: '#525E66' }} /> }
-                    { pairError && (
+            <Divider className={classes.divider} />
+            {hasCamera === false ? (
+              <>
+                <Typography style={{ marginBottom: 5 }}>Camera not found, please enable camera access.</Typography>
+                <Typography>You can also scan the QR code on your comma device using any other QR code reader application.</Typography>
+              </>
+            ) : (
+              <div className={`${classes.videoContainer} ${videoContainerOverlay}`}>
+                <canvas className={classes.canvas} ref={this.onCanvasRef} />
+                <div className={classes.videoOverlay}>
+                  {pairLoading && <CircularProgress size="10vw" style={{ color: '#525E66' }} />}
+                  {pairError && (
                     <>
-                      <Typography>{ pairError }</Typography>
-                      <Button className={ classes.retryButton } onClick={ this.restart }>
+                      <Typography>{pairError}</Typography>
+                      <Button className={classes.retryButton} onClick={this.restart}>
                         try again
                       </Button>
                     </>
-                    ) }
-                    { pairDongleId && (
+                  )}
+                  {pairDongleId && (
                     <>
                       <Typography>
                         {'Successfully paired device '}
-                        <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
+                        <span className={classes.pairedDongleId}>{pairDongleId}</span>
                       </Typography>
-                      <Button className={ classes.retryButton } onClick={ this.modalClose }>
+                      <Button className={classes.retryButton} onClick={this.modalClose}>
                         close
                       </Button>
                     </>
-                    ) }
-                  </div>
-                  <video className={ classes.video } ref={ this.onVideoRef } />
+                  )}
                 </div>
-              )}
+                <video className={classes.video} ref={this.onVideoRef} />
+              </div>
+            )}
           </Paper>
         </Modal>
       </>

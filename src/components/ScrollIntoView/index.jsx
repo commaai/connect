@@ -8,14 +8,14 @@ const ScrollIntoView = ({ onInView, children }) => {
     const options = {
       root: null, // relative to the viewport
       rootMargin: '0px',
-      threshold: 0.1 // 10% of the target's visibility
+      threshold: 0.1, // 10% of the target's visibility
     };
 
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
+      entries.forEach((entry) => {
         if (entry.isIntersecting && !hasDispatched.current) {
           onInView();
-          hasDispatched.current = true
+          hasDispatched.current = true;
         }
       });
     }, options);
@@ -31,11 +31,7 @@ const ScrollIntoView = ({ onInView, children }) => {
     };
   }, [onInView]);
 
-  return (
-    <div ref={elementRef}>
-      {children}
-    </div>
-  );
+  return <div ref={elementRef}>{children}</div>;
 };
 
 export default ScrollIntoView;

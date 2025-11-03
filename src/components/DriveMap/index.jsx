@@ -21,8 +21,8 @@ const DriveMap = () => {
   const [driveCoordsMax, setDriveCoordsMax] = useState(null);
 
   const mapRef = useRef(null);
-  const mapInitializedRef = useRef(false);  // Track if map.on('load') has been set up
-  const mapLoadedRef = useRef(false);  // Track if map has fully loaded
+  const mapInitializedRef = useRef(false); // Track if map.on('load') has been set up
+  const mapLoadedRef = useRef(false); // Track if map has fully loaded
   const shouldFlyToRef = useRef(false);
   const isInteractingRef = useRef(false);
   const isInteractingTimeoutRef = useRef(null);
@@ -46,14 +46,8 @@ const DriveMap = () => {
 
     const offsetSeconds = Math.floor(offset / 1e3);
     const offsetFractionalPart = (offset % 1e3) / 1000.0;
-    const coordIdx = Math.max(minCoord, Math.min(
-      offsetSeconds,
-      maxCoord,
-    ));
-    const nextCoordIdx = Math.max(minCoord, Math.min(
-      offsetSeconds + 1,
-      maxCoord,
-    ));
+    const coordIdx = Math.max(minCoord, Math.min(offsetSeconds, maxCoord));
+    const nextCoordIdx = Math.max(minCoord, Math.min(offsetSeconds + 1, maxCoord));
 
     if (!route.driveCoords[coordIdx]) {
       return null;
@@ -65,10 +59,7 @@ const DriveMap = () => {
     }
 
     const [ceilLng, ceilLat] = route.driveCoords[nextCoordIdx];
-    return [
-      floorLng + ((ceilLng - floorLng) * offsetFractionalPart),
-      floorLat + ((ceilLat - floorLat) * offsetFractionalPart),
-    ];
+    return [floorLng + (ceilLng - floorLng) * offsetFractionalPart, floorLat + (ceilLat - floorLat) * offsetFractionalPart];
   };
 
   const setPath = (coords) => {
@@ -231,7 +222,7 @@ const DriveMap = () => {
       map.addLayer(markerGeoJson);
 
       mapRef.current = mapComponent;
-      mapLoadedRef.current = true;  // Mark map as loaded
+      mapLoadedRef.current = true; // Mark map as loaded
 
       // Use ref to get current value, not closure
       const route = currentRouteRef.current;

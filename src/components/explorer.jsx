@@ -177,13 +177,11 @@ class ExplorerApp extends Component {
     const { classes, currentRoute, devices, dongleId } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
-    const noDevicesUpsell = (devices?.length === 0 && !dongleId);
+    const noDevicesUpsell = devices?.length === 0 && !dongleId;
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
-    const headerHeight = this.state.headerRef
-      ? this.state.headerRef.getBoundingClientRect().height
-      : (windowWidth < 640 ? 111 : 66);
+    const headerHeight = this.state.headerRef ? this.state.headerRef.getBoundingClientRect().height : windowWidth < 640 ? 111 : 66;
     let containerStyles = {
       minHeight: `calc(100vh - ${headerHeight}px)`,
     };
@@ -201,42 +199,33 @@ class ExplorerApp extends Component {
 
     return (
       <div>
-        <ResizeHandler onResize={ (ww) => this.setState({ windowWidth: ww }) } />
+        <ResizeHandler onResize={(ww) => this.setState({ windowWidth: ww })} />
         <PullDownReload />
         <AppHeader
-          drawerIsOpen={ drawerIsOpen }
-          viewingRoute={ Boolean(currentRoute) }
-          showDrawerButton={ !isLarge }
+          drawerIsOpen={drawerIsOpen}
+          viewingRoute={Boolean(currentRoute)}
+          showDrawerButton={!isLarge}
           handleDrawerStateChanged={this.handleDrawerStateChanged}
-          forwardRef={ this.updateHeaderRef }
+          forwardRef={this.updateHeaderRef}
         />
-        <AppDrawer
-          drawerIsOpen={ drawerIsOpen }
-          isPermanent={ isLarge }
-          width={ sidebarWidth }
-          handleDrawerStateChanged={this.handleDrawerStateChanged}
-          style={ drawerStyles }
-        />
-        <div className={ classes.window } style={ containerStyles }>
-          { noDevicesUpsell
-            ? <NoDeviceUpsell />
-            : (currentRoute ? <DriveView /> : <Dashboard />)}
+        <AppDrawer drawerIsOpen={drawerIsOpen} isPermanent={isLarge} width={sidebarWidth} handleDrawerStateChanged={this.handleDrawerStateChanged} style={drawerStyles} />
+        <div className={classes.window} style={containerStyles}>
+          {noDevicesUpsell ? <NoDeviceUpsell /> : currentRoute ? <DriveView /> : <Dashboard />}
         </div>
         <IosPwaPopup />
-        <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
+        <Modal open={Boolean(pairLoading || pairError || pairDongleId)} onClose={this.closePair}>
           <Paper className={classes.modal}>
             <Typography variant="title">Pairing device</Typography>
             <Divider />
-            { pairLoading && <CircularProgress size={32} className={classes.fabProgress} /> }
-            { pairDongleId
-              && (
+            {pairLoading && <CircularProgress size={32} className={classes.fabProgress} />}
+            {pairDongleId && (
               <Typography>
                 {'Successfully paired device '}
-                <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
+                <span className={classes.pairedDongleId}>{pairDongleId}</span>
               </Typography>
-              )}
-            { pairError && <Typography>{ pairError }</Typography> }
-            <Button variant="contained" className={ classes.closeButton } onClick={ this.closePair }>
+            )}
+            {pairError && <Typography>{pairError}</Typography>}
+            <Button variant="contained" className={classes.closeButton} onClick={this.closePair}>
               Close
             </Button>
           </Paper>
@@ -250,13 +239,11 @@ import { getSegmentRange } from '../url';
 
 const stateToProps = (state, ownProps) => {
   const seg = getSegmentRange(ownProps.location?.pathname || '/');
-  const currentRoute = seg && state.routes && state.routes.find((r) => r.log_id === seg.log_id) || null;
+  const currentRoute = (seg && state.routes && state.routes.find((r) => r.log_id === seg.log_id)) || null;
   let zoom = null;
   if (currentRoute) {
     const hasTimes = typeof seg.start === 'number' && typeof seg.end === 'number' && !Number.isNaN(seg.start) && !Number.isNaN(seg.end);
-    zoom = hasTimes
-      ? { start: seg.start - currentRoute.start_time_utc_millis, end: seg.end - currentRoute.start_time_utc_millis }
-      : { start: 0, end: currentRoute.duration };
+    zoom = hasTimes ? { start: seg.start - currentRoute.start_time_utc_millis, end: seg.end - currentRoute.start_time_utc_millis } : { start: 0, end: currentRoute.duration };
   }
   return {
     zoom,

@@ -38,7 +38,7 @@ export function selectRouteZoom(state) {
 export function selectCurrentRoute(state) {
   const seg = getSegmentRange(selectPathname());
   if (!seg) return null;
-  return state.routes && state.routes.find((r) => r.log_id === seg.log_id) || null;
+  return (state.routes && state.routes.find((r) => r.log_id === seg.log_id)) || null;
 }
 
 export function selectIsViewingRoute(state) {

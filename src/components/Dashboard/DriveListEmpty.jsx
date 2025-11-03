@@ -16,9 +16,7 @@ const DriveListEmpty = (props) => {
   if (device && routes === null) {
     zeroRidesEle = <Typography>Loading...</Typography>;
   } else if (routes?.length === 0) {
-    zeroRidesEle = (
-      <Typography>No routes found in selected time range.</Typography>
-    );
+    zeroRidesEle = <Typography>No routes found in selected time range.</Typography>;
   }
 
   const containerPadding = windowWidth > 520 ? 36 : 16;

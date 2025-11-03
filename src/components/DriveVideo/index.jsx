@@ -1,6 +1,5 @@
 /* eslint-disable camelcase */
 
-
 import { video as Video } from '@commaai/api';
 import { CircularProgress, Typography } from '@material-ui/core';
 import debounce from 'debounce';
@@ -30,9 +29,7 @@ const VideoOverlay = ({ loading, error }) => {
   }
   return (
     <div className="z-50 absolute h-full w-full bg-[#16181AAA]">
-      <div className="relative text-center top-[calc(50%_-_25px)]">
-        {content}
-      </div>
+      <div className="relative text-center top-[calc(50%_-_25px)]">{content}</div>
     </div>
   );
 };
@@ -128,7 +125,7 @@ class DriveVideo extends Component {
       return;
     }
 
-    if (e.type === 'networkError' && (e.response?.code === 404)) {
+    if (e.type === 'networkError' && e.response?.code === 404) {
       this.setState({ videoError: 'This video segment has not uploaded yet or has been deleted.' });
     } else {
       this.setState({ videoError: 'Unable to load video' });
@@ -172,9 +169,7 @@ class DriveVideo extends Component {
       return;
     }
 
-    const videoError = e.response?.code === 404
-      ? 'This video segment has not uploaded yet or has been deleted.'
-      : (e.response?.text || 'Unable to load video');
+    const videoError = e.response?.code === 404 ? 'This video segment has not uploaded yet or has been deleted.' : e.response?.text || 'Unable to load video';
     this.setState({ videoError });
   }
 
@@ -211,19 +206,20 @@ class DriveVideo extends Component {
     const desiredVideoTime = this.currentVideoTime();
     const curVideoTime = videoPlayer.getCurrentTime();
     const timeDiff = desiredVideoTime - curVideoTime;
-    
-    if (Math.abs(timeDiff) <= Math.max(0.1, 0.5 * newPlaybackRate)) { // newPlaybackRate = 0 when paused, set minimum 0.1 to prevent seeking when paused
+
+    if (Math.abs(timeDiff) <= Math.max(0.1, 0.5 * newPlaybackRate)) {
+      // newPlaybackRate = 0 when paused, set minimum 0.1 to prevent seeking when paused
       if (!isIos()) {
         newPlaybackRate = Math.max(0, newPlaybackRate + Math.round(timeDiff * 10) / 10);
       }
     } else if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
       // logs start earlier than video, so skip to video ts 0
-      dispatch(seek(currentOffset() - (timeDiff * 1000)));
+      dispatch(seek(currentOffset() - timeDiff * 1000));
     } else {
       videoPlayer.seekTo(desiredVideoTime, 'seconds');
     }
     // most browsers don't support more than 16x playback rate, firefox mutes audio above 8x causing audio to cut in and out with timeDiff rate shifts
-    newPlaybackRate = Math.max(0, Math.min((isFirefox() && !isMuted) ? 8 : 16, newPlaybackRate));
+    newPlaybackRate = Math.max(0, Math.min(isFirefox() && !isMuted ? 8 : 16, newPlaybackRate));
 
     const internalPlayer = videoPlayer.getInternalPlayer();
 
@@ -233,7 +229,7 @@ class DriveVideo extends Component {
     } else if (isBufferingVideo || !hasLoaded || internalPlayer.readyState < 2) {
       if (!isBufferingVideo) {
         dispatch(bufferVideo(true));
-      } 
+      }
       newPlaybackRate = 0; // in some circumstances, iOS won't update readyState unless temporarily paused
     }
 
@@ -275,14 +271,16 @@ class DriveVideo extends Component {
     const { src, videoError } = this.state;
 
     const onPlayerReady = (player) => {
-      if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
+      if (isIos()) {
+        // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
         const videoElement = player.getInternalPlayer();
         if (videoElement && videoElement.audioTracks && videoElement.audioTracks.length > 0) {
           if (onAudioStatusChange) {
             onAudioStatusChange(true);
           }
         }
-      } else { // on other platforms, inspect audio tracks before hls.js changes things
+      } else {
+        // on other platforms, inspect audio tracks before hls.js changes things
         const hlsPlayer = player.getInternalPlayer('hls');
         if (hlsPlayer) {
           hlsPlayer.on('hlsBufferCodecs', (event, data) => {

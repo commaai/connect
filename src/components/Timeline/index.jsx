@@ -61,7 +61,8 @@ const styles = () => ({
         background: theme.palette.states.alertRed,
       },
     },
-    '&.bookmark, &.flag': {  // TODO: remove flag selector once 14 days expires old events caches
+    '&.bookmark, &.flag': {
+      // TODO: remove flag selector once 14 days expires old events caches
       background: theme.palette.states.userBookmark,
       zIndex: 1,
     },
@@ -132,11 +133,7 @@ const styles = () => ({
   },
 });
 
-const AlertStatusCodes = [
-  'normal',
-  'userPrompt',
-  'critical',
-];
+const AlertStatusCodes = ['normal', 'userPrompt', 'critical'];
 
 function percentFromPointerEvent(ev) {
   const boundingBox = ev.currentTarget.getBoundingClientRect();
@@ -285,13 +282,7 @@ const Timeline = ({ classes, hasRuler, className, route, thumbnailsVisible, zoom
           minWidth: '1px',
         };
         const statusCls = event.data.alertStatus ? `${AlertStatusCodes[event.data.alertStatus]}` : '';
-        return (
-          <div
-            key={route.fullname + event.route_offset_millis + event.type}
-            style={style}
-            className={ `${classes.segmentColor} ${event.type} ${statusCls}` }
-          />
-        );
+        return <div key={route.fullname + event.route_offset_millis + event.type} style={style} className={`${classes.segmentColor} ${event.type} ${statusCls}`} />;
       });
   };
 
@@ -302,7 +293,7 @@ const Timeline = ({ classes, hasRuler, className, route, thumbnailsVisible, zoom
     }
 
     const zoomDuration = zoom.end - zoom.start;
-    const startPerc = (100 * (-zoom.start)) / zoomDuration;
+    const startPerc = (100 * -zoom.start) / zoomDuration;
     const widthPerc = (100 * route.duration) / zoomDuration;
 
     const style = {
@@ -311,7 +302,7 @@ const Timeline = ({ classes, hasRuler, className, route, thumbnailsVisible, zoom
     };
     return (
       <div key={route.fullname} className={classes.segment} style={style}>
-        { renderRouteEvents(route) }
+        {renderRouteEvents(route)}
       </div>
     );
   };
@@ -354,8 +345,8 @@ const Timeline = ({ classes, hasRuler, className, route, thumbnailsVisible, zoom
     rulerBounds = rulerRef.current.getBoundingClientRect();
   }
 
-  let hoverString; let
-    hoverStyle;
+  let hoverString;
+  let hoverStyle;
   if (rulerBounds && hoverX) {
     const hoverOffset = percentToOffset((hoverX - rulerBounds.x) / rulerBounds.width);
     hoverStyle = { left: Math.max(-10, Math.min(rulerBounds.width - 70, hoverX - rulerBounds.x - 40)) };
@@ -380,26 +371,18 @@ const Timeline = ({ classes, hasRuler, className, route, thumbnailsVisible, zoom
 
   return (
     <div className={className}>
-      <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } style={ baseWidthStyle }>
-        <div className={ `${classes.segments} ${hasRulerCls}` }>
-          { route && renderRoute() }
-          <div className={ `${classes.statusGradient} ${hasRulerCls}` } />
+      <div role="presentation" className={`${classes.base} ${hasRulerCls}`} style={baseWidthStyle}>
+        <div className={`${classes.segments} ${hasRulerCls}`}>
+          {route && renderRoute()}
+          <div className={`${classes.statusGradient} ${hasRulerCls}`} />
         </div>
-        <div ref={thumbnailsRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
-          { thumbnailsVisible && (
-            <Thumbnails
-              className={classes.thumbnail}
-              currentRoute={route}
-              percentToOffset={percentToOffset}
-              thumbnail={thumbnail}
-              hasRuler={hasRuler}
-            />
-          ) }
+        <div ref={thumbnailsRef} className={`${classes.thumbnails} ${hasRulerCls}`}>
+          {thumbnailsVisible && <Thumbnails className={classes.thumbnail} currentRoute={route} percentToOffset={percentToOffset} thumbnail={thumbnail} hasRuler={hasRuler} />}
         </div>
-        { hasRuler && (
+        {hasRuler && (
           <>
             <div
-              ref={ onRulerRef }
+              ref={onRulerRef}
               className={classes.ruler}
               onPointerDown={handlePointerDown}
               onPointerUp={handlePointerUp}
@@ -407,15 +390,15 @@ const Timeline = ({ classes, hasRuler, className, route, thumbnailsVisible, zoom
               onPointerLeave={handlePointerLeave}
             >
               <div ref={rulerRemaining} className={classes.rulerRemaining} />
-              { draggerStyle && <div ref={dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
+              {draggerStyle && <div ref={dragBar} className={classes.dragHighlight} style={draggerStyle} />}
             </div>
-            { hoverString && (
+            {hoverString && (
               <div ref={hoverBead} className={classes.hoverBead} style={hoverStyle}>
-                { hoverString }
+                {hoverString}
               </div>
-            ) }
+            )}
           </>
-        ) }
+        )}
       </div>
     </div>
   );

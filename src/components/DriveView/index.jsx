@@ -42,31 +42,20 @@ class DriveView extends Component {
         <div className="flex flex-col rounded-lg m-4 bg-[linear-gradient(to_bottom,#30373B_0%,#272D30_10%,#1D2225_100%)]">
           <div>
             <div className="items-center justify-between flex p-3 gap-2">
-              <IconButton
-                onClick={ () => this.onBack(zoom, currentRoute) }
-                aria-label="Go Back"
-                disabled={ backButtonDisabled }
-              >
+              <IconButton onClick={() => this.onBack(zoom, currentRoute)} aria-label="Go Back" disabled={backButtonDisabled}>
                 <ArrowBackBold />
               </IconButton>
               <div className="text-white text-lg font-medium">
                 <span className="hidden sm:inline">{`${startDay} `}</span>
                 {`${startTime} - ${endTime}`}
               </div>
-              <IconButton
-                onClick={ this.close }
-                aria-label="Close"
-              >
+              <IconButton onClick={this.close} aria-label="Close">
                 <CloseBold />
               </IconButton>
             </div>
             <Timeline route={currentRoute} thumbnailsVisible hasRuler />
           </div>
-          <div className="p-3 md:p-8">
-            {(routes && routes.length === 0)
-              ? <Typography>Route does not exist.</Typography>
-              : <Media />}
-          </div>
+          <div className="p-3 md:p-8">{routes && routes.length === 0 ? <Typography>Route does not exist.</Typography> : <Media />}</div>
         </div>
       </div>
     );

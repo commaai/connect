@@ -2,7 +2,7 @@ import { Typography, withStyles } from '@material-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { checkLastRoutesData, checkRoutesData } from '../../actions';
-import ScrollIntoView from '../ScrollIntoView'
+import ScrollIntoView from '../ScrollIntoView';
 import VisibilityHandler from '../VisibilityHandler';
 import DriveListEmpty from './DriveListEmpty';
 import DriveListItem from './DriveListItem';
@@ -44,22 +44,24 @@ const DriveList = (props) => {
 
   // we clean up routes during data fetching, fallback to using lastRoutes to display current data
   const displayRoutes = routes || lastRoutes;
-  if (displayRoutes && displayRoutes.length){
+  if (displayRoutes && displayRoutes.length) {
     // sort routes by start_time_utc_millis with the latest drive first
     // Workaround upstream sorting issue for now
     // possibly from https://github.com/commaai/connect/issues/451
     displayRoutes.sort((a, b) => b.start_time_utc_millis - a.start_time_utc_millis);
-    const routesSize = displayRoutes.length
+    const routesSize = displayRoutes.length;
 
     content = (
       <div className={`${classes.drives} DriveList`}>
         {displayRoutes.map((drive, index) => {
-            // when the last item is in view, we fetch the next routes
-            return (index === routesSize - 1 ?
-              <ScrollIntoView key={drive.fullname} onInView={() => dispatch(checkLastRoutesData())}>
-                <DriveListItem drive={drive} />
-              </ScrollIntoView> :
-              <DriveListItem key={drive.fullname} drive={drive} />)
+          // when the last item is in view, we fetch the next routes
+          return index === routesSize - 1 ? (
+            <ScrollIntoView key={drive.fullname} onInView={() => dispatch(checkLastRoutesData())}>
+              <DriveListItem drive={drive} />
+            </ScrollIntoView>
+          ) : (
+            <DriveListItem key={drive.fullname} drive={drive} />
+          );
         })}
       </div>
     );

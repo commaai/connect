@@ -9,4 +9,3 @@ export function replace(path) {
 }
 
 export default { navigate, replace };
-

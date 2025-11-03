@@ -113,40 +113,36 @@ const DeviceList = (props) => {
     }
   }, [dispatch]);
 
-  const renderDevice = useCallback((device) => {
-    const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
-    const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
-    return (
-      <a
-        key={device.dongle_id}
-        className={ `${classes.device} ${isSelectedCls}` }
-        onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
-        href={ `/${device.dongle_id}` }
-      >
-        <div className={classes.deviceInfo}>
-          <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
-          <div className={ classes.deviceName }>
-            <Typography className={classes.deviceAlias}>
-              {deviceNamePretty(device)}
-            </Typography>
-            <Typography variant="caption" className={classes.deviceId}>
-              { device.dongle_id }
-            </Typography>
+  const renderDevice = useCallback(
+    (device) => {
+      const isSelectedCls = selectedDevice === device.dongle_id ? 'isSelected' : '';
+      const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
+      return (
+        <a
+          key={device.dongle_id}
+          className={`${classes.device} ${isSelectedCls}`}
+          onClick={filterRegularClick(() => handleDeviceSelected(device.dongle_id))}
+          href={`/${device.dongle_id}`}
+        >
+          <div className={classes.deviceInfo}>
+            <div className={`${classes.deviceOnline} ${offlineCls}`}>&nbsp;</div>
+            <div className={classes.deviceName}>
+              <Typography className={classes.deviceAlias}>{deviceNamePretty(device)}</Typography>
+              <Typography variant="caption" className={classes.deviceId}>
+                {device.dongle_id}
+              </Typography>
+            </div>
           </div>
-        </div>
-        { (device.is_owner || (profile && profile.superuser))
-          && (
-          <IconButton
-            className={classes.settingsButton}
-            aria-label="device settings"
-            onClick={ (ev) => handleOpenedSettingsModal(device.dongle_id, ev) }
-          >
-            <SettingsIcon className={classes.settingsButtonIcon} />
-          </IconButton>
+          {(device.is_owner || (profile && profile.superuser)) && (
+            <IconButton className={classes.settingsButton} aria-label="device settings" onClick={(ev) => handleOpenedSettingsModal(device.dongle_id, ev)}>
+              <SettingsIcon className={classes.settingsButtonIcon} />
+            </IconButton>
           )}
-      </a>
-    );
-  }, [classes, handleDeviceSelected, profile, selectedDevice, handleOpenedSettingsModal]);
+        </a>
+      );
+    },
+    [classes, handleDeviceSelected, profile, selectedDevice, handleOpenedSettingsModal],
+  );
 
   if (devices === null) {
     return null;
@@ -156,15 +152,19 @@ const DeviceList = (props) => {
   const dongleId = selectedDevice;
   const found = devicesList.some((d) => d.dongle_id === dongleId);
   if (!found && device && dongleId === device.dongle_id) {
-    devicesList = [{
-      ...device,
-      alias: emptyDevice.alias,
-    }].concat(devicesList);
+    devicesList = [
+      {
+        ...device,
+        alias: emptyDevice.alias,
+      },
+    ].concat(devicesList);
   } else if (!found && dongleId) {
-    devicesList = [{
-      ...emptyDevice,
-      dongle_id: dongleId,
-    }].concat(devicesList);
+    devicesList = [
+      {
+        ...emptyDevice,
+        dongle_id: dongleId,
+      },
+    ].concat(devicesList);
   }
 
   const addButtonStyle = {
@@ -178,11 +178,8 @@ const DeviceList = (props) => {
 
   return (
     <>
-      <VisibilityHandler onVisible={ onVisible } minInterval={ 10 } />
-      <div
-        className={`scrollstyle ${classes.deviceList}`}
-        style={{ height: 'calc(100vh - 64px)' }}
-      >
+      <VisibilityHandler onVisible={onVisible} minInterval={10} />
+      <div className={`scrollstyle ${classes.deviceList}`} style={{ height: 'calc(100vh - 64px)' }}>
         {devicesList.map(renderDevice)}
         {MyCommaAuth.isAuthenticated() && (
           <div className={classes.addDeviceContainer}>
@@ -190,11 +187,7 @@ const DeviceList = (props) => {
           </div>
         )}
       </div>
-      <DeviceSettingsModal
-        isOpen={Boolean(settingsModalDongleId)}
-        dongleId={settingsModalDongleId}
-        onClose={handleClosedSettingsModal}
-      />
+      <DeviceSettingsModal isOpen={Boolean(settingsModalDongleId)} dongleId={settingsModalDongleId} onClose={handleClosedSettingsModal} />
     </>
   );
 };

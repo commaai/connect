@@ -16,19 +16,19 @@ import ResizeHandler from '../ResizeHandler';
 const styles = (theme) => ({
   linkHighlight: {
     '&:link': {
-      textDecoration: "underline",
+      textDecoration: 'underline',
       color: Colors.green300,
     },
     '&:visited': {
-      textDecoration: "underline",
+      textDecoration: 'underline',
       color: Colors.green300,
     },
     '&:active': {
-      textDecoration: "underline",
+      textDecoration: 'underline',
       color: Colors.green300,
     },
     '&:hover': {
-      textDecoration: "underline",
+      textDecoration: 'underline',
       color: Colors.green400,
     },
   },
@@ -209,11 +209,13 @@ class PrimeManage extends Component {
 
   componentDidUpdate(prevProps, prevState) {
     if (!prevProps.stripeSuccess && this.props.stripeSuccess) {
-      this.setState({
-        stripeStatus: { sessionId: this.props.stripeSuccess, loading: true, paid: null },
-      }, this.fetchStripeSession);
+      this.setState(
+        {
+          stripeStatus: { sessionId: this.props.stripeSuccess, loading: true, paid: null },
+        },
+        this.fetchStripeSession,
+      );
     }
-
   }
 
   componentWillUnmount() {
@@ -222,19 +224,21 @@ class PrimeManage extends Component {
 
   cancelPrime() {
     this.setState({ canceling: true });
-    Billing.cancelPrime(this.props.dongleId).then((resp) => {
-      if (resp.success) {
-        this.setState({ canceling: false, cancelError: null, cancelSuccess: 'Cancelled subscription.' });
-        this.fetchSubscription();
-      } else if (resp.error) {
-        this.setState({ canceling: false, cancelError: resp.description });
-      } else {
+    Billing.cancelPrime(this.props.dongleId)
+      .then((resp) => {
+        if (resp.success) {
+          this.setState({ canceling: false, cancelError: null, cancelSuccess: 'Cancelled subscription.' });
+          this.fetchSubscription();
+        } else if (resp.error) {
+          this.setState({ canceling: false, cancelError: resp.description });
+        } else {
+          this.setState({ canceling: false, cancelError: 'Could not cancel due to unknown error. Please try again.' });
+        }
+      })
+      .catch((err) => {
+        Sentry.captureException(err, { fingerprint: 'primemanage_cancel_prime' });
         this.setState({ canceling: false, cancelError: 'Could not cancel due to unknown error. Please try again.' });
-      }
-    }).catch((err) => {
-      Sentry.captureException(err, { fingerprint: 'primemanage_cancel_prime' });
-      this.setState({ canceling: false, cancelError: 'Could not cancel due to unknown error. Please try again.' });
-    });
+      });
   }
 
   async gotoUpdate() {
@@ -258,11 +262,13 @@ class PrimeManage extends Component {
     try {
       const resp = await Billing.getStripeSession(dongleId, stripeStatus.sessionId);
       const status = resp.payment_status;
-      this.setState({ stripeStatus: {
-        ...stripeStatus,
-        paid: status,
-        loading: status !== 'paid',
-      } });
+      this.setState({
+        stripeStatus: {
+          ...stripeStatus,
+          paid: status,
+          loading: status !== 'paid',
+        },
+      });
       if (status === 'paid') {
         this.fetchSubscription(true);
       } else {
@@ -344,32 +350,26 @@ class PrimeManage extends Component {
             <Typography variant="title">comma prime</Typography>
             {stripeStatus && (
               <>
-                {stripeStatus.paid !== 'paid'
-                  && (
-                    <div className={classes.overviewBlockLoading}>
-                      <CircularProgress size={19} style={{ color: Colors.white }} />
-                      <Typography>Waiting for confirmed payment</Typography>
-                    </div>
-                  )}
-                {Boolean(stripeStatus.paid === 'paid' && !hasPrimeSub)
-                  && (
-                    <div className={classes.overviewBlockLoading}>
-                      <CircularProgress size={19} style={{ color: Colors.white }} />
-                      <Typography>Processing subscription</Typography>
-                    </div>
-                  )}
-                {Boolean(stripeStatus.paid === 'paid' && hasPrimeSub)
-                  && (
-                    <div className={classes.overviewBlockSuccess}>
-                      <Typography>comma prime activated</Typography>
-                      {subscription.is_prime_sim && (
-                        <Typography>
-                          Connectivity will be enabled as soon as activation propagates to your
-                          local cell tower. Rebooting your device may help.
-                        </Typography>
-                      )}
-                    </div>
-                  )}
+                {stripeStatus.paid !== 'paid' && (
+                  <div className={classes.overviewBlockLoading}>
+                    <CircularProgress size={19} style={{ color: Colors.white }} />
+                    <Typography>Waiting for confirmed payment</Typography>
+                  </div>
+                )}
+                {Boolean(stripeStatus.paid === 'paid' && !hasPrimeSub) && (
+                  <div className={classes.overviewBlockLoading}>
+                    <CircularProgress size={19} style={{ color: Colors.white }} />
+                    <Typography>Processing subscription</Typography>
+                  </div>
+                )}
+                {Boolean(stripeStatus.paid === 'paid' && hasPrimeSub) && (
+                  <div className={classes.overviewBlockSuccess}>
+                    <Typography>comma prime activated</Typography>
+                    {subscription.is_prime_sim && (
+                      <Typography>Connectivity will be enabled as soon as activation propagates to your local cell tower. Rebooting your device may help.</Typography>
+                    )}
+                  </div>
+                )}
               </>
             )}
             <div className={classes.overviewBlock}>
@@ -394,25 +394,21 @@ class PrimeManage extends Component {
                   <Typography variant="subheading">Joined</Typography>
                   <Typography className={classes.manageItem}>{joinDate}</Typography>
                 </div>
-                {!hasCancelAt
-                  && (
-                    <div className={classes.overviewBlock}>
-                      <Typography variant="subheading">Next payment</Typography>
-                      <Typography className={classes.manageItem}>{nextPaymentDate}</Typography>
-                    </div>
-                  )}
-                {hasCancelAt
-                  && (
-                    <div className={classes.overviewBlock}>
-                      <Typography variant="subheading">Subscription end</Typography>
-                      <Typography className={classes.manageItem}>{cancelAtDate}</Typography>
-                    </div>
-                  )}
+                {!hasCancelAt && (
+                  <div className={classes.overviewBlock}>
+                    <Typography variant="subheading">Next payment</Typography>
+                    <Typography className={classes.manageItem}>{nextPaymentDate}</Typography>
+                  </div>
+                )}
+                {hasCancelAt && (
+                  <div className={classes.overviewBlock}>
+                    <Typography variant="subheading">Subscription end</Typography>
+                    <Typography className={classes.manageItem}>{cancelAtDate}</Typography>
+                  </div>
+                )}
                 <div className={classes.overviewBlock}>
                   <Typography variant="subheading">Amount</Typography>
-                  <Typography className={classes.manageItem}>
-                    {`$${(subscription.amount / 100).toFixed(2)}`}
-                  </Typography>
+                  <Typography className={classes.manageItem}>{`$${(subscription.amount / 100).toFixed(2)}`}</Typography>
                 </div>
                 {this.state.error && (
                   <div className={classes.overviewBlockError}>
@@ -429,50 +425,43 @@ class PrimeManage extends Component {
                   >
                     {hasCancelAt ? 'Renew subscription' : 'Update payment method'}
                   </Button>
-                  {!hasCancelAt
-                    && (
-                      <Button
-                        className={`${classes.buttons} ${classes.cancelButton} primeCancel`}
-                        style={buttonSmallStyle}
-                        onClick={() => this.setState({ cancelModal: true })}
-                        disabled={Boolean(!hasPrimeSub)}
-                      >
-                        Cancel subscription
-                      </Button>
-                    )}
+                  {!hasCancelAt && (
+                    <Button
+                      className={`${classes.buttons} ${classes.cancelButton} primeCancel`}
+                      style={buttonSmallStyle}
+                      onClick={() => this.setState({ cancelModal: true })}
+                      disabled={Boolean(!hasPrimeSub)}
+                    >
+                      Cancel subscription
+                    </Button>
+                  )}
                 </div>
-                {hasPrimeSub && subscription.requires_migration
-                  && (
-                    <div className={classes.overviewBlockDisabled}>
-                      <PriorityHighIcon />
-                      <Typography>
-                        Your prime subscription will be canceled on May 15th unless you replace the
-                        SIM
-                        card in your device. A new SIM card can be ordered from the
-                        <a className={ classes.linkHighlight} href="https://comma.ai/shop/comma-prime-sim">shop</a>
-                        .
-                        Use discount code SIMSWAP at checkout to receive a free SIM card.
-                      </Typography>
-                    </div>
-                  )}
-                {hasCancelAt && !device.eligible_features?.prime_data && subscription.plan === 'data'
-                  && (
-                    <div className={classes.overviewBlockDisabled}>
-                      <InfoOutline />
-                      <Typography>
-                        Standard comma prime discontinued for
-                        {deviceTypePretty(device.device_type)}
-                      </Typography>
-                    </div>
-                  )}
+                {hasPrimeSub && subscription.requires_migration && (
+                  <div className={classes.overviewBlockDisabled}>
+                    <PriorityHighIcon />
+                    <Typography>
+                      Your prime subscription will be canceled on May 15th unless you replace the SIM card in your device. A new SIM card can be ordered from the
+                      <a className={classes.linkHighlight} href="https://comma.ai/shop/comma-prime-sim">
+                        shop
+                      </a>
+                      . Use discount code SIMSWAP at checkout to receive a free SIM card.
+                    </Typography>
+                  </div>
+                )}
+                {hasCancelAt && !device.eligible_features?.prime_data && subscription.plan === 'data' && (
+                  <div className={classes.overviewBlockDisabled}>
+                    <InfoOutline />
+                    <Typography>
+                      Standard comma prime discontinued for
+                      {deviceTypePretty(device.device_type)}
+                    </Typography>
+                  </div>
+                )}
               </>
             )}
           </div>
         </div>
-        <Modal
-          open={this.state.cancelModal}
-          onClose={() => this.setState({ cancelModal: false })}
-        >
+        <Modal open={this.state.cancelModal} onClose={() => this.setState({ cancelModal: false })}>
           <Paper className={classes.modal}>
             <Typography variant="title">Cancel prime subscription</Typography>
             {this.state.cancelError && (
@@ -485,30 +474,18 @@ class PrimeManage extends Component {
                 <Typography>{this.state.cancelSuccess}</Typography>
               </div>
             )}
-            <Typography>
-              {`Device: ${alias} (${dongleId})`}
-            </Typography>
-            <Typography>
-              We&apos;re sorry to see you go.
-            </Typography>
-            <Typography>
-              Your subscription will be cancelled immediately and can be resumed at any time.
-            </Typography>
+            <Typography>{`Device: ${alias} (${dongleId})`}</Typography>
+            <Typography>We&apos;re sorry to see you go.</Typography>
+            <Typography>Your subscription will be cancelled immediately and can be resumed at any time.</Typography>
             <Button
               variant="contained"
               className={`${classes.cancelModalButton} primeModalCancel`}
               onClick={this.cancelPrime}
               disabled={Boolean(this.state.cancelSuccess || this.state.canceling)}
             >
-              {this.state.canceling
-                ? <CircularProgress size={19} style={{ color: Colors.white }} />
-                : 'Cancel subscription'}
+              {this.state.canceling ? <CircularProgress size={19} style={{ color: Colors.white }} /> : 'Cancel subscription'}
             </Button>
-            <Button
-              variant="contained"
-              className={`${classes.closeButton} primeModalClose`}
-              onClick={() => this.setState({ cancelModal: false })}
-            >
+            <Button variant="contained" className={`${classes.closeButton} primeModalClose`} onClick={() => this.setState({ cancelModal: false })}>
               Close
             </Button>
           </Paper>

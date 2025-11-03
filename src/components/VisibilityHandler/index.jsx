@@ -9,18 +9,21 @@ const VisibilityHandler = (props) => {
   const prevVisibleCall = useRef(0);
   const intervalHandle = useRef(null);
 
-  const onVisibilityEvent = useCallback((visible) => {
-    const newDate = Date.now() / 1000;
-    const dt = newDate - prevVisibleCall.current;
-    if (visible && (!minInterval || dt > minInterval)) {
-      prevVisibleCall.current = newDate;
-      onVisible();
-    }
+  const onVisibilityEvent = useCallback(
+    (visible) => {
+      const newDate = Date.now() / 1000;
+      const dt = newDate - prevVisibleCall.current;
+      if (visible && (!minInterval || dt > minInterval)) {
+        prevVisibleCall.current = newDate;
+        onVisible();
+      }
 
-    if (!visible && resetOnHidden) {
-      prevVisibleCall.current = newDate;
-    }
-  }, [minInterval, onVisible, resetOnHidden]);
+      if (!visible && resetOnHidden) {
+        prevVisibleCall.current = newDate;
+      }
+    },
+    [minInterval, onVisible, resetOnHidden],
+  );
 
   const debouncedVisibilityEvent = useRef(debounce(onVisibilityEvent, 1000, true));
 

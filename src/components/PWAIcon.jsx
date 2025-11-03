@@ -1,14 +1,10 @@
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import {
-  CircularProgress,
-  IconButton,
-  Tooltip,
-} from '@material-ui/core';
+import { CircularProgress, IconButton, Tooltip } from '@material-ui/core';
 import { useState } from 'react';
 
 import { CheckCircle, Download } from '../icons';
 
-const intervalMS = 60 * 60 * 1000;  // 1 hour
+const intervalMS = 60 * 60 * 1000; // 1 hour
 
 const PWAIcon = ({ immediate }) => {
   const {
@@ -72,18 +68,9 @@ const PWAIcon = ({ immediate }) => {
   }
 
   return (
-    <Tooltip
-      className="w-12 flex justify-center self-center"
-      title={<span className="text-xs">{title}</span>}
-    >
-      <IconButton
-        className="animate-fadein"
-        onClick={callback}
-        disabled={installing}
-      >
-        {installing ? (
-          <CircularProgress className="flex text-[rgba(128,255,128,0.5)]" size={24} />
-        ) : icon}
+    <Tooltip className="w-12 flex justify-center self-center" title={<span className="text-xs">{title}</span>}>
+      <IconButton className="animate-fadein" onClick={callback} disabled={installing}>
+        {installing ? <CircularProgress className="flex text-[rgba(128,255,128,0.5)]" size={24} /> : icon}
       </IconButton>
     </Tooltip>
   );

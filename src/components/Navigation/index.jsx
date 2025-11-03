@@ -193,9 +193,13 @@ class Navigation extends Component {
     const { dongleId, device } = this.props;
     const { geoLocateCoords, search, carLastLocation, carNetworkLocation, searchSelect } = this.state;
 
-    if ((carLastLocation && !prevState.carLastLocation) || (carNetworkLocation && !prevState.carNetworkLocation)
-      || (geoLocateCoords && !prevState.geoLocateCoords) || (searchSelect && prevState.searchSelect !== searchSelect)
-      || (search && prevState.search !== search)) {
+    if (
+      (carLastLocation && !prevState.carLastLocation) ||
+      (carNetworkLocation && !prevState.carNetworkLocation) ||
+      (geoLocateCoords && !prevState.geoLocateCoords) ||
+      (searchSelect && prevState.searchSelect !== searchSelect) ||
+      (search && prevState.search !== search)
+    ) {
       this.flyToMarkers();
     }
 
@@ -209,7 +213,6 @@ class Navigation extends Component {
     if (prevProps.device !== device) {
       this.updateDevice();
     }
-
   }
 
   componentWillUnmount() {
@@ -237,10 +240,13 @@ class Navigation extends Component {
     try {
       const resp = await Devices.fetchLocation(dongleId);
       if (this.mounted && dongleId === this.props.dongleId) {
-        this.setState({
-          carLastLocation: [resp.lng, resp.lat],
-          carLastLocationTime: resp.time,
-        }, this.flyToMarkers);
+        this.setState(
+          {
+            carLastLocation: [resp.lng, resp.lat],
+            carLastLocationTime: resp.time,
+          },
+          this.flyToMarkers,
+        );
       }
     } catch (err) {
       if (!err.message || err.message.indexOf('no_segments_uploaded') === -1) {
@@ -265,14 +271,16 @@ class Navigation extends Component {
       }
       resp = await networkPositioning(resp.result);
       if (resp && this.mounted && dongleId === this.props.dongleId) {
-        this.setState({
-          carNetworkLocation: [resp.lng, resp.lat],
-          carNetworkLocationAccuracy: resp.accuracy,
-        }, this.flyToMarkers);
+        this.setState(
+          {
+            carNetworkLocation: [resp.lng, resp.lat],
+            carNetworkLocationAccuracy: resp.accuracy,
+          },
+          this.flyToMarkers,
+        );
       }
     } catch (err) {
-      if (this.mounted && dongleId === this.props.dongleId
-        && (!err.message || err.message.indexOf('{"error": "Device not registered"}') === -1)) {
+      if (this.mounted && dongleId === this.props.dongleId && (!err.message || err.message.indexOf('{"error": "Device not registered"}') === -1)) {
         console.error(err);
         Sentry.captureException(err, { fingerprint: 'nav_fetch_network_location' });
       }
@@ -282,8 +290,7 @@ class Navigation extends Component {
   getCarLocation() {
     const { carLastLocation, carLastLocationTime, carNetworkLocation, carNetworkLocationAccuracy } = this.state;
 
-    if (carNetworkLocation && carNetworkLocationAccuracy <= 10000
-      && (carNetworkLocationAccuracy <= 100 || !carLastLocation)) {
+    if (carNetworkLocation && carNetworkLocationAccuracy <= 10000 && (carNetworkLocationAccuracy <= 100 || !carLastLocation)) {
       return {
         location: carNetworkLocation,
         accuracy: carNetworkLocationAccuracy,
@@ -315,7 +322,8 @@ class Navigation extends Component {
         label: '',
       },
       position: {
-        lng, lat,
+        lng,
+        lat,
       },
       resultType: 'car',
       title: '',
@@ -375,13 +383,28 @@ class Navigation extends Component {
     }
 
     if (bounds.length) {
-      const bbox = [[
-        Math.min.apply(null, bounds.map((e) => e[0][0])),
-        Math.min.apply(null, bounds.map((e) => e[0][1])),
-      ], [
-        Math.max.apply(null, bounds.map((e) => e[1][0])),
-        Math.max.apply(null, bounds.map((e) => e[1][1])),
-      ]];
+      const bbox = [
+        [
+          Math.min.apply(
+            null,
+            bounds.map((e) => e[0][0]),
+          ),
+          Math.min.apply(
+            null,
+            bounds.map((e) => e[0][1]),
+          ),
+        ],
+        [
+          Math.max.apply(
+            null,
+            bounds.map((e) => e[1][0]),
+          ),
+          Math.max.apply(
+            null,
+            bounds.map((e) => e[1][1]),
+          ),
+        ],
+      ];
 
       if (Math.abs(bbox[0][0] - bbox[1][0]) < 0.01) {
         bbox[0][0] -= 0.01;
@@ -392,8 +415,7 @@ class Navigation extends Component {
         bbox[1][1] += 0.01;
       }
 
-      const bottomBoxHeight = (this.searchSelectBoxRef.current && viewport.height > 200)
-        ? this.searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0;
+      const bottomBoxHeight = this.searchSelectBoxRef.current && viewport.height > 200 ? this.searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0;
 
       let rightBoxWidth = 0;
       let topBoxHeight = 0;
@@ -408,7 +430,7 @@ class Navigation extends Component {
       }
 
       const padding = {
-        left: (windowWidth < 600 || !search) ? 20 : 390,
+        left: windowWidth < 600 || !search ? 20 : 390,
         right: rightBoxWidth + 20,
         top: topBoxHeight + 20,
         bottom: bottomBoxHeight + 20,
@@ -426,8 +448,7 @@ class Navigation extends Component {
   }
 
   focus(ev) {
-    if (!this.state.hasFocus && (!ev || !ev.srcEvent || !ev.srcEvent.path || !this.mapContainerRef.current
-      || ev.srcEvent.path.includes(this.mapContainerRef.current))) {
+    if (!this.state.hasFocus && (!ev || !ev.srcEvent || !ev.srcEvent.path || !this.mapContainerRef.current || ev.srcEvent.path.includes(this.mapContainerRef.current))) {
       this.setState({ hasFocus: true });
     }
   }
@@ -473,12 +494,13 @@ class Navigation extends Component {
     const points = 128;
     const km = carLocation.accuracy / 1000;
 
-    const distanceX = km / (111.320 * Math.cos(carLocation.location[1] * (Math.PI / 180)));
+    const distanceX = km / (111.32 * Math.cos(carLocation.location[1] * (Math.PI / 180)));
     const distanceY = km / 110.574;
 
     const res = [];
-    let theta; let x; let
-      y;
+    let theta;
+    let x;
+    let y;
     for (let i = 0; i < points; i++) {
       theta = (i / points) * (2 * Math.PI);
       x = distanceX * Math.cos(theta);
@@ -490,13 +512,15 @@ class Navigation extends Component {
 
     return {
       type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        geometry: {
-          type: 'Polygon',
-          coordinates: [res],
+      features: [
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [res],
+          },
         },
-      }],
+      ],
     };
   }
 
@@ -512,9 +536,10 @@ class Navigation extends Component {
     const { mapError, hasFocus, searchSelect, viewport, windowWidth, showPrimeAd } = this.state;
     const carLocation = this.getCarLocation();
 
-    const cardStyle = windowWidth < 600
-      ? { zIndex: 4, width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 }
-      : { zIndex: 4, width: 360, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
+    const cardStyle =
+      windowWidth < 600
+        ? { zIndex: 4, width: 'auto', height: 'auto', top: 'auto', bottom: 'auto', left: 10, right: 10 }
+        : { zIndex: 4, width: 360, height: 'auto', top: 'auto', bottom: 'auto', left: 10 };
 
     let carPinTooltipStyle = { transform: 'translate(calc(-50% + 10px), -4px)' };
     if (carLocation) {
@@ -525,20 +550,15 @@ class Navigation extends Component {
     }
 
     return (
-      <div
-        ref={this.onContainerRef}
-        className={classes.mapContainer}
-        style={{ height: 200 }}
-      >
+      <div ref={this.onContainerRef} className={classes.mapContainer} style={{ height: 200 }}>
         <ResizeHandler onResize={this.onResize} />
         <VisibilityHandler onVisible={this.updateDevice} onInit onDongleId minInterval={60} />
-        {mapError
-          && (
-            <div className={classes.mapError}>
-              <Typography>Could not initialize map.</Typography>
-              <Typography>{mapError}</Typography>
-            </div>
-          )}
+        {mapError && (
+          <div className={classes.mapError}>
+            <Typography>Could not initialize map.</Typography>
+            <Typography>{mapError}</Typography>
+          </div>
+        )}
         <ReactMapGL
           latitude={viewport.latitude}
           longitude={viewport.longitude}
@@ -565,74 +585,52 @@ class Navigation extends Component {
             auto={hasFocus}
             fitBoundsOptions={{ maxZoom: 10 }}
             trackUserLocation
-            onViewportChange={() => { }}
+            onViewportChange={() => {}}
           />
-          {carLocation
-            && (
-              <Marker
-                latitude={carLocation.location[1]}
-                longitude={carLocation.location[0]}
-                offsetLeft={-10}
-                offsetTop={-30}
-                captureDrag={false}
-                captureClick
-                captureDoubleClick={false}
-              >
-                <PinCarIcon
-                  className={classes.pin}
-                  onMouseEnter={() => this.toggleCarPinTooltip(true)}
-                  onMouseLeave={() => this.toggleCarPinTooltip(false)}
-                  alt="car-location"
-                  onClick={() => this.onCarSelect(carLocation)}
-                />
-                <div
-                  className={classes.carPinTooltip}
-                  ref={this.carPinTooltipRef}
-                  style={{ ...carPinTooltipStyle, display: 'none' }}
-                >
-                  {dayjs(carLocation.time).format('h:mm A')}
-                  ,
-                  <br />
-                  {timeFromNow(carLocation.time)}
-                </div>
-              </Marker>
-            )}
-          {carLocation && Boolean(carLocation.accuracy)
-            && (
-              <Source type="geojson" data={this.carLocationCircle(carLocation)}>
-                <Layer
-                  id="polygon"
-                  type="fill"
-                  source="polygon"
-                  layout={{}}
-                  paint={{ 'fill-color': '#31a1ee', 'fill-opacity': 0.3 }}
-                />
-              </Source>
-            )}
-          {searchSelect
-            && (
-              <HTMLOverlay
-                redraw={this.renderSearchOverlay}
-                captureScroll
-                captureDrag
-                captureClick
-                captureDoubleClick
-                capturePointerMove
-                style={{ ...cardStyle, bottom: 10 }}
+          {carLocation && (
+            <Marker
+              latitude={carLocation.location[1]}
+              longitude={carLocation.location[0]}
+              offsetLeft={-10}
+              offsetTop={-30}
+              captureDrag={false}
+              captureClick
+              captureDoubleClick={false}
+            >
+              <PinCarIcon
+                className={classes.pin}
+                onMouseEnter={() => this.toggleCarPinTooltip(true)}
+                onMouseLeave={() => this.toggleCarPinTooltip(false)}
+                alt="car-location"
+                onClick={() => this.onCarSelect(carLocation)}
               />
-            )}
-          {showPrimeAd && !device.prime && device.is_owner
-            && (
-              <HTMLOverlay
-                redraw={this.renderPrimeAd}
-                captureScroll
-                captureDrag
-                captureClick
-                captureDoubleClick
-                capturePointerMove
-                style={{ ...cardStyle, top: 10, left: windowWidth < 600 ? 10 : 'auto', right: 10 }}
-              />
-            )}
+              <div className={classes.carPinTooltip} ref={this.carPinTooltipRef} style={{ ...carPinTooltipStyle, display: 'none' }}>
+                {dayjs(carLocation.time).format('h:mm A')}
+                ,
+                <br />
+                {timeFromNow(carLocation.time)}
+              </div>
+            </Marker>
+          )}
+          {carLocation && Boolean(carLocation.accuracy) && (
+            <Source type="geojson" data={this.carLocationCircle(carLocation)}>
+              <Layer id="polygon" type="fill" source="polygon" layout={{}} paint={{ 'fill-color': '#31a1ee', 'fill-opacity': 0.3 }} />
+            </Source>
+          )}
+          {searchSelect && (
+            <HTMLOverlay redraw={this.renderSearchOverlay} captureScroll captureDrag captureClick captureDoubleClick capturePointerMove style={{ ...cardStyle, bottom: 10 }} />
+          )}
+          {showPrimeAd && !device.prime && device.is_owner && (
+            <HTMLOverlay
+              redraw={this.renderPrimeAd}
+              captureScroll
+              captureDrag
+              captureClick
+              captureDoubleClick
+              capturePointerMove
+              style={{ ...cardStyle, top: 10, left: windowWidth < 600 ? 10 : 'auto', right: 10 }}
+            />
+          )}
         </ReactMapGL>
       </div>
     );
@@ -681,26 +679,18 @@ class Navigation extends Component {
 
     return (
       <div className={`${classes.searchSelectBox} ${classes.primeAdContainer}`} ref={this.primeAdBoxRef}>
-        <Clear
-          className={classes.clearSearchSelect}
-          onClick={() => this.setState({ showPrimeAd: false }, this.flyToMarkers)}
-        />
+        <Clear className={classes.clearSearchSelect} onClick={() => this.setState({ showPrimeAd: false }, this.flyToMarkers)} />
         <div className={classes.searchSelectBoxHeader}>
           <div className={classes.searchSelectBoxTitle}>
             <Typography className={classes.primeAdTitle}>comma prime</Typography>
           </div>
           <div className={classes.searchSelectBoxButtons}>
-            <Button
-              onClick={() => navigate(`/${this.props.dongleId}/prime`)}
-              className={`${classes.searchSelectButton} ${classes.primeAdButton} primeSignUp`}
-            >
+            <Button onClick={() => navigate(`/${this.props.dongleId}/prime`)} className={`${classes.searchSelectButton} ${classes.primeAdButton} primeSignUp`}>
               sign up
             </Button>
           </div>
         </div>
-        <Typography className={classes.primeAdDetails}>
-          Put your car on the internet with comma prime
-        </Typography>
+        <Typography className={classes.primeAdDetails}>Put your car on the internet with comma prime</Typography>
       </div>
     );
   }

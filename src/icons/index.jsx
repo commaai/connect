@@ -7,12 +7,7 @@ import AuthGithubIcon from './auth_github.png';
 import AuthGoogleIcon from './auth_google.png';
 import IosShareIcon from './ios_share.png';
 
-export {
-  AuthAppleIcon,
-  AuthGithubIcon,
-  AuthGoogleIcon,
-  IosShareIcon,
-};
+export { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon, IosShareIcon };
 
 export const ArrowBackBold = (props) => (
   <SvgIcon {...props} viewBox="0 -960 960 960">
@@ -124,21 +119,9 @@ function chevronPath(rotation = 270) {
   );
 }
 
-export const ChevronIcon = (props) => (
-  <SvgIcon {...props}>
-    {chevronPath(270)}
-  </SvgIcon>
-);
+export const ChevronIcon = (props) => <SvgIcon {...props}>{chevronPath(270)}</SvgIcon>;
 export const DownArrow = ChevronIcon;
 
-export const UpArrow = (props) => (
-  <SvgIcon {...props}>
-    {chevronPath(90)}
-  </SvgIcon>
-);
+export const UpArrow = (props) => <SvgIcon {...props}>{chevronPath(90)}</SvgIcon>;
 
-export const RightArrow = (props) => (
-  <SvgIcon {...props}>
-    {chevronPath(180)}
-  </SvgIcon>
-);
+export const RightArrow = (props) => <SvgIcon {...props}>{chevronPath(180)}</SvgIcon>;

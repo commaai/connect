@@ -1,11 +1,7 @@
 import { compose } from 'redux';
 
 function getComposeEnhancers() {
-  if (
-    import.meta.env.VITE_APP_DEVTOOLS &&
-    typeof window !== 'undefined' &&
-    window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__
-  ) {
+  if (import.meta.env.VITE_APP_DEVTOOLS && typeof window !== 'undefined' && window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__) {
     return window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__;
   }
   return compose;

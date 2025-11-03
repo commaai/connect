@@ -1,7 +1,4 @@
-import {Button, CircularProgress, 
-  Divider, LinearProgress,Modal, Paper, Typography, 
-  withStyles,
-} from '@material-ui/core';
+import { Button, CircularProgress, Divider, LinearProgress, Modal, Paper, Typography, withStyles } from '@material-ui/core';
 import HighlightOffIcon from '@material-ui/icons/HighlightOff';
 import WarningIcon from '@material-ui/icons/Warning';
 import { Component } from 'react';
@@ -180,7 +177,7 @@ class UploadQueue extends Component {
     const hasUploading = !deviceOffline && hasData && Object.keys(filesUploading).length > 0;
     const logNameLength = windowWidth < 600 ? 4 : 64;
     const segmentNameStyle = windowWidth < 450 ? { fontSize: windowWidth < 400 ? '0.8rem' : '0.9rem' } : {};
-    const cellStyle = { padding: windowWidth < 400 ? '0 2px' : (windowWidth < 450 ? '0 4px' : '0 8px') };
+    const cellStyle = { padding: windowWidth < 400 ? '0 2px' : windowWidth < 450 ? '0 4px' : '0 8px' };
 
     const uploadSorted = Object.entries(filesUploading);
     if (uploadSorted.length && uploadSorted[uploadSorted.length - 1][1].current) {
@@ -192,99 +189,103 @@ class UploadQueue extends Component {
 
     return (
       <>
-        <ResizeHandler onResize={ (ww, wh) => this.setState({ windowWidth: ww, windowHeight: wh }) } />
-        <Modal aria-labelledby="upload-queue-modal" open={ this.props.open } onClose={ this.props.onClose }>
-          <Paper className={ classes.modal }>
-            <div className={ classes.titleContainer }>
+        <ResizeHandler onResize={(ww, wh) => this.setState({ windowWidth: ww, windowHeight: wh })} />
+        <Modal aria-labelledby="upload-queue-modal" open={this.props.open} onClose={this.props.onClose}>
+          <Paper className={classes.modal}>
+            <div className={classes.titleContainer}>
               <Typography variant="title">Upload queue</Typography>
-              <Typography variant="caption" style={{ marginLeft: 8 }}>{ device.dongle_id }</Typography>
+              <Typography variant="caption" style={{ marginLeft: 8 }}>
+                {device.dongle_id}
+              </Typography>
             </div>
             <Divider />
-            <div className={ classes.uploadContainer } style={{ maxHeight: (windowHeight * 0.90) - 98 }}>
-              { hasUploading ? (
+            <div className={classes.uploadContainer} style={{ maxHeight: windowHeight * 0.9 - 98 }}>
+              {hasUploading ? (
                 <>
-                  { deviceOnCellular(device) && allPaused
-                && (
-                <div className={ classes.cellularWarning }>
-                  <div>
-                    <WarningIcon />
-                    Connect to WiFi
-                  </div>
-                  <span style={{ fontSize: '0.8rem' }}>uploading paused on cellular connection</span>
-                </div>
-                )}
-                  <table className={ classes.uploadTable }>
+                  {deviceOnCellular(device) && allPaused && (
+                    <div className={classes.cellularWarning}>
+                      <div>
+                        <WarningIcon />
+                        Connect to WiFi
+                      </div>
+                      <span style={{ fontSize: '0.8rem' }}>uploading paused on cellular connection</span>
+                    </div>
+                  )}
+                  <table className={classes.uploadTable}>
                     <thead>
                       <tr>
-                        <th className={ classes.uploadCell } style={ cellStyle }>segment</th>
-                        <th className={ classes.uploadCell } style={ cellStyle }>type</th>
-                        <th className={ classes.uploadCell } style={ cellStyle }>progress</th>
-                        { windowWidth >= 600 && <th className={ classes.uploadCell } style={ cellStyle } /> }
+                        <th className={classes.uploadCell} style={cellStyle}>
+                          segment
+                        </th>
+                        <th className={classes.uploadCell} style={cellStyle}>
+                          type
+                        </th>
+                        <th className={classes.uploadCell} style={cellStyle}>
+                          progress
+                        </th>
+                        {windowWidth >= 600 && <th className={classes.uploadCell} style={cellStyle} />}
                       </tr>
                     </thead>
                     <tbody>
-                      { uploadSorted.map(([id, upload]) => {
+                      {uploadSorted.map(([id, upload]) => {
                         const isCancelled = cancelQueue.includes(id);
                         const [seg, type] = upload.fileName.split('/');
                         const prog = upload.progress * 100;
                         const segString = seg.split('|')[1];
                         return (
-                          <tr key={ id }>
-                            <td className={ classes.uploadCell } style={ cellStyle }>
-                              <div className={ classes.segmentName } style={ segmentNameStyle }>
-                                <span>{ segString.substring(0, 12) }</span>
-                                <span>{ segString.substring(12)}</span>
+                          <tr key={id}>
+                            <td className={classes.uploadCell} style={cellStyle}>
+                              <div className={classes.segmentName} style={segmentNameStyle}>
+                                <span>{segString.substring(0, 12)}</span>
+                                <span>{segString.substring(12)}</span>
                               </div>
                             </td>
-                            <td className={ classes.uploadCell } style={ cellStyle }>
-                              { FILE_NAMES[type][0].split('.')[0].substring(0, logNameLength) }
+                            <td className={classes.uploadCell} style={cellStyle}>
+                              {FILE_NAMES[type][0].split('.')[0].substring(0, logNameLength)}
                             </td>
-                            { upload.current
-                              ? (
-                                <td className={ classes.uploadCell } style={ cellStyle }>
-                                  <div className={ classes.uploadProgress }>
-                                    <LinearProgress variant="determinate" value={ prog } />
-                                  </div>
-                                </td>
-                              )
-                              : (
-                                <>
-                                  { windowWidth >= 600
-                              && (
-                              <td className={ classes.uploadCell } style={ cellStyle }>
-                                { upload.paused ? 'paused' : 'pending' }
+                            {upload.current ? (
+                              <td className={classes.uploadCell} style={cellStyle}>
+                                <div className={classes.uploadProgress}>
+                                  <LinearProgress variant="determinate" value={prog} />
+                                </div>
                               </td>
-                              )}
-                                  <td className={ `${classes.uploadCell} ${classes.cancelCell}` } style={ cellStyle }>
-                                    { isCancelled
-                                      ? <CircularProgress className={ classes.uploadCancelled } size={ 15 } />
-                                      : <Button onClick={ () => this.cancelUploading([id]) }><HighlightOffIcon /></Button> }
+                            ) : (
+                              <>
+                                {windowWidth >= 600 && (
+                                  <td className={classes.uploadCell} style={cellStyle}>
+                                    {upload.paused ? 'paused' : 'pending'}
                                   </td>
-                                </>
-                              )}
+                                )}
+                                <td className={`${classes.uploadCell} ${classes.cancelCell}`} style={cellStyle}>
+                                  {isCancelled ? (
+                                    <CircularProgress className={classes.uploadCancelled} size={15} />
+                                  ) : (
+                                    <Button onClick={() => this.cancelUploading([id])}>
+                                      <HighlightOffIcon />
+                                    </Button>
+                                  )}
+                                </td>
+                              </>
+                            )}
                           </tr>
                         );
-                      }) }
+                      })}
                     </tbody>
                   </table>
                 </>
-              )
-                : deviceOffline
-                  ? <p>device offline</p>
-                  : (hasData
-                    ? <p>no uploads</p>
-                    : <CircularProgress style={{ color: Colors.white, margin: 8 }} size={ 17 } />)}
+              ) : deviceOffline ? (
+                <p>device offline</p>
+              ) : hasData ? (
+                <p>no uploads</p>
+              ) : (
+                <CircularProgress style={{ color: Colors.white, margin: 8 }} size={17} />
+              )}
             </div>
             <div className={classes.buttonGroup}>
-              <Button
-                variant="contained"
-                className={ classes.cancelButton }
-                disabled={ !hasUploading }
-                onClick={ hasUploading ? () => this.cancelUploading() : null }
-              >
+              <Button variant="contained" className={classes.cancelButton} disabled={!hasUploading} onClick={hasUploading ? () => this.cancelUploading() : null}>
                 Cancel All
               </Button>
-              <Button variant="contained" className={ classes.cancelButton } onClick={ this.props.onClose }>
+              <Button variant="contained" className={classes.cancelButton} onClick={this.props.onClose}>
                 Close
               </Button>
             </div>

@@ -1,10 +1,5 @@
 import MyCommaAuth from '@commaai/my-comma-auth';
-import {
-  Divider,
-  ListItem,
-  Menu,
-  MenuItem,
-} from '@material-ui/core';
+import { Divider, ListItem, Menu, MenuItem } from '@material-ui/core';
 import dayjs from 'dayjs';
 import { useCallback, useMemo } from 'react';
 
@@ -23,7 +18,11 @@ const Version = () => {
 
   if (sha) {
     const commitUrl = `https://github.com/commaai/connect/commit/${sha}`;
-    content.push(<a key="0" className="text-blue-400 underline" href={commitUrl} target="_blank" rel="noreferrer">{sha.substring(0, 7)}</a>);
+    content.push(
+      <a key="0" className="text-blue-400 underline" href={commitUrl} target="_blank" rel="noreferrer">
+        {sha.substring(0, 7)}
+      </a>,
+    );
 
     if (timestamp) {
       const buildDate = dayjs(timestamp).fromNow();
@@ -33,7 +32,7 @@ const Version = () => {
     content.push('dev');
   }
 
-  return <span className="text-xs text-[#ffffff66]">{content}</span>
+  return <span className="text-xs text-[#ffffff66]">{content}</span>;
 };
 
 const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
@@ -59,18 +58,10 @@ const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
         {version}
       </ListItem>
       <Divider />
-      <MenuItem
-        className="py-3 px-4"
-        component="a"
-        href="https://useradmin.comma.ai/"
-        target="_blank"
-      >
+      <MenuItem className="py-3 px-4" component="a" href="https://useradmin.comma.ai/" target="_blank">
         Manage Account
       </MenuItem>
-      <MenuItem
-        className="py-3 px-4"
-        onClick={onLogOut}
-      >
+      <MenuItem className="py-3 px-4" onClick={onLogOut}>
         Log out
       </MenuItem>
     </Menu>
