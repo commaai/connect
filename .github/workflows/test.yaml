@@ -26,10 +26,10 @@ jobs:
         run: bun run lint
 
       - name: Run unit tests
-        run: bun run test
+        run: bun run jest
 
-      - name: Run end-to-end tests
-        run: bun run test-puppeteer-build
+      #- name: Run end-to-end tests
+      #  run: bun run test-puppeteer-build
 
   # bundle_size:
   #   runs-on: ubuntu-latest

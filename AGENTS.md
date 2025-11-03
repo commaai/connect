@@ -11,8 +11,9 @@ your loop is:
 
 
 for all changes, make sure to:
-- run the tests
-- run the linter and formatter ("bun lint")
+- run the tests: bun run jest
+- run the linter: bun lint
+- run the formatter: bun format
 
 some more tips:
 - always prioritize the simple, straightforward changes over risky big ones.
