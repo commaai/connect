@@ -3,20 +3,20 @@ import { styled } from '@mui/material/styles';
 import localforage from 'localforage';
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useLocation } from 'react-router';
+import { Route, Switch, useLocation } from 'react-router';
 import { replace } from '../navigation';
 
 import { devices as Devices } from '@commaai/api';
-import { checkLastRoutesData, selectDevice, updateDevice } from '../actions';
+import { selectDevice, updateDevice } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
-import { pause, play } from '../timeline/playback';
 import { pairErrorToMessage, verifyPairToken } from '../utils';
-import { getSegmentRange } from '../url';
 import AppDrawer from './AppDrawer';
 import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
+import DeviceInfo from './DeviceInfo';
 import DriveView from './DriveView';
+import Navigation from './Navigation';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 import IosPwaPopup from './IosPwaPopup';
 import ResizeHandler from './ResizeHandler';
@@ -59,17 +59,6 @@ const ExplorerApp = () => {
   // Get Redux state
   const dongleId = useSelector((state) => state.dongleId);
   const devices = useSelector((state) => state.devices);
-  const limit = useSelector((state) => state.limit);
-  const routes = useSelector((state) => state.routes);
-
-  // Calculate current route and zoom from location
-  const seg = getSegmentRange(location?.pathname || '/');
-  const currentRoute = (seg && routes && routes.find((r) => r.log_id === seg.log_id)) || null;
-  let zoom = null;
-  if (currentRoute) {
-    const hasTimes = typeof seg.start === 'number' && typeof seg.end === 'number' && !Number.isNaN(seg.start) && !Number.isNaN(seg.end);
-    zoom = hasTimes ? { start: seg.start - currentRoute.start_time_utc_millis, end: seg.end - currentRoute.start_time_utc_millis } : { start: 0, end: currentRoute.duration };
-  }
 
   // Initial mount effect
   useEffect(() => {
@@ -142,22 +131,6 @@ const ExplorerApp = () => {
     }
   }, [location.pathname]);
 
-  // Handle zoom changes for playback
-  useEffect(() => {
-    if (zoom) {
-      dispatch(play());
-    } else {
-      dispatch(pause());
-    }
-  }, [zoom, dispatch]);
-
-  // Check routes data when dongleId changes
-  useEffect(() => {
-    if (dongleId && limit === 0) {
-      dispatch(checkLastRoutesData());
-    }
-  }, [dongleId, limit, dispatch]);
-
   const closePair = async () => {
     await localforage.removeItem('pairToken');
     if (pairDongleId) {
@@ -198,13 +171,16 @@ const ExplorerApp = () => {
     minHeight: `calc(100vh - ${headerHeight}px)`,
   };
 
+  // Check if we're viewing a route based on URL
+  const isViewingRoute = location.pathname.split('/').filter(Boolean).length >= 2;
+
   return (
     <div>
       <ResizeHandler onResize={(ww) => setWindowWidth(ww)} />
       <PullDownReload />
       <AppHeader
         drawerIsOpen={drawerIsOpen}
-        viewingRoute={Boolean(currentRoute)}
+        viewingRoute={isViewingRoute}
         showDrawerButton={!isLarge}
         handleDrawerStateChanged={handleDrawerStateChanged}
         forwardRef={updateHeaderRef}
@@ -218,7 +194,20 @@ const ExplorerApp = () => {
         }}
         style={containerStyles}
       >
-        {noDevicesUpsell ? <NoDeviceUpsell /> : currentRoute ? <DriveView /> : <Dashboard />}
+        {noDevicesUpsell ? (
+          <NoDeviceUpsell />
+        ) : (
+          <>
+            <Navigation />
+            <DeviceInfo />
+            <Switch>
+              <Route path="/:dongleId/:routeId/:start/:end" component={DriveView} />
+              <Route path="/:dongleId/:routeId" component={DriveView} />
+              <Route path="/:dongleId" component={Dashboard} />
+              <Route path="/" component={Dashboard} />
+            </Switch>
+          </>
+        )}
       </Box>
       <IosPwaPopup />
       <Modal open={Boolean(pairLoading || pairError || pairDongleId)} onClose={closePair}>

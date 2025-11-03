@@ -1,5 +1,6 @@
 import { IconButton, Typography } from '@mui/material';
 import dayjs from 'dayjs';
+import { memo } from 'react';
 import { useSelector } from 'react-redux';
 import { ArrowBackBold, CloseBold } from '../../icons';
 import { navigate } from '../../navigation';
@@ -7,7 +8,7 @@ import { selectCurrentRoute, selectRouteZoom } from '../../selectors/route';
 import Timeline from '../Timeline';
 import Media from './Media';
 
-const DriveView = () => {
+const DriveView = memo(() => {
   const dongleId = useSelector((state) => state.dongleId);
   const routes = useSelector((state) => state.routes);
   const zoom = useSelector(selectRouteZoom);
@@ -55,6 +56,8 @@ const DriveView = () => {
       </div>
     </div>
   );
-};
+});
+
+DriveView.displayName = 'DriveView';
 
 export default DriveView;

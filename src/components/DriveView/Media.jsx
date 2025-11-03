@@ -18,7 +18,6 @@ import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils'
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
 import UploadQueue from '../Files/UploadQueue';
-import ResizeHandler from '../ResizeHandler';
 import TimeDisplay from '../TimeDisplay';
 import SwitchLoading from '../utils/SwitchLoading';
 
@@ -679,6 +678,13 @@ const Media = ({ menusOnly }) => {
     }
   }, [currentRoute, device, profile, dongleId, dispatch]);
 
+  // Use resize observer to track window width locally
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   if (menusOnly) {
     // for test
     return renderMenus(true);
@@ -690,7 +696,6 @@ const Media = ({ menusOnly }) => {
 
   return (
     <Root>
-      <ResizeHandler onResize={(ww) => setWindowWidth(ww)} />
       <Box sx={mediaContainerStyle}>
         {renderMediaOptions(showMapAlways)}
         {inView === MediaType.VIDEO && <DriveVideo isMuted={isMuted} onAudioStatusChange={handleAudioStatusChange} />}

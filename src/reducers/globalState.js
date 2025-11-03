@@ -52,14 +52,18 @@ export default function reducer(_state, action) {
       state.profile = action.profile;
       break;
     }
-    case Types.ACTION_SELECT_DEVICE:
+    case Types.ACTION_SELECT_DEVICE: {
+      // Check if we're actually switching to a different device
+      const isDifferentDevice = state.dongleId !== action.dongleId;
+
       state = {
         ...state,
         dongleId: action.dongleId,
         subscription: null,
         subscribeInfo: null,
         files: null,
-        limit: 0,
+        // Only reset limit if switching to a different device
+        limit: isDifferentDevice ? 0 : state.limit,
       };
       window.localStorage.setItem('selectedDongleId', action.dongleId);
       if (state.devices) {
@@ -68,16 +72,19 @@ export default function reducer(_state, action) {
           state.device = newDevice;
         }
       }
-      if (state.routesMeta && state.routesMeta.dongleId !== state.dongleId) {
+      // Clear routes metadata if switching to a different device
+      if (isDifferentDevice && state.routesMeta) {
         state.routesMeta = {
           dongleId: null,
           start: null,
           end: null,
         };
+        // Preserve lastRoutes so DriveList can display them while new routes load
+        state.lastRoutes = state.routes;
         state.routes = null;
-        state.lastRoutes = null;
       }
       break;
+    }
     case Types.ACTION_SELECT_TIME_FILTER:
       state = {
         ...state,

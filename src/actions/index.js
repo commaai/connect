@@ -27,9 +27,11 @@ export function checkRoutesData() {
       // there is already an pending request
       return routesRequestPromise;
     }
-    console.debug('We need to update the segment metadata...');
     const { dongleId } = state;
     const fetchRange = state.filter;
+
+    // Use a minimum limit to ensure we always fetch at least some routes
+    const limit = state.limit || LIMIT_INCREMENT;
 
     // if requested segment range (from URL) not in loaded routes, fetch it explicitly
     const urlSeg = selectSegmentRange();
@@ -40,7 +42,7 @@ export function checkRoutesData() {
       };
     } else {
       routesRequest = {
-        req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, state.limit),
+        req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, limit),
         dongleId,
       };
     }
@@ -284,7 +286,11 @@ export function selectDevice(dongleId, allowPathChange = true) {
       dongleId,
     });
 
-    dispatch(pushTimelineRange(null, null, null, false));
+    // Don't clear routes immediately - let them persist while new routes load
+    // This prevents flashing when switching devices since routes-based conditional rendering
+    // won't unmount components during the async data fetch
+    // dispatch(pushTimelineRange(null, null, null, false));
+
     if ((device && !device.shared) || state.profile?.superuser) {
       dispatch(primeFetchSubscription(dongleId, device));
       dispatch(fetchDeviceOnline(dongleId));

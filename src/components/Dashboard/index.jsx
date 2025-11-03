@@ -1,10 +1,9 @@
 import { CircularProgress, Grid } from '@mui/material';
-import { lazy, Suspense } from 'react';
+import { lazy, memo, Suspense } from 'react';
 import { useSelector } from 'react-redux';
 import { withRouter } from 'react-router';
-import DeviceInfo from '../DeviceInfo';
-import Navigation from '../Navigation';
 import DriveList from './DriveList';
+import { getPrimeNav } from '../../url';
 
 const Prime = lazy(() => import('../Prime'));
 
@@ -16,9 +15,7 @@ const DashboardLoading = () => (
   </Grid>
 );
 
-import { getPrimeNav } from '../../url';
-
-const Dashboard = ({ location }) => {
+const Dashboard = memo(({ location }) => {
   const device = useSelector((state) => state.device);
   const dongleId = useSelector((state) => state.dongleId);
 
@@ -33,15 +30,13 @@ const Dashboard = ({ location }) => {
         {primeNav ? (
           <Prime />
         ) : (
-          <>
-            <Navigation />
-            <DeviceInfo />
-            <DriveList />
-          </>
+          <DriveList />
         )}
       </Suspense>
     </div>
   );
-};
+});
+
+Dashboard.displayName = 'Dashboard';
 
 export default withRouter(Dashboard);

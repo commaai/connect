@@ -51,7 +51,7 @@ const DriveList = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-      <VisibilityHandler onVisible={() => dispatch(checkRoutesData())} minInterval={60} />
+      <VisibilityHandler onVisible={() => dispatch(checkRoutesData())} onInit onDongleId minInterval={60} />
       {content}
       {contentStatus}
     </Box>

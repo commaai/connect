@@ -13,15 +13,6 @@ import ResizeHandler from '../ResizeHandler';
 import TimeSelect from '../TimeSelect';
 import VisibilityHandler from '../VisibilityHandler';
 
-const Container = styled(Box)(({ theme }) => ({
-  borderBottom: `1px solid ${Colors.white10}`,
-  paddingTop: 8,
-  display: 'flex',
-  flexDirection: 'column',
-  minHeight: 64,
-  justifyContent: 'center',
-}));
-
 const Row = styled(Box)(({ theme }) => ({
   display: 'flex',
   justifyContent: 'space-between',
@@ -183,6 +174,7 @@ const DeviceInfo = () => {
 
   const snapshotButtonRef = useRef(null);
   const mounted = useRef(false);
+  const prevDongleIdRef = useRef(dongleId);
 
   // Set mounted on initial mount
   useEffect(() => {
@@ -192,13 +184,11 @@ const DeviceInfo = () => {
     };
   }, []);
 
-  // Reset state when dongleId changes
+  // Clear snapshot when dongleId changes (keep stats and car health for smoother transitions)
   useEffect(() => {
-    if (dongleId) {
-      setDeviceStats({});
-      setCarHealth({});
+    if (dongleId && prevDongleIdRef.current !== dongleId) {
+      prevDongleIdRef.current = dongleId;
       setSnapshot({});
-      setWindowWidth(window.innerWidth);
     }
   }, [dongleId]);
 
@@ -207,10 +197,10 @@ const DeviceInfo = () => {
   };
 
   const fetchDeviceInfo = useCallback(async () => {
-    if (device.shared) {
+    if (!device || device.shared) {
       return;
     }
-    setDeviceStats({ fetching: true });
+    setDeviceStats((prev) => ({ ...prev, fetching: true }));
     try {
       const resp = await Devices.fetchDeviceStats(dongleId);
       if (mounted.current) {
@@ -219,9 +209,9 @@ const DeviceInfo = () => {
     } catch (err) {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'device_info_device_stats' });
-      setDeviceStats({ error: err.message });
+      setDeviceStats((prev) => ({ ...prev, error: err.message }));
     }
-  }, [dongleId, device.shared]);
+  }, [dongleId, device]);
 
   const fetchDeviceCarHealth = useCallback(async () => {
     if (!deviceIsOnline(device)) {
@@ -229,7 +219,7 @@ const DeviceInfo = () => {
       return;
     }
 
-    setCarHealth({ fetching: true });
+    setCarHealth((prev) => ({ ...prev, fetching: true }));
     try {
       const payload = {
         method: 'getMessage',
@@ -247,17 +237,17 @@ const DeviceInfo = () => {
           console.error(err);
           Sentry.captureException(err, { fingerprint: 'device_info_athena_pandastate' });
         }
-        setCarHealth({ error: err.message });
+        setCarHealth((prev) => ({ ...prev, error: err.message }));
       }
     }
   }, [dongleId, device]);
 
   const onVisible = useCallback(() => {
-    if (!device.shared) {
+    if (device && !device.shared) {
       fetchDeviceInfo();
       fetchDeviceCarHealth();
     }
-  }, [device.shared, fetchDeviceInfo, fetchDeviceCarHealth]);
+  }, [device, fetchDeviceInfo, fetchDeviceCarHealth]);
 
   const takeSnapshot = async () => {
     setSnapshot((prev) => ({ ...prev, error: null, fetching: true }));
@@ -306,9 +296,24 @@ const DeviceInfo = () => {
     if (!deviceStats.result) {
       return (
         <>
-          <div />
-          <div />
-          <div />
+          <DeviceStat sx={{ visibility: 'hidden' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              0
+            </Typography>
+            <Typography variant="subtitle1">miles</Typography>
+          </DeviceStat>
+          <DeviceStat sx={{ visibility: 'hidden' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              0
+            </Typography>
+            <Typography variant="subtitle1">drives</Typography>
+          </DeviceStat>
+          <DeviceStat sx={{ visibility: 'hidden' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              0
+            </Typography>
+            <Typography variant="subtitle1">hours</Typography>
+          </DeviceStat>
         </>
       );
     }
@@ -417,6 +422,11 @@ const DeviceInfo = () => {
   const containerPadding = windowWidth > 520 ? 36 : 16;
   const largeSnapshotPadding = windowWidth > 1440 ? '12px 0' : 0;
 
+  // Don't render if no device is selected
+  if (!dongleId || !device) {
+    return null;
+  }
+
   return (
     <>
       <ResizeHandler onResize={onResize} />
@@ -445,7 +455,7 @@ const DeviceInfo = () => {
               <Typography variant="h6">{deviceNamePretty(device)}</Typography>
             </Row>
             <Row>{renderButtons()}</Row>
-            {deviceStats.result && <Row sx={{ display: 'flex', justifyContent: 'space-around' }}>{renderStats()}</Row>}
+            <Row sx={{ display: 'flex', justifyContent: 'space-around' }}>{renderStats()}</Row>
           </>
         )}
       </Box>

@@ -168,6 +168,7 @@ const Navigation = () => {
 
   // Refs
   const mounted = useRef(false);
+  const prevDongleIdRef = useRef(dongleId);
   const mapContainerRef = useRef(null);
   const searchSelectBoxRef = useRef(null);
   const primeAdBoxRef = useRef(null);
@@ -323,7 +324,8 @@ const Navigation = () => {
         }
       }
     }
-  }, [noFly, geoLocateCoords, searchSelect, windowWidth, viewport, itemLngLat, getCarLocation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noFly, geoLocateCoords, searchSelect, windowWidth, itemLngLat, getCarLocation]);
 
   const checkWebGLSupport = useCallback(() => {
     const canvas = document.createElement('canvas');
@@ -334,7 +336,7 @@ const Navigation = () => {
   }, []);
 
   const getDeviceLastLocation = useCallback(async () => {
-    if (device.shared) {
+    if (!device || device.shared) {
       return;
     }
     try {
@@ -349,7 +351,7 @@ const Navigation = () => {
         Sentry.captureException(err, { fingerprint: 'nav_fetch_location' });
       }
     }
-  }, [dongleId, device.shared]);
+  }, [dongleId, device]);
 
   const getDeviceNetworkLocation = useCallback(async () => {
     const payload = {
@@ -555,19 +557,12 @@ const Navigation = () => {
     flyToMarkers();
   }, [flyToMarkers]);
 
-  // Reset state when dongleId changes
+  // Clear UI state when dongleId changes (keep location data for smoother transitions)
   useEffect(() => {
-    if (dongleId) {
-      setHasFocus(false);
-      setCarLastLocation(null);
-      setCarLastLocationTime(null);
-      setCarNetworkLocation(null);
-      setCarNetworkLocationAccuracy(null);
-      setGeoLocateCoords(null);
+    if (dongleId && prevDongleIdRef.current !== dongleId) {
+      prevDongleIdRef.current = dongleId;
       setSearchSelect(null);
       setSearchLooking(false);
-      setNoFly(false);
-      setWindowWidth(window.innerWidth);
       setShowPrimeAd(true);
     }
   }, [dongleId]);
@@ -585,6 +580,11 @@ const Navigation = () => {
     if (pixelsAvailable < 50) {
       carPinTooltipStyle = { transform: 'translate(calc(-50% + 10px), -81px)' };
     }
+  }
+
+  // Don't render if no device is selected
+  if (!dongleId || !device) {
+    return null;
   }
 
   return (
