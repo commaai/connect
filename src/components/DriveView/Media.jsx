@@ -1,8 +1,9 @@
 import { drives as Drives } from '@commaai/api';
-import { Button, CircularProgress, Divider, ListItem, Menu, MenuItem, Popper, Typography, withStyles } from '@material-ui/core';
-import ContentCopyIcon from '@material-ui/icons/ContentCopy';
-import ShareIcon from '@material-ui/icons/Share';
-import WarningIcon from '@material-ui/icons/Warning';
+import { Button, CircularProgress, Divider, ListItem, Menu, MenuItem, Popper, Typography } from '@mui/material';
+import { withStyles } from '@mui/styles';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import ShareIcon from '@mui/icons-material/Share';
+import WarningIcon from '@mui/icons-material/Warning';
 import * as Sentry from '@sentry/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';

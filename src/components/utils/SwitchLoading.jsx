@@ -1,4 +1,5 @@
-import { FormControlLabel, Popper, Switch, Typography, withStyles } from '@material-ui/core';
+import { FormControlLabel, Popper, Switch, Typography } from '@mui/material';
+import { withStyles } from '@mui/styles';
 import { useState } from 'react';
 
 import Colors from '../../colors';

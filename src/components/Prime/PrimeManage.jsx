@@ -1,7 +1,8 @@
 import { billing as Billing } from '@commaai/api';
-import { Button, CircularProgress, IconButton, Modal, Paper, Typography, withStyles } from '@material-ui/core';
-import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
-import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
+import { Button, CircularProgress, IconButton, Modal, Paper, Typography } from '@mui/material';
+import { withStyles } from '@mui/styles';
+import KeyboardBackspaceIcon from '@mui/icons-material/KeyboardBackspace';
+import PriorityHighIcon from '@mui/icons-material/PriorityHigh';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 import { useCallback, useEffect, useRef, useState } from 'react';

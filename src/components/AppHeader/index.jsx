@@ -1,7 +1,7 @@
 import MyCommaAuth from '@commaai/my-comma-auth';
-import { AppBar, Icon, IconButton, Typography } from '@material-ui/core';
+import { AppBar, Icon, IconButton, Typography } from '@mui/material';
 
-import { withStyles } from '@material-ui/core/styles';
+import { withStyles } from '@mui/styles';
 import { Suspense, useCallback, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 

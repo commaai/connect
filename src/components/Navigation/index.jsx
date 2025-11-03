@@ -1,6 +1,7 @@
 import { athena as Athena, devices as Devices } from '@commaai/api';
-import { Button, Typography, withStyles } from '@material-ui/core';
-import { Clear } from '@material-ui/icons';
+import { Button, Typography } from '@mui/material';
+import { withStyles } from '@mui/styles';
+import { Clear } from '@mui/icons-material';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 import { useCallback, useEffect, useRef, useState } from 'react';

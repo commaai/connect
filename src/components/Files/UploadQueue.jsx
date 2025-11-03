@@ -1,6 +1,7 @@
-import { Button, CircularProgress, Divider, LinearProgress, Modal, Paper, Typography, withStyles } from '@material-ui/core';
-import HighlightOffIcon from '@material-ui/icons/HighlightOff';
-import WarningIcon from '@material-ui/icons/Warning';
+import { Button, CircularProgress, Divider, LinearProgress, Modal, Paper, Typography } from '@mui/material';
+import { withStyles } from '@mui/styles';
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
+import WarningIcon from '@mui/icons-material/Warning';
 import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 

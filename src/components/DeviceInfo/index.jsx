@@ -1,6 +1,7 @@
 import { athena as Athena, devices as Devices } from '@commaai/api';
-import { Button, CircularProgress, Popper, Tooltip, Typography, withStyles } from '@material-ui/core';
-import AccessTime from '@material-ui/icons/AccessTime';
+import { Button, CircularProgress, Popper, Tooltip, Typography } from '@mui/material';
+import { withStyles } from '@mui/styles';
+import AccessTime from '@mui/icons-material/AccessTime';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 import { useCallback, useEffect, useRef, useState } from 'react';

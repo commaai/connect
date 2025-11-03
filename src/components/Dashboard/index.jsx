@@ -1,4 +1,4 @@
-import { CircularProgress, Grid } from '@material-ui/core';
+import { CircularProgress, Grid } from '@mui/material';
 import { lazy, Suspense } from 'react';
 import { useSelector } from 'react-redux';
 import { withRouter } from 'react-router';

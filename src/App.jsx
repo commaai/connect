@@ -1,6 +1,6 @@
 import { athena as Athena, auth as Auth, billing as Billing, request as Request } from '@commaai/api';
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
-import { CircularProgress, Grid } from '@material-ui/core';
+import { CircularProgress, Grid } from '@mui/material';
 import * as Sentry from '@sentry/react';
 import localforage from 'localforage';
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';

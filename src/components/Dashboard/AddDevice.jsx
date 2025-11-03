@@ -1,6 +1,7 @@
 import { devices as Devices } from '@commaai/api';
-import { Button, CircularProgress, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
-import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
+import { Button, CircularProgress, Divider, Modal, Paper, Typography } from '@mui/material';
+import { withStyles } from '@mui/styles';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import * as Sentry from '@sentry/react';
 import QrScanner from 'qr-scanner';
 import { useCallback, useEffect, useRef, useState } from 'react';

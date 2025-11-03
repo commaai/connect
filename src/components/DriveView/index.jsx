@@ -1,4 +1,4 @@
-import { IconButton, Typography } from '@material-ui/core';
+import { IconButton, Typography } from '@mui/material';
 import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import { ArrowBackBold, CloseBold } from '../../icons';

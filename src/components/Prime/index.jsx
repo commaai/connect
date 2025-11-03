@@ -1,4 +1,4 @@
-import { Typography } from '@material-ui/core';
+import { Typography } from '@mui/material';
 import { useSelector } from 'react-redux';
 import PrimeCheckout from './PrimeCheckout';
 import PrimeManage from './PrimeManage';

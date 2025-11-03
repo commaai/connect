@@ -2,7 +2,7 @@
 // rapidly change high level timeline stuff
 // rapid seeking, etc
 
-import { withStyles } from '@material-ui/core/styles';
+import { withStyles } from '@mui/styles';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';

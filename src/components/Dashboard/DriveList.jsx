@@ -1,4 +1,5 @@
-import { Typography, withStyles } from '@material-ui/core';
+import { Typography } from '@mui/material';
+import { withStyles } from '@mui/styles';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { checkLastRoutesData, checkRoutesData } from '../../actions';

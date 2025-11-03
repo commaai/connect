@@ -1,4 +1,5 @@
-import { Grid, Typography, withStyles } from '@material-ui/core';
+import { Grid, Typography } from '@mui/material';
+import { withStyles } from '@mui/styles';
 
 import { useWindowWidth } from '../../hooks/window';
 

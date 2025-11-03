@@ -1,9 +1,9 @@
-import { Tooltip } from '@material-ui/core';
-import IconButton from '@material-ui/core/IconButton';
-import { withStyles } from '@material-ui/core/styles';
-import Typography from '@material-ui/core/Typography';
-import VolumeOff from '@material-ui/icons/VolumeOff';
-import VolumeUp from '@material-ui/icons/VolumeUp';
+import { Tooltip } from '@mui/material';
+import IconButton from '@mui/material/IconButton';
+import { withStyles } from '@mui/styles';
+import Typography from '@mui/material/Typography';
+import VolumeOff from '@mui/icons-material/VolumeOff';
+import VolumeUp from '@mui/icons-material/VolumeUp';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';

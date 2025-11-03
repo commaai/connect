@@ -1,6 +1,7 @@
 import MyCommaAuth from '@commaai/my-comma-auth';
-import { Typography, withStyles } from '@material-ui/core';
-import { Clear } from '@material-ui/icons';
+import { Typography } from '@mui/material';
+import { withStyles } from '@mui/styles';
+import { Clear } from '@mui/icons-material';
 import localforage from 'localforage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router';

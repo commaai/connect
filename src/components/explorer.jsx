@@ -1,4 +1,5 @@
-import { Button, CircularProgress, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
+import { Button, CircularProgress, Divider, Modal, Paper, Typography } from '@mui/material';
+import { withStyles } from '@mui/styles';
 import localforage from 'localforage';
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';

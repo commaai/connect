@@ -1,4 +1,5 @@
-import { Button, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
+import { Button, Divider, Modal, Paper, Typography } from '@mui/material';
+import { withStyles } from '@mui/styles';
 import dayjs from 'dayjs';
 import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';

@@ -1,9 +1,10 @@
 import { devices as Devices } from '@commaai/api';
-import { Button, CircularProgress, Divider, IconButton, Modal, Paper, TextField, Typography, withStyles } from '@material-ui/core';
-import CheckIcon from '@material-ui/icons/Check';
-import SaveIcon from '@material-ui/icons/Save';
-import ShareIcon from '@material-ui/icons/Share';
-import WarningIcon from '@material-ui/icons/Warning';
+import { Button, CircularProgress, Divider, IconButton, Modal, Paper, TextField, Typography } from '@mui/material';
+import { withStyles } from '@mui/styles';
+import CheckIcon from '@mui/icons-material/Check';
+import SaveIcon from '@mui/icons-material/Save';
+import ShareIcon from '@mui/icons-material/Share';
+import WarningIcon from '@mui/icons-material/Warning';
 import * as Sentry from '@sentry/react';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';

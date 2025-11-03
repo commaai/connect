@@ -1,7 +1,8 @@
 import { devices as Devices } from '@commaai/api';
 import MyCommaAuth from '@commaai/my-comma-auth';
-import { IconButton, Typography, withStyles } from '@material-ui/core';
-import SettingsIcon from '@material-ui/icons/Settings';
+import { IconButton, Typography } from '@mui/material';
+import { withStyles } from '@mui/styles';
+import SettingsIcon from '@mui/icons-material/Settings';
 import * as Sentry from '@sentry/react';
 import { useCallback, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';

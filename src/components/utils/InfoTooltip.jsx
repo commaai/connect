@@ -1,4 +1,5 @@
-import { ClickAwayListener, Tooltip, Typography, withStyles } from '@material-ui/core';
+import { ClickAwayListener, Tooltip, Typography } from '@mui/material';
+import { withStyles } from '@mui/styles';
 import { useState } from 'react';
 
 import { InfoOutline } from '../../icons';

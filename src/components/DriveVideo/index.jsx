@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 
 import { video as Video } from '@commaai/api';
-import { CircularProgress, Typography } from '@material-ui/core';
+import { CircularProgress, Typography } from '@mui/material';
 import debounce from 'debounce';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactPlayer from 'react-player/file';

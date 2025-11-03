@@ -1,5 +1,5 @@
 import MyCommaAuth from '@commaai/my-comma-auth';
-import { Divider, ListItem, Menu, MenuItem } from '@material-ui/core';
+import { Divider, ListItem, Menu, MenuItem } from '@mui/material';
 import dayjs from 'dayjs';
 import { useCallback, useMemo } from 'react';
 

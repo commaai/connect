@@ -1,8 +1,8 @@
 /* global AppleID */
 
 import { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
-import { withStyles } from '@material-ui/core/styles';
-import Typography from '@material-ui/core/Typography';
+import { withStyles } from '@mui/styles';
+import Typography from '@mui/material/Typography';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router';
 
