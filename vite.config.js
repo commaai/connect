@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks: {
             'react-vendor': ['react', 'react-dom'],
-            'mui': ['@material-ui/core', '@material-ui/icons'],
+            'mui': ['@mui/material', '@mui/icons-material', '@mui/styles'],
             'mapbox': ['mapbox-gl', 'react-map-gl'],
             'sentry': ['@sentry/react'],
           },
@@ -51,7 +51,6 @@ export default defineConfig(({ mode }) => {
     optimizeDeps: {
       esbuildOptions: {
         // Node.js global to browser globalThis
-        // Required for Material UI v1
         define: {
           global: 'globalThis',
         },

@@ -270,7 +270,7 @@ const DeviceSettingsModal = ({ classes, dongleId, isOpen, onClose }) => {
       <Modal aria-labelledby="device-settings-modal" aria-describedby="device-settings-modal-description" open={isOpen} onClose={onClose}>
         <Paper className={classes.modal}>
           <div className={classes.titleContainer}>
-            <Typography variant="title">Device settings</Typography>
+            <Typography variant="h6">Device settings</Typography>
             <Typography variant="caption">{device.dongle_id}</Typography>
           </div>
           <Divider />
@@ -342,7 +342,7 @@ const DeviceSettingsModal = ({ classes, dongleId, isOpen, onClose }) => {
       <Modal aria-labelledby="device-settings-modal" aria-describedby="device-settings-modal-description" open={unpairConfirm} onClose={closeUnpair}>
         <Paper className={`${classes.modal} ${classes.modalUnpair}`}>
           <div className={classes.titleContainer}>
-            <Typography variant="title">Unpair device</Typography>
+            <Typography variant="h6">Unpair device</Typography>
             <Typography variant="caption">{device.dongle_id}</Typography>
           </div>
           <Divider />

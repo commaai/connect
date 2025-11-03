@@ -336,22 +336,22 @@ const DeviceInfo = ({ classes }) => {
     return (
       <>
         <div className={classes.deviceStat}>
-          <Typography variant="subheading" className={classes.bold}>
+          <Typography variant="subtitle1" className={classes.bold}>
             {distance}
           </Typography>
-          <Typography variant="subheading">{metric ? 'kilometers' : 'miles'}</Typography>
+          <Typography variant="subtitle1">{metric ? 'kilometers' : 'miles'}</Typography>
         </div>
         <div className={classes.deviceStat}>
-          <Typography variant="subheading" className={classes.bold}>
+          <Typography variant="subtitle1" className={classes.bold}>
             {deviceStats.result.all.routes}
           </Typography>
-          <Typography variant="subheading">drives</Typography>
+          <Typography variant="subtitle1">drives</Typography>
         </div>
         <div className={classes.deviceStat}>
-          <Typography variant="subheading" className={classes.bold}>
+          <Typography variant="subtitle1" className={classes.bold}>
             {Math.round(deviceStats.result.all.minutes / 60.0)}
           </Typography>
-          <Typography variant="subheading">hours</Typography>
+          <Typography variant="subtitle1">hours</Typography>
         </div>
       </>
     );
@@ -436,14 +436,14 @@ const DeviceInfo = ({ classes }) => {
       <div className={classes.container} style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
         {windowWidth >= 768 ? (
           <div className={`${classes.row} ${classes.columnGap}`}>
-            <Typography variant="title">{deviceNamePretty(device)}</Typography>
+            <Typography variant="h6">{deviceNamePretty(device)}</Typography>
             <div className={classes.deviceStatContainer}>{renderStats()}</div>
             <div className={`${classes.row} ${classes.buttonRow}`}>{renderButtons()}</div>
           </div>
         ) : (
           <>
             <div className={classes.row}>
-              <Typography variant="title">{deviceNamePretty(device)}</Typography>
+              <Typography variant="h6">{deviceNamePretty(device)}</Typography>
             </div>
             <div className={classes.row}>{renderButtons()}</div>
             {deviceStats.result && <div className={`${classes.row} ${classes.spaceAround}`}>{renderStats()}</div>}

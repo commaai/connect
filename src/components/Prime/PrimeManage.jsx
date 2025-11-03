@@ -341,7 +341,7 @@ const PrimeManage = ({ classes }) => {
           </IconButton>
         </div>
         <div className={classes.primeContainer} style={{ padding: `16px ${containerPadding}px` }}>
-          <Typography variant="title">comma prime</Typography>
+          <Typography variant="h6">comma prime</Typography>
           {stripeStatus && (
             <>
               {stripeStatus.paid !== 'paid' && (
@@ -367,7 +367,7 @@ const PrimeManage = ({ classes }) => {
             </>
           )}
           <div className={classes.overviewBlock}>
-            <Typography variant="subheading">Device</Typography>
+            <Typography variant="subtitle1">Device</Typography>
             <div className={classes.manageItem}>
               <Typography variant="body2">{alias}</Typography>
               <Typography variant="caption" className={classes.deviceId}>
@@ -378,30 +378,30 @@ const PrimeManage = ({ classes }) => {
           {hasPrimeSub && (
             <>
               <div className={classes.overviewBlock}>
-                <Typography variant="subheading">Plan</Typography>
+                <Typography variant="subtitle1">Plan</Typography>
                 <Typography className={classes.manageItem}>
                   {planName}
                   <span>{` ${planSubtext}`}</span>
                 </Typography>
               </div>
               <div className={classes.overviewBlock}>
-                <Typography variant="subheading">Joined</Typography>
+                <Typography variant="subtitle1">Joined</Typography>
                 <Typography className={classes.manageItem}>{joinDate}</Typography>
               </div>
               {!hasCancelAt && (
                 <div className={classes.overviewBlock}>
-                  <Typography variant="subheading">Next payment</Typography>
+                  <Typography variant="subtitle1">Next payment</Typography>
                   <Typography className={classes.manageItem}>{nextPaymentDate}</Typography>
                 </div>
               )}
               {hasCancelAt && (
                 <div className={classes.overviewBlock}>
-                  <Typography variant="subheading">Subscription end</Typography>
+                  <Typography variant="subtitle1">Subscription end</Typography>
                   <Typography className={classes.manageItem}>{cancelAtDate}</Typography>
                 </div>
               )}
               <div className={classes.overviewBlock}>
-                <Typography variant="subheading">Amount</Typography>
+                <Typography variant="subtitle1">Amount</Typography>
                 <Typography className={classes.manageItem}>{`$${(subscription.amount / 100).toFixed(2)}`}</Typography>
               </div>
               {error && (
@@ -457,7 +457,7 @@ const PrimeManage = ({ classes }) => {
       </div>
       <Modal open={cancelModal} onClose={() => setCancelModal(false)}>
         <Paper className={classes.modal}>
-          <Typography variant="title">Cancel prime subscription</Typography>
+          <Typography variant="h6">Cancel prime subscription</Typography>
           {cancelError && (
             <div className={classes.cancelError}>
               <Typography>{cancelError}</Typography>

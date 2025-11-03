@@ -204,7 +204,7 @@ const UploadQueue = ({ classes, device, open, onClose, update }) => {
       <Modal aria-labelledby="upload-queue-modal" open={open} onClose={onClose}>
         <Paper className={classes.modal}>
           <div className={classes.titleContainer}>
-            <Typography variant="title">Upload queue</Typography>
+            <Typography variant="h6">Upload queue</Typography>
             <Typography variant="caption" style={{ marginLeft: 8 }}>
               {device.dongle_id}
             </Typography>

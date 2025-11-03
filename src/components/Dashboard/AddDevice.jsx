@@ -335,7 +335,7 @@ const AddDevice = ({ classes, buttonText, buttonStyle, buttonIcon }) => {
       <Modal aria-labelledby="add-device-modal" open={modalOpen} onClose={modalClose}>
         <Paper className={classes.modal}>
           <div className={classes.titleContainer}>
-            <Typography variant="title">Pair device</Typography>
+            <Typography variant="h6">Pair device</Typography>
             <Typography variant="caption">scan QR code</Typography>
           </div>
           <Divider className={classes.divider} />

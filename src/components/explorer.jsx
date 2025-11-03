@@ -229,7 +229,7 @@ const ExplorerApp = ({ classes }) => {
       <IosPwaPopup />
       <Modal open={Boolean(pairLoading || pairError || pairDongleId)} onClose={closePair}>
         <Paper className={classes.modal}>
-          <Typography variant="title">Pairing device</Typography>
+          <Typography variant="h6">Pairing device</Typography>
           <Divider />
           {pairLoading && <CircularProgress size={32} className={classes.fabProgress} />}
           {pairDongleId && (
