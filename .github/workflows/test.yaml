@@ -8,6 +8,32 @@ on:
   workflow_dispatch:
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.2
+
+      - name: get build info
+        id: build_info
+        run: echo timestamp=$(git show -s --format=%cI) >> $GITHUB_OUTPUT
+
+      - run: bun install
+      - run: bun run build:production
+        env:
+          VITE_APP_GIT_SHA: ${{ github.sha }}
+          VITE_APP_GIT_TIMESTAMP: ${{ steps.build_info.outputs.timestamp }}
+
+      - name: Upload built project
+        uses: actions/upload-artifact@v4
+        with:
+          path: ./dist
+          overwrite: true
+          retention-days: 1
+          name: build-artifacts-${{ github.run_id }}
+
   test:
     runs-on: ubuntu-latest
     steps:
@@ -63,7 +89,6 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     needs: [test]
-    if: github.ref == 'refs/heads/master' && github.repository == 'commaai/connect'
     permissions:
       packages: write
       contents: read
@@ -101,6 +126,7 @@ jobs:
         run: echo "GIT_TIMESTAMP=$(git show -s --format=%cI)" >> $GITHUB_ENV
 
       - uses: docker/build-push-action@v5
+        if: github.ref == 'refs/heads/master' && github.repository == 'commaai/connect'
         with:
           build-args: |
             VITE_APP_GIT_SHA=${{ github.event_name == 'push' && github.sha || github.event.pull_request.head.sha }}
