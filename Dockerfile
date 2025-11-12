@@ -1,9 +1,14 @@
-FROM oven/bun:1.3.2 AS base
+FROM oven/bun:latest AS base
+
+# needed to fix bun SSL bug
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 FROM base AS builder
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 RUN bun install
 
 COPY . .
