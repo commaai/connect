@@ -118,7 +118,6 @@ jobs:
         run: echo "GIT_TIMESTAMP=$(git show -s --format=%cI)" >> $GITHUB_ENV
 
       - uses: docker/build-push-action@v5
-        if: github.ref == 'refs/heads/master' && github.repository == 'commaai/connect'
         with:
           build-args: |
             VITE_APP_GIT_SHA=${{ github.event_name == 'push' && github.sha || github.event.pull_request.head.sha }}
@@ -127,6 +126,6 @@ jobs:
             SENTRY_RELEASE=${{ github.event_name == 'push' && github.sha || github.event.pull_request.head.sha }}
           builder: ${{ steps.buildx.outputs.name }}
           context: .
-          push: true
+          push: ${{ github.ref == 'refs/heads/master' && github.repository == 'commaai/connect' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
