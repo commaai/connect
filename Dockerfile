@@ -1,4 +1,5 @@
-FROM oven/bun:latest AS base
+# canary needed to fix bun SSL bug, revert to stable once fixed
+FROM oven/bun:canary AS base
 
 WORKDIR /app
 
