@@ -10,7 +10,7 @@
     "test": "jest",
     "test-coverage": "jest --coverage",
     "test-puppeteer": "jest -c src/__puppeteer__/jest.config.js",
-    "test-puppeteer-build": "JEST_PUPPETEER_CONFIG=jest-puppeteer.build.config.js pnpm test-puppeteer"
+    "test-puppeteer-build": "JEST_PUPPETEER_CONFIG=jest-puppeteer.build.config.js bun run test-puppeteer"
   },
   "repository": "https://github.com/commaai/connect.git",
   "author": "Chris Vickery <chrisinajar@gmail.com>",
