@@ -1,5 +1,5 @@
 # canary needed to fix bun SSL bug, revert to stable once fixed
-FROM oven/bun:canary AS base
+FROM oven/bun:canary-debian AS base
 
 WORKDIR /app
 
