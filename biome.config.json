@@ -1,0 +1,75 @@
+{
+  "root": true,
+  "extends": [
+    "biome:recommended",
+    "biome:react"
+  ],
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2020": true
+  },
+  "language": {
+    "jsx": true,
+    "modules": true,
+    "targets": ">0.2%, not dead, not op_mini all"
+  },
+  "globals": {
+    "gtag": "readonly",
+    "jestPuppeteer": "readonly",
+    "page": "readonly"
+  },
+  "files": [
+    "src/**/*"
+  ],
+  "rules": {
+    "camelcase": "off",
+    "class-methods-use-this": "off",
+    "default-case": "error",
+    "no-await-in-loop": "error",
+    "no-case-declarations": "error",
+    "no-empty": "error",
+    "no-multi-spaces": [
+      "error",
+      {
+        "ignoreEOLComments": true
+      }
+    ],
+    "no-plusplus": [
+      "error",
+      {
+        "allowForLoopAfterthoughts": true
+      }
+    ],
+    "no-param-reassign": "off",
+    "no-shadow": "error",
+    "no-underscore-dangle": "off",
+    "no-unused-vars": [
+      "error",
+      {
+        "args": "none"
+      }
+    ],
+    "no-use-before-define": "error",
+    "object-curly-newline": [
+      "error",
+      {
+        "consistent": true
+      }
+    ],
+    "quote-props": [
+      "error",
+      "as-needed",
+      {
+        "unnecessary": false
+      }
+    ],
+    "react/function-component-definition": [
+      "error",
+      {
+        "namedComponents": "arrow-function"
+      }
+    ],
+    "no-console": "off"
+  }
+}
