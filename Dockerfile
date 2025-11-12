@@ -1,6 +1,6 @@
-# canary needed to fix bun SSL bug, revert to stable once fixed
-FROM oven/bun:canary-debian AS base
+FROM oven/bun:latest AS base
 
+# needed to fix bun SSL bug
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates \
  && rm -rf /var/lib/apt/lists/*
