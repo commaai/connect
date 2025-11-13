@@ -8,9 +8,9 @@ import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
 
 import { devices as Devices } from '@commaai/api';
-import { selectDevice, updateDevice } from '../../actions';
-import { verifyPairToken, pairErrorToMessage } from '../../utils';
-import Colors from '../../colors';
+import { selectDevice, updateDevice } from '../../actions/index.js';
+import { verifyPairToken, pairErrorToMessage } from '../../utils/index.js';
+import Colors from '../../colors.js';
 
 const styles = (theme) => ({
   titleContainer: {

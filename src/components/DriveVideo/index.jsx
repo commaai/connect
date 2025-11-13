@@ -8,10 +8,10 @@ import ReactPlayer from 'react-player/file';
 
 import { video as Video } from '@commaai/api';
 
-import Colors from '../../colors';
-import { ErrorOutline } from '../../icons';
-import { currentOffset } from '../../timeline';
-import { seek, bufferVideo } from '../../timeline/playback';
+import Colors from '../../colors.js';
+import { ErrorOutline } from '../../icons/index.jsx';
+import { currentOffset } from '../../timeline/index.js';
+import { seek, bufferVideo } from '../../timeline/playback.js';
 import { isIos, isFirefox } from '../../utils/browser.js';
 
 const VideoOverlay = ({ loading, error }) => {

@@ -5,9 +5,9 @@ import { Link } from 'react-router-dom';
 
 import Drawer from '@material-ui/core/Drawer';
 
-import DeviceList from '../Dashboard/DeviceList';
+import DeviceList from '../Dashboard/DeviceList.jsx';
 
-import { selectDevice } from '../../actions';
+import { selectDevice } from '../../actions/index.js';
 
 const listener = (ev) => ev.stopPropagation();
 

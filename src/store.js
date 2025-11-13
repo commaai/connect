@@ -4,10 +4,10 @@ import thunk from 'redux-thunk';
 import { createBrowserHistory } from 'history';
 import reduceReducers from 'reduce-reducers';
 
-import reducers from './reducers';
-import composeEnhancers from './devtools';
-import initialState from './initialState';
-import { onHistoryMiddleware } from './actions/history';
+import reducers from './reducers/index.js';
+import composeEnhancers from './devtools.js';
+import initialState from './initialState.js';
+import { onHistoryMiddleware } from './actions/history.js';
 
 export const history = createBrowserHistory();
 

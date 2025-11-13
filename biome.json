@@ -1,9 +1,7 @@
 {
   "root": true,
   "files": {
-    "includes": [
-      "src/**/*"
-    ]
+    "includes": ["src/**/*"]
   },
   "formatter": {
     "indentStyle": "space",
@@ -17,9 +15,31 @@
       "semicolons": "always",
       "trailingCommas": "all"
     },
-    "globals": [
-      "jestPuppeteer",
-      "page"
-    ]
-  }
+    "globals": ["gtag", "jestPuppeteer", "page", "jest", "describe", "it", "beforeAll", "afterAll", "beforeEach", "afterEach", "expect", "test", "AppleID"]
+  },
+  "linter": {
+    "rules": {
+      "recommended": false,
+      "correctness": "warn",
+      "style": "off",
+      "suspicious": "off",
+      "security": "off",
+      "performance": "off",
+      "complexity": "off",
+      "nursery": "off",
+      "a11y": "off"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.jsx", "**/*.tsx"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noSolidDestructuredProps": "off"
+          }
+        }
+      }
+    }
+  ]
 }

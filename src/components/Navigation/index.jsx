@@ -8,14 +8,14 @@ import { Clear } from '@material-ui/icons';
 import dayjs from 'dayjs';
 
 import { athena as Athena, devices as Devices } from '@commaai/api';
-import { primeNav } from '../../actions';
-import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
-import Colors from '../../colors';
-import { PinCarIcon } from '../../icons';
-import { timeFromNow } from '../../utils';
-import ResizeHandler from '../ResizeHandler';
-import VisibilityHandler from '../VisibilityHandler';
-import * as Utils from './utils';
+import { primeNav } from '../../actions/index.js';
+import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode.js';
+import Colors from '../../colors.js';
+import { PinCarIcon } from '../../icons/index.jsx';
+import { timeFromNow } from '../../utils/index.js';
+import ResizeHandler from '../ResizeHandler/index.js';
+import VisibilityHandler from '../VisibilityHandler/index.jsx';
+import * as Utils from './utils.js';
 import { isIos } from '../../utils/browser.js';
 
 const styles = () => ({

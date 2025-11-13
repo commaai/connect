@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/react';
 
-import * as Types from './types';
-import { reverseLookup } from '../utils/geocode';
-import { toBool } from '../utils';
+import * as Types from './types.js';
+import { reverseLookup } from '../utils/geocode.js';
+import { toBool } from '../utils/index.js';
 
 const USE_LOCAL_COORDS_DATA = toBool(import.meta.env.VITE_APP_LOCAL_COORDS_DATA);
 if (USE_LOCAL_COORDS_DATA) {

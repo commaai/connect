@@ -11,10 +11,10 @@ import VolumeUp from '@material-ui/icons/VolumeUp';
 import VolumeOff from '@material-ui/icons/VolumeOff';
 import { Tooltip } from '@material-ui/core';
 
-import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow } from '../../icons';
-import { currentOffset } from '../../timeline';
-import { seek, play, pause } from '../../timeline/playback';
-import { getSegmentNumber } from '../../utils';
+import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow } from '../../icons/index.jsx';
+import { currentOffset } from '../../timeline/index.js';
+import { seek, play, pause } from '../../timeline/playback.js';
+import { getSegmentNumber } from '../../utils/index.js';
 import { isIos } from '../../utils/browser.js';
 
 const timerSteps = [0.1, 0.25, 0.5, 1, 2, 4, 8];

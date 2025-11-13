@@ -9,13 +9,13 @@ import SettingsIcon from '@material-ui/icons/Settings';
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { devices as Devices } from '@commaai/api';
 
-import { updateDevices } from '../../actions';
-import Colors from '../../colors';
-import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
-import VisibilityHandler from '../VisibilityHandler';
+import { updateDevices } from '../../actions/index.js';
+import Colors from '../../colors.js';
+import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils/index.js';
+import VisibilityHandler from '../VisibilityHandler/index.jsx';
 
-import AddDevice from './AddDevice';
-import DeviceSettingsModal from './DeviceSettingsModal';
+import AddDevice from './AddDevice.jsx';
+import DeviceSettingsModal from './DeviceSettingsModal.jsx';
 
 const styles = (theme) => ({
   deviceList: {

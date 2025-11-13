@@ -5,9 +5,9 @@ import raf from 'raf';
 
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
-import { fetchDriveCoords } from '../../actions/cached';
-import { currentOffset } from '../../timeline';
-import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
+import { fetchDriveCoords } from '../../actions/cached.js';
+import { currentOffset } from '../../timeline/index.js';
+import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode.js';
 
 const INTERACTION_TIMEOUT = 5000;
 

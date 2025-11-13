@@ -4,11 +4,11 @@ import Obstruction from 'obstruction';
 
 import { CircularProgress, Grid } from '@material-ui/core';
 
-import DriveList from './DriveList';
-import Navigation from '../Navigation';
-import DeviceInfo from '../DeviceInfo';
+import DriveList from './DriveList.jsx';
+import Navigation from '../Navigation/index.jsx';
+import DeviceInfo from '../DeviceInfo/index.jsx';
 
-const Prime = lazy(() => import('../Prime'));
+const Prime = lazy(() => import('../Prime/index.jsx'));
 
 const DashboardLoading = () => (
   <Grid container alignItems="center" style={{ width: '100%', height: '100vh' }}>

@@ -9,10 +9,10 @@ import ShareIcon from '@material-ui/icons/Share';
 import WarningIcon from '@material-ui/icons/Warning';
 
 import { devices as Devices } from '@commaai/api';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
-import Colors from '../../colors';
-import { ErrorOutline } from '../../icons';
-import UploadQueue from '../Files/UploadQueue';
+import { primeNav, selectDevice, updateDevice } from '../../actions/index.js';
+import Colors from '../../colors.js';
+import { ErrorOutline } from '../../icons/index.jsx';
+import UploadQueue from '../Files/UploadQueue.jsx';
 
 const styles = (theme) => ({
   modal: {

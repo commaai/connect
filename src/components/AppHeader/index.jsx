@@ -7,13 +7,13 @@ import { Typography, IconButton, Icon, AppBar } from '@material-ui/core';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
-import { selectDevice } from '../../actions';
-import { AccountIcon } from '../../icons';
-import Colors from '../../colors';
-import { filterRegularClick } from '../../utils';
+import { selectDevice } from '../../actions/index.js';
+import { AccountIcon } from '../../icons/index.jsx';
+import Colors from '../../colors.js';
+import { filterRegularClick } from '../../utils/index.js';
 
-import AccountMenu from './AccountMenu';
-import PWAIcon from '../PWAIcon';
+import AccountMenu from './AccountMenu.jsx';
+import PWAIcon from '../PWAIcon.jsx';
 
 const styles = () => ({
   header: {

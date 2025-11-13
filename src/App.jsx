@@ -11,13 +11,13 @@ import { CircularProgress, Grid } from '@material-ui/core';
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 import { athena as Athena, auth as Auth, billing as Billing, request as Request } from '@commaai/api';
 
-import { getZoom, getSegmentRange } from './url';
-import store, { history } from './store';
+import { getZoom, getSegmentRange } from './url.js';
+import store, { history } from './store.js';
 
-import ErrorFallback from './components/ErrorFallback';
+import ErrorFallback from './components/ErrorFallback.jsx';
 
-const Explorer = lazy(() => import('./components/explorer'));
-const AnonymousLanding = lazy(() => import('./components/anonymous'));
+const Explorer = lazy(() => import('./components/explorer.jsx'));
+const AnonymousLanding = lazy(() => import('./components/anonymous.jsx'));
 
 class App extends Component {
   constructor(props) {

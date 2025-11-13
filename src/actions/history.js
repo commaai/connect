@@ -1,6 +1,6 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getSegmentRange, getPrimeNav } from '../url';
-import { primeNav, selectDevice, pushTimelineRange, updateSegmentRange } from './index';
+import { getDongleID, getZoom, getSegmentRange, getPrimeNav } from '../url.js';
+import { primeNav, selectDevice, pushTimelineRange, updateSegmentRange } from './index.js';
 import { drives as Drives } from '@commaai/api';
 
 export const onHistoryMiddleware =

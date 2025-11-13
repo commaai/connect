@@ -3,12 +3,12 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { withStyles, Typography } from '@material-ui/core';
 
-import { checkRoutesData, checkLastRoutesData } from '../../actions';
-import VisibilityHandler from '../VisibilityHandler';
+import { checkRoutesData, checkLastRoutesData } from '../../actions/index.js';
+import VisibilityHandler from '../VisibilityHandler/index.jsx';
 
-import DriveListEmpty from './DriveListEmpty';
-import DriveListItem from './DriveListItem';
-import ScrollIntoView from '../ScrollIntoView';
+import DriveListEmpty from './DriveListEmpty.jsx';
+import DriveListItem from './DriveListItem.jsx';
+import ScrollIntoView from '../ScrollIntoView/index.jsx';
 
 const styles = () => ({
   drivesTable: {

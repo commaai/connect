@@ -1,4 +1,4 @@
-const jestConfig = require('../../jest.config');
+const jestConfig = require('../../jest.config.js');
 
 delete jestConfig.testEnvironment;
 

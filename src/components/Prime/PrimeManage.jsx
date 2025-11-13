@@ -9,11 +9,11 @@ import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
 
 import { billing as Billing } from '@commaai/api';
-import { deviceNamePretty, deviceTypePretty } from '../../utils';
-import ResizeHandler from '../ResizeHandler';
-import Colors from '../../colors';
-import { ErrorOutline, InfoOutline } from '../../icons';
-import { primeNav, primeGetSubscription } from '../../actions';
+import { deviceNamePretty, deviceTypePretty } from '../../utils/index.js';
+import ResizeHandler from '../ResizeHandler/index.js';
+import Colors from '../../colors.js';
+import { ErrorOutline, InfoOutline } from '../../icons/index.jsx';
+import { primeNav, primeGetSubscription } from '../../actions/index.js';
 
 const styles = (theme) => ({
   linkHighlight: {

@@ -9,11 +9,11 @@ import CheckIcon from '@material-ui/icons/Check';
 
 import { billing as Billing } from '@commaai/api';
 
-import { deviceNamePretty } from '../../utils';
-import ResizeHandler from '../ResizeHandler';
-import Colors from '../../colors';
-import { primeNav } from '../../actions';
-import { ErrorOutline, InfoOutline } from '../../icons';
+import { deviceNamePretty } from '../../utils/index.js';
+import ResizeHandler from '../ResizeHandler/index.js';
+import Colors from '../../colors.js';
+import { primeNav } from '../../actions/index.js';
+import { ErrorOutline, InfoOutline } from '../../icons/index.jsx';
 
 const styles = () => ({
   linkHighlight: {

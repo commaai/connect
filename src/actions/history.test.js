@@ -3,9 +3,9 @@
 import { routerMiddleware, LOCATION_CHANGE } from 'connected-react-router';
 import thunk from 'redux-thunk';
 
-import { history } from '../store';
-import { onHistoryMiddleware } from './history';
-import * as actionsIndex from './index';
+import { history } from '../store.js';
+import { onHistoryMiddleware } from './history.js';
+import * as actionsIndex from './index.js';
 
 jest.mock('./index', () => ({
   selectDevice: jest.fn(),

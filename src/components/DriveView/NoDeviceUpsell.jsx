@@ -1,6 +1,6 @@
 import React from 'react';
 
-import AddDevice from '../Dashboard/AddDevice';
+import AddDevice from '../Dashboard/AddDevice.jsx';
 
 const NoDeviceUpsell = () => (
   <div className="flex flex-col items-center mx-4 md:mx-6 lg:mx-8 mt-4 sm:mt-8 md:mt-16">

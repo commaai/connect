@@ -11,13 +11,13 @@ import dayjs from 'dayjs';
 
 import Measure from 'react-measure';
 
-import Thumbnails from './thumbnails';
-import theme from '../../theme';
-import { pushTimelineRange } from '../../actions';
-import Colors from '../../colors';
-import { currentOffset } from '../../timeline';
-import { seek } from '../../timeline/playback';
-import { getSegmentNumber } from '../../utils';
+import Thumbnails from './thumbnails.jsx';
+import theme from '../../theme.js';
+import { pushTimelineRange } from '../../actions/index.js';
+import Colors from '../../colors.js';
+import { currentOffset } from '../../timeline/index.js';
+import { seek } from '../../timeline/playback.js';
+import { getSegmentNumber } from '../../utils/index.js';
 
 const styles = () => ({
   base: {

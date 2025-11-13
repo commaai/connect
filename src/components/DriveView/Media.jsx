@@ -11,19 +11,19 @@ import ShareIcon from '@material-ui/icons/Share';
 
 import { drives as Drives } from '@commaai/api';
 
-import DriveMap from '../DriveMap';
-import DriveVideo from '../DriveVideo';
-import ResizeHandler from '../ResizeHandler';
-import TimeDisplay from '../TimeDisplay';
-import UploadQueue from '../Files/UploadQueue';
-import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo } from '../../timeline/playback';
-import Colors from '../../colors';
-import { InfoOutline } from '../../icons';
-import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
-import { updateRoute } from '../../actions';
-import { fetchEvents } from '../../actions/cached';
-import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
+import DriveMap from '../DriveMap/index.jsx';
+import DriveVideo from '../DriveVideo/index.jsx';
+import ResizeHandler from '../ResizeHandler/index.js';
+import TimeDisplay from '../TimeDisplay/index.jsx';
+import UploadQueue from '../Files/UploadQueue.jsx';
+import SwitchLoading from '../utils/SwitchLoading.jsx';
+import { bufferVideo } from '../../timeline/playback.js';
+import Colors from '../../colors.js';
+import { InfoOutline } from '../../icons/index.jsx';
+import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils/index.js';
+import { updateRoute } from '../../actions/index.js';
+import { fetchEvents } from '../../actions/cached.js';
+import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files.js';
 
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';

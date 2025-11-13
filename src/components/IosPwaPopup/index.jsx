@@ -7,8 +7,8 @@ import { Clear } from '@material-ui/icons';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
-import Colors from '../../colors';
-import { IosShareIcon } from '../../icons';
+import Colors from '../../colors.js';
+import { IosShareIcon } from '../../icons/index.jsx';
 import { isIos } from '../../utils/browser.js';
 
 const styles = () => ({

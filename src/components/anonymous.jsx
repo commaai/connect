@@ -11,10 +11,10 @@ import Typography from '@material-ui/core/Typography';
 
 import { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 
-import Colors from '../colors';
-import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon, RightArrow } from '../icons';
+import Colors from '../colors.js';
+import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon, RightArrow } from '../icons/index.jsx';
 
-import PWAIcon from './PWAIcon';
+import PWAIcon from './PWAIcon.jsx';
 
 const styles = () => ({
   baseContainer: {

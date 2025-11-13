@@ -3,7 +3,7 @@ import React, { Component } from 'react';
 import { withStyles } from '@material-ui/core';
 import ReplayIcon from '@material-ui/icons/Replay';
 
-import Colors from '../../colors';
+import Colors from '../../colors.js';
 import { isIos } from '../../utils/browser.js';
 
 const styles = () => ({

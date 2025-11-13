@@ -1,5 +1,5 @@
 /* eslint-env jest */
-import * as Utils from './utils';
+import * as Utils from './utils.js';
 
 describe('navigation formatting utils', () => {
   describe('location formatting', () => {

@@ -4,14 +4,14 @@ import dayjs from 'dayjs';
 
 import { withStyles, Grid, Typography } from '@material-ui/core';
 
-import { pushTimelineRange } from '../../actions';
-import { fetchEvents, fetchLocations } from '../../actions/cached';
-import Colors from '../../colors';
-import { useWindowWidth } from '../../hooks/window';
-import { RightArrow } from '../../icons';
-import { formatDriveDuration, filterRegularClick } from '../../utils';
-import { isMetric, KM_PER_MI } from '../../utils/conversions';
-import Timeline from '../Timeline';
+import { pushTimelineRange } from '../../actions/index.js';
+import { fetchEvents, fetchLocations } from '../../actions/cached.js';
+import Colors from '../../colors.js';
+import { useWindowWidth } from '../../hooks/window.js';
+import { RightArrow } from '../../icons/index.jsx';
+import { formatDriveDuration, filterRegularClick } from '../../utils/index.js';
+import { isMetric, KM_PER_MI } from '../../utils/conversions.js';
+import Timeline from '../Timeline/index.jsx';
 
 const styles = () => ({
   drive: {

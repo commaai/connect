@@ -8,12 +8,12 @@ import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } fro
 import AccessTime from '@material-ui/icons/AccessTime';
 
 import { athena as Athena, devices as Devices } from '@commaai/api';
-import Colors from '../../colors';
-import { deviceNamePretty, deviceIsOnline } from '../../utils';
-import { isMetric, KM_PER_MI } from '../../utils/conversions';
-import ResizeHandler from '../ResizeHandler';
-import VisibilityHandler from '../VisibilityHandler';
-import TimeSelect from '../TimeSelect';
+import Colors from '../../colors.js';
+import { deviceNamePretty, deviceIsOnline } from '../../utils/index.js';
+import { isMetric, KM_PER_MI } from '../../utils/conversions.js';
+import ResizeHandler from '../ResizeHandler/index.js';
+import VisibilityHandler from '../VisibilityHandler/index.jsx';
+import TimeSelect from '../TimeSelect/index.jsx';
 
 const styles = (theme) => ({
   container: {

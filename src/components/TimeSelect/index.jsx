@@ -6,8 +6,8 @@ import PropTypes from 'prop-types';
 
 import { Button, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
 
-import Colors from '../../colors';
-import { selectTimeFilter } from '../../actions';
+import Colors from '../../colors.js';
+import { selectTimeFilter } from '../../actions/index.js';
 
 const styles = (theme) => ({
   modal: {

@@ -6,10 +6,10 @@ import { withStyles, Divider, Typography, CircularProgress, Button, Modal, Paper
 import HighlightOffIcon from '@material-ui/icons/HighlightOff';
 import WarningIcon from '@material-ui/icons/Warning';
 
-import { fetchUploadQueue, cancelUploads, cancelFetchUploadQueue, FILE_NAMES } from '../../actions/files';
-import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils';
-import Colors from '../../colors';
-import ResizeHandler from '../ResizeHandler';
+import { fetchUploadQueue, cancelUploads, cancelFetchUploadQueue, FILE_NAMES } from '../../actions/files.js';
+import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils/index.js';
+import Colors from '../../colors.js';
+import ResizeHandler from '../ResizeHandler/index.js';
 
 const styles = (theme) => ({
   modal: {

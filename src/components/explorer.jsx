@@ -9,22 +9,22 @@ import 'mapbox-gl/src/css/mapbox-gl.css';
 
 import { devices as Devices } from '@commaai/api';
 
-import AppHeader from './AppHeader';
-import Dashboard from './Dashboard';
-import IosPwaPopup from './IosPwaPopup';
-import AppDrawer from './AppDrawer';
-import PullDownReload from './utils/PullDownReload';
+import AppHeader from './AppHeader/index.jsx';
+import Dashboard from './Dashboard/index.jsx';
+import IosPwaPopup from './IosPwaPopup/index.jsx';
+import AppDrawer from './AppDrawer/index.jsx';
+import PullDownReload from './utils/PullDownReload.jsx';
 
-import { selectDevice, updateDevice, checkLastRoutesData } from '../actions';
-import init from '../actions/startup';
-import Colors from '../colors';
-import { play, pause } from '../timeline/playback';
-import { verifyPairToken, pairErrorToMessage } from '../utils';
+import { selectDevice, updateDevice, checkLastRoutesData } from '../actions/index.js';
+import init from '../actions/startup.js';
+import Colors from '../colors.js';
+import { play, pause } from '../timeline/playback.js';
+import { verifyPairToken, pairErrorToMessage } from '../utils/index.js';
 
-import ResizeHandler from './ResizeHandler';
+import ResizeHandler from './ResizeHandler/index.js';
 
-import DriveView from './DriveView';
-import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
+import DriveView from './DriveView/index.jsx';
+import NoDeviceUpsell from './DriveView/NoDeviceUpsell.jsx';
 
 const styles = (theme) => ({
   window: {

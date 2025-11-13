@@ -4,8 +4,8 @@ import Obstruction from 'obstruction';
 import qs from 'query-string';
 
 import { Typography } from '@material-ui/core';
-import PrimeManage from './PrimeManage';
-import PrimeCheckout from './PrimeCheckout';
+import PrimeManage from './PrimeManage.jsx';
+import PrimeCheckout from './PrimeCheckout.jsx';
 
 const Prime = (props) => {
   let stripeCancelled;

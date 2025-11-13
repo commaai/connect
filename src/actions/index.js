@@ -4,10 +4,10 @@ import document from 'global/document';
 import { athena as Athena, billing as Billing, devices as Devices, drives as Drives } from '@commaai/api';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
-import * as Types from './types';
-import { resetPlayback, selectLoop } from '../timeline/playback';
-import { hasRoutesData } from '../timeline/segments';
-import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
+import * as Types from './types.js';
+import { resetPlayback, selectLoop } from '../timeline/playback.js';
+import { hasRoutesData } from '../timeline/segments.js';
+import { getDeviceFromState, deviceVersionAtLeast } from '../utils/index.js';
 
 let routesRequest = null;
 let routesRequestPromise = null;

@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import { push } from 'connected-react-router';
-import { pushTimelineRange } from './index';
+import { pushTimelineRange } from './index.js';
 
 jest.mock('connected-react-router', () => {
   const originalModule = jest.requireActual('connected-react-router');
