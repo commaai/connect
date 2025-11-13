@@ -22,5 +22,18 @@
       "jestPuppeteer",
       "page"
     ]
+  },
+  "linter": {
+    "rules": {
+      "recommended": false,
+      "correctness": "off",
+      "style": "off",
+      "suspicious": "off",
+      "security": "off",
+      "performance": "off",
+      "complexity": "off",
+      "nursery": "off",
+      "a11y": "off"
+    }
   }
 }

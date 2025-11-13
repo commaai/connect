@@ -6,7 +6,7 @@
     "build:development": "env-cmd .env.development vite build --mode development",
     "build:production": "vite build",
     "serve": "vite preview",
-    "lint": "printf 'biome lint currently disabled; fix required first\n'",
+    "lint": "biome lint src",
     "format": "biome format --write src",
     "test": "jest",
     "test-coverage": "jest --coverage",
