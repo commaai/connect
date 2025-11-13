@@ -456,14 +456,6 @@ export function selectTimeFilter(start, end) {
   };
 }
 
-export function analyticsEvent(name, parameters) {
-  return {
-    type: Types.ANALYTICS_EVENT,
-    name,
-    parameters,
-  };
-}
-
 export function updateRoute(fullname, route) {
   return {
     type: Types.ACTION_UPDATE_ROUTE,

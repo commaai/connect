@@ -8,13 +8,11 @@ import reducers from './reducers';
 import composeEnhancers from './devtools';
 import initialState from './initialState';
 import { onHistoryMiddleware } from './actions/history';
-import { analyticsMiddleware } from './analytics';
 
 export const history = createBrowserHistory();
 
-const store = Redux.createStore(
-  connectRouter(history)(reduceReducers(initialState, ...reducers)),
-  composeEnhancers(Redux.applyMiddleware(thunk, onHistoryMiddleware, routerMiddleware(history), analyticsMiddleware)),
-);
+const middleware = Redux.applyMiddleware(thunk, onHistoryMiddleware, routerMiddleware(history));
+
+const store = Redux.createStore(connectRouter(history)(reduceReducers(initialState, ...reducers)), composeEnhancers(middleware));
 
 export default store;
