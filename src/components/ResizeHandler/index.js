@@ -1,31 +1,31 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 
 const ResizeHandler = (props) => {
   const { onResize } = props;
+  const resizeTimeoutRef = useRef(null);
 
-  let resizeTimeout;
-  const handleResize = () => {
-    if (resizeTimeout) {
-      window.clearTimeout(resizeTimeout);
+  const handleResize = useCallback(() => {
+    if (resizeTimeoutRef.current) {
+      window.clearTimeout(resizeTimeoutRef.current);
     }
 
-    resizeTimeout = window.setTimeout(() => {
+    resizeTimeoutRef.current = window.setTimeout(() => {
       onResize(window.innerWidth, window.innerHeight);
-      resizeTimeout = null;
+      resizeTimeoutRef.current = null;
     }, 150);
-  };
+  }, [onResize]);
 
   useEffect(() => {
     window.addEventListener('resize', handleResize);
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (resizeTimeout) {
-        window.clearTimeout(resizeTimeout);
+      if (resizeTimeoutRef.current) {
+        window.clearTimeout(resizeTimeoutRef.current);
       }
     };
-  }, [handleResize, resizeTimeout]);
+  }, [handleResize]);
 
   return null;
 };

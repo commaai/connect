@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useState } from 'react';
+import { Suspense, useCallback, useId, useState } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
@@ -56,8 +56,9 @@ const styles = () => ({
   },
 });
 
-const AppHeader = ({ profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton, forwardRef, handleDrawerStateChanged, primeNav, dongleId }) => {
+const AppHeader = ({ profile, classes, dispatch, drawerIsOpen, showDrawerButton, forwardRef, handleDrawerStateChanged, dongleId }) => {
   const [anchorEl, setAnchorEl] = useState(null);
+  const menuId = useId();
 
   const handleClickedAccount = useCallback((event) => {
     if (MyCommaAuth.isAuthenticated()) {
@@ -88,7 +89,7 @@ const AppHeader = ({ profile, classes, dispatch, drawerIsOpen, viewingRoute, sho
               </IconButton>
             ) : (
               <a href={`/${dongleId}`} className={classes.logoImgLink} onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}>
-                <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+                <img alt="comma" src="/images/comma-white.png" width={18.9} height={34} className={classes.logoImg} />
               </a>
             )}
             <a href={`/${dongleId}`} onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}>
@@ -99,13 +100,13 @@ const AppHeader = ({ profile, classes, dispatch, drawerIsOpen, viewingRoute, sho
             <Suspense>
               <PWAIcon />
             </Suspense>
-            <IconButton aria-owns={open ? 'menu-appbar' : null} aria-haspopup="true" onClick={handleClickedAccount} aria-label="account menu">
+            <IconButton aria-owns={open ? menuId : null} aria-haspopup="true" onClick={handleClickedAccount} aria-label="account menu">
               <AccountIcon className={classes.accountIcon} />
             </IconButton>
           </div>
         </div>
       </AppBar>
-      {Boolean(MyCommaAuth.isAuthenticated() && profile) && <AccountMenu id="menu-appbar" open={open} anchorEl={anchorEl} onClose={handleClose} profile={profile} />}
+      {Boolean(MyCommaAuth.isAuthenticated() && profile) && <AccountMenu id={menuId} open={open} anchorEl={anchorEl} onClose={handleClose} profile={profile} />}
     </>
   );
 };

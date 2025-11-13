@@ -508,7 +508,7 @@ class DeviceInfo extends Component {
       );
     }
 
-    return <img src={`data:image/jpeg;base64,${src}`} className={classes.snapshotImage} />;
+    return <img src={`data:image/jpeg;base64,${src}`} width={400} height={300} className={classes.snapshotImage} />;
   }
 }
 

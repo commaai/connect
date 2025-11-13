@@ -245,7 +245,7 @@ class PrimeCheckout extends Component {
   }
 
   async gotoCheckout() {
-    const { dispatch, dongleId, subscribeInfo } = this.props;
+    const { dongleId, subscribeInfo } = this.props;
     this.setState({ loadingCheckout: true });
     try {
       const { selectedPlan: plan } = this.state;

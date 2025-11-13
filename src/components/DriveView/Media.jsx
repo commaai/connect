@@ -242,6 +242,9 @@ class Media extends Component {
     this.fetchRoutePreserved = this.fetchRoutePreserved.bind(this);
     this.onPreserveToggle = this.onPreserveToggle.bind(this);
 
+    this.menuDownloadId = `menu-download_${Math.random().toString(36).slice(2)}`;
+    this.menuInfoId = `menu-info_${Math.random().toString(36).slice(2)}`;
+
     this.routeViewed = false;
   }
 
@@ -599,7 +602,7 @@ class Media extends Component {
     return (
       <>
         <Menu
-          id="menu-download"
+          id={this.menuDownloadId}
           open={Boolean(alwaysOpen || downloadMenu)}
           anchorEl={downloadMenu}
           onClose={() => this.setState({ downloadMenu: null })}
@@ -669,7 +672,7 @@ class Media extends Component {
           )}
         </Menu>
         <Menu
-          id="menu-info"
+          id={this.menuInfoId}
           open={Boolean(alwaysOpen || moreInfoMenu)}
           anchorEl={moreInfoMenu}
           onClose={() => this.setState({ moreInfoMenu: null })}

@@ -139,21 +139,21 @@ class AnonymousLanding extends Component {
       <div className={classes.baseContainer}>
         <div className={classes.base}>
           <div className={classes.logoContainer}>
-            <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+            <img alt="comma" src="/images/comma-white.png" width={18.9} height={34} className={classes.logoImg} />
           </div>
           <div className={classes.logoSpacer}>&nbsp;</div>
           <Typography className={classes.logoText}>comma connect</Typography>
           <Typography className={classes.tagline}>Manage your comma device, view your drives, and use comma prime features</Typography>
           <a href={AuthConfig.GOOGLE_REDIRECT_LINK} className={classes.logInButton}>
-            <img className={classes.buttonImage} src={AuthGoogleIcon} alt="" />
+            <img className={classes.buttonImage} src={AuthGoogleIcon} width={24} height={24} alt="" />
             <Typography className={classes.buttonText}>Sign in with Google</Typography>
           </a>
           <a onClick={() => AppleID.auth.signIn()} className={classes.logInButton}>
-            <img className={classes.buttonImage} src={AuthAppleIcon} alt="" />
+            <img className={classes.buttonImage} src={AuthAppleIcon} width={24} height={24} alt="" />
             <Typography className={classes.buttonText}>Sign in with Apple</Typography>
           </a>
           <a href={AuthConfig.GITHUB_REDIRECT_LINK} className={`${classes.logInButton} githubAuth`}>
-            <img className={classes.buttonImage} src={AuthGithubIcon} alt="" />
+            <img className={classes.buttonImage} src={AuthGithubIcon} width={24} height={24} alt="" />
             <Typography className={classes.buttonText}>Sign in with GitHub</Typography>
           </a>
 

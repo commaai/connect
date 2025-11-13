@@ -164,6 +164,8 @@ class Navigation extends Component {
     this.primeAdBoxRef = React.createRef();
     this.carPinTooltipRef = React.createRef();
 
+    this.polygonLayerId = `polygon_${Math.random().toString(36).slice(2)}`;
+
     this.checkWebGLSupport = this.checkWebGLSupport.bind(this);
     this.flyToMarkers = this.flyToMarkers.bind(this);
     this.renderSearchOverlay = this.renderSearchOverlay.bind(this);
@@ -615,7 +617,7 @@ class Navigation extends Component {
           )}
           {carLocation && Boolean(carLocation.accuracy) && (
             <Source type="geojson" data={this.carLocationCircle(carLocation)}>
-              <Layer id="polygon" type="fill" source="polygon" layout={{}} paint={{ 'fill-color': '#31a1ee', 'fill-opacity': 0.3 }} />
+              <Layer id={this.polygonLayerId} type="fill" source="polygon" layout={{}} paint={{ 'fill-color': '#31a1ee', 'fill-opacity': 0.3 }} />
             </Source>
           )}
           {searchSelect && (

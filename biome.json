@@ -36,7 +36,8 @@
       "linter": {
         "rules": {
           "correctness": {
-            "noSolidDestructuredProps": "off"
+            "noSolidDestructuredProps": "off",
+            "noNestedComponentDefinitions": "off"
           }
         }
       }

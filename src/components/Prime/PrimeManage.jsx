@@ -210,9 +210,6 @@ class PrimeManage extends Component {
   }
 
   componentDidUpdate(prevProps, _prevState) {
-    const { subscription } = this.props;
-    const { stripeStatus } = this.state;
-
     if (!prevProps.stripeSuccess && this.props.stripeSuccess) {
       this.setState(
         {

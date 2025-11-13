@@ -124,6 +124,9 @@ class DeviceSettingsModal extends Component {
       ...initialState,
     };
 
+    this.deviceAliasId = `device_alias_${Math.random().toString(36).slice(2)}`;
+    this.deviceShareId = `device_share_${Math.random().toString(36).slice(2)}`;
+
     this.onPrimeSettings = this.onPrimeSettings.bind(this);
     this.handleAliasChange = this.handleAliasChange.bind(this);
     this.handleEmailChange = this.handleEmailChange.bind(this);
@@ -301,7 +304,7 @@ class DeviceSettingsModal extends Component {
               )}
               <div className={classes.formRow}>
                 <TextField
-                  id="device_alias"
+                  id={this.deviceAliasId}
                   label="Device name"
                   className={classes.textField}
                   value={this.state.deviceAlias ? this.state.deviceAlias : ''}
@@ -319,7 +322,7 @@ class DeviceSettingsModal extends Component {
               </div>
               <div className={classes.formRow}>
                 <TextField
-                  id="device_share"
+                  id={this.deviceShareId}
                   label="Share by email or user id"
                   className={classes.textField}
                   value={this.state.shareEmail}
