@@ -15,7 +15,7 @@ import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
 import PullDownReload from './utils/PullDownReload';
 
-import { analyticsEvent, selectDevice, updateDevice, checkLastRoutesData } from '../actions';
+import { selectDevice, updateDevice, checkLastRoutesData } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -119,7 +119,6 @@ class ExplorerApp extends Component {
 
           const device = await Devices.fetchDevice(resp.dongle_id);
           this.props.dispatch(updateDevice(device));
-          this.props.dispatch(analyticsEvent('pair_device', { method: 'url_string' }));
         } else {
           await localforage.removeItem('pairToken');
           console.log(resp);
