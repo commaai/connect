@@ -170,10 +170,7 @@ class DriveVideo extends Component {
       return;
     }
 
-    const videoError =
-      e.response?.code === 404
-        ? 'This video segment has not uploaded yet or has been deleted.'
-        : e.response?.text || 'Unable to load video';
+    const videoError = e.response?.code === 404 ? 'This video segment has not uploaded yet or has been deleted.' : e.response?.text || 'Unable to load video';
     this.setState({ videoError });
   }
 

@@ -122,19 +122,12 @@ class App extends Component {
       return this.renderLoading();
     }
 
-    const showLogin =
-      !MyCommaAuth.isAuthenticated() &&
-      !getZoom(window.location.pathname) &&
-      !getSegmentRange(window.location.pathname);
-    let content = (
-      <Suspense fallback={this.renderLoading()}>{showLogin ? this.anonymousRoutes() : this.authRoutes()}</Suspense>
-    );
+    const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(window.location.pathname) && !getSegmentRange(window.location.pathname);
+    let content = <Suspense fallback={this.renderLoading()}>{showLogin ? this.anonymousRoutes() : this.authRoutes()}</Suspense>;
 
     // Use ErrorBoundary in production only
     if (import.meta.env.PROD) {
-      content = (
-        <Sentry.ErrorBoundary fallback={(props) => <ErrorFallback {...props} />}>{content}</Sentry.ErrorBoundary>
-      );
+      content = <Sentry.ErrorBoundary fallback={(props) => <ErrorFallback {...props} />}>{content}</Sentry.ErrorBoundary>;
     }
 
     return (

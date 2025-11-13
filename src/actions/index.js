@@ -35,13 +35,7 @@ export function checkRoutesData() {
     // if requested segment range not in loaded routes, fetch it explicitly
     if (state.segmentRange) {
       routesRequest = {
-        req: Drives.getRoutesSegments(
-          dongleId,
-          undefined,
-          undefined,
-          undefined,
-          `${dongleId}|${state.segmentRange.log_id}`,
-        ),
+        req: Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
         dongleId,
       };
     } else {
@@ -55,11 +49,7 @@ export function checkRoutesData() {
       .then((routesData) => {
         state = getState();
         const currentRange = state.filter;
-        if (
-          currentRange.start !== fetchRange.start ||
-          currentRange.end !== fetchRange.end ||
-          state.dongleId !== dongleId
-        ) {
+        if (currentRange.start !== fetchRange.start || currentRange.end !== fetchRange.end || state.dongleId !== dongleId) {
           routesRequest = null;
           dispatch(checkRoutesData());
           return;
@@ -76,10 +66,7 @@ export function checkRoutesData() {
 
             // TODO: these will all be relative times soon
             // fix segment boundary times for routes that have the wrong time at the start
-            if (
-              Math.abs(r.start_time_utc_millis - startTime) > 24 * 60 * 60 * 1000 &&
-              Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000
-            ) {
+            if (Math.abs(r.start_time_utc_millis - startTime) > 24 * 60 * 60 * 1000 && Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000) {
               startTime = r.start_time_utc_millis;
               endTime = r.end_time_utc_millis;
               r.segment_start_times = r.segment_numbers.map((x) => startTime + x * 60 * 1000);
@@ -402,10 +389,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
           dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
         }
       } catch (err) {
-        if (
-          err.message &&
-          (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)
-        ) {
+        if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
           dispatch(updateDeviceOnline(dongleId, 0));
         } else {
           console.error(err);
@@ -430,10 +414,7 @@ export function fetchDeviceNetworkStatus(dongleId) {
           dispatch(updateDeviceOnline(dongleId, Math.floor(Date.now() / 1000)));
         }
       } catch (err) {
-        if (
-          err.message &&
-          (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)
-        ) {
+        if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
           dispatch(updateDeviceOnline(dongleId, 0));
         } else {
           console.error(err);

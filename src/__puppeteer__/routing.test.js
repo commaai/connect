@@ -27,10 +27,6 @@ describe('routing', () => {
     await goto('/1d3dc3e03047b0c7/000000dd--455f14369d', { timeout: 50000 });
 
     // Wait for video src to be set
-    await page.waitForFunction(
-      (video) => video.getAttribute('src')?.startsWith('blob:'),
-      {},
-      await page.waitForSelector('video'),
-    );
+    await page.waitForFunction((video) => video.getAttribute('src')?.startsWith('blob:'), {}, await page.waitForSelector('video'));
   }, 80000);
 });

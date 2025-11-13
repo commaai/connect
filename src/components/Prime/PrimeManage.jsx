@@ -340,17 +340,13 @@ class PrimeManage extends Component {
     let planSubtext;
     if (hasPrimeSub) {
       joinDate = dayjs(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0).format('MMMM D, YYYY');
-      nextPaymentDate = dayjs(subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0).format(
-        'MMMM D, YYYY',
-      );
+      nextPaymentDate = dayjs(subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0).format('MMMM D, YYYY');
       cancelAtDate = dayjs(subscription.cancel_at ? subscription.cancel_at * 1000 : 0).format('MMMM D, YYYY');
       planName = subscription.plan === 'nodata' ? 'Lite' : 'Standard';
       planSubtext = subscription.plan === 'nodata' ? '(without data plan)' : '(with data plan)';
     }
 
-    const hasCancelAt = Boolean(
-      hasPrimeSub && subscription.cancel_at && subscription.cancel_at <= subscription.next_charge_at,
-    );
+    const hasCancelAt = Boolean(hasPrimeSub && subscription.cancel_at && subscription.cancel_at <= subscription.next_charge_at);
     const alias = deviceNamePretty(device);
     const containerPadding = windowWidth > 520 ? 36 : 16;
     const buttonSmallStyle = windowWidth < 514 ? { width: '100%' } : {};
@@ -384,10 +380,7 @@ class PrimeManage extends Component {
                   <div className={classes.overviewBlockSuccess}>
                     <Typography>comma prime activated</Typography>
                     {subscription.is_prime_sim && (
-                      <Typography>
-                        Connectivity will be enabled as soon as activation propagates to your local cell tower.
-                        Rebooting your device may help.
-                      </Typography>
+                      <Typography>Connectivity will be enabled as soon as activation propagates to your local cell tower. Rebooting your device may help.</Typography>
                     )}
                   </div>
                 )}
@@ -442,10 +435,7 @@ class PrimeManage extends Component {
                     className={classes.buttons}
                     style={buttonSmallStyle}
                     onClick={this.gotoUpdate}
-                    disabled={
-                      !hasPrimeSub ||
-                      (hasCancelAt && !device.eligible_features?.prime_data && subscription.plan === 'data')
-                    }
+                    disabled={!hasPrimeSub || (hasCancelAt && !device.eligible_features?.prime_data && subscription.plan === 'data')}
                   >
                     {hasCancelAt ? 'Renew subscription' : 'Update payment method'}
                   </Button>
@@ -464,8 +454,7 @@ class PrimeManage extends Component {
                   <div className={classes.overviewBlockDisabled}>
                     <PriorityHighIcon />
                     <Typography>
-                      Your prime subscription will be canceled on May 15th unless you replace the SIM card in your
-                      device. A new SIM card can be ordered from the
+                      Your prime subscription will be canceled on May 15th unless you replace the SIM card in your device. A new SIM card can be ordered from the
                       <a className={classes.linkHighlight} href="https://comma.ai/shop/comma-prime-sim">
                         shop
                       </a>
@@ -508,17 +497,9 @@ class PrimeManage extends Component {
               onClick={this.cancelPrime}
               disabled={Boolean(this.state.cancelSuccess || this.state.canceling)}
             >
-              {this.state.canceling ? (
-                <CircularProgress size={19} style={{ color: Colors.white }} />
-              ) : (
-                'Cancel subscription'
-              )}
+              {this.state.canceling ? <CircularProgress size={19} style={{ color: Colors.white }} /> : 'Cancel subscription'}
             </Button>
-            <Button
-              variant="contained"
-              className={`${classes.closeButton} primeModalClose`}
-              onClick={() => this.setState({ cancelModal: false })}
-            >
+            <Button variant="contained" className={`${classes.closeButton} primeModalClose`} onClick={() => this.setState({ cancelModal: false })}>
               Close
             </Button>
           </Paper>

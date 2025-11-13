@@ -2,16 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
-import {
-  withStyles,
-  Divider,
-  Typography,
-  CircularProgress,
-  Button,
-  Modal,
-  Paper,
-  LinearProgress,
-} from '@material-ui/core';
+import { withStyles, Divider, Typography, CircularProgress, Button, Modal, Paper, LinearProgress } from '@material-ui/core';
 import HighlightOffIcon from '@material-ui/icons/HighlightOff';
 import WarningIcon from '@material-ui/icons/Warning';
 
@@ -292,12 +283,7 @@ class UploadQueue extends Component {
               )}
             </div>
             <div className={classes.buttonGroup}>
-              <Button
-                variant="contained"
-                className={classes.cancelButton}
-                disabled={!hasUploading}
-                onClick={hasUploading ? () => this.cancelUploading() : null}
-              >
+              <Button variant="contained" className={classes.cancelButton} disabled={!hasUploading} onClick={hasUploading ? () => this.cancelUploading() : null}>
                 Cancel All
               </Button>
               <Button variant="contained" className={classes.cancelButton} onClick={this.props.onClose}>

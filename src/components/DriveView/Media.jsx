@@ -4,17 +4,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import {
-  withStyles,
-  Divider,
-  Typography,
-  Menu,
-  MenuItem,
-  CircularProgress,
-  Button,
-  Popper,
-  ListItem,
-} from '@material-ui/core';
+import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem } from '@material-ui/core';
 import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
@@ -34,19 +24,10 @@ import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils'
 import { analyticsEvent, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
-import {
-  setRouteViewed,
-  fetchFiles,
-  doUpload,
-  fetchUploadUrls,
-  fetchAthenaQueue,
-  updateFiles,
-  FILE_NAMES,
-} from '../../actions/files';
+import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
 
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
-const preservedTooltip =
-  'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
+const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
 
 const styles = () => ({
   root: {
@@ -298,9 +279,7 @@ class Media extends Component {
 
     if (
       this.props.currentRoute &&
-      ((!prevState.downloadMenu && downloadMenu) ||
-        (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu) ||
-        (!prevProps.currentRoute && (downloadMenu || moreInfoMenu)))
+      ((!prevState.downloadMenu && downloadMenu) || (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu) || (!prevProps.currentRoute && (downloadMenu || moreInfoMenu)))
     ) {
       if ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser) {
         this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
@@ -316,11 +295,7 @@ class Media extends Component {
       this.fetchRoutePreserved();
     }
 
-    if (
-      !this.routeViewed &&
-      this.props.currentRoute &&
-      ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser)
-    ) {
+    if (!this.routeViewed && this.props.currentRoute && ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser)) {
       this.props.dispatch(setRouteViewed(this.props.dongleId, this.props.currentRoute.fullname));
       this.routeViewed = true;
     }
@@ -421,10 +396,7 @@ class Media extends Component {
     const uploading = {};
     const adjusted_start_time = currentRoute.start_time_utc_millis + loop.startTime;
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      if (
-        currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration &&
-        currentRoute.segment_end_times[i] > adjusted_start_time
-      ) {
+      if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration && currentRoute.segment_end_times[i] > adjusted_start_time) {
         types.forEach((type) => {
           const fileName = `${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${type}`;
           if (!files[fileName]) {
@@ -451,10 +423,7 @@ class Media extends Component {
     const adjusted_start_time = currentRoute.start_time_utc_millis + loop.startTime;
 
     for (let i = 0; i < currentRoute.segment_numbers.length; i++) {
-      if (
-        currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration &&
-        currentRoute.segment_end_times[i] > adjusted_start_time
-      ) {
+      if (currentRoute.segment_start_times[i] < adjusted_start_time + loop.duration && currentRoute.segment_end_times[i] > adjusted_start_time) {
         for (let j = 0; j < types.length; j++) {
           count += 1;
           const log = files[`${currentRoute.fullname}--${currentRoute.segment_numbers[i]}/${types[j]}`];
@@ -476,24 +445,10 @@ class Media extends Component {
     if (!files || !currentRoute) {
       return null;
     }
-    const [countRlog, uploadedRlog, uploadingRlog, pausedRlog, requestedRlog] = this._uploadStats(
-      ['logs'],
-      0,
-      0,
-      0,
-      0,
-      0,
-    );
+    const [countRlog, uploadedRlog, uploadingRlog, pausedRlog, requestedRlog] = this._uploadStats(['logs'], 0, 0, 0, 0, 0);
 
     const camTypes = ['cameras', 'dcameras', 'ecameras'];
-    const [countAll, uploadedAll, uploadingAll, pausedAll, requestedAll] = this._uploadStats(
-      camTypes,
-      countRlog,
-      uploadedRlog,
-      uploadingRlog,
-      pausedRlog,
-      requestedRlog,
-    );
+    const [countAll, uploadedAll, uploadingAll, pausedAll, requestedAll] = this._uploadStats(camTypes, countRlog, uploadedRlog, uploadingRlog, pausedRlog, requestedRlog);
 
     return {
       canRequestAll: countAll - uploadedAll - uploadingAll - requestedAll,
@@ -582,18 +537,14 @@ class Media extends Component {
 
     const showMapAlways = windowWidth >= 1536;
     const mediaContainerStyle = showMapAlways ? { width: '60%' } : { width: '100%' };
-    const mapContainerStyle = showMapAlways
-      ? { width: '40%', marginBottom: 62, marginTop: 46, paddingLeft: 24 }
-      : { width: '100%' };
+    const mapContainerStyle = showMapAlways ? { width: '40%', marginBottom: 62, marginTop: 46, paddingLeft: 24 } : { width: '100%' };
 
     return (
       <div className={classes.root}>
         <ResizeHandler onResize={(ww) => this.setState({ windowWidth: ww })} />
         <div style={mediaContainerStyle}>
           {this.renderMediaOptions(showMapAlways)}
-          {inView === MediaType.VIDEO && (
-            <DriveVideo isMuted={isMuted} onAudioStatusChange={this.handleAudioStatusChange} />
-          )}
+          {inView === MediaType.VIDEO && <DriveVideo isMuted={isMuted} onAudioStatusChange={this.handleAudioStatusChange} />}
           {inView === MediaType.MAP && !showMapAlways && (
             <div style={mapContainerStyle}>
               <DriveMap />
@@ -622,35 +573,19 @@ class Media extends Component {
             <div />
           ) : (
             <div className={classes.mediaOptions}>
-              <div
-                className={classes.mediaOption}
-                style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
-                onClick={() => this.setState({ inView: MediaType.VIDEO })}
-              >
+              <div className={classes.mediaOption} style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}} onClick={() => this.setState({ inView: MediaType.VIDEO })}>
                 <Typography className={classes.mediaOptionText}>Video</Typography>
               </div>
-              <div
-                className={classes.mediaOption}
-                style={inView !== MediaType.MAP ? { opacity: 0.6 } : {}}
-                onClick={() => this.setState({ inView: MediaType.MAP })}
-              >
+              <div className={classes.mediaOption} style={inView !== MediaType.MAP ? { opacity: 0.6 } : {}} onClick={() => this.setState({ inView: MediaType.MAP })}>
                 <Typography className={classes.mediaOptionText}>Map</Typography>
               </div>
             </div>
           )}
           <div className={classes.mediaOptions}>
-            <div
-              className={classes.mediaOption}
-              aria-haspopup="true"
-              onClick={(ev) => this.setState({ downloadMenu: ev.target })}
-            >
+            <div className={classes.mediaOption} aria-haspopup="true" onClick={(ev) => this.setState({ downloadMenu: ev.target })}>
               <Typography className={classes.mediaOptionText}>Files</Typography>
             </div>
-            <div
-              className={classes.mediaOption}
-              aria-haspopup="true"
-              onClick={(ev) => this.setState({ moreInfoMenu: ev.target })}
-            >
+            <div className={classes.mediaOption} aria-haspopup="true" onClick={(ev) => this.setState({ moreInfoMenu: ev.target })}>
               <Typography className={classes.mediaOptionText}>More info</Typography>
             </div>
           </div>
@@ -710,57 +645,29 @@ class Media extends Component {
           )}
           {buttons.filter((b) => Boolean(b)).map(this.renderUploadMenuItem)}
           <Divider />
-          <MenuItem
-            className={classes.filesItem}
-            disabled
-            style={files && stats ? { pointerEvents: 'auto' } : { color: Colors.white60 }}
-          >
+          <MenuItem className={classes.filesItem} disabled style={files && stats ? { pointerEvents: 'auto' } : { color: Colors.white60 }}>
             All logs
             {Boolean(files && canUpload && !rlogUploadDisabled) && (
-              <Button
-                className={classes.uploadButton}
-                style={{ minWidth: uploadButtonWidth }}
-                onClick={() => this.uploadFilesAll(['logs'])}
-              >
+              <Button className={classes.uploadButton} style={{ minWidth: uploadButtonWidth }} onClick={() => this.uploadFilesAll(['logs'])}>
                 {`upload ${stats.canRequestRlog} logs`}
               </Button>
             )}
             {Boolean(canUpload && rlogUploadDisabled && stats) && (
               <div className={classes.fakeUploadButton} style={{ minWidth: uploadButtonWidth - 24 }}>
-                {stats.isUploadedRlog ? (
-                  'uploaded'
-                ) : stats.isUploadingRlog ? (
-                  'pending'
-                ) : (
-                  <CircularProgress style={{ color: Colors.white }} size={17} />
-                )}
+                {stats.isUploadedRlog ? 'uploaded' : stats.isUploadingRlog ? 'pending' : <CircularProgress style={{ color: Colors.white }} size={17} />}
               </div>
             )}
           </MenuItem>
-          <MenuItem
-            className={classes.filesItem}
-            disabled
-            style={files && stats ? { pointerEvents: 'auto' } : { color: Colors.white60 }}
-          >
+          <MenuItem className={classes.filesItem} disabled style={files && stats ? { pointerEvents: 'auto' } : { color: Colors.white60 }}>
             All files
             {Boolean(files && canUpload && !allUploadDisabled) && (
-              <Button
-                className={classes.uploadButton}
-                style={{ minWidth: uploadButtonWidth }}
-                onClick={() => this.uploadFilesAll()}
-              >
+              <Button className={classes.uploadButton} style={{ minWidth: uploadButtonWidth }} onClick={() => this.uploadFilesAll()}>
                 {`upload ${stats.canRequestAll} files`}
               </Button>
             )}
             {Boolean(canUpload && allUploadDisabled && stats) && (
               <div className={classes.fakeUploadButton} style={{ minWidth: uploadButtonWidth - 24 }}>
-                {stats.isUploadedAll ? (
-                  'uploaded'
-                ) : stats.isUploadingAll ? (
-                  'pending'
-                ) : (
-                  <CircularProgress style={{ color: Colors.white }} size={17} />
-                )}
+                {stats.isUploadedAll ? 'uploaded' : stats.isUploadingAll ? 'pending' : <CircularProgress style={{ color: Colors.white }} size={17} />}
               </div>
             )}
           </MenuItem>
@@ -800,14 +707,8 @@ class Media extends Component {
           onClose={() => this.setState({ moreInfoMenu: null })}
           transformOrigin={{ vertical: 'top', horizontal: windowWidth > 400 ? 260 : 300 }}
         >
-          <MenuItem
-            className={classes.copySegment}
-            onClick={this.copySegmentName}
-            style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}
-          >
-            <div>
-              {currentRoute ? `${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute)}` : '---'}
-            </div>
+          <MenuItem className={classes.copySegment} onClick={this.copySegmentName} style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}>
+            <div>{currentRoute ? `${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute)}` : '---'}</div>
             <ContentCopyIcon />
           </MenuItem>
           {typeof navigator.share !== 'undefined' && (
@@ -821,21 +722,10 @@ class Media extends Component {
           {Boolean(device?.is_owner || (profile && profile.superuser)) && [
             <Divider key="1" />,
             <ListItem key="2" className={classes.switchListItem}>
-              <SwitchLoading
-                checked={currentRoute?.is_public}
-                onChange={this.onPublicToggle}
-                label="Public access"
-                tooltip={publicTooltip}
-              />
+              <SwitchLoading checked={currentRoute?.is_public} onChange={this.onPublicToggle} label="Public access" tooltip={publicTooltip} />
             </ListItem>,
             <ListItem key="3" className={classes.switchListItem}>
-              <SwitchLoading
-                checked={Boolean(routePreserved)}
-                loading={routePreserved === null}
-                onChange={this.onPreserveToggle}
-                label="Preserved"
-                tooltip={preservedTooltip}
-              />
+              <SwitchLoading checked={Boolean(routePreserved)} loading={routePreserved === null} onChange={this.onPreserveToggle} label="Preserved" tooltip={preservedTooltip} />
             </ListItem>,
           ]}
         </Menu>
@@ -846,12 +736,7 @@ class Media extends Component {
           store={this.props.store}
           device={device}
         />
-        <Popper
-          open={Boolean(dcamUploadInfo)}
-          placement="bottom"
-          anchorEl={dcamUploadInfo}
-          className={classes.dcameraUploadInfo}
-        >
+        <Popper open={Boolean(dcamUploadInfo)} placement="bottom" anchorEl={dcamUploadInfo} className={classes.dcameraUploadInfo}>
           <Typography>make sure to enable the &ldquo;Record and Upload Driver Camera&rdquo; toggle</Typography>
         </Popper>
       </>
@@ -870,11 +755,7 @@ class Media extends Component {
       button = null;
     } else if (file.url) {
       button = (
-        <Button
-          className={classes.uploadButton}
-          style={{ minWidth: uploadButtonWidth }}
-          onClick={() => this.downloadFile(file, type)}
-        >
+        <Button className={classes.uploadButton} style={{ minWidth: uploadButtonWidth }} onClick={() => this.downloadFile(file, type)}>
           download
         </Button>
       );
@@ -910,23 +791,14 @@ class Media extends Component {
       );
     } else {
       button = (
-        <Button
-          className={classes.uploadButton}
-          style={{ minWidth: uploadButtonWidth }}
-          onClick={() => this.uploadFile(type)}
-        >
+        <Button className={classes.uploadButton} style={{ minWidth: uploadButtonWidth }} onClick={() => this.uploadFile(type)}>
           {windowWidth < 425 ? 'upload' : 'request upload'}
         </Button>
       );
     }
 
     return (
-      <MenuItem
-        key={type}
-        disabled
-        className={classes.filesItem}
-        style={files ? { pointerEvents: 'auto' } : { color: Colors.white60 }}
-      >
+      <MenuItem key={type} disabled className={classes.filesItem} style={files ? { pointerEvents: 'auto' } : { color: Colors.white60 }}>
         {name}
         {button}
       </MenuItem>

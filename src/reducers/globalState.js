@@ -147,9 +147,7 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.ACTION_UPDATE_ROUTE_EVENTS: {
-      const firstFrame = action.events.find(
-        (ev) => ev.type === 'event' && ev.data.event_type === 'first_road_camera_frame',
-      );
+      const firstFrame = action.events.find((ev) => ev.type === 'event' && ev.data.event_type === 'first_road_camera_frame');
       const videoStartOffset = firstFrame ? firstFrame.route_offset_millis : null;
       eventsMap[action.fullname] = {
         events: action.events,
@@ -290,13 +288,7 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.TIMELINE_PUSH_SELECTION: {
-      if (
-        !state.zoom ||
-        !action.start ||
-        !action.end ||
-        action.start < state.zoom.start ||
-        action.end > state.zoom.end
-      ) {
+      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
         state.files = null;
       }
 

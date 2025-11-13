@@ -61,12 +61,7 @@ const DriveListItem = (props) => {
 
   useEffect(() => {
     const onScroll = () => {
-      if (
-        !isVisible &&
-        el.current &&
-        window &&
-        (!window.visualViewport || window.visualViewport.height >= el.current.getBoundingClientRect().y - 300)
-      ) {
+      if (!isVisible && el.current && window && (!window.visualViewport || window.visualViewport.height >= el.current.getBoundingClientRect().y - 300)) {
         setVisible(true);
         dispatch(fetchEvents(drive));
         dispatch(fetchLocations(drive));
@@ -116,13 +111,7 @@ const DriveListItem = (props) => {
   /* eslint-enable key-spacing, no-multi-spaces */
 
   return (
-    <a
-      key={drive.fullname}
-      className={`${classes.drive} DriveEntry`}
-      ref={el}
-      href={`/${drive.dongle_id}/${drive.log_id}`}
-      onClick={onClick}
-    >
+    <a key={drive.fullname} className={`${classes.drive} DriveEntry`} ref={el} href={`/${drive.dongle_id}/${drive.log_id}`} onClick={onClick}>
       <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>
         <Grid container>
           <div className={classes.driveGridItem} style={gridStyle.date}>
@@ -137,10 +126,7 @@ const DriveListItem = (props) => {
             <Typography className={classes.firstLine}>{drive.startLocation?.place}</Typography>
             <Typography>{drive.startLocation?.details}</Typography>
           </div>
-          <div
-            className={`${classes.driveGridItem} ${small && classes.driveGridItemRightAlign}`}
-            style={gridStyle.dest}
-          >
+          <div className={`${classes.driveGridItem} ${small && classes.driveGridItemRightAlign}`} style={gridStyle.dest}>
             <Typography className={classes.firstLine}>{drive.endLocation?.place}</Typography>
             <Typography>{drive.endLocation?.details}</Typography>
           </div>

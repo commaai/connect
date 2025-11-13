@@ -2,17 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 
-import {
-  Button,
-  CircularProgress,
-  Divider,
-  IconButton,
-  Modal,
-  Paper,
-  TextField,
-  Typography,
-  withStyles,
-} from '@material-ui/core';
+import { Button, CircularProgress, Divider, IconButton, Modal, Paper, TextField, Typography, withStyles } from '@material-ui/core';
 import CheckIcon from '@material-ui/icons/Check';
 import SaveIcon from '@material-ui/icons/Save';
 import ShareIcon from '@material-ui/icons/Share';
@@ -283,12 +273,7 @@ class DeviceSettingsModal extends Component {
 
     return (
       <>
-        <Modal
-          aria-labelledby="device-settings-modal"
-          aria-describedby="device-settings-modal-description"
-          open={this.props.isOpen}
-          onClose={this.props.onClose}
-        >
+        <Modal aria-labelledby="device-settings-modal" aria-describedby="device-settings-modal-description" open={this.props.isOpen} onClose={this.props.onClose}>
           <Paper className={classes.modal}>
             <div className={classes.titleContainer}>
               <Typography variant="title">Device settings</Typography>
@@ -299,20 +284,12 @@ class DeviceSettingsModal extends Component {
               <Button variant="outlined" className={classes.primeManageButton} onClick={this.onPrimeSettings}>
                 Prime settings
               </Button>
-              <Button
-                variant="outlined"
-                className={classes.primeManageButton}
-                onClick={() => this.setState({ unpairConfirm: true })}
-              >
+              <Button variant="outlined" className={classes.primeManageButton} onClick={() => this.setState({ unpairConfirm: true })}>
                 Unpair
               </Button>
             </div>
             <div>
-              <Button
-                variant="outlined"
-                className={classes.primeManageButton}
-                onClick={() => this.setState({ uploadModal: true })}
-              >
+              <Button variant="outlined" className={classes.primeManageButton} onClick={() => this.setState({ uploadModal: true })}>
                 Uploads
               </Button>
             </div>
@@ -368,12 +345,7 @@ class DeviceSettingsModal extends Component {
             </div>
           </Paper>
         </Modal>
-        <Modal
-          aria-labelledby="device-settings-modal"
-          aria-describedby="device-settings-modal-description"
-          open={this.state.unpairConfirm}
-          onClose={this.closeUnpair}
-        >
+        <Modal aria-labelledby="device-settings-modal" aria-describedby="device-settings-modal-description" open={this.state.unpairConfirm} onClose={this.closeUnpair}>
           <Paper className={`${classes.modal} ${classes.modalUnpair}`}>
             <div className={classes.titleContainer}>
               <Typography variant="title">Unpair device</Typography>
@@ -393,43 +365,27 @@ class DeviceSettingsModal extends Component {
               </div>
             )}
             <div className={classes.topButtonGroup}>
-              <Button
-                variant="contained"
-                className={`${classes.primeManageButton} ${classes.cancelButton}`}
-                onClick={this.closeUnpair}
-              >
+              <Button variant="contained" className={`${classes.primeManageButton} ${classes.cancelButton}`} onClick={this.closeUnpair}>
                 {this.state.unpaired ? 'Close' : 'Cancel'}
               </Button>
               {this.state.unpaired ? (
                 <Typography variant="body2">Unpaired</Typography>
               ) : (
-                <Button
-                  variant="outlined"
-                  className={classes.primeManageButton}
-                  onClick={this.unpairDevice}
-                  disabled={this.state.loadingUnpair}
-                >
+                <Button variant="outlined" className={classes.primeManageButton} onClick={this.unpairDevice} disabled={this.state.loadingUnpair}>
                   {this.state.loadingUnpair ? 'Unpairing...' : 'Confirm'}
                 </Button>
               )}
             </div>
           </Paper>
         </Modal>
-        <UploadQueue
-          open={this.state.uploadModal}
-          update={this.state.uploadModal}
-          onClose={() => this.setState({ uploadModal: false })}
-          device={device}
-        />
+        <UploadQueue open={this.state.uploadModal} update={this.state.uploadModal} onClose={() => this.setState({ uploadModal: false })} device={device} />
       </>
     );
   }
 }
 
 const stateToProps = (state, ownProps) => {
-  const device =
-    state.devices.find((d) => d.dongle_id === ownProps.dongleId) ||
-    (state.device && state.device.dongle_id === ownProps.dongleId ? state.device : null);
+  const device = state.devices.find((d) => d.dongle_id === ownProps.dongleId) || (state.device && state.device.dongle_id === ownProps.dongleId ? state.device : null);
   return {
     subscription: state.subscription,
     device,

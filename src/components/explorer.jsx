@@ -123,11 +123,7 @@ class ExplorerApp extends Component {
         } else {
           await localforage.removeItem('pairToken');
           console.log(resp);
-          this.setState({
-            pairDongleId: null,
-            pairLoading: false,
-            pairError: 'Error: could not pair, please try again',
-          });
+          this.setState({ pairDongleId: null, pairLoading: false, pairError: 'Error: could not pair, please try again' });
         }
       } catch (err) {
         await localforage.removeItem('pairToken');
@@ -190,11 +186,7 @@ class ExplorerApp extends Component {
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
-    const headerHeight = this.state.headerRef
-      ? this.state.headerRef.getBoundingClientRect().height
-      : windowWidth < 640
-        ? 111
-        : 66;
+    const headerHeight = this.state.headerRef ? this.state.headerRef.getBoundingClientRect().height : windowWidth < 640 ? 111 : 66;
     let containerStyles = {
       minHeight: `calc(100vh - ${headerHeight}px)`,
     };
@@ -221,13 +213,7 @@ class ExplorerApp extends Component {
           handleDrawerStateChanged={this.handleDrawerStateChanged}
           forwardRef={this.updateHeaderRef}
         />
-        <AppDrawer
-          drawerIsOpen={drawerIsOpen}
-          isPermanent={isLarge}
-          width={sidebarWidth}
-          handleDrawerStateChanged={this.handleDrawerStateChanged}
-          style={drawerStyles}
-        />
+        <AppDrawer drawerIsOpen={drawerIsOpen} isPermanent={isLarge} width={sidebarWidth} handleDrawerStateChanged={this.handleDrawerStateChanged} style={drawerStyles} />
         <div className={classes.window} style={containerStyles}>
           {noDevicesUpsell ? <NoDeviceUpsell /> : currentRoute ? <DriveView /> : <Dashboard />}
         </div>

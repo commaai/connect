@@ -35,12 +35,7 @@ const AppDrawer = ({ dispatch, isPermanent, drawerIsOpen, selectedDongleId, hand
   );
 
   return (
-    <Drawer
-      open={isPermanent || drawerIsOpen}
-      onClose={toggleDrawerOff}
-      variant={isPermanent ? 'permanent' : 'temporary'}
-      PaperProps={{ style: { width, top: 'auto' } }}
-    >
+    <Drawer open={isPermanent || drawerIsOpen} onClose={toggleDrawerOff} variant={isPermanent ? 'permanent' : 'temporary'} PaperProps={{ style: { width, top: 'auto' } }}>
       <div ref={contentRef} className="flex flex-col h-full bg-[linear-gradient(180deg,#1B2023_0%,#111516_100%)]">
         {!isPermanent && (
           <Link to="/" className="flex items-center min-h-[64px] mx-2">

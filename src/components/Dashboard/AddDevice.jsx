@@ -263,11 +263,7 @@ class AddDevice extends Component {
           throw new Error('empty pairToken from url qr code');
         }
       } catch (err) {
-        this.setState({
-          pairLoading: false,
-          pairDongleId: null,
-          pairError: 'Error: could not parse pair token from detected url',
-        });
+        this.setState({ pairLoading: false, pairDongleId: null, pairError: 'Error: could not parse pair token from detected url' });
         console.error(err);
         return;
       }
@@ -347,9 +343,7 @@ class AddDevice extends Component {
             {hasCamera === false ? (
               <>
                 <Typography style={{ marginBottom: 5 }}>Camera not found, please enable camera access.</Typography>
-                <Typography>
-                  You can also scan the QR code on your comma device using any other QR code reader application.
-                </Typography>
+                <Typography>You can also scan the QR code on your comma device using any other QR code reader application.</Typography>
               </>
             ) : (
               <div className={`${classes.videoContainer} ${videoContainerOverlay}`}>

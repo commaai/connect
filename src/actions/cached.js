@@ -518,13 +518,7 @@ export function fetchDriveCoords(route) {
     });
     resolveDriveCoords(driveCoords);
     if (!USE_LOCAL_COORDS_DATA) {
-      setCacheItem(
-        'driveCoords',
-        route.fullname,
-        Math.floor(Date.now() / 1000) + 86400 * 14,
-        driveCoords,
-        route.maxqlog,
-      );
+      setCacheItem('driveCoords', route.fullname, Math.floor(Date.now() / 1000) + 86400 * 14, driveCoords, route.maxqlog);
     }
   };
 }

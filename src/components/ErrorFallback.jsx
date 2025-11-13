@@ -80,11 +80,7 @@ ${error.toString()}${componentStack}`;
           channel.
         </p>
         <div className="flex flex-row gap-4">
-          <button
-            className="flex items-center gap-1 bg-blue-600 rounded-md px-4 py-2 font-bold hover:bg-blue-500 transition-colors"
-            type="button"
-            onClick={reload}
-          >
+          <button className="flex items-center gap-1 bg-blue-600 rounded-md px-4 py-2 font-bold hover:bg-blue-500 transition-colors" type="button" onClick={reload}>
             Reload
             <Refresh />
           </button>

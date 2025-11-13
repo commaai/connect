@@ -56,18 +56,7 @@ const styles = () => ({
   },
 });
 
-const AppHeader = ({
-  profile,
-  classes,
-  dispatch,
-  drawerIsOpen,
-  viewingRoute,
-  showDrawerButton,
-  forwardRef,
-  handleDrawerStateChanged,
-  primeNav,
-  dongleId,
-}) => {
+const AppHeader = ({ profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton, forwardRef, handleDrawerStateChanged, primeNav, dongleId }) => {
   const [anchorEl, setAnchorEl] = useState(null);
 
   const handleClickedAccount = useCallback((event) => {
@@ -98,11 +87,7 @@ const AppHeader = ({
                 <Icon>menu</Icon>
               </IconButton>
             ) : (
-              <a
-                href={`/${dongleId}`}
-                className={classes.logoImgLink}
-                onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
-              >
+              <a href={`/${dongleId}`} className={classes.logoImgLink} onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}>
                 <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
               </a>
             )}
@@ -114,20 +99,13 @@ const AppHeader = ({
             <Suspense>
               <PWAIcon />
             </Suspense>
-            <IconButton
-              aria-owns={open ? 'menu-appbar' : null}
-              aria-haspopup="true"
-              onClick={handleClickedAccount}
-              aria-label="account menu"
-            >
+            <IconButton aria-owns={open ? 'menu-appbar' : null} aria-haspopup="true" onClick={handleClickedAccount} aria-label="account menu">
               <AccountIcon className={classes.accountIcon} />
             </IconButton>
           </div>
         </div>
       </AppBar>
-      {Boolean(MyCommaAuth.isAuthenticated() && profile) && (
-        <AccountMenu id="menu-appbar" open={open} anchorEl={anchorEl} onClose={handleClose} profile={profile} />
-      )}
+      {Boolean(MyCommaAuth.isAuthenticated() && profile) && <AccountMenu id="menu-appbar" open={open} anchorEl={anchorEl} onClose={handleClose} profile={profile} />}
     </>
   );
 };

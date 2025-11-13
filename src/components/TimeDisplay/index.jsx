@@ -226,20 +226,12 @@ class TimeDisplay extends Component {
     return (
       <div className={`${classes.base} ${isExpandedCls} ${isThinCls}`}>
         <div className={classes.rightBorderBox}>
-          <IconButton
-            className={classes.iconButton}
-            onClick={() => this.jumpBack(10000)}
-            aria-label="Jump back 10 seconds"
-          >
+          <IconButton className={classes.iconButton} onClick={() => this.jumpBack(10000)} aria-label="Jump back 10 seconds">
             <Replay10 className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
         <div className={classes.rightBorderBox}>
-          <IconButton
-            className={classes.iconButton}
-            onClick={() => this.jumpForward(10000)}
-            aria-label="Jump forward 10 seconds"
-          >
+          <IconButton className={classes.iconButton} onClick={() => this.jumpForward(10000)} aria-label="Jump forward 10 seconds">
             <Forward10 className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
@@ -253,47 +245,22 @@ class TimeDisplay extends Component {
         </Typography>
         {!isIos() && (
           <div className={classes.desiredPlaySpeedContainer}>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={this.increaseSpeed}
-              disabled={!this.canIncreaseSpeed()}
-              aria-label="Increase play speed by 1 step"
-            >
+            <IconButton className={classes.tinyArrowIcon} onClick={this.increaseSpeed} disabled={!this.canIncreaseSpeed()} aria-label="Increase play speed by 1 step">
               <UpArrow className={classes.tinyArrowIcon} />
             </IconButton>
             <Typography variant="body2" align="center">
               {desiredPlaySpeed}×
             </Typography>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={this.decreaseSpeed}
-              disabled={!this.canDecreaseSpeed()}
-              aria-label="Decrease play speed by 1 step"
-            >
+            <IconButton className={classes.tinyArrowIcon} onClick={this.decreaseSpeed} disabled={!this.canDecreaseSpeed()} aria-label="Decrease play speed by 1 step">
               <DownArrow className={classes.tinyArrowIcon} />
             </IconButton>
           </div>
         )}
         <div className={classes.leftBorderBox}>
-          <Tooltip
-            title={
-              !this.props.hasAudio
-                ? 'Enable audio recording through the "Record and Upload Microphone Audio" toggle on your device'
-                : ''
-            }
-          >
+          <Tooltip title={!this.props.hasAudio ? 'Enable audio recording through the "Record and Upload Microphone Audio" toggle on your device' : ''}>
             <div>
-              <IconButton
-                className={classes.iconButton}
-                onClick={onMuteToggle}
-                disabled={!hasAudio}
-                aria-label={isMuted ? 'Unmute' : 'Mute'}
-              >
-                {isMuted ? (
-                  <VolumeOff className={`${classes.icon} small ${!hasAudio ? 'dim' : ''}`} />
-                ) : (
-                  <VolumeUp className={`${classes.icon} small`} />
-                )}
+              <IconButton className={classes.iconButton} onClick={onMuteToggle} disabled={!hasAudio} aria-label={isMuted ? 'Unmute' : 'Mute'}>
+                {isMuted ? <VolumeOff className={`${classes.icon} small ${!hasAudio ? 'dim' : ''}`} /> : <VolumeUp className={`${classes.icon} small`} />}
               </IconButton>
             </div>
           </Tooltip>

@@ -95,9 +95,7 @@ class SwitchLoading extends Component {
     const isChecked = this.state.checked !== null ? this.state.checked : checked;
     const loadingCls = loading || this.state.loading ? { icon: classes.switchThumbLoading } : {};
 
-    const switchEl = (
-      <Switch color="secondary" checked={isChecked} onChange={this.onChange} classes={loadingCls} disabled={loading} />
-    );
+    const switchEl = <Switch color="secondary" checked={isChecked} onChange={this.onChange} classes={loadingCls} disabled={loading} />;
 
     return (
       <div className={classes.root}>
@@ -110,12 +108,7 @@ class SwitchLoading extends Component {
               onMouseLeave={() => this.setState({ errorPopper: null })}
               onMouseEnter={(ev) => this.setState({ errorPopper: ev.target })}
             />
-            <Popper
-              open={Boolean(this.state.errorPopper)}
-              placement="bottom"
-              anchorEl={this.state.errorPopper}
-              className={classes.copiedPopover}
-            >
+            <Popper open={Boolean(this.state.errorPopper)} placement="bottom" anchorEl={this.state.errorPopper} className={classes.copiedPopover}>
               <Typography>{this.state.error}</Typography>
             </Popper>
           </>

@@ -44,10 +44,7 @@ async function athenaCall(dongleId, payload, sentryFingerprint, retryCount = 0) 
       await asyncSleep(2000);
       return athenaCall(dongleId, payload, sentryFingerprint, retryCount + 1);
     }
-    if (
-      err.message &&
-      (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)
-    ) {
+    if (err.message && (err.message.indexOf('Timed out') === -1 || err.message.indexOf('Device not registered') === -1)) {
       return { offline: true };
     }
     console.error(err);
@@ -231,12 +228,7 @@ export function doUpload(dongleId, paths, urls) {
         expiry: Math.floor(Date.now() / 1000) + 86400 * 7,
       };
       const resp = await athenaCall(dongleId, payload, 'action_files_athena_uploads');
-      if (
-        resp &&
-        resp.error &&
-        resp.error.code === -32000 &&
-        resp.error.data.message === 'too many values to unpack (expected 3)'
-      ) {
+      if (resp && resp.error && resp.error.code === -32000 && resp.error.data.message === 'too many values to unpack (expected 3)') {
         loopedUploads = true;
       } else if (!resp || resp.error) {
         const newUploading = paths.reduce((state, path) => {

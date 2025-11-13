@@ -61,12 +61,7 @@ class DriveMap extends Component {
       this.shouldFlyTo = true;
     }
 
-    if (
-      currentRoute &&
-      prevProps.currentRoute &&
-      currentRoute.driveCoords &&
-      prevProps.currentRoute.driveCoords !== currentRoute.driveCoords
-    ) {
+    if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords && prevProps.currentRoute.driveCoords !== currentRoute.driveCoords) {
       this.shouldFlyTo = false;
       const keys = Object.keys(currentRoute.driveCoords);
       this.setState({
@@ -200,10 +195,7 @@ class DriveMap extends Component {
     }
 
     const [ceilLng, ceilLat] = currentRoute.driveCoords[nextCoordIdx];
-    return [
-      floorLng + (ceilLng - floorLng) * offsetFractionalPart,
-      floorLat + (ceilLat - floorLat) * offsetFractionalPart,
-    ];
+    return [floorLng + (ceilLng - floorLng) * offsetFractionalPart, floorLat + (ceilLat - floorLat) * offsetFractionalPart];
   }
 
   initMap(mapComponent) {

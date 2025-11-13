@@ -376,9 +376,7 @@ class DeviceInfo extends Component {
                 <Typography variant="title">{deviceNamePretty(device)}</Typography>
               </div>
               <div className={classes.row}>{this.renderButtons()}</div>
-              {deviceStats.result && (
-                <div className={`${classes.row} ${classes.spaceAround}`}>{this.renderStats()}</div>
-              )}
+              {deviceStats.result && <div className={`${classes.row} ${classes.spaceAround}`}>{this.renderStats()}</div>}
             </>
           )}
         </div>
@@ -386,21 +384,13 @@ class DeviceInfo extends Component {
           <div className={classes.snapshotContainer}>
             {windowWidth >= 640 ? (
               <div className={classes.snapshotContainerLarge} style={{ padding: largeSnapshotPadding }}>
-                <div className={classes.snapshotImageContainerLarge}>
-                  {this.renderSnapshotImage(snapshot.result.jpegBack, false)}
-                </div>
-                <div className={classes.snapshotImageContainerLarge}>
-                  {this.renderSnapshotImage(snapshot.result.jpegFront, true)}
-                </div>
+                <div className={classes.snapshotImageContainerLarge}>{this.renderSnapshotImage(snapshot.result.jpegBack, false)}</div>
+                <div className={classes.snapshotImageContainerLarge}>{this.renderSnapshotImage(snapshot.result.jpegFront, true)}</div>
               </div>
             ) : (
               <div className={classes.scrollSnapContainer}>
-                <div className={classes.scrollSnapItem}>
-                  {this.renderSnapshotImage(snapshot.result.jpegBack, false)}
-                </div>
-                <div className={classes.scrollSnapItem}>
-                  {this.renderSnapshotImage(snapshot.result.jpegFront, true)}
-                </div>
+                <div className={classes.scrollSnapItem}>{this.renderSnapshotImage(snapshot.result.jpegBack, false)}</div>
+                <div className={classes.scrollSnapItem}>{this.renderSnapshotImage(snapshot.result.jpegFront, true)}</div>
               </div>
             )}
           </div>
@@ -424,9 +414,7 @@ class DeviceInfo extends Component {
     }
 
     const metric = isMetric();
-    const distance = metric
-      ? Math.round(deviceStats.result.all.distance * KM_PER_MI)
-      : Math.round(deviceStats.result.all.distance);
+    const distance = metric ? Math.round(deviceStats.result.all.distance * KM_PER_MI) : Math.round(deviceStats.result.all.distance);
 
     return (
       <>
@@ -458,12 +446,7 @@ class DeviceInfo extends Component {
 
     let batteryVoltage;
     let batteryBackground = Colors.grey400;
-    if (
-      deviceIsOnline(device) &&
-      carHealth?.result &&
-      carHealth.result.peripheralState &&
-      carHealth.result.peripheralState.voltage
-    ) {
+    if (deviceIsOnline(device) && carHealth?.result && carHealth.result.peripheralState && carHealth.result.peripheralState.voltage) {
       batteryVoltage = carHealth.result.peripheralState.voltage / 1000.0;
       batteryBackground = batteryVoltage < 11.0 ? Colors.red400 : Colors.green400;
     }
@@ -490,11 +473,7 @@ class DeviceInfo extends Component {
       <>
         <div className={classes.carBattery} style={{ backgroundColor: batteryBackground }}>
           {deviceIsOnline(device) ? (
-            <Typography>
-              {`${windowWidth >= 520 ? 'car ' : ''}battery: ${
-                batteryVoltage ? `${batteryVoltage.toFixed(1)}\u00a0V` : 'N/A'
-              }`}
-            </Typography>
+            <Typography>{`${windowWidth >= 520 ? 'car ' : ''}battery: ${batteryVoltage ? `${batteryVoltage.toFixed(1)}\u00a0V` : 'N/A'}`}</Typography>
           ) : (
             <Tooltip classes={{ tooltip: classes.popover }} title={pingTooltip} placement="bottom">
               <Typography>device offline</Typography>
@@ -512,12 +491,7 @@ class DeviceInfo extends Component {
         <Button classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }} onClick={this.onOpenTimeSelect}>
           <AccessTime fontSize="inherit" />
         </Button>
-        <Popper
-          className={classes.popover}
-          open={Boolean(error)}
-          placement="bottom"
-          anchorEl={this.snapshotButtonRef.current}
-        >
+        <Popper className={classes.popover} open={Boolean(error)} placement="bottom" anchorEl={this.snapshotButtonRef.current}>
           <Typography>{error}</Typography>
         </Popper>
         <TimeSelect isOpen={isTimeSelectOpen} onClose={this.onCloseTimeSelect} />
@@ -531,11 +505,7 @@ class DeviceInfo extends Component {
       return (
         <div className={classes.snapshotImageError}>
           <Typography>{isFront && 'Interior'} snapshot not available</Typography>
-          {isFront && (
-            <Typography>
-              Enable &ldquo;Record and Upload Driver Camera&rdquo; on your device for interior camera snapshots
-            </Typography>
-          )}
+          {isFront && <Typography>Enable &ldquo;Record and Upload Driver Camera&rdquo; on your device for interior camera snapshots</Typography>}
         </div>
       );
     }

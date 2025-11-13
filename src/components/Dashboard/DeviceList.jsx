@@ -143,11 +143,7 @@ class DeviceList extends Component {
           </div>
         </div>
         {(device.is_owner || (profile && profile.superuser)) && (
-          <IconButton
-            className={classes.settingsButton}
-            aria-label="device settings"
-            onClick={(ev) => this.handleOpenedSettingsModal(device.dongle_id, ev)}
-          >
+          <IconButton className={classes.settingsButton} aria-label="device settings" onClick={(ev) => this.handleOpenedSettingsModal(device.dongle_id, ev)}>
             <SettingsIcon className={classes.settingsButtonIcon} />
           </IconButton>
         )}
@@ -201,11 +197,7 @@ class DeviceList extends Component {
             </div>
           )}
         </div>
-        <DeviceSettingsModal
-          isOpen={Boolean(settingsModalDongleId)}
-          dongleId={settingsModalDongleId}
-          onClose={this.handleClosedSettingsModal}
-        />
+        <DeviceSettingsModal isOpen={Boolean(settingsModalDongleId)} dongleId={settingsModalDongleId} onClose={this.handleClosedSettingsModal} />
       </>
     );
   }

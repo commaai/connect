@@ -124,8 +124,7 @@ class IosPwaPopup extends Component {
           <Typography className={classes.title}>Add to home screen</Typography>
           <Typography>
             Install this webapp on your home screen: <br />
-            tap <img className={classes.icon} src={IosShareIcon} width={35 / 2.2} height={44 / 2.2} alt="share" /> and
-            then &lsquo;Add to Home Screen&rsquo;
+            tap <img className={classes.icon} src={IosShareIcon} width={35 / 2.2} height={44 / 2.2} alt="share" /> and then &lsquo;Add to Home Screen&rsquo;
           </Typography>
         </div>
       </div>

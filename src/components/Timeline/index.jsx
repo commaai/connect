@@ -36,8 +36,7 @@ const styles = () => ({
     background: theme.palette.states.drivingBlue,
   },
   statusGradient: {
-    background:
-      'linear-gradient(rgba(0, 0, 0, 0.0) 4%, rgba(255, 255, 255, 0.025) 10%, rgba(0, 0, 0, 0.1) 25%, rgba(0, 0, 0, 0.4))',
+    background: 'linear-gradient(rgba(0, 0, 0, 0.0) 4%, rgba(255, 255, 255, 0.025) 10%, rgba(0, 0, 0, 0.1) 25%, rgba(0, 0, 0, 0.4))',
     height: 12,
     left: 0,
     pointerEvents: 'none',
@@ -351,13 +350,7 @@ class Timeline extends Component {
           minWidth: '1px',
         };
         const statusCls = event.data.alertStatus ? `${AlertStatusCodes[event.data.alertStatus]}` : '';
-        return (
-          <div
-            key={route.fullname + event.route_offset_millis + event.type}
-            style={style}
-            className={`${classes.segmentColor} ${event.type} ${statusCls}`}
-          />
-        );
+        return <div key={route.fullname + event.route_offset_millis + event.type} style={style} className={`${classes.segmentColor} ${event.type} ${statusCls}`} />;
       });
   }
 
@@ -407,13 +400,7 @@ class Timeline extends Component {
             {(options) => (
               <div ref={options.measureRef} className={`${classes.thumbnails} ${hasRulerCls}`}>
                 {thumbnailsVisible && (
-                  <Thumbnails
-                    className={classes.thumbnail}
-                    currentRoute={route}
-                    percentToOffset={this.percentToOffset}
-                    thumbnail={thumbnail}
-                    hasRuler={hasRuler}
-                  />
+                  <Thumbnails className={classes.thumbnail} currentRoute={route} percentToOffset={this.percentToOffset} thumbnail={thumbnail} hasRuler={hasRuler} />
                 )}
               </div>
             )}

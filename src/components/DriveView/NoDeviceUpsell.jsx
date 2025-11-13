@@ -13,8 +13,7 @@ const NoDeviceUpsell = () => (
         <li>You may need to look for &quot;Pair Device&quot; in Settings</li>
       </ul>
       <p>
-        If you still cannot see a QR code, your device may already be paired to another account. Make sure you have
-        signed in with the same account you may have used previously.
+        If you still cannot see a QR code, your device may already be paired to another account. Make sure you have signed in with the same account you may have used previously.
       </p>
       <div className="mt-2 w-full">
         <AddDevice buttonText="add new device" />

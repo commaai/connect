@@ -7,7 +7,7 @@
     "build:production": "vite build",
     "serve": "vite preview",
     "lint": "printf 'biome lint currently disabled; fix required first\n'",
-    "format": "biome format src",
+    "format": "biome format --write src",
     "test": "jest",
     "test-coverage": "jest --coverage",
     "test-puppeteer": "jest -c src/__puppeteer__/jest.config.js",

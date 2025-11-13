@@ -143,9 +143,7 @@ class AnonymousLanding extends Component {
           </div>
           <div className={classes.logoSpacer}>&nbsp;</div>
           <Typography className={classes.logoText}>comma connect</Typography>
-          <Typography className={classes.tagline}>
-            Manage your comma device, view your drives, and use comma prime features
-          </Typography>
+          <Typography className={classes.tagline}>Manage your comma device, view your drives, and use comma prime features</Typography>
           <a href={AuthConfig.GOOGLE_REDIRECT_LINK} className={classes.logInButton}>
             <img className={classes.buttonImage} src={AuthGoogleIcon} alt="" />
             <Typography className={classes.buttonText}>Sign in with Google</Typography>
@@ -159,9 +157,7 @@ class AnonymousLanding extends Component {
             <Typography className={classes.buttonText}>Sign in with GitHub</Typography>
           </a>
 
-          <span className="max-w-sm text-center mt-2 mb-8 text-sm">
-            Make sure to sign in with the same account if you have previously paired your comma device.
-          </span>
+          <span className="max-w-sm text-center mt-2 mb-8 text-sm">Make sure to sign in with the same account if you have previously paired your comma device.</span>
 
           <a
             onClick={loginAsDemoUser}

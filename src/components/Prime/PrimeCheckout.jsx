@@ -318,11 +318,9 @@ class PrimeCheckout extends Component {
       if (!device.eligible_features?.prime_data) {
         disabledDataPlanText = 'Standard plan is not available for your device.';
       } else if (!subscribeInfo.sim_id && subscribeInfo.device_online) {
-        disabledDataPlanText =
-          'Standard plan not available, no SIM was detected. Ensure SIM is securely inserted and try again.';
+        disabledDataPlanText = 'Standard plan not available, no SIM was detected. Ensure SIM is securely inserted and try again.';
       } else if (!subscribeInfo.sim_id) {
-        disabledDataPlanText =
-          'Standard plan not available, device could not be reached. Connect device to the internet and try again.';
+        disabledDataPlanText = 'Standard plan not available, device could not be reached. Connect device to the internet and try again.';
       } else if (!subscribeInfo.is_prime_sim) {
         disabledDataPlanText = 'Standard plan not available, detected a third-party SIM.';
       } else if (!['blue', 'magenta_new', 'webbing'].includes(subscribeInfo.sim_type)) {
@@ -439,18 +437,8 @@ class PrimeCheckout extends Component {
           </div>
         )}
         <div style={blockMargin}>
-          <Button
-            className={`${classes.buttons} gotoCheckout`}
-            onClick={() => this.gotoCheckout()}
-            disabled={Boolean(!subscribeInfo || loadingCheckout || !selectedPlan)}
-          >
-            {loadingCheckout ? (
-              <CircularProgress size={19} />
-            ) : this.trialClaimable() ? (
-              'Claim trial'
-            ) : (
-              'Go to checkout'
-            )}
+          <Button className={`${classes.buttons} gotoCheckout`} onClick={() => this.gotoCheckout()} disabled={Boolean(!subscribeInfo || loadingCheckout || !selectedPlan)}>
+            {loadingCheckout ? <CircularProgress size={19} /> : this.trialClaimable() ? 'Claim trial' : 'Go to checkout'}
           </Button>
         </div>
         {chargeText && (

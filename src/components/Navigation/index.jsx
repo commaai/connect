@@ -298,11 +298,7 @@ class Navigation extends Component {
         );
       }
     } catch (err) {
-      if (
-        this.mounted &&
-        dongleId === this.props.dongleId &&
-        (!err.message || err.message.indexOf('{"error": "Device not registered"}') === -1)
-      ) {
+      if (this.mounted && dongleId === this.props.dongleId && (!err.message || err.message.indexOf('{"error": "Device not registered"}') === -1)) {
         console.error(err);
         Sentry.captureException(err, { fingerprint: 'nav_fetch_network_location' });
       }
@@ -312,11 +308,7 @@ class Navigation extends Component {
   getCarLocation() {
     const { carLastLocation, carLastLocationTime, carNetworkLocation, carNetworkLocationAccuracy } = this.state;
 
-    if (
-      carNetworkLocation &&
-      carNetworkLocationAccuracy <= 10000 &&
-      (carNetworkLocationAccuracy <= 100 || !carLastLocation)
-    ) {
+    if (carNetworkLocation && carNetworkLocationAccuracy <= 10000 && (carNetworkLocationAccuracy <= 100 || !carLastLocation)) {
       return {
         location: carNetworkLocation,
         accuracy: carNetworkLocationAccuracy,
@@ -448,10 +440,7 @@ class Navigation extends Component {
         bbox[1][1] += 0.01;
       }
 
-      const bottomBoxHeight =
-        this.searchSelectBoxRef.current && viewport.height > 200
-          ? this.searchSelectBoxRef.current.getBoundingClientRect().height + 10
-          : 0;
+      const bottomBoxHeight = this.searchSelectBoxRef.current && viewport.height > 200 ? this.searchSelectBoxRef.current.getBoundingClientRect().height + 10 : 0;
 
       let rightBoxWidth = 0;
       let topBoxHeight = 0;
@@ -484,14 +473,7 @@ class Navigation extends Component {
   }
 
   focus(ev) {
-    if (
-      !this.state.hasFocus &&
-      (!ev ||
-        !ev.srcEvent ||
-        !ev.srcEvent.path ||
-        !this.mapContainerRef.current ||
-        ev.srcEvent.path.includes(this.mapContainerRef.current))
-    ) {
+    if (!this.state.hasFocus && (!ev || !ev.srcEvent || !ev.srcEvent.path || !this.mapContainerRef.current || ev.srcEvent.path.includes(this.mapContainerRef.current))) {
       this.setState({ hasFocus: true });
     }
   }
@@ -647,11 +629,7 @@ class Navigation extends Component {
                 alt="car-location"
                 onClick={() => this.onCarSelect(carLocation)}
               />
-              <div
-                className={classes.carPinTooltip}
-                ref={this.carPinTooltipRef}
-                style={{ ...carPinTooltipStyle, display: 'none' }}
-              >
+              <div className={classes.carPinTooltip} ref={this.carPinTooltipRef} style={{ ...carPinTooltipStyle, display: 'none' }}>
                 {dayjs(carLocation.time).format('h:mm A')}
                 ,
                 <br />
@@ -661,25 +639,11 @@ class Navigation extends Component {
           )}
           {carLocation && Boolean(carLocation.accuracy) && (
             <Source type="geojson" data={this.carLocationCircle(carLocation)}>
-              <Layer
-                id="polygon"
-                type="fill"
-                source="polygon"
-                layout={{}}
-                paint={{ 'fill-color': '#31a1ee', 'fill-opacity': 0.3 }}
-              />
+              <Layer id="polygon" type="fill" source="polygon" layout={{}} paint={{ 'fill-color': '#31a1ee', 'fill-opacity': 0.3 }} />
             </Source>
           )}
           {searchSelect && (
-            <HTMLOverlay
-              redraw={this.renderSearchOverlay}
-              captureScroll
-              captureDrag
-              captureClick
-              captureDoubleClick
-              capturePointerMove
-              style={{ ...cardStyle, bottom: 10 }}
-            />
+            <HTMLOverlay redraw={this.renderSearchOverlay} captureScroll captureDrag captureClick captureDoubleClick capturePointerMove style={{ ...cardStyle, bottom: 10 }} />
           )}
           {showPrimeAd && !device.prime && device.is_owner && (
             <HTMLOverlay
@@ -740,19 +704,13 @@ class Navigation extends Component {
 
     return (
       <div className={`${classes.searchSelectBox} ${classes.primeAdContainer}`} ref={this.primeAdBoxRef}>
-        <Clear
-          className={classes.clearSearchSelect}
-          onClick={() => this.setState({ showPrimeAd: false }, this.flyToMarkers)}
-        />
+        <Clear className={classes.clearSearchSelect} onClick={() => this.setState({ showPrimeAd: false }, this.flyToMarkers)} />
         <div className={classes.searchSelectBoxHeader}>
           <div className={classes.searchSelectBoxTitle}>
             <Typography className={classes.primeAdTitle}>comma prime</Typography>
           </div>
           <div className={classes.searchSelectBoxButtons}>
-            <Button
-              onClick={() => this.props.dispatch(primeNav(true))}
-              className={`${classes.searchSelectButton} ${classes.primeAdButton} primeSignUp`}
-            >
+            <Button onClick={() => this.props.dispatch(primeNav(true))} className={`${classes.searchSelectButton} ${classes.primeAdButton} primeSignUp`}>
               sign up
             </Button>
           </div>
