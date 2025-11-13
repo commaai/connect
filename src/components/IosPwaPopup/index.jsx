@@ -1,14 +1,13 @@
+import MyCommaAuth from '@commaai/my-comma-auth';
+import { Typography, withStyles } from '@material-ui/core';
+import { Clear } from '@material-ui/icons';
+import localforage from 'localforage';
+import Obstruction from 'obstruction';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import localforage from 'localforage';
-import { withStyles, Typography } from '@material-ui/core';
-import { Clear } from '@material-ui/icons';
 
-import MyCommaAuth from '@commaai/my-comma-auth';
-
-import Colors from '../../colors';
-import { IosShareIcon } from '../../icons';
+import Colors from '../../colors.js';
+import { IosShareIcon } from '../../icons/index.jsx';
 import { isIos } from '../../utils/browser.js';
 
 const styles = () => ({

@@ -1,7 +1,7 @@
-import React from 'react';
 import { Grid, Typography, withStyles } from '@material-ui/core';
+import React from 'react';
 
-import { useWindowWidth } from '../../hooks/window';
+import { useWindowWidth } from '../../hooks/window.js';
 
 const styles = () => ({
   zeroState: {

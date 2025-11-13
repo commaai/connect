@@ -1,5 +1,5 @@
 /* eslint-env jest */
-import { configureViewport, goto } from './utils';
+import { configureViewport, goto } from './utils.js';
 
 const DEMO_DEVICE_URL = '/1d3dc3e03047b0c7';
 const DEMO_ROUTE_URL = '/1d3dc3e03047b0c7/000000dd--455f14369d';

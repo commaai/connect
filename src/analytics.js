@@ -1,12 +1,11 @@
-import { LOCATION_CHANGE } from 'connected-react-router';
-import * as Sentry from '@sentry/react';
-
 import MyCommaAuth from '@commaai/my-comma-auth';
+import * as Sentry from '@sentry/react';
+import { LOCATION_CHANGE } from 'connected-react-router';
 
-import * as Types from './actions/types';
-import { sendEvent } from './analytics-v2';
-import { getDongleID, getZoom } from './url';
-import { deviceIsOnline } from './utils';
+import * as Types from './actions/types.js';
+import { sendEvent } from './analytics-v2.js';
+import { getDongleID, getZoom } from './url.js';
+import { deviceIsOnline } from './utils/index.js';
 
 function getPageViewEventLocation(pathname) {
   let pageLocation = pathname;

@@ -1,5 +1,5 @@
-import * as Types from '../actions/types';
-import { emptyDevice } from '../utils';
+import * as Types from '../actions/types.js';
+import { emptyDevice } from '../utils/index.js';
 
 const eventsMap = {};
 const locationMap = {};

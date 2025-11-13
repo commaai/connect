@@ -1,6 +1,7 @@
 /* eslint-disable react/jsx-props-no-spreading */
-import React from 'react';
+
 import SvgIcon from '@material-ui/core/SvgIcon';
+import React from 'react';
 
 import AuthAppleIcon from './auth_apple.png';
 import AuthGithubIcon from './auth_github.png';

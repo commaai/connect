@@ -1,9 +1,7 @@
 {
   "root": true,
   "files": {
-    "includes": [
-      "src/**/*"
-    ]
+    "includes": ["src/**/*"]
   },
   "formatter": {
     "indentStyle": "space",
@@ -17,16 +15,12 @@
       "semicolons": "always",
       "trailingCommas": "all"
     },
-    "globals": [
-      "gtag",
-      "jestPuppeteer",
-      "page"
-    ]
+    "globals": ["gtag", "jestPuppeteer", "page", "jest", "describe", "it", "beforeAll", "afterAll", "beforeEach", "afterEach", "expect", "test"]
   },
   "linter": {
     "rules": {
       "recommended": false,
-      "correctness": "off",
+      "correctness": "warn",
       "style": "off",
       "suspicious": "off",
       "security": "off",

@@ -1,21 +1,20 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import raf from 'raf';
-import dayjs from 'dayjs';
-
+import { Tooltip } from '@material-ui/core';
+import IconButton from '@material-ui/core/IconButton';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
-import IconButton from '@material-ui/core/IconButton';
-import VolumeUp from '@material-ui/icons/VolumeUp';
 import VolumeOff from '@material-ui/icons/VolumeOff';
-import { Tooltip } from '@material-ui/core';
+import VolumeUp from '@material-ui/icons/VolumeUp';
+import dayjs from 'dayjs';
+import Obstruction from 'obstruction';
+import raf from 'raf';
+import React, { Component } from 'react';
+import { connect } from 'react-redux';
 
-import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow } from '../../icons';
-import { currentOffset } from '../../timeline';
-import { seek, play, pause } from '../../timeline/playback';
-import { getSegmentNumber } from '../../utils';
+import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow } from '../../icons/index.jsx';
+import { currentOffset } from '../../timeline/index.js';
+import { pause, play, seek } from '../../timeline/playback.js';
 import { isIos } from '../../utils/browser.js';
+import { getSegmentNumber } from '../../utils/index.js';
 
 const timerSteps = [0.1, 0.25, 0.5, 1, 2, 4, 8];
 

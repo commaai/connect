@@ -1,6 +1,5 @@
-import { onCLS, onFCP, onFID, onLCP, onTTFB } from 'web-vitals';
-
 import { getCommaAccessToken } from '@commaai/my-comma-auth/storage';
+import { onCLS, onFCP, onFID, onLCP, onTTFB } from 'web-vitals';
 
 const ATTRIBUTES = {
   app: 'connect',

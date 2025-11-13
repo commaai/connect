@@ -1,22 +1,21 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import * as Sentry from '@sentry/react';
-import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
-import { withStyles, Typography, Button } from '@material-ui/core';
-import { Clear } from '@material-ui/icons';
-import dayjs from 'dayjs';
-
 import { athena as Athena, devices as Devices } from '@commaai/api';
-import { primeNav, analyticsEvent } from '../../actions';
-import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
-import Colors from '../../colors';
-import { PinCarIcon } from '../../icons';
-import { timeFromNow } from '../../utils';
-import ResizeHandler from '../ResizeHandler';
-import VisibilityHandler from '../VisibilityHandler';
-import * as Utils from './utils';
+import { Button, Typography, withStyles } from '@material-ui/core';
+import { Clear } from '@material-ui/icons';
+import * as Sentry from '@sentry/react';
+import dayjs from 'dayjs';
+import Obstruction from 'obstruction';
+import React, { Component } from 'react';
+import ReactMapGL, { GeolocateControl, HTMLOverlay, Layer, Marker, Source, WebMercatorViewport } from 'react-map-gl';
+import { connect } from 'react-redux';
+import { analyticsEvent, primeNav } from '../../actions/index.js';
+import Colors from '../../colors.js';
+import { PinCarIcon } from '../../icons/index.jsx';
 import { isIos } from '../../utils/browser.js';
+import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode.js';
+import { timeFromNow } from '../../utils/index.js';
+import ResizeHandler from '../ResizeHandler/index.js';
+import VisibilityHandler from '../VisibilityHandler/index.jsx';
+import * as Utils from './utils.js';
 
 const styles = () => ({
   mapContainer: {

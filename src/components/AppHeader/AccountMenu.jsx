@@ -1,9 +1,7 @@
-import React, { useCallback, useMemo } from 'react';
-import dayjs from 'dayjs';
-
-import { Divider, ListItem, Menu, MenuItem } from '@material-ui/core';
-
 import MyCommaAuth from '@commaai/my-comma-auth';
+import { Divider, ListItem, Menu, MenuItem } from '@material-ui/core';
+import dayjs from 'dayjs';
+import React, { useCallback, useMemo } from 'react';
 
 const logOut = async () => {
   await MyCommaAuth.logOut();

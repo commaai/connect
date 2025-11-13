@@ -1,8 +1,8 @@
-import { Component } from 'react';
-import { connect } from 'react-redux';
+import debounce from 'debounce';
 import Obstruction from 'obstruction';
 import PropTypes from 'prop-types';
-import debounce from 'debounce';
+import { Component } from 'react';
+import { connect } from 'react-redux';
 
 class VisibilityHandler extends Component {
   constructor(props) {

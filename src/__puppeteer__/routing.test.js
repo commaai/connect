@@ -1,5 +1,5 @@
 /* eslint-env jest */
-import { configureViewport, goto } from './utils';
+import { configureViewport, goto } from './utils.js';
 
 jest.setTimeout(30000);
 

@@ -1,16 +1,14 @@
+import { IconButton, Typography } from '@material-ui/core';
+import dayjs from 'dayjs';
+import Obstruction from 'obstruction';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import dayjs from 'dayjs';
 
-import { IconButton, Typography } from '@material-ui/core';
-
-import { popTimelineRange, pushTimelineRange, updateSegmentRange } from '../../actions';
-import { ArrowBackBold, CloseBold } from '../../icons';
-import { filterRegularClick } from '../../utils';
-
-import Media from './Media';
-import Timeline from '../Timeline';
+import { popTimelineRange, pushTimelineRange, updateSegmentRange } from '../../actions/index.js';
+import { ArrowBackBold, CloseBold } from '../../icons/index.jsx';
+import { filterRegularClick } from '../../utils/index.js';
+import Timeline from '../Timeline/index.jsx';
+import Media from './Media.jsx';
 
 class DriveView extends Component {
   constructor(props) {

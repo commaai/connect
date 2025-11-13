@@ -1,9 +1,10 @@
 /* eslint-env jest */
+
+import { render, screen } from '@testing-library/react';
 import React from 'react';
 import * as Redux from 'redux';
 import thunk from 'redux-thunk';
-import { render, screen } from '@testing-library/react';
-import DriveListItem from './DriveListItem';
+import DriveListItem from './DriveListItem.jsx';
 
 const defaultState = {
   start: Date.now(),

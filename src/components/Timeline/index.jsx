@@ -1,23 +1,22 @@
 // timeline minimap
 // rapidly change high level timeline stuff
 // rapid seeking, etc
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
+
 import { withStyles } from '@material-ui/core/styles';
-import raf from 'raf';
-import document from 'global/document';
 import dayjs from 'dayjs';
-
+import document from 'global/document';
+import Obstruction from 'obstruction';
+import raf from 'raf';
+import React, { Component } from 'react';
 import Measure from 'react-measure';
-
-import Thumbnails from './thumbnails';
-import theme from '../../theme';
-import { pushTimelineRange } from '../../actions';
-import Colors from '../../colors';
-import { currentOffset } from '../../timeline';
-import { seek } from '../../timeline/playback';
-import { getSegmentNumber } from '../../utils';
+import { connect } from 'react-redux';
+import { pushTimelineRange } from '../../actions/index.js';
+import Colors from '../../colors.js';
+import theme from '../../theme.js';
+import { currentOffset } from '../../timeline/index.js';
+import { seek } from '../../timeline/playback.js';
+import { getSegmentNumber } from '../../utils/index.js';
+import Thumbnails from './thumbnails.jsx';
 
 const styles = () => ({
   base: {

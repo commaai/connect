@@ -1,7 +1,6 @@
+import mbxGeocoding from '@mapbox/mapbox-sdk/services/geocoding';
 import * as Sentry from '@sentry/react';
 import qs from 'query-string';
-
-import mbxGeocoding from '@mapbox/mapbox-sdk/services/geocoding';
 
 export const DEFAULT_LOCATION = {
   latitude: 32.711483,

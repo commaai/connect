@@ -1,21 +1,19 @@
+import { devices as Devices } from '@commaai/api';
+import MyCommaAuth from '@commaai/my-comma-auth';
+import { IconButton, Typography, withStyles } from '@material-ui/core';
+import SettingsIcon from '@material-ui/icons/Settings';
+import * as Sentry from '@sentry/react';
+import Obstruction from 'obstruction';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import * as Sentry from '@sentry/react';
 
-import { withStyles, Typography, IconButton } from '@material-ui/core';
-import SettingsIcon from '@material-ui/icons/Settings';
+import { updateDevices } from '../../actions/index.js';
+import Colors from '../../colors.js';
+import { deviceIsOnline, deviceNamePretty, emptyDevice, filterRegularClick } from '../../utils/index.js';
+import VisibilityHandler from '../VisibilityHandler/index.jsx';
 
-import MyCommaAuth from '@commaai/my-comma-auth';
-import { devices as Devices } from '@commaai/api';
-
-import { updateDevices } from '../../actions';
-import Colors from '../../colors';
-import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
-import VisibilityHandler from '../VisibilityHandler';
-
-import AddDevice from './AddDevice';
-import DeviceSettingsModal from './DeviceSettingsModal';
+import AddDevice from './AddDevice.jsx';
+import DeviceSettingsModal from './DeviceSettingsModal.jsx';
 
 const styles = (theme) => ({
   deviceList: {

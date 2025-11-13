@@ -1,30 +1,25 @@
+import { Button, CircularProgress, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
+import { replace } from 'connected-react-router';
+import localforage from 'localforage';
+import Obstruction from 'obstruction';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import localforage from 'localforage';
-import { replace } from 'connected-react-router';
-
-import { withStyles, Button, CircularProgress, Divider, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
 
 import { devices as Devices } from '@commaai/api';
-
-import AppHeader from './AppHeader';
-import Dashboard from './Dashboard';
-import IosPwaPopup from './IosPwaPopup';
-import AppDrawer from './AppDrawer';
-import PullDownReload from './utils/PullDownReload';
-
-import { analyticsEvent, selectDevice, updateDevice, checkLastRoutesData } from '../actions';
-import init from '../actions/startup';
-import Colors from '../colors';
-import { play, pause } from '../timeline/playback';
-import { verifyPairToken, pairErrorToMessage } from '../utils';
-
-import ResizeHandler from './ResizeHandler';
-
-import DriveView from './DriveView';
-import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
+import { analyticsEvent, checkLastRoutesData, selectDevice, updateDevice } from '../actions/index.js';
+import init from '../actions/startup.js';
+import Colors from '../colors.js';
+import { pause, play } from '../timeline/playback.js';
+import { pairErrorToMessage, verifyPairToken } from '../utils/index.js';
+import AppDrawer from './AppDrawer/index.jsx';
+import AppHeader from './AppHeader/index.jsx';
+import Dashboard from './Dashboard/index.jsx';
+import DriveView from './DriveView/index.jsx';
+import NoDeviceUpsell from './DriveView/NoDeviceUpsell.jsx';
+import IosPwaPopup from './IosPwaPopup/index.jsx';
+import ResizeHandler from './ResizeHandler/index.js';
+import PullDownReload from './utils/PullDownReload.jsx';
 
 const styles = (theme) => ({
   window: {

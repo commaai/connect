@@ -1,5 +1,5 @@
-import React, { createRef, useEffect } from 'react';
 import { withStyles } from '@material-ui/core/styles';
+import React, { createRef, useEffect } from 'react';
 
 const styles = () => ({
   root: {

@@ -1,15 +1,14 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-
-import { withStyles, Divider, Typography, CircularProgress, Button, Modal, Paper, LinearProgress } from '@material-ui/core';
+import { Button, CircularProgress, Divider, LinearProgress, Modal, Paper, Typography, withStyles } from '@material-ui/core';
 import HighlightOffIcon from '@material-ui/icons/HighlightOff';
 import WarningIcon from '@material-ui/icons/Warning';
+import Obstruction from 'obstruction';
+import React, { Component } from 'react';
+import { connect } from 'react-redux';
 
-import { fetchUploadQueue, cancelUploads, cancelFetchUploadQueue, FILE_NAMES } from '../../actions/files';
-import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils';
-import Colors from '../../colors';
-import ResizeHandler from '../ResizeHandler';
+import { cancelFetchUploadQueue, cancelUploads, FILE_NAMES, fetchUploadQueue } from '../../actions/files.js';
+import Colors from '../../colors.js';
+import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils/index.js';
+import ResizeHandler from '../ResizeHandler/index.js';
 
 const styles = (theme) => ({
   modal: {

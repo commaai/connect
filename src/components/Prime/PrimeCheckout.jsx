@@ -1,19 +1,17 @@
+import { billing as Billing } from '@commaai/api';
+import { Button, CircularProgress, IconButton, Typography, withStyles } from '@material-ui/core';
+import CheckIcon from '@material-ui/icons/Check';
+import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
+import * as Sentry from '@sentry/react';
+import dayjs from 'dayjs';
+import Obstruction from 'obstruction';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import dayjs from 'dayjs';
-import * as Sentry from '@sentry/react';
-import { withStyles, Typography, IconButton, Button, CircularProgress } from '@material-ui/core';
-import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
-import CheckIcon from '@material-ui/icons/Check';
-
-import { billing as Billing } from '@commaai/api';
-
-import { deviceNamePretty } from '../../utils';
-import ResizeHandler from '../ResizeHandler';
-import Colors from '../../colors';
-import { primeNav, analyticsEvent } from '../../actions';
-import { ErrorOutline, InfoOutline } from '../../icons';
+import { analyticsEvent, primeNav } from '../../actions/index.js';
+import Colors from '../../colors.js';
+import { ErrorOutline, InfoOutline } from '../../icons/index.jsx';
+import { deviceNamePretty } from '../../utils/index.js';
+import ResizeHandler from '../ResizeHandler/index.js';
 
 const styles = () => ({
   linkHighlight: {

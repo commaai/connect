@@ -1,9 +1,8 @@
-import * as Sentry from '@sentry/react';
 import { athena as Athena, devices as Devices, raw as Raw } from '@commaai/api';
-
-import { updateDeviceOnline, fetchDeviceNetworkStatus } from '.';
-import * as Types from './types';
-import { deviceOnCellular, getDeviceFromState, deviceVersionAtLeast, asyncSleep } from '../utils';
+import * as Sentry from '@sentry/react';
+import { asyncSleep, deviceOnCellular, deviceVersionAtLeast, getDeviceFromState } from '../utils/index.js';
+import { fetchDeviceNetworkStatus, updateDeviceOnline } from './index.js';
+import * as Types from './types.js';
 
 export const FILE_NAMES = {
   qcameras: ['qcamera.ts'],

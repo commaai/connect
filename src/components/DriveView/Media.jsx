@@ -1,30 +1,27 @@
-import React, { Component } from 'react';
-import qs from 'query-string';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import * as Sentry from '@sentry/react';
-
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem } from '@material-ui/core';
-import WarningIcon from '@material-ui/icons/Warning';
+import { drives as Drives } from '@commaai/api';
+import { Button, CircularProgress, Divider, ListItem, Menu, MenuItem, Popper, Typography, withStyles } from '@material-ui/core';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
-
-import { drives as Drives } from '@commaai/api';
-
-import DriveMap from '../DriveMap';
-import DriveVideo from '../DriveVideo';
-import ResizeHandler from '../ResizeHandler';
-import TimeDisplay from '../TimeDisplay';
-import UploadQueue from '../Files/UploadQueue';
-import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo } from '../../timeline/playback';
-import Colors from '../../colors';
-import { InfoOutline } from '../../icons';
-import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
-import { analyticsEvent, updateRoute } from '../../actions';
-import { fetchEvents } from '../../actions/cached';
-import { attachRelTime } from '../../analytics';
-import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
+import WarningIcon from '@material-ui/icons/Warning';
+import * as Sentry from '@sentry/react';
+import Obstruction from 'obstruction';
+import qs from 'query-string';
+import React, { Component } from 'react';
+import { connect } from 'react-redux';
+import { fetchEvents } from '../../actions/cached.js';
+import { doUpload, FILE_NAMES, fetchAthenaQueue, fetchFiles, fetchUploadUrls, setRouteViewed, updateFiles } from '../../actions/files.js';
+import { analyticsEvent, updateRoute } from '../../actions/index.js';
+import { attachRelTime } from '../../analytics.js';
+import Colors from '../../colors.js';
+import { InfoOutline } from '../../icons/index.jsx';
+import { bufferVideo } from '../../timeline/playback.js';
+import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils/index.js';
+import DriveMap from '../DriveMap/index.jsx';
+import DriveVideo from '../DriveVideo/index.jsx';
+import UploadQueue from '../Files/UploadQueue.jsx';
+import ResizeHandler from '../ResizeHandler/index.js';
+import TimeDisplay from '../TimeDisplay/index.jsx';
+import SwitchLoading from '../utils/SwitchLoading.jsx';
 
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';

@@ -1,7 +1,8 @@
 /* eslint-env jest */
-import React from 'react';
+
 import { render, screen } from '@testing-library/react';
-import Thumbnails from './thumbnails';
+import React from 'react';
+import Thumbnails from './thumbnails.jsx';
 
 const screenHeight = 1000;
 const screenWidth = 1600;

@@ -1,11 +1,11 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
 import { CssBaseline, MuiThemeProvider } from '@material-ui/core';
 import * as Sentry from '@sentry/react';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
 
 import './index.css';
-import App from './App';
-import Theme from './theme';
+import App from './App.jsx';
+import Theme from './theme.js';
 
 if (window.SENTRY_ENV) {
   Sentry.init({
