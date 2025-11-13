@@ -9,7 +9,7 @@ import qs from 'query-string';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 
-import {config as AuthConfig, storage as AuthStorage} from '@commaai/my-comma-auth';
+import { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 
 import Colors from '../colors';
 import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon, RightArrow } from '../icons';
@@ -128,8 +128,10 @@ class AnonymousLanding extends Component {
   render() {
     const { classes } = this.props;
 
-    const loginAsDemoUser = function() {
-      AuthStorage.setCommaAccessToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjEwMzg5NTgwNzM1LCJuYmYiOjE3NDk1ODA3MzUsImlhdCI6MTc0OTU4MDczNSwiaWRlbnRpdHkiOiIwZGVjZGRjZmRmMjQxYTYwIn0.KsDzqJxgkYhAs4tCgrMJIdORyxO0CQNb0gHXIf8aUT0');
+    const loginAsDemoUser = function () {
+      AuthStorage.setCommaAccessToken(
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjEwMzg5NTgwNzM1LCJuYmYiOjE3NDk1ODA3MzUsImlhdCI6MTc0OTU4MDczNSwiaWRlbnRpdHkiOiIwZGVjZGRjZmRmMjQxYTYwIn0.KsDzqJxgkYhAs4tCgrMJIdORyxO0CQNb0gHXIf8aUT0',
+      );
       window.location = window.location.origin;
     };
 
@@ -141,9 +143,7 @@ class AnonymousLanding extends Component {
           </div>
           <div className={classes.logoSpacer}>&nbsp;</div>
           <Typography className={classes.logoText}>comma connect</Typography>
-          <Typography className={classes.tagline}>
-            Manage your comma device, view your drives, and use comma prime features
-          </Typography>
+          <Typography className={classes.tagline}>Manage your comma device, view your drives, and use comma prime features</Typography>
           <a href={AuthConfig.GOOGLE_REDIRECT_LINK} className={classes.logInButton}>
             <img className={classes.buttonImage} src={AuthGoogleIcon} alt="" />
             <Typography className={classes.buttonText}>Sign in with Google</Typography>
@@ -157,12 +157,10 @@ class AnonymousLanding extends Component {
             <Typography className={classes.buttonText}>Sign in with GitHub</Typography>
           </a>
 
-          <span className="max-w-sm text-center mt-2 mb-8 text-sm">
-            Make sure to sign in with the same account if you have previously
-            paired your comma device.
-          </span>
+          <span className="max-w-sm text-center mt-2 mb-8 text-sm">Make sure to sign in with the same account if you have previously paired your comma device.</span>
 
-          <a onClick={loginAsDemoUser}
+          <a
+            onClick={loginAsDemoUser}
             className="flex items-center pl-4 pr-3 py-2 font-medium border border-white rounded-full hover:bg-[rgba(255,255,255,0.1)] active:bg-[rgba(255,255,255,0.2)] transition-colors"
           >
             Try the demo

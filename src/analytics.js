@@ -58,11 +58,12 @@ function getVideoPercent(state, offset) {
   if (!offset) {
     offset = state.offset;
   }
-  return (offset - (zoom.start)) / (zoom.end - zoom.start);
+  return (offset - zoom.start) / (zoom.end - zoom.start);
 }
 
 function logAction(action, prevState, state) {
-  if (MyCommaAuth.isAuthenticated() && !state.profile) { // no startup data yet
+  if (MyCommaAuth.isAuthenticated() && !state.profile) {
+    // no startup data yet
     return;
   }
 

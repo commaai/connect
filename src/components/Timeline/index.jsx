@@ -65,7 +65,8 @@ const styles = () => ({
         background: theme.palette.states.alertRed,
       },
     },
-    '&.bookmark, &.flag': {  // TODO: remove flag selector once 14 days expires old events caches
+    '&.bookmark, &.flag': {
+      // TODO: remove flag selector once 14 days expires old events caches
       background: theme.palette.states.userBookmark,
       zIndex: 1,
     },
@@ -136,11 +137,7 @@ const styles = () => ({
   },
 });
 
-const AlertStatusCodes = [
-  'normal',
-  'userPrompt',
-  'critical',
-];
+const AlertStatusCodes = ['normal', 'userPrompt', 'critical'];
 
 function percentFromPointerEvent(ev) {
   const boundingBox = ev.currentTarget.getBoundingClientRect();
@@ -324,7 +321,7 @@ class Timeline extends Component {
     }
 
     const zoomDuration = zoom.end - zoom.start;
-    const startPerc = (100 * (-zoom.start)) / zoomDuration;
+    const startPerc = (100 * -zoom.start) / zoomDuration;
     const widthPerc = (100 * route.duration) / zoomDuration;
 
     const style = {
@@ -333,7 +330,7 @@ class Timeline extends Component {
     };
     return (
       <div key={route.fullname} className={classes.segment} style={style}>
-        { this.renderRouteEvents(route) }
+        {this.renderRouteEvents(route)}
       </div>
     );
   }
@@ -353,13 +350,7 @@ class Timeline extends Component {
           minWidth: '1px',
         };
         const statusCls = event.data.alertStatus ? `${AlertStatusCodes[event.data.alertStatus]}` : '';
-        return (
-          <div
-            key={route.fullname + event.route_offset_millis + event.type}
-            style={style}
-            className={ `${classes.segmentColor} ${event.type} ${statusCls}` }
-          />
-        );
+        return <div key={route.fullname + event.route_offset_millis + event.type} style={style} className={`${classes.segmentColor} ${event.type} ${statusCls}`} />;
       });
   }
 
@@ -374,8 +365,8 @@ class Timeline extends Component {
       rulerBounds = this.rulerRef.current.getBoundingClientRect();
     }
 
-    let hoverString; let
-      hoverStyle;
+    let hoverString;
+    let hoverStyle;
     if (rulerBounds && hoverX) {
       const hoverOffset = this.percentToOffset((hoverX - rulerBounds.x) / rulerBounds.width);
       hoverStyle = { left: Math.max(-10, Math.min(rulerBounds.width - 70, hoverX - rulerBounds.x - 40)) };
@@ -400,30 +391,24 @@ class Timeline extends Component {
 
     return (
       <div className={className}>
-        <div role="presentation" className={ `${classes.base} ${hasRulerCls}` } style={ baseWidthStyle }>
-          <div className={ `${classes.segments} ${hasRulerCls}` }>
-            { route && this.renderRoute() }
-            <div className={ `${classes.statusGradient} ${hasRulerCls}` } />
+        <div role="presentation" className={`${classes.base} ${hasRulerCls}`} style={baseWidthStyle}>
+          <div className={`${classes.segments} ${hasRulerCls}`}>
+            {route && this.renderRoute()}
+            <div className={`${classes.statusGradient} ${hasRulerCls}`} />
           </div>
           <Measure bounds onResize={(rect) => this.setState({ thumbnail: rect.bounds })}>
-            { (options) => (
-              <div ref={options.measureRef} className={ `${classes.thumbnails} ${hasRulerCls}` }>
-                { thumbnailsVisible && (
-                  <Thumbnails
-                    className={classes.thumbnail}
-                    currentRoute={route}
-                    percentToOffset={this.percentToOffset}
-                    thumbnail={thumbnail}
-                    hasRuler={hasRuler}
-                  />
-                ) }
+            {(options) => (
+              <div ref={options.measureRef} className={`${classes.thumbnails} ${hasRulerCls}`}>
+                {thumbnailsVisible && (
+                  <Thumbnails className={classes.thumbnail} currentRoute={route} percentToOffset={this.percentToOffset} thumbnail={thumbnail} hasRuler={hasRuler} />
+                )}
               </div>
             )}
           </Measure>
-          { hasRuler && (
+          {hasRuler && (
             <>
               <div
-                ref={ this.onRulerRef }
+                ref={this.onRulerRef}
                 className={classes.ruler}
                 onPointerDown={this.handlePointerDown}
                 onPointerUp={this.handlePointerUp}
@@ -431,15 +416,15 @@ class Timeline extends Component {
                 onPointerLeave={this.handlePointerLeave}
               >
                 <div ref={this.rulerRemaining} className={classes.rulerRemaining} />
-                { draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} /> }
+                {draggerStyle && <div ref={this.dragBar} className={classes.dragHighlight} style={draggerStyle} />}
               </div>
-              { hoverString && (
+              {hoverString && (
                 <div ref={this.hoverBead} className={classes.hoverBead} style={hoverStyle}>
-                  { hoverString }
+                  {hoverString}
                 </div>
-              ) }
+              )}
             </>
-          ) }
+          )}
         </div>
       </div>
     );

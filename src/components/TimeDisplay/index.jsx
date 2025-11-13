@@ -17,15 +17,7 @@ import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
 
-const timerSteps = [
-  0.1,
-  0.25,
-  0.5,
-  1,
-  2,
-  4,
-  8,
-];
+const timerSteps = [0.1, 0.25, 0.5, 1, 2, 4, 8];
 
 const styles = (theme) => ({
   base: {
@@ -232,81 +224,50 @@ class TimeDisplay extends Component {
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
     return (
-      <div className={ `${classes.base} ${isExpandedCls} ${isThinCls}` }>
-        <div className={ classes.rightBorderBox }>
-          <IconButton
-            className={ classes.iconButton }
-            onClick={ () => this.jumpBack(10000) }
-            aria-label="Jump back 10 seconds"
-          >
+      <div className={`${classes.base} ${isExpandedCls} ${isThinCls}`}>
+        <div className={classes.rightBorderBox}>
+          <IconButton className={classes.iconButton} onClick={() => this.jumpBack(10000)} aria-label="Jump back 10 seconds">
             <Replay10 className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
-        <div className={ classes.rightBorderBox }>
-          <IconButton
-            className={ classes.iconButton }
-            onClick={ () => this.jumpForward(10000) }
-            aria-label="Jump forward 10 seconds"
-          >
+        <div className={classes.rightBorderBox}>
+          <IconButton className={classes.iconButton} onClick={() => this.jumpForward(10000)} aria-label="Jump forward 10 seconds">
             <Forward10 className={`${classes.icon} small dim`} />
           </IconButton>
         </div>
-        { !isThin && (
+        {!isThin && (
           <Typography variant="caption" align="center" style={{ paddingTop: 4 }}>
             CURRENT PLAYBACK TIME
           </Typography>
         )}
         <Typography variant="body1" align="center" className={classes.currentTime}>
-          <span ref={this.textHolder}>{ displayTime }</span>
+          <span ref={this.textHolder}>{displayTime}</span>
         </Typography>
         {!isIos() && (
-          <div className={ classes.desiredPlaySpeedContainer }>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={this.increaseSpeed}
-              disabled={!this.canIncreaseSpeed()}
-              aria-label="Increase play speed by 1 step"
-            >
+          <div className={classes.desiredPlaySpeedContainer}>
+            <IconButton className={classes.tinyArrowIcon} onClick={this.increaseSpeed} disabled={!this.canIncreaseSpeed()} aria-label="Increase play speed by 1 step">
               <UpArrow className={classes.tinyArrowIcon} />
             </IconButton>
             <Typography variant="body2" align="center">
-              {desiredPlaySpeed}
-              ×
+              {desiredPlaySpeed}×
             </Typography>
-            <IconButton
-              className={classes.tinyArrowIcon}
-              onClick={this.decreaseSpeed}
-              disabled={!this.canDecreaseSpeed()}
-              aria-label="Decrease play speed by 1 step"
-            >
+            <IconButton className={classes.tinyArrowIcon} onClick={this.decreaseSpeed} disabled={!this.canDecreaseSpeed()} aria-label="Decrease play speed by 1 step">
               <DownArrow className={classes.tinyArrowIcon} />
             </IconButton>
           </div>
         )}
-        <div className={ classes.leftBorderBox }>
-          <Tooltip title={ !this.props.hasAudio ? "Enable audio recording through the \"Record and Upload Microphone Audio\" toggle on your device" : '' }>
+        <div className={classes.leftBorderBox}>
+          <Tooltip title={!this.props.hasAudio ? 'Enable audio recording through the "Record and Upload Microphone Audio" toggle on your device' : ''}>
             <div>
-              <IconButton
-                className={ classes.iconButton }
-                onClick={onMuteToggle}
-                disabled={!hasAudio}
-                aria-label={isMuted ? 'Unmute' : 'Mute'}
-              >
-                {isMuted
-                  ? (<VolumeOff className={`${classes.icon} small ${!hasAudio ? 'dim' : ''}`} />)
-                  : (<VolumeUp className={`${classes.icon} small`} />)}
+              <IconButton className={classes.iconButton} onClick={onMuteToggle} disabled={!hasAudio} aria-label={isMuted ? 'Unmute' : 'Mute'}>
+                {isMuted ? <VolumeOff className={`${classes.icon} small ${!hasAudio ? 'dim' : ''}`} /> : <VolumeUp className={`${classes.icon} small`} />}
               </IconButton>
             </div>
           </Tooltip>
         </div>
-        <div className={ classes.leftBorderBox }>
-          <IconButton
-            onClick={this.togglePause}
-            aria-label={isPaused ? 'Unpause' : 'Pause'}
-          >
-            {isPaused
-              ? (<PlayArrow className={classes.icon} />)
-              : (<Pause className={classes.icon} />)}
+        <div className={classes.leftBorderBox}>
+          <IconButton onClick={this.togglePause} aria-label={isPaused ? 'Unpause' : 'Pause'}>
+            {isPaused ? <PlayArrow className={classes.icon} /> : <Pause className={classes.icon} />}
           </IconButton>
         </div>
       </div>
@@ -317,7 +278,7 @@ class TimeDisplay extends Component {
 const stateToProps = Obstruction({
   currentRoute: 'currentRoute',
   zoom: 'zoom',
-  desiredPlaySpeed: 'desiredPlaySpeed'
+  desiredPlaySpeed: 'desiredPlaySpeed',
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));

@@ -42,8 +42,8 @@ export function toBool(item) {
 }
 
 export function formatDriveDuration(duration) {
-  const hours = Math.floor((duration / (1000 * 60 * 60))) % 24;
-  const minutes = Math.floor((duration / (1000 * 60))) % 60;
+  const hours = Math.floor(duration / (1000 * 60 * 60)) % 24;
+  const minutes = Math.floor(duration / (1000 * 60)) % 60;
   return `${hours > 0 ? `${hours} hr ` : ''}${minutes} min`;
 }
 
@@ -81,7 +81,7 @@ export function deviceIsOnline(device) {
   if (!device || !device.last_athena_ping) {
     return false;
   }
-  return device.last_athena_ping >= (device.fetched_at - 120);
+  return device.last_athena_ping >= device.fetched_at - 120;
 }
 
 export function deviceOnCellular(device) {
@@ -190,5 +190,5 @@ export function getSegmentNumber(route, offset) {
     offset = currentOffset();
   }
 
-  return Math.floor(offset / (60*1000));
+  return Math.floor(offset / (60 * 1000));
 }

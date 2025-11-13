@@ -72,10 +72,7 @@ class InfoTooltip extends Component {
   }
 
   render() {
-    const {
-      classes,
-      title,
-    } = this.props;
+    const { classes, title } = this.props;
     const { arrowRef, open } = this.state;
 
     return (
@@ -91,12 +88,12 @@ class InfoTooltip extends Component {
               },
             },
           }}
-          title={(
+          title={
             <>
               <Typography color="inherit">{title}</Typography>
               <span className={classes.arrowArrow} ref={this.handleArrowRef} />
             </>
-          )}
+          }
           onOpen={this.onTooltipOpen}
           onClose={this.onTooltipClose}
           open={open}

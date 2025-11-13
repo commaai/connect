@@ -17,10 +17,6 @@ describe('demo mode', () => {
     await expect(page).toClick('.DriveEntry');
 
     // Wait for video src to be set
-    await page.waitForFunction(
-      (video) => video.getAttribute('src')?.startsWith('blob:'),
-      {},
-      await page.waitForSelector('video'),
-    );
+    await page.waitForFunction((video) => video.getAttribute('src')?.startsWith('blob:'), {}, await page.waitForSelector('video'));
   });
 });

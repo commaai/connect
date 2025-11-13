@@ -76,10 +76,7 @@ describe('playback', () => {
 
     // set up loop
     state = reducer(state, play());
-    state = reducer(state, selectLoop(
-      1000,
-      2000,
-    ));
+    state = reducer(state, selectLoop(1000, 2000));
     expect(state.loop.startTime).toEqual(1000);
 
     // seek past loop end boundary a
@@ -94,10 +91,7 @@ describe('playback', () => {
 
     // set up loop
     state = reducer(state, play());
-    state = reducer(state, selectLoop(
-      1000,
-      2000,
-    ));
+    state = reducer(state, selectLoop(1000, 2000));
     expect(state.loop.startTime).toEqual(1000);
 
     // seek past loop end boundary a

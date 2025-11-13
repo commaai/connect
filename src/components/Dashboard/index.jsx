@@ -26,15 +26,15 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
   return (
     <div className="flex flex-col">
       <Suspense fallback={<DashboardLoading />}>
-        { primeNav
-          ? <Prime />
-          : (
-            <>
-              <Navigation />
-              <DeviceInfo />
-              <DriveList />
-            </>
-          )}
+        {primeNav ? (
+          <Prime />
+        ) : (
+          <>
+            <Navigation />
+            <DeviceInfo />
+            <DriveList />
+          </>
+        )}
       </Suspense>
     </div>
   );

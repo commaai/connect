@@ -61,8 +61,7 @@ class DriveMap extends Component {
       this.shouldFlyTo = true;
     }
 
-    if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords
-      && prevProps.currentRoute.driveCoords !== currentRoute.driveCoords) {
+    if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords && prevProps.currentRoute.driveCoords !== currentRoute.driveCoords) {
       this.shouldFlyTo = false;
       const keys = Object.keys(currentRoute.driveCoords);
       this.setState({
@@ -183,14 +182,8 @@ class DriveMap extends Component {
 
     const offsetSeconds = Math.floor(offset / 1e3);
     const offsetFractionalPart = (offset % 1e3) / 1000.0;
-    const coordIdx = Math.max(this.state.driveCoordsMin, Math.min(
-      offsetSeconds,
-      this.state.driveCoordsMax,
-    ));
-    const nextCoordIdx = Math.max(this.state.driveCoordsMin, Math.min(
-      offsetSeconds + 1,
-      this.state.driveCoordsMax,
-    ));
+    const coordIdx = Math.max(this.state.driveCoordsMin, Math.min(offsetSeconds, this.state.driveCoordsMax));
+    const nextCoordIdx = Math.max(this.state.driveCoordsMin, Math.min(offsetSeconds + 1, this.state.driveCoordsMax));
 
     if (!currentRoute.driveCoords[coordIdx]) {
       return null;
@@ -202,10 +195,7 @@ class DriveMap extends Component {
     }
 
     const [ceilLng, ceilLat] = currentRoute.driveCoords[nextCoordIdx];
-    return [
-      floorLng + ((ceilLng - floorLng) * offsetFractionalPart),
-      floorLat + ((ceilLat - floorLat) * offsetFractionalPart),
-    ];
+    return [floorLng + (ceilLng - floorLng) * offsetFractionalPart, floorLat + (ceilLat - floorLat) * offsetFractionalPart];
   }
 
   initMap(mapComponent) {

@@ -19,7 +19,7 @@ const thumbnailBounds = {
   left: gutter,
   right: screenWidth - gutter,
 
-  width: screenWidth - (gutter * 2),
+  width: screenWidth - gutter * 2,
   height: 100,
 };
 
@@ -32,13 +32,7 @@ describe('timeline thumbnails', () => {
   });
 
   it('should check the segment for every image', () => {
-    render(
-      <Thumbnails
-        thumbnail={thumbnailBounds}
-        percentToOffset={percentToOffsetMock}
-        currentRoute={mockRoute}
-      />,
-    );
+    render(<Thumbnails thumbnail={thumbnailBounds} percentToOffset={percentToOffsetMock} currentRoute={mockRoute} />);
 
     expect(percentToOffsetMock.mock.calls.length).toBe(10);
     const imageEntries = screen.getAllByRole('img');
@@ -55,7 +49,7 @@ describe('timeline thumbnails', () => {
     });
   });
 
-  it('doesn\'t render before bounds are set', () => {
+  it("doesn't render before bounds are set", () => {
     render(
       <Thumbnails
         thumbnail={{
@@ -81,13 +75,7 @@ describe('timeline thumbnails', () => {
       segment_offsets: Array.from(Array(4).keys()).map((i) => i * 60),
     };
 
-    render(
-      <Thumbnails
-        thumbnail={thumbnailBounds}
-        percentToOffset={percentToOffsetMock}
-        currentRoute={route}
-      />,
-    );
+    render(<Thumbnails thumbnail={thumbnailBounds} percentToOffset={percentToOffsetMock} currentRoute={route} />);
 
     expect(percentToOffsetMock.mock.calls.length).toBe(10);
     const imageEntries = screen.getAllByRole('img');
@@ -105,7 +93,7 @@ describe('timeline thumbnails', () => {
     });
   });
 
-  it('works when it\'s supermegaskinny', () => {
+  it("works when it's supermegaskinny", () => {
     render(
       <Thumbnails
         thumbnail={{

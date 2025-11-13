@@ -34,10 +34,7 @@ describe('drive view', () => {
 
     expect(await backButton.evaluate((button) => button.hasAttribute('disabled'))).toBeFalsy();
 
-    await Promise.all([
-      page.waitForNavigation(),
-      backButton.click(),
-    ]);
+    await Promise.all([page.waitForNavigation(), backButton.click()]);
 
     expect(page.url().endsWith(DEMO_ROUTE_URL)).toBeTruthy();
   });
@@ -50,10 +47,7 @@ describe('drive view', () => {
 
     expect(closeButton).toBeTruthy();
 
-    await Promise.all([
-      page.waitForNavigation(),
-      closeButton.click(),
-    ]);
+    await Promise.all([page.waitForNavigation(), closeButton.click()]);
 
     expect(page.url().endsWith(DEMO_DEVICE_URL)).toBeTruthy();
   });

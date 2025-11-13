@@ -55,7 +55,7 @@ class TimeSelect extends Component {
     this.state = {
       start: null,
       end: null,
-    }
+    };
 
     this.handleClose = this.handleClose.bind(this);
     this.changeStart = this.changeStart.bind(this);
@@ -80,7 +80,7 @@ class TimeSelect extends Component {
   }
 
   handleClose() {
-    this.props.onClose()
+    this.props.onClose();
   }
 
   changeStart(event) {
@@ -94,15 +94,15 @@ class TimeSelect extends Component {
   changeEnd(event) {
     if (event.target.valueAsDate) {
       this.setState({
-        end: new Date(event.target.valueAsDate.getUTCFullYear(), event.target.valueAsDate.getUTCMonth(), event.target.valueAsDate.getUTCDate(),23,59,59).getTime(),
+        end: new Date(event.target.valueAsDate.getUTCFullYear(), event.target.valueAsDate.getUTCMonth(), event.target.valueAsDate.getUTCDate(), 23, 59, 59).getTime(),
       });
     }
   }
 
   handleSave() {
-    console.log({start: this.state.start, end: this.state.end})
+    console.log({ start: this.state.start, end: this.state.end });
     this.props.dispatch(selectTimeFilter(this.state.start, this.state.end));
-    this.props.onClose()
+    this.props.onClose();
   }
 
   render() {
@@ -114,42 +114,23 @@ class TimeSelect extends Component {
 
     return (
       <>
-        <Modal
-          aria-labelledby="simple-modal-title"
-          aria-describedby="simple-modal-description"
-          open={isOpen}
-          onClose={this.handleClose}
-        >
+        <Modal aria-labelledby="simple-modal-title" aria-describedby="simple-modal-description" open={isOpen} onClose={this.handleClose}>
           <Paper className={classes.modal}>
-            <div className={ classes.datePickerContainer }>
+            <div className={classes.datePickerContainer}>
               <Typography variant="body2">Start date:</Typography>
-              <input
-                label="Start date"
-                type="date"
-                min={ minDate }
-                max={ maxDate }
-                onChange={this.changeStart}
-                value={ startDate }
-              />
+              <input label="Start date" type="date" min={minDate} max={maxDate} onChange={this.changeStart} value={startDate} />
             </div>
-            <div className={ classes.datePickerContainer }>
+            <div className={classes.datePickerContainer}>
               <Typography variant="body2">End date:</Typography>
-              <input
-                label="End date"
-                type="date"
-                min={ startDate }
-                max={ maxDate }
-                onChange={this.changeEnd}
-                value={ endDate }
-              />
+              <input label="End date" type="date" min={startDate} max={maxDate} onChange={this.changeEnd} value={endDate} />
             </div>
             <Divider />
             <div className={classes.buttonGroup}>
-              <Button variant="contained" className={ classes.cancelButton } onClick={this.handleClose}>
+              <Button variant="contained" className={classes.cancelButton} onClick={this.handleClose}>
                 Cancel
               </Button>
               &nbsp;
-              <Button variant="contained" className={ classes.saveButton } onClick={this.handleSave}>
+              <Button variant="contained" className={classes.saveButton} onClick={this.handleSave}>
                 Save
               </Button>
             </div>
