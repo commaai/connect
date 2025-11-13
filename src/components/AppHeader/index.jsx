@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useState } from 'react';
+import { Suspense, useCallback, useState } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 

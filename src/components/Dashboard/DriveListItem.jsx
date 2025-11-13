@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
 import dayjs from 'dayjs';
 
@@ -79,7 +79,7 @@ const DriveListItem = (props) => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
     };
-  }, [drive, dispatch, isVisible, el]);
+  }, [drive, dispatch, isVisible]);
 
   const onClick = filterRegularClick(() => dispatch(pushTimelineRange(drive.log_id, 0, drive.duration, true)));
 

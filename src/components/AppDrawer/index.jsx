@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { Link } from 'react-router-dom';
@@ -20,7 +20,7 @@ const AppDrawer = ({ dispatch, isPermanent, drawerIsOpen, selectedDongleId, hand
     return () => {
       if (el) el.removeEventListener('touchstart', listener);
     };
-  }, [contentRef]);
+  }, []);
 
   const toggleDrawerOff = useCallback(() => {
     handleDrawerStateChanged(false);

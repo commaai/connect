@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 

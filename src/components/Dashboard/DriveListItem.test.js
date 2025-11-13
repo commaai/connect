@@ -1,5 +1,4 @@
-/* eslint-env jest */
-import React from 'react';
+
 import * as Redux from 'redux';
 import thunk from 'redux-thunk';
 import { render, screen } from '@testing-library/react';

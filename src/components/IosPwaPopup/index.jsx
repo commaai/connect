@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import localforage from 'localforage';
@@ -70,7 +70,7 @@ class IosPwaPopup extends Component {
         let isHidden;
         try {
           isHidden = await localforage.getItem('hideIosPwaPopup');
-        } catch (err) {
+        } catch (_err) {
           isHidden = true;
         }
         this.setState({ show: !isHidden });
@@ -104,7 +104,7 @@ class IosPwaPopup extends Component {
   hide() {
     try {
       localforage.setItem('hideIosPwaPopup', true);
-    } catch (err) {
+    } catch (_err) {
       // pass
     }
     this.setState({ show: false });

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import dayjs from 'dayjs';
 
 import { Divider, ListItem, Menu, MenuItem } from '@material-ui/core';

@@ -1,4 +1,4 @@
-import React from 'react';
+
 import ReactDOM from 'react-dom/client';
 import { CssBaseline, MuiThemeProvider } from '@material-ui/core';
 import * as Sentry from '@sentry/react';

@@ -1,5 +1,5 @@
 /* global AppleID */
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import window from 'global/window';

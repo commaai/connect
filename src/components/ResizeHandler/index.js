@@ -25,7 +25,7 @@ const ResizeHandler = (props) => {
         window.clearTimeout(resizeTimeout);
       }
     };
-  }, [onResize]);
+  }, [handleResize, resizeTimeout]);
 
   return null;
 };

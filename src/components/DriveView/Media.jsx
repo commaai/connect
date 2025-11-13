@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { Component } from 'react';
 import qs from 'query-string';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';

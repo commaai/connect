@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
@@ -209,7 +209,7 @@ class PrimeManage extends Component {
     this.mounted = true;
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps, _prevState) {
     const { subscription } = this.props;
     const { stripeStatus } = this.state;
 

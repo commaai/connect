@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import localforage from 'localforage';
@@ -134,7 +134,7 @@ class ExplorerApp extends Component {
     this.componentDidUpdate({});
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps, _prevState) {
     const { pathname, zoom, dongleId, limit } = this.props;
 
     if (prevProps.pathname !== pathname) {

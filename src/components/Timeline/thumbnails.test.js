@@ -1,5 +1,4 @@
-/* eslint-env jest */
-import React from 'react';
+
 import { render, screen } from '@testing-library/react';
 import Thumbnails from './thumbnails.jsx';
 
@@ -38,7 +37,7 @@ describe('timeline thumbnails', () => {
     const imageEntries = screen.getAllByRole('img');
     expect(imageEntries).toHaveLength(5);
 
-    imageEntries.forEach((entry, i) => {
+    imageEntries.forEach((entry, _i) => {
       expect([...entry.classList].indexOf('thumbnailImage')).toBeGreaterThan(-1);
 
       const backgroundParts = entry.style.backgroundSize.split(' ');
@@ -81,7 +80,7 @@ describe('timeline thumbnails', () => {
     const imageEntries = screen.getAllByRole('img');
     expect(imageEntries).toHaveLength(5);
 
-    imageEntries.forEach((entry, i) => {
+    imageEntries.forEach((entry, _i) => {
       expect([...entry.classList].indexOf('thumbnailImage')).toBeGreaterThan(-1);
 
       const backgroundParts = entry.style.backgroundSize.split(' ');
