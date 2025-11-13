@@ -29,5 +29,17 @@
       "nursery": "off",
       "a11y": "off"
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.jsx", "**/*.tsx"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noSolidDestructuredProps": "off"
+          }
+        }
+      }
+    }
+  ]
 }

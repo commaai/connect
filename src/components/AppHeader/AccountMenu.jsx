@@ -43,7 +43,6 @@ const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
     logOut();
   }, [onClose]);
 
-  // biome-ignore lint/correctness/noSolidDestructuredProps: React component, not Solid.js
   return (
     <Menu
       open={open}
