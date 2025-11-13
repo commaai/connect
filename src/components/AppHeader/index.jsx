@@ -74,7 +74,6 @@ const AppHeader = ({ profile, classes, dispatch, drawerIsOpen, showDrawerButton,
 
   const open = Boolean(anchorEl);
 
-  // biome-ignore lint/correctness/noSolidDestructuredProps: React component, not Solid.js
   return (
     <>
       <AppBar position="sticky" elevation={1}>
