@@ -61,8 +61,11 @@ const DriveListItem = (props) => {
 
   useEffect(() => {
     const onScroll = () => {
-      if (!isVisible && el.current && window && (!window.visualViewport
-          || window.visualViewport.height >= el.current.getBoundingClientRect().y - 300)
+      if (
+        !isVisible &&
+        el.current &&
+        window &&
+        (!window.visualViewport || window.visualViewport.height >= el.current.getBoundingClientRect().y - 300)
       ) {
         setVisible(true);
         dispatch(fetchEvents(drive));
@@ -83,9 +86,7 @@ const DriveListItem = (props) => {
     };
   }, [drive, dispatch, isVisible, el]);
 
-  const onClick = filterRegularClick(
-    () => dispatch(pushTimelineRange(drive.log_id, 0, drive.duration, true)),
-  );
+  const onClick = filterRegularClick(() => dispatch(pushTimelineRange(drive.log_id, 0, drive.duration, true)));
 
   const small = windowWidth < 580;
   const dateFormat = small ? 'ddd, MMM D' : 'dddd, MMM D';
@@ -95,23 +96,23 @@ const DriveListItem = (props) => {
   const endTime = dayjs(drive.end_time_utc_millis).format('HH:mm');
   const duration = formatDriveDuration(drive.duration);
 
-  const distance = isMetric()
-    ? `${+(drive.distance * KM_PER_MI).toFixed(1)} km`
-    : `${+drive.distance.toFixed(1)} mi`;
+  const distance = isMetric() ? `${+(drive.distance * KM_PER_MI).toFixed(1)} km` : `${+drive.distance.toFixed(1)} mi`;
 
   /* eslint-disable key-spacing, no-multi-spaces */
-  const gridStyle = small ? {
-    date:   { order: 1, maxWidth: '72%', flexBasis: '72%', marginBottom: 12 },
-    dur:    { order: 2, maxWidth: '28%', flexBasis: '28%', marginBottom: 12 },
-    origin: { order: 3, maxWidth: '50%', flexBasis: '50%' },
-    dest:   { order: 4, maxWidth: '50%', flexBasis: '50%' },
-  } : {
-    date:   { order: 1, maxWidth: '28%', flexBasis: '26%' },
-    dur:    { order: 2, maxWidth: '14%', flexBasis: '14%' },
-    origin: { order: 3, maxWidth: '26%', flexBasis: '22%' },
-    dest:   { order: 4, maxWidth: '26%', flexBasis: '22%' },
-    arrow:  { order: 5, maxWidth: '6%',  flexBasis: '6%'  },
-  };
+  const gridStyle = small
+    ? {
+        date: { order: 1, maxWidth: '72%', flexBasis: '72%', marginBottom: 12 },
+        dur: { order: 2, maxWidth: '28%', flexBasis: '28%', marginBottom: 12 },
+        origin: { order: 3, maxWidth: '50%', flexBasis: '50%' },
+        dest: { order: 4, maxWidth: '50%', flexBasis: '50%' },
+      }
+    : {
+        date: { order: 1, maxWidth: '28%', flexBasis: '26%' },
+        dur: { order: 2, maxWidth: '14%', flexBasis: '14%' },
+        origin: { order: 3, maxWidth: '26%', flexBasis: '22%' },
+        dest: { order: 4, maxWidth: '26%', flexBasis: '22%' },
+        arrow: { order: 5, maxWidth: '6%', flexBasis: '6%' },
+      };
   /* eslint-enable key-spacing, no-multi-spaces */
 
   return (
@@ -136,7 +137,10 @@ const DriveListItem = (props) => {
             <Typography className={classes.firstLine}>{drive.startLocation?.place}</Typography>
             <Typography>{drive.startLocation?.details}</Typography>
           </div>
-          <div className={`${classes.driveGridItem} ${small && classes.driveGridItemRightAlign}`} style={gridStyle.dest}>
+          <div
+            className={`${classes.driveGridItem} ${small && classes.driveGridItemRightAlign}`}
+            style={gridStyle.dest}
+          >
             <Typography className={classes.firstLine}>{drive.endLocation?.place}</Typography>
             <Typography>{drive.endLocation?.details}</Typography>
           </div>
@@ -147,11 +151,7 @@ const DriveListItem = (props) => {
           )}
         </Grid>
       </div>
-      <Timeline
-        route={drive}
-        thumbnailsVisible={isVisible}
-        zoomOverride={{ start: 0, end: drive.duration }}
-      />
+      <Timeline route={drive} thumbnailsVisible={isVisible} zoomOverride={{ start: 0, end: drive.duration }} />
     </a>
   );
 };

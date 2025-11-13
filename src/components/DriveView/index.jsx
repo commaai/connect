@@ -22,9 +22,7 @@ class DriveView extends Component {
     if (zoom.previous) {
       this.props.dispatch(popTimelineRange(currentRoute?.log_id));
     } else if (currentRoute) {
-      this.props.dispatch(
-        pushTimelineRange(currentRoute.log_id, null, null),
-      );
+      this.props.dispatch(pushTimelineRange(currentRoute.log_id, null, null));
     }
   }
 
@@ -52,9 +50,9 @@ class DriveView extends Component {
           <div>
             <div className="items-center justify-between flex p-3 gap-2">
               <IconButton
-                onClick={ () => this.onBack(zoom, currentRoute) }
+                onClick={() => this.onBack(zoom, currentRoute)}
                 aria-label="Go Back"
-                disabled={ backButtonDisabled }
+                disabled={backButtonDisabled}
               >
                 <ArrowBackBold />
               </IconButton>
@@ -62,20 +60,14 @@ class DriveView extends Component {
                 <span className="hidden sm:inline">{`${startDay} `}</span>
                 {`${startTime} - ${endTime}`}
               </div>
-              <IconButton
-                onClick={ filterRegularClick(this.close) }
-                aria-label="Close"
-                href={ `/${dongleId}` }
-              >
+              <IconButton onClick={filterRegularClick(this.close)} aria-label="Close" href={`/${dongleId}`}>
                 <CloseBold />
               </IconButton>
             </div>
             <Timeline route={currentRoute} thumbnailsVisible hasRuler />
           </div>
           <div className="p-3 md:p-8">
-            {(routes && routes.length === 0)
-              ? <Typography>Route does not exist.</Typography>
-              : <Media />}
+            {routes && routes.length === 0 ? <Typography>Route does not exist.</Typography> : <Media />}
           </div>
         </div>
       </div>

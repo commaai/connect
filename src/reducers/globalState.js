@@ -106,9 +106,7 @@ export default function reducer(_state, action) {
     case Types.ACTION_UPDATE_DEVICES:
       state = {
         ...state,
-        devices: action.devices
-          .map(populateFetchedAt)
-          .sort(deviceCompareFn),
+        devices: action.devices.map(populateFetchedAt).sort(deviceCompareFn),
       };
       if (state.dongleId) {
         const newDevice = state.devices.find((d) => d.dongle_id === state.dongleId);
@@ -149,12 +147,14 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.ACTION_UPDATE_ROUTE_EVENTS: {
-      const firstFrame = action.events.find((ev) => ev.type === 'event' && ev.data.event_type === 'first_road_camera_frame');
+      const firstFrame = action.events.find(
+        (ev) => ev.type === 'event' && ev.data.event_type === 'first_road_camera_frame',
+      );
       const videoStartOffset = firstFrame ? firstFrame.route_offset_millis : null;
       eventsMap[action.fullname] = {
         events: action.events,
         videoStartOffset,
-      }
+      };
       if (state.routes) {
         state.routes = state.routes.map((route) => {
           const ev = eventsMap[route.fullname];
@@ -181,7 +181,7 @@ export default function reducer(_state, action) {
       locationMap[action.fullname] = {
         location: action.location,
         locationKey: action.locationKey,
-      }
+      };
       if (state.routes) {
         state.routes = state.routes.map((route) => {
           const loc = locationMap[route.fullname];
@@ -261,7 +261,8 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
-      if (action.dongleId !== state.dongleId) { // ignore outdated info
+      if (action.dongleId !== state.dongleId) {
+        // ignore outdated info
         break;
       }
       state = {
@@ -289,7 +290,13 @@ export default function reducer(_state, action) {
       }
       break;
     case Types.TIMELINE_PUSH_SELECTION: {
-      if (!state.zoom || !action.start || !action.end || action.start < state.zoom.start || action.end > state.zoom.end) {
+      if (
+        !state.zoom ||
+        !action.start ||
+        !action.end ||
+        action.start < state.zoom.start ||
+        action.end > state.zoom.end
+      ) {
         state.files = null;
       }
 
@@ -305,7 +312,7 @@ export default function reducer(_state, action) {
             start: 0,
             end: state.currentRoute.duration,
             previous: state.zoom,
-          }
+          };
 
           // fix loop on last zoom level
           state.loop = null;
@@ -360,21 +367,26 @@ export default function reducer(_state, action) {
           .map((id) => state.filesUploading[id].fileName);
         state.files = Object.keys(state.files)
           .filter((fileName) => !cancelFileNames.includes(fileName))
-          .reduce((obj, fileName) => { obj[fileName] = state.files[fileName]; return obj; }, {});
+          .reduce((obj, fileName) => {
+            obj[fileName] = state.files[fileName];
+            return obj;
+          }, {});
       }
       state.filesUploading = Object.keys(state.filesUploading)
         .filter((id) => !action.ids.includes(id))
-        .reduce((obj, id) => { obj[id] = state.filesUploading[id]; return obj; }, {});
+        .reduce((obj, id) => {
+          obj[id] = state.filesUploading[id];
+          return obj;
+        }, {});
       break;
     case Types.ACTION_ROUTES_METADATA:
       // merge existing routes' event and location info with new routes
       state.routes = action.routes.map((route) => {
-        const existingRoute = state.lastRoutes ?
-          state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
+        const existingRoute = state.lastRoutes ? state.lastRoutes.find((r) => r.fullname === route.fullname) : {};
         return {
           ...existingRoute,
           ...route,
-        }
+        };
       });
       state.routesMeta = {
         dongleId: action.dongleId,

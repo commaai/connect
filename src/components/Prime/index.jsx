@@ -22,12 +22,12 @@ const Prime = (props) => {
   }
 
   if (!device.is_owner && !profile.superuser) {
-    return (<Typography>No access</Typography>);
+    return <Typography>No access</Typography>;
   }
   if (device.prime || stripeSuccess) {
-    return (<PrimeManage stripeSuccess={ stripeSuccess } />);
+    return <PrimeManage stripeSuccess={stripeSuccess} />;
   }
-  return (<PrimeCheckout stripeCancelled={ stripeCancelled } />);
+  return <PrimeCheckout stripeCancelled={stripeCancelled} />;
 };
 
 const stateToProps = Obstruction({

@@ -64,7 +64,7 @@ class IosPwaPopup extends Component {
   }
 
   async componentDidMount() {
-    if (window && window.navigator) { 
+    if (window && window.navigator) {
       const isStandalone = window.navigator.standalone === true;
       if (isIos() && !isStandalone && MyCommaAuth.isAuthenticated()) {
         let isHidden;
@@ -120,17 +120,12 @@ class IosPwaPopup extends Component {
     return (
       <div className="fixed bottom-3 left-3 right-3 z-20">
         <div className={`${classes.box} xs:w-fit`}>
-          <Clear className={ classes.hide } onClick={ this.hide } />
-          <Typography className={ classes.title }>Add to home screen</Typography>
+          <Clear className={classes.hide} onClick={this.hide} />
+          <Typography className={classes.title}>Add to home screen</Typography>
           <Typography>
-            Install this webapp on your home screen:
-            {' '}
-            <br />
-            tap
-            {' '}
-            <img className={classes.icon} src={IosShareIcon} width={35 / 2.2} height={44 / 2.2} alt="share" />
-            {' '}
-            and then &lsquo;Add to Home Screen&rsquo;
+            Install this webapp on your home screen: <br />
+            tap <img className={classes.icon} src={IosShareIcon} width={35 / 2.2} height={44 / 2.2} alt="share" /> and
+            then &lsquo;Add to Home Screen&rsquo;
           </Typography>
         </div>
       </div>

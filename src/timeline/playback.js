@@ -20,7 +20,7 @@ export function reducer(_state, action) {
       if (loopOffset !== null) {
         if (state.offset < loopOffset) {
           state.offset = loopOffset;
-        } else if (state.offset > (loopOffset + state.loop.duration)) {
+        } else if (state.offset > loopOffset + state.loop.duration) {
           state.offset = loopOffset + state.loop.duration;
         }
       }
@@ -74,8 +74,14 @@ export function reducer(_state, action) {
       break;
   }
 
-  if (state.currentRoute && state.currentRoute.videoStartOffset && state.loop && state.zoom
-    && state.loop.startTime === state.zoom.start && state.zoom.start === 0) {
+  if (
+    state.currentRoute &&
+    state.currentRoute.videoStartOffset &&
+    state.loop &&
+    state.zoom &&
+    state.loop.startTime === state.zoom.start &&
+    state.zoom.start === 0
+  ) {
     const loopRouteOffset = state.loop.startTime - state.zoom.start;
     if (state.currentRoute.videoStartOffset > loopRouteOffset) {
       state.loop = {

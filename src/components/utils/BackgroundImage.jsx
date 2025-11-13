@@ -80,19 +80,14 @@ const BackgroundImage = (props) => {
   }, []);
 
   return (
-    <div
-      className={`${classes.root} ${className || ''}`}
-      {...rest}
-    >
+    <div className={`${classes.root} ${className || ''}`} {...rest}>
       <div className={classes.hdImage} ref={hdImageRef} />
-      <div
-        className={classes.placeholder}
-        style={{ backgroundImage: `url(${placeholder})` }}
-        ref={placeholderRef}
-      >
+      <div className={classes.placeholder} style={{ backgroundImage: `url(${placeholder})` }} ref={placeholderRef}>
         {children}
       </div>
-      <div className={classes.overlay} ref={overlayRef}>{overlay}</div>
+      <div className={classes.overlay} ref={overlayRef}>
+        {overlay}
+      </div>
     </div>
   );
 };

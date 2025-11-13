@@ -14,14 +14,15 @@ const styles = () => ({
   },
   switchThumbLoading: {
     '&::before': {
-      content: '\'\'',
+      content: "''",
       display: 'inline-block',
       height: '100%',
       width: '100%',
-      backgroundImage: 'url(\'data:image/svg+xml;utf8,'
-        + '<svg xmlns="http://www.w3.org/2000/svg" height="20" width="20" viewBox="0 0 20 20">'
-        + '<circle cx="50%25" cy="50%25" r="5" stroke="%23eee" fill="none" stroke-width="2" '
-        + 'stroke-dasharray="24px 8px"></circle></svg>\')',
+      backgroundImage:
+        "url('data:image/svg+xml;utf8," +
+        '<svg xmlns="http://www.w3.org/2000/svg" height="20" width="20" viewBox="0 0 20 20">' +
+        '<circle cx="50%25" cy="50%25" r="5" stroke="%23eee" fill="none" stroke-width="2" ' +
+        'stroke-dasharray="24px 8px"></circle></svg>\')',
       strokeDasharray: '80px, 200px',
       animation: 'circular-rotate 1s linear infinite',
     },
@@ -92,38 +93,32 @@ class SwitchLoading extends Component {
     const { classes, checked, label, loading, tooltip } = this.props;
 
     const isChecked = this.state.checked !== null ? this.state.checked : checked;
-    const loadingCls = (loading || this.state.loading) ? { icon: classes.switchThumbLoading } : {};
+    const loadingCls = loading || this.state.loading ? { icon: classes.switchThumbLoading } : {};
 
     const switchEl = (
-      <Switch
-        color="secondary"
-        checked={ isChecked }
-        onChange={ this.onChange }
-        classes={ loadingCls }
-        disabled={ loading }
-      />
+      <Switch color="secondary" checked={isChecked} onChange={this.onChange} classes={loadingCls} disabled={loading} />
     );
 
     return (
-      <div className={ classes.root }>
-        <FormControlLabel control={ switchEl } label={ label } />
-        { tooltip && <InfoTooltip title={tooltip} /> }
-        { Boolean(this.state.error) && (
-        <>
-          <ErrorOutline
-            className={ classes.errorIcon }
-            onMouseLeave={ () => this.setState({ errorPopper: null }) }
-            onMouseEnter={ (ev) => this.setState({ errorPopper: ev.target }) }
-          />
-          <Popper
-            open={ Boolean(this.state.errorPopper) }
-            placement="bottom"
-            anchorEl={ this.state.errorPopper }
-            className={classes.copiedPopover}
-          >
-            <Typography>{ this.state.error }</Typography>
-          </Popper>
-        </>
+      <div className={classes.root}>
+        <FormControlLabel control={switchEl} label={label} />
+        {tooltip && <InfoTooltip title={tooltip} />}
+        {Boolean(this.state.error) && (
+          <>
+            <ErrorOutline
+              className={classes.errorIcon}
+              onMouseLeave={() => this.setState({ errorPopper: null })}
+              onMouseEnter={(ev) => this.setState({ errorPopper: ev.target })}
+            />
+            <Popper
+              open={Boolean(this.state.errorPopper)}
+              placement="bottom"
+              anchorEl={this.state.errorPopper}
+              className={classes.copiedPopover}
+            >
+              <Typography>{this.state.error}</Typography>
+            </Popper>
+          </>
         )}
       </div>
     );

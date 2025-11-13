@@ -124,36 +124,33 @@ class DeviceList extends Component {
 
   renderDevice(device) {
     const { classes, handleDeviceSelected, profile, selectedDevice } = this.props;
-    const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
+    const isSelectedCls = selectedDevice === device.dongle_id ? 'isSelected' : '';
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
     return (
       <a
         key={device.dongle_id}
-        className={ `${classes.device} ${isSelectedCls}` }
-        onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
-        href={ `/${device.dongle_id}` }
+        className={`${classes.device} ${isSelectedCls}`}
+        onClick={filterRegularClick(() => handleDeviceSelected(device.dongle_id))}
+        href={`/${device.dongle_id}`}
       >
         <div className={classes.deviceInfo}>
-          <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
-          <div className={ classes.deviceName }>
-            <Typography className={classes.deviceAlias}>
-              {deviceNamePretty(device)}
-            </Typography>
+          <div className={`${classes.deviceOnline} ${offlineCls}`}>&nbsp;</div>
+          <div className={classes.deviceName}>
+            <Typography className={classes.deviceAlias}>{deviceNamePretty(device)}</Typography>
             <Typography variant="caption" className={classes.deviceId}>
-              { device.dongle_id }
+              {device.dongle_id}
             </Typography>
           </div>
         </div>
-        { (device.is_owner || (profile && profile.superuser))
-          && (
+        {(device.is_owner || (profile && profile.superuser)) && (
           <IconButton
             className={classes.settingsButton}
             aria-label="device settings"
-            onClick={ (ev) => this.handleOpenedSettingsModal(device.dongle_id, ev) }
+            onClick={(ev) => this.handleOpenedSettingsModal(device.dongle_id, ev)}
           >
             <SettingsIcon className={classes.settingsButtonIcon} />
           </IconButton>
-          )}
+        )}
       </a>
     );
   }
@@ -169,15 +166,19 @@ class DeviceList extends Component {
 
     const found = devices.some((d) => d.dongle_id === dongleId);
     if (!found && device && dongleId === device.dongle_id) {
-      devices = [{
-        ...device,
-        alias: emptyDevice.alias,
-      }].concat(devices);
+      devices = [
+        {
+          ...device,
+          alias: emptyDevice.alias,
+        },
+      ].concat(devices);
     } else if (!found && dongleId) {
-      devices = [{
-        ...emptyDevice,
-        dongle_id: dongleId,
-      }].concat(devices);
+      devices = [
+        {
+          ...emptyDevice,
+          dongle_id: dongleId,
+        },
+      ].concat(devices);
     }
 
     const addButtonStyle = {
@@ -191,11 +192,8 @@ class DeviceList extends Component {
 
     return (
       <>
-        <VisibilityHandler onVisible={ this.onVisible } minInterval={ 10 } />
-        <div
-          className={`scrollstyle ${classes.deviceList}`}
-          style={{ height: 'calc(100vh - 64px)' }}
-        >
+        <VisibilityHandler onVisible={this.onVisible} minInterval={10} />
+        <div className={`scrollstyle ${classes.deviceList}`} style={{ height: 'calc(100vh - 64px)' }}>
           {devices.map(this.renderDevice)}
           {MyCommaAuth.isAuthenticated() && (
             <div className={classes.addDeviceContainer}>

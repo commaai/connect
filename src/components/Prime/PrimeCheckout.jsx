@@ -18,19 +18,19 @@ import { ErrorOutline, InfoOutline } from '../../icons';
 const styles = () => ({
   linkHighlight: {
     '&:link': {
-      textDecoration: "underline",
+      textDecoration: 'underline',
       color: Colors.green300,
     },
     '&:visited': {
-      textDecoration: "underline",
+      textDecoration: 'underline',
       color: Colors.green300,
     },
     '&:active': {
-      textDecoration: "underline",
+      textDecoration: 'underline',
       color: Colors.green300,
     },
     '&:hover': {
-      textDecoration: "underline",
+      textDecoration: 'underline',
       color: Colors.green400,
     },
   },
@@ -249,11 +249,7 @@ class PrimeCheckout extends Component {
     this.setState({ loadingCheckout: true });
     try {
       const { selectedPlan: plan } = this.state;
-      const resp = await Billing.getStripeCheckout(
-        dongleId,
-        subscribeInfo.sim_id,
-        plan,
-      );
+      const resp = await Billing.getStripeCheckout(dongleId, subscribeInfo.sim_id, plan);
       dispatch(analyticsEvent('prime_checkout', { plan }));
       window.location = resp.url;
     } catch (err) {
@@ -270,12 +266,12 @@ class PrimeCheckout extends Component {
     }
 
     return Boolean(
-      device.eligible_features?.prime_data
-      && subscribeInfo
-      && subscribeInfo.sim_id
-      && subscribeInfo.is_prime_sim
-      && subscribeInfo.sim_usable !== false
-      && ['blue', 'magenta_new', 'webbing'].includes(subscribeInfo.sim_type),
+      device.eligible_features?.prime_data &&
+        subscribeInfo &&
+        subscribeInfo.sim_id &&
+        subscribeInfo.is_prime_sim &&
+        subscribeInfo.sim_usable !== false &&
+        ['blue', 'magenta_new', 'webbing'].includes(subscribeInfo.sim_type),
     );
   }
 
@@ -311,9 +307,7 @@ class PrimeCheckout extends Component {
 
     const containerPadding = windowWidth > 520 ? { margin: '18px 24px' } : { margin: '6px 12px' };
     const blockMargin = windowWidth > 520 ? { marginTop: 24 } : { marginTop: 8 };
-    const paddingStyle = windowWidth > 520
-      ? { paddingLeft: 7, paddingRight: 7 }
-      : { paddingLeft: 8, paddingRight: 8 };
+    const paddingStyle = windowWidth > 520 ? { paddingLeft: 7, paddingRight: 7 } : { paddingLeft: 8, paddingRight: 8 };
     const selectedStyle = { border: '2px solid white' };
     const plansLoadingClass = !subscribeInfo ? classes.planInfoLoading : '';
     const disabledDataPlan = Boolean(!subscribeInfo || !this.dataPlanAvailable());
@@ -324,128 +318,146 @@ class PrimeCheckout extends Component {
       if (!device.eligible_features?.prime_data) {
         disabledDataPlanText = 'Standard plan is not available for your device.';
       } else if (!subscribeInfo.sim_id && subscribeInfo.device_online) {
-        disabledDataPlanText = 'Standard plan not available, no SIM was detected. Ensure SIM is securely inserted and try again.';
+        disabledDataPlanText =
+          'Standard plan not available, no SIM was detected. Ensure SIM is securely inserted and try again.';
       } else if (!subscribeInfo.sim_id) {
-        disabledDataPlanText = 'Standard plan not available, device could not be reached. Connect device to the internet and try again.';
+        disabledDataPlanText =
+          'Standard plan not available, device could not be reached. Connect device to the internet and try again.';
       } else if (!subscribeInfo.is_prime_sim) {
         disabledDataPlanText = 'Standard plan not available, detected a third-party SIM.';
       } else if (!['blue', 'magenta_new', 'webbing'].includes(subscribeInfo.sim_type)) {
-        disabledDataPlanText = ['Standard plan not available, old SIM type detected, new SIM cards are available in the ',
-          <a className={ classes.linkHighlight} key={1} href="https://comma.ai/shop/comma-prime-sim">shop</a>];
+        disabledDataPlanText = [
+          'Standard plan not available, old SIM type detected, new SIM cards are available in the ',
+          <a className={classes.linkHighlight} key={1} href="https://comma.ai/shop/comma-prime-sim">
+            shop
+          </a>,
+        ];
       } else if (subscribeInfo.sim_usable === false && subscribeInfo.sim_type === 'blue') {
-        disabledDataPlanText = ['Standard plan not available, SIM has been canceled and is therefore no longer usable, new SIM cards are available in the ',
-          <a className={ classes.linkHighlight} key={1} href="https://comma.ai/shop/comma-prime-sim">shop</a>];
+        disabledDataPlanText = [
+          'Standard plan not available, SIM has been canceled and is therefore no longer usable, new SIM cards are available in the ',
+          <a className={classes.linkHighlight} key={1} href="https://comma.ai/shop/comma-prime-sim">
+            shop
+          </a>,
+        ];
       } else if (subscribeInfo.sim_usable === false) {
-        disabledDataPlanText = ['Standard plan not available, SIM is no longer usable, new SIM cards are available in the ',
-          <a className={ classes.linkHighlight} key={1} href="https://comma.ai/shop/comma-prime-sim">shop</a>];
+        disabledDataPlanText = [
+          'Standard plan not available, SIM is no longer usable, new SIM cards are available in the ',
+          <a className={classes.linkHighlight} key={1} href="https://comma.ai/shop/comma-prime-sim">
+            shop
+          </a>,
+        ];
       }
     }
 
     return (
-      <div className={ classes.primeBox } style={ containerPadding }>
+      <div className={classes.primeBox} style={containerPadding}>
         <ResizeHandler onResize={this.onResize} />
-        <div className={ classes.primeHeader }>
-          <IconButton aria-label="Go Back" onClick={() => dispatch(primeNav(false)) }>
+        <div className={classes.primeHeader}>
+          <IconButton aria-label="Go Back" onClick={() => dispatch(primeNav(false))}>
             <KeyboardBackspaceIcon />
           </IconButton>
-          <div className={ classes.headerDevice }>
+          <div className={classes.headerDevice}>
             <Typography variant="body2">{deviceNamePretty(device)}</Typography>
             <Typography variant="caption" className={classes.deviceId}>{`(${device.dongle_id})`}</Typography>
           </div>
         </div>
-        <h2 className={ classes.primeTitle }>comma prime</h2>
-        <div style={ blockMargin }>
-          <div className={ classes.checkList }>
-            <div className={ classes.checkListItem } style={ paddingStyle }>
+        <h2 className={classes.primeTitle}>comma prime</h2>
+        <div style={blockMargin}>
+          <div className={classes.checkList}>
+            <div className={classes.checkListItem} style={paddingStyle}>
               <CheckIcon />
               <p>24/7 connectivity</p>
             </div>
-            <div className={ classes.checkListItem } style={ paddingStyle }>
+            <div className={classes.checkListItem} style={paddingStyle}>
               <CheckIcon />
               <p>Take pictures remotely</p>
             </div>
-            <div className={ classes.checkListItem } style={ paddingStyle }>
+            <div className={classes.checkListItem} style={paddingStyle}>
               <CheckIcon />
               <p>1 year storage of drive videos</p>
             </div>
-            <div className={ classes.checkListItem } style={ paddingStyle }>
+            <div className={classes.checkListItem} style={paddingStyle}>
               <CheckIcon />
               <p>Simple SSH for developers</p>
             </div>
           </div>
         </div>
-        <div className={ classes.planBoxContainer } style={ blockMargin }>
-          <div className={ classes.planBox } style={ boxHeight }>
+        <div className={classes.planBoxContainer} style={blockMargin}>
+          <div className={classes.planBox} style={boxHeight}>
             <div
-              className={ `${classes.plan} ${plansLoadingClass}` }
-              style={ selectedPlan === 'nodata' ? selectedStyle : {} }
-              onClick={ subscribeInfo ? () => this.setState({ selectedPlan: 'nodata' }) : null }
+              className={`${classes.plan} ${plansLoadingClass}`}
+              style={selectedPlan === 'nodata' ? selectedStyle : {}}
+              onClick={subscribeInfo ? () => this.setState({ selectedPlan: 'nodata' }) : null}
             >
-              <p className={ classes.planName }>lite</p>
-              <p className={ classes.planPrice }>$10/month</p>
-              <p className={ classes.planSubtext }>
+              <p className={classes.planName}>lite</p>
+              <p className={classes.planPrice}>$10/month</p>
+              <p className={classes.planSubtext}>
                 bring your own
                 <br />
                 sim card
               </p>
             </div>
             <div
-              className={ `${classes.plan} ${disabledDataPlan ? classes.planDisabled : ''} ${plansLoadingClass}` }
-              style={ selectedPlan === 'data' ? selectedStyle : {} }
-              onClick={ !disabledDataPlan ? () => this.setState({ selectedPlan: 'data' }) : null }
+              className={`${classes.plan} ${disabledDataPlan ? classes.planDisabled : ''} ${plansLoadingClass}`}
+              style={selectedPlan === 'data' ? selectedStyle : {}}
+              onClick={!disabledDataPlan ? () => this.setState({ selectedPlan: 'data' }) : null}
             >
-              <p className={ classes.planName }>standard</p>
-              <p className={ classes.planPrice }>$24/month</p>
-              <p className={ classes.planSubtext }>
+              <p className={classes.planName}>standard</p>
+              <p className={classes.planPrice}>$24/month</p>
+              <p className={classes.planSubtext}>
                 including data plan
                 <br />
                 only offered in the U.S.
               </p>
             </div>
           </div>
-          { !subscribeInfo
-            && (
-            <div className={ classes.planLoading }>
-              <CircularProgress size={ 38 } style={{ color: Colors.white }} />
+          {!subscribeInfo && (
+            <div className={classes.planLoading}>
+              <CircularProgress size={38} style={{ color: Colors.white }} />
               <Typography>Fetching SIM data</Typography>
             </div>
-            )}
+          )}
         </div>
-        { disabledDataPlanText && (
-        <div className={ classes.overviewBlockDisabled } style={ blockMargin }>
-          <InfoOutline />
-          <Typography>{ disabledDataPlanText }</Typography>
-        </div>
-        ) }
-        <div style={ blockMargin }>
-          <Typography className={ classes.learnMore }>
+        {disabledDataPlanText && (
+          <div className={classes.overviewBlockDisabled} style={blockMargin}>
+            <InfoOutline />
+            <Typography>{disabledDataPlanText}</Typography>
+          </div>
+        )}
+        <div style={blockMargin}>
+          <Typography className={classes.learnMore}>
             {'Learn more about comma prime from our '}
-            <a className={ classes.linkHighlight} target="_blank" href="https://comma.ai/connect#faq" rel="noreferrer">FAQ</a>
+            <a className={classes.linkHighlight} target="_blank" href="https://comma.ai/connect#faq" rel="noreferrer">
+              FAQ
+            </a>
           </Typography>
         </div>
-        { error && (
-        <div className={ classes.overviewBlockError }>
-          <ErrorOutline />
-          <Typography>{ error }</Typography>
-        </div>
-        ) }
-        <div style={ blockMargin }>
+        {error && (
+          <div className={classes.overviewBlockError}>
+            <ErrorOutline />
+            <Typography>{error}</Typography>
+          </div>
+        )}
+        <div style={blockMargin}>
           <Button
-            className={ `${classes.buttons} gotoCheckout` }
-            onClick={ () => this.gotoCheckout() }
-            disabled={ Boolean(!subscribeInfo || loadingCheckout || !selectedPlan) }
+            className={`${classes.buttons} gotoCheckout`}
+            onClick={() => this.gotoCheckout()}
+            disabled={Boolean(!subscribeInfo || loadingCheckout || !selectedPlan)}
           >
-            { loadingCheckout
-              ? <CircularProgress size={ 19 } />
-              : (this.trialClaimable() ? 'Claim trial' : 'Go to checkout')}
+            {loadingCheckout ? (
+              <CircularProgress size={19} />
+            ) : this.trialClaimable() ? (
+              'Claim trial'
+            ) : (
+              'Go to checkout'
+            )}
           </Button>
         </div>
-        { chargeText
-          && (
-          <div style={ blockMargin }>
-            <Typography className={ classes.chargeText }>{ chargeText }</Typography>
+        {chargeText && (
+          <div style={blockMargin}>
+            <Typography className={classes.chargeText}>{chargeText}</Typography>
           </div>
-          )}
+        )}
       </div>
     );
   }

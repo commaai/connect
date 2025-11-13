@@ -22,9 +22,9 @@ if (import.meta.env.VITE_APP_GIT_COMMIT_TIMESTAMP) {
   console.info('commit date:', import.meta.env.VITE_APP_GIT_COMMIT_TIMESTAMP || 'unknown');
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render((
+ReactDOM.createRoot(document.getElementById('root')).render(
   <MuiThemeProvider theme={Theme}>
     <CssBaseline />
     <App />
-  </MuiThemeProvider>
-));
+  </MuiThemeProvider>,
+);

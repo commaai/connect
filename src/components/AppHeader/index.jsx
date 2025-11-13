@@ -57,8 +57,16 @@ const styles = () => ({
 });
 
 const AppHeader = ({
-  profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
-  forwardRef, handleDrawerStateChanged, primeNav, dongleId,
+  profile,
+  classes,
+  dispatch,
+  drawerIsOpen,
+  viewingRoute,
+  showDrawerButton,
+  forwardRef,
+  handleDrawerStateChanged,
+  primeNav,
+  dongleId,
 }) => {
   const [anchorEl, setAnchorEl] = useState(null);
 
@@ -86,32 +94,26 @@ const AppHeader = ({
         <div ref={forwardRef} className={classes.header}>
           <div className={classes.titleContainer}>
             {showDrawerButton ? (
-              <IconButton
-                aria-label="menu"
-                className="mr-3"
-                onClick={toggleDrawer}
-              >
+              <IconButton aria-label="menu" className="mr-3" onClick={toggleDrawer}>
                 <Icon>menu</Icon>
               </IconButton>
-            )
-              : (
-                <a
-                  href={`/${dongleId}`}
-                  className={classes.logoImgLink}
-                  onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
-                >
-                  <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
-                </a>
-              )}
-            <a
-              href={`/${dongleId}`}
-              onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
-            >
+            ) : (
+              <a
+                href={`/${dongleId}`}
+                className={classes.logoImgLink}
+                onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
+              >
+                <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+              </a>
+            )}
+            <a href={`/${dongleId}`} onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}>
               <Typography className={classes.logoText}>connect</Typography>
             </a>
           </div>
           <div className="flex flex-row gap-2">
-            <Suspense><PWAIcon /></Suspense>
+            <Suspense>
+              <PWAIcon />
+            </Suspense>
             <IconButton
               aria-owns={open ? 'menu-appbar' : null}
               aria-haspopup="true"
@@ -124,13 +126,7 @@ const AppHeader = ({
         </div>
       </AppBar>
       {Boolean(MyCommaAuth.isAuthenticated() && profile) && (
-        <AccountMenu
-          id="menu-appbar"
-          open={open}
-          anchorEl={anchorEl}
-          onClose={handleClose}
-          profile={profile}
-        />
+        <AccountMenu id="menu-appbar" open={open} anchorEl={anchorEl} onClose={handleClose} profile={profile} />
       )}
     </>
   );

@@ -14,12 +14,7 @@ export const history = createBrowserHistory();
 
 const store = Redux.createStore(
   connectRouter(history)(reduceReducers(initialState, ...reducers)),
-  composeEnhancers(Redux.applyMiddleware(
-    thunk,
-    onHistoryMiddleware,
-    routerMiddleware(history),
-    analyticsMiddleware,
-  )),
+  composeEnhancers(Redux.applyMiddleware(thunk, onHistoryMiddleware, routerMiddleware(history), analyticsMiddleware)),
 );
 
 export default store;
