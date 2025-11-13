@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
 import Obstruction from 'obstruction';
 import { Component } from 'react';
 import { connect } from 'react-redux';
-import { analyticsEvent, primeGetSubscription, primeNav } from '../../actions/index.js';
+import { primeGetSubscription, primeNav } from '../../actions/index.js';
 import Colors from '../../colors.js';
 import { ErrorOutline, InfoOutline } from '../../icons/index.jsx';
 import { deviceNamePretty, deviceTypePretty } from '../../utils/index.js';
@@ -224,7 +224,6 @@ class PrimeManage extends Component {
       (subscription?.user_id && prevState.stripeStatus?.paid !== 'paid' && stripeStatus?.paid === 'paid') ||
       (stripeStatus?.paid === 'paid' && !prevProps.subscription?.user_id && subscription?.user_id)
     ) {
-      this.props.dispatch(analyticsEvent('prime_paid', { plan: subscription.plan }));
     }
   }
 
@@ -234,7 +233,6 @@ class PrimeManage extends Component {
 
   cancelPrime() {
     this.setState({ canceling: true });
-    this.props.dispatch(analyticsEvent('prime_cancel', { plan: this.props.subscription.plan }));
     Billing.cancelPrime(this.props.dongleId)
       .then((resp) => {
         if (resp.success) {
@@ -253,7 +251,6 @@ class PrimeManage extends Component {
   }
 
   async gotoUpdate() {
-    this.props.dispatch(analyticsEvent('prime_stripe_update', { plan: this.props.subscription.plan }));
     try {
       const resp = await Billing.getStripePortal(this.props.dongleId);
       window.location = resp.url;

@@ -7,7 +7,7 @@ import { connect } from 'react-redux';
 import 'mapbox-gl/src/css/mapbox-gl.css';
 
 import { devices as Devices } from '@commaai/api';
-import { analyticsEvent, checkLastRoutesData, selectDevice, updateDevice } from '../actions/index.js';
+import { checkLastRoutesData, selectDevice, updateDevice } from '../actions/index.js';
 import init from '../actions/startup.js';
 import Colors from '../colors.js';
 import { pause, play } from '../timeline/playback.js';
@@ -114,7 +114,6 @@ class ExplorerApp extends Component {
 
           const device = await Devices.fetchDevice(resp.dongle_id);
           this.props.dispatch(updateDevice(device));
-          this.props.dispatch(analyticsEvent('pair_device', { method: 'url_string' }));
         } else {
           await localforage.removeItem('pairToken');
           console.log(resp);

@@ -10,8 +10,7 @@ import { Component } from 'react';
 import { connect } from 'react-redux';
 import { fetchEvents } from '../../actions/cached.js';
 import { doUpload, FILE_NAMES, fetchAthenaQueue, fetchFiles, fetchUploadUrls, setRouteViewed, updateFiles } from '../../actions/files.js';
-import { analyticsEvent, updateRoute } from '../../actions/index.js';
-import { attachRelTime } from '../../analytics.js';
+import { updateRoute } from '../../actions/index.js';
 import Colors from '../../colors.js';
 import { InfoOutline } from '../../icons/index.jsx';
 import { bufferVideo } from '../../timeline/playback.js';
@@ -271,7 +270,7 @@ class Media extends Component {
     }
 
     if (prevState.inView && prevState.inView !== this.state.inView) {
-      this.props.dispatch(analyticsEvent('media_switch_view', { in_view: this.state.inView }));
+      // analytics removed
     }
 
     if (
@@ -314,12 +313,6 @@ class Media extends Component {
       return;
     }
 
-    const event_parameters = {
-      route_start_time: currentRoute.start_time_utc_millis,
-    };
-    attachRelTime(event_parameters, 'route_start_time', true, 'h');
-    this.props.dispatch(analyticsEvent('open_in_useradmin', event_parameters));
-
     const params = { onebox: currentRoute.fullname };
     const win = window.open(`${window.USERADMIN_URL_ROOT}?${qs.stringify(params)}`, '_blank');
     if (win.focus) {
@@ -344,12 +337,6 @@ class Media extends Component {
     if (!currentRoute) {
       return;
     }
-
-    this.props.dispatch(
-      analyticsEvent('files_upload', {
-        type,
-      }),
-    );
 
     const routeNoDongleId = currentRoute.fullname.split('|')[1];
     const fileName = `${dongleId}|${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${type}`;
@@ -383,12 +370,6 @@ class Media extends Component {
     if (!currentRoute || !files) {
       return;
     }
-
-    this.props.dispatch(
-      analyticsEvent('files_upload_all', {
-        types: types.length === 1 && types[0] === 'logs' ? 'logs' : 'all',
-      }),
-    );
 
     const uploading = {};
     const adjusted_start_time = currentRoute.start_time_utc_millis + loop.startTime;
@@ -458,16 +439,7 @@ class Media extends Component {
     };
   }
 
-  downloadFile(file, type) {
-    const { currentRoute } = this.props;
-
-    const eventParameters = {
-      type,
-      route_start_time: currentRoute.start_time_utc_millis,
-    };
-    attachRelTime(eventParameters, 'route_start_time', true, 'h');
-    this.props.dispatch(analyticsEvent('download_file', eventParameters));
-
+  downloadFile(file) {
     window.location.href = file.url;
   }
 
@@ -754,7 +726,7 @@ class Media extends Component {
       button = null;
     } else if (file.url) {
       button = (
-        <Button className={classes.uploadButton} style={{ minWidth: uploadButtonWidth }} onClick={() => this.downloadFile(file, type)}>
+        <Button className={classes.uploadButton} style={{ minWidth: uploadButtonWidth }} onClick={() => this.downloadFile(file)}>
           download
         </Button>
       );

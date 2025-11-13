@@ -6,7 +6,6 @@ import dayjs from 'dayjs';
 import Obstruction from 'obstruction';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { analyticsEvent } from '../../actions/index.js';
 import Colors from '../../colors.js';
 import { isMetric, KM_PER_MI } from '../../utils/conversions.js';
 import { deviceIsOnline, deviceNamePretty } from '../../utils/index.js';
@@ -301,7 +300,6 @@ class DeviceInfo extends Component {
     const { dongleId } = this.props;
     const { snapshot } = this.state;
     this.setState({ snapshot: { ...snapshot, error: null, fetching: true } });
-    this.props.dispatch(analyticsEvent('take_snapshot'));
     try {
       const payload = {
         method: 'takeSnapshot',

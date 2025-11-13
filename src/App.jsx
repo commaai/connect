@@ -67,9 +67,6 @@ class App extends Component {
     }
 
     this.setState({ initialized: true });
-
-    // set up analytics, low priority, so we do this last
-    import('./analytics-v2.js');
   }
 
   redirectLink() {

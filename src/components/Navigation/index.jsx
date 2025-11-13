@@ -7,7 +7,7 @@ import Obstruction from 'obstruction';
 import React, { Component } from 'react';
 import ReactMapGL, { GeolocateControl, HTMLOverlay, Layer, Marker, Source, WebMercatorViewport } from 'react-map-gl';
 import { connect } from 'react-redux';
-import { analyticsEvent, primeNav } from '../../actions/index.js';
+import { primeNav } from '../../actions/index.js';
 import Colors from '../../colors.js';
 import { PinCarIcon } from '../../icons/index.jsx';
 import { isIos } from '../../utils/browser.js';
@@ -216,19 +216,11 @@ class Navigation extends Component {
     }
 
     if (!prevState.hasFocus && this.state.hasFocus) {
-      this.props.dispatch(
-        analyticsEvent('nav_focus', {
-          has_car_location: Boolean(carLastLocation || carNetworkLocation),
-        }),
-      );
+      // analytics removed
     }
 
     if (search && prevState.search !== search) {
-      this.props.dispatch(
-        analyticsEvent('nav_search', {
-          panned: this.state.noFly || this.state.searchLooking,
-        }),
-      );
+      // analytics removed
     }
   }
 
@@ -345,14 +337,6 @@ class Navigation extends Component {
       resultType: 'car',
       title: '',
     };
-
-    this.props.dispatch(
-      analyticsEvent('nav_search_select', {
-        source: 'car',
-        panned: this.state.noFly,
-        distance: item.distance,
-      }),
-    );
 
     this.setState({
       noFly: false,

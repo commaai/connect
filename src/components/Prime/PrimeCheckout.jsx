@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
 import Obstruction from 'obstruction';
 import { Component } from 'react';
 import { connect } from 'react-redux';
-import { analyticsEvent, primeNav } from '../../actions/index.js';
+import { primeNav } from '../../actions/index.js';
 import Colors from '../../colors.js';
 import { ErrorOutline, InfoOutline } from '../../icons/index.jsx';
 import { deviceNamePretty } from '../../utils/index.js';
@@ -243,12 +243,11 @@ class PrimeCheckout extends Component {
   }
 
   async gotoCheckout() {
-    const { dispatch, dongleId, subscribeInfo } = this.props;
+    const { dongleId, subscribeInfo } = this.props;
     this.setState({ loadingCheckout: true });
     try {
       const { selectedPlan: plan } = this.state;
       const resp = await Billing.getStripeCheckout(dongleId, subscribeInfo.sim_id, plan);
-      dispatch(analyticsEvent('prime_checkout', { plan }));
       window.location = resp.url;
     } catch (err) {
       // TODO show error messages
