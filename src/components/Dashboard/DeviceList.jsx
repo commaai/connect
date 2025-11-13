@@ -4,7 +4,7 @@ import { IconButton, Typography, withStyles } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
 import * as Sentry from '@sentry/react';
 import Obstruction from 'obstruction';
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 
 import { updateDevices } from '../../actions/index.js';

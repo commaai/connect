@@ -1,7 +1,7 @@
 import { IconButton, Typography } from '@material-ui/core';
 import dayjs from 'dayjs';
 import Obstruction from 'obstruction';
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 
 import { popTimelineRange, pushTimelineRange, updateSegmentRange } from '../../actions/index.js';

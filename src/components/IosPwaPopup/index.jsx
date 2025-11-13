@@ -3,7 +3,7 @@ import { Typography, withStyles } from '@material-ui/core';
 import { Clear } from '@material-ui/icons';
 import localforage from 'localforage';
 import Obstruction from 'obstruction';
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 
 import Colors from '../../colors.js';
@@ -69,7 +69,7 @@ class IosPwaPopup extends Component {
         let isHidden;
         try {
           isHidden = await localforage.getItem('hideIosPwaPopup');
-        } catch (err) {
+        } catch (_err) {
           isHidden = true;
         }
         this.setState({ show: !isHidden });
@@ -103,7 +103,7 @@ class IosPwaPopup extends Component {
   hide() {
     try {
       localforage.setItem('hideIosPwaPopup', true);
-    } catch (err) {
+    } catch (_err) {
       // pass
     }
     this.setState({ show: false });

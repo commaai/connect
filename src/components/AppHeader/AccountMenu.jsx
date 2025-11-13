@@ -1,7 +1,7 @@
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { Divider, ListItem, Menu, MenuItem } from '@material-ui/core';
 import dayjs from 'dayjs';
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 const logOut = async () => {
   await MyCommaAuth.logOut();
@@ -43,6 +43,7 @@ const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
     logOut();
   }, [onClose]);
 
+  // biome-ignore lint/correctness/noSolidDestructuredProps: React component, not Solid.js
   return (
     <Menu
       open={open}

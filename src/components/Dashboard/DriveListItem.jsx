@@ -1,6 +1,6 @@
 import { Grid, Typography, withStyles } from '@material-ui/core';
 import dayjs from 'dayjs';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
 import { fetchEvents, fetchLocations } from '../../actions/cached.js';
 import { pushTimelineRange } from '../../actions/index.js';
@@ -77,7 +77,7 @@ const DriveListItem = (props) => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
     };
-  }, [drive, dispatch, isVisible, el]);
+  }, [drive, dispatch, isVisible]);
 
   const onClick = filterRegularClick(() => dispatch(pushTimelineRange(drive.log_id, 0, drive.duration, true)));
 

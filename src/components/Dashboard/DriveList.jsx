@@ -1,6 +1,5 @@
 import { Typography, withStyles } from '@material-ui/core';
 import Obstruction from 'obstruction';
-import React from 'react';
 import { connect } from 'react-redux';
 
 import { checkLastRoutesData, checkRoutesData } from '../../actions/index.js';

@@ -1,6 +1,6 @@
 import Drawer from '@material-ui/core/Drawer';
 import Obstruction from 'obstruction';
-import React, { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { selectDevice } from '../../actions/index.js';
@@ -17,7 +17,7 @@ const AppDrawer = ({ dispatch, isPermanent, drawerIsOpen, selectedDongleId, hand
     return () => {
       if (el) el.removeEventListener('touchstart', listener);
     };
-  }, [contentRef]);
+  }, []);
 
   const toggleDrawerOff = useCallback(() => {
     handleDrawerStateChanged(false);
@@ -31,12 +31,14 @@ const AppDrawer = ({ dispatch, isPermanent, drawerIsOpen, selectedDongleId, hand
     [dispatch, toggleDrawerOff],
   );
 
+  // biome-ignore lint/correctness/noSolidDestructuredProps: React component, not Solid.js
   return (
+    // biome-ignore lint/correctness/noSolidDestructuredProps: React component, not Solid.js
     <Drawer open={isPermanent || drawerIsOpen} onClose={toggleDrawerOff} variant={isPermanent ? 'permanent' : 'temporary'} PaperProps={{ style: { width, top: 'auto' } }}>
       <div ref={contentRef} className="flex flex-col h-full bg-[linear-gradient(180deg,#1B2023_0%,#111516_100%)]">
         {!isPermanent && (
           <Link to="/" className="flex items-center min-h-[64px] mx-2">
-            <img alt="comma" src="/images/comma-white.png" className="w-[18.9px] mx-6" />
+            <img alt="comma" src="/images/comma-white.png" className="w-[18.9px] mx-6" width={18.9} height={18.9} />
             <span className="text-xl font-extrabold">connect</span>
           </Link>
         )}

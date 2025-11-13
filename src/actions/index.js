@@ -439,7 +439,7 @@ export function updateDevice(device) {
 }
 
 export function selectTimeFilter(start, end) {
-  return (dispatch, getState) => {
+  return (dispatch, _getState) => {
     dispatch({
       type: Types.ACTION_SELECT_TIME_FILTER,
       start,

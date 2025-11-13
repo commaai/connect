@@ -1,7 +1,6 @@
 /* eslint-env jest */
 
 import { fireEvent, render, waitFor } from '@testing-library/react';
-import React from 'react';
 import { asyncSleep } from '../../utils/index.js';
 import ResizeHandler from './index.js';
 

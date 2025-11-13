@@ -1,6 +1,6 @@
 import { CircularProgress, Grid } from '@material-ui/core';
 import Obstruction from 'obstruction';
-import React, { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
 import DeviceInfo from '../DeviceInfo/index.jsx';
 import Navigation from '../Navigation/index.jsx';

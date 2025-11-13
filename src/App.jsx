@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import { ConnectedRouter } from 'connected-react-router';
 import localforage from 'localforage';
 import qs from 'query-string';
-import React, { Component, lazy, Suspense } from 'react';
+import { Component, lazy, Suspense } from 'react';
 import { Provider } from 'react-redux';
 import { Redirect, Route, Switch } from 'react-router';
 import ErrorFallback from './components/ErrorFallback.jsx';

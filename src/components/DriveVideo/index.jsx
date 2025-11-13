@@ -284,7 +284,7 @@ class DriveVideo extends Component {
         // on other platforms, inspect audio tracks before hls.js changes things
         const hlsPlayer = player.getInternalPlayer('hls');
         if (hlsPlayer) {
-          hlsPlayer.on('hlsBufferCodecs', (event, data) => {
+          hlsPlayer.on('hlsBufferCodecs', (_event, data) => {
             if (onAudioStatusChange) {
               onAudioStatusChange(!!data.audio);
             }

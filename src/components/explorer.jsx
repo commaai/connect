@@ -2,7 +2,7 @@ import { Button, CircularProgress, Divider, Modal, Paper, Typography, withStyles
 import { replace } from 'connected-react-router';
 import localforage from 'localforage';
 import Obstruction from 'obstruction';
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 import 'mapbox-gl/src/css/mapbox-gl.css';
 
@@ -130,7 +130,7 @@ class ExplorerApp extends Component {
     this.componentDidUpdate({});
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps, _prevState) {
     const { pathname, zoom, dongleId, limit } = this.props;
 
     if (prevProps.pathname !== pathname) {

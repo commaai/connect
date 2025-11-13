@@ -638,6 +638,7 @@ class Navigation extends Component {
           )}
           {carLocation && Boolean(carLocation.accuracy) && (
             <Source type="geojson" data={this.carLocationCircle(carLocation)}>
+              {/* biome-ignore lint/correctness/useUniqueElementIds: intentional static ID for map layer */}
               <Layer id="polygon" type="fill" source="polygon" layout={{}} paint={{ 'fill-color': '#31a1ee', 'fill-opacity': 0.3 }} />
             </Source>
           )}

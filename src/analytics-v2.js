@@ -1,4 +1,3 @@
-import { getCommaAccessToken } from '@commaai/my-comma-auth/storage';
 import { onCLS, onFCP, onFID, onLCP, onTTFB } from 'web-vitals';
 
 const ATTRIBUTES = {
@@ -19,26 +18,6 @@ function uniqueId() {
 
 async function flushQueue() {
   // TODO: reimplement this properly (on the backend)
-  if (true) return; // eslint-disable-line
-
-  if (queue.size === 0) return;
-
-  // TODO: flush queue when auth state changes
-  const accessToken = await getCommaAccessToken();
-
-  const body = JSON.stringify([...queue]);
-
-  await fetch(`${window.COMMA_URL_ROOT}_/ping`, {
-    body,
-    headers: {
-      Authorization: `JWT ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    keepalive: true,
-    method: 'POST',
-  });
-
-  queue.clear();
 }
 
 export function sendEvent(event) {

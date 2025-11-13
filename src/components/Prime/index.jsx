@@ -1,7 +1,6 @@
 import { Typography } from '@material-ui/core';
 import Obstruction from 'obstruction';
 import qs from 'query-string';
-import React from 'react';
 import { connect } from 'react-redux';
 import PrimeCheckout from './PrimeCheckout.jsx';
 import PrimeManage from './PrimeManage.jsx';

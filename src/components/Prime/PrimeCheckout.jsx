@@ -5,7 +5,7 @@ import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 import Obstruction from 'obstruction';
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 import { analyticsEvent, primeNav } from '../../actions/index.js';
 import Colors from '../../colors.js';

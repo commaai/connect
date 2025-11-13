@@ -6,7 +6,7 @@ import WarningIcon from '@material-ui/icons/Warning';
 import * as Sentry from '@sentry/react';
 import Obstruction from 'obstruction';
 import qs from 'query-string';
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 import { fetchEvents } from '../../actions/cached.js';
 import { doUpload, FILE_NAMES, fetchAthenaQueue, fetchFiles, fetchUploadUrls, setRouteViewed, updateFiles } from '../../actions/files.js';
@@ -627,6 +627,7 @@ class Media extends Component {
 
     return (
       <>
+        {/* biome-ignore lint/correctness/useUniqueElementIds: intentional static ID for menu */}
         <Menu
           id="menu-download"
           open={Boolean(alwaysOpen || downloadMenu)}
@@ -697,6 +698,7 @@ class Media extends Component {
             </MenuItem>
           )}
         </Menu>
+        {/* biome-ignore lint/correctness/useUniqueElementIds: intentional static ID for menu */}
         <Menu
           id="menu-info"
           open={Boolean(alwaysOpen || moreInfoMenu)}

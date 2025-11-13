@@ -53,7 +53,7 @@ async function athenaCall(dongleId, payload, sentryFingerprint, retryCount = 0) 
 }
 
 export function setRouteViewed(dongleId, route) {
-  return async (dispatch, getState) => {
+  return async (_dispatch, getState) => {
     const { device } = getState();
     if (!deviceVersionAtLeast(device, '0.9.6')) {
       return;

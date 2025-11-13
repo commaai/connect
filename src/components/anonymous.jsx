@@ -7,7 +7,7 @@ import window from 'global/window';
 import Obstruction from 'obstruction';
 import PropTypes from 'prop-types';
 import qs from 'query-string';
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 
 import Colors from '../colors.js';
@@ -92,6 +92,7 @@ const styles = () => ({
 });
 
 class AnonymousLanding extends Component {
+  // biome-ignore lint/correctness/noNestedComponentDefinitions: this is a class method, not a nested component
   UNSAFE_componentWillMount() {
     if (typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') === null) {
       const { pathname } = this.props;
@@ -138,21 +139,21 @@ class AnonymousLanding extends Component {
       <div className={classes.baseContainer}>
         <div className={classes.base}>
           <div className={classes.logoContainer}>
-            <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+            <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} width={48} height={48} />
           </div>
           <div className={classes.logoSpacer}>&nbsp;</div>
           <Typography className={classes.logoText}>comma connect</Typography>
           <Typography className={classes.tagline}>Manage your comma device, view your drives, and use comma prime features</Typography>
           <a href={AuthConfig.GOOGLE_REDIRECT_LINK} className={classes.logInButton}>
-            <img className={classes.buttonImage} src={AuthGoogleIcon} alt="" />
+            <img className={classes.buttonImage} src={AuthGoogleIcon} alt="" width={24} height={24} />
             <Typography className={classes.buttonText}>Sign in with Google</Typography>
           </a>
           <a onClick={() => AppleID.auth.signIn()} className={classes.logInButton}>
-            <img className={classes.buttonImage} src={AuthAppleIcon} alt="" />
+            <img className={classes.buttonImage} src={AuthAppleIcon} alt="" width={24} height={24} />
             <Typography className={classes.buttonText}>Sign in with Apple</Typography>
           </a>
           <a href={AuthConfig.GITHUB_REDIRECT_LINK} className={`${classes.logInButton} githubAuth`}>
-            <img className={classes.buttonImage} src={AuthGithubIcon} alt="" />
+            <img className={classes.buttonImage} src={AuthGithubIcon} alt="" width={24} height={24} />
             <Typography className={classes.buttonText}>Sign in with GitHub</Typography>
           </a>
 

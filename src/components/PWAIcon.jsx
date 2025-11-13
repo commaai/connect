@@ -1,6 +1,6 @@
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { CircularProgress, IconButton, Tooltip } from '@material-ui/core';
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { CheckCircle, Download } from '../icons/index.jsx';
 

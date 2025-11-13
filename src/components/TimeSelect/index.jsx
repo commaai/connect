@@ -2,7 +2,7 @@ import { Button, Divider, Modal, Paper, Typography, withStyles } from '@material
 import dayjs from 'dayjs';
 import Obstruction from 'obstruction';
 import PropTypes from 'prop-types';
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 import { selectTimeFilter } from '../../actions/index.js';
 import Colors from '../../colors.js';

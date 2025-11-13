@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import Obstruction from 'obstruction';
 import QrScanner from 'qr-scanner';
 import qs from 'query-string';
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 import { analyticsEvent, selectDevice, updateDevice } from '../../actions/index.js';
 import Colors from '../../colors.js';

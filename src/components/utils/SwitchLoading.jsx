@@ -1,6 +1,6 @@
 import { FormControlLabel, Popper, Switch, Typography, withStyles } from '@material-ui/core';
 import PropTypes from 'prop-types';
-import React, { Component } from 'react';
+import { Component } from 'react';
 
 import Colors from '../../colors.js';
 import { ErrorOutline } from '../../icons/index.jsx';

@@ -2,7 +2,7 @@ import { Button, CircularProgress, Divider, LinearProgress, Modal, Paper, Typogr
 import HighlightOffIcon from '@material-ui/icons/HighlightOff';
 import WarningIcon from '@material-ui/icons/Warning';
 import Obstruction from 'obstruction';
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 
 import { cancelFetchUploadQueue, cancelUploads, FILE_NAMES, fetchUploadQueue } from '../../actions/files.js';

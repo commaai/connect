@@ -5,7 +5,7 @@ import SaveIcon from '@material-ui/icons/Save';
 import ShareIcon from '@material-ui/icons/Share';
 import WarningIcon from '@material-ui/icons/Warning';
 import * as Sentry from '@sentry/react';
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 import { primeNav, selectDevice, updateDevice } from '../../actions/index.js';
 import Colors from '../../colors.js';
@@ -298,6 +298,7 @@ class DeviceSettingsModal extends Component {
                 </div>
               )}
               <div className={classes.formRow}>
+                {/* biome-ignore lint/correctness/useUniqueElementIds: intentional static ID for form field */}
                 <TextField
                   id="device_alias"
                   label="Device name"
@@ -316,6 +317,7 @@ class DeviceSettingsModal extends Component {
                 )}
               </div>
               <div className={classes.formRow}>
+                {/* biome-ignore lint/correctness/useUniqueElementIds: intentional static ID for form field */}
                 <TextField
                   id="device_share"
                   label="Share by email or user id"

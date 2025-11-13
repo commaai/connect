@@ -15,7 +15,7 @@
       "semicolons": "always",
       "trailingCommas": "all"
     },
-    "globals": ["gtag", "jestPuppeteer", "page", "jest", "describe", "it", "beforeAll", "afterAll", "beforeEach", "afterEach", "expect", "test"]
+    "globals": ["gtag", "jestPuppeteer", "page", "jest", "describe", "it", "beforeAll", "afterAll", "beforeEach", "afterEach", "expect", "test", "AppleID"]
   },
   "linter": {
     "rules": {

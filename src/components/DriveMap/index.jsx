@@ -1,6 +1,6 @@
 import Obstruction from 'obstruction';
 import raf from 'raf';
-import React, { Component } from 'react';
+import { Component } from 'react';
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 import { connect } from 'react-redux';
 

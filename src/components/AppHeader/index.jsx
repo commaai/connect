@@ -2,7 +2,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import { AppBar, Icon, IconButton, Typography } from '@material-ui/core';
 import { withStyles } from '@material-ui/core/styles';
 import Obstruction from 'obstruction';
-import React, { Suspense, useCallback, useState } from 'react';
+import { Suspense, useCallback, useState } from 'react';
 import { connect } from 'react-redux';
 
 import { selectDevice } from '../../actions/index.js';
@@ -53,7 +53,7 @@ const styles = () => ({
   },
 });
 
-const AppHeader = ({ profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton, forwardRef, handleDrawerStateChanged, primeNav, dongleId }) => {
+const AppHeader = ({ profile, classes, dispatch, drawerIsOpen, showDrawerButton, forwardRef, handleDrawerStateChanged, dongleId }) => {
   const [anchorEl, setAnchorEl] = useState(null);
 
   const handleClickedAccount = useCallback((event) => {
@@ -74,6 +74,7 @@ const AppHeader = ({ profile, classes, dispatch, drawerIsOpen, viewingRoute, sho
 
   const open = Boolean(anchorEl);
 
+  // biome-ignore lint/correctness/noSolidDestructuredProps: React component, not Solid.js
   return (
     <>
       <AppBar position="sticky" elevation={1}>
@@ -85,7 +86,7 @@ const AppHeader = ({ profile, classes, dispatch, drawerIsOpen, viewingRoute, sho
               </IconButton>
             ) : (
               <a href={`/${dongleId}`} className={classes.logoImgLink} onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}>
-                <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+                <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} width={24} height={24} />
               </a>
             )}
             <a href={`/${dongleId}`} onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}>
@@ -102,6 +103,7 @@ const AppHeader = ({ profile, classes, dispatch, drawerIsOpen, viewingRoute, sho
           </div>
         </div>
       </AppBar>
+      {/* biome-ignore lint/correctness/useUniqueElementIds: intentional static ID for menu */}
       {Boolean(MyCommaAuth.isAuthenticated() && profile) && <AccountMenu id="menu-appbar" open={open} anchorEl={anchorEl} onClose={handleClose} profile={profile} />}
     </>
   );
