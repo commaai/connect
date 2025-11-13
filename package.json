@@ -14,11 +14,8 @@
     "test-puppeteer-build": "JEST_PUPPETEER_CONFIG=jest-puppeteer.build.config.js bun run test-puppeteer"
   },
   "repository": "https://github.com/commaai/connect.git",
-  "author": "Chris Vickery <chrisinajar@gmail.com>",
+  "author": "Vehicle Researcher <user@comma.ai>",
   "contributors": [
-    "Joost Wooning <jwooning@gmail.com>",
-    "Chris Vickery <chrisinajar@gmail.com>",
-    "Cameron Clough <cameronjclough@gmail.com>"
   ],
   "private": true,
   "engines": {
