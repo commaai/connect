@@ -52,8 +52,7 @@
     "react-router-dom": "^5.3.4",
     "reduce-reducers": "^1.0.4",
     "redux": "^4.2.1",
-    "redux-thunk": "^2.4.2",
-    "web-vitals": "^3.4.0"
+    "redux-thunk": "^2.4.2"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.5",
