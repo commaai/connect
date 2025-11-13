@@ -1,4 +1,4 @@
-import { getDongleID, getSegmentRange, getPrimeNav } from './url';
+import { getDongleID, getPrimeNav, getSegmentRange } from './url.js';
 
 export function getDefaultFilter() {
   const d = new Date();

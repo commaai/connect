@@ -1,13 +1,12 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';
-
+import { Component } from 'react';
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
+import { connect } from 'react-redux';
 
-import { fetchDriveCoords } from '../../actions/cached';
-import { currentOffset } from '../../timeline';
-import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
+import { fetchDriveCoords } from '../../actions/cached.js';
+import { currentOffset } from '../../timeline/index.js';
+import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode.js';
 
 const INTERACTION_TIMEOUT = 5000;
 

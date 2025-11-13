@@ -1,6 +1,6 @@
 import { createMuiTheme } from '@material-ui/core/styles';
-import Colors from './colors';
-import { ChevronIcon } from './icons';
+import Colors from './colors.js';
+import { ChevronIcon } from './icons/index.jsx';
 
 const theme = createMuiTheme({
   typography: {

@@ -1,18 +1,18 @@
 /* eslint-disable camelcase */
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
+
+import { video as Video } from '@commaai/api';
 import { CircularProgress, Typography } from '@material-ui/core';
 import debounce from 'debounce';
 import Obstruction from 'obstruction';
+import React, { Component } from 'react';
 import ReactPlayer from 'react-player/file';
+import { connect } from 'react-redux';
 
-import { video as Video } from '@commaai/api';
-
-import Colors from '../../colors';
-import { ErrorOutline } from '../../icons';
-import { currentOffset } from '../../timeline';
-import { seek, bufferVideo } from '../../timeline/playback';
-import { isIos, isFirefox } from '../../utils/browser.js';
+import Colors from '../../colors.js';
+import { ErrorOutline } from '../../icons/index.jsx';
+import { currentOffset } from '../../timeline/index.js';
+import { bufferVideo, seek } from '../../timeline/playback.js';
+import { isFirefox, isIos } from '../../utils/browser.js';
 
 const VideoOverlay = ({ loading, error }) => {
   let content;
@@ -284,7 +284,7 @@ class DriveVideo extends Component {
         // on other platforms, inspect audio tracks before hls.js changes things
         const hlsPlayer = player.getInternalPlayer('hls');
         if (hlsPlayer) {
-          hlsPlayer.on('hlsBufferCodecs', (event, data) => {
+          hlsPlayer.on('hlsBufferCodecs', (_event, data) => {
             if (onAudioStatusChange) {
               onAudioStatusChange(!!data.audio);
             }

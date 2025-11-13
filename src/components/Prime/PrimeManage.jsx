@@ -1,19 +1,17 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import dayjs from 'dayjs';
-import * as Sentry from '@sentry/react';
-
-import { withStyles, Typography, Button, Modal, Paper, IconButton, CircularProgress } from '@material-ui/core';
+import { billing as Billing } from '@commaai/api';
+import { Button, CircularProgress, IconButton, Modal, Paper, Typography, withStyles } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
-
-import { billing as Billing } from '@commaai/api';
-import { deviceNamePretty, deviceTypePretty } from '../../utils';
-import ResizeHandler from '../ResizeHandler';
-import Colors from '../../colors';
-import { ErrorOutline, InfoOutline } from '../../icons';
-import { primeNav, primeGetSubscription } from '../../actions';
+import * as Sentry from '@sentry/react';
+import dayjs from 'dayjs';
+import Obstruction from 'obstruction';
+import { Component } from 'react';
+import { connect } from 'react-redux';
+import { analyticsEvent, primeGetSubscription, primeNav } from '../../actions/index.js';
+import Colors from '../../colors.js';
+import { ErrorOutline, InfoOutline } from '../../icons/index.jsx';
+import { deviceNamePretty, deviceTypePretty } from '../../utils/index.js';
+import ResizeHandler from '../ResizeHandler/index.js';
 
 const styles = (theme) => ({
   linkHighlight: {
@@ -221,6 +219,13 @@ class PrimeManage extends Component {
         this.fetchStripeSession,
       );
     }
+
+    if (
+      (subscription?.user_id && prevState.stripeStatus?.paid !== 'paid' && stripeStatus?.paid === 'paid') ||
+      (stripeStatus?.paid === 'paid' && !prevProps.subscription?.user_id && subscription?.user_id)
+    ) {
+      this.props.dispatch(analyticsEvent('prime_paid', { plan: subscription.plan }));
+    }
   }
 
   componentWillUnmount() {
@@ -229,6 +234,7 @@ class PrimeManage extends Component {
 
   cancelPrime() {
     this.setState({ canceling: true });
+    this.props.dispatch(analyticsEvent('prime_cancel', { plan: this.props.subscription.plan }));
     Billing.cancelPrime(this.props.dongleId)
       .then((resp) => {
         if (resp.success) {
@@ -247,6 +253,7 @@ class PrimeManage extends Component {
   }
 
   async gotoUpdate() {
+    this.props.dispatch(analyticsEvent('prime_stripe_update', { plan: this.props.subscription.plan }));
     try {
       const resp = await Billing.getStripePortal(this.props.dongleId);
       window.location = resp.url;

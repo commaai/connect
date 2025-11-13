@@ -1,23 +1,19 @@
-import React, { Component, lazy, Suspense } from 'react';
-import { Provider } from 'react-redux';
-import { Route, Switch, Redirect } from 'react-router';
-import { ConnectedRouter } from 'connected-react-router';
-import qs from 'query-string';
-import localforage from 'localforage';
-import * as Sentry from '@sentry/react';
-
-import { CircularProgress, Grid } from '@material-ui/core';
-
-import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 import { athena as Athena, auth as Auth, billing as Billing, request as Request } from '@commaai/api';
+import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
+import { CircularProgress, Grid } from '@material-ui/core';
+import * as Sentry from '@sentry/react';
+import { ConnectedRouter } from 'connected-react-router';
+import localforage from 'localforage';
+import qs from 'query-string';
+import { Component, lazy, Suspense } from 'react';
+import { Provider } from 'react-redux';
+import { Redirect, Route, Switch } from 'react-router';
+import ErrorFallback from './components/ErrorFallback.jsx';
+import store, { history } from './store.js';
+import { getSegmentRange, getZoom } from './url.js';
 
-import { getZoom, getSegmentRange } from './url';
-import store, { history } from './store';
-
-import ErrorFallback from './components/ErrorFallback';
-
-const Explorer = lazy(() => import('./components/explorer'));
-const AnonymousLanding = lazy(() => import('./components/anonymous'));
+const Explorer = lazy(() => import('./components/explorer.jsx'));
+const AnonymousLanding = lazy(() => import('./components/anonymous.jsx'));
 
 class App extends Component {
   constructor(props) {
@@ -71,6 +67,9 @@ class App extends Component {
     }
 
     this.setState({ initialized: true });
+
+    // set up analytics, low priority, so we do this last
+    import('./analytics-v2.js');
   }
 
   redirectLink() {

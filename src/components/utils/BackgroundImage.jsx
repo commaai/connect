@@ -1,5 +1,5 @@
-import React, { createRef, useEffect } from 'react';
 import { withStyles } from '@material-ui/core/styles';
+import { createRef, useEffect } from 'react';
 
 const styles = () => ({
   root: {
@@ -77,7 +77,7 @@ const BackgroundImage = (props) => {
     return () => {
       newImage.remove();
     };
-  }, []);
+  }, [classes.fadeIn, hdImageRef.current, overlayRef.current, placeholderRef.current, src]);
 
   return (
     <div className={`${classes.root} ${className || ''}`} {...rest}>

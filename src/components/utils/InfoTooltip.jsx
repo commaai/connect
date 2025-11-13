@@ -1,8 +1,8 @@
-import React, { Component } from 'react';
-import PropTypes from 'prop-types';
 import { ClickAwayListener, Tooltip, Typography, withStyles } from '@material-ui/core';
+import PropTypes from 'prop-types';
+import { Component } from 'react';
 
-import { InfoOutline } from '../../icons';
+import { InfoOutline } from '../../icons/index.jsx';
 
 const styles = (theme) => ({
   arrowPopper: {

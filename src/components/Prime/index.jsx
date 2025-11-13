@@ -1,11 +1,9 @@
-import React from 'react';
-import { connect } from 'react-redux';
+import { Typography } from '@material-ui/core';
 import Obstruction from 'obstruction';
 import qs from 'query-string';
-
-import { Typography } from '@material-ui/core';
-import PrimeManage from './PrimeManage';
-import PrimeCheckout from './PrimeCheckout';
+import { connect } from 'react-redux';
+import PrimeCheckout from './PrimeCheckout.jsx';
+import PrimeManage from './PrimeManage.jsx';
 
 const Prime = (props) => {
   let stripeCancelled;

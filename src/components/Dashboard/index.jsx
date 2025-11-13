@@ -1,14 +1,12 @@
-import React, { lazy, Suspense } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-
 import { CircularProgress, Grid } from '@material-ui/core';
+import Obstruction from 'obstruction';
+import { lazy, Suspense } from 'react';
+import { connect } from 'react-redux';
+import DeviceInfo from '../DeviceInfo/index.jsx';
+import Navigation from '../Navigation/index.jsx';
+import DriveList from './DriveList.jsx';
 
-import DriveList from './DriveList';
-import Navigation from '../Navigation';
-import DeviceInfo from '../DeviceInfo';
-
-const Prime = lazy(() => import('../Prime'));
+const Prime = lazy(() => import('../Prime/index.jsx'));
 
 const DashboardLoading = () => (
   <Grid container alignItems="center" style={{ width: '100%', height: '100vh' }}>

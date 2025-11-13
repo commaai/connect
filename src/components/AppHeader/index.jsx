@@ -1,19 +1,16 @@
-import React, { Suspense, useCallback, useState } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-
-import { withStyles } from '@material-ui/core/styles';
-import { Typography, IconButton, Icon, AppBar } from '@material-ui/core';
-
 import MyCommaAuth from '@commaai/my-comma-auth';
+import { AppBar, Icon, IconButton, Typography } from '@material-ui/core';
+import { withStyles } from '@material-ui/core/styles';
+import Obstruction from 'obstruction';
+import { Suspense, useCallback, useState } from 'react';
+import { connect } from 'react-redux';
 
-import { selectDevice } from '../../actions';
-import { AccountIcon } from '../../icons';
-import Colors from '../../colors';
-import { filterRegularClick } from '../../utils';
-
-import AccountMenu from './AccountMenu';
-import PWAIcon from '../PWAIcon';
+import { selectDevice } from '../../actions/index.js';
+import Colors from '../../colors.js';
+import { AccountIcon } from '../../icons/index.jsx';
+import { filterRegularClick } from '../../utils/index.js';
+import PWAIcon from '../PWAIcon.jsx';
+import AccountMenu from './AccountMenu.jsx';
 
 const styles = () => ({
   header: {
@@ -56,7 +53,7 @@ const styles = () => ({
   },
 });
 
-const AppHeader = ({ profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton, forwardRef, handleDrawerStateChanged, primeNav, dongleId }) => {
+const AppHeader = ({ profile, classes, dispatch, drawerIsOpen, showDrawerButton, forwardRef, handleDrawerStateChanged, dongleId }) => {
   const [anchorEl, setAnchorEl] = useState(null);
 
   const handleClickedAccount = useCallback((event) => {
@@ -88,7 +85,7 @@ const AppHeader = ({ profile, classes, dispatch, drawerIsOpen, viewingRoute, sho
               </IconButton>
             ) : (
               <a href={`/${dongleId}`} className={classes.logoImgLink} onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}>
-                <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
+                <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} width={24} height={24} />
               </a>
             )}
             <a href={`/${dongleId}`} onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}>
@@ -105,6 +102,7 @@ const AppHeader = ({ profile, classes, dispatch, drawerIsOpen, viewingRoute, sho
           </div>
         </div>
       </AppBar>
+      {/* biome-ignore lint/correctness/useUniqueElementIds: intentional static ID for menu */}
       {Boolean(MyCommaAuth.isAuthenticated() && profile) && <AccountMenu id="menu-appbar" open={open} anchorEl={anchorEl} onClose={handleClose} profile={profile} />}
     </>
   );

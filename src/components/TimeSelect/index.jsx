@@ -1,13 +1,11 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import dayjs from 'dayjs';
-import PropTypes from 'prop-types';
-
 import { Button, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
-
-import Colors from '../../colors';
-import { selectTimeFilter } from '../../actions';
+import dayjs from 'dayjs';
+import Obstruction from 'obstruction';
+import PropTypes from 'prop-types';
+import { Component } from 'react';
+import { connect } from 'react-redux';
+import { selectTimeFilter } from '../../actions/index.js';
+import Colors from '../../colors.js';
 
 const styles = (theme) => ({
   modal: {

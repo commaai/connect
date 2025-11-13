@@ -1,6 +1,4 @@
-import React from 'react';
-
-import AddDevice from '../Dashboard/AddDevice';
+import AddDevice from '../Dashboard/AddDevice.jsx';
 
 const NoDeviceUpsell = () => (
   <div className="flex flex-col items-center mx-4 md:mx-6 lg:mx-8 mt-4 sm:mt-8 md:mt-16">
@@ -22,7 +20,7 @@ const NoDeviceUpsell = () => (
     <picture className="max-w-3xl mt-4 p-4">
       <source type="image/webp" srcSet="/images/c3x-ad.webp" />
       <source type="image/png" srcSet="/images/c3x-ad.png" />
-      <img alt="comma 3X" />
+      <img alt="comma 3X" width={1200} height={630} />
     </picture>
   </div>
 );

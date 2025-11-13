@@ -1,19 +1,18 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
+import { athena as Athena, devices as Devices } from '@commaai/api';
+import { Button, CircularProgress, Popper, Tooltip, Typography, withStyles } from '@material-ui/core';
+import AccessTime from '@material-ui/icons/AccessTime';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
-
-import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } from '@material-ui/core';
-import AccessTime from '@material-ui/icons/AccessTime';
-
-import { athena as Athena, devices as Devices } from '@commaai/api';
-import Colors from '../../colors';
-import { deviceNamePretty, deviceIsOnline } from '../../utils';
-import { isMetric, KM_PER_MI } from '../../utils/conversions';
-import ResizeHandler from '../ResizeHandler';
-import VisibilityHandler from '../VisibilityHandler';
-import TimeSelect from '../TimeSelect';
+import Obstruction from 'obstruction';
+import React, { Component } from 'react';
+import { connect } from 'react-redux';
+import { analyticsEvent } from '../../actions/index.js';
+import Colors from '../../colors.js';
+import { isMetric, KM_PER_MI } from '../../utils/conversions.js';
+import { deviceIsOnline, deviceNamePretty } from '../../utils/index.js';
+import ResizeHandler from '../ResizeHandler/index.js';
+import TimeSelect from '../TimeSelect/index.jsx';
+import VisibilityHandler from '../VisibilityHandler/index.jsx';
 
 const styles = (theme) => ({
   container: {
@@ -302,6 +301,7 @@ class DeviceInfo extends Component {
     const { dongleId } = this.props;
     const { snapshot } = this.state;
     this.setState({ snapshot: { ...snapshot, error: null, fetching: true } });
+    this.props.dispatch(analyticsEvent('take_snapshot'));
     try {
       const payload = {
         method: 'takeSnapshot',
@@ -508,7 +508,7 @@ class DeviceInfo extends Component {
       );
     }
 
-    return <img src={`data:image/jpeg;base64,${src}`} className={classes.snapshotImage} />;
+    return <img src={`data:image/jpeg;base64,${src}`} className={classes.snapshotImage} width={256} height={256} />;
   }
 }
 

@@ -1,22 +1,21 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import * as Sentry from '@sentry/react';
-import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
-import { withStyles, Typography, Button } from '@material-ui/core';
-import { Clear } from '@material-ui/icons';
-import dayjs from 'dayjs';
-
 import { athena as Athena, devices as Devices } from '@commaai/api';
-import { primeNav } from '../../actions';
-import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
-import Colors from '../../colors';
-import { PinCarIcon } from '../../icons';
-import { timeFromNow } from '../../utils';
-import ResizeHandler from '../ResizeHandler';
-import VisibilityHandler from '../VisibilityHandler';
-import * as Utils from './utils';
+import { Button, Typography, withStyles } from '@material-ui/core';
+import { Clear } from '@material-ui/icons';
+import * as Sentry from '@sentry/react';
+import dayjs from 'dayjs';
+import Obstruction from 'obstruction';
+import React, { Component } from 'react';
+import ReactMapGL, { GeolocateControl, HTMLOverlay, Layer, Marker, Source, WebMercatorViewport } from 'react-map-gl';
+import { connect } from 'react-redux';
+import { analyticsEvent, primeNav } from '../../actions/index.js';
+import Colors from '../../colors.js';
+import { PinCarIcon } from '../../icons/index.jsx';
 import { isIos } from '../../utils/browser.js';
+import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode.js';
+import { timeFromNow } from '../../utils/index.js';
+import ResizeHandler from '../ResizeHandler/index.js';
+import VisibilityHandler from '../VisibilityHandler/index.jsx';
+import * as Utils from './utils.js';
 
 const styles = () => ({
   mapContainer: {
@@ -215,6 +214,22 @@ class Navigation extends Component {
     if (prevProps.device !== device) {
       this.updateDevice();
     }
+
+    if (!prevState.hasFocus && this.state.hasFocus) {
+      this.props.dispatch(
+        analyticsEvent('nav_focus', {
+          has_car_location: Boolean(carLastLocation || carNetworkLocation),
+        }),
+      );
+    }
+
+    if (search && prevState.search !== search) {
+      this.props.dispatch(
+        analyticsEvent('nav_search', {
+          panned: this.state.noFly || this.state.searchLooking,
+        }),
+      );
+    }
   }
 
   componentWillUnmount() {
@@ -330,6 +345,14 @@ class Navigation extends Component {
       resultType: 'car',
       title: '',
     };
+
+    this.props.dispatch(
+      analyticsEvent('nav_search_select', {
+        source: 'car',
+        panned: this.state.noFly,
+        distance: item.distance,
+      }),
+    );
 
     this.setState({
       noFly: false,
@@ -615,6 +638,7 @@ class Navigation extends Component {
           )}
           {carLocation && Boolean(carLocation.accuracy) && (
             <Source type="geojson" data={this.carLocationCircle(carLocation)}>
+              {/* biome-ignore lint/correctness/useUniqueElementIds: intentional static ID for map layer */}
               <Layer id="polygon" type="fill" source="polygon" layout={{}} paint={{ 'fill-color': '#31a1ee', 'fill-opacity': 0.3 }} />
             </Source>
           )}

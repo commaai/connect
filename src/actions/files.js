@@ -1,9 +1,8 @@
-import * as Sentry from '@sentry/react';
 import { athena as Athena, devices as Devices, raw as Raw } from '@commaai/api';
-
-import { updateDeviceOnline, fetchDeviceNetworkStatus } from '.';
-import * as Types from './types';
-import { deviceOnCellular, getDeviceFromState, deviceVersionAtLeast, asyncSleep } from '../utils';
+import * as Sentry from '@sentry/react';
+import { asyncSleep, deviceOnCellular, deviceVersionAtLeast, getDeviceFromState } from '../utils/index.js';
+import { fetchDeviceNetworkStatus, updateDeviceOnline } from './index.js';
+import * as Types from './types.js';
 
 export const FILE_NAMES = {
   qcameras: ['qcamera.ts'],
@@ -54,7 +53,7 @@ async function athenaCall(dongleId, payload, sentryFingerprint, retryCount = 0) 
 }
 
 export function setRouteViewed(dongleId, route) {
-  return async (dispatch, getState) => {
+  return async (_dispatch, getState) => {
     const { device } = getState();
     if (!deviceVersionAtLeast(device, '0.9.6')) {
       return;

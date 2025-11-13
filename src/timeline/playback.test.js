@@ -1,7 +1,7 @@
 /* eslint-env jest */
-import { asyncSleep } from '../utils';
-import { currentOffset } from '.';
-import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
+import { asyncSleep } from '../utils/index.js';
+import { currentOffset } from './index.js';
+import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback.js';
 
 const makeDefaultStruct = function makeDefaultStruct() {
   return {

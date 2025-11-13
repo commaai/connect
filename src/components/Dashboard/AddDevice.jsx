@@ -1,16 +1,15 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import qs from 'query-string';
-import QrScanner from 'qr-scanner';
-import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress } from '@material-ui/core';
+import { devices as Devices } from '@commaai/api';
+import { Button, CircularProgress, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
-
-import { devices as Devices } from '@commaai/api';
-import { selectDevice, updateDevice } from '../../actions';
-import { verifyPairToken, pairErrorToMessage } from '../../utils';
-import Colors from '../../colors';
+import Obstruction from 'obstruction';
+import QrScanner from 'qr-scanner';
+import qs from 'query-string';
+import { Component } from 'react';
+import { connect } from 'react-redux';
+import { analyticsEvent, selectDevice, updateDevice } from '../../actions/index.js';
+import Colors from '../../colors.js';
+import { pairErrorToMessage, verifyPairToken } from '../../utils/index.js';
 
 const styles = (theme) => ({
   titleContainer: {
@@ -236,6 +235,7 @@ class AddDevice extends Component {
     }
 
     if (pairDongleId && this.props.devices.length === 0) {
+      this.props.dispatch(analyticsEvent('pair_device', { method: 'add_device_new' }));
       window.location = `${window.location.origin}/${pairDongleId}`;
       return;
     }
@@ -303,6 +303,7 @@ class AddDevice extends Component {
         if (devices.length > 0) {
           // state change from no device to a device requires reload.
           dispatch(updateDevice(device));
+          dispatch(analyticsEvent('pair_device', { method: 'add_device_sidebar' }));
         }
         this.setState({ pairLoading: false, pairDongleId: resp.dongle_id, pairError: null });
       } else {

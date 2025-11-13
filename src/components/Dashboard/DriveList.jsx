@@ -1,14 +1,12 @@
-import React from 'react';
-import { connect } from 'react-redux';
+import { Typography, withStyles } from '@material-ui/core';
 import Obstruction from 'obstruction';
-import { withStyles, Typography } from '@material-ui/core';
+import { connect } from 'react-redux';
 
-import { checkRoutesData, checkLastRoutesData } from '../../actions';
-import VisibilityHandler from '../VisibilityHandler';
-
-import DriveListEmpty from './DriveListEmpty';
-import DriveListItem from './DriveListItem';
-import ScrollIntoView from '../ScrollIntoView';
+import { checkLastRoutesData, checkRoutesData } from '../../actions/index.js';
+import ScrollIntoView from '../ScrollIntoView/index.jsx';
+import VisibilityHandler from '../VisibilityHandler/index.jsx';
+import DriveListEmpty from './DriveListEmpty.jsx';
+import DriveListItem from './DriveListItem.jsx';
 
 const styles = () => ({
   drivesTable: {

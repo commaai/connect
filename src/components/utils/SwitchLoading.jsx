@@ -1,11 +1,10 @@
-import React, { Component } from 'react';
+import { FormControlLabel, Popper, Switch, Typography, withStyles } from '@material-ui/core';
 import PropTypes from 'prop-types';
+import { Component } from 'react';
 
-import { withStyles, Switch, FormControlLabel, Popper, Typography } from '@material-ui/core';
-
-import Colors from '../../colors';
-import { ErrorOutline } from '../../icons';
-import InfoTooltip from './InfoTooltip';
+import Colors from '../../colors.js';
+import { ErrorOutline } from '../../icons/index.jsx';
+import InfoTooltip from './InfoTooltip.jsx';
 
 const styles = () => ({
   root: {

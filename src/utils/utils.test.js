@@ -1,5 +1,5 @@
 /* eslint-env jest */
-import { deviceVersionAtLeast, formatDriveDuration } from '.';
+import { deviceVersionAtLeast, formatDriveDuration } from './index.js';
 
 test('formats durations correctly', () => {
   // 1 hour, 59 minutes, 59 seconds

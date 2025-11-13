@@ -1,8 +1,7 @@
 import * as Sentry from '@sentry/react';
-
-import * as Types from './types';
-import { reverseLookup } from '../utils/geocode';
-import { toBool } from '../utils';
+import { reverseLookup } from '../utils/geocode.js';
+import { toBool } from '../utils/index.js';
+import * as Types from './types.js';
 
 const USE_LOCAL_COORDS_DATA = toBool(import.meta.env.VITE_APP_LOCAL_COORDS_DATA);
 if (USE_LOCAL_COORDS_DATA) {
@@ -415,7 +414,7 @@ export function fetchCoord(route, coord, locationKey) {
 }
 
 export function fetchLocations(route) {
-  return (dispatch, getState) => {
+  return (dispatch, _getState) => {
     dispatch(fetchCoord(route, [route.start_lng, route.start_lat], 'startLocation'));
     dispatch(fetchCoord(route, [route.end_lng, route.end_lat], 'endLocation'));
   };

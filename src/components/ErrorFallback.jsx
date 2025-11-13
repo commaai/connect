@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { Check, ContentCopy, Refresh } from '../icons';
+import { Check, ContentCopy, Refresh } from '../icons/index.jsx';
 
 const ErrorFallback = ({ error, componentStack }) => {
   const [swInfo, setSwInfo] = useState('');

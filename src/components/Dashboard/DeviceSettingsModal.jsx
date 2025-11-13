@@ -1,18 +1,16 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import * as Sentry from '@sentry/react';
-
+import { devices as Devices } from '@commaai/api';
 import { Button, CircularProgress, Divider, IconButton, Modal, Paper, TextField, Typography, withStyles } from '@material-ui/core';
 import CheckIcon from '@material-ui/icons/Check';
 import SaveIcon from '@material-ui/icons/Save';
 import ShareIcon from '@material-ui/icons/Share';
 import WarningIcon from '@material-ui/icons/Warning';
-
-import { devices as Devices } from '@commaai/api';
-import { primeNav, selectDevice, updateDevice } from '../../actions';
-import Colors from '../../colors';
-import { ErrorOutline } from '../../icons';
-import UploadQueue from '../Files/UploadQueue';
+import * as Sentry from '@sentry/react';
+import { Component } from 'react';
+import { connect } from 'react-redux';
+import { primeNav, selectDevice, updateDevice } from '../../actions/index.js';
+import Colors from '../../colors.js';
+import { ErrorOutline } from '../../icons/index.jsx';
+import UploadQueue from '../Files/UploadQueue.jsx';
 
 const styles = (theme) => ({
   modal: {
@@ -300,6 +298,7 @@ class DeviceSettingsModal extends Component {
                 </div>
               )}
               <div className={classes.formRow}>
+                {/* biome-ignore lint/correctness/useUniqueElementIds: intentional static ID for form field */}
                 <TextField
                   id="device_alias"
                   label="Device name"
@@ -318,6 +317,7 @@ class DeviceSettingsModal extends Component {
                 )}
               </div>
               <div className={classes.formRow}>
+                {/* biome-ignore lint/correctness/useUniqueElementIds: intentional static ID for form field */}
                 <TextField
                   id="device_share"
                   label="Share by email or user id"

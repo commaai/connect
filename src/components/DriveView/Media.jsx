@@ -1,29 +1,27 @@
-import React, { Component } from 'react';
-import qs from 'query-string';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import * as Sentry from '@sentry/react';
-
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem } from '@material-ui/core';
-import WarningIcon from '@material-ui/icons/Warning';
+import { drives as Drives } from '@commaai/api';
+import { Button, CircularProgress, Divider, ListItem, Menu, MenuItem, Popper, Typography, withStyles } from '@material-ui/core';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
-
-import { drives as Drives } from '@commaai/api';
-
-import DriveMap from '../DriveMap';
-import DriveVideo from '../DriveVideo';
-import ResizeHandler from '../ResizeHandler';
-import TimeDisplay from '../TimeDisplay';
-import UploadQueue from '../Files/UploadQueue';
-import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo } from '../../timeline/playback';
-import Colors from '../../colors';
-import { InfoOutline } from '../../icons';
-import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
-import { updateRoute } from '../../actions';
-import { fetchEvents } from '../../actions/cached';
-import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
+import WarningIcon from '@material-ui/icons/Warning';
+import * as Sentry from '@sentry/react';
+import Obstruction from 'obstruction';
+import qs from 'query-string';
+import { Component } from 'react';
+import { connect } from 'react-redux';
+import { fetchEvents } from '../../actions/cached.js';
+import { doUpload, FILE_NAMES, fetchAthenaQueue, fetchFiles, fetchUploadUrls, setRouteViewed, updateFiles } from '../../actions/files.js';
+import { analyticsEvent, updateRoute } from '../../actions/index.js';
+import { attachRelTime } from '../../analytics.js';
+import Colors from '../../colors.js';
+import { InfoOutline } from '../../icons/index.jsx';
+import { bufferVideo } from '../../timeline/playback.js';
+import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils/index.js';
+import DriveMap from '../DriveMap/index.jsx';
+import DriveVideo from '../DriveVideo/index.jsx';
+import UploadQueue from '../Files/UploadQueue.jsx';
+import ResizeHandler from '../ResizeHandler/index.js';
+import TimeDisplay from '../TimeDisplay/index.jsx';
+import SwitchLoading from '../utils/SwitchLoading.jsx';
 
 const publicTooltip = 'Making a route public allows anyone with the route name or link to access it.';
 const preservedTooltip = 'Preserving a route will prevent it from being deleted. You can preserve up to 10 routes, or 100 if you have comma prime.';
@@ -272,6 +270,10 @@ class Media extends Component {
       this.props.dispatch(fetchEvents(this.props.currentRoute));
     }
 
+    if (prevState.inView && prevState.inView !== this.state.inView) {
+      this.props.dispatch(analyticsEvent('media_switch_view', { in_view: this.state.inView }));
+    }
+
     if (
       this.props.currentRoute &&
       ((!prevState.downloadMenu && downloadMenu) || (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu) || (!prevProps.currentRoute && (downloadMenu || moreInfoMenu)))
@@ -312,6 +314,12 @@ class Media extends Component {
       return;
     }
 
+    const event_parameters = {
+      route_start_time: currentRoute.start_time_utc_millis,
+    };
+    attachRelTime(event_parameters, 'route_start_time', true, 'h');
+    this.props.dispatch(analyticsEvent('open_in_useradmin', event_parameters));
+
     const params = { onebox: currentRoute.fullname };
     const win = window.open(`${window.USERADMIN_URL_ROOT}?${qs.stringify(params)}`, '_blank');
     if (win.focus) {
@@ -336,6 +344,12 @@ class Media extends Component {
     if (!currentRoute) {
       return;
     }
+
+    this.props.dispatch(
+      analyticsEvent('files_upload', {
+        type,
+      }),
+    );
 
     const routeNoDongleId = currentRoute.fullname.split('|')[1];
     const fileName = `${dongleId}|${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${type}`;
@@ -369,6 +383,12 @@ class Media extends Component {
     if (!currentRoute || !files) {
       return;
     }
+
+    this.props.dispatch(
+      analyticsEvent('files_upload_all', {
+        types: types.length === 1 && types[0] === 'logs' ? 'logs' : 'all',
+      }),
+    );
 
     const uploading = {};
     const adjusted_start_time = currentRoute.start_time_utc_millis + loop.startTime;
@@ -438,7 +458,16 @@ class Media extends Component {
     };
   }
 
-  downloadFile(file) {
+  downloadFile(file, type) {
+    const { currentRoute } = this.props;
+
+    const eventParameters = {
+      type,
+      route_start_time: currentRoute.start_time_utc_millis,
+    };
+    attachRelTime(eventParameters, 'route_start_time', true, 'h');
+    this.props.dispatch(analyticsEvent('download_file', eventParameters));
+
     window.location.href = file.url;
   }
 
@@ -598,6 +627,7 @@ class Media extends Component {
 
     return (
       <>
+        {/* biome-ignore lint/correctness/useUniqueElementIds: intentional static ID for menu */}
         <Menu
           id="menu-download"
           open={Boolean(alwaysOpen || downloadMenu)}
@@ -668,6 +698,7 @@ class Media extends Component {
             </MenuItem>
           )}
         </Menu>
+        {/* biome-ignore lint/correctness/useUniqueElementIds: intentional static ID for menu */}
         <Menu
           id="menu-info"
           open={Boolean(alwaysOpen || moreInfoMenu)}
@@ -723,7 +754,7 @@ class Media extends Component {
       button = null;
     } else if (file.url) {
       button = (
-        <Button className={classes.uploadButton} style={{ minWidth: uploadButtonWidth }} onClick={() => this.downloadFile(file)}>
+        <Button className={classes.uploadButton} style={{ minWidth: uploadButtonWidth }} onClick={() => this.downloadFile(file, type)}>
           download
         </Button>
       );

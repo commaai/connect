@@ -1,5 +1,5 @@
 /* eslint-env jest */
-import { priorityGetContext, reverseLookup } from './geocode';
+import { priorityGetContext, reverseLookup } from './geocode.js';
 
 describe('priorityGetContext', () => {
   it('should return the first context with a priority', () => {

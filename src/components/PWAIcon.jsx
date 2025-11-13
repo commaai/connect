@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
-
 import { CircularProgress, IconButton, Tooltip } from '@material-ui/core';
+import { useState } from 'react';
 
-import { CheckCircle, Download } from '../icons';
+import { CheckCircle, Download } from '../icons/index.jsx';
 
 const intervalMS = 60 * 60 * 1000; // 1 hour
 

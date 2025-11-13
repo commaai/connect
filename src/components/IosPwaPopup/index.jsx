@@ -1,14 +1,13 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import localforage from 'localforage';
-import { withStyles, Typography } from '@material-ui/core';
-import { Clear } from '@material-ui/icons';
-
 import MyCommaAuth from '@commaai/my-comma-auth';
+import { Typography, withStyles } from '@material-ui/core';
+import { Clear } from '@material-ui/icons';
+import localforage from 'localforage';
+import Obstruction from 'obstruction';
+import { Component } from 'react';
+import { connect } from 'react-redux';
 
-import Colors from '../../colors';
-import { IosShareIcon } from '../../icons';
+import Colors from '../../colors.js';
+import { IosShareIcon } from '../../icons/index.jsx';
 import { isIos } from '../../utils/browser.js';
 
 const styles = () => ({
@@ -70,7 +69,7 @@ class IosPwaPopup extends Component {
         let isHidden;
         try {
           isHidden = await localforage.getItem('hideIosPwaPopup');
-        } catch (err) {
+        } catch (_err) {
           isHidden = true;
         }
         this.setState({ show: !isHidden });
@@ -104,7 +103,7 @@ class IosPwaPopup extends Component {
   hide() {
     try {
       localforage.setItem('hideIosPwaPopup', true);
-    } catch (err) {
+    } catch (_err) {
       // pass
     }
     this.setState({ show: false });
