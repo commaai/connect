@@ -163,7 +163,8 @@ class AnonymousLanding extends Component {
           </span>
 
           <a onClick={loginAsDemoUser}
-            className="flex items-center pl-4 pr-3 py-2 font-medium border border-white rounded-full hover:bg-[rgba(255,255,255,0.1)] active:bg-[rgba(255,255,255,0.2)] transition-colors hidden"
+            className="flex items-center pl-4 pr-3 py-2 font-medium border border-white rounded-full hover:bg-[rgba(255,255,255,0.1)] active:bg-[rgba(255,255,255,0.2)] transition-colors"
+            style={{ opacity: 0, pointerEvents: 'none', position: 'absolute' }}
           >
             Try the demo
             <RightArrow className="ml-1 h-4" />
