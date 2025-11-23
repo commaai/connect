@@ -19,6 +19,9 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
+    server: {
+      port: 3000,
+    },
     build: {
       // Required for Sentry
       sourcemap: true,
