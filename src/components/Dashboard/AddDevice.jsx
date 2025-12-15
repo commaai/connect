@@ -110,6 +110,10 @@ class AddDevice extends Component {
       pairDongleId: null,
       canvasWidth: null,
       canvasHeight: null,
+      zoom: 1,
+      zoomSupported: false,
+      zoomMin: 1,
+      zoomMax: 1,
     };
 
     this.videoRef = null;
@@ -122,6 +126,7 @@ class AddDevice extends Component {
     this.onQrRead = this.onQrRead.bind(this);
     this.restart = this.restart.bind(this);
     this.onOpenModal = this.onOpenModal.bind(this);
+    this.onZoomChange = this.onZoomChange.bind(this);
   }
 
   async componentDidMount() {
@@ -143,7 +148,7 @@ class AddDevice extends Component {
         returnDetailedScanResult: true,
         highlightScanRegion: true,
         highlightCodeOutline: true,
-        preferredCamera: { facingMode: 'environment', width: 1920, height: 1080 },
+        preferredCamera: 'environment',
         calculateScanRegion: (video) => {
           const size = Math.min(video.videoWidth, video.videoHeight);
           const scanSize = Math.round(size * 2 / 3);
@@ -223,6 +228,16 @@ class AddDevice extends Component {
           // Set focus distance to close range if manual focus available
           if (capabilities.focusDistance) {
             advancedConstraints.push({ focusDistance: capabilities.focusDistance.min });
+          }
+          // Check zoom support
+          if (capabilities.zoom) {
+            this.setState({
+              zoomSupported: true,
+              zoomMin: capabilities.zoom.min,
+              zoomMax: capabilities.zoom.max,
+              zoom: capabilities.zoom.min,
+            });
+            console.log('Zoom supported:', capabilities.zoom);
           }
           if (advancedConstraints.length > 0) {
             await track.applyConstraints({ advanced: advancedConstraints });
@@ -360,9 +375,24 @@ class AddDevice extends Component {
     this.setState({ modalOpen: true });
   }
 
+  async onZoomChange(e) {
+    const zoom = parseFloat(e.target.value);
+    this.setState({ zoom });
+    const stream = this.videoRef?.srcObject;
+    if (stream) {
+      const track = stream.getVideoTracks()[0];
+      try {
+        await track.applyConstraints({ advanced: [{ zoom }] });
+        console.log('Zoom set to:', zoom);
+      } catch (err) {
+        console.error('Failed to set zoom:', err);
+      }
+    }
+  }
+
   render() {
     const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
-    const { modalOpen, hasCamera, pairLoading, pairDongleId, pairError } = this.state;
+    const { modalOpen, hasCamera, pairLoading, pairDongleId, pairError, zoom, zoomSupported, zoomMin, zoomMax } = this.state;
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
@@ -419,6 +449,21 @@ class AddDevice extends Component {
                     ) }
                   </div>
                   <video className={ classes.video } ref={ this.onVideoRef } />
+                  { zoomSupported && (
+                    <div style={{ padding: '10px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Typography variant="caption">Zoom:</Typography>
+                      <input
+                        type="range"
+                        min={zoomMin}
+                        max={zoomMax}
+                        step={0.1}
+                        value={zoom}
+                        onChange={this.onZoomChange}
+                        style={{ flex: 1 }}
+                      />
+                      <Typography variant="caption">{zoom.toFixed(1)}x</Typography>
+                    </div>
+                  )}
                 </div>
               )}
           </Paper>
