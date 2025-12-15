@@ -143,11 +143,13 @@ class AddDevice extends Component {
         returnDetailedScanResult: true,
         highlightScanRegion: true,
         highlightCodeOutline: true,
+        preferredCamera: { facingMode: 'environment', width: 1920, height: 1080 },
         calculateScanRegion: (video) => {
           const size = Math.min(video.videoWidth, video.videoHeight);
           const scanSize = Math.round(size * 2 / 3);
           const x = Math.round((video.videoWidth - scanSize) / 2);
           const y = Math.round((video.videoHeight - scanSize) / 2);
+          console.log('QR scan region:', { videoWidth: video.videoWidth, videoHeight: video.videoHeight, scanSize, x, y });
           return {
             x,
             y,
@@ -207,6 +209,26 @@ class AddDevice extends Component {
     if (!pairLoading && !pairError && !pairDongleId && this.qrScanner && modalOpen && hasCamera) {
       try {
         await this.qrScanner.start();
+        // Try to optimize camera for close-up QR scanning
+        const stream = this.videoRef?.srcObject;
+        if (stream) {
+          const track = stream.getVideoTracks()[0];
+          const capabilities = track.getCapabilities?.() || {};
+          console.log('Camera capabilities:', capabilities);
+          const advancedConstraints = [];
+          // Lock focus to continuous auto-focus if available, or manual close focus
+          if (capabilities.focusMode?.includes('continuous')) {
+            advancedConstraints.push({ focusMode: 'continuous' });
+          }
+          // Set focus distance to close range if manual focus available
+          if (capabilities.focusDistance) {
+            advancedConstraints.push({ focusDistance: capabilities.focusDistance.min });
+          }
+          if (advancedConstraints.length > 0) {
+            await track.applyConstraints({ advanced: advancedConstraints });
+            console.log('Applied camera constraints:', advancedConstraints);
+          }
+        }
       } catch (err) {
         if (err === 'Camera not found.') {
           this.setState({ hasCamera: false });
