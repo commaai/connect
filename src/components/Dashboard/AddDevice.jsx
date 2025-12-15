@@ -145,7 +145,8 @@ class AddDevice extends Component {
         hasCamera = devices.some((d) => d.kind === 'videoinput');
         this.setState({ hasCamera });
       } catch {
-        this.setState({ hasCamera: false });
+        hasCamera = false;
+        this.setState({ hasCamera });
       }
     }
 
