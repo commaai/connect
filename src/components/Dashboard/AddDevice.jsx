@@ -139,7 +139,25 @@ class AddDevice extends Component {
     if (modalOpen && this.videoRef && !this.qrScanner && hasCamera && !pairDongleId) {
       this.videoRef.addEventListener('play', this.componentDidUpdate);
       this.videoRef.addEventListener('loadeddata', this.componentDidUpdate);
-      this.qrScanner = new QrScanner(this.videoRef, this.onQrRead);
+      this.qrScanner = new QrScanner(this.videoRef, this.onQrRead, {
+        returnDetailedScanResult: true,
+        highlightScanRegion: true,
+        highlightCodeOutline: true,
+        calculateScanRegion: (video) => {
+          const size = Math.min(video.videoWidth, video.videoHeight);
+          const scanSize = Math.round(size * 2 / 3);
+          const x = Math.round((video.videoWidth - scanSize) / 2);
+          const y = Math.round((video.videoHeight - scanSize) / 2);
+          return {
+            x,
+            y,
+            width: scanSize,
+            height: scanSize,
+            downScaledWidth: scanSize,
+            downScaledHeight: scanSize,
+          };
+        },
+      });
     }
 
     if (this.canvasRef && this.videoRef && this.videoRef.srcObject) {
@@ -247,7 +265,7 @@ class AddDevice extends Component {
     }
   }
 
-  async onQrRead(result) {
+  async onQrRead({ data: result }) {
     const { pairDongleId, pairError, pairLoading } = this.state;
     if (pairLoading || pairError || pairDongleId || !result) {
       return;
