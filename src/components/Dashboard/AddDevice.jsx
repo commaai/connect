@@ -402,8 +402,9 @@ class AddDevice extends Component {
                   <Typography style={{ marginBottom: 5 }}>
                     { cameraError || 'Camera not found, please enable camera access.' }
                   </Typography>
+                  <br />
                   <Typography>
-                    You can also scan the QR code on your comma device using any other QR code
+                    You can also scan the QR code using any other QR code
                     reader application.
                   </Typography>
                 </>
