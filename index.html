@@ -53,20 +53,6 @@
     <script defer data-domain="connect.comma.ai" src="https://plausible.io/js/script.js"></script>
 
     <script src="/config.js"></script>
-
-    <!-- Eruda mobile console (enabled with ?debug=1) -->
-    <script>
-      if (new URLSearchParams(window.location.search).has('debug')) {
-        var script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/eruda';
-        script.onload = function() {
-          eruda.init();
-          eruda.show();
-          eruda._devTools._$el[0].style.height = '25vh';
-        };
-        document.head.appendChild(script);
-      }
-    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
