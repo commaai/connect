@@ -105,6 +105,7 @@ class AddDevice extends Component {
     this.state = {
       modalOpen: false,
       hasCamera: null,
+      cameraError: null,
       pairLoading: false,
       pairError: null,
       pairDongleId: null,
@@ -160,11 +161,17 @@ class AddDevice extends Component {
         this.videoRef.srcObject = this.stream;
         this.videoRef.setAttribute('playsinline', 'true');
         await this.videoRef.play();
-        console.log('Camera started:', this.videoRef.videoWidth, 'x', this.videoRef.videoHeight);
         this.startScanning();
       } catch (err) {
-        console.error('Camera init error:', err);
-        this.setState({ hasCamera: false });
+        let cameraError = 'Unable to access camera.';
+        if (err.name === 'NotAllowedError') {
+          cameraError = 'Camera access denied. Please allow camera access in your browser settings and try again.';
+        } else if (err.name === 'NotFoundError') {
+          cameraError = 'No camera found on this device.';
+        } else if (err.name === 'NotReadableError') {
+          cameraError = 'Camera is in use by another application.';
+        }
+        this.setState({ hasCamera: false, cameraError });
       }
     }
 
@@ -225,7 +232,6 @@ class AddDevice extends Component {
     try {
       const results = await this.detector.detect(this.videoRef);
       if (results.length > 0) {
-        console.log('QR detected:', results[0].rawValue);
         this.onQrRead({ data: results[0].rawValue });
         return; // Stop scanning after detection
       }
@@ -371,7 +377,7 @@ class AddDevice extends Component {
 
   render() {
     const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
-    const { modalOpen, hasCamera, pairLoading, pairDongleId, pairError } = this.state;
+    const { modalOpen, hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
@@ -394,7 +400,7 @@ class AddDevice extends Component {
               ? (
                 <>
                   <Typography style={{ marginBottom: 5 }}>
-                    Camera not found, please enable camera access.
+                    { cameraError || 'Camera not found, please enable camera access.' }
                   </Typography>
                   <Typography>
                     You can also scan the QR code on your comma device using any other QR code
