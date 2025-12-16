@@ -1,6 +1,6 @@
 FROM node:20-alpine AS base
 
-ARG PNPM_VERSION=8.6.3
+ARG PNPM_VERSION=10.26.0
 RUN npm install -g pnpm@$PNPM_VERSION
 WORKDIR /app
 
