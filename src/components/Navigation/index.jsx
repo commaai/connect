@@ -176,7 +176,6 @@ class Navigation extends Component {
     this.itemLngLat = this.itemLngLat.bind(this);
     this.viewportChange = this.viewportChange.bind(this);
     this.getDeviceLastLocation = this.getDeviceLastLocation.bind(this);
-    this.getDeviceNetworkLocation = this.getDeviceNetworkLocation.bind(this);
     this.getCarLocation = this.getCarLocation.bind(this);
     this.carLocationCircle = this.carLocationCircle.bind(this);
     this.clearSearchSelect = this.clearSearchSelect.bind(this);
