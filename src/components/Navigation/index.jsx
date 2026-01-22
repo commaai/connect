@@ -7,7 +7,7 @@ import { withStyles, Typography, Button } from '@material-ui/core';
 import { Clear } from '@material-ui/icons';
 import dayjs from 'dayjs';
 
-import { athena as Athena, devices as Devices } from '@commaai/api';
+import { devices as Devices } from '@commaai/api';
 import { primeNav, analyticsEvent } from '../../actions';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, reverseLookup } from '../../utils/geocode';
 import Colors from '../../colors';
