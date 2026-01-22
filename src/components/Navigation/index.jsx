@@ -7,9 +7,9 @@ import { withStyles, Typography, Button } from '@material-ui/core';
 import { Clear } from '@material-ui/icons';
 import dayjs from 'dayjs';
 
-import { athena as Athena, devices as Devices } from '@commaai/api';
+import { devices as Devices } from '@commaai/api';
 import { primeNav, analyticsEvent } from '../../actions';
-import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, networkPositioning, reverseLookup } from '../../utils/geocode';
+import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, reverseLookup } from '../../utils/geocode';
 import Colors from '../../colors';
 import { PinCarIcon } from '../../icons';
 import { timeFromNow } from '../../utils';
@@ -135,8 +135,6 @@ const initialState = {
   hasFocus: false,
   carLastLocation: null,
   carLastLocationTime: null,
-  carNetworkLocation: null,
-  carNetworkLocationAccuracy: null,
   geoLocateCoords: null,
   searchSelect: null,
   searchLooking: false,
@@ -178,7 +176,6 @@ class Navigation extends Component {
     this.itemLngLat = this.itemLngLat.bind(this);
     this.viewportChange = this.viewportChange.bind(this);
     this.getDeviceLastLocation = this.getDeviceLastLocation.bind(this);
-    this.getDeviceNetworkLocation = this.getDeviceNetworkLocation.bind(this);
     this.getCarLocation = this.getCarLocation.bind(this);
     this.carLocationCircle = this.carLocationCircle.bind(this);
     this.clearSearchSelect = this.clearSearchSelect.bind(this);
@@ -193,9 +190,9 @@ class Navigation extends Component {
 
   componentDidUpdate(prevProps, prevState) {
     const { dongleId, device } = this.props;
-    const { geoLocateCoords, search, carLastLocation, carNetworkLocation, searchSelect } = this.state;
+    const { geoLocateCoords, search, carLastLocation, searchSelect } = this.state;
 
-    if ((carLastLocation && !prevState.carLastLocation) || (carNetworkLocation && !prevState.carNetworkLocation)
+    if ((carLastLocation && !prevState.carLastLocation)
       || (geoLocateCoords && !prevState.geoLocateCoords) || (searchSelect && prevState.searchSelect !== searchSelect)
       || (search && prevState.search !== search)) {
       this.flyToMarkers();
@@ -214,7 +211,7 @@ class Navigation extends Component {
 
     if (!prevState.hasFocus && this.state.hasFocus) {
       this.props.dispatch(analyticsEvent('nav_focus', {
-        has_car_location: Boolean(carLastLocation || carNetworkLocation),
+        has_car_location: Boolean(carLastLocation),
       }));
     }
 
@@ -239,7 +236,6 @@ class Navigation extends Component {
 
   updateDevice() {
     this.getDeviceLastLocation();
-    this.getDeviceNetworkLocation();
   }
 
   async getDeviceLastLocation() {
@@ -263,46 +259,9 @@ class Navigation extends Component {
     }
   }
 
-  async getDeviceNetworkLocation() {
-    const { dongleId } = this.props;
-
-    const payload = {
-      method: 'getNetworks',
-      jsonrpc: '2.0',
-      id: 0,
-    };
-    try {
-      let resp = await Athena.postJsonRpcPayload(dongleId, payload);
-      if (!resp.result || Object.keys(resp.result).length === 0 || !this.mounted || dongleId !== this.props.dongleId) {
-        return;
-      }
-      resp = await networkPositioning(resp.result);
-      if (resp && this.mounted && dongleId === this.props.dongleId) {
-        this.setState({
-          carNetworkLocation: [resp.lng, resp.lat],
-          carNetworkLocationAccuracy: resp.accuracy,
-        }, this.flyToMarkers);
-      }
-    } catch (err) {
-      if (this.mounted && dongleId === this.props.dongleId
-        && (!err.message || err.message.indexOf('{"error": "Device not registered"}') === -1)) {
-        console.error(err);
-        Sentry.captureException(err, { fingerprint: 'nav_fetch_network_location' });
-      }
-    }
-  }
-
   getCarLocation() {
-    const { carLastLocation, carLastLocationTime, carNetworkLocation, carNetworkLocationAccuracy } = this.state;
+    const { carLastLocation, carLastLocationTime } = this.state;
 
-    if (carNetworkLocation && carNetworkLocationAccuracy <= 10000
-      && (carNetworkLocationAccuracy <= 100 || !carLastLocation)) {
-      return {
-        location: carNetworkLocation,
-        accuracy: carNetworkLocationAccuracy,
-        time: Date.now(),
-      };
-    }
     if (carLastLocation) {
       return {
         location: carLastLocation,
