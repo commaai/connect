@@ -10,7 +10,6 @@ export const DEFAULT_LOCATION = {
 
 export const MAPBOX_STYLE = 'mapbox://styles/commaai/cjj4yzqk201c52ss60ebmow0w';
 export const MAPBOX_TOKEN = 'pk.eyJ1IjoiY29tbWFhaSIsImEiOiJjangyYXV0c20wMGU2NDluMWR4amUydGl5In0.6Vb11S6tdX6Arpj6trRE_g';
-const HERE_API_KEY = 'O0atgmTwzKnwYJL2hk5N5qqG2R9y78f5GdHlvr_mtiw';
 
 const geocodingClient = mbxGeocoding({ accessToken: MAPBOX_TOKEN });
 
@@ -194,16 +193,3 @@ export async function reverseLookup(coords, navFormat = false) {
   return null;
 }
 
-export async function networkPositioning(req) {
-  const resp = await fetch(`https://positioning.hereapi.com/v2/locate?apiKey=${HERE_API_KEY}&fallback=any,singleWifi`, {
-    method: 'POST',
-    headers: new Headers({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify(req),
-  });
-  if (!resp.ok) {
-    console.error(resp);
-    return null;
-  }
-  const json = await resp.json();
-  return json.location;
-}
