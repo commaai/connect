@@ -526,22 +526,24 @@ class DeviceInfo extends Component {
 
     return (
       <>
-        <Tooltip
-          classes={{ tooltip: classes.popover }}
-          title={isCommaBody ? 'Body Teleop' : 'Only available on comma body'}
-          placement="bottom"
-        >
-          <span>
-            <Button
-              style={(!deviceIsOnline(device) || !isCommaBody) ? { opacity: 0.3 } : {}}
-              classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
-              onClick={ this.props.onBodyTeleop }
-              disabled={ !deviceIsOnline(device) || !isCommaBody }
-            >
-              <GamepadIcon fontSize="inherit" />
-            </Button>
-          </span>
-        </Tooltip>
+        {isCommaBody && (
+          <Tooltip
+            classes={{ tooltip: classes.popover }}
+            title="Body Teleop"
+            placement="bottom"
+          >
+            <span>
+              <Button
+                style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
+                classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
+                onClick={ this.props.onBodyTeleop }
+                disabled={ !deviceIsOnline(device) }
+              >
+                <GamepadIcon fontSize="inherit" />
+              </Button>
+            </span>
+          </Tooltip>
+        )}
         <div
           className={ classes.carBattery }
           style={{ backgroundColor: batteryBackground }}
