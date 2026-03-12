@@ -7,8 +7,6 @@ export class BodyTeleopConnection {
     this.joystickInterval = null;
     this.joystickX = 0;
     this.joystickY = 0;
-    this.lastSentX = null;
-    this.lastSentY = null;
     this.videoStream = null;
     this.audioStream = null;
     this.callbacks = callbacks;
@@ -99,9 +97,6 @@ export class BodyTeleopConnection {
 
   sendJoystick() {
     if (this.dc && this.dc.readyState === 'open') {
-      if (this.joystickX === this.lastSentX && this.joystickY === this.lastSentY) return;
-      this.lastSentX = this.joystickX;
-      this.lastSentY = this.joystickY;
       this.dc.send(JSON.stringify({ type: 'testJoystick', data: { axes: [this.joystickX, this.joystickY], buttons: [false] } }));
     }
   }
