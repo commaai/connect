@@ -664,7 +664,6 @@ class BodyTeleop extends Component {
             muted
             className={classes.video}
           />
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <audio ref={this.audioRef} autoPlay />
 
           {/* Back button + device name */}
@@ -717,7 +716,6 @@ class BodyTeleop extends Component {
               muted
               style={{ width: '100%', aspectRatio: '4/3', display: 'block' }}
             />
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <audio ref={this.audioRef} autoPlay />
             {connected && this.renderHud()}
             {connected && this.renderJoystick()}
