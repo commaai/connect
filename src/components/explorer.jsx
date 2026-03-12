@@ -24,6 +24,7 @@ import { verifyPairToken, pairErrorToMessage } from '../utils';
 import ResizeHandler from './ResizeHandler';
 
 import DriveView from './DriveView';
+import BodyTeleop from './BodyTeleop';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 
 const styles = (theme) => ({
@@ -71,11 +72,14 @@ class ExplorerApp extends Component {
       pairError: null,
       pairDongleId: null,
       windowWidth: window.innerWidth,
+      bodyTeleopOpen: false,
     };
 
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
+    this.openBodyTeleop = this.openBodyTeleop.bind(this);
+    this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
   }
 
   async componentDidMount() {
@@ -166,6 +170,14 @@ class ExplorerApp extends Component {
     this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }
 
+  openBodyTeleop() {
+    this.setState({ bodyTeleopOpen: true });
+  }
+
+  closeBodyTeleop() {
+    this.setState({ bodyTeleopOpen: false });
+  }
+
   handleDrawerStateChanged(drawerOpen) {
     this.setState({
       drawerIsOpen: drawerOpen,
@@ -180,7 +192,7 @@ class ExplorerApp extends Component {
 
   render() {
     const { classes, currentRoute, devices, dongleId } = this.props;
-    const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
+    const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth, bodyTeleopOpen } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const isLarge = noDevicesUpsell || windowWidth > 1080;
@@ -225,8 +237,9 @@ class ExplorerApp extends Component {
         <div className={ classes.window } style={ containerStyles }>
           { noDevicesUpsell
             ? <NoDeviceUpsell />
-            : (currentRoute ? <DriveView /> : <Dashboard />)}
+            : (currentRoute ? <DriveView /> : <Dashboard onBodyTeleop={this.openBodyTeleop} />)}
         </div>
+        { bodyTeleopOpen && <BodyTeleop onClose={this.closeBodyTeleop} /> }
         <IosPwaPopup />
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
           <Paper className={classes.modal}>

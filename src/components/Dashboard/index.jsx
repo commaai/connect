@@ -18,7 +18,7 @@ const DashboardLoading = () => (
   </Grid>
 );
 
-const Dashboard = ({ primeNav, device, dongleId }) => {
+const Dashboard = ({ primeNav, device, dongleId, onBodyTeleop }) => {
   if (!device || !dongleId) {
     return <DashboardLoading />;
   }
@@ -31,7 +31,7 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
           : (
             <>
               <Navigation />
-              <DeviceInfo />
+              <DeviceInfo onBodyTeleop={onBodyTeleop} />
               <DriveList />
             </>
           )}
