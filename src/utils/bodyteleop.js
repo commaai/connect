@@ -7,9 +7,11 @@ export class BodyTeleopConnection {
     this.joystickInterval = null;
     this.joystickX = 0;
     this.joystickY = 0;
-    this.videoStream = null;
+    this.videoStreams = {};
     this.audioStream = null;
     this.callbacks = callbacks;
+    this.cameraOrder = ['driver', 'wideRoad', 'road'];
+    this.videoTrackIndex = 0;
   }
 
   async connectDirect(address) {
@@ -27,6 +29,8 @@ export class BodyTeleopConnection {
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
         iceTransportPolicy: 'all',
         iceCandidatePoolSize: 1,
+        bundlePolicy: 'max-bundle',
+        rtcpMuxPolicy: 'require',
       });
 
       // Diagnostic: log ICE gathering and connection state transitions
@@ -37,11 +41,15 @@ export class BodyTeleopConnection {
         log(`ICE connection state: ${this.pc.iceConnectionState}`);
       });
 
+      this.videoTrackIndex = 0;
       this.pc.addEventListener('track', (evt) => {
         log(`track received: ${evt.track.kind}`);
         if (evt.track.kind === 'video') {
-          this.videoStream = evt.streams[0];
-          this.callbacks.onVideoTrack(evt.streams[0]);
+          const cameraName = this.cameraOrder[this.videoTrackIndex] || `camera${this.videoTrackIndex}`;
+          this.videoTrackIndex += 1;
+          log(`assigning video track to camera: ${cameraName}`);
+          this.videoStreams[cameraName] = new MediaStream([evt.track]);
+          this.callbacks.onVideoTrack(cameraName, new MediaStream([evt.track]));
         } else if (evt.track.kind === 'audio') {
           this.audioStream = evt.streams[0];
           this.callbacks.onAudioTrack(evt.streams[0]);
@@ -56,12 +64,17 @@ export class BodyTeleopConnection {
         else if (state === 'failed' || state === 'closed') this.callbacks.onConnectionState('failed');
       });
 
-      const transceiver = this.pc.addTransceiver('video', { direction: 'recvonly' });
       const codecs = RTCRtpReceiver.getCapabilities('video')?.codecs || [];
       const h264Codecs = codecs.filter((c) => c.mimeType === 'video/H264');
-      if (h264Codecs.length > 0) {
-        const otherCodecs = codecs.filter((c) => c.mimeType !== 'video/H264');
-        transceiver.setCodecPreferences([...h264Codecs, ...otherCodecs]);
+      const orderedCodecs = h264Codecs.length > 0
+        ? [...h264Codecs, ...codecs.filter((c) => c.mimeType !== 'video/H264')]
+        : codecs;
+
+      for (let i = 0; i < this.cameraOrder.length; i++) {
+        const transceiver = this.pc.addTransceiver('video', { direction: 'recvonly' });
+        if (orderedCodecs.length > 0) {
+          transceiver.setCodecPreferences(orderedCodecs);
+        }
       }
 
       this.dc = this.pc.createDataChannel('data', { ordered: true });
@@ -142,7 +155,7 @@ export class BodyTeleopConnection {
         const resp = await fetch(`http://${this.directAddress}/stream`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sdp, cameras: ["driver"], bridge_services_in: ["testJoystick"], bridge_services_out: ["carState"] }),
+          body: JSON.stringify({ sdp, cameras: this.cameraOrder, bridge_services_in: ['testJoystick'], bridge_services_out: ['carState'] }),
         });
         log('received direct response');
         if (!resp.ok) {
@@ -202,7 +215,7 @@ export class BodyTeleopConnection {
       this.pc.close();
       this.pc = null;
     }
-    this.videoStream = null;
+    this.videoStreams = {};
     this.audioStream = null;
   }
 }

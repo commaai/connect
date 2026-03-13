@@ -4,7 +4,6 @@ import Obstruction from 'obstruction';
 
 import { withStyles, Typography, Button, IconButton } from '@material-ui/core';
 import Wifi from '@material-ui/icons/Wifi';
-import PortableWifiOff from '@material-ui/icons/PortableWifiOff';
 import Refresh from '@material-ui/icons/Refresh';
 import InfoOutline from '@material-ui/icons/InfoOutline';
 import ScreenRotation from '@material-ui/icons/ScreenRotation';
@@ -155,32 +154,6 @@ const styles = () => ({
     background: 'rgba(0,0,0,0.3)',
     backdropFilter: 'blur(8px)',
   },
-  disconnectButton: {
-    position: 'absolute',
-    bottom: 16,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    zIndex: 10,
-    padding: '8px 16px',
-    borderRadius: 20,
-    fontSize: 12,
-    fontWeight: 500,
-    color: Colors.white80,
-    background: 'rgba(220,38,38,0.5)',
-    border: `1px solid ${Colors.white10}`,
-    backdropFilter: 'blur(8px)',
-    cursor: 'pointer',
-    textTransform: 'none',
-    '& span': {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-    },
-    '&:hover': {
-      color: Colors.white,
-      background: 'rgba(220,38,38,0.7)',
-    },
-  },
   // Joystick
   joystickArea: {
     position: 'absolute',
@@ -287,6 +260,59 @@ const styles = () => ({
   wasdKeyActive: {
     background: 'rgba(255,255,255,0.3)',
     color: Colors.white,
+  },
+  // Camera switcher
+  cameraSwitcher: {
+    position: 'absolute',
+    bottom: 16,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    zIndex: 10,
+    display: 'flex',
+    gap: '2px',
+    borderRadius: 12,
+    padding: 4,
+    background: 'rgba(0,0,0,0.3)',
+    backdropFilter: 'blur(8px)',
+  },
+  cameraSwitcherPortrait: {
+    position: 'relative',
+    bottom: 'auto',
+    left: 'auto',
+    transform: 'none',
+    alignSelf: 'center',
+    marginTop: 8,
+  },
+  cameraButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '6px 12px',
+    borderRadius: 8,
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: 'pointer',
+    userSelect: 'none',
+    transition: 'background 0.15s, color 0.15s',
+  },
+  cameraButtonInactive: {
+    background: 'rgba(255,255,255,0.1)',
+    color: 'rgba(255,255,255,0.6)',
+  },
+  cameraButtonActive: {
+    background: 'rgba(255,255,255,0.3)',
+    color: Colors.white,
+  },
+  cameraButtonKey: {
+    width: 20,
+    height: 20,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 4,
+    fontSize: 11,
+    fontWeight: 700,
+    background: 'rgba(255,255,255,0.15)',
   },
   // Portrait mode
   portraitContent: {
@@ -411,6 +437,7 @@ class BodyTeleop extends Component {
       keys: { w: false, a: false, s: false, d: false },
       showStats: true,
       stats: null,
+      activeCamera: 'driver',
     };
 
     this.videoRef = React.createRef();
@@ -418,12 +445,16 @@ class BodyTeleop extends Component {
     this.joystickAreaRef = React.createRef();
     this.touchId = null;
     this.mouseDragging = false;
+    this.streams = {};
 
     this.connection = new BodyTeleopConnection({
       onConnectionState: (connectionState) => this.setState({ connectionState }),
       onBatteryLevel: (batteryLevel) => this.setState({ batteryLevel }),
-      onVideoTrack: (stream) => {
-        if (this.videoRef.current) this.videoRef.current.srcObject = stream;
+      onVideoTrack: (cameraName, stream) => {
+        this.streams[cameraName] = stream;
+        if (cameraName === this.state.activeCamera && this.videoRef.current) {
+          this.videoRef.current.srcObject = stream;
+        }
       },
       onAudioTrack: (stream) => {
         if (this.audioRef.current) this.audioRef.current.srcObject = stream;
@@ -565,6 +596,11 @@ class BodyTeleop extends Component {
       e.preventDefault();
       this.setKey(k, true);
     }
+    const cameraKeys = { 1: 'driver', 2: 'wideRoad', 3: 'road' };
+    if (cameraKeys[e.key]) {
+      e.preventDefault();
+      this.switchCamera(cameraKeys[e.key]);
+    }
   }
 
   onKeyUp(e) {
@@ -678,6 +714,13 @@ class BodyTeleop extends Component {
     }
   }
 
+  switchCamera(cameraName) {
+    this.setState({ activeCamera: cameraName });
+    if (this.videoRef.current) {
+      this.videoRef.current.srcObject = this.streams[cameraName] || null;
+    }
+  }
+
   isMobile() {
     return isMobile();
   }
@@ -770,6 +813,31 @@ class BodyTeleop extends Component {
           <WasdKey label="S" active={keys.s} keyName="s" />
           <WasdKey label="D" active={keys.d} keyName="d" />
         </div>
+      </div>
+    );
+  }
+
+  renderCameraSwitcher(portrait) {
+    const { classes } = this.props;
+    const { activeCamera } = this.state;
+    const cameras = [
+      { key: 'driver', label: 'driver', num: '1' },
+      { key: 'wideRoad', label: 'wide', num: '2' },
+      { key: 'road', label: 'road', num: '3' },
+    ];
+
+    return (
+      <div className={`${classes.cameraSwitcher} ${portrait ? classes.cameraSwitcherPortrait : ''}`}>
+        {cameras.map((cam) => (
+          <div
+            key={cam.key}
+            className={`${classes.cameraButton} ${activeCamera === cam.key ? classes.cameraButtonActive : classes.cameraButtonInactive}`}
+            onClick={() => this.switchCamera(cam.key)}
+          >
+            <span className={classes.cameraButtonKey}>{cam.num}</span>
+            {cam.label}
+          </div>
+        ))}
       </div>
     );
   }
@@ -886,13 +954,7 @@ class BodyTeleop extends Component {
     return (
       <div className={classes.root}>
         <div className={classes.videoContainer}>
-          <video
-            ref={this.videoRef}
-            autoPlay
-            playsInline
-            muted
-            className={classes.video}
-          />
+          <video ref={this.videoRef} autoPlay playsInline muted className={classes.video} />
           <audio ref={this.audioRef} autoPlay />
 
           {/* Back button + device name */}
@@ -909,12 +971,7 @@ class BodyTeleop extends Component {
           {connected && this.renderStatsOverlay()}
           {!connected && this.renderConnectOverlay()}
           {connected && !this.isMobile() && this.renderWasdKeys()}
-          {connected && (
-            <Button className={classes.disconnectButton} onClick={this.handleDisconnect} disableRipple>
-              <PortableWifiOff style={{ fontSize: 18 }} />
-              Disconnect
-            </Button>
-          )}
+          {connected && this.renderCameraSwitcher(false)}
           {connected && this.renderJoystick()}
         </div>
       </div>
@@ -949,6 +1006,7 @@ class BodyTeleop extends Component {
             <audio ref={this.audioRef} autoPlay />
             {connected && this.renderHud()}
             {connected && this.renderStatsOverlay()}
+            {connected && this.renderCameraSwitcher(true)}
             {connected && this.renderJoystick()}
           </div>
           <div className={classes.portraitContent}>
