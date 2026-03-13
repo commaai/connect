@@ -2,7 +2,7 @@ import React from 'react';
 
 import AddDevice from '../Dashboard/AddDevice';
 
-const NoDeviceUpsell = () => (
+const NoDeviceUpsell = ({ onBodyTeleop }) => (
   <div className="flex flex-col items-center mx-4 md:mx-6 lg:mx-8 mt-4 sm:mt-8 md:mt-16">
     <div className="flex flex-col prose prose-invert py-2 items-center max-w-sm">
       <h2>Pair your device</h2>
@@ -21,7 +21,7 @@ const NoDeviceUpsell = () => (
         may have used previously.
       </p>
       <div className="mt-2 w-full">
-        <AddDevice buttonText="add new device" />
+        <AddDevice buttonText="add new device" onBodyTeleop={onBodyTeleop} />
       </div>
     </div>
     <picture className="max-w-3xl mt-4 p-4">

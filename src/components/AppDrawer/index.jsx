@@ -12,7 +12,7 @@ import { selectDevice } from '../../actions';
 const listener = (ev) => ev.stopPropagation();
 
 const AppDrawer = ({
-  dispatch, isPermanent, drawerIsOpen, selectedDongleId, handleDrawerStateChanged, width,
+  dispatch, isPermanent, drawerIsOpen, selectedDongleId, handleDrawerStateChanged, width, onBodyTeleop,
 }) => {
   const contentRef = useRef(null);
 
@@ -51,6 +51,7 @@ const AppDrawer = ({
         <DeviceList
           selectedDevice={selectedDongleId}
           handleDeviceSelected={handleDeviceSelected}
+          onBodyTeleop={onBodyTeleop}
         />
       </div>
     </Drawer>

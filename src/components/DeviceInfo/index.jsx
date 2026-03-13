@@ -536,7 +536,7 @@ class DeviceInfo extends Component {
               <Button
                 style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
                 classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
-                onClick={ this.props.onBodyTeleop }
+                onClick={ () => this.props.onBodyTeleop() }
                 disabled={ !deviceIsOnline(device) }
               >
                 <GamepadIcon fontSize="inherit" />

@@ -335,6 +335,63 @@ const styles = () => ({
     alignItems: 'center',
     gap: '10px',
   },
+  statsToggle: {
+    position: 'absolute',
+    top: 12,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    zIndex: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  statsToggleButton: {
+    padding: '2px 10px',
+    borderRadius: '10px',
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: 1,
+    color: 'rgba(255,255,255,0.6)',
+    background: 'rgba(0,0,0,0.4)',
+    backdropFilter: 'blur(8px)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    cursor: 'pointer',
+    userSelect: 'none',
+    '&:hover': {
+      color: 'rgba(255,255,255,0.9)',
+      background: 'rgba(0,0,0,0.6)',
+    },
+  },
+  statsPanel: {
+    marginTop: 4,
+    padding: '6px 10px',
+    borderRadius: 8,
+    background: 'rgba(0,0,0,0.7)',
+    backdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    minWidth: 160,
+    fontFamily: 'monospace',
+  },
+  statsRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: '1px 0',
+  },
+  statsLabel: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.45)',
+    marginRight: 12,
+  },
+  statsValue: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.85)',
+    textAlign: 'right',
+  },
+  statsDivider: {
+    height: 1,
+    background: 'rgba(255,255,255,0.08)',
+    margin: '3px 0',
+  },
   '@keyframes pulse': {
     '0%, 100%': { opacity: 1 },
     '50%': { opacity: 0.5 },
@@ -352,6 +409,8 @@ class BodyTeleop extends Component {
       isLandscape: false,
       thumbPos: null,
       keys: { w: false, a: false, s: false, d: false },
+      showStats: true,
+      stats: null,
     };
 
     this.videoRef = React.createRef();
@@ -393,6 +452,16 @@ class BodyTeleop extends Component {
     this.setState({ isLandscape: this.landscapeQuery.matches });
   }
 
+  componentDidUpdate(_prevProps, prevState) {
+    if (prevState.connectionState !== this.state.connectionState) {
+      if (this.state.connectionState === 'connected') {
+        this.startStatsPolling();
+      } else {
+        this.stopStatsPolling();
+      }
+    }
+  }
+
   componentWillUnmount() {
     document.removeEventListener('keydown', this.onKeyDown);
     document.removeEventListener('keyup', this.onKeyUp);
@@ -401,7 +470,89 @@ class BodyTeleop extends Component {
     if (this.landscapeQuery) {
       this.landscapeQuery.removeEventListener('change', this.onLandscapeChange);
     }
+    this.stopStatsPolling();
     this.connection.disconnect();
+  }
+
+  startStatsPolling() {
+    this.stopStatsPolling();
+    this.prevStatsTimestamp = null;
+    this.prevBytesReceived = null;
+    this.prevFramesDecoded = null;
+    this.statsInterval = setInterval(() => this.pollStats(), 1000);
+    this.pollStats();
+  }
+
+  stopStatsPolling() {
+    if (this.statsInterval) {
+      clearInterval(this.statsInterval);
+      this.statsInterval = null;
+    }
+    this.setState({ stats: null });
+  }
+
+  async pollStats() {
+    const pc = this.connection.pc;
+    if (!pc) return;
+
+    try {
+      const report = await pc.getStats();
+      let videoStats = null;
+      let candidatePairStats = null;
+
+      report.forEach((stat) => {
+        if (stat.type === 'inbound-rtp' && stat.kind === 'video') {
+          videoStats = stat;
+        }
+        if (stat.type === 'candidate-pair' && stat.state === 'succeeded') {
+          candidatePairStats = stat;
+        }
+      });
+
+      if (!videoStats) return;
+
+      const now = videoStats.timestamp;
+      let bitrate = 0;
+      let fps = 0;
+
+      if (this.prevStatsTimestamp !== null) {
+        const elapsed = (now - this.prevStatsTimestamp) / 1000;
+        if (elapsed > 0) {
+          const bytesDelta = videoStats.bytesReceived - this.prevBytesReceived;
+          bitrate = (bytesDelta * 8) / elapsed;
+          const framesDelta = videoStats.framesDecoded - this.prevFramesDecoded;
+          fps = framesDelta / elapsed;
+        }
+      }
+
+      this.prevStatsTimestamp = now;
+      this.prevBytesReceived = videoStats.bytesReceived;
+      this.prevFramesDecoded = videoStats.framesDecoded;
+
+      const stats = {
+        resolution: `${videoStats.frameWidth || '?'}x${videoStats.frameHeight || '?'}`,
+        fps: fps.toFixed(1),
+        bitrate: bitrate > 1000000
+          ? `${(bitrate / 1000000).toFixed(2)} Mbps`
+          : `${(bitrate / 1000).toFixed(0)} kbps`,
+        codec: videoStats.decoderImplementation || '?',
+        framesDecoded: videoStats.framesDecoded || 0,
+        framesDropped: videoStats.framesDropped || 0,
+        packetsLost: videoStats.packetsLost || 0,
+        packetsReceived: videoStats.packetsReceived || 0,
+        jitter: videoStats.jitter !== undefined ? `${(videoStats.jitter * 1000).toFixed(1)} ms` : '?',
+        rtt: candidatePairStats?.currentRoundTripTime !== undefined
+          ? `${(candidatePairStats.currentRoundTripTime * 1000).toFixed(0)} ms`
+          : '?',
+        nackCount: videoStats.nackCount || 0,
+        pliCount: videoStats.pliCount || 0,
+        firCount: videoStats.firCount || 0,
+      };
+
+      this.setState({ stats });
+    } catch {
+      /* peer connection may have closed */
+    }
   }
 
   onLandscapeChange(e) {
@@ -502,10 +653,14 @@ class BodyTeleop extends Component {
   }
 
   async handleConnect() {
-    const { dongleId } = this.props;
+    const { dongleId, directAddress } = this.props;
     this.setState({ error: null });
     try {
-      await this.connection.connect(dongleId);
+      if (directAddress) {
+        await this.connection.connectDirect(directAddress);
+      } else {
+        await this.connection.connect(dongleId);
+      }
     } catch (err) {
       this.setState({ error: err.message });
     }
@@ -619,6 +774,80 @@ class BodyTeleop extends Component {
     );
   }
 
+  renderStatsOverlay() {
+    const { classes } = this.props;
+    const { showStats, stats } = this.state;
+
+    return (
+      <div className={classes.statsToggle}>
+        <div
+          className={classes.statsToggleButton}
+          onClick={() => this.setState((prev) => ({ showStats: !prev.showStats }))}
+        >
+          {showStats ? 'STATS' : 'STATS'}
+        </div>
+        {showStats && stats && (
+          <div className={classes.statsPanel}>
+            <div className={classes.statsRow}>
+              <span className={classes.statsLabel}>Resolution</span>
+              <span className={classes.statsValue}>{stats.resolution}</span>
+            </div>
+            <div className={classes.statsRow}>
+              <span className={classes.statsLabel}>FPS</span>
+              <span className={classes.statsValue}>{stats.fps}</span>
+            </div>
+            <div className={classes.statsRow}>
+              <span className={classes.statsLabel}>Bitrate</span>
+              <span className={classes.statsValue}>{stats.bitrate}</span>
+            </div>
+            <div className={classes.statsRow}>
+              <span className={classes.statsLabel}>RTT</span>
+              <span className={classes.statsValue}>{stats.rtt}</span>
+            </div>
+            <div className={classes.statsRow}>
+              <span className={classes.statsLabel}>Jitter</span>
+              <span className={classes.statsValue}>{stats.jitter}</span>
+            </div>
+            <div className={classes.statsDivider} />
+            <div className={classes.statsRow}>
+              <span className={classes.statsLabel}>Decoded</span>
+              <span className={classes.statsValue}>{stats.framesDecoded}</span>
+            </div>
+            <div className={classes.statsRow}>
+              <span className={classes.statsLabel}>Dropped</span>
+              <span className={classes.statsValue}>{stats.framesDropped}</span>
+            </div>
+            <div className={classes.statsRow}>
+              <span className={classes.statsLabel}>Packets</span>
+              <span className={classes.statsValue}>{stats.packetsReceived}</span>
+            </div>
+            <div className={classes.statsRow}>
+              <span className={classes.statsLabel}>Lost</span>
+              <span className={classes.statsValue}>{stats.packetsLost}</span>
+            </div>
+            <div className={classes.statsDivider} />
+            <div className={classes.statsRow}>
+              <span className={classes.statsLabel}>Decoder</span>
+              <span className={classes.statsValue}>{stats.codec}</span>
+            </div>
+            <div className={classes.statsRow}>
+              <span className={classes.statsLabel}>NACK</span>
+              <span className={classes.statsValue}>{stats.nackCount}</span>
+            </div>
+            <div className={classes.statsRow}>
+              <span className={classes.statsLabel}>PLI</span>
+              <span className={classes.statsValue}>{stats.pliCount}</span>
+            </div>
+            <div className={classes.statsRow}>
+              <span className={classes.statsLabel}>FIR</span>
+              <span className={classes.statsValue}>{stats.firCount}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   renderConnectOverlay() {
     const { classes } = this.props;
     const { connectionState, error } = this.state;
@@ -672,11 +901,12 @@ class BodyTeleop extends Component {
               <ArrowBackBold style={{ fontSize: 18 }} />
             </IconButton>
             <div style={{ borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 500, color: Colors.white, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}>
-              {device ? deviceNamePretty(device) : 'Body'}
+              {this.props.directAddress || (device ? deviceNamePretty(device) : 'Body')}
             </div>
           </div>
 
           {this.renderHud()}
+          {connected && this.renderStatsOverlay()}
           {!connected && this.renderConnectOverlay()}
           {connected && !this.isMobile() && this.renderWasdKeys()}
           {connected && (
@@ -704,7 +934,7 @@ class BodyTeleop extends Component {
             <ArrowBackBold style={{ fontSize: 20 }} />
           </IconButton>
           <Typography className={classes.headerTitle}>
-            {device ? deviceNamePretty(device) : 'Body Teleop'}
+            {this.props.directAddress || (device ? deviceNamePretty(device) : 'Body Teleop')}
           </Typography>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'auto' }}>
@@ -718,6 +948,7 @@ class BodyTeleop extends Component {
             />
             <audio ref={this.audioRef} autoPlay />
             {connected && this.renderHud()}
+            {connected && this.renderStatsOverlay()}
             {connected && this.renderJoystick()}
           </div>
           <div className={classes.portraitContent}>

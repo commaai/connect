@@ -170,12 +170,12 @@ class ExplorerApp extends Component {
     this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }
 
-  openBodyTeleop() {
-    this.setState({ bodyTeleopOpen: true });
+  openBodyTeleop(address) {
+    this.setState({ bodyTeleopOpen: true, bodyTeleopAddress: address || null });
   }
 
   closeBodyTeleop() {
-    this.setState({ bodyTeleopOpen: false });
+    this.setState({ bodyTeleopOpen: false, bodyTeleopAddress: null });
   }
 
   handleDrawerStateChanged(drawerOpen) {
@@ -192,7 +192,7 @@ class ExplorerApp extends Component {
 
   render() {
     const { classes, currentRoute, devices, dongleId } = this.props;
-    const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth, bodyTeleopOpen } = this.state;
+    const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth, bodyTeleopOpen, bodyTeleopAddress } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const isLarge = noDevicesUpsell || windowWidth > 1080;
@@ -233,13 +233,14 @@ class ExplorerApp extends Component {
           width={ sidebarWidth }
           handleDrawerStateChanged={this.handleDrawerStateChanged}
           style={ drawerStyles }
+          onBodyTeleop={this.openBodyTeleop}
         />
         <div className={ classes.window } style={ containerStyles }>
           { noDevicesUpsell
-            ? <NoDeviceUpsell />
+            ? <NoDeviceUpsell onBodyTeleop={this.openBodyTeleop} />
             : (currentRoute ? <DriveView /> : <Dashboard onBodyTeleop={this.openBodyTeleop} />)}
         </div>
-        { bodyTeleopOpen && <BodyTeleop onClose={this.closeBodyTeleop} /> }
+        { bodyTeleopOpen && <BodyTeleop onClose={this.closeBodyTeleop} directAddress={bodyTeleopAddress} /> }
         <IosPwaPopup />
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
           <Paper className={classes.modal}>
