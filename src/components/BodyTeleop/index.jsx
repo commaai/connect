@@ -8,6 +8,7 @@ import Refresh from '@material-ui/icons/Refresh';
 import InfoOutline from '@material-ui/icons/InfoOutline';
 import ScreenRotation from '@material-ui/icons/ScreenRotation';
 import BatteryFull from '@material-ui/icons/BatteryFull';
+import PhotoCamera from '@material-ui/icons/PhotoCamera';
 
 import Colors from '../../colors';
 import { deviceNamePretty } from '../../utils';
@@ -418,6 +419,23 @@ const styles = () => ({
     background: 'rgba(255,255,255,0.08)',
     margin: '3px 0',
   },
+  screenshotButton: {
+    width: 36,
+    height: 36,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '50%',
+    background: 'rgba(0,0,0,0.5)',
+    backdropFilter: 'blur(8px)',
+    border: `1px solid ${Colors.white10}`,
+    color: Colors.white70,
+    cursor: 'pointer',
+    '&:hover': {
+      background: 'rgba(0,0,0,0.7)',
+      color: Colors.white,
+    },
+  },
   '@keyframes pulse': {
     '0%, 100%': { opacity: 1 },
     '50%': { opacity: 0.5 },
@@ -714,6 +732,19 @@ class BodyTeleop extends Component {
     }
   }
 
+  handleScreenshot() {
+    const video = this.videoRef.current;
+    if (!video || !video.videoWidth) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const link = document.createElement('a');
+    link.download = `screenshot_${this.state.activeCamera}_${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
   switchCamera(cameraName) {
     this.setState({ activeCamera: cameraName });
     if (this.videoRef.current) {
@@ -759,6 +790,13 @@ class BodyTeleop extends Component {
             <span className={classes.hudText}>{batteryLevel}%</span>
           </div>
         )}
+        <div
+          className={classes.screenshotButton}
+          onClick={() => this.handleScreenshot()}
+          title="Save screenshot"
+        >
+          <PhotoCamera style={{ fontSize: 18 }} />
+        </div>
       </div>
     );
   }
@@ -939,7 +977,7 @@ class BodyTeleop extends Component {
           {error && <div className={classes.errorBanner}>{error}</div>}
           <div className={classes.infoBanner}>
             <InfoOutline style={{ fontSize: 16 }} />
-            <span>Body must be powered on and in joystick mode</span>
+            <span>Body must be powered on and started.</span>
           </div>
         </div>
       </div>
@@ -1053,7 +1091,7 @@ class BodyTeleop extends Component {
             <div className={classes.infoBox}>
               <div className={classes.infoRow}>
                 <InfoOutline style={{ fontSize: 18 }} />
-                <span>The comma body must be powered on and in joystick mode to connect.</span>
+                <span>The comma body must be powered on and ignition must be started to connect.</span>
               </div>
               <div className={classes.infoRow}>
                 <ScreenRotation style={{ fontSize: 18 }} />

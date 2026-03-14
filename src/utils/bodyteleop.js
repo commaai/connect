@@ -146,8 +146,11 @@ export class BodyTeleopConnection {
         const resp = await Athena.postJsonRpcPayload(dongleId, payload);
         log(`received Athena response: ${JSON.stringify(resp)}`);
         if (resp.error || !resp.result) {
-          const errMsg = resp.error?.message || (typeof resp.error === 'string' ? resp.error : 'No response from device');
+          const errMsg = resp.error?.data?.message || resp.error?.message || (typeof resp.error === 'string' ? resp.error : 'No response from device');
           throw new Error(errMsg);
+        }
+        if (resp.result.error) {
+          throw new Error(resp.result.message || resp.result.error);
         }
         answerSdp = resp.result.sdp;
       } else if (this.directAddress) {
@@ -159,7 +162,14 @@ export class BodyTeleopConnection {
         });
         log('received direct response');
         if (!resp.ok) {
-          throw new Error(`Device returned ${resp.status}`);
+          let errMsg = `Device returned ${resp.status}`;
+          try {
+            const errorBody = await resp.json();
+            if (errorBody.message) {
+              errMsg = errorBody.message;
+            }
+          } catch (_) { /* unable to parse error response */ }
+          throw new Error(errMsg);
         }
         const result = await resp.json();
         if (!result.sdp) {
