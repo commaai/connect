@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import { withStyles, Typography, Button, IconButton } from '@material-ui/core';
-import Wifi from '@material-ui/icons/Wifi';
 import Refresh from '@material-ui/icons/Refresh';
 import InfoOutline from '@material-ui/icons/InfoOutline';
 import ScreenRotation from '@material-ui/icons/ScreenRotation';
@@ -133,6 +132,23 @@ const styles = () => ({
   },
   connectButtonConnecting: {
     animation: '$pulse 1.5s ease-in-out infinite',
+  },
+  progressBar: {
+    width: 240,
+    height: 4,
+    borderRadius: 2,
+    background: 'rgba(255,255,255,0.1)',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
+    background: 'rgba(255,255,255,0.7)',
+    transition: 'width 0.4s ease',
+  },
+  progressLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
   },
   errorBanner: {
     maxWidth: 280,
@@ -448,6 +464,8 @@ class BodyTeleop extends Component {
 
     this.state = {
       connectionState: 'disconnected',
+      statusMessage: null,
+      connectProgress: 0,
       batteryLevel: null,
       error: null,
       isLandscape: false,
@@ -466,7 +484,21 @@ class BodyTeleop extends Component {
     this.streams = {};
 
     this.connection = new BodyTeleopConnection({
-      onConnectionState: (connectionState) => this.setState({ connectionState }),
+      onConnectionState: (connectionState) => this.setState({
+        connectionState,
+        ...(connectionState !== 'connecting' ? { statusMessage: null, connectProgress: 0 } : {}),
+      }),
+      onStatusMessage: (statusMessage) => {
+        const progressMap = {
+          'Preparing connection...': 10,
+          'Finding network path...': 20,
+          'Reaching device...': 30,
+          'Device responded': 85,
+          'Establishing connection...': 92,
+          'Receiving video...': 97,
+        };
+        this.setState({ statusMessage, connectProgress: progressMap[statusMessage] || 0 });
+      },
       onBatteryLevel: (batteryLevel) => this.setState({ batteryLevel }),
       onVideoTrack: (cameraName, stream) => {
         this.streams[cameraName] = stream;
@@ -491,6 +523,10 @@ class BodyTeleop extends Component {
     this.handleMouseUp = this.handleMouseUp.bind(this);
     this.onLandscapeChange = this.onLandscapeChange.bind(this);
     this.handleClose = this.handleClose.bind(this);
+    this.pollGamepad = this.pollGamepad.bind(this);
+
+    this.gamepadAnimFrame = null;
+    this.prevBumpers = { lb: false, rb: false };
   }
 
   componentDidMount() {
@@ -499,6 +535,8 @@ class BodyTeleop extends Component {
     this.landscapeQuery = window.matchMedia('(orientation: landscape)');
     this.landscapeQuery.addEventListener('change', this.onLandscapeChange);
     this.setState({ isLandscape: this.landscapeQuery.matches });
+    this.gamepadAnimFrame = requestAnimationFrame(this.pollGamepad);
+    this.handleConnect();
   }
 
   componentDidUpdate(_prevProps, prevState) {
@@ -518,6 +556,9 @@ class BodyTeleop extends Component {
     document.removeEventListener('mouseup', this.handleMouseUp);
     if (this.landscapeQuery) {
       this.landscapeQuery.removeEventListener('change', this.onLandscapeChange);
+    }
+    if (this.gamepadAnimFrame) {
+      cancelAnimationFrame(this.gamepadAnimFrame);
     }
     this.stopStatsPolling();
     this.connection.disconnect();
@@ -732,6 +773,45 @@ class BodyTeleop extends Component {
     }
   }
 
+  pollGamepad() {
+    this.gamepadAnimFrame = requestAnimationFrame(this.pollGamepad);
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const gp = gamepads[0] || gamepads[1] || gamepads[2] || gamepads[3];
+    if (!gp) return;
+
+    // Left stick: axes[0] = left/right, axes[1] = up/down
+    const DEADZONE = 0.15;
+    let lx = gp.axes[0] || 0;
+    let ly = gp.axes[1] || 0;
+    if (Math.abs(lx) < DEADZONE) lx = 0;
+    if (Math.abs(ly) < DEADZONE) ly = 0;
+
+    if (this.state.connectionState === 'connected') {
+      this.connection.setJoystick(ly, -lx);
+      if (lx !== 0 || ly !== 0) {
+        this.setState({ thumbPos: { x: lx, y: ly } });
+      } else if (this.state.thumbPos && !this.mouseDragging && this.touchId === null) {
+        this.setState({ thumbPos: null });
+      }
+    }
+
+    // Bumpers: LB = button 4, RB = button 5
+    const cameras = ['driver', 'wideRoad', 'road'];
+    const lb = gp.buttons[4] && gp.buttons[4].pressed;
+    const rb = gp.buttons[5] && gp.buttons[5].pressed;
+
+    if (lb && !this.prevBumpers.lb) {
+      const idx = cameras.indexOf(this.state.activeCamera);
+      this.switchCamera(cameras[(idx - 1 + cameras.length) % cameras.length]);
+    }
+    if (rb && !this.prevBumpers.rb) {
+      const idx = cameras.indexOf(this.state.activeCamera);
+      this.switchCamera(cameras[(idx + 1) % cameras.length]);
+    }
+
+    this.prevBumpers = { lb, rb };
+  }
+
   handleScreenshot() {
     const video = this.videoRef.current;
     if (!video || !video.videoWidth) return;
@@ -859,9 +939,9 @@ class BodyTeleop extends Component {
     const { classes } = this.props;
     const { activeCamera } = this.state;
     const cameras = [
-      { key: 'driver', label: 'driver', num: '1' },
-      { key: 'wideRoad', label: 'wide', num: '2' },
-      { key: 'road', label: 'road', num: '3' },
+      { key: 'driver', label: 'front', num: '1' },
+      { key: 'wideRoad', label: 'rear', num: '2' },
+      { key: 'road', label: 'rear zoom', num: '3' },
     ];
 
     return (
@@ -956,29 +1036,37 @@ class BodyTeleop extends Component {
 
   renderConnectOverlay() {
     const { classes } = this.props;
-    const { connectionState, error } = this.state;
+    const { connectionState, error, statusMessage, connectProgress } = this.state;
     const connecting = connectionState === 'connecting';
     const failed = connectionState === 'failed';
 
     return (
       <div className={classes.connectOverlay}>
         <div className={classes.connectContent}>
-          <Button
-            className={`${classes.connectButton} ${failed ? classes.connectButtonFailed : ''} ${connecting ? classes.connectButtonConnecting : ''}`}
-            onClick={connecting ? undefined : this.handleConnect}
-            disabled={connecting}
-            disableRipple
-          >
-            {failed
-              ? <Refresh style={{ fontSize: 20 }} />
-              : <Wifi style={{ fontSize: 20 }} />}
-            {connecting ? 'Connecting...' : failed ? 'Retry' : 'Connect'}
-          </Button>
+          {connecting ? (
+            <>
+              <div className={classes.progressBar}>
+                <div className={classes.progressFill} style={{ width: `${connectProgress || 0}%` }} />
+              </div>
+              <span className={classes.progressLabel}>{statusMessage || 'Connecting...'}</span>
+            </>
+          ) : failed ? (
+            <Button
+              className={`${classes.connectButton} ${classes.connectButtonFailed}`}
+              onClick={this.handleConnect}
+              disableRipple
+            >
+              <Refresh style={{ fontSize: 20 }} />
+              Retry
+            </Button>
+          ) : null}
           {error && <div className={classes.errorBanner}>{error}</div>}
-          <div className={classes.infoBanner}>
-            <InfoOutline style={{ fontSize: 16 }} />
-            <span>Body must be powered on and started.</span>
-          </div>
+          {!connecting && (
+            <div className={classes.infoBanner}>
+              <InfoOutline style={{ fontSize: 16 }} />
+              <span>Body must be powered on and started.</span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1067,15 +1155,25 @@ class BodyTeleop extends Component {
                     {error}
                   </div>
                 )}
-                <Button
-                  variant="contained"
-                  color="primary"
-                  className={classes.portraitButton}
-                  onClick={this.handleConnect}
-                  disabled={connecting}
-                >
-                  {connecting ? 'Connecting...' : 'Connect'}
-                </Button>
+                {connecting ? (
+                  <>
+                    <div className={classes.progressBar} style={{ width: '100%' }}>
+                      <div className={classes.progressFill} style={{ width: `${this.state.connectProgress || 0}%` }} />
+                    </div>
+                    <Typography style={{ fontSize: 12, color: Colors.white50, textAlign: 'center' }}>
+                      {this.state.statusMessage || 'Connecting...'}
+                    </Typography>
+                  </>
+                ) : connectionState === 'failed' ? (
+                  <Button
+                    variant="contained"
+                    className={classes.portraitButton}
+                    style={{ background: Colors.red400, color: Colors.white }}
+                    onClick={this.handleConnect}
+                  >
+                    Retry
+                  </Button>
+                ) : null}
               </>
             )}
             {connected && (

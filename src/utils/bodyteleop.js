@@ -60,7 +60,10 @@ export class BodyTeleopConnection {
         if (!this.pc) return;
         const state = this.pc.connectionState;
         log(`connection state: ${state}`);
-        if (state === 'connected') this.callbacks.onConnectionState('connected');
+        if (state === 'connected') {
+          this.callbacks.onStatusMessage?.('Receiving video...');
+          this.callbacks.onConnectionState('connected');
+        }
         else if (state === 'failed' || state === 'closed') this.callbacks.onConnectionState('failed');
       });
 
@@ -101,6 +104,7 @@ export class BodyTeleopConnection {
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
       log('local description set, waiting for ICE candidates');
+      this.callbacks.onStatusMessage?.('Preparing connection...');
 
       // Trickle ICE: resolve as soon as we get the first candidate rather than
       // waiting for all candidates to be gathered
@@ -110,6 +114,7 @@ export class BodyTeleopConnection {
           const onCandidate = (evt) => {
             if (evt.candidate) {
               log(`first ICE candidate: ${evt.candidate.type || 'unknown'} ${evt.candidate.protocol || ''}`);
+              this.callbacks.onStatusMessage?.('Finding network path...');
               this.pc.removeEventListener('icecandidate', onCandidate);
               this.pc.removeEventListener('icegatheringstatechange', onComplete);
               resolve();
@@ -131,8 +136,13 @@ export class BodyTeleopConnection {
       // Brief wait to collect a few more candidates after the first one
       await new Promise((resolve) => setTimeout(resolve, 250));
       log(`sending SDP offer (candidates in SDP: ${(this.pc.localDescription.sdp.match(/a=candidate:/g) || []).length})`);
+      this.callbacks.onStatusMessage?.('Reaching device...');
 
-      const sdp = this.pc.localDescription.sdp;
+      // ensure a=rtcp-mux is present on every m= section (Firefox omits it on bundled m-lines)
+      const sdp = this.pc.localDescription.sdp.replace(
+        /(m=(audio|video) .*\r?\n)([\s\S]*?)(?=m=|$)/g,
+        (block) => block.includes('a=rtcp-mux') ? block : block.replace(/(m=(?:audio|video) [^\n]*\n)/, '$1a=rtcp-mux\r\n'),
+      );
       let answerSdp;
 
       if (dongleId) {
@@ -145,6 +155,7 @@ export class BodyTeleopConnection {
         log('sending offer via Athena');
         const resp = await Athena.postJsonRpcPayload(dongleId, payload);
         log(`received Athena response: ${JSON.stringify(resp)}`);
+        this.callbacks.onStatusMessage?.('Device responded');
         if (resp.error || !resp.result) {
           const errMsg = resp.error?.data?.message || resp.error?.message || (typeof resp.error === 'string' ? resp.error : 'No response from device');
           throw new Error(errMsg);
@@ -161,6 +172,7 @@ export class BodyTeleopConnection {
           body: JSON.stringify({ sdp, cameras: this.cameraOrder, bridge_services_in: ['testJoystick'], bridge_services_out: ['carState'] }),
         });
         log('received direct response');
+        this.callbacks.onStatusMessage?.('Device responded');
         if (!resp.ok) {
           let errMsg = `Device returned ${resp.status}`;
           try {
@@ -180,6 +192,7 @@ export class BodyTeleopConnection {
 
       await this.pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
       log('remote description set, connection establishing');
+      this.callbacks.onStatusMessage?.('Establishing connection...');
     } catch (err) {
       log(`connection failed: ${err.message}`);
       this.cleanup();
