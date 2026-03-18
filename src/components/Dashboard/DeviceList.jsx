@@ -3,8 +3,11 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Typography, IconButton } from '@material-ui/core';
+import { withStyles, Typography, IconButton, Collapse } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import ExpandLessIcon from '@material-ui/icons/ExpandLess';
+import CloseIcon from '@material-ui/icons/Close';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { devices as Devices } from '@commaai/api';
@@ -83,6 +86,52 @@ const styles = (theme) => ({
   addDeviceContainer: {
     '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.25)' },
   },
+  recentHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '12px 32px 4px',
+    cursor: 'pointer',
+    userSelect: 'none',
+    '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.15)' },
+  },
+  recentHeaderLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+  },
+  recentLabel: {
+    color: Colors.white50,
+    fontSize: 12,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
+  recentExpandIcon: {
+    color: Colors.white30,
+    fontSize: 18,
+  },
+  recentItem: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '10px 32px 10px 48px',
+    cursor: 'pointer',
+    '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.25)' },
+  },
+  recentAddress: {
+    color: Colors.white70,
+    fontSize: 14,
+    fontFamily: 'monospace',
+  },
+  recentRemoveButton: {
+    padding: 4,
+    color: Colors.white30,
+    '&:hover': { color: Colors.white },
+  },
+  recentRemoveIcon: {
+    fontSize: 16,
+  },
 });
 
 class DeviceList extends Component {
@@ -91,12 +140,35 @@ class DeviceList extends Component {
 
     this.state = {
       settingsModalDongleId: null,
+      recentExpanded: false,
+      recentConnections: AddDevice.getRecentBodyConnections(),
     };
 
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
     this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
     this.onVisible = this.onVisible.bind(this);
+    this.toggleRecent = this.toggleRecent.bind(this);
+    this.handleRecentConnect = this.handleRecentConnect.bind(this);
+    this.handleRecentRemove = this.handleRecentRemove.bind(this);
+  }
+
+  toggleRecent() {
+    this.setState((prev) => ({ recentExpanded: !prev.recentExpanded }));
+  }
+
+  handleRecentConnect(address) {
+    AddDevice.saveRecentBodyConnection(address);
+    this.setState({ recentConnections: AddDevice.getRecentBodyConnections() });
+    if (this.props.onBodyTeleop) {
+      this.props.onBodyTeleop(address);
+    }
+  }
+
+  handleRecentRemove(address, ev) {
+    ev.stopPropagation();
+    AddDevice.removeRecentBodyConnection(address);
+    this.setState({ recentConnections: AddDevice.getRecentBodyConnections() });
   }
 
   handleOpenedSettingsModal(dongleId, ev) {
@@ -111,6 +183,7 @@ class DeviceList extends Component {
 
   async onVisible() {
     const { dispatch } = this.props;
+    this.setState({ recentConnections: AddDevice.getRecentBodyConnections() });
     if (MyCommaAuth.isAuthenticated()) {
       try {
         const devices = await Devices.listDevices();
@@ -159,7 +232,7 @@ class DeviceList extends Component {
   }
 
   render() {
-    const { settingsModalDongleId } = this.state;
+    const { settingsModalDongleId, recentExpanded, recentConnections } = this.state;
     const { classes, device, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
@@ -201,6 +274,35 @@ class DeviceList extends Component {
             <div className={classes.addDeviceContainer}>
               <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon onBodyTeleop={this.props.onBodyTeleop} />
             </div>
+          )}
+          {recentConnections.length > 0 && (
+            <>
+              <div className={classes.recentHeader} onClick={this.toggleRecent}>
+                <div className={classes.recentHeaderLeft}>
+                  <Typography className={classes.recentLabel}>Recent bodies</Typography>
+                  {recentExpanded
+                    ? <ExpandLessIcon className={classes.recentExpandIcon} />
+                    : <ExpandMoreIcon className={classes.recentExpandIcon} />}
+                </div>
+              </div>
+              <Collapse in={recentExpanded}>
+                {recentConnections.map((address) => (
+                  <div
+                    key={address}
+                    className={classes.recentItem}
+                    onClick={() => this.handleRecentConnect(address)}
+                  >
+                    <Typography className={classes.recentAddress}>{address}</Typography>
+                    <IconButton
+                      className={classes.recentRemoveButton}
+                      onClick={(ev) => this.handleRecentRemove(address, ev)}
+                    >
+                      <CloseIcon className={classes.recentRemoveIcon} />
+                    </IconButton>
+                  </div>
+                ))}
+              </Collapse>
+            </>
           )}
         </div>
         <DeviceSettingsModal

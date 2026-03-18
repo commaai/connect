@@ -447,9 +447,38 @@ class AddDevice extends Component {
     const { bodyIp, bodyPort } = this.state;
     if (!bodyIp) return;
     const address = bodyPort ? `${bodyIp}:${bodyPort}` : bodyIp;
+    AddDevice.saveRecentBodyConnection(address);
     this.modalClose();
     if (this.props.onBodyTeleop) {
       this.props.onBodyTeleop(address);
+    }
+  }
+
+  static saveRecentBodyConnection(address) {
+    try {
+      const stored = JSON.parse(localStorage.getItem('recentBodyConnections') || '[]');
+      const filtered = stored.filter((a) => a !== address);
+      filtered.unshift(address);
+      localStorage.setItem('recentBodyConnections', JSON.stringify(filtered.slice(0, 10)));
+    } catch {
+      localStorage.setItem('recentBodyConnections', JSON.stringify([address]));
+    }
+  }
+
+  static getRecentBodyConnections() {
+    try {
+      return JSON.parse(localStorage.getItem('recentBodyConnections') || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  static removeRecentBodyConnection(address) {
+    try {
+      const stored = JSON.parse(localStorage.getItem('recentBodyConnections') || '[]');
+      localStorage.setItem('recentBodyConnections', JSON.stringify(stored.filter((a) => a !== address)));
+    } catch {
+      // ignore
     }
   }
 

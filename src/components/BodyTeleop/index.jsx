@@ -779,17 +779,20 @@ class BodyTeleop extends Component {
     const gp = gamepads[0] || gamepads[1] || gamepads[2] || gamepads[3];
     if (!gp) return;
 
-    // Left stick: axes[0] = left/right, axes[1] = up/down
+    // Left stick: axes[0] = left/right turning only
+    // Triggers: RT (button 7) = gas/forward, LT (button 6) = brake/backward
     const DEADZONE = 0.15;
     let lx = gp.axes[0] || 0;
-    let ly = gp.axes[1] || 0;
     if (Math.abs(lx) < DEADZONE) lx = 0;
-    if (Math.abs(ly) < DEADZONE) ly = 0;
+
+    const rt = (gp.buttons[7] && gp.buttons[7].value) || 0;
+    const lt = (gp.buttons[6] && gp.buttons[6].value) || 0;
+    const throttle = lt - rt; // negative = forward (gas), positive = backward (brake)
 
     if (this.state.connectionState === 'connected') {
-      this.connection.setJoystick(ly, -lx);
-      if (lx !== 0 || ly !== 0) {
-        this.setState({ thumbPos: { x: lx, y: ly } });
+      this.connection.setJoystick(throttle, -lx);
+      if (lx !== 0 || rt > 0 || lt > 0) {
+        this.setState({ thumbPos: { x: lx, y: throttle } });
       } else if (this.state.thumbPos && !this.mouseDragging && this.touchId === null) {
         this.setState({ thumbPos: null });
       }

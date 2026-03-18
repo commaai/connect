@@ -166,11 +166,16 @@ export class BodyTeleopConnection {
         answerSdp = resp.result.sdp;
       } else if (this.directAddress) {
         log(`sending offer to ${this.directAddress}`);
-        const resp = await fetch(`http://${this.directAddress}/stream`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sdp, cameras: this.cameraOrder, bridge_services_in: ['testJoystick'], bridge_services_out: ['carState'] }),
-        });
+        let resp;
+        try {
+          resp = await fetch(`http://${this.directAddress}/stream`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sdp, cameras: this.cameraOrder, bridge_services_in: ['testJoystick'], bridge_services_out: ['carState'] }),
+          });
+        } catch (_) {
+          throw new Error('Could not reach device. Is the ignition on?');
+        }
         log('received direct response');
         this.callbacks.onStatusMessage?.('Device responded');
         if (!resp.ok) {

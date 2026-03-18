@@ -92,6 +92,10 @@ class ExplorerApp extends Component {
       this.props.dispatch(replace(q.get('r')));
     }
 
+    if (q.has('body')) {
+      this.openBodyTeleop(q.get('body'));
+    }
+
     this.props.dispatch(init());
 
     let pairToken;
