@@ -855,10 +855,19 @@ class BodyTeleop extends Component {
     }
   }
 
+  isRearCamera() {
+    return this.state.activeCamera === 'wideRoad';
+  }
+
+  setFlippedJoystick(x, y) {
+    const flip = this.isRearCamera() ? -1 : 1;
+    this.connection.setJoystick(flip * x, flip * y);
+  }
+
   setKey(key, pressed) {
     this.setState((prev) => {
       const keys = { ...prev.keys, [key]: pressed };
-      this.connection.setJoystick(
+      this.setFlippedJoystick(
         -(keys.w ? 1 : 0) + (keys.s ? 1 : 0),
         -(keys.d ? 1 : 0) + (keys.a ? 1 : 0),
       );
@@ -879,7 +888,7 @@ class BodyTeleop extends Component {
       dy /= dist;
     }
     this.setState({ thumbPos: { x: dx, y: dy } });
-    this.connection.setJoystick(dy, -dx);
+    this.setFlippedJoystick(dy, -dx);
   }
 
   resetJoystick() {
@@ -1002,7 +1011,7 @@ class BodyTeleop extends Component {
     // this.setState({ gamepadSteering: lx, gamepadGas: rt, gamepadBrake: lt, gamepadLB: !!lb, gamepadRB: !!rb });
 
     if (this.state.connectionState === 'connected' && this.state.controllerEnabled) {
-      this.connection.setJoystick(throttle, -lx);
+      this.setFlippedJoystick(throttle, -lx);
       if (lx !== 0 || rt > 0 || lt > 0) {
         this.setState({ thumbPos: { x: lx, y: throttle } });
       } else if (this.state.thumbPos && !this.mouseDragging && this.touchId === null) {
@@ -1331,6 +1340,8 @@ class BodyTeleop extends Component {
   getSslInstructions() {
     if (isSafari()) {
       return [
+        'Make sure Body ignition is ON',
+        'Click "Open Trust Page"',
         'Tap "Show Details"',
         'Tap "visit this website"',
         'Tap "Visit Website" to confirm',
@@ -1338,18 +1349,24 @@ class BodyTeleop extends Component {
     }
     if (isFirefox()) {
       return [
+        'Make sure Body ignition is ON',
+        'Click "Open Trust Page"',
         'Click "Advanced\u2026"',
         'Click "Accept Risk and Continue"',
       ];
     }
     if (isChrome() && isIos()) {
       return [
+        'Make sure Body ignition is ON',
+        'Click "Open Trust Page"',
         'Tap "Advanced"',
         'Tap "Proceed to ... (unsafe)"',
       ];
     }
     // Chrome desktop/Android
     return [
+      'Make sure Body ignition is ON',
+      'Click "Open Trust Page"',
       'Click "Advanced"',
       'Click "Proceed to ... (unsafe)"',
     ];
@@ -1362,51 +1379,39 @@ class BodyTeleop extends Component {
 
     return (
       <div className={classes.connectOverlay}>
-        <div style={{
-          background: 'rgba(30,30,30,0.95)',
-          borderRadius: 16,
-          padding: '32px 28px',
-          maxWidth: 420,
-          width: '90%',
-          textAlign: 'center',
-          backdropFilter: 'blur(12px)',
-        }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>{'\uD83D\uDD12'}</div>
-          <Typography style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>
+        <div className={classes.connectContent} style={{ maxWidth: 380, width: '90%' }}>
+          <Typography style={{ fontSize: 20, fontWeight: 600 }}>
             Trust Device Certificate
           </Typography>
-          <Typography style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 16, lineHeight: 1.5 }}>
-            Your browser needs to trust this device&apos;s certificate before connecting.
-            Click the button below, then follow these steps:
+          <Typography style={{ fontSize: 18, color: Colors.white60, lineHeight: 1.5, textAlign: 'center' }}>
+            Your browser needs to trust this local network device&apos;s self-signed certificate
+            before connecting. Click the button below, then follow these steps:
           </Typography>
-          <div style={{ textAlign: 'left', margin: '0 auto 16px', maxWidth: 300 }}>
+          <div style={{
+            textAlign: 'left',
+            background: Colors.white08,
+            borderRadius: 12,
+            padding: '12px 16px',
+            width: '100%',
+          }}>
             {steps.map((step, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
-                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontWeight: 600, minWidth: 18 }}>{i + 1}.</span>
-                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>{step}</span>
+              <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: i < steps.length - 1 ? 6 : 0 }}>
+                <span style={{ fontSize: 14, color: Colors.white40, fontWeight: 600, minWidth: 16 }}>{i + 1}.</span>
+                <span style={{ fontSize: 14, color: Colors.white70, lineHeight: 1.4 }}>{step}</span>
               </div>
             ))}
           </div>
-          <Typography style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 16, wordBreak: 'break-all' }}>
+          <Button
+            className={classes.connectButton}
+            onClick={() => this.handleOpenTrustPage()}
+            disableRipple
+          >
+            Open Trust Page
+          </Button>
+          <Typography style={{ fontSize: 14, color: Colors.white40, wordBreak: 'break-all', textAlign: 'center' }}>
             {trustUrl}
           </Typography>
-          <Button
-            variant="contained"
-            onClick={() => this.handleOpenTrustPage()}
-            style={{
-              background: '#4CAF50',
-              color: '#fff',
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: 15,
-              borderRadius: 8,
-              padding: '10px 32px',
-              marginBottom: 12,
-            }}
-          >
-            Open COMMA Trust Page
-          </Button>
-          <Typography style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>
+          <Typography style={{ fontSize: 14, color: Colors.white70 }}>
             After accepting, this page will connect automatically.
           </Typography>
         </div>
