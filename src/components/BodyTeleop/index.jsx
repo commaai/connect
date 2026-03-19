@@ -452,6 +452,156 @@ const styles = () => ({
       color: Colors.white,
     },
   },
+  controllerToggle: {
+    width: 36,
+    height: 36,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '50%',
+    background: 'rgba(0,0,0,0.5)',
+    backdropFilter: 'blur(8px)',
+    border: `1px solid ${Colors.white10}`,
+    color: Colors.white70,
+    cursor: 'pointer',
+    '&:hover': {
+      background: 'rgba(0,0,0,0.7)',
+      color: Colors.white,
+    },
+  },
+  controllerToggleOff: {
+    opacity: 0.4,
+  },
+  // Controller overlay
+  controllerOverlay: {
+    position: 'absolute',
+    bottom: 16,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '24px',
+    pointerEvents: 'none',
+  },
+  triggerContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  triggerShape: {
+    width: 48,
+    height: 80,
+    borderRadius: '8px 8px 24px 24px',
+    border: '2px solid rgba(255,255,255,0.25)',
+    position: 'relative',
+    overflow: 'hidden',
+    background: 'rgba(255,255,255,0.05)',
+    backdropFilter: 'blur(8px)',
+  },
+  triggerFill: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    transition: 'height 50ms linear',
+  },
+  triggerInnerLabel: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: 0.5,
+    color: 'rgba(255,255,255,0.4)',
+    zIndex: 1,
+    pointerEvents: 'none',
+  },
+  triggerLabel: {
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: 0.5,
+    color: 'rgba(255,255,255,0.5)',
+    textTransform: 'uppercase',
+  },
+  controllerJoystick: {
+    width: 100,
+    height: 100,
+    borderRadius: '50%',
+    background: 'rgba(255,255,255,0.05)',
+    backdropFilter: 'blur(8px)',
+    border: '2px solid rgba(255,255,255,0.2)',
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  controllerJoystickTrack: {
+    position: 'absolute',
+    top: '50%',
+    left: 12,
+    right: 12,
+    height: 2,
+    transform: 'translateY(-50%)',
+    background: 'rgba(255,255,255,0.1)',
+    borderRadius: 1,
+  },
+  controllerJoystickThumb: {
+    width: 32,
+    height: 32,
+    borderRadius: '50%',
+    background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.4), rgba(255,255,255,0.1))',
+    boxShadow: 'inset 0 1px 4px rgba(255,255,255,0.3), 0 2px 8px rgba(0,0,0,0.3)',
+    border: '1px solid rgba(255,255,255,0.25)',
+    position: 'absolute',
+    transition: 'left 50ms linear',
+  },
+  controllerJoystickLabel: {
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: 0.5,
+    color: 'rgba(255,255,255,0.5)',
+    textTransform: 'uppercase',
+    whiteSpace: 'nowrap',
+  },
+  controllerJoystickArrows: {
+    position: 'absolute',
+    top: '50%',
+    transform: 'translateY(-55%)',
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.2)',
+    userSelect: 'none',
+  },
+  bumperShape: {
+    width: 48,
+    height: 24,
+    borderRadius: '12px 12px 4px 4px',
+    border: '2px solid rgba(255,255,255,0.25)',
+    background: 'rgba(255,255,255,0.05)',
+    backdropFilter: 'blur(8px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'background 100ms, border-color 100ms',
+  },
+  bumperActive: {
+    background: 'rgba(255,255,255,0.25)',
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
+  bumperLabel: {
+    fontSize: 9,
+    fontWeight: 700,
+    letterSpacing: 0.5,
+    color: 'rgba(255,255,255,0.5)',
+    textTransform: 'uppercase',
+    transition: 'color 100ms',
+  },
+  bumperLabelActive: {
+    color: 'rgba(255,255,255,0.9)',
+  },
   '@keyframes pulse': {
     '0%, 100%': { opacity: 1 },
     '50%': { opacity: 0.5 },
@@ -471,9 +621,16 @@ class BodyTeleop extends Component {
       isLandscape: false,
       thumbPos: null,
       keys: { w: false, a: false, s: false, d: false },
-      showStats: true,
+      showStats: false,
       stats: null,
       activeCamera: 'driver',
+      gamepadConnected: false,
+      controllerEnabled: true,
+      gamepadSteering: 0,
+      gamepadGas: 0,
+      gamepadBrake: 0,
+      gamepadLB: false,
+      gamepadRB: false,
     };
 
     this.videoRef = React.createRef();
@@ -650,7 +807,8 @@ class BodyTeleop extends Component {
   }
 
   onKeyDown(e) {
-    const k = e.key.toLowerCase();
+    const arrowMap = { ArrowUp: 'w', ArrowDown: 's', ArrowLeft: 'a', ArrowRight: 'd' };
+    const k = arrowMap[e.key] || e.key.toLowerCase();
     if ('wasd'.includes(k) && k.length === 1) {
       e.preventDefault();
       this.setKey(k, true);
@@ -663,7 +821,8 @@ class BodyTeleop extends Component {
   }
 
   onKeyUp(e) {
-    const k = e.key.toLowerCase();
+    const arrowMap = { ArrowUp: 'w', ArrowDown: 's', ArrowLeft: 'a', ArrowRight: 'd' };
+    const k = arrowMap[e.key] || e.key.toLowerCase();
     if ('wasd'.includes(k) && k.length === 1) {
       e.preventDefault();
       this.setKey(k, false);
@@ -777,7 +936,17 @@ class BodyTeleop extends Component {
     this.gamepadAnimFrame = requestAnimationFrame(this.pollGamepad);
     const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
     const gp = gamepads[0] || gamepads[1] || gamepads[2] || gamepads[3];
-    if (!gp) return;
+
+    if (!gp) {
+      if (this.state.gamepadConnected) {
+        this.setState({ gamepadConnected: false, gamepadSteering: 0, gamepadGas: 0, gamepadBrake: 0 });
+      }
+      return;
+    }
+
+    if (!this.state.gamepadConnected) {
+      this.setState({ gamepadConnected: true });
+    }
 
     // Left stick: axes[0] = left/right turning only
     // Triggers: RT (button 7) = gas/forward, LT (button 6) = brake/backward
@@ -785,11 +954,23 @@ class BodyTeleop extends Component {
     let lx = gp.axes[0] || 0;
     if (Math.abs(lx) < DEADZONE) lx = 0;
 
-    const rt = (gp.buttons[7] && gp.buttons[7].value) || 0;
-    const lt = (gp.buttons[6] && gp.buttons[6].value) || 0;
+    // On some Linux drivers, triggers are analog on axes instead of buttons
+    // axes layout: [lx, ly, lt_axis, rx, ry, rt_axis] (varies by driver)
+    const rt = gp.axes[5] !== undefined ? (gp.axes[5] + 1) / 2
+      : gp.buttons[7] ? gp.buttons[7].value : 0;
+    const lt = gp.axes[4] !== undefined ? (gp.axes[4] + 1) / 2
+      : gp.buttons[6] ? gp.buttons[6].value : 0;
+
     const throttle = lt - rt; // negative = forward (gas), positive = backward (brake)
 
-    if (this.state.connectionState === 'connected') {
+    // Bumpers: LB = button 4 (rear camera), RB = button 5 (front camera)
+    const lb = gp.buttons[4] && gp.buttons[4].pressed;
+    const rb = gp.buttons[5] && gp.buttons[5].pressed;
+
+    // Update gamepad display values
+    // this.setState({ gamepadSteering: lx, gamepadGas: rt, gamepadBrake: lt, gamepadLB: !!lb, gamepadRB: !!rb });
+
+    if (this.state.connectionState === 'connected' && this.state.controllerEnabled) {
       this.connection.setJoystick(throttle, -lx);
       if (lx !== 0 || rt > 0 || lt > 0) {
         this.setState({ thumbPos: { x: lx, y: throttle } });
@@ -798,18 +979,11 @@ class BodyTeleop extends Component {
       }
     }
 
-    // Bumpers: LB = button 4, RB = button 5
-    const cameras = ['driver', 'wideRoad'];
-    const lb = gp.buttons[4] && gp.buttons[4].pressed;
-    const rb = gp.buttons[5] && gp.buttons[5].pressed;
-
     if (lb && !this.prevBumpers.lb) {
-      const idx = cameras.indexOf(this.state.activeCamera);
-      this.switchCamera(cameras[(idx - 1 + cameras.length) % cameras.length]);
+      this.switchCamera('wideRoad');
     }
     if (rb && !this.prevBumpers.rb) {
-      const idx = cameras.indexOf(this.state.activeCamera);
-      this.switchCamera(cameras[(idx + 1) % cameras.length]);
+      this.switchCamera('driver');
     }
 
     this.prevBumpers = { lb, rb };
@@ -853,7 +1027,7 @@ class BodyTeleop extends Component {
 
   renderHud() {
     const { classes } = this.props;
-    const { connectionState, batteryLevel } = this.state;
+    const { connectionState, batteryLevel, gamepadConnected, controllerEnabled } = this.state;
 
     return (
       <div className={classes.hudTopRight}>
@@ -880,6 +1054,18 @@ class BodyTeleop extends Component {
         >
           <PhotoCamera style={{ fontSize: 18 }} />
         </div>
+        {gamepadConnected && (
+          <div
+            className={`${classes.controllerToggle} ${!controllerEnabled ? classes.controllerToggleOff : ''}`}
+            onClick={() => this.setState((prev) => ({ controllerEnabled: !prev.controllerEnabled }))}
+            title={controllerEnabled ? 'Disable controller' : 'Enable controller'}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 11h4M8 9v4M15 12h.01M18 10h.01" />
+              <path d="M17.32 5H6.68a4 4 0 00-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 003 3c1.11 0 2.08-.806 2.22-1.78l.92-6.22h7.72l.92 6.22A2.24 2.24 0 0019 19a3 3 0 003-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.152A4 4 0 0017.32 5z" />
+            </svg>
+          </div>
+        )}
       </div>
     );
   }
@@ -907,6 +1093,73 @@ class BodyTeleop extends Component {
           className={`${classes.joystickThumb} ${thumbPos ? classes.joystickThumbActive : ''}`}
           style={{ left: thumbLeft, top: thumbTop }}
         />
+      </div>
+    );
+  }
+
+  renderControllerOverlay() {
+    const { classes } = this.props;
+    const { gamepadSteering, gamepadGas, gamepadBrake, gamepadLB, gamepadRB, activeCamera } = this.state;
+
+    // Joystick thumb position: map steering (-1 to 1) to left percentage
+    const thumbLeft = 50 + gamepadSteering * 34;
+
+    return (
+      <div className={classes.controllerOverlay}>
+        <div className={classes.triggerContainer}>
+          <span className={`${classes.bumperLabel} ${gamepadLB ? classes.bumperLabelActive : ''}`}>Rear Camera</span>
+          <div
+            className={`${classes.bumperShape} ${gamepadLB ? classes.bumperActive : ''}`}
+            style={activeCamera === 'wideRoad' ? { background: 'rgba(59,130,246,0.35)', borderColor: 'rgba(59,130,246,0.5)' } : undefined}
+          >
+            <span className={`${classes.bumperLabel} ${gamepadLB ? classes.bumperLabelActive : ''}`}>L1</span>
+          </div>
+          <div className={classes.triggerShape}>
+            <div
+              className={classes.triggerFill}
+              style={{
+                height: `${gamepadBrake * 100}%`,
+                background: 'rgba(239,68,68,0.45)',
+              }}
+            />
+            <span className={classes.triggerInnerLabel}>LT</span>
+          </div>
+          <span className={classes.triggerLabel}>Brake</span>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          <span className={classes.controllerJoystickLabel}>L Stick — Steering</span>
+          <div className={classes.controllerJoystick}>
+            <div className={classes.controllerJoystickTrack} />
+            <span className={classes.controllerJoystickArrows} style={{ left: 6 }}>{'\u25C0'}</span>
+            <span className={classes.controllerJoystickArrows} style={{ right: 6 }}>{'\u25B6'}</span>
+            <div
+              className={classes.controllerJoystickThumb}
+              style={{ left: `calc(${thumbLeft}% - 16px)` }}
+            />
+          </div>
+        </div>
+
+        <div className={classes.triggerContainer}>
+          <span className={`${classes.bumperLabel} ${gamepadRB ? classes.bumperLabelActive : ''}`}>Front Camera</span>
+          <div
+            className={`${classes.bumperShape} ${gamepadRB ? classes.bumperActive : ''}`}
+            style={activeCamera === 'driver' ? { background: 'rgba(59,130,246,0.35)', borderColor: 'rgba(59,130,246,0.5)' } : undefined}
+          >
+            <span className={`${classes.bumperLabel} ${gamepadRB ? classes.bumperLabelActive : ''}`}>R1</span>
+          </div>
+          <div className={classes.triggerShape}>
+            <div
+              className={classes.triggerFill}
+              style={{
+                height: `${gamepadGas * 100}%`,
+                background: 'rgba(34,197,94,0.45)',
+              }}
+            />
+            <span className={classes.triggerInnerLabel}>RT</span>
+          </div>
+          <span className={classes.triggerLabel}>Gas</span>
+        </div>
       </div>
     );
   }
@@ -1098,9 +1351,15 @@ class BodyTeleop extends Component {
           {this.renderHud()}
           {connected && this.renderStatsOverlay()}
           {!connected && this.renderConnectOverlay()}
-          {connected && !this.isMobile() && this.renderWasdKeys()}
-          {connected && this.renderCameraSwitcher(false)}
-          {connected && this.renderJoystick()}
+          {connected && this.state.gamepadConnected && this.state.controllerEnabled
+            ? this.renderControllerOverlay()
+            : (
+              <>
+                {connected && !this.isMobile() && this.renderWasdKeys()}
+                {connected && this.renderJoystick()}
+              </>
+            )}
+          {connected && !this.state.gamepadConnected && this.renderCameraSwitcher(false)}
         </div>
       </div>
     );
@@ -1134,8 +1393,10 @@ class BodyTeleop extends Component {
             <audio ref={this.audioRef} autoPlay />
             {connected && this.renderHud()}
             {connected && this.renderStatsOverlay()}
-            {connected && this.renderCameraSwitcher(true)}
-            {connected && this.renderJoystick()}
+            {connected && !this.state.gamepadConnected && this.renderCameraSwitcher(true)}
+            {connected && this.state.gamepadConnected && this.state.controllerEnabled
+              ? this.renderControllerOverlay()
+              : connected && this.renderJoystick()}
           </div>
           <div className={classes.portraitContent}>
             {!connected && (
