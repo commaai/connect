@@ -861,7 +861,7 @@ class BodyTeleop extends Component {
 
   setFlippedJoystick(x, y) {
     const flip = this.isRearCamera() ? -1 : 1;
-    this.connection.setJoystick(flip * x, flip * y);
+    this.connection.setJoystick(flip * x, y);
   }
 
   setKey(key, pressed) {
