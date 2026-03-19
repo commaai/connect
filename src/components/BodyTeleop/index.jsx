@@ -946,10 +946,12 @@ class BodyTeleop extends Component {
     this.setState({ error: null, showSslTrust: false });
     try {
       if (directAddress) {
-        const trusted = await checkSslTrust(directAddress);
-        if (!trusted) {
-          this.setState({ showSslTrust: true, connectionState: 'disconnected' });
-          return;
+        if (window.location.protocol === 'https:') {
+          const trusted = await checkSslTrust(directAddress);
+          if (!trusted) {
+            this.setState({ showSslTrust: true, connectionState: 'disconnected' });
+            return;
+          }
         }
         await this.connection.connectDirect(directAddress);
       } else {
