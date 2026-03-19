@@ -111,7 +111,8 @@ export class BodyTeleopConnection {
       await Promise.race([
         new Promise((resolve) => {
           if (this.pc.iceGatheringState === 'complete') return resolve();
-          const onCandidate = (evt) => {
+          let onCandidate, onComplete;
+          onCandidate = (evt) => {
             if (evt.candidate) {
               log(`first ICE candidate: ${evt.candidate.type || 'unknown'} ${evt.candidate.protocol || ''}`);
               this.callbacks.onStatusMessage?.('Finding network path...');
@@ -120,7 +121,7 @@ export class BodyTeleopConnection {
               resolve();
             }
           };
-          const onComplete = () => {
+          onComplete = () => {
             if (this.pc.iceGatheringState === 'complete') {
               this.pc.removeEventListener('icecandidate', onCandidate);
               this.pc.removeEventListener('icegatheringstatechange', onComplete);
