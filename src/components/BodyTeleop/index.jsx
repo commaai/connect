@@ -11,7 +11,7 @@ import PhotoCamera from '@material-ui/icons/PhotoCamera';
 
 import Colors from '../../colors';
 import { deviceNamePretty } from '../../utils';
-import { isMobile, isChrome } from '../../utils/browser';
+import { isMobile, isChrome, isFirefox, isSafari, isIos } from '../../utils/browser';
 import { BodyTeleopConnection, checkSslTrust, getDeviceBaseUrl } from '../../utils/bodyteleop';
 import { ArrowBackBold } from '../../icons';
 
@@ -177,8 +177,8 @@ const styles = () => ({
     bottom: 16,
     right: 16,
     zIndex: 10,
-    width: 128,
-    height: 128,
+    width: 160,
+    height: 160,
     borderRadius: '50%',
     background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.25), rgba(255,255,255,0.05))',
     boxShadow: 'inset 0 0 20px rgba(255,255,255,0.1), 0 4px 20px rgba(0,0,0,0.4)',
@@ -186,8 +186,8 @@ const styles = () => ({
     backdropFilter: 'blur(12px)',
     touchAction: 'none',
     '@media (min-width: 768px)': {
-      width: 144,
-      height: 144,
+      width: 160,
+      height: 160,
     },
   },
   joystickCrosshairV: {
@@ -220,14 +220,14 @@ const styles = () => ({
   },
   joystickThumb: {
     position: 'absolute',
-    width: 48,
-    height: 48,
+    width: 52,
+    height: 52,
     borderRadius: '50%',
     transform: 'translate(-50%, -50%)',
-    transition: 'left 16ms, top 16ms',
     background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.4), rgba(255,255,255,0.1))',
     boxShadow: 'inset 0 1px 4px rgba(255,255,255,0.3), 0 2px 8px rgba(0,0,0,0.3)',
     border: '1px solid rgba(255,255,255,0.25)',
+    willChange: 'left, top',
     '@media (min-width: 768px)': {
       width: 56,
       height: 56,
@@ -712,6 +712,23 @@ class BodyTeleop extends Component {
         this.stopStatsPolling();
       }
     }
+    // Re-attach video/audio streams when orientation changes (new DOM elements)
+    if (prevState.isLandscape !== this.state.isLandscape) {
+      if (this.videoRef.current) {
+        this.videoRef.current.srcObject = this.streams[this.state.activeCamera] || null;
+      }
+      if (this.audioRef.current && this.audioRef.current.srcObject === null) {
+        // Re-attach audio if available from connection
+        const pc = this.connection.pc;
+        if (pc) {
+          pc.getReceivers().forEach((receiver) => {
+            if (receiver.track && receiver.track.kind === 'audio') {
+              this.audioRef.current.srcObject = new MediaStream([receiver.track]);
+            }
+          });
+        }
+      }
+    }
   }
 
   componentWillUnmount() {
@@ -1084,16 +1101,18 @@ class BodyTeleop extends Component {
     );
   }
 
-  renderJoystick() {
+  renderJoystick(portrait) {
     const { classes } = this.props;
     const { thumbPos } = this.state;
     const thumbLeft = thumbPos ? `${50 + thumbPos.x * 35}%` : '50%';
     const thumbTop = thumbPos ? `${50 + thumbPos.y * 35}%` : '50%';
+    const portraitStyle = portrait ? { position: 'relative', bottom: 'auto', right: 'auto' } : undefined;
 
     return (
       <div
         ref={this.joystickAreaRef}
         className={classes.joystickArea}
+        style={portraitStyle}
         onTouchStart={this.handleTouchStart}
         onTouchMove={this.handleTouchMove}
         onTouchEnd={this.handleTouchEnd}
@@ -1309,10 +1328,37 @@ class BodyTeleop extends Component {
     window.open(trustUrl, '_blank');
   }
 
+  getSslInstructions() {
+    if (isSafari()) {
+      return [
+        'Tap "Show Details"',
+        'Tap "visit this website"',
+        'Tap "Visit Website" to confirm',
+      ];
+    }
+    if (isFirefox()) {
+      return [
+        'Click "Advanced\u2026"',
+        'Click "Accept Risk and Continue"',
+      ];
+    }
+    if (isChrome() && isIos()) {
+      return [
+        'Tap "Advanced"',
+        'Tap "Proceed to ... (unsafe)"',
+      ];
+    }
+    // Chrome desktop/Android
+    return [
+      'Click "Advanced"',
+      'Click "Proceed to ... (unsafe)"',
+    ];
+  }
+
   renderSslTrustDialog() {
     const { classes, directAddress } = this.props;
     const trustUrl = `${getDeviceBaseUrl(directAddress)}/trust`;
-    const chrome = isChrome();
+    const steps = this.getSslInstructions();
 
     return (
       <div className={classes.connectOverlay}>
@@ -1329,13 +1375,18 @@ class BodyTeleop extends Component {
           <Typography style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>
             Trust Device Certificate
           </Typography>
-          <Typography style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20, lineHeight: 1.5 }}>
-            {chrome
-              ? 'Your browser needs to trust the device\'s SSL certificate before connecting. '
-                + 'Click the button below to open the device page and accept the certificate.'
-              : 'Your browser needs to trust the device\'s SSL certificate. '
-                + 'Open the link below in a new tab, accept the security warning, then return here.'}
+          <Typography style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 16, lineHeight: 1.5 }}>
+            Your browser needs to trust this device&apos;s certificate before connecting.
+            Click the button below, then follow these steps:
           </Typography>
+          <div style={{ textAlign: 'left', margin: '0 auto 16px', maxWidth: 300 }}>
+            {steps.map((step, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontWeight: 600, minWidth: 18 }}>{i + 1}.</span>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>{step}</span>
+              </div>
+            ))}
+          </div>
           <Typography style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 16, wordBreak: 'break-all' }}>
             {trustUrl}
           </Typography>
@@ -1468,10 +1519,14 @@ class BodyTeleop extends Component {
             {connected && this.renderHud()}
             {connected && this.renderStatsOverlay()}
             {connected && !this.state.gamepadConnected && this.renderCameraSwitcher(true)}
-            {connected && this.state.gamepadConnected && this.state.controllerEnabled
-              ? this.renderControllerOverlay()
-              : connected && this.renderJoystick()}
           </div>
+          {connected && this.state.gamepadConnected && this.state.controllerEnabled
+            ? this.renderControllerOverlay()
+            : connected && (
+              <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 180 }}>
+                {this.renderJoystick(true)}
+              </div>
+            )}
           <div className={classes.portraitContent}>
             {this.state.showSslTrust ? this.renderSslTrustDialog() : !connected && (
               <>
