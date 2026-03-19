@@ -65,6 +65,15 @@ export class BodyTeleopConnection {
           const cameraName = this.cameraOrder[this.videoTrackIndex] || `camera${this.videoTrackIndex}`;
           this.videoTrackIndex += 1;
           log(`assigning video track to camera: ${cameraName}`);
+          // Minimize receiver-side buffering for low-latency playback
+          if (evt.receiver) {
+            if ('playoutDelayHint' in evt.receiver) {
+              evt.receiver.playoutDelayHint = 0;
+            }
+            if ('jitterBufferTarget' in evt.receiver) {
+              evt.receiver.jitterBufferTarget = 0;
+            }
+          }
           this.videoStreams[cameraName] = new MediaStream([evt.track]);
           this.callbacks.onVideoTrack(cameraName, new MediaStream([evt.track]));
         } else if (evt.track.kind === 'audio') {
@@ -86,6 +95,18 @@ export class BodyTeleopConnection {
 
       const codecs = RTCRtpReceiver.getCapabilities('video')?.codecs || [];
       const h264Codecs = codecs.filter((c) => c.mimeType === 'video/H264');
+      // Prefer Constrained Baseline (42e01f) with packetization-mode=1 for lowest decode latency
+      h264Codecs.sort((a, b) => {
+        const aProfile = a.sdpFmtpLine || '';
+        const bProfile = b.sdpFmtpLine || '';
+        const aIsBaseline = aProfile.includes('42e01f') || aProfile.includes('42001f');
+        const bIsBaseline = bProfile.includes('42e01f') || bProfile.includes('42001f');
+        const aIsPMode1 = aProfile.includes('packetization-mode=1');
+        const bIsPMode1 = bProfile.includes('packetization-mode=1');
+        if (aIsBaseline !== bIsBaseline) return aIsBaseline ? -1 : 1;
+        if (aIsPMode1 !== bIsPMode1) return aIsPMode1 ? -1 : 1;
+        return 0;
+      });
       const orderedCodecs = h264Codecs.length > 0
         ? [...h264Codecs, ...codecs.filter((c) => c.mimeType !== 'video/H264')]
         : codecs;
