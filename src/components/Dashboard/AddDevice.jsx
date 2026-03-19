@@ -184,7 +184,6 @@ class AddDevice extends Component {
       canvasWidth: null,
       canvasHeight: null,
       bodyIp: '',
-      bodyPort: '5001',
     };
 
     this.videoRef = null;
@@ -373,7 +372,7 @@ class AddDevice extends Component {
       return;
     }
 
-    this.setState({ modalOpen: false, dialogMode: 'choice', pairLoading: false, pairError: null, pairDongleId: null, bodyIp: '', bodyPort: '5001' });
+    this.setState({ modalOpen: false, dialogMode: 'choice', pairLoading: false, pairError: null, pairDongleId: null, bodyIp: '' });
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
     }
@@ -447,9 +446,9 @@ class AddDevice extends Component {
   }
 
   handleBodyConnect() {
-    const { bodyIp, bodyPort } = this.state;
+    const { bodyIp } = this.state;
     if (!bodyIp) return;
-    const address = bodyPort ? `${bodyIp}:${bodyPort}` : bodyIp;
+    const address = bodyIp;
     AddDevice.saveRecentBodyConnection(address);
     this.modalClose();
     if (this.props.onBodyTeleop) {
@@ -491,7 +490,7 @@ class AddDevice extends Component {
 
   render() {
     const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
-    const { modalOpen, dialogMode, hasCamera, cameraError, pairLoading, pairDongleId, pairError, bodyIp, bodyPort } = this.state;
+    const { modalOpen, dialogMode, hasCamera, cameraError, pairLoading, pairDongleId, pairError, bodyIp } = this.state;
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
@@ -582,7 +581,7 @@ class AddDevice extends Component {
           </div>
           <Divider className={ classes.divider } />
           <Typography variant="caption" style={{ marginBottom: 8, display: 'block' }}>
-            Enter the body IP address and port
+            Enter the body IP address
           </Typography>
           <div className={ classes.bodyInputRow }>
             <TextField
@@ -593,16 +592,6 @@ class AddDevice extends Component {
               value={ bodyIp }
               onChange={ (e) => this.setState({ bodyIp: e.target.value }) }
               onKeyDown={ (e) => e.key === 'Enter' && this.handleBodyConnect() }
-            />
-            <TextField
-              className={ classes.bodyInput }
-              variant="outlined"
-              placeholder="5001"
-              label="Port"
-              value={ bodyPort }
-              onChange={ (e) => this.setState({ bodyPort: e.target.value }) }
-              onKeyDown={ (e) => e.key === 'Enter' && this.handleBodyConnect() }
-              style={{ maxWidth: 90 }}
             />
           </div>
           <Button

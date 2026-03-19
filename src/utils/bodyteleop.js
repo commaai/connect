@@ -1,7 +1,10 @@
 import { athena as Athena } from '@commaai/api';
 
 export function getDeviceBaseUrl(address) {
-  return `https://${address}`;
+  const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
+  const port = protocol === 'https' ? 5002 : 5001;
+  const host = address.includes(':') ? address.split(':')[0] : address;
+  return `${protocol}://${host}:${port}`;
 }
 
 export async function checkSslTrust(address) {
