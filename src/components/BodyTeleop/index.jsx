@@ -1376,30 +1376,39 @@ class BodyTeleop extends Component {
 
   renderSslTrustDialog() {
     const { classes, directAddress } = this.props;
+    const { isLandscape } = this.state;
     const trustUrl = `${getDeviceBaseUrl(directAddress)}/trust`;
     const steps = this.getSslInstructions();
 
     return (
-      <div className={classes.connectOverlay}>
-        <div className={classes.connectContent} style={{ maxWidth: 380, width: '90%' }}>
-          <Typography style={{ fontSize: 20, fontWeight: 600 }}>
+      <div className={classes.connectOverlay} style={{ overflow: 'auto' }}>
+        <div className={classes.connectContent} style={{
+          maxWidth: isLandscape ? 520 : 380,
+          width: '90%',
+          background: Colors.grey900,
+          borderRadius: 16,
+          padding: isLandscape ? 16 : 24,
+          gap: isLandscape ? 10 : 16,
+          margin: 'auto',
+        }}>
+          <Typography style={{ fontSize: isLandscape ? 16 : 18, fontWeight: 600 }}>
             Trust Device Certificate
           </Typography>
-          <Typography style={{ fontSize: 18, color: Colors.white60, lineHeight: 1.5, textAlign: 'center' }}>
-            Your browser needs to trust this local network device&apos;s self-signed certificate
-            before connecting. Click the button below, then follow these steps:
+          <Typography style={{ fontSize: isLandscape ? 12 : 14, color: Colors.white60, lineHeight: 1.5, textAlign: 'center' }}>
+            Your browser needs to trust this local network device&apos;s self-signed cert
+            before connecting. Follow these steps:
           </Typography>
           <div style={{
             textAlign: 'left',
             background: Colors.white08,
             borderRadius: 12,
-            padding: '12px 16px',
+            padding: isLandscape ? '8px 12px' : '12px 16px',
             width: '100%',
           }}>
             {steps.map((step, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: i < steps.length - 1 ? 6 : 0 }}>
-                <span style={{ fontSize: 14, color: Colors.white40, fontWeight: 600, minWidth: 16 }}>{i + 1}.</span>
-                <span style={{ fontSize: 14, color: Colors.white70, lineHeight: 1.4 }}>{step}</span>
+              <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: i < steps.length - 1 ? (isLandscape ? 2 : 6) : 0 }}>
+                <span style={{ fontSize: isLandscape ? 12 : 14, color: Colors.white40, fontWeight: 600, minWidth: 16 }}>{i + 1}.</span>
+                <span style={{ fontSize: isLandscape ? 12 : 14, color: Colors.white70, lineHeight: 1.4 }}>{step}</span>
               </div>
             ))}
           </div>
@@ -1410,10 +1419,10 @@ class BodyTeleop extends Component {
           >
             Open Trust Page
           </Button>
-          <Typography style={{ fontSize: 14, color: Colors.white40, wordBreak: 'break-all', textAlign: 'center' }}>
+          <Typography style={{ fontSize: isLandscape ? 10 : 12, color: Colors.white40, wordBreak: 'break-all', textAlign: 'center' }}>
             {trustUrl}
           </Typography>
-          <Typography style={{ fontSize: 14, color: Colors.white70 }}>
+          <Typography style={{ fontSize: isLandscape ? 12 : 14, color: Colors.white70 }}>
             After accepting, this page will connect automatically.
           </Typography>
         </div>
