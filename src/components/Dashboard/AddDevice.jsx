@@ -44,7 +44,7 @@ const styles = (theme) => ({
   modal: {
     position: 'absolute',
     padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
+    width: theme.spacing.unit * 62,
     maxWidth: '90%',
     left: '50%',
     top: '50%',
@@ -98,14 +98,15 @@ const styles = (theme) => ({
   },
   choiceContainer: {
     display: 'flex',
-    gap: 16,
     marginTop: 8,
+    '@media (max-width: 500px)': {
+      flexDirection: 'column',
+    },
   },
   choiceButton: {
     flex: 1,
-    aspectRatio: '1',
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     background: 'transparent',
@@ -113,17 +114,19 @@ const styles = (theme) => ({
     borderRadius: 12,
     color: Colors.white,
     textTransform: 'none',
-    padding: 16,
+    padding: '16px 20px',
+    margin: 6,
     fontSize: 14,
     lineHeight: 1.3,
+    minWidth: 0,
     '&:hover': {
       backgroundColor: Colors.white10,
       borderColor: Colors.white50,
     },
   },
   choiceIcon: {
-    fontSize: 36,
-    marginBottom: 8,
+    fontSize: 24,
+    marginRight: 10,
     opacity: 0.7,
   },
   bodyInputRow: {
@@ -513,7 +516,7 @@ class AddDevice extends Component {
               onClick={ () => this.setState({ dialogMode: 'body' }) }
             >
               <span className={ classes.choiceIcon } role="img" aria-label="body">&#129302;</span>
-              Control a comma body temporarily
+              Connect to a COMMA body
             </Button>
           </div>
         </>

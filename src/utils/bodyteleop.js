@@ -10,7 +10,7 @@ export class BodyTeleopConnection {
     this.videoStreams = {};
     this.audioStream = null;
     this.callbacks = callbacks;
-    this.cameraOrder = ['driver', 'wideRoad', 'road'];
+    this.cameraOrder = ['driver', 'wideRoad'];
     this.videoTrackIndex = 0;
   }
 

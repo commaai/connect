@@ -655,7 +655,7 @@ class BodyTeleop extends Component {
       e.preventDefault();
       this.setKey(k, true);
     }
-    const cameraKeys = { 1: 'driver', 2: 'wideRoad', 3: 'road' };
+    const cameraKeys = { 1: 'driver', 2: 'wideRoad' };
     if (cameraKeys[e.key]) {
       e.preventDefault();
       this.switchCamera(cameraKeys[e.key]);
@@ -799,7 +799,7 @@ class BodyTeleop extends Component {
     }
 
     // Bumpers: LB = button 4, RB = button 5
-    const cameras = ['driver', 'wideRoad', 'road'];
+    const cameras = ['driver', 'wideRoad'];
     const lb = gp.buttons[4] && gp.buttons[4].pressed;
     const rb = gp.buttons[5] && gp.buttons[5].pressed;
 
@@ -944,7 +944,6 @@ class BodyTeleop extends Component {
     const cameras = [
       { key: 'driver', label: 'front', num: '1' },
       { key: 'wideRoad', label: 'rear', num: '2' },
-      { key: 'road', label: 'rear zoom', num: '3' },
     ];
 
     return (

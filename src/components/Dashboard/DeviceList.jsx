@@ -86,30 +86,50 @@ const styles = (theme) => ({
   addDeviceContainer: {
     '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.25)' },
   },
+  recentContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
+    zIndex: 10,
+    pointerEvents: 'none',
+  },
+  recentInner: {
+    pointerEvents: 'auto',
+    background: Colors.grey950 || '#0c0c0c',
+    borderTop: `1px solid ${Colors.white10}`,
+  },
   recentHeader: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '12px 32px 4px',
+    padding: '18px 32px',
     cursor: 'pointer',
     userSelect: 'none',
-    '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.15)' },
+    '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)' },
   },
   recentHeaderLeft: {
     display: 'flex',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
   },
   recentLabel: {
-    color: Colors.white50,
-    fontSize: 12,
+    color: Colors.white70,
+    fontSize: 13,
     fontWeight: 600,
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
   },
   recentExpandIcon: {
-    color: Colors.white30,
-    fontSize: 18,
+    color: Colors.white50,
+    fontSize: 20,
+  },
+  recentList: {
+    maxHeight: 200,
+    overflowY: 'auto',
   },
   recentItem: {
     display: 'flex',
@@ -262,47 +282,57 @@ class DeviceList extends Component {
       padding: '16px 44px 16px 54px',
     };
 
+    const hasRecent = recentConnections.length > 0;
+
     return (
       <>
         <VisibilityHandler onVisible={ this.onVisible } minInterval={ 10 } />
-        <div
-          className={`scrollstyle ${classes.deviceList}`}
-          style={{ height: 'calc(100vh - 64px)' }}
-        >
-          {devices.map(this.renderDevice)}
-          {MyCommaAuth.isAuthenticated() && (
-            <div className={classes.addDeviceContainer}>
-              <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon onBodyTeleop={this.props.onBodyTeleop} />
-            </div>
-          )}
-          {recentConnections.length > 0 && (
-            <>
-              <div className={classes.recentHeader} onClick={this.toggleRecent}>
-                <div className={classes.recentHeaderLeft}>
-                  <Typography className={classes.recentLabel}>Recent bodies</Typography>
+        <div style={{ position: 'relative', height: 'calc(100vh - 64px)' }}>
+          <div
+            className={`scrollstyle ${classes.deviceList}`}
+            style={{ height: '100%' }}
+          >
+            {devices.map(this.renderDevice)}
+            {MyCommaAuth.isAuthenticated() && (
+              <div className={classes.addDeviceContainer}>
+                <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon onBodyTeleop={this.props.onBodyTeleop} />
+              </div>
+            )}
+            {/* spacer so content isn't hidden behind pinned recent section */}
+            {hasRecent && <div style={{ height: 48 }} />}
+          </div>
+          {hasRecent && (
+            <div className={classes.recentContainer}>
+              <div className={classes.recentInner}>
+                <Collapse in={recentExpanded}>
+                  <div className={`scrollstyle ${classes.recentList}`}>
+                    {recentConnections.map((address) => (
+                      <div
+                        key={address}
+                        className={classes.recentItem}
+                        onClick={() => this.handleRecentConnect(address)}
+                      >
+                        <Typography className={classes.recentAddress}>{address}</Typography>
+                        <IconButton
+                          className={classes.recentRemoveButton}
+                          onClick={(ev) => this.handleRecentRemove(address, ev)}
+                        >
+                          <CloseIcon className={classes.recentRemoveIcon} />
+                        </IconButton>
+                      </div>
+                    ))}
+                  </div>
+                </Collapse>
+                <div className={classes.recentHeader} onClick={this.toggleRecent}>
+                  <div className={classes.recentHeaderLeft}>
+                    <Typography className={classes.recentLabel}>Recent body(s) connected to</Typography>
+                  </div>
                   {recentExpanded
-                    ? <ExpandLessIcon className={classes.recentExpandIcon} />
-                    : <ExpandMoreIcon className={classes.recentExpandIcon} />}
+                    ? <ExpandMoreIcon className={classes.recentExpandIcon} />
+                    : <ExpandLessIcon className={classes.recentExpandIcon} />}
                 </div>
               </div>
-              <Collapse in={recentExpanded}>
-                {recentConnections.map((address) => (
-                  <div
-                    key={address}
-                    className={classes.recentItem}
-                    onClick={() => this.handleRecentConnect(address)}
-                  >
-                    <Typography className={classes.recentAddress}>{address}</Typography>
-                    <IconButton
-                      className={classes.recentRemoveButton}
-                      onClick={(ev) => this.handleRecentRemove(address, ev)}
-                    >
-                      <CloseIcon className={classes.recentRemoveIcon} />
-                    </IconButton>
-                  </div>
-                ))}
-              </Collapse>
-            </>
+            </div>
           )}
         </div>
         <DeviceSettingsModal
