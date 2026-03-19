@@ -122,7 +122,8 @@ class App extends Component {
       return this.renderLoading();
     }
 
-    const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(window.location.pathname) && !getSegmentRange(window.location.pathname);
+    const hasBodyParam = window.location && new URLSearchParams(window.location.search).has('body');
+    const showLogin = !MyCommaAuth.isAuthenticated() && !hasBodyParam && !getZoom(window.location.pathname) && !getSegmentRange(window.location.pathname);
     let content = (
       <Suspense fallback={this.renderLoading()}>
         { showLogin ? this.anonymousRoutes() : this.authRoutes() }

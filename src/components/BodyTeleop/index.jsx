@@ -11,8 +11,8 @@ import PhotoCamera from '@material-ui/icons/PhotoCamera';
 
 import Colors from '../../colors';
 import { deviceNamePretty } from '../../utils';
-import { isMobile } from '../../utils/browser';
-import { BodyTeleopConnection } from '../../utils/bodyteleop';
+import { isMobile, isChrome } from '../../utils/browser';
+import { BodyTeleopConnection, checkSslTrust, getDeviceBaseUrl } from '../../utils/bodyteleop';
 import { ArrowBackBold } from '../../icons';
 
 const styles = () => ({
@@ -631,6 +631,7 @@ class BodyTeleop extends Component {
       gamepadBrake: 0,
       gamepadLB: false,
       gamepadRB: false,
+      showSslTrust: false,
     };
 
     this.videoRef = React.createRef();
@@ -693,6 +694,13 @@ class BodyTeleop extends Component {
     this.landscapeQuery.addEventListener('change', this.onLandscapeChange);
     this.setState({ isLandscape: this.landscapeQuery.matches });
     this.gamepadAnimFrame = requestAnimationFrame(this.pollGamepad);
+    this.onSslMessage = (evt) => {
+      if (evt.data?.type === 'ssl_cert_accepted') {
+        this.setState({ showSslTrust: false });
+        this.handleConnect();
+      }
+    };
+    window.addEventListener('message', this.onSslMessage);
     this.handleConnect();
   }
 
@@ -717,6 +725,7 @@ class BodyTeleop extends Component {
     if (this.gamepadAnimFrame) {
       cancelAnimationFrame(this.gamepadAnimFrame);
     }
+    window.removeEventListener('message', this.onSslMessage);
     this.stopStatsPolling();
     this.connection.disconnect();
   }
@@ -908,9 +917,14 @@ class BodyTeleop extends Component {
 
   async handleConnect() {
     const { dongleId, directAddress } = this.props;
-    this.setState({ error: null });
+    this.setState({ error: null, showSslTrust: false });
     try {
       if (directAddress) {
+        const trusted = await checkSslTrust(directAddress);
+        if (!trusted) {
+          this.setState({ showSslTrust: true, connectionState: 'disconnected' });
+          return;
+        }
         await this.connection.connectDirect(directAddress);
       } else {
         await this.connection.connect(dongleId);
@@ -1289,6 +1303,66 @@ class BodyTeleop extends Component {
     );
   }
 
+  handleOpenTrustPage() {
+    const { directAddress } = this.props;
+    const trustUrl = `${getDeviceBaseUrl(directAddress)}/trust`;
+    window.open(trustUrl, '_blank');
+  }
+
+  renderSslTrustDialog() {
+    const { classes, directAddress } = this.props;
+    const trustUrl = `${getDeviceBaseUrl(directAddress)}/trust`;
+    const chrome = isChrome();
+
+    return (
+      <div className={classes.connectOverlay}>
+        <div style={{
+          background: 'rgba(30,30,30,0.95)',
+          borderRadius: 16,
+          padding: '32px 28px',
+          maxWidth: 420,
+          width: '90%',
+          textAlign: 'center',
+          backdropFilter: 'blur(12px)',
+        }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>{'\uD83D\uDD12'}</div>
+          <Typography style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>
+            Trust Device Certificate
+          </Typography>
+          <Typography style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20, lineHeight: 1.5 }}>
+            {chrome
+              ? 'Your browser needs to trust the device\'s SSL certificate before connecting. '
+                + 'Click the button below to open the device page and accept the certificate.'
+              : 'Your browser needs to trust the device\'s SSL certificate. '
+                + 'Open the link below in a new tab, accept the security warning, then return here.'}
+          </Typography>
+          <Typography style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 16, wordBreak: 'break-all' }}>
+            {trustUrl}
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={() => this.handleOpenTrustPage()}
+            style={{
+              background: '#4CAF50',
+              color: '#fff',
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: 15,
+              borderRadius: 8,
+              padding: '10px 32px',
+              marginBottom: 12,
+            }}
+          >
+            Open COMMA Trust Page
+          </Button>
+          <Typography style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>
+            After accepting, this page will connect automatically.
+          </Typography>
+        </div>
+      </div>
+    );
+  }
+
   renderConnectOverlay() {
     const { classes } = this.props;
     const { connectionState, error, statusMessage, connectProgress } = this.state;
@@ -1350,7 +1424,7 @@ class BodyTeleop extends Component {
 
           {this.renderHud()}
           {connected && this.renderStatsOverlay()}
-          {!connected && this.renderConnectOverlay()}
+          {this.state.showSslTrust ? this.renderSslTrustDialog() : !connected && this.renderConnectOverlay()}
           {connected && this.state.gamepadConnected && this.state.controllerEnabled
             ? this.renderControllerOverlay()
             : (
@@ -1399,7 +1473,7 @@ class BodyTeleop extends Component {
               : connected && this.renderJoystick()}
           </div>
           <div className={classes.portraitContent}>
-            {!connected && (
+            {this.state.showSslTrust ? this.renderSslTrustDialog() : !connected && (
               <>
                 <div className={classes.statusRow}>
                   <div className={classes.statusLeft}>

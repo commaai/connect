@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import svgrPlugin from 'vite-plugin-svgr';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
+import basicSsl from '@vitejs/plugin-basic-ssl'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -39,6 +40,7 @@ export default defineConfig(({ mode }) => {
       }),
       svgrPlugin(),
       sentryPlugin,
+      // basicSsl(),
     ].filter(Boolean),
     optimizeDeps: {
       esbuildOptions: {

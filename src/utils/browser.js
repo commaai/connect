@@ -9,3 +9,7 @@ export function isMobile() {
 export function isFirefox() {
   return navigator.userAgent.toLowerCase().includes('firefox');
 }
+
+export function isChrome() {
+  return /chrome/i.test(navigator.userAgent) && !/edg/i.test(navigator.userAgent);
+}

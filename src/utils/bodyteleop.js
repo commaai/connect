@@ -1,5 +1,19 @@
 import { athena as Athena } from '@commaai/api';
 
+export function getDeviceBaseUrl(address) {
+  return `https://${address}`;
+}
+
+export async function checkSslTrust(address) {
+  try {
+    await fetch(`${getDeviceBaseUrl(address)}/trust`, { mode: 'no-cors' });
+    // If we get any response (even opaque), the SSL handshake succeeded
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 export class BodyTeleopConnection {
   constructor(callbacks) {
     this.pc = null;
@@ -169,7 +183,7 @@ export class BodyTeleopConnection {
         log(`sending offer to ${this.directAddress}`);
         let resp;
         try {
-          resp = await fetch(`http://${this.directAddress}/stream`, {
+          resp = await fetch(`${getDeviceBaseUrl(this.directAddress)}/stream`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sdp, cameras: this.cameraOrder, bridge_services_in: ['testJoystick'], bridge_services_out: ['carState'] }),
