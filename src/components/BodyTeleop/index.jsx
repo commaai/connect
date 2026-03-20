@@ -8,12 +8,23 @@ import InfoOutline from '@material-ui/icons/InfoOutline';
 import ScreenRotation from '@material-ui/icons/ScreenRotation';
 import BatteryFull from '@material-ui/icons/BatteryFull';
 import PhotoCamera from '@material-ui/icons/PhotoCamera';
+import VolumeUp from '@material-ui/icons/VolumeUp';
+import VolumeOff from '@material-ui/icons/VolumeOff';
+import Mic from '@material-ui/icons/Mic';
+import MicOff from '@material-ui/icons/MicOff';
 
 import Colors from '../../colors';
 import { deviceNamePretty } from '../../utils';
 import { isMobile, isChrome, isFirefox, isSafari, isIos } from '../../utils/browser';
 import { BodyTeleopConnection, checkSslTrust, getDeviceBaseUrl } from '../../utils/bodyteleop';
 import { ArrowBackBold } from '../../icons';
+
+const QUICK_SOUNDS = [
+  { key: 'engage', label: 'Engage' },
+  { key: 'disengage', label: 'Disengage' },
+  { key: 'prompt', label: 'Prompt' },
+  { key: 'warning', label: 'Warning' },
+];
 
 const styles = () => ({
   root: {
@@ -331,6 +342,47 @@ const styles = () => ({
     fontWeight: 700,
     background: 'rgba(255,255,255,0.15)',
   },
+  quickSounds: {
+    position: 'absolute',
+    bottom: 64,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    zIndex: 10,
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: '6px',
+    padding: 6,
+    borderRadius: 14,
+    background: 'rgba(0,0,0,0.35)',
+    backdropFilter: 'blur(8px)',
+    maxWidth: 'min(92vw, 520px)',
+  },
+  quickSoundsPortrait: {
+    position: 'relative',
+    bottom: 'auto',
+    left: 'auto',
+    transform: 'none',
+    alignSelf: 'center',
+    maxWidth: '100%',
+  },
+  quickSoundButton: {
+    padding: '6px 12px',
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
+    color: Colors.white70,
+    background: 'rgba(255,255,255,0.12)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    cursor: 'pointer',
+    userSelect: 'none',
+    '&:hover': {
+      color: Colors.white,
+      background: 'rgba(255,255,255,0.2)',
+    },
+  },
   // Portrait mode
   portraitContent: {
     padding: 16,
@@ -632,6 +684,9 @@ class BodyTeleop extends Component {
       gamepadLB: false,
       gamepadRB: false,
       showSslTrust: false,
+      streamMuted: true,
+      micMuted: true,
+      micPermission: 'unknown',
     };
 
     this.videoRef = React.createRef();
@@ -640,12 +695,22 @@ class BodyTeleop extends Component {
     this.touchId = null;
     this.mouseDragging = false;
     this.streams = {};
+    this.remoteAudioStream = null;
 
     this.connection = new BodyTeleopConnection({
-      onConnectionState: (connectionState) => this.setState({
-        connectionState,
-        ...(connectionState !== 'connecting' ? { statusMessage: null, connectProgress: 0 } : {}),
-      }),
+      onConnectionState: (connectionState) => {
+        if (connectionState !== 'connected') {
+          this.remoteAudioStream = null;
+          if (this.audioRef.current) {
+            this.audioRef.current.srcObject = null;
+          }
+        }
+        this.setState({
+          connectionState,
+          ...(connectionState !== 'connecting' ? { statusMessage: null, connectProgress: 0 } : {}),
+          ...(connectionState !== 'connected' ? { micMuted: true } : {}),
+        });
+      },
       onStatusMessage: (statusMessage) => {
         const progressMap = {
           'Preparing connection...': 10,
@@ -664,9 +729,7 @@ class BodyTeleop extends Component {
           this.videoRef.current.srcObject = stream;
         }
       },
-      onAudioTrack: (stream) => {
-        if (this.audioRef.current) this.audioRef.current.srcObject = stream;
-      },
+      onAudioTrack: (stream) => this.setRemoteAudioStream(stream),
     });
 
     this.onKeyDown = this.onKeyDown.bind(this);
@@ -682,6 +745,10 @@ class BodyTeleop extends Component {
     this.onLandscapeChange = this.onLandscapeChange.bind(this);
     this.handleClose = this.handleClose.bind(this);
     this.pollGamepad = this.pollGamepad.bind(this);
+    this.toggleStreamMuted = this.toggleStreamMuted.bind(this);
+    this.handleMicToggle = this.handleMicToggle.bind(this);
+    this.handlePlaySound = this.handlePlaySound.bind(this);
+    this.syncAudioElement = this.syncAudioElement.bind(this);
 
     this.gamepadAnimFrame = null;
     this.prevBumpers = { lb: false, rb: false };
@@ -712,21 +779,17 @@ class BodyTeleop extends Component {
         this.stopStatsPolling();
       }
     }
+    if (prevState.streamMuted !== this.state.streamMuted) {
+      this.syncAudioElement();
+    }
     // Re-attach video/audio streams when orientation changes (new DOM elements)
     if (prevState.isLandscape !== this.state.isLandscape) {
       if (this.videoRef.current) {
         this.videoRef.current.srcObject = this.streams[this.state.activeCamera] || null;
       }
-      if (this.audioRef.current && this.audioRef.current.srcObject === null) {
-        // Re-attach audio if available from connection
-        const pc = this.connection.pc;
-        if (pc) {
-          pc.getReceivers().forEach((receiver) => {
-            if (receiver.track && receiver.track.kind === 'audio') {
-              this.audioRef.current.srcObject = new MediaStream([receiver.track]);
-            }
-          });
-        }
+      if (this.audioRef.current) {
+        this.audioRef.current.srcObject = this.remoteAudioStream;
+        this.syncAudioElement();
       }
     }
   }
@@ -762,6 +825,23 @@ class BodyTeleop extends Component {
       this.statsInterval = null;
     }
     this.setState({ stats: null });
+  }
+
+  setRemoteAudioStream(stream) {
+    this.remoteAudioStream = stream;
+    if (this.audioRef.current) {
+      this.audioRef.current.srcObject = stream;
+    }
+    this.syncAudioElement();
+  }
+
+  syncAudioElement() {
+    if (!this.audioRef.current) return;
+    this.audioRef.current.muted = this.state.streamMuted;
+    const playPromise = this.audioRef.current.play?.();
+    if (playPromise && playPromise.catch) {
+      playPromise.catch(() => {});
+    }
   }
 
   async pollStats() {
@@ -963,8 +1043,29 @@ class BodyTeleop extends Component {
   }
 
   handleDisconnect() {
-    this.setState({ error: null });
+    this.setState({ error: null, micMuted: true });
     this.connection.disconnect();
+  }
+
+  toggleStreamMuted() {
+    this.setState((prev) => ({ streamMuted: !prev.streamMuted }));
+  }
+
+  async handleMicToggle() {
+    const { micMuted } = this.state;
+    try {
+      await this.connection.setMicrophoneMuted(!micMuted);
+      this.setState({
+        micMuted: !micMuted,
+        ...(micMuted ? { micPermission: 'granted' } : {}),
+      });
+    } catch (_) {
+      this.setState({ micPermission: 'denied', micMuted: true });
+    }
+  }
+
+  handlePlaySound(sound) {
+    this.connection.playSound(sound);
   }
 
   handleClose() {
@@ -1069,7 +1170,11 @@ class BodyTeleop extends Component {
 
   renderHud() {
     const { classes } = this.props;
-    const { connectionState, batteryLevel, gamepadConnected, controllerEnabled } = this.state;
+    const { connectionState, batteryLevel, gamepadConnected, controllerEnabled, streamMuted, micMuted, micPermission } = this.state;
+    const connected = connectionState === 'connected';
+    const micTitle = micPermission === 'denied'
+      ? 'Microphone permission blocked'
+      : (micMuted ? (micPermission === 'granted' ? 'Unmute mic' : 'Enable mic') : 'Mute mic');
 
     return (
       <div className={classes.hudTopRight}>
@@ -1096,6 +1201,24 @@ class BodyTeleop extends Component {
         >
           <PhotoCamera style={{ fontSize: 18 }} />
         </div>
+        {connected && (
+          <div
+            className={`${classes.controllerToggle} ${streamMuted ? classes.controllerToggleOff : ''}`}
+            onClick={this.toggleStreamMuted}
+            title={streamMuted ? 'Unmute stream audio' : 'Mute stream audio'}
+          >
+            {streamMuted ? <VolumeOff style={{ fontSize: 18 }} /> : <VolumeUp style={{ fontSize: 18 }} />}
+          </div>
+        )}
+        {connected && (
+          <div
+            className={`${classes.controllerToggle} ${micMuted ? classes.controllerToggleOff : ''}`}
+            onClick={this.handleMicToggle}
+            title={micTitle}
+          >
+            {micMuted ? <MicOff style={{ fontSize: 18 }} /> : <Mic style={{ fontSize: 18 }} />}
+          </div>
+        )}
         {gamepadConnected && (
           <div
             className={`${classes.controllerToggle} ${!controllerEnabled ? classes.controllerToggleOff : ''}`}
@@ -1108,6 +1231,24 @@ class BodyTeleop extends Component {
             </svg>
           </div>
         )}
+      </div>
+    );
+  }
+
+  renderQuickSounds(portrait) {
+    const { classes } = this.props;
+
+    return (
+      <div className={`${classes.quickSounds} ${portrait ? classes.quickSoundsPortrait : ''}`}>
+        {QUICK_SOUNDS.map((sound) => (
+          <div
+            key={sound.key}
+            className={classes.quickSoundButton}
+            onClick={() => this.handlePlaySound(sound.key)}
+          >
+            {sound.label}
+          </div>
+        ))}
       </div>
     );
   }
@@ -1477,7 +1618,7 @@ class BodyTeleop extends Component {
       <div className={classes.root}>
         <div className={classes.videoContainer}>
           <video ref={this.videoRef} autoPlay playsInline muted className={classes.video} />
-          <audio ref={this.audioRef} autoPlay />
+          <audio ref={this.audioRef} autoPlay muted={this.state.streamMuted} />
 
           {/* Back button + device name */}
           <div style={{ position: 'absolute', left: 8, top: 8, zIndex: 20, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1500,6 +1641,7 @@ class BodyTeleop extends Component {
                 {connected && this.renderJoystick()}
               </>
             )}
+          {connected && this.renderQuickSounds(false)}
           {connected && !this.state.gamepadConnected && this.renderCameraSwitcher(false)}
         </div>
       </div>
@@ -1531,7 +1673,7 @@ class BodyTeleop extends Component {
               muted
               style={{ width: '100%', aspectRatio: '4/3', display: 'block' }}
             />
-            <audio ref={this.audioRef} autoPlay />
+            <audio ref={this.audioRef} autoPlay muted={this.state.streamMuted} />
             {connected && this.renderHud()}
             {connected && this.renderStatsOverlay()}
             {connected && !this.state.gamepadConnected && this.renderCameraSwitcher(true)}
@@ -1594,6 +1736,7 @@ class BodyTeleop extends Component {
                 Disconnect
               </Button>
             )}
+            {connected && this.renderQuickSounds(true)}
             <div className={classes.infoBox}>
               <div className={classes.infoRow}>
                 <InfoOutline style={{ fontSize: 18 }} />

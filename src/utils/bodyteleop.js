@@ -21,11 +21,19 @@ export class BodyTeleopConnection {
   constructor(callbacks) {
     this.pc = null;
     this.dc = null;
+    this.audioTransceiver = null;
     this.joystickInterval = null;
     this.joystickX = 0;
     this.joystickY = 0;
     this.videoStreams = {};
     this.audioStream = null;
+    this.localMicStream = null;
+    this.localMicTrack = null;
+    this.silentAudioContext = null;
+    this.silentAudioDestination = null;
+    this.silentAudioGain = null;
+    this.silentAudioOscillator = null;
+    this.silentAudioTrack = null;
     this.callbacks = callbacks;
     this.cameraOrder = ['driver', 'wideRoad'];
     this.videoTrackIndex = 0;
@@ -77,8 +85,8 @@ export class BodyTeleopConnection {
           this.videoStreams[cameraName] = new MediaStream([evt.track]);
           this.callbacks.onVideoTrack(cameraName, new MediaStream([evt.track]));
         } else if (evt.track.kind === 'audio') {
-          this.audioStream = evt.streams[0];
-          this.callbacks.onAudioTrack(evt.streams[0]);
+          this.audioStream = evt.streams[0] || new MediaStream([evt.track]);
+          this.callbacks.onAudioTrack(this.audioStream);
         }
       });
 
@@ -116,6 +124,11 @@ export class BodyTeleopConnection {
         if (orderedCodecs.length > 0) {
           transceiver.setCodecPreferences(orderedCodecs);
         }
+      }
+      this.audioTransceiver = this.pc.addTransceiver('audio', { direction: 'sendrecv' });
+      const silentTrack = await this.ensureSilentAudioTrack();
+      if (silentTrack) {
+        await this.audioTransceiver.sender.replaceTrack(silentTrack);
       }
 
       this.dc = this.pc.createDataChannel('data', { ordered: true });
@@ -245,6 +258,82 @@ export class BodyTeleopConnection {
     }
   }
 
+  async ensureSilentAudioTrack() {
+    if (this.silentAudioTrack && this.silentAudioTrack.readyState === 'live') {
+      return this.silentAudioTrack;
+    }
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+      return null;
+    }
+
+    if (!this.silentAudioContext) {
+      this.silentAudioContext = new AudioContextClass();
+    }
+
+    this.silentAudioDestination = this.silentAudioContext.createMediaStreamDestination();
+    this.silentAudioOscillator = this.silentAudioContext.createOscillator();
+    this.silentAudioGain = this.silentAudioContext.createGain();
+    this.silentAudioGain.gain.value = 0;
+    this.silentAudioOscillator.connect(this.silentAudioGain);
+    this.silentAudioGain.connect(this.silentAudioDestination);
+    this.silentAudioOscillator.start();
+    await this.silentAudioContext.resume().catch(() => {});
+
+    [this.silentAudioTrack] = this.silentAudioDestination.stream.getAudioTracks();
+    return this.silentAudioTrack;
+  }
+
+  async ensureMicrophoneTrack() {
+    if (this.localMicTrack && this.localMicTrack.readyState === 'live') {
+      return this.localMicTrack;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('This browser does not support microphone access.');
+    }
+
+    this.localMicStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+    [this.localMicTrack] = this.localMicStream.getAudioTracks();
+    return this.localMicTrack;
+  }
+
+  async setMicrophoneMuted(muted) {
+    if (muted) {
+      if (this.localMicStream) {
+        this.localMicStream.getTracks().forEach((track) => track.stop());
+        this.localMicStream = null;
+      }
+      this.localMicTrack = null;
+      if (this.audioTransceiver) {
+        const silentTrack = await this.ensureSilentAudioTrack();
+        if (silentTrack) {
+          await this.audioTransceiver.sender.replaceTrack(silentTrack);
+        }
+      }
+      return;
+    }
+
+    const micTrack = await this.ensureMicrophoneTrack();
+    micTrack.enabled = true;
+    if (this.audioTransceiver) {
+      await this.audioTransceiver.sender.replaceTrack(micTrack);
+    }
+  }
+
+  playSound(sound) {
+    if (this.dc && this.dc.readyState === 'open') {
+      this.dc.send(JSON.stringify({ type: 'bodySound', data: { sound } }));
+    }
+  }
+
   setJoystick(x, y) {
     this.joystickX = x;
     this.joystickY = y;
@@ -282,6 +371,37 @@ export class BodyTeleopConnection {
       this.pc.close();
       this.pc = null;
     }
+    if (this.localMicStream) {
+      this.localMicStream.getTracks().forEach((track) => track.stop());
+      this.localMicStream = null;
+    }
+    this.localMicTrack = null;
+    if (this.silentAudioTrack) {
+      this.silentAudioTrack.stop();
+      this.silentAudioTrack = null;
+    }
+    if (this.silentAudioOscillator) {
+      try {
+        this.silentAudioOscillator.stop();
+      } catch (_) {
+        /* already stopped */
+      }
+      this.silentAudioOscillator.disconnect();
+      this.silentAudioOscillator = null;
+    }
+    if (this.silentAudioGain) {
+      this.silentAudioGain.disconnect();
+      this.silentAudioGain = null;
+    }
+    if (this.silentAudioDestination) {
+      this.silentAudioDestination.disconnect?.();
+      this.silentAudioDestination = null;
+    }
+    if (this.silentAudioContext) {
+      this.silentAudioContext.close().catch(() => {});
+      this.silentAudioContext = null;
+    }
+    this.audioTransceiver = null;
     this.videoStreams = {};
     this.audioStream = null;
   }
