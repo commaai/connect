@@ -1483,7 +1483,7 @@ class BodyTeleop extends Component {
 
   renderHud() {
     const { classes } = this.props;
-    const { connectionState, batteryLevel, gamepadConnected } = this.state;
+    const { connectionState, batteryLevel } = this.state;
     const connected = connectionState === 'connected';
 
     return (
