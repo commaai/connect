@@ -33,6 +33,13 @@ const AppDrawer = ({
     toggleDrawerOff();
   }, [dispatch, toggleDrawerOff]);
 
+  const handleBodyTeleop = useCallback((address) => {
+    if (onBodyTeleop) {
+      onBodyTeleop(address);
+    }
+    toggleDrawerOff();
+  }, [onBodyTeleop, toggleDrawerOff]);
+
   return (
     <Drawer
       open={isPermanent || drawerIsOpen}
@@ -51,7 +58,7 @@ const AppDrawer = ({
         <DeviceList
           selectedDevice={selectedDongleId}
           handleDeviceSelected={handleDeviceSelected}
-          onBodyTeleop={onBodyTeleop}
+          onBodyTeleop={handleBodyTeleop}
         />
       </div>
     </Drawer>

@@ -5,7 +5,6 @@ import Obstruction from 'obstruction';
 import { withStyles, Typography, Button, IconButton } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
 import InfoOutline from '@material-ui/icons/InfoOutline';
-import ScreenRotation from '@material-ui/icons/ScreenRotation';
 import BatteryFull from '@material-ui/icons/BatteryFull';
 import PhotoCamera from '@material-ui/icons/PhotoCamera';
 import VolumeUp from '@material-ui/icons/VolumeUp';
@@ -26,6 +25,11 @@ const QUICK_SOUNDS = [
   { key: 'warning', label: 'Warning' },
 ];
 
+const CAMERAS = [
+  { key: 'driver', label: 'front', num: '1' },
+  { key: 'wideRoad', label: 'rear', num: '2' },
+];
+
 const styles = () => ({
   root: {
     position: 'fixed',
@@ -34,7 +38,7 @@ const styles = () => ({
     right: 0,
     bottom: 0,
     zIndex: 1300,
-    background: Colors.grey999,
+    background: Colors.black,
     display: 'flex',
     flexDirection: 'column',
   },
@@ -80,13 +84,21 @@ const styles = () => ({
     alignItems: 'center',
     gap: '8px',
   },
+  hudBottomCenter: {
+    position: 'absolute',
+    bottom: 8,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    zIndex: 10,
+  },
   hudPill: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '8px',
-    padding: '4px 12px',
-    borderRadius: 20,
+    gap: '6px',
+    height: 28,
+    padding: '0 10px',
+    borderRadius: 14,
     background: 'rgba(0,0,0,0.5)',
     backdropFilter: 'blur(8px)',
     border: `1px solid ${Colors.white10}`,
@@ -201,6 +213,10 @@ const styles = () => ({
       height: 160,
     },
   },
+  joystickAreaSquare: {
+    borderRadius: 16,
+    background: 'linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05))',
+  },
   joystickCrosshairV: {
     position: 'absolute',
     left: '50%',
@@ -289,35 +305,95 @@ const styles = () => ({
     background: 'rgba(255,255,255,0.3)',
     color: Colors.white,
   },
-  // Camera switcher
-  cameraSwitcher: {
+  // Controls group (camera + sounds)
+  controlsGroup: {
     position: 'absolute',
     bottom: 16,
-    left: '50%',
-    transform: 'translateX(-50%)',
+    left: 16,
     zIndex: 10,
     display: 'flex',
-    gap: '2px',
-    borderRadius: 12,
-    padding: 4,
-    background: 'rgba(0,0,0,0.3)',
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: '10px',
+    borderRadius: 14,
+    padding: 8,
+    background: 'rgba(0,0,0,0.35)',
     backdropFilter: 'blur(8px)',
   },
-  cameraSwitcherPortrait: {
+  controlsGroupPortrait: {
     position: 'relative',
     bottom: 'auto',
     left: 'auto',
     transform: 'none',
-    alignSelf: 'center',
-    marginTop: 8,
+    alignSelf: 'stretch',
+    borderRadius: 0,
+    flexShrink: 0,
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: '6px',
+  },
+  controlsColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '5px',
+  },
+  controlsRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  portraitRow: {
+    display: 'flex',
+    alignItems: 'flex-end',
+    gap: '6px',
+  },
+  portraitCategory: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '3px',
+  },
+  controlsLabel: {
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.35)',
+    minWidth: 52,
+    flexShrink: 0,
+  },
+  controlsLabelPortrait: {
+    fontSize: 8,
+    fontWeight: 700,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.35)',
+    minWidth: 36,
+    flexShrink: 0,
+  },
+  controlsLabelBelow: {
+    fontSize: 9,
+    fontWeight: 600,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.35)',
+    textAlign: 'center',
+    lineHeight: 1,
+  },
+  controlsButtons: {
+    display: 'flex',
+    gap: '3px',
+    alignItems: 'center',
   },
   cameraButton: {
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
-    padding: '6px 12px',
+    height: 32,
+    padding: '0 10px',
     borderRadius: 8,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 600,
     cursor: 'pointer',
     userSelect: 'none',
@@ -331,49 +407,36 @@ const styles = () => ({
     background: 'rgba(255,255,255,0.3)',
     color: Colors.white,
   },
+  cameraButtonPortrait: {
+    width: 28,
+    height: 28,
+    padding: 0,
+    fontSize: 11,
+    justifyContent: 'center',
+  },
   cameraButtonKey: {
-    width: 20,
-    height: 20,
+    width: 18,
+    height: 18,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 4,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 700,
     background: 'rgba(255,255,255,0.15)',
   },
-  quickSounds: {
-    position: 'absolute',
-    bottom: 64,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    zIndex: 10,
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: '6px',
-    padding: 6,
-    borderRadius: 14,
-    background: 'rgba(0,0,0,0.35)',
-    backdropFilter: 'blur(8px)',
-    maxWidth: 'min(92vw, 520px)',
-  },
-  quickSoundsPortrait: {
-    position: 'relative',
-    bottom: 'auto',
-    left: 'auto',
-    transform: 'none',
-    alignSelf: 'center',
-    maxWidth: '100%',
-  },
-  quickSoundButton: {
-    padding: '6px 12px',
-    borderRadius: 999,
-    fontSize: 11,
+  soundButton: {
+    height: 32,
+    padding: '0 10px',
+    borderRadius: 8,
+    fontSize: 10,
     fontWeight: 700,
     letterSpacing: 0.2,
     textTransform: 'uppercase',
-    color: Colors.white70,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: 'rgba(255,255,255,0.7)',
     background: 'rgba(255,255,255,0.12)',
     border: '1px solid rgba(255,255,255,0.12)',
     cursor: 'pointer',
@@ -382,6 +445,11 @@ const styles = () => ({
       color: Colors.white,
       background: 'rgba(255,255,255,0.2)',
     },
+  },
+  soundButtonPortrait: {
+    height: 28,
+    padding: '0 8px',
+    fontSize: 9,
   },
   // Portrait mode
   portraitContent: {
@@ -441,11 +509,15 @@ const styles = () => ({
     alignItems: 'center',
   },
   statsToggleButton: {
-    padding: '2px 10px',
-    borderRadius: '10px',
+    height: 28,
+    padding: '0 10px',
+    borderRadius: 14,
     fontSize: 10,
     fontWeight: 700,
     letterSpacing: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     color: 'rgba(255,255,255,0.6)',
     background: 'rgba(0,0,0,0.4)',
     backdropFilter: 'blur(8px)',
@@ -487,13 +559,40 @@ const styles = () => ({
     background: 'rgba(255,255,255,0.08)',
     margin: '3px 0',
   },
-  screenshotButton: {
-    width: 36,
-    height: 36,
+  audioLevelRow: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '2px 0',
+    gap: '6px',
+  },
+  audioLevelIcon: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.45)',
+    flexShrink: 0,
+    width: 14,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: '50%',
+  },
+  audioLevelTrack: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    background: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden',
+  },
+  audioLevelFill: {
+    height: '100%',
+    borderRadius: 3,
+    transition: 'width 80ms linear',
+  },
+  screenshotButton: {
+    width: 28,
+    height: 28,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
     background: 'rgba(0,0,0,0.5)',
     backdropFilter: 'blur(8px)',
     border: `1px solid ${Colors.white10}`,
@@ -505,12 +604,12 @@ const styles = () => ({
     },
   },
   controllerToggle: {
-    width: 36,
-    height: 36,
+    width: 28,
+    height: 28,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: '50%',
+    borderRadius: 14,
     background: 'rgba(0,0,0,0.5)',
     backdropFilter: 'blur(8px)',
     border: `1px solid ${Colors.white10}`,
@@ -524,12 +623,38 @@ const styles = () => ({
   controllerToggleOff: {
     opacity: 0.4,
   },
+  actionButton: {
+    width: 32,
+    height: 32,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    background: 'rgba(255,255,255,0.12)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    color: Colors.white70,
+    cursor: 'pointer',
+    '&:hover': {
+      background: 'rgba(255,255,255,0.2)',
+      color: Colors.white,
+    },
+  },
+  actionButtonIcon: {
+    fontSize: 18,
+  },
+  actionButtonPortrait: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+  },
+  actionButtonIconPortrait: {
+    fontSize: 16,
+  },
   // Controller overlay
   controllerOverlay: {
     position: 'absolute',
     bottom: 16,
-    left: 0,
-    right: 0,
+    right: 16,
     zIndex: 10,
     display: 'flex',
     alignItems: 'center',
@@ -675,9 +800,9 @@ class BodyTeleop extends Component {
       keys: { w: false, a: false, s: false, d: false },
       showStats: false,
       stats: null,
+      videoAspectRatio: '16/9',
       activeCamera: 'driver',
       gamepadConnected: false,
-      controllerEnabled: true,
       gamepadSteering: 0,
       gamepadGas: 0,
       gamepadBrake: 0,
@@ -687,6 +812,8 @@ class BodyTeleop extends Component {
       streamMuted: true,
       micMuted: true,
       micPermission: 'unknown',
+      micLevel: 0,
+      remoteAudioLevel: 0,
     };
 
     this.videoRef = React.createRef();
@@ -696,6 +823,12 @@ class BodyTeleop extends Component {
     this.mouseDragging = false;
     this.streams = {};
     this.remoteAudioStream = null;
+    this.micAnalyser = null;
+    this.remoteAnalyser = null;
+    this.audioLevelContext = null;
+    this.micAnalyserSource = null;
+    this.remoteAnalyserSource = null;
+    this.audioLevelInterval = null;
 
     this.connection = new BodyTeleopConnection({
       onConnectionState: (connectionState) => {
@@ -749,6 +882,7 @@ class BodyTeleop extends Component {
     this.handleMicToggle = this.handleMicToggle.bind(this);
     this.handlePlaySound = this.handlePlaySound.bind(this);
     this.syncAudioElement = this.syncAudioElement.bind(this);
+    this.onVideoResize = this.onVideoResize.bind(this);
 
     this.gamepadAnimFrame = null;
     this.prevBumpers = { lb: false, rb: false };
@@ -768,6 +902,9 @@ class BodyTeleop extends Component {
       }
     };
     window.addEventListener('message', this.onSslMessage);
+    if (this.videoRef.current) {
+      this.videoRef.current.addEventListener('resize', this.onVideoResize);
+    }
     this.handleConnect();
   }
 
@@ -805,8 +942,12 @@ class BodyTeleop extends Component {
     if (this.gamepadAnimFrame) {
       cancelAnimationFrame(this.gamepadAnimFrame);
     }
+    if (this.videoRef.current) {
+      this.videoRef.current.removeEventListener('resize', this.onVideoResize);
+    }
     window.removeEventListener('message', this.onSslMessage);
     this.stopStatsPolling();
+    this.cleanupAudioAnalysers();
     this.connection.disconnect();
   }
 
@@ -817,6 +958,7 @@ class BodyTeleop extends Component {
     this.prevFramesDecoded = null;
     this.statsInterval = setInterval(() => this.pollStats(), 1000);
     this.pollStats();
+    this.audioLevelInterval = setInterval(() => this.pollAudioLevels(), 80);
   }
 
   stopStatsPolling() {
@@ -824,7 +966,93 @@ class BodyTeleop extends Component {
       clearInterval(this.statsInterval);
       this.statsInterval = null;
     }
-    this.setState({ stats: null });
+    if (this.audioLevelInterval) {
+      clearInterval(this.audioLevelInterval);
+      this.audioLevelInterval = null;
+    }
+    this.cleanupAudioAnalysers();
+    this.setState({ stats: null, micLevel: 0, remoteAudioLevel: 0 });
+  }
+
+  ensureAudioLevelContext() {
+    if (!this.audioLevelContext) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return null;
+      this.audioLevelContext = new AudioContextClass();
+    }
+    return this.audioLevelContext;
+  }
+
+  getAudioLevel(analyser) {
+    if (!analyser) return 0;
+    if (!this.audioLevelData) {
+      this.audioLevelData = new Uint8Array(analyser.frequencyBinCount);
+    }
+    const data = this.audioLevelData;
+    analyser.getByteTimeDomainData(data);
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) {
+      const v = (data[i] - 128) / 128;
+      sum += v * v;
+    }
+    return Math.min(1, Math.sqrt(sum / data.length) * 4);
+  }
+
+  syncAnalyser(stream, analyser, source, ctx) {
+    if (stream && (!analyser || source?._trackedStream !== stream)) {
+      if (source) source.disconnect();
+      const newAnalyser = ctx.createAnalyser();
+      newAnalyser.fftSize = 256;
+      const newSource = ctx.createMediaStreamSource(stream);
+      newSource._trackedStream = stream;
+      newSource.connect(newAnalyser);
+      return { analyser: newAnalyser, source: newSource };
+    }
+    if (!stream && analyser) {
+      if (source) source.disconnect();
+      return { analyser: null, source: null };
+    }
+    return { analyser, source };
+  }
+
+  pollAudioLevels() {
+    if (!this.state.showStats) return;
+
+    const ctx = this.ensureAudioLevelContext();
+    if (!ctx) return;
+
+    const mic = this.syncAnalyser(this.connection.localMicStream, this.micAnalyser, this.micAnalyserSource, ctx);
+    this.micAnalyser = mic.analyser;
+    this.micAnalyserSource = mic.source;
+
+    const remote = this.syncAnalyser(this.remoteAudioStream, this.remoteAnalyser, this.remoteAnalyserSource, ctx);
+    this.remoteAnalyser = remote.analyser;
+    this.remoteAnalyserSource = remote.source;
+
+    const micLevel = this.getAudioLevel(this.micAnalyser);
+    const remoteAudioLevel = this.getAudioLevel(this.remoteAnalyser);
+
+    if (Math.abs(micLevel - this.state.micLevel) >= 0.02 ||
+        Math.abs(remoteAudioLevel - this.state.remoteAudioLevel) >= 0.02) {
+      this.setState({ micLevel, remoteAudioLevel });
+    }
+  }
+
+  cleanupAudioAnalysers() {
+    if (this.micAnalyserSource) {
+      this.micAnalyserSource.disconnect();
+      this.micAnalyserSource = null;
+    }
+    this.micAnalyser = null;
+    if (this.remoteAnalyserSource) {
+      this.remoteAnalyserSource.disconnect();
+      this.remoteAnalyserSource = null;
+    }
+    this.remoteAnalyser = null;
+    if (this.audioLevelContext) {
+      this.audioLevelContext.close().catch(() => {});
+      this.audioLevelContext = null;
+    }
   }
 
   setRemoteAudioStream(stream) {
@@ -912,6 +1140,16 @@ class BodyTeleop extends Component {
     this.setState({ isLandscape: e.matches });
   }
 
+  onVideoResize() {
+    const video = this.videoRef.current;
+    if (video && video.videoWidth && video.videoHeight) {
+      const newRatio = `${video.videoWidth}/${video.videoHeight}`;
+      if (newRatio !== this.state.videoAspectRatio) {
+        this.setState({ videoAspectRatio: newRatio });
+      }
+    }
+  }
+
   onKeyDown(e) {
     const arrowMap = { ArrowUp: 'w', ArrowDown: 's', ArrowLeft: 'a', ArrowRight: 'd' };
     const k = arrowMap[e.key] || e.key.toLowerCase();
@@ -947,11 +1185,11 @@ class BodyTeleop extends Component {
   setKey(key, pressed) {
     this.setState((prev) => {
       const keys = { ...prev.keys, [key]: pressed };
-      this.setFlippedJoystick(
-        -(keys.w ? 1 : 0) + (keys.s ? 1 : 0),
-        -(keys.d ? 1 : 0) + (keys.a ? 1 : 0),
-      );
-      return { keys };
+      const x = -(keys.d ? 1 : 0) + (keys.a ? 1 : 0);
+      const y = -(keys.w ? 1 : 0) + (keys.s ? 1 : 0);
+      this.setFlippedJoystick(y, x);
+      const anyKey = keys.w || keys.a || keys.s || keys.d;
+      return { keys, thumbPos: anyKey ? { x: -x, y } : null };
     });
   }
 
@@ -959,14 +1197,12 @@ class BodyTeleop extends Component {
     const area = this.joystickAreaRef.current;
     if (!area) return;
     const rect = area.getBoundingClientRect();
-    const radius = rect.width / 2;
-    let dx = (clientX - rect.left - radius) / radius;
-    let dy = (clientY - rect.top - rect.height / 2) / radius;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist > 1) {
-      dx /= dist;
-      dy /= dist;
-    }
+    const halfW = rect.width / 2;
+    const halfH = rect.height / 2;
+    let dx = (clientX - rect.left - halfW) / halfW;
+    let dy = (clientY - rect.top - halfH) / halfH;
+    dx = Math.max(-1, Math.min(1, dx));
+    dy = Math.max(-1, Math.min(1, dy));
     this.setState({ thumbPos: { x: dx, y: dy } });
     this.setFlippedJoystick(dy, -dx);
   }
@@ -1065,7 +1301,10 @@ class BodyTeleop extends Component {
   }
 
   handlePlaySound(sound) {
-    this.connection.playSound(sound);
+    this.connection.playSound(sound).catch((err) => {
+      console.error('Failed to play body sound:', err);
+      this.setState({ error: err.message });
+    });
   }
 
   handleClose() {
@@ -1110,10 +1349,9 @@ class BodyTeleop extends Component {
     const lb = gp.buttons[4] && gp.buttons[4].pressed;
     const rb = gp.buttons[5] && gp.buttons[5].pressed;
 
-    // Update gamepad display values
-    // this.setState({ gamepadSteering: lx, gamepadGas: rt, gamepadBrake: lt, gamepadLB: !!lb, gamepadRB: !!rb });
+    this.setState({ gamepadSteering: lx, gamepadGas: rt, gamepadBrake: lt, gamepadLB: !!lb, gamepadRB: !!rb });
 
-    if (this.state.connectionState === 'connected' && this.state.controllerEnabled) {
+    if (this.state.connectionState === 'connected') {
       this.setFlippedJoystick(throttle, -lx);
       if (lx !== 0 || rt > 0 || lt > 0) {
         this.setState({ thumbPos: { x: lx, y: throttle } });
@@ -1168,16 +1406,97 @@ class BodyTeleop extends Component {
     return color;
   }
 
-  renderHud() {
+  renderConnectionIndicator() {
     const { classes } = this.props;
-    const { connectionState, batteryLevel, gamepadConnected, controllerEnabled, streamMuted, micMuted, micPermission } = this.state;
-    const connected = connectionState === 'connected';
+    const { connectionState } = this.state;
+
+    return (
+      <div className={classes.hudBottomCenter}>
+        <div className={classes.hudPill}>
+          <div
+            className={classes.statusDot}
+            style={{
+              backgroundColor: this.getStatusDotColor(),
+              animation: connectionState === 'connecting' ? 'pulse 1.5s ease-in-out infinite' : 'none',
+            }}
+          />
+          <span className={classes.hudText}>{connectionState}</span>
+        </div>
+      </div>
+    );
+  }
+
+  renderPortraitStatusBar() {
+    const { classes } = this.props;
+    const { connectionState, batteryLevel, streamMuted, micMuted, micPermission } = this.state;
     const micTitle = micPermission === 'denied'
       ? 'Microphone permission blocked'
       : (micMuted ? (micPermission === 'granted' ? 'Unmute mic' : 'Enable mic') : 'Mute mic');
 
     return (
+      <div className={`${classes.controlsGroup} ${classes.controlsGroupPortrait}`}>
+        <div className={classes.portraitRow}>
+          <div className={classes.hudPill}>
+            <div
+              className={classes.statusDot}
+              style={{
+                backgroundColor: this.getStatusDotColor(),
+                animation: connectionState === 'connecting' ? 'pulse 1.5s ease-in-out infinite' : 'none',
+              }}
+            />
+            <span className={classes.hudText}>{connectionState}</span>
+          </div>
+          {batteryLevel !== null && (
+            <div className={classes.hudPill}>
+              <BatteryFull style={{ fontSize: 14, color: Colors.white70 }} />
+              <span className={classes.hudText}>{batteryLevel}%</span>
+            </div>
+          )}
+          <div style={{ flex: 1 }} />
+          <div className={classes.controlsButtons}>
+            <div
+              className={`${classes.actionButton} ${classes.actionButtonPortrait} ${streamMuted ? classes.controllerToggleOff : ''}`}
+              onClick={this.toggleStreamMuted}
+              title={streamMuted ? 'Unmute stream audio' : 'Mute stream audio'}
+            >
+              {streamMuted ? <VolumeOff className={classes.actionButtonIconPortrait} /> : <VolumeUp className={classes.actionButtonIconPortrait} />}
+            </div>
+            <div
+              className={`${classes.actionButton} ${classes.actionButtonPortrait} ${micMuted ? classes.controllerToggleOff : ''}`}
+              onClick={this.handleMicToggle}
+              title={micTitle}
+            >
+              {micMuted ? <MicOff className={classes.actionButtonIconPortrait} /> : <Mic className={classes.actionButtonIconPortrait} />}
+            </div>
+            <div
+              className={`${classes.actionButton} ${classes.actionButtonPortrait}`}
+              onClick={() => this.handleScreenshot()}
+              title="Save screenshot"
+            >
+              <PhotoCamera className={classes.actionButtonIconPortrait} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  renderHud() {
+    const { classes } = this.props;
+    const { connectionState, batteryLevel, gamepadConnected } = this.state;
+    const connected = connectionState === 'connected';
+
+    return (
       <div className={classes.hudTopRight}>
+        {connected && (
+          <div
+            className={classes.statsToggleButton}
+            onClick={() => this.setState((prev) => ({ showStats: !prev.showStats }))}
+            title="Toggle stats"
+          >
+            STATS
+          </div>
+        )}
         <div className={classes.hudPill}>
           <div
             className={classes.statusDot}
@@ -1194,61 +1513,122 @@ class BodyTeleop extends Component {
             <span className={classes.hudText}>{batteryLevel}%</span>
           </div>
         )}
-        <div
-          className={classes.screenshotButton}
-          onClick={() => this.handleScreenshot()}
-          title="Save screenshot"
-        >
-          <PhotoCamera style={{ fontSize: 18 }} />
-        </div>
-        {connected && (
-          <div
-            className={`${classes.controllerToggle} ${streamMuted ? classes.controllerToggleOff : ''}`}
-            onClick={this.toggleStreamMuted}
-            title={streamMuted ? 'Unmute stream audio' : 'Mute stream audio'}
-          >
-            {streamMuted ? <VolumeOff style={{ fontSize: 18 }} /> : <VolumeUp style={{ fontSize: 18 }} />}
-          </div>
-        )}
-        {connected && (
-          <div
-            className={`${classes.controllerToggle} ${micMuted ? classes.controllerToggleOff : ''}`}
-            onClick={this.handleMicToggle}
-            title={micTitle}
-          >
-            {micMuted ? <MicOff style={{ fontSize: 18 }} /> : <Mic style={{ fontSize: 18 }} />}
-          </div>
-        )}
-        {gamepadConnected && (
-          <div
-            className={`${classes.controllerToggle} ${!controllerEnabled ? classes.controllerToggleOff : ''}`}
-            onClick={() => this.setState((prev) => ({ controllerEnabled: !prev.controllerEnabled }))}
-            title={controllerEnabled ? 'Disable controller' : 'Enable controller'}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 11h4M8 9v4M15 12h.01M18 10h.01" />
-              <path d="M17.32 5H6.68a4 4 0 00-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 003 3c1.11 0 2.08-.806 2.22-1.78l.92-6.22h7.72l.92 6.22A2.24 2.24 0 0019 19a3 3 0 003-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.152A4 4 0 0017.32 5z" />
-            </svg>
-          </div>
-        )}
       </div>
     );
   }
 
-  renderQuickSounds(portrait) {
+  renderControls(portrait) {
     const { classes } = this.props;
+    const { activeCamera, gamepadConnected, streamMuted, micMuted, micPermission } = this.state;
+    const micTitle = micPermission === 'denied'
+      ? 'Microphone permission blocked'
+      : (micMuted ? (micPermission === 'granted' ? 'Unmute mic' : 'Enable mic') : 'Mute mic');
 
-    return (
-      <div className={`${classes.quickSounds} ${portrait ? classes.quickSoundsPortrait : ''}`}>
-        {QUICK_SOUNDS.map((sound) => (
-          <div
-            key={sound.key}
-            className={classes.quickSoundButton}
-            onClick={() => this.handlePlaySound(sound.key)}
-          >
-            {sound.label}
+    if (portrait) {
+      return (
+        <div className={`${classes.controlsGroup} ${classes.controlsGroupPortrait}`}>
+          <div className={classes.portraitRow}>
+            {!gamepadConnected && (
+              <div className={classes.portraitCategory}>
+                <span className={classes.controlsLabelPortrait}>Cams</span>
+                <div className={classes.controlsButtons}>
+                  {CAMERAS.map((cam) => (
+                    <div
+                      key={cam.key}
+                      className={`${classes.cameraButton} ${classes.cameraButtonPortrait} ${activeCamera === cam.key ? classes.cameraButtonActive : classes.cameraButtonInactive}`}
+                      onClick={() => this.switchCamera(cam.key)}
+                    >
+                      {cam.num}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{ flex: 1 }} />
+            <div className={classes.portraitCategory}>
+              <span className={classes.controlsLabelPortrait}>Play Sounds</span>
+              <div className={classes.controlsButtons}>
+                {QUICK_SOUNDS.map((sound) => (
+                  <div
+                    key={sound.key}
+                    className={`${classes.soundButton} ${classes.soundButtonPortrait}`}
+                    onClick={() => this.handlePlaySound(sound.key)}
+                  >
+                    {sound.label}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-        ))}
+        </div>
+      );
+    }
+
+    // Landscape: side-by-side columns with labels below
+    return (
+      <div className={classes.controlsGroup}>
+        {!gamepadConnected && (
+          <div className={classes.controlsColumn}>
+            <div className={classes.controlsButtons}>
+              {CAMERAS.map((cam) => (
+                <div
+                  key={cam.key}
+                  className={`${classes.cameraButton} ${activeCamera === cam.key ? classes.cameraButtonActive : classes.cameraButtonInactive}`}
+                  onClick={() => this.switchCamera(cam.key)}
+                >
+                  <span className={classes.cameraButtonKey}>{cam.num}</span>
+                  {cam.label}
+                </div>
+              ))}
+            </div>
+            <span className={classes.controlsLabelBelow}>Camera</span>
+          </div>
+        )}
+        <div className={classes.controlsColumn}>
+          <div className={classes.controlsButtons}>
+            {QUICK_SOUNDS.map((sound) => (
+              <div
+                key={sound.key}
+                className={classes.soundButton}
+                onClick={() => this.handlePlaySound(sound.key)}
+              >
+                {sound.label}
+              </div>
+            ))}
+          </div>
+          <span className={classes.controlsLabelBelow}>Sounds</span>
+        </div>
+        <div className={classes.controlsColumn}>
+          <div className={classes.controlsButtons}>
+            <div
+              className={`${classes.actionButton} ${streamMuted ? classes.controllerToggleOff : ''}`}
+              onClick={this.toggleStreamMuted}
+              title={streamMuted ? 'Unmute stream audio' : 'Mute stream audio'}
+            >
+              {streamMuted ? <VolumeOff className={classes.actionButtonIcon} /> : <VolumeUp className={classes.actionButtonIcon} />}
+            </div>
+            <div
+              className={`${classes.actionButton} ${micMuted ? classes.controllerToggleOff : ''}`}
+              onClick={this.handleMicToggle}
+              title={micTitle}
+            >
+              {micMuted ? <MicOff className={classes.actionButtonIcon} /> : <Mic className={classes.actionButtonIcon} />}
+            </div>
+          </div>
+          <span className={classes.controlsLabelBelow}>Mic / Sound</span>
+        </div>
+        <div className={classes.controlsColumn}>
+          <div className={classes.controlsButtons}>
+            <div
+              className={classes.actionButton}
+              onClick={() => this.handleScreenshot()}
+              title="Save screenshot"
+            >
+              <PhotoCamera className={classes.actionButtonIcon} />
+            </div>
+          </div>
+          <span className={classes.controlsLabelBelow}>Screenshot</span>
+        </div>
       </div>
     );
   }
@@ -1256,20 +1636,30 @@ class BodyTeleop extends Component {
   renderJoystick(portrait) {
     const { classes } = this.props;
     const { thumbPos } = this.state;
-    const thumbLeft = thumbPos ? `${50 + thumbPos.x * 35}%` : '50%';
-    const thumbTop = thumbPos ? `${50 + thumbPos.y * 35}%` : '50%';
-    const portraitStyle = portrait ? { position: 'relative', bottom: 'auto', right: 'auto' } : undefined;
+    const thumbRange = portrait ? 45 : 40;
+    const thumbLeft = thumbPos ? `${50 + thumbPos.x * thumbRange}%` : '50%';
+    const thumbTop = thumbPos ? `${50 + thumbPos.y * thumbRange}%` : '50%';
+    const portraitStyle = portrait ? {
+      position: 'relative',
+      bottom: 'auto',
+      right: 'auto',
+      width: '100%',
+      height: '100%',
+      maxWidth: '100%',
+      maxHeight: '100%',
+    } : undefined;
 
     return (
       <div
         ref={this.joystickAreaRef}
-        className={classes.joystickArea}
+        className={`${classes.joystickArea} ${classes.joystickAreaSquare}`}
         style={portraitStyle}
         onTouchStart={this.handleTouchStart}
         onTouchMove={this.handleTouchMove}
         onTouchEnd={this.handleTouchEnd}
         onTouchCancel={this.handleTouchEnd}
         onMouseDown={this.handleMouseDown}
+        onContextMenu={(e) => e.preventDefault()}
       >
         <div className={classes.joystickCrosshairV} />
         <div className={classes.joystickCrosshairH} />
@@ -1309,7 +1699,7 @@ class BodyTeleop extends Component {
             />
             <span className={classes.triggerInnerLabel}>LT</span>
           </div>
-          <span className={classes.triggerLabel}>Brake</span>
+          <span className={classes.triggerLabel}>Backward</span>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
@@ -1343,7 +1733,7 @@ class BodyTeleop extends Component {
             />
             <span className={classes.triggerInnerLabel}>RT</span>
           </div>
-          <span className={classes.triggerLabel}>Gas</span>
+          <span className={classes.triggerLabel}>Forward</span>
         </div>
       </div>
     );
@@ -1376,44 +1766,19 @@ class BodyTeleop extends Component {
     );
   }
 
-  renderCameraSwitcher(portrait) {
-    const { classes } = this.props;
-    const { activeCamera } = this.state;
-    const cameras = [
-      { key: 'driver', label: 'front', num: '1' },
-      { key: 'wideRoad', label: 'rear', num: '2' },
-    ];
-
-    return (
-      <div className={`${classes.cameraSwitcher} ${portrait ? classes.cameraSwitcherPortrait : ''}`}>
-        {cameras.map((cam) => (
-          <div
-            key={cam.key}
-            className={`${classes.cameraButton} ${activeCamera === cam.key ? classes.cameraButtonActive : classes.cameraButtonInactive}`}
-            onClick={() => this.switchCamera(cam.key)}
-          >
-            <span className={classes.cameraButtonKey}>{cam.num}</span>
-            {cam.label}
-          </div>
-        ))}
-      </div>
-    );
-  }
 
   renderStatsOverlay() {
     const { classes } = this.props;
-    const { showStats, stats } = this.state;
+    const { showStats, stats, micLevel, remoteAudioLevel, micMuted, streamMuted } = this.state;
+
+    if (!showStats || !stats) return null;
+
+    const micColor = micMuted ? 'rgba(255,255,255,0.15)' : `rgba(76,175,80,${0.5 + micLevel * 0.5})`;
+    const audioColor = streamMuted ? 'rgba(255,255,255,0.15)' : `rgba(66,165,245,${0.5 + remoteAudioLevel * 0.5})`;
 
     return (
       <div className={classes.statsToggle}>
-        <div
-          className={classes.statsToggleButton}
-          onClick={() => this.setState((prev) => ({ showStats: !prev.showStats }))}
-        >
-          {showStats ? 'STATS' : 'STATS'}
-        </div>
-        {showStats && stats && (
-          <div className={classes.statsPanel}>
+        <div className={classes.statsPanel}>
             <div className={classes.statsRow}>
               <span className={classes.statsLabel}>Resolution</span>
               <span className={classes.statsValue}>{stats.resolution}</span>
@@ -1435,41 +1800,35 @@ class BodyTeleop extends Component {
               <span className={classes.statsValue}>{stats.jitter}</span>
             </div>
             <div className={classes.statsDivider} />
-            <div className={classes.statsRow}>
-              <span className={classes.statsLabel}>Decoded</span>
-              <span className={classes.statsValue}>{stats.framesDecoded}</span>
+            <div className={classes.audioLevelRow} title={micMuted ? 'Mic muted' : 'Mic level'}>
+              <span className={classes.audioLevelIcon}>
+                {micMuted ? <MicOff style={{ fontSize: 12 }} /> : <Mic style={{ fontSize: 12 }} />}
+              </span>
+              <div className={classes.audioLevelTrack}>
+                <div
+                  className={classes.audioLevelFill}
+                  style={{
+                    width: `${(micMuted ? 0 : micLevel) * 100}%`,
+                    background: micColor,
+                  }}
+                />
+              </div>
             </div>
-            <div className={classes.statsRow}>
-              <span className={classes.statsLabel}>Dropped</span>
-              <span className={classes.statsValue}>{stats.framesDropped}</span>
-            </div>
-            <div className={classes.statsRow}>
-              <span className={classes.statsLabel}>Packets</span>
-              <span className={classes.statsValue}>{stats.packetsReceived}</span>
-            </div>
-            <div className={classes.statsRow}>
-              <span className={classes.statsLabel}>Lost</span>
-              <span className={classes.statsValue}>{stats.packetsLost}</span>
-            </div>
-            <div className={classes.statsDivider} />
-            <div className={classes.statsRow}>
-              <span className={classes.statsLabel}>Decoder</span>
-              <span className={classes.statsValue}>{stats.codec}</span>
-            </div>
-            <div className={classes.statsRow}>
-              <span className={classes.statsLabel}>NACK</span>
-              <span className={classes.statsValue}>{stats.nackCount}</span>
-            </div>
-            <div className={classes.statsRow}>
-              <span className={classes.statsLabel}>PLI</span>
-              <span className={classes.statsValue}>{stats.pliCount}</span>
-            </div>
-            <div className={classes.statsRow}>
-              <span className={classes.statsLabel}>FIR</span>
-              <span className={classes.statsValue}>{stats.firCount}</span>
+            <div className={classes.audioLevelRow} title={streamMuted ? 'Audio muted' : 'Remote audio level'}>
+              <span className={classes.audioLevelIcon}>
+                {streamMuted ? <VolumeOff style={{ fontSize: 12 }} /> : <VolumeUp style={{ fontSize: 12 }} />}
+              </span>
+              <div className={classes.audioLevelTrack}>
+                <div
+                  className={classes.audioLevelFill}
+                  style={{
+                    width: `${remoteAudioLevel * 100}%`,
+                    background: audioColor,
+                  }}
+                />
+              </div>
             </div>
           </div>
-        )}
       </div>
     );
   }
@@ -1633,16 +1992,10 @@ class BodyTeleop extends Component {
           {this.renderHud()}
           {connected && this.renderStatsOverlay()}
           {this.state.showSslTrust ? this.renderSslTrustDialog() : !connected && this.renderConnectOverlay()}
-          {connected && this.state.gamepadConnected && this.state.controllerEnabled
+          {connected && this.state.gamepadConnected
             ? this.renderControllerOverlay()
-            : (
-              <>
-                {connected && !this.isMobile() && this.renderWasdKeys()}
-                {connected && this.renderJoystick()}
-              </>
-            )}
-          {connected && this.renderQuickSounds(false)}
-          {connected && !this.state.gamepadConnected && this.renderCameraSwitcher(false)}
+            : connected && this.renderJoystick()}
+          {connected && this.renderControls(false)}
         </div>
       </div>
     );
@@ -1664,90 +2017,100 @@ class BodyTeleop extends Component {
             {this.props.directAddress || (device ? deviceNamePretty(device) : 'Body Teleop')}
           </Typography>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'auto' }}>
-          <div style={{ position: 'relative', background: Colors.black }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+          {connected && this.renderPortraitStatusBar()}
+          <div style={{ position: 'relative', background: Colors.black, flexShrink: 0 }}>
             <video
               ref={this.videoRef}
               autoPlay
               playsInline
               muted
-              style={{ width: '100%', aspectRatio: '4/3', display: 'block' }}
+              style={{ width: '100%', aspectRatio: this.state.videoAspectRatio, display: 'block' }}
             />
             <audio ref={this.audioRef} autoPlay muted={this.state.streamMuted} />
-            {connected && this.renderHud()}
+            {connected && (
+              <div className={classes.hudTopRight}>
+                <div
+                  className={classes.statsToggleButton}
+                  onClick={() => this.setState((prev) => ({ showStats: !prev.showStats }))}
+                  title="Toggle stats"
+                >
+                  STATS
+                </div>
+              </div>
+            )}
             {connected && this.renderStatsOverlay()}
-            {connected && !this.state.gamepadConnected && this.renderCameraSwitcher(true)}
           </div>
-          {connected && this.state.gamepadConnected && this.state.controllerEnabled
+          {connected && this.renderControls(true)}
+          {connected && this.state.gamepadConnected
             ? this.renderControllerOverlay()
             : connected && (
-              <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 180 }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8, minHeight: 0, overflow: 'hidden' }}>
                 {this.renderJoystick(true)}
               </div>
             )}
-          <div className={classes.portraitContent}>
-            {this.state.showSslTrust ? this.renderSslTrustDialog() : !connected && (
-              <>
-                <div className={classes.statusRow}>
-                  <div className={classes.statusLeft}>
-                    <div className={classes.statusDot} style={{ backgroundColor: this.getStatusDotColor(), width: 10, height: 10 }} />
-                    <Typography style={{ fontSize: 14, textTransform: 'capitalize' }}>{connectionState}</Typography>
+          {!connected && (
+            <div className={classes.portraitContent} style={{ overflow: 'auto' }}>
+              {this.state.showSslTrust ? this.renderSslTrustDialog() : (
+                <>
+                  <div className={classes.statusRow}>
+                    <div className={classes.statusLeft}>
+                      <div className={classes.statusDot} style={{ backgroundColor: this.getStatusDotColor(), width: 10, height: 10 }} />
+                      <Typography style={{ fontSize: 14, textTransform: 'capitalize' }}>{connectionState}</Typography>
+                    </div>
+                    {batteryLevel !== null && (
+                      <div className={classes.batteryPill}>
+                        <BatteryFull style={{ fontSize: 18, color: Colors.white70 }} />
+                        <Typography style={{ fontSize: 14 }}>{batteryLevel}%</Typography>
+                      </div>
+                    )}
                   </div>
-                  {batteryLevel !== null && (
-                    <div className={classes.batteryPill}>
-                      <BatteryFull style={{ fontSize: 18, color: Colors.white70 }} />
-                      <Typography style={{ fontSize: 14 }}>{batteryLevel}%</Typography>
+                  {error && (
+                    <div style={{ borderRadius: 8, background: 'rgba(220,38,38,0.15)', padding: 12, fontSize: 14, color: '#fca5a5' }}>
+                      {error}
                     </div>
                   )}
-                </div>
-                {error && (
-                  <div style={{ borderRadius: 8, background: 'rgba(220,38,38,0.15)', padding: 12, fontSize: 14, color: '#fca5a5' }}>
-                    {error}
-                  </div>
-                )}
-                {connecting ? (
-                  <>
-                    <div className={classes.progressBar} style={{ width: '100%' }}>
-                      <div className={classes.progressFill} style={{ width: `${this.state.connectProgress || 0}%` }} />
+                  {connecting ? (
+                    <>
+                      <div className={classes.progressBar} style={{ width: '100%' }}>
+                        <div className={classes.progressFill} style={{ width: `${this.state.connectProgress || 0}%` }} />
+                      </div>
+                      <Typography style={{ fontSize: 12, color: Colors.white50, textAlign: 'center' }}>
+                        {this.state.statusMessage || 'Connecting...'}
+                      </Typography>
+                    </>
+                  ) : connectionState === 'failed' ? (
+                    <Button
+                      variant="contained"
+                      className={classes.portraitButton}
+                      style={{ background: Colors.red400, color: Colors.white }}
+                      onClick={this.handleConnect}
+                    >
+                      Retry
+                    </Button>
+                  ) : null}
+                  <div className={classes.infoBox}>
+                    <div className={classes.infoRow}>
+                      <InfoOutline style={{ fontSize: 18 }} />
+                      <span>The comma body must be powered on and ignition must be started to connect.</span>
                     </div>
-                    <Typography style={{ fontSize: 12, color: Colors.white50, textAlign: 'center' }}>
-                      {this.state.statusMessage || 'Connecting...'}
-                    </Typography>
-                  </>
-                ) : connectionState === 'failed' ? (
-                  <Button
-                    variant="contained"
-                    className={classes.portraitButton}
-                    style={{ background: Colors.red400, color: Colors.white }}
-                    onClick={this.handleConnect}
-                  >
-                    Retry
-                  </Button>
-                ) : null}
-              </>
-            )}
-            {connected && (
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          {connected && (
+            <div style={{ flexShrink: 0, padding: '8px 16px 16px' }}>
               <Button
                 variant="contained"
                 className={classes.portraitButton}
-                style={{ background: Colors.red400, color: Colors.white }}
+                style={{ background: Colors.red400, color: Colors.white, width: '100%' }}
                 onClick={this.handleDisconnect}
               >
                 Disconnect
               </Button>
-            )}
-            {connected && this.renderQuickSounds(true)}
-            <div className={classes.infoBox}>
-              <div className={classes.infoRow}>
-                <InfoOutline style={{ fontSize: 18 }} />
-                <span>The comma body must be powered on and ignition must be started to connect.</span>
-              </div>
-              <div className={classes.infoRow}>
-                <ScreenRotation style={{ fontSize: 18 }} />
-                <span>Rotate your device to landscape for the best experience.</span>
-              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     );

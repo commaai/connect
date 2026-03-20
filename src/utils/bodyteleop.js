@@ -328,9 +328,31 @@ export class BodyTeleopConnection {
     }
   }
 
-  playSound(sound) {
-    if (this.dc && this.dc.readyState === 'open') {
-      this.dc.send(JSON.stringify({ type: 'bodySound', data: { sound } }));
+  async playSound(sound) {
+    if (!this.directAddress) {
+      throw new Error('Body sound buttons require a direct device connection.');
+    }
+
+    let resp;
+    try {
+      resp = await fetch(`${getDeviceBaseUrl(this.directAddress)}/sound`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sound }),
+      });
+    } catch (_) {
+      throw new Error('Could not reach device sound endpoint.');
+    }
+
+    if (!resp.ok) {
+      let errMsg = `Device returned ${resp.status}`;
+      try {
+        const errorBody = await resp.json();
+        if (errorBody.message) {
+          errMsg = errorBody.message;
+        }
+      } catch (_) { /* unable to parse error response */ }
+      throw new Error(errMsg);
     }
   }
 
