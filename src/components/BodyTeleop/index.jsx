@@ -902,6 +902,8 @@ class BodyTeleop extends Component {
       }
     };
     window.addEventListener('message', this.onSslMessage);
+    this.onBeforeUnload = () => this.connection.disconnect();
+    window.addEventListener('beforeunload', this.onBeforeUnload);
     if (this.videoRef.current) {
       this.videoRef.current.addEventListener('resize', this.onVideoResize);
     }
@@ -946,6 +948,7 @@ class BodyTeleop extends Component {
       this.videoRef.current.removeEventListener('resize', this.onVideoResize);
     }
     window.removeEventListener('message', this.onSslMessage);
+    window.removeEventListener('beforeunload', this.onBeforeUnload);
     this.stopStatsPolling();
     this.cleanupAudioAnalysers();
     this.connection.disconnect();
@@ -1295,7 +1298,8 @@ class BodyTeleop extends Component {
         micMuted: !micMuted,
         ...(micMuted ? { micPermission: 'granted' } : {}),
       });
-    } catch (_) {
+    } catch (err) {
+      console.error('Mic toggle failed:', err);
       this.setState({ micPermission: 'denied', micMuted: true });
     }
   }

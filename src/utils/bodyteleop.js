@@ -97,6 +97,11 @@ export class BodyTeleopConnection {
         if (state === 'connected') {
           this.callbacks.onStatusMessage?.('Receiving video...');
           this.callbacks.onConnectionState('connected');
+          this.ensureSilentAudioTrack().then((track) => {
+            if (track && this.audioTransceiver) {
+              this.audioTransceiver.sender.replaceTrack(track);
+            }
+          }).catch(() => {});
         }
         else if (state === 'failed' || state === 'closed') this.callbacks.onConnectionState('failed');
       });
@@ -126,10 +131,6 @@ export class BodyTeleopConnection {
         }
       }
       this.audioTransceiver = this.pc.addTransceiver('audio', { direction: 'sendrecv' });
-      const silentTrack = await this.ensureSilentAudioTrack();
-      if (silentTrack) {
-        await this.audioTransceiver.sender.replaceTrack(silentTrack);
-      }
 
       this.dc = this.pc.createDataChannel('data', { ordered: true });
       this.dc.onopen = () => {
