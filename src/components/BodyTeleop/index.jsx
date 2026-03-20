@@ -883,6 +883,9 @@ class BodyTeleop extends Component {
     this.handlePlaySound = this.handlePlaySound.bind(this);
     this.syncAudioElement = this.syncAudioElement.bind(this);
     this.onVideoResize = this.onVideoResize.bind(this);
+    this.audioLatencyInterval = null;
+    this.prevJitterBufferDelay = null;
+    this.prevJitterBufferEmitted = null;
 
     this.gamepadAnimFrame = null;
     this.prevBumpers = { lb: false, rb: false };
@@ -914,8 +917,10 @@ class BodyTeleop extends Component {
     if (prevState.connectionState !== this.state.connectionState) {
       if (this.state.connectionState === 'connected') {
         this.startStatsPolling();
+        this.startAudioLatencyWatchdog();
       } else {
         this.stopStatsPolling();
+        this.stopAudioLatencyWatchdog();
       }
     }
     if (prevState.streamMuted !== this.state.streamMuted) {
@@ -950,6 +955,7 @@ class BodyTeleop extends Component {
     window.removeEventListener('message', this.onSslMessage);
     window.removeEventListener('beforeunload', this.onBeforeUnload);
     this.stopStatsPolling();
+    this.stopAudioLatencyWatchdog();
     this.cleanupAudioAnalysers();
     this.connection.disconnect();
   }
@@ -1072,6 +1078,57 @@ class BodyTeleop extends Component {
     const playPromise = this.audioRef.current.play?.();
     if (playPromise && playPromise.catch) {
       playPromise.catch(() => {});
+    }
+  }
+
+  startAudioLatencyWatchdog() {
+    this.stopAudioLatencyWatchdog();
+    this.prevJitterBufferDelay = null;
+    this.prevJitterBufferEmitted = null;
+    this.audioLatencyInterval = setInterval(() => this.checkAudioLatency(), 2000);
+  }
+
+  stopAudioLatencyWatchdog() {
+    if (this.audioLatencyInterval) {
+      clearInterval(this.audioLatencyInterval);
+      this.audioLatencyInterval = null;
+    }
+    this.prevJitterBufferDelay = null;
+    this.prevJitterBufferEmitted = null;
+  }
+
+  async checkAudioLatency() {
+    const pc = this.connection.pc;
+    if (!pc || !this.audioRef.current || !this.remoteAudioStream) return;
+
+    try {
+      const report = await pc.getStats();
+      report.forEach((stat) => {
+        if (stat.type === 'inbound-rtp' && stat.kind === 'audio') {
+          const { jitterBufferDelay, jitterBufferEmittedCount } = stat;
+          if (jitterBufferDelay != null && jitterBufferEmittedCount != null) {
+            if (this.prevJitterBufferDelay != null && this.prevJitterBufferEmitted != null) {
+              const deltaDelay = jitterBufferDelay - this.prevJitterBufferDelay;
+              const deltaEmitted = jitterBufferEmittedCount - this.prevJitterBufferEmitted;
+              if (deltaEmitted > 0) {
+                const avgBufferMs = (deltaDelay / deltaEmitted) * 1000;
+                // If jitter buffer exceeds 500ms, reset the audio stream to catch up
+                if (avgBufferMs > 500) {
+                  console.log(`[bodyteleop] audio jitter buffer ${avgBufferMs.toFixed(0)}ms, resetting audio element`);
+                  const el = this.audioRef.current;
+                  el.srcObject = null;
+                  el.srcObject = this.remoteAudioStream;
+                  this.syncAudioElement();
+                }
+              }
+            }
+            this.prevJitterBufferDelay = jitterBufferDelay;
+            this.prevJitterBufferEmitted = jitterBufferEmittedCount;
+          }
+        }
+      });
+    } catch {
+      /* stats unavailable */
     }
   }
 
@@ -1647,16 +1704,21 @@ class BodyTeleop extends Component {
       position: 'relative',
       bottom: 'auto',
       right: 'auto',
-      width: '100%',
+      width: 'auto',
       height: '100%',
+      aspectRatio: '1 / 1',
       maxWidth: '100%',
-      maxHeight: '100%',
+      background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.25), rgba(255,255,255,0.05))',
+      boxShadow: 'inset 0 0 20px rgba(255,255,255,0.1), 0 4px 20px rgba(0,0,0,0.4)',
+      border: '1.5px solid rgba(255,255,255,0.2)',
+      backdropFilter: 'blur(12px)',
+      touchAction: 'none',
     } : undefined;
 
     return (
       <div
         ref={this.joystickAreaRef}
-        className={`${classes.joystickArea} ${classes.joystickAreaSquare}`}
+        className={`${classes.joystickAreaSquare}`}
         style={portraitStyle}
         onTouchStart={this.handleTouchStart}
         onTouchMove={this.handleTouchMove}

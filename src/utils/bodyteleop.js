@@ -85,6 +85,15 @@ export class BodyTeleopConnection {
           this.videoStreams[cameraName] = new MediaStream([evt.track]);
           this.callbacks.onVideoTrack(cameraName, new MediaStream([evt.track]));
         } else if (evt.track.kind === 'audio') {
+          // Minimize receiver-side buffering for low-latency audio playback
+          if (evt.receiver) {
+            if ('playoutDelayHint' in evt.receiver) {
+              evt.receiver.playoutDelayHint = 0;
+            }
+            if ('jitterBufferTarget' in evt.receiver) {
+              evt.receiver.jitterBufferTarget = 0;
+            }
+          }
           this.audioStream = evt.streams[0] || new MediaStream([evt.track]);
           this.callbacks.onAudioTrack(this.audioStream);
         }
