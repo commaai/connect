@@ -213,6 +213,20 @@ const styles = () => ({
       height: 160,
     },
   },
+  joystickAreaMobile: {
+    position: 'relative',
+    bottom: 'auto',
+    right: 'auto',
+    width: 'auto',
+    height: '100%',
+    aspectRatio: '1 / 1',
+    maxWidth: '100%',
+    background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.25), rgba(255,255,255,0.05))',
+    boxShadow: 'inset 0 0 20px rgba(255,255,255,0.1), 0 4px 20px rgba(0,0,0,0.4)',
+    border: '1.5px solid rgba(255,255,255,0.2)',
+    backdropFilter: 'blur(12px)',
+    touchAction: 'none',
+  },
   joystickAreaSquare: {
     borderRadius: 16,
     background: 'linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05))',
@@ -886,8 +900,6 @@ class BodyTeleop extends Component {
     this.latencyWatchdogInterval = null;
     this.prevAudioJitterDelay = null;
     this.prevAudioJitterEmitted = null;
-    this.prevVideoJitterDelay = null;
-    this.prevVideoJitterEmitted = null;
 
     this.gamepadAnimFrame = null;
     this.prevBumpers = { lb: false, rb: false };
@@ -1095,25 +1107,13 @@ class BodyTeleop extends Component {
     this.syncAudioElement();
   }
 
-  resetVideoElement() {
-    const el = this.videoRef.current;
-    const stream = this.streams[this.state.activeCamera];
-    if (!el || !stream) return;
-    const tracks = stream.getVideoTracks();
-    if (tracks.length === 0) return;
-    el.srcObject = null;
-    el.srcObject = new MediaStream([tracks[0]]);
-    el.play?.()?.catch(() => {});
-  }
-
   startLatencyWatchdog() {
     this.stopLatencyWatchdog();
     this.prevAudioJitterDelay = null;
     this.prevAudioJitterEmitted = null;
-    this.prevVideoJitterDelay = null;
-    this.prevVideoJitterEmitted = null;
-    this.statsAvailable = { audio: false, video: false };
+    this.audioStatsAvailable = false;
     this.watchdogTick = 0;
+    this.lastAudioResetTick = 0;
     this.latencyWatchdogInterval = setInterval(() => this.checkLatency(), 1000);
   }
 
@@ -1124,8 +1124,6 @@ class BodyTeleop extends Component {
     }
     this.prevAudioJitterDelay = null;
     this.prevAudioJitterEmitted = null;
-    this.prevVideoJitterDelay = null;
-    this.prevVideoJitterEmitted = null;
   }
 
   async checkLatency() {
@@ -1137,72 +1135,42 @@ class BodyTeleop extends Component {
     try {
       const report = await pc.getStats();
       let foundAudio = false;
-      let foundVideo = false;
 
       report.forEach((stat) => {
-        if (stat.type !== 'inbound-rtp') return;
+        if (stat.type !== 'inbound-rtp' || stat.kind !== 'audio') return;
+        if (!this.audioRef.current || !this.remoteAudioStream) return;
         const { jitterBufferDelay, jitterBufferEmittedCount } = stat;
         if (jitterBufferDelay == null || jitterBufferEmittedCount == null) return;
 
-        if (stat.kind === 'audio' && this.audioRef.current && this.remoteAudioStream) {
-          foundAudio = true;
-          this.statsAvailable.audio = true;
-          if (this.prevAudioJitterDelay != null && this.prevAudioJitterEmitted != null) {
-            const deltaDelay = jitterBufferDelay - this.prevAudioJitterDelay;
-            const deltaEmitted = jitterBufferEmittedCount - this.prevAudioJitterEmitted;
-            if (deltaEmitted > 0) {
-              const avgBufferMs = (deltaDelay / deltaEmitted) * 1000;
-              if (avgBufferMs > 100) {
-                console.log(`[bodyteleop] audio jitter buffer ${avgBufferMs.toFixed(0)}ms, resetting`);
-                this.resetAudioElement();
-                this.prevAudioJitterDelay = null;
-                this.prevAudioJitterEmitted = null;
-                return;
-              }
+        foundAudio = true;
+        this.audioStatsAvailable = true;
+        if (this.prevAudioJitterDelay != null && this.prevAudioJitterEmitted != null) {
+          const deltaDelay = jitterBufferDelay - this.prevAudioJitterDelay;
+          const deltaEmitted = jitterBufferEmittedCount - this.prevAudioJitterEmitted;
+          if (deltaEmitted > 0) {
+            const avgBufferMs = (deltaDelay / deltaEmitted) * 1000;
+            const THRESHOLD_MS = 100;
+            const COOLDOWN_TICKS = 5;
+            if (avgBufferMs > THRESHOLD_MS && (this.watchdogTick - this.lastAudioResetTick) >= COOLDOWN_TICKS) {
+              console.log(`[bodyteleop] audio jitter buffer ${avgBufferMs.toFixed(0)}ms, resetting`);
+              this.resetAudioElement();
+              this.lastAudioResetTick = this.watchdogTick;
             }
           }
-          this.prevAudioJitterDelay = jitterBufferDelay;
-          this.prevAudioJitterEmitted = jitterBufferEmittedCount;
         }
-
-        if (stat.kind === 'video' && this.videoRef.current) {
-          foundVideo = true;
-          this.statsAvailable.video = true;
-          if (this.prevVideoJitterDelay != null && this.prevVideoJitterEmitted != null) {
-            const deltaDelay = jitterBufferDelay - this.prevVideoJitterDelay;
-            const deltaEmitted = jitterBufferEmittedCount - this.prevVideoJitterEmitted;
-            if (deltaEmitted > 0) {
-              const avgBufferMs = (deltaDelay / deltaEmitted) * 1000;
-              if (avgBufferMs > 100) {
-                console.log(`[bodyteleop] video jitter buffer ${avgBufferMs.toFixed(0)}ms, resetting`);
-                this.resetVideoElement();
-                this.prevVideoJitterDelay = null;
-                this.prevVideoJitterEmitted = null;
-                return;
-              }
-            }
-          }
-          this.prevVideoJitterDelay = jitterBufferDelay;
-          this.prevVideoJitterEmitted = jitterBufferEmittedCount;
-        }
+        this.prevAudioJitterDelay = jitterBufferDelay;
+        this.prevAudioJitterEmitted = jitterBufferEmittedCount;
       });
 
       // Safari fallback: if jitter buffer stats are never available,
-      // periodically reset elements to prevent unbounded drift
-      if (this.watchdogTick % 15 === 0) {
-        if (!foundAudio && !this.statsAvailable.audio && this.remoteAudioStream) {
-          console.log('[bodyteleop] no audio jitter stats, periodic reset');
-          this.resetAudioElement();
-        }
-        if (!foundVideo && !this.statsAvailable.video && this.videoRef.current) {
-          console.log('[bodyteleop] no video jitter stats, periodic reset');
-          this.resetVideoElement();
-        }
+      // periodically reset audio element to prevent unbounded drift
+      if (!foundAudio && !this.audioStatsAvailable && this.remoteAudioStream && this.watchdogTick % 15 === 0) {
+        console.log('[bodyteleop] no audio jitter stats, periodic reset');
+        this.resetAudioElement();
       }
     } catch {
       if (this.watchdogTick % 15 === 0) {
         this.resetAudioElement();
-        this.resetVideoElement();
       }
     }
   }
@@ -1398,8 +1366,12 @@ class BodyTeleop extends Component {
     try {
       if (directAddress) {
         if (window.location.protocol === 'https:') {
-          const trusted = await checkSslTrust(directAddress);
-          if (!trusted) {
+          const sslStatus = await checkSslTrust(directAddress);
+          if (sslStatus === 'unreachable') {
+            this.setState({ error: 'Could not reach device. Is the ignition on?', connectionState: 'failed' });
+            return;
+          }
+          if (sslStatus === 'untrusted') {
             this.setState({ showSslTrust: true, connectionState: 'disconnected' });
             return;
           }
@@ -1775,26 +1747,12 @@ class BodyTeleop extends Component {
     const thumbRange = portrait ? 45 : 40;
     const thumbLeft = thumbPos ? `${50 + thumbPos.x * thumbRange}%` : '50%';
     const thumbTop = thumbPos ? `${50 + thumbPos.y * thumbRange}%` : '50%';
-    const portraitStyle = portrait ? {
-      position: 'relative',
-      bottom: 'auto',
-      right: 'auto',
-      width: 'auto',
-      height: '100%',
-      aspectRatio: '1 / 1',
-      maxWidth: '100%',
-      background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.25), rgba(255,255,255,0.05))',
-      boxShadow: 'inset 0 0 20px rgba(255,255,255,0.1), 0 4px 20px rgba(0,0,0,0.4)',
-      border: '1.5px solid rgba(255,255,255,0.2)',
-      backdropFilter: 'blur(12px)',
-      touchAction: 'none',
-    } : undefined;
+    const joystickClassname = portrait ? classes.joystickAreaMobile : classes.joystickArea;
 
     return (
       <div
         ref={this.joystickAreaRef}
-        className={`${classes.joystickAreaSquare}`}
-        style={portraitStyle}
+        className={`${joystickClassname} ${classes.joystickAreaSquare}`}
         onTouchStart={this.handleTouchStart}
         onTouchMove={this.handleTouchMove}
         onTouchEnd={this.handleTouchEnd}
