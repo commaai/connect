@@ -883,9 +883,11 @@ class BodyTeleop extends Component {
     this.handlePlaySound = this.handlePlaySound.bind(this);
     this.syncAudioElement = this.syncAudioElement.bind(this);
     this.onVideoResize = this.onVideoResize.bind(this);
-    this.audioLatencyInterval = null;
-    this.prevJitterBufferDelay = null;
-    this.prevJitterBufferEmitted = null;
+    this.latencyWatchdogInterval = null;
+    this.prevAudioJitterDelay = null;
+    this.prevAudioJitterEmitted = null;
+    this.prevVideoJitterDelay = null;
+    this.prevVideoJitterEmitted = null;
 
     this.gamepadAnimFrame = null;
     this.prevBumpers = { lb: false, rb: false };
@@ -917,10 +919,10 @@ class BodyTeleop extends Component {
     if (prevState.connectionState !== this.state.connectionState) {
       if (this.state.connectionState === 'connected') {
         this.startStatsPolling();
-        this.startAudioLatencyWatchdog();
+        this.startLatencyWatchdog();
       } else {
         this.stopStatsPolling();
-        this.stopAudioLatencyWatchdog();
+        this.stopLatencyWatchdog();
       }
     }
     if (prevState.streamMuted !== this.state.streamMuted) {
@@ -955,7 +957,7 @@ class BodyTeleop extends Component {
     window.removeEventListener('message', this.onSslMessage);
     window.removeEventListener('beforeunload', this.onBeforeUnload);
     this.stopStatsPolling();
-    this.stopAudioLatencyWatchdog();
+    this.stopLatencyWatchdog();
     this.cleanupAudioAnalysers();
     this.connection.disconnect();
   }
@@ -1081,54 +1083,127 @@ class BodyTeleop extends Component {
     }
   }
 
-  startAudioLatencyWatchdog() {
-    this.stopAudioLatencyWatchdog();
-    this.prevJitterBufferDelay = null;
-    this.prevJitterBufferEmitted = null;
-    this.audioLatencyInterval = setInterval(() => this.checkAudioLatency(), 2000);
+  resetAudioElement() {
+    const el = this.audioRef.current;
+    if (!el || !this.remoteAudioStream) return;
+    // Build a fresh MediaStream from the current track to force Safari to drop
+    // its internal buffer — simply re-assigning the same stream is not enough
+    const tracks = this.remoteAudioStream.getAudioTracks();
+    if (tracks.length === 0) return;
+    el.srcObject = null;
+    el.srcObject = new MediaStream([tracks[0]]);
+    this.syncAudioElement();
   }
 
-  stopAudioLatencyWatchdog() {
-    if (this.audioLatencyInterval) {
-      clearInterval(this.audioLatencyInterval);
-      this.audioLatencyInterval = null;
+  resetVideoElement() {
+    const el = this.videoRef.current;
+    const stream = this.streams[this.state.activeCamera];
+    if (!el || !stream) return;
+    const tracks = stream.getVideoTracks();
+    if (tracks.length === 0) return;
+    el.srcObject = null;
+    el.srcObject = new MediaStream([tracks[0]]);
+    el.play?.()?.catch(() => {});
+  }
+
+  startLatencyWatchdog() {
+    this.stopLatencyWatchdog();
+    this.prevAudioJitterDelay = null;
+    this.prevAudioJitterEmitted = null;
+    this.prevVideoJitterDelay = null;
+    this.prevVideoJitterEmitted = null;
+    this.statsAvailable = { audio: false, video: false };
+    this.watchdogTick = 0;
+    this.latencyWatchdogInterval = setInterval(() => this.checkLatency(), 1000);
+  }
+
+  stopLatencyWatchdog() {
+    if (this.latencyWatchdogInterval) {
+      clearInterval(this.latencyWatchdogInterval);
+      this.latencyWatchdogInterval = null;
     }
-    this.prevJitterBufferDelay = null;
-    this.prevJitterBufferEmitted = null;
+    this.prevAudioJitterDelay = null;
+    this.prevAudioJitterEmitted = null;
+    this.prevVideoJitterDelay = null;
+    this.prevVideoJitterEmitted = null;
   }
 
-  async checkAudioLatency() {
+  async checkLatency() {
     const pc = this.connection.pc;
-    if (!pc || !this.audioRef.current || !this.remoteAudioStream) return;
+    if (!pc) return;
+
+    this.watchdogTick = (this.watchdogTick || 0) + 1;
 
     try {
       const report = await pc.getStats();
+      let foundAudio = false;
+      let foundVideo = false;
+
       report.forEach((stat) => {
-        if (stat.type === 'inbound-rtp' && stat.kind === 'audio') {
-          const { jitterBufferDelay, jitterBufferEmittedCount } = stat;
-          if (jitterBufferDelay != null && jitterBufferEmittedCount != null) {
-            if (this.prevJitterBufferDelay != null && this.prevJitterBufferEmitted != null) {
-              const deltaDelay = jitterBufferDelay - this.prevJitterBufferDelay;
-              const deltaEmitted = jitterBufferEmittedCount - this.prevJitterBufferEmitted;
-              if (deltaEmitted > 0) {
-                const avgBufferMs = (deltaDelay / deltaEmitted) * 1000;
-                // If jitter buffer exceeds 500ms, reset the audio stream to catch up
-                if (avgBufferMs > 500) {
-                  console.log(`[bodyteleop] audio jitter buffer ${avgBufferMs.toFixed(0)}ms, resetting audio element`);
-                  const el = this.audioRef.current;
-                  el.srcObject = null;
-                  el.srcObject = this.remoteAudioStream;
-                  this.syncAudioElement();
-                }
+        if (stat.type !== 'inbound-rtp') return;
+        const { jitterBufferDelay, jitterBufferEmittedCount } = stat;
+        if (jitterBufferDelay == null || jitterBufferEmittedCount == null) return;
+
+        if (stat.kind === 'audio' && this.audioRef.current && this.remoteAudioStream) {
+          foundAudio = true;
+          this.statsAvailable.audio = true;
+          if (this.prevAudioJitterDelay != null && this.prevAudioJitterEmitted != null) {
+            const deltaDelay = jitterBufferDelay - this.prevAudioJitterDelay;
+            const deltaEmitted = jitterBufferEmittedCount - this.prevAudioJitterEmitted;
+            if (deltaEmitted > 0) {
+              const avgBufferMs = (deltaDelay / deltaEmitted) * 1000;
+              if (avgBufferMs > 100) {
+                console.log(`[bodyteleop] audio jitter buffer ${avgBufferMs.toFixed(0)}ms, resetting`);
+                this.resetAudioElement();
+                this.prevAudioJitterDelay = null;
+                this.prevAudioJitterEmitted = null;
+                return;
               }
             }
-            this.prevJitterBufferDelay = jitterBufferDelay;
-            this.prevJitterBufferEmitted = jitterBufferEmittedCount;
           }
+          this.prevAudioJitterDelay = jitterBufferDelay;
+          this.prevAudioJitterEmitted = jitterBufferEmittedCount;
+        }
+
+        if (stat.kind === 'video' && this.videoRef.current) {
+          foundVideo = true;
+          this.statsAvailable.video = true;
+          if (this.prevVideoJitterDelay != null && this.prevVideoJitterEmitted != null) {
+            const deltaDelay = jitterBufferDelay - this.prevVideoJitterDelay;
+            const deltaEmitted = jitterBufferEmittedCount - this.prevVideoJitterEmitted;
+            if (deltaEmitted > 0) {
+              const avgBufferMs = (deltaDelay / deltaEmitted) * 1000;
+              if (avgBufferMs > 100) {
+                console.log(`[bodyteleop] video jitter buffer ${avgBufferMs.toFixed(0)}ms, resetting`);
+                this.resetVideoElement();
+                this.prevVideoJitterDelay = null;
+                this.prevVideoJitterEmitted = null;
+                return;
+              }
+            }
+          }
+          this.prevVideoJitterDelay = jitterBufferDelay;
+          this.prevVideoJitterEmitted = jitterBufferEmittedCount;
         }
       });
+
+      // Safari fallback: if jitter buffer stats are never available,
+      // periodically reset elements to prevent unbounded drift
+      if (this.watchdogTick % 15 === 0) {
+        if (!foundAudio && !this.statsAvailable.audio && this.remoteAudioStream) {
+          console.log('[bodyteleop] no audio jitter stats, periodic reset');
+          this.resetAudioElement();
+        }
+        if (!foundVideo && !this.statsAvailable.video && this.videoRef.current) {
+          console.log('[bodyteleop] no video jitter stats, periodic reset');
+          this.resetVideoElement();
+        }
+      }
     } catch {
-      /* stats unavailable */
+      if (this.watchdogTick % 15 === 0) {
+        this.resetAudioElement();
+        this.resetVideoElement();
+      }
     }
   }
 
