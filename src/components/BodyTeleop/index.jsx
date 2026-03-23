@@ -823,39 +823,19 @@ class BodyTeleop extends Component {
       gamepadLB: false,
       gamepadRB: false,
       showSslTrust: false,
-      streamMuted: true,
-      micMuted: true,
-      micPermission: 'unknown',
-      micLevel: 0,
-      remoteAudioLevel: 0,
     };
 
     this.videoRef = React.createRef();
-    this.audioRef = React.createRef();
     this.joystickAreaRef = React.createRef();
     this.touchId = null;
     this.mouseDragging = false;
     this.streams = {};
-    this.remoteAudioStream = null;
-    this.micAnalyser = null;
-    this.remoteAnalyser = null;
-    this.audioLevelContext = null;
-    this.micAnalyserSource = null;
-    this.remoteAnalyserSource = null;
-    this.audioLevelInterval = null;
 
     this.connection = new BodyTeleopConnection({
       onConnectionState: (connectionState) => {
-        if (connectionState !== 'connected') {
-          this.remoteAudioStream = null;
-          if (this.audioRef.current) {
-            this.audioRef.current.srcObject = null;
-          }
-        }
         this.setState({
           connectionState,
           ...(connectionState !== 'connecting' ? { statusMessage: null, connectProgress: 0 } : {}),
-          ...(connectionState !== 'connected' ? { micMuted: true } : {}),
         });
       },
       onStatusMessage: (statusMessage) => {
@@ -876,7 +856,6 @@ class BodyTeleop extends Component {
           this.videoRef.current.srcObject = stream;
         }
       },
-      onAudioTrack: (stream) => this.setRemoteAudioStream(stream),
     });
 
     this.onKeyDown = this.onKeyDown.bind(this);
@@ -892,14 +871,8 @@ class BodyTeleop extends Component {
     this.onLandscapeChange = this.onLandscapeChange.bind(this);
     this.handleClose = this.handleClose.bind(this);
     this.pollGamepad = this.pollGamepad.bind(this);
-    this.toggleStreamMuted = this.toggleStreamMuted.bind(this);
-    this.handleMicToggle = this.handleMicToggle.bind(this);
     this.handlePlaySound = this.handlePlaySound.bind(this);
-    this.syncAudioElement = this.syncAudioElement.bind(this);
     this.onVideoResize = this.onVideoResize.bind(this);
-    this.latencyWatchdogInterval = null;
-    this.prevAudioJitterDelay = null;
-    this.prevAudioJitterEmitted = null;
 
     this.gamepadAnimFrame = null;
     this.prevBumpers = { lb: false, rb: false };
@@ -931,23 +904,14 @@ class BodyTeleop extends Component {
     if (prevState.connectionState !== this.state.connectionState) {
       if (this.state.connectionState === 'connected') {
         this.startStatsPolling();
-        this.startLatencyWatchdog();
       } else {
         this.stopStatsPolling();
-        this.stopLatencyWatchdog();
       }
     }
-    if (prevState.streamMuted !== this.state.streamMuted) {
-      this.syncAudioElement();
-    }
-    // Re-attach video/audio streams when orientation changes (new DOM elements)
+    // Re-attach video streams when orientation changes (new DOM elements)
     if (prevState.isLandscape !== this.state.isLandscape) {
       if (this.videoRef.current) {
         this.videoRef.current.srcObject = this.streams[this.state.activeCamera] || null;
-      }
-      if (this.audioRef.current) {
-        this.audioRef.current.srcObject = this.remoteAudioStream;
-        this.syncAudioElement();
       }
     }
   }
@@ -969,8 +933,6 @@ class BodyTeleop extends Component {
     window.removeEventListener('message', this.onSslMessage);
     window.removeEventListener('beforeunload', this.onBeforeUnload);
     this.stopStatsPolling();
-    this.stopLatencyWatchdog();
-    this.cleanupAudioAnalysers();
     this.connection.disconnect();
   }
 
@@ -981,7 +943,6 @@ class BodyTeleop extends Component {
     this.prevFramesDecoded = null;
     this.statsInterval = setInterval(() => this.pollStats(), 1000);
     this.pollStats();
-    this.audioLevelInterval = setInterval(() => this.pollAudioLevels(), 80);
   }
 
   stopStatsPolling() {
@@ -989,190 +950,7 @@ class BodyTeleop extends Component {
       clearInterval(this.statsInterval);
       this.statsInterval = null;
     }
-    if (this.audioLevelInterval) {
-      clearInterval(this.audioLevelInterval);
-      this.audioLevelInterval = null;
-    }
-    this.cleanupAudioAnalysers();
-    this.setState({ stats: null, micLevel: 0, remoteAudioLevel: 0 });
-  }
-
-  ensureAudioLevelContext() {
-    if (!this.audioLevelContext) {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) return null;
-      this.audioLevelContext = new AudioContextClass();
-    }
-    return this.audioLevelContext;
-  }
-
-  getAudioLevel(analyser) {
-    if (!analyser) return 0;
-    if (!this.audioLevelData) {
-      this.audioLevelData = new Uint8Array(analyser.frequencyBinCount);
-    }
-    const data = this.audioLevelData;
-    analyser.getByteTimeDomainData(data);
-    let sum = 0;
-    for (let i = 0; i < data.length; i++) {
-      const v = (data[i] - 128) / 128;
-      sum += v * v;
-    }
-    return Math.min(1, Math.sqrt(sum / data.length) * 4);
-  }
-
-  syncAnalyser(stream, analyser, source, ctx) {
-    if (stream && (!analyser || source?._trackedStream !== stream)) {
-      if (source) source.disconnect();
-      const newAnalyser = ctx.createAnalyser();
-      newAnalyser.fftSize = 256;
-      const newSource = ctx.createMediaStreamSource(stream);
-      newSource._trackedStream = stream;
-      newSource.connect(newAnalyser);
-      return { analyser: newAnalyser, source: newSource };
-    }
-    if (!stream && analyser) {
-      if (source) source.disconnect();
-      return { analyser: null, source: null };
-    }
-    return { analyser, source };
-  }
-
-  pollAudioLevels() {
-    if (!this.state.showStats) return;
-
-    const ctx = this.ensureAudioLevelContext();
-    if (!ctx) return;
-
-    const mic = this.syncAnalyser(this.connection.localMicStream, this.micAnalyser, this.micAnalyserSource, ctx);
-    this.micAnalyser = mic.analyser;
-    this.micAnalyserSource = mic.source;
-
-    const remote = this.syncAnalyser(this.remoteAudioStream, this.remoteAnalyser, this.remoteAnalyserSource, ctx);
-    this.remoteAnalyser = remote.analyser;
-    this.remoteAnalyserSource = remote.source;
-
-    const micLevel = this.getAudioLevel(this.micAnalyser);
-    const remoteAudioLevel = this.getAudioLevel(this.remoteAnalyser);
-
-    if (Math.abs(micLevel - this.state.micLevel) >= 0.02 ||
-        Math.abs(remoteAudioLevel - this.state.remoteAudioLevel) >= 0.02) {
-      this.setState({ micLevel, remoteAudioLevel });
-    }
-  }
-
-  cleanupAudioAnalysers() {
-    if (this.micAnalyserSource) {
-      this.micAnalyserSource.disconnect();
-      this.micAnalyserSource = null;
-    }
-    this.micAnalyser = null;
-    if (this.remoteAnalyserSource) {
-      this.remoteAnalyserSource.disconnect();
-      this.remoteAnalyserSource = null;
-    }
-    this.remoteAnalyser = null;
-    if (this.audioLevelContext) {
-      this.audioLevelContext.close().catch(() => {});
-      this.audioLevelContext = null;
-    }
-  }
-
-  setRemoteAudioStream(stream) {
-    this.remoteAudioStream = stream;
-    if (this.audioRef.current) {
-      this.audioRef.current.srcObject = stream;
-    }
-    this.syncAudioElement();
-  }
-
-  syncAudioElement() {
-    if (!this.audioRef.current) return;
-    this.audioRef.current.muted = this.state.streamMuted;
-    const playPromise = this.audioRef.current.play?.();
-    if (playPromise && playPromise.catch) {
-      playPromise.catch(() => {});
-    }
-  }
-
-  resetAudioElement() {
-    const el = this.audioRef.current;
-    if (!el || !this.remoteAudioStream) return;
-    // Build a fresh MediaStream from the current track to force Safari to drop
-    // its internal buffer — simply re-assigning the same stream is not enough
-    const tracks = this.remoteAudioStream.getAudioTracks();
-    if (tracks.length === 0) return;
-    el.srcObject = null;
-    el.srcObject = new MediaStream([tracks[0]]);
-    this.syncAudioElement();
-  }
-
-  startLatencyWatchdog() {
-    this.stopLatencyWatchdog();
-    this.prevAudioJitterDelay = null;
-    this.prevAudioJitterEmitted = null;
-    this.audioStatsAvailable = false;
-    this.watchdogTick = 0;
-    this.lastAudioResetTick = 0;
-    this.latencyWatchdogInterval = setInterval(() => this.checkLatency(), 1000);
-  }
-
-  stopLatencyWatchdog() {
-    if (this.latencyWatchdogInterval) {
-      clearInterval(this.latencyWatchdogInterval);
-      this.latencyWatchdogInterval = null;
-    }
-    this.prevAudioJitterDelay = null;
-    this.prevAudioJitterEmitted = null;
-  }
-
-  async checkLatency() {
-    const pc = this.connection.pc;
-    if (!pc) return;
-
-    this.watchdogTick = (this.watchdogTick || 0) + 1;
-
-    try {
-      const report = await pc.getStats();
-      let foundAudio = false;
-
-      report.forEach((stat) => {
-        if (stat.type !== 'inbound-rtp' || stat.kind !== 'audio') return;
-        if (!this.audioRef.current || !this.remoteAudioStream) return;
-        const { jitterBufferDelay, jitterBufferEmittedCount } = stat;
-        if (jitterBufferDelay == null || jitterBufferEmittedCount == null) return;
-
-        foundAudio = true;
-        this.audioStatsAvailable = true;
-        if (this.prevAudioJitterDelay != null && this.prevAudioJitterEmitted != null) {
-          const deltaDelay = jitterBufferDelay - this.prevAudioJitterDelay;
-          const deltaEmitted = jitterBufferEmittedCount - this.prevAudioJitterEmitted;
-          if (deltaEmitted > 0) {
-            const avgBufferMs = (deltaDelay / deltaEmitted) * 1000;
-            const THRESHOLD_MS = 100;
-            const COOLDOWN_TICKS = 5;
-            if (avgBufferMs > THRESHOLD_MS && (this.watchdogTick - this.lastAudioResetTick) >= COOLDOWN_TICKS) {
-              console.log(`[bodyteleop] audio jitter buffer ${avgBufferMs.toFixed(0)}ms, resetting`);
-              this.resetAudioElement();
-              this.lastAudioResetTick = this.watchdogTick;
-            }
-          }
-        }
-        this.prevAudioJitterDelay = jitterBufferDelay;
-        this.prevAudioJitterEmitted = jitterBufferEmittedCount;
-      });
-
-      // Safari fallback: if jitter buffer stats are never available,
-      // periodically reset audio element to prevent unbounded drift
-      if (!foundAudio && !this.audioStatsAvailable && this.remoteAudioStream && this.watchdogTick % 15 === 0) {
-        console.log('[bodyteleop] no audio jitter stats, periodic reset');
-        this.resetAudioElement();
-      }
-    } catch {
-      if (this.watchdogTick % 15 === 0) {
-        this.resetAudioElement();
-      }
-    }
+    this.setState({ stats: null });
   }
 
   async pollStats() {
@@ -1281,8 +1059,8 @@ class BodyTeleop extends Component {
   }
 
   setFlippedJoystick(x, y) {
-    const flip = this.isRearCamera() ? -1 : 1;
-    this.connection.setJoystick(flip * x, y);
+    const flip = this.isRearCamera() ? 1 : -1;
+    this.connection.setJoystick(flip * x, -y);
   }
 
   setKey(key, pressed) {
@@ -1390,24 +1168,6 @@ class BodyTeleop extends Component {
     this.connection.disconnect();
   }
 
-  toggleStreamMuted() {
-    this.setState((prev) => ({ streamMuted: !prev.streamMuted }));
-  }
-
-  async handleMicToggle() {
-    const { micMuted } = this.state;
-    try {
-      await this.connection.setMicrophoneMuted(!micMuted);
-      this.setState({
-        micMuted: !micMuted,
-        ...(micMuted ? { micPermission: 'granted' } : {}),
-      });
-    } catch (err) {
-      console.error('Mic toggle failed:', err);
-      this.setState({ micPermission: 'denied', micMuted: true });
-    }
-  }
-
   handlePlaySound(sound) {
     this.connection.playSound(sound).catch((err) => {
       console.error('Failed to play body sound:', err);
@@ -1446,9 +1206,14 @@ class BodyTeleop extends Component {
 
     // On some Linux drivers, triggers are analog on axes instead of buttons
     // axes layout: [lx, ly, lt_axis, rx, ry, rt_axis] (varies by driver)
-    const rt = gp.axes[5] !== undefined ? (gp.axes[5] + 1) / 2
+    // Triggers may report 0 instead of -1 at rest until first pressed; use -1 as default
+    const rawRt = gp.axes[5] !== undefined ? gp.axes[5] : undefined;
+    const rawLt = gp.axes[4] !== undefined ? gp.axes[4] : undefined;
+    if (rawRt !== undefined && rawRt !== 0) this.rtActivated = true;
+    if (rawLt !== undefined && rawLt !== 0) this.ltActivated = true;
+    const rt = rawRt !== undefined ? ((this.rtActivated ? rawRt : -1) + 1) / 2
       : gp.buttons[7] ? gp.buttons[7].value : 0;
-    const lt = gp.axes[4] !== undefined ? (gp.axes[4] + 1) / 2
+    const lt = rawLt !== undefined ? ((this.ltActivated ? rawLt : -1) + 1) / 2
       : gp.buttons[6] ? gp.buttons[6].value : 0;
 
     const throttle = lt - rt; // negative = forward (gas), positive = backward (brake)
