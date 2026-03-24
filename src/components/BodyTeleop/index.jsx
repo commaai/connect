@@ -850,9 +850,10 @@ class BodyTeleop extends Component {
         this.setState({ statusMessage, connectProgress: progressMap[statusMessage] || 0 });
       },
       onBatteryLevel: (batteryLevel) => this.setState({ batteryLevel }),
-      onVideoTrack: (cameraName, stream) => {
-        this.streams[cameraName] = stream;
-        if (cameraName === this.state.activeCamera && this.videoRef.current) {
+      onActiveCamera: (camera) => this.setState({ activeCamera: camera }),
+      onVideoTrack: (_cameraName, stream) => {
+        this.streams.camera = stream;
+        if (this.videoRef.current) {
           this.videoRef.current.srcObject = stream;
         }
       },
@@ -911,7 +912,7 @@ class BodyTeleop extends Component {
     // Re-attach video streams when orientation changes (new DOM elements)
     if (prevState.isLandscape !== this.state.isLandscape) {
       if (this.videoRef.current) {
-        this.videoRef.current.srcObject = this.streams[this.state.activeCamera] || null;
+        this.videoRef.current.srcObject = this.streams.camera || null;
       }
     }
   }
@@ -1258,9 +1259,7 @@ class BodyTeleop extends Component {
 
   switchCamera(cameraName) {
     this.setState({ activeCamera: cameraName });
-    if (this.videoRef.current) {
-      this.videoRef.current.srcObject = this.streams[cameraName] || null;
-    }
+    this.connection.switchCamera(cameraName);
   }
 
   isMobile() {

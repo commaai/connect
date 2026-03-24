@@ -36,7 +36,7 @@ export class BodyTeleopConnection {
     this.joystickY = 0;
     this.videoStreams = {};
     this.callbacks = callbacks;
-    this.cameraOrder = ['driver', 'wideRoad'];
+    this.cameraOrder = ['camera'];
     this.videoTrackIndex = 0;
   }
 
@@ -117,11 +117,9 @@ export class BodyTeleopConnection {
         ? [...h264Codecs, ...codecs.filter((c) => c.mimeType !== 'video/H264')]
         : codecs;
 
-      for (let i = 0; i < this.cameraOrder.length; i++) {
-        const transceiver = this.pc.addTransceiver('video', { direction: 'recvonly' });
-        if (orderedCodecs.length > 0) {
-          transceiver.setCodecPreferences(orderedCodecs);
-        }
+      const transceiver = this.pc.addTransceiver('video', { direction: 'recvonly' });
+      if (orderedCodecs.length > 0) {
+        transceiver.setCodecPreferences(orderedCodecs);
       }
       this.dc = this.pc.createDataChannel('data', { ordered: true });
       this.dc.onopen = () => {
@@ -139,6 +137,7 @@ export class BodyTeleopConnection {
         try {
           const msg = JSON.parse(typeof evt.data === 'string' ? evt.data : new TextDecoder().decode(evt.data));
           if (msg.type === 'carState') this.callbacks.onBatteryLevel(Math.round(msg.data.fuelGauge * 100));
+          if (msg.type === 'activeCamera') this.callbacks.onActiveCamera?.(msg.data.camera);
         } catch {
           /* ignore */
         }
@@ -208,6 +207,7 @@ export class BodyTeleopConnection {
           throw new Error(resp.result.message || resp.result.error);
         }
         answerSdp = resp.result.sdp;
+        if (resp.result.activeCamera) this.callbacks.onActiveCamera?.(resp.result.activeCamera);
       } else if (this.directAddress) {
         log(`sending offer to ${this.directAddress}`);
         let resp;
@@ -215,7 +215,7 @@ export class BodyTeleopConnection {
           resp = await fetch(`${getDeviceBaseUrl(this.directAddress)}/stream`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sdp, cameras: this.cameraOrder, bridge_services_in: ['testJoystick'], bridge_services_out: ['carState'] }),
+            body: JSON.stringify({ sdp, cameras: ['driver'], bridge_services_in: ['testJoystick'], bridge_services_out: ['carState'] }),
           });
         } catch (_) {
           throw new Error('Could not reach device. Is the ignition on?');
@@ -237,6 +237,7 @@ export class BodyTeleopConnection {
           throw new Error('No SDP in device response');
         }
         answerSdp = result.sdp;
+        if (result.activeCamera) this.callbacks.onActiveCamera?.(result.activeCamera);
       }
 
       await this.pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
@@ -278,6 +279,12 @@ export class BodyTeleopConnection {
     }
   }
 
+  switchCamera(cameraName) {
+    if (this.dc && this.dc.readyState === 'open') {
+      this.dc.send(JSON.stringify({ type: 'switchCamera', data: { camera: cameraName } }));
+    }
+  }
+
   setJoystick(x, y) {
     this.joystickX = x;
     this.joystickY = y;
@@ -285,7 +292,7 @@ export class BodyTeleopConnection {
 
   sendJoystick() {
     if (this.dc && this.dc.readyState === 'open') {
-      this.dc.send(JSON.stringify({ type: 'testJoystick', data: { axes: [-this.joystickX, this.joystickY], buttons: [false] } }));
+      this.dc.send(JSON.stringify({ type: 'testJoystick', data: { axes: [this.joystickX, this.joystickY], buttons: [false] } }));
     }
   }
 
