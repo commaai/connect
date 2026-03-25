@@ -522,6 +522,15 @@ const styles = () => ({
     flexDirection: 'column',
     alignItems: 'center',
   },
+  statsTogglePortrait: {
+    position: 'absolute',
+    top: 0,
+    right: 4,
+    zIndex: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+  },
   statsToggleButton: {
     height: 28,
     padding: '0 10px',
@@ -544,74 +553,105 @@ const styles = () => ({
     },
   },
   statsPanel: {
-    marginTop: 4,
-    padding: '6px 10px',
-    borderRadius: 8,
+    marginTop: 2,
+    padding: '3px 6px',
+    borderRadius: 5,
     background: 'rgba(0,0,0,0.7)',
     backdropFilter: 'blur(12px)',
     border: '1px solid rgba(255,255,255,0.1)',
-    minWidth: 160,
+    minWidth: 120,
     fontFamily: 'monospace',
+    '@media (min-width: 768px)': {
+      padding: '10px 16px',
+      minWidth: 240,
+      borderRadius: 10,
+    },
   },
   statsRow: {
     display: 'flex',
     justifyContent: 'space-between',
-    padding: '1px 0',
+    lineHeight: 1.2,
+    '@media (min-width: 768px)': {
+      padding: '3px 0',
+    },
   },
   statsLabel: {
-    fontSize: 10,
+    fontSize: 8,
     color: 'rgba(255,255,255,0.45)',
-    marginRight: 12,
+    marginRight: 6,
+    '@media (min-width: 768px)': {
+      fontSize: 13,
+      marginRight: 18,
+    },
   },
   statsValue: {
-    fontSize: 10,
+    fontSize: 8,
     color: 'rgba(255,255,255,0.85)',
     textAlign: 'right',
+    '@media (min-width: 768px)': {
+      fontSize: 13,
+    },
   },
   statsDivider: {
     height: 1,
     background: 'rgba(255,255,255,0.08)',
-    margin: '3px 0',
+    margin: '1px 0',
+    '@media (min-width: 768px)': {
+      margin: '5px 0',
+    },
   },
   audioLevelRow: {
     display: 'flex',
     alignItems: 'center',
-    padding: '2px 0',
-    gap: '6px',
+    padding: '0px 0',
+    gap: '3px',
+    '@media (min-width: 768px)': {
+      padding: '2px 0',
+      gap: '6px',
+    },
   },
   audioLevelIcon: {
-    fontSize: 12,
+    fontSize: 8,
     color: 'rgba(255,255,255,0.45)',
     flexShrink: 0,
-    width: 14,
+    width: 10,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
   audioLevelTrack: {
     flex: 1,
-    height: 6,
-    borderRadius: 3,
+    height: 3,
+    borderRadius: 2,
     background: 'rgba(255,255,255,0.08)',
     overflow: 'hidden',
   },
   audioLevelFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 2,
     transition: 'width 80ms linear',
   },
   latencyGraph: {
     width: '100%',
-    height: 60,
-    marginTop: 2,
-    borderRadius: 4,
+    height: 30,
+    marginTop: 1,
+    borderRadius: 3,
     background: 'rgba(0,0,0,0.3)',
+    '@media (min-width: 768px)': {
+      height: 90,
+      marginTop: 4,
+      borderRadius: 6,
+    },
   },
   latencySectionHeader: {
-    fontSize: 9,
+    fontSize: 7,
     fontWeight: 700,
     color: 'rgba(255,255,255,0.35)',
     letterSpacing: 0.5,
+    lineHeight: 1.2,
+    '@media (min-width: 768px)': {
+      fontSize: 11,
+    },
     padding: '2px 0 1px',
   },
   screenshotButton: {
@@ -847,6 +887,7 @@ class BodyTeleop extends Component {
     this.touchId = null;
     this.mouseDragging = false;
     this.streams = {};
+    this._switchCameraTimer = null;
 
     this.connection = new BodyTeleopConnection({
       onConnectionState: (connectionState) => {
@@ -1298,8 +1339,13 @@ class BodyTeleop extends Component {
   }
 
   switchCamera(cameraName) {
+    if (cameraName === this.state.activeCamera) return;
     this.setState({ activeCamera: cameraName });
-    this.connection.switchCamera(cameraName);
+    if (this._switchCameraTimer) clearTimeout(this._switchCameraTimer);
+    this._switchCameraTimer = setTimeout(() => {
+      this._switchCameraTimer = null;
+      this.connection.switchCamera(cameraName);
+    }, 200);
   }
 
   isMobile() {
@@ -1364,6 +1410,19 @@ class BodyTeleop extends Component {
               <span className={classes.hudText}>{batteryLevel}%</span>
             </div>
           )}
+          <div
+            className={classes.statsToggleButton}
+            onClick={() => {
+              this.setState((prev) => {
+                const next = !prev.showStats;
+                this.connection.setTimingSei(next);
+                return { showStats: next };
+              });
+            }}
+            title="Toggle stats"
+          >
+            STATS
+          </div>
           <div style={{ flex: 1 }} />
           <div className={classes.controlsButtons}>
             <div
@@ -1739,7 +1798,7 @@ class BodyTeleop extends Component {
     ctx.fillText(`${Math.round(maxVal)}ms`, 2, 9);
   }
 
-  renderStatsOverlay() {
+  renderStatsOverlay(portrait = false) {
     const { classes } = this.props;
     const { showStats, stats, latency, micLevel, remoteAudioLevel, micMuted, streamMuted } = this.state;
 
@@ -1751,7 +1810,7 @@ class BodyTeleop extends Component {
     const fmtMs = (v) => (v != null ? `${v.toFixed(1)} ms` : '--');
 
     return (
-      <div className={classes.statsToggle}>
+      <div className={portrait ? classes.statsTogglePortrait : classes.statsToggle}>
         <div className={classes.statsPanel}>
             <div className={classes.statsRow}>
               <span className={classes.statsLabel}>Resolution</span>
@@ -2032,24 +2091,7 @@ class BodyTeleop extends Component {
               style={{ width: '100%', aspectRatio: this.state.videoAspectRatio, display: 'block' }}
             />
             <audio ref={this.audioRef} autoPlay muted={this.state.streamMuted} />
-            {connected && (
-              <div className={classes.hudTopRight}>
-                <div
-                  className={classes.statsToggleButton}
-                  onClick={() => {
-                  this.setState((prev) => {
-                    const next = !prev.showStats;
-                    this.connection.setTimingSei(next);
-                    return { showStats: next };
-                  });
-                }}
-                  title="Toggle stats"
-                >
-                  STATS
-                </div>
-              </div>
-            )}
-            {connected && this.renderStatsOverlay()}
+            {connected && this.renderStatsOverlay(true)}
           </div>
           {connected && this.renderControls(true)}
           {connected && this.state.gamepadConnected

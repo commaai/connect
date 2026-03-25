@@ -182,7 +182,25 @@ export class BodyTeleopConnection {
               evt.receiver.jitterBufferTarget = 0;
             }
             // Set up Encoded Transform to extract frame-level timing SEI
-            if (evt.receiver.createEncodedStreams) {
+            if (typeof RTCRtpScriptTransform !== 'undefined') {
+              // Standard API (Firefox 117+, future Chrome)
+              try {
+                const worker = new Worker(
+                  new URL('./latency-transform-worker.js', import.meta.url),
+                  { type: 'module' },
+                );
+                worker.onmessage = (e) => {
+                  if (e.data.type === 'timing') {
+                    this._processTimingData(e.data.timing);
+                  }
+                };
+                evt.receiver.transform = new RTCRtpScriptTransform(worker);
+                log('RTCRtpScriptTransform attached for latency measurement');
+              } catch (e) {
+                log(`RTCRtpScriptTransform setup failed: ${e.message}`);
+              }
+            } else if (evt.receiver.createEncodedStreams) {
+              // Legacy Chrome API
               try {
                 const { readable, writable } = evt.receiver.createEncodedStreams();
                 const self = this;
@@ -192,7 +210,7 @@ export class BodyTeleopConnection {
                     controller.enqueue(frame);
                   },
                 })).pipeTo(writable);
-                log('encoded transform attached for latency measurement');
+                log('encoded transform (legacy) attached for latency measurement');
               } catch (e) {
                 log(`encoded transform setup failed: ${e.message}`);
               }
@@ -436,8 +454,10 @@ export class BodyTeleopConnection {
 
   _processEncodedFrame(frame) {
     const timing = extractTimingSei(frame.data);
-    if (!timing) return;
+    if (timing) this._processTimingData(timing);
+  }
 
+  _processTimingData(timing) {
     const browserReceiveMs = performance.timeOrigin + performance.now();
     const latency = {
       captureMs: timing.captureMs,
