@@ -1,5 +1,99 @@
 import { athena as Athena } from '@commaai/api';
 
+// Must match TIMING_SEI_UUID in openpilot system/webrtc/device/video.py
+const TIMING_SEI_UUID = new Uint8Array([
+  0xa5, 0xe0, 0xc4, 0xa4, 0x5b, 0x6e, 0x4e, 0x1e,
+  0x9c, 0x7e, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc,
+]);
+
+/** Remove H.264 emulation-prevention bytes (0x00 0x00 0x03) → (0x00 0x00). */
+function unescapeRbsp(data) {
+  const out = [];
+  let i = 0;
+  while (i < data.length) {
+    if (i + 2 < data.length && data[i] === 0 && data[i + 1] === 0 && data[i + 2] === 3) {
+      out.push(0, 0);
+      i += 3;
+    } else {
+      out.push(data[i]);
+      i++;
+    }
+  }
+  return new Uint8Array(out);
+}
+
+/**
+ * Extract openpilot timing metadata from an H.264 encoded frame.
+ * Scans NAL units for an SEI (type 6) with user_data_unregistered (payload type 5)
+ * matching our UUID, then unpacks four big-endian float64 values.
+ *
+ * Returns { captureMs, encodeMs, sendDelayMs, deviceSendWallMs } or null.
+ */
+function extractTimingSei(frameBuffer) {
+  const data = new Uint8Array(frameBuffer);
+  let i = 0;
+
+  while (i < data.length - 5) {
+    // Detect Annex-B start code (00 00 00 01 or 00 00 01)
+    let scLen = 0;
+    if (data[i] === 0 && data[i + 1] === 0) {
+      if (data[i + 2] === 0 && i + 3 < data.length && data[i + 3] === 1) scLen = 4;
+      else if (data[i + 2] === 1) scLen = 3;
+    }
+    if (scLen === 0) { i++; continue; }
+
+    const nalHeaderIdx = i + scLen;
+    const nalType = data[nalHeaderIdx] & 0x1f;
+
+    if (nalType === 6) {
+      // Find end of this NAL unit (next start code or EOF)
+      let nalEnd = data.length;
+      for (let j = nalHeaderIdx + 1; j < data.length - 2; j++) {
+        if (data[j] === 0 && data[j + 1] === 0
+          && (data[j + 2] === 1 || (data[j + 2] === 0 && j + 3 < data.length && data[j + 3] === 1))) {
+          nalEnd = j;
+          break;
+        }
+      }
+
+      // Un-escape and parse SEI RBSP (skip NAL header byte)
+      const rbsp = unescapeRbsp(data.slice(nalHeaderIdx + 1, nalEnd));
+      let pos = 0;
+
+      // payload type (variable-length)
+      let payloadType = 0;
+      while (pos < rbsp.length && rbsp[pos] === 0xff) { payloadType += 255; pos++; }
+      if (pos < rbsp.length) payloadType += rbsp[pos++];
+
+      // payload size (variable-length)
+      let payloadSize = 0;
+      while (pos < rbsp.length && rbsp[pos] === 0xff) { payloadSize += 255; pos++; }
+      if (pos < rbsp.length) payloadSize += rbsp[pos++];
+
+      if (payloadType === 5 && payloadSize >= 48 && pos + 48 <= rbsp.length) {
+        // Check UUID match
+        let match = true;
+        for (let k = 0; k < 16; k++) {
+          if (rbsp[pos + k] !== TIMING_SEI_UUID[k]) { match = false; break; }
+        }
+        if (match) {
+          const tsBytes = rbsp.slice(pos + 16, pos + 48);
+          const view = new DataView(tsBytes.buffer, tsBytes.byteOffset, 32);
+          return {
+            captureMs: view.getFloat64(0),
+            encodeMs: view.getFloat64(8),
+            sendDelayMs: view.getFloat64(16),
+            deviceSendWallMs: view.getFloat64(24),
+          };
+        }
+      }
+    }
+
+    i = nalHeaderIdx + 1;
+  }
+  return null;
+}
+
 export function getDeviceBaseUrl(address) {
   const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
   const port = protocol === 'https' ? 5002 : 5001;
@@ -32,12 +126,16 @@ export class BodyTeleopConnection {
     this.pc = null;
     this.dc = null;
     this.joystickInterval = null;
+    this.clockSyncInterval = null;
     this.joystickX = 0;
     this.joystickY = 0;
     this.videoStreams = {};
     this.callbacks = callbacks;
     this.cameraOrder = ['camera'];
     this.videoTrackIndex = 0;
+    // Clock sync state (NTP-style offset between device and browser wall clocks)
+    this.clockOffset = 0; // deviceClock - browserClock in ms
+    this.clockSynced = false;
   }
 
   async connectDirect(address) {
@@ -57,6 +155,7 @@ export class BodyTeleopConnection {
         iceCandidatePoolSize: 1,
         bundlePolicy: 'max-bundle',
         rtcpMuxPolicy: 'require',
+        encodedInsertableStreams: true,
       });
 
       // Diagnostic: log ICE gathering and connection state transitions
@@ -81,6 +180,22 @@ export class BodyTeleopConnection {
             }
             if ('jitterBufferTarget' in evt.receiver) {
               evt.receiver.jitterBufferTarget = 0;
+            }
+            // Set up Encoded Transform to extract frame-level timing SEI
+            if (evt.receiver.createEncodedStreams) {
+              try {
+                const { readable, writable } = evt.receiver.createEncodedStreams();
+                const self = this;
+                readable.pipeThrough(new TransformStream({
+                  transform(frame, controller) {
+                    self._processEncodedFrame(frame);
+                    controller.enqueue(frame);
+                  },
+                })).pipeTo(writable);
+                log('encoded transform attached for latency measurement');
+              } catch (e) {
+                log(`encoded transform setup failed: ${e.message}`);
+              }
             }
           }
           this.videoStreams[cameraName] = new MediaStream([evt.track]);
@@ -132,12 +247,17 @@ export class BodyTeleopConnection {
           clearInterval(this.joystickInterval);
           this.joystickInterval = null;
         }
+        if (this.clockSyncInterval) {
+          clearInterval(this.clockSyncInterval);
+          this.clockSyncInterval = null;
+        }
       };
       this.dc.onmessage = (evt) => {
         try {
           const msg = JSON.parse(typeof evt.data === 'string' ? evt.data : new TextDecoder().decode(evt.data));
           if (msg.type === 'carState') this.callbacks.onBatteryLevel(Math.round(msg.data.fuelGauge * 100));
           if (msg.type === 'activeCamera') this.callbacks.onActiveCamera?.(msg.data.camera);
+          if (msg.type === 'clockSync' && msg.data?.action === 'pong') this._handleClockPong(msg.data);
         } catch {
           /* ignore */
         }
@@ -279,6 +399,24 @@ export class BodyTeleopConnection {
     }
   }
 
+  setTimingSei(enabled) {
+    if (this.dc && this.dc.readyState === 'open') {
+      this.dc.send(JSON.stringify({ type: 'enableTimingSei', data: { enabled } }));
+    }
+    if (enabled) {
+      if (!this.clockSyncInterval) {
+        this._sendClockPing();
+        this.clockSyncInterval = setInterval(() => this._sendClockPing(), 2000);
+      }
+    } else {
+      if (this.clockSyncInterval) {
+        clearInterval(this.clockSyncInterval);
+        this.clockSyncInterval = null;
+      }
+      this.clockSynced = false;
+    }
+  }
+
   switchCamera(cameraName) {
     if (this.dc && this.dc.readyState === 'open') {
       this.dc.send(JSON.stringify({ type: 'switchCamera', data: { camera: cameraName } }));
@@ -296,6 +434,47 @@ export class BodyTeleopConnection {
     }
   }
 
+  _processEncodedFrame(frame) {
+    const timing = extractTimingSei(frame.data);
+    if (!timing) return;
+
+    const browserReceiveMs = performance.timeOrigin + performance.now();
+    const latency = {
+      captureMs: timing.captureMs,
+      encodeMs: timing.encodeMs,
+      sendDelayMs: timing.sendDelayMs,
+      devicePipelineMs: timing.captureMs + timing.encodeMs + timing.sendDelayMs,
+      networkMs: null,
+      totalMs: null,
+      clockSynced: this.clockSynced,
+    };
+
+    if (this.clockSynced) {
+      // Convert device wall-clock to browser wall-clock, then compute transit time
+      latency.networkMs = browserReceiveMs - (timing.deviceSendWallMs - this.clockOffset);
+      latency.totalMs = latency.devicePipelineMs + latency.networkMs;
+    }
+
+    this.callbacks.onLatencyUpdate?.(latency);
+  }
+
+  _sendClockPing() {
+    if (this.dc && this.dc.readyState === 'open') {
+      this.dc.send(JSON.stringify({
+        type: 'clockSync',
+        data: { action: 'ping', browserSendTime: performance.timeOrigin + performance.now() },
+      }));
+    }
+  }
+
+  _handleClockPong(data) {
+    const now = performance.timeOrigin + performance.now();
+    // NTP-style offset: how far device clock is ahead of browser clock
+    // offset = deviceTime - midpoint(browserSend, browserReceive)
+    this.clockOffset = data.deviceTime - (data.browserSendTime + now) / 2;
+    this.clockSynced = true;
+  }
+
   disconnect() {
     this.cleanup();
     this.callbacks.onConnectionState('disconnected');
@@ -306,6 +485,11 @@ export class BodyTeleopConnection {
       clearInterval(this.joystickInterval);
       this.joystickInterval = null;
     }
+    if (this.clockSyncInterval) {
+      clearInterval(this.clockSyncInterval);
+      this.clockSyncInterval = null;
+    }
+    this.clockSynced = false;
     if (this.dc) {
       this.dc.close();
       this.dc = null;

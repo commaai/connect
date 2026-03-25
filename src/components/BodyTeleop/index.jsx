@@ -600,6 +600,20 @@ const styles = () => ({
     borderRadius: 3,
     transition: 'width 80ms linear',
   },
+  latencyGraph: {
+    width: '100%',
+    height: 60,
+    marginTop: 2,
+    borderRadius: 4,
+    background: 'rgba(0,0,0,0.3)',
+  },
+  latencySectionHeader: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: 'rgba(255,255,255,0.35)',
+    letterSpacing: 0.5,
+    padding: '2px 0 1px',
+  },
   screenshotButton: {
     width: 28,
     height: 28,
@@ -814,6 +828,8 @@ class BodyTeleop extends Component {
       keys: { w: false, a: false, s: false, d: false },
       showStats: false,
       stats: null,
+      latency: null,
+      latencyHistory: [],  // ring buffer of last 90 samples (~3s at 30fps)
       videoAspectRatio: '16/9',
       activeCamera: 'driver',
       gamepadConnected: false,
@@ -827,6 +843,7 @@ class BodyTeleop extends Component {
 
     this.videoRef = React.createRef();
     this.joystickAreaRef = React.createRef();
+    this.latencyCanvasRef = React.createRef();
     this.touchId = null;
     this.mouseDragging = false;
     this.streams = {};
@@ -855,6 +872,25 @@ class BodyTeleop extends Component {
         this.streams.camera = stream;
         if (this.videoRef.current) {
           this.videoRef.current.srcObject = stream;
+        }
+      },
+      onLatencyUpdate: (latency) => {
+        // Accumulate frames into a buffer, average every 10 frames (~0.5s at 20fps)
+        if (!this._latencyBuffer) this._latencyBuffer = [];
+        this._latencyBuffer.push(latency);
+        if (this._latencyBuffer.length >= 10) {
+          const buf = this._latencyBuffer;
+          this._latencyBuffer = [];
+          const avg = {};
+          for (const key of ['captureMs', 'encodeMs', 'sendDelayMs', 'devicePipelineMs', 'networkMs', 'totalMs']) {
+            const vals = buf.map((l) => l[key]).filter((v) => v != null);
+            avg[key] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+          }
+          avg.clockSynced = buf[buf.length - 1].clockSynced;
+          this.setState((prev) => {
+            const history = [...prev.latencyHistory, avg].slice(-60);
+            return { latency: avg, latencyHistory: history };
+          });
         }
       },
     });
@@ -909,6 +945,10 @@ class BodyTeleop extends Component {
         this.stopStatsPolling();
       }
     }
+    // Redraw latency graph when history changes
+    if (prevState.latencyHistory !== this.state.latencyHistory && this.state.showStats) {
+      this.drawLatencyGraph();
+    }
     // Re-attach video streams when orientation changes (new DOM elements)
     if (prevState.isLandscape !== this.state.isLandscape) {
       if (this.videoRef.current) {
@@ -951,7 +991,7 @@ class BodyTeleop extends Component {
       clearInterval(this.statsInterval);
       this.statsInterval = null;
     }
-    this.setState({ stats: null });
+    this.setState({ stats: null, latency: null, latencyHistory: [] });
   }
 
   async pollStats() {
@@ -1363,7 +1403,13 @@ class BodyTeleop extends Component {
         {connected && (
           <div
             className={classes.statsToggleButton}
-            onClick={() => this.setState((prev) => ({ showStats: !prev.showStats }))}
+            onClick={() => {
+                  this.setState((prev) => {
+                    const next = !prev.showStats;
+                    this.connection.setTimingSei(next);
+                    return { showStats: next };
+                  });
+                }}
             title="Toggle stats"
           >
             STATS
@@ -1630,14 +1676,79 @@ class BodyTeleop extends Component {
   }
 
 
+  drawLatencyGraph() {
+    const canvas = this.latencyCanvasRef.current;
+    if (!canvas) return;
+    const { latencyHistory } = this.state;
+    if (!latencyHistory.length) return;
+
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    // Determine y-axis scale from data
+    const maxVal = Math.max(
+      10,
+      ...latencyHistory.map((l) => (l.totalMs != null ? l.totalMs : l.devicePipelineMs) || 0),
+    );
+    const yScale = (h - 2) / (maxVal * 1.15); // 15% headroom
+    const xStep = w / Math.max(latencyHistory.length - 1, 1);
+
+    // Stacked area layers: capture (bottom), encode, sendDelay, network (top)
+    const layers = [
+      { key: 'captureMs', color: 'rgba(76,175,80,0.55)' },
+      { key: 'encodeMs', color: 'rgba(255,183,77,0.55)' },
+      { key: 'sendDelayMs', color: 'rgba(171,71,188,0.45)' },
+      { key: 'networkMs', color: 'rgba(66,165,245,0.55)' },
+    ];
+
+    // Build cumulative sums per sample
+    const cums = latencyHistory.map((l) => {
+      let sum = 0;
+      return layers.map(({ key }) => {
+        const v = l[key];
+        sum += (v != null && v > 0) ? v : 0;
+        return sum;
+      });
+    });
+
+    // Draw each layer bottom-up (reverse so lower layers paint first)
+    for (let li = layers.length - 1; li >= 0; li--) {
+      ctx.beginPath();
+      for (let i = 0; i < cums.length; i++) {
+        const x = i * xStep;
+        const y = h - cums[i][li] * yScale;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      // Close along bottom
+      ctx.lineTo((cums.length - 1) * xStep, h);
+      ctx.lineTo(0, h);
+      ctx.closePath();
+      ctx.fillStyle = layers[li].color;
+      ctx.fill();
+    }
+
+    // Y-axis label
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = '8px monospace';
+    ctx.fillText(`${Math.round(maxVal)}ms`, 2, 9);
+  }
+
   renderStatsOverlay() {
     const { classes } = this.props;
-    const { showStats, stats, micLevel, remoteAudioLevel, micMuted, streamMuted } = this.state;
+    const { showStats, stats, latency, micLevel, remoteAudioLevel, micMuted, streamMuted } = this.state;
 
     if (!showStats || !stats) return null;
 
     const micColor = micMuted ? 'rgba(255,255,255,0.15)' : `rgba(76,175,80,${0.5 + micLevel * 0.5})`;
     const audioColor = streamMuted ? 'rgba(255,255,255,0.15)' : `rgba(66,165,245,${0.5 + remoteAudioLevel * 0.5})`;
+
+    const fmtMs = (v) => (v != null ? `${v.toFixed(1)} ms` : '--');
 
     return (
       <div className={classes.statsToggle}>
@@ -1663,6 +1774,36 @@ class BodyTeleop extends Component {
               <span className={classes.statsValue}>{stats.jitter}</span>
             </div>
             <div className={classes.statsDivider} />
+            {latency && (
+              <>
+                <div className={classes.latencySectionHeader}>FRAME LATENCY</div>
+                <div className={classes.statsRow}>
+                  <span className={classes.statsLabel} style={{ color: 'rgba(76,175,80,0.7)' }}>Capture</span>
+                  <span className={classes.statsValue}>{fmtMs(latency.captureMs)}</span>
+                </div>
+                <div className={classes.statsRow}>
+                  <span className={classes.statsLabel} style={{ color: 'rgba(255,183,77,0.7)' }}>Encode</span>
+                  <span className={classes.statsValue}>{fmtMs(latency.encodeMs)}</span>
+                </div>
+                <div className={classes.statsRow}>
+                  <span className={classes.statsLabel} style={{ color: 'rgba(171,71,188,0.65)' }}>Send delay</span>
+                  <span className={classes.statsValue}>{fmtMs(latency.sendDelayMs)}</span>
+                </div>
+                <div className={classes.statsRow}>
+                  <span className={classes.statsLabel} style={{ color: 'rgba(66,165,245,0.7)' }}>Network</span>
+                  <span className={classes.statsValue}>{fmtMs(latency.networkMs)}</span>
+                </div>
+                <div className={classes.statsRow}>
+                  <span className={classes.statsLabel} style={{ fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Total</span>
+                  <span className={classes.statsValue} style={{ fontWeight: 700 }}>{fmtMs(latency.totalMs)}</span>
+                </div>
+                <canvas
+                  ref={this.latencyCanvasRef}
+                  className={classes.latencyGraph}
+                />
+                <div className={classes.statsDivider} />
+              </>
+            )}
             <div className={classes.audioLevelRow} title={micMuted ? 'Mic muted' : 'Mic level'}>
               <span className={classes.audioLevelIcon}>
                 {micMuted ? <MicOff style={{ fontSize: 12 }} /> : <Mic style={{ fontSize: 12 }} />}
@@ -1895,7 +2036,13 @@ class BodyTeleop extends Component {
               <div className={classes.hudTopRight}>
                 <div
                   className={classes.statsToggleButton}
-                  onClick={() => this.setState((prev) => ({ showStats: !prev.showStats }))}
+                  onClick={() => {
+                  this.setState((prev) => {
+                    const next = !prev.showStats;
+                    this.connection.setTimingSei(next);
+                    return { showStats: next };
+                  });
+                }}
                   title="Toggle stats"
                 >
                   STATS
