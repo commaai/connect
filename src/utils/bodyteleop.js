@@ -169,7 +169,10 @@ export class BodyTeleopConnection {
       this.videoTrackIndex = 0;
       this.pc.addEventListener('track', (evt) => {
         log(`track received: ${evt.track.kind}`);
-        if (evt.track.kind === 'video') {
+        if (evt.track.kind === 'audio') {
+          log('assigning audio track');
+          this.callbacks.onAudioTrack?.(new MediaStream([evt.track]));
+        } else if (evt.track.kind === 'video') {
           const cameraName = this.cameraOrder[this.videoTrackIndex] || `camera${this.videoTrackIndex}`;
           this.videoTrackIndex += 1;
           log(`assigning video track to camera: ${cameraName}`);
@@ -254,6 +257,7 @@ export class BodyTeleopConnection {
       if (orderedCodecs.length > 0) {
         transceiver.setCodecPreferences(orderedCodecs);
       }
+      this.pc.addTransceiver('audio', { direction: 'sendrecv' });
       this.dc = this.pc.createDataChannel('data', { ordered: true });
       this.dc.onopen = () => {
         log('data channel opened');
@@ -438,6 +442,17 @@ export class BodyTeleopConnection {
   switchCamera(cameraName) {
     if (this.dc && this.dc.readyState === 'open') {
       this.dc.send(JSON.stringify({ type: 'switchCamera', data: { camera: cameraName } }));
+    }
+  }
+
+  addMicTrack(track) {
+    if (this.pc) {
+      const audioTransceiver = this.pc.getTransceivers().find((t) => t.receiver.track?.kind === 'audio');
+      if (audioTransceiver) {
+        audioTransceiver.sender.replaceTrack(track);
+      } else {
+        this.pc.addTrack(track);
+      }
     }
   }
 

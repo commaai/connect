@@ -879,9 +879,15 @@ class BodyTeleop extends Component {
       gamepadLB: false,
       gamepadRB: false,
       showSslTrust: false,
+      streamMuted: true,
+      micMuted: true,
+      micPermission: null,
+      micLevel: 0,
+      remoteAudioLevel: 0,
     };
 
     this.videoRef = React.createRef();
+    this.audioRef = React.createRef();
     this.joystickAreaRef = React.createRef();
     this.latencyCanvasRef = React.createRef();
     this.touchId = null;
@@ -914,6 +920,12 @@ class BodyTeleop extends Component {
         if (this.videoRef.current) {
           this.videoRef.current.srcObject = stream;
         }
+      },
+      onAudioTrack: (stream) => {
+        if (this.audioRef.current) {
+          this.audioRef.current.srcObject = stream;
+        }
+        this._monitorRemoteAudio(stream);
       },
       onLatencyUpdate: (latency) => {
         // Accumulate frames into a buffer, average every 10 frames (~0.5s at 20fps)
@@ -950,6 +962,8 @@ class BodyTeleop extends Component {
     this.handleClose = this.handleClose.bind(this);
     this.pollGamepad = this.pollGamepad.bind(this);
     this.handlePlaySound = this.handlePlaySound.bind(this);
+    this.toggleStreamMuted = this.toggleStreamMuted.bind(this);
+    this.handleMicToggle = this.handleMicToggle.bind(this);
     this.onVideoResize = this.onVideoResize.bind(this);
 
     this.gamepadAnimFrame = null;
@@ -995,6 +1009,11 @@ class BodyTeleop extends Component {
       if (this.videoRef.current) {
         this.videoRef.current.srcObject = this.streams.camera || null;
       }
+      if (this.audioRef.current && this.audioRef.current.srcObject) {
+        // Re-attach audio stream after orientation-triggered DOM swap
+        const src = this.audioRef.current.srcObject;
+        this.audioRef.current.srcObject = src;
+      }
     }
   }
 
@@ -1014,6 +1033,14 @@ class BodyTeleop extends Component {
     }
     window.removeEventListener('message', this.onSslMessage);
     window.removeEventListener('beforeunload', this.onBeforeUnload);
+    if (this.micStream) {
+      this.micStream.getTracks().forEach((t) => t.stop());
+      this.micStream = null;
+    }
+    if (this._micLevelFrame) cancelAnimationFrame(this._micLevelFrame);
+    if (this._micAudioCtx) { this._micAudioCtx.close(); this._micAudioCtx = null; }
+    if (this._remoteAudioFrame) cancelAnimationFrame(this._remoteAudioFrame);
+    if (this._remoteAudioCtx) { this._remoteAudioCtx.close(); this._remoteAudioCtx = null; }
     this.stopStatsPolling();
     this.connection.disconnect();
   }
@@ -1246,7 +1273,15 @@ class BodyTeleop extends Component {
   }
 
   handleDisconnect() {
-    this.setState({ error: null, micMuted: true });
+    if (this.micStream) {
+      this.micStream.getTracks().forEach((t) => t.stop());
+      this.micStream = null;
+    }
+    if (this._micLevelFrame) cancelAnimationFrame(this._micLevelFrame);
+    if (this._micAudioCtx) { this._micAudioCtx.close(); this._micAudioCtx = null; }
+    if (this._remoteAudioFrame) cancelAnimationFrame(this._remoteAudioFrame);
+    if (this._remoteAudioCtx) { this._remoteAudioCtx.close(); this._remoteAudioCtx = null; }
+    this.setState({ error: null, micMuted: true, micLevel: 0, remoteAudioLevel: 0 });
     this.connection.disconnect();
   }
 
@@ -1255,6 +1290,96 @@ class BodyTeleop extends Component {
       console.error('Failed to play body sound:', err);
       this.setState({ error: err.message });
     });
+  }
+
+  toggleStreamMuted() {
+    this.setState((prev) => ({ streamMuted: !prev.streamMuted }));
+  }
+
+  async handleMicToggle() {
+    const { micMuted, micPermission } = this.state;
+
+    // If mic is active, just mute the track
+    if (!micMuted && this.micStream) {
+      this.micStream.getAudioTracks().forEach((t) => { t.enabled = false; });
+      this.setState({ micMuted: true });
+      return;
+    }
+
+    // If we already have a mic stream, unmute it
+    if (micMuted && this.micStream) {
+      this.micStream.getAudioTracks().forEach((t) => { t.enabled = true; });
+      this.setState({ micMuted: false });
+      return;
+    }
+
+    // First time: request mic permission and add track to connection
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.micStream = stream;
+      this.connection.addMicTrack(stream.getAudioTracks()[0]);
+      this._monitorMicLevel(stream);
+      this.setState({ micMuted: false, micPermission: 'granted' });
+    } catch (err) {
+      console.error('Mic access failed:', err);
+      const permission = err.name === 'NotAllowedError' ? 'denied' : micPermission;
+      this.setState({ micPermission: permission, error: 'Microphone access denied' });
+    }
+  }
+
+  _monitorMicLevel(stream) {
+    try {
+      const ctx = new AudioContext();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      this._micAudioCtx = ctx;
+
+      const poll = () => {
+        if (!this.micStream) {
+          ctx.close();
+          return;
+        }
+        analyser.getByteTimeDomainData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+          const v = (data[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / data.length);
+        this.setState({ micLevel: Math.min(1, rms * 3) });
+        this._micLevelFrame = requestAnimationFrame(poll);
+      };
+      this._micLevelFrame = requestAnimationFrame(poll);
+    } catch (_) { /* AudioContext not available */ }
+  }
+
+  _monitorRemoteAudio(stream) {
+    try {
+      const ctx = new AudioContext();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      this._remoteAudioCtx = ctx;
+
+      const poll = () => {
+        if (!this._remoteAudioCtx) return;
+        analyser.getByteTimeDomainData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+          const v = (data[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / data.length);
+        this.setState({ remoteAudioLevel: Math.min(1, rms * 3) });
+        this._remoteAudioFrame = requestAnimationFrame(poll);
+      };
+      this._remoteAudioFrame = requestAnimationFrame(poll);
+    } catch (_) { /* AudioContext not available */ }
   }
 
   handleClose() {
@@ -1436,6 +1561,8 @@ class BodyTeleop extends Component {
               className={`${classes.actionButton} ${classes.actionButtonPortrait} ${micMuted ? classes.controllerToggleOff : ''}`}
               onClick={this.handleMicToggle}
               title={micTitle}
+              style={{ display: 'none', pointerEvents: 'none', opacity: 0.5 }}
+              disabled
             >
               {micMuted ? <MicOff className={classes.actionButtonIconPortrait} /> : <Mic className={classes.actionButtonIconPortrait} />}
             </div>
@@ -1588,11 +1715,13 @@ class BodyTeleop extends Component {
               className={`${classes.actionButton} ${micMuted ? classes.controllerToggleOff : ''}`}
               onClick={this.handleMicToggle}
               title={micTitle}
+              style={{ display: 'none', pointerEvents: 'none', opacity: 0.5 }}
+              disabled
             >
               {micMuted ? <MicOff className={classes.actionButtonIcon} /> : <Mic className={classes.actionButtonIcon} />}
             </div>
           </div>
-          <span className={classes.controlsLabelBelow}>Mic / Sound</span>
+          <span className={classes.controlsLabelBelow}>Sound</span>
         </div>
         <div className={classes.controlsColumn}>
           <div className={classes.controlsButtons}>
