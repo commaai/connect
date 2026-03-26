@@ -17,7 +17,7 @@ function unescapeRbsp(data) {
       i += 3;
     } else {
       out.push(data[i]);
-      i++;
+      i += 1;
     }
   }
   return new Uint8Array(out);
@@ -33,7 +33,7 @@ function extractTimingSei(frameBuffer) {
       if (data[i + 2] === 0 && i + 3 < data.length && data[i + 3] === 1) scLen = 4;
       else if (data[i + 2] === 1) scLen = 3;
     }
-    if (scLen === 0) { i++; continue; }
+    if (scLen === 0) { i += 1; continue; }
 
     const nalHeaderIdx = i + scLen;
     const nalType = data[nalHeaderIdx] & 0x1f;
@@ -52,12 +52,12 @@ function extractTimingSei(frameBuffer) {
       let pos = 0;
 
       let payloadType = 0;
-      while (pos < rbsp.length && rbsp[pos] === 0xff) { payloadType += 255; pos++; }
-      if (pos < rbsp.length) payloadType += rbsp[pos++];
+      while (pos < rbsp.length && rbsp[pos] === 0xff) { payloadType += 255; pos += 1; }
+      if (pos < rbsp.length) { payloadType += rbsp[pos]; pos += 1; }
 
       let payloadSize = 0;
-      while (pos < rbsp.length && rbsp[pos] === 0xff) { payloadSize += 255; pos++; }
-      if (pos < rbsp.length) payloadSize += rbsp[pos++];
+      while (pos < rbsp.length && rbsp[pos] === 0xff) { payloadSize += 255; pos += 1; }
+      if (pos < rbsp.length) { payloadSize += rbsp[pos]; pos += 1; }
 
       if (payloadType === 5 && payloadSize >= 48 && pos + 48 <= rbsp.length) {
         let match = true;

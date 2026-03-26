@@ -26,8 +26,8 @@ const QUICK_SOUNDS = [
 ];
 
 const CAMERAS = [
-  { key: 'driver', label: 'front', num: '1' },
-  { key: 'wideRoad', label: 'rear', num: '2' },
+  { key: 'wideRoad', label: 'road', num: '1' },
+  { key: 'driver', label: 'driver', num: '2' },
 ];
 
 const styles = () => ({
@@ -871,7 +871,7 @@ class BodyTeleop extends Component {
       latency: null,
       latencyHistory: [],  // ring buffer of last 90 samples (~3s at 30fps)
       videoAspectRatio: '16/9',
-      activeCamera: 'driver',
+      activeCamera: 'wideRoad',
       gamepadConnected: false,
       gamepadSteering: 0,
       gamepadGas: 0,
@@ -1147,7 +1147,7 @@ class BodyTeleop extends Component {
       e.preventDefault();
       this.setKey(k, true);
     }
-    const cameraKeys = { 1: 'driver', 2: 'wideRoad' };
+    const cameraKeys = { 1: 'wideRoad', 2: 'driver' };
     if (cameraKeys[e.key]) {
       e.preventDefault();
       this.switchCamera(cameraKeys[e.key]);
@@ -1425,7 +1425,7 @@ class BodyTeleop extends Component {
 
     const throttle = lt - rt; // negative = forward (gas), positive = backward (brake)
 
-    // Bumpers: LB = button 4 (rear camera), RB = button 5 (front camera)
+    // Bumpers: LB = button 4 (road camera), RB = button 5 (driver camera)
     const lb = gp.buttons[4] && gp.buttons[4].pressed;
     const rb = gp.buttons[5] && gp.buttons[5].pressed;
 
@@ -1441,10 +1441,10 @@ class BodyTeleop extends Component {
     }
 
     if (lb && !this.prevBumpers.lb) {
-      this.switchCamera('wideRoad');
+      this.switchCamera('driver');
     }
     if (rb && !this.prevBumpers.rb) {
-      this.switchCamera('driver');
+      this.switchCamera('wideRoad');
     }
 
     this.prevBumpers = { lb, rb };
@@ -1779,10 +1779,10 @@ class BodyTeleop extends Component {
     return (
       <div className={classes.controllerOverlay}>
         <div className={classes.triggerContainer}>
-          <span className={`${classes.bumperLabel} ${gamepadLB ? classes.bumperLabelActive : ''}`}>Rear Camera</span>
+          <span className={`${classes.bumperLabel} ${gamepadLB ? classes.bumperLabelActive : ''}`}>Driver Camera</span>
           <div
             className={`${classes.bumperShape} ${gamepadLB ? classes.bumperActive : ''}`}
-            style={activeCamera === 'wideRoad' ? { background: 'rgba(59,130,246,0.35)', borderColor: 'rgba(59,130,246,0.5)' } : undefined}
+            style={activeCamera === 'driver' ? { background: 'rgba(59,130,246,0.35)', borderColor: 'rgba(59,130,246,0.5)' } : undefined}
           >
             <span className={`${classes.bumperLabel} ${gamepadLB ? classes.bumperLabelActive : ''}`}>L1</span>
           </div>
@@ -1813,10 +1813,10 @@ class BodyTeleop extends Component {
         </div>
 
         <div className={classes.triggerContainer}>
-          <span className={`${classes.bumperLabel} ${gamepadRB ? classes.bumperLabelActive : ''}`}>Front Camera</span>
+          <span className={`${classes.bumperLabel} ${gamepadRB ? classes.bumperLabelActive : ''}`}>Road Camera</span>
           <div
             className={`${classes.bumperShape} ${gamepadRB ? classes.bumperActive : ''}`}
-            style={activeCamera === 'driver' ? { background: 'rgba(59,130,246,0.35)', borderColor: 'rgba(59,130,246,0.5)' } : undefined}
+            style={activeCamera === 'wideRoad' ? { background: 'rgba(59,130,246,0.35)', borderColor: 'rgba(59,130,246,0.5)' } : undefined}
           >
             <span className={`${classes.bumperLabel} ${gamepadRB ? classes.bumperLabelActive : ''}`}>R1</span>
           </div>
