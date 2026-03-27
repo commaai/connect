@@ -14,7 +14,7 @@ import MicOff from '@material-ui/icons/MicOff';
 
 import Colors from '../../colors';
 import { deviceNamePretty } from '../../utils';
-import { isMobile, isChrome, isFirefox, isSafari, isIos } from '../../utils/browser';
+import { isChrome, isFirefox, isSafari, isIos } from '../../utils/browser';
 import { BodyTeleopConnection, checkSslTrust, getDeviceBaseUrl } from '../../utils/bodyteleop';
 import { ArrowBackBold } from '../../icons';
 

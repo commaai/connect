@@ -103,6 +103,7 @@ export class BodyTeleopConnection {
                 };
                 evt.receiver.transform = new window.RTCRtpScriptTransform(worker);
               } catch (e) {
+                log(e)
               }
             } else if (evt.receiver.createEncodedStreams) {
               // Legacy Chrome API
@@ -116,6 +117,7 @@ export class BodyTeleopConnection {
                   },
                 })).pipeTo(writable);
               } catch (e) {
+                log(e)
               }
             }
           }
