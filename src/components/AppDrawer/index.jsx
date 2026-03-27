@@ -12,7 +12,7 @@ import { selectDevice } from '../../actions';
 const listener = (ev) => ev.stopPropagation();
 
 const AppDrawer = ({
-  dispatch, isPermanent, drawerIsOpen, selectedDongleId, handleDrawerStateChanged, width, onBodyTeleop,
+  dispatch, isPermanent, drawerIsOpen, selectedDongleId, handleDrawerStateChanged, width,
 }) => {
   const contentRef = useRef(null);
 
@@ -33,13 +33,6 @@ const AppDrawer = ({
     toggleDrawerOff();
   }, [dispatch, toggleDrawerOff]);
 
-  const handleBodyTeleop = useCallback((address) => {
-    if (onBodyTeleop) {
-      onBodyTeleop(address);
-    }
-    toggleDrawerOff();
-  }, [onBodyTeleop, toggleDrawerOff]);
-
   return (
     <Drawer
       open={isPermanent || drawerIsOpen}
@@ -58,7 +51,6 @@ const AppDrawer = ({
         <DeviceList
           selectedDevice={selectedDongleId}
           handleDeviceSelected={handleDeviceSelected}
-          onBodyTeleop={handleBodyTeleop}
         />
       </div>
     </Drawer>

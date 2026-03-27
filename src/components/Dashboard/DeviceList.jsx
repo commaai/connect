@@ -10,6 +10,7 @@ import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 import CloseIcon from '@material-ui/icons/Close';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
+import { push } from 'connected-react-router';
 import { devices as Devices } from '@commaai/api';
 
 import { updateDevices } from '../../actions';
@@ -87,7 +88,7 @@ const styles = (theme) => ({
     '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.25)' },
   },
   recentContainer: {
-    position: 'absolute',
+    position: 'relative',
     bottom: 0,
     left: 0,
     right: 0,
@@ -180,9 +181,7 @@ class DeviceList extends Component {
   handleRecentConnect(address) {
     AddDevice.saveRecentBodyConnection(address);
     this.setState({ recentConnections: AddDevice.getRecentBodyConnections() });
-    if (this.props.onBodyTeleop) {
-      this.props.onBodyTeleop(address);
-    }
+    this.props.dispatch(push(`?body=${encodeURIComponent(address || '')}`));
   }
 
   handleRecentRemove(address, ev) {
@@ -295,7 +294,7 @@ class DeviceList extends Component {
             {devices.map(this.renderDevice)}
             {MyCommaAuth.isAuthenticated() && (
               <div className={classes.addDeviceContainer}>
-                <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon onBodyTeleop={this.props.onBodyTeleop} />
+                <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon />
               </div>
             )}
             {/* spacer so content isn't hidden behind pinned recent section */}

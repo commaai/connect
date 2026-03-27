@@ -78,7 +78,6 @@ class ExplorerApp extends Component {
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
-    this.openBodyTeleop = this.openBodyTeleop.bind(this);
     this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
   }
 
@@ -90,10 +89,6 @@ class ExplorerApp extends Component {
     const q = new URLSearchParams(window.location.search);
     if (q.has('r')) {
       this.props.dispatch(replace(q.get('r')));
-    }
-
-    if (q.has('body')) {
-      this.openBodyTeleop(q.get('body'));
     }
 
     this.props.dispatch(init());
@@ -144,10 +139,18 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { pathname, search, zoom, dongleId, limit } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
+    }
+
+    if (prevProps.search !== search) {
+      const q = new URLSearchParams(search);
+      if (q.has('body') && q.get('body') != null) {
+        this.openBodyTeleop(q.get('body'));
+        this.props.dispatch(replace(pathname));
+      }
     }
 
     if (!prevProps.zoom && zoom) {
@@ -175,7 +178,7 @@ class ExplorerApp extends Component {
   }
 
   openBodyTeleop(address) {
-    this.setState({ bodyTeleopOpen: true, bodyTeleopAddress: address || null });
+    this.setState({ bodyTeleopOpen: true, bodyTeleopAddress: address });
   }
 
   closeBodyTeleop() {
@@ -199,7 +202,7 @@ class ExplorerApp extends Component {
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth, bodyTeleopOpen, bodyTeleopAddress } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
-    const isLarge = !noDevicesUpsell && windowWidth > 1080;
+    const isLarge = noDevicesUpsell || windowWidth > 1080;
 
     const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
     const headerHeight = this.state.headerRef
@@ -237,12 +240,11 @@ class ExplorerApp extends Component {
           width={ sidebarWidth }
           handleDrawerStateChanged={this.handleDrawerStateChanged}
           style={ drawerStyles }
-          onBodyTeleop={this.openBodyTeleop}
         />
         <div className={ classes.window } style={ containerStyles }>
           { noDevicesUpsell
-            ? <NoDeviceUpsell onBodyTeleop={this.openBodyTeleop} />
-            : (currentRoute ? <DriveView /> : <Dashboard onBodyTeleop={this.openBodyTeleop} />)}
+            ? <NoDeviceUpsell />
+            : (currentRoute ? <DriveView /> : <Dashboard />)}
         </div>
         { bodyTeleopOpen && <BodyTeleop onClose={this.closeBodyTeleop} directAddress={bodyTeleopAddress} /> }
         <IosPwaPopup />
@@ -272,6 +274,7 @@ class ExplorerApp extends Component {
 const stateToProps = Obstruction({
   zoom: 'zoom',
   pathname: 'router.location.pathname',
+  search: 'router.location.search',
   dongleId: 'dongleId',
   devices: 'devices',
   currentRoute: 'currentRoute',

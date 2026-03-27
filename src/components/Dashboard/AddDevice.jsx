@@ -7,6 +7,7 @@ import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
 
+import { push } from 'connected-react-router';
 import { devices as Devices } from '@commaai/api';
 import { selectDevice, updateDevice, analyticsEvent } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
@@ -451,9 +452,7 @@ class AddDevice extends Component {
     const address = bodyIp;
     AddDevice.saveRecentBodyConnection(address);
     this.modalClose();
-    if (this.props.onBodyTeleop) {
-      this.props.onBodyTeleop(address);
-    }
+    this.props.dispatch(push(`?body=${encodeURIComponent(address)}`));
   }
 
   static saveRecentBodyConnection(address) {
@@ -515,7 +514,7 @@ class AddDevice extends Component {
               onClick={ () => this.setState({ dialogMode: 'body' }) }
             >
               <span className={ classes.choiceIcon } role="img" aria-label="body">&#129302;</span>
-              Connect to a COMMA body
+              Connect to a comma body
             </Button>
           </div>
         </>
