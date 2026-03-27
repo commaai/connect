@@ -467,16 +467,12 @@ class AddDevice extends Component {
   }
 
   static getRecentBodyConnections() {
-    try {
-      return JSON.parse(localStorage.getItem('recentBodyConnections') || '[]');
-    } catch {}
+    return JSON.parse(localStorage.getItem('recentBodyConnections') || '[]');
   }
 
   static removeRecentBodyConnection(address) {
-    try {
-      const stored = JSON.parse(localStorage.getItem('recentBodyConnections') || '[]');
-      localStorage.setItem('recentBodyConnections', JSON.stringify(stored.filter((a) => a !== address)));
-    } catch {}
+    const stored = JSON.parse(localStorage.getItem('recentBodyConnections') || '[]');
+    localStorage.setItem('recentBodyConnections', JSON.stringify(stored.filter((a) => a !== address)));
   }
 
   onOpenModal() {

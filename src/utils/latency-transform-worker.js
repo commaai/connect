@@ -23,7 +23,7 @@ function unescapeRbsp(data) {
   return new Uint8Array(out);
 }
 
-function extractTimingSei(frameBuffer) {
+export function extractTimingSei(frameBuffer) {
   const data = new Uint8Array(frameBuffer);
   let i = 0;
 

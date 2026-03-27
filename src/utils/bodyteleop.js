@@ -1,4 +1,5 @@
 import { athena as Athena } from '@commaai/api';
+import { extractTimingSei } from './latency-transform-worker';
 
 export class BodyTeleopConnection {
   constructor(callbacks) {
@@ -15,6 +16,13 @@ export class BodyTeleopConnection {
     // Clock sync state (NTP-style offset between device and browser wall clocks)
     this.clockOffset = 0; // deviceClock - browserClock in ms
     this.clockSynced = false;
+  }
+
+  getDeviceBaseUrl(address) {
+    const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
+    const port = protocol === 'https' ? 5002 : 5001;
+    const host = address.includes(':') ? address.split(':')[0] : address;
+    return `${protocol}://${host}:${port}`;
   }
 
   async connectDirect(address) {
@@ -216,7 +224,7 @@ export class BodyTeleopConnection {
       } else if (this.directAddress) {
         let resp;
         try {
-          resp = await fetch(`${getDeviceBaseUrl(this.directAddress)}/stream`, {
+          resp = await fetch(`${this.getDeviceBaseUrl(this.directAddress)}/stream`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sdp, cameras: ['driver'], bridge_services_in: ['testJoystick'], bridge_services_out: ['carState'] }),
@@ -261,7 +269,7 @@ export class BodyTeleopConnection {
 
     let resp;
     try {
-      resp = await fetch(`${getDeviceBaseUrl(this.directAddress)}/sound`, {
+      resp = await fetch(`${this.getDeviceBaseUrl(this.directAddress)}/sound`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sound }),
@@ -406,105 +414,4 @@ export class BodyTeleopConnection {
     }
     this.videoStreams = {};
   }
-}
-
-export function getDeviceBaseUrl(address) {
-  const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
-  const port = protocol === 'https' ? 5002 : 5001;
-  const host = address.includes(':') ? address.split(':')[0] : address;
-  return `${protocol}://${host}:${port}`;
-}
-
-// Must match TIMING_SEI_UUID in openpilot system/webrtc/device/video.py
-const TIMING_SEI_UUID = new Uint8Array([
-  0xa5, 0xe0, 0xc4, 0xa4, 0x5b, 0x6e, 0x4e, 0x1e,
-  0x9c, 0x7e, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc,
-]);
-
-/** Remove H.264 emulation-prevention bytes (0x00 0x00 0x03) → (0x00 0x00). */
-function unescapeRbsp(data) {
-  const out = [];
-  let i = 0;
-  while (i < data.length) {
-    if (i + 2 < data.length && data[i] === 0 && data[i + 1] === 0 && data[i + 2] === 3) {
-      out.push(0, 0);
-      i += 3;
-    } else {
-      out.push(data[i]);
-      i += 1;
-    }
-  }
-  return new Uint8Array(out);
-}
-
-/**
- * Extract openpilot timing metadata from an H.264 encoded frame.
- * Scans NAL units for an SEI (type 6) with user_data_unregistered (payload type 5)
- * matching our UUID, then unpacks four big-endian float64 values.
- *
- * Returns { captureMs, encodeMs, sendDelayMs, deviceSendWallMs } or null.
- */
-function extractTimingSei(frameBuffer) {
-  const data = new Uint8Array(frameBuffer);
-  let i = 0;
-
-  while (i < data.length - 5) {
-    // Detect Annex-B start code (00 00 00 01 or 00 00 01)
-    let scLen = 0;
-    if (data[i] === 0 && data[i + 1] === 0) {
-      if (data[i + 2] === 0 && i + 3 < data.length && data[i + 3] === 1) scLen = 4;
-      else if (data[i + 2] === 1) scLen = 3;
-    }
-    if (scLen === 0) { i += 1; continue; }
-
-    const nalHeaderIdx = i + scLen;
-    const nalType = data[nalHeaderIdx] & 0x1f;
-
-    if (nalType === 6) {
-      // Find end of this NAL unit (next start code or EOF)
-      let nalEnd = data.length;
-      for (let j = nalHeaderIdx + 1; j < data.length - 2; j++) {
-        if (data[j] === 0 && data[j + 1] === 0
-          && (data[j + 2] === 1 || (data[j + 2] === 0 && j + 3 < data.length && data[j + 3] === 1))) {
-          nalEnd = j;
-          break;
-        }
-      }
-
-      // Un-escape and parse SEI RBSP (skip NAL header byte)
-      const rbsp = unescapeRbsp(data.slice(nalHeaderIdx + 1, nalEnd));
-      let pos = 0;
-
-      // payload type (variable-length)
-      let payloadType = 0;
-      while (pos < rbsp.length && rbsp[pos] === 0xff) { payloadType += 255; pos += 1; }
-      if (pos < rbsp.length) { payloadType += rbsp[pos]; pos += 1; }
-
-      // payload size (variable-length)
-      let payloadSize = 0;
-      while (pos < rbsp.length && rbsp[pos] === 0xff) { payloadSize += 255; pos += 1; }
-      if (pos < rbsp.length) { payloadSize += rbsp[pos]; pos += 1; }
-
-      if (payloadType === 5 && payloadSize >= 48 && pos + 48 <= rbsp.length) {
-        // Check UUID match
-        let match = true;
-        for (let k = 0; k < 16; k++) {
-          if (rbsp[pos + k] !== TIMING_SEI_UUID[k]) { match = false; break; }
-        }
-        if (match) {
-          const tsBytes = rbsp.slice(pos + 16, pos + 48);
-          const view = new DataView(tsBytes.buffer, tsBytes.byteOffset, 32);
-          return {
-            captureMs: view.getFloat64(0),
-            encodeMs: view.getFloat64(8),
-            sendDelayMs: view.getFloat64(16),
-            deviceSendWallMs: view.getFloat64(24),
-          };
-        }
-      }
-    }
-
-    i = nalHeaderIdx + 1;
-  }
-  return null;
 }

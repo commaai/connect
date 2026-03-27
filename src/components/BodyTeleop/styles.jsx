@@ -182,13 +182,11 @@ const styles = () => ({
     zIndex: 10,
     width: 160,
     height: 160,
-    borderRadius: '50%',
     background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.25), rgba(255,255,255,0.05))',
     boxShadow: 'inset 0 0 20px rgba(255,255,255,0.1), 0 4px 20px rgba(0,0,0,0.4)',
     border: '1.5px solid rgba(255,255,255,0.2)',
     backdropFilter: 'blur(12px)',
     borderRadius: 16,
-    background: 'linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05))',
     touchAction: 'none',
     '@media (min-width: 768px)': {
       width: 160,
@@ -209,7 +207,6 @@ const styles = () => ({
     backdropFilter: 'blur(12px)',
     touchAction: 'none',
     borderRadius: 16,
-    background: 'linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05))',
   },
   joystickCrosshairV: {
     position: 'absolute',
