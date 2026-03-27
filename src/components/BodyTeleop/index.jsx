@@ -374,9 +374,8 @@ class BodyTeleop extends Component {
     dy = Math.max(-1, Math.min(1, dy));
     this.setState({ thumbPos: { x: dx, y: dy } });
     // Power curve (exponent 2) for finer control near center
-    const expo = 2;
-    const cx = Math.sign(dx) * Math.pow(Math.abs(dx), expo);
-    const cy = Math.sign(dy) * Math.pow(Math.abs(dy), expo);
+    const cx = Math.sign(dx) * Math.max(Math.abs(dx), 0.20);
+    const cy = Math.sign(dy) * Math.max(Math.abs(dy), 0.20);
     this.setFlippedJoystick(cy, -cx);
   }
 
