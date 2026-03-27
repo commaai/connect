@@ -14,7 +14,8 @@ import MicOff from '@material-ui/icons/MicOff';
 
 import Colors from '../../colors';
 import { deviceNamePretty } from '../../utils';
-import { BodyTeleopConnection } from '../../utils/bodyteleop';
+import { isMobile, isChrome, isFirefox, isSafari, isIos } from '../../utils/browser';
+import { BodyTeleopConnection, checkSslTrust, getDeviceBaseUrl } from '../../utils/bodyteleop';
 import { ArrowBackBold } from '../../icons';
 
 import styles from "./styles"
@@ -434,6 +435,17 @@ class BodyTeleop extends Component {
     this.setState({ error: null, showSslTrust: false });
     try {
       if (directAddress) {
+        if (window.location.protocol === 'https:' && directAddress.includes('192.168')) {
+          const sslStatus = await checkSslTrust(directAddress);
+          if (sslStatus === 'unreachable') {
+            this.setState({ error: 'Could not reach device. Is the ignition on?', connectionState: 'failed' });
+            return;
+          }
+          if (sslStatus === 'untrusted') {
+            this.setState({ showSslTrust: true, connectionState: 'disconnected' });
+            return;
+          }
+        }
         await this.connection.connectDirect(directAddress);
       } else {
         await this.connection.connect(dongleId);
@@ -441,6 +453,103 @@ class BodyTeleop extends Component {
     } catch (err) {
       this.setState({ error: err.message });
     }
+  }
+
+  handleOpenTrustPage() {
+    const { directAddress } = this.props;
+    const trustUrl = `${getDeviceBaseUrl(directAddress)}/trust`;
+    window.open(trustUrl, '_blank');
+  }
+
+  getSslInstructions() {
+    if (isSafari()) {
+      return [
+        'Make sure Body ignition is ON',
+        'Click "Open Trust Page"',
+        'Tap "Show Details"',
+        'Tap "visit this website"',
+        'Tap "Visit Website" to confirm',
+      ];
+    }
+    if (isFirefox()) {
+      return [
+        'Make sure Body ignition is ON',
+        'Click "Open Trust Page"',
+        'Click "Advanced\u2026"',
+        'Click "Accept Risk and Continue"',
+      ];
+    }
+    if (isChrome() && isIos()) {
+      return [
+        'Make sure Body ignition is ON',
+        'Click "Open Trust Page"',
+        'Tap "Advanced"',
+        'Tap "Proceed to ... (unsafe)"',
+      ];
+    }
+    // Chrome desktop/Android
+    return [
+      'Make sure Body ignition is ON',
+      'Click "Open Trust Page"',
+      'Click "Advanced"',
+      'Click "Proceed to ... (unsafe)"',
+    ];
+  }
+
+  renderSslTrustDialog() {
+    const { classes, directAddress } = this.props;
+    const { isLandscape } = this.state;
+    const trustUrl = `${getDeviceBaseUrl(directAddress)}/trust`;
+    const steps = this.getSslInstructions();
+
+    return (
+      <div className={classes.connectOverlay} style={{ overflow: 'auto' }}>
+        <div className={classes.connectContent} style={{
+          maxWidth: isLandscape ? 520 : 380,
+          width: '90%',
+          background: Colors.grey900,
+          borderRadius: 16,
+          padding: isLandscape ? 16 : 24,
+          gap: isLandscape ? 10 : 16,
+          margin: 'auto',
+        }}>
+          <Typography style={{ fontSize: isLandscape ? 16 : 18, fontWeight: 600 }}>
+            Trust Device Certificate
+          </Typography>
+          <Typography style={{ fontSize: isLandscape ? 12 : 14, color: Colors.white60, lineHeight: 1.5, textAlign: 'center' }}>
+            Your browser needs to trust this local network device&apos;s self-signed cert
+            before connecting. Follow these steps:
+          </Typography>
+          <div style={{
+            textAlign: 'left',
+            background: Colors.white08,
+            borderRadius: 12,
+            padding: isLandscape ? '8px 12px' : '12px 16px',
+            width: '100%',
+          }}>
+            {steps.map((step, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: i < steps.length - 1 ? (isLandscape ? 2 : 6) : 0 }}>
+                <span style={{ fontSize: isLandscape ? 12 : 14, color: Colors.white40, fontWeight: 600, minWidth: 16 }}>{i + 1}.</span>
+                <span style={{ fontSize: isLandscape ? 12 : 14, color: Colors.white70, lineHeight: 1.4 }}>{step}</span>
+              </div>
+            ))}
+          </div>
+          <Button
+            className={classes.connectButton}
+            onClick={() => this.handleOpenTrustPage()}
+            disableRipple
+          >
+            Open Trust Page
+          </Button>
+          <Typography style={{ fontSize: isLandscape ? 10 : 12, color: Colors.white40, wordBreak: 'break-all', textAlign: 'center' }}>
+            {trustUrl}
+          </Typography>
+          <Typography style={{ fontSize: isLandscape ? 12 : 14, color: Colors.white70 }}>
+            After accepting, this page will connect automatically.
+          </Typography>
+        </div>
+      </div>
+    );
   }
 
   handleDisconnect() {
@@ -1209,6 +1318,9 @@ class BodyTeleop extends Component {
               {this.renderControls(false)}
             </>
           ) : (
+            this.state.showSslTrust ?
+            this.renderSslTrustDialog()
+            :
             this.renderConnectOverlay()
           )}
         </div>
@@ -1254,18 +1366,20 @@ class BodyTeleop extends Component {
             </>
           :
             <div className={classes.portraitContent} style={{ overflow: 'auto' }}>
-              <div className={classes.statusRow}>
-                <div className={classes.statusLeft}>
-                  <div className={classes.statusDot} style={{ backgroundColor: this.getStatusDotColor(), width: 10, height: 10 }} />
-                  <Typography style={{ fontSize: 14, textTransform: 'capitalize' }}>{connectionState}</Typography>
-                </div>
-                {batteryLevel !== null && (
-                  <div className={classes.batteryPill}>
-                    <BatteryFull style={{ fontSize: 18, color: Colors.white70 }} />
-                    <Typography style={{ fontSize: 14 }}>{batteryLevel}%</Typography>
+              {this.state.showSslTrust ? this.renderSslTrustDialog() : (
+                <div className={classes.statusRow}>
+                  <div className={classes.statusLeft}>
+                    <div className={classes.statusDot} style={{ backgroundColor: this.getStatusDotColor(), width: 10, height: 10 }} />
+                    <Typography style={{ fontSize: 14, textTransform: 'capitalize' }}>{connectionState}</Typography>
                   </div>
-                )}
-              </div>
+                  {batteryLevel !== null && (
+                    <div className={classes.batteryPill}>
+                      <BatteryFull style={{ fontSize: 18, color: Colors.white70 }} />
+                      <Typography style={{ fontSize: 14 }}>{batteryLevel}%</Typography>
+                    </div>
+                  )}
+                </div>
+              )}
               {error && (
                 <div style={{ borderRadius: 8, background: 'rgba(220,38,38,0.15)', padding: 12, fontSize: 14, color: '#fca5a5' }}>
                   {error}

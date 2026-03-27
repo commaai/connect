@@ -1,6 +1,37 @@
 import { athena as Athena } from '@commaai/api';
 import { extractTimingSei } from './latency-transform-worker';
 
+export function getDeviceBaseUrl(address) {
+  const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
+  if (address.includes("192.168")) {
+    const port = protocol === 'https' ? 5002 : 5001;
+    const host = address.includes(':') ? address.split(':')[0] : address;
+    return `${protocol}://${host}:${port}`;
+  }
+  return `${protocol}://${address}`;
+}
+
+// Returns 'trusted' if SSL handshake succeeds, 'untrusted' if the cert is
+// rejected, or 'unreachable' if the device is not online at all.
+export async function checkSslTrust(address) {
+  try {
+    await fetch(`${getDeviceBaseUrl(address)}/trust`, { mode: 'no-cors' });
+    // If we get any response (even opaque), the SSL handshake succeeded
+    return 'trusted';
+  } catch (_) {
+    // HTTPS failed — probe HTTP to distinguish "bad cert" from "device offline"
+    const host = address.includes(':') ? address.split(':')[0] : address;
+    try {
+      await fetch(`${host}:5001/trust`, { mode: 'no-cors' });
+      // HTTP reached the device, so it's online but the cert isn't trusted
+      return 'untrusted';
+    } catch (_e) {
+      return 'unreachable';
+    }
+  }
+}
+
+
 export class BodyTeleopConnection {
   constructor(callbacks) {
     this.pc = null;
@@ -18,12 +49,7 @@ export class BodyTeleopConnection {
     this.clockSynced = false;
   }
 
-  getDeviceBaseUrl(address) {
-    const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
-    const port = protocol === 'https' ? 5002 : 5001;
-    const host = address.includes(':') ? address.split(':')[0] : address;
-    return `${protocol}://${host}:${port}`;
-  }
+  
 
   async connectDirect(address) {
     this.directAddress = address;
@@ -76,9 +102,7 @@ export class BodyTeleopConnection {
                   }
                 };
                 evt.receiver.transform = new window.RTCRtpScriptTransform(worker);
-                log('RTCRtpScriptTransform attached for latency measurement');
               } catch (e) {
-                log(`RTCRtpScriptTransform setup failed: ${e.message}`);
               }
             } else if (evt.receiver.createEncodedStreams) {
               // Legacy Chrome API
@@ -91,9 +115,7 @@ export class BodyTeleopConnection {
                     controller.enqueue(frame);
                   },
                 })).pipeTo(writable);
-                log('encoded transform (legacy) attached for latency measurement');
               } catch (e) {
-                log(`encoded transform setup failed: ${e.message}`);
               }
             }
           }
@@ -224,7 +246,7 @@ export class BodyTeleopConnection {
       } else if (this.directAddress) {
         let resp;
         try {
-          resp = await fetch(`${this.getDeviceBaseUrl(this.directAddress)}/stream`, {
+          resp = await fetch(`${getDeviceBaseUrl(this.directAddress)}/stream`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sdp, cameras: ['driver'], bridge_services_in: ['testJoystick'], bridge_services_out: ['carState'] }),
@@ -269,7 +291,7 @@ export class BodyTeleopConnection {
 
     let resp;
     try {
-      resp = await fetch(`${this.getDeviceBaseUrl(this.directAddress)}/sound`, {
+      resp = await fetch(`${getDeviceBaseUrl(this.directAddress)}/sound`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sound }),

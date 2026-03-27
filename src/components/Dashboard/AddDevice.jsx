@@ -578,8 +578,8 @@ class AddDevice extends Component {
             <TextField
               className={ classes.bodyInput }
               variant="outlined"
-              placeholder="192.168.1.100"
-              label="IP address"
+              placeholder="bodyX.3comma.net"
+              label="body url or ip address"
               value={ bodyIp }
               onChange={ (e) => this.setState({ bodyIp: e.target.value }) }
               onKeyDown={ (e) => e.key === 'Enter' && this.handleBodyConnect() }
