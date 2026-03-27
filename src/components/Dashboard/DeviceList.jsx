@@ -297,7 +297,6 @@ class DeviceList extends Component {
                 <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon />
               </div>
             )}
-            {/* spacer so content isn't hidden behind pinned recent section */}
             {hasRecent && <div style={{ height: 48 }} />}
           </div>
           {hasRecent && (

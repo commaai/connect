@@ -469,18 +469,14 @@ class AddDevice extends Component {
   static getRecentBodyConnections() {
     try {
       return JSON.parse(localStorage.getItem('recentBodyConnections') || '[]');
-    } catch {
-      return [];
-    }
+    } catch {}
   }
 
   static removeRecentBodyConnection(address) {
     try {
       const stored = JSON.parse(localStorage.getItem('recentBodyConnections') || '[]');
       localStorage.setItem('recentBodyConnections', JSON.stringify(stored.filter((a) => a !== address)));
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 
   onOpenModal() {
