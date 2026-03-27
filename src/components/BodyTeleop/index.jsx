@@ -1252,17 +1252,6 @@ class BodyTeleop extends Component {
     this.setState({ error: null, showSslTrust: false });
     try {
       if (directAddress) {
-        if (window.location.protocol === 'https:') {
-          const sslStatus = await checkSslTrust(directAddress);
-          if (sslStatus === 'unreachable') {
-            this.setState({ error: 'Could not reach device. Is the ignition on?', connectionState: 'failed' });
-            return;
-          }
-          if (sslStatus === 'untrusted') {
-            this.setState({ showSslTrust: true, connectionState: 'disconnected' });
-            return;
-          }
-        }
         await this.connection.connectDirect(directAddress);
       } else {
         await this.connection.connect(dongleId);

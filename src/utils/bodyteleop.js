@@ -96,9 +96,9 @@ function extractTimingSei(frameBuffer) {
 
 export function getDeviceBaseUrl(address) {
   const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
-  const port = protocol === 'https' ? 5002 : 5001;
+  // const port = protocol === 'https' ?  : 5002;
   const host = address.includes(':') ? address.split(':')[0] : address;
-  return `${protocol}://${host}:${port}`;
+  return `${protocol}://${host}`;
 }
 
 // Returns 'trusted' if SSL handshake succeeds, 'untrusted' if the cert is
