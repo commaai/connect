@@ -1,10 +1,25 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import BatteryFull from '@material-ui/icons/BatteryFull';
-import PhotoCamera from '@material-ui/icons/PhotoCamera';
-import Colors from '../../colors';
 
 const LATENCY_BUFFER_SIZE = 10;
 const LATENCY_HISTORY_MAX = 60;
+
+const STATS_ROWS = [
+  { label: 'Resolution', key: 'resolution' },
+  { label: 'FPS', key: 'fps' },
+  { label: 'Bitrate', key: 'bitrate' },
+  { label: 'RTT', key: 'rtt' },
+  { label: 'Jitter', key: 'jitter' },
+];
+
+const LATENCY_LAYERS = [
+  { label: 'Capture', key: 'captureMs', color: 'rgba(76,175,80,0.55)', labelColor: 'rgba(76,175,80,0.7)' },
+  { label: 'Encode', key: 'encodeMs', color: 'rgba(255,183,77,0.55)', labelColor: 'rgba(255,183,77,0.7)' },
+  { label: 'Send delay', key: 'sendDelayMs', color: 'rgba(171,71,188,0.45)', labelColor: 'rgba(171,71,188,0.65)' },
+  { label: 'Network', key: 'networkMs', color: 'rgba(66,165,245,0.55)', labelColor: 'rgba(66,165,245,0.7)' },
+];
+
+const glassPanel = 'bg-black/40 backdrop-blur-[10px] border border-white/[0.12] shadow-[0_2px_12px_rgba(0,0,0,0.3)]';
 
 export const useStats = (connection, connectionState, latencyCallbackRef) => {
   const [showStats, setShowStats] = useState(false);
@@ -117,60 +132,56 @@ export const useStats = (connection, connectionState, latencyCallbackRef) => {
   return { showStats, toggleStats, stats, latency, latencyHistory };
 }
 
-export const StatsPanel = ({ classes, isLandscape, stats, latency, latencyHistory }) => {
+function drawLatencyGraph(canvas, latencyHistory) {
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+
+  const maxVal = Math.max(10, ...latencyHistory.map((l) => (l.totalMs != null ? l.totalMs : l.devicePipelineMs) || 0));
+  const yScale = (h - 2) / (maxVal * 1.15);
+  const xStep = w / Math.max(latencyHistory.length - 1, 1);
+
+  const cums = latencyHistory.map((l) => {
+    let sum = 0;
+    return LATENCY_LAYERS.map(({ key }) => {
+      const v = l[key];
+      sum += (v != null && v > 0) ? v : 0;
+      return sum;
+    });
+  });
+
+  for (let li = LATENCY_LAYERS.length - 1; li >= 0; li--) {
+    ctx.beginPath();
+    for (let i = 0; i < cums.length; i++) {
+      const x = i * xStep;
+      const y = h - cums[i][li] * yScale;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.lineTo((cums.length - 1) * xStep, h);
+    ctx.lineTo(0, h);
+    ctx.closePath();
+    ctx.fillStyle = LATENCY_LAYERS[li].color;
+    ctx.fill();
+  }
+
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.font = '8px monospace';
+  ctx.fillText(`${Math.round(maxVal)}ms`, 2, 9);
+}
+
+export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
   const latencyCanvasRef = useRef(null);
 
   useEffect(() => {
     if (!latencyHistory.length) return;
     const canvas = latencyCanvasRef.current;
     if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const w = canvas.clientWidth;
-    const h = canvas.clientHeight;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, w, h);
-
-    const maxVal = Math.max(10, ...latencyHistory.map((l) => (l.totalMs != null ? l.totalMs : l.devicePipelineMs) || 0));
-    const yScale = (h - 2) / (maxVal * 1.15);
-    const xStep = w / Math.max(latencyHistory.length - 1, 1);
-
-    const layers = [
-      { key: 'captureMs', color: 'rgba(76,175,80,0.55)' },
-      { key: 'encodeMs', color: 'rgba(255,183,77,0.55)' },
-      { key: 'sendDelayMs', color: 'rgba(171,71,188,0.45)' },
-      { key: 'networkMs', color: 'rgba(66,165,245,0.55)' },
-    ];
-
-    const cums = latencyHistory.map((l) => {
-      let sum = 0;
-      return layers.map(({ key }) => {
-        const v = l[key];
-        sum += (v != null && v > 0) ? v : 0;
-        return sum;
-      });
-    });
-
-    for (let li = layers.length - 1; li >= 0; li--) {
-      ctx.beginPath();
-      for (let i = 0; i < cums.length; i++) {
-        const x = i * xStep;
-        const y = h - cums[i][li] * yScale;
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      }
-      ctx.lineTo((cums.length - 1) * xStep, h);
-      ctx.lineTo(0, h);
-      ctx.closePath();
-      ctx.fillStyle = layers[li].color;
-      ctx.fill();
-    }
-
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.font = '8px monospace';
-    ctx.fillText(`${Math.round(maxVal)}ms`, 2, 9);
+    drawLatencyGraph(canvas, latencyHistory);
   }, [latencyHistory]);
 
   if (!stats) return null;
@@ -178,54 +189,33 @@ export const StatsPanel = ({ classes, isLandscape, stats, latency, latencyHistor
   const fmtMs = (v) => (v != null ? `${v.toFixed(1)} ms` : '--');
 
   return (
-    <div className={isLandscape ? classes.statsToggle : classes.statsTogglePortrait}>
-      <div className={classes.statsPanel}>
-        <div className={classes.statsRow}>
-          <span className={classes.statsLabel}>Resolution</span>
-          <span className={classes.statsValue}>{stats.resolution}</span>
-        </div>
-        <div className={classes.statsRow}>
-          <span className={classes.statsLabel}>FPS</span>
-          <span className={classes.statsValue}>{stats.fps}</span>
-        </div>
-        <div className={classes.statsRow}>
-          <span className={classes.statsLabel}>Bitrate</span>
-          <span className={classes.statsValue}>{stats.bitrate}</span>
-        </div>
-        <div className={classes.statsRow}>
-          <span className={classes.statsLabel}>RTT</span>
-          <span className={classes.statsValue}>{stats.rtt}</span>
-        </div>
-        <div className={classes.statsRow}>
-          <span className={classes.statsLabel}>Jitter</span>
-          <span className={classes.statsValue}>{stats.jitter}</span>
-        </div>
-        <div className={classes.statsDivider} />
+    <div className={isLandscape
+      ? 'absolute top-3 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center'
+      : 'absolute top-0 right-1 z-10 flex flex-col items-end'}
+    >
+      <div className={`mt-0.5 p-[3px_6px] rounded-[5px] min-w-[120px] font-mono ${glassPanel} !bg-black/70 md:p-[10px_16px] md:min-w-[240px] md:rounded-[10px]`}>
+        {STATS_ROWS.map(({ label, key }) => (
+          <div key={key} className="flex justify-between leading-tight md:py-[3px]">
+            <span className="text-[8px] text-white/45 mr-1.5 md:text-[13px] md:mr-[18px]">{label}</span>
+            <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]">{stats[key]}</span>
+          </div>
+        ))}
+        <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />
         {latency && (
           <>
-            <div className={classes.latencySectionHeader}>FRAME LATENCY</div>
-            <div className={classes.statsRow}>
-              <span className={classes.statsLabel} style={{ color: 'rgba(76,175,80,0.7)' }}>Capture</span>
-              <span className={classes.statsValue}>{fmtMs(latency.captureMs)}</span>
+            <div className="text-[7px] font-bold text-white/35 tracking-[0.5px] leading-tight py-[2px] pb-px md:text-[11px]">FRAME LATENCY</div>
+            {LATENCY_LAYERS.map(({ label, key, labelColor }) => (
+              <div key={key} className="flex justify-between leading-tight md:py-[3px]">
+                <span className="text-[8px] mr-1.5 md:text-[13px] md:mr-[18px]" style={{ color: labelColor }}>{label}</span>
+                <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]">{fmtMs(latency[key])}</span>
+              </div>
+            ))}
+            <div className="flex justify-between leading-tight md:py-[3px]">
+              <span className="text-[8px] mr-1.5 md:text-[13px] md:mr-[18px]" style={{ fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Total</span>
+              <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]" style={{ fontWeight: 700 }}>{fmtMs(latency.totalMs)}</span>
             </div>
-            <div className={classes.statsRow}>
-              <span className={classes.statsLabel} style={{ color: 'rgba(255,183,77,0.7)' }}>Encode</span>
-              <span className={classes.statsValue}>{fmtMs(latency.encodeMs)}</span>
-            </div>
-            <div className={classes.statsRow}>
-              <span className={classes.statsLabel} style={{ color: 'rgba(171,71,188,0.65)' }}>Send delay</span>
-              <span className={classes.statsValue}>{fmtMs(latency.sendDelayMs)}</span>
-            </div>
-            <div className={classes.statsRow}>
-              <span className={classes.statsLabel} style={{ color: 'rgba(66,165,245,0.7)' }}>Network</span>
-              <span className={classes.statsValue}>{fmtMs(latency.networkMs)}</span>
-            </div>
-            <div className={classes.statsRow}>
-              <span className={classes.statsLabel} style={{ fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Total</span>
-              <span className={classes.statsValue} style={{ fontWeight: 700 }}>{fmtMs(latency.totalMs)}</span>
-            </div>
-            <canvas ref={latencyCanvasRef} className={classes.latencyGraph} />
-            <div className={classes.statsDivider} />
+            <canvas ref={latencyCanvasRef} className="w-full h-[30px] mt-px rounded-[3px] bg-black/30 md:h-[90px] md:mt-1 md:rounded-[6px]" />
+            <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />
           </>
         )}
       </div>
@@ -234,94 +224,54 @@ export const StatsPanel = ({ classes, isLandscape, stats, latency, latencyHistor
 };
 
 const StatusBar = ({
-  classes, connectionState, batteryLevel, isLandscape,
-  showStats, toggleStats, stats, latency, latencyHistory, videoRef,
+  classes, connectionState, batteryLevel, isLandscape, toggleStats,
 }) => {
-  const handleScreenshot = () => {
-    const video = videoRef?.current;
-    if (!video || !video.videoWidth) return;
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    const link = document.createElement('a');
-    link.download = `screenshot_${Date.now()}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-  };
-
   const dotColor = connectionState === 'connecting' ? '#facc15'
-    : connectionState === 'connected' ? Colors.green50
-    : connectionState === 'failed' ? Colors.red50
-    : Colors.grey400;
+    : connectionState === 'connected' ? '#22c967'
+    : connectionState === 'failed' ? '#da2535'
+    : '#4b5559';
 
-  if (!isLandscape) {
-    return (
-      <div className={`${classes.controlsGroup} ${classes.controlsGroupPortrait}`}>
-        <div className={classes.portraitRow}>
-          <div className={classes.hudPill}>
-            <div
-              className={classes.statusDot}
-              style={{
-                backgroundColor: dotColor,
-                animation: connectionState === 'connecting' ? 'pulse 1.5s ease-in-out infinite' : 'none',
-              }}
-            />
-            <span className={classes.hudText}>{connectionState}</span>
-          </div>
-          {batteryLevel !== null && (
-            <div className={classes.hudPill}>
-              <BatteryFull style={{ fontSize: 14, color: Colors.white70 }} />
-              <span className={classes.hudText}>{batteryLevel}%</span>
-            </div>
-          )}
-          <div className={classes.statsToggleButton} onClick={toggleStats} title="Toggle stats">
-            STATS
-          </div>
-          <div style={{ flex: 1 }} />
-          <div className={classes.controlsButtons}>
-            <div
-              className={`${classes.actionButton} ${classes.actionButtonPortrait}`}
-              onClick={handleScreenshot}
-              title="Save screenshot"
-            >
-              <PhotoCamera className={classes.actionButtonIconPortrait} />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const wrapperClass = isLandscape
+    ? 'absolute top-3 right-3 z-10 flex items-center gap-2'
+    : `${classes.controlsGroup} ${classes.controlsGroupPortrait}`;
 
-  // Landscape: HUD top-right
-  return (
-    <>
-      <div className={classes.hudTopRight}>
-        <div className={classes.hudPillButton} onClick={toggleStats} title="Toggle stats">
-          <span className={classes.hudText}>stats</span>
-        </div>
-        <div className={classes.hudPill}>
-          <div className={classes.statusDot} style={{ backgroundColor: dotColor }} />
-          <span className={classes.hudText}>{connectionState}</span>
-        </div>
-        {batteryLevel !== null && (
-          <div className={classes.hudPill}>
-            <BatteryFull style={{ fontSize: 16, color: Colors.white70 }} />
-            <span className={classes.hudText}>{batteryLevel}%</span>
-          </div>
-        )}
-      </div>
-      {showStats && (
-        <StatsPanel
-          classes={classes}
-          isLandscape
-          stats={stats}
-          latency={latency}
-          latencyHistory={latencyHistory}
-        />
-      )}
-    </>
+  const statsButton = (
+    <div
+      className={isLandscape
+        ? `flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-[14px] cursor-pointer ${glassPanel}`
+        : `h-7 px-2.5 rounded-[14px] text-[10px] font-bold tracking-[1px] flex items-center justify-center text-white/60 cursor-pointer select-none ${glassPanel} hover:text-white/90 hover:!bg-black/60`}
+      onClick={toggleStats}
+      title="Toggle stats"
+    >
+      {isLandscape ? <span className="text-xs text-white/70">stats</span> : 'STATS'}
+    </div>
   );
+
+  const statusPill = (
+    <div className="flex items-center justify-center gap-1.5 h-7 px-2.5">
+      <div
+        className="w-2 h-2 rounded-full"
+        style={{
+          backgroundColor: dotColor,
+          animation: connectionState === 'connecting' ? 'pulse 1.5s ease-in-out infinite' : 'none',
+        }}
+      />
+      <span className="text-xs text-white/70">{connectionState}</span>
+    </div>
+  );
+
+  const batteryPill = batteryLevel !== null && (
+    <div className="flex items-center justify-center gap-1.5 h-7 px-2.5">
+      <BatteryFull style={{ fontSize: isLandscape ? 16 : 14, color: 'rgba(255, 255, 255, 0.7)' }} />
+      <span className="text-xs text-white/70">{batteryLevel}%</span>
+    </div>
+  );
+
+  const content = isLandscape
+    ? <>{statsButton}{statusPill}{batteryPill}</>
+    : <div className="flex items-end gap-1.5">{statusPill}{batteryPill}{statsButton}<div style={{ flex: 1 }} /></div>;
+
+  return <div className={wrapperClass}>{content}</div>;
 };
 
 export default StatusBar;

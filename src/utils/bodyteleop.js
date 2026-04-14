@@ -11,27 +11,6 @@ export function getDeviceBaseUrl(address) {
   return `${protocol}://${address}`;
 }
 
-// Returns 'trusted' if SSL handshake succeeds, 'untrusted' if the cert is
-// rejected, or 'unreachable' if the device is not online at all.
-export async function checkSslTrust(address) {
-  try {
-    await fetch(`${getDeviceBaseUrl(address)}/trust`, { mode: 'no-cors' });
-    // If we get any response (even opaque), the SSL handshake succeeded
-    return 'trusted';
-  } catch (_) {
-    // HTTPS failed — probe HTTP to distinguish "bad cert" from "device offline"
-    const host = address.includes(':') ? address.split(':')[0] : address;
-    try {
-      await fetch(`${host}:5001/trust`, { mode: 'no-cors' });
-      // HTTP reached the device, so it's online but the cert isn't trusted
-      return 'untrusted';
-    } catch (_e) {
-      return 'unreachable';
-    }
-  }
-}
-
-
 export class BodyTeleopConnection {
   constructor(callbacks) {
     this.pc = null;

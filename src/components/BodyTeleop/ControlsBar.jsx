@@ -2,10 +2,10 @@ import React, { useCallback } from 'react';
 import PhotoCamera from '@material-ui/icons/PhotoCamera';
 
 const QUICK_SOUNDS = [
-  { key: 'engage', label: 'Engage' },
-  { key: 'disengage', label: 'Disengage' },
-  { key: 'prompt', label: 'Prompt' },
-  { key: 'warningImmediate', label: 'Warning' },
+  { key: 'engage', label: 'Engage', icon: '😊' },
+  { key: 'disengage', label: 'Disengage', icon: '😢' },
+  { key: 'prompt', label: 'Prompt', icon: '⚠️' },
+  { key: 'warningImmediate', label: 'Warning', icon: '❗' },
 ];
 
 const CAMERAS = [
@@ -13,8 +13,15 @@ const CAMERAS = [
   { key: 'driver', label: 'driver', num: '2' },
 ];
 
+const btnBase = `h-8 px-2.5 rounded-lg text-[10px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[32px] cursor-pointer select-none hover:text-white hover:bg-white/20 bg-black/40 backdrop-blur-[10px] border border-white/[0.12] shadow-[0_2px_12px_rgba(0,0,0,0.3)]`;
+const btnInactive = `${btnBase} bg-white/10 text-white/60`;
+const btnActive = `${btnBase} bg-white/30 text-white`;
+
+const controlsGroupBase = 'absolute bottom-4 left-4 z-10 flex flex-row items-stretch gap-2.5 rounded-[14px] p-2 bg-black/40 backdrop-blur-[10px] border border-white/[0.12] shadow-[0_2px_12px_rgba(0,0,0,0.3)]';
+const controlsGroupPortrait = 'relative bottom-auto left-auto transform-none self-stretch rounded-none shrink-0 justify-between gap-1.5';
+
 const ControlsBar = ({
-  classes, connection, activeCamera, onSwitchCamera,
+  connection, activeCamera, onSwitchCamera,
   gamepadConnected, videoRef, isLandscape,
 }) => {
   const handlePlaySound = useCallback((sound) => {
@@ -36,92 +43,49 @@ const ControlsBar = ({
     link.click();
   }, [videoRef, activeCamera]);
 
-  if (!isLandscape) {
-    // Portrait layout
-    return (
-      <div className={`${classes.controlsGroup} ${classes.controlsGroupPortrait}`}>
-        <div className={classes.portraitRow}>
-          {!gamepadConnected && (
-            <div className={classes.portraitCategory}>
-              <span className={classes.controlsLabelPortrait}>Cams</span>
-              <div className={classes.controlsButtons}>
-                {CAMERAS.map((cam) => (
-                  <div
-                    key={cam.key}
-                    className={`${classes.controlButton} ${classes.controlButtonPortrait} ${activeCamera === cam.key ? classes.controlButtonActive : classes.controlButtonInactive}`}
-                    style={{ aspectRatio: '1/1' }}
-                    onClick={() => onSwitchCamera(cam.key)}
-                  >
-                    {cam.num}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <div style={{ flex: 1 }} />
-          <div className={classes.portraitCategory}>
-            <span className={classes.controlsLabelPortrait}>Play Sounds</span>
-            <div className={classes.controlsButtons}>
-              {QUICK_SOUNDS.map((sound) => (
-                <div
-                  key={sound.key}
-                  className={`${classes.controlButton} ${classes.controlButtonPortrait}`}
-                  onClick={() => handlePlaySound(sound.key)}
-                >
-                  {sound.label}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Landscape layout
   return (
-    <div className={classes.controlsGroup}>
+    <div className={`${controlsGroupBase} ${!isLandscape ? controlsGroupPortrait : ''}`}>
       {!gamepadConnected && (
-        <div className={classes.controlsColumn}>
-          <div className={classes.controlsButtons}>
+        <div className="flex flex-col items-center justify-between gap-[5px]">
+          <div className="flex gap-[3px] items-center">
             {CAMERAS.map((cam) => (
               <div
                 key={cam.key}
-                className={`${classes.controlButton} ${activeCamera === cam.key ? classes.controlButtonActive : classes.controlButtonInactive}`}
+                className={activeCamera === cam.key ? btnActive : btnInactive}
                 onClick={() => onSwitchCamera(cam.key)}
               >
-                {cam.label}
+                {isLandscape ? cam.label : cam.num}
               </div>
             ))}
           </div>
-          <span className={classes.controlsLabelBelow}>Camera</span>
+          <span className="text-[9px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Camera</span>
         </div>
       )}
-      <div className={classes.controlsColumn}>
-        <div className={classes.controlsButtons}>
+      <div className="flex flex-col items-center justify-between gap-[5px]">
+        <div className="flex gap-[3px] items-center">
           {QUICK_SOUNDS.map((sound) => (
             <div
               key={sound.key}
-              className={classes.controlButton}
+              className={btnInactive}
               onClick={() => handlePlaySound(sound.key)}
             >
-              {sound.label}
+              {isLandscape ? sound.label : sound.icon}
             </div>
           ))}
         </div>
-        <span className={classes.controlsLabelBelow}>Sounds</span>
+        <span className="text-[9px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Sounds</span>
       </div>
-      <div className={classes.controlsColumn}>
-        <div className={classes.controlsButtons}>
+      <div className="flex flex-col items-center justify-between gap-[5px]">
+        <div className="flex gap-[3px] items-center">
           <div
-            className={classes.controlButton}
+            className={btnInactive}
             onClick={handleScreenshot}
             title="Save screenshot"
           >
-            <PhotoCamera className={classes.actionButtonIcon} />
+            <PhotoCamera className="text-[18px]" />
           </div>
         </div>
-        <span className={classes.controlsLabelBelow}>Screenshot</span>
+        <span className="text-[9px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Screenshot</span>
       </div>
     </div>
   );

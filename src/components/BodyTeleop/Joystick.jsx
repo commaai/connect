@@ -1,63 +1,105 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-const ControllerOverlay = ({ classes, gamepadSteering, gamepadGas, gamepadBrake, gamepadLB, gamepadRB, activeCamera }) => {
+const glassSurface = {
+  background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.25), rgba(255,255,255,0.05))',
+  backdropFilter: 'blur(12px)',
+  border: '1.5px solid rgba(255,255,255,0.2)',
+  boxShadow: 'inset 0 0 20px rgba(255,255,255,0.1), 0 4px 20px rgba(0,0,0,0.4)',
+};
+
+const glassThumb = {
+  ...glassSurface,
+};
+
+const glassThumbActive = {
+  background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.6), rgba(255,255,255,0.15))',
+  backdropFilter: 'blur(12px)',
+  boxShadow: 'inset 0 1px 4px rgba(255,255,255,0.4), 0 2px 12px rgba(0,0,0,0.4)',
+  border: '1px solid rgba(255,255,255,0.35)',
+};
+
+const controllerThumbStyle = {
+  background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.4), rgba(255,255,255,0.1))',
+  boxShadow: 'inset 0 1px 4px rgba(255,255,255,0.3), 0 2px 8px rgba(0,0,0,0.3)',
+  border: '1px solid rgba(255,255,255,0.25)',
+};
+
+function TriggerGroup({ bumperActive, bumperLabel, bumperKey, cameraActive, triggerValue, triggerColor, triggerKey, directionLabel }) {
+  const activeStyle = cameraActive ? { background: 'rgba(59,130,246,0.35)', borderColor: 'rgba(59,130,246,0.5)' } : undefined;
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <span className={`text-[9px] font-bold tracking-[0.5px] uppercase transition-colors duration-100 ${bumperActive ? 'text-white/90' : 'text-white/50'}`}>
+        {bumperLabel}
+      </span>
+      <div
+        className={`w-12 h-6 rounded-[12px_12px_4px_4px] border-2 flex items-center justify-center transition-[background,border-color] duration-100 ${bumperActive ? 'bg-white/25 border-white/50' : 'border-white/25 bg-white/5 backdrop-blur-lg'}`}
+        style={activeStyle}
+      >
+        <span className={`text-[9px] font-bold tracking-[0.5px] uppercase transition-colors duration-100 ${bumperActive ? 'text-white/90' : 'text-white/50'}`}>
+          {bumperKey}
+        </span>
+      </div>
+      <div className="w-12 h-20 rounded-[8px_8px_24px_24px] relative overflow-hidden" style={glassSurface}>
+        <div className="absolute bottom-0 left-0 right-0 transition-[height] duration-[50ms] linear" style={{ height: `${triggerValue * 100}%`, background: triggerColor }} />
+        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] font-bold tracking-[0.5px] text-white/40 z-[1] pointer-events-none">
+          {triggerKey}
+        </span>
+      </div>
+      <span className="text-[10px] font-bold tracking-[0.5px] text-white/50 uppercase whitespace-nowrap">
+        {directionLabel}
+      </span>
+    </div>
+  );
+}
+
+function ControllerOverlay({ gamepadSteering, gamepadGas, gamepadBrake, gamepadLB, gamepadRB, activeCamera }) {
   const thumbLeft = 50 + gamepadSteering * 34;
 
   return (
-    <div className={classes.controllerOverlay}>
-      <div className={classes.triggerContainer}>
-        <span className={`${classes.bumperLabel} ${gamepadLB ? classes.bumperLabelActive : ''}`}>Driver Camera</span>
-        <div
-          className={`${classes.bumperShape} ${gamepadLB ? classes.bumperActive : ''}`}
-          style={activeCamera === 'driver' ? { background: 'rgba(59,130,246,0.35)', borderColor: 'rgba(59,130,246,0.5)' } : undefined}
-        >
-          <span className={`${classes.bumperLabel} ${gamepadLB ? classes.bumperLabelActive : ''}`}>L1</span>
-        </div>
-        <div className={classes.triggerShape}>
-          <div className={classes.triggerFill} style={{ height: `${gamepadBrake * 100}%`, background: 'rgba(239,68,68,0.45)' }} />
-          <span className={classes.triggerInnerLabel}>LT</span>
-        </div>
-        <span className={classes.triggerLabel}>Backward</span>
-      </div>
+    <div className="absolute bottom-4 right-4 z-10 flex items-center justify-center gap-6 pointer-events-none">
+      <TriggerGroup
+        bumperActive={gamepadLB} bumperLabel="Driver Camera" bumperKey="L1"
+        cameraActive={activeCamera === 'driver'} triggerValue={gamepadBrake}
+        triggerColor="rgba(239,68,68,0.45)" triggerKey="LT" directionLabel="Backward"
+      />
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-        <span className={classes.controllerJoystickLabel}>L Stick — Steering</span>
-        <div className={classes.controllerJoystick}>
-          <div className={classes.controllerJoystickTrack} />
-          <span className={classes.controllerJoystickArrows} style={{ left: 6 }}>{'\u25C0'}</span>
-          <span className={classes.controllerJoystickArrows} style={{ right: 6 }}>{'\u25B6'}</span>
-          <div className={classes.controllerJoystickThumb} style={{ left: `calc(${thumbLeft}% - 16px)` }} />
+        <span className="text-[10px] font-bold tracking-[0.5px] text-white/50 uppercase whitespace-nowrap">L Stick — Steering</span>
+        <div className="w-[100px] h-[100px] rounded-full relative flex items-center justify-center" style={glassSurface}>
+          <div className="absolute top-1/2 left-3 right-3 h-0.5 -translate-y-1/2 bg-white/10 rounded-[1px]" />
+          <span className="absolute top-1/2 -translate-y-[55%] text-sm text-white/20 select-none" style={{ left: 6 }}>{'\u25C0'}</span>
+          <span className="absolute top-1/2 -translate-y-[55%] text-sm text-white/20 select-none" style={{ right: 6 }}>{'\u25B6'}</span>
+          <div
+            className="w-8 h-8 rounded-full absolute transition-[left] duration-[50ms] linear"
+            style={{ ...controllerThumbStyle, left: `calc(${thumbLeft}% - 16px)` }}
+          />
         </div>
       </div>
 
-      <div className={classes.triggerContainer}>
-        <span className={`${classes.bumperLabel} ${gamepadRB ? classes.bumperLabelActive : ''}`}>Road Camera</span>
-        <div
-          className={`${classes.bumperShape} ${gamepadRB ? classes.bumperActive : ''}`}
-          style={activeCamera === 'wideRoad' ? { background: 'rgba(59,130,246,0.35)', borderColor: 'rgba(59,130,246,0.5)' } : undefined}
-        >
-          <span className={`${classes.bumperLabel} ${gamepadRB ? classes.bumperLabelActive : ''}`}>R1</span>
-        </div>
-        <div className={classes.triggerShape}>
-          <div className={classes.triggerFill} style={{ height: `${gamepadGas * 100}%`, background: 'rgba(34,197,94,0.45)' }} />
-          <span className={classes.triggerInnerLabel}>RT</span>
-        </div>
-        <span className={classes.triggerLabel}>Forward</span>
-      </div>
+      <TriggerGroup
+        bumperActive={gamepadRB} bumperLabel="Road Camera" bumperKey="R1"
+        cameraActive={activeCamera === 'wideRoad'} triggerValue={gamepadGas}
+        triggerColor="rgba(34,197,94,0.45)" triggerKey="RT" directionLabel="Forward"
+      />
     </div>
   );
-};
+}
 
-const TouchJoystick = ({ classes, isLandscape, thumbPos, joystickAreaRef, onTouchStart, onTouchMove, onTouchEnd, onMouseDown }) => {
+function TouchJoystick({ isLandscape, thumbPos, joystickAreaRef, onTouchStart, onTouchMove, onTouchEnd, onMouseDown }) {
   const thumbRange = isLandscape ? 40 : 45;
   const thumbLeft = thumbPos ? `${50 + thumbPos.x * thumbRange}%` : '50%';
   const thumbTop = thumbPos ? `${50 + thumbPos.y * thumbRange}%` : '50%';
-  const joystickClass = isLandscape ? classes.joystickArea : classes.joystickAreaMobile;
+
+  const joystickClass = isLandscape
+    ? 'absolute bottom-4 right-4 z-10 w-[160px] h-[160px] rounded-2xl touch-none md:w-[160px] md:h-[160px]'
+    : 'relative w-auto h-full aspect-square max-w-full touch-none rounded-2xl';
 
   return (
     <div
       ref={joystickAreaRef}
-      className={`${joystickClass} ${classes.joystickAreaSquare}`}
+      className={joystickClass}
+      style={glassSurface}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -65,21 +107,21 @@ const TouchJoystick = ({ classes, isLandscape, thumbPos, joystickAreaRef, onTouc
       onMouseDown={onMouseDown}
       onContextMenu={(e) => e.preventDefault()}
     >
-      <div className={classes.joystickCrosshairV} />
-      <div className={classes.joystickCrosshairH} />
-      <div className={classes.joystickCenter} />
+      <div className="absolute left-1/2 top-2 bottom-2 w-px -translate-x-1/2 bg-white/10" />
+      <div className="absolute top-1/2 left-2 right-2 h-px -translate-y-1/2 bg-white/10" />
+      <div className="absolute left-1/2 top-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/30" />
       <div
-        className={`${classes.joystickThumb} ${thumbPos ? classes.joystickThumbActive : ''}`}
-        style={{ left: thumbLeft, top: thumbTop }}
+        className="absolute w-[52px] h-[52px] rounded-full -translate-x-1/2 -translate-y-1/2 will-change-[left,top] md:w-[56px] md:h-[56px]"
+        style={{ ...(thumbPos ? glassThumbActive : glassThumb), left: thumbLeft, top: thumbTop }}
       />
     </div>
   );
-};
+}
 
-const Joystick = ({
-  classes, connection, activeCamera, isLandscape,
+export default function Joystick({
+  connection, activeCamera, isLandscape,
   onGamepadChange, onSwitchCamera, gamepadConnected,
-}) => {
+}) {
   const [thumbPos, setThumbPos] = useState(null);
   const [, setKeys] = useState({ w: false, a: false, s: false, d: false });
   const [gamepadState, setGamepadState] = useState({
@@ -169,13 +211,14 @@ const Joystick = ({
 
   // Keyboard input
   useEffect(() => {
-    const onKeyDown = (e) => {
-      const arrowMap = { ArrowUp: 'w', ArrowDown: 's', ArrowLeft: 'a', ArrowRight: 'd' };
+    const arrowMap = { ArrowUp: 'w', ArrowDown: 's', ArrowLeft: 'a', ArrowRight: 'd' };
+
+    const handleKey = (e, pressed) => {
       const k = arrowMap[e.key] || e.key.toLowerCase();
       if ('wasd'.includes(k) && k.length === 1) {
         e.preventDefault();
         setKeys((prev) => {
-          const next = { ...prev, [k]: true };
+          const next = { ...prev, [k]: pressed };
           const x = -(next.d ? 1 : 0) + (next.a ? 1 : 0);
           const y = -(next.w ? 1 : 0) + (next.s ? 1 : 0);
           setFlippedJoystick(y, x);
@@ -184,29 +227,17 @@ const Joystick = ({
           return next;
         });
       }
-      const cameraKeys = { 1: 'wideRoad', 2: 'driver' };
-      if (cameraKeys[e.key]) {
-        e.preventDefault();
-        onSwitchCamera(cameraKeys[e.key]);
+      if (pressed) {
+        const cameraKeys = { 1: 'wideRoad', 2: 'driver' };
+        if (cameraKeys[e.key]) {
+          e.preventDefault();
+          onSwitchCamera(cameraKeys[e.key]);
+        }
       }
     };
 
-    const onKeyUp = (e) => {
-      const arrowMap = { ArrowUp: 'w', ArrowDown: 's', ArrowLeft: 'a', ArrowRight: 'd' };
-      const k = arrowMap[e.key] || e.key.toLowerCase();
-      if ('wasd'.includes(k) && k.length === 1) {
-        e.preventDefault();
-        setKeys((prev) => {
-          const next = { ...prev, [k]: false };
-          const x = -(next.d ? 1 : 0) + (next.a ? 1 : 0);
-          const y = -(next.w ? 1 : 0) + (next.s ? 1 : 0);
-          setFlippedJoystick(y, x);
-          const anyKey = next.w || next.a || next.s || next.d;
-          setThumbPos(anyKey ? { x: -x, y } : null);
-          return next;
-        });
-      }
-    };
+    const onKeyDown = (e) => handleKey(e, true);
+    const onKeyUp = (e) => handleKey(e, false);
 
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
@@ -251,8 +282,7 @@ const Joystick = ({
 
       setGamepadState({ steering: lx, gas: rt, brake: lt, lb: !!lb, rb: !!rb });
 
-      const flip = (activeCamera === 'wideRoad') ? -1 : 1;
-      connection?.setJoystick(flip * throttle, -lx);
+      setFlippedJoystick(throttle, -lx);
 
       if (lx !== 0 || rt > 0 || lt > 0) {
         setThumbPos({ x: lx, y: throttle });
@@ -270,7 +300,7 @@ const Joystick = ({
     return () => {
       if (gamepadFrameRef.current) cancelAnimationFrame(gamepadFrameRef.current);
     };
-  }, [connection, activeCamera, gamepadConnected, onGamepadChange, onSwitchCamera]);
+  }, [setFlippedJoystick, gamepadConnected, onGamepadChange, onSwitchCamera]);
 
   // Cleanup mouse listeners on unmount
   useEffect(() => {
@@ -283,7 +313,6 @@ const Joystick = ({
   if (gamepadConnected) {
     return (
       <ControllerOverlay
-        classes={classes}
         gamepadSteering={gamepadState.steering}
         gamepadGas={gamepadState.gas}
         gamepadBrake={gamepadState.brake}
@@ -294,27 +323,9 @@ const Joystick = ({
     );
   }
 
-  if (!isLandscape) {
-    return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8, minHeight: 0, overflow: 'hidden' }}>
-        <TouchJoystick
-          classes={classes}
-          isLandscape={false}
-          thumbPos={thumbPos}
-          joystickAreaRef={joystickAreaRef}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onMouseDown={handleMouseDown}
-        />
-      </div>
-    );
-  }
-
-  return (
+  const joystick = (
     <TouchJoystick
-      classes={classes}
-      isLandscape
+      isLandscape={isLandscape}
       thumbPos={thumbPos}
       joystickAreaRef={joystickAreaRef}
       onTouchStart={handleTouchStart}
@@ -323,6 +334,14 @@ const Joystick = ({
       onMouseDown={handleMouseDown}
     />
   );
-};
 
-export default Joystick;
+  if (!isLandscape) {
+    return (
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8, minHeight: 0, overflow: 'hidden' }}>
+        {joystick}
+      </div>
+    );
+  }
+
+  return joystick;
+}

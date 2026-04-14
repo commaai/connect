@@ -1,20 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import { withStyles, Button } from '@material-ui/core';
+import { Button } from '@material-ui/core';
 
 import Colors from '../../colors';
 import { deviceNamePretty } from '../../utils';
-import { BodyTeleopConnection, checkSslTrust } from '../../utils/bodyteleop';
-
-import styles from './styles';
+import { BodyTeleopConnection } from '../../utils/bodyteleop';
 import Navigation from './Navigation';
 import StatusBar, { useStats, StatsPanel } from './StatusBar';
 import ControlsBar from './ControlsBar';
 import Video from './Video';
 import Joystick from './Joystick';
 
-const BodyTeleop = ({ dongleId, device, directAddress, onClose, classes }) => {
+const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
   const [connectionState, setConnectionState] = useState('disconnected');
   const [statusMessage, setStatusMessage] = useState(null);
   const [connectProgress, setConnectProgress] = useState(0);
@@ -22,7 +20,7 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose, classes }) => {
   const [error, setError] = useState(null);
   const [isLandscape, setIsLandscape] = useState(false);
   const [activeCamera, setActiveCamera] = useState('driver');
-  const [showSslTrust, setShowSslTrust] = useState(false);
+
   const [gamepadConnected, setGamepadConnected] = useState(false);
 
   const videoRef = useRef(null);
@@ -101,23 +99,9 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose, classes }) => {
     const conn = connectionRef.current;
     if (!conn) return;
     setError(null);
-    setShowSslTrust(false);
     setActiveCamera('driver');
     try {
       if (directAddress) {
-        if (window.location.protocol === 'https:' && directAddress.includes('192.168')) {
-          const sslStatus = await checkSslTrust(directAddress);
-          if (sslStatus === 'unreachable') {
-            setError('Could not reach device. Is the ignition on?');
-            setConnectionState('failed');
-            return;
-          }
-          if (sslStatus === 'untrusted') {
-            setShowSslTrust(true);
-            setConnectionState('disconnected');
-            return;
-          }
-        }
         await conn.connectDirect(directAddress);
       } else {
         await conn.connect(dongleId);
@@ -126,18 +110,6 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose, classes }) => {
       setError(err.message);
     }
   }, [dongleId, directAddress]);
-
-  // SSL trust message listener
-  useEffect(() => {
-    const handler = (evt) => {
-      if (evt.data?.type === 'ssl_cert_accepted') {
-        setShowSslTrust(false);
-        handleConnect();
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, [handleConnect]);
 
   // Auto-connect on mount
   useEffect(() => {
@@ -174,29 +146,29 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose, classes }) => {
   const statsState = useStats(connection, connectionState, latencyCallbackRef);
 
   const videoProps = {
-    classes, videoRef, isLandscape, connectionState, error,
-    statusMessage, connectProgress, showSslTrust, directAddress,
-    onConnect: handleConnect, batteryLevel,
+    videoRef, connectionState, error,
+    statusMessage, connectProgress,
+    onConnect: handleConnect,
   };
 
   if (isLandscape) {
     return (
-      <div className={classes.root}>
-        <div className={classes.videoContainer}>
+      <div className="fixed inset-0 z-[1300] bg-[#030404] flex flex-col">
+        <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-[#030404]">
           <Video {...videoProps} />
-          <Navigation classes={classes} onClose={handleClose} deviceName={deviceName} isLandscape />
+          <Navigation onClose={handleClose} deviceName={deviceName} isLandscape />
           {connected && (
             <>
               <StatusBar
-                classes={classes}
                 connectionState={connectionState}
                 batteryLevel={batteryLevel}
                 isLandscape
-                videoRef={videoRef}
                 {...statsState}
               />
+              {statsState.showStats && (
+                <StatsPanel isLandscape {...statsState} />
+              )}
               <Joystick
-                classes={classes}
                 connection={connection}
                 activeCamera={activeCamera}
                 isLandscape
@@ -205,7 +177,6 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose, classes }) => {
                 gamepadConnected={gamepadConnected}
               />
               <ControlsBar
-                classes={classes}
                 connection={connection}
                 activeCamera={activeCamera}
                 onSwitchCamera={switchCamera}
@@ -222,28 +193,26 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose, classes }) => {
 
   // Portrait
   return (
-    <div className={classes.root}>
-      <Navigation classes={classes} onClose={handleClose} deviceName={deviceName} />
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+    <div className="fixed inset-0 z-[1300] bg-[#030404] flex flex-col">
+      <Navigation onClose={handleClose} deviceName={deviceName} />
+      <div className="flex flex-col flex-1 overflow-hidden">
         {connected && (
           <StatusBar
-            classes={classes}
             connectionState={connectionState}
             batteryLevel={batteryLevel}
             videoRef={videoRef}
             {...statsState}
           />
         )}
-        <div style={{ position: 'relative' }}>
+        <div className="relative flex items-center justify-center overflow-hidden bg-[#030404] flex-none">
           <Video {...videoProps} />
           {connected && statsState.showStats && (
-            <StatsPanel classes={classes} {...statsState} />
+            <StatsPanel {...statsState} />
           )}
         </div>
         {connected ? (
           <>
             <ControlsBar
-              classes={classes}
               connection={connection}
               activeCamera={activeCamera}
               onSwitchCamera={switchCamera}
@@ -251,17 +220,16 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose, classes }) => {
               videoRef={videoRef}
             />
             <Joystick
-              classes={classes}
               connection={connection}
               activeCamera={activeCamera}
               onGamepadChange={setGamepadConnected}
               onSwitchCamera={switchCamera}
               gamepadConnected={gamepadConnected}
             />
-            <div style={{ flexShrink: 0, padding: '8px 16px 16px' }}>
+            <div className="shrink-0 px-4 pt-2 pb-4">
               <Button
                 variant="contained"
-                className={classes.portraitButton}
+                className="rounded-3xl py-2.5 px-5 normal-case font-medium"
                 style={{ background: Colors.red400, color: Colors.white, width: '100%' }}
                 onClick={handleDisconnect}
               >
@@ -280,4 +248,4 @@ const stateToProps = Obstruction({
   device: 'device',
 });
 
-export default connect(stateToProps)(withStyles(styles)(BodyTeleop));
+export default connect(stateToProps)(BodyTeleop);
