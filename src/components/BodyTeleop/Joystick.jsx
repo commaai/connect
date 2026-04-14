@@ -11,18 +11,6 @@ const glassThumb = {
   ...glassSurface,
 };
 
-const glassThumbActive = {
-  background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.6), rgba(255,255,255,0.15))',
-  backdropFilter: 'blur(12px)',
-  boxShadow: 'inset 0 1px 4px rgba(255,255,255,0.4), 0 2px 12px rgba(0,0,0,0.4)',
-  border: '1px solid rgba(255,255,255,0.35)',
-};
-
-const controllerThumbStyle = {
-  background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.4), rgba(255,255,255,0.1))',
-  boxShadow: 'inset 0 1px 4px rgba(255,255,255,0.3), 0 2px 8px rgba(0,0,0,0.3)',
-  border: '1px solid rgba(255,255,255,0.25)',
-};
 
 function TriggerGroup({ bumperActive, bumperLabel, bumperKey, cameraActive, triggerValue, triggerColor, triggerKey, directionLabel }) {
   const activeStyle = cameraActive ? { background: 'rgba(59,130,246,0.35)', borderColor: 'rgba(59,130,246,0.5)' } : undefined;
@@ -71,8 +59,8 @@ function ControllerOverlay({ gamepadSteering, gamepadGas, gamepadBrake, gamepadL
           <span className="absolute top-1/2 -translate-y-[55%] text-sm text-white/20 select-none" style={{ left: 6 }}>{'\u25C0'}</span>
           <span className="absolute top-1/2 -translate-y-[55%] text-sm text-white/20 select-none" style={{ right: 6 }}>{'\u25B6'}</span>
           <div
-            className="w-8 h-8 rounded-full absolute transition-[left] duration-[50ms] linear"
-            style={{ ...controllerThumbStyle, left: `calc(${thumbLeft}% - 16px)` }}
+            className="w-8 h-8 rounded-full absolute transition-[left] duration-[50ms] linear bg-[radial-gradient(circle_at_35%_35%,rgba(255,255,255,0.4),rgba(255,255,255,0.1))] shadow-[inset_0_1px_4px_rgba(255,255,255,0.3),0_2px_8px_rgba(0,0,0,0.3)] border border-white/25"
+            style={{ left: `calc(${thumbLeft}% - 16px)` }}
           />
         </div>
       </div>
@@ -86,19 +74,15 @@ function ControllerOverlay({ gamepadSteering, gamepadGas, gamepadBrake, gamepadL
   );
 }
 
-function TouchJoystick({ isLandscape, thumbPos, joystickAreaRef, onTouchStart, onTouchMove, onTouchEnd, onMouseDown }) {
-  const thumbRange = isLandscape ? 40 : 45;
+function TouchJoystick({ className, thumbPos, joystickAreaRef, onTouchStart, onTouchMove, onTouchEnd, onMouseDown }) {
+  const thumbRange = 45;
   const thumbLeft = thumbPos ? `${50 + thumbPos.x * thumbRange}%` : '50%';
   const thumbTop = thumbPos ? `${50 + thumbPos.y * thumbRange}%` : '50%';
-
-  const joystickClass = isLandscape
-    ? 'absolute bottom-4 right-4 z-10 w-[160px] h-[160px] rounded-2xl touch-none md:w-[160px] md:h-[160px]'
-    : 'relative w-auto h-full aspect-square max-w-full touch-none rounded-2xl';
 
   return (
     <div
       ref={joystickAreaRef}
-      className={joystickClass}
+      className={`touch-none rounded-2xl ${className || ''}`}
       style={glassSurface}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -111,15 +95,15 @@ function TouchJoystick({ isLandscape, thumbPos, joystickAreaRef, onTouchStart, o
       <div className="absolute top-1/2 left-2 right-2 h-px -translate-y-1/2 bg-white/10" />
       <div className="absolute left-1/2 top-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/30" />
       <div
-        className="absolute w-[52px] h-[52px] rounded-full -translate-x-1/2 -translate-y-1/2 will-change-[left,top] md:w-[56px] md:h-[56px]"
-        style={{ ...(thumbPos ? glassThumbActive : glassThumb), left: thumbLeft, top: thumbTop }}
+        className={`absolute w-[52px] h-[52px] rounded-full -translate-x-1/2 -translate-y-1/2 will-change-[left,top] md:w-[56px] md:h-[56px] ${thumbPos ? 'bg-[radial-gradient(circle_at_35%_35%,rgba(255,255,255,0.6),rgba(255,255,255,0.15))] backdrop-blur-[12px] shadow-[inset_0_1px_4px_rgba(255,255,255,0.4),0_2px_12px_rgba(0,0,0,0.4)] border border-white/35' : ''}`}
+        style={{ ...(thumbPos ? {} : glassThumb), left: thumbLeft, top: thumbTop }}
       />
     </div>
   );
 }
 
 export default function Joystick({
-  connection, activeCamera, isLandscape,
+  connection, activeCamera, className,
   onGamepadChange, onSwitchCamera, gamepadConnected,
 }) {
   const [thumbPos, setThumbPos] = useState(null);
@@ -323,9 +307,9 @@ export default function Joystick({
     );
   }
 
-  const joystick = (
+  return (
     <TouchJoystick
-      isLandscape={isLandscape}
+      className={className}
       thumbPos={thumbPos}
       joystickAreaRef={joystickAreaRef}
       onTouchStart={handleTouchStart}
@@ -334,14 +318,4 @@ export default function Joystick({
       onMouseDown={handleMouseDown}
     />
   );
-
-  if (!isLandscape) {
-    return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8, minHeight: 0, overflow: 'hidden' }}>
-        {joystick}
-      </div>
-    );
-  }
-
-  return joystick;
 }

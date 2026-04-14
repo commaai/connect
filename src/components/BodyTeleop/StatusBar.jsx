@@ -215,54 +215,40 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
 };
 
 const StatusBar = ({
-  connectionState, batteryLevel, isLandscape, toggleStats,
+  connectionState, batteryLevel, className, toggleStats,
 }) => {
   const dotColor = connectionState === 'connecting' ? '#facc15'
     : connectionState === 'connected' ? '#22c967'
     : connectionState === 'failed' ? '#da2535'
     : '#4b5559';
 
-  const wrapperClass = isLandscape
-    ? 'absolute top-3 right-3 z-10 flex items-center gap-2'
-    : 'flex items-center justify-end p-2 gap-2';
-
-  const statsButton = (
-    <div
-      className={isLandscape
-        ? `flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-[14px] cursor-pointer bg-glass`
-        : `h-7 px-2.5 rounded-[14px] text-[10px] font-bold tracking-[1px] flex items-center justify-center text-white/60 cursor-pointer select-none bg-glass hover:text-white/90 hover:!bg-black/60`}
-      onClick={toggleStats}
-      title="Toggle stats"
-    >
-      {isLandscape ? <span className="text-xs text-white/70">stats</span> : 'STATS'}
-    </div>
-  );
-
-  const statusPill = (
-    <div className="flex items-center justify-center gap-1.5 h-7 px-2.5">
+  return (
+    <div className={className}>
+      <div className="flex items-center justify-center gap-1.5 h-7 px-2.5">
+        <div
+          className="w-2 h-2 rounded-full"
+          style={{
+            backgroundColor: dotColor,
+            animation: connectionState === 'connecting' ? 'pulse 1.5s ease-in-out infinite' : 'none',
+          }}
+        />
+        <span className="text-xs text-white/70">{connectionState}</span>
+      </div>
+      {batteryLevel !== null && (
+        <div className="flex items-center justify-center gap-1.5 h-7 px-2.5">
+          <BatteryFull style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.7)' }} />
+          <span className="text-xs text-white/70">{batteryLevel}%</span>
+        </div>
+      )}
       <div
-        className="w-2 h-2 rounded-full"
-        style={{
-          backgroundColor: dotColor,
-          animation: connectionState === 'connecting' ? 'pulse 1.5s ease-in-out infinite' : 'none',
-        }}
-      />
-      <span className="text-xs text-white/70">{connectionState}</span>
+        className="flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-[14px] cursor-pointer select-none bg-glass text-white/60 hover:text-white/90 hover:!bg-black/60"
+        onClick={toggleStats}
+        title="Toggle stats"
+      >
+        <span className="text-xs">stats</span>
+      </div>
     </div>
   );
-
-  const batteryPill = batteryLevel !== null && (
-    <div className="flex items-center justify-center gap-1.5 h-7 px-2.5">
-      <BatteryFull style={{ fontSize: isLandscape ? 16 : 14, color: 'rgba(255, 255, 255, 0.7)' }} />
-      <span className="text-xs text-white/70">{batteryLevel}%</span>
-    </div>
-  );
-
-  const content = isLandscape
-    ? <>{statsButton}{statusPill}{batteryPill}</>
-    : <div className="flex items-end gap-1.5">{statusPill}{batteryPill}{statsButton}<div style={{ flex: 1 }} /></div>;
-
-  return <div className={wrapperClass}>{content}</div>;
 };
 
 export default StatusBar;
