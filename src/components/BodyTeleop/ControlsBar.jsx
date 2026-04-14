@@ -13,11 +13,11 @@ const CAMERAS = [
   { key: 'driver', label: 'driver', num: '2' },
 ];
 
-const btnBase = `h-8 px-2.5 rounded-lg text-[10px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[32px] cursor-pointer select-none hover:text-white hover:bg-white/20 bg-black/40 backdrop-blur-[10px] border border-white/[0.12] shadow-[0_2px_12px_rgba(0,0,0,0.3)]`;
+const btnBase = `h-8 px-2.5 rounded-lg text-[10px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[32px] cursor-pointer select-none hover:text-white hover:bg-white/20 bg-glass`;
 const btnInactive = `${btnBase} bg-white/10 text-white/60`;
 const btnActive = `${btnBase} bg-white/30 text-white`;
 
-const controlsGroupBase = 'absolute bottom-4 left-4 z-10 flex flex-row items-stretch gap-2.5 rounded-[14px] p-2 bg-black/40 backdrop-blur-[10px] border border-white/[0.12] shadow-[0_2px_12px_rgba(0,0,0,0.3)]';
+const controlsGroupBase = 'absolute bottom-4 left-4 z-10 flex flex-row items-stretch gap-2.5 rounded-[14px] p-2 bg-glass-dark';
 const controlsGroupPortrait = 'relative bottom-auto left-auto transform-none self-stretch rounded-none shrink-0 justify-between gap-1.5';
 
 const ControlsBar = ({

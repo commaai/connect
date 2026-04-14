@@ -80,3 +80,17 @@ a:focus {
 .scrollstyle::-webkit-scrollbar-thumb:active {
   background-color: rgba(255, 255, 255, 0.2);
 }
+
+/*
+  Tailwind utility classes
+*/
+
+@layer utilities {
+  .bg-glass {
+    @apply bg-black/40 backdrop-blur-[10px] border border-white/[0.12] shadow-[0_2px_12px_rgba(0,0,0,0.3)];
+  }
+  .bg-glass-dark {
+    @apply bg-black/70 backdrop-blur-[10px] border border-white/[0.12] shadow-[0_2px_12px_rgba(0,0,0,0.3)];
+  }
+}
+

@@ -226,16 +226,6 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
               onSwitchCamera={switchCamera}
               gamepadConnected={gamepadConnected}
             />
-            <div className="shrink-0 px-4 pt-2 pb-4">
-              <Button
-                variant="contained"
-                className="rounded-3xl py-2.5 px-5 normal-case font-medium"
-                style={{ background: Colors.red400, color: Colors.white, width: '100%' }}
-                onClick={handleDisconnect}
-              >
-                Disconnect
-              </Button>
-            </div>
           </>
         ) : null}
       </div>

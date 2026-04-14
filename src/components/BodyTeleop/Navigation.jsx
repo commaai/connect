@@ -7,12 +7,12 @@ const Navigation = ({ onClose, deviceName, isLandscape }) => {
     return (
       <div className="absolute left-2 top-2 z-20 flex items-center gap-1">
         <IconButton
-          className="text-white p-2 w-8 h-8 bg-black/40 backdrop-blur-lg"
+          className="text-white p-2 w-8 h-8 bg-glass"
           onClick={onClose}
         >
           <ArrowBackBold style={{ fontSize: 18 }} />
         </IconButton>
-        <div className="rounded-[20px] px-3 py-1 text-xs font-medium text-white bg-black/40 backdrop-blur-lg">
+        <div className="rounded-[20px] px-3 py-1 text-xs font-medium text-white bg-glass">
           {deviceName}
         </div>
       </div>

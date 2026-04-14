@@ -19,7 +19,6 @@ const LATENCY_LAYERS = [
   { label: 'Network', key: 'networkMs', color: 'rgba(66,165,245,0.55)', labelColor: 'rgba(66,165,245,0.7)' },
 ];
 
-const glassPanel = 'bg-black/40 backdrop-blur-[10px] border border-white/[0.12] shadow-[0_2px_12px_rgba(0,0,0,0.3)]';
 
 export const useStats = (connection, connectionState, latencyCallbackRef) => {
   const [showStats, setShowStats] = useState(false);
@@ -82,18 +81,10 @@ export const useStats = (connection, connectionState, latencyCallbackRef) => {
         bitrate: bitrate > 1000000
           ? `${(bitrate / 1000000).toFixed(2)} Mbps`
           : `${(bitrate / 1000).toFixed(0)} kbps`,
-        codec: videoStats.decoderImplementation || '?',
-        framesDecoded: videoStats.framesDecoded || 0,
-        framesDropped: videoStats.framesDropped || 0,
-        packetsLost: videoStats.packetsLost || 0,
-        packetsReceived: videoStats.packetsReceived || 0,
         jitter: videoStats.jitter !== undefined ? `${(videoStats.jitter * 1000).toFixed(1)} ms` : '?',
         rtt: candidatePairStats?.currentRoundTripTime !== undefined
           ? `${(candidatePairStats.currentRoundTripTime * 1000).toFixed(0)} ms`
           : '?',
-        nackCount: videoStats.nackCount || 0,
-        pliCount: videoStats.pliCount || 0,
-        firCount: videoStats.firCount || 0,
       });
     } catch {
       /* peer connection may have closed */
@@ -193,7 +184,7 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
       ? 'absolute top-3 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center'
       : 'absolute top-0 right-1 z-10 flex flex-col items-end'}
     >
-      <div className={`mt-0.5 p-[3px_6px] rounded-[5px] min-w-[120px] font-mono ${glassPanel} !bg-black/70 md:p-[10px_16px] md:min-w-[240px] md:rounded-[10px]`}>
+      <div className={`mt-0.5 p-[3px_6px] rounded-[5px] min-w-[120px] font-mono bg-glass-dark md:p-[10px_16px] md:min-w-[240px] md:rounded-[10px]`}>
         {STATS_ROWS.map(({ label, key }) => (
           <div key={key} className="flex justify-between leading-tight md:py-[3px]">
             <span className="text-[8px] text-white/45 mr-1.5 md:text-[13px] md:mr-[18px]">{label}</span>
@@ -224,7 +215,7 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
 };
 
 const StatusBar = ({
-  classes, connectionState, batteryLevel, isLandscape, toggleStats,
+  connectionState, batteryLevel, isLandscape, toggleStats,
 }) => {
   const dotColor = connectionState === 'connecting' ? '#facc15'
     : connectionState === 'connected' ? '#22c967'
@@ -233,13 +224,13 @@ const StatusBar = ({
 
   const wrapperClass = isLandscape
     ? 'absolute top-3 right-3 z-10 flex items-center gap-2'
-    : `${classes.controlsGroup} ${classes.controlsGroupPortrait}`;
+    : 'flex items-center justify-end p-2 gap-2';
 
   const statsButton = (
     <div
       className={isLandscape
-        ? `flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-[14px] cursor-pointer ${glassPanel}`
-        : `h-7 px-2.5 rounded-[14px] text-[10px] font-bold tracking-[1px] flex items-center justify-center text-white/60 cursor-pointer select-none ${glassPanel} hover:text-white/90 hover:!bg-black/60`}
+        ? `flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-[14px] cursor-pointer bg-glass`
+        : `h-7 px-2.5 rounded-[14px] text-[10px] font-bold tracking-[1px] flex items-center justify-center text-white/60 cursor-pointer select-none bg-glass hover:text-white/90 hover:!bg-black/60`}
       onClick={toggleStats}
       title="Toggle stats"
     >
