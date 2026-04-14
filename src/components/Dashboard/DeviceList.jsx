@@ -192,18 +192,16 @@ class DeviceList extends Component {
     return (
       <>
         <VisibilityHandler onVisible={ this.onVisible } minInterval={ 10 } />
-        <div style={{ position: 'relative', height: 'calc(100vh - 64px)' }}>
-          <div
-            className={`scrollstyle ${classes.deviceList}`}
-            style={{ height: '100%' }}
-          >
-            {devices.map(this.renderDevice)}
-            {MyCommaAuth.isAuthenticated() && (
-              <div className={classes.addDeviceContainer}>
-                <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon />
-              </div>
-            )}
-          </div>
+        <div
+          className={`scrollstyle ${classes.deviceList}`}
+          style={{ height: 'calc(100vh - 64px)' }}
+        >
+          {devices.map(this.renderDevice)}
+          {MyCommaAuth.isAuthenticated() && (
+            <div className={classes.addDeviceContainer}>
+              <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon />
+            </div>
+          )}
         </div>
         <DeviceSettingsModal
           isOpen={Boolean(settingsModalDongleId)}

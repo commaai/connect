@@ -44,7 +44,7 @@ const styles = (theme) => ({
   modal: {
     position: 'absolute',
     padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 62,
+    width: theme.spacing.unit * 50,
     maxWidth: '90%',
     left: '50%',
     top: '50%',
@@ -371,7 +371,6 @@ class AddDevice extends Component {
     }
   }
 
-
   onOpenModal() {
     this.setState({ modalOpen: true });
   }
@@ -382,59 +381,6 @@ class AddDevice extends Component {
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
-    const modalContent = (
-      <>
-        <div className={ classes.titleContainer }>
-          <Typography variant="title">Pair device</Typography>
-          <Typography variant="caption">
-            scan QR code
-          </Typography>
-        </div>
-        <Divider className={ classes.divider } />
-        { hasCamera === false
-          ? (
-            <>
-              <Typography style={{ marginBottom: 5 }}>
-                { cameraError || 'Camera not found, please enable camera access.' }
-              </Typography>
-              <br />
-              <Typography>
-                You can also scan the QR code using any other QR code
-                reader application.
-              </Typography>
-            </>
-          )
-          : (
-            <div className={ `${classes.videoContainer} ${videoContainerOverlay}` }>
-              <canvas className={ classes.canvas } ref={ this.onCanvasRef } />
-              <div className={ classes.videoOverlay }>
-                { pairLoading && <CircularProgress size="10vw" style={{ color: '#525E66' }} /> }
-                { pairError && (
-                <>
-                  <Typography>{ pairError }</Typography>
-                  <Button className={ classes.retryButton } onClick={ this.restart }>
-                    try again
-                  </Button>
-                </>
-                ) }
-                { pairDongleId && (
-                <>
-                  <Typography>
-                    {'Successfully paired device '}
-                    <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
-                  </Typography>
-                  <Button className={ classes.retryButton } onClick={ this.modalClose }>
-                    close
-                  </Button>
-                </>
-                ) }
-              </div>
-              <video className={ classes.video } ref={ this.onVideoRef } />
-            </div>
-          )}
-      </>
-    );
-
     return (
       <>
         <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
@@ -443,7 +389,54 @@ class AddDevice extends Component {
         </Button>
         <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
           <Paper className={ classes.modal }>
-            { modalContent }
+            <div className={ classes.titleContainer }>
+              <Typography variant="title">Pair device</Typography>
+              <Typography variant="caption">
+                scan QR code
+              </Typography>
+            </div>
+            <Divider className={ classes.divider } />
+            { hasCamera === false
+              ? (
+                <>
+                  <Typography style={{ marginBottom: 5 }}>
+                    { cameraError || 'Camera not found, please enable camera access.' }
+                  </Typography>
+                  <br />
+                  <Typography>
+                    You can also scan the QR code using any other QR code
+                    reader application.
+                  </Typography>
+                </>
+              )
+              : (
+                <div className={ `${classes.videoContainer} ${videoContainerOverlay}` }>
+                  <canvas className={ classes.canvas } ref={ this.onCanvasRef } />
+                  <div className={ classes.videoOverlay }>
+                    { pairLoading && <CircularProgress size="10vw" style={{ color: '#525E66' }} /> }
+                    { pairError && (
+                    <>
+                      <Typography>{ pairError }</Typography>
+                      <Button className={ classes.retryButton } onClick={ this.restart }>
+                        try again
+                      </Button>
+                    </>
+                    ) }
+                    { pairDongleId && (
+                    <>
+                      <Typography>
+                        {'Successfully paired device '}
+                        <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
+                      </Typography>
+                      <Button className={ classes.retryButton } onClick={ this.modalClose }>
+                        close
+                      </Button>
+                    </>
+                    ) }
+                  </div>
+                  <video className={ classes.video } ref={ this.onVideoRef } />
+                </div>
+              )}
           </Paper>
         </Modal>
       </>
