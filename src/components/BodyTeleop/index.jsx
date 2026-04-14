@@ -7,10 +7,6 @@ import Refresh from '@material-ui/icons/Refresh';
 import InfoOutline from '@material-ui/icons/InfoOutline';
 import BatteryFull from '@material-ui/icons/BatteryFull';
 import PhotoCamera from '@material-ui/icons/PhotoCamera';
-import VolumeUp from '@material-ui/icons/VolumeUp';
-import VolumeOff from '@material-ui/icons/VolumeOff';
-import Mic from '@material-ui/icons/Mic';
-import MicOff from '@material-ui/icons/MicOff';
 
 import Colors from '../../colors';
 import { deviceNamePretty } from '../../utils';
@@ -24,7 +20,7 @@ const QUICK_SOUNDS = [
   { key: 'engage', label: 'Engage' },
   { key: 'disengage', label: 'Disengage' },
   { key: 'prompt', label: 'Prompt' },
-  { key: 'warning', label: 'Warning' },
+  { key: 'warningImmediate', label: 'Warning' },
 ];
 
 const CAMERAS = [
@@ -50,7 +46,7 @@ class BodyTeleop extends Component {
       latency: null,
       latencyHistory: [],  // ring buffer of last 90 samples (~3s at 30fps)
       videoAspectRatio: '16/9',
-      activeCamera: 'wideRoad',
+      activeCamera: 'driver',
       gamepadConnected: false,
       gamepadSteering: 0,
       gamepadGas: 0,
@@ -58,15 +54,9 @@ class BodyTeleop extends Component {
       gamepadLB: false,
       gamepadRB: false,
       showSslTrust: false,
-      streamMuted: true,
-      micMuted: true,
-      micPermission: null,
-      micLevel: 0,
-      remoteAudioLevel: 0,
     };
 
     this.videoRef = React.createRef();
-    this.audioRef = React.createRef();
     this.joystickAreaRef = React.createRef();
     this.latencyCanvasRef = React.createRef();
     this.touchId = null;
@@ -93,18 +83,15 @@ class BodyTeleop extends Component {
         this.setState({ statusMessage, connectProgress: progressMap[statusMessage] || 0 });
       },
       onBatteryLevel: (batteryLevel) => this.setState({ batteryLevel }),
-      onActiveCamera: (camera) => this.setState({ activeCamera: camera }),
+      onConnectionReplaced: (data) => {
+        this.setState({ error: data || 'Connection replaced', connectionState: 'failed' });
+        this.connection.cleanup();
+      },
       onVideoTrack: (_cameraName, stream) => {
         this.streams.camera = stream;
         if (this.videoRef.current) {
           this.videoRef.current.srcObject = stream;
         }
-      },
-      onAudioTrack: (stream) => {
-        if (this.audioRef.current) {
-          this.audioRef.current.srcObject = stream;
-        }
-        this._monitorRemoteAudio(stream);
       },
       onLatencyUpdate: (latency) => {
         // Accumulate frames into a buffer, average every 10 frames (~0.5s at 20fps)
@@ -141,8 +128,6 @@ class BodyTeleop extends Component {
     this.handleClose = this.handleClose.bind(this);
     this.pollGamepad = this.pollGamepad.bind(this);
     this.handlePlaySound = this.handlePlaySound.bind(this);
-    this.toggleStreamMuted = this.toggleStreamMuted.bind(this);
-    this.handleMicToggle = this.handleMicToggle.bind(this);
     this.onVideoResize = this.onVideoResize.bind(this);
 
     this.gamepadAnimFrame = null;
@@ -188,11 +173,6 @@ class BodyTeleop extends Component {
       if (this.videoRef.current) {
         this.videoRef.current.srcObject = this.streams.camera || null;
       }
-      if (this.audioRef.current && this.audioRef.current.srcObject) {
-        // Re-attach audio stream after orientation-triggered DOM swap
-        const src = this.audioRef.current.srcObject;
-        this.audioRef.current.srcObject = src;
-      }
     }
   }
 
@@ -212,14 +192,6 @@ class BodyTeleop extends Component {
     }
     window.removeEventListener('message', this.onSslMessage);
     window.removeEventListener('beforeunload', this.onBeforeUnload);
-    if (this.micStream) {
-      this.micStream.getTracks().forEach((t) => t.stop());
-      this.micStream = null;
-    }
-    if (this._micLevelFrame) cancelAnimationFrame(this._micLevelFrame);
-    if (this._micAudioCtx) { this._micAudioCtx.close(); this._micAudioCtx = null; }
-    if (this._remoteAudioFrame) cancelAnimationFrame(this._remoteAudioFrame);
-    if (this._remoteAudioCtx) { this._remoteAudioCtx.close(); this._remoteAudioCtx = null; }
     this.stopStatsPolling();
     this.connection.disconnect();
   }
@@ -431,7 +403,7 @@ class BodyTeleop extends Component {
 
   async handleConnect() {
     const { dongleId, directAddress } = this.props;
-    this.setState({ error: null, showSslTrust: false });
+    this.setState({ error: null, showSslTrust: false, activeCamera: 'driver' });
     try {
       if (directAddress) {
         if (window.location.protocol === 'https:' && directAddress.includes('192.168')) {
@@ -552,15 +524,7 @@ class BodyTeleop extends Component {
   }
 
   handleDisconnect() {
-    if (this.micStream) {
-      this.micStream.getTracks().forEach((t) => t.stop());
-      this.micStream = null;
-    }
-    if (this._micLevelFrame) cancelAnimationFrame(this._micLevelFrame);
-    if (this._micAudioCtx) { this._micAudioCtx.close(); this._micAudioCtx = null; }
-    if (this._remoteAudioFrame) cancelAnimationFrame(this._remoteAudioFrame);
-    if (this._remoteAudioCtx) { this._remoteAudioCtx.close(); this._remoteAudioCtx = null; }
-    this.setState({ error: null, micMuted: true, micLevel: 0, remoteAudioLevel: 0 });
+    this.setState({ error: null });
     this.connection.disconnect();
   }
 
@@ -569,96 +533,6 @@ class BodyTeleop extends Component {
       console.error('Failed to play body sound:', err);
       this.setState({ error: err.message });
     });
-  }
-
-  toggleStreamMuted() {
-    this.setState((prev) => ({ streamMuted: !prev.streamMuted }));
-  }
-
-  async handleMicToggle() {
-    const { micMuted, micPermission } = this.state;
-
-    // If mic is active, just mute the track
-    if (!micMuted && this.micStream) {
-      this.micStream.getAudioTracks().forEach((t) => { t.enabled = false; });
-      this.setState({ micMuted: true });
-      return;
-    }
-
-    // If we already have a mic stream, unmute it
-    if (micMuted && this.micStream) {
-      this.micStream.getAudioTracks().forEach((t) => { t.enabled = true; });
-      this.setState({ micMuted: false });
-      return;
-    }
-
-    // First time: request mic permission and add track to connection
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      this.micStream = stream;
-      this.connection.addMicTrack(stream.getAudioTracks()[0]);
-      this._monitorMicLevel(stream);
-      this.setState({ micMuted: false, micPermission: 'granted' });
-    } catch (err) {
-      console.error('Mic access failed:', err);
-      const permission = err.name === 'NotAllowedError' ? 'denied' : micPermission;
-      this.setState({ micPermission: permission, error: 'Microphone access denied' });
-    }
-  }
-
-  _monitorMicLevel(stream) {
-    try {
-      const ctx = new AudioContext();
-      const source = ctx.createMediaStreamSource(stream);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 256;
-      source.connect(analyser);
-      const data = new Uint8Array(analyser.frequencyBinCount);
-      this._micAudioCtx = ctx;
-
-      const poll = () => {
-        if (!this.micStream) {
-          ctx.close();
-          return;
-        }
-        analyser.getByteTimeDomainData(data);
-        let sum = 0;
-        for (let i = 0; i < data.length; i++) {
-          const v = (data[i] - 128) / 128;
-          sum += v * v;
-        }
-        const rms = Math.sqrt(sum / data.length);
-        this.setState({ micLevel: Math.min(1, rms * 3) });
-        this._micLevelFrame = requestAnimationFrame(poll);
-      };
-      this._micLevelFrame = requestAnimationFrame(poll);
-    } catch (_) { /* AudioContext not available */ }
-  }
-
-  _monitorRemoteAudio(stream) {
-    try {
-      const ctx = new AudioContext();
-      const source = ctx.createMediaStreamSource(stream);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 256;
-      source.connect(analyser);
-      const data = new Uint8Array(analyser.frequencyBinCount);
-      this._remoteAudioCtx = ctx;
-
-      const poll = () => {
-        if (!this._remoteAudioCtx) return;
-        analyser.getByteTimeDomainData(data);
-        let sum = 0;
-        for (let i = 0; i < data.length; i++) {
-          const v = (data[i] - 128) / 128;
-          sum += v * v;
-        }
-        const rms = Math.sqrt(sum / data.length);
-        this.setState({ remoteAudioLevel: Math.min(1, rms * 3) });
-        this._remoteAudioFrame = requestAnimationFrame(poll);
-      };
-      this._remoteAudioFrame = requestAnimationFrame(poll);
-    } catch (_) { /* AudioContext not available */ }
   }
 
   handleClose() {
@@ -766,10 +640,7 @@ class BodyTeleop extends Component {
 
   renderPortraitStatusBar() {
     const { classes } = this.props;
-    const { connectionState, batteryLevel, streamMuted, micMuted, micPermission } = this.state;
-    const micTitle = micPermission === 'denied'
-      ? 'Microphone permission blocked'
-      : (micMuted ? (micPermission === 'granted' ? 'Unmute mic' : 'Enable mic') : 'Mute mic');
+    const { connectionState, batteryLevel } = this.state;
 
     return (
       <div className={`${classes.controlsGroup} ${classes.controlsGroupPortrait}`}>
@@ -805,22 +676,6 @@ class BodyTeleop extends Component {
           </div>
           <div style={{ flex: 1 }} />
           <div className={classes.controlsButtons}>
-            <div
-              className={`${classes.actionButton} ${classes.actionButtonPortrait} ${streamMuted ? classes.controllerToggleOff : ''}`}
-              onClick={this.toggleStreamMuted}
-              title={streamMuted ? 'Unmute stream audio' : 'Mute stream audio'}
-            >
-              {streamMuted ? <VolumeOff className={classes.actionButtonIconPortrait} /> : <VolumeUp className={classes.actionButtonIconPortrait} />}
-            </div>
-            <div
-              className={`${classes.actionButton} ${classes.actionButtonPortrait} ${micMuted ? classes.controllerToggleOff : ''}`}
-              onClick={this.handleMicToggle}
-              title={micTitle}
-              style={{ display: 'none', pointerEvents: 'none', opacity: 0.5 }}
-              disabled
-            >
-              {micMuted ? <MicOff className={classes.actionButtonIconPortrait} /> : <Mic className={classes.actionButtonIconPortrait} />}
-            </div>
             <div
               className={`${classes.actionButton} ${classes.actionButtonPortrait}`}
               onClick={() => this.handleScreenshot()}
@@ -874,10 +729,7 @@ class BodyTeleop extends Component {
 
   renderControls(portrait) {
     const { classes } = this.props;
-    const { activeCamera, gamepadConnected, streamMuted, micMuted, micPermission } = this.state;
-    const micTitle = micPermission === 'denied'
-      ? 'Microphone permission blocked'
-      : (micMuted ? (micPermission === 'granted' ? 'Unmute mic' : 'Enable mic') : 'Mute mic');
+    const { activeCamera, gamepadConnected } = this.state;
 
     if (portrait) {
       return (
@@ -952,27 +804,6 @@ class BodyTeleop extends Component {
             ))}
           </div>
           <span className={classes.controlsLabelBelow}>Sounds</span>
-        </div>
-        <div className={classes.controlsColumn}>
-          <div className={classes.controlsButtons}>
-            <div
-              className={`${classes.controlButton} ${streamMuted ? classes.controllerToggleOff : ''}`}
-              onClick={this.toggleStreamMuted}
-              title={streamMuted ? 'Unmute stream audio' : 'Mute stream audio'}
-            >
-              {streamMuted ? <VolumeOff className={classes.actionButtonIcon} /> : <VolumeUp className={classes.actionButtonIcon} />}
-            </div>
-            <div
-              className={`${classes.controlButton} ${micMuted ? classes.controllerToggleOff : ''}`}
-              onClick={this.handleMicToggle}
-              title={micTitle}
-              style={{ display: 'none', pointerEvents: 'none', opacity: 0.5 }}
-              disabled
-            >
-              {micMuted ? <MicOff className={classes.actionButtonIcon} /> : <Mic className={classes.actionButtonIcon} />}
-            </div>
-          </div>
-          <span className={classes.controlsLabelBelow}>Sound</span>
         </div>
         <div className={classes.controlsColumn}>
           <div className={classes.controlsButtons}>
@@ -1152,12 +983,9 @@ class BodyTeleop extends Component {
 
   renderStatsOverlay(portrait = false) {
     const { classes } = this.props;
-    const { showStats, stats, latency, micLevel, remoteAudioLevel, micMuted, streamMuted } = this.state;
+    const { showStats, stats, latency } = this.state;
 
     if (!showStats || !stats) return null;
-
-    const micColor = micMuted ? 'rgba(255,255,255,0.15)' : `rgba(76,175,80,${0.5 + micLevel * 0.5})`;
-    const audioColor = streamMuted ? 'rgba(255,255,255,0.15)' : `rgba(66,165,245,${0.5 + remoteAudioLevel * 0.5})`;
 
     const fmtMs = (v) => (v != null ? `${v.toFixed(1)} ms` : '--');
 
@@ -1215,34 +1043,6 @@ class BodyTeleop extends Component {
                 <div className={classes.statsDivider} />
               </>
             )}
-            <div className={classes.audioLevelRow} title={micMuted ? 'Mic muted' : 'Mic level'}>
-              <span className={classes.audioLevelIcon}>
-                {micMuted ? <MicOff style={{ fontSize: 12 }} /> : <Mic style={{ fontSize: 12 }} />}
-              </span>
-              <div className={classes.audioLevelTrack}>
-                <div
-                  className={classes.audioLevelFill}
-                  style={{
-                    width: `${(micMuted ? 0 : micLevel) * 100}%`,
-                    background: micColor,
-                  }}
-                />
-              </div>
-            </div>
-            <div className={classes.audioLevelRow} title={streamMuted ? 'Audio muted' : 'Remote audio level'}>
-              <span className={classes.audioLevelIcon}>
-                {streamMuted ? <VolumeOff style={{ fontSize: 12 }} /> : <VolumeUp style={{ fontSize: 12 }} />}
-              </span>
-              <div className={classes.audioLevelTrack}>
-                <div
-                  className={classes.audioLevelFill}
-                  style={{
-                    width: `${remoteAudioLevel * 100}%`,
-                    background: audioColor,
-                  }}
-                />
-              </div>
-            </div>
           </div>
       </div>
     );
@@ -1295,7 +1095,6 @@ class BodyTeleop extends Component {
       <div className={classes.root}>
         <div className={classes.videoContainer}>
           <video ref={this.videoRef} autoPlay playsInline muted className={classes.video} />
-          <audio ref={this.audioRef} autoPlay muted={this.state.streamMuted} />
 
           {/* Back button + device name */}
           <div style={{ position: 'absolute', left: 8, top: 8, zIndex: 20, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1353,8 +1152,7 @@ class BodyTeleop extends Component {
               muted
               style={{ width: '100%', aspectRatio: this.state.videoAspectRatio, display: 'block' }}
             />
-            <audio ref={this.audioRef} autoPlay muted={this.state.streamMuted} />
-            {connected && this.renderStatsOverlay(true)}
+              {connected && this.renderStatsOverlay(true)}
           </div>
           {connected ?
             <>

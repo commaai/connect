@@ -73,9 +73,7 @@ export class BodyTeleopConnection {
 
       this.videoTrackIndex = 0;
       this.pc.addEventListener('track', (evt) => {
-        if (evt.track.kind === 'audio') {
-          this.callbacks.onAudioTrack?.(new MediaStream([evt.track]));
-        } else if (evt.track.kind === 'video') {
+        if (evt.track.kind === 'video') {
           const cameraName = this.cameraOrder[this.videoTrackIndex] || `camera${this.videoTrackIndex}`;
           this.videoTrackIndex += 1;
 
@@ -158,7 +156,6 @@ export class BodyTeleopConnection {
 
       const transceiver = this.pc.addTransceiver('video', { direction: 'recvonly' });
       transceiver.setCodecPreferences(h264Codecs);
-      this.pc.addTransceiver('audio', { direction: 'sendrecv' });
       this.dc = this.pc.createDataChannel('data', { ordered: true });
       this.dc.onopen = () => {
         this.joystickInterval = setInterval(() => this.sendJoystick(), 50);
@@ -178,7 +175,7 @@ export class BodyTeleopConnection {
         try {
           const msg = JSON.parse(typeof evt.data === 'string' ? evt.data : new TextDecoder().decode(evt.data));
           if (msg.type === 'carState') this.callbacks.onBatteryLevel(Math.round(msg.data.fuelGauge * 100));
-          if (msg.type === 'activeCamera') this.callbacks.onActiveCamera?.(msg.data.camera);
+          if (msg.type === 'connectionReplaced') this.callbacks.onConnectionReplaced?.(msg.data);
           if (msg.type === 'clockSync' && msg.data?.action === 'pong') this._handleClockPong(msg.data);
         } catch {
           /* ignore */
@@ -244,7 +241,6 @@ export class BodyTeleopConnection {
           throw new Error(resp.result.message || resp.result.error);
         }
         answerSdp = resp.result.sdp;
-        if (resp.result.activeCamera) this.callbacks.onActiveCamera?.(resp.result.activeCamera);
       } else if (this.directAddress) {
         let resp;
         try {
@@ -274,7 +270,6 @@ export class BodyTeleopConnection {
           throw new Error('No SDP in device response');
         }
         answerSdp = result.sdp;
-        if (result.activeCamera) this.callbacks.onActiveCamera?.(result.activeCamera);
       }
 
       await this.pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
@@ -291,23 +286,12 @@ export class BodyTeleopConnection {
       throw new Error('Body sound buttons require an active teleop connection.');
     }
 
-    this.dc.send(JSON.stringify({ type: 'playSound', data: { sound } }));
+    this.dc.send(JSON.stringify({ type: 'soundRequest', data: { sound } }));
   }
 
   switchCamera(cameraName) {
     if (this.dc && this.dc.readyState === 'open') {
-      this.dc.send(JSON.stringify({ type: 'switchCamera', data: { camera: cameraName } }));
-    }
-  }
-
-  addMicTrack(track) {
-    if (this.pc) {
-      const audioTransceiver = this.pc.getTransceivers().find((t) => t.receiver.track?.kind === 'audio');
-      if (audioTransceiver) {
-        audioTransceiver.sender.replaceTrack(track);
-      } else {
-        this.pc.addTrack(track);
-      }
+      this.dc.send(JSON.stringify({ type: 'livestreamCameraSwitch', data: { camera: cameraName } }));
     }
   }
 
