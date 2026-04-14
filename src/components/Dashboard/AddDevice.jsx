@@ -3,11 +3,10 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import qs from 'query-string';
 import { BarcodeDetector } from 'barcode-detector/ponyfill';
-import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress, TextField } from '@material-ui/core';
+import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress } from '@material-ui/core';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
 
-import { push } from 'connected-react-router';
 import { devices as Devices } from '@commaai/api';
 import { selectDevice, updateDevice, analyticsEvent } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
@@ -97,77 +96,6 @@ const styles = (theme) => ({
     width: '100%',
     height: '100%',
   },
-  choiceContainer: {
-    display: 'flex',
-    marginTop: 8,
-    '@media (max-width: 500px)': {
-      flexDirection: 'column',
-    },
-  },
-  choiceButton: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'transparent',
-    border: `1px solid ${Colors.white30}`,
-    borderRadius: 12,
-    color: Colors.white,
-    textTransform: 'none',
-    padding: '16px 20px',
-    margin: 6,
-    fontSize: 14,
-    lineHeight: 1.3,
-    minWidth: 0,
-    '&:hover': {
-      backgroundColor: Colors.white10,
-      borderColor: Colors.white50,
-    },
-  },
-  choiceIcon: {
-    fontSize: 24,
-    marginRight: 10,
-    opacity: 0.7,
-  },
-  bodyInputRow: {
-    display: 'flex',
-    gap: 8,
-    marginTop: 10,
-  },
-  bodyInput: {
-    flex: 1,
-    '& input': {
-      padding: '8px 12px',
-      fontSize: 14,
-      color: Colors.white,
-    },
-    '& .MuiOutlinedInput-root': {
-      borderRadius: 8,
-      '& fieldset': {
-        borderColor: Colors.white30,
-      },
-      '&:hover fieldset': {
-        borderColor: Colors.white50,
-      },
-      '&.Mui-focused fieldset': {
-        borderColor: Colors.white,
-      },
-    },
-    '& .MuiInputLabel-root': {
-      color: Colors.white50,
-    },
-  },
-  bodyConnectSubmit: {
-    borderRadius: 8,
-    color: Colors.white,
-    background: Colors.grey500,
-    textTransform: 'none',
-    minWidth: 80,
-    '&:hover': {
-      background: Colors.grey400,
-    },
-  },
 });
 
 class AddDevice extends Component {
@@ -176,7 +104,6 @@ class AddDevice extends Component {
 
     this.state = {
       modalOpen: false,
-      dialogMode: 'choice', // 'choice', 'pair', 'body'
       hasCamera: null,
       cameraError: null,
       pairLoading: false,
@@ -184,7 +111,6 @@ class AddDevice extends Component {
       pairDongleId: null,
       canvasWidth: null,
       canvasHeight: null,
-      bodyIp: '',
     };
 
     this.videoRef = null;
@@ -203,7 +129,6 @@ class AddDevice extends Component {
     this.scanFrame = this.scanFrame.bind(this);
     this.startScanning = this.startScanning.bind(this);
     this.stopScanning = this.stopScanning.bind(this);
-    this.handleBodyConnect = this.handleBodyConnect.bind(this);
   }
 
   async componentDidMount() {
@@ -211,7 +136,7 @@ class AddDevice extends Component {
   }
 
   async componentDidUpdate() {
-    const { modalOpen, dialogMode, pairLoading, pairError, pairDongleId } = this.state;
+    const { modalOpen, pairLoading, pairError, pairDongleId } = this.state;
     let { hasCamera } = this.state;
 
     // Check for camera availability
@@ -227,7 +152,7 @@ class AddDevice extends Component {
     }
 
     // Initialize detector and camera stream
-    if (modalOpen && dialogMode === 'pair' && this.videoRef && !this.detector && hasCamera && !pairDongleId) {
+    if (modalOpen && this.videoRef && !this.detector && hasCamera && !pairDongleId) {
       try {
         this.detector = new BarcodeDetector({ formats: ['qr_code'] });
         this.stream = await navigator.mediaDevices.getUserMedia({
@@ -296,7 +221,7 @@ class AddDevice extends Component {
     }
 
     // Start scanning if conditions are met
-    if (!pairLoading && !pairError && !pairDongleId && this.detector && modalOpen && dialogMode === 'pair' && hasCamera && !this.scanning) {
+    if (!pairLoading && !pairError && !pairDongleId && this.detector && modalOpen && hasCamera && !this.scanning) {
       this.startScanning();
     }
   }
@@ -373,7 +298,7 @@ class AddDevice extends Component {
       return;
     }
 
-    this.setState({ modalOpen: false, dialogMode: 'choice', pairLoading: false, pairError: null, pairDongleId: null, bodyIp: '' });
+    this.setState({ modalOpen: false, pairLoading: false, pairError: null, pairDongleId: null });
     if (pairDongleId) {
       this.props.dispatch(selectDevice(pairDongleId));
     }
@@ -446,34 +371,6 @@ class AddDevice extends Component {
     }
   }
 
-  handleBodyConnect() {
-    const { bodyIp } = this.state;
-    if (!bodyIp) return;
-    const address = bodyIp;
-    AddDevice.saveRecentBodyConnection(address);
-    this.modalClose();
-    this.props.dispatch(push(`?body=${encodeURIComponent(address)}`));
-  }
-
-  static saveRecentBodyConnection(address) {
-    try {
-      const stored = JSON.parse(localStorage.getItem('recentBodyConnections') || '[]');
-      const filtered = stored.filter((a) => a !== address);
-      filtered.unshift(address);
-      localStorage.setItem('recentBodyConnections', JSON.stringify(filtered.slice(0, 10)));
-    } catch {
-      localStorage.setItem('recentBodyConnections', JSON.stringify([address]));
-    }
-  }
-
-  static getRecentBodyConnections() {
-    return JSON.parse(localStorage.getItem('recentBodyConnections') || '[]');
-  }
-
-  static removeRecentBodyConnection(address) {
-    const stored = JSON.parse(localStorage.getItem('recentBodyConnections') || '[]');
-    localStorage.setItem('recentBodyConnections', JSON.stringify(stored.filter((a) => a !== address)));
-  }
 
   onOpenModal() {
     this.setState({ modalOpen: true });
@@ -481,121 +378,62 @@ class AddDevice extends Component {
 
   render() {
     const { classes, buttonText, buttonStyle, buttonIcon } = this.props;
-    const { modalOpen, dialogMode, hasCamera, cameraError, pairLoading, pairDongleId, pairError, bodyIp } = this.state;
+    const { modalOpen, hasCamera, cameraError, pairLoading, pairDongleId, pairError } = this.state;
 
     const videoContainerOverlay = (pairLoading || pairDongleId || pairError) ? classes.videoContainerOverlay : '';
 
-    let modalContent;
-    if (dialogMode === 'choice') {
-      modalContent = (
-        <>
-          <div className={ classes.titleContainer }>
-            <Typography variant="title">Add device</Typography>
-          </div>
-          <Divider className={ classes.divider } />
-          <div className={ classes.choiceContainer }>
-            <Button
-              className={ classes.choiceButton }
-              onClick={ () => this.setState({ dialogMode: 'pair' }) }
-            >
-              <span className={ classes.choiceIcon } role="img" aria-label="pair">&#128279;</span>
-              Pair device
-            </Button>
-            <Button
-              className={ classes.choiceButton }
-              onClick={ () => this.setState({ dialogMode: 'body' }) }
-            >
-              <span className={ classes.choiceIcon } role="img" aria-label="body">&#129302;</span>
-              Connect to a comma body
-            </Button>
-          </div>
-        </>
-      );
-    } else if (dialogMode === 'pair') {
-      modalContent = (
-        <>
-          <div className={ classes.titleContainer }>
-            <Typography variant="title">Pair device</Typography>
-            <Typography variant="caption">
-              scan QR code
-            </Typography>
-          </div>
-          <Divider className={ classes.divider } />
-          { hasCamera === false
-            ? (
-              <>
-                <Typography style={{ marginBottom: 5 }}>
-                  { cameraError || 'Camera not found, please enable camera access.' }
-                </Typography>
-                <br />
-                <Typography>
-                  You can also scan the QR code using any other QR code
-                  reader application.
-                </Typography>
-              </>
-            )
-            : (
-              <div className={ `${classes.videoContainer} ${videoContainerOverlay}` }>
-                <canvas className={ classes.canvas } ref={ this.onCanvasRef } />
-                <div className={ classes.videoOverlay }>
-                  { pairLoading && <CircularProgress size="10vw" style={{ color: '#525E66' }} /> }
-                  { pairError && (
-                  <>
-                    <Typography>{ pairError }</Typography>
-                    <Button className={ classes.retryButton } onClick={ this.restart }>
-                      try again
-                    </Button>
-                  </>
-                  ) }
-                  { pairDongleId && (
-                  <>
-                    <Typography>
-                      {'Successfully paired device '}
-                      <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
-                    </Typography>
-                    <Button className={ classes.retryButton } onClick={ this.modalClose }>
-                      close
-                    </Button>
-                  </>
-                  ) }
-                </div>
-                <video className={ classes.video } ref={ this.onVideoRef } />
-              </div>
-            )}
-        </>
-      );
-    } else if (dialogMode === 'body') {
-      modalContent = (
-        <>
-          <div className={ classes.titleContainer }>
-            <Typography variant="title">Connect to comma body</Typography>
-          </div>
-          <Divider className={ classes.divider } />
-          <Typography variant="caption" style={{ marginBottom: 8, display: 'block' }}>
-            Enter the body IP address
+    const modalContent = (
+      <>
+        <div className={ classes.titleContainer }>
+          <Typography variant="title">Pair device</Typography>
+          <Typography variant="caption">
+            scan QR code
           </Typography>
-          <div className={ classes.bodyInputRow }>
-            <TextField
-              className={ classes.bodyInput }
-              variant="outlined"
-              placeholder="bodyX.3comma.net"
-              label="body url or ip address"
-              value={ bodyIp }
-              onChange={ (e) => this.setState({ bodyIp: e.target.value }) }
-              onKeyDown={ (e) => e.key === 'Enter' && this.handleBodyConnect() }
-            />
-          </div>
-          <Button
-            className={ classes.bodyConnectSubmit }
-            onClick={ this.handleBodyConnect }
-            disabled={ !bodyIp }
-            style={{ marginTop: 10, width: '100%' }}
-          >
-            Connect
-          </Button>
-        </>
-      );
-    }
+        </div>
+        <Divider className={ classes.divider } />
+        { hasCamera === false
+          ? (
+            <>
+              <Typography style={{ marginBottom: 5 }}>
+                { cameraError || 'Camera not found, please enable camera access.' }
+              </Typography>
+              <br />
+              <Typography>
+                You can also scan the QR code using any other QR code
+                reader application.
+              </Typography>
+            </>
+          )
+          : (
+            <div className={ `${classes.videoContainer} ${videoContainerOverlay}` }>
+              <canvas className={ classes.canvas } ref={ this.onCanvasRef } />
+              <div className={ classes.videoOverlay }>
+                { pairLoading && <CircularProgress size="10vw" style={{ color: '#525E66' }} /> }
+                { pairError && (
+                <>
+                  <Typography>{ pairError }</Typography>
+                  <Button className={ classes.retryButton } onClick={ this.restart }>
+                    try again
+                  </Button>
+                </>
+                ) }
+                { pairDongleId && (
+                <>
+                  <Typography>
+                    {'Successfully paired device '}
+                    <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
+                  </Typography>
+                  <Button className={ classes.retryButton } onClick={ this.modalClose }>
+                    close
+                  </Button>
+                </>
+                ) }
+              </div>
+              <video className={ classes.video } ref={ this.onVideoRef } />
+            </div>
+          )}
+      </>
+    );
 
     return (
       <>
