@@ -241,11 +241,11 @@ const StatusBar = ({
         </div>
       )}
       <div
-        className="flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-[14px] cursor-pointer select-none bg-glass text-white/60 hover:text-white/90 hover:!bg-black/60"
+        className="flex items-center text-[9px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none justify-center h-6 px-2.5 rounded-[14px] cursor-pointer select-none bg-glass text-white/60 hover:text-white/90 hover:!bg-black/60"
         onClick={toggleStats}
         title="Toggle stats"
       >
-        <span className="text-xs">stats</span>
+        stats
       </div>
     </div>
   );

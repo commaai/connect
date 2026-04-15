@@ -36,6 +36,7 @@ export class BodyTeleopConnection {
   }
 
   async connect(dongleId) {
+    this.cleanup();
     this.callbacks.onConnectionState('connecting');
     const t0 = performance.now();
     const log = (msg) => console.log(`[bodyteleop +${(performance.now() - t0).toFixed(0)}ms] ${msg}`);
@@ -82,20 +83,8 @@ export class BodyTeleopConnection {
               } catch (e) {
                 log(e)
               }
-            } else if (evt.receiver.createEncodedStreams) {
-              // Legacy Chrome API
-              try {
-                const { readable, writable } = evt.receiver.createEncodedStreams();
-                const self = this;
-                readable.pipeThrough(new TransformStream({
-                  transform(frame, controller) {
-                    self._processEncodedFrame(frame);
-                    controller.enqueue(frame);
-                  },
-                })).pipeTo(writable);
-              } catch (e) {
-                log(e)
-              }
+              
+              
             }
           }
           this.videoStreams[cameraName] = new MediaStream([evt.track]);
@@ -211,6 +200,9 @@ export class BodyTeleopConnection {
           id: 0,
         };
         const resp = await Athena.postJsonRpcPayload(dongleId, payload);
+        if (!resp) {
+          throw new Error('No response from device. It may be offline or unreachable.');
+        }
         this.callbacks.onStatusMessage?.('Device responded');
         if (resp.error || !resp.result) {
           const errMsg = resp.error?.data?.message || resp.error?.message || (typeof resp.error === 'string' ? resp.error : 'No response from device');
@@ -260,18 +252,22 @@ export class BodyTeleopConnection {
     }
   }
 
+  _sendDc(type, data) {
+    if (this.dc?.readyState === 'open') {
+      this.dc.send(JSON.stringify({ type, data }));
+      return true;
+    }
+    return false;
+  }
+
   async playSound(sound) {
-    if (!this.dc || this.dc.readyState !== 'open') {
+    if (!this._sendDc('soundRequest', { sound })) {
       throw new Error('Body sound buttons require an active teleop connection.');
     }
-
-    this.dc.send(JSON.stringify({ type: 'soundRequest', data: { sound } }));
   }
 
   switchCamera(cameraName) {
-    if (this.dc && this.dc.readyState === 'open') {
-      this.dc.send(JSON.stringify({ type: 'livestreamCameraSwitch', data: { camera: cameraName } }));
-    }
+    this._sendDc('livestreamCameraSwitch', { camera: cameraName });
   }
 
   setJoystick(x, y) {
@@ -280,15 +276,11 @@ export class BodyTeleopConnection {
   }
 
   sendJoystick() {
-    if (this.dc && this.dc.readyState === 'open') {
-      this.dc.send(JSON.stringify({ type: 'testJoystick', data: { axes: [this.joystickX, this.joystickY], buttons: [false] } }));
-    }
+    this._sendDc('testJoystick', { axes: [this.joystickX, this.joystickY], buttons: [false] });
   }
 
   setTimingSei(enabled) {
-    if (this.dc && this.dc.readyState === 'open') {
-      this.dc.send(JSON.stringify({ type: 'enableTimingSei', data: { enabled } }));
-    }
+    this._sendDc('enableTimingSei', { enabled });
     if (enabled) {
       if (!this.clockSyncInterval) {
         this._sendClockPing();
@@ -330,12 +322,7 @@ export class BodyTeleopConnection {
   }
 
   _sendClockPing() {
-    if (this.dc && this.dc.readyState === 'open') {
-      this.dc.send(JSON.stringify({
-        type: 'clockSync',
-        data: { action: 'ping', browserSendTime: performance.timeOrigin + performance.now() },
-      }));
-    }
+    this._sendDc('clockSync', { action: 'ping', browserSendTime: performance.timeOrigin + performance.now() });
   }
 
   _handleClockPong(data) {

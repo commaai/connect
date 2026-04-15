@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { IconButton, Typography } from '@material-ui/core';
 
-import Colors from '../../colors';
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
 import { BodyTeleopConnection } from '../../utils/bodyteleop';
@@ -111,10 +110,11 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
     }
   }, [dongleId, directAddress]);
 
-  // Auto-connect on mount
+  // Auto-connect on mount only
   useEffect(() => {
     handleConnect();
-  }, [handleConnect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleDisconnect = useCallback(() => {
     setError(null);

@@ -87,10 +87,13 @@ a:focus {
 
 @layer utilities {
   .bg-glass {
-    @apply bg-black/40 backdrop-blur-[10px] border border-white/[0.12] shadow-[0_2px_12px_rgba(0,0,0,0.3)];
+    @apply bg-black/30 backdrop-blur-[10px] border-[1.5px] border-white/20 shadow-[inset_0_0_20px_rgba(255,255,255,0.1),0_4px_20px_rgba(0,0,0,0.4)];
   }
   .bg-glass-dark {
-    @apply bg-black/70 backdrop-blur-[10px] border border-white/[0.12] shadow-[0_2px_12px_rgba(0,0,0,0.3)];
+    @apply bg-black/40 backdrop-blur-[10px] shadow-[0_2px_12px_rgba(0,0,0,0.3)];
+  }
+  .bg-radial-white {
+    @apply bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.25),rgba(255,255,255,0.05))]
   }
 }
 

@@ -1,16 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-const glassSurface = {
-  background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.25), rgba(255,255,255,0.05))',
-  backdropFilter: 'blur(12px)',
-  border: '1.5px solid rgba(255,255,255,0.2)',
-  boxShadow: 'inset 0 0 20px rgba(255,255,255,0.1), 0 4px 20px rgba(0,0,0,0.4)',
-};
-
-const glassThumb = {
-  ...glassSurface,
-};
-
 
 function TriggerGroup({ bumperActive, bumperLabel, bumperKey, cameraActive, triggerValue, triggerColor, triggerKey, directionLabel }) {
   const activeStyle = cameraActive ? { background: 'rgba(59,130,246,0.35)', borderColor: 'rgba(59,130,246,0.5)' } : undefined;
@@ -28,7 +17,7 @@ function TriggerGroup({ bumperActive, bumperLabel, bumperKey, cameraActive, trig
           {bumperKey}
         </span>
       </div>
-      <div className="w-12 h-20 rounded-[8px_8px_24px_24px] relative overflow-hidden" style={glassSurface}>
+      <div className="w-12 h-20 rounded-[8px_8px_24px_24px] relative overflow-hidden bg-glass bg-radial-white">
         <div className="absolute bottom-0 left-0 right-0 transition-[height] duration-[50ms] linear" style={{ height: `${triggerValue * 100}%`, background: triggerColor }} />
         <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] font-bold tracking-[0.5px] text-white/40 z-[1] pointer-events-none">
           {triggerKey}
@@ -54,12 +43,12 @@ function ControllerOverlay({ gamepadSteering, gamepadGas, gamepadBrake, gamepadL
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
         <span className="text-[10px] font-bold tracking-[0.5px] text-white/50 uppercase whitespace-nowrap">L Stick — Steering</span>
-        <div className="w-[100px] h-[100px] rounded-full relative flex items-center justify-center" style={glassSurface}>
+        <div className="w-[100px] h-[100px] rounded-full relative flex items-center justify-center bg-glass bg-radial-white">
           <div className="absolute top-1/2 left-3 right-3 h-0.5 -translate-y-1/2 bg-white/10 rounded-[1px]" />
           <span className="absolute top-1/2 -translate-y-[55%] text-sm text-white/20 select-none" style={{ left: 6 }}>{'\u25C0'}</span>
           <span className="absolute top-1/2 -translate-y-[55%] text-sm text-white/20 select-none" style={{ right: 6 }}>{'\u25B6'}</span>
           <div
-            className="w-8 h-8 rounded-full absolute transition-[left] duration-[50ms] linear bg-[radial-gradient(circle_at_35%_35%,rgba(255,255,255,0.4),rgba(255,255,255,0.1))] shadow-[inset_0_1px_4px_rgba(255,255,255,0.3),0_2px_8px_rgba(0,0,0,0.3)] border border-white/25"
+            className="w-8 h-8 rounded-full absolute transition-[left] duration-[50ms] linear bg-[radial-gradient(circle_at_35%_35%,rgba(255,255,255,0.4),rgba(255,255,255,0.1))] bg-glass"
             style={{ left: `calc(${thumbLeft}% - 16px)` }}
           />
         </div>
@@ -82,8 +71,7 @@ function TouchJoystick({ className, thumbPos, joystickAreaRef, onTouchStart, onT
   return (
     <div
       ref={joystickAreaRef}
-      className={`touch-none rounded-2xl ${className || ''}`}
-      style={glassSurface}
+      className={`touch-none rounded-2xl bg-glass bg-radial-white ${className || ''}`}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -95,8 +83,9 @@ function TouchJoystick({ className, thumbPos, joystickAreaRef, onTouchStart, onT
       <div className="absolute top-1/2 left-2 right-2 h-px -translate-y-1/2 bg-white/10" />
       <div className="absolute left-1/2 top-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/30" />
       <div
-        className={`absolute w-[52px] h-[52px] rounded-full -translate-x-1/2 -translate-y-1/2 will-change-[left,top] md:w-[56px] md:h-[56px] ${thumbPos ? 'bg-[radial-gradient(circle_at_35%_35%,rgba(255,255,255,0.6),rgba(255,255,255,0.15))] backdrop-blur-[12px] shadow-[inset_0_1px_4px_rgba(255,255,255,0.4),0_2px_12px_rgba(0,0,0,0.4)] border border-white/35' : ''}`}
-        style={{ ...(thumbPos ? {} : glassThumb), left: thumbLeft, top: thumbTop }}
+        className={`absolute w-[52px] h-[52px] rounded-full -translate-x-1/2 -translate-y-1/2 will-change-[left,top] md:w-[56px] md:h-[56px] bg-glass bg-radial-white
+          ${thumbPos ? 'bg-[radial-gradient(circle_at_35%_35%,rgba(255,255,255,0.6),rgba(255,255,255,0.15))]' : 'bg-radial-white'}`}
+        style={{ left: thumbLeft, top: thumbTop }}
       />
     </div>
   );
@@ -232,6 +221,9 @@ export default function Joystick({
   }, [setFlippedJoystick, onSwitchCamera]);
 
   // Gamepad polling
+  const gamepadConnectedRef = useRef(gamepadConnected);
+  useEffect(() => { gamepadConnectedRef.current = gamepadConnected; }, [gamepadConnected]);
+
   useEffect(() => {
     const activated = triggerActivatedRef.current;
 
@@ -241,11 +233,11 @@ export default function Joystick({
       const gp = gamepads[0] || gamepads[1] || gamepads[2] || gamepads[3];
 
       if (!gp) {
-        if (gamepadConnected) onGamepadChange(false);
+        if (gamepadConnectedRef.current) onGamepadChange(false);
         return;
       }
 
-      if (!gamepadConnected) onGamepadChange(true);
+      if (!gamepadConnectedRef.current) onGamepadChange(true);
 
       const DEADZONE = 0.15;
       let lx = gp.axes[0] || 0;
@@ -284,7 +276,7 @@ export default function Joystick({
     return () => {
       if (gamepadFrameRef.current) cancelAnimationFrame(gamepadFrameRef.current);
     };
-  }, [setFlippedJoystick, gamepadConnected, onGamepadChange, onSwitchCamera]);
+  }, [setFlippedJoystick, onGamepadChange, onSwitchCamera]);
 
   // Cleanup mouse listeners on unmount
   useEffect(() => {
