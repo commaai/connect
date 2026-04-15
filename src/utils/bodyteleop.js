@@ -23,8 +23,8 @@ export class BodyTeleopConnection {
     this.callbacks = callbacks;
     this.cameraOrder = ['camera'];
     this.videoTrackIndex = 0;
-    // Clock sync state (NTP-style offset between device and browser wall clocks)
-    this.clockOffset = 0; // deviceClock - browserClock in ms
+    // Clock sync state (offset between device and browser wall clocks)
+    this.clockOffset = 0;
     this.clockSynced = false;
   }
 
@@ -45,7 +45,6 @@ export class BodyTeleopConnection {
       this.pc = new RTCPeerConnection({
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
         iceTransportPolicy: 'all',
-        iceCandidatePoolSize: 1,
         bundlePolicy: 'max-bundle',
         rtcpMuxPolicy: 'require',
         encodedInsertableStreams: true,
@@ -104,26 +103,10 @@ export class BodyTeleopConnection {
 
       const codecs = RTCRtpReceiver.getCapabilities('video')?.codecs || [];
       const h264Codecs = codecs.filter((c) => c.mimeType === 'video/H264');
-
-      // Sort to prefer Constrained Baseline (42e01f) with packetization-mode=1 for lowest decode latency
-      h264Codecs.sort((a, b) => {
-        const aProfile = a.sdpFmtpLine || '';
-        const bProfile = b.sdpFmtpLine || '';
-        const aIsBaseline = aProfile.includes('42e01f') || aProfile.includes('42001f');
-        const bIsBaseline = bProfile.includes('42e01f') || bProfile.includes('42001f');
-        const aIsPMode1 = aProfile.includes('packetization-mode=1');
-        const bIsPMode1 = bProfile.includes('packetization-mode=1');
-        if (aIsBaseline !== bIsBaseline) return aIsBaseline ? -1 : 1;
-        if (aIsPMode1 !== bIsPMode1) return aIsPMode1 ? -1 : 1;
-        return 0;
-      });
-
-      if (h264Codecs.length === 0) {
-        throw new Error('Your browser does not support H.264 video. Please use a different browser.');
-      }
-
       const transceiver = this.pc.addTransceiver('video', { direction: 'recvonly' });
-      transceiver.setCodecPreferences(h264Codecs);
+      if (h264Codecs.length > 0) {
+        transceiver.setCodecPreferences(h264Codecs);
+      }
       this.dc = this.pc.createDataChannel('data', { ordered: true });
       this.dc.onopen = () => {
         this.joystickInterval = setInterval(() => this.sendJoystick(), 50);
@@ -146,7 +129,7 @@ export class BodyTeleopConnection {
           if (msg.type === 'connectionReplaced') this.callbacks.onConnectionReplaced?.(msg.data);
           if (msg.type === 'clockSync' && msg.data?.action === 'pong') this._handleClockPong(msg.data);
         } catch {
-          /* ignore */
+          console.warn('bodyteleop: ignoring malformed data-channel message', e);
         }
       };
 
@@ -181,17 +164,16 @@ export class BodyTeleopConnection {
         new Promise((_, reject) => setTimeout(() => reject(new Error('ICE gathering timed out')), 5000)),
       ]);
 
-      // Brief wait to collect a few more candidates after the first one
+      // avoid rtcp-mux error on firefox
+      // needed until teleoprtc is resolved
       await new Promise((resolve) => setTimeout(resolve, 250));
-      this.callbacks.onStatusMessage?.('Reaching device...');
-
-      // ensure a=rtcp-mux is present on every m= section (Firefox omits it on bundled m-lines)
       const sdp = this.pc.localDescription.sdp.replace(
         /(m=(audio|video) .*\r?\n)([\s\S]*?)(?=m=|$)/g,
         (block) => block.includes('a=rtcp-mux') ? block : block.replace(/(m=(?:audio|video) [^\n]*\n)/, '$1a=rtcp-mux\r\n'),
       );
+      this.callbacks.onStatusMessage?.('Reaching device...');
+      
       let answerSdp;
-
       if (dongleId) {
         const payload = {
           method: 'startJoystickStream',
@@ -200,17 +182,10 @@ export class BodyTeleopConnection {
           id: 0,
         };
         const resp = await Athena.postJsonRpcPayload(dongleId, payload);
-        if (!resp) {
-          throw new Error('No response from device. It may be offline or unreachable.');
+        if (!resp?.result || resp.error) {
+          throw new Error(resp?.error?.message || 'No response from device');
         }
         this.callbacks.onStatusMessage?.('Device responded');
-        if (resp.error || !resp.result) {
-          const errMsg = resp.error?.data?.message || resp.error?.message || (typeof resp.error === 'string' ? resp.error : 'No response from device');
-          throw new Error(errMsg);
-        }
-        if (resp.result.error) {
-          throw new Error(resp.result.message || resp.result.error);
-        }
         answerSdp = resp.result.sdp;
       } else if (this.directAddress) {
         let resp;
@@ -218,28 +193,16 @@ export class BodyTeleopConnection {
           resp = await fetch(`${getDeviceBaseUrl(this.directAddress)}/stream`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sdp, cameras: ['driver'], bridge_services_in: ['testJoystick'], bridge_services_out: ['carState'] }),
+            body: JSON.stringify({ sdp, cameras: ['driver'], bridge_services_in: ["testJoystick", "soundRequest", "livestreamCameraSwitch"], bridge_services_out: ['carState'] }),
           });
         } catch (_) {
           throw new Error('Could not reach device. Is the ignition on?');
         }
-        this.callbacks.onStatusMessage?.('Device responded');
         if (!resp.ok) {
-          let errMsg = `Device returned ${resp.status}`;
-          try {
-            const errorBody = await resp.json();
-            if (errorBody.message) {
-              errMsg = errorBody.message;
-            }
-          } catch (err) {
-            throw new Error(err);
-          }
-          throw new Error(errMsg);
+          throw new Error(`Device experienced an error (${resp.status})`);
         }
+        this.callbacks.onStatusMessage?.('Device responded');
         const result = await resp.json();
-        if (!result.sdp) {
-          throw new Error('No SDP in device response');
-        }
         answerSdp = result.sdp;
       }
 
@@ -327,7 +290,7 @@ export class BodyTeleopConnection {
 
   _handleClockPong(data) {
     const now = performance.timeOrigin + performance.now();
-    // NTP-style offset: how far device clock is ahead of browser clock
+    // how far device clock is ahead of browser clock
     // offset = deviceTime - midpoint(browserSend, browserReceive)
     this.clockOffset = data.deviceTime - (data.browserSendTime + now) / 2;
     this.clockSynced = true;
