@@ -40,7 +40,6 @@ export default defineConfig(({ mode }) => {
       }),
       svgrPlugin(),
       sentryPlugin,
-      // basicSsl(),
     ].filter(Boolean),
     optimizeDeps: {
       esbuildOptions: {
