@@ -64,10 +64,11 @@ class DriveVideo extends Component {
     this.onHlsError = this.onHlsError.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
     this.onVideoResume = this.onVideoResume.bind(this);
-    this.syncVideo = debounce(this.syncVideo.bind(this), 200, true);
+    this.syncVideo = this.syncVideo.bind(this);
     this.firstSeek = true;
 
     this.videoPlayer = React.createRef();
+    this.internalPlayer = null;
 
     this.state = {
       src: null,
@@ -82,7 +83,6 @@ class DriveVideo extends Component {
     }
     this.updateVideoSource({});
     this.syncVideo();
-    this.videoSyncIntv = setInterval(this.syncVideo, 500);
   }
 
   componentDidUpdate(prevProps) {
@@ -91,9 +91,10 @@ class DriveVideo extends Component {
   }
 
   componentWillUnmount() {
-    if (this.videoSyncIntv) {
-      clearTimeout(this.videoSyncIntv);
-      this.videoSyncIntv = null;
+    if (this.internalPlayer) {
+      this.internalPlayer.removeEventListener('timeupdate', this.syncVideo);
+      this.internalPlayer.removeEventListener('seeked', this.syncVideo);
+      this.internalPlayer.removeEventListener('canplay', this.syncVideo);
     }
   }
 
@@ -179,8 +180,12 @@ class DriveVideo extends Component {
   }
 
   onVideoResume() {
+    const { dispatch, isBufferingVideo } = this.props;
     const { videoError } = this.state;
     if (videoError) this.setState({ videoError: null });
+    if (isBufferingVideo) {
+      dispatch(bufferVideo(false));
+    }
   }
 
   updateVideoSource(prevProps) {
@@ -194,6 +199,12 @@ class DriveVideo extends Component {
     }
 
     if (src === '' || !prevProps.currentRoute || prevProps.currentRoute?.fullname !== currentRoute.fullname) {
+      if (this.internalPlayer) {
+        this.internalPlayer.removeEventListener('timeupdate', this.syncVideo);
+        this.internalPlayer.removeEventListener('seeked', this.syncVideo);
+        this.internalPlayer.removeEventListener('canplay', this.syncVideo);
+        this.internalPlayer = null;
+      }
       src = Video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
       this.setState({ src, videoError: null });
       this.syncVideo();
@@ -201,6 +212,7 @@ class DriveVideo extends Component {
   }
 
   syncVideo() {
+    console.log("sync da video")
     const { dispatch, isBufferingVideo, isMuted } = this.props;
     const videoPlayer = this.videoPlayer.current;
     if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
@@ -228,12 +240,12 @@ class DriveVideo extends Component {
     const internalPlayer = videoPlayer.getInternalPlayer();
 
     const { hasLoaded } = getVideoState(videoPlayer);
-    if (isBufferingVideo && internalPlayer.readyState >= 4) {
+    if (internalPlayer.readyState >= 4 && isBufferingVideo) {
       dispatch(bufferVideo(false));
-    } else if (isBufferingVideo || !hasLoaded || internalPlayer.readyState < 2) {
+    } else if (internalPlayer.readyState < 2) {
       if (!isBufferingVideo) {
         dispatch(bufferVideo(true));
-      } 
+      }
       newPlaybackRate = 0; // in some circumstances, iOS won't update readyState unless temporarily paused
     }
 
@@ -275,8 +287,20 @@ class DriveVideo extends Component {
     const { src, videoError } = this.state;
 
     const onPlayerReady = (player) => {
+      const videoElement = player.getInternalPlayer();
+      if (videoElement) {
+        if (this.internalPlayer) {
+          this.internalPlayer.removeEventListener('timeupdate', this.syncVideo);
+          this.internalPlayer.removeEventListener('seeked', this.syncVideo);
+          this.internalPlayer.removeEventListener('canplay', this.syncVideo);
+        }
+        this.internalPlayer = videoElement;
+        videoElement.addEventListener('timeupdate', this.syncVideo);
+        videoElement.addEventListener('seeked', this.syncVideo);
+        videoElement.addEventListener('canplay', this.syncVideo);
+      }
+
       if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
-        const videoElement = player.getInternalPlayer();
         if (videoElement && videoElement.audioTracks && videoElement.audioTracks.length > 0) {
           if (onAudioStatusChange) {
             onAudioStatusChange(true);
