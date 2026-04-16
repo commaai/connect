@@ -76,14 +76,12 @@ const ControlsBar = ({
         <span className="text-[9px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Sounds</span>
       </div>
       <div className="flex flex-col items-center justify-between gap-[5px]">
-        <div className="flex gap-[3px] items-center">
-          <div
-            className={btnInactive}
-            onClick={handleScreenshot}
-            title="Save screenshot"
-          >
-            <PhotoCamera className="text-[18px]" />
-          </div>
+        <div
+          className={btnInactive}
+          onClick={handleScreenshot}
+          title="Save screenshot"
+        >
+          <PhotoCamera className="text-[18px]" />
         </div>
         <span className="text-[9px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Screenshot</span>
       </div>

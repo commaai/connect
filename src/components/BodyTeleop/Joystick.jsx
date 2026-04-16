@@ -105,6 +105,8 @@ export default function Joystick({
   const touchIdRef = useRef(null);
   const mouseDraggingRef = useRef(false);
   const prevBumpersRef = useRef({ lb: false, rb: false });
+  const prevGamepadRef = useRef({ steering: 0, gas: 0, brake: 0, lb: false, rb: false });
+  const prevThumbRef = useRef(null);
   const gamepadFrameRef = useRef(null);
   const triggerActivatedRef = useRef({ lt: false, rt: false });
 
@@ -256,14 +258,27 @@ export default function Joystick({
       const lb = gp.buttons[4] && gp.buttons[4].pressed;
       const rb = gp.buttons[5] && gp.buttons[5].pressed;
 
-      setGamepadState({ steering: lx, gas: rt, brake: lt, lb: !!lb, rb: !!rb });
+      const pg = prevGamepadRef.current;
+      if (lx !== pg.steering || rt !== pg.gas || lt !== pg.brake || !!lb !== pg.lb || !!rb !== pg.rb) {
+        const next = { steering: lx, gas: rt, brake: lt, lb: !!lb, rb: !!rb };
+        prevGamepadRef.current = next;
+        setGamepadState(next);
+      }
 
       setFlippedJoystick(throttle, -lx);
 
       if (lx !== 0 || rt > 0 || lt > 0) {
-        setThumbPos({ x: lx, y: throttle });
+        const pt = prevThumbRef.current;
+        if (!pt || pt.x !== lx || pt.y !== throttle) {
+          const next = { x: lx, y: throttle };
+          prevThumbRef.current = next;
+          setThumbPos(next);
+        }
       } else if (touchIdRef.current === null && !mouseDraggingRef.current) {
-        setThumbPos(null);
+        if (prevThumbRef.current !== null) {
+          prevThumbRef.current = null;
+          setThumbPos(null);
+        }
       }
 
       const prev = prevBumpersRef.current;

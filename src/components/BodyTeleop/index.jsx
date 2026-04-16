@@ -28,7 +28,6 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
   const latencyCallbackRef = useRef(null);
   const switchTimerRef = useRef(null);
 
-  // Create connection once
   useEffect(() => {
     const progressMap = {
       'Preparing connection...': 10,
@@ -78,7 +77,6 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
     };
   }, []);
 
-  // Landscape detection
   useEffect(() => {
     const query = window.matchMedia('(orientation: landscape)');
     setIsLandscape(query.matches);
@@ -89,8 +87,9 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
 
   // Re-attach video stream on orientation change
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.srcObject = streamsRef.current.camera || null;
+    const stream = streamsRef.current.camera || null;
+    if (videoRef.current && videoRef.current.srcObject !== stream) {
+      videoRef.current.srcObject = stream;
     }
   }, [isLandscape]);
 
@@ -110,7 +109,6 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
     }
   }, [dongleId, directAddress]);
 
-  // Auto-connect on mount only
   useEffect(() => {
     handleConnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -198,7 +196,6 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
     );
   }
 
-  // Portrait
   return (
     <div className="fixed inset-0 z-[1300] bg-[#030404] flex flex-col">
       <div className="flex items-center px-3 py-2 bg-[#151819] border-b border-white/10 min-h-[48px] z-10">

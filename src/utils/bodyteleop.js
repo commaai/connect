@@ -1,15 +1,8 @@
 import { athena as Athena } from '@commaai/api';
-import { extractTimingSei } from './latency-transform-worker';
+import { asyncSleep } from '.';
 
-export function getDeviceBaseUrl(address) {
-  const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
-  if (address.includes("192.168")) {
-    const port = protocol === 'https' ? 5002 : 5001;
-    const host = address.includes(':') ? address.split(':')[0] : address;
-    return `${protocol}://${host}:${port}`;
-  }
-  return `${protocol}://${address}`;
-}
+const VIDEO_STREAM_NAME = 'camera';
+const wallMs = () => performance.timeOrigin + performance.now();
 
 export class BodyTeleopConnection {
   constructor(callbacks) {
@@ -19,16 +12,10 @@ export class BodyTeleopConnection {
     this.clockSyncInterval = null;
     this.joystickX = 0;
     this.joystickY = 0;
-    this.videoStreams = {};
     this.callbacks = callbacks;
-    this.cameraOrder = ['camera'];
-    this.videoTrackIndex = 0;
-    // Clock sync state (offset between device and browser wall clocks)
     this.clockOffset = 0;
     this.clockSynced = false;
   }
-
-  
 
   async connectDirect(address) {
     this.directAddress = address;
@@ -50,12 +37,8 @@ export class BodyTeleopConnection {
         encodedInsertableStreams: true,
       });
 
-      this.videoTrackIndex = 0;
       this.pc.addEventListener('track', (evt) => {
         if (evt.track.kind === 'video') {
-          const cameraName = this.cameraOrder[this.videoTrackIndex] || `camera${this.videoTrackIndex}`;
-          this.videoTrackIndex += 1;
-
           if (evt.receiver) {
             // Minimize receiver-side buffering for low-latency playback
             if ('playoutDelayHint' in evt.receiver) {
@@ -86,8 +69,8 @@ export class BodyTeleopConnection {
               
             }
           }
-          this.videoStreams[cameraName] = new MediaStream([evt.track]);
-          this.callbacks.onVideoTrack(cameraName, new MediaStream([evt.track]));
+          const stream = new MediaStream([evt.track]);
+          this.callbacks.onVideoTrack(VIDEO_STREAM_NAME, stream);
         }
       });
 
@@ -113,14 +96,8 @@ export class BodyTeleopConnection {
         this.sendJoystick();
       };
       this.dc.onclose = () => {
-        if (this.joystickInterval) {
-          clearInterval(this.joystickInterval);
-          this.joystickInterval = null;
-        }
-        if (this.clockSyncInterval) {
-          clearInterval(this.clockSyncInterval);
-          this.clockSyncInterval = null;
-        }
+        this._clearJoystickInterval();
+        this._stopClockSync();
       };
       this.dc.onmessage = (evt) => {
         try {
@@ -128,7 +105,7 @@ export class BodyTeleopConnection {
           if (msg.type === 'carState') this.callbacks.onBatteryLevel(Math.round(msg.data.fuelGauge * 100));
           if (msg.type === 'connectionReplaced') this.callbacks.onConnectionReplaced?.(msg.data);
           if (msg.type === 'clockSync' && msg.data?.action === 'pong') this._handleClockPong(msg.data);
-        } catch {
+        } catch (e) {
           console.warn('bodyteleop: ignoring malformed data-channel message', e);
         }
       };
@@ -166,7 +143,7 @@ export class BodyTeleopConnection {
 
       // avoid rtcp-mux error on firefox
       // needed until teleoprtc is resolved
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      await asyncSleep(250);
       const sdp = this.pc.localDescription.sdp.replace(
         /(m=(audio|video) .*\r?\n)([\s\S]*?)(?=m=|$)/g,
         (block) => block.includes('a=rtcp-mux') ? block : block.replace(/(m=(?:audio|video) [^\n]*\n)/, '$1a=rtcp-mux\r\n'),
@@ -190,7 +167,7 @@ export class BodyTeleopConnection {
       } else if (this.directAddress) {
         let resp;
         try {
-          resp = await fetch(`${getDeviceBaseUrl(this.directAddress)}/stream`, {
+          resp = await fetch(`http://${this.directAddress}:5001/stream`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sdp, cameras: ['driver'], bridge_services_in: ["testJoystick", "soundRequest", "livestreamCameraSwitch"], bridge_services_out: ['carState'] }),
@@ -242,6 +219,21 @@ export class BodyTeleopConnection {
     this._sendDc('testJoystick', { axes: [this.joystickX, this.joystickY], buttons: [false] });
   }
 
+  _clearJoystickInterval() {
+    if (this.joystickInterval) {
+      clearInterval(this.joystickInterval);
+      this.joystickInterval = null;
+    }
+  }
+
+  _stopClockSync() {
+    if (this.clockSyncInterval) {
+      clearInterval(this.clockSyncInterval);
+      this.clockSyncInterval = null;
+    }
+    this.clockSynced = false;
+  }
+
   setTimingSei(enabled) {
     this._sendDc('enableTimingSei', { enabled });
     if (enabled) {
@@ -250,21 +242,12 @@ export class BodyTeleopConnection {
         this.clockSyncInterval = setInterval(() => this._sendClockPing(), 2000);
       }
     } else {
-      if (this.clockSyncInterval) {
-        clearInterval(this.clockSyncInterval);
-        this.clockSyncInterval = null;
-      }
-      this.clockSynced = false;
+      this._stopClockSync();
     }
   }
 
-  _processEncodedFrame(frame) {
-    const timing = extractTimingSei(frame.data);
-    if (timing) this._processTimingData(timing);
-  }
-
   _processTimingData(timing) {
-    const browserReceiveMs = performance.timeOrigin + performance.now();
+    const browserReceiveMs = wallMs();
     const latency = {
       captureMs: timing.captureMs,
       encodeMs: timing.encodeMs,
@@ -285,11 +268,11 @@ export class BodyTeleopConnection {
   }
 
   _sendClockPing() {
-    this._sendDc('clockSync', { action: 'ping', browserSendTime: performance.timeOrigin + performance.now() });
+    this._sendDc('clockSync', { action: 'ping', browserSendTime: wallMs() });
   }
 
   _handleClockPong(data) {
-    const now = performance.timeOrigin + performance.now();
+    const now = wallMs();
     // how far device clock is ahead of browser clock
     // offset = deviceTime - midpoint(browserSend, browserReceive)
     this.clockOffset = data.deviceTime - (data.browserSendTime + now) / 2;
@@ -302,15 +285,8 @@ export class BodyTeleopConnection {
   }
 
   cleanup() {
-    if (this.joystickInterval) {
-      clearInterval(this.joystickInterval);
-      this.joystickInterval = null;
-    }
-    if (this.clockSyncInterval) {
-      clearInterval(this.clockSyncInterval);
-      this.clockSyncInterval = null;
-    }
-    this.clockSynced = false;
+    this._clearJoystickInterval();
+    this._stopClockSync();
     if (this.dc) {
       this.dc.close();
       this.dc = null;
@@ -321,12 +297,8 @@ export class BodyTeleopConnection {
           if (t.stop) t.stop();
         });
       }
-      this.pc.getSenders().forEach((s) => {
-        if (s.track) s.track.stop();
-      });
       this.pc.close();
       this.pc = null;
     }
-    this.videoStreams = {};
   }
 }
