@@ -39,7 +39,6 @@ export const useStats = (connection, connectionState, latencyCallbackRef) => {
           const vals = buf.map((l) => l[key]).filter((v) => v != null);
           avg[key] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
         }
-        avg.clockSynced = buf[buf.length - 1].clockSynced;
         setLatency(avg);
         setLatencyHistory((prev) => [...prev, avg].slice(-LATENCY_HISTORY_MAX));
       }
@@ -86,8 +85,8 @@ export const useStats = (connection, connectionState, latencyCallbackRef) => {
           ? `${(candidatePairStats.currentRoundTripTime * 1000).toFixed(0)} ms`
           : '?',
       });
-    } catch {
-      /* peer connection may have closed */
+    } catch (err) {
+      console.warn('pollStats failed:', err);
     }
   }, [connection]);
 

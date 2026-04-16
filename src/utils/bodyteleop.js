@@ -255,7 +255,6 @@ export class BodyTeleopConnection {
       devicePipelineMs: timing.captureMs + timing.encodeMs + timing.sendDelayMs,
       networkMs: null,
       totalMs: null,
-      clockSynced: this.clockSynced,
     };
 
     if (this.clockSynced) {

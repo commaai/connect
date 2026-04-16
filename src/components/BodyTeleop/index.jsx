@@ -11,6 +11,15 @@ import ControlsBar from './ControlsBar';
 import Video from './Video';
 import Joystick from './Joystick';
 
+const progressMap = {
+  'Preparing connection...': 10,
+  'Finding network path...': 20,
+  'Reaching device...': 30,
+  'Device responded': 85,
+  'Establishing connection...': 92,
+  'Receiving video...': 97,
+};
+
 const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
   const [connectionState, setConnectionState] = useState('disconnected');
   const [statusMessage, setStatusMessage] = useState(null);
@@ -29,15 +38,6 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
   const switchTimerRef = useRef(null);
 
   useEffect(() => {
-    const progressMap = {
-      'Preparing connection...': 10,
-      'Finding network path...': 20,
-      'Reaching device...': 30,
-      'Device responded': 85,
-      'Establishing connection...': 92,
-      'Receiving video...': 97,
-    };
-
     const conn = new BodyTeleopConnection({
       onConnectionState: (state) => {
         setConnectionState(state);
@@ -85,8 +85,8 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
     return () => query.removeEventListener('change', handler);
   }, []);
 
-  // Re-attach video stream on orientation change
   useEffect(() => {
+    // Re-attach video stream on orientation change
     const stream = streamsRef.current.camera || null;
     if (videoRef.current && videoRef.current.srcObject !== stream) {
       videoRef.current.srcObject = stream;
@@ -139,9 +139,7 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
   const connected = connectionState === 'connected';
   const deviceName = directAddress || (device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop'));
 
-  // Stats state lives in a hook, shared between StatusBar (toggle) and StatsPanel (display)
   const statsState = useStats(connection, connectionState, latencyCallbackRef);
-
   const videoProps = {
     videoRef, connectionState, error,
     statusMessage, connectProgress,
