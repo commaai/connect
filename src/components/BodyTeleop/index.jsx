@@ -111,7 +111,6 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
 
   useEffect(() => {
     handleConnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDisconnect = useCallback(() => {

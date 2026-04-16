@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 
-function TriggerGroup({ bumperActive, bumperLabel, bumperKey, cameraActive, triggerValue, triggerColor, triggerKey, directionLabel }) {
+const TriggerGroup = ({ bumperActive, bumperLabel, bumperKey, cameraActive, triggerValue, triggerColor, triggerKey, directionLabel }) => {
   const activeStyle = cameraActive ? { background: 'rgba(59,130,246,0.35)', borderColor: 'rgba(59,130,246,0.5)' } : undefined;
 
   return (
@@ -30,7 +30,7 @@ function TriggerGroup({ bumperActive, bumperLabel, bumperKey, cameraActive, trig
   );
 }
 
-function ControllerOverlay({ gamepadSteering, gamepadGas, gamepadBrake, gamepadLB, gamepadRB, activeCamera }) {
+const ControllerOverlay = ({ gamepadSteering, gamepadGas, gamepadBrake, gamepadLB, gamepadRB, activeCamera }) => {
   const thumbLeft = 50 + gamepadSteering * 34;
 
   return (
@@ -63,7 +63,7 @@ function ControllerOverlay({ gamepadSteering, gamepadGas, gamepadBrake, gamepadL
   );
 }
 
-function TouchJoystick({ className, thumbPos, joystickAreaRef, onTouchStart, onTouchMove, onTouchEnd, onMouseDown }) {
+const TouchJoystick = ({ className, thumbPos, joystickAreaRef, onTouchStart, onTouchMove, onTouchEnd, onMouseDown }) => {
   const thumbRange = 45;
   const thumbLeft = thumbPos ? `${50 + thumbPos.x * thumbRange}%` : '50%';
   const thumbTop = thumbPos ? `${50 + thumbPos.y * thumbRange}%` : '50%';
@@ -91,10 +91,10 @@ function TouchJoystick({ className, thumbPos, joystickAreaRef, onTouchStart, onT
   );
 }
 
-export default function Joystick({
+const Joystick = ({
   connection, activeCamera, className,
   onGamepadChange, onSwitchCamera, gamepadConnected,
-}) {
+}) => {
   const [thumbPos, setThumbPos] = useState(null);
   const [, setKeys] = useState({ w: false, a: false, s: false, d: false });
   const [gamepadState, setGamepadState] = useState({
@@ -325,4 +325,6 @@ export default function Joystick({
       onMouseDown={handleMouseDown}
     />
   );
-}
+};
+
+export default Joystick;
