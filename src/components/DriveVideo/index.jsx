@@ -93,6 +93,7 @@ class DriveVideo extends Component {
     if (this.internalPlayer) {
       this.internalPlayer.removeEventListener('timeupdate', this.syncVideo);
       this.internalPlayer.removeEventListener('seeked', this.syncVideo);
+      this.internalPlayer.removeEventListener('canplay', this.syncVideo);
     }
   }
 
@@ -200,6 +201,7 @@ class DriveVideo extends Component {
       if (this.internalPlayer) {
         this.internalPlayer.removeEventListener('timeupdate', this.syncVideo);
         this.internalPlayer.removeEventListener('seeked', this.syncVideo);
+        this.internalPlayer.removeEventListener('canplay', this.syncVideo);
         this.internalPlayer = null;
       }
       src = Video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
@@ -235,7 +237,7 @@ class DriveVideo extends Component {
 
     const internalPlayer = videoPlayer.getInternalPlayer();
 
-    if (internalPlayer.readyState >= 4 && isBufferingVideo) {
+    if (internalPlayer.readyState >= 3 && isBufferingVideo) {
       dispatch(bufferVideo(false));
     } else if (internalPlayer.readyState < 2) {
       if (!isBufferingVideo) {
@@ -287,10 +289,12 @@ class DriveVideo extends Component {
         if (this.internalPlayer) {
           this.internalPlayer.removeEventListener('timeupdate', this.syncVideo);
           this.internalPlayer.removeEventListener('seeked', this.syncVideo);
+          this.internalPlayer.removeEventListener('canplay', this.syncVideo);
         }
         this.internalPlayer = videoElement;
         videoElement.addEventListener('timeupdate', this.syncVideo);
         videoElement.addEventListener('seeked', this.syncVideo);
+        videoElement.addEventListener('canplay', this.syncVideo);
       }
 
       if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
