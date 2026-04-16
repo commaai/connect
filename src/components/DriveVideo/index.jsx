@@ -2,7 +2,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { CircularProgress, Typography } from '@material-ui/core';
-import debounce from 'debounce';
 import Obstruction from 'obstruction';
 import ReactPlayer from 'react-player/file';
 
@@ -236,7 +235,6 @@ class DriveVideo extends Component {
 
     const internalPlayer = videoPlayer.getInternalPlayer();
 
-    const { hasLoaded } = getVideoState(videoPlayer);
     if (internalPlayer.readyState >= 4 && isBufferingVideo) {
       dispatch(bufferVideo(false));
     } else if (internalPlayer.readyState < 2) {
