@@ -160,7 +160,7 @@ export class BodyTeleopConnection {
         };
         const resp = await Athena.postJsonRpcPayload(dongleId, payload);
         if (!resp?.result || resp.error) {
-          throw new Error(resp?.error?.message || 'No response from device');
+          throw new Error('Could not reach device. Is the ignition on?');
         }
         this.callbacks.onStatusMessage?.('Device responded');
         answerSdp = resp.result.sdp;
