@@ -108,6 +108,7 @@ const styles = (theme) => ({
     alignItems: 'center',
     backgroundColor: Colors.orange200,
     '& p': { display: 'inline-block', marginLeft: 10 },
+    '& a': { color: Colors.white },
     color: Colors.white,
   },
 });
@@ -409,7 +410,7 @@ class DeviceSettingsModal extends Component {
             <div className={ classes.unpairWarning }>
               <WarningIcon />
               <Typography>
-                Unpairing will cancel comma prime and
+                Unpairing will also cancel comma prime and
                 {' '}
                 <strong>permanently end your commacare extended warranty</strong>
                 .

@@ -185,26 +185,26 @@ const styles = (theme) => ({
     maxWidth: 450,
   },
   commacareBadge: {
-    marginTop: 20,
+    marginTop: 14,
     display: 'inline-flex',
     alignItems: 'center',
-    padding: '4px 12px 4px 10px',
+    padding: '6px 14px 6px 12px',
     borderRadius: 12,
     border: `1px solid ${Colors.green300}`,
     color: Colors.green300,
-    fontSize: '0.9em',
     fontWeight: 600,
     letterSpacing: '0.04em',
+    lineHeight: 1,
   },
   commacareBadgeIcon: {
-    width: 18,
-    marginRight: 10,
+    width: 24,
+    marginRight: 12,
   },
   commacareWarning: {
     marginTop: 12,
     padding: 10,
-    backgroundColor: 'rgba(255, 170, 0, 0.15)',
-    borderRadius: 8,
+    backgroundColor: Colors.orange200,
+    color: Colors.white,
     '& a': { color: Colors.white },
     '& p': {
       marginTop: 0,
@@ -541,11 +541,9 @@ class PrimeManage extends Component {
             {commacare && (
               <div className={classes.commacareWarning}>
                 <Typography>
-                  <strong>You will lose commacare.</strong>
+                  Cancelling will <strong>permanently end your extended warranty coverage.</strong>
                   {' '}
-                  Cancelling will permanently end your extended warranty coverage.
-                  {' '}
-                  <a className={classes.linkHighlight} href="https://comma.ai/connect#what-is-commacare" target="_blank" rel="noreferrer">What is commacare?</a>
+                  <a href="https://comma.ai/connect#what-is-commacare" target="_blank" rel="noreferrer">What is commacare?</a>
                 </Typography>
               </div>
             )}
