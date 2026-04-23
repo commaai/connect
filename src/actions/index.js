@@ -234,6 +234,16 @@ export function primeFetchSubscription(dongleId, device, profile) {
           console.error(err);
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' });
         });
+        Billing.getCommacare(dongleId).then((resp) => {
+          dispatch({
+            type: Types.ACTION_PRIME_COMMACARE,
+            dongleId,
+            commacare: resp.active,
+          });
+        }).catch((err) => {
+          console.error(err);
+          Sentry.captureException(err, { fingerprint: 'actions_fetch_commacare' });
+        });
       } else {
         Billing.getSubscribeInfo(dongleId).then((subscribeInfo) => {
           dispatch({

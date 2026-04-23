@@ -183,6 +183,17 @@ const styles = (theme) => ({
     justifyContent: 'space-between',
     maxWidth: 450,
   },
+  commacareBadge: {
+    marginTop: 20,
+    display: 'inline-block',
+    padding: '4px 12px',
+    borderRadius: 12,
+    border: `1px solid ${Colors.green300}`,
+    color: Colors.green300,
+    fontSize: '0.9em',
+    fontWeight: 600,
+    letterSpacing: '0.04em',
+  },
 });
 
 class PrimeManage extends Component {
@@ -315,7 +326,7 @@ class PrimeManage extends Component {
   }
 
   render() {
-    const { dispatch, dongleId, subscription, classes, device } = this.props;
+    const { dispatch, dongleId, subscription, classes, device, commacare } = this.props;
     const { windowWidth, stripeStatus } = this.state;
 
     const hasPrimeSub = subscription && subscription.user_id;
@@ -425,11 +436,8 @@ class PrimeManage extends Component {
                     {`$${(subscription.amount / 100).toFixed(2)}`}
                   </Typography>
                 </div>
-                {device?.commacare && (
-                  <div className={classes.overviewBlock}>
-                    <Typography variant="subheading">commacare</Typography>
-                    <Typography className={classes.manageItem}>Active — extended warranty</Typography>
-                  </div>
+                {commacare && (
+                  <div className={classes.commacareBadge}>commacare</div>
                 )}
                 {this.state.error && (
                   <div className={classes.overviewBlockError}>
@@ -539,6 +547,7 @@ const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
   subscription: 'subscription',
+  commacare: 'commacare',
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeManage));

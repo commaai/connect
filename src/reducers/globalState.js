@@ -59,6 +59,7 @@ export default function reducer(_state, action) {
         primeNav: false,
         subscription: null,
         subscribeInfo: null,
+        commacare: null,
         files: null,
         limit: 0,
       };
@@ -278,6 +279,15 @@ export default function reducer(_state, action) {
         ...state,
         subscribeInfo: action.subscribeInfo,
         subscription: null,
+      };
+      break;
+    case Types.ACTION_PRIME_COMMACARE:
+      if (action.dongleId !== state.dongleId) {
+        break;
+      }
+      state = {
+        ...state,
+        commacare: action.commacare,
       };
       break;
     case Types.TIMELINE_POP_SELECTION:
