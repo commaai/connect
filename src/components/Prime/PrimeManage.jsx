@@ -425,6 +425,12 @@ class PrimeManage extends Component {
                     {`$${(subscription.amount / 100).toFixed(2)}`}
                   </Typography>
                 </div>
+                {device?.commacare && (
+                  <div className={classes.overviewBlock}>
+                    <Typography variant="subheading">commacare</Typography>
+                    <Typography className={classes.manageItem}>Active — extended warranty</Typography>
+                  </div>
+                )}
                 {this.state.error && (
                   <div className={classes.overviewBlockError}>
                     <ErrorOutline />
