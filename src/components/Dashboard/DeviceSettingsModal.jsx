@@ -276,7 +276,7 @@ class DeviceSettingsModal extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, commacare } = this.props;
     if (!device) {
       return null;
     }
@@ -397,11 +397,25 @@ class DeviceSettingsModal extends Component {
               <Typography>{ this.state.unpairError }</Typography>
             </div>
             )}
-            { this.props.device.prime
+            { this.props.device.prime && !commacare
             && (
             <div className={ classes.unpairWarning }>
               <WarningIcon />
               <Typography>Unpairing will also cancel the comma prime subscription for this device.</Typography>
+            </div>
+            )}
+            { this.props.device.prime && commacare
+            && (
+            <div className={ classes.unpairWarning }>
+              <WarningIcon />
+              <Typography>
+                Unpairing will cancel comma prime and
+                {' '}
+                <strong>permanently end your commacare extended warranty</strong>
+                .
+                {' '}
+                <a href="https://comma.ai/connect#what-is-commacare" target="_blank" rel="noreferrer">What is commacare?</a>
+              </Typography>
             </div>
             )}
             <div className={ classes.topButtonGroup }>
@@ -443,6 +457,7 @@ const stateToProps = (state, ownProps) => {
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
     subscription: state.subscription,
+    commacare: state.commacare,
     device,
     globalDongleId: state.dongleId,
   };

@@ -194,6 +194,13 @@ const styles = (theme) => ({
     fontWeight: 600,
     letterSpacing: '0.04em',
   },
+  commacareWarning: {
+    marginTop: 12,
+    padding: 10,
+    backgroundColor: 'rgba(255, 170, 0, 0.15)',
+    borderRadius: 8,
+    '& a': { color: Colors.white },
+  },
 });
 
 class PrimeManage extends Component {
@@ -519,6 +526,17 @@ class PrimeManage extends Component {
             <Typography>
               Your subscription will be cancelled immediately and can be resumed at any time.
             </Typography>
+            {commacare && (
+              <div className={classes.commacareWarning}>
+                <Typography>
+                  <strong>You&apos;ll lose commacare.</strong>
+                  {' '}
+                  Cancelling will permanently end your extended warranty coverage.
+                  {' '}
+                  <a className={classes.linkHighlight} href="https://comma.ai/connect#what-is-commacare" target="_blank" rel="noreferrer">What is commacare?</a>
+                </Typography>
+              </div>
+            )}
             <Button
               variant="contained"
               className={`${classes.cancelModalButton} primeModalCancel`}
