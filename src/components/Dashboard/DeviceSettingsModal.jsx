@@ -108,7 +108,7 @@ const styles = (theme) => ({
     alignItems: 'center',
     backgroundColor: Colors.orange200,
     '& p': { display: 'inline-block', marginLeft: 10 },
-    '& a': { color: Colors.white },
+    '& a': { color: Colors.white, fontWeight: 'bold' },
     color: Colors.white,
   },
 });
@@ -414,6 +414,8 @@ class DeviceSettingsModal extends Component {
                 {' '}
                 <strong>permanently end your commacare extended warranty</strong>
                 .
+                {' '}
+                Your standard 1-year warranty still applies for any remaining time.
                 {' '}
                 <a href="https://comma.ai/connect#what-is-commacare" target="_blank" rel="noreferrer">What is commacare?</a>
               </Typography>

@@ -205,7 +205,7 @@ const styles = (theme) => ({
     padding: 10,
     backgroundColor: Colors.orange200,
     color: Colors.white,
-    '& a': { color: Colors.white },
+    '& a': { color: Colors.white, fontWeight: 'bold' },
     '& p': {
       marginTop: 0,
     },
@@ -542,6 +542,8 @@ class PrimeManage extends Component {
               <div className={classes.commacareWarning}>
                 <Typography>
                   Cancelling will <strong>permanently end your extended warranty coverage.</strong>
+                  {' '}
+                  Your standard 1-year warranty still applies for any remaining time.
                   {' '}
                   <a href="https://comma.ai/connect#what-is-commacare" target="_blank" rel="noreferrer">What is commacare?</a>
                 </Typography>
