@@ -60,6 +60,7 @@ export default function reducer(_state, action) {
         subscription: null,
         subscribeInfo: null,
         commacare: null,
+        commacareEligibility: null,
         files: null,
         limit: 0,
       };
@@ -288,6 +289,15 @@ export default function reducer(_state, action) {
       state = {
         ...state,
         commacare: action.commacare,
+      };
+      break;
+    case Types.ACTION_PRIME_COMMACARE_ELIGIBILITY:
+      if (action.dongleId !== state.dongleId) {
+        break;
+      }
+      state = {
+        ...state,
+        commacareEligibility: action.commacareEligibility,
       };
       break;
     case Types.TIMELINE_POP_SELECTION:

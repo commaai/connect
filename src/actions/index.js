@@ -234,15 +234,16 @@ export function primeFetchSubscription(dongleId, device, profile) {
           console.error(err);
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' });
         });
-        Billing.getCommacare(dongleId).then((resp) => {
+        // TODO: revert mock once @commaai/api publishes getCommacare
+        // To force a state, replace MOCK_COMMACARE_ACTIVE with true/false.
+        const MOCK_COMMACARE_ACTIVE = Math.random() < 0.5;
+        Promise.resolve({ active: MOCK_COMMACARE_ACTIVE }).then((resp) => {
+          console.log('[mock commacare]', resp);
           dispatch({
             type: Types.ACTION_PRIME_COMMACARE,
             dongleId,
             commacare: resp.active,
           });
-        }).catch((err) => {
-          console.error(err);
-          Sentry.captureException(err, { fingerprint: 'actions_fetch_commacare' });
         });
       } else {
         Billing.getSubscribeInfo(dongleId).then((subscribeInfo) => {
@@ -254,6 +255,17 @@ export function primeFetchSubscription(dongleId, device, profile) {
         }).catch((err) => {
           console.error(err);
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' });
+        });
+        // TODO: revert mock once @commaai/api publishes getCommacareEligibility
+        // To force a state, replace MOCK_ELIGIBLE with true/false.
+        const MOCK_ELIGIBLE = Math.random() < 0.5;
+        Promise.resolve({ eligible: MOCK_ELIGIBLE }).then((resp) => {
+          console.log('[mock commacare_eligibility]', resp);
+          dispatch({
+            type: Types.ACTION_PRIME_COMMACARE_ELIGIBILITY,
+            dongleId,
+            commacareEligibility: resp,
+          });
         });
       }
     }

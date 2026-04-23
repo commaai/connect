@@ -14,6 +14,7 @@ import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { primeNav, analyticsEvent } from '../../actions';
 import { ErrorOutline, InfoOutline } from '../../icons';
+import CommacareIcon from '../../icons/commacare.png';
 
 const styles = () => ({
   linkHighlight: {
@@ -134,6 +135,32 @@ const styles = () => ({
   },
   learnMore: {
     '& a': { color: 'white' },
+  },
+  commacareBanner: {
+    marginTop: 16,
+    padding: '10px 14px 10px 12px',
+    borderRadius: 12,
+    border: `1px solid ${Colors.green300}`,
+    color: '#fff',
+    '& strong': { color: Colors.green300, letterSpacing: '0.04em' },
+    '& a': { color: '#fff' },
+  },
+  commacareBannerHeader: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  commacareBannerIcon: {
+    width: 24,
+    marginRight: 12,
+  },
+  commacareIneligible: {
+    marginTop: 16,
+    padding: '10px 14px',
+    borderRadius: 12,
+    backgroundColor: Colors.white08,
+    color: Colors.white70,
+    fontSize: '0.9em',
+    '& a': { color: Colors.white70 },
   },
   primeTitle: {
     margin: '0 12px',
@@ -295,7 +322,7 @@ class PrimeCheckout extends Component {
   }
 
   render() {
-    const { classes, dispatch, device, subscribeInfo } = this.props;
+    const { classes, dispatch, device, subscribeInfo, commacareEligibility } = this.props;
     const { windowWidth, windowHeight, error, loadingCheckout, selectedPlan } = this.state;
 
     let chargeText = null;
@@ -372,8 +399,38 @@ class PrimeCheckout extends Component {
               <CheckIcon />
               <p>Simple SSH for developers</p>
             </div>
+            {device?.device_type === 'four' && commacareEligibility?.eligible && (
+              <div className={ classes.checkListItem } style={ paddingStyle }>
+                <CheckIcon />
+                <p>commacare extended warranty</p>
+              </div>
+            )}
           </div>
         </div>
+        {device?.device_type === 'four' && commacareEligibility?.eligible && (
+          <div className={ classes.commacareBanner } style={ blockMargin }>
+            <div className={classes.commacareBannerHeader}>
+              <img src={CommacareIcon} alt="" className={classes.commacareBannerIcon} />
+              <Typography>
+                <strong>INCLUDES COMMACARE</strong>
+              </Typography>
+            </div>
+            <Typography variant="body2">
+              comma four includes a standard 1-year limited warranty. Subscribe within 30 days of delivery to extend your coverage to 2 years.
+              {' '}
+              <a href="https://comma.ai/connect#what-is-commacare" target="_blank" rel="noreferrer">Learn more</a>
+            </Typography>
+          </div>
+        )}
+        {device?.device_type === 'four' && commacareEligibility && !commacareEligibility.eligible && (
+          <div className={ classes.commacareIneligible } style={ blockMargin }>
+            <Typography variant="body2">
+              This device is past the delivery window. commacare extended warranty won&apos;t be included with this subscription.
+              {' '}
+              <a href="https://comma.ai/connect#what-is-commacare" target="_blank" rel="noreferrer">What is commacare?</a>
+            </Typography>
+          </div>
+        )}
         <div className={ classes.planBoxContainer } style={ blockMargin }>
           <div className={ classes.planBox } style={ boxHeight }>
             <div
@@ -455,6 +512,7 @@ const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
   subscribeInfo: 'subscribeInfo',
+  commacareEligibility: 'commacareEligibility',
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeCheckout));

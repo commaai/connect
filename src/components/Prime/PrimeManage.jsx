@@ -14,6 +14,7 @@ import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { ErrorOutline, InfoOutline } from '../../icons';
 import { primeNav, primeGetSubscription, analyticsEvent } from '../../actions';
+import CommacareIcon from '../../icons/commacare.png';
 
 const styles = (theme) => ({
   linkHighlight: {
@@ -185,8 +186,9 @@ const styles = (theme) => ({
   },
   commacareBadge: {
     marginTop: 20,
-    display: 'inline-block',
-    padding: '4px 12px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '4px 12px 4px 10px',
     borderRadius: 12,
     border: `1px solid ${Colors.green300}`,
     color: Colors.green300,
@@ -194,12 +196,19 @@ const styles = (theme) => ({
     fontWeight: 600,
     letterSpacing: '0.04em',
   },
+  commacareBadgeIcon: {
+    width: 18,
+    marginRight: 10,
+  },
   commacareWarning: {
     marginTop: 12,
     padding: 10,
     backgroundColor: 'rgba(255, 170, 0, 0.15)',
     borderRadius: 8,
     '& a': { color: Colors.white },
+    '& p': {
+      marginTop: 0,
+    },
   },
 });
 
@@ -444,7 +453,10 @@ class PrimeManage extends Component {
                   </Typography>
                 </div>
                 {commacare && (
-                  <div className={classes.commacareBadge}>commacare</div>
+                  <div className={classes.commacareBadge}>
+                    <img src={CommacareIcon} alt="" className={classes.commacareBadgeIcon} />
+                    commacare
+                  </div>
                 )}
                 {this.state.error && (
                   <div className={classes.overviewBlockError}>
@@ -529,7 +541,7 @@ class PrimeManage extends Component {
             {commacare && (
               <div className={classes.commacareWarning}>
                 <Typography>
-                  <strong>You&apos;ll lose commacare.</strong>
+                  <strong>You will lose commacare.</strong>
                   {' '}
                   Cancelling will permanently end your extended warranty coverage.
                   {' '}
