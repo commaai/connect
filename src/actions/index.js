@@ -14,6 +14,27 @@ let routesRequestPromise = null;
 const LIMIT_INCREMENT = 5
 const FIVE_YEARS = 1000 * 60 * 60 * 24 * 365 * 5;
 
+// TODO: remove once @commaai/api publishes getCommacare / getCommacareEligibility
+const _mockCommacareCache = {};
+const _mockEligibilityCache = {};
+export function mockCommacare(dongleId) {
+  if (_mockCommacareCache[dongleId] === undefined) {
+    _mockCommacareCache[dongleId] = Math.random() < 0.5;
+  }
+  return _mockCommacareCache[dongleId];
+}
+export function mockEligibility(dongleId) {
+  if (_mockEligibilityCache[dongleId] === undefined) {
+    _mockEligibilityCache[dongleId] = Math.random() < 0.5;
+  }
+  return _mockEligibilityCache[dongleId];
+}
+export function mockCommacareBatch(devices) {
+  const byDongle = {};
+  devices.forEach((d) => { byDongle[d.dongle_id] = mockCommacare(d.dongle_id); });
+  return byDongle;
+}
+
 export function checkRoutesData() {
   return (dispatch, getState) => {
     let state = getState();
@@ -235,10 +256,8 @@ export function primeFetchSubscription(dongleId, device, profile) {
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' });
         });
         // TODO: revert mock once @commaai/api publishes getCommacare
-        // To force a state, replace MOCK_COMMACARE_ACTIVE with true/false.
-        const MOCK_COMMACARE_ACTIVE = Math.random() < 0.5;
-        Promise.resolve({ active: MOCK_COMMACARE_ACTIVE }).then((resp) => {
-          console.log('[mock commacare]', resp);
+        Promise.resolve({ active: mockCommacare(dongleId) }).then((resp) => {
+          console.log('[mock commacare]', dongleId, resp);
           dispatch({
             type: Types.ACTION_PRIME_COMMACARE,
             dongleId,
@@ -257,10 +276,8 @@ export function primeFetchSubscription(dongleId, device, profile) {
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' });
         });
         // TODO: revert mock once @commaai/api publishes getCommacareEligibility
-        // To force a state, replace MOCK_ELIGIBLE with true/false.
-        const MOCK_ELIGIBLE = Math.random() < 0.5;
-        Promise.resolve({ eligible: MOCK_ELIGIBLE }).then((resp) => {
-          console.log('[mock commacare_eligibility]', resp);
+        Promise.resolve({ eligible: mockEligibility(dongleId) }).then((resp) => {
+          console.log('[mock commacare_eligibility]', dongleId, resp);
           dispatch({
             type: Types.ACTION_PRIME_COMMACARE_ELIGIBILITY,
             dongleId,
@@ -438,9 +455,17 @@ export function fetchDeviceNetworkStatus(dongleId) {
 }
 
 export function updateDevices(devices) {
-  return {
-    type: Types.ACTION_UPDATE_DEVICES,
-    devices,
+  return (dispatch) => {
+    dispatch({
+      type: Types.ACTION_UPDATE_DEVICES,
+      devices,
+    });
+    // TODO: revert mock once @commaai/api publishes getCommacare
+    // Real version: Promise.all(devices.map((d) => Billing.getCommacare(d.dongle_id).then((r) => [d.dongle_id, r.active])))
+    dispatch({
+      type: Types.ACTION_PRIME_COMMACARE_BATCH,
+      commacareByDongle: mockCommacareBatch(devices),
+    });
   };
 }
 

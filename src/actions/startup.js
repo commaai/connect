@@ -2,8 +2,8 @@ import * as Sentry from '@sentry/react';
 import { account as Account, devices as Devices } from '@commaai/api';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
-import { ACTION_STARTUP_DATA } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { ACTION_STARTUP_DATA, ACTION_PRIME_COMMACARE_BATCH } from './types';
+import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice, mockCommacareBatch } from '.';
 
 async function initProfile() {
   if (MyCommaAuth.isAuthenticated()) {
@@ -74,6 +74,13 @@ export default function init() {
       type: ACTION_STARTUP_DATA,
       profile,
       devices,
+    });
+
+    // TODO: revert mock once @commaai/api publishes getCommacare
+    // Real version: Promise.all(devices.map((d) => Billing.getCommacare(d.dongle_id).then((r) => [d.dongle_id, r.active])))
+    dispatch({
+      type: ACTION_PRIME_COMMACARE_BATCH,
+      commacareByDongle: mockCommacareBatch(devices),
     });
   };
 }

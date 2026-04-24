@@ -15,6 +15,7 @@ import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import TimeSelect from '../TimeSelect'
+import CommacareBadge from '../CommacareBadge';
 
 const styles = (theme) => ({
   container: {
@@ -39,6 +40,10 @@ const styles = (theme) => ({
   },
   bold: {
     fontWeight: 600,
+  },
+  deviceTitle: {
+    display: 'flex',
+    alignItems: 'center',
   },
   button: {
     backgroundColor: Colors.white,
@@ -353,8 +358,9 @@ class DeviceInfo extends Component {
   }
 
   render() {
-    const { classes, device } = this.props;
+    const { classes, device, commacareByDongle, dongleId } = this.props;
     const { snapshot, deviceStats, windowWidth } = this.state;
+    const commacare = commacareByDongle?.[dongleId];
 
     const containerPadding = windowWidth > 520 ? 36 : 16;
     const largeSnapshotPadding = windowWidth > 1440 ? '12px 0' : 0;
@@ -367,7 +373,10 @@ class DeviceInfo extends Component {
           { windowWidth >= 768
             ? (
               <div className={`${classes.row} ${classes.columnGap}`}>
-                <Typography variant="title">{deviceNamePretty(device)}</Typography>
+                <div className={classes.deviceTitle}>
+                  {commacare && <CommacareBadge style={{ marginRight: 16 }} />}
+                  <Typography variant="title">{deviceNamePretty(device)}</Typography>
+                </div>
                 <div className={classes.deviceStatContainer}>{ this.renderStats() }</div>
                 <div className={`${classes.row} ${classes.buttonRow}`}>{ this.renderButtons() }</div>
               </div>
@@ -375,7 +384,10 @@ class DeviceInfo extends Component {
             : (
               <>
                 <div className={ classes.row }>
-                  <Typography variant="title">{deviceNamePretty(device)}</Typography>
+                  <div className={classes.deviceTitle}>
+                    {commacare && <CommacareBadge style={{ marginRight: 16 }} />}
+                    <Typography variant="title">{deviceNamePretty(device)}</Typography>
+                  </div>
                 </div>
                 <div className={ classes.row }>
                   { this.renderButtons() }
@@ -576,6 +588,7 @@ class DeviceInfo extends Component {
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
+  commacareByDongle: 'commacareByDongle',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));

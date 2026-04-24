@@ -23,6 +23,7 @@ import { primeNav, selectDevice, updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
+import CommacareBadge from '../CommacareBadge';
 
 const styles = (theme) => ({
   modal: {
@@ -277,7 +278,8 @@ class DeviceSettingsModal extends Component {
   }
 
   render() {
-    const { classes, device, commacare } = this.props;
+    const { classes, device, commacareByDongle, dongleId } = this.props;
+    const commacare = commacareByDongle?.[dongleId];
     if (!device) {
       return null;
     }
@@ -312,7 +314,7 @@ class DeviceSettingsModal extends Component {
                 Unpair
               </Button>
             </div>
-            <div>
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
@@ -320,6 +322,7 @@ class DeviceSettingsModal extends Component {
               >
                 Uploads
               </Button>
+              {commacare && <CommacareBadge variant="pill" />}
             </div>
             <div className={classes.form}>
               { this.state.error && (
@@ -460,7 +463,8 @@ const stateToProps = (state, ownProps) => {
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
     subscription: state.subscription,
-    commacare: state.commacare,
+    commacareByDongle: state.commacareByDongle,
+    dongleId: ownProps.dongleId,
     device,
     globalDongleId: state.dongleId,
   };

@@ -14,7 +14,7 @@ import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { ErrorOutline, InfoOutline } from '../../icons';
 import { primeNav, primeGetSubscription, analyticsEvent } from '../../actions';
-import CommacareIcon from '../../icons/commacare.png';
+import CommacareBadge from '../CommacareBadge';
 
 const styles = (theme) => ({
   linkHighlight: {
@@ -184,22 +184,6 @@ const styles = (theme) => ({
     justifyContent: 'space-between',
     maxWidth: 450,
   },
-  commacareBadge: {
-    marginTop: 14,
-    display: 'inline-flex',
-    alignItems: 'center',
-    padding: '6px 14px 6px 12px',
-    borderRadius: 12,
-    border: `1px solid ${Colors.green300}`,
-    color: Colors.green300,
-    fontWeight: 600,
-    letterSpacing: '0.04em',
-    lineHeight: 1,
-  },
-  commacareBadgeIcon: {
-    width: 24,
-    marginRight: 12,
-  },
   commacareWarning: {
     marginTop: 12,
     padding: 10,
@@ -342,8 +326,9 @@ class PrimeManage extends Component {
   }
 
   render() {
-    const { dispatch, dongleId, subscription, classes, device, commacare } = this.props;
+    const { dispatch, dongleId, subscription, classes, device, commacareByDongle } = this.props;
     const { windowWidth, stripeStatus } = this.state;
+    const commacare = commacareByDongle?.[dongleId];
 
     const hasPrimeSub = subscription && subscription.user_id;
 
@@ -452,12 +437,7 @@ class PrimeManage extends Component {
                     {`$${(subscription.amount / 100).toFixed(2)}`}
                   </Typography>
                 </div>
-                {commacare && (
-                  <div className={classes.commacareBadge}>
-                    <img src={CommacareIcon} alt="" className={classes.commacareBadgeIcon} />
-                    commacare
-                  </div>
-                )}
+                {commacare && <CommacareBadge variant="pill" style={{ marginTop: 14 }} />}
                 {this.state.error && (
                   <div className={classes.overviewBlockError}>
                     <ErrorOutline />
@@ -577,7 +557,7 @@ const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
   subscription: 'subscription',
-  commacare: 'commacare',
+  commacareByDongle: 'commacareByDongle',
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeManage));

@@ -16,6 +16,7 @@ import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
 import DeviceSettingsModal from './DeviceSettingsModal';
+import CommacareBadge from '../CommacareBadge';
 
 const styles = (theme) => ({
   deviceList: {
@@ -26,7 +27,7 @@ const styles = (theme) => ({
     alignItems: 'center',
     display: 'flex',
     justifyContent: 'space-between',
-    padding: '16px 32px',
+    padding: '16px 16px 16px 32px',
     '&.isSelected': {
       backgroundColor: 'rgba(0, 0, 0, 0.25)',
     },
@@ -39,6 +40,13 @@ const styles = (theme) => ({
     '&:hover': {
       color: Colors.white,
     },
+  },
+  deviceActions: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  badgeWrap: {
+    marginRight: 8,
   },
   deviceOnline: {
     width: 6,
@@ -123,7 +131,7 @@ class DeviceList extends Component {
   }
 
   renderDevice(device) {
-    const { classes, handleDeviceSelected, profile, selectedDevice } = this.props;
+    const { classes, handleDeviceSelected, profile, selectedDevice, commacareByDongle } = this.props;
     const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
     return (
@@ -144,16 +152,23 @@ class DeviceList extends Component {
             </Typography>
           </div>
         </div>
-        { (device.is_owner || (profile && profile.superuser))
-          && (
-          <IconButton
-            className={classes.settingsButton}
-            aria-label="device settings"
-            onClick={ (ev) => this.handleOpenedSettingsModal(device.dongle_id, ev) }
-          >
-            <SettingsIcon className={classes.settingsButtonIcon} />
-          </IconButton>
+        <div className={classes.deviceActions}>
+          {commacareByDongle?.[device.dongle_id] && (
+            <div className={classes.badgeWrap}>
+              <CommacareBadge />
+            </div>
           )}
+          { (device.is_owner || (profile && profile.superuser))
+            && (
+            <IconButton
+              className={classes.settingsButton}
+              aria-label="device settings"
+              onClick={ (ev) => this.handleOpenedSettingsModal(device.dongle_id, ev) }
+            >
+              <SettingsIcon className={classes.settingsButtonIcon} />
+            </IconButton>
+            )}
+        </div>
       </a>
     );
   }
@@ -217,6 +232,7 @@ const stateToProps = Obstruction({
   devices: 'devices',
   device: 'device',
   profile: 'profile',
+  commacareByDongle: 'commacareByDongle',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));
