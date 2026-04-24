@@ -284,22 +284,14 @@ export default function reducer(_state, action) {
     case Types.ACTION_PRIME_COMMACARE:
       state = {
         ...state,
-        commacareByDongle: { ...(state.commacareByDongle || {}), [action.dongleId]: action.commacare },
+        commacareByDongle: { ...(state.commacareByDongle || {}), [action.dongleId]: action.active },
+        ...(action.dongleId === state.dongleId ? { commacareEligibility: { eligible: action.eligible } } : {}),
       };
       break;
     case Types.ACTION_PRIME_COMMACARE_BATCH:
       state = {
         ...state,
         commacareByDongle: { ...(state.commacareByDongle || {}), ...action.commacareByDongle },
-      };
-      break;
-    case Types.ACTION_PRIME_COMMACARE_ELIGIBILITY:
-      if (action.dongleId !== state.dongleId) {
-        break;
-      }
-      state = {
-        ...state,
-        commacareEligibility: action.commacareEligibility,
       };
       break;
     case Types.TIMELINE_POP_SELECTION:

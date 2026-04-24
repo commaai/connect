@@ -14,24 +14,17 @@ let routesRequestPromise = null;
 const LIMIT_INCREMENT = 5
 const FIVE_YEARS = 1000 * 60 * 60 * 24 * 365 * 5;
 
-// TODO: remove once @commaai/api publishes getCommacare / getCommacareEligibility
+// TODO: remove once @commaai/api publishes getCommacare
 const _mockCommacareCache = {};
-const _mockEligibilityCache = {};
 export function mockCommacare(dongleId) {
   if (_mockCommacareCache[dongleId] === undefined) {
-    _mockCommacareCache[dongleId] = Math.random() < 0.5;
+    _mockCommacareCache[dongleId] = { active: Math.random() < 0.5, eligible: Math.random() < 0.5 };
   }
   return _mockCommacareCache[dongleId];
 }
-export function mockEligibility(dongleId) {
-  if (_mockEligibilityCache[dongleId] === undefined) {
-    _mockEligibilityCache[dongleId] = Math.random() < 0.5;
-  }
-  return _mockEligibilityCache[dongleId];
-}
 export function mockCommacareBatch(devices) {
   const byDongle = {};
-  devices.forEach((d) => { byDongle[d.dongle_id] = mockCommacare(d.dongle_id); });
+  devices.forEach((d) => { byDongle[d.dongle_id] = mockCommacare(d.dongle_id).active; });
   return byDongle;
 }
 
@@ -255,15 +248,6 @@ export function primeFetchSubscription(dongleId, device, profile) {
           console.error(err);
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' });
         });
-        // TODO: revert mock once @commaai/api publishes getCommacare
-        Promise.resolve({ active: mockCommacare(dongleId) }).then((resp) => {
-          console.log('[mock commacare]', dongleId, resp);
-          dispatch({
-            type: Types.ACTION_PRIME_COMMACARE,
-            dongleId,
-            commacare: resp.active,
-          });
-        });
       } else {
         Billing.getSubscribeInfo(dongleId).then((subscribeInfo) => {
           dispatch({
@@ -275,16 +259,17 @@ export function primeFetchSubscription(dongleId, device, profile) {
           console.error(err);
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' });
         });
-        // TODO: revert mock once @commaai/api publishes getCommacareEligibility
-        Promise.resolve({ eligible: mockEligibility(dongleId) }).then((resp) => {
-          console.log('[mock commacare_eligibility]', dongleId, resp);
-          dispatch({
-            type: Types.ACTION_PRIME_COMMACARE_ELIGIBILITY,
-            dongleId,
-            commacareEligibility: resp,
-          });
-        });
       }
+      // TODO: revert mock once @commaai/api publishes getCommacare
+      Promise.resolve(mockCommacare(dongleId)).then((resp) => {
+        console.log('[mock commacare]', dongleId, resp);
+        dispatch({
+          type: Types.ACTION_PRIME_COMMACARE,
+          dongleId,
+          active: resp.active,
+          eligible: resp.eligible,
+        });
+      });
     }
   };
 }
@@ -461,7 +446,7 @@ export function updateDevices(devices) {
       devices,
     });
     // TODO: revert mock once @commaai/api publishes getCommacare
-    // Real version: Promise.all(devices.map((d) => Billing.getCommacare(d.dongle_id).then((r) => [d.dongle_id, r.active])))
+    // Real: Promise.all(devices.map((d) => Billing.getCommacare(d.dongle_id).then((r) => [d.dongle_id, r.active])))
     dispatch({
       type: Types.ACTION_PRIME_COMMACARE_BATCH,
       commacareByDongle: mockCommacareBatch(devices),

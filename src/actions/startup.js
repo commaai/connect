@@ -77,7 +77,7 @@ export default function init() {
     });
 
     // TODO: revert mock once @commaai/api publishes getCommacare
-    // Real version: Promise.all(devices.map((d) => Billing.getCommacare(d.dongle_id).then((r) => [d.dongle_id, r.active])))
+    // Real: Promise.all(devices.map((d) => Billing.getCommacare(d.dongle_id).then((r) => [d.dongle_id, r.active])))
     dispatch({
       type: ACTION_PRIME_COMMACARE_BATCH,
       commacareByDongle: mockCommacareBatch(devices),
