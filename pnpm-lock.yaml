@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@commaai/api':
-        specifier: github:commaai/comma-api#3.2.0
-        version: https://codeload.github.com/commaai/comma-api/tar.gz/6325ff32b82aeddb2edc10a6175717349b7f75c5
+        specifier: github:commaai/comma-api#3.3.0
+        version: https://codeload.github.com/commaai/comma-api/tar.gz/7beaeaaab3e4e646b59a0181a064a0bcccb4cb92
       '@commaai/my-comma-auth':
         specifier: ^1.4.1
         version: 1.4.1
@@ -815,9 +815,9 @@ packages:
   '@bcoe/v8-coverage@0.2.3':
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
 
-  '@commaai/api@https://codeload.github.com/commaai/comma-api/tar.gz/6325ff32b82aeddb2edc10a6175717349b7f75c5':
-    resolution: {tarball: https://codeload.github.com/commaai/comma-api/tar.gz/6325ff32b82aeddb2edc10a6175717349b7f75c5}
-    version: 3.2.0
+  '@commaai/api@https://codeload.github.com/commaai/comma-api/tar.gz/7beaeaaab3e4e646b59a0181a064a0bcccb4cb92':
+    resolution: {tarball: https://codeload.github.com/commaai/comma-api/tar.gz/7beaeaaab3e4e646b59a0181a064a0bcccb4cb92}
+    version: 3.3.0
 
   '@commaai/my-comma-auth@1.4.1':
     resolution: {integrity: sha512-74hSXZ3Bp9YhGkhIK3WvXTDuK+rh9qWoUm2UkiMW4wNmDQWxStNkKU/vLOLsrwLueikDZ1NdY6Diw67DJVXqEA==}
@@ -2752,6 +2752,7 @@ packages:
   glob@11.1.0:
     resolution: {integrity: sha512-vuNwKSaKiqm7g0THUBu2x7ckSs3XJLXE+2ssL7/MfTGPLLcrJQ/4Uq1CjPTtO5cCIiRxqvN6Twy1qOwhL0Xjcw==}
     engines: {node: 20 || >=22}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@7.2.3:
@@ -5948,7 +5949,7 @@ snapshots:
 
   '@bcoe/v8-coverage@0.2.3': {}
 
-  '@commaai/api@https://codeload.github.com/commaai/comma-api/tar.gz/6325ff32b82aeddb2edc10a6175717349b7f75c5':
+  '@commaai/api@https://codeload.github.com/commaai/comma-api/tar.gz/7beaeaaab3e4e646b59a0181a064a0bcccb4cb92':
     dependencies:
       '@babel/runtime': 7.28.4
       query-string: 7.1.3
