@@ -676,7 +676,9 @@ class Navigation extends Component {
           </div>
         </div>
         <Typography className={classes.primeAdDetails}>
-          Put your car on the internet with comma prime
+          {this.props.device?.device_type === 'four' && this.props.commacareEligibility?.eligible
+            ? 'Put your car on the internet with comma prime and extend your 1-year limited warranty with commacare'
+            : 'Put your car on the internet with comma prime'}
         </Typography>
       </div>
     );
@@ -686,6 +688,7 @@ class Navigation extends Component {
 const stateToProps = Obstruction({
   device: 'device',
   dongleId: 'dongleId',
+  commacareEligibility: 'commacareEligibility',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Navigation));
