@@ -3,7 +3,7 @@ import { account as Account, devices as Devices } from '@commaai/api';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { ACTION_STARTUP_DATA, ACTION_PRIME_COMMACARE_BATCH } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice, mockCommacareBatch } from '.';
+import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice, fetchCommacareBatch } from '.';
 
 async function initProfile() {
   if (MyCommaAuth.isAuthenticated()) {
@@ -76,11 +76,14 @@ export default function init() {
       devices,
     });
 
-    // TODO: revert mock once @commaai/api publishes getCommacare
-    // Real: Promise.all(devices.map((d) => Billing.getCommacare(d.dongle_id).then((r) => [d.dongle_id, r.active])))
-    dispatch({
-      type: ACTION_PRIME_COMMACARE_BATCH,
-      commacareByDongle: mockCommacareBatch(devices),
+    fetchCommacareBatch(devices).then((commacareByDongle) => {
+      dispatch({
+        type: ACTION_PRIME_COMMACARE_BATCH,
+        commacareByDongle,
+      });
+    }).catch((err) => {
+      console.error(err);
+      Sentry.captureException(err, { fingerprint: 'startup_fetch_commacare_batch' });
     });
   };
 }

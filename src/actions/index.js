@@ -14,17 +14,22 @@ let routesRequestPromise = null;
 const LIMIT_INCREMENT = 5
 const FIVE_YEARS = 1000 * 60 * 60 * 24 * 365 * 5;
 
-// TODO: remove once @commaai/api publishes getCommacare
+// flip to false once @commaai/api 3.3.0 is installed and backend is deployed
+const COMMACARE_USE_MOCK = false;
 const _mockCommacareCache = {};
-export function mockCommacare(dongleId) {
+function _mockCommacare(dongleId) {
   if (_mockCommacareCache[dongleId] === undefined) {
     _mockCommacareCache[dongleId] = { active: Math.random() < 0.5, eligible: Math.random() < 0.5 };
   }
   return _mockCommacareCache[dongleId];
 }
-export function mockCommacareBatch(devices) {
+export async function fetchCommacare(dongleId) {
+  return COMMACARE_USE_MOCK ? _mockCommacare(dongleId) : Billing.getCommacare(dongleId);
+}
+export async function fetchCommacareBatch(devices) {
+  const results = await Promise.all(devices.map((d) => fetchCommacare(d.dongle_id)));
   const byDongle = {};
-  devices.forEach((d) => { byDongle[d.dongle_id] = mockCommacare(d.dongle_id).active; });
+  devices.forEach((d, i) => { byDongle[d.dongle_id] = results[i].active; });
   return byDongle;
 }
 
@@ -260,15 +265,16 @@ export function primeFetchSubscription(dongleId, device, profile) {
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' });
         });
       }
-      // TODO: revert mock once @commaai/api publishes getCommacare
-      Promise.resolve(mockCommacare(dongleId)).then((resp) => {
-        console.log('[mock commacare]', dongleId, resp);
+      fetchCommacare(dongleId).then((resp) => {
         dispatch({
           type: Types.ACTION_PRIME_COMMACARE,
           dongleId,
           active: resp.active,
           eligible: resp.eligible,
         });
+      }).catch((err) => {
+        console.error(err);
+        Sentry.captureException(err, { fingerprint: 'actions_fetch_commacare' });
       });
     }
   };
@@ -445,11 +451,14 @@ export function updateDevices(devices) {
       type: Types.ACTION_UPDATE_DEVICES,
       devices,
     });
-    // TODO: revert mock once @commaai/api publishes getCommacare
-    // Real: Promise.all(devices.map((d) => Billing.getCommacare(d.dongle_id).then((r) => [d.dongle_id, r.active])))
-    dispatch({
-      type: Types.ACTION_PRIME_COMMACARE_BATCH,
-      commacareByDongle: mockCommacareBatch(devices),
+    fetchCommacareBatch(devices).then((commacareByDongle) => {
+      dispatch({
+        type: Types.ACTION_PRIME_COMMACARE_BATCH,
+        commacareByDongle,
+      });
+    }).catch((err) => {
+      console.error(err);
+      Sentry.captureException(err, { fingerprint: 'actions_fetch_commacare_batch' });
     });
   };
 }
