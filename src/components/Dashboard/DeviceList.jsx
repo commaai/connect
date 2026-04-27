@@ -16,7 +16,6 @@ import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
 import DeviceSettingsModal from './DeviceSettingsModal';
-import CommacareBadge from '../CommacareBadge';
 
 const styles = (theme) => ({
   deviceList: {
@@ -44,9 +43,6 @@ const styles = (theme) => ({
   deviceActions: {
     display: 'flex',
     alignItems: 'center',
-  },
-  badgeWrap: {
-    marginRight: 8,
   },
   deviceOnline: {
     width: 6,
@@ -153,11 +149,6 @@ class DeviceList extends Component {
           </div>
         </div>
         <div className={classes.deviceActions}>
-          {device.commacare && (
-            <div className={classes.badgeWrap}>
-              <CommacareBadge />
-            </div>
-          )}
           { (device.is_owner || (profile && profile.superuser))
             && (
             <IconButton
