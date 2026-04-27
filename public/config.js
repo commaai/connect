@@ -1,4 +1,4 @@
-window.COMMA_URL_ROOT = 'https://api.comma.ai/';
+window.COMMA_URL_ROOT = 'https://api.aks.comma.ai/';  // staging
 window.ATHENA_URL_ROOT = 'https://athena.comma.ai/';
 window.BILLING_URL_ROOT = 'https://billing.aks.comma.ai/';  // staging
 window.USERADMIN_URL_ROOT = 'https://useradmin.comma.ai/';

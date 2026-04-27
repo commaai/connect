@@ -2,8 +2,8 @@ import * as Sentry from '@sentry/react';
 import { account as Account, devices as Devices } from '@commaai/api';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
-import { ACTION_STARTUP_DATA, ACTION_PRIME_COMMACARE_BATCH } from './types';
-import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice, fetchCommacareBatch } from '.';
+import { ACTION_STARTUP_DATA } from './types';
+import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
 
 async function initProfile() {
   if (MyCommaAuth.isAuthenticated()) {
@@ -74,16 +74,6 @@ export default function init() {
       type: ACTION_STARTUP_DATA,
       profile,
       devices,
-    });
-
-    fetchCommacareBatch(devices).then((commacareByDongle) => {
-      dispatch({
-        type: ACTION_PRIME_COMMACARE_BATCH,
-        commacareByDongle,
-      });
-    }).catch((err) => {
-      console.error(err);
-      Sentry.captureException(err, { fingerprint: 'startup_fetch_commacare_batch' });
     });
   };
 }

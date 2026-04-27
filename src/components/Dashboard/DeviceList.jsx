@@ -131,7 +131,7 @@ class DeviceList extends Component {
   }
 
   renderDevice(device) {
-    const { classes, handleDeviceSelected, profile, selectedDevice, commacareByDongle } = this.props;
+    const { classes, handleDeviceSelected, profile, selectedDevice } = this.props;
     const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
     const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
     return (
@@ -153,7 +153,7 @@ class DeviceList extends Component {
           </div>
         </div>
         <div className={classes.deviceActions}>
-          {commacareByDongle?.[device.dongle_id] && (
+          {device.commacare && (
             <div className={classes.badgeWrap}>
               <CommacareBadge />
             </div>
@@ -232,7 +232,6 @@ const stateToProps = Obstruction({
   devices: 'devices',
   device: 'device',
   profile: 'profile',
-  commacareByDongle: 'commacareByDongle',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceList));

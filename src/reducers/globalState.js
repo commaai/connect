@@ -59,7 +59,6 @@ export default function reducer(_state, action) {
         primeNav: false,
         subscription: null,
         subscribeInfo: null,
-        commacareEligibility: null,
         files: null,
         limit: 0,
       };
@@ -279,19 +278,6 @@ export default function reducer(_state, action) {
         ...state,
         subscribeInfo: action.subscribeInfo,
         subscription: null,
-      };
-      break;
-    case Types.ACTION_PRIME_COMMACARE:
-      state = {
-        ...state,
-        commacareByDongle: { ...(state.commacareByDongle || {}), [action.dongleId]: action.active },
-        ...(action.dongleId === state.dongleId ? { commacareEligibility: { eligible: action.eligible } } : {}),
-      };
-      break;
-    case Types.ACTION_PRIME_COMMACARE_BATCH:
-      state = {
-        ...state,
-        commacareByDongle: { ...(state.commacareByDongle || {}), ...action.commacareByDongle },
       };
       break;
     case Types.TIMELINE_POP_SELECTION:

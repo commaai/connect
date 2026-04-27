@@ -14,25 +14,6 @@ let routesRequestPromise = null;
 const LIMIT_INCREMENT = 5
 const FIVE_YEARS = 1000 * 60 * 60 * 24 * 365 * 5;
 
-// flip to false once @commaai/api 3.3.0 is installed and backend is deployed
-const COMMACARE_USE_MOCK = false;
-const _mockCommacareCache = {};
-function _mockCommacare(dongleId) {
-  if (_mockCommacareCache[dongleId] === undefined) {
-    _mockCommacareCache[dongleId] = { active: Math.random() < 0.5, eligible: Math.random() < 0.5 };
-  }
-  return _mockCommacareCache[dongleId];
-}
-export async function fetchCommacare(dongleId) {
-  return COMMACARE_USE_MOCK ? _mockCommacare(dongleId) : Billing.getCommacare(dongleId);
-}
-export async function fetchCommacareBatch(devices) {
-  const results = await Promise.all(devices.map((d) => fetchCommacare(d.dongle_id)));
-  const byDongle = {};
-  devices.forEach((d, i) => { byDongle[d.dongle_id] = results[i].active; });
-  return byDongle;
-}
-
 export function checkRoutesData() {
   return (dispatch, getState) => {
     let state = getState();
@@ -265,17 +246,6 @@ export function primeFetchSubscription(dongleId, device, profile) {
           Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' });
         });
       }
-      fetchCommacare(dongleId).then((resp) => {
-        dispatch({
-          type: Types.ACTION_PRIME_COMMACARE,
-          dongleId,
-          active: resp.active,
-          eligible: resp.eligible,
-        });
-      }).catch((err) => {
-        console.error(err);
-        Sentry.captureException(err, { fingerprint: 'actions_fetch_commacare' });
-      });
     }
   };
 }
@@ -446,20 +416,9 @@ export function fetchDeviceNetworkStatus(dongleId) {
 }
 
 export function updateDevices(devices) {
-  return (dispatch) => {
-    dispatch({
-      type: Types.ACTION_UPDATE_DEVICES,
-      devices,
-    });
-    fetchCommacareBatch(devices).then((commacareByDongle) => {
-      dispatch({
-        type: Types.ACTION_PRIME_COMMACARE_BATCH,
-        commacareByDongle,
-      });
-    }).catch((err) => {
-      console.error(err);
-      Sentry.captureException(err, { fingerprint: 'actions_fetch_commacare_batch' });
-    });
+  return {
+    type: Types.ACTION_UPDATE_DEVICES,
+    devices,
   };
 }
 

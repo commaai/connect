@@ -322,7 +322,7 @@ class PrimeCheckout extends Component {
   }
 
   render() {
-    const { classes, dispatch, device, subscribeInfo, commacareEligibility } = this.props;
+    const { classes, dispatch, device, subscribeInfo } = this.props;
     const { windowWidth, windowHeight, error, loadingCheckout, selectedPlan } = this.state;
 
     let chargeText = null;
@@ -399,7 +399,7 @@ class PrimeCheckout extends Component {
               <CheckIcon />
               <p>Simple SSH for developers</p>
             </div>
-            {device?.device_type === 'four' && commacareEligibility?.eligible && (
+            {device?.eligible_features?.commacare && (
               <div className={ classes.checkListItem } style={ paddingStyle }>
                 <CheckIcon />
                 <p>commacare extended warranty</p>
@@ -407,7 +407,7 @@ class PrimeCheckout extends Component {
             )}
           </div>
         </div>
-        {device?.device_type === 'four' && commacareEligibility?.eligible && (
+        {device?.eligible_features?.commacare && (
           <div className={ classes.commacareBanner } style={ blockMargin }>
             <div className={classes.commacareBannerHeader}>
               <img src={CommacareIcon} alt="" className={classes.commacareBannerIcon} />
@@ -422,7 +422,7 @@ class PrimeCheckout extends Component {
             </Typography>
           </div>
         )}
-        {device?.device_type === 'four' && commacareEligibility && !commacareEligibility.eligible && (
+        {device?.device_type === 'four' && !device?.eligible_features?.commacare && (
           <div className={ classes.commacareIneligible } style={ blockMargin }>
             <Typography variant="body2">
               This device is past the delivery window. commacare extended warranty won&apos;t be included with this subscription.
@@ -512,7 +512,6 @@ const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
   subscribeInfo: 'subscribeInfo',
-  commacareEligibility: 'commacareEligibility',
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeCheckout));

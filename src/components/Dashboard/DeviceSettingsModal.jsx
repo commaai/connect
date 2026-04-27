@@ -278,8 +278,8 @@ class DeviceSettingsModal extends Component {
   }
 
   render() {
-    const { classes, device, commacareByDongle, dongleId } = this.props;
-    const commacare = commacareByDongle?.[dongleId];
+    const { classes, device } = this.props;
+    const commacare = device?.commacare;
     if (!device) {
       return null;
     }
@@ -463,7 +463,6 @@ const stateToProps = (state, ownProps) => {
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
     subscription: state.subscription,
-    commacareByDongle: state.commacareByDongle,
     dongleId: ownProps.dongleId,
     device,
     globalDongleId: state.dongleId,

@@ -326,9 +326,9 @@ class PrimeManage extends Component {
   }
 
   render() {
-    const { dispatch, dongleId, subscription, classes, device, commacareByDongle } = this.props;
+    const { dispatch, dongleId, subscription, classes, device } = this.props;
     const { windowWidth, stripeStatus } = this.state;
-    const commacare = commacareByDongle?.[dongleId];
+    const commacare = device?.commacare;
 
     const hasPrimeSub = subscription && subscription.user_id;
 
@@ -557,7 +557,6 @@ const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
   subscription: 'subscription',
-  commacareByDongle: 'commacareByDongle',
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeManage));

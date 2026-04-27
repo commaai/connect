@@ -358,9 +358,9 @@ class DeviceInfo extends Component {
   }
 
   render() {
-    const { classes, device, commacareByDongle, dongleId } = this.props;
+    const { classes, device, dongleId } = this.props;
     const { snapshot, deviceStats, windowWidth } = this.state;
-    const commacare = commacareByDongle?.[dongleId];
+    const commacare = device?.commacare;
 
     const containerPadding = windowWidth > 520 ? 36 : 16;
     const largeSnapshotPadding = windowWidth > 1440 ? '12px 0' : 0;
@@ -588,7 +588,6 @@ class DeviceInfo extends Component {
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
-  commacareByDongle: 'commacareByDongle',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));
