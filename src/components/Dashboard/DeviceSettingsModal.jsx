@@ -401,26 +401,23 @@ class DeviceSettingsModal extends Component {
               <Typography>{ this.state.unpairError }</Typography>
             </div>
             )}
-            { this.props.device.prime && !commacare
+            { this.props.device.prime
             && (
             <div className={ classes.unpairWarning }>
               <WarningIcon />
-              <Typography>Unpairing will also cancel the comma prime subscription for this device.</Typography>
-            </div>
-            )}
-            { this.props.device.prime && commacare
-            && (
-            <div className={ classes.unpairWarning }>
-              <WarningIcon />
-              <Typography>
-                Unpairing will also cancel comma prime and
-                {' '}
-                <strong>permanently end your commacare extended warranty.</strong>
-                {' '}
-                Your standard 1-year warranty still applies for any remaining time.
-                {' '}
-                <a href={COMMACARE_URL} target="_blank" rel="noreferrer">What is commacare?</a>
-              </Typography>
+              {commacare ? (
+                <Typography>
+                  Unpairing will also cancel comma prime and
+                  {' '}
+                  <strong>permanently end your commacare extended warranty.</strong>
+                  {' '}
+                  Your standard 1-year warranty still applies for any remaining time.
+                  {' '}
+                  <a href={COMMACARE_URL} target="_blank" rel="noreferrer">What is commacare?</a>
+                </Typography>
+              ) : (
+                <Typography>Unpairing will also cancel the comma prime subscription for this device.</Typography>
+              )}
             </div>
             )}
             <div className={ classes.topButtonGroup }>
