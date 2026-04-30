@@ -415,8 +415,7 @@ class DeviceSettingsModal extends Component {
               <Typography>
                 Unpairing will also cancel comma prime and
                 {' '}
-                <strong>permanently end your commacare extended warranty</strong>
-                .
+                <strong>permanently end your commacare extended warranty.</strong>
                 {' '}
                 Your standard 1-year warranty still applies for any remaining time.
                 {' '}
