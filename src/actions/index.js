@@ -31,9 +31,13 @@ export function checkRoutesData() {
     console.debug('We need to update the segment metadata...');
     const { dongleId } = state;
     const fetchRange = state.filter;
+    // Direct visits to /dongleId/log_id fetch only that one route for speed.
+    // Remember that so we don't claim to have covered the full filter range —
+    // otherwise hasRoutesData lies and the dashboard never re-fetches when the
+    // user clicks X to close the route view.
+    const isSegmentFetch = !!state.segmentRange;
 
-    // if requested segment range not in loaded routes, fetch it explicitly
-    if (state.segmentRange) {
+    if (isSegmentFetch) {
       routesRequest = {
         req: Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
         dongleId,
@@ -95,8 +99,11 @@ export function checkRoutesData() {
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,
         dongleId,
-        start: fetchRange.start,
-        end: fetchRange.end,
+        // null start/end means "we did not cover the full filter range" so the
+        // next checkRoutesData (e.g. when the user closes back to the dashboard)
+        // will refetch all routes for the active filter.
+        start: isSegmentFetch ? null : fetchRange.start,
+        end: isSegmentFetch ? null : fetchRange.end,
         routes,
       });
 
