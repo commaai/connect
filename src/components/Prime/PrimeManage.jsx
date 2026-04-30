@@ -521,7 +521,7 @@ class PrimeManage extends Component {
             {commacare && (
               <div className={classes.commacareWarning}>
                 <Typography>
-                  Cancelling will <strong>permanently end your extended warranty coverage.</strong>
+                  Cancelling will permanently end your extended warranty coverage.
                   {' '}
                   Your standard 1-year warranty still applies for any remaining time.
                   {' '}

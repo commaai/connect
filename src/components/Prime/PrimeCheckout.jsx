@@ -419,7 +419,7 @@ class PrimeCheckout extends Component {
             <Typography variant="body2">
               comma four includes a standard 1-year limited warranty. Subscribe within 30 days of delivery to extend your coverage to 2 years for the duration of your prime subscription.
               {' '}
-              <a href={COMMACARE_URL} target="_blank" rel="noreferrer">Learn more</a>
+              <strong><a href={COMMACARE_URL} target="_blank" rel="noreferrer">Learn more</a></strong>
             </Typography>
           </div>
         )}
