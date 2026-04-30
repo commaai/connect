@@ -26,7 +26,7 @@ const styles = (theme) => ({
     alignItems: 'center',
     display: 'flex',
     justifyContent: 'space-between',
-    padding: '16px 16px 16px 32px',
+    padding: '16px 32px',
     '&.isSelected': {
       backgroundColor: 'rgba(0, 0, 0, 0.25)',
     },
@@ -39,10 +39,6 @@ const styles = (theme) => ({
     '&:hover': {
       color: Colors.white,
     },
-  },
-  deviceActions: {
-    display: 'flex',
-    alignItems: 'center',
   },
   deviceOnline: {
     width: 6,
@@ -148,18 +144,16 @@ class DeviceList extends Component {
             </Typography>
           </div>
         </div>
-        <div className={classes.deviceActions}>
-          { (device.is_owner || (profile && profile.superuser))
-            && (
-            <IconButton
-              className={classes.settingsButton}
-              aria-label="device settings"
-              onClick={ (ev) => this.handleOpenedSettingsModal(device.dongle_id, ev) }
-            >
-              <SettingsIcon className={classes.settingsButtonIcon} />
-            </IconButton>
-            )}
-        </div>
+        { (device.is_owner || (profile && profile.superuser))
+          && (
+          <IconButton
+            className={classes.settingsButton}
+            aria-label="device settings"
+            onClick={ (ev) => this.handleOpenedSettingsModal(device.dongle_id, ev) }
+          >
+            <SettingsIcon className={classes.settingsButtonIcon} />
+          </IconButton>
+          )}
       </a>
     );
   }

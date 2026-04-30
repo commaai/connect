@@ -185,7 +185,7 @@ class ExplorerApp extends Component {
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const isLarge = noDevicesUpsell || windowWidth > 1080;
 
-    const sidebarWidth = noDevicesUpsell ? 0 : Math.max(320, windowWidth * 0.2);
+    const sidebarWidth = noDevicesUpsell ? 0 : Math.max(280, windowWidth * 0.2);
     const headerHeight = this.state.headerRef
       ? this.state.headerRef.getBoundingClientRect().height
       : (windowWidth < 640 ? 111 : 66);
