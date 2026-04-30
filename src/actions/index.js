@@ -148,7 +148,7 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 
   if (log_id) {
     path.push(log_id);
-    if (start && end && start > 0) {
+    if (Number.isFinite(start) && Number.isFinite(end) && start !== end) {
       path.push(start);
       path.push(end);
     }
@@ -160,10 +160,16 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
-    || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
+  // null/null = "loop the full route" (URL stays /dongleId/log_id so a refresh
+  // on a still-uploading route picks up the latest duration).
+  const loopStart = Number.isFinite(start) ? start : 0;
+  const loopEnd = Number.isFinite(end) ? end : state.routes?.find((r) => r.log_id === log_id)?.duration;
+
+  if (Number.isFinite(loopEnd) && (!state.loop || !state.loop.duration
+    || state.loop.startTime < loopStart || state.loop.startTime + state.loop.duration > loopEnd
+    || state.loop.duration < loopEnd - loopStart)) {
     dispatch(resetPlayback());
-    dispatch(selectLoop(start, end));
+    dispatch(selectLoop(loopStart, loopEnd));
   }
 
   if (allowPathChange) {
