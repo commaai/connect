@@ -8,7 +8,7 @@ import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } fro
 import AccessTime from '@material-ui/icons/AccessTime';
 
 import { athena as Athena, devices as Devices } from '@commaai/api';
-import { analyticsEvent } from '../../actions';
+import { analyticsEvent, primeNav } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
@@ -374,7 +374,7 @@ class DeviceInfo extends Component {
             ? (
               <div className={`${classes.row} ${classes.columnGap}`}>
                 <div className={classes.deviceTitle}>
-                  {commacare && <CommacareBadge style={{ marginRight: 16 }} />}
+                  {commacare && <CommacareBadge style={{ marginRight: 16 }} onClick={() => this.props.dispatch(primeNav(true))} />}
                   <Typography variant="title">{deviceNamePretty(device)}</Typography>
                 </div>
                 <div className={classes.deviceStatContainer}>{ this.renderStats() }</div>
@@ -385,7 +385,7 @@ class DeviceInfo extends Component {
               <>
                 <div className={ classes.row }>
                   <div className={classes.deviceTitle}>
-                    {commacare && <CommacareBadge style={{ marginRight: 16 }} />}
+                    {commacare && <CommacareBadge style={{ marginRight: 16 }} onClick={() => this.props.dispatch(primeNav(true))} />}
                     <Typography variant="title">{deviceNamePretty(device)}</Typography>
                   </div>
                 </div>

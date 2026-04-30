@@ -30,7 +30,7 @@ const styles = () => ({
   },
 });
 
-const CommacareBadge = ({ classes, size = 22, style, variant = 'icon' }) => {
+const CommacareBadge = ({ classes, size = 22, style, variant = 'icon', onClick }) => {
   if (variant === 'pill') {
     return (
       <a
@@ -46,8 +46,13 @@ const CommacareBadge = ({ classes, size = 22, style, variant = 'icon' }) => {
       </a>
     );
   }
+
   return (
-    <img src={CommacareIcon} alt="commacare" style={{ width: size, verticalAlign: 'middle', ...style }} />
+    <span onClick={onClick}
+      style={{ display: 'inline-flex', flexShrink: 0, cursor: onClick ? 'pointer' : 'default' }}>
+      <img src={CommacareIcon} alt="commacare"
+        style={{ width: size, flexShrink: 0, verticalAlign: 'middle', ...style }} />
+    </span>
   );
 };
 
