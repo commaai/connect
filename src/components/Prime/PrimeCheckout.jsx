@@ -338,7 +338,7 @@ class PrimeCheckout extends Component {
     }
 
     const containerPadding = windowWidth > 520 ? { margin: '18px 24px' } : { margin: '6px 12px' };
-    const blockMargin = windowWidth > 520 ? { marginTop: 24 } : { marginTop: 8 };
+    const blockMargin = windowWidth > 520 ? { marginTop: 24 } : { marginTop: 16 };
     const paddingStyle = windowWidth > 520
       ? { paddingLeft: 7, paddingRight: 7 }
       : { paddingLeft: 8, paddingRight: 8 };
