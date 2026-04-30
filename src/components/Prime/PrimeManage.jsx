@@ -14,6 +14,7 @@ import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { ErrorOutline, InfoOutline } from '../../icons';
 import { primeNav, primeGetSubscription, analyticsEvent } from '../../actions';
+import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 
 const styles = (theme) => ({
   linkHighlight: {
@@ -183,6 +184,16 @@ const styles = (theme) => ({
     justifyContent: 'space-between',
     maxWidth: 450,
   },
+  commacareWarning: {
+    marginTop: 12,
+    padding: 10,
+    backgroundColor: Colors.orange200,
+    color: Colors.white,
+    '& a': { color: Colors.white, fontWeight: 'bold' },
+    '& p': {
+      marginTop: 0,
+    },
+  },
 });
 
 class PrimeManage extends Component {
@@ -317,6 +328,7 @@ class PrimeManage extends Component {
   render() {
     const { dispatch, dongleId, subscription, classes, device } = this.props;
     const { windowWidth, stripeStatus } = this.state;
+    const commacare = device?.commacare;
 
     const hasPrimeSub = subscription && subscription.user_id;
 
@@ -425,6 +437,7 @@ class PrimeManage extends Component {
                     {`$${(subscription.amount / 100).toFixed(2)}`}
                   </Typography>
                 </div>
+                {commacare && <CommacareBadge variant="pill" style={{ marginTop: 14 }} />}
                 {this.state.error && (
                   <div className={classes.overviewBlockError}>
                     <ErrorOutline />
@@ -505,6 +518,17 @@ class PrimeManage extends Component {
             <Typography>
               Your subscription will be cancelled immediately and can be resumed at any time.
             </Typography>
+            {commacare && (
+              <div className={classes.commacareWarning}>
+                <Typography>
+                  Cancelling will <strong>permanently end your extended warranty coverage.</strong>
+                  {' '}
+                  Your standard 1-year warranty still applies for any remaining time.
+                  {' '}
+                  <a href={COMMACARE_URL} target="_blank" rel="noreferrer">What is commacare?</a>
+                </Typography>
+              </div>
+            )}
             <Button
               variant="contained"
               className={`${classes.cancelModalButton} primeModalCancel`}

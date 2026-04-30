@@ -23,6 +23,7 @@ import { primeNav, selectDevice, updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
+import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 
 const styles = (theme) => ({
   modal: {
@@ -108,6 +109,7 @@ const styles = (theme) => ({
     alignItems: 'center',
     backgroundColor: Colors.orange200,
     '& p': { display: 'inline-block', marginLeft: 10 },
+    '& a': { color: Colors.white, fontWeight: 'bold' },
     color: Colors.white,
   },
 });
@@ -277,6 +279,7 @@ class DeviceSettingsModal extends Component {
 
   render() {
     const { classes, device } = this.props;
+    const commacare = device?.commacare;
     if (!device) {
       return null;
     }
@@ -311,7 +314,7 @@ class DeviceSettingsModal extends Component {
                 Unpair
               </Button>
             </div>
-            <div>
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
               <Button
                 variant="outlined"
                 className={ classes.primeManageButton }
@@ -319,6 +322,7 @@ class DeviceSettingsModal extends Component {
               >
                 Uploads
               </Button>
+              {commacare && <CommacareBadge variant="pill" />}
             </div>
             <div className={classes.form}>
               { this.state.error && (
@@ -401,7 +405,19 @@ class DeviceSettingsModal extends Component {
             && (
             <div className={ classes.unpairWarning }>
               <WarningIcon />
-              <Typography>Unpairing will also cancel the comma prime subscription for this device.</Typography>
+              {commacare ? (
+                <Typography>
+                  Unpairing will also cancel comma prime and
+                  {' '}
+                  <strong>permanently end your commacare extended warranty.</strong>
+                  {' '}
+                  Your standard 1-year warranty still applies for any remaining time.
+                  {' '}
+                  <a href={COMMACARE_URL} target="_blank" rel="noreferrer">What is commacare?</a>
+                </Typography>
+              ) : (
+                <Typography>Unpairing will also cancel the comma prime subscription for this device.</Typography>
+              )}
             </div>
             )}
             <div className={ classes.topButtonGroup }>
