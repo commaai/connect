@@ -148,7 +148,7 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 
   if (log_id) {
     path.push(log_id);
-    if (start && end && start > 0) {
+    if (Number.isFinite(start) && Number.isFinite(end) && start !== end) {
       path.push(start);
       path.push(end);
     }
@@ -160,14 +160,27 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
-    || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
+  // When start/end aren't provided, loop the full route.
+  let loopStart = start;
+  let loopEnd = end;
+  if ((loopStart == null || loopEnd == null) && log_id) {
+    const route = state.routes?.find((r) => r.log_id === log_id);
+    if (route) {
+      loopStart = 0;
+      loopEnd = route.duration;
+    }
+  }
+
+  if (loopStart != null && loopEnd != null
+    && (!state.loop || state.loop.startTime !== loopStart || state.loop.duration !== loopEnd - loopStart)) {
     dispatch(resetPlayback());
-    dispatch(selectLoop(start, end));
+    dispatch(selectLoop(loopStart, loopEnd));
   }
 
   if (allowPathChange) {
-    const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start/1000), Math.floor(end/1000), false);
+    const startSec = Number.isFinite(start) ? Math.floor(start / 1000) : null;
+    const endSec = Number.isFinite(end) ? Math.floor(end / 1000) : null;
+    const desiredPath = urlForState(state.dongleId, log_id, startSec, endSec, false);
     if (window.location.pathname !== desiredPath) {
       dispatch(push(desiredPath));
     }
