@@ -413,9 +413,13 @@ class DeviceSettingsModal extends Component {
             <div className={ classes.unpairWarning }>
               <WarningIcon />
               <Typography>
-                Unpairing will also cancel comma prime and{' '}
-                <strong>permanently end your commacare extended warranty.</strong>{' '}
-                Your standard 1-year warranty still applies for any remaining time.{' '}
+                Unpairing will also cancel comma prime and
+                {' '}
+                <strong>permanently end your commacare extended warranty</strong>
+                .
+                {' '}
+                Your standard 1-year warranty still applies for any remaining time.
+                {' '}
                 <a href={COMMACARE_URL} target="_blank" rel="noreferrer">What is commacare?</a>
               </Typography>
             </div>
