@@ -521,10 +521,8 @@ class PrimeManage extends Component {
             {commacare && (
               <div className={classes.commacareWarning}>
                 <Typography>
-                  Cancelling will <strong>permanently end your extended warranty coverage.</strong>
-                  {' '}
-                  Your standard 1-year warranty still applies for any remaining time.
-                  {' '}
+                  Cancelling will <strong>permanently end your extended warranty coverage.</strong>{' '}
+                  Your standard 1-year warranty still applies for any remaining time.{' '}
                   <a href={COMMACARE_URL} target="_blank" rel="noreferrer">What is commacare?</a>
                 </Typography>
               </div>
