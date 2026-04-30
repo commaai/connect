@@ -463,7 +463,6 @@ const stateToProps = (state, ownProps) => {
     || ((state.device && state.device.dongle_id === ownProps.dongleId) ? state.device : null);
   return {
     subscription: state.subscription,
-    dongleId: ownProps.dongleId,
     device,
     globalDongleId: state.dongleId,
   };

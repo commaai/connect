@@ -50,8 +50,7 @@ const CommacareBadge = ({ classes, size = 22, style, variant = 'icon', onClick }
   return (
     <span onClick={onClick}
       style={{ display: 'inline-flex', flexShrink: 0, cursor: onClick ? 'pointer' : 'default' }}>
-      <img src={CommacareIcon} alt="commacare"
-        style={{ width: size, flexShrink: 0, verticalAlign: 'middle', ...style }} />
+      <img src={CommacareIcon} alt="commacare" style={{ width: size, ...style }} />
     </span>
   );
 };
