@@ -215,37 +215,20 @@ export function primeGetSubscription(dongleId, subscription) {
   };
 }
 
-export function primeFetchSubscription(dongleId, device, profile) {
+export function primeFetchSubscription(dongleId) {
   return (dispatch, getState) => {
-    const state = getState();
+    const { device, profile } = getState();
+    if (device?.dongle_id !== dongleId) return;
+    if (!device.is_owner && !profile?.superuser) return;
 
-    if (!device && state.device && state.device === dongleId) {
-      device = state.device;
-    }
-    if (!profile && state.profile) {
-      profile = state.profile;
-    }
-
-    if (device && (device.is_owner || profile.superuser)) {
-      if (device.prime) {
-        Billing.getSubscription(dongleId).then((subscription) => {
-          dispatch(primeGetSubscription(dongleId, subscription));
-        }).catch((err) => {
-          console.error(err);
-          Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' });
-        });
-      } else {
-        Billing.getSubscribeInfo(dongleId).then((subscribeInfo) => {
-          dispatch({
-            type: Types.ACTION_PRIME_SUBSCRIBE_INFO,
-            dongleId,
-            subscribeInfo,
-          });
-        }).catch((err) => {
-          console.error(err);
-          Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' });
-        });
-      }
+    if (device.prime) {
+      Billing.getSubscription(dongleId)
+        .then((s) => dispatch(primeGetSubscription(dongleId, s)))
+        .catch((err) => Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' }));
+    } else {
+      Billing.getSubscribeInfo(dongleId)
+        .then((s) => dispatch({ type: Types.ACTION_PRIME_SUBSCRIBE_INFO, dongleId, subscribeInfo: s }))
+        .catch((err) => Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' }));
     }
   };
 }
@@ -275,13 +258,7 @@ export function updateSegmentRange(log_id, start, end) {
 export function selectDevice(dongleId, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
-    let device;
-    if (state.devices && state.devices.length > 1) {
-      device = state.devices.find((d) => d.dongle_id === dongleId);
-    }
-    if (!device && state.device && state.device.dongle_id === dongleId) {
-      device = state.device;
-    }
+    const device = state.devices?.find((d) => d.dongle_id === dongleId);
 
     dispatch({
       type: Types.ACTION_SELECT_DEVICE,
@@ -291,7 +268,7 @@ export function selectDevice(dongleId, allowPathChange = true) {
     dispatch(pushTimelineRange(null, null, null, false));
     dispatch(updateSegmentRange(null, null, null));
     if ((device && !device.shared) || state.profile?.superuser) {
-      dispatch(primeFetchSubscription(dongleId, device));
+      dispatch(primeFetchSubscription(dongleId));
       dispatch(fetchDeviceOnline(dongleId));
     }
 
