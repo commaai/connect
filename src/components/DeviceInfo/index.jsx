@@ -358,7 +358,7 @@ class DeviceInfo extends Component {
   }
 
   render() {
-    const { classes, device, dongleId } = this.props;
+    const { classes, device } = this.props;
     const { snapshot, deviceStats, windowWidth } = this.state;
     const commacare = device?.commacare;
 
