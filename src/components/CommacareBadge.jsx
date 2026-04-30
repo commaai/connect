@@ -4,7 +4,7 @@ import { withStyles } from '@material-ui/core';
 import Colors from '../colors';
 import CommacareIcon from '../icons/commacare.png';
 
-const COMMACARE_URL = 'https://comma.ai/connect#what-is-commacare';
+export const COMMACARE_URL = 'https://comma.ai/connect#what-is-commacare';
 
 const styles = () => ({
   pill: {

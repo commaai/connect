@@ -15,6 +15,7 @@ import Colors from '../../colors';
 import { primeNav, analyticsEvent } from '../../actions';
 import { ErrorOutline, InfoOutline } from '../../icons';
 import CommacareIcon from '../../icons/commacare.png';
+import { COMMACARE_URL } from '../CommacareBadge';
 
 const styles = () => ({
   linkHighlight: {
@@ -418,7 +419,7 @@ class PrimeCheckout extends Component {
             <Typography variant="body2">
               comma four includes a standard 1-year limited warranty. Subscribe within 30 days of delivery to extend your coverage to 2 years for the duration of your prime subscription.
               {' '}
-              <a href="https://comma.ai/connect#what-is-commacare" target="_blank" rel="noreferrer">Learn more</a>
+              <a href={COMMACARE_URL} target="_blank" rel="noreferrer">Learn more</a>
             </Typography>
           </div>
         )}
@@ -427,7 +428,7 @@ class PrimeCheckout extends Component {
             <Typography variant="body2">
               This device is past the delivery window. commacare extended warranty won&apos;t be included with this subscription.
               {' '}
-              <a href="https://comma.ai/connect#what-is-commacare" target="_blank" rel="noreferrer">What is commacare?</a>
+              <a href={COMMACARE_URL} target="_blank" rel="noreferrer">What is commacare?</a>
             </Typography>
           </div>
         )}

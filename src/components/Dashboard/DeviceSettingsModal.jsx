@@ -23,7 +23,7 @@ import { primeNav, selectDevice, updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
-import CommacareBadge from '../CommacareBadge';
+import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 
 const styles = (theme) => ({
   modal: {
@@ -420,7 +420,7 @@ class DeviceSettingsModal extends Component {
                 {' '}
                 Your standard 1-year warranty still applies for any remaining time.
                 {' '}
-                <a href="https://comma.ai/connect#what-is-commacare" target="_blank" rel="noreferrer">What is commacare?</a>
+                <a href={COMMACARE_URL} target="_blank" rel="noreferrer">What is commacare?</a>
               </Typography>
             </div>
             )}
