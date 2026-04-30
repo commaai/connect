@@ -60,6 +60,14 @@ class PullDownReload extends Component {
       return;
     }
 
+    // Don't capture touches that start near the screen edges — those are
+    // iOS' system back-swipe gestures and we shouldn't preventDefault on them.
+    const x = ev.touches[0].pageX;
+    const edgeWidth = 30;
+    if (x < edgeWidth || x > window.innerWidth - edgeWidth) {
+      return;
+    }
+
     this.setState({ startY: ev.touches[0].pageY });
   }
 
