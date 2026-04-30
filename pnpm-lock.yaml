@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@commaai/api':
-        specifier: github:commaai/comma-api#3.3.1
-        version: https://codeload.github.com/commaai/comma-api/tar.gz/84dec2b73a60022f980aa6dfde9323148a99022f
+        specifier: github:commaai/comma-api#3.2.0
+        version: https://codeload.github.com/commaai/comma-api/tar.gz/6325ff32b82aeddb2edc10a6175717349b7f75c5
       '@commaai/my-comma-auth':
         specifier: ^1.4.1
         version: 1.4.1
@@ -815,9 +815,9 @@ packages:
   '@bcoe/v8-coverage@0.2.3':
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
 
-  '@commaai/api@https://codeload.github.com/commaai/comma-api/tar.gz/84dec2b73a60022f980aa6dfde9323148a99022f':
-    resolution: {tarball: https://codeload.github.com/commaai/comma-api/tar.gz/84dec2b73a60022f980aa6dfde9323148a99022f}
-    version: 3.3.1
+  '@commaai/api@https://codeload.github.com/commaai/comma-api/tar.gz/6325ff32b82aeddb2edc10a6175717349b7f75c5':
+    resolution: {tarball: https://codeload.github.com/commaai/comma-api/tar.gz/6325ff32b82aeddb2edc10a6175717349b7f75c5}
+    version: 3.2.0
 
   '@commaai/my-comma-auth@1.4.1':
     resolution: {integrity: sha512-74hSXZ3Bp9YhGkhIK3WvXTDuK+rh9qWoUm2UkiMW4wNmDQWxStNkKU/vLOLsrwLueikDZ1NdY6Diw67DJVXqEA==}
@@ -5949,7 +5949,7 @@ snapshots:
 
   '@bcoe/v8-coverage@0.2.3': {}
 
-  '@commaai/api@https://codeload.github.com/commaai/comma-api/tar.gz/84dec2b73a60022f980aa6dfde9323148a99022f':
+  '@commaai/api@https://codeload.github.com/commaai/comma-api/tar.gz/6325ff32b82aeddb2edc10a6175717349b7f75c5':
     dependencies:
       '@babel/runtime': 7.28.4
       query-string: 7.1.3
