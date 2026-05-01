@@ -223,7 +223,7 @@ export function primeFetchSubscription(dongleId, device, profile) {
       profile = state.profile;
     }
 
-    if (device && (device.is_owner || profile?.superuser)) {
+    if (device && (device.is_owner || profile.superuser)) {
       if (device.prime) {
         Billing.getSubscription(dongleId).then((subscription) => {
           dispatch(primeGetSubscription(dongleId, subscription));
@@ -273,8 +273,11 @@ export function selectDevice(dongleId, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
     let device;
-    if (state.devices) {
+    if (state.devices && state.devices.length > 1) {
       device = state.devices.find((d) => d.dongle_id === dongleId);
+    }
+    if (!device && state.device && state.device.dongle_id === dongleId) {
+      device = state.device;
     }
 
     dispatch({
