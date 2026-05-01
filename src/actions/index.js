@@ -218,17 +218,16 @@ export function primeGetSubscription(dongleId, subscription) {
 export function primeFetchSubscription(dongleId) {
   return (dispatch, getState) => {
     const { device, profile } = getState();
-    if (device?.dongle_id !== dongleId) return;
-    if (!device.is_owner && !profile?.superuser) return;
-
-    if (device.prime) {
-      Billing.getSubscription(dongleId)
-        .then((s) => dispatch(primeGetSubscription(dongleId, s)))
-        .catch((err) => Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' }));
-    } else {
-      Billing.getSubscribeInfo(dongleId)
-        .then((s) => dispatch({ type: Types.ACTION_PRIME_SUBSCRIBE_INFO, dongleId, subscribeInfo: s }))
-        .catch((err) => Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' }));
+    if (device && (device.is_owner || profile?.superuser)) {
+      if (device.prime) {
+        Billing.getSubscription(dongleId)
+          .then((s) => dispatch(primeGetSubscription(dongleId, s)))
+          .catch((err) => Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' }));
+      } else {
+        Billing.getSubscribeInfo(dongleId)
+          .then((s) => dispatch({ type: Types.ACTION_PRIME_SUBSCRIBE_INFO, dongleId, subscribeInfo: s }))
+          .catch((err) => Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' }));
+      }
     }
   };
 }
