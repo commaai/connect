@@ -109,7 +109,7 @@ const styles = (theme) => ({
     alignItems: 'center',
     backgroundColor: Colors.orange200,
     '& p': { display: 'inline-block', marginLeft: 10 },
-    '& a': { color: Colors.white, fontWeight: 'bold' },
+    '& a': { color: Colors.white, textDecoration: 'underline' },
     color: Colors.white,
   },
 });
