@@ -219,6 +219,9 @@ export function primeFetchSubscription(dongleId, device, profile) {
   return (dispatch, getState) => {
     const state = getState();
 
+    if (!device && state.device && state.device === dongleId) {
+      device = state.device;
+    }
     if (!profile && state.profile) {
       profile = state.profile;
     }
