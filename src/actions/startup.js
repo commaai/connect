@@ -40,26 +40,39 @@ async function initDevices() {
 
 export default function init() {
   return async (dispatch, getState) => {
-    if (getState().dongleId && !getState().routes) {
+    let state = getState();
+    if (state.dongleId && !state.routes) {
       dispatch(checkLastRoutesData());
     }
 
     const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
-    if (profile) Sentry.setUser({ id: profile.id });
 
-    dispatch({ type: ACTION_STARTUP_DATA, profile, devices });
+    if (profile) {
+      Sentry.setUser({ id: profile.id });
+    }
 
-    if (devices.length === 0) return;
+    dispatch({
+      type: ACTION_STARTUP_DATA,
+      profile,
+      devices,
+    });
 
-    let dongleId = getState().dongleId;
-    if (!dongleId) {
-      const saved = window.localStorage.getItem('selectedDongleId');
-      dongleId = devices.some((d) => d.dongle_id === saved) ? saved : devices[0].dongle_id;
-      dispatch(selectDevice(dongleId));
-    } else if (devices.some((d) => d.dongle_id === dongleId)) {
-      dispatch(primeFetchSubscription(dongleId));
-    } else {
-      dispatch(fetchSharedDevice(dongleId));
+    if (devices.length > 0) {
+      state = getState();
+      let dongleId = state.dongleId;
+      if (!dongleId) {
+        const selectedDongleId = window.localStorage.getItem('selectedDongleId');
+        if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
+          dongleId = selectedDongleId;
+        } else {
+          dongleId = devices[0].dongle_id;
+        }
+        dispatch(selectDevice(dongleId));
+      } else if (devices.find((d) => d.dongle_id === dongleId)) {
+        dispatch(primeFetchSubscription(dongleId));
+      } else {
+        dispatch(fetchSharedDevice(dongleId));
+      }
     }
   };
 }

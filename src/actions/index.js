@@ -267,7 +267,10 @@ export function updateSegmentRange(log_id, start, end) {
 export function selectDevice(dongleId, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
-    const device = state.devices?.find((d) => d.dongle_id === dongleId);
+    let device;
+    if (state.devices) {
+      device = state.devices.find((d) => d.dongle_id === dongleId);
+    }
 
     dispatch({
       type: Types.ACTION_SELECT_DEVICE,
