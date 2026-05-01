@@ -14,6 +14,8 @@ import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { primeNav, analyticsEvent } from '../../actions';
 import { ErrorOutline, InfoOutline } from '../../icons';
+import CommacareIcon from '../../icons/commacare.png';
+import { COMMACARE_URL } from '../CommacareBadge';
 
 const styles = () => ({
   linkHighlight: {
@@ -134,6 +136,32 @@ const styles = () => ({
   },
   learnMore: {
     '& a': { color: 'white' },
+  },
+  commacareBanner: {
+    marginTop: 16,
+    padding: '10px 14px 10px 12px',
+    borderRadius: 12,
+    border: `1px solid ${Colors.green300}`,
+    color: '#fff',
+    '& strong': { color: Colors.green300, letterSpacing: '0.04em' },
+    '& a': { color: '#fff' },
+  },
+  commacareBannerHeader: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  commacareBannerIcon: {
+    width: 24,
+    marginRight: 12,
+  },
+  commacareIneligible: {
+    marginTop: 16,
+    padding: '10px 14px',
+    borderRadius: 12,
+    backgroundColor: Colors.white08,
+    color: Colors.white70,
+    fontSize: '0.9em',
+    '& a': { color: Colors.white70 },
   },
   primeTitle: {
     margin: '0 12px',
@@ -310,7 +338,7 @@ class PrimeCheckout extends Component {
     }
 
     const containerPadding = windowWidth > 520 ? { margin: '18px 24px' } : { margin: '6px 12px' };
-    const blockMargin = windowWidth > 520 ? { marginTop: 24 } : { marginTop: 8 };
+    const blockMargin = windowWidth > 520 ? { marginTop: 24 } : { marginTop: 16 };
     const paddingStyle = windowWidth > 520
       ? { paddingLeft: 7, paddingRight: 7 }
       : { paddingLeft: 8, paddingRight: 8 };
@@ -372,8 +400,38 @@ class PrimeCheckout extends Component {
               <CheckIcon />
               <p>Simple SSH for developers</p>
             </div>
+            {device?.eligible_features?.commacare && (
+              <div className={ classes.checkListItem } style={ paddingStyle }>
+                <CheckIcon />
+                <p>commacare extended warranty</p>
+              </div>
+            )}
           </div>
         </div>
+        {device?.eligible_features?.commacare && (
+          <div className={ classes.commacareBanner } style={ blockMargin }>
+            <div className={classes.commacareBannerHeader}>
+              <img src={CommacareIcon} alt="" className={classes.commacareBannerIcon} />
+              <Typography>
+                <strong>INCLUDES COMMACARE</strong>
+              </Typography>
+            </div>
+            <Typography variant="body2">
+              comma four includes a standard 1-year limited warranty. Subscribe within 30 days of delivery to extend your coverage to 2 years for the duration of your prime subscription.
+              {' '}
+              <a href={COMMACARE_URL} target="_blank" rel="noreferrer">Learn more</a>
+            </Typography>
+          </div>
+        )}
+        {device?.device_type === 'four' && !device?.eligible_features?.commacare && (
+          <div className={ classes.commacareIneligible } style={ blockMargin }>
+            <Typography variant="body2">
+              This device is past the delivery window. commacare extended warranty won&apos;t be included with this subscription.
+              {' '}
+              <a href={COMMACARE_URL} target="_blank" rel="noreferrer">What is commacare?</a>
+            </Typography>
+          </div>
+        )}
         <div className={ classes.planBoxContainer } style={ blockMargin }>
           <div className={ classes.planBox } style={ boxHeight }>
             <div
@@ -382,7 +440,7 @@ class PrimeCheckout extends Component {
               onClick={ subscribeInfo ? () => this.setState({ selectedPlan: 'nodata' }) : null }
             >
               <p className={ classes.planName }>lite</p>
-              <p className={ classes.planPrice }>$10/month</p>
+              <p className={ classes.planPrice }>$14/month</p>
               <p className={ classes.planSubtext }>
                 bring your own
                 <br />
