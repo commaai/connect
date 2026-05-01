@@ -53,20 +53,19 @@ export default function init() {
     }
 
     if (devices.length > 0) {
-      let dongleId = state.dongleId;
-      if (!dongleId) {
+      if (!state.dongleId) {
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
         if (selectedDongleId && devices.find((d) => d.dongle_id === selectedDongleId)) {
-          dongleId = selectedDongleId;
+          dispatch(selectDevice(selectedDongleId));
         } else {
-          dongleId = devices[0].dongle_id;
+          dispatch(selectDevice(devices[0].dongle_id));
         }
-        dispatch(selectDevice(dongleId));
       }
+      const dongleId = getState().dongleId;
       const device = devices.find((dev) => dev.dongle_id === dongleId);
       if (device) {
         dispatch(primeFetchSubscription(dongleId, device, profile));
-      } else {
+      } else if (dongleId) {
         dispatch(fetchSharedDevice(dongleId));
       }
     }
