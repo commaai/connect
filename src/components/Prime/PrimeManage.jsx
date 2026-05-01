@@ -189,7 +189,7 @@ const styles = (theme) => ({
     padding: 10,
     backgroundColor: Colors.orange200,
     color: Colors.white,
-    '& a': { color: Colors.white, fontWeight: 'bold' },
+    '& a': { color: Colors.white, textDecoration: 'underline' },
     '& p': {
       marginTop: 0,
     },
