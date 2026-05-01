@@ -215,9 +215,14 @@ export function primeGetSubscription(dongleId, subscription) {
   };
 }
 
-export function primeFetchSubscription(dongleId) {
+export function primeFetchSubscription(dongleId, device, profile) {
   return (dispatch, getState) => {
-    const { device, profile } = getState();
+    const state = getState();
+
+    if (!profile && state.profile) {
+      profile = state.profile;
+    }
+
     if (device && (device.is_owner || profile?.superuser)) {
       if (device.prime) {
         Billing.getSubscription(dongleId).then((subscription) => {
@@ -280,7 +285,7 @@ export function selectDevice(dongleId, allowPathChange = true) {
     dispatch(pushTimelineRange(null, null, null, false));
     dispatch(updateSegmentRange(null, null, null));
     if ((device && !device.shared) || state.profile?.superuser) {
-      dispatch(primeFetchSubscription(dongleId));
+      dispatch(primeFetchSubscription(dongleId, device));
       dispatch(fetchDeviceOnline(dongleId));
     }
 

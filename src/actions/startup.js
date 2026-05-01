@@ -46,19 +46,13 @@ export default function init() {
     }
 
     const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
+    state = getState();
 
     if (profile) {
       Sentry.setUser({ id: profile.id });
     }
 
-    dispatch({
-      type: ACTION_STARTUP_DATA,
-      profile,
-      devices,
-    });
-
     if (devices.length > 0) {
-      state = getState();
       let dongleId = state.dongleId;
       if (!dongleId) {
         const selectedDongleId = window.localStorage.getItem('selectedDongleId');
@@ -68,11 +62,19 @@ export default function init() {
           dongleId = devices[0].dongle_id;
         }
         dispatch(selectDevice(dongleId));
-      } else if (devices.find((d) => d.dongle_id === dongleId)) {
-        dispatch(primeFetchSubscription(dongleId));
+      }
+      const device = devices.find((dev) => dev.dongle_id === dongleId);
+      if (device) {
+        dispatch(primeFetchSubscription(dongleId, device, profile));
       } else {
         dispatch(fetchSharedDevice(dongleId));
       }
     }
+
+    dispatch({
+      type: ACTION_STARTUP_DATA,
+      profile,
+      devices,
+    });
   };
 }
