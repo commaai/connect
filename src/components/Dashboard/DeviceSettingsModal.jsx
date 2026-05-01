@@ -230,25 +230,11 @@ class DeviceSettingsModal extends Component {
   }
 
   onPrimeSettings() {
-    let intv = null;
-    const doPrimeNav = () => {
-      if (intv) {
-        clearInterval(intv);
-      }
-      this.props.dispatch(primeNav(true));
-      this.props.onClose();
-    };
-
     if (this.props.dongleId !== this.props.globalDongleId) {
-      this.props.dispatch(selectDevice(this.props.dongleId));
-      intv = setInterval(() => {
-        if (this.props.dongleId === this.props.globalDongleId) {
-          doPrimeNav();
-        }
-      }, 100);
-    } else {
-      doPrimeNav();
+      this.props.dispatch(selectDevice(this.props.dongleId, false));
     }
+    this.props.dispatch(primeNav(true));
+    this.props.onClose();
   }
 
   async unpairDevice() {
@@ -464,4 +450,5 @@ const stateToProps = (state, ownProps) => {
   };
 };
 
+export { DeviceSettingsModal };
 export default connect(stateToProps)(withStyles(styles)(DeviceSettingsModal));
