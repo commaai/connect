@@ -220,13 +220,23 @@ export function primeFetchSubscription(dongleId) {
     const { device, profile } = getState();
     if (device && (device.is_owner || profile?.superuser)) {
       if (device.prime) {
-        Billing.getSubscription(dongleId)
-          .then((s) => dispatch(primeGetSubscription(dongleId, s)))
-          .catch((err) => Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' }));
+        Billing.getSubscription(dongleId).then((subscription) => {
+          dispatch(primeGetSubscription(dongleId, subscription));
+        }).catch((err) => {
+          console.error(err);
+          Sentry.captureException(err, { fingerprint: 'actions_fetch_subscription' });
+        });
       } else {
-        Billing.getSubscribeInfo(dongleId)
-          .then((s) => dispatch({ type: Types.ACTION_PRIME_SUBSCRIBE_INFO, dongleId, subscribeInfo: s }))
-          .catch((err) => Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' }));
+        Billing.getSubscribeInfo(dongleId).then((subscribeInfo) => {
+          dispatch({
+            type: Types.ACTION_PRIME_SUBSCRIBE_INFO,
+            dongleId,
+            subscribeInfo,
+          });
+        }).catch((err) => {
+          console.error(err);
+          Sentry.captureException(err, { fingerprint: 'actions_fetch_subscribe_info' });
+        });
       }
     }
   };
