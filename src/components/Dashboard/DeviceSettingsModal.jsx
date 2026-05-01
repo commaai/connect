@@ -450,5 +450,4 @@ const stateToProps = (state, ownProps) => {
   };
 };
 
-export { DeviceSettingsModal };
 export default connect(stateToProps)(withStyles(styles)(DeviceSettingsModal));
