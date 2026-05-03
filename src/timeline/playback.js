@@ -86,7 +86,7 @@ export function reducer(_state, action) {
   }
 
   // normalize over loop
-  if (state.offset !== null && state.loop?.startTime) {
+  if (state.offset !== null && state.loop != null) {
     const playSpeed = state.isBufferingVideo ? 0 : state.desiredPlaySpeed;
     const offset = state.offset + (Date.now() - state.startTime) * playSpeed;
     loopOffset = state.loop.startTime;
