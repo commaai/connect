@@ -1,50 +1,38 @@
-import React, { Component } from 'react';
+import { Component } from 'react';
 
-import { withStyles } from '@material-ui/core';
-import ReplayIcon from '@material-ui/icons/Replay';
-
-import Colors from '../../colors';
 import { isIos } from '../../utils/browser.js';
 
-const styles = () => ({
-  root: {
-    position: 'absolute',
-    zIndex: 5050,
-    top: -48,
-    left: 'calc(50% - 24px)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 48,
-    height: 48,
-    backgroundColor: Colors.grey100,
-    borderRadius: 24,
-  },
-});
+// iOS PWAs in standalone mode don't get the system pull-to-refresh — there's no
+// browser chrome to host it. Re-create the iOS Safari look (page rubber-bands
+// down with damping; release past threshold to reload) by translating the app
+// root during the pull. No spinner / Material indicator.
+const PULL_THRESHOLD = 80;     // px of pull required to trigger a reload
+const PULL_MAX = 200;           // hard cap on translate distance
+const PULL_DAMPING = 0.55;      // exponent < 1 means resistance grows with pull
+const RELEASE_DURATION = 250;   // ms for the rubber-band-back animation
+const EDGE_IGNORE = 30;         // px from screen edges to leave for iOS edge-swipe
 
 class PullDownReload extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      startY: null,
-      reloading: false,
-    };
-
-    this.dragEl = React.createRef(null);
+    this.startY = null;
+    this.pulled = 0;
+    this.reloading = false;
 
     this.touchStart = this.touchStart.bind(this);
     this.touchMove = this.touchMove.bind(this);
     this.touchEnd = this.touchEnd.bind(this);
   }
 
-  async componentDidMount() {
+  componentDidMount() {
     if (window && window.navigator) {
       const isStandalone = window.navigator.standalone === true;
       if (isIos() && isStandalone) {
         document.addEventListener('touchstart', this.touchStart, { passive: false });
         document.addEventListener('touchmove', this.touchMove, { passive: false });
         document.addEventListener('touchend', this.touchEnd, { passive: false });
+        document.addEventListener('touchcancel', this.touchEnd, { passive: false });
       }
     }
   }
@@ -53,62 +41,68 @@ class PullDownReload extends Component {
     document.removeEventListener('touchstart', this.touchStart);
     document.removeEventListener('touchmove', this.touchMove);
     document.removeEventListener('touchend', this.touchEnd);
+    document.removeEventListener('touchcancel', this.touchEnd);
+    this.resetTransform();
+  }
+
+  resetTransform() {
+    document.body.style.transform = '';
+    document.body.style.transition = '';
   }
 
   touchStart(ev) {
     if (document.scrollingElement.scrollTop !== 0 || ev.defaultPrevented) {
       return;
     }
+    // Don't capture iOS' system back-swipe gestures from the screen edges.
+    const x = ev.touches[0].pageX;
+    if (x < EDGE_IGNORE || x > window.innerWidth - EDGE_IGNORE) {
+      return;
+    }
 
-    this.setState({ startY: ev.touches[0].pageY });
+    this.startY = ev.touches[0].pageY;
+    this.pulled = 0;
+    document.body.style.transition = '';
   }
 
   touchMove(ev) {
-    const { startY } = this.state;
-    const { current: el } = this.dragEl;
-    if (startY === null || !el) {
+    if (this.startY === null) return;
+
+    const dy = ev.touches[0].pageY - this.startY;
+    if (dy <= 0) {
+      // user reversed direction; stop intercepting and let normal scrolling resume
+      this.startY = null;
+      this.pulled = 0;
+      this.resetTransform();
       return;
     }
 
-    const top = Math.min((ev.touches[0].pageY - startY) / 2 - 48, 32);
-    el.style.transition = 'unset';
-    el.style.top = `${top}px`;
-    if (ev.touches[0].pageY - startY > 0) {
-      ev.preventDefault();
-    } else {
-      this.setState({ startY: null });
-      el.style.transition = 'top 0.1s';
-      el.style.top = '-48px';
-    }
+    // Damped translate: pulling further produces diminishing movement, capped at PULL_MAX.
+    this.pulled = Math.min(PULL_MAX, dy ** PULL_DAMPING);
+    document.body.style.transform = `translateY(${this.pulled}px)`;
+    ev.preventDefault();
   }
 
   touchEnd() {
-    const { reloading, startY } = this.state;
-    const { current: el } = this.dragEl;
-    if (startY === null || !el) {
-      return;
-    }
+    if (this.startY === null) return;
+    const pulled = this.pulled;
+    this.startY = null;
+    this.pulled = 0;
 
-    const top = parseInt(el.style.top.substring(0, el.style.top.length - 2), 10);
-    if (top >= 32 && !reloading) {
-      this.setState({ reloading: true });
-      window.location.reload();
-    } else {
-      this.setState({ startY: null });
-      el.style.transition = 'top 0.1s';
-      el.style.top = '-48px';
+    document.body.style.transition = `transform ${RELEASE_DURATION}ms cubic-bezier(0.2, 0.8, 0.2, 1)`;
+    document.body.style.transform = '';
+
+    if (pulled >= PULL_THRESHOLD && !this.reloading) {
+      this.reloading = true;
+      // Let the rubber-band animate back before reloading, otherwise the
+      // transition gets cut short and feels janky on slow networks.
+      setTimeout(() => window.location.reload(), RELEASE_DURATION);
     }
   }
 
   render() {
-    const { classes } = this.props;
-
-    return (
-      <div className={classes.root} ref={this.dragEl}>
-        <ReplayIcon />
-      </div>
-    );
+    return null;
   }
 }
 
-export default withStyles(styles)(PullDownReload);
+export default PullDownReload;
