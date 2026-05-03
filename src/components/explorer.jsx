@@ -24,6 +24,7 @@ import { verifyPairToken, pairErrorToMessage } from '../utils';
 import ResizeHandler from './ResizeHandler';
 
 import DriveView from './DriveView';
+import BodyTeleop from './BodyTeleop';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 
 const styles = (theme) => ({
@@ -71,11 +72,13 @@ class ExplorerApp extends Component {
       pairError: null,
       pairDongleId: null,
       windowWidth: window.innerWidth,
+      bodyTeleopOpen: false,
     };
 
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
+    this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
   }
 
   async componentDidMount() {
@@ -136,10 +139,18 @@ class ExplorerApp extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { pathname, zoom, dongleId, limit } = this.props;
+    const { pathname, search, zoom, dongleId, limit } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
+    }
+
+    if (prevProps.search !== search) {
+      const q = new URLSearchParams(search);
+      if (q.has('body') && q.get('body') != null) {
+        this.openBodyTeleop(q.get('body'));
+        this.props.dispatch(replace(pathname));
+      }
     }
 
     if (!prevProps.zoom && zoom) {
@@ -166,6 +177,14 @@ class ExplorerApp extends Component {
     this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }
 
+  openBodyTeleop(address) {
+    this.setState({ bodyTeleopOpen: true, bodyTeleopAddress: address });
+  }
+
+  closeBodyTeleop() {
+    this.setState({ bodyTeleopOpen: false, bodyTeleopAddress: null });
+  }
+
   handleDrawerStateChanged(drawerOpen) {
     this.setState({
       drawerIsOpen: drawerOpen,
@@ -180,7 +199,7 @@ class ExplorerApp extends Component {
 
   render() {
     const { classes, currentRoute, devices, dongleId } = this.props;
-    const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
+    const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth, bodyTeleopOpen, bodyTeleopAddress } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const isLarge = noDevicesUpsell || windowWidth > 1080;
@@ -227,6 +246,7 @@ class ExplorerApp extends Component {
             ? <NoDeviceUpsell />
             : (currentRoute ? <DriveView /> : <Dashboard />)}
         </div>
+        { bodyTeleopOpen && <BodyTeleop onClose={this.closeBodyTeleop} directAddress={bodyTeleopAddress} /> }
         <IosPwaPopup />
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
           <Paper className={classes.modal}>
@@ -254,6 +274,7 @@ class ExplorerApp extends Component {
 const stateToProps = Obstruction({
   zoom: 'zoom',
   pathname: 'router.location.pathname',
+  search: 'router.location.search',
   dongleId: 'dongleId',
   devices: 'devices',
   currentRoute: 'currentRoute',

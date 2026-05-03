@@ -5,3 +5,11 @@ export function isIos() {
 export function isFirefox() {
   return navigator.userAgent.toLowerCase().includes('firefox');
 }
+
+export function isChrome() {
+  return /chrome/i.test(navigator.userAgent) && !/edg/i.test(navigator.userAgent);
+}
+
+export function isSafari() {
+  return /safari/i.test(navigator.userAgent) && !/chrome|chromium|edg/i.test(navigator.userAgent);
+}
