@@ -172,7 +172,7 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   }
 
   if (allowPathChange) {
-    const wholeRoute = !Number.isFinite(start) || !Number.isFinite(end) || (start === 0 && end === route?.duration);
+    const wholeRoute = start == null || (start === 0 && end === route?.duration);
     const urlStart = wholeRoute ? null : Math.floor(start / 1000);
     const urlEnd = wholeRoute ? null : Math.floor(end / 1000);
     const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
@@ -197,6 +197,8 @@ export function popTimelineRange(log_id, allowPathChange = true) {
 }
 
 export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
+  if (!Number.isFinite(start)) start = null;
+  if (!Number.isFinite(end)) end = null;
   return (dispatch, getState) => {
     const state = getState();
 
