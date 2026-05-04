@@ -144,7 +144,7 @@ const styles = () => ({
     border: `1px solid ${Colors.green300}`,
     color: '#fff',
     '& strong': { color: Colors.green300, letterSpacing: '0.04em' },
-    '& a': { color: '#fff' },
+    '& a': { color: Colors.green300, textDecoration: 'underline' },
   },
   commacareBannerHeader: {
     display: 'flex',
