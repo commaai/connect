@@ -9,14 +9,14 @@ import SettingsIcon from '@material-ui/icons/Settings';
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { devices as Devices } from '@commaai/api';
 
-import { push } from 'connected-react-router';
-
-import { selectDevice, updateDevices } from '../../actions';
+import { updateDevices } from '../../actions';
 import Colors from '../../colors';
+import { getDeviceSettings } from '../../url';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
+import DeviceSettingsModal from './DeviceSettingsModal';
 
 const styles = (theme) => ({
   deviceList: {
@@ -90,18 +90,27 @@ class DeviceList extends Component {
   constructor(props) {
     super(props);
 
+    this.state = {
+      settingsModalDongleId: getDeviceSettings(window.location.pathname),
+    };
+
     this.renderDevice = this.renderDevice.bind(this);
     this.handleOpenedSettingsModal = this.handleOpenedSettingsModal.bind(this);
+    this.handleClosedSettingsModal = this.handleClosedSettingsModal.bind(this);
     this.onVisible = this.onVisible.bind(this);
   }
 
   handleOpenedSettingsModal(dongleId, ev) {
     ev.stopPropagation();
     ev.preventDefault();
-    if (dongleId !== this.props.selectedDevice) {
-      this.props.dispatch(selectDevice(dongleId, false));
+    this.setState({ settingsModalDongleId: dongleId });
+  }
+
+  handleClosedSettingsModal() {
+    this.setState({ settingsModalDongleId: null });
+    if (window.location.pathname.endsWith('/settings')) {
+      window.history.replaceState(null, '', `/${this.props.selectedDevice}`);
     }
-    this.props.dispatch(push(`/${dongleId}/settings`));
   }
 
   async onVisible() {
@@ -154,6 +163,7 @@ class DeviceList extends Component {
   }
 
   render() {
+    const { settingsModalDongleId } = this.state;
     const { classes, device, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
@@ -197,6 +207,11 @@ class DeviceList extends Component {
             </div>
           )}
         </div>
+        <DeviceSettingsModal
+          isOpen={Boolean(settingsModalDongleId)}
+          dongleId={settingsModalDongleId}
+          onClose={this.handleClosedSettingsModal}
+        />
       </>
     );
   }
