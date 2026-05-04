@@ -11,6 +11,7 @@ import { devices as Devices } from '@commaai/api';
 
 import { updateDevices } from '../../actions';
 import Colors from '../../colors';
+import { getDeviceSettings } from '../../url';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import VisibilityHandler from '../VisibilityHandler';
 
@@ -90,7 +91,7 @@ class DeviceList extends Component {
     super(props);
 
     this.state = {
-      settingsModalDongleId: null,
+      settingsModalDongleId: getDeviceSettings(window.location.pathname),
     };
 
     this.renderDevice = this.renderDevice.bind(this);
@@ -107,6 +108,9 @@ class DeviceList extends Component {
 
   handleClosedSettingsModal() {
     this.setState({ settingsModalDongleId: null });
+    if (window.location.pathname.endsWith('/settings')) {
+      window.history.replaceState(null, '', `/${this.props.selectedDevice}`);
+    }
   }
 
   async onVisible() {
