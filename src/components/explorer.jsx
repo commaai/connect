@@ -4,6 +4,8 @@ import Obstruction from 'obstruction';
 import localforage from 'localforage';
 import { replace } from 'connected-react-router';
 
+import { getDeviceSettings } from '../url';
+
 import { withStyles, Button, CircularProgress, Divider, Modal, Paper, Typography } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
 
@@ -13,6 +15,7 @@ import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
+import DeviceSettingsModal from './Dashboard/DeviceSettingsModal';
 import PullDownReload from './utils/PullDownReload';
 
 import { analyticsEvent, selectDevice, updateDevice, checkLastRoutesData } from '../actions';
@@ -76,6 +79,14 @@ class ExplorerApp extends Component {
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
+    this.closeSettingsModal = this.closeSettingsModal.bind(this);
+  }
+
+  closeSettingsModal() {
+    const settingsDongleId = getDeviceSettings(this.props.pathname);
+    if (settingsDongleId) {
+      this.props.dispatch(replace(`/${settingsDongleId}`));
+    }
   }
 
   async componentDidMount() {
@@ -179,8 +190,9 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, currentRoute, devices, dongleId } = this.props;
+    const { classes, currentRoute, devices, dongleId, pathname } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
+    const settingsDongleId = getDeviceSettings(pathname);
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const isLarge = noDevicesUpsell || windowWidth > 1080;
@@ -228,6 +240,13 @@ class ExplorerApp extends Component {
             : (currentRoute ? <DriveView /> : <Dashboard />)}
         </div>
         <IosPwaPopup />
+        { settingsDongleId && devices && (
+          <DeviceSettingsModal
+            isOpen
+            dongleId={ settingsDongleId }
+            onClose={ this.closeSettingsModal }
+          />
+        )}
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
           <Paper className={classes.modal}>
             <Typography variant="title">Pairing device</Typography>

@@ -47,3 +47,11 @@ export function getPrimeNav(pathname) {
   }
   return false;
 }
+
+export function getDeviceSettings(pathname) {
+  const parts = pathname.split('/').filter((m) => m.length);
+  if (parts.length === 2 && dongleIdRegex.test(parts[0]) && parts[1] === 'settings') {
+    return parts[0];
+  }
+  return null;
+}
