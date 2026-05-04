@@ -160,8 +160,9 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
+  const route = state.routes?.find((r) => r.log_id === log_id);
   const loopStart = start ?? 0;
-  const loopEnd = end ?? state.routes?.find((r) => r.log_id === log_id)?.duration;
+  const loopEnd = end ?? route?.duration;
 
   if (loopEnd != null && (!state.loop || !state.loop.duration
     || state.loop.startTime < loopStart || state.loop.startTime + state.loop.duration > loopEnd
@@ -171,7 +172,10 @@ function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
   }
 
   if (allowPathChange) {
-    const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start/1000), Math.floor(end/1000), false);
+    const wholeRoute = !Number.isFinite(start) || !Number.isFinite(end) || (start === 0 && end === route?.duration);
+    const urlStart = wholeRoute ? null : Math.floor(start / 1000);
+    const urlEnd = wholeRoute ? null : Math.floor(end / 1000);
+    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
     if (window.location.pathname !== desiredPath) {
       dispatch(push(desiredPath));
     }
