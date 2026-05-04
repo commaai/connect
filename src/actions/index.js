@@ -148,7 +148,7 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 
   if (log_id) {
     path.push(log_id);
-    if (start && end && start > 0) {
+    if (start != null && end != null && start !== end) {
       path.push(start);
       path.push(end);
     }
@@ -160,14 +160,22 @@ export function urlForState(dongleId, log_id, start, end, prime) {
 }
 
 function updateTimeline(state, dispatch, log_id, start, end, allowPathChange) {
-  if (!state.loop || !state.loop.startTime || !state.loop.duration || state.loop.startTime < start
-    || state.loop.startTime + state.loop.duration > end || state.loop.duration < end - start) {
+  const route = state.routes?.find((r) => r.log_id === log_id);
+  const loopStart = start ?? 0;
+  const loopEnd = end ?? route?.duration;
+
+  if (loopEnd != null && (!state.loop || !state.loop.duration
+    || state.loop.startTime < loopStart || state.loop.startTime + state.loop.duration > loopEnd
+    || state.loop.duration < loopEnd - loopStart)) {
     dispatch(resetPlayback());
-    dispatch(selectLoop(start, end));
+    dispatch(selectLoop(loopStart, loopEnd));
   }
 
   if (allowPathChange) {
-    const desiredPath = urlForState(state.dongleId, log_id, Math.floor(start/1000), Math.floor(end/1000), false);
+    const wholeRoute = start == null || (start === 0 && end === route?.duration);
+    const urlStart = wholeRoute ? null : Math.floor(start / 1000);
+    const urlEnd = wholeRoute ? null : Math.floor(end / 1000);
+    const desiredPath = urlForState(state.dongleId, log_id, urlStart, urlEnd, false);
     if (window.location.pathname !== desiredPath) {
       dispatch(push(desiredPath));
     }
@@ -189,6 +197,8 @@ export function popTimelineRange(log_id, allowPathChange = true) {
 }
 
 export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
+  if (!Number.isFinite(start)) start = null;
+  if (!Number.isFinite(end)) end = null;
   return (dispatch, getState) => {
     const state = getState();
 
