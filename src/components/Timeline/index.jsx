@@ -251,8 +251,14 @@ class Timeline extends Component {
     const rulerBounds = this.rulerRef.current.getBoundingClientRect();
     const startPercent = (Math.min(dragging[0], dragging[1]) - rulerBounds.x) / rulerBounds.width;
     const endPercent = (Math.max(dragging[0], dragging[1]) - rulerBounds.x) / rulerBounds.width;
-    const startOffset = Math.round(this.percentToOffset(startPercent));
-    const endOffset = Math.round(this.percentToOffset(endPercent));
+    // Round to whole seconds (URL precision) so the section bounds match what we
+    // serialize, and so any drag is at least 1s wide. No separate sub-second
+    // internal state to keep in sync.
+    const startOffset = Math.round(this.percentToOffset(startPercent) / 1000) * 1000;
+    let endOffset = Math.round(this.percentToOffset(endPercent) / 1000) * 1000;
+    if (endOffset <= startOffset) {
+      endOffset = startOffset + 1000;
+    }
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
       const offset = currentOffset();
