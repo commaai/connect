@@ -24,7 +24,7 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
   const [connectionState, setConnectionState] = useState('disconnected');
   const [statusMessage, setStatusMessage] = useState(null);
   const [connectProgress, setConnectProgress] = useState(0);
-  const [batteryLevel, setBatteryLevel] = useState(null);
+  const [battery, setBattery] = useState(null);
   const [error, setError] = useState(null);
   const [isLandscape, setIsLandscape] = useState(false);
   const [activeCamera, setActiveCamera] = useState('driver');
@@ -50,7 +50,7 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
         setStatusMessage(msg);
         setConnectProgress(progressMap[msg] || 0);
       },
-      onBatteryLevel: setBatteryLevel,
+      onBatteryLevel: setBattery,
       onConnectionReplaced: (data) => {
         setError(data || 'Connection replaced');
         setConnectionState('failed');
@@ -163,7 +163,7 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
             <>
               <StatusBar
                 connectionState={connectionState}
-                batteryLevel={batteryLevel}
+                battery={battery}
                 className="absolute top-3 right-3 z-10 flex items-center gap-2"
                 {...statsState}
               />
@@ -205,7 +205,7 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
         {connected && (
           <StatusBar
             connectionState={connectionState}
-            batteryLevel={batteryLevel}
+            battery={battery}
             className="flex items-center justify-end p-2 gap-2"
             {...statsState}
           />

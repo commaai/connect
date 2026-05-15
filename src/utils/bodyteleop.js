@@ -102,7 +102,7 @@ export class BodyTeleopConnection {
       this.dc.onmessage = (evt) => {
         try {
           const msg = JSON.parse(typeof evt.data === 'string' ? evt.data : new TextDecoder().decode(evt.data));
-          if (msg.type === 'carState') this.callbacks.onBatteryLevel(Math.round(msg.data.fuelGauge * 100));
+          if (msg.type === 'carState') this.callbacks.onBatteryLevel({ level: Math.round(msg.data.fuelGauge * 100), charging: !!msg.data.charging });
           if (msg.type === 'connectionReplaced') this.callbacks.onConnectionReplaced?.(msg.data);
           if (msg.type === 'clockSync' && msg.data?.action === 'pong') this._handleClockPong(msg.data);
         } catch (e) {
@@ -170,7 +170,7 @@ export class BodyTeleopConnection {
           resp = await fetch(`http://${this.directAddress}:5001/stream`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sdp, cameras: ['driver'], bridge_services_in: ["testJoystick", "soundRequest", "livestreamCameraSwitch"], bridge_services_out: ['carState'] }),
+            body: JSON.stringify({ sdp, initCamera: "driver", bridge_services_in: ["testJoystick", "soundRequest", "livestreamCameraSwitch"], bridge_services_out: ['carState'] }),
           });
         } catch (_) {
           throw new Error('Could not reach device. Is the ignition on?');

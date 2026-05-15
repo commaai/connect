@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import BatteryFull from '@material-ui/icons/BatteryFull';
+import BatteryChargingFull from '@material-ui/icons/BatteryChargingFull';
 
 const LATENCY_BUFFER_SIZE = 10;
 const LATENCY_HISTORY_MAX = 60;
@@ -218,12 +219,14 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
 };
 
 const StatusBar = ({
-  connectionState, batteryLevel, className, toggleStats,
+  connectionState, battery, className, toggleStats,
 }) => {
   const dotColor = connectionState === 'connecting' ? '#facc15'
     : connectionState === 'connected' ? '#22c967'
     : connectionState === 'failed' ? '#da2535'
     : '#4b5559';
+
+  const BatteryIcon = battery?.charging ? BatteryChargingFull : BatteryFull;
 
   return (
     <div className={className}>
@@ -237,10 +240,10 @@ const StatusBar = ({
         />
         <span className="text-xs text-white/70">{connectionState}</span>
       </div>
-      {batteryLevel !== null && (
+      {battery && (
         <div className="flex items-center justify-center gap-1.5 h-7 px-2.5">
-          <BatteryFull style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.7)' }} />
-          <span className="text-xs text-white/70">{batteryLevel}%</span>
+          <BatteryIcon style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.7)' }} />
+          <span className="text-xs text-white/70">{battery.level}%</span>
         </div>
       )}
       <div
