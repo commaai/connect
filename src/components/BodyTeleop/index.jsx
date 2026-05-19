@@ -6,10 +6,13 @@ import { IconButton, Typography } from '@material-ui/core';
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
 import { BodyTeleopConnection } from '../../utils/bodyteleop';
-import StatusBar, { useStats, StatsPanel } from './StatusBar';
+import StatusBar, { useStats, StatsPanel, LatencyPanel } from './StatusBar';
 import ControlsBar from './ControlsBar';
 import Video from './Video';
 import Joystick from './Joystick';
+
+const TEST_LATENCY_STEP_MS = 10;
+const TEST_LATENCY_MAX_MS = 2000;
 
 const progressMap = {
   'Preparing connection...': 10,
@@ -28,6 +31,8 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
   const [error, setError] = useState(null);
   const [isLandscape, setIsLandscape] = useState(false);
   const [activeCamera, setActiveCamera] = useState('driver');
+  const [showLatencyControls, setShowLatencyControls] = useState(false);
+  const [testLatencyMs, setTestLatencyMs] = useState(0);
 
   const [gamepadConnected, setGamepadConnected] = useState(false);
 
@@ -76,6 +81,10 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
       conn.disconnect();
     };
   }, []);
+
+  useEffect(() => {
+    connectionRef.current?.setArtificialLatency(testLatencyMs);
+  }, [connectionState, testLatencyMs]);
 
   useEffect(() => {
     const query = window.matchMedia('(orientation: landscape)');
@@ -135,11 +144,35 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
     });
   }, []);
 
+  const changeTestLatency = useCallback((deltaMs) => {
+    setTestLatencyMs((prev) => Math.max(0, Math.min(TEST_LATENCY_MAX_MS, prev + deltaMs)));
+  }, []);
+
+  const resetTestLatency = useCallback(() => {
+    setTestLatencyMs(0);
+  }, []);
+
+  const toggleLatencyControls = useCallback(() => {
+    setShowLatencyControls((prev) => !prev);
+  }, []);
+
   const connection = connectionRef.current;
   const connected = connectionState === 'connected';
   const deviceName = directAddress || (device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop'));
 
   const statsState = useStats(connection, connectionState, latencyCallbackRef);
+  const latencyControlState = {
+    showLatencyControls,
+    toggleLatencyControls,
+    testLatencyMs,
+  };
+  const latencyPanelProps = {
+    testLatencyMs,
+    maxLatencyMs: TEST_LATENCY_MAX_MS,
+    onDecreaseLatency: () => changeTestLatency(-TEST_LATENCY_STEP_MS),
+    onIncreaseLatency: () => changeTestLatency(TEST_LATENCY_STEP_MS),
+    onResetLatency: resetTestLatency,
+  };
   const videoProps = {
     videoRef, connectionState, error,
     statusMessage, connectProgress,
@@ -166,9 +199,13 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
                 battery={battery}
                 className="absolute top-3 right-3 z-10 flex items-center gap-2"
                 {...statsState}
+                {...latencyControlState}
               />
               {statsState.showStats && (
                 <StatsPanel isLandscape {...statsState} />
+              )}
+              {showLatencyControls && (
+                <LatencyPanel isLandscape {...latencyPanelProps} />
               )}
               <Joystick
                 connection={connection}
@@ -208,12 +245,16 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
             battery={battery}
             className="flex items-center justify-end p-2 gap-2"
             {...statsState}
+            {...latencyControlState}
           />
         )}
         <div className="relative flex items-center justify-center overflow-hidden bg-[#030404] flex-none">
           <Video {...videoProps} />
           {connected && statsState.showStats && (
             <StatsPanel {...statsState} />
+          )}
+          {connected && showLatencyControls && (
+            <LatencyPanel {...latencyPanelProps} />
           )}
         </div>
         {connected ? (

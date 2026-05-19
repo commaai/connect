@@ -12,6 +12,11 @@ export class BodyTeleopConnection {
     this.clockSyncInterval = null;
     this.joystickX = 0;
     this.joystickY = 0;
+    this.artificialLatencyMs = 0;
+    this.pendingDataChannelSendTimers = new Set();
+    this.videoFrameDelay = null;
+    this.videoFrameReleaseAt = 0;
+    this.videoReceiver = null;
     this.callbacks = callbacks;
     this.clockOffset = 0;
     this.clockSynced = false;
@@ -40,14 +45,8 @@ export class BodyTeleopConnection {
       this.pc.addEventListener('track', (evt) => {
         if (evt.track.kind === 'video') {
           if (evt.receiver) {
-            // Minimize receiver-side buffering for low-latency playback
-            if ('playoutDelayHint' in evt.receiver) {
-              evt.receiver.playoutDelayHint = 0;
-            }
-            if ('jitterBufferTarget' in evt.receiver) {
-              evt.receiver.jitterBufferTarget = 0;
-            }
-            
+            this.videoReceiver = evt.receiver;
+
             // Set up Transform to extract frame-level timing SEI in frames
             if (typeof window.RTCRtpScriptTransform !== 'undefined') {
               // Standard API (Firefox 117+, future Chrome)
@@ -69,7 +68,8 @@ export class BodyTeleopConnection {
               
             }
           }
-          const stream = new MediaStream([evt.track]);
+          const stream = this._createVideoStream(evt.track);
+          this._applyVideoDelay();
           this.callbacks.onVideoTrack(VIDEO_STREAM_NAME, stream);
         }
       });
@@ -97,6 +97,7 @@ export class BodyTeleopConnection {
       };
       this.dc.onclose = () => {
         this._clearJoystickInterval();
+        this._clearPendingDataChannelSends();
         this._stopClockSync();
       };
       this.dc.onmessage = (evt) => {
@@ -192,12 +193,25 @@ export class BodyTeleopConnection {
     }
   }
 
-  _sendDc(type, data) {
-    if (this.dc?.readyState === 'open') {
-      this.dc.send(JSON.stringify({ type, data }));
+  _sendDc(type, data, { delayMs = 0 } = {}) {
+    if (this.dc?.readyState !== 'open') return false;
+
+    const payload = JSON.stringify({ type, data });
+    if (delayMs <= 0) {
+      this.dc.send(payload);
       return true;
     }
-    return false;
+
+    const dc = this.dc;
+    let timer = null;
+    timer = setTimeout(() => {
+      this.pendingDataChannelSendTimers.delete(timer);
+      if (this.dc === dc && dc.readyState === 'open') {
+        dc.send(payload);
+      }
+    }, delayMs);
+    this.pendingDataChannelSendTimers.add(timer);
+    return true;
   }
 
   async playSound(sound) {
@@ -210,13 +224,23 @@ export class BodyTeleopConnection {
     this._sendDc('livestreamCameraSwitch', { camera: cameraName });
   }
 
+  setArtificialLatency(ms) {
+    const nextLatency = Number.isFinite(ms) ? Math.max(0, Math.round(ms)) : 0;
+    this.artificialLatencyMs = nextLatency;
+    this._applyVideoDelay();
+  }
+
   setJoystick(x, y) {
     this.joystickX = x;
     this.joystickY = y;
   }
 
   sendJoystick() {
-    this._sendDc('testJoystick', { axes: [this.joystickX, this.joystickY], buttons: [false] });
+    this._sendDc(
+      'testJoystick',
+      { axes: [this.joystickX, this.joystickY], buttons: [false] },
+      { delayMs: this.artificialLatencyMs },
+    );
   }
 
   _clearJoystickInterval() {
@@ -226,6 +250,115 @@ export class BodyTeleopConnection {
     }
   }
 
+  _clearPendingDataChannelSends() {
+    this.pendingDataChannelSendTimers.forEach((timer) => clearTimeout(timer));
+    this.pendingDataChannelSendTimers.clear();
+  }
+
+  _createVideoStream(track) {
+    this._stopVideoFrameDelay();
+    const delayedTrack = this._createDelayedVideoTrack(track);
+    return new MediaStream([delayedTrack || track]);
+  }
+
+  _createDelayedVideoTrack(track) {
+    if (typeof window === 'undefined') return null;
+    const Processor = window.MediaStreamTrackProcessor;
+    const Generator = window.MediaStreamTrackGenerator;
+    if (typeof Processor !== 'function' || typeof Generator !== 'function') return null;
+
+    try {
+      const processor = new Processor({ track });
+      const generator = new Generator({ kind: 'video' });
+      const state = {
+        reader: processor.readable.getReader(),
+        writer: generator.writable.getWriter(),
+        track: generator,
+        timers: new Map(),
+        stopped: false,
+        writeChain: Promise.resolve(),
+      };
+      this.videoFrameDelay = state;
+      this.videoFrameReleaseAt = performance.now();
+      this._pumpDelayedVideoFrames(state);
+      return generator;
+    } catch (err) {
+      console.warn('bodyteleop: unable to create decoded video frame delay', err);
+      this.videoFrameDelay = null;
+      return null;
+    }
+  }
+
+  async _pumpDelayedVideoFrames(state) {
+    const writeFrame = (frame) => {
+      state.writeChain = state.writeChain.then(async () => {
+        if (state.stopped) {
+          this._closeVideoFrame(frame);
+          return;
+        }
+        await state.writer.write(frame);
+      }).catch((err) => {
+        this._closeVideoFrame(frame);
+        if (!state.stopped) {
+          console.warn('bodyteleop: delayed video frame write failed', err);
+        }
+      });
+    };
+
+    try {
+      while (!state.stopped) {
+        // eslint-disable-next-line no-await-in-loop
+        const { value: frame, done } = await state.reader.read();
+        if (done) break;
+
+        const now = performance.now();
+        const releaseAt = Math.max(now + this.artificialLatencyMs, this.videoFrameReleaseAt);
+        this.videoFrameReleaseAt = releaseAt;
+        const waitMs = releaseAt - now;
+
+        if (waitMs <= 0) {
+          writeFrame(frame);
+          continue;
+        }
+
+        let timer = null;
+        timer = setTimeout(() => {
+          state.timers.delete(timer);
+          if (state.stopped) {
+            this._closeVideoFrame(frame);
+            return;
+          }
+          writeFrame(frame);
+        }, waitMs);
+        state.timers.set(timer, frame);
+      }
+    } catch (err) {
+      if (!state.stopped) {
+        console.warn('bodyteleop: decoded video frame delay failed', err);
+      }
+    }
+  }
+
+  _stopVideoFrameDelay() {
+    const state = this.videoFrameDelay;
+    if (!state) return;
+
+    state.stopped = true;
+    state.timers.forEach((frame, timer) => {
+      clearTimeout(timer);
+      this._closeVideoFrame(frame);
+    });
+    state.timers.clear();
+    state.reader.cancel().catch(() => {});
+    state.writer.abort().catch(() => {});
+    if (state.track.stop) state.track.stop();
+    this.videoFrameDelay = null;
+  }
+
+  _closeVideoFrame(frame) {
+    if (frame?.close) frame.close();
+  }
+
   _stopClockSync() {
     if (this.clockSyncInterval) {
       clearInterval(this.clockSyncInterval);
@@ -233,6 +366,23 @@ export class BodyTeleopConnection {
     }
     this.clockSynced = false;
   }
+
+  _applyVideoDelay(receiver = this.videoReceiver) {
+    if (!receiver) return;
+    const ms = this.videoFrameDelay ? 0 : this.artificialLatencyMs;
+    const seconds = ms / 1000;
+    try {
+      if ('playoutDelayHint' in receiver) {
+        receiver.playoutDelayHint = seconds;
+      }
+      if ('jitterBufferTarget' in receiver) {
+        receiver.jitterBufferTarget = ms;
+      }
+    } catch (err) {
+      console.warn('bodyteleop: unable to apply video delay', err);
+    }
+  }
+
 
   setTimingSei(enabled) {
     this._sendDc('enableTimingSei', { enabled });
@@ -285,6 +435,7 @@ export class BodyTeleopConnection {
 
   cleanup() {
     this._clearJoystickInterval();
+    this._stopVideoFrameDelay();
     this._stopClockSync();
     if (this.dc) {
       this.dc.close();
@@ -299,5 +450,7 @@ export class BodyTeleopConnection {
       this.pc.close();
       this.pc = null;
     }
+    this.videoReceiver = null;
+    this._clearPendingDataChannelSends();
   }
 }

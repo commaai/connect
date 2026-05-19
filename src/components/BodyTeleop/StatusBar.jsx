@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Add from '@material-ui/icons/Add';
 import BatteryFull from '@material-ui/icons/BatteryFull';
 import BatteryChargingFull from '@material-ui/icons/BatteryChargingFull';
+import Remove from '@material-ui/icons/Remove';
+import Replay from '@material-ui/icons/Replay';
 
 const LATENCY_BUFFER_SIZE = 10;
 const LATENCY_HISTORY_MAX = 60;
@@ -20,6 +23,7 @@ const LATENCY_LAYERS = [
   { label: 'Network', key: 'networkMs', color: 'rgba(66,165,245,0.55)', labelColor: 'rgba(66,165,245,0.7)' },
 ];
 
+const latencyControlButton = 'w-6 h-6 rounded-[6px] flex items-center justify-center cursor-pointer select-none border border-white/10 bg-white/10 text-white/70 hover:text-white hover:bg-white/20 disabled:cursor-default disabled:opacity-35 disabled:hover:bg-white/10 disabled:hover:text-white/70 md:w-8 md:h-8';
 
 export const useStats = (connection, connectionState, latencyCallbackRef) => {
   const [showStats, setShowStats] = useState(false);
@@ -218,8 +222,54 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
   );
 };
 
+export const LatencyPanel = ({
+  isLandscape, testLatencyMs, maxLatencyMs, onDecreaseLatency, onIncreaseLatency, onResetLatency,
+}) => (
+  <div className={isLandscape
+    ? 'absolute top-12 left-3 z-10 flex flex-col items-start'
+    : 'absolute top-0 left-1 z-10 flex flex-col items-start'}
+  >
+    <div className="mt-0.5 p-[6px] rounded-[5px] min-w-[130px] font-mono bg-glass-dark md:p-[10px] md:min-w-[190px] md:rounded-[10px]">
+      <div className="text-[7px] font-bold text-white/35 tracking-[0.5px] leading-tight pb-[4px] md:text-[11px]">TEST LATENCY</div>
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          className={latencyControlButton}
+          onClick={onDecreaseLatency}
+          disabled={testLatencyMs <= 0}
+          title="Decrease latency"
+        >
+          <Remove style={{ fontSize: 16 }} />
+        </button>
+        <div className="h-6 min-w-[56px] rounded-[6px] flex items-center justify-center px-2 bg-black/30 text-[10px] font-bold text-white/85 md:h-8 md:min-w-[72px] md:text-[13px]">
+          {testLatencyMs} ms
+        </div>
+        <button
+          type="button"
+          className={latencyControlButton}
+          onClick={onIncreaseLatency}
+          disabled={testLatencyMs >= maxLatencyMs}
+          title="Increase latency"
+        >
+          <Add style={{ fontSize: 16 }} />
+        </button>
+        <button
+          type="button"
+          className={latencyControlButton}
+          onClick={onResetLatency}
+          disabled={testLatencyMs <= 0}
+          title="Reset latency"
+        >
+          <Replay style={{ fontSize: 15 }} />
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 const StatusBar = ({
   connectionState, battery, className, toggleStats,
+  showLatencyControls, toggleLatencyControls, testLatencyMs,
 }) => {
   const dotColor = connectionState === 'connecting' ? '#facc15'
     : connectionState === 'connected' ? '#22c967'
@@ -227,6 +277,7 @@ const StatusBar = ({
     : '#4b5559';
 
   const BatteryIcon = battery?.charging ? BatteryChargingFull : BatteryFull;
+  const latencyActive = showLatencyControls || testLatencyMs > 0;
 
   return (
     <div className={className}>
@@ -246,6 +297,13 @@ const StatusBar = ({
           <span className="text-xs text-white/70">{battery.level}%</span>
         </div>
       )}
+      <div
+        className={`flex items-center text-[9px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none justify-center h-6 px-2.5 rounded-[14px] cursor-pointer select-none bg-glass hover:text-white/90 hover:!bg-black/60 ${latencyActive ? 'text-white/90 !bg-black/60' : 'text-white/60'}`}
+        onClick={toggleLatencyControls}
+        title="Test latency"
+      >
+        {testLatencyMs > 0 ? `${testLatencyMs} ms` : 'latency'}
+      </div>
       <div
         className="flex items-center text-[9px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none justify-center h-6 px-2.5 rounded-[14px] cursor-pointer select-none bg-glass text-white/60 hover:text-white/90 hover:!bg-black/60"
         onClick={toggleStats}
