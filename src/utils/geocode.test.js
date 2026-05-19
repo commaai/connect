@@ -23,7 +23,7 @@ describe('reverseLookup', () => {
   it('should return place names', async () => {
     expect(await reverseLookup([-117.12547, 32.71137], true)).toEqual({
       details: 'San Diego, CA 92102, United States',
-      place: 'Market St',
+      place: 'E Market St',
     });
     expect(await reverseLookup([-117.166409, 32.731369], true)).toEqual({
       details: 'San Diego, CA 92101, United States',
