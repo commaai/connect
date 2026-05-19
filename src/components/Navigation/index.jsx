@@ -676,7 +676,9 @@ class Navigation extends Component {
           </div>
         </div>
         <Typography className={classes.primeAdDetails}>
-          Put your car on the internet with comma prime
+          {this.props.device?.eligible_features?.commacare
+            ? 'Put your car on the internet with comma prime and extend your 1-year limited warranty with commacare'
+            : 'Put your car on the internet with comma prime'}
         </Typography>
       </div>
     );

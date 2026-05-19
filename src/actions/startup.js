@@ -61,7 +61,7 @@ export default function init() {
           dispatch(selectDevice(devices[0].dongle_id));
         }
       }
-      const dongleId = state.dongleId || devices[0].dongle_id || null;
+      const dongleId = getState().dongleId;
       const device = devices.find((dev) => dev.dongle_id === dongleId);
       if (device) {
         dispatch(primeFetchSubscription(dongleId, device, profile));
