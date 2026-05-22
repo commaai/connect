@@ -153,7 +153,7 @@ export class BodyTeleopConnection {
       let answerSdp;
       if (dongleId) {
         const payload = {
-          method: 'startJoystickStream',
+          method: 'startStream',
           params: { sdp },
           jsonrpc: '2.0',
           id: 0,
@@ -170,7 +170,7 @@ export class BodyTeleopConnection {
           resp = await fetch(`http://${this.directAddress}:5001/stream`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sdp, initCamera: "driver", bridge_services_in: ["testJoystick", "soundRequest", "livestreamCameraSwitch"], bridge_services_out: ['carState'] }),
+            body: JSON.stringify({ sdp, initCamera: "wideRoad", bridge_services_in: ["testJoystick", "soundRequest"], bridge_services_out: ['carState'] }),
           });
         } catch (_) {
           throw new Error('Could not reach device. Is the ignition on?');

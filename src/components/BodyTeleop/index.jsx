@@ -27,7 +27,7 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
   const [battery, setBattery] = useState(null);
   const [error, setError] = useState(null);
   const [isLandscape, setIsLandscape] = useState(false);
-  const [activeCamera, setActiveCamera] = useState('driver');
+  const [activeCamera, setActiveCamera] = useState('wideRoad');
 
   const [gamepadConnected, setGamepadConnected] = useState(false);
 
@@ -97,7 +97,7 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
     const conn = connectionRef.current;
     if (!conn) return;
     setError(null);
-    setActiveCamera('driver');
+    setActiveCamera('wideRoad');
     try {
       if (directAddress) {
         await conn.connectDirect(directAddress);
