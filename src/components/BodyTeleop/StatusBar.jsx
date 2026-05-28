@@ -9,7 +9,6 @@ const STATS_ROWS = [
   { label: 'Resolution', key: 'resolution' },
   { label: 'FPS', key: 'fps' },
   { label: 'Bitrate', key: 'bitrate' },
-  { label: 'RTT', key: 'rtt' },
   { label: 'Jitter', key: 'jitter' },
 ];
 
@@ -53,10 +52,8 @@ export const useStats = (connection, connectionState, latencyCallbackRef) => {
     try {
       const report = await pc.getStats();
       let videoStats = null;
-      let candidatePairStats = null;
       report.forEach((stat) => {
         if (stat.type === 'inbound-rtp' && stat.kind === 'video') videoStats = stat;
-        if (stat.type === 'candidate-pair' && stat.state === 'succeeded') candidatePairStats = stat;
       });
       if (!videoStats) return;
 
@@ -82,9 +79,6 @@ export const useStats = (connection, connectionState, latencyCallbackRef) => {
           ? `${(bitrate / 1000000).toFixed(2)} Mbps`
           : `${(bitrate / 1000).toFixed(0)} kbps`,
         jitter: videoStats.jitter !== undefined ? `${(videoStats.jitter * 1000).toFixed(1)} ms` : '?',
-        rtt: candidatePairStats?.currentRoundTripTime !== undefined
-          ? `${(candidatePairStats.currentRoundTripTime * 1000).toFixed(0)} ms`
-          : '?',
       });
     } catch (err) {
       console.warn('pollStats failed:', err);
@@ -169,7 +163,7 @@ function drawLatencyGraph(canvas, latencyHistory) {
   ctx.fillText(`${Math.round(maxVal)}ms`, 2, 9);
 }
 
-export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
+export const StatsPanel = ({isLandscape, stats, latency, latencyHistory }) => {
   const latencyCanvasRef = useRef(null);
 
   useEffect(() => {
@@ -184,9 +178,7 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
   const fmtMs = (v) => (v != null ? `${v.toFixed(1)} ms` : '--');
 
   return (
-    <div className={isLandscape
-      ? 'absolute top-3 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center'
-      : 'absolute top-0 right-1 z-10 flex flex-col items-end'}
+    <div className={`absolute right-1 z-10 flex flex-col items-end ${isLandscape ? 'top-10' : 'top-0'}`}
     >
       <div className={`mt-0.5 p-[3px_6px] rounded-[5px] min-w-[120px] font-mono bg-glass-dark md:p-[10px_16px] md:min-w-[240px] md:rounded-[10px]`}>
         {STATS_ROWS.map(({ label, key }) => (
@@ -243,7 +235,7 @@ const StatusBar = ({
       {battery && (
         <div className="flex items-center justify-center gap-1.5 h-7 px-2.5">
           <BatteryIcon style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.7)' }} />
-          <span className="text-xs text-white/70">{battery.level}%</span>
+          <span className="text-xs text-white/70 w-6">{battery.level}%</span>
         </div>
       )}
       <div

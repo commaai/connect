@@ -210,8 +210,8 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
             {...statsState}
           />
         )}
-        <div className="relative flex items-center justify-center overflow-hidden bg-[#030404] flex-none">
-          <Video {...videoProps} />
+        <div className="relative flex items-center justify-center overflow-hidden bg-[#030404] flex-none aspect-[3/2]">
+          <Video {...videoProps} fit="cover" />
           {connected && statsState.showStats && (
             <StatsPanel {...statsState} />
           )}

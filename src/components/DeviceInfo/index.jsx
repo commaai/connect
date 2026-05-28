@@ -12,7 +12,7 @@ import { athena as Athena, devices as Devices } from '@commaai/api';
 import { analyticsEvent, primeNav } from '../../actions';
 import Colors from '../../colors';
 import { GamepadIcon } from '../../icons';
-import { deviceNamePretty, deviceIsOnline } from '../../utils';
+import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
@@ -537,9 +537,11 @@ class DeviceInfo extends Component {
       pingTooltip = `Last ping on ${lastAthenaPing.format('MMM D, YYYY')} at ${lastAthenaPing.format('h:mm A')}`;
     }
 
+    const bodyTeleopEnabled = isCommaBody && deviceVersionAtLeast(device, '0.11.2');
+
     return (
       <>
-        {isCommaBody && (
+        {bodyTeleopEnabled && (
           <Tooltip
             classes={{ tooltip: classes.popover }}
             title="Body Teleop"
@@ -579,16 +581,18 @@ class DeviceInfo extends Component {
               </Tooltip>
             )}
         </div>
-        <Button
-          ref={ this.snapshotButtonRef }
-          classes={{ root: `${classes.button} ${actionButtonClass} ${buttonOffline}` }}
-          onClick={ this.takeSnapshot }
-          disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
-        >
-          { snapshot.fetching
-            ? <CircularProgress size={ 19 } />
-            : 'take snapshot'}
-        </Button>
+        {!bodyTeleopEnabled && (
+          <Button
+            ref={ this.snapshotButtonRef }
+            classes={{ root: `${classes.button} ${actionButtonClass} ${buttonOffline}` }}
+            onClick={ this.takeSnapshot }
+            disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
+          >
+            { snapshot.fetching
+              ? <CircularProgress size={ 19 } />
+              : 'take snapshot'}
+          </Button>
+        )}
         <Button
           classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
           onClick={ this.onOpenTimeSelect }

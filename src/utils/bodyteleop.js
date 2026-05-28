@@ -4,6 +4,9 @@ import { asyncSleep } from '.';
 const VIDEO_STREAM_NAME = 'camera';
 const wallMs = () => performance.timeOrigin + performance.now();
 
+const CLOCK_WINDOW_SIZE = 16;
+const CLOCK_PING_MS = 500;
+
 export class BodyTeleopConnection {
   constructor(callbacks) {
     this.pc = null;
@@ -13,7 +16,8 @@ export class BodyTeleopConnection {
     this.joystickX = 0;
     this.joystickY = 0;
     this.callbacks = callbacks;
-    this.clockOffset = 0;
+    this.clockSyncSamples = [];
+    this.clockOffsetMs = null;
     this.clockSynced = false;
   }
 
@@ -231,6 +235,8 @@ export class BodyTeleopConnection {
       clearInterval(this.clockSyncInterval);
       this.clockSyncInterval = null;
     }
+    this.clockSyncSamples = [];
+    this.clockOffsetMs = null;
     this.clockSynced = false;
   }
 
@@ -239,7 +245,7 @@ export class BodyTeleopConnection {
     if (enabled) {
       if (!this.clockSyncInterval) {
         this._sendClockPing();
-        this.clockSyncInterval = setInterval(() => this._sendClockPing(), 2000);
+        this.clockSyncInterval = setInterval(() => this._sendClockPing(), CLOCK_PING_MS);
       }
     } else {
       this._stopClockSync();
@@ -258,8 +264,8 @@ export class BodyTeleopConnection {
     };
 
     if (this.clockSynced) {
-      // Convert device wall-clock to browser wall-clock, then compute transit time
-      latency.networkMs = browserReceiveMs - (timing.deviceSendWallMs - this.clockOffset);
+      const raw = browserReceiveMs - (timing.deviceSendWallMs - this.clockOffsetMs);
+      latency.networkMs = Math.max(0, raw);
       latency.totalMs = latency.devicePipelineMs + latency.networkMs;
     }
 
@@ -272,9 +278,17 @@ export class BodyTeleopConnection {
 
   _handleClockPong(data) {
     const now = wallMs();
-    // how far device clock is ahead of browser clock
-    // offset = deviceTime - midpoint(browserSend, browserReceive)
-    this.clockOffset = data.deviceTime - (data.browserSendTime + now) / 2;
+    const rttMs = now - data.browserSendTime;
+    const offsetMs = data.deviceTime - (data.browserSendTime + now) / 2;
+
+    this.clockSyncSamples.push({ offsetMs, rttMs });
+    if (this.clockSyncSamples.length > CLOCK_WINDOW_SIZE) this.clockSyncSamples.shift();
+
+    // pick the smallest-RTT sample: congestion can only inflate RTT, never deflate it,
+    // so min-RTT is the least biased estimate of one-way offset
+    let best = this.clockSyncSamples[0];
+    for (const s of this.clockSyncSamples) if (s.rttMs < best.rttMs) best = s;
+    this.clockOffsetMs = best.offsetMs;
     this.clockSynced = true;
   }
 

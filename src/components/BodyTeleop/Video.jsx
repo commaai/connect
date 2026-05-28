@@ -49,13 +49,13 @@ const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress
 
 const Video = ({
   videoRef, connectionState, error, statusMessage,
-  connectProgress, onConnect,
+  connectProgress, onConnect, fit = 'contain',
 }) => {
   const connected = connectionState === 'connected';
 
   return (
     <>
-      <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-contain" />
+      <video ref={videoRef} autoPlay playsInline muted className={`w-full h-full ${fit === 'cover' ? 'object-cover' : 'object-contain'}`} />
       {!connected && (
         <ConnectOverlay
           connectionState={connectionState}
