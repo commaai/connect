@@ -394,7 +394,7 @@ class DeviceInfo extends Component {
         <ResizeHandler onResize={ this.onResize } />
         <VisibilityHandler onVisible={ this.onVisible } onInit onDongleId minInterval={ 60 } />
         <div className={`${classes.container}`} style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
-          <div className={`flex md:flex-row md:justify-between items-center flex-col gap-4 my-4`}>
+          <div className={`flex md:flex-row md:justify-between items-center flex-col gap-4 md:my-2 my-4`}>
             <div className={classes.deviceTitle}>
               {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
               {isCommaBody && (
