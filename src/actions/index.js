@@ -461,4 +461,3 @@ export function updateRoute(fullname, route) {
     route,
   };
 }
-

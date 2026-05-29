@@ -10,12 +10,14 @@ import AccessTime from '@material-ui/icons/AccessTime';
 import { athena as Athena, devices as Devices } from '@commaai/api';
 import { analyticsEvent, primeNav } from '../../actions';
 import Colors from '../../colors';
-import { deviceNamePretty, deviceIsOnline } from '../../utils';
+import { GamepadIcon } from '../../icons';
+import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import TimeSelect from '../TimeSelect'
 import CommacareBadge from '../CommacareBadge';
+import BodyTeleop from '../BodyTeleop';
 
 const styles = (theme) => ({
   container: {
@@ -50,7 +52,6 @@ const styles = (theme) => ({
     color: Colors.grey900,
     textTransform: 'none',
     minHeight: 'unset',
-    marginRight: '8px',
     '&:hover': {
       background: '#ddd',
       color: Colors.grey900,
@@ -118,7 +119,7 @@ const styles = (theme) => ({
   },
   actionButtonIcon: {
     minWidth: 60,
-    padding: '8px 16px',
+    padding: '8px 8px',
     borderRadius: 15,
   },
   snapshotContainer: {
@@ -206,6 +207,8 @@ class DeviceInfo extends Component {
       snapshot: {},
       windowWidth: window.innerWidth,
       isTimeSelectOpen: false,
+      isCommaBody: false,
+      bodyTeleopOpen: false,
     };
 
     this.snapshotButtonRef = React.createRef();
@@ -214,6 +217,7 @@ class DeviceInfo extends Component {
     this.onVisible = this.onVisible.bind(this);
     this.fetchDeviceInfo = this.fetchDeviceInfo.bind(this);
     this.fetchDeviceCarHealth = this.fetchDeviceCarHealth.bind(this);
+    this.fetchIsNotCar = this.fetchIsNotCar.bind(this);
     this.takeSnapshot = this.takeSnapshot.bind(this);
     this.snapshotType = this.snapshotType.bind(this);
     this.renderButtons = this.renderButtons.bind(this);
@@ -221,6 +225,16 @@ class DeviceInfo extends Component {
     this.renderSnapshotImage = this.renderSnapshotImage.bind(this);
     this.onOpenTimeSelect = this.onOpenTimeSelect.bind(this);
     this.onCloseTimeSelect = this.onCloseTimeSelect.bind(this);
+    this.openBodyTeleop = this.openBodyTeleop.bind(this);
+    this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
+  }
+
+  openBodyTeleop() {
+    this.setState({ bodyTeleopOpen: true });
+  }
+
+  closeBodyTeleop() {
+    this.setState({ bodyTeleopOpen: false });
   }
 
   componentDidMount() {
@@ -236,6 +250,7 @@ class DeviceInfo extends Component {
         carHealth: {},
         snapshot: {},
         windowWidth: window.innerWidth,
+        isCommaBody: false,
       });
     }
   }
@@ -253,6 +268,7 @@ class DeviceInfo extends Component {
     if (!device.shared) {
       this.fetchDeviceInfo();
       this.fetchDeviceCarHealth();
+      this.fetchIsNotCar();
     }
   }
 
@@ -300,6 +316,29 @@ class DeviceInfo extends Component {
           Sentry.captureException(err, { fingerprint: 'device_info_athena_pandastate' });
         }
         this.setState({ carHealth: { error: err.message } });
+      }
+    }
+  }
+
+  async fetchIsNotCar() {
+    const { dongleId, device } = this.props;
+    if (!deviceIsOnline(device)) {
+      return;
+    }
+
+    try {
+      const payload = {
+        method: 'getNotCar',
+        jsonrpc: '2.0',
+        id: 0,
+      };
+      const resp = await Athena.postJsonRpcPayload(dongleId, payload);
+      if (this.mounted && dongleId === this.props.dongleId) {
+        this.setState({ isCommaBody: resp.result === true });
+      }
+    } catch (err) {
+      if (!err.message || err.message.indexOf('Device not registered') === -1) {
+        console.error(err);
       }
     }
   }
@@ -359,7 +398,7 @@ class DeviceInfo extends Component {
 
   render() {
     const { classes, device } = this.props;
-    const { snapshot, deviceStats, windowWidth } = this.state;
+    const { snapshot, deviceStats, windowWidth, bodyTeleopOpen } = this.state;
     const commacare = device?.commacare;
 
     const containerPadding = windowWidth > 520 ? 36 : 16;
@@ -427,6 +466,7 @@ class DeviceInfo extends Component {
               )}
           </div>
           )}
+        { bodyTeleopOpen && <BodyTeleop onClose={this.closeBodyTeleop} /> }
       </>
     );
   }
@@ -478,7 +518,7 @@ class DeviceInfo extends Component {
 
   renderButtons() {
     const { classes, device } = this.props;
-    const { snapshot, carHealth, windowWidth, isTimeSelectOpen } = this.state;
+    const { snapshot, carHealth, windowWidth, isTimeSelectOpen, isCommaBody } = this.state;
 
     let batteryVoltage;
     let batteryBackground = Colors.grey400;
@@ -508,8 +548,28 @@ class DeviceInfo extends Component {
       pingTooltip = `Last ping on ${lastAthenaPing.format('MMM D, YYYY')} at ${lastAthenaPing.format('h:mm A')}`;
     }
 
+    const bodyTeleopEnabled = isCommaBody && deviceVersionAtLeast(device, '0.11.2');
+
     return (
       <>
+        {bodyTeleopEnabled && (
+          <Tooltip
+            classes={{ tooltip: classes.popover }}
+            title="Body Teleop"
+            placement="bottom"
+          >
+            <span>
+              <Button
+                style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
+                classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
+                onClick={ this.openBodyTeleop }
+                disabled={ !deviceIsOnline(device) }
+              >
+                <GamepadIcon fontSize="inherit" />
+              </Button>
+            </span>
+          </Tooltip>
+        )}
         <div
           className={ classes.carBattery }
           style={{ backgroundColor: batteryBackground }}
@@ -532,16 +592,19 @@ class DeviceInfo extends Component {
               </Tooltip>
             )}
         </div>
-        <Button
-          ref={ this.snapshotButtonRef }
-          classes={{ root: `${classes.button} ${actionButtonClass} ${buttonOffline}` }}
-          onClick={ this.takeSnapshot }
-          disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
-        >
-          { snapshot.fetching
-            ? <CircularProgress size={ 19 } />
-            : 'take snapshot'}
-        </Button>
+        {!bodyTeleopEnabled && (
+          <Button
+            ref={ this.snapshotButtonRef }
+            classes={{ root: `${classes.button} ${actionButtonClass} ${buttonOffline}` }}
+            style={{ marginRight: "8px" }}
+            onClick={ this.takeSnapshot }
+            disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
+          >
+            { snapshot.fetching
+              ? <CircularProgress size={ 19 } />
+              : 'take snapshot'}
+          </Button>
+        )}
         <Button
           classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
           onClick={ this.onOpenTimeSelect }
