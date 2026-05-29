@@ -51,7 +51,6 @@ const styles = (theme) => ({
     color: Colors.grey900,
     textTransform: 'none',
     minHeight: 'unset',
-    marginRight: '8px',
     '&:hover': {
       background: '#ddd',
       color: Colors.grey900,
@@ -119,7 +118,7 @@ const styles = (theme) => ({
   },
   actionButtonIcon: {
     minWidth: 60,
-    padding: '8px 16px',
+    padding: '8px 8px',
     borderRadius: 15,
   },
   snapshotContainer: {
@@ -584,6 +583,7 @@ class DeviceInfo extends Component {
           <Button
             ref={ this.snapshotButtonRef }
             classes={{ root: `${classes.button} ${actionButtonClass} ${buttonOffline}` }}
+            style={{ marginRight: "8px" }}
             onClick={ this.takeSnapshot }
             disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
           >
