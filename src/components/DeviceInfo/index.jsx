@@ -23,7 +23,6 @@ import BodyTeleop from '../BodyTeleop';
 const styles = (theme) => ({
   container: {
     borderBottom: `1px solid ${Colors.white10}`,
-    paddingTop: 8,
     display: 'flex',
     flexDirection: 'column',
     minHeight: 64,
@@ -33,10 +32,6 @@ const styles = (theme) => ({
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
-    [theme.breakpoints.down('xs')]: {
-      marginBottom: 8,
-    },
   },
   columnGap: {
     columnGap: theme.spacing.unit * 4,
@@ -109,7 +104,6 @@ const styles = (theme) => ({
     flexDirection: 'column',
     alignItems: 'center',
     maxWidth: 80,
-    padding: `0 ${theme.spacing.unit * 4}px`,
   },
   carBattery: {
     padding: '5px 16px',
@@ -398,51 +392,63 @@ class DeviceInfo extends Component {
       <>
         <ResizeHandler onResize={ this.onResize } />
         <VisibilityHandler onVisible={ this.onVisible } onInit onDongleId minInterval={ 60 } />
-        <div className={ classes.container } style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
-          { windowWidth >= 768
-            ? (
-              <div className={`${classes.row} ${classes.columnGap}`}>
-                <div className={classes.deviceTitle}>
-                  {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
-                  {isCommaBody && (
-                    <Tooltip classes={{ tooltip: classes.popover }} title="comma body" placement="bottom">
-                      <div className={classes.bodyIconWrapper}>
-                        <img src={BodyIcon} alt="comma body" className={classes.bodyIcon} />
-                      </div>
-                    </Tooltip>
-                  )}
-                  <Typography variant="title">{deviceNamePretty(device)}</Typography>
-                </div>
-                <div className={classes.deviceStatContainer}>{ this.renderStats() }</div>
-                <div className={`${classes.row} ${classes.buttonRow}`}>{ this.renderButtons() }</div>
-              </div>
-            )
-            : (
-              <>
-                <div className={ classes.row }>
-                  <div className={classes.deviceTitle}>
-                    {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
-                    {isCommaBody && (
-                      <Tooltip classes={{ tooltip: classes.popover }} title="comma body" placement="bottom">
-                        <div className={classes.bodyIconWrapper}>
-                          <img src={BodyIcon} alt="comma body" className={classes.bodyIcon} />
-                        </div>
-                      </Tooltip>
-                    )}
-                    <Typography variant="title">{deviceNamePretty(device)}</Typography>
+        <div className={`${classes.container}`} style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
+          <div className={`flex md:flex-row md:justify-between items-center flex-col gap-4 my-4`}>
+            <div className={classes.deviceTitle}>
+              {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
+              {isCommaBody && (
+                <Tooltip classes={{ tooltip: classes.popover }} title="comma body" placement="bottom">
+                  <div className={classes.bodyIconWrapper}>
+                    <img src={BodyIcon} alt="comma body" className={classes.bodyIcon} />
                   </div>
-                </div>
-                <div className={ classes.row }>
-                  { this.renderButtons() }
-                </div>
-                { deviceStats.result
-              && (
-              <div className={ `${classes.row} ${classes.spaceAround}` }>
-                { this.renderStats() }
-              </div>
+                </Tooltip>
               )}
-              </>
-            ) }
+              <Typography variant="title">{deviceNamePretty(device)}</Typography>
+            </div>
+            <div className={`flex flex-row justify-center md:gap-[32px] gap-[16px]`}>{ this.renderStats() }</div>
+            <div className={`flex flex-row justify-center`}>{ this.renderButtons() }</div>
+          </div>
+          {/* // { windowWidth >= 768 */}
+          {/* //   ? (
+          //     <div className={`${classes.row} ${classes.columnGap}`}>
+          //       <div className={classes.deviceTitle}>
+          //         {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
+          //         {isCommaBody && (
+          //           <Tooltip classes={{ tooltip: classes.popover }} title="comma body" placement="bottom">
+          //             <div className={classes.bodyIconWrapper}>
+          //               <img src={BodyIcon} alt="comma body" className={classes.bodyIcon} />
+          //             </div>
+          //           </Tooltip>
+          //         )}
+          //         <Typography variant="title">{deviceNamePretty(device)}</Typography>
+          //       </div>
+          //       <div className={classes.deviceStatContainer}>{ this.renderStats() }</div>
+          //       <div className={`${classes.row}`}>{ this.renderButtons() }</div>
+          //     </div>
+          //   )
+          //   : (
+          //     <>
+          //       <div className={ classes.row }>
+          //         <div className={classes.deviceTitle}>
+          //           {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
+          //           {isCommaBody && (
+          //             <Tooltip classes={{ tooltip: classes.popover }} title="comma body" placement="bottom">
+          //               <div className={classes.bodyIconWrapper}>
+          //                 <img src={BodyIcon} alt="comma body" className={classes.bodyIcon} />
+          //               </div>
+          //             </Tooltip>
+          //           )}
+          //           <Typography variant="title">{deviceNamePretty(device)}</Typography>
+          //         </div>
+          //       </div>
+          //       <div className={ classes.row }>{ this.renderButtons() }</div>
+          //       { deviceStats.result && (
+          //         <div className={ `${classes.row} ${classes.spaceAround}` }>
+          //           { this.renderStats() }
+          //         </div>
+          //       )}
+          //     </>
+          //   ) } */}
         </div>
         { snapshot.result
           && (
@@ -556,7 +562,7 @@ class DeviceInfo extends Component {
     const bodyTeleopEnabled = isCommaBody && deviceVersionAtLeast(device, '0.11.2');
 
     return (
-      <div className='flex flex-row justify-between gap-4 w-full'>
+      <div className='flex flex-row justify-center gap-4 w-full'>
         <div
           className={ classes.carBattery }
           style={{ backgroundColor: batteryBackground }}
@@ -600,7 +606,6 @@ class DeviceInfo extends Component {
           <Button
             ref={ this.snapshotButtonRef }
             classes={{ root: `${classes.button} ${actionButtonClass} ${buttonOffline}` }}
-            style={{ marginRight: "8px" }}
             onClick={ this.takeSnapshot }
             disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
           >
