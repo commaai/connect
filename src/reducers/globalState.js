@@ -107,6 +107,11 @@ export default function reducer(_state, action) {
       state = {
         ...state,
         devices: action.devices
+          .map((d) => {
+            // `rpc` holds Athena RPC-fetched values that would be wiped by listDevices payload
+            const prev = (_state.devices || []).find((p) => p.dongle_id === d.dongle_id);
+            return prev && prev.rpc ? { ...d, rpc: prev.rpc } : d;
+          })
           .map(populateFetchedAt)
           .sort(deviceCompareFn),
       };
@@ -248,6 +253,34 @@ export default function reducer(_state, action) {
         state.device = {
           ...state.device,
           network_metered: action.networkMetered,
+        };
+      }
+      break;
+    case Types.ACTION_UPDATE_DEVICE_RPC:
+      // merge RPC-fetched values (e.g. not_car) into a specific device's `rpc` field
+      state = {
+        ...state,
+        devices: [...state.devices],
+      };
+      deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.dongleId);
+
+      if (deviceIndex !== -1) {
+        state.devices[deviceIndex] = {
+          ...state.devices[deviceIndex],
+          rpc: {
+            ...state.devices[deviceIndex].rpc,
+            ...action.fields,
+          },
+        };
+      }
+
+      if (state.device.dongle_id === action.dongleId) {
+        state.device = {
+          ...state.device,
+          rpc: {
+            ...state.device.rpc,
+            ...action.fields,
+          },
         };
       }
       break;
