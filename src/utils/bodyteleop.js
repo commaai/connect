@@ -21,11 +21,6 @@ export class BodyTeleopConnection {
     this.clockSynced = false;
   }
 
-  async connectDirect(address) {
-    this.directAddress = address;
-    return this.connect(null);
-  }
-
   async connect(dongleId) {
     this.cleanup();
     this.callbacks.onConnectionState('connecting');
@@ -153,41 +148,20 @@ export class BodyTeleopConnection {
         (block) => block.includes('a=rtcp-mux') ? block : block.replace(/(m=(?:audio|video) [^\n]*\n)/, '$1a=rtcp-mux\r\n'),
       );
       this.callbacks.onStatusMessage?.('Reaching device...');
-      
-      let answerSdp;
-      if (dongleId) {
-        const payload = {
-          method: 'startStream',
-          params: { sdp },
-          jsonrpc: '2.0',
-          id: 0,
-        };
-        const resp = await Athena.postJsonRpcPayload(dongleId, payload);
-        if (!resp?.result || resp.error) {
-          throw new Error('Could not reach device. Is the ignition on?');
-        }
-        this.callbacks.onStatusMessage?.('Device responded');
-        answerSdp = resp.result.sdp;
-      } else if (this.directAddress) {
-        let resp;
-        try {
-          resp = await fetch(`http://${this.directAddress}:5001/stream`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sdp, initCamera: "wideRoad", bridge_services_in: ["testJoystick"], bridge_services_out: ['carState'] }),
-          });
-        } catch (_) {
-          throw new Error('Could not reach device. Is the ignition on?');
-        }
-        if (!resp.ok) {
-          throw new Error(`Device experienced an error (${resp.status})`);
-        }
-        this.callbacks.onStatusMessage?.('Device responded');
-        const result = await resp.json();
-        answerSdp = result.sdp;
-      }
 
-      await this.pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+      const payload = {
+        method: 'startStream',
+        params: { sdp },
+        jsonrpc: '2.0',
+        id: 0,
+      };
+      const resp = await Athena.postJsonRpcPayload(dongleId, payload);
+      if (!resp?.result || resp.error) {
+        throw new Error('Could not reach device. Is the ignition on?');
+      }
+      this.callbacks.onStatusMessage?.('Device responded');
+
+      await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
       this.callbacks.onStatusMessage?.('Establishing connection...');
     } catch (err) {
       this.cleanup();

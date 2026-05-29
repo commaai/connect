@@ -20,7 +20,7 @@ const progressMap = {
   'Receiving video...': 97,
 };
 
-const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
+const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [connectionState, setConnectionState] = useState('disconnected');
   const [statusMessage, setStatusMessage] = useState(null);
   const [connectProgress, setConnectProgress] = useState(0);
@@ -99,15 +99,11 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
     setError(null);
     setActiveCamera('wideRoad');
     try {
-      if (directAddress) {
-        await conn.connectDirect(directAddress);
-      } else {
-        await conn.connect(dongleId);
-      }
+      await conn.connect(dongleId);
     } catch (err) {
       setError(err.message);
     }
-  }, [dongleId, directAddress]);
+  }, [dongleId]);
 
   useEffect(() => {
     handleConnect();
@@ -137,7 +133,7 @@ const BodyTeleop = ({ dongleId, device, directAddress, onClose }) => {
 
   const connection = connectionRef.current;
   const connected = connectionState === 'connected';
-  const deviceName = directAddress || (device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop'));
+  const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
 
   const statsState = useStats(connection, connectionState, latencyCallbackRef);
   const videoProps = {

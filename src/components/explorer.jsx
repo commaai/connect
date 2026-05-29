@@ -147,8 +147,8 @@ class ExplorerApp extends Component {
 
     if (prevProps.search !== search) {
       const q = new URLSearchParams(search);
-      if (q.has('body') && q.get('body') != null) {
-        this.openBodyTeleop(q.get('body'));
+      if (q.has('body')) {
+        this.openBodyTeleop();
         this.props.dispatch(replace(pathname));
       }
     }
@@ -177,12 +177,12 @@ class ExplorerApp extends Component {
     this.setState({ pairLoading: false, pairError: null, pairDongleId: null });
   }
 
-  openBodyTeleop(address) {
-    this.setState({ bodyTeleopOpen: true, bodyTeleopAddress: address });
+  openBodyTeleop() {
+    this.setState({ bodyTeleopOpen: true });
   }
 
   closeBodyTeleop() {
-    this.setState({ bodyTeleopOpen: false, bodyTeleopAddress: null });
+    this.setState({ bodyTeleopOpen: false });
   }
 
   handleDrawerStateChanged(drawerOpen) {
@@ -199,7 +199,7 @@ class ExplorerApp extends Component {
 
   render() {
     const { classes, currentRoute, devices, dongleId } = this.props;
-    const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth, bodyTeleopOpen, bodyTeleopAddress } = this.state;
+    const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth, bodyTeleopOpen } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const isLarge = noDevicesUpsell || windowWidth > 1080;
@@ -246,7 +246,7 @@ class ExplorerApp extends Component {
             ? <NoDeviceUpsell />
             : (currentRoute ? <DriveView /> : <Dashboard />)}
         </div>
-        { bodyTeleopOpen && <BodyTeleop onClose={this.closeBodyTeleop} directAddress={bodyTeleopAddress} /> }
+        { bodyTeleopOpen && <BodyTeleop onClose={this.closeBodyTeleop} /> }
         <IosPwaPopup />
         <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
           <Paper className={classes.modal}>
