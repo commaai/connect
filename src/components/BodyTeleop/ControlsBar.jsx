@@ -1,13 +1,6 @@
 import React, { useCallback } from 'react';
 import PhotoCamera from '@material-ui/icons/PhotoCamera';
 
-const QUICK_SOUNDS = [
-  { key: 'engage', label: 'Engage', icon: '😊' },
-  { key: 'disengage', label: 'Disengage', icon: '😢' },
-  { key: 'prompt', label: 'Prompt', icon: '⚠️' },
-  { key: 'warningImmediate', label: 'Warning', icon: '❗' },
-];
-
 const CAMERAS = [
   { key: 'wideRoad', label: 'road', num: '1' },
   { key: 'driver', label: 'driver', num: '2' },
@@ -21,15 +14,9 @@ const controlsGroupBase = 'absolute bottom-4 left-4 z-10 flex flex-row items-str
 const controlsGroupPortrait = 'relative bottom-auto left-auto transform-none self-stretch rounded-none shrink-0 justify-between gap-1.5';
 
 const ControlsBar = ({
-  connection, activeCamera, onSwitchCamera,
+  activeCamera, onSwitchCamera,
   gamepadConnected, videoRef, isLandscape,
 }) => {
-  const handlePlaySound = useCallback((sound) => {
-    connection?.playSound(sound).catch((err) => {
-      console.error('Failed to play body sound:', err);
-    });
-  }, [connection]);
-
   const handleScreenshot = useCallback(() => {
     const video = videoRef?.current;
     if (!video || !video.videoWidth) return;
@@ -61,20 +48,6 @@ const ControlsBar = ({
           <span className="text-[9px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Camera</span>
         </div>
       )}
-      <div className="flex flex-col items-center justify-between gap-[5px]">
-        <div className="flex gap-[3px] items-center">
-          {QUICK_SOUNDS.map((sound) => (
-            <div
-              key={sound.key}
-              className={btnInactive}
-              onClick={() => handlePlaySound(sound.key)}
-            >
-              {isLandscape ? sound.label : sound.icon}
-            </div>
-          ))}
-        </div>
-        <span className="text-[9px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Sounds</span>
-      </div>
       <div className="flex flex-col items-center justify-between gap-[5px]">
         <div
           className={btnInactive}
