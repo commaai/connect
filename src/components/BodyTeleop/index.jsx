@@ -5,7 +5,7 @@ import { IconButton, Typography } from '@material-ui/core';
 
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
-import { BodyTeleopConnection } from '../../utils/bodyteleop';
+import { WebRTCConnection } from '../../utils/webrtc';
 import StatusBar, { useStats, StatsPanel } from './StatusBar';
 import ControlsBar from './ControlsBar';
 import Video from './Video';
@@ -38,7 +38,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const switchTimerRef = useRef(null);
 
   useEffect(() => {
-    const conn = new BodyTeleopConnection({
+    const conn = new WebRTCConnection({
       onConnectionState: (state) => {
         setConnectionState(state);
         if (state !== 'connecting') {

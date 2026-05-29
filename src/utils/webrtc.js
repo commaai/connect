@@ -7,7 +7,7 @@ const wallMs = () => performance.timeOrigin + performance.now();
 const CLOCK_WINDOW_SIZE = 16;
 const CLOCK_PING_MS = 500;
 
-export class BodyTeleopConnection {
+export class WebRTCConnection {
   constructor(callbacks) {
     this.pc = null;
     this.dc = null;
@@ -25,7 +25,7 @@ export class BodyTeleopConnection {
     this.cleanup();
     this.callbacks.onConnectionState('connecting');
     const t0 = performance.now();
-    const log = (msg) => console.log(`[bodyteleop +${(performance.now() - t0).toFixed(0)}ms] ${msg}`);
+    const log = (msg) => console.log(`[webrtc +${(performance.now() - t0).toFixed(0)}ms] ${msg}`);
 
     try {
       this.pc = new RTCPeerConnection({
@@ -105,7 +105,7 @@ export class BodyTeleopConnection {
           if (msg.type === 'connectionReplaced') this.callbacks.onConnectionReplaced?.(msg.data);
           if (msg.type === 'clockSync' && msg.data?.action === 'pong') this._handleClockPong(msg.data);
         } catch (e) {
-          console.warn('bodyteleop: ignoring malformed data-channel message', e);
+          console.warn('webrtc: ignoring malformed data-channel message', e);
         }
       };
 
@@ -182,15 +182,6 @@ export class BodyTeleopConnection {
     this._sendDc('livestreamCameraSwitch', { camera: cameraName });
   }
 
-  setJoystick(x, y) {
-    this.joystickX = x;
-    this.joystickY = y;
-  }
-
-  sendJoystick() {
-    this._sendDc('testJoystick', { axes: [this.joystickX, this.joystickY], buttons: [false] });
-  }
-
   _clearJoystickInterval() {
     if (this.joystickInterval) {
       clearInterval(this.joystickInterval);
@@ -259,6 +250,17 @@ export class BodyTeleopConnection {
     this.clockOffsetMs = best.offsetMs;
     this.clockSynced = true;
   }
+  
+  /*** body teleop helpers ***/
+  setJoystick(x, y) {
+    this.joystickX = x;
+    this.joystickY = y;
+  }
+
+  sendJoystick() {
+    this._sendDc('testJoystick', { axes: [this.joystickX, this.joystickY], buttons: [false] });
+  }
+  /***************************/
 
   disconnect() {
     this.cleanup();
