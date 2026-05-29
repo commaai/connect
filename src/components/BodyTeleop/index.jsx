@@ -162,6 +162,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             <>
               <StatusBar
                 battery={battery}
+                connectionState={connectionState}
                 className="absolute top-3 right-3 z-10 flex items-center gap-2"
                 toggleStats={toggleStats}
               />
@@ -202,6 +203,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
         {connected && (
           <StatusBar
             battery={battery}
+            connectionState={connectionState}
             className="flex items-center justify-end p-2 gap-2"
             toggleStats={toggleStats}
           />
