@@ -17,6 +17,7 @@ import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import TimeSelect from '../TimeSelect'
 import CommacareBadge from '../CommacareBadge';
+import BodyTeleop from '../BodyTeleop';
 
 const styles = (theme) => ({
   container: {
@@ -207,6 +208,7 @@ class DeviceInfo extends Component {
       windowWidth: window.innerWidth,
       isTimeSelectOpen: false,
       isCommaBody: false,
+      bodyTeleopOpen: false,
     };
 
     this.snapshotButtonRef = React.createRef();
@@ -223,6 +225,16 @@ class DeviceInfo extends Component {
     this.renderSnapshotImage = this.renderSnapshotImage.bind(this);
     this.onOpenTimeSelect = this.onOpenTimeSelect.bind(this);
     this.onCloseTimeSelect = this.onCloseTimeSelect.bind(this);
+    this.openBodyTeleop = this.openBodyTeleop.bind(this);
+    this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
+  }
+
+  openBodyTeleop() {
+    this.setState({ bodyTeleopOpen: true });
+  }
+
+  closeBodyTeleop() {
+    this.setState({ bodyTeleopOpen: false });
   }
 
   componentDidMount() {
@@ -386,7 +398,7 @@ class DeviceInfo extends Component {
 
   render() {
     const { classes, device } = this.props;
-    const { snapshot, deviceStats, windowWidth } = this.state;
+    const { snapshot, deviceStats, windowWidth, bodyTeleopOpen } = this.state;
     const commacare = device?.commacare;
 
     const containerPadding = windowWidth > 520 ? 36 : 16;
@@ -454,6 +466,7 @@ class DeviceInfo extends Component {
               )}
           </div>
           )}
+        { bodyTeleopOpen && <BodyTeleop onClose={this.closeBodyTeleop} /> }
       </>
     );
   }
@@ -549,7 +562,7 @@ class DeviceInfo extends Component {
               <Button
                 style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
                 classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
-                onClick={ this.props.onOpenBodyTeleop }
+                onClick={ this.openBodyTeleop }
                 disabled={ !deviceIsOnline(device) }
               >
                 <GamepadIcon fontSize="inherit" />
