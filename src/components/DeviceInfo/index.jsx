@@ -7,7 +7,6 @@ import dayjs from 'dayjs';
 import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } from '@material-ui/core';
 import AccessTime from '@material-ui/icons/AccessTime';
 
-import { push } from 'connected-react-router';
 import { athena as Athena, devices as Devices } from '@commaai/api';
 import { analyticsEvent, primeNav } from '../../actions';
 import Colors from '../../colors';
@@ -551,7 +550,7 @@ class DeviceInfo extends Component {
               <Button
                 style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
                 classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
-                onClick={ () => this.props.dispatch(push('?body=')) }
+                onClick={ this.props.onOpenBodyTeleop }
                 disabled={ !deviceIsOnline(device) }
               >
                 <GamepadIcon fontSize="inherit" />

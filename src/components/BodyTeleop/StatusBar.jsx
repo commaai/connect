@@ -211,13 +211,8 @@ export const StatsPanel = ({isLandscape, stats, latency, latencyHistory }) => {
 };
 
 const StatusBar = ({
-  connectionState, battery, className, toggleStats,
+  battery, className, toggleStats,
 }) => {
-  const dotColor = connectionState === 'connecting' ? '#facc15'
-    : connectionState === 'connected' ? '#22c967'
-    : connectionState === 'failed' ? '#da2535'
-    : '#4b5559';
-
   const BatteryIcon = battery?.charging ? BatteryChargingFull : BatteryFull;
 
   return (
@@ -225,12 +220,9 @@ const StatusBar = ({
       <div className="flex items-center justify-center gap-1.5 h-7 px-2.5">
         <div
           className="w-2 h-2 rounded-full"
-          style={{
-            backgroundColor: dotColor,
-            animation: connectionState === 'connecting' ? 'pulse 1.5s ease-in-out infinite' : 'none',
-          }}
+          style={{ backgroundColor: '#22c967' }}
         />
-        <span className="text-xs text-white/70">{connectionState}</span>
+        <span className="text-xs text-white/70">connected</span>
       </div>
       {battery && (
         <div className="flex items-center justify-center gap-1.5 h-7 px-2.5">

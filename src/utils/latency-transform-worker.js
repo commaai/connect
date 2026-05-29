@@ -9,7 +9,7 @@ const SEI_PREFIX = new Uint8Array([
   0x9c, 0x7e, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc,
 ]);
 
-export function extractTimingSei(frameBuffer) {
+function extractTimingSei(frameBuffer) {
   const data = new Uint8Array(frameBuffer);
 
   outer:

@@ -135,7 +135,10 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const connected = connectionState === 'connected';
   const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
 
-  const statsState = useStats(connection, connectionState, latencyCallbackRef);
+  const {
+    showStats, toggleStats, stats, latency, latencyHistory,
+  } = useStats(connection, connectionState, latencyCallbackRef);
+  const statsPanelProps = { stats, latency, latencyHistory };
   const videoProps = {
     videoRef, connectionState, error,
     statusMessage, connectProgress,
@@ -158,13 +161,12 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
           {connected && (
             <>
               <StatusBar
-                connectionState={connectionState}
                 battery={battery}
                 className="absolute top-3 right-3 z-10 flex items-center gap-2"
-                {...statsState}
+                toggleStats={toggleStats}
               />
-              {statsState.showStats && (
-                <StatsPanel isLandscape {...statsState} />
+              {showStats && (
+                <StatsPanel isLandscape {...statsPanelProps} />
               )}
               <Joystick
                 connection={connection}
@@ -175,7 +177,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
                 gamepadConnected={gamepadConnected}
               />
               <ControlsBar
-                connection={connection}
                 activeCamera={activeCamera}
                 onSwitchCamera={switchCamera}
                 gamepadConnected={gamepadConnected}
@@ -200,22 +201,20 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       <div className="flex flex-col flex-1 overflow-hidden">
         {connected && (
           <StatusBar
-            connectionState={connectionState}
             battery={battery}
             className="flex items-center justify-end p-2 gap-2"
-            {...statsState}
+            toggleStats={toggleStats}
           />
         )}
         <div className="relative flex items-center justify-center overflow-hidden bg-[#030404] flex-none aspect-[3/2]">
           <Video {...videoProps} fit="cover" />
-          {connected && statsState.showStats && (
-            <StatsPanel {...statsState} />
+          {connected && showStats && (
+            <StatsPanel {...statsPanelProps} />
           )}
         </div>
         {connected ? (
           <>
             <ControlsBar
-              connection={connection}
               activeCamera={activeCamera}
               onSwitchCamera={switchCamera}
               gamepadConnected={gamepadConnected}

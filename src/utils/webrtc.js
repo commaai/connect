@@ -46,7 +46,7 @@ export class WebRTCConnection {
             if ('jitterBufferTarget' in evt.receiver) {
               evt.receiver.jitterBufferTarget = 0;
             }
-            
+
             // Set up Transform to extract frame-level timing SEI in frames
             if (typeof window.RTCRtpScriptTransform !== 'undefined') {
               // Standard API (Firefox 117+, future Chrome)
@@ -62,10 +62,8 @@ export class WebRTCConnection {
                 };
                 evt.receiver.transform = new window.RTCRtpScriptTransform(worker);
               } catch (e) {
-                log(e)
+                log(e);
               }
-              
-              
             }
           }
           const stream = new MediaStream([evt.track]);
@@ -250,7 +248,7 @@ export class WebRTCConnection {
     this.clockOffsetMs = best.offsetMs;
     this.clockSynced = true;
   }
-  
+
   /*** body teleop helpers ***/
   setJoystick(x, y) {
     this.joystickX = x;

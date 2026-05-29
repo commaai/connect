@@ -78,6 +78,7 @@ class ExplorerApp extends Component {
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
+    this.openBodyTeleop = this.openBodyTeleop.bind(this);
     this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
   }
 
@@ -138,19 +139,11 @@ class ExplorerApp extends Component {
     this.componentDidUpdate({});
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    const { pathname, search, zoom, dongleId, limit } = this.props;
+  componentDidUpdate(prevProps) {
+    const { pathname, zoom, dongleId, limit } = this.props;
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
-    }
-
-    if (prevProps.search !== search) {
-      const q = new URLSearchParams(search);
-      if (q.has('body')) {
-        this.openBodyTeleop();
-        this.props.dispatch(replace(pathname));
-      }
     }
 
     if (!prevProps.zoom && zoom) {
@@ -178,7 +171,7 @@ class ExplorerApp extends Component {
   }
 
   openBodyTeleop() {
-    this.setState({ bodyTeleopOpen: true });
+    this.setState({ bodyTeleopOpen: true, drawerIsOpen: false });
   }
 
   closeBodyTeleop() {
@@ -244,7 +237,7 @@ class ExplorerApp extends Component {
         <div className={ classes.window } style={ containerStyles }>
           { noDevicesUpsell
             ? <NoDeviceUpsell />
-            : (currentRoute ? <DriveView /> : <Dashboard />)}
+            : (currentRoute ? <DriveView /> : <Dashboard onOpenBodyTeleop={this.openBodyTeleop} />)}
         </div>
         { bodyTeleopOpen && <BodyTeleop onClose={this.closeBodyTeleop} /> }
         <IosPwaPopup />
@@ -274,7 +267,6 @@ class ExplorerApp extends Component {
 const stateToProps = Obstruction({
   zoom: 'zoom',
   pathname: 'router.location.pathname',
-  search: 'router.location.search',
   dongleId: 'dongleId',
   devices: 'devices',
   currentRoute: 'currentRoute',
