@@ -382,7 +382,7 @@ class DeviceInfo extends Component {
 
   render() {
     const { classes, device } = this.props;
-    const { snapshot, deviceStats, windowWidth, bodyTeleopOpen } = this.state;
+    const { snapshot, windowWidth, bodyTeleopOpen } = this.state;
     const commacare = device?.commacare;
     const isCommaBody = device?.rpc?.not_car;
 
