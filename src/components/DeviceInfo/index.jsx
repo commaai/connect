@@ -104,6 +104,7 @@ const styles = (theme) => ({
     flexDirection: 'column',
     alignItems: 'center',
     maxWidth: 80,
+    padding: `0 ${theme.spacing.unit * 4}px`,
   },
   carBattery: {
     padding: '5px 16px',
@@ -405,7 +406,7 @@ class DeviceInfo extends Component {
               )}
               <Typography variant="title">{deviceNamePretty(device)}</Typography>
             </div>
-            <div className={`flex flex-row justify-center md:gap-[32px] gap-[16px]`}>{ this.renderStats() }</div>
+            <div className={`${classes.deviceStatContainer}`}>{ this.renderStats() }</div>
             <div className={`flex flex-row justify-center`}>{ this.renderButtons() }</div>
           </div>
           {/* // { windowWidth >= 768 */}
