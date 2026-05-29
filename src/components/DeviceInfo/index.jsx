@@ -409,47 +409,6 @@ class DeviceInfo extends Component {
             <div className={`${classes.deviceStatContainer}`}>{ this.renderStats() }</div>
             <div className={`flex flex-row justify-center`}>{ this.renderButtons() }</div>
           </div>
-          {/* // { windowWidth >= 768 */}
-          {/* //   ? (
-          //     <div className={`${classes.row} ${classes.columnGap}`}>
-          //       <div className={classes.deviceTitle}>
-          //         {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
-          //         {isCommaBody && (
-          //           <Tooltip classes={{ tooltip: classes.popover }} title="comma body" placement="bottom">
-          //             <div className={classes.bodyIconWrapper}>
-          //               <img src={BodyIcon} alt="comma body" className={classes.bodyIcon} />
-          //             </div>
-          //           </Tooltip>
-          //         )}
-          //         <Typography variant="title">{deviceNamePretty(device)}</Typography>
-          //       </div>
-          //       <div className={classes.deviceStatContainer}>{ this.renderStats() }</div>
-          //       <div className={`${classes.row}`}>{ this.renderButtons() }</div>
-          //     </div>
-          //   )
-          //   : (
-          //     <>
-          //       <div className={ classes.row }>
-          //         <div className={classes.deviceTitle}>
-          //           {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
-          //           {isCommaBody && (
-          //             <Tooltip classes={{ tooltip: classes.popover }} title="comma body" placement="bottom">
-          //               <div className={classes.bodyIconWrapper}>
-          //                 <img src={BodyIcon} alt="comma body" className={classes.bodyIcon} />
-          //               </div>
-          //             </Tooltip>
-          //           )}
-          //           <Typography variant="title">{deviceNamePretty(device)}</Typography>
-          //         </div>
-          //       </div>
-          //       <div className={ classes.row }>{ this.renderButtons() }</div>
-          //       { deviceStats.result && (
-          //         <div className={ `${classes.row} ${classes.spaceAround}` }>
-          //           { this.renderStats() }
-          //         </div>
-          //       )}
-          //     </>
-          //   ) } */}
         </div>
         { snapshot.result
           && (
