@@ -135,7 +135,7 @@ class ExplorerApp extends Component {
     this.componentDidUpdate({});
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps, prevState) {
     const { pathname, zoom, dongleId, limit } = this.props;
 
     if (prevProps.pathname !== pathname) {
