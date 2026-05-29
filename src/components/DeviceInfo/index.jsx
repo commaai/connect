@@ -17,12 +17,12 @@ import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import TimeSelect from '../TimeSelect'
 import CommacareBadge from '../CommacareBadge';
+import BodyIcon from '../../icons/body.png';
 import BodyTeleop from '../BodyTeleop';
 
 const styles = (theme) => ({
   container: {
     borderBottom: `1px solid ${Colors.white10}`,
-    paddingTop: 8,
     display: 'flex',
     flexDirection: 'column',
     minHeight: 64,
@@ -32,10 +32,6 @@ const styles = (theme) => ({
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
-    [theme.breakpoints.down('xs')]: {
-      marginBottom: 8,
-    },
   },
   columnGap: {
     columnGap: theme.spacing.unit * 4,
@@ -46,6 +42,20 @@ const styles = (theme) => ({
   deviceTitle: {
     display: 'flex',
     alignItems: 'center',
+    gap: '16px',
+  },
+  bodyIconWrapper: {
+    width: 35,
+    height: 28,
+    borderRadius: '5px',
+    backgroundColor: Colors.grey500,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bodyIcon: {
+    width: 20,
+    objectFit: 'contain',
   },
   button: {
     backgroundColor: Colors.white,
@@ -99,7 +109,7 @@ const styles = (theme) => ({
   carBattery: {
     padding: '5px 16px',
     borderRadius: 15,
-    margin: '0 10px',
+    margin: '0 0px',
     textAlign: 'center',
     '& p': {
       fontSize: 14,
@@ -372,8 +382,9 @@ class DeviceInfo extends Component {
 
   render() {
     const { classes, device } = this.props;
-    const { snapshot, deviceStats, windowWidth, bodyTeleopOpen } = this.state;
+    const { snapshot, windowWidth, bodyTeleopOpen } = this.state;
     const commacare = device?.commacare;
+    const isCommaBody = device?.rpc?.not_car;
 
     const containerPadding = windowWidth > 520 ? 36 : 16;
     const largeSnapshotPadding = windowWidth > 1440 ? '12px 0' : 0;
@@ -382,37 +393,22 @@ class DeviceInfo extends Component {
       <>
         <ResizeHandler onResize={ this.onResize } />
         <VisibilityHandler onVisible={ this.onVisible } onInit onDongleId minInterval={ 60 } />
-        <div className={ classes.container } style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
-          { windowWidth >= 768
-            ? (
-              <div className={`${classes.row} ${classes.columnGap}`}>
-                <div className={classes.deviceTitle}>
-                  {commacare && <CommacareBadge style={{ marginRight: 16 }} onClick={() => this.props.dispatch(primeNav(true))} />}
-                  <Typography variant="title">{deviceNamePretty(device)}</Typography>
-                </div>
-                <div className={classes.deviceStatContainer}>{ this.renderStats() }</div>
-                <div className={`${classes.row} ${classes.buttonRow}`}>{ this.renderButtons() }</div>
-              </div>
-            )
-            : (
-              <>
-                <div className={ classes.row }>
-                  <div className={classes.deviceTitle}>
-                    {commacare && <CommacareBadge style={{ marginRight: 16 }} onClick={() => this.props.dispatch(primeNav(true))} />}
-                    <Typography variant="title">{deviceNamePretty(device)}</Typography>
+        <div className={`${classes.container}`} style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
+          <div className={`flex md:flex-row md:justify-between items-center flex-col gap-4 md:my-2 my-4`}>
+            <div className={classes.deviceTitle}>
+              {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
+              {isCommaBody && (
+                <Tooltip classes={{ tooltip: classes.popover }} title="comma body" placement="bottom">
+                  <div className={classes.bodyIconWrapper}>
+                    <img src={BodyIcon} alt="comma body" className={classes.bodyIcon} />
                   </div>
-                </div>
-                <div className={ classes.row }>
-                  { this.renderButtons() }
-                </div>
-                { deviceStats.result
-              && (
-              <div className={ `${classes.row} ${classes.spaceAround}` }>
-                { this.renderStats() }
-              </div>
+                </Tooltip>
               )}
-              </>
-            ) }
+              <Typography variant="title">{deviceNamePretty(device)}</Typography>
+            </div>
+            <div className={`${classes.deviceStatContainer}`}>{ this.renderStats() }</div>
+            <div className={`flex flex-row justify-center`}>{ this.renderButtons() }</div>
+          </div>
         </div>
         { snapshot.result
           && (
@@ -526,25 +522,7 @@ class DeviceInfo extends Component {
     const bodyTeleopEnabled = isCommaBody && deviceVersionAtLeast(device, '0.11.2');
 
     return (
-      <>
-        {bodyTeleopEnabled && (
-          <Tooltip
-            classes={{ tooltip: classes.popover }}
-            title="Body Teleop"
-            placement="bottom"
-          >
-            <span>
-              <Button
-                style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
-                classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
-                onClick={ this.openBodyTeleop }
-                disabled={ !deviceIsOnline(device) }
-              >
-                <GamepadIcon fontSize="inherit" />
-              </Button>
-            </span>
-          </Tooltip>
-        )}
+      <div className='flex flex-row justify-center gap-4 w-full'>
         <div
           className={ classes.carBattery }
           style={{ backgroundColor: batteryBackground }}
@@ -567,11 +545,27 @@ class DeviceInfo extends Component {
               </Tooltip>
             )}
         </div>
-        {!bodyTeleopEnabled && (
+        {bodyTeleopEnabled ? (
+          <Tooltip
+            classes={{ tooltip: classes.popover }}
+            title="teleoperate"
+            placement="bottom"
+          >
+            <span>
+              <Button
+                style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
+                classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
+                onClick={ this.openBodyTeleop }
+                disabled={ !deviceIsOnline(device) }
+              >
+                <GamepadIcon fontSize="inherit" />
+              </Button>
+            </span>
+          </Tooltip>
+        ) : (
           <Button
             ref={ this.snapshotButtonRef }
             classes={{ root: `${classes.button} ${actionButtonClass} ${buttonOffline}` }}
-            style={{ marginRight: "8px" }}
             onClick={ this.takeSnapshot }
             disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
           >
@@ -595,7 +589,7 @@ class DeviceInfo extends Component {
           <Typography>{ error }</Typography>
         </Popper>
         <TimeSelect isOpen={isTimeSelectOpen} onClose={this.onCloseTimeSelect}/>
-      </>
+      </div>
     );
   }
 
