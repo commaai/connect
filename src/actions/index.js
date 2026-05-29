@@ -7,7 +7,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
-import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
+import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -410,6 +410,35 @@ export function fetchDeviceNetworkStatus(dongleId) {
           console.error(err);
           Sentry.captureException(err, { fingerprint: 'athena_fetch_networktype' });
         }
+      }
+    }
+  };
+}
+
+export function fetchDeviceNotCar(dongleId) {
+  return async (dispatch, getState) => {
+    const device = getDeviceFromState(getState(), dongleId);
+    if (!deviceIsOnline(device)) {
+      return;
+    }
+    const payload = {
+      id: 0,
+      jsonrpc: '2.0',
+      method: 'getNotCar',
+    };
+    try {
+      const resp = await Athena.postJsonRpcPayload(dongleId, payload);
+      if (resp && resp.result !== undefined) {
+        dispatch({
+          type: Types.ACTION_UPDATE_DEVICE_RPC,
+          dongleId,
+          fields: { not_car: resp.result === true },
+        });
+      }
+    } catch (err) {
+      if (!err.message || err.message.indexOf('Device not registered') === -1) {
+        console.error(err);
+        Sentry.captureException(err, { fingerprint: 'athena_fetch_notcar' });
       }
     }
   };

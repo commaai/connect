@@ -8,7 +8,7 @@ import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } fro
 import AccessTime from '@material-ui/icons/AccessTime';
 
 import { athena as Athena, devices as Devices } from '@commaai/api';
-import { analyticsEvent, primeNav } from '../../actions';
+import { analyticsEvent, primeNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { GamepadIcon } from '../../icons';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast } from '../../utils';
@@ -207,7 +207,6 @@ class DeviceInfo extends Component {
       snapshot: {},
       windowWidth: window.innerWidth,
       isTimeSelectOpen: false,
-      isCommaBody: false,
       bodyTeleopOpen: false,
     };
 
@@ -217,7 +216,6 @@ class DeviceInfo extends Component {
     this.onVisible = this.onVisible.bind(this);
     this.fetchDeviceInfo = this.fetchDeviceInfo.bind(this);
     this.fetchDeviceCarHealth = this.fetchDeviceCarHealth.bind(this);
-    this.fetchIsNotCar = this.fetchIsNotCar.bind(this);
     this.takeSnapshot = this.takeSnapshot.bind(this);
     this.snapshotType = this.snapshotType.bind(this);
     this.renderButtons = this.renderButtons.bind(this);
@@ -250,7 +248,6 @@ class DeviceInfo extends Component {
         carHealth: {},
         snapshot: {},
         windowWidth: window.innerWidth,
-        isCommaBody: false,
       });
     }
   }
@@ -264,11 +261,11 @@ class DeviceInfo extends Component {
   }
 
   onVisible() {
-    const { device } = this.props;
+    const { device, dongleId } = this.props;
     if (!device.shared) {
       this.fetchDeviceInfo();
       this.fetchDeviceCarHealth();
-      this.fetchIsNotCar();
+      this.props.dispatch(fetchDeviceNotCar(dongleId));
     }
   }
 
@@ -316,29 +313,6 @@ class DeviceInfo extends Component {
           Sentry.captureException(err, { fingerprint: 'device_info_athena_pandastate' });
         }
         this.setState({ carHealth: { error: err.message } });
-      }
-    }
-  }
-
-  async fetchIsNotCar() {
-    const { dongleId, device } = this.props;
-    if (!deviceIsOnline(device)) {
-      return;
-    }
-
-    try {
-      const payload = {
-        method: 'getNotCar',
-        jsonrpc: '2.0',
-        id: 0,
-      };
-      const resp = await Athena.postJsonRpcPayload(dongleId, payload);
-      if (this.mounted && dongleId === this.props.dongleId) {
-        this.setState({ isCommaBody: resp.result === true });
-      }
-    } catch (err) {
-      if (!err.message || err.message.indexOf('Device not registered') === -1) {
-        console.error(err);
       }
     }
   }
@@ -518,7 +492,8 @@ class DeviceInfo extends Component {
 
   renderButtons() {
     const { classes, device } = this.props;
-    const { snapshot, carHealth, windowWidth, isTimeSelectOpen, isCommaBody } = this.state;
+    const { snapshot, carHealth, windowWidth, isTimeSelectOpen } = this.state;
+    const isCommaBody = device?.rpc?.not_car;
 
     let batteryVoltage;
     let batteryBackground = Colors.grey400;
