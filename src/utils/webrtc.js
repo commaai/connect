@@ -180,6 +180,10 @@ export class WebRTCConnection {
     this._sendDc('livestreamCameraSwitch', { camera: cameraName });
   }
 
+  setQuality(quality) {
+    this._sendDc('livestreamSettings', { quality: quality });
+  }
+
   _clearJoystickInterval() {
     if (this.joystickInterval) {
       clearInterval(this.joystickInterval);

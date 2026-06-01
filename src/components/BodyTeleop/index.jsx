@@ -6,6 +6,7 @@ import { IconButton, Typography } from '@material-ui/core';
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
 import { WebRTCConnection } from '../../utils/webrtc';
+import { MockWebRTCConnection } from '../../utils/webrtc-mock';
 import StatusBar, { useStats, StatsPanel } from './StatusBar';
 import ControlsBar from './ControlsBar';
 import Video from './Video';
@@ -38,7 +39,9 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const switchTimerRef = useRef(null);
 
   useEffect(() => {
-    const conn = new WebRTCConnection({
+    const useMock = new URLSearchParams(window.location.search).has('mockTeleop');
+    const Connection = useMock ? MockWebRTCConnection : WebRTCConnection;
+    const conn = new Connection({
       onConnectionState: (state) => {
         setConnectionState(state);
         if (state !== 'connecting') {
@@ -162,7 +165,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             <>
               <StatusBar
                 battery={battery}
-                className="absolute top-3 right-3 z-10 flex items-center gap-2"
+                className="absolute top-3 right-3 z-30 flex items-center gap-2"
                 toggleStats={toggleStats}
               />
               {showStats && (
@@ -202,7 +205,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
         {connected && (
           <StatusBar
             battery={battery}
-            className="flex items-center justify-end p-2 gap-2"
+            className="relative z-30 flex items-center justify-end p-2 gap-2"
             toggleStats={toggleStats}
           />
         )}
