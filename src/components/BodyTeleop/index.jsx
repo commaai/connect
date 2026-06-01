@@ -131,6 +131,10 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     });
   }, []);
 
+  const handleQualityChange = useCallback((nextQuality) => {
+    connectionRef.current?.setQuality(nextQuality);
+  }, []);
+
   const connection = connectionRef.current;
   const connected = connectionState === 'connected';
   const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
@@ -162,8 +166,9 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             <>
               <StatusBar
                 battery={battery}
-                className="absolute top-3 right-3 z-10 flex items-center gap-2"
+                className="absolute top-3 right-3 z-30 flex items-center gap-2"
                 toggleStats={toggleStats}
+                onQualityChange={handleQualityChange}
               />
               {showStats && (
                 <StatsPanel isLandscape {...statsPanelProps} />
@@ -202,8 +207,9 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
         {connected && (
           <StatusBar
             battery={battery}
-            className="flex items-center justify-end p-2 gap-2"
+            className="relative z-30 flex items-center justify-end p-2 gap-2"
             toggleStats={toggleStats}
+            onQualityChange={handleQualityChange}
           />
         )}
         <div className="relative flex items-center justify-center overflow-hidden bg-[#030404] flex-none aspect-[3/2]">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import BatteryFull from '@material-ui/icons/BatteryFull';
 import BatteryChargingFull from '@material-ui/icons/BatteryChargingFull';
+import SettingsMenu from './SettingsMenu';
 
 const LATENCY_BUFFER_SIZE = 10;
 const LATENCY_HISTORY_MAX = 60;
@@ -211,7 +212,7 @@ export const StatsPanel = ({isLandscape, stats, latency, latencyHistory }) => {
 };
 
 const StatusBar = ({
-  battery, className, toggleStats,
+  battery, className, toggleStats, onQualityChange,
 }) => {
   const BatteryIcon = battery?.charging ? BatteryChargingFull : BatteryFull;
 
@@ -237,6 +238,7 @@ const StatusBar = ({
       >
         stats
       </div>
+      <SettingsMenu onQualityChange={onQualityChange} />
     </div>
   );
 };
