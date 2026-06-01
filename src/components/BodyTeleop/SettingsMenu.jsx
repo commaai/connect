@@ -115,7 +115,7 @@ const SettingsMenu = ({ quality: qualityProp, onQualityChange, options = QUALITY
         >
           <div className={`${rowClass} font-medium text-white/90`} onClick={() => setView('main')}>
             <ArrowBackBold className="w-4 h-4 -ml-1 text-white/70" />
-            <span>Quality</span>
+            <span>Quality (Bitrate)</span>
           </div>
           <div className="h-px bg-white/10 mx-2 my-1" />
           {options.map((opt) => (

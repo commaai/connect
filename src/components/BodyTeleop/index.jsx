@@ -6,7 +6,6 @@ import { IconButton, Typography } from '@material-ui/core';
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
 import { WebRTCConnection } from '../../utils/webrtc';
-import { MockWebRTCConnection } from '../../utils/webrtc-mock';
 import StatusBar, { useStats, StatsPanel } from './StatusBar';
 import ControlsBar from './ControlsBar';
 import Video from './Video';
@@ -29,6 +28,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [error, setError] = useState(null);
   const [isLandscape, setIsLandscape] = useState(false);
   const [activeCamera, setActiveCamera] = useState('wideRoad');
+  const [streamQuality, setStreamQuality] = useState('auto');
 
   const [gamepadConnected, setGamepadConnected] = useState(false);
 
@@ -39,9 +39,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const switchTimerRef = useRef(null);
 
   useEffect(() => {
-    const useMock = new URLSearchParams(window.location.search).has('mockTeleop');
-    const Connection = useMock ? MockWebRTCConnection : WebRTCConnection;
-    const conn = new Connection({
+    const conn = new WebRTCConnection({
       onConnectionState: (state) => {
         setConnectionState(state);
         if (state !== 'connecting') {
@@ -134,6 +132,11 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     });
   }, []);
 
+  const handleQualityChange = useCallback((nextQuality) => {
+    setStreamQuality(nextQuality);
+    connectionRef.current?.setQuality(nextQuality);
+  }, []);
+
   const connection = connectionRef.current;
   const connected = connectionState === 'connected';
   const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
@@ -167,6 +170,8 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
                 battery={battery}
                 className="absolute top-3 right-3 z-30 flex items-center gap-2"
                 toggleStats={toggleStats}
+                quality={streamQuality}
+                onQualityChange={handleQualityChange}
               />
               {showStats && (
                 <StatsPanel isLandscape {...statsPanelProps} />
@@ -207,6 +212,8 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             battery={battery}
             className="relative z-30 flex items-center justify-end p-2 gap-2"
             toggleStats={toggleStats}
+            quality={streamQuality}
+            onQualityChange={handleQualityChange}
           />
         )}
         <div className="relative flex items-center justify-center overflow-hidden bg-[#030404] flex-none aspect-[3/2]">

@@ -519,8 +519,7 @@ class DeviceInfo extends Component {
       pingTooltip = `Last ping on ${lastAthenaPing.format('MMM D, YYYY')} at ${lastAthenaPing.format('h:mm A')}`;
     }
 
-    const mockTeleop = new URLSearchParams(window.location.search).has('mockTeleop');
-    const bodyTeleopEnabled = mockTeleop || (isCommaBody && deviceVersionAtLeast(device, '0.11.2'));
+    const bodyTeleopEnabled = isCommaBody && deviceVersionAtLeast(device, '0.11.2');
 
     return (
       <div className='flex flex-row justify-center gap-4 w-full'>
@@ -554,10 +553,10 @@ class DeviceInfo extends Component {
           >
             <span>
               <Button
-                style={(!mockTeleop && !deviceIsOnline(device)) ? { opacity: 0.3 } : {}}
+                style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
                 classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
                 onClick={ this.openBodyTeleop }
-                disabled={ !mockTeleop && !deviceIsOnline(device) }
+                disabled={ !deviceIsOnline(device) }
               >
                 <GamepadIcon fontSize="inherit" />
               </Button>

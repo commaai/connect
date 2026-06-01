@@ -212,7 +212,7 @@ export const StatsPanel = ({isLandscape, stats, latency, latencyHistory }) => {
 };
 
 const StatusBar = ({
-  battery, className, toggleStats,
+  battery, className, toggleStats, quality, onQualityChange,
 }) => {
   const BatteryIcon = battery?.charging ? BatteryChargingFull : BatteryFull;
 
@@ -238,7 +238,7 @@ const StatusBar = ({
       >
         stats
       </div>
-      <SettingsMenu />
+      <SettingsMenu quality={quality} onQualityChange={onQualityChange} />
     </div>
   );
 };
