@@ -1,0 +1,41 @@
+# TEMPORARY — scratch workflow to test the master Cloudflare preview deploy
+# without pushing to master. Triggers from this branch directly.
+# Delete before merging.
+name: test-master-preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - gh-preview
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  test-master-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-pnpm
+
+      - name: get build info
+        id: build_info
+        run: echo timestamp=$(git show -s --format=%cI) >> $GITHUB_OUTPUT
+
+      - run: pnpm install
+      - run: pnpm build:production
+        env:
+          VITE_APP_GIT_SHA: ${{ github.sha }}
+          VITE_APP_GIT_TIMESTAMP: ${{ steps.build_info.outputs.timestamp }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1.5.0
+        with:
+          branch: master
+          projectName: connect
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          apiToken: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
+          directory: dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
