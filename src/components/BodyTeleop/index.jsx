@@ -28,7 +28,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [error, setError] = useState(null);
   const [isLandscape, setIsLandscape] = useState(false);
   const [activeCamera, setActiveCamera] = useState('wideRoad');
-  const [streamQuality, setStreamQuality] = useState('auto');
 
   const [gamepadConnected, setGamepadConnected] = useState(false);
 
@@ -133,7 +132,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   }, []);
 
   const handleQualityChange = useCallback((nextQuality) => {
-    setStreamQuality(nextQuality);
     connectionRef.current?.setQuality(nextQuality);
   }, []);
 
@@ -170,7 +168,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
                 battery={battery}
                 className="absolute top-3 right-3 z-30 flex items-center gap-2"
                 toggleStats={toggleStats}
-                quality={streamQuality}
                 onQualityChange={handleQualityChange}
               />
               {showStats && (
@@ -212,7 +209,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             battery={battery}
             className="relative z-30 flex items-center justify-end p-2 gap-2"
             toggleStats={toggleStats}
-            quality={streamQuality}
             onQualityChange={handleQualityChange}
           />
         )}
