@@ -31,6 +31,7 @@ jobs:
           VITE_APP_GIT_TIMESTAMP: ${{ steps.build_info.outputs.timestamp }}
 
       - name: Deploy to Cloudflare Pages
+        id: cloudflare-publish
         uses: cloudflare/pages-action@v1.5.0
         with:
           branch: master
@@ -38,4 +39,26 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
           directory: dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Record deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: '${{ github.sha }}',
+              environment: 'preview',
+              required_contexts: [],
+              auto_merge: false,
+              production_environment: false,
+              description: 'Cloudflare Pages (master preview)',
+            })
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.data.id,
+              state: 'success',
+              environment: 'preview',
+              environment_url: '${{ steps.cloudflare-publish.outputs.url }}',
+            })
