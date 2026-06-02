@@ -154,14 +154,14 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
           : 'flex items-center px-3 py-2 bg-[#30373B] border-b border-white/10 min-h-[48px] z-10'}
       >
         <IconButton
-          className={isLandscape ? 'text-white p-2 w-8 h-8 bg-glass' : 'text-white p-2'}
+          className={isLandscape ? 'text-white p-2 w-10 h-10 bg-glass' : 'text-white p-2'}
           onClick={handleClose}
         >
-          <ArrowBackBold style={{ fontSize: isLandscape ? 18 : 20 }} />
+          <ArrowBackBold style={{ fontSize: 20 }} />
         </IconButton>
         <div
           className={isLandscape
-            ? 'rounded-[20px] px-3 py-1 text-xs font-medium text-white bg-glass'
+            ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-white bg-glass'
             : 'text-base font-medium ml-2 flex-1'}
         >
           {deviceName}

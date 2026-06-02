@@ -9,6 +9,15 @@ const CLOCK_PING_MS = 500;
 
 const ICE_GATHER_DEADLINE_MS = 5000;
 
+// Browsers obfuscate host candidates behind a "<uuid>.local" mDNS hostname for
+// privacy. The device can't resolve those, so drop them from the offer.
+function stripMdnsCandidates(sdp) {
+  return sdp
+    .split(/\r\n|\n/)
+    .filter((line) => !(line.startsWith('a=candidate:') && /\.local(\s|$)/.test(line)))
+    .join('\r\n');
+}
+
 export class WebRTCConnection {
   constructor(callbacks) {
     this.pc = null;
@@ -124,9 +133,11 @@ export class WebRTCConnection {
       await Promise.race([gatheringComplete, asyncSleep(ICE_GATHER_DEADLINE_MS)]);
       if (this.pc !== pc) throw new Error('connection torn down during ICE gathering');
 
-      const offerSdp = pc.localDescription.sdp;
+      const offerSdp = stripMdnsCandidates(pc.localDescription.sdp);
       this.callbacks.onStatusMessage?.('Device processing candidates...');
-
+      
+      console.log(offerSdp)
+      
       const resp = await Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
         params: { sdp: offerSdp },
