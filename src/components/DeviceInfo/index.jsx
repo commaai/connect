@@ -217,6 +217,7 @@ class DeviceInfo extends Component {
       snapshot: {},
       windowWidth: window.innerWidth,
       isTimeSelectOpen: false,
+      teleopTooltipOpen: false,
     };
 
     this.snapshotButtonRef = React.createRef();
@@ -237,6 +238,7 @@ class DeviceInfo extends Component {
   }
 
   openBodyTeleop() {
+    this.setState({ teleopTooltipOpen: false });
     this.props.dispatch(streamNav(true));
   }
 
@@ -550,6 +552,9 @@ class DeviceInfo extends Component {
             classes={{ tooltip: classes.popover }}
             title="teleoperate"
             placement="bottom"
+            open={ this.state.teleopTooltipOpen }
+            onOpen={ () => this.setState({ teleopTooltipOpen: true }) }
+            onClose={ () => this.setState({ teleopTooltipOpen: false }) }
           >
             <Button
               style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}

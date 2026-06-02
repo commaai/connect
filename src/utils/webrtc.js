@@ -9,12 +9,16 @@ const CLOCK_PING_MS = 500;
 
 const ICE_GATHER_DEADLINE_MS = 5000;
 
-// Browsers obfuscate host candidates behind a "<uuid>.local" mDNS hostname for
-// privacy. The device can't resolve those, so drop them from the offer.
+// Browsers obfuscate the local host behind a "<uuid>.local" mDNS hostname for
+// privacy. Aiortc can't resolve those https://github.com/commaai/teleoprtc/pull/13
 function stripMdnsCandidates(sdp) {
   return sdp
     .split(/\r\n|\n/)
-    .filter((line) => !(line.startsWith('a=candidate:') && /\.local(\s|$)/.test(line)))
+    .filter((line) => {
+      if (!line.startsWith('a=candidate:')) return true;
+      return !line.split(' ')[4]?.endsWith('.local'); // connection-address is field 5
+    })
+    .map((line) => line.replace(/[\w-]+\.local\b/g, '0.0.0.0'))
     .join('\r\n');
 }
 
@@ -125,7 +129,7 @@ export class WebRTCConnection {
       let resolveComplete;
       const gatheringComplete = new Promise((resolve) => { resolveComplete = resolve; });
       pc.addEventListener('icecandidate', (evt) => {
-        if (!evt.candidate) resolveComplete();
+        if (!evt.candidate) { resolveComplete(); }
       });
 
       await Promise.race([gatheringComplete, asyncSleep(ICE_GATHER_DEADLINE_MS)]);
