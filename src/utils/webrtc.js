@@ -111,45 +111,25 @@ export class WebRTCConnection {
       await this.pc.setLocalDescription(offer);
       this.callbacks.onStatusMessage?.('Preparing connection...');
 
-      // Trickle ICE: resolve as soon as we get the first candidate rather than
-      // waiting for all candidates to be gathered
+      // Wait for ICE gathering to complete before sending the offer
       await Promise.race([
         new Promise((resolve) => {
           if (this.pc.iceGatheringState === 'complete') return resolve();
-          let onCandidate, onComplete;
-          onCandidate = (evt) => {
-            if (evt.candidate) {
-              this.callbacks.onStatusMessage?.('Finding network path...');
-              this.pc.removeEventListener('icecandidate', onCandidate);
-              this.pc.removeEventListener('icegatheringstatechange', onComplete);
-              resolve();
-            }
-          };
-          onComplete = () => {
+          const onComplete = () => {
             if (this.pc.iceGatheringState === 'complete') {
-              this.pc.removeEventListener('icecandidate', onCandidate);
               this.pc.removeEventListener('icegatheringstatechange', onComplete);
               resolve();
             }
           };
-          this.pc.addEventListener('icecandidate', onCandidate);
           this.pc.addEventListener('icegatheringstatechange', onComplete);
         }),
         new Promise((_, reject) => setTimeout(() => reject(new Error('ICE gathering timed out')), 5000)),
       ]);
-
-      // avoid rtcp-mux error on firefox
-      // needed until teleoprtc is resolved
-      await asyncSleep(250);
-      const sdp = this.pc.localDescription.sdp.replace(
-        /(m=(audio|video) .*\r?\n)([\s\S]*?)(?=m=|$)/g,
-        (block) => block.includes('a=rtcp-mux') ? block : block.replace(/(m=(?:audio|video) [^\n]*\n)/, '$1a=rtcp-mux\r\n'),
-      );
       this.callbacks.onStatusMessage?.('Reaching device...');
 
       const payload = {
         method: 'startStream',
-        params: { sdp },
+        params: { sdp: this.pc.localDescription.sdp },
         jsonrpc: '2.0',
         id: 0,
       };

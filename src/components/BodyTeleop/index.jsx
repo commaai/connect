@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import { IconButton, Typography } from '@material-ui/core';
+import { IconButton } from '@material-ui/core';
 
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
@@ -37,6 +37,12 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const latencyCallbackRef = useRef(null);
   const switchTimerRef = useRef(null);
 
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+  
   useEffect(() => {
     const conn = new WebRTCConnection({
       onConnectionState: (state) => {
@@ -84,14 +90,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     query.addEventListener('change', handler);
     return () => query.removeEventListener('change', handler);
   }, []);
-
-  useEffect(() => {
-    // Re-attach video stream on orientation change
-    const stream = streamsRef.current.camera || null;
-    if (videoRef.current && videoRef.current.srcObject !== stream) {
-      videoRef.current.srcObject = stream;
-    }
-  }, [isLandscape]);
 
   const handleConnect = useCallback(async () => {
     const conn = connectionRef.current;
@@ -149,96 +147,68 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     onConnect: handleConnect,
   };
 
-  if (isLandscape) {
-    return (
-      <div className="fixed inset-0 z-[1300] bg-[#030404] flex flex-col">
-        <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-[#030404]">
-          <Video {...videoProps} />
-          <div className="absolute left-2 top-2 z-20 flex items-center gap-1">
-            <IconButton className="text-white p-2 w-8 h-8 bg-glass" onClick={handleClose}>
-              <ArrowBackBold style={{ fontSize: 18 }} />
-            </IconButton>
-            <div className="rounded-[20px] px-3 py-1 text-xs font-medium text-white bg-glass">
-              {deviceName}
-            </div>
-          </div>
-          {connected && (
-            <>
-              <StatusBar
-                battery={battery}
-                className="absolute top-3 right-3 z-30 flex items-center gap-2"
-                toggleStats={toggleStats}
-                onQualityChange={handleQualityChange}
-              />
-              {showStats && (
-                <StatsPanel isLandscape {...statsPanelProps} />
-              )}
-              <Joystick
-                connection={connection}
-                activeCamera={activeCamera}
-                className="absolute bottom-4 right-4 z-10 w-[160px] h-[160px]"
-                onGamepadChange={setGamepadConnected}
-                onSwitchCamera={switchCamera}
-                gamepadConnected={gamepadConnected}
-              />
-              <ControlsBar
-                activeCamera={activeCamera}
-                onSwitchCamera={switchCamera}
-                gamepadConnected={gamepadConnected}
-                videoRef={videoRef}
-                isLandscape
-              />
-            </>
-          )}
+  return (
+    <div className="fixed inset-0 z-[1300] bg-[#030404] flex flex-col touch-pan-x touch-pan-y h-full w-full overflow-hidden">
+      <div
+        className={isLandscape
+          ? 'absolute left-2 top-2 z-20 flex items-center gap-1'
+          : 'flex items-center px-3 py-2 bg-[#30373B] border-b border-white/10 min-h-[48px] z-10'}
+      >
+        <IconButton
+          className={isLandscape ? 'text-white p-2 w-8 h-8 bg-glass' : 'text-white p-2'}
+          onClick={handleClose}
+        >
+          <ArrowBackBold style={{ fontSize: isLandscape ? 18 : 20 }} />
+        </IconButton>
+        <div
+          className={isLandscape
+            ? 'rounded-[20px] px-3 py-1 text-xs font-medium text-white bg-glass'
+            : 'text-base font-medium ml-2 flex-1'}
+        >
+          {deviceName}
         </div>
       </div>
-    );
-  }
-
-  return (
-    <div className="fixed inset-0 z-[1300] bg-[#030404] flex flex-col">
-      <div className="flex items-center px-3 py-2 bg-[#151819] border-b border-white/10 min-h-[48px] z-10">
-        <IconButton className="text-white p-2" onClick={handleClose}>
-          <ArrowBackBold style={{ fontSize: 20 }} />
-        </IconButton>
-        <Typography className="text-base font-medium ml-2 flex-1">{deviceName}</Typography>
-      </div>
-      <div className="flex flex-col flex-1 overflow-hidden">
-        {connected && (
+      {connected && (
+        <div className='relative'>
           <StatusBar
             battery={battery}
-            className="relative z-30 flex items-center justify-end p-2 gap-2"
+            className={isLandscape
+              ? 'absolute top-3 right-3 z-30 flex items-center gap-2'
+              : 'relative z-30 flex items-center justify-end p-2 gap-2'}
             toggleStats={toggleStats}
             onQualityChange={handleQualityChange}
           />
-        )}
-        <div className="relative flex items-center justify-center overflow-hidden bg-[#030404] flex-none aspect-[3/2]">
-          <Video {...videoProps} fit="cover" />
-          {connected && showStats && (
-            <StatsPanel {...statsPanelProps} />
-          )}
+          {showStats ? <StatsPanel isLandscape={isLandscape} {...statsPanelProps} /> : <></>}
         </div>
-        {connected ? (
-          <>
-            <ControlsBar
+      )}
+      <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : ""} />
+      {connected && (
+        <>
+          <ControlsBar
+            activeCamera={activeCamera}
+            onSwitchCamera={switchCamera}
+            gamepadConnected={gamepadConnected}
+            videoRef={videoRef}
+            isLandscape={isLandscape}
+          />
+          <div
+            className={isLandscape
+              ? 'absolute bottom-4 right-4 z-10 w-[160px] h-[160px]'
+              : 'flex-1 flex items-center justify-center p-2 min-h-0 overflow-hidden'}
+          >
+            <Joystick
+              connection={connection}
               activeCamera={activeCamera}
+              className={isLandscape
+                ? 'relative w-full h-full'
+                : 'relative w-auto h-full aspect-square max-w-full'}
+              onGamepadChange={setGamepadConnected}
               onSwitchCamera={switchCamera}
               gamepadConnected={gamepadConnected}
-              videoRef={videoRef}
             />
-            <div className="flex-1 flex items-center justify-center p-2 min-h-0 overflow-hidden">
-              <Joystick
-                connection={connection}
-                activeCamera={activeCamera}
-                className="relative w-auto h-full aspect-square max-w-full"
-                onGamepadChange={setGamepadConnected}
-                onSwitchCamera={switchCamera}
-                gamepadConnected={gamepadConnected}
-              />
-            </div>
-          </>
-        ) : null}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

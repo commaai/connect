@@ -6,12 +6,12 @@ const CAMERAS = [
   { key: 'driver', label: 'driver', num: '2' },
 ];
 
-const btnBase = `h-8 px-2.5 rounded-lg text-[10px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[32px] cursor-pointer select-none hover:text-white hover:bg-white/20 bg-glass`;
+const btnBase = `h-11 px-3.5 rounded-xl text-[14px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[44px] cursor-pointer select-none hover:text-white hover:bg-white/20 bg-glass`;
 const btnInactive = `${btnBase} bg-white/10 text-white/60`;
 const btnActive = `${btnBase} bg-white/30 text-white`;
 
-const controlsGroupBase = 'absolute bottom-4 left-4 z-10 flex flex-row items-stretch gap-2.5 rounded-[14px] p-2 bg-glass-dark';
-const controlsGroupPortrait = 'relative bottom-auto left-auto transform-none self-stretch rounded-none shrink-0 justify-between gap-1.5';
+const controlsGroupBase = 'absolute bottom-4 left-4 z-10 flex flex-row items-stretch gap-3.5 rounded-[20px] p-3 bg-glass-dark';
+const controlsGroupPortrait = 'relative bottom-auto left-auto transform-none self-stretch rounded-none shrink-0 justify-between gap-2';
 
 const ControlsBar = ({
   activeCamera, onSwitchCamera,
@@ -33,30 +33,30 @@ const ControlsBar = ({
   return (
     <div className={`${controlsGroupBase} ${!isLandscape ? controlsGroupPortrait : ''}`}>
       {!gamepadConnected && (
-        <div className="flex flex-col items-center justify-between gap-[5px]">
-          <div className="flex gap-[3px] items-center">
+        <div className="flex flex-col items-center justify-between gap-[7px]">
+          <div className="flex gap-[4px] items-center">
             {CAMERAS.map((cam) => (
               <div
                 key={cam.key}
                 className={activeCamera === cam.key ? btnActive : btnInactive}
                 onClick={() => onSwitchCamera(cam.key)}
               >
-                {isLandscape ? cam.label : cam.num}
+                {cam.label}
               </div>
             ))}
           </div>
-          <span className="text-[9px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Camera</span>
+          <span className="text-[13px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Camera</span>
         </div>
       )}
-      <div className="flex flex-col items-center justify-between gap-[5px]">
+      <div className="flex flex-col items-center justify-between gap-[7px]">
         <div
           className={btnInactive}
           onClick={handleScreenshot}
           title="Save screenshot"
         >
-          <PhotoCamera className="text-[18px]" />
+          <PhotoCamera className="text-[25px]" />
         </div>
-        <span className="text-[9px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Screenshot</span>
+        <span className="text-[13px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Screenshot</span>
       </div>
     </div>
   );

@@ -64,13 +64,13 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
   return (
     <div ref={wrapperRef} className="relative">
       <div
-        className="flex items-center justify-center h-6 w-6 rounded-[14px] cursor-pointer select-none bg-glass text-white/60 hover:text-white/90 hover:!bg-black/60"
+        className="flex items-center justify-center h-9 w-9 rounded-[18px] cursor-pointer select-none bg-glass text-white/60 hover:text-white/90 hover:!bg-black/60"
         onClick={toggleOpen}
         title="Settings"
       >
         <Settings
           style={{
-            fontSize: 14,
+            fontSize: 20,
             transition: 'transform 0.2s ease',
             transform: open ? 'rotate(30deg)' : 'none',
           }}
