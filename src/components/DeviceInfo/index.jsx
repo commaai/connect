@@ -39,11 +39,6 @@ const styles = (theme) => ({
   bold: {
     fontWeight: 600,
   },
-  deviceTitle: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-  },
   bodyIconWrapper: {
     width: 35,
     height: 28,
@@ -94,17 +89,12 @@ const styles = (theme) => ({
     display: 'flex',
     justifyContent: 'space-around',
   },
-  deviceStatContainer: {
-    display: 'flex',
-    flex: 1,
-    justifySelf: 'start',
-  },
   deviceStat: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     maxWidth: 80,
-    padding: `0 ${theme.spacing.unit * 4}px`,
+    // padding: `0 ${theme.spacing.unit * 4}px`,
   },
   carBattery: {
     padding: '5px 16px',
@@ -394,20 +384,22 @@ class DeviceInfo extends Component {
         <ResizeHandler onResize={ this.onResize } />
         <VisibilityHandler onVisible={ this.onVisible } onInit onDongleId minInterval={ 60 } />
         <div className={`${classes.container}`} style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
-          <div className={`flex md:flex-row md:justify-between items-center flex-col gap-4 md:my-2 my-4`}>
-            <div className={classes.deviceTitle}>
-              {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
-              {isCommaBody && (
-                <Tooltip classes={{ tooltip: classes.popover }} title="comma body" placement="bottom">
-                  <div className={classes.bodyIconWrapper}>
-                    <img src={BodyIcon} alt="comma body" className={classes.bodyIcon} />
-                  </div>
-                </Tooltip>
-              )}
-              <Typography variant="title">{deviceNamePretty(device)}</Typography>
+          <div className={`flex md:flex-row justify-between items-center gap-4 md:my-2 my-4`}>
+            <div className='flex flex-col items-start md:flex-row md:items-center gap-4'>
+              <div className={`flex flex-row gap-4 items-center`}>
+                {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
+                {isCommaBody && (
+                  <Tooltip classes={{ tooltip: classes.popover }} title="comma body" placement="bottom">
+                    <div className={classes.bodyIconWrapper}>
+                      <img src={BodyIcon} alt="comma body" className={classes.bodyIcon} />
+                    </div>
+                  </Tooltip>
+                )}
+                <Typography variant="title">{deviceNamePretty(device)}</Typography>
+              </div>
+              { this.renderStats() }
             </div>
-            <div className={`${classes.deviceStatContainer}`}>{ this.renderStats() }</div>
-            <div className={`flex flex-row justify-center`}>{ this.renderButtons() }</div>
+            { this.renderButtons() }
           </div>
         </div>
         { snapshot.result
@@ -461,7 +453,7 @@ class DeviceInfo extends Component {
       : Math.round(deviceStats.result.all.distance);
 
     return (
-      <>
+      <div className='flex gap-4 md:gap-8 items-center'>
         <div className={ classes.deviceStat }>
           <Typography variant="subheading" className={ classes.bold }>
             { distance }
@@ -482,7 +474,7 @@ class DeviceInfo extends Component {
           </Typography>
           <Typography variant="subheading">hours</Typography>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -522,7 +514,7 @@ class DeviceInfo extends Component {
     const bodyTeleopEnabled = isCommaBody && deviceVersionAtLeast(device, '0.11.2');
 
     return (
-      <div className='flex flex-row justify-center gap-4 w-full'>
+      <div className='flex md:flex-row md:items-stretch flex-col items-end justify-center md:gap-4 gap-1 w-50% md:w-fit'>
         <div
           className={ classes.carBattery }
           style={{ backgroundColor: batteryBackground }}
@@ -551,16 +543,14 @@ class DeviceInfo extends Component {
             title="teleoperate"
             placement="bottom"
           >
-            <span>
-              <Button
-                style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
-                classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
-                onClick={ this.openBodyTeleop }
-                disabled={ !deviceIsOnline(device) }
-              >
-                <GamepadIcon fontSize="inherit" />
-              </Button>
-            </span>
+            <Button
+              style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
+              classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
+              onClick={ this.openBodyTeleop }
+              disabled={ !deviceIsOnline(device) }
+            >
+              <GamepadIcon fontSize="inherit" />
+            </Button>
           </Tooltip>
         ) : (
           <Button
