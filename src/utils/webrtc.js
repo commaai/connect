@@ -7,6 +7,8 @@ const wallMs = () => performance.timeOrigin + performance.now();
 const CLOCK_WINDOW_SIZE = 16;
 const CLOCK_PING_MS = 500;
 
+const ICE_GATHER_DEADLINE_MS = 5000;
+
 export class WebRTCConnection {
   constructor(callbacks) {
     this.pc = null;
@@ -109,36 +111,37 @@ export class WebRTCConnection {
 
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
-      this.callbacks.onStatusMessage?.('Preparing connection...');
+      this.callbacks.onStatusMessage?.('Gathering ICE candidates...');
 
-      // Wait for ICE gathering to complete before sending the offer
-      await Promise.race([
-        new Promise((resolve) => {
-          if (this.pc.iceGatheringState === 'complete') return resolve();
-          const onComplete = () => {
-            if (this.pc.iceGatheringState === 'complete') {
-              this.pc.removeEventListener('icegatheringstatechange', onComplete);
-              resolve();
-            }
-          };
-          this.pc.addEventListener('icegatheringstatechange', onComplete);
-        }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('ICE gathering timed out')), 5000)),
-      ]);
-      this.callbacks.onStatusMessage?.('Reaching device...');
+      const pc = this.pc;
 
-      const payload = {
+      let resolveComplete;
+      const gatheringComplete = new Promise((resolve) => { resolveComplete = resolve; });
+      pc.addEventListener('icecandidate', (evt) => {
+        if (!evt.candidate) resolveComplete();
+      });
+
+      await Promise.race([gatheringComplete, asyncSleep(ICE_GATHER_DEADLINE_MS)]);
+      if (this.pc !== pc) throw new Error('connection torn down during ICE gathering');
+
+      const offerSdp = pc.localDescription.sdp;
+      this.callbacks.onStatusMessage?.('Device processing candidates...');
+
+      const resp = await Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
-        params: { sdp: this.pc.localDescription.sdp },
+        params: { sdp: offerSdp },
         jsonrpc: '2.0',
         id: 0,
-      };
-      const resp = await Athena.postJsonRpcPayload(dongleId, payload);
-      if (!resp?.result || resp.error) {
+      });
+      if (resp?.error) {
+        log(`device error: ${JSON.stringify(resp.error)}`);
+        throw new Error(resp.error.message || 'Could not reach device. Is the ignition on?');
+      }
+      if (!resp?.result) {
         throw new Error('Could not reach device. Is the ignition on?');
       }
-      this.callbacks.onStatusMessage?.('Device responded');
-
+      
+      this.callbacks.onStatusMessage?.('Candidate accepted...');
       await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
       this.callbacks.onStatusMessage?.('Establishing connection...');
     } catch (err) {

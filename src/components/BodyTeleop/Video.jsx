@@ -9,8 +9,8 @@ const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress
   const failed = connectionState === 'failed';
 
   return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
+    <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+      <div className="flex flex-col items-center gap-3 pointer-events-auto">
         {connecting ? (
           <>
             <div className="w-60 h-1 rounded bg-white/10 overflow-hidden">

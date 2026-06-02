@@ -12,10 +12,9 @@ import Video from './Video';
 import Joystick from './Joystick';
 
 const progressMap = {
-  'Preparing connection...': 10,
-  'Finding network path...': 20,
-  'Reaching device...': 30,
-  'Device responded': 85,
+  'Gathering ICE candidates...': 20,
+  'Device processing candidates...': 40,
+  'Candidate accepted...': 85,
   'Establishing connection...': 92,
   'Receiving video...': 97,
 };

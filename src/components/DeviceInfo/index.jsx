@@ -551,16 +551,14 @@ class DeviceInfo extends Component {
             title="teleoperate"
             placement="bottom"
           >
-            <span>
-              <Button
-                style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
-                classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
-                onClick={ this.openBodyTeleop }
-                disabled={ !deviceIsOnline(device) }
-              >
-                <GamepadIcon fontSize="inherit" />
-              </Button>
-            </span>
+            <Button
+              style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
+              classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
+              onClick={ this.openBodyTeleop }
+              disabled={ !deviceIsOnline(device) }
+            >
+              <GamepadIcon fontSize="inherit" />
+            </Button>
           </Tooltip>
         ) : (
           <Button
