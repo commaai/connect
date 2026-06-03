@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import PhotoCamera from '@material-ui/icons/PhotoCamera';
 
 const CAMERAS = [
@@ -17,35 +17,48 @@ const ControlsBar = ({
   activeCamera, onSwitchCamera,
   gamepadConnected, videoRef, isLandscape, className = '',
 }) => {
+  const screenshotInProgress = useRef(false);
   const handleScreenshot = useCallback(async () => {
+    if (screenshotInProgress.current) return;
     const video = videoRef?.current;
     if (!video || !video.videoWidth) return;
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
+    screenshotInProgress.current = true;
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
 
-    const filename = `screenshot_${activeCamera}_${Date.now()}.png`;
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-    if (!blob) return;
+      const filename = `screenshot_${activeCamera}_${Date.now()}.png`;
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) return;
 
-    const file = new File([blob], filename, { type: 'image/png' });
-    if (navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file] });
-        return;
-      } catch (err) {
-        if (err?.name === 'AbortError') return;
+      const file = new File([blob], filename, { type: 'image/png' });
+      if (navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] });
+          return;
+        } catch (err) {
+          if (err?.name === 'AbortError') return;
+        }
       }
-    }
 
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = url;
-    link.click();
-    URL.revokeObjectURL(url);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      screenshotInProgress.current = false;
+    }
   }, [videoRef, activeCamera]);
+
+  // overwrite default touch callback to avoid rapid double taps zooming in on iOS
+  const handleScreenshotTouch = useCallback((e) => {
+    e.preventDefault();
+    handleScreenshot();
+  }, [handleScreenshot]);
 
   return (
     <div className={`${controlsGroupBase} ${!isLandscape ? controlsGroupPortrait : ''} ${className}`}>
@@ -67,8 +80,9 @@ const ControlsBar = ({
       )}
       <div className="flex flex-col items-center justify-between gap-[7px]">
         <div
-          className={btnInactive}
+          className={`${btnInactive} touch-manipulation`}
           onClick={handleScreenshot}
+          onTouchEnd={handleScreenshotTouch}
           title="Save screenshot"
         >
           <PhotoCamera className="text-[25px]" />
