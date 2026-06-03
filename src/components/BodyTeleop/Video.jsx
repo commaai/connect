@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
 import InfoOutline from '@material-ui/icons/InfoOutline';
@@ -52,10 +52,24 @@ const Video = ({
   connectProgress, onConnect, className
 }) => {
   const connected = connectionState === 'connected';
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    if (connectionState !== 'connected') {
+      setPlaying(false);
+    }
+  }, [connectionState]);
 
   return (
     <>
-      <video ref={videoRef} autoPlay playsInline muted className={`w-full object-contain ${className}`} />
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        onPlaying={() => setPlaying(true)}
+        className={`w-full object-contain transition-opacity duration-300 ease-in ${playing ? 'opacity-100' : 'opacity-0'} ${className}`}
+      />
       {!connected && (
         <ConnectOverlay
           connectionState={connectionState}

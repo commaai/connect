@@ -180,7 +180,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
           {showStats ? <StatsPanel isLandscape={isLandscape} {...statsPanelProps} /> : <></>}
         </div>
       )}
-      <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : ""} />
+      <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : "aspect-[16/9]"} />
       {connected && (
         <>
           <ControlsBar
