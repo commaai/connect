@@ -4,17 +4,15 @@ import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 
-import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } from '@material-ui/core';
+import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@material-ui/core';
 
-import { athena as Athena } from '@commaai/api';
-import { analyticsEvent, primeNav, fetchDeviceNotCar } from '../../actions';
+import { athena as Athena, devices as Devices } from '@commaai/api';
+import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
-import { GamepadIcon } from '../../icons';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import CommacareBadge from '../CommacareBadge';
-import BodyIcon from '../../icons/body.png';
 import BodyTeleop from '../BodyTeleop';
 
 const styles = (theme) => ({
@@ -337,13 +335,6 @@ class DeviceInfo extends Component {
             <div className='flex flex-col items-start md:flex-row md:items-center gap-4'>
               <div className={`flex flex-row gap-4 items-center`}>
                 {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
-                {/* {isCommaBody && (
-                  <Tooltip classes={{ tooltip: classes.popover }} title="comma body" placement="bottom">
-                    <div className={classes.bodyIconWrapper}>
-                      <img src={BodyIcon} alt="comma body" className={classes.bodyIcon} />
-                    </div>
-                  </Tooltip>
-                )} */}
                 <Typography variant="title">{deviceNamePretty(device)}</Typography>
               </div>
               
