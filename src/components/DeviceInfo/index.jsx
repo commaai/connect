@@ -217,7 +217,6 @@ class DeviceInfo extends Component {
       snapshot: {},
       windowWidth: window.innerWidth,
       isTimeSelectOpen: false,
-      teleopTooltipOpen: false,
     };
 
     this.snapshotButtonRef = React.createRef();
@@ -238,7 +237,6 @@ class DeviceInfo extends Component {
   }
 
   openBodyTeleop() {
-    this.setState({ teleopTooltipOpen: false });
     this.props.dispatch(streamNav(true));
   }
 
@@ -548,23 +546,14 @@ class DeviceInfo extends Component {
             )}
         </div>
         {bodyTeleopEnabled ? (
-          <Tooltip
-            classes={{ tooltip: classes.popover }}
-            title="teleoperate"
-            placement="bottom"
-            open={ this.state.teleopTooltipOpen }
-            onOpen={ () => this.setState({ teleopTooltipOpen: true }) }
-            onClose={ () => this.setState({ teleopTooltipOpen: false }) }
+          <Button
+            style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
+            classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
+            onClick={ this.openBodyTeleop }
+            disabled={ !deviceIsOnline(device) }
           >
-            <Button
-              style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
-              classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
-              onClick={ this.openBodyTeleop }
-              disabled={ !deviceIsOnline(device) }
-            >
-              <GamepadIcon fontSize="inherit" />
-            </Button>
-          </Tooltip>
+            <GamepadIcon fontSize="inherit" />
+          </Button>
         ) : (
           <Button
             ref={ this.snapshotButtonRef }
