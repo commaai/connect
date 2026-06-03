@@ -27,10 +27,16 @@ export const useStats = (connection, connectionState, latencyCallbackRef) => {
   const [latency, setLatency] = useState(null);
   const [latencyHistory, setLatencyHistory] = useState([]);
   const latencyBufferRef = useRef([]);
+  const firstLatencyShownRef = useRef(false);
   const statsPollingRef = useRef({ interval: null, prevTimestamp: null, prevBytes: null, prevFrames: null });
 
   useEffect(() => {
     latencyCallbackRef.current = (raw) => {
+      if (!firstLatencyShownRef.current) {
+        firstLatencyShownRef.current = true;
+        setLatency(raw);
+        setLatencyHistory((prev) => [...prev, raw].slice(-LATENCY_HISTORY_MAX));
+      }
       latencyBufferRef.current.push(raw);
       if (latencyBufferRef.current.length >= LATENCY_BUFFER_SIZE) {
         const buf = latencyBufferRef.current;
@@ -97,6 +103,8 @@ export const useStats = (connection, connectionState, latencyCallbackRef) => {
     } else {
       if (ref.interval) clearInterval(ref.interval);
       ref.interval = null;
+      latencyBufferRef.current = [];
+      firstLatencyShownRef.current = false;
       setStats(null);
       setLatency(null);
       setLatencyHistory([]);
@@ -179,9 +187,9 @@ export const StatsPanel = ({isLandscape, stats, latency, latencyHistory }) => {
   const fmtMs = (v) => (v != null ? `${v.toFixed(1)} ms` : '--');
 
   return (
-    <div className={`absolute right-1 z-10 flex flex-col items-end ${isLandscape ? 'top-10' : 'top-0'}`}
+    <div className={`absolute right-1 z-10 flex flex-col items-end ${isLandscape ? 'top-16' : 'top-12'}`}
     >
-      <div className={`mt-0.5 p-[3px_6px] rounded-[5px] min-w-[120px] font-mono bg-glass-dark md:p-[10px_16px] md:min-w-[240px] md:rounded-[10px]`}>
+      <div className={`mt-0.5 p-[3px_6px] rounded-[5px] w-[120px] font-mono bg-glass-dark md:p-[10px_16px] md:w-[240px] md:rounded-[10px]`}>
         {STATS_ROWS.map(({ label, key }) => (
           <div key={key} className="flex justify-between leading-tight md:py-[3px]">
             <span className="text-[8px] text-white/45 mr-1.5 md:text-[13px] md:mr-[18px]">{label}</span>
@@ -218,25 +226,27 @@ const StatusBar = ({
 
   return (
     <div className={className}>
-      <div className="flex items-center justify-center gap-1.5 h-7 px-2.5">
+      <div className="flex items-center justify-center gap-2 h-10 px-3.5">
         <div
-          className="w-2 h-2 rounded-full"
+          className="w-3 h-3 rounded-full"
           style={{ backgroundColor: '#22c967' }}
         />
-        <span className="text-xs text-white/70">connected</span>
+        <span className="text-base text-white/70">connected</span>
       </div>
       {battery && (
-        <div className="flex items-center justify-center gap-1.5 h-7 px-2.5">
-          <BatteryIcon style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.7)' }} />
-          <span className="text-xs text-white/70 w-6">{battery.level}%</span>
+        <div className="flex items-center justify-center gap-2 h-10 px-3.5">
+          <BatteryIcon style={{ fontSize: 20, color: 'rgba(255, 255, 255, 0.7)' }} />
+          <span className="text-base text-white/70 w-9">{battery.level}%</span>
         </div>
       )}
       <div
-        className="flex items-center text-[9px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none justify-center h-6 px-2.5 rounded-[14px] cursor-pointer select-none bg-glass text-white/60 hover:text-white/90 hover:!bg-black/60"
+        className="group flex items-center justify-center h-9 px-3.5 rounded-[18px] cursor-pointer select-none bg-glass hover:!bg-black/60"
         onClick={toggleStats}
         title="Toggle stats"
       >
-        stats
+        <span className="text-[13px] font-semibold tracking-[0.5px] uppercase text-center leading-none text-white/60 group-hover:text-white/90">
+          stats
+        </span>
       </div>
       <SettingsMenu onQualityChange={onQualityChange} />
     </div>

@@ -330,6 +330,30 @@ export function primeNav(nav, allowPathChange = true) {
   };
 }
 
+export function streamNav(nav, allowPathChange = true) {
+  return (dispatch, getState) => {
+    const state = getState();
+    if (!state.dongleId) {
+      return;
+    }
+
+    if (state.streamNav !== nav) {
+      dispatch({
+        type: Types.ACTION_STREAM_NAV,
+        streamNav: nav,
+      });
+    }
+
+    if (allowPathChange) {
+      const curPath = document.location.pathname;
+      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
+      if (curPath !== desiredPath) {
+        dispatch(push(desiredPath));
+      }
+    }
+  };
+}
+
 export function fetchSharedDevice(dongleId) {
   return async (dispatch) => {
     try {

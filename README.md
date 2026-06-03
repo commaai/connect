@@ -1,9 +1,10 @@
-> [!CAUTION]
-> This is the old connect PWA. It will only receive bug fixes for the time being. Check out the [new one](https://github.com/commaai/new-connect).
-
 # comma connect
 
-The frontend to the comma connect progressive web app. This a react app using [Create React App](https://github.com/facebookincubator/create-react-app)
+The web and mobile companion application for [openpilot](https://github.com/commaai/openpilot)
+
+Try it with your openpilot device:
+- **stable:** https://connect.comma.ai
+- **latest:** https://latest.connect-d5y.pages.dev/
 
 ## Development
 * Install pnpm: https://pnpm.io/installation

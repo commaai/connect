@@ -219,11 +219,11 @@ class DeviceInfo extends Component {
   }
 
   openBodyTeleop() {
-    this.setState({ bodyTeleopOpen: true });
+    this.props.dispatch(streamNav(true));
   }
 
   closeBodyTeleop() {
-    this.setState({ bodyTeleopOpen: false });
+    this.props.dispatch(streamNav(false));
   }
 
   componentDidMount() {
@@ -335,7 +335,8 @@ class DeviceInfo extends Component {
 
   render() {
     const { classes, device } = this.props;
-    const { snapshot, windowWidth, bodyTeleopOpen } = this.state;
+    const { snapshot, windowWidth } = this.state;
+    const { streamNav: bodyTeleopOpen } = this.props;
     const commacare = device?.commacare;
     const isCommaBody = device?.rpc?.not_car;
 
@@ -513,6 +514,7 @@ class DeviceInfo extends Component {
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
+  streamNav: 'streamNav',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));
