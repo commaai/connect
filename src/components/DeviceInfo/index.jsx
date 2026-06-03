@@ -6,7 +6,7 @@ import dayjs from 'dayjs';
 
 import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@material-ui/core';
 
-import { athena as Athena, devices as Devices } from '@commaai/api';
+import { athena as Athena } from '@commaai/api';
 import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast } from '../../utils';
@@ -321,7 +321,6 @@ class DeviceInfo extends Component {
     const { snapshot, windowWidth } = this.state;
     const { streamNav: bodyTeleopOpen } = this.props;
     const commacare = device?.commacare;
-    const isCommaBody = device?.rpc?.not_car;
 
     const containerPadding = windowWidth > 520 ? 36 : 16;
     const largeSnapshotPadding = windowWidth > 1440 ? '12px 0' : 0;
