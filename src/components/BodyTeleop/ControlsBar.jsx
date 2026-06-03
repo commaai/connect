@@ -6,7 +6,7 @@ const CAMERAS = [
   { key: 'driver', label: 'driver', num: '2' },
 ];
 
-const btnBase = `h-11 px-3.5 rounded-xl text-[14px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[44px] cursor-pointer select-none hover:text-white hover:bg-white/20 bg-glass`;
+const btnBase = `h-11 w-[80px] rounded-xl text-[14px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[44px] cursor-pointer select-none hover:text-white hover:bg-white/20 bg-glass`;
 const btnInactive = `${btnBase} bg-white/10 text-white/60`;
 const btnActive = `${btnBase} bg-white/30 text-white`;
 
@@ -63,7 +63,7 @@ const ControlsBar = ({
   return (
     <div className={`${controlsGroupBase} ${!isLandscape ? controlsGroupPortrait : ''}`}>
       {!gamepadConnected && (
-        <div className="flex flex-col items-center justify-between gap-[7px]">
+        <div className="flex flex-col items-center justify-between gap-[5px] lg:gap-[7px]">
           <div className="flex gap-[4px] items-center">
             {CAMERAS.map((cam) => (
               <div
@@ -75,19 +75,19 @@ const ControlsBar = ({
               </div>
             ))}
           </div>
-          <span className="text-[13px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Camera</span>
+          <span className="text-[10px] lg:text-[13px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Camera</span>
         </div>
       )}
-      <div className="flex flex-col items-center justify-between gap-[7px]">
+      <div className="flex flex-col items-center justify-between gap-[5px] lg:gap-[7px]">
         <div
-          className={`${btnInactive} touch-manipulation`}
+          className={`${btnInactive} touch-manipulation w-full`}
           onClick={handleScreenshot}
           onTouchEnd={handleScreenshotTouch}
           title="Save screenshot"
         >
           <PhotoCamera className="text-[25px]" />
         </div>
-        <span className="text-[13px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Screenshot</span>
+        <span className="text-[10px] lg:text-[13px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Screenshot</span>
       </div>
     </div>
   );

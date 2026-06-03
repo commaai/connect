@@ -26,6 +26,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [battery, setBattery] = useState(null);
   const [error, setError] = useState(null);
   const [isLandscape, setIsLandscape] = useState(false);
+  const [isShort, setIsShort] = useState(false);
   const [activeCamera, setActiveCamera] = useState('wideRoad');
 
   const [gamepadConnected, setGamepadConnected] = useState(false);
@@ -90,6 +91,14 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     return () => query.removeEventListener('change', handler);
   }, []);
 
+  useEffect(() => {
+    const query = window.matchMedia('(max-height: 500px)');
+    setIsShort(query.matches);
+    const handler = (e) => setIsShort(e.matches);
+    query.addEventListener('change', handler);
+    return () => query.removeEventListener('change', handler);
+  }, []);
+
   const handleConnect = useCallback(async () => {
     const conn = connectionRef.current;
     if (!conn) return;
@@ -137,7 +146,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
 
   const {
-    showStats, toggleStats, stats, latency, latencyHistory,
+    showStats, toggleStats, closeStats, stats, latency, latencyHistory,
   } = useStats(connection, connectionState, latencyCallbackRef);
   const statsPanelProps = { stats, latency, latencyHistory };
   const videoProps = {
@@ -176,8 +185,9 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
               : 'relative z-30 flex items-center justify-end p-2 gap-2'}
             toggleStats={toggleStats}
             onQualityChange={handleQualityChange}
+            onSettingsOpen={closeStats}
           />
-          {showStats ? <StatsPanel isLandscape={isLandscape} {...statsPanelProps} /> : <></>}
+          {showStats ? <StatsPanel isLandscape={isLandscape} compact={isLandscape && isShort} {...statsPanelProps} /> : <></>}
         </div>
       )}
       <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : "aspect-[16/9]"} />

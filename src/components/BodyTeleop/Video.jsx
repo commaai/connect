@@ -36,12 +36,6 @@ const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress
             {error}
           </div>
         )}
-        {!connecting && (
-          <div className={`flex items-center gap-2.5 rounded-[20px] px-3 py-1.5 text-xs text-white/50`}>
-            <InfoOutline style={{ fontSize: 16 }} />
-            <span>Body must be powered on and started.</span>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -137,9 +137,7 @@ export class WebRTCConnection {
 
       const offerSdp = stripMdnsCandidates(pc.localDescription.sdp);
       this.callbacks.onStatusMessage?.('Device processing candidates...');
-      
-      console.log(offerSdp)
-      
+            
       const resp = await Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
         params: { sdp: offerSdp },
