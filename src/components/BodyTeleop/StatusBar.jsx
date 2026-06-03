@@ -226,7 +226,7 @@ const StatusBar = ({
 
   return (
     <div className={className}>
-      <div className="flex items-center justify-center gap-2 h-10 px-3.5">
+      <div className="flex items-center mr-auto md:mr-0 gap-2 h-10 px-3.5">
         <div
           className="w-3 h-3 rounded-full"
           style={{ backgroundColor: '#22c967' }}
