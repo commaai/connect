@@ -10,7 +10,7 @@ const CLOCK_PING_MS = 500;
 const ICE_GATHER_DEADLINE_MS = 5000;
 
 // Browsers obfuscate the local host behind a "<uuid>.local" mDNS hostname for
-// privacy. Aiortc can't resolve those https://github.com/commaai/teleoprtc/pull/13
+// privacy. Aiortc can't resolve those https://github.com/commaai/connect/issues/609
 function stripMdnsCandidates(sdp) {
   return sdp
     .split(/\r\n|\n/)
