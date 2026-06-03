@@ -104,21 +104,6 @@ const styles = (theme) => ({
       lineHeight: '1.4em',
     },
   },
-  actionButton: {
-    minWidth: 130,
-    padding: '5px 16px',
-    borderRadius: 15,
-  },
-  actionButtonSmall: {
-    minWidth: 90,
-    padding: '5px 10px',
-    borderRadius: 15,
-  },
-  actionButtonIcon: {
-    minWidth: 60,
-    padding: '8px 8px',
-    borderRadius: 15,
-  },
   snapshotContainer: {
     borderBottom: `1px solid ${Colors.white10}`,
   },
@@ -409,9 +394,6 @@ class DeviceInfo extends Component {
       batteryBackground = batteryVoltage < 11.0 ? Colors.red400 : Colors.green400;
     }
 
-    const actionButtonClass = windowWidth >= 520
-      ? classes.actionButton
-      : classes.actionButtonSmall;
     const buttonOffline = deviceIsOnline(device) ? '' : classes.buttonOffline;
 
     let error = null;
@@ -436,17 +418,16 @@ class DeviceInfo extends Component {
         {bodyTeleopEnabled ? (
           <button
             style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
-            className={`${classes.button} ${classes.carBattery} ${actionButtonClass} ${buttonOffline}`}
+            className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
             onClick={ this.openBodyTeleop }
             disabled={ !deviceIsOnline(device) }
           >
             <Typography className='text-black'>teleoperate</Typography>
-            {/* <GamepadIcon fontSize="inherit"/> */}
           </button>
         ) : (
           <button
             ref={ this.snapshotButtonRef }
-            className={`${classes.button} ${classes.carBattery} ${actionButtonClass} ${buttonOffline}`}
+            className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
             onClick={ this.takeSnapshot }
             disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
           >
