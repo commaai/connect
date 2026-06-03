@@ -8,9 +8,9 @@ import { ArrowBackBold } from '../../icons';
 
 const QUALITY_OPTIONS = [
   { key: 'auto', label: 'auto' },
-  { key: 'high', label: 'high' },
-  { key: 'med', label: 'med' },
-  { key: 'low', label: 'low' },
+  { key: 'high', label: 'high', bitrate: '5 mbps' },
+  { key: 'med', label: 'med', bitrate: '1.5 mbps' },
+  { key: 'low', label: 'low', bitrate: '500 kbps' },
 ];
 
 const rowClass = 'flex items-center h-9 px-3.5 gap-3 cursor-pointer select-none text-[13px] text-white/85 hover:bg-white/10 transition-colors whitespace-nowrap';
@@ -123,6 +123,7 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
                 {opt.key === quality && <Check style={{ fontSize: 16 }} className="text-white" />}
               </span>
               <span className="flex-1">{opt.label}</span>
+              {opt.bitrate && <span className="text-[10px] text-white/40">{opt.bitrate}</span>}
             </div>
           ))}
         </div>
