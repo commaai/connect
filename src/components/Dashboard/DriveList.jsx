@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import { withStyles, Typography } from '@material-ui/core';
+import * as Sentry from '@sentry/react';
+import { withStyles, Typography, Button } from '@material-ui/core';
+import FilterList from '@material-ui/icons/FilterList';
 
+import { devices as Devices } from '@commaai/api';
 import { checkRoutesData, checkLastRoutesData } from '../../actions';
+import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import VisibilityHandler from '../VisibilityHandler';
 
 import DriveListEmpty from './DriveListEmpty';
@@ -15,6 +19,16 @@ const styles = () => ({
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
+  },
+  header: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '8px 16px',
+  },
+  bold: {
+    fontWeight: 600,
   },
   drives: {
     padding: 16,
@@ -28,7 +42,30 @@ const styles = () => ({
 });
 
 const DriveList = (props) => {
-  const { dispatch, classes, device, routes, lastRoutes } = props;
+  const { dispatch, classes, device, dongleId, routes, lastRoutes } = props;
+
+  const [deviceStats, setDeviceStats] = useState({});
+
+  const fetchDeviceInfo = useCallback(async () => {
+    if (!dongleId || device?.shared) {
+      return;
+    }
+    setDeviceStats({ fetching: true });
+    try {
+      const resp = await Devices.fetchDeviceStats(dongleId);
+      setDeviceStats({ result: resp });
+    } catch (err) {
+      console.error(err);
+      Sentry.captureException(err, { fingerprint: 'drive_list_device_stats' });
+      setDeviceStats({ error: err.message });
+    }
+  }, [dongleId, device]);
+
+  useEffect(() => {
+    setDeviceStats({});
+    fetchDeviceInfo();
+  }, [fetchDeviceInfo]);
+
   let contentStatus;
   let content;
   if (!routes || routes.length === 0) {
@@ -64,9 +101,52 @@ const DriveList = (props) => {
     );
   }
 
+  const renderStats = () => {
+    if (!deviceStats.result) {
+      return <div />;
+    }
+
+    const metric = isMetric();
+    const distance = metric
+      ? Math.round(deviceStats.result.all.distance * KM_PER_MI)
+      : Math.round(deviceStats.result.all.distance);
+
+    return (
+      <div className="flex gap-4 md:gap-8 items-center">
+        <div className="flex flex-row items-center gap-1 max-w-20">
+          <Typography variant="caption" className={classes.bold}>
+            { distance }
+          </Typography>
+          <Typography variant="caption">
+            { metric ? 'kilometers' : 'miles' }
+          </Typography>
+        </div>
+        <div className="flex flex-row items-center gap-1 max-w-20">
+          <Typography variant="caption" className={classes.bold}>
+            { deviceStats.result.all.routes }
+          </Typography>
+          <Typography variant="caption">drives</Typography>
+        </div>
+        <div className="flex flex-row items-center gap-1 max-w-20">
+          <Typography variant="caption" className={classes.bold}>
+            { Math.round(deviceStats.result.all.minutes / 60.0) }
+          </Typography>
+          <Typography variant="caption">hours</Typography>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={classes.drivesTable}>
       <VisibilityHandler onVisible={() => dispatch(checkRoutesData())} minInterval={60} />
+      <div className={classes.header}>
+        { renderStats() }
+        <Button variant="mini" className="text-white normal-case min-h-0 whitespace-nowrap hover:bg-white/10">
+          <FilterList className="mr-2 text-xl" />
+          <Typography variant="caption">Filter</Typography>
+        </Button>
+      </div>
       {content}
       {contentStatus}
     </div>
@@ -74,6 +154,7 @@ const DriveList = (props) => {
 };
 
 const stateToProps = Obstruction({
+  dongleId: 'dongleId',
   routes: 'routes',
   lastRoutes : 'lastRoutes',
   device: 'device',

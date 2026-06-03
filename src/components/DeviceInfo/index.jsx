@@ -7,12 +7,11 @@ import dayjs from 'dayjs';
 import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } from '@material-ui/core';
 import AccessTime from '@material-ui/icons/AccessTime';
 
-import { athena as Athena, devices as Devices } from '@commaai/api';
+import { athena as Athena } from '@commaai/api';
 import { analyticsEvent, primeNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { GamepadIcon } from '../../icons';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast } from '../../utils';
-import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import TimeSelect from '../TimeSelect'
@@ -91,7 +90,7 @@ const styles = (theme) => ({
   },
   deviceStat: {
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'center',
     maxWidth: 80,
     // padding: `0 ${theme.spacing.unit * 4}px`,
@@ -202,7 +201,6 @@ class DeviceInfo extends Component {
     super(props);
     this.mounted = null;
     this.state = {
-      deviceStats: {},
       carHealth: {},
       snapshot: {},
       windowWidth: window.innerWidth,
@@ -214,12 +212,10 @@ class DeviceInfo extends Component {
 
     this.onResize = this.onResize.bind(this);
     this.onVisible = this.onVisible.bind(this);
-    this.fetchDeviceInfo = this.fetchDeviceInfo.bind(this);
     this.fetchDeviceCarHealth = this.fetchDeviceCarHealth.bind(this);
     this.takeSnapshot = this.takeSnapshot.bind(this);
     this.snapshotType = this.snapshotType.bind(this);
     this.renderButtons = this.renderButtons.bind(this);
-    this.renderStats = this.renderStats.bind(this);
     this.renderSnapshotImage = this.renderSnapshotImage.bind(this);
     this.onOpenTimeSelect = this.onOpenTimeSelect.bind(this);
     this.onCloseTimeSelect = this.onCloseTimeSelect.bind(this);
@@ -244,7 +240,6 @@ class DeviceInfo extends Component {
 
     if (prevProps.dongleId !== dongleId) {
       this.setState({
-        deviceStats: {},
         carHealth: {},
         snapshot: {},
         windowWidth: window.innerWidth,
@@ -263,27 +258,8 @@ class DeviceInfo extends Component {
   onVisible() {
     const { device, dongleId } = this.props;
     if (!device.shared) {
-      this.fetchDeviceInfo();
       this.fetchDeviceCarHealth();
       this.props.dispatch(fetchDeviceNotCar(dongleId));
-    }
-  }
-
-  async fetchDeviceInfo() {
-    const { dongleId, device } = this.props;
-    if (device.shared) {
-      return;
-    }
-    this.setState({ deviceStats: { fetching: true } });
-    try {
-      const resp = await Devices.fetchDeviceStats(dongleId);
-      if (this.mounted && dongleId === this.props.dongleId) {
-        this.setState({ deviceStats: { result: resp } });
-      }
-    } catch (err) {
-      console.error(err);
-      Sentry.captureException(err, { fingerprint: 'device_info_device_stats' });
-      this.setState({ deviceStats: { error: err.message } });
     }
   }
 
@@ -397,13 +373,12 @@ class DeviceInfo extends Component {
                 )}
                 <Typography variant="title">{deviceNamePretty(device)}</Typography>
               </div>
-              { this.renderStats() }
+              
             </div>
             { this.renderButtons() }
           </div>
         </div>
-        { snapshot.result
-          && (
+        { snapshot.result && (
           <div className={ classes.snapshotContainer }>
             { windowWidth >= 640
               ? (
@@ -427,54 +402,9 @@ class DeviceInfo extends Component {
                 </div>
               )}
           </div>
-          )}
+        )}
         { bodyTeleopOpen && <BodyTeleop onClose={this.closeBodyTeleop} /> }
       </>
-    );
-  }
-
-  renderStats() {
-    const { classes } = this.props;
-    const { deviceStats } = this.state;
-
-    if (!deviceStats.result) {
-      return (
-        <>
-          <div />
-          <div />
-          <div />
-        </>
-      );
-    }
-
-    const metric = isMetric();
-    const distance = metric
-      ? Math.round(deviceStats.result.all.distance * KM_PER_MI)
-      : Math.round(deviceStats.result.all.distance);
-
-    return (
-      <div className='flex gap-4 md:gap-8 items-center'>
-        <div className={ classes.deviceStat }>
-          <Typography variant="subheading" className={ classes.bold }>
-            { distance }
-          </Typography>
-          <Typography variant="subheading">
-            { metric ? 'kilometers' : 'miles' }
-          </Typography>
-        </div>
-        <div className={ classes.deviceStat }>
-          <Typography variant="subheading" className={ classes.bold }>
-            { deviceStats.result.all.routes }
-          </Typography>
-          <Typography variant="subheading">drives</Typography>
-        </div>
-        <div className={ classes.deviceStat }>
-          <Typography variant="subheading" className={ classes.bold }>
-            { Math.round(deviceStats.result.all.minutes / 60.0) }
-          </Typography>
-          <Typography variant="subheading">hours</Typography>
-        </div>
-      </div>
     );
   }
 
