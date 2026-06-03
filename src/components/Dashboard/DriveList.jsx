@@ -53,7 +53,7 @@ const DriveList = (props) => {
       Sentry.captureException(err, { fingerprint: 'drive_list_device_stats' });
       setDeviceStats({ error: err.message });
     }
-  }, [dongleId, device]);
+  }, [dongleId]);
 
   useEffect(() => {
     setDeviceStats({});
