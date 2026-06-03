@@ -412,7 +412,7 @@ class DeviceInfo extends Component {
             onClick={ this.openBodyTeleop }
             disabled={ !deviceIsOnline(device) }
           >
-            <Typography className='text-black'>teleoperate</Typography>
+            <Typography className='text-black'>remote control</Typography>
           </button>
         ) : (
           <button
