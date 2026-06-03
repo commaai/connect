@@ -15,23 +15,40 @@ const controlsGroupPortrait = 'relative bottom-auto left-auto transform-none sel
 
 const ControlsBar = ({
   activeCamera, onSwitchCamera,
-  gamepadConnected, videoRef, isLandscape,
+  gamepadConnected, videoRef, isLandscape, className = '',
 }) => {
-  const handleScreenshot = useCallback(() => {
+  const handleScreenshot = useCallback(async () => {
     const video = videoRef?.current;
     if (!video || !video.videoWidth) return;
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0);
+
+    const filename = `screenshot_${activeCamera}_${Date.now()}.png`;
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) return;
+
+    const file = new File([blob], filename, { type: 'image/png' });
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] });
+        return;
+      } catch (err) {
+        if (err?.name === 'AbortError') return;
+      }
+    }
+
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.download = `screenshot_${activeCamera}_${Date.now()}.png`;
-    link.href = canvas.toDataURL('image/png');
+    link.download = filename;
+    link.href = url;
     link.click();
+    URL.revokeObjectURL(url);
   }, [videoRef, activeCamera]);
 
   return (
-    <div className={`${controlsGroupBase} ${!isLandscape ? controlsGroupPortrait : ''}`}>
+    <div className={`${controlsGroupBase} ${!isLandscape ? controlsGroupPortrait : ''} ${className}`}>
       {!gamepadConnected && (
         <div className="flex flex-col items-center justify-between gap-[7px]">
           <div className="flex gap-[4px] items-center">
