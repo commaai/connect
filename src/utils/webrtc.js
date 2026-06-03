@@ -7,6 +7,21 @@ const wallMs = () => performance.timeOrigin + performance.now();
 const CLOCK_WINDOW_SIZE = 16;
 const CLOCK_PING_MS = 500;
 
+const ICE_GATHER_DEADLINE_MS = 5000;
+
+// Browsers obfuscate the local host behind a "<uuid>.local" mDNS hostname for
+// privacy. Aiortc can't resolve those https://github.com/commaai/connect/issues/609
+function stripMdnsCandidates(sdp) {
+  return sdp
+    .split(/\r\n|\n/)
+    .filter((line) => {
+      if (!line.startsWith('a=candidate:')) return true;
+      return !line.split(' ')[4]?.endsWith('.local'); // connection-address is field 5
+    })
+    .map((line) => line.replace(/[\w-]+\.local\b/g, '0.0.0.0'))
+    .join('\r\n');
+}
+
 export class WebRTCConnection {
   constructor(callbacks) {
     this.pc = null;
@@ -30,9 +45,7 @@ export class WebRTCConnection {
     try {
       this.pc = new RTCPeerConnection({
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-        iceTransportPolicy: 'all',
         bundlePolicy: 'max-bundle',
-        rtcpMuxPolicy: 'require',
         encodedInsertableStreams: true,
       });
 
@@ -109,56 +122,39 @@ export class WebRTCConnection {
 
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
-      this.callbacks.onStatusMessage?.('Preparing connection...');
+      this.callbacks.onStatusMessage?.('Gathering ICE candidates...');
 
-      // Trickle ICE: resolve as soon as we get the first candidate rather than
-      // waiting for all candidates to be gathered
-      await Promise.race([
-        new Promise((resolve) => {
-          if (this.pc.iceGatheringState === 'complete') return resolve();
-          let onCandidate, onComplete;
-          onCandidate = (evt) => {
-            if (evt.candidate) {
-              this.callbacks.onStatusMessage?.('Finding network path...');
-              this.pc.removeEventListener('icecandidate', onCandidate);
-              this.pc.removeEventListener('icegatheringstatechange', onComplete);
-              resolve();
-            }
-          };
-          onComplete = () => {
-            if (this.pc.iceGatheringState === 'complete') {
-              this.pc.removeEventListener('icecandidate', onCandidate);
-              this.pc.removeEventListener('icegatheringstatechange', onComplete);
-              resolve();
-            }
-          };
-          this.pc.addEventListener('icecandidate', onCandidate);
-          this.pc.addEventListener('icegatheringstatechange', onComplete);
-        }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('ICE gathering timed out')), 5000)),
-      ]);
+      const pc = this.pc;
 
-      // avoid rtcp-mux error on firefox
-      // needed until teleoprtc is resolved
-      await asyncSleep(250);
-      const sdp = this.pc.localDescription.sdp.replace(
-        /(m=(audio|video) .*\r?\n)([\s\S]*?)(?=m=|$)/g,
-        (block) => block.includes('a=rtcp-mux') ? block : block.replace(/(m=(?:audio|video) [^\n]*\n)/, '$1a=rtcp-mux\r\n'),
-      );
-      this.callbacks.onStatusMessage?.('Reaching device...');
+      let resolveComplete;
+      const gatheringComplete = new Promise((resolve) => { resolveComplete = resolve; });
+      pc.addEventListener('icecandidate', (evt) => {
+        if (!evt.candidate) { resolveComplete(); }
+      });
 
-      const payload = {
+      await Promise.race([gatheringComplete, asyncSleep(ICE_GATHER_DEADLINE_MS)]);
+      if (this.pc !== pc) throw new Error('connection torn down during ICE gathering');
+
+      const offerSdp = stripMdnsCandidates(pc.localDescription.sdp);
+      this.callbacks.onStatusMessage?.('Device processing candidates...');
+      
+      console.log(offerSdp)
+      
+      const resp = await Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
-        params: { sdp },
+        params: { sdp: offerSdp },
         jsonrpc: '2.0',
         id: 0,
-      };
-      const resp = await Athena.postJsonRpcPayload(dongleId, payload);
-      if (!resp?.result || resp.error) {
+      });
+      if (resp?.error) {
+        log(`device error: ${JSON.stringify(resp.error)}`);
+        throw new Error(resp.error.message || 'Could not reach device. Is the ignition on?');
+      }
+      if (!resp?.result) {
         throw new Error('Could not reach device. Is the ignition on?');
       }
-      this.callbacks.onStatusMessage?.('Device responded');
-
+      
+      this.callbacks.onStatusMessage?.('Candidate accepted...');
       await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
       this.callbacks.onStatusMessage?.('Establishing connection...');
     } catch (err) {

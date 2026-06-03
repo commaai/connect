@@ -8,7 +8,7 @@ import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } fro
 import AccessTime from '@material-ui/icons/AccessTime';
 
 import { athena as Athena, devices as Devices } from '@commaai/api';
-import { analyticsEvent, primeNav, fetchDeviceNotCar } from '../../actions';
+import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { GamepadIcon } from '../../icons';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast } from '../../utils';
@@ -217,7 +217,6 @@ class DeviceInfo extends Component {
       snapshot: {},
       windowWidth: window.innerWidth,
       isTimeSelectOpen: false,
-      bodyTeleopOpen: false,
     };
 
     this.snapshotButtonRef = React.createRef();
@@ -238,11 +237,11 @@ class DeviceInfo extends Component {
   }
 
   openBodyTeleop() {
-    this.setState({ bodyTeleopOpen: true });
+    this.props.dispatch(streamNav(true));
   }
 
   closeBodyTeleop() {
-    this.setState({ bodyTeleopOpen: false });
+    this.props.dispatch(streamNav(false));
   }
 
   componentDidMount() {
@@ -382,7 +381,8 @@ class DeviceInfo extends Component {
 
   render() {
     const { classes, device } = this.props;
-    const { snapshot, windowWidth, bodyTeleopOpen } = this.state;
+    const { snapshot, windowWidth } = this.state;
+    const { streamNav: bodyTeleopOpen } = this.props;
     const commacare = device?.commacare;
     const isCommaBody = device?.rpc?.not_car;
 
@@ -546,22 +546,14 @@ class DeviceInfo extends Component {
             )}
         </div>
         {bodyTeleopEnabled ? (
-          <Tooltip
-            classes={{ tooltip: classes.popover }}
-            title="teleoperate"
-            placement="bottom"
+          <Button
+            style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
+            classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
+            onClick={ this.openBodyTeleop }
+            disabled={ !deviceIsOnline(device) }
           >
-            <span>
-              <Button
-                style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
-                classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
-                onClick={ this.openBodyTeleop }
-                disabled={ !deviceIsOnline(device) }
-              >
-                <GamepadIcon fontSize="inherit" />
-              </Button>
-            </span>
-          </Tooltip>
+            <GamepadIcon fontSize="inherit" />
+          </Button>
         ) : (
           <Button
             ref={ this.snapshotButtonRef }
@@ -620,6 +612,7 @@ class DeviceInfo extends Component {
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
+  streamNav: 'streamNav',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));

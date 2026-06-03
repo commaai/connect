@@ -57,6 +57,7 @@ export default function reducer(_state, action) {
         ...state,
         dongleId: action.dongleId,
         primeNav: false,
+        streamNav: false,
         subscription: null,
         subscribeInfo: null,
         files: null,
@@ -292,6 +293,12 @@ export default function reducer(_state, action) {
       if (action.primeNav) {
         state.zoom = null;
       }
+      break;
+    case Types.ACTION_STREAM_NAV:
+      state = {
+        ...state,
+        streamNav: action.streamNav,
+      };
       break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId !== state.dongleId) { // ignore outdated info
