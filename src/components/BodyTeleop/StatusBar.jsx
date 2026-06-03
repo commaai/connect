@@ -14,11 +14,15 @@ const STATS_ROWS = [
 ];
 
 const LATENCY_LAYERS = [
-  { label: 'Capture', key: 'captureMs', color: 'rgba(76,175,80,0.55)', labelColor: 'rgba(76,175,80,0.7)' },
-  { label: 'Encode', key: 'encodeMs', color: 'rgba(255,183,77,0.55)', labelColor: 'rgba(255,183,77,0.7)' },
-  { label: 'Send delay', key: 'sendDelayMs', color: 'rgba(171,71,188,0.45)', labelColor: 'rgba(171,71,188,0.65)' },
-  { label: 'Network', key: 'networkMs', color: 'rgba(66,165,245,0.55)', labelColor: 'rgba(66,165,245,0.7)' },
+  { label: 'Capture + Encode', keys: ['captureMs', 'encodeMs'], color: 'rgba(76,175,80,0.55)', labelColor: 'rgba(76,175,80,0.7)' },
+  { label: 'Send delay', keys: ['sendDelayMs'], color: 'rgba(171,71,188,0.45)', labelColor: 'rgba(171,71,188,0.65)' },
+  { label: 'Network', keys: ['networkMs'], color: 'rgba(66,165,245,0.55)', labelColor: 'rgba(66,165,245,0.7)' },
 ];
+
+const layerValue = (l, keys) => {
+  const vals = keys.map((k) => l[k]).filter((v) => v != null);
+  return vals.length ? vals.reduce((a, b) => a + b, 0) : null;
+};
 
 
 export const useStats = (connection, connectionState, latencyCallbackRef) => {
@@ -146,8 +150,8 @@ function drawLatencyGraph(canvas, latencyHistory) {
 
   const cums = latencyHistory.map((l) => {
     let sum = 0;
-    return LATENCY_LAYERS.map(({ key }) => {
-      const v = l[key];
+    return LATENCY_LAYERS.map(({ keys }) => {
+      const v = layerValue(l, keys);
       sum += (v != null && v > 0) ? v : 0;
       return sum;
     });
@@ -187,7 +191,7 @@ export const StatsPanel = ({isLandscape, stats, latency, latencyHistory }) => {
   const fmtMs = (v) => (v != null ? `${v.toFixed(1)} ms` : '--');
 
   return (
-    <div className={`absolute right-1 z-10 flex flex-col items-end ${isLandscape ? 'top-16' : 'top-12'}`}
+    <div className={`absolute right-1 z-30 flex flex-col items-end ${isLandscape ? 'top-14' : 'top-12'}`}
     >
       <div className={`mt-0.5 p-[3px_6px] rounded-[5px] w-[120px] font-mono bg-glass-dark md:p-[10px_16px] md:w-[240px] md:rounded-[10px]`}>
         {STATS_ROWS.map(({ label, key }) => (
@@ -200,10 +204,10 @@ export const StatsPanel = ({isLandscape, stats, latency, latencyHistory }) => {
         {latency && (
           <>
             <div className="text-[7px] font-bold text-white/35 tracking-[0.5px] leading-tight py-[2px] pb-px md:text-[11px]">FRAME LATENCY</div>
-            {LATENCY_LAYERS.map(({ label, key, labelColor }) => (
-              <div key={key} className="flex justify-between leading-tight md:py-[3px]">
+            {LATENCY_LAYERS.map(({ label, keys, labelColor }) => (
+              <div key={label} className="flex justify-between leading-tight md:py-[3px]">
                 <span className="text-[8px] mr-1.5 md:text-[13px] md:mr-[18px]" style={{ color: labelColor }}>{label}</span>
-                <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]">{fmtMs(latency[key])}</span>
+                <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]">{fmtMs(layerValue(latency, keys))}</span>
               </div>
             ))}
             <div className="flex justify-between leading-tight md:py-[3px]">
