@@ -14,7 +14,7 @@ const STATS_ROWS = [
 ];
 
 const LATENCY_LAYERS = [
-  { label: 'Capture + Encode', key: 'captureEncodeMs', color: 'rgba(76,175,80,0.55)', labelColor: 'rgba(76,175,80,0.7)' },
+  { label: 'Capture/Encode', key: 'captureEncodeMs', color: 'rgba(76,175,80,0.55)', labelColor: 'rgba(76,175,80,0.7)' },
   { label: 'Send delay', key: 'sendDelayMs', color: 'rgba(171,71,188,0.45)', labelColor: 'rgba(171,71,188,0.65)' },
   { label: 'Network', key: 'networkMs', color: 'rgba(66,165,245,0.55)', labelColor: 'rgba(66,165,245,0.7)' },
 ];
@@ -191,7 +191,7 @@ export const StatsPanel = ({isLandscape, stats, latency, latencyHistory }) => {
   return (
     <div className={`absolute right-1 z-30 flex flex-col items-end ${isLandscape ? 'top-14' : 'top-12'}`}
     >
-      <div className={`mt-0.5 p-[3px_6px] rounded-[5px] w-[120px] font-mono bg-glass-dark md:p-[10px_16px] md:w-[240px] md:rounded-[10px]`}>
+      <div className={`mt-0.5 p-[3px_6px] rounded-[5px] w-[140px] font-mono bg-glass-dark md:p-[10px_16px] md:w-[240px] md:rounded-[10px]`}>
         {STATS_ROWS.map(({ label, key }) => (
           <div key={key} className="flex justify-between leading-tight md:py-[3px]">
             <span className="text-[8px] text-white/45 mr-1.5 md:text-[13px] md:mr-[18px]">{label}</span>
