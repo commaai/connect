@@ -15,7 +15,7 @@ const controlsGroupPortrait = 'relative bottom-auto left-auto transform-none sel
 
 const ControlsBar = ({
   activeCamera, onSwitchCamera,
-  gamepadConnected, videoRef, isLandscape, className = '',
+  gamepadConnected, videoRef, isLandscape,
 }) => {
   const screenshotInProgress = useRef(false);
   const handleScreenshot = useCallback(async () => {
@@ -61,7 +61,7 @@ const ControlsBar = ({
   }, [handleScreenshot]);
 
   return (
-    <div className={`${controlsGroupBase} ${!isLandscape ? controlsGroupPortrait : ''} ${className}`}>
+    <div className={`${controlsGroupBase} ${!isLandscape ? controlsGroupPortrait : ''}`}>
       {!gamepadConnected && (
         <div className="flex flex-col items-center justify-between gap-[7px]">
           <div className="flex gap-[4px] items-center">

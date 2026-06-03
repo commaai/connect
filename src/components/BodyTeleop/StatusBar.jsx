@@ -14,15 +14,10 @@ const STATS_ROWS = [
 ];
 
 const LATENCY_LAYERS = [
-  { label: 'Capture + Encode', keys: ['captureMs', 'encodeMs'], color: 'rgba(76,175,80,0.55)', labelColor: 'rgba(76,175,80,0.7)' },
-  { label: 'Send delay', keys: ['sendDelayMs'], color: 'rgba(171,71,188,0.45)', labelColor: 'rgba(171,71,188,0.65)' },
-  { label: 'Network', keys: ['networkMs'], color: 'rgba(66,165,245,0.55)', labelColor: 'rgba(66,165,245,0.7)' },
+  { label: 'Capture + Encode', key: 'captureEncodeMs', color: 'rgba(76,175,80,0.55)', labelColor: 'rgba(76,175,80,0.7)' },
+  { label: 'Send delay', key: 'sendDelayMs', color: 'rgba(171,71,188,0.45)', labelColor: 'rgba(171,71,188,0.65)' },
+  { label: 'Network', key: 'networkMs', color: 'rgba(66,165,245,0.55)', labelColor: 'rgba(66,165,245,0.7)' },
 ];
-
-const layerValue = (l, keys) => {
-  const vals = keys.map((k) => l[k]).filter((v) => v != null);
-  return vals.length ? vals.reduce((a, b) => a + b, 0) : null;
-};
 
 
 export const useStats = (connection, connectionState, latencyCallbackRef) => {
@@ -36,6 +31,9 @@ export const useStats = (connection, connectionState, latencyCallbackRef) => {
 
   useEffect(() => {
     latencyCallbackRef.current = (raw) => {
+      raw.captureEncodeMs = (raw.captureMs != null || raw.encodeMs != null)
+        ? (raw.captureMs || 0) + (raw.encodeMs || 0)
+        : null;
       if (!firstLatencyShownRef.current) {
         firstLatencyShownRef.current = true;
         setLatency(raw);
@@ -46,7 +44,7 @@ export const useStats = (connection, connectionState, latencyCallbackRef) => {
         const buf = latencyBufferRef.current;
         latencyBufferRef.current = [];
         const avg = {};
-        for (const key of ['captureMs', 'encodeMs', 'sendDelayMs', 'devicePipelineMs', 'networkMs', 'totalMs']) {
+        for (const key of ['captureEncodeMs', 'sendDelayMs', 'devicePipelineMs', 'networkMs', 'totalMs']) {
           const vals = buf.map((l) => l[key]).filter((v) => v != null);
           avg[key] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
         }
@@ -150,8 +148,8 @@ function drawLatencyGraph(canvas, latencyHistory) {
 
   const cums = latencyHistory.map((l) => {
     let sum = 0;
-    return LATENCY_LAYERS.map(({ keys }) => {
-      const v = layerValue(l, keys);
+    return LATENCY_LAYERS.map(({ key }) => {
+      const v = l[key];
       sum += (v != null && v > 0) ? v : 0;
       return sum;
     });
@@ -204,10 +202,10 @@ export const StatsPanel = ({isLandscape, stats, latency, latencyHistory }) => {
         {latency && (
           <>
             <div className="text-[7px] font-bold text-white/35 tracking-[0.5px] leading-tight py-[2px] pb-px md:text-[11px]">FRAME LATENCY</div>
-            {LATENCY_LAYERS.map(({ label, keys, labelColor }) => (
+            {LATENCY_LAYERS.map(({ label, key, labelColor }) => (
               <div key={label} className="flex justify-between leading-tight md:py-[3px]">
                 <span className="text-[8px] mr-1.5 md:text-[13px] md:mr-[18px]" style={{ color: labelColor }}>{label}</span>
-                <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]">{fmtMs(layerValue(latency, keys))}</span>
+                <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]">{fmtMs(latency[key])}</span>
               </div>
             ))}
             <div className="flex justify-between leading-tight md:py-[3px]">
