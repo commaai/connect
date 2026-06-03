@@ -5,7 +5,6 @@ import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 
 import { withStyles, Typography, Button, CircularProgress, Popper, Tooltip } from '@material-ui/core';
-import AccessTime from '@material-ui/icons/AccessTime';
 
 import { athena as Athena } from '@commaai/api';
 import { analyticsEvent, primeNav, fetchDeviceNotCar } from '../../actions';
@@ -14,7 +13,6 @@ import { GamepadIcon } from '../../icons';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
-import TimeSelect from '../TimeSelect'
 import CommacareBadge from '../CommacareBadge';
 import BodyIcon from '../../icons/body.png';
 import BodyTeleop from '../BodyTeleop';
@@ -54,8 +52,6 @@ const styles = (theme) => ({
   button: {
     backgroundColor: Colors.white,
     color: Colors.grey900,
-    textTransform: 'none',
-    minHeight: 'unset',
     '&:hover': {
       background: '#ddd',
       color: Colors.grey900,
@@ -100,6 +96,8 @@ const styles = (theme) => ({
     borderRadius: 15,
     margin: '0 0px',
     textAlign: 'center',
+    display: 'flex',
+    alignItems: 'center',
     '& p': {
       fontSize: 14,
       fontWeight: 500,
@@ -204,7 +202,6 @@ class DeviceInfo extends Component {
       carHealth: {},
       snapshot: {},
       windowWidth: window.innerWidth,
-      isTimeSelectOpen: false,
       bodyTeleopOpen: false,
     };
 
@@ -217,8 +214,6 @@ class DeviceInfo extends Component {
     this.snapshotType = this.snapshotType.bind(this);
     this.renderButtons = this.renderButtons.bind(this);
     this.renderSnapshotImage = this.renderSnapshotImage.bind(this);
-    this.onOpenTimeSelect = this.onOpenTimeSelect.bind(this);
-    this.onCloseTimeSelect = this.onCloseTimeSelect.bind(this);
     this.openBodyTeleop = this.openBodyTeleop.bind(this);
     this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
   }
@@ -338,21 +333,13 @@ class DeviceInfo extends Component {
     this.setState({ snapshot: { ...snapshot, showFront } });
   }
 
-  onOpenTimeSelect() {
-    this.setState({ isTimeSelectOpen: true });
-  }
-
-  onCloseTimeSelect() {
-    this.setState({ isTimeSelectOpen: false });
-  }
-
   render() {
     const { classes, device } = this.props;
     const { snapshot, windowWidth, bodyTeleopOpen } = this.state;
     const commacare = device?.commacare;
     const isCommaBody = device?.rpc?.not_car;
 
-    const containerPadding = windowWidth > 520 ? 36 : 16;
+    const containerPadding = windowWidth > 520 ? 36 : 24;
     const largeSnapshotPadding = windowWidth > 1440 ? '12px 0' : 0;
 
     return (
@@ -360,7 +347,7 @@ class DeviceInfo extends Component {
         <ResizeHandler onResize={ this.onResize } />
         <VisibilityHandler onVisible={ this.onVisible } onInit onDongleId minInterval={ 60 } />
         <div className={`${classes.container}`} style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
-          <div className={`flex md:flex-row justify-between items-center gap-4 md:my-2 my-4`}>
+          <div className={`flex flex-col md:flex-row justify-between items-center gap-4 md:my-2 my-4`}>
             <div className='flex flex-col items-start md:flex-row md:items-center gap-4'>
               <div className={`flex flex-row gap-4 items-center`}>
                 {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
@@ -410,7 +397,7 @@ class DeviceInfo extends Component {
 
   renderButtons() {
     const { classes, device } = this.props;
-    const { snapshot, carHealth, windowWidth, isTimeSelectOpen } = this.state;
+    const { snapshot, carHealth, windowWidth } = this.state;
     const isCommaBody = device?.rpc?.not_car;
 
     let batteryVoltage;
@@ -444,62 +431,49 @@ class DeviceInfo extends Component {
     const bodyTeleopEnabled = isCommaBody && deviceVersionAtLeast(device, '0.11.2');
 
     return (
-      <div className='flex md:flex-row md:items-stretch flex-col items-end justify-center md:gap-4 gap-1 w-50% md:w-fit'>
-        <div
-          className={ classes.carBattery }
-          style={{ backgroundColor: batteryBackground }}
-        >
-          { deviceIsOnline(device)
-            ? (
-              <Typography>
-                { `${windowWidth >= 520 ? 'car ' : ''
-                }battery: ${
-                  batteryVoltage ? `${batteryVoltage.toFixed(1)}\u00a0V` : 'N/A'}` }
-              </Typography>
-            )
-            : (
-              <Tooltip
-                classes={{ tooltip: classes.popover }}
-                title={pingTooltip}
-                placement="bottom"
-              >
-                <Typography>device offline</Typography>
-              </Tooltip>
-            )}
-        </div>
+      <div className='flex md:flex-row md:items-stretch justify-center gap-4 w-50% md:w-fit'>
         {bodyTeleopEnabled ? (
-          <Tooltip
-            classes={{ tooltip: classes.popover }}
-            title="teleoperate"
-            placement="bottom"
+          <button
+            style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
+            className={`${classes.button} ${classes.carBattery} ${actionButtonClass} ${buttonOffline}`}
+            onClick={ this.openBodyTeleop }
+            disabled={ !deviceIsOnline(device) }
           >
-            <Button
-              style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
-              classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
-              onClick={ this.openBodyTeleop }
-              disabled={ !deviceIsOnline(device) }
-            >
-              <GamepadIcon fontSize="inherit" />
-            </Button>
-          </Tooltip>
+            <Typography className='mr-2 text-black'>teleoperate</Typography>
+            <GamepadIcon fontSize="inherit"/>
+          </button>
         ) : (
-          <Button
+          <button
             ref={ this.snapshotButtonRef }
-            classes={{ root: `${classes.button} ${actionButtonClass} ${buttonOffline}` }}
+            className={`${classes.button} ${classes.carBattery} ${actionButtonClass} ${buttonOffline}`}
             onClick={ this.takeSnapshot }
             disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
           >
             { snapshot.fetching
               ? <CircularProgress size={ 19 } />
               : 'take snapshot'}
-          </Button>
+          </button>
         )}
-        <Button
-          classes={{ root: `${classes.button} ${classes.actionButtonIcon}` }}
-          onClick={ this.onOpenTimeSelect }
+        <div
+          className={ classes.carBattery }
+          style={{ backgroundColor: batteryBackground }}
         >
-          <AccessTime fontSize="inherit"/>
-        </Button>
+          { deviceIsOnline(device) ? (
+            <Typography>
+              { `${windowWidth >= 520 ? 'car ' : ''
+              }battery: ${
+                batteryVoltage ? `${batteryVoltage.toFixed(1)}\u00a0V` : 'N/A'}` }
+            </Typography>
+          ) : (
+            <Tooltip
+              classes={{ tooltip: classes.popover }}
+              title={pingTooltip}
+              placement="bottom"
+            >
+              <Typography>device offline</Typography>
+            </Tooltip>
+          )}
+        </div>
         <Popper
           className={ classes.popover }
           open={ Boolean(error) }
@@ -508,7 +482,6 @@ class DeviceInfo extends Component {
         >
           <Typography>{ error }</Typography>
         </Popper>
-        <TimeSelect isOpen={isTimeSelectOpen} onClose={this.onCloseTimeSelect}/>
       </div>
     );
   }

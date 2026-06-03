@@ -10,16 +10,12 @@ import { checkRoutesData, checkLastRoutesData } from '../../actions';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import VisibilityHandler from '../VisibilityHandler';
 
+import TimeSelect from '../TimeSelect';
 import DriveListEmpty from './DriveListEmpty';
 import DriveListItem from './DriveListItem';
 import ScrollIntoView from '../ScrollIntoView'
 
 const styles = () => ({
-  drivesTable: {
-    display: 'flex',
-    flexDirection: 'column',
-    flexGrow: 1,
-  },
   header: {
     display: 'flex',
     flexDirection: 'row',
@@ -27,11 +23,8 @@ const styles = () => ({
     alignItems: 'center',
     padding: '8px 16px',
   },
-  bold: {
-    fontWeight: 600,
-  },
   drives: {
-    padding: 16,
+    padding: '0px 16px',
     flex: '1',
   },
   endMessage: {
@@ -45,6 +38,7 @@ const DriveList = (props) => {
   const { dispatch, classes, device, dongleId, routes, lastRoutes } = props;
 
   const [deviceStats, setDeviceStats] = useState({});
+  const [isTimeSelectOpen, setIsTimeSelectOpen] = useState(false);
 
   const fetchDeviceInfo = useCallback(async () => {
     if (!dongleId || device?.shared) {
@@ -112,9 +106,9 @@ const DriveList = (props) => {
       : Math.round(deviceStats.result.all.distance);
 
     return (
-      <div className="flex gap-4 md:gap-8 items-center">
+      <div className="flex gap-4 md:gap-8 items-center px-2">
         <div className="flex flex-row items-center gap-1 max-w-20">
-          <Typography variant="caption" className={classes.bold}>
+          <Typography variant="caption" className="font-semibold text-white">
             { distance }
           </Typography>
           <Typography variant="caption">
@@ -122,13 +116,13 @@ const DriveList = (props) => {
           </Typography>
         </div>
         <div className="flex flex-row items-center gap-1 max-w-20">
-          <Typography variant="caption" className={classes.bold}>
+          <Typography variant="caption" className="font-semibold text-white">
             { deviceStats.result.all.routes }
           </Typography>
           <Typography variant="caption">drives</Typography>
         </div>
         <div className="flex flex-row items-center gap-1 max-w-20">
-          <Typography variant="caption" className={classes.bold}>
+          <Typography variant="caption" className="font-semibold text-white">
             { Math.round(deviceStats.result.all.minutes / 60.0) }
           </Typography>
           <Typography variant="caption">hours</Typography>
@@ -138,17 +132,21 @@ const DriveList = (props) => {
   };
 
   return (
-    <div className={classes.drivesTable}>
+    <div className="flex flex-col grow py-2">
       <VisibilityHandler onVisible={() => dispatch(checkRoutesData())} minInterval={60} />
-      <div className={classes.header}>
+      <div className="flex flex-row justify-between px-4 pb-1">
         { renderStats() }
-        <Button variant="mini" className="text-white normal-case min-h-0 whitespace-nowrap hover:bg-white/10">
+        <button
+          className="flex flex-row items-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap hover:bg-white/10"
+          onClick={() => setIsTimeSelectOpen(true)}
+        >
           <FilterList className="mr-2 text-xl" />
           <Typography variant="caption">Filter</Typography>
-        </Button>
+        </button>
       </div>
       {content}
       {contentStatus}
+      <TimeSelect isOpen={isTimeSelectOpen} onClose={() => setIsTimeSelectOpen(false)} />
     </div>
   );
 };
