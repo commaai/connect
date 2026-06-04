@@ -6,7 +6,7 @@ import { IconButton } from '@material-ui/core';
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
 import { WebRTCConnection } from '../../utils/webrtc';
-import StatusBar, { useStats, StatsPanel } from './StatusBar';
+import StatusBar, { useStats } from './StatusBar';
 import ControlsBar from './ControlsBar';
 import Video from './Video';
 import Joystick from './Joystick';
@@ -160,7 +160,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const {
     showStats, toggleStats, closeStats, stats, latency, latencyHistory,
   } = useStats(connection, connectionState, latencyCallbackRef);
-  const statsPanelProps = { stats, latency, latencyHistory };
   const videoProps = {
     videoRef, connectionState, error,
     statusMessage, connectProgress,
@@ -195,11 +194,15 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             className={isLandscape
               ? 'absolute top-3 right-3 z-30 flex items-center gap-2'
               : 'relative z-30 flex items-center justify-end p-2 gap-2'}
+            isLandscape={isLandscape}
+            showStats={showStats}
             toggleStats={toggleStats}
+            closeStats={closeStats}
+            stats={stats}
+            latency={latency}
+            latencyHistory={latencyHistory}
             onQualityChange={handleQualityChange}
-            onSettingsOpen={closeStats}
           />
-          {showStats ? <StatsPanel isLandscape={isLandscape} {...statsPanelProps} /> : <></>}
         </div>
       )}
       <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : "aspect-[16/9]"} />

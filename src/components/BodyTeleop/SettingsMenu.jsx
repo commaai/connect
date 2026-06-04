@@ -1,10 +1,11 @@
 import React, {
-  useState, useRef, useEffect, useLayoutEffect, useCallback,
+  useState, useRef, useLayoutEffect, useCallback,
 } from 'react';
 import Settings from '@material-ui/icons/Settings';
 import ChevronRight from '@material-ui/icons/ChevronRight';
 import Check from '@material-ui/icons/Check';
 import { ArrowBackBold } from '../../icons';
+import { useClickOutside } from '../../hooks/useClickOutside';
 
 const QUALITY_OPTIONS = [
   { key: 'auto', label: 'auto' },
@@ -16,7 +17,7 @@ const QUALITY_OPTIONS = [
 const rowClass = 'flex items-center h-9 px-3.5 gap-3 cursor-pointer select-none text-[13px] text-white/85 hover:bg-white/10 transition-colors whitespace-nowrap';
 const pageClass = 'absolute top-0 left-0 w-max min-w-[200px] py-1.5 transition-all duration-200 ease-out';
 
-const SettingsMenu = ({ onQualityChange, onOpen, options = QUALITY_OPTIONS }) => {
+const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState('main'); // 'main' | 'quality'
   const [quality, setQuality] = useState(options[0]?.key);
@@ -34,27 +35,19 @@ const SettingsMenu = ({ onQualityChange, onOpen, options = QUALITY_OPTIONS }) =>
     if (el) setDims({ width: el.offsetWidth, height: el.offsetHeight });
   }, [view, open, quality, options]);
 
-  // Close when clicking outside.
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDown = (e) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
-        setOpen(false);
-        setView('main');
-      }
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [open]);
+  const closeMenu = useCallback(() => {
+    setOpen(false);
+    setView('main');
+  }, []);
+  useClickOutside(wrapperRef, open, closeMenu);
 
   const toggleOpen = useCallback((e) => {
     e.stopPropagation();
     setOpen((prev) => {
       if (prev) setView('main');
-      else onOpen?.();
       return !prev;
     });
-  }, [onOpen]);
+  }, []);
 
   const selectQuality = useCallback((key) => {
     setQuality(key);

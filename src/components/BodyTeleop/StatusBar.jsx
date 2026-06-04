@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import BatteryFull from '@material-ui/icons/BatteryFull';
 import BatteryChargingFull from '@material-ui/icons/BatteryChargingFull';
 import SettingsMenu from './SettingsMenu';
+import { useClickOutside } from '../../hooks/useClickOutside';
 
 const LATENCY_BUFFER_SIZE = 10;
 const LATENCY_HISTORY_MAX = 60;
@@ -181,7 +182,7 @@ function drawLatencyGraph(canvas, latencyHistory) {
   ctx.font = '8px monospace';
 }
 
-export const StatsPanel = ({isLandscape, stats, latency, latencyHistory }) => {
+export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
   const latencyCanvasRef = useRef(null);
   const compact = useMemo(() => isLandscape && window.matchMedia('(max-height: 500px)').matches, [isLandscape]);
 
@@ -198,64 +199,87 @@ export const StatsPanel = ({isLandscape, stats, latency, latencyHistory }) => {
   const rows = compact ? STATS_ROWS_COMPACT : STATS_ROWS;
 
   return (
-    <div className={`absolute right-1 z-30 flex flex-col items-end ${isLandscape ? 'top-14' : 'top-12'}`}
-    >
-      <div className={`mt-0.5 p-[3px_6px] rounded-[5px] w-[140px] font-mono bg-glass-dark md:p-[10px_16px] md:w-[240px] md:rounded-[10px]`}>
-        {compact ? (
-          <div className="flex gap-2 items-stretch">
-            <div className="flex flex-col justify-between leading-tight shrink-0">
-              {rows.map(({ label, key }) => (
-                <div key={key} className="flex items-center justify-between gap-1.5">
-                  <span className="text-[9px] text-white/45">{label}</span>
-                  <span className="text-[9px] text-white/[0.85] text-right w-[60px]">{stats[key]}</span>
-                </div>
-              ))}
-              {latency && (
-                <div className="flex items-center justify-between gap-1.5">
-                  <span className="text-[8px]" style={{ fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Latency</span>
-                  <span className="text-[9px] text-white/[0.85]">{fmtMs(latency.totalMs)}</span>
-                </div>
-              )}
-            </div>
-            {latency && (
-              <canvas ref={latencyCanvasRef} className="flex-1 min-w-0 self-stretch h-[30px] rounded-[3px] bg-black/30" />
-            )}
-          </div>
-        ) : (
-          <>
+    <div className={`absolute z-30 right-2 mt-2 p-[3px_6px] rounded-[5px] w-[140px] font-mono bg-glass-dark md:p-[10px_16px] md:w-[240px] md:rounded-[10px]`}>
+      {compact ? (
+        <div className="flex gap-2 items-stretch">
+          <div className="flex flex-col justify-between leading-tight shrink-0">
             {rows.map(({ label, key }) => (
-              <div key={key} className="flex justify-between leading-tight md:py-[3px]">
-                <span className="text-[8px] text-white/45 mr-1.5 md:text-[13px] md:mr-[18px]">{label}</span>
-                <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]">{stats[key]}</span>
+              <div key={key} className="flex items-center justify-between gap-1.5">
+                <span className="text-[9px] text-white/45">{label}</span>
+                <span className="text-[9px] text-white/[0.85] text-right w-[60px]">{stats[key]}</span>
               </div>
             ))}
-            <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />
             {latency && (
-              <>
-                <div className="text-[7px] font-bold text-white/35 tracking-[0.5px] leading-tight py-[2px] pb-px md:text-[11px]">FRAME LATENCY</div>
-                {LATENCY_LAYERS.map(({ label, key, labelColor }) => (
-                  <div key={label} className="flex justify-between leading-tight md:py-[3px]">
-                    <span className="text-[8px] mr-1.5 md:text-[13px] md:mr-[18px]" style={{ color: labelColor }}>{label}</span>
-                    <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]">{fmtMs(latency[key])}</span>
-                  </div>
-                ))}
-                <div className="flex justify-between leading-tight md:py-[3px]">
-                  <span className="text-[8px] mr-1.5 md:text-[13px] md:mr-[18px]" style={{ fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Total</span>
-                  <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]" style={{ fontWeight: 700 }}>{fmtMs(latency.totalMs)}</span>
-                </div>
-                <canvas ref={latencyCanvasRef} className="w-full h-[30px] mt-px rounded-[3px] bg-black/30 md:h-[90px] md:mt-1 md:rounded-[6px]" />
-                <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />
-              </>
+              <div className="flex items-center justify-between gap-1.5">
+                <span className="text-[8px]" style={{ fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Latency</span>
+                <span className="text-[9px] text-white/[0.85]">{fmtMs(latency.totalMs)}</span>
+              </div>
             )}
-          </>
-        )}
+          </div>
+          {latency && (
+            <canvas ref={latencyCanvasRef} className="flex-1 min-w-0 self-stretch h-[30px] rounded-[3px] bg-black/30" />
+          )}
+        </div>
+      ) : (
+        <>
+          {rows.map(({ label, key }) => (
+            <div key={key} className="flex justify-between leading-tight md:py-[3px]">
+              <span className="text-[8px] text-white/45 mr-1.5 md:text-[13px] md:mr-[18px]">{label}</span>
+              <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]">{stats[key]}</span>
+            </div>
+          ))}
+          <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />
+          {latency && (
+            <>
+              <div className="text-[7px] font-bold text-white/35 tracking-[0.5px] leading-tight py-[2px] pb-px md:text-[11px]">FRAME LATENCY</div>
+              {LATENCY_LAYERS.map(({ label, key, labelColor }) => (
+                <div key={label} className="flex justify-between leading-tight md:py-[3px]">
+                  <span className="text-[8px] mr-1.5 md:text-[13px] md:mr-[18px]" style={{ color: labelColor }}>{label}</span>
+                  <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]">{fmtMs(latency[key])}</span>
+                </div>
+              ))}
+              <div className="flex justify-between leading-tight md:py-[3px]">
+                <span className="text-[8px] mr-1.5 md:text-[13px] md:mr-[18px]" style={{ fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Total</span>
+                <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]" style={{ fontWeight: 700 }}>{fmtMs(latency.totalMs)}</span>
+              </div>
+              <canvas ref={latencyCanvasRef} className="w-full h-[30px] mt-px rounded-[3px] bg-black/30 md:h-[90px] md:mt-1 md:rounded-[6px]" />
+              <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+
+const StatsMenu = ({
+  isLandscape, showStats, toggleStats, closeStats, stats, latency, latencyHistory,
+}) => {
+  const wrapperRef = useRef(null);
+  useClickOutside(wrapperRef, showStats, closeStats);
+
+  return (
+    <div ref={wrapperRef}>
+      <div
+        className="group flex items-center justify-center h-9 px-3.5 rounded-[18px] cursor-pointer select-none bg-glass hover:!bg-black/60"
+        onClick={toggleStats}
+        title="Toggle stats"
+      >
+        <span className="text-[13px] font-semibold tracking-[0.5px] uppercase text-center leading-none text-white/60 group-hover:text-white/90">
+          stats
+        </span>
       </div>
+      {showStats && (
+        <StatsPanel isLandscape={isLandscape} stats={stats} latency={latency} latencyHistory={latencyHistory} />
+      )}
     </div>
   );
 };
 
 const StatusBar = ({
-  battery, className, toggleStats, onQualityChange, onSettingsOpen,
+  battery, className, isLandscape, showStats, toggleStats, closeStats,
+  stats, latency, latencyHistory, onQualityChange,
 }) => {
   const BatteryIcon = battery?.charging ? BatteryChargingFull : BatteryFull;
 
@@ -274,16 +298,16 @@ const StatusBar = ({
           <span className="text-base text-white/70 w-9">{battery.level}%</span>
         </div>
       )}
-      <div
-        className="group flex items-center justify-center h-9 px-3.5 rounded-[18px] cursor-pointer select-none bg-glass hover:!bg-black/60"
-        onClick={toggleStats}
-        title="Toggle stats"
-      >
-        <span className="text-[13px] font-semibold tracking-[0.5px] uppercase text-center leading-none text-white/60 group-hover:text-white/90">
-          stats
-        </span>
-      </div>
-      <SettingsMenu onQualityChange={onQualityChange} onOpen={onSettingsOpen} />
+      <StatsMenu
+        isLandscape={isLandscape}
+        showStats={showStats}
+        toggleStats={toggleStats}
+        closeStats={closeStats}
+        stats={stats}
+        latency={latency}
+        latencyHistory={latencyHistory}
+      />
+      <SettingsMenu onQualityChange={onQualityChange} />
     </div>
   );
 };
