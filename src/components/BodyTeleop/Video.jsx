@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
-import InfoOutline from '@material-ui/icons/InfoOutline';
 
 
 const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress, onConnect }) => {
   const connecting = connectionState === 'connecting';
-  const failed = connectionState === 'failed';
+  const canRetry = connectionState === 'failed' || connectionState === 'disconnected';
 
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
@@ -21,7 +20,7 @@ const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress
             </div>
             <span className="text-xs text-white/50">{statusMessage || 'Connecting...'}</span>
           </>
-        ) : failed ? (
+        ) : canRetry ? (
           <Button
             className="flex items-center gap-2 rounded-3xl px-6 py-2.5 text-white text-sm font-medium normal-case bg-red-600/60 hover:bg-red-600/70 cursor-pointer"
             onClick={onConnect}
@@ -32,7 +31,7 @@ const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress
           </Button>
         ) : null}
         {error && (
-          <div className={`max-w-[280px] rounded-lg px-3 py-1.5 text-center text-xs text-[#fca5a5] !bg-[rgba(220,38,38,0.4)]`}>
+          <div className={`max-w-[280px] md:max-w-[450px] rounded-lg px-3 py-1.5 text-center text-xs text-[#fca5a5] !bg-[rgba(220,38,38,0.4)]`}>
             {error}
           </div>
         )}

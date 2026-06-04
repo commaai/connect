@@ -26,7 +26,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [battery, setBattery] = useState(null);
   const [error, setError] = useState(null);
   const [isLandscape, setIsLandscape] = useState(false);
-  const [isShort, setIsShort] = useState(false);
   const [activeCamera, setActiveCamera] = useState('wideRoad');
 
   const [gamepadConnected, setGamepadConnected] = useState(false);
@@ -36,6 +35,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const connectionRef = useRef(null);
   const latencyCallbackRef = useRef(null);
   const switchTimerRef = useRef(null);
+  const timeoutTimerRef = useRef(null);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -50,6 +50,9 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
         if (state !== 'connecting') {
           setStatusMessage(null);
           setConnectProgress(0);
+        }
+        if (state === 'failed') {
+          setError((prev) => prev || 'Could not reach device. Is the ignition on?');
         }
       },
       onStatusMessage: (msg) => {
@@ -84,17 +87,26 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   }, []);
 
   useEffect(() => {
-    const query = window.matchMedia('(orientation: landscape)');
-    setIsLandscape(query.matches);
-    const handler = (e) => setIsLandscape(e.matches);
-    query.addEventListener('change', handler);
-    return () => query.removeEventListener('change', handler);
+    const onVisibilityChange = () => {
+      clearTimeout(timeoutTimerRef.current);
+      if (document.hidden) {
+        timeoutTimerRef.current = setTimeout(() => {
+          connectionRef.current?.disconnect();
+          setError('Session timed out');
+        }, 30000);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      clearTimeout(timeoutTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
-    const query = window.matchMedia('(max-height: 500px)');
-    setIsShort(query.matches);
-    const handler = (e) => setIsShort(e.matches);
+    const query = window.matchMedia('(orientation: landscape)');
+    setIsLandscape(query.matches);
+    const handler = (e) => setIsLandscape(e.matches);
     query.addEventListener('change', handler);
     return () => query.removeEventListener('change', handler);
   }, []);
@@ -187,7 +199,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             onQualityChange={handleQualityChange}
             onSettingsOpen={closeStats}
           />
-          {showStats ? <StatsPanel isLandscape={isLandscape} compact={isLandscape && isShort} {...statsPanelProps} /> : <></>}
+          {showStats ? <StatsPanel isLandscape={isLandscape} {...statsPanelProps} /> : <></>}
         </div>
       )}
       <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : "aspect-[16/9]"} />

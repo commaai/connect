@@ -137,7 +137,7 @@ export class WebRTCConnection {
 
       const offerSdp = stripMdnsCandidates(pc.localDescription.sdp);
       this.callbacks.onStatusMessage?.('Device processing candidates...');
-            
+
       const resp = await Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
         params: { sdp: offerSdp },
@@ -146,7 +146,7 @@ export class WebRTCConnection {
       });
       if (resp?.error) {
         log(`device error: ${JSON.stringify(resp.error)}`);
-        throw new Error(resp.error.message || 'Could not reach device. Is the ignition on?');
+        throw new Error(resp.error.data?.message || 'Could not reach device. Is the ignition on?');
       }
       if (!resp?.result) {
         throw new Error('Could not reach device. Is the ignition on?');
@@ -212,6 +212,7 @@ export class WebRTCConnection {
     const latency = {
       captureMs: timing.captureMs,
       encodeMs: timing.encodeMs,
+      captureEncodeMs: timing.captureMs + timing.encodeMs,
       sendDelayMs: timing.sendDelayMs,
       devicePipelineMs: timing.captureMs + timing.encodeMs + timing.sendDelayMs,
       networkMs: null,

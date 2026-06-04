@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import BatteryFull from '@material-ui/icons/BatteryFull';
 import BatteryChargingFull from '@material-ui/icons/BatteryChargingFull';
 import SettingsMenu from './SettingsMenu';
@@ -12,6 +12,8 @@ const STATS_ROWS = [
   { label: 'Bitrate', key: 'bitrate' },
   { label: 'Jitter', key: 'jitter' },
 ];
+
+const STATS_ROWS_COMPACT = STATS_ROWS.filter(({ key }) => key === 'fps' || key === 'bitrate');
 
 const LATENCY_LAYERS = [
   { label: 'Capture/Encode', key: 'captureEncodeMs', color: 'rgba(76,175,80,0.55)', labelColor: 'rgba(76,175,80,0.7)' },
@@ -31,9 +33,6 @@ export const useStats = (connection, connectionState, latencyCallbackRef) => {
 
   useEffect(() => {
     latencyCallbackRef.current = (raw) => {
-      raw.captureEncodeMs = (raw.captureMs != null || raw.encodeMs != null)
-        ? (raw.captureMs || 0) + (raw.encodeMs || 0)
-        : null;
       if (!firstLatencyShownRef.current) {
         firstLatencyShownRef.current = true;
         setLatency(raw);
@@ -182,8 +181,9 @@ function drawLatencyGraph(canvas, latencyHistory) {
   ctx.font = '8px monospace';
 }
 
-export const StatsPanel = ({isLandscape, compact, stats, latency, latencyHistory }) => {
+export const StatsPanel = ({isLandscape, stats, latency, latencyHistory }) => {
   const latencyCanvasRef = useRef(null);
+  const compact = useMemo(() => isLandscape && window.matchMedia('(max-height: 500px)').matches, [isLandscape]);
 
   useEffect(() => {
     if (!latencyHistory.length) return;
@@ -195,7 +195,7 @@ export const StatsPanel = ({isLandscape, compact, stats, latency, latencyHistory
   if (!stats) return null;
 
   const fmtMs = (v) => (v != null ? `${v.toFixed(1)} ms` : '--');
-  const rows = compact ? STATS_ROWS.filter(({ key }) => key === 'fps' || key === 'bitrate') : STATS_ROWS;
+  const rows = compact ? STATS_ROWS_COMPACT : STATS_ROWS;
 
   return (
     <div className={`absolute right-1 z-30 flex flex-col items-end ${isLandscape ? 'top-14' : 'top-12'}`}
