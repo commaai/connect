@@ -1,12 +1,19 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
-import InfoOutline from '@material-ui/icons/InfoOutline';
 
 
-const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress, onConnect }) => {
+const progressLabels = {
+  20: 'Gathering direct connection candidates...',
+  40: 'Device processing candidates...',
+  85: 'Candidate accepted...',
+  92: 'Establishing connection...',
+  97: 'Receiving video...',
+};
+
+const ConnectOverlay = ({ connectionState, error, connectProgress, onConnect }) => {
   const connecting = connectionState === 'connecting';
-  const failed = connectionState === 'failed';
+  const canRetry = connectionState === 'failed' || connectionState === 'disconnected';
 
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
@@ -19,9 +26,9 @@ const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress
                 style={{ width: `${connectProgress || 0}%` }}
               />
             </div>
-            <span className="text-xs text-white/50">{statusMessage || 'Connecting...'}</span>
+            <span className="text-xs text-white/50">{progressLabels[connectProgress] || 'Connecting...'}</span>
           </>
-        ) : failed ? (
+        ) : canRetry ? (
           <Button
             className="flex items-center gap-2 rounded-3xl px-6 py-2.5 text-white text-sm font-medium normal-case bg-red-600/60 hover:bg-red-600/70 cursor-pointer"
             onClick={onConnect}
@@ -32,14 +39,8 @@ const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress
           </Button>
         ) : null}
         {error && (
-          <div className={`max-w-[280px] rounded-lg px-3 py-1.5 text-center text-xs text-[#fca5a5] !bg-[rgba(220,38,38,0.4)]`}>
+          <div className={`max-w-[280px] md:max-w-[450px] rounded-lg px-3 py-1.5 text-center text-xs text-[#fca5a5] !bg-[rgba(220,38,38,0.4)] !select-text`}>
             {error}
-          </div>
-        )}
-        {!connecting && (
-          <div className={`flex items-center gap-2.5 rounded-[20px] px-3 py-1.5 text-xs text-white/50`}>
-            <InfoOutline style={{ fontSize: 16 }} />
-            <span>Body must be powered on and started.</span>
           </div>
         )}
       </div>
@@ -48,19 +49,32 @@ const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress
 };
 
 const Video = ({
-  videoRef, connectionState, error, statusMessage,
+  videoRef, connectionState, error,
   connectProgress, onConnect, className
 }) => {
   const connected = connectionState === 'connected';
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    if (connectionState !== 'connected') {
+      setPlaying(false);
+    }
+  }, [connectionState]);
 
   return (
     <>
-      <video ref={videoRef} autoPlay playsInline muted className={`w-full object-contain ${className}`} />
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        onPlaying={() => setPlaying(true)}
+        className={`w-full pointer-events-none object-contain transition-opacity duration-200 ease-in ${playing ? 'opacity-100' : 'opacity-0'} ${className}`}
+      />
       {!connected && (
         <ConnectOverlay
           connectionState={connectionState}
           error={error}
-          statusMessage={statusMessage}
           connectProgress={connectProgress}
           onConnect={onConnect}
         />

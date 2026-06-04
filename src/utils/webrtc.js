@@ -22,6 +22,10 @@ function stripMdnsCandidates(sdp) {
     .join('\r\n');
 }
 
+function findCandidates(sdp) {
+  return sdp.split(/\r\n|\n/).filter((line) => line.startsWith('a=candidate:'));
+}
+
 export class WebRTCConnection {
   constructor(callbacks) {
     this.pc = null;
@@ -88,10 +92,9 @@ export class WebRTCConnection {
         if (!this.pc) return;
         const state = this.pc.connectionState;
         if (state === 'connected') {
-          this.callbacks.onStatusMessage?.('Receiving video...');
+          this.callbacks.onConnectProgress?.(97);
           this.callbacks.onConnectionState('connected');
         }
-        else if (state === 'failed' || state === 'closed') this.callbacks.onConnectionState('failed');
       });
 
       const codecs = RTCRtpReceiver.getCapabilities('video')?.codecs || [];
@@ -122,7 +125,7 @@ export class WebRTCConnection {
 
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
-      this.callbacks.onStatusMessage?.('Gathering ICE candidates...');
+      this.callbacks.onConnectProgress?.(20);
 
       const pc = this.pc;
 
@@ -133,13 +136,17 @@ export class WebRTCConnection {
       });
 
       await Promise.race([gatheringComplete, asyncSleep(ICE_GATHER_DEADLINE_MS)]);
-      if (this.pc !== pc) throw new Error('connection torn down during ICE gathering');
+      if (this.pc !== pc) throw new Error('Connection torn down during candidate gathering');
 
       const offerSdp = stripMdnsCandidates(pc.localDescription.sdp);
-      this.callbacks.onStatusMessage?.('Device processing candidates...');
-      
-      console.log(offerSdp)
-      
+      if (findCandidates(offerSdp).length === 0) {
+        throw new Error(
+          "No direct connection candidates gathered. Check your network connection and try again. " +
+          "If error persists, your network may not allow direct peer-to-peer connections."
+        );
+      }
+      this.callbacks.onConnectProgress?.(40);
+
       const resp = await Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
         params: { sdp: offerSdp },
@@ -148,15 +155,15 @@ export class WebRTCConnection {
       });
       if (resp?.error) {
         log(`device error: ${JSON.stringify(resp.error)}`);
-        throw new Error(resp.error.message || 'Could not reach device. Is the ignition on?');
+        throw new Error(resp.error.data?.message || 'Could not reach device. Is the ignition on?');
       }
       if (!resp?.result) {
         throw new Error('Could not reach device. Is the ignition on?');
       }
       
-      this.callbacks.onStatusMessage?.('Candidate accepted...');
+      this.callbacks.onConnectProgress?.(85);
       await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
-      this.callbacks.onStatusMessage?.('Establishing connection...');
+      this.callbacks.onConnectProgress?.(92);
     } catch (err) {
       this.cleanup();
       this.callbacks.onConnectionState('failed');
@@ -214,6 +221,7 @@ export class WebRTCConnection {
     const latency = {
       captureMs: timing.captureMs,
       encodeMs: timing.encodeMs,
+      captureEncodeMs: timing.captureMs + timing.encodeMs,
       sendDelayMs: timing.sendDelayMs,
       devicePipelineMs: timing.captureMs + timing.encodeMs + timing.sendDelayMs,
       networkMs: null,
