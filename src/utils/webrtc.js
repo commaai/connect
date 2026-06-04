@@ -22,6 +22,10 @@ function stripMdnsCandidates(sdp) {
     .join('\r\n');
 }
 
+function findCandidates(sdp) {
+  return sdp.split(/\r\n|\n/).filter((line) => line.startsWith('a=candidate:'));
+}
+
 export class WebRTCConnection {
   constructor(callbacks) {
     this.pc = null;
@@ -91,7 +95,6 @@ export class WebRTCConnection {
           this.callbacks.onStatusMessage?.('Receiving video...');
           this.callbacks.onConnectionState('connected');
         }
-        else if (state === 'failed' || state === 'closed') this.callbacks.onConnectionState('failed');
       });
 
       const codecs = RTCRtpReceiver.getCapabilities('video')?.codecs || [];
@@ -136,6 +139,12 @@ export class WebRTCConnection {
       if (this.pc !== pc) throw new Error('connection torn down during ICE gathering');
 
       const offerSdp = stripMdnsCandidates(pc.localDescription.sdp);
+      if (findCandidates(offerSdp).length === 0) {
+        throw new Error(
+          "No direct connection candidates gathered. Check your network connection and try again. " +
+          "If error persists, your network may not allow direct peer-to-peer connections."
+        );
+      }
       this.callbacks.onStatusMessage?.('Device processing candidates...');
 
       const resp = await Athena.postJsonRpcPayload(dongleId, {
