@@ -84,7 +84,7 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
           style={{
             transform: view === 'main' ? 'translateX(0)' : 'translateX(-100%)',
             opacity: view === 'main' ? 1 : 0,
-            pointerEvents: view === 'main' ? 'auto' : 'none',
+            pointerEvents: open && view === 'main' ? 'auto' : 'none',
           }}
         >
           <div className={rowClass} onClick={() => setView('quality')}>
@@ -103,7 +103,7 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
           style={{
             transform: view === 'quality' ? 'translateX(0)' : 'translateX(100%)',
             opacity: view === 'quality' ? 1 : 0,
-            pointerEvents: view === 'quality' ? 'auto' : 'none',
+            pointerEvents: open && view === 'quality' ? 'auto' : 'none',
           }}
         >
           <div className={`${rowClass} font-medium text-white/90`} onClick={() => setView('main')}>

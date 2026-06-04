@@ -31,7 +31,7 @@ const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress
           </Button>
         ) : null}
         {error && (
-          <div className={`max-w-[280px] md:max-w-[450px] rounded-lg px-3 py-1.5 text-center text-xs text-[#fca5a5] !bg-[rgba(220,38,38,0.4)]`}>
+          <div className={`max-w-[280px] md:max-w-[450px] rounded-lg px-3 py-1.5 text-center text-xs text-[#fca5a5] !bg-[rgba(220,38,38,0.4)] !select-text`}>
             {error}
           </div>
         )}
