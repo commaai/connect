@@ -61,7 +61,7 @@ const Video = ({
         playsInline
         muted
         onPlaying={() => setPlaying(true)}
-        className={`w-full object-contain transition-opacity duration-200 ease-in ${playing ? 'opacity-100' : 'opacity-0'} ${className}`}
+        className={`w-full pointer-events-none object-contain transition-opacity duration-200 ease-in ${playing ? 'opacity-100' : 'opacity-0'} ${className}`}
       />
       {!connected && (
         <ConnectOverlay
