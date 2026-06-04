@@ -331,12 +331,11 @@ class DeviceInfo extends Component {
         <VisibilityHandler onVisible={ this.onVisible } onInit onDongleId minInterval={ 60 } />
         <div className={`${classes.container}`} style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
           <div className={`flex flex-row justify-between items-center gap-4 md:my-2 my-4`}>
-            <div className='flex flex-col items-start md:flex-row md:items-center gap-4'>
+            <div className='flex flex-col items-start md:flex-row md:items-center gap-4 shrink-0'>
               <div className={`flex flex-row gap-4 items-center`}>
                 {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
                 <Typography variant="title">{deviceNamePretty(device)}</Typography>
               </div>
-              
             </div>
             { this.renderButtons() }
           </div>
@@ -404,7 +403,7 @@ class DeviceInfo extends Component {
     const bodyTeleopEnabled = isCommaBody && deviceVersionAtLeast(device, '0.11.2');
 
     return (
-      <div className='flex md:flex-row md:items-stretch justify-center gap-2 w-50% md:w-fit'>
+      <div className='flex md:flex-row md:items-stretch justify-end flex-wrap gap-2 min-w-0 shrink'>
         {bodyTeleopEnabled ? (
           <button
             style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
