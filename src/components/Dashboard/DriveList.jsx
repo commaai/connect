@@ -106,7 +106,7 @@ const DriveList = (props) => {
       : Math.round(deviceStats.result.all.distance);
 
     return (
-      <div className="flex gap-4 md:gap-8 items-center px-2">
+      <div className="flex gap-4 md:gap-8 items-center px-1">
         <div className="flex flex-row items-center gap-1 max-w-20">
           <Typography className="font-semibold text-white">
             { distance }
@@ -134,7 +134,7 @@ const DriveList = (props) => {
   return (
     <div className="flex flex-col grow py-2">
       <VisibilityHandler onVisible={() => dispatch(checkRoutesData())} minInterval={60} />
-      <div className="flex flex-row justify-between px-4 pb-2">
+      <div className="flex flex-row justify-between mx-4 pb-2">
         { renderStats() }
         <button
           className="flex flex-row items-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98]"
