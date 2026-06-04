@@ -125,7 +125,7 @@ export class WebRTCConnection {
 
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
-      this.callbacks.onStatusMessage?.('Gathering ICE candidates...');
+      this.callbacks.onStatusMessage?.('Gathering direct connection candidates...');
 
       const pc = this.pc;
 
@@ -136,7 +136,7 @@ export class WebRTCConnection {
       });
 
       await Promise.race([gatheringComplete, asyncSleep(ICE_GATHER_DEADLINE_MS)]);
-      if (this.pc !== pc) throw new Error('connection torn down during ICE gathering');
+      if (this.pc !== pc) throw new Error('Connection torn down during candidate gathering');
 
       const offerSdp = stripMdnsCandidates(pc.localDescription.sdp);
       if (findCandidates(offerSdp).length === 0) {

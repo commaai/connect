@@ -6,7 +6,7 @@ import { IconButton } from '@material-ui/core';
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
 import { WebRTCConnection } from '../../utils/webrtc';
-import StatusBar, { useStats } from './StatusBar';
+import StatusBar from './StatusBar';
 import ControlsBar from './ControlsBar';
 import Video from './Video';
 import Joystick from './Joystick';
@@ -45,14 +45,14 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   
   useEffect(() => {
     const conn = new WebRTCConnection({
-      onConnectionState: (state) => {
+      onConnectionState: (state, reason) => {
         setConnectionState(state);
         if (state !== 'connecting') {
           setStatusMessage(null);
           setConnectProgress(0);
         }
         if (state === 'failed') {
-          setError((prev) => prev || 'Could not reach device. Is the ignition on?');
+          setError((prev) => prev || reason || 'Could not reach device. Is the ignition on?');
         }
       },
       onStatusMessage: (msg) => {
@@ -157,9 +157,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const connected = connectionState === 'connected';
   const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
 
-  const {
-    showStats, toggleStats, closeStats, stats, latency, latencyHistory,
-  } = useStats(connection, connectionState, latencyCallbackRef);
   const videoProps = {
     videoRef, connectionState, error,
     statusMessage, connectProgress,
@@ -195,12 +192,9 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
               ? 'absolute top-3 right-3 z-30 flex items-center gap-2'
               : 'relative z-30 flex items-center justify-end p-2 gap-2'}
             isLandscape={isLandscape}
-            showStats={showStats}
-            toggleStats={toggleStats}
-            closeStats={closeStats}
-            stats={stats}
-            latency={latency}
-            latencyHistory={latencyHistory}
+            connection={connection}
+            connectionState={connectionState}
+            latencyCallbackRef={latencyCallbackRef}
             onQualityChange={handleQualityChange}
           />
         </div>

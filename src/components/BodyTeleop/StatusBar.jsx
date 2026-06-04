@@ -23,7 +23,7 @@ const LATENCY_LAYERS = [
 ];
 
 
-export const useStats = (connection, connectionState, latencyCallbackRef) => {
+const useStats = (connection, connectionState, latencyCallbackRef) => {
   const [showStats, setShowStats] = useState(false);
   const [stats, setStats] = useState(null);
   const [latency, setLatency] = useState(null);
@@ -279,9 +279,11 @@ const StatsMenu = ({
 };
 
 const StatusBar = ({
-  battery, className, isLandscape, showStats, toggleStats, closeStats,
-  stats, latency, latencyHistory, onQualityChange,
+  battery, className, isLandscape, connection, connectionState, latencyCallbackRef, onQualityChange,
 }) => {
+  const {
+    showStats, toggleStats, closeStats, stats, latency, latencyHistory,
+  } = useStats(connection, connectionState, latencyCallbackRef);
   const BatteryIcon = battery?.charging ? BatteryChargingFull : BatteryFull;
 
   return (
