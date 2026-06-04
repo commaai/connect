@@ -3,7 +3,15 @@ import { Button } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
 
 
-const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress, onConnect }) => {
+const progressLabels = {
+  20: 'Gathering direct connection candidates...',
+  40: 'Device processing candidates...',
+  85: 'Candidate accepted...',
+  92: 'Establishing connection...',
+  97: 'Receiving video...',
+};
+
+const ConnectOverlay = ({ connectionState, error, connectProgress, onConnect }) => {
   const connecting = connectionState === 'connecting';
   const canRetry = connectionState === 'failed' || connectionState === 'disconnected';
 
@@ -18,7 +26,7 @@ const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress
                 style={{ width: `${connectProgress || 0}%` }}
               />
             </div>
-            <span className="text-xs text-white/50">{statusMessage || 'Connecting...'}</span>
+            <span className="text-xs text-white/50">{progressLabels[connectProgress] || 'Connecting...'}</span>
           </>
         ) : canRetry ? (
           <Button
@@ -41,7 +49,7 @@ const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress
 };
 
 const Video = ({
-  videoRef, connectionState, error, statusMessage,
+  videoRef, connectionState, error,
   connectProgress, onConnect, className
 }) => {
   const connected = connectionState === 'connected';
@@ -67,7 +75,6 @@ const Video = ({
         <ConnectOverlay
           connectionState={connectionState}
           error={error}
-          statusMessage={statusMessage}
           connectProgress={connectProgress}
           onConnect={onConnect}
         />

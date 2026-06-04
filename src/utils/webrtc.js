@@ -92,7 +92,7 @@ export class WebRTCConnection {
         if (!this.pc) return;
         const state = this.pc.connectionState;
         if (state === 'connected') {
-          this.callbacks.onStatusMessage?.('Receiving video...');
+          this.callbacks.onConnectProgress?.(97);
           this.callbacks.onConnectionState('connected');
         }
       });
@@ -125,7 +125,7 @@ export class WebRTCConnection {
 
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
-      this.callbacks.onStatusMessage?.('Gathering direct connection candidates...');
+      this.callbacks.onConnectProgress?.(20);
 
       const pc = this.pc;
 
@@ -145,7 +145,7 @@ export class WebRTCConnection {
           "If error persists, your network may not allow direct peer-to-peer connections."
         );
       }
-      this.callbacks.onStatusMessage?.('Device processing candidates...');
+      this.callbacks.onConnectProgress?.(40);
 
       const resp = await Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
@@ -161,9 +161,9 @@ export class WebRTCConnection {
         throw new Error('Could not reach device. Is the ignition on?');
       }
       
-      this.callbacks.onStatusMessage?.('Candidate accepted...');
+      this.callbacks.onConnectProgress?.(85);
       await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
-      this.callbacks.onStatusMessage?.('Establishing connection...');
+      this.callbacks.onConnectProgress?.(92);
     } catch (err) {
       this.cleanup();
       this.callbacks.onConnectionState('failed');

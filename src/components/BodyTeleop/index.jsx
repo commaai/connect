@@ -11,17 +11,8 @@ import ControlsBar from './ControlsBar';
 import Video from './Video';
 import Joystick from './Joystick';
 
-const progressMap = {
-  'Gathering ICE candidates...': 20,
-  'Device processing candidates...': 40,
-  'Candidate accepted...': 85,
-  'Establishing connection...': 92,
-  'Receiving video...': 97,
-};
-
 const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [connectionState, setConnectionState] = useState('disconnected');
-  const [statusMessage, setStatusMessage] = useState(null);
   const [connectProgress, setConnectProgress] = useState(0);
   const [battery, setBattery] = useState(null);
   const [error, setError] = useState(null);
@@ -48,17 +39,13 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       onConnectionState: (state, reason) => {
         setConnectionState(state);
         if (state !== 'connecting') {
-          setStatusMessage(null);
           setConnectProgress(0);
         }
         if (state === 'failed') {
           setError((prev) => prev || reason || 'Could not reach device. Is the ignition on?');
         }
       },
-      onStatusMessage: (msg) => {
-        setStatusMessage(msg);
-        setConnectProgress(progressMap[msg] || 0);
-      },
+      onConnectProgress: setConnectProgress,
       onBatteryLevel: setBattery,
       onConnectionReplaced: (data) => {
         setError(data || 'Connection replaced');
@@ -159,7 +146,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
 
   const videoProps = {
     videoRef, connectionState, error,
-    statusMessage, connectProgress,
+    connectProgress,
     onConnect: handleConnect,
   };
 
