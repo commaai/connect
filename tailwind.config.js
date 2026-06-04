@@ -1,6 +1,11 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   important: true,
+  future: {
+    // only apply hover: styles on devices with a real pointer, so taps on iOS
+    // don't leave a sticky :hover highlight on buttons
+    hoverOnlyWhenSupported: true,
+  },
   content: [
     './index.html',
     './src/**/*.{js,ts,jsx,tsx}',

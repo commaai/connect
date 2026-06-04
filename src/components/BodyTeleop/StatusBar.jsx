@@ -184,13 +184,18 @@ function drawLatencyGraph(canvas, latencyHistory) {
 
 export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
   const latencyCanvasRef = useRef(null);
+  const [graphVisible, setGraphVisible] = useState(false);
   const compact = useMemo(() => isLandscape && window.matchMedia('(max-height: 500px)').matches, [isLandscape]);
 
   useEffect(() => {
-    if (!latencyHistory.length) return;
+    if (!latencyHistory.length) {
+      setGraphVisible(false);
+      return;
+    }
     const canvas = latencyCanvasRef.current;
     if (!canvas) return;
     drawLatencyGraph(canvas, latencyHistory);
+    setGraphVisible(true);
   }, [latencyHistory, compact]);
 
   if (!stats) return null;
@@ -229,23 +234,19 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
             </div>
           ))}
           <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />
-          {latency && (
-            <>
-              <div className="text-[7px] font-bold text-white/35 tracking-[0.5px] leading-tight py-[2px] pb-px md:text-[11px]">FRAME LATENCY</div>
-              {LATENCY_LAYERS.map(({ label, key, labelColor }) => (
-                <div key={label} className="flex justify-between leading-tight md:py-[3px]">
-                  <span className="text-[8px] mr-1.5 md:text-[13px] md:mr-[18px]" style={{ color: labelColor }}>{label}</span>
-                  <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]">{fmtMs(latency[key])}</span>
-                </div>
-              ))}
-              <div className="flex justify-between leading-tight md:py-[3px]">
-                <span className="text-[8px] mr-1.5 md:text-[13px] md:mr-[18px]" style={{ fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Total</span>
-                <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]" style={{ fontWeight: 700 }}>{fmtMs(latency.totalMs)}</span>
+            <div className="text-[7px] font-bold text-white/35 tracking-[0.5px] leading-tight py-[2px] pb-px md:text-[11px]">FRAME LATENCY</div>
+            {LATENCY_LAYERS.map(({ label, key, labelColor }) => (
+              <div key={label} className="flex justify-between leading-tight md:py-[3px]">
+                <span className="text-[8px] mr-1.5 md:text-[13px] md:mr-[18px]" style={{ color: labelColor }}>{label}</span>
+                <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]">{fmtMs(latency?.[key])}</span>              
               </div>
-              <canvas ref={latencyCanvasRef} className="w-full h-[30px] mt-px rounded-[3px] bg-black/30 md:h-[90px] md:mt-1 md:rounded-[6px]" />
-              <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />
-            </>
-          )}
+            ))}
+            <div className="flex justify-between leading-tight md:py-[3px]">
+              <span className="text-[8px] mr-1.5 md:text-[13px] md:mr-[18px]" style={{ fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Total</span>
+              <span className="text-[8px] text-white/[0.85] text-right md:text-[13px]" style={{ fontWeight: 700 }}>{fmtMs(latency?.totalMs)}</span>
+            </div>
+            <canvas ref={latencyCanvasRef} className={`w-full h-[30px] mt-px rounded-[3px] bg-black/30 md:h-[90px] md:mt-1 md:rounded-[6px] transition-opacity duration-300 ${graphVisible ? 'opacity-100' : 'opacity-0'}`} />
+            <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />
         </>
       )}
     </div>
