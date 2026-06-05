@@ -151,7 +151,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[1300] bg-[#030404] flex flex-col touch-none h-full w-full overflow-hidden select-none">
+    <div className="fixed inset-0 z-[1300] bg-[#030404] flex flex-col touch-pan-x touch-pan-y h-full w-full overflow-hidden select-none">
       <div
         className={isLandscape
           ? 'absolute left-2 top-2 z-20 flex items-center gap-1'
