@@ -75,7 +75,7 @@ const ControlsBar = ({
             {CAMERAS.map((cam) => (
               <div
                 key={cam.key}
-                className={`${activeCamera === cam.key ? btnActive : btnInactive} touch-manipulation`}
+                className={`${activeCamera === cam.key ? btnActive : btnInactive}`}
                 onClick={() => onSwitchCamera(cam.key)}
                 onTouchEnd={(e) => handleSwitchCameraTouch(e, cam.key)}
               >
@@ -88,7 +88,7 @@ const ControlsBar = ({
       )}
       <div className="flex flex-col items-center justify-between gap-[5px] lg:gap-[7px]">
         <div
-          className={`${btnInactive} touch-manipulation w-full`}
+          className={`${btnInactive} w-full`}
           onClick={handleScreenshot}
           onTouchEnd={handleScreenshotTouch}
           title="Save screenshot"
