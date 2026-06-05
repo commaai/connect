@@ -13,7 +13,6 @@ import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
-import PullDownReload from './utils/PullDownReload';
 
 import { analyticsEvent, selectDevice, updateDevice, checkLastRoutesData } from '../actions';
 import init from '../actions/startup';
@@ -207,7 +206,6 @@ class ExplorerApp extends Component {
     return (
       <div>
         <ResizeHandler onResize={ (ww) => this.setState({ windowWidth: ww }) } />
-        <PullDownReload />
         <AppHeader
           drawerIsOpen={ drawerIsOpen }
           viewingRoute={ Boolean(currentRoute) }

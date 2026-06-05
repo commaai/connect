@@ -4,6 +4,7 @@ import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
 import { Typography, IconButton, Icon, AppBar } from '@material-ui/core';
+import ReplayIcon from '@material-ui/icons/Replay';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
@@ -11,6 +12,7 @@ import { selectDevice } from '../../actions';
 import { AccountIcon } from '../../icons';
 import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
+import { isIos } from '../../utils/browser.js';
 
 import AccountMenu from './AccountMenu';
 import PWAIcon from '../PWAIcon';
@@ -78,6 +80,12 @@ const AppHeader = ({
     dispatch(handleDrawerStateChanged(!drawerIsOpen));
   }, [dispatch, drawerIsOpen, handleDrawerStateChanged]);
 
+  const isIosStandalone = () => {
+    if (window && window.navigator) {
+      if (isIos() && window.navigator.standalone === true) { return true; }
+    }
+  }
+  
   const open = Boolean(anchorEl);
 
   return (
@@ -112,6 +120,14 @@ const AppHeader = ({
           </div>
           <div className="flex flex-row gap-2">
             <Suspense><PWAIcon /></Suspense>
+            {isIosStandalone() &&
+              <IconButton
+                onClick={() => window.location.reload()}
+                aria-label="reload"
+              >
+                <ReplayIcon />
+              </IconButton>
+            }
             <IconButton
               aria-owns={open ? 'menu-appbar' : null}
               aria-haspopup="true"
