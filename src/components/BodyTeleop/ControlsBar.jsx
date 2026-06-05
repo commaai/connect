@@ -75,7 +75,7 @@ const ControlsBar = ({
             {CAMERAS.map((cam) => (
               <div
                 key={cam.key}
-                className={`${activeCamera === cam.key ? btnActive : btnInactive}`}
+                className={activeCamera === cam.key ? btnActive : btnInactive}
                 onClick={() => onSwitchCamera(cam.key)}
                 onTouchEnd={(e) => handleSwitchCameraTouch(e, cam.key)}
               >
