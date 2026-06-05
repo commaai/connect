@@ -77,7 +77,7 @@ const AppHeader = ({
   const toggleDrawer = useCallback(() => {
     dispatch(handleDrawerStateChanged(!drawerIsOpen));
   }, [dispatch, drawerIsOpen, handleDrawerStateChanged]);
-  
+
   const open = Boolean(anchorEl);
 
   return (
