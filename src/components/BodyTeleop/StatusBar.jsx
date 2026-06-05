@@ -19,12 +19,20 @@ const LATENCY_LAYERS = [
   { label: 'Network', key: 'networkMs', color: 'rgba(66,165,245,1)', labelColor: 'rgba(66,165,245,1)' },
 ];
 
+// prewarm the latency display so the graph shows a sensible band before the first real sample arrives
+const INITIAL_LATENCY = {
+  captureEncodeMs: 45,
+  sendDelayMs: 3,
+  networkMs: 20,
+  totalMs: 68,
+};
+
 
 const useStats = (connection, connectionState, latencyCallbackRef) => {
   const [showStats, setShowStats] = useState(false);
   const [stats, setStats] = useState(null);
-  const [latency, setLatency] = useState(null);
-  const [latencyHistory, setLatencyHistory] = useState([]);
+  const [latency, setLatency] = useState(INITIAL_LATENCY);
+  const [latencyHistory, setLatencyHistory] = useState([INITIAL_LATENCY]);
   const latencyBufferRef = useRef([]);
   const firstLatencyShownRef = useRef(false);
   const statsPollingRef = useRef({ interval: null, prevTimestamp: null, prevBytes: null, prevFrames: null });
@@ -105,8 +113,8 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
       latencyBufferRef.current = [];
       firstLatencyShownRef.current = false;
       setStats(null);
-      setLatency(null);
-      setLatencyHistory([]);
+      setLatency(INITIAL_LATENCY);
+      setLatencyHistory([INITIAL_LATENCY]);
     }
     return () => {
       if (ref.interval) clearInterval(ref.interval);
@@ -191,21 +199,13 @@ function drawLatencyGraph(canvas, latencyHistory) {
 
 export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
   const latencyCanvasRef = useRef(null);
-  const [graphVisible, setGraphVisible] = useState(false);
   const compact = useMemo(() => isLandscape && window.matchMedia('(max-height: 500px)').matches, [isLandscape]);
 
   useEffect(() => {
-    if (!latencyHistory.length) {
-      setGraphVisible(false);
-      return;
-    }
     const canvas = latencyCanvasRef.current;
     if (!canvas) return;
     drawLatencyGraph(canvas, latencyHistory);
-    setGraphVisible(true);
   }, [latencyHistory, compact]);
-
-  if (!stats) return null;
 
   const fmtMs = (v) => (v != null ? `${v.toFixed(1)} ms` : '--');
   const textSize = compact ? "text-[9px]" : "text-[10px] md:text-[13px]" 
@@ -219,7 +219,7 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
         {STATS_ROWS.map(({ label, key }) => (
           <div key={key} className="flex justify-between leading-tight md:py-[3px]">
             <span className={`${textSize} text-white/45 mr-1.5 md:mr-[18px]`}>{label}</span>
-            <span className={`${textSize} text-white/[0.85] text-right`}>{stats[key]}</span>
+            <span className={`${textSize} text-white/[0.85] text-right`}>{stats?.[key] ?? '--'}</span>
           </div>
         ))}
       </div>
@@ -239,7 +239,7 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
           </div>
         }
       </div>
-      <canvas ref={latencyCanvasRef} className={`${compact ? "w-[100px] self-stretch": "w-full h-[30px] md:h-[90px] mt-1"} rounded-[3px] bg-black/30 md:rounded-[6px] transition-opacity duration-300 ${graphVisible ? 'opacity-100' : 'opacity-0'}`} />
+      <canvas ref={latencyCanvasRef} className={`${compact ? "w-[100px] self-stretch": "w-full h-[30px] md:h-[90px] mt-1"} rounded-[3px] bg-black/30 md:rounded-[6px]`} />
       {!compact && <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />}
     </div>
   );
