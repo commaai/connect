@@ -12,8 +12,8 @@ import Video from './Video';
 import Joystick from './Joystick';
 
 const BodyTeleop = ({ dongleId, device, onClose }) => {
-  const [connectionState, setConnectionState] = useState('disconnected');
-  const [connectProgress, setConnectProgress] = useState(0);
+  const [connectionState, setConnectionState] = useState('none');
+  const [connectStep, setConnectStep] = useState(null);
   const [battery, setBattery] = useState(null);
   const [error, setError] = useState(null);
   const [isLandscape, setIsLandscape] = useState(false);
@@ -39,13 +39,13 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       onConnectionState: (state, reason) => {
         setConnectionState(state);
         if (state !== 'connecting') {
-          setConnectProgress(0);
+          setConnectStep(null);
         }
         if (state === 'failed') {
           setError((prev) => prev || reason || 'Could not reach device. Is the ignition on?');
         }
       },
-      onConnectProgress: setConnectProgress,
+      onConnectProgress: setConnectStep,
       onBatteryLevel: setBattery,
       onConnectionReplaced: (data) => {
         setError(data || 'Connection replaced');
@@ -146,7 +146,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
 
   const videoProps = {
     videoRef, connectionState, error,
-    connectProgress,
+    connectStep,
     onConnect: handleConnect,
   };
 

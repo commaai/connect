@@ -8,6 +8,13 @@ const CLOCK_WINDOW_SIZE = 16;
 const CLOCK_PING_MS = 500;
 
 const ICE_GATHER_DEADLINE_MS = 5000;
+const CONNECTION_DEADLINE_MS = 7000;
+
+export const ConnectStep = {
+  GATHERING_CANDIDATES: 1,
+  PROCESSING_CANDIDATES: 2,
+  ESTABLISHING: 3,
+};
 
 // Browsers obfuscate the local host behind a "<uuid>.local" mDNS hostname for
 // privacy. Aiortc can't resolve those https://github.com/commaai/connect/issues/609
@@ -32,6 +39,7 @@ export class WebRTCConnection {
     this.dc = null;
     this.joystickInterval = null;
     this.clockSyncInterval = null;
+    this.connectionTimeout = null;
     this.joystickX = 0;
     this.joystickY = 0;
     this.callbacks = callbacks;
@@ -88,11 +96,16 @@ export class WebRTCConnection {
         }
       });
 
+      this.connectionTimeout = setTimeout(() => {
+        this.cleanup();
+        this.callbacks.onConnectionState('failed');
+      }, CONNECTION_DEADLINE_MS);
+
       this.pc.addEventListener('connectionstatechange', () => {
         if (!this.pc) return;
         const state = this.pc.connectionState;
         if (state === 'connected') {
-          this.callbacks.onConnectProgress?.(97);
+          this._clearConnectionTimeout();
           this.callbacks.onConnectionState('connected');
         }
       });
@@ -125,7 +138,7 @@ export class WebRTCConnection {
 
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
-      this.callbacks.onConnectProgress?.(20);
+      this.callbacks.onConnectProgress?.(ConnectStep.GATHERING_CANDIDATES);
 
       const pc = this.pc;
 
@@ -133,6 +146,9 @@ export class WebRTCConnection {
       const gatheringComplete = new Promise((resolve) => { resolveComplete = resolve; });
       pc.addEventListener('icecandidate', (evt) => {
         if (!evt.candidate) { resolveComplete(); }
+        // Chrome sends null candidate after connectionstate is compelete making promise finish after sleep timeout
+        // Host candidates are faster than srlfx and relay so will already be available
+        else if (evt.candidate.type == 'srflx' || evt.candidate.type === 'relay') { resolveComplete(); }
       });
 
       await Promise.race([gatheringComplete, asyncSleep(ICE_GATHER_DEADLINE_MS)]);
@@ -145,7 +161,7 @@ export class WebRTCConnection {
           "If error persists, your network may not allow direct peer-to-peer connections."
         );
       }
-      this.callbacks.onConnectProgress?.(40);
+      this.callbacks.onConnectProgress?.(ConnectStep.PROCESSING_CANDIDATES);
 
       const resp = await Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
@@ -161,9 +177,8 @@ export class WebRTCConnection {
         throw new Error('Could not reach device. Is the ignition on?');
       }
       
-      this.callbacks.onConnectProgress?.(85);
+      this.callbacks.onConnectProgress?.(ConnectStep.ESTABLISHING);
       await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
-      this.callbacks.onConnectProgress?.(92);
     } catch (err) {
       this.cleanup();
       this.callbacks.onConnectionState('failed');
@@ -185,6 +200,13 @@ export class WebRTCConnection {
 
   setQuality(quality) {
     this._sendDc('livestreamSettings', { quality: quality });
+  }
+
+  _clearConnectionTimeout() {
+    if (this.connectionTimeout) {
+      clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = null;
+    }
   }
 
   _clearJoystickInterval() {
@@ -274,6 +296,7 @@ export class WebRTCConnection {
   }
 
   cleanup() {
+    this._clearConnectionTimeout();
     this._clearJoystickInterval();
     this._stopClockSync();
     if (this.dc) {
