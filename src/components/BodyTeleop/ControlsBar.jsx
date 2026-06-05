@@ -60,6 +60,13 @@ const ControlsBar = ({
     handleScreenshot();
   }, [handleScreenshot]);
 
+  // handle touch directly: iOS does not synthesize a click on a second finger
+  // while another touch (the joystick) is already active
+  const handleSwitchCameraTouch = useCallback((e, cameraKey) => {
+    e.preventDefault();
+    onSwitchCamera(cameraKey);
+  }, [onSwitchCamera]);
+
   return (
     <div className={`${controlsGroupBase} ${!isLandscape ? controlsGroupPortrait : ''}`}>
       {!gamepadConnected && (
@@ -70,6 +77,7 @@ const ControlsBar = ({
                 key={cam.key}
                 className={activeCamera === cam.key ? btnActive : btnInactive}
                 onClick={() => onSwitchCamera(cam.key)}
+                onTouchEnd={(e) => handleSwitchCameraTouch(e, cam.key)}
               >
                 {cam.label}
               </div>
@@ -80,7 +88,7 @@ const ControlsBar = ({
       )}
       <div className="flex flex-col items-center justify-between gap-[5px] lg:gap-[7px]">
         <div
-          className={`${btnInactive} touch-manipulation w-full`}
+          className={`${btnInactive} w-full`}
           onClick={handleScreenshot}
           onTouchEnd={handleScreenshotTouch}
           title="Save screenshot"

@@ -222,13 +222,6 @@ const Joystick = ({
           return next;
         });
       }
-      if (pressed) {
-        const cameraKeys = { 1: 'wideRoad', 2: 'driver' };
-        if (cameraKeys[e.key]) {
-          e.preventDefault();
-          onSwitchCamera(cameraKeys[e.key]);
-        }
-      }
     };
 
     const onKeyDown = (e) => handleKey(e, true);
