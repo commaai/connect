@@ -146,7 +146,8 @@ export class WebRTCConnection {
       const gatheringComplete = new Promise((resolve) => { resolveComplete = resolve; });
       pc.addEventListener('icecandidate', (evt) => {
         if (!evt.candidate) { resolveComplete(); }
-        // host candidates are normally faster than srlfx and relay so will already be available
+        // Chrome sends null candidate after connectionstate is compelete making promise finish after sleep timeout
+        // Host candidates are faster than srlfx and relay so will already be available
         else if (evt.candidate.type == 'srflx' || evt.candidate.type === 'relay') { resolveComplete(); }
       });
 
