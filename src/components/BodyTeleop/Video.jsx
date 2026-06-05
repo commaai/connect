@@ -2,18 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
 
+import { ConnectStep } from '../../utils/webrtc';
 
-const progressLabels = {
-  20: 'Gathering direct connection candidates...',
-  40: 'Device processing candidates...',
-  85: 'Candidate accepted...',
-  92: 'Establishing connection...',
-  97: 'Receiving video...',
+const stepInfo = {
+  [ConnectStep.GATHERING_CANDIDATES]: { percent: 20, label: 'Gathering direct connection candidates...' },
+  [ConnectStep.PROCESSING_CANDIDATES]: { percent: 40, label: 'Device processing candidates...' },
+  [ConnectStep.CANDIDATE_ACCEPTED]: { percent: 85, label: 'Candidate accepted...' },
+  [ConnectStep.ESTABLISHING]: { percent: 92, label: 'Establishing connection...' },
+  [ConnectStep.RECEIVING_VIDEO]: { percent: 97, label: 'Receiving video...' },
 };
 
-const ConnectOverlay = ({ connectionState, error, connectProgress, onConnect }) => {
+const ConnectOverlay = ({ connectionState, error, connectStep, onConnect }) => {
   const connecting = connectionState === 'connecting';
   const canRetry = connectionState === 'failed' || connectionState === 'disconnected';
+  const { percent = 0, label = 'Connecting...' } = stepInfo[connectStep] || {};
 
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
@@ -23,10 +25,10 @@ const ConnectOverlay = ({ connectionState, error, connectProgress, onConnect }) 
             <div className="w-60 h-1 rounded bg-white/10 overflow-hidden">
               <div
                 className="h-full rounded bg-white/70 transition-[width] duration-400 ease-in-out"
-                style={{ width: `${connectProgress || 0}%` }}
+                style={{ width: `${percent}%` }}
               />
             </div>
-            <span className="text-xs text-white/50">{progressLabels[connectProgress] || 'Connecting...'}</span>
+            <span className="text-xs text-white/50">{label}</span>
           </>
         ) : canRetry ? (
           <Button
@@ -50,7 +52,7 @@ const ConnectOverlay = ({ connectionState, error, connectProgress, onConnect }) 
 
 const Video = ({
   videoRef, connectionState, error,
-  connectProgress, onConnect, className
+  connectStep, onConnect, className
 }) => {
   const connected = connectionState === 'connected';
   const [playing, setPlaying] = useState(false);
@@ -75,7 +77,7 @@ const Video = ({
         <ConnectOverlay
           connectionState={connectionState}
           error={error}
-          connectProgress={connectProgress}
+          connectStep={connectStep}
           onConnect={onConnect}
         />
       )}
