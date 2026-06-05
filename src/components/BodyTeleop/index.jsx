@@ -6,23 +6,14 @@ import { IconButton } from '@material-ui/core';
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
 import { WebRTCConnection } from '../../utils/webrtc';
-import StatusBar, { useStats, StatsPanel } from './StatusBar';
+import StatusBar from './StatusBar';
 import ControlsBar from './ControlsBar';
 import Video from './Video';
 import Joystick from './Joystick';
 
-const progressMap = {
-  'Gathering ICE candidates...': 20,
-  'Device processing candidates...': 40,
-  'Candidate accepted...': 85,
-  'Establishing connection...': 92,
-  'Receiving video...': 97,
-};
-
 const BodyTeleop = ({ dongleId, device, onClose }) => {
-  const [connectionState, setConnectionState] = useState('disconnected');
-  const [statusMessage, setStatusMessage] = useState(null);
-  const [connectProgress, setConnectProgress] = useState(0);
+  const [connectionState, setConnectionState] = useState('none');
+  const [connectStep, setConnectStep] = useState(null);
   const [battery, setBattery] = useState(null);
   const [error, setError] = useState(null);
   const [isLandscape, setIsLandscape] = useState(false);
@@ -35,6 +26,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const connectionRef = useRef(null);
   const latencyCallbackRef = useRef(null);
   const switchTimerRef = useRef(null);
+  const timeoutTimerRef = useRef(null);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -44,17 +36,16 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   
   useEffect(() => {
     const conn = new WebRTCConnection({
-      onConnectionState: (state) => {
+      onConnectionState: (state, reason) => {
         setConnectionState(state);
         if (state !== 'connecting') {
-          setStatusMessage(null);
-          setConnectProgress(0);
+          setConnectStep(null);
+        }
+        if (state === 'failed') {
+          setError((prev) => prev || reason || 'Could not reach device. Is the ignition on?');
         }
       },
-      onStatusMessage: (msg) => {
-        setStatusMessage(msg);
-        setConnectProgress(progressMap[msg] || 0);
-      },
+      onConnectProgress: setConnectStep,
       onBatteryLevel: setBattery,
       onConnectionReplaced: (data) => {
         setError(data || 'Connection replaced');
@@ -79,6 +70,23 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload);
       conn.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      clearTimeout(timeoutTimerRef.current);
+      if (document.hidden) {
+        timeoutTimerRef.current = setTimeout(() => {
+          connectionRef.current?.disconnect();
+          setError('Session timed out');
+        }, 30000);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      clearTimeout(timeoutTimerRef.current);
     };
   }, []);
 
@@ -136,18 +144,14 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const connected = connectionState === 'connected';
   const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
 
-  const {
-    showStats, toggleStats, stats, latency, latencyHistory,
-  } = useStats(connection, connectionState, latencyCallbackRef);
-  const statsPanelProps = { stats, latency, latencyHistory };
   const videoProps = {
     videoRef, connectionState, error,
-    statusMessage, connectProgress,
+    connectStep,
     onConnect: handleConnect,
   };
 
   return (
-    <div className="fixed inset-0 z-[1300] bg-[#030404] flex flex-col touch-pan-x touch-pan-y h-full w-full overflow-hidden">
+    <div className="fixed inset-0 z-[1300] bg-[#030404] flex flex-col touch-pan-x touch-pan-y h-full w-full overflow-hidden select-none">
       <div
         className={isLandscape
           ? 'absolute left-2 top-2 z-20 flex items-center gap-1'
@@ -174,13 +178,15 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             className={isLandscape
               ? 'absolute top-3 right-3 z-30 flex items-center gap-2'
               : 'relative z-30 flex items-center justify-end p-2 gap-2'}
-            toggleStats={toggleStats}
+            isLandscape={isLandscape}
+            connection={connection}
+            connectionState={connectionState}
+            latencyCallbackRef={latencyCallbackRef}
             onQualityChange={handleQualityChange}
           />
-          {showStats ? <StatsPanel isLandscape={isLandscape} {...statsPanelProps} /> : <></>}
         </div>
       )}
-      <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : ""} />
+      <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : "aspect-[16/9]"} />
       {connected && (
         <>
           <ControlsBar

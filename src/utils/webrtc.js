@@ -8,6 +8,13 @@ const CLOCK_WINDOW_SIZE = 16;
 const CLOCK_PING_MS = 500;
 
 const ICE_GATHER_DEADLINE_MS = 5000;
+const CONNECTION_DEADLINE_MS = 7000;
+
+export const ConnectStep = {
+  GATHERING_CANDIDATES: 1,
+  PROCESSING_CANDIDATES: 2,
+  ESTABLISHING: 3,
+};
 
 // Browsers obfuscate the local host behind a "<uuid>.local" mDNS hostname for
 // privacy. Aiortc can't resolve those https://github.com/commaai/connect/issues/609
@@ -22,12 +29,17 @@ function stripMdnsCandidates(sdp) {
     .join('\r\n');
 }
 
+function findCandidates(sdp) {
+  return sdp.split(/\r\n|\n/).filter((line) => line.startsWith('a=candidate:'));
+}
+
 export class WebRTCConnection {
   constructor(callbacks) {
     this.pc = null;
     this.dc = null;
     this.joystickInterval = null;
     this.clockSyncInterval = null;
+    this.connectionTimeout = null;
     this.joystickX = 0;
     this.joystickY = 0;
     this.callbacks = callbacks;
@@ -84,14 +96,18 @@ export class WebRTCConnection {
         }
       });
 
+      this.connectionTimeout = setTimeout(() => {
+        this.cleanup();
+        this.callbacks.onConnectionState('failed');
+      }, CONNECTION_DEADLINE_MS);
+
       this.pc.addEventListener('connectionstatechange', () => {
         if (!this.pc) return;
         const state = this.pc.connectionState;
         if (state === 'connected') {
-          this.callbacks.onStatusMessage?.('Receiving video...');
+          this._clearConnectionTimeout();
           this.callbacks.onConnectionState('connected');
         }
-        else if (state === 'failed' || state === 'closed') this.callbacks.onConnectionState('failed');
       });
 
       const codecs = RTCRtpReceiver.getCapabilities('video')?.codecs || [];
@@ -122,7 +138,7 @@ export class WebRTCConnection {
 
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
-      this.callbacks.onStatusMessage?.('Gathering ICE candidates...');
+      this.callbacks.onConnectProgress?.(ConnectStep.GATHERING_CANDIDATES);
 
       const pc = this.pc;
 
@@ -130,16 +146,23 @@ export class WebRTCConnection {
       const gatheringComplete = new Promise((resolve) => { resolveComplete = resolve; });
       pc.addEventListener('icecandidate', (evt) => {
         if (!evt.candidate) { resolveComplete(); }
+        // Chrome sends null candidate after connectionstate is compelete making promise finish after sleep timeout
+        // Host candidates are faster than srlfx and relay so will already be available
+        else if (evt.candidate.type == 'srflx' || evt.candidate.type === 'relay') { resolveComplete(); }
       });
 
       await Promise.race([gatheringComplete, asyncSleep(ICE_GATHER_DEADLINE_MS)]);
-      if (this.pc !== pc) throw new Error('connection torn down during ICE gathering');
+      if (this.pc !== pc) throw new Error('Connection torn down during candidate gathering');
 
       const offerSdp = stripMdnsCandidates(pc.localDescription.sdp);
-      this.callbacks.onStatusMessage?.('Device processing candidates...');
-      
-      console.log(offerSdp)
-      
+      if (findCandidates(offerSdp).length === 0) {
+        throw new Error(
+          "No direct connection candidates gathered. Check your network connection and try again. " +
+          "If error persists, your network may not allow direct peer-to-peer connections."
+        );
+      }
+      this.callbacks.onConnectProgress?.(ConnectStep.PROCESSING_CANDIDATES);
+
       const resp = await Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
         params: { sdp: offerSdp },
@@ -148,15 +171,14 @@ export class WebRTCConnection {
       });
       if (resp?.error) {
         log(`device error: ${JSON.stringify(resp.error)}`);
-        throw new Error(resp.error.message || 'Could not reach device. Is the ignition on?');
+        throw new Error(resp.error.data?.message || 'Could not reach device. Is the ignition on?');
       }
       if (!resp?.result) {
         throw new Error('Could not reach device. Is the ignition on?');
       }
       
-      this.callbacks.onStatusMessage?.('Candidate accepted...');
+      this.callbacks.onConnectProgress?.(ConnectStep.ESTABLISHING);
       await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
-      this.callbacks.onStatusMessage?.('Establishing connection...');
     } catch (err) {
       this.cleanup();
       this.callbacks.onConnectionState('failed');
@@ -178,6 +200,13 @@ export class WebRTCConnection {
 
   setQuality(quality) {
     this._sendDc('livestreamSettings', { quality: quality });
+  }
+
+  _clearConnectionTimeout() {
+    if (this.connectionTimeout) {
+      clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = null;
+    }
   }
 
   _clearJoystickInterval() {
@@ -214,6 +243,7 @@ export class WebRTCConnection {
     const latency = {
       captureMs: timing.captureMs,
       encodeMs: timing.encodeMs,
+      captureEncodeMs: timing.captureMs + timing.encodeMs,
       sendDelayMs: timing.sendDelayMs,
       devicePipelineMs: timing.captureMs + timing.encodeMs + timing.sendDelayMs,
       networkMs: null,
@@ -266,6 +296,7 @@ export class WebRTCConnection {
   }
 
   cleanup() {
+    this._clearConnectionTimeout();
     this._clearJoystickInterval();
     this._stopClockSync();
     if (this.dc) {

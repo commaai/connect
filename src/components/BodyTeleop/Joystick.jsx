@@ -184,6 +184,26 @@ const Joystick = ({
     document.addEventListener('mouseup', handleMouseUp);
   }, [applyJoystick, handleMouseMove, handleMouseUp]);
 
+  // Drop all active input and send a neutral command on blocking
+  const releaseInputs = useCallback(() => {
+    handleMouseUp(); // clears mouse drag state, sends neutral, drops mousemove/up
+    touchIdRef.current = null;
+    prevThumbRef.current = null;
+    setKeys({ w: false, a: false, s: false, d: false });
+  }, [handleMouseUp]);
+
+  useEffect(() => {
+    const onVisibility = () => { if (document.hidden) releaseInputs(); };
+    window.addEventListener('blur', releaseInputs);
+    document.addEventListener('visibilitychange', onVisibility);
+    document.addEventListener('contextmenu', releaseInputs);
+    return () => {
+      window.removeEventListener('blur', releaseInputs);
+      document.removeEventListener('visibilitychange', onVisibility);
+      document.removeEventListener('contextmenu', releaseInputs);
+    };
+  }, [releaseInputs]);
+
   // Keyboard input
   useEffect(() => {
     const arrowMap = { ArrowUp: 'w', ArrowDown: 's', ArrowLeft: 'a', ArrowRight: 'd' };

@@ -1,12 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
-import InfoOutline from '@material-ui/icons/InfoOutline';
 
+import { ConnectStep } from '../../utils/webrtc';
 
-const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress, onConnect }) => {
+const stepInfo = {
+  [ConnectStep.GATHERING_CANDIDATES]: { percent: 20, label: 'Gathering direct connection candidates...' },
+  [ConnectStep.PROCESSING_CANDIDATES]: { percent: 40, label: 'Device processing candidates...' },
+  [ConnectStep.CANDIDATE_ACCEPTED]: { percent: 85, label: 'Candidate accepted...' },
+  [ConnectStep.ESTABLISHING]: { percent: 92, label: 'Establishing connection...' },
+  [ConnectStep.RECEIVING_VIDEO]: { percent: 97, label: 'Receiving video...' },
+};
+
+const ConnectOverlay = ({ connectionState, error, connectStep, onConnect }) => {
   const connecting = connectionState === 'connecting';
-  const failed = connectionState === 'failed';
+  const canRetry = connectionState === 'failed' || connectionState === 'disconnected';
+  const { percent = 0, label = 'Connecting...' } = stepInfo[connectStep] || {};
 
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
@@ -16,12 +25,12 @@ const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress
             <div className="w-60 h-1 rounded bg-white/10 overflow-hidden">
               <div
                 className="h-full rounded bg-white/70 transition-[width] duration-400 ease-in-out"
-                style={{ width: `${connectProgress || 0}%` }}
+                style={{ width: `${percent}%` }}
               />
             </div>
-            <span className="text-xs text-white/50">{statusMessage || 'Connecting...'}</span>
+            <span className="text-xs text-white/50">{label}</span>
           </>
-        ) : failed ? (
+        ) : canRetry ? (
           <Button
             className="flex items-center gap-2 rounded-3xl px-6 py-2.5 text-white text-sm font-medium normal-case bg-red-600/60 hover:bg-red-600/70 cursor-pointer"
             onClick={onConnect}
@@ -32,14 +41,8 @@ const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress
           </Button>
         ) : null}
         {error && (
-          <div className={`max-w-[280px] rounded-lg px-3 py-1.5 text-center text-xs text-[#fca5a5] !bg-[rgba(220,38,38,0.4)]`}>
+          <div className={`max-w-[280px] md:max-w-[450px] rounded-lg px-3 py-1.5 text-center text-xs text-[#fca5a5] !bg-[rgba(220,38,38,0.4)] !select-text`}>
             {error}
-          </div>
-        )}
-        {!connecting && (
-          <div className={`flex items-center gap-2.5 rounded-[20px] px-3 py-1.5 text-xs text-white/50`}>
-            <InfoOutline style={{ fontSize: 16 }} />
-            <span>Body must be powered on and started.</span>
           </div>
         )}
       </div>
@@ -48,20 +51,33 @@ const ConnectOverlay = ({ connectionState, error, statusMessage, connectProgress
 };
 
 const Video = ({
-  videoRef, connectionState, error, statusMessage,
-  connectProgress, onConnect, className
+  videoRef, connectionState, error,
+  connectStep, onConnect, className
 }) => {
   const connected = connectionState === 'connected';
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    if (connectionState !== 'connected') {
+      setPlaying(false);
+    }
+  }, [connectionState]);
 
   return (
     <>
-      <video ref={videoRef} autoPlay playsInline muted className={`w-full object-contain ${className}`} />
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        onPlaying={() => setPlaying(true)}
+        className={`w-full pointer-events-none object-contain transition-opacity duration-200 ease-in ${playing ? 'opacity-100' : 'opacity-0'} ${className}`}
+      />
       {!connected && (
         <ConnectOverlay
           connectionState={connectionState}
           error={error}
-          statusMessage={statusMessage}
-          connectProgress={connectProgress}
+          connectStep={connectStep}
           onConnect={onConnect}
         />
       )}
