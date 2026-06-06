@@ -111,8 +111,8 @@ const DriveList = (props) => {
       : Math.round(deviceStats.result.all.distance);
 
     return (
-      <div className="flex gap-4 md:gap-8 items-center px-1">
-        <div className="flex flex-row items-center gap-1 max-w-20">
+      <div className="flex gap-2.5 md:gap-8 items-center px-1">
+        <div className="flex flex-row items-center gap-1">
           <Typography className="font-semibold text-white">
             { distance }
           </Typography>
@@ -120,13 +120,13 @@ const DriveList = (props) => {
             { metric ? 'kilometers' : 'miles' }
           </Typography>
         </div>
-        <div className="flex flex-row items-center gap-1 max-w-20">
+        <div className="flex flex-row items-center gap-1">
           <Typography className="font-semibold text-white">
             { deviceStats.result.all.routes }
           </Typography>
           <Typography>drives</Typography>
         </div>
-        <div className="flex flex-row items-center gap-1 max-w-20">
+        <div className="flex flex-row items-center gap-1">
           <Typography className="font-semibold text-white">
             { Math.round(deviceStats.result.all.minutes / 60.0) }
           </Typography>
