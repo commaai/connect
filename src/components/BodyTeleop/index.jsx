@@ -42,7 +42,8 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
           setConnectStep(null);
         }
         if (state === 'failed') {
-          setError(reason || 'Could not reach device. Is the ignition on?');
+          // don't overwrite the original error reason
+          setError((prev) => prev || reason || 'Could not reach device. Is the ignition on?');
         }
       },
       onConnectProgress: setConnectStep,

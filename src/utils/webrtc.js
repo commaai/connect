@@ -8,7 +8,7 @@ const CLOCK_WINDOW_SIZE = 16;
 const CLOCK_PING_MS = 500;
 
 const ICE_GATHER_DEADLINE_MS = 5000;
-const CONNECTION_DEADLINE_MS = 7000;
+const CONNECTION_DEADLINE_MS = 8000;
 
 export const ConnectStep = {
   GATHERING_CANDIDATES: 1,
@@ -97,8 +97,7 @@ export class WebRTCConnection {
       });
 
       this.connectionTimeout = setTimeout(() => {
-        this.cleanup();
-        this.callbacks.onConnectionState('failed', 'No valid webrtc candidate routes were found to device. Check network and retry.');
+        this.fail('No valid webrtc candidate routes were found to device. Check network and retry.');
       }, CONNECTION_DEADLINE_MS);
 
       this.pc.addEventListener('connectionstatechange', () => {
@@ -108,8 +107,7 @@ export class WebRTCConnection {
           this._clearConnectionTimeout();
           this.callbacks.onConnectionState('connected');
         } else if (state === 'failed' || state === 'disconnected' || state === 'closed') {
-          this.cleanup();
-          this.callbacks.onConnectionState('failed', 'Connection lost');
+          this.fail('Connection lost');
         }
       });
 
@@ -132,10 +130,7 @@ export class WebRTCConnection {
         try {
           const msg = JSON.parse(typeof evt.data === 'string' ? evt.data : new TextDecoder().decode(evt.data));
           if (msg.type === 'carState') this.callbacks.onBatteryLevel({ level: Math.round(msg.data.fuelGauge * 100), charging: !!msg.data.charging });
-          if (msg.type === 'connectionReplaced') {
-            this.cleanup();
-            this.callbacks.onConnectionState('failed', msg.data || 'Connection replaced by another device.')
-          }
+          if (msg.type === 'connectionReplaced') this.fail(msg.data || 'Connection replaced by another device.');
           if (msg.type === 'clockSync' && msg.data?.action === 'pong') this._handleClockPong(msg.data);
         } catch (e) {
           console.warn('webrtc: ignoring malformed data-channel message', e);
@@ -182,12 +177,12 @@ export class WebRTCConnection {
       if (!resp?.result) {
         throw new Error('Could not reach device. Is the ignition on?');
       }
-      
+      if (this.pc !== pc) throw new Error('Connection torn down during signaling');
+
       this.callbacks.onConnectProgress?.(ConnectStep.ESTABLISHING);
       await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
     } catch (err) {
-      this.cleanup();
-      this.callbacks.onConnectionState('failed', err.message);
+      this.fail(err.message);
       throw err;
     }
   }
@@ -299,6 +294,11 @@ export class WebRTCConnection {
   disconnect() {
     this.cleanup();
     this.callbacks.onConnectionState('disconnected');
+  }
+
+  fail(reason) {
+    this.cleanup();
+    this.callbacks.onConnectionState('failed', reason);
   }
 
   cleanup() {

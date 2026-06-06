@@ -7,6 +7,14 @@ import { useClickOutside } from '../../hooks/useClickOutside';
 const LATENCY_BUFFER_SIZE = 10;
 const LATENCY_HISTORY_MAX = 60;
 
+// packet loss over the interval above which the link is considered poor, evaluated each 1s stats poll
+const PACKET_LOSS_POOR = 0.02;
+
+const QUALITY_INDICATOR = {
+  good: { color: '#22c967', label: 'connected' },
+  poor: { color: '#f5c542', label: 'poor connection' },
+};
+
 const STATS_ROWS = [
   { label: 'Resolution', key: 'resolution' },
   { label: 'FPS', key: 'fps' },
@@ -33,9 +41,13 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
   const [stats, setStats] = useState(null);
   const [latency, setLatency] = useState(INITIAL_LATENCY);
   const [latencyHistory, setLatencyHistory] = useState([INITIAL_LATENCY]);
+  const [connectionQuality, setConnectionQuality] = useState('good');
   const latencyBufferRef = useRef([]);
   const firstLatencyShownRef = useRef(false);
-  const statsPollingRef = useRef({ interval: null, prevTimestamp: null, prevBytes: null, prevFrames: null });
+  const statsPollingRef = useRef({
+    interval: null, prevTimestamp: null, prevBytes: null, prevFrames: null,
+    prevPacketsLost: null, prevPacketsReceived: null, mediaStarted: false,
+  });
 
   useEffect(() => {
     latencyCallbackRef.current = (raw) => {
@@ -63,28 +75,43 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
   const pollStats = useCallback(async () => {
     const pc = connection?.pc;
     if (!pc) return;
+    const ref = statsPollingRef.current;
     try {
       const report = await pc.getStats();
       let videoStats = null;
       report.forEach((stat) => {
         if (stat.type === 'inbound-rtp' && stat.kind === 'video') videoStats = stat;
       });
-      if (!videoStats) return;
+      // once media has flowed, losing the video stats entirely means the stream died
+      if (!videoStats) { if (ref.mediaStarted) setConnectionQuality('poor'); return; }
 
-      const ref = statsPollingRef.current;
       const now = videoStats.timestamp;
       let bitrate = 0;
       let fps = 0;
+      let lossRatio = 0;
+      let poor = false;
       if (ref.prevTimestamp !== null) {
         const elapsed = (now - ref.prevTimestamp) / 1000;
         if (elapsed > 0) {
           bitrate = ((videoStats.bytesReceived - ref.prevBytes) * 8) / elapsed;
           fps = (videoStats.framesDecoded - ref.prevFrames) / elapsed;
         }
+        if (ref.prevPacketsLost !== null && ref.prevPacketsReceived !== null && videoStats.packetsLost != null && videoStats.packetsReceived != null) {
+          const lostDelta = videoStats.packetsLost - ref.prevPacketsLost;
+          const recvDelta = videoStats.packetsReceived - ref.prevPacketsReceived;
+          const total = lostDelta + recvDelta;
+          if (total > 0) lossRatio = lostDelta / total;
+        }
+        if (bitrate > 0) ref.mediaStarted = true;
+        // stalled stream (no bytes after media started) or elevated packet loss is a poor link
+        poor = (ref.mediaStarted && bitrate === 0) || lossRatio > PACKET_LOSS_POOR;
       }
+      setConnectionQuality(poor ? 'poor' : 'good');
       ref.prevTimestamp = now;
       ref.prevBytes = videoStats.bytesReceived;
       ref.prevFrames = videoStats.framesDecoded;
+      ref.prevPacketsLost = videoStats.packetsLost ?? ref.prevPacketsLost;
+      ref.prevPacketsReceived = videoStats.packetsReceived ?? ref.prevPacketsReceived;
 
       setStats({
         resolution: `${videoStats.frameWidth || '?'}x${videoStats.frameHeight || '?'}`,
@@ -96,6 +123,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
       });
     } catch (err) {
       console.warn('pollStats failed:', err);
+      if (ref.mediaStarted) setConnectionQuality('poor');
     }
   }, [connection]);
 
@@ -105,6 +133,10 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
       ref.prevTimestamp = null;
       ref.prevBytes = null;
       ref.prevFrames = null;
+      ref.prevPacketsLost = null;
+      ref.prevPacketsReceived = null;
+      ref.mediaStarted = false;
+      setConnectionQuality('good');
       pollStats();
       ref.interval = setInterval(pollStats, 1000);
     } else {
@@ -115,6 +147,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
       setStats(null);
       setLatency(INITIAL_LATENCY);
       setLatencyHistory([INITIAL_LATENCY]);
+      setConnectionQuality('good');
     }
     return () => {
       if (ref.interval) clearInterval(ref.interval);
@@ -137,7 +170,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
     });
   }, [connection]);
 
-  return { showStats, toggleStats, closeStats, stats, latency, latencyHistory };
+  return { showStats, toggleStats, closeStats, stats, latency, latencyHistory, connectionQuality };
 }
 
 function drawLatencyGraph(canvas, latencyHistory) {
@@ -274,18 +307,19 @@ const StatusBar = ({
   battery, className, isLandscape, connection, connectionState, latencyCallbackRef, onQualityChange,
 }) => {
   const {
-    showStats, toggleStats, closeStats, stats, latency, latencyHistory,
+    showStats, toggleStats, closeStats, stats, latency, latencyHistory, connectionQuality,
   } = useStats(connection, connectionState, latencyCallbackRef);
   const BatteryIcon = battery?.charging ? BatteryChargingFull : BatteryFull;
+  const indicator = QUALITY_INDICATOR[connectionQuality] || QUALITY_INDICATOR.good;
 
   return (
     <div className={className}>
       <div className="flex items-center mr-auto md:mr-0 gap-2 h-10 px-3.5">
         <div
-          className="w-3 h-3 rounded-full"
-          style={{ backgroundColor: '#22c967' }}
+          className="w-3 h-3 rounded-full transition-colors"
+          style={{ backgroundColor: indicator.color }}
         />
-        <span className="text-base text-white/70">connected</span>
+        <span className="text-base text-white/70">{indicator.label}</span>
       </div>
       {battery && (
         <div className="flex items-center justify-center gap-2 h-10 px-3.5">

@@ -317,9 +317,10 @@ const Joystick = ({
     };
   }, [handleMouseMove, handleMouseUp]);
 
+  const inputActive = thumbPos !== null;
   useEffect(() => {
-    onInputActiveChange?.(thumbPos !== null);
-  }, [thumbPos, onInputActiveChange]);
+    onInputActiveChange?.(inputActive);
+  }, [inputActive, onInputActiveChange]);
 
   if (gamepadConnected) {
     return (

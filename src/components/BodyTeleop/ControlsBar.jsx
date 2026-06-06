@@ -64,8 +64,9 @@ const ControlsBar = ({
   // while another touch (the joystick) is already active
   const handleSwitchCameraTouch = useCallback((e, cameraKey) => {
     e.preventDefault();
+    if (camerasDisabled) return;
     onSwitchCamera(cameraKey);
-  }, [onSwitchCamera]);
+  }, [onSwitchCamera, camerasDisabled]);
 
   return (
     <div className={`${controlsGroupBase} ${!isLandscape ? controlsGroupPortrait : ''}`}>
@@ -77,8 +78,8 @@ const ControlsBar = ({
                 key={cam.key}
                 className={`${activeCamera === cam.key ? btnActive : btnInactive} transition duration-200 ${camerasDisabled ? 'opacity-50' : 'opacity-90'}`}
                 disabled={camerasDisabled}
-                onClick={() => !camerasDisabled && onSwitchCamera(cam.key)}
-                onTouchEnd={(e) => !camerasDisabled && handleSwitchCameraTouch(e, cam.key)}
+                onClick={() => onSwitchCamera(cam.key)}
+                onTouchEnd={(e) => handleSwitchCameraTouch(e, cam.key)}
               >
                 {cam.label}
               </button>
