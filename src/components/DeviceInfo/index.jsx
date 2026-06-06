@@ -34,15 +34,6 @@ const styles = (theme) => ({
   bold: {
     fontWeight: 600,
   },
-  bodyIconWrapper: {
-    width: 35,
-    height: 28,
-    borderRadius: '5px',
-    backgroundColor: Colors.grey500,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   bodyIcon: {
     width: 20,
     objectFit: 'contain',
@@ -81,13 +72,6 @@ const styles = (theme) => ({
   spaceAround: {
     display: 'flex',
     justifyContent: 'space-around',
-  },
-  deviceStat: {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    maxWidth: 80,
-    // padding: `0 ${theme.spacing.unit * 4}px`,
   },
   carBattery: {
     padding: '5px 16px',

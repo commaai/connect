@@ -53,12 +53,17 @@ const DriveList = (props) => {
       Sentry.captureException(err, { fingerprint: 'drive_list_device_stats' });
       setDeviceStats({ error: err.message });
     }
-  }, [dongleId]);
+  }, [dongleId, device?.shared]);
 
   useEffect(() => {
     setDeviceStats({});
     fetchDeviceInfo();
   }, [fetchDeviceInfo]);
+
+  const onVisible = useCallback(() => {
+    dispatch(checkRoutesData());
+    fetchDeviceInfo();
+  }, [dispatch, fetchDeviceInfo]);
 
   let contentStatus;
   let content;
@@ -133,7 +138,7 @@ const DriveList = (props) => {
 
   return (
     <div className="flex flex-col grow py-2">
-      <VisibilityHandler onVisible={() => dispatch(checkRoutesData())} minInterval={60} />
+      <VisibilityHandler onVisible={onVisible} minInterval={60} />
       <div className="flex flex-row justify-between mx-4 pb-2">
         { renderStats() }
         <button
