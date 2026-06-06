@@ -15,7 +15,7 @@ const controlsGroupPortrait = 'relative bottom-auto left-auto transform-none sel
 
 const ControlsBar = ({
   activeCamera, onSwitchCamera,
-  gamepadConnected, videoRef, isLandscape,
+  gamepadConnected, videoRef, isLandscape, camerasDisabled,
 }) => {
   const screenshotInProgress = useRef(false);
   const handleScreenshot = useCallback(async () => {
@@ -73,14 +73,15 @@ const ControlsBar = ({
         <div className="flex flex-col items-center justify-between gap-[5px] lg:gap-[7px]">
           <div className="flex gap-[4px] items-center">
             {CAMERAS.map((cam) => (
-              <div
+              <button
                 key={cam.key}
-                className={activeCamera === cam.key ? btnActive : btnInactive}
-                onClick={() => onSwitchCamera(cam.key)}
-                onTouchEnd={(e) => handleSwitchCameraTouch(e, cam.key)}
+                className={`${activeCamera === cam.key ? btnActive : btnInactive} transition duration-200 ${camerasDisabled ? 'opacity-50' : 'opacity-90'}`}
+                disabled={camerasDisabled}
+                onClick={() => !camerasDisabled && onSwitchCamera(cam.key)}
+                onTouchEnd={(e) => !camerasDisabled && handleSwitchCameraTouch(e, cam.key)}
               >
                 {cam.label}
-              </div>
+              </button>
             ))}
           </div>
           <span className="text-[10px] lg:text-[13px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Camera</span>
