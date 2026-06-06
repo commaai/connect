@@ -20,6 +20,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [activeCamera, setActiveCamera] = useState('wideRoad');
 
   const [gamepadConnected, setGamepadConnected] = useState(false);
+  const [inputActive, setInputActive] = useState(false);
 
   const videoRef = useRef(null);
   const streamsRef = useRef({});
@@ -152,15 +153,15 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
           ? 'absolute left-2 top-2 z-20 flex items-center gap-1'
           : 'flex items-center px-3 py-2 bg-[#30373B] border-b border-white/10 min-h-[48px] z-10'}
       >
-        <IconButton
-          className={isLandscape ? 'text-white p-2 w-10 h-10 bg-glass' : 'text-white p-2'}
+        <button
+          className={isLandscape ? 'rounded-full flex items-center text-white p-2 w-10 h-10 bg-glass' : 'text-white p-2'}
           onClick={handleClose}
         >
           <ArrowBackBold style={{ fontSize: 20 }} />
-        </IconButton>
+        </button>
         <div
           className={isLandscape
-            ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-white bg-glass'
+            ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-white bg-glass border-0'
             : 'text-base font-medium ml-2 flex-1'}
         >
           {deviceName}
@@ -190,6 +191,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             gamepadConnected={gamepadConnected}
             videoRef={videoRef}
             isLandscape={isLandscape}
+            camerasDisabled={inputActive}
           />
           <div
             className={isLandscape
@@ -205,6 +207,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
               onGamepadChange={setGamepadConnected}
               onSwitchCamera={switchCamera}
               gamepadConnected={gamepadConnected}
+              onInputActiveChange={setInputActive}
             />
           </div>
         </>

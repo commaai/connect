@@ -93,7 +93,7 @@ const TouchJoystick = ({ className, thumbPos, joystickAreaRef, onTouchStart, onT
 
 const Joystick = ({
   connection, activeCamera, className,
-  onGamepadChange, onSwitchCamera, gamepadConnected,
+  onGamepadChange, onSwitchCamera, gamepadConnected, onInputActiveChange,
 }) => {
   const [thumbPos, setThumbPos] = useState(null);
   const [, setKeys] = useState({ w: false, a: false, s: false, d: false });
@@ -316,6 +316,10 @@ const Joystick = ({
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
+
+  useEffect(() => {
+    onInputActiveChange?.(thumbPos !== null);
+  }, [thumbPos, onInputActiveChange]);
 
   if (gamepadConnected) {
     return (
