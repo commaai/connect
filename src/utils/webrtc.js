@@ -109,7 +109,7 @@ export class WebRTCConnection {
           this.callbacks.onConnectionState('connected');
         } else if (state === 'failed' || state === 'disconnected' || state === 'closed') {
           this.cleanup();
-          this.callbacks.onConnectState('failed', 'Connection lost');
+          this.callbacks.onConnectionState('failed', 'Connection lost');
         }
       });
 
