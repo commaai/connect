@@ -98,7 +98,7 @@ export class WebRTCConnection {
 
       this.connectionTimeout = setTimeout(() => {
         this.cleanup();
-        this.callbacks.onConnectionState('failed');
+        this.callbacks.onConnectionState('failed', 'No valid webrtc candidate routes were found to device. Check network and retry.');
       }, CONNECTION_DEADLINE_MS);
 
       this.pc.addEventListener('connectionstatechange', () => {
@@ -107,6 +107,9 @@ export class WebRTCConnection {
         if (state === 'connected') {
           this._clearConnectionTimeout();
           this.callbacks.onConnectionState('connected');
+        } else if (state === 'failed' || state === 'disconnected' || state === 'closed') {
+          this.cleanup();
+          this.callbacks.onConnectState('failed', 'Connection lost');
         }
       });
 
@@ -129,7 +132,10 @@ export class WebRTCConnection {
         try {
           const msg = JSON.parse(typeof evt.data === 'string' ? evt.data : new TextDecoder().decode(evt.data));
           if (msg.type === 'carState') this.callbacks.onBatteryLevel({ level: Math.round(msg.data.fuelGauge * 100), charging: !!msg.data.charging });
-          if (msg.type === 'connectionReplaced') this.callbacks.onConnectionReplaced?.(msg.data);
+          if (msg.type === 'connectionReplaced') {
+            this.cleanup();
+            this.callbacks.onConnectionState('failed', msg.data || 'Connection replaced by another device.')
+          }
           if (msg.type === 'clockSync' && msg.data?.action === 'pong') this._handleClockPong(msg.data);
         } catch (e) {
           console.warn('webrtc: ignoring malformed data-channel message', e);
@@ -181,7 +187,7 @@ export class WebRTCConnection {
       await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
     } catch (err) {
       this.cleanup();
-      this.callbacks.onConnectionState('failed');
+      this.callbacks.onConnectionState('failed', err.message);
       throw err;
     }
   }

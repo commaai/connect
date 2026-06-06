@@ -42,16 +42,11 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
           setConnectStep(null);
         }
         if (state === 'failed') {
-          setError((prev) => prev || reason || 'Could not reach device. Is the ignition on?');
+          setError(reason || 'Could not reach device. Is the ignition on?');
         }
       },
       onConnectProgress: setConnectStep,
       onBatteryLevel: setBattery,
-      onConnectionReplaced: (data) => {
-        setError(data || 'Connection replaced');
-        setConnectionState('failed');
-        conn.cleanup();
-      },
       onVideoTrack: (_cameraName, stream) => {
         streamsRef.current.camera = stream;
         if (videoRef.current) {
