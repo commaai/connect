@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import { IconButton } from '@material-ui/core';
 
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
@@ -154,7 +153,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
           : 'flex items-center px-3 py-2 bg-[#30373B] border-b border-white/10 min-h-[48px] z-10'}
       >
         <button
-          className={isLandscape ? 'rounded-full flex items-center text-white p-2 w-10 h-10 bg-glass' : 'text-white p-2'}
+          className={isLandscape ? 'flex items-center rounded-full hover:text-white/90 text-white/60 p-2 w-10 h-10 bg-glass' : 'text-white p-2'}
           onClick={handleClose}
         >
           <ArrowBackBold style={{ fontSize: 20 }} />
