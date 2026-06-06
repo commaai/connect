@@ -194,13 +194,16 @@ const Joystick = ({
 
   useEffect(() => {
     const onVisibility = () => { if (document.hidden) releaseInputs(); };
+    const orientation = window.matchMedia('(orientation: landscape)');
     window.addEventListener('blur', releaseInputs);
     document.addEventListener('visibilitychange', onVisibility);
     document.addEventListener('contextmenu', releaseInputs);
+    orientation.addEventListener('change', releaseInputs);
     return () => {
       window.removeEventListener('blur', releaseInputs);
       document.removeEventListener('visibilitychange', onVisibility);
       document.removeEventListener('contextmenu', releaseInputs);
+      orientation.removeEventListener('change', releaseInputs);
     };
   }, [releaseInputs]);
 
