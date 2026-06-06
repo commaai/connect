@@ -66,7 +66,7 @@ const DriveList = (props) => {
 
   return (
     <div className={classes.drivesTable}>
-      <VisibilityHandler onVisible={() => dispatch(checkRoutesData())} minInterval={60} />
+      <VisibilityHandler onInit onVisible={() => dispatch(checkRoutesData())} minInterval={60} />
       {content}
       {contentStatus}
     </div>
