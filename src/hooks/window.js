@@ -1,17 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { isIos } from '../utils/browser';
+
 const RESIZE_DEBOUNCE = 150; // ms
 
-export const useWindowWidth = (debounceMs = RESIZE_DEBOUNCE) => {
+export const useWindowWidth = () => {
   const [width, setWidth] = useState(window.innerWidth);
   const resizeTimeout = useRef(null);
 
   useEffect(() => {
     const handleResize = () => {
-      if (debounceMs <= 0) {
-        setWidth(window.innerWidth);
-        return;
-      }
       if (resizeTimeout.current) {
         window.clearTimeout(resizeTimeout.current);
       }
@@ -19,7 +17,7 @@ export const useWindowWidth = (debounceMs = RESIZE_DEBOUNCE) => {
       resizeTimeout.current = window.setTimeout(() => {
         setWidth(window.innerWidth);
         resizeTimeout.current = null;
-      }, debounceMs);
+      }, RESIZE_DEBOUNCE);
     };
     window.addEventListener('resize', handleResize);
     return () => {
@@ -28,13 +26,17 @@ export const useWindowWidth = (debounceMs = RESIZE_DEBOUNCE) => {
         window.clearTimeout(resizeTimeout.current);
       }
     };
-  }, [debounceMs]);
+  }, []);
 
   return width;
 };
 
-// Prefer the Screen Orientation API, falling back to a media query where unsupported
-export const getOrientationSource = () => window.screen?.orientation ?? window.matchMedia('(orientation: landscape)');
+// Use the Screen Orientation API on iOS
+export const getOrientationSource = () => (
+  isIos() && window.screen?.orientation
+    ? window.screen.orientation
+    : window.matchMedia('(orientation: landscape)')
+);
 
 // ScreenOrientation exposes `type`/`angle`; MediaQueryList exposes `matches`
 const computeIsLandscape = (source) => (

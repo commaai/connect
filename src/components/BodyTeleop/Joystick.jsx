@@ -104,6 +104,7 @@ const Joystick = ({
 
   const joystickAreaRef = useRef(null);
   const touchIdRef = useRef(null);
+  const layoutSettledRef = useRef(true);
   const mouseDraggingRef = useRef(false);
   const prevBumpersRef = useRef({ lb: false, rb: false });
   const prevGamepadRef = useRef({ steering: 0, gas: 0, brake: 0, lb: false, rb: false });
@@ -122,6 +123,7 @@ const Joystick = ({
   const applyJoystick = useCallback((clientX, clientY) => {
     const area = joystickAreaRef.current;
     if (!area) return;
+    if (!layoutSettledRef.current) return;
     const rect = area.getBoundingClientRect();
     const vv = window.visualViewport;
     const x = clientX + (vv ? vv.offsetLeft : 0);
@@ -199,12 +201,27 @@ const Joystick = ({
     window.addEventListener('blur', releaseInputs);
     document.addEventListener('visibilitychange', onVisibility);
     document.addEventListener('contextmenu', releaseInputs);
-    orientation.addEventListener('change', releaseInputs);
+    
+    // Block input until the new orientation's layout has been laid out
+    let settleFrame = null;
+    const onViewportChange = () => {
+      releaseInputs();
+      layoutSettledRef.current = false;
+      if (settleFrame) cancelAnimationFrame(settleFrame);
+      settleFrame = requestAnimationFrame(() => requestAnimationFrame(() => {
+        layoutSettledRef.current = true;
+        settleFrame = null;
+      }));
+    };
+    orientation.addEventListener('change', onViewportChange);
+    window.addEventListener('resize', onViewportChange);
     return () => {
       window.removeEventListener('blur', releaseInputs);
       document.removeEventListener('visibilitychange', onVisibility);
       document.removeEventListener('contextmenu', releaseInputs);
-      orientation.removeEventListener('change', releaseInputs);
+      orientation.removeEventListener('change', onViewportChange);
+      window.removeEventListener('resize', onViewportChange);
+      if (settleFrame) cancelAnimationFrame(settleFrame);
     };
   }, [releaseInputs]);
 

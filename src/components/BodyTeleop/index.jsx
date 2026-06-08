@@ -5,7 +5,7 @@ import Obstruction from 'obstruction';
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
 import { WebRTCConnection } from '../../utils/webrtc';
-import { useIsLandscape, useWindowWidth } from '../../hooks/window';
+import { useIsLandscape } from '../../hooks/window';
 import StatusBar from './StatusBar';
 import ControlsBar from './ControlsBar';
 import Video from './Video';
@@ -27,8 +27,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const switchTimerRef = useRef(null);
   const timeoutTimerRef = useRef(null);
   
-  const windowWidth = useWindowWidth(0);
-  const isLandscape = useIsLandscape() && windowWidth >= 768;
+  const isLandscape = useIsLandscape();
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -141,7 +140,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[1300] bg-[#030404] flex flex-col touch-none h-full w-full overflow-hidden select-none">
+    <div className="fixed inset-0 z-[1300] bg-[#030404] flex flex-col touch-none h-full w-full overflow-hidden select-none [-webkit-touch-callout:none] [-webkit-text-size-adjust:none]">
       <div
         className={isLandscape
           ? 'absolute left-2 top-2 z-20 flex items-center gap-1'
