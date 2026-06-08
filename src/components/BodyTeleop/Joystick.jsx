@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
+import { getOrientationSource } from '../../hooks/window';
 
 const TriggerGroup = ({ bumperActive, bumperLabel, bumperKey, cameraActive, triggerValue, triggerColor, triggerKey, directionLabel }) => {
   const activeStyle = cameraActive ? { background: 'rgba(59,130,246,0.35)', borderColor: 'rgba(59,130,246,0.5)' } : undefined;
@@ -198,7 +199,7 @@ const Joystick = ({
 
   useEffect(() => {
     const onVisibility = () => { if (document.hidden) releaseInputs(); };
-    const orientation = window.matchMedia('(orientation: landscape)');
+    const orientation = getOrientationSource();
     window.addEventListener('blur', releaseInputs);
     document.addEventListener('visibilitychange', onVisibility);
     document.addEventListener('contextmenu', releaseInputs);

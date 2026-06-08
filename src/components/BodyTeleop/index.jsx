@@ -5,6 +5,7 @@ import Obstruction from 'obstruction';
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
 import { WebRTCConnection } from '../../utils/webrtc';
+import { useIsLandscape } from '../../hooks/window';
 import StatusBar from './StatusBar';
 import ControlsBar from './ControlsBar';
 import Video from './Video';
@@ -15,7 +16,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [connectStep, setConnectStep] = useState(null);
   const [battery, setBattery] = useState(null);
   const [error, setError] = useState(null);
-  const [isLandscape, setIsLandscape] = useState(false);
+  const isLandscape = useIsLandscape();
   const [activeCamera, setActiveCamera] = useState('wideRoad');
 
   const [gamepadConnected, setGamepadConnected] = useState(false);
@@ -85,14 +86,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       document.removeEventListener('visibilitychange', onVisibilityChange);
       clearTimeout(timeoutTimerRef.current);
     };
-  }, []);
-
-  useEffect(() => {
-    const query = window.matchMedia('(orientation: landscape)');
-    setIsLandscape(query.matches);
-    const handler = (e) => setIsLandscape(e.matches);
-    query.addEventListener('change', handler);
-    return () => query.removeEventListener('change', handler);
   }, []);
 
   const handleConnect = useCallback(async () => {
