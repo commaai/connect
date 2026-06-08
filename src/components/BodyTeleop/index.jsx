@@ -16,9 +16,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [connectStep, setConnectStep] = useState(null);
   const [battery, setBattery] = useState(null);
   const [error, setError] = useState(null);
-  const isLandscape = useIsLandscape() && useWindowWidth() >= 768;
   const [activeCamera, setActiveCamera] = useState('wideRoad');
-
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [inputActive, setInputActive] = useState(false);
 
@@ -28,6 +26,9 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const latencyCallbackRef = useRef(null);
   const switchTimerRef = useRef(null);
   const timeoutTimerRef = useRef(null);
+  
+  const windowWidth = useWindowWidth();
+  const isLandscape = useIsLandscape() && windowWidth >= 768;
 
   useEffect(() => {
     const prev = document.body.style.overflow;
