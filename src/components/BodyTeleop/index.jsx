@@ -27,7 +27,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const switchTimerRef = useRef(null);
   const timeoutTimerRef = useRef(null);
   
-  const windowWidth = useWindowWidth();
+  const windowWidth = useWindowWidth(0);
   const isLandscape = useIsLandscape() && windowWidth >= 768;
 
   useEffect(() => {

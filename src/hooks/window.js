@@ -2,12 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 
 const RESIZE_DEBOUNCE = 150; // ms
 
-export const useWindowWidth = () => {
+export const useWindowWidth = (debounceMs = RESIZE_DEBOUNCE) => {
   const [width, setWidth] = useState(window.innerWidth);
   const resizeTimeout = useRef(null);
 
   useEffect(() => {
     const handleResize = () => {
+      if (debounceMs <= 0) {
+        setWidth(window.innerWidth);
+        return;
+      }
       if (resizeTimeout.current) {
         window.clearTimeout(resizeTimeout.current);
       }
@@ -15,7 +19,7 @@ export const useWindowWidth = () => {
       resizeTimeout.current = window.setTimeout(() => {
         setWidth(window.innerWidth);
         resizeTimeout.current = null;
-      }, RESIZE_DEBOUNCE);
+      }, debounceMs);
     };
     window.addEventListener('resize', handleResize);
     return () => {
@@ -24,7 +28,7 @@ export const useWindowWidth = () => {
         window.clearTimeout(resizeTimeout.current);
       }
     };
-  }, []);
+  }, [debounceMs]);
 
   return width;
 };
