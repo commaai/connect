@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
+import { getOrientationSource } from '../../hooks/window';
 
 const TriggerGroup = ({ bumperActive, bumperLabel, bumperKey, cameraActive, triggerValue, triggerColor, triggerKey, directionLabel }) => {
   const activeStyle = cameraActive ? { background: 'rgba(59,130,246,0.35)', borderColor: 'rgba(59,130,246,0.5)' } : undefined;
@@ -93,7 +94,7 @@ const TouchJoystick = ({ className, thumbPos, joystickAreaRef, onTouchStart, onT
 
 const Joystick = ({
   connection, activeCamera, className,
-  onGamepadChange, onSwitchCamera, gamepadConnected,
+  onGamepadChange, onSwitchCamera, gamepadConnected, onInputActiveChange,
 }) => {
   const [thumbPos, setThumbPos] = useState(null);
   const [, setKeys] = useState({ w: false, a: false, s: false, d: false });
@@ -122,10 +123,12 @@ const Joystick = ({
     const area = joystickAreaRef.current;
     if (!area) return;
     const rect = area.getBoundingClientRect();
+    const x = clientX;
+    const y = clientY;
     const halfW = rect.width / 2;
     const halfH = rect.height / 2;
-    let dx = (clientX - rect.left - halfW) / halfW;
-    let dy = (clientY - rect.top - halfH) / halfH;
+    let dx = (x - rect.left - halfW) / halfW;
+    let dy = (y - rect.top - halfH) / halfH;
     dx = Math.max(-1, Math.min(1, dx));
     dy = Math.max(-1, Math.min(1, dy));
     setThumbPos({ x: dx, y: dy });
@@ -140,7 +143,6 @@ const Joystick = ({
   }, [connection]);
 
   const handleTouchStart = useCallback((e) => {
-    e.preventDefault();
     if (touchIdRef.current !== null) return;
     const t = e.changedTouches[0];
     touchIdRef.current = t.identifier;
@@ -148,7 +150,6 @@ const Joystick = ({
   }, [applyJoystick]);
 
   const handleTouchMove = useCallback((e) => {
-    e.preventDefault();
     for (let i = 0; i < e.changedTouches.length; i++) {
       const t = e.changedTouches[i];
       if (t.identifier === touchIdRef.current) applyJoystick(t.clientX, t.clientY);
@@ -156,7 +157,6 @@ const Joystick = ({
   }, [applyJoystick]);
 
   const handleTouchEnd = useCallback((e) => {
-    e.preventDefault();
     for (let i = 0; i < e.changedTouches.length; i++) {
       if (e.changedTouches[i].identifier === touchIdRef.current) {
         touchIdRef.current = null;
@@ -194,13 +194,16 @@ const Joystick = ({
 
   useEffect(() => {
     const onVisibility = () => { if (document.hidden) releaseInputs(); };
+    const orientation = getOrientationSource();
     window.addEventListener('blur', releaseInputs);
     document.addEventListener('visibilitychange', onVisibility);
     document.addEventListener('contextmenu', releaseInputs);
+    orientation.addEventListener('change', releaseInputs);
     return () => {
       window.removeEventListener('blur', releaseInputs);
       document.removeEventListener('visibilitychange', onVisibility);
       document.removeEventListener('contextmenu', releaseInputs);
+      orientation.removeEventListener('change', releaseInputs);
     };
   }, [releaseInputs]);
 
@@ -221,13 +224,6 @@ const Joystick = ({
           setThumbPos(anyKey ? { x: -x, y } : null);
           return next;
         });
-      }
-      if (pressed) {
-        const cameraKeys = { 1: 'wideRoad', 2: 'driver' };
-        if (cameraKeys[e.key]) {
-          e.preventDefault();
-          onSwitchCamera(cameraKeys[e.key]);
-        }
       }
     };
 
@@ -320,6 +316,11 @@ const Joystick = ({
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
+
+  const inputActive = thumbPos !== null;
+  useEffect(() => {
+    onInputActiveChange?.(inputActive);
+  }, [inputActive, onInputActiveChange]);
 
   if (gamepadConnected) {
     return (

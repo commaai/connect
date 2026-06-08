@@ -13,7 +13,7 @@ import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast } from '../../ut
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import CommacareBadge from '../CommacareBadge';
-import BodyTeleop from '../BodyTeleop';
+import BodyIcon from '../../icons/body.png';
 
 const styles = (theme) => ({
   container: {
@@ -33,10 +33,6 @@ const styles = (theme) => ({
   },
   bold: {
     fontWeight: 600,
-  },
-  bodyIcon: {
-    width: 20,
-    objectFit: 'contain',
   },
   button: {
     backgroundColor: Colors.white,
@@ -182,15 +178,10 @@ class DeviceInfo extends Component {
     this.renderButtons = this.renderButtons.bind(this);
     this.renderSnapshotImage = this.renderSnapshotImage.bind(this);
     this.openBodyTeleop = this.openBodyTeleop.bind(this);
-    this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
   }
 
   openBodyTeleop() {
     this.props.dispatch(streamNav(true));
-  }
-
-  closeBodyTeleop() {
-    this.props.dispatch(streamNav(false));
   }
 
   componentDidMount() {
@@ -303,17 +294,15 @@ class DeviceInfo extends Component {
   render() {
     const { classes, device } = this.props;
     const { snapshot, windowWidth } = this.state;
-    const { streamNav: bodyTeleopOpen } = this.props;
     const commacare = device?.commacare;
 
-    const containerPadding = windowWidth > 520 ? 36 : 16;
     const largeSnapshotPadding = windowWidth > 1440 ? '12px 0' : 0;
 
     return (
       <>
         <ResizeHandler onResize={ this.onResize } />
         <VisibilityHandler onVisible={ this.onVisible } onInit onDongleId minInterval={ 60 } />
-        <div className={`${classes.container}`} style={{ paddingLeft: containerPadding, paddingRight: containerPadding }}>
+        <div className={`${classes.container} px-4`}>
           <div className={`flex flex-row justify-between items-center gap-4 md:my-2 my-4 pl-1`}>
             <div className='flex flex-col items-start md:flex-row md:items-center gap-4 shrink-0'>
               <div className={`flex flex-row gap-4 items-center`}>
@@ -348,8 +337,7 @@ class DeviceInfo extends Component {
                 </div>
               )}
           </div>
-        )}
-        { bodyTeleopOpen && <BodyTeleop onClose={this.closeBodyTeleop} /> }
+          )}
       </>
     );
   }
@@ -468,7 +456,6 @@ class DeviceInfo extends Component {
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
-  streamNav: 'streamNav',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));
