@@ -13,7 +13,6 @@ import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast } from '../../ut
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import CommacareBadge from '../CommacareBadge';
-import BodyIcon from '../../icons/body.png';
 
 const styles = (theme) => ({
   container: {
