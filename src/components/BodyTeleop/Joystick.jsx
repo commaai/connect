@@ -144,7 +144,6 @@ const Joystick = ({
   }, [connection]);
 
   const handleTouchStart = useCallback((e) => {
-    e.preventDefault();
     if (touchIdRef.current !== null) return;
     const t = e.changedTouches[0];
     touchIdRef.current = t.identifier;
@@ -152,7 +151,6 @@ const Joystick = ({
   }, [applyJoystick]);
 
   const handleTouchMove = useCallback((e) => {
-    e.preventDefault();
     for (let i = 0; i < e.changedTouches.length; i++) {
       const t = e.changedTouches[i];
       if (t.identifier === touchIdRef.current) applyJoystick(t.clientX, t.clientY);
@@ -160,7 +158,6 @@ const Joystick = ({
   }, [applyJoystick]);
 
   const handleTouchEnd = useCallback((e) => {
-    e.preventDefault();
     for (let i = 0; i < e.changedTouches.length; i++) {
       if (e.changedTouches[i].identifier === touchIdRef.current) {
         touchIdRef.current = null;
