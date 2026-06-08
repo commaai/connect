@@ -123,10 +123,13 @@ const Joystick = ({
     const area = joystickAreaRef.current;
     if (!area) return;
     const rect = area.getBoundingClientRect();
+    const vv = window.visualViewport;
+    const x = clientX + (vv ? vv.offsetLeft : 0);
+    const y = clientY + (vv ? vv.offsetTop : 0);
     const halfW = rect.width / 2;
     const halfH = rect.height / 2;
-    let dx = (clientX - rect.left - halfW) / halfW;
-    let dy = (clientY - rect.top - halfH) / halfH;
+    let dx = (x - rect.left - halfW) / halfW;
+    let dy = (y - rect.top - halfH) / halfH;
     dx = Math.max(-1, Math.min(1, dx));
     dy = Math.max(-1, Math.min(1, dy));
     setThumbPos({ x: dx, y: dy });

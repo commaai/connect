@@ -5,7 +5,7 @@ import Obstruction from 'obstruction';
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
 import { WebRTCConnection } from '../../utils/webrtc';
-import { useIsLandscape } from '../../hooks/window';
+import { useIsLandscape, useWindowWidth } from '../../hooks/window';
 import StatusBar from './StatusBar';
 import ControlsBar from './ControlsBar';
 import Video from './Video';
@@ -16,7 +16,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [connectStep, setConnectStep] = useState(null);
   const [battery, setBattery] = useState(null);
   const [error, setError] = useState(null);
-  const isLandscape = useIsLandscape();
+  const isLandscape = useIsLandscape() && useWindowWidth() >= 768;
   const [activeCamera, setActiveCamera] = useState('wideRoad');
 
   const [gamepadConnected, setGamepadConnected] = useState(false);
