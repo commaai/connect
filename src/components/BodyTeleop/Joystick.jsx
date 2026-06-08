@@ -66,9 +66,6 @@ const ControllerOverlay = ({ gamepadSteering, gamepadGas, gamepadBrake, gamepadL
 
 const TouchJoystick = ({ className, thumbPos, joystickAreaRef, onTouchStart, onTouchMove, onTouchEnd, onMouseDown, disabled }) => {
   const thumbRange = 45;
-  // When disabled, force the thumb to center in the same render that disables the
-  // joystick, so it resets immediately rather than waiting for the releaseInputs
-  // effect (which can lose the race to the disabled paint / a frozen share sheet).
   const activePos = disabled ? null : thumbPos;
   const thumbLeft = activePos ? `${50 + activePos.x * thumbRange}%` : '50%';
   const thumbTop = activePos ? `${50 + activePos.y * thumbRange}%` : '50%';
