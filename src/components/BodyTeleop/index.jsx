@@ -140,7 +140,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   };
 
   return (
-    <div className="fixed top-0 left-0 w-screen h-screen z-[1300] bg-[#030404]">
+    <div className="fixed top-0 left-0 w-screen h-full z-[1300] bg-[#030404]">
       <div className={`
         absolute inset-0 bg-[#030404] flex flex-col touch-none
         overflow-hidden select-none [-webkit-touch-callout:none] [-webkit-text-size-adjust:none]
