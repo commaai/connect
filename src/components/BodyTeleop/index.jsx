@@ -34,7 +34,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, []);
-  
+
   useEffect(() => {
     const conn = new WebRTCConnection({
       onConnectionState: (state, reason) => {
@@ -140,71 +140,77 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[1300] bg-[#030404] flex flex-col touch-none h-full w-full overflow-hidden select-none [-webkit-touch-callout:none] [-webkit-text-size-adjust:none]">
-      <div
-        className={isLandscape
-          ? 'absolute left-2 top-2 z-20 flex items-center gap-1'
-          : 'flex items-center px-3 py-2 bg-[#30373B] border-b border-white/10 min-h-[48px] z-10'}
-      >
-        <button
-          className={isLandscape ? 'flex items-center rounded-full hover:text-white/90 text-white/60 p-2 w-10 h-10 bg-glass' : 'text-white p-2'}
-          onClick={handleClose}
-        >
-          <ArrowBackBold style={{ fontSize: 20 }} />
-        </button>
+    <div className="fixed inset-0 z-[1300] bg-[#030404]">
+      <div className={`
+        absolute inset-0 bg-[#030404] flex flex-col touch-none
+        overflow-hidden select-none [-webkit-touch-callout:none] [-webkit-text-size-adjust:none]
+        mt-safe-top mb-safe-bottom ml-safe-left mr-safe-right
+      `}>
         <div
           className={isLandscape
-            ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-white bg-glass border-0'
-            : 'text-base font-medium ml-2 flex-1'}
+            ? 'absolute left-2 top-2 z-20 flex items-center gap-1'
+            : 'flex items-center px-3 py-2 bg-[#30373B] border-b border-white/10 min-h-[48px] z-10'}
         >
-          {deviceName}
-        </div>
-      </div>
-      {connected && (
-        <div className='relative'>
-          <StatusBar
-            battery={battery}
-            className={isLandscape
-              ? 'absolute top-3 right-3 z-30 flex items-center gap-2'
-              : 'relative z-30 flex items-center justify-end p-2 gap-2'}
-            isLandscape={isLandscape}
-            connection={connection}
-            connectionState={connectionState}
-            latencyCallbackRef={latencyCallbackRef}
-            onQualityChange={handleQualityChange}
-          />
-        </div>
-      )}
-      <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : "aspect-[16/9]"} />
-      {connected && (
-        <>
-          <ControlsBar
-            activeCamera={activeCamera}
-            onSwitchCamera={switchCamera}
-            gamepadConnected={gamepadConnected}
-            videoRef={videoRef}
-            isLandscape={isLandscape}
-            controlsDisabled={inputActive}
-          />
+          <button
+            className={isLandscape ? 'flex items-center rounded-full hover:text-white/90 text-white/60 p-2 w-10 h-10 bg-glass' : 'text-white p-2'}
+            onClick={handleClose}
+          >
+            <ArrowBackBold style={{ fontSize: 20 }} />
+          </button>
           <div
             className={isLandscape
-              ? 'absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-10 w-[160px] h-[160px]'
-              : 'flex-1 flex items-center justify-center px-4 pb-8 pt-2 min-h-0 overflow-hidden'}
+              ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-white bg-glass border-0'
+              : 'text-base font-medium ml-2 flex-1'}
           >
-            <Joystick
-              connection={connection}
-              activeCamera={activeCamera}
+            {deviceName}
+          </div>
+        </div>
+        {connected && (
+          <div className='relative'>
+            <StatusBar
+              battery={battery}
               className={isLandscape
-                ? 'relative w-full h-full'
-                : 'relative w-auto h-full aspect-square max-w-full'}
-              onGamepadChange={setGamepadConnected}
-              onSwitchCamera={switchCamera}
-              gamepadConnected={gamepadConnected}
-              onInputActiveChange={setInputActive}
+                ? 'absolute top-3 right-3 z-30 flex items-center gap-2'
+                : 'relative z-30 flex items-center justify-end p-2 gap-2'}
+              isLandscape={isLandscape}
+              connection={connection}
+              connectionState={connectionState}
+              latencyCallbackRef={latencyCallbackRef}
+              onQualityChange={handleQualityChange}
             />
           </div>
-        </>
-      )}
+        )}
+        <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : "aspect-[16/9]"} />
+        {connected && (
+          <>
+            <ControlsBar
+              activeCamera={activeCamera}
+              onSwitchCamera={switchCamera}
+              gamepadConnected={gamepadConnected}
+              videoRef={videoRef}
+              isLandscape={isLandscape}
+              controlsDisabled={inputActive}
+            />
+            <div
+              className={isLandscape
+                ? 'absolute bottom-6 right-6 z-10 w-[160px] h-[160px]'
+                : 'flex-1 flex items-center justify-center px-4 pb-8 pt-2 min-h-0 overflow-hidden'}
+            >
+              <Joystick
+                connection={connection}
+                activeCamera={activeCamera}
+                className={isLandscape
+                  ? 'relative w-full h-full'
+                  : 'relative w-auto h-full aspect-square max-w-full'}
+                onGamepadChange={setGamepadConnected}
+                onSwitchCamera={switchCamera}
+                gamepadConnected={gamepadConnected}
+                onInputActiveChange={setInputActive}
+              />
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 };

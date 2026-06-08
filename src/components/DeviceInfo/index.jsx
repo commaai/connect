@@ -18,7 +18,6 @@ import VisibilityHandler from '../VisibilityHandler';
 import TimeSelect from '../TimeSelect'
 import CommacareBadge from '../CommacareBadge';
 import BodyIcon from '../../icons/body.png';
-import BodyTeleop from '../BodyTeleop';
 
 const styles = (theme) => ({
   container: {
@@ -233,15 +232,10 @@ class DeviceInfo extends Component {
     this.onOpenTimeSelect = this.onOpenTimeSelect.bind(this);
     this.onCloseTimeSelect = this.onCloseTimeSelect.bind(this);
     this.openBodyTeleop = this.openBodyTeleop.bind(this);
-    this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
   }
 
   openBodyTeleop() {
     this.props.dispatch(streamNav(true));
-  }
-
-  closeBodyTeleop() {
-    this.props.dispatch(streamNav(false));
   }
 
   componentDidMount() {
@@ -382,7 +376,6 @@ class DeviceInfo extends Component {
   render() {
     const { classes, device } = this.props;
     const { snapshot, windowWidth } = this.state;
-    const { streamNav: bodyTeleopOpen } = this.props;
     const commacare = device?.commacare;
     const isCommaBody = device?.rpc?.not_car;
 
@@ -436,7 +429,6 @@ class DeviceInfo extends Component {
               )}
           </div>
           )}
-        { bodyTeleopOpen && <BodyTeleop onClose={this.closeBodyTeleop} /> }
       </>
     );
   }
@@ -612,7 +604,6 @@ class DeviceInfo extends Component {
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
-  streamNav: 'streamNav',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));

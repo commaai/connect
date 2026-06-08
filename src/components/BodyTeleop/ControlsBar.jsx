@@ -10,7 +10,7 @@ const btnBase = `h-11 w-[80px] rounded-xl text-[14px] font-bold tracking-[0.2px]
 const btnInactive = `${btnBase} bg-white/10 text-white/60`;
 const btnActive = `${btnBase} bg-white/30 text-white`;
 
-const controlsGroupBase = 'absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 z-10 flex flex-row items-stretch gap-3.5 rounded-[20px] p-3 bg-glass-dark';
+const controlsGroupBase = 'absolute bottom-6 left-6 z-10 flex flex-row items-stretch gap-3.5 rounded-[20px] p-3 bg-glass-dark';
 const controlsGroupPortrait = 'relative bottom-auto left-auto transform-none self-stretch rounded-none shrink-0 justify-between gap-2';
 
 const ControlsBar = ({
