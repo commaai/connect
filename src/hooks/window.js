@@ -29,23 +29,29 @@ export const useWindowWidth = () => {
   return width;
 };
 
-// Prefer the Screen Orientation API, falling back to a media query where unsupported
 export const getOrientationSource = () => window.screen?.orientation ?? window.matchMedia('(orientation: landscape)');
 
-// ScreenOrientation exposes `type`/`angle`; MediaQueryList exposes `matches`
-const computeIsLandscape = (source) => (
-  'matches' in source ? source.matches : !!source.type?.startsWith('landscape')
-);
+const isLandscapeFromScreen = (orientation) => orientation.type.startsWith('landscape');
+const isLandscapeFromMedia = () => window.matchMedia('(orientation: landscape)').matches;
 
 export const useIsLandscape = () => {
-  const [isLandscape, setIsLandscape] = useState(() => computeIsLandscape(getOrientationSource()));
+  const [isLandscape, setIsLandscape] = useState(isLandscapeFromMedia);
 
   useEffect(() => {
-    const source = getOrientationSource();
-    const handler = () => setIsLandscape(computeIsLandscape(source));
-    handler(); // resync in case the orientation changed before the listener attached
-    source.addEventListener('change', handler);
-    return () => source.removeEventListener('change', handler);
+    const query = window.matchMedia('(orientation: landscape)');
+    const orientation = window.screen?.orientation;
+
+    const onMedia = () => setIsLandscape(isLandscapeFromMedia());
+    const onOrientation = () => setIsLandscape(isLandscapeFromScreen(orientation));
+
+    onMedia(); // resync in case the orientation changed before the listeners attached
+    // Desktop window resizes only fire the media query; device rotations fire both
+    query.addEventListener('change', onMedia);
+    orientation?.addEventListener('change', onOrientation);
+    return () => {
+      query.removeEventListener('change', onMedia);
+      orientation?.removeEventListener('change', onOrientation);
+    };
   }, []);
 
   return isLandscape;

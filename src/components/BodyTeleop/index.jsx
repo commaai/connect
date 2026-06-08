@@ -191,7 +191,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
           <div
             className={isLandscape
               ? 'absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-10 w-[160px] h-[160px]'
-              : 'flex-1 flex items-center justify-center pb-8 pt-2 min-h-0 overflow-hidden'}
+              : 'flex-1 flex items-center justify-center px-4 pb-8 pt-2 min-h-0 overflow-hidden'}
           >
             <Joystick
               connection={connection}
