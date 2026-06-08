@@ -15,15 +15,14 @@ const controlsGroupPortrait = 'relative bottom-auto left-auto transform-none sel
 
 const ControlsBar = ({
   activeCamera, onSwitchCamera,
-  gamepadConnected, videoRef, isLandscape, camerasDisabled, onScreenshotMenuChange,
+  gamepadConnected, videoRef, isLandscape, controlsDisabled,
 }) => {
   const screenshotInProgress = useRef(false);
   const handleScreenshot = useCallback(async () => {
-    if (screenshotInProgress.current) return;
+    if (controlsDisabled || screenshotInProgress.current) return;
     const video = videoRef?.current;
     if (!video || !video.videoWidth) return;
     screenshotInProgress.current = true;
-    onScreenshotMenuChange?.(true);
     try {
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth;
@@ -52,23 +51,23 @@ const ControlsBar = ({
       URL.revokeObjectURL(url);
     } finally {
       screenshotInProgress.current = false;
-      onScreenshotMenuChange?.(false);
     }
-  }, [videoRef, activeCamera, onScreenshotMenuChange]);
+  }, [videoRef, activeCamera, controlsDisabled]);
 
   // overwrite default touch callback to avoid rapid double taps zooming in on iOS
   const handleScreenshotTouch = useCallback((e) => {
     e.preventDefault();
+    if (controlsDisabled) return;
     handleScreenshot();
-  }, [handleScreenshot]);
+  }, [handleScreenshot, controlsDisabled]);
 
   // handle touch directly: iOS does not synthesize a click on a second finger
   // while another touch (the joystick) is already active
   const handleSwitchCameraTouch = useCallback((e, cameraKey) => {
     e.preventDefault();
-    if (camerasDisabled) return;
+    if (controlsDisabled) return;
     onSwitchCamera(cameraKey);
-  }, [onSwitchCamera, camerasDisabled]);
+  }, [onSwitchCamera, controlsDisabled]);
 
   return (
     <div className={`${controlsGroupBase} ${!isLandscape ? controlsGroupPortrait : ''}`}>
@@ -78,8 +77,8 @@ const ControlsBar = ({
             {CAMERAS.map((cam) => (
               <button
                 key={cam.key}
-                className={`${activeCamera === cam.key ? btnActive : btnInactive} transition duration-200 ${camerasDisabled ? 'opacity-50' : 'opacity-90'}`}
-                disabled={camerasDisabled}
+                className={`${activeCamera === cam.key ? btnActive : btnInactive} transition duration-200 ${controlsDisabled ? 'opacity-50' : 'opacity-90'}`}
+                disabled={controlsDisabled}
                 onClick={() => onSwitchCamera(cam.key)}
                 onTouchEnd={(e) => handleSwitchCameraTouch(e, cam.key)}
               >
@@ -92,7 +91,7 @@ const ControlsBar = ({
       )}
       <div className="flex flex-col items-center justify-between gap-[5px] lg:gap-[7px]">
         <div
-          className={`${btnInactive} w-full`}
+          className={`${btnInactive} w-full transition duration-200 ${controlsDisabled ? 'opacity-50 pointer-events-none' : 'opacity-90'}`}
           onClick={handleScreenshot}
           onTouchEnd={handleScreenshotTouch}
           title="Save screenshot"
