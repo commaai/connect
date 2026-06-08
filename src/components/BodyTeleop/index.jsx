@@ -26,13 +26,21 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const latencyCallbackRef = useRef(null);
   const switchTimerRef = useRef(null);
   const timeoutTimerRef = useRef(null);
-  
+
   const isLandscape = useIsLandscape();
 
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // Android installed PWAs honor the manifest's portrait-primary lock, so need unlock
+  useEffect(() => {
+    const orientation = window.screen?.orientation;
+    if (!orientation?.lock) return undefined;
+    orientation.lock('any').catch(() => {});
+    return () => { orientation.unlock?.(); };
   }, []);
 
   useEffect(() => {
@@ -140,7 +148,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[1300] bg-[#030404]">
+    <div className="fixed top-0 left-0 w-screen h-screen z-[1300] bg-[#030404]">
       <div className={`
         absolute inset-0 bg-[#030404] flex flex-col touch-none
         overflow-hidden select-none [-webkit-touch-callout:none] [-webkit-text-size-adjust:none]
@@ -193,8 +201,8 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             />
             <div
               className={isLandscape
-                ? 'absolute bottom-6 right-6 z-10 w-[160px] h-[160px]'
-                : 'flex-1 flex items-center justify-center px-4 pb-8 pt-2 min-h-0 overflow-hidden'}
+                ? 'absolute bottom-4 right-4 z-10 w-[160px] h-[160px]'
+                : 'flex-1 flex items-center justify-center px-4 pb-12 pt-2 min-h-0 overflow-hidden'}
             >
               <Joystick
                 connection={connection}

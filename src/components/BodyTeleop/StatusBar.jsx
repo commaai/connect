@@ -314,7 +314,7 @@ const StatusBar = ({
 
   return (
     <div className={className}>
-      <div className="flex items-center mr-auto md:mr-0 gap-2 h-10 pl-3.5">
+      <div className="flex items-center mr-auto md:mr-0 gap-2 h-10 pl-3.5 md:p-3.5">
         <div
           className="w-3 h-3 rounded-full transition-colors"
           style={{ backgroundColor: indicator.color }}
