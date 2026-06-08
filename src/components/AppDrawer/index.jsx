@@ -40,7 +40,7 @@ const AppDrawer = ({
       variant={isPermanent ? 'permanent' : 'temporary'}
       PaperProps={{ style: { width, top: 'auto' } }}
     >
-      <div ref={contentRef} className="flex flex-col h-full bg-[linear-gradient(180deg,#1B2023_0%,#111516_100%)]">
+      <div ref={contentRef} className="flex flex-col h-full bg-[linear-gradient(180deg,#1B2023_0%,#111516_100%)] ml-safe-left">
         {!isPermanent
           && (
             <Link to="/" className="flex items-center min-h-[64px] mx-2">
