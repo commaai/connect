@@ -35,14 +35,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     return () => { document.body.style.overflow = prev; };
   }, []);
 
-  // Android installed PWAs honor the manifest's portrait-primary lock, so need unlock
-  useEffect(() => {
-    const orientation = window.screen?.orientation;
-    if (!orientation?.lock) return undefined;
-    orientation.lock('any').catch(() => {});
-    return () => { orientation.unlock?.(); };
-  }, []);
-
   useEffect(() => {
     const conn = new WebRTCConnection({
       onConnectionState: (state, reason) => {

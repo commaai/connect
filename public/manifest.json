@@ -37,7 +37,7 @@
   "lang": "en-US",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "theme_color": "#16181A",
   "background_color": "#16181A"
 }
