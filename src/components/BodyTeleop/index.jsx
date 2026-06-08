@@ -20,6 +20,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
 
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [inputActive, setInputActive] = useState(false);
+  const [screenshotMenuOpen, setScreenshotMenuOpen] = useState(false);
 
   const videoRef = useRef(null);
   const streamsRef = useRef({});
@@ -192,6 +193,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             videoRef={videoRef}
             isLandscape={isLandscape}
             camerasDisabled={inputActive}
+            onScreenshotMenuChange={setScreenshotMenuOpen}
           />
           <div
             className={isLandscape
@@ -208,6 +210,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
               onSwitchCamera={switchCamera}
               gamepadConnected={gamepadConnected}
               onInputActiveChange={setInputActive}
+              disabled={screenshotMenuOpen}
             />
           </div>
         </>

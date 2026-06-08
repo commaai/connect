@@ -63,7 +63,7 @@ const ControllerOverlay = ({ gamepadSteering, gamepadGas, gamepadBrake, gamepadL
   );
 }
 
-const TouchJoystick = ({ className, thumbPos, joystickAreaRef, onTouchStart, onTouchMove, onTouchEnd, onMouseDown }) => {
+const TouchJoystick = ({ className, thumbPos, joystickAreaRef, onTouchStart, onTouchMove, onTouchEnd, onMouseDown, disabled }) => {
   const thumbRange = 45;
   const thumbLeft = thumbPos ? `${50 + thumbPos.x * thumbRange}%` : '50%';
   const thumbTop = thumbPos ? `${50 + thumbPos.y * thumbRange}%` : '50%';
@@ -71,7 +71,7 @@ const TouchJoystick = ({ className, thumbPos, joystickAreaRef, onTouchStart, onT
   return (
     <div
       ref={joystickAreaRef}
-      className={`touch-none rounded-2xl bg-glass bg-radial-white ${className || ''}`}
+      className={`touch-none rounded-2xl bg-glass bg-radial-white ${disabled ? 'pointer-events-none opacity-50' : ''} ${className || ''}`}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -93,7 +93,7 @@ const TouchJoystick = ({ className, thumbPos, joystickAreaRef, onTouchStart, onT
 
 const Joystick = ({
   connection, activeCamera, className,
-  onGamepadChange, onSwitchCamera, gamepadConnected, onInputActiveChange,
+  onGamepadChange, onSwitchCamera, gamepadConnected, onInputActiveChange, disabled,
 }) => {
   const [thumbPos, setThumbPos] = useState(null);
   const [, setKeys] = useState({ w: false, a: false, s: false, d: false });
@@ -191,6 +191,10 @@ const Joystick = ({
     prevThumbRef.current = null;
     setKeys({ w: false, a: false, s: false, d: false });
   }, [handleMouseUp]);
+
+  useEffect(() => {
+    if (disabled) releaseInputs();
+  }, [disabled, releaseInputs]);
 
   useEffect(() => {
     const onVisibility = () => { if (document.hidden) releaseInputs(); };
@@ -344,6 +348,7 @@ const Joystick = ({
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onMouseDown={handleMouseDown}
+      disabled={disabled}
     />
   );
 };

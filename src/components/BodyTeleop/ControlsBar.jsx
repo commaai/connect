@@ -15,7 +15,7 @@ const controlsGroupPortrait = 'relative bottom-auto left-auto transform-none sel
 
 const ControlsBar = ({
   activeCamera, onSwitchCamera,
-  gamepadConnected, videoRef, isLandscape, camerasDisabled,
+  gamepadConnected, videoRef, isLandscape, camerasDisabled, onScreenshotMenuChange,
 }) => {
   const screenshotInProgress = useRef(false);
   const handleScreenshot = useCallback(async () => {
@@ -23,6 +23,7 @@ const ControlsBar = ({
     const video = videoRef?.current;
     if (!video || !video.videoWidth) return;
     screenshotInProgress.current = true;
+    onScreenshotMenuChange?.(true);
     try {
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth;
@@ -51,8 +52,9 @@ const ControlsBar = ({
       URL.revokeObjectURL(url);
     } finally {
       screenshotInProgress.current = false;
+      onScreenshotMenuChange?.(false);
     }
-  }, [videoRef, activeCamera]);
+  }, [videoRef, activeCamera, onScreenshotMenuChange]);
 
   // overwrite default touch callback to avoid rapid double taps zooming in on iOS
   const handleScreenshotTouch = useCallback((e) => {
