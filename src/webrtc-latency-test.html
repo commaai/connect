@@ -93,6 +93,14 @@
         padding: 8px;
         white-space: pre-wrap;
       }
+
+      #preview {
+        background: #000;
+        border: 1px solid #bbb;
+        display: block;
+        margin-top: 8px;
+        width: 240px;
+      }
     </style>
   </head>
   <body>
@@ -120,6 +128,7 @@
         <p id="connection-status">Connection: idle</p>
         <p id="connection-result"></p>
         <p id="batch-status">Batch: idle</p>
+        <video id="preview" muted playsinline autoplay></video>
       </fieldset>
 
       <fieldset>
@@ -127,7 +136,7 @@
         <dl id="result-summary" class="summary-grid"></dl>
         <div class="charts">
           <div class="chart">
-            <h3>Connect time by attempt</h3>
+            <h3>First frame time by attempt</h3>
             <canvas id="latency-chart"></canvas>
           </div>
           <div class="chart">
@@ -167,6 +176,7 @@
         connectionStatus: document.getElementById('connection-status'),
         connectionResult: document.getElementById('connection-result'),
         batchStatus: document.getElementById('batch-status'),
+        preview: document.getElementById('preview'),
         resultSummary: document.getElementById('result-summary'),
         latencyChart: document.getElementById('latency-chart'),
         distributionChart: document.getElementById('distribution-chart'),
@@ -218,11 +228,11 @@
       }
 
       function computeStats(results) {
-        const values = results
-          .filter((result) => result.status === 'connected' && result.elapsedMs != null)
-          .map((result) => result.elapsedMs)
-          .sort((a, b) => a - b);
+        const succeeded = results.filter((result) => result.status === 'connected' && result.elapsedMs != null);
+        const values = succeeded.map((result) => result.elapsedMs).sort((a, b) => a - b);
+        const connectValues = succeeded.filter((result) => result.connectMs != null).map((result) => result.connectMs);
         const sum = values.reduce((total, value) => total + value, 0);
+        const connectSum = connectValues.reduce((total, value) => total + value, 0);
         const failed = results.filter((result) => result.status === 'failed').length;
         const stopped = results.filter((result) => result.status === 'stopped').length;
 
@@ -233,6 +243,7 @@
           stopped,
           successRate: results.length > 0 ? (values.length / results.length) * 100 : null,
           averageMs: values.length > 0 ? sum / values.length : null,
+          averageConnectMs: connectValues.length > 0 ? connectSum / connectValues.length : null,
           medianMs: percentile(values, 0.5),
           p90Ms: percentile(values, 0.9),
           minMs: values.length > 0 ? values[0] : null,
@@ -454,7 +465,8 @@
           metric('Failed', fmtCount(stats.failed)),
           metric('Stopped', fmtCount(stats.stopped)),
           metric('Success rate', fmtPercent(stats.successRate)),
-          metric('Average', `${fmt(stats.averageMs)} ms`),
+          metric('Avg connect', `${fmt(stats.averageConnectMs)} ms`),
+          metric('Avg first frame', `${fmt(stats.averageMs)} ms`),
           metric('Median', `${fmt(stats.medianMs)} ms`),
           metric('P90', `${fmt(stats.p90Ms)} ms`),
           metric('Min / Max', `${fmt(stats.minMs)} / ${fmt(stats.maxMs)} ms`),
@@ -593,7 +605,7 @@
         renderResults();
 
         if (result.status === 'connected') {
-          el.connectionResult.textContent = `Connected in ${fmt(result.elapsedMs)} ms`;
+          el.connectionResult.textContent = `Connected in ${fmt(result.connectMs)} ms, first frame +${fmt(result.elapsedMs)} ms (total ${fmt(result.totalMs)} ms)`;
         } else if (result.status === 'stopped') {
           el.connectionResult.textContent = 'Stopped';
         } else {
@@ -637,8 +649,8 @@
           el.batchStatus.textContent = `Batch: stopped after ${state.results.length}/${BATCH_ATTEMPTS}`;
           log(`Batch stopped after ${state.results.length}/${BATCH_ATTEMPTS} attempts`);
         } else {
-          el.batchStatus.textContent = `Batch: complete, ${stats.connected}/${stats.attempts} connected, average ${fmt(stats.averageMs)} ms`;
-          log(`Batch complete: ${stats.connected}/${stats.attempts} connected, average ${fmt(stats.averageMs)} ms`);
+          el.batchStatus.textContent = `Batch: complete, ${stats.connected}/${stats.attempts} connected, avg connect ${fmt(stats.averageConnectMs)} ms, avg first frame ${fmt(stats.averageMs)} ms`;
+          log(`Batch complete: ${stats.connected}/${stats.attempts} connected, avg connect ${fmt(stats.averageConnectMs)} ms, avg first frame ${fmt(stats.averageMs)} ms`);
         }
 
         state.stopRequested = false;
@@ -676,6 +688,8 @@
           let settled = false;
           let attemptTimer = null;
           let connection = null;
+          let connectedAt = null;
+          let firstFrameAt = null;
 
           function finish(result, disconnect = true) {
             if (settled) return;
@@ -686,12 +700,32 @@
             }
             if (state.connection === connection) state.connection = null;
             state.connectStartedAt = null;
+            el.preview.srcObject = null;
 
             if (disconnect && connection) {
               connection.disconnect();
             }
 
             resolve(result);
+          }
+
+          // succeed only once both the connection is open and a frame has been decoded;
+          // the gap between the two includes the device waiting for the first key frame
+          function maybeFinish() {
+            if (connectedAt == null || firstFrameAt == null) return;
+            const connectMs = connectedAt - startedAt;
+            const firstFrameMs = firstFrameAt - connectedAt;
+            const totalMs = firstFrameAt - startedAt;
+            log(`First frame ${fmt(firstFrameMs)} ms after connect (connect ${fmt(connectMs)} ms, total ${fmt(totalMs)} ms)`);
+            finish({
+              attempt,
+              status: 'connected',
+              elapsedMs: firstFrameMs,
+              connectMs,
+              totalMs,
+              durationMs: totalMs,
+              reason: null,
+            });
           }
 
           state.connectStartedAt = startedAt;
@@ -706,18 +740,13 @@
               el.connectionStatus.textContent = `Connection: ${connectionState}${reason ? ` (${reason})` : ''}`;
               log(`Connection ${connectionState}${reason ? `: ${reason}` : ''}`);
 
-              if (connectionState === 'connected' && !state.connectedAt) {
-                state.connectedAt = performance.now();
-                const elapsedMs = state.connectedAt - startedAt;
-                el.connectionResult.textContent = `Connected in ${fmt(elapsedMs)} ms`;
-                log(`Connected in ${fmt(elapsedMs)} ms`);
-                finish({
-                  attempt,
-                  status: 'connected',
-                  elapsedMs,
-                  durationMs: elapsedMs,
-                  reason: null,
-                });
+              if (connectionState === 'connected' && connectedAt == null) {
+                connectedAt = performance.now();
+                state.connectedAt = connectedAt;
+                const connectMs = connectedAt - startedAt;
+                el.connectionStatus.textContent = `Connection: ${attemptLabel}, waiting for first frame`;
+                log(`Connected in ${fmt(connectMs)} ms, waiting for first frame`);
+                maybeFinish();
               } else if (connectionState === 'failed') {
                 finish({
                   attempt,
@@ -746,6 +775,26 @@
             onVideoTrack: (_cameraName, stream) => {
               if (settled) return;
               log(`Remote track received: ${stream.getTracks().map((track) => `${track.kind}:${track.id}`).join(', ') || 'none'}`);
+
+              const [track] = stream.getVideoTracks();
+              track?.addEventListener('unmute', () => {
+                if (!settled) log(`First media packet received +${fmt(performance.now() - startedAt)} ms`);
+              }, { once: true });
+
+              const markFirstFrame = () => {
+                if (settled || firstFrameAt != null) return;
+                firstFrameAt = performance.now();
+                log(`First frame decoded +${fmt(firstFrameAt - startedAt)} ms`);
+                maybeFinish();
+              };
+
+              el.preview.srcObject = stream;
+              if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+                el.preview.requestVideoFrameCallback(markFirstFrame);
+              } else {
+                el.preview.addEventListener('loadeddata', markFirstFrame, { once: true });
+              }
+              el.preview.play().catch((err) => log(`Preview play failed: ${err.message}`));
             },
           });
 
@@ -759,7 +808,7 @@
               status: 'failed',
               elapsedMs: null,
               durationMs: performance.now() - startedAt,
-              reason: 'Timed out waiting for connected state',
+              reason: connectedAt != null ? 'Timed out waiting for first frame' : 'Timed out waiting for connected state',
             });
           }, ATTEMPT_DEADLINE_MS);
 
