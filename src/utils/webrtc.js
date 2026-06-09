@@ -8,7 +8,7 @@ const CLOCK_WINDOW_SIZE = 16;
 const CLOCK_PING_MS = 500;
 
 const ICE_GATHER_DEADLINE_MS = 5000;
-const CONNECTION_DEADLINE_MS = 8000;
+const CONNECTION_DEADLINE_MS = 15000;
 
 export const ConnectStep = {
   GATHERING_CANDIDATES: 1,
@@ -130,6 +130,7 @@ export class WebRTCConnection {
         try {
           const msg = JSON.parse(typeof evt.data === 'string' ? evt.data : new TextDecoder().decode(evt.data));
           if (msg.type === 'carState') this.callbacks.onBatteryLevel({ level: Math.round(msg.data.fuelGauge * 100), charging: !!msg.data.charging });
+          if (msg.type === 'deviceState') this.callbacks.onIgnition?.(!!msg.data?.started);
           if (msg.type === 'connectionReplaced') this.fail(msg.data || 'Connection replaced by another device.');
           if (msg.type === 'clockSync' && msg.data?.action === 'pong') this._handleClockPong(msg.data);
         } catch (e) {
@@ -170,6 +171,7 @@ export class WebRTCConnection {
         jsonrpc: '2.0',
         id: 0,
       });
+
       if (resp?.error) {
         log(`device error: ${JSON.stringify(resp.error)}`);
         throw new Error(resp.error.data?.message || 'Could not reach device. Is the ignition on?');

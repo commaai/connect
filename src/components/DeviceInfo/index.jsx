@@ -371,18 +371,19 @@ class DeviceInfo extends Component {
       pingTooltip = `Last ping on ${lastAthenaPing.format('MMM D, YYYY')} at ${lastAthenaPing.format('h:mm A')}`;
     }
 
-    const bodyTeleopEnabled = isCommaBody && deviceVersionAtLeast(device, '0.11.2');
+    const livestreamEnabled = deviceVersionAtLeast(device, '0.11.2');
+    const bodyTeleopEnabled = isCommaBody && livestreamEnabled;
 
     return (
       <div className='flex md:flex-row md:items-stretch justify-end flex-wrap gap-2 min-w-0 shrink'>
-        {bodyTeleopEnabled ? (
+        {livestreamEnabled ? (
           <button
             style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
             className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
             onClick={ this.openBodyTeleop }
             disabled={ !deviceIsOnline(device) }
           >
-            <Typography className='text-black'>remote control</Typography>
+            <Typography className='text-black'>{bodyTeleopEnabled ? "remote control": "live stream"}</Typography>
           </button>
         ) : (
           <button

@@ -19,6 +19,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [activeCamera, setActiveCamera] = useState('wideRoad');
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [inputActive, setInputActive] = useState(false);
+  const [started, setStarted] = useState(false);
 
   const videoRef = useRef(null);
   const streamsRef = useRef({});
@@ -42,6 +43,9 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
         if (state !== 'connecting') {
           setConnectStep(null);
         }
+        if (state !== 'connected') {
+          setStarted(false);
+        }
         if (state === 'failed') {
           // don't overwrite the original error reason
           setError((prev) => prev || reason || 'Could not reach device. Is the ignition on?');
@@ -49,6 +53,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       },
       onConnectProgress: setConnectStep,
       onBatteryLevel: setBattery,
+      onIgnition: setStarted,
       onVideoTrack: (_cameraName, stream) => {
         streamsRef.current.camera = stream;
         if (videoRef.current) {
@@ -181,7 +186,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
           </div>
         )}
         <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : "aspect-[16/9]"} />
-        {connected && (
+        {connected  && (
           <>
             <ControlsBar
               activeCamera={activeCamera}
@@ -191,23 +196,25 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
               isLandscape={isLandscape}
               controlsDisabled={inputActive}
             />
-            <div
-              className={isLandscape
-                ? 'absolute bottom-4 right-4 z-10 w-[160px] h-[160px]'
-                : 'flex-1 flex items-center justify-center px-4 pb-12 pt-2 min-h-0 overflow-hidden'}
-            >
-              <Joystick
-                connection={connection}
-                activeCamera={activeCamera}
+            { started && (
+              <div
                 className={isLandscape
-                  ? 'relative w-full h-full'
-                  : 'relative w-auto h-full aspect-square max-w-full'}
-                onGamepadChange={setGamepadConnected}
-                onSwitchCamera={switchCamera}
-                gamepadConnected={gamepadConnected}
-                onInputActiveChange={setInputActive}
-              />
-            </div>
+                  ? 'absolute bottom-4 right-4 z-10 w-[160px] h-[160px]'
+                  : 'flex-1 flex items-center justify-center px-4 pb-12 pt-2 min-h-0 overflow-hidden'}
+              >
+                <Joystick
+                  connection={connection}
+                  activeCamera={activeCamera}
+                  className={isLandscape
+                    ? 'relative w-full h-full'
+                    : 'relative w-auto h-full aspect-square max-w-full'}
+                  onGamepadChange={setGamepadConnected}
+                  onSwitchCamera={switchCamera}
+                  gamepadConnected={gamepadConnected}
+                  onInputActiveChange={setInputActive}
+                />
+              </div>
+            )}
           </>
         )}
       </div>
