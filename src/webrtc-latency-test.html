@@ -93,14 +93,6 @@
         padding: 8px;
         white-space: pre-wrap;
       }
-
-      #preview {
-        background: #000;
-        border: 1px solid #bbb;
-        display: block;
-        margin-top: 8px;
-        width: 240px;
-      }
     </style>
   </head>
   <body>
@@ -128,7 +120,6 @@
         <p id="connection-status">Connection: idle</p>
         <p id="connection-result"></p>
         <p id="batch-status">Batch: idle</p>
-        <video id="preview" muted playsinline autoplay></video>
       </fieldset>
 
       <fieldset>
@@ -136,7 +127,7 @@
         <dl id="result-summary" class="summary-grid"></dl>
         <div class="charts">
           <div class="chart">
-            <h3>First frame time by attempt</h3>
+            <h3>Connect / total time by attempt</h3>
             <canvas id="latency-chart"></canvas>
           </div>
           <div class="chart">
@@ -158,6 +149,7 @@
       const DONGLE_ID_RE = /^[a-f0-9]{16}$/;
       const BATCH_ATTEMPTS = 100;
       const ATTEMPT_DEADLINE_MS = 20000;
+      const FRAME_POLL_INTERVAL_MS = 10;
 
       const stepLabels = {
         [ConnectStep.GATHERING_CANDIDATES]: 'gathering candidates',
@@ -176,7 +168,6 @@
         connectionStatus: document.getElementById('connection-status'),
         connectionResult: document.getElementById('connection-result'),
         batchStatus: document.getElementById('batch-status'),
-        preview: document.getElementById('preview'),
         resultSummary: document.getElementById('result-summary'),
         latencyChart: document.getElementById('latency-chart'),
         distributionChart: document.getElementById('distribution-chart'),
@@ -227,28 +218,41 @@
         return values[base] + rest * (values[base + 1] - values[base]);
       }
 
-      function computeStats(results) {
-        const succeeded = results.filter((result) => result.status === 'connected' && result.elapsedMs != null);
-        const values = succeeded.map((result) => result.elapsedMs).sort((a, b) => a - b);
-        const connectValues = succeeded.filter((result) => result.connectMs != null).map((result) => result.connectMs);
+      function seriesStats(rawValues) {
+        const values = rawValues.filter((value) => value != null).sort((a, b) => a - b);
         const sum = values.reduce((total, value) => total + value, 0);
-        const connectSum = connectValues.reduce((total, value) => total + value, 0);
-        const failed = results.filter((result) => result.status === 'failed').length;
-        const stopped = results.filter((result) => result.status === 'stopped').length;
-
         return {
-          attempts: results.length,
-          connected: values.length,
-          failed,
-          stopped,
-          successRate: results.length > 0 ? (values.length / results.length) * 100 : null,
           averageMs: values.length > 0 ? sum / values.length : null,
-          averageConnectMs: connectValues.length > 0 ? connectSum / connectValues.length : null,
           medianMs: percentile(values, 0.5),
           p90Ms: percentile(values, 0.9),
           minMs: values.length > 0 ? values[0] : null,
           maxMs: values.length > 0 ? values[values.length - 1] : null,
           values,
+        };
+      }
+
+      function computeStats(results) {
+        const connectedResults = results.filter((result) => result.status === 'connected' && result.elapsedMs != null);
+        const connect = seriesStats(connectedResults.map((result) => result.elapsedMs));
+        const firstFrame = seriesStats(connectedResults.map((result) => result.firstFrameMs));
+        const total = seriesStats(connectedResults.map((result) => result.totalMs));
+        const failed = results.filter((result) => result.status === 'failed').length;
+        const stopped = results.filter((result) => result.status === 'stopped').length;
+
+        return {
+          attempts: results.length,
+          connected: connect.values.length,
+          failed,
+          stopped,
+          successRate: results.length > 0 ? (connect.values.length / results.length) * 100 : null,
+          averageMs: connect.averageMs,
+          medianMs: connect.medianMs,
+          p90Ms: connect.p90Ms,
+          minMs: connect.minMs,
+          maxMs: connect.maxMs,
+          values: connect.values,
+          firstFrame,
+          total,
         };
       }
 
@@ -296,9 +300,9 @@
         }
 
         const { ctx, width, height } = prepareCanvas(el.latencyChart);
-        const values = results
-          .filter((result) => result.status === 'connected' && result.elapsedMs != null)
-          .map((result) => result.elapsedMs);
+        const connected = results.filter((result) => result.status === 'connected' && result.elapsedMs != null);
+        const values = connected.map((result) => result.elapsedMs);
+        const withTotals = connected.filter((result) => result.totalMs != null);
 
         if (values.length === 0) {
           drawEmpty(el.latencyChart, 'No successful connects');
@@ -312,7 +316,7 @@
         const plotWidth = width - left - right;
         const plotHeight = height - top - bottom;
         const target = Math.max(state.resultTarget || results.length, 1);
-        const maxMs = Math.max(10, ...values) * 1.1;
+        const maxMs = Math.max(10, ...values, ...withTotals.map((result) => result.totalMs)) * 1.1;
         const xForAttempt = (attempt) => {
           if (target <= 1) return left + plotWidth / 2;
           return left + ((attempt - 1) / (target - 1)) * plotWidth;
@@ -346,7 +350,6 @@
         ctx.fillText('1', left, height - bottom + 6);
         ctx.fillText(String(target), width - right, height - bottom + 6);
 
-        const connected = results.filter((result) => result.status === 'connected' && result.elapsedMs != null);
         ctx.strokeStyle = '#2563eb';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -366,6 +369,33 @@
           ctx.arc(x, y, 2.5, 0, Math.PI * 2);
           ctx.fill();
         });
+
+        ctx.strokeStyle = '#7c3aed';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        withTotals.forEach((result, index) => {
+          const x = xForAttempt(result.attempt);
+          const y = yForMs(result.totalMs);
+          if (index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        withTotals.forEach((result) => {
+          const x = xForAttempt(result.attempt);
+          const y = yForMs(result.totalMs);
+          ctx.fillStyle = '#7c3aed';
+          ctx.beginPath();
+          ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = '#7c3aed';
+        ctx.fillText('total', width - right, top);
+        ctx.fillStyle = '#2563eb';
+        ctx.fillText('connect', width - right - 34, top);
 
         ctx.strokeStyle = '#dc2626';
         ctx.lineWidth = 1.5;
@@ -465,11 +495,16 @@
           metric('Failed', fmtCount(stats.failed)),
           metric('Stopped', fmtCount(stats.stopped)),
           metric('Success rate', fmtPercent(stats.successRate)),
-          metric('Avg connect', `${fmt(stats.averageConnectMs)} ms`),
-          metric('Avg first frame', `${fmt(stats.averageMs)} ms`),
+          metric('Average', `${fmt(stats.averageMs)} ms`),
           metric('Median', `${fmt(stats.medianMs)} ms`),
           metric('P90', `${fmt(stats.p90Ms)} ms`),
           metric('Min / Max', `${fmt(stats.minMs)} / ${fmt(stats.maxMs)} ms`),
+          metric('First frame avg', `${fmt(stats.firstFrame.averageMs)} ms`),
+          metric('First frame median', `${fmt(stats.firstFrame.medianMs)} ms`),
+          metric('Total avg', `${fmt(stats.total.averageMs)} ms`),
+          metric('Total median', `${fmt(stats.total.medianMs)} ms`),
+          metric('Total P90', `${fmt(stats.total.p90Ms)} ms`),
+          metric('Total min / max', `${fmt(stats.total.minMs)} / ${fmt(stats.total.maxMs)} ms`),
         );
         drawLatencyChart(state.results);
         drawDistributionChart(stats);
@@ -538,53 +573,9 @@
         return fields.join(' ') || JSON.stringify(candidate);
       }
 
-      function attachPeerConnectionLogging(pc) {
-        if (pc.__webrtcLatencyTestLogged) return;
-        pc.__webrtcLatencyTestLogged = true;
-
-        log('RTCPeerConnection created');
-        log(`Initial signaling state: ${pc.signalingState}`);
-        log(`Initial ICE gathering state: ${pc.iceGatheringState}`);
-        log(`Initial ICE connection state: ${pc.iceConnectionState}`);
-        log(`Initial connection state: ${pc.connectionState}`);
-
-        pc.addEventListener('icecandidate', (evt) => {
-          if (evt.candidate) {
-            log(`ICE candidate: ${formatIceCandidate(evt.candidate)}`);
-          } else {
-            log('ICE candidate gathering complete');
-          }
-        });
-        pc.addEventListener('icecandidateerror', (evt) => {
-          log(`ICE candidate error: code=${evt.errorCode} url=${evt.url || '-'} text=${evt.errorText || '-'}`);
-        });
-        pc.addEventListener('icegatheringstatechange', () => {
-          log(`ICE gathering state: ${pc.iceGatheringState}`);
-        });
-        pc.addEventListener('iceconnectionstatechange', () => {
-          log(`ICE connection state: ${pc.iceConnectionState}`);
-        });
-        pc.addEventListener('signalingstatechange', () => {
-          log(`Signaling state: ${pc.signalingState}`);
-        });
-        pc.addEventListener('connectionstatechange', () => {
-          log(`Peer connection state: ${pc.connectionState}`);
-        });
-      }
-
-      function installPeerConnectionLogging() {
-        const NativeRTCPeerConnection = window.RTCPeerConnection;
-        if (!NativeRTCPeerConnection || NativeRTCPeerConnection.__webrtcLatencyTestWrapped) return;
-
-        class LoggedRTCPeerConnection extends NativeRTCPeerConnection {
-          constructor(...args) {
-            super(...args);
-            attachPeerConnectionLogging(this);
-          }
-        }
-
-        LoggedRTCPeerConnection.__webrtcLatencyTestWrapped = true;
-        window.RTCPeerConnection = LoggedRTCPeerConnection;
+      function logWebrtcEvent(detail) {
+        const { message, candidate } = detail;
+        log(candidate !== undefined ? `${message}: ${formatIceCandidate(candidate)}` : message);
       }
 
       async function startTest() {
@@ -605,7 +596,7 @@
         renderResults();
 
         if (result.status === 'connected') {
-          el.connectionResult.textContent = `Connected in ${fmt(result.connectMs)} ms, first frame +${fmt(result.elapsedMs)} ms (total ${fmt(result.totalMs)} ms)`;
+          el.connectionResult.textContent = `Connected in ${fmt(result.elapsedMs)} ms, first frame +${fmt(result.firstFrameMs)} ms, total ${fmt(result.totalMs)} ms`;
         } else if (result.status === 'stopped') {
           el.connectionResult.textContent = 'Stopped';
         } else {
@@ -649,8 +640,8 @@
           el.batchStatus.textContent = `Batch: stopped after ${state.results.length}/${BATCH_ATTEMPTS}`;
           log(`Batch stopped after ${state.results.length}/${BATCH_ATTEMPTS} attempts`);
         } else {
-          el.batchStatus.textContent = `Batch: complete, ${stats.connected}/${stats.attempts} connected, avg connect ${fmt(stats.averageConnectMs)} ms, avg first frame ${fmt(stats.averageMs)} ms`;
-          log(`Batch complete: ${stats.connected}/${stats.attempts} connected, avg connect ${fmt(stats.averageConnectMs)} ms, avg first frame ${fmt(stats.averageMs)} ms`);
+          el.batchStatus.textContent = `Batch: complete, ${stats.connected}/${stats.attempts} connected, average ${fmt(stats.averageMs)} ms connect, ${fmt(stats.total.averageMs)} ms total`;
+          log(`Batch complete: ${stats.connected}/${stats.attempts} connected, average ${fmt(stats.averageMs)} ms connect, ${fmt(stats.total.averageMs)} ms total`);
         }
 
         state.stopRequested = false;
@@ -690,6 +681,8 @@
           let connection = null;
           let connectedAt = null;
           let firstFrameAt = null;
+          let videoTrack = null;
+          let frameStatsTimer = null;
 
           function finish(result, disconnect = true) {
             if (settled) return;
@@ -698,9 +691,16 @@
               clearTimeout(attemptTimer);
               attemptTimer = null;
             }
+            if (frameStatsTimer) {
+              clearInterval(frameStatsTimer);
+              frameStatsTimer = null;
+            }
+            if (videoTrack) {
+              videoTrack.removeEventListener('unmute', startFirstFramePoll);
+              videoTrack = null;
+            }
             if (state.connection === connection) state.connection = null;
             state.connectStartedAt = null;
-            el.preview.srcObject = null;
 
             if (disconnect && connection) {
               connection.disconnect();
@@ -709,23 +709,52 @@
             resolve(result);
           }
 
-          // succeed only once both the connection is open and a frame has been decoded;
-          // the gap between the two includes the device waiting for the first key frame
-          function maybeFinish() {
+          function maybeFinishConnected() {
             if (connectedAt == null || firstFrameAt == null) return;
-            const connectMs = connectedAt - startedAt;
-            const firstFrameMs = firstFrameAt - connectedAt;
-            const totalMs = firstFrameAt - startedAt;
-            log(`First frame ${fmt(firstFrameMs)} ms after connect (connect ${fmt(connectMs)} ms, total ${fmt(totalMs)} ms)`);
+            const elapsedMs = connectedAt - startedAt;
+            const firstFrameMs = Math.max(0, firstFrameAt - connectedAt);
+            const totalMs = elapsedMs + firstFrameMs;
+            el.connectionResult.textContent = `Connected in ${fmt(elapsedMs)} ms, first frame +${fmt(firstFrameMs)} ms, total ${fmt(totalMs)} ms`;
+            log(`First frame ${fmt(firstFrameMs)} ms after connect, total ${fmt(totalMs)} ms`);
             finish({
               attempt,
               status: 'connected',
-              elapsedMs: firstFrameMs,
-              connectMs,
+              elapsedMs,
+              firstFrameMs,
               totalMs,
               durationMs: totalMs,
               reason: null,
             });
+          }
+
+          async function pollFramesReceived() {
+            if (settled || firstFrameAt != null || !connection?.pc) return;
+            let stats;
+            try {
+              stats = await connection.pc.getStats();
+            } catch {
+              return;
+            }
+            if (settled || firstFrameAt != null) return;
+            for (const report of stats.values()) {
+              if (report.type !== 'inbound-rtp' || report.kind !== 'video') continue;
+              // framesReceived counts complete (fully assembled) frames
+              if ((report.framesReceived ?? report.framesDecoded ?? 0) > 0) {
+                firstFrameAt = performance.now();
+                if (frameStatsTimer) {
+                  clearInterval(frameStatsTimer);
+                  frameStatsTimer = null;
+                }
+                maybeFinishConnected();
+                return;
+              }
+            }
+          }
+
+          function startFirstFramePoll() {
+            if (settled || firstFrameAt != null || frameStatsTimer) return;
+            pollFramesReceived();
+            frameStatsTimer = setInterval(pollFramesReceived, FRAME_POLL_INTERVAL_MS);
           }
 
           state.connectStartedAt = startedAt;
@@ -740,18 +769,21 @@
               el.connectionStatus.textContent = `Connection: ${connectionState}${reason ? ` (${reason})` : ''}`;
               log(`Connection ${connectionState}${reason ? `: ${reason}` : ''}`);
 
-              if (connectionState === 'connected' && connectedAt == null) {
-                connectedAt = performance.now();
-                state.connectedAt = connectedAt;
-                const connectMs = connectedAt - startedAt;
+              if (connectionState === 'connected' && !state.connectedAt) {
+                state.connectedAt = performance.now();
+                connectedAt = state.connectedAt;
+                const elapsedMs = connectedAt - startedAt;
                 el.connectionStatus.textContent = `Connection: ${attemptLabel}, waiting for first frame`;
-                log(`Connected in ${fmt(connectMs)} ms, waiting for first frame`);
-                maybeFinish();
+                el.connectionResult.textContent = `Connected in ${fmt(elapsedMs)} ms, waiting for first frame`;
+                log(`Connected in ${fmt(elapsedMs)} ms`);
+                maybeFinishConnected();
               } else if (connectionState === 'failed') {
                 finish({
                   attempt,
                   status: 'failed',
                   elapsedMs: null,
+                  firstFrameMs: null,
+                  totalMs: null,
                   durationMs: performance.now() - startedAt,
                   reason: reason || 'Connection failed',
                 }, false);
@@ -761,6 +793,8 @@
                   attempt,
                   status: stopped ? 'stopped' : 'failed',
                   elapsedMs: null,
+                  firstFrameMs: null,
+                  totalMs: null,
                   durationMs: performance.now() - startedAt,
                   reason: stopped ? 'Stopped by user' : (reason || 'Connection disconnected'),
                 }, false);
@@ -775,40 +809,38 @@
             onVideoTrack: (_cameraName, stream) => {
               if (settled) return;
               log(`Remote track received: ${stream.getTracks().map((track) => `${track.kind}:${track.id}`).join(', ') || 'none'}`);
-
+              if (videoTrack) return;
               const [track] = stream.getVideoTracks();
-              track?.addEventListener('unmute', () => {
-                if (!settled) log(`First media packet received +${fmt(performance.now() - startedAt)} ms`);
-              }, { once: true });
-
-              const markFirstFrame = () => {
-                if (settled || firstFrameAt != null) return;
-                firstFrameAt = performance.now();
-                log(`First frame decoded +${fmt(firstFrameAt - startedAt)} ms`);
-                maybeFinish();
-              };
-
-              el.preview.srcObject = stream;
-              if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
-                el.preview.requestVideoFrameCallback(markFirstFrame);
+              if (!track) return;
+              videoTrack = track;
+              if (track.muted) {
+                // remote tracks start muted and unmute when the first RTP data arrives;
+                // use that to start polling for the first complete frame
+                track.addEventListener('unmute', startFirstFramePoll, { once: true });
               } else {
-                el.preview.addEventListener('loadeddata', markFirstFrame, { once: true });
+                startFirstFramePoll();
               }
-              el.preview.play().catch((err) => log(`Preview play failed: ${err.message}`));
             },
           });
+
+          connection.addEventListener('log', (evt) => logWebrtcEvent(evt.detail));
 
           state.connection = connection;
           updateControls();
 
           attemptTimer = setTimeout(() => {
-            log(`Connect failed: timed out after ${fmt(ATTEMPT_DEADLINE_MS)} ms`);
+            const reason = connectedAt != null
+              ? 'Timed out waiting for first frame'
+              : 'Timed out waiting for connected state';
+            log(`Connect failed: ${reason.toLowerCase()} after ${fmt(ATTEMPT_DEADLINE_MS)} ms`);
             finish({
               attempt,
               status: 'failed',
               elapsedMs: null,
+              firstFrameMs: null,
+              totalMs: null,
               durationMs: performance.now() - startedAt,
-              reason: connectedAt != null ? 'Timed out waiting for first frame' : 'Timed out waiting for connected state',
+              reason,
             });
           }, ATTEMPT_DEADLINE_MS);
 
@@ -819,6 +851,8 @@
                 attempt,
                 status: state.stopRequested ? 'stopped' : 'failed',
                 elapsedMs: null,
+                firstFrameMs: null,
+                totalMs: null,
                 durationMs: performance.now() - startedAt,
                 reason: state.stopRequested ? 'Stopped by user' : err.message,
               }, false);
@@ -871,7 +905,6 @@
 
       renderResults();
       updateControls();
-      installPeerConnectionLogging();
       initAuth().catch((err) => {
         el.authStatus.textContent = 'Auth failed';
         log(`Auth failed: ${err.message}`);

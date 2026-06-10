@@ -1,5 +1,4 @@
 import { athena as Athena } from '@commaai/api';
-import { asyncSleep } from '.';
 
 const VIDEO_STREAM_NAME = 'camera';
 const wallMs = () => performance.timeOrigin + performance.now();
@@ -7,7 +6,6 @@ const wallMs = () => performance.timeOrigin + performance.now();
 const CLOCK_WINDOW_SIZE = 16;
 const CLOCK_PING_MS = 500;
 
-const ICE_GATHER_DEADLINE_MS = 5000;
 const CONNECTION_DEADLINE_MS = 8000;
 
 export const ConnectStep = {
@@ -16,25 +14,9 @@ export const ConnectStep = {
   ESTABLISHING: 3,
 };
 
-// Browsers obfuscate the local host behind a "<uuid>.local" mDNS hostname for
-// privacy. Aiortc can't resolve those https://github.com/commaai/connect/issues/609
-function stripMdnsCandidates(sdp) {
-  return sdp
-    .split(/\r\n|\n/)
-    .filter((line) => {
-      if (!line.startsWith('a=candidate:')) return true;
-      return !line.split(' ')[4]?.endsWith('.local'); // connection-address is field 5
-    })
-    .map((line) => line.replace(/[\w-]+\.local\b/g, '0.0.0.0'))
-    .join('\r\n');
-}
-
-function findCandidates(sdp) {
-  return sdp.split(/\r\n|\n/).filter((line) => line.startsWith('a=candidate:'));
-}
-
-export class WebRTCConnection {
+export class WebRTCConnection extends EventTarget {
   constructor(callbacks) {
+    super();
     this.pc = null;
     this.dc = null;
     this.joystickInterval = null;
@@ -46,13 +28,21 @@ export class WebRTCConnection {
     this.clockSyncSamples = [];
     this.clockOffsetMs = null;
     this.clockSynced = false;
+    this.connectStartedAt = null;
+  }
+
+  // emit a 'log' event for consumers (e.g. the latency test) to display;
+  // candidate is passed raw so the consumer owns ICE candidate formatting
+  _log(message, candidate) {
+    const elapsed = this.connectStartedAt != null ? ` +${(performance.now() - this.connectStartedAt).toFixed(0)}ms` : '';
+    console.log(`[webrtc${elapsed}] ${message}`);
+    this.dispatchEvent(new CustomEvent('log', { detail: { message, candidate } }));
   }
 
   async connect(dongleId) {
     this.cleanup();
     this.callbacks.onConnectionState('connecting');
-    const t0 = performance.now();
-    const log = (msg) => console.log(`[webrtc +${(performance.now() - t0).toFixed(0)}ms] ${msg}`);
+    this.connectStartedAt = performance.now();
 
     try {
       this.pc = new RTCPeerConnection({
@@ -87,7 +77,7 @@ export class WebRTCConnection {
                 };
                 evt.receiver.transform = new window.RTCRtpScriptTransform(worker);
               } catch (e) {
-                log(e);
+                this._log(e);
               }
             }
           }
@@ -137,50 +127,68 @@ export class WebRTCConnection {
         }
       };
 
+      let sessionId = null;
+      const pendingCandidates = [];
+      const sendCandidate = (candidate) => {
+        this._log('Sending addIceCandidate to device', candidate);
+        return Athena.postJsonRpcPayload(dongleId, {
+          method: 'addIceCandidate',
+          params: { session_id: sessionId, candidate },
+          jsonrpc: '2.0',
+          id: 0,
+        });
+      };
+      this.pc.addEventListener('icecandidate', (evt) => {
+        // skip mDNS candidates, aiortc can't resolve them
+        // https://github.com/commaai/connect/issues/609
+        if (evt.candidate?.address?.endsWith('.local')) return;
+        if (sessionId === null) {
+          pendingCandidates.push(evt.candidate);
+        } else {
+          sendCandidate(evt.candidate);
+        }
+      });
+
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
       this.callbacks.onConnectProgress?.(ConnectStep.GATHERING_CANDIDATES);
 
-      const pc = this.pc;
-
-      let resolveComplete;
-      const gatheringComplete = new Promise((resolve) => { resolveComplete = resolve; });
-      pc.addEventListener('icecandidate', (evt) => {
-        if (!evt.candidate) { resolveComplete(); }
-        // Chrome sends null candidate after connectionstate is compelete making promise finish after sleep timeout
-        // Host candidates are faster than srlfx and relay so will already be available
-        else if (evt.candidate.type == 'srflx' || evt.candidate.type === 'relay') { resolveComplete(); }
-      });
-
-      await Promise.race([gatheringComplete, asyncSleep(ICE_GATHER_DEADLINE_MS)]);
-      if (this.pc !== pc) throw new Error('Connection torn down during candidate gathering');
-
-      const offerSdp = stripMdnsCandidates(pc.localDescription.sdp);
-      if (findCandidates(offerSdp).length === 0) {
-        throw new Error(
-          "No direct connection candidates gathered. Check your network connection and try again. " +
-          "If error persists, your network may not allow direct peer-to-peer connections."
-        );
+      // bake initial candidates
+      const sections = offer.sdp.split(/^(?=m=)/m);
+      let bakedCandidates = 0;
+      for (const candidate of pendingCandidates.splice(0)) {
+        if (!candidate?.candidate) continue; // skip end-of-candidates marker
+        const idx = (candidate.sdpMLineIndex ?? 0) + 1;
+        if (sections[idx]) {
+          sections[idx] += `a=${candidate.candidate}\r\n`;
+          bakedCandidates += 1;
+        }
       }
-      this.callbacks.onConnectProgress?.(ConnectStep.PROCESSING_CANDIDATES);
+      this._log(`Baked ${bakedCandidates} initial ICE candidate(s) into offer`);
 
+      this._log('Sending startStream offer to device');
       const resp = await Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
-        params: { sdp: offerSdp },
+        params: { sdp: sections.join('') },
         jsonrpc: '2.0',
         id: 0,
       });
       if (resp?.error) {
-        log(`device error: ${JSON.stringify(resp.error)}`);
+        this._log(`device error: ${JSON.stringify(resp.error)}`);
         throw new Error(resp.error.data?.message || 'Could not reach device. Is the ignition on?');
       }
       if (!resp?.result) {
         throw new Error('Could not reach device. Is the ignition on?');
       }
-      if (this.pc !== pc) throw new Error('Connection torn down during signaling');
 
-      this.callbacks.onConnectProgress?.(ConnectStep.ESTABLISHING);
+      this._log(`Received startStream answer from device (session ${resp.result.session_id})`);
       await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
+      this._log('Remote description (answer) set');
+
+      sessionId = resp.result.session_id;
+      const trickleCandidates = pendingCandidates.splice(0);
+      this._log(`Flushing ${trickleCandidates.length} queued ICE candidate(s)`);
+      trickleCandidates.forEach(sendCandidate);
     } catch (err) {
       this.fail(err.message);
       throw err;
