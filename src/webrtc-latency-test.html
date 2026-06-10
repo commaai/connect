@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WebRTC connection test</title>
+    <script src="/config.js"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        line-height: 1.4;
+        margin: 20px;
+      }
+
+      main {
+        max-width: 960px;
+      }
+
+      fieldset {
+        margin: 0 0 16px;
+        padding: 12px;
+      }
+
+      label {
+        display: block;
+        margin: 10px 0 4px;
+      }
+
+      input,
+      button {
+        font: inherit;
+      }
+
+      input[type="text"] {
+        box-sizing: border-box;
+        max-width: 100%;
+        padding: 4px;
+        width: 320px;
+      }
+
+      button {
+        margin: 6px 6px 0 0;
+      }
+
+      .summary-grid {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        margin: 0 0 12px;
+        max-width: 760px;
+      }
+
+      .summary-grid div {
+        border: 1px solid #ccc;
+        padding: 8px;
+      }
+
+      .summary-grid dt {
+        color: #555;
+        font-size: 12px;
+        margin: 0 0 3px;
+      }
+
+      .summary-grid dd {
+        font-size: 18px;
+        font-weight: 700;
+        margin: 0;
+      }
+
+      .charts {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      }
+
+      .chart h3 {
+        font-size: 16px;
+        margin: 0 0 6px;
+      }
+
+      canvas {
+        border: 1px solid #bbb;
+        box-sizing: border-box;
+        display: block;
+        height: 160px;
+        width: 100%;
+      }
+
+      pre {
+        border: 1px solid;
+        max-height: 240px;
+        overflow: auto;
+        padding: 8px;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>WebRTC connection test</h1>
+
+      <fieldset>
+        <legend>Login</legend>
+        <div id="auth-status">Checking token...</div>
+        <div>
+          <button id="logout" type="button">Log out</button>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Test</legend>
+        <label for="dongle-id">Dongle ID</label>
+        <input id="dongle-id" type="text" inputmode="latin" autocomplete="off" maxlength="16">
+        <div>
+          <button id="start" type="button">Connect</button>
+          <button id="run-100" type="button">Run 100</button>
+          <button id="stop" type="button">Stop</button>
+          <button id="clear" type="button">Clear</button>
+        </div>
+        <p id="connection-status">Connection: idle</p>
+        <p id="connection-result"></p>
+        <p id="batch-status">Batch: idle</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Results</legend>
+        <dl id="result-summary" class="summary-grid"></dl>
+        <div class="charts">
+          <div class="chart">
+            <h3>Connect / total time by attempt</h3>
+            <canvas id="latency-chart"></canvas>
+          </div>
+          <div class="chart">
+            <h3>Distribution</h3>
+            <canvas id="distribution-chart"></canvas>
+          </div>
+        </div>
+      </fieldset>
+
+      <h2>Log</h2>
+      <pre id="log"></pre>
+    </main>
+
+    <script type="module">
+      import MyCommaAuth, { storage as AuthStorage } from '@commaai/my-comma-auth';
+      import { athena as Athena, request as Request } from '@commaai/api';
+      import { ConnectStep, WebRTCConnection } from './utils/webrtc.js';
+
+      const DONGLE_ID_RE = /^[a-f0-9]{16}$/;
+      const BATCH_ATTEMPTS = 100;
+      const ATTEMPT_DEADLINE_MS = 20000;
+      const FRAME_POLL_INTERVAL_MS = 10;
+
+      const stepLabels = {
+        [ConnectStep.GATHERING_CANDIDATES]: 'gathering candidates',
+        [ConnectStep.PROCESSING_CANDIDATES]: 'processing candidates',
+        [ConnectStep.ESTABLISHING]: 'establishing connection',
+      };
+
+      const el = {
+        authStatus: document.getElementById('auth-status'),
+        logout: document.getElementById('logout'),
+        dongleId: document.getElementById('dongle-id'),
+        start: document.getElementById('start'),
+        run100: document.getElementById('run-100'),
+        stop: document.getElementById('stop'),
+        clear: document.getElementById('clear'),
+        connectionStatus: document.getElementById('connection-status'),
+        connectionResult: document.getElementById('connection-result'),
+        batchStatus: document.getElementById('batch-status'),
+        resultSummary: document.getElementById('result-summary'),
+        latencyChart: document.getElementById('latency-chart'),
+        distributionChart: document.getElementById('distribution-chart'),
+        log: document.getElementById('log'),
+      };
+
+      const state = {
+        token: null,
+        connection: null,
+        connectStartedAt: null,
+        connectedAt: null,
+        stopRequested: false,
+        batchRunning: false,
+        resultTarget: null,
+        results: [],
+      };
+
+      function log(message) {
+        const time = new Date().toISOString();
+        const elapsed = state.connectStartedAt
+          ? ` +${(performance.now() - state.connectStartedAt).toFixed(0)}ms`
+          : '';
+        el.log.textContent += `${time}${elapsed} ${message}\n`;
+        el.log.scrollTop = el.log.scrollHeight;
+      }
+
+      function fmt(value) {
+        if (value == null || Number.isNaN(value)) return '-';
+        return Number(value).toFixed(1);
+      }
+
+      function fmtCount(value) {
+        if (value == null || Number.isNaN(value)) return '-';
+        return String(value);
+      }
+
+      function fmtPercent(value) {
+        if (value == null || Number.isNaN(value)) return '-';
+        return `${Number(value).toFixed(0)}%`;
+      }
+
+      function percentile(values, pct) {
+        if (values.length === 0) return null;
+        const pos = (values.length - 1) * pct;
+        const base = Math.floor(pos);
+        const rest = pos - base;
+        if (values[base + 1] == null) return values[base];
+        return values[base] + rest * (values[base + 1] - values[base]);
+      }
+
+      function seriesStats(rawValues) {
+        const values = rawValues.filter((value) => value != null).sort((a, b) => a - b);
+        const sum = values.reduce((total, value) => total + value, 0);
+        return {
+          averageMs: values.length > 0 ? sum / values.length : null,
+          medianMs: percentile(values, 0.5),
+          p90Ms: percentile(values, 0.9),
+          minMs: values.length > 0 ? values[0] : null,
+          maxMs: values.length > 0 ? values[values.length - 1] : null,
+          values,
+        };
+      }
+
+      function computeStats(results) {
+        const connectedResults = results.filter((result) => result.status === 'connected' && result.elapsedMs != null);
+        const connect = seriesStats(connectedResults.map((result) => result.elapsedMs));
+        const firstFrame = seriesStats(connectedResults.map((result) => result.firstFrameMs));
+        const total = seriesStats(connectedResults.map((result) => result.totalMs));
+        const failed = results.filter((result) => result.status === 'failed').length;
+        const stopped = results.filter((result) => result.status === 'stopped').length;
+
+        return {
+          attempts: results.length,
+          connected: connect.values.length,
+          failed,
+          stopped,
+          successRate: results.length > 0 ? (connect.values.length / results.length) * 100 : null,
+          averageMs: connect.averageMs,
+          medianMs: connect.medianMs,
+          p90Ms: connect.p90Ms,
+          minMs: connect.minMs,
+          maxMs: connect.maxMs,
+          values: connect.values,
+          firstFrame,
+          total,
+        };
+      }
+
+      function metric(label, value) {
+        const item = document.createElement('div');
+        const term = document.createElement('dt');
+        const detail = document.createElement('dd');
+        term.textContent = label;
+        detail.textContent = value;
+        item.append(term, detail);
+        return item;
+      }
+
+      function prepareCanvas(canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const width = Math.max(1, rect.width || canvas.clientWidth || 320);
+        const height = Math.max(1, rect.height || canvas.clientHeight || 160);
+        const dpr = window.devicePixelRatio || 1;
+        const scaledWidth = Math.round(width * dpr);
+        const scaledHeight = Math.round(height * dpr);
+
+        if (canvas.width !== scaledWidth) canvas.width = scaledWidth;
+        if (canvas.height !== scaledHeight) canvas.height = scaledHeight;
+
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+        ctx.font = '12px sans-serif';
+        ctx.lineWidth = 1;
+        return { ctx, width, height };
+      }
+
+      function drawEmpty(canvas, message) {
+        const { ctx, width, height } = prepareCanvas(canvas);
+        ctx.fillStyle = '#666';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(message, width / 2, height / 2);
+      }
+
+      function drawLatencyChart(results) {
+        if (results.length === 0) {
+          drawEmpty(el.latencyChart, 'No attempts yet');
+          return;
+        }
+
+        const { ctx, width, height } = prepareCanvas(el.latencyChart);
+        const connected = results.filter((result) => result.status === 'connected' && result.elapsedMs != null);
+        const values = connected.map((result) => result.elapsedMs);
+        const withTotals = connected.filter((result) => result.totalMs != null);
+
+        if (values.length === 0) {
+          drawEmpty(el.latencyChart, 'No successful connects');
+          return;
+        }
+
+        const left = 42;
+        const right = 10;
+        const top = 12;
+        const bottom = 24;
+        const plotWidth = width - left - right;
+        const plotHeight = height - top - bottom;
+        const target = Math.max(state.resultTarget || results.length, 1);
+        const maxMs = Math.max(10, ...values, ...withTotals.map((result) => result.totalMs)) * 1.1;
+        const xForAttempt = (attempt) => {
+          if (target <= 1) return left + plotWidth / 2;
+          return left + ((attempt - 1) / (target - 1)) * plotWidth;
+        };
+        const yForMs = (ms) => top + (1 - ms / maxMs) * plotHeight;
+
+        ctx.strokeStyle = '#ddd';
+        ctx.fillStyle = '#555';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        for (let i = 0; i <= 4; i += 1) {
+          const y = top + (i / 4) * plotHeight;
+          const value = maxMs * (1 - i / 4);
+          ctx.beginPath();
+          ctx.moveTo(left, y);
+          ctx.lineTo(width - right, y);
+          ctx.stroke();
+          ctx.fillText(fmt(value), left - 6, y);
+        }
+
+        ctx.strokeStyle = '#888';
+        ctx.beginPath();
+        ctx.moveTo(left, top);
+        ctx.lineTo(left, height - bottom);
+        ctx.lineTo(width - right, height - bottom);
+        ctx.stroke();
+
+        ctx.fillStyle = '#555';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('1', left, height - bottom + 6);
+        ctx.fillText(String(target), width - right, height - bottom + 6);
+
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        connected.forEach((result, index) => {
+          const x = xForAttempt(result.attempt);
+          const y = yForMs(result.elapsedMs);
+          if (index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        connected.forEach((result) => {
+          const x = xForAttempt(result.attempt);
+          const y = yForMs(result.elapsedMs);
+          ctx.fillStyle = '#2563eb';
+          ctx.beginPath();
+          ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        ctx.strokeStyle = '#7c3aed';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        withTotals.forEach((result, index) => {
+          const x = xForAttempt(result.attempt);
+          const y = yForMs(result.totalMs);
+          if (index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        withTotals.forEach((result) => {
+          const x = xForAttempt(result.attempt);
+          const y = yForMs(result.totalMs);
+          ctx.fillStyle = '#7c3aed';
+          ctx.beginPath();
+          ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = '#7c3aed';
+        ctx.fillText('total', width - right, top);
+        ctx.fillStyle = '#2563eb';
+        ctx.fillText('connect', width - right - 34, top);
+
+        ctx.strokeStyle = '#dc2626';
+        ctx.lineWidth = 1.5;
+        results
+          .filter((result) => result.status !== 'connected')
+          .forEach((result) => {
+            const x = xForAttempt(result.attempt);
+            const y = height - bottom - 5;
+            ctx.beginPath();
+            ctx.moveTo(x - 4, y - 4);
+            ctx.lineTo(x + 4, y + 4);
+            ctx.moveTo(x + 4, y - 4);
+            ctx.lineTo(x - 4, y + 4);
+            ctx.stroke();
+          });
+      }
+
+      function drawDistributionChart(stats) {
+        if (stats.values.length === 0) {
+          drawEmpty(el.distributionChart, 'No successful connects');
+          return;
+        }
+
+        const { ctx, width, height } = prepareCanvas(el.distributionChart);
+        const left = 42;
+        const right = 12;
+        const top = 12;
+        const bottom = 26;
+        const plotWidth = width - left - right;
+        const plotHeight = height - top - bottom;
+        const binCount = Math.min(12, Math.max(5, Math.ceil(Math.sqrt(stats.values.length))));
+        const sameValue = stats.minMs === stats.maxMs;
+        const padding = sameValue ? Math.max(1, stats.minMs * 0.05) : 0;
+        const low = stats.minMs - padding;
+        const high = stats.maxMs + padding;
+        const span = Math.max(1, high - low);
+        const counts = Array.from({ length: binCount }, () => 0);
+
+        stats.values.forEach((value) => {
+          const index = Math.min(binCount - 1, Math.floor(((value - low) / span) * binCount));
+          counts[index] += 1;
+        });
+
+        const maxCount = Math.max(1, ...counts);
+
+        ctx.strokeStyle = '#ddd';
+        ctx.fillStyle = '#555';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        for (let i = 0; i <= 4; i += 1) {
+          const y = top + (i / 4) * plotHeight;
+          const value = maxCount * (1 - i / 4);
+          ctx.beginPath();
+          ctx.moveTo(left, y);
+          ctx.lineTo(width - right, y);
+          ctx.stroke();
+          ctx.fillText(String(Math.round(value)), left - 6, y);
+        }
+
+        ctx.strokeStyle = '#888';
+        ctx.beginPath();
+        ctx.moveTo(left, top);
+        ctx.lineTo(left, height - bottom);
+        ctx.lineTo(width - right, height - bottom);
+        ctx.stroke();
+
+        const gap = 3;
+        const barWidth = plotWidth / binCount;
+        counts.forEach((count, index) => {
+          const barHeight = (count / maxCount) * plotHeight;
+          const x = left + index * barWidth + gap / 2;
+          const y = height - bottom - barHeight;
+          ctx.fillStyle = '#16a34a';
+          ctx.fillRect(x, y, Math.max(1, barWidth - gap), barHeight);
+        });
+
+        const avgX = left + ((stats.averageMs - low) / span) * plotWidth;
+        ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(avgX, top);
+        ctx.lineTo(avgX, height - bottom);
+        ctx.stroke();
+
+        ctx.fillStyle = '#555';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`${fmt(low)} ms`, left, height - bottom + 6);
+        ctx.fillText(`${fmt(high)} ms`, width - right, height - bottom + 6);
+      }
+
+      function renderResults() {
+        const stats = computeStats(state.results);
+        el.resultSummary.replaceChildren(
+          metric('Attempts', fmtCount(stats.attempts)),
+          metric('Connected', fmtCount(stats.connected)),
+          metric('Failed', fmtCount(stats.failed)),
+          metric('Stopped', fmtCount(stats.stopped)),
+          metric('Success rate', fmtPercent(stats.successRate)),
+          metric('Average', `${fmt(stats.averageMs)} ms`),
+          metric('Median', `${fmt(stats.medianMs)} ms`),
+          metric('P90', `${fmt(stats.p90Ms)} ms`),
+          metric('Min / Max', `${fmt(stats.minMs)} / ${fmt(stats.maxMs)} ms`),
+          metric('First frame avg', `${fmt(stats.firstFrame.averageMs)} ms`),
+          metric('First frame median', `${fmt(stats.firstFrame.medianMs)} ms`),
+          metric('Total avg', `${fmt(stats.total.averageMs)} ms`),
+          metric('Total median', `${fmt(stats.total.medianMs)} ms`),
+          metric('Total P90', `${fmt(stats.total.p90Ms)} ms`),
+          metric('Total min / max', `${fmt(stats.total.minMs)} / ${fmt(stats.total.maxMs)} ms`),
+        );
+        drawLatencyChart(state.results);
+        drawDistributionChart(stats);
+      }
+
+      function updateControls() {
+        const running = !!state.connection || state.batchRunning;
+        el.start.disabled = running;
+        el.run100.disabled = running;
+        el.stop.disabled = !running;
+        el.clear.disabled = running;
+      }
+
+      function configureApi(token) {
+        const onError = (resp) => {
+          if (resp.status === 401) {
+            redirectToLogin();
+          }
+        };
+        Request.configure(token, onError);
+        Athena.configure(token, onError);
+        state.token = token;
+        el.authStatus.textContent = 'Signed in';
+      }
+
+      async function initAuth() {
+        const token = await MyCommaAuth.init();
+        if (token) {
+          configureApi(token);
+        } else {
+          redirectToLogin();
+        }
+      }
+
+      async function logout() {
+        stopTest();
+        await AuthStorage.logOut();
+        state.token = null;
+        log('Logged out');
+        redirectToLogin();
+      }
+
+      function redirectToLogin() {
+        const target = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        window.sessionStorage?.setItem('redirectURL', target);
+        window.location.replace(`/?r=${encodeURIComponent(target)}`);
+      }
+
+      function selectedDongleId() {
+        return el.dongleId.value.trim().toLowerCase();
+      }
+
+      function formatIceCandidate(candidate) {
+        if (!candidate) return 'end-of-candidates';
+
+        const fields = [];
+        if (candidate.type) fields.push(`type=${candidate.type}`);
+        if (candidate.protocol) fields.push(`protocol=${candidate.protocol}`);
+        if (candidate.address) fields.push(`address=${candidate.address}`);
+        if (candidate.port) fields.push(`port=${candidate.port}`);
+        if (candidate.tcpType) fields.push(`tcpType=${candidate.tcpType}`);
+        if (candidate.relatedAddress) fields.push(`relatedAddress=${candidate.relatedAddress}`);
+        if (candidate.relatedPort) fields.push(`relatedPort=${candidate.relatedPort}`);
+        if (candidate.candidate) fields.push(`candidate="${candidate.candidate}"`);
+
+        return fields.join(' ') || JSON.stringify(candidate);
+      }
+
+      function logWebrtcEvent(detail) {
+        const { message, candidate } = detail;
+        log(candidate !== undefined ? `${message}: ${formatIceCandidate(candidate)}` : message);
+      }
+
+      async function startTest() {
+        const dongleId = validateStart();
+        if (!dongleId) return;
+
+        state.stopRequested = false;
+        state.batchRunning = false;
+        state.resultTarget = 1;
+        state.results = [];
+        el.batchStatus.textContent = 'Batch: idle';
+        el.connectionResult.textContent = '';
+        renderResults();
+        updateControls();
+
+        const result = await runConnectionAttempt(dongleId, 1, 1);
+        state.results = [result];
+        renderResults();
+
+        if (result.status === 'connected') {
+          el.connectionResult.textContent = `Connected in ${fmt(result.elapsedMs)} ms, first frame +${fmt(result.firstFrameMs)} ms, total ${fmt(result.totalMs)} ms`;
+        } else if (result.status === 'stopped') {
+          el.connectionResult.textContent = 'Stopped';
+        } else {
+          el.connectionResult.textContent = `Failed${result.reason ? `: ${result.reason}` : ''}`;
+        }
+
+        state.resultTarget = null;
+        state.stopRequested = false;
+        el.connectionStatus.textContent = 'Connection: idle';
+        updateControls();
+      }
+
+      async function runBatchTest() {
+        const dongleId = validateStart();
+        if (!dongleId) return;
+
+        state.stopRequested = false;
+        state.batchRunning = true;
+        state.resultTarget = BATCH_ATTEMPTS;
+        state.results = [];
+        el.connectionResult.textContent = '';
+        el.batchStatus.textContent = `Batch: 0/${BATCH_ATTEMPTS}`;
+        log(`Starting ${BATCH_ATTEMPTS}-attempt test for ${dongleId}`);
+        renderResults();
+        updateControls();
+
+        for (let attempt = 1; attempt <= BATCH_ATTEMPTS; attempt += 1) {
+          if (state.stopRequested) break;
+          el.batchStatus.textContent = `Batch: attempt ${attempt}/${BATCH_ATTEMPTS}`;
+          const result = await runConnectionAttempt(dongleId, attempt, BATCH_ATTEMPTS);
+          state.results.push(result);
+          renderResults();
+          if (result.status === 'stopped' || state.stopRequested) break;
+        }
+
+        const stats = computeStats(state.results);
+        state.batchRunning = false;
+        state.resultTarget = null;
+
+        if (state.stopRequested) {
+          el.batchStatus.textContent = `Batch: stopped after ${state.results.length}/${BATCH_ATTEMPTS}`;
+          log(`Batch stopped after ${state.results.length}/${BATCH_ATTEMPTS} attempts`);
+        } else {
+          el.batchStatus.textContent = `Batch: complete, ${stats.connected}/${stats.attempts} connected, average ${fmt(stats.averageMs)} ms connect, ${fmt(stats.total.averageMs)} ms total`;
+          log(`Batch complete: ${stats.connected}/${stats.attempts} connected, average ${fmt(stats.averageMs)} ms connect, ${fmt(stats.total.averageMs)} ms total`);
+        }
+
+        state.stopRequested = false;
+        el.connectionStatus.textContent = 'Connection: idle';
+        updateControls();
+      }
+
+      function validateStart() {
+        const dongleId = selectedDongleId();
+        if (state.connection || state.batchRunning) {
+          log('Cannot start: test already running');
+          return null;
+        }
+        if (!state.token) {
+          log('Cannot start: not signed in');
+          return null;
+        }
+        if (!DONGLE_ID_RE.test(dongleId)) {
+          log('Cannot start: dongle ID must be 16 lowercase hex characters');
+          return null;
+        }
+        if (!window.RTCPeerConnection) {
+          log('Cannot start: RTCPeerConnection is not available');
+          return null;
+        }
+
+        window.localStorage.setItem('webrtcConnectionTestDongleId', dongleId);
+        return dongleId;
+      }
+
+      function runConnectionAttempt(dongleId, attempt, total) {
+        return new Promise((resolve) => {
+          const startedAt = performance.now();
+          const attemptLabel = total > 1 ? `attempt ${attempt}/${total}` : 'test';
+          let settled = false;
+          let attemptTimer = null;
+          let connection = null;
+          let connectedAt = null;
+          let firstFrameAt = null;
+          let videoTrack = null;
+          let frameStatsTimer = null;
+
+          function finish(result, disconnect = true) {
+            if (settled) return;
+            settled = true;
+            if (attemptTimer) {
+              clearTimeout(attemptTimer);
+              attemptTimer = null;
+            }
+            if (frameStatsTimer) {
+              clearInterval(frameStatsTimer);
+              frameStatsTimer = null;
+            }
+            if (videoTrack) {
+              videoTrack.removeEventListener('unmute', startFirstFramePoll);
+              videoTrack = null;
+            }
+            if (state.connection === connection) state.connection = null;
+            state.connectStartedAt = null;
+
+            if (disconnect && connection) {
+              connection.disconnect();
+            }
+
+            resolve(result);
+          }
+
+          function maybeFinishConnected() {
+            if (connectedAt == null || firstFrameAt == null) return;
+            const elapsedMs = connectedAt - startedAt;
+            const firstFrameMs = Math.max(0, firstFrameAt - connectedAt);
+            const totalMs = elapsedMs + firstFrameMs;
+            el.connectionResult.textContent = `Connected in ${fmt(elapsedMs)} ms, first frame +${fmt(firstFrameMs)} ms, total ${fmt(totalMs)} ms`;
+            log(`First frame ${fmt(firstFrameMs)} ms after connect, total ${fmt(totalMs)} ms`);
+            finish({
+              attempt,
+              status: 'connected',
+              elapsedMs,
+              firstFrameMs,
+              totalMs,
+              durationMs: totalMs,
+              reason: null,
+            });
+          }
+
+          async function pollFramesReceived() {
+            if (settled || firstFrameAt != null || !connection?.pc) return;
+            let stats;
+            try {
+              stats = await connection.pc.getStats();
+            } catch {
+              return;
+            }
+            if (settled || firstFrameAt != null) return;
+            for (const report of stats.values()) {
+              if (report.type !== 'inbound-rtp' || report.kind !== 'video') continue;
+              // framesReceived counts complete (fully assembled) frames
+              if ((report.framesReceived ?? report.framesDecoded ?? 0) > 0) {
+                firstFrameAt = performance.now();
+                if (frameStatsTimer) {
+                  clearInterval(frameStatsTimer);
+                  frameStatsTimer = null;
+                }
+                maybeFinishConnected();
+                return;
+              }
+            }
+          }
+
+          function startFirstFramePoll() {
+            if (settled || firstFrameAt != null || frameStatsTimer) return;
+            pollFramesReceived();
+            frameStatsTimer = setInterval(pollFramesReceived, FRAME_POLL_INTERVAL_MS);
+          }
+
+          state.connectStartedAt = startedAt;
+          state.connectedAt = null;
+          el.connectionStatus.textContent = `Connection: ${attemptLabel} connecting`;
+          log(`Starting ${attemptLabel} for ${dongleId}`);
+
+          connection = new WebRTCConnection({
+            onConnectionState: (connectionState, reason) => {
+              if (settled) return;
+
+              el.connectionStatus.textContent = `Connection: ${connectionState}${reason ? ` (${reason})` : ''}`;
+              log(`Connection ${connectionState}${reason ? `: ${reason}` : ''}`);
+
+              if (connectionState === 'connected' && !state.connectedAt) {
+                state.connectedAt = performance.now();
+                connectedAt = state.connectedAt;
+                const elapsedMs = connectedAt - startedAt;
+                el.connectionStatus.textContent = `Connection: ${attemptLabel}, waiting for first frame`;
+                el.connectionResult.textContent = `Connected in ${fmt(elapsedMs)} ms, waiting for first frame`;
+                log(`Connected in ${fmt(elapsedMs)} ms`);
+                maybeFinishConnected();
+              } else if (connectionState === 'failed') {
+                finish({
+                  attempt,
+                  status: 'failed',
+                  elapsedMs: null,
+                  firstFrameMs: null,
+                  totalMs: null,
+                  durationMs: performance.now() - startedAt,
+                  reason: reason || 'Connection failed',
+                }, false);
+              } else if (connectionState === 'disconnected' || connectionState === 'closed') {
+                const stopped = state.stopRequested;
+                finish({
+                  attempt,
+                  status: stopped ? 'stopped' : 'failed',
+                  elapsedMs: null,
+                  firstFrameMs: null,
+                  totalMs: null,
+                  durationMs: performance.now() - startedAt,
+                  reason: stopped ? 'Stopped by user' : (reason || 'Connection disconnected'),
+                }, false);
+              }
+            },
+            onConnectProgress: (step) => {
+              if (settled) return;
+              el.connectionStatus.textContent = `Connection: ${attemptLabel}, ${stepLabels[step] || 'connecting'}`;
+              log(`Connect progress: ${stepLabels[step] || step}`);
+            },
+            onBatteryLevel: () => {},
+            onVideoTrack: (_cameraName, stream) => {
+              if (settled) return;
+              log(`Remote track received: ${stream.getTracks().map((track) => `${track.kind}:${track.id}`).join(', ') || 'none'}`);
+              if (videoTrack) return;
+              const [track] = stream.getVideoTracks();
+              if (!track) return;
+              videoTrack = track;
+              if (track.muted) {
+                // remote tracks start muted and unmute when the first RTP data arrives;
+                // use that to start polling for the first complete frame
+                track.addEventListener('unmute', startFirstFramePoll, { once: true });
+              } else {
+                startFirstFramePoll();
+              }
+            },
+          });
+
+          connection.addEventListener('log', (evt) => logWebrtcEvent(evt.detail));
+
+          state.connection = connection;
+          updateControls();
+
+          attemptTimer = setTimeout(() => {
+            const reason = connectedAt != null
+              ? 'Timed out waiting for first frame'
+              : 'Timed out waiting for connected state';
+            log(`Connect failed: ${reason.toLowerCase()} after ${fmt(ATTEMPT_DEADLINE_MS)} ms`);
+            finish({
+              attempt,
+              status: 'failed',
+              elapsedMs: null,
+              firstFrameMs: null,
+              totalMs: null,
+              durationMs: performance.now() - startedAt,
+              reason,
+            });
+          }, ATTEMPT_DEADLINE_MS);
+
+          connection.connect(dongleId).catch((err) => {
+            if (!settled) {
+              log(`Connect failed: ${err.message}`);
+              finish({
+                attempt,
+                status: state.stopRequested ? 'stopped' : 'failed',
+                elapsedMs: null,
+                firstFrameMs: null,
+                totalMs: null,
+                durationMs: performance.now() - startedAt,
+                reason: state.stopRequested ? 'Stopped by user' : err.message,
+              }, false);
+            }
+          });
+        });
+      }
+
+      function stopTest() {
+        state.stopRequested = true;
+        if (state.connection) {
+          log('Stopping active test');
+          state.connection.disconnect();
+        } else {
+          el.connectionStatus.textContent = 'Connection: idle';
+          updateControls();
+        }
+      }
+
+      function clearResults() {
+        if (state.connection || state.batchRunning) return;
+        state.connectStartedAt = null;
+        state.connectedAt = null;
+        state.resultTarget = null;
+        state.results = [];
+        el.connectionResult.textContent = '';
+        el.batchStatus.textContent = 'Batch: idle';
+        el.log.textContent = '';
+        renderResults();
+      }
+
+      let resizeFrame = null;
+      window.addEventListener('resize', () => {
+        if (resizeFrame) cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(() => {
+          resizeFrame = null;
+          renderResults();
+        });
+      });
+
+      el.logout.addEventListener('click', logout);
+      el.start.addEventListener('click', startTest);
+      el.run100.addEventListener('click', runBatchTest);
+      el.stop.addEventListener('click', stopTest);
+      el.clear.addEventListener('click', clearResults);
+      window.addEventListener('beforeunload', stopTest);
+
+      const savedDongleId = window.localStorage.getItem('webrtcConnectionTestDongleId');
+      if (savedDongleId) el.dongleId.value = savedDongleId;
+
+      renderResults();
+      updateControls();
+      initAuth().catch((err) => {
+        el.authStatus.textContent = 'Auth failed';
+        log(`Auth failed: ${err.message}`);
+      });
+    </script>
+  </body>
+</html>
