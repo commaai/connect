@@ -168,6 +168,8 @@ class DeviceInfo extends Component {
     };
 
     this.snapshotButtonRef = React.createRef();
+    this.bodyTeleopPrewarm = null;
+    this.bodyTeleopPrewarmAt = 0;
 
     this.onResize = this.onResize.bind(this);
     this.onVisible = this.onVisible.bind(this);
@@ -176,15 +178,18 @@ class DeviceInfo extends Component {
     this.snapshotType = this.snapshotType.bind(this);
     this.renderButtons = this.renderButtons.bind(this);
     this.renderSnapshotImage = this.renderSnapshotImage.bind(this);
+    this.prewarmBodyTeleop = this.prewarmBodyTeleop.bind(this);
     this.openBodyTeleop = this.openBodyTeleop.bind(this);
   }
 
   openBodyTeleop() {
+    this.prewarmBodyTeleop();
     this.props.dispatch(streamNav(true));
   }
 
   componentDidMount() {
     this.mounted = true;
+    this.prewarmBodyTeleop();
   }
 
   componentDidUpdate(prevProps) {
@@ -196,7 +201,11 @@ class DeviceInfo extends Component {
         snapshot: {},
         windowWidth: window.innerWidth,
       });
+      this.bodyTeleopPrewarm = null;
+      this.bodyTeleopPrewarmAt = 0;
     }
+
+    this.prewarmBodyTeleop();
   }
 
   componentWillUnmount() {
@@ -243,6 +252,27 @@ class DeviceInfo extends Component {
         this.setState({ carHealth: { error: err.message } });
       }
     }
+  }
+
+  shouldPrewarmBodyTeleop() {
+    const { device } = this.props;
+    return Boolean(deviceIsOnline(device) && device?.rpc?.not_car && deviceVersionAtLeast(device, '0.11.2'));
+  }
+
+  prewarmBodyTeleop() {
+    const { dongleId } = this.props;
+    const now = Date.now();
+    if (!dongleId || !this.shouldPrewarmBodyTeleop()) return null;
+    if (this.bodyTeleopPrewarm && now - this.bodyTeleopPrewarmAt < 30000) return this.bodyTeleopPrewarm;
+
+    this.bodyTeleopPrewarmAt = now;
+    this.bodyTeleopPrewarm = Athena.postJsonRpcPayload(dongleId, {
+      method: 'echo',
+      params: { s: 'webrtc-prewarm' },
+      jsonrpc: '2.0',
+      id: 0,
+    }).catch(() => null);
+    return this.bodyTeleopPrewarm;
   }
 
   async takeSnapshot() {
@@ -380,6 +410,9 @@ class DeviceInfo extends Component {
             style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
             className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
             onClick={ this.openBodyTeleop }
+            onFocus={ this.prewarmBodyTeleop }
+            onMouseEnter={ this.prewarmBodyTeleop }
+            onTouchStart={ this.prewarmBodyTeleop }
             disabled={ !deviceIsOnline(device) }
           >
             <Typography className='text-black'>remote control</Typography>

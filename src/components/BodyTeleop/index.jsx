@@ -13,12 +13,12 @@ import Joystick from './Joystick';
 
 const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [connectionState, setConnectionState] = useState('none');
-  const [connectStep, setConnectStep] = useState(null);
   const [battery, setBattery] = useState(null);
   const [error, setError] = useState(null);
   const [activeCamera, setActiveCamera] = useState('wideRoad');
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [inputActive, setInputActive] = useState(false);
+  const [connectionTotalMs, setConnectionTotalMs] = useState(null);
 
   const videoRef = useRef(null);
   const streamsRef = useRef({});
@@ -26,6 +26,8 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const latencyCallbackRef = useRef(null);
   const switchTimerRef = useRef(null);
   const timeoutTimerRef = useRef(null);
+  const connectStartedAtRef = useRef(null);
+  const firstFrameMeasuredRef = useRef(false);
 
   const isLandscape = useIsLandscape();
 
@@ -39,15 +41,11 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     const conn = new WebRTCConnection({
       onConnectionState: (state, reason) => {
         setConnectionState(state);
-        if (state !== 'connecting') {
-          setConnectStep(null);
-        }
         if (state === 'failed') {
           // don't overwrite the original error reason
           setError((prev) => prev || reason || 'Could not reach device. Is the ignition on?');
         }
       },
-      onConnectProgress: setConnectStep,
       onBatteryLevel: setBattery,
       onVideoTrack: (_cameraName, stream) => {
         streamsRef.current.camera = stream;
@@ -92,10 +90,14 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     if (!conn) return;
     setError(null);
     setActiveCamera('wideRoad');
+    setConnectionTotalMs(null);
+    connectStartedAtRef.current = performance.now();
+    firstFrameMeasuredRef.current = false;
     try {
       await conn.connect(dongleId);
     } catch (err) {
       setError(err.message);
+      connectStartedAtRef.current = null;
     }
   }, [dongleId]);
 
@@ -105,6 +107,9 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
 
   const handleDisconnect = useCallback(() => {
     setError(null);
+    setConnectionTotalMs(null);
+    connectStartedAtRef.current = null;
+    firstFrameMeasuredRef.current = false;
     connectionRef.current?.disconnect();
   }, []);
 
@@ -129,13 +134,19 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     connectionRef.current?.setQuality(nextQuality);
   }, []);
 
+  const handleFirstFrame = useCallback(() => {
+    if (connectStartedAtRef.current == null || firstFrameMeasuredRef.current) return;
+    firstFrameMeasuredRef.current = true;
+    setConnectionTotalMs(performance.now() - connectStartedAtRef.current);
+  }, []);
+
   const connection = connectionRef.current;
   const connected = connectionState === 'connected';
   const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
 
   const videoProps = {
-    videoRef, connectionState, error,
-    connectStep,
+    videoRef, connectionState, error, connectionTotalMs,
+    onFirstFrame: handleFirstFrame,
     onConnect: handleConnect,
   };
 

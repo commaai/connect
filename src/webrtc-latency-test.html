@@ -144,18 +144,14 @@
     <script type="module">
       import MyCommaAuth, { storage as AuthStorage } from '@commaai/my-comma-auth';
       import { athena as Athena, request as Request } from '@commaai/api';
-      import { ConnectStep, WebRTCConnection } from './utils/webrtc.js';
+      import { WebRTCConnection } from './utils/webrtc.js';
 
       const DONGLE_ID_RE = /^[a-f0-9]{16}$/;
       const BATCH_ATTEMPTS = 100;
       const ATTEMPT_DEADLINE_MS = 20000;
       const FRAME_POLL_INTERVAL_MS = 10;
-
-      const stepLabels = {
-        [ConnectStep.GATHERING_CANDIDATES]: 'gathering candidates',
-        [ConnectStep.PROCESSING_CANDIDATES]: 'processing candidates',
-        [ConnectStep.ESTABLISHING]: 'establishing connection',
-      };
+      // pause between batch attempts so the device can recover before the next connect
+      const BATCH_DELAY_MS = 0;
 
       const el = {
         authStatus: document.getElementById('auth-status'),
@@ -181,9 +177,25 @@
         connectedAt: null,
         stopRequested: false,
         batchRunning: false,
+        batchDelay: null,
         resultTarget: null,
         results: [],
       };
+
+      // cancelable delay; resolves early if stopTest() clears state.batchDelay
+      function sleep(ms) {
+        return new Promise((resolve) => {
+          const timer = setTimeout(() => {
+            state.batchDelay = null;
+            resolve();
+          }, ms);
+          state.batchDelay = () => {
+            clearTimeout(timer);
+            state.batchDelay = null;
+            resolve();
+          };
+        });
+      }
 
       function log(message) {
         const time = new Date().toISOString();
@@ -630,6 +642,10 @@
           state.results.push(result);
           renderResults();
           if (result.status === 'stopped' || state.stopRequested) break;
+          if (attempt < BATCH_ATTEMPTS && BATCH_DELAY_MS > 0) {
+            el.batchStatus.textContent = `Batch: attempt ${attempt}/${BATCH_ATTEMPTS}, waiting ${BATCH_DELAY_MS} ms`;
+            await sleep(BATCH_DELAY_MS);
+          }
         }
 
         const stats = computeStats(state.results);
@@ -683,6 +699,7 @@
           let firstFrameAt = null;
           let videoTrack = null;
           let frameStatsTimer = null;
+          let connectionLogHandler = null;
 
           function finish(result, disconnect = true) {
             if (settled) return;
@@ -701,6 +718,11 @@
             }
             if (state.connection === connection) state.connection = null;
             state.connectStartedAt = null;
+
+            if (connection && connectionLogHandler) {
+              connection.removeEventListener('log', connectionLogHandler);
+              connectionLogHandler = null;
+            }
 
             if (disconnect && connection) {
               connection.disconnect();
@@ -800,11 +822,6 @@
                 }, false);
               }
             },
-            onConnectProgress: (step) => {
-              if (settled) return;
-              el.connectionStatus.textContent = `Connection: ${attemptLabel}, ${stepLabels[step] || 'connecting'}`;
-              log(`Connect progress: ${stepLabels[step] || step}`);
-            },
             onBatteryLevel: () => {},
             onVideoTrack: (_cameraName, stream) => {
               if (settled) return;
@@ -823,7 +840,8 @@
             },
           });
 
-          connection.addEventListener('log', (evt) => logWebrtcEvent(evt.detail));
+          connectionLogHandler = (evt) => logWebrtcEvent(evt.detail);
+          connection.addEventListener('log', connectionLogHandler);
 
           state.connection = connection;
           updateControls();
@@ -863,6 +881,7 @@
 
       function stopTest() {
         state.stopRequested = true;
+        if (state.batchDelay) state.batchDelay();
         if (state.connection) {
           log('Stopping active test');
           state.connection.disconnect();

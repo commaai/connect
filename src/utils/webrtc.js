@@ -6,13 +6,7 @@ const wallMs = () => performance.timeOrigin + performance.now();
 const CLOCK_WINDOW_SIZE = 16;
 const CLOCK_PING_MS = 500;
 
-const CONNECTION_DEADLINE_MS = 8000;
-
-export const ConnectStep = {
-  GATHERING_CANDIDATES: 1,
-  PROCESSING_CANDIDATES: 2,
-  ESTABLISHING: 3,
-};
+const CONNECTION_DEADLINE_MS = 10000;
 
 export class WebRTCConnection extends EventTarget {
   constructor(callbacks) {
@@ -29,13 +23,12 @@ export class WebRTCConnection extends EventTarget {
     this.clockOffsetMs = null;
     this.clockSynced = false;
     this.connectStartedAt = null;
+    this.transformWorkers = [];
   }
 
   // emit a 'log' event for consumers (e.g. the latency test) to display;
   // candidate is passed raw so the consumer owns ICE candidate formatting
   _log(message, candidate) {
-    const elapsed = this.connectStartedAt != null ? ` +${(performance.now() - this.connectStartedAt).toFixed(0)}ms` : '';
-    console.log(`[webrtc${elapsed}] ${message}`);
     this.dispatchEvent(new CustomEvent('log', { detail: { message, candidate } }));
   }
 
@@ -49,6 +42,13 @@ export class WebRTCConnection extends EventTarget {
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
         bundlePolicy: 'max-bundle',
         encodedInsertableStreams: true,
+      });
+      this._log('RTCPeerConnection created');
+      this.pc.addEventListener('icegatheringstatechange', () => {
+        if (this.pc) this._log(`ICE gathering state: ${this.pc.iceGatheringState}`);
+      });
+      this.pc.addEventListener('iceconnectionstatechange', () => {
+        if (this.pc) this._log(`ICE connection state: ${this.pc.iceConnectionState}`);
       });
 
       this.pc.addEventListener('track', (evt) => {
@@ -70,6 +70,7 @@ export class WebRTCConnection extends EventTarget {
                   new URL('./latency-transform-worker.js', import.meta.url),
                   { type: 'module' },
                 );
+                this.transformWorkers.push(worker);
                 worker.onmessage = (e) => {
                   if (e.data.type === 'timing') {
                     this._processTimingData(e.data.timing);
@@ -93,6 +94,7 @@ export class WebRTCConnection extends EventTarget {
       this.pc.addEventListener('connectionstatechange', () => {
         if (!this.pc) return;
         const state = this.pc.connectionState;
+        this._log(`Connection state: ${state}`);
         if (state === 'connected') {
           this._clearConnectionTimeout();
           this.callbacks.onConnectionState('connected');
@@ -109,6 +111,7 @@ export class WebRTCConnection extends EventTarget {
       }
       this.dc = this.pc.createDataChannel('data', { ordered: true });
       this.dc.onopen = () => {
+        this._log('Data channel open');
         this.joystickInterval = setInterval(() => this.sendJoystick(), 50);
         this.sendJoystick();
       };
@@ -130,15 +133,20 @@ export class WebRTCConnection extends EventTarget {
       let sessionId = null;
       const pendingCandidates = [];
       const sendCandidate = (candidate) => {
+        const tSend = performance.now();
         this._log('Sending addIceCandidate to device', candidate);
         return Athena.postJsonRpcPayload(dongleId, {
           method: 'addIceCandidate',
           params: { session_id: sessionId, candidate },
           jsonrpc: '2.0',
           id: 0,
+        }).then((resp) => {
+          this._log(`addIceCandidate RTT ${(performance.now() - tSend).toFixed(0)}ms`, candidate);
+          return resp;
         });
       };
       this.pc.addEventListener('icecandidate', (evt) => {
+        this._log('Local ICE candidate gathered', evt.candidate);
         // skip mDNS candidates, aiortc can't resolve them
         // https://github.com/commaai/connect/issues/609
         if (evt.candidate?.address?.endsWith('.local')) return;
@@ -149,9 +157,12 @@ export class WebRTCConnection extends EventTarget {
         }
       });
 
+      let tStep = performance.now();
       const offer = await this.pc.createOffer();
+      this._log(`createOffer done (${(performance.now() - tStep).toFixed(0)}ms)`);
+      tStep = performance.now();
       await this.pc.setLocalDescription(offer);
-      this.callbacks.onConnectProgress?.(ConnectStep.GATHERING_CANDIDATES);
+      this._log(`setLocalDescription done (${(performance.now() - tStep).toFixed(0)}ms)`);
 
       // bake initial candidates
       const sections = offer.sdp.split(/^(?=m=)/m);
@@ -167,12 +178,14 @@ export class WebRTCConnection extends EventTarget {
       this._log(`Baked ${bakedCandidates} initial ICE candidate(s) into offer`);
 
       this._log('Sending startStream offer to device');
+      tStep = performance.now();
       const resp = await Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
         params: { sdp: sections.join('') },
         jsonrpc: '2.0',
         id: 0,
       });
+      this._log(`startStream RTT ${(performance.now() - tStep).toFixed(0)}ms`);
       if (resp?.error) {
         this._log(`device error: ${JSON.stringify(resp.error)}`);
         throw new Error(resp.error.data?.message || 'Could not reach device. Is the ignition on?');
@@ -182,8 +195,9 @@ export class WebRTCConnection extends EventTarget {
       }
 
       this._log(`Received startStream answer from device (session ${resp.result.session_id})`);
+      tStep = performance.now();
       await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
-      this._log('Remote description (answer) set');
+      this._log(`Remote description (answer) set (${(performance.now() - tStep).toFixed(0)}ms)`);
 
       sessionId = resp.result.session_id;
       const trickleCandidates = pendingCandidates.splice(0);
@@ -313,11 +327,22 @@ export class WebRTCConnection extends EventTarget {
     this._clearConnectionTimeout();
     this._clearJoystickInterval();
     this._stopClockSync();
+    for (const worker of this.transformWorkers.splice(0)) {
+      worker.terminate();
+    }
     if (this.dc) {
+      this.dc.onopen = null;
+      this.dc.onclose = null;
+      this.dc.onmessage = null;
       this.dc.close();
       this.dc = null;
     }
     if (this.pc) {
+      if (this.pc.getReceivers) {
+        this.pc.getReceivers().forEach((receiver) => {
+          if (receiver.track?.stop) receiver.track.stop();
+        });
+      }
       if (this.pc.getTransceivers) {
         this.pc.getTransceivers().forEach((t) => {
           if (t.stop) t.stop();
