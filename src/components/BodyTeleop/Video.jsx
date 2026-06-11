@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Button, CircularProgress } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
 
+const CONNECTION_TIME_VISIBLE_MS = 3000;
+
 const ConnectOverlay = ({ connectionState, error, onConnect }) => {
   const connecting = connectionState === 'connecting';
   const canRetry = connectionState === 'failed' || connectionState === 'disconnected';
@@ -40,14 +42,27 @@ const Video = ({
 }) => {
   const connected = connectionState === 'connected';
   const [playing, setPlaying] = useState(false);
+  const [showConnectionTime, setShowConnectionTime] = useState(false);
 
   useEffect(() => {
     if (connectionState !== 'connected') {
       setPlaying(false);
+      setShowConnectionTime(false);
     }
   }, [connectionState]);
 
   const connectionTimeLabel = connectionTotalMs == null ? null : `${Math.round(connectionTotalMs)} ms`;
+
+  useEffect(() => {
+    if (connectionTimeLabel == null) {
+      setShowConnectionTime(false);
+      return undefined;
+    }
+
+    setShowConnectionTime(true);
+    const timer = setTimeout(() => setShowConnectionTime(false), CONNECTION_TIME_VISIBLE_MS);
+    return () => clearTimeout(timer);
+  }, [connectionTimeLabel]);
 
   return (
     <div className={`relative w-full ${className}`}>
@@ -63,7 +78,7 @@ const Video = ({
         className={`w-full h-full pointer-events-none object-contain transition-opacity duration-200 ease-in ${playing ? 'opacity-100' : 'opacity-0'}`}
       />
       {connected && connectionTimeLabel && (
-        <div className="absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded bg-black/50 px-2 py-0.5 text-[11px] leading-4 text-white/70 pointer-events-none">
+        <div className={`absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded bg-black/50 px-2 py-0.5 text-[11px] leading-4 text-white/70 pointer-events-none transition-opacity duration-500 ease-out ${showConnectionTime ? 'opacity-100' : 'opacity-0'}`}>
           {`Connection ready in ${connectionTimeLabel}`}
         </div>
       )}
