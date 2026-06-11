@@ -1,12 +1,23 @@
+import { resolve } from 'path';
+import { fileURLToPath } from 'url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import svgrPlugin from 'vite-plugin-svgr';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 
+const rootDir = fileURLToPath(new URL('.', import.meta.url));
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
+  const input = {
+    main: resolve(rootDir, 'index.html'),
+  };
   let sentryPlugin;
+  if (mode !== 'production' || process.env.WEBRTC_LATENCY_TEST) {
+    input['webrtc-latency-runner'] = resolve(rootDir, 'src/__puppeteer__/webrtc-latency-runner.html');
+  }
+
   if (mode === 'production' && process.env.SENTRY_AUTH_TOKEN) {
     sentryPlugin = sentryVitePlugin({
       authToken: process.env.SENTRY_AUTH_TOKEN,
@@ -25,6 +36,9 @@ export default defineConfig(({ mode }) => {
     build: {
       // Required for Sentry
       sourcemap: true,
+      rollupOptions: {
+        input,
+      },
     },
     plugins: [
       // TODO: compression plugin

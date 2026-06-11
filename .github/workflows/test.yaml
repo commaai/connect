@@ -30,6 +30,39 @@ jobs:
       - name: Run end-to-end tests
         run: pnpm test-puppeteer-build
 
+      - name: Check WebRTC latency test configuration
+        id: webrtc-latency
+        run: |
+          if [ -n "$WEBRTC_LATENCY_DONGLE_ID" ] && [ -n "$WEBRTC_LATENCY_ACCESS_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          WEBRTC_LATENCY_DONGLE_ID: ${{ secrets.WEBRTC_LATENCY_DONGLE_ID }}
+          WEBRTC_LATENCY_ACCESS_TOKEN: ${{ secrets.WEBRTC_LATENCY_ACCESS_TOKEN }}
+
+      - name: Run WebRTC latency test
+        if: ${{ steps.webrtc-latency.outputs.enabled == 'true' }}
+        run: pnpm test-webrtc-latency-build
+        env:
+          WEBRTC_LATENCY_DONGLE_ID: ${{ secrets.WEBRTC_LATENCY_DONGLE_ID }}
+          WEBRTC_LATENCY_ACCESS_TOKEN: ${{ secrets.WEBRTC_LATENCY_ACCESS_TOKEN }}
+          WEBRTC_LATENCY_REPORT_PATH: artifacts/webrtc-latency/report.html
+          WEBRTC_LATENCY_MIN_SUCCESS_RATE: ${{ vars.WEBRTC_LATENCY_MIN_SUCCESS_RATE }}
+          WEBRTC_LATENCY_MAX_CONNECT_AVG_MS: ${{ vars.WEBRTC_LATENCY_MAX_CONNECT_AVG_MS }}
+          WEBRTC_LATENCY_MAX_TOTAL_AVG_MS: ${{ vars.WEBRTC_LATENCY_MAX_TOTAL_AVG_MS }}
+          WEBRTC_LATENCY_ATTEMPT_DEADLINE_MS: ${{ vars.WEBRTC_LATENCY_ATTEMPT_DEADLINE_MS }}
+          WEBRTC_LATENCY_TIMEOUT_MS: ${{ vars.WEBRTC_LATENCY_TIMEOUT_MS }}
+
+      - name: Upload WebRTC latency report
+        if: ${{ always() && steps.webrtc-latency.outputs.enabled == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: webrtc-latency-report
+          path: artifacts/webrtc-latency/report.html
+          if-no-files-found: warn
+
   # bundle_size:
   #   runs-on: ubuntu-latest
   #   steps:

@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+/artifacts
 
 # production
 /build
