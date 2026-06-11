@@ -69,6 +69,10 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   }, []);
 
   useEffect(() => {
+    if (connectionState !== 'connected') {
+      clearTimeout(timeoutTimerRef.current);
+      return undefined;
+    }
     const onVisibilityChange = () => {
       clearTimeout(timeoutTimerRef.current);
       if (document.hidden) {
@@ -83,7 +87,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       document.removeEventListener('visibilitychange', onVisibilityChange);
       clearTimeout(timeoutTimerRef.current);
     };
-  }, []);
+  }, [connectionState]);
 
   const handleConnect = useCallback(async () => {
     const conn = connectionRef.current;

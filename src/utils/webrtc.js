@@ -26,8 +26,6 @@ export class WebRTCConnection extends EventTarget {
     this.transformWorkers = [];
   }
 
-  // emit a 'log' event for consumers (e.g. the latency test) to display;
-  // candidate is passed raw so the consumer owns ICE candidate formatting
   _log(message, candidate) {
     this.dispatchEvent(new CustomEvent('log', { detail: { message, candidate } }));
   }
@@ -54,13 +52,9 @@ export class WebRTCConnection extends EventTarget {
       this.pc.addEventListener('track', (evt) => {
         if (evt.track.kind === 'video') {
           if (evt.receiver) {
-            // Minimize receiver-side buffering for low-latency playback
-            if ('playoutDelayHint' in evt.receiver) {
-              evt.receiver.playoutDelayHint = 0;
-            }
-            if ('jitterBufferTarget' in evt.receiver) {
-              evt.receiver.jitterBufferTarget = 0;
-            }
+            // hints: minimize receiver-side buffering on Chrome
+            if ('playoutDelayHint' in evt.receiver) evt.receiver.playoutDelayHint = 0;
+            if ('jitterBufferTarget' in evt.receiver) evt.receiver.jitterBufferTarget = 0;
 
             // Set up Transform to extract frame-level timing SEI in frames
             if (typeof window.RTCRtpScriptTransform !== 'undefined') {
@@ -103,12 +97,13 @@ export class WebRTCConnection extends EventTarget {
         }
       });
 
+      // set up video channel
       const codecs = RTCRtpReceiver.getCapabilities('video')?.codecs || [];
       const h264Codecs = codecs.filter((c) => c.mimeType === 'video/H264');
       const transceiver = this.pc.addTransceiver('video', { direction: 'recvonly' });
-      if (h264Codecs.length > 0) {
-        transceiver.setCodecPreferences(h264Codecs);
-      }
+      if (h264Codecs.length > 0) transceiver.setCodecPreferences(h264Codecs);
+
+      // set up data channel
       this.dc = this.pc.createDataChannel('data', { ordered: true });
       this.dc.onopen = () => {
         this._log('Data channel open');
@@ -147,14 +142,8 @@ export class WebRTCConnection extends EventTarget {
       };
       this.pc.addEventListener('icecandidate', (evt) => {
         this._log('Local ICE candidate gathered', evt.candidate);
-        // skip mDNS candidates, aiortc can't resolve them
-        // https://github.com/commaai/connect/issues/609
-        if (evt.candidate?.address?.endsWith('.local')) return;
-        if (sessionId === null) {
-          pendingCandidates.push(evt.candidate);
-        } else {
-          sendCandidate(evt.candidate);
-        }
+        if (sessionId === null) pendingCandidates.push(evt.candidate);
+        else sendCandidate(evt.candidate);
       });
 
       let tStep = performance.now();
@@ -193,16 +182,16 @@ export class WebRTCConnection extends EventTarget {
       if (!resp?.result) {
         throw new Error('Could not reach device. Is the ignition on?');
       }
-
       this._log(`Received startStream answer from device (session ${resp.result.session_id})`);
-      tStep = performance.now();
-      await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
-      this._log(`Remote description (answer) set (${(performance.now() - tStep).toFixed(0)}ms)`);
 
       sessionId = resp.result.session_id;
       const trickleCandidates = pendingCandidates.splice(0);
       this._log(`Flushing ${trickleCandidates.length} queued ICE candidate(s)`);
       trickleCandidates.forEach(sendCandidate);
+
+      tStep = performance.now();
+      await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
+      this._log(`Remote description (answer) set (${(performance.now() - tStep).toFixed(0)}ms)`);
     } catch (err) {
       this.fail(err.message);
       throw err;
