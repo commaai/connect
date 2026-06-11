@@ -144,8 +144,8 @@
     <script type="module">
       import MyCommaAuth, { storage as AuthStorage } from '@commaai/my-comma-auth';
       import { athena as Athena, request as Request } from '@commaai/api';
-      import { WebRTCConnection } from './utils/webrtc.js';
-
+      import { WebRTCConnection } from '../utils/webrtc.js';
+      
       const DONGLE_ID_RE = /^[a-f0-9]{16}$/;
       const BATCH_ATTEMPTS = 100;
       const ATTEMPT_DEADLINE_MS = 20000;
