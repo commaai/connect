@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>WebRTC latency runner</title>
+    <script src="/config.js"></script>
+  </head>
+  <body>
+    <script type="module">
+      import { athena as Athena, request as Request } from '@commaai/api';
+      import { WebRTCConnection } from '../utils/webrtc.js';
+
+      const DONGLE_ID_RE = /^[a-f0-9]{16}$/;
+      const ATTEMPT_DEADLINE_MS = 20000;
+      const FRAME_POLL_INTERVAL_MS = 10;
+      const DEVICE_TIMINGS_TIMEOUT_MS = 8000;
+
+      function wait(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      function cloneState(state, updates = {}) {
+        return {
+          attempts: state.attempts,
+          currentAttempt: state.currentAttempt,
+          dongleId: state.dongleId,
+          durationMs: performance.now() - state.startedAt,
+          error: state.error,
+          finishedAt: state.finishedAt,
+          logs: state.logs.slice(),
+          results: state.results.slice(),
+          startedWallTime: state.startedWallTime,
+          status: state.status,
+          ...updates,
+        };
+      }
+
+      function publishState(state, updates = {}) {
+        Object.assign(state, updates);
+        window.__webrtcLatencyState = cloneState(state);
+      }
+
+      function log(state, message) {
+        const elapsedMs = performance.now() - state.startedAt;
+        state.logs.push({
+          elapsedMs,
+          message: String(message),
+          time: new Date().toISOString(),
+        });
+        publishState(state);
+      }
+
+      function configureApi(token, state) {
+        const onError = (resp) => {
+          log(state, `API error ${resp.status}`);
+        };
+        Request.configure(token, onError);
+        Athena.configure(token, onError);
+      }
+
+      function formatIceCandidate(candidate) {
+        if (!candidate) return 'end-of-candidates';
+
+        const fields = [];
+        if (candidate.type) fields.push(`type=${candidate.type}`);
+        if (candidate.protocol) fields.push(`protocol=${candidate.protocol}`);
+        if (candidate.address) fields.push(`address=${candidate.address}`);
+        if (candidate.port) fields.push(`port=${candidate.port}`);
+        if (candidate.tcpType) fields.push(`tcpType=${candidate.tcpType}`);
+        if (candidate.relatedAddress) fields.push(`relatedAddress=${candidate.relatedAddress}`);
+        if (candidate.relatedPort) fields.push(`relatedPort=${candidate.relatedPort}`);
+        if (candidate.candidate) fields.push(`candidate="${candidate.candidate}"`);
+
+        return fields.join(' ') || JSON.stringify(candidate);
+      }
+
+      async function fetchDeviceTimings(dongleId, sessionId) {
+        if (!sessionId) return null;
+        const rpc = Athena.postJsonRpcPayload(dongleId, {
+          method: 'getStreamTimings',
+          params: { session_id: sessionId },
+          jsonrpc: '2.0',
+          id: 0,
+        });
+        const timeout = wait(DEVICE_TIMINGS_TIMEOUT_MS).then(() => null);
+        try {
+          const resp = await Promise.race([rpc, timeout]);
+          return resp?.result || null;
+        } catch {
+          return null;
+        }
+      }
+
+      function runConnectionAttempt(dongleId, attempt, total, state, options) {
+        return new Promise((resolve) => {
+          const attemptStartedAt = performance.now();
+          const attemptLabel = `attempt ${attempt}/${total}`;
+          const events = [];
+          let settled = false;
+          let attemptTimer = null;
+          let connection = null;
+          let connectedAt = null;
+          let firstFrameAt = null;
+          let videoTrack = null;
+          let frameStatsTimer = null;
+          let connectionLogHandler = null;
+
+          function mark(message, candidate) {
+            const atMs = performance.now() - attemptStartedAt;
+            const text = candidate !== undefined ? `${message}: ${formatIceCandidate(candidate)}` : String(message);
+            events.push({ atMs, message: text });
+            log(state, `${attemptLabel} ${text}`);
+          }
+
+          function finish(result, disconnect = true) {
+            if (settled) return;
+            settled = true;
+            if (attemptTimer) {
+              clearTimeout(attemptTimer);
+              attemptTimer = null;
+            }
+            if (frameStatsTimer) {
+              clearInterval(frameStatsTimer);
+              frameStatsTimer = null;
+            }
+            if (videoTrack) {
+              videoTrack.removeEventListener('unmute', startFirstFramePoll);
+              videoTrack = null;
+            }
+            if (connection && connectionLogHandler) {
+              connection.removeEventListener('log', connectionLogHandler);
+              connectionLogHandler = null;
+            }
+            if (disconnect && connection) {
+              connection.disconnect();
+            }
+            resolve(result);
+          }
+
+          async function maybeFinishConnected() {
+            if (connectedAt == null || firstFrameAt == null || settled) return;
+            const elapsedMs = connectedAt - attemptStartedAt;
+            const firstFrameMs = Math.max(0, firstFrameAt - connectedAt);
+            const totalMs = elapsedMs + firstFrameMs;
+            log(state, `${attemptLabel} first frame ${firstFrameMs.toFixed(1)} ms after connect, total ${totalMs.toFixed(1)} ms`);
+
+            // record the selected ICE candidate pair round-trip time
+            try {
+              const stats = await connection.pc.getStats();
+              for (const report of stats.values()) {
+                if (report.type === 'candidate-pair' && report.nominated && report.state === 'succeeded') {
+                  mark(`selected pair RTT current=${(report.currentRoundTripTime * 1000).toFixed(1)}ms`
+                    + ` total=${(report.totalRoundTripTime * 1000).toFixed(1)}ms responses=${report.responsesReceived}`);
+                }
+              }
+            } catch { /* stats are best-effort */ }
+
+            // grab full device-side timeline while the session is still alive
+            const responseTimings = connection?.deviceTimings || null;
+            const streamTimings = connection?.streamTimings || null;
+            const deviceTimings = await fetchDeviceTimings(dongleId, connection?.sessionId);
+            if (settled) return;
+
+            finish({
+              attempt,
+              durationMs: totalMs,
+              elapsedMs,
+              firstFrameMs,
+              linkMs: streamTimings?.linkMs ?? null,
+              deviceMs: streamTimings?.deviceProcessMs ?? null,
+              startStreamRttMs: streamTimings?.startStreamRttMs ?? null,
+              reason: null,
+              status: 'connected',
+              totalMs,
+              sessionId: connection?.sessionId || null,
+              events,
+              responseTimings,
+              streamTimings,
+              deviceTimings,
+            });
+          }
+
+          async function pollFramesReceived() {
+            if (settled || firstFrameAt != null || !connection?.pc) return;
+            let stats;
+            try {
+              stats = await connection.pc.getStats();
+            } catch {
+              return;
+            }
+            if (settled || firstFrameAt != null) return;
+            for (const report of stats.values()) {
+              if (report.type !== 'inbound-rtp' || report.kind !== 'video') continue;
+              if ((report.framesReceived ?? report.framesDecoded ?? 0) > 0) {
+                firstFrameAt = performance.now();
+                events.push({ atMs: firstFrameAt - attemptStartedAt, message: 'First video frame received' });
+                if (frameStatsTimer) {
+                  clearInterval(frameStatsTimer);
+                  frameStatsTimer = null;
+                }
+                maybeFinishConnected();
+                return;
+              }
+            }
+          }
+
+          function startFirstFramePoll() {
+            if (settled || firstFrameAt != null || frameStatsTimer) return;
+            pollFramesReceived();
+            frameStatsTimer = setInterval(pollFramesReceived, options.framePollIntervalMs);
+          }
+
+          log(state, `Starting ${attemptLabel} for ${dongleId}`);
+          connection = new WebRTCConnection({
+            onBatteryLevel: () => {},
+            onConnectionState: (connectionState, reason) => {
+              if (settled) return;
+              mark(`connection ${connectionState}${reason ? `: ${reason}` : ''}`);
+
+              if (connectionState === 'connected' && !connectedAt) {
+                connectedAt = performance.now();
+                log(state, `${attemptLabel} connected in ${(connectedAt - attemptStartedAt).toFixed(1)} ms`);
+                maybeFinishConnected();
+              } else if (connectionState === 'failed') {
+                finish({
+                  attempt,
+                  durationMs: performance.now() - attemptStartedAt,
+                  elapsedMs: null,
+                  firstFrameMs: null,
+                  reason: reason || 'Connection failed',
+                  status: 'failed',
+                  totalMs: null,
+                  events,
+                }, false);
+              } else if (connectionState === 'disconnected' || connectionState === 'closed') {
+                finish({
+                  attempt,
+                  durationMs: performance.now() - attemptStartedAt,
+                  elapsedMs: null,
+                  firstFrameMs: null,
+                  reason: reason || 'Connection disconnected',
+                  status: 'failed',
+                  totalMs: null,
+                  events,
+                }, false);
+              }
+            },
+            onVideoTrack: (_cameraName, stream) => {
+              if (settled) return;
+              mark(`remote track received: ${stream.getTracks().map((track) => `${track.kind}:${track.id}`).join(', ') || 'none'}`);
+
+              // watch DTLS + ICE transport state transitions
+              const dtls = connection?.pc?.getReceivers?.()[0]?.transport;
+              if (dtls) {
+                mark(`dtls transport state: ${dtls.state}`);
+                dtls.onstatechange = () => mark(`dtls transport state: ${dtls.state}`);
+                const iceT = dtls.iceTransport;
+                if (iceT) {
+                  mark(`ice transport state: ${iceT.state}`);
+                  iceT.onstatechange = () => mark(`ice transport state: ${iceT.state}`);
+                }
+              }
+
+              if (videoTrack) return;
+              const [track] = stream.getVideoTracks();
+              if (!track) return;
+              videoTrack = track;
+              if (track.muted) {
+                track.addEventListener('unmute', startFirstFramePoll, { once: true });
+              } else {
+                startFirstFramePoll();
+              }
+            },
+          }, { timing: false });  // current device athenad has no timing param
+
+          connectionLogHandler = (evt) => mark(evt.detail.message, evt.detail.candidate);
+          connection.addEventListener('log', connectionLogHandler);
+
+          attemptTimer = setTimeout(() => {
+            const reason = connectedAt != null
+              ? 'Timed out waiting for first frame'
+              : 'Timed out waiting for connected state';
+            log(state, `${attemptLabel} failed: ${reason.toLowerCase()} after ${options.attemptDeadlineMs.toFixed(0)} ms`);
+            finish({
+              attempt,
+              durationMs: performance.now() - attemptStartedAt,
+              elapsedMs: null,
+              firstFrameMs: null,
+              reason,
+              status: 'failed',
+              totalMs: null,
+              events,
+            });
+          }, options.attemptDeadlineMs);
+
+          connection.connect(dongleId).catch((err) => {
+            if (!settled) {
+              log(state, `${attemptLabel} failed: ${err.message}`);
+              finish({
+                attempt,
+                durationMs: performance.now() - attemptStartedAt,
+                elapsedMs: null,
+                firstFrameMs: null,
+                reason: err.message,
+                status: 'failed',
+                totalMs: null,
+                events,
+              }, false);
+            }
+          });
+        });
+      }
+
+      window.runWebrtcLatencyTest = async (rawOptions) => {
+        const options = {
+          attemptDeadlineMs: rawOptions.attemptDeadlineMs || ATTEMPT_DEADLINE_MS,
+          attempts: rawOptions.attempts,
+          batchDelayMs: rawOptions.batchDelayMs || 0,
+          dongleId: rawOptions.dongleId,
+          framePollIntervalMs: rawOptions.framePollIntervalMs || FRAME_POLL_INTERVAL_MS,
+          token: rawOptions.token || window.localStorage.getItem('authorization'),
+        };
+
+        const state = {
+          attempts: options.attempts,
+          currentAttempt: 0,
+          dongleId: options.dongleId,
+          finishedAt: null,
+          logs: [],
+          results: [],
+          startedAt: performance.now(),
+          startedWallTime: new Date().toISOString(),
+          status: 'running',
+        };
+        publishState(state);
+
+        try {
+          if (!options.token) throw new Error('Missing authorization token');
+          if (!Number.isInteger(options.attempts) || options.attempts <= 0) throw new Error('attempts must be a positive integer');
+          if (!DONGLE_ID_RE.test(options.dongleId || '')) throw new Error('dongleId must be 16 lowercase hex characters');
+          if (!window.RTCPeerConnection) throw new Error('RTCPeerConnection is not available');
+
+          window.localStorage.setItem('authorization', options.token);
+          configureApi(options.token, state);
+          log(state, `Starting ${options.attempts}-attempt WebRTC latency test`);
+
+          for (let attempt = 1; attempt <= options.attempts; attempt += 1) {
+            publishState(state, { currentAttempt: attempt });
+            const result = await runConnectionAttempt(options.dongleId, attempt, options.attempts, state, options);
+            state.results.push(result);
+            publishState(state);
+            if (options.batchDelayMs > 0 && attempt < options.attempts) {
+              await wait(options.batchDelayMs);
+            }
+          }
+
+          const finishedAt = new Date().toISOString();
+          publishState(state, {
+            durationMs: performance.now() - state.startedAt,
+            finishedAt,
+            status: 'complete',
+          });
+          log(state, `Completed ${options.attempts}-attempt WebRTC latency test`);
+          return cloneState(state, { durationMs: performance.now() - state.startedAt, finishedAt, status: 'complete' });
+        } catch (err) {
+          const finishedAt = new Date().toISOString();
+          publishState(state, {
+            durationMs: performance.now() - state.startedAt,
+            error: { message: err.message, stack: err.stack },
+            finishedAt,
+            status: 'failed',
+          });
+          throw err;
+        }
+      };
+
+      window.__webrtcLatencyReady = true;
+    </script>
+  </body>
+</html>

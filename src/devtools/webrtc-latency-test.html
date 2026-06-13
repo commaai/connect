@@ -67,12 +67,6 @@
         margin: 0;
       }
 
-      .charts {
-        display: grid;
-        gap: 16px;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      }
-
       .chart h3 {
         font-size: 16px;
         margin: 0 0 6px;
@@ -82,7 +76,7 @@
         border: 1px solid #bbb;
         box-sizing: border-box;
         display: block;
-        height: 160px;
+        height: 240px;
         width: 100%;
       }
 
@@ -125,15 +119,9 @@
       <fieldset>
         <legend>Results</legend>
         <dl id="result-summary" class="summary-grid"></dl>
-        <div class="charts">
-          <div class="chart">
-            <h3>Connect / total time by attempt</h3>
-            <canvas id="latency-chart"></canvas>
-          </div>
-          <div class="chart">
-            <h3>Distribution</h3>
-            <canvas id="distribution-chart"></canvas>
-          </div>
+        <div class="chart">
+          <h3>Connect / total / device / device+link (RTT) time by attempt</h3>
+          <canvas id="latency-chart"></canvas>
         </div>
       </fieldset>
 
@@ -166,7 +154,6 @@
         batchStatus: document.getElementById('batch-status'),
         resultSummary: document.getElementById('result-summary'),
         latencyChart: document.getElementById('latency-chart'),
-        distributionChart: document.getElementById('distribution-chart'),
         log: document.getElementById('log'),
       };
 
@@ -248,6 +235,15 @@
         const connect = seriesStats(connectedResults.map((result) => result.elapsedMs));
         const firstFrame = seriesStats(connectedResults.map((result) => result.firstFrameMs));
         const total = seriesStats(connectedResults.map((result) => result.totalMs));
+        const link = seriesStats(connectedResults.map((result) => result.linkMs));
+        const device = seriesStats(connectedResults.map((result) => result.deviceMs));
+        const startStreamRtt = seriesStats(connectedResults.map((result) => result.startStreamRttMs));
+        // startStream RTT (link + device) as a percentage of each attempt's total time
+        const rttShare = seriesStats(connectedResults.map((result) => (
+          result.linkMs != null && result.deviceMs != null && result.totalMs > 0
+            ? ((result.linkMs + result.deviceMs) / result.totalMs) * 100
+            : null
+        )));
         const failed = results.filter((result) => result.status === 'failed').length;
         const stopped = results.filter((result) => result.status === 'stopped').length;
 
@@ -265,6 +261,10 @@
           values: connect.values,
           firstFrame,
           total,
+          link,
+          device,
+          startStreamRtt,
+          rttShare,
         };
       }
 
@@ -313,13 +313,25 @@
 
         const { ctx, width, height } = prepareCanvas(el.latencyChart);
         const connected = results.filter((result) => result.status === 'connected' && result.elapsedMs != null);
-        const values = connected.map((result) => result.elapsedMs);
-        const withTotals = connected.filter((result) => result.totalMs != null);
 
-        if (values.length === 0) {
+        if (connected.length === 0) {
           drawEmpty(el.latencyChart, 'No successful connects');
           return;
         }
+
+        const series = [
+          { label: 'connect', color: '#2563eb', value: (result) => result.elapsedMs },
+          { label: 'total', color: '#7c3aed', value: (result) => result.totalMs },
+          { label: 'device', color: '#d97706', value: (result) => result.deviceMs },
+          // link stacked on device, so this line is the full startStream RTT;
+          // the gap to the device line is the link time
+          { label: 'device+link (RTT)', color: '#16a34a', value: (result) => (
+            result.linkMs != null && result.deviceMs != null ? result.deviceMs + result.linkMs : null
+          ) },
+        ].map((entry) => ({
+          ...entry,
+          points: connected.filter((result) => entry.value(result) != null),
+        }));
 
         const left = 42;
         const right = 10;
@@ -328,7 +340,8 @@
         const plotWidth = width - left - right;
         const plotHeight = height - top - bottom;
         const target = Math.max(state.resultTarget || results.length, 1);
-        const maxMs = Math.max(10, ...values, ...withTotals.map((result) => result.totalMs)) * 1.1;
+        const allValues = series.flatMap((entry) => entry.points.map((result) => entry.value(result)));
+        const maxMs = Math.max(10, ...allValues) * 1.1;
         const xForAttempt = (attempt) => {
           if (target <= 1) return left + plotWidth / 2;
           return left + ((attempt - 1) / (target - 1)) * plotWidth;
@@ -362,52 +375,39 @@
         ctx.fillText('1', left, height - bottom + 6);
         ctx.fillText(String(target), width - right, height - bottom + 6);
 
-        ctx.strokeStyle = '#2563eb';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        connected.forEach((result, index) => {
-          const x = xForAttempt(result.attempt);
-          const y = yForMs(result.elapsedMs);
-          if (index === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        });
-        ctx.stroke();
+        series.forEach((entry) => {
+          if (entry.points.length === 0) return;
 
-        connected.forEach((result) => {
-          const x = xForAttempt(result.attempt);
-          const y = yForMs(result.elapsedMs);
-          ctx.fillStyle = '#2563eb';
+          ctx.strokeStyle = entry.color;
+          ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(x, y, 2.5, 0, Math.PI * 2);
-          ctx.fill();
-        });
+          entry.points.forEach((result, index) => {
+            const x = xForAttempt(result.attempt);
+            const y = yForMs(entry.value(result));
+            if (index === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
 
-        ctx.strokeStyle = '#7c3aed';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        withTotals.forEach((result, index) => {
-          const x = xForAttempt(result.attempt);
-          const y = yForMs(result.totalMs);
-          if (index === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        });
-        ctx.stroke();
-
-        withTotals.forEach((result) => {
-          const x = xForAttempt(result.attempt);
-          const y = yForMs(result.totalMs);
-          ctx.fillStyle = '#7c3aed';
-          ctx.beginPath();
-          ctx.arc(x, y, 2.5, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fillStyle = entry.color;
+          entry.points.forEach((result) => {
+            const x = xForAttempt(result.attempt);
+            const y = yForMs(entry.value(result));
+            ctx.beginPath();
+            ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          });
         });
 
         ctx.textAlign = 'right';
         ctx.textBaseline = 'top';
-        ctx.fillStyle = '#7c3aed';
-        ctx.fillText('total', width - right, top);
-        ctx.fillStyle = '#2563eb';
-        ctx.fillText('connect', width - right - 34, top);
+        let legendX = width - right;
+        [...series].reverse().forEach((entry) => {
+          if (entry.points.length === 0) return;
+          ctx.fillStyle = entry.color;
+          ctx.fillText(entry.label, legendX, top);
+          legendX -= ctx.measureText(entry.label).width + 10;
+        });
 
         ctx.strokeStyle = '#dc2626';
         ctx.lineWidth = 1.5;
@@ -423,80 +423,6 @@
             ctx.lineTo(x - 4, y + 4);
             ctx.stroke();
           });
-      }
-
-      function drawDistributionChart(stats) {
-        if (stats.values.length === 0) {
-          drawEmpty(el.distributionChart, 'No successful connects');
-          return;
-        }
-
-        const { ctx, width, height } = prepareCanvas(el.distributionChart);
-        const left = 42;
-        const right = 12;
-        const top = 12;
-        const bottom = 26;
-        const plotWidth = width - left - right;
-        const plotHeight = height - top - bottom;
-        const binCount = Math.min(12, Math.max(5, Math.ceil(Math.sqrt(stats.values.length))));
-        const sameValue = stats.minMs === stats.maxMs;
-        const padding = sameValue ? Math.max(1, stats.minMs * 0.05) : 0;
-        const low = stats.minMs - padding;
-        const high = stats.maxMs + padding;
-        const span = Math.max(1, high - low);
-        const counts = Array.from({ length: binCount }, () => 0);
-
-        stats.values.forEach((value) => {
-          const index = Math.min(binCount - 1, Math.floor(((value - low) / span) * binCount));
-          counts[index] += 1;
-        });
-
-        const maxCount = Math.max(1, ...counts);
-
-        ctx.strokeStyle = '#ddd';
-        ctx.fillStyle = '#555';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        for (let i = 0; i <= 4; i += 1) {
-          const y = top + (i / 4) * plotHeight;
-          const value = maxCount * (1 - i / 4);
-          ctx.beginPath();
-          ctx.moveTo(left, y);
-          ctx.lineTo(width - right, y);
-          ctx.stroke();
-          ctx.fillText(String(Math.round(value)), left - 6, y);
-        }
-
-        ctx.strokeStyle = '#888';
-        ctx.beginPath();
-        ctx.moveTo(left, top);
-        ctx.lineTo(left, height - bottom);
-        ctx.lineTo(width - right, height - bottom);
-        ctx.stroke();
-
-        const gap = 3;
-        const barWidth = plotWidth / binCount;
-        counts.forEach((count, index) => {
-          const barHeight = (count / maxCount) * plotHeight;
-          const x = left + index * barWidth + gap / 2;
-          const y = height - bottom - barHeight;
-          ctx.fillStyle = '#16a34a';
-          ctx.fillRect(x, y, Math.max(1, barWidth - gap), barHeight);
-        });
-
-        const avgX = left + ((stats.averageMs - low) / span) * plotWidth;
-        ctx.strokeStyle = '#d97706';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(avgX, top);
-        ctx.lineTo(avgX, height - bottom);
-        ctx.stroke();
-
-        ctx.fillStyle = '#555';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.fillText(`${fmt(low)} ms`, left, height - bottom + 6);
-        ctx.fillText(`${fmt(high)} ms`, width - right, height - bottom + 6);
       }
 
       function renderResults() {
@@ -517,9 +443,17 @@
           metric('Total median', `${fmt(stats.total.medianMs)} ms`),
           metric('Total P90', `${fmt(stats.total.p90Ms)} ms`),
           metric('Total min / max', `${fmt(stats.total.minMs)} / ${fmt(stats.total.maxMs)} ms`),
+          metric('startStream RTT avg', `${fmt(stats.startStreamRtt.averageMs)} ms`),
+          metric('Link avg', `${fmt(stats.link.averageMs)} ms`),
+          metric('Link median', `${fmt(stats.link.medianMs)} ms`),
+          metric('Link P90', `${fmt(stats.link.p90Ms)} ms`),
+          metric('Device avg', `${fmt(stats.device.averageMs)} ms`),
+          metric('Device median', `${fmt(stats.device.medianMs)} ms`),
+          metric('Device P90', `${fmt(stats.device.p90Ms)} ms`),
+          metric('RTT % of total avg', fmtPercent(stats.rttShare.averageMs)),
+          metric('RTT % of total median', fmtPercent(stats.rttShare.medianMs)),
         );
         drawLatencyChart(state.results);
-        drawDistributionChart(stats);
       }
 
       function updateControls() {
@@ -736,8 +670,14 @@
             const elapsedMs = connectedAt - startedAt;
             const firstFrameMs = Math.max(0, firstFrameAt - connectedAt);
             const totalMs = elapsedMs + firstFrameMs;
+            const timings = connection?.streamTimings || {};
+            const rttShare = timings.linkMs != null && timings.deviceProcessMs != null && totalMs > 0
+              ? ((timings.linkMs + timings.deviceProcessMs) / totalMs) * 100
+              : null;
             el.connectionResult.textContent = `Connected in ${fmt(elapsedMs)} ms, first frame +${fmt(firstFrameMs)} ms, total ${fmt(totalMs)} ms`;
-            log(`First frame ${fmt(firstFrameMs)} ms after connect, total ${fmt(totalMs)} ms`);
+            log(`First frame ${fmt(firstFrameMs)} ms after connect, total ${fmt(totalMs)} ms`
+              + `, link ${fmt(timings.linkMs)} ms, device processing ${fmt(timings.deviceProcessMs)} ms`
+              + (rttShare != null ? `, RTT ${fmtPercent(rttShare)} of total` : ''));
             finish({
               attempt,
               status: 'connected',
@@ -745,6 +685,9 @@
               firstFrameMs,
               totalMs,
               durationMs: totalMs,
+              startStreamRttMs: timings.startStreamRttMs ?? null,
+              linkMs: timings.linkMs ?? null,
+              deviceMs: timings.deviceProcessMs ?? null,
               reason: null,
             });
           }

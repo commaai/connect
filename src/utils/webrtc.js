@@ -11,6 +11,9 @@ const CONNECTION_DEADLINE_MS = 10000;
 export class WebRTCConnection extends EventTarget {
   constructor(callbacks) {
     super();
+    this.sessionId = null;
+    this.deviceTimings = null;
+    this.streamTimings = null;
     this.pc = null;
     this.dc = null;
     this.joystickInterval = null;
@@ -26,14 +29,15 @@ export class WebRTCConnection extends EventTarget {
     this.transformWorkers = [];
   }
 
-  _log(message, candidate) {
-    this.dispatchEvent(new CustomEvent('log', { detail: { message, candidate } }));
+  _log(message, candidate, data) {
+    this.dispatchEvent(new CustomEvent('log', { detail: { message, candidate, data } }));
   }
 
   async connect(dongleId) {
     this.cleanup();
     this.callbacks.onConnectionState('connecting');
     this.connectStartedAt = performance.now();
+    this.streamTimings = null;
 
     try {
       this.pc = new RTCPeerConnection({
@@ -125,27 +129,44 @@ export class WebRTCConnection extends EventTarget {
         }
       };
 
-      let sessionId = null;
-      const pendingCandidates = [];
-      const sendCandidate = (candidate) => {
-        const tSend = performance.now();
-        this._log('Sending addIceCandidate to device', candidate);
+      // session id is generated client-side and sent with startStream, so
+      // candidates can trickle to the device while startStream is in flight
+      const sessionId = crypto.randomUUID();
+      this.sessionId = sessionId;
+      const CANDIDATE_RETRY_MS = 250;
+      const CANDIDATE_MAX_RETRIES = 8;
+      const sendCandidate = (candidate, attempt = 0) => {
+        // candidates can outrun startStream; webrtcd 404s until the stream
+        // session exists, so resend until it does
+        const retry = (reason) => {
+          if (attempt >= CANDIDATE_MAX_RETRIES || this.sessionId !== sessionId || !this.pc) {
+            this._log(`addIceCandidate failed: ${reason}`, candidate);
+            return null;
+          }
+          this._log(`stream session not available yet, resending candidate (attempt ${attempt + 1})`, candidate);
+          return new Promise((resolve) => { setTimeout(resolve, CANDIDATE_RETRY_MS); })
+            .then(() => sendCandidate(candidate, attempt + 1));
+        };
+        // const tSend = performance.now();
+        // this._log('Sending addIceCandidate to device', candidate);
         return Athena.postJsonRpcPayload(dongleId, {
           method: 'addIceCandidate',
           params: { session_id: sessionId, candidate },
           jsonrpc: '2.0',
           id: 0,
         }).then((resp) => {
-          this._log(`addIceCandidate RTT ${(performance.now() - tSend).toFixed(0)}ms`, candidate);
+          // this._log(`addIceCandidate RTT ${(performance.now() - tSend).toFixed(0)}ms`, candidate);
+          const errMsg = resp?.error?.data?.message || resp?.error?.message;
+          if (errMsg && (errMsg.includes('not available yet') || errMsg.includes('404'))) {
+            return retry(errMsg);
+          }
           return resp;
+        }).catch((err) => {
+          if (err.resp?.status === 404) return retry(err.message);
+          this._log(`addIceCandidate failed: ${err.message}`, candidate);
+          return null;
         });
       };
-      this.pc.addEventListener('icecandidate', (evt) => {
-        this._log('Local ICE candidate gathered', evt.candidate);
-        if (sessionId === null) pendingCandidates.push(evt.candidate);
-        else sendCandidate(evt.candidate);
-      });
-
       let tStep = performance.now();
       const offer = await this.pc.createOffer();
       this._log(`createOffer done (${(performance.now() - tStep).toFixed(0)}ms)`);
@@ -153,28 +174,23 @@ export class WebRTCConnection extends EventTarget {
       await this.pc.setLocalDescription(offer);
       this._log(`setLocalDescription done (${(performance.now() - tStep).toFixed(0)}ms)`);
 
-      // bake initial candidates
-      const sections = offer.sdp.split(/^(?=m=)/m);
-      let bakedCandidates = 0;
-      for (const candidate of pendingCandidates.splice(0)) {
-        if (!candidate?.candidate) continue; // skip end-of-candidates marker
-        const idx = (candidate.sdpMLineIndex ?? 0) + 1;
-        if (sections[idx]) {
-          sections[idx] += `a=${candidate.candidate}\r\n`;
-          bakedCandidates += 1;
-        }
-      }
-      this._log(`Baked ${bakedCandidates} initial ICE candidate(s) into offer`);
-
       this._log('Sending startStream offer to device');
       tStep = performance.now();
-      const resp = await Athena.postJsonRpcPayload(dongleId, {
+      const streamPromise = Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
-        params: { sdp: sections.join('') },
+        params: { sdp: offer.sdp, session_id: sessionId },
         jsonrpc: '2.0',
         id: 0,
       });
-      this._log(`startStream RTT ${(performance.now() - tStep).toFixed(0)}ms`);
+
+      this.pc.addEventListener('icecandidate', (evt) => {
+        // this._log('Local ICE candidate gathered', evt.candidate);
+        if (!evt.candidate) return;
+        sendCandidate(evt.candidate);
+      });
+
+      const resp = await streamPromise;
+      const rttMs = performance.now() - tStep;
       if (resp?.error) {
         this._log(`device error: ${JSON.stringify(resp.error)}`);
         throw new Error(resp.error.data?.message || 'Could not reach device. Is the ignition on?');
@@ -182,12 +198,17 @@ export class WebRTCConnection extends EventTarget {
       if (!resp?.result) {
         throw new Error('Could not reach device. Is the ignition on?');
       }
+      // device reports how long it spent handling startStream; the rest of the RTT is the link
+      const deviceProcessMs = typeof resp.result.time === 'number' ? resp.result.time : null;
+      const linkMs = deviceProcessMs != null ? Math.max(0, rttMs - deviceProcessMs) : null;
+      this.streamTimings = { startStreamRttMs: rttMs, deviceProcessMs, linkMs };
+      this._log(
+        `startStream RTT ${rttMs.toFixed(0)}ms`
+          + (deviceProcessMs != null ? `, link ${linkMs.toFixed(0)}ms, device processing ${deviceProcessMs.toFixed(0)}ms` : ''),
+        undefined,
+        this.streamTimings,
+      );
       this._log(`Received startStream answer from device (session ${resp.result.session_id})`);
-
-      sessionId = resp.result.session_id;
-      const trickleCandidates = pendingCandidates.splice(0);
-      this._log(`Flushing ${trickleCandidates.length} queued ICE candidate(s)`);
-      trickleCandidates.forEach(sendCandidate);
 
       tStep = performance.now();
       await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });

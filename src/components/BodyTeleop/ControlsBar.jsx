@@ -99,7 +99,7 @@ const ControlsBar = ({
         >
           <PhotoCamera className="text-[25px]" />
         </div>
-        <span className="text-[10px] lg:text-[13px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Screenshot</span>
+        <span className="text-[10px] lg:text-[13px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Snapshot</span>
       </div>
     </div>
   );
