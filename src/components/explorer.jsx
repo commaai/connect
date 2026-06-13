@@ -212,45 +212,50 @@ class ExplorerApp extends Component {
     return (
       <div>
         <ResizeHandler onResize={ (ww) => this.setState({ windowWidth: ww }) } />
-        <AppHeader
-          drawerIsOpen={ drawerIsOpen }
-          viewingRoute={ Boolean(currentRoute) }
-          showDrawerButton={ !isLarge }
-          handleDrawerStateChanged={this.handleDrawerStateChanged}
-          forwardRef={ this.updateHeaderRef }
-        />
-        <AppDrawer
-          drawerIsOpen={ drawerIsOpen }
-          isPermanent={ isLarge }
-          width={ sidebarWidth }
-          handleDrawerStateChanged={this.handleDrawerStateChanged}
-          style={ drawerStyles }
-        />
-        <div className={ classes.window } style={ containerStyles }>
-          { noDevicesUpsell
-            ? <NoDeviceUpsell />
-            : (currentRoute ? <DriveView /> : <Dashboard />)}
-          { bodyTeleopOpen && <BodyTeleop onClose={ this.closeBodyTeleop } /> }
-        </div>
-        <IosPwaPopup />
-        <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
-          <Paper className={classes.modal}>
-            <Typography variant="title">Pairing device</Typography>
-            <Divider />
-            { pairLoading && <CircularProgress size={32} className={classes.fabProgress} /> }
-            { pairDongleId
-              && (
-              <Typography>
-                {'Successfully paired device '}
-                <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
-              </Typography>
-              )}
-            { pairError && <Typography>{ pairError }</Typography> }
-            <Button variant="contained" className={ classes.closeButton } onClick={ this.closePair }>
-              Close
-            </Button>
-          </Paper>
-        </Modal>
+        { bodyTeleopOpen ? (
+          <BodyTeleop onClose={ this.closeBodyTeleop } />
+        ) : (
+          <>
+            <AppHeader
+              drawerIsOpen={ drawerIsOpen }
+              viewingRoute={ Boolean(currentRoute) }
+              showDrawerButton={ !isLarge }
+              handleDrawerStateChanged={this.handleDrawerStateChanged}
+              forwardRef={ this.updateHeaderRef }
+            />
+            <AppDrawer
+              drawerIsOpen={ drawerIsOpen }
+              isPermanent={ isLarge }
+              width={ sidebarWidth }
+              handleDrawerStateChanged={this.handleDrawerStateChanged}
+              style={ drawerStyles }
+            />
+            <div className={ classes.window } style={ containerStyles }>
+              { noDevicesUpsell
+                ? <NoDeviceUpsell />
+                : (currentRoute ? <DriveView /> : <Dashboard />)}
+            </div>
+            <IosPwaPopup />
+            <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
+              <Paper className={classes.modal}>
+                <Typography variant="title">Pairing device</Typography>
+                <Divider />
+                { pairLoading && <CircularProgress size={32} className={classes.fabProgress} /> }
+                { pairDongleId
+                  && (
+                  <Typography>
+                    {'Successfully paired device '}
+                    <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
+                  </Typography>
+                  )}
+                { pairError && <Typography>{ pairError }</Typography> }
+                <Button variant="contained" className={ classes.closeButton } onClick={ this.closePair }>
+                  Close
+                </Button>
+              </Paper>
+            </Modal>
+          </>
+        ) }
       </div>
     );
   }

@@ -4,7 +4,7 @@ import Obstruction from 'obstruction';
 
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
-import { WebRTCConnection } from '../../utils/webrtc';
+import { webrtcConnectionManager } from '../../utils/webrtc';
 import { useIsLandscape } from '../../hooks/window';
 import StatusBar from './StatusBar';
 import ControlsBar from './ControlsBar';
@@ -38,7 +38,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   }, []);
 
   useEffect(() => {
-    const conn = new WebRTCConnection({
+    const callbacks = {
       onConnectionState: (state, reason) => {
         setConnectionState(state);
         if (state === 'failed') {
@@ -56,17 +56,24 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       onLatencyUpdate: (latency) => {
         if (latencyCallbackRef.current) latencyCallbackRef.current(latency);
       },
-    });
+    };
 
-    connectionRef.current = conn;
-    const onBeforeUnload = () => conn.disconnect();
+    // reuse the connection pre-warmed on device select (flipping video on over the data
+    // channel), or open a video-enabled one if none is warm yet (e.g. a reload on /stream)
+    connectStartedAtRef.current = performance.now();
+    firstFrameMeasuredRef.current = false;
+    setConnectionTotalMs(null);
+    connectionRef.current = webrtcConnectionManager.acquire(dongleId, callbacks);
+
+    const onBeforeUnload = () => webrtcConnectionManager.disconnect();
     window.addEventListener('beforeunload', onBeforeUnload);
 
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload);
-      conn.disconnect();
+      // keep the connection warm for re-open, just stop the video stream
+      webrtcConnectionManager.release(callbacks);
     };
-  }, []);
+  }, [dongleId]);
 
   useEffect(() => {
     if (connectionState !== 'connected') {
@@ -77,7 +84,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       clearTimeout(timeoutTimerRef.current);
       if (document.hidden) {
         timeoutTimerRef.current = setTimeout(() => {
-          connectionRef.current?.disconnect();
+          webrtcConnectionManager.disconnect();
           setError('Session timed out');
         }, 30000);
       }
@@ -89,38 +96,18 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     };
   }, [connectionState]);
 
-  const handleConnect = useCallback(async () => {
-    const conn = connectionRef.current;
-    if (!conn) return;
+  const handleConnect = useCallback(() => {
     setError(null);
     setActiveCamera('wideRoad');
     setConnectionTotalMs(null);
     connectStartedAtRef.current = performance.now();
     firstFrameMeasuredRef.current = false;
-    try {
-      await conn.connect(dongleId);
-    } catch (err) {
-      setError(err.message);
-      connectStartedAtRef.current = null;
-    }
+    connectionRef.current = webrtcConnectionManager.reconnect(dongleId);
   }, [dongleId]);
 
-  useEffect(() => {
-    handleConnect();
-  }, []);
-
-  const handleDisconnect = useCallback(() => {
-    setError(null);
-    setConnectionTotalMs(null);
-    connectStartedAtRef.current = null;
-    firstFrameMeasuredRef.current = false;
-    connectionRef.current?.disconnect();
-  }, []);
-
   const handleClose = useCallback(() => {
-    handleDisconnect();
     if (onClose) onClose();
-  }, [handleDisconnect, onClose]);
+  }, [onClose]);
 
   const switchCamera = useCallback((cameraName) => {
     setActiveCamera((prev) => {

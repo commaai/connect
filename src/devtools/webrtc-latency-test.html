@@ -630,9 +630,11 @@
           let attemptTimer = null;
           let connection = null;
           let connectedAt = null;
+          let videoEnabledAt = null;
           let firstFrameAt = null;
           let videoTrack = null;
           let frameStatsTimer = null;
+          let videoEnableTimer = null;
           let connectionLogHandler = null;
 
           function finish(result, disconnect = true) {
@@ -645,6 +647,10 @@
             if (frameStatsTimer) {
               clearInterval(frameStatsTimer);
               frameStatsTimer = null;
+            }
+            if (videoEnableTimer) {
+              clearTimeout(videoEnableTimer);
+              videoEnableTimer = null;
             }
             if (videoTrack) {
               videoTrack.removeEventListener('unmute', startFirstFramePoll);
@@ -668,14 +674,17 @@
           function maybeFinishConnected() {
             if (connectedAt == null || firstFrameAt == null) return;
             const elapsedMs = connectedAt - startedAt;
-            const firstFrameMs = Math.max(0, firstFrameAt - connectedAt);
+            // measure first frame from when we requested video (matches the prewarm flow:
+            // connection is already up, video is flipped on via the data channel)
+            const firstFrameRefAt = videoEnabledAt ?? connectedAt;
+            const firstFrameMs = Math.max(0, firstFrameAt - firstFrameRefAt);
             const totalMs = elapsedMs + firstFrameMs;
             const timings = connection?.streamTimings || {};
             const rttShare = timings.linkMs != null && timings.deviceProcessMs != null && totalMs > 0
               ? ((timings.linkMs + timings.deviceProcessMs) / totalMs) * 100
               : null;
             el.connectionResult.textContent = `Connected in ${fmt(elapsedMs)} ms, first frame +${fmt(firstFrameMs)} ms, total ${fmt(totalMs)} ms`;
-            log(`First frame ${fmt(firstFrameMs)} ms after connect, total ${fmt(totalMs)} ms`
+            log(`First frame ${fmt(firstFrameMs)} ms after video enabled, total ${fmt(totalMs)} ms`
               + `, link ${fmt(timings.linkMs)} ms, device processing ${fmt(timings.deviceProcessMs)} ms`
               + (rttShare != null ? `, RTT ${fmtPercent(rttShare)} of total` : ''));
             finish({
@@ -722,6 +731,21 @@
             frameStatsTimer = setInterval(pollFramesReceived, FRAME_POLL_INTERVAL_MS);
           }
 
+          // startStream negotiates with video_enabled:false (the prewarm path), so the device
+          // sends no frames until we ask for them over the data channel. Flip video on as soon
+          // as the channel is open, then the first-frame poll above will catch the first frame.
+          function enableVideoWhenReady() {
+            if (settled || videoEnabledAt != null) return;
+            if (connection?.dc?.readyState === 'open') {
+              connection.enableVideo(true);
+              videoEnabledAt = performance.now();
+              log('Sent livestreamVideoEnable(true)');
+            } else {
+              // the data channel can open a beat after connectionState flips to connected
+              videoEnableTimer = setTimeout(enableVideoWhenReady, 5);
+            }
+          }
+
           state.connectStartedAt = startedAt;
           state.connectedAt = null;
           el.connectionStatus.textContent = `Connection: ${attemptLabel} connecting`;
@@ -741,6 +765,7 @@
                 el.connectionStatus.textContent = `Connection: ${attemptLabel}, waiting for first frame`;
                 el.connectionResult.textContent = `Connected in ${fmt(elapsedMs)} ms, waiting for first frame`;
                 log(`Connected in ${fmt(elapsedMs)} ms`);
+                enableVideoWhenReady();
                 maybeFinishConnected();
               } else if (connectionState === 'failed') {
                 finish({

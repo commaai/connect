@@ -27,6 +27,9 @@ export class WebRTCConnection extends EventTarget {
     this.clockSynced = false;
     this.connectStartedAt = null;
     this.transformWorkers = [];
+    // desired video-enable state; (re)sent when the data channel opens so an
+    // enableVideo() that races the channel open (e.g. the no-prewarm reload path) isn't lost
+    this.videoEnabled = false;
   }
 
   _log(message, candidate, data) {
@@ -46,6 +49,10 @@ export class WebRTCConnection extends EventTarget {
         encodedInsertableStreams: true,
       });
       this._log('RTCPeerConnection created');
+      // capture the pc we're handshaking on; if cleanup()/a newer connect() swaps or nulls
+      // this.pc while we're awaiting below, we must bail instead of operating on a dead pc
+      // (which would throw before startStream and silently abort the connection)
+      const pc = this.pc;
       this.pc.addEventListener('icegatheringstatechange', () => {
         if (this.pc) this._log(`ICE gathering state: ${this.pc.iceGatheringState}`);
       });
@@ -111,6 +118,9 @@ export class WebRTCConnection extends EventTarget {
       this.dc = this.pc.createDataChannel('data', { ordered: true });
       this.dc.onopen = () => {
         this._log('Data channel open');
+        // the channel can open after connectionState flips to 'connected'; flush the
+        // desired video state now so an enableVideo() sent before this isn't dropped
+        if (this.videoEnabled) this._sendDc('livestreamVideoEnable', { enabled: true });
         this.joystickInterval = setInterval(() => this.sendJoystick(), 50);
         this.sendJoystick();
       };
@@ -169,16 +179,21 @@ export class WebRTCConnection extends EventTarget {
       };
       let tStep = performance.now();
       const offer = await this.pc.createOffer();
+      if (this.pc !== pc) return;
       this._log(`createOffer done (${(performance.now() - tStep).toFixed(0)}ms)`);
       tStep = performance.now();
       await this.pc.setLocalDescription(offer);
+      if (this.pc !== pc) return;
       this._log(`setLocalDescription done (${(performance.now() - tStep).toFixed(0)}ms)`);
 
       this._log('Sending startStream offer to device');
       tStep = performance.now();
       const streamPromise = Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
-        params: { sdp: offer.sdp, session_id: sessionId },
+        // always negotiate with video off: the device returns the SDP answer without waiting
+        // on camera/encoder init, so the handshake stays fast. video is flipped on afterward
+        // over the data channel (see WebRTCConnectionManager.acquire / enableVideo)
+        params: { sdp: offer.sdp, session_id: sessionId, video_enabled: false },
         jsonrpc: '2.0',
         id: 0,
       });
@@ -189,13 +204,22 @@ export class WebRTCConnection extends EventTarget {
         sendCandidate(evt.candidate);
       });
 
-      const resp = await streamPromise;
+      let resp;
+      try {
+        resp = await streamPromise;
+      } catch (err) {
+        console.error('webrtc: startStream request failed', { dongleId, sessionId }, err);
+        throw err;
+      }
+      if (this.pc !== pc) return;
       const rttMs = performance.now() - tStep;
       if (resp?.error) {
+        console.error('webrtc: startStream device error', { dongleId, sessionId }, resp.error);
         this._log(`device error: ${JSON.stringify(resp.error)}`);
         throw new Error(resp.error.data?.message || 'Could not reach device. Is the ignition on?');
       }
       if (!resp?.result) {
+        console.error('webrtc: startStream returned no result', { dongleId, sessionId }, resp);
         throw new Error('Could not reach device. Is the ignition on?');
       }
       // device reports how long it spent handling startStream; the rest of the RTT is the link
@@ -225,6 +249,11 @@ export class WebRTCConnection extends EventTarget {
       return true;
     }
     return false;
+  }
+  
+  enableVideo(enabled) {
+    this.videoEnabled = enabled;
+    this._sendDc('livestreamVideoEnable', { enabled });
   }
 
   switchCamera(cameraName) {
@@ -363,3 +392,131 @@ export class WebRTCConnection extends EventTarget {
     }
   }
 }
+
+// Holds a single pre-warmed WebRTCConnection so the handshake can start as soon as a
+// device is selected (video disabled), and body teleop only has to flip video on when it
+// opens. Decoupled from React component lifecycles so the connection survives across
+// body-teleop open/close. Use the shared `webrtcConnectionManager` singleton.
+export class WebRTCConnectionManager {
+  constructor() {
+    this.connection = null;
+    this.dongleId = null;
+    this.subscriber = null;
+    this.videoWanted = false;
+    // cached so a subscriber that attaches after the connection is already up gets current state
+    this.connectionState = 'none';
+    this.failReason = null;
+    this.battery = null;
+    this.stream = null;
+    this.streamName = null;
+  }
+
+  // Open (or keep) a video-disabled connection to dongleId. No-op if one is already
+  // warming/warm for the same device.
+  prewarm(dongleId) {
+    if (!dongleId) return;
+    if (this.connection && this.dongleId === dongleId
+        && (this.connectionState === 'connecting' || this.connectionState === 'connected')) {
+      return;
+    }
+    this._open(dongleId);
+  }
+
+  _open(dongleId) {
+    this.disconnect();
+    this.dongleId = dongleId;
+    this.connectionState = 'connecting';
+    // identity-guard every callback: a superseded connection (one replaced by a newer
+    // _open while its async connect() was still in flight) must not write back to the
+    // singleton and clobber the live connection's state.
+    const conn = new WebRTCConnection({
+      onConnectionState: (state, reason) => {
+        if (this.connection !== conn) return;
+        this.connectionState = state;
+        this.failReason = reason ?? null;
+        // (re)apply the desired video state once the data channel is up
+        if (state === 'connected' && this.videoWanted) this.connection?.enableVideo(true);
+        this.subscriber?.onConnectionState?.(state, reason);
+      },
+      onBatteryLevel: (battery) => {
+        if (this.connection !== conn) return;
+        this.battery = battery;
+        this.subscriber?.onBatteryLevel?.(battery);
+      },
+      onVideoTrack: (name, stream) => {
+        if (this.connection !== conn) return;
+        this.streamName = name;
+        this.stream = stream;
+        this.subscriber?.onVideoTrack?.(name, stream);
+      },
+      onLatencyUpdate: (latency) => {
+        if (this.connection !== conn) return;
+        this.subscriber?.onLatencyUpdate?.(latency);
+      },
+    });
+    this.connection = conn;
+    conn.connect(dongleId).catch(() => {
+      // onConnectionState('failed') has already fired via fail()
+    });
+  }
+
+  // Attach a subscriber (body teleop) and get a video-streaming WebRTCConnection. Reuses the
+  // pre-warmed (video-off) connection when healthy, else opens a fresh one; either way video
+  // is flipped on over the data channel once connected. startStream always negotiates with
+  // video off so the device doesn't block its SDP answer on camera/encoder init — that keeps
+  // the handshake fast on the no-prewarm reload path too. Replays current state so the UI is
+  // correct immediately even when the connection was pre-warmed before the subscriber mounted.
+  acquire(dongleId, callbacks) {
+    // reuse the pre-warmed connection only if it's actually healthy for this device;
+    // a failed/closed pre-warm must be re-opened or teleop attaches to a dead connection
+    // and never sends a fresh startStream
+    const healthy = this.connection
+      && (this.connectionState === 'connecting' || this.connectionState === 'connected')
+      && (!dongleId || this.dongleId === dongleId);
+    if (!healthy) {
+      this._open(dongleId);
+    }
+    this.setVideoEnabled(true);
+    this.subscriber = callbacks;
+    callbacks?.onConnectionState?.(this.connectionState, this.failReason);
+    if (this.battery != null) callbacks?.onBatteryLevel?.(this.battery);
+    if (this.stream) callbacks?.onVideoTrack?.(this.streamName, this.stream);
+    return this.connection;
+  }
+
+  // Detach a subscriber and stop the video stream, but keep the connection warm for re-open.
+  release(callbacks) {
+    if (callbacks && this.subscriber !== callbacks) return;
+    this.subscriber = null;
+    this.setVideoEnabled(false);
+  }
+
+  setVideoEnabled(enabled) {
+    this.videoWanted = enabled;
+    if (this.connection && this.connectionState === 'connected') {
+      this.connection.enableVideo(enabled);
+    }
+  }
+
+  reconnect(dongleId) {
+    this._open(dongleId ?? this.dongleId);
+    this.setVideoEnabled(true);
+    return this.connection;
+  }
+
+  disconnect() {
+    this.videoWanted = false;
+    if (this.connection) {
+      const conn = this.connection;
+      this.connection = null;
+      conn.disconnect();
+    }
+    this.connectionState = 'none';
+    this.failReason = null;
+    this.battery = null;
+    this.stream = null;
+    this.streamName = null;
+  }
+}
+
+export const webrtcConnectionManager = new WebRTCConnectionManager();

@@ -10,6 +10,7 @@ import { athena as Athena } from '@commaai/api';
 import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast } from '../../utils';
+import { webrtcConnectionManager } from '../../utils/webrtc';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import CommacareBadge from '../CommacareBadge';
@@ -168,8 +169,6 @@ class DeviceInfo extends Component {
     };
 
     this.snapshotButtonRef = React.createRef();
-    this.bodyTeleopPrewarm = null;
-    this.bodyTeleopPrewarmAt = 0;
 
     this.onResize = this.onResize.bind(this);
     this.onVisible = this.onVisible.bind(this);
@@ -201,8 +200,8 @@ class DeviceInfo extends Component {
         snapshot: {},
         windowWidth: window.innerWidth,
       });
-      this.bodyTeleopPrewarm = null;
-      this.bodyTeleopPrewarmAt = 0;
+      // drop any warm teleop connection for the previously-selected device
+      webrtcConnectionManager.disconnect();
     }
 
     this.prewarmBodyTeleop();
@@ -259,20 +258,12 @@ class DeviceInfo extends Component {
     return Boolean(deviceIsOnline(device) && device?.rpc?.not_car && deviceVersionAtLeast(device, '0.11.2'));
   }
 
+  // Open the body-teleop WebRTC connection ahead of time (video disabled) so opening teleop
+  // only has to flip video on. Idempotent: no-op if a connection is already warm.
   prewarmBodyTeleop() {
     const { dongleId } = this.props;
-    const now = Date.now();
-    if (!dongleId || !this.shouldPrewarmBodyTeleop()) return null;
-    if (this.bodyTeleopPrewarm && now - this.bodyTeleopPrewarmAt < 30000) return this.bodyTeleopPrewarm;
-
-    this.bodyTeleopPrewarmAt = now;
-    this.bodyTeleopPrewarm = Athena.postJsonRpcPayload(dongleId, {
-      method: 'echo',
-      params: { s: 'webrtc-prewarm' },
-      jsonrpc: '2.0',
-      id: 0,
-    }).catch(() => null);
-    return this.bodyTeleopPrewarm;
+    if (!dongleId || !this.shouldPrewarmBodyTeleop()) return;
+    webrtcConnectionManager.prewarm(dongleId);
   }
 
   async takeSnapshot() {
