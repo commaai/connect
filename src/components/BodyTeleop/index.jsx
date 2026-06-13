@@ -58,19 +58,12 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       },
     };
 
-    // reuse the connection pre-warmed on device select (flipping video on over the data
-    // channel), or open a video-enabled one if none is warm yet (e.g. a reload on /stream)
     connectStartedAtRef.current = performance.now();
     firstFrameMeasuredRef.current = false;
     setConnectionTotalMs(null);
     connectionRef.current = webrtcConnectionManager.acquire(dongleId, callbacks);
 
-    const onBeforeUnload = () => webrtcConnectionManager.disconnect();
-    window.addEventListener('beforeunload', onBeforeUnload);
-
     return () => {
-      window.removeEventListener('beforeunload', onBeforeUnload);
-      // keep the connection warm for re-open, just stop the video stream
       webrtcConnectionManager.release(callbacks);
     };
   }, [dongleId]);

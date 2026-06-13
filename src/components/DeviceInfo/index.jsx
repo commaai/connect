@@ -258,8 +258,6 @@ class DeviceInfo extends Component {
     return Boolean(deviceIsOnline(device) && device?.rpc?.not_car && deviceVersionAtLeast(device, '0.11.2'));
   }
 
-  // Open the body-teleop WebRTC connection ahead of time (video disabled) so opening teleop
-  // only has to flip video on. Idempotent: no-op if a connection is already warm.
   prewarmBodyTeleop() {
     const { dongleId } = this.props;
     if (!dongleId || !this.shouldPrewarmBodyTeleop()) return;
@@ -401,9 +399,6 @@ class DeviceInfo extends Component {
             style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
             className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
             onClick={ this.openBodyTeleop }
-            onFocus={ this.prewarmBodyTeleop }
-            onMouseEnter={ this.prewarmBodyTeleop }
-            onTouchStart={ this.prewarmBodyTeleop }
             disabled={ !deviceIsOnline(device) }
           >
             <Typography className='text-black'>remote control</Typography>

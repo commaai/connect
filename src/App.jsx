@@ -70,10 +70,8 @@ class App extends Component {
       Billing.configure(token, this.apiErrorResponseCallback);
       Athena.configure(token, this.apiErrorResponseCallback);
 
-      // Reloading or deep-linking straight into teleop (/:dongleId/stream): start the webrtc
-      // handshake as soon as the API is authed, so it runs in parallel with the lazy explorer
-      // chunk load and redux/device init instead of being serialized behind them. BodyTeleop
-      // reuses this warm connection when it mounts.
+      // Reloading: start the webrtc handshake as soon as the API is authed, so it runs in parallel
+      // with the lazy explorer chunk load and redux/device init instead of behind them.
       const { pathname } = window.location;
       const teleopDongleId = getDongleID(pathname);
       if (teleopDongleId && getStreamNav(pathname)) {

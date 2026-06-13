@@ -184,11 +184,13 @@
         });
       }
 
-      function log(message) {
+      function log(message, elapsedMs) {
         const time = new Date().toISOString();
-        const elapsed = state.connectStartedAt
-          ? ` +${(performance.now() - state.connectStartedAt).toFixed(0)}ms`
-          : '';
+        // prefer the connection-attached time-since-connect; fall back to our own start for local messages
+        const ms = elapsedMs != null
+          ? elapsedMs
+          : (state.connectStartedAt ? performance.now() - state.connectStartedAt : null);
+        const elapsed = ms != null ? ` +${ms.toFixed(0)}ms` : '';
         el.log.textContent += `${time}${elapsed} ${message}\n`;
         el.log.scrollTop = el.log.scrollHeight;
       }
@@ -520,8 +522,8 @@
       }
 
       function logWebrtcEvent(detail) {
-        const { message, candidate } = detail;
-        log(candidate !== undefined ? `${message}: ${formatIceCandidate(candidate)}` : message);
+        const { message, candidate, elapsedMs } = detail;
+        log(candidate !== undefined ? `${message}: ${formatIceCandidate(candidate)}` : message, elapsedMs);
       }
 
       async function startTest() {

@@ -33,7 +33,9 @@ export class WebRTCConnection extends EventTarget {
   }
 
   _log(message, candidate, data) {
-    this.dispatchEvent(new CustomEvent('log', { detail: { message, candidate, data } }));
+    // monotonic time since connect() began, so every log carries its position on the connection timeline
+    const elapsedMs = this.connectStartedAt != null ? performance.now() - this.connectStartedAt : null;
+    this.dispatchEvent(new CustomEvent('log', { detail: { message, candidate, data, elapsedMs } }));
   }
 
   async connect(dongleId) {
@@ -49,9 +51,7 @@ export class WebRTCConnection extends EventTarget {
         encodedInsertableStreams: true,
       });
       this._log('RTCPeerConnection created');
-      // capture the pc we're handshaking on; if cleanup()/a newer connect() swaps or nulls
-      // this.pc while we're awaiting below, we must bail instead of operating on a dead pc
-      // (which would throw before startStream and silently abort the connection)
+      // capture the pc we're handshaking on; if cleanup()/a newer connect() swaps or nulls this.pc while we're awaiting below, process must stop
       const pc = this.pc;
       this.pc.addEventListener('icegatheringstatechange', () => {
         if (this.pc) this._log(`ICE gathering state: ${this.pc.iceGatheringState}`);
@@ -144,32 +144,23 @@ export class WebRTCConnection extends EventTarget {
       const sessionId = crypto.randomUUID();
       this.sessionId = sessionId;
       const CANDIDATE_RETRY_MS = 250;
-      const CANDIDATE_MAX_RETRIES = 8;
+      const CANDIDATE_MAX_RETRIES = 4;
       const sendCandidate = (candidate, attempt = 0) => {
-        // candidates can outrun startStream; webrtcd 404s until the stream
-        // session exists, so resend until it does
         const retry = (reason) => {
           if (attempt >= CANDIDATE_MAX_RETRIES || this.sessionId !== sessionId || !this.pc) {
             this._log(`addIceCandidate failed: ${reason}`, candidate);
             return null;
           }
           this._log(`stream session not available yet, resending candidate (attempt ${attempt + 1})`, candidate);
-          return new Promise((resolve) => { setTimeout(resolve, CANDIDATE_RETRY_MS); })
-            .then(() => sendCandidate(candidate, attempt + 1));
+          return new Promise((resolve) => { setTimeout(resolve, CANDIDATE_RETRY_MS); }).then(() => sendCandidate(candidate, attempt + 1));
         };
-        // const tSend = performance.now();
-        // this._log('Sending addIceCandidate to device', candidate);
         return Athena.postJsonRpcPayload(dongleId, {
           method: 'addIceCandidate',
           params: { session_id: sessionId, candidate },
           jsonrpc: '2.0',
           id: 0,
         }).then((resp) => {
-          // this._log(`addIceCandidate RTT ${(performance.now() - tSend).toFixed(0)}ms`, candidate);
-          const errMsg = resp?.error?.data?.message || resp?.error?.message;
-          if (errMsg && (errMsg.includes('not available yet') || errMsg.includes('404'))) {
-            return retry(errMsg);
-          }
+          if (resp?.error?.data?.message || resp?.error?.message) return retry(errMsg);
           return resp;
         }).catch((err) => {
           if (err.resp?.status === 404) return retry(err.message);
@@ -177,29 +168,24 @@ export class WebRTCConnection extends EventTarget {
           return null;
         });
       };
-      let tStep = performance.now();
+      
       const offer = await this.pc.createOffer();
       if (this.pc !== pc) return;
-      this._log(`createOffer done (${(performance.now() - tStep).toFixed(0)}ms)`);
-      tStep = performance.now();
+      this._log('createOffer done');
       await this.pc.setLocalDescription(offer);
       if (this.pc !== pc) return;
-      this._log(`setLocalDescription done (${(performance.now() - tStep).toFixed(0)}ms)`);
+      this._log('setLocalDescription done');
 
       this._log('Sending startStream offer to device');
-      tStep = performance.now();
+      const tStep = performance.now();
       const streamPromise = Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
-        // always negotiate with video off: the device returns the SDP answer without waiting
-        // on camera/encoder init, so the handshake stays fast. video is flipped on afterward
-        // over the data channel (see WebRTCConnectionManager.acquire / enableVideo)
         params: { sdp: offer.sdp, session_id: sessionId, video_enabled: false },
         jsonrpc: '2.0',
         id: 0,
       });
 
       this.pc.addEventListener('icecandidate', (evt) => {
-        // this._log('Local ICE candidate gathered', evt.candidate);
         if (!evt.candidate) return;
         sendCandidate(evt.candidate);
       });
@@ -234,9 +220,8 @@ export class WebRTCConnection extends EventTarget {
       );
       this._log(`Received startStream answer from device (session ${resp.result.session_id})`);
 
-      tStep = performance.now();
       await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
-      this._log(`Remote description (answer) set (${(performance.now() - tStep).toFixed(0)}ms)`);
+      this._log('Remote description (answer) set');
     } catch (err) {
       this.fail(err.message);
       throw err;
@@ -393,22 +378,23 @@ export class WebRTCConnection extends EventTarget {
   }
 }
 
-// Holds a single pre-warmed WebRTCConnection so the handshake can start as soon as a
-// device is selected (video disabled), and body teleop only has to flip video on when it
-// opens. Decoupled from React component lifecycles so the connection survives across
-// body-teleop open/close. Use the shared `webrtcConnectionManager` singleton.
+// Holds a single pre-warmed WebRTCConnection
 export class WebRTCConnectionManager {
   constructor() {
     this.connection = null;
     this.dongleId = null;
     this.subscriber = null;
     this.videoWanted = false;
-    // cached so a subscriber that attaches after the connection is already up gets current state
     this.connectionState = 'none';
     this.failReason = null;
     this.battery = null;
     this.stream = null;
     this.streamName = null;
+
+    // Tear down the connection when the tab is closed
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pagehide', () => this.disconnect());
+    }
   }
 
   // Open (or keep) a video-disabled connection to dongleId. No-op if one is already
@@ -426,9 +412,6 @@ export class WebRTCConnectionManager {
     this.disconnect();
     this.dongleId = dongleId;
     this.connectionState = 'connecting';
-    // identity-guard every callback: a superseded connection (one replaced by a newer
-    // _open while its async connect() was still in flight) must not write back to the
-    // singleton and clobber the live connection's state.
     const conn = new WebRTCConnection({
       onConnectionState: (state, reason) => {
         if (this.connection !== conn) return;
@@ -460,16 +443,8 @@ export class WebRTCConnectionManager {
     });
   }
 
-  // Attach a subscriber (body teleop) and get a video-streaming WebRTCConnection. Reuses the
-  // pre-warmed (video-off) connection when healthy, else opens a fresh one; either way video
-  // is flipped on over the data channel once connected. startStream always negotiates with
-  // video off so the device doesn't block its SDP answer on camera/encoder init — that keeps
-  // the handshake fast on the no-prewarm reload path too. Replays current state so the UI is
-  // correct immediately even when the connection was pre-warmed before the subscriber mounted.
   acquire(dongleId, callbacks) {
-    // reuse the pre-warmed connection only if it's actually healthy for this device;
-    // a failed/closed pre-warm must be re-opened or teleop attaches to a dead connection
-    // and never sends a fresh startStream
+    // reuse the pre-warmed connection only if it is healthy
     const healthy = this.connection
       && (this.connectionState === 'connecting' || this.connectionState === 'connected')
       && (!dongleId || this.dongleId === dongleId);
