@@ -200,8 +200,6 @@ class DeviceInfo extends Component {
         snapshot: {},
         windowWidth: window.innerWidth,
       });
-      // drop any warm teleop connection for the previously-selected device
-      webrtcConnectionManager.disconnect();
     }
 
     this.prewarmBodyTeleop();
