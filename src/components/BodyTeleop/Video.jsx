@@ -75,7 +75,7 @@ const Video = ({
           setPlaying(true);
           onFirstFrame?.();
         }}
-        className={`w-full h-full pointer-events-none object-contain transition-opacity duration-200 ease-in ${playing ? 'opacity-100' : 'opacity-0'}`}
+        className={`w-full h-full pointer-events-none object-contain}`}
       />
       {connected && connectionTimeLabel && (
         <div className={`absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded bg-black/50 px-2 py-0.5 text-[11px] leading-4 text-white/70 pointer-events-none transition-opacity duration-500 ease-out ${showConnectionTime ? 'opacity-100' : 'opacity-0'}`}>

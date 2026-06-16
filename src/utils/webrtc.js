@@ -1,4 +1,5 @@
 import { athena as Athena } from '@commaai/api';
+import { asyncSleep } from '.';
 
 const VIDEO_STREAM_NAME = 'camera';
 const wallMs = () => performance.timeOrigin + performance.now();
@@ -7,12 +8,17 @@ const CLOCK_WINDOW_SIZE = 16;
 const CLOCK_PING_MS = 500;
 
 const CONNECTION_DEADLINE_MS = 10000;
+const ICE_GATHER_DEADLINE_MS = 7000;
+
+// Drop mDNS (.local) host candidates from an SDP — the device can't resolve them.
+const stripLocalCandidates = (sdp) => sdp
+  .split('\r\n')
+  .filter((line) => !(line.startsWith('a=candidate') && line.includes('.local')))
+  .join('\r\n');
 
 export class WebRTCConnection extends EventTarget {
   constructor(callbacks) {
     super();
-    this.sessionId = null;
-    this.deviceTimings = null;
     this.streamTimings = null;
     this.pc = null;
     this.dc = null;
@@ -27,15 +33,13 @@ export class WebRTCConnection extends EventTarget {
     this.clockSynced = false;
     this.connectStartedAt = null;
     this.transformWorkers = [];
-    // desired video-enable state; (re)sent when the data channel opens so an
-    // enableVideo() that races the channel open (e.g. the no-prewarm reload path) isn't lost
     this.videoEnabled = false;
   }
 
-  _log(message, candidate, data) {
+  _log(message, candidate) {
     // monotonic time since connect() began, so every log carries its position on the connection timeline
     const elapsedMs = this.connectStartedAt != null ? performance.now() - this.connectStartedAt : null;
-    this.dispatchEvent(new CustomEvent('log', { detail: { message, candidate, data, elapsedMs } }));
+    this.dispatchEvent(new CustomEvent('log', { detail: { message, candidate, elapsedMs } }));
   }
 
   async connect(dongleId) {
@@ -118,8 +122,6 @@ export class WebRTCConnection extends EventTarget {
       this.dc = this.pc.createDataChannel('data', { ordered: true });
       this.dc.onopen = () => {
         this._log('Data channel open');
-        // the channel can open after connectionState flips to 'connected'; flush the
-        // desired video state now so an enableVideo() sent before this isn't dropped
         if (this.videoEnabled) this._sendDc('livestreamVideoEnable', { enabled: true });
         this.joystickInterval = setInterval(() => this.sendJoystick(), 50);
         this.sendJoystick();
@@ -139,36 +141,6 @@ export class WebRTCConnection extends EventTarget {
         }
       };
 
-      // session id is generated client-side and sent with startStream, so
-      // candidates can trickle to the device while startStream is in flight
-      const sessionId = crypto.randomUUID();
-      this.sessionId = sessionId;
-      const CANDIDATE_RETRY_MS = 250;
-      const CANDIDATE_MAX_RETRIES = 4;
-      const sendCandidate = (candidate, attempt = 0) => {
-        const retry = (reason) => {
-          if (attempt >= CANDIDATE_MAX_RETRIES || this.sessionId !== sessionId || !this.pc) {
-            this._log(`addIceCandidate failed: ${reason}`, candidate);
-            return null;
-          }
-          this._log(`stream session not available yet, resending candidate (attempt ${attempt + 1})`, candidate);
-          return new Promise((resolve) => { setTimeout(resolve, CANDIDATE_RETRY_MS); }).then(() => sendCandidate(candidate, attempt + 1));
-        };
-        return Athena.postJsonRpcPayload(dongleId, {
-          method: 'addIceCandidate',
-          params: { session_id: sessionId, candidate },
-          jsonrpc: '2.0',
-          id: 0,
-        }).then((resp) => {
-          if (resp?.error?.data?.message || resp?.error?.message) return retry(errMsg);
-          return resp;
-        }).catch((err) => {
-          if (err.resp?.status === 404) return retry(err.message);
-          this._log(`addIceCandidate failed: ${err.message}`, candidate);
-          return null;
-        });
-      };
-      
       const offer = await this.pc.createOffer();
       if (this.pc !== pc) return;
       this._log('createOffer done');
@@ -176,36 +148,46 @@ export class WebRTCConnection extends EventTarget {
       if (this.pc !== pc) return;
       this._log('setLocalDescription done');
 
+      this._log('Gathering ICE candidates');
+      const candidateReady = new Promise((resolve) => {
+        pc.addEventListener('icecandidate', (evt) => {
+          if (!evt.candidate) {
+            this._log('ICE gathering complete');
+            resolve();
+          } else if (evt.candidate.type === 'srflx' || evt.candidate.type === 'prflx') {
+            this._log(`Using ${evt.candidate.type} candidate`, evt.candidate);
+            resolve();
+          }
+        });
+      });
+      await Promise.race([candidateReady, asyncSleep(ICE_GATHER_DEADLINE_MS)]);
+      if (this.pc !== pc) throw new Error('Connection torn down during candidate gathering');
+
       this._log('Sending startStream offer to device');
       const tStep = performance.now();
       const streamPromise = Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
-        params: { sdp: offer.sdp, session_id: sessionId, video_enabled: false },
+        params: { sdp: stripLocalCandidates(pc.localDescription.sdp), video_enabled: false },
         jsonrpc: '2.0',
         id: 0,
-      });
-
-      this.pc.addEventListener('icecandidate', (evt) => {
-        if (!evt.candidate) return;
-        sendCandidate(evt.candidate);
       });
 
       let resp;
       try {
         resp = await streamPromise;
       } catch (err) {
-        console.error('webrtc: startStream request failed', { dongleId, sessionId }, err);
+        console.error('webrtc: startStream request failed', { dongleId }, err);
         throw err;
       }
       if (this.pc !== pc) return;
       const rttMs = performance.now() - tStep;
       if (resp?.error) {
-        console.error('webrtc: startStream device error', { dongleId, sessionId }, resp.error);
+        console.error('webrtc: startStream device error', { dongleId }, resp.error);
         this._log(`device error: ${JSON.stringify(resp.error)}`);
         throw new Error(resp.error.data?.message || 'Could not reach device. Is the ignition on?');
       }
       if (!resp?.result) {
-        console.error('webrtc: startStream returned no result', { dongleId, sessionId }, resp);
+        console.error('webrtc: startStream returned no result', { dongleId }, resp);
         throw new Error('Could not reach device. Is the ignition on?');
       }
       // device reports how long it spent handling startStream; the rest of the RTT is the link
@@ -215,10 +197,8 @@ export class WebRTCConnection extends EventTarget {
       this._log(
         `startStream RTT ${rttMs.toFixed(0)}ms`
           + (deviceProcessMs != null ? `, link ${linkMs.toFixed(0)}ms, device processing ${deviceProcessMs.toFixed(0)}ms` : ''),
-        undefined,
-        this.streamTimings,
       );
-      this._log(`Received startStream answer from device (session ${resp.result.session_id})`);
+      this._log('Received startStream answer from device');
 
       await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
       this._log('Remote description (answer) set');
@@ -235,7 +215,7 @@ export class WebRTCConnection extends EventTarget {
     }
     return false;
   }
-  
+
   enableVideo(enabled) {
     this.videoEnabled = enabled;
     this._sendDc('livestreamVideoEnable', { enabled });
@@ -326,7 +306,6 @@ export class WebRTCConnection extends EventTarget {
     this.clockSynced = true;
   }
 
-  /*** body teleop helpers ***/
   setJoystick(x, y) {
     this.joystickX = x;
     this.joystickY = y;
@@ -335,7 +314,6 @@ export class WebRTCConnection extends EventTarget {
   sendJoystick() {
     this._sendDc('testJoystick', { axes: [this.joystickX, this.joystickY], buttons: [false] });
   }
-  /***************************/
 
   disconnect() {
     this.cleanup();
@@ -397,8 +375,6 @@ export class WebRTCConnectionManager {
     }
   }
 
-  // Open (or keep) a video-disabled connection to dongleId. No-op if one is already
-  // warming/warm for the same device.
   prewarm(dongleId) {
     if (!dongleId) return;
     if (this.connection && this.dongleId === dongleId
@@ -417,7 +393,6 @@ export class WebRTCConnectionManager {
         if (this.connection !== conn) return;
         this.connectionState = state;
         this.failReason = reason ?? null;
-        // (re)apply the desired video state once the data channel is up
         if (state === 'connected' && this.videoWanted) this.connection?.enableVideo(true);
         this.subscriber?.onConnectionState?.(state, reason);
       },
@@ -438,13 +413,10 @@ export class WebRTCConnectionManager {
       },
     });
     this.connection = conn;
-    conn.connect(dongleId).catch(() => {
-      // onConnectionState('failed') has already fired via fail()
-    });
+    conn.connect(dongleId);
   }
 
   acquire(dongleId, callbacks) {
-    // reuse the pre-warmed connection only if it is healthy
     const healthy = this.connection
       && (this.connectionState === 'connecting' || this.connectionState === 'connected')
       && (!dongleId || this.dongleId === dongleId);
@@ -459,7 +431,6 @@ export class WebRTCConnectionManager {
     return this.connection;
   }
 
-  // Detach a subscriber and stop the video stream, but keep the connection warm for re-open.
   release(callbacks) {
     if (callbacks && this.subscriber !== callbacks) return;
     this.subscriber = null;
