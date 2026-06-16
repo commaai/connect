@@ -71,7 +71,7 @@ export class WebRTCConnection extends EventTarget {
       const pc = this.pc;
       
       this.connectionTimeout = setTimeout(() => {
-        this.fail('No valid webrtc candidate routes were found to device. Check network and retry.');
+        this.fail('No direct peer-to-peer routes were found to device. Check network and retry.');
       }, CONNECTION_DEADLINE_MS);
 
       this.pc.addEventListener('track', (evt) => {
@@ -276,9 +276,7 @@ export class WebRTCConnection extends EventTarget {
     const latency = {
       captureMs: timing.captureMs,
       encodeMs: timing.encodeMs,
-      captureEncodeMs: timing.captureMs + timing.encodeMs,
-      sendDelayMs: timing.sendDelayMs,
-      devicePipelineMs: timing.captureMs + timing.encodeMs + timing.sendDelayMs,
+      captureEncodeMs: timing.captureMs + timing.encodeMs + timing.sendDelayMs,
       networkMs: null,
       totalMs: null,
     };
@@ -286,7 +284,7 @@ export class WebRTCConnection extends EventTarget {
     if (this.clockSynced) {
       const raw = browserReceiveMs - (timing.deviceSendWallMs - this.clockOffsetMs);
       latency.networkMs = Math.max(0, raw);
-      latency.totalMs = latency.devicePipelineMs + latency.networkMs;
+      latency.totalMs = latency.captureEncodeMs + latency.networkMs;
     }
 
     this.callbacks.onLatencyUpdate?.(latency);
