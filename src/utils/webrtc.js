@@ -315,9 +315,9 @@ export class WebRTCConnection extends EventTarget {
     this._sendDc('testJoystick', { axes: [this.joystickX, this.joystickY], buttons: [false] });
   }
 
-  disconnect() {
+  disconnect(reason) {
     this.cleanup();
-    this.callbacks.onConnectionState('disconnected');
+    this.callbacks.onConnectionState('disconnected', reason);
   }
 
   fail(reason) {
@@ -450,15 +450,17 @@ export class WebRTCConnectionManager {
     return this.connection;
   }
 
-  disconnect() {
+  disconnect(reason) {
     this.videoWanted = false;
     if (this.connection) {
-      const conn = this.connection;
+      // Tear down while this.connection is still set, so the conn's onConnectionState('disconnected', reason)
+      // passes the staleness guard and reaches the subscriber (otherwise the UI never learns the stream
+      // dropped). cleanup() nulls pc/dc first, so this is the only callback that fires.
+      this.connection.disconnect(reason);
       this.connection = null;
-      conn.disconnect();
     }
     this.connectionState = 'none';
-    this.failReason = null;
+    this.failReason = reason ?? null;
     this.battery = null;
     this.stream = null;
     this.streamName = null;
