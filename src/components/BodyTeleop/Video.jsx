@@ -41,12 +41,10 @@ const Video = ({
   onConnect, onFirstFrame, className
 }) => {
   const connected = connectionState === 'connected';
-  const [playing, setPlaying] = useState(false);
   const [showConnectionTime, setShowConnectionTime] = useState(false);
 
   useEffect(() => {
     if (connectionState !== 'connected') {
-      setPlaying(false);
       setShowConnectionTime(false);
     }
   }, [connectionState]);
@@ -72,7 +70,6 @@ const Video = ({
         playsInline
         muted
         onPlaying={() => {
-          setPlaying(true);
           onFirstFrame?.();
         }}
         className={`w-full h-full pointer-events-none object-contain`}
