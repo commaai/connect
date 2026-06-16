@@ -7,8 +7,8 @@ import { useClickOutside } from '../../hooks/useClickOutside';
 const LATENCY_BUFFER_SIZE = 10;
 const LATENCY_HISTORY_MAX = 60;
 
-// packet loss over the interval above which the link is considered poor, evaluated each 1s stats poll
 const PACKET_LOSS_POOR = 0.02;
+const RTT_POOR_MS = 250;
 
 const QUALITY_INDICATOR = {
   good: { color: '#22c967', label: 'connected' },
@@ -23,8 +23,7 @@ const STATS_ROWS = [
 
 const LATENCY_LAYERS = [
   { label: 'Capture/Encode', key: 'captureEncodeMs', color: 'rgba(76,175,80,1)', labelColor: 'rgba(76,175,80,1)' },
-  { label: 'Send delay', key: 'sendDelayMs', color: 'rgba(171,71,188,1)', labelColor: 'rgba(171,71,188,1)' },
-  { label: 'Network', key: 'networkMs', color: 'rgba(66,165,245,1)', labelColor: 'rgba(66,165,245,1)' },
+  { label: 'Recieve/Decode', key: 'networkMs', color: 'rgba(66,165,245,1)', labelColor: 'rgba(66,165,245,1)' },
 ];
 
 // prewarm the latency display so the graph shows a sensible band before the first real sample arrives
@@ -42,6 +41,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
   const [latency, setLatency] = useState(INITIAL_LATENCY);
   const [latencyHistory, setLatencyHistory] = useState([INITIAL_LATENCY]);
   const [connectionQuality, setConnectionQuality] = useState('good');
+  const [rtt, setRtt] = useState(null);
   const latencyBufferRef = useRef([]);
   const firstLatencyShownRef = useRef(false);
   const statsPollingRef = useRef({
@@ -61,7 +61,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
         const buf = latencyBufferRef.current;
         latencyBufferRef.current = [];
         const avg = {};
-        for (const key of ['captureEncodeMs', 'sendDelayMs', 'devicePipelineMs', 'networkMs', 'totalMs']) {
+        for (const key of ['captureEncodeMs', 'networkMs', 'totalMs']) {
           const vals = buf.map((l) => l[key]).filter((v) => v != null);
           avg[key] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
         }
@@ -79,9 +79,20 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
     try {
       const report = await pc.getStats();
       let videoStats = null;
+      let selectedPairId = null;
       report.forEach((stat) => {
         if (stat.type === 'inbound-rtp' && stat.kind === 'video') videoStats = stat;
+        if (stat.type === 'transport') selectedPairId = stat.selectedCandidatePairId;
       });
+      // round-trip time from the active ICE candidate pair (seconds -> ms)
+      let candidatePair = null;
+      report.forEach((stat) => {
+        if (stat.type !== 'candidate-pair') return;
+        if (stat.id === selectedPairId || (stat.nominated && stat.state === 'succeeded')) candidatePair = stat;
+      });
+      const rttMs = candidatePair?.currentRoundTripTime != null ? candidatePair.currentRoundTripTime * 1000 : null;
+      setRtt(rttMs);
+      const rttPoor = rttMs != null && rttMs > RTT_POOR_MS;
       // once media has flowed, losing the video stats entirely means the stream died
       if (!videoStats) { if (ref.mediaStarted) setConnectionQuality('poor'); return; }
 
@@ -106,7 +117,8 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
         // stalled stream (no bytes after media started) or elevated packet loss is a poor link
         poor = (ref.mediaStarted && bitrate === 0) || lossRatio > PACKET_LOSS_POOR;
       }
-      setConnectionQuality(poor ? 'poor' : 'good');
+      // high round-trip time degrades teleop responsiveness even when video is flowing cleanly
+      setConnectionQuality(poor || rttPoor ? 'poor' : 'good');
       ref.prevTimestamp = now;
       ref.prevBytes = videoStats.bytesReceived;
       ref.prevFrames = videoStats.framesDecoded;
@@ -148,6 +160,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
       setLatency(INITIAL_LATENCY);
       setLatencyHistory([INITIAL_LATENCY]);
       setConnectionQuality('good');
+      setRtt(null);
     }
     return () => {
       if (ref.interval) clearInterval(ref.interval);
@@ -170,7 +183,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
     });
   }, [connection]);
 
-  return { showStats, toggleStats, closeStats, stats, latency, latencyHistory, connectionQuality };
+  return { showStats, toggleStats, closeStats, stats, latency, latencyHistory, connectionQuality, rtt };
 }
 
 function drawLatencyGraph(canvas, latencyHistory) {
@@ -265,12 +278,10 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
             <span className={`${textSize} text-nowrap text-white/[0.85] text-right`}>{fmtMs(latency?.[key])}</span>
           </div>
         ))}
-        {!compact && 
-          <div className="flex justify-between leading-tight md:py-[3px]">
-            <span className={`${textSize} mr-1.5 md:mr-[18px]`} style={{ fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Total</span>
-            <span className={`${textSize} text-white/[0.85] text-right`} style={{ fontWeight: 700 }}>{fmtMs(latency?.totalMs)}</span>
-          </div>
-        }
+        <div className="flex justify-between leading-tight md:py-[3px]">
+          <span className={`${textSize} mr-1.5 md:mr-[18px]`} style={{ fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Total</span>
+          <span className={`${textSize} text-white/[0.85] text-right`} style={{ fontWeight: 700 }}>{fmtMs(latency?.totalMs)}</span>
+        </div>
       </div>
       <canvas ref={latencyCanvasRef} className={`${compact ? "w-[100px] self-stretch": "w-full h-[30px] md:h-[90px] mt-1"} rounded-[3px] bg-black/30 md:rounded-[6px]`} />
       {!compact && <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />}
@@ -307,7 +318,7 @@ const StatusBar = ({
   battery, className, isLandscape, connection, connectionState, latencyCallbackRef, onQualityChange,
 }) => {
   const {
-    showStats, toggleStats, closeStats, stats, latency, latencyHistory, connectionQuality,
+    showStats, toggleStats, closeStats, stats, latency, latencyHistory, connectionQuality, rtt,
   } = useStats(connection, connectionState, latencyCallbackRef);
   const BatteryIcon = battery?.charging ? BatteryChargingFull : BatteryFull;
   const indicator = QUALITY_INDICATOR[connectionQuality] || QUALITY_INDICATOR.good;
@@ -318,8 +329,9 @@ const StatusBar = ({
         <div
           className="w-3 h-3 rounded-full transition-colors"
           style={{ backgroundColor: indicator.color }}
+          title={indicator.label}
         />
-        <span className="text-base hidden xxs:inline text-white/70">{indicator.label}</span>
+        <span className="text-base hidden xxs:inline text-white/70">{rtt != null ? `${Math.round(rtt)} ms` : '--'}</span>
       </div>
       {battery && (
         <div className="flex items-center justify-center gap-2 h-10 px-3.5">
