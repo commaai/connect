@@ -138,7 +138,6 @@
       const BATCH_ATTEMPTS = 100;
       const ATTEMPT_DEADLINE_MS = 20000;
       const FRAME_POLL_INTERVAL_MS = 10;
-      // pause between batch attempts so the device can recover before the next connect
       const BATCH_DELAY_MS = 0;
 
       const el = {
@@ -169,7 +168,6 @@
         results: [],
       };
 
-      // cancelable delay; resolves early if stopTest() clears state.batchDelay
       function sleep(ms) {
         return new Promise((resolve) => {
           const timer = setTimeout(() => {
@@ -186,7 +184,6 @@
 
       function log(message, elapsedMs) {
         const time = new Date().toISOString();
-        // prefer the connection-attached time-since-connect; fall back to our own start for local messages
         const ms = elapsedMs != null
           ? elapsedMs
           : (state.connectStartedAt ? performance.now() - state.connectStartedAt : null);
@@ -205,68 +202,22 @@
         return String(value);
       }
 
-      function fmtPercent(value) {
-        if (value == null || Number.isNaN(value)) return '-';
-        return `${Number(value).toFixed(0)}%`;
-      }
-
-      function percentile(values, pct) {
+      function average(rawValues) {
+        const values = rawValues.filter((value) => value != null);
         if (values.length === 0) return null;
-        const pos = (values.length - 1) * pct;
-        const base = Math.floor(pos);
-        const rest = pos - base;
-        if (values[base + 1] == null) return values[base];
-        return values[base] + rest * (values[base + 1] - values[base]);
-      }
-
-      function seriesStats(rawValues) {
-        const values = rawValues.filter((value) => value != null).sort((a, b) => a - b);
-        const sum = values.reduce((total, value) => total + value, 0);
-        return {
-          averageMs: values.length > 0 ? sum / values.length : null,
-          medianMs: percentile(values, 0.5),
-          p90Ms: percentile(values, 0.9),
-          minMs: values.length > 0 ? values[0] : null,
-          maxMs: values.length > 0 ? values[values.length - 1] : null,
-          values,
-        };
+        return values.reduce((total, value) => total + value, 0) / values.length;
       }
 
       function computeStats(results) {
-        const connectedResults = results.filter((result) => result.status === 'connected' && result.elapsedMs != null);
-        const connect = seriesStats(connectedResults.map((result) => result.elapsedMs));
-        const firstFrame = seriesStats(connectedResults.map((result) => result.firstFrameMs));
-        const total = seriesStats(connectedResults.map((result) => result.totalMs));
-        const link = seriesStats(connectedResults.map((result) => result.linkMs));
-        const device = seriesStats(connectedResults.map((result) => result.deviceMs));
-        const startStreamRtt = seriesStats(connectedResults.map((result) => result.startStreamRttMs));
-        // startStream RTT (link + device) as a percentage of each attempt's total time
-        const rttShare = seriesStats(connectedResults.map((result) => (
-          result.linkMs != null && result.deviceMs != null && result.totalMs > 0
-            ? ((result.linkMs + result.deviceMs) / result.totalMs) * 100
-            : null
-        )));
-        const failed = results.filter((result) => result.status === 'failed').length;
-        const stopped = results.filter((result) => result.status === 'stopped').length;
-
+        const connected = results.filter((result) => result.status === 'connected' && result.elapsedMs != null);
         return {
           attempts: results.length,
-          connected: connect.values.length,
-          failed,
-          stopped,
-          successRate: results.length > 0 ? (connect.values.length / results.length) * 100 : null,
-          averageMs: connect.averageMs,
-          medianMs: connect.medianMs,
-          p90Ms: connect.p90Ms,
-          minMs: connect.minMs,
-          maxMs: connect.maxMs,
-          values: connect.values,
-          firstFrame,
-          total,
-          link,
-          device,
-          startStreamRtt,
-          rttShare,
+          connected: connected.length,
+          failed: results.filter((result) => result.status === 'failed').length,
+          connectMs: average(connected.map((result) => result.elapsedMs)),
+          totalMs: average(connected.map((result) => result.totalMs)),
+          deviceMs: average(connected.map((result) => result.deviceMs)),
+          linkMs: average(connected.map((result) => result.linkMs)),
         };
       }
 
@@ -325,8 +276,6 @@
           { label: 'connect', color: '#2563eb', value: (result) => result.elapsedMs },
           { label: 'total', color: '#7c3aed', value: (result) => result.totalMs },
           { label: 'device', color: '#d97706', value: (result) => result.deviceMs },
-          // link stacked on device, so this line is the full startStream RTT;
-          // the gap to the device line is the link time
           { label: 'device+link (RTT)', color: '#16a34a', value: (result) => (
             result.linkMs != null && result.deviceMs != null ? result.deviceMs + result.linkMs : null
           ) },
@@ -430,30 +379,12 @@
       function renderResults() {
         const stats = computeStats(state.results);
         el.resultSummary.replaceChildren(
-          metric('Attempts', fmtCount(stats.attempts)),
           metric('Connected', fmtCount(stats.connected)),
           metric('Failed', fmtCount(stats.failed)),
-          metric('Stopped', fmtCount(stats.stopped)),
-          metric('Success rate', fmtPercent(stats.successRate)),
-          metric('Average', `${fmt(stats.averageMs)} ms`),
-          metric('Median', `${fmt(stats.medianMs)} ms`),
-          metric('P90', `${fmt(stats.p90Ms)} ms`),
-          metric('Min / Max', `${fmt(stats.minMs)} / ${fmt(stats.maxMs)} ms`),
-          metric('First frame avg', `${fmt(stats.firstFrame.averageMs)} ms`),
-          metric('First frame median', `${fmt(stats.firstFrame.medianMs)} ms`),
-          metric('Total avg', `${fmt(stats.total.averageMs)} ms`),
-          metric('Total median', `${fmt(stats.total.medianMs)} ms`),
-          metric('Total P90', `${fmt(stats.total.p90Ms)} ms`),
-          metric('Total min / max', `${fmt(stats.total.minMs)} / ${fmt(stats.total.maxMs)} ms`),
-          metric('startStream RTT avg', `${fmt(stats.startStreamRtt.averageMs)} ms`),
-          metric('Link avg', `${fmt(stats.link.averageMs)} ms`),
-          metric('Link median', `${fmt(stats.link.medianMs)} ms`),
-          metric('Link P90', `${fmt(stats.link.p90Ms)} ms`),
-          metric('Device avg', `${fmt(stats.device.averageMs)} ms`),
-          metric('Device median', `${fmt(stats.device.medianMs)} ms`),
-          metric('Device P90', `${fmt(stats.device.p90Ms)} ms`),
-          metric('RTT % of total avg', fmtPercent(stats.rttShare.averageMs)),
-          metric('RTT % of total median', fmtPercent(stats.rttShare.medianMs)),
+          metric('Connect avg', `${fmt(stats.connectMs)} ms`),
+          metric('Total avg', `${fmt(stats.totalMs)} ms`),
+          metric('Device avg', `${fmt(stats.deviceMs)} ms`),
+          metric('Link avg', `${fmt(stats.linkMs)} ms`),
         );
         drawLatencyChart(state.results);
       }
@@ -592,8 +523,8 @@
           el.batchStatus.textContent = `Batch: stopped after ${state.results.length}/${BATCH_ATTEMPTS}`;
           log(`Batch stopped after ${state.results.length}/${BATCH_ATTEMPTS} attempts`);
         } else {
-          el.batchStatus.textContent = `Batch: complete, ${stats.connected}/${stats.attempts} connected, average ${fmt(stats.averageMs)} ms connect, ${fmt(stats.total.averageMs)} ms total`;
-          log(`Batch complete: ${stats.connected}/${stats.attempts} connected, average ${fmt(stats.averageMs)} ms connect, ${fmt(stats.total.averageMs)} ms total`);
+          el.batchStatus.textContent = `Batch: complete, ${stats.connected}/${stats.attempts} connected, average ${fmt(stats.connectMs)} ms connect, ${fmt(stats.totalMs)} ms total`;
+          log(`Batch complete: ${stats.connected}/${stats.attempts} connected, average ${fmt(stats.connectMs)} ms connect, ${fmt(stats.totalMs)} ms total`);
         }
 
         state.stopRequested = false;
@@ -676,27 +607,19 @@
           function maybeFinishConnected() {
             if (connectedAt == null || firstFrameAt == null) return;
             const elapsedMs = connectedAt - startedAt;
-            // measure first frame from when we requested video (matches the prewarm flow:
-            // connection is already up, video is flipped on via the data channel)
             const firstFrameRefAt = videoEnabledAt ?? connectedAt;
             const firstFrameMs = Math.max(0, firstFrameAt - firstFrameRefAt);
             const totalMs = elapsedMs + firstFrameMs;
             const timings = connection?.streamTimings || {};
-            const rttShare = timings.linkMs != null && timings.deviceProcessMs != null && totalMs > 0
-              ? ((timings.linkMs + timings.deviceProcessMs) / totalMs) * 100
-              : null;
             el.connectionResult.textContent = `Connected in ${fmt(elapsedMs)} ms, first frame +${fmt(firstFrameMs)} ms, total ${fmt(totalMs)} ms`;
             log(`First frame ${fmt(firstFrameMs)} ms after video enabled, total ${fmt(totalMs)} ms`
-              + `, link ${fmt(timings.linkMs)} ms, device processing ${fmt(timings.deviceProcessMs)} ms`
-              + (rttShare != null ? `, RTT ${fmtPercent(rttShare)} of total` : ''));
+              + `, link ${fmt(timings.linkMs)} ms, device processing ${fmt(timings.deviceProcessMs)} ms`);
             finish({
               attempt,
               status: 'connected',
               elapsedMs,
               firstFrameMs,
               totalMs,
-              durationMs: totalMs,
-              startStreamRttMs: timings.startStreamRttMs ?? null,
               linkMs: timings.linkMs ?? null,
               deviceMs: timings.deviceProcessMs ?? null,
               reason: null,
@@ -714,7 +637,6 @@
             if (settled || firstFrameAt != null) return;
             for (const report of stats.values()) {
               if (report.type !== 'inbound-rtp' || report.kind !== 'video') continue;
-              // framesReceived counts complete (fully assembled) frames
               if ((report.framesReceived ?? report.framesDecoded ?? 0) > 0) {
                 firstFrameAt = performance.now();
                 if (frameStatsTimer) {
@@ -733,9 +655,6 @@
             frameStatsTimer = setInterval(pollFramesReceived, FRAME_POLL_INTERVAL_MS);
           }
 
-          // startStream negotiates with video_enabled:false (the prewarm path), so the device
-          // sends no frames until we ask for them over the data channel. Flip video on as soon
-          // as the channel is open, then the first-frame poll above will catch the first frame.
           function enableVideoWhenReady() {
             if (settled || videoEnabledAt != null) return;
             if (connection?.dc?.readyState === 'open') {
@@ -743,7 +662,6 @@
               videoEnabledAt = performance.now();
               log('Sent livestreamVideoEnable(true)');
             } else {
-              // the data channel can open a beat after connectionState flips to connected
               videoEnableTimer = setTimeout(enableVideoWhenReady, 5);
             }
           }
@@ -773,10 +691,6 @@
                 finish({
                   attempt,
                   status: 'failed',
-                  elapsedMs: null,
-                  firstFrameMs: null,
-                  totalMs: null,
-                  durationMs: performance.now() - startedAt,
                   reason: reason || 'Connection failed',
                 }, false);
               } else if (connectionState === 'disconnected' || connectionState === 'closed') {
@@ -784,10 +698,6 @@
                 finish({
                   attempt,
                   status: stopped ? 'stopped' : 'failed',
-                  elapsedMs: null,
-                  firstFrameMs: null,
-                  totalMs: null,
-                  durationMs: performance.now() - startedAt,
                   reason: stopped ? 'Stopped by user' : (reason || 'Connection disconnected'),
                 }, false);
               }
@@ -801,8 +711,6 @@
               if (!track) return;
               videoTrack = track;
               if (track.muted) {
-                // remote tracks start muted and unmute when the first RTP data arrives;
-                // use that to start polling for the first complete frame
                 track.addEventListener('unmute', startFirstFramePoll, { once: true });
               } else {
                 startFirstFramePoll();
@@ -824,10 +732,6 @@
             finish({
               attempt,
               status: 'failed',
-              elapsedMs: null,
-              firstFrameMs: null,
-              totalMs: null,
-              durationMs: performance.now() - startedAt,
               reason,
             });
           }, ATTEMPT_DEADLINE_MS);
@@ -838,10 +742,6 @@
               finish({
                 attempt,
                 status: state.stopRequested ? 'stopped' : 'failed',
-                elapsedMs: null,
-                firstFrameMs: null,
-                totalMs: null,
-                durationMs: performance.now() - startedAt,
                 reason: state.stopRequested ? 'Stopped by user' : err.message,
               }, false);
             }
