@@ -31,6 +31,12 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
 
   const isLandscape = useIsLandscape();
 
+  const resetConnectionTiming = useCallback(() => {
+    setConnectionTotalMs(null);
+    connectStartedAtRef.current = performance.now();
+    firstFrameMeasuredRef.current = false;
+  }, []);
+
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -58,15 +64,13 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       },
     };
 
-    connectStartedAtRef.current = performance.now();
-    firstFrameMeasuredRef.current = false;
-    setConnectionTotalMs(null);
+    resetConnectionTiming();
     connectionRef.current = webrtcConnectionManager.acquire(dongleId, callbacks);
 
     return () => {
       webrtcConnectionManager.release(callbacks);
     };
-  }, [dongleId]);
+  }, [dongleId, resetConnectionTiming]);
 
   useEffect(() => {
     if (connectionState !== 'connected') {
@@ -92,11 +96,9 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const handleConnect = useCallback(() => {
     setError(null);
     setActiveCamera('wideRoad');
-    setConnectionTotalMs(null);
-    connectStartedAtRef.current = performance.now();
-    firstFrameMeasuredRef.current = false;
+    resetConnectionTiming();
     connectionRef.current = webrtcConnectionManager.reconnect(dongleId);
-  }, [dongleId]);
+  }, [dongleId, resetConnectionTiming]);
 
   const handleClose = useCallback(() => {
     if (onClose) onClose();

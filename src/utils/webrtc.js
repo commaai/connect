@@ -8,13 +8,19 @@ const CLOCK_WINDOW_SIZE = 16;
 const CLOCK_PING_MS = 500;
 
 const CONNECTION_DEADLINE_MS = 10000;
-const ICE_GATHER_DEADLINE_MS = 7000;
+const ICE_GATHER_DEADLINE_MS = 8000;
 
 // Drop mDNS (.local) host candidates from an SDP — the device can't resolve them.
-const stripLocalCandidates = (sdp) => sdp
-  .split('\r\n')
-  .filter((line) => !(line.startsWith('a=candidate') && line.includes('.local')))
-  .join('\r\n');
+function stripMdnsCandidates(sdp) {
+  return sdp
+    .split(/\r\n|\n/)
+    .filter((line) => {
+      if (!line.startsWith('a=candidate:')) return true;
+      return !line.split(' ')[4]?.endsWith('.local'); // connection-address is field 5
+    })
+    .map((line) => line.replace(/[\w-]+\.local\b/g, '0.0.0.0'))
+    .join('\r\n');
+}
 
 export class WebRTCConnection extends EventTarget {
   constructor(callbacks) {
@@ -37,7 +43,6 @@ export class WebRTCConnection extends EventTarget {
   }
 
   _log(message, candidate) {
-    // monotonic time since connect() began, so every log carries its position on the connection timeline
     const elapsedMs = this.connectStartedAt != null ? performance.now() - this.connectStartedAt : null;
     this.dispatchEvent(new CustomEvent('log', { detail: { message, candidate, elapsedMs } }));
   }
@@ -55,14 +60,11 @@ export class WebRTCConnection extends EventTarget {
         encodedInsertableStreams: true,
       });
       this._log('RTCPeerConnection created');
-      // capture the pc we're handshaking on; if cleanup()/a newer connect() swaps or nulls this.pc while we're awaiting below, process must stop
       const pc = this.pc;
-      this.pc.addEventListener('icegatheringstatechange', () => {
-        if (this.pc) this._log(`ICE gathering state: ${this.pc.iceGatheringState}`);
-      });
-      this.pc.addEventListener('iceconnectionstatechange', () => {
-        if (this.pc) this._log(`ICE connection state: ${this.pc.iceConnectionState}`);
-      });
+      
+      this.connectionTimeout = setTimeout(() => {
+        this.fail('No valid webrtc candidate routes were found to device. Check network and retry.');
+      }, CONNECTION_DEADLINE_MS);
 
       this.pc.addEventListener('track', (evt) => {
         if (evt.track.kind === 'video') {
@@ -96,10 +98,6 @@ export class WebRTCConnection extends EventTarget {
         }
       });
 
-      this.connectionTimeout = setTimeout(() => {
-        this.fail('No valid webrtc candidate routes were found to device. Check network and retry.');
-      }, CONNECTION_DEADLINE_MS);
-
       this.pc.addEventListener('connectionstatechange', () => {
         if (!this.pc) return;
         const state = this.pc.connectionState;
@@ -122,19 +120,20 @@ export class WebRTCConnection extends EventTarget {
       this.dc = this.pc.createDataChannel('data', { ordered: true });
       this.dc.onopen = () => {
         this._log('Data channel open');
-        if (this.videoEnabled) this._sendDc('livestreamVideoEnable', { enabled: true });
-        this.joystickInterval = setInterval(() => this.sendJoystick(), 50);
-        this.sendJoystick();
+        if (this.videoEnabled) {
+          this._sendDc('livestreamVideoEnable', { enabled: true });
+          this.enableJoystick(true);
+        }
       };
       this.dc.onclose = () => {
-        this._clearJoystickInterval();
+        this.enableJoystick(false);
         this._stopClockSync();
       };
       this.dc.onmessage = (evt) => {
         try {
           const msg = JSON.parse(typeof evt.data === 'string' ? evt.data : new TextDecoder().decode(evt.data));
           if (msg.type === 'carState') this.callbacks.onBatteryLevel({ level: Math.round(msg.data.fuelGauge * 100), charging: !!msg.data.charging });
-          if (msg.type === 'connectionReplaced') this.fail(msg.data || 'Connection replaced by another device.');
+          if (msg.type === 'disconnect') this.fail(msg.data || 'Connection replaced by another device.');
           if (msg.type === 'clockSync' && msg.data?.action === 'pong') this._handleClockPong(msg.data);
         } catch (e) {
           console.warn('webrtc: ignoring malformed data-channel message', e);
@@ -143,18 +142,16 @@ export class WebRTCConnection extends EventTarget {
 
       const offer = await this.pc.createOffer();
       if (this.pc !== pc) return;
-      this._log('createOffer done');
       await this.pc.setLocalDescription(offer);
       if (this.pc !== pc) return;
-      this._log('setLocalDescription done');
+      this._log('create offer and setLocalDescription done');
 
-      this._log('Gathering ICE candidates');
       const candidateReady = new Promise((resolve) => {
         pc.addEventListener('icecandidate', (evt) => {
           if (!evt.candidate) {
             this._log('ICE gathering complete');
             resolve();
-          } else if (evt.candidate.type === 'srflx' || evt.candidate.type === 'prflx') {
+          } else if (['srflx', 'prflx', 'relay'].includes(evt.candidate.type)) {
             this._log(`Using ${evt.candidate.type} candidate`, evt.candidate);
             resolve();
           }
@@ -165,41 +162,27 @@ export class WebRTCConnection extends EventTarget {
 
       this._log('Sending startStream offer to device');
       const tStep = performance.now();
-      const streamPromise = Athena.postJsonRpcPayload(dongleId, {
+      const resp = await Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
-        params: { sdp: stripLocalCandidates(pc.localDescription.sdp), video_enabled: false },
+        params: { sdp: stripMdnsCandidates(pc.localDescription.sdp), video_enabled: false },
         jsonrpc: '2.0',
         id: 0,
       });
-
-      let resp;
-      try {
-        resp = await streamPromise;
-      } catch (err) {
-        console.error('webrtc: startStream request failed', { dongleId }, err);
-        throw err;
-      }
-      if (this.pc !== pc) return;
       const rttMs = performance.now() - tStep;
       if (resp?.error) {
-        console.error('webrtc: startStream device error', { dongleId }, resp.error);
         this._log(`device error: ${JSON.stringify(resp.error)}`);
         throw new Error(resp.error.data?.message || 'Could not reach device. Is the ignition on?');
-      }
-      if (!resp?.result) {
-        console.error('webrtc: startStream returned no result', { dongleId }, resp);
-        throw new Error('Could not reach device. Is the ignition on?');
       }
       // device reports how long it spent handling startStream; the rest of the RTT is the link
       const deviceProcessMs = typeof resp.result.time === 'number' ? resp.result.time : null;
       const linkMs = deviceProcessMs != null ? Math.max(0, rttMs - deviceProcessMs) : null;
       this.streamTimings = { startStreamRttMs: rttMs, deviceProcessMs, linkMs };
       this._log(
-        `startStream RTT ${rttMs.toFixed(0)}ms`
+        `Received startStream answer. RTT ${rttMs.toFixed(0)}ms`
           + (deviceProcessMs != null ? `, link ${linkMs.toFixed(0)}ms, device processing ${deviceProcessMs.toFixed(0)}ms` : ''),
       );
-      this._log('Received startStream answer from device');
-
+      
+      if (this.pc !== pc) return;
       await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
       this._log('Remote description (answer) set');
     } catch (err) {
@@ -228,18 +211,33 @@ export class WebRTCConnection extends EventTarget {
   setQuality(quality) {
     this._sendDc('livestreamSettings', { quality: quality });
   }
+  
+  setJoystick(x, y) {
+    this.joystickX = x;
+    this.joystickY = y;
+  }
+
+  sendJoystick() {
+    this._sendDc('testJoystick', { axes: [this.joystickX, this.joystickY], buttons: [false] });
+  }
+  
+  enableJoystick(enabled) {
+    if (enabled) {
+      if (this.joystickInterval) return;
+      this.joystickInterval = setInterval(() => this.sendJoystick(), 50);
+      this.sendJoystick();
+    } else {
+      if (this.joystickInterval) {
+        clearInterval(this.joystickInterval);
+        this.joystickInterval = null;
+      }
+    }
+  }
 
   _clearConnectionTimeout() {
     if (this.connectionTimeout) {
       clearTimeout(this.connectionTimeout);
       this.connectionTimeout = null;
-    }
-  }
-
-  _clearJoystickInterval() {
-    if (this.joystickInterval) {
-      clearInterval(this.joystickInterval);
-      this.joystickInterval = null;
     }
   }
 
@@ -306,15 +304,6 @@ export class WebRTCConnection extends EventTarget {
     this.clockSynced = true;
   }
 
-  setJoystick(x, y) {
-    this.joystickX = x;
-    this.joystickY = y;
-  }
-
-  sendJoystick() {
-    this._sendDc('testJoystick', { axes: [this.joystickX, this.joystickY], buttons: [false] });
-  }
-
   disconnect(reason) {
     this.cleanup();
     this.callbacks.onConnectionState('disconnected', reason);
@@ -327,7 +316,7 @@ export class WebRTCConnection extends EventTarget {
 
   cleanup() {
     this._clearConnectionTimeout();
-    this._clearJoystickInterval();
+    this.enableJoystick(false);
     this._stopClockSync();
     for (const worker of this.transformWorkers.splice(0)) {
       worker.terminate();
@@ -388,32 +377,33 @@ export class WebRTCConnectionManager {
     this.disconnect();
     this.dongleId = dongleId;
     this.connectionState = 'connecting';
-    const conn = new WebRTCConnection({
-      onConnectionState: (state, reason) => {
-        if (this.connection !== conn) return;
+    // ignore callbacks from a connection we've already torn down or replaced
+    let conn;
+    const guard = (handler) => (...args) => {
+      if (this.connection === conn) handler(...args);
+    };
+    conn = new WebRTCConnection({
+      onConnectionState: guard((state, reason) => {
         this.connectionState = state;
         this.failReason = reason ?? null;
         if (state === 'connected' && this.videoWanted) this.connection?.enableVideo(true);
         this.subscriber?.onConnectionState?.(state, reason);
-      },
-      onBatteryLevel: (battery) => {
-        if (this.connection !== conn) return;
+      }),
+      onBatteryLevel: guard((battery) => {
         this.battery = battery;
         this.subscriber?.onBatteryLevel?.(battery);
-      },
-      onVideoTrack: (name, stream) => {
-        if (this.connection !== conn) return;
+      }),
+      onVideoTrack: guard((name, stream) => {
         this.streamName = name;
         this.stream = stream;
         this.subscriber?.onVideoTrack?.(name, stream);
-      },
-      onLatencyUpdate: (latency) => {
-        if (this.connection !== conn) return;
+      }),
+      onLatencyUpdate: guard((latency) => {
         this.subscriber?.onLatencyUpdate?.(latency);
-      },
+      }),
     });
     this.connection = conn;
-    conn.connect(dongleId);
+    conn.connect(dongleId).catch(() => {});
   }
 
   acquire(dongleId, callbacks) {
@@ -424,6 +414,7 @@ export class WebRTCConnectionManager {
       this._open(dongleId);
     }
     this.setVideoEnabled(true);
+    this.setJoystickEnabled(true);
     this.subscriber = callbacks;
     callbacks?.onConnectionState?.(this.connectionState, this.failReason);
     if (this.battery != null) callbacks?.onBatteryLevel?.(this.battery);
@@ -435,27 +426,19 @@ export class WebRTCConnectionManager {
     if (callbacks && this.subscriber !== callbacks) return;
     this.subscriber = null;
     this.setVideoEnabled(false);
-  }
-
-  setVideoEnabled(enabled) {
-    this.videoWanted = enabled;
-    if (this.connection && this.connectionState === 'connected') {
-      this.connection.enableVideo(enabled);
-    }
+    this.setJoystickEnabled(false);
   }
 
   reconnect(dongleId) {
     this._open(dongleId ?? this.dongleId);
     this.setVideoEnabled(true);
+    this.setJoystickEnabled(true);
     return this.connection;
   }
 
   disconnect(reason) {
     this.videoWanted = false;
     if (this.connection) {
-      // Tear down while this.connection is still set, so the conn's onConnectionState('disconnected', reason)
-      // passes the staleness guard and reaches the subscriber (otherwise the UI never learns the stream
-      // dropped). cleanup() nulls pc/dc first, so this is the only callback that fires.
       this.connection.disconnect(reason);
       this.connection = null;
     }
@@ -464,6 +447,19 @@ export class WebRTCConnectionManager {
     this.battery = null;
     this.stream = null;
     this.streamName = null;
+  }
+  
+  setVideoEnabled(enabled) {
+    this.videoWanted = enabled;
+    if (this.connection && this.connectionState === 'connected') {
+      this.connection.enableVideo(enabled);
+    }
+  }
+
+  setJoystickEnabled(enabled) {
+    if (this.connection && this.connectionState === 'connected') {
+      this.connection.enableJoystick(enabled);
+    }
   }
 }
 
