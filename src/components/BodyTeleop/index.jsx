@@ -73,22 +73,30 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   }, [dongleId, resetConnectionTiming]);
 
   useEffect(() => {
-    if (connectionState !== 'connected') {
+    const active = connectionState === 'connecting' || connectionState === 'connected';
+    if (!active) {
       clearTimeout(timeoutTimerRef.current);
       return undefined;
     }
-    const onVisibilityChange = () => {
+    const armOrClear = () => {
       clearTimeout(timeoutTimerRef.current);
-      if (document.hidden) {
+      // hidden wins over blurred (a hidden page is also unfocused)
+      const delay = document.hidden ? 30000 : (!document.hasFocus() ? 60000 : null);
+      if (delay != null) {
         timeoutTimerRef.current = setTimeout(() => {
           webrtcConnectionManager.disconnect();
           setError('Session timed out');
-        }, 30000);
+        }, delay);
       }
     };
-    document.addEventListener('visibilitychange', onVisibilityChange);
+    document.addEventListener('visibilitychange', armOrClear);
+    window.addEventListener('blur', armOrClear);
+    window.addEventListener('focus', armOrClear);
+    armOrClear();
     return () => {
-      document.removeEventListener('visibilitychange', onVisibilityChange);
+      document.removeEventListener('visibilitychange', armOrClear);
+      window.removeEventListener('blur', armOrClear);
+      window.removeEventListener('focus', armOrClear);
       clearTimeout(timeoutTimerRef.current);
     };
   }, [connectionState]);

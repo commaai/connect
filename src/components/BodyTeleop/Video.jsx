@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, CircularProgress } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
 
-const CONNECTION_TIME_VISIBLE_MS = 3000;
+const CONNECTION_TIME_VISIBLE_MS = 1500;
 
 const ConnectOverlay = ({ connectionState, error, onConnect }) => {
   const connecting = connectionState === 'connecting';
