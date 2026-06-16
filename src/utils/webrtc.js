@@ -40,6 +40,8 @@ export class WebRTCConnection extends EventTarget {
     this.connectStartedAt = null;
     this.transformWorkers = [];
     this.videoEnabled = false;
+    this.connectionState = 'new';
+    this.failReason = null;
   }
 
   _log(message, candidate) {
@@ -47,9 +49,15 @@ export class WebRTCConnection extends EventTarget {
     this.dispatchEvent(new CustomEvent('log', { detail: { message, candidate, elapsedMs } }));
   }
 
+  _setState(state, reason) {
+    this.connectionState = state;
+    this.failReason = reason ?? null;
+    this.callbacks.onConnectionState(state, reason);
+  }
+
   async connect(dongleId) {
     this.cleanup();
-    this.callbacks.onConnectionState('connecting');
+    this._setState('connecting');
     this.connectStartedAt = performance.now();
     this.streamTimings = null;
 
@@ -104,7 +112,7 @@ export class WebRTCConnection extends EventTarget {
         this._log(`Connection state: ${state}`);
         if (state === 'connected') {
           this._clearConnectionTimeout();
-          this.callbacks.onConnectionState('connected');
+          this._setState('connected');
         } else if (state === 'failed' || state === 'disconnected' || state === 'closed') {
           this.fail('Connection lost');
         }
@@ -306,12 +314,12 @@ export class WebRTCConnection extends EventTarget {
 
   disconnect(reason) {
     this.cleanup();
-    this.callbacks.onConnectionState('disconnected', reason);
+    this._setState('disconnected', reason);
   }
 
   fail(reason) {
     this.cleanup();
-    this.callbacks.onConnectionState('failed', reason);
+    this._setState('failed', reason);
   }
 
   cleanup() {
@@ -352,8 +360,6 @@ export class WebRTCConnectionManager {
     this.dongleId = null;
     this.subscriber = null;
     this.videoWanted = false;
-    this.connectionState = 'none';
-    this.failReason = null;
     this.battery = null;
     this.stream = null;
     this.streamName = null;
@@ -363,6 +369,9 @@ export class WebRTCConnectionManager {
       window.addEventListener('pagehide', () => this.disconnect());
     }
   }
+
+  get connectionState() { return this.connection?.connectionState ?? 'none'; }
+  get failReason() { return this.connection?.failReason ?? null; }
 
   prewarm(dongleId) {
     if (!dongleId) return;
@@ -376,7 +385,6 @@ export class WebRTCConnectionManager {
   _open(dongleId) {
     this.disconnect();
     this.dongleId = dongleId;
-    this.connectionState = 'connecting';
     // ignore callbacks from a connection we've already torn down or replaced
     let conn;
     const guard = (handler) => (...args) => {
@@ -384,8 +392,6 @@ export class WebRTCConnectionManager {
     };
     conn = new WebRTCConnection({
       onConnectionState: guard((state, reason) => {
-        this.connectionState = state;
-        this.failReason = reason ?? null;
         if (state === 'connected' && this.videoWanted) this.connection?.enableVideo(true);
         this.subscriber?.onConnectionState?.(state, reason);
       }),
@@ -442,8 +448,6 @@ export class WebRTCConnectionManager {
       this.connection.disconnect(reason);
       this.connection = null;
     }
-    this.connectionState = 'none';
-    this.failReason = reason ?? null;
     this.battery = null;
     this.stream = null;
     this.streamName = null;
