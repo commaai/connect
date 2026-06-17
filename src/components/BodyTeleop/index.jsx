@@ -25,7 +25,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const connectionRef = useRef(null);
   const latencyCallbackRef = useRef(null);
   const switchTimerRef = useRef(null);
-  const timeoutTimerRef = useRef(null);
   const connectStartedAtRef = useRef(null);
   const firstFrameMeasuredRef = useRef(false);
 
@@ -46,10 +45,17 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   useEffect(() => {
     const callbacks = {
       onConnectionState: (state, reason) => {
+        // the manager may auto-resume into a fresh connection (e.g. after a timeout); keep our ref live
+        connectionRef.current = webrtcConnectionManager.connection;
         setConnectionState(state);
-        if (state === 'failed') {
+        if (state === 'connecting') {
+          setError(null);
+        } else if (state === 'failed') {
           // don't overwrite the original error reason
           setError((prev) => prev || reason || 'Could not reach device. Is the ignition on?');
+        } else if (state === 'disconnected' && reason) {
+          // e.g. the manager timed the session out after the page was backgrounded
+          setError(reason);
         }
       },
       onBatteryLevel: setBattery,
@@ -71,35 +77,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       webrtcConnectionManager.release(callbacks);
     };
   }, [dongleId, resetConnectionTiming]);
-
-  useEffect(() => {
-    const active = connectionState === 'connecting' || connectionState === 'connected';
-    if (!active) {
-      clearTimeout(timeoutTimerRef.current);
-      return undefined;
-    }
-    const armOrClear = () => {
-      clearTimeout(timeoutTimerRef.current);
-      // hidden wins over blurred (a hidden page is also unfocused)
-      const delay = document.hidden ? 30000 : (!document.hasFocus() ? 60000 : null);
-      if (delay != null) {
-        timeoutTimerRef.current = setTimeout(() => {
-          webrtcConnectionManager.disconnect();
-          setError('Session timed out');
-        }, delay);
-      }
-    };
-    document.addEventListener('visibilitychange', armOrClear);
-    window.addEventListener('blur', armOrClear);
-    window.addEventListener('focus', armOrClear);
-    armOrClear();
-    return () => {
-      document.removeEventListener('visibilitychange', armOrClear);
-      window.removeEventListener('blur', armOrClear);
-      window.removeEventListener('focus', armOrClear);
-      clearTimeout(timeoutTimerRef.current);
-    };
-  }, [connectionState]);
 
   const handleConnect = useCallback(() => {
     setError(null);

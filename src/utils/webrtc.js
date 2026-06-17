@@ -363,11 +363,31 @@ export class WebRTCConnectionManager {
     this.battery = null;
     this.stream = null;
     this.streamName = null;
+    this.awayTimer = null;
 
-    // Tear down the connection when the tab is closed
     if (typeof window !== 'undefined') {
       window.addEventListener('pagehide', () => this.disconnect());
+      document.addEventListener('visibilitychange', () => this._armAwayTimer());
+      window.addEventListener('blur', () => this._armAwayTimer());
+      window.addEventListener('focus', () => this._armAwayTimer());
     }
+  }
+  
+  _armAwayTimer() {
+    clearTimeout(this.awayTimer);
+    const away = document.hidden || !document.hasFocus();
+    if (!away) {
+      if (this.subscriber && !this.connection) this.reconnect(this.dongleId);
+      else if (!this.connection && this.dongleId) this.prewarm(this.dongleId)
+      return;
+    }
+    if (this.connectionState !== 'connecting' && this.connectionState !== 'connected') return;
+    const delay = document.hidden ? 30000 : 60000;
+    this.awayTimer = setTimeout(() => {
+      if (this.connectionState === 'connecting' || this.connectionState === 'connected') {
+        this.disconnect('Session timed out');
+      }
+    }, delay);
   }
 
   get connectionState() { return this.connection?.connectionState ?? 'none'; }
@@ -443,6 +463,7 @@ export class WebRTCConnectionManager {
   }
 
   disconnect(reason) {
+    clearTimeout(this.awayTimer);
     this.videoWanted = false;
     if (this.connection) {
       this.connection.disconnect(reason);
