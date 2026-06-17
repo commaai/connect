@@ -7,6 +7,7 @@ const CONNECTION_TIME_VISIBLE_MS = 1500;
 const ConnectOverlay = ({ connectionState, error, onConnect }) => {
   const connecting = connectionState === 'connecting';
   const canRetry = connectionState === 'failed' || connectionState === 'disconnected';
+  const retryLabel = connectionState === 'disconnected' ? 'Reconnect' : 'Retry';
 
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
@@ -23,7 +24,7 @@ const ConnectOverlay = ({ connectionState, error, onConnect }) => {
             disableRipple
           >
             <Refresh style={{ fontSize: 20 }} />
-            Retry
+            {retryLabel}
           </Button>
         ) : null}
         {error && (

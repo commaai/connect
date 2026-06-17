@@ -45,16 +45,13 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   useEffect(() => {
     const callbacks = {
       onConnectionState: (state, reason) => {
-        // the manager may auto-resume into a fresh connection (e.g. after a timeout); keep our ref live
         connectionRef.current = webrtcConnectionManager.connection;
         setConnectionState(state);
         if (state === 'connecting') {
           setError(null);
         } else if (state === 'failed') {
-          // don't overwrite the original error reason
           setError((prev) => prev || reason || 'Could not reach device. Is the ignition on?');
         } else if (state === 'disconnected' && reason) {
-          // e.g. the manager timed the session out after the page was backgrounded
           setError(reason);
         }
       },
