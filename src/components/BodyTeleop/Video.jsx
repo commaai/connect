@@ -1,34 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@material-ui/core';
+import { Button, CircularProgress } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
 
-import { ConnectStep } from '../../utils/webrtc';
+const CONNECTION_TIME_VISIBLE_MS = 1500;
 
-const stepInfo = {
-  [ConnectStep.GATHERING_CANDIDATES]: { percent: 20, label: 'Gathering direct connection candidates...' },
-  [ConnectStep.PROCESSING_CANDIDATES]: { percent: 40, label: 'Device processing candidates...' },
-  [ConnectStep.CANDIDATE_ACCEPTED]: { percent: 85, label: 'Candidate accepted...' },
-  [ConnectStep.ESTABLISHING]: { percent: 92, label: 'Establishing connection...' },
-  [ConnectStep.RECEIVING_VIDEO]: { percent: 97, label: 'Receiving video...' },
-};
-
-const ConnectOverlay = ({ connectionState, error, connectStep, onConnect }) => {
+const ConnectOverlay = ({ connectionState, error, onConnect }) => {
   const connecting = connectionState === 'connecting';
   const canRetry = connectionState === 'failed' || connectionState === 'disconnected';
-  const { percent = 0, label = 'Connecting...' } = stepInfo[connectStep] || {};
+  const retryLabel = connectionState === 'disconnected' ? 'Reconnect' : 'Retry';
 
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
       <div className="flex flex-col items-center gap-3 pointer-events-auto">
         {connecting ? (
           <>
-            <div className="w-60 h-1 rounded bg-white/10 overflow-hidden">
-              <div
-                className="h-full rounded bg-white/70 transition-[width] duration-400 ease-in-out"
-                style={{ width: `${percent}%` }}
-              />
-            </div>
-            <span className="text-xs text-white/50">{label}</span>
+            <CircularProgress style={{ color: 'rgba(255, 255, 255, 0.7)' }} thickness={4} size={40} />
+            <span className="text-xs text-white/50">Connecting...</span>
           </>
         ) : canRetry ? (
           <Button
@@ -37,7 +24,7 @@ const ConnectOverlay = ({ connectionState, error, connectStep, onConnect }) => {
             disableRipple
           >
             <Refresh style={{ fontSize: 20 }} />
-            Retry
+            {retryLabel}
           </Button>
         ) : null}
         {error && (
@@ -51,37 +38,56 @@ const ConnectOverlay = ({ connectionState, error, connectStep, onConnect }) => {
 };
 
 const Video = ({
-  videoRef, connectionState, error,
-  connectStep, onConnect, className
+  videoRef, connectionState, error, connectionTotalMs,
+  onConnect, onFirstFrame, className
 }) => {
   const connected = connectionState === 'connected';
-  const [playing, setPlaying] = useState(false);
+  const [showConnectionTime, setShowConnectionTime] = useState(false);
 
   useEffect(() => {
     if (connectionState !== 'connected') {
-      setPlaying(false);
+      setShowConnectionTime(false);
     }
   }, [connectionState]);
 
+  const connectionTimeLabel = connectionTotalMs == null ? null : `${Math.round(connectionTotalMs)} ms`;
+
+  useEffect(() => {
+    if (connectionTimeLabel == null) {
+      setShowConnectionTime(false);
+      return undefined;
+    }
+
+    setShowConnectionTime(true);
+    const timer = setTimeout(() => setShowConnectionTime(false), CONNECTION_TIME_VISIBLE_MS);
+    return () => clearTimeout(timer);
+  }, [connectionTimeLabel]);
+
   return (
-    <>
+    <div className={`relative w-full ${className} bg-black`}>
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted
-        onPlaying={() => setPlaying(true)}
-        className={`w-full pointer-events-none object-contain transition-opacity duration-200 ease-in ${playing ? 'opacity-100' : 'opacity-0'} ${className}`}
+        onPlaying={() => {
+          onFirstFrame?.();
+        }}
+        className={`w-full h-full pointer-events-none object-contain`}
       />
+      {connected && connectionTimeLabel && (
+        <div className={`absolute bottom-2 left-1/2 z-10 -translate-x-1/2 select-none rounded bg-black/50 px-2 py-0.5 text-[11px] leading-4 text-white/70 pointer-events-none transition-opacity duration-500 ease-out ${showConnectionTime ? 'opacity-100' : 'opacity-0'}`}>
+          {`connected in ${connectionTimeLabel}`}
+        </div>
+      )}
       {!connected && (
         <ConnectOverlay
           connectionState={connectionState}
           error={error}
-          connectStep={connectStep}
           onConnect={onConnect}
         />
       )}
-    </>
+    </div>
   );
 };
 

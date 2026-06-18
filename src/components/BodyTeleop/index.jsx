@@ -4,7 +4,7 @@ import Obstruction from 'obstruction';
 
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
-import { WebRTCConnection } from '../../utils/webrtc';
+import { webrtcConnectionManager } from '../../utils/webrtc';
 import { useIsLandscape } from '../../hooks/window';
 import StatusBar from './StatusBar';
 import ControlsBar from './ControlsBar';
@@ -13,22 +13,28 @@ import Joystick from './Joystick';
 
 const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [connectionState, setConnectionState] = useState('none');
-  const [connectStep, setConnectStep] = useState(null);
   const [battery, setBattery] = useState(null);
   const [error, setError] = useState(null);
   const [activeCamera, setActiveCamera] = useState('wideRoad');
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [inputActive, setInputActive] = useState(false);
-  const [started, setStarted] = useState(false);
+  const [connectionTotalMs, setConnectionTotalMs] = useState(null);
 
   const videoRef = useRef(null);
   const streamsRef = useRef({});
   const connectionRef = useRef(null);
   const latencyCallbackRef = useRef(null);
   const switchTimerRef = useRef(null);
-  const timeoutTimerRef = useRef(null);
+  const connectStartedAtRef = useRef(null);
+  const firstFrameMeasuredRef = useRef(false);
 
   const isLandscape = useIsLandscape();
+
+  const resetConnectionTiming = useCallback(() => {
+    setConnectionTotalMs(null);
+    connectStartedAtRef.current = performance.now();
+    firstFrameMeasuredRef.current = false;
+  }, []);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -37,21 +43,18 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   }, []);
 
   useEffect(() => {
-    const conn = new WebRTCConnection({
+    const callbacks = {
       onConnectionState: (state, reason) => {
+        connectionRef.current = webrtcConnectionManager.connection;
         setConnectionState(state);
-        if (state !== 'connecting') {
-          setConnectStep(null);
-        }
-        if (state !== 'connected') {
-          setStarted(false);
-        }
-        if (state === 'failed') {
-          // don't overwrite the original error reason
+        if (state === 'connecting') {
+          setError(null);
+        } else if (state === 'failed') {
           setError((prev) => prev || reason || 'Could not reach device. Is the ignition on?');
+        } else if (state === 'disconnected' && reason) {
+          setError(reason);
         }
       },
-      onConnectProgress: setConnectStep,
       onBatteryLevel: setBattery,
       onIgnition: setStarted,
       onVideoTrack: (_cameraName, stream) => {
@@ -63,60 +66,26 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       onLatencyUpdate: (latency) => {
         if (latencyCallbackRef.current) latencyCallbackRef.current(latency);
       },
-    });
+    };
 
-    connectionRef.current = conn;
-    const onBeforeUnload = () => conn.disconnect();
-    window.addEventListener('beforeunload', onBeforeUnload);
+    resetConnectionTiming();
+    connectionRef.current = webrtcConnectionManager.acquire(dongleId, callbacks);
 
     return () => {
-      window.removeEventListener('beforeunload', onBeforeUnload);
-      conn.disconnect();
+      webrtcConnectionManager.release(callbacks);
     };
-  }, []);
+  }, [dongleId, resetConnectionTiming]);
 
-  useEffect(() => {
-    const onVisibilityChange = () => {
-      clearTimeout(timeoutTimerRef.current);
-      if (document.hidden) {
-        timeoutTimerRef.current = setTimeout(() => {
-          connectionRef.current?.disconnect();
-          setError('Session timed out');
-        }, 30000);
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-      clearTimeout(timeoutTimerRef.current);
-    };
-  }, []);
-
-  const handleConnect = useCallback(async () => {
-    const conn = connectionRef.current;
-    if (!conn) return;
+  const handleConnect = useCallback(() => {
     setError(null);
     setActiveCamera('wideRoad');
-    try {
-      await conn.connect(dongleId);
-    } catch (err) {
-      setError(err.message);
-    }
-  }, [dongleId]);
-
-  useEffect(() => {
-    handleConnect();
-  }, []);
-
-  const handleDisconnect = useCallback(() => {
-    setError(null);
-    connectionRef.current?.disconnect();
-  }, []);
+    resetConnectionTiming();
+    connectionRef.current = webrtcConnectionManager.reconnect(dongleId);
+  }, [dongleId, resetConnectionTiming]);
 
   const handleClose = useCallback(() => {
-    handleDisconnect();
     if (onClose) onClose();
-  }, [handleDisconnect, onClose]);
+  }, [onClose]);
 
   const switchCamera = useCallback((cameraName) => {
     setActiveCamera((prev) => {
@@ -134,13 +103,19 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     connectionRef.current?.setQuality(nextQuality);
   }, []);
 
+  const handleFirstFrame = useCallback(() => {
+    if (connectStartedAtRef.current == null || firstFrameMeasuredRef.current) return;
+    firstFrameMeasuredRef.current = true;
+    setConnectionTotalMs(performance.now() - connectStartedAtRef.current);
+  }, []);
+
   const connection = connectionRef.current;
   const connected = connectionState === 'connected';
   const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
 
   const videoProps = {
-    videoRef, connectionState, error,
-    connectStep,
+    videoRef, connectionState, error, connectionTotalMs,
+    onFirstFrame: handleFirstFrame,
     onConnect: handleConnect,
   };
 
@@ -154,7 +129,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
         <div
           className={isLandscape
             ? 'absolute left-2 top-2 z-20 flex items-center gap-1'
-            : 'flex items-center px-3 py-2 bg-[#30373B] border-b border-white/10 min-h-[48px] z-10'}
+            : 'flex items-center px-3 py-2 bg-[#1D2225] border-b border-white/10 min-h-[64px] z-10'}
         >
           <button
             className={isLandscape ? 'flex items-center rounded-full hover:text-white/90 text-white/60 p-2 w-10 h-10 bg-glass' : 'text-white p-2'}

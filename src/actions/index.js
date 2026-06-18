@@ -8,6 +8,7 @@ import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
+import { webrtcConnectionManager } from '../utils/webrtc';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -281,6 +282,11 @@ export function selectDevice(dongleId, allowPathChange = true) {
     }
     if (!device && state.device && state.device.dongle_id === dongleId) {
       device = state.device;
+    }
+
+    // tear down existing webrtc connection
+    if (state.dongleId && state.dongleId !== dongleId) {
+      webrtcConnectionManager.disconnect();
     }
 
     dispatch({
