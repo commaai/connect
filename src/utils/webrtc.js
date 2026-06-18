@@ -1,4 +1,5 @@
 import { athena as Athena } from '@commaai/api';
+import { asyncSleep } from '.';
 
 const VIDEO_STREAM_NAME = 'camera';
 const wallMs = () => performance.timeOrigin + performance.now();
@@ -148,28 +149,6 @@ export class WebRTCConnection extends EventTarget {
         }
       };
 
-      let sessionId = null;
-      const pendingCandidates = [];
-      const sendCandidate = (candidate) => {
-        this._log('Sending addIceCandidate to device', candidate);
-        return Athena.postJsonRpcPayload(dongleId, {
-          method: 'addIceCandidate',
-          params: { session_id: sessionId, candidate },
-          jsonrpc: '2.0',
-          id: 0,
-        });
-      };
-      this.pc.addEventListener('icecandidate', (evt) => {
-        // skip mDNS candidates, aiortc can't resolve them
-        // https://github.com/commaai/connect/issues/609
-        if (evt.candidate?.address?.endsWith('.local')) return;
-        if (sessionId === null) {
-          pendingCandidates.push(evt.candidate);
-        } else {
-          sendCandidate(evt.candidate);
-        }
-      });
-
       const offer = await this.pc.createOffer();
       if (this.pc !== pc) return;
       await this.pc.setLocalDescription(offer);
@@ -199,6 +178,7 @@ export class WebRTCConnection extends EventTarget {
         id: 0,
       });
       const rttMs = performance.now() - tStep;
+      if (resp == null) {throw new Error('Device could not be reached. Is it online and connected to the internet?');}
       if (resp?.error) {
         this._log(`device error: ${JSON.stringify(resp.error)}`);
         throw new Error(resp.error.data?.message || 'Could not reach device. Is the ignition on?');

@@ -19,6 +19,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [inputActive, setInputActive] = useState(false);
   const [connectionTotalMs, setConnectionTotalMs] = useState(null);
+  const [started, setStarted] = useState(false);
 
   const videoRef = useRef(null);
   const streamsRef = useRef({});
