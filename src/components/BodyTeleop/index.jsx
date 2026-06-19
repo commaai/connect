@@ -167,9 +167,9 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
           </div>
         )}
         <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : started ? "aspect-[16/9]" : "flex-1"} />
-        { notCar && !started && (
-          <div className="select-none rounded bg-black/50 px-2 pt-2 pointer-events-none text-center">
-            <span className="text-sm text-white/70">Turn on comma body ignition to remote control</span>
+        { connected && notCar && !started && (
+          <div className="absolute w-full bottom-36 2xl:bottom-12 pointer-events-none text-center select-none">
+            <span className="text-sm md:text-base text-white/70">Turn on comma body ignition to remote control</span>
           </div>
         )}
         {connected && (
