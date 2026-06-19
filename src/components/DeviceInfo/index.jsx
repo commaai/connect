@@ -147,10 +147,6 @@ const styles = (theme) => ({
     fontSize: 20,
     marginLeft: theme.spacing.unit,
   },
-  batteryIcon: {
-    fontSize: 20,
-    marginRight: theme.spacing.unit / 2,
-  },
   popover: {
     borderRadius: 22,
     padding: '8px 16px',
@@ -436,7 +432,7 @@ class DeviceInfo extends Component {
               <Typography>{ `car battery: ${batteryText}` }</Typography>
             ) : (
               <>
-                <CarBatteryIcon className={ classes.batteryIcon } />
+                <CarBatteryIcon className="text-[20px] mr-1" />
                 <Typography>{ batteryText }</Typography>
               </>
             )
