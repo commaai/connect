@@ -172,7 +172,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             <span className="text-sm text-white/70">Turn on comma body ignition to remote control</span>
           </div>
         )}
-        {connected  && (
+        {connected && (
           <>
             <ControlsBar
               activeCamera={activeCamera}
