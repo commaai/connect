@@ -37,8 +37,6 @@ const INITIAL_LATENCY = {
   totalMs: 68,
 };
 
-
-// round-trip time from the active ICE candidate pair (seconds -> ms)
 function readRtt(report) {
   let pair = null;
   report.forEach((stat) => {
@@ -101,8 +99,11 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
       });
       const rttMs = readRtt(report);
       const rttPoor = rttMs != null && rttMs > RTT_POOR_MS;
-      // once media has flowed, losing the video stats entirely means the stream died
-      if (!videoStats) { if (ref.mediaStarted) setConnectionQuality('poor'); return; }
+      if (!videoStats) {
+        if (ref.mediaStarted) setConnectionQuality('poor');
+        setStats((prev) => ({ ...prev, rtt: rttMs != null ? `${Math.round(rttMs)} ms` : '--' }));
+        return;
+      }
 
       const now = videoStats.timestamp;
       let bitrate = 0;
@@ -122,10 +123,8 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
           if (total > 0) lossRatio = lostDelta / total;
         }
         if (bitrate > 0) ref.mediaStarted = true;
-        // stalled stream (no bytes after media started) or elevated packet loss is a poor link
         poor = (ref.mediaStarted && bitrate === 0) || lossRatio > PACKET_LOSS_POOR;
       }
-      // high round-trip time degrades teleop responsiveness even when video is flowing cleanly
       setConnectionQuality(poor || rttPoor ? 'poor' : 'good');
       ref.prevTimestamp = now;
       ref.prevBytes = videoStats.bytesReceived;
