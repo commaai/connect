@@ -14,6 +14,7 @@ import { webrtcConnectionManager } from '../../utils/webrtc';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import CommacareBadge from '../CommacareBadge';
+import { LivestreamIcon, CarBatteryIcon, CameraIcon, GamepadIcon } from '../../icons';
 
 const styles = (theme) => ({
   container: {
@@ -145,6 +146,10 @@ const styles = (theme) => ({
   buttonIcon: {
     fontSize: 20,
     marginLeft: theme.spacing.unit,
+  },
+  batteryIcon: {
+    fontSize: 20,
+    marginRight: theme.spacing.unit / 2,
   },
   popover: {
     borderRadius: 22,
@@ -369,6 +374,7 @@ class DeviceInfo extends Component {
       batteryVoltage = carHealth.result.peripheralState.voltage / 1000.0;
       batteryBackground = batteryVoltage < 11.0 ? Colors.red400 : Colors.green400;
     }
+    const batteryText = batteryVoltage ? `${batteryVoltage.toFixed(1)}\u00a0V` : 'N/A';
 
     const buttonOffline = deviceIsOnline(device) ? '' : classes.buttonOffline;
 
@@ -387,21 +393,27 @@ class DeviceInfo extends Component {
       pingTooltip = `Last ping on ${lastAthenaPing.format('MMM D, YYYY')} at ${lastAthenaPing.format('h:mm A')}`;
     }
 
+    // TO BE REMOVED: once 0.11.1 is deprecated, we can remove this since all devices should have livestreaming
     const livestreamEnabled = deviceVersionAtLeast(device, '0.11.2');
     const bodyTeleopEnabled = isCommaBody && livestreamEnabled;
 
     return (
       <div className='flex md:flex-row md:items-stretch justify-end flex-wrap gap-2 min-w-0 shrink'>
-        {livestreamEnabled ? (
+        {livestreamEnabled && (
           <button
             style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
             className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
             onClick={ this.openBodyTeleop }
             disabled={ !deviceIsOnline(device) }
           >
-            <Typography className='text-black'>{bodyTeleopEnabled ? "remote control": "live stream"}</Typography>
+            { windowWidth >= 640
+              ? <Typography className='text-black'>{bodyTeleopEnabled ? "remote control" : "live stream"}</Typography>
+              : bodyTeleopEnabled
+                ? <GamepadIcon className='text-black' />
+                : <LivestreamIcon className='text-black' />}
           </button>
-        ) : (
+        )}
+        {(!isCommaBody || !livestreamEnabled) && (
           <button
             ref={ this.snapshotButtonRef }
             className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
@@ -410,7 +422,9 @@ class DeviceInfo extends Component {
           >
             { snapshot.fetching
               ? <CircularProgress size={ 19 } />
-              : <Typography className='text-black'>take snapshot</Typography>}
+              : windowWidth >= 640
+                ? <Typography className='text-black'>take snapshot</Typography>
+                : <CameraIcon className='text-black' />}
           </button>
         )}
         <div
@@ -418,11 +432,14 @@ class DeviceInfo extends Component {
           style={{ backgroundColor: batteryBackground }}
         >
           { deviceIsOnline(device) ? (
-            <Typography>
-              { `${windowWidth >= 640 ? 'car ' : ''
-              }battery: ${
-                batteryVoltage ? `${batteryVoltage.toFixed(1)}\u00a0V` : 'N/A'}` }
-            </Typography>
+            windowWidth >= 640 ? (
+              <Typography>{ `car battery: ${batteryText}` }</Typography>
+            ) : (
+              <>
+                <CarBatteryIcon className={ classes.batteryIcon } />
+                <Typography>{ batteryText }</Typography>
+              </>
+            )
           ) : (
             <Tooltip
               classes={{ tooltip: classes.popover }}

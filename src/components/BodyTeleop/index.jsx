@@ -85,8 +85,12 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   }, [dongleId, resetConnectionTiming]);
 
   const handleClose = useCallback(() => {
+    // Cars aren't prewarmed, tear down connection
+    if (!device?.rpc?.not_car) {
+      webrtcConnectionManager.disconnect();
+    }
     if (onClose) onClose();
-  }, [onClose]);
+  }, [device, onClose]);
 
   const switchCamera = useCallback((cameraName) => {
     setActiveCamera((prev) => {
@@ -112,6 +116,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
 
   const connection = connectionRef.current;
   const connected = connectionState === 'connected';
+  const notCar = Boolean(device?.rpc?.not_car);
   const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
 
   const videoProps = {
@@ -161,7 +166,12 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             />
           </div>
         )}
-        <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : "aspect-[16/9]"} />
+        <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : started ? "aspect-[16/9]" : "flex-1"} />
+        { notCar && !started && (
+          <div className="select-none rounded bg-black/50 px-2 pt-2 pointer-events-none text-center">
+            <span className="text-sm text-white/70">Turn on comma body ignition to remote control</span>
+          </div>
+        )}
         {connected  && (
           <>
             <ControlsBar
