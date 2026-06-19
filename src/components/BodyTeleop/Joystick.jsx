@@ -157,6 +157,7 @@ const Joystick = ({
   }, [applyJoystick]);
 
   const handleTouchEnd = useCallback((e) => {
+    e.preventDefault();
     for (let i = 0; i < e.changedTouches.length; i++) {
       if (e.changedTouches[i].identifier === touchIdRef.current) {
         touchIdRef.current = null;
