@@ -173,7 +173,7 @@ export class WebRTCConnection extends EventTarget {
       const tStep = performance.now();
       const resp = await Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
-        params: { sdp: stripMdnsCandidates(pc.localDescription.sdp), video_enabled: false },
+        params: { sdp: stripMdnsCandidates(pc.localDescription.sdp), enabled: false },
         jsonrpc: '2.0',
         id: 0,
       });
