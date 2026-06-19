@@ -7,8 +7,10 @@ import { useClickOutside } from '../../hooks/useClickOutside';
 const LATENCY_BUFFER_SIZE = 10;
 const LATENCY_HISTORY_MAX = 60;
 
-// packet loss over the interval above which the link is considered poor, evaluated each 1s stats poll
+const STATS_INTERVAL_MS = 1000;
+
 const PACKET_LOSS_POOR = 0.02;
+const RTT_POOR_MS = 250;
 
 const QUALITY_INDICATOR = {
   good: { color: '#22c967', label: 'connected' },
@@ -19,11 +21,11 @@ const STATS_ROWS = [
   { label: 'Resolution', key: 'resolution' },
   { label: 'FPS', key: 'fps' },
   { label: 'Bitrate', key: 'bitrate' },
+  { label: 'RTT', key: 'rtt'}
 ];
 
 const LATENCY_LAYERS = [
   { label: 'Capture/Encode', key: 'captureEncodeMs', color: 'rgba(76,175,80,1)', labelColor: 'rgba(76,175,80,1)' },
-  { label: 'Send delay', key: 'sendDelayMs', color: 'rgba(171,71,188,1)', labelColor: 'rgba(171,71,188,1)' },
   { label: 'Network', key: 'networkMs', color: 'rgba(66,165,245,1)', labelColor: 'rgba(66,165,245,1)' },
 ];
 
@@ -35,6 +37,19 @@ const INITIAL_LATENCY = {
   totalMs: 68,
 };
 
+function readRtt(report) {
+  let pair = null;
+  report.forEach((stat) => {
+    if (stat.type === 'transport' && stat.selectedCandidatePairId) pair = report.get(stat.selectedCandidatePairId);
+  });
+  // fallback for browsers that don't set transport.selectedCandidatePairId
+  if (!pair) {
+    report.forEach((stat) => {
+      if (stat.type === 'candidate-pair' && stat.nominated && stat.state === 'succeeded') pair = stat;
+    });
+  }
+  return pair?.currentRoundTripTime != null ? pair.currentRoundTripTime * 1000 : null;
+}
 
 const useStats = (connection, connectionState, latencyCallbackRef) => {
   const [showStats, setShowStats] = useState(false);
@@ -61,7 +76,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
         const buf = latencyBufferRef.current;
         latencyBufferRef.current = [];
         const avg = {};
-        for (const key of ['captureEncodeMs', 'sendDelayMs', 'devicePipelineMs', 'networkMs', 'totalMs']) {
+        for (const key of ['captureEncodeMs', 'networkMs', 'totalMs']) {
           const vals = buf.map((l) => l[key]).filter((v) => v != null);
           avg[key] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
         }
@@ -82,8 +97,13 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
       report.forEach((stat) => {
         if (stat.type === 'inbound-rtp' && stat.kind === 'video') videoStats = stat;
       });
-      // once media has flowed, losing the video stats entirely means the stream died
-      if (!videoStats) { if (ref.mediaStarted) setConnectionQuality('poor'); return; }
+      const rttMs = readRtt(report);
+      const rttPoor = rttMs != null && rttMs > RTT_POOR_MS;
+      if (!videoStats) {
+        if (ref.mediaStarted) setConnectionQuality('poor');
+        setStats((prev) => ({ ...prev, rtt: rttMs != null ? `${Math.round(rttMs)} ms` : '--' }));
+        return;
+      }
 
       const now = videoStats.timestamp;
       let bitrate = 0;
@@ -103,10 +123,9 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
           if (total > 0) lossRatio = lostDelta / total;
         }
         if (bitrate > 0) ref.mediaStarted = true;
-        // stalled stream (no bytes after media started) or elevated packet loss is a poor link
         poor = (ref.mediaStarted && bitrate === 0) || lossRatio > PACKET_LOSS_POOR;
       }
-      setConnectionQuality(poor ? 'poor' : 'good');
+      setConnectionQuality(poor || rttPoor ? 'poor' : 'good');
       ref.prevTimestamp = now;
       ref.prevBytes = videoStats.bytesReceived;
       ref.prevFrames = videoStats.framesDecoded;
@@ -119,6 +138,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
         bitrate: bitrate > 1000000
           ? `${(bitrate / 1000000).toFixed(2)} Mbps`
           : `${(bitrate / 1000).toFixed(0)} kbps`,
+        rtt: rttMs != null ? `${Math.round(rttMs)} ms` : '--',
         jitter: videoStats.jitter !== undefined ? `${(videoStats.jitter * 1000).toFixed(1)} ms` : '?',
       });
     } catch (err) {
@@ -138,7 +158,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
       ref.mediaStarted = false;
       setConnectionQuality('good');
       pollStats();
-      ref.interval = setInterval(pollStats, 1000);
+      ref.interval = setInterval(pollStats, STATS_INTERVAL_MS);
     } else {
       if (ref.interval) clearInterval(ref.interval);
       ref.interval = null;
@@ -241,11 +261,11 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
   }, [latencyHistory, compact]);
 
   const fmtMs = (v) => (v != null ? `${v.toFixed(1)} ms` : '--');
-  const textSize = compact ? "text-[9px]" : "text-[10px] md:text-[13px]" 
+  const textSize = compact ? "text-[9px]" : "text-[10px] md:text-[13px]"
 
   return (
     <div className={
-      `absolute z-30 right-2 mt-2 flex bg-glass-dark rounded-[5px] md:rounded-[10px] font-mono
+      `absolute z-30 right-2 mt-2 flex bg-glass-dark backdrop-blur-[3px] rounded-[5px] md:rounded-[10px] font-mono
       ${compact ? "flex-row gap-2 items-center p-[6px_8px]" : "flex-col w-[150px] md:w-[240px] p-[3px_6px] md:p-[10px_16px]"}
     `}>
       <div className="flex flex-col">
@@ -258,19 +278,17 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
       </div>
       {!compact && <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />}
       <div>
-        {!compact && <div className="text-[7px] font-bold text-white/35 tracking-[0.5px] leading-tight py-[2px] pb-px md:text-[11px]">FRAME LATENCY</div>}
+        {!compact && <div className="text-[7px] font-bold text-white/35 tracking-[0.5px] leading-tight py-[2px] pb-px md:text-[11px]">{"FRAME LATENCY"}</div>}
         {LATENCY_LAYERS.map(({ label, key, labelColor }) => (
           <div key={label} className="flex justify-between leading-tight md:py-[3px]">
             <span className={`${textSize} mr-1.5 md:mr-[20px]`} style={{ color: labelColor }}>{label}</span>
             <span className={`${textSize} text-nowrap text-white/[0.85] text-right`}>{fmtMs(latency?.[key])}</span>
           </div>
         ))}
-        {!compact && 
-          <div className="flex justify-between leading-tight md:py-[3px]">
-            <span className={`${textSize} mr-1.5 md:mr-[18px]`} style={{ fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Total</span>
-            <span className={`${textSize} text-white/[0.85] text-right`} style={{ fontWeight: 700 }}>{fmtMs(latency?.totalMs)}</span>
-          </div>
-        }
+        <div className="flex justify-between leading-tight md:py-[3px]">
+          <span className={`${textSize} mr-1.5 md:mr-[18px]`} style={{ fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Frame Latency</span>
+          <span className={`${textSize} text-white/[0.85] text-right`} style={{ fontWeight: 700 }}>{fmtMs(latency?.totalMs)}</span>
+        </div>
       </div>
       <canvas ref={latencyCanvasRef} className={`${compact ? "w-[100px] self-stretch": "w-full h-[30px] md:h-[90px] mt-1"} rounded-[3px] bg-black/30 md:rounded-[6px]`} />
       {!compact && <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />}
@@ -314,12 +332,13 @@ const StatusBar = ({
 
   return (
     <div className={className}>
-      <div className="flex items-center mr-auto md:mr-0 gap-2 h-10 pl-3.5 md:p-3.5">
+      <div className="flex items-center mr-auto md:mr-0 gap-2 h-10 pl-3.5 md:p-1">
         <div
           className="w-3 h-3 rounded-full transition-colors"
           style={{ backgroundColor: indicator.color }}
+          title={indicator.label}
         />
-        <span className="text-base hidden xxs:inline text-white/70">{indicator.label}</span>
+        <span className="text-base hidden xxs:inline text-white/70">{stats?.rtt ?? '--'}</span>
       </div>
       {battery && (
         <div className="flex items-center justify-center gap-2 h-10 px-3.5">

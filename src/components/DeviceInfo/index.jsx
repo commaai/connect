@@ -182,7 +182,6 @@ class DeviceInfo extends Component {
   }
 
   openBodyTeleop() {
-    this.prewarmBodyTeleop();
     this.props.dispatch(streamNav(true));
   }
 

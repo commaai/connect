@@ -55,11 +55,12 @@ export class WebRTCConnection extends EventTarget {
     this.callbacks.onConnectionState(state, reason);
   }
 
-  async connect(dongleId) {
+  async connect(dongleId, videoEnabled = false) {
     this.cleanup();
     this._setState('connecting');
     this.connectStartedAt = performance.now();
     this.streamTimings = null;
+    this.videoEnabled = videoEnabled;
 
     try {
       this.pc = new RTCPeerConnection({
@@ -71,7 +72,7 @@ export class WebRTCConnection extends EventTarget {
       const pc = this.pc;
       
       this.connectionTimeout = setTimeout(() => {
-        this.fail('No valid webrtc candidate routes were found to device. Check network and retry.');
+        this.fail('No direct peer-to-peer routes were found to device. Check network and retry.');
       }, CONNECTION_DEADLINE_MS);
 
       this.pc.addEventListener('track', (evt) => {
@@ -142,7 +143,7 @@ export class WebRTCConnection extends EventTarget {
           const msg = JSON.parse(typeof evt.data === 'string' ? evt.data : new TextDecoder().decode(evt.data));
           if (msg.type === 'carState') this.callbacks.onBatteryLevel({ level: Math.round(msg.data.fuelGauge * 100), charging: !!msg.data.charging });
           if (msg.type === 'deviceState') this.callbacks.onIgnition?.(!!msg.data?.started);
-          if (msg.type === 'disconnect') this.fail(msg.data || 'Connection replaced by another device.');
+          if (msg.type === 'disconnect') this.disconnect(msg.data || 'Connection replaced by another device.');
           if (msg.type === 'clockSync' && msg.data?.action === 'pong') this._handleClockPong(msg.data);
         } catch (e) {
           console.warn('webrtc: ignoring malformed data-channel message', e);
@@ -173,12 +174,15 @@ export class WebRTCConnection extends EventTarget {
       const tStep = performance.now();
       const resp = await Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
-        params: { sdp: stripMdnsCandidates(pc.localDescription.sdp), enabled: false },
+        params: { sdp: stripMdnsCandidates(pc.localDescription.sdp), enabled: this.videoEnabled },
         jsonrpc: '2.0',
         id: 0,
       });
       const rttMs = performance.now() - tStep;
-      if (resp == null) {throw new Error('Device could not be reached. Is it online and connected to the internet?');}
+      if (resp == null) {
+        this._log(`device error: ${JSON.stringify(resp.error)}`);
+        throw new Error('Device could not be reached. Is it online and connected to the internet?');
+      }
       if (resp?.error) {
         this._log(`device error: ${JSON.stringify(resp.error)}`);
         throw new Error(resp.error.data?.message || 'Could not reach device. Is the ignition on?');
@@ -192,6 +196,12 @@ export class WebRTCConnection extends EventTarget {
           + (deviceProcessMs != null ? `, link ${linkMs.toFixed(0)}ms, device processing ${deviceProcessMs.toFixed(0)}ms` : ''),
       );
       
+      // device refuses the stream when another client already holds it; fail this connection
+      if (resp.result?.error === 'busy') {
+        this.fail(resp.result.message || 'Device is busy with another session.');
+        return;
+      }
+
       if (this.pc !== pc) return;
       await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
       this._log('Remote description (answer) set');
@@ -278,9 +288,7 @@ export class WebRTCConnection extends EventTarget {
     const latency = {
       captureMs: timing.captureMs,
       encodeMs: timing.encodeMs,
-      captureEncodeMs: timing.captureMs + timing.encodeMs,
-      sendDelayMs: timing.sendDelayMs,
-      devicePipelineMs: timing.captureMs + timing.encodeMs + timing.sendDelayMs,
+      captureEncodeMs: timing.captureMs + timing.encodeMs + timing.sendDelayMs,
       networkMs: null,
       totalMs: null,
     };
@@ -288,7 +296,7 @@ export class WebRTCConnection extends EventTarget {
     if (this.clockSynced) {
       const raw = browserReceiveMs - (timing.deviceSendWallMs - this.clockOffsetMs);
       latency.networkMs = Math.max(0, raw);
-      latency.totalMs = latency.devicePipelineMs + latency.networkMs;
+      latency.totalMs = latency.captureEncodeMs + latency.networkMs;
     }
 
     this.callbacks.onLatencyUpdate?.(latency);
@@ -395,16 +403,19 @@ export class WebRTCConnectionManager {
   get connectionState() { return this.connection?.connectionState ?? 'none'; }
   get failReason() { return this.connection?.failReason ?? null; }
 
+  _healthy(dongleId) {
+    return Boolean(this.connection
+      && (this.connectionState === 'connecting' || this.connectionState === 'connected')
+      && (!dongleId || this.dongleId === dongleId));
+  }
+
   prewarm(dongleId) {
     if (!dongleId) return;
-    if (this.connection && this.dongleId === dongleId
-        && (this.connectionState === 'connecting' || this.connectionState === 'connected')) {
-      return;
-    }
+    if (this._healthy(dongleId)) return;
     this._open(dongleId);
   }
 
-  _open(dongleId) {
+  _open(dongleId, videoEnabled = false) {
     this.disconnect();
     this.dongleId = dongleId;
     // ignore callbacks from a connection we've already torn down or replaced
@@ -431,15 +442,12 @@ export class WebRTCConnectionManager {
       }),
     });
     this.connection = conn;
-    conn.connect(dongleId).catch(() => {});
+    conn.connect(dongleId, videoEnabled).catch(() => {});
   }
 
   acquire(dongleId, callbacks) {
-    const healthy = this.connection
-      && (this.connectionState === 'connecting' || this.connectionState === 'connected')
-      && (!dongleId || this.dongleId === dongleId);
-    if (!healthy) {
-      this._open(dongleId);
+    if (!this._healthy(dongleId)) {
+      this._open(dongleId, true);
     }
     this.setVideoEnabled(true);
     this.setJoystickEnabled(true);
@@ -458,7 +466,7 @@ export class WebRTCConnectionManager {
   }
 
   reconnect(dongleId) {
-    this._open(dongleId ?? this.dongleId);
+    this._open(dongleId ?? this.dongleId, true);
     this.setVideoEnabled(true);
     this.setJoystickEnabled(true);
     return this.connection;
