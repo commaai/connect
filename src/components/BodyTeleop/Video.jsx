@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button, CircularProgress } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
+
+import { usePinchZoom } from '../../utils/usePinchZoom';
 
 const CONNECTION_TIME_VISIBLE_MS = 1500;
 
@@ -39,10 +41,14 @@ const ConnectOverlay = ({ connectionState, error, onConnect }) => {
 
 const Video = ({
   videoRef, connectionState, error, connectionTotalMs,
-  onConnect, onFirstFrame, className
+  onConnect, onFirstFrame, className, started
 }) => {
   const connected = connectionState === 'connected';
   const [showConnectionTime, setShowConnectionTime] = useState(false);
+  const containerRef = useRef(null);
+
+  // Disable pinch-zoom once ignition is on so it doesn't fight the joystick.
+  usePinchZoom(containerRef, videoRef, !started);
 
   useEffect(() => {
     if (connectionState !== 'connected') {
@@ -64,7 +70,7 @@ const Video = ({
   }, [connectionTimeLabel]);
 
   return (
-    <div className={`relative w-full ${className} bg-black`}>
+    <div ref={containerRef} className={`relative w-full ${className} bg-black overflow-hidden`} style={{ touchAction: 'none' }}>
       <video
         ref={videoRef}
         autoPlay
