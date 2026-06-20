@@ -8,11 +8,8 @@ const midpoint = (a, b, rect) => ({
   y: (a.clientY + b.clientY) / 2 - rect.top,
 });
 
-// Two-finger pinch-zoom + pan for a single element, since native pinch-zoom is
-// page-global and can't be scoped to one element. `containerRef` receives the
-// touches (must have `touch-action: none`); the transform is applied to
-// `contentRef`. Listeners are bound natively with `{ passive: false }` because
-// React registers `touchmove` as passive, so `preventDefault` wouldn't work there.
+//`containerRef` receives the touches (must have `touch-action: none`);
+// the transform is applied to `contentRef`.
 export const usePinchZoom = (containerRef, contentRef, enabled = true) => {
   const state = useRef({ scale: 1, tx: 0, ty: 0, lastDist: 0, lastMid: null });
 
@@ -79,6 +76,8 @@ export const usePinchZoom = (containerRef, contentRef, enabled = true) => {
       apply();
     };
 
+    // Listeners are bound natively with `{ passive: false }` because React
+    // registers `touchmove` as passive, so `preventDefault` wouldn't work there.
     el.addEventListener('touchmove', onMove, { passive: false });
     el.addEventListener('touchend', onEnd);
     el.addEventListener('touchcancel', onEnd);
