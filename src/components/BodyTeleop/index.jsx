@@ -19,6 +19,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [inputActive, setInputActive] = useState(false);
   const [connectionTotalMs, setConnectionTotalMs] = useState(null);
+  const [started, setStarted] = useState(false);
 
   const videoRef = useRef(null);
   const streamsRef = useRef({});
@@ -56,6 +57,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
         }
       },
       onBatteryLevel: setBattery,
+      onIgnition: setStarted,
       onVideoTrack: (_cameraName, stream) => {
         streamsRef.current.camera = stream;
         if (videoRef.current) {
@@ -83,8 +85,12 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   }, [dongleId, resetConnectionTiming]);
 
   const handleClose = useCallback(() => {
+    // Cars aren't prewarmed, tear down connection
+    if (!device?.rpc?.not_car) {
+      webrtcConnectionManager.disconnect();
+    }
     if (onClose) onClose();
-  }, [onClose]);
+  }, [device, onClose]);
 
   const switchCamera = useCallback((cameraName) => {
     setActiveCamera((prev) => {
@@ -110,6 +116,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
 
   const connection = connectionRef.current;
   const connected = connectionState === 'connected';
+  const notCar = Boolean(device?.rpc?.not_car);
   const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
 
   const videoProps = {
@@ -159,7 +166,12 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             />
           </div>
         )}
-        <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : "aspect-[16/9]"} />
+        <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : started ? "aspect-[16/9]" : "flex-1"} />
+        { connected && notCar && !started && (
+          <div className="absolute w-full bottom-36 2xl:bottom-12 pointer-events-none text-center select-none">
+            <span className="text-sm md:text-base text-white/70">Turn on comma body ignition to remote control</span>
+          </div>
+        )}
         {connected && (
           <>
             <ControlsBar
@@ -170,23 +182,25 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
               isLandscape={isLandscape}
               controlsDisabled={inputActive}
             />
-            <div
-              className={isLandscape
-                ? 'absolute bottom-4 right-4 z-10 w-[160px] h-[160px]'
-                : 'flex-1 flex items-center justify-center px-4 pb-12 pt-2 min-h-0 overflow-hidden'}
-            >
-              <Joystick
-                connection={connection}
-                activeCamera={activeCamera}
+            { started && (
+              <div
                 className={isLandscape
-                  ? 'relative w-full h-full'
-                  : 'relative w-auto h-full aspect-square max-w-full'}
-                onGamepadChange={setGamepadConnected}
-                onSwitchCamera={switchCamera}
-                gamepadConnected={gamepadConnected}
-                onInputActiveChange={setInputActive}
-              />
-            </div>
+                  ? 'absolute bottom-4 right-4 z-10 w-[160px] h-[160px]'
+                  : 'flex-1 flex items-center justify-center px-4 pb-12 pt-2 min-h-0 overflow-hidden'}
+              >
+                <Joystick
+                  connection={connection}
+                  activeCamera={activeCamera}
+                  className={isLandscape
+                    ? 'relative w-full h-full'
+                    : 'relative w-auto h-full aspect-square max-w-full'}
+                  onGamepadChange={setGamepadConnected}
+                  onSwitchCamera={switchCamera}
+                  gamepadConnected={gamepadConnected}
+                  onInputActiveChange={setInputActive}
+                />
+              </div>
+            )}
           </>
         )}
       </div>

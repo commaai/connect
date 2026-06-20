@@ -14,6 +14,7 @@ import { webrtcConnectionManager } from '../../utils/webrtc';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import CommacareBadge from '../CommacareBadge';
+import { LivestreamIcon, CarBatteryIcon, CameraIcon, GamepadIcon } from '../../icons';
 
 const styles = (theme) => ({
   container: {
@@ -369,6 +370,7 @@ class DeviceInfo extends Component {
       batteryVoltage = carHealth.result.peripheralState.voltage / 1000.0;
       batteryBackground = batteryVoltage < 11.0 ? Colors.red400 : Colors.green400;
     }
+    const batteryText = batteryVoltage ? `${batteryVoltage.toFixed(1)}\u00a0V` : 'N/A';
 
     const buttonOffline = deviceIsOnline(device) ? '' : classes.buttonOffline;
 
@@ -387,41 +389,61 @@ class DeviceInfo extends Component {
       pingTooltip = `Last ping on ${lastAthenaPing.format('MMM D, YYYY')} at ${lastAthenaPing.format('h:mm A')}`;
     }
 
-    const bodyTeleopEnabled = isCommaBody && deviceVersionAtLeast(device, '0.11.2');
+    // TO BE REMOVED: once 0.11.1 is deprecated, we can remove this since all devices should have livestreaming
+    const livestreamEnabled = deviceVersionAtLeast(device, '0.11.2');
+    const bodyTeleopEnabled = isCommaBody && livestreamEnabled;
 
     return (
       <div className='flex md:flex-row md:items-stretch justify-end flex-wrap gap-2 min-w-0 shrink'>
-        {bodyTeleopEnabled ? (
-          <button
-            style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
-            className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
-            onClick={ this.openBodyTeleop }
-            disabled={ !deviceIsOnline(device) }
+        {livestreamEnabled && (
+          <Tooltip
+            classes={{ tooltip: classes.popover }}
+            title={ bodyTeleopEnabled ? 'Teleop' : 'Livestream' }
+            placement="bottom"
           >
-            <Typography className='text-black'>remote control</Typography>
-          </button>
-        ) : (
-          <button
-            ref={ this.snapshotButtonRef }
-            className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
-            onClick={ this.takeSnapshot }
-            disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
+            <button
+              style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
+              className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
+              onClick={ this.openBodyTeleop }
+              disabled={ !deviceIsOnline(device) }
+            >
+              { bodyTeleopEnabled
+                ? <GamepadIcon className='text-black' />
+                : <LivestreamIcon className='text-black' />}
+            </button>
+          </Tooltip>
+        )}
+        {(!isCommaBody || !livestreamEnabled) && (
+          <Tooltip
+            classes={{ tooltip: classes.popover }}
+            title="Take snapshot"
+            placement="bottom"
           >
-            { snapshot.fetching
-              ? <CircularProgress size={ 19 } />
-              : <Typography className='text-black'>take snapshot</Typography>}
-          </button>
+            <button
+              ref={ this.snapshotButtonRef }
+              className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
+              onClick={ this.takeSnapshot }
+              disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
+            >
+              { snapshot.fetching
+                ? <CircularProgress size={ 19 } />
+                : <CameraIcon className='text-black' />}
+            </button>
+          </Tooltip>
         )}
         <div
           className={ classes.carBattery }
           style={{ backgroundColor: batteryBackground }}
         >
           { deviceIsOnline(device) ? (
-            <Typography>
-              { `${windowWidth >= 640 ? 'car ' : ''
-              }battery: ${
-                batteryVoltage ? `${batteryVoltage.toFixed(1)}\u00a0V` : 'N/A'}` }
-            </Typography>
+            windowWidth >= 640 ? (
+              <Typography>{ `car battery: ${batteryText}` }</Typography>
+            ) : (
+              <>
+                <CarBatteryIcon className="text-[20px] mr-1" />
+                <Typography>{ batteryText }</Typography>
+              </>
+            )
           ) : (
             <Tooltip
               classes={{ tooltip: classes.popover }}

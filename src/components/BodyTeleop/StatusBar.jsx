@@ -18,7 +18,6 @@ const QUALITY_INDICATOR = {
 };
 
 const STATS_ROWS = [
-  { label: 'Resolution', key: 'resolution' },
   { label: 'FPS', key: 'fps' },
   { label: 'Bitrate', key: 'bitrate' },
   { label: 'RTT', key: 'rtt'}
@@ -133,7 +132,6 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
       ref.prevPacketsReceived = videoStats.packetsReceived ?? ref.prevPacketsReceived;
 
       setStats({
-        resolution: `${videoStats.frameWidth || '?'}x${videoStats.frameHeight || '?'}`,
         fps: fps.toFixed(1),
         bitrate: bitrate > 1000000
           ? `${(bitrate / 1000000).toFixed(2)} Mbps`
@@ -271,8 +269,8 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
       <div className="flex flex-col">
         {STATS_ROWS.map(({ label, key }) => (
           <div key={key} className="flex justify-between leading-tight md:py-[3px]">
-            <span className={`${textSize} text-white/45 mr-1.5 md:mr-[18px]`}>{label}</span>
-            <span className={`${textSize} text-white/[0.85] text-right`}>{stats?.[key] ?? '--'}</span>
+            <span className={`${textSize} text-white/45 mr-1.5`}>{label}</span>
+            <span className={`${textSize} text-white/[0.85] text-right w-16`}>{stats?.[key] ?? '--'}</span>
           </div>
         ))}
       </div>

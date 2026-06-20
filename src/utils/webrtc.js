@@ -142,6 +142,7 @@ export class WebRTCConnection extends EventTarget {
         try {
           const msg = JSON.parse(typeof evt.data === 'string' ? evt.data : new TextDecoder().decode(evt.data));
           if (msg.type === 'carState') this.callbacks.onBatteryLevel({ level: Math.round(msg.data.fuelGauge * 100), charging: !!msg.data.charging });
+          if (msg.type === 'deviceState') this.callbacks.onIgnition?.(!!msg.data?.started);
           if (msg.type === 'disconnect') this.disconnect(msg.data || 'Connection replaced by another device.');
           if (msg.type === 'clockSync' && msg.data?.action === 'pong') this._handleClockPong(msg.data);
         } catch (e) {
@@ -180,7 +181,7 @@ export class WebRTCConnection extends EventTarget {
       const rttMs = performance.now() - tStep;
       if (resp == null) {
         this._log(`device error: ${JSON.stringify(resp.error)}`);
-        throw new Error('Could not reach device. Is it on?');
+        throw new Error('Device could not be reached. Is it online and connected to the internet?');
       }
       if (resp?.error) {
         this._log(`device error: ${JSON.stringify(resp.error)}`);
@@ -373,6 +374,7 @@ export class WebRTCConnectionManager {
     this.stream = null;
     this.streamName = null;
     this.awayTimer = null;
+    this.prewarm_enabled = true;
 
     if (typeof window !== 'undefined') {
       window.addEventListener('pagehide', () => this.disconnect());
@@ -386,15 +388,17 @@ export class WebRTCConnectionManager {
     clearTimeout(this.awayTimer);
     const away = document.hidden || !document.hasFocus();
     if (!away) {
-      if (this.subscriber && !this.connection) this.reconnect(this.dongleId);
-      else if (!this.connection && this.dongleId) this.prewarm(this.dongleId)
+      if (!this.dongleId || this.connection) return;
+      if (this.subscriber) this.reconnect(this.dongleId);
+      else if (this.prewarm_enabled) this.prewarm(this.dongleId);
       return;
     }
     if (this.connectionState !== 'connecting' && this.connectionState !== 'connected') return;
     const delay = document.hidden ? 30000 : 60000;
     this.awayTimer = setTimeout(() => {
       if (this.connectionState === 'connecting' || this.connectionState === 'connected') {
-        this.disconnect('Session timed out');
+        // keep `dongleId` so focus can re-warm the same device
+        this._teardown('Session timed out');
       }
     }, delay);
   }
@@ -411,6 +415,7 @@ export class WebRTCConnectionManager {
   prewarm(dongleId) {
     if (!dongleId) return;
     if (this._healthy(dongleId)) return;
+    this.prewarm_enabled = true;
     this._open(dongleId);
   }
 
@@ -438,6 +443,9 @@ export class WebRTCConnectionManager {
       }),
       onLatencyUpdate: guard((latency) => {
         this.subscriber?.onLatencyUpdate?.(latency);
+      }),
+      onIgnition: guard((ignition) => {
+        this.subscriber?.onIgnition?.(ignition);
       }),
     });
     this.connection = conn;
@@ -471,7 +479,8 @@ export class WebRTCConnectionManager {
     return this.connection;
   }
 
-  disconnect(reason) {
+  // tear down the live connection but remember `dongleId` so can rewarm
+  _teardown(reason) {
     clearTimeout(this.awayTimer);
     this.videoWanted = false;
     if (this.connection) {
@@ -481,6 +490,11 @@ export class WebRTCConnectionManager {
     this.battery = null;
     this.stream = null;
     this.streamName = null;
+  }
+
+  disconnect(reason) {
+    this._teardown(reason);
+    this.dongleId = null;
   }
   
   setVideoEnabled(enabled) {
