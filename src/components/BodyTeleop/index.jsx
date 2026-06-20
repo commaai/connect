@@ -123,6 +123,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     videoRef, connectionState, error, connectionTotalMs,
     onFirstFrame: handleFirstFrame,
     onConnect: handleConnect,
+    started,
   };
 
   return (
