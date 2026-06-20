@@ -4,17 +4,17 @@ import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 
-import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@material-ui/core';
+import { withStyles, Typography, Tooltip } from '@material-ui/core';
 
 import { athena as Athena } from '@commaai/api';
-import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
+import { primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast } from '../../utils';
 import { webrtcConnectionManager } from '../../utils/webrtc';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import CommacareBadge from '../CommacareBadge';
-import { LivestreamIcon, CarBatteryIcon, CameraIcon, GamepadIcon } from '../../icons';
+import { LivestreamIcon, CarBatteryIcon, GamepadIcon } from '../../icons';
 
 const styles = (theme) => ({
   container: {
@@ -83,66 +83,6 @@ const styles = (theme) => ({
       lineHeight: '1.4em',
     },
   },
-  snapshotContainer: {
-    borderBottom: `1px solid ${Colors.white10}`,
-  },
-  snapshotContainerLarge: {
-    maxWidth: 1050,
-    margin: '0 auto',
-    display: 'flex',
-  },
-  snapshotImageContainerLarge: {
-    width: '50%',
-    display: 'flex',
-    justifyContent: 'center',
-  },
-  snapshotImage: {
-    display: 'block',
-    width: '450px !important',
-    maxWidth: '100%',
-  },
-  snapshotImageError: {
-    width: 450,
-    maxWidth: '100%',
-    backgroundColor: Colors.grey950,
-    padding: '0 80px',
-    margin: '0 auto',
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    '& p': {
-      textAlign: 'center',
-      fontSize: '1rem',
-      '&:first-child': {
-        fontWeight: 600,
-      },
-    },
-  },
-  scrollSnapContainer: {
-    display: 'flex',
-    overflowX: 'scroll',
-    scrollSnapType: 'x mandatory',
-    scrollBehavior: 'smooth',
-    '&::-webkit-scrollbar': {
-      height: '10px',
-    },
-    '&::-webkit-scrollbar-thumb': {
-      backgroundColor: '#d1d1d1',
-      borderRadius: '8px',
-    },
-    '&::-webkit-scrollbar-track': {
-      backgroundColor: '#272c2f',
-    },
-  },
-  scrollSnapItem: {
-    flex: '0 0 auto',
-    scrollSnapAlign: 'start',
-    width: '100%',
-    maxWidth: '450px',
-    margin: '0',
-  },
   buttonIcon: {
     fontSize: 20,
     marginLeft: theme.spacing.unit,
@@ -164,20 +104,14 @@ class DeviceInfo extends Component {
     this.mounted = null;
     this.state = {
       carHealth: {},
-      snapshot: {},
       windowWidth: window.innerWidth,
       bodyTeleopOpen: false,
     };
 
-    this.snapshotButtonRef = React.createRef();
-
     this.onResize = this.onResize.bind(this);
     this.onVisible = this.onVisible.bind(this);
     this.fetchDeviceCarHealth = this.fetchDeviceCarHealth.bind(this);
-    this.takeSnapshot = this.takeSnapshot.bind(this);
-    this.snapshotType = this.snapshotType.bind(this);
     this.renderButtons = this.renderButtons.bind(this);
-    this.renderSnapshotImage = this.renderSnapshotImage.bind(this);
     this.prewarmBodyTeleop = this.prewarmBodyTeleop.bind(this);
     this.openBodyTeleop = this.openBodyTeleop.bind(this);
   }
@@ -197,7 +131,6 @@ class DeviceInfo extends Component {
     if (prevProps.dongleId !== dongleId) {
       this.setState({
         carHealth: {},
-        snapshot: {},
         windowWidth: window.innerWidth,
       });
     }
@@ -262,57 +195,9 @@ class DeviceInfo extends Component {
     webrtcConnectionManager.prewarm(dongleId);
   }
 
-  async takeSnapshot() {
-    const { dongleId } = this.props;
-    const { snapshot } = this.state;
-    this.setState({ snapshot: { ...snapshot, error: null, fetching: true } });
-    this.props.dispatch(analyticsEvent('take_snapshot'));
-    try {
-      const payload = {
-        method: 'takeSnapshot',
-        jsonrpc: '2.0',
-        id: 0,
-      };
-      let resp = await Athena.postJsonRpcPayload(dongleId, payload);
-      if (resp.result && !resp.result.jpegBack && !resp.result.jpegFront) {
-        resp = await Athena.postJsonRpcPayload(dongleId, payload);
-      }
-      if (resp.result && !resp.result.jpegBack && !resp.result.jpegFront) {
-        throw new Error('unable to fetch snapshot');
-      }
-      if (dongleId === this.props.dongleId) {
-        this.setState({ snapshot: resp });
-      }
-    } catch (err) {
-      let error = err.message;
-      if (error.indexOf('Device not registered') !== -1) {
-        error = 'device offline';
-      } else {
-        console.error(err);
-        Sentry.captureException(err, { fingerprint: 'device_info_snapshot' });
-        if (error.length > 5 && error[5] === '{') {
-          try {
-            error = JSON.parse(error.substr(5)).error;
-          } catch {
-            //pass
-          }
-        }
-      }
-      this.setState({ snapshot: { error } });
-    }
-  }
-
-  snapshotType(showFront) {
-    const { snapshot } = this.state;
-    this.setState({ snapshot: { ...snapshot, showFront } });
-  }
-
   render() {
     const { classes, device } = this.props;
-    const { snapshot, windowWidth } = this.state;
     const commacare = device?.commacare;
-
-    const largeSnapshotPadding = windowWidth > 1440 ? '12px 0' : 0;
 
     return (
       <>
@@ -329,38 +214,13 @@ class DeviceInfo extends Component {
             { this.renderButtons() }
           </div>
         </div>
-        { snapshot.result && (
-          <div className={ classes.snapshotContainer }>
-            { windowWidth >= 640
-              ? (
-                <div className={ classes.snapshotContainerLarge } style={{ padding: largeSnapshotPadding }}>
-                  <div className={ classes.snapshotImageContainerLarge }>
-                    { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
-                  </div>
-                  <div className={ classes.snapshotImageContainerLarge }>
-                    { this.renderSnapshotImage(snapshot.result.jpegFront, true) }
-                  </div>
-                </div>
-              )
-              : (
-                <div className={ classes.scrollSnapContainer }>
-                  <div className={ classes.scrollSnapItem }>
-                    { this.renderSnapshotImage(snapshot.result.jpegBack, false) }
-                  </div>
-                  <div className={ classes.scrollSnapItem }>
-                    { this.renderSnapshotImage(snapshot.result.jpegFront, true) }
-                  </div>
-                </div>
-              )}
-          </div>
-          )}
       </>
     );
   }
 
   renderButtons() {
     const { classes, device } = this.props;
-    const { snapshot, carHealth, windowWidth } = this.state;
+    const { carHealth, windowWidth } = this.state;
     const isCommaBody = device?.rpc?.not_car;
 
     let batteryVoltage;
@@ -373,15 +233,6 @@ class DeviceInfo extends Component {
     const batteryText = batteryVoltage ? `${batteryVoltage.toFixed(1)}\u00a0V` : 'N/A';
 
     const buttonOffline = deviceIsOnline(device) ? '' : classes.buttonOffline;
-
-    let error = null;
-    if (snapshot.error && snapshot.error.data && snapshot.error.data.message) {
-      error = snapshot.error.data.message;
-    } else if (snapshot.error && snapshot.error.message) {
-      error = snapshot.error.message;
-    } else if (snapshot.error) {
-      error = 'error while fetching snapshot';
-    }
 
     let pingTooltip = 'no ping received from device';
     if (device.last_athena_ping) {
@@ -413,24 +264,6 @@ class DeviceInfo extends Component {
             </button>
           </Tooltip>
         )}
-        {(!isCommaBody || !livestreamEnabled) && (
-          <Tooltip
-            classes={{ tooltip: classes.popover }}
-            title="Take snapshot"
-            placement="bottom"
-          >
-            <button
-              ref={ this.snapshotButtonRef }
-              className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
-              onClick={ this.takeSnapshot }
-              disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
-            >
-              { snapshot.fetching
-                ? <CircularProgress size={ 19 } />
-                : <CameraIcon className='text-black' />}
-            </button>
-          </Tooltip>
-        )}
         <div
           className={ classes.carBattery }
           style={{ backgroundColor: batteryBackground }}
@@ -454,39 +287,8 @@ class DeviceInfo extends Component {
             </Tooltip>
           )}
         </div>
-        <Popper
-          className={ classes.popover }
-          open={ Boolean(error) }
-          placement="bottom"
-          anchorEl={ this.snapshotButtonRef.current }
-        >
-          <Typography>{ error }</Typography>
-        </Popper>
       </div>
     );
-  }
-
-  renderSnapshotImage(src, isFront) {
-    const { classes } = this.props;
-    if (!src) {
-      return (
-        <div className={ classes.snapshotImageError }>
-          <Typography>
-            { isFront && 'Interior' }
-            {' '}
-            snapshot not available
-          </Typography>
-          { isFront
-            && (
-            <Typography>
-              Enable &ldquo;Record and Upload Driver Camera&rdquo; on your device for interior camera snapshots
-            </Typography>
-            )}
-        </div>
-      );
-    }
-
-    return (<img src={ `data:image/jpeg;base64,${src}` } className={ classes.snapshotImage } />);
   }
 }
 
