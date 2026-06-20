@@ -396,32 +396,40 @@ class DeviceInfo extends Component {
     return (
       <div className='flex md:flex-row md:items-stretch justify-end flex-wrap gap-2 min-w-0 shrink'>
         {livestreamEnabled && (
-          <button
-            style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
-            className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
-            onClick={ this.openBodyTeleop }
-            disabled={ !deviceIsOnline(device) }
+          <Tooltip
+            classes={{ tooltip: classes.popover }}
+            title={ bodyTeleopEnabled ? 'Teleop' : 'Livestream' }
+            placement="bottom"
           >
-            { windowWidth >= 640
-              ? <Typography className='text-black'>{bodyTeleopEnabled ? "remote control" : "live stream"}</Typography>
-              : bodyTeleopEnabled
+            <button
+              style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
+              className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
+              onClick={ this.openBodyTeleop }
+              disabled={ !deviceIsOnline(device) }
+            >
+              { bodyTeleopEnabled
                 ? <GamepadIcon className='text-black' />
                 : <LivestreamIcon className='text-black' />}
-          </button>
+            </button>
+          </Tooltip>
         )}
         {(!isCommaBody || !livestreamEnabled) && (
-          <button
-            ref={ this.snapshotButtonRef }
-            className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
-            onClick={ this.takeSnapshot }
-            disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
+          <Tooltip
+            classes={{ tooltip: classes.popover }}
+            title="Take snapshot"
+            placement="bottom"
           >
-            { snapshot.fetching
-              ? <CircularProgress size={ 19 } />
-              : windowWidth >= 640
-                ? <Typography className='text-black'>take snapshot</Typography>
+            <button
+              ref={ this.snapshotButtonRef }
+              className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
+              onClick={ this.takeSnapshot }
+              disabled={ Boolean(snapshot.fetching || !deviceIsOnline(device)) }
+            >
+              { snapshot.fetching
+                ? <CircularProgress size={ 19 } />
                 : <CameraIcon className='text-black' />}
-          </button>
+            </button>
+          </Tooltip>
         )}
         <div
           className={ classes.carBattery }
