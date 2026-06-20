@@ -56,10 +56,8 @@ export const usePinchZoom = (containerRef, contentRef, enabled = true) => {
       }
 
       const newScale = Math.min(MAX_SCALE, Math.max(1, s.scale * (dist / s.lastDist)));
-      // keep the finger midpoint anchored while zooming...
       s.tx = mid.x - (mid.x - s.tx) * (newScale / s.scale);
       s.ty = mid.y - (mid.y - s.ty) * (newScale / s.scale);
-      // ...and pan as the midpoint moves
       s.tx += mid.x - s.lastMid.x;
       s.ty += mid.y - s.lastMid.y;
       s.scale = newScale;
@@ -73,7 +71,6 @@ export const usePinchZoom = (containerRef, contentRef, enabled = true) => {
       const s = state.current;
       s.lastDist = 0;
       s.lastMid = null;
-      // snap back to fit whenever the pinch is released
       s.scale = 1;
       s.tx = 0;
       s.ty = 0;
