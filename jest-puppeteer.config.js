@@ -10,6 +10,7 @@ module.exports = {
       '--no-sandbox',
       '--disable-setuid-sandbox',
     ],
+    dumpio: true,
   },
   server: {
     command: 'env-cmd .env.development pnpm start --port 3003',
