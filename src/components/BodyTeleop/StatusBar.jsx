@@ -18,9 +18,10 @@ const QUALITY_INDICATOR = {
 };
 
 const STATS_ROWS = [
-  { label: 'FPS', key: 'fps' },
+  { label: 'FPS', key: 'fps', showInCompact: false },
   { label: 'Bitrate', key: 'bitrate' },
-  { label: 'RTT', key: 'rtt'}
+  { label: 'RTT', key: 'rtt' },
+  { label: 'Loss', key: 'packetLoss' }
 ];
 
 const LATENCY_LAYERS = [
@@ -137,6 +138,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
           ? `${(bitrate / 1000000).toFixed(2)} Mbps`
           : `${(bitrate / 1000).toFixed(0)} kbps`,
         rtt: rttMs != null ? `${Math.round(rttMs)} ms` : '--',
+        packetLoss: `${(lossRatio * 100).toFixed(1)}%`,
         jitter: videoStats.jitter !== undefined ? `${(videoStats.jitter * 1000).toFixed(1)} ms` : '?',
       });
     } catch (err) {
@@ -267,12 +269,15 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
       ${compact ? "flex-row gap-2 items-center p-[6px_8px]" : "flex-col w-[150px] md:w-[240px] p-[3px_6px] md:p-[10px_16px]"}
     `}>
       <div className="flex flex-col">
-        {STATS_ROWS.map(({ label, key }) => (
-          <div key={key} className="flex justify-between leading-tight md:py-[3px]">
-            <span className={`${textSize} text-white/45 mr-1.5`}>{label}</span>
-            <span className={`${textSize} text-white/[0.85] text-right w-16`}>{stats?.[key] ?? '--'}</span>
-          </div>
-        ))}
+        {STATS_ROWS.map(({ label, key, showInCompact }) => {
+          if (showInCompact == false && compact) return;
+          return (
+            <div key={key} className="flex justify-between leading-tight md:py-[3px]">
+              <span className={`${textSize} text-white/45 mr-1.5`}>{label}</span>
+              <span className={`${textSize} text-white/[0.85] text-right min-w-16`}>{stats?.[key] ?? '--'}</span>
+            </div>
+          )
+        })}
       </div>
       {!compact && <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />}
       <div>
