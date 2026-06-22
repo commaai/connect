@@ -48,13 +48,11 @@ jobs:
       # deploy
       - name: Deploy to Cloudflare Pages
         id: cloudflare-publish
-        uses: cloudflare/pages-action@v1.5.0
+        uses: cloudflare/wrangler-action@v3
         with:
-          branch: ${{ steps.pr.outputs.result }}
-          projectName: connect
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
-          directory: dist
+          command: pages deploy dist --project-name=connect --branch=${{ steps.pr.outputs.result }}
 
       - name: Comment URL on PR
         uses: thollander/actions-comment-pull-request@v3
@@ -87,13 +85,11 @@ jobs:
 
       - name: Deploy to Cloudflare Pages
         id: cloudflare-publish
-        uses: cloudflare/pages-action@v1.5.0
+        uses: cloudflare/wrangler-action@v3
         with:
-          branch: latest
-          projectName: connect
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
-          directory: dist
+          command: pages deploy dist --project-name=connect --branch=latest
 
       # show master preview as a clickable entry in the "preview" environment
       - name: Record deployment
@@ -116,5 +112,5 @@ jobs:
               deployment_id: deployment.data.id,
               state: 'success',
               environment: 'preview',
-              environment_url: '${{ steps.cloudflare-publish.outputs.url }}',
+              environment_url: '${{ steps.cloudflare-publish.outputs.deployment-url }}',
             })
