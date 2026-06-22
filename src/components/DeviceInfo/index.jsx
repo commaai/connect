@@ -413,7 +413,7 @@ class DeviceInfo extends Component {
             </button>
           </Tooltip>
         )}
-        {(!isCommaBody || !livestreamEnabled) && (
+        {!livestreamEnabled && (
           <Tooltip
             classes={{ tooltip: classes.popover }}
             title="Take snapshot"
