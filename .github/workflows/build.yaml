@@ -25,7 +25,7 @@ jobs:
           VITE_APP_GIT_TIMESTAMP: ${{ steps.build_info.outputs.timestamp }}
 
       - name: Upload built project
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           path: ./dist
           overwrite: true
