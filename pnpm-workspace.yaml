@@ -1,7 +1,0 @@
-allowBuilds:
-  '@sentry/cli': true
-  '@swc/core': true
-  core-js: true
-  esbuild: true
-  jss: true
-  puppeteer: true
