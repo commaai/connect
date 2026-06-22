@@ -19,6 +19,7 @@ jobs:
           node node_modules/puppeteer/install.js
 
       - run: pnpm run build:development
+
       - name: Lint
         run: pnpm lint
 
