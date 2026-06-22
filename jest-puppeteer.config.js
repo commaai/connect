@@ -5,12 +5,7 @@ module.exports = {
   launch: {
     headless: 'new',
     slowMo: 80,
-    args: [
-      `--window-size=${width},${height}`,
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-    ],
-    dumpio: true,
+    args: [`--window-size=${width},${height}`],
   },
   server: {
     command: 'env-cmd .env.development pnpm start --port 3003',
