@@ -65,9 +65,9 @@ jobs:
             * post the preview on [Discord](https://discord.comma.ai); feedback from users will speedup the PR review
 
             deployed preview: https://${{ steps.pr.outputs.result }}.connect-d5y.pages.dev
-          comment_tag: run_id
-          pr_number: ${{ steps.pr.outputs.result }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          comment-tag: run_id
+          pr-number: ${{ steps.pr.outputs.result }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   preview-master:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'master' }}
