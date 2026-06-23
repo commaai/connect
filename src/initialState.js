@@ -1,4 +1,4 @@
-import { getDongleID, getSegmentRange, getPrimeNav } from './url';
+import { getDongleID, getSegmentRange, getPrimeNav, getStreamNav } from './url';
 
 export function getDefaultFilter() {
   const d = new Date();
@@ -31,6 +31,7 @@ export default {
   devices: null,
 
   primeNav: getPrimeNav(window.location.pathname),
+  streamNav: getStreamNav(window.location.pathname),
   subscription: null,
   subscribeInfo: null,
 

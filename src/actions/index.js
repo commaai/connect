@@ -7,7 +7,8 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 import * as Types from './types';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
-import { getDeviceFromState, deviceVersionAtLeast } from '../utils';
+import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
+import { webrtcConnectionManager } from '../utils/webrtc';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -283,6 +284,11 @@ export function selectDevice(dongleId, allowPathChange = true) {
       device = state.device;
     }
 
+    // tear down existing webrtc connection
+    if (state.dongleId && state.dongleId !== dongleId) {
+      webrtcConnectionManager.disconnect();
+    }
+
     dispatch({
       type: Types.ACTION_SELECT_DEVICE,
       dongleId,
@@ -323,6 +329,30 @@ export function primeNav(nav, allowPathChange = true) {
     if (allowPathChange) {
       const curPath = document.location.pathname;
       const desiredPath = urlForState(state.dongleId, null, null, null, nav);
+      if (curPath !== desiredPath) {
+        dispatch(push(desiredPath));
+      }
+    }
+  };
+}
+
+export function streamNav(nav, allowPathChange = true) {
+  return (dispatch, getState) => {
+    const state = getState();
+    if (!state.dongleId) {
+      return;
+    }
+
+    if (state.streamNav !== nav) {
+      dispatch({
+        type: Types.ACTION_STREAM_NAV,
+        streamNav: nav,
+      });
+    }
+
+    if (allowPathChange) {
+      const curPath = document.location.pathname;
+      const desiredPath = nav ? `/${state.dongleId}/stream` : `/${state.dongleId}`;
       if (curPath !== desiredPath) {
         dispatch(push(desiredPath));
       }
@@ -415,6 +445,35 @@ export function fetchDeviceNetworkStatus(dongleId) {
   };
 }
 
+export function fetchDeviceNotCar(dongleId) {
+  return async (dispatch, getState) => {
+    const device = getDeviceFromState(getState(), dongleId);
+    if (!deviceIsOnline(device)) {
+      return;
+    }
+    const payload = {
+      id: 0,
+      jsonrpc: '2.0',
+      method: 'getNotCar',
+    };
+    try {
+      const resp = await Athena.postJsonRpcPayload(dongleId, payload);
+      if (resp && resp.result !== undefined) {
+        dispatch({
+          type: Types.ACTION_UPDATE_DEVICE_RPC,
+          dongleId,
+          fields: { not_car: resp.result === true },
+        });
+      }
+    } catch (err) {
+      if (!err.message || err.message.indexOf('Device not registered') === -1) {
+        console.error(err);
+        Sentry.captureException(err, { fingerprint: 'athena_fetch_notcar' });
+      }
+    }
+  };
+}
+
 export function updateDevices(devices) {
   return {
     type: Types.ACTION_UPDATE_DEVICES,
@@ -461,4 +520,3 @@ export function updateRoute(fullname, route) {
     route,
   };
 }
-

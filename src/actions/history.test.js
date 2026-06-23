@@ -11,6 +11,7 @@ jest.mock('./index', () => ({
   selectDevice: jest.fn(),
   pushTimelineRange: jest.fn(),
   primeNav: jest.fn(),
+  streamNav: jest.fn(),
 }));
 
 const create = (initialState) => {
@@ -66,6 +67,7 @@ describe('history middleware', () => {
       dongleId: null,
       zoom: null,
       primeNav: false,
+      streamNav: false,
     });
 
     const action = {
@@ -90,6 +92,7 @@ describe('history middleware', () => {
       dongleId: '0000aaaa0000aaaa',
       zoom: null,
       primeNav: false,
+      streamNav: false,
     });
 
     const action = {
@@ -116,6 +119,7 @@ describe('history middleware', () => {
       dongleId: '0000aaaa0000aaaa',
       zoom: { start: 1230, end: 1234 },
       primeNav: false,
+      streamNav: false,
     });
 
     const action = {

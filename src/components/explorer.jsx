@@ -13,9 +13,9 @@ import AppHeader from './AppHeader';
 import Dashboard from './Dashboard';
 import IosPwaPopup from './IosPwaPopup';
 import AppDrawer from './AppDrawer';
-import PullDownReload from './utils/PullDownReload';
+import BodyTeleop from './BodyTeleop';
 
-import { analyticsEvent, selectDevice, updateDevice, checkLastRoutesData } from '../actions';
+import { analyticsEvent, selectDevice, updateDevice, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
@@ -76,6 +76,11 @@ class ExplorerApp extends Component {
     this.handleDrawerStateChanged = this.handleDrawerStateChanged.bind(this);
     this.updateHeaderRef = this.updateHeaderRef.bind(this);
     this.closePair = this.closePair.bind(this);
+    this.closeBodyTeleop = this.closeBodyTeleop.bind(this);
+  }
+
+  closeBodyTeleop() {
+    this.props.dispatch(streamNav(false));
   }
 
   async componentDidMount() {
@@ -179,7 +184,7 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, currentRoute, devices, dongleId } = this.props;
+    const { classes, currentRoute, devices, dongleId, bodyTeleopOpen } = this.props;
     const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
@@ -207,45 +212,50 @@ class ExplorerApp extends Component {
     return (
       <div>
         <ResizeHandler onResize={ (ww) => this.setState({ windowWidth: ww }) } />
-        <PullDownReload />
-        <AppHeader
-          drawerIsOpen={ drawerIsOpen }
-          viewingRoute={ Boolean(currentRoute) }
-          showDrawerButton={ !isLarge }
-          handleDrawerStateChanged={this.handleDrawerStateChanged}
-          forwardRef={ this.updateHeaderRef }
-        />
-        <AppDrawer
-          drawerIsOpen={ drawerIsOpen }
-          isPermanent={ isLarge }
-          width={ sidebarWidth }
-          handleDrawerStateChanged={this.handleDrawerStateChanged}
-          style={ drawerStyles }
-        />
-        <div className={ classes.window } style={ containerStyles }>
-          { noDevicesUpsell
-            ? <NoDeviceUpsell />
-            : (currentRoute ? <DriveView /> : <Dashboard />)}
-        </div>
-        <IosPwaPopup />
-        <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
-          <Paper className={classes.modal}>
-            <Typography variant="title">Pairing device</Typography>
-            <Divider />
-            { pairLoading && <CircularProgress size={32} className={classes.fabProgress} /> }
-            { pairDongleId
-              && (
-              <Typography>
-                {'Successfully paired device '}
-                <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
-              </Typography>
-              )}
-            { pairError && <Typography>{ pairError }</Typography> }
-            <Button variant="contained" className={ classes.closeButton } onClick={ this.closePair }>
-              Close
-            </Button>
-          </Paper>
-        </Modal>
+        { bodyTeleopOpen ? (
+          <BodyTeleop onClose={ this.closeBodyTeleop } />
+        ) : (
+          <>
+            <AppHeader
+              drawerIsOpen={ drawerIsOpen }
+              viewingRoute={ Boolean(currentRoute) }
+              showDrawerButton={ !isLarge }
+              handleDrawerStateChanged={this.handleDrawerStateChanged}
+              forwardRef={ this.updateHeaderRef }
+            />
+            <AppDrawer
+              drawerIsOpen={ drawerIsOpen }
+              isPermanent={ isLarge }
+              width={ sidebarWidth }
+              handleDrawerStateChanged={this.handleDrawerStateChanged}
+              style={ drawerStyles }
+            />
+            <div className={ classes.window } style={ containerStyles }>
+              { noDevicesUpsell
+                ? <NoDeviceUpsell />
+                : (currentRoute ? <DriveView /> : <Dashboard />)}
+            </div>
+            <IosPwaPopup />
+            <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
+              <Paper className={classes.modal}>
+                <Typography variant="title">Pairing device</Typography>
+                <Divider />
+                { pairLoading && <CircularProgress size={32} className={classes.fabProgress} /> }
+                { pairDongleId
+                  && (
+                  <Typography>
+                    {'Successfully paired device '}
+                    <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
+                  </Typography>
+                  )}
+                { pairError && <Typography>{ pairError }</Typography> }
+                <Button variant="contained" className={ classes.closeButton } onClick={ this.closePair }>
+                  Close
+                </Button>
+              </Paper>
+            </Modal>
+          </>
+        ) }
       </div>
     );
   }
@@ -258,6 +268,7 @@ const stateToProps = Obstruction({
   devices: 'devices',
   currentRoute: 'currentRoute',
   limit: 'limit',
+  bodyTeleopOpen: 'streamNav',
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

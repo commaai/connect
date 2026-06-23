@@ -57,6 +57,7 @@ export default function reducer(_state, action) {
         ...state,
         dongleId: action.dongleId,
         primeNav: false,
+        streamNav: false,
         subscription: null,
         subscribeInfo: null,
         files: null,
@@ -107,6 +108,11 @@ export default function reducer(_state, action) {
       state = {
         ...state,
         devices: action.devices
+          .map((d) => {
+            // `rpc` holds Athena RPC-fetched values that would be wiped by listDevices payload
+            const prev = (_state.devices || []).find((p) => p.dongle_id === d.dongle_id);
+            return prev && prev.rpc ? { ...d, rpc: prev.rpc } : d;
+          })
           .map(populateFetchedAt)
           .sort(deviceCompareFn),
       };
@@ -251,6 +257,34 @@ export default function reducer(_state, action) {
         };
       }
       break;
+    case Types.ACTION_UPDATE_DEVICE_RPC:
+      // merge RPC-fetched values (e.g. not_car) into a specific device's `rpc` field
+      state = {
+        ...state,
+        devices: [...state.devices],
+      };
+      deviceIndex = state.devices.findIndex((d) => d.dongle_id === action.dongleId);
+
+      if (deviceIndex !== -1) {
+        state.devices[deviceIndex] = {
+          ...state.devices[deviceIndex],
+          rpc: {
+            ...state.devices[deviceIndex].rpc,
+            ...action.fields,
+          },
+        };
+      }
+
+      if (state.device.dongle_id === action.dongleId) {
+        state.device = {
+          ...state.device,
+          rpc: {
+            ...state.device.rpc,
+            ...action.fields,
+          },
+        };
+      }
+      break;
     case Types.ACTION_PRIME_NAV:
       state = {
         ...state,
@@ -259,6 +293,12 @@ export default function reducer(_state, action) {
       if (action.primeNav) {
         state.zoom = null;
       }
+      break;
+    case Types.ACTION_STREAM_NAV:
+      state = {
+        ...state,
+        streamNav: action.streamNav,
+      };
       break;
     case Types.ACTION_PRIME_SUBSCRIPTION:
       if (action.dongleId !== state.dongleId) { // ignore outdated info

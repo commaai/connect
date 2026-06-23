@@ -1,6 +1,6 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
-import { getDongleID, getZoom, getSegmentRange, getPrimeNav } from '../url';
-import { primeNav, selectDevice, pushTimelineRange, updateSegmentRange } from './index';
+import { getDongleID, getZoom, getSegmentRange, getPrimeNav, getStreamNav } from '../url';
+import { primeNav, streamNav, selectDevice, pushTimelineRange, updateSegmentRange } from './index';
 import { drives as Drives } from '@commaai/api';
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
@@ -45,6 +45,11 @@ export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (
     const pathPrimeNav = getPrimeNav(action.payload.location.pathname);
     if (pathPrimeNav !== state.primeNav) {
       dispatch(primeNav(pathPrimeNav));
+    }
+
+    const pathStreamNav = getStreamNav(action.payload.location.pathname);
+    if (pathStreamNav !== state.streamNav) {
+      dispatch(streamNav(pathStreamNav, false));
     }
   } else {
     next(action);
