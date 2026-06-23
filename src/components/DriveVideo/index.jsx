@@ -2,7 +2,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { CircularProgress, Typography } from '@material-ui/core';
-import debounce from 'debounce';
 import Obstruction from 'obstruction';
 import ReactPlayer from 'react-player/file';
 
@@ -11,7 +10,7 @@ import { video as Video } from '@commaai/api';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
-import { seek, bufferVideo } from '../../timeline/playback';
+import { seek, bufferVideo, pause } from '../../timeline/playback';
 import { isIos } from '../../utils/browser.js';
 
 const VideoOverlay = ({ loading, error }) => {
@@ -46,6 +45,7 @@ class DriveVideo extends Component {
     this.onHlsError = this.onHlsError.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
     this.onVideoResume = this.onVideoResume.bind(this);
+    this.onVideoEnded = this.onVideoEnded.bind(this);
     this.syncVideo = this.syncVideo.bind(this);
     this.firstSeek = true;
 
@@ -163,6 +163,13 @@ class DriveVideo extends Component {
     if (videoError) this.setState({ videoError: null });
   }
 
+  onVideoEnded() {
+    const { desiredPlaySpeed, dispatch } = this.props;
+    if (desiredPlaySpeed > 0) {
+      dispatch(pause());
+    }
+  }
+
   updateVideoSource(prevProps) {
     let { src } = this.state;
     const { currentRoute } = this.props;
@@ -269,6 +276,7 @@ class DriveVideo extends Component {
           onBuffer={this.onVideoBuffering}
           onBufferEnd={this.onVideoBufferEnd}
           onPlay={this.onVideoResume}
+          onEnded={this.onVideoEnded}
           onError={this.onVideoError}
         />
       </div>
