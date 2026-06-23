@@ -251,8 +251,16 @@ class Timeline extends Component {
     const rulerBounds = this.rulerRef.current.getBoundingClientRect();
     const startPercent = (Math.min(dragging[0], dragging[1]) - rulerBounds.x) / rulerBounds.width;
     const endPercent = (Math.max(dragging[0], dragging[1]) - rulerBounds.x) / rulerBounds.width;
-    const startOffset = Math.round(this.percentToOffset(startPercent));
-    const endOffset = Math.round(this.percentToOffset(endPercent));
+    let startOffset = Math.round(this.percentToOffset(startPercent));
+    let endOffset = Math.round(this.percentToOffset(endPercent));
+    const { zoom } = this.state;
+    if (endOffset - startOffset < 1000) {
+      endOffset = startOffset + 1000;
+      if (endOffset > zoom.end) {
+        endOffset = zoom.end;
+        startOffset = Math.max(zoom.start, endOffset - 1000);
+      }
+    }
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
       const offset = currentOffset();
