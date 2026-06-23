@@ -360,7 +360,7 @@ class DeviceInfo extends Component {
 
   renderButtons() {
     const { classes, device } = this.props;
-    const { snapshot, carHealth, windowWidth } = this.state;
+    const { snapshot, carHealth } = this.state;
     const isCommaBody = device?.rpc?.not_car;
 
     let batteryVoltage;
@@ -436,14 +436,10 @@ class DeviceInfo extends Component {
           style={{ backgroundColor: batteryBackground }}
         >
           { deviceIsOnline(device) ? (
-            windowWidth >= 640 ? (
-              <Typography>{ `car battery: ${batteryText}` }</Typography>
-            ) : (
-              <>
-                <CarBatteryIcon className="text-[20px] mr-1" />
-                <Typography>{ batteryText }</Typography>
-              </>
-            )
+            <>
+              <CarBatteryIcon className="text-[20px] mr-1" />
+              <Typography className='w-[45px]'>{ batteryText }</Typography>
+            </>
           ) : (
             <Tooltip
               classes={{ tooltip: classes.popover }}
