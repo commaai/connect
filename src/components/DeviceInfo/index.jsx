@@ -436,14 +436,10 @@ class DeviceInfo extends Component {
           style={{ backgroundColor: batteryBackground }}
         >
           { deviceIsOnline(device) ? (
-            windowWidth >= 640 ? (
-              <Typography>{ `car battery: ${batteryText}` }</Typography>
-            ) : (
-              <>
-                <CarBatteryIcon className="text-[20px] mr-1" />
-                <Typography>{ batteryText }</Typography>
-              </>
-            )
+            <>
+              <CarBatteryIcon className="text-[20px] mr-1" />
+              <Typography>{ batteryText }</Typography>
+            </>
           ) : (
             <Tooltip
               classes={{ tooltip: classes.popover }}
