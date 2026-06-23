@@ -204,13 +204,9 @@ class DriveVideo extends Component {
         // logs start earlier than the video, snap timeline forward to where video begins
         dispatch(seek(currentOffset() - (timeDiff * 1000)));
       } else {
-        // user seek, loop wrap, or initial sync: push to video
         videoPlayer.seekTo(desiredVideoTime, 'seconds');
       }
     } else if (Math.abs(timeDiff) > 0.05 && desiredPlaySpeed > 0 && !isBufferingVideo) {
-      // let the video play freely and pull the timeline to match, instead of fudging the playback rate.
-      // this is the core of the fix — fudging the rate every tick is what crackled audio on iOS,
-      // CarPlay, and macOS audio routes.
       dispatch(seek(curVideoTime * 1000 + videoStartOffset));
     }
   }
