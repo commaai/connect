@@ -46,7 +46,7 @@ class DriveVideo extends Component {
     this.onHlsError = this.onHlsError.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
     this.onVideoResume = this.onVideoResume.bind(this);
-    this.syncVideo = debounce(this.syncVideo.bind(this), 200, true);
+    this.syncVideo = this.syncVideo.bind(this);
     this.firstSeek = true;
 
     this.videoPlayer = React.createRef();
