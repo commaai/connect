@@ -111,7 +111,7 @@ const DriveList = (props) => {
       : Math.round(deviceStats.result.all.distance);
 
     return (
-      <div className="flex gap-2.5 md:gap-8 items-center px-1">
+      <div className="flex gap-2.5 md:gap-8 items-center px-1 justify-center xss:justify-start">
         <div className="flex flex-row items-center gap-1">
           <Typography className="font-semibold text-white">
             { distance }
@@ -139,10 +139,10 @@ const DriveList = (props) => {
   return (
     <div className="flex flex-col grow py-2">
       <VisibilityHandler onVisible={onVisible} minInterval={60} />
-      <div className="flex flex-row justify-between mx-4 pb-2">
+      <div className="flex flex-row justify-between mx-4 pb-2 gap-2 flex-wrap">
         { renderStats() }
         <button
-          className="flex flex-row items-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98]"
+          className="w-full xxs:w-fit flex flex-row items-center justify-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98]"
           style={{ background: 'linear-gradient(to bottom, #30373B 0%, #1D2225 150%)' }}
           onClick={() => setIsTimeSelectOpen(true)}
         >

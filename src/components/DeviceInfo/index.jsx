@@ -9,7 +9,7 @@ import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@mate
 import { athena as Athena } from '@commaai/api';
 import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
-import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast } from '../../utils';
+import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
 import { webrtcConnectionManager } from '../../utils/webrtc';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
@@ -319,12 +319,10 @@ class DeviceInfo extends Component {
         <ResizeHandler onResize={ this.onResize } />
         <VisibilityHandler onVisible={ this.onVisible } onInit onDongleId minInterval={ 60 } />
         <div className={`${classes.container} px-4`}>
-          <div className={`flex flex-row justify-between items-center gap-4 md:my-2 my-4 pl-1`}>
-            <div className='flex flex-col items-start md:flex-row md:items-center gap-4 shrink-0'>
-              <div className={`flex flex-row gap-4 items-center`}>
-                {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
-                <Typography variant="title">{deviceNamePretty(device)}</Typography>
-              </div>
+          <div className={`flex flex-row justify-between items-center gap-4 md:my-2 my-4 pl-1 flex-wrap`}>
+            <div className={`flex flex-row gap-4 items-center shrink-0`}>
+              {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
+              <Typography variant="title">{truncateName(deviceNamePretty(device))}</Typography>
             </div>
             { this.renderButtons() }
           </div>
