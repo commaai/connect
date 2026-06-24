@@ -14,24 +14,31 @@ const QUALITY_OPTIONS = [
   { key: 'low', label: 'low', bitrate: '500 kbps' },
 ];
 
+const TONE_OPTIONS = [
+  { key: 'low', label: '440 hz', frequency: 440 },
+  { key: 'mid', label: '1 khz', frequency: 1000 },
+  { key: 'high', label: '2 khz', frequency: 2000 },
+];
+
 const rowClass = 'flex items-center h-9 px-3.5 gap-3 cursor-pointer select-none text-[13px] text-white/85 hover:bg-white/10 transition-colors whitespace-nowrap';
 const pageClass = 'absolute top-0 left-0 w-max min-w-[200px] py-1.5 transition-all duration-200 ease-out';
 
-const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
+const SettingsMenu = ({ onQualityChange, onTestTone, options = QUALITY_OPTIONS }) => {
   const [open, setOpen] = useState(false);
-  const [view, setView] = useState('main'); // 'main' | 'quality'
+  const [view, setView] = useState('main'); // 'main' | 'quality' | 'audio'
   const [quality, setQuality] = useState(options[0]?.key);
 
   const wrapperRef = useRef(null);
   const mainRef = useRef(null);
   const qualityRef = useRef(null);
+  const audioRef = useRef(null);
   const [dims, setDims] = useState(null);
 
   const selected = options.find((o) => o.key === quality) || options[0];
 
   // Size the panel to whichever page is active so it morphs between them.
   useLayoutEffect(() => {
-    const el = view === 'main' ? mainRef.current : qualityRef.current;
+    const el = { main: mainRef, quality: qualityRef, audio: audioRef }[view]?.current;
     if (el) setDims({ width: el.offsetWidth, height: el.offsetHeight });
   }, [view, open, quality, options]);
 
@@ -54,6 +61,10 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
     onQualityChange?.(key);
     setView('main');
   }, [onQualityChange]);
+
+  const sendTone = useCallback((tone) => {
+    onTestTone?.(tone.frequency, 1000);
+  }, [onTestTone]);
 
   return (
     <div ref={wrapperRef} className="relative">
@@ -94,6 +105,12 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
               <ChevronRight style={{ fontSize: 18 }} />
             </span>
           </div>
+          {onTestTone && (
+            <div className={rowClass} onClick={() => setView('audio')}>
+              <span className="flex-1">Audio Test</span>
+              <ChevronRight style={{ fontSize: 18 }} className="text-white/45" />
+            </div>
+          )}
         </div>
 
         {/* quality page */}
@@ -118,6 +135,29 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
               </span>
               <span className="flex-1">{opt.label}</span>
               {opt.bitrate && <span className="text-[10px] text-white/40">{opt.bitrate}</span>}
+            </div>
+          ))}
+        </div>
+
+        {/* audio page */}
+        <div
+          ref={audioRef}
+          className={pageClass}
+          style={{
+            transform: view === 'audio' ? 'translateX(0)' : 'translateX(100%)',
+            opacity: view === 'audio' ? 1 : 0,
+            pointerEvents: open && view === 'audio' ? 'auto' : 'none',
+          }}
+        >
+          <div className={`${rowClass} font-medium text-white/90`} onClick={() => setView('main')}>
+            <ArrowBackBold className="w-4 h-4 -ml-1 text-white/70" />
+            <span>Audio Test</span>
+          </div>
+          <div className="h-px bg-white/10 mx-2 my-1" />
+          {TONE_OPTIONS.map((tone) => (
+            <div key={tone.key} className={rowClass} onClick={() => sendTone(tone)}>
+              <span className="flex-1">{tone.label}</span>
+              <span className="text-[10px] text-white/40">1 sec</span>
             </div>
           ))}
         </div>

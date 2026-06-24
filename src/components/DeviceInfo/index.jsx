@@ -259,7 +259,7 @@ class DeviceInfo extends Component {
   prewarmBodyTeleop() {
     const { dongleId } = this.props;
     if (!dongleId || !this.shouldPrewarmBodyTeleop()) return;
-    webrtcConnectionManager.prewarm(dongleId);
+    webrtcConnectionManager.prewarm(dongleId, true);
   }
 
   async takeSnapshot() {

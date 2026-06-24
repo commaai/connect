@@ -29,6 +29,9 @@ export class WebRTCConnection extends EventTarget {
     this.pc = null;
     this.dc = null;
     this.localAudioStream = null;
+    this.audioSender = null;
+    this.audioTestTone = null;
+    this.silentAudio = null;
     this.joystickInterval = null;
     this.clockSyncInterval = null;
     this.connectionTimeout = null;
@@ -128,8 +131,9 @@ export class WebRTCConnection extends EventTarget {
       if (h264Codecs.length > 0) transceiver.setCodecPreferences(h264Codecs);
 
       if (this.audioEnabled) {
-        await this._setupAudio();
-        if (this.pc !== pc) return;
+        const silentTrack = this._silentAudioTrack();
+        if (silentTrack) this.audioSender = this.pc.addTrack(silentTrack, this.silentAudio.stream);
+        else this.audioSender = this.pc.addTransceiver('audio', { direction: 'sendrecv' }).sender;
       }
 
       this.connectionTimeout = setTimeout(() => {
@@ -230,7 +234,30 @@ export class WebRTCConnection extends EventTarget {
     return false;
   }
 
+  _silentAudioTrack() {
+    const track = this.silentAudio?.track;
+    if (track?.readyState === 'live') return track;
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return null;
+
+    const context = new AudioContext();
+    const destination = context.createMediaStreamDestination();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    gain.gain.value = 0;
+    oscillator.connect(gain).connect(destination);
+    oscillator.start();
+
+    const [silentTrack] = destination.stream.getAudioTracks();
+    this.silentAudio = { context, oscillator, stream: destination.stream, track: silentTrack };
+    return silentTrack;
+  }
+
   async _setupAudio() {
+    if (this.localAudioStream?.active) return;
+    if (!this.audioSender) return;
+
     try {
       this.localAudioStream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
@@ -241,8 +268,81 @@ export class WebRTCConnection extends EventTarget {
     }
 
     const [track] = this.localAudioStream?.getAudioTracks?.() || [];
-    if (track) this.pc.addTrack(track, this.localAudioStream);
-    else this.pc.addTransceiver('audio', { direction: 'recvonly' });
+    if (track && this.audioSender) {
+      await this.audioSender.replaceTrack(track);
+    } else if (track) {
+      this.audioSender = this.pc.addTrack(track, this.localAudioStream);
+    }
+  }
+
+  enableAudioCapture(enabled) {
+    if (!this.audioEnabled || !this.pc) return;
+
+    if (enabled) {
+      this._setupAudio().catch((e) => this._log(`Microphone unavailable: ${e?.message || e?.name || e}`));
+      return;
+    }
+
+    this._stopTestTone(false);
+    const stream = this.localAudioStream;
+    this.localAudioStream = null;
+    stream?.getTracks().forEach((track) => track.stop());
+    this.audioSender?.replaceTrack(this._silentAudioTrack()).catch(() => {});
+  }
+
+  _micTrack() {
+    return this.localAudioStream?.getAudioTracks?.().find((track) => track.readyState === 'live') || null;
+  }
+
+  _stopTestTone(restoreMic = true) {
+    const tone = this.audioTestTone;
+    if (!tone) return;
+
+    this.audioTestTone = null;
+    clearTimeout(tone.timeout);
+    try {
+      tone.oscillator.stop();
+    } catch (e) {
+      // already stopped
+    }
+    tone.track.stop();
+    tone.context.close().catch(() => {});
+
+    if (restoreMic) {
+      this.audioSender?.replaceTrack(this._micTrack() || this._silentAudioTrack()).catch(() => {});
+    }
+  }
+
+  async sendTestTone(frequency, durationMs = 1000) {
+    if (!this.audioEnabled || !this.pc || !this.audioSender) return false;
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return false;
+
+    this._stopTestTone(false);
+
+    const context = new AudioContext();
+    const destination = context.createMediaStreamDestination();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+
+    const micTrack = this._micTrack();
+    if (micTrack) {
+      context.createMediaStreamSource(new MediaStream([micTrack])).connect(destination);
+    }
+
+    oscillator.type = 'sine';
+    oscillator.frequency.value = frequency;
+    gain.gain.value = 0.2;
+    oscillator.connect(gain).connect(destination);
+
+    const [track] = destination.stream.getAudioTracks();
+    await this.audioSender.replaceTrack(track);
+    oscillator.start();
+
+    const timeout = setTimeout(() => this._stopTestTone(true), durationMs);
+    this.audioTestTone = { context, oscillator, track, timeout };
+    return true;
   }
 
   enableVideo(enabled) {
@@ -372,10 +472,18 @@ export class WebRTCConnection extends EventTarget {
       this.dc.close();
       this.dc = null;
     }
-    if (this.localAudioStream) {
-      this.localAudioStream.getTracks().forEach((track) => track.stop());
-      this.localAudioStream = null;
+    this.enableAudioCapture(false);
+    if (this.silentAudio) {
+      try {
+        this.silentAudio.oscillator.stop();
+      } catch (e) {
+        // already stopped
+      }
+      this.silentAudio.track.stop();
+      this.silentAudio.context.close().catch(() => {});
+      this.silentAudio = null;
     }
+    this.audioSender = null;
     if (this.pc) {
       if (this.pc.getReceivers) {
         this.pc.getReceivers().forEach((receiver) => {
@@ -404,6 +512,7 @@ export class WebRTCConnectionManager {
     this.battery = null;
     this.stream = null;
     this.streamName = null;
+    this.audioStream = null;
     this.awayTimer = null;
     this.prewarm_enabled = true;
 
@@ -421,7 +530,7 @@ export class WebRTCConnectionManager {
     if (!away) {
       if (!this.dongleId || this.connection) return;
       if (this.subscriber) this.reconnect(this.dongleId);
-      else if (this.prewarm_enabled) this.prewarm(this.dongleId);
+      else if (this.prewarm_enabled) this.prewarm(this.dongleId, this.audioWanted);
       return;
     }
     if (this.connectionState !== 'connecting' && this.connectionState !== 'connected') return;
@@ -443,11 +552,11 @@ export class WebRTCConnectionManager {
       && (!dongleId || this.dongleId === dongleId));
   }
 
-  prewarm(dongleId) {
+  prewarm(dongleId, audioEnabled = false) {
     if (!dongleId) return;
-    if (this._healthy(dongleId)) return;
+    if (this._healthy(dongleId) && (!audioEnabled || this.connection?.audioEnabled || this.subscriber)) return;
     this.prewarm_enabled = true;
-    this._open(dongleId);
+    this._open(dongleId, false, audioEnabled);
   }
 
   _open(dongleId, videoEnabled = false, audioEnabled = false) {
@@ -474,6 +583,7 @@ export class WebRTCConnectionManager {
         this.subscriber?.onVideoTrack?.(name, stream);
       }),
       onAudioTrack: guard((stream) => {
+        this.audioStream = stream;
         this.subscriber?.onAudioTrack?.(stream);
       }),
       onLatencyUpdate: guard((latency) => {
@@ -488,33 +598,36 @@ export class WebRTCConnectionManager {
   }
 
   acquire(dongleId, callbacks, audioEnabled = false) {
-    if (!this._healthy(dongleId) || (audioEnabled && !this.connection?.audioEnabled)) {
+    const shouldOpen = !this._healthy(dongleId);
+    if (shouldOpen) {
       this._open(dongleId, true, audioEnabled);
     }
     this.setVideoEnabled(true);
     this.setJoystickEnabled(true);
+    if (audioEnabled && this.connection?.audioEnabled) this.connection.enableAudioCapture(true);
     this.audioWanted = audioEnabled;
     this.subscriber = callbacks;
     callbacks?.onConnectionState?.(this.connectionState, this.failReason);
     if (this.battery != null) callbacks?.onBatteryLevel?.(this.battery);
     if (this.stream) callbacks?.onVideoTrack?.(this.streamName, this.stream);
+    if (this.audioStream) callbacks?.onAudioTrack?.(this.audioStream);
     return this.connection;
   }
 
   release(callbacks) {
     if (callbacks && this.subscriber !== callbacks) return;
-    const hadAudio = this.connection?.audioEnabled;
     this.subscriber = null;
     this.setVideoEnabled(false);
     this.setJoystickEnabled(false);
+    this.connection?.enableAudioCapture(false);
     this.audioWanted = false;
-    if (hadAudio) this._teardown();
   }
 
   reconnect(dongleId, audioEnabled = this.audioWanted) {
     this._open(dongleId ?? this.dongleId, true, audioEnabled);
     this.setVideoEnabled(true);
     this.setJoystickEnabled(true);
+    if (audioEnabled && this.connection?.audioEnabled) this.connection.enableAudioCapture(true);
     this.audioWanted = audioEnabled;
     return this.connection;
   }
@@ -530,6 +643,7 @@ export class WebRTCConnectionManager {
     this.battery = null;
     this.stream = null;
     this.streamName = null;
+    this.audioStream = null;
   }
 
   disconnect(reason) {

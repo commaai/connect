@@ -31,7 +31,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const firstFrameMeasuredRef = useRef(false);
 
   const isLandscape = useIsLandscape();
-  const audioEnabled = Boolean(device?.rpc?.not_car);
+  const notCar = Boolean(device?.rpc?.not_car);
 
   const resetConnectionTiming = useCallback(() => {
     setConnectionTotalMs(null);
@@ -79,19 +79,19 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     };
 
     resetConnectionTiming();
-    connectionRef.current = webrtcConnectionManager.acquire(dongleId, callbacks, audioEnabled);
+    connectionRef.current = webrtcConnectionManager.acquire(dongleId, callbacks, notCar);
 
     return () => {
       webrtcConnectionManager.release(callbacks);
     };
-  }, [dongleId, resetConnectionTiming, audioEnabled]);
+  }, [dongleId, resetConnectionTiming, notCar]);
 
   const handleConnect = useCallback(() => {
     setError(null);
     setActiveCamera('wideRoad');
     resetConnectionTiming();
-    connectionRef.current = webrtcConnectionManager.reconnect(dongleId, audioEnabled);
-  }, [dongleId, resetConnectionTiming, audioEnabled]);
+    connectionRef.current = webrtcConnectionManager.reconnect(dongleId, notCar);
+  }, [dongleId, resetConnectionTiming, notCar]);
 
   const handleClose = useCallback(() => {
     // Cars aren't prewarmed, tear down connection
@@ -117,6 +117,10 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     connectionRef.current?.setQuality(nextQuality);
   }, []);
 
+  const handleTestTone = useCallback((frequency, durationMs) => {
+    connectionRef.current?.sendTestTone(frequency, durationMs);
+  }, []);
+
   const handleFirstFrame = useCallback(() => {
     if (connectStartedAtRef.current == null || firstFrameMeasuredRef.current) return;
     firstFrameMeasuredRef.current = true;
@@ -125,7 +129,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
 
   const connection = connectionRef.current;
   const connected = connectionState === 'connected';
-  const notCar = audioEnabled;
   const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
 
   const videoProps = {
@@ -173,6 +176,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
               connectionState={connectionState}
               latencyCallbackRef={latencyCallbackRef}
               onQualityChange={handleQualityChange}
+              onTestTone={notCar ? handleTestTone : undefined}
             />
           </div>
         )}
