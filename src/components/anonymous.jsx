@@ -79,6 +79,10 @@ const styles = () => ({
     '&:hover': {
       background: '#eee',
     },
+    '&:focus-visible': {
+      outline: '2px solid #fff',
+      outlineOffset: 2,
+    },
   },
   buttonText: {
     fontSize: 18,
@@ -148,7 +152,7 @@ class AnonymousLanding extends Component {
             <img className={classes.buttonImage} src={AuthGoogleIcon} alt="" />
             <Typography className={classes.buttonText}>Sign in with Google</Typography>
           </a>
-          <a onClick={() => AppleID.auth.signIn()} className={classes.logInButton}>
+          <a href="#" role="button" onClick={(e) => { e.preventDefault(); AppleID.auth.signIn(); }} className={classes.logInButton}>
             <img className={classes.buttonImage} src={AuthAppleIcon} alt="" />
             <Typography className={classes.buttonText}>Sign in with Apple</Typography>
           </a>
