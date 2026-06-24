@@ -155,9 +155,24 @@ class AddDevice extends Component {
     if (modalOpen && this.videoRef && !this.detector && hasCamera && !pairDongleId) {
       try {
         this.detector = new BarcodeDetector({ formats: ['qr_code'] });
-        this.stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-        });
+
+        // Try to find a macro/close-up capable rear camera
+        let videoConstraints = { facingMode: 'environment' };
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoDevices = devices.filter((d) => d.kind === 'videoinput');
+          const macroDevice = videoDevices.find((d) => {
+            const label = d.label.toLowerCase();
+            return label.includes('macro') || label.includes('ultra') || label.includes('wide');
+          });
+          if (macroDevice) {
+            videoConstraints = { deviceId: { exact: macroDevice.deviceId } };
+          }
+        } catch {
+          // Fall back to default constraints if enumeration fails
+        }
+
+        this.stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints });
         this.videoRef.srcObject = this.stream;
         this.videoRef.setAttribute('playsinline', 'true');
         await this.videoRef.play();
