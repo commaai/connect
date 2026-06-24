@@ -77,6 +77,14 @@ class DriveVideo extends Component {
       clearTimeout(this.videoSyncIntv);
       this.videoSyncIntv = null;
     }
+    if (isIos()) {
+      const videoElement = this.videoPlayer.current?.getInternalPlayer();
+      if (videoElement) {
+        videoElement.removeEventListener('seeked', this.syncVideo);
+        videoElement.removeEventListener('canplay', this.syncVideo);
+        videoElement.removeEventListener('playing', this.syncVideo);
+      }
+    }
   }
 
   onVideoBuffering() {
@@ -238,6 +246,10 @@ class DriveVideo extends Component {
       if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
         const videoElement = player.getInternalPlayer();
         if (videoElement && videoElement.audioTracks && videoElement.audioTracks.length > 0) {
+          // use HtmlMediaElement Events to stop buffering and sync vide on iOS. 
+          videoElement.addEventListener('seeked', this.syncVideo);
+          videoElement.addEventListener('canplay', this.syncVideo);
+          videoElement.addEventListener('playing', this.syncVideo);
           if (onAudioStatusChange) {
             onAudioStatusChange(true);
           }
