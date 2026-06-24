@@ -193,6 +193,10 @@ class DriveVideo extends Component {
     if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
       return;
     }
+    
+    if (isBufferingVideo && videoPlayer.getInternalPlayer().readyState >= 3) {
+      dispatch(bufferVideo(false));
+    }
 
     const desiredVideoTime = this.currentVideoTime();
     const curVideoTime = videoPlayer.getCurrentTime();
