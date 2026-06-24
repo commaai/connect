@@ -29,6 +29,7 @@ export class WebRTCConnection extends EventTarget {
     this.streamTimings = null;
     this.pc = null;
     this.dc = null;
+    this.localAudioStream = null;
     this.joystickInterval = null;
     this.clockSyncInterval = null;
     this.connectionTimeout = null;
@@ -41,6 +42,7 @@ export class WebRTCConnection extends EventTarget {
     this.connectStartedAt = null;
     this.transformWorkers = [];
     this.videoEnabled = false;
+    this.audioEnabled = false;
     this.connectionState = 'new';
     this.failReason = null;
   }
@@ -56,13 +58,14 @@ export class WebRTCConnection extends EventTarget {
     this.callbacks.onConnectionState(state, reason);
   }
 
-  async connect(dongleId, videoEnabled = false) {
+  async connect(dongleId, videoEnabled = false, audioEnabled = false) {
     this.cleanup();
     this._setState('connecting');
     this.connectStartedAt = performance.now();
     this.streamTimings = null;
     this.videoEnabled = videoEnabled;
-    
+    this.audioEnabled = audioEnabled;
+
     let iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
     try {
       const turnCreds = await getTurnCredentials();
@@ -82,10 +85,6 @@ export class WebRTCConnection extends EventTarget {
       this._log('RTCPeerConnection created');
       const pc = this.pc;
       
-      this.connectionTimeout = setTimeout(() => {
-        this.fail('No direct peer-to-peer routes were found to device. Check network and retry.');
-      }, CONNECTION_DEADLINE_MS);
-
       let nextVideoTrackIndex = 0;
       this.pc.addEventListener('track', (evt) => {
         if (evt.track.kind === 'video') {
@@ -119,6 +118,9 @@ export class WebRTCConnection extends EventTarget {
           nextVideoTrackIndex += 1;
           const streamName = VIDEO_STREAM_NAMES[trackIndex] ?? `video-${trackIndex}`;
           this.callbacks.onVideoTrack(streamName, stream);
+        } else if (evt.track.kind === 'audio') {
+          const stream = evt.streams?.[0] || new MediaStream([evt.track]);
+          this.callbacks.onAudioTrack?.(stream);
         }
       });
 
@@ -142,6 +144,15 @@ export class WebRTCConnection extends EventTarget {
 
       const roadTransceiver = this.pc.addTransceiver('video', { direction: 'recvonly' });
       if (h264Codecs.length > 0) roadTransceiver.setCodecPreferences(h264Codecs);
+
+      if (this.audioEnabled) {
+        await this._setupAudio();
+        if (this.pc !== pc) return;
+      }
+
+      this.connectionTimeout = setTimeout(() => {
+        this.fail('No direct peer-to-peer routes were found to device. Check network and retry.');
+      }, CONNECTION_DEADLINE_MS);
 
       // set up data channel
       this.dc = this.pc.createDataChannel('data', { ordered: true });
@@ -237,6 +248,21 @@ export class WebRTCConnection extends EventTarget {
       return true;
     }
     return false;
+  }
+
+  async _setupAudio() {
+    try {
+      this.localAudioStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        video: false,
+      });
+    } catch (e) {
+      this._log(`Microphone unavailable: ${e?.message || e?.name || e}`);
+    }
+
+    const [track] = this.localAudioStream?.getAudioTracks?.() || [];
+    if (track) this.pc.addTrack(track, this.localAudioStream);
+    else this.pc.addTransceiver('audio', { direction: 'recvonly' });
   }
 
   enableVideo(enabled) {
@@ -366,6 +392,10 @@ export class WebRTCConnection extends EventTarget {
       this.dc.close();
       this.dc = null;
     }
+    if (this.localAudioStream) {
+      this.localAudioStream.getTracks().forEach((track) => track.stop());
+      this.localAudioStream = null;
+    }
     if (this.pc) {
       if (this.pc.getReceivers) {
         this.pc.getReceivers().forEach((receiver) => {
@@ -390,6 +420,7 @@ export class WebRTCConnectionManager {
     this.dongleId = null;
     this.subscriber = null;
     this.videoWanted = false;
+    this.audioWanted = false;
     this.battery = null;
     this.streams = new Map();
     this.awayTimer = null;
@@ -438,9 +469,10 @@ export class WebRTCConnectionManager {
     this._open(dongleId);
   }
 
-  _open(dongleId, videoEnabled = false) {
+  _open(dongleId, videoEnabled = false, audioEnabled = false) {
     this.disconnect();
     this.dongleId = dongleId;
+    this.audioWanted = audioEnabled;
     // ignore callbacks from a connection we've already torn down or replaced
     let conn;
     const guard = (handler) => (...args) => {
@@ -459,6 +491,9 @@ export class WebRTCConnectionManager {
         this.streams.set(name, stream);
         this.subscriber?.onVideoTrack?.(name, stream);
       }),
+      onAudioTrack: guard((stream) => {
+        this.subscriber?.onAudioTrack?.(stream);
+      }),
       onLatencyUpdate: guard((latency) => {
         this.subscriber?.onLatencyUpdate?.(latency);
       }),
@@ -467,15 +502,16 @@ export class WebRTCConnectionManager {
       }),
     });
     this.connection = conn;
-    conn.connect(dongleId, videoEnabled).catch(() => {});
+    conn.connect(dongleId, videoEnabled, audioEnabled).catch(() => {});
   }
 
-  acquire(dongleId, callbacks) {
-    if (!this._healthy(dongleId)) {
-      this._open(dongleId, true);
+  acquire(dongleId, callbacks, audioEnabled = false) {
+    if (!this._healthy(dongleId) || (audioEnabled && !this.connection?.audioEnabled)) {
+      this._open(dongleId, true, audioEnabled);
     }
     this.setVideoEnabled(true);
     this.setJoystickEnabled(true);
+    this.audioWanted = audioEnabled;
     this.subscriber = callbacks;
     callbacks?.onConnectionState?.(this.connectionState, this.failReason);
     if (this.battery != null) callbacks?.onBatteryLevel?.(this.battery);
@@ -485,15 +521,19 @@ export class WebRTCConnectionManager {
 
   release(callbacks) {
     if (callbacks && this.subscriber !== callbacks) return;
+    const hadAudio = this.connection?.audioEnabled;
     this.subscriber = null;
     this.setVideoEnabled(false);
     this.setJoystickEnabled(false);
+    this.audioWanted = false;
+    if (hadAudio) this._teardown();
   }
 
-  reconnect(dongleId) {
-    this._open(dongleId ?? this.dongleId, true);
+  reconnect(dongleId, audioEnabled = this.audioWanted) {
+    this._open(dongleId ?? this.dongleId, true, audioEnabled);
     this.setVideoEnabled(true);
     this.setJoystickEnabled(true);
+    this.audioWanted = audioEnabled;
     return this.connection;
   }
 
