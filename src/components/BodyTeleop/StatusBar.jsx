@@ -325,7 +325,7 @@ const StatsMenu = ({
 };
 
 const StatusBar = ({
-  battery, className, isLandscape, connection, connectionState, latencyCallbackRef, onQualityChange,
+  battery, className, isLandscape, connection, connectionState, latencyCallbackRef, onQualityChange, onTestTone,
 }) => {
   const {
     showStats, toggleStats, closeStats, stats, latency, latencyHistory, connectionQuality,
@@ -358,7 +358,7 @@ const StatusBar = ({
         latency={latency}
         latencyHistory={latencyHistory}
       />
-      <SettingsMenu onQualityChange={onQualityChange} />
+      <SettingsMenu onQualityChange={onQualityChange} onTestTone={onTestTone} />
     </div>
   );
 };
