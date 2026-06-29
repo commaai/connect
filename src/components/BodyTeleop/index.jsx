@@ -79,27 +79,24 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     };
 
     resetConnectionTiming();
-    connectionRef.current = webrtcConnectionManager.acquire(dongleId, callbacks, notCar);
+    connectionRef.current = webrtcConnectionManager.acquire(dongleId, callbacks, true);
 
     return () => {
       webrtcConnectionManager.release(callbacks);
     };
-  }, [dongleId, resetConnectionTiming, notCar]);
+  }, [dongleId, resetConnectionTiming]);
 
   const handleConnect = useCallback(() => {
     setError(null);
     setActiveCamera('wideRoad');
     resetConnectionTiming();
-    connectionRef.current = webrtcConnectionManager.reconnect(dongleId, notCar);
-  }, [dongleId, resetConnectionTiming, notCar]);
+    connectionRef.current = webrtcConnectionManager.reconnect(dongleId, true);
+  }, [dongleId, resetConnectionTiming]);
 
   const handleClose = useCallback(() => {
-    // Cars aren't prewarmed, tear down connection
-    if (!device?.rpc?.not_car) {
-      webrtcConnectionManager.disconnect();
-    }
+    webrtcConnectionManager.disconnect();
     if (onClose) onClose();
-  }, [device, onClose]);
+  }, [onClose]);
 
   const switchCamera = useCallback((cameraName) => {
     setActiveCamera((prev) => {

@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WebRTC audio waveform</title>
+    <script src="/config.js"></script>
+    <style>
+      :root {
+        color-scheme: light;
+        --border: #d4d4d8;
+        --ink: #18181b;
+        --muted: #52525b;
+        --surface: #fafafa;
+        --success: #15803d;
+        --danger: #b91c1c;
+        --accent: #2563eb;
+        --warning: #b45309;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        color: var(--ink);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.4;
+        margin: 20px;
+      }
+
+      main {
+        max-width: 1120px;
+      }
+
+      h1 {
+        font-size: 28px;
+        margin: 0 0 18px;
+      }
+
+      h2 {
+        font-size: 18px;
+        margin: 22px 0 8px;
+      }
+
+      fieldset {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        margin: 0 0 16px;
+        padding: 12px;
+      }
+
+      legend {
+        font-weight: 700;
+        padding: 0 4px;
+      }
+
+      label {
+        color: var(--muted);
+        display: block;
+        font-size: 13px;
+        margin: 10px 0 4px;
+      }
+
+      input,
+      button,
+      select {
+        font: inherit;
+      }
+
+      input[type="text"],
+      input[type="number"] {
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        max-width: 100%;
+        padding: 6px 8px;
+      }
+
+      input[type="range"] {
+        accent-color: var(--accent);
+        width: min(280px, 70vw);
+      }
+
+      input[type="text"] {
+        width: 320px;
+      }
+
+      input[type="number"] {
+        width: 120px;
+      }
+
+      button {
+        background: #fff;
+        border: 1px solid #a1a1aa;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 8px 6px 0 0;
+        padding: 6px 10px;
+      }
+
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+
+      button.danger {
+        border-color: var(--danger);
+        color: var(--danger);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
+      audio {
+        display: block;
+        margin-top: 10px;
+        width: min(100%, 640px);
+      }
+
+      canvas {
+        background: #0f172a;
+        border: 1px solid #111827;
+        border-radius: 6px;
+        display: block;
+        height: 260px;
+        width: 100%;
+      }
+
+      pre {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        max-height: 240px;
+        overflow: auto;
+        padding: 8px;
+        white-space: pre-wrap;
+      }
+
+      table {
+        border-collapse: collapse;
+        margin-top: 8px;
+        width: 100%;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--border);
+        padding: 8px;
+        text-align: left;
+        vertical-align: middle;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      td audio {
+        margin: 0;
+        min-width: 240px;
+      }
+
+      .row {
+        align-items: end;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .status-grid {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        margin: 12px 0 0;
+      }
+
+      .control-strip {
+        align-items: center;
+        margin: 0 0 10px;
+      }
+
+      .range-value {
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-variant-numeric: tabular-nums;
+        min-width: 58px;
+        padding: 5px 8px;
+        text-align: center;
+      }
+
+      .metric {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px;
+      }
+
+      .metric dt {
+        color: var(--muted);
+        font-size: 12px;
+        margin: 0 0 3px;
+      }
+
+      .metric dd {
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0;
+      }
+
+      .status-line {
+        margin: 10px 0 0;
+      }
+
+      .pill {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1;
+        margin-left: 6px;
+        padding: 4px 7px;
+      }
+
+      .pill.connected {
+        border-color: var(--success);
+        color: var(--success);
+      }
+
+      .pill.failed {
+        border-color: var(--danger);
+        color: var(--danger);
+      }
+
+      .pill.recording {
+        border-color: var(--danger);
+        color: var(--danger);
+      }
+
+      .meter {
+        background: #e4e4e7;
+        border-radius: 999px;
+        height: 10px;
+        margin-top: 6px;
+        overflow: hidden;
+        width: 100%;
+      }
+
+      .meter span {
+        background: linear-gradient(90deg, var(--success), var(--warning), var(--danger));
+        display: block;
+        height: 100%;
+        width: 0;
+      }
+
+      .empty {
+        color: var(--muted);
+        padding: 16px 0;
+      }
+
+      @media (max-width: 700px) {
+        body {
+          margin: 12px;
+        }
+
+        td audio {
+          min-width: 180px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>WebRTC audio waveform</h1>
+
+      <fieldset>
+        <legend>Login</legend>
+        <div id="auth-status">Checking token...</div>
+        <button id="logout" type="button">Log out</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Connection</legend>
+        <div class="row">
+          <div>
+            <label for="dongle-id">Dongle ID</label>
+            <input id="dongle-id" type="text" inputmode="latin" autocomplete="off" maxlength="16">
+          </div>
+          <div>
+            <button id="connect" class="primary" type="button">Connect audio</button>
+            <button id="disconnect" type="button">Disconnect</button>
+          </div>
+        </div>
+        <p id="connection-status" class="status-line">Connection: idle</p>
+        <p id="audio-status" class="status-line">Audio: waiting</p>
+        <audio id="remote-audio" controls autoplay playsinline></audio>
+      </fieldset>
+
+      <fieldset>
+        <legend>Incoming waveform</legend>
+        <div class="row control-strip">
+          <div>
+            <label for="gain">Gain increase</label>
+            <input id="gain" type="range" min="1" max="8" step="0.1" value="1">
+          </div>
+          <output id="gain-value" class="range-value" for="gain">1.0x</output>
+        </div>
+        <canvas id="waveform" aria-label="Incoming audio waveform"></canvas>
+        <dl id="level-summary" class="status-grid"></dl>
+      </fieldset>
+
+      <fieldset>
+        <legend>Recording</legend>
+        <div class="row">
+          <div>
+            <label for="chunk-seconds">Chunk seconds</label>
+            <input id="chunk-seconds" type="number" min="5" step="5" value="5">
+          </div>
+          <div>
+            <button id="record-next" type="button">Record next chunk</button>
+            <button id="record-continuous" type="button">Start chunking</button>
+            <button id="stop-recording" type="button">Stop recording</button>
+            <button id="clear-recordings" class="danger" type="button">Clear recordings</button>
+          </div>
+        </div>
+        <p id="recording-status" class="status-line">Recording: idle</p>
+        <div id="recordings-empty" class="empty">No recordings yet.</div>
+        <table id="recordings-table" hidden>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Captured</th>
+              <th>Duration</th>
+              <th>Size</th>
+              <th>Preview</th>
+              <th>Download</th>
+            </tr>
+          </thead>
+          <tbody id="recordings-body"></tbody>
+        </table>
+      </fieldset>
+
+      <h2>Log</h2>
+      <pre id="log"></pre>
+    </main>
+
+    <script type="module">
+      import MyCommaAuth, { storage as AuthStorage } from '@commaai/my-comma-auth';
+      import { athena as Athena, request as Request } from '@commaai/api';
+      import { WebRTCConnection } from '../utils/webrtc.js';
+
+      const DONGLE_ID_RE = /^[a-f0-9]{16}$/;
+      const DEFAULT_CHUNK_SECONDS = 5;
+      const MIN_GAIN = 1;
+      const MAX_GAIN = 8;
+      const STORAGE_KEY = 'webrtcAudioWaveformDongleId';
+
+      const el = {
+        authStatus: document.getElementById('auth-status'),
+        logout: document.getElementById('logout'),
+        dongleId: document.getElementById('dongle-id'),
+        connect: document.getElementById('connect'),
+        disconnect: document.getElementById('disconnect'),
+        connectionStatus: document.getElementById('connection-status'),
+        audioStatus: document.getElementById('audio-status'),
+        remoteAudio: document.getElementById('remote-audio'),
+        gain: document.getElementById('gain'),
+        gainValue: document.getElementById('gain-value'),
+        waveform: document.getElementById('waveform'),
+        levelSummary: document.getElementById('level-summary'),
+        chunkSeconds: document.getElementById('chunk-seconds'),
+        recordNext: document.getElementById('record-next'),
+        recordContinuous: document.getElementById('record-continuous'),
+        stopRecording: document.getElementById('stop-recording'),
+        clearRecordings: document.getElementById('clear-recordings'),
+        recordingStatus: document.getElementById('recording-status'),
+        recordingsEmpty: document.getElementById('recordings-empty'),
+        recordingsTable: document.getElementById('recordings-table'),
+        recordingsBody: document.getElementById('recordings-body'),
+        log: document.getElementById('log'),
+      };
+
+      const state = {
+        token: null,
+        connection: null,
+        connectionLogHandler: null,
+        remoteStream: null,
+        audioContext: null,
+        analyser: null,
+        sourceNode: null,
+        gainNode: null,
+        mediaDestination: null,
+        processedStream: null,
+        gain: 1,
+        animationFrame: null,
+        statsTimer: null,
+        recorder: null,
+        recorderMode: null,
+        recordingStartedAt: null,
+        singleChunkTimer: null,
+        chunkSequence: 0,
+        recordings: [],
+        inboundAudioStats: null,
+        level: {
+          rms: 0,
+          peak: 0,
+          db: null,
+        },
+      };
+
+      function log(message, elapsedMs) {
+        const time = new Date().toISOString();
+        const elapsed = elapsedMs != null ? ` +${elapsedMs.toFixed(0)}ms` : '';
+        el.log.textContent += `${time}${elapsed} ${message}\n`;
+        el.log.scrollTop = el.log.scrollHeight;
+      }
+
+      function fmt(value, digits = 1) {
+        if (value == null || Number.isNaN(value)) return '-';
+        return Number(value).toFixed(digits);
+      }
+
+      function fmtBytes(bytes) {
+        if (bytes == null || Number.isNaN(bytes)) return '-';
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+      }
+
+      function metric(label, value, extra) {
+        const item = document.createElement('div');
+        item.className = 'metric';
+        const term = document.createElement('dt');
+        const detail = document.createElement('dd');
+        term.textContent = label;
+        detail.textContent = value;
+        item.append(term, detail);
+        if (extra) item.append(extra);
+        return item;
+      }
+
+      function meter(value) {
+        const container = document.createElement('div');
+        container.className = 'meter';
+        const fill = document.createElement('span');
+        fill.style.width = `${Math.max(0, Math.min(1, value)) * 100}%`;
+        container.append(fill);
+        return container;
+      }
+
+      function configureApi(token) {
+        const onError = (resp) => {
+          if (resp.status === 401) redirectToLogin();
+        };
+        Request.configure(token, onError);
+        Athena.configure(token, onError);
+        state.token = token;
+        el.authStatus.textContent = 'Signed in';
+        updateControls();
+      }
+
+      async function initAuth() {
+        const token = await MyCommaAuth.init();
+        if (token) {
+          configureApi(token);
+        } else {
+          redirectToLogin();
+        }
+      }
+
+      function redirectToLogin() {
+        const target = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        window.sessionStorage?.setItem('redirectURL', target);
+        window.location.replace(`/?r=${encodeURIComponent(target)}`);
+      }
+
+      async function logout() {
+        disconnect();
+        await AuthStorage.logOut();
+        state.token = null;
+        log('Logged out');
+        redirectToLogin();
+      }
+
+      function selectedDongleId() {
+        return el.dongleId.value.trim().toLowerCase();
+      }
+
+      function setGain(value, shouldLog = false) {
+        const gain = Math.max(MIN_GAIN, Math.min(MAX_GAIN, Number(value) || MIN_GAIN));
+        state.gain = gain;
+        el.gain.value = String(gain);
+        el.gainValue.textContent = `${fmt(gain, 1)}x`;
+
+        if (state.gainNode && state.audioContext) {
+          const now = state.audioContext.currentTime;
+          state.gainNode.gain.cancelScheduledValues(now);
+          state.gainNode.gain.setTargetAtTime(gain, now, 0.015);
+        }
+
+        renderLevelSummary();
+        if (shouldLog) log(`Gain set to ${fmt(gain, 1)}x`);
+      }
+
+      function updateControls() {
+        const connected = state.connection?.connectionState === 'connected';
+        const connecting = state.connection?.connectionState === 'connecting';
+        const hasStream = !!state.remoteStream;
+        const recording = !!state.recorder;
+
+        el.connect.disabled = !state.token || connecting || connected;
+        el.disconnect.disabled = !state.connection;
+        el.recordNext.disabled = !hasStream || recording;
+        el.recordContinuous.disabled = !hasStream || recording;
+        el.stopRecording.disabled = !recording;
+        el.clearRecordings.disabled = recording || state.recordings.length === 0;
+        el.chunkSeconds.disabled = recording;
+      }
+
+      function setConnectionStatus(status, reason) {
+        const pillClass = status === 'connected' ? 'connected' : (status === 'failed' ? 'failed' : '');
+        el.connectionStatus.replaceChildren(document.createTextNode('Connection: '));
+        if (pillClass) {
+          const pill = document.createElement('span');
+          pill.className = `pill ${pillClass}`;
+          pill.textContent = status;
+          el.connectionStatus.append(pill);
+        } else {
+          el.connectionStatus.append(document.createTextNode(status));
+        }
+        if (reason) el.connectionStatus.append(document.createTextNode(` (${reason})`));
+      }
+
+      function setAudioStatus(message) {
+        el.audioStatus.textContent = `Audio: ${message}`;
+      }
+
+      function prepareCanvas(canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const width = Math.max(1, rect.width || canvas.clientWidth || 320);
+        const height = Math.max(1, rect.height || canvas.clientHeight || 180);
+        const dpr = window.devicePixelRatio || 1;
+        const scaledWidth = Math.round(width * dpr);
+        const scaledHeight = Math.round(height * dpr);
+
+        if (canvas.width !== scaledWidth) canvas.width = scaledWidth;
+        if (canvas.height !== scaledHeight) canvas.height = scaledHeight;
+
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return { ctx, width, height };
+      }
+
+      function drawEmpty(message) {
+        const { ctx, width, height } = prepareCanvas(el.waveform);
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, width, height);
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+        ctx.beginPath();
+        ctx.moveTo(0, height / 2);
+        ctx.lineTo(width, height / 2);
+        ctx.stroke();
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(message, width / 2, height / 2 - 18);
+      }
+
+      function renderLevelSummary() {
+        const stats = state.inboundAudioStats;
+        const db = state.level.db;
+        const audioLevel = stats?.audioLevel != null ? stats.audioLevel : null;
+        el.levelSummary.replaceChildren(
+          metric('RMS', fmt(state.level.rms, 3), meter(state.level.rms * 4)),
+          metric('Peak', fmt(state.level.peak, 3), meter(state.level.peak)),
+          metric('Level', db == null ? '-' : `${fmt(db, 1)} dB`),
+          metric('Gain', `${fmt(state.gain, 1)}x`),
+          metric('Packets', stats?.packetsReceived != null ? String(stats.packetsReceived) : '-'),
+          metric('Lost', stats?.packetsLost != null ? String(stats.packetsLost) : '-'),
+          metric('Jitter', stats?.jitter != null ? `${fmt(stats.jitter * 1000, 1)} ms` : '-'),
+          metric('RTC level', audioLevel != null ? fmt(audioLevel, 3) : '-'),
+          metric('Bytes', fmtBytes(stats?.bytesReceived)),
+        );
+      }
+
+      function drawWaveform() {
+        if (!state.analyser) {
+          drawEmpty('Waiting for incoming audio');
+          return;
+        }
+
+        const { ctx, width, height } = prepareCanvas(el.waveform);
+        const data = new Float32Array(state.analyser.fftSize);
+        state.analyser.getFloatTimeDomainData(data);
+
+        let sumSquares = 0;
+        let peak = 0;
+        for (const sample of data) {
+          const abs = Math.abs(sample);
+          sumSquares += sample * sample;
+          if (abs > peak) peak = abs;
+        }
+
+        const rms = Math.sqrt(sumSquares / data.length);
+        state.level.rms = rms;
+        state.level.peak = peak;
+        state.level.db = rms > 0 ? 20 * Math.log10(rms) : null;
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+        ctx.lineWidth = 1;
+        for (let i = 1; i < 4; i += 1) {
+          const y = (height / 4) * i;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < data.length; i += 1) {
+          const x = (i / (data.length - 1)) * width;
+          const y = height / 2 + data[i] * (height * 0.42);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`rms ${fmt(rms, 3)}   peak ${fmt(peak, 3)}`, 10, 10);
+
+        renderLevelSummary();
+        state.animationFrame = requestAnimationFrame(drawWaveform);
+      }
+
+      function stopAnalyser() {
+        if (state.animationFrame) {
+          cancelAnimationFrame(state.animationFrame);
+          state.animationFrame = null;
+        }
+        if (state.sourceNode) {
+          state.sourceNode.disconnect();
+          state.sourceNode = null;
+        }
+        if (state.gainNode) {
+          state.gainNode.disconnect();
+          state.gainNode = null;
+        }
+        if (state.processedStream) {
+          state.processedStream.getTracks().forEach((track) => track.stop());
+          state.processedStream = null;
+        }
+        state.mediaDestination = null;
+        state.analyser = null;
+        if (state.audioContext) {
+          state.audioContext.close().catch(() => {});
+          state.audioContext = null;
+        }
+        state.level = { rms: 0, peak: 0, db: null };
+        state.inboundAudioStats = null;
+        renderLevelSummary();
+        drawEmpty('Waiting for incoming audio');
+      }
+
+      async function startAnalyser(stream) {
+        stopAnalyser();
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) {
+          setAudioStatus('Web Audio API unavailable');
+          log('Web Audio API unavailable');
+          return;
+        }
+
+        state.audioContext = new AudioContext();
+        state.analyser = state.audioContext.createAnalyser();
+        state.gainNode = state.audioContext.createGain();
+        state.mediaDestination = state.audioContext.createMediaStreamDestination();
+        state.analyser.fftSize = 2048;
+        state.analyser.smoothingTimeConstant = 0.75;
+        state.sourceNode = state.audioContext.createMediaStreamSource(stream);
+        state.sourceNode.connect(state.gainNode);
+        state.gainNode.connect(state.analyser);
+        state.gainNode.connect(state.mediaDestination);
+        state.processedStream = state.mediaDestination.stream;
+        setGain(state.gain);
+        await state.audioContext.resume();
+        drawWaveform();
+        return state.processedStream;
+      }
+
+      function startStatsPolling() {
+        if (state.statsTimer) clearInterval(state.statsTimer);
+
+        const poll = async () => {
+          if (!state.connection?.pc) return;
+          let stats;
+          try {
+            stats = await state.connection.pc.getStats();
+          } catch {
+            return;
+          }
+          for (const report of stats.values()) {
+            if (report.type !== 'inbound-rtp' || report.kind !== 'audio') continue;
+            state.inboundAudioStats = {
+              audioLevel: report.audioLevel ?? null,
+              bytesReceived: report.bytesReceived ?? null,
+              jitter: report.jitter ?? null,
+              packetsLost: report.packetsLost ?? null,
+              packetsReceived: report.packetsReceived ?? null,
+            };
+            renderLevelSummary();
+            return;
+          }
+        };
+
+        poll();
+        state.statsTimer = setInterval(poll, 1000);
+      }
+
+      function stopStatsPolling() {
+        if (state.statsTimer) {
+          clearInterval(state.statsTimer);
+          state.statsTimer = null;
+        }
+        state.inboundAudioStats = null;
+        renderLevelSummary();
+      }
+
+      function formatIceCandidate(candidate) {
+        if (!candidate) return 'end-of-candidates';
+
+        const fields = [];
+        if (candidate.type) fields.push(`type=${candidate.type}`);
+        if (candidate.protocol) fields.push(`protocol=${candidate.protocol}`);
+        if (candidate.address) fields.push(`address=${candidate.address}`);
+        if (candidate.port) fields.push(`port=${candidate.port}`);
+        if (candidate.tcpType) fields.push(`tcpType=${candidate.tcpType}`);
+        if (candidate.relatedAddress) fields.push(`relatedAddress=${candidate.relatedAddress}`);
+        if (candidate.relatedPort) fields.push(`relatedPort=${candidate.relatedPort}`);
+        if (candidate.candidate) fields.push(`candidate="${candidate.candidate}"`);
+
+        return fields.join(' ') || JSON.stringify(candidate);
+      }
+
+      function logWebrtcEvent(detail) {
+        const { message, candidate, elapsedMs } = detail;
+        log(candidate !== undefined ? `${message}: ${formatIceCandidate(candidate)}` : message, elapsedMs);
+      }
+
+      async function connect() {
+        const dongleId = selectedDongleId();
+        if (!state.token) {
+          log('Cannot connect: not signed in');
+          return;
+        }
+        if (!DONGLE_ID_RE.test(dongleId)) {
+          log('Cannot connect: dongle ID must be 16 lowercase hex characters');
+          return;
+        }
+        if (!window.RTCPeerConnection) {
+          log('Cannot connect: RTCPeerConnection is not available');
+          return;
+        }
+
+        disconnect();
+        window.localStorage.setItem(STORAGE_KEY, dongleId);
+        setConnectionStatus('connecting');
+        setAudioStatus('requesting microphone and remote audio');
+        log(`Connecting audio WebRTC for ${dongleId}`);
+
+        const connection = new WebRTCConnection({
+          onConnectionState: (connectionState, reason) => {
+            setConnectionStatus(connectionState, reason);
+            log(`Connection ${connectionState}${reason ? `: ${reason}` : ''}`);
+            updateControls();
+            if (connectionState === 'failed' || connectionState === 'disconnected' || connectionState === 'closed') {
+              if (state.connection === connection) {
+                cleanupConnectionState(false);
+              }
+            }
+          },
+          onBatteryLevel: () => {},
+          onVideoTrack: () => {},
+          onAudioTrack: async (stream) => {
+            state.remoteStream = stream;
+            el.remoteAudio.srcObject = stream;
+            setAudioStatus(`${stream.getAudioTracks().length} incoming track(s)`);
+            log(`Remote audio track received: ${stream.getAudioTracks().map((track) => `${track.id}:${track.readyState}`).join(', ') || 'none'}`);
+            try {
+              await el.remoteAudio.play();
+            } catch (e) {
+              log(`Audio playback requires a click: ${e?.message || e?.name || e}`);
+            }
+            try {
+              await startAnalyser(stream);
+            } catch (e) {
+              log(`Could not start analyser: ${e?.message || e?.name || e}`);
+            }
+            startStatsPolling();
+            updateControls();
+          },
+          onLatencyUpdate: () => {},
+          onIgnition: () => {},
+        });
+
+        state.connection = connection;
+        state.connectionLogHandler = (evt) => logWebrtcEvent(evt.detail);
+        connection.addEventListener('log', state.connectionLogHandler);
+        updateControls();
+
+        try {
+          await connection.connect(dongleId, false, true);
+        } catch (e) {
+          log(`Connect failed: ${e?.message || e?.name || e}`);
+          if (state.connection === connection) cleanupConnectionState(false);
+        }
+      }
+
+      function cleanupConnectionState(disconnectPeer = true) {
+        const connection = state.connection;
+        const connectionLogHandler = state.connectionLogHandler;
+        stopRecording();
+        stopStatsPolling();
+        stopAnalyser();
+        state.connection = null;
+        state.connectionLogHandler = null;
+        state.remoteStream = null;
+        if (connection && connectionLogHandler) {
+          connection.removeEventListener('log', connectionLogHandler);
+        }
+        if (disconnectPeer && connection) {
+          connection.disconnect();
+        }
+        el.remoteAudio.pause();
+        el.remoteAudio.srcObject = null;
+        setAudioStatus('waiting');
+        updateControls();
+      }
+
+      function disconnect() {
+        if (!state.connection) {
+          cleanupConnectionState(false);
+          setConnectionStatus('idle');
+          return;
+        }
+        log('Disconnecting');
+        cleanupConnectionState(true);
+        setConnectionStatus('idle');
+      }
+
+      function chunkSeconds() {
+        const seconds = Number(el.chunkSeconds.value);
+        if (!Number.isFinite(seconds) || seconds < DEFAULT_CHUNK_SECONDS) return DEFAULT_CHUNK_SECONDS;
+        return Math.max(DEFAULT_CHUNK_SECONDS, Math.round(seconds / DEFAULT_CHUNK_SECONDS) * DEFAULT_CHUNK_SECONDS);
+      }
+
+      function supportedMimeType() {
+        const types = [
+          'audio/webm;codecs=opus',
+          'audio/webm',
+          'audio/ogg;codecs=opus',
+          'audio/mp4',
+        ];
+        return types.find((type) => MediaRecorder.isTypeSupported?.(type)) || '';
+      }
+
+      function addRecording(blob, startedAt, endedAt) {
+        if (!blob || blob.size === 0) return;
+
+        const sequence = state.chunkSequence + 1;
+        state.chunkSequence = sequence;
+        const url = URL.createObjectURL(blob);
+        const extension = blob.type.includes('ogg') ? 'ogg' : (blob.type.includes('mp4') ? 'm4a' : 'webm');
+        const durationMs = Math.max(0, endedAt - startedAt);
+        const created = new Date(startedAt);
+        const recording = {
+          sequence,
+          blob,
+          url,
+          created,
+          durationMs,
+          filename: `webrtc-audio-${selectedDongleId() || 'device'}-${created.toISOString().replace(/[:.]/g, '-')}.${extension}`,
+        };
+        state.recordings.push(recording);
+        renderRecordings();
+      }
+
+      function renderRecordings() {
+        el.recordingsEmpty.hidden = state.recordings.length > 0;
+        el.recordingsTable.hidden = state.recordings.length === 0;
+        el.recordingsBody.replaceChildren(...state.recordings.map((recording) => {
+          const row = document.createElement('tr');
+
+          const indexCell = document.createElement('td');
+          indexCell.textContent = String(recording.sequence);
+
+          const capturedCell = document.createElement('td');
+          capturedCell.textContent = recording.created.toLocaleTimeString();
+
+          const durationCell = document.createElement('td');
+          durationCell.textContent = `${fmt(recording.durationMs / 1000, 1)} s`;
+
+          const sizeCell = document.createElement('td');
+          sizeCell.textContent = fmtBytes(recording.blob.size);
+
+          const previewCell = document.createElement('td');
+          const audio = document.createElement('audio');
+          audio.controls = true;
+          audio.src = recording.url;
+          previewCell.append(audio);
+
+          const downloadCell = document.createElement('td');
+          const download = document.createElement('a');
+          download.href = recording.url;
+          download.download = recording.filename;
+          download.textContent = 'Download';
+          downloadCell.append(download);
+
+          row.append(indexCell, capturedCell, durationCell, sizeCell, previewCell, downloadCell);
+          return row;
+        }));
+        updateControls();
+      }
+
+      function setRecordingStatus(message, recording = false) {
+        el.recordingStatus.replaceChildren(document.createTextNode(`Recording: ${message}`));
+        if (recording) {
+          const badge = document.createElement('span');
+          badge.className = 'pill recording';
+          badge.textContent = 'recording';
+          el.recordingStatus.append(badge);
+        }
+      }
+
+      function stopRecording() {
+        if (state.singleChunkTimer) {
+          clearTimeout(state.singleChunkTimer);
+          state.singleChunkTimer = null;
+        }
+        if (state.recorder && state.recorder.state !== 'inactive') {
+          state.recorder.stop();
+        }
+      }
+
+      function startRecording(mode) {
+        const sourceStream = state.processedStream || state.remoteStream;
+        if (!sourceStream) {
+          log('Cannot record: no remote audio stream');
+          return;
+        }
+        if (!window.MediaRecorder) {
+          log('Cannot record: MediaRecorder is not available');
+          return;
+        }
+        if (state.recorder) {
+          log('Cannot record: recording is already active');
+          return;
+        }
+
+        const tracks = sourceStream.getAudioTracks().filter((track) => track.readyState === 'live');
+        if (tracks.length === 0) {
+          log('Cannot record: remote stream has no live audio tracks');
+          return;
+        }
+
+        const seconds = chunkSeconds();
+        el.chunkSeconds.value = String(seconds);
+        const chunkMs = seconds * 1000;
+        const stream = new MediaStream(tracks);
+        const mimeType = supportedMimeType();
+        let recorder;
+        try {
+          recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+        } catch (e) {
+          log(`Cannot record: ${e?.message || e?.name || e}`);
+          return;
+        }
+        let pendingStart = null;
+
+        recorder.addEventListener('dataavailable', (evt) => {
+          const endedAt = Date.now();
+          const startedAt = pendingStart ?? state.recordingStartedAt ?? endedAt - chunkMs;
+          pendingStart = endedAt;
+          addRecording(evt.data, startedAt, endedAt);
+        });
+
+        recorder.addEventListener('stop', () => {
+          state.recorder = null;
+          state.recorderMode = null;
+          state.recordingStartedAt = null;
+          if (state.singleChunkTimer) {
+            clearTimeout(state.singleChunkTimer);
+            state.singleChunkTimer = null;
+          }
+          setRecordingStatus('idle');
+          log('Recording stopped');
+          updateControls();
+        });
+
+        recorder.addEventListener('error', (evt) => {
+          log(`Recording error: ${evt.error?.message || evt.error?.name || 'unknown error'}`);
+        });
+
+        state.recorder = recorder;
+        state.recorderMode = mode;
+        state.recordingStartedAt = Date.now();
+        pendingStart = state.recordingStartedAt;
+
+        if (mode === 'continuous') {
+          recorder.start(chunkMs);
+          setRecordingStatus(`${seconds}s chunks`, true);
+          log(`Recording continuous ${seconds}s chunks`);
+        } else {
+          recorder.start();
+          state.singleChunkTimer = setTimeout(() => stopRecording(), chunkMs);
+          setRecordingStatus(`next ${seconds}s chunk`, true);
+          log(`Recording next ${seconds}s chunk`);
+        }
+
+        updateControls();
+      }
+
+      function clearRecordings() {
+        if (state.recorder) return;
+        for (const recording of state.recordings) {
+          URL.revokeObjectURL(recording.url);
+        }
+        state.recordings = [];
+        state.chunkSequence = 0;
+        renderRecordings();
+      }
+
+      let resizeFrame = null;
+      window.addEventListener('resize', () => {
+        if (resizeFrame) cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(() => {
+          resizeFrame = null;
+          if (!state.analyser) drawEmpty('Waiting for incoming audio');
+        });
+      });
+
+      el.logout.addEventListener('click', logout);
+      el.connect.addEventListener('click', connect);
+      el.disconnect.addEventListener('click', disconnect);
+      el.gain.addEventListener('input', () => setGain(el.gain.value));
+      el.gain.addEventListener('change', () => setGain(el.gain.value, true));
+      el.recordNext.addEventListener('click', () => startRecording('single'));
+      el.recordContinuous.addEventListener('click', () => startRecording('continuous'));
+      el.stopRecording.addEventListener('click', stopRecording);
+      el.clearRecordings.addEventListener('click', clearRecordings);
+      window.addEventListener('beforeunload', () => {
+        clearRecordings();
+        disconnect();
+      });
+
+      const savedDongleId = window.localStorage.getItem(STORAGE_KEY);
+      if (savedDongleId) el.dongleId.value = savedDongleId;
+
+      setGain(el.gain.value);
+      drawEmpty('Waiting for incoming audio');
+      renderLevelSummary();
+      renderRecordings();
+      updateControls();
+      initAuth().catch((err) => {
+        el.authStatus.textContent = 'Auth failed';
+        log(`Auth failed: ${err.message}`);
+      });
+    </script>
+  </body>
+</html>
