@@ -6,6 +6,7 @@ import { useClickOutside } from '../../hooks/useClickOutside';
 
 const LATENCY_BUFFER_SIZE = 10;
 const LATENCY_HISTORY_MAX = 60;
+const JITTER_HISTORY_MAX = 60;
 
 const STATS_INTERVAL_MS = 1000;
 
@@ -21,13 +22,15 @@ const STATS_ROWS = [
   { label: 'FPS', key: 'fps', showInCompact: false },
   { label: 'Bitrate', key: 'bitrate' },
   { label: 'RTT', key: 'rtt' },
-  { label: 'Loss', key: 'packetLoss' }
+  { label: 'Loss', key: 'packetLoss' },
+  { label: 'Jitter', key: 'jitter' }
 ];
 
 const LATENCY_LAYERS = [
   { label: 'Capture/Encode', key: 'captureEncodeMs', color: 'rgba(76,175,80,1)', labelColor: 'rgba(76,175,80,1)' },
   { label: 'Network', key: 'networkMs', color: 'rgba(66,165,245,1)', labelColor: 'rgba(66,165,245,1)' },
 ];
+const JITTER_COLOR = 'rgba(255,183,77,1)';
 
 // prewarm the latency display so the graph shows a sensible band before the first real sample arrives
 const INITIAL_LATENCY = {
@@ -56,6 +59,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
   const [stats, setStats] = useState(null);
   const [latency, setLatency] = useState(INITIAL_LATENCY);
   const [latencyHistory, setLatencyHistory] = useState([INITIAL_LATENCY]);
+  const [jitterHistory, setJitterHistory] = useState([]);
   const [connectionQuality, setConnectionQuality] = useState('good');
   const latencyBufferRef = useRef([]);
   const firstLatencyShownRef = useRef(false);
@@ -106,6 +110,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
       }
 
       const now = videoStats.timestamp;
+      const jitterMs = videoStats.jitter != null ? videoStats.jitter * 1000 : null;
       let bitrate = 0;
       let fps = 0;
       let lossRatio = 0;
@@ -131,6 +136,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
       ref.prevFrames = videoStats.framesDecoded;
       ref.prevPacketsLost = videoStats.packetsLost ?? ref.prevPacketsLost;
       ref.prevPacketsReceived = videoStats.packetsReceived ?? ref.prevPacketsReceived;
+      setJitterHistory((prev) => [...prev, jitterMs].slice(-JITTER_HISTORY_MAX));
 
       setStats({
         fps: fps.toFixed(1),
@@ -139,7 +145,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
           : `${(bitrate / 1000).toFixed(0)} kbps`,
         rtt: rttMs != null ? `${Math.round(rttMs)} ms` : '--',
         packetLoss: `${(lossRatio * 100).toFixed(1)}%`,
-        jitter: videoStats.jitter !== undefined ? `${(videoStats.jitter * 1000).toFixed(1)} ms` : '?',
+        jitter: jitterMs != null ? `${jitterMs.toFixed(1)} ms` : '--',
       });
     } catch (err) {
       console.warn('pollStats failed:', err);
@@ -167,6 +173,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
       setStats(null);
       setLatency(INITIAL_LATENCY);
       setLatencyHistory([INITIAL_LATENCY]);
+      setJitterHistory([]);
       setConnectionQuality('good');
     }
     return () => {
@@ -190,22 +197,30 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
     });
   }, [connection]);
 
-  return { showStats, toggleStats, closeStats, stats, latency, latencyHistory, connectionQuality };
+  return { showStats, toggleStats, closeStats, stats, latency, latencyHistory, jitterHistory, connectionQuality };
 }
 
-function drawLatencyGraph(canvas, latencyHistory) {
+function prepareGraphCanvas(canvas) {
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
-  const newW = w * dpr;
-  const newH = h * dpr;
+  if (!ctx || w <= 0 || h <= 0) return null;
+  const newW = Math.round(w * dpr);
+  const newH = Math.round(h * dpr);
   if (canvas.width !== newW || canvas.height !== newH) {
     canvas.width = newW;
     canvas.height = newH;
   }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
+  return { ctx, w, h };
+}
+
+function drawLatencyGraph(canvas, latencyHistory) {
+  const prepared = prepareGraphCanvas(canvas);
+  if (!prepared) return;
+  const { ctx, w, h } = prepared;
 
   const maxVal = Math.max(10, ...latencyHistory.map((l) => (l.totalMs != null ? l.totalMs : l.devicePipelineMs) || 0));
   const yScale = (h - 2) / (maxVal * 1.35);
@@ -250,8 +265,55 @@ function drawLatencyGraph(canvas, latencyHistory) {
   ctx.fillText(`${Math.round(maxVal)} ms`, 3, peakY - 1);
 }
 
-export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
+function drawJitterGraph(canvas, jitterHistory) {
+  const prepared = prepareGraphCanvas(canvas);
+  if (!prepared) return;
+  const { ctx, w, h } = prepared;
+  const values = jitterHistory.filter((v) => v != null && Number.isFinite(v));
+  const maxVal = Math.max(5, ...values);
+  const yScale = (h - 2) / (maxVal * 1.35);
+  const xStep = w / Math.max(jitterHistory.length - 1, 1);
+  const peakY = h - maxVal * yScale;
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, peakY);
+  ctx.lineTo(w, peakY);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.font = '8px monospace';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(`${Math.round(maxVal)} ms`, 3, peakY - 1);
+
+  if (values.length === 0) return;
+
+  ctx.strokeStyle = JITTER_COLOR;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  let started = false;
+  let firstPoint = null;
+  let lastPoint = null;
+  jitterHistory.forEach((value, i) => {
+    if (value == null || !Number.isFinite(value)) return;
+    const point = { x: i * xStep, y: h - value * yScale };
+    if (!started) {
+      ctx.moveTo(point.x, point.y);
+      firstPoint = point;
+      started = true;
+    } else {
+      ctx.lineTo(point.x, point.y);
+    }
+    lastPoint = point;
+  });
+  if (firstPoint && firstPoint === lastPoint) ctx.lineTo(w, firstPoint.y);
+  ctx.stroke();
+}
+
+export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory, jitterHistory }) => {
   const latencyCanvasRef = useRef(null);
+  const jitterCanvasRef = useRef(null);
   const compact = useMemo(() => isLandscape && window.matchMedia('(max-height: 500px)').matches, [isLandscape]);
 
   useEffect(() => {
@@ -259,6 +321,12 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
     if (!canvas) return;
     drawLatencyGraph(canvas, latencyHistory);
   }, [latencyHistory, compact]);
+
+  useEffect(() => {
+    const canvas = jitterCanvasRef.current;
+    if (!canvas) return;
+    drawJitterGraph(canvas, jitterHistory);
+  }, [jitterHistory, compact]);
 
   const fmtMs = (v) => (v != null ? `${v.toFixed(1)} ms` : '--');
   const textSize = compact ? "text-[9px]" : "text-[10px] md:text-[13px]"
@@ -293,7 +361,19 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
           <span className={`${textSize} text-white/[0.85] text-right`} style={{ fontWeight: 700 }}>{fmtMs(latency?.totalMs)}</span>
         </div>
       </div>
-      <canvas ref={latencyCanvasRef} className={`${compact ? "w-[100px] self-stretch": "w-full h-[30px] md:h-[90px] mt-1"} rounded-[3px] bg-black/30 md:rounded-[6px]`} />
+      {compact ? (
+        <div className="flex flex-col gap-1 w-[100px] h-[56px]">
+          <canvas ref={latencyCanvasRef} className="w-full h-[26px] rounded-[3px] bg-black/30" />
+          <canvas ref={jitterCanvasRef} className="w-full h-[26px] rounded-[3px] bg-black/30" />
+        </div>
+      ) : (
+        <>
+          <canvas ref={latencyCanvasRef} className="w-full h-[30px] md:h-[90px] mt-1 rounded-[3px] bg-black/30 md:rounded-[6px]" />
+          <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />
+          <div className="text-[7px] font-bold text-white/35 tracking-[0.5px] leading-tight py-[2px] pb-px md:text-[11px]">{"JITTER"}</div>
+          <canvas ref={jitterCanvasRef} className="w-full h-[28px] md:h-[60px] mt-1 rounded-[3px] bg-black/30 md:rounded-[6px]" />
+        </>
+      )}
       {!compact && <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />}
     </div>
   );
@@ -301,7 +381,7 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
 
 
 const StatsMenu = ({
-  isLandscape, showStats, toggleStats, closeStats, stats, latency, latencyHistory,
+  isLandscape, showStats, toggleStats, closeStats, stats, latency, latencyHistory, jitterHistory,
 }) => {
   const wrapperRef = useRef(null);
   useClickOutside(wrapperRef, showStats, closeStats);
@@ -318,7 +398,7 @@ const StatsMenu = ({
         </span>
       </div>
       {showStats && (
-        <StatsPanel isLandscape={isLandscape} stats={stats} latency={latency} latencyHistory={latencyHistory} />
+        <StatsPanel isLandscape={isLandscape} stats={stats} latency={latency} latencyHistory={latencyHistory} jitterHistory={jitterHistory} />
       )}
     </div>
   );
@@ -328,7 +408,7 @@ const StatusBar = ({
   battery, className, isLandscape, connection, connectionState, latencyCallbackRef, onQualityChange, onTestTone,
 }) => {
   const {
-    showStats, toggleStats, closeStats, stats, latency, latencyHistory, connectionQuality,
+    showStats, toggleStats, closeStats, stats, latency, latencyHistory, jitterHistory, connectionQuality,
   } = useStats(connection, connectionState, latencyCallbackRef);
   const BatteryIcon = battery?.charging ? BatteryChargingFull : BatteryFull;
   const indicator = QUALITY_INDICATOR[connectionQuality] || QUALITY_INDICATOR.good;
@@ -357,6 +437,7 @@ const StatusBar = ({
         stats={stats}
         latency={latency}
         latencyHistory={latencyHistory}
+        jitterHistory={jitterHistory}
       />
       <SettingsMenu onQualityChange={onQualityChange} onTestTone={onTestTone} />
     </div>

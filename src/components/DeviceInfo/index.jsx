@@ -11,7 +11,6 @@ import { deviceSupportsClips } from '../../api/clips';
 import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
-import { webrtcConnectionManager } from '../../utils/webrtc';
 import VisibilityHandler from '../VisibilityHandler';
 import { subscribeWindowSize } from '../../hooks/window';
 import CommacareBadge from '../CommacareBadge';
@@ -181,7 +180,6 @@ class DeviceInfo extends Component {
     this.snapshotType = this.snapshotType.bind(this);
     this.renderButtons = this.renderButtons.bind(this);
     this.renderSnapshotImage = this.renderSnapshotImage.bind(this);
-    this.prewarmBodyTeleop = this.prewarmBodyTeleop.bind(this);
     this.openBodyTeleop = this.openBodyTeleop.bind(this);
   }
 
@@ -195,7 +193,6 @@ class DeviceInfo extends Component {
       this.setState({ windowWidth: width });
     });
     this.checkClipsSupport();
-    this.prewarmBodyTeleop();
   }
 
   componentDidUpdate(prevProps) {
@@ -214,7 +211,6 @@ class DeviceInfo extends Component {
       this.checkClipsSupport();
     }
 
-    this.prewarmBodyTeleop();
   }
 
   componentWillUnmount() {
@@ -268,17 +264,6 @@ class DeviceInfo extends Component {
         this.setState({ carHealth: { error: err.message } });
       }
     }
-  }
-
-  shouldPrewarmBodyTeleop() {
-    const { device } = this.props;
-    return Boolean(deviceIsOnline(device) && device?.rpc?.not_car && deviceVersionAtLeast(device, '0.11.2'));
-  }
-
-  prewarmBodyTeleop() {
-    const { dongleId } = this.props;
-    if (!dongleId || !this.shouldPrewarmBodyTeleop()) return;
-    webrtcConnectionManager.prewarm(dongleId, true);
   }
 
   async takeSnapshot() {
