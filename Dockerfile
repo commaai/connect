@@ -11,7 +11,7 @@ COPY ./pnpm-lock.yaml .
 RUN pnpm fetch
 
 ADD . ./
-RUN pnpm install --offline
+RUN pnpm install --offline --frozen-lockfile
 
 ARG VITE_APP_GIT_SHA=unknown
 ARG VITE_APP_GIT_TIMESTAMP=1970-01-01T00:00:00Z
