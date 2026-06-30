@@ -131,6 +131,36 @@ const styles = () => ({
   },
 });
 
+const PRIME_AD_RESPONSE_KEY = 'primeAdResponse';
+
+function getPrimeAdResponses() {
+  try {
+    return JSON.parse(window.localStorage.getItem(PRIME_AD_RESPONSE_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function getPrimeAdResponse(dongleId) {
+  if (!dongleId) {
+    return null;
+  }
+  return getPrimeAdResponses()[dongleId] || null;
+}
+
+function setPrimeAdResponse(dongleId, response) {
+  if (!dongleId) {
+    return;
+  }
+  try {
+    const responses = getPrimeAdResponses();
+    responses[dongleId] = response;
+    window.localStorage.setItem(PRIME_AD_RESPONSE_KEY, JSON.stringify(responses));
+  } catch {
+    // localStorage may be unavailable (e.g. private browsing); ignore
+  }
+}
+
 const initialState = {
   hasFocus: false,
   carLastLocation: null,
@@ -149,6 +179,7 @@ class Navigation extends Component {
     this.mounted = null;
     this.state = {
       ...initialState,
+      showPrimeAd: !getPrimeAdResponse(props.dongleId),
       viewport: {
         ...DEFAULT_LOCATION,
         zoom: 5,
@@ -201,6 +232,7 @@ class Navigation extends Component {
     if (prevProps.dongleId !== dongleId) {
       this.setState({
         ...initialState,
+        showPrimeAd: !getPrimeAdResponse(dongleId),
         windowWidth: window.innerWidth,
       });
     }
@@ -660,7 +692,10 @@ class Navigation extends Component {
       <div className={`${classes.searchSelectBox} ${classes.primeAdContainer}`} ref={this.primeAdBoxRef}>
         <Clear
           className={classes.clearSearchSelect}
-          onClick={() => this.setState({ showPrimeAd: false }, this.flyToMarkers)}
+          onClick={() => {
+            setPrimeAdResponse(this.props.dongleId, 'no');
+            this.setState({ showPrimeAd: false }, this.flyToMarkers);
+          }}
         />
         <div className={classes.searchSelectBoxHeader}>
           <div className={classes.searchSelectBoxTitle}>
@@ -668,7 +703,10 @@ class Navigation extends Component {
           </div>
           <div className={classes.searchSelectBoxButtons}>
             <Button
-              onClick={() => this.props.dispatch(primeNav(true))}
+              onClick={() => {
+                setPrimeAdResponse(this.props.dongleId, 'yes');
+                this.props.dispatch(primeNav(true));
+              }}
               className={`${classes.searchSelectButton} ${classes.primeAdButton} primeSignUp`}
             >
               sign up
