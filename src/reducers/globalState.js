@@ -134,6 +134,9 @@ export default function reducer(_state, action) {
       } else {
         state.devices.unshift(populateFetchedAt(action.device));
       }
+      if (state.dongleId && action.device.dongle_id === state.dongleId) {
+        state.device = populateFetchedAt(action.device);
+      }
       break;
     case Types.ACTION_UPDATE_ROUTE:
       if (state.routes) {
