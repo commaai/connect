@@ -3,6 +3,7 @@ import { asyncSleep } from '.';
 import { getTurnCredentials } from './turn';
 
 const VIDEO_STREAM_NAMES = ['primary', 'road'];
+const DEFAULT_SPEAKER_VOLUME = 100;
 const wallMs = () => performance.timeOrigin + performance.now();
 
 const CLOCK_WINDOW_SIZE = 16;
@@ -71,8 +72,10 @@ export class WebRTCConnection extends EventTarget {
     this.clockSynced = false;
     this.connectStartedAt = null;
     this.transformWorkers = [];
+    this.videoTimingReceivers = new WeakSet();
     this.videoEnabled = false;
     this.audioEnabled = false;
+    this.speakerVolume = DEFAULT_SPEAKER_VOLUME;
     this.connectionState = 'new';
     this.failReason = null;
   }
@@ -110,6 +113,7 @@ export class WebRTCConnection extends EventTarget {
       this.pc = new RTCPeerConnection({
         iceServers,
         bundlePolicy: 'max-bundle',
+        rtcpMuxPolicy: "require",
       });
       this._log('RTCPeerConnection created');
       const pc = this.pc;
@@ -118,29 +122,7 @@ export class WebRTCConnection extends EventTarget {
       this.pc.addEventListener('track', (evt) => {
         if (evt.track.kind === 'video') {
           if (evt.receiver) {
-            // hints: minimize receiver-side buffering on Chrome
-            if ('playoutDelayHint' in evt.receiver) evt.receiver.playoutDelayHint = 0;
-            if ('jitterBufferTarget' in evt.receiver) evt.receiver.jitterBufferTarget = 0;
-
-            // Set up Transform to extract frame-level timing SEI in frames
-            if (typeof window.RTCRtpScriptTransform !== 'undefined') {
-              // Standard API (Firefox 117+, future Chrome)
-              try {
-                const worker = new Worker(
-                  new URL('./latency-transform-worker.js', import.meta.url),
-                  { type: 'module' },
-                );
-                this.transformWorkers.push(worker);
-                worker.onmessage = (e) => {
-                  if (e.data.type === 'timing') {
-                    this._processTimingData(e.data.timing);
-                  }
-                };
-                evt.receiver.transform = new window.RTCRtpScriptTransform(worker);
-              } catch (e) {
-                this._log(e);
-              }
-            }
+            this._setupVideoReceiver(evt.receiver);
           }
           const stream = new MediaStream([evt.track]);
           const trackIndex = nextVideoTrackIndex;
@@ -148,7 +130,10 @@ export class WebRTCConnection extends EventTarget {
           const streamName = VIDEO_STREAM_NAMES[trackIndex] ?? `video-${trackIndex}`;
           this.callbacks.onVideoTrack(streamName, stream);
         } else if (evt.track.kind === 'audio') {
-          const stream = evt.streams?.[0] || new MediaStream([evt.track]);
+          if (evt.receiver) {
+            this._setupAudioReceiver(evt.receiver);
+          }
+          const stream = new MediaStream([evt.track]);
           this.callbacks.onAudioTrack?.(stream);
         }
       });
@@ -171,9 +156,11 @@ export class WebRTCConnection extends EventTarget {
       const h264Codecs = codecs.filter((c) => c.mimeType === 'video/H264');
       const primaryTransceiver = this.pc.addTransceiver('video', { direction: 'recvonly' });
       if (h264Codecs.length > 0) primaryTransceiver.setCodecPreferences(h264Codecs);
+      this._setupVideoReceiver(primaryTransceiver.receiver);
 
       const roadTransceiver = this.pc.addTransceiver('video', { direction: 'recvonly' });
       if (h264Codecs.length > 0) roadTransceiver.setCodecPreferences(h264Codecs);
+      this._setupVideoReceiver(roadTransceiver.receiver);
 
       await this._setupAudioForOffer(pc, audioEnabled);
       if (this.pc !== pc) return;
@@ -186,9 +173,13 @@ export class WebRTCConnection extends EventTarget {
       this.dc = this.pc.createDataChannel('data', { ordered: true });
       this.dc.onopen = () => {
         this._log('Data channel open');
+        this._sendSpeakerVolume();
         if (this.videoEnabled) {
           this._sendDc('livestreamVideoEnable', { enabled: true });
           this.enableJoystick(true);
+        }
+        if (this.audioEnabled) {
+          this.enableAudioCapture(this.speakerVolume > 0);
         }
       };
       this.dc.onclose = () => {
@@ -300,6 +291,78 @@ export class WebRTCConnection extends EventTarget {
     return false;
   }
 
+  _sendSpeakerVolume() {
+    return this._sendDc('speakerVolume', { volume: this.speakerVolume });
+  }
+
+  setSpeakerVolume(volume) {
+    const numericVolume = Number(volume);
+    if (!Number.isFinite(numericVolume)) return false;
+    this.speakerVolume = Math.max(0, Math.min(100, Math.round(numericVolume)));
+    if (this.audioEnabled) {
+      this.enableAudioCapture(this.speakerVolume > 0);
+    }
+    return this._sendSpeakerVolume();
+  }
+
+  _createTimingWorker() {
+    const worker = new Worker(
+      new URL('./latency-transform-worker.js', import.meta.url),
+      { type: 'module' },
+    );
+    this.transformWorkers.push(worker);
+    worker.onmessage = (e) => {
+      if (e.data.type === 'timing') {
+        this._processTimingData(e.data.timing);
+      } else if (e.data.type === 'error') {
+        this._log(`Video timing transform failed: ${e.data.message}`);
+      }
+    };
+    return worker;
+  }
+
+  _discardTimingWorker(worker) {
+    const idx = this.transformWorkers.indexOf(worker);
+    if (idx !== -1) this.transformWorkers.splice(idx, 1);
+    worker.terminate();
+  }
+
+  _setupVideoReceiver(receiver) {
+    // hints: minimize receiver-side buffering on Chrome
+    if ('playoutDelayHint' in receiver) receiver.playoutDelayHint = 0;
+    if ('jitterBufferTarget' in receiver) receiver.jitterBufferTarget = 0;
+    this._setupVideoTimingTransform(receiver);
+  }
+
+  _setupAudioReceiver(receiver) {
+    if ('playoutDelayHint' in receiver) receiver.playoutDelayHint = 0;
+    if ('jitterBufferTarget' in receiver) receiver.jitterBufferTarget = 0;
+  }
+
+  _setupVideoTimingTransform(receiver) {
+    if (this.videoTimingReceivers.has(receiver)) return;
+
+    const ScriptTransform = typeof window !== 'undefined' ? window.RTCRtpScriptTransform : undefined;
+    const supportsScriptTransform = typeof ScriptTransform !== 'undefined' && 'transform' in receiver;
+    const supportsLegacyStreams = typeof receiver.createEncodedStreams === 'function';
+    if (!supportsScriptTransform && !supportsLegacyStreams) return;
+
+    let worker;
+    try {
+      worker = this._createTimingWorker();
+      if (supportsScriptTransform) {
+        receiver.transform = new ScriptTransform(worker);
+      } else {
+        const { readable, writable } = receiver.createEncodedStreams();
+        worker.postMessage({ type: 'encodedVideoStreams', readable, writable }, [readable, writable]);
+      }
+      this.videoTimingReceivers.add(receiver);
+    } catch (e) {
+      if (worker) this._discardTimingWorker(worker);
+      this._log(`Video timing transform unavailable: ${e?.message || e?.name || e}`);
+    }
+  }
+
   async _setupAudioForOffer(pc, audioEnabled) {
     if (!audioEnabled) return;
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
@@ -336,8 +399,10 @@ export class WebRTCConnection extends EventTarget {
       direction: 'sendrecv',
       streams: [this.localAudioStream],
     });
+    this._setupAudioReceiver(audioTransceiver.receiver);
     this.audioSender = audioTransceiver.sender;
     this.audioEnabled = true;
+    this._configureAudioSenderForVideoPriority().catch(() => {});
     console.log('webrtc audio local setup', {
       requested: audioEnabled,
       enabled: this.audioEnabled,
@@ -392,6 +457,20 @@ export class WebRTCConnection extends EventTarget {
     this.audioStatsInterval = setInterval(sample, 1000);
   }
 
+  async _configureAudioSenderForVideoPriority() {
+    if (!this.audioSender?.getParameters || !this.audioSender?.setParameters) return;
+
+    const params = this.audioSender.getParameters();
+    if (!params.encodings || params.encodings.length === 0) params.encodings = [{}];
+    for (const encoding of params.encodings) {
+      encoding.dtx = 'enabled';
+      encoding.maxBitrate = Math.min(encoding.maxBitrate ?? 24000, 24000);
+      encoding.priority = 'very-low';
+    }
+
+    await this.audioSender.setParameters(params);
+  }
+
   _silentAudioTrack() {
     const track = this.silentAudio?.track;
     if (track?.readyState === 'live') return track;
@@ -434,6 +513,7 @@ export class WebRTCConnection extends EventTarget {
     const [track] = this.localAudioStream?.getAudioTracks?.() || [];
     if (track && this.audioSender) {
       await this.audioSender.replaceTrack(track);
+      await this._configureAudioSenderForVideoPriority().catch(() => {});
       this._log('Microphone track enabled');
     } else if (track) {
       this.audioSender = this.pc.addTrack(track, this.localAudioStream);
@@ -589,6 +669,7 @@ export class WebRTCConnection extends EventTarget {
   _processTimingData(timing) {
     const browserReceiveMs = wallMs();
     const latency = {
+      source: 'sei',
       captureMs: timing.captureMs,
       encodeMs: timing.encodeMs,
       captureEncodeMs: timing.captureMs + timing.encodeMs + timing.sendDelayMs,
@@ -695,6 +776,7 @@ export class WebRTCConnectionManager {
     this.streams = new Map();
     this.audioStream = null;
     this.awayTimer = null;
+    this.speakerVolume = DEFAULT_SPEAKER_VOLUME;
 
     if (typeof window !== 'undefined') {
       window.addEventListener('pagehide', () => this.disconnect());
@@ -765,6 +847,7 @@ export class WebRTCConnectionManager {
       }),
     });
     this.connection = conn;
+    conn.setSpeakerVolume(this.speakerVolume);
     conn.connect(dongleId, videoEnabled, audioEnabled).catch(() => {});
   }
 
@@ -775,7 +858,7 @@ export class WebRTCConnectionManager {
     }
     this.setVideoEnabled(true);
     this.setJoystickEnabled(true);
-    if (audioEnabled && this.connection?.audioEnabled) this.connection.enableAudioCapture(true);
+    if (audioEnabled && this.connection?.audioEnabled) this.connection.enableAudioCapture(this.speakerVolume > 0);
     this.audioWanted = audioEnabled;
     this.subscriber = callbacks;
     callbacks?.onConnectionState?.(this.connectionState, this.failReason);
@@ -796,7 +879,7 @@ export class WebRTCConnectionManager {
     this._open(dongleId ?? this.dongleId, true, audioEnabled);
     this.setVideoEnabled(true);
     this.setJoystickEnabled(true);
-    if (audioEnabled && this.connection?.audioEnabled) this.connection.enableAudioCapture(true);
+    if (audioEnabled && this.connection?.audioEnabled) this.connection.enableAudioCapture(this.speakerVolume > 0);
     this.audioWanted = audioEnabled;
     return this.connection;
   }
@@ -824,6 +907,16 @@ export class WebRTCConnectionManager {
     if (this.connection && this.connectionState === 'connected') {
       this.connection.enableVideo(enabled);
     }
+  }
+
+  setSpeakerVolume(volume) {
+    const numericVolume = Number(volume);
+    if (!Number.isFinite(numericVolume)) return false;
+    this.speakerVolume = Math.max(0, Math.min(100, Math.round(numericVolume)));
+    if (this.connection) {
+      return this.connection.setSpeakerVolume(this.speakerVolume);
+    }
+    return false;
   }
 
   setJoystickEnabled(enabled) {

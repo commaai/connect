@@ -1,5 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import PhotoCamera from '@material-ui/icons/PhotoCamera';
+import VolumeOff from '@material-ui/icons/VolumeOff';
+import VolumeUp from '@material-ui/icons/VolumeUp';
 
 const CAMERAS = [
   { key: 'wideRoad', label: 'road', num: '1' },
@@ -16,6 +18,7 @@ const controlsGroupPortrait = 'relative self-stretch rounded-none shrink-0 justi
 
 const ControlsBar = ({
   activeCamera, onSwitchCamera,
+  speakerVolume, onSpeakerVolumeChange,
   gamepadConnected, videoRef, isLandscape, controlsDisabled,
 }) => {
   const screenshotInProgress = useRef(false);
@@ -70,6 +73,21 @@ const ControlsBar = ({
     onSwitchCamera(cameraKey);
   }, [onSwitchCamera, controlsDisabled]);
 
+  const handleSpeakerVolumeChange = useCallback((e) => {
+    if (controlsDisabled) return;
+    onSpeakerVolumeChange(Number(e.target.value));
+  }, [onSpeakerVolumeChange, controlsDisabled]);
+
+  const handleSpeakerMuteToggle = useCallback(() => {
+    if (controlsDisabled) return;
+    onSpeakerVolumeChange(speakerVolume > 0 ? 0 : 100);
+  }, [speakerVolume, onSpeakerVolumeChange, controlsDisabled]);
+
+  const handleSpeakerMuteTouch = useCallback((e) => {
+    e.preventDefault();
+    handleSpeakerMuteToggle();
+  }, [handleSpeakerMuteToggle]);
+
   return (
     <div className={`${controlsGroupBase} ${isLandscape ? controlsGroupLandscape : controlsGroupPortrait}`}>
       {!gamepadConnected && (
@@ -90,6 +108,34 @@ const ControlsBar = ({
           <span className="text-[10px] lg:text-[13px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Camera</span>
         </div>
       )}
+      <div className="flex flex-col items-center justify-between gap-[5px] lg:gap-[7px] min-w-[128px]">
+        <div className={`h-11 rounded-xl px-3 flex items-center gap-2 bg-glass text-white/70 transition duration-200 ${controlsDisabled ? 'opacity-50 pointer-events-none' : 'opacity-90 hover:text-white'}`}>
+          <button
+            type="button"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-white/70 hover:text-white"
+            disabled={controlsDisabled}
+            aria-label={speakerVolume > 0 ? 'Mute speaker' : 'Unmute speaker'}
+            onClick={handleSpeakerMuteToggle}
+            onTouchEnd={handleSpeakerMuteTouch}
+          >
+            {speakerVolume > 0
+              ? <VolumeUp className="text-[24px]" />
+              : <VolumeOff className="text-[24px]" />}
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={speakerVolume}
+            disabled={controlsDisabled}
+            onChange={handleSpeakerVolumeChange}
+            aria-label="Speaker volume"
+            className="w-20 cursor-pointer accent-white disabled:cursor-default"
+            style={{ touchAction: 'pan-x', accentColor: 'rgba(255, 255, 255, 0.85)' }}
+          />
+        </div>
+        <span className="text-[10px] lg:text-[13px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Speaker</span>
+      </div>
       <div className="flex flex-col items-center justify-between gap-[5px] lg:gap-[7px]">
         <div
           className={`${btnInactive} w-full transition duration-200 ${controlsDisabled ? 'opacity-50 pointer-events-none' : 'opacity-90'}`}

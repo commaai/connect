@@ -29,6 +29,11 @@ const STATS_ROWS = [
 const LATENCY_LAYERS = [
   { label: 'Capture/Encode', key: 'captureEncodeMs', color: 'rgba(76,175,80,1)', labelColor: 'rgba(76,175,80,1)' },
   { label: 'Network', key: 'networkMs', color: 'rgba(66,165,245,1)', labelColor: 'rgba(66,165,245,1)' },
+  { label: 'Browser', key: 'browserMs', color: 'rgba(255,183,77,1)', labelColor: 'rgba(255,183,77,1)' },
+];
+const VIDEO_FRAME_LATENCY_LAYERS = [
+  { label: 'Network', key: 'networkMs', color: 'rgba(66,165,245,1)', labelColor: 'rgba(66,165,245,1)' },
+  { label: 'Browser', key: 'browserMs', color: 'rgba(76,175,80,1)', labelColor: 'rgba(76,175,80,1)' },
 ];
 const JITTER_COLOR = 'rgba(255,183,77,1)';
 
@@ -37,8 +42,55 @@ const INITIAL_LATENCY = {
   captureEncodeMs: 45,
   sendDelayMs: 3,
   networkMs: 20,
+  browserMs: 0,
   totalMs: 68,
 };
+
+function latencyLayersFor(latency) {
+  return latency?.source === 'videoFrame' ? VIDEO_FRAME_LATENCY_LAYERS : LATENCY_LAYERS;
+}
+
+function finiteNumber(value) {
+  return Number.isFinite(value) ? value : null;
+}
+
+function frameTimeDeltaMs(later, earlier) {
+  if (later == null || earlier == null) return null;
+  const delta = later - earlier;
+  if (!Number.isFinite(delta) || delta < 0 || delta > 60000) return null;
+  return delta;
+}
+
+function readVideoFrameLatency(now, metadata) {
+  const captureTime = finiteNumber(metadata.captureTime);
+  const receiveTime = finiteNumber(metadata.receiveTime);
+  const expectedDisplayTime = finiteNumber(metadata.expectedDisplayTime);
+  const presentationTime = finiteNumber(metadata.presentationTime);
+  const displayTime = expectedDisplayTime ?? presentationTime ?? now;
+
+  if (captureTime == null && receiveTime == null) return null;
+
+  const networkMs = frameTimeDeltaMs(receiveTime, captureTime);
+  const browserMs = frameTimeDeltaMs(displayTime, receiveTime);
+  const totalMs = frameTimeDeltaMs(displayTime, captureTime)
+    ?? (networkMs != null && browserMs != null ? networkMs + browserMs : null);
+
+  if (networkMs == null && browserMs == null && totalMs == null) return null;
+  return { source: 'videoFrame', networkMs, browserMs, totalMs };
+}
+
+function addBrowserPlayoutLatency(raw, browserMs) {
+  if (!raw || raw.source !== 'sei' || raw.browserMs != null || browserMs == null) return raw;
+
+  const baseTotalMs = raw.totalMs
+    ?? (raw.captureEncodeMs != null && raw.networkMs != null ? raw.captureEncodeMs + raw.networkMs : null);
+
+  return {
+    ...raw,
+    browserMs,
+    totalMs: baseTotalMs != null ? baseTotalMs + browserMs : null,
+  };
+}
 
 function readRtt(report) {
   let pair = null;
@@ -54,7 +106,50 @@ function readRtt(report) {
   return pair?.currentRoundTripTime != null ? pair.currentRoundTripTime * 1000 : null;
 }
 
-const useStats = (connection, connectionState, latencyCallbackRef) => {
+function positiveDelta(next, prev) {
+  if (!Number.isFinite(next) || !Number.isFinite(prev)) return null;
+  const delta = next - prev;
+  return delta >= 0 ? delta : null;
+}
+
+function averageDeltaMs(next, prev, totalKey, countKey) {
+  const totalDelta = positiveDelta(next?.[totalKey], prev?.[totalKey]);
+  const countDelta = positiveDelta(next?.[countKey], prev?.[countKey]);
+  if (totalDelta == null || countDelta == null || countDelta <= 0) return null;
+  return (totalDelta / countDelta) * 1000;
+}
+
+function videoReceiverSnapshot(stat) {
+  return {
+    jitterBufferTargetDelay: stat.jitterBufferTargetDelay,
+    jitterBufferDelay: stat.jitterBufferDelay,
+    jitterBufferEmittedCount: stat.jitterBufferEmittedCount,
+    totalDecodeTime: stat.totalDecodeTime,
+    framesDecoded: stat.framesDecoded,
+    framesDropped: stat.framesDropped,
+  };
+}
+
+function readVideoReceiverDeltas(stat, prev) {
+  if (!prev) return null;
+  return {
+    jitterBufferTargetMs: averageDeltaMs(stat, prev, 'jitterBufferTargetDelay', 'jitterBufferEmittedCount'),
+    jitterBufferDelayMs: averageDeltaMs(stat, prev, 'jitterBufferDelay', 'jitterBufferEmittedCount'),
+    decodeMs: averageDeltaMs(stat, prev, 'totalDecodeTime', 'framesDecoded'),
+    framesDecoded: positiveDelta(stat.framesDecoded, prev.framesDecoded),
+    framesDropped: positiveDelta(stat.framesDropped, prev.framesDropped),
+  };
+}
+
+function hasReceiverDelta(deltas) {
+  return !!deltas && Object.values(deltas).some((value) => value != null);
+}
+
+function roundStat(value) {
+  return Number.isFinite(value) ? Number(value.toFixed(1)) : null;
+}
+
+const useStats = (connection, connectionState, latencyCallbackRef, videoRef) => {
   const [showStats, setShowStats] = useState(false);
   const [stats, setStats] = useState(null);
   const [latency, setLatency] = useState(INITIAL_LATENCY);
@@ -63,33 +158,79 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
   const [connectionQuality, setConnectionQuality] = useState('good');
   const latencyBufferRef = useRef([]);
   const firstLatencyShownRef = useRef(false);
+  const lastSeiLatencyAtRef = useRef(0);
+  const latestBrowserMsRef = useRef(null);
+  const showStatsRef = useRef(showStats);
   const statsPollingRef = useRef({
     interval: null, prevTimestamp: null, prevBytes: null, prevFrames: null,
-    prevPacketsLost: null, prevPacketsReceived: null, mediaStarted: false,
+    prevPacketsLost: null, prevPacketsReceived: null, prevVideoReceiverStats: null,
+    mediaStarted: false,
   });
 
   useEffect(() => {
-    latencyCallbackRef.current = (raw) => {
-      if (!firstLatencyShownRef.current) {
-        firstLatencyShownRef.current = true;
-        setLatency(raw);
-        setLatencyHistory((prev) => [...prev, raw].slice(-LATENCY_HISTORY_MAX));
+    showStatsRef.current = showStats;
+  }, [showStats]);
+
+  const recordLatency = useCallback((raw) => {
+    if (!raw) return;
+    if (raw.source === 'sei') lastSeiLatencyAtRef.current = performance.now();
+    if (raw.source === 'videoFrame' && raw.browserMs != null) latestBrowserMsRef.current = raw.browserMs;
+    const next = addBrowserPlayoutLatency(raw, latestBrowserMsRef.current);
+
+    if (!firstLatencyShownRef.current) {
+      firstLatencyShownRef.current = true;
+      setLatency(next);
+      setLatencyHistory((prev) => [...prev, next].slice(-LATENCY_HISTORY_MAX));
+    }
+
+    latencyBufferRef.current.push(next);
+    if (latencyBufferRef.current.length >= LATENCY_BUFFER_SIZE) {
+      const buf = latencyBufferRef.current;
+      latencyBufferRef.current = [];
+      const source = buf.some((l) => l.source === 'sei') ? 'sei' : buf[0]?.source;
+      const avg = { source };
+      for (const key of ['captureEncodeMs', 'networkMs', 'browserMs', 'totalMs']) {
+        const vals = buf.map((l) => l[key]).filter((v) => v != null);
+        avg[key] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
       }
-      latencyBufferRef.current.push(raw);
-      if (latencyBufferRef.current.length >= LATENCY_BUFFER_SIZE) {
-        const buf = latencyBufferRef.current;
-        latencyBufferRef.current = [];
-        const avg = {};
-        for (const key of ['captureEncodeMs', 'networkMs', 'totalMs']) {
-          const vals = buf.map((l) => l[key]).filter((v) => v != null);
-          avg[key] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
-        }
-        setLatency(avg);
-        setLatencyHistory((prev) => [...prev, avg].slice(-LATENCY_HISTORY_MAX));
-      }
-    };
+      if (avg.source === 'videoFrame' && avg.browserMs != null) latestBrowserMsRef.current = avg.browserMs;
+      setLatency(avg);
+      setLatencyHistory((prev) => [...prev, avg].slice(-LATENCY_HISTORY_MAX));
+    }
+  }, []);
+
+  useEffect(() => {
+    latencyCallbackRef.current = recordLatency;
     return () => { latencyCallbackRef.current = null; };
-  }, [latencyCallbackRef]);
+  }, [latencyCallbackRef, recordLatency]);
+
+  useEffect(() => {
+    if (!showStats || connectionState !== 'connected') return;
+
+    const video = videoRef?.current;
+    if (!video || typeof video.requestVideoFrameCallback !== 'function') return;
+
+    let cancelled = false;
+    let callbackId = null;
+
+    const onFrame = (now, metadata) => {
+      if (cancelled) return;
+
+      const hasRecentSei = lastSeiLatencyAtRef.current > 0
+        && performance.now() - lastSeiLatencyAtRef.current < 2000;
+      const frameLatency = readVideoFrameLatency(now, metadata);
+      if (frameLatency?.browserMs != null) latestBrowserMsRef.current = frameLatency.browserMs;
+      if (!hasRecentSei) recordLatency(frameLatency);
+
+      if (!cancelled) callbackId = video.requestVideoFrameCallback(onFrame);
+    };
+
+    callbackId = video.requestVideoFrameCallback(onFrame);
+    return () => {
+      cancelled = true;
+      if (callbackId != null) video.cancelVideoFrameCallback?.(callbackId);
+    };
+  }, [connectionState, recordLatency, showStats, videoRef]);
 
   const pollStats = useCallback(async () => {
     const pc = connection?.pc;
@@ -115,6 +256,7 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
       let fps = 0;
       let lossRatio = 0;
       let poor = false;
+      const receiverDeltas = readVideoReceiverDeltas(videoStats, ref.prevVideoReceiverStats);
       if (ref.prevTimestamp !== null) {
         const elapsed = (now - ref.prevTimestamp) / 1000;
         if (elapsed > 0) {
@@ -136,7 +278,18 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
       ref.prevFrames = videoStats.framesDecoded;
       ref.prevPacketsLost = videoStats.packetsLost ?? ref.prevPacketsLost;
       ref.prevPacketsReceived = videoStats.packetsReceived ?? ref.prevPacketsReceived;
+      ref.prevVideoReceiverStats = videoReceiverSnapshot(videoStats);
       setJitterHistory((prev) => [...prev, jitterMs].slice(-JITTER_HISTORY_MAX));
+      if (showStatsRef.current && hasReceiverDelta(receiverDeltas)) {
+        console.log('webrtc video receiver deltas', {
+          browserMs: roundStat(latestBrowserMsRef.current),
+          jitterBufferTargetMs: roundStat(receiverDeltas.jitterBufferTargetMs),
+          jitterBufferDelayMs: roundStat(receiverDeltas.jitterBufferDelayMs),
+          decodeMs: roundStat(receiverDeltas.decodeMs),
+          framesDecoded: receiverDeltas.framesDecoded,
+          framesDropped: receiverDeltas.framesDropped,
+        });
+      }
 
       setStats({
         fps: fps.toFixed(1),
@@ -161,7 +314,9 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
       ref.prevFrames = null;
       ref.prevPacketsLost = null;
       ref.prevPacketsReceived = null;
+      ref.prevVideoReceiverStats = null;
       ref.mediaStarted = false;
+      latestBrowserMsRef.current = null;
       setConnectionQuality('good');
       pollStats();
       ref.interval = setInterval(pollStats, STATS_INTERVAL_MS);
@@ -170,6 +325,8 @@ const useStats = (connection, connectionState, latencyCallbackRef) => {
       ref.interval = null;
       latencyBufferRef.current = [];
       firstLatencyShownRef.current = false;
+      lastSeiLatencyAtRef.current = 0;
+      latestBrowserMsRef.current = null;
       setStats(null);
       setLatency(INITIAL_LATENCY);
       setLatencyHistory([INITIAL_LATENCY]);
@@ -217,7 +374,7 @@ function prepareGraphCanvas(canvas) {
   return { ctx, w, h };
 }
 
-function drawLatencyGraph(canvas, latencyHistory) {
+function drawLatencyGraph(canvas, latencyHistory, layers) {
   const prepared = prepareGraphCanvas(canvas);
   if (!prepared) return;
   const { ctx, w, h } = prepared;
@@ -228,14 +385,14 @@ function drawLatencyGraph(canvas, latencyHistory) {
 
   const cums = latencyHistory.map((l) => {
     let sum = 0;
-    return LATENCY_LAYERS.map(({ key }) => {
+    return layers.map(({ key }) => {
       const v = l[key];
       sum += (v != null && v > 0) ? v : 0;
       return sum;
     });
   });
 
-  for (let li = LATENCY_LAYERS.length - 1; li >= 0; li--) {
+  for (let li = layers.length - 1; li >= 0; li--) {
     ctx.beginPath();
     for (let i = 0; i < cums.length; i++) {
       const x = i * xStep;
@@ -247,7 +404,7 @@ function drawLatencyGraph(canvas, latencyHistory) {
     ctx.lineTo(w, h);
     ctx.lineTo(0, h);
     ctx.closePath();
-    ctx.fillStyle = LATENCY_LAYERS[li].color;
+    ctx.fillStyle = layers[li].color;
     ctx.fill();
   }
 
@@ -315,12 +472,13 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory, jitter
   const latencyCanvasRef = useRef(null);
   const jitterCanvasRef = useRef(null);
   const compact = useMemo(() => isLandscape && window.matchMedia('(max-height: 500px)').matches, [isLandscape]);
+  const latencyLayers = useMemo(() => latencyLayersFor(latency), [latency]);
 
   useEffect(() => {
     const canvas = latencyCanvasRef.current;
     if (!canvas) return;
-    drawLatencyGraph(canvas, latencyHistory);
-  }, [latencyHistory, compact]);
+    drawLatencyGraph(canvas, latencyHistory, latencyLayers);
+  }, [latencyHistory, latencyLayers, compact]);
 
   useEffect(() => {
     const canvas = jitterCanvasRef.current;
@@ -350,7 +508,7 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory, jitter
       {!compact && <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />}
       <div>
         {!compact && <div className="text-[7px] font-bold text-white/35 tracking-[0.5px] leading-tight py-[2px] pb-px md:text-[11px]">{"FRAME LATENCY"}</div>}
-        {LATENCY_LAYERS.map(({ label, key, labelColor }) => (
+        {latencyLayers.map(({ label, key, labelColor }) => (
           <div key={label} className="flex justify-between leading-tight md:py-[3px]">
             <span className={`${textSize} mr-1.5 md:mr-[20px]`} style={{ color: labelColor }}>{label}</span>
             <span className={`${textSize} text-nowrap text-white/[0.85] text-right`}>{fmtMs(latency?.[key])}</span>
@@ -405,11 +563,11 @@ const StatsMenu = ({
 };
 
 const StatusBar = ({
-  battery, className, isLandscape, connection, connectionState, latencyCallbackRef, onQualityChange, onTestTone,
+  battery, className, isLandscape, connection, connectionState, latencyCallbackRef, videoRef, onQualityChange, onTestTone,
 }) => {
   const {
     showStats, toggleStats, closeStats, stats, latency, latencyHistory, jitterHistory, connectionQuality,
-  } = useStats(connection, connectionState, latencyCallbackRef);
+  } = useStats(connection, connectionState, latencyCallbackRef, videoRef);
   const BatteryIcon = battery?.charging ? BatteryChargingFull : BatteryFull;
   const indicator = QUALITY_INDICATOR[connectionQuality] || QUALITY_INDICATOR.good;
 
