@@ -11,6 +11,28 @@ import ControlsBar from './ControlsBar';
 import Video from './Video';
 import Joystick from './Joystick';
 
+function audioOnlyStream(stream) {
+  return new MediaStream(stream?.getAudioTracks?.() || []);
+}
+
+const SPEAKER_VOLUME_STORAGE_KEY = 'bodyTeleopSpeakerVolume';
+const DEFAULT_SPEAKER_VOLUME = 100;
+
+const clampSpeakerVolume = (volume) => {
+  const numericVolume = Number(volume);
+  if (!Number.isFinite(numericVolume)) return DEFAULT_SPEAKER_VOLUME;
+  return Math.max(0, Math.min(100, Math.round(numericVolume)));
+};
+
+const readStoredSpeakerVolume = () => {
+  try {
+    const storedVolume = window.localStorage?.getItem(SPEAKER_VOLUME_STORAGE_KEY);
+    return storedVolume == null ? DEFAULT_SPEAKER_VOLUME : clampSpeakerVolume(storedVolume);
+  } catch {
+    return DEFAULT_SPEAKER_VOLUME;
+  }
+};
+
 const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [connectionState, setConnectionState] = useState('none');
   const [battery, setBattery] = useState(null);
@@ -20,6 +42,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [inputActive, setInputActive] = useState(false);
   const [connectionTotalMs, setConnectionTotalMs] = useState(null);
   const [started, setStarted] = useState(false);
+  const [speakerVolume, setSpeakerVolume] = useState(readStoredSpeakerVolume);
 
   const videoRef = useRef(null);
   const audioRef = useRef(null);
@@ -67,9 +90,10 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
         }
       },
       onAudioTrack: (stream) => {
-        streamsRef.current.audio = stream;
+        const audioStream = audioOnlyStream(stream);
+        streamsRef.current.audio = audioStream;
         if (audioRef.current) {
-          audioRef.current.srcObject = stream;
+          audioRef.current.srcObject = audioStream;
           audioRef.current.play?.().catch(() => {});
         }
       },
@@ -85,6 +109,12 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       webrtcConnectionManager.release(callbacks);
     };
   }, [dongleId, resetConnectionTiming]);
+
+  useEffect(() => {
+    if (connectionState === 'connected') {
+      webrtcConnectionManager.setSpeakerVolume(speakerVolume);
+    }
+  }, [connectionState, speakerVolume]);
 
   const handleConnect = useCallback(() => {
     setError(null);
@@ -116,6 +146,17 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
 
   const handleTestTone = useCallback((frequency, durationMs) => {
     connectionRef.current?.sendTestTone(frequency, durationMs);
+  }, []);
+
+  const handleSpeakerVolumeChange = useCallback((volume) => {
+    const nextVolume = clampSpeakerVolume(volume);
+    setSpeakerVolume(nextVolume);
+    try {
+      window.localStorage?.setItem(SPEAKER_VOLUME_STORAGE_KEY, String(nextVolume));
+    } catch {
+      // Ignore storage failures; the live control still works for this session.
+    }
+    webrtcConnectionManager.setSpeakerVolume(nextVolume);
   }, []);
 
   const handleFirstFrame = useCallback(() => {
@@ -172,6 +213,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
               connection={connection}
               connectionState={connectionState}
               latencyCallbackRef={latencyCallbackRef}
+              videoRef={videoRef}
               onQualityChange={handleQualityChange}
               onTestTone={notCar ? handleTestTone : undefined}
             />
@@ -189,6 +231,8 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             <ControlsBar
               activeCamera={activeCamera}
               onSwitchCamera={switchCamera}
+              speakerVolume={speakerVolume}
+              onSpeakerVolumeChange={handleSpeakerVolumeChange}
               gamepadConnected={gamepadConnected}
               videoRef={videoRef}
               isLandscape={isLandscape}

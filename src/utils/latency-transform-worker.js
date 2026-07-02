@@ -1,4 +1,4 @@
-// Worker script for RTCRtpScriptTransform (Firefox / standard path).
+// Worker script for RTCRtpScriptTransform and legacy encoded streams.
 // Receives encoded video frames, posts timing SEI data back to main thread,
 // and forwards frames unchanged.
 
@@ -29,10 +29,7 @@ function extractTimingSei(frameBuffer) {
   return null;
 }
 
-// Handle RTCRtpScriptTransform event
-// eslint-disable-next-line no-restricted-globals
-self.onrtctransform = (event) => {
-  const { readable, writable } = event.transformer;
+function pipeTimingTransform(readable, writable) {
   readable.pipeThrough(new TransformStream({
     transform(frame, controller) {
       const timing = extractTimingSei(frame.data);
@@ -42,5 +39,22 @@ self.onrtctransform = (event) => {
       }
       controller.enqueue(frame);
     },
-  })).pipeTo(writable);
+  })).pipeTo(writable).catch((e) => {
+    // eslint-disable-next-line no-restricted-globals
+    self.postMessage({ type: 'error', message: e?.message || e?.name || String(e) });
+  });
+}
+
+// Handle RTCRtpScriptTransform event
+// eslint-disable-next-line no-restricted-globals
+self.onrtctransform = (event) => {
+  const { readable, writable } = event.transformer;
+  pipeTimingTransform(readable, writable);
+};
+
+// Handle the older receiver.createEncodedStreams() path used by some browsers.
+// eslint-disable-next-line no-restricted-globals
+self.onmessage = (event) => {
+  if (event.data?.type !== 'encodedVideoStreams') return;
+  pipeTimingTransform(event.data.readable, event.data.writable);
 };
