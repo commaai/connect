@@ -132,7 +132,13 @@ export class WebRTCConnection extends EventTarget {
           this._setState('connected');
           this._startAudioStats();
         } else if (state === 'failed' || state === 'disconnected' || state === 'closed') {
-          this.fail('Connection lost');
+          // A drop after we were connected is a lost connection (offer "Reconnect");
+          // a drop while still connecting is a failure to connect (offer "Retry").
+          if (this.connectionState === 'connected') {
+            this.disconnect('Connection lost');
+          } else {
+            this.fail('Connection lost');
+          }
         }
       });
 
@@ -577,6 +583,84 @@ export class WebRTCConnection extends EventTarget {
     oscillator.start();
 
     const timeout = setTimeout(() => this._stopTestTone(true), durationMs);
+    this.audioTestTone = { context, oscillator, track, timeout };
+    return true;
+  }
+
+  // Pulsed burst for speaker->mic delay calibration (openpilot tools/audio/audio_delay.py).
+  // Emits sharp-onset bursts (~150 ms) once per second so the tool's burst detector has clean,
+  // well-separated events. The mic is intentionally left out so the silence between bursts stays
+  // quiet. With sweep=false it's a fixed tone (robust through a frequency-selective, faint-echo
+  // acoustic path). With sweep=true each burst is a chirp: a chirp has a single sharp
+  // autocorrelation peak (no periodic sidelobes, so no flipping-sign / ms-level lag ambiguity),
+  // but a peaky speaker/room response distorts the swept template and can drop the correlation
+  // below the tool's gate — prefer the fixed tone unless the echo is strong.
+  async sendDelayTone(frequency = 1000, { pulseMs = 150, periodMs = 1000, durationMs = 20000, sweep = false } = {}) {
+    // When sweeping, cover half an octave below to one octave above the requested frequency, kept
+    // inside the 16 kHz mic's 8 kHz Nyquist so the reference isn't aliased on the device side.
+    const f0 = sweep ? Math.max(200, frequency * 0.5) : frequency;
+    const f1 = sweep ? Math.min(4000, frequency * 2) : frequency;
+
+    this._sendDc('audioTestTone', {
+      mode: sweep ? 'chirp' : 'pulsed',
+      frequency,
+      sweepHz: [f0, f1],
+      pulseMs,
+      periodMs,
+      durationMs,
+      audioEnabled: this.audioEnabled,
+      hasAudioSender: !!this.audioSender,
+      connectionState: this.connectionState,
+    });
+
+    if (!this.audioEnabled || !this.pc || !this.audioSender) return false;
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return false;
+
+    this._stopTestTone(false);
+
+    const context = new AudioContext();
+    const destination = context.createMediaStreamDestination();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.value = f0;
+    gain.gain.value = 0;
+    oscillator.connect(gain).connect(destination);
+
+    const [track] = destination.stream.getAudioTracks();
+    await this.audioSender.replaceTrack(track);
+    await context.resume();
+
+    // Schedule the pulses on the AudioContext clock so onsets are sample-accurate and glitch-free.
+    // Short (4 ms) raised edges keep the onset sharp for the RMS burst detector while avoiding
+    // speaker clicks that would smear the cross-correlation.
+    const EDGE_S = 0.004;
+    const PEAK = 0.2;
+    const period = Math.max(periodMs, pulseMs + 50) / 1000;
+    const pulse = Math.min(pulseMs, periodMs) / 1000;
+    const count = Math.max(1, Math.floor(durationMs / (period * 1000)));
+    const start = context.currentTime + 0.05;
+
+    gain.gain.setValueAtTime(0, context.currentTime);
+    oscillator.frequency.setValueAtTime(f0, context.currentTime);
+    for (let i = 0; i < count; i += 1) {
+      const t0 = start + i * period;
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(PEAK, t0 + EDGE_S);
+      gain.gain.setValueAtTime(PEAK, t0 + pulse - EDGE_S);
+      gain.gain.linearRampToValueAtTime(0, t0 + pulse);
+      if (sweep) {
+        // sweep f0 -> f1 across the burst, then jump back to f0 during the silent gap
+        oscillator.frequency.setValueAtTime(f0, t0);
+        oscillator.frequency.linearRampToValueAtTime(f1, t0 + pulse);
+      }
+    }
+    oscillator.start();
+
+    const timeout = setTimeout(() => this._stopTestTone(true), count * period * 1000 + 200);
     this.audioTestTone = { context, oscillator, track, timeout };
     return true;
   }

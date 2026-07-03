@@ -144,8 +144,17 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     connectionRef.current?.setQuality(nextQuality);
   }, []);
 
-  const handleTestTone = useCallback((frequency, durationMs) => {
-    connectionRef.current?.sendTestTone(frequency, durationMs);
+  const handleTestTone = useCallback((frequency, durationMs, opts) => {
+    if (opts?.pulsed) {
+      connectionRef.current?.sendDelayTone(frequency, {
+        durationMs,
+        pulseMs: opts.pulseMs,
+        periodMs: opts.periodMs,
+        sweep: opts.sweep,
+      });
+    } else {
+      connectionRef.current?.sendTestTone(frequency, durationMs);
+    }
   }, []);
 
   const handleSpeakerVolumeChange = useCallback((volume) => {
