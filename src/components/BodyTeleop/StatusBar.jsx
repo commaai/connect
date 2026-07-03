@@ -155,6 +155,7 @@ const useStats = (connection, connectionState, latencyCallbackRef, videoRef) => 
   const [latency, setLatency] = useState(INITIAL_LATENCY);
   const [latencyHistory, setLatencyHistory] = useState([INITIAL_LATENCY]);
   const [jitterHistory, setJitterHistory] = useState([]);
+  const [browserBreakdown, setBrowserBreakdown] = useState(null);
   const [connectionQuality, setConnectionQuality] = useState('good');
   const latencyBufferRef = useRef([]);
   const firstLatencyShownRef = useRef(false);
@@ -280,6 +281,12 @@ const useStats = (connection, connectionState, latencyCallbackRef, videoRef) => 
       ref.prevPacketsReceived = videoStats.packetsReceived ?? ref.prevPacketsReceived;
       ref.prevVideoReceiverStats = videoReceiverSnapshot(videoStats);
       setJitterHistory((prev) => [...prev, jitterMs].slice(-JITTER_HISTORY_MAX));
+      if (hasReceiverDelta(receiverDeltas)) {
+        setBrowserBreakdown({
+          jitterBufferMs: receiverDeltas.jitterBufferDelayMs,
+          decodeMs: receiverDeltas.decodeMs,
+        });
+      }
       if (showStatsRef.current && hasReceiverDelta(receiverDeltas)) {
         console.log('webrtc video receiver deltas', {
           browserMs: roundStat(latestBrowserMsRef.current),
@@ -331,6 +338,7 @@ const useStats = (connection, connectionState, latencyCallbackRef, videoRef) => 
       setLatency(INITIAL_LATENCY);
       setLatencyHistory([INITIAL_LATENCY]);
       setJitterHistory([]);
+      setBrowserBreakdown(null);
       setConnectionQuality('good');
     }
     return () => {
@@ -354,7 +362,7 @@ const useStats = (connection, connectionState, latencyCallbackRef, videoRef) => 
     });
   }, [connection]);
 
-  return { showStats, toggleStats, closeStats, stats, latency, latencyHistory, jitterHistory, connectionQuality };
+  return { showStats, toggleStats, closeStats, stats, latency, latencyHistory, jitterHistory, browserBreakdown, connectionQuality };
 }
 
 function prepareGraphCanvas(canvas) {
@@ -468,9 +476,10 @@ function drawJitterGraph(canvas, jitterHistory) {
   ctx.stroke();
 }
 
-export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory, jitterHistory }) => {
+export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory, jitterHistory, browserBreakdown }) => {
   const latencyCanvasRef = useRef(null);
   const jitterCanvasRef = useRef(null);
+  const [browserExpanded, setBrowserExpanded] = useState(false);
   const compact = useMemo(() => isLandscape && window.matchMedia('(max-height: 500px)').matches, [isLandscape]);
   const latencyLayers = useMemo(() => latencyLayersFor(latency), [latency]);
 
@@ -508,12 +517,46 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory, jitter
       {!compact && <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />}
       <div>
         {!compact && <div className="text-[7px] font-bold text-white/35 tracking-[0.5px] leading-tight py-[2px] pb-px md:text-[11px]">{"FRAME LATENCY"}</div>}
-        {latencyLayers.map(({ label, key, labelColor }) => (
-          <div key={label} className="flex justify-between leading-tight md:py-[3px]">
-            <span className={`${textSize} mr-1.5 md:mr-[20px]`} style={{ color: labelColor }}>{label}</span>
-            <span className={`${textSize} text-nowrap text-white/[0.85] text-right`}>{fmtMs(latency?.[key])}</span>
-          </div>
-        ))}
+        {latencyLayers.map(({ label, key, labelColor }) => {
+          if (key === 'browserMs') {
+            const jitterBufferMs = browserBreakdown?.jitterBufferMs ?? null;
+            const decodeMs = browserBreakdown?.decodeMs ?? null;
+            // remainder is the compositor/vsync tail: browser time minus the parts we can measure
+            const renderMs = latency?.browserMs != null
+              ? Math.max(0, latency.browserMs - (jitterBufferMs ?? 0) - (decodeMs ?? 0))
+              : null;
+            return (
+              <div key={label}>
+                <div
+                  className="flex justify-between leading-tight md:py-[3px] cursor-pointer select-none"
+                  onClick={() => setBrowserExpanded((v) => !v)}
+                  title="Tap to break down browser latency"
+                >
+                  <span className={`${textSize} mr-1.5 md:mr-[20px]`} style={{ color: labelColor }}>
+                    {`${browserExpanded ? '▾' : '▸'} ${label}`}
+                  </span>
+                  <span className={`${textSize} text-nowrap text-white/[0.85] text-right`}>{fmtMs(latency?.[key])}</span>
+                </div>
+                {browserExpanded && [
+                  ['Jitter buffer', jitterBufferMs],
+                  ['Decode', decodeMs],
+                  ['Render/vsync', renderMs],
+                ].map(([subLabel, value]) => (
+                  <div key={subLabel} className="flex justify-between leading-tight pl-2.5 md:pl-3.5">
+                    <span className={`${textSize} text-white/40 mr-1.5`}>{subLabel}</span>
+                    <span className={`${textSize} text-nowrap text-white/60 text-right`}>{fmtMs(value)}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          }
+          return (
+            <div key={label} className="flex justify-between leading-tight md:py-[3px]">
+              <span className={`${textSize} mr-1.5 md:mr-[20px]`} style={{ color: labelColor }}>{label}</span>
+              <span className={`${textSize} text-nowrap text-white/[0.85] text-right`}>{fmtMs(latency?.[key])}</span>
+            </div>
+          );
+        })}
         <div className="flex justify-between leading-tight md:py-[3px]">
           <span className={`${textSize} mr-1.5 md:mr-[18px]`} style={{ fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Frame Latency</span>
           <span className={`${textSize} text-white/[0.85] text-right`} style={{ fontWeight: 700 }}>{fmtMs(latency?.totalMs)}</span>
@@ -539,7 +582,7 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory, jitter
 
 
 const StatsMenu = ({
-  isLandscape, showStats, toggleStats, closeStats, stats, latency, latencyHistory, jitterHistory,
+  isLandscape, showStats, toggleStats, closeStats, stats, latency, latencyHistory, jitterHistory, browserBreakdown,
 }) => {
   const wrapperRef = useRef(null);
   useClickOutside(wrapperRef, showStats, closeStats);
@@ -556,7 +599,7 @@ const StatsMenu = ({
         </span>
       </div>
       {showStats && (
-        <StatsPanel isLandscape={isLandscape} stats={stats} latency={latency} latencyHistory={latencyHistory} jitterHistory={jitterHistory} />
+        <StatsPanel isLandscape={isLandscape} stats={stats} latency={latency} latencyHistory={latencyHistory} jitterHistory={jitterHistory} browserBreakdown={browserBreakdown} />
       )}
     </div>
   );
@@ -566,7 +609,7 @@ const StatusBar = ({
   battery, className, isLandscape, connection, connectionState, latencyCallbackRef, videoRef, onQualityChange, onTestTone,
 }) => {
   const {
-    showStats, toggleStats, closeStats, stats, latency, latencyHistory, jitterHistory, connectionQuality,
+    showStats, toggleStats, closeStats, stats, latency, latencyHistory, jitterHistory, browserBreakdown, connectionQuality,
   } = useStats(connection, connectionState, latencyCallbackRef, videoRef);
   const BatteryIcon = battery?.charging ? BatteryChargingFull : BatteryFull;
   const indicator = QUALITY_INDICATOR[connectionQuality] || QUALITY_INDICATOR.good;
@@ -596,6 +639,7 @@ const StatusBar = ({
         latency={latency}
         latencyHistory={latencyHistory}
         jitterHistory={jitterHistory}
+        browserBreakdown={browserBreakdown}
       />
       <SettingsMenu onQualityChange={onQualityChange} onTestTone={onTestTone} />
     </div>

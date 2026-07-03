@@ -20,6 +20,14 @@ const TONE_OPTIONS = [
   { key: 'high', label: '2 khz', frequency: 2000 },
 ];
 
+// Pulsed bursts for speaker->mic delay calibration (audio_delay.py). The fixed tone is the
+// robust default; the chirp kills lag ambiguity but needs a strong echo to correlate.
+const PULSE_OPTIONS = [
+  { key: 'tone', label: 'delay tone', frequency: 1000, sweep: false },
+  { key: 'chirp', label: 'delay chirp', frequency: 1000, sweep: true },
+];
+const PULSE_CONFIG = { pulsed: true, pulseMs: 150, periodMs: 1000, durationMs: 20000 };
+
 const rowClass = 'flex items-center h-9 px-3.5 gap-3 cursor-pointer select-none text-[13px] text-white/85 hover:bg-white/10 transition-colors whitespace-nowrap';
 const pageClass = 'absolute top-0 left-0 w-max min-w-[200px] py-1.5 transition-all duration-200 ease-out';
 
@@ -64,6 +72,10 @@ const SettingsMenu = ({ onQualityChange, onTestTone, options = QUALITY_OPTIONS }
 
   const sendTone = useCallback((tone) => {
     onTestTone?.(tone.frequency, 1000);
+  }, [onTestTone]);
+
+  const sendPulses = useCallback((tone) => {
+    onTestTone?.(tone.frequency, PULSE_CONFIG.durationMs, { ...PULSE_CONFIG, sweep: tone.sweep });
   }, [onTestTone]);
 
   return (
@@ -158,6 +170,13 @@ const SettingsMenu = ({ onQualityChange, onTestTone, options = QUALITY_OPTIONS }
             <div key={tone.key} className={rowClass} onClick={() => sendTone(tone)}>
               <span className="flex-1">{tone.label}</span>
               <span className="text-[10px] text-white/40">1 sec</span>
+            </div>
+          ))}
+          <div className="h-px bg-white/10 mx-2 my-1" />
+          {PULSE_OPTIONS.map((tone) => (
+            <div key={tone.key} className={rowClass} onClick={() => sendPulses(tone)}>
+              <span className="flex-1">{tone.label}</span>
+              <span className="text-[10px] text-white/40">1 hz · 20 s</span>
             </div>
           ))}
         </div>
