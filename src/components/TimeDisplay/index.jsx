@@ -14,6 +14,7 @@ import { Tooltip } from '@material-ui/core';
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
+import { seekVideoPlayer, playVideo, pauseVideo, setVideoPlaybackRate } from '../../timeline/videoPlayer';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
 
@@ -155,11 +156,17 @@ class TimeDisplay extends Component {
   }
 
   jumpBack(amount) {
-    this.props.dispatch(seek(currentOffset() - amount));
+    const { currentRoute, dispatch } = this.props;
+    const offset = currentOffset() - amount;
+    seekVideoPlayer(offset, currentRoute);
+    dispatch(seek(offset));
   }
 
   jumpForward(amount) {
-    this.props.dispatch(seek(currentOffset() + amount));
+    const { currentRoute, dispatch } = this.props;
+    const offset = currentOffset() + amount;
+    seekVideoPlayer(offset, currentRoute);
+    dispatch(seek(offset));
   }
 
   updateTime() {
@@ -183,7 +190,10 @@ class TimeDisplay extends Component {
       curIndex = timerSteps.indexOf(1);
     }
     curIndex = Math.max(0, curIndex - 1);
-    dispatch(play(timerSteps[curIndex]));
+    const newSpeed = timerSteps[curIndex];
+    if (!setVideoPlaybackRate(newSpeed)) {
+      dispatch(play(newSpeed));
+    }
   }
 
   canDecreaseSpeed() {
@@ -203,7 +213,10 @@ class TimeDisplay extends Component {
       curIndex = timerSteps.indexOf(1);
     }
     curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
-    dispatch(play(timerSteps[curIndex]));
+    const newSpeed = timerSteps[curIndex];
+    if (!setVideoPlaybackRate(newSpeed)) {
+      dispatch(play(newSpeed));
+    }
   }
 
   canIncreaseSpeed() {
@@ -218,9 +231,11 @@ class TimeDisplay extends Component {
   togglePause() {
     const { desiredPlaySpeed, dispatch } = this.props;
     if (desiredPlaySpeed === 0) {
-      // eslint-disable-next-line react/destructuring-assignment
-      dispatch(play(this.state.desiredPlaySpeed));
-    } else {
+      const speed = this.state.desiredPlaySpeed;
+      if (!playVideo()) {
+        dispatch(play(speed));
+      }
+    } else if (!pauseVideo()) {
       dispatch(pause());
     }
   }

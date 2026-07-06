@@ -530,26 +530,24 @@ class Media extends Component {
 
     const showMapAlways = windowWidth >= 1536;
     const mediaContainerStyle = showMapAlways ? { width: '60%' } : { width: '100%' };
-    const mapContainerStyle = showMapAlways
-      ? { width: '40%', marginBottom: 62, marginTop: 46, paddingLeft: 24 }
-      : { width: '100%' };
 
     return (
       <div className={classes.root}>
         <ResizeHandler onResize={(ww) => this.setState({ windowWidth: ww })} />
         <div style={mediaContainerStyle}>
           {this.renderMediaOptions(showMapAlways)}
-          {inView === MediaType.VIDEO && (
+            <div className="relative">
+            {/* always mounted -> keeps playing + driving the clock, even under the map */}
             <DriveVideo
               isMuted={isMuted}
               onAudioStatusChange={this.handleAudioStatusChange}
             />
-          )}
-          {(inView === MediaType.MAP && !showMapAlways) && (
-            <div style={mapContainerStyle}>
-              <DriveMap />
-            </div>
-          )}
+            {!showMapAlways && (
+              <div className={`absolute inset-0 h-full z-[60] overflow-hidden ${(inView === MediaType.MAP) ? "" : "invisible"}`}>
+                <DriveMap />
+              </div>
+            )}
+          </div>
           <div className="mt-3">
             <TimeDisplay
               isThin
@@ -560,7 +558,7 @@ class Media extends Component {
           </div>
         </div>
         {(inView === MediaType.VIDEO && showMapAlways) && (
-          <div style={mapContainerStyle}>
+          <div className="w-2/5 mb-[62px] mt-[46px] pl-6">
             <DriveMap />
           </div>
         )}

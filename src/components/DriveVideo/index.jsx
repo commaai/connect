@@ -10,7 +10,8 @@ import { video as Video } from '@commaai/api';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
-import { seek, bufferVideo, pause } from '../../timeline/playback';
+import { seek, bufferVideo, pause, play } from '../../timeline/playback';
+import { setVideoPlayer } from '../../timeline/videoPlayer';
 import { isIos } from '../../utils/browser.js';
 
 const VideoOverlay = ({ loading, error }) => {
@@ -45,8 +46,10 @@ class DriveVideo extends Component {
     this.onHlsError = this.onHlsError.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
     this.onVideoResume = this.onVideoResume.bind(this);
+    this.onVideoPause = this.onVideoPause.bind(this);
+    this.onVideoPlaybackRateChange = this.onVideoPlaybackRateChange.bind(this);
     this.onVideoEnded = this.onVideoEnded.bind(this);
-    this.syncVideo = this.syncVideo.bind(this);
+    this.onTimeUpdate = this.onTimeUpdate.bind(this);
     this.firstSeek = true;
 
     this.videoPlayer = React.createRef();
@@ -62,38 +65,27 @@ class DriveVideo extends Component {
     if (this.videoPlayer.current) {
       this.videoPlayer.current.playbackRate = playSpeed || 1;
     }
+    setVideoPlayer(this.videoPlayer.current);
     this.updateVideoSource({});
-    this.syncVideo();
-    this.videoSyncIntv = setInterval(this.syncVideo, 500);
   }
 
   componentDidUpdate(prevProps) {
+    setVideoPlayer(this.videoPlayer.current);
     this.updateVideoSource(prevProps);
-    this.syncVideo();
+
+    const videoPlayer = this.videoPlayer.current;
+    if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
+      return;
+    }
   }
 
   componentWillUnmount() {
-    if (this.videoSyncIntv) {
-      clearTimeout(this.videoSyncIntv);
-      this.videoSyncIntv = null;
-    }
-    if (isIos()) {
-      const videoElement = this.videoPlayer.current?.getInternalPlayer();
-      if (videoElement) {
-        videoElement.removeEventListener('seeked', this.syncVideo);
-        videoElement.removeEventListener('canplay', this.syncVideo);
-        videoElement.removeEventListener('playing', this.syncVideo);
-      }
-    }
+    setVideoPlayer(null);
   }
 
   onVideoBuffering() {
     const { dispatch } = this.props;
     const videoPlayer = this.videoPlayer.current;
-    if (this.firstSeek && videoPlayer) {
-      this.firstSeek = false;
-      videoPlayer.seekTo(this.currentVideoTime(), 'seconds');
-    }
     dispatch(bufferVideo(true));
   }
 
@@ -101,7 +93,7 @@ class DriveVideo extends Component {
     const { dispatch, isBufferingVideo } = this.props;
     const { videoError } = this.state;
     if (videoError) this.setState({ videoError: null });
-    if (isBufferingVideo) dispatch(bufferVideo(false));
+    dispatch(bufferVideo(false));
   }
 
   /**
@@ -119,7 +111,7 @@ class DriveVideo extends Component {
     if (e.type === 'networkError' && (e.response?.code === 404)) {
       this.setState({ videoError: 'This video segment has not uploaded yet or has been deleted.' });
     } else {
-      this.setState({ videoError: 'Unable to load video' });
+      this.setState({ videoError: e.message });
     }
   }
 
@@ -143,6 +135,14 @@ class DriveVideo extends Component {
       return;
     }
 
+    if (e.name === 'NotAllowedError') {
+      // autoplay was blocked (e.g. iOS after backgrounding/returning to the app)
+      const { dispatch } = this.props;
+      dispatch(pause());
+      dispatch(bufferVideo(false));
+      return;
+    }
+
     if (e.target?.src?.startsWith(window.location.origin) && e.target.src.endsWith('undefined')) {
       // TODO: figure out why the src isn't set properly
       // Sometimes an error will be thrown because we try to play
@@ -162,13 +162,27 @@ class DriveVideo extends Component {
 
     const videoError = e.response?.code === 404
       ? 'This video segment has not uploaded yet or has been deleted.'
-      : (e.response?.text || 'Unable to load video');
+      : (e.response?.text || e.message || 'Unable to load video');
     this.setState({ videoError });
   }
 
   onVideoResume() {
     const { videoError } = this.state;
     if (videoError) this.setState({ videoError: null });
+
+    const { dispatch } = this.props;
+    const internal = this.videoPlayer.current?.getInternalPlayer?.();
+    dispatch(play(internal?.playbackRate || 1));
+  }
+
+  onVideoPause() {
+    const { dispatch } = this.props;
+    dispatch(pause());
+  }
+
+  onVideoPlaybackRateChange(rate) {
+    const { dispatch } = this.props;
+    dispatch(play(rate));
   }
 
   onVideoEnded() {
@@ -176,6 +190,21 @@ class DriveVideo extends Component {
     if (desiredPlaySpeed > 0) {
       dispatch(pause());
     }
+  }
+
+  onTimeUpdate(event) {
+    const { currentRoute, dispatch } = this.props;
+    if (!currentRoute) {
+      return;
+    }
+
+    const videoTime = event.target.currentTime;
+    if (typeof videoTime !== 'number' || Number.isNaN(videoTime)) {
+      return;
+    }
+
+    const videoStartOffset = currentRoute.videoStartOffset || 0;
+    dispatch(seek(videoTime * 1000 + videoStartOffset));
   }
 
   updateVideoSource(prevProps) {
@@ -191,35 +220,7 @@ class DriveVideo extends Component {
     if (src === '' || !prevProps.currentRoute || prevProps.currentRoute?.fullname !== currentRoute.fullname) {
       src = Video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
       this.setState({ src, videoError: null });
-      this.syncVideo();
-    }
-  }
-
-  syncVideo() {
-    const { dispatch, isBufferingVideo, desiredPlaySpeed, currentRoute } = this.props;
-    const videoPlayer = this.videoPlayer.current;
-    if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
-      return;
-    }
-    
-    if (isBufferingVideo && videoPlayer.getInternalPlayer().readyState >= 3) {
-      dispatch(bufferVideo(false));
-    }
-
-    const desiredVideoTime = this.currentVideoTime();
-    const curVideoTime = videoPlayer.getCurrentTime();
-    const timeDiff = desiredVideoTime - curVideoTime;
-    const videoStartOffset = currentRoute?.videoStartOffset || 0;
-
-    if (Math.abs(timeDiff) > 0.5) {
-      if (desiredVideoTime === 0 && timeDiff < 0 && curVideoTime !== videoPlayer.getDuration()) {
-        // logs start earlier than the video, snap timeline forward to where video begins
-        dispatch(seek(currentOffset() - (timeDiff * 1000)));
-      } else {
-        videoPlayer.seekTo(desiredVideoTime, 'seconds');
-      }
-    } else if (Math.abs(timeDiff) > 0.05 && desiredPlaySpeed > 0 && !isBufferingVideo) {
-      dispatch(seek(curVideoTime * 1000 + videoStartOffset));
+      this.firstSeek = true;
     }
   }
 
@@ -246,10 +247,6 @@ class DriveVideo extends Component {
       if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
         const videoElement = player.getInternalPlayer();
         if (videoElement && videoElement.audioTracks && videoElement.audioTracks.length > 0) {
-          // use HtmlMediaElement Events to stop buffering and sync vide on iOS. 
-          videoElement.addEventListener('seeked', this.syncVideo);
-          videoElement.addEventListener('canplay', this.syncVideo);
-          videoElement.addEventListener('playing', this.syncVideo);
           if (onAudioStatusChange) {
             onAudioStatusChange(true);
           }
@@ -278,6 +275,7 @@ class DriveVideo extends Component {
           height="100%"
           playing={Boolean(currentRoute && desiredPlaySpeed)}
           onReady={onPlayerReady}
+          onTimeUpdate={this.onTimeUpdate}
           config={{
             hlsVersion: '1.4.8',
             hlsOptions: {
@@ -288,6 +286,8 @@ class DriveVideo extends Component {
           onBuffer={this.onVideoBuffering}
           onBufferEnd={this.onVideoBufferEnd}
           onPlay={this.onVideoResume}
+          onPause={this.onVideoPause}
+          onPlaybackRateChange={this.onVideoPlaybackRateChange}
           onEnded={this.onVideoEnded}
           onError={this.onVideoError}
         />
