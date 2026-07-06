@@ -47,6 +47,18 @@ export function formatDriveDuration(duration) {
   return `${hours > 0 ? `${hours} hr ` : ''}${minutes} min`;
 }
 
+export function formatVideoTime(offset) {
+  const totalSeconds = Math.floor(offset / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (n) => n.toString().padStart(2, '0');
+  if (hours === 0) {
+    return `${pad(minutes)}:${pad(seconds)}`;
+  }
+  return `${hours}:${pad(minutes)}:${pad(seconds)}`;
+}
+
 export function timeFromNow(ts) {
   const dt = (Date.now() - ts) / 1000;
   if (dt > 3600 * 24 * 30) {

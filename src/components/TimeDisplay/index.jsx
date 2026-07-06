@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import raf from 'raf';
-import dayjs from 'dayjs';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -14,7 +13,7 @@ import { Tooltip } from '@material-ui/core';
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
-import { getSegmentNumber } from '../../utils';
+import { formatVideoTime, getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
 
 const timerSteps = [
@@ -35,7 +34,7 @@ const styles = (theme) => ({
     height: '64px',
     borderRadius: '32px',
     padding: theme.spacing.unit,
-    width: 400,
+    width: 500,
     maxWidth: '100%',
     margin: '0 auto',
     opacity: 0,
@@ -141,11 +140,11 @@ class TimeDisplay extends Component {
   getDisplayTime() {
     const offset = currentOffset();
     const { currentRoute } = this.props;
-    const now = new Date(offset + currentRoute.start_time_utc_millis);
-    if (Number.isNaN(now.getTime())) {
-      return '...';
+    let dateString = formatVideoTime(offset);
+    if (currentRoute && currentRoute.start_time_utc_millis && currentRoute.end_time_utc_millis) {
+      const routeDuration = currentRoute.end_time_utc_millis - currentRoute.start_time_utc_millis;
+      dateString = `${dateString} / ${formatVideoTime(routeDuration)}`;
     }
-    let dateString = dayjs(now).format('HH:mm:ss');
     const seg = getSegmentNumber(currentRoute);
     if (seg !== null) {
       dateString = `${dateString} \u2013 ${seg}`;
