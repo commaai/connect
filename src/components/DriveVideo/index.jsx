@@ -85,12 +85,11 @@ class DriveVideo extends Component {
 
   onVideoBuffering() {
     const { dispatch } = this.props;
-    const videoPlayer = this.videoPlayer.current;
     dispatch(bufferVideo(true));
   }
 
   onVideoBufferEnd() {
-    const { dispatch, isBufferingVideo } = this.props;
+    const { dispatch } = this.props;
     const { videoError } = this.state;
     if (videoError) this.setState({ videoError: null });
     dispatch(bufferVideo(false));
