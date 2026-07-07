@@ -45,7 +45,6 @@ class DriveVideo extends Component {
     this.onHlsError = this.onHlsError.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
     this.onVideoPlaybackRateChange = this.onVideoPlaybackRateChange.bind(this);
-    this.onVideoEnded = this.onVideoEnded.bind(this);
     this.onTimeUpdate = this.onTimeUpdate.bind(this);
     this.firstSeek = true;
 
@@ -139,7 +138,6 @@ class DriveVideo extends Component {
     if (e.name === 'NotAllowedError') {
       // autoplay was blocked (e.g. iOS after backgrounding/returning to the app)
       const { dispatch } = this.props;
-      dispatch(pause());
       dispatch(bufferVideo(false));
       return;
     }
@@ -170,13 +168,6 @@ class DriveVideo extends Component {
   onVideoPlaybackRateChange(rate) {
     const { dispatch } = this.props;
     dispatch(setPlaybackSpeed(rate));
-  }
-
-  onVideoEnded() {
-    const { desiredPlaySpeed, dispatch } = this.props;
-    if (desiredPlaySpeed > 0) {
-      dispatch(pause());
-    }
   }
 
   onTimeUpdate(event) {
@@ -284,7 +275,6 @@ class DriveVideo extends Component {
           onBuffer={this.onVideoBuffering}
           onBufferEnd={this.onVideoBufferEnd}
           onPlaybackRateChange={this.onVideoPlaybackRateChange}
-          onEnded={this.onVideoEnded}
           onError={this.onVideoError}
         />
       </div>
