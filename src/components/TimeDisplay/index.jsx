@@ -142,13 +142,13 @@ class TimeDisplay extends Component {
   }
 
   jumpBack(amount) {
-    const { currentRoute, dispatch } = this.props;
+    const { currentRoute } = this.props;
     const offset = this.props.offset - amount;
     seekVideoPlayer(offset, currentRoute);
   }
 
   jumpForward(amount) {
-    const { currentRoute, dispatch } = this.props;
+    const { currentRoute } = this.props;
     const offset = this.props.offset + amount;
     seekVideoPlayer(offset, currentRoute);
   }
@@ -167,7 +167,7 @@ class TimeDisplay extends Component {
   }
 
   decreaseSpeed() {
-    const { dispatch, desiredPlaySpeed } = this.props;
+    const { desiredPlaySpeed } = this.props;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
@@ -187,7 +187,7 @@ class TimeDisplay extends Component {
   }
 
   increaseSpeed() {
-    const { dispatch, desiredPlaySpeed } = this.props;
+    const { desiredPlaySpeed } = this.props;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
