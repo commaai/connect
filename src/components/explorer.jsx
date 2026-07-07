@@ -18,7 +18,6 @@ import BodyTeleop from './BodyTeleop';
 import { analyticsEvent, selectDevice, updateDevice, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';
 import Colors from '../colors';
-import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
 
 import ResizeHandler from './ResizeHandler';
@@ -145,13 +144,6 @@ class ExplorerApp extends Component {
 
     if (prevProps.pathname !== pathname) {
       this.setState({ drawerIsOpen: false });
-    }
-
-    if (!prevProps.zoom && zoom) {
-      this.props.dispatch(play());
-    }
-    if (prevProps.zoom && !zoom) {
-      this.props.dispatch(pause());
     }
 
     // this is necessary when user goes to explorer for the first time, dongleId is not populated in state yet

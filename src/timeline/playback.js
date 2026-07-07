@@ -9,21 +9,11 @@ export function reducer(_state, action) {
         offset: action.offset,
       };
       break;
-    case Types.ACTION_PAUSE:
+    case Types.ACTION_PLAYBACK_SPEED:
       state = {
         ...state,
-        offset: state.offset,
-        desiredPlaySpeed: 0,
+        desiredPlaySpeed: action.speed,
       };
-      break;
-    case Types.ACTION_PLAY:
-      if (action.speed !== state.desiredPlaySpeed) {
-        state = {
-          ...state,
-          offset: state.offset,
-          desiredPlaySpeed: action.speed,
-        };
-      }
       break;
     case Types.ACTION_LOOP:
       if (action.start !== null && action.start !== undefined && action.end !== null && action.end !== undefined) {
@@ -39,7 +29,6 @@ export function reducer(_state, action) {
       state = {
         ...state,
         isBufferingVideo: action.buffering,
-        offset: state.offset,
       };
       break;
     case Types.ACTION_RESET:
@@ -63,17 +52,10 @@ export function seek(offset) {
   };
 }
 
-// pause the playback
-export function pause() {
+// change playback speed without changing play/pause state
+export function setPlaybackSpeed(speed) {
   return {
-    type: Types.ACTION_PAUSE,
-  };
-}
-
-// resume / change play speed
-export function play(speed = 1) {
-  return {
-    type: Types.ACTION_PLAY,
+    type: Types.ACTION_PLAYBACK_SPEED,
     speed,
   };
 }

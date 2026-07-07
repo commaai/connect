@@ -12,7 +12,6 @@ import VolumeOff from '@material-ui/icons/VolumeOff';
 import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow } from '../../icons';
-import { seek, play } from '../../timeline/playback';
 import { seekVideoPlayer, playVideo, pauseVideo, setVideoPlaybackRate, isVideoPaused } from '../../timeline/videoPlayer';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
@@ -101,16 +100,6 @@ const styles = (theme) => ({
 });
 
 class TimeDisplay extends Component {
-  static getDerivedStateFromProps(props, state) {
-    if (props.desiredPlaySpeed !== 0 && props.desiredPlaySpeed !== state.desiredPlaySpeed) {
-      return {
-        ...state,
-        desiredPlaySpeed: props.desiredPlaySpeed,
-      };
-    }
-    return state;
-  }
-
   constructor(props) {
     super(props);
 
@@ -124,7 +113,6 @@ class TimeDisplay extends Component {
     this.jumpForward = this.jumpForward.bind(this);
 
     this.state = {
-      desiredPlaySpeed: 1,
       displayTime: this.getDisplayTime(),
     };
   }
@@ -157,14 +145,12 @@ class TimeDisplay extends Component {
     const { currentRoute, dispatch } = this.props;
     const offset = this.props.offset - amount;
     seekVideoPlayer(offset, currentRoute);
-    dispatch(seek(offset));
   }
 
   jumpForward(amount) {
     const { currentRoute, dispatch } = this.props;
     const offset = this.props.offset + amount;
     seekVideoPlayer(offset, currentRoute);
-    dispatch(seek(offset));
   }
 
   updateTime() {
@@ -181,21 +167,18 @@ class TimeDisplay extends Component {
   }
 
   decreaseSpeed() {
-    const { dispatch } = this.props;
-    const { desiredPlaySpeed } = this.state;
+    const { dispatch, desiredPlaySpeed } = this.props;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
     }
     curIndex = Math.max(0, curIndex - 1);
     const newSpeed = timerSteps[curIndex];
-    if (!setVideoPlaybackRate(newSpeed)) {
-      dispatch(play(newSpeed));
-    }
+    setVideoPlaybackRate(newSpeed);
   }
 
   canDecreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
+    const { desiredPlaySpeed } = this.props;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
@@ -204,21 +187,18 @@ class TimeDisplay extends Component {
   }
 
   increaseSpeed() {
-    const { dispatch } = this.props;
-    const { desiredPlaySpeed } = this.state;
+    const { dispatch, desiredPlaySpeed } = this.props;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
     }
     curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
     const newSpeed = timerSteps[curIndex];
-    if (!setVideoPlaybackRate(newSpeed)) {
-      dispatch(play(newSpeed));
-    }
+    setVideoPlaybackRate(newSpeed);
   }
 
   canIncreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
+    const { desiredPlaySpeed } = this.props;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
@@ -235,8 +215,8 @@ class TimeDisplay extends Component {
   }
 
   render() {
-    const { classes, zoom, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
-    const { displayTime, desiredPlaySpeed } = this.state;
+    const { classes, zoom, isThin, onMuteToggle, isMuted, hasAudio, desiredPlaySpeed } = this.props;
+    const { displayTime } = this.state;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
     return (

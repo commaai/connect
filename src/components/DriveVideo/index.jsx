@@ -9,7 +9,7 @@ import { video as Video } from '@commaai/api';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
-import { seek, bufferVideo, pause, play, resetPlayback } from '../../timeline/playback';
+import { seek, bufferVideo, setPlaybackSpeed, resetPlayback } from '../../timeline/playback';
 import { setVideoPlayer, seekVideoPlayer } from '../../timeline/videoPlayer';
 import { isIos } from '../../utils/browser.js';
 
@@ -44,8 +44,6 @@ class DriveVideo extends Component {
     this.onVideoBufferEnd = this.onVideoBufferEnd.bind(this);
     this.onHlsError = this.onHlsError.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
-    this.onVideoResume = this.onVideoResume.bind(this);
-    this.onVideoPause = this.onVideoPause.bind(this);
     this.onVideoPlaybackRateChange = this.onVideoPlaybackRateChange.bind(this);
     this.onVideoEnded = this.onVideoEnded.bind(this);
     this.onTimeUpdate = this.onTimeUpdate.bind(this);
@@ -60,10 +58,10 @@ class DriveVideo extends Component {
   }
 
   componentDidMount() {
-    const { dispatch, playSpeed } = this.props;
+    const { dispatch } = this.props;
     dispatch(resetPlayback());
     if (this.videoPlayer.current) {
-      this.videoPlayer.current.playbackRate = playSpeed || 1;
+      this.videoPlayer.current.playbackRate = 1;
     }
     setVideoPlayer(this.videoPlayer.current);
     this.updateVideoSource({});
@@ -169,23 +167,9 @@ class DriveVideo extends Component {
     this.setState({ videoError });
   }
 
-  onVideoResume() {
-    const { videoError } = this.state;
-    if (videoError) this.setState({ videoError: null });
-
-    const { dispatch } = this.props;
-    const internal = this.videoPlayer.current?.getInternalPlayer?.();
-    dispatch(play(internal?.playbackRate || 1));
-  }
-
-  onVideoPause() {
-    const { dispatch } = this.props;
-    dispatch(pause());
-  }
-
   onVideoPlaybackRateChange(rate) {
     const { dispatch } = this.props;
-    dispatch(play(rate));
+    dispatch(setPlaybackSpeed(rate));
   }
 
   onVideoEnded() {
@@ -296,8 +280,6 @@ class DriveVideo extends Component {
           }}
           playing={Boolean(currentRoute && desiredPlaySpeed)}
           onReady={onPlayerReady}
-          onPlaying={this.onVideoResume}
-          onPause={this.onVideoPause}
           onTimeUpdate={this.onTimeUpdate}
           onBuffer={this.onVideoBuffering}
           onBufferEnd={this.onVideoBufferEnd}
@@ -314,7 +296,6 @@ const stateToProps = Obstruction({
   dongleId: 'dongleId',
   desiredPlaySpeed: 'desiredPlaySpeed',
   offset: 'offset',
-  startTime: 'startTime',
   isBufferingVideo: 'isBufferingVideo',
   routes: 'routes',
   currentRoute: 'currentRoute',

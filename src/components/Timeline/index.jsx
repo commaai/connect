@@ -15,7 +15,6 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
-import { seek } from '../../timeline/playback';
 import { seekVideoPlayer } from '../../timeline/videoPlayer';
 import { getSegmentNumber } from '../../utils';
 
@@ -203,7 +202,6 @@ class Timeline extends Component {
       const percent = percentFromPointerEvent(ev);
       const offset = this.percentToOffset(percent);
       seekVideoPlayer(offset, this.props.route);
-      this.props.dispatch(seek(offset));
     }
   }
 
@@ -258,9 +256,7 @@ class Timeline extends Component {
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
       if (offset < startOffset || offset > endOffset) {
-        if (!seekVideoPlayer(startOffset, route)) {
-          this.props.dispatch(seek(startOffset));
-        }
+        seekVideoPlayer(startOffset, route)
       }
       const { dispatch } = this.props;
       const startTime = startOffset;

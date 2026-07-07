@@ -45,7 +45,7 @@ class DriveMap extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute, startTime } = this.props;
+    const { dispatch, currentRoute } = this.props;
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -54,10 +54,6 @@ class DriveMap extends Component {
       if (route) {
         dispatch(fetchDriveCoords(currentRoute));
       }
-    }
-
-    if (prevProps.startTime && prevProps.startTime !== startTime) {
-      this.shouldFlyTo = true;
     }
 
     if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords
@@ -309,7 +305,6 @@ class DriveMap extends Component {
 const stateToProps = Obstruction({
   offset: 'offset',
   currentRoute: 'currentRoute',
-  startTime: 'startTime',
 });
 
 export default connect(stateToProps)(DriveMap);
