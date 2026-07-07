@@ -17,10 +17,10 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: build-artifacts-${{ github.event.workflow_run.id }}
           path: ./dist
@@ -29,7 +29,7 @@ jobs:
 
       - name: Find PR number
         id: pr
-        uses: actions/github-script@v9
+        uses: actions/github-script@v7
         with:
           script: |
             const response = await github.rest.search.issuesAndPullRequests({
@@ -48,14 +48,16 @@ jobs:
       # deploy
       - name: Deploy to Cloudflare Pages
         id: cloudflare-publish
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/pages-action@v1.5.0
         with:
+          branch: ${{ steps.pr.outputs.result }}
+          projectName: connect
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
-          command: pages deploy dist --project-name=connect --branch=${{ steps.pr.outputs.result }}
+          directory: dist
 
       - name: Comment URL on PR
-        uses: thollander/actions-comment-pull-request@v3
+        uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
             <!-- _(run_id **${{ github.run_id }}**)_ -->
@@ -65,18 +67,18 @@ jobs:
             * post the preview on [Discord](https://discord.comma.ai); feedback from users will speedup the PR review
 
             deployed preview: https://${{ steps.pr.outputs.result }}.connect-d5y.pages.dev
-          comment-tag: run_id
-          pr-number: ${{ steps.pr.outputs.result }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment_tag: run_id
+          pr_number: ${{ steps.pr.outputs.result }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   preview-master:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'master' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: build-artifacts-${{ github.event.workflow_run.id }}
           path: ./dist
@@ -85,15 +87,17 @@ jobs:
 
       - name: Deploy to Cloudflare Pages
         id: cloudflare-publish
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/pages-action@v1.5.0
         with:
+          branch: latest
+          projectName: connect
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_PAGES_TOKEN }}
-          command: pages deploy dist --project-name=connect --branch=latest
+          directory: dist
 
       # show master preview as a clickable entry in the "preview" environment
       - name: Record deployment
-        uses: actions/github-script@v9
+        uses: actions/github-script@v7
         with:
           script: |
             const deployment = await github.rest.repos.createDeployment({
@@ -112,5 +116,5 @@ jobs:
               deployment_id: deployment.data.id,
               state: 'success',
               environment: 'preview',
-              environment_url: '${{ steps.cloudflare-publish.outputs.deployment-url }}',
+              environment_url: '${{ steps.cloudflare-publish.outputs.url }}',
             })

@@ -11,14 +11,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-pnpm
 
       - name: get build info
         id: build_info
         run: echo timestamp=$(git show -s --format=%cI) >> $GITHUB_OUTPUT
 
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install
       - run: pnpm build:production
         env:
           VITE_APP_GIT_SHA: ${{ github.sha }}
@@ -26,7 +26,7 @@ jobs:
           PREVIEW: '1'
 
       - name: Upload built project
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           path: ./dist
           overwrite: true
