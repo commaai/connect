@@ -17,12 +17,8 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
-<<<<<<< Updated upstream
-      - uses: actions/checkout@v7
-=======
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-pnpm
->>>>>>> Stashed changes
 
       - name: Download build artifacts
         uses: actions/download-artifact@v8
@@ -78,12 +74,8 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'master' }}
     runs-on: ubuntu-latest
     steps:
-<<<<<<< Updated upstream
-      - uses: actions/checkout@v7
-=======
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-pnpm
->>>>>>> Stashed changes
 
       - name: Download build artifacts
         uses: actions/download-artifact@v8
