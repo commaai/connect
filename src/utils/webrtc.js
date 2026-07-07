@@ -185,7 +185,8 @@ export class WebRTCConnection extends EventTarget {
       }
       if (resp?.error) {
         this._log(`device error: ${JSON.stringify(resp.error)}`);
-        throw new Error(resp.error.data?.message || 'Could not reach device. Is the ignition on?');
+        console.log(`device error: ${JSON.stringify(resp.error)}`);
+        throw new Error(resp.error.data?.message || resp.error.message || resp.error || 'Device could not be reached. Check console for more details');
       }
       // device reports how long it spent handling startStream; the rest of the RTT is the link
       const deviceProcessMs = typeof resp.result.time === 'number' ? resp.result.time : null;

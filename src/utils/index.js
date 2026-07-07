@@ -75,6 +75,13 @@ export function deviceNamePretty(device) {
   return device.alias || deviceTypePretty(device.device_type);
 }
 
+export function truncateName(name) {
+  if (name && name.length > 16) {
+    return `${name.slice(0, 16)}...`;
+  }
+  return name;
+}
+
 export function deviceIsOnline(device) {
   if (!device || !device.last_athena_ping) {
     return false;

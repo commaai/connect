@@ -23,6 +23,7 @@ jobs:
         env:
           VITE_APP_GIT_SHA: ${{ github.sha }}
           VITE_APP_GIT_TIMESTAMP: ${{ steps.build_info.outputs.timestamp }}
+          PREVIEW: '1'
 
       - name: Upload built project
         uses: actions/upload-artifact@v4

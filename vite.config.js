@@ -1,8 +1,27 @@
+import { copyFileSync, readdirSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import svgrPlugin from 'vite-plugin-svgr';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
+
+
+function previewBranding() {
+  return {
+    name: 'preview-branding',
+    apply: 'build',
+    enforce: 'post',
+    closeBundle() {
+      const srcDir = resolve(process.cwd(), 'public/preview-icons');
+      const outDir = resolve(process.cwd(), 'dist');
+      for (const file of readdirSync(srcDir)) {
+        copyFileSync(resolve(srcDir, file), resolve(outDir, file));
+      }
+      console.log('[preview-branding] swapped in preview icons');
+    },
+  };
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -39,6 +58,7 @@ export default defineConfig(({ mode }) => {
       }),
       svgrPlugin(),
       sentryPlugin,
+      process.env.PREVIEW && previewBranding(),
     ].filter(Boolean),
     optimizeDeps: {
       esbuildOptions: {
