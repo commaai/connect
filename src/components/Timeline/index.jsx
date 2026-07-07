@@ -15,7 +15,6 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
-import { currentOffset } from '../../timeline';
 import { seek } from '../../timeline/playback';
 import { seekVideoPlayer } from '../../timeline/videoPlayer';
 import { getSegmentNumber } from '../../utils';
@@ -236,7 +235,7 @@ class Timeline extends Component {
   }
 
   handlePointerUp(ev) {
-    const { route } = this.props;
+    const { offset, route } = this.props;
 
     // prevent preventDefault for back(3) and forward(4) mouse buttons
     if (ev.button !== 3 && ev.button !== 4) {
@@ -258,7 +257,6 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
       if (offset < startOffset || offset > endOffset) {
         if (!seekVideoPlayer(startOffset, route)) {
           this.props.dispatch(seek(startOffset));
@@ -290,7 +288,7 @@ class Timeline extends Component {
       return;
     }
     raf(this.getOffset);
-    let offset = currentOffset();
+    let { offset } = this.props;
     if (this.seekIndex) {
       offset = this.seekIndex;
     }
@@ -452,6 +450,7 @@ class Timeline extends Component {
 }
 
 const stateToProps = Obstruction({
+  offset: 'offset',
   zoom: 'zoom',
   loop: 'loop',
 });

@@ -9,9 +9,8 @@ import { video as Video } from '@commaai/api';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
-import { currentOffset } from '../../timeline';
-import { seek, bufferVideo, pause, play } from '../../timeline/playback';
-import { setVideoPlayer } from '../../timeline/videoPlayer';
+import { seek, bufferVideo, pause, play, resetPlayback } from '../../timeline/playback';
+import { setVideoPlayer, seekVideoPlayer } from '../../timeline/videoPlayer';
 import { isIos } from '../../utils/browser.js';
 
 const VideoOverlay = ({ loading, error }) => {
@@ -61,7 +60,8 @@ class DriveVideo extends Component {
   }
 
   componentDidMount() {
-    const { playSpeed } = this.props;
+    const { dispatch, playSpeed } = this.props;
+    dispatch(resetPlayback());
     if (this.videoPlayer.current) {
       this.videoPlayer.current.playbackRate = playSpeed || 1;
     }
@@ -70,12 +70,16 @@ class DriveVideo extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    setVideoPlayer(this.videoPlayer.current);
-    this.updateVideoSource(prevProps);
-
     const videoPlayer = this.videoPlayer.current;
+    setVideoPlayer(videoPlayer);
+    this.updateVideoSource(prevProps);
     if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
       return;
+    }
+
+    if (this.firstSeek && videoPlayer) {
+      this.firstSeek = false;
+      videoPlayer.seekTo(this.currentVideoTime(), 'seconds');
     }
   }
 
@@ -192,18 +196,30 @@ class DriveVideo extends Component {
   }
 
   onTimeUpdate(event) {
-    const { currentRoute, dispatch } = this.props;
+    const videoTime = event.target.currentTime;
+    const { currentRoute, dispatch, loop } = this.props;
     if (!currentRoute) {
       return;
     }
 
-    const videoTime = event.target.currentTime;
     if (typeof videoTime !== 'number' || Number.isNaN(videoTime)) {
       return;
     }
 
     const videoStartOffset = currentRoute.videoStartOffset || 0;
-    dispatch(seek(videoTime * 1000 + videoStartOffset));
+    const routeOffset = videoTime * 1000 + videoStartOffset;
+
+    // respect da loop
+    if (routeOffset >= loop.startTime + loop.duration) {
+      seekVideoPlayer(loop.startTime, currentRoute);
+      dispatch(seek(loop.startTime));
+      return;
+    } else if (routeOffset < loop.startTime) {
+      seekVideoPlayer(loop.startTime, currentRoute);
+      dispatch(seek(loop.startTime));
+    }
+
+    dispatch(seek(routeOffset));
   }
 
   updateVideoSource(prevProps) {
@@ -223,7 +239,7 @@ class DriveVideo extends Component {
     }
   }
 
-  currentVideoTime(offset = currentOffset()) {
+  currentVideoTime(offset = this.props.offset) {
     const { currentRoute } = this.props;
     if (!currentRoute) {
       return 0;
@@ -272,20 +288,19 @@ class DriveVideo extends Component {
           muted={isMuted}
           width="100%"
           height="100%"
-          playing={Boolean(currentRoute && desiredPlaySpeed)}
-          onReady={onPlayerReady}
-          onTimeUpdate={this.onTimeUpdate}
           config={{
             hlsVersion: '1.4.8',
             hlsOptions: {
               maxBufferLength: 40,
             },
           }}
-          playbackRate={desiredPlaySpeed}
+          playing={Boolean(currentRoute && desiredPlaySpeed)}
+          onReady={onPlayerReady}
+          onPlaying={this.onVideoResume}
+          onPause={this.onVideoPause}
+          onTimeUpdate={this.onTimeUpdate}
           onBuffer={this.onVideoBuffering}
           onBufferEnd={this.onVideoBufferEnd}
-          onPlay={this.onVideoResume}
-          onPause={this.onVideoPause}
           onPlaybackRateChange={this.onVideoPlaybackRateChange}
           onEnded={this.onVideoEnded}
           onError={this.onVideoError}
@@ -303,6 +318,7 @@ const stateToProps = Obstruction({
   isBufferingVideo: 'isBufferingVideo',
   routes: 'routes',
   currentRoute: 'currentRoute',
+  loop: 'loop',
 });
 
 export default connect(stateToProps)(DriveVideo);

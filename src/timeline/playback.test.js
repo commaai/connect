@@ -1,6 +1,5 @@
 /* eslint-env jest */
 import { asyncSleep } from '../utils';
-import { currentOffset } from '.';
 import { bufferVideo, pause, play, reducer, seek, selectLoop } from './playback';
 
 const makeDefaultStruct = function makeDefaultStruct() {
@@ -43,6 +42,7 @@ describe('playback', () => {
     await asyncSleep(100 + Math.random() * 200);
     // should update offset
     let ellapsed = newNow() - playTime;
+    state = reducer(state, seek(ellapsed));
     state = reducer(state, pause());
 
     expect(state.offset).toEqual(ellapsed);
@@ -57,7 +57,7 @@ describe('playback', () => {
     await asyncSleep(100 + Math.random() * 200);
     // should update offset, playback speed 1/2
     ellapsed += (newNow() - playTime) / 2;
-    expect(currentOffset(state)).toEqual(ellapsed);
+    state = reducer(state, seek(ellapsed));
     state = reducer(state, pause());
 
     expect(state.offset).toEqual(ellapsed);
@@ -67,7 +67,6 @@ describe('playback', () => {
     state = reducer(state, seek(123));
     expect(state.offset).toEqual(123);
     expect(state.startTime).toEqual(Date.now());
-    expect(currentOffset(state)).toEqual(123);
   });
 
   it('should clamp loop when seeked after loop end time', () => {

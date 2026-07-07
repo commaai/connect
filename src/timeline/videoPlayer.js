@@ -6,10 +6,6 @@ export function setVideoPlayer(player) {
   videoPlayer = player;
 }
 
-export function getVideoPlayer() {
-  return videoPlayer;
-}
-
 function getInternal() {
   if (!videoPlayer || !videoPlayer.getInternalPlayer) {
     return null;
@@ -36,6 +32,18 @@ export function seekVideoPlayer(offset, route) {
 
   videoPlayer.seekTo(videoTime, 'seconds');
   return true;
+}
+
+/**
+ * Check if the video player is currently paused.
+ * @returns {boolean} true if the video player is paused (or unavailable)
+ */
+export function isVideoPaused() {
+  const internal = getInternal();
+  if (!internal) {
+    return true;
+  }
+  return internal.paused;
 }
 
 /**
