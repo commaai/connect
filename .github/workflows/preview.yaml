@@ -17,7 +17,7 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4 # leave it at this version or pnpm gets messed up
       - uses: ./.github/actions/setup-pnpm
 
       - name: Download build artifacts
@@ -74,7 +74,7 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'master' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4 # leave it at this version or pnpm gets messed up
       - uses: ./.github/actions/setup-pnpm
 
       - name: Download build artifacts
