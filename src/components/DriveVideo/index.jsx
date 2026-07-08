@@ -9,8 +9,8 @@ import { video as Video } from '@commaai/api';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
-import { seek, bufferVideo, setPlaybackSpeed, resetPlayback } from '../../timeline/playback';
-import { setVideoPlayer, seekVideoPlayer } from '../../timeline/videoPlayer';
+import { bufferVideo, setPlaybackSpeed, resetPlayback, play, pause } from '../../timeline/playback';
+import { setVideoPlayer, seekVideoPlayer, getVideoPlayerCurrentTime } from '../../timeline/videoPlayer';
 import { isIos } from '../../utils/browser.js';
 
 const VideoOverlay = ({ loading, error }) => {
@@ -42,6 +42,8 @@ class DriveVideo extends Component {
 
     this.onVideoBuffering = this.onVideoBuffering.bind(this);
     this.onVideoBufferEnd = this.onVideoBufferEnd.bind(this);
+    this.onVideoPlay = this.onVideoPlay.bind(this);
+    this.onVideoPause = this.onVideoPause.bind(this);
     this.onHlsError = this.onHlsError.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
     this.onVideoPlaybackRateChange = this.onVideoPlaybackRateChange.bind(this);
@@ -94,6 +96,16 @@ class DriveVideo extends Component {
     const { videoError } = this.state;
     if (videoError) this.setState({ videoError: null });
     dispatch(bufferVideo(false));
+  }
+  
+  onVideoPlay() {
+    const { dispatch } = this.props;
+    dispatch(play());
+  }
+
+  onVideoPause() {
+    const { dispatch } = this.props;
+    dispatch(pause());
   }
 
   /**
@@ -171,30 +183,19 @@ class DriveVideo extends Component {
   }
 
   onTimeUpdate(event) {
-    const videoTime = event.target.currentTime;
-    const { currentRoute, dispatch, loop } = this.props;
+    const { currentRoute, loop } = this.props;
     if (!currentRoute) {
       return;
     }
 
-    if (typeof videoTime !== 'number' || Number.isNaN(videoTime)) {
+    const videoTime = getVideoPlayerCurrentTime(currentRoute);
+    if (videoTime >= loop.startTime + loop.duration) {
+      seekVideoPlayer(loop.startTime, currentRoute);
+      return;
+    } else if (videoTime < loop.startTime) {
+      seekVideoPlayer(loop.startTime, currentRoute);
       return;
     }
-
-    const videoStartOffset = currentRoute.videoStartOffset || 0;
-    const routeOffset = videoTime * 1000 + videoStartOffset;
-
-    // respect da loop
-    if (routeOffset >= loop.startTime + loop.duration) {
-      seekVideoPlayer(loop.startTime, currentRoute);
-      dispatch(seek(loop.startTime));
-      return;
-    } else if (routeOffset < loop.startTime) {
-      seekVideoPlayer(loop.startTime, currentRoute);
-      dispatch(seek(loop.startTime));
-    }
-
-    dispatch(seek(routeOffset));
   }
 
   updateVideoSource(prevProps) {
@@ -230,8 +231,8 @@ class DriveVideo extends Component {
   }
 
   render() {
-    const { desiredPlaySpeed, isBufferingVideo, currentRoute, onAudioStatusChange, isMuted } = this.props;
-    const { src, videoError } = this.state;
+    const { isPlaying, isBufferingVideo, currentRoute, onAudioStatusChange, isMuted } = this.props;
+    const { src, videoError, canPlayThroughLogs } = this.state;
 
     const onPlayerReady = (player) => {
       if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
@@ -254,29 +255,33 @@ class DriveVideo extends Component {
     };
 
     return (
-      <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
-        <VideoOverlay loading={isBufferingVideo} error={videoError} />
-        <ReactPlayer
-          ref={this.videoPlayer}
-          url={src}
-          playsinline
-          muted={isMuted}
-          width="100%"
-          height="100%"
-          config={{
-            hlsVersion: '1.4.8',
-            hlsOptions: {
-              maxBufferLength: 40,
-            },
-          }}
-          playing={Boolean(currentRoute && desiredPlaySpeed)}
-          onReady={onPlayerReady}
-          onTimeUpdate={this.onTimeUpdate}
-          onBuffer={this.onVideoBuffering}
-          onBufferEnd={this.onVideoBufferEnd}
-          onPlaybackRateChange={this.onVideoPlaybackRateChange}
-          onError={this.onVideoError}
-        />
+      <div>
+        <div className="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
+          <VideoOverlay loading={isBufferingVideo} error={videoError} />
+          <ReactPlayer
+            ref={this.videoPlayer}
+            url={src}
+            playsinline
+            muted={isMuted}
+            width="100%"
+            height="100%"
+            config={{
+              hlsVersion: '1.4.8',
+              hlsOptions: {
+                maxBufferLength: 40,
+              },
+            }}
+            playing={Boolean(currentRoute && isPlaying)}
+            onReady={onPlayerReady}
+            onTimeUpdate={this.onTimeUpdate}
+            onBuffer={this.onVideoBuffering}
+            onBufferEnd={this.onVideoBufferEnd}
+            onPlaying={this.onVideoPlay}
+            onPause={this.onVideoPause}
+            onPlaybackRateChange={this.onVideoPlaybackRateChange}
+            onError={this.onVideoError}
+          />
+        </div>
       </div>
     );
   }
@@ -284,7 +289,7 @@ class DriveVideo extends Component {
 
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
-  desiredPlaySpeed: 'desiredPlaySpeed',
+  isPlaying: 'isPlaying',
   offset: 'offset',
   isBufferingVideo: 'isBufferingVideo',
   routes: 'routes',

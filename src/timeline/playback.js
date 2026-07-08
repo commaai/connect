@@ -15,6 +15,18 @@ export function reducer(_state, action) {
         desiredPlaySpeed: action.speed,
       };
       break;
+    case Types.ACTION_PLAY:
+      state = {
+        ...state,
+        isPlaying: true,
+      };
+      break;
+    case Types.ACTION_PAUSE:
+      state = {
+        ...state,
+        isPlaying: false,
+      };
+      break;
     case Types.ACTION_LOOP:
       if (action.start !== null && action.start !== undefined && action.end !== null && action.end !== undefined) {
         state.loop = {
@@ -58,6 +70,14 @@ export function setPlaybackSpeed(speed) {
     type: Types.ACTION_PLAYBACK_SPEED,
     speed,
   };
+}
+
+export function play() {
+  return { type: Types.ACTION_PLAY };
+}
+
+export function pause() {
+  return { type: Types.ACTION_PAUSE };
 }
 
 export function selectLoop(start, end) {

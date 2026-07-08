@@ -26,6 +26,15 @@ export function seekVideoPlayer(offset, route) {
   return true;
 }
 
+export function getVideoPlayerCurrentTime(route) {
+  const internal = getInternal();
+  if (!internal) {
+    return null;
+  }
+  const videoStartOffset = (route && route.videoStartOffset) || 0;
+  return internal.currentTime * 1000 + videoStartOffset;
+}
+
 export function isVideoPaused() {
   const internal = getInternal();
   if (!internal) {

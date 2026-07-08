@@ -215,7 +215,7 @@ class TimeDisplay extends Component {
   }
 
   render() {
-    const { classes, zoom, isThin, onMuteToggle, isMuted, hasAudio, desiredPlaySpeed } = this.props;
+    const { classes, zoom, isThin, onMuteToggle, isMuted, hasAudio, desiredPlaySpeed, isPlaying } = this.props;
     const { displayTime } = this.state;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
@@ -290,9 +290,9 @@ class TimeDisplay extends Component {
         <div className={ classes.leftBorderBox }>
           <IconButton
             onClick={this.togglePause}
-            aria-label={isVideoPaused() ? 'Unpause' : 'Pause'}
+            aria-label={!isPlaying ? 'Unpause' : 'Pause'}
           >
-            {isVideoPaused()
+            {!isPlaying
               ? (<PlayArrow className={classes.icon} />)
               : (<Pause className={classes.icon} />)}
           </IconButton>
@@ -306,7 +306,8 @@ const stateToProps = Obstruction({
   currentRoute: 'currentRoute',
   offset: 'offset',
   zoom: 'zoom',
-  desiredPlaySpeed: 'desiredPlaySpeed'
+  desiredPlaySpeed: 'desiredPlaySpeed',
+  isPlaying: 'isPlaying',
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));

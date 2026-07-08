@@ -15,7 +15,7 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
-import { seekVideoPlayer } from '../../timeline/videoPlayer';
+import { getVideoPlayerCurrentTime, seekVideoPlayer } from '../../timeline/videoPlayer';
 import { getSegmentNumber } from '../../utils';
 
 const styles = () => ({
@@ -167,6 +167,9 @@ class Timeline extends Component {
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
 
+    this.currentOffsetTimestamp = null;
+    this.currentOffset = null;
+
     const { zoomOverride, zoom } = this.props;
     this.state = {
       dragging: null,
@@ -280,20 +283,13 @@ class Timeline extends Component {
   }
 
   getOffset() {
-    if (!this.mounted) {
-      return;
-    }
-    raf(this.getOffset);
-    let { offset } = this.props;
-    if (this.seekIndex) {
-      offset = this.seekIndex;
-    }
-    offset = Math.floor(offset);
-    const percent = this.offsetToPercent(offset);
+    let percent = this.offsetToPercent(getVideoPlayerCurrentTime(this.props.currentRoute));
+    if (percent >= 1) percent = 1;
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
       this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
       this.rulerRemaining.current.style.width = `${100 - Math.floor(10000 * percent) / 100}%`;
     }
+    raf(this.getOffset);
   }
 
   percentToOffset(perc) {
@@ -449,6 +445,10 @@ const stateToProps = Obstruction({
   offset: 'offset',
   zoom: 'zoom',
   loop: 'loop',
+  desiredPlaySpeed: 'desiredPlaySpeed',
+  isBufferingVideo: 'isBufferingVideo',
+  currentRoute: 'currentRoute',
+  isPlaying: 'isPlaying',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));
