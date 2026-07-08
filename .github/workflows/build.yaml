@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-bun
+      - uses: oven-sh/setup-bun@v2
 
       - name: get build info
         id: build_info
