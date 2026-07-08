@@ -1,0 +1,79 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "import", "jest", "typescript", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "es6": true,
+    "node": true,
+    "browser": true,
+    "jest": true
+  },
+  "globals": {
+    "gtag": "readonly"
+  },
+  "settings": {
+    "react": {
+      "version": "18.2.0"
+    }
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    "public/",
+    "build/",
+    "dist/",
+    ".storybook",
+    "src/stories/*"
+  ],
+  "rules": {
+    "default-case": "error",
+    "no-await-in-loop": "error",
+    "no-case-declarations": "error",
+    "no-console": "off",
+    "no-empty": "error",
+    "no-nested-ternary": "off",
+    "no-plusplus": [
+      "error",
+      {
+        "allowForLoopAfterthoughts": true
+      }
+    ],
+    "no-shadow": "error",
+    "no-unused-vars": [
+      "error",
+      {
+        "args": "none",
+        "caughtErrors": "none"
+      }
+    ],
+    "no-use-before-define": "error",
+    "class-methods-use-this": "off",
+    "no-param-reassign": "off",
+    "no-underscore-dangle": "off",
+    "no-else-return": "off",
+    "import/prefer-default-export": "off",
+    "import/no-named-as-default": "off",
+    "import/namespace": "off",
+    "react/react-in-jsx-scope": "off",
+    "react/jsx-filename-extension": "off",
+    "react/jsx-props-no-spreading": "off",
+    "react/no-did-mount-set-state": "off",
+    "react/no-did-update-set-state": "off",
+    "react/no-unsafe": "off",
+    "react-hooks/exhaustive-deps": "off",
+    "jest/expect-expect": "off",
+    "jest/valid-title": "off",
+    "jest/no-export": "off",
+    "oxc/double-comparisons": "off"
+  },
+  "overrides": [
+    {
+      "files": ["src/__puppeteer__/**"],
+      "globals": {
+        "jestPuppeteer": "readonly",
+        "page": "readonly"
+      }
+    }
+  ]
+}
