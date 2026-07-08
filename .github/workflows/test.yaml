@@ -10,6 +10,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 1
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -24,6 +25,7 @@ jobs:
 
   lighthouse:
     runs-on: ubuntu-latest
+    timeout-minutes: 1
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -36,6 +38,7 @@ jobs:
 
   docker:
     runs-on: ubuntu-latest
+    timeout-minutes: 1
     needs: [test]
     if: github.ref == 'refs/heads/master' && github.repository == 'commaai/connect'
     permissions:
