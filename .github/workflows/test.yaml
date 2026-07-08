@@ -30,10 +30,7 @@ jobs:
 
       - run: bun install --frozen-lockfile
       - run: bun run build:production
-
-      - name: run Lighthouse CI
-        run: |
-          bunx @lhci/cli@0.12.x autorun
+      - run: bun run lighthouse
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 
