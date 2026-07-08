@@ -7,9 +7,9 @@ Try it with your openpilot device:
 - **latest:** https://latest.connect-d5y.pages.dev/
 
 ## Development
-* Install pnpm: https://pnpm.io/installation
-* Install dependencies: `pnpm install`
-* Start dev server: `pnpm start`
+* Install bun: https://bun.sh/docs/installation
+* Install dependencies: `bun install`
+* Start dev server: `bun start`
 
 ## Contributing
 

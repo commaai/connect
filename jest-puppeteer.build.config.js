@@ -4,6 +4,6 @@ module.exports = {
   ...config,
   server: {
     ...config['server'],
-    command: 'pnpm serve --port 3003',
+    command: 'bun serve --port 3003',
   },
 };
