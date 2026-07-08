@@ -33,7 +33,7 @@ jobs:
   #   runs-on: ubuntu-latest
   #   steps:
   #     - uses: actions/checkout@v3
-  #     - uses: ./.github/actions/setup-bun
+  #     - uses: oven-sh/setup-bun@v2
   #     - uses: preactjs/compressed-size-action@v2
   #       with:
   #         repo-token: ${{ secrets.GITHUB_TOKEN }}
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-bun
+      - uses: oven-sh/setup-bun@v2
 
       - run: bun install --frozen-lockfile
       - run: bun run build:production
