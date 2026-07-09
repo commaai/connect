@@ -66,14 +66,5 @@
     "jest/valid-title": "off",
     "jest/no-export": "off",
     "oxc/double-comparisons": "off"
-  },
-  "overrides": [
-    {
-      "files": ["src/__puppeteer__/**"],
-      "globals": {
-        "jestPuppeteer": "readonly",
-        "page": "readonly"
-      }
-    }
-  ]
+  }
 }

@@ -13,8 +13,6 @@ Try it with your openpilot device:
 
 ## Contributing
 
-If you don't have a comma device, connect has a demo mode with some example drives. This should allow for testing most functionality except for interactions with the device, such as getting the car battery voltage.
-
 * Use best practices
 * Write test cases
 * Keep files small and clean
