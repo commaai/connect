@@ -3,7 +3,6 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
-import svgrPlugin from 'vite-plugin-svgr';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 
 
@@ -56,7 +55,6 @@ export default defineConfig(({ mode }) => {
           sourcemap: true,
         },
       }),
-      svgrPlugin(),
       sentryPlugin,
       process.env.PREVIEW && previewBranding(),
     ].filter(Boolean),

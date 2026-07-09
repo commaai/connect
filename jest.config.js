@@ -6,7 +6,6 @@ const config = {
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
     '!src/**/*.d.ts',
-    '!src/mocks/**',
   ],
   coveragePathIgnorePatterns: [],
   setupFilesAfterEnv: ['<rootDir>/config/jest/setupTests.js'],
@@ -26,13 +25,9 @@ const config = {
     '^(?!.*\\.(js|jsx|mjs|cjs|ts|tsx|css|json)$)': '<rootDir>/config/jest/fileTransform.js',
   },
   transformIgnorePatterns: [
-    '^.+\\.module\\.(css|sass|scss)$',
     'node_modules/(?!(.*@commaai.*)/)',
   ],
   modulePaths: ['<rootDir>/src'],
-  moduleNameMapper: {
-    '^.+\\.module\\.(css|sass|scss)$': 'identity-obj-proxy',
-  },
 };
 
 module.exports = config;
