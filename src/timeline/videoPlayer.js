@@ -15,6 +15,7 @@ export function seekVideoPlayer(offset, route) {
   if (!videoPlayer || !videoPlayer.getInternalPlayer || !videoPlayer.getDuration()) {
     return false;
   }
+  const internal = getInternal();
 
   let videoTime = offset;
   if (route && route.videoStartOffset) {
@@ -22,7 +23,7 @@ export function seekVideoPlayer(offset, route) {
   }
   videoTime = Math.max(0, videoTime / 1000);
 
-  videoPlayer.seekTo(videoTime, 'seconds');
+  internal.currentTime = videoTime;
   return true;
 }
 
