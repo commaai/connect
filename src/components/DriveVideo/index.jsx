@@ -188,8 +188,6 @@ class DriveVideo extends Component {
       return;
     }
     
-    if (this.videoPlayer.current.seeking == true) return;
-
     const videoTime = getVideoPlayerCurrentTime(currentRoute);
     if (videoTime >= loop.startTime + loop.duration) {
       seekVideoPlayer(loop.startTime, currentRoute);
