@@ -22,9 +22,7 @@
     "node_modules/",
     "public/",
     "build/",
-    "dist/",
-    ".storybook",
-    "src/stories/*"
+    "dist/"
   ],
   "rules": {
     "default-case": "error",

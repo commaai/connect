@@ -3,7 +3,7 @@
   "version": "0.8.0",
   "scripts": {
     "start": "vite",
-    "build:development": "env-cmd .env.development vite build --mode development",
+    "build:development": "vite build --mode development",
     "build:production": "vite build",
     "serve": "vite preview",
     "lint": "oxlint src",
@@ -64,7 +64,6 @@
     "@testing-library/react": "^13.4.0",
     "@vitejs/plugin-react": "^4.0.4",
     "autoprefixer": "^10.4.15",
-    "env-cmd": "^8.0.2",
     "jest": "^27.5.1",
     "jest-chain-transform": "^0.0.5",
     "jest-environment-jsdom": "^27.5.1",

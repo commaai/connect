@@ -17,7 +17,24 @@ const config = {
       {
         transformers: [
           `${cwd}/config/jest/importMetaTransform.js`,
-          '@swc/jest',
+          ['@swc/jest', {
+            jsc: {
+              target: 'es2017',
+              parser: {
+                syntax: 'ecmascript',
+                jsx: true,
+              },
+              transform: {
+                react: {
+                  runtime: 'automatic',
+                  development: false,
+                },
+              },
+            },
+            module: {
+              type: 'commonjs',
+            },
+          }],
         ],
       },
     ],
