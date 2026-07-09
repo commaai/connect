@@ -180,7 +180,7 @@ export class WebRTCConnection extends EventTarget {
       });
       const rttMs = performance.now() - tStep;
       if (resp == null) {
-        this._log(`device error: ${JSON.stringify(resp.error)}`);
+        this._log(`device error: ${JSON.stringify(resp)}`);
         throw new Error('Device could not be reached. Is it online and connected to the internet?');
       }
       if (resp?.error) {

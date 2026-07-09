@@ -3,7 +3,8 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
-import { Typography, IconButton, Icon, AppBar } from '@material-ui/core';
+import { Typography, IconButton, AppBar } from '@material-ui/core';
+import MenuIcon from '@material-ui/icons/Menu';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
@@ -91,7 +92,7 @@ const AppHeader = ({
                 className="mr-3"
                 onClick={toggleDrawer}
               >
-                <Icon>menu</Icon>
+                <MenuIcon />
               </IconButton>
             )
               : (
