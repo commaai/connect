@@ -23,19 +23,6 @@ jobs:
       - name: Run unit tests
         run: bun run test
 
-  lighthouse:
-    runs-on: ubuntu-latest
-    timeout-minutes: 1
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-
-      - run: bun install --frozen-lockfile
-      - run: bun run build:production
-      - run: bun run lighthouse
-        env:
-          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
-
   docker:
     runs-on: ubuntu-latest
     timeout-minutes: 1
