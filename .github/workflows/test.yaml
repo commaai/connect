@@ -27,7 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 1
     needs: [test]
-    if: github.ref == 'refs/heads/master' && github.repository == 'commaai/connect'
+    # TEMP: also on fastlh for CI timing samples; revert after benchmarking
+    if: github.repository == 'commaai/connect' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/fastlh')
     permissions:
       packages: write
       contents: read
