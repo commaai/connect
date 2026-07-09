@@ -28,19 +28,12 @@ jobs:
     timeout-minutes: 1
     needs: [test]
     # TEMP: also on fastlh for CI timing samples; revert after benchmarking
-    if: github.repository == 'commaai/connect' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/fastlh')
+    #if: github.repository == 'commaai/connect' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/fastlh')
     permissions:
       packages: write
       contents: read
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
 
       - uses: docker/login-action@v3
         with:
@@ -75,9 +68,3 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
-
-      - run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
