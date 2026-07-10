@@ -167,8 +167,8 @@ class Timeline extends Component {
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
 
-    this.currentOffsetTimestamp = null;
     this.currentOffset = null;
+    this.lastOffset = null;
 
     const { zoomOverride, zoom } = this.props;
     this.state = {
@@ -283,7 +283,7 @@ class Timeline extends Component {
   }
 
   getOffset() {
-    let percent = this.offsetToPercent(getVideoPlayerCurrentTime(this.props.currentRoute));
+    let percent = this.offsetToPercent(this.props.offset);
     if (percent >= 1) percent = 1;
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
       this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;

@@ -9,7 +9,7 @@ import { video as Video } from '@commaai/api';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
-import { bufferVideo, setPlaybackSpeed, resetPlayback, play, pause } from '../../timeline/playback';
+import { bufferVideo, setPlaybackSpeed, resetPlayback, play, pause, seek } from '../../timeline/playback';
 import { setVideoPlayer, seekVideoPlayer, getVideoPlayerCurrentTime } from '../../timeline/videoPlayer';
 import { isIos } from '../../utils/browser.js';
 
@@ -183,7 +183,7 @@ class DriveVideo extends Component {
   }
 
   onTimeUpdate(event) {
-    const { currentRoute, loop } = this.props;
+    const { currentRoute, loop, dispatch } = this.props;
     if (!currentRoute) {
       return;
     }
@@ -196,6 +196,8 @@ class DriveVideo extends Component {
       seekVideoPlayer(loop.startTime, currentRoute);
       return;
     }
+    
+    dispatch(seek(videoTime));
   }
 
   updateVideoSource(prevProps) {
