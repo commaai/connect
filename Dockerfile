@@ -21,7 +21,7 @@ ENV VITE_APP_GIT_SHA=$VITE_APP_GIT_SHA \
 RUN bun run build:production
 
 
-FROM nginx:1.24
+FROM nginx:1.24-alpine
 
 COPY config.js.template /etc/nginx/templates/config.js.template
 COPY nginx.conf /etc/nginx/conf.d/default.conf
