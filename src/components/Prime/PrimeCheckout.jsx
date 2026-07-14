@@ -12,7 +12,7 @@ import { billing as Billing } from '@commaai/api';
 import { deviceNamePretty } from '../../utils';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
-import { primeNav, analyticsEvent } from '../../actions';
+import { primeNav, analyticsEvent, primeFetchSubscription } from '../../actions';
 import { ErrorOutline, InfoOutline } from '../../icons';
 import CommacareIcon from '../../icons/commacare.png';
 import { COMMACARE_URL } from '../CommacareBadge';
@@ -253,6 +253,10 @@ class PrimeCheckout extends Component {
   }
 
   componentDidMount() {
+    const { dispatch, dongleId, device } = this.props;
+    if (dongleId) {
+      dispatch(primeFetchSubscription(dongleId, device));
+    }
     this.componentDidUpdate({});
   }
 
