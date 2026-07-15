@@ -281,7 +281,7 @@ class PrimeCheckout extends Component {
     this.setState({ loadingCheckout: true });
     try {
       const { selectedPlan: plan } = this.state;
-      const simId = plan === 'nodata' ? subscribeInfo.sim_id : undefined;
+      const simId = plan === 'data' ? subscribeInfo.sim_id : undefined;
       const resp = await Billing.getStripeCheckout(
         dongleId,
         simId,
