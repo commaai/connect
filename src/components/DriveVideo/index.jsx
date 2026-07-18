@@ -234,7 +234,7 @@ class DriveVideo extends Component {
 
   render() {
     const { isPlaying, isBufferingVideo, currentRoute, onAudioStatusChange, isMuted } = this.props;
-    const { src, videoError, canPlayThroughLogs } = this.state;
+    const { src, videoError } = this.state;
 
     const onPlayerReady = (player) => {
       if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
