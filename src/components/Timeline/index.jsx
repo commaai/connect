@@ -17,6 +17,7 @@ import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
 import { getVideoPlayerCurrentTime, seekVideoPlayer } from '../../timeline/videoPlayer';
 import { getSegmentNumber } from '../../utils';
+import { isIos } from '../../utils/browser.js';
 
 const styles = () => ({
   base: {
@@ -283,7 +284,17 @@ class Timeline extends Component {
   }
 
   getOffset() {
-    let percent = this.offsetToPercent(this.props.offset);
+    let offset;
+    if (this.props.hasAudio && isIos()) {
+      // video with audio doesn't report currentTime properly so we must use onTimeUpdate reported time
+      offset = this.props.offset;
+    } else {
+      offset = getVideoPlayerCurrentTime(this.props.route);
+      if (offset === null) {
+        offset = this.props.offset;
+      }
+    }
+    let percent = this.offsetToPercent(offset);
     if (percent >= 1) percent = 1;
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
       this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
@@ -449,6 +460,7 @@ const stateToProps = Obstruction({
   isBufferingVideo: 'isBufferingVideo',
   currentRoute: 'currentRoute',
   isPlaying: 'isPlaying',
+  hasAudio: 'hasAudio',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));

@@ -47,6 +47,13 @@ export function reducer(_state, action) {
       state = {
         ...state,
         offset: 0,
+        hasAudio: false,
+      };
+      break;
+    case Types.ACTION_HAS_AUDIO:
+      state = {
+        ...state,
+        hasAudio: action.hasAudio,
       };
       break;
     default:
@@ -99,5 +106,12 @@ export function bufferVideo(buffering) {
 export function resetPlayback() {
   return {
     type: Types.ACTION_RESET,
+  };
+}
+
+export function setHasAudio(hasAudio) {
+  return {
+    type: Types.ACTION_HAS_AUDIO,
+    hasAudio,
   };
 }

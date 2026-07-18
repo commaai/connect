@@ -17,7 +17,7 @@ import ResizeHandler from '../ResizeHandler';
 import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
 import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo } from '../../timeline/playback';
+import { bufferVideo, setHasAudio } from '../../timeline/playback';
 import Colors from '../../colors';
 import { InfoOutline } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
@@ -223,7 +223,6 @@ class Media extends Component {
       dcamUploadInfo: null,
       routePreserved: null,
       isMuted: true,
-      hasAudio: false,
     };
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
@@ -251,7 +250,7 @@ class Media extends Component {
   }
 
   handleAudioStatusChange(hasAudio) {
-    this.setState({ hasAudio });
+    this.props.dispatch(setHasAudio(hasAudio));
   }
 
   componentDidMount() {
@@ -522,7 +521,8 @@ class Media extends Component {
 
   render() {
     const { classes } = this.props;
-    const { inView, windowWidth, isMuted, hasAudio } = this.state;
+    const { inView, windowWidth, isMuted } = this.state;
+    const { hasAudio } = this.props;
 
     if (this.props.menusOnly) { // for test
       return this.renderMenus(true);
@@ -898,6 +898,7 @@ const stateToProps = Obstruction({
   filter: 'filter',
   files: 'files',
   profile: 'profile',
+  hasAudio: 'hasAudio',
   isBufferingVideo: 'isBufferingVideo',
 });
 

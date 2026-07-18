@@ -30,6 +30,7 @@ export const ACTION_PLAYBACK_SPEED = 'action_playback_speed';
 export const ACTION_LOOP = 'action_loop';
 export const ACTION_BUFFER_VIDEO = 'action_buffer_video';
 export const ACTION_RESET = 'action_reset';
+export const ACTION_HAS_AUDIO = 'action_has_audio';
 
 // segments
 export const ACTION_UPDATE_SEGMENT_RANGE = 'update_segment_range';
