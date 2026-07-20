@@ -72,14 +72,6 @@ class DriveVideo extends Component {
     const videoPlayer = this.videoPlayer.current;
     setVideoPlayer(videoPlayer);
     this.updateVideoSource(prevProps);
-    if (!videoPlayer || !videoPlayer.getInternalPlayer() || !videoPlayer.getDuration()) {
-      return;
-    }
-
-    if (this.firstSeek && videoPlayer) {
-      this.firstSeek = false;
-      videoPlayer.seekTo(this.currentVideoTime(), 'seconds');
-    }
   }
 
   componentWillUnmount() {
@@ -213,7 +205,6 @@ class DriveVideo extends Component {
     if (src === '' || !prevProps.currentRoute || prevProps.currentRoute?.fullname !== currentRoute.fullname) {
       src = Video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
       this.setState({ src, videoError: null });
-      this.firstSeek = true;
     }
   }
 
@@ -237,6 +228,15 @@ class DriveVideo extends Component {
     const { src, videoError } = this.state;
 
     const onPlayerReady = (player) => {
+      if (this.firstSeek) {
+        const video = player.getInternalPlayer();
+        const startSeconds = this.currentVideoTime(
+          this.props.loop?.startTime || 0
+        );
+        video.currentTime = startSeconds;
+        this.firstSeek = false;
+      }
+      
       if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
         const videoElement = player.getInternalPlayer();
         if (videoElement && videoElement.audioTracks && videoElement.audioTracks.length > 0) {
