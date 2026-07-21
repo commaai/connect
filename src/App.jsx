@@ -75,7 +75,7 @@ class App extends Component {
       const { pathname } = window.location;
       const teleopDongleId = getDongleID(pathname);
       if (teleopDongleId && getStreamNav(pathname)) {
-        webrtcConnectionManager.prewarm(teleopDongleId);
+        webrtcConnectionManager.reconnect(teleopDongleId);
       }
     }
 

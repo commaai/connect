@@ -1,13 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import dayjs from 'dayjs';
 
-import {
-  Divider,
-  ListItem,
-  Menu,
-  MenuItem,
-} from '@material-ui/core';
-
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 const logOut = async () => {
@@ -38,7 +31,7 @@ const Version = () => {
   return <span className="text-xs text-[#ffffff66]">{content}</span>
 };
 
-const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
+const AccountMenu = ({ profile, open, onClose }) => {
   const version = useMemo(() => <Version />, []);
 
   const onLogOut = useCallback(() => {
@@ -46,36 +39,37 @@ const AccountMenu = ({ profile, open, anchorEl, onClose, ...rest }) => {
     logOut();
   }, [onClose]);
 
+  if (!open) {
+    return null;
+  }
+
   return (
-    <Menu
-      open={open}
-      onClose={onClose}
-      anchorEl={anchorEl}
-      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      {...rest}
-    >
-      <ListItem className="text-white pt-3 pb-4 px-4 flex-col items-start gap-2">
-        <span className="font-bold">{profile.email}</span>
-        <span className="text-xs text-[#ffffff66]">{profile.user_id}</span>
-        {version}
-      </ListItem>
-      <Divider />
-      <MenuItem
-        className="py-3 px-4"
-        component="a"
-        href="https://useradmin.comma.ai/"
-        target="_blank"
-      >
-        Manage Account
-      </MenuItem>
-      <MenuItem
-        className="py-3 px-4"
-        onClick={onLogOut}
-      >
-        Log out
-      </MenuItem>
-    </Menu>
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="absolute right-0 mt-1 z-50 w-56 sm:w-64 rounded bg-[#30373B] shadow-lg overflow-hidden">
+        <div className="flex flex-col items-start gap-2 px-4 pt-3 pb-4">
+          <span className="font-bold text-white">{profile.email}</span>
+          <span className="text-xs text-[#ffffff66]">{profile.user_id}</span>
+          {version}
+        </div>
+        <div className="h-px bg-white/10" />
+        <a
+          className="block px-4 py-3 text-white hover:bg-white/10"
+          href="https://useradmin.comma.ai/"
+          target="_blank"
+          rel="noreferrer"
+          onClick={onClose}
+        >
+          Manage Account
+        </a>
+        <button
+          className="block w-full px-4 py-3 text-left text-white hover:bg-white/10"
+          onClick={onLogOut}
+        >
+          Log out
+        </button>
+      </div>
+    </>
   );
 };
 

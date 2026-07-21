@@ -47,6 +47,7 @@ export function reducer(_state, action) {
       state = {
         ...state,
         offset: 0,
+        desiredPlaySpeed: 1,
         hasAudio: false,
       };
       break;

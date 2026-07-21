@@ -185,7 +185,7 @@ class Timeline extends Component {
 
   componentDidMount() {
     this.mounted = true;
-    raf(this.getOffset);
+    this.rafId = raf(this.getOffset);
     this.componentDidUpdate({});
   }
 
@@ -198,6 +198,10 @@ class Timeline extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    if (this.rafId) {
+      raf.cancel(this.rafId);
+      this.rafId = null;
+    }
   }
 
   handleClick(ev) {
@@ -300,7 +304,7 @@ class Timeline extends Component {
       this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
       this.rulerRemaining.current.style.width = `${100 - Math.floor(10000 * percent) / 100}%`;
     }
-    raf(this.getOffset);
+    this.rafId = raf(this.getOffset);
   }
 
   percentToOffset(perc) {
