@@ -61,10 +61,13 @@ class DriveVideo extends Component {
   componentDidMount() {
     const { dispatch } = this.props;
     dispatch(resetPlayback());
-    if (this.videoPlayer.current) {
-      this.videoPlayer.current.playbackRate = 1;
-    }
     setVideoPlayer(this.videoPlayer.current);
+    if (this.videoPlayer.current) {
+      const internal = this.videoPlayer.current.getInternalPlayer();
+      if (internal) {
+        internal.playbackRate = 1;
+      }
+    }
     this.updateVideoSource({});
   }
 
@@ -206,6 +209,7 @@ class DriveVideo extends Component {
     if (src === '' || !prevProps.currentRoute || prevProps.currentRoute?.fullname !== currentRoute.fullname) {
       src = Video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
       this.setState({ src, videoError: null });
+      this.firstSeek = true;
     }
   }
 
