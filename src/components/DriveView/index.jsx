@@ -18,6 +18,10 @@ class DriveView extends Component {
     this.close = this.close.bind(this);
   }
 
+  componentDidMount() {
+    window.scrollTo({ top: 0 });
+  }
+
   onBack(zoom, currentRoute) {
     if (zoom.previous) {
       this.props.dispatch(popTimelineRange(currentRoute?.log_id));
