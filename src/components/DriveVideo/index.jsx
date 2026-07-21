@@ -93,6 +93,7 @@ class DriveVideo extends Component {
   onVideoPlay() {
     const { dispatch } = this.props;
     dispatch(play());
+    dispatch(bufferVideo(false));
   }
 
   onVideoPause() {
