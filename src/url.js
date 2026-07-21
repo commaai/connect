@@ -1,7 +1,12 @@
+import { DEMO_DONGLE_ID, isDemoPath } from './demo';
+
 const dongleIdRegex = /[a-f0-9]{16}/;
 const logIdRegex = /[a-f0-9-]{20}/;
 
 export function getDongleID(pathname) {
+  if (isDemoPath(pathname)) {
+    return DEMO_DONGLE_ID;
+  }
   let parts = pathname.split('/');
   parts = parts.filter((m) => m.length);
 

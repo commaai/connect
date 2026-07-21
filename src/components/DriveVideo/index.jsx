@@ -5,13 +5,12 @@ import { CircularProgress, Typography } from '@material-ui/core';
 import Obstruction from 'obstruction';
 import ReactPlayer from 'react-player/file';
 
-import { video as Video } from '@commaai/api';
-
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import { bufferVideo, setPlaybackSpeed, resetPlayback, play, pause, seek } from '../../timeline/playback';
 import { setVideoPlayer, seekVideoPlayer, getVideoPlayerCurrentTime } from '../../timeline/videoPlayer';
 import { isIos } from '../../utils/browser.js';
+import { getRouteVideoSource } from '../../dataSource';
 
 const VideoOverlay = ({ loading, error }) => {
   let content;
@@ -49,6 +48,7 @@ class DriveVideo extends Component {
     this.onVideoPlaybackRateChange = this.onVideoPlaybackRateChange.bind(this);
     this.onTimeUpdate = this.onTimeUpdate.bind(this);
     this.firstSeek = true;
+    this.sourceRequest = 0;
 
     this.videoPlayer = React.createRef();
 
@@ -75,6 +75,8 @@ class DriveVideo extends Component {
   }
 
   componentWillUnmount() {
+    this.sourceRequest += 1;
+    if (this.state.src?.startsWith('blob:')) URL.revokeObjectURL(this.state.src);
     setVideoPlayer(null);
   }
 
@@ -193,19 +195,32 @@ class DriveVideo extends Component {
     dispatch(seek(videoTime));
   }
 
-  updateVideoSource(prevProps) {
+  async updateVideoSource(prevProps) {
     let { src } = this.state;
     const { currentRoute } = this.props;
     if (!currentRoute) {
+      this.sourceRequest += 1;
       if (src !== '') {
+        if (src?.startsWith('blob:')) URL.revokeObjectURL(src);
         this.setState({ src: '', videoError: null });
       }
       return;
     }
 
     if (src === '' || !prevProps.currentRoute || prevProps.currentRoute?.fullname !== currentRoute.fullname) {
-      src = Video.getQcameraStreamUrl(currentRoute.fullname, currentRoute.share_exp, currentRoute.share_sig);
-      this.setState({ src, videoError: null });
+      this.sourceRequest += 1;
+      const sourceRequest = this.sourceRequest;
+      try {
+        src = await getRouteVideoSource(currentRoute);
+        if (sourceRequest !== this.sourceRequest) {
+          if (src.startsWith('blob:')) URL.revokeObjectURL(src);
+          return;
+        }
+        if (this.state.src?.startsWith('blob:')) URL.revokeObjectURL(this.state.src);
+        this.setState({ src, videoError: null });
+      } catch (err) {
+        if (sourceRequest === this.sourceRequest) this.setState({ src: '', videoError: err.message });
+      }
     }
   }
 

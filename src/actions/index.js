@@ -1,7 +1,7 @@
 import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import document from 'global/document';
-import { athena as Athena, billing as Billing, devices as Devices, drives as Drives } from '@commaai/api';
+import { athena as Athena, billing as Billing, devices as Devices } from '@commaai/api';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
@@ -9,6 +9,7 @@ import { selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';
 import { webrtcConnectionManager } from '../utils/webrtc';
+import { getRoutesSegments } from '../dataSource';
 
 let routesRequest = null;
 let routesRequestPromise = null;
@@ -36,12 +37,12 @@ export function checkRoutesData() {
     // if requested segment range not in loaded routes, fetch it explicitly
     if (state.segmentRange) {
       routesRequest = {
-        req: Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
+        req: getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
         dongleId,
       };
     } else {
       routesRequest = {
-        req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, state.limit),
+        req: getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, state.limit),
         dongleId,
       };
     }

@@ -4,6 +4,7 @@ import { athena as Athena, devices as Devices, raw as Raw } from '@commaai/api';
 import { updateDeviceOnline, fetchDeviceNetworkStatus } from '.';
 import * as Types from './types';
 import { deviceOnCellular, getDeviceFromState, deviceVersionAtLeast, asyncSleep } from '../utils';
+import { getRouteFiles } from '../dataSource';
 
 export const FILE_NAMES = {
   qcameras: ['qcamera.ts'],
@@ -97,9 +98,9 @@ export function updateFiles(files) {
 
 export function fetchFiles(routeName, nocache = false) {
   return async (dispatch) => {
-    let files;
+    let routeFiles;
     try {
-      files = await Raw.getRouteFiles(routeName, nocache);
+      routeFiles = await getRouteFiles(routeName, nocache);
     } catch (err) {
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'action_files_fetch_files' });
@@ -107,7 +108,8 @@ export function fetchFiles(routeName, nocache = false) {
     }
 
     const dongleId = routeName.split('|')[0];
-    const urlName = routeName.replace('|', '/');
+    const urlName = routeFiles.sourceRouteName.replace('|', '/');
+    const { files } = routeFiles;
     const urls = Object
       .keys(FILE_NAMES)
       .filter((type) => files[type])

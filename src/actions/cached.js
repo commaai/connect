@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import * as Types from './types';
 import { reverseLookup } from '../utils/geocode';
 import { toBool } from '../utils';
+import { transformRouteCoords, transformRouteEvents } from '../dataSource';
 
 const USE_LOCAL_COORDS_DATA = toBool(import.meta.env.VITE_APP_LOCAL_COORDS_DATA);
 if (USE_LOCAL_COORDS_DATA) {
@@ -317,7 +318,7 @@ export function fetchEvents(route) {
           return [];
         }
         const events = await resp.json();
-        return events;
+        return transformRouteEvents(route, j, events);
       })(i));
     }
 
@@ -488,13 +489,13 @@ export function fetchDriveCoords(route) {
       return;
     }
 
-    driveCoords = driveCoords.reduce((prev, curr) => ({
+    driveCoords = transformRouteCoords(route, driveCoords.reduce((prev, curr) => ({
       ...prev,
       ...curr.reduce((p, cs) => {
         p[cs.t] = [cs.lng, cs.lat];
         return p;
       }, {}),
-    }), {});
+    }), {}));
 
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE,
