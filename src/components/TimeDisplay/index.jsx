@@ -12,8 +12,7 @@ import VolumeOff from '@material-ui/icons/VolumeOff';
 import { Tooltip } from '@material-ui/core';
 
 import { DownArrow, Forward10, Pause, PlayArrow, Replay10, UpArrow } from '../../icons';
-import { currentOffset } from '../../timeline';
-import { seek, play, pause } from '../../timeline/playback';
+import { seekVideoPlayer, playVideo, pauseVideo, setVideoPlaybackRate, isVideoPaused } from '../../timeline/videoPlayer';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
 
@@ -101,16 +100,6 @@ const styles = (theme) => ({
 });
 
 class TimeDisplay extends Component {
-  static getDerivedStateFromProps(props, state) {
-    if (props.desiredPlaySpeed !== 0 && props.desiredPlaySpeed !== state.desiredPlaySpeed) {
-      return {
-        ...state,
-        desiredPlaySpeed: props.desiredPlaySpeed,
-      };
-    }
-    return state;
-  }
-
   constructor(props) {
     super(props);
 
@@ -124,7 +113,6 @@ class TimeDisplay extends Component {
     this.jumpForward = this.jumpForward.bind(this);
 
     this.state = {
-      desiredPlaySpeed: 1,
       displayTime: this.getDisplayTime(),
     };
   }
@@ -139,14 +127,13 @@ class TimeDisplay extends Component {
   }
 
   getDisplayTime() {
-    const offset = currentOffset();
-    const { currentRoute } = this.props;
+    const { currentRoute, offset } = this.props;
     const now = new Date(offset + currentRoute.start_time_utc_millis);
     if (Number.isNaN(now.getTime())) {
       return '...';
     }
     let dateString = dayjs(now).format('HH:mm:ss');
-    const seg = getSegmentNumber(currentRoute);
+    const seg = getSegmentNumber(currentRoute, offset);
     if (seg !== null) {
       dateString = `${dateString} \u2013 ${seg}`;
     }
@@ -155,11 +142,15 @@ class TimeDisplay extends Component {
   }
 
   jumpBack(amount) {
-    this.props.dispatch(seek(currentOffset() - amount));
+    const { currentRoute } = this.props;
+    const offset = this.props.offset - amount;
+    seekVideoPlayer(offset, currentRoute);
   }
 
   jumpForward(amount) {
-    this.props.dispatch(seek(currentOffset() + amount));
+    const { currentRoute } = this.props;
+    const offset = this.props.offset + amount;
+    seekVideoPlayer(offset, currentRoute);
   }
 
   updateTime() {
@@ -176,18 +167,18 @@ class TimeDisplay extends Component {
   }
 
   decreaseSpeed() {
-    const { dispatch } = this.props;
-    const { desiredPlaySpeed } = this.state;
+    const { desiredPlaySpeed } = this.props;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
     }
     curIndex = Math.max(0, curIndex - 1);
-    dispatch(play(timerSteps[curIndex]));
+    const newSpeed = timerSteps[curIndex];
+    setVideoPlaybackRate(newSpeed);
   }
 
   canDecreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
+    const { desiredPlaySpeed } = this.props;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
@@ -196,18 +187,18 @@ class TimeDisplay extends Component {
   }
 
   increaseSpeed() {
-    const { dispatch } = this.props;
-    const { desiredPlaySpeed } = this.state;
+    const { desiredPlaySpeed } = this.props;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
     }
     curIndex = Math.min(timerSteps.length - 1, curIndex + 1);
-    dispatch(play(timerSteps[curIndex]));
+    const newSpeed = timerSteps[curIndex];
+    setVideoPlaybackRate(newSpeed);
   }
 
   canIncreaseSpeed() {
-    const { desiredPlaySpeed } = this.state;
+    const { desiredPlaySpeed } = this.props;
     let curIndex = timerSteps.indexOf(desiredPlaySpeed);
     if (curIndex === -1) {
       curIndex = timerSteps.indexOf(1);
@@ -216,19 +207,16 @@ class TimeDisplay extends Component {
   }
 
   togglePause() {
-    const { desiredPlaySpeed, dispatch } = this.props;
-    if (desiredPlaySpeed === 0) {
-      // eslint-disable-next-line react/destructuring-assignment
-      dispatch(play(this.state.desiredPlaySpeed));
+    if (isVideoPaused()) {
+      playVideo();
     } else {
-      dispatch(pause());
+      pauseVideo();
     }
   }
 
   render() {
-    const { classes, zoom, desiredPlaySpeed: videoPlaySpeed, isThin, onMuteToggle, isMuted, hasAudio } = this.props;
-    const { displayTime, desiredPlaySpeed } = this.state;
-    const isPaused = videoPlaySpeed === 0;
+    const { classes, zoom, isThin, onMuteToggle, isMuted, hasAudio, desiredPlaySpeed, isPlaying } = this.props;
+    const { displayTime } = this.state;
     const isExpandedCls = zoom ? 'isExpanded' : '';
     const isThinCls = isThin ? 'isThin' : '';
     return (
@@ -302,9 +290,9 @@ class TimeDisplay extends Component {
         <div className={ classes.leftBorderBox }>
           <IconButton
             onClick={this.togglePause}
-            aria-label={isPaused ? 'Unpause' : 'Pause'}
+            aria-label={!isPlaying ? 'Unpause' : 'Pause'}
           >
-            {isPaused
+            {!isPlaying
               ? (<PlayArrow className={classes.icon} />)
               : (<Pause className={classes.icon} />)}
           </IconButton>
@@ -316,8 +304,10 @@ class TimeDisplay extends Component {
 
 const stateToProps = Obstruction({
   currentRoute: 'currentRoute',
+  offset: 'offset',
   zoom: 'zoom',
-  desiredPlaySpeed: 'desiredPlaySpeed'
+  desiredPlaySpeed: 'desiredPlaySpeed',
+  isPlaying: 'isPlaying',
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));

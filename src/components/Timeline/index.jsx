@@ -15,9 +15,9 @@ import Thumbnails from './thumbnails';
 import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
-import { currentOffset } from '../../timeline';
-import { seek } from '../../timeline/playback';
+import { getVideoPlayerCurrentTime, seekVideoPlayer } from '../../timeline/videoPlayer';
 import { getSegmentNumber } from '../../utils';
+import { isIos } from '../../utils/browser.js';
 
 const styles = () => ({
   base: {
@@ -168,6 +168,9 @@ class Timeline extends Component {
     this.dragBar = React.createRef();
     this.hoverBead = React.createRef();
 
+    this.currentOffset = null;
+    this.lastOffset = null;
+
     const { zoomOverride, zoom } = this.props;
     this.state = {
       dragging: null,
@@ -201,7 +204,8 @@ class Timeline extends Component {
     const { dragging } = this.state;
     if (!dragging || Math.abs(dragging[1] - dragging[0]) <= 3) {
       const percent = percentFromPointerEvent(ev);
-      this.props.dispatch(seek(this.percentToOffset(percent)));
+      const offset = this.percentToOffset(percent);
+      seekVideoPlayer(offset, this.props.route);
     }
   }
 
@@ -233,7 +237,7 @@ class Timeline extends Component {
   }
 
   handlePointerUp(ev) {
-    const { route } = this.props;
+    const { offset, route } = this.props;
 
     // prevent preventDefault for back(3) and forward(4) mouse buttons
     if (ev.button !== 3 && ev.button !== 4) {
@@ -255,9 +259,8 @@ class Timeline extends Component {
     const endOffset = Math.round(this.percentToOffset(endPercent));
 
     if (Math.abs(dragging[1] - dragging[0]) > 3) {
-      const offset = currentOffset();
       if (offset < startOffset || offset > endOffset) {
-        this.props.dispatch(seek(startOffset));
+        seekVideoPlayer(startOffset, route)
       }
       const { dispatch } = this.props;
       const startTime = startOffset;
@@ -281,20 +284,23 @@ class Timeline extends Component {
   }
 
   getOffset() {
-    if (!this.mounted) {
-      return;
+    let offset;
+    if (this.props.hasAudio && isIos()) {
+      // video with audio doesn't report currentTime properly so we must use onTimeUpdate reported time
+      offset = this.props.offset;
+    } else {
+      offset = getVideoPlayerCurrentTime(this.props.route);
+      if (offset === null) {
+        offset = this.props.offset;
+      }
     }
-    raf(this.getOffset);
-    let offset = currentOffset();
-    if (this.seekIndex) {
-      offset = this.seekIndex;
-    }
-    offset = Math.floor(offset);
-    const percent = this.offsetToPercent(offset);
+    let percent = this.offsetToPercent(offset);
+    if (percent >= 1) percent = 1;
     if (this.rulerRemaining.current && this.rulerRemaining.current.parentElement) {
       this.rulerRemaining.current.style.left = `${Math.floor(10000 * percent) / 100}%`;
       this.rulerRemaining.current.style.width = `${100 - Math.floor(10000 * percent) / 100}%`;
     }
+    raf(this.getOffset);
   }
 
   percentToOffset(perc) {
@@ -447,8 +453,14 @@ class Timeline extends Component {
 }
 
 const stateToProps = Obstruction({
+  offset: 'offset',
   zoom: 'zoom',
   loop: 'loop',
+  desiredPlaySpeed: 'desiredPlaySpeed',
+  isBufferingVideo: 'isBufferingVideo',
+  currentRoute: 'currentRoute',
+  isPlaying: 'isPlaying',
+  hasAudio: 'hasAudio',
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));
