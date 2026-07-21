@@ -104,29 +104,27 @@ class DriveVideo extends Component {
     dispatch(pause());
   }
 
-  /**
-   * @param {Error} e
-   */
   onHlsError(e) {
     const { dispatch } = this.props;
     dispatch(bufferVideo(true));
 
-    if (e.type === 'mediaError' && (e.details === 'bufferStalledError' || e.details === 'bufferNudgeOnStall')) {
+    if (!e.fatal) return;
+    else if (e.type === 'mediaError' && (e.details === 'bufferStalledError' || e.details === 'bufferNudgeOnStall')) {
       // buffer but no error
       return;
-    }
-
-    if (e.type === 'networkError' && (e.response?.code === 404)) {
+    } else if (e.type === 'networkError' && (e.response?.code === 404)) {
       this.setState({ videoError: 'This video segment has not uploaded yet or has been deleted.' });
     } else {
-      this.setState({ videoError: e.message });
+      const message =
+        e.reason ||
+        e.response?.text ||
+        e.error?.message ||
+        e.details ||
+        'Unknown playback error';
+      this.setState({ videoError: message });
     }
   }
 
-  /**
-   * @param {Error} e
-   * @param {any} [data]
-   */
   onVideoError(e, data) {
     if (!e) {
       console.warn('Unknown video error', { e, data });
@@ -147,6 +145,7 @@ class DriveVideo extends Component {
       // autoplay was blocked (e.g. iOS after backgrounding/returning to the app)
       const { dispatch } = this.props;
       dispatch(bufferVideo(false));
+      dispatch(pause())
       return;
     }
 
@@ -244,10 +243,9 @@ class DriveVideo extends Component {
       
       if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
         const videoElement = player.getInternalPlayer();
-        if (videoElement && videoElement.audioTracks && videoElement.audioTracks.length > 0) {
-          if (onAudioStatusChange) {
-            onAudioStatusChange(true);
-          }
+        const hasAudio = Boolean(videoElement && videoElement.audioTracks && videoElement.audioTracks.length > 0);
+        if (onAudioStatusChange) {
+          onAudioStatusChange(hasAudio);
         }
       } else { // on other platforms, inspect audio tracks before hls.js changes things
         const hlsPlayer = player.getInternalPlayer('hls');
