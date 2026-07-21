@@ -6,6 +6,7 @@ import raf from 'raf';
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
 import { fetchDriveCoords } from '../../actions/cached';
+import { currentOffset } from '../../timeline';
 import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN } from '../../utils/geocode';
 
 const INTERACTION_TIMEOUT = 5000;
@@ -45,7 +46,7 @@ class DriveMap extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { dispatch, currentRoute } = this.props;
+    const { dispatch, currentRoute, startTime } = this.props;
 
     const prevRoute = prevProps.currentRoute?.fullname || null;
     const route = currentRoute?.fullname || null;
@@ -54,6 +55,10 @@ class DriveMap extends Component {
       if (route) {
         dispatch(fetchDriveCoords(currentRoute));
       }
+    }
+
+    if (prevProps.startTime && prevProps.startTime !== startTime) {
+      this.shouldFlyTo = true;
     }
 
     if (currentRoute && prevProps.currentRoute && currentRoute.driveCoords
@@ -94,7 +99,7 @@ class DriveMap extends Component {
     const markerSource = this.map && this.map.getMap().getSource('seekPoint');
     if (markerSource) {
       if (this.props.currentRoute && this.props.currentRoute.driveCoords) {
-        const pos = this.posAtOffset(this.props.offset);
+        const pos = this.posAtOffset(currentOffset());
         if (pos && pos.some((coordinate, index) => coordinate != this.lastMapPos[index])) {
           this.lastMapPos = pos;
           markerSource.setData({
@@ -305,6 +310,7 @@ class DriveMap extends Component {
 const stateToProps = Obstruction({
   offset: 'offset',
   currentRoute: 'currentRoute',
+  startTime: 'startTime',
 });
 
 export default connect(stateToProps)(DriveMap);

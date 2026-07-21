@@ -29,7 +29,7 @@ const routes = [{
 describe('segments', () => {
   it('finds current segment', async () => {
     const [route] = routes;
-    expect(getSegmentNumber(route, 0)).toBe(0);
+    expect(getSegmentNumber(route)).toBe(0);
   });
 
   it('can check if it has segment metadata', () => {
