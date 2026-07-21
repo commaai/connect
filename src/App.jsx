@@ -16,6 +16,7 @@ import { webrtcConnectionManager } from './utils/webrtc';
 import store, { history } from './store';
 
 import ErrorFallback from './components/ErrorFallback';
+import { isDemoPath } from './demo';
 
 const Explorer = lazy(() => import('./components/explorer'));
 const AnonymousLanding = lazy(() => import('./components/anonymous'));
@@ -128,7 +129,10 @@ class App extends Component {
       return this.renderLoading();
     }
 
-    const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(window.location.pathname) && !getSegmentRange(window.location.pathname);
+    const showLogin = !MyCommaAuth.isAuthenticated()
+      && !isDemoPath(window.location.pathname)
+      && !getZoom(window.location.pathname)
+      && !getSegmentRange(window.location.pathname);
     let content = (
       <Suspense fallback={this.renderLoading()}>
         { showLogin ? this.anonymousRoutes() : this.authRoutes() }

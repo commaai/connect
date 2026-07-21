@@ -4,6 +4,7 @@ import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { ACTION_STARTUP_DATA } from './types';
 import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
+import { getDemoStartupData } from '../demo';
 
 async function initProfile() {
   if (MyCommaAuth.isAuthenticated()) {
@@ -45,7 +46,10 @@ export default function init() {
       dispatch(checkLastRoutesData());
     }
 
-    const [profile, devices] = await Promise.all([initProfile(), initDevices()]);
+    const demoStartupData = getDemoStartupData(state.dongleId);
+    const [profile, devices] = demoStartupData
+      ? [demoStartupData.profile, demoStartupData.devices]
+      : await Promise.all([initProfile(), initDevices()]);
     state = getState();
 
     if (profile) {
@@ -63,10 +67,12 @@ export default function init() {
       }
       const dongleId = getState().dongleId;
       const device = devices.find((dev) => dev.dongle_id === dongleId);
-      if (device) {
-        dispatch(primeFetchSubscription(dongleId, device, profile));
-      } else if (dongleId) {
-        dispatch(fetchSharedDevice(dongleId));
+      if (!demoStartupData) {
+        if (device) {
+          dispatch(primeFetchSubscription(dongleId, device, profile));
+        } else if (dongleId) {
+          dispatch(fetchSharedDevice(dongleId));
+        }
       }
     }
 
