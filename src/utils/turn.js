@@ -10,7 +10,7 @@ let pending = null;
 export async function fetchTurnCredentials() {
   if (pending) return pending;
   pending = (async () => {
-    const resp = await Request.get('v1/me/turn_credentials');
+    const resp = await Request.get('v1/me/turn');
     cache = resp;
     fetchedAt = Math.floor(Date.now() / 1000);
     return resp;
