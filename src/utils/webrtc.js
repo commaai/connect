@@ -62,13 +62,12 @@ export class WebRTCConnection extends EventTarget {
     this.connectStartedAt = performance.now();
     this.streamTimings = null;
     this.videoEnabled = videoEnabled;
-
-    const stunFallback = { urls: 'stun:stun.l.google.com:19302' };
-    let iceServers = [stunFallback];
+    
+    let iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
     try {
       const turnCreds = await getTurnCredentials();
       if (turnCreds?.iceServers) {
-        iceServers = [...turnCreds.iceServers, stunFallback];
+        iceServers = turnCreds.iceServers;
       }
     } catch (err) {
       this._log(`TURN credentials fetch failed, falling back to STUN: ${err.message}`);
@@ -212,7 +211,7 @@ export class WebRTCConnection extends EventTarget {
       
       // device refuses the stream when another client already holds it; fail this connection
       if (resp.result?.error === 'busy') {
-        this.fail(resp.result.message || 'Device is busy with another session.');
+        this.fail(resp.result.message || 'Device is busy with another session.', { override: true });
         return;
       }
 
@@ -220,7 +219,7 @@ export class WebRTCConnection extends EventTarget {
       await this.pc.setRemoteDescription({ type: 'answer', sdp: resp.result.sdp });
       this._log('Remote description (answer) set');
     } catch (err) {
-      this.fail(err.message);
+      this.fail(err.message, { override: true });
       throw err;
     }
   }
@@ -341,7 +340,8 @@ export class WebRTCConnection extends EventTarget {
     this._setState('disconnected', reason);
   }
 
-  fail(reason) {
+  fail(reason, { override = false } = {}) {
+    if (!override && (this.connectionState === 'failed' || this.connectionState === 'disconnected')) return;
     this.cleanup();
     this._setState('failed', reason);
   }
