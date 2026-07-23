@@ -1,5 +1,6 @@
 import { athena as Athena } from '@commaai/api';
 import { asyncSleep } from '.';
+import { getTurnCredentials } from './turn';
 
 const VIDEO_STREAM_NAME = 'camera';
 const wallMs = () => performance.timeOrigin + performance.now();
@@ -62,11 +63,23 @@ export class WebRTCConnection extends EventTarget {
     this.streamTimings = null;
     this.videoEnabled = videoEnabled;
 
+    const stunFallback = { urls: 'stun:stun.l.google.com:19302' };
+    let iceServers = [stunFallback];
+    try {
+      const turnCreds = await getTurnCredentials();
+      if (turnCreds?.iceServers) {
+        iceServers = [...turnCreds.iceServers, stunFallback];
+      }
+    } catch (err) {
+      this._log(`TURN credentials fetch failed, falling back to STUN: ${err.message}`);
+    }
+
     try {
       this.pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        iceServers,
         bundlePolicy: 'max-bundle',
         encodedInsertableStreams: true,
+        iceTransportPolicy: 'relay',
       });
       this._log('RTCPeerConnection created');
       const pc = this.pc;
