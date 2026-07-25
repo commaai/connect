@@ -8,7 +8,7 @@ const wallMs = () => performance.timeOrigin + performance.now();
 const CLOCK_WINDOW_SIZE = 16;
 const CLOCK_PING_MS = 500;
 
-const CONNECTION_DEADLINE_MS = 10000;
+const CONNECTION_DEADLINE_MS = 15000;
 const ICE_GATHER_DEADLINE_MS = 8000;
 
 // Drop mDNS (.local) host candidates from an SDP — the device can't resolve them.
