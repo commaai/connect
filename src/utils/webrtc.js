@@ -78,7 +78,6 @@ export class WebRTCConnection extends EventTarget {
         iceServers,
         bundlePolicy: 'max-bundle',
         encodedInsertableStreams: true,
-        iceTransportPolicy: 'relay',
       });
       this._log('RTCPeerConnection created');
       const pc = this.pc;

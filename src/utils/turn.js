@@ -1,7 +1,7 @@
 import { request as Request } from '@commaai/api';
 
-const TURN_TTL_S = 1800;
-const TURN_REFRESH_MARGIN_S = 100;
+const TURN_TTL_S = 3600; // 1 hour
+const TURN_REFRESH_MARGIN_S = 300; // 5 mins
 
 let cache = null;
 let fetchedAt = null;
