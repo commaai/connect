@@ -172,9 +172,6 @@ export class WebRTCConnection extends EventTarget {
           if (!evt.candidate) {
             this._log('ICE gathering complete');
             resolve();
-          } else if (['srflx', 'prflx', 'relay'].includes(evt.candidate.type)) {
-            this._log(`Using ${evt.candidate.type} candidate`, evt.candidate);
-            resolve();
           }
         });
       });
