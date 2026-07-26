@@ -172,6 +172,10 @@ export class WebRTCConnection extends EventTarget {
           if (!evt.candidate) {
             this._log('ICE gathering complete');
             resolve();
+          } else if (['relay'].includes(evt.candidate.type)) {
+            // short cut when at least the relay candidate is added
+            this._log(`Using ${evt.candidate.type} candidate`, evt.candidate);
+            resolve();
           }
         });
       });
