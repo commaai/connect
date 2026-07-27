@@ -8,13 +8,14 @@ import { withStyles, Typography, Button, Modal, Paper, IconButton, CircularProgr
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
 
-import { billing as Billing } from '@commaai/api';
 import { deviceNamePretty, deviceTypePretty } from '../../utils';
+import * as Billing from '../../api/billing';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { ErrorOutline, InfoOutline } from '../../icons';
 import { primeNav, primeGetSubscription, analyticsEvent } from '../../actions';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
+import { otherPrimePlan, primePlanName } from './primePlans';
 
 const styles = (theme) => ({
   linkHighlight: {
@@ -204,6 +205,7 @@ class PrimeManage extends Component {
       cancelError: null,
       cancelModal: false,
       canceling: false,
+      switchingPlan: false,
       stripeStatus: null,
       windowWidth: window.innerWidth,
     };
@@ -211,6 +213,7 @@ class PrimeManage extends Component {
     this.cancelPrime = this.cancelPrime.bind(this);
     this.fetchStripeSession = this.fetchStripeSession.bind(this);
     this.gotoUpdate = this.gotoUpdate.bind(this);
+    this.switchPlan = this.switchPlan.bind(this);
     this.fetchSubscription = this.fetchSubscription.bind(this);
     this.onResize = this.onResize.bind(this);
   }
@@ -267,6 +270,25 @@ class PrimeManage extends Component {
       // TODO show error messages
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_update' });
+    }
+  }
+
+  async switchPlan() {
+    const { dispatch, dongleId, subscription } = this.props;
+    const plan = otherPrimePlan(subscription.plan);
+    this.setState({ switchingPlan: true, error: null });
+    try {
+      const subscribeInfo = plan === 'data' ? await Billing.getSubscribeInfo(dongleId) : null;
+      await Billing.switchPrimePlan(dongleId, plan, subscribeInfo?.sim_id);
+      dispatch(analyticsEvent('prime_switch_plan', { from: subscription.plan, to: plan }));
+      await this.fetchSubscription();
+    } catch (err) {
+      Sentry.captureException(err, { fingerprint: 'primemanage_switch_plan' });
+      this.setState({ error: 'Could not switch plans. Please try again.' });
+    } finally {
+      if (this.mounted) {
+        this.setState({ switchingPlan: false });
+      }
     }
   }
 
@@ -345,7 +367,7 @@ class PrimeManage extends Component {
       joinDate = dayjs(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0).format('MMMM D, YYYY');
       nextPaymentDate = dayjs(subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0).format('MMMM D, YYYY');
       cancelAtDate = dayjs(subscription.cancel_at ? subscription.cancel_at * 1000 : 0).format('MMMM D, YYYY');
-      planName = subscription.plan === 'nodata' ? 'Lite' : 'Standard';
+      planName = primePlanName(subscription.plan);
       planSubtext = subscription.plan === 'nodata' ? '(without data plan)' : '(with data plan)';
     }
 
@@ -453,6 +475,19 @@ class PrimeManage extends Component {
                   >
                     {hasCancelAt ? 'Renew subscription' : 'Update payment method'}
                   </Button>
+                  {!hasCancelAt
+                    && (
+                      <Button
+                        className={classes.buttons}
+                        style={buttonSmallStyle}
+                        onClick={this.switchPlan}
+                        disabled={this.state.switchingPlan}
+                      >
+                        {this.state.switchingPlan
+                          ? <CircularProgress size={19} style={{ color: Colors.white }} />
+                          : `Switch to ${primePlanName(otherPrimePlan(subscription.plan))}`}
+                      </Button>
+                    )}
                   {!hasCancelAt
                     && (
                       <Button

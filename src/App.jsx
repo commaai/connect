@@ -9,9 +9,10 @@ import * as Sentry from '@sentry/react';
 import { CircularProgress, Grid } from '@material-ui/core';
 
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
-import { athena as Athena, auth as Auth, billing as Billing, request as Request } from '@commaai/api';
+import { athena as Athena, auth as Auth, request as Request } from '@commaai/api';
 
 import { getZoom, getSegmentRange } from './url';
+import * as Billing from './api/billing';
 import store, { history } from './store';
 
 import ErrorFallback from './components/ErrorFallback';
