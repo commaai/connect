@@ -29,10 +29,12 @@ export function getSegmentRange(pathname) {
   parts = parts.filter((m) => m.length);
 
   if (parts.length >= 2 && logIdRegex.test(parts[1])) {
+    const startSec = Number(parts[2]);
+    const endSec = Number(parts[3]);
     return {
       log_id: parts[1],
-      start: Number(parts[2]) * 1000,
-      end: Number(parts[3]) * 1000,
+      start: Number.isFinite(startSec) ? startSec * 1000 : null,
+      end: Number.isFinite(endSec) ? endSec * 1000 : null,
     };
   }
   return null;
