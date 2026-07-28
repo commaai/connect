@@ -613,10 +613,10 @@ export class PrimeManage extends Component {
                       ? 'Your plan now includes data for $24/month.'
                       : 'Your plan no longer includes data and costs $14/month.'}
                   </Typography>
-                  <div className="mt-4 flex justify-end">
+                  <div className="mt-4">
                     <Button
                       variant="contained"
-                      className="w-full rounded-full bg-white px-6 py-2 text-[#263238] normal-case hover:bg-white/70 sm:w-auto"
+                      className={classes.closeButton}
                       onClick={() => this.setState({
                         planSwitchModal: false,
                         planSwitchStatus: 'confirm',
@@ -659,10 +659,10 @@ export class PrimeManage extends Component {
               </div>
             )}
             {this.state.planSwitchStatus !== 'success' && (
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <div className="mt-4">
                 <Button
                   variant="contained"
-                  className="w-full rounded-full bg-white px-6 py-2 text-[#263238] normal-case hover:bg-white/70 disabled:bg-white/40 sm:w-auto"
+                  className={classes.cancelModalButton}
                   onClick={this.switchPlan}
                   disabled={this.state.switchingPlan}
                 >
@@ -670,7 +670,7 @@ export class PrimeManage extends Component {
                 </Button>
                 <Button
                   variant="contained"
-                  className="w-full rounded-full bg-white/10 px-6 py-2 text-white normal-case hover:bg-white/20 disabled:text-white/40 sm:w-auto"
+                  className={classes.closeButton}
                   onClick={() => this.setState({
                     planSwitchModal: false,
                     planSwitchStatus: 'confirm',
