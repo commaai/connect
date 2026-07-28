@@ -24,11 +24,17 @@
 
 :root {
   color-scheme: dark;
+  background: #16181A;
 }
 
 html {
   font-size: 16px;
   -webkit-tap-highlight-color: transparent;
+  
+  margin-top: env(safe-area-inset-top);
+  margin-bottom: env(safe-area-inset-bottom);
+  margin-left: env(safe-area-inset-left);
+  margin-right: env(safe-area-inset-right);
 }
 
 body {

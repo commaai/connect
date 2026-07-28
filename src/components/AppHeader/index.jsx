@@ -3,7 +3,8 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
-import { Typography, IconButton, Icon, AppBar } from '@material-ui/core';
+import { Typography, IconButton, AppBar } from '@material-ui/core';
+import MenuIcon from '@material-ui/icons/Menu';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
@@ -60,25 +61,25 @@ const AppHeader = ({
   profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
   forwardRef, handleDrawerStateChanged, primeNav, dongleId,
 }) => {
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleClickedAccount = useCallback((event) => {
+  const handleClickedAccount = useCallback(() => {
     if (MyCommaAuth.isAuthenticated()) {
-      setAnchorEl(event.currentTarget);
+      setMenuOpen((prev) => !prev);
     } else if (window.location) {
       window.location = window.location.origin;
     }
   }, []);
 
   const handleClose = useCallback(() => {
-    setAnchorEl(null);
+    setMenuOpen(false);
   }, []);
 
   const toggleDrawer = useCallback(() => {
     dispatch(handleDrawerStateChanged(!drawerIsOpen));
   }, [dispatch, drawerIsOpen, handleDrawerStateChanged]);
 
-  const open = Boolean(anchorEl);
+  const open = menuOpen;
 
   return (
     <>
@@ -91,7 +92,7 @@ const AppHeader = ({
                 className="mr-3"
                 onClick={toggleDrawer}
               >
-                <Icon>menu</Icon>
+                <MenuIcon />
               </IconButton>
             )
               : (
@@ -112,26 +113,26 @@ const AppHeader = ({
           </div>
           <div className="flex flex-row gap-2">
             <Suspense><PWAIcon /></Suspense>
-            <IconButton
-              aria-owns={open ? 'menu-appbar' : null}
-              aria-haspopup="true"
-              onClick={handleClickedAccount}
-              aria-label="account menu"
-            >
-              <AccountIcon className={classes.accountIcon} />
-            </IconButton>
+            <div className="relative">
+              <IconButton
+                aria-expanded={open}
+                aria-haspopup="true"
+                onClick={handleClickedAccount}
+                aria-label="account menu"
+              >
+                <AccountIcon className={classes.accountIcon} />
+              </IconButton>
+              {Boolean(MyCommaAuth.isAuthenticated() && profile) && (
+                <AccountMenu
+                  open={open}
+                  onClose={handleClose}
+                  profile={profile}
+                />
+              )}
+            </div>
           </div>
         </div>
       </AppBar>
-      {Boolean(MyCommaAuth.isAuthenticated() && profile) && (
-        <AccountMenu
-          id="menu-appbar"
-          open={open}
-          anchorEl={anchorEl}
-          onClose={handleClose}
-          profile={profile}
-        />
-      )}
     </>
   );
 };

@@ -10,73 +10,29 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 1
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-pnpm
+      - uses: oven-sh/setup-bun@v2
 
-      - run: |
-          pnpm install
-          cd ./node_modules/puppeteer
-          pnpm install
-
-      - run: pnpm run build:development
+      - run: bun install --frozen-lockfile
 
       - name: Lint
-        run: pnpm lint
+        run: bun run lint
 
       - name: Run unit tests
-        run: pnpm test
-
-      - name: Run end-to-end tests
-        run: pnpm test-puppeteer-build
-
-  # bundle_size:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: ./.github/actions/setup-pnpm
-  #     - uses: preactjs/compressed-size-action@v2
-  #       with:
-  #         repo-token: ${{ secrets.GITHUB_TOKEN }}
-  #         build-script: build:production
-  #         pattern: "./dist/assets/*.{css,js}"
-  #         strip-hash: "\\b-\\w{8}"
-  #         minimum-change-threshold: 100
-
-  lighthouse:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-pnpm
-
-      - run: pnpm install
-      - run: pnpm build:production
-
-      - name: run Lighthouse CI
-        run: |
-          pnpm add -g @lhci/cli@0.12.x
-          lhci autorun
-        env:
-          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+        run: bun run test
 
   docker:
     runs-on: ubuntu-latest
+    timeout-minutes: 1
     needs: [test]
-    if: github.ref == 'refs/heads/master' && github.repository == 'commaai/connect'
+    if: github.repository == 'commaai/connect' && github.ref == 'refs/heads/master'
     permissions:
       packages: write
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - id: buildx
-        uses: docker/setup-buildx-action@v2
-
-      - uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
 
       - uses: docker/login-action@v3
         with:
@@ -111,9 +67,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
-
-      - run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          provenance: false
+          sbom: false

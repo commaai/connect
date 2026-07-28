@@ -7,13 +7,11 @@ Try it with your openpilot device:
 - **latest:** https://latest.connect-d5y.pages.dev/
 
 ## Development
-* Install pnpm: https://pnpm.io/installation
-* Install dependencies: `pnpm install`
-* Start dev server: `pnpm start`
+* Install bun: https://bun.sh/docs/installation
+* Install dependencies: `bun install`
+* Start dev server: `bun start`
 
 ## Contributing
-
-If you don't have a comma device, connect has a demo mode with some example drives. This should allow for testing most functionality except for interactions with the device, such as getting the car battery voltage.
 
 * Use best practices
 * Write test cases

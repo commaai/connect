@@ -11,7 +11,7 @@ import { deviceNamePretty } from '../../utils';
 import * as Billing from '../../api/billing';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
-import { primeNav, analyticsEvent } from '../../actions';
+import { primeNav, analyticsEvent, primeFetchSubscription } from '../../actions';
 import { ErrorOutline, InfoOutline } from '../../icons';
 import CommacareIcon from '../../icons/commacare.png';
 import { COMMACARE_URL } from '../CommacareBadge';
@@ -252,6 +252,10 @@ class PrimeCheckout extends Component {
   }
 
   componentDidMount() {
+    const { dispatch, dongleId, device } = this.props;
+    if (dongleId) {
+      dispatch(primeFetchSubscription(dongleId, device));
+    }
     this.componentDidUpdate({});
   }
 
@@ -276,9 +280,10 @@ class PrimeCheckout extends Component {
     this.setState({ loadingCheckout: true });
     try {
       const { selectedPlan: plan } = this.state;
+      const simId = plan === 'data' ? subscribeInfo.sim_id : undefined;
       const resp = await Billing.getStripeCheckout(
         dongleId,
-        subscribeInfo.sim_id,
+        simId,
         plan,
       );
       dispatch(analyticsEvent('prime_checkout', { plan }));

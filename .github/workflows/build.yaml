@@ -10,19 +10,21 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 1
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-pnpm
+      - uses: oven-sh/setup-bun@v2
 
       - name: get build info
         id: build_info
         run: echo timestamp=$(git show -s --format=%cI) >> $GITHUB_OUTPUT
 
-      - run: pnpm install
-      - run: pnpm build:production
+      - run: bun install --frozen-lockfile
+      - run: bun run build:production
         env:
           VITE_APP_GIT_SHA: ${{ github.sha }}
           VITE_APP_GIT_TIMESTAMP: ${{ steps.build_info.outputs.timestamp }}
+          PREVIEW: '1'
 
       - name: Upload built project
         uses: actions/upload-artifact@v4

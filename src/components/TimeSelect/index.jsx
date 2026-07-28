@@ -10,15 +10,15 @@ import Colors from '../../colors';
 import { selectTimeFilter } from '../../actions';
 
 const styles = (theme) => ({
+  modalContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   modal: {
-    position: 'absolute',
     padding: theme.spacing.unit * 2,
     width: theme.spacing.unit * 50,
     maxWidth: '90%',
-    margin: '0 auto',
-    left: '50%',
-    top: '40%',
-    transform: 'translate(-50%, -50%)',
     outline: 'none',
   },
   buttonGroup: {
@@ -119,6 +119,7 @@ class TimeSelect extends Component {
           aria-describedby="simple-modal-description"
           open={isOpen}
           onClose={this.handleClose}
+          className={classes.modalContainer}
         >
           <Paper className={classes.modal}>
             <div className={ classes.datePickerContainer }>

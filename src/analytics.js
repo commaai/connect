@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './actions/types';
-import { sendEvent } from './analytics-v2';
 import { getDongleID, getZoom } from './url';
 import { deviceIsOnline } from './utils';
 
@@ -91,7 +90,6 @@ function logAction(action, prevState, state) {
   }
 
   function tag(event, properties) {
-    sendEvent({ event, ...properties });
     if (typeof gtag === 'function') {
       gtag(event, {
         ...params,
@@ -142,11 +140,6 @@ function logAction(action, prevState, state) {
         ...params,
         page_location: getPageViewEventLocation(window.location.pathname),
       });
-      sendEvent({
-        event: 'startup_device',
-        dongle_id: state.device?.dongle_id,
-        device_type: state.device?.device_type,
-      });
       return;
 
     case Types.ACTION_SELECT_DEVICE:
@@ -159,11 +152,6 @@ function logAction(action, prevState, state) {
         device_online: state.device ? deviceIsOnline(state.device) : undefined,
         device_sim_type: state.device?.sim_type,
         device_trial_claimed: state.device?.trial_claimed,
-      });
-      sendEvent({
-        event: 'select_device',
-        dongle_id: state.device?.dongle_id,
-        device_type: state.device?.device_type,
       });
 
       gtag('set', {

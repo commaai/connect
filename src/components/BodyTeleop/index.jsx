@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import { IconButton } from '@material-ui/core';
 
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
-import { WebRTCConnection } from '../../utils/webrtc';
+import { webrtcConnectionManager } from '../../utils/webrtc';
+import { useIsLandscape } from '../../hooks/window';
 import StatusBar from './StatusBar';
 import ControlsBar from './ControlsBar';
 import Video from './Video';
@@ -13,45 +13,51 @@ import Joystick from './Joystick';
 
 const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [connectionState, setConnectionState] = useState('none');
-  const [connectStep, setConnectStep] = useState(null);
   const [battery, setBattery] = useState(null);
   const [error, setError] = useState(null);
-  const [isLandscape, setIsLandscape] = useState(false);
   const [activeCamera, setActiveCamera] = useState('wideRoad');
-
   const [gamepadConnected, setGamepadConnected] = useState(false);
+  const [inputActive, setInputActive] = useState(false);
+  const [connectionTotalMs, setConnectionTotalMs] = useState(null);
+  const [started, setStarted] = useState(false);
 
   const videoRef = useRef(null);
   const streamsRef = useRef({});
   const connectionRef = useRef(null);
   const latencyCallbackRef = useRef(null);
   const switchTimerRef = useRef(null);
-  const timeoutTimerRef = useRef(null);
+  const connectStartedAtRef = useRef(null);
+  const firstFrameMeasuredRef = useRef(false);
+
+  const isLandscape = useIsLandscape();
+
+  const resetConnectionTiming = useCallback(() => {
+    setConnectionTotalMs(null);
+    connectStartedAtRef.current = performance.now();
+    firstFrameMeasuredRef.current = false;
+  }, []);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, []);
-  
+
   useEffect(() => {
-    const conn = new WebRTCConnection({
+    const callbacks = {
       onConnectionState: (state, reason) => {
+        connectionRef.current = webrtcConnectionManager.connection;
         setConnectionState(state);
-        if (state !== 'connecting') {
-          setConnectStep(null);
-        }
-        if (state === 'failed') {
+        if (state === 'connecting') {
+          setError(null);
+        } else if (state === 'failed') {
           setError((prev) => prev || reason || 'Could not reach device. Is the ignition on?');
+        } else if (state === 'disconnected' && reason) {
+          setError(reason);
         }
       },
-      onConnectProgress: setConnectStep,
       onBatteryLevel: setBattery,
-      onConnectionReplaced: (data) => {
-        setError(data || 'Connection replaced');
-        setConnectionState('failed');
-        conn.cleanup();
-      },
+      onIgnition: setStarted,
       onVideoTrack: (_cameraName, stream) => {
         streamsRef.current.camera = stream;
         if (videoRef.current) {
@@ -61,68 +67,30 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       onLatencyUpdate: (latency) => {
         if (latencyCallbackRef.current) latencyCallbackRef.current(latency);
       },
-    });
+    };
 
-    connectionRef.current = conn;
-    const onBeforeUnload = () => conn.disconnect();
-    window.addEventListener('beforeunload', onBeforeUnload);
+    resetConnectionTiming();
+    connectionRef.current = webrtcConnectionManager.acquire(dongleId, callbacks);
 
     return () => {
-      window.removeEventListener('beforeunload', onBeforeUnload);
-      conn.disconnect();
+      webrtcConnectionManager.release(callbacks);
     };
-  }, []);
+  }, [dongleId, resetConnectionTiming]);
 
-  useEffect(() => {
-    const onVisibilityChange = () => {
-      clearTimeout(timeoutTimerRef.current);
-      if (document.hidden) {
-        timeoutTimerRef.current = setTimeout(() => {
-          connectionRef.current?.disconnect();
-          setError('Session timed out');
-        }, 30000);
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-      clearTimeout(timeoutTimerRef.current);
-    };
-  }, []);
-
-  useEffect(() => {
-    const query = window.matchMedia('(orientation: landscape)');
-    setIsLandscape(query.matches);
-    const handler = (e) => setIsLandscape(e.matches);
-    query.addEventListener('change', handler);
-    return () => query.removeEventListener('change', handler);
-  }, []);
-
-  const handleConnect = useCallback(async () => {
-    const conn = connectionRef.current;
-    if (!conn) return;
+  const handleConnect = useCallback(() => {
     setError(null);
     setActiveCamera('wideRoad');
-    try {
-      await conn.connect(dongleId);
-    } catch (err) {
-      setError(err.message);
-    }
-  }, [dongleId]);
-
-  useEffect(() => {
-    handleConnect();
-  }, []);
-
-  const handleDisconnect = useCallback(() => {
-    setError(null);
-    connectionRef.current?.disconnect();
-  }, []);
+    resetConnectionTiming();
+    connectionRef.current = webrtcConnectionManager.reconnect(dongleId);
+  }, [dongleId, resetConnectionTiming]);
 
   const handleClose = useCallback(() => {
-    handleDisconnect();
+    // Cars aren't prewarmed, tear down connection
+    if (!device?.rpc?.not_car) {
+      webrtcConnectionManager.disconnect();
+    }
     if (onClose) onClose();
-  }, [handleDisconnect, onClose]);
+  }, [device, onClose]);
 
   const switchCamera = useCallback((cameraName) => {
     setActiveCamera((prev) => {
@@ -140,80 +108,103 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     connectionRef.current?.setQuality(nextQuality);
   }, []);
 
+  const handleFirstFrame = useCallback(() => {
+    if (connectStartedAtRef.current == null || firstFrameMeasuredRef.current) return;
+    firstFrameMeasuredRef.current = true;
+    setConnectionTotalMs(performance.now() - connectStartedAtRef.current);
+  }, []);
+
   const connection = connectionRef.current;
   const connected = connectionState === 'connected';
+  const notCar = Boolean(device?.rpc?.not_car);
   const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
 
   const videoProps = {
-    videoRef, connectionState, error,
-    connectStep,
+    videoRef, connectionState, error, connectionTotalMs,
+    onFirstFrame: handleFirstFrame,
     onConnect: handleConnect,
+    started,
   };
 
   return (
-    <div className="fixed inset-0 z-[1300] bg-[#030404] flex flex-col touch-none h-full w-full overflow-hidden select-none">
-      <div
-        className={isLandscape
-          ? 'absolute left-2 top-2 z-20 flex items-center gap-1'
-          : 'flex items-center px-3 py-2 bg-[#30373B] border-b border-white/10 min-h-[48px] z-10'}
-      >
-        <IconButton
-          className={isLandscape ? 'text-white p-2 w-10 h-10 bg-glass' : 'text-white p-2'}
-          onClick={handleClose}
-        >
-          <ArrowBackBold style={{ fontSize: 20 }} />
-        </IconButton>
+    <div className="fixed top-0 left-0 w-screen h-full z-[1300] bg-[#030404]">
+      <div className={`
+        absolute inset-0 bg-[#030404] flex flex-col touch-none
+        overflow-hidden select-none [-webkit-touch-callout:none] [-webkit-text-size-adjust:none]
+        mt-safe-top mb-safe-bottom ml-safe-left mr-safe-right
+      `}>
         <div
           className={isLandscape
-            ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-white bg-glass'
-            : 'text-base font-medium ml-2 flex-1'}
+            ? 'absolute left-2 top-2 z-20 flex items-center gap-1'
+            : 'flex items-center px-3 py-2 bg-[#1D2225] border-b border-white/10 min-h-[64px] z-10'}
         >
-          {deviceName}
-        </div>
-      </div>
-      {connected && (
-        <div className='relative'>
-          <StatusBar
-            battery={battery}
-            className={isLandscape
-              ? 'absolute top-3 right-3 z-30 flex items-center gap-2'
-              : 'relative z-30 flex items-center justify-end p-2 gap-2'}
-            isLandscape={isLandscape}
-            connection={connection}
-            connectionState={connectionState}
-            latencyCallbackRef={latencyCallbackRef}
-            onQualityChange={handleQualityChange}
-          />
-        </div>
-      )}
-      <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : "aspect-[16/9]"} />
-      {connected && (
-        <>
-          <ControlsBar
-            activeCamera={activeCamera}
-            onSwitchCamera={switchCamera}
-            gamepadConnected={gamepadConnected}
-            videoRef={videoRef}
-            isLandscape={isLandscape}
-          />
+          <button
+            className={isLandscape ? 'flex items-center rounded-full hover:text-white/90 text-white/60 p-2 w-10 h-10 bg-glass' : 'text-white p-2'}
+            onClick={handleClose}
+          >
+            <ArrowBackBold style={{ fontSize: 20 }} />
+          </button>
           <div
             className={isLandscape
-              ? 'absolute bottom-4 right-4 z-10 w-[160px] h-[160px]'
-              : 'flex-1 flex items-center justify-center p-2 min-h-0 overflow-hidden'}
+              ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-white bg-glass border-0'
+              : 'text-base font-medium ml-2 flex-1'}
           >
-            <Joystick
-              connection={connection}
-              activeCamera={activeCamera}
+            {deviceName}
+          </div>
+        </div>
+        {connected && (
+          <div className='relative'>
+            <StatusBar
+              battery={battery}
               className={isLandscape
-                ? 'relative w-full h-full'
-                : 'relative w-auto h-full aspect-square max-w-full'}
-              onGamepadChange={setGamepadConnected}
-              onSwitchCamera={switchCamera}
-              gamepadConnected={gamepadConnected}
+                ? 'absolute top-3 right-3 z-30 flex items-center gap-2'
+                : 'relative z-30 flex items-center justify-end p-2 gap-2'}
+              isLandscape={isLandscape}
+              connection={connection}
+              connectionState={connectionState}
+              latencyCallbackRef={latencyCallbackRef}
+              onQualityChange={handleQualityChange}
             />
           </div>
-        </>
-      )}
+        )}
+        <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : started ? "aspect-[16/9]" : "flex-1"} />
+        { connected && notCar && !started && (
+          <div className="absolute w-full bottom-36 2xl:bottom-12 pointer-events-none text-center select-none">
+            <span className="text-sm md:text-base text-white/70">Turn on comma body ignition to remote control</span>
+          </div>
+        )}
+        {connected && (
+          <>
+            <ControlsBar
+              activeCamera={activeCamera}
+              onSwitchCamera={switchCamera}
+              gamepadConnected={gamepadConnected}
+              videoRef={videoRef}
+              isLandscape={isLandscape}
+              controlsDisabled={inputActive}
+            />
+            { started && (
+              <div
+                className={isLandscape
+                  ? 'absolute bottom-4 right-4 z-10 w-[160px] h-[160px]'
+                  : 'flex-1 flex items-center justify-center px-4 pb-12 pt-2 min-h-0 overflow-hidden'}
+              >
+                <Joystick
+                  connection={connection}
+                  activeCamera={activeCamera}
+                  className={isLandscape
+                    ? 'relative w-full h-full'
+                    : 'relative w-auto h-full aspect-square max-w-full'}
+                  onGamepadChange={setGamepadConnected}
+                  onSwitchCamera={switchCamera}
+                  gamepadConnected={gamepadConnected}
+                  onInputActiveChange={setInputActive}
+                />
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

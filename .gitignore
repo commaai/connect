@@ -1,10 +1,7 @@
-# See https://help.github.com/ignore-files/ for more about ignoring files.
-
 .idea
 *.iml
 .vscode
 *.swp
-
 .lighthouseci/
 
 # dependencies
@@ -31,5 +28,3 @@ yarn-error.log*
 
 # Sentry Auth Token
 .env.sentry-build-plugin
-
-.pnpm-store/

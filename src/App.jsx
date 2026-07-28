@@ -11,9 +11,11 @@ import { CircularProgress, Grid } from '@material-ui/core';
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 import { athena as Athena, auth as Auth, request as Request } from '@commaai/api';
 
-import { getZoom, getSegmentRange } from './url';
-import * as Billing from './api/billing';
+import { getZoom, getSegmentRange, getDongleID, getStreamNav } from './url';
+import { webrtcConnectionManager } from './utils/webrtc';
+import { fetchTurnCredentials } from './utils/turn';
 import store, { history } from './store';
+import * as Billing from './api/billing';
 
 import ErrorFallback from './components/ErrorFallback';
 
@@ -69,12 +71,22 @@ class App extends Component {
       Request.configure(token, this.apiErrorResponseCallback);
       Billing.configure(token, this.apiErrorResponseCallback);
       Athena.configure(token, this.apiErrorResponseCallback);
+
+      // Reloading: start the webrtc handshake as soon as the API is authed, so it runs in parallel
+      // with the lazy explorer chunk load and redux/device init instead of behind them.
+      const { pathname } = window.location;
+      const teleopDongleId = getDongleID(pathname);
+      if (teleopDongleId && getStreamNav(pathname)) {
+        webrtcConnectionManager.reconnect(teleopDongleId);
+      }
+
+      fetchTurnCredentials().catch((err) => {
+        console.error('Failed to fetch TURN credentials', err);
+        Sentry.captureException(err, { fingerprint: 'app_fetch_turn_credentials' });
+      });
     }
 
     this.setState({ initialized: true });
-
-    // set up analytics, low priority, so we do this last
-    import('./analytics-v2');
   }
 
   redirectLink() {

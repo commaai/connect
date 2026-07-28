@@ -9,10 +9,10 @@ import qs from 'query-string';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 
-import {config as AuthConfig, storage as AuthStorage} from '@commaai/my-comma-auth';
+import {config as AuthConfig} from '@commaai/my-comma-auth';
 
 import Colors from '../colors';
-import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon, RightArrow } from '../icons';
+import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon } from '../icons';
 
 import PWAIcon from './PWAIcon';
 
@@ -128,11 +128,6 @@ class AnonymousLanding extends Component {
   render() {
     const { classes } = this.props;
 
-    const loginAsDemoUser = function() {
-      AuthStorage.setCommaAccessToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjEwMzg5NTgwNzM1LCJuYmYiOjE3NDk1ODA3MzUsImlhdCI6MTc0OTU4MDczNSwiaWRlbnRpdHkiOiIwZGVjZGRjZmRmMjQxYTYwIn0.KsDzqJxgkYhAs4tCgrMJIdORyxO0CQNb0gHXIf8aUT0');
-      window.location = window.location.origin;
-    };
-
     return (
       <div className={classes.baseContainer}>
         <div className={classes.base}>
@@ -161,14 +156,6 @@ class AnonymousLanding extends Component {
             Make sure to sign in with the same account if you have previously
             paired your comma device.
           </span>
-
-          <a onClick={loginAsDemoUser}
-            className="flex items-center pl-4 pr-3 py-2 font-medium border border-white rounded-full hover:bg-[rgba(255,255,255,0.1)] active:bg-[rgba(255,255,255,0.2)] transition-colors"
-            style={{ height: 0, overflow: 'hidden', opacity: 0 }}
-          >
-            Try the demo
-            <RightArrow className="ml-1 h-4" />
-          </a>
         </div>
         <PWAIcon immediate />
       </div>

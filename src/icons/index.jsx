@@ -130,6 +130,24 @@ export const GamepadIcon = (props) => (
   </SvgIcon>
 );
 
+export const LivestreamIcon = (props) => (
+  <SvgIcon {...props} viewBox="0 0 24 24">
+    <path d="M18,16L14,12.8V16H6V8H14V11.2L18,8M20,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z" />
+  </SvgIcon>
+);
+
+export const CarBatteryIcon = (props) => (
+  <SvgIcon {...props} viewBox="0 0 24 24">
+    <path d="M4,3V6H1V20H23V6H20V3H14V6H10V3H4M3,8H21V18H3V8M15,10V12H13V14H15V16H17V14H19V12H17V10H15M5,12V14H11V12H5Z" />
+  </SvgIcon>
+);
+
+export const CameraIcon = (props) => (
+  <SvgIcon {...props} viewBox="0 0 24 22">
+    <path d="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z" />
+  </SvgIcon>
+);
+
 export const ChevronIcon = (props) => (
   <SvgIcon {...props}>
     {chevronPath(270)}
