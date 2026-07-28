@@ -116,8 +116,12 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
 
   const connection = connectionRef.current;
   const connected = connectionState === 'connected';
+<<<<<<< Updated upstream
   const notCar = Boolean(device?.rpc?.not_car);
   const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
+=======
+  const deviceName = device ? deviceNamePretty(device) : '';
+>>>>>>> Stashed changes
 
   const videoProps = {
     videoRef, connectionState, error, connectionTotalMs,
