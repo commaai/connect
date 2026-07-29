@@ -7,9 +7,8 @@ import { withStyles, Typography, IconButton, Button, CircularProgress } from '@m
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import CheckIcon from '@material-ui/icons/Check';
 
-import { billing as Billing } from '@commaai/api';
-
 import { deviceNamePretty } from '../../utils';
+import * as Billing from '../../api/billing';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { primeNav, analyticsEvent, primeFetchSubscription } from '../../actions';
