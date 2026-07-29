@@ -3,6 +3,8 @@ import dayjs from 'dayjs';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
+import { USERADMIN_URL_ROOT } from '../../api';
+
 const logOut = async () => {
   await MyCommaAuth.logOut();
   if (window.location) {
@@ -55,7 +57,7 @@ const AccountMenu = ({ profile, open, onClose }) => {
         <div className="h-px bg-white/10" />
         <a
           className="block px-4 py-3 text-white hover:bg-white/10"
-          href="https://useradmin.comma.ai/"
+          href={USERADMIN_URL_ROOT}
           target="_blank"
           rel="noreferrer"
           onClick={onClose}

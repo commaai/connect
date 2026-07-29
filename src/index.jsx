@@ -7,10 +7,10 @@ import './index.css';
 import App from './App';
 import Theme from './theme';
 
-if (window.SENTRY_ENV) {
+if (import.meta.env.VITE_SENTRY_ENV) {
   Sentry.init({
     dsn: 'https://6a242abfa01b4660aa34f150e87de018@o33823.ingest.sentry.io/1234624',
-    environment: window.SENTRY_ENV,
+    environment: import.meta.env.VITE_SENTRY_ENV,
     maxValueLength: 1000,
     release: import.meta.env.VITE_APP_GIT_SHA,
   });

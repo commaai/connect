@@ -1,8 +1,11 @@
 import qs from 'query-string';
 
-const COMMA_URL_ROOT = window.COMMA_URL_ROOT || 'https://api.comma.ai/';
-const ATHENA_URL_ROOT = window.ATHENA_URL_ROOT || 'https://athena.comma.ai/';
-const BILLING_URL_ROOT = window.BILLING_URL_ROOT || 'https://billing.comma.ai/';
+const COMMA_URL_ROOT = import.meta.env.VITE_COMMA_URL_ROOT || 'https://api.comma.ai/';
+const ATHENA_URL_ROOT = import.meta.env.VITE_ATHENA_URL_ROOT || 'https://athena.comma.ai/';
+const BILLING_URL_ROOT = import.meta.env.VITE_BILLING_URL_ROOT || 'https://billing.comma.ai/';
+
+export const USERADMIN_URL_ROOT = import.meta.env.VITE_USERADMIN_URL_ROOT
+  || 'https://useradmin.comma.ai/';
 
 class RequestError extends Error {
   constructor(response, message) {
