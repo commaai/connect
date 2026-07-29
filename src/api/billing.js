@@ -1,20 +1,42 @@
-import { billing as ApiBilling } from '@commaai/api';
-import Config from '@commaai/api/src/config';
-import ConfigRequest from '@commaai/api/src/instance';
+import Config from './config';
+import ConfigRequest from './instance';
 
 const request = new ConfigRequest(Config.BILLING_URL_ROOT);
 
 export function configure(accessToken, errorResponseCallback = null) {
-  ApiBilling.configure(accessToken, errorResponseCallback);
   request.configure(accessToken, errorResponseCallback);
 }
 
-export const getSubscription = ApiBilling.getSubscription;
-export const getSubscribeInfo = ApiBilling.getSubscribeInfo;
-export const cancelPrime = ApiBilling.cancelPrime;
-export const getStripeCheckout = ApiBilling.getStripeCheckout;
-export const getStripePortal = ApiBilling.getStripePortal;
-export const getStripeSession = ApiBilling.getStripeSession;
+export function getSubscription(dongleId) {
+  return request.get('v1/prime/subscription', { dongle_id: dongleId });
+}
+
+export function getSubscribeInfo(dongleId) {
+  return request.get('v1/prime/subscribe_info', { dongle_id: dongleId });
+}
+
+export function cancelPrime(dongleId) {
+  return request.post('v1/prime/cancel', { dongle_id: dongleId });
+}
+
+export function getStripeCheckout(dongleId, simId, plan) {
+  return request.post('v1/prime/stripe_checkout', {
+    dongle_id: dongleId,
+    sim_id: simId,
+    plan,
+  });
+}
+
+export function getStripePortal(dongleId) {
+  return request.get('v1/prime/stripe_portal', { dongle_id: dongleId });
+}
+
+export function getStripeSession(dongleId, sessionId) {
+  return request.get('v1/prime/stripe_session', {
+    dongle_id: dongleId,
+    session_id: sessionId,
+  });
+}
 
 export async function switchPrimePlan(dongle_id, plan, sim_id = null) {
   return request.post('v1/prime/switch_plan', { dongle_id, plan, sim_id });

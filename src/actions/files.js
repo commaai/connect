@@ -1,8 +1,10 @@
 import * as Sentry from '@sentry/react';
-import { athena as Athena, devices as Devices, raw as Raw } from '@commaai/api';
 
 import { updateDeviceOnline, fetchDeviceNetworkStatus } from '.';
 import * as Types from './types';
+import * as Athena from '../api/athena';
+import * as Devices from '../api/devices';
+import * as Raw from '../api/raw';
 import { deviceOnCellular, getDeviceFromState, deviceVersionAtLeast, asyncSleep } from '../utils';
 
 export const FILE_NAMES = {

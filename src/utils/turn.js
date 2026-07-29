@@ -1,4 +1,4 @@
-import { request as Request } from '@commaai/api';
+import * as Turn from '../api/turn';
 
 const TURN_TTL_S = 3600; // 1 hour
 const TURN_REFRESH_MARGIN_S = 300; // 5 mins
@@ -10,7 +10,7 @@ let pending = null;
 export async function fetchTurnCredentials() {
   if (pending) return pending;
   pending = (async () => {
-    const resp = await Request.get('v1/me/turn');
+    const resp = await Turn.getCredentials();
     cache = resp;
     fetchedAt = Math.floor(Date.now() / 1000);
     return resp;

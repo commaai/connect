@@ -1,4 +1,4 @@
-import { athena as Athena } from '@commaai/api';
+import * as Athena from '../api/athena';
 import { asyncSleep } from '.';
 import { getTurnCredentials } from './turn';
 

@@ -1,7 +1,8 @@
 import * as Sentry from '@sentry/react';
-import { account as Account, devices as Devices } from '@commaai/api';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
+import * as Account from '../api/account';
+import * as Devices from '../api/devices';
 import { ACTION_STARTUP_DATA } from './types';
 import { primeFetchSubscription, checkLastRoutesData, selectDevice, fetchSharedDevice } from '.';
 

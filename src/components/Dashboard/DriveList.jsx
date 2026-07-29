@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import { withStyles, Typography } from '@material-ui/core';
 import FilterList from '@material-ui/icons/FilterList';
 
-import { devices as Devices } from '@commaai/api';
+import * as Devices from '../../api/devices';
 import { checkRoutesData, checkLastRoutesData } from '../../actions';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import VisibilityHandler from '../VisibilityHandler';

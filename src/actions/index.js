@@ -1,11 +1,13 @@
 import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
 import document from 'global/document';
-import { athena as Athena, devices as Devices, drives as Drives } from '@commaai/api';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import * as Types from './types';
+import * as Athena from '../api/athena';
 import * as Billing from '../api/billing';
+import * as Devices from '../api/devices';
+import * as Drives from '../api/drives';
 import { resetPlayback, selectLoop } from '../timeline/playback';
 import {hasRoutesData } from '../timeline/segments';
 import { getDeviceFromState, deviceVersionAtLeast, deviceIsOnline } from '../utils';

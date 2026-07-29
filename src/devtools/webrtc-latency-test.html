@@ -131,7 +131,8 @@
 
     <script type="module">
       import MyCommaAuth, { storage as AuthStorage } from '@commaai/my-comma-auth';
-      import { athena as Athena, request as Request } from '@commaai/api';
+      import * as Athena from '../api/athena.js';
+      import Request from '../api/request.js';
       import { WebRTCConnection } from '../utils/webrtc.js';
       
       const DONGLE_ID_RE = /^[a-f0-9]{16}$/;

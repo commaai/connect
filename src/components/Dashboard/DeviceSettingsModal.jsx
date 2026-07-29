@@ -18,7 +18,7 @@ import SaveIcon from '@material-ui/icons/Save';
 import ShareIcon from '@material-ui/icons/Share';
 import WarningIcon from '@material-ui/icons/Warning';
 
-import { devices as Devices } from '@commaai/api';
+import * as Devices from '../../api/devices';
 import { primeNav, selectDevice, updateDevice } from '../../actions';
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';

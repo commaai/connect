@@ -7,7 +7,7 @@ import { withStyles, Typography, IconButton } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
-import { devices as Devices } from '@commaai/api';
+import * as Devices from '../../api/devices';
 
 import { updateDevices } from '../../actions';
 import Colors from '../../colors';
