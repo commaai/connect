@@ -1,5 +1,6 @@
 import { athena as Athena } from '../api';
 import { asyncSleep } from '.';
+import { isFirefox } from './browser';
 import { getTurnCredentials } from './turn';
 
 const VIDEO_STREAM_NAME = 'camera';
@@ -167,17 +168,37 @@ export class WebRTCConnection extends EventTarget {
       if (this.pc !== pc) return;
       this._log('create offer and setLocalDescription done');
 
+      const waitForIceComplete = isFirefox();
       const candidateReady = new Promise((resolve) => {
-        pc.addEventListener('icecandidate', (evt) => {
-          if (!evt.candidate) {
+        const finish = () => {
+          pc.removeEventListener('icecandidate', onIceCandidate);
+          pc.removeEventListener('icegatheringstatechange', onIceGatheringStateChange);
+          resolve();
+        };
+        const onIceGatheringStateChange = () => {
+          if (waitForIceComplete && pc.iceGatheringState === 'complete') {
             this._log('ICE gathering complete');
-            resolve();
-          } else if (['relay'].includes(evt.candidate.type)) {
+            finish();
+          }
+        };
+        const onIceCandidate = (evt) => {
+          if (!evt.candidate && !waitForIceComplete) {
+            this._log('ICE gathering complete');
+            finish();
+          } else if (!waitForIceComplete && ['relay'].includes(evt.candidate.type)) {
             // short cut when at least the relay candidate is added
             this._log(`Using ${evt.candidate.type} candidate`, evt.candidate);
-            resolve();
+            finish();
           }
-        });
+        };
+
+        if (waitForIceComplete && pc.iceGatheringState === 'complete') {
+          this._log('ICE gathering complete');
+          resolve();
+          return;
+        }
+        pc.addEventListener('icecandidate', onIceCandidate);
+        pc.addEventListener('icegatheringstatechange', onIceGatheringStateChange);
       });
       await Promise.race([candidateReady, asyncSleep(ICE_GATHER_DEADLINE_MS)]);
       if (this.pc !== pc) throw new Error('Connection torn down during candidate gathering');
