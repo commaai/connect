@@ -8,13 +8,39 @@ import { withStyles, Typography, Button, Modal, Paper, IconButton, CircularProgr
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
 
-import { billing as Billing } from '@commaai/api';
 import { deviceNamePretty, deviceTypePretty } from '../../utils';
+import { billing as Billing } from '../../api';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { ErrorOutline, InfoOutline } from '../../icons';
 import { primeNav, primeGetSubscription, analyticsEvent } from '../../actions';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
+import { otherPrimePlan, primePlanName } from './primePlans';
+
+export function primeSwitchErrorMessage(error, plan = 'data') {
+  const status = error?.resp?.status;
+  const planName = primePlanName(plan);
+
+  if (error?.code === 'unexpected_response') {
+    return `Billing returned an unexpected response. Your plan may not have changed. Please try switching to ${planName} again.`;
+  }
+  if (status === 400) {
+    if (plan === 'data') {
+      return 'Standard could not be activated. Make sure this device is eligible and has a usable, supported comma SIM, then try again.';
+    }
+    return `This subscription could not be switched to ${planName}. Please refresh the page and try again.`;
+  }
+  if (status === 401) {
+    return 'Your session has expired. Sign in again, then try switching plans.';
+  }
+  if (status === 403) {
+    return "You don't have permission to change this device's subscription.";
+  }
+  if (status >= 500) {
+    return 'The billing service is having trouble right now. Your plan was not changed. Please try again later.';
+  }
+  return 'Could not reach the billing service. Check your internet connection and try again.';
+}
 
 const styles = (theme) => ({
   linkHighlight: {
@@ -180,8 +206,7 @@ const styles = (theme) => ({
   },
   paymentElement: {
     display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
     maxWidth: 450,
   },
   commacareWarning: {
@@ -196,7 +221,7 @@ const styles = (theme) => ({
   },
 });
 
-class PrimeManage extends Component {
+export class PrimeManage extends Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -204,6 +229,11 @@ class PrimeManage extends Component {
       cancelError: null,
       cancelModal: false,
       canceling: false,
+      planSwitchModal: false,
+      planSwitchStatus: 'confirm',
+      planSwitchMessage: null,
+      planSwitchTarget: null,
+      switchingPlan: false,
       stripeStatus: null,
       windowWidth: window.innerWidth,
     };
@@ -211,6 +241,7 @@ class PrimeManage extends Component {
     this.cancelPrime = this.cancelPrime.bind(this);
     this.fetchStripeSession = this.fetchStripeSession.bind(this);
     this.gotoUpdate = this.gotoUpdate.bind(this);
+    this.switchPlan = this.switchPlan.bind(this);
     this.fetchSubscription = this.fetchSubscription.bind(this);
     this.onResize = this.onResize.bind(this);
   }
@@ -267,6 +298,45 @@ class PrimeManage extends Component {
       // TODO show error messages
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_update' });
+    }
+  }
+
+  async switchPlan() {
+    const { dispatch, dongleId, subscription } = this.props;
+    const plan = this.state.planSwitchTarget || otherPrimePlan(subscription.plan);
+    const planName = primePlanName(plan);
+    this.setState({
+      switchingPlan: true,
+      error: null,
+      planSwitchStatus: 'loading',
+      planSwitchMessage: null,
+    });
+    try {
+      const subscribeInfo = plan === 'data' ? await Billing.getSubscribeInfo(dongleId) : null;
+      const response = await Billing.switchPrimePlan(dongleId, plan, subscribeInfo?.sim_id);
+      if (!response?.success) {
+        const error = new Error('Unexpected billing response');
+        error.code = 'unexpected_response';
+        throw error;
+      }
+      dispatch(analyticsEvent('prime_switch_plan', { from: subscription.plan, to: plan }));
+      await this.fetchSubscription();
+      if (this.mounted) {
+        this.setState({
+          planSwitchStatus: 'success',
+          planSwitchMessage: `Your subscription has been switched to ${planName} successfully.`,
+        });
+      }
+    } catch (err) {
+      Sentry.captureException(err, { fingerprint: 'primemanage_switch_plan' });
+      const message = primeSwitchErrorMessage(err, plan);
+      if (this.mounted) {
+        this.setState({ planSwitchStatus: 'error', planSwitchMessage: message });
+      }
+    } finally {
+      if (this.mounted) {
+        this.setState({ switchingPlan: false });
+      }
     }
   }
 
@@ -345,7 +415,7 @@ class PrimeManage extends Component {
       joinDate = dayjs(subscription.subscribed_at ? subscription.subscribed_at * 1000 : 0).format('MMMM D, YYYY');
       nextPaymentDate = dayjs(subscription.next_charge_at ? subscription.next_charge_at * 1000 : 0).format('MMMM D, YYYY');
       cancelAtDate = dayjs(subscription.cancel_at ? subscription.cancel_at * 1000 : 0).format('MMMM D, YYYY');
-      planName = subscription.plan === 'nodata' ? 'Lite' : 'Standard';
+      planName = primePlanName(subscription.plan);
       planSubtext = subscription.plan === 'nodata' ? '(without data plan)' : '(with data plan)';
     }
 
@@ -456,6 +526,25 @@ class PrimeManage extends Component {
                   {!hasCancelAt
                     && (
                       <Button
+                        className={classes.buttons}
+                        style={buttonSmallStyle}
+                        onClick={() => this.setState({
+                          planSwitchModal: true,
+                          planSwitchStatus: 'confirm',
+                          planSwitchMessage: null,
+                          planSwitchTarget: otherPrimePlan(subscription.plan),
+                          error: null,
+                        })}
+                        disabled={this.state.switchingPlan}
+                      >
+                        {this.state.switchingPlan
+                          ? <CircularProgress size={19} style={{ color: Colors.white }} />
+                          : `Switch to ${primePlanName(otherPrimePlan(subscription.plan))} plan`}
+                      </Button>
+                    )}
+                  {!hasCancelAt
+                    && (
+                      <Button
                         className={`${classes.buttons} ${classes.cancelButton} primeCancel`}
                         style={buttonSmallStyle}
                         onClick={() => this.setState({ cancelModal: true })}
@@ -493,6 +582,106 @@ class PrimeManage extends Component {
             )}
           </div>
         </div>
+        <Modal
+          open={this.state.planSwitchModal}
+          onClose={() => {
+            if (!this.state.switchingPlan) {
+              this.setState({
+                planSwitchModal: false,
+                planSwitchStatus: 'confirm',
+                planSwitchMessage: null,
+                planSwitchTarget: null,
+              });
+            }
+          }}
+        >
+          <Paper className="absolute left-1/2 top-[40%] w-[400px] max-w-[90%] -translate-x-1/2 -translate-y-1/2 p-4">
+            {this.state.planSwitchStatus === 'success'
+              ? (
+                <>
+                  <Typography variant="title" className="text-white">
+                    {`Welcome to ${primePlanName(this.state.planSwitchTarget)}`}
+                  </Typography>
+                  <div className="mt-4 rounded-lg bg-green-500/20 p-3 text-green-100">
+                    <Typography>{this.state.planSwitchMessage}</Typography>
+                  </div>
+                  <Typography className="mt-3 text-white/80">
+                    {this.state.planSwitchTarget === 'data'
+                      ? 'Your plan now includes data for $24/month.'
+                      : 'Your plan no longer includes data and costs $14/month.'}
+                  </Typography>
+                  <div className="mt-4">
+                    <Button
+                      variant="contained"
+                      className={classes.closeButton}
+                      onClick={() => this.setState({
+                        planSwitchModal: false,
+                        planSwitchStatus: 'confirm',
+                        planSwitchMessage: null,
+                        planSwitchTarget: null,
+                      })}
+                    >
+                      Done
+                    </Button>
+                  </div>
+                </>
+              )
+              : (
+                <>
+                  <Typography variant="title" className="text-white">
+                    {`Switch to ${primePlanName(this.state.planSwitchTarget)} plan`}
+                  </Typography>
+                  <Typography className="mt-3 text-white/80">
+                    {this.state.planSwitchTarget === 'data'
+                      ? (
+                        <>
+                          The Standard plan costs $24/month, includes a data plan, and is
+                          {' '}
+                          <strong className="font-bold text-white">only available in the U.S.</strong>
+                        </>
+                      )
+                      : 'The Lite plan costs $14/month and does not include a data plan.'}
+                  </Typography>
+                </>
+              )}
+            {this.state.planSwitchStatus === 'loading' && (
+              <div className="mt-4 flex flex-col items-center justify-center rounded-lg bg-black/20 p-5 text-center">
+                <CircularProgress size={19} style={{ color: Colors.white }} />
+                <Typography className="mt-2 text-white/80">Switching your plan…</Typography>
+              </div>
+            )}
+            {this.state.planSwitchStatus === 'error' && (
+              <div className="mt-4 rounded-lg bg-red-500/20 p-3 text-red-100">
+                <Typography className="text-inherit">{this.state.planSwitchMessage}</Typography>
+              </div>
+            )}
+            {this.state.planSwitchStatus !== 'success' && (
+              <div className="mt-4">
+                <Button
+                  variant="contained"
+                  className={classes.cancelModalButton}
+                  onClick={this.switchPlan}
+                  disabled={this.state.switchingPlan}
+                >
+                  {this.state.planSwitchStatus === 'error' ? 'Try again' : 'Confirm switch'}
+                </Button>
+                <Button
+                  variant="contained"
+                  className={classes.closeButton}
+                  onClick={() => this.setState({
+                    planSwitchModal: false,
+                    planSwitchStatus: 'confirm',
+                    planSwitchMessage: null,
+                    planSwitchTarget: null,
+                  })}
+                  disabled={this.state.switchingPlan}
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
+          </Paper>
+        </Modal>
         <Modal
           open={this.state.cancelModal}
           onClose={() => this.setState({ cancelModal: false })}

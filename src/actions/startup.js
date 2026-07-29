@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { account as Account, devices as Devices } from '@commaai/api';
+import { account as Account, devices as Devices } from '../api';
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { ACTION_STARTUP_DATA } from './types';

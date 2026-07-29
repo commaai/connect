@@ -1,5 +1,6 @@
-import { athena as Athena } from '@commaai/api';
+import { athena as Athena } from '../api';
 import { asyncSleep } from '.';
+import { getTurnCredentials } from './turn';
 
 const VIDEO_STREAM_NAME = 'camera';
 const wallMs = () => performance.timeOrigin + performance.now();
@@ -7,7 +8,7 @@ const wallMs = () => performance.timeOrigin + performance.now();
 const CLOCK_WINDOW_SIZE = 16;
 const CLOCK_PING_MS = 500;
 
-const CONNECTION_DEADLINE_MS = 10000;
+const CONNECTION_DEADLINE_MS = 15000;
 const ICE_GATHER_DEADLINE_MS = 8000;
 
 // Drop mDNS (.local) host candidates from an SDP — the device can't resolve them.
@@ -61,10 +62,20 @@ export class WebRTCConnection extends EventTarget {
     this.connectStartedAt = performance.now();
     this.streamTimings = null;
     this.videoEnabled = videoEnabled;
+    
+    let iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+    try {
+      const turnCreds = await getTurnCredentials();
+      if (turnCreds?.iceServers) {
+        iceServers = turnCreds.iceServers;
+      }
+    } catch (err) {
+      this._log(`TURN credentials fetch failed, falling back to STUN: ${err.message}`);
+    }
 
     try {
       this.pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        iceServers,
         bundlePolicy: 'max-bundle',
         encodedInsertableStreams: true,
       });
@@ -161,7 +172,8 @@ export class WebRTCConnection extends EventTarget {
           if (!evt.candidate) {
             this._log('ICE gathering complete');
             resolve();
-          } else if (['srflx', 'prflx', 'relay'].includes(evt.candidate.type)) {
+          } else if (['relay'].includes(evt.candidate.type)) {
+            // short cut when at least the relay candidate is added
             this._log(`Using ${evt.candidate.type} candidate`, evt.candidate);
             resolve();
           }

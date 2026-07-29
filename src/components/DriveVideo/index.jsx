@@ -5,7 +5,7 @@ import { CircularProgress, Typography } from '@material-ui/core';
 import Obstruction from 'obstruction';
 import ReactPlayer from 'react-player/file';
 
-import { video as Video } from '@commaai/api';
+import { video as Video } from '../../api';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';

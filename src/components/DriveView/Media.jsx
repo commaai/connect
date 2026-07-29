@@ -9,7 +9,7 @@ import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
 
-import { drives as Drives } from '@commaai/api';
+import { drives as Drives, USERADMIN_URL_ROOT } from '../../api';
 
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
@@ -319,7 +319,7 @@ class Media extends Component {
     this.props.dispatch(analyticsEvent('open_in_useradmin', event_parameters));
 
     const params = { onebox: currentRoute.fullname };
-    const win = window.open(`${window.USERADMIN_URL_ROOT}?${qs.stringify(params)}`, '_blank');
+    const win = window.open(`${USERADMIN_URL_ROOT}?${qs.stringify(params)}`, '_blank');
     if (win.focus) {
       win.focus();
     }
