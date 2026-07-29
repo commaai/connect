@@ -68,6 +68,7 @@ class DriveVideo extends Component {
         internal.playbackRate = 1;
       }
     }
+    setVideoPlayer(this.videoPlayer.current);
     this.updateVideoSource({});
   }
 
@@ -92,7 +93,7 @@ class DriveVideo extends Component {
     if (videoError) this.setState({ videoError: null });
     dispatch(bufferVideo(false));
   }
-  
+
   onVideoPlay() {
     const { dispatch } = this.props;
     dispatch(play());
@@ -182,7 +183,7 @@ class DriveVideo extends Component {
     if (!currentRoute) {
       return;
     }
-    
+
     const videoTime = getVideoPlayerCurrentTime(currentRoute);
     if (videoTime >= loop.startTime + loop.duration) {
       seekVideoPlayer(loop.startTime, currentRoute);
@@ -191,7 +192,7 @@ class DriveVideo extends Component {
       seekVideoPlayer(loop.startTime, currentRoute);
       return;
     }
-    
+
     dispatch(seek(videoTime));
   }
 
@@ -240,7 +241,7 @@ class DriveVideo extends Component {
         video.currentTime = startSeconds;
         this.firstSeek = false;
       }
-      
+
       if (isIos()) { // ios does not support hls.js and on other browsers hls.js does not directly play the m3u8 so audioTracks are not visible
         const videoElement = player.getInternalPlayer();
         const hasAudio = Boolean(videoElement && videoElement.audioTracks && videoElement.audioTracks.length > 0);

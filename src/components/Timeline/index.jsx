@@ -288,9 +288,6 @@ class Timeline extends Component {
   }
 
   getOffset() {
-    if (!this.mounted) {
-      return;
-    }
     let offset;
     if (this.props.hasAudio && isIos()) {
       // video with audio doesn't report currentTime properly so we must use onTimeUpdate reported time
