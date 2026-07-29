@@ -40,11 +40,12 @@ const ConnectOverlay = ({ connectionState, error, onConnect }) => {
 };
 
 const Video = ({
-  videoRef, connectionState, error, connectionTotalMs,
+  videoRef, roadVideoRef, connectionState, error, connectionTotalMs,
   onConnect, onFirstFrame, className, started
 }) => {
   const connected = connectionState === 'connected';
   const [showConnectionTime, setShowConnectionTime] = useState(false);
+  const [roadPlaying, setRoadPlaying] = useState(false);
   const containerRef = useRef(null);
 
   // Disable pinch-zoom once ignition is on so it doesn't fight the joystick.
@@ -53,6 +54,7 @@ const Video = ({
   useEffect(() => {
     if (connectionState !== 'connected') {
       setShowConnectionTime(false);
+      setRoadPlaying(false);
     }
   }, [connectionState]);
 
@@ -81,6 +83,19 @@ const Video = ({
         }}
         className={`w-full h-full pointer-events-none object-contain`}
       />
+      <div
+        className={`absolute bottom-3 left-1/2 z-[5] w-[32%] max-w-[420px] -translate-x-1/2 aspect-video pointer-events-none overflow-hidden rounded-lg border border-white/20 bg-black shadow-lg transition-opacity ${roadPlaying ? 'opacity-100' : 'opacity-0'}`}
+      >
+        <video
+          ref={roadVideoRef}
+          autoPlay
+          playsInline
+          muted
+          aria-label="Narrow road camera"
+          onPlaying={() => setRoadPlaying(true)}
+          className="h-full w-full scale-150 object-cover object-[center_45%]"
+        />
+      </div>
       {connected && connectionTimeLabel && (
         <div className={`absolute bottom-5 left-1/2 z-10 -translate-x-1/2 select-none rounded bg-black/50 px-2 py-0.5 text-sm leading-4 text-white/70 pointer-events-none transition-opacity duration-500 ease-out ${showConnectionTime ? 'opacity-100' : 'opacity-0'}`}>
           {`connected in ${connectionTimeLabel}`}

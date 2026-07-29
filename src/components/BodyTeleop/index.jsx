@@ -22,6 +22,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [started, setStarted] = useState(false);
 
   const videoRef = useRef(null);
+  const roadVideoRef = useRef(null);
   const streamsRef = useRef({});
   const connectionRef = useRef(null);
   const latencyCallbackRef = useRef(null);
@@ -58,10 +59,11 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       },
       onBatteryLevel: setBattery,
       onIgnition: setStarted,
-      onVideoTrack: (_cameraName, stream) => {
-        streamsRef.current.camera = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+      onVideoTrack: (streamName, stream) => {
+        streamsRef.current[streamName] = stream;
+        const targetRef = streamName === 'road' ? roadVideoRef : videoRef;
+        if (targetRef.current) {
+          targetRef.current.srcObject = stream;
         }
       },
       onLatencyUpdate: (latency) => {
@@ -120,7 +122,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
 
   const videoProps = {
-    videoRef, connectionState, error, connectionTotalMs,
+    videoRef, roadVideoRef, connectionState, error, connectionTotalMs,
     onFirstFrame: handleFirstFrame,
     onConnect: handleConnect,
     started,
