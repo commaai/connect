@@ -6,7 +6,7 @@ import dayjs from 'dayjs';
 
 import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@material-ui/core';
 
-import { athena as Athena } from '@commaai/api';
+import { athena as Athena } from '../../api';
 import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';

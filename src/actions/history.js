@@ -1,7 +1,7 @@
 import { LOCATION_CHANGE } from 'connected-react-router';
 import { getDongleID, getZoom, getSegmentRange, getPrimeNav, getStreamNav } from '../url';
 import { primeNav, streamNav, selectDevice, pushTimelineRange, updateSegmentRange } from './index';
-import { drives as Drives } from '@commaai/api';
+import { drives as Drives } from '../api';
 
 export const onHistoryMiddleware = ({ dispatch, getState }) => (next) => async (action) => {
   if (!action) {

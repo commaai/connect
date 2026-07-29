@@ -7,7 +7,7 @@ import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
 
-import { devices as Devices } from '@commaai/api';
+import { devices as Devices } from '../../api';
 import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import Colors from '../../colors';

@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { athena as Athena, devices as Devices, raw as Raw } from '@commaai/api';
+import { athena as Athena, devices as Devices, raw as Raw } from '../api';
 
 import { updateDeviceOnline, fetchDeviceNetworkStatus } from '.';
 import * as Types from './types';
