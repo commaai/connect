@@ -9,7 +9,7 @@ import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
 
-import { drives as Drives } from '@commaai/api';
+import { drives as Drives } from '../../api';
 
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';

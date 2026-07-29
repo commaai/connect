@@ -9,7 +9,7 @@ import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
 
 import { deviceNamePretty, deviceTypePretty } from '../../utils';
-import * as Billing from '../../api/billing';
+import { billing as Billing } from '../../api';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { ErrorOutline, InfoOutline } from '../../icons';

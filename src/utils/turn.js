@@ -1,4 +1,4 @@
-import { request as Request } from '@commaai/api';
+import { request as Request } from '../api';
 
 const TURN_TTL_S = 3600; // 1 hour
 const TURN_REFRESH_MARGIN_S = 300; // 5 mins

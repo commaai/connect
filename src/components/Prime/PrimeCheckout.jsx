@@ -8,7 +8,7 @@ import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import CheckIcon from '@material-ui/icons/Check';
 
 import { deviceNamePretty } from '../../utils';
-import * as Billing from '../../api/billing';
+import { billing as Billing } from '../../api';
 import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
 import { primeNav, analyticsEvent, primeFetchSubscription } from '../../actions';
