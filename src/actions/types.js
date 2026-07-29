@@ -7,7 +7,7 @@ export const ACTION_STARTUP_DATA = 'ACTION_STARTUP_DATA';
 // global state management
 export const ACTION_SELECT_DEVICE = 'ACTION_SELECT_DEVICE';
 export const ACTION_SELECT_TIME_FILTER = 'ACTION_SELECT_TIME_FILTER';
-export const ACTION_UPDATE_ROUTE_LIMIT = 'ACTION_UPDATE_ROUTE_LIMIT'
+export const ACTION_UPDATE_ROUTE_LIMIT = 'ACTION_UPDATE_ROUTE_LIMIT';
 export const ACTION_UPDATE_DEVICES = 'ACTION_UPDATE_DEVICES';
 export const ACTION_UPDATE_DEVICE = 'ACTION_UPDATE_DEVICE';
 export const ACTION_UPDATE_ROUTE = 'ACTION_UPDATE_ROUTE';
@@ -26,9 +26,11 @@ export const ACTION_PRIME_SUBSCRIBE_INFO = 'ACTION_PRIME_SUBSCRIBE_INFO';
 export const ACTION_SEEK = 'action_seek';
 export const ACTION_PAUSE = 'action_pause';
 export const ACTION_PLAY = 'action_play';
+export const ACTION_PLAYBACK_SPEED = 'action_playback_speed';
 export const ACTION_LOOP = 'action_loop';
 export const ACTION_BUFFER_VIDEO = 'action_buffer_video';
 export const ACTION_RESET = 'action_reset';
+export const ACTION_HAS_AUDIO = 'action_has_audio';
 
 // segments
 export const ACTION_UPDATE_SEGMENT_RANGE = 'update_segment_range';
