@@ -206,8 +206,7 @@ const styles = (theme) => ({
   },
   paymentElement: {
     display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
     maxWidth: 450,
   },
   commacareWarning: {
@@ -540,9 +539,7 @@ export class PrimeManage extends Component {
                       >
                         {this.state.switchingPlan
                           ? <CircularProgress size={19} style={{ color: Colors.white }} />
-                          : `Switch to ${primePlanName(otherPrimePlan(subscription.plan))}${otherPrimePlan(subscription.plan) === 'data'
-                            ? ' plan'
-                            : ''}`}
+                          : `Switch to ${primePlanName(otherPrimePlan(subscription.plan))} plan`}
                       </Button>
                     )}
                   {!hasCancelAt
