@@ -126,7 +126,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     onFirstFrame: handleFirstFrame,
     onConnect: handleConnect,
     started,
-    isLandscape,
   };
 
   return (

@@ -41,7 +41,7 @@ const ConnectOverlay = ({ connectionState, error, onConnect }) => {
 
 const Video = ({
   videoRef, roadVideoRef, connectionState, error, connectionTotalMs,
-  onConnect, onFirstFrame, className, started, isLandscape
+  onConnect, onFirstFrame, className, started
 }) => {
   const connected = connectionState === 'connected';
   const [showConnectionTime, setShowConnectionTime] = useState(false);
@@ -72,19 +72,33 @@ const Video = ({
   }, [connectionTimeLabel]);
 
   return (
-    <div ref={containerRef} className={`relative w-full ${className} bg-black overflow-hidden`} style={{ touchAction: 'none' }}>
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        onPlaying={() => {
-          onFirstFrame?.();
-        }}
-        className={`w-full h-full pointer-events-none object-contain`}
-      />
+    <div ref={containerRef} className={`relative flex w-full flex-col items-center ${className} bg-black overflow-hidden`} style={{ touchAction: 'none' }}>
+      <div className="relative min-h-0 w-full flex-1">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          onPlaying={() => {
+            onFirstFrame?.();
+          }}
+          className="h-full w-full pointer-events-none object-contain"
+        />
+        {connected && connectionTimeLabel && (
+          <div className={`absolute bottom-5 left-1/2 z-10 -translate-x-1/2 select-none rounded bg-black/50 px-2 py-0.5 text-sm leading-4 text-white/70 pointer-events-none transition-opacity duration-500 ease-out ${showConnectionTime ? 'opacity-100' : 'opacity-0'}`}>
+            {`connected in ${connectionTimeLabel}`}
+          </div>
+        )}
+        {!connected && (
+          <ConnectOverlay
+            connectionState={connectionState}
+            error={error}
+            onConnect={onConnect}
+          />
+        )}
+      </div>
       <div
-        className={`absolute left-3 z-[5] w-[32%] max-w-[420px] aspect-video pointer-events-none overflow-hidden rounded-lg border border-white/20 bg-black shadow-lg transition-opacity ${isLandscape ? 'bottom-[124px]' : 'bottom-3'} ${roadPlaying ? 'opacity-100' : 'opacity-0'}`}
+        className={`mt-[40px] z-[5] w-[32%] max-w-[420px] shrink-0 aspect-video pointer-events-none overflow-hidden rounded-lg border border-white/20 bg-black shadow-lg transition-opacity ${roadPlaying ? 'opacity-100' : 'opacity-0'}`}
       >
         <video
           ref={roadVideoRef}
@@ -93,21 +107,9 @@ const Video = ({
           muted
           aria-label="Narrow road camera"
           onPlaying={() => setRoadPlaying(true)}
-          className="h-full w-full scale-150 object-cover object-[center_45%]"
+          className="h-full w-full origin-bottom scale-150 object-cover"
         />
       </div>
-      {connected && connectionTimeLabel && (
-        <div className={`absolute bottom-5 left-1/2 z-10 -translate-x-1/2 select-none rounded bg-black/50 px-2 py-0.5 text-sm leading-4 text-white/70 pointer-events-none transition-opacity duration-500 ease-out ${showConnectionTime ? 'opacity-100' : 'opacity-0'}`}>
-          {`connected in ${connectionTimeLabel}`}
-        </div>
-      )}
-      {!connected && (
-        <ConnectOverlay
-          connectionState={connectionState}
-          error={error}
-          onConnect={onConnect}
-        />
-      )}
     </div>
   );
 };
