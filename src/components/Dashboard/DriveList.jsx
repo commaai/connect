@@ -183,10 +183,10 @@ const DriveList = (props) => {
   return (
     <div className="flex flex-col grow py-2">
       <VisibilityHandler onVisible={onVisible} minInterval={60} />
-      <div className={`flex flex-row justify-between mx-4 pb-2 gap-2 flex-wrap ${showCue ? 'items-center' : ''}`}>
-        {!showCue && renderStats()}
+      <div className="flex flex-row justify-between mx-4 pb-2 gap-2 flex-wrap items-center">
+        {renderStats()}
         <button
-          className={`${showCue ? 'w-auto' : 'w-full xxs:w-fit'} flex flex-row items-center justify-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98]`}
+          className="w-full xxs:w-fit flex flex-row items-center justify-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98]"
           style={{ background: 'linear-gradient(to bottom, #30373B 0%, #1D2225 150%)' }}
           onClick={() => setIsTimeSelectOpen(true)}
         >
@@ -198,7 +198,7 @@ const DriveList = (props) => {
         <Typography
           role="status"
           aria-live="polite"
-          className="mx-4 mb-2 text-sm text-gray-400 whitespace-nowrap overflow-hidden text-ellipsis"
+          className="mx-4 px-1 mb-2 text-sm text-gray-400 whitespace-nowrap overflow-hidden text-ellipsis"
         >
           {device?.is_owner === true ? (
             <>
