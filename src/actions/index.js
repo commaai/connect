@@ -12,8 +12,27 @@ import { webrtcConnectionManager } from '../utils/webrtc';
 
 let routesRequest = null;
 let routesRequestPromise = null;
-const LIMIT_INCREMENT = 5
+let routesRequestGeneration = 0;
+const LIMIT_INCREMENT = 5;
 const FIVE_YEARS = 1000 * 60 * 60 * 24 * 365 * 5;
+
+export function __resetRoutesRequestForTests() {
+  bumpRoutesRequestGeneration();
+}
+
+function bumpRoutesRequestGeneration() {
+  routesRequest = null;
+  routesRequestPromise = null;
+  routesRequestGeneration += 1;
+}
+
+export function invalidateRoutesAfterLeavingSegment() {
+  return (dispatch, getState) => {
+    bumpRoutesRequestGeneration();
+    dispatch({ type: Types.ACTION_INVALIDATE_ROUTES_CACHE });
+    dispatch(checkRoutesData());
+  };
+}
 
 export function checkRoutesData() {
   return (dispatch, getState) => {
@@ -25,35 +44,56 @@ export function checkRoutesData() {
       // already has metadata, don't bother
       return;
     }
-    if (routesRequest && routesRequest.dongleId === state.dongleId) {
-      // there is already an pending request
+    if (
+      routesRequest
+      && routesRequest.dongleId === state.dongleId
+      && routesRequest.generation === routesRequestGeneration
+      && routesRequest.mode === (state.segmentRange ? 'segment' : 'list')
+      && routesRequest.limit === state.limit
+      && routesRequest.segmentLogId === (state.segmentRange?.log_id ?? null)
+    ) {
       return routesRequestPromise;
     }
     console.debug('We need to update the segment metadata...');
     const { dongleId } = state;
     const fetchRange = state.filter;
+    const filterStart = fetchRange.start;
+    const filterEnd = fetchRange.end;
+    const generation = routesRequestGeneration;
+    const mode = state.segmentRange ? 'segment' : 'list';
+    const limit = state.limit;
+    const segmentLogId = state.segmentRange?.log_id ?? null;
 
-    // if requested segment range not in loaded routes, fetch it explicitly
-    if (state.segmentRange) {
-      routesRequest = {
-        req: Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${state.segmentRange.log_id}`),
-        dongleId,
-      };
-    } else {
-      routesRequest = {
-        req: Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, state.limit),
-        dongleId,
-      };
-    }
+    const req = state.segmentRange
+      ? Drives.getRoutesSegments(dongleId, undefined, undefined, undefined, `${dongleId}|${segmentLogId}`)
+      : Drives.getRoutesSegments(dongleId, fetchRange.start, fetchRange.end, limit);
 
-    routesRequestPromise = routesRequest.req.then((routesData) => {
+    routesRequest = {
+      req,
+      dongleId,
+      generation,
+      mode,
+      limit,
+      segmentLogId,
+      filterStart,
+      filterEnd,
+    };
+
+    routesRequestPromise = req.then((routesData) => {
       state = getState();
-      const currentRange = state.filter;
-      if (currentRange.start !== fetchRange.start
-        || currentRange.end !== fetchRange.end
-        || state.dongleId !== dongleId) {
-        routesRequest = null;
-        dispatch(checkRoutesData());
+      if (
+        generation !== routesRequestGeneration
+        || state.dongleId !== dongleId
+        || state.filter.start !== filterStart
+        || state.filter.end !== filterEnd
+        || (mode === 'list' && state.limit !== limit)
+        || (mode === 'segment' && state.segmentRange?.log_id !== segmentLogId)
+        || (mode === 'segment' && !state.segmentRange)
+        || (mode === 'list' && state.segmentRange)
+      ) {
+        if (routesRequest && routesRequest.generation === generation) {
+          routesRequest = null;
+        }
         return;
       }
       if (routesData && routesData.length === 0
@@ -101,34 +141,35 @@ export function checkRoutesData() {
         routes,
       });
 
-      routesRequest = null;
+      if (routesRequest && routesRequest.generation === generation) {
+        routesRequest = null;
+      }
 
-      return routes
+      return routes;
     }).catch((err) => {
       console.error('Failure fetching routes metadata', err);
       Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
-      routesRequest = null;
+      if (routesRequest && routesRequest.generation === generation) {
+        routesRequest = null;
+      }
     });
 
-    return routesRequestPromise
+    return routesRequestPromise;
   };
 }
 
 export function checkLastRoutesData() {
   return (dispatch, getState) => {
-    const limit = getState().limit
-    const routes = getState().routes
-
-    // if current routes are fewer than limit, that means the last fetch already fetched all the routes
-    if (routes && routes.length < limit) {
-      return
+    const { limit, routes } = getState();
+    if (typeof limit === 'number' && limit > 0 && routes && routes.length < limit) {
+      return;
     }
 
-    console.log(`fetching ${limit +LIMIT_INCREMENT } routes`)
+    console.log(`fetching ${(typeof limit === 'number' ? limit : 0) + LIMIT_INCREMENT} routes`);
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
-      limit: limit + LIMIT_INCREMENT,
-    })
+      limit: (typeof limit === 'number' ? limit : 0) + LIMIT_INCREMENT,
+    });
 
     const d = new Date();
     const end = d.getTime();
@@ -140,6 +181,7 @@ export function checkLastRoutesData() {
       end,
     });
 
+    bumpRoutesRequestGeneration();
     dispatch(checkRoutesData());
   };
 }
@@ -192,6 +234,7 @@ export function popTimelineRange(log_id, allowPathChange = true) {
 export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
   return (dispatch, getState) => {
     const state = getState();
+    const leavingSegment = Boolean(state.segmentRange) && !log_id;
 
     if (state.zoom?.start !== start || state.zoom?.end !== end || state.segmentRange?.log_id !== log_id) {
       dispatch({
@@ -203,8 +246,11 @@ export function pushTimelineRange(log_id, start, end, allowPathChange = true) {
     }
 
     updateTimeline(state, dispatch, log_id, start, end, allowPathChange);
-  };
 
+    if (leavingSegment) {
+      dispatch(invalidateRoutesAfterLeavingSegment());
+    }
+  };
 }
 
 
@@ -489,7 +535,7 @@ export function updateDevice(device) {
 }
 
 export function selectTimeFilter(start, end) {
-  return (dispatch, getState) => {
+  return (dispatch) => {
     dispatch({
       type: Types.ACTION_SELECT_TIME_FILTER,
       start,
@@ -498,9 +544,10 @@ export function selectTimeFilter(start, end) {
 
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
-      limit: undefined,
-    })
+      limit: LIMIT_INCREMENT,
+    });
 
+    bumpRoutesRequestGeneration();
     dispatch(checkRoutesData());
   };
 }

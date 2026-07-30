@@ -8,6 +8,11 @@ import FilterList from '@material-ui/icons/FilterList';
 import { devices as Devices } from '../../api';
 import { checkRoutesData, checkLastRoutesData } from '../../actions';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
+import {
+  shouldShowPreservedRoutesCue,
+  shouldHoldPreservedRoutesCue,
+  nextPreservedCueHold,
+} from '../../utils/preservedRoutesCue';
 import VisibilityHandler from '../VisibilityHandler';
 
 import TimeSelect from '../TimeSelect';
@@ -35,10 +40,49 @@ const styles = () => ({
 });
 
 const DriveList = (props) => {
-  const { dispatch, classes, device, dongleId, routes, lastRoutes } = props;
+  const {
+    dispatch,
+    classes,
+    device,
+    dongleId,
+    routes,
+    lastRoutes,
+    routesMeta,
+    limit,
+    segmentRange,
+    filter,
+  } = props;
 
   const [deviceStats, setDeviceStats] = useState({});
   const [isTimeSelectOpen, setIsTimeSelectOpen] = useState(false);
+
+  const filterKey = `${filter?.start ?? ''}:${filter?.end ?? ''}`;
+
+  const showLive = shouldShowPreservedRoutesCue({
+    routes,
+    device,
+    dongleId,
+    routesMeta,
+    limit,
+    segmentRange,
+  });
+
+  const [cueHold, setCueHold] = useState(null);
+  useEffect(() => {
+    setCueHold((prev) => nextPreservedCueHold({
+      prevHold: prev,
+      showLive,
+      dongleId,
+      filterKey,
+    }));
+  }, [showLive, dongleId, filterKey]);
+
+  const showCue = showLive || shouldHoldPreservedRoutesCue({
+    hold: cueHold,
+    routes,
+    device,
+    dongleId,
+  });
 
   const fetchDeviceInfo = useCallback(async () => {
     if (!dongleId || device?.shared) {
@@ -139,10 +183,10 @@ const DriveList = (props) => {
   return (
     <div className="flex flex-col grow py-2">
       <VisibilityHandler onVisible={onVisible} minInterval={60} />
-      <div className="flex flex-row justify-between mx-4 pb-2 gap-2 flex-wrap">
-        { renderStats() }
+      <div className={`flex flex-row justify-between mx-4 pb-2 gap-2 flex-wrap ${showCue ? 'items-center' : ''}`}>
+        {!showCue && renderStats()}
         <button
-          className="w-full xxs:w-fit flex flex-row items-center justify-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98]"
+          className={`${showCue ? 'w-auto' : 'w-full xxs:w-fit'} flex flex-row items-center justify-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98]`}
           style={{ background: 'linear-gradient(to bottom, #30373B 0%, #1D2225 150%)' }}
           onClick={() => setIsTimeSelectOpen(true)}
         >
@@ -150,6 +194,25 @@ const DriveList = (props) => {
           <Typography>Filter</Typography>
         </button>
       </div>
+      {showCue && (
+        <Typography
+          role="status"
+          aria-live="polite"
+          className="mx-4 mb-2 text-sm text-gray-400 whitespace-nowrap overflow-hidden text-ellipsis"
+        >
+          {device?.is_owner === true ? (
+            <>
+              Preserved routes · free retention ~3 days (see{' '}
+              <a href="https://comma.ai/support" target="_blank" rel="noopener noreferrer" className="underline">
+                comma.ai/support
+              </a>
+              )
+            </>
+          ) : (
+            'These are preserved routes.'
+          )}
+        </Typography>
+      )}
       {content}
       {contentStatus}
       <TimeSelect isOpen={isTimeSelectOpen} onClose={() => setIsTimeSelectOpen(false)} />
@@ -160,8 +223,12 @@ const DriveList = (props) => {
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
   routes: 'routes',
-  lastRoutes : 'lastRoutes',
+  lastRoutes: 'lastRoutes',
   device: 'device',
+  routesMeta: 'routesMeta',
+  limit: 'limit',
+  segmentRange: 'segmentRange',
+  filter: 'filter',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveList));

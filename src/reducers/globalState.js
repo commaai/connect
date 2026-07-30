@@ -98,6 +98,18 @@ export default function reducer(_state, action) {
         currentRoute: null,
       };
       break;
+    case Types.ACTION_INVALIDATE_ROUTES_CACHE:
+      state = {
+        ...state,
+        lastRoutes: state.routes ?? state.lastRoutes,
+        routesMeta: {
+          dongleId: null,
+          start: null,
+          end: null,
+        },
+        routes: null,
+      };
+      break;
     case Types.ACTION_UPDATE_ROUTE_LIMIT:
       state = {
         ...state,

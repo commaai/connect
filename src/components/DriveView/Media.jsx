@@ -508,6 +508,7 @@ class Media extends Component {
       const resp = await Drives.setRoutePreserved(this.props.currentRoute.fullname, preserved);
       if (resp && resp.success) {
         this.setState({ routePreserved: preserved });
+        this.props.dispatch(updateRoute(this.props.currentRoute.fullname, { is_preserved: preserved }));
         return null;
       }
       this.fetchRoutePreserved();
