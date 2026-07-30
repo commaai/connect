@@ -41,7 +41,7 @@ const ConnectOverlay = ({ connectionState, error, onConnect }) => {
 
 const Video = ({
   videoRef, roadVideoRef, connectionState, error, connectionTotalMs,
-  onConnect, onFirstFrame, className, started
+  onConnect, onFirstFrame, className, started, isLandscape
 }) => {
   const connected = connectionState === 'connected';
   const [showConnectionTime, setShowConnectionTime] = useState(false);
@@ -84,7 +84,7 @@ const Video = ({
         className={`w-full h-full pointer-events-none object-contain`}
       />
       <div
-        className={`absolute bottom-3 left-1/2 z-[5] w-[32%] max-w-[420px] -translate-x-1/2 aspect-video pointer-events-none overflow-hidden rounded-lg border border-white/20 bg-black shadow-lg transition-opacity ${roadPlaying ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute left-3 z-[5] w-[32%] max-w-[420px] aspect-video pointer-events-none overflow-hidden rounded-lg border border-white/20 bg-black shadow-lg transition-opacity ${isLandscape ? 'bottom-[124px]' : 'bottom-3'} ${roadPlaying ? 'opacity-100' : 'opacity-0'}`}
       >
         <video
           ref={roadVideoRef}
