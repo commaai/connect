@@ -124,6 +124,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     onFirstFrame: handleFirstFrame,
     onConnect: handleConnect,
     started,
+    clockwise: activeCamera === 'driver',
   };
 
   return (

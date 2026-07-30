@@ -41,14 +41,30 @@ const ConnectOverlay = ({ connectionState, error, onConnect }) => {
 
 const Video = ({
   videoRef, connectionState, error, connectionTotalMs,
-  onConnect, onFirstFrame, className, started
+  onConnect, onFirstFrame, className, started, clockwise
 }) => {
   const connected = connectionState === 'connected';
   const [showConnectionTime, setShowConnectionTime] = useState(false);
   const containerRef = useRef(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
   // Disable pinch-zoom once ignition is on so it doesn't fight the joystick.
   usePinchZoom(containerRef, videoRef, !started);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return undefined;
+
+    const updateSize = () => {
+      const { width, height } = container.getBoundingClientRect();
+      setContainerSize({ width, height });
+    };
+    updateSize();
+
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (connectionState !== 'connected') {
@@ -71,16 +87,25 @@ const Video = ({
 
   return (
     <div ref={containerRef} className={`relative w-full ${className} bg-black overflow-hidden`} style={{ touchAction: 'none' }}>
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        onPlaying={() => {
-          onFirstFrame?.();
+      <div
+        className="absolute left-1/2 top-1/2 pointer-events-none"
+        style={{
+          width: containerSize.height,
+          height: containerSize.width,
+          transform: `translate(-50%, -50%) rotate(${clockwise ? 90 : -90}deg)`,
         }}
-        className={`w-full h-full pointer-events-none object-contain`}
-      />
+      >
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          onPlaying={() => {
+            onFirstFrame?.();
+          }}
+          className="w-full h-full pointer-events-none object-contain"
+        />
+      </div>
       {connected && connectionTimeLabel && (
         <div className={`absolute bottom-5 left-1/2 z-10 -translate-x-1/2 select-none rounded bg-black/50 px-2 py-0.5 text-sm leading-4 text-white/70 pointer-events-none transition-opacity duration-500 ease-out ${showConnectionTime ? 'opacity-100' : 'opacity-0'}`}>
           {`connected in ${connectionTimeLabel}`}
