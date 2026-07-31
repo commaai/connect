@@ -9,8 +9,6 @@ import {
 
 import { CheckCircle, Download } from '../icons';
 
-const intervalMS = 60 * 60 * 1000;  // 1 hour
-
 const PWAIcon = ({ immediate }) => {
   const {
     offlineReady: [offlineReady, setOfflineReady],
@@ -25,17 +23,6 @@ const PWAIcon = ({ immediate }) => {
     },
     onOfflineReady: () => {
       console.debug('[PWA] Ready to work offline');
-    },
-    onRegistered: (registration) => {
-      console.debug('[PWA] Service worker registered');
-
-      if (registration) {
-        // Check for updates regularly
-        setInterval(() => {
-          console.debug('[PWA] Checking for updates');
-          registration.update();
-        }, intervalMS);
-      }
     },
     onRegisterError: (error) => {
       console.error('[PWA]', error);
