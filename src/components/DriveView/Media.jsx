@@ -17,7 +17,7 @@ import ResizeHandler from '../ResizeHandler';
 import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
 import SwitchLoading from '../utils/SwitchLoading';
-import { bufferVideo } from '../../timeline/playback';
+import { bufferVideo, setHasAudio } from '../../timeline/playback';
 import Colors from '../../colors';
 import { InfoOutline } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
@@ -223,7 +223,6 @@ class Media extends Component {
       dcamUploadInfo: null,
       routePreserved: null,
       isMuted: true,
-      hasAudio: false,
     };
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
@@ -251,7 +250,7 @@ class Media extends Component {
   }
 
   handleAudioStatusChange(hasAudio) {
-    this.setState({ hasAudio });
+    this.props.dispatch(setHasAudio(hasAudio));
   }
 
   componentDidMount() {
@@ -298,12 +297,12 @@ class Media extends Component {
   }
 
   async copySegmentName() {
-    const { currentRoute } = this.props;
+    const { currentRoute, offset } = this.props;
     if (!currentRoute || !navigator.clipboard) {
       return;
     }
 
-    await navigator.clipboard.writeText(`${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute)}`);
+    await navigator.clipboard.writeText(`${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute, offset)}`);
     this.setState({ moreInfoMenu: null });
   }
 
@@ -339,7 +338,7 @@ class Media extends Component {
   }
 
   async uploadFile(type) {
-    const { dongleId, currentRoute } = this.props;
+    const { dongleId, currentRoute, offset } = this.props;
     if (!currentRoute) {
       return;
     }
@@ -349,7 +348,7 @@ class Media extends Component {
     }));
 
     const routeNoDongleId = currentRoute.fullname.split('|')[1];
-    const fileName = `${dongleId}|${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${type}`;
+    const fileName = `${dongleId}|${routeNoDongleId}--${getSegmentNumber(currentRoute, offset)}/${type}`;
 
     const uploading = {};
     uploading[fileName] = { requested: true };
@@ -360,7 +359,7 @@ class Media extends Component {
 
     // request all possible file names
     for (const fn of FILE_NAMES[type]) {
-      const path = `${routeNoDongleId}--${getSegmentNumber(currentRoute)}/${fn}`;
+      const path = `${routeNoDongleId}--${getSegmentNumber(currentRoute, offset)}/${fn}`;
       paths.push(path);
       url_promises.push(fetchUploadUrls(dongleId, [path]).then(urls => urls[0]));
     }
@@ -522,7 +521,8 @@ class Media extends Component {
 
   render() {
     const { classes } = this.props;
-    const { inView, windowWidth, isMuted, hasAudio } = this.state;
+    const { inView, windowWidth, isMuted } = this.state;
+    const { hasAudio } = this.props;
 
     if (this.props.menusOnly) { // for test
       return this.renderMenus(true);
@@ -530,26 +530,24 @@ class Media extends Component {
 
     const showMapAlways = windowWidth >= 1536;
     const mediaContainerStyle = showMapAlways ? { width: '60%' } : { width: '100%' };
-    const mapContainerStyle = showMapAlways
-      ? { width: '40%', marginBottom: 62, marginTop: 46, paddingLeft: 24 }
-      : { width: '100%' };
 
     return (
       <div className={classes.root}>
         <ResizeHandler onResize={(ww) => this.setState({ windowWidth: ww })} />
         <div style={mediaContainerStyle}>
           {this.renderMediaOptions(showMapAlways)}
-          {inView === MediaType.VIDEO && (
+            <div className="relative">
+            {/* always mounted -> keeps playing + driving the clock, even under the map */}
             <DriveVideo
               isMuted={isMuted}
               onAudioStatusChange={this.handleAudioStatusChange}
             />
-          )}
-          {(inView === MediaType.MAP && !showMapAlways) && (
-            <div style={mapContainerStyle}>
-              <DriveMap />
-            </div>
-          )}
+            {!showMapAlways && (
+              <div className={`absolute inset-0 h-full z-[60] overflow-hidden ${(inView === MediaType.MAP) ? "" : "invisible"}`}>
+                <DriveMap />
+              </div>
+            )}
+          </div>
           <div className="mt-3">
             <TimeDisplay
               isThin
@@ -560,7 +558,7 @@ class Media extends Component {
           </div>
         </div>
         {(inView === MediaType.VIDEO && showMapAlways) && (
-          <div style={mapContainerStyle}>
+          <div className="w-2/5 mb-[62px] mt-[46px] pl-6">
             <DriveMap />
           </div>
         )}
@@ -617,7 +615,7 @@ class Media extends Component {
   }
 
   renderMenus(alwaysOpen = false) {
-    const { currentRoute, device, classes, files, profile } = this.props;
+    const { currentRoute, device, classes, files, offset, profile } = this.props;
     const { downloadMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
@@ -627,7 +625,7 @@ class Media extends Component {
     let fcam = {}; let ecam = {}; let dcam = {}; let
       rlog = {};
     if (files && currentRoute) {
-      const seg = `${currentRoute.fullname}--${getSegmentNumber(currentRoute)}`;
+      const seg = `${currentRoute.fullname}--${getSegmentNumber(currentRoute, offset)}`;
       fcam = files[`${seg}/cameras`] || {};
       ecam = files[`${seg}/ecameras`] || {};
       dcam = files[`${seg}/dcameras`] || {};
@@ -758,7 +756,7 @@ class Media extends Component {
             onClick={ this.copySegmentName }
             style={{ fontSize: windowWidth > 400 ? '0.8rem' : '0.7rem' }}
           >
-            <div>{ currentRoute ? `${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute)}` : '---' }</div>
+            <div>{ currentRoute ? `${currentRoute.fullname.replace('|', '/')}/${getSegmentNumber(currentRoute, offset)}` : '---' }</div>
             <ContentCopyIcon />
           </MenuItem>
           { typeof navigator.share !== 'undefined'
@@ -895,10 +893,12 @@ const stateToProps = Obstruction({
   device: 'device',
   routes: 'routes',
   currentRoute: 'currentRoute',
+  offset: 'offset',
   loop: 'loop',
   filter: 'filter',
   files: 'files',
   profile: 'profile',
+  hasAudio: 'hasAudio',
   isBufferingVideo: 'isBufferingVideo',
 });
 

@@ -125,7 +125,7 @@ const DriveListItem = (props) => {
       <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>
         <Grid container>
           <div className={classes.driveGridItem} style={gridStyle.date}>
-            <Typography className={classes.firstLine}>{startDate}</Typography>
+            <Typography className={classes.firstLine}>{drive.display_name || startDate}</Typography>
             <Typography>{`${startTime} to ${endTime}`}</Typography>
           </div>
           <div className={`${classes.driveGridItem} ${small && classes.driveGridItemRightAlign}`} style={gridStyle.dur}>
