@@ -4,7 +4,7 @@ import Obstruction from 'obstruction';
 
 import {
   withStyles,
-  Divider, Typography, CircularProgress, Button, Modal, Paper, LinearProgress,
+  Divider, Typography, CircularProgress, Modal, Paper, LinearProgress,
 } from '@material-ui/core';
 import HighlightOffIcon from '@material-ui/icons/HighlightOff';
 import WarningIcon from '@material-ui/icons/Warning';
@@ -13,6 +13,7 @@ import { fetchUploadQueue, cancelUploads, cancelFetchUploadQueue, FILE_NAMES } f
 import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils';
 import Colors from '../../colors';
 import ResizeHandler from '../ResizeHandler';
+import Button from '../ui/Button';
 
 const styles = (theme) => ({
   modal: {
