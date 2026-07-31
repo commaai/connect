@@ -11,59 +11,38 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    env:
-      PUPPETEER_CACHE_DIR: ${{ runner.temp }}/puppeteer-cache
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - uses: oven-sh/setup-bun@v2
 
       - name: Cache pinned Chrome for Puppeteer
         uses: actions/cache@v4
         with:
-          path: ${{ env.PUPPETEER_CACHE_DIR }}
-          key: puppeteer-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-
-      - name: get build info
-        id: build_info
-        run: echo timestamp=$(git show -s --format=%cI) >> $GITHUB_OUTPUT
+          path: ${{ runner.temp }}/puppeteer-cache
+          key: puppeteer-${{ runner.os }}-${{ hashFiles('scripts/bun.lock') }}
+          restore-keys: puppeteer-${{ runner.os }}-
 
       - run: bun install --frozen-lockfile
-      - run: bun run build:production
-        env:
-          VITE_APP_GIT_SHA: ${{ github.sha }}
-          VITE_APP_GIT_TIMESTAMP: ${{ steps.build_info.outputs.timestamp }}
-          PREVIEW: '1'
 
-      - name: Prepare base gallery source
-        if: github.event_name == 'pull_request'
+      - name: Install preview-only gallery tools
+        run: bun install --cwd scripts --frozen-lockfile
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          base_worktree="${{ runner.temp }}/gallery-base-worktree"
-          git worktree add --detach "$base_worktree" "$BASE_SHA"
-          if grep -q "mockGalleryRequest" "$base_worktree/scripts/build-gallery.mjs" 2>/dev/null; then
-            (
-              cd "$base_worktree"
-              PUPPETEER_SKIP_DOWNLOAD=true bun install --frozen-lockfile
-            )
-            echo "GALLERY_BASE_AVAILABLE=true" >> "$GITHUB_ENV"
-            echo "GALLERY_BASE_SOURCE=$base_worktree" >> "$GITHUB_ENV"
-          else
-            echo "Base commit predates production-app gallery capture; generating a current-only rollout report."
-            echo "GALLERY_BASE_AVAILABLE=false" >> "$GITHUB_ENV"
-          fi
+          PUPPETEER_CACHE_DIR: ${{ runner.temp }}/puppeteer-cache
 
-      - name: Build gallery report
+      - name: Build app and gallery report
         env:
+          PUPPETEER_CACHE_DIR: ${{ runner.temp }}/puppeteer-cache
+          BASELINE_URL: ${{ github.event_name == 'pull_request' && 'https://latest.connect-d5y.pages.dev' || '' }}
           HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
+          VITE_APP_GIT_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          PREVIEW: '1'
         run: |
+          export VITE_APP_GIT_TIMESTAMP="$(git show -s --format=%cI)"
           args=(--output ./dist --head-sha "$HEAD_SHA")
-          if [[ "${GALLERY_BASE_AVAILABLE:-false}" == "true" ]]; then
-            args+=(--base "$GALLERY_BASE_SOURCE" --base-sha "$BASE_SHA")
+          if [[ -n "$BASELINE_URL" ]]; then
+            args+=(--baseline-url "$BASELINE_URL")
           fi
           bun run build:gallery -- "${args[@]}"
 

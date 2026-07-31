@@ -1,0 +1,12 @@
+{
+  "name": "connect-preview-tools",
+  "private": true,
+  "dependencies": {
+    "pixelmatch": "7.1.0",
+    "pngjs": "7.0.0",
+    "puppeteer": "24.16.0"
+  },
+  "trustedDependencies": [
+    "puppeteer"
+  ]
+}

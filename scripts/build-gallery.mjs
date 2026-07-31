@@ -1,7 +1,7 @@
 /* eslint-disable no-await-in-loop -- captures are intentionally serialized in one browser */
 import { execFile } from 'node:child_process';
 import {
-  cp, mkdir, mkdtemp, readFile, rm, writeFile,
+  access, cp, mkdir, mkdtemp, readFile, rm, writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import {
@@ -20,6 +20,7 @@ const FIXED_TIMESTAMP = Date.parse(FIXED_TIME);
 const LOCALE = 'en-US';
 const TIMEZONE = 'America/Los_Angeles';
 const CHANGE_THRESHOLD = 0.0001;
+const CAPTURE_CONCURRENCY = 4;
 
 const GALLERY_STATES = [
   { name: 'signin', label: 'Sign in', path: '/', readyText: 'Sign in with Google', anonymous: true },
@@ -135,6 +136,37 @@ async function getResponse(url) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
   return response;
+}
+
+async function downloadBaseline(baselineUrl, destination) {
+  const root = new URL(baselineUrl);
+  const isLoopback = ['127.0.0.1', 'localhost'].includes(root.hostname);
+  if (root.protocol !== 'https:' && !isLoopback) {
+    throw new Error(`Baseline URL must use HTTPS: ${baselineUrl}`);
+  }
+  const manifestUrl = new URL('/connect-gallery-assets/manifest.json', root);
+  const manifest = await (await getResponse(manifestUrl)).json();
+  if (!manifest.headSha || !Array.isArray(manifest.captures)) {
+    throw new Error(`Invalid gallery manifest at ${manifestUrl}`);
+  }
+
+  await mkdir(destination, { recursive: true });
+  const downloads = GALLERY_STATES.flatMap((state) => GALLERY_VIEWPORTS.map(async (viewport) => {
+    const capture = manifest.captures.find((item) => (
+      item.state === state.name && item.viewport === viewport.name
+    ));
+    if (!capture?.assets?.current) return false;
+    const response = await getResponse(new URL(capture.assets.current, root));
+    await writeFile(
+      resolve(destination, captureFilename(state.name, viewport.name)),
+      Buffer.from(await response.arrayBuffer()),
+    );
+    return true;
+  }));
+  const downloaded = (await Promise.all(downloads)).filter(Boolean).length;
+  if (downloaded === 0) throw new Error(`Gallery manifest at ${manifestUrl} has no compatible captures`);
+  console.log(`Downloaded ${downloaded} baseline captures from ${root.origin} (${manifest.headSha})`);
+  return manifest.headSha;
 }
 
 async function fetchFixtures() {
@@ -492,7 +524,8 @@ async function openGalleryModal(page, state, label) {
 }
 
 async function captureOne(browser, origin, outputPath, state, viewport, fixtures) {
-  const page = await browser.newPage();
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
   const failures = [];
   const pageState = GALLERY_STATES.find(({ name }) => name === (state.page ?? state.name));
   try {
@@ -652,10 +685,7 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
     assertNotBlank(buffer, label);
     await writeFile(outputPath, buffer);
   } finally {
-    if (state.pairToken && !page.isClosed()) {
-      await updateStoredPairToken(page, null);
-    }
-    await page.close();
+    await context.close();
   }
 }
 
@@ -681,13 +711,15 @@ async function captureRenderers(renderers, output, fixtures) {
       });
       const destination = resolve(output, renderer.name);
       await mkdir(destination, { recursive: true });
-      for (const state of GALLERY_STATES) {
-        for (const viewport of GALLERY_VIEWPORTS) {
+      const pending = GALLERY_STATES.flatMap((state) => GALLERY_VIEWPORTS.map((viewport) => ({ state, viewport })));
+      await Promise.all(Array.from({ length: CAPTURE_CONCURRENCY }, async () => {
+        while (pending.length) {
+          const { state, viewport } = pending.shift();
           const filename = captureFilename(state.name, viewport.name);
           await captureOne(browser, server.origin, resolve(destination, filename), state, viewport, fixtures);
           console.log(`Captured ${renderer.name}/${filename}`);
         }
-      }
+      }));
     } finally {
       if (browser) await browser.close();
       await server.close();
@@ -702,13 +734,30 @@ async function compareImages(basePath, currentPath, diffPath) {
   if (baseline.width !== current.width || baseline.height !== current.height) {
     throw new Error(`Image dimensions differ: ${baseline.width}x${baseline.height} vs ${current.width}x${current.height}`);
   }
-  const diff = new PNG({ width: current.width, height: current.height });
-  const changedPixels = pixelmatch(baseline.data, current.data, diff.data, current.width, current.height, {
+  const options = {
     threshold: 0.1,
     includeAA: false,
-  });
-  await writeFile(diffPath, PNG.sync.write(diff));
-  return { changedPixels, changedRatio: changedPixels / (current.width * current.height) };
+  };
+  const changedPixels = pixelmatch(
+    baseline.data, current.data, null, current.width, current.height, options,
+  );
+  const changedRatio = changedPixels / (current.width * current.height);
+  const hasDiff = changedRatio > CHANGE_THRESHOLD;
+  if (hasDiff) {
+    const diff = new PNG({ width: current.width, height: current.height });
+    pixelmatch(baseline.data, current.data, diff.data, current.width, current.height, options);
+    await writeFile(diffPath, PNG.sync.write(diff));
+  }
+  return { changedPixels, changedRatio, hasDiff };
+}
+
+async function fileExists(path) {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function imageMarkup(path, alt, viewport) {
@@ -716,17 +765,27 @@ function imageMarkup(path, alt, viewport) {
 }
 
 function renderReport(manifest) {
+  const hasBaseline = Boolean(manifest.baseSha);
   const count = (status) => manifest.captures.filter((capture) => capture.status === status).length;
   const renderRows = (viewportName) => manifest.captures.filter((capture) => capture.viewport === viewportName).map((capture) => {
     const state = GALLERY_STATES.find(({ name }) => name === capture.state);
     const viewport = GALLERY_VIEWPORTS.find(({ name }) => name === capture.viewport);
+    if (!hasBaseline) {
+      return `
+      <tr class="capture">
+        <th scope="row">${state.label}</th>
+        <td>${imageMarkup(capture.assets.current, `${state.label} ${viewport.name}`, viewport)}</td>
+      </tr>`;
+    }
     const unavailable = '<span role="status">Unavailable</span>';
     return `
       <tr class="capture" data-status="${capture.status}">
         <th scope="row">${state.label}</th>
         <td>${capture.assets.baseline ? imageMarkup(capture.assets.baseline, `${state.label} ${viewport.name} baseline`, viewport) : unavailable}</td>
         <td>${imageMarkup(capture.assets.current, `${state.label} ${viewport.name} current`, viewport)}</td>
-        <td>${capture.assets.diff ? imageMarkup(capture.assets.diff, `${state.label} ${viewport.name} pixel diff`, viewport) : unavailable}</td>
+        <td>${capture.assets.diff
+    ? imageMarkup(capture.assets.diff, `${state.label} ${viewport.name} pixel diff`, viewport)
+    : capture.status === 'unchanged' ? 'No pixel changes' : unavailable}</td>
         <td>${capture.status === 'unavailable' ? 'Baseline unavailable' : `${capture.changedPixels.toLocaleString('en-US')} pixels (${(capture.changedRatio * 100).toFixed(4)}%)`}</td>
       </tr>`;
   }).join('');
@@ -734,17 +793,25 @@ function renderReport(manifest) {
       <section>
         <h2>${viewport.name[0].toUpperCase()}${viewport.name.slice(1)} (${viewport.width} × ${viewport.height})</h2>
         <table border="1" cellspacing="0">
-          <thead><tr><th>Page</th><th>Baseline</th><th>PR</th><th>Diff</th><th>Result</th></tr></thead>
+          <thead>${hasBaseline
+    ? '<tr><th>Page</th><th>Baseline</th><th>PR</th><th>Diff</th><th>Result</th></tr>'
+    : '<tr><th>Page</th><th>Screenshot</th></tr>'}</thead>
           <tbody>${renderRows(viewport.name)}</tbody>
         </table>
       </section>`).join('');
-  const baselineNotice = manifest.baseSha ? '' : '<p role="status">Baseline unavailable. This current-only report is expected for local builds, master builds, and the initial rollout.</p>';
+  const comparisonControls = hasBaseline ? `
+    <p aria-label="Comparison summary">${count('changed')} changed, ${count('unchanged')} unchanged, ${count('unavailable')} unavailable</p>
+    <p class="filters" aria-label="Filter captures">
+      <button type="button" data-filter="all" aria-pressed="true">All (${manifest.captures.length})</button>
+      <button type="button" data-filter="changed" aria-pressed="false">Changed (${count('changed')})</button>
+      <button type="button" data-filter="unchanged" aria-pressed="false">Unchanged (${count('unchanged')})</button>
+    </p>` : '';
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>connect visual regression report</title>
+  <title>connect ${hasBaseline ? 'visual regression report' : 'gallery'}</title>
   <style>
     table { width: 100%; table-layout: fixed; }
     img { max-width: 100%; height: auto; }
@@ -754,22 +821,16 @@ function renderReport(manifest) {
 <body>
   <header>
     <p><a class="preview" href="/">Open interactive preview</a></p>
-    <h1>Visual regression report</h1>
-    <p>Base: <code>${manifest.baseSha ?? 'unavailable'}</code><br>Head: <code>${manifest.headSha}</code><br>Generated: <time datetime="${manifest.generatedAt}">${manifest.generatedAt}</time></p>
+    <h1>${hasBaseline ? 'Visual regression report' : 'Gallery'}</h1>
+    <p>${hasBaseline ? `Base: <code>${manifest.baseSha}</code><br>` : ''}Head: <code>${manifest.headSha}</code><br>Generated: <time datetime="${manifest.generatedAt}">${manifest.generatedAt}</time></p>
   </header>
   <main>
-    ${baselineNotice}
-    <p aria-label="Comparison summary">${count('changed')} changed, ${count('unchanged')} unchanged, ${count('unavailable')} unavailable</p>
-    <p class="filters" aria-label="Filter captures">
-      <button type="button" data-filter="all" aria-pressed="true">All (${manifest.captures.length})</button>
-      <button type="button" data-filter="changed" aria-pressed="false">Changed (${count('changed')})</button>
-      <button type="button" data-filter="unchanged" aria-pressed="false">Unchanged (${count('unchanged')})</button>
-    </p>
+    ${comparisonControls}
     <div id="captures" class="tables">
       ${tables}
     </div>
   </main>
-  <script>
+  ${hasBaseline ? `<script>
     document.querySelector('.filters').addEventListener('click', (event) => {
       const button = event.target.closest('button[data-filter]');
       if (!button) return;
@@ -777,12 +838,12 @@ function renderReport(manifest) {
       document.querySelectorAll('.filters button').forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
       document.querySelectorAll('.capture').forEach((capture) => { capture.hidden = filter !== 'all' && capture.dataset.status !== filter; });
     });
-  </script>
+  </script>` : ''}
 </body>
 </html>\n`;
 }
 
-async function buildReport(captures, output, headSha, baseSha) {
+async function buildReport(captures, output, headSha, baseSha, baselineUrl) {
   const currentDirectory = resolve(captures, 'current');
   const baseDirectory = resolve(captures, 'base');
   const hasBaseline = Boolean(baseSha);
@@ -808,15 +869,17 @@ async function buildReport(captures, output, headSha, baseSha) {
       let changedRatio = null;
       let baselineAsset = null;
       let diffAsset = null;
-      if (hasBaseline) {
+      const baselineSource = resolve(baseDirectory, filename);
+      if (hasBaseline && await fileExists(baselineSource)) {
         baselineAsset = `/connect-gallery-assets/baseline/${filename}`;
-        diffAsset = `/connect-gallery-assets/diff/${filename}`;
-        ({ changedPixels, changedRatio } = await compareImages(
-          resolve(baseDirectory, filename),
+        let hasDiff;
+        ({ changedPixels, changedRatio, hasDiff } = await compareImages(
+          baselineSource,
           currentSource,
           resolve(assetsDirectory, 'diff', filename),
         ));
         status = changedRatio > CHANGE_THRESHOLD ? 'changed' : 'unchanged';
+        if (hasDiff) diffAsset = `/connect-gallery-assets/diff/${filename}`;
       }
       results.push({
         state: state.name,
@@ -834,6 +897,7 @@ async function buildReport(captures, output, headSha, baseSha) {
   const manifest = {
     version: 2,
     baseSha: baseSha ?? null,
+    baselineUrl: baselineUrl ?? null,
     headSha,
     generatedAt: new Date().toISOString(),
     viewports: Object.fromEntries(GALLERY_VIEWPORTS.map(({ name, width, height }) => [name, { width, height, deviceScaleFactor: 1 }])),
@@ -851,12 +915,15 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const source = resolve('.');
   const baseSource = args.base ? resolve(args.base) : null;
+  const baselineUrl = args['baseline-url'] ?? null;
   if (Boolean(baseSource) !== Boolean(args['base-sha'])) {
     throw new Error('--base and --base-sha must be supplied together');
   }
+  if (baseSource && baselineUrl) throw new Error('--base and --baseline-url are mutually exclusive');
   const temporary = await mkdtemp(resolve(tmpdir(), 'connect-gallery-'));
   try {
-    const currentRenderer = resolve(temporary, 'renderer-current');
+    const output = resolve(args.output ?? 'dist-gallery');
+    const currentRenderer = output;
     const baseRenderer = resolve(temporary, 'renderer-base');
     const captures = resolve(temporary, 'captures');
     const fixtures = await fetchFixtures();
@@ -867,11 +934,20 @@ async function main() {
       renderers.unshift({ name: 'base', directory: baseRenderer });
     }
     await captureRenderers(renderers, captures, fixtures);
+    let baseSha = args['base-sha'];
+    if (baselineUrl) {
+      try {
+        baseSha = await downloadBaseline(baselineUrl, resolve(captures, 'base'));
+      } catch (error) {
+        console.warn(`Baseline unavailable from ${baselineUrl}; writing a current-only gallery: ${error.message}`);
+      }
+    }
     await buildReport(
       captures,
-      resolve(args.output ?? 'dist-gallery'),
+      output,
       args['head-sha'] ?? process.env.GITHUB_SHA ?? await gitSha(source),
-      args['base-sha'],
+      baseSha,
+      baselineUrl,
     );
   } finally {
     await rm(temporary, { recursive: true, force: true });
