@@ -44,8 +44,7 @@ jobs:
         run: |
           base_worktree="${{ runner.temp }}/gallery-base-worktree"
           git worktree add --detach "$base_worktree" "$BASE_SHA"
-          if [[ -f "$base_worktree/connect-gallery.html" ]] \
-            && grep -q "galleryReady" "$base_worktree/src/gallery.jsx"; then
+          if grep -q "mockGalleryRequest" "$base_worktree/scripts/build-gallery.mjs" 2>/dev/null; then
             (
               cd "$base_worktree"
               PUPPETEER_SKIP_DOWNLOAD=true bun install --frozen-lockfile
@@ -53,7 +52,7 @@ jobs:
             echo "GALLERY_BASE_AVAILABLE=true" >> "$GITHUB_ENV"
             echo "GALLERY_BASE_SOURCE=$base_worktree" >> "$GITHUB_ENV"
           else
-            echo "Base commit has no gallery source; generating a current-only rollout report."
+            echo "Base commit predates production-app gallery capture; generating a current-only rollout report."
             echo "GALLERY_BASE_AVAILABLE=false" >> "$GITHUB_ENV"
           fi
 

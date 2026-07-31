@@ -13,7 +13,7 @@ Try it with your openpilot device:
 
 ### Visual regression report
 
-`bun run build:gallery -- --output dist-gallery` fetches the fixed route fixture and creates a current-only static report. To compare another source tree, pass its directory and commit:
+`bun run build:gallery -- --output dist-gallery` builds the production app, serves deterministic API responses to it in Puppeteer, and creates a current-only static report. To compare another source tree, pass its directory and commit:
 
 ```sh
 bun run build:gallery -- --output dist-gallery --base /path/to/base --base-sha BASE_SHA

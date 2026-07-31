@@ -44,26 +44,12 @@ export default defineConfig(({ mode }) => {
     build: {
       // Required for Sentry
       sourcemap: true,
-      ...(mode === 'gallery' ? {
-        outDir: 'dist-gallery',
-        emptyOutDir: true,
-        sourcemap: false,
-        cssCodeSplit: false,
-        assetsInlineLimit: 100000000,
-        rollupOptions: {
-          input: resolve(process.cwd(), 'connect-gallery.html'),
-          output: {
-            inlineDynamicImports: true,
-          },
-        },
-      } : {}),
     },
     plugins: [
       // TODO: compression plugin
       tailwindcss(),
       react(),
       VitePWA({
-        disable: mode === 'gallery',
         workbox: {
           globPatterns: ['**/*.{js,css,html,png,webp,svg,ico}'],
           // The visual report is written after the app build and must be served as a real file,

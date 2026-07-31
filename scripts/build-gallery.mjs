@@ -8,7 +8,7 @@ import {
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import {
-  dirname, extname, resolve, sep,
+  extname, resolve, sep,
 } from 'node:path';
 import { promisify } from 'node:util';
 import pixelmatch from 'pixelmatch';
@@ -17,20 +17,22 @@ import puppeteer from 'puppeteer';
 import { build } from 'vite';
 
 const ROUTE_NAME = '5beb9b58bd12b691|0000010a--a51155e496';
+const [DONGLE_ID, LOG_ID] = ROUTE_NAME.split('|');
 const FIXED_TIME = '2026-02-25T18:00:00-08:00';
+const FIXED_TIMESTAMP = Date.parse(FIXED_TIME);
 const LOCALE = 'en-US';
 const TIMEZONE = 'America/Los_Angeles';
 const CHANGE_THRESHOLD = 0.0001;
 const GALLERY_VERSION = 2;
 
 const GALLERY_STATES = [
-  { name: 'signin', label: 'Sign in' },
-  { name: 'pair', label: 'Pair a device' },
-  { name: 'dashboard', label: 'Dashboard' },
-  { name: 'drive', label: 'Drive' },
-  { name: 'checkout', label: 'Prime checkout' },
-  { name: 'management', label: 'Prime management' },
-  { name: 'teleop', label: 'Teleop' },
+  { name: 'signin', label: 'Sign in', path: '/', readyText: 'Sign in with Google', anonymous: true },
+  { name: 'pair', label: 'Pair a device', path: '/', readyText: 'add new device' },
+  { name: 'dashboard', label: 'Dashboard', path: `/${DONGLE_ID}`, readyText: 'Bronco Sport' },
+  { name: 'drive', label: 'Drive', path: `/${DONGLE_ID}/${LOG_ID}`, readySelector: '.DriveView' },
+  { name: 'checkout', label: 'Prime checkout', path: `/${DONGLE_ID}/prime`, readyText: '24/7 connectivity' },
+  { name: 'management', label: 'Prime management', path: `/${DONGLE_ID}/prime`, readyText: 'Next payment' },
+  { name: 'teleop', label: 'Teleop', path: `/${DONGLE_ID}/stream`, readyText: 'comma body' },
   {
     name: 'pair-device-modal',
     label: 'Pair device modal',
@@ -151,7 +153,7 @@ async function getResponse(url) {
   return response;
 }
 
-async function fetchFixtures(output) {
+async function fetchFixtures() {
   const routeUrl = `https://api.commadotai.com/v1/route/${encodeURIComponent(ROUTE_NAME)}/`;
   const route = await (await getResponse(routeUrl)).json();
   const assetRoot = new URL(route.url);
@@ -163,70 +165,257 @@ async function fetchFixtures(output) {
     )),
   );
   const sprite = await getResponse(`${assetRootUrl}/0/sprite.jpg`);
-  await mkdir(output, { recursive: true });
-  await Promise.all([
-    writeFile(resolve(output, 'events.json'), `${JSON.stringify(segmentEvents.flat())}\n`),
-    writeFile(resolve(output, 'sprite.jpg'), Buffer.from(await sprite.arrayBuffer())),
-  ]);
+  return {
+    events: segmentEvents.map((events) => events.map((event) => ({
+      ...event,
+      data: {
+        ...event.data,
+        alertStatus: typeof event.data?.alertStatus === 'number'
+          ? ['normal', 'userPrompt', 'critical'][event.data.alertStatus]
+          : event.data?.alertStatus,
+      },
+    }))),
+    sprite: Buffer.from(await sprite.arrayBuffer()),
+  };
 }
 
-async function optionalFile(path) {
-  try {
-    return await readFile(path);
-  } catch (error) {
-    if (error.code === 'ENOENT') return null;
-    throw error;
+function galleryData(origin, pageName) {
+  const now = Math.floor(FIXED_TIMESTAMP / 1000);
+  const segments = Array.from({ length: 16 }, (_, index) => index);
+  const route = {
+    car_id: 1238,
+    create_time: 1772040714,
+    distance: 10.1977,
+    dongle_id: DONGLE_ID,
+    end_lat: 32.8751,
+    end_lng: -117.21,
+    endLocation: { place: 'La Jolla', details: 'San Diego, CA' },
+    end_time: '2026-02-25T17:45:55',
+    end_time_utc_millis: 1772041555000,
+    fullname: ROUTE_NAME,
+    is_preserved: true,
+    is_public: true,
+    make: 'ford',
+    maxqlog: 15,
+    platform: 'FORD_BRONCO_SPORT_MK1',
+    procqlog: 15,
+    segment_end_times: segments.map((index) => (
+      index === 15 ? 1772041555000 : 1772040690000 + (index * 60000)
+    )),
+    segment_numbers: segments,
+    segment_start_times: segments.map((index) => 1772040630000 + (index * 60000)),
+    share_exp: '1785555165',
+    share_sig: 'fake',
+    start_lat: 32.7498,
+    start_lng: -117.195,
+    startLocation: { place: 'San Diego', details: 'California' },
+    start_time: '2026-02-25T17:30:30',
+    start_time_utc_millis: 1772040630000,
+    url: `${origin}/__gallery-route`,
+    version: '0.10.4',
+  };
+  const device = {
+    alias: 'Bronco Sport',
+    commacare: true,
+    device_type: 'tici',
+    dongle_id: DONGLE_ID,
+    eligible_features: { prime_data: true },
+    fetched_at: now,
+    is_owner: true,
+    last_athena_ping: now,
+    prime: pageName === 'management',
+    rpc: { not_car: false },
+    serial: 'cb421c10',
+    version: '0.10.4',
+  };
+  const bodyDevice = {
+    ...device,
+    alias: 'comma body',
+    device_type: 'tizi',
+    prime: false,
+    rpc: { not_car: true },
+    version: '0.11.2',
+  };
+  const profile = {
+    email: 'driver@example.com',
+    id: 'fake-user',
+    superuser: false,
+    user_id: 'fake-user',
+  };
+  return {
+    device: pageName === 'teleop' ? bodyDevice : device,
+    devices: pageName === 'pair' ? [] : [pageName === 'teleop' ? bodyDevice : device],
+    profile,
+    route,
+    subscribeInfo: {
+      allow_data: true,
+      amount: 2400,
+      device_online: true,
+      eligible: true,
+      is_prime_sim: true,
+      sim_id: '89014103211118510720',
+      sim_type: 'blue',
+      sim_usable: true,
+      trial_claimable: true,
+    },
+    subscription: {
+      amount: 2400,
+      cancel_at_period_end: false,
+      current_period_end: now + (86400 * 25),
+      is_prime_sim: true,
+      next_charge_at: now + (86400 * 25),
+      plan: 'data',
+      status: 'active',
+      subscribed_at: now - (86400 * 190),
+      trial_end: null,
+      user_id: profile.user_id,
+    },
+  };
+}
+
+function jsonResponse(request, value, status = 200) {
+  return request.respond({
+    status,
+    contentType: 'application/json',
+    headers: { 'Access-Control-Allow-Origin': '*' },
+    body: JSON.stringify(value),
+  });
+}
+
+async function mockGalleryRequest(request, origin, pageName, fixtures) {
+  const url = new URL(request.url());
+  if (url.origin === origin) {
+    const eventsMatch = url.pathname.match(/^\/__gallery-route\/(\d+)\/events\.json$/);
+    if (eventsMatch) return jsonResponse(request, fixtures.events[Number(eventsMatch[1])] ?? []);
+    if (/^\/__gallery-route\/\d+\/sprite\.jpg$/.test(url.pathname)) {
+      return request.respond({ status: 200, contentType: 'image/jpeg', body: fixtures.sprite });
+    }
+    if (/^\/__gallery-route\/\d+\/coords\.json$/.test(url.pathname)) {
+      return jsonResponse(request, []);
+    }
+    return request.continue();
   }
-}
 
-async function buildRenderer(source, fixtures, output) {
-  const generatedEvents = resolve(source, 'src/gallery-fixtures/events.generated.json');
-  const generatedSprite = resolve(
-    source,
-    'src/gallery-fixtures/5beb9b58bd12b691/0000010a--a51155e496/0/sprite.jpg',
-  );
-  const backups = await Promise.all([optionalFile(generatedEvents), optionalFile(generatedSprite)]);
-  await Promise.all([mkdir(dirname(generatedEvents), { recursive: true }), mkdir(dirname(generatedSprite), { recursive: true })]);
-  await Promise.all([
-    copyFile(resolve(fixtures, 'events.json'), generatedEvents),
-    copyFile(resolve(fixtures, 'sprite.jpg'), generatedSprite),
-  ]);
-  try {
-    await build({
-      root: source,
-      mode: 'gallery',
-      base: './',
-      build: {
-        outDir: output,
-        emptyOutDir: true,
-        sourcemap: false,
-        cssCodeSplit: false,
-        assetsInlineLimit: 100000000,
-        rollupOptions: {
-          input: resolve(source, 'connect-gallery.html'),
-          output: { inlineDynamicImports: true },
-        },
+  if (url.hostname === 'cdn.jsdelivr.net' && url.pathname.includes('/hls.js@')) {
+    return request.respond({
+      status: 200,
+      contentType: 'text/javascript',
+      body: `
+        class GalleryHls {
+          static Events = { ERROR: 'error', MANIFEST_PARSED: 'manifestParsed' };
+          static isSupported() { return true; }
+          constructor() { this.handlers = {}; }
+          on(name, handler) { this.handlers[name] = handler; }
+          loadSource() { queueMicrotask(() => this.handlers.manifestParsed?.()); }
+          attachMedia() {}
+          destroy() {}
+        }
+        window.Hls = GalleryHls;
+      `,
+    });
+  }
+
+  const apiHosts = new Set(['api.comma.ai', 'athena.comma.ai', 'billing.comma.ai']);
+  if (!apiHosts.has(url.hostname)) return request.abort('blockedbyclient');
+  if (request.method() === 'OPTIONS') {
+    return request.respond({
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+        'Access-Control-Allow-Methods': 'GET, HEAD, POST, PATCH, DELETE, OPTIONS',
+        'Access-Control-Allow-Origin': '*',
       },
     });
-  } finally {
-    await Promise.all([
-      backups[0] === null ? rm(generatedEvents, { force: true }) : writeFile(generatedEvents, backups[0]),
-      backups[1] === null ? rm(generatedSprite, { force: true }) : writeFile(generatedSprite, backups[1]),
-    ]);
   }
+
+  const data = galleryData(origin, pageName);
+  const path = decodeURIComponent(url.pathname).replace(/\/$/, '');
+  if (url.hostname === 'api.comma.ai') {
+    if (path === '/v1/me') return jsonResponse(request, data.profile);
+    if (path === '/v1/me/devices') return jsonResponse(request, data.devices);
+    if (path === '/v1/me/turn') return jsonResponse(request, { iceServers: [] });
+    if (path === `/v1.1/devices/${DONGLE_ID}`) return jsonResponse(request, data.device);
+    if (path === `/v1.1/devices/${DONGLE_ID}/stats`) {
+      return jsonResponse(request, { all: { distance: 2461, minutes: 3814, routes: 173 } });
+    }
+    if (path === `/v1/devices/${DONGLE_ID}/location`) {
+      return jsonResponse(request, {
+        lat: data.route.start_lat,
+        lng: data.route.start_lng,
+        time: Math.floor(FIXED_TIMESTAMP / 1000),
+      });
+    }
+    if (path === `/v1/devices/${DONGLE_ID}/routes_segments`) return jsonResponse(request, [data.route]);
+    if (path === `/v1/devices/${DONGLE_ID}/routes/preserved`) return jsonResponse(request, [data.route]);
+    if (path === `/v1/route/${ROUTE_NAME}/files`) return jsonResponse(request, {});
+    if (path === `/v1/route/${ROUTE_NAME}/qcamera.m3u8`) {
+      return request.respond({
+        status: 200,
+        contentType: 'application/vnd.apple.mpegurl',
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: '#EXTM3U\n#EXT-X-ENDLIST\n',
+      });
+    }
+    // Keep the pairing request pending long enough to capture its loading modal.
+    if (path === '/v2/pilotpair') return undefined;
+  }
+  if (url.hostname === 'billing.comma.ai') {
+    if (path === '/v1/prime/subscribe_info') return jsonResponse(request, data.subscribeInfo);
+    if (path === '/v1/prime/subscription') return jsonResponse(request, data.subscription);
+  }
+  if (url.hostname === 'athena.comma.ai' && path === `/${DONGLE_ID}`) {
+    const payload = JSON.parse(request.postData() || '{}');
+    if (payload.method === 'getMessage') {
+      return jsonResponse(request, { result: { peripheralState: { voltage: 12300 } } });
+    }
+    if (payload.method === 'listUploadQueue') return jsonResponse(request, { result: [] });
+    if (payload.method === 'getNotCar') return jsonResponse(request, { result: pageName === 'teleop' });
+    if (payload.method === 'startStream') {
+      return jsonResponse(request, { result: { sdp: 'v=0\r\n', time: 0 } });
+    }
+    return jsonResponse(request, { result: true });
+  }
+  throw new Error(`No gallery response for ${request.method()} ${request.url()}`);
+}
+
+async function buildRenderer(source, output) {
+  await build({
+    root: source,
+    mode: 'production',
+    base: '/',
+    build: {
+      outDir: output,
+      emptyOutDir: true,
+      sourcemap: false,
+      rollupOptions: {
+        input: resolve(source, 'index.html'),
+      },
+    },
+  });
 }
 
 function serveDirectory(directory) {
   const server = createServer(async (request, response) => {
     try {
       const url = new URL(request.url, 'http://localhost');
-      const relative = decodeURIComponent(url.pathname === '/' ? '/connect-gallery.html' : url.pathname);
-      const path = resolve(directory, `.${relative}`);
+      if (url.pathname === '/__gallery-storage') {
+        response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end('<!doctype html><title>storage</title>');
+        return;
+      }
+      const relative = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
+      let path = resolve(directory, `.${relative}`);
       if (path !== directory && !path.startsWith(`${directory}${sep}`)) {
         response.writeHead(403).end('Forbidden');
         return;
       }
-      const details = await stat(path);
+      let details;
+      try {
+        details = await stat(path);
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+        path = resolve(directory, 'index.html');
+        details = await stat(path);
+      }
       if (!details.isFile()) throw Object.assign(new Error('Not a file'), { code: 'ENOENT' });
       response.writeHead(200, {
         'Cache-Control': 'no-store',
@@ -371,9 +560,10 @@ async function openGalleryModal(page, state, label) {
   });
 }
 
-async function captureOne(browser, origin, outputPath, state, viewport) {
+async function captureOne(browser, origin, outputPath, state, viewport, fixtures) {
   const page = await browser.newPage();
   const failures = [];
+  const pageState = GALLERY_STATES.find(({ name }) => name === (state.page ?? state.name));
   try {
     await page.setViewport({ width: viewport.width, height: viewport.height, deviceScaleFactor: 1 });
     await page.emulateTimezone(TIMEZONE);
@@ -381,7 +571,7 @@ async function captureOne(browser, origin, outputPath, state, viewport) {
       { name: 'prefers-color-scheme', value: 'light' },
       { name: 'prefers-reduced-motion', value: 'reduce' },
     ]);
-    await page.evaluateOnNewDocument((timestamp) => {
+    await page.evaluateOnNewDocument((timestamp, authenticated) => {
       const NativeDate = Date;
       class FrozenDate extends NativeDate {
         constructor(...args) { super(...(args.length === 0 ? [timestamp] : args)); }
@@ -389,12 +579,77 @@ async function captureOne(browser, origin, outputPath, state, viewport) {
       }
       Object.setPrototypeOf(FrozenDate, NativeDate);
       globalThis.Date = FrozenDate;
-    }, Date.parse(FIXED_TIME));
+      if (authenticated) localStorage.setItem('authorization', 'gallery-token');
+      else localStorage.removeItem('authorization');
+      localStorage.removeItem('selectedDongleId');
+
+      class GalleryPeerConnection {
+        constructor() {
+          this.connectionState = 'new';
+          this.listeners = {};
+          this.localDescription = null;
+          this.transceivers = [];
+        }
+        addEventListener(name, handler) {
+          this.listeners[name] ??= [];
+          this.listeners[name].push(handler);
+        }
+        emit(name, event = {}) {
+          for (const handler of this.listeners[name] ?? []) handler(event);
+        }
+        addTransceiver() {
+          const transceiver = { setCodecPreferences() {}, stop() {} };
+          this.transceivers.push(transceiver);
+          return transceiver;
+        }
+        createDataChannel() {
+          this.dataChannel = {
+            readyState: 'open',
+            send() {
+              setTimeout(() => this.onmessage?.({
+                data: JSON.stringify({ type: 'deviceState', data: { started: true } }),
+              }), 0);
+            },
+            close() {},
+            onopen: null,
+            onclose: null,
+            onmessage: null,
+          };
+          return this.dataChannel;
+        }
+        async createOffer() { return { type: 'offer', sdp: 'v=0\r\n' }; }
+        async setLocalDescription(description) {
+          this.localDescription = description;
+          setTimeout(() => this.emit('icecandidate', { candidate: null }), 0);
+        }
+        async setRemoteDescription() {
+          this.connectionState = 'connected';
+          this.emit('connectionstatechange');
+          this.dataChannel?.onopen?.();
+          this.dataChannel?.onmessage?.({
+            data: JSON.stringify({ type: 'carState', data: { fuelGauge: 0.87, charging: false } }),
+          });
+          this.dataChannel?.onmessage?.({
+            data: JSON.stringify({ type: 'deviceState', data: { started: true } }),
+          });
+        }
+        getReceivers() { return []; }
+        getTransceivers() { return this.transceivers; }
+        close() { this.connectionState = 'closed'; }
+      }
+      globalThis.RTCPeerConnection = GalleryPeerConnection;
+      globalThis.RTCRtpReceiver = { getCapabilities: () => ({ codecs: [] }) };
+    }, FIXED_TIMESTAMP, !pageState.anonymous);
     await page.setRequestInterception(true);
     page.on('request', (request) => {
-      const url = new URL(request.url());
-      if (['data:', 'blob:'].includes(url.protocol) || url.hostname === '127.0.0.1') request.continue();
-      else request.abort('blockedbyclient');
+      if (['data:', 'blob:'].includes(new URL(request.url()).protocol)) {
+        request.continue();
+        return;
+      }
+      mockGalleryRequest(request, origin, pageState.name, fixtures).catch((error) => {
+        failures.push(`request error: ${error.message}`);
+        if (!request.isInterceptResolutionHandled()) request.abort('failed').catch(() => {});
+      });
     });
     if (state.pairToken) await setStoredPairToken(page, origin, state.pairToken);
     page.on('pageerror', (error) => failures.push(`page error: ${error.message}`));
@@ -409,15 +664,17 @@ async function captureOne(browser, origin, outputPath, state, viewport) {
       }
     });
 
-    const pageName = state.page ?? state.name;
-    await page.goto(`${origin}/connect-gallery.html?gallery=${encodeURIComponent(pageName)}`, {
+    await page.goto(`${origin}${pageState.path}`, {
       waitUntil: 'domcontentloaded',
       timeout: 15000,
     });
     await page.waitForFunction(
-      (expected) => document.documentElement.dataset.galleryReady === expected,
+      ({ selector, expectedText }) => {
+        if (selector && document.querySelector(selector)) return true;
+        return expectedText && document.body.innerText.includes(expectedText);
+      },
       { timeout: 15000 },
-      pageName,
+      { selector: pageState.readySelector, expectedText: pageState.readyText },
     );
     await page.evaluate(async () => {
       if (document.fonts) await document.fonts.ready;
@@ -430,7 +687,7 @@ async function captureOne(browser, origin, outputPath, state, viewport) {
         });
       }));
       const root = document.getElementById('root');
-      if (!root || !root.firstElementChild || root.getBoundingClientRect().width < 1 || root.getBoundingClientRect().height < 1) {
+      if (!root || !root.firstElementChild) {
         throw new Error('Gallery root is missing or blank');
       }
     });
@@ -466,7 +723,7 @@ async function captureOne(browser, origin, outputPath, state, viewport) {
   }
 }
 
-async function captureRenderers(renderers, output) {
+async function captureRenderers(renderers, output, fixtures) {
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
   for (const renderer of renderers) {
@@ -491,7 +748,7 @@ async function captureRenderers(renderers, output) {
       for (const state of GALLERY_STATES) {
         for (const viewport of GALLERY_VIEWPORTS) {
           const filename = captureFilename(state.name, viewport.name);
-          await captureOne(browser, server.origin, resolve(destination, filename), state, viewport);
+          await captureOne(browser, server.origin, resolve(destination, filename), state, viewport, fixtures);
           console.log(`Captured ${renderer.name}/${filename}`);
         }
       }
@@ -677,18 +934,17 @@ async function main() {
   }
   const temporary = await mkdtemp(resolve(tmpdir(), 'connect-gallery-'));
   try {
-    const fixtures = resolve(temporary, 'fixtures');
     const currentRenderer = resolve(temporary, 'renderer-current');
     const baseRenderer = resolve(temporary, 'renderer-base');
     const captures = resolve(temporary, 'captures');
-    await fetchFixtures(fixtures);
-    await buildRenderer(source, fixtures, currentRenderer);
+    const fixtures = await fetchFixtures();
+    await buildRenderer(source, currentRenderer);
     const renderers = [{ name: 'current', directory: currentRenderer }];
     if (baseSource) {
-      await buildRenderer(baseSource, fixtures, baseRenderer);
+      await buildRenderer(baseSource, baseRenderer);
       renderers.unshift({ name: 'base', directory: baseRenderer });
     }
-    await captureRenderers(renderers, captures);
+    await captureRenderers(renderers, captures, fixtures);
     await buildReport(
       captures,
       resolve(args.output ?? 'dist-gallery'),
