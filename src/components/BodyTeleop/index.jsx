@@ -11,15 +11,15 @@ import ControlsBar from './ControlsBar';
 import Video from './Video';
 import Joystick from './Joystick';
 
-const BodyTeleop = ({ dongleId, device, onClose, galleryPreview = false }) => {
-  const [connectionState, setConnectionState] = useState(galleryPreview ? 'connected' : 'none');
-  const [battery, setBattery] = useState(galleryPreview ? { level: 87, charging: false } : null);
+const BodyTeleop = ({ dongleId, device, onClose }) => {
+  const [connectionState, setConnectionState] = useState('none');
+  const [battery, setBattery] = useState(null);
   const [error, setError] = useState(null);
   const [activeCamera, setActiveCamera] = useState('wideRoad');
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [inputActive, setInputActive] = useState(false);
   const [connectionTotalMs, setConnectionTotalMs] = useState(null);
-  const [started, setStarted] = useState(galleryPreview);
+  const [started, setStarted] = useState(false);
 
   const videoRef = useRef(null);
   const streamsRef = useRef({});
@@ -38,14 +38,12 @@ const BodyTeleop = ({ dongleId, device, onClose, galleryPreview = false }) => {
   }, []);
 
   useEffect(() => {
-    if (galleryPreview) return undefined;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
-  }, [galleryPreview]);
+  }, []);
 
   useEffect(() => {
-    if (galleryPreview) return undefined;
     const callbacks = {
       onConnectionState: (state, reason) => {
         connectionRef.current = webrtcConnectionManager.connection;
@@ -77,7 +75,7 @@ const BodyTeleop = ({ dongleId, device, onClose, galleryPreview = false }) => {
     return () => {
       webrtcConnectionManager.release(callbacks);
     };
-  }, [dongleId, galleryPreview, resetConnectionTiming]);
+  }, [dongleId, resetConnectionTiming]);
 
   const handleConnect = useCallback(() => {
     setError(null);
@@ -129,9 +127,7 @@ const BodyTeleop = ({ dongleId, device, onClose, galleryPreview = false }) => {
   };
 
   return (
-    <div className={galleryPreview
-      ? 'absolute inset-0 w-full h-full bg-[#030404]'
-      : 'fixed top-0 left-0 w-screen h-full z-[1300] bg-[#030404]'}>
+    <div className="fixed top-0 left-0 w-screen h-full z-[1300] bg-[#030404]">
       <div className={`
         absolute inset-0 bg-[#030404] flex flex-col touch-none
         overflow-hidden select-none [-webkit-touch-callout:none] [-webkit-text-size-adjust:none]

@@ -188,14 +188,6 @@ class DeviceInfo extends Component {
 
   componentDidMount() {
     this.mounted = true;
-    if (this.props.galleryPreview) {
-      this.setState({
-        carHealth: {
-          result: { peripheralState: { voltage: 12300 } },
-        },
-      });
-      return;
-    }
     this.prewarmBodyTeleop();
   }
 

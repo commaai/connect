@@ -13,6 +13,7 @@
 # production
 /build
 /dist
+/dist-gallery
 
 # misc
 .DS_Store

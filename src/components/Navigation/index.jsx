@@ -153,7 +153,7 @@ class Navigation extends Component {
         ...DEFAULT_LOCATION,
         zoom: 5,
       },
-      mapError: props.galleryPreview ? 'Map tiles are disabled in the static preview.' : null,
+      mapError: null,
       windowWidth: window.innerWidth,
     };
 
@@ -184,14 +184,6 @@ class Navigation extends Component {
 
   componentDidMount() {
     this.mounted = true;
-    if (this.props.galleryPreview) {
-      this.setState({
-        mapError: 'Map tiles are disabled in the static preview.',
-        carLastLocation: [-117.195, 32.7498],
-        carLastLocationTime: Date.now(),
-      });
-      return;
-    }
     this.checkWebGLSupport();
     this.componentDidUpdate({}, {});
   }

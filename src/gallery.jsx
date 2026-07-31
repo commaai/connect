@@ -1,20 +1,18 @@
-import React, { Component, createRef, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { applyMiddleware, createStore } from 'redux';
 import thunk from 'redux-thunk';
 import { MemoryRouter } from 'react-router-dom';
-import {
-  Button, Checkbox, Chip, CircularProgress, CssBaseline, Input, Radio,
-  SnackbarContent, TextField, MuiThemeProvider,
-} from '@material-ui/core';
+import { CssBaseline, MuiThemeProvider } from '@material-ui/core';
+import MyCommaAuth from '@commaai/my-comma-auth';
 
 import './index.css';
-import './gallery.css';
 import Theme from './theme';
 import {
-  athena as Athena, billing as Billing, devices as Devices, raw as Raw, video as RouteVideo,
+  athena, billing, devices, drives, raw, video as routeVideo,
 } from './api';
+import { webrtcConnectionManager } from './utils/webrtc';
 import AccountMenu from './components/AppHeader/AccountMenu';
 import AppHeader from './components/AppHeader';
 import AnonymousLanding from './components/anonymous';
@@ -26,59 +24,211 @@ import Video from './components/BodyTeleop/Video';
 import CommacareBadge from './components/CommacareBadge';
 import DriveListEmpty from './components/Dashboard/DriveListEmpty';
 import DeviceList from './components/Dashboard/DeviceList';
-import ErrorFallback from './components/ErrorFallback';
 import Explorer from './components/explorer';
 import SwitchLoading from './components/utils/SwitchLoading';
-import {
-  galleryBodyDevice,
-  galleryDevice,
-  galleryDongleId,
-  galleryLogId,
-  galleryProfile,
-  galleryRoute,
-  gallerySubscribeInfo,
-  gallerySubscription,
-} from './gallery-fixtures/route';
+import rawEvents from './gallery-fixtures/5beb9b58bd12b691/0000010a--a51155e496/events.json';
+import sprite from './gallery-fixtures/5beb9b58bd12b691/0000010a--a51155e496/0/sprite.jpg?url';
 
 const noop = () => {};
 const now = Date.now();
-const filter = { start: galleryRoute.start_time_utc_millis - 86400000, end: now };
+const dongleId = '5beb9b58bd12b691';
+const logId = '0000010a--a51155e496';
+const duration = 925000;
+const segments = Array.from({ length: 16 }, (_, index) => index);
 
-Devices.fetchDeviceStats = async () => ({
-  all: { distance: 2461, minutes: 3814, routes: 173 },
-});
-Devices.fetchLocation = async () => ({
-  lat: galleryRoute.start_lat,
-  lng: galleryRoute.start_lng,
-  time: Math.floor(Date.now() / 1000),
-});
-Devices.listDevices = async () => [galleryDevice];
-Athena.postJsonRpcPayload = async (_dongleId, payload) => {
-  if (payload.method === 'getMessage') {
-    return { result: { peripheralState: { voltage: 12300 } } };
+function parseEvents(events) {
+  const parsed = [];
+  let engaged;
+  let alert;
+  let overriding;
+
+  for (const event of events
+    .map((item) => ({
+      ...item,
+      data: {
+        ...item.data,
+        alertStatus: typeof item.data?.alertStatus === 'number'
+          ? ['normal', 'userPrompt', 'critical'][item.data.alertStatus]
+          : item.data?.alertStatus,
+      },
+    }))
+    .sort((a, b) => a.route_offset_millis - b.route_offset_millis)) {
+    if (event.type === 'event') {
+      parsed.push(event);
+      continue;
+    }
+    const offset = event.route_offset_millis;
+    if (engaged && !event.data.enabled) {
+      engaged.data.end_route_offset_millis = offset;
+      engaged = null;
+    }
+    if (!engaged && event.data.enabled) {
+      engaged = { ...event, type: 'engage', data: { ...event.data } };
+      parsed.push(engaged);
+    }
+    if (alert && event.data.alertStatus !== alert.data.alertStatus) {
+      alert.data.end_route_offset_millis = offset;
+      alert = null;
+    }
+    if (!alert && event.data.alertStatus !== 'normal') {
+      alert = { ...event, type: 'alert', data: { ...event.data } };
+      parsed.push(alert);
+    }
+    if (overriding && event.data.state !== overriding.data.state) {
+      overriding.data.end_route_offset_millis = offset;
+      overriding = null;
+    }
+    if (!overriding && ['overriding', 'preEnabled'].includes(event.data.state)) {
+      overriding = { ...event, type: 'overriding', data: { ...event.data } };
+      parsed.push(overriding);
+    }
   }
-  if (payload.method === 'getNotCar') return { result: false };
-  return { result: true };
-};
-Billing.getSubscribeInfo = async () => gallerySubscribeInfo;
-Billing.getSubscription = async () => gallerySubscription;
-Raw.getRouteFiles = async () => ({});
-RouteVideo.getQcameraStreamUrl = () => 'data:video/mp4;base64,';
+  [engaged, alert, overriding].forEach((event) => {
+    if (event) event.data.end_route_offset_millis = duration;
+  });
+  return parsed;
+}
 
+const route = {
+  car_id: 1238,
+  create_time: 1772040714,
+  distance: 10.1977,
+  dongle_id: dongleId,
+  duration,
+  end_lat: 32.8751,
+  end_lng: -117.21,
+  endLocation: { place: 'La Jolla', details: 'San Diego, CA' },
+  end_time: '2026-02-25T17:45:55',
+  end_time_utc_millis: 1772041555000,
+  events: parseEvents(rawEvents),
+  fullname: `${dongleId}|${logId}`,
+  is_preserved: true,
+  is_public: true,
+  log_id: logId,
+  make: 'ford',
+  maxqlog: 15,
+  platform: 'FORD_BRONCO_SPORT_MK1',
+  procqlog: 15,
+  segment_durations: segments.map((index) => (index === 15 ? 25000 : 60000)),
+  segment_end_times: segments.map((index) => (
+    index === 15 ? 1772041555000 : 1772040690000 + (index * 60000)
+  )),
+  segment_numbers: segments,
+  segment_start_times: segments.map((index) => 1772040630000 + (index * 60000)),
+  share_exp: '1785555165',
+  share_sig: 'fake',
+  start_lat: 32.7498,
+  start_lng: -117.195,
+  startLocation: { place: 'San Diego', details: 'California' },
+  start_time: '2026-02-25T17:30:30',
+  start_time_utc_millis: 1772040630000,
+  // The fragment lets the unchanged timeline append its segment path while reusing this fake sprite.
+  url: `${sprite}#`,
+  version: '0.10.4',
+};
+
+const device = {
+  alias: 'Bronco Sport',
+  commacare: true,
+  device_type: 'tici',
+  dongle_id: dongleId,
+  eligible_features: { prime_data: true },
+  is_owner: true,
+  last_athena_ping: Math.floor(now / 1000),
+  prime: false,
+  rpc: { not_car: false },
+  serial: 'cb421c10',
+  version: '0.10.4',
+};
+const profile = {
+  email: 'driver@example.com',
+  id: 'fake-user',
+  superuser: false,
+  user_id: 'fake-user',
+};
+const subscribeInfo = {
+  allow_data: true,
+  amount: 2400,
+  device_online: true,
+  eligible: true,
+  is_prime_sim: true,
+  sim_id: '89014103211118510720',
+  sim_type: 'blue',
+  sim_usable: true,
+  trial_claimable: true,
+};
+const subscription = {
+  amount: 2400,
+  cancel_at_period_end: false,
+  current_period_end: Math.floor(now / 1000) + (86400 * 25),
+  next_charge_at: Math.floor(now / 1000) + (86400 * 25),
+  plan: 'data',
+  status: 'active',
+  subscribed_at: Math.floor(now / 1000) - (86400 * 190),
+  trial_end: null,
+  user_id: profile.user_id,
+};
+
+MyCommaAuth.isAuthenticated = () => true;
+MyCommaAuth.logOut = async () => {};
+devices.fetchDevice = async () => device;
+devices.fetchDeviceStats = async () => ({ all: { distance: 2461, minutes: 3814, routes: 173 } });
+devices.fetchLocation = async () => ({
+  lat: route.start_lat,
+  lng: route.start_lng,
+  time: Math.floor(now / 1000),
+});
+devices.listDevices = async () => [device];
+athena.postJsonRpcPayload = async (_id, payload) => ({
+  result: payload.method === 'getMessage'
+    ? { peripheralState: { voltage: 12300 } }
+    : payload.method !== 'getNotCar',
+});
+billing.getSubscribeInfo = async () => subscribeInfo;
+billing.getSubscription = async () => subscription;
+drives.getPreservedRoutes = async () => [route];
+raw.getRouteFiles = async () => ({});
+routeVideo.getQcameraStreamUrl = () => 'data:video/mp4;base64,';
+
+const teleopConnection = {
+  connectionState: 'connected',
+  failReason: null,
+  pc: null,
+  enableJoystick: noop,
+  enableVideo: noop,
+  setJoystick: noop,
+  setQuality: noop,
+  setTimingSei: noop,
+  switchCamera: noop,
+};
+webrtcConnectionManager.connection = teleopConnection;
+webrtcConnectionManager.prewarm = noop;
+webrtcConnectionManager.release = noop;
+webrtcConnectionManager.reconnect = () => teleopConnection;
+webrtcConnectionManager.disconnect = noop;
+webrtcConnectionManager.acquire = (_id, callbacks) => {
+  callbacks.onConnectionState('connected');
+  callbacks.onBatteryLevel({ level: 87, charging: false });
+  callbacks.onIgnition(true);
+  return teleopConnection;
+};
+
+const filter = { start: route.start_time_utc_millis - 86400000, end: now };
+const location = (pathname) => ({ location: { pathname, search: '', hash: '' } });
 const baseState = {
-  router: { location: { pathname: `/${galleryDongleId}`, search: '', hash: '' } },
-  dongleId: galleryDongleId,
-  device: galleryDevice,
-  devices: [galleryDevice],
-  profile: galleryProfile,
+  router: location(`/${dongleId}`),
+  dongleId,
+  device,
+  devices: [device],
+  profile,
   filter,
-  routes: [galleryRoute],
-  routesMeta: { dongleId: galleryDongleId, start: filter.start, end: filter.end },
+  routes: [route],
+  routesMeta: { dongleId, start: filter.start, end: filter.end },
   currentRoute: null,
-  lastRoutes: [galleryRoute],
+  lastRoutes: [route],
   files: [],
   filesUploading: {},
-  filesUploadingMeta: { dongleId: galleryDongleId, fetchedAt: now },
+  filesUploadingMeta: { dongleId, fetchedAt: now },
   primeNav: false,
   streamNav: false,
   subscription: null,
@@ -92,232 +242,264 @@ const baseState = {
   desiredPlaySpeed: 1,
   isBufferingVideo: false,
 };
-
-const galleryReducer = (state = baseState) => state;
-
-const makeStore = (overrides = {}) => createStore(
-  galleryReducer,
-  { ...baseState, ...overrides },
+const makeStore = (state = {}) => createStore(
+  (current = baseState) => current,
+  { ...baseState, ...state },
   applyMiddleware(thunk),
 );
 
-const componentStore = makeStore();
-
-class FrameBoundary extends Component {
-  state = { error: null };
-  static getDerivedStateFromError(error) { return { error }; }
-  render() {
-    return this.state.error
-      ? <pre className="gallery-pad">{String(this.state.error)}</pre>
-      : this.props.children;
-  }
-}
-
-const Frame = ({ title, children, tall = false, wide = false, className = '' }) => (
-  <section className={`gallery-item ${wide ? 'gallery-wide' : ''}`}>
-    <h2 className="gallery-label">{title}</h2>
-    <div className={`gallery-frame ${tall ? 'tall' : ''} ${className}`}>
-      <FrameBoundary><div className="frame-scale">{children}</div></FrameBoundary>
-    </div>
-  </section>
-);
-
-const GallerySection = ({ title, description, children }) => (
-  <section className="gallery-section">
-    <div className="gallery-section-heading">
-      <h2>{title}</h2>
-      {description && <p>{description}</p>}
-    </div>
-    <div className="gallery-grid">{children}</div>
-  </section>
-);
-
-const FullPage = ({ state, children }) => (
-  <Provider store={makeStore(state)}>
-    <div className="gallery-full-page">{children}</div>
-  </Provider>
-);
-
-const OpenSettings = () => {
-  const host = useRef(null);
-  useEffect(() => { host.current?.querySelector('[title="Settings"]')?.click(); }, []);
-  return <div ref={host} className="gallery-menu"><SettingsMenu onQualityChange={noop} /></div>;
+const bodyDevice = {
+  ...device,
+  alias: 'comma body',
+  device_type: 'tizi',
+  rpc: { not_car: true },
+};
+const pageStates = {
+  signin: {
+    dongleId: null,
+    device: null,
+    devices: [],
+    router: location('/'),
+  },
+  pair: {
+    dongleId: null,
+    device: null,
+    devices: [],
+    routes: [],
+    router: location('/'),
+  },
+  dashboard: {},
+  drive: {
+    currentRoute: route,
+    loop: { startTime: 0, duration },
+    router: location(`/${dongleId}/${logId}`),
+    segmentRange: { log_id: logId, start: 0, end: duration },
+    zoom: { start: 0, end: duration, previous: null },
+  },
+  checkout: {
+    primeNav: true,
+    router: location(`/${dongleId}/prime`),
+    subscribeInfo,
+  },
+  management: {
+    device: { ...device, prime: true },
+    devices: [{ ...device, prime: true }],
+    primeNav: true,
+    router: location(`/${dongleId}/prime`),
+    subscription,
+  },
+  teleop: {
+    device: bodyDevice,
+    devices: [bodyDevice],
+    router: location(`/${dongleId}/stream`),
+    streamNav: true,
+  },
 };
 
+const Frame = ({ title, page, tall, children }) => (
+  <section className={page ? 'page' : ''}>
+    <label>{title}</label>
+    <div className={`frame ${page ? 'page-frame' : ''} ${tall ? 'tall' : ''}`}>{children}</div>
+  </section>
+);
+const Page = ({ name }) => {
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('gallery', name);
+  return <iframe title={name} src={url.href} />;
+};
+const OpenSettings = () => {
+  const ref = useRef(null);
+  useEffect(() => ref.current?.querySelector('[title="Settings"]')?.click(), []);
+  return <div ref={ref} className="menu"><SettingsMenu onQualityChange={noop} /></div>;
+};
+
+const css = `
+  :root { color-scheme: light; background: white; }
+  html, body { margin: 0; background: white !important; color: #111; font: 12px Arial, sans-serif; }
+  body { padding: 12px; overflow: auto; }
+  h1 { grid-column: 1 / -1; margin: 8px 0 0; padding-bottom: 6px; border-bottom: 1px solid #ccc; font-size: 15px; }
+  main { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px; align-items: start; }
+  section { min-width: 0; }
+  label { display: block; height: 16px; color: #555; font-size: 11px; }
+  .frame { position: relative; height: 250px; overflow: hidden; contain: paint; transform: translateZ(0); border: 1px solid #aaa; background: #16181a; color: white; }
+  .page-frame { height: 620px; }
+  iframe { width: 100%; height: 100%; border: 0; }
+  .tall { height: 420px; }
+  .pad { padding: 16px; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+  .video, .video video { height: 100%; }
+  .video video { background: #050607; }
+  .stats { position: relative; min-height: 225px; }
+  .menu { position: absolute; right: 16px; top: 16px; }
+  .account { position: absolute; right: 16px; top: 16px; width: 250px; }
+  .empty > div { min-height: 65px; }
+  .joystick { width: 180px; height: 180px; margin: 34px auto 0; }
+  @media (min-width: 1050px) { .page { grid-column: span 2; } }
+`;
+
+const pageCss = `
+  html, body, #root, .preview-page, .preview-page > div {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: #16181a;
+  }
+  .preview-page .scrollstyle { height: 100% !important; }
+  .preview-page .DriveView { min-height: calc(100% - 65px); }
+  .preview-page video { max-height: 300px; }
+`;
+
 const Gallery = () => {
-  const videoRef = createRef();
-  const latency = { networkMs: 18.2, decodeMs: 7.4, displayMs: 4.8, devicePipelineMs: 23.1, totalMs: 53.5 };
-  const stats = { fps: '20.0', bitrate: '1.52 Mbps', rtt: '18 ms', packetLoss: '0.1%', jitter: '2.4 ms' };
+  const videoRef = useRef(null);
+  const latency = {
+    networkMs: 18.2,
+    decodeMs: 7.4,
+    displayMs: 4.8,
+    devicePipelineMs: 23.1,
+    totalMs: 53.5,
+  };
   return (
     <MemoryRouter>
       <MuiThemeProvider theme={Theme}>
         <CssBaseline />
-        <h1 className="gallery-title">connect pages and components</h1>
+        <style>{css}</style>
         <main>
-            <GallerySection
-              title="Device pages"
-              description="Every non-teleop page, rendered through the real connect page components."
-            >
-              <Frame title="Sign in" wide className="gallery-page-frame">
-                <FullPage state={{
-                  dongleId: null,
-                  device: null,
-                  devices: [],
-                  router: { location: { pathname: '/', search: '', hash: '' } },
-                }}>
-                  <AnonymousLanding galleryPreview />
-                </FullPage>
-              </Frame>
-              <Frame title="Pair a device / no devices" wide className="gallery-page-frame">
-                <FullPage state={{
-                  dongleId: null,
-                  device: null,
-                  devices: [],
-                  routes: [],
-                  router: { location: { pathname: '/', search: '', hash: '' } },
-                }}>
-                  <Explorer galleryPreview />
-                </FullPage>
-              </Frame>
-              <Frame title="Device dashboard and drives" wide className="gallery-page-frame">
-                <FullPage>
-                  <Explorer galleryPreview />
-                </FullPage>
-              </Frame>
-              <Frame title="Drive detail" wide className="gallery-page-frame">
-                <FullPage state={{
-                  currentRoute: galleryRoute,
-                  loop: { startTime: 0, duration: galleryRoute.duration },
-                  offset: 0,
-                  router: {
-                    location: {
-                      pathname: `/${galleryDongleId}/${galleryLogId}`,
-                      search: '',
-                      hash: '',
-                    },
-                  },
-                  segmentRange: { log_id: galleryLogId, start: 0, end: galleryRoute.duration },
-                  zoom: { start: 0, end: galleryRoute.duration, previous: null },
-                }}>
-                  <Explorer galleryPreview />
-                </FullPage>
-              </Frame>
-              <Frame title="Prime checkout" wide className="gallery-page-frame">
-                <FullPage state={{
-                  primeNav: true,
-                  subscribeInfo: gallerySubscribeInfo,
-                  router: {
-                    location: { pathname: `/${galleryDongleId}/prime`, search: '', hash: '' },
-                  },
-                }}>
-                  <Explorer galleryPreview />
-                </FullPage>
-              </Frame>
-              <Frame title="Prime management" wide className="gallery-page-frame">
-                <FullPage state={{
-                  device: { ...galleryDevice, prime: true },
-                  devices: [{ ...galleryDevice, prime: true }],
-                  primeNav: true,
-                  subscription: gallerySubscription,
-                  router: {
-                    location: { pathname: `/${galleryDongleId}/prime`, search: '', hash: '' },
-                  },
-                }}>
-                  <Explorer galleryPreview />
-                </FullPage>
-              </Frame>
-            </GallerySection>
+          <h1>Pages</h1>
+          <Frame title="Sign in" page>
+            <Page name="signin" />
+          </Frame>
+          <Frame title="Pair a device" page>
+            <Page name="pair" />
+          </Frame>
+          <Frame title="Dashboard" page>
+            <Page name="dashboard" />
+          </Frame>
+          <Frame title="Drive" page>
+            <Page name="drive" />
+          </Frame>
+          <Frame title="Prime checkout" page>
+            <Page name="checkout" />
+          </Frame>
+          <Frame title="Prime management" page>
+            <Page name="management" />
+          </Frame>
+          <Frame title="Teleop" page>
+            <Page name="teleop" />
+          </Frame>
 
-            <GallerySection
-              title="Teleop"
-              description="The real full teleop page followed by its isolated component states."
-            >
-              <Frame title="Teleop: full page" wide className="gallery-page-frame">
-                <FullPage state={{
-                  device: galleryBodyDevice,
-                  devices: [galleryBodyDevice],
-                  router: {
-                    location: { pathname: `/${galleryDongleId}/stream`, search: '', hash: '' },
-                  },
-                  streamNav: true,
-                }}>
-                  <Explorer galleryPreview />
-                </FullPage>
-              </Frame>
-              <Frame title="Teleop video: connecting" wide>
-                <Video className="gallery-video" videoRef={videoRef} connectionState="connecting" connectionTotalMs={null} onConnect={noop} started={false} />
-              </Frame>
-              <Frame title="Teleop video: failed">
-                <Video className="gallery-video" videoRef={videoRef} connectionState="failed" error="Device connection timed out" onConnect={noop} started />
-              </Frame>
-              <Frame title="Teleop controls">
-                <div className="gallery-pad"><ControlsBar activeCamera="wideRoad" onSwitchCamera={noop} gamepadConnected={false} videoRef={videoRef} isLandscape={false} controlsDisabled={false} /></div>
-              </Frame>
-              <Frame title="Teleop joystick">
-                <div className="gallery-joystick">
-                  <Joystick
-                    connection={null}
-                    activeCamera="wideRoad"
-                    className="relative w-full h-full"
-                    onGamepadChange={noop}
-                    onSwitchCamera={noop}
-                    gamepadConnected={false}
-                    onInputActiveChange={noop}
-                  />
-                </div>
-              </Frame>
-              <Frame title="Teleop settings menu"><OpenSettings /></Frame>
-              <Frame title="Teleop connection statistics">
-                <div className="gallery-stats"><StatsPanel isLandscape={false} stats={stats} latency={latency} latencyHistory={[latency, { ...latency, totalMs: 61.2 }]} /></div>
-              </Frame>
-            </GallerySection>
-
-            <GallerySection
-              title="Components"
-              description="Reusable connect UI, with one isolated frame per component."
-            >
-              <Frame title="App header" wide><AppHeader drawerIsOpen={false} viewingRoute={false} showDrawerButton handleDrawerStateChanged={noop} /></Frame>
-              <Frame title="Device list" tall><DeviceList selectedDevice={galleryDongleId} handleDeviceSelected={noop} /></Frame>
-              <Frame title="Route list: loading and empty" className="gallery-empty">
-                <DriveListEmpty device={galleryDevice} routes={null} />
-                <DriveListEmpty device={galleryDevice} routes={[]} />
-              </Frame>
-              <Frame title="Account menu">
-                <div className="gallery-account"><AccountMenu open profile={galleryProfile} onClose={noop} /></div>
-              </Frame>
-              <Frame title="Switch, loading, tooltip">
-                <div className="gallery-pad">
-                  <SwitchLoading checked label="Public route" tooltip="Anyone with the link can view this route." onChange={async () => ({})} />
-                  <SwitchLoading checked={false} loading label="Preserved" onChange={async () => ({})} />
-                </div>
-              </Frame>
-              <Frame title="commacare badge">
-                <div className="gallery-pad gallery-row"><CommacareBadge /><CommacareBadge variant="pill" /></div>
-              </Frame>
-              <Frame title="Material controls used throughout connect" wide>
-                <div className="gallery-pad gallery-row">
-                  <Button variant="contained" color="primary">Primary</Button>
-                  <Button variant="contained" color="secondary">Secondary</Button>
-                  <Button disabled>Disabled</Button>
-                  <Input placeholder="Input" />
-                  <TextField label="Text field" defaultValue="Fake data" />
-                  <Checkbox checked onChange={noop} />
-                  <Radio checked onChange={noop} />
-                  <Chip label="Chip" />
-                  <CircularProgress size={28} />
-                  <SnackbarContent message="Route link copied" />
-                </div>
-              </Frame>
-              <Frame title="Error fallback" tall>
-                <div className="gallery-error"><ErrorFallback error={new Error('Fake CI rendering error')} componentStack={'\\n  in Gallery'} /></div>
-              </Frame>
-            </GallerySection>
+          <h1>Components</h1>
+          <Frame title="App header" page>
+            <AppHeader
+              drawerIsOpen={false}
+              viewingRoute={false}
+              showDrawerButton
+              handleDrawerStateChanged={noop}
+            />
+          </Frame>
+          <Frame title="Device list" tall>
+            <DeviceList selectedDevice={dongleId} handleDeviceSelected={noop} />
+          </Frame>
+          <Frame title="Empty route list">
+            <div className="empty">
+              <DriveListEmpty device={device} routes={null} />
+              <DriveListEmpty device={device} routes={[]} />
+            </div>
+          </Frame>
+          <Frame title="Account menu">
+            <div className="account"><AccountMenu open profile={profile} onClose={noop} /></div>
+          </Frame>
+          <Frame title="Switch">
+            <div className="pad">
+              <SwitchLoading checked label="Public route" onChange={async () => ({})} />
+              <SwitchLoading checked={false} loading label="Preserved" onChange={async () => ({})} />
+            </div>
+          </Frame>
+          <Frame title="commacare">
+            <div className="pad row"><CommacareBadge /><CommacareBadge variant="pill" /></div>
+          </Frame>
+          <Frame title="Teleop video: connecting" page>
+            <Video
+              className="video"
+              videoRef={videoRef}
+              connectionState="connecting"
+              onConnect={noop}
+              started={false}
+            />
+          </Frame>
+          <Frame title="Teleop video: failed">
+            <Video
+              className="video"
+              videoRef={videoRef}
+              connectionState="failed"
+              error="Device connection timed out"
+              onConnect={noop}
+              started
+            />
+          </Frame>
+          <Frame title="Teleop controls">
+            <div className="pad">
+              <ControlsBar
+                activeCamera="wideRoad"
+                onSwitchCamera={noop}
+                gamepadConnected={false}
+                videoRef={videoRef}
+                isLandscape={false}
+                controlsDisabled={false}
+              />
+            </div>
+          </Frame>
+          <Frame title="Teleop joystick">
+            <div className="joystick">
+              <Joystick
+                connection={null}
+                activeCamera="wideRoad"
+                className="relative w-full h-full"
+                onGamepadChange={noop}
+                onSwitchCamera={noop}
+                gamepadConnected={false}
+                onInputActiveChange={noop}
+              />
+            </div>
+          </Frame>
+          <Frame title="Teleop settings"><OpenSettings /></Frame>
+          <Frame title="Teleop statistics">
+            <div className="stats">
+              <StatsPanel
+                isLandscape={false}
+                stats={{
+                  fps: '20.0',
+                  bitrate: '1.52 Mbps',
+                  rtt: '18 ms',
+                  packetLoss: '0.1%',
+                  jitter: '2.4 ms',
+                }}
+                latency={latency}
+                latencyHistory={[latency]}
+              />
+            </div>
+          </Frame>
         </main>
       </MuiThemeProvider>
     </MemoryRouter>
   );
 };
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <Provider store={componentStore}><Gallery /></Provider>,
-);
+const pageName = new URLSearchParams(window.location.search).get('gallery');
+const app = pageStates[pageName] ? (
+  <Provider store={makeStore(pageStates[pageName])}>
+    <MemoryRouter>
+      <MuiThemeProvider theme={Theme}>
+        <CssBaseline />
+        <style>{pageCss}</style>
+        <div className="preview-page">
+          {pageName === 'signin' ? <AnonymousLanding /> : <Explorer />}
+        </div>
+      </MuiThemeProvider>
+    </MemoryRouter>
+  </Provider>
+) : <Provider store={makeStore()}><Gallery /></Provider>;
+
+ReactDOM.createRoot(document.getElementById('root')).render(app);

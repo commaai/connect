@@ -36,7 +36,7 @@ export default function Thumbnails(props) {
       const seconds = Math.floor(offset / 1000);
       const imageIndex = Math.max(0, Math.min(Math.floor(seconds / 5), 11));
       const segmentNum = getSegmentNumber(route, offset);
-      const url = route.thumbnailUrls?.[segmentNum] || `${route.url}/${segmentNum}/sprite.jpg`;
+      const url = `${route.url}/${segmentNum}/sprite.jpg`;
 
       if (currSegment && (currSegment.blank || currSegment.segmentNum !== segmentNum)) {
         imgArr.push(currSegment);

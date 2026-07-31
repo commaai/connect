@@ -37,10 +37,9 @@ for (const [file, mime] of publicImages) {
 }
 
 await writeFile(htmlPath, html);
-await writeFile(resolve('connect-gallery-output.html'), html);
 for (const entry of await readdir(outputDir)) {
   if (entry !== 'connect-gallery.html') {
     await rm(resolve(outputDir, entry), { recursive: true, force: true });
   }
 }
-console.log(resolve('connect-gallery-output.html'));
+console.log(htmlPath);
