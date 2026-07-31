@@ -4,10 +4,11 @@ import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 
-import { withStyles, Tooltip } from '@material-ui/core';
+import { withStyles } from '@material-ui/core';
 import CircularProgress from '../ui/CircularProgress';
 import Typography from '../ui/Typography';
 import Popper from '../ui/Popper';
+import Tooltip from '../ui/Tooltip';
 
 import { athena as Athena } from '../../api';
 import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';

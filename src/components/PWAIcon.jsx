@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
-import {
-  Tooltip,
-} from '@material-ui/core';
 import CircularProgress from './ui/CircularProgress';
 import IconButton from './ui/IconButton';
+import Tooltip from './ui/Tooltip';
 
 import { CheckCircle, Download } from '../icons';
 
