@@ -1,0 +1,823 @@
+[
+  {
+    "type": "event",
+    "time": 429534406774298,
+    "offset_millis": 0,
+    "route_offset_millis": 21,
+    "data": {
+      "event_type": "record_front_toggle",
+      "value": true
+    }
+  },
+  {
+    "type": "event",
+    "time": 429535234277855,
+    "offset_millis": 827,
+    "route_offset_millis": 849,
+    "data": {
+      "event_type": "first_road_camera_frame"
+    }
+  },
+  {
+    "type": "state",
+    "time": 429536041471863,
+    "offset_millis": 1634,
+    "route_offset_millis": 1656,
+    "data": {
+      "state": "disabled",
+      "enabled": false,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 429555232135643,
+    "offset_millis": 20825,
+    "route_offset_millis": 20846,
+    "data": {
+      "state": "overriding",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 429556430532545,
+    "offset_millis": 22023,
+    "route_offset_millis": 22045,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 429569030626466,
+    "offset_millis": 34623,
+    "route_offset_millis": 34645,
+    "data": {
+      "state": "overriding",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 429569231384524,
+    "offset_millis": 34824,
+    "route_offset_millis": 34846,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 429595360098942,
+    "offset_millis": 0,
+    "route_offset_millis": 60974,
+    "data": {
+      "event_type": "record_front_toggle",
+      "value": true
+    }
+  },
+  {
+    "type": "state",
+    "time": 429595430905879,
+    "offset_millis": 70,
+    "route_offset_millis": 61045,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 429596234235751,
+    "offset_millis": 874,
+    "route_offset_millis": 61849,
+    "data": {
+      "event_type": "first_road_camera_frame"
+    }
+  },
+  {
+    "type": "state",
+    "time": 429600331760892,
+    "offset_millis": 4971,
+    "route_offset_millis": 65946,
+    "data": {
+      "state": "overriding",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 429600530306270,
+    "offset_millis": 5170,
+    "route_offset_millis": 66145,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 429607330285052,
+    "offset_millis": 11970,
+    "route_offset_millis": 72945,
+    "data": {
+      "state": "overriding",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 429607531564901,
+    "offset_millis": 12171,
+    "route_offset_millis": 73146,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 429655128950844,
+    "offset_millis": 0,
+    "route_offset_millis": 120743,
+    "data": {
+      "event_type": "record_front_toggle",
+      "value": true
+    }
+  },
+  {
+    "type": "state",
+    "time": 429655431151498,
+    "offset_millis": 302,
+    "route_offset_millis": 121045,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 429656234139184,
+    "offset_millis": 1105,
+    "route_offset_millis": 121848,
+    "data": {
+      "event_type": "first_road_camera_frame"
+    }
+  },
+  {
+    "type": "event",
+    "time": 429715360527310,
+    "offset_millis": 0,
+    "route_offset_millis": 180975,
+    "data": {
+      "event_type": "record_front_toggle",
+      "value": true
+    }
+  },
+  {
+    "type": "state",
+    "time": 429715431168930,
+    "offset_millis": 70,
+    "route_offset_millis": 181045,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 429716234041146,
+    "offset_millis": 873,
+    "route_offset_millis": 181848,
+    "data": {
+      "event_type": "first_road_camera_frame"
+    }
+  },
+  {
+    "type": "event",
+    "time": 429775128962489,
+    "offset_millis": 0,
+    "route_offset_millis": 240743,
+    "data": {
+      "event_type": "record_front_toggle",
+      "value": true
+    }
+  },
+  {
+    "type": "state",
+    "time": 429775430923528,
+    "offset_millis": 301,
+    "route_offset_millis": 241045,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 429776233956990,
+    "offset_millis": 1104,
+    "route_offset_millis": 241848,
+    "data": {
+      "event_type": "first_road_camera_frame"
+    }
+  },
+  {
+    "type": "event",
+    "time": 429835360625039,
+    "offset_millis": 0,
+    "route_offset_millis": 300975,
+    "data": {
+      "event_type": "record_front_toggle",
+      "value": true
+    }
+  },
+  {
+    "type": "state",
+    "time": 429835431137593,
+    "offset_millis": 70,
+    "route_offset_millis": 301045,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 429836233867949,
+    "offset_millis": 873,
+    "route_offset_millis": 301848,
+    "data": {
+      "event_type": "first_road_camera_frame"
+    }
+  },
+  {
+    "type": "event",
+    "time": 429895128939620,
+    "offset_millis": 0,
+    "route_offset_millis": 360743,
+    "data": {
+      "event_type": "record_front_toggle",
+      "value": true
+    }
+  },
+  {
+    "type": "state",
+    "time": 429895432023862,
+    "offset_millis": 303,
+    "route_offset_millis": 361046,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 429896233802654,
+    "offset_millis": 1104,
+    "route_offset_millis": 361848,
+    "data": {
+      "event_type": "first_road_camera_frame"
+    }
+  },
+  {
+    "type": "event",
+    "time": 429955367926823,
+    "offset_millis": 0,
+    "route_offset_millis": 420982,
+    "data": {
+      "event_type": "record_front_toggle",
+      "value": true
+    }
+  },
+  {
+    "type": "state",
+    "time": 429955430909312,
+    "offset_millis": 62,
+    "route_offset_millis": 421045,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 429956233732140,
+    "offset_millis": 865,
+    "route_offset_millis": 421848,
+    "data": {
+      "event_type": "first_road_camera_frame"
+    }
+  },
+  {
+    "type": "state",
+    "time": 430011434588020,
+    "offset_millis": 56066,
+    "route_offset_millis": 477049,
+    "data": {
+      "state": "overriding",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 430011632965095,
+    "offset_millis": 56265,
+    "route_offset_millis": 477247,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 430015128940760,
+    "offset_millis": 0,
+    "route_offset_millis": 480743,
+    "data": {
+      "event_type": "record_front_toggle",
+      "value": true
+    }
+  },
+  {
+    "type": "state",
+    "time": 430015430242080,
+    "offset_millis": 301,
+    "route_offset_millis": 481045,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 430016233657248,
+    "offset_millis": 1104,
+    "route_offset_millis": 481848,
+    "data": {
+      "event_type": "first_road_camera_frame"
+    }
+  },
+  {
+    "type": "event",
+    "time": 430075359188513,
+    "offset_millis": 0,
+    "route_offset_millis": 540974,
+    "data": {
+      "event_type": "record_front_toggle",
+      "value": true
+    }
+  },
+  {
+    "type": "state",
+    "time": 430075432158350,
+    "offset_millis": 72,
+    "route_offset_millis": 541046,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 430076233580133,
+    "offset_millis": 874,
+    "route_offset_millis": 541848,
+    "data": {
+      "event_type": "first_road_camera_frame"
+    }
+  },
+  {
+    "type": "event",
+    "time": 430135128941088,
+    "offset_millis": 0,
+    "route_offset_millis": 600743,
+    "data": {
+      "event_type": "record_front_toggle",
+      "value": true
+    }
+  },
+  {
+    "type": "state",
+    "time": 430135432495889,
+    "offset_millis": 303,
+    "route_offset_millis": 601047,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 430136233500998,
+    "offset_millis": 1104,
+    "route_offset_millis": 601848,
+    "data": {
+      "event_type": "first_road_camera_frame"
+    }
+  },
+  {
+    "type": "state",
+    "time": 430138634916154,
+    "offset_millis": 3505,
+    "route_offset_millis": 604249,
+    "data": {
+      "state": "overriding",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 430138731278055,
+    "offset_millis": 3602,
+    "route_offset_millis": 604346,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 430157733846621,
+    "offset_millis": 22604,
+    "route_offset_millis": 623348,
+    "data": {
+      "state": "overriding",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 430157832780031,
+    "offset_millis": 22703,
+    "route_offset_millis": 623447,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 430178631278961,
+    "offset_millis": 43502,
+    "route_offset_millis": 644246,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 1
+    }
+  },
+  {
+    "type": "state",
+    "time": 430180932701724,
+    "offset_millis": 45803,
+    "route_offset_millis": 646547,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 430181330917914,
+    "offset_millis": 46201,
+    "route_offset_millis": 646945,
+    "data": {
+      "state": "overriding",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 430181533116795,
+    "offset_millis": 46404,
+    "route_offset_millis": 647147,
+    "data": {
+      "state": "disabled",
+      "enabled": false,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 430191033655678,
+    "offset_millis": 55904,
+    "route_offset_millis": 656648,
+    "data": {
+      "state": "overriding",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 430191733330183,
+    "offset_millis": 56604,
+    "route_offset_millis": 657348,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 430195366491055,
+    "offset_millis": 0,
+    "route_offset_millis": 660981,
+    "data": {
+      "event_type": "record_front_toggle",
+      "value": true
+    }
+  },
+  {
+    "type": "state",
+    "time": 430195431567408,
+    "offset_millis": 65,
+    "route_offset_millis": 661046,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 430196233442928,
+    "offset_millis": 866,
+    "route_offset_millis": 661848,
+    "data": {
+      "event_type": "first_road_camera_frame"
+    }
+  },
+  {
+    "type": "event",
+    "time": 430255128941996,
+    "offset_millis": 0,
+    "route_offset_millis": 720743,
+    "data": {
+      "event_type": "record_front_toggle",
+      "value": true
+    }
+  },
+  {
+    "type": "state",
+    "time": 430255431658378,
+    "offset_millis": 302,
+    "route_offset_millis": 721046,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 430256233382634,
+    "offset_millis": 1104,
+    "route_offset_millis": 721848,
+    "data": {
+      "event_type": "first_road_camera_frame"
+    }
+  },
+  {
+    "type": "event",
+    "time": 430315359686408,
+    "offset_millis": 0,
+    "route_offset_millis": 780974,
+    "data": {
+      "event_type": "record_front_toggle",
+      "value": true
+    }
+  },
+  {
+    "type": "state",
+    "time": 430315432229946,
+    "offset_millis": 72,
+    "route_offset_millis": 781047,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 430316233628461,
+    "offset_millis": 873,
+    "route_offset_millis": 781848,
+    "data": {
+      "event_type": "first_road_camera_frame"
+    }
+  },
+  {
+    "type": "state",
+    "time": 430332732694569,
+    "offset_millis": 17373,
+    "route_offset_millis": 798347,
+    "data": {
+      "state": "disabled",
+      "enabled": false,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 430337333039265,
+    "offset_millis": 21973,
+    "route_offset_millis": 802947,
+    "data": {
+      "state": "overriding",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 430337932872516,
+    "offset_millis": 22573,
+    "route_offset_millis": 803547,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 430344931678865,
+    "offset_millis": 29571,
+    "route_offset_millis": 810546,
+    "data": {
+      "state": "overriding",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 430346332773974,
+    "offset_millis": 30973,
+    "route_offset_millis": 811947,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 430375128954116,
+    "offset_millis": 0,
+    "route_offset_millis": 840743,
+    "data": {
+      "event_type": "record_front_toggle",
+      "value": true
+    }
+  },
+  {
+    "type": "state",
+    "time": 430375432899883,
+    "offset_millis": 303,
+    "route_offset_millis": 841047,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 430376234155225,
+    "offset_millis": 1105,
+    "route_offset_millis": 841848,
+    "data": {
+      "event_type": "first_road_camera_frame"
+    }
+  },
+  {
+    "type": "state",
+    "time": 430387832672146,
+    "offset_millis": 12703,
+    "route_offset_millis": 853447,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 1
+    }
+  },
+  {
+    "type": "state",
+    "time": 430388533587914,
+    "offset_millis": 13404,
+    "route_offset_millis": 854148,
+    "data": {
+      "state": "overriding",
+      "enabled": true,
+      "alertStatus": 1
+    }
+  },
+  {
+    "type": "state",
+    "time": 430389832266081,
+    "offset_millis": 14703,
+    "route_offset_millis": 855447,
+    "data": {
+      "state": "overriding",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 430392632300604,
+    "offset_millis": 17503,
+    "route_offset_millis": 858247,
+    "data": {
+      "state": "enabled",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 430393033676903,
+    "offset_millis": 17904,
+    "route_offset_millis": 858648,
+    "data": {
+      "state": "overriding",
+      "enabled": true,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "state",
+    "time": 430394633090710,
+    "offset_millis": 19504,
+    "route_offset_millis": 860247,
+    "data": {
+      "state": "disabled",
+      "enabled": false,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 430435361116161,
+    "offset_millis": 0,
+    "route_offset_millis": 900975,
+    "data": {
+      "event_type": "record_front_toggle",
+      "value": true
+    }
+  },
+  {
+    "type": "state",
+    "time": 430435433498474,
+    "offset_millis": 72,
+    "route_offset_millis": 901048,
+    "data": {
+      "state": "disabled",
+      "enabled": false,
+      "alertStatus": 0
+    }
+  },
+  {
+    "type": "event",
+    "time": 430436234646458,
+    "offset_millis": 873,
+    "route_offset_millis": 901849,
+    "data": {
+      "event_type": "first_road_camera_frame"
+    }
+  }
+]

@@ -1,0 +1,35 @@
+:root { color-scheme: light; background: white; }
+html, body { margin: 0; background: white !important; color: #111; font: 12px Arial, sans-serif; }
+body { padding: 12px; overflow: auto; }
+.gallery-title { margin: 0 0 18px; font: bold 16px Arial, sans-serif; }
+.gallery-section { margin-bottom: 32px; }
+.gallery-section-heading { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #d8d8d8; }
+.gallery-section-heading h2 { margin: 0; font: bold 15px Arial, sans-serif; }
+.gallery-section-heading p { margin: 4px 0 0; color: #666; font: 11px/1.4 Arial, sans-serif; }
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px; align-items: start; }
+.gallery-item { min-width: 0; }
+.gallery-label { height: 16px; margin: 0; color: #555; font: 11px Arial, sans-serif; }
+.gallery-frame { position: relative; height: 250px; overflow: hidden; border: 1px solid #aaa; background: #16181a; color: white; }
+.gallery-frame.tall { height: 420px; }
+.gallery-frame.gallery-page-frame { height: 620px; }
+.gallery-frame > .frame-scale { width: 100%; height: 100%; position: relative; }
+.gallery-pad { padding: 16px; }
+.gallery-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.gallery-video { height: 100%; }
+.gallery-video video { background: linear-gradient(155deg, #26343a, #050607); }
+.gallery-error { height: 100%; overflow: auto; }
+.gallery-stats { position: relative; min-height: 225px; }
+.gallery-menu { position: absolute; right: 16px; top: 16px; }
+.gallery-account { position: absolute; right: 16px; top: 16px; width: 250px; }
+.gallery-empty > div { min-height: 65px; }
+.gallery-full-page { position: relative; width: 100%; height: 100%; overflow: hidden; background: #16181a; }
+.gallery-full-page > div { height: 100% !important; }
+.gallery-preview-app { position: relative; width: 100%; height: 100%; overflow: hidden; }
+.gallery-preview-app .MuiDrawer-paper { position: absolute; height: calc(100% - 65px); }
+.gallery-preview-app .scrollstyle { height: 100% !important; }
+.gallery-preview-app > div:last-child { min-height: 100%; }
+.gallery-preview-app .fixed { position: absolute; }
+.gallery-page-frame .DriveView { min-height: calc(100% - 65px); }
+.gallery-page-frame video { max-height: 300px; }
+.gallery-joystick { width: 180px; height: 180px; margin: 34px auto 0; }
+@media (min-width: 1050px) { .gallery-wide { grid-column: span 2; } }

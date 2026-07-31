@@ -101,6 +101,10 @@ class AnonymousLanding extends Component {
   }
 
   componentDidMount() {
+    if (this.props.galleryPreview) {
+      return;
+    }
+
     const q = new URLSearchParams(window.location.search);
     if (q.has('r')) {
       sessionStorage.setItem('redirectURL', q.get('r'));

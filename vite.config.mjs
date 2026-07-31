@@ -44,12 +44,26 @@ export default defineConfig(({ mode }) => {
     build: {
       // Required for Sentry
       sourcemap: true,
+      ...(mode === 'gallery' ? {
+        outDir: 'dist-gallery',
+        emptyOutDir: true,
+        sourcemap: false,
+        cssCodeSplit: false,
+        assetsInlineLimit: 100000000,
+        rollupOptions: {
+          input: resolve(process.cwd(), 'connect-gallery.html'),
+          output: {
+            inlineDynamicImports: true,
+          },
+        },
+      } : {}),
     },
     plugins: [
       // TODO: compression plugin
       tailwindcss(),
       react(),
       VitePWA({
+        disable: mode === 'gallery',
         workbox: {
           globPatterns: ['**/*.{js,css,html,png,webp,svg,ico}'],
           // TODO: revisit, throw error during build if too large?

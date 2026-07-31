@@ -84,6 +84,10 @@ class ExplorerApp extends Component {
   }
 
   async componentDidMount() {
+    if (this.props.galleryPreview) {
+      return;
+    }
+
     const { pairLoading, pairError, pairDongleId } = this.state;
 
     window.scrollTo({ top: 0 }); // for ios header
@@ -184,8 +188,13 @@ class ExplorerApp extends Component {
   }
 
   render() {
-    const { classes, currentRoute, devices, dongleId, bodyTeleopOpen } = this.props;
-    const { drawerIsOpen, pairLoading, pairError, pairDongleId, windowWidth } = this.state;
+    const {
+      classes, currentRoute, devices, dongleId, bodyTeleopOpen, galleryPreview,
+    } = this.props;
+    const {
+      drawerIsOpen, pairLoading, pairError, pairDongleId,
+    } = this.state;
+    const windowWidth = galleryPreview ? 900 : this.state.windowWidth;
 
     const noDevicesUpsell = (devices?.length === 0 && !dongleId);
     const isLarge = noDevicesUpsell || windowWidth > 1080;
@@ -208,10 +217,10 @@ class ExplorerApp extends Component {
     };
 
     return (
-      <div>
-        <ResizeHandler onResize={ (ww) => this.setState({ windowWidth: ww }) } />
+      <div className={galleryPreview ? 'gallery-preview-app' : ''}>
+        {!galleryPreview && <ResizeHandler onResize={ (ww) => this.setState({ windowWidth: ww }) } />}
         { bodyTeleopOpen ? (
-          <BodyTeleop onClose={ this.closeBodyTeleop } />
+          <BodyTeleop onClose={ this.closeBodyTeleop } galleryPreview={galleryPreview} />
         ) : (
           <>
             <AppHeader
@@ -231,7 +240,7 @@ class ExplorerApp extends Component {
             <div className={ classes.window } style={ containerStyles }>
               { noDevicesUpsell
                 ? <NoDeviceUpsell />
-                : (currentRoute ? <DriveView /> : <Dashboard />)}
+                : (currentRoute ? <DriveView /> : <Dashboard galleryPreview={galleryPreview} />)}
             </div>
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>

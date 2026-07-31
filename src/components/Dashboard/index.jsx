@@ -18,7 +18,7 @@ const DashboardLoading = () => (
   </Grid>
 );
 
-const Dashboard = ({ primeNav, device, dongleId }) => {
+const Dashboard = ({ primeNav, device, dongleId, galleryPreview }) => {
   if (!device || !dongleId) {
     return <DashboardLoading />;
   }
@@ -30,9 +30,9 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
           ? <Prime />
           : (
             <>
-              <Navigation />
-              <DeviceInfo />
-              <DriveList />
+              <Navigation galleryPreview={galleryPreview} />
+              <DeviceInfo galleryPreview={galleryPreview} />
+              <DriveList galleryPreview={galleryPreview} />
             </>
           )}
       </Suspense>
