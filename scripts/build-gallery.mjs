@@ -156,12 +156,20 @@ async function downloadBaseline(baselineUrl, destination) {
       item.state === state.name && item.viewport === viewport.name
     ));
     if (!capture?.assets?.current) return false;
-    const response = await getResponse(new URL(capture.assets.current, root));
-    await writeFile(
-      resolve(destination, captureFilename(state.name, viewport.name)),
-      Buffer.from(await response.arrayBuffer()),
-    );
-    return true;
+    const captureUrl = new URL(capture.assets.current, root);
+    try {
+      const response = await getResponse(captureUrl);
+      const buffer = Buffer.from(await response.arrayBuffer());
+      readPng(buffer, `Baseline capture ${state.name}/${viewport.name} from ${captureUrl}`);
+      await writeFile(
+        resolve(destination, captureFilename(state.name, viewport.name)),
+        buffer,
+      );
+      return true;
+    } catch (error) {
+      console.warn(`Skipping unavailable baseline capture ${state.name}/${viewport.name}: ${error.message}`);
+      return false;
+    }
   }));
   const downloaded = (await Promise.all(downloads)).filter(Boolean).length;
   if (downloaded === 0) throw new Error(`Gallery manifest at ${manifestUrl} has no compatible captures`);
@@ -432,8 +440,16 @@ async function serveDirectory(directory) {
   };
 }
 
+function readPng(buffer, label) {
+  try {
+    return PNG.sync.read(buffer);
+  } catch (error) {
+    throw new Error(`${label} is not a valid PNG: ${error.message}`, { cause: error });
+  }
+}
+
 function assertNotBlank(buffer, name) {
-  const png = PNG.sync.read(buffer);
+  const png = readPng(buffer, name);
   const first = [png.data[0], png.data[1], png.data[2], png.data[3]];
   for (let offset = 4; offset < png.data.length; offset += 4) {
     if (
@@ -729,8 +745,8 @@ async function captureRenderers(renderers, output, fixtures) {
 
 async function compareImages(basePath, currentPath, diffPath) {
   const [baseBuffer, currentBuffer] = await Promise.all([readFile(basePath), readFile(currentPath)]);
-  const baseline = PNG.sync.read(baseBuffer);
-  const current = PNG.sync.read(currentBuffer);
+  const baseline = readPng(baseBuffer, `Baseline image ${basePath}`);
+  const current = readPng(currentBuffer, `Current image ${currentPath}`);
   if (baseline.width !== current.width || baseline.height !== current.height) {
     throw new Error(`Image dimensions differ: ${baseline.width}x${baseline.height} vs ${current.width}x${current.height}`);
   }
