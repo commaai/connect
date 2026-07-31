@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 
 import {
-  Modal,
   TextField,
   withStyles,
 } from '@material-ui/core';
@@ -22,6 +21,7 @@ import Divider from '../ui/Divider';
 import IconButton from '../ui/IconButton';
 import Paper from '../ui/Paper';
 import Typography from '../ui/Typography';
+import Modal from '../ui/Modal';
 import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 
