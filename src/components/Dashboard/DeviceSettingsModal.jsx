@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 
 import {
-  Divider,
   IconButton,
   Modal,
   Paper,
@@ -22,6 +21,7 @@ import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
 import Button from '../ui/Button';
 import CircularProgress from '../ui/CircularProgress';
+import Divider from '../ui/Divider';
 import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 

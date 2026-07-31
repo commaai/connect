@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Divider, Typography, Menu, MenuItem, Popper, ListItem } from '@material-ui/core';
+import { withStyles, Typography, Menu, MenuItem, Popper, ListItem } from '@material-ui/core';
 import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
@@ -24,6 +24,7 @@ import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils'
 import { analyticsEvent, updateRoute } from '../../actions';
 import Button from '../ui/Button';
 import CircularProgress from '../ui/CircularProgress';
+import Divider from '../ui/Divider';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
 import { setRouteViewed, fetchFiles, doUpload, fetchUploadUrls, fetchAthenaQueue, updateFiles, FILE_NAMES } from '../../actions/files';
