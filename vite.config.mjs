@@ -2,10 +2,9 @@ import { copyFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-import tailwindcss from 'tailwindcss';
-import autoprefixer from 'autoprefixer';
 
 
 function previewBranding() {
@@ -46,13 +45,9 @@ export default defineConfig(({ mode }) => {
       // Required for Sentry
       sourcemap: true,
     },
-    css: {
-      postcss: {
-        plugins: [tailwindcss, autoprefixer],
-      },
-    },
     plugins: [
       // TODO: compression plugin
+      tailwindcss(),
       react(),
       VitePWA({
         workbox: {
