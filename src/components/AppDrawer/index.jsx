@@ -3,9 +3,8 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import { Link } from 'react-router-dom';
 
-import Drawer from '@material-ui/core/Drawer';
-
 import DeviceList from '../Dashboard/DeviceList';
+import Drawer from '../ui/Drawer';
 
 import { selectDevice } from '../../actions';
 
