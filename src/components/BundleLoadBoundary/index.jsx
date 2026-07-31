@@ -1,0 +1,106 @@
+import React, { Component, Suspense } from 'react';
+import PropTypes from 'prop-types';
+
+let initialLoadClaimed = false;
+
+const now = () => (
+  typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance.now()
+    : Date.now()
+);
+
+const getLoadStart = () => {
+  if (!initialLoadClaimed) {
+    initialLoadClaimed = true;
+    if (typeof window !== 'undefined' && Number.isFinite(window.__CONNECT_BUNDLE_LOAD_STARTED_AT__)) {
+      return window.__CONNECT_BUNDLE_LOAD_STARTED_AT__;
+    }
+  }
+  return now();
+};
+
+export const LoadingScreen = () => (
+  <div
+    className="fixed inset-0 z-[1400] flex h-screen w-full items-center justify-center bg-[#16181A]"
+    data-testid="bundle-loading-screen"
+  >
+    <div
+      aria-label="Loading"
+      className="h-[10vh] w-[10vh] animate-spin rounded-full border-[0.8vh] border-[#525E66]/25 border-t-[#525E66]"
+      role="status"
+    />
+  </div>
+);
+
+class ReadyMarker extends Component {
+  componentDidMount() {
+    this.props.onReady();
+  }
+
+  render() {
+    return null;
+  }
+}
+
+ReadyMarker.propTypes = {
+  onReady: PropTypes.func.isRequired,
+};
+
+class BundleLoadBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.startedAt = getLoadStart();
+    this.animationFrame = null;
+    this.state = { durationMs: null };
+    this.handleReady = this.handleReady.bind(this);
+  }
+
+  componentWillUnmount() {
+    if (this.animationFrame !== null && typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(this.animationFrame);
+    }
+  }
+
+  handleReady() {
+    const finish = () => {
+      this.animationFrame = null;
+      this.setState({ durationMs: Math.max(0, Math.round(now() - this.startedAt)) });
+    };
+
+    if (typeof requestAnimationFrame === 'function') {
+      this.animationFrame = requestAnimationFrame(finish);
+    } else {
+      finish();
+    }
+  }
+
+  render() {
+    const { children } = this.props;
+    const { durationMs } = this.state;
+
+    return (
+      <>
+        <Suspense fallback={<LoadingScreen />}>
+          {children}
+          <ReadyMarker onReady={this.handleReady} />
+        </Suspense>
+        {durationMs === null
+          ? <LoadingScreen />
+          : (
+            <footer
+              className="pointer-events-none fixed inset-x-0 bottom-0 z-[1300] border-t border-white/10 bg-[#16181A]/[.92] px-3 py-1 text-right text-[11px] leading-4 text-white/50"
+              data-testid="bundle-load-footer"
+            >
+              Bundle loaded in {durationMs} ms
+            </footer>
+          )}
+      </>
+    );
+  }
+}
+
+BundleLoadBoundary.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
+export default BundleLoadBoundary;

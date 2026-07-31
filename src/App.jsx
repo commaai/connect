@@ -1,12 +1,10 @@
-import React, { Component, lazy, Suspense } from 'react';
+import React, { Component, lazy } from 'react';
 import { Provider } from 'react-redux';
 import { Route, Switch, Redirect } from 'react-router';
 import { ConnectedRouter } from 'connected-react-router';
 import qs from 'query-string';
 import localforage from 'localforage';
 import * as Sentry from '@sentry/react';
-
-import { CircularProgress, Grid } from '@material-ui/core';
 
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 import { athena as Athena, auth as Auth, billing as Billing, request as Request } from './api';
@@ -17,6 +15,7 @@ import { fetchTurnCredentials } from './utils/turn';
 import store, { history } from './store';
 
 import ErrorFallback from './components/ErrorFallback';
+import BundleLoadBoundary, { LoadingScreen } from './components/BundleLoadBoundary';
 
 const Explorer = lazy(() => import('./components/explorer'));
 const AnonymousLanding = lazy(() => import('./components/anonymous'));
@@ -120,13 +119,7 @@ class App extends Component {
   }
 
   renderLoading() {
-    return (
-      <Grid container alignItems="center" style={{ width: '100%', height: '100vh' }}>
-        <Grid item align="center" xs={12}>
-          <CircularProgress size="10vh" style={{ color: '#525E66' }} />
-        </Grid>
-      </Grid>
-    );
+    return <LoadingScreen />;
   }
 
   render() {
@@ -135,11 +128,7 @@ class App extends Component {
     }
 
     const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(window.location.pathname) && !getSegmentRange(window.location.pathname);
-    let content = (
-      <Suspense fallback={this.renderLoading()}>
-        { showLogin ? this.anonymousRoutes() : this.authRoutes() }
-      </Suspense>
-    );
+    let content = showLogin ? this.anonymousRoutes() : this.authRoutes();
 
     // Use ErrorBoundary in production only
     if (import.meta.env.PROD) {
@@ -153,7 +142,11 @@ class App extends Component {
     return (
       <Provider store={store}>
         <ConnectedRouter history={history}>
-          {content}
+          <Route render={({ location }) => (
+            <BundleLoadBoundary key={location.key || location.pathname}>
+              {content}
+            </BundleLoadBoundary>
+          )} />
         </ConnectedRouter>
       </Provider>
     );
