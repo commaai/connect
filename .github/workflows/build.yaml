@@ -13,23 +13,35 @@ jobs:
     timeout-minutes: 1
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - uses: oven-sh/setup-bun@v2
 
-      - name: get build info
-        id: build_info
-        run: echo timestamp=$(git show -s --format=%cI) >> $GITHUB_OUTPUT
+      - name: Cache pinned Chrome for Puppeteer
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/puppeteer-cache
+          key: puppeteer-${{ runner.os }}-${{ hashFiles('package.json') }}
+          restore-keys: puppeteer-${{ runner.os }}-
 
       - run: bun install --frozen-lockfile
-      - run: bun run build:production
+
+      - name: Build app and gallery report
         env:
-          VITE_APP_GIT_SHA: ${{ github.sha }}
-          VITE_APP_GIT_TIMESTAMP: ${{ steps.build_info.outputs.timestamp }}
-          PREVIEW: '1'
+          PUPPETEER_CACHE_DIR: ${{ runner.temp }}/puppeteer-cache
+          BASELINE_URL: ${{ github.event_name == 'pull_request' && 'https://latest.connect-d5y.pages.dev' || '' }}
+          VITE_APP_GIT_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          export VITE_APP_GIT_TIMESTAMP="$(git show -s --format=%cI)"
+          args=(--output ./dist --head-sha "$VITE_APP_GIT_SHA")
+          if [[ -n "$BASELINE_URL" ]]; then
+            args+=(--baseline-url "$BASELINE_URL")
+          fi
+          bun run build:gallery -- "${args[@]}"
 
       - name: Upload built project
         uses: actions/upload-artifact@v4
         with:
           path: ./dist
-          overwrite: true
           retention-days: 1
           name: build-artifacts-${{ github.run_id }}
