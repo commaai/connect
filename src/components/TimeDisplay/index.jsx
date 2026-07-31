@@ -16,6 +16,7 @@ import { currentOffset } from '../../timeline';
 import { seek, play, pause } from '../../timeline/playback';
 import { getSegmentNumber } from '../../utils';
 import { isIos } from '../../utils/browser.js';
+import Colors from '../../colors';
 
 const timerSteps = [
   0.1,
@@ -31,7 +32,7 @@ const styles = (theme) => ({
   base: {
     display: 'flex',
     alignItems: 'center',
-    backgroundColor: theme.palette.grey[999],
+    backgroundColor: Colors.grey999,
     height: '64px',
     borderRadius: '32px',
     padding: theme.spacing.unit,
@@ -62,14 +63,14 @@ const styles = (theme) => ({
     width: '98%',
     height: '98%',
     '&.dim': {
-      color: theme.palette.grey[300],
+      color: Colors.grey300,
     },
     '&.small': {
       width: '80%',
       height: '80%',
     },
     '&.circle': {
-      border: `1px solid ${theme.palette.grey[900]}`,
+      border: `1px solid ${Colors.grey900}`,
       borderRadius: '50%',
     },
   },
@@ -80,16 +81,16 @@ const styles = (theme) => ({
   tinyArrowIcon: {
     width: 12,
     height: 12,
-    color: theme.palette.grey[500],
+    color: Colors.grey500,
     '&[disabled]': {
       visibility: 'hidden',
     },
   },
   rightBorderBox: {
-    borderRight: `1px solid ${theme.palette.grey[900]}`,
+    borderRight: `1px solid ${Colors.grey900}`,
   },
   leftBorderBox: {
-    borderLeft: `1px solid ${theme.palette.grey[900]}`,
+    borderLeft: `1px solid ${Colors.grey900}`,
   },
   currentTime: {
     margin: `0 ${theme.spacing.unit * 1}px`,

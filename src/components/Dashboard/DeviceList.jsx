@@ -70,7 +70,7 @@ const styles = (theme) => ({
   editDeviceIcon: {
     color: 'white',
     '&:hover': {
-      color: theme.palette.grey[100],
+      color: Colors.grey100,
     },
   },
   nameField: {

@@ -6,6 +6,7 @@ import Tooltip from '../ui/Tooltip';
 import ClickAwayListener from '../ui/ClickAwayListener';
 
 import { InfoOutline } from '../../icons';
+import Colors from '../../colors';
 
 const styles = (theme) => ({
   arrowPopper: {
@@ -18,7 +19,7 @@ const styles = (theme) => ({
       height: '1em',
       '&::before': {
         borderWidth: '1em 1em 0 1em',
-        borderColor: `${theme.palette.grey[900]} transparent transparent transparent`,
+        borderColor: `${Colors.grey900} transparent transparent transparent`,
       },
     },
   },
@@ -37,7 +38,7 @@ const styles = (theme) => ({
     },
   },
   tooltip: {
-    background: theme.palette.grey[900],
+    background: Colors.grey900,
     marginBottom: 8,
   },
   icon: {

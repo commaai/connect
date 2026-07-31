@@ -1,11 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { MuiThemeProvider } from '@material-ui/core';
 import * as Sentry from '@sentry/react';
 
 import './index.css';
 import App from './App';
-import Theme from './theme';
 
 if (import.meta.env.VITE_SENTRY_ENV) {
   Sentry.init({
@@ -23,7 +21,7 @@ if (import.meta.env.VITE_APP_GIT_TIMESTAMP) {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render((
-  <MuiThemeProvider theme={Theme}>
+  <React.Fragment>
     <App />
-  </MuiThemeProvider>
+  </React.Fragment>
 ));
