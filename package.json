@@ -5,7 +5,7 @@
     "start": "vite",
     "build:development": "vite build --mode development",
     "build:production": "vite build",
-    "build:gallery": "vite build --mode gallery && node scripts/inline-gallery.mjs",
+    "build:gallery": "node scripts/build-gallery.mjs",
     "serve": "vite preview",
     "lint": "oxlint src",
     "test": "jest",

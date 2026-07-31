@@ -14,6 +14,7 @@
 /build
 /dist
 /dist-gallery
+/src/gallery-fixtures/events.generated.json
 
 # misc
 .DS_Store

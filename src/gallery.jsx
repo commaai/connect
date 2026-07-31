@@ -26,7 +26,7 @@ import DriveListEmpty from './components/Dashboard/DriveListEmpty';
 import DeviceList from './components/Dashboard/DeviceList';
 import Explorer from './components/explorer';
 import SwitchLoading from './components/utils/SwitchLoading';
-import rawEvents from './gallery-fixtures/5beb9b58bd12b691/0000010a--a51155e496/events.json';
+import rawEvents from './gallery-fixtures/events.generated.json';
 import sprite from './gallery-fixtures/5beb9b58bd12b691/0000010a--a51155e496/0/sprite.jpg?url';
 
 const noop = () => {};
