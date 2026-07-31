@@ -24,6 +24,15 @@ if (import.meta.env.VITE_APP_GIT_TIMESTAMP) {
 
 if ('serviceWorker' in navigator) {
   let updateCheck;
+  let reloading = false;
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!reloading) {
+      reloading = true;
+      window.location.reload();
+    }
+  });
+
   const checkForUpdate = () => {
     if (updateCheck) {
       return;
@@ -37,7 +46,6 @@ if ('serviceWorker' in navigator) {
       });
   };
 
-  window.addEventListener('focus', checkForUpdate);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       checkForUpdate();
