@@ -18,6 +18,7 @@ const styles = () => ({
   baseContainer: {
     width: '100%',
     height: '100vh',
+    backgroundColor: '#000',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -58,7 +59,7 @@ const styles = () => ({
     width: 380,
     maxWidth: '90%',
     textAlign: 'center',
-    margin: '10px 0 30px',
+    margin: '20px 0 30px',
     fontSize: '18px',
   },
   logInButton: {
