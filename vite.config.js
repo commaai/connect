@@ -55,6 +55,7 @@ export default defineConfig(({ mode }) => {
       // TODO: compression plugin
       react(),
       VitePWA({
+        registerType: 'autoUpdate',
         workbox: {
           globPatterns: ['**/*.{js,css,html,png,webp,svg,ico}'],
           // TODO: revisit, throw error during build if too large?

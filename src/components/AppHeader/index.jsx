@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
@@ -14,7 +14,6 @@ import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
 
 import AccountMenu from './AccountMenu';
-import PWAIcon from '../PWAIcon';
 
 const styles = () => ({
   header: {
@@ -112,7 +111,6 @@ const AppHeader = ({
             </a>
           </div>
           <div className="flex flex-row gap-2">
-            <Suspense><PWAIcon /></Suspense>
             <div className="relative">
               <IconButton
                 aria-expanded={open}

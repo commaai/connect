@@ -22,6 +22,29 @@ if (import.meta.env.VITE_APP_GIT_TIMESTAMP) {
   console.info('commit date:', import.meta.env.VITE_APP_GIT_TIMESTAMP);
 }
 
+if ('serviceWorker' in navigator) {
+  let updateCheck;
+  const checkForUpdate = () => {
+    if (updateCheck) {
+      return;
+    }
+
+    updateCheck = navigator.serviceWorker.getRegistration()
+      .then((registration) => registration?.update())
+      .catch((error) => console.error('[PWA] Failed to check for updates', error))
+      .finally(() => {
+        updateCheck = null;
+      });
+  };
+
+  window.addEventListener('focus', checkForUpdate);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      checkForUpdate();
+    }
+  });
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render((
   <MuiThemeProvider theme={Theme}>
     <CssBaseline />

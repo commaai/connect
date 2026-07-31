@@ -14,8 +14,6 @@ import {config as AuthConfig} from '@commaai/my-comma-auth';
 import Colors from '../colors';
 import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon } from '../icons';
 
-import PWAIcon from './PWAIcon';
-
 const styles = () => ({
   baseContainer: {
     width: '100%',
@@ -157,7 +155,6 @@ class AnonymousLanding extends Component {
             paired your comma device.
           </span>
         </div>
-        <PWAIcon immediate />
       </div>
     );
   }
