@@ -3,7 +3,8 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 
-import { IconButton, Typography } from '@material-ui/core';
+import { Typography } from '@material-ui/core';
+import IconButton from '../ui/IconButton';
 
 import { popTimelineRange, pushTimelineRange, updateSegmentRange } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';

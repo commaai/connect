@@ -4,7 +4,7 @@ import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Typography, Modal, Paper, IconButton } from '@material-ui/core';
+import { withStyles, Typography, Modal, Paper } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
 
@@ -18,6 +18,7 @@ import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 import { otherPrimePlan, primePlanName } from './primePlans';
 import Button from '../ui/Button';
 import CircularProgress from '../ui/CircularProgress';
+import IconButton from '../ui/IconButton';
 
 export function primeSwitchErrorMessage(error, plan = 'data') {
   const status = error?.resp?.status;
