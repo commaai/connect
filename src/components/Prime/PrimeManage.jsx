@@ -4,7 +4,7 @@ import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Typography, Button, Modal, Paper, IconButton, CircularProgress } from '@material-ui/core';
+import { withStyles, Button, Modal, Paper, IconButton, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
 
@@ -67,10 +67,7 @@ const styles = (theme) => ({
   },
   primeContainer: {
     borderBottom: `1px solid ${Colors.white10}`,
-    color: '#fff',
-  },
-  primeBlock: {
-    marginTop: 10,
+    color: 'var(--color-content)',
   },
   overviewBlock: {
     marginTop: 20,
@@ -80,14 +77,14 @@ const styles = (theme) => ({
     padding: 10,
     display: 'flex',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 0, 0, 0.2)',
+    backgroundColor: 'color-mix(in srgb, var(--color-feedback-error) 20%, transparent)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
   overviewBlockSuccess: {
     marginTop: 15,
     padding: 10,
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 255, 0, 0.2)',
+    backgroundColor: 'color-mix(in srgb, var(--color-feedback-success) 20%, transparent)',
     '& p': {
       display: 'inline-block',
       marginLeft: 10,
@@ -99,7 +96,7 @@ const styles = (theme) => ({
     padding: 10,
     display: 'flex',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: 'color-mix(in srgb, var(--color-scrim) 20%, transparent)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
   overviewBlockDisabled: {
@@ -193,13 +190,13 @@ const styles = (theme) => ({
     },
   },
   cancelError: {
-    backgroundColor: 'rgba(255, 0, 0, 0.3)',
+    backgroundColor: 'color-mix(in srgb, var(--color-feedback-error) 30%, transparent)',
     marginTop: 10,
     padding: 10,
     '& p': { margin: 0 },
   },
   cancelSuccess: {
-    backgroundColor: 'rgba(0, 255, 0, 0.3)',
+    backgroundColor: 'color-mix(in srgb, var(--color-feedback-success) 30%, transparent)',
     marginTop: 10,
     padding: 10,
     '& p': { margin: 0 },
@@ -434,84 +431,84 @@ export class PrimeManage extends Component {
             </IconButton>
           </div>
           <div className={classes.primeContainer} style={{ padding: `16px ${containerPadding}px` }}>
-            <Typography variant="title">comma prime</Typography>
+            <h1>comma prime</h1>
             {stripeStatus && (
               <>
                 {stripeStatus.paid !== 'paid'
                   && (
                     <div className={classes.overviewBlockLoading}>
                       <CircularProgress size={19} style={{ color: Colors.white }} />
-                      <Typography>Waiting for confirmed payment</Typography>
+                      <p>Waiting for confirmed payment</p>
                     </div>
                   )}
                 {Boolean(stripeStatus.paid === 'paid' && !hasPrimeSub)
                   && (
                     <div className={classes.overviewBlockLoading}>
                       <CircularProgress size={19} style={{ color: Colors.white }} />
-                      <Typography>Processing subscription</Typography>
+                      <p>Processing subscription</p>
                     </div>
                   )}
                 {Boolean(stripeStatus.paid === 'paid' && hasPrimeSub)
                   && (
                     <div className={classes.overviewBlockSuccess}>
-                      <Typography>comma prime activated</Typography>
+                      <p>comma prime activated</p>
                       {subscription.is_prime_sim && (
-                        <Typography>
+                        <p>
                           Connectivity will be enabled as soon as activation propagates to your
                           local cell tower. Rebooting your device may help.
-                        </Typography>
+                        </p>
                       )}
                     </div>
                   )}
               </>
             )}
             <div className={classes.overviewBlock}>
-              <Typography variant="subheading">Device</Typography>
+              <h2>Device</h2>
               <div className={classes.manageItem}>
-                <Typography variant="body2">{alias}</Typography>
-                <Typography variant="caption" className={classes.deviceId}>
+                <aside className="type-body-strong">{alias}</aside>
+                <span className={`type-caption ${classes.deviceId}`}>
                   {`(${device.dongle_id})`}
-                </Typography>
+                </span>
               </div>
             </div>
             {hasPrimeSub && (
               <>
                 <div className={classes.overviewBlock}>
-                  <Typography variant="subheading">Plan</Typography>
-                  <Typography className={classes.manageItem}>
+                  <h2>Plan</h2>
+                  <p className={classes.manageItem}>
                     {planName}
                     <span>{` ${planSubtext}`}</span>
-                  </Typography>
+                  </p>
                 </div>
                 <div className={classes.overviewBlock}>
-                  <Typography variant="subheading">Joined</Typography>
-                  <Typography className={classes.manageItem}>{joinDate}</Typography>
+                  <h2>Joined</h2>
+                  <p className={classes.manageItem}>{joinDate}</p>
                 </div>
                 {!hasCancelAt
                   && (
                     <div className={classes.overviewBlock}>
-                      <Typography variant="subheading">Next payment</Typography>
-                      <Typography className={classes.manageItem}>{nextPaymentDate}</Typography>
+                      <h2>Next payment</h2>
+                      <p className={classes.manageItem}>{nextPaymentDate}</p>
                     </div>
                   )}
                 {hasCancelAt
                   && (
                     <div className={classes.overviewBlock}>
-                      <Typography variant="subheading">Subscription end</Typography>
-                      <Typography className={classes.manageItem}>{cancelAtDate}</Typography>
+                      <h2>Subscription end</h2>
+                      <p className={classes.manageItem}>{cancelAtDate}</p>
                     </div>
                   )}
                 <div className={classes.overviewBlock}>
-                  <Typography variant="subheading">Amount</Typography>
-                  <Typography className={classes.manageItem}>
+                  <h2>Amount</h2>
+                  <p className={classes.manageItem}>
                     {`$${(subscription.amount / 100).toFixed(2)}`}
-                  </Typography>
+                  </p>
                 </div>
                 {commacare && <CommacareBadge variant="pill" style={{ marginTop: 14 }} />}
                 {this.state.error && (
                   <div className={classes.overviewBlockError}>
                     <ErrorOutline />
-                    <Typography>{this.state.error}</Typography>
+                    <p>{this.state.error}</p>
                   </div>
                 )}
                 <div className={`${classes.overviewBlock} ${classes.paymentElement}`}>
@@ -558,24 +555,24 @@ export class PrimeManage extends Component {
                   && (
                     <div className={classes.overviewBlockDisabled}>
                       <PriorityHighIcon />
-                      <Typography>
+                      <p>
                         Your prime subscription will be canceled on May 15th unless you replace the
                         SIM
                         card in your device. A new SIM card can be ordered from the
                         <a className={ classes.linkHighlight} href="https://comma.ai/shop/comma-prime-sim">shop</a>
                         .
                         Use discount code SIMSWAP at checkout to receive a free SIM card.
-                      </Typography>
+                      </p>
                     </div>
                   )}
                 {hasCancelAt && !device.eligible_features?.prime_data && subscription.plan === 'data'
                   && (
                     <div className={classes.overviewBlockDisabled}>
                       <InfoOutline />
-                      <Typography>
+                      <p>
                         Standard comma prime discontinued for
                         {deviceTypePretty(device.device_type)}
-                      </Typography>
+                      </p>
                     </div>
                   )}
               </>
@@ -599,17 +596,17 @@ export class PrimeManage extends Component {
             {this.state.planSwitchStatus === 'success'
               ? (
                 <>
-                  <Typography variant="title" className="text-white">
+                  <h1 className="text-content">
                     {`Welcome to ${primePlanName(this.state.planSwitchTarget)}`}
-                  </Typography>
-                  <div className="mt-4 rounded-lg bg-green-500/20 p-3 text-green-100">
-                    <Typography>{this.state.planSwitchMessage}</Typography>
+                  </h1>
+                  <div className="mt-4 rounded-lg bg-success/20 p-3 text-success-content">
+                    <p>{this.state.planSwitchMessage}</p>
                   </div>
-                  <Typography className="mt-3 text-white/80">
+                  <p className="mt-3 text-content/80">
                     {this.state.planSwitchTarget === 'data'
                       ? 'Your plan now includes data for $24/month.'
                       : 'Your plan no longer includes data and costs $14/month.'}
-                  </Typography>
+                  </p>
                   <div className="mt-4">
                     <Button
                       variant="contained"
@@ -628,31 +625,31 @@ export class PrimeManage extends Component {
               )
               : (
                 <>
-                  <Typography variant="title" className="text-white">
+                  <h1 className="text-content">
                     {`Switch to ${primePlanName(this.state.planSwitchTarget)} plan`}
-                  </Typography>
-                  <Typography className="mt-3 text-white/80">
+                  </h1>
+                  <p className="mt-3 text-content/80">
                     {this.state.planSwitchTarget === 'data'
                       ? (
                         <>
                           The Standard plan costs $24/month, includes a data plan, and is
                           {' '}
-                          <strong className="font-bold text-white">only available in the U.S.</strong>
+                          <strong className="font-bold text-content">only available in the U.S.</strong>
                         </>
                       )
                       : 'The Lite plan costs $14/month and does not include a data plan.'}
-                  </Typography>
+                  </p>
                 </>
               )}
             {this.state.planSwitchStatus === 'loading' && (
-              <div className="mt-4 flex flex-col items-center justify-center rounded-lg bg-black/20 p-5 text-center">
+              <div className="mt-4 flex flex-col items-center justify-center rounded-lg bg-scrim/20 p-5 text-center">
                 <CircularProgress size={19} style={{ color: Colors.white }} />
-                <Typography className="mt-2 text-white/80">Switching your plan…</Typography>
+                <p className="mt-2 text-content/80">Switching your plan…</p>
               </div>
             )}
             {this.state.planSwitchStatus === 'error' && (
-              <div className="mt-4 rounded-lg bg-red-500/20 p-3 text-red-100">
-                <Typography className="text-inherit">{this.state.planSwitchMessage}</Typography>
+              <div className="mt-4 rounded-lg bg-danger/20 p-3 text-danger-content">
+                <p className="text-inherit">{this.state.planSwitchMessage}</p>
               </div>
             )}
             {this.state.planSwitchStatus !== 'success' && (
@@ -687,35 +684,35 @@ export class PrimeManage extends Component {
           onClose={() => this.setState({ cancelModal: false })}
         >
           <Paper className={classes.modal}>
-            <Typography variant="title">Cancel prime subscription</Typography>
+            <h1>Cancel prime subscription</h1>
             {this.state.cancelError && (
               <div className={classes.cancelError}>
-                <Typography>{this.state.cancelError}</Typography>
+                <p>{this.state.cancelError}</p>
               </div>
             )}
             {this.state.cancelSuccess && (
               <div className={classes.cancelSuccess}>
-                <Typography>{this.state.cancelSuccess}</Typography>
+                <p>{this.state.cancelSuccess}</p>
               </div>
             )}
-            <Typography>
+            <p>
               {`Device: ${alias} (${dongleId})`}
-            </Typography>
-            <Typography>
+            </p>
+            <p>
               We&apos;re sorry to see you go.
-            </Typography>
-            <Typography>
+            </p>
+            <p>
               Your subscription will be cancelled immediately and can be resumed at any time.
-            </Typography>
+            </p>
             {commacare && (
               <div className={classes.commacareWarning}>
-                <Typography>
+                <p>
                   Cancelling will <strong>permanently end your extended warranty coverage.</strong>
                   {' '}
                   Your standard 1-year warranty still applies for any remaining time.
                   {' '}
                   <a href={COMMACARE_URL} target="_blank" rel="noreferrer">What is commacare?</a>
-                </Typography>
+                </p>
               </div>
             )}
             <Button

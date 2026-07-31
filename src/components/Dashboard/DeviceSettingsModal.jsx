@@ -10,7 +10,6 @@ import {
   Modal,
   Paper,
   TextField,
-  Typography,
   withStyles,
 } from '@material-ui/core';
 import CheckIcon from '@material-ui/icons/Check';
@@ -98,7 +97,7 @@ const styles = (theme) => ({
     padding: 10,
     display: 'flex',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 0, 0, 0.3)',
+    backgroundColor: 'color-mix(in srgb, var(--color-feedback-error) 30%, transparent)',
     '& p': { display: 'inline-block', marginLeft: 10 },
     color: Colors.white,
   },
@@ -280,12 +279,12 @@ class DeviceSettingsModal extends Component {
         >
           <Paper className={classes.modal}>
             <div className={ classes.titleContainer }>
-              <Typography variant="title">
+              <h1>
                 Device settings
-              </Typography>
-              <Typography variant="caption">
+              </h1>
+              <span className="type-caption">
                 { device.dongle_id }
-              </Typography>
+              </span>
             </div>
             <Divider />
             <div>
@@ -313,7 +312,7 @@ class DeviceSettingsModal extends Component {
             <div className={classes.form}>
               { this.state.error && (
               <div className={ classes.formRowError }>
-                <Typography>{ this.state.error }</Typography>
+                <p>{ this.state.error }</p>
               </div>
               ) }
               <div className={classes.formRow}>
@@ -372,19 +371,19 @@ class DeviceSettingsModal extends Component {
         >
           <Paper className={ `${classes.modal} ${classes.modalUnpair}` }>
             <div className={ classes.titleContainer }>
-              <Typography variant="title">
+              <h1>
                 Unpair device
-              </Typography>
-              <Typography variant="caption">
+              </h1>
+              <span className="type-caption">
                 { device.dongle_id }
-              </Typography>
+              </span>
             </div>
             <Divider />
             { this.state.unpairError
             && (
             <div className={ classes.unpairError }>
               <ErrorOutline />
-              <Typography>{ this.state.unpairError }</Typography>
+              <p>{ this.state.unpairError }</p>
             </div>
             )}
             { this.props.device.prime
@@ -392,7 +391,7 @@ class DeviceSettingsModal extends Component {
             <div className={ classes.unpairWarning }>
               <WarningIcon />
               {commacare ? (
-                <Typography>
+                <p>
                   Unpairing will also cancel comma prime and
                   {' '}
                   <strong>permanently end your commacare extended warranty.</strong>
@@ -400,9 +399,9 @@ class DeviceSettingsModal extends Component {
                   Your standard 1-year warranty still applies for any remaining time.
                   {' '}
                   <a href={COMMACARE_URL} target="_blank" rel="noreferrer">What is commacare?</a>
-                </Typography>
+                </p>
               ) : (
-                <Typography>Unpairing will also cancel the comma prime subscription for this device.</Typography>
+                <p>Unpairing will also cancel the comma prime subscription for this device.</p>
               )}
             </div>
             )}
@@ -415,7 +414,7 @@ class DeviceSettingsModal extends Component {
                 { this.state.unpaired ? 'Close' : 'Cancel' }
               </Button>
               { this.state.unpaired
-                ? <Typography variant="body2">Unpaired</Typography>
+                ? <aside className="type-body-strong">Unpaired</aside>
                 : (
                   <Button
                     variant="outlined"

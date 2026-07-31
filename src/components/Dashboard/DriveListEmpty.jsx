@@ -1,5 +1,5 @@
 import React from 'react';
-import { Grid, Typography, withStyles } from '@material-ui/core';
+import { Grid, withStyles } from '@material-ui/core';
 
 import { useWindowWidth } from '../../hooks/window';
 
@@ -15,10 +15,10 @@ const DriveListEmpty = (props) => {
   let zeroRidesEle = null;
 
   if (device && routes === null) {
-    zeroRidesEle = <Typography>Loading...</Typography>;
+    zeroRidesEle = <p>Loading...</p>;
   } else if (routes?.length === 0) {
     zeroRidesEle = (
-      <Typography>No routes found in selected time range.</Typography>
+      <p>No routes found in selected time range.</p>
     );
   }
 

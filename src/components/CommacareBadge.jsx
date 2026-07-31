@@ -21,7 +21,7 @@ const styles = () => ({
     cursor: 'pointer',
     transition: 'background-color 150ms',
     '&:hover': {
-      backgroundColor: 'rgba(81, 191, 135, 0.1)',
+      backgroundColor: 'color-mix(in srgb, var(--color-success) 10%, transparent)',
     },
   },
   pillIcon: {

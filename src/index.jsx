@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { CssBaseline, MuiThemeProvider } from '@material-ui/core';
+import { MuiThemeProvider } from '@material-ui/core';
 import * as Sentry from '@sentry/react';
 
 import './index.css';
@@ -24,7 +24,6 @@ if (import.meta.env.VITE_APP_GIT_TIMESTAMP) {
 
 ReactDOM.createRoot(document.getElementById('root')).render((
   <MuiThemeProvider theme={Theme}>
-    <CssBaseline />
     <App />
   </MuiThemeProvider>
 ));

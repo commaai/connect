@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
-import { withStyles, Typography, Button } from '@material-ui/core';
+import { withStyles, Button } from '@material-ui/core';
 import { Clear } from '@material-ui/icons';
 import dayjs from 'dayjs';
 
@@ -75,11 +75,11 @@ const styles = () => ({
     flexGrow: 1,
     maxWidth: 125,
     '&:hover': {
-      background: '#ddd',
+      background: 'var(--color-field-hover)',
       color: Colors.grey900,
     },
     '&:disabled': {
-      background: '#ddd',
+      background: 'var(--color-field-hover)',
       color: Colors.grey900,
     },
   },
@@ -512,8 +512,8 @@ class Navigation extends Component {
         {mapError
           && (
             <div className={classes.mapError}>
-              <Typography>Could not initialize map.</Typography>
-              <Typography>{mapError}</Typography>
+              <p>Could not initialize map.</p>
+              <p>{mapError}</p>
             </div>
           )}
         <ReactMapGL
@@ -636,8 +636,8 @@ class Navigation extends Component {
         <Clear className={classes.clearSearchSelect} onClick={this.clearSearchSelect} />
         <div className={classes.searchSelectBoxHeader}>
           <div className={classes.searchSelectBoxTitle}>
-            <Typography className={classes.bold}>{title}</Typography>
-            <Typography className={classes.searchSelectBoxDetails}>{timeFromNow(carLocation.time)}</Typography>
+            <p className={classes.bold}>{title}</p>
+            <p className={classes.searchSelectBoxDetails}>{timeFromNow(carLocation.time)}</p>
           </div>
           <div className={classes.searchSelectBoxButtons}>
             <Button classes={{ root: classes.searchSelectButton }} target="_blank" href={geoUri}>
@@ -645,10 +645,10 @@ class Navigation extends Component {
             </Button>
           </div>
         </div>
-        <Typography className={classes.searchSelectBoxDetails}>
+        <p className={classes.searchSelectBoxDetails}>
           {Utils.formatPlaceName(searchSelect)}
           {Utils.formatPlaceAddress(searchSelect)}
-        </Typography>
+        </p>
       </div>
     );
   }
@@ -664,7 +664,7 @@ class Navigation extends Component {
         />
         <div className={classes.searchSelectBoxHeader}>
           <div className={classes.searchSelectBoxTitle}>
-            <Typography className={classes.primeAdTitle}>comma prime</Typography>
+            <p className={classes.primeAdTitle}>comma prime</p>
           </div>
           <div className={classes.searchSelectBoxButtons}>
             <Button
@@ -675,11 +675,11 @@ class Navigation extends Component {
             </Button>
           </div>
         </div>
-        <Typography className={classes.primeAdDetails}>
+        <p className={classes.primeAdDetails}>
           {this.props.device?.eligible_features?.commacare
             ? 'Put your car on the internet with comma prime and extend your 1-year limited warranty with commacare'
             : 'Put your car on the internet with comma prime'}
-        </Typography>
+        </p>
       </div>
     );
   }

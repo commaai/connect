@@ -16,12 +16,12 @@ const ConnectOverlay = ({ connectionState, error, onConnect }) => {
       <div className="flex flex-col items-center gap-3 pointer-events-auto">
         {connecting ? (
           <>
-            <CircularProgress style={{ color: 'rgba(255, 255, 255, 0.7)' }} thickness={4} size={40} />
-            <span className="text-xs text-white/50">Connecting...</span>
+            <CircularProgress className="text-content/70" thickness={4} size={40} />
+            <span className="text-xs text-content/50">Connecting...</span>
           </>
         ) : canRetry ? (
           <Button
-            className="flex items-center gap-2 rounded-3xl px-6 py-2.5 text-white text-sm font-medium normal-case bg-red-600/60 hover:bg-red-600/70 cursor-pointer"
+            className="flex items-center gap-2 rounded-3xl px-6 py-2.5 text-content text-sm font-medium normal-case bg-danger/60 hover:bg-danger/70 cursor-pointer"
             onClick={onConnect}
             disableRipple
           >
@@ -30,7 +30,7 @@ const ConnectOverlay = ({ connectionState, error, onConnect }) => {
           </Button>
         ) : null}
         {error && (
-          <div className={`max-w-[280px] md:max-w-[450px] rounded-lg px-3 py-1.5 text-center text-xs text-[#fca5a5] !bg-[rgba(220,38,38,0.4)] !select-text`}>
+          <div className="max-w-[280px] md:max-w-[450px] rounded-lg px-3 py-1.5 text-center text-xs text-danger-content !bg-danger/40 !select-text">
             {error}
           </div>
         )}
@@ -70,7 +70,7 @@ const Video = ({
   }, [connectionTimeLabel]);
 
   return (
-    <div ref={containerRef} className={`relative w-full ${className} bg-black overflow-hidden`} style={{ touchAction: 'none' }}>
+    <div ref={containerRef} className={`relative w-full ${className} bg-scrim overflow-hidden`} style={{ touchAction: 'none' }}>
       <video
         ref={videoRef}
         autoPlay
@@ -82,7 +82,7 @@ const Video = ({
         className={`w-full h-full pointer-events-none object-contain`}
       />
       {connected && connectionTimeLabel && (
-        <div className={`absolute bottom-5 left-1/2 z-10 -translate-x-1/2 select-none rounded bg-black/50 px-2 py-0.5 text-sm leading-4 text-white/70 pointer-events-none transition-opacity duration-500 ease-out ${showConnectionTime ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`absolute bottom-5 left-1/2 z-10 -translate-x-1/2 select-none rounded bg-scrim/50 px-2 py-0.5 text-sm leading-4 text-content/70 pointer-events-none transition-opacity duration-500 ease-out ${showConnectionTime ? 'opacity-100' : 'opacity-0'}`}>
           {`connected in ${connectionTimeLabel}`}
         </div>
       )}

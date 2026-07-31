@@ -6,9 +6,9 @@ const CAMERAS = [
   { key: 'driver', label: 'driver', num: '2' },
 ];
 
-const btnBase = `h-11 w-[80px] rounded-xl text-[14px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[44px] cursor-pointer select-none hover:text-white hover:bg-white/20 bg-glass`;
-const btnInactive = `${btnBase} bg-white/10 text-white/60`;
-const btnActive = `${btnBase} bg-white/30 text-white`;
+const btnBase = `h-11 w-[80px] rounded-xl text-[14px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[44px] cursor-pointer select-none hover:text-content hover:bg-content/20 bg-glass`;
+const btnInactive = `${btnBase} bg-content/10 text-content/60`;
+const btnActive = `${btnBase} bg-content/30 text-content`;
 
 const controlsGroupBase = 'z-10 flex flex-row items-stretch gap-3.5 rounded-[20px] p-4 bg-glass-dark';
 const controlsGroupLandscape = 'absolute bottom-4 left-4';
@@ -87,7 +87,7 @@ const ControlsBar = ({
               </button>
             ))}
           </div>
-          <span className="text-[10px] lg:text-[13px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Camera</span>
+          <span className="text-[10px] lg:text-[13px] font-semibold tracking-[0.5px] uppercase text-content/35 text-center leading-none">Camera</span>
         </div>
       )}
       <div className="flex flex-col items-center justify-between gap-[5px] lg:gap-[7px]">
@@ -99,7 +99,7 @@ const ControlsBar = ({
         >
           <PhotoCamera className="text-[25px]" />
         </div>
-        <span className="text-[10px] lg:text-[13px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none">Snapshot</span>
+        <span className="text-[10px] lg:text-[13px] font-semibold tracking-[0.5px] uppercase text-content/35 text-center leading-none">Snapshot</span>
       </div>
     </div>
   );

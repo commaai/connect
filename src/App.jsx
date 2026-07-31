@@ -123,7 +123,7 @@ class App extends Component {
     return (
       <Grid container alignItems="center" style={{ width: '100%', height: '100vh' }}>
         <Grid item align="center" xs={12}>
-          <CircularProgress size="10vh" style={{ color: '#525E66' }} />
+          <CircularProgress size="10vh" className="text-progress" />
         </Grid>
       </Grid>
     );

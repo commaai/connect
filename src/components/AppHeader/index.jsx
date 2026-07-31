@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
-import { Typography, IconButton, AppBar } from '@material-ui/core';
+import { IconButton, AppBar } from '@material-ui/core';
 import MenuIcon from '@material-ui/icons/Menu';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
@@ -18,8 +18,8 @@ import PWAIcon from '../PWAIcon';
 
 const styles = () => ({
   header: {
-    backgroundColor: '#1D2225',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'var(--color-surface)',
+    borderBottom: '1px solid color-mix(in srgb, var(--color-content) 10%, transparent)',
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
@@ -32,12 +32,6 @@ const styles = () => ({
     alignItems: 'center',
     flexWrap: 'nowrap',
   },
-  logo: {
-    alignItems: 'center',
-    display: 'flex',
-    maxWidth: 200,
-    textDecoration: 'none',
-  },
   logoImgLink: {
     lineHeight: 0,
   },
@@ -47,6 +41,7 @@ const styles = () => ({
     margin: '0px 28px',
   },
   logoText: {
+    color: 'var(--color-content)',
     fontSize: 20,
     fontWeight: 800,
   },
@@ -108,7 +103,7 @@ const AppHeader = ({
               href={`/${dongleId}`}
               onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
             >
-              <Typography className={classes.logoText}>connect</Typography>
+              <p className={classes.logoText}>connect</p>
             </a>
           </div>
           <div className="flex flex-row gap-2">

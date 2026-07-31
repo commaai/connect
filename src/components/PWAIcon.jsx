@@ -61,14 +61,14 @@ const PWAIcon = ({ immediate }) => {
   let callback;
   if (needRefresh) {
     title = 'Install update';
-    icon = <Download className="w-7 h-7 text-[rgba(128,255,128,0.5)]" />;
+    icon = <Download className="w-7 h-7 text-success/50" />;
     callback = () => {
       setInstalling(true);
       updateServiceWorker(true);
     };
   } else if (offlineReady) {
     title = 'No updates available';
-    icon = <CheckCircle className="w-6 h-6 text-[rgba(255,255,255,0.5)]" />;
+    icon = <CheckCircle className="w-6 h-6 text-content/50" />;
     callback = close;
   }
 
@@ -83,7 +83,7 @@ const PWAIcon = ({ immediate }) => {
         disabled={installing}
       >
         {installing ? (
-          <CircularProgress className="flex text-[rgba(128,255,128,0.5)]" size={24} />
+          <CircularProgress className="flex text-success/50" size={24} />
         ) : icon}
       </IconButton>
     </Tooltip>

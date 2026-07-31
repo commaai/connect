@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Typography, IconButton } from '@material-ui/core';
+import { withStyles, IconButton } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
@@ -17,7 +17,7 @@ import VisibilityHandler from '../VisibilityHandler';
 import AddDevice from './AddDevice';
 import DeviceSettingsModal from './DeviceSettingsModal';
 
-const styles = (theme) => ({
+const styles = () => ({
   deviceList: {
     overflow: 'auto',
   },
@@ -28,7 +28,7 @@ const styles = (theme) => ({
     justifyContent: 'space-between',
     padding: '16px 32px',
     '&.isSelected': {
-      backgroundColor: 'rgba(0, 0, 0, 0.25)',
+      backgroundColor: 'color-mix(in srgb, var(--color-scrim) 25%, transparent)',
     },
   },
   settingsButton: {
@@ -63,25 +63,10 @@ const styles = (theme) => ({
     fontWeight: 600,
   },
   deviceId: {
-    color: '#74838e',
-  },
-  editDeviceIcon: {
-    color: 'white',
-    '&:hover': {
-      color: theme.palette.grey[100],
-    },
-  },
-  nameField: {
-    marginRight: theme.spacing.unit,
-  },
-  saveButton: {
-    marginRight: theme.spacing.unit,
-  },
-  textField: {
-    marginBottom: theme.spacing.unit,
+    color: 'var(--color-content-subtle)',
   },
   addDeviceContainer: {
-    '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.25)' },
+    '&:hover': { backgroundColor: 'color-mix(in srgb, var(--color-scrim) 25%, transparent)' },
   },
 });
 
@@ -136,12 +121,12 @@ class DeviceList extends Component {
         <div className={classes.deviceInfo}>
           <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
           <div className={ classes.deviceName }>
-            <Typography className={classes.deviceAlias}>
+            <p className={classes.deviceAlias}>
               {deviceNamePretty(device)}
-            </Typography>
-            <Typography variant="caption" className={classes.deviceId}>
+            </p>
+            <span className={`type-caption ${classes.deviceId}`}>
               { device.dongle_id }
-            </Typography>
+            </span>
           </div>
         </div>
         { (device.is_owner || (profile && profile.superuser))

@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { ClickAwayListener, Tooltip, Typography, withStyles } from '@material-ui/core';
+import { ClickAwayListener, Tooltip, withStyles } from '@material-ui/core';
 
 import { InfoOutline } from '../../icons';
 
@@ -15,7 +15,7 @@ const styles = (theme) => ({
       height: '1em',
       '&::before': {
         borderWidth: '1em 1em 0 1em',
-        borderColor: `${theme.palette.grey[900]} transparent transparent transparent`,
+        borderColor: 'var(--color-surface) transparent transparent transparent',
       },
     },
   },
@@ -34,7 +34,7 @@ const styles = (theme) => ({
     },
   },
   tooltip: {
-    background: theme.palette.grey[900],
+    background: 'var(--color-surface)',
     marginBottom: 8,
   },
   icon: {
@@ -93,7 +93,7 @@ class InfoTooltip extends Component {
           }}
           title={(
             <>
-              <Typography color="inherit">{title}</Typography>
+              <p className="text-inherit">{title}</p>
               <span className={classes.arrowArrow} ref={this.handleArrowRef} />
             </>
           )}

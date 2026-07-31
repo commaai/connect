@@ -1,10 +1,10 @@
 import { createMuiTheme } from '@material-ui/core/styles';
 import Colors from './colors';
-import { ChevronIcon } from './icons';
 
 const theme = createMuiTheme({
+  // Font ownership lives in index.css. MUI controls inherit the HTML default.
   typography: {
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: 'inherit',
   },
   overrides: {
     MuiButton: {
@@ -23,26 +23,6 @@ const theme = createMuiTheme({
       },
       paperAnchorDockedLeft: {
         borderRight: 'none',
-      },
-    },
-    MuiSelect: {
-      select: {
-        padding: '12px',
-        paddingRight: '48px',
-        margin: '0px',
-        '&>div': {
-          margin: '0',
-        },
-        '&:focus': {
-          background: 'inherit',
-        },
-      },
-      selectMenu: {
-        paddingRight: 54,
-      },
-      icon: {
-        marginRight: 20,
-        color: Colors.white30,
       },
     },
     MuiInput: {
@@ -81,11 +61,6 @@ const theme = createMuiTheme({
         marginTop: 4,
       },
     },
-    MuiTab: {
-      root: {
-        minHeight: 40,
-      },
-    },
     MuiListItem: {
       root: {
         '&:focus': {
@@ -94,25 +69,14 @@ const theme = createMuiTheme({
         },
       },
     },
-    MuiSnackbarContent: {
-      root: {
-        backgroundColor: Colors.grey700,
-        color: Colors.white,
-      },
-    },
   },
   props: {
-    MuiSelect: {
-      disableUnderline: true,
-      IconComponent: ChevronIcon,
-    },
     MuiInput: {
       disableUnderline: true,
     },
   },
   palette: {
     type: 'dark',
-    placeholder: Colors.white30,
     background: {
       default: Colors.grey999,
     },
@@ -126,14 +90,6 @@ const theme = createMuiTheme({
       main: Colors.green200,
       dark: Colors.green500,
     },
-    states: {
-      drivingBlue: Colors.blue500,
-      engagedGreen: Colors.green400,
-      engagedGrey: '#919b95',
-      alertOrange: Colors.orange50,
-      alertRed: Colors.red100,
-      userBookmark: Colors.yellow500,
-    },
     grey: {
       50: Colors.grey50,
       100: Colors.grey100,
@@ -145,19 +101,6 @@ const theme = createMuiTheme({
       700: Colors.grey700,
       800: Colors.grey800,
       900: Colors.grey900,
-      950: Colors.grey950,
-      999: Colors.grey999,
-    },
-    lightGrey: {
-      200: Colors.lightGrey200,
-    },
-    white: {
-      10: Colors.white10,
-      12: Colors.white12,
-      20: Colors.white20,
-      30: Colors.white30,
-      40: Colors.white40,
-      50: Colors.white50,
     },
     error: {
       main: 'rgba(209, 35, 35, 0.72)',

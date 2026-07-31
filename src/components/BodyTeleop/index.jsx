@@ -127,26 +127,26 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   };
 
   return (
-    <div className="fixed top-0 left-0 w-screen h-full z-[1300] bg-[#030404]">
+    <div className="fixed top-0 left-0 w-screen h-full z-[1300] bg-canvas-deep">
       <div className={`
-        absolute inset-0 bg-[#030404] flex flex-col touch-none
+        absolute inset-0 bg-canvas-deep flex flex-col touch-none
         overflow-hidden select-none [-webkit-touch-callout:none] [-webkit-text-size-adjust:none]
         mt-safe-top mb-safe-bottom ml-safe-left mr-safe-right
       `}>
         <div
           className={isLandscape
             ? 'absolute left-2 top-2 z-20 flex items-center gap-1'
-            : 'flex items-center px-3 py-2 bg-[#1D2225] border-b border-white/10 min-h-[64px] z-10'}
+            : 'flex items-center px-3 py-2 bg-surface border-b border-content/10 min-h-[64px] z-10'}
         >
           <button
-            className={isLandscape ? 'flex items-center rounded-full hover:text-white/90 text-white/60 p-2 w-10 h-10 bg-glass' : 'text-white p-2'}
+            className={isLandscape ? 'flex items-center rounded-full hover:text-content/90 text-content/60 p-2 w-10 h-10 bg-glass' : 'text-content p-2'}
             onClick={handleClose}
           >
             <ArrowBackBold style={{ fontSize: 20 }} />
           </button>
           <div
             className={isLandscape
-              ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-white bg-glass border-0'
+              ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-content bg-glass border-0'
               : 'text-base font-medium ml-2 flex-1'}
           >
             {deviceName}
@@ -170,7 +170,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
         <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : started ? "aspect-[16/9]" : "flex-1"} />
         { connected && notCar && !started && (
           <div className="absolute w-full bottom-36 2xl:bottom-12 pointer-events-none text-center select-none">
-            <span className="text-sm md:text-base text-white/70">Turn on comma body ignition to remote control</span>
+            <span className="text-sm md:text-base text-content/70">Turn on comma body ignition to remote control</span>
           </div>
         )}
         {connected && (

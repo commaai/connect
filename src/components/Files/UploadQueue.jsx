@@ -4,7 +4,7 @@ import Obstruction from 'obstruction';
 
 import {
   withStyles,
-  Divider, Typography, CircularProgress, Button, Modal, Paper, LinearProgress,
+  Divider, CircularProgress, Button, Modal, Paper, LinearProgress,
 } from '@material-ui/core';
 import HighlightOffIcon from '@material-ui/icons/HighlightOff';
 import WarningIcon from '@material-ui/icons/Warning';
@@ -197,8 +197,8 @@ class UploadQueue extends Component {
         <Modal aria-labelledby="upload-queue-modal" open={ this.props.open } onClose={ this.props.onClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>
-              <Typography variant="title">Upload queue</Typography>
-              <Typography variant="caption" style={{ marginLeft: 8 }}>{ device.dongle_id }</Typography>
+              <h1>Upload queue</h1>
+              <span className="type-caption" style={{ marginLeft: 8 }}>{ device.dongle_id }</span>
             </div>
             <Divider />
             <div className={ classes.uploadContainer } style={{ maxHeight: (windowHeight * 0.90) - 98 }}>

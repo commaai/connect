@@ -13,8 +13,8 @@ const PACKET_LOSS_POOR = 0.02;
 const RTT_POOR_MS = 250;
 
 const QUALITY_INDICATOR = {
-  good: { color: '#22c967', label: 'connected' },
-  poor: { color: '#f5c542', label: 'poor connection' },
+  good: { color: 'var(--color-success)', label: 'connected' },
+  poor: { color: 'var(--color-warning)', label: 'poor connection' },
 };
 
 const STATS_ROWS = [
@@ -273,28 +273,28 @@ export const StatsPanel = ({ isLandscape, stats, latency, latencyHistory }) => {
           if (showInCompact == false && compact) return;
           return (
             <div key={key} className="flex justify-between leading-tight md:py-[3px]">
-              <span className={`${textSize} text-white/45 mr-1.5`}>{label}</span>
-              <span className={`${textSize} text-white/[0.85] text-right min-w-16`}>{stats?.[key] ?? '--'}</span>
+              <span className={`${textSize} text-content/45 mr-1.5`}>{label}</span>
+              <span className={`${textSize} text-content/85 text-right min-w-16`}>{stats?.[key] ?? '--'}</span>
             </div>
           )
         })}
       </div>
-      {!compact && <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />}
+      {!compact && <div className="h-px bg-content/8 my-px md:my-[5px]" />}
       <div>
-        {!compact && <div className="text-[7px] font-bold text-white/35 tracking-[0.5px] leading-tight py-[2px] pb-px md:text-[11px]">{"FRAME LATENCY"}</div>}
+        {!compact && <div className="text-[7px] font-bold text-content/35 tracking-[0.5px] leading-tight py-[2px] pb-px md:text-[11px]">{"FRAME LATENCY"}</div>}
         {LATENCY_LAYERS.map(({ label, key, labelColor }) => (
           <div key={label} className="flex justify-between leading-tight md:py-[3px]">
             <span className={`${textSize} mr-1.5 md:mr-[20px]`} style={{ color: labelColor }}>{label}</span>
-            <span className={`${textSize} text-nowrap text-white/[0.85] text-right`}>{fmtMs(latency?.[key])}</span>
+            <span className={`${textSize} text-nowrap text-content/85 text-right`}>{fmtMs(latency?.[key])}</span>
           </div>
         ))}
         <div className="flex justify-between leading-tight md:py-[3px]">
-          <span className={`${textSize} mr-1.5 md:mr-[18px]`} style={{ fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>Frame Latency</span>
-          <span className={`${textSize} text-white/[0.85] text-right`} style={{ fontWeight: 700 }}>{fmtMs(latency?.totalMs)}</span>
+          <span className={`${textSize} mr-1.5 md:mr-[18px] text-content/65`} style={{ fontWeight: 700 }}>Frame Latency</span>
+          <span className={`${textSize} text-content/85 text-right`} style={{ fontWeight: 700 }}>{fmtMs(latency?.totalMs)}</span>
         </div>
       </div>
-      <canvas ref={latencyCanvasRef} className={`${compact ? "w-[100px] self-stretch": "w-full h-[30px] md:h-[90px] mt-1"} rounded-[3px] bg-black/30 md:rounded-[6px]`} />
-      {!compact && <div className="h-px bg-white/[0.08] my-px md:my-[5px]" />}
+      <canvas ref={latencyCanvasRef} className={`${compact ? "w-[100px] self-stretch": "w-full h-[30px] md:h-[90px] mt-1"} rounded-[3px] bg-scrim/30 md:rounded-[6px]`} />
+      {!compact && <div className="h-px bg-content/8 my-px md:my-[5px]" />}
     </div>
   );
 };
@@ -309,11 +309,11 @@ const StatsMenu = ({
   return (
     <div ref={wrapperRef}>
       <div
-        className="group flex items-center justify-center h-9 px-3.5 rounded-[18px] cursor-pointer select-none bg-glass hover:!bg-black/60"
+        className="group flex items-center justify-center h-9 px-3.5 rounded-[18px] cursor-pointer select-none bg-glass hover:!bg-scrim/60"
         onClick={toggleStats}
         title="Toggle stats"
       >
-        <span className="text-[13px] font-semibold tracking-[0.5px] uppercase text-center leading-none text-white/60 group-hover:text-white/90">
+        <span className="text-[13px] font-semibold tracking-[0.5px] uppercase text-center leading-none text-content/60 group-hover:text-content/90">
           stats
         </span>
       </div>
@@ -341,12 +341,12 @@ const StatusBar = ({
           style={{ backgroundColor: indicator.color }}
           title={indicator.label}
         />
-        <span className="text-base hidden xxs:inline text-white/70">{stats?.rtt ?? '--'}</span>
+        <span className="text-base hidden xxs:inline text-content/70">{stats?.rtt ?? '--'}</span>
       </div>
       {battery && (
         <div className="flex items-center justify-center gap-2 h-10 px-3.5">
-          <BatteryIcon style={{ fontSize: 20, color: 'rgba(255, 255, 255, 0.7)' }} />
-          <span className="text-base text-white/70 w-9">{battery.level}%</span>
+          <BatteryIcon className="text-content/70" style={{ fontSize: 20 }} />
+          <span className="text-base text-content/70 w-9">{battery.level}%</span>
         </div>
       )}
       <StatsMenu

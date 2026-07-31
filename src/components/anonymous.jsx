@@ -7,8 +7,6 @@ import PropTypes from 'prop-types';
 import qs from 'query-string';
 
 import { withStyles } from '@material-ui/core/styles';
-import Typography from '@material-ui/core/Typography';
-
 import {config as AuthConfig} from '@commaai/my-comma-auth';
 
 import Colors from '../colors';
@@ -66,7 +64,7 @@ const styles = () => ({
   logInButton: {
     cursor: 'pointer',
     alignItems: 'center',
-    background: '#ffffff',
+    background: 'var(--color-field)',
     display: 'flex',
     borderRadius: 80,
     fontSize: 21,
@@ -77,14 +75,14 @@ const styles = () => ({
     maxWidth: '90%',
     marginBottom: 10,
     '&:hover': {
-      background: '#eee',
+      background: 'var(--color-field-hover)',
     },
   },
   buttonText: {
     fontSize: 18,
     width: 190,
     textAlign: 'center',
-    color: 'black',
+    color: 'var(--color-content-inverse)',
     fontWeight: 600,
   },
   buttonImage: {
@@ -135,21 +133,21 @@ class AnonymousLanding extends Component {
             <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
           </div>
           <div className={classes.logoSpacer}>&nbsp;</div>
-          <Typography className={classes.logoText}>comma connect</Typography>
-          <Typography className={classes.tagline}>
+          <p className={classes.logoText}>comma connect</p>
+          <p className={classes.tagline}>
             Manage your comma device, view your drives, and use comma prime features
-          </Typography>
+          </p>
           <a href={AuthConfig.GOOGLE_REDIRECT_LINK} className={classes.logInButton}>
             <img className={classes.buttonImage} src={AuthGoogleIcon} alt="" />
-            <Typography className={classes.buttonText}>Sign in with Google</Typography>
+            <p className={classes.buttonText}>Sign in with Google</p>
           </a>
           <a onClick={() => AppleID.auth.signIn()} className={classes.logInButton}>
             <img className={classes.buttonImage} src={AuthAppleIcon} alt="" />
-            <Typography className={classes.buttonText}>Sign in with Apple</Typography>
+            <p className={classes.buttonText}>Sign in with Apple</p>
           </a>
           <a href={AuthConfig.GITHUB_REDIRECT_LINK} className={`${classes.logInButton} githubAuth`}>
             <img className={classes.buttonImage} src={AuthGithubIcon} alt="" />
-            <Typography className={classes.buttonText}>Sign in with GitHub</Typography>
+            <p className={classes.buttonText}>Sign in with GitHub</p>
           </a>
 
           <span className="max-w-sm text-center mt-2 mb-8 text-sm">

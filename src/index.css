@@ -11,6 +11,57 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
+  /*
+   * Semantic colour roles
+   * ---------------------
+   * Keep component classes coupled to purpose rather than palette values.
+   */
+
+  /* Foundations */
+  --color-canvas: #16181a;
+  --color-canvas-deep: #030404;
+  --color-scrim: #000000;
+  --color-surface: #1d2225;
+  --color-surface-muted: #272d30;
+  --color-surface-raised: #30373b;
+  --color-surface-overlay: #1b2023;
+  --color-surface-overlay-deep: #111516;
+
+  /* Content and boundaries */
+  --color-content: #ffffff;
+  --color-content-inverse: #000000;
+  --color-content-subtle: #74838e;
+  --color-boundary-strong: #d8dddf;
+  --color-progress: #525e66;
+  --color-field: #ffffff;
+  --color-field-hover: #dddddd;
+  --color-field-muted: #d1d1d1;
+
+  /* Actions */
+  --color-action: #2563eb;
+  --color-action-hover: #3b82f6;
+  --color-link: #60a5fa;
+
+  /* Status */
+  --color-success: #22c967;
+  --color-success-content: #dcfce7;
+  --color-warning: #f5c542;
+  --color-danger: #dc2626;
+  --color-danger-content: #fca5a5;
+  --color-feedback-error: #ff0000;
+  --color-feedback-success: #00ff00;
+
+  /* Driving states */
+  --color-driving: #175886;
+  --color-engaged: #178645;
+  --color-engaged-override: #919b95;
+  --color-alert: #da6f25;
+  --color-alert-critical: #c92231;
+  --color-bookmark: #e3d756;
+
+  /* Data visualisation */
+  --color-timeline-track: #25333d;
+
   --animate-fadein: fadein 0.25s;
   --breakpoint-xxs: 360px;
   --breakpoint-xs: 480px;
@@ -41,13 +92,41 @@
 }
 
 :root {
+  /*
+   * Typography
+   * ----------
+   * These values mirror the Material UI typography scale used on master.
+   * Native elements inherit the body style; type-* classes cover variants.
+   */
+  --font-text: 'Inter', sans-serif;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-size-body: 0.875rem;
+  --font-size-caption: 0.75rem;
+  --font-size-h1: 1.3125rem;
+  --font-size-h2: 1rem;
+  --line-height-body: 1.46429em;
+  --line-height-body-strong: 1.71429em;
+  --line-height-caption: 1.375em;
+  --line-height-h1: 1.16667em;
+  --line-height-h2: 1.5em;
+  --color-text-primary: color-mix(in srgb, var(--color-content) 87%, transparent);
+  --color-text-secondary: color-mix(in srgb, var(--color-content) 54%, transparent);
+
   color-scheme: dark;
-  background: #16181A;
+  background: var(--color-canvas);
 }
 
 html {
+  box-sizing: border-box;
+  color: var(--color-text-primary);
+  font-family: var(--font-text);
   font-size: 16px;
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-body);
   -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   
   margin-top: env(safe-area-inset-top);
   margin-bottom: env(safe-area-inset-bottom);
@@ -55,13 +134,78 @@ html {
   margin-right: env(safe-area-inset-right);
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
 body {
-  background: #16181A;
-  font-family: 'Inter', sans-serif;
+  background: var(--color-canvas);
+  color: inherit;
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-body);
   scrollbar-gutter: stable;
   overflow-y: scroll;
   margin: 0;
   padding: 0;
+}
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font: inherit;
+}
+
+/*
+ * Native text elements
+ * --------------------
+ * Replaces Material UI Typography's root reset and variants.
+ */
+
+p,
+h1,
+h2,
+aside {
+  display: block;
+  margin: 0;
+}
+
+h1 {
+  color: var(--color-text-primary);
+  font-family: var(--font-text);
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-h1);
+}
+
+h2 {
+  color: var(--color-text-primary);
+  font-family: var(--font-text);
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-h2);
+}
+
+.type-body-strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-text);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-body-strong);
+}
+
+.type-caption {
+  color: var(--color-text-secondary);
+  display: block;
+  font-family: var(--font-text);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-caption);
 }
 
 a:focus {
@@ -75,7 +219,7 @@ a:focus {
 */
 
 .scrollstyle {
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: color-mix(in srgb, var(--color-content) 20%, transparent) transparent;
 }
 
 .scrollstyle::-webkit-scrollbar-track {
@@ -94,15 +238,15 @@ a:focus {
 }
 
 .scrollstyle:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: color-mix(in srgb, var(--color-content) 10%, transparent);
 }
 
 .scrollstyle::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: color-mix(in srgb, var(--color-content) 20%, transparent);
 }
 
 .scrollstyle::-webkit-scrollbar-thumb:active {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: color-mix(in srgb, var(--color-content) 20%, transparent);
 }
 
 /*
@@ -111,12 +255,15 @@ a:focus {
 
 @layer utilities {
   .bg-glass {
-    @apply bg-black/30 backdrop-blur-[10px] border-[1.5px] border-white/20 shadow-[inset_0_0_20px_rgba(255,255,255,0.1),0_4px_20px_rgba(0,0,0,0.4)];
+    @apply bg-scrim/30 backdrop-blur-[10px] border-[1.5px] border-content/20 shadow-[inset_0_0_20px_color-mix(in_srgb,var(--color-content)_10%,transparent),0_4px_20px_color-mix(in_srgb,var(--color-scrim)_40%,transparent)];
   }
   .bg-glass-dark {
-    @apply bg-black/40 backdrop-blur-[10px] shadow-[0_2px_12px_rgba(0,0,0,0.3)];
+    @apply bg-scrim/40 backdrop-blur-[10px] shadow-[0_2px_12px_color-mix(in_srgb,var(--color-scrim)_30%,transparent)];
   }
-  .bg-radial-white {
-    @apply bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.25),rgba(255,255,255,0.05))];
+  .bg-radial-content {
+    @apply bg-[radial-gradient(circle_at_30%_30%,color-mix(in_srgb,var(--color-content)_25%,transparent),color-mix(in_srgb,var(--color-content)_5%,transparent))];
+  }
+  .bg-radial-content-active {
+    @apply bg-[radial-gradient(circle_at_35%_35%,color-mix(in_srgb,var(--color-content)_60%,transparent),color-mix(in_srgb,var(--color-content)_15%,transparent))];
   }
 }

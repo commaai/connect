@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 import * as Sentry from '@sentry/react';
-import { withStyles, Typography, IconButton, Button, CircularProgress } from '@material-ui/core';
+import { withStyles, IconButton, Button, CircularProgress } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import CheckIcon from '@material-ui/icons/Check';
 
@@ -39,7 +39,7 @@ const styles = () => ({
     display: 'flex',
     flexDirection: 'column',
     maxWidth: 430,
-    color: '#fff',
+    color: 'var(--color-content)',
   },
   primeHeader: {
     display: 'flex',
@@ -53,23 +53,8 @@ const styles = () => ({
     alignItems: 'center',
     '& :first-child': { marginRight: 8 },
   },
-  primeBlock: {
-    marginTop: 10,
-  },
-  moreInfoContainer: {
-    '& p': { display: 'inline' },
-    '& button': { display: 'inline', marginLeft: '15px' },
-  },
   deviceId: {
-    color: '#525E66',
-  },
-  leftMargin: {
-    marginLeft: 10,
-  },
-  deviceBlock: {
-    marginLeft: 10,
-    '& aside': { display: 'inline', marginRight: 5 },
-    '& span': { display: 'inline' },
+    color: 'var(--color-progress)',
   },
   overviewBlockError: {
     borderRadius: 12,
@@ -77,7 +62,7 @@ const styles = () => ({
     padding: '8px 12px',
     display: 'flex',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 0, 0, 0.2)',
+    backgroundColor: 'color-mix(in srgb, var(--color-feedback-error) 20%, transparent)',
     '& p': { display: 'inline-block', marginLeft: 10 },
   },
   overviewBlockDisabled: {
@@ -141,7 +126,7 @@ const styles = () => ({
     padding: '10px 14px 10px 12px',
     borderRadius: 12,
     border: `1px solid ${Colors.green300}`,
-    color: '#fff',
+    color: 'var(--color-content)',
     '& strong': { color: Colors.green300, letterSpacing: '0.04em' },
     '& a': { color: Colors.green300, textDecoration: 'underline' },
   },
@@ -381,11 +366,11 @@ class PrimeCheckout extends Component {
             <KeyboardBackspaceIcon />
           </IconButton>
           <div className={ classes.headerDevice }>
-            <Typography variant="body2">{deviceNamePretty(device)}</Typography>
-            <Typography variant="caption" className={classes.deviceId}>{`(${device.dongle_id})`}</Typography>
+            <aside className="type-body-strong">{deviceNamePretty(device)}</aside>
+            <span className={`type-caption ${classes.deviceId}`}>{`(${device.dongle_id})`}</span>
           </div>
         </div>
-        <h2 className={ classes.primeTitle }>comma prime</h2>
+        <h1 className={ classes.primeTitle }>comma prime</h1>
         <div style={ blockMargin }>
           <div className={ classes.checkList }>
             <div className={ classes.checkListItem } style={ paddingStyle }>
@@ -416,24 +401,24 @@ class PrimeCheckout extends Component {
           <div className={ classes.commacareBanner } style={ blockMargin }>
             <div className={classes.commacareBannerHeader}>
               <img src={CommacareIcon} alt="" className={classes.commacareBannerIcon} />
-              <Typography>
+              <p>
                 <strong>INCLUDES COMMACARE</strong>
-              </Typography>
+              </p>
             </div>
-            <Typography variant="body2">
+            <aside className="type-body-strong">
               comma four includes a standard 1-year limited warranty. Subscribe within 30 days of delivery to extend your coverage to 2 years for the duration of your prime subscription.
               {' '}
               <a href={COMMACARE_URL} target="_blank" rel="noreferrer">Learn more</a>
-            </Typography>
+            </aside>
           </div>
         )}
         {device?.device_type === 'four' && !device?.eligible_features?.commacare && (
           <div className={ classes.commacareIneligible } style={ blockMargin }>
-            <Typography variant="body2">
+            <aside className="type-body-strong">
               This device is past the delivery window. commacare extended warranty won&apos;t be included with this subscription.
               {' '}
               <a href={COMMACARE_URL} target="_blank" rel="noreferrer">What is commacare?</a>
-            </Typography>
+            </aside>
           </div>
         )}
         <div className={ classes.planBoxContainer } style={ blockMargin }>
@@ -469,26 +454,26 @@ class PrimeCheckout extends Component {
             && (
             <div className={ classes.planLoading }>
               <CircularProgress size={ 38 } style={{ color: Colors.white }} />
-              <Typography>Fetching SIM data</Typography>
+              <p>Fetching SIM data</p>
             </div>
             )}
         </div>
         { disabledDataPlanText && (
         <div className={ classes.overviewBlockDisabled } style={ blockMargin }>
           <InfoOutline />
-          <Typography>{ disabledDataPlanText }</Typography>
+          <p>{ disabledDataPlanText }</p>
         </div>
         ) }
         <div style={ blockMargin }>
-          <Typography className={ classes.learnMore }>
+          <p className={ classes.learnMore }>
             {'Learn more about comma prime from our '}
             <a className={ classes.linkHighlight} target="_blank" href="https://comma.ai/connect#faq" rel="noreferrer">FAQ</a>
-          </Typography>
+          </p>
         </div>
         { error && (
         <div className={ classes.overviewBlockError }>
           <ErrorOutline />
-          <Typography>{ error }</Typography>
+          <p>{ error }</p>
         </div>
         ) }
         <div style={ blockMargin }>
@@ -505,7 +490,7 @@ class PrimeCheckout extends Component {
         { chargeText
           && (
           <div style={ blockMargin }>
-            <Typography className={ classes.chargeText }>{ chargeText }</Typography>
+            <p className={ classes.chargeText }>{ chargeText }</p>
           </div>
           )}
       </div>

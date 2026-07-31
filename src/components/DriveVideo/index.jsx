@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { CircularProgress, Typography } from '@material-ui/core';
+import { CircularProgress } from '@material-ui/core';
 import debounce from 'debounce';
 import Obstruction from 'obstruction';
 import ReactPlayer from 'react-player/file';
@@ -20,7 +20,7 @@ const VideoOverlay = ({ loading, error }) => {
     content = (
       <>
         <ErrorOutline className="mb-2" />
-        <Typography>{error}</Typography>
+        <p>{error}</p>
       </>
     );
   } else if (loading) {
@@ -29,7 +29,7 @@ const VideoOverlay = ({ loading, error }) => {
     return null;
   }
   return (
-    <div className="z-50 absolute h-full w-full bg-[#16181AAA]">
+    <div className="z-50 absolute h-full w-full bg-canvas/67">
       <div className="relative text-center top-[calc(50%_-_25px)]">
         {content}
       </div>

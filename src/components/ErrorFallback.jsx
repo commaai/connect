@@ -78,7 +78,7 @@ ${error.toString()}${componentStack}`;
         </p>
         <div className="flex flex-row gap-4">
           <button
-            className="flex items-center gap-1 bg-blue-600 rounded-md px-4 py-2 font-bold hover:bg-blue-500 transition-colors"
+            className="flex items-center gap-1 bg-action rounded-md px-4 py-2 font-bold hover:bg-action-hover transition-colors"
             type="button"
             onClick={reload}
           >
@@ -89,12 +89,12 @@ ${error.toString()}${componentStack}`;
       </div>
       <details className="mt-8">
         <summary>Show debugging information</summary>
-        <div className="relative bg-black rounded-xl mt-2 overflow-hidden">
+        <div className="relative bg-scrim rounded-xl mt-2 overflow-hidden">
           <pre className="select-all overflow-x-auto px-4 pt-4 pb-2 text-sm">
             {information}
           </pre>
           <button
-            className={`absolute right-2 top-2 flex rounded-md pl-2 pr-2 py-2 text-white font-bold transition-colors ${copied ? 'bg-green-500' : 'bg-gray-700 hover:bg-gray-600'}`}
+            className={`absolute right-2 top-2 flex rounded-md pl-2 pr-2 py-2 text-content font-bold transition-colors ${copied ? 'bg-success' : 'bg-surface-raised hover:bg-surface-muted'}`}
             type="button"
             aria-label={copied ? 'Copied' : 'Copy error'}
             onClick={copyError}

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
 import dayjs from 'dayjs';
 
-import { withStyles, Grid, Typography } from '@material-ui/core';
+import { withStyles, Grid } from '@material-ui/core';
 
 import { pushTimelineRange } from '../../actions';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
@@ -15,8 +15,8 @@ import Timeline from '../Timeline';
 
 const styles = () => ({
   drive: {
-    background: 'linear-gradient(to bottom, #30373B 0%, #1D2225 100%)',
-    borderTop: '1px solid rgba(255, 255, 255, .05)',
+    background: 'linear-gradient(to bottom, var(--color-surface-raised) 0%, var(--color-surface) 100%)',
+    borderTop: '1px solid color-mix(in srgb, var(--color-content) 5%, transparent)',
     borderRadius: 8,
     display: 'flex',
     flexDirection: 'column',
@@ -30,17 +30,11 @@ const styles = () => ({
   driveHeader: {
     alignItems: 'center',
   },
-  driveHeaderIntro: {
-    display: 'flex',
-  },
   driveGridItem: {
     flexGrow: 1,
   },
   driveGridItemRightAlign: {
     textAlign: 'right',
-  },
-  driveHeaderIntroSmall: {
-    justifyContent: 'center',
   },
   driveArrow: {
     color: Colors.grey500,
@@ -125,20 +119,20 @@ const DriveListItem = (props) => {
       <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>
         <Grid container>
           <div className={classes.driveGridItem} style={gridStyle.date}>
-            <Typography className={classes.firstLine}>{startDate}</Typography>
-            <Typography>{`${startTime} to ${endTime}`}</Typography>
+            <p className={classes.firstLine}>{startDate}</p>
+            <p>{`${startTime} to ${endTime}`}</p>
           </div>
           <div className={`${classes.driveGridItem} ${small && classes.driveGridItemRightAlign}`} style={gridStyle.dur}>
-            <Typography className={classes.firstLine}>{duration}</Typography>
-            <Typography>{distance}</Typography>
+            <p className={classes.firstLine}>{duration}</p>
+            <p>{distance}</p>
           </div>
           <div className={classes.driveGridItem} style={gridStyle.origin}>
-            <Typography className={classes.firstLine}>{drive.startLocation?.place}</Typography>
-            <Typography>{drive.startLocation?.details}</Typography>
+            <p className={classes.firstLine}>{drive.startLocation?.place}</p>
+            <p>{drive.startLocation?.details}</p>
           </div>
           <div className={`${classes.driveGridItem} ${small && classes.driveGridItemRightAlign}`} style={gridStyle.dest}>
-            <Typography className={classes.firstLine}>{drive.endLocation?.place}</Typography>
-            <Typography>{drive.endLocation?.details}</Typography>
+            <p className={classes.firstLine}>{drive.endLocation?.place}</p>
+            <p>{drive.endLocation?.details}</p>
           </div>
           {!small && (
             <div className={classes.driveGridItem} style={gridStyle.arrow}>
