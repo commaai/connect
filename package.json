@@ -5,6 +5,7 @@
     "start": "vite",
     "build:development": "vite build --mode development",
     "build:production": "vite build",
+    "build:gallery": "bun add --no-save --trust puppeteer@24.16.0 pixelmatch@7.1.0 pngjs@7.0.0 && node scripts/build-gallery.mjs",
     "serve": "vite preview",
     "lint": "oxlint src",
     "test": "jest",
