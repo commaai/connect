@@ -6,8 +6,6 @@ import qs from 'query-string';
 import localforage from 'localforage';
 import * as Sentry from '@sentry/react';
 
-import { CircularProgress, Grid } from '@material-ui/core';
-
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 import { athena as Athena, auth as Auth, billing as Billing, request as Request } from './api';
 
@@ -121,11 +119,9 @@ class App extends Component {
 
   renderLoading() {
     return (
-      <Grid container alignItems="center" style={{ width: '100%', height: '100vh' }}>
-        <Grid item align="center" xs={12}>
-          <CircularProgress size="10vh" className="text-progress" />
-        </Grid>
-      </Grid>
+      <div className="flex h-screen w-full items-center justify-center" role="status" aria-label="Loading">
+        <div className="h-[10vh] w-[10vh] animate-spin rounded-full border-[0.8vh] border-progress border-t-transparent" />
+      </div>
     );
   }
 

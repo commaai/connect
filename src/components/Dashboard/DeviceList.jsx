@@ -3,72 +3,18 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, IconButton } from '@material-ui/core';
+import { IconButton } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { devices as Devices } from '../../api';
 
 import { updateDevices } from '../../actions';
-import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, filterRegularClick, emptyDevice } from '../../utils';
 import VisibilityHandler from '../VisibilityHandler';
 
 import AddDevice from './AddDevice';
 import DeviceSettingsModal from './DeviceSettingsModal';
-
-const styles = () => ({
-  deviceList: {
-    overflow: 'auto',
-  },
-  device: {
-    textDecoration: 'none',
-    alignItems: 'center',
-    display: 'flex',
-    justifyContent: 'space-between',
-    padding: '16px 32px',
-    '&.isSelected': {
-      backgroundColor: 'color-mix(in srgb, var(--color-scrim) 25%, transparent)',
-    },
-  },
-  settingsButton: {
-    height: 46,
-    width: 46,
-    color: Colors.white30,
-    transition: 'color 150ms cubic-bezier(0.4, 0, 0.2, 1) 0ms',
-    '&:hover': {
-      color: Colors.white,
-    },
-  },
-  deviceOnline: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.green400,
-  },
-  deviceOffline: {
-    backgroundColor: Colors.grey400,
-  },
-  deviceInfo: {
-    display: 'flex',
-    alignItems: 'center',
-  },
-  deviceName: {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    marginLeft: 16,
-  },
-  deviceAlias: {
-    fontWeight: 600,
-  },
-  deviceId: {
-    color: 'var(--color-content-subtle)',
-  },
-  addDeviceContainer: {
-    '&:hover': { backgroundColor: 'color-mix(in srgb, var(--color-scrim) 25%, transparent)' },
-  },
-});
 
 class DeviceList extends Component {
   constructor(props) {
@@ -108,23 +54,23 @@ class DeviceList extends Component {
   }
 
   renderDevice(device) {
-    const { classes, handleDeviceSelected, profile, selectedDevice } = this.props;
+    const { handleDeviceSelected, profile, selectedDevice } = this.props;
     const isSelectedCls = (selectedDevice === device.dongle_id) ? 'isSelected' : '';
-    const offlineCls = !deviceIsOnline(device) ? classes.deviceOffline : '';
+    const onlineCls = deviceIsOnline(device) ? 'bg-engaged' : 'bg-progress';
     return (
       <a
         key={device.dongle_id}
-        className={ `${classes.device} ${isSelectedCls}` }
+        className={`flex items-center justify-between px-8 py-4 no-underline [&.isSelected]:bg-scrim/25 ${isSelectedCls}`}
         onClick={ filterRegularClick(() => handleDeviceSelected(device.dongle_id)) }
         href={ `/${device.dongle_id}` }
       >
-        <div className={classes.deviceInfo}>
-          <div className={ `${classes.deviceOnline} ${offlineCls}` }>&nbsp;</div>
-          <div className={ classes.deviceName }>
-            <p className={classes.deviceAlias}>
+        <div className="flex items-center">
+          <div className={`h-1.5 w-1.5 rounded-[3px] ${onlineCls}`}>&nbsp;</div>
+          <div className="ml-4 flex flex-col justify-center">
+            <p className="font-semibold">
               {deviceNamePretty(device)}
             </p>
-            <span className={`type-caption ${classes.deviceId}`}>
+            <span className="type-caption text-content-subtle">
               { device.dongle_id }
             </span>
           </div>
@@ -132,11 +78,11 @@ class DeviceList extends Component {
         { (device.is_owner || (profile && profile.superuser))
           && (
           <IconButton
-            className={classes.settingsButton}
+            className="h-[46px] w-[46px] text-content/30 transition-colors hover:text-content"
             aria-label="device settings"
             onClick={ (ev) => this.handleOpenedSettingsModal(device.dongle_id, ev) }
           >
-            <SettingsIcon className={classes.settingsButtonIcon} />
+            <SettingsIcon />
           </IconButton>
           )}
       </a>
@@ -145,7 +91,7 @@ class DeviceList extends Component {
 
   render() {
     const { settingsModalDongleId } = this.state;
-    const { classes, device, selectedDevice: dongleId } = this.props;
+    const { device, selectedDevice: dongleId } = this.props;
 
     let { devices } = this.props;
     if (devices === null) {
@@ -178,12 +124,12 @@ class DeviceList extends Component {
       <>
         <VisibilityHandler onVisible={ this.onVisible } minInterval={ 10 } />
         <div
-          className={`scrollstyle ${classes.deviceList}`}
+          className="scrollstyle overflow-auto"
           style={{ height: 'calc(100vh - 64px)' }}
         >
           {devices.map(this.renderDevice)}
           {MyCommaAuth.isAuthenticated() && (
-            <div className={classes.addDeviceContainer}>
+            <div className="hover:bg-scrim/25">
               <AddDevice buttonText="add new device" buttonStyle={addButtonStyle} buttonIcon />
             </div>
           )}
@@ -204,4 +150,4 @@ const stateToProps = Obstruction({
   profile: 'profile',
 });
 
-export default connect(stateToProps)(withStyles(styles)(DeviceList));
+export default connect(stateToProps)(DeviceList);

@@ -2,56 +2,19 @@ import React, { useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
 import dayjs from 'dayjs';
 
-import { withStyles, Grid } from '@material-ui/core';
-
 import { pushTimelineRange } from '../../actions';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
-import Colors from '../../colors';
 import { useWindowWidth } from '../../hooks/window';
 import { RightArrow } from '../../icons';
 import { formatDriveDuration, filterRegularClick } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import Timeline from '../Timeline';
 
-const styles = () => ({
-  drive: {
-    background: 'linear-gradient(to bottom, var(--color-surface-raised) 0%, var(--color-surface) 100%)',
-    borderTop: '1px solid color-mix(in srgb, var(--color-content) 5%, transparent)',
-    borderRadius: 8,
-    display: 'flex',
-    flexDirection: 'column',
-    marginBottom: 12,
-    overflow: 'hidden',
-    padding: 0,
-    transition: 'background .2s',
-    textDecoration: 'none',
-    '&:hover': {},
-  },
-  driveHeader: {
-    alignItems: 'center',
-  },
-  driveGridItem: {
-    flexGrow: 1,
-  },
-  driveGridItemRightAlign: {
-    textAlign: 'right',
-  },
-  driveArrow: {
-    color: Colors.grey500,
-    height: '100%',
-    marginLeft: '25%',
-    width: 32,
-  },
-  firstLine: {
-    fontWeight: 600,
-  },
-});
-
 const DriveListItem = (props) => {
   const el = useRef();
   const [isVisible, setVisible] = useState(false);
   const windowWidth = useWindowWidth();
-  const { classes, dispatch, drive } = props;
+  const { dispatch, drive } = props;
 
   useEffect(() => {
     const onScroll = () => {
@@ -111,35 +74,35 @@ const DriveListItem = (props) => {
   return (
     <a
       key={drive.fullname}
-      className={`${classes.drive} DriveEntry`}
+      className="DriveEntry mb-3 flex flex-col overflow-hidden rounded-lg border-t border-content/5 bg-linear-to-b from-surface-raised to-surface p-0 no-underline transition-colors"
       ref={el}
       href={`/${drive.dongle_id}/${drive.log_id}`}
       onClick={onClick}
     >
-      <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>
-        <Grid container>
-          <div className={classes.driveGridItem} style={gridStyle.date}>
-            <p className={classes.firstLine}>{startDate}</p>
+      <div className="items-center" style={!small ? { padding: '18px 32px' } : { padding: 18 }}>
+        <div className="flex w-full flex-wrap">
+          <div className="grow" style={gridStyle.date}>
+            <p className="font-semibold">{startDate}</p>
             <p>{`${startTime} to ${endTime}`}</p>
           </div>
-          <div className={`${classes.driveGridItem} ${small && classes.driveGridItemRightAlign}`} style={gridStyle.dur}>
-            <p className={classes.firstLine}>{duration}</p>
+          <div className={`grow ${small ? 'text-right' : ''}`} style={gridStyle.dur}>
+            <p className="font-semibold">{duration}</p>
             <p>{distance}</p>
           </div>
-          <div className={classes.driveGridItem} style={gridStyle.origin}>
-            <p className={classes.firstLine}>{drive.startLocation?.place}</p>
+          <div className="grow" style={gridStyle.origin}>
+            <p className="font-semibold">{drive.startLocation?.place}</p>
             <p>{drive.startLocation?.details}</p>
           </div>
-          <div className={`${classes.driveGridItem} ${small && classes.driveGridItemRightAlign}`} style={gridStyle.dest}>
-            <p className={classes.firstLine}>{drive.endLocation?.place}</p>
+          <div className={`grow ${small ? 'text-right' : ''}`} style={gridStyle.dest}>
+            <p className="font-semibold">{drive.endLocation?.place}</p>
             <p>{drive.endLocation?.details}</p>
           </div>
           {!small && (
-            <div className={classes.driveGridItem} style={gridStyle.arrow}>
-              <RightArrow className={classes.driveArrow} />
+            <div className="grow" style={gridStyle.arrow}>
+              <RightArrow className="ml-[25%] h-full w-8 text-progress" />
             </div>
           )}
-        </Grid>
+        </div>
       </div>
       <Timeline
         route={drive}
@@ -150,4 +113,4 @@ const DriveListItem = (props) => {
   );
 };
 
-export default connect(() => ({}))(withStyles(styles)(DriveListItem));
+export default connect()(DriveListItem);

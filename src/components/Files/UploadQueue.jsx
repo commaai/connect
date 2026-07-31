@@ -14,10 +14,10 @@ import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../ut
 import Colors from '../../colors';
 import ResizeHandler from '../ResizeHandler';
 
-const styles = (theme) => ({
+const styles = {
   modal: {
     position: 'absolute',
-    padding: theme.spacing.unit * 2,
+    padding: 16,
     width: 'max-content',
     maxWidth: '90%',
     left: '50%',
@@ -35,7 +35,7 @@ const styles = (theme) => ({
     textAlign: 'right',
   },
   uploadContainer: {
-    margin: `${theme.spacing.unit}px 0`,
+    margin: '8px 0',
     color: Colors.white90,
     textAlign: 'left',
     overflowY: 'auto',
@@ -100,11 +100,11 @@ const styles = (theme) => ({
   },
   cellularWarning: {
     backgroundColor: Colors.grey500,
-    padding: `${theme.spacing.unit * 1.5}px ${theme.spacing.unit * 2}px`,
+    padding: '12px 16px',
     borderRadius: 4,
     display: 'flex',
     flexDirection: 'column',
-    marginBottom: theme.spacing.unit,
+    marginBottom: 8,
     '& div': {
       display: 'flex',
       alignItems: 'center',
@@ -112,7 +112,7 @@ const styles = (theme) => ({
       '& svg': { marginRight: 8 },
     },
   },
-});
+};
 
 class UploadQueue extends Component {
   constructor(props) {

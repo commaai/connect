@@ -4,7 +4,7 @@ import { ClickAwayListener, Tooltip, withStyles } from '@material-ui/core';
 
 import { InfoOutline } from '../../icons';
 
-const styles = (theme) => ({
+const styles = {
   arrowPopper: {
     opacity: 1,
     '& $arrowArrow': {
@@ -38,10 +38,10 @@ const styles = (theme) => ({
     marginBottom: 8,
   },
   icon: {
-    marginLeft: theme.spacing.unit,
+    marginLeft: 8,
     fontSize: 18,
   },
-});
+};
 
 class InfoTooltip extends Component {
   constructor(props) {

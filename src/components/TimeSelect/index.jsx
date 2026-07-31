@@ -9,15 +9,15 @@ import { Button, Divider, Modal, Paper, withStyles } from '@material-ui/core';
 import Colors from '../../colors';
 import { selectTimeFilter } from '../../actions';
 
-const styles = (theme) => ({
+const styles = {
   modalContainer: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
   modal: {
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
+    padding: 16,
+    width: 400,
     maxWidth: '90%',
     outline: 'none',
   },
@@ -44,7 +44,7 @@ const styles = (theme) => ({
       backgroundColor: Colors.white70,
     },
   },
-});
+};
 
 const LOOKBACK_WINDOW_MILLIS = 365 * 24 * 3600 * 1000; // 30 days
 

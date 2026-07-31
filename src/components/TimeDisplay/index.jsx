@@ -26,14 +26,14 @@ const timerSteps = [
   8,
 ];
 
-const styles = (theme) => ({
+const styles = {
   base: {
     display: 'flex',
     alignItems: 'center',
     backgroundColor: 'var(--color-canvas-deep)',
     height: '64px',
     borderRadius: '32px',
-    padding: theme.spacing.unit,
+    padding: 8,
     width: 400,
     maxWidth: '100%',
     margin: '0 auto',
@@ -51,7 +51,7 @@ const styles = (theme) => ({
     },
   },
   desiredPlaySpeedContainer: {
-    marginRight: theme.spacing.unit * 1,
+    marginRight: 8,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -91,13 +91,13 @@ const styles = (theme) => ({
     borderLeft: '1px solid var(--color-surface)',
   },
   currentTime: {
-    margin: `0 ${theme.spacing.unit * 1}px`,
+    margin: '0 8px',
     fontSize: 15,
     fontWeight: 500,
     display: 'block',
     flexGrow: 1,
   },
-});
+};
 
 class TimeDisplay extends Component {
   static getDerivedStateFromProps(props, state) {

@@ -42,7 +42,7 @@ export function primeSwitchErrorMessage(error, plan = 'data') {
   return 'Could not reach the billing service. Check your internet connection and try again.';
 }
 
-const styles = (theme) => ({
+const styles = {
   linkHighlight: {
     '&:link': {
       textDecoration: "underline",
@@ -155,8 +155,8 @@ const styles = (theme) => ({
   },
   modal: {
     position: 'absolute',
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
+    padding: 16,
+    width: 400,
     maxWidth: '90%',
     left: '50%',
     top: '40%',
@@ -216,7 +216,7 @@ const styles = (theme) => ({
       marginTop: 0,
     },
   },
-});
+};
 
 export class PrimeManage extends Component {
   constructor(props) {

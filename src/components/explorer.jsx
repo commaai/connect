@@ -26,7 +26,7 @@ import ResizeHandler from './ResizeHandler';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 
-const styles = (theme) => ({
+const styles = {
   window: {
     background: 'linear-gradient(180deg, var(--color-surface) 0%, var(--color-canvas) 100%)',
     display: 'flex',
@@ -34,8 +34,8 @@ const styles = (theme) => ({
   },
   modal: {
     position: 'absolute',
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
+    padding: 16,
+    width: 400,
     maxWidth: '90%',
     left: '50%',
     top: '40%',
@@ -58,7 +58,7 @@ const styles = (theme) => ({
   pairedDongleId: {
     fontWeight: 'bold',
   },
-});
+};
 
 class ExplorerApp extends Component {
   constructor(props) {

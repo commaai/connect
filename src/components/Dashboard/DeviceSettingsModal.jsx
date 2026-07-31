@@ -9,7 +9,6 @@ import {
   IconButton,
   Modal,
   Paper,
-  TextField,
   withStyles,
 } from '@material-ui/core';
 import CheckIcon from '@material-ui/icons/Check';
@@ -24,11 +23,11 @@ import { ErrorOutline } from '../../icons';
 import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 
-const styles = (theme) => ({
+const styles = {
   modal: {
     position: 'absolute',
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
+    padding: 16,
+    width: 400,
     maxWidth: '90%',
     left: '50%',
     top: '40%',
@@ -36,7 +35,7 @@ const styles = (theme) => ({
     outline: 'none',
   },
   modalUnpair: {
-    width: theme.spacing.unit * 45,
+    width: 360,
     maxWidth: '80%',
   },
   titleContainer: {
@@ -49,8 +48,8 @@ const styles = (theme) => ({
     textAlign: 'right',
   },
   form: {
-    paddingTop: theme.spacing.unit,
-    paddingBottom: theme.spacing.unit,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   formRow: {
     minHeight: 75,
@@ -60,9 +59,6 @@ const styles = (theme) => ({
     marginBottom: 5,
     backgroundColor: Colors.red500,
   },
-  textField: {
-    maxWidth: '70%',
-  },
   fabProgress: {
     position: 'absolute',
     top: 0,
@@ -70,7 +66,7 @@ const styles = (theme) => ({
     zIndex: 1,
   },
   wrapper: {
-    margin: theme.spacing.unit,
+    margin: 8,
     position: 'relative',
     display: 'inline-block',
   },
@@ -111,7 +107,7 @@ const styles = (theme) => ({
     '& a': { color: Colors.white, textDecoration: 'underline' },
     color: Colors.white,
   },
-});
+};
 
 const initialState = {
   deviceAlias: '',
@@ -316,14 +312,16 @@ class DeviceSettingsModal extends Component {
               </div>
               ) }
               <div className={classes.formRow}>
-                <TextField
-                  id="device_alias"
-                  label="Device name"
-                  className={ classes.textField }
-                  value={ this.state.deviceAlias ? this.state.deviceAlias : '' }
-                  onChange={this.handleAliasChange}
-                  onKeyPress={ (ev) => this.callOnEnter(this.setDeviceAlias, ev) }
-                />
+                <label className="inline-flex max-w-[70%] flex-col" htmlFor="device_alias">
+                  <span className="ml-4 mt-1 text-xs text-content/70">Device name</span>
+                  <input
+                    id="device_alias"
+                    className="rounded-[20px] border border-surface-muted bg-transparent px-4 py-3 outline-none placeholder:text-content/30"
+                    value={ this.state.deviceAlias ? this.state.deviceAlias : '' }
+                    onChange={this.handleAliasChange}
+                    onKeyDown={ (ev) => this.callOnEnter(this.setDeviceAlias, ev) }
+                  />
+                </label>
                 { (this.props.device.alias !== this.state.deviceAlias || this.state.hasSavedAlias)
                 && (
                 <div className={classes.wrapper}>
@@ -335,16 +333,19 @@ class DeviceSettingsModal extends Component {
                 )}
               </div>
               <div className={classes.formRow}>
-                <TextField
-                  id="device_share"
-                  label="Share by email or user id"
-                  className={ classes.textField }
-                  value={this.state.shareEmail}
-                  onChange={this.handleEmailChange}
-                  variant="outlined"
-                  onKeyPress={ (ev) => this.callOnEnter(this.shareDevice, ev) }
-                  helperText="give another user read access to this device"
-                />
+                <label className="inline-flex max-w-[70%] flex-col" htmlFor="device_share">
+                  <span className="ml-4 mt-1 text-xs text-content/70">Share by email or user id</span>
+                  <input
+                    id="device_share"
+                    className="rounded-[20px] border border-surface-muted bg-transparent px-4 py-3 outline-none placeholder:text-content/30"
+                    value={this.state.shareEmail}
+                    onChange={this.handleEmailChange}
+                    onKeyDown={ (ev) => this.callOnEnter(this.shareDevice, ev) }
+                  />
+                  <span className="ml-2 mt-1 text-xs text-content/70">
+                    give another user read access to this device
+                  </span>
+                </label>
                 { (this.state.shareEmail.length > 0 || this.state.hasShared)
                 && (
                 <div className={classes.wrapper}>

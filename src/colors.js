@@ -37,7 +37,6 @@ const Colors = {
   grey800: '#272c2f',
   grey900: '#1e2224',
   grey950: '#151819',
-  grey999: '#0c0e0f',
   lightGrey600: '#b8c0c4',
 };
 

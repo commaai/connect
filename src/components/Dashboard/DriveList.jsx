@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
-import { withStyles } from '@material-ui/core';
 import FilterList from '@material-ui/icons/FilterList';
 
 import { devices as Devices } from '../../api';
@@ -15,20 +14,8 @@ import DriveListEmpty from './DriveListEmpty';
 import DriveListItem from './DriveListItem';
 import ScrollIntoView from '../ScrollIntoView'
 
-const styles = () => ({
-  drives: {
-    padding: '0px 16px',
-    flex: '1',
-  },
-  endMessage: {
-    padding: 8,
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-});
-
 const DriveList = (props) => {
-  const { dispatch, classes, device, dongleId, routes, lastRoutes } = props;
+  const { dispatch, device, dongleId, routes, lastRoutes } = props;
 
   const [deviceStats, setDeviceStats] = useState({});
   const [isTimeSelectOpen, setIsTimeSelectOpen] = useState(false);
@@ -64,7 +51,7 @@ const DriveList = (props) => {
     contentStatus = <DriveListEmpty device={device} routes={routes} />;
   } else if (routes && routes.length > 5) {
     contentStatus = (
-      <div className={classes.endMessage}>
+      <div className="mb-8 p-2 text-center">
         <p>There are no more routes found in selected time range.</p>
       </div>
     );
@@ -80,7 +67,7 @@ const DriveList = (props) => {
     const routesSize = displayRoutes.length
 
     content = (
-      <div className={`${classes.drives} DriveList`}>
+      <div className="DriveList flex-1 px-4">
         {displayRoutes.map((drive, index) => {
             // when the last item is in view, we fetch the next routes
             return (index === routesSize - 1 ?
@@ -156,4 +143,4 @@ const stateToProps = Obstruction({
   device: 'device',
 });
 
-export default connect(stateToProps)(withStyles(styles)(DriveList));
+export default connect(stateToProps)(DriveList);

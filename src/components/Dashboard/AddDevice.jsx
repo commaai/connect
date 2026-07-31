@@ -12,7 +12,7 @@ import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import Colors from '../../colors';
 
-const styles = (theme) => ({
+const styles = {
   titleContainer: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -43,8 +43,8 @@ const styles = (theme) => ({
   },
   modal: {
     position: 'absolute',
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
+    padding: 16,
+    width: 400,
     maxWidth: '90%',
     left: '50%',
     top: '50%',
@@ -96,7 +96,7 @@ const styles = (theme) => ({
     width: '100%',
     height: '100%',
   },
-});
+};
 
 class AddDevice extends Component {
   constructor(props) {
