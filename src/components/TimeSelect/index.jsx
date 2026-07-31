@@ -4,12 +4,13 @@ import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 import PropTypes from 'prop-types';
 
-import { Modal, Paper, Typography, withStyles } from '@material-ui/core';
+import { Modal, Typography, withStyles } from '@material-ui/core';
 
 import Colors from '../../colors';
 import { selectTimeFilter } from '../../actions';
 import Button from '../ui/Button';
 import Divider from '../ui/Divider';
+import Paper from '../ui/Paper';
 
 const styles = (theme) => ({
   modalContainer: {

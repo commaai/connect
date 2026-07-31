@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import qs from 'query-string';
 import { BarcodeDetector } from 'barcode-detector/ponyfill';
-import { withStyles, Typography, Modal, Paper } from '@material-ui/core';
+import { withStyles, Typography, Modal } from '@material-ui/core';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
 
@@ -14,6 +14,7 @@ import Colors from '../../colors';
 import Button from '../ui/Button';
 import CircularProgress from '../ui/CircularProgress';
 import Divider from '../ui/Divider';
+import Paper from '../ui/Paper';
 
 const styles = (theme) => ({
   titleContainer: {

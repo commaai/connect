@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 
 import {
   Modal,
-  Paper,
   TextField,
   Typography,
   withStyles,
@@ -22,6 +21,7 @@ import Button from '../ui/Button';
 import CircularProgress from '../ui/CircularProgress';
 import Divider from '../ui/Divider';
 import IconButton from '../ui/IconButton';
+import Paper from '../ui/Paper';
 import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 
