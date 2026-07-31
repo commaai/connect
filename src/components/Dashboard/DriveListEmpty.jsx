@@ -1,6 +1,7 @@
 import React from 'react';
-import { Typography, withStyles } from '@material-ui/core';
+import { withStyles } from '@material-ui/core';
 import Grid from '../ui/Grid';
+import Typography from '../ui/Typography';
 
 import { useWindowWidth } from '../../hooks/window';
 

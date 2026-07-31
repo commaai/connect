@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
-import { withStyles, Typography } from '@material-ui/core';
+import { withStyles } from '@material-ui/core';
 import { Clear } from '@material-ui/icons';
 import dayjs from 'dayjs';
 
@@ -18,6 +18,7 @@ import VisibilityHandler from '../VisibilityHandler';
 import * as Utils from './utils';
 import { isIos } from '../../utils/browser.js';
 import Button from '../ui/Button';
+import Typography from '../ui/Typography';
 
 const styles = () => ({
   mapContainer: {

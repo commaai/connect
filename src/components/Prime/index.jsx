@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import qs from 'query-string';
 
-import { Typography } from '@material-ui/core';
+import Typography from '../ui/Typography';
 import PrimeManage from './PrimeManage';
 import PrimeCheckout from './PrimeCheckout';
 

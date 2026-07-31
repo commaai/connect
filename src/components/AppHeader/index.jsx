@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
-import { Typography } from '@material-ui/core';
 import MenuIcon from '@material-ui/icons/Menu';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
@@ -17,6 +16,7 @@ import AccountMenu from './AccountMenu';
 import PWAIcon from '../PWAIcon';
 import AppBar from '../ui/AppBar';
 import IconButton from '../ui/IconButton';
+import Typography from '../ui/Typography';
 
 const styles = () => ({
   header: {

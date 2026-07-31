@@ -4,7 +4,7 @@ import Obstruction from 'obstruction';
 
 import {
   withStyles,
-  Typography, Modal,
+  Modal,
 } from '@material-ui/core';
 import HighlightOffIcon from '@material-ui/icons/HighlightOff';
 import WarningIcon from '@material-ui/icons/Warning';
@@ -18,6 +18,7 @@ import CircularProgress from '../ui/CircularProgress';
 import Divider from '../ui/Divider';
 import LinearProgress from '../ui/LinearProgress';
 import Paper from '../ui/Paper';
+import Typography from '../ui/Typography';
 
 const styles = (theme) => ({
   modal: {

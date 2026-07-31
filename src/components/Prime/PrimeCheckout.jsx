@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 import * as Sentry from '@sentry/react';
-import { withStyles, Typography } from '@material-ui/core';
+import { withStyles } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import CheckIcon from '@material-ui/icons/Check';
 
@@ -18,6 +18,7 @@ import { COMMACARE_URL } from '../CommacareBadge';
 import Button from '../ui/Button';
 import CircularProgress from '../ui/CircularProgress';
 import IconButton from '../ui/IconButton';
+import Typography from '../ui/Typography';
 
 const styles = () => ({
   linkHighlight: {

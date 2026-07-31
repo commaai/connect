@@ -4,7 +4,7 @@ import Obstruction from 'obstruction';
 import localforage from 'localforage';
 import { replace } from 'connected-react-router';
 
-import { withStyles, Modal, Typography } from '@material-ui/core';
+import { withStyles, Modal } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
 
 import { devices as Devices } from '../api';
@@ -18,6 +18,7 @@ import Button from './ui/Button';
 import CircularProgress from './ui/CircularProgress';
 import Divider from './ui/Divider';
 import Paper from './ui/Paper';
+import Typography from './ui/Typography';
 
 import { analyticsEvent, selectDevice, updateDevices, checkLastRoutesData, streamNav } from '../actions';
 import init from '../actions/startup';

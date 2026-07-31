@@ -5,7 +5,6 @@ import * as Sentry from '@sentry/react';
 import {
   Modal,
   TextField,
-  Typography,
   withStyles,
 } from '@material-ui/core';
 import CheckIcon from '@material-ui/icons/Check';
@@ -22,6 +21,7 @@ import CircularProgress from '../ui/CircularProgress';
 import Divider from '../ui/Divider';
 import IconButton from '../ui/IconButton';
 import Paper from '../ui/Paper';
+import Typography from '../ui/Typography';
 import UploadQueue from '../Files/UploadQueue';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
 

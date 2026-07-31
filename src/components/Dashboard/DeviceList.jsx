@@ -3,9 +3,10 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Typography } from '@material-ui/core';
+import { withStyles } from '@material-ui/core';
 import SettingsIcon from '@material-ui/icons/Settings';
 import IconButton from '../ui/IconButton';
+import Typography from '../ui/Typography';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 import { devices as Devices } from '../../api';

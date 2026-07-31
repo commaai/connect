@@ -2,8 +2,9 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import localforage from 'localforage';
-import { withStyles, Typography } from '@material-ui/core';
+import { withStyles } from '@material-ui/core';
 import { Clear } from '@material-ui/icons';
+import Typography from '../ui/Typography';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 

@@ -7,7 +7,7 @@ import PropTypes from 'prop-types';
 import qs from 'query-string';
 
 import { withStyles } from '@material-ui/core/styles';
-import Typography from '@material-ui/core/Typography';
+import Typography from './ui/Typography';
 
 import {config as AuthConfig} from '@commaai/my-comma-auth';
 

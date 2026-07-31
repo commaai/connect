@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { ClickAwayListener, Tooltip, Typography, withStyles } from '@material-ui/core';
+import { ClickAwayListener, Tooltip, withStyles } from '@material-ui/core';
+import Typography from '../ui/Typography';
 
 import { InfoOutline } from '../../icons';
 

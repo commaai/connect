@@ -4,7 +4,7 @@ import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Typography, Modal } from '@material-ui/core';
+import { withStyles, Modal } from '@material-ui/core';
 import KeyboardBackspaceIcon from '@material-ui/icons/KeyboardBackspace';
 import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
 
@@ -20,6 +20,7 @@ import Button from '../ui/Button';
 import CircularProgress from '../ui/CircularProgress';
 import IconButton from '../ui/IconButton';
 import Paper from '../ui/Paper';
+import Typography from '../ui/Typography';
 
 export function primeSwitchErrorMessage(error, plan = 'data') {
   const status = error?.resp?.status;
