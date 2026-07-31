@@ -808,7 +808,7 @@ function renderReport(manifest, { showPreviewLink = true } = {}) {
   const tables = GALLERY_VIEWPORTS.map((viewport) => `
       <section>
         <h2>${viewport.name[0].toUpperCase()}${viewport.name.slice(1)} (${viewport.width} × ${viewport.height})</h2>
-        <table border="1" cellspacing="0">
+        <table class="${hasBaseline ? 'comparison' : 'gallery'}" border="1" cellspacing="0">
           <thead>${hasBaseline
     ? '<tr><th>Page</th><th>Baseline</th><th>PR</th><th>Diff</th><th>Result</th></tr>'
     : '<tr><th>Page</th><th>Screenshot</th></tr>'}</thead>
@@ -830,7 +830,10 @@ function renderReport(manifest, { showPreviewLink = true } = {}) {
   <title>connect ${hasBaseline ? 'visual regression report' : 'gallery'}</title>
   <style>
     table { width: 100%; table-layout: fixed; }
-    img { max-width: 100%; height: auto; }
+    table th:first-child { width: 7rem; }
+    table.comparison th:last-child { width: 9rem; }
+    td > a { display: block; max-width: 100%; overflow: auto; }
+    img { display: block; width: auto; max-width: none; height: auto; }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -891,7 +894,7 @@ async function buildReport(captures, output, headSha, baseSha, baselineUrl, arti
     for (const viewport of GALLERY_VIEWPORTS) {
       const filename = captureFilename(state.name, viewport.name);
       const currentSource = resolve(currentDirectory, filename);
-      const currentAsset = `/connect-gallery-assets/current/${filename}`;
+      const currentAsset = `./connect-gallery-assets/current/${filename}`;
       let status = 'unavailable';
       let changedPixels = null;
       let changedRatio = null;
@@ -899,7 +902,7 @@ async function buildReport(captures, output, headSha, baseSha, baselineUrl, arti
       let diffAsset = null;
       const baselineSource = resolve(baseDirectory, filename);
       if (hasBaseline && await fileExists(baselineSource)) {
-        baselineAsset = `/connect-gallery-assets/baseline/${filename}`;
+        baselineAsset = `./connect-gallery-assets/baseline/${filename}`;
         let hasDiff;
         ({ changedPixels, changedRatio, hasDiff } = await compareImages(
           baselineSource,
@@ -907,7 +910,7 @@ async function buildReport(captures, output, headSha, baseSha, baselineUrl, arti
           resolve(assetsDirectory, 'diff', filename),
         ));
         status = changedRatio > CHANGE_THRESHOLD ? 'changed' : 'unchanged';
-        if (hasDiff) diffAsset = `/connect-gallery-assets/diff/${filename}`;
+        if (hasDiff) diffAsset = `./connect-gallery-assets/diff/${filename}`;
       }
       results.push({
         state: state.name,
