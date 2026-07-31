@@ -168,42 +168,46 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
             />
           </div>
         )}
-        <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : started ? "aspect-[16/9]" : "flex-1"} />
-        { connected && notCar && !started && (
-          <div className="absolute w-full bottom-36 2xl:bottom-12 pointer-events-none text-center select-none">
-            <span className="text-sm md:text-base text-white/70">Turn on comma body ignition to remote control</span>
-          </div>
-        )}
-        {connected && (
-          <>
+        <div className="relative flex-1 min-h-0">
+          <Video key="teleop-video" {...videoProps} className="h-full" />
+          { connected && notCar && !started && (
+            <div className="absolute w-full bottom-36 2xl:bottom-12 pointer-events-none text-center select-none">
+              <span className="text-sm md:text-base text-white/70">Turn on comma body ignition to remote control</span>
+            </div>
+          )}
+          {connected && isLandscape && (
             <ControlsBar
               activeCamera={activeCamera}
               onSwitchCamera={switchCamera}
               gamepadConnected={gamepadConnected}
               videoRef={videoRef}
-              isLandscape={isLandscape}
               controlsDisabled={inputActive}
+              isLandscape
             />
-            { started && (
-              <div
-                className={isLandscape
-                  ? 'absolute bottom-4 right-4 z-10 w-[160px] h-[160px]'
-                  : 'flex-1 flex items-center justify-center px-4 pb-12 pt-2 min-h-0 overflow-hidden'}
-              >
-                <Joystick
-                  connection={connection}
-                  activeCamera={activeCamera}
-                  className={isLandscape
-                    ? 'relative w-full h-full'
-                    : 'relative w-auto h-full aspect-square max-w-full'}
-                  onGamepadChange={setGamepadConnected}
-                  onSwitchCamera={switchCamera}
-                  gamepadConnected={gamepadConnected}
-                  onInputActiveChange={setInputActive}
-                />
-              </div>
-            )}
-          </>
+          )}
+          { connected && started && (
+            <div className="absolute bottom-4 right-4 z-10 w-[160px] h-[160px]">
+              <Joystick
+                connection={connection}
+                activeCamera={activeCamera}
+                className="relative w-full h-full"
+                onGamepadChange={setGamepadConnected}
+                onSwitchCamera={switchCamera}
+                gamepadConnected={gamepadConnected}
+                onInputActiveChange={setInputActive}
+              />
+            </div>
+          )}
+        </div>
+        {connected && !isLandscape && (
+          <ControlsBar
+            activeCamera={activeCamera}
+            onSwitchCamera={switchCamera}
+            gamepadConnected={gamepadConnected}
+            videoRef={videoRef}
+            controlsDisabled={inputActive}
+            isLandscape={false}
+          />
         )}
       </div>
     </div>

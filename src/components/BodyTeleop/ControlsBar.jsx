@@ -10,13 +10,13 @@ const btnBase = `h-11 w-[80px] rounded-xl text-[14px] font-bold tracking-[0.2px]
 const btnInactive = `${btnBase} bg-white/10 text-white/60`;
 const btnActive = `${btnBase} bg-white/30 text-white`;
 
-const controlsGroupBase = 'z-10 flex flex-row items-stretch gap-3.5 rounded-[20px] p-4 bg-glass-dark';
-const controlsGroupLandscape = 'absolute bottom-4 left-4';
-const controlsGroupPortrait = 'relative self-stretch rounded-none shrink-0 justify-between gap-2';
+const controlsGroupBase = 'z-10 flex flex-row items-stretch p-4';
+const controlsGroupLandscape = 'absolute bottom-4 left-4 gap-3.5 rounded-[20px] bg-glass-dark';
+const controlsGroupPortrait = 'relative shrink-0 self-stretch justify-between gap-2 border-t border-white/10 bg-[#1D2225]';
 
 const ControlsBar = ({
   activeCamera, onSwitchCamera,
-  gamepadConnected, videoRef, isLandscape, controlsDisabled,
+  gamepadConnected, videoRef, controlsDisabled, isLandscape,
 }) => {
   const screenshotInProgress = useRef(false);
   const handleScreenshot = useCallback(async () => {
