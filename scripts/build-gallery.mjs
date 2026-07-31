@@ -1,20 +1,17 @@
 /* eslint-disable no-await-in-loop -- captures are intentionally serialized in one browser */
 import { execFile } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { createReadStream } from 'node:fs';
 import {
-  copyFile, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile,
+  cp, mkdir, mkdtemp, readFile, rm, writeFile,
 } from 'node:fs/promises';
-import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import {
-  extname, resolve, sep,
+  basename, dirname, resolve,
 } from 'node:path';
 import { promisify } from 'node:util';
 import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
 import puppeteer from 'puppeteer';
-import { build } from 'vite';
+import { build, preview } from 'vite';
 
 const ROUTE_NAME = '5beb9b58bd12b691|0000010a--a51155e496';
 const [DONGLE_ID, LOG_ID] = ROUTE_NAME.split('|');
@@ -23,7 +20,6 @@ const FIXED_TIMESTAMP = Date.parse(FIXED_TIME);
 const LOCALE = 'en-US';
 const TIMEZONE = 'America/Los_Angeles';
 const CHANGE_THRESHOLD = 0.0001;
-const GALLERY_VERSION = 2;
 
 const GALLERY_STATES = [
   { name: 'signin', label: 'Sign in', path: '/', readyText: 'Sign in with Google', anonymous: true },
@@ -106,18 +102,6 @@ const GALLERY_VIEWPORTS = [
   { name: 'desktop', width: 1280, height: 800 },
   { name: 'mobile', width: 390, height: 844 },
 ];
-
-const MIME_TYPES = {
-  '.css': 'text/css; charset=utf-8',
-  '.html': 'text/html; charset=utf-8',
-  '.ico': 'image/x-icon',
-  '.jpg': 'image/jpeg',
-  '.js': 'text/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.png': 'image/png',
-  '.svg': 'image/svg+xml',
-  '.webp': 'image/webp',
-};
 
 const execute = promisify(execFile);
 
@@ -394,53 +378,26 @@ async function buildRenderer(source, output) {
   });
 }
 
-function serveDirectory(directory) {
-  const server = createServer(async (request, response) => {
-    try {
-      const url = new URL(request.url, 'http://localhost');
-      if (url.pathname === '/__gallery-storage') {
-        response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end('<!doctype html><title>storage</title>');
-        return;
-      }
-      const relative = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
-      let path = resolve(directory, `.${relative}`);
-      if (path !== directory && !path.startsWith(`${directory}${sep}`)) {
-        response.writeHead(403).end('Forbidden');
-        return;
-      }
-      let details;
-      try {
-        details = await stat(path);
-      } catch (error) {
-        if (error.code !== 'ENOENT') throw error;
-        path = resolve(directory, 'index.html');
-        details = await stat(path);
-      }
-      if (!details.isFile()) throw Object.assign(new Error('Not a file'), { code: 'ENOENT' });
-      response.writeHead(200, {
-        'Cache-Control': 'no-store',
-        'Content-Length': details.size,
-        'Content-Type': MIME_TYPES[extname(path)] ?? 'application/octet-stream',
-      });
-      createReadStream(path).pipe(response);
-    } catch (error) {
-      response.writeHead(error.code === 'ENOENT' ? 404 : 500).end(error.code === 'ENOENT' ? 'Not found' : 'Server error');
-    }
+async function serveDirectory(directory) {
+  const server = await preview({
+    configFile: false,
+    root: dirname(directory),
+    build: { outDir: basename(directory) },
+    preview: { host: '127.0.0.1', port: 0, strictPort: true },
+    plugins: [{
+      name: 'gallery-storage-page',
+      configurePreviewServer({ middlewares }) {
+        middlewares.use('/__gallery-storage', (_request, response) => {
+          response.setHeader('Content-Type', 'text/html; charset=utf-8');
+          response.end('<!doctype html><title>storage</title>');
+        });
+      },
+    }],
   });
-  return new Promise((accept, reject) => {
-    server.once('error', reject);
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address();
-      accept({
-        origin: `http://127.0.0.1:${address.port}`,
-        close: () => new Promise((done, fail) => server.close((error) => (error ? fail(error) : done()))),
-      });
-    });
-  });
-}
-
-function digest(buffer) {
-  return createHash('sha256').update(buffer).digest('hex');
+  return {
+    origin: `http://127.0.0.1:${server.httpServer.address().port}`,
+    close: () => server.close(),
+  };
 }
 
 function assertNotBlank(buffer, name) {
@@ -463,17 +420,15 @@ async function waitForStableFrames(page, label) {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     await new Promise((accept) => setTimeout(accept, 100));
     const buffer = await page.screenshot({ type: 'png', fullPage: false });
-    const current = digest(buffer);
-    if (current === previous) consecutive += 1;
+    if (previous && Buffer.compare(previous, buffer) === 0) consecutive += 1;
     else consecutive = 0;
     if (consecutive >= 2) return buffer;
-    previous = current;
+    previous = buffer;
   }
   throw new Error(`${label} did not reach three consecutive stable frames`);
 }
 
-async function setStoredPairToken(page, origin, pairToken) {
-  await page.goto(`${origin}/__gallery-storage`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+async function updateStoredPairToken(page, pairToken) {
   await page.evaluate(async (token) => {
     const database = await new Promise((accept, reject) => {
       const request = indexedDB.open('localforage');
@@ -489,7 +444,9 @@ async function setStoredPairToken(page, origin, pairToken) {
     });
     await new Promise((accept, reject) => {
       const transaction = database.transaction('keyvaluepairs', 'readwrite');
-      transaction.objectStore('keyvaluepairs').put(token, 'pairToken');
+      const store = transaction.objectStore('keyvaluepairs');
+      if (token) store.put(token, 'pairToken');
+      else store.delete('pairToken');
       transaction.oncomplete = accept;
       transaction.onerror = () => reject(transaction.error);
       transaction.onabort = () => reject(transaction.error);
@@ -501,44 +458,23 @@ async function setStoredPairToken(page, origin, pairToken) {
 async function clickGalleryAction(page, action, label) {
   const description = action.selector ?? JSON.stringify(action.text);
   const target = { selector: action.selector, targetText: action.text };
-  const click = (details) => {
-    const visible = (element) => {
-      const bounds = element.getBoundingClientRect();
-      const style = getComputedStyle(element);
-      return bounds.width > 0 && bounds.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
-    };
-    const element = details.selector
-      ? document.querySelector(details.selector)
-      : Array.from(document.querySelectorAll('button, [role="button"], [role="menuitem"], [aria-haspopup="true"]'))
-        .find((candidate) => candidate.textContent.trim() === details.targetText && visible(candidate));
-    if (!element || !visible(element)) return false;
-    element.click();
-    return true;
-  };
-  if (action.optional) {
-    if (!await page.evaluate(click, target)) return;
-  } else {
-    await page.waitForFunction((details) => {
-      const visible = (element) => {
-        const bounds = element.getBoundingClientRect();
-        const style = getComputedStyle(element);
-        return bounds.width > 0 && bounds.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
-      };
-      const element = details.selector
-        ? document.querySelector(details.selector)
-        : Array.from(document.querySelectorAll('button, [role="button"], [role="menuitem"], [aria-haspopup="true"]'))
-          .find((candidate) => candidate.textContent.trim() === details.targetText && visible(candidate));
-      return Boolean(element && visible(element));
-    }, { timeout: 5000 }, target).catch(async (error) => {
+  if (!action.optional) {
+    await page.waitForFunction((details) => Boolean(globalThis.galleryAction(details)), { timeout: 5000 }, target).catch(async (error) => {
       const available = await page.evaluate(() => Array.from(
         document.querySelectorAll('button, [role="button"], [role="menuitem"], [aria-haspopup="true"]'),
         (element) => element.textContent.trim(),
       ).filter(Boolean));
       throw new Error(`${label}: action target ${description} was not visible; available actions: ${available.join(', ')}`, { cause: error });
     });
-    if (!await page.evaluate(click, target)) {
-      throw new Error(`${label}: action target ${description} disappeared before it could be clicked`);
-    }
+  }
+  const clicked = await page.evaluate((details) => {
+    const element = globalThis.galleryAction(details);
+    element?.click();
+    return Boolean(element);
+  }, target);
+  if (!clicked) {
+    if (action.optional) return;
+    throw new Error(`${label}: action target ${description} disappeared before it could be clicked`);
   }
   await page.evaluate(() => new Promise((accept) => requestAnimationFrame(() => requestAnimationFrame(accept))));
   if (page.isClosed()) throw new Error(`${label}: action ${description} closed the page`);
@@ -548,13 +484,8 @@ async function openGalleryModal(page, state, label) {
   for (const action of state.actions ?? []) await clickGalleryAction(page, action, label);
   if (!state.modalText) return;
   await page.waitForFunction((expected) => {
-    const visible = (element) => {
-      const bounds = element.getBoundingClientRect();
-      const style = getComputedStyle(element);
-      return bounds.width > 0 && bounds.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
-    };
     return Array.from(document.querySelectorAll('[role="document"]'))
-      .some((element) => visible(element) && element.textContent.includes(expected));
+      .some((element) => globalThis.galleryVisible(element) && element.textContent.includes(expected));
   }, { timeout: 5000 }, state.modalText).catch((error) => {
     throw new Error(`${label}: modal containing ${JSON.stringify(state.modalText)} did not open`, { cause: error });
   });
@@ -582,6 +513,18 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
       if (authenticated) localStorage.setItem('authorization', 'gallery-token');
       else localStorage.removeItem('authorization');
       localStorage.removeItem('selectedDongleId');
+      globalThis.galleryVisible = (element) => {
+        if (!element) return false;
+        const bounds = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return bounds.width > 0 && bounds.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+      };
+      globalThis.galleryAction = ({ selector, targetText }) => {
+        const candidates = selector ? [document.querySelector(selector)] : document.querySelectorAll('button, [role="button"], [role="menuitem"], [aria-haspopup="true"]');
+        return Array.from(candidates).find((element) => (
+          globalThis.galleryVisible(element) && (!targetText || element.textContent.trim() === targetText)
+        ));
+      };
 
       class GalleryPeerConnection {
         constructor() {
@@ -651,7 +594,10 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
         if (!request.isInterceptResolutionHandled()) request.abort('failed').catch(() => {});
       });
     });
-    if (state.pairToken) await setStoredPairToken(page, origin, state.pairToken);
+    if (state.pairToken) {
+      await page.goto(`${origin}/__gallery-storage`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      await updateStoredPairToken(page, state.pairToken);
+    }
     page.on('pageerror', (error) => failures.push(`page error: ${error.message}`));
     page.on('requestfailed', (request) => {
       const url = new URL(request.url());
@@ -707,17 +653,7 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
     await writeFile(outputPath, buffer);
   } finally {
     if (state.pairToken && !page.isClosed()) {
-      await page.evaluate(() => new Promise((accept, reject) => {
-        const request = indexedDB.open('localforage');
-        request.onsuccess = () => {
-          const database = request.result;
-          const transaction = database.transaction('keyvaluepairs', 'readwrite');
-          transaction.objectStore('keyvaluepairs').delete('pairToken');
-          transaction.oncomplete = () => { database.close(); accept(); };
-          transaction.onerror = () => reject(transaction.error);
-        };
-        request.onerror = () => reject(request.error);
-      }));
+      await updateStoredPairToken(page, null);
     }
     await page.close();
   }
@@ -759,16 +695,6 @@ async function captureRenderers(renderers, output, fixtures) {
   }
 }
 
-async function assertCaptureSet(directory, kind) {
-  const expected = GALLERY_STATES.flatMap(({ name }) => (
-    GALLERY_VIEWPORTS.map(({ name: viewport }) => captureFilename(name, viewport))
-  )).sort();
-  const actual = (await readdir(directory)).filter((name) => name.endsWith('.png')).sort();
-  if (actual.length !== expected.length || actual.some((name, index) => name !== expected[index])) {
-    throw new Error(`${kind} capture set must contain exactly ${expected.length} expected PNGs; found: ${actual.join(', ')}`);
-  }
-}
-
 async function compareImages(basePath, currentPath, diffPath) {
   const [baseBuffer, currentBuffer] = await Promise.all([readFile(basePath), readFile(currentPath)]);
   const baseline = PNG.sync.read(baseBuffer);
@@ -804,6 +730,14 @@ function renderReport(manifest) {
         <td>${capture.status === 'unavailable' ? 'Baseline unavailable' : `${capture.changedPixels.toLocaleString('en-US')} pixels (${(capture.changedRatio * 100).toFixed(4)}%)`}</td>
       </tr>`;
   }).join('');
+  const tables = GALLERY_VIEWPORTS.map((viewport) => `
+      <section>
+        <h2>${viewport.name[0].toUpperCase()}${viewport.name.slice(1)} (${viewport.width} × ${viewport.height})</h2>
+        <table border="1" cellspacing="0">
+          <thead><tr><th>Page</th><th>Baseline</th><th>PR</th><th>Diff</th><th>Result</th></tr></thead>
+          <tbody>${renderRows(viewport.name)}</tbody>
+        </table>
+      </section>`).join('');
   const baselineNotice = manifest.baseSha ? '' : '<p role="status">Baseline unavailable. This current-only report is expected for local builds, master builds, and the initial rollout.</p>';
   return `<!doctype html>
 <html lang="en">
@@ -832,20 +766,7 @@ function renderReport(manifest) {
       <button type="button" data-filter="unchanged" aria-pressed="false">Unchanged (${count('unchanged')})</button>
     </p>
     <div id="captures" class="tables">
-      <section>
-        <h2>Desktop (1280 × 800)</h2>
-        <table border="1" cellspacing="0">
-          <thead><tr><th>Page</th><th>Baseline</th><th>PR</th><th>Diff</th><th>Result</th></tr></thead>
-          <tbody>${renderRows('desktop')}</tbody>
-        </table>
-      </section>
-      <section>
-        <h2>Mobile (390 × 844)</h2>
-        <table border="1" cellspacing="0">
-          <thead><tr><th>Page</th><th>Baseline</th><th>PR</th><th>Diff</th><th>Result</th></tr></thead>
-          <tbody>${renderRows('mobile')}</tbody>
-        </table>
-      </section>
+      ${tables}
     </div>
   </main>
   <script>
@@ -865,13 +786,16 @@ async function buildReport(captures, output, headSha, baseSha) {
   const currentDirectory = resolve(captures, 'current');
   const baseDirectory = resolve(captures, 'base');
   const hasBaseline = Boolean(baseSha);
-  await assertCaptureSet(currentDirectory, 'Current');
-  if (hasBaseline) await assertCaptureSet(baseDirectory, 'Baseline');
 
   const assetsDirectory = resolve(output, 'connect-gallery-assets');
   await rm(assetsDirectory, { recursive: true, force: true });
-  await Promise.all(['current', ...(hasBaseline ? ['baseline', 'diff'] : [])]
-    .map((name) => mkdir(resolve(assetsDirectory, name), { recursive: true })));
+  await cp(currentDirectory, resolve(assetsDirectory, 'current'), { recursive: true });
+  if (hasBaseline) {
+    await Promise.all([
+      cp(baseDirectory, resolve(assetsDirectory, 'baseline'), { recursive: true }),
+      mkdir(resolve(assetsDirectory, 'diff'), { recursive: true }),
+    ]);
+  }
 
   const results = [];
   for (const state of GALLERY_STATES) {
@@ -879,7 +803,6 @@ async function buildReport(captures, output, headSha, baseSha) {
       const filename = captureFilename(state.name, viewport.name);
       const currentSource = resolve(currentDirectory, filename);
       const currentAsset = `/connect-gallery-assets/current/${filename}`;
-      await copyFile(currentSource, resolve(assetsDirectory, 'current', filename));
       let status = 'unavailable';
       let changedPixels = null;
       let changedRatio = null;
@@ -888,7 +811,6 @@ async function buildReport(captures, output, headSha, baseSha) {
       if (hasBaseline) {
         baselineAsset = `/connect-gallery-assets/baseline/${filename}`;
         diffAsset = `/connect-gallery-assets/diff/${filename}`;
-        await copyFile(resolve(baseDirectory, filename), resolve(assetsDirectory, 'baseline', filename));
         ({ changedPixels, changedRatio } = await compareImages(
           resolve(baseDirectory, filename),
           currentSource,
@@ -910,7 +832,7 @@ async function buildReport(captures, output, headSha, baseSha) {
   }
 
   const manifest = {
-    version: GALLERY_VERSION,
+    version: 2,
     baseSha: baseSha ?? null,
     headSha,
     generatedAt: new Date().toISOString(),

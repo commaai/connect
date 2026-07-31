@@ -11,18 +11,6 @@ Try it with your openpilot device:
 * Install dependencies: `bun install`
 * Start dev server: `bun start`
 
-### Visual regression report
-
-`bun run build:gallery -- --output dist-gallery` builds the production app, serves deterministic API responses to it in Puppeteer, and creates a current-only static report. To compare another source tree, pass its directory and commit:
-
-```sh
-bun run build:gallery -- --output dist-gallery --base /path/to/base --base-sha BASE_SHA
-```
-
-Each page and modal is captured independently at desktop and mobile sizes. Modal captures replay
-their normal UI interactions on a fresh page so nested backdrops and component state do not leak
-between screenshots.
-
 API and useradmin URL roots can be overridden at build time with
 `VITE_COMMA_URL_ROOT`, `VITE_ATHENA_URL_ROOT`, `VITE_BILLING_URL_ROOT`, and
 `VITE_USERADMIN_URL_ROOT`. Docker Compose accepts the same variables.
