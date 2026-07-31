@@ -780,7 +780,7 @@ function imageMarkup(path, alt, viewport) {
   return `<a href="${path}" aria-label="Open full-resolution ${alt}"><img src="${path}" loading="lazy" width="${viewport.width}" height="${viewport.height}" alt="${alt}"></a>`;
 }
 
-function renderReport(manifest) {
+function renderReport(manifest, { showPreviewLink = true } = {}) {
   const hasBaseline = Boolean(manifest.baseSha);
   const count = (status) => manifest.captures.filter((capture) => capture.status === status).length;
   const renderRows = (viewportName) => manifest.captures.filter((capture) => capture.viewport === viewportName).map((capture) => {
@@ -836,7 +836,7 @@ function renderReport(manifest) {
 </head>
 <body>
   <header>
-    <p><a class="preview" href="/">Open interactive preview</a></p>
+    ${showPreviewLink ? '<p><a class="preview" href="/">Open interactive preview</a></p>' : ''}
     <h1>${hasBaseline ? 'Visual regression report' : 'Gallery'}</h1>
     <p>${hasBaseline ? `Base: <code>${manifest.baseSha}</code><br>` : ''}Head: <code>${manifest.headSha}</code><br>Generated: <time datetime="${manifest.generatedAt}">${manifest.generatedAt}</time></p>
   </header>
@@ -859,7 +859,19 @@ function renderReport(manifest) {
 </html>\n`;
 }
 
-async function buildReport(captures, output, headSha, baseSha, baselineUrl) {
+async function renderSelfContainedReport(manifest, output) {
+  const inlineManifest = JSON.parse(JSON.stringify(manifest));
+  await Promise.all(inlineManifest.captures.flatMap((capture) => (
+    Object.entries(capture.assets).map(async ([name, asset]) => {
+      if (!asset) return;
+      const contents = await readFile(resolve(output, asset.replace(/^\/+/, '')));
+      capture.assets[name] = `data:image/png;base64,${contents.toString('base64')}`;
+    })
+  )));
+  return renderReport(inlineManifest, { showPreviewLink: false });
+}
+
+async function buildReport(captures, output, headSha, baseSha, baselineUrl, artifactOutput) {
   const currentDirectory = resolve(captures, 'current');
   const baseDirectory = resolve(captures, 'base');
   const hasBaseline = Boolean(baseSha);
@@ -920,11 +932,19 @@ async function buildReport(captures, output, headSha, baseSha, baselineUrl) {
     captures: results,
   };
   await mkdir(output, { recursive: true });
-  await Promise.all([
+  const writes = [
     writeFile(resolve(assetsDirectory, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`),
     writeFile(resolve(output, 'connect-gallery.html'), renderReport(manifest)),
-  ]);
+  ];
+  if (artifactOutput) {
+    await mkdir(dirname(artifactOutput), { recursive: true });
+    writes.push(renderSelfContainedReport(manifest, output).then((report) => (
+      writeFile(artifactOutput, report)
+    )));
+  }
+  await Promise.all(writes);
   console.log(`Gallery report written to ${resolve(output, 'connect-gallery.html')}`);
+  if (artifactOutput) console.log(`Self-contained gallery artifact written to ${artifactOutput}`);
 }
 
 async function main() {
@@ -964,6 +984,7 @@ async function main() {
       args['head-sha'] ?? process.env.GITHUB_SHA ?? await gitSha(source),
       baseSha,
       baselineUrl,
+      args['artifact-output'] ? resolve(args['artifact-output']) : null,
     );
   } finally {
     await rm(temporary, { recursive: true, force: true });

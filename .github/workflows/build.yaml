@@ -33,7 +33,7 @@ jobs:
           VITE_APP_GIT_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: |
           export VITE_APP_GIT_TIMESTAMP="$(git show -s --format=%cI)"
-          args=(--output ./dist --head-sha "$VITE_APP_GIT_SHA")
+          args=(--output ./dist --artifact-output "$RUNNER_TEMP/connect-gallery.html" --head-sha "$VITE_APP_GIT_SHA")
           if [[ -n "$BASELINE_URL" ]]; then
             args+=(--baseline-url "$BASELINE_URL")
           fi
@@ -45,3 +45,15 @@ jobs:
           path: ./dist
           retention-days: 1
           name: build-artifacts-${{ github.run_id }}
+
+      - name: Upload directly viewable gallery report
+        id: gallery-artifact
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/connect-gallery.html
+          archive: false
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Add gallery link to build summary
+        run: echo "### [Open connect gallery](${{ steps.gallery-artifact.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
