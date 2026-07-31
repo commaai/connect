@@ -156,12 +156,20 @@ async function downloadBaseline(baselineUrl, destination) {
       item.state === state.name && item.viewport === viewport.name
     ));
     if (!capture?.assets?.current) return false;
-    const response = await getResponse(new URL(capture.assets.current, root));
-    await writeFile(
-      resolve(destination, captureFilename(state.name, viewport.name)),
-      Buffer.from(await response.arrayBuffer()),
-    );
-    return true;
+    const captureUrl = new URL(capture.assets.current, root);
+    try {
+      const response = await getResponse(captureUrl);
+      const buffer = Buffer.from(await response.arrayBuffer());
+      readPng(buffer, `Baseline capture ${state.name}/${viewport.name} from ${captureUrl}`);
+      await writeFile(
+        resolve(destination, captureFilename(state.name, viewport.name)),
+        buffer,
+      );
+      return true;
+    } catch (error) {
+      console.warn(`Skipping unavailable baseline capture ${state.name}/${viewport.name}: ${error.message}`);
+      return false;
+    }
   }));
   const downloaded = (await Promise.all(downloads)).filter(Boolean).length;
   if (downloaded === 0) throw new Error(`Gallery manifest at ${manifestUrl} has no compatible captures`);
@@ -432,8 +440,16 @@ async function serveDirectory(directory) {
   };
 }
 
+function readPng(buffer, label) {
+  try {
+    return PNG.sync.read(buffer);
+  } catch (error) {
+    throw new Error(`${label} is not a valid PNG: ${error.message}`, { cause: error });
+  }
+}
+
 function assertNotBlank(buffer, name) {
-  const png = PNG.sync.read(buffer);
+  const png = readPng(buffer, name);
   const first = [png.data[0], png.data[1], png.data[2], png.data[3]];
   for (let offset = 4; offset < png.data.length; offset += 4) {
     if (
@@ -729,8 +745,8 @@ async function captureRenderers(renderers, output, fixtures) {
 
 async function compareImages(basePath, currentPath, diffPath) {
   const [baseBuffer, currentBuffer] = await Promise.all([readFile(basePath), readFile(currentPath)]);
-  const baseline = PNG.sync.read(baseBuffer);
-  const current = PNG.sync.read(currentBuffer);
+  const baseline = readPng(baseBuffer, `Baseline image ${basePath}`);
+  const current = readPng(currentBuffer, `Current image ${currentPath}`);
   if (baseline.width !== current.width || baseline.height !== current.height) {
     throw new Error(`Image dimensions differ: ${baseline.width}x${baseline.height} vs ${current.width}x${current.height}`);
   }
@@ -764,7 +780,7 @@ function imageMarkup(path, alt, viewport) {
   return `<a href="${path}" aria-label="Open full-resolution ${alt}"><img src="${path}" loading="lazy" width="${viewport.width}" height="${viewport.height}" alt="${alt}"></a>`;
 }
 
-function renderReport(manifest) {
+function renderReport(manifest, { showPreviewLink = true } = {}) {
   const hasBaseline = Boolean(manifest.baseSha);
   const count = (status) => manifest.captures.filter((capture) => capture.status === status).length;
   const renderRows = (viewportName) => manifest.captures.filter((capture) => capture.viewport === viewportName).map((capture) => {
@@ -792,7 +808,7 @@ function renderReport(manifest) {
   const tables = GALLERY_VIEWPORTS.map((viewport) => `
       <section>
         <h2>${viewport.name[0].toUpperCase()}${viewport.name.slice(1)} (${viewport.width} × ${viewport.height})</h2>
-        <table border="1" cellspacing="0">
+        <table class="${hasBaseline ? 'comparison' : 'gallery'}" border="1" cellspacing="0">
           <thead>${hasBaseline
     ? '<tr><th>Page</th><th>Baseline</th><th>PR</th><th>Diff</th><th>Result</th></tr>'
     : '<tr><th>Page</th><th>Screenshot</th></tr>'}</thead>
@@ -814,13 +830,16 @@ function renderReport(manifest) {
   <title>connect ${hasBaseline ? 'visual regression report' : 'gallery'}</title>
   <style>
     table { width: 100%; table-layout: fixed; }
-    img { max-width: 100%; height: auto; }
+    table th:first-child { width: 7rem; }
+    table.comparison th:last-child { width: 9rem; }
+    td > a { display: block; max-width: 100%; overflow: auto; }
+    img { display: block; width: auto; max-width: none; height: auto; }
     [hidden] { display: none !important; }
   </style>
 </head>
 <body>
   <header>
-    <p><a class="preview" href="/">Open interactive preview</a></p>
+    ${showPreviewLink ? '<p><a class="preview" href="/">Open interactive preview</a></p>' : ''}
     <h1>${hasBaseline ? 'Visual regression report' : 'Gallery'}</h1>
     <p>${hasBaseline ? `Base: <code>${manifest.baseSha}</code><br>` : ''}Head: <code>${manifest.headSha}</code><br>Generated: <time datetime="${manifest.generatedAt}">${manifest.generatedAt}</time></p>
   </header>
@@ -843,7 +862,19 @@ function renderReport(manifest) {
 </html>\n`;
 }
 
-async function buildReport(captures, output, headSha, baseSha, baselineUrl) {
+async function renderSelfContainedReport(manifest, output) {
+  const inlineManifest = JSON.parse(JSON.stringify(manifest));
+  await Promise.all(inlineManifest.captures.flatMap((capture) => (
+    Object.entries(capture.assets).map(async ([name, asset]) => {
+      if (!asset) return;
+      const contents = await readFile(resolve(output, asset.replace(/^\/+/, '')));
+      capture.assets[name] = `data:image/png;base64,${contents.toString('base64')}`;
+    })
+  )));
+  return renderReport(inlineManifest, { showPreviewLink: false });
+}
+
+async function buildReport(captures, output, headSha, baseSha, baselineUrl, artifactOutput) {
   const currentDirectory = resolve(captures, 'current');
   const baseDirectory = resolve(captures, 'base');
   const hasBaseline = Boolean(baseSha);
@@ -863,7 +894,7 @@ async function buildReport(captures, output, headSha, baseSha, baselineUrl) {
     for (const viewport of GALLERY_VIEWPORTS) {
       const filename = captureFilename(state.name, viewport.name);
       const currentSource = resolve(currentDirectory, filename);
-      const currentAsset = `/connect-gallery-assets/current/${filename}`;
+      const currentAsset = `./connect-gallery-assets/current/${filename}`;
       let status = 'unavailable';
       let changedPixels = null;
       let changedRatio = null;
@@ -871,7 +902,7 @@ async function buildReport(captures, output, headSha, baseSha, baselineUrl) {
       let diffAsset = null;
       const baselineSource = resolve(baseDirectory, filename);
       if (hasBaseline && await fileExists(baselineSource)) {
-        baselineAsset = `/connect-gallery-assets/baseline/${filename}`;
+        baselineAsset = `./connect-gallery-assets/baseline/${filename}`;
         let hasDiff;
         ({ changedPixels, changedRatio, hasDiff } = await compareImages(
           baselineSource,
@@ -879,7 +910,7 @@ async function buildReport(captures, output, headSha, baseSha, baselineUrl) {
           resolve(assetsDirectory, 'diff', filename),
         ));
         status = changedRatio > CHANGE_THRESHOLD ? 'changed' : 'unchanged';
-        if (hasDiff) diffAsset = `/connect-gallery-assets/diff/${filename}`;
+        if (hasDiff) diffAsset = `./connect-gallery-assets/diff/${filename}`;
       }
       results.push({
         state: state.name,
@@ -904,11 +935,19 @@ async function buildReport(captures, output, headSha, baseSha, baselineUrl) {
     captures: results,
   };
   await mkdir(output, { recursive: true });
-  await Promise.all([
+  const writes = [
     writeFile(resolve(assetsDirectory, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`),
     writeFile(resolve(output, 'connect-gallery.html'), renderReport(manifest)),
-  ]);
+  ];
+  if (artifactOutput) {
+    await mkdir(dirname(artifactOutput), { recursive: true });
+    writes.push(renderSelfContainedReport(manifest, output).then((report) => (
+      writeFile(artifactOutput, report)
+    )));
+  }
+  await Promise.all(writes);
   console.log(`Gallery report written to ${resolve(output, 'connect-gallery.html')}`);
+  if (artifactOutput) console.log(`Self-contained gallery artifact written to ${artifactOutput}`);
 }
 
 async function main() {
@@ -948,6 +987,7 @@ async function main() {
       args['head-sha'] ?? process.env.GITHUB_SHA ?? await gitSha(source),
       baseSha,
       baselineUrl,
+      args['artifact-output'] ? resolve(args['artifact-output']) : null,
     );
   } finally {
     await rm(temporary, { recursive: true, force: true });
