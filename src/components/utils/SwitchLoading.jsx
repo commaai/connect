@@ -1,10 +1,11 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-import { withStyles, FormControlLabel } from '@material-ui/core';
+import { withStyles } from '@material-ui/core';
 import Typography from '../ui/Typography';
 import Popper from '../ui/Popper';
 import Switch from '../ui/Switch';
+import FormControlLabel from '../ui/FormControlLabel';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
