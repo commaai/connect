@@ -7,8 +7,27 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
-@import "tailwindcss";
-@config "../tailwind.config.js";
+@import "tailwindcss" important;
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --animate-fadein: fadein 0.25s;
+  --breakpoint-xxs: 360px;
+  --breakpoint-xs: 480px;
+  --spacing-safe-top: env(safe-area-inset-top);
+  --spacing-safe-bottom: env(safe-area-inset-bottom);
+  --spacing-safe-left: env(safe-area-inset-left);
+  --spacing-safe-right: env(safe-area-inset-right);
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 
 @keyframes circular-rotate {
   0% {
@@ -98,6 +117,6 @@ a:focus {
     @apply bg-black/40 backdrop-blur-[10px] shadow-[0_2px_12px_rgba(0,0,0,0.3)];
   }
   .bg-radial-white {
-    @apply bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.25),rgba(255,255,255,0.05))]
+    @apply bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.25),rgba(255,255,255,0.05))];
   }
 }
