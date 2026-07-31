@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
-import { Typography, IconButton, AppBar } from '@material-ui/core';
+import { Typography, IconButton } from '@material-ui/core';
 import MenuIcon from '@material-ui/icons/Menu';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
@@ -15,6 +15,7 @@ import { filterRegularClick } from '../../utils';
 
 import AccountMenu from './AccountMenu';
 import PWAIcon from '../PWAIcon';
+import AppBar from '../ui/AppBar';
 
 const styles = () => ({
   header: {
