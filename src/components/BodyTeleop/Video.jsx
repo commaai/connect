@@ -41,7 +41,7 @@ const ConnectOverlay = ({ connectionState, error, onConnect }) => {
 
 const Video = ({
   videoRef, roadVideoRef, connectionState, error, connectionTotalMs,
-  onConnect, onFirstFrame, className, started
+  onConnect, onFirstFrame, className, started, cameraFlipped
 }) => {
   const connected = connectionState === 'connected';
   const [showConnectionTime, setShowConnectionTime] = useState(false);
@@ -100,24 +100,26 @@ const Video = ({
       <div
         className={`relative mt-[40px] z-[5] max-w-[500px] shrink-0 translate-x-[10px] pointer-events-none overflow-hidden bg-black transition-opacity ${roadPlaying ? 'opacity-100' : 'opacity-0'}`}
       >
-        <video
-          ref={roadVideoRef}
-          autoPlay
-          playsInline
-          muted
-          aria-label="Narrow road camera"
-          onPlaying={() => setRoadPlaying(true)}
-          className="h-full object-cover"
-          style={{
-            clipPath: 'inset(16% 22% 0 25% round 0.5rem)',
-            transform: 'scale(1.19)',
-            transformOrigin: 'bottom center',
-          }}
-        />
-        <div
-          className="absolute z-[1] rounded-lg border border-white/20 shadow-lg"
-          style={{ inset: '0 16.68% 0 20.25%' }}
-        />
+        <div className="relative" style={{ transform: cameraFlipped ? 'scaleY(-1)' : undefined }}>
+          <video
+            ref={roadVideoRef}
+            autoPlay
+            playsInline
+            muted
+            aria-label="Narrow road camera"
+            onPlaying={() => setRoadPlaying(true)}
+            className="h-full object-cover"
+            style={{
+              clipPath: 'inset(16% 22% 0 25% round 0.5rem)',
+              transform: 'scale(1.19)',
+              transformOrigin: 'bottom center',
+            }}
+          />
+          <div
+            className="absolute z-[1] rounded-lg border border-white/20 shadow-lg"
+            style={{ inset: '0 16.68% 0 20.25%' }}
+          />
+        </div>
       </div>
     </div>
   );
