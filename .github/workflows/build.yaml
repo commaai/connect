@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 2
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,15 +21,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/puppeteer-cache
-          key: puppeteer-${{ runner.os }}-${{ hashFiles('scripts/bun.lock') }}
+          key: puppeteer-${{ runner.os }}-${{ hashFiles('package.json') }}
           restore-keys: puppeteer-${{ runner.os }}-
 
       - run: bun install --frozen-lockfile
-
-      - name: Install preview-only gallery tools
-        run: bun install --cwd scripts --frozen-lockfile
-        env:
-          PUPPETEER_CACHE_DIR: ${{ runner.temp }}/puppeteer-cache
 
       - name: Build app and gallery report
         env:
