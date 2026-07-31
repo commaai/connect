@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,12 +30,10 @@ jobs:
         env:
           PUPPETEER_CACHE_DIR: ${{ runner.temp }}/puppeteer-cache
           BASELINE_URL: ${{ github.event_name == 'pull_request' && 'https://latest.connect-d5y.pages.dev' || '' }}
-          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           VITE_APP_GIT_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          PREVIEW: '1'
         run: |
           export VITE_APP_GIT_TIMESTAMP="$(git show -s --format=%cI)"
-          args=(--output ./dist --head-sha "$HEAD_SHA")
+          args=(--output ./dist --head-sha "$VITE_APP_GIT_SHA")
           if [[ -n "$BASELINE_URL" ]]; then
             args+=(--baseline-url "$BASELINE_URL")
           fi
@@ -45,6 +43,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           path: ./dist
-          overwrite: true
           retention-days: 1
           name: build-artifacts-${{ github.run_id }}

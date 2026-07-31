@@ -65,7 +65,6 @@ jobs:
             * post the preview on [Discord](https://discord.comma.ai); feedback from users will speedup the PR review
 
             deployed preview: https://${{ steps.pr.outputs.result }}.connect-d5y.pages.dev
-
             gallery report: https://${{ steps.pr.outputs.result }}.connect-d5y.pages.dev/connect-gallery
           comment_tag: run_id
           pr_number: ${{ steps.pr.outputs.result }}
