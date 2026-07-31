@@ -10,10 +10,21 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 1
+    timeout-minutes: 5
+    env:
+      PUPPETEER_CACHE_DIR: ${{ runner.temp }}/puppeteer-cache
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - uses: oven-sh/setup-bun@v2
+
+      - name: Cache pinned Chrome for Puppeteer
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PUPPETEER_CACHE_DIR }}
+          key: puppeteer-${{ runner.os }}-${{ hashFiles('bun.lock') }}
 
       - name: get build info
         id: build_info
@@ -26,10 +37,49 @@ jobs:
           VITE_APP_GIT_TIMESTAMP: ${{ steps.build_info.outputs.timestamp }}
           PREVIEW: '1'
 
-      - name: Build gallery report
+      - name: Fetch gallery fixtures once
+        run: bun run gallery:fixtures -- --output "${{ runner.temp }}/gallery-fixtures"
+
+      - name: Build head gallery renderer
+        run: bun run gallery:renderer -- --fixtures "${{ runner.temp }}/gallery-fixtures" --output "${{ runner.temp }}/gallery-head"
+
+      - name: Build base gallery renderer
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          bun run build:gallery
-          cp ./dist-gallery/connect-gallery.html ./dist/connect-gallery.html
+          base_worktree="${{ runner.temp }}/gallery-base-worktree"
+          git worktree add --detach "$base_worktree" "$BASE_SHA"
+          if [[ -f "$base_worktree/scripts/build-gallery-renderer.mjs" ]]; then
+            (
+              cd "$base_worktree"
+              PUPPETEER_SKIP_DOWNLOAD=true bun install --frozen-lockfile
+              bun run gallery:renderer -- --fixtures "${{ runner.temp }}/gallery-fixtures" --output "${{ runner.temp }}/gallery-base"
+            )
+            echo "GALLERY_BASE_AVAILABLE=true" >> "$GITHUB_ENV"
+          else
+            echo "Base commit has no gallery renderer command; generating a current-only rollout report."
+            echo "GALLERY_BASE_AVAILABLE=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Capture gallery screenshots
+        run: |
+          args=(--current "${{ runner.temp }}/gallery-head" --output "${{ runner.temp }}/gallery-captures")
+          if [[ "${GALLERY_BASE_AVAILABLE:-false}" == "true" ]]; then
+            args+=(--base "${{ runner.temp }}/gallery-base")
+          fi
+          bun run gallery:capture -- "${args[@]}"
+
+      - name: Build static gallery report
+        env:
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
+        run: |
+          args=(--captures "${{ runner.temp }}/gallery-captures" --output ./dist --head-sha "$HEAD_SHA")
+          if [[ "${GALLERY_BASE_AVAILABLE:-false}" == "true" ]]; then
+            args+=(--base-sha "$BASE_SHA")
+          fi
+          bun run gallery:report -- "${args[@]}"
 
       - name: Upload built project
         uses: actions/upload-artifact@v4

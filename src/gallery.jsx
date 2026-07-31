@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { applyMiddleware, createStore } from 'redux';
@@ -13,19 +13,8 @@ import {
   athena, billing, devices, drives, raw, video as routeVideo,
 } from './api';
 import { webrtcConnectionManager } from './utils/webrtc';
-import AccountMenu from './components/AppHeader/AccountMenu';
-import AppHeader from './components/AppHeader';
 import AnonymousLanding from './components/anonymous';
-import ControlsBar from './components/BodyTeleop/ControlsBar';
-import Joystick from './components/BodyTeleop/Joystick';
-import SettingsMenu from './components/BodyTeleop/SettingsMenu';
-import { StatsPanel } from './components/BodyTeleop/StatusBar';
-import Video from './components/BodyTeleop/Video';
-import CommacareBadge from './components/CommacareBadge';
-import DriveListEmpty from './components/Dashboard/DriveListEmpty';
-import DeviceList from './components/Dashboard/DeviceList';
 import Explorer from './components/explorer';
-import SwitchLoading from './components/utils/SwitchLoading';
 import rawEvents from './gallery-fixtures/events.generated.json';
 import sprite from './gallery-fixtures/5beb9b58bd12b691/0000010a--a51155e496/0/sprite.jpg?url';
 
@@ -133,6 +122,7 @@ const device = {
   device_type: 'tici',
   dongle_id: dongleId,
   eligible_features: { prime_data: true },
+  fetched_at: Math.floor(now / 1000),
   is_owner: true,
   last_athena_ping: Math.floor(now / 1000),
   prime: false,
@@ -179,11 +169,11 @@ devices.fetchLocation = async () => ({
   time: Math.floor(now / 1000),
 });
 devices.listDevices = async () => [device];
-athena.postJsonRpcPayload = async (_id, payload) => ({
-  result: payload.method === 'getMessage'
-    ? { peripheralState: { voltage: 12300 } }
-    : payload.method !== 'getNotCar',
-});
+athena.postJsonRpcPayload = async (_id, payload) => {
+  if (payload.method === 'getMessage') return { result: { peripheralState: { voltage: 12300 } } };
+  if (payload.method === 'listUploadQueue') return { result: [] };
+  return { result: payload.method !== 'getNotCar' };
+};
 billing.getSubscribeInfo = async () => subscribeInfo;
 billing.getSubscription = async () => subscription;
 drives.getPreservedRoutes = async () => [route];
@@ -296,49 +286,6 @@ const pageStates = {
   },
 };
 
-const Frame = ({ title, page, tall, children }) => (
-  <section className={page ? 'page' : ''}>
-    <label>{title}</label>
-    <div className={`frame ${page ? 'page-frame' : ''} ${tall ? 'tall' : ''}`}>{children}</div>
-  </section>
-);
-const Page = ({ name }) => {
-  const url = new URL(window.location.href);
-  url.search = '';
-  url.hash = '';
-  url.searchParams.set('gallery', name);
-  return <iframe title={name} src={url.href} />;
-};
-const OpenSettings = () => {
-  const ref = useRef(null);
-  useEffect(() => ref.current?.querySelector('[title="Settings"]')?.click(), []);
-  return <div ref={ref} className="menu"><SettingsMenu onQualityChange={noop} /></div>;
-};
-
-const css = `
-  :root { color-scheme: light; background: white; }
-  html, body { margin: 0; background: white !important; color: #111; font: 12px Arial, sans-serif; }
-  body { padding: 12px; overflow: auto; }
-  h1 { grid-column: 1 / -1; margin: 8px 0 0; padding-bottom: 6px; border-bottom: 1px solid #ccc; font-size: 15px; }
-  main { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px; align-items: start; }
-  section { min-width: 0; }
-  label { display: block; height: 16px; color: #555; font-size: 11px; }
-  .frame { position: relative; height: 250px; overflow: hidden; contain: paint; transform: translateZ(0); border: 1px solid #aaa; background: #16181a; color: white; }
-  .page-frame { height: 620px; }
-  iframe { width: 100%; height: 100%; border: 0; }
-  .tall { height: 420px; }
-  .pad { padding: 16px; }
-  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
-  .video, .video video { height: 100%; }
-  .video video { background: #050607; }
-  .stats { position: relative; min-height: 225px; }
-  .menu { position: absolute; right: 16px; top: 16px; }
-  .account { position: absolute; right: 16px; top: 16px; width: 250px; }
-  .empty > div { min-height: 65px; }
-  .joystick { width: 180px; height: 180px; margin: 34px auto 0; }
-  @media (min-width: 1050px) { .page { grid-column: span 2; } }
-`;
-
 const pageCss = `
   html, body, #root, .preview-page, .preview-page > div {
     width: 100%;
@@ -352,143 +299,23 @@ const pageCss = `
   .preview-page video { max-height: 300px; }
 `;
 
-const Gallery = () => {
-  const videoRef = useRef(null);
-  const latency = {
-    networkMs: 18.2,
-    decodeMs: 7.4,
-    displayMs: 4.8,
-    devicePipelineMs: 23.1,
-    totalMs: 53.5,
-  };
-  return (
-    <MemoryRouter>
-      <MuiThemeProvider theme={Theme}>
-        <CssBaseline />
-        <style>{css}</style>
-        <main>
-          <h1>Pages</h1>
-          <Frame title="Sign in" page>
-            <Page name="signin" />
-          </Frame>
-          <Frame title="Pair a device" page>
-            <Page name="pair" />
-          </Frame>
-          <Frame title="Dashboard" page>
-            <Page name="dashboard" />
-          </Frame>
-          <Frame title="Drive" page>
-            <Page name="drive" />
-          </Frame>
-          <Frame title="Prime checkout" page>
-            <Page name="checkout" />
-          </Frame>
-          <Frame title="Prime management" page>
-            <Page name="management" />
-          </Frame>
-          <Frame title="Teleop" page>
-            <Page name="teleop" />
-          </Frame>
-
-          <h1>Components</h1>
-          <Frame title="App header" page>
-            <AppHeader
-              drawerIsOpen={false}
-              viewingRoute={false}
-              showDrawerButton
-              handleDrawerStateChanged={noop}
-            />
-          </Frame>
-          <Frame title="Device list" tall>
-            <DeviceList selectedDevice={dongleId} handleDeviceSelected={noop} />
-          </Frame>
-          <Frame title="Empty route list">
-            <div className="empty">
-              <DriveListEmpty device={device} routes={null} />
-              <DriveListEmpty device={device} routes={[]} />
-            </div>
-          </Frame>
-          <Frame title="Account menu">
-            <div className="account"><AccountMenu open profile={profile} onClose={noop} /></div>
-          </Frame>
-          <Frame title="Switch">
-            <div className="pad">
-              <SwitchLoading checked label="Public route" onChange={async () => ({})} />
-              <SwitchLoading checked={false} loading label="Preserved" onChange={async () => ({})} />
-            </div>
-          </Frame>
-          <Frame title="commacare">
-            <div className="pad row"><CommacareBadge /><CommacareBadge variant="pill" /></div>
-          </Frame>
-          <Frame title="Teleop video: connecting" page>
-            <Video
-              className="video"
-              videoRef={videoRef}
-              connectionState="connecting"
-              onConnect={noop}
-              started={false}
-            />
-          </Frame>
-          <Frame title="Teleop video: failed">
-            <Video
-              className="video"
-              videoRef={videoRef}
-              connectionState="failed"
-              error="Device connection timed out"
-              onConnect={noop}
-              started
-            />
-          </Frame>
-          <Frame title="Teleop controls">
-            <div className="pad">
-              <ControlsBar
-                activeCamera="wideRoad"
-                onSwitchCamera={noop}
-                gamepadConnected={false}
-                videoRef={videoRef}
-                isLandscape={false}
-                controlsDisabled={false}
-              />
-            </div>
-          </Frame>
-          <Frame title="Teleop joystick">
-            <div className="joystick">
-              <Joystick
-                connection={null}
-                activeCamera="wideRoad"
-                className="relative w-full h-full"
-                onGamepadChange={noop}
-                onSwitchCamera={noop}
-                gamepadConnected={false}
-                onInputActiveChange={noop}
-              />
-            </div>
-          </Frame>
-          <Frame title="Teleop settings"><OpenSettings /></Frame>
-          <Frame title="Teleop statistics">
-            <div className="stats">
-              <StatsPanel
-                isLandscape={false}
-                stats={{
-                  fps: '20.0',
-                  bitrate: '1.52 Mbps',
-                  rtt: '18 ms',
-                  packetLoss: '0.1%',
-                  jitter: '2.4 ms',
-                }}
-                latency={latency}
-                latencyHistory={[latency]}
-              />
-            </div>
-          </Frame>
-        </main>
-      </MuiThemeProvider>
-    </MemoryRouter>
-  );
+const ReadyMarker = ({ state }) => {
+  useEffect(() => {
+    let cancelled = false;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (!cancelled) document.documentElement.dataset.galleryReady = state;
+    }));
+    return () => { cancelled = true; };
+  }, [state]);
+  return null;
 };
 
 const pageName = new URLSearchParams(window.location.search).get('gallery');
-const app = pageStates[pageName] ? (
+if (!Object.hasOwn(pageStates, pageName)) {
+  throw new Error(`Unknown gallery state: ${pageName ?? '(missing)'}`);
+}
+
+const app = (
   <Provider store={makeStore(pageStates[pageName])}>
     <MemoryRouter>
       <MuiThemeProvider theme={Theme}>
@@ -497,9 +324,10 @@ const app = pageStates[pageName] ? (
         <div className="preview-page">
           {pageName === 'signin' ? <AnonymousLanding /> : <Explorer />}
         </div>
+        <ReadyMarker state={pageName} />
       </MuiThemeProvider>
     </MemoryRouter>
   </Provider>
-) : <Provider store={makeStore()}><Gallery /></Provider>;
+);
 
 ReactDOM.createRoot(document.getElementById('root')).render(app);

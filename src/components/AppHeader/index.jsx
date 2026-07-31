@@ -76,8 +76,8 @@ const AppHeader = ({
   }, []);
 
   const toggleDrawer = useCallback(() => {
-    dispatch(handleDrawerStateChanged(!drawerIsOpen));
-  }, [dispatch, drawerIsOpen, handleDrawerStateChanged]);
+    handleDrawerStateChanged(!drawerIsOpen);
+  }, [drawerIsOpen, handleDrawerStateChanged]);
 
   const open = menuOpen;
 

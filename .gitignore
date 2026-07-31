@@ -15,6 +15,7 @@
 /dist
 /dist-gallery
 /src/gallery-fixtures/events.generated.json
+/src/gallery-fixtures/**/sprite.jpg
 
 # misc
 .DS_Store

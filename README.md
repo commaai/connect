@@ -11,6 +11,22 @@ Try it with your openpilot device:
 * Install dependencies: `bun install`
 * Start dev server: `bun start`
 
+### Visual regression report
+
+`bun run build:gallery -- --output dist-gallery` fetches the fixed route fixture and creates a current-only static report. The individual CI phases are also available when comparing source trees:
+
+```sh
+bun run gallery:fixtures -- --output /tmp/gallery-fixtures
+bun run gallery:renderer -- --fixtures /tmp/gallery-fixtures --output /tmp/gallery-renderer
+bun run gallery:capture -- --current /tmp/gallery-renderer --base /tmp/base-gallery-renderer --output /tmp/gallery-captures
+bun run gallery:report -- --captures /tmp/gallery-captures --output dist --base-sha BASE_SHA --head-sha HEAD_SHA
+```
+
+Omit `--base` during capture and `--base-sha` during report generation for a current-only report.
+Each page and modal is captured independently at desktop and mobile sizes. Modal captures replay
+their normal UI interactions on a fresh page so nested backdrops and component state do not leak
+between screenshots.
+
 API and useradmin URL roots can be overridden at build time with
 `VITE_COMMA_URL_ROOT`, `VITE_ATHENA_URL_ROOT`, `VITE_BILLING_URL_ROOT`, and
 `VITE_USERADMIN_URL_ROOT`. Docker Compose accepts the same variables.
