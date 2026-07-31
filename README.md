@@ -13,16 +13,12 @@ Try it with your openpilot device:
 
 ### Visual regression report
 
-`bun run build:gallery -- --output dist-gallery` fetches the fixed route fixture and creates a current-only static report. The individual CI phases are also available when comparing source trees:
+`bun run build:gallery -- --output dist-gallery` fetches the fixed route fixture and creates a current-only static report. To compare another source tree, pass its directory and commit:
 
 ```sh
-bun run gallery:fixtures -- --output /tmp/gallery-fixtures
-bun run gallery:renderer -- --fixtures /tmp/gallery-fixtures --output /tmp/gallery-renderer
-bun run gallery:capture -- --current /tmp/gallery-renderer --base /tmp/base-gallery-renderer --output /tmp/gallery-captures
-bun run gallery:report -- --captures /tmp/gallery-captures --output dist --base-sha BASE_SHA --head-sha HEAD_SHA
+bun run build:gallery -- --output dist-gallery --base /path/to/base --base-sha BASE_SHA
 ```
 
-Omit `--base` during capture and `--base-sha` during report generation for a current-only report.
 Each page and modal is captured independently at desktop and mobile sizes. Modal captures replay
 their normal UI interactions on a fresh page so nested backdrops and component state do not leak
 between screenshots.
