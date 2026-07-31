@@ -1,5 +1,6 @@
 import React, { Component, Suspense } from 'react';
 import PropTypes from 'prop-types';
+import { DEV_TOOLS_CHANGED_EVENT, getDeveloperToolsEnabled } from '../../userSettings';
 
 let initialLoadClaimed = false;
 
@@ -51,14 +52,27 @@ class BundleLoadBoundary extends Component {
     super(props);
     this.startedAt = getLoadStart();
     this.animationFrame = null;
-    this.state = { durationMs: null };
+    this.state = {
+      developerToolsEnabled: getDeveloperToolsEnabled(),
+      durationMs: null,
+    };
     this.handleReady = this.handleReady.bind(this);
+    this.handleDeveloperToolsChanged = this.handleDeveloperToolsChanged.bind(this);
+  }
+
+  componentDidMount() {
+    window.addEventListener(DEV_TOOLS_CHANGED_EVENT, this.handleDeveloperToolsChanged);
   }
 
   componentWillUnmount() {
+    window.removeEventListener(DEV_TOOLS_CHANGED_EVENT, this.handleDeveloperToolsChanged);
     if (this.animationFrame !== null && typeof cancelAnimationFrame === 'function') {
       cancelAnimationFrame(this.animationFrame);
     }
+  }
+
+  handleDeveloperToolsChanged(event) {
+    this.setState({ developerToolsEnabled: event.detail.enabled });
   }
 
   handleReady() {
@@ -76,7 +90,7 @@ class BundleLoadBoundary extends Component {
 
   render() {
     const { children } = this.props;
-    const { durationMs } = this.state;
+    const { developerToolsEnabled, durationMs } = this.state;
 
     return (
       <>
@@ -86,7 +100,7 @@ class BundleLoadBoundary extends Component {
         </Suspense>
         {durationMs === null
           ? <LoadingScreen />
-          : (
+          : developerToolsEnabled && (
             <footer
               className="pointer-events-none fixed inset-x-0 bottom-0 z-[1300] border-t border-white/10 bg-[#16181A]/[.92] px-3 py-1 text-right text-[11px] leading-4 text-white/50"
               data-testid="bundle-load-footer"
