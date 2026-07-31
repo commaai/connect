@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CircularProgress } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
 
 import { usePinchZoom } from '../../utils/usePinchZoom';
 import Button from '../ui/Button';
+import CircularProgress from '../ui/CircularProgress';
 
 const CONNECTION_TIME_VISIBLE_MS = 1500;
 

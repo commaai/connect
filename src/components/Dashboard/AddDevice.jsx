@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import qs from 'query-string';
 import { BarcodeDetector } from 'barcode-detector/ponyfill';
-import { withStyles, Typography, Modal, Paper, Divider, CircularProgress } from '@material-ui/core';
+import { withStyles, Typography, Modal, Paper, Divider } from '@material-ui/core';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
 
@@ -12,6 +12,7 @@ import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import Colors from '../../colors';
 import Button from '../ui/Button';
+import CircularProgress from '../ui/CircularProgress';
 
 const styles = (theme) => ({
   titleContainer: {
