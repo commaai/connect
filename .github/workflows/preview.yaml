@@ -66,7 +66,7 @@ jobs:
 
             deployed preview: https://${{ steps.pr.outputs.result }}.connect-d5y.pages.dev
 
-            gallery report: https://${{ steps.pr.outputs.result }}.connect-d5y.pages.dev/connect-gallery.html
+            gallery report: https://${{ steps.pr.outputs.result }}.connect-d5y.pages.dev/connect-gallery
           comment_tag: run_id
           pr_number: ${{ steps.pr.outputs.result }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

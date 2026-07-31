@@ -54,7 +54,7 @@ export default defineConfig(({ mode }) => {
           globPatterns: ['**/*.{js,css,html,png,webp,svg,ico}'],
           // The visual report is written after the app build and must be served as a real file,
           // not interpreted by the application router as a dongle id.
-          navigateFallbackDenylist: [/^\/connect-gallery\.html$/],
+          navigateFallbackDenylist: [/^\/connect-gallery(?:\.html)?$/],
           // TODO: revisit, throw error during build if too large?
           maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
           sourcemap: true,
