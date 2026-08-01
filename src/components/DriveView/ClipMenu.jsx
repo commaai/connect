@@ -81,7 +81,7 @@ const styles = () => ({
     '&:disabled': { background: Colors.white05, color: Colors.white60 },
   },
   clipsSection: { padding: '13px 16px 16px' },
-  sectionTitle: { color: Colors.white60, fontSize: 11, lineHeight: 1.4, marginBottom: 7 },
+  sectionTitle: { color: Colors.white60, fontSize: 12, lineHeight: 1.4, marginBottom: 7 },
   clip: {
     padding: '8px 0',
     '& + &': { borderTop: `1px solid ${Colors.white05}` },
@@ -89,15 +89,15 @@ const styles = () => ({
   },
   clipTop: { alignItems: 'center', display: 'flex', gap: 12, justifyContent: 'space-between' },
   clipDetails: { minWidth: 0 },
-  clipTitle: { fontSize: 13, lineHeight: 1.35 },
-  clipMeta: { color: Colors.white60, fontSize: 11, lineHeight: 1.4, marginTop: 2 },
+  clipTitle: { fontSize: 14, lineHeight: 1.35 },
+  clipMeta: { color: Colors.white60, fontSize: 12, lineHeight: 1.4, marginTop: 2 },
   progress: { marginTop: 7 },
   download: {
     color: Colors.white, flex: '0 0 auto', height: 32, margin: '-4px -7px -4px 0', padding: 7, width: 32,
     '&:disabled': { color: Colors.white40 },
   },
-  downloadIcon: { fontSize: 18 },
-  empty: { color: Colors.white60, fontSize: 12, lineHeight: 1.4, paddingTop: 5 },
+  downloadIcon: { fontSize: 21 },
+  empty: { color: Colors.white60, fontSize: 13, lineHeight: 1.4, paddingTop: 5 },
 });
 
 function formatTime(milliseconds) {
