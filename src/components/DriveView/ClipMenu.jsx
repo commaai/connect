@@ -96,7 +96,7 @@ const styles = () => ({
     color: Colors.white, flex: '0 0 auto', height: 32, margin: '-4px -7px -4px 0', padding: 7, width: 32,
     '&:disabled': { color: Colors.white40 },
   },
-  downloadIcon: { fontSize: 23 },
+  downloadIcon: { fontSize: 25 },
   empty: { color: Colors.white60, fontSize: 13, lineHeight: 1.4, paddingTop: 5 },
 });
 
