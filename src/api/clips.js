@@ -125,4 +125,11 @@ export const clipDevice = {
     const contents = `Mock comma device clip\n${JSON.stringify(clone(clip), null, 2)}\n`;
     return URL.createObjectURL(new Blob([contents], { type: 'video/mp4' }));
   },
+
+  async remove(id) {
+    await new Promise(resolve => setTimeout(resolve, 150));
+    if (!clips.has(id)) throw new Error('Clip not found on device');
+    clips.delete(id);
+    persist();
+  },
 };

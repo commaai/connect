@@ -5,10 +5,11 @@ import {
 
 import Colors from '../../colors';
 import { clipDevice } from '../../api/clips';
-import { Download as DownloadIcon } from '../../icons';
+import { CloseBold, Download as DownloadIcon } from '../../icons';
 
 const MAX_CLIP_DURATION = 30 * 60 * 1000;
 const POLL_INTERVAL = 1000;
+const ACTIVE_STATUSES = new Set(['queued', 'encoding']);
 
 const CAMERAS = [
   ['fcamera', 'Road', 'Road camera'],
@@ -93,10 +94,12 @@ const styles = () => ({
   clipMeta: { color: Colors.white60, fontSize: 13, lineHeight: 1.4, marginTop: 2 },
   progress: { marginTop: 7 },
   download: {
-    color: Colors.white, flex: '0 0 auto', height: 32, margin: '-4px -7px -4px 0', padding: 7, width: 32,
+    color: Colors.white, flex: '0 0 auto', height: 32, padding: 7, width: 32,
     '&:disabled': { color: Colors.white40 },
   },
   downloadIcon: { fontSize: 25 },
+  clipActions: { alignItems: 'center', display: 'flex', flex: '0 0 auto', gap: 2, margin: '-4px -7px -4px 0' },
+  removeIcon: { fontSize: 20 },
   empty: { color: Colors.white60, fontSize: 13, lineHeight: 1.4, paddingTop: 5 },
 });
 
@@ -167,7 +170,7 @@ class ClipMenu extends Component {
       const clips = await clipDevice.list(dongleId);
       if (routeName !== this.props.route?.fullname || dongleId !== this.props.dongleId) return;
       this.setState({ clips, loading: false });
-      clips.filter(clip => clip.status === 'encoding').forEach(clip => this.watchedClipIds.add(clip.id));
+      clips.filter(clip => ACTIVE_STATUSES.has(clip.status)).forEach(clip => this.watchedClipIds.add(clip.id));
       const completedClip = clips.find(clip => clip.status === 'ready'
         && this.watchedClipIds.has(clip.id) && !this.downloadedClipIds.has(clip.id));
       if (completedClip && this.props.open) {
@@ -175,7 +178,7 @@ class ClipMenu extends Component {
         this.downloadClip(completedClip);
       }
       this.stopPolling();
-      if (this.props.open && clips.some(clip => clip.status === 'encoding')) {
+      if (this.props.open && clips.some(clip => ACTIVE_STATUSES.has(clip.status))) {
         this.poll = setTimeout(() => this.loadClips(false), POLL_INTERVAL);
       }
     } catch (err) {
@@ -222,6 +225,17 @@ class ClipMenu extends Component {
     }
   }
 
+  async removeClip(clip) {
+    if (!this.props.deviceOnline) return;
+    try {
+      await clipDevice.remove(clip.id);
+      this.watchedClipIds.delete(clip.id);
+      await this.loadClips(false);
+    } catch (err) {
+      this.setState({ error: err.message || 'Could not remove clip' });
+    }
+  }
+
   renderClip(clip) {
     const { classes } = this.props;
     const camera = CAMERAS.find(([value]) => value === clip.camera)?.[2] || clip.camera;
@@ -242,22 +256,35 @@ class ClipMenu extends Component {
               {`${formatTime(clip.startTime)}–${formatTime(clip.endTime)} · ${clip.bitrate} Mbps${clip.speedup > 1 ? ` · ${clip.speedup}×` : ''}${clip.size ? ` · ${formatSize(clip.size)}` : ''}`}
             </Typography>
           </div>
-          {clip.status === 'ready' && (
+          <div className={classes.clipActions}>
+            {clip.status === 'ready' && (
+              <IconButton
+                aria-label="Download clip"
+                className={classes.download}
+                disabled={!this.props.deviceOnline}
+                title={this.props.deviceOnline ? 'Download clip' : 'Device offline'}
+                onClick={() => this.downloadClip(clip)}
+              >
+                <DownloadIcon className={classes.downloadIcon} />
+              </IconButton>
+            )}
+            {clip.status === 'encoding' && <Typography className={classes.clipMeta}>{`${Math.round(clip.progress * 100)}%`}</Typography>}
+            {clip.status === 'queued' && <Typography className={classes.clipMeta}>Queued</Typography>}
             <IconButton
-              aria-label="Download clip"
+              aria-label={ACTIVE_STATUSES.has(clip.status) ? 'Cancel clip' : 'Delete clip'}
               className={classes.download}
               disabled={!this.props.deviceOnline}
-              title={this.props.deviceOnline ? 'Download clip' : 'Device offline'}
-              onClick={() => this.downloadClip(clip)}
+              title={this.props.deviceOnline ? (ACTIVE_STATUSES.has(clip.status) ? 'Cancel clip' : 'Delete clip') : 'Device offline'}
+              onClick={() => this.removeClip(clip)}
             >
-              <DownloadIcon className={classes.downloadIcon} />
+              <CloseBold className={classes.removeIcon} />
             </IconButton>
-          )}
-          {clip.status === 'encoding' && <Typography className={classes.clipMeta}>{`${Math.round(clip.progress * 100)}%`}</Typography>}
+          </div>
         </div>
         {clip.status === 'encoding' && (
           <LinearProgress className={classes.progress} variant="determinate" value={clip.progress * 100} />
         )}
+        {clip.status === 'failed' && <Typography className={classes.error}>{clip.error || 'Clip creation failed'}</Typography>}
       </div>
     );
   }
@@ -269,7 +296,7 @@ class ClipMenu extends Component {
     const outputDuration = duration / speedup;
     const estimatedSize = outputDuration / 1000 * bitrate * 125000;
     const invalidDuration = duration <= 0 || duration > MAX_CLIP_DURATION;
-    const deviceBusy = clips.some(clip => clip.status === 'encoding');
+    const deviceBusy = clips.some(clip => ACTIVE_STATUSES.has(clip.status));
 
     return (
       <Menu
