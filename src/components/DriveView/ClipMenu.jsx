@@ -40,8 +40,10 @@ const styles = () => ({
   choice: {
     border: `1px solid ${Colors.white10}`, borderRadius: 8, color: Colors.white,
     fontSize: 12, minHeight: 36, minWidth: 0, padding: '4px 11px', textTransform: 'none',
+    '&[aria-pressed="true"]': { background: 'rgba(255,255,255,.14)' },
+    '&[aria-pressed="true"]:hover': { background: 'rgba(255,255,255,.14)' },
+    '&[aria-pressed="true"]:focus': { background: 'rgba(255,255,255,.14)' },
   },
-  selected: { background: 'rgba(255,255,255,.14)' },
   bitrateChoices: {
     border: `1px solid ${Colors.white10}`,
     borderRadius: 8,
@@ -320,7 +322,7 @@ class ClipMenu extends Component {
             <Typography className={classes.label}>CAMERA</Typography>
             <div className={`${classes.choices} ${classes.bitrateChoices}`}>
               {CAMERAS.map(([value, label]) => (
-                <Button key={value} className={`${classes.choice} ${classes.bitrateChoice} ${camera === value ? classes.selected : ''}`} onClick={() => this.setState({ camera: value })}>{label}</Button>
+                <Button key={value} aria-pressed={camera === value} className={`${classes.choice} ${classes.bitrateChoice}`} onClick={() => this.setState({ camera: value })}>{label}</Button>
               ))}
             </div>
           </div>
@@ -328,7 +330,7 @@ class ClipMenu extends Component {
             <Typography className={classes.label}>QUALITY</Typography>
             <div className={`${classes.choices} ${classes.bitrateChoices}`}>
               {BITRATES.map(([value, label, detail]) => (
-                <Button key={value} className={`${classes.choice} ${classes.bitrateChoice} ${bitrate === value ? classes.selected : ''}`} onClick={() => this.setState({ bitrate: value })}>
+                <Button key={value} aria-pressed={bitrate === value} className={`${classes.choice} ${classes.bitrateChoice}`} onClick={() => this.setState({ bitrate: value })}>
                   <span>{label}<span className={classes.bitrateDetail}>{detail}</span></span>
                 </Button>
               ))}
@@ -338,7 +340,7 @@ class ClipMenu extends Component {
             <Typography className={classes.label}>SPEED</Typography>
             <div className={`${classes.choices} ${classes.bitrateChoices}`}>
               {SPEEDUPS.map(value => (
-                <Button key={value} className={`${classes.choice} ${classes.bitrateChoice} ${speedup === value ? classes.selected : ''}`} onClick={() => this.setState({ speedup: value })}>{`${value}×`}</Button>
+                <Button key={value} aria-pressed={speedup === value} className={`${classes.choice} ${classes.bitrateChoice}`} onClick={() => this.setState({ speedup: value })}>{`${value}×`}</Button>
               ))}
             </div>
             <div className={classes.estimate}>
