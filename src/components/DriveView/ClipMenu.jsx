@@ -1,17 +1,18 @@
 import React, { Component } from 'react';
 import {
-  Button, CircularProgress, Divider, LinearProgress, Menu, MenuItem, Typography, withStyles,
+  Button, CircularProgress, Divider, IconButton, LinearProgress, Menu, Typography, withStyles,
 } from '@material-ui/core';
 
 import Colors from '../../colors';
 import { clipDevice } from '../../api/clips';
+import { Download as DownloadIcon } from '../../icons';
 
 const MAX_CLIP_DURATION = 30 * 60 * 1000;
 const POLL_INTERVAL = 1000;
 
 const CAMERAS = [
   ['fcamera', 'Road', 'Road camera'],
-  ['ecamera', 'Wide', 'Wide road camera'],
+  ['ecamera', 'Wide road', 'Wide road camera'],
   ['dcamera', 'Driver', 'Driver camera'],
 ];
 
@@ -79,14 +80,24 @@ const styles = () => ({
     '&:hover': { background: '#eee' },
     '&:disabled': { background: Colors.white05, color: Colors.white60 },
   },
-  sectionTitle: { color: Colors.white60, fontSize: 11, padding: '12px 16px 5px' },
-  clip: { alignItems: 'stretch', display: 'block', padding: '10px 16px' },
-  clipTop: { alignItems: 'center', display: 'flex', justifyContent: 'space-between' },
-  clipTitle: { fontSize: 13 },
-  clipMeta: { color: Colors.white60, fontSize: 11, marginTop: 2 },
-  progress: { marginTop: 8 },
-  download: { color: Colors.white, fontSize: 11, minWidth: 0, padding: '2px 8px', textTransform: 'none' },
-  empty: { color: Colors.white60, fontSize: 12, padding: '8px 16px 14px' },
+  clipsSection: { padding: '13px 16px 16px' },
+  sectionTitle: { color: Colors.white60, fontSize: 11, lineHeight: 1.4, marginBottom: 7 },
+  clip: {
+    padding: '8px 0',
+    '& + &': { borderTop: `1px solid ${Colors.white05}` },
+    '&:last-child': { paddingBottom: 0 },
+  },
+  clipTop: { alignItems: 'center', display: 'flex', gap: 12, justifyContent: 'space-between' },
+  clipDetails: { minWidth: 0 },
+  clipTitle: { fontSize: 13, lineHeight: 1.35 },
+  clipMeta: { color: Colors.white60, fontSize: 11, lineHeight: 1.4, marginTop: 2 },
+  progress: { marginTop: 7 },
+  download: {
+    color: Colors.white, flex: '0 0 auto', height: 32, margin: '-4px -7px -4px 0', padding: 7, width: 32,
+    '&:disabled': { color: Colors.white40 },
+  },
+  downloadIcon: { fontSize: 18 },
+  empty: { color: Colors.white60, fontSize: 12, lineHeight: 1.4, paddingTop: 5 },
 });
 
 function formatTime(milliseconds) {
@@ -214,23 +225,31 @@ class ClipMenu extends Component {
     const { classes } = this.props;
     const camera = CAMERAS.find(([value]) => value === clip.camera)?.[2] || clip.camera;
     return (
-      <MenuItem key={clip.id} className={classes.clip} disableRipple>
+      <div key={clip.id} className={classes.clip}>
         <div className={classes.clipTop}>
-          <div>
+          <div className={classes.clipDetails}>
             <Typography className={classes.clipTitle}>{camera}</Typography>
             <Typography className={classes.clipMeta}>
               {`${formatTime(clip.startTime)}–${formatTime(clip.endTime)} · ${clip.bitrate} Mbps${clip.speedup > 1 ? ` · ${clip.speedup}×` : ''}${clip.size ? ` · ${formatSize(clip.size)}` : ''}`}
             </Typography>
           </div>
           {clip.status === 'ready' && (
-            <Button className={classes.download} disabled={!this.props.deviceOnline} onClick={() => this.downloadClip(clip)}>Download</Button>
+            <IconButton
+              aria-label="Download clip"
+              className={classes.download}
+              disabled={!this.props.deviceOnline}
+              title={this.props.deviceOnline ? 'Download clip' : 'Device offline'}
+              onClick={() => this.downloadClip(clip)}
+            >
+              <DownloadIcon className={classes.downloadIcon} />
+            </IconButton>
           )}
           {clip.status === 'encoding' && <Typography className={classes.clipMeta}>{`${Math.round(clip.progress * 100)}%`}</Typography>}
         </div>
         {clip.status === 'encoding' && (
           <LinearProgress className={classes.progress} variant="determinate" value={clip.progress * 100} />
         )}
-      </MenuItem>
+      </div>
     );
   }
 
@@ -307,10 +326,12 @@ class ClipMenu extends Component {
           </Button>
         </div>
         <Divider />
-        <Typography className={classes.sectionTitle}>{deviceOnline ? 'CLIPS ON THIS DEVICE FOR THIS ROUTE' : 'LAST KNOWN CLIPS FOR THIS ROUTE'}</Typography>
-        {loading && <div className={classes.empty}><CircularProgress size={18} /></div>}
-        {!loading && clips.length === 0 && <Typography className={classes.empty}>{deviceOnline ? 'No clips yet' : 'Connect to your device to check for clips'}</Typography>}
-        {!loading && clips.map(clip => this.renderClip(clip))}
+        <div className={classes.clipsSection}>
+          <Typography className={classes.sectionTitle}>{deviceOnline ? 'CLIPS ON THIS DEVICE FOR THIS ROUTE' : 'LAST KNOWN CLIPS FOR THIS ROUTE'}</Typography>
+          {loading && <div className={classes.empty}><CircularProgress size={18} /></div>}
+          {!loading && clips.length === 0 && <Typography className={classes.empty}>{deviceOnline ? 'No clips yet' : 'Connect to your device to check for clips'}</Typography>}
+          {!loading && clips.map(clip => this.renderClip(clip))}
+        </div>
       </Menu>
     );
   }

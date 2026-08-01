@@ -34,6 +34,13 @@ const GALLERY_STATES = [
     actions: [{ text: 'Clip' }],
     modalText: 'Create a clip',
   },
+  {
+    name: 'clip-menu-ready',
+    label: 'Clip menu with generated clip',
+    page: 'drive',
+    actions: [{ text: 'Clip' }, { text: 'Create clip' }, { wait: 500 }, { advanceTime: 8500, wait: 1500 }],
+    modalText: 'Create a clip',
+  },
   { name: 'checkout', label: 'Prime checkout', path: `/${DONGLE_ID}/prime`, readyText: '24/7 connectivity' },
   { name: 'management', label: 'Prime management', path: `/${DONGLE_ID}/prime`, readyText: 'Next payment' },
   { name: 'teleop', label: 'Teleop', path: `/${DONGLE_ID}/stream`, readyText: 'comma body' },
@@ -511,6 +518,22 @@ async function updateStoredPairToken(page, pairToken) {
 }
 
 async function clickGalleryAction(page, action, label) {
+  if (action.advanceTime) {
+    await page.evaluate((milliseconds) => {
+      const NativeDate = Date;
+      const timestamp = NativeDate.now() + milliseconds;
+      class AdvancedDate extends NativeDate {
+        constructor(...args) { super(...(args.length === 0 ? [timestamp] : args)); }
+        static now() { return timestamp; }
+      }
+      Object.setPrototypeOf(AdvancedDate, NativeDate);
+      globalThis.Date = AdvancedDate;
+    }, action.advanceTime);
+  }
+  if (action.wait || action.advanceTime) {
+    await new Promise((accept) => setTimeout(accept, action.wait));
+    return;
+  }
   const description = action.selector ?? JSON.stringify(action.text);
   const target = { selector: action.selector, targetText: action.text };
   if (!action.optional) {
