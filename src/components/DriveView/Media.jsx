@@ -16,6 +16,7 @@ import DriveVideo from '../DriveVideo';
 import ResizeHandler from '../ResizeHandler';
 import TimeDisplay from '../TimeDisplay';
 import UploadQueue from '../Files/UploadQueue';
+import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
 import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
@@ -218,6 +219,7 @@ class Media extends Component {
       inView: MediaType.VIDEO,
       windowWidth: window.innerWidth,
       downloadMenu: null,
+      clipMenu: null,
       moreInfoMenu: null,
       uploadModal: false,
       dcamUploadInfo: null,
@@ -605,6 +607,13 @@ class Media extends Component {
             <div
               className={classes.mediaOption}
               aria-haspopup="true"
+              onClick={ (ev) => this.setState({ clipMenu: ev.currentTarget }) }
+            >
+              <Typography className={classes.mediaOptionText}>Clip</Typography>
+            </div>
+            <div
+              className={classes.mediaOption}
+              aria-haspopup="true"
               onClick={ (ev) => this.setState({ moreInfoMenu: ev.target }) }
             >
               <Typography className={classes.mediaOptionText}>More info</Typography>
@@ -618,7 +627,7 @@ class Media extends Component {
 
   renderMenus(alwaysOpen = false) {
     const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
       return null;
@@ -649,6 +658,13 @@ class Media extends Component {
 
     return (
       <>
+        <ClipMenu
+          open={Boolean(alwaysOpen || clipMenu)}
+          anchorEl={clipMenu}
+          onClose={() => this.setState({ clipMenu: null })}
+          route={currentRoute}
+          zoom={this.props.zoom}
+        />
         <Menu
           id="menu-download"
           open={ Boolean(alwaysOpen || downloadMenu) }
@@ -895,6 +911,7 @@ const stateToProps = Obstruction({
   device: 'device',
   routes: 'routes',
   currentRoute: 'currentRoute',
+  zoom: 'zoom',
   loop: 'loop',
   filter: 'filter',
   files: 'files',
