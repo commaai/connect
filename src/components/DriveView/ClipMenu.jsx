@@ -347,7 +347,7 @@ class ClipMenu extends Component {
             </div>
           </div>
           <div className={classes.field}>
-            <Typography className={classes.label}>FILENAME (OPTIONAL)</Typography>
+            <Typography className={classes.label}>FILENAME</Typography>
             <input
               className={classes.input}
               value={filename}
