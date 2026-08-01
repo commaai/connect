@@ -5,7 +5,6 @@ import raf from 'raf';
 import dayjs from 'dayjs';
 
 import { withStyles } from '@material-ui/core/styles';
-import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 import VolumeUp from '@material-ui/icons/VolumeUp';
 import VolumeOff from '@material-ui/icons/VolumeOff';
@@ -27,14 +26,14 @@ const timerSteps = [
   8,
 ];
 
-const styles = (theme) => ({
+const styles = {
   base: {
     display: 'flex',
     alignItems: 'center',
-    backgroundColor: theme.palette.grey[999],
+    backgroundColor: 'var(--color-canvas-deep)',
     height: '64px',
     borderRadius: '32px',
-    padding: theme.spacing.unit,
+    padding: 8,
     width: 400,
     maxWidth: '100%',
     margin: '0 auto',
@@ -52,7 +51,7 @@ const styles = (theme) => ({
     },
   },
   desiredPlaySpeedContainer: {
-    marginRight: theme.spacing.unit * 1,
+    marginRight: 8,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -62,14 +61,14 @@ const styles = (theme) => ({
     width: '98%',
     height: '98%',
     '&.dim': {
-      color: theme.palette.grey[300],
+      color: 'var(--color-content-subtle)',
     },
     '&.small': {
       width: '80%',
       height: '80%',
     },
     '&.circle': {
-      border: `1px solid ${theme.palette.grey[900]}`,
+      border: '1px solid var(--color-surface)',
       borderRadius: '50%',
     },
   },
@@ -80,25 +79,25 @@ const styles = (theme) => ({
   tinyArrowIcon: {
     width: 12,
     height: 12,
-    color: theme.palette.grey[500],
+    color: 'var(--color-progress)',
     '&[disabled]': {
       visibility: 'hidden',
     },
   },
   rightBorderBox: {
-    borderRight: `1px solid ${theme.palette.grey[900]}`,
+    borderRight: '1px solid var(--color-surface)',
   },
   leftBorderBox: {
-    borderLeft: `1px solid ${theme.palette.grey[900]}`,
+    borderLeft: '1px solid var(--color-surface)',
   },
   currentTime: {
-    margin: `0 ${theme.spacing.unit * 1}px`,
+    margin: '0 8px',
     fontSize: 15,
     fontWeight: 500,
     display: 'block',
     flexGrow: 1,
   },
-});
+};
 
 class TimeDisplay extends Component {
   static getDerivedStateFromProps(props, state) {
@@ -252,13 +251,13 @@ class TimeDisplay extends Component {
           </IconButton>
         </div>
         { !isThin && (
-          <Typography variant="caption" align="center" style={{ paddingTop: 4 }}>
+          <span className="type-caption text-center" style={{ paddingTop: 4 }}>
             CURRENT PLAYBACK TIME
-          </Typography>
+          </span>
         )}
-        <Typography variant="body1" align="center" className={classes.currentTime}>
+        <p className={`${classes.currentTime} text-center`}>
           <span ref={this.textHolder}>{ displayTime }</span>
-        </Typography>
+        </p>
         {!isIos() && (
           <div className={ classes.desiredPlaySpeedContainer }>
             <IconButton
@@ -269,10 +268,10 @@ class TimeDisplay extends Component {
             >
               <UpArrow className={classes.tinyArrowIcon} />
             </IconButton>
-            <Typography variant="body2" align="center">
+            <aside className="type-body-strong text-center">
               {desiredPlaySpeed}
               ×
-            </Typography>
+            </aside>
             <IconButton
               className={classes.tinyArrowIcon}
               onClick={this.decreaseSpeed}

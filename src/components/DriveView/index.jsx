@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 
-import { IconButton, Typography } from '@material-ui/core';
+import { IconButton } from '@material-ui/core';
 
 import { popTimelineRange, pushTimelineRange, updateSegmentRange } from '../../actions';
 import { ArrowBackBold, CloseBold } from '../../icons';
@@ -48,7 +48,7 @@ class DriveView extends Component {
 
     return (
       <div className="DriveView">
-        <div className="flex flex-col rounded-lg m-4 bg-[linear-gradient(to_bottom,#30373B_0%,#272D30_10%,#1D2225_100%)]">
+        <div className="flex flex-col rounded-lg m-4 bg-linear-to-b from-surface-raised via-surface-muted via-10% to-surface">
           <div>
             <div className="items-center justify-between flex p-3 gap-2">
               <IconButton
@@ -58,7 +58,7 @@ class DriveView extends Component {
               >
                 <ArrowBackBold />
               </IconButton>
-              <div className="text-white text-lg font-medium">
+              <div className="text-content text-lg font-medium">
                 <span className="hidden sm:inline">{`${startDay} `}</span>
                 {`${startTime} - ${endTime}`}
               </div>
@@ -74,7 +74,7 @@ class DriveView extends Component {
           </div>
           <div className="p-3 md:p-8">
             {(routes && routes.length === 0)
-              ? <Typography>Route does not exist.</Typography>
+              ? <p>Route does not exist.</p>
               : <Media />}
           </div>
         </div>

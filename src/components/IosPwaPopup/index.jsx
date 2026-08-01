@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import localforage from 'localforage';
-import { withStyles, Typography } from '@material-ui/core';
+import { withStyles } from '@material-ui/core';
 import { Clear } from '@material-ui/icons';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
@@ -121,8 +121,8 @@ class IosPwaPopup extends Component {
       <div className="fixed bottom-3 left-3 right-3 z-20">
         <div className={`${classes.box} xs:w-fit`}>
           <Clear className={ classes.hide } onClick={ this.hide } />
-          <Typography className={ classes.title }>Add to home screen</Typography>
-          <Typography>
+          <p className={ classes.title }>Add to home screen</p>
+          <p>
             Install this webapp on your home screen:
             {' '}
             <br />
@@ -131,7 +131,7 @@ class IosPwaPopup extends Component {
             <img className={classes.icon} src={IosShareIcon} width={35 / 2.2} height={44 / 2.2} alt="share" />
             {' '}
             and then &lsquo;Add to Home Screen&rsquo;
-          </Typography>
+          </p>
         </div>
       </div>
     );

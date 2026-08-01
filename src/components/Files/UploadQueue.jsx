@@ -4,7 +4,7 @@ import Obstruction from 'obstruction';
 
 import {
   withStyles,
-  Divider, Typography, CircularProgress, Button, Modal, Paper, LinearProgress,
+  Divider, CircularProgress, Button, Modal, Paper, LinearProgress,
 } from '@material-ui/core';
 import HighlightOffIcon from '@material-ui/icons/HighlightOff';
 import WarningIcon from '@material-ui/icons/Warning';
@@ -14,10 +14,10 @@ import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../ut
 import Colors from '../../colors';
 import ResizeHandler from '../ResizeHandler';
 
-const styles = (theme) => ({
+const styles = {
   modal: {
     position: 'absolute',
-    padding: theme.spacing.unit * 2,
+    padding: 16,
     width: 'max-content',
     maxWidth: '90%',
     left: '50%',
@@ -35,7 +35,7 @@ const styles = (theme) => ({
     textAlign: 'right',
   },
   uploadContainer: {
-    margin: `${theme.spacing.unit}px 0`,
+    margin: '8px 0',
     color: Colors.white90,
     textAlign: 'left',
     overflowY: 'auto',
@@ -100,11 +100,11 @@ const styles = (theme) => ({
   },
   cellularWarning: {
     backgroundColor: Colors.grey500,
-    padding: `${theme.spacing.unit * 1.5}px ${theme.spacing.unit * 2}px`,
+    padding: '12px 16px',
     borderRadius: 4,
     display: 'flex',
     flexDirection: 'column',
-    marginBottom: theme.spacing.unit,
+    marginBottom: 8,
     '& div': {
       display: 'flex',
       alignItems: 'center',
@@ -112,7 +112,7 @@ const styles = (theme) => ({
       '& svg': { marginRight: 8 },
     },
   },
-});
+};
 
 class UploadQueue extends Component {
   constructor(props) {
@@ -197,8 +197,8 @@ class UploadQueue extends Component {
         <Modal aria-labelledby="upload-queue-modal" open={ this.props.open } onClose={ this.props.onClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>
-              <Typography variant="title">Upload queue</Typography>
-              <Typography variant="caption" style={{ marginLeft: 8 }}>{ device.dongle_id }</Typography>
+              <h1>Upload queue</h1>
+              <span className="type-caption" style={{ marginLeft: 8 }}>{ device.dongle_id }</span>
             </div>
             <Divider />
             <div className={ classes.uploadContainer } style={{ maxHeight: (windowHeight * 0.90) - 98 }}>

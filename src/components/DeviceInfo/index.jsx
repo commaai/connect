@@ -4,7 +4,7 @@ import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 
-import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@material-ui/core';
+import { withStyles, CircularProgress, Popper, Tooltip } from '@material-ui/core';
 
 import { athena as Athena } from '../../api';
 import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
@@ -16,7 +16,7 @@ import VisibilityHandler from '../VisibilityHandler';
 import CommacareBadge from '../CommacareBadge';
 import { LivestreamIcon, CarBatteryIcon, CameraIcon, GamepadIcon } from '../../icons';
 
-const styles = (theme) => ({
+const styles = () => ({
   container: {
     borderBottom: `1px solid ${Colors.white10}`,
     display: 'flex',
@@ -24,30 +24,19 @@ const styles = (theme) => ({
     minHeight: 64,
     justifyContent: 'center',
   },
-  row: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  columnGap: {
-    columnGap: theme.spacing.unit * 4,
-  },
-  bold: {
-    fontWeight: 600,
-  },
   button: {
     backgroundColor: Colors.white,
     color: Colors.grey900,
     '&:hover': {
-      background: '#ddd',
+      background: 'var(--color-field-hover)',
       color: Colors.grey900,
     },
     '&:disabled': {
-      background: '#ddd',
+      background: 'var(--color-field-hover)',
       color: Colors.grey900,
     },
     '&:disabled:hover': {
-      background: '#ddd',
+      background: 'var(--color-field-hover)',
       color: Colors.grey900,
     },
   },
@@ -62,13 +51,6 @@ const styles = (theme) => ({
       background: Colors.grey400,
       color: Colors.lightGrey600,
     },
-  },
-  buttonRow: {
-    justifyContent: 'center',
-  },
-  spaceAround: {
-    display: 'flex',
-    justifyContent: 'space-around',
   },
   carBattery: {
     padding: '5px 16px',
@@ -129,11 +111,11 @@ const styles = (theme) => ({
       height: '10px',
     },
     '&::-webkit-scrollbar-thumb': {
-      backgroundColor: '#d1d1d1',
+      backgroundColor: 'var(--color-field-muted)',
       borderRadius: '8px',
     },
     '&::-webkit-scrollbar-track': {
-      backgroundColor: '#272c2f',
+      backgroundColor: 'var(--color-surface-muted)',
     },
   },
   scrollSnapItem: {
@@ -142,10 +124,6 @@ const styles = (theme) => ({
     width: '100%',
     maxWidth: '450px',
     margin: '0',
-  },
-  buttonIcon: {
-    fontSize: 20,
-    marginLeft: theme.spacing.unit,
   },
   popover: {
     borderRadius: 22,
@@ -322,7 +300,7 @@ class DeviceInfo extends Component {
           <div className={`flex flex-row justify-between items-center gap-4 md:my-2 my-4 pl-1 flex-wrap`}>
             <div className={`flex flex-row gap-4 items-center shrink-0`}>
               {commacare && <CommacareBadge onClick={() => this.props.dispatch(primeNav(true))} />}
-              <Typography variant="title">{truncateName(deviceNamePretty(device))}</Typography>
+              <h1>{truncateName(deviceNamePretty(device))}</h1>
             </div>
             { this.renderButtons() }
           </div>
@@ -406,8 +384,8 @@ class DeviceInfo extends Component {
               disabled={ !deviceIsOnline(device) }
             >
               { bodyTeleopEnabled
-                ? <GamepadIcon className='text-black' />
-                : <LivestreamIcon className='text-black' />}
+                ? <GamepadIcon className='text-content-inverse' />
+                : <LivestreamIcon className='text-content-inverse' />}
             </button>
           </Tooltip>
         )}
@@ -425,7 +403,7 @@ class DeviceInfo extends Component {
             >
               { snapshot.fetching
                 ? <CircularProgress size={ 19 } />
-                : <CameraIcon className='text-black' />}
+                : <CameraIcon className='text-content-inverse' />}
             </button>
           </Tooltip>
         )}
@@ -436,7 +414,7 @@ class DeviceInfo extends Component {
           { deviceIsOnline(device) ? (
             <>
               <CarBatteryIcon className="text-[20px] mr-1" />
-              <Typography className='w-[45px]'>{ batteryText }</Typography>
+              <p className="w-[45px]">{ batteryText }</p>
             </>
           ) : (
             <Tooltip
@@ -444,7 +422,7 @@ class DeviceInfo extends Component {
               title={pingTooltip}
               placement="bottom"
             >
-              <Typography>device offline</Typography>
+              <p>device offline</p>
             </Tooltip>
           )}
         </div>
@@ -454,7 +432,7 @@ class DeviceInfo extends Component {
           placement="bottom"
           anchorEl={ this.snapshotButtonRef.current }
         >
-          <Typography>{ error }</Typography>
+          <p>{ error }</p>
         </Popper>
       </div>
     );
@@ -465,16 +443,16 @@ class DeviceInfo extends Component {
     if (!src) {
       return (
         <div className={ classes.snapshotImageError }>
-          <Typography>
+          <p>
             { isFront && 'Interior' }
             {' '}
             snapshot not available
-          </Typography>
+          </p>
           { isFront
             && (
-            <Typography>
+            <p>
               Enable &ldquo;Record and Upload Driver Camera&rdquo; on your device for interior camera snapshots
-            </Typography>
+            </p>
             )}
         </div>
       );

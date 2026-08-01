@@ -2,64 +2,21 @@ import React, { Suspense, useCallback, useState } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 
-import { withStyles } from '@material-ui/core/styles';
-import { Typography, IconButton, AppBar } from '@material-ui/core';
+import { IconButton, AppBar } from '@material-ui/core';
 import MenuIcon from '@material-ui/icons/Menu';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { selectDevice } from '../../actions';
 import { AccountIcon } from '../../icons';
-import Colors from '../../colors';
 import { filterRegularClick } from '../../utils';
 
 import AccountMenu from './AccountMenu';
 import PWAIcon from '../PWAIcon';
 
-const styles = () => ({
-  header: {
-    backgroundColor: '#1D2225',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 7.5,
-    flexWrap: 'wrap',
-  },
-  titleContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    flexWrap: 'nowrap',
-  },
-  logo: {
-    alignItems: 'center',
-    display: 'flex',
-    maxWidth: 200,
-    textDecoration: 'none',
-  },
-  logoImgLink: {
-    lineHeight: 0,
-  },
-  logoImg: {
-    height: 34,
-    width: 18.9,
-    margin: '0px 28px',
-  },
-  logoText: {
-    fontSize: 20,
-    fontWeight: 800,
-  },
-  accountIcon: {
-    color: Colors.white30,
-    height: 34,
-    width: 34,
-  },
-});
-
 const AppHeader = ({
-  profile, classes, dispatch, drawerIsOpen, viewingRoute, showDrawerButton,
-  forwardRef, handleDrawerStateChanged, primeNav, dongleId,
+  profile, dispatch, drawerIsOpen, showDrawerButton,
+  forwardRef, handleDrawerStateChanged, dongleId,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -82,66 +39,62 @@ const AppHeader = ({
   const open = menuOpen;
 
   return (
-    <>
-      <AppBar position="sticky" elevation={1}>
-        <div ref={forwardRef} className={classes.header}>
-          <div className={classes.titleContainer}>
-            {showDrawerButton ? (
-              <IconButton
-                aria-label="menu"
-                className="mr-3"
-                onClick={toggleDrawer}
-              >
-                <MenuIcon />
-              </IconButton>
-            )
-              : (
-                <a
-                  href={`/${dongleId}`}
-                  className={classes.logoImgLink}
-                  onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
-                >
-                  <img alt="comma" src="/images/comma-white.png" className={classes.logoImg} />
-                </a>
-              )}
-            <a
-              href={`/${dongleId}`}
-              onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
+    <AppBar position="sticky" elevation={1}>
+      <div ref={forwardRef} className="flex flex-row flex-wrap items-center justify-between border-b border-content/10 bg-surface p-[7.5px]">
+        <div className="flex flex-nowrap items-center">
+          {showDrawerButton ? (
+            <IconButton
+              aria-label="menu"
+              className="mr-3"
+              onClick={toggleDrawer}
             >
-              <Typography className={classes.logoText}>connect</Typography>
-            </a>
-          </div>
-          <div className="flex flex-row gap-2">
-            <Suspense><PWAIcon /></Suspense>
-            <div className="relative">
-              <IconButton
-                aria-expanded={open}
-                aria-haspopup="true"
-                onClick={handleClickedAccount}
-                aria-label="account menu"
+              <MenuIcon />
+            </IconButton>
+          )
+            : (
+              <a
+                href={`/${dongleId}`}
+                className="leading-none"
+                onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
               >
-                <AccountIcon className={classes.accountIcon} />
-              </IconButton>
-              {Boolean(MyCommaAuth.isAuthenticated() && profile) && (
-                <AccountMenu
-                  open={open}
-                  onClose={handleClose}
-                  profile={profile}
-                />
-              )}
-            </div>
+                <img alt="comma" src="/images/comma-white.png" className="mx-7 h-[34px] w-[18.9px]" />
+              </a>
+            )}
+          <a
+            href={`/${dongleId}`}
+            onClick={filterRegularClick(() => dispatch(selectDevice(dongleId)))}
+          >
+            <p className="text-xl font-extrabold text-content">connect</p>
+          </a>
+        </div>
+        <div className="flex flex-row gap-2">
+          <Suspense><PWAIcon /></Suspense>
+          <div className="relative">
+            <IconButton
+              aria-expanded={open}
+              aria-haspopup="true"
+              onClick={handleClickedAccount}
+              aria-label="account menu"
+            >
+              <AccountIcon className="h-[34px] w-[34px] text-content/30" />
+            </IconButton>
+            {Boolean(MyCommaAuth.isAuthenticated() && profile) && (
+              <AccountMenu
+                open={open}
+                onClose={handleClose}
+                profile={profile}
+              />
+            )}
           </div>
         </div>
-      </AppBar>
-    </>
+      </div>
+    </AppBar>
   );
 };
 
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
-  filter: 'filter',
   profile: 'profile',
-  primeNav: 'primeNav',
 });
 
-export default connect(stateToProps)(withStyles(styles)(AppHeader));
+export default connect(stateToProps)(AppHeader);

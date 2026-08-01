@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import qs from 'query-string';
 
-import { Typography } from '@material-ui/core';
 import PrimeManage from './PrimeManage';
 import PrimeCheckout from './PrimeCheckout';
 
@@ -22,7 +21,7 @@ const Prime = (props) => {
   }
 
   if (!device.is_owner && !profile.superuser) {
-    return (<Typography>No access</Typography>);
+    return (<p>No access</p>);
   }
   if (device.prime || stripeSuccess) {
     return (<PrimeManage stripeSuccess={ stripeSuccess } />);

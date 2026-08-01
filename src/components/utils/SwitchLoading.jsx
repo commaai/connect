@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-import { withStyles, Switch, FormControlLabel, Popper, Typography } from '@material-ui/core';
+import { withStyles, Switch, FormControlLabel, Popper } from '@material-ui/core';
 
 import Colors from '../../colors';
 import { ErrorOutline } from '../../icons';
@@ -121,7 +121,7 @@ class SwitchLoading extends Component {
             anchorEl={ this.state.errorPopper }
             className={classes.copiedPopover}
           >
-            <Typography>{ this.state.error }</Typography>
+            <p>{ this.state.error }</p>
           </Popper>
         </>
         )}

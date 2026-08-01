@@ -14,7 +14,7 @@ const QUALITY_OPTIONS = [
   { key: 'low', label: 'low', bitrate: '500 kbps' },
 ];
 
-const rowClass = 'flex items-center h-9 px-3.5 gap-3 cursor-pointer select-none text-[13px] text-white/85 hover:bg-white/10 transition-colors whitespace-nowrap';
+const rowClass = 'flex items-center h-9 px-3.5 gap-3 cursor-pointer select-none text-[13px] text-content/85 hover:bg-content/10 transition-colors whitespace-nowrap';
 const pageClass = 'absolute top-0 left-0 w-max min-w-[200px] py-1.5 transition-all duration-200 ease-out';
 
 const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
@@ -58,7 +58,7 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
   return (
     <div ref={wrapperRef} className="relative">
       <div
-        className="flex items-center justify-center h-9 w-9 rounded-[18px] cursor-pointer select-none bg-glass text-white/60 hover:text-white/90 hover:!bg-black/60"
+        className="flex items-center justify-center h-9 w-9 rounded-[18px] cursor-pointer select-none bg-glass text-content/60 hover:text-content/90 hover:!bg-scrim/60"
         onClick={toggleOpen}
         title="Settings"
       >
@@ -89,7 +89,7 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
         >
           <div className={rowClass} onClick={() => setView('quality')}>
             <span className="flex-1">Quality</span>
-            <span className="flex items-center gap-1 text-white/45">
+            <span className="flex items-center gap-1 text-content/45">
               {selected?.label}
               <ChevronRight style={{ fontSize: 18 }} />
             </span>
@@ -106,18 +106,18 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
             pointerEvents: open && view === 'quality' ? 'auto' : 'none',
           }}
         >
-          <div className={`${rowClass} font-medium text-white/90`} onClick={() => setView('main')}>
-            <ArrowBackBold className="w-4 h-4 -ml-1 text-white/70" />
+          <div className={`${rowClass} font-medium text-content/90`} onClick={() => setView('main')}>
+            <ArrowBackBold className="w-4 h-4 -ml-1 text-content/70" />
             <span>Quality (Bitrate)</span>
           </div>
-          <div className="h-px bg-white/10 mx-2 my-1" />
+          <div className="h-px bg-content/10 mx-2 my-1" />
           {options.map((opt) => (
             <div key={opt.key} className={rowClass} onClick={() => selectQuality(opt.key)}>
               <span className="flex w-4 items-center justify-center">
-                {opt.key === quality && <Check style={{ fontSize: 16 }} className="text-white" />}
+                {opt.key === quality && <Check style={{ fontSize: 16 }} className="text-content" />}
               </span>
               <span className="flex-1">{opt.label}</span>
-              {opt.bitrate && <span className="text-[10px] text-white/40">{opt.bitrate}</span>}
+              {opt.bitrate && <span className="text-[10px] text-content/40">{opt.bitrate}</span>}
             </div>
           ))}
         </div>

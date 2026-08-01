@@ -12,7 +12,6 @@ import dayjs from 'dayjs';
 import Measure from 'react-measure';
 
 import Thumbnails from './thumbnails';
-import theme from '../../theme';
 import { pushTimelineRange } from '../../actions';
 import Colors from '../../colors';
 import { currentOffset } from '../../timeline';
@@ -33,10 +32,10 @@ const styles = () => ({
   segment: {
     position: 'absolute',
     height: 12,
-    background: theme.palette.states.drivingBlue,
+    background: 'var(--color-driving)',
   },
   statusGradient: {
-    background: 'linear-gradient(rgba(0, 0, 0, 0.0) 4%, rgba(255, 255, 255, 0.025) 10%, rgba(0, 0, 0, 0.1) 25%, rgba(0, 0, 0, 0.4))',
+    background: 'linear-gradient(transparent 4%, color-mix(in srgb, var(--color-content) 2.5%, transparent) 10%, color-mix(in srgb, var(--color-scrim) 10%, transparent) 25%, color-mix(in srgb, var(--color-scrim) 40%, transparent))',
     height: 12,
     left: 0,
     pointerEvents: 'none',
@@ -52,21 +51,21 @@ const styles = () => ({
     width: '100%',
     '&.active': {},
     '&.engage': {
-      background: theme.palette.states.engagedGreen,
+      background: 'var(--color-engaged)',
     },
     '&.overriding': {
-      background: theme.palette.states.engagedGrey,
+      background: 'var(--color-engaged-override)',
     },
     '&.alert': {
       '&.userPrompt': {
-        background: theme.palette.states.alertOrange,
+        background: 'var(--color-alert)',
       },
       '&.critical': {
-        background: theme.palette.states.alertRed,
+        background: 'var(--color-alert-critical)',
       },
     },
     '&.bookmark, &.flag': {  // TODO: remove flag selector once 14 days expires old events caches
-      background: theme.palette.states.userBookmark,
+      background: 'var(--color-bookmark)',
       zIndex: 1,
     },
   },
@@ -81,14 +80,14 @@ const styles = () => ({
     },
   },
   ruler: {
-    backgroundColor: 'rgb(37, 51, 61)',
+    backgroundColor: 'var(--color-timeline-track)',
     touchAction: 'none',
     width: '100%',
     height: 44,
   },
   rulerRemaining: {
-    backgroundColor: 'rgba(29, 34, 37, 0.9)',
-    borderLeft: '1px solid #D8DDDF',
+    backgroundColor: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
+    borderLeft: '1px solid var(--color-boundary-strong)',
     position: 'absolute',
     left: 0,
     height: 44,
@@ -96,27 +95,11 @@ const styles = () => ({
     pointerEvents: 'none',
     width: '100%',
   },
-  loopStart: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRight: '1px solid rgba(0, 0, 0, 0.8)',
-    position: 'absolute',
-    left: 0,
-    height: 44,
-    pointerEvents: 'none',
-  },
-  loopEnd: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderLeft: '1px solid rgba(0, 0, 0, 0.8)',
-    position: 'absolute',
-    right: 0,
-    height: 44,
-    pointerEvents: 'none',
-  },
   dragHighlight: {
     pointerEvents: 'none',
-    background: 'rgba(255, 255, 255, 0.1)',
-    borderLeft: '1px solid rgba(255, 255, 255, 0.3)',
-    borderRight: '1px solid rgba(255, 255, 255, 0.3)',
+    background: 'color-mix(in srgb, var(--color-content) 10%, transparent)',
+    borderLeft: '1px solid color-mix(in srgb, var(--color-content) 30%, transparent)',
+    borderRight: '1px solid color-mix(in srgb, var(--color-content) 30%, transparent)',
     position: 'absolute',
     height: 44,
   },

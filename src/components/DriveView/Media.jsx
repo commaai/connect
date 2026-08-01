@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem } from '@material-ui/core';
+import { withStyles, Divider, Menu, MenuItem, CircularProgress, Button, Popper, ListItem } from '@material-ui/core';
 import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
@@ -45,12 +45,12 @@ const styles = () => ({
     display: 'flex',
     width: 'max-content',
     alignItems: 'center',
-    border: '1px solid rgba(255,255,255,.1)',
+    border: '1px solid color-mix(in srgb, var(--color-content) 10%, transparent)',
     borderRadius: 50,
   },
   mediaOption: {
     alignItems: 'center',
-    borderRight: '1px solid rgba(255,255,255,.1)',
+    borderRight: '1px solid color-mix(in srgb, var(--color-content) 10%, transparent)',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
@@ -66,23 +66,10 @@ const styles = () => ({
       borderRight: 'none',
     },
   },
-  mediaOptionDisabled: {
-    cursor: 'auto',
-  },
-  mediaOptionIcon: {
-    backgroundColor: '#fff',
-    borderRadius: 3,
-    height: 20,
-    margin: '2px 0',
-    width: 30,
-  },
   mediaOptionText: {
     fontSize: 12,
     fontWeight: 500,
     textAlign: 'center',
-  },
-  mediaSource: {
-    width: '100%',
   },
   menuLoading: {
     position: 'absolute',
@@ -163,45 +150,6 @@ const styles = () => ({
     backgroundColor: Colors.grey800,
     color: Colors.white,
     '& p': { fontSize: '0.8rem' },
-  },
-  noPrimePopover: {
-    borderRadius: 16,
-    padding: 16,
-    border: `1px solid ${Colors.white10}`,
-    backgroundColor: Colors.grey800,
-    marginTop: 12,
-    zIndex: 5,
-    '& p': {
-      fontSize: '0.9rem',
-      color: Colors.white,
-      margin: 0,
-    },
-  },
-  noPrimeHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    '& p': {
-      fontSize: '1rem',
-      fontWeight: 500,
-    },
-  },
-  noPrimeButton: {
-    padding: '6px 24px',
-    borderRadius: 15,
-    textTransform: 'none',
-    minHeight: 'unset',
-    color: Colors.white,
-    backgroundColor: Colors.primeBlue50,
-    '&:disabled': {
-      background: '#ddd',
-      color: Colors.grey900,
-    },
-    '&:hover': {
-      color: Colors.white,
-      backgroundColor: Colors.primeBlue200,
-    },
   },
 });
 
@@ -583,14 +531,14 @@ class Media extends Component {
                   style={inView !== MediaType.VIDEO ? { opacity: 0.6 } : {}}
                   onClick={() => this.setState({ inView: MediaType.VIDEO })}
                 >
-                  <Typography className={classes.mediaOptionText}>Video</Typography>
+                  <p className={classes.mediaOptionText}>Video</p>
                 </div>
                 <div
                   className={classes.mediaOption}
                   style={inView !== MediaType.MAP ? { opacity: 0.6 } : { }}
                   onClick={() => this.setState({ inView: MediaType.MAP })}
                 >
-                  <Typography className={classes.mediaOptionText}>Map</Typography>
+                  <p className={classes.mediaOptionText}>Map</p>
                 </div>
               </div>
             )}
@@ -600,14 +548,14 @@ class Media extends Component {
               aria-haspopup="true"
               onClick={ (ev) => this.setState({ downloadMenu: ev.target }) }
             >
-              <Typography className={classes.mediaOptionText}>Files</Typography>
+              <p className={classes.mediaOptionText}>Files</p>
             </div>
             <div
               className={classes.mediaOption}
               aria-haspopup="true"
               onClick={ (ev) => this.setState({ moreInfoMenu: ev.target }) }
             >
-              <Typography className={classes.mediaOptionText}>More info</Typography>
+              <p className={classes.mediaOptionText}>More info</p>
             </div>
           </div>
         </div>
@@ -806,7 +754,7 @@ class Media extends Component {
           anchorEl={ dcamUploadInfo }
           className={ classes.dcameraUploadInfo }
         >
-          <Typography>make sure to enable the &ldquo;Record and Upload Driver Camera&rdquo; toggle</Typography>
+          <p>make sure to enable the &ldquo;Record and Upload Driver Camera&rdquo; toggle</p>
         </Popper>
       </>
     );

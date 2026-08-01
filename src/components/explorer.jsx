@@ -4,7 +4,7 @@ import Obstruction from 'obstruction';
 import localforage from 'localforage';
 import { replace } from 'connected-react-router';
 
-import { withStyles, Button, CircularProgress, Divider, Modal, Paper, Typography } from '@material-ui/core';
+import { withStyles, Button, CircularProgress, Divider, Modal, Paper } from '@material-ui/core';
 import 'mapbox-gl/src/css/mapbox-gl.css';
 
 import { devices as Devices } from '../api';
@@ -26,16 +26,16 @@ import ResizeHandler from './ResizeHandler';
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
 
-const styles = (theme) => ({
+const styles = {
   window: {
-    background: 'linear-gradient(180deg, #1D2225 0%, #16181A 100%)',
+    background: 'linear-gradient(180deg, var(--color-surface) 0%, var(--color-canvas) 100%)',
     display: 'flex',
     flexDirection: 'column',
   },
   modal: {
     position: 'absolute',
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
+    padding: 16,
+    width: 400,
     maxWidth: '90%',
     left: '50%',
     top: '40%',
@@ -58,7 +58,7 @@ const styles = (theme) => ({
   pairedDongleId: {
     fontWeight: 'bold',
   },
-});
+};
 
 class ExplorerApp extends Component {
   constructor(props) {
@@ -236,17 +236,17 @@ class ExplorerApp extends Component {
             <IosPwaPopup />
             <Modal open={ Boolean(pairLoading || pairError || pairDongleId) } onClose={ this.closePair }>
               <Paper className={classes.modal}>
-                <Typography variant="title">Pairing device</Typography>
+                <h1>Pairing device</h1>
                 <Divider />
                 { pairLoading && <CircularProgress size={32} className={classes.fabProgress} /> }
                 { pairDongleId
                   && (
-                  <Typography>
+                  <p>
                     {'Successfully paired device '}
                     <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
-                  </Typography>
+                  </p>
                   )}
-                { pairError && <Typography>{ pairError }</Typography> }
+                { pairError && <p>{ pairError }</p> }
                 <Button variant="contained" className={ classes.closeButton } onClick={ this.closePair }>
                   Close
                 </Button>

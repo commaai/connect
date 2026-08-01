@@ -4,20 +4,20 @@ import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 import PropTypes from 'prop-types';
 
-import { Button, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
+import { Button, Divider, Modal, Paper, withStyles } from '@material-ui/core';
 
 import Colors from '../../colors';
 import { selectTimeFilter } from '../../actions';
 
-const styles = (theme) => ({
+const styles = {
   modalContainer: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
   modal: {
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
+    padding: 16,
+    width: 400,
     maxWidth: '90%',
     outline: 'none',
   },
@@ -44,7 +44,7 @@ const styles = (theme) => ({
       backgroundColor: Colors.white70,
     },
   },
-});
+};
 
 const LOOKBACK_WINDOW_MILLIS = 365 * 24 * 3600 * 1000; // 30 days
 
@@ -123,7 +123,7 @@ class TimeSelect extends Component {
         >
           <Paper className={classes.modal}>
             <div className={ classes.datePickerContainer }>
-              <Typography variant="body2">Start date:</Typography>
+              <aside className="type-body-strong">Start date:</aside>
               <input
                 label="Start date"
                 type="date"
@@ -134,7 +134,7 @@ class TimeSelect extends Component {
               />
             </div>
             <div className={ classes.datePickerContainer }>
-              <Typography variant="body2">End date:</Typography>
+              <aside className="type-body-strong">End date:</aside>
               <input
                 label="End date"
                 type="date"

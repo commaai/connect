@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import qs from 'query-string';
 import { BarcodeDetector } from 'barcode-detector/ponyfill';
-import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress } from '@material-ui/core';
+import { withStyles, Button, Modal, Paper, Divider, CircularProgress } from '@material-ui/core';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import * as Sentry from '@sentry/react';
 
@@ -12,7 +12,7 @@ import { selectDevice, updateDevices, analyticsEvent } from '../../actions';
 import { verifyPairToken, pairErrorToMessage } from '../../utils';
 import Colors from '../../colors';
 
-const styles = (theme) => ({
+const styles = {
   titleContainer: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -43,8 +43,8 @@ const styles = (theme) => ({
   },
   modal: {
     position: 'absolute',
-    padding: theme.spacing.unit * 2,
-    width: theme.spacing.unit * 50,
+    padding: 16,
+    width: 400,
     maxWidth: '90%',
     left: '50%',
     top: '50%',
@@ -67,7 +67,7 @@ const styles = (theme) => ({
     '&::before': {
       content: '\'\'',
       position: 'absolute',
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      backgroundColor: 'color-mix(in srgb, var(--color-scrim) 80%, transparent)',
       top: -1,
       bottom: -1,
       right: -1,
@@ -96,7 +96,7 @@ const styles = (theme) => ({
     width: '100%',
     height: '100%',
   },
-});
+};
 
 class AddDevice extends Component {
   constructor(props) {
@@ -385,38 +385,38 @@ class AddDevice extends Component {
       <>
         <Button onClick={this.onOpenModal} className={ classes.addButton } style={ buttonStyle }>
           { buttonText }
-          { buttonIcon && <AddCircleOutlineIcon style={{ color: 'rgba(255, 255, 255, 0.3)' }} /> }
+          { buttonIcon && <AddCircleOutlineIcon className="text-content/30" /> }
         </Button>
         <Modal aria-labelledby="add-device-modal" open={ modalOpen } onClose={ this.modalClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>
-              <Typography variant="title">Pair device</Typography>
-              <Typography variant="caption">
+              <h1>Pair device</h1>
+              <span className="type-caption">
                 scan QR code
-              </Typography>
+              </span>
             </div>
             <Divider className={ classes.divider } />
             { hasCamera === false
               ? (
                 <>
-                  <Typography style={{ marginBottom: 5 }}>
+                  <p style={{ marginBottom: 5 }}>
                     { cameraError || 'Camera not found, please enable camera access.' }
-                  </Typography>
+                  </p>
                   <br />
-                  <Typography>
+                  <p>
                     You can also scan the QR code using any other QR code
                     reader application.
-                  </Typography>
+                  </p>
                 </>
               )
               : (
                 <div className={ `${classes.videoContainer} ${videoContainerOverlay}` }>
                   <canvas className={ classes.canvas } ref={ this.onCanvasRef } />
                   <div className={ classes.videoOverlay }>
-                    { pairLoading && <CircularProgress size="10vw" style={{ color: '#525E66' }} /> }
+                    { pairLoading && <CircularProgress size="10vw" className="text-progress" /> }
                     { pairError && (
                     <>
-                      <Typography>{ pairError }</Typography>
+                      <p>{ pairError }</p>
                       <Button className={ classes.retryButton } onClick={ this.restart }>
                         try again
                       </Button>
@@ -424,10 +424,10 @@ class AddDevice extends Component {
                     ) }
                     { pairDongleId && (
                     <>
-                      <Typography>
+                      <p>
                         {'Successfully paired device '}
                         <span className={ classes.pairedDongleId }>{ pairDongleId }</span>
-                      </Typography>
+                      </p>
                       <Button className={ classes.retryButton } onClick={ this.modalClose }>
                         close
                       </Button>

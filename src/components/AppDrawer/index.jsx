@@ -38,9 +38,9 @@ const AppDrawer = ({
       open={isPermanent || drawerIsOpen}
       onClose={toggleDrawerOff}
       variant={isPermanent ? 'permanent' : 'temporary'}
-      PaperProps={{ style: { width, top: 'auto' } }}
+      PaperProps={{ style: { width, top: 'auto', borderRight: 'none' } }}
     >
-      <div ref={contentRef} className="flex flex-col h-full bg-[linear-gradient(180deg,#1B2023_0%,#111516_100%)] ml-safe-left">
+      <div ref={contentRef} className="flex flex-col h-full bg-linear-to-b from-surface-overlay to-surface-overlay-deep ml-safe-left">
         {!isPermanent
           && (
             <Link to="/" className="flex items-center min-h-[64px] mx-2">

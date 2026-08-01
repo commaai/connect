@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
-import { withStyles, Typography } from '@material-ui/core';
 import FilterList from '@material-ui/icons/FilterList';
 
 import { devices as Devices } from '../../api';
@@ -15,27 +14,8 @@ import DriveListEmpty from './DriveListEmpty';
 import DriveListItem from './DriveListItem';
 import ScrollIntoView from '../ScrollIntoView'
 
-const styles = () => ({
-  header: {
-    display: 'flex',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '8px 16px',
-  },
-  drives: {
-    padding: '0px 16px',
-    flex: '1',
-  },
-  endMessage: {
-    padding: 8,
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-});
-
 const DriveList = (props) => {
-  const { dispatch, classes, device, dongleId, routes, lastRoutes } = props;
+  const { dispatch, device, dongleId, routes, lastRoutes } = props;
 
   const [deviceStats, setDeviceStats] = useState({});
   const [isTimeSelectOpen, setIsTimeSelectOpen] = useState(false);
@@ -71,8 +51,8 @@ const DriveList = (props) => {
     contentStatus = <DriveListEmpty device={device} routes={routes} />;
   } else if (routes && routes.length > 5) {
     contentStatus = (
-      <div className={classes.endMessage}>
-        <Typography>There are no more routes found in selected time range.</Typography>
+      <div className="mb-8 p-2 text-center">
+        <p>There are no more routes found in selected time range.</p>
       </div>
     );
   }
@@ -87,7 +67,7 @@ const DriveList = (props) => {
     const routesSize = displayRoutes.length
 
     content = (
-      <div className={`${classes.drives} DriveList`}>
+      <div className="DriveList flex-1 px-4">
         {displayRoutes.map((drive, index) => {
             // when the last item is in view, we fetch the next routes
             return (index === routesSize - 1 ?
@@ -113,24 +93,24 @@ const DriveList = (props) => {
     return (
       <div className="flex gap-2.5 md:gap-8 items-center px-1 justify-center xss:justify-start">
         <div className="flex flex-row items-center gap-1">
-          <Typography className="font-semibold text-white">
+          <p className="font-semibold text-content">
             { distance }
-          </Typography>
-          <Typography>
+          </p>
+          <p>
             { metric ? 'kilometers' : 'miles' }
-          </Typography>
+          </p>
         </div>
         <div className="flex flex-row items-center gap-1">
-          <Typography className="font-semibold text-white">
+          <p className="font-semibold text-content">
             { deviceStats.result.all.routes }
-          </Typography>
-          <Typography>drives</Typography>
+          </p>
+          <p>drives</p>
         </div>
         <div className="flex flex-row items-center gap-1">
-          <Typography className="font-semibold text-white">
+          <p className="font-semibold text-content">
             { Math.round(deviceStats.result.all.minutes / 60.0) }
-          </Typography>
-          <Typography>hours</Typography>
+          </p>
+          <p>hours</p>
         </div>
       </div>
     );
@@ -142,12 +122,11 @@ const DriveList = (props) => {
       <div className="flex flex-row justify-between mx-4 pb-2 gap-2 flex-wrap">
         { renderStats() }
         <button
-          className="w-full xxs:w-fit flex flex-row items-center justify-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98]"
-          style={{ background: 'linear-gradient(to bottom, #30373B 0%, #1D2225 150%)' }}
+          className="w-full xxs:w-fit flex flex-row items-center justify-center text-content normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98] bg-linear-to-b from-surface-raised to-surface"
           onClick={() => setIsTimeSelectOpen(true)}
         >
           <FilterList className="mr-2 text-xl" />
-          <Typography>Filter</Typography>
+          <p>Filter</p>
         </button>
       </div>
       {content}
@@ -164,4 +143,4 @@ const stateToProps = Obstruction({
   device: 'device',
 });
 
-export default connect(stateToProps)(withStyles(styles)(DriveList));
+export default connect(stateToProps)(DriveList);
