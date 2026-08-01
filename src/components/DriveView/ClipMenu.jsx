@@ -23,7 +23,7 @@ const BITRATES = [
 
 const styles = () => ({
   paper: { width: 360, maxWidth: 'calc(100vw - 24px)', outline: 'none' },
-  body: { padding: 16 },
+  body: { outline: 'none', padding: 16, '&:focus': { outline: 'none' } },
   header: { fontSize: 16, fontWeight: 500, marginBottom: 4 },
   supporting: { color: Colors.white60, fontSize: 12, lineHeight: 1.4 },
   range: {
@@ -32,12 +32,11 @@ const styles = () => ({
   rangeValue: { fontSize: 15, fontWeight: 500 },
   field: { marginTop: 14 },
   label: { color: Colors.white60, display: 'block', fontSize: 11, marginBottom: 6 },
-  choices: { display: 'flex', gap: 6, flexWrap: 'wrap' },
+  choices: { display: 'flex' },
   cameraChoices: {
     border: `1px solid ${Colors.white10}`,
-    borderRadius: 16,
+    borderRadius: 50,
     flexWrap: 'nowrap',
-    gap: 0,
     overflow: 'hidden',
   },
   cameraChoice: {
@@ -45,22 +44,39 @@ const styles = () => ({
     borderRadius: 0,
     borderRight: `1px solid ${Colors.white10}`,
     flex: '1 1 0',
+    minHeight: 36,
     paddingLeft: 6,
     paddingRight: 6,
     whiteSpace: 'nowrap',
     '&:last-child': { borderRight: 'none' },
   },
   choice: {
-    border: `1px solid ${Colors.white10}`, borderRadius: 16, color: Colors.white,
-    fontSize: 12, minHeight: 30, minWidth: 0, padding: '4px 11px', textTransform: 'none',
+    border: `1px solid ${Colors.white10}`, borderRadius: 8, color: Colors.white,
+    fontSize: 12, minHeight: 36, minWidth: 0, padding: '4px 11px', textTransform: 'none',
   },
-  selected: { background: Colors.white10 },
-  bitrateDetail: { color: Colors.white60, fontSize: 10, marginLeft: 4 },
+  selected: { background: 'rgba(255,255,255,.14)' },
+  bitrateChoices: {
+    border: `1px solid ${Colors.white10}`,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  bitrateChoice: {
+    border: 'none',
+    borderRadius: 0,
+    borderRight: `1px solid ${Colors.white10}`,
+    flex: '1 1 0',
+    lineHeight: 1.2,
+    minHeight: 44,
+    padding: '5px 4px',
+    '&:last-child': { borderRight: 'none' },
+  },
+  bitrateDetail: { color: Colors.white60, display: 'block', fontSize: 10, fontWeight: 400, marginTop: 2 },
   error: { color: '#ff8a80', fontSize: 12, marginTop: 10 },
   create: {
     background: Colors.white, borderRadius: 16, color: Colors.grey900, marginTop: 16,
     minHeight: 32, textTransform: 'none', width: '100%',
     '&:hover': { background: '#eee' },
+    '&:disabled': { background: Colors.white05, color: Colors.white60 },
   },
   sectionTitle: { color: Colors.white60, fontSize: 11, padding: '12px 16px 5px' },
   clip: { alignItems: 'stretch', display: 'block', padding: '10px 16px' },
@@ -101,7 +117,12 @@ class ClipMenu extends Component {
   componentDidUpdate(prevProps) {
     const opened = this.props.open && !prevProps.open;
     const routeChanged = this.props.route?.fullname !== prevProps.route?.fullname;
-    if ((opened || routeChanged) && this.props.open) this.loadClips();
+    const reconnected = this.props.deviceOnline && !prevProps.deviceOnline;
+    if ((opened || routeChanged || reconnected) && this.props.open) this.loadClips();
+    if (!this.props.deviceOnline && prevProps.deviceOnline) {
+      this.stopPolling();
+      this.setState({ loading: false });
+    }
     if (!this.props.open && prevProps.open) this.stopPolling();
   }
 
@@ -117,6 +138,10 @@ class ClipMenu extends Component {
   async loadClips(showLoading = true) {
     const routeName = this.props.route?.fullname;
     if (!routeName) return;
+    if (!this.props.deviceOnline) {
+      this.setState({ loading: false, error: null });
+      return;
+    }
     if (showLoading) this.setState({ loading: true, error: null });
     try {
       const clips = await clipDevice.list(routeName);
@@ -141,7 +166,7 @@ class ClipMenu extends Component {
   async createClip() {
     const { route, zoom } = this.props;
     const { camera, bitrate } = this.state;
-    if (!route || !zoom) return;
+    if (!route || !zoom || !this.props.deviceOnline) return;
     this.setState({ creating: true, error: null });
     try {
       await clipDevice.create({
@@ -159,6 +184,7 @@ class ClipMenu extends Component {
   }
 
   async downloadClip(clip) {
+    if (!this.props.deviceOnline) return;
     try {
       const url = await clipDevice.download(clip.id);
       const link = document.createElement('a');
@@ -186,7 +212,7 @@ class ClipMenu extends Component {
             </Typography>
           </div>
           {clip.status === 'ready' && (
-            <Button className={classes.download} onClick={() => this.downloadClip(clip)}>Download</Button>
+            <Button className={classes.download} disabled={!this.props.deviceOnline} onClick={() => this.downloadClip(clip)}>Download</Button>
           )}
           {clip.status === 'encoding' && <Typography className={classes.clipMeta}>{`${Math.round(clip.progress * 100)}%`}</Typography>}
         </div>
@@ -198,7 +224,7 @@ class ClipMenu extends Component {
   }
 
   render() {
-    const { anchorEl, classes, onClose, open, route, zoom } = this.props;
+    const { anchorEl, classes, deviceOnline, onClose, open, route, zoom } = this.props;
     const { bitrate, camera, clips, creating, error, loading } = this.state;
     const duration = zoom ? zoom.end - zoom.start : 0;
     const invalidDuration = duration <= 0 || duration > MAX_CLIP_DURATION;
@@ -213,6 +239,7 @@ class ClipMenu extends Component {
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         classes={{ paper: classes.paper }}
         MenuListProps={{ style: { outline: 'none' } }}
+        disableAutoFocusItem
       >
         <div className={classes.body}>
           <Typography className={classes.header}>Create a clip</Typography>
@@ -231,24 +258,24 @@ class ClipMenu extends Component {
           </div>
           <div className={classes.field}>
             <Typography className={classes.label}>QUALITY</Typography>
-            <div className={classes.choices}>
+            <div className={`${classes.choices} ${classes.bitrateChoices}`}>
               {BITRATES.map(([value, label, detail]) => (
-                <Button key={value} className={`${classes.choice} ${bitrate === value ? classes.selected : ''}`} onClick={() => this.setState({ bitrate: value })}>
-                  {label}<span className={classes.bitrateDetail}>{detail}</span>
+                <Button key={value} className={`${classes.choice} ${classes.bitrateChoice} ${bitrate === value ? classes.selected : ''}`} onClick={() => this.setState({ bitrate: value })}>
+                  <span>{label}<span className={classes.bitrateDetail}>{detail}</span></span>
                 </Button>
               ))}
             </div>
           </div>
           {duration > MAX_CLIP_DURATION && <Typography className={classes.error}>Choose a range of 30 minutes or less.</Typography>}
           {error && <Typography className={classes.error}>{error}</Typography>}
-          <Button className={classes.create} disabled={creating || deviceBusy || invalidDuration || !route} onClick={() => this.createClip()}>
-            {creating ? <CircularProgress size={18} /> : (deviceBusy ? 'Clip in progress' : 'Create clip')}
+          <Button className={classes.create} disabled={!deviceOnline || creating || deviceBusy || invalidDuration || !route} onClick={() => this.createClip()}>
+            {creating ? <CircularProgress size={18} /> : (!deviceOnline ? 'Device offline' : (deviceBusy ? 'Clip in progress' : 'Create clip'))}
           </Button>
         </div>
         <Divider />
-        <Typography className={classes.sectionTitle}>CLIPS ON THIS DEVICE FOR THIS ROUTE</Typography>
+        <Typography className={classes.sectionTitle}>{deviceOnline ? 'CLIPS ON THIS DEVICE FOR THIS ROUTE' : 'LAST KNOWN CLIPS FOR THIS ROUTE'}</Typography>
         {loading && <div className={classes.empty}><CircularProgress size={18} /></div>}
-        {!loading && clips.length === 0 && <Typography className={classes.empty}>No clips yet</Typography>}
+        {!loading && clips.length === 0 && <Typography className={classes.empty}>{deviceOnline ? 'No clips yet' : 'Connect to your device to check for clips'}</Typography>}
         {!loading && clips.map(clip => this.renderClip(clip))}
       </Menu>
     );

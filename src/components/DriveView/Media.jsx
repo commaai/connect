@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem } from '@material-ui/core';
+import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem, Tooltip } from '@material-ui/core';
 import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
@@ -571,8 +571,9 @@ class Media extends Component {
   }
 
   renderMediaOptions(showMapAlways) {
-    const { classes } = this.props;
+    const { classes, device } = this.props;
     const { inView } = this.state;
+    const clipAvailable = deviceIsOnline(device);
     return (
       <>
         <div className={classes.mediaOptionsRoot}>
@@ -604,13 +605,17 @@ class Media extends Component {
             >
               <Typography className={classes.mediaOptionText}>Files</Typography>
             </div>
-            <div
-              className={classes.mediaOption}
-              aria-haspopup="true"
-              onClick={ (ev) => this.setState({ clipMenu: ev.currentTarget }) }
-            >
-              <Typography className={classes.mediaOptionText}>Clip</Typography>
-            </div>
+            <Tooltip title={clipAvailable ? '' : 'Device offline'} placement="top">
+              <div
+                className={`${classes.mediaOption} ${clipAvailable ? '' : 'disabled'}`}
+                style={clipAvailable ? {} : { opacity: 0.45 }}
+                aria-disabled={!clipAvailable}
+                aria-haspopup={clipAvailable ? 'true' : undefined}
+                onClick={clipAvailable ? (ev) => this.setState({ clipMenu: ev.currentTarget }) : undefined}
+              >
+                <Typography className={classes.mediaOptionText}>Clip</Typography>
+              </div>
+            </Tooltip>
             <div
               className={classes.mediaOption}
               aria-haspopup="true"
@@ -664,6 +669,7 @@ class Media extends Component {
           onClose={() => this.setState({ clipMenu: null })}
           route={currentRoute}
           zoom={this.props.zoom}
+          deviceOnline={deviceIsOnline(device)}
         />
         <Menu
           id="menu-download"
