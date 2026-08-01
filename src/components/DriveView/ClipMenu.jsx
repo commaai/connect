@@ -215,7 +215,7 @@ class ClipMenu extends Component {
       const link = document.createElement('a');
       link.href = url;
       const defaultName = `comma-clip-${clip.camera}-${formatTime(clip.startTime).replaceAll(':', '-')}-${formatTime(clip.endTime).replaceAll(':', '-')}`;
-      link.download = `${clip.filename || defaultName}.mp4`;
+      link.download = `${(clip.filename || defaultName).replace(/\.mp4$/i, '')}.mp4`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -246,12 +246,13 @@ class ClipMenu extends Component {
       : (knownRoute?.start_time_utc_millis
         ? new Date(knownRoute.start_time_utc_millis).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
         : clip.route.replace('|', '/'));
+    const title = clip.filename?.replace(/\.mp4$/i, '') || 'Clip';
     return (
       <div key={clip.id} className={classes.clip}>
         <div className={classes.clipTop}>
           <div className={classes.clipDetails}>
-            <Typography className={classes.clipTitle}>{camera}</Typography>
-            <Typography className={classes.clipMeta}>{routeLabel}</Typography>
+            <Typography className={classes.clipTitle}>{title}</Typography>
+            <Typography className={classes.clipMeta}>{`${camera} · ${routeLabel}`}</Typography>
             <Typography className={classes.clipMeta}>
               {`${formatTime(clip.startTime)}–${formatTime(clip.endTime)} · ${clip.bitrate} Mbps${clip.speedup > 1 ? ` · ${clip.speedup}×` : ''}${clip.size ? ` · ${formatSize(clip.size)}` : ''}`}
             </Typography>

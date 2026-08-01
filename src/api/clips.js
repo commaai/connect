@@ -100,7 +100,7 @@ export const clipDevice = {
       camera,
       bitrate,
       speedup,
-      filename,
+      filename: filename || `comma-clip-${camera}-${Math.round(startTime / 1000)}-${Math.round(endTime / 1000)}`,
       startTime,
       endTime,
       createdAt: Date.now(),
