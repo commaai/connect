@@ -45,7 +45,7 @@ const GALLERY_STATES = [
     name: 'clip-menu-ready',
     label: 'Clip menu with generated clip',
     page: 'drive',
-    actions: [{ text: 'Clip' }, { text: 'Create clip' }, { wait: 500 }, { advanceTime: 8500, wait: 1500 }],
+    actions: [{ text: 'Clip' }, { wait: 500 }, { text: 'Create clip' }, { wait: 500 }, { advanceTime: 8500, wait: 1500 }],
     modalText: 'Create a clip',
   },
   {
@@ -53,7 +53,7 @@ const GALLERY_STATES = [
     label: 'Clip video player',
     page: 'drive',
     actions: [
-      { text: 'Clip' }, { text: 'Create clip' }, { wait: 500 },
+      { text: 'Clip' }, { wait: 500 }, { text: 'Create clip' }, { wait: 500 },
       { advanceTime: 8500, wait: 1500 }, { selector: '[aria-label="Play clip"]' }, { wait: 1800 },
     ],
     modalText: 'comma-clip-fcamera-0-925',
@@ -548,7 +548,7 @@ async function clickGalleryAction(page, action, label) {
     }, action.advanceTime);
   }
   if (action.wait || action.advanceTime) {
-    await new Promise((accept) => setTimeout(accept, action.wait));
+    await new Promise((accept) => setTimeout(accept, action.wait ?? 0));
     return;
   }
   const description = action.selector ?? JSON.stringify(action.text);

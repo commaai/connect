@@ -426,18 +426,20 @@ class DeviceInfo extends Component {
         )}
         <Tooltip
           classes={{ tooltip: classes.popover }}
-          title="Clips"
+          title={deviceIsOnline(device) ? 'Clips' : 'Device offline'}
           placement="bottom"
         >
-          <button
-            style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
-            className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
-            aria-label="Clips"
-            onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
-            disabled={!deviceIsOnline(device)}
-          >
-            <ContentCut className="text-black" />
-          </button>
+          <span className="inline-flex">
+            <button
+              style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
+              className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
+              aria-label="Clips"
+              onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
+              disabled={!deviceIsOnline(device)}
+            >
+              <ContentCut className="text-black" />
+            </button>
+          </span>
         </Tooltip>
         {!livestreamEnabled && (
           <Tooltip
