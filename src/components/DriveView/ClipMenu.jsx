@@ -1,11 +1,11 @@
 import React, { Component } from 'react';
 import {
-  Button, CircularProgress, Divider, IconButton, LinearProgress, Menu, Typography, withStyles,
+  Button, CircularProgress, Dialog, DialogContent, DialogTitle, Divider, IconButton, LinearProgress, Menu, Typography, withStyles,
 } from '@material-ui/core';
 
 import Colors from '../../colors';
 import { clipDevice } from '../../api/clips';
-import { CloseBold, Download as DownloadIcon } from '../../icons';
+import { CloseBold, Download as DownloadIcon, PlayArrow } from '../../icons';
 
 const MAX_CLIP_DURATION = 30 * 60 * 1000;
 const POLL_INTERVAL = 1000;
@@ -102,6 +102,12 @@ const styles = () => ({
   downloadIcon: { fontSize: 25 },
   clipActions: { alignItems: 'center', display: 'flex', flex: '0 0 auto', gap: 2, margin: '-4px -7px -4px 0' },
   removeIcon: { fontSize: 20 },
+  playIcon: { fontSize: 27 },
+  viewerPaper: { background: Colors.grey900, maxWidth: 800, width: 'calc(100vw - 32px)' },
+  viewerTitle: { alignItems: 'center', display: 'flex', justifyContent: 'space-between', padding: '12px 12px 10px 20px' },
+  viewerContent: { padding: '0 20px 20px' },
+  viewerVideo: { background: Colors.grey950, display: 'block', maxHeight: '70vh', width: '100%' },
+  viewerLoading: { alignItems: 'center', display: 'flex', height: 240, justifyContent: 'center' },
   empty: { color: Colors.white60, fontSize: 13, lineHeight: 1.4, paddingTop: 5 },
 });
 
@@ -127,7 +133,7 @@ class ClipMenu extends Component {
     super(props);
     this.state = {
       clips: [], camera: 'fcamera', bitrate: 5, speedup: 1, filename: '',
-      loading: false, creating: false, error: null,
+      loading: false, creating: false, error: null, viewingClip: null, previewUrl: null, previewLoading: false,
     };
     this.poll = null;
     this.watchedClipIds = new Set();
@@ -153,6 +159,7 @@ class ClipMenu extends Component {
 
   componentWillUnmount() {
     this.stopPolling();
+    if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
   }
 
   stopPolling() {
@@ -238,6 +245,45 @@ class ClipMenu extends Component {
     }
   }
 
+  async openViewer(clip) {
+    if (!this.props.deviceOnline) return;
+    if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
+    this.setState({ viewingClip: clip, previewUrl: null, previewLoading: true, error: null });
+    try {
+      const previewUrl = await clipDevice.preview(clip.id);
+      if (this.state.viewingClip?.id !== clip.id) {
+        URL.revokeObjectURL(previewUrl);
+        return;
+      }
+      this.setState({ previewUrl, previewLoading: false });
+    } catch (err) {
+      this.setState({ previewLoading: false, error: err.message || 'Could not preview clip' });
+    }
+  }
+
+  closeViewer() {
+    if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
+    this.setState({ viewingClip: null, previewUrl: null, previewLoading: false });
+  }
+
+  renderViewer() {
+    const { classes } = this.props;
+    const { previewLoading, previewUrl, viewingClip } = this.state;
+    const title = viewingClip?.filename?.replace(/\.mp4$/i, '') || 'Clip';
+    return (
+      <Dialog open={Boolean(viewingClip)} onClose={() => this.closeViewer()} classes={{ paper: classes.viewerPaper }} maxWidth="md">
+        <DialogTitle disableTypography className={classes.viewerTitle}>
+          <Typography className={classes.header}>{title}</Typography>
+          <IconButton aria-label="Close video" onClick={() => this.closeViewer()}><CloseBold /></IconButton>
+        </DialogTitle>
+        <DialogContent className={classes.viewerContent}>
+          {previewLoading && <div className={classes.viewerLoading}><CircularProgress size={28} /></div>}
+          {previewUrl && <video className={classes.viewerVideo} src={previewUrl} controls autoPlay playsInline />}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   renderClip(clip) {
     const { classes } = this.props;
     const camera = CAMERAS.find(([value]) => value === clip.camera)?.[2] || clip.camera;
@@ -260,6 +306,17 @@ class ClipMenu extends Component {
             </Typography>
           </div>
           <div className={classes.clipActions}>
+            {clip.status === 'ready' && (
+              <IconButton
+                aria-label="Play clip"
+                className={classes.download}
+                disabled={!this.props.deviceOnline}
+                title={this.props.deviceOnline ? 'Play clip' : 'Device offline'}
+                onClick={() => this.openViewer(clip)}
+              >
+                <PlayArrow className={classes.playIcon} />
+              </IconButton>
+            )}
             {clip.status === 'ready' && (
               <IconButton
                 aria-label="Download clip"
@@ -371,6 +428,7 @@ class ClipMenu extends Component {
           {!loading && clips.length === 0 && <Typography className={classes.empty}>{deviceOnline ? 'No clips yet' : 'Connect to your device to check for clips'}</Typography>}
           {!loading && clips.map(clip => this.renderClip(clip))}
         </div>
+        {this.renderViewer()}
       </Menu>
     );
   }

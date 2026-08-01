@@ -72,6 +72,49 @@ function hydrate() {
 
 hydrate();
 
+function createMockPreview(clip) {
+  if (typeof MediaRecorder === 'undefined') return Promise.reject(new Error('Video previews are not supported by this browser'));
+  const canvas = document.createElement('canvas');
+  canvas.width = 640;
+  canvas.height = 360;
+  const context = canvas.getContext('2d');
+  const stream = canvas.captureStream(20);
+  const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : 'video/webm';
+  const recorder = new MediaRecorder(stream, { mimeType });
+  const chunks = [];
+
+  return new Promise((resolve, reject) => {
+    recorder.ondataavailable = event => chunks.push(event.data);
+    recorder.onerror = () => reject(new Error('Could not create mock video preview'));
+    recorder.onstop = () => {
+      stream.getTracks().forEach(track => track.stop());
+      resolve(URL.createObjectURL(new Blob(chunks, { type: mimeType })));
+    };
+    recorder.start();
+    let frame = 0;
+    const timer = setInterval(() => {
+      const progress = frame / 30;
+      context.fillStyle = '#12181c';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = '#30393e';
+      context.fillRect(0, 255, canvas.width, 105);
+      context.fillStyle = '#fff';
+      context.font = '24px sans-serif';
+      context.fillText(clip.filename || 'comma clip', 28, 48);
+      context.font = '16px sans-serif';
+      context.fillStyle = 'rgba(255,255,255,.65)';
+      context.fillText(`${clip.camera} · ${Math.round(progress * 100)}%`, 28, 78);
+      context.fillStyle = '#55c2ff';
+      context.fillRect(28, 320, (canvas.width - 56) * progress, 5);
+      frame += 1;
+      if (frame > 30) {
+        clearInterval(timer);
+        recorder.stop();
+      }
+    }, 50);
+  });
+}
+
 function allClips(dongleId) {
   evict();
   const result = [...clips.values()]
@@ -131,5 +174,13 @@ export const clipDevice = {
     if (!clips.has(id)) throw new Error('Clip not found on device');
     clips.delete(id);
     persist();
+  },
+
+  async preview(id) {
+    const clip = clips.get(id);
+    if (!clip) throw new Error('Clip not found on device');
+    updateProgress(clip);
+    if (clip.status !== 'ready') throw new Error('Clip is not ready');
+    return createMockPreview(clip);
   },
 };

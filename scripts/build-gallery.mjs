@@ -48,6 +48,16 @@ const GALLERY_STATES = [
     actions: [{ text: 'Clip' }, { text: 'Create clip' }, { wait: 500 }, { advanceTime: 8500, wait: 1500 }],
     modalText: 'Create a clip',
   },
+  {
+    name: 'clip-viewer',
+    label: 'Clip video player',
+    page: 'drive',
+    actions: [
+      { text: 'Clip' }, { text: 'Create clip' }, { wait: 500 },
+      { advanceTime: 8500, wait: 1500 }, { selector: '[aria-label="Play clip"]' }, { wait: 1800 },
+    ],
+    modalText: 'comma-clip-fcamera-0-925',
+  },
   { name: 'checkout', label: 'Prime checkout', path: `/${DONGLE_ID}/prime`, readyText: '24/7 connectivity' },
   { name: 'management', label: 'Prime management', path: `/${DONGLE_ID}/prime`, readyText: 'Next payment' },
   { name: 'teleop', label: 'Teleop', path: `/${DONGLE_ID}/stream`, readyText: 'comma body' },
