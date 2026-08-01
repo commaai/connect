@@ -21,6 +21,8 @@ const BITRATES = [
   [10, 'High', '10 Mbps'],
 ];
 
+const SPEEDUPS = [1, 2, 5, 10];
+
 const styles = () => ({
   paper: { width: 360, maxWidth: 'calc(100vw - 24px)', outline: 'none' },
   body: { outline: 'none', padding: 16, '&:focus': { outline: 'none' } },
@@ -71,6 +73,22 @@ const styles = () => ({
     '&:last-child': { borderRight: 'none' },
   },
   bitrateDetail: { color: Colors.white60, display: 'block', fontSize: 10, fontWeight: 400, marginTop: 2 },
+  estimate: { alignItems: 'center', display: 'flex', justifyContent: 'space-between', marginTop: 8 },
+  estimateValue: { fontSize: 12, fontWeight: 500 },
+  input: {
+    background: Colors.white05,
+    border: `1px solid ${Colors.white10}`,
+    borderRadius: 8,
+    boxSizing: 'border-box',
+    color: Colors.white,
+    fontFamily: 'inherit',
+    fontSize: 13,
+    outline: 'none',
+    padding: '9px 11px',
+    width: '100%',
+    '&:focus': { borderColor: Colors.white60 },
+    '&::placeholder': { color: Colors.white40 },
+  },
   error: { color: '#ff8a80', fontSize: 12, marginTop: 10 },
   create: {
     background: Colors.white, borderRadius: 16, color: Colors.grey900, marginTop: 16,
@@ -101,10 +119,17 @@ function formatSize(bytes) {
   return `${Math.max(1, Math.round(bytes / (1024 * 1024)))} MB`;
 }
 
+function safeFilename(filename) {
+  return filename.trim().replace(/\.mp4$/i, '').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
 class ClipMenu extends Component {
   constructor(props) {
     super(props);
-    this.state = { clips: [], camera: 'fcamera', bitrate: 5, loading: false, creating: false, error: null };
+    this.state = {
+      clips: [], camera: 'fcamera', bitrate: 5, speedup: 1, filename: '',
+      loading: false, creating: false, error: null,
+    };
     this.poll = null;
     this.watchedClipIds = new Set();
     this.downloadedClipIds = new Set();
@@ -165,7 +190,7 @@ class ClipMenu extends Component {
 
   async createClip() {
     const { route, zoom } = this.props;
-    const { camera, bitrate } = this.state;
+    const { camera, bitrate, speedup, filename } = this.state;
     if (!route || !zoom || !this.props.deviceOnline) return;
     this.setState({ creating: true, error: null });
     try {
@@ -173,6 +198,8 @@ class ClipMenu extends Component {
         route: route.fullname,
         camera,
         bitrate,
+        speedup,
+        filename: safeFilename(filename) || null,
         startTime: zoom.start,
         endTime: zoom.end,
       });
@@ -189,7 +216,8 @@ class ClipMenu extends Component {
       const url = await clipDevice.download(clip.id);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `comma-clip-${clip.camera}-${formatTime(clip.startTime).replaceAll(':', '-')}-${formatTime(clip.endTime).replaceAll(':', '-')}.mp4`;
+      const defaultName = `comma-clip-${clip.camera}-${formatTime(clip.startTime).replaceAll(':', '-')}-${formatTime(clip.endTime).replaceAll(':', '-')}`;
+      link.download = `${clip.filename || defaultName}.mp4`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -208,7 +236,7 @@ class ClipMenu extends Component {
           <div>
             <Typography className={classes.clipTitle}>{camera}</Typography>
             <Typography className={classes.clipMeta}>
-              {`${formatTime(clip.startTime)}–${formatTime(clip.endTime)} · ${clip.bitrate} Mbps${clip.size ? ` · ${formatSize(clip.size)}` : ''}`}
+              {`${formatTime(clip.startTime)}–${formatTime(clip.endTime)} · ${clip.bitrate} Mbps${clip.speedup > 1 ? ` · ${clip.speedup}×` : ''}${clip.size ? ` · ${formatSize(clip.size)}` : ''}`}
             </Typography>
           </div>
           {clip.status === 'ready' && (
@@ -225,8 +253,10 @@ class ClipMenu extends Component {
 
   render() {
     const { anchorEl, classes, deviceOnline, onClose, open, route, zoom } = this.props;
-    const { bitrate, camera, clips, creating, error, loading } = this.state;
+    const { bitrate, camera, clips, creating, error, filename, loading, speedup } = this.state;
     const duration = zoom ? zoom.end - zoom.start : 0;
+    const outputDuration = duration / speedup;
+    const estimatedSize = outputDuration / 1000 * bitrate * 125000;
     const invalidDuration = duration <= 0 || duration > MAX_CLIP_DURATION;
     const deviceBusy = clips.some(clip => clip.status === 'encoding');
 
@@ -243,7 +273,6 @@ class ClipMenu extends Component {
       >
         <div className={classes.body}>
           <Typography className={classes.header}>Create a clip</Typography>
-          <Typography className={classes.supporting}>Saved on your comma device. It must be online to create or download clips.</Typography>
           <div className={classes.range}>
             <Typography className={classes.supporting}>Selected timeline range</Typography>
             <Typography className={classes.rangeValue}>{zoom ? `${formatTime(zoom.start)}–${formatTime(zoom.end)} · ${formatTime(duration)}` : '—'}</Typography>
@@ -265,6 +294,28 @@ class ClipMenu extends Component {
                 </Button>
               ))}
             </div>
+          </div>
+          <div className={classes.field}>
+            <Typography className={classes.label}>SPEED</Typography>
+            <div className={`${classes.choices} ${classes.bitrateChoices}`}>
+              {SPEEDUPS.map(value => (
+                <Button key={value} className={`${classes.choice} ${classes.bitrateChoice} ${speedup === value ? classes.selected : ''}`} onClick={() => this.setState({ speedup: value })}>{`${value}×`}</Button>
+              ))}
+            </div>
+            <div className={classes.estimate}>
+              <Typography className={classes.supporting}>{`Output: ${formatTime(outputDuration)}`}</Typography>
+              <Typography className={classes.estimateValue}>{`About ${formatSize(estimatedSize)}`}</Typography>
+            </div>
+          </div>
+          <div className={classes.field}>
+            <Typography className={classes.label}>FILENAME (OPTIONAL)</Typography>
+            <input
+              className={classes.input}
+              value={filename}
+              maxLength={80}
+              placeholder="comma-clip"
+              onChange={event => this.setState({ filename: event.target.value })}
+            />
           </div>
           {duration > MAX_CLIP_DURATION && <Typography className={classes.error}>Choose a range of 30 minutes or less.</Typography>}
           {error && <Typography className={classes.error}>{error}</Typography>}

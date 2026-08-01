@@ -12,7 +12,7 @@ function updateProgress(clip) {
   clip.progress = progress;
   if (progress === 1) {
     clip.status = 'ready';
-    clip.size = Math.round(((clip.endTime - clip.startTime) / 1000) * clip.bitrate * 125000);
+    clip.size = Math.round(((clip.endTime - clip.startTime) / 1000 / clip.speedup) * clip.bitrate * 125000);
   }
 }
 
@@ -32,7 +32,7 @@ export const clipDevice = {
     return clipsForRoute(route);
   },
 
-  async create({ route, camera, bitrate, startTime, endTime }) {
+  async create({ route, camera, bitrate, speedup, filename, startTime, endTime }) {
     await new Promise(resolve => setTimeout(resolve, 250));
     const id = `mock-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const clip = {
@@ -40,6 +40,8 @@ export const clipDevice = {
       route,
       camera,
       bitrate,
+      speedup,
+      filename,
       startTime,
       endTime,
       createdAt: Date.now(),
