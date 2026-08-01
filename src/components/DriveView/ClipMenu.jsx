@@ -16,9 +16,9 @@ const CAMERAS = [
 ];
 
 const BITRATES = [
-  [2, 'Small', '2 Mbps'],
   [5, 'Standard', '5 Mbps'],
-  [10, 'High', '10 Mbps'],
+  [8, 'High', '8 Mbps'],
+  [12, 'Extreme', '12 Mbps'],
 ];
 
 const SPEEDUPS = [1, 2, 5, 10];
@@ -35,23 +35,6 @@ const styles = () => ({
   field: { marginTop: 14 },
   label: { color: Colors.white60, display: 'block', fontSize: 11, marginBottom: 6 },
   choices: { display: 'flex' },
-  cameraChoices: {
-    border: `1px solid ${Colors.white10}`,
-    borderRadius: 50,
-    flexWrap: 'nowrap',
-    overflow: 'hidden',
-  },
-  cameraChoice: {
-    border: 'none',
-    borderRadius: 0,
-    borderRight: `1px solid ${Colors.white10}`,
-    flex: '1 1 0',
-    minHeight: 36,
-    paddingLeft: 6,
-    paddingRight: 6,
-    whiteSpace: 'nowrap',
-    '&:last-child': { borderRight: 'none' },
-  },
   choice: {
     border: `1px solid ${Colors.white10}`, borderRadius: 8, color: Colors.white,
     fontSize: 12, minHeight: 36, minWidth: 0, padding: '4px 11px', textTransform: 'none',
@@ -279,9 +262,9 @@ class ClipMenu extends Component {
           </div>
           <div className={classes.field}>
             <Typography className={classes.label}>CAMERA</Typography>
-            <div className={`${classes.choices} ${classes.cameraChoices}`}>
+            <div className={`${classes.choices} ${classes.bitrateChoices}`}>
               {CAMERAS.map(([value, label]) => (
-                <Button key={value} className={`${classes.choice} ${classes.cameraChoice} ${camera === value ? classes.selected : ''}`} onClick={() => this.setState({ camera: value })}>{label}</Button>
+                <Button key={value} className={`${classes.choice} ${classes.bitrateChoice} ${camera === value ? classes.selected : ''}`} onClick={() => this.setState({ camera: value })}>{label}</Button>
               ))}
             </div>
           </div>
