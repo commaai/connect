@@ -665,9 +665,11 @@ class Media extends Component {
       <>
         <ClipMenu
           open={Boolean(alwaysOpen || clipMenu)}
+          dongleId={this.props.dongleId}
           anchorEl={clipMenu}
           onClose={() => this.setState({ clipMenu: null })}
           route={currentRoute}
+          routes={this.props.routes}
           zoom={this.props.zoom}
           deviceOnline={deviceIsOnline(device)}
         />

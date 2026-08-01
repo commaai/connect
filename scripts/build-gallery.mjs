@@ -26,6 +26,13 @@ const GALLERY_STATES = [
   { name: 'signin', label: 'Sign in', path: '/', readyText: 'Sign in with Google', anonymous: true },
   { name: 'pair', label: 'Pair a device', path: '/', readyText: 'add new device' },
   { name: 'dashboard', label: 'Dashboard', path: `/${DONGLE_ID}`, readyText: 'Bronco Sport' },
+  {
+    name: 'clip-inventory-menu',
+    label: 'Device clip inventory',
+    page: 'dashboard',
+    actions: [{ selector: '[aria-label="Clips"]' }],
+    modalText: 'CLIPS ON THIS DEVICE',
+  },
   { name: 'drive', label: 'Drive', path: `/${DONGLE_ID}/${LOG_ID}`, readySelector: '.DriveView' },
   {
     name: 'clip-menu',

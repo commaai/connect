@@ -136,8 +136,9 @@ class ClipMenu extends Component {
   componentDidUpdate(prevProps) {
     const opened = this.props.open && !prevProps.open;
     const routeChanged = this.props.route?.fullname !== prevProps.route?.fullname;
+    const deviceChanged = this.props.dongleId !== prevProps.dongleId;
     const reconnected = this.props.deviceOnline && !prevProps.deviceOnline;
-    if ((opened || routeChanged || reconnected) && this.props.open) this.loadClips();
+    if ((opened || routeChanged || deviceChanged || reconnected) && this.props.open) this.loadClips();
     if (!this.props.deviceOnline && prevProps.deviceOnline) {
       this.stopPolling();
       this.setState({ loading: false });
@@ -156,15 +157,15 @@ class ClipMenu extends Component {
 
   async loadClips(showLoading = true) {
     const routeName = this.props.route?.fullname;
-    if (!routeName) return;
+    const { dongleId } = this.props;
     if (!this.props.deviceOnline) {
       this.setState({ loading: false, error: null });
       return;
     }
     if (showLoading) this.setState({ loading: true, error: null });
     try {
-      const clips = await clipDevice.list(routeName);
-      if (routeName !== this.props.route?.fullname) return;
+      const clips = await clipDevice.list(dongleId);
+      if (routeName !== this.props.route?.fullname || dongleId !== this.props.dongleId) return;
       this.setState({ clips, loading: false });
       clips.filter(clip => clip.status === 'encoding').forEach(clip => this.watchedClipIds.add(clip.id));
       const completedClip = clips.find(clip => clip.status === 'ready'
@@ -224,11 +225,19 @@ class ClipMenu extends Component {
   renderClip(clip) {
     const { classes } = this.props;
     const camera = CAMERAS.find(([value]) => value === clip.camera)?.[2] || clip.camera;
+    const currentRoute = clip.route === this.props.route?.fullname;
+    const knownRoute = this.props.routes?.find(route => route.fullname === clip.route);
+    const routeLabel = currentRoute
+      ? 'This route'
+      : (knownRoute?.start_time_utc_millis
+        ? new Date(knownRoute.start_time_utc_millis).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+        : clip.route.replace('|', '/'));
     return (
       <div key={clip.id} className={classes.clip}>
         <div className={classes.clipTop}>
           <div className={classes.clipDetails}>
             <Typography className={classes.clipTitle}>{camera}</Typography>
+            <Typography className={classes.clipMeta}>{routeLabel}</Typography>
             <Typography className={classes.clipMeta}>
               {`${formatTime(clip.startTime)}–${formatTime(clip.endTime)} · ${clip.bitrate} Mbps${clip.speedup > 1 ? ` · ${clip.speedup}×` : ''}${clip.size ? ` · ${formatSize(clip.size)}` : ''}`}
             </Typography>
@@ -254,7 +263,7 @@ class ClipMenu extends Component {
   }
 
   render() {
-    const { anchorEl, classes, deviceOnline, onClose, open, route, zoom } = this.props;
+    const { anchorEl, classes, deviceOnline, inventoryOnly, onClose, open, route, zoom } = this.props;
     const { bitrate, camera, clips, creating, error, filename, loading, speedup } = this.state;
     const duration = zoom ? zoom.end - zoom.start : 0;
     const outputDuration = duration / speedup;
@@ -273,7 +282,7 @@ class ClipMenu extends Component {
         MenuListProps={{ style: { outline: 'none' } }}
         disableAutoFocusItem
       >
-        <div className={classes.body}>
+        {!inventoryOnly && <div className={classes.body}>
           <Typography className={classes.header}>Create a clip</Typography>
           <div className={classes.range}>
             <Typography className={classes.supporting}>Selected timeline range</Typography>
@@ -324,10 +333,10 @@ class ClipMenu extends Component {
           <Button className={classes.create} disabled={!deviceOnline || creating || deviceBusy || invalidDuration || !route} onClick={() => this.createClip()}>
             {creating ? <CircularProgress size={18} /> : (!deviceOnline ? 'Device offline' : (deviceBusy ? 'Clip in progress' : 'Create clip'))}
           </Button>
-        </div>
-        <Divider />
+        </div>}
+        {!inventoryOnly && <Divider />}
         <div className={classes.clipsSection}>
-          <Typography className={classes.sectionTitle}>{deviceOnline ? 'CLIPS ON THIS DEVICE FOR THIS ROUTE' : 'LAST KNOWN CLIPS FOR THIS ROUTE'}</Typography>
+          <Typography className={classes.sectionTitle}>{deviceOnline ? 'CLIPS ON THIS DEVICE' : 'LAST KNOWN CLIPS ON THIS DEVICE'}</Typography>
           {loading && <div className={classes.empty}><CircularProgress size={18} /></div>}
           {!loading && clips.length === 0 && <Typography className={classes.empty}>{deviceOnline ? 'No clips yet' : 'Connect to your device to check for clips'}</Typography>}
           {!loading && clips.map(clip => this.renderClip(clip))}

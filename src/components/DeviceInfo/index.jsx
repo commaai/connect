@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 
 import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@material-ui/core';
+import ContentCut from '@material-ui/icons/ContentCut';
 
 import { athena as Athena } from '../../api';
 import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
@@ -14,6 +15,7 @@ import { webrtcConnectionManager } from '../../utils/webrtc';
 import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
 import CommacareBadge from '../CommacareBadge';
+import ClipMenu from '../DriveView/ClipMenu';
 import { LivestreamIcon, CarBatteryIcon, CameraIcon, GamepadIcon } from '../../icons';
 
 const styles = (theme) => ({
@@ -167,6 +169,7 @@ class DeviceInfo extends Component {
       snapshot: {},
       windowWidth: window.innerWidth,
       bodyTeleopOpen: false,
+      clipMenu: null,
     };
 
     this.snapshotButtonRef = React.createRef();
@@ -199,6 +202,7 @@ class DeviceInfo extends Component {
         carHealth: {},
         snapshot: {},
         windowWidth: window.innerWidth,
+        clipMenu: null,
       });
     }
 
@@ -327,6 +331,15 @@ class DeviceInfo extends Component {
             { this.renderButtons() }
           </div>
         </div>
+        <ClipMenu
+          open={Boolean(this.state.clipMenu)}
+          dongleId={this.props.dongleId}
+          anchorEl={this.state.clipMenu}
+          onClose={() => this.setState({ clipMenu: null })}
+          routes={this.props.routes}
+          deviceOnline={deviceIsOnline(device)}
+          inventoryOnly
+        />
         { snapshot.result && (
           <div className={ classes.snapshotContainer }>
             { windowWidth >= 640
@@ -411,6 +424,21 @@ class DeviceInfo extends Component {
             </button>
           </Tooltip>
         )}
+        <Tooltip
+          classes={{ tooltip: classes.popover }}
+          title="Clips"
+          placement="bottom"
+        >
+          <button
+            style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
+            className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
+            aria-label="Clips"
+            onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
+            disabled={!deviceIsOnline(device)}
+          >
+            <ContentCut className="text-black" />
+          </button>
+        </Tooltip>
         {!livestreamEnabled && (
           <Tooltip
             classes={{ tooltip: classes.popover }}
@@ -487,6 +515,7 @@ class DeviceInfo extends Component {
 const stateToProps = Obstruction({
   dongleId: 'dongleId',
   device: 'device',
+  routes: 'routes',
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));
