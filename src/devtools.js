@@ -1,4 +1,3 @@
-import window from 'global/window';
 import { compose } from 'redux';
 
 function getComposeEnhancers() {
