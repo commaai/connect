@@ -6,8 +6,6 @@ import qs from 'query-string';
 import localforage from 'localforage';
 import * as Sentry from '@sentry/react';
 
-import { CircularProgress, Grid } from '@material-ui/core';
-
 import MyCommaAuth, { config as AuthConfig, storage as AuthStorage } from '@commaai/my-comma-auth';
 import { athena as Athena, auth as Auth, billing as Billing, request as Request } from './api';
 
@@ -17,6 +15,7 @@ import { fetchTurnCredentials } from './utils/turn';
 import store, { history } from './store';
 
 import ErrorFallback from './components/ErrorFallback';
+import FullPageLoading from './components/FullPageLoading';
 
 const Explorer = lazy(() => import('./components/explorer'));
 const AnonymousLanding = lazy(() => import('./components/anonymous'));
@@ -119,24 +118,14 @@ class App extends Component {
     );
   }
 
-  renderLoading() {
-    return (
-      <Grid container alignItems="center" style={{ width: '100%', height: '100vh' }}>
-        <Grid item align="center" xs={12}>
-          <CircularProgress size="10vh" style={{ color: '#525E66' }} />
-        </Grid>
-      </Grid>
-    );
-  }
-
   render() {
     if (!this.state.initialized) {
-      return this.renderLoading();
+      return <FullPageLoading />;
     }
 
     const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(window.location.pathname) && !getSegmentRange(window.location.pathname);
     let content = (
-      <Suspense fallback={this.renderLoading()}>
+      <Suspense fallback={<FullPageLoading />}>
         { showLogin ? this.anonymousRoutes() : this.authRoutes() }
       </Suspense>
     );
