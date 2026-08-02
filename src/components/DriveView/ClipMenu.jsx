@@ -23,7 +23,7 @@ const BITRATES = [
   [12, 'Extreme', '12 Mbps'],
 ];
 
-const SPEEDUPS = [1, 2, 5, 10];
+const SPEEDUPS = [1, 2, 4, 5, 10, 20];
 
 const styles = () => ({
   paper: { width: 360, maxWidth: 'calc(100vw - 24px)', outline: 'none' },
@@ -129,8 +129,8 @@ function safeFilename(filename) {
   return filename.trim().replace(/\.mp4$/i, '').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
-function defaultFilename(camera, startTime, endTime) {
-  return `comma-clip-${camera}-${Math.round(startTime)}-${Math.round(endTime)}`;
+function defaultFilename(camera, startTime, endTime, bitrate, speedup) {
+  return `comma-clip-${camera}-${Math.round(startTime)}-${Math.round(endTime)}-${bitrate}mbps-${speedup}x`;
 }
 
 function deviceRouteName(route) {
@@ -225,7 +225,7 @@ class ClipMenu extends Component {
           camera,
           bitrate,
           speedup,
-          filename: `${safeFilename(filename) || defaultFilename(camera, zoom.start / 1000, zoom.end / 1000)}.mp4`,
+          filename: `${safeFilename(filename) || defaultFilename(camera, zoom.start / 1000, zoom.end / 1000, bitrate, speedup)}.mp4`,
         }],
       });
       if (!this.mounted) return;
@@ -453,7 +453,7 @@ class ClipMenu extends Component {
               className={classes.input}
               value={filename}
               maxLength={80}
-              placeholder={defaultFilename(camera, startTime, endTime)}
+              placeholder={defaultFilename(camera, startTime, endTime, bitrate, speedup)}
               onChange={event => this.setState({ filename: event.target.value })}
             />
           </div>
