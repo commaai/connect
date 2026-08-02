@@ -129,6 +129,10 @@ function safeFilename(filename) {
   return filename.trim().replace(/\.mp4$/i, '').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
+function defaultFilename(camera, startTime, endTime) {
+  return `comma-clip-${camera}-${Math.round(startTime)}-${Math.round(endTime)}`;
+}
+
 function deviceRouteName(route) {
   return route?.fullname?.split(/[|/]/).pop() || null;
 }
@@ -200,9 +204,9 @@ class ClipMenu extends Component {
       const { clips } = state;
       const cameraRanges = routeName ? state.routes[routeName]?.cameras || {} : null;
       this.setState({ clips, cameraRanges, loading: false });
-      clips.filter(clip => ACTIVE_STATUSES.has(clip.status)).forEach(clip => this.watchedClipIds.add(clip.id));
+      clips.filter(clip => ACTIVE_STATUSES.has(clip.status)).forEach(clip => this.watchedClipIds.add(clip.filename));
       const completedClip = clips.find(clip => clip.status === 'ready'
-        && this.watchedClipIds.has(clip.id) && !this.downloadedClipIds.has(clip.id));
+        && this.watchedClipIds.has(clip.filename) && !this.downloadedClipIds.has(clip.filename));
       if (completedClip && this.props.open) {
         this.downloadClip(completedClip);
       }
@@ -229,7 +233,7 @@ class ClipMenu extends Component {
           camera,
           bitrate,
           speedup,
-          filename: safeFilename(filename),
+          filename: `${safeFilename(filename) || defaultFilename(camera, zoom.start / 1000, zoom.end / 1000)}.mp4`,
         }],
       });
       if (!this.mounted) return;
@@ -241,10 +245,10 @@ class ClipMenu extends Component {
   }
 
   async downloadClip(clip) {
-    if (!this.props.deviceOnline || this.downloadingClipIds.has(clip.id)) return;
-    this.downloadingClipIds.add(clip.id);
+    if (!this.props.deviceOnline || this.downloadingClipIds.has(clip.filename)) return;
+    this.downloadingClipIds.add(clip.filename);
     try {
-      const url = await clipDevice.getClipUrl(this.props.dongleId, clip.id);
+      const url = await clipDevice.getClipUrl(this.props.dongleId, clip.filename);
       const link = document.createElement('a');
       link.href = url;
       const defaultName = `comma-clip-${clip.camera}-${formatTime(clip.source_start_time).replaceAll(':', '-')}-${formatTime(clip.source_end_time).replaceAll(':', '-')}`;
@@ -252,20 +256,20 @@ class ClipMenu extends Component {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      this.downloadedClipIds.add(clip.id);
+      this.downloadedClipIds.add(clip.filename);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
       if (this.mounted) this.setState({ error: err.message || 'Could not download clip' });
     } finally {
-      this.downloadingClipIds.delete(clip.id);
+      this.downloadingClipIds.delete(clip.filename);
     }
   }
 
   async removeClip(clip) {
     if (!this.props.deviceOnline) return;
     try {
-      await clipDevice.deleteClips(this.props.dongleId, { clip_ids: [clip.id] });
-      this.watchedClipIds.delete(clip.id);
+      await clipDevice.deleteClips(this.props.dongleId, { filenames: [clip.filename] });
+      this.watchedClipIds.delete(clip.filename);
       if (this.mounted) await this.loadClips(false);
     } catch (err) {
       if (this.mounted) this.setState({ error: err.message || 'Could not remove clip' });
@@ -279,8 +283,8 @@ class ClipMenu extends Component {
     const request = this.previewRequest;
     this.setState({ viewingClip: clip, previewUrl: null, previewLoading: true, error: null });
     try {
-      const previewUrl = await clipDevice.getClipUrl(this.props.dongleId, clip.id);
-      if (!this.mounted || request !== this.previewRequest || this.state.viewingClip?.id !== clip.id) {
+      const previewUrl = await clipDevice.getClipUrl(this.props.dongleId, clip.filename);
+      if (!this.mounted || request !== this.previewRequest || this.state.viewingClip?.filename !== clip.filename) {
         URL.revokeObjectURL(previewUrl);
         return;
       }
@@ -329,7 +333,7 @@ class ClipMenu extends Component {
         : clip.route);
     const title = clip.filename?.replace(/\.mp4$/i, '') || 'Clip';
     return (
-      <div key={clip.id} className={classes.clip}>
+      <div key={clip.filename} className={classes.clip}>
         <div className={classes.clipTop}>
           <div className={classes.clipDetails}>
             <Typography className={classes.clipTitle}>{title}</Typography>
@@ -459,7 +463,7 @@ class ClipMenu extends Component {
               className={classes.input}
               value={filename}
               maxLength={80}
-              placeholder="comma-clip"
+              placeholder={defaultFilename(camera, startTime, endTime)}
               onChange={event => this.setState({ filename: event.target.value })}
             />
           </div>

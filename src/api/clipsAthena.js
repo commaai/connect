@@ -1,6 +1,13 @@
+import { athena as Athena } from '../api';
+
 const ATHENA_URL_ROOT = import.meta.env.VITE_CLIPS_ATHENA_URL_ROOT?.replace(/\/$/, '');
 
 async function call(dongleId, method, params) {
+  if (!ATHENA_URL_ROOT) {
+    const payload = await Athena.postJsonRpcPayload(dongleId, { jsonrpc: '2.0', id: crypto.randomUUID(), method, params });
+    if (payload.error) throw new Error(payload.error.message || 'Athena request failed');
+    return payload.result;
+  }
   const response = await fetch(`${ATHENA_URL_ROOT}/${dongleId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -25,7 +32,8 @@ export const clipsAthena = {
     return call(dongleId, 'deleteClips', params);
   },
 
-  async getClipUrl(dongleId, clipId) {
-    return `${ATHENA_URL_ROOT}/${dongleId}/clips/${clipId}`;
+  async getClipUrl(dongleId, filename) {
+    if (!ATHENA_URL_ROOT) throw new Error('Clip playback endpoint is not configured');
+    return `${ATHENA_URL_ROOT}/${dongleId}/clips/${encodeURIComponent(filename)}`;
   },
 };
