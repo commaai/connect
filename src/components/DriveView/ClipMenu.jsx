@@ -1,11 +1,11 @@
 import React, { Component } from 'react';
 import {
-  Button, CircularProgress, Dialog, DialogContent, DialogTitle, Divider, IconButton, LinearProgress, Menu, Typography, withStyles,
+  Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, LinearProgress, Menu, Typography, withStyles,
 } from '@material-ui/core';
 
 import Colors from '../../colors';
 import { clipDevice } from '../../api/clips';
-import { CloseBold, Download as DownloadIcon, PlayArrow } from '../../icons';
+import { CloseBold, Download as DownloadIcon, PlayArrow, Trash } from '../../icons';
 import InfoTooltip from '../utils/InfoTooltip';
 
 const MAX_CLIP_DURATION = 30 * 60;
@@ -115,6 +115,11 @@ const styles = () => ({
   viewerActions: { alignItems: 'center', display: 'flex', flex: '0 0 auto', marginTop: -4 },
   viewerContent: { padding: '0 20px 20px' },
   viewerVideo: { background: Colors.grey950, display: 'block', maxHeight: '70vh', width: '100%' },
+  deletePaper: { background: Colors.grey900, width: 360 },
+  deleteTitle: { paddingBottom: 8 },
+  deleteContent: { color: Colors.white60, fontSize: 14, lineHeight: 1.5 },
+  deleteActions: { padding: '8px 16px 16px' },
+  deleteButton: { color: '#ff8a80' },
   empty: { color: Colors.white60, fontSize: 13, lineHeight: 1.4, paddingTop: 5 },
 });
 
@@ -162,6 +167,7 @@ class ClipMenu extends Component {
       clips: [], camera: 'fcamera.hevc', bitrate: 5, speedup: 1, filename: '',
       cameraRanges: null, loading: false, creating: false, error: null,
       viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0,
+      deletingClip: null, deleteDialogOpen: false, deleting: false,
     };
     this.poll = null;
     this.mounted = false;
@@ -271,6 +277,14 @@ class ClipMenu extends Component {
     }
   }
 
+  async confirmDelete() {
+    const { deletingClip } = this.state;
+    if (!deletingClip || this.state.deleting) return;
+    this.setState({ deleting: true });
+    await this.removeClip(deletingClip);
+    if (this.mounted) this.setState({ deleteDialogOpen: false, deleting: false });
+  }
+
   async openViewer(clip) {
     if (!this.props.deviceOnline) return;
     if (this.state.previewingClip) return;
@@ -310,13 +324,7 @@ class ClipMenu extends Component {
     const { previewUrl, viewingClip } = this.state;
     const title = viewingClip?.filename?.replace(/\.mp4$/i, '') || 'Clip';
     const camera = CAMERAS.find(([value]) => value === viewingClip?.camera)?.[1] || viewingClip?.camera;
-    const currentRoute = viewingClip?.route === deviceRouteName(this.props.route);
-    const knownRoute = this.props.routes?.find(route => deviceRouteName(route) === viewingClip?.route);
-    const routeLabel = currentRoute
-      ? 'This route'
-      : (knownRoute?.start_time_utc_millis
-        ? new Date(knownRoute.start_time_utc_millis).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
-        : viewingClip?.route);
+    const routeId = viewingClip?.route ? `${this.props.dongleId}/${viewingClip.route}` : this.props.dongleId;
     const duration = viewingClip
       ? formatDuration((viewingClip.source_end_time - viewingClip.source_start_time) / (viewingClip.speedup || 1))
       : '';
@@ -325,9 +333,8 @@ class ClipMenu extends Component {
         <DialogTitle disableTypography className={classes.viewerTitle}>
           <div className={classes.viewerDetails}>
             <Typography className={classes.header}>{title}</Typography>
-            <Typography className={classes.viewerMeta}>{routeLabel}</Typography>
             <Typography className={classes.viewerMeta}>
-              {[camera, duration, formatSize(viewingClip?.size)].filter(Boolean).join(' · ')}
+              {[routeId, camera, duration, formatSize(viewingClip?.size)].filter(Boolean).join(' · ')}
             </Typography>
           </div>
           <div className={classes.viewerActions}>
@@ -340,6 +347,33 @@ class ClipMenu extends Component {
         <DialogContent className={classes.viewerContent}>
           {previewUrl && <video className={classes.viewerVideo} src={previewUrl} controls autoPlay playsInline />}
         </DialogContent>
+      </Dialog>
+    );
+  }
+
+  renderDeleteConfirmation() {
+    const { classes } = this.props;
+    const { deleteDialogOpen, deleting, deletingClip } = this.state;
+    const title = deletingClip?.filename?.replace(/\.mp4$/i, '') || 'this clip';
+    return (
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => !deleting && this.setState({ deleteDialogOpen: false })}
+        classes={{ paper: classes.deletePaper }}
+        TransitionProps={{ onExited: () => this.setState({ deletingClip: null }) }}
+      >
+        <DialogTitle className={classes.deleteTitle}>Delete clip?</DialogTitle>
+        <DialogContent>
+          <Typography className={classes.deleteContent}>
+            {`${title} will be permanently deleted from your comma device and this browser.`}
+          </Typography>
+        </DialogContent>
+        <DialogActions className={classes.deleteActions}>
+          <Button disabled={deleting} onClick={() => this.setState({ deleteDialogOpen: false })}>Cancel</Button>
+          <Button className={classes.deleteButton} disabled={deleting} onClick={() => this.confirmDelete()}>
+            {deleting ? <CircularProgress size={18} /> : 'Delete'}
+          </Button>
+        </DialogActions>
       </Dialog>
     );
   }
@@ -385,9 +419,13 @@ class ClipMenu extends Component {
               className={classes.clipAction}
               disabled={!this.props.deviceOnline}
               title={this.props.deviceOnline ? (ACTIVE_STATUSES.has(clip.status) ? 'Cancel clip' : 'Delete clip') : 'Device offline'}
-              onClick={() => this.removeClip(clip)}
+              onClick={() => (ACTIVE_STATUSES.has(clip.status)
+                ? this.removeClip(clip)
+                : this.setState({ deletingClip: clip, deleteDialogOpen: true }))}
             >
-              <CloseBold className={classes.secondaryActionIcon} />
+              {ACTIVE_STATUSES.has(clip.status)
+                ? <CloseBold className={classes.secondaryActionIcon} />
+                : <Trash className={classes.secondaryActionIcon} />}
             </IconButton>
           </div>
         </div>
@@ -504,6 +542,7 @@ class ClipMenu extends Component {
           </div>
         </Menu>
         {this.renderViewer()}
+        {this.renderDeleteConfirmation()}
       </>
     );
   }
