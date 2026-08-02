@@ -1,4 +1,4 @@
-import qs from 'query-string';
+import { stringifyQuery } from './utils/query';
 
 const COMMA_URL_ROOT = import.meta.env.VITE_COMMA_URL_ROOT || 'https://api.comma.ai/';
 const ATHENA_URL_ROOT = import.meta.env.VITE_ATHENA_URL_ROOT || 'https://athena.comma.ai/';
@@ -40,9 +40,9 @@ class ApiRequest {
     let body;
     if (params && Object.keys(params).length) {
       if (method === 'GET' || method === 'HEAD') {
-        url += `?${qs.stringify(params)}`;
+        url += `?${stringifyQuery(params)}`;
       } else {
-        body = json ? JSON.stringify(params) : qs.stringify(params);
+        body = json ? JSON.stringify(params) : stringifyQuery(params);
       }
     }
 
@@ -171,7 +171,7 @@ export const drives = {
 const urlCache = {};
 
 async function getCached(endpoint, params, nocache = false) {
-  const url = params === undefined ? endpoint : `${endpoint}?${qs.stringify(params)}`;
+  const url = params === undefined ? endpoint : `${endpoint}?${stringifyQuery(params)}`;
   if (urlCache[url] && !nocache) {
     return urlCache[url];
   }
@@ -191,6 +191,6 @@ export const raw = {
 
 export const video = {
   getQcameraStreamUrl(routeStr, exp, sig) {
-    return `${request.baseUrl}v1/route/${routeStr}/qcamera.m3u8?${qs.stringify({ exp, sig })}`;
+    return `${request.baseUrl}v1/route/${routeStr}/qcamera.m3u8?${stringifyQuery({ exp, sig })}`;
   },
 };

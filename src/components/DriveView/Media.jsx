@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import qs from 'query-string';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 
@@ -22,6 +21,7 @@ import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
 import { InfoOutline } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
+import { stringifyQuery } from '../../utils/query';
 import { analyticsEvent, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
@@ -348,7 +348,7 @@ class Media extends Component {
     this.props.dispatch(analyticsEvent('open_in_useradmin', event_parameters));
 
     const params = { onebox: currentRoute.fullname };
-    const win = window.open(`${USERADMIN_URL_ROOT}?${qs.stringify(params)}`, '_blank');
+    const win = window.open(`${USERADMIN_URL_ROOT}?${stringifyQuery(params)}`, '_blank');
     if (win.focus) {
       win.focus();
     }

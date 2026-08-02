@@ -2,7 +2,6 @@ import React, { Component, lazy, Suspense } from 'react';
 import { Provider } from 'react-redux';
 import { Route, Switch, Redirect } from 'react-router';
 import { ConnectedRouter } from 'connected-react-router';
-import qs from 'query-string';
 import localforage from 'localforage';
 import * as Sentry from '@sentry/react';
 
@@ -30,7 +29,7 @@ class App extends Component {
 
     let pairToken;
     if (window.location) {
-      pairToken = qs.parse(window.location.search).pair;
+      pairToken = new URLSearchParams(window.location.search).get('pair');
     }
 
     if (pairToken) {
@@ -52,8 +51,8 @@ class App extends Component {
     if (window.location) {
       if (window.location.pathname === AuthConfig.AUTH_PATH) {
         try {
-          const { code, provider } = qs.parse(window.location.search);
-          const token = await Auth.refreshAccessToken(code, provider);
+          const authParams = new URLSearchParams(window.location.search);
+          const token = await Auth.refreshAccessToken(authParams.get('code'), authParams.get('provider'));
           if (token) {
             AuthStorage.setCommaAccessToken(token);
           }
