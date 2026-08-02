@@ -1,6 +1,7 @@
 /**
  * Build an application/x-www-form-urlencoded query string.
- * Omits null/undefined values (matches query-string's default behavior).
+ * - Omits null/undefined (intentional; saner than query-string's bare keys).
+ * - Arrays become repeated keys (query-string arrayFormat: 'none').
  */
 export function stringifyQuery(params) {
   const search = new URLSearchParams();
@@ -11,7 +12,15 @@ export function stringifyQuery(params) {
     if (value == null) {
       continue;
     }
-    search.set(key, value);
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (item != null) {
+          search.append(key, item);
+        }
+      }
+    } else {
+      search.set(key, value);
+    }
   }
   return search.toString();
 }
