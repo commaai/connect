@@ -1,6 +1,5 @@
 import { Component } from 'react';
 import { connect } from 'react-redux';
-import debounce from 'debounce';
 
 class VisibilityHandler extends Component {
   constructor(props) {
@@ -11,7 +10,7 @@ class VisibilityHandler extends Component {
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
     this.handleFocus = this.handleFocus.bind(this);
     this.handleBlur = this.handleBlur.bind(this);
-    this.onVisibilityEvent = debounce(this.onVisibilityEvent.bind(this), 1000, true);
+    this.onVisibilityEvent = this.onVisibilityEvent.bind(this);
   }
 
   componentDidMount() {

@@ -2,7 +2,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { CircularProgress, Typography } from '@material-ui/core';
-import debounce from 'debounce';
 import ReactPlayer from 'react-player/file';
 
 import { video as Video } from '../../api';
@@ -12,6 +11,37 @@ import { ErrorOutline } from '../../icons';
 import { currentOffset } from '../../timeline';
 import { seek, bufferVideo } from '../../timeline/playback';
 import { isIos, isFirefox } from '../../utils/browser.js';
+
+// Leading-edge debounce: run immediately, then ignore calls until `wait` ms after the last one.
+function debounceLeading(func, wait) {
+  let timeout = null;
+  let args;
+  let context;
+  let timestamp;
+
+  function later() {
+    const last = Date.now() - timestamp;
+    if (last < wait && last >= 0) {
+      timeout = setTimeout(later, wait - last);
+    } else {
+      timeout = null;
+    }
+  }
+
+  return function debounced(...nextArgs) {
+    context = this;
+    args = nextArgs;
+    timestamp = Date.now();
+    const callNow = !timeout;
+    if (!timeout) {
+      timeout = setTimeout(later, wait);
+    }
+    if (callNow) {
+      return func.apply(context, args);
+    }
+    return undefined;
+  };
+}
 
 const VideoOverlay = ({ loading, error }) => {
   let content;
@@ -63,7 +93,7 @@ class DriveVideo extends Component {
     this.onHlsError = this.onHlsError.bind(this);
     this.onVideoError = this.onVideoError.bind(this);
     this.onVideoResume = this.onVideoResume.bind(this);
-    this.syncVideo = debounce(this.syncVideo.bind(this), 200, true);
+    this.syncVideo = debounceLeading(this.syncVideo.bind(this), 200);
     this.firstSeek = true;
 
     this.videoPlayer = React.createRef();
