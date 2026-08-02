@@ -24,23 +24,6 @@ export function asyncSleep(ms) {
   });
 }
 
-export function toBool(item) {
-  switch (typeof item) {
-    case 'boolean':
-      return item;
-    case 'number':
-      return item < 0 || item > 0;
-    case 'object':
-      return !!item;
-    case 'string':
-      return ['true', '1'].indexOf(item.toLowerCase()) >= 0;
-    case 'undefined':
-      return false;
-    default:
-      return true;
-  }
-}
-
 export function formatDriveDuration(duration) {
   const hours = Math.floor((duration / (1000 * 60 * 60))) % 24;
   const minutes = Math.floor((duration / (1000 * 60))) % 60;
