@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 
 import ReactMapGL, { LinearInterpolator } from 'react-map-gl';
 
@@ -306,10 +305,10 @@ class DriveMap extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  offset: 'offset',
-  currentRoute: 'currentRoute',
-  startTime: 'startTime',
+const stateToProps = (state) => ({
+  offset: state.offset,
+  currentRoute: state.currentRoute,
+  startTime: state.startTime,
 });
 
 export default connect(stateToProps)(DriveMap);

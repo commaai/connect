@@ -1,6 +1,5 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import qs from 'query-string';
 
 import { Typography } from '@material-ui/core';
@@ -30,10 +29,10 @@ const Prime = (props) => {
   return (<PrimeCheckout stripeCancelled={ stripeCancelled } />);
 };
 
-const stateToProps = Obstruction({
-  subscription: 'subscription',
-  device: 'device',
-  profile: 'profile',
+const stateToProps = (state) => ({
+  subscription: state.subscription,
+  device: state.device,
+  profile: state.profile,
 });
 
 export default connect(stateToProps)(Prime);

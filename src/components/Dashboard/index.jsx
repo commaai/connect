@@ -1,6 +1,5 @@
 import React, { lazy, Suspense } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 
 import { CircularProgress, Grid } from '@material-ui/core';
 
@@ -40,10 +39,10 @@ const Dashboard = ({ primeNav, device, dongleId }) => {
   );
 };
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  primeNav: 'primeNav',
-  device: 'device',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  primeNav: state.primeNav,
+  device: state.device,
 });
 
 export default connect(stateToProps)(Dashboard);

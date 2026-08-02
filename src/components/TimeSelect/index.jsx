@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 import PropTypes from 'prop-types';
 
@@ -161,8 +160,8 @@ class TimeSelect extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  filter: 'filter',
+const stateToProps = (state) => ({
+  filter: state.filter,
 });
 
 TimeSelect.propTypes = {

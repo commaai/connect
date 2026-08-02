@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import qs from 'query-string';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
 import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem, Tooltip } from '@material-ui/core';
@@ -935,17 +934,17 @@ class Media extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  device: 'device',
-  routes: 'routes',
-  currentRoute: 'currentRoute',
-  zoom: 'zoom',
-  loop: 'loop',
-  filter: 'filter',
-  files: 'files',
-  profile: 'profile',
-  isBufferingVideo: 'isBufferingVideo',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  device: state.device,
+  routes: state.routes,
+  currentRoute: state.currentRoute,
+  zoom: state.zoom,
+  loop: state.loop,
+  filter: state.filter,
+  files: state.files,
+  profile: state.profile,
+  isBufferingVideo: state.isBufferingVideo,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));

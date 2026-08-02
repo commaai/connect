@@ -3,7 +3,6 @@
 // rapid seeking, etc
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import { withStyles } from '@material-ui/core/styles';
 import dayjs from 'dayjs';
 
@@ -444,9 +443,9 @@ class Timeline extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  zoom: 'zoom',
-  loop: 'loop',
+const stateToProps = (state) => ({
+  zoom: state.zoom,
+  loop: state.loop,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Timeline));

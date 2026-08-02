@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import { Link } from 'react-router-dom';
 
 import Drawer from '@material-ui/core/Drawer';
@@ -57,9 +56,9 @@ const AppDrawer = ({
   );
 };
 
-const stateToProps = Obstruction({
-  selectedDongleId: 'dongleId',
-  device: 'device',
+const stateToProps = (state) => ({
+  selectedDongleId: state.dongleId,
+  device: state.device,
 });
 
 export default connect(stateToProps)(AppDrawer);
