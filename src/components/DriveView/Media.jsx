@@ -10,7 +10,7 @@ import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
 
 import { drives as Drives, USERADMIN_URL_ROOT } from '../../api';
-import { clipsLocal } from '../../api/clips';
+import { clipsLocal, deviceSupportsClips } from '../../api/clips';
 
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
@@ -575,6 +575,7 @@ class Media extends Component {
     const { classes, device } = this.props;
     const { inView } = this.state;
     const clipAvailable = deviceIsOnline(device) || clipsLocal;
+    const clipsSupported = deviceSupportsClips(device);
     return (
       <>
         <div className={classes.mediaOptionsRoot}>
@@ -606,7 +607,7 @@ class Media extends Component {
             >
               <Typography className={classes.mediaOptionText}>Files</Typography>
             </div>
-            <Tooltip title={clipAvailable ? '' : 'Device offline'} placement="top">
+            {clipsSupported && <Tooltip title={clipAvailable ? '' : 'Device offline'} placement="top">
               <div
                 className={`${classes.mediaOption} ${clipAvailable ? '' : 'disabled'}`}
                 style={clipAvailable ? {} : { opacity: 0.45 }}
@@ -616,7 +617,7 @@ class Media extends Component {
               >
                 <Typography className={classes.mediaOptionText}>Clip</Typography>
               </div>
-            </Tooltip>
+            </Tooltip>}
             <div
               className={classes.mediaOption}
               aria-haspopup="true"

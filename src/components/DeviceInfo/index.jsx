@@ -8,7 +8,7 @@ import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@mate
 import ContentCut from '@material-ui/icons/ContentCut';
 
 import { athena as Athena } from '../../api';
-import { clipsLocal } from '../../api/clips';
+import { clipsLocal, deviceSupportsClips } from '../../api/clips';
 import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
@@ -375,6 +375,7 @@ class DeviceInfo extends Component {
     const { snapshot, carHealth } = this.state;
     const isCommaBody = device?.rpc?.not_car;
     const clipsAvailable = deviceIsOnline(device) || clipsLocal;
+    const clipsSupported = deviceSupportsClips(device);
 
     let batteryVoltage;
     let batteryBackground = Colors.grey400;
@@ -426,7 +427,7 @@ class DeviceInfo extends Component {
             </button>
           </Tooltip>
         )}
-        <Tooltip
+        {clipsSupported && <Tooltip
           classes={{ tooltip: classes.popover }}
           title={clipsAvailable ? 'Clips' : 'Device offline'}
           placement="bottom"
@@ -442,7 +443,7 @@ class DeviceInfo extends Component {
               <ContentCut className="text-black" />
             </button>
           </span>
-        </Tooltip>
+        </Tooltip>}
         {!livestreamEnabled && (
           <Tooltip
             classes={{ tooltip: classes.popover }}
