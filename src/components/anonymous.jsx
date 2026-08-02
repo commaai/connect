@@ -1,7 +1,6 @@
 /* global AppleID */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import qs from 'query-string';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -10,6 +9,7 @@ import {config as AuthConfig} from '@commaai/my-comma-auth';
 
 import Colors from '../colors';
 import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon } from '../icons';
+import { stringifyQuery } from '../utils/query';
 
 import PWAIcon from './PWAIcon';
 
@@ -117,7 +117,7 @@ class AnonymousLanding extends Component {
     script.async = true;
     document.addEventListener('AppleIDSignInOnSuccess', (data) => {
       const { code, state } = data.detail.authorization;
-      window.location = [AuthConfig.APPLE_REDIRECT_PATH, qs.stringify({ code, state })].join('?');
+      window.location = `${AuthConfig.APPLE_REDIRECT_PATH}?${stringifyQuery({ code, state })}`;
     });
     document.addEventListener('AppleIDSignInOnFailure', console.warn);
   }
