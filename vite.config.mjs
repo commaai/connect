@@ -40,6 +40,13 @@ export default defineConfig(({ mode }) => {
   return {
     server: {
       port: 3000,
+      proxy: {
+        '/athena': {
+          target: 'https://athena.comma.ai',
+          changeOrigin: true,
+          rewrite: path => path.replace(/^\/athena/, ''),
+        },
+      },
     },
     build: {
       // Required for Sentry

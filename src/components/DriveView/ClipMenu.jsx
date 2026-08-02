@@ -96,6 +96,8 @@ const styles = () => ({
   clipTitle: { fontSize: 15, lineHeight: 1.35 },
   clipMeta: { color: Colors.white60, fontSize: 13, lineHeight: 1.4, marginTop: 2 },
   progress: { marginTop: 7 },
+  transferProgress: { borderRadius: 3, height: 5, marginTop: 8 },
+  transferLabel: { color: Colors.white60, fontSize: 12, marginTop: 8, textAlign: 'center' },
   clipAction: {
     color: Colors.white, flex: '0 0 auto', height: 32, padding: 7, width: 32,
     '&:disabled': { color: Colors.white40 },
@@ -108,7 +110,6 @@ const styles = () => ({
   viewerTitle: { alignItems: 'center', display: 'flex', justifyContent: 'space-between', padding: '12px 12px 10px 20px' },
   viewerContent: { padding: '0 20px 20px' },
   viewerVideo: { background: Colors.grey950, display: 'block', maxHeight: '70vh', width: '100%' },
-  viewerLoading: { alignItems: 'center', display: 'flex', height: 240, justifyContent: 'center' },
   empty: { color: Colors.white60, fontSize: 13, lineHeight: 1.4, paddingTop: 5 },
 });
 
@@ -155,7 +156,8 @@ class ClipMenu extends Component {
     this.state = {
       clips: [], camera: 'fcamera.hevc', bitrate: 5, speedup: 1, filename: '',
       cameraRanges: null, loading: false, creating: false, error: null,
-      viewingClip: null, previewUrl: null, previewLoading: false,
+      viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0,
+      downloadProgress: {},
     };
     this.poll = null;
     this.mounted = false;
@@ -247,8 +249,15 @@ class ClipMenu extends Component {
   async downloadClip(clip) {
     if (!this.props.deviceOnline || this.downloadingClipIds.has(clip.filename)) return;
     this.downloadingClipIds.add(clip.filename);
+    this.setState(({ downloadProgress }) => ({
+      downloadProgress: { ...downloadProgress, [clip.filename]: 0 }, error: null,
+    }));
     try {
-      const url = await clipDevice.getClipUrl(this.props.dongleId, clip.filename, clip.requested_at);
+      const url = await clipDevice.getClipUrl(this.props.dongleId, clip.filename, clip.requested_at, (loaded, total) => {
+        if (this.mounted) this.setState(({ downloadProgress }) => ({
+          downloadProgress: { ...downloadProgress, [clip.filename]: loaded / total },
+        }));
+      });
       const link = document.createElement('a');
       link.href = url;
       const defaultName = `comma-clip-${clip.camera}-${formatTime(clip.source_start_time).replaceAll(':', '-')}-${formatTime(clip.source_end_time).replaceAll(':', '-')}`;
@@ -261,6 +270,11 @@ class ClipMenu extends Component {
       if (this.mounted) this.setState({ error: err.message || 'Could not download clip' });
     } finally {
       this.downloadingClipIds.delete(clip.filename);
+      if (this.mounted) this.setState(({ downloadProgress }) => {
+        const nextProgress = { ...downloadProgress };
+        delete nextProgress[clip.filename];
+        return { downloadProgress: nextProgress };
+      });
     }
   }
 
@@ -276,20 +290,28 @@ class ClipMenu extends Component {
 
   async openViewer(clip) {
     if (!this.props.deviceOnline) return;
+    if (this.state.previewingClip) return;
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
     this.previewRequest += 1;
     const request = this.previewRequest;
-    this.setState({ viewingClip: clip, previewUrl: null, previewLoading: true, error: null });
+    this.setState({ previewingClip: clip.filename, previewUrl: null, previewProgress: 0, error: null });
     try {
-      const previewUrl = await clipDevice.getClipUrl(this.props.dongleId, clip.filename, clip.requested_at);
-      if (!this.mounted || request !== this.previewRequest || this.state.viewingClip?.filename !== clip.filename) {
+      const previewUrl = await clipDevice.getClipUrl(this.props.dongleId, clip.filename, clip.requested_at, (loaded, total) => {
+        if (this.mounted && request === this.previewRequest) this.setState({ previewProgress: loaded / total });
+      });
+      if (!this.mounted || request !== this.previewRequest || this.state.previewingClip !== clip.filename) {
         URL.revokeObjectURL(previewUrl);
         return;
       }
-      this.setState({ previewUrl, previewLoading: false });
+      if (this.props.open) {
+        this.setState({ viewingClip: clip, previewingClip: null, previewUrl, previewProgress: 0 });
+      } else {
+        URL.revokeObjectURL(previewUrl);
+        this.setState({ previewingClip: null, previewProgress: 0 });
+      }
     } catch (err) {
       if (this.mounted && request === this.previewRequest) {
-        this.setState({ previewLoading: false, error: err.message || 'Could not preview clip' });
+        this.setState({ previewingClip: null, previewProgress: 0, error: err.message || 'Could not preview clip' });
       }
     }
   }
@@ -297,12 +319,12 @@ class ClipMenu extends Component {
   closeViewer() {
     this.previewRequest += 1;
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
-    this.setState({ viewingClip: null, previewUrl: null, previewLoading: false });
+    this.setState({ viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0 });
   }
 
   renderViewer() {
     const { classes } = this.props;
-    const { previewLoading, previewUrl, viewingClip } = this.state;
+    const { previewUrl, viewingClip } = this.state;
     const title = viewingClip?.filename?.replace(/\.mp4$/i, '') || 'Clip';
     return (
       <Dialog open={Boolean(viewingClip)} onClose={() => this.closeViewer()} classes={{ paper: classes.viewerPaper }} maxWidth="md">
@@ -311,9 +333,7 @@ class ClipMenu extends Component {
           <IconButton aria-label="Close video" onClick={() => this.closeViewer()}><CloseBold /></IconButton>
         </DialogTitle>
         <DialogContent className={classes.viewerContent}>
-          {previewLoading && <div className={classes.viewerLoading}><CircularProgress size={28} /></div>}
           {previewUrl && <video className={classes.viewerVideo} src={previewUrl} controls autoPlay playsInline />}
-          {!previewLoading && !previewUrl && <Typography className={classes.error}>{this.state.error || 'Could not preview clip'}</Typography>}
         </DialogContent>
       </Dialog>
     );
@@ -330,6 +350,8 @@ class ClipMenu extends Component {
         ? new Date(knownRoute.start_time_utc_millis).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
         : clip.route);
     const title = clip.filename?.replace(/\.mp4$/i, '') || 'Clip';
+    const downloadProgress = this.state.downloadProgress[clip.filename];
+    const previewing = this.state.previewingClip === clip.filename;
     return (
       <div key={clip.filename} className={classes.clip}>
         <div className={classes.clipTop}>
@@ -345,8 +367,8 @@ class ClipMenu extends Component {
               <IconButton
                 aria-label="Play clip"
                 className={classes.clipAction}
-                disabled={!this.props.deviceOnline}
-                title={this.props.deviceOnline ? 'Play clip' : 'Device offline'}
+                disabled={!this.props.deviceOnline || Boolean(this.state.previewingClip)}
+                title={this.props.deviceOnline ? (previewing ? 'Preparing clip' : 'Play clip') : 'Device offline'}
                 onClick={() => this.openViewer(clip)}
               >
                 <PlayArrow className={classes.playIcon} />
@@ -377,6 +399,15 @@ class ClipMenu extends Component {
           </div>
         </div>
         {clip.status === 'encoding' && <LinearProgress className={classes.progress} />}
+        {previewing && (
+          <React.Fragment>
+            <LinearProgress className={classes.transferProgress} variant="determinate" value={this.state.previewProgress * 100} />
+            <Typography className={classes.transferLabel}>Downloading · {Math.round(this.state.previewProgress * 100)}%</Typography>
+          </React.Fragment>
+        )}
+        {downloadProgress !== undefined && (
+          <LinearProgress className={classes.transferProgress} variant="determinate" value={downloadProgress * 100} />
+        )}
       </div>
     );
   }
