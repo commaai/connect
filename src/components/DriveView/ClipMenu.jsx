@@ -165,6 +165,7 @@ class ClipMenu extends Component {
     this.state = {
       clips: [], camera: 'fcamera.hevc', bitrate: 5, speedup: 1, filename: '',
       cameraRanges: null, loading: false, creating: false, error: null,
+      autoDownloadFilename: null,
       viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0,
       deletingClip: null, deleteDialogOpen: false, deleting: false,
     };
@@ -189,7 +190,7 @@ class ClipMenu extends Component {
       this.setState({ loading: false });
     }
     if (!this.props.open && prevProps.open) {
-      this.stopPolling();
+      if (!this.state.autoDownloadFilename) this.stopPolling();
       if (this.state.viewingClip) this.closeViewer();
     }
   }
@@ -234,9 +235,13 @@ class ClipMenu extends Component {
       if (!this.mounted || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
       const { clips } = state;
       const cameraRanges = routeName ? state.cameras || {} : null;
-      this.setState({ clips, cameraRanges, loading: false }, () => this.resumeActiveTransfer(clips));
+      this.setState({ clips, cameraRanges, loading: false }, () => {
+        const autoClip = clips.find(clip => clip.filename === this.state.autoDownloadFilename && clip.status === 'ready');
+        if (autoClip) this.setState({ autoDownloadFilename: null }, () => this.openViewer(autoClip));
+        else this.resumeActiveTransfer(clips);
+      });
       this.stopPolling();
-      if (this.props.open && clips.some(clip => ACTIVE_STATUSES.has(clip.status))) {
+      if ((this.props.open || this.state.autoDownloadFilename) && clips.some(clip => ACTIVE_STATUSES.has(clip.status))) {
         this.poll = setTimeout(() => this.loadClips(false), POLL_INTERVAL);
       }
     } catch (err) {
@@ -248,7 +253,8 @@ class ClipMenu extends Component {
     const { dongleId, route, zoom } = this.props;
     const { camera, bitrate, speedup, filename } = this.state;
     if (!route || !zoom || !this.props.deviceOnline) return;
-    this.setState({ creating: true, error: null });
+    const outputFilename = `${safeFilename(filename) || defaultFilename(camera, zoom.start / 1000, zoom.end / 1000, bitrate, speedup)}.mp4`;
+    this.setState({ creating: true, autoDownloadFilename: outputFilename, error: null });
     try {
       await clipDevice.createClip(dongleId, {
         route: route.fullname,
@@ -258,14 +264,14 @@ class ClipMenu extends Component {
           camera,
           bitrate,
           speedup,
-          filename: `${safeFilename(filename) || defaultFilename(camera, zoom.start / 1000, zoom.end / 1000, bitrate, speedup)}.mp4`,
+          filename: outputFilename,
         },
       });
       if (!this.mounted) return;
       this.setState({ creating: false });
       await this.loadClips(false);
     } catch (err) {
-      if (this.mounted) this.setState({ creating: false, error: err.message || 'Could not create clip' });
+      if (this.mounted) this.setState({ creating: false, autoDownloadFilename: null, error: err.message || 'Could not create clip' });
     }
   }
 
@@ -285,6 +291,7 @@ class ClipMenu extends Component {
     if (!this.props.deviceOnline) return false;
     try {
       await clipDevice.deleteClip(this.props.dongleId, { filename: clip.filename });
+      if (clip.filename === this.state.autoDownloadFilename) this.setState({ autoDownloadFilename: null });
       if (this.mounted) await this.loadClips(false);
       return true;
     } catch (err) {
@@ -488,7 +495,7 @@ class ClipMenu extends Component {
           <Typography className={classes.header}>Create a clip</Typography>
           <div className={classes.range}>
             <Typography className={classes.supporting}>Selected timeline range</Typography>
-            <Typography className={classes.rangeValue}>{zoom ? `${formatDuration(startTime)}–${formatDuration(endTime)} · ${formatDuration(duration)}` : '—'}</Typography>
+            <Typography className={classes.rangeValue}>{zoom ? `${formatTime(startTime)}–${formatTime(endTime)} · ${formatDuration(duration)}` : '—'}</Typography>
           </div>
           <div className={classes.field}>
             <Typography className={classes.label}>CAMERA</Typography>
