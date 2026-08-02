@@ -27,8 +27,53 @@ const BITRATES = [
 const SPEEDUPS = [1, 2, 4, 5, 10];
 
 const styles = () => ({
-  paper: { width: 360, maxWidth: 'calc(100vw - 24px)', outline: 'none' },
+  paper: {
+    display: 'flex',
+    maxWidth: 'calc(100vw - 24px)',
+    outline: 'none',
+    overflow: 'hidden',
+    width: 360,
+  },
+  menuList: {
+    display: 'flex',
+    flexDirection: 'column',
+    maxHeight: 'calc(100vh - 96px)',
+    minHeight: 0,
+    width: '100%',
+  },
+  createPaper: {
+    '@media (max-width: 600px)': {
+      borderRadius: 0,
+      bottom: '0 !important',
+      height: '100vh',
+      left: '0 !important',
+      maxHeight: 'none',
+      maxWidth: 'none',
+      right: '0 !important',
+      top: '0 !important',
+      transform: 'none !important',
+      width: '100vw',
+    },
+  },
+  createMenuList: {
+    '@media (max-width: 600px)': {
+      height: '100vh',
+      maxHeight: 'none',
+    },
+  },
   body: { outline: 'none', padding: 16, '&:focus': { outline: 'none' } },
+  createHeader: {
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
+  },
+  mobileClose: {
+    display: 'none',
+    '@media (max-width: 600px)': {
+      display: 'flex',
+      margin: '-8px -8px -8px 0',
+    },
+  },
   header: { fontSize: 16, fontWeight: 500, marginBottom: 4 },
   supporting: { color: Colors.white60, fontSize: 12, lineHeight: 1.4 },
   range: {
@@ -84,7 +129,12 @@ const styles = () => ({
     '&:hover': { background: '#eee' },
     '&:disabled': { background: Colors.white05, color: Colors.white60 },
   },
-  clipsSection: { padding: '13px 16px 16px' },
+  clipsSection: {
+    flex: '1 1 auto',
+    minHeight: 0,
+    overflowY: 'auto',
+    padding: '13px 16px 16px',
+  },
   sectionHeader: { alignItems: 'center', color: Colors.white60, display: 'flex', marginBottom: 8 },
   sectionTitle: { color: 'inherit', fontSize: 12, lineHeight: 1.4 },
   clip: {
@@ -147,8 +197,8 @@ function safeFilename(filename) {
   return filename.trim().replace(/\.mp4$/i, '').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
-function defaultFilename(camera, startTime, endTime, bitrate, speedup) {
-  return `comma-clip-${camera}-${Math.round(startTime)}-${Math.round(endTime)}-${bitrate}mbps-${speedup}x`;
+function defaultFilename(startTime, endTime, speedup) {
+  return `comma-${Math.round(startTime)}-${Math.round(endTime)}${speedup > 1 ? `-${speedup}x` : ''}`;
 }
 
 function deviceRouteName(route) {
@@ -190,7 +240,7 @@ class ClipMenu extends Component {
       this.setState({ loading: false });
     }
     if (!this.props.open && prevProps.open) {
-      if (!this.state.autoDownloadFilename) this.stopPolling();
+      this.stopPolling();
       if (this.state.viewingClip) this.closeViewer();
     }
   }
@@ -222,10 +272,10 @@ class ClipMenu extends Component {
       const cameraRanges = routeName ? state.cameras || {} : null;
       this.setState({ clips, cameraRanges, loading: false }, () => {
         const autoClip = clips.find(clip => clip.filename === this.state.autoDownloadFilename && clip.status === 'ready');
-        if (autoClip) this.setState({ autoDownloadFilename: null }, () => this.openViewer(autoClip));
+        if (this.props.open && autoClip) this.setState({ autoDownloadFilename: null }, () => this.openViewer(autoClip));
       });
       this.stopPolling();
-      if ((this.props.open || this.state.autoDownloadFilename) && clips.some(clip => ACTIVE_STATUSES.has(clip.status))) {
+      if (this.props.open && clips.some(clip => ACTIVE_STATUSES.has(clip.status))) {
         this.poll = setTimeout(() => this.loadClips(false), POLL_INTERVAL);
       }
     } catch (err) {
@@ -237,7 +287,7 @@ class ClipMenu extends Component {
     const { dongleId, route, zoom } = this.props;
     const { camera, bitrate, speedup, filename } = this.state;
     if (!route || !zoom || !this.props.deviceOnline) return;
-    const outputFilename = `${safeFilename(filename) || defaultFilename(camera, zoom.start / 1000, zoom.end / 1000, bitrate, speedup)}.mp4`;
+    const outputFilename = `${safeFilename(filename) || defaultFilename(zoom.start / 1000, zoom.end / 1000, speedup)}.mp4`;
     this.setState({ creating: true, autoDownloadFilename: outputFilename, error: null });
     try {
       await clipDevice.createClip(dongleId, {
@@ -468,12 +518,15 @@ class ClipMenu extends Component {
           onClose={onClose}
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-          classes={{ paper: classes.paper }}
-          MenuListProps={{ style: { outline: 'none' } }}
+          classes={{ paper: `${classes.paper} ${!inventoryOnly ? classes.createPaper : ''}` }}
+          MenuListProps={{ className: `${classes.menuList} ${!inventoryOnly ? classes.createMenuList : ''}`, style: { outline: 'none' } }}
           disableAutoFocusItem
         >
           {!inventoryOnly && <div className={classes.body}>
-          <Typography className={classes.header}>Create a clip</Typography>
+          <div className={classes.createHeader}>
+            <Typography className={classes.header}>Create a clip</Typography>
+            <IconButton aria-label="Close clip menu" className={classes.mobileClose} onClick={onClose}><CloseBold /></IconButton>
+          </div>
           <div className={classes.range}>
             <Typography className={classes.supporting}>Selected timeline range</Typography>
             <Typography className={classes.rangeValue}>{zoom ? `${formatTime(startTime)}–${formatTime(endTime)} · ${formatDuration(duration)}` : '—'}</Typography>
@@ -527,7 +580,7 @@ class ClipMenu extends Component {
               className={classes.input}
               value={filename}
               maxLength={80}
-              placeholder={defaultFilename(camera, startTime, endTime, bitrate, speedup)}
+              placeholder={defaultFilename(startTime, endTime, speedup)}
               onChange={event => this.setState({ filename: event.target.value })}
             />
           </div>

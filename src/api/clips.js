@@ -4,7 +4,8 @@ import { deviceVersionAtLeast } from '../utils';
 
 export const deviceSupportsClips = device => deviceVersionAtLeast(device, '0.11.2');
 
-const CLIP_CHUNK_CONCURRENCY = 4;
+const CLIP_CHUNK_CONCURRENCY = 3;
+const CLIP_RETRY_DELAYS = [500, 1000, 2000, 4000];
 const activeDownloads = new Map();
 const clipStorage = localforage.createInstance({ name: 'connect', storeName: 'clip_cache' });
 
@@ -34,7 +35,7 @@ async function downloadClip(dongleId, filename, reportProgress) {
       (_, index) => nextOffset + (index * (chunkBytes || 0)),
     );
     // eslint-disable-next-line no-await-in-loop
-    const results = await Promise.all(offsets.map(offset => call(dongleId, 'getClipChunk', { filename, offset })));
+    const results = await Promise.all(offsets.map(offset => getClipChunk(dongleId, filename, offset)));
     for (const result of results) {
       if (size === undefined) size = result.size;
       if (result.size !== size || result.offset !== nextOffset) throw new Error('Clip changed during download');
@@ -85,6 +86,16 @@ async function call(dongleId, method, params) {
   if (!payload) throw new Error('Athena request failed');
   if (payload.error) throw new Error(payload.error.message || 'Athena request failed');
   return payload.result;
+}
+
+async function getClipChunk(dongleId, filename, offset, attempt = 0) {
+  try {
+    return await call(dongleId, 'getClipChunk', { filename, offset });
+  } catch (error) {
+    if (error.message !== 'Athena request failed' || attempt === CLIP_RETRY_DELAYS.length) throw error;
+    await new Promise(resolve => setTimeout(resolve, CLIP_RETRY_DELAYS[attempt]));
+    return getClipChunk(dongleId, filename, offset, attempt + 1);
+  }
 }
 
 export const clipDevice = {
