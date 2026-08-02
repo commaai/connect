@@ -120,6 +120,14 @@ function formatTime(time) {
   return `${hours ? `${hours}:` : ''}${hours ? String(minutes).padStart(2, '0') : minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
+function formatDuration(duration) {
+  const totalSeconds = Math.max(0, Math.round(duration));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [hours && `${hours}h`, minutes && `${minutes}m`, (seconds || (!hours && !minutes)) && `${seconds}s`].filter(Boolean).join(' ');
+}
+
 function formatSize(bytes) {
   if (!bytes) return '';
   return `${Math.max(1, Math.round(bytes / (1024 * 1024)))} MB`;
@@ -402,7 +410,7 @@ class ClipMenu extends Component {
           <Typography className={classes.header}>Create a clip</Typography>
           <div className={classes.range}>
             <Typography className={classes.supporting}>Selected timeline range</Typography>
-            <Typography className={classes.rangeValue}>{zoom ? `${formatTime(startTime)}–${formatTime(endTime)} · ${formatTime(duration)}` : '—'}</Typography>
+            <Typography className={classes.rangeValue}>{zoom ? `${formatTime(startTime)}–${formatTime(endTime)} · ${formatDuration(duration)}` : '—'}</Typography>
           </div>
           <div className={classes.field}>
             <Typography className={classes.label}>CAMERA</Typography>
