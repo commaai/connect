@@ -68,6 +68,7 @@
     "jest-chain-transform": "^0.0.5",
     "jest-environment-jsdom": "^27.5.1",
     "oxlint": "^1.73.0",
+    "react-scan": "^0.5.7",
     "tailwindcss": "^4",
     "vite": "^5",
     "vite-plugin-pwa": "^0.16.4",

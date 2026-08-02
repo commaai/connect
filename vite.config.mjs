@@ -7,6 +7,31 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 
 
+function reactScan() {
+  const moduleId = '/@react-scan';
+
+  return {
+    name: 'react-scan',
+    apply: 'serve',
+    resolveId(id) {
+      return id === moduleId ? moduleId : null;
+    },
+    load(id) {
+      if (id === moduleId) {
+        return "import { scan } from 'react-scan'; scan({ enabled: true });";
+      }
+      return null;
+    },
+    transformIndexHtml() {
+      return [{
+        tag: 'script',
+        attrs: { type: 'module', src: moduleId },
+        injectTo: 'head-prepend',
+      }];
+    },
+  };
+}
+
 function previewBranding() {
   return {
     name: 'preview-branding',
@@ -55,6 +80,7 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       // TODO: compression plugin
+      reactScan(),
       tailwindcss(),
       react(),
       VitePWA({
