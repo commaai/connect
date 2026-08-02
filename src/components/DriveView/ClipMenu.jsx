@@ -6,6 +6,7 @@ import {
 import Colors from '../../colors';
 import { clipDevice } from '../../api/clips';
 import { CloseBold, Download as DownloadIcon, PlayArrow } from '../../icons';
+import InfoTooltip from '../utils/InfoTooltip';
 
 const MAX_CLIP_DURATION = 30 * 60;
 const POLL_INTERVAL = 1000;
@@ -85,7 +86,8 @@ const styles = () => ({
     '&:disabled': { background: Colors.white05, color: Colors.white60 },
   },
   clipsSection: { padding: '13px 16px 16px' },
-  sectionTitle: { color: Colors.white60, fontSize: 12, lineHeight: 1.4, marginBottom: 8 },
+  sectionHeader: { alignItems: 'center', color: Colors.white60, display: 'flex', marginBottom: 8 },
+  sectionTitle: { color: 'inherit', fontSize: 12, lineHeight: 1.4 },
   clip: {
     padding: '8px 0',
     '& + &': { borderTop: `1px solid ${Colors.white05}` },
@@ -107,7 +109,10 @@ const styles = () => ({
   secondaryActionIcon: { fontSize: 20 },
   playIcon: { fontSize: 27 },
   viewerPaper: { background: Colors.grey900, maxWidth: 800, width: 'calc(100vw - 32px)' },
-  viewerTitle: { alignItems: 'center', display: 'flex', justifyContent: 'space-between', padding: '12px 12px 10px 20px' },
+  viewerTitle: { alignItems: 'flex-start', display: 'flex', justifyContent: 'space-between', padding: '16px 12px 12px 20px' },
+  viewerDetails: { minWidth: 0, paddingTop: 1 },
+  viewerMeta: { color: Colors.white60, fontSize: 13, lineHeight: 1.4, marginTop: 3 },
+  viewerActions: { alignItems: 'center', display: 'flex', flex: '0 0 auto', marginTop: -4 },
   viewerContent: { padding: '0 20px 20px' },
   viewerVideo: { background: Colors.grey950, display: 'block', maxHeight: '70vh', width: '100%' },
   empty: { color: Colors.white60, fontSize: 13, lineHeight: 1.4, paddingTop: 5 },
@@ -157,12 +162,10 @@ class ClipMenu extends Component {
       clips: [], camera: 'fcamera.hevc', bitrate: 5, speedup: 1, filename: '',
       cameraRanges: null, loading: false, creating: false, error: null,
       viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0,
-      downloadProgress: {},
     };
     this.poll = null;
     this.mounted = false;
     this.previewRequest = 0;
-    this.downloadingClipIds = new Set();
   }
 
   componentDidMount() {
@@ -246,36 +249,16 @@ class ClipMenu extends Component {
     }
   }
 
-  async downloadClip(clip) {
-    if (!this.props.deviceOnline || this.downloadingClipIds.has(clip.filename)) return;
-    this.downloadingClipIds.add(clip.filename);
-    this.setState(({ downloadProgress }) => ({
-      downloadProgress: { ...downloadProgress, [clip.filename]: 0 }, error: null,
-    }));
-    try {
-      const url = await clipDevice.getClipUrl(this.props.dongleId, clip.filename, clip.requested_at, (loaded, total) => {
-        if (this.mounted) this.setState(({ downloadProgress }) => ({
-          downloadProgress: { ...downloadProgress, [clip.filename]: loaded / total },
-        }));
-      });
-      const link = document.createElement('a');
-      link.href = url;
-      const defaultName = `comma-clip-${clip.camera}-${formatTime(clip.source_start_time).replaceAll(':', '-')}-${formatTime(clip.source_end_time).replaceAll(':', '-')}`;
-      link.download = `${(clip.filename || defaultName).replace(/\.mp4$/i, '')}.mp4`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (err) {
-      if (this.mounted) this.setState({ error: err.message || 'Could not download clip' });
-    } finally {
-      this.downloadingClipIds.delete(clip.filename);
-      if (this.mounted) this.setState(({ downloadProgress }) => {
-        const nextProgress = { ...downloadProgress };
-        delete nextProgress[clip.filename];
-        return { downloadProgress: nextProgress };
-      });
-    }
+  downloadViewedClip() {
+    const { previewUrl, viewingClip } = this.state;
+    if (!previewUrl || !viewingClip) return;
+    const defaultName = `comma-clip-${viewingClip.camera}-${formatTime(viewingClip.source_start_time).replaceAll(':', '-')}-${formatTime(viewingClip.source_end_time).replaceAll(':', '-')}`;
+    const link = document.createElement('a');
+    link.href = previewUrl;
+    link.download = `${(viewingClip.filename || defaultName).replace(/\.mp4$/i, '')}.mp4`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   }
 
   async removeClip(clip) {
@@ -326,11 +309,33 @@ class ClipMenu extends Component {
     const { classes } = this.props;
     const { previewUrl, viewingClip } = this.state;
     const title = viewingClip?.filename?.replace(/\.mp4$/i, '') || 'Clip';
+    const camera = CAMERAS.find(([value]) => value === viewingClip?.camera)?.[1] || viewingClip?.camera;
+    const currentRoute = viewingClip?.route === deviceRouteName(this.props.route);
+    const knownRoute = this.props.routes?.find(route => deviceRouteName(route) === viewingClip?.route);
+    const routeLabel = currentRoute
+      ? 'This route'
+      : (knownRoute?.start_time_utc_millis
+        ? new Date(knownRoute.start_time_utc_millis).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+        : viewingClip?.route);
+    const duration = viewingClip
+      ? formatDuration((viewingClip.source_end_time - viewingClip.source_start_time) / (viewingClip.speedup || 1))
+      : '';
     return (
       <Dialog open={Boolean(viewingClip)} onClose={() => this.closeViewer()} classes={{ paper: classes.viewerPaper }} maxWidth="md">
         <DialogTitle disableTypography className={classes.viewerTitle}>
-          <Typography className={classes.header}>{title}</Typography>
-          <IconButton aria-label="Close video" onClick={() => this.closeViewer()}><CloseBold /></IconButton>
+          <div className={classes.viewerDetails}>
+            <Typography className={classes.header}>{title}</Typography>
+            <Typography className={classes.viewerMeta}>{routeLabel}</Typography>
+            <Typography className={classes.viewerMeta}>
+              {[camera, duration, formatSize(viewingClip?.size)].filter(Boolean).join(' · ')}
+            </Typography>
+          </div>
+          <div className={classes.viewerActions}>
+            <IconButton aria-label="Download clip" title="Download clip" onClick={() => this.downloadViewedClip()}>
+              <DownloadIcon className={classes.downloadIcon} />
+            </IconButton>
+            <IconButton aria-label="Close video" title="Close" onClick={() => this.closeViewer()}><CloseBold /></IconButton>
+          </div>
         </DialogTitle>
         <DialogContent className={classes.viewerContent}>
           {previewUrl && <video className={classes.viewerVideo} src={previewUrl} controls autoPlay playsInline />}
@@ -350,7 +355,6 @@ class ClipMenu extends Component {
         ? new Date(knownRoute.start_time_utc_millis).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
         : clip.route);
     const title = clip.filename?.replace(/\.mp4$/i, '') || 'Clip';
-    const downloadProgress = this.state.downloadProgress[clip.filename];
     const previewing = this.state.previewingClip === clip.filename;
     return (
       <div key={clip.filename} className={classes.clip}>
@@ -374,17 +378,6 @@ class ClipMenu extends Component {
                 <PlayArrow className={classes.playIcon} />
               </IconButton>
             )}
-            {clip.status === 'ready' && (
-              <IconButton
-                aria-label="Download clip"
-                className={classes.clipAction}
-                disabled={!this.props.deviceOnline}
-                title={this.props.deviceOnline ? 'Download clip' : 'Device offline'}
-                onClick={() => this.downloadClip(clip)}
-              >
-                <DownloadIcon className={classes.downloadIcon} />
-              </IconButton>
-            )}
             {clip.status === 'encoding' && <Typography className={classes.clipMeta}>Encoding</Typography>}
             {clip.status === 'queued' && <Typography className={classes.clipMeta}>Queued</Typography>}
             <IconButton
@@ -404,9 +397,6 @@ class ClipMenu extends Component {
             <LinearProgress className={classes.transferProgress} variant="determinate" value={this.state.previewProgress * 100} />
             <Typography className={classes.transferLabel}>Downloading · {Math.round(this.state.previewProgress * 100)}%</Typography>
           </React.Fragment>
-        )}
-        {downloadProgress !== undefined && (
-          <LinearProgress className={classes.transferProgress} variant="determinate" value={downloadProgress * 100} />
         )}
       </div>
     );
@@ -503,7 +493,10 @@ class ClipMenu extends Component {
           </div>}
           {!inventoryOnly && <Divider />}
           <div className={classes.clipsSection}>
-            <Typography className={classes.sectionTitle}>{deviceOnline ? 'CLIPS ON THIS DEVICE' : 'LAST KNOWN CLIPS ON THIS DEVICE'}</Typography>
+            <div className={classes.sectionHeader}>
+              <Typography className={classes.sectionTitle}>{deviceOnline ? 'CLIPS ON THIS DEVICE' : 'LAST KNOWN CLIPS ON THIS DEVICE'}</Typography>
+              <InfoTooltip title="Clips are stored on your device and may be cleared to make room for more recent driving footage." />
+            </div>
             {error && <Typography className={classes.error}>{error}</Typography>}
             {loading && <div className={classes.empty}><CircularProgress size={18} /></div>}
             {!loading && clips.length === 0 && <Typography className={classes.empty}>{deviceOnline ? 'No clips yet' : 'Connect to your device to check for clips'}</Typography>}
