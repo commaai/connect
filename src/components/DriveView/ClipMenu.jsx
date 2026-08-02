@@ -337,7 +337,7 @@ class ClipMenu extends Component {
             <Typography className={classes.clipTitle}>{title}</Typography>
             <Typography className={classes.clipMeta}>{`${camera} · ${routeLabel}`}</Typography>
             <Typography className={classes.clipMeta}>
-              {`${formatDuration(clip.source_start_time)}–${formatDuration(clip.source_end_time)} · ${clip.bitrate} Mbps${clip.speedup > 1 ? ` · ${clip.speedup}×` : ''}${clip.size ? ` · ${formatSize(clip.size)}` : ''}`}
+              {`${formatDuration((clip.source_end_time - clip.source_start_time) / (clip.speedup || 1))}${clip.size ? ` · ${formatSize(clip.size)}` : ''}`}
             </Typography>
           </div>
           <div className={classes.clipActions}>
