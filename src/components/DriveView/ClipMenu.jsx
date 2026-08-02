@@ -12,9 +12,9 @@ const POLL_INTERVAL = 1000;
 const ACTIVE_STATUSES = new Set(['queued', 'encoding']);
 
 const CAMERAS = [
-  ['fcamera', 'Road'],
-  ['ecamera', 'Wide road'],
-  ['dcamera', 'Driver'],
+  ['fcamera.hevc', 'Road'],
+  ['ecamera.hevc', 'Wide road'],
+  ['dcamera.hevc', 'Driver'],
 ];
 
 const BITRATES = [
@@ -153,7 +153,7 @@ class ClipMenu extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      clips: [], camera: 'fcamera', bitrate: 5, speedup: 1, filename: '',
+      clips: [], camera: 'fcamera.hevc', bitrate: 5, speedup: 1, filename: '',
       cameraRanges: null, loading: false, creating: false, error: null,
       viewingClip: null, previewUrl: null, previewLoading: false,
     };
