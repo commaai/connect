@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import dayjs from 'dayjs';
-import PropTypes from 'prop-types';
 
 import { Button, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
 
@@ -163,10 +162,5 @@ class TimeSelect extends Component {
 const stateToProps = (state) => ({
   filter: state.filter,
 });
-
-TimeSelect.propTypes = {
-  onClose: PropTypes.func.isRequired,
-  isOpen: PropTypes.bool.isRequired,
-};
 
 export default connect(stateToProps)(withStyles(styles)(TimeSelect));

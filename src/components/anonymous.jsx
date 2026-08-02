@@ -1,7 +1,6 @@
 /* global AppleID */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import PropTypes from 'prop-types';
 import qs from 'query-string';
 
 import { withStyles } from '@material-ui/core/styles';
@@ -160,11 +159,6 @@ class AnonymousLanding extends Component {
     );
   }
 }
-
-AnonymousLanding.propTypes = {
-  pathname: PropTypes.string.isRequired,
-  classes: PropTypes.object.isRequired,
-};
 
 const stateToProps = (state) => ({
   pathname: state.router.location.pathname,
