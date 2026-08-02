@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import localforage from 'localforage';
 import { replace } from 'connected-react-router';
 
@@ -259,14 +258,14 @@ class ExplorerApp extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  zoom: 'zoom',
-  pathname: 'router.location.pathname',
-  dongleId: 'dongleId',
-  devices: 'devices',
-  currentRoute: 'currentRoute',
-  limit: 'limit',
-  bodyTeleopOpen: 'streamNav',
+const stateToProps = (state) => ({
+  zoom: state.zoom,
+  pathname: state.router.location.pathname,
+  dongleId: state.dongleId,
+  devices: state.devices,
+  currentRoute: state.currentRoute,
+  limit: state.limit,
+  bodyTeleopOpen: state.streamNav,
 });
 
 export default connect(stateToProps)(withStyles(styles)(ExplorerApp));

@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 
 import { IconButton, Typography } from '@material-ui/core';
@@ -83,11 +82,11 @@ class DriveView extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  routes: 'routes',
-  zoom: 'zoom',
-  currentRoute: 'currentRoute',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  routes: state.routes,
+  zoom: state.zoom,
+  currentRoute: state.currentRoute,
 });
 
 export default connect(stateToProps)(DriveView);

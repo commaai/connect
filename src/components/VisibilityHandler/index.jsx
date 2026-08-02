@@ -1,6 +1,5 @@
 import { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import PropTypes from 'prop-types';
 import debounce from 'debounce';
 
@@ -85,8 +84,8 @@ class VisibilityHandler extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
 });
 
 VisibilityHandler.propTypes = {

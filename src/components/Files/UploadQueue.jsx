@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 
 import {
   withStyles,
@@ -296,9 +295,9 @@ class UploadQueue extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  filesUploading: 'filesUploading',
-  filesUploadingMeta: 'filesUploadingMeta',
+const stateToProps = (state) => ({
+  filesUploading: state.filesUploading,
+  filesUploadingMeta: state.filesUploadingMeta,
 });
 
 export default connect(stateToProps)(withStyles(styles)(UploadQueue));

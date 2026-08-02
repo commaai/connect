@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import qs from 'query-string';
 import { BarcodeDetector } from 'barcode-detector/ponyfill';
 import { withStyles, Typography, Button, Modal, Paper, Divider, CircularProgress } from '@material-ui/core';
@@ -444,9 +443,9 @@ class AddDevice extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  profile: 'profile',
-  devices: 'devices',
+const stateToProps = (state) => ({
+  profile: state.profile,
+  devices: state.devices,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AddDevice));
