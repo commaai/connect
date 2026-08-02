@@ -362,7 +362,6 @@ class ClipMenu extends Component {
 
   async openViewer(clip) {
     if (!this.props.deviceOnline) return;
-    if (this.state.previewingClip) return;
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
     this.previewRequest += 1;
     const request = this.previewRequest;
@@ -480,7 +479,7 @@ class ClipMenu extends Component {
               <IconButton
                 aria-label="Play clip"
                 className={classes.clipAction}
-                disabled={!this.props.deviceOnline || Boolean(this.state.previewingClip)}
+                disabled={!this.props.deviceOnline || previewing}
                 title={this.props.deviceOnline ? (previewing ? 'Downloading' : 'Play clip') : 'Device offline'}
                 onClick={() => this.openViewer(clip)}
               >
