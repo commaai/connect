@@ -227,6 +227,7 @@ class Media extends Component {
       routePreserved: null,
       isMuted: true,
       hasAudio: false,
+      clipsSupported: false,
     };
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
@@ -258,12 +259,19 @@ class Media extends Component {
   }
 
   componentDidMount() {
+    this.mounted = true;
     this.componentDidUpdate({}, {});
   }
 
   componentDidUpdate(prevProps, prevState) {
     const { windowWidth, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
     const showMapAlways = windowWidth >= 1536;
+    if (prevProps.dongleId !== this.props.dongleId) {
+      this.setState({ clipsSupported: false, clipMenu: null });
+      this.checkClipsSupport();
+    } else if (!deviceIsOnline(prevProps.device) && deviceIsOnline(this.props.device)) {
+      this.checkClipsSupport();
+    }
     if (showMapAlways && inView === MediaType.MAP) {
       this.setState({ inView: MediaType.VIDEO });
     }
@@ -297,6 +305,20 @@ class Media extends Component {
     if (!this.routeViewed && this.props.currentRoute && ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser)) {
       this.props.dispatch(setRouteViewed(this.props.dongleId, this.props.currentRoute.fullname));
       this.routeViewed = true;
+    }
+  }
+
+  componentWillUnmount() {
+    this.mounted = false;
+  }
+
+  async checkClipsSupport() {
+    const { device, dongleId } = this.props;
+    try {
+      const clipsSupported = await deviceSupportsClips(device);
+      if (this.mounted && dongleId === this.props.dongleId) this.setState({ clipsSupported });
+    } catch (error) {
+      // The button stays hidden when Athena is unavailable or too old.
     }
   }
 
@@ -573,8 +595,7 @@ class Media extends Component {
 
   renderMediaOptions(showMapAlways) {
     const { classes, device } = this.props;
-    const { inView } = this.state;
-    const clipsSupported = deviceSupportsClips(device);
+    const { inView, clipsSupported } = this.state;
     return (
       <>
         <div className={classes.mediaOptionsRoot}>

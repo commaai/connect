@@ -2,12 +2,15 @@ import { athena as Athena } from '../api';
 import localforage from 'localforage';
 import { deviceVersionAtLeast } from '../utils';
 
-export const deviceSupportsClips = device => deviceVersionAtLeast(device, '0.11.2');
-
 const CLIP_CHUNK_CONCURRENCY = 3;
-const CLIP_RETRY_DELAYS = [500, 1000, 2000, 4000];
+const CLIP_RETRY_DELAYS = [500, 1000, 2000, 4000, 8000, 16000];
 const activeDownloads = new Map();
+const supportRequests = new Map();
 const clipStorage = localforage.createInstance({ name: 'connect', storeName: 'clip_cache' });
+
+function supportCacheKey(dongleId) {
+  return `clip-support:${dongleId}`;
+}
 
 function cacheKey(dongleId, filename, requestedAt) {
   return `clip:${dongleId}/${filename}/${requestedAt}`;
@@ -86,6 +89,26 @@ async function call(dongleId, method, params) {
   if (!payload) throw new Error('Athena request failed');
   if (payload.error) throw new Error(payload.error.message || 'Athena request failed');
   return payload.result;
+}
+
+export function deviceSupportsClips(device) {
+  if (!deviceVersionAtLeast(device, '0.11.2')) return Promise.resolve(false);
+  if (!supportRequests.has(device.dongle_id)) {
+    const request = clipStorage.getItem(supportCacheKey(device.dongle_id)).then(async (cachedCommitTimestamp) => {
+      if (Number(cachedCommitTimestamp) > 0) return true;
+      const version = await call(device.dongle_id, 'getVersion');
+      const commitTimestamp = Number(version.commit_date);
+      const supported = Number.isFinite(commitTimestamp) && commitTimestamp > 0;
+      if (supported) await clipStorage.setItem(supportCacheKey(device.dongle_id), commitTimestamp);
+      return supported;
+    }).then((supported) => {
+      if (!supported) supportRequests.delete(device.dongle_id);
+      return supported;
+    });
+    supportRequests.set(device.dongle_id, request);
+    request.catch(() => supportRequests.delete(device.dongle_id));
+  }
+  return supportRequests.get(device.dongle_id);
 }
 
 async function getClipChunk(dongleId, filename, offset, attempt = 0) {

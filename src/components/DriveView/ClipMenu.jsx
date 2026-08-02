@@ -193,12 +193,25 @@ function formatSize(bytes) {
   return `${Math.max(1, Math.round(bytes / (1024 * 1024)))} MB`;
 }
 
-function safeFilename(filename) {
-  return filename.trim().replace(/\.mp4$/i, '').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
+function normalizeFilename(filename) {
+  return filename.trim().replace(/\.mp4$/i, '');
 }
 
-function defaultFilename(startTime, endTime, speedup) {
-  return `comma-${Math.round(startTime)}-${Math.round(endTime)}${speedup > 1 ? `-${speedup}x` : ''}`;
+function validFilename(filename) {
+  const normalized = normalizeFilename(filename);
+  return !filename.trim() || /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(normalized);
+}
+
+function defaultFilename(dongleId, route, camera, startTime, endTime, speedup) {
+  const parts = [
+    dongleId,
+    deviceRouteName(route),
+    Math.round(startTime),
+    Math.round(endTime),
+    camera.replace(/\.hevc$/i, ''),
+  ];
+  if (speedup > 1) parts.push(`${speedup}x`);
+  return parts.join('_');
 }
 
 function deviceRouteName(route) {
@@ -286,8 +299,9 @@ class ClipMenu extends Component {
   async createClip() {
     const { dongleId, route, zoom } = this.props;
     const { camera, bitrate, speedup, filename } = this.state;
-    if (!route || !zoom || !this.props.deviceOnline) return;
-    const outputFilename = `${safeFilename(filename) || defaultFilename(zoom.start / 1000, zoom.end / 1000, speedup)}.mp4`;
+    if (!route || !zoom || !this.props.deviceOnline || !validFilename(filename)) return;
+    const generatedFilename = defaultFilename(dongleId, route, camera, zoom.start / 1000, zoom.end / 1000, speedup);
+    const outputFilename = `${normalizeFilename(filename) || generatedFilename}.mp4`;
     this.setState({ creating: true, autoDownloadFilename: outputFilename, error: null });
     try {
       await clipDevice.createClip(dongleId, {
@@ -506,6 +520,7 @@ class ClipMenu extends Component {
     const outputDuration = duration / speedup;
     const estimatedSize = outputDuration * bitrate * 125000;
     const invalidDuration = duration <= 0 || duration > MAX_CLIP_DURATION;
+    const invalidFilename = !validFilename(filename);
     const cameraUnavailable = !inventoryOnly && cameraRanges !== null && !cameraCoversRange(cameraRanges, camera, startTime, endTime);
     const cameraAvailable = cameraRanges === null || CAMERAS.some(([value]) => cameraCoversRange(cameraRanges, value, startTime, endTime));
     const deviceBusy = clips.some(clip => ACTIVE_STATUSES.has(clip.status));
@@ -580,12 +595,13 @@ class ClipMenu extends Component {
               className={classes.input}
               value={filename}
               maxLength={80}
-              placeholder={defaultFilename(startTime, endTime, speedup)}
+              placeholder={defaultFilename(this.props.dongleId, route, camera, startTime, endTime, speedup)}
               onChange={event => this.setState({ filename: event.target.value })}
             />
+            {invalidFilename && <Typography className={classes.error}>Use letters, numbers, periods, underscores, and hyphens only.</Typography>}
           </div>
           {duration > MAX_CLIP_DURATION && <Typography className={classes.error}>Choose a range of 30 minutes or less.</Typography>}
-          <Button className={classes.create} disabled={!deviceOnline || loading || creating || deviceBusy || invalidDuration || cameraUnavailable || !route} onClick={() => this.createClip()}>
+          <Button className={classes.create} disabled={!deviceOnline || loading || creating || deviceBusy || invalidDuration || invalidFilename || cameraUnavailable || !route} onClick={() => this.createClip()}>
             {creating ? <CircularProgress size={18} /> : (!deviceOnline ? 'Device offline' : (deviceBusy ? 'Clip in progress' : 'Create clip'))}
           </Button>
           </div>}

@@ -26,21 +26,7 @@ const GALLERY_STATES = [
   { name: 'signin', label: 'Sign in', path: '/', readyText: 'Sign in with Google', anonymous: true },
   { name: 'pair', label: 'Pair a device', path: '/', readyText: 'add new device' },
   { name: 'dashboard', label: 'Dashboard', path: `/${DONGLE_ID}`, readyText: 'Bronco Sport' },
-  {
-    name: 'clip-inventory-menu',
-    label: 'Device clip inventory',
-    page: 'dashboard',
-    actions: [{ selector: '[aria-label="Clips"]' }],
-    modalText: 'CLIPS ON THIS DEVICE',
-  },
   { name: 'drive', label: 'Drive', path: `/${DONGLE_ID}/${LOG_ID}`, readySelector: '.DriveView' },
-  {
-    name: 'clip-menu',
-    label: 'Clip menu',
-    page: 'drive',
-    actions: [{ text: 'Clip' }],
-    modalText: 'Create a clip',
-  },
   { name: 'checkout', label: 'Prime checkout', path: `/${DONGLE_ID}/prime`, readyText: '24/7 connectivity' },
   { name: 'management', label: 'Prime management', path: `/${DONGLE_ID}/prime`, readyText: 'Next payment' },
   { name: 'teleop', label: 'Teleop', path: `/${DONGLE_ID}/stream`, readyText: 'comma body' },
@@ -261,7 +247,6 @@ function galleryData(origin, pageName) {
     fetched_at: now,
     is_owner: true,
     last_athena_ping: now,
-    openpilot_version: '0.11.2',
     prime: pageName === 'management',
     rpc: { not_car: false },
     serial: 'cb421c10',
@@ -408,22 +393,6 @@ async function mockGalleryRequest(request, origin, pageName, fixtures) {
       return jsonResponse(request, { result: { peripheralState: { voltage: 12300 } } });
     }
     if (payload.method === 'listUploadQueue') return jsonResponse(request, { result: [] });
-    if (payload.method === 'getClipState') {
-      return jsonResponse(request, {
-        result: {
-          cameras: {
-            'fcamera.hevc': { available_ranges: [[0, 900]] },
-            'ecamera.hevc': { available_ranges: [[0, 900]] },
-            'dcamera.hevc': { available_ranges: [[0, 900]] },
-          },
-          clips: [{
-            filename: 'coastal-drive.mp4', route: LOG_ID, camera: 'fcamera.hevc',
-            source_start_time: 120, source_end_time: 180, speedup: 1,
-            size: 37500000, status: 'ready', requested_at: 1772040750,
-          }],
-        },
-      });
-    }
     if (payload.method === 'getNotCar') return jsonResponse(request, { result: pageName === 'teleop' });
     if (payload.method === 'startStream') {
       return jsonResponse(request, { result: { sdp: 'v=0\r\n', time: 0 } });

@@ -171,6 +171,7 @@ class DeviceInfo extends Component {
       windowWidth: window.innerWidth,
       bodyTeleopOpen: false,
       clipMenu: null,
+      clipsSupported: false,
     };
 
     this.snapshotButtonRef = React.createRef();
@@ -192,6 +193,7 @@ class DeviceInfo extends Component {
 
   componentDidMount() {
     this.mounted = true;
+    this.checkClipsSupport();
     this.prewarmBodyTeleop();
   }
 
@@ -204,7 +206,11 @@ class DeviceInfo extends Component {
         snapshot: {},
         windowWidth: window.innerWidth,
         clipMenu: null,
+        clipsSupported: false,
       });
+      this.checkClipsSupport();
+    } else if (!deviceIsOnline(prevProps.device) && deviceIsOnline(this.props.device)) {
+      this.checkClipsSupport();
     }
 
     this.prewarmBodyTeleop();
@@ -212,6 +218,16 @@ class DeviceInfo extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+  }
+
+  async checkClipsSupport() {
+    const { device, dongleId } = this.props;
+    try {
+      const clipsSupported = await deviceSupportsClips(device);
+      if (this.mounted && dongleId === this.props.dongleId) this.setState({ clipsSupported });
+    } catch (error) {
+      // The button stays hidden when Athena is unavailable or too old.
+    }
   }
 
   onResize(windowWidth) {
@@ -372,9 +388,8 @@ class DeviceInfo extends Component {
 
   renderButtons() {
     const { classes, device } = this.props;
-    const { snapshot, carHealth } = this.state;
+    const { snapshot, carHealth, clipsSupported } = this.state;
     const isCommaBody = device?.rpc?.not_car;
-    const clipsSupported = deviceSupportsClips(device);
 
     let batteryVoltage;
     let batteryBackground = Colors.grey400;
