@@ -60,6 +60,7 @@ const styles = () => ({
     '&[aria-pressed="true"]:focus': { background: 'rgba(255,255,255,.14)' },
   },
   qualityDetail: { color: Colors.white60, display: 'block', fontSize: 10, fontWeight: 400, marginTop: 2 },
+  availabilityHint: { color: '#ffcc80', fontSize: 12, lineHeight: 1.4, marginTop: 7 },
   estimate: { alignItems: 'center', display: 'flex', justifyContent: 'space-between', marginTop: 8 },
   estimateValue: { fontSize: 12, fontWeight: 500 },
   input: {
@@ -388,6 +389,7 @@ class ClipMenu extends Component {
     const estimatedSize = outputDuration * bitrate * 125000;
     const invalidDuration = duration <= 0 || duration > MAX_CLIP_DURATION;
     const cameraUnavailable = !inventoryOnly && cameraRanges !== null && !cameraCoversRange(cameraRanges, camera, startTime, endTime);
+    const cameraAvailable = cameraRanges === null || CAMERAS.some(([value]) => cameraCoversRange(cameraRanges, value, startTime, endTime));
     const deviceBusy = clips.some(clip => ACTIVE_STATUSES.has(clip.status));
 
     return (
@@ -423,6 +425,11 @@ class ClipMenu extends Component {
                 </Button>
               ))}
             </div>
+            {!cameraAvailable && (
+              <Typography className={classes.availabilityHint}>
+                No camera footage covers this entire range. Choose a smaller range.
+              </Typography>
+            )}
           </div>
           <div className={classes.field}>
             <Typography className={classes.label}>QUALITY</Typography>
