@@ -23,7 +23,7 @@ const BITRATES = [
   [12, 'Extreme', '12 Mbps'],
 ];
 
-const SPEEDUPS = [1, 2, 4, 5, 10, 20];
+const SPEEDUPS = [1, 2, 4, 5, 10];
 
 const styles = () => ({
   paper: { width: 360, maxWidth: 'calc(100vw - 24px)', outline: 'none' },
