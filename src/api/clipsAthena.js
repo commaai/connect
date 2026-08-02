@@ -1,0 +1,31 @@
+const ATHENA_URL_ROOT = import.meta.env.VITE_CLIPS_ATHENA_URL_ROOT?.replace(/\/$/, '');
+
+async function call(dongleId, method, params) {
+  const response = await fetch(`${ATHENA_URL_ROOT}/${dongleId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: crypto.randomUUID(), method, params }),
+  });
+  if (!response.ok) throw new Error(`${response.status}: ${await response.text()}`);
+  const payload = await response.json();
+  if (payload.error) throw new Error(payload.error.message || 'Athena request failed');
+  return payload.result;
+}
+
+export const clipsAthena = {
+  getClipsState(dongleId, params) {
+    return call(dongleId, 'getClipsState', params);
+  },
+
+  createClips(dongleId, params) {
+    return call(dongleId, 'createClips', params);
+  },
+
+  deleteClips(dongleId, params) {
+    return call(dongleId, 'deleteClips', params);
+  },
+
+  async getClipUrl(dongleId, clipId) {
+    return `${ATHENA_URL_ROOT}/${dongleId}/clips/${clipId}`;
+  },
+};

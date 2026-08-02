@@ -6,8 +6,6 @@ const READY_CLIP_BUDGET = 2 * 1024 * 1024 * 1024;
 const MOCK_ENCODING_SECONDS = 8;
 
 const CAMERA_FILES = ['fcamera', 'ecamera', 'dcamera'];
-const BITRATES = [5, 8, 12];
-const SPEEDUPS = [1, 2, 5, 10];
 const clips = new Map();
 
 const now = () => Date.now() / 1000;
@@ -21,8 +19,7 @@ function publicClip(clip) {
 
 function updateProgress(clip) {
   if (clip.status !== 'encoding') return;
-  clip.progress = Math.max(0, Math.min((now() - clip.created_at) / clip.mock_encoding_duration, 1));
-  if (clip.progress === 1) {
+  if (now() - clip.created_at >= clip.mock_encoding_duration) {
     clip.status = 'ready';
     clip.size = Math.round(((clip.source_end_time - clip.source_start_time) / clip.speedup) * clip.bitrate * 125000);
     clip.fn = `clips/${clip.id}.mp4`;
@@ -147,13 +144,6 @@ export const clipsStub = {
   async getClipsState(dongleId, { routes = [] } = {}) {
     await new Promise(resolve => setTimeout(resolve, 350));
     return {
-      version: 1,
-      capabilities: {
-        cameras: CAMERA_FILES,
-        bitrates: BITRATES,
-        speedups: SPEEDUPS,
-        max_duration: 30 * 60,
-      },
       clips: clipsForDevice(dongleId),
       routes: Object.fromEntries(routes.map(route => [route, {
         cameras: Object.fromEntries(CAMERA_FILES.map(camera => [camera, { available_ranges: [[0, 24 * 60 * 60]] }])),
@@ -163,29 +153,22 @@ export const clipsStub = {
 
   async createClips(dongleId, request) {
     await new Promise(resolve => setTimeout(resolve, 250));
-    const existing = clipsForDevice(dongleId).filter(clip => clip.request_id === request.request_id);
-    if (existing.length) return { request_id: request.request_id, clips: existing };
     const created = request.clips.map((settings) => {
       const id = `mock-${Date.now()}-${Math.random().toString(16).slice(2)}`;
       const clip = {
         id,
-        request_id: request.request_id,
         mock_dongle_id: dongleId,
         route: request.route,
         camera: settings.camera,
         bitrate: settings.bitrate,
         speedup: settings.speedup,
-        filename: settings.filename
-          ? `${settings.filename.replace(/\.mp4$/i, '')}.mp4`
-          : `comma-clip-${settings.camera}-${Math.round(request.source_start_time)}-${Math.round(request.source_end_time)}.mp4`,
+        filename: settings.filename || `clip-${id}.mp4`,
         source_start_time: request.source_start_time,
         source_end_time: request.source_end_time,
         created_at: now(),
         status: 'encoding',
-        progress: 0,
         fn: null,
         size: null,
-        error: null,
         mock_encoding_duration: MOCK_ENCODING_SECONDS,
       };
       clips.set(id, clip);
@@ -193,23 +176,18 @@ export const clipsStub = {
     });
     evict();
     persist();
-    return { request_id: request.request_id, clips: created };
+    return created.map(clip => clip.id);
   },
 
   async deleteClips(dongleId, { clip_ids: clipIds }) {
     await new Promise(resolve => setTimeout(resolve, 150));
     const deviceClipIds = new Set(clipsForDevice(dongleId).map(clip => clip.id));
-    const deleted = [];
-    const failed = [];
     clipIds.forEach((clipId) => {
-      if (!deviceClipIds.has(clipId)) failed.push(clipId);
-      else {
+      if (deviceClipIds.has(clipId)) {
         clips.delete(clipId);
-        deleted.push(clipId);
       }
     });
     persist();
-    return { deleted, failed };
   },
 
   async getClipUrl(dongleId, clipId) {

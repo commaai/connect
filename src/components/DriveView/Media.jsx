@@ -10,6 +10,7 @@ import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
 
 import { drives as Drives, USERADMIN_URL_ROOT } from '../../api';
+import { clipsLocal } from '../../api/clips';
 
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
@@ -573,7 +574,7 @@ class Media extends Component {
   renderMediaOptions(showMapAlways) {
     const { classes, device } = this.props;
     const { inView } = this.state;
-    const clipAvailable = deviceIsOnline(device);
+    const clipAvailable = deviceIsOnline(device) || clipsLocal;
     return (
       <>
         <div className={classes.mediaOptionsRoot}>
@@ -671,7 +672,7 @@ class Media extends Component {
           route={currentRoute}
           routes={this.props.routes}
           zoom={this.props.zoom}
-          deviceOnline={deviceIsOnline(device)}
+          deviceOnline={deviceIsOnline(device) || clipsLocal}
         />
         <Menu
           id="menu-download"

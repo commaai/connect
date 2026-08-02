@@ -8,6 +8,7 @@ import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@mate
 import ContentCut from '@material-ui/icons/ContentCut';
 
 import { athena as Athena } from '../../api';
+import { clipsLocal } from '../../api/clips';
 import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
@@ -337,7 +338,7 @@ class DeviceInfo extends Component {
           anchorEl={this.state.clipMenu}
           onClose={() => this.setState({ clipMenu: null })}
           routes={this.props.routes}
-          deviceOnline={deviceIsOnline(device)}
+          deviceOnline={deviceIsOnline(device) || clipsLocal}
           inventoryOnly
         />
         { snapshot.result && (
@@ -373,6 +374,7 @@ class DeviceInfo extends Component {
     const { classes, device } = this.props;
     const { snapshot, carHealth } = this.state;
     const isCommaBody = device?.rpc?.not_car;
+    const clipsAvailable = deviceIsOnline(device) || clipsLocal;
 
     let batteryVoltage;
     let batteryBackground = Colors.grey400;
@@ -426,16 +428,16 @@ class DeviceInfo extends Component {
         )}
         <Tooltip
           classes={{ tooltip: classes.popover }}
-          title={deviceIsOnline(device) ? 'Clips' : 'Device offline'}
+          title={clipsAvailable ? 'Clips' : 'Device offline'}
           placement="bottom"
         >
           <span className="inline-flex">
             <button
-              style={!deviceIsOnline(device) ? { opacity: 0.3 } : {}}
-              className={`${classes.button} ${classes.carBattery} ${buttonOffline}`}
+              style={!clipsAvailable ? { opacity: 0.3 } : {}}
+              className={`${classes.button} ${classes.carBattery} ${clipsAvailable ? '' : classes.buttonOffline}`}
               aria-label="Clips"
               onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
-              disabled={!deviceIsOnline(device)}
+              disabled={!clipsAvailable}
             >
               <ContentCut className="text-black" />
             </button>

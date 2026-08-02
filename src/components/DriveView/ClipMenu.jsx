@@ -132,10 +132,6 @@ function deviceRouteName(route) {
   return route?.fullname?.split(/[|/]/).pop() || null;
 }
 
-function newRequestId() {
-  return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
 function cameraCoversRange(cameraRanges, camera, startTime, endTime) {
   return Boolean(cameraRanges?.[camera]?.available_ranges?.some(([start, end]) => start <= startTime && end >= endTime));
 }
@@ -225,7 +221,6 @@ class ClipMenu extends Component {
     this.setState({ creating: true, error: null });
     try {
       await clipDevice.createClips(dongleId, {
-        request_id: newRequestId(),
         route: deviceRouteName(route),
         source_start_time: zoom.start / 1000,
         source_end_time: zoom.end / 1000,
@@ -268,8 +263,7 @@ class ClipMenu extends Component {
   async removeClip(clip) {
     if (!this.props.deviceOnline) return;
     try {
-      const result = await clipDevice.deleteClips(this.props.dongleId, { clip_ids: [clip.id] });
-      if (result.failed.includes(clip.id)) throw new Error('Clip not found on device');
+      await clipDevice.deleteClips(this.props.dongleId, { clip_ids: [clip.id] });
       this.watchedClipIds.delete(clip.id);
       if (this.mounted) await this.loadClips(false);
     } catch (err) {
@@ -366,7 +360,7 @@ class ClipMenu extends Component {
                 <DownloadIcon className={classes.downloadIcon} />
               </IconButton>
             )}
-            {clip.status === 'encoding' && <Typography className={classes.clipMeta}>{`${Math.round(clip.progress * 100)}%`}</Typography>}
+            {clip.status === 'encoding' && <Typography className={classes.clipMeta}>Encoding</Typography>}
             {clip.status === 'queued' && <Typography className={classes.clipMeta}>Queued</Typography>}
             <IconButton
               aria-label={ACTIVE_STATUSES.has(clip.status) ? 'Cancel clip' : 'Delete clip'}
@@ -379,10 +373,7 @@ class ClipMenu extends Component {
             </IconButton>
           </div>
         </div>
-        {clip.status === 'encoding' && (
-          <LinearProgress className={classes.progress} variant="determinate" value={clip.progress * 100} />
-        )}
-        {clip.status === 'failed' && <Typography className={classes.error}>{clip.error || 'Clip creation failed'}</Typography>}
+        {clip.status === 'encoding' && <LinearProgress className={classes.progress} />}
       </div>
     );
   }
