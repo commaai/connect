@@ -152,8 +152,6 @@ class ClipMenu extends Component {
     this.poll = null;
     this.mounted = false;
     this.previewRequest = 0;
-    this.watchedClipIds = new Set();
-    this.downloadedClipIds = new Set();
     this.downloadingClipIds = new Set();
   }
 
@@ -204,12 +202,6 @@ class ClipMenu extends Component {
       const { clips } = state;
       const cameraRanges = routeName ? state.routes[routeName]?.cameras || {} : null;
       this.setState({ clips, cameraRanges, loading: false });
-      clips.filter(clip => ACTIVE_STATUSES.has(clip.status)).forEach(clip => this.watchedClipIds.add(clip.filename));
-      const completedClip = clips.find(clip => clip.status === 'ready'
-        && this.watchedClipIds.has(clip.filename) && !this.downloadedClipIds.has(clip.filename));
-      if (completedClip && this.props.open) {
-        this.downloadClip(completedClip);
-      }
       this.stopPolling();
       if (this.props.open && clips.some(clip => ACTIVE_STATUSES.has(clip.status))) {
         this.poll = setTimeout(() => this.loadClips(false), POLL_INTERVAL);
@@ -256,7 +248,6 @@ class ClipMenu extends Component {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      this.downloadedClipIds.add(clip.filename);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
       if (this.mounted) this.setState({ error: err.message || 'Could not download clip' });
@@ -269,7 +260,6 @@ class ClipMenu extends Component {
     if (!this.props.deviceOnline) return;
     try {
       await clipDevice.deleteClips(this.props.dongleId, { filenames: [clip.filename] });
-      this.watchedClipIds.delete(clip.filename);
       if (this.mounted) await this.loadClips(false);
     } catch (err) {
       if (this.mounted) this.setState({ error: err.message || 'Could not remove clip' });
