@@ -29,7 +29,6 @@
         "react-redux": "^5.1.2",
         "react-router": "^5.3.4",
         "react-router-dom": "^5.3.4",
-        "reduce-reducers": "^1.0.4",
         "redux": "^4.2.1",
         "redux-thunk": "^2.4.2",
       },
@@ -1619,8 +1618,6 @@
     "recompose": ["recompose@0.28.2", "", { "dependencies": { "@babel/runtime": "7.0.0-beta.56", "change-emitter": "^0.1.2", "fbjs": "^0.8.1", "hoist-non-react-statics": "^2.3.1", "react-lifecycles-compat": "^3.0.2", "symbol-observable": "^1.0.4" }, "peerDependencies": { "react": "^0.14.0 || ^15.0.0 || ^16.0.0" } }, "sha512-baVNKQBQAAAuLRnv6Cb/6/j59a1BVj6c6Pags1KXVyRB0yPfQVUZtuAUnqHDBXoR8iXPrLGWE4RNtCQ/AaRP3g=="],
 
     "redent": ["redent@3.0.0", "", { "dependencies": { "indent-string": "^4.0.0", "strip-indent": "^3.0.0" } }, "sha512-6tDA8g98We0zd0GvVeMT9arEOnTw9qM03L9cJXaCjrip1OO764RDBLBfrB4cwzNGDj5OA5ioymC9GkizgWJDUg=="],
-
-    "reduce-reducers": ["reduce-reducers@1.0.4", "", {}, "sha512-Mb2WZ2bJF597exiqX7owBzrqJ74DHLK3yOQjCyPAaNifRncE8OD0wFIuoMhXxTnHK07+8zZ2SJEKy/qtiyR7vw=="],
 
     "redux": ["redux@4.2.1", "", { "dependencies": { "@babel/runtime": "^7.9.2" } }, "sha512-LAUYz4lc+Do8/g7aeRa8JkyDErK6ekstQaqWQrNRW//MY1TvCEpMtpTWvlQ+FPbWCx+Xixu/6SHt5N0HR+SB4w=="],
 
