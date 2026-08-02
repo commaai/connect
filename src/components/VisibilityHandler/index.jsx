@@ -1,6 +1,7 @@
 import { Component } from 'react';
 import { connect } from 'react-redux';
-import debounce from 'debounce';
+
+import debounce from '../../utils/debounce';
 
 class VisibilityHandler extends Component {
   constructor(props) {

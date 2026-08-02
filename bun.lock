@@ -14,7 +14,6 @@
         "barcode-detector": "^3.0.8",
         "connected-react-router": "^4.5.0",
         "dayjs": "^1.11.9",
-        "debounce": "^1.2.1",
         "history": "^4.10.1",
         "jwt-decode": "^3.1.2",
         "localforage": "^1.10.0",
@@ -22,7 +21,6 @@
         "react": "~18.2.0",
         "react-dom": "~18.2.0",
         "react-map-gl": "^5.3.21",
-        "react-measure": "^2.5.2",
         "react-player": "^2.12.0",
         "react-redux": "^5.1.2",
         "react-router": "^5.3.4",
@@ -1035,8 +1033,6 @@
 
     "get-intrinsic": ["get-intrinsic@1.3.0", "", { "dependencies": { "call-bind-apply-helpers": "^1.0.2", "es-define-property": "^1.0.1", "es-errors": "^1.3.0", "es-object-atoms": "^1.1.1", "function-bind": "^1.1.2", "get-proto": "^1.0.1", "gopd": "^1.2.0", "has-symbols": "^1.1.0", "hasown": "^2.0.2", "math-intrinsics": "^1.1.0" } }, "sha512-9fSjSaos/fRIVIp+xSJlE6lfwhES7LNtKaCBIamHsjr2na1BiABJPo0mOjjz8GJDURarmCPGqaiVg5mfjb98CQ=="],
 
-    "get-node-dimensions": ["get-node-dimensions@1.2.1", "", {}, "sha512-2MSPMu7S1iOTL+BOa6K1S62hB2zUAYNF/lV0gSVlOaacd087lc6nR1H1r0e3B1CerTo+RceOmi1iJW+vp21xcQ=="],
-
     "get-own-enumerable-property-symbols": ["get-own-enumerable-property-symbols@3.0.2", "", {}, "sha512-I0UBV/XOz1XkIJHEUDMZAbzCThU/H8DxmSfmdGcKPnVhu2VfFqr34jr9777IyaTYvxjedWhqVIilEDsCdP5G6g=="],
 
     "get-package-type": ["get-package-type@0.1.0", "", {}, "sha512-pjzuKtY64GYfWizNAJ0fr9VqttZkNiK2iS430LtIHzjBEr6bX8Am2zm4sW4Ro5wjWW5cAlRL1qAMTcXbjNAO2Q=="],
@@ -1584,8 +1580,6 @@
     "react-lifecycles-compat": ["react-lifecycles-compat@3.0.4", "", {}, "sha512-fBASbA6LnOU9dOU2eW7aQ8xmYBSXUIWr+UmF9b1efZBazGNO+rcXT/icdKnYm2pTwcRylVUYwW7H1PHfLekVzA=="],
 
     "react-map-gl": ["react-map-gl@5.3.21", "", { "dependencies": { "@babel/runtime": "^7.0.0", "@types/geojson": "^7946.0.7", "@types/mapbox-gl": "^2.0.3", "mapbox-gl": "^1.0.0", "mjolnir.js": "^2.5.0", "prop-types": "^15.7.2", "resize-observer-polyfill": "^1.5.1", "viewport-mercator-project": "^7.0.4" }, "peerDependencies": { "react": ">=16.3.0" } }, "sha512-hNVYiPBjgfVIcDV70OU9QnzvNCI1NhLm5OHjyY1rKPOKqzV4m9jjuXEKUaWC72vqIHk1Dzb+gG78xWOpqVi6uw=="],
-
-    "react-measure": ["react-measure@2.5.2", "", { "dependencies": { "@babel/runtime": "^7.2.0", "get-node-dimensions": "^1.2.1", "prop-types": "^15.6.2", "resize-observer-polyfill": "^1.5.0" }, "peerDependencies": { "react": ">0.13.0", "react-dom": ">0.13.0" } }, "sha512-M+rpbTLWJ3FD6FXvYV6YEGvQ5tMayQ3fGrZhRPHrE9bVlBYfDCLuDcgNttYfk8IqfOI03jz6cbpqMRTUclQnaA=="],
 
     "react-player": ["react-player@2.16.1", "", { "dependencies": { "deepmerge": "^4.0.0", "load-script": "^1.0.0", "memoize-one": "^5.1.1", "prop-types": "^15.7.2", "react-fast-compare": "^3.0.1" }, "peerDependencies": { "react": ">=16.6.0" } }, "sha512-mxP6CqjSWjidtyDoMOSHVPdhX0pY16aSvw5fVr44EMaT7X5Xz46uQ4b/YBm1v2x+3hHkB9PmjEEkmbHb9PXQ4w=="],
 

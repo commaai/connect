@@ -2,8 +2,9 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { CircularProgress, Typography } from '@material-ui/core';
-import debounce from 'debounce';
 import ReactPlayer from 'react-player/file';
+
+import debounce from '../../utils/debounce';
 
 import { video as Video } from '../../api';
 
