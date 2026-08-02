@@ -20,20 +20,20 @@ async function call(dongleId, method, params) {
 }
 
 export const clipsAthena = {
-  getClipsState(dongleId, params) {
-    return call(dongleId, 'getClipsState', params);
+  getClipState(dongleId, params) {
+    return call(dongleId, 'getClipState', params);
   },
 
-  createClips(dongleId, params) {
-    return call(dongleId, 'createClips', params);
+  createClip(dongleId, params) {
+    return call(dongleId, 'createClip', params);
   },
 
-  deleteClips(dongleId, params) {
-    return call(dongleId, 'deleteClips', params);
+  deleteClip(dongleId, params) {
+    return call(dongleId, 'deleteClip', params);
   },
 
-  async getClipUrl(dongleId, filename, createdAt) {
+  async getClipUrl(dongleId, filename, requestedAt) {
     if (!ATHENA_URL_ROOT) throw new Error('Clip playback endpoint is not configured');
-    return `${ATHENA_URL_ROOT}/${dongleId}/clips/${encodeURIComponent(filename)}?v=${encodeURIComponent(createdAt)}`;
+    return `${ATHENA_URL_ROOT}/${dongleId}/clips/${encodeURIComponent(filename)}?v=${encodeURIComponent(requestedAt)}`;
   },
 };

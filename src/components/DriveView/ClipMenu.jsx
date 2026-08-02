@@ -205,10 +205,10 @@ class ClipMenu extends Component {
     }
     if (showLoading) this.setState({ loading: true, error: null });
     try {
-      const state = await clipDevice.getClipsState(dongleId, { routes: routeName ? [routeName] : [] });
+      const state = await clipDevice.getClipState(dongleId, routeName ? { route: this.props.route.fullname } : {});
       if (!this.mounted || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
       const { clips } = state;
-      const cameraRanges = routeName ? state.routes[routeName]?.cameras || {} : null;
+      const cameraRanges = routeName ? state.cameras || {} : null;
       this.setState({ clips, cameraRanges, loading: false });
       this.stopPolling();
       if (this.props.open && clips.some(clip => ACTIVE_STATUSES.has(clip.status))) {
@@ -225,16 +225,16 @@ class ClipMenu extends Component {
     if (!route || !zoom || !this.props.deviceOnline) return;
     this.setState({ creating: true, error: null });
     try {
-      await clipDevice.createClips(dongleId, {
-        route: deviceRouteName(route),
+      await clipDevice.createClip(dongleId, {
+        route: route.fullname,
         source_start_time: zoom.start / 1000,
         source_end_time: zoom.end / 1000,
-        clips: [{
+        clip: {
           camera,
           bitrate,
           speedup,
           filename: `${safeFilename(filename) || defaultFilename(camera, zoom.start / 1000, zoom.end / 1000, bitrate, speedup)}.mp4`,
-        }],
+        },
       });
       if (!this.mounted) return;
       this.setState({ creating: false });
@@ -248,7 +248,7 @@ class ClipMenu extends Component {
     if (!this.props.deviceOnline || this.downloadingClipIds.has(clip.filename)) return;
     this.downloadingClipIds.add(clip.filename);
     try {
-      const url = await clipDevice.getClipUrl(this.props.dongleId, clip.filename, clip.created_at);
+      const url = await clipDevice.getClipUrl(this.props.dongleId, clip.filename, clip.requested_at);
       const link = document.createElement('a');
       link.href = url;
       const defaultName = `comma-clip-${clip.camera}-${formatTime(clip.source_start_time).replaceAll(':', '-')}-${formatTime(clip.source_end_time).replaceAll(':', '-')}`;
@@ -267,7 +267,7 @@ class ClipMenu extends Component {
   async removeClip(clip) {
     if (!this.props.deviceOnline) return;
     try {
-      await clipDevice.deleteClips(this.props.dongleId, { filenames: [clip.filename] });
+      await clipDevice.deleteClip(this.props.dongleId, { filename: clip.filename });
       if (this.mounted) await this.loadClips(false);
     } catch (err) {
       if (this.mounted) this.setState({ error: err.message || 'Could not remove clip' });
@@ -281,7 +281,7 @@ class ClipMenu extends Component {
     const request = this.previewRequest;
     this.setState({ viewingClip: clip, previewUrl: null, previewLoading: true, error: null });
     try {
-      const previewUrl = await clipDevice.getClipUrl(this.props.dongleId, clip.filename, clip.created_at);
+      const previewUrl = await clipDevice.getClipUrl(this.props.dongleId, clip.filename, clip.requested_at);
       if (!this.mounted || request !== this.previewRequest || this.state.viewingClip?.filename !== clip.filename) {
         URL.revokeObjectURL(previewUrl);
         return;
