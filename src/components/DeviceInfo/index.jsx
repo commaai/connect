@@ -8,7 +8,7 @@ import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@mate
 import ContentCut from '@material-ui/icons/ContentCut';
 
 import { athena as Athena } from '../../api';
-import { clipsLocal, deviceSupportsClips } from '../../api/clips';
+import { deviceSupportsClips } from '../../api/clips';
 import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
@@ -338,7 +338,7 @@ class DeviceInfo extends Component {
           anchorEl={this.state.clipMenu}
           onClose={() => this.setState({ clipMenu: null })}
           routes={this.props.routes}
-          deviceOnline={deviceIsOnline(device) || clipsLocal}
+          deviceOnline={deviceIsOnline(device)}
           inventoryOnly
         />
         { snapshot.result && (
@@ -374,7 +374,6 @@ class DeviceInfo extends Component {
     const { classes, device } = this.props;
     const { snapshot, carHealth } = this.state;
     const isCommaBody = device?.rpc?.not_car;
-    const clipsAvailable = deviceIsOnline(device) || clipsLocal;
     const clipsSupported = deviceSupportsClips(device);
 
     let batteryVoltage;
@@ -429,16 +428,15 @@ class DeviceInfo extends Component {
         )}
         {clipsSupported && <Tooltip
           classes={{ tooltip: classes.popover }}
-          title={clipsAvailable ? 'Clips' : 'Device offline'}
+          title={deviceIsOnline(device) ? 'Clips' : 'View downloaded clips'}
           placement="bottom"
         >
           <span className="inline-flex">
             <button
-              style={!clipsAvailable ? { opacity: 0.3 } : {}}
-              className={`${classes.button} ${classes.carBattery} ${clipsAvailable ? '' : classes.buttonOffline}`}
+              style={!deviceIsOnline(device) ? { opacity: 0.7 } : {}}
+              className={`${classes.button} ${classes.carBattery}`}
               aria-label="Clips"
               onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
-              disabled={!clipsAvailable}
             >
               <ContentCut className="text-black" />
             </button>

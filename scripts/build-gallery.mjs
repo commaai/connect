@@ -261,6 +261,7 @@ function galleryData(origin, pageName) {
     fetched_at: now,
     is_owner: true,
     last_athena_ping: now,
+    openpilot_version: '0.11.2',
     prime: pageName === 'management',
     rpc: { not_car: false },
     serial: 'cb421c10',
@@ -407,6 +408,22 @@ async function mockGalleryRequest(request, origin, pageName, fixtures) {
       return jsonResponse(request, { result: { peripheralState: { voltage: 12300 } } });
     }
     if (payload.method === 'listUploadQueue') return jsonResponse(request, { result: [] });
+    if (payload.method === 'getClipState') {
+      return jsonResponse(request, {
+        result: {
+          cameras: {
+            'fcamera.hevc': { available_ranges: [[0, 900]] },
+            'ecamera.hevc': { available_ranges: [[0, 900]] },
+            'dcamera.hevc': { available_ranges: [[0, 900]] },
+          },
+          clips: [{
+            filename: 'coastal-drive.mp4', route: LOG_ID, camera: 'fcamera.hevc',
+            source_start_time: 120, source_end_time: 180, speedup: 1,
+            size: 37500000, status: 'ready', requested_at: 1772040750,
+          }],
+        },
+      });
+    }
     if (payload.method === 'getNotCar') return jsonResponse(request, { result: pageName === 'teleop' });
     if (payload.method === 'startStream') {
       return jsonResponse(request, { result: { sdp: 'v=0\r\n', time: 0 } });
@@ -518,10 +535,6 @@ async function updateStoredPairToken(page, pairToken) {
 }
 
 async function clickGalleryAction(page, action, label) {
-  if (action.wait) {
-    await new Promise((accept) => setTimeout(accept, action.wait));
-    return;
-  }
   const description = action.selector ?? JSON.stringify(action.text);
   const target = { selector: action.selector, targetText: action.text };
   if (!action.optional) {

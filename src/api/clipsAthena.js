@@ -1,10 +1,8 @@
 import { athena as Athena } from '../api';
 import localforage from 'localforage';
 
-const ATHENA_URL_ROOT = import.meta.env.VITE_CLIPS_ATHENA_URL_ROOT?.replace(/\/$/, '');
 const MAX_CACHED_CLIPS = 3;
 const MAX_CACHE_BYTES = 512 * 1024 * 1024;
-const CLIP_CHUNK_BYTES = 512 * 1024;
 const CLIP_CHUNK_CONCURRENCY = 4;
 const CLIP_INDEX_KEY = '__clip_index__';
 const clipCache = new Map();
@@ -14,6 +12,10 @@ let storageQueue = Promise.resolve();
 
 function cacheKey(dongleId, filename, requestedAt) {
   return `clip:${dongleId}/${filename}/${requestedAt}`;
+}
+
+function clipStateKey(dongleId) {
+  return `clip-state:${dongleId}`;
 }
 
 function runStorageTask(task) {
@@ -50,23 +52,57 @@ async function getPersistentClip(key) {
 
 function persistClip(key, entry, blob) {
   return runStorageTask(async () => {
-    await clipStorage.setItem(key, blob);
-    let index = (await getPersistentIndex()).filter(item => item.key !== key);
-    index.push({
-      key, dongleId: entry.dongleId, filename: entry.filename, requestedAt: entry.requestedAt,
-      lastUsed: Date.now(), size: blob.size,
-    });
-    index.sort((a, b) => b.lastUsed - a.lastUsed);
-    let totalBytes = index.reduce((total, item) => total + item.size, 0);
-    const removed = [];
-    while (index.length > MAX_CACHED_CLIPS || totalBytes > MAX_CACHE_BYTES) {
-      const item = index.pop();
-      totalBytes -= item.size;
-      removed.push(item);
+    try {
+      await clipStorage.setItem(key, blob);
+      let index = (await getPersistentIndex()).filter(item => item.key !== key);
+      index.push({
+        key, dongleId: entry.dongleId, filename: entry.filename, requestedAt: entry.requestedAt,
+        lastUsed: Date.now(), size: blob.size,
+      });
+      index.sort((a, b) => b.lastUsed - a.lastUsed);
+      let totalBytes = index.reduce((total, item) => total + item.size, 0);
+      const removed = [];
+      while (index.length > MAX_CACHED_CLIPS || totalBytes > MAX_CACHE_BYTES) {
+        const item = index.pop();
+        totalBytes -= item.size;
+        removed.push(item);
+      }
+      await Promise.all(removed.map(item => clipStorage.removeItem(item.key)));
+      await clipStorage.setItem(CLIP_INDEX_KEY, index);
+    } catch (error) {
+      await clipStorage.removeItem(key).catch(() => {});
+      throw error;
     }
-    await Promise.all(removed.map(item => clipStorage.removeItem(item.key)));
-    await clipStorage.setItem(CLIP_INDEX_KEY, index);
   }).catch(() => {});
+}
+
+function saveClipState(dongleId, state) {
+  return runStorageTask(() => clipStorage.setItem(clipStateKey(dongleId), state)).catch(() => {});
+}
+
+async function getCachedClipState(dongleId) {
+  try {
+    const [state, index] = await Promise.all([clipStorage.getItem(clipStateKey(dongleId)), getPersistentIndex()]);
+    const cached = new Set(index.filter(item => item.dongleId === dongleId).map(item => item.key));
+    const clips = (state?.clips || [])
+      .filter(clip => cached.has(cacheKey(dongleId, clip.filename, clip.requested_at)))
+      .map(clip => ({ ...clip, cached: true }));
+    return { clips, cameras: {} };
+  } catch (_) {
+    return { clips: [], cameras: {} };
+  }
+}
+
+async function markCachedClips(dongleId, state) {
+  const index = await getPersistentIndex().catch(() => []);
+  const cached = new Set(index.filter(item => item.dongleId === dongleId).map(item => item.key));
+  return {
+    ...state,
+    clips: (state.clips || []).map(clip => ({
+      ...clip,
+      cached: cached.has(cacheKey(dongleId, clip.filename, clip.requested_at)),
+    })),
+  };
 }
 
 function invalidatePersistentClips(dongleId, predicate) {
@@ -134,12 +170,13 @@ function getClipBlob(dongleId, filename, requestedAt, onProgress) {
       const chunks = [];
       let loaded = 0;
       let size;
+      let chunkBytes;
       let nextOffset = 0;
 
       while (size === undefined || nextOffset < size) {
         const offsets = Array.from(
-          { length: size === undefined ? 1 : Math.min(CLIP_CHUNK_CONCURRENCY, Math.ceil((size - nextOffset) / CLIP_CHUNK_BYTES)) },
-          (_, index) => nextOffset + index * CLIP_CHUNK_BYTES,
+          { length: chunkBytes ? Math.min(CLIP_CHUNK_CONCURRENCY, Math.ceil((size - nextOffset) / chunkBytes)) : 1 },
+          (_, index) => nextOffset + (index * (chunkBytes || 0)),
         );
         // Requests are parallel within each batch; batches bound device and browser memory use.
         // eslint-disable-next-line no-await-in-loop
@@ -150,6 +187,8 @@ function getClipBlob(dongleId, filename, requestedAt, onProgress) {
           const binary = atob(result.data);
           const chunk = new Uint8Array(binary.length);
           for (let i = 0; i < binary.length; i++) chunk[i] = binary.charCodeAt(i);
+          if (!chunk.length && nextOffset < size) throw new Error('Clip download returned an empty chunk');
+          if (!chunkBytes) chunkBytes = chunk.length;
           chunks.push(chunk);
           loaded += chunk.length;
           nextOffset += chunk.length;
@@ -166,7 +205,7 @@ function getClipBlob(dongleId, filename, requestedAt, onProgress) {
       persistClip(key, entry, blob);
       return entry.blob;
     })().catch(error => {
-      clipCache.delete(key);
+      if (clipCache.get(key) === entry) clipCache.delete(key);
       throw error;
     });
     clipCache.set(key, entry);
@@ -180,20 +219,22 @@ function getClipBlob(dongleId, filename, requestedAt, onProgress) {
   return entry.promise.finally(() => entry.listeners.delete(onProgress));
 }
 
+function getActiveClipTransfer(dongleId) {
+  const active = [...clipCache.values()]
+    .filter(entry => entry.dongleId === dongleId && !entry.blob && !entry.invalidated)
+    .sort((a, b) => b.lastUsed - a.lastUsed)[0];
+  if (!active) return null;
+  return {
+    filename: active.filename,
+    requestedAt: active.requestedAt,
+    loaded: active.loaded,
+    total: active.total,
+  };
+}
+
 async function call(dongleId, method, params) {
-  if (!ATHENA_URL_ROOT) {
-    const payload = await Athena.postJsonRpcPayload(dongleId, { jsonrpc: '2.0', id: crypto.randomUUID(), method, params });
-    if (!payload) throw new Error('Athena request failed');
-    if (payload.error) throw new Error(payload.error.message || 'Athena request failed');
-    return payload.result;
-  }
-  const response = await fetch(`${ATHENA_URL_ROOT}/${dongleId}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: crypto.randomUUID(), method, params }),
-  });
-  if (!response.ok) throw new Error(`${response.status}: ${await response.text()}`);
-  const payload = await response.json();
+  const payload = await Athena.postJsonRpcPayload(dongleId, { jsonrpc: '2.0', id: crypto.randomUUID(), method, params });
+  if (!payload) throw new Error('Athena request failed');
   if (payload.error) throw new Error(payload.error.message || 'Athena request failed');
   return payload.result;
 }
@@ -201,9 +242,14 @@ async function call(dongleId, method, params) {
 export const clipsAthena = {
   async getClipState(dongleId, params) {
     const state = await call(dongleId, 'getClipState', params);
-    reconcilePersistentClips(dongleId, state.clips || []);
-    return state;
+    await reconcilePersistentClips(dongleId, state.clips || []);
+    await saveClipState(dongleId, state);
+    return markCachedClips(dongleId, state);
   },
+
+  getCachedClipState,
+
+  getActiveClipTransfer,
 
   createClip(dongleId, params) {
     return call(dongleId, 'createClip', params);
@@ -216,10 +262,6 @@ export const clipsAthena = {
   },
 
   async getClipUrl(dongleId, filename, requestedAt, onProgress) {
-    if (ATHENA_URL_ROOT) {
-      return `${ATHENA_URL_ROOT}/${dongleId}/clips/${encodeURIComponent(filename)}?v=${encodeURIComponent(requestedAt)}`;
-    }
-
     return URL.createObjectURL(await getClipBlob(dongleId, filename, requestedAt, onProgress));
   },
 };

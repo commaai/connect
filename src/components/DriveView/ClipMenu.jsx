@@ -75,7 +75,6 @@ const styles = () => ({
     outline: 'none',
     padding: '9px 11px',
     width: '100%',
-    '&:focus': { borderColor: Colors.white60 },
     '&::placeholder': { color: Colors.white40 },
   },
   error: { color: '#ff8a80', fontSize: 12, marginTop: 10 },
@@ -207,11 +206,26 @@ class ClipMenu extends Component {
     this.poll = null;
   }
 
+  resumeActiveTransfer(clips) {
+    if (this.state.previewingClip || this.state.viewingClip) return;
+    const transfer = clipDevice.getActiveClipTransfer(this.props.dongleId);
+    if (!transfer) return;
+    const clip = clips.find(item => (
+      item.filename === transfer.filename && item.requested_at === transfer.requestedAt
+    ));
+    if (clip) this.openViewer(clip, true);
+  }
+
   async loadClips(showLoading = true) {
     const routeName = deviceRouteName(this.props.route);
     const { dongleId } = this.props;
     if (!this.props.deviceOnline) {
-      this.setState({ loading: false, error: null });
+      if (showLoading) this.setState({ loading: true, error: null });
+      const state = await clipDevice.getCachedClipState(dongleId);
+      if (!this.mounted || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
+      this.setState({ clips: state.clips, cameraRanges: null, loading: false, error: null }, () => {
+        this.resumeActiveTransfer(state.clips);
+      });
       return;
     }
     if (showLoading) this.setState({ loading: true, error: null });
@@ -220,7 +234,7 @@ class ClipMenu extends Component {
       if (!this.mounted || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
       const { clips } = state;
       const cameraRanges = routeName ? state.cameras || {} : null;
-      this.setState({ clips, cameraRanges, loading: false });
+      this.setState({ clips, cameraRanges, loading: false }, () => this.resumeActiveTransfer(clips));
       this.stopPolling();
       if (this.props.open && clips.some(clip => ACTIVE_STATUSES.has(clip.status))) {
         this.poll = setTimeout(() => this.loadClips(false), POLL_INTERVAL);
@@ -268,12 +282,14 @@ class ClipMenu extends Component {
   }
 
   async removeClip(clip) {
-    if (!this.props.deviceOnline) return;
+    if (!this.props.deviceOnline) return false;
     try {
       await clipDevice.deleteClip(this.props.dongleId, { filename: clip.filename });
       if (this.mounted) await this.loadClips(false);
+      return true;
     } catch (err) {
       if (this.mounted) this.setState({ error: err.message || 'Could not remove clip' });
+      return false;
     }
   }
 
@@ -281,12 +297,12 @@ class ClipMenu extends Component {
     const { deletingClip } = this.state;
     if (!deletingClip || this.state.deleting) return;
     this.setState({ deleting: true });
-    await this.removeClip(deletingClip);
-    if (this.mounted) this.setState({ deleteDialogOpen: false, deleting: false });
+    const deleted = await this.removeClip(deletingClip);
+    if (this.mounted) this.setState({ deleteDialogOpen: !deleted, deleting: false });
   }
 
-  async openViewer(clip) {
-    if (!this.props.deviceOnline) return;
+  async openViewer(clip, resume = false) {
+    if (!this.props.deviceOnline && !clip.cached && !resume) return;
     if (this.state.previewingClip) return;
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
     this.previewRequest += 1;
@@ -300,11 +316,14 @@ class ClipMenu extends Component {
         URL.revokeObjectURL(previewUrl);
         return;
       }
+      const cachedClips = this.state.clips.map(item => (
+        item.filename === clip.filename && item.requested_at === clip.requested_at ? { ...item, cached: true } : item
+      ));
       if (this.props.open) {
-        this.setState({ viewingClip: clip, previewingClip: null, previewUrl, previewProgress: 0 });
+        this.setState({ clips: cachedClips, viewingClip: { ...clip, cached: true }, previewingClip: null, previewUrl, previewProgress: 0 });
       } else {
         URL.revokeObjectURL(previewUrl);
-        this.setState({ previewingClip: null, previewProgress: 0 });
+        this.setState({ clips: cachedClips, previewingClip: null, previewProgress: 0 });
       }
     } catch (err) {
       if (this.mounted && request === this.previewRequest) {
@@ -365,7 +384,7 @@ class ClipMenu extends Component {
         <DialogTitle className={classes.deleteTitle}>Delete clip?</DialogTitle>
         <DialogContent>
           <Typography className={classes.deleteContent}>
-            {`${title} will be permanently deleted from your comma device and this browser.`}
+            {`${title} will be permanently deleted from your comma device.`}
           </Typography>
         </DialogContent>
         <DialogActions className={classes.deleteActions}>
@@ -405,8 +424,8 @@ class ClipMenu extends Component {
               <IconButton
                 aria-label="Play clip"
                 className={classes.clipAction}
-                disabled={!this.props.deviceOnline || Boolean(this.state.previewingClip)}
-                title={this.props.deviceOnline ? (previewing ? 'Preparing clip' : 'Play clip') : 'Device offline'}
+                disabled={(!this.props.deviceOnline && !clip.cached) || Boolean(this.state.previewingClip)}
+                title={this.props.deviceOnline || clip.cached ? (previewing ? 'Downloading' : 'Play clip') : 'Device offline'}
                 onClick={() => this.openViewer(clip)}
               >
                 <PlayArrow className={classes.playIcon} />

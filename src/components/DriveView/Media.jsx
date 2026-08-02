@@ -10,7 +10,7 @@ import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
 
 import { drives as Drives, USERADMIN_URL_ROOT } from '../../api';
-import { clipsLocal, deviceSupportsClips } from '../../api/clips';
+import { deviceSupportsClips } from '../../api/clips';
 
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
@@ -574,7 +574,6 @@ class Media extends Component {
   renderMediaOptions(showMapAlways) {
     const { classes, device } = this.props;
     const { inView } = this.state;
-    const clipAvailable = deviceIsOnline(device) || clipsLocal;
     const clipsSupported = deviceSupportsClips(device);
     return (
       <>
@@ -607,13 +606,12 @@ class Media extends Component {
             >
               <Typography className={classes.mediaOptionText}>Files</Typography>
             </div>
-            {clipsSupported && <Tooltip title={clipAvailable ? '' : 'Device offline'} placement="top">
+            {clipsSupported && <Tooltip title={deviceIsOnline(device) ? '' : 'View downloaded clips'} placement="top">
               <div
-                className={`${classes.mediaOption} ${clipAvailable ? '' : 'disabled'}`}
-                style={clipAvailable ? {} : { opacity: 0.45 }}
-                aria-disabled={!clipAvailable}
-                aria-haspopup={clipAvailable ? 'true' : undefined}
-                onClick={clipAvailable ? (ev) => this.setState({ clipMenu: ev.currentTarget }) : undefined}
+                className={classes.mediaOption}
+                style={deviceIsOnline(device) ? {} : { opacity: 0.7 }}
+                aria-haspopup="true"
+                onClick={(ev) => this.setState({ clipMenu: ev.currentTarget })}
               >
                 <Typography className={classes.mediaOptionText}>Clip</Typography>
               </div>
@@ -673,7 +671,7 @@ class Media extends Component {
           route={currentRoute}
           routes={this.props.routes}
           zoom={this.props.zoom}
-          deviceOnline={deviceIsOnline(device) || clipsLocal}
+          deviceOnline={deviceIsOnline(device)}
         />
         <Menu
           id="menu-download"
