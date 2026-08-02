@@ -12,9 +12,9 @@ const POLL_INTERVAL = 1000;
 const ACTIVE_STATUSES = new Set(['queued', 'encoding']);
 
 const CAMERAS = [
-  ['fcamera', 'Road', 'Road camera'],
-  ['ecamera', 'Wide road', 'Wide road camera'],
-  ['dcamera', 'Driver', 'Driver camera'],
+  ['fcamera', 'Road'],
+  ['ecamera', 'Wide road'],
+  ['dcamera', 'Driver'],
 ];
 
 const BITRATES = [
@@ -321,7 +321,7 @@ class ClipMenu extends Component {
 
   renderClip(clip) {
     const { classes } = this.props;
-    const camera = CAMERAS.find(([value]) => value === clip.camera)?.[2] || clip.camera;
+    const camera = CAMERAS.find(([value]) => value === clip.camera)?.[1] || clip.camera;
     const currentRoute = clip.route === deviceRouteName(this.props.route);
     const knownRoute = this.props.routes?.find(route => deviceRouteName(route) === clip.route);
     const routeLabel = currentRoute
@@ -335,9 +335,9 @@ class ClipMenu extends Component {
         <div className={classes.clipTop}>
           <div className={classes.clipDetails}>
             <Typography className={classes.clipTitle}>{title}</Typography>
-            <Typography className={classes.clipMeta}>{`${camera} · ${routeLabel}`}</Typography>
+            <Typography className={classes.clipMeta}>{routeLabel}</Typography>
             <Typography className={classes.clipMeta}>
-              {`${formatDuration((clip.source_end_time - clip.source_start_time) / (clip.speedup || 1))}${clip.size ? ` · ${formatSize(clip.size)}` : ''}`}
+              {`${camera} · ${formatDuration((clip.source_end_time - clip.source_start_time) / (clip.speedup || 1))}${clip.size ? ` · ${formatSize(clip.size)}` : ''}`}
             </Typography>
           </div>
           <div className={classes.clipActions}>
