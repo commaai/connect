@@ -2,7 +2,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Obstruction from 'obstruction';
-import window from 'global/window';
 import PropTypes from 'prop-types';
 import qs from 'query-string';
 
