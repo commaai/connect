@@ -428,7 +428,7 @@ class DeviceInfo extends Component {
         )}
         {clipsSupported && <Tooltip
           classes={{ tooltip: classes.popover }}
-          title={deviceIsOnline(device) ? 'Clips' : 'View downloaded clips'}
+          title={deviceIsOnline(device) ? 'Clips' : 'Device offline'}
           placement="bottom"
         >
           <span className="inline-flex">
@@ -437,6 +437,7 @@ class DeviceInfo extends Component {
               className={`${classes.button} ${classes.carBattery}`}
               aria-label="Clips"
               onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
+              disabled={!deviceIsOnline(device)}
             >
               <ContentCut className="text-black" />
             </button>

@@ -207,26 +207,11 @@ class ClipMenu extends Component {
     this.poll = null;
   }
 
-  resumeActiveTransfer(clips) {
-    if (this.state.previewingClip || this.state.viewingClip) return;
-    const transfer = clipDevice.getActiveClipTransfer(this.props.dongleId);
-    if (!transfer) return;
-    const clip = clips.find(item => (
-      item.filename === transfer.filename && item.requested_at === transfer.requestedAt
-    ));
-    if (clip) this.openViewer(clip, true);
-  }
-
   async loadClips(showLoading = true) {
     const routeName = deviceRouteName(this.props.route);
     const { dongleId } = this.props;
     if (!this.props.deviceOnline) {
-      if (showLoading) this.setState({ loading: true, error: null });
-      const state = await clipDevice.getCachedClipState(dongleId);
-      if (!this.mounted || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
-      this.setState({ clips: state.clips, cameraRanges: null, loading: false, error: null }, () => {
-        this.resumeActiveTransfer(state.clips);
-      });
+      this.setState({ clips: [], cameraRanges: null, loading: false, error: null });
       return;
     }
     if (showLoading) this.setState({ loading: true, error: null });
@@ -238,7 +223,6 @@ class ClipMenu extends Component {
       this.setState({ clips, cameraRanges, loading: false }, () => {
         const autoClip = clips.find(clip => clip.filename === this.state.autoDownloadFilename && clip.status === 'ready');
         if (autoClip) this.setState({ autoDownloadFilename: null }, () => this.openViewer(autoClip));
-        else this.resumeActiveTransfer(clips);
       });
       this.stopPolling();
       if ((this.props.open || this.state.autoDownloadFilename) && clips.some(clip => ACTIVE_STATUSES.has(clip.status))) {
@@ -308,8 +292,8 @@ class ClipMenu extends Component {
     if (this.mounted) this.setState({ deleteDialogOpen: !deleted, deleting: false });
   }
 
-  async openViewer(clip, resume = false) {
-    if (!this.props.deviceOnline && !clip.cached && !resume) return;
+  async openViewer(clip) {
+    if (!this.props.deviceOnline) return;
     if (this.state.previewingClip) return;
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
     this.previewRequest += 1;
@@ -323,14 +307,11 @@ class ClipMenu extends Component {
         URL.revokeObjectURL(previewUrl);
         return;
       }
-      const cachedClips = this.state.clips.map(item => (
-        item.filename === clip.filename && item.requested_at === clip.requested_at ? { ...item, cached: true } : item
-      ));
       if (this.props.open) {
-        this.setState({ clips: cachedClips, viewingClip: { ...clip, cached: true }, previewingClip: null, previewUrl, previewProgress: 0 });
+        this.setState({ viewingClip: clip, previewingClip: null, previewUrl, previewProgress: 0 });
       } else {
         URL.revokeObjectURL(previewUrl);
-        this.setState({ clips: cachedClips, previewingClip: null, previewProgress: 0 });
+        this.setState({ previewingClip: null, previewProgress: 0 });
       }
     } catch (err) {
       if (this.mounted && request === this.previewRequest) {
@@ -431,8 +412,8 @@ class ClipMenu extends Component {
               <IconButton
                 aria-label="Play clip"
                 className={classes.clipAction}
-                disabled={(!this.props.deviceOnline && !clip.cached) || Boolean(this.state.previewingClip)}
-                title={this.props.deviceOnline || clip.cached ? (previewing ? 'Downloading' : 'Play clip') : 'Device offline'}
+                disabled={!this.props.deviceOnline || Boolean(this.state.previewingClip)}
+                title={this.props.deviceOnline ? (previewing ? 'Downloading' : 'Play clip') : 'Device offline'}
                 onClick={() => this.openViewer(clip)}
               >
                 <PlayArrow className={classes.playIcon} />
@@ -558,12 +539,12 @@ class ClipMenu extends Component {
           {!inventoryOnly && <Divider />}
           <div className={classes.clipsSection}>
             <div className={classes.sectionHeader}>
-              <Typography className={classes.sectionTitle}>{deviceOnline ? 'CLIPS ON THIS DEVICE' : 'LAST KNOWN CLIPS ON THIS DEVICE'}</Typography>
+              <Typography className={classes.sectionTitle}>CLIPS ON THIS DEVICE</Typography>
               <InfoTooltip title="Clips are stored on your device and may be cleared to make room for more recent driving footage." />
             </div>
             {error && <Typography className={classes.error}>{error}</Typography>}
             {loading && <div className={classes.empty}><CircularProgress size={18} /></div>}
-            {!loading && clips.length === 0 && <Typography className={classes.empty}>{deviceOnline ? 'No clips yet' : 'Connect to your device to check for clips'}</Typography>}
+            {!loading && clips.length === 0 && <Typography className={classes.empty}>{deviceOnline ? 'No clips yet' : 'Device offline'}</Typography>}
             {!loading && clips.map(clip => this.renderClip(clip))}
           </div>
         </Menu>

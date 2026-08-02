@@ -606,12 +606,12 @@ class Media extends Component {
             >
               <Typography className={classes.mediaOptionText}>Files</Typography>
             </div>
-            {clipsSupported && <Tooltip title={deviceIsOnline(device) ? '' : 'View downloaded clips'} placement="top">
+            {clipsSupported && <Tooltip title={deviceIsOnline(device) ? '' : 'Device offline'} placement="top">
               <div
                 className={classes.mediaOption}
                 style={deviceIsOnline(device) ? {} : { opacity: 0.7 }}
                 aria-haspopup="true"
-                onClick={(ev) => this.setState({ clipMenu: ev.currentTarget })}
+                onClick={(ev) => deviceIsOnline(device) && this.setState({ clipMenu: ev.currentTarget })}
               >
                 <Typography className={classes.mediaOptionText}>Clip</Typography>
               </div>
