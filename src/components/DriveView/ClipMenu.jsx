@@ -337,6 +337,10 @@ class ClipMenu extends Component {
 
   async removeClip(clip) {
     if (!this.props.deviceOnline) return false;
+    if (clip.filename === this.state.previewingClip) {
+      this.previewRequest += 1;
+      this.setState({ previewingClip: null, previewProgress: 0 });
+    }
     try {
       await clipDevice.deleteClip(this.props.dongleId, { filename: clip.filename });
       if (clip.filename === this.state.autoDownloadFilename) this.setState({ autoDownloadFilename: null });

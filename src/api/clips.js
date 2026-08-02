@@ -18,14 +18,18 @@ function cacheKey(dongleId, filename, requestedAt) {
 
 async function invalidateClip(dongleId, filename) {
   const prefix = `clip:${dongleId}/${filename}/`;
-  for (const key of activeDownloads.keys()) {
-    if (key.startsWith(prefix)) activeDownloads.delete(key);
+  for (const [key, entry] of activeDownloads.entries()) {
+    if (key.startsWith(prefix)) {
+      entry.cancelled = true;
+      entry.listeners.clear();
+      activeDownloads.delete(key);
+    }
   }
   const keys = await clipStorage.keys().catch(() => []);
   await Promise.all(keys.filter(key => key.startsWith(prefix)).map(key => clipStorage.removeItem(key))).catch(() => {});
 }
 
-async function downloadClip(dongleId, filename, reportProgress) {
+async function downloadClip(dongleId, filename, reportProgress, isCancelled) {
   const chunks = [];
   let loaded = 0;
   let size;
@@ -33,12 +37,20 @@ async function downloadClip(dongleId, filename, reportProgress) {
   let nextOffset = 0;
 
   while (size === undefined || nextOffset < size) {
+    if (isCancelled()) throw new Error('Clip download cancelled');
     const offsets = Array.from(
       { length: chunkBytes ? Math.min(CLIP_CHUNK_CONCURRENCY, Math.ceil((size - nextOffset) / chunkBytes)) : 1 },
       (_, index) => nextOffset + (index * (chunkBytes || 0)),
     );
-    // eslint-disable-next-line no-await-in-loop
-    const results = await Promise.all(offsets.map(offset => getClipChunk(dongleId, filename, offset)));
+    let results;
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      results = await Promise.all(offsets.map(offset => getClipChunk(dongleId, filename, offset)));
+    } catch (error) {
+      if (isCancelled()) throw new Error('Clip download cancelled');
+      throw error;
+    }
+    if (isCancelled()) throw new Error('Clip download cancelled');
     for (const result of results) {
       if (size === undefined) size = result.size;
       if (result.size !== size || result.offset !== nextOffset) throw new Error('Clip changed during download');
@@ -63,12 +75,12 @@ async function getClipBlob(dongleId, filename, requestedAt, onProgress) {
 
   let entry = activeDownloads.get(key);
   if (!entry) {
-    entry = { listeners: new Set(), loaded: 0, total: 0 };
+    entry = { cancelled: false, listeners: new Set(), loaded: 0, total: 0 };
     entry.promise = downloadClip(dongleId, filename, (loaded, total) => {
       entry.loaded = loaded;
       entry.total = total;
       for (const listener of entry.listeners) listener(loaded, total);
-    }).then(async (blob) => {
+    }, () => entry.cancelled).then(async (blob) => {
       if (activeDownloads.get(key) === entry) await clipStorage.setItem(key, blob).catch(() => {});
       return blob;
     }).finally(() => {
@@ -131,9 +143,8 @@ export const clipDevice = {
   },
 
   async deleteClip(dongleId, params) {
-    const result = await call(dongleId, 'deleteClip', params);
     await invalidateClip(dongleId, params.filename);
-    return result;
+    return call(dongleId, 'deleteClip', params);
   },
 
   async getClipUrl(dongleId, filename, requestedAt, onProgress) {
