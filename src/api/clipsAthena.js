@@ -32,8 +32,8 @@ export const clipsAthena = {
     return call(dongleId, 'deleteClips', params);
   },
 
-  async getClipUrl(dongleId, filename) {
+  async getClipUrl(dongleId, filename, createdAt) {
     if (!ATHENA_URL_ROOT) throw new Error('Clip playback endpoint is not configured');
-    return `${ATHENA_URL_ROOT}/${dongleId}/clips/${encodeURIComponent(filename)}`;
+    return `${ATHENA_URL_ROOT}/${dongleId}/clips/${encodeURIComponent(filename)}?v=${encodeURIComponent(createdAt)}`;
   },
 };
