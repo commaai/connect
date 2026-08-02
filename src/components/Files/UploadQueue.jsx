@@ -11,7 +11,7 @@ import WarningIcon from '@material-ui/icons/Warning';
 import { fetchUploadQueue, cancelUploads, cancelFetchUploadQueue, FILE_NAMES } from '../../actions/files';
 import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '../../utils';
 import Colors from '../../colors';
-import ResizeHandler from '../ResizeHandler';
+import { subscribeWindowSize } from '../../hooks/window';
 
 const styles = (theme) => ({
   modal: {
@@ -128,6 +128,9 @@ class UploadQueue extends Component {
   }
 
   componentDidMount() {
+    this.unsubscribeWindowSize = subscribeWindowSize(({ width, height }) => {
+      this.setState({ windowWidth: width, windowHeight: height });
+    });
     this.componentDidUpdate({}, {});
   }
 
@@ -142,6 +145,7 @@ class UploadQueue extends Component {
   }
 
   componentWillUnmount() {
+    this.unsubscribeWindowSize?.();
     this.uploadQueue(false);
   }
 
@@ -192,7 +196,6 @@ class UploadQueue extends Component {
 
     return (
       <>
-        <ResizeHandler onResize={ (ww, wh) => this.setState({ windowWidth: ww, windowHeight: wh }) } />
         <Modal aria-labelledby="upload-queue-modal" open={ this.props.open } onClose={ this.props.onClose }>
           <Paper className={ classes.modal }>
             <div className={ classes.titleContainer }>

@@ -19,8 +19,7 @@ import init from '../actions/startup';
 import Colors from '../colors';
 import { play, pause } from '../timeline/playback';
 import { verifyPairToken, pairErrorToMessage } from '../utils';
-
-import ResizeHandler from './ResizeHandler';
+import { subscribeWindowSize } from '../hooks/window';
 
 import DriveView from './DriveView';
 import NoDeviceUpsell from './DriveView/NoDeviceUpsell';
@@ -85,6 +84,10 @@ class ExplorerApp extends Component {
   async componentDidMount() {
     const { pairLoading, pairError, pairDongleId } = this.state;
 
+    this.unsubscribeWindowSize = subscribeWindowSize(({ width }) => {
+      this.setState({ windowWidth: width });
+    });
+
     window.scrollTo({ top: 0 }); // for ios header
 
     const q = new URLSearchParams(window.location.search);
@@ -137,6 +140,10 @@ class ExplorerApp extends Component {
     }
 
     this.componentDidUpdate({});
+  }
+
+  componentWillUnmount() {
+    this.unsubscribeWindowSize?.();
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -208,7 +215,6 @@ class ExplorerApp extends Component {
 
     return (
       <div>
-        <ResizeHandler onResize={ (ww) => this.setState({ windowWidth: ww }) } />
         { bodyTeleopOpen ? (
           <BodyTeleop onClose={ this.closeBodyTeleop } />
         ) : (

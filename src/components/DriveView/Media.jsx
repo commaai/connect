@@ -13,8 +13,8 @@ import { deviceSupportsClips } from '../../api/clips';
 
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
-import ResizeHandler from '../ResizeHandler';
 import TimeDisplay from '../TimeDisplay';
+import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
 import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
@@ -259,6 +259,9 @@ class Media extends Component {
 
   componentDidMount() {
     this.mounted = true;
+    this.unsubscribeWindowSize = subscribeWindowSize(({ width }) => {
+      this.setState({ windowWidth: width });
+    });
     this.componentDidUpdate({}, {});
   }
 
@@ -309,6 +312,7 @@ class Media extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    this.unsubscribeWindowSize?.();
   }
 
   async checkClipsSupport() {
@@ -560,7 +564,6 @@ class Media extends Component {
 
     return (
       <div className={classes.root}>
-        <ResizeHandler onResize={(ww) => this.setState({ windowWidth: ww })} />
         <div style={mediaContainerStyle}>
           {this.renderMediaOptions(showMapAlways)}
           {inView === MediaType.VIDEO && (
