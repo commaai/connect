@@ -12,8 +12,8 @@ import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../ac
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
 import { webrtcConnectionManager } from '../../utils/webrtc';
-import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
+import { subscribeWindowSize } from '../../hooks/window';
 import CommacareBadge from '../CommacareBadge';
 import ClipMenu from '../DriveView/ClipMenu';
 import { LivestreamIcon, CarBatteryIcon, CameraIcon, GamepadIcon } from '../../icons';
@@ -175,7 +175,6 @@ class DeviceInfo extends Component {
 
     this.snapshotButtonRef = React.createRef();
 
-    this.onResize = this.onResize.bind(this);
     this.onVisible = this.onVisible.bind(this);
     this.fetchDeviceCarHealth = this.fetchDeviceCarHealth.bind(this);
     this.takeSnapshot = this.takeSnapshot.bind(this);
@@ -192,6 +191,9 @@ class DeviceInfo extends Component {
 
   componentDidMount() {
     this.mounted = true;
+    this.unsubscribeWindowSize = subscribeWindowSize(({ width }) => {
+      this.setState({ windowWidth: width });
+    });
     this.checkClipsSupport();
     this.prewarmBodyTeleop();
   }
@@ -217,6 +219,7 @@ class DeviceInfo extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    this.unsubscribeWindowSize?.();
   }
 
   async checkClipsSupport() {
@@ -227,10 +230,6 @@ class DeviceInfo extends Component {
     } catch (error) {
       // The button stays hidden when Athena is unavailable or too old.
     }
-  }
-
-  onResize(windowWidth) {
-    this.setState({ windowWidth });
   }
 
   onVisible() {
@@ -336,7 +335,6 @@ class DeviceInfo extends Component {
 
     return (
       <>
-        <ResizeHandler onResize={ this.onResize } />
         <VisibilityHandler onVisible={ this.onVisible } onInit onDongleId minInterval={ 60 } />
         <div className={`${classes.container} px-4`}>
           <div className={`flex flex-row justify-between items-center gap-4 md:my-2 my-4 pl-1 flex-wrap`}>
