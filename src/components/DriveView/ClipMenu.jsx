@@ -337,7 +337,7 @@ class ClipMenu extends Component {
             <Typography className={classes.clipTitle}>{title}</Typography>
             <Typography className={classes.clipMeta}>{`${camera} · ${routeLabel}`}</Typography>
             <Typography className={classes.clipMeta}>
-              {`${formatTime(clip.source_start_time)}–${formatTime(clip.source_end_time)} · ${clip.bitrate} Mbps${clip.speedup > 1 ? ` · ${clip.speedup}×` : ''}${clip.size ? ` · ${formatSize(clip.size)}` : ''}`}
+              {`${formatDuration(clip.source_start_time)}–${formatDuration(clip.source_end_time)} · ${clip.bitrate} Mbps${clip.speedup > 1 ? ` · ${clip.speedup}×` : ''}${clip.size ? ` · ${formatSize(clip.size)}` : ''}`}
             </Typography>
           </div>
           <div className={classes.clipActions}>
@@ -410,7 +410,7 @@ class ClipMenu extends Component {
           <Typography className={classes.header}>Create a clip</Typography>
           <div className={classes.range}>
             <Typography className={classes.supporting}>Selected timeline range</Typography>
-            <Typography className={classes.rangeValue}>{zoom ? `${formatTime(startTime)}–${formatTime(endTime)} · ${formatDuration(duration)}` : '—'}</Typography>
+            <Typography className={classes.rangeValue}>{zoom ? `${formatDuration(startTime)}–${formatDuration(endTime)} · ${formatDuration(duration)}` : '—'}</Typography>
           </div>
           <div className={classes.field}>
             <Typography className={classes.label}>CAMERA</Typography>
@@ -451,7 +451,7 @@ class ClipMenu extends Component {
               ))}
             </div>
             <div className={classes.estimate}>
-              <Typography className={classes.supporting}>{`Output: ${formatTime(outputDuration)}`}</Typography>
+              <Typography className={classes.supporting}>{`Output: ${formatDuration(outputDuration)}`}</Typography>
               <Typography className={classes.estimateValue}>{`About ${formatSize(estimatedSize)}`}</Typography>
             </div>
           </div>
