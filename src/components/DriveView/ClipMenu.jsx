@@ -5,7 +5,9 @@ import {
 
 import Colors from '../../colors';
 import { clipDevice } from '../../api/clips';
-import { browserClipAvailability, createBrowserClip } from '../../api/browserClips';
+import {
+  browserClipAvailability, createBrowserClip, deleteBrowserClip, getBrowserClipBlob, getBrowserClips, saveBrowserClip,
+} from '../../api/browserClips';
 import { CloseBold, Download as DownloadIcon, PlayArrow, Trash } from '../../icons';
 import InfoTooltip from '../utils/InfoTooltip';
 
@@ -266,9 +268,6 @@ class ClipMenu extends Component {
     this.previewRequest += 1;
     this.stopPolling();
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
-    for (const clip of this.state.clips) {
-      if (clip.local && clip.previewUrl !== this.state.previewUrl) URL.revokeObjectURL(clip.previewUrl);
-    }
   }
 
   stopPolling() {
@@ -280,9 +279,14 @@ class ClipMenu extends Component {
     const routeName = deviceRouteName(this.props.route);
     const { dongleId } = this.props;
     if (!this.props.deviceOnline || !this.props.deviceClipsSupported) {
-      this.setState(state => ({
-        clips: state.clips.filter(clip => clip.local), camera: 'fcamera.hevc', cameraRanges: null, loading: false, error: null,
-      }));
+      if (showLoading) this.setState({ loading: true, error: null });
+      try {
+        const clips = await getBrowserClips(dongleId, routeName);
+        if (!this.mounted || routeName !== deviceRouteName(this.props.route) || dongleId !== this.props.dongleId) return;
+        this.setState({ clips, camera: 'fcamera.hevc', cameraRanges: null, loading: false });
+      } catch (err) {
+        if (this.mounted) this.setState({ loading: false, error: err.message || 'Could not load browser clips' });
+      }
       return;
     }
     if (showLoading) this.setState({ loading: true, error: null });
@@ -323,16 +327,16 @@ class ClipMenu extends Component {
           onProgress: browserProgress => this.mounted && this.setState({ browserProgress }),
         });
         if (!this.mounted) return;
-        const clip = {
+        const clip = await saveBrowserClip(dongleId, {
           bitrate, camera, filename: outputFilename, local: true, requested_at: Date.now(), route: deviceRouteName(route),
           size: blob.size, source_start_time: zoom.start / 1000, source_end_time: zoom.end / 1000, speedup, status: 'ready',
-        };
+        }, blob);
+        if (!this.mounted) return;
         const previewUrl = URL.createObjectURL(blob);
         this.setState({
-          clips: [clip], creating: false, autoDownloadFilename: null, browserProgress: 0,
+          clips: [clip, ...this.state.clips.filter(item => item.cache_id !== clip.cache_id)], creating: false, autoDownloadFilename: null, browserProgress: 0,
           viewingClip: clip, previewUrl,
         });
-        clip.previewUrl = previewUrl;
         return;
       }
       await clipDevice.createClip(dongleId, {
@@ -369,8 +373,14 @@ class ClipMenu extends Component {
   async removeClip(clip) {
     if (clip.local) {
       if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
-      this.setState({ clips: this.state.clips.filter(item => item !== clip), viewingClip: null, previewUrl: null });
-      return true;
+      try {
+        await deleteBrowserClip(this.props.dongleId, clip.cache_id);
+        this.setState({ clips: this.state.clips.filter(item => item.cache_id !== clip.cache_id), viewingClip: null, previewUrl: null });
+        return true;
+      } catch (err) {
+        if (this.mounted) this.setState({ error: err.message || 'Could not remove browser clip' });
+        return false;
+      }
     }
     if (!this.props.deviceOnline) return false;
     if (clip.filename === this.state.previewingClip) {
@@ -398,7 +408,22 @@ class ClipMenu extends Component {
 
   async openViewer(clip) {
     if (clip.local) {
-      this.setState({ viewingClip: clip, previewUrl: clip.previewUrl });
+      if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
+      this.previewRequest += 1;
+      const request = this.previewRequest;
+      this.setState({ previewingClip: clip.filename, previewUrl: null, previewProgress: 0, error: null });
+      try {
+        const previewUrl = URL.createObjectURL(await getBrowserClipBlob(this.props.dongleId, clip.cache_id));
+        if (!this.mounted || request !== this.previewRequest || !this.props.open) {
+          URL.revokeObjectURL(previewUrl);
+          return;
+        }
+        this.setState({ viewingClip: clip, previewingClip: null, previewUrl });
+      } catch (err) {
+        if (this.mounted && request === this.previewRequest) {
+          this.setState({ previewingClip: null, error: err.message || 'Could not load browser clip' });
+        }
+      }
       return;
     }
     if (!this.props.deviceOnline) return;
@@ -429,7 +454,7 @@ class ClipMenu extends Component {
 
   closeViewer() {
     this.previewRequest += 1;
-    if (this.state.previewUrl && !this.state.viewingClip?.local) URL.revokeObjectURL(this.state.previewUrl);
+    if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
     this.setState({ viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0 });
   }
 
@@ -663,12 +688,14 @@ class ClipMenu extends Component {
           {!inventoryOnly && <Divider />}
           <div className={classes.clipsSection}>
             <div className={classes.sectionHeader}>
-              <Typography className={classes.sectionTitle}>CLIPS ON THIS DEVICE</Typography>
-              <InfoTooltip title="Clips are stored on your device and may be cleared to make room for more recent driving footage." />
+              <Typography className={classes.sectionTitle}>{browserFallback ? 'CLIPS IN THIS BROWSER' : 'CLIPS ON THIS DEVICE'}</Typography>
+              <InfoTooltip title={browserFallback
+                ? 'Browser clips are stored on this device until you delete them or clear browser storage.'
+                : 'Clips are stored on your device and may be cleared to make room for more recent driving footage.'} />
             </div>
             {error && <Typography className={classes.error}>{error}</Typography>}
             {loading && <div className={classes.empty}><CircularProgress size={18} /></div>}
-            {!loading && clips.length === 0 && <Typography className={classes.empty}>{browserFallback ? 'Browser-created clips appear here until you leave this page.' : 'No clips yet'}</Typography>}
+            {!loading && clips.length === 0 && <Typography className={classes.empty}>No clips yet</Typography>}
             {!loading && clips.map(clip => this.renderClip(clip))}
           </div>
         </Menu>

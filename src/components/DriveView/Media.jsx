@@ -211,7 +211,7 @@ const MediaType = {
   MAP: 'map',
 };
 
-class Media extends Component {
+export class Media extends Component {
   constructor(props) {
     super(props);
 
@@ -655,7 +655,7 @@ class Media extends Component {
 
   renderMenus(alwaysOpen = false) {
     const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const { clipsSupported, downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
       return null;

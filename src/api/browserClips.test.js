@@ -1,5 +1,7 @@
 /* eslint-env jest */
 
+import { TextEncoder } from 'util';
+
 const ffmpegMock = {
   deleteFile: jest.fn(() => Promise.resolve()),
   exec: jest.fn(() => Promise.resolve(0)),
@@ -9,12 +11,28 @@ const ffmpegMock = {
   readFile: jest.fn(() => Promise.resolve(new Uint8Array([7, 8, 9]))),
   writeFile: jest.fn(() => Promise.resolve()),
 };
-
 jest.mock('@ffmpeg/ffmpeg', () => ({ FFmpeg: jest.fn(() => ffmpegMock) }));
 jest.mock('@ffmpeg/core?url', () => 'ffmpeg-core.js', { virtual: true });
 jest.mock('@ffmpeg/core/wasm?url', () => 'ffmpeg-core.wasm', { virtual: true });
+jest.mock('localforage', () => {
+  const items = new Map();
+  const storage = {
+    getItem: jest.fn(key => Promise.resolve(items.get(key))),
+    removeItem: jest.fn(key => Promise.resolve(items.delete(key))),
+    setItem: jest.fn((key, value) => {
+      items.set(key, value);
+      return Promise.resolve(value);
+    }),
+  };
+  return { _items: items, createInstance: jest.fn(() => storage) };
+});
 
-import { browserClipAvailability, createBrowserClip } from './browserClips';
+import localforage from 'localforage';
+import {
+  browserClipAvailability, createBrowserClip, deleteBrowserClip, getBrowserClipBlob, getBrowserClips, saveBrowserClip,
+} from './browserClips';
+
+global.TextEncoder = TextEncoder;
 
 const route = {
   fullname: 'dongle|2026-01-01--00-00-00',
@@ -31,6 +49,7 @@ function filesFor(...segments) {
 describe('browser qcamera clips', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localforage._items.clear();
     global.crypto = { randomUUID: jest.fn(() => 'id') };
   });
 
@@ -57,12 +76,12 @@ describe('browser qcamera clips', () => {
     });
 
     expect(global.fetch).toHaveBeenCalledTimes(2);
-    expect([...ffmpegMock.writeFile.mock.calls[0][1]]).toEqual([1, 2, 3, 4]);
+    expect(ffmpegMock.writeFile.mock.calls.slice(0, 2).map(call => [...call[1]])).toEqual(expect.arrayContaining([[1, 2], [3, 4]]));
     expect(ffmpegMock.exec).toHaveBeenCalledWith(expect.arrayContaining([
-      '-ss', '30', '-t', '60', '-vf', 'setpts=PTS/4', '-b:v', '8M', '-preset', 'ultrafast',
+      '-ss', '30', '-f', 'concat', '-safe', '0', '-vf', 'trim=duration=60,setpts=(PTS-STARTPTS)/4', '-b:v', '8M', '-preset', 'superfast',
     ]));
     expect(blob.type).toBe('video/mp4');
-    expect(ffmpegMock.deleteFile).toHaveBeenCalledTimes(2);
+    expect(ffmpegMock.deleteFile).toHaveBeenCalledTimes(4);
   });
 
   it('cleans up temporary files when transcoding fails', async () => {
@@ -73,6 +92,19 @@ describe('browser qcamera clips', () => {
       route, files: filesFor(0), startTime: 0, endTime: 30, bitrate: 5, speedup: 1,
     })).rejects.toThrow('Browser transcoding failed');
     expect(ffmpegMock.off).toHaveBeenCalled();
-    expect(ffmpegMock.deleteFile).toHaveBeenCalledTimes(2);
+    expect(ffmpegMock.deleteFile).toHaveBeenCalledTimes(3);
+  });
+
+  it('persists, lists, reads, and deletes browser clips by device and route', async () => {
+    const blob = new Blob(['video'], { type: 'video/mp4' });
+    const first = await saveBrowserClip('dongle', { filename: 'first.mp4', requested_at: 1, route: 'route-a' }, blob);
+    await saveBrowserClip('dongle', { filename: 'second.mp4', requested_at: 2, route: 'route-b' }, blob);
+
+    expect(await getBrowserClips('dongle', 'route-a')).toEqual([first]);
+    expect(await getBrowserClipBlob('dongle', first.cache_id)).toBe(blob);
+
+    await deleteBrowserClip('dongle', first.cache_id);
+    expect(await getBrowserClips('dongle', 'route-a')).toEqual([]);
+    await expect(getBrowserClipBlob('dongle', first.cache_id)).rejects.toThrow('no longer available');
   });
 });

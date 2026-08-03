@@ -1,9 +1,53 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import coreURL from '@ffmpeg/core?url';
 import wasmURL from '@ffmpeg/core/wasm?url';
+import localforage from 'localforage';
 
 let ffmpeg;
 let loadPromise;
+const browserClipStorage = localforage.createInstance({ name: 'connect', storeName: 'browser_clip_cache' });
+
+function clipIndexKey(dongleId) {
+  return `clips:${dongleId}`;
+}
+
+function clipBlobKey(dongleId, clipId) {
+  return `blob:${dongleId}/${clipId}`;
+}
+
+export async function getBrowserClips(dongleId, route) {
+  const clips = await browserClipStorage.getItem(clipIndexKey(dongleId)).catch(() => []);
+  return Array.isArray(clips) ? clips.filter(clip => !route || clip.route === route) : [];
+}
+
+export async function saveBrowserClip(dongleId, clip, blob) {
+  const clipId = clip.cache_id || `${clip.requested_at}-${crypto.randomUUID()}`;
+  const storedClip = { ...clip, cache_id: clipId, local: true };
+  await browserClipStorage.setItem(clipBlobKey(dongleId, clipId), blob);
+  try {
+    const clips = await browserClipStorage.getItem(clipIndexKey(dongleId)).catch(() => []);
+    const withoutExisting = Array.isArray(clips) ? clips.filter(item => item.cache_id !== clipId) : [];
+    await browserClipStorage.setItem(clipIndexKey(dongleId), [storedClip, ...withoutExisting]);
+  } catch (error) {
+    await browserClipStorage.removeItem(clipBlobKey(dongleId, clipId)).catch(() => {});
+    throw error;
+  }
+  return storedClip;
+}
+
+export async function getBrowserClipBlob(dongleId, clipId) {
+  const blob = await browserClipStorage.getItem(clipBlobKey(dongleId, clipId));
+  if (!(blob instanceof Blob)) throw new Error('This browser clip is no longer available');
+  return blob;
+}
+
+export async function deleteBrowserClip(dongleId, clipId) {
+  await browserClipStorage.removeItem(clipBlobKey(dongleId, clipId));
+  const clips = await browserClipStorage.getItem(clipIndexKey(dongleId)).catch(() => []);
+  if (Array.isArray(clips)) {
+    await browserClipStorage.setItem(clipIndexKey(dongleId), clips.filter(clip => clip.cache_id !== clipId));
+  }
+}
 
 async function getFFmpeg() {
   if (!ffmpeg) ffmpeg = new FFmpeg();
@@ -39,30 +83,26 @@ export async function createBrowserClip({ route, files, startTime, endTime, bitr
   if (!segments.length) throw new Error('Qcamera footage is not uploaded for this range');
 
   const worker = await getFFmpeg();
-  const inputName = `qcamera-${crypto.randomUUID()}.ts`;
-  const outputName = `clip-${crypto.randomUUID()}.mp4`;
+  const requestId = crypto.randomUUID();
+  const inputNames = segments.map((segment, index) => `qcamera-${requestId}-${index}.ts`);
+  const inputListName = `qcamera-${requestId}.txt`;
+  const outputName = `clip-${requestId}.mp4`;
   const progressHandler = ({ progress }) => onProgress?.(Math.max(0, Math.min(1, progress)));
   worker.on('progress', progressHandler);
 
   try {
-    const responses = await Promise.all(segments.map(async ({ url }) => {
+    await Promise.all(segments.map(async ({ url }, index) => {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Could not download qcamera footage (${response.status})`);
-      return new Uint8Array(await response.arrayBuffer());
+      await worker.writeFile(inputNames[index], new Uint8Array(await response.arrayBuffer()));
     }));
-    const input = new Uint8Array(responses.reduce((total, bytes) => total + bytes.length, 0));
-    let offset = 0;
-    for (const bytes of responses) {
-      input.set(bytes, offset);
-      offset += bytes.length;
-    }
-    await worker.writeFile(inputName, input);
+    await worker.writeFile(inputListName, new TextEncoder().encode(inputNames.map(name => `file '${name}'`).join('\n')));
 
     const sourceOffset = Math.max(0, startTime - segments[0].segmentStart);
     const sourceDuration = endTime - startTime;
     const exitCode = await worker.exec([
-      '-ss', String(sourceOffset), '-i', inputName, '-t', String(sourceDuration),
-      '-an', '-vf', `setpts=PTS/${speedup}`, '-c:v', 'libx264', '-preset', 'ultrafast',
+      '-ss', String(sourceOffset), '-f', 'concat', '-safe', '0', '-i', inputListName,
+      '-an', '-vf', `trim=duration=${sourceDuration},setpts=(PTS-STARTPTS)/${speedup}`, '-c:v', 'libx264', '-preset', 'superfast',
       '-b:v', `${bitrate}M`, '-movflags', '+faststart', outputName,
     ]);
     if (exitCode !== 0) throw new Error('Browser transcoding failed');
@@ -70,7 +110,8 @@ export async function createBrowserClip({ route, files, startTime, endTime, bitr
     return new Blob([data.buffer], { type: 'video/mp4' });
   } finally {
     worker.off('progress', progressHandler);
-    await worker.deleteFile(inputName).catch(() => {});
+    await Promise.all(inputNames.map(name => worker.deleteFile(name).catch(() => {})));
+    await worker.deleteFile(inputListName).catch(() => {});
     await worker.deleteFile(outputName).catch(() => {});
   }
 }
