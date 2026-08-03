@@ -6,6 +6,23 @@ import './index.css';
 import App from './App';
 import Theme from './theme';
 
+// Existing installations may still have the old Workbox service worker. The
+// retirement worker at /sw.js clears its caches; unregister it once this
+// network-loaded version of Connect is running. Installation remains available
+// through the web app manifest and does not require a service worker.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistration('/').then(async (registration) => {
+    await registration?.unregister();
+
+    // Also clean up when the page reaches the network before the retirement
+    // worker activates.
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+  }).catch((error) => {
+    console.error('[PWA] Failed to unregister retired service worker', error);
+  });
+}
+
 if (import.meta.env.VITE_SENTRY_ENV) {
   Sentry.init({
     dsn: 'https://6a242abfa01b4660aa34f150e87de018@o33823.ingest.sentry.io/1234624',
