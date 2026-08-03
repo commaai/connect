@@ -2,13 +2,12 @@ import * as Sentry from '@sentry/react';
 
 import * as Types from './types';
 import { reverseLookup } from '../utils/geocode';
-import { toBool } from '../utils';
 
-const USE_LOCAL_COORDS_DATA = toBool(import.meta.env.VITE_APP_LOCAL_COORDS_DATA);
+const USE_LOCAL_COORDS_DATA = import.meta.env.VITE_APP_LOCAL_COORDS_DATA === 'true';
 if (USE_LOCAL_COORDS_DATA) {
   console.warn('using local coords data');
 }
-const USE_LOCAL_EVENTS_DATA = toBool(import.meta.env.VITE_APP_LOCAL_EVENTS_DATA);
+const USE_LOCAL_EVENTS_DATA = import.meta.env.VITE_APP_LOCAL_EVENTS_DATA === 'true';
 if (USE_LOCAL_EVENTS_DATA) {
   console.warn('using local events data');
 }

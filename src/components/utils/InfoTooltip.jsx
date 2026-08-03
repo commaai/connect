@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types';
 import { ClickAwayListener, Tooltip, Typography, withStyles } from '@material-ui/core';
 
 import { InfoOutline } from '../../icons';
@@ -109,9 +108,5 @@ class InfoTooltip extends Component {
     );
   }
 }
-
-InfoTooltip.propTypes = {
-  title: PropTypes.string.isRequired,
-};
 
 export default withStyles(styles)(InfoTooltip);

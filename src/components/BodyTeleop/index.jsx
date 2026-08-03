@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 
 import { ArrowBackBold } from '../../icons';
 import { deviceNamePretty } from '../../utils';
@@ -212,9 +211,9 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   );
 };
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  device: 'device',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  device: state.device,
 });
 
 export default connect(stateToProps)(BodyTeleop);

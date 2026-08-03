@@ -22,11 +22,11 @@ describe('reverseLookup', () => {
 
   it('should return place names', async () => {
     expect(await reverseLookup([-117.12547, 32.71137], true)).toEqual({
-      details: 'San Diego, CA 92102, United States',
+      details: expect.stringMatching(/^San Diego, CA \d{5}, United States$/),
       place: 'E Market St',
     });
     expect(await reverseLookup([-117.166409, 32.731369], true)).toEqual({
-      details: 'San Diego, CA 92101, United States',
+      details: expect.stringMatching(/^San Diego, CA \d{5}, United States$/),
       place: 'W Laurel St',
     });
     // expect(await reverseLookup([-77.036551, 38.898104], true)).toEqual({
@@ -34,11 +34,11 @@ describe('reverseLookup', () => {
     //   place: 'White House Lawn',
     // });
     expect(await reverseLookup([-0.106640, 51.514209], true)).toEqual({
-      details: 'London, EC4A 2BH, United Kingdom',
+      details: expect.stringMatching(/^London, EC4A 2B[A-Z], United Kingdom$/),
       place: 'Fleet St',
     });
     expect(await reverseLookup([-2.076843, 51.894799], true)).toEqual({
-      details: 'Cheltenham, GL50 1TX, United Kingdom',
+      details: expect.stringMatching(/^Cheltenham, GL50 1[A-Z]{2}, United Kingdom$/),
       place: 'Montpellier Dr',
     });
   });

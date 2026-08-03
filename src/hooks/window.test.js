@@ -1,12 +1,11 @@
 /* eslint-env jest */
-import React from 'react';
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { fireEvent, waitFor } from '@testing-library/react';
 
-import ResizeHandler from '.';
-import { asyncSleep } from '../../utils';
+import { subscribeWindowSize } from './window';
+import { asyncSleep } from '../utils';
 
-describe('resize handler', () => {
-  it('registers, triggers and unregistered resize listener', async () => {
+describe('subscribeWindowSize', () => {
+  it('registers, triggers and unregisters resize listener', async () => {
     let aResizeEventListenerWasAddedToWindow = false;
     let aResizeEventListenerWasRemovedFromWindow = false;
 
@@ -34,22 +33,21 @@ describe('resize handler', () => {
       originalRemoveMethod(...args);
     });
 
-    const container = document.createElement('div');
     const callback = jest.fn();
-    const { unmount } = render(<ResizeHandler onResize={callback} />, { container });
+    const unsubscribe = subscribeWindowSize(callback);
 
-    // Wait for the resize handler in the component to be registered (useEffect callback is async)
     await waitFor(() => expect(aResizeEventListenerWasAddedToWindow).toBeTruthy());
     fireEvent.resize(window);
     await asyncSleep(150);
-    expect(callback).toHaveBeenCalled();
+    expect(callback).toHaveBeenCalledWith({
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
 
-    unmount();
+    unsubscribe();
 
-    // Wait for resize handler in the component to be unregistered
     await waitFor(() => expect(aResizeEventListenerWasRemovedFromWindow).toBeTruthy());
 
-    // Restore the original methods to window
     addSpy.mockRestore();
     removeSpy.mockRestore();
   });

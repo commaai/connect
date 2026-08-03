@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
 import { withStyles, Typography, Button } from '@material-ui/core';
@@ -13,8 +12,8 @@ import { DEFAULT_LOCATION, MAPBOX_STYLE, MAPBOX_TOKEN, reverseLookup } from '../
 import Colors from '../../colors';
 import { PinCarIcon } from '../../icons';
 import { timeFromNow } from '../../utils';
-import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
+import { subscribeWindowSize } from '../../hooks/window';
 import * as Utils from './utils';
 import { isIos } from '../../utils/browser.js';
 
@@ -170,7 +169,6 @@ class Navigation extends Component {
     this.onCarSelect = this.onCarSelect.bind(this);
     this.focus = this.focus.bind(this);
     this.updateDevice = this.updateDevice.bind(this);
-    this.onResize = this.onResize.bind(this);
     this.toggleCarPinTooltip = this.toggleCarPinTooltip.bind(this);
     this.itemLoc = this.itemLoc.bind(this);
     this.itemLngLat = this.itemLngLat.bind(this);
@@ -184,6 +182,9 @@ class Navigation extends Component {
 
   componentDidMount() {
     this.mounted = true;
+    this.unsubscribeWindowSize = subscribeWindowSize(({ width }) => {
+      this.setState({ windowWidth: width });
+    });
     this.checkWebGLSupport();
     this.componentDidUpdate({}, {});
   }
@@ -224,6 +225,7 @@ class Navigation extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    this.unsubscribeWindowSize?.();
   }
 
   checkWebGLSupport() {
@@ -422,10 +424,6 @@ class Navigation extends Component {
     return bounds ? [res, res] : res;
   }
 
-  onResize(windowWidth) {
-    this.setState({ windowWidth });
-  }
-
   toggleCarPinTooltip(visible) {
     const tooltip = this.carPinTooltipRef.current;
     if (tooltip) {
@@ -507,7 +505,6 @@ class Navigation extends Component {
         className={classes.mapContainer}
         style={{ height: 200 }}
       >
-        <ResizeHandler onResize={this.onResize} />
         <VisibilityHandler onVisible={this.updateDevice} onInit onDongleId minInterval={60} />
         {mapError
           && (
@@ -685,9 +682,9 @@ class Navigation extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  device: 'device',
-  dongleId: 'dongleId',
+const stateToProps = (state) => ({
+  device: state.device,
+  dongleId: state.dongleId,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Navigation));

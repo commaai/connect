@@ -2,10 +2,8 @@ import { copyFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { VitePWA } from 'vite-plugin-pwa';
+import tailwindcss from '@tailwindcss/vite';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-import tailwindcss from 'tailwindcss';
-import autoprefixer from 'autoprefixer';
 
 
 function previewBranding() {
@@ -41,27 +39,23 @@ export default defineConfig(({ mode }) => {
   return {
     server: {
       port: 3000,
+      // Local development can use the same Athena client through a same-origin path.
+      proxy: {
+        '/athena': {
+          target: 'https://athena.comma.ai',
+          changeOrigin: true,
+          rewrite: path => path.replace(/^\/athena/, ''),
+        },
+      },
     },
     build: {
       // Required for Sentry
       sourcemap: true,
     },
-    css: {
-      postcss: {
-        plugins: [tailwindcss, autoprefixer],
-      },
-    },
     plugins: [
       // TODO: compression plugin
+      tailwindcss(),
       react(),
-      VitePWA({
-        workbox: {
-          globPatterns: ['**/*.{js,css,html,png,webp,svg,ico}'],
-          // TODO: revisit, throw error during build if too large?
-          maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
-          sourcemap: true,
-        },
-      }),
       sentryPlugin,
       process.env.PREVIEW && previewBranding(),
     ].filter(Boolean),

@@ -1,8 +1,5 @@
 import { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import PropTypes from 'prop-types';
-import debounce from 'debounce';
 
 class VisibilityHandler extends Component {
   constructor(props) {
@@ -13,7 +10,7 @@ class VisibilityHandler extends Component {
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
     this.handleFocus = this.handleFocus.bind(this);
     this.handleBlur = this.handleBlur.bind(this);
-    this.onVisibilityEvent = debounce(this.onVisibilityEvent.bind(this), 1000, true);
+    this.onVisibilityEvent = this.onVisibilityEvent.bind(this);
   }
 
   componentDidMount() {
@@ -85,17 +82,8 @@ class VisibilityHandler extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
 });
-
-VisibilityHandler.propTypes = {
-  onVisible: PropTypes.func.isRequired,
-  onInit: PropTypes.bool,
-  onDongleId: PropTypes.bool,
-  onInterval: PropTypes.number,
-  minInterval: PropTypes.number, // in seconds, only for visibility changes
-  resetOnHidden: PropTypes.bool,
-};
 
 export default connect(stateToProps)(VisibilityHandler);
