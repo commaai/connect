@@ -5,6 +5,7 @@ import {
 
 import Colors from '../../colors';
 import { clipDevice } from '../../api/clips';
+import { browserClipAvailability, createBrowserClip } from '../../api/browserClips';
 import { CloseBold, Download as DownloadIcon, PlayArrow, Trash } from '../../icons';
 import InfoTooltip from '../utils/InfoTooltip';
 
@@ -229,6 +230,7 @@ class ClipMenu extends Component {
       clips: [], camera: 'fcamera.hevc', bitrate: 5, speedup: 1, filename: '',
       cameraRanges: null, loading: false, creating: false, error: null,
       autoDownloadFilename: null,
+      browserProgress: 0,
       viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0,
       deletingClip: null, deleteDialogOpen: false, deleting: false,
     };
@@ -247,7 +249,8 @@ class ClipMenu extends Component {
     const routeChanged = this.props.route?.fullname !== prevProps.route?.fullname;
     const deviceChanged = this.props.dongleId !== prevProps.dongleId;
     const reconnected = this.props.deviceOnline && !prevProps.deviceOnline;
-    if ((opened || routeChanged || deviceChanged || reconnected) && this.props.open) this.loadClips();
+    const clipSupportChanged = this.props.deviceClipsSupported !== prevProps.deviceClipsSupported;
+    if ((opened || routeChanged || deviceChanged || reconnected || clipSupportChanged) && this.props.open) this.loadClips();
     if (!this.props.deviceOnline && prevProps.deviceOnline) {
       this.stopPolling();
       this.setState({ loading: false });
@@ -263,6 +266,9 @@ class ClipMenu extends Component {
     this.previewRequest += 1;
     this.stopPolling();
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
+    for (const clip of this.state.clips) {
+      if (clip.local && clip.previewUrl !== this.state.previewUrl) URL.revokeObjectURL(clip.previewUrl);
+    }
   }
 
   stopPolling() {
@@ -273,8 +279,10 @@ class ClipMenu extends Component {
   async loadClips(showLoading = true) {
     const routeName = deviceRouteName(this.props.route);
     const { dongleId } = this.props;
-    if (!this.props.deviceOnline) {
-      this.setState({ clips: [], cameraRanges: null, loading: false, error: null });
+    if (!this.props.deviceOnline || !this.props.deviceClipsSupported) {
+      this.setState(state => ({
+        clips: state.clips.filter(clip => clip.local), camera: 'fcamera.hevc', cameraRanges: null, loading: false, error: null,
+      }));
       return;
     }
     if (showLoading) this.setState({ loading: true, error: null });
@@ -299,11 +307,34 @@ class ClipMenu extends Component {
   async createClip() {
     const { dongleId, route, zoom } = this.props;
     const { camera, bitrate, speedup, filename } = this.state;
-    if (!route || !zoom || !this.props.deviceOnline || !validFilename(filename)) return;
+    if (!route || !zoom || !validFilename(filename)) return;
     const generatedFilename = defaultFilename(dongleId, route, camera, zoom.start / 1000, zoom.end / 1000, speedup);
     const outputFilename = `${normalizeFilename(filename) || generatedFilename}.mp4`;
     this.setState({ creating: true, autoDownloadFilename: outputFilename, error: null });
     try {
+      if (!this.props.deviceOnline || !this.props.deviceClipsSupported) {
+        const blob = await createBrowserClip({
+          route,
+          files: this.props.files,
+          startTime: zoom.start / 1000,
+          endTime: zoom.end / 1000,
+          bitrate,
+          speedup,
+          onProgress: browserProgress => this.mounted && this.setState({ browserProgress }),
+        });
+        if (!this.mounted) return;
+        const clip = {
+          bitrate, camera, filename: outputFilename, local: true, requested_at: Date.now(), route: deviceRouteName(route),
+          size: blob.size, source_start_time: zoom.start / 1000, source_end_time: zoom.end / 1000, speedup, status: 'ready',
+        };
+        const previewUrl = URL.createObjectURL(blob);
+        this.setState({
+          clips: [clip], creating: false, autoDownloadFilename: null, browserProgress: 0,
+          viewingClip: clip, previewUrl,
+        });
+        clip.previewUrl = previewUrl;
+        return;
+      }
       await clipDevice.createClip(dongleId, {
         route: route.fullname,
         source_start_time: zoom.start / 1000,
@@ -319,7 +350,7 @@ class ClipMenu extends Component {
       this.setState({ creating: false });
       await this.loadClips(false);
     } catch (err) {
-      if (this.mounted) this.setState({ creating: false, autoDownloadFilename: null, error: err.message || 'Could not create clip' });
+      if (this.mounted) this.setState({ creating: false, autoDownloadFilename: null, browserProgress: 0, error: err.message || 'Could not create clip' });
     }
   }
 
@@ -336,6 +367,11 @@ class ClipMenu extends Component {
   }
 
   async removeClip(clip) {
+    if (clip.local) {
+      if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
+      this.setState({ clips: this.state.clips.filter(item => item !== clip), viewingClip: null, previewUrl: null });
+      return true;
+    }
     if (!this.props.deviceOnline) return false;
     if (clip.filename === this.state.previewingClip) {
       this.previewRequest += 1;
@@ -361,6 +397,10 @@ class ClipMenu extends Component {
   }
 
   async openViewer(clip) {
+    if (clip.local) {
+      this.setState({ viewingClip: clip, previewUrl: clip.previewUrl });
+      return;
+    }
     if (!this.props.deviceOnline) return;
     if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
     this.previewRequest += 1;
@@ -389,7 +429,7 @@ class ClipMenu extends Component {
 
   closeViewer() {
     this.previewRequest += 1;
-    if (this.state.previewUrl) URL.revokeObjectURL(this.state.previewUrl);
+    if (this.state.previewUrl && !this.state.viewingClip?.local) URL.revokeObjectURL(this.state.previewUrl);
     this.setState({ viewingClip: null, previewingClip: null, previewUrl: null, previewProgress: 0 });
   }
 
@@ -439,7 +479,9 @@ class ClipMenu extends Component {
         <DialogTitle className={classes.deleteTitle}>Delete clip?</DialogTitle>
         <DialogContent>
           <Typography className={classes.deleteContent}>
-            {`${title} will be permanently deleted from your comma device.`}
+            {deletingClip?.local
+              ? `${title} will be removed from this browser.`
+              : `${title} will be permanently deleted from your comma device.`}
           </Typography>
         </DialogContent>
         <DialogActions className={classes.deleteActions}>
@@ -479,8 +521,8 @@ class ClipMenu extends Component {
               <IconButton
                 aria-label="Play clip"
                 className={classes.clipAction}
-                disabled={!this.props.deviceOnline || previewing}
-                title={this.props.deviceOnline ? (previewing ? 'Downloading' : 'Play clip') : 'Device offline'}
+                disabled={(!this.props.deviceOnline && !clip.local) || previewing}
+                title={(this.props.deviceOnline || clip.local) ? (previewing ? 'Downloading' : 'Play clip') : 'Device offline'}
                 onClick={() => this.openViewer(clip)}
               >
                 <PlayArrow className={classes.playIcon} />
@@ -491,8 +533,8 @@ class ClipMenu extends Component {
             <IconButton
               aria-label={ACTIVE_STATUSES.has(clip.status) ? 'Cancel clip' : 'Delete clip'}
               className={classes.clipAction}
-              disabled={!this.props.deviceOnline}
-              title={this.props.deviceOnline ? (ACTIVE_STATUSES.has(clip.status) ? 'Cancel clip' : 'Delete clip') : 'Device offline'}
+              disabled={!this.props.deviceOnline && !clip.local}
+              title={(this.props.deviceOnline || clip.local) ? (ACTIVE_STATUSES.has(clip.status) ? 'Cancel clip' : 'Delete clip') : 'Device offline'}
               onClick={() => (ACTIVE_STATUSES.has(clip.status)
                 ? this.removeClip(clip)
                 : this.setState({ deletingClip: clip, deleteDialogOpen: true }))}
@@ -515,8 +557,8 @@ class ClipMenu extends Component {
   }
 
   render() {
-    const { anchorEl, classes, deviceOnline, inventoryOnly, onClose, open, route, zoom } = this.props;
-    const { bitrate, camera, cameraRanges, clips, creating, error, filename, loading, speedup } = this.state;
+    const { anchorEl, classes, deviceClipsSupported, deviceOnline, inventoryOnly, onClose, open, route, zoom } = this.props;
+    const { bitrate, browserProgress, camera, cameraRanges, clips, creating, error, filename, loading, speedup } = this.state;
     const startTime = zoom ? zoom.start / 1000 : 0;
     const endTime = zoom ? zoom.end / 1000 : 0;
     const duration = endTime - startTime;
@@ -527,6 +569,8 @@ class ClipMenu extends Component {
     const cameraUnavailable = !inventoryOnly && cameraRanges !== null && !cameraCoversRange(cameraRanges, camera, startTime, endTime);
     const cameraAvailable = cameraRanges === null || CAMERAS.some(([value]) => cameraCoversRange(cameraRanges, value, startTime, endTime));
     const deviceBusy = clips.some(clip => ACTIVE_STATUSES.has(clip.status));
+    const browserFallback = !deviceOnline || !deviceClipsSupported;
+    const qcameraAvailable = !browserFallback || browserClipAvailability(route, this.props.files, startTime, endTime);
 
     return (
       <>
@@ -557,7 +601,7 @@ class ClipMenu extends Component {
                   key={value}
                   aria-pressed={camera === value}
                   className={classes.segmentedButton}
-                  disabled={cameraRanges !== null && !cameraCoversRange(cameraRanges, value, startTime, endTime)}
+                  disabled={(browserFallback && value !== 'fcamera.hevc') || (cameraRanges !== null && !cameraCoversRange(cameraRanges, value, startTime, endTime))}
                   onClick={() => this.setState({ camera: value })}
                 >
                   {label}
@@ -567,6 +611,13 @@ class ClipMenu extends Component {
             {!cameraAvailable && (
               <Typography className={classes.availabilityHint}>
                 No camera footage covers this entire range. Choose a smaller range.
+              </Typography>
+            )}
+            {browserFallback && (
+              <Typography className={classes.availabilityHint}>
+                Using uploaded qcamera footage. {deviceOnline
+                  ? 'Device clipping is unavailable, so only Road footage can be clipped.'
+                  : 'Put the device online for high-quality Road, Wide road, and Driver footage.'}
               </Typography>
             )}
           </div>
@@ -604,9 +655,10 @@ class ClipMenu extends Component {
             {invalidFilename && <Typography className={classes.error}>Use letters, numbers, periods, underscores, and hyphens only.</Typography>}
           </div>
           {duration > MAX_CLIP_DURATION && <Typography className={classes.error}>Choose a range of 30 minutes or less.</Typography>}
-          <Button className={classes.create} disabled={!deviceOnline || loading || creating || deviceBusy || invalidDuration || invalidFilename || cameraUnavailable || !route} onClick={() => this.createClip()}>
-            {creating ? <CircularProgress size={18} /> : (!deviceOnline ? 'Device offline' : (deviceBusy ? 'Clip in progress' : 'Create clip'))}
+          <Button className={classes.create} disabled={loading || creating || deviceBusy || invalidDuration || invalidFilename || cameraUnavailable || !qcameraAvailable || !route} onClick={() => this.createClip()}>
+            {creating ? <CircularProgress size={18} /> : (!qcameraAvailable ? 'Qcamera footage unavailable' : (deviceBusy ? 'Clip in progress' : 'Create clip'))}
           </Button>
+          {creating && browserFallback && <LinearProgress variant="determinate" value={browserProgress * 100} />}
           </div>}
           {!inventoryOnly && <Divider />}
           <div className={classes.clipsSection}>
@@ -616,7 +668,7 @@ class ClipMenu extends Component {
             </div>
             {error && <Typography className={classes.error}>{error}</Typography>}
             {loading && <div className={classes.empty}><CircularProgress size={18} /></div>}
-            {!loading && clips.length === 0 && <Typography className={classes.empty}>{deviceOnline ? 'No clips yet' : 'Device offline'}</Typography>}
+            {!loading && clips.length === 0 && <Typography className={classes.empty}>{browserFallback ? 'Browser-created clips appear here until you leave this page.' : 'No clips yet'}</Typography>}
             {!loading && clips.map(clip => this.renderClip(clip))}
           </div>
         </Menu>

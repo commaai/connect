@@ -266,7 +266,7 @@ class Media extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { windowWidth, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
+    const { windowWidth, inView, clipMenu, downloadMenu, moreInfoMenu, routePreserved } = this.state;
     const showMapAlways = windowWidth >= 1536;
     if (prevProps.dongleId !== this.props.dongleId) {
       this.setState({ clipsSupported: false, clipMenu: null });
@@ -290,9 +290,10 @@ class Media extends Component {
       this.props.dispatch(analyticsEvent('media_switch_view', { in_view: this.state.inView }));
     }
 
-    if (this.props.currentRoute && ((!prevState.downloadMenu && downloadMenu)
+    if (this.props.currentRoute && ((!prevState.clipMenu && clipMenu)
+      || (!prevState.downloadMenu && downloadMenu)
       || (!this.props.files && !prevState.moreInfoMenu && moreInfoMenu)
-      || (!prevProps.currentRoute && (downloadMenu || moreInfoMenu)))) {
+      || (!prevProps.currentRoute && (clipMenu || downloadMenu || moreInfoMenu)))) {
       if ((this.props.device && !this.props.device.shared) || this.props.profile?.superuser) {
         this.props.dispatch(fetchAthenaQueue(this.props.dongleId));
       }
@@ -596,7 +597,7 @@ class Media extends Component {
   }
 
   renderMediaOptions(showMapAlways) {
-    const { classes, device } = this.props;
+    const { classes, currentRoute } = this.props;
     const { inView, clipsSupported } = this.state;
     return (
       <>
@@ -629,12 +630,11 @@ class Media extends Component {
             >
               <Typography className={classes.mediaOptionText}>Files</Typography>
             </div>
-            {clipsSupported && <Tooltip title={deviceIsOnline(device) ? '' : 'Device offline'} placement="top">
+            {currentRoute && <Tooltip title={clipsSupported ? '' : 'Uses uploaded qcamera footage'} placement="top">
               <div
                 className={classes.mediaOption}
-                style={deviceIsOnline(device) ? {} : { opacity: 0.7 }}
                 aria-haspopup="true"
-                onClick={(ev) => deviceIsOnline(device) && this.setState({ clipMenu: ev.currentTarget })}
+                onClick={(ev) => this.setState({ clipMenu: ev.currentTarget })}
               >
                 <Typography className={classes.mediaOptionText}>Clip</Typography>
               </div>
@@ -695,6 +695,8 @@ class Media extends Component {
           routes={this.props.routes}
           zoom={this.props.zoom}
           deviceOnline={deviceIsOnline(device)}
+          deviceClipsSupported={clipsSupported}
+          files={files}
         />
         <Menu
           id="menu-download"
