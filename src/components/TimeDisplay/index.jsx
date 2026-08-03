@@ -1,7 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import raf from 'raf';
 import dayjs from 'dayjs';
 
 import { withStyles } from '@material-ui/core/styles';
@@ -131,7 +129,7 @@ class TimeDisplay extends Component {
 
   componentDidMount() {
     this.mounted = true;
-    raf(this.updateTime);
+    requestAnimationFrame(this.updateTime);
   }
 
   componentWillUnmount() {
@@ -172,7 +170,7 @@ class TimeDisplay extends Component {
       this.setState({ displayTime: newDisplayTime });
     }
 
-    raf(this.updateTime);
+    requestAnimationFrame(this.updateTime);
   }
 
   decreaseSpeed() {
@@ -314,10 +312,10 @@ class TimeDisplay extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  currentRoute: 'currentRoute',
-  zoom: 'zoom',
-  desiredPlaySpeed: 'desiredPlaySpeed'
+const stateToProps = (state) => ({
+  currentRoute: state.currentRoute,
+  zoom: state.zoom,
+  desiredPlaySpeed: state.desiredPlaySpeed,
 });
 
 export default connect(stateToProps)(withStyles(styles)(TimeDisplay));

@@ -1,6 +1,5 @@
 import { push } from 'connected-react-router';
 import * as Sentry from '@sentry/react';
-import document from 'global/document';
 import { athena as Athena, billing as Billing, devices as Devices, drives as Drives } from '../api';
 import MyCommaAuth from '@commaai/my-comma-auth';
 

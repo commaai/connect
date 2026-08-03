@@ -1,5 +1,4 @@
 /* eslint-disable react/jsx-props-no-spreading */
-import React from 'react';
 import SvgIcon from '@material-ui/core/SvgIcon';
 
 import AuthAppleIcon from './auth_apple.png';
@@ -35,6 +34,12 @@ export const CloseBold = (props) => (
 export const ContentCopy = (props) => (
   <SvgIcon {...props} viewBox="0 -960 960 960">
     <path d="M180-81q-24 0-42-18t-18-42v-603h60v603h474v60H180Zm120-120q-24 0-42-18t-18-42v-560q0-24 18-42t42-18h440q24 0 42 18t18 42v560q0 24-18 42t-42 18H300Zm0-60h440v-560H300v560Zm0 0v-560 560Z" />
+  </SvgIcon>
+);
+
+export const Trash = (props) => (
+  <SvgIcon {...props} viewBox="0 0 24 24">
+    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12Zm2-10h2v8H8V9Zm4 0h2v8h-2V9Zm-7-5v2h14V4h-3.5l-1-1h-5l-1 1H5Z" />
   </SvgIcon>
 );
 

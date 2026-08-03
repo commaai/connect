@@ -1,19 +1,21 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import dayjs from 'dayjs';
 
 import { withStyles, Typography, CircularProgress, Popper, Tooltip } from '@material-ui/core';
+import ContentCut from '@material-ui/icons/ContentCut';
 
 import { athena as Athena } from '../../api';
+import { deviceSupportsClips } from '../../api/clips';
 import { analyticsEvent, primeNav, streamNav, fetchDeviceNotCar } from '../../actions';
 import Colors from '../../colors';
 import { deviceNamePretty, deviceIsOnline, deviceVersionAtLeast, truncateName } from '../../utils';
 import { webrtcConnectionManager } from '../../utils/webrtc';
-import ResizeHandler from '../ResizeHandler';
 import VisibilityHandler from '../VisibilityHandler';
+import { subscribeWindowSize } from '../../hooks/window';
 import CommacareBadge from '../CommacareBadge';
+import ClipMenu from '../DriveView/ClipMenu';
 import { LivestreamIcon, CarBatteryIcon, CameraIcon, GamepadIcon } from '../../icons';
 
 const styles = (theme) => ({
@@ -167,11 +169,12 @@ class DeviceInfo extends Component {
       snapshot: {},
       windowWidth: window.innerWidth,
       bodyTeleopOpen: false,
+      clipMenu: null,
+      clipsSupported: false,
     };
 
     this.snapshotButtonRef = React.createRef();
 
-    this.onResize = this.onResize.bind(this);
     this.onVisible = this.onVisible.bind(this);
     this.fetchDeviceCarHealth = this.fetchDeviceCarHealth.bind(this);
     this.takeSnapshot = this.takeSnapshot.bind(this);
@@ -188,6 +191,10 @@ class DeviceInfo extends Component {
 
   componentDidMount() {
     this.mounted = true;
+    this.unsubscribeWindowSize = subscribeWindowSize(({ width }) => {
+      this.setState({ windowWidth: width });
+    });
+    this.checkClipsSupport();
     this.prewarmBodyTeleop();
   }
 
@@ -199,7 +206,12 @@ class DeviceInfo extends Component {
         carHealth: {},
         snapshot: {},
         windowWidth: window.innerWidth,
+        clipMenu: null,
+        clipsSupported: false,
       });
+      this.checkClipsSupport();
+    } else if (!deviceIsOnline(prevProps.device) && deviceIsOnline(this.props.device)) {
+      this.checkClipsSupport();
     }
 
     this.prewarmBodyTeleop();
@@ -207,10 +219,17 @@ class DeviceInfo extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    this.unsubscribeWindowSize?.();
   }
 
-  onResize(windowWidth) {
-    this.setState({ windowWidth });
+  async checkClipsSupport() {
+    const { device, dongleId } = this.props;
+    try {
+      const clipsSupported = await deviceSupportsClips(device);
+      if (this.mounted && dongleId === this.props.dongleId) this.setState({ clipsSupported });
+    } catch (error) {
+      // The button stays hidden when Athena is unavailable or too old.
+    }
   }
 
   onVisible() {
@@ -316,7 +335,6 @@ class DeviceInfo extends Component {
 
     return (
       <>
-        <ResizeHandler onResize={ this.onResize } />
         <VisibilityHandler onVisible={ this.onVisible } onInit onDongleId minInterval={ 60 } />
         <div className={`${classes.container} px-4`}>
           <div className={`flex flex-row justify-between items-center gap-4 md:my-2 my-4 pl-1 flex-wrap`}>
@@ -327,6 +345,15 @@ class DeviceInfo extends Component {
             { this.renderButtons() }
           </div>
         </div>
+        <ClipMenu
+          open={Boolean(this.state.clipMenu)}
+          dongleId={this.props.dongleId}
+          anchorEl={this.state.clipMenu}
+          onClose={() => this.setState({ clipMenu: null })}
+          routes={this.props.routes}
+          deviceOnline={deviceIsOnline(device)}
+          inventoryOnly
+        />
         { snapshot.result && (
           <div className={ classes.snapshotContainer }>
             { windowWidth >= 640
@@ -358,7 +385,7 @@ class DeviceInfo extends Component {
 
   renderButtons() {
     const { classes, device } = this.props;
-    const { snapshot, carHealth } = this.state;
+    const { snapshot, carHealth, clipsSupported } = this.state;
     const isCommaBody = device?.rpc?.not_car;
 
     let batteryVoltage;
@@ -411,6 +438,23 @@ class DeviceInfo extends Component {
             </button>
           </Tooltip>
         )}
+        {clipsSupported && <Tooltip
+          classes={{ tooltip: classes.popover }}
+          title={deviceIsOnline(device) ? 'Clips' : 'Device offline'}
+          placement="bottom"
+        >
+          <span className="inline-flex">
+            <button
+              style={!deviceIsOnline(device) ? { opacity: 0.7 } : {}}
+              className={`${classes.button} ${classes.carBattery}`}
+              aria-label="Clips"
+              onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
+              disabled={!deviceIsOnline(device)}
+            >
+              <ContentCut className="text-black" />
+            </button>
+          </span>
+        </Tooltip>}
         {!livestreamEnabled && (
           <Tooltip
             classes={{ tooltip: classes.popover }}
@@ -484,9 +528,10 @@ class DeviceInfo extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  device: 'device',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  device: state.device,
+  routes: state.routes,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DeviceInfo));
