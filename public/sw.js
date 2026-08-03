@@ -6,12 +6,21 @@ self.addEventListener('install', () => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
-    await self.clients.claim();
+    let windowClients = [];
+    try {
+      await self.clients.claim();
 
-    const cacheNames = await caches.keys();
-    await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
 
-    const windowClients = await self.clients.matchAll({ type: 'window' });
+      windowClients = await self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      });
+    } finally {
+      await self.registration.unregister();
+    }
+
     await Promise.all(windowClients.map((client) => (
       client.navigate(client.url).catch(() => undefined)
     )));
