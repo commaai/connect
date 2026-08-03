@@ -3,7 +3,6 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { VitePWA } from 'vite-plugin-pwa';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 
 
@@ -57,17 +56,6 @@ export default defineConfig(({ mode }) => {
       // TODO: compression plugin
       tailwindcss(),
       react(),
-      VitePWA({
-        workbox: {
-          globPatterns: ['**/*.{js,css,html,png,webp,svg,ico}'],
-          // The visual report is written after the app build and must be served as a real file,
-          // not interpreted by the application router as a dongle id.
-          navigateFallbackDenylist: [/^\/connect-gallery(?:\.html)?$/],
-          // TODO: revisit, throw error during build if too large?
-          maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
-          sourcemap: true,
-        },
-      }),
       sentryPlugin,
       process.env.PREVIEW && previewBranding(),
     ].filter(Boolean),
