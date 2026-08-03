@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 import { withStyles, Typography } from '@material-ui/core';
 import FilterList from '@material-ui/icons/FilterList';
@@ -157,11 +156,11 @@ const DriveList = (props) => {
   );
 };
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  routes: 'routes',
-  lastRoutes : 'lastRoutes',
-  device: 'device',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  routes: state.routes,
+  lastRoutes: state.lastRoutes,
+  device: state.device,
 });
 
 export default connect(stateToProps)(withStyles(styles)(DriveList));

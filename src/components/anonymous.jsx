@@ -1,10 +1,6 @@
 /* global AppleID */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
-import window from 'global/window';
-import PropTypes from 'prop-types';
-import qs from 'query-string';
 
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
@@ -13,6 +9,7 @@ import {config as AuthConfig} from '@commaai/my-comma-auth';
 
 import Colors from '../colors';
 import { AuthAppleIcon, AuthGithubIcon, AuthGoogleIcon } from '../icons';
+import { stringifyQuery } from '../utils/query';
 
 import PWAIcon from './PWAIcon';
 
@@ -120,7 +117,7 @@ class AnonymousLanding extends Component {
     script.async = true;
     document.addEventListener('AppleIDSignInOnSuccess', (data) => {
       const { code, state } = data.detail.authorization;
-      window.location = [AuthConfig.APPLE_REDIRECT_PATH, qs.stringify({ code, state })].join('?');
+      window.location = `${AuthConfig.APPLE_REDIRECT_PATH}?${stringifyQuery({ code, state })}`;
     });
     document.addEventListener('AppleIDSignInOnFailure', console.warn);
   }
@@ -163,13 +160,8 @@ class AnonymousLanding extends Component {
   }
 }
 
-AnonymousLanding.propTypes = {
-  pathname: PropTypes.string.isRequired,
-  classes: PropTypes.object.isRequired,
-};
-
-const stateToProps = Obstruction({
-  pathname: 'router.location.pathname',
+const stateToProps = (state) => ({
+  pathname: state.router.location.pathname,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AnonymousLanding));

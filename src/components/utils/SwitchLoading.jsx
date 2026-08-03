@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types';
 
 import { withStyles, Switch, FormControlLabel, Popper, Typography } from '@material-ui/core';
 
@@ -129,13 +128,5 @@ class SwitchLoading extends Component {
     );
   }
 }
-
-SwitchLoading.propTypes = {
-  checked: PropTypes.bool.isRequired,
-  onChange: PropTypes.func.isRequired,
-  loading: PropTypes.bool,
-  label: PropTypes.string,
-  tooltip: PropTypes.string,
-};
 
 export default withStyles(styles)(SwitchLoading);

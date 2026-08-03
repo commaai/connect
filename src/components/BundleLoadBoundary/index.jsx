@@ -1,6 +1,7 @@
 import React, { Component, Suspense } from 'react';
 import PropTypes from 'prop-types';
 import { DEV_TOOLS_CHANGED_EVENT, getDeveloperToolsEnabled } from '../../userSettings';
+import FullPageLoading from '../FullPageLoading';
 
 let initialLoadClaimed = false;
 
@@ -19,19 +20,6 @@ const getLoadStart = () => {
   }
   return now();
 };
-
-export const LoadingScreen = () => (
-  <div
-    className="fixed inset-0 z-[1400] flex h-screen w-full items-center justify-center bg-[#16181A]"
-    data-testid="bundle-loading-screen"
-  >
-    <div
-      aria-label="Loading"
-      className="h-[10vh] w-[10vh] animate-spin rounded-full border-[0.8vh] border-[#525E66]/25 border-t-[#525E66]"
-      role="status"
-    />
-  </div>
-);
 
 class ReadyMarker extends Component {
   componentDidMount() {
@@ -94,12 +82,12 @@ class BundleLoadBoundary extends Component {
 
     return (
       <>
-        <Suspense fallback={<LoadingScreen />}>
+        <Suspense fallback={<FullPageLoading />}>
           {children}
           <ReadyMarker onReady={this.handleReady} />
         </Suspense>
         {durationMs === null
-          ? <LoadingScreen />
+          ? <FullPageLoading />
           : developerToolsEnabled && (
             <footer
               className="pointer-events-none fixed inset-x-0 bottom-0 z-[1300] border-t border-white/10 bg-[#16181A]/[.92] px-3 py-1 text-right text-[11px] leading-4 text-white/50"

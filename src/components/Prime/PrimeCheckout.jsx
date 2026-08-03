@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 import * as Sentry from '@sentry/react';
 import { withStyles, Typography, IconButton, Button, CircularProgress } from '@material-ui/core';
@@ -9,8 +8,8 @@ import CheckIcon from '@material-ui/icons/Check';
 
 import { deviceNamePretty } from '../../utils';
 import { billing as Billing } from '../../api';
-import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
+import { subscribeWindowSize } from '../../hooks/window';
 import { primeNav, analyticsEvent, primeFetchSubscription } from '../../actions';
 import { ErrorOutline, InfoOutline } from '../../icons';
 import CommacareIcon from '../../icons/commacare.png';
@@ -248,15 +247,21 @@ class PrimeCheckout extends Component {
     this.gotoCheckout = this.gotoCheckout.bind(this);
     this.trialClaimable = this.trialClaimable.bind(this);
     this.dataPlanAvailable = this.dataPlanAvailable.bind(this);
-    this.onResize = this.onResize.bind(this);
   }
 
   componentDidMount() {
     const { dispatch, dongleId, device } = this.props;
+    this.unsubscribeWindowSize = subscribeWindowSize(({ width, height }) => {
+      this.setState({ windowWidth: width, windowHeight: height });
+    });
     if (dongleId) {
       dispatch(primeFetchSubscription(dongleId, device));
     }
     this.componentDidUpdate({});
+  }
+
+  componentWillUnmount() {
+    this.unsubscribeWindowSize?.();
   }
 
   componentDidUpdate(prevProps) {
@@ -269,10 +274,6 @@ class PrimeCheckout extends Component {
       const plan = this.dataPlanAvailable() ? 'data' : 'nodata';
       this.setState({ selectedPlan: plan });
     }
-  }
-
-  onResize(windowWidth, windowHeight) {
-    this.setState({ windowWidth, windowHeight });
   }
 
   async gotoCheckout() {
@@ -375,7 +376,6 @@ class PrimeCheckout extends Component {
 
     return (
       <div className={ classes.primeBox } style={ containerPadding }>
-        <ResizeHandler onResize={this.onResize} />
         <div className={ classes.primeHeader }>
           <IconButton aria-label="Go Back" onClick={() => dispatch(primeNav(false)) }>
             <KeyboardBackspaceIcon />
@@ -513,10 +513,10 @@ class PrimeCheckout extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  device: 'device',
-  subscribeInfo: 'subscribeInfo',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  device: state.device,
+  subscribeInfo: state.subscribeInfo,
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeCheckout));

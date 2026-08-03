@@ -1,6 +1,5 @@
 import React, { Suspense, useCallback, useState } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 
 import { withStyles } from '@material-ui/core/styles';
 import { Typography, IconButton, AppBar } from '@material-ui/core';
@@ -76,8 +75,8 @@ const AppHeader = ({
   }, []);
 
   const toggleDrawer = useCallback(() => {
-    dispatch(handleDrawerStateChanged(!drawerIsOpen));
-  }, [dispatch, drawerIsOpen, handleDrawerStateChanged]);
+    handleDrawerStateChanged(!drawerIsOpen);
+  }, [drawerIsOpen, handleDrawerStateChanged]);
 
   const open = menuOpen;
 
@@ -137,11 +136,11 @@ const AppHeader = ({
   );
 };
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  filter: 'filter',
-  profile: 'profile',
-  primeNav: 'primeNav',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  filter: state.filter,
+  profile: state.profile,
+  primeNav: state.primeNav,
 });
 
 export default connect(stateToProps)(withStyles(styles)(AppHeader));

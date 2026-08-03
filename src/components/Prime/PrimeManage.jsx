@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import dayjs from 'dayjs';
 import * as Sentry from '@sentry/react';
 
@@ -10,8 +9,8 @@ import PriorityHighIcon from '@material-ui/icons/PriorityHigh';
 
 import { deviceNamePretty, deviceTypePretty } from '../../utils';
 import { billing as Billing } from '../../api';
-import ResizeHandler from '../ResizeHandler';
 import Colors from '../../colors';
+import { subscribeWindowSize } from '../../hooks/window';
 import { ErrorOutline, InfoOutline } from '../../icons';
 import { primeNav, primeGetSubscription, analyticsEvent } from '../../actions';
 import CommacareBadge, { COMMACARE_URL } from '../CommacareBadge';
@@ -243,10 +242,12 @@ export class PrimeManage extends Component {
     this.gotoUpdate = this.gotoUpdate.bind(this);
     this.switchPlan = this.switchPlan.bind(this);
     this.fetchSubscription = this.fetchSubscription.bind(this);
-    this.onResize = this.onResize.bind(this);
   }
 
   componentDidMount() {
+    this.unsubscribeWindowSize = subscribeWindowSize(({ width }) => {
+      this.setState({ windowWidth: width });
+    });
     this.componentDidUpdate({}, {});
     this.mounted = true;
   }
@@ -269,6 +270,7 @@ export class PrimeManage extends Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    this.unsubscribeWindowSize?.();
   }
 
   cancelPrime() {
@@ -391,10 +393,6 @@ export class PrimeManage extends Component {
     }
   }
 
-  onResize(windowWidth) {
-    this.setState({ windowWidth });
-  }
-
   render() {
     const { dispatch, dongleId, subscription, classes, device } = this.props;
     const { windowWidth, stripeStatus } = this.state;
@@ -426,7 +424,6 @@ export class PrimeManage extends Component {
 
     return (
       <>
-        <ResizeHandler onResize={this.onResize} />
         <div className={classes.primeBox}>
           <div className={classes.primeContainer} style={{ padding: `8px ${containerPadding}px` }}>
             <IconButton aria-label="Go Back" onClick={() => dispatch(primeNav(false))}>
@@ -742,10 +739,10 @@ export class PrimeManage extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  device: 'device',
-  subscription: 'subscription',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  device: state.device,
+  subscription: state.subscription,
 });
 
 export default connect(stateToProps)(withStyles(styles)(PrimeManage));

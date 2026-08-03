@@ -2,7 +2,6 @@ import React, { Component, lazy } from 'react';
 import { Provider } from 'react-redux';
 import { Route, Switch, Redirect } from 'react-router';
 import { ConnectedRouter } from 'connected-react-router';
-import qs from 'query-string';
 import localforage from 'localforage';
 import * as Sentry from '@sentry/react';
 
@@ -15,7 +14,8 @@ import { fetchTurnCredentials } from './utils/turn';
 import store, { history } from './store';
 
 import ErrorFallback from './components/ErrorFallback';
-import BundleLoadBoundary, { LoadingScreen } from './components/BundleLoadBoundary';
+import BundleLoadBoundary from './components/BundleLoadBoundary';
+import FullPageLoading from './components/FullPageLoading';
 
 const Explorer = lazy(() => import('./components/explorer'));
 const AnonymousLanding = lazy(() => import('./components/anonymous'));
@@ -30,7 +30,7 @@ class App extends Component {
 
     let pairToken;
     if (window.location) {
-      pairToken = qs.parse(window.location.search).pair;
+      pairToken = new URLSearchParams(window.location.search).get('pair');
     }
 
     if (pairToken) {
@@ -52,8 +52,8 @@ class App extends Component {
     if (window.location) {
       if (window.location.pathname === AuthConfig.AUTH_PATH) {
         try {
-          const { code, provider } = qs.parse(window.location.search);
-          const token = await Auth.refreshAccessToken(code, provider);
+          const authParams = new URLSearchParams(window.location.search);
+          const token = await Auth.refreshAccessToken(authParams.get('code'), authParams.get('provider'));
           if (token) {
             AuthStorage.setCommaAccessToken(token);
           }
@@ -118,13 +118,9 @@ class App extends Component {
     );
   }
 
-  renderLoading() {
-    return <LoadingScreen />;
-  }
-
   render() {
     if (!this.state.initialized) {
-      return this.renderLoading();
+      return <FullPageLoading />;
     }
 
     const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(window.location.pathname) && !getSegmentRange(window.location.pathname);

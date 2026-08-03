@@ -1,26 +1,27 @@
 import React, { Component } from 'react';
-import qs from 'query-string';
 import { connect } from 'react-redux';
-import Obstruction from 'obstruction';
 import * as Sentry from '@sentry/react';
 
-import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem } from '@material-ui/core';
+import { withStyles, Divider, Typography, Menu, MenuItem, CircularProgress, Button, Popper, ListItem, Tooltip } from '@material-ui/core';
 import WarningIcon from '@material-ui/icons/Warning';
 import ContentCopyIcon from '@material-ui/icons/ContentCopy';
 import ShareIcon from '@material-ui/icons/Share';
 
 import { drives as Drives, USERADMIN_URL_ROOT } from '../../api';
+import { deviceSupportsClips } from '../../api/clips';
 
 import DriveMap from '../DriveMap';
 import DriveVideo from '../DriveVideo';
-import ResizeHandler from '../ResizeHandler';
 import TimeDisplay from '../TimeDisplay';
+import { subscribeWindowSize } from '../../hooks/window';
 import UploadQueue from '../Files/UploadQueue';
+import ClipMenu from './ClipMenu';
 import SwitchLoading from '../utils/SwitchLoading';
 import { bufferVideo } from '../../timeline/playback';
 import Colors from '../../colors';
 import { InfoOutline } from '../../icons';
 import { deviceIsOnline, deviceOnCellular, getSegmentNumber } from '../../utils';
+import { stringifyQuery } from '../../utils/query';
 import { analyticsEvent, updateRoute } from '../../actions';
 import { fetchEvents } from '../../actions/cached';
 import { attachRelTime } from '../../analytics';
@@ -218,12 +219,14 @@ class Media extends Component {
       inView: MediaType.VIDEO,
       windowWidth: window.innerWidth,
       downloadMenu: null,
+      clipMenu: null,
       moreInfoMenu: null,
       uploadModal: false,
       dcamUploadInfo: null,
       routePreserved: null,
       isMuted: true,
       hasAudio: false,
+      clipsSupported: false,
     };
 
     this.handleMuteToggle = this.handleMuteToggle.bind(this);
@@ -255,12 +258,22 @@ class Media extends Component {
   }
 
   componentDidMount() {
+    this.mounted = true;
+    this.unsubscribeWindowSize = subscribeWindowSize(({ width }) => {
+      this.setState({ windowWidth: width });
+    });
     this.componentDidUpdate({}, {});
   }
 
   componentDidUpdate(prevProps, prevState) {
     const { windowWidth, inView, downloadMenu, moreInfoMenu, routePreserved } = this.state;
     const showMapAlways = windowWidth >= 1536;
+    if (prevProps.dongleId !== this.props.dongleId) {
+      this.setState({ clipsSupported: false, clipMenu: null });
+      this.checkClipsSupport();
+    } else if (!deviceIsOnline(prevProps.device) && deviceIsOnline(this.props.device)) {
+      this.checkClipsSupport();
+    }
     if (showMapAlways && inView === MediaType.MAP) {
       this.setState({ inView: MediaType.VIDEO });
     }
@@ -297,6 +310,21 @@ class Media extends Component {
     }
   }
 
+  componentWillUnmount() {
+    this.mounted = false;
+    this.unsubscribeWindowSize?.();
+  }
+
+  async checkClipsSupport() {
+    const { device, dongleId } = this.props;
+    try {
+      const clipsSupported = await deviceSupportsClips(device);
+      if (this.mounted && dongleId === this.props.dongleId) this.setState({ clipsSupported });
+    } catch (error) {
+      // The button stays hidden when Athena is unavailable or too old.
+    }
+  }
+
   async copySegmentName() {
     const { currentRoute } = this.props;
     if (!currentRoute || !navigator.clipboard) {
@@ -320,7 +348,7 @@ class Media extends Component {
     this.props.dispatch(analyticsEvent('open_in_useradmin', event_parameters));
 
     const params = { onebox: currentRoute.fullname };
-    const win = window.open(`${USERADMIN_URL_ROOT}?${qs.stringify(params)}`, '_blank');
+    const win = window.open(`${USERADMIN_URL_ROOT}?${stringifyQuery(params)}`, '_blank');
     if (win.focus) {
       win.focus();
     }
@@ -536,7 +564,6 @@ class Media extends Component {
 
     return (
       <div className={classes.root}>
-        <ResizeHandler onResize={(ww) => this.setState({ windowWidth: ww })} />
         <div style={mediaContainerStyle}>
           {this.renderMediaOptions(showMapAlways)}
           {inView === MediaType.VIDEO && (
@@ -569,8 +596,8 @@ class Media extends Component {
   }
 
   renderMediaOptions(showMapAlways) {
-    const { classes } = this.props;
-    const { inView } = this.state;
+    const { classes, device } = this.props;
+    const { inView, clipsSupported } = this.state;
     return (
       <>
         <div className={classes.mediaOptionsRoot}>
@@ -602,6 +629,16 @@ class Media extends Component {
             >
               <Typography className={classes.mediaOptionText}>Files</Typography>
             </div>
+            {clipsSupported && <Tooltip title={deviceIsOnline(device) ? '' : 'Device offline'} placement="top">
+              <div
+                className={classes.mediaOption}
+                style={deviceIsOnline(device) ? {} : { opacity: 0.7 }}
+                aria-haspopup="true"
+                onClick={(ev) => deviceIsOnline(device) && this.setState({ clipMenu: ev.currentTarget })}
+              >
+                <Typography className={classes.mediaOptionText}>Clip</Typography>
+              </div>
+            </Tooltip>}
             <div
               className={classes.mediaOption}
               aria-haspopup="true"
@@ -618,7 +655,7 @@ class Media extends Component {
 
   renderMenus(alwaysOpen = false) {
     const { currentRoute, device, classes, files, profile } = this.props;
-    const { downloadMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
+    const { downloadMenu, clipMenu, moreInfoMenu, uploadModal, windowWidth, dcamUploadInfo, routePreserved } = this.state;
 
     if (!device) {
       return null;
@@ -649,6 +686,16 @@ class Media extends Component {
 
     return (
       <>
+        <ClipMenu
+          open={Boolean(alwaysOpen || clipMenu)}
+          dongleId={this.props.dongleId}
+          anchorEl={clipMenu}
+          onClose={() => this.setState({ clipMenu: null })}
+          route={currentRoute}
+          routes={this.props.routes}
+          zoom={this.props.zoom}
+          deviceOnline={deviceIsOnline(device)}
+        />
         <Menu
           id="menu-download"
           open={ Boolean(alwaysOpen || downloadMenu) }
@@ -890,16 +937,17 @@ class Media extends Component {
   }
 }
 
-const stateToProps = Obstruction({
-  dongleId: 'dongleId',
-  device: 'device',
-  routes: 'routes',
-  currentRoute: 'currentRoute',
-  loop: 'loop',
-  filter: 'filter',
-  files: 'files',
-  profile: 'profile',
-  isBufferingVideo: 'isBufferingVideo',
+const stateToProps = (state) => ({
+  dongleId: state.dongleId,
+  device: state.device,
+  routes: state.routes,
+  currentRoute: state.currentRoute,
+  zoom: state.zoom,
+  loop: state.loop,
+  filter: state.filter,
+  files: state.files,
+  profile: state.profile,
+  isBufferingVideo: state.isBufferingVideo,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Media));

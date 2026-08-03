@@ -1,9 +1,8 @@
 import { reducer as playbackReducer } from '../timeline/playback';
+import initialState from '../initialState';
 import globalState from './globalState';
 
-const reducers = [
-  globalState,
-  playbackReducer,
-];
-
-export default reducers;
+// Pipe the flat root state through global + playback reducers in order.
+export default function rootReducer(state = initialState, action) {
+  return playbackReducer(globalState(state, action), action);
+}

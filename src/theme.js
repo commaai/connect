@@ -102,6 +102,9 @@ const theme = createMuiTheme({
     },
   },
   props: {
+    MuiButtonBase: {
+      disableRipple: true,
+    },
     MuiSelect: {
       disableUnderline: true,
       IconComponent: ChevronIcon,
