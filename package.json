@@ -26,6 +26,8 @@
   },
   "dependencies": {
     "@commaai/my-comma-auth": "^1.4.1",
+    "@ffmpeg/core": "0.12.10",
+    "@ffmpeg/ffmpeg": "0.12.15",
     "@mapbox/mapbox-sdk": "^0.15.3",
     "@material-ui/core": "^1.5.1",
     "@material-ui/icons": "^1.1.1",

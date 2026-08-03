@@ -72,6 +72,7 @@ export default defineConfig(({ mode }) => {
       process.env.PREVIEW && previewBranding(),
     ].filter(Boolean),
     optimizeDeps: {
+      exclude: ['@ffmpeg/ffmpeg'],
       esbuildOptions: {
         // Node.js global to browser globalThis
         // Required for Material UI v1
