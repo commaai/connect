@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, CircularProgress } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
-
-import { usePinchZoom } from '../../utils/usePinchZoom';
 
 const CONNECTION_TIME_VISIBLE_MS = 1500;
 
@@ -41,15 +39,11 @@ const ConnectOverlay = ({ connectionState, error, onConnect }) => {
 
 const Video = ({
   videoRef, roadVideoRef, connectionState, error, connectionTotalMs,
-  onConnect, onFirstFrame, className, started, cameraFlipped
+  onConnect, onFirstFrame, className, cameraFlipped
 }) => {
   const connected = connectionState === 'connected';
   const [showConnectionTime, setShowConnectionTime] = useState(false);
   const [roadPlaying, setRoadPlaying] = useState(false);
-  const containerRef = useRef(null);
-
-  // Disable pinch-zoom once ignition is on so it doesn't fight the joystick.
-  usePinchZoom(containerRef, videoRef, !started);
 
   useEffect(() => {
     if (connectionState !== 'connected') {
@@ -72,7 +66,7 @@ const Video = ({
   }, [connectionTimeLabel]);
 
   return (
-    <div ref={containerRef} className={`relative flex w-full flex-col items-center ${className} bg-black overflow-hidden`} style={{ touchAction: 'none' }}>
+    <div className={`relative flex w-full flex-col items-center ${className} bg-black overflow-hidden`} style={{ touchAction: 'none' }}>
       <div className="relative min-h-0 w-full flex-1">
         <video
           ref={videoRef}

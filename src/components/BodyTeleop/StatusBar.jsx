@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import BatteryFull from '@material-ui/icons/BatteryFull';
 import BatteryChargingFull from '@material-ui/icons/BatteryChargingFull';
 import SettingsMenu from './SettingsMenu';
+import AudioMenu from './AudioMenu';
 import { useClickOutside } from '../../hooks/useClickOutside';
 
 const LATENCY_BUFFER_SIZE = 10;
@@ -607,6 +608,8 @@ const StatsMenu = ({
 
 const StatusBar = ({
   battery, className, isLandscape, connection, connectionState, latencyCallbackRef, videoRef, onQualityChange, onTestTone,
+  audioOutputs, selectedAudioOutput, onAudioOutputChange,
+  speakerVolume, onSpeakerVolumeChange, playingAudioName, onPlayTutu, onPlayAudioFile, onStopAudio, audioError,
 }) => {
   const {
     showStats, toggleStats, closeStats, stats, latency, latencyHistory, jitterHistory, browserBreakdown, connectionQuality,
@@ -641,7 +644,20 @@ const StatusBar = ({
         jitterHistory={jitterHistory}
         browserBreakdown={browserBreakdown}
       />
-      <SettingsMenu onQualityChange={onQualityChange} onTestTone={onTestTone} />
+      <AudioMenu
+        speakerVolume={speakerVolume}
+        onSpeakerVolumeChange={onSpeakerVolumeChange}
+        onTestTone={onTestTone}
+        audioOutputs={audioOutputs}
+        selectedAudioOutput={selectedAudioOutput}
+        onAudioOutputChange={onAudioOutputChange}
+        playingAudioName={playingAudioName}
+        onPlayTutu={onPlayTutu}
+        onPlayFile={onPlayAudioFile}
+        onStopAudio={onStopAudio}
+        audioError={audioError}
+      />
+      <SettingsMenu onQualityChange={onQualityChange} />
     </div>
   );
 };

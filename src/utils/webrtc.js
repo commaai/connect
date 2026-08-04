@@ -58,6 +58,7 @@ export class WebRTCConnection extends EventTarget {
     this.localAudioStream = null;
     this.audioSender = null;
     this.audioTestTone = null;
+    this.audioFilePlayback = null;
     this.silentAudio = null;
     this.audioStatsInterval = null;
     this.lastAudioStats = null;
@@ -160,12 +161,20 @@ export class WebRTCConnection extends EventTarget {
       // set up video channel
       const codecs = RTCRtpReceiver.getCapabilities('video')?.codecs || [];
       const h264Codecs = codecs.filter((c) => c.mimeType === 'video/H264');
+      const isPreferredH264 = (codec) => {
+        const fmtp = codec.sdpFmtpLine?.toLowerCase() || '';
+        return fmtp.includes('profile-level-id=42e01f') && fmtp.includes('packetization-mode=1');
+      };
+      const preferredH264Codecs = [
+        ...h264Codecs.filter(isPreferredH264),
+        ...h264Codecs.filter((codec) => !isPreferredH264(codec)),
+      ];
       const primaryTransceiver = this.pc.addTransceiver('video', { direction: 'recvonly' });
-      if (h264Codecs.length > 0) primaryTransceiver.setCodecPreferences(h264Codecs);
+      if (preferredH264Codecs.length > 0) primaryTransceiver.setCodecPreferences(preferredH264Codecs);
       this._setupVideoReceiver(primaryTransceiver.receiver);
 
       const roadTransceiver = this.pc.addTransceiver('video', { direction: 'recvonly' });
-      if (h264Codecs.length > 0) roadTransceiver.setCodecPreferences(h264Codecs);
+      if (preferredH264Codecs.length > 0) roadTransceiver.setCodecPreferences(preferredH264Codecs);
       this._setupVideoReceiver(roadTransceiver.receiver);
 
       await this._setupAudioForOffer(pc, audioEnabled);
@@ -176,7 +185,7 @@ export class WebRTCConnection extends EventTarget {
       }, CONNECTION_DEADLINE_MS);
 
       // set up data channel
-      this.dc = this.pc.createDataChannel('data', { ordered: true });
+      this.dc = this.pc.createDataChannel('data', { ordered: false, maxRetransmits: 0 });
       this.dc.onopen = () => {
         this._log('Data channel open');
         this._sendSpeakerVolume();
@@ -193,15 +202,7 @@ export class WebRTCConnection extends EventTarget {
         this._stopClockSync();
       };
       this.dc.onmessage = (evt) => {
-        try {
-          const msg = JSON.parse(typeof evt.data === 'string' ? evt.data : new TextDecoder().decode(evt.data));
-          if (msg.type === 'carState') this.callbacks.onBatteryLevel({ level: Math.round(msg.data.fuelGauge * 100), charging: !!msg.data.charging });
-          if (msg.type === 'deviceState') this.callbacks.onIgnition?.(!!msg.data?.started);
-          if (msg.type === 'disconnect') this.disconnect(msg.data || 'Connection replaced by another device.');
-          if (msg.type === 'clockSync' && msg.data?.action === 'pong') this._handleClockPong(msg.data);
-        } catch (e) {
-          console.warn('webrtc: ignoring malformed data-channel message', e);
-        }
+        this._handleDataChannelMessage(evt.data);
       };
 
       const offer = await this.pc.createOffer();
@@ -237,7 +238,7 @@ export class WebRTCConnection extends EventTarget {
       const tStep = performance.now();
       const resp = await Athena.postJsonRpcPayload(dongleId, {
         method: 'startStream',
-        params: { sdp: stripMdnsCandidates(pc.localDescription.sdp), enabled: this.videoEnabled, audio: this.audioEnabled },
+        params: { sdp: stripMdnsCandidates(pc.localDescription.sdp), enabled: this.videoEnabled },
         jsonrpc: '2.0',
         id: 0,
       });
@@ -297,6 +298,18 @@ export class WebRTCConnection extends EventTarget {
     return false;
   }
 
+  _handleDataChannelMessage(data) {
+    try {
+      const msg = JSON.parse(typeof data === 'string' ? data : new TextDecoder().decode(data));
+      if (msg.type === 'carState') this.callbacks.onBatteryLevel({ level: Math.round(msg.data.fuelGauge * 100), charging: !!msg.data.charging });
+      if (msg.type === 'soundDeviceState') this.callbacks.onSoundDeviceState?.(msg.data);
+      if (msg.type === 'disconnect') this.disconnect(msg.data || 'Connection replaced by another device.');
+      if (msg.type === 'clockSync' && msg.data?.action === 'pong') this._handleClockPong(msg.data);
+    } catch (e) {
+      console.warn('webrtc: ignoring malformed data-channel message', e);
+    }
+  }
+
   _sendSpeakerVolume() {
     return this._sendDc('speakerVolume', { volume: this.speakerVolume });
   }
@@ -309,6 +322,11 @@ export class WebRTCConnection extends EventTarget {
       this.enableAudioCapture(this.speakerVolume > 0);
     }
     return this._sendSpeakerVolume();
+  }
+
+  setSoundDevice(deviceId) {
+    if (!Number.isInteger(deviceId)) return false;
+    return this._sendDc('soundDeviceCommand', { deviceId });
   }
 
   _createTimingWorker() {
@@ -371,40 +389,41 @@ export class WebRTCConnection extends EventTarget {
 
   async _setupAudioForOffer(pc, audioEnabled) {
     if (!audioEnabled) return;
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-      this._log('Microphone API unavailable');
+
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+      try {
+        this._log('Requesting microphone access');
+        this.localAudioStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          video: false,
+        });
+      } catch (e) {
+        console.log('webrtc audio local setup failed; continuing with silent audio', e);
+        this._log(`Microphone unavailable; continuing without capture: ${e?.message || e?.name || e}`);
+      }
+    } else {
+      this._log('Microphone API unavailable; continuing without capture');
+    }
+
+    if (this.pc !== pc) {
+      this.localAudioStream?.getTracks?.().forEach((localTrack) => localTrack.stop());
+      this.localAudioStream = null;
       return;
     }
 
-    try {
-      this._log('Requesting microphone access');
-      this.localAudioStream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-        video: false,
-      });
-    } catch (e) {
-      console.log('webrtc audio local setup failed', e);
-      this._log(`Microphone unavailable: ${e?.message || e?.name || e}`);
-      throw e;
-    }
-
-    if (this.pc !== pc) return;
-
-    const [track] = this.localAudioStream.getAudioTracks();
+    let [track] = this.localAudioStream?.getAudioTracks?.() || [];
+    let stream = this.localAudioStream;
     if (!track) {
-      console.log('webrtc audio local setup', {
-        requested: audioEnabled,
-        enabled: false,
-        tracks: [],
-      });
-      this._log('Microphone stream had no audio tracks');
-      return;
+      track = this._silentAudioTrack();
+      stream = this.silentAudio?.stream || null;
     }
 
-    const audioTransceiver = this.pc.addTransceiver(track, {
-      direction: 'sendrecv',
-      streams: [this.localAudioStream],
-    });
+    const audioTransceiver = track
+      ? this.pc.addTransceiver(track, { direction: 'sendonly', streams: stream ? [stream] : [] })
+      : this.pc.addTransceiver('audio', { direction: 'sendonly' });
+    const opusCodecs = globalThis.RTCRtpSender?.getCapabilities?.('audio')?.codecs
+      ?.filter((codec) => codec.mimeType?.toLowerCase() === 'audio/opus') || [];
+    if (opusCodecs.length > 0) audioTransceiver.setCodecPreferences?.(opusCodecs);
     this._setupAudioReceiver(audioTransceiver.receiver);
     this.audioSender = audioTransceiver.sender;
     this.audioEnabled = true;
@@ -413,16 +432,18 @@ export class WebRTCConnection extends EventTarget {
       requested: audioEnabled,
       enabled: this.audioEnabled,
       hasAudioSender: !!this.audioSender,
-      tracks: this.localAudioStream.getAudioTracks().map((audioTrack) => ({
+      tracks: this.localAudioStream?.getAudioTracks?.().map((audioTrack) => ({
         id: audioTrack.id,
         label: audioTrack.label,
         enabled: audioTrack.enabled,
         muted: audioTrack.muted,
         readyState: audioTrack.readyState,
         settings: audioTrack.getSettings?.(),
-      })),
+      })) || [],
     });
-    this._log(`Microphone track added to offer: id=${track.id} state=${track.readyState} muted=${track.muted}`);
+    this._log(track
+      ? `Audio track added to offer: id=${track.id} state=${track.readyState} muted=${track.muted}`
+      : 'Audio transceiver added to offer without a local capture device');
   }
 
   _startAudioStats() {
@@ -530,14 +551,16 @@ export class WebRTCConnection extends EventTarget {
   }
 
   enableAudioCapture(enabled) {
-    if (!this.audioEnabled || !this.pc) return;
+    if (!this.audioEnabled) return;
 
     if (enabled) {
+      if (!this.pc) return;
       this._setupAudio().catch((e) => this._log(`Microphone unavailable: ${e?.message || e?.name || e}`));
       return;
     }
 
     this._stopTestTone(false);
+    this.stopAudioFile(false);
     const stream = this.localAudioStream;
     this.localAudioStream = null;
     stream?.getTracks().forEach((track) => track.stop());
@@ -567,6 +590,69 @@ export class WebRTCConnection extends EventTarget {
     }
   }
 
+  stopAudioFile(restoreMic = true) {
+    const playback = this.audioFilePlayback;
+    if (!playback) return false;
+
+    this.audioFilePlayback = null;
+    if (playback.source) {
+      playback.source.onended = null;
+      try {
+        playback.source.stop();
+      } catch (e) {
+        // already stopped
+      }
+    }
+    playback.track?.stop();
+    playback.context.close().catch(() => {});
+    if (restoreMic) {
+      this.audioSender?.replaceTrack(this._micTrack() || this._silentAudioTrack()).catch(() => {});
+    }
+    return true;
+  }
+
+  async playAudioFile(arrayBuffer, onEnded) {
+    if (!this.audioEnabled || !this.pc || !this.audioSender || !(arrayBuffer instanceof ArrayBuffer)) return false;
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return false;
+
+    this._stopTestTone(false);
+    this.stopAudioFile(false);
+
+    const context = new AudioContext();
+    const playback = { context, source: null, track: null };
+    this.audioFilePlayback = playback;
+
+    try {
+      const buffer = await context.decodeAudioData(arrayBuffer.slice(0));
+      if (this.audioFilePlayback !== playback || !this.pc || !this.audioSender) return false;
+
+      const destination = context.createMediaStreamDestination();
+      const source = context.createBufferSource();
+      source.buffer = buffer;
+      source.connect(destination);
+      const [track] = destination.stream.getAudioTracks();
+      playback.source = source;
+      playback.track = track;
+
+      source.onended = () => {
+        if (this.audioFilePlayback !== playback) return;
+        this.stopAudioFile(true);
+        onEnded?.();
+      };
+
+      await this.audioSender.replaceTrack(track);
+      if (this.audioFilePlayback !== playback) return false;
+      await context.resume();
+      source.start();
+      return true;
+    } catch (error) {
+      if (this.audioFilePlayback === playback) this.stopAudioFile(true);
+      throw error;
+    }
+  }
+
   async sendTestTone(frequency, durationMs = 1000) {
     this._sendDc('audioTestTone', {
       frequency,
@@ -582,6 +668,7 @@ export class WebRTCConnection extends EventTarget {
     if (!AudioContext) return false;
 
     this._stopTestTone(false);
+    this.stopAudioFile(false);
 
     const context = new AudioContext();
     const destination = context.createMediaStreamDestination();
@@ -640,6 +727,7 @@ export class WebRTCConnection extends EventTarget {
     if (!AudioContext) return false;
 
     this._stopTestTone(false);
+    this.stopAudioFile(false);
 
     const context = new AudioContext();
     const destination = context.createMediaStreamDestination();
@@ -698,7 +786,7 @@ export class WebRTCConnection extends EventTarget {
   setQuality(quality) {
     this._sendDc('livestreamSettings', { quality: quality });
   }
-  
+
   setJoystick(x, y) {
     this.joystickX = x;
     this.joystickY = y;
@@ -926,8 +1014,8 @@ export class WebRTCConnectionManager {
       onLatencyUpdate: guard((latency) => {
         this.subscriber?.onLatencyUpdate?.(latency);
       }),
-      onIgnition: guard((ignition) => {
-        this.subscriber?.onIgnition?.(ignition);
+      onSoundDeviceState: guard((state) => {
+        this.subscriber?.onSoundDeviceState?.(state);
       }),
     });
     this.connection = conn;

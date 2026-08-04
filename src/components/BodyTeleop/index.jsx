@@ -16,6 +16,7 @@ function audioOnlyStream(stream) {
 
 const SPEAKER_VOLUME_STORAGE_KEY = 'bodyTeleopSpeakerVolume';
 const DEFAULT_SPEAKER_VOLUME = 100;
+const TUTU_AUDIO_URL = `${import.meta.env.BASE_URL}audio/Tutu.wav`;
 
 const clampSpeakerVolume = (volume) => {
   const numericVolume = Number(volume);
@@ -40,8 +41,11 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [inputActive, setInputActive] = useState(false);
   const [connectionTotalMs, setConnectionTotalMs] = useState(null);
-  const [started, setStarted] = useState(false);
   const [speakerVolume, setSpeakerVolume] = useState(readStoredSpeakerVolume);
+  const [audioOutputs, setAudioOutputs] = useState([]);
+  const [selectedAudioOutput, setSelectedAudioOutput] = useState(null);
+  const [playingAudioName, setPlayingAudioName] = useState(null);
+  const [audioError, setAudioError] = useState(null);
 
   const videoRef = useRef(null);
   const roadVideoRef = useRef(null);
@@ -52,6 +56,7 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const switchTimerRef = useRef(null);
   const connectStartedAtRef = useRef(null);
   const firstFrameMeasuredRef = useRef(false);
+  const audioPlaybackIdRef = useRef(0);
 
   const isLandscape = useIsLandscape();
   const notCar = Boolean(device?.rpc?.not_car);
@@ -73,16 +78,24 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       onConnectionState: (state, reason) => {
         connectionRef.current = webrtcConnectionManager.connection;
         setConnectionState(state);
+        if (state !== 'connected') {
+          audioPlaybackIdRef.current += 1;
+          setPlayingAudioName(null);
+        }
         if (state === 'connecting') {
           setError(null);
         } else if (state === 'failed') {
-          setError((prev) => prev || reason || 'Could not reach device. Is the ignition on?');
+          setError((prev) => prev || reason || 'Could not reach device. Check its connection and retry.');
         } else if (state === 'disconnected' && reason) {
           setError(reason);
         }
       },
       onBatteryLevel: setBattery,
-      onIgnition: setStarted,
+      onSoundDeviceState: (data) => {
+        if (!data || !Array.isArray(data.devices)) return;
+        setAudioOutputs(data.devices);
+        setSelectedAudioOutput(Number.isInteger(data.selectedDeviceId) ? data.selectedDeviceId : null);
+      },
       onVideoTrack: (streamName, stream) => {
         streamsRef.current[streamName] = stream;
         const targetRef = streamName === 'road' ? roadVideoRef : videoRef;
@@ -146,6 +159,9 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   }, []);
 
   const handleTestTone = useCallback((frequency, durationMs, opts) => {
+    audioPlaybackIdRef.current += 1;
+    setPlayingAudioName(null);
+    setAudioError(null);
     if (opts?.pulsed) {
       connectionRef.current?.sendDelayTone(frequency, {
         durationMs,
@@ -169,6 +185,63 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     webrtcConnectionManager.setSpeakerVolume(nextVolume);
   }, []);
 
+  const handleAudioOutputChange = useCallback((deviceId) => {
+    connectionRef.current?.setSoundDevice(deviceId);
+  }, []);
+
+  const playAudioBuffer = useCallback(async (name, arrayBuffer) => {
+    const connectionForPlayback = connectionRef.current;
+    if (!connectionForPlayback || connectionForPlayback.connectionState !== 'connected') {
+      setAudioError('Connect to the body before playing audio.');
+      return;
+    }
+
+    const playbackId = audioPlaybackIdRef.current + 1;
+    audioPlaybackIdRef.current = playbackId;
+    connectionForPlayback.stopAudioFile();
+    setPlayingAudioName(null);
+    setAudioError(null);
+
+    try {
+      const started = await connectionForPlayback.playAudioFile(arrayBuffer, () => {
+        if (audioPlaybackIdRef.current === playbackId) setPlayingAudioName(null);
+      });
+      if (audioPlaybackIdRef.current !== playbackId) return;
+      if (!started) throw new Error('Audio playback is not available on this connection.');
+      setPlayingAudioName(name);
+    } catch (playbackError) {
+      if (audioPlaybackIdRef.current !== playbackId) return;
+      setPlayingAudioName(null);
+      setAudioError(playbackError?.message || 'Could not play the selected audio file.');
+    }
+  }, []);
+
+  const handlePlayTutu = useCallback(async () => {
+    try {
+      setAudioError(null);
+      const response = await fetch(TUTU_AUDIO_URL);
+      if (!response.ok) throw new Error(`Could not load Tutu (${response.status}).`);
+      await playAudioBuffer('Tutu', await response.arrayBuffer());
+    } catch (loadError) {
+      setAudioError(loadError?.message || 'Could not load Tutu.');
+    }
+  }, [playAudioBuffer]);
+
+  const handlePlayAudioFile = useCallback(async (file) => {
+    try {
+      await playAudioBuffer(file.name, await file.arrayBuffer());
+    } catch (loadError) {
+      setAudioError(loadError?.message || 'Could not read the selected audio file.');
+    }
+  }, [playAudioBuffer]);
+
+  const handleStopAudio = useCallback(() => {
+    audioPlaybackIdRef.current += 1;
+    connectionRef.current?.stopAudioFile();
+    setPlayingAudioName(null);
+    setAudioError(null);
+  }, []);
+
   const handleFirstFrame = useCallback(() => {
     if (connectStartedAtRef.current == null || firstFrameMeasuredRef.current) return;
     firstFrameMeasuredRef.current = true;
@@ -183,7 +256,6 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
     videoRef, roadVideoRef, connectionState, error, connectionTotalMs,
     onFirstFrame: handleFirstFrame,
     onConnect: handleConnect,
-    started,
     cameraFlipped: activeCamera === 'driver',
   };
 
@@ -227,47 +299,48 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
               videoRef={videoRef}
               onQualityChange={handleQualityChange}
               onTestTone={notCar ? handleTestTone : undefined}
+              audioOutputs={audioOutputs}
+              selectedAudioOutput={selectedAudioOutput}
+              onAudioOutputChange={handleAudioOutputChange}
+              speakerVolume={speakerVolume}
+              onSpeakerVolumeChange={handleSpeakerVolumeChange}
+              playingAudioName={playingAudioName}
+              onPlayTutu={handlePlayTutu}
+              onPlayAudioFile={handlePlayAudioFile}
+              onStopAudio={handleStopAudio}
+              audioError={audioError}
             />
           </div>
         )}
         <audio ref={audioRef} autoPlay className="hidden" />
-        <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : started ? "aspect-[16/9]" : "flex-1"} />
-        { connected && notCar && !started && (
-          <div className="absolute w-full bottom-36 2xl:bottom-12 pointer-events-none text-center select-none">
-            <span className="text-sm md:text-base text-white/70">Turn on comma body ignition to remote control</span>
-          </div>
-        )}
+        <Video key="teleop-video" {...videoProps} className={isLandscape ? "h-full" : "aspect-[16/9]"} />
         {connected && (
           <>
             <ControlsBar
               activeCamera={activeCamera}
               onSwitchCamera={switchCamera}
-              speakerVolume={speakerVolume}
-              onSpeakerVolumeChange={handleSpeakerVolumeChange}
               gamepadConnected={gamepadConnected}
               videoRef={videoRef}
               isLandscape={isLandscape}
               controlsDisabled={inputActive}
             />
-            { started && (
-              <div
+            <div
+              className={isLandscape
+                ? 'absolute bottom-4 right-4 z-10 w-[160px] h-[160px]'
+                : 'flex-1 flex items-center justify-center px-4 pb-12 pt-2 min-h-0 overflow-hidden'}
+            >
+              <Joystick
+                connection={connection}
+                activeCamera={activeCamera}
                 className={isLandscape
-                  ? 'absolute bottom-4 right-4 z-10 w-[160px] h-[160px]'
-                  : 'flex-1 flex items-center justify-center px-4 pb-12 pt-2 min-h-0 overflow-hidden'}
-              >
-                <Joystick
-                  connection={connection}
-                  activeCamera={activeCamera}
-                  className={isLandscape
-                    ? 'relative w-full h-full'
-                    : 'relative w-auto h-full aspect-square max-w-full'}
-                  onGamepadChange={setGamepadConnected}
-                  onSwitchCamera={switchCamera}
-                  gamepadConnected={gamepadConnected}
-                  onInputActiveChange={setInputActive}
-                />
-              </div>
-            )}
+                  ? 'relative w-full h-full'
+                  : 'relative w-auto h-full aspect-square max-w-full'}
+                onGamepadChange={setGamepadConnected}
+                onSwitchCamera={switchCamera}
+                gamepadConnected={gamepadConnected}
+                onInputActiveChange={setInputActive}
+              />
+            </div>
           </>
         )}
       </div>
