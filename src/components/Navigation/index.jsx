@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import ReactMapGL, { GeolocateControl, HTMLOverlay, Marker, Source, WebMercatorViewport, Layer } from 'react-map-gl';
 import { withStyles, Typography, Button } from '@material-ui/core';
 import { Clear } from '@material-ui/icons';
+import CardGiftcardIcon from '@material-ui/icons/CardGiftcard';
 import dayjs from 'dayjs';
 
 import { devices as Devices } from '../../api';
@@ -16,6 +17,7 @@ import VisibilityHandler from '../VisibilityHandler';
 import { subscribeWindowSize } from '../../hooks/window';
 import * as Utils from './utils';
 import { isIos } from '../../utils/browser.js';
+import ReferralModal from '../ReferralModal';
 
 const styles = () => ({
   mapContainer: {
@@ -98,6 +100,13 @@ const styles = () => ({
       backgroundColor: Colors.primeBlue200,
     },
   },
+  referralAdContainer: {
+    background: `linear-gradient(135deg, ${Colors.grey500}, ${Colors.primeBlue800})`,
+    border: `1px solid ${Colors.primeBlue500}`,
+  },
+  referralAdIcon: { color: Colors.primeBlue50, marginRight: 8, verticalAlign: 'middle' },
+  referralAdTitle: { fontSize: 18, fontWeight: 600, lineHeight: 1.25 },
+  referralAdButton: { width: '100%', maxWidth: 'none', marginTop: 14, marginLeft: 0 },
   pin: {
     width: 20,
     height: 32,
@@ -140,6 +149,8 @@ const initialState = {
   noFly: false,
   windowWidth: window.innerWidth,
   showPrimeAd: true,
+  showReferralAd: true,
+  referralModalOpen: false,
 };
 
 class Navigation extends Component {
@@ -484,7 +495,7 @@ class Navigation extends Component {
 
   render() {
     const { classes, device } = this.props;
-    const { mapError, hasFocus, searchSelect, viewport, windowWidth, showPrimeAd } = this.state;
+    const { mapError, hasFocus, searchSelect, viewport, windowWidth, showPrimeAd, showReferralAd, referralModalOpen } = this.state;
     const carLocation = this.getCarLocation();
 
     const cardStyle = windowWidth < 600
@@ -595,7 +606,19 @@ class Navigation extends Component {
                 style={{ ...cardStyle, bottom: 10 }}
               />
             )}
-          {showPrimeAd && !device.prime && device.is_owner
+          {showReferralAd
+            && (
+              <HTMLOverlay
+                redraw={this.renderReferralAd}
+                captureScroll
+                captureDrag
+                captureClick
+                captureDoubleClick
+                capturePointerMove
+                style={{ ...cardStyle, top: 10, left: windowWidth < 600 ? 10 : 'auto', right: 10 }}
+              />
+            )}
+          {showPrimeAd && !showReferralAd && !device.prime && device.is_owner
             && (
               <HTMLOverlay
                 redraw={this.renderPrimeAd}
@@ -608,6 +631,11 @@ class Navigation extends Component {
               />
             )}
         </ReactMapGL>
+        <ReferralModal
+          open={referralModalOpen}
+          onClose={() => this.setState({ referralModalOpen: false })}
+          userId={this.props.profile?.user_id}
+        />
       </div>
     );
   }
@@ -680,11 +708,25 @@ class Navigation extends Component {
       </div>
     );
   }
+
+  renderReferralAd = () => {
+    const { classes } = this.props;
+
+    return (
+      <div className={`${classes.searchSelectBox} ${classes.referralAdContainer}`} ref={this.primeAdBoxRef}>
+        <Clear className={classes.clearSearchSelect} onClick={() => this.setState({ showReferralAd: false }, this.flyToMarkers)} />
+        <Typography className={classes.referralAdTitle}><CardGiftcardIcon className={classes.referralAdIcon} />$72 for you. $72 for a friend.</Typography>
+        <Typography className={classes.searchSelectBoxDetails}>You’ll each get 3 months of comma prime ($72 value)—or choose $50.</Typography>
+        <Button onClick={() => this.setState({ referralModalOpen: true })} className={`${classes.searchSelectButton} ${classes.primeAdButton} ${classes.referralAdButton}`}>refer a friend</Button>
+      </div>
+    );
+  };
 }
 
 const stateToProps = (state) => ({
   device: state.device,
   dongleId: state.dongleId,
+  profile: state.profile,
 });
 
 export default connect(stateToProps)(withStyles(styles)(Navigation));

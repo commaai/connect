@@ -45,6 +45,13 @@ const GALLERY_STATES = [
     modalText: 'Start date:',
   },
   {
+    name: 'referral-modal',
+    label: 'Referral modal',
+    page: 'dashboard',
+    actions: [{ text: 'refer a friend' }],
+    modalText: '$72 for you.',
+  },
+  {
     name: 'device-settings-modal',
     label: 'Device settings modal',
     page: 'dashboard',
