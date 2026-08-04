@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import BatteryFull from '@material-ui/icons/BatteryFull';
 import BatteryChargingFull from '@material-ui/icons/BatteryChargingFull';
+import Mic from '@material-ui/icons/Mic';
+import MicOff from '@material-ui/icons/MicOff';
 import SettingsMenu from './SettingsMenu';
 import AudioMenu from './AudioMenu';
 import { useClickOutside } from '../../hooks/useClickOutside';
@@ -610,6 +612,7 @@ const StatusBar = ({
   battery, className, isLandscape, connection, connectionState, latencyCallbackRef, videoRef, onQualityChange, onTestTone,
   audioOutputs, selectedAudioOutput, onAudioOutputChange,
   speakerVolume, onSpeakerVolumeChange, playingAudioName, onPlayTutu, onPlayAudioFile, onStopAudio, audioError,
+  microphoneMuted, onToggleMicrophone,
 }) => {
   const {
     showStats, toggleStats, closeStats, stats, latency, latencyHistory, jitterHistory, browserBreakdown, connectionQuality,
@@ -644,6 +647,16 @@ const StatusBar = ({
         jitterHistory={jitterHistory}
         browserBreakdown={browserBreakdown}
       />
+      <button
+        type="button"
+        className={`flex h-9 w-9 items-center justify-center rounded-full cursor-pointer select-none bg-glass hover:!bg-black/60 ${microphoneMuted ? 'text-red-300' : 'text-white/60 hover:text-white/90'}`}
+        onClick={onToggleMicrophone}
+        aria-label={microphoneMuted ? 'Unmute microphone' : 'Mute microphone'}
+        aria-pressed={microphoneMuted}
+        title={microphoneMuted ? 'Unmute microphone' : 'Mute microphone'}
+      >
+        {microphoneMuted ? <MicOff style={{ fontSize: 21 }} /> : <Mic style={{ fontSize: 21 }} />}
+      </button>
       <AudioMenu
         speakerVolume={speakerVolume}
         onSpeakerVolumeChange={onSpeakerVolumeChange}

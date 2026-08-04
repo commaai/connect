@@ -42,13 +42,13 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const [inputActive, setInputActive] = useState(false);
   const [connectionTotalMs, setConnectionTotalMs] = useState(null);
   const [speakerVolume, setSpeakerVolume] = useState(readStoredSpeakerVolume);
+  const [microphoneMuted, setMicrophoneMuted] = useState(false);
   const [audioOutputs, setAudioOutputs] = useState([]);
   const [selectedAudioOutput, setSelectedAudioOutput] = useState(null);
   const [playingAudioName, setPlayingAudioName] = useState(null);
   const [audioError, setAudioError] = useState(null);
 
   const videoRef = useRef(null);
-  const roadVideoRef = useRef(null);
   const audioRef = useRef(null);
   const streamsRef = useRef({});
   const connectionRef = useRef(null);
@@ -98,9 +98,8 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       },
       onVideoTrack: (streamName, stream) => {
         streamsRef.current[streamName] = stream;
-        const targetRef = streamName === 'road' ? roadVideoRef : videoRef;
-        if (targetRef.current) {
-          targetRef.current.srcObject = stream;
+        if (streamName !== 'road' && videoRef.current) {
+          videoRef.current.srcObject = stream;
         }
       },
       onAudioTrack: (stream) => {
@@ -129,6 +128,12 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
       webrtcConnectionManager.setSpeakerVolume(speakerVolume);
     }
   }, [connectionState, speakerVolume]);
+
+  useEffect(() => {
+    if (connectionState === 'connected') {
+      connectionRef.current?.enableAudioCapture(!microphoneMuted);
+    }
+  }, [connectionState, microphoneMuted]);
 
   const handleConnect = useCallback(() => {
     setError(null);
@@ -187,6 +192,10 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
 
   const handleAudioOutputChange = useCallback((deviceId) => {
     connectionRef.current?.setSoundDevice(deviceId);
+  }, []);
+
+  const handleToggleMicrophone = useCallback(() => {
+    setMicrophoneMuted((muted) => !muted);
   }, []);
 
   const playAudioBuffer = useCallback(async (name, arrayBuffer) => {
@@ -253,10 +262,9 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
   const deviceName = device ? deviceNamePretty(device) : (isLandscape ? 'Body' : 'Body Teleop');
 
   const videoProps = {
-    videoRef, roadVideoRef, connectionState, error, connectionTotalMs,
+    videoRef, connectionState, error, connectionTotalMs,
     onFirstFrame: handleFirstFrame,
     onConnect: handleConnect,
-    cameraFlipped: activeCamera === 'driver',
   };
 
   return (
@@ -309,6 +317,8 @@ const BodyTeleop = ({ dongleId, device, onClose }) => {
               onPlayAudioFile={handlePlayAudioFile}
               onStopAudio={handleStopAudio}
               audioError={audioError}
+              microphoneMuted={microphoneMuted}
+              onToggleMicrophone={handleToggleMicrophone}
             />
           </div>
         )}
