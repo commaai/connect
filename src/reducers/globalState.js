@@ -88,13 +88,14 @@ export default function reducer(_state, action) {
         filter: {
           start: action.start,
           end: action.end,
+          bookmarked: action.bookmarked,
         },
         routesMeta: {
           dongleId: null,
           start: null,
           end: null,
         },
-        routes: null,
+        routes: action.keepRoutes ? state.routes : null,
         currentRoute: null,
       };
       break;

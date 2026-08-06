@@ -4,18 +4,18 @@ import { connect } from 'react-redux';
 import DriveList from './DriveList';
 import Navigation from '../Navigation';
 import DeviceInfo from '../DeviceInfo';
-import FullPageLoading from '../FullPageLoading';
+import Loading from '../Loading';
 
 const Prime = lazy(() => import('../Prime'));
 
 const Dashboard = ({ primeNav, device, dongleId }) => {
   if (!device || !dongleId) {
-    return <FullPageLoading />;
+    return <Loading fullPage />;
   }
 
   return (
     <div className="flex flex-col">
-      <Suspense fallback={<FullPageLoading />}>
+      <Suspense fallback={<Loading fullPage />}>
         { primeNav
           ? <Prime />
           : (

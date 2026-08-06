@@ -14,7 +14,7 @@ import { fetchTurnCredentials } from './utils/turn';
 import store, { history } from './store';
 
 import ErrorFallback from './components/ErrorFallback';
-import FullPageLoading from './components/FullPageLoading';
+import Loading from './components/Loading';
 
 const Explorer = lazy(() => import('./components/explorer'));
 const AnonymousLanding = lazy(() => import('./components/anonymous'));
@@ -119,12 +119,12 @@ class App extends Component {
 
   render() {
     if (!this.state.initialized) {
-      return <FullPageLoading />;
+      return <Loading fullPage />;
     }
 
     const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(window.location.pathname) && !getSegmentRange(window.location.pathname);
     let content = (
-      <Suspense fallback={<FullPageLoading />}>
+      <Suspense fallback={<Loading fullPage />}>
         { showLogin ? this.anonymousRoutes() : this.authRoutes() }
       </Suspense>
     );

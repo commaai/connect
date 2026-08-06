@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { connect } from 'react-redux';
 import * as Sentry from '@sentry/react';
 import { withStyles, Typography } from '@material-ui/core';
@@ -10,9 +10,10 @@ import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import VisibilityHandler from '../VisibilityHandler';
 
 import TimeSelect from '../TimeSelect';
+import Loading from '../Loading';
 import DriveListEmpty from './DriveListEmpty';
 import DriveListItem from './DriveListItem';
-import ScrollIntoView from '../ScrollIntoView'
+import ScrollIntoView from '../ScrollIntoView';
 
 const styles = () => ({
   header: {
@@ -31,10 +32,15 @@ const styles = () => ({
     textAlign: 'center',
     marginBottom: 32,
   },
+  loading: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '16px 36px',
+  },
 });
 
 const DriveList = (props) => {
-  const { dispatch, classes, device, dongleId, routes, lastRoutes } = props;
+  const { dispatch, classes, device, dongleId, routes } = props;
 
   const [deviceStats, setDeviceStats] = useState({});
   const [isTimeSelectOpen, setIsTimeSelectOpen] = useState(false);
@@ -64,40 +70,22 @@ const DriveList = (props) => {
     fetchDeviceInfo();
   }, [dispatch, fetchDeviceInfo]);
 
-  let contentStatus;
-  let content;
-  if (!routes || routes.length === 0) {
-    contentStatus = <DriveListEmpty device={device} routes={routes} />;
-  } else if (routes && routes.length > 5) {
+  let contentStatus = null;
+  if (routes == null) {
     contentStatus = (
-      <div className={classes.endMessage}>
-        <Typography>There are no more routes found in selected time range.</Typography>
+      <div className={classes.loading} aria-live="polite">
+        <Loading className="mr-2.5 shrink-0" label="Loading drives" />
+        <Typography>Loading drives...</Typography>
       </div>
     );
+  } else if (routes.length === 0) {
+    contentStatus = <DriveListEmpty />;
   }
 
-  // we clean up routes during data fetching, fallback to using lastRoutes to display current data
-  const displayRoutes = routes || lastRoutes;
-  if (displayRoutes && displayRoutes.length){
-    // sort routes by start_time_utc_millis with the latest drive first
-    // Workaround upstream sorting issue for now
-    // possibly from https://github.com/commaai/connect/issues/451
-    displayRoutes.sort((a, b) => b.start_time_utc_millis - a.start_time_utc_millis);
-    const routesSize = displayRoutes.length
-
-    content = (
-      <div className={`${classes.drives} DriveList`}>
-        {displayRoutes.map((drive, index) => {
-            // when the last item is in view, we fetch the next routes
-            return (index === routesSize - 1 ?
-              <ScrollIntoView key={drive.fullname} onInView={() => dispatch(checkLastRoutesData())}>
-                <DriveListItem drive={drive} />
-              </ScrollIntoView> :
-              <DriveListItem key={drive.fullname} drive={drive} />)
-        })}
-      </div>
-    );
-  }
+  // Work around upstream sorting issue: https://github.com/commaai/connect/issues/451
+  const displayRoutes = useMemo(() => routes?.slice().sort(
+    (a, b) => b.start_time_utc_millis - a.start_time_utc_millis,
+  ), [routes]);
 
   const renderStats = () => {
     if (!deviceStats.result) {
@@ -149,8 +137,23 @@ const DriveList = (props) => {
           <Typography>Filter</Typography>
         </button>
       </div>
-      {content}
       {contentStatus}
+      {displayRoutes?.length > 0 && (
+        <div className={`${classes.drives} DriveList`}>
+          {displayRoutes.map((drive, index) => (
+            index === displayRoutes.length - 1 ? (
+              <ScrollIntoView key={drive.fullname} onInView={() => dispatch(checkLastRoutesData())}>
+                <DriveListItem drive={drive} />
+              </ScrollIntoView>
+            ) : <DriveListItem key={drive.fullname} drive={drive} />
+          ))}
+        </div>
+      )}
+      {routes?.length > 5 && (
+        <div className={classes.endMessage}>
+          <Typography>There are no more routes found in selected time range.</Typography>
+        </div>
+      )}
       <TimeSelect isOpen={isTimeSelectOpen} onClose={() => setIsTimeSelectOpen(false)} />
     </div>
   );
@@ -159,7 +162,6 @@ const DriveList = (props) => {
 const stateToProps = (state) => ({
   dongleId: state.dongleId,
   routes: state.routes,
-  lastRoutes: state.lastRoutes,
   device: state.device,
 });
 

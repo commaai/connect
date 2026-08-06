@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import dayjs from 'dayjs';
 
-import { Button, Divider, Modal, Paper, Typography, withStyles } from '@material-ui/core';
+import { Button, Checkbox, Divider, FormControlLabel, Modal, Paper, Typography, withStyles } from '@material-ui/core';
 
 import Colors from '../../colors';
 import { selectTimeFilter } from '../../actions';
@@ -51,21 +51,16 @@ class TimeSelect extends Component {
     super(props);
 
     this.state = {
-      start: null,
-      end: null,
-    }
+      start: props.filter.start,
+      end: props.filter.end,
+      bookmarked: Boolean(props.filter.bookmarked),
+    };
 
     this.handleClose = this.handleClose.bind(this);
     this.changeStart = this.changeStart.bind(this);
     this.changeEnd = this.changeEnd.bind(this);
+    this.toggleBookmarked = this.toggleBookmarked.bind(this);
     this.handleSave = this.handleSave.bind(this);
-  }
-
-  componentDidMount() {
-    this.setState({
-      start: this.props.filter.start,
-      end: this.props.filter.end,
-    });
   }
 
   componentDidUpdate(prevProps) {
@@ -73,12 +68,13 @@ class TimeSelect extends Component {
       this.setState({
         start: this.props.filter.start,
         end: this.props.filter.end,
+        bookmarked: Boolean(this.props.filter.bookmarked),
       });
     }
   }
 
   handleClose() {
-    this.props.onClose()
+    this.props.onClose();
   }
 
   changeStart(event) {
@@ -92,15 +88,19 @@ class TimeSelect extends Component {
   changeEnd(event) {
     if (event.target.valueAsDate) {
       this.setState({
-        end: new Date(event.target.valueAsDate.getUTCFullYear(), event.target.valueAsDate.getUTCMonth(), event.target.valueAsDate.getUTCDate(),23,59,59).getTime(),
+        end: new Date(event.target.valueAsDate.getUTCFullYear(), event.target.valueAsDate.getUTCMonth(), event.target.valueAsDate.getUTCDate(), 23, 59, 59).getTime(),
       });
     }
   }
 
+  toggleBookmarked(event) {
+    this.setState({ bookmarked: event.target.checked });
+  }
+
   handleSave() {
-    console.log({start: this.state.start, end: this.state.end})
-    this.props.dispatch(selectTimeFilter(this.state.start, this.state.end));
-    this.props.onClose()
+    const { start, end, bookmarked } = this.state;
+    this.props.dispatch(selectTimeFilter(start, end, bookmarked));
+    this.props.onClose();
   }
 
   render() {
@@ -142,6 +142,16 @@ class TimeSelect extends Component {
                 value={ endDate }
               />
             </div>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={ this.state.bookmarked }
+                  onChange={ this.toggleBookmarked }
+                  color="secondary"
+                />
+              }
+              label="Bookmarked routes"
+            />
             <Divider />
             <div className={classes.buttonGroup}>
               <Button variant="contained" className={ classes.cancelButton } onClick={this.handleClose}>

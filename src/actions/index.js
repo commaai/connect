@@ -11,7 +11,7 @@ import { webrtcConnectionManager } from '../utils/webrtc';
 
 let routesRequest = null;
 let routesRequestPromise = null;
-const LIMIT_INCREMENT = 5
+const LIMIT_INCREMENT = 5;
 const FIVE_YEARS = 1000 * 60 * 60 * 24 * 365 * 5;
 
 export function checkRoutesData() {
@@ -50,6 +50,7 @@ export function checkRoutesData() {
       const currentRange = state.filter;
       if (currentRange.start !== fetchRange.start
         || currentRange.end !== fetchRange.end
+        || Boolean(currentRange.bookmarked) !== Boolean(fetchRange.bookmarked)
         || state.dongleId !== dongleId) {
         routesRequest = null;
         dispatch(checkRoutesData());
@@ -92,42 +93,46 @@ export function checkRoutesData() {
         return b.create_time - a.create_time;
       });
 
+      const visibleRoutes = fetchRange.bookmarked
+        ? routes.filter((r) => r.is_preserved)
+        : routes;
+
       dispatch({
         type: Types.ACTION_ROUTES_METADATA,
         dongleId,
         start: fetchRange.start,
         end: fetchRange.end,
-        routes,
+        routes: visibleRoutes,
       });
 
       routesRequest = null;
 
-      return routes
+      return visibleRoutes;
     }).catch((err) => {
       console.error('Failure fetching routes metadata', err);
       Sentry.captureException(err, { fingerprint: 'timeline_fetch_routes' });
       routesRequest = null;
     });
 
-    return routesRequestPromise
+    return routesRequestPromise;
   };
 }
 
 export function checkLastRoutesData() {
   return (dispatch, getState) => {
-    const limit = getState().limit
-    const routes = getState().routes
+    const limit = getState().limit;
+    const routes = getState().routes;
 
     // if current routes are fewer than limit, that means the last fetch already fetched all the routes
     if (routes && routes.length < limit) {
-      return
+      return;
     }
 
-    console.log(`fetching ${limit +LIMIT_INCREMENT } routes`)
+    console.log(`fetching ${limit + LIMIT_INCREMENT} routes`);
     dispatch({
       type: Types.ACTION_UPDATE_ROUTE_LIMIT,
       limit: limit + LIMIT_INCREMENT,
-    })
+    });
 
     const d = new Date();
     const end = d.getTime();
@@ -137,6 +142,8 @@ export function checkLastRoutesData() {
       type: Types.ACTION_SELECT_TIME_FILTER,
       start,
       end,
+      bookmarked: Boolean(getState().filter.bookmarked),
+      keepRoutes: true,
     });
 
     dispatch(checkRoutesData());
@@ -300,6 +307,12 @@ export function selectDevice(dongleId, allowPathChange = true) {
       dispatch(fetchDeviceOnline(dongleId));
     }
 
+    // Start with the first page instead of issuing an unbounded/zero-limit
+    // request that Explorer immediately replaces with a paginated request.
+    dispatch({
+      type: Types.ACTION_UPDATE_ROUTE_LIMIT,
+      limit: LIMIT_INCREMENT,
+    });
     dispatch(checkRoutesData());
 
     if (allowPathChange) {
@@ -487,12 +500,13 @@ export function updateDevice(device) {
   };
 }
 
-export function selectTimeFilter(start, end) {
+export function selectTimeFilter(start, end, bookmarked) {
   return (dispatch, getState) => {
     dispatch({
       type: Types.ACTION_SELECT_TIME_FILTER,
       start,
       end,
+      bookmarked: Boolean(bookmarked),
     });
 
     dispatch({
