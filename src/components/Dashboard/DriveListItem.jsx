@@ -2,62 +2,21 @@ import React, { useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
 import dayjs from 'dayjs';
 
-import { withStyles, Grid, Typography } from '@material-ui/core';
+import { Grid, Typography } from '@material-ui/core';
 
 import { pushTimelineRange } from '../../actions';
 import { fetchEvents, fetchLocations } from '../../actions/cached';
-import Colors from '../../colors';
 import { useWindowWidth } from '../../hooks/window';
-import { RightArrow } from '../../icons';
+import { Bookmark, RightArrow } from '../../icons';
 import { formatDriveDuration, filterRegularClick } from '../../utils';
 import { isMetric, KM_PER_MI } from '../../utils/conversions';
 import Timeline from '../Timeline';
-
-const styles = () => ({
-  drive: {
-    background: 'linear-gradient(to bottom, #30373B 0%, #1D2225 100%)',
-    borderTop: '1px solid rgba(255, 255, 255, .05)',
-    borderRadius: 8,
-    display: 'flex',
-    flexDirection: 'column',
-    marginBottom: 12,
-    overflow: 'hidden',
-    padding: 0,
-    transition: 'background .2s',
-    textDecoration: 'none',
-    '&:hover': {},
-  },
-  driveHeader: {
-    alignItems: 'center',
-  },
-  driveHeaderIntro: {
-    display: 'flex',
-  },
-  driveGridItem: {
-    flexGrow: 1,
-  },
-  driveGridItemRightAlign: {
-    textAlign: 'right',
-  },
-  driveHeaderIntroSmall: {
-    justifyContent: 'center',
-  },
-  driveArrow: {
-    color: Colors.grey500,
-    height: '100%',
-    marginLeft: '25%',
-    width: 32,
-  },
-  firstLine: {
-    fontWeight: 600,
-  },
-});
 
 const DriveListItem = (props) => {
   const el = useRef();
   const [isVisible, setVisible] = useState(false);
   const windowWidth = useWindowWidth();
-  const { classes, dispatch, drive } = props;
+  const { dispatch, drive } = props;
 
   useEffect(() => {
     const onScroll = () => {
@@ -99,61 +58,83 @@ const DriveListItem = (props) => {
     ? `${+(drive.distance * KM_PER_MI).toFixed(1)} km`
     : `${+drive.distance.toFixed(1)} mi`;
 
-  /* eslint-disable key-spacing, no-multi-spaces */
-  const gridStyle = small ? {
-    date:   { order: 1, maxWidth: '72%', flexBasis: '72%', marginBottom: 12 },
-    dur:    { order: 2, maxWidth: '28%', flexBasis: '28%', marginBottom: 12 },
-    origin: { order: 3, maxWidth: '50%', flexBasis: '50%' },
-    dest:   { order: 4, maxWidth: '50%', flexBasis: '50%' },
+  const gridClasses = small ? {
+    date: 'order-1 max-w-[72%] basis-[72%] mb-3',
+    dur: 'order-2 max-w-[28%] basis-[28%] mb-3',
+    origin: 'order-3 max-w-1/2 basis-1/2',
+    dest: 'order-4 max-w-1/2 basis-1/2',
   } : {
-    date:   { order: 1, maxWidth: '28%', flexBasis: '26%' },
-    dur:    { order: 2, maxWidth: '14%', flexBasis: '14%' },
-    origin: { order: 3, maxWidth: '26%', flexBasis: '22%' },
-    dest:   { order: 4, maxWidth: '26%', flexBasis: '22%' },
-    arrow:  { order: 5, maxWidth: '6%',  flexBasis: '6%'  },
+    date: 'order-1 max-w-[28%] basis-[26%]',
+    dur: 'order-2 max-w-[14%] basis-[14%]',
+    origin: 'order-3 max-w-[26%] basis-[22%]',
+    dest: 'order-4 max-w-[26%] basis-[22%]',
+    arrow: 'order-5 max-w-[6%] basis-[6%]',
   };
-  /* eslint-enable key-spacing, no-multi-spaces */
 
   return (
-    <a
-      key={drive.fullname}
-      className={`${classes.drive} DriveEntry`}
-      ref={el}
-      href={`/${drive.dongle_id}/${drive.log_id}`}
-      onClick={onClick}
-    >
-      <div className={classes.driveHeader} style={!small ? { padding: '18px 32px' } : { padding: 18 }}>
-        <Grid container>
-          <div className={classes.driveGridItem} style={gridStyle.date}>
-            <Typography className={classes.firstLine}>{startDate}</Typography>
-            <Typography>{`${startTime} to ${endTime}`}</Typography>
-          </div>
-          <div className={`${classes.driveGridItem} ${small && classes.driveGridItemRightAlign}`} style={gridStyle.dur}>
-            <Typography className={classes.firstLine}>{duration}</Typography>
-            <Typography>{distance}</Typography>
-          </div>
-          <div className={classes.driveGridItem} style={gridStyle.origin}>
-            <Typography className={classes.firstLine}>{drive.startLocation?.place}</Typography>
-            <Typography>{drive.startLocation?.details}</Typography>
-          </div>
-          <div className={`${classes.driveGridItem} ${small && classes.driveGridItemRightAlign}`} style={gridStyle.dest}>
-            <Typography className={classes.firstLine}>{drive.endLocation?.place}</Typography>
-            <Typography>{drive.endLocation?.details}</Typography>
-          </div>
-          {!small && (
-            <div className={classes.driveGridItem} style={gridStyle.arrow}>
-              <RightArrow className={classes.driveArrow} />
+    <div className="relative mb-3">
+      {drive.is_preserved && (
+        <>
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -left-px -top-px right-0 h-[9px] rounded-t-[9px] bg-[linear-gradient(to_right,white_0%,rgba(255,255,255,.5)_64px,transparent_192px)]"
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -left-px -top-px bottom-0 w-[9px] rounded-l-[9px] bg-[linear-gradient(to_bottom,white_0%,rgba(255,255,255,.5)_32px,transparent_96px)]"
+          />
+        </>
+      )}
+      <a
+        className="DriveEntry relative z-10 flex flex-col overflow-hidden p-0 rounded-lg bg-[linear-gradient(to_bottom,#30373B_0%,#1D2225_100%)] no-underline transition-[background] duration-200"
+        ref={el}
+        href={`/${drive.dongle_id}/${drive.log_id}`}
+        onClick={onClick}
+      >
+        {drive.is_preserved && (
+          <span
+            aria-label="Bookmarked drive"
+            role="img"
+            className="pointer-events-none absolute left-1.5 top-1.5 z-20 flex items-center justify-center text-white"
+          >
+            <Bookmark aria-hidden="true" className="text-sm" />
+          </span>
+        )}
+        <div className={`items-center ${small ? 'p-[18px]' : 'py-[18px] px-8'}`}>
+          <Grid container>
+            <div className={`grow ${gridClasses.date}`}>
+              <Typography className="flex items-center font-semibold gap-1.5">
+                {startDate}
+              </Typography>
+              <Typography>{`${startTime} to ${endTime}`}</Typography>
             </div>
-          )}
-        </Grid>
-      </div>
-      <Timeline
-        route={drive}
-        thumbnailsVisible={isVisible}
-        zoomOverride={{ start: 0, end: drive.duration }}
-      />
-    </a>
+            <div className={`grow ${small ? 'text-right' : ''} ${gridClasses.dur}`}>
+              <Typography className="flex items-center font-semibold gap-1.5">{duration}</Typography>
+              <Typography>{distance}</Typography>
+            </div>
+            <div className={`grow ${gridClasses.origin}`}>
+              <Typography className="flex items-center font-semibold gap-1.5">{drive.startLocation?.place}</Typography>
+              <Typography>{drive.startLocation?.details}</Typography>
+            </div>
+            <div className={`grow ${small ? 'text-right' : ''} ${gridClasses.dest}`}>
+              <Typography className="flex items-center font-semibold gap-1.5">{drive.endLocation?.place}</Typography>
+              <Typography>{drive.endLocation?.details}</Typography>
+            </div>
+            {!small && (
+              <div className={`grow ${gridClasses.arrow}`}>
+                <RightArrow className="text-[#424a4f] h-full ml-[25%] w-8" />
+              </div>
+            )}
+          </Grid>
+        </div>
+        <Timeline
+          route={drive}
+          thumbnailsVisible={isVisible}
+          zoomOverride={{ start: 0, end: drive.duration }}
+        />
+      </a>
+    </div>
   );
 };
 
-export default connect(() => ({}))(withStyles(styles)(DriveListItem));
+export default connect(() => ({}))(DriveListItem);

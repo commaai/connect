@@ -49,6 +49,13 @@ export const Download = (props) => (
   </SvgIcon>
 );
 
+export const Bookmark = (props) => (
+  <SvgIcon {...props} viewBox="0 0 24 24">
+    <title>bookmark</title>
+    <path d="M17,3H7A2,2 0 0,0 5,5V21L12,18L19,21V5C19,3.89 18.1,3 17,3Z" />
+  </SvgIcon>
+);
+
 export const Trash = (props) => (
   <SvgIcon {...props} viewBox="0 0 24 24">
     <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12Zm2-10h2v8H8V9Zm4 0h2v8h-2V9Zm-7-5v2h14V4h-3.5l-1-1h-5l-1 1H5Z" />
