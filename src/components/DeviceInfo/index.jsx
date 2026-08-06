@@ -422,6 +422,23 @@ class DeviceInfo extends Component {
 
     return (
       <div className='flex md:flex-row md:items-stretch justify-end flex-wrap gap-2 min-w-0 shrink'>
+        {clipsSupported && <Tooltip
+          classes={{ tooltip: classes.popover }}
+          title={deviceIsOnline(device) ? 'Clips' : 'Device offline'}
+          placement="bottom"
+        >
+          <span className="inline-flex">
+            <button
+              style={!deviceIsOnline(device) ? { opacity: 0.7 } : {}}
+              className={`${classes.button} ${classes.carBattery}`}
+              aria-label="Clips"
+              onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
+              disabled={!deviceIsOnline(device)}
+            >
+              <ContentCut className="text-black" />
+            </button>
+          </span>
+        </Tooltip>}
         {livestreamEnabled && (
           <Tooltip
             classes={{ tooltip: classes.popover }}
@@ -440,23 +457,6 @@ class DeviceInfo extends Component {
             </button>
           </Tooltip>
         )}
-        {clipsSupported && <Tooltip
-          classes={{ tooltip: classes.popover }}
-          title={deviceIsOnline(device) ? 'Clips' : 'Device offline'}
-          placement="bottom"
-        >
-          <span className="inline-flex">
-            <button
-              style={!deviceIsOnline(device) ? { opacity: 0.7 } : {}}
-              className={`${classes.button} ${classes.carBattery}`}
-              aria-label="Clips"
-              onClick={(event) => this.setState({ clipMenu: event.currentTarget })}
-              disabled={!deviceIsOnline(device)}
-            >
-              <ContentCut className="text-black" />
-            </button>
-          </span>
-        </Tooltip>}
         {!livestreamEnabled && (
           <Tooltip
             classes={{ tooltip: classes.popover }}
