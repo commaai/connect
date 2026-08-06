@@ -74,7 +74,11 @@ class TimeSelect extends Component {
   }
 
   handleClose() {
-    this.props.onClose();
+    this.setState({
+      start: this.props.filter.start,
+      end: this.props.filter.end,
+      bookmarked: Boolean(this.props.filter.bookmarked),
+    }, this.props.onClose);
   }
 
   changeStart(event) {

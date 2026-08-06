@@ -27,6 +27,7 @@ function deviceCompareFn(a, b) {
 export default function reducer(_state, action) {
   let state = { ..._state };
   let deviceIndex = null;
+  let isChangingDevice = false;
   switch (action.type) {
     case Types.ACTION_STARTUP_DATA: {
       const devices = action.devices.map(populateFetchedAt).sort(deviceCompareFn);
@@ -53,6 +54,7 @@ export default function reducer(_state, action) {
       break;
     }
     case Types.ACTION_SELECT_DEVICE:
+      isChangingDevice = state.dongleId && state.dongleId !== action.dongleId;
       state = {
         ...state,
         dongleId: action.dongleId,
@@ -61,7 +63,10 @@ export default function reducer(_state, action) {
         subscription: null,
         subscribeInfo: null,
         files: null,
-        limit: 0,
+        limit: 5,
+        filter: isChangingDevice
+          ? { ...state.filter, bookmarked: false }
+          : state.filter,
       };
       window.localStorage.setItem('selectedDongleId', action.dongleId);
       if (state.devices) {

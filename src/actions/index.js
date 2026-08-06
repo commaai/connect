@@ -186,7 +186,7 @@ export function popTimelineRange(log_id, allowPathChange = true) {
     const state = getState();
     if (state.zoom.previous) {
       dispatch({
-        type: Types.TIMELINE_POP_SELECTION,
+      type: Types.TIMELINE_POP_SELECTION,
       });
 
       const { start, end } = state.zoom.previous;
