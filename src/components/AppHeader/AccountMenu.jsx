@@ -62,10 +62,10 @@ const AccountMenu = ({ profile, open, onClose }) => {
           rel="noreferrer"
           onClick={onClose}
         >
-          Manage Account
+          Manage account
         </a>
         <button
-          className="block w-full px-4 py-3 text-left text-white hover:bg-white/10"
+          className="block w-full px-4 py-3 text-left text-white hover:bg-white/10 cursor-pointer"
           onClick={onLogOut}
         >
           Log out

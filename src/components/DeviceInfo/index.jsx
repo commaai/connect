@@ -40,6 +40,7 @@ const styles = (theme) => ({
   button: {
     backgroundColor: Colors.white,
     color: Colors.grey900,
+    cursor: 'pointer',
     '&:hover': {
       background: '#ddd',
       color: Colors.grey900,
@@ -47,6 +48,7 @@ const styles = (theme) => ({
     '&:disabled': {
       background: '#ddd',
       color: Colors.grey900,
+      cursor: 'default',
     },
     '&:disabled:hover': {
       background: '#ddd',
