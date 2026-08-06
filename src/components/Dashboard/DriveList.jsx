@@ -141,7 +141,7 @@ const DriveList = (props) => {
       <div className="flex flex-row justify-between mx-4 pb-2 gap-2 flex-wrap">
         { renderStats() }
         <button
-          className="w-full xxs:w-fit flex flex-row items-center justify-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98]"
+          className="w-full xxs:w-fit flex flex-row items-center justify-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98] cursor-pointer"
           style={{ background: 'linear-gradient(to bottom, #30373B 0%, #1D2225 150%)' }}
           onClick={() => setIsTimeSelectOpen(true)}
         >
