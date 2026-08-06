@@ -31,7 +31,7 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
 
   // Size the panel to whichever page is active so it morphs between them.
   useLayoutEffect(() => {
-    const el = view === 'main' ? mainRef.current : qualityRef.current;
+    const el = { main: mainRef, quality: qualityRef }[view]?.current;
     if (el) setDims({ width: el.offsetWidth, height: el.offsetHeight });
   }, [view, open, quality, options]);
 
@@ -121,6 +121,7 @@ const SettingsMenu = ({ onQualityChange, options = QUALITY_OPTIONS }) => {
             </div>
           ))}
         </div>
+
       </div>
     </div>
   );
