@@ -1,4 +1,4 @@
-import React, { Component, lazy, Suspense } from 'react';
+import React, { Component, lazy } from 'react';
 import { Provider } from 'react-redux';
 import { Route, Switch, Redirect } from 'react-router';
 import { ConnectedRouter } from 'connected-react-router';
@@ -14,6 +14,7 @@ import { fetchTurnCredentials } from './utils/turn';
 import store, { history } from './store';
 
 import ErrorFallback from './components/ErrorFallback';
+import BundleLoadBoundary from './components/BundleLoadBoundary';
 import FullPageLoading from './components/FullPageLoading';
 
 const Explorer = lazy(() => import('./components/explorer'));
@@ -123,11 +124,7 @@ class App extends Component {
     }
 
     const showLogin = !MyCommaAuth.isAuthenticated() && !getZoom(window.location.pathname) && !getSegmentRange(window.location.pathname);
-    let content = (
-      <Suspense fallback={<FullPageLoading />}>
-        { showLogin ? this.anonymousRoutes() : this.authRoutes() }
-      </Suspense>
-    );
+    let content = showLogin ? this.anonymousRoutes() : this.authRoutes();
 
     // Use ErrorBoundary in production only
     if (import.meta.env.PROD) {
@@ -141,7 +138,11 @@ class App extends Component {
     return (
       <Provider store={store}>
         <ConnectedRouter history={history}>
-          {content}
+          <Route render={({ location }) => (
+            <BundleLoadBoundary key={location.key || location.pathname}>
+              {content}
+            </BundleLoadBoundary>
+          )} />
         </ConnectedRouter>
       </Provider>
     );

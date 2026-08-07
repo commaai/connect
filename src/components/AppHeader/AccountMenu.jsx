@@ -1,9 +1,11 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
+import { Switch } from '@material-ui/core';
 
 import MyCommaAuth from '@commaai/my-comma-auth';
 
 import { USERADMIN_URL_ROOT } from '../../api';
+import { getDeveloperToolsEnabled, setDeveloperToolsEnabled } from '../../userSettings';
 
 const logOut = async () => {
   await MyCommaAuth.logOut();
@@ -35,11 +37,18 @@ const Version = () => {
 
 const AccountMenu = ({ profile, open, onClose }) => {
   const version = useMemo(() => <Version />, []);
+  const [developerToolsEnabled, setDeveloperToolsState] = useState(getDeveloperToolsEnabled);
 
   const onLogOut = useCallback(() => {
     onClose();
     logOut();
   }, [onClose]);
+
+  const onDeveloperToolsChange = useCallback((event) => {
+    const enabled = event.target.checked;
+    setDeveloperToolsState(enabled);
+    setDeveloperToolsEnabled(enabled);
+  }, []);
 
   if (!open) {
     return null;
@@ -64,6 +73,15 @@ const AccountMenu = ({ profile, open, onClose }) => {
         >
           Manage account
         </a>
+        <label className="flex w-full cursor-pointer items-center justify-between px-4 py-2 text-white hover:bg-white/10">
+          <span>Developer tools</span>
+          <Switch
+            checked={developerToolsEnabled}
+            color="primary"
+            inputProps={{ 'aria-label': 'Enable developer tools' }}
+            onChange={onDeveloperToolsChange}
+          />
+        </label>
         <button
           className="block w-full px-4 py-3 text-left text-white hover:bg-white/10 cursor-pointer"
           onClick={onLogOut}
