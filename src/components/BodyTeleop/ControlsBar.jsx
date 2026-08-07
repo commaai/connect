@@ -2,8 +2,8 @@ import React, { useCallback, useRef } from 'react';
 import PhotoCamera from '@material-ui/icons/PhotoCamera';
 
 const CAMERAS = [
-  { key: 'wideRoad', label: 'road', num: '1' },
-  { key: 'driver', label: 'driver', num: '2' },
+  { key: 'wideRoad', label: 'front', num: '1' },
+  { key: 'driver', label: 'back', num: '2' },
 ];
 
 const btnBase = `h-11 w-[80px] rounded-xl text-[14px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[44px] cursor-pointer select-none hover:text-white hover:bg-white/20 bg-glass`;
