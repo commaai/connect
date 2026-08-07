@@ -19,7 +19,7 @@ import FullPageLoading from './components/FullPageLoading';
 const Explorer = lazy(() => import('./components/explorer'));
 const AnonymousLanding = lazy(() => import('./components/anonymous'));
 
-class App extends Component {
+export class App extends Component {
   constructor(props) {
     super(props);
 
@@ -87,12 +87,17 @@ class App extends Component {
   }
 
   redirectLink() {
+    if (this.redirectURL !== undefined) {
+      return this.redirectURL;
+    }
+
     let url = '/';
     if (typeof window.sessionStorage !== 'undefined' && sessionStorage.getItem('redirectURL') !== null) {
       url = sessionStorage.getItem('redirectURL');
       sessionStorage.removeItem('redirectURL');
     }
-    return url;
+    this.redirectURL = url;
+    return this.redirectURL;
   }
 
   authRoutes() {
