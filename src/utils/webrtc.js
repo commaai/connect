@@ -2,7 +2,7 @@ import { athena as Athena } from '../api';
 import { asyncSleep } from '.';
 import { getTurnCredentials } from './turn';
 
-const VIDEO_STREAM_NAME = 'camera';
+const VIDEO_STREAM_NAMES = ['primary', 'road'];
 const wallMs = () => performance.timeOrigin + performance.now();
 
 const CLOCK_WINDOW_SIZE = 16;
@@ -86,6 +86,7 @@ export class WebRTCConnection extends EventTarget {
         this.fail('No direct peer-to-peer routes were found to device. Check network and retry.');
       }, CONNECTION_DEADLINE_MS);
 
+      let nextVideoTrackIndex = 0;
       this.pc.addEventListener('track', (evt) => {
         if (evt.track.kind === 'video') {
           if (evt.receiver) {
@@ -114,7 +115,10 @@ export class WebRTCConnection extends EventTarget {
             }
           }
           const stream = new MediaStream([evt.track]);
-          this.callbacks.onVideoTrack(VIDEO_STREAM_NAME, stream);
+          const trackIndex = nextVideoTrackIndex;
+          nextVideoTrackIndex += 1;
+          const streamName = VIDEO_STREAM_NAMES[trackIndex] ?? `video-${trackIndex}`;
+          this.callbacks.onVideoTrack(streamName, stream);
         }
       });
 
@@ -133,8 +137,11 @@ export class WebRTCConnection extends EventTarget {
       // set up video channel
       const codecs = RTCRtpReceiver.getCapabilities('video')?.codecs || [];
       const h264Codecs = codecs.filter((c) => c.mimeType === 'video/H264');
-      const transceiver = this.pc.addTransceiver('video', { direction: 'recvonly' });
-      if (h264Codecs.length > 0) transceiver.setCodecPreferences(h264Codecs);
+      const primaryTransceiver = this.pc.addTransceiver('video', { direction: 'recvonly' });
+      if (h264Codecs.length > 0) primaryTransceiver.setCodecPreferences(h264Codecs);
+
+      const roadTransceiver = this.pc.addTransceiver('video', { direction: 'recvonly' });
+      if (h264Codecs.length > 0) roadTransceiver.setCodecPreferences(h264Codecs);
 
       // set up data channel
       this.dc = this.pc.createDataChannel('data', { ordered: true });
@@ -384,8 +391,7 @@ export class WebRTCConnectionManager {
     this.subscriber = null;
     this.videoWanted = false;
     this.battery = null;
-    this.stream = null;
-    this.streamName = null;
+    this.streams = new Map();
     this.awayTimer = null;
     this.prewarm_enabled = true;
 
@@ -450,8 +456,7 @@ export class WebRTCConnectionManager {
         this.subscriber?.onBatteryLevel?.(battery);
       }),
       onVideoTrack: guard((name, stream) => {
-        this.streamName = name;
-        this.stream = stream;
+        this.streams.set(name, stream);
         this.subscriber?.onVideoTrack?.(name, stream);
       }),
       onLatencyUpdate: guard((latency) => {
@@ -474,7 +479,7 @@ export class WebRTCConnectionManager {
     this.subscriber = callbacks;
     callbacks?.onConnectionState?.(this.connectionState, this.failReason);
     if (this.battery != null) callbacks?.onBatteryLevel?.(this.battery);
-    if (this.stream) callbacks?.onVideoTrack?.(this.streamName, this.stream);
+    this.streams.forEach((stream, name) => callbacks?.onVideoTrack?.(name, stream));
     return this.connection;
   }
 
@@ -501,8 +506,7 @@ export class WebRTCConnectionManager {
       this.connection = null;
     }
     this.battery = null;
-    this.stream = null;
-    this.streamName = null;
+    this.streams.clear();
   }
 
   disconnect(reason) {
