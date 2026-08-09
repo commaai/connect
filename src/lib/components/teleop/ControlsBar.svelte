@@ -13,7 +13,7 @@
     { key: 'driver', label: 'driver', num: '2' },
   ];
 
-  const btnBase = 'h-11 w-[80px] rounded-xl text-[14px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[44px] cursor-pointer select-none hover:text-white hover:bg-white/20 bg-glass';
+  const btnBase = 'h-11 w-[80px] rounded-xl text-[14px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[44px] cursor-pointer select-none hover:text-white hover:bg-white/20 glass border-[1.5px] border-white/20';
   const btnInactive = `${btnBase} bg-white/10 text-white/60`;
   const btnActive = `${btnBase} bg-white/30 text-white`;
 
@@ -102,15 +102,16 @@
       ontouchend={handleScreenshotTouch}
       title="Save screenshot"
     >
-      <!-- @material-ui/icons PhotoCamera. text-[25px] beats SvgIcon's own 24px:
-           the project imports tailwind in `important` mode. -->
+      <!-- @material-ui/icons PhotoCamera at styles.icon's 25px rather than
+           SvgIcon's own 24px. Declared here, not as a utility to be resolved
+           against the inline size. -->
       <svg
-        class="inline-block shrink-0 select-none text-[25px]"
+        class="inline-block shrink-0 select-none"
         viewBox="0 0 24 24"
         fill="currentColor"
         width="1em"
         height="1em"
-        style="font-size:24px"
+        style="font-size:25px"
         aria-hidden="true"
         focusable="false"
       >

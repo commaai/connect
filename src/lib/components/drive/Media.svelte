@@ -446,9 +446,8 @@
       >
         not found
         {#if type === 'dcameras'}
-          <!-- styles.dcameraUploadIcon: the icon's font-size is inline, so it only
-               yields to a utility, which tailwind's `important` makes win -->
-          <InfoOutline class="text-base ml-1" />
+          <!-- styles.dcameraUploadIcon: 1rem, not SvgIcon's 24px -->
+          <InfoOutline class="ml-1" size="1rem" />
         {/if}
       </div>
     {:else if !canUpload}

@@ -1,10 +1,11 @@
-/* eslint-env jest */
+import { vi } from 'vitest';
+
 import { thumbnailTiles } from './thumbnails-tiling';
 
 const screenHeight = 1000;
 const screenWidth = 1600;
 const gutter = 20;
-const percentToOffsetMock = jest.fn();
+const percentToOffsetMock = vi.fn();
 const mockRoute = {
   url: 'https://route.example/99c94dc769b5d96e|2018-04-09--10-10-00',
   offset: 1600,
@@ -27,7 +28,7 @@ const frameWidth = (128 / 80) * thumbnailBounds.height;
 
 describe('timeline thumbnails', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     percentToOffsetMock.mockImplementation((percent) => Math.round(percent * 30000));
   });
 

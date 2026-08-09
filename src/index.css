@@ -6,7 +6,7 @@
 */
 
 
-@import "tailwindcss" important;
+@import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
 @theme {
@@ -62,14 +62,13 @@ body {
   margin: 0;
   padding: 0;
 
-  /* TEMPORARY, for the svelte migration only. Material-UI v1's Typography sets
-     line-height to 20.5/14 = 1.46429em, and tailwind's preflight inherits 1.5.
-     Ported components would otherwise sit ~1px off their React originals in
-     every gallery diff, which buries real regressions in constant noise.
+  /* Material-UI v1's body1 variant: round(20.5 / 14). MUI's CssBaseline set no
+     line-height at all, so React's body inherited preflight's 1.5 and every
+     <Typography> then overrode it per variant. With Typography gone, the common
+     case is the default here and the elements that were raw markup in React
+     carry an explicit 1.5 instead — the minority, by a wide margin.
 
-     Unitless so it recomputes per font-size, the way MUI applied it per
-     component. Delete this once the React app is gone: 1.46429 is a 2018 MUI
-     default, not a design decision worth keeping. */
+     Unitless, so it recomputes per font-size the way MUI applied it. */
   line-height: 1.46429;
 }
 
@@ -119,6 +118,15 @@ a:focus {
 */
 
 @layer utilities {
+  /* The glass treatment without a tint. A caller that brings its own background,
+     border or blur composes with this instead of stacking a second utility on
+     top of .bg-glass and relying on emission order to pick the winner. */
+  .glass {
+    @apply backdrop-blur-[10px] shadow-[inset_0_0_20px_rgba(255,255,255,0.1),0_4px_20px_rgba(0,0,0,0.4)];
+  }
+  .glass-dark {
+    @apply shadow-[0_2px_12px_rgba(0,0,0,0.3)];
+  }
   .bg-glass {
     @apply bg-black/30 backdrop-blur-[10px] border-[1.5px] border-white/20 shadow-[inset_0_0_20px_rgba(255,255,255,0.1),0_4px_20px_rgba(0,0,0,0.4)];
   }

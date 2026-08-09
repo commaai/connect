@@ -209,7 +209,7 @@
       </button>
       <div
         class={isLandscape
-          ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-white bg-glass border-0'
+          ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-white glass bg-black/30'
           : 'text-base font-medium ml-2 flex-1'}
       >
         {deviceName}

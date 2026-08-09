@@ -245,6 +245,8 @@
 {#snippet triggerGroup({ bumperActive, bumperLabel, bumperKey, cameraActive, triggerValue, triggerColor, triggerKey, directionLabel })}
   <div class="flex flex-col items-center gap-1">
     <span class="text-[9px] font-bold tracking-[0.5px] uppercase transition-colors duration-100 {bumperActive ? 'text-white/90' : 'text-white/50'}">{bumperLabel}</span>
+    <!-- the camera-active tint outranks the bumperActive classes below, which it
+         did not while tailwind was imported in `important` mode -->
     <div
       class="w-12 h-6 rounded-[12px_12px_4px_4px] border-2 flex items-center justify-center transition-[background,border-color] duration-100 {bumperActive ? 'bg-white/25 border-white/50' : 'border-white/25 bg-white/5 backdrop-blur-lg'}"
       style={cameraActive ? 'background: rgba(59,130,246,0.35); border-color: rgba(59,130,246,0.5);' : undefined}
@@ -302,7 +304,7 @@
     <div class="absolute top-1/2 left-2 right-2 h-px -translate-y-1/2 bg-white/10"></div>
     <div class="absolute left-1/2 top-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/30"></div>
     <div
-      class="absolute w-[52px] h-[52px] rounded-full -translate-x-1/2 -translate-y-1/2 will-change-[left,top] md:w-[56px] md:h-[56px] bg-glass bg-radial-white
+      class="absolute w-[52px] h-[52px] rounded-full -translate-x-1/2 -translate-y-1/2 will-change-[left,top] md:w-[56px] md:h-[56px] bg-glass
         {thumbPos ? 'bg-[radial-gradient(circle_at_35%_35%,rgba(255,255,255,0.6),rgba(255,255,255,0.15))]' : 'bg-radial-white'}"
       style="left: {thumbLeft}; top: {thumbTop};"
     ></div>

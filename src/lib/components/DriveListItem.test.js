@@ -1,4 +1,3 @@
-/* eslint-env jest */
 /**
  * The React test rendered DriveListItem and asserted it had the DriveEntry
  * class. There is no renderer here, so it covers the formatting and layout

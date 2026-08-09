@@ -1,4 +1,3 @@
-/* eslint-env jest */
 import WebMercatorViewport, {
   MAX_LATITUDE,
   fitBounds,

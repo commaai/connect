@@ -23,9 +23,9 @@
   let canvasHeight = null;
 
   /**
-   * DeviceList passes the CSS declarations React passed as a style object, which
-   * have to stay inline: tailwind is imported with `important`, so a utility
-   * class would win over them, where MUI's classes lost.
+   * DeviceList passes the CSS declarations React passed as a style object. They
+   * stay inline, because that is what let them beat MUI's own addButton class —
+   * as utilities they would be competing with .muiButton below instead.
    */
   const asStyle = $derived(
     buttonStyle && (buttonStyle.includes(';') || /:\s/.test(buttonStyle)) ? buttonStyle : '',
@@ -396,8 +396,8 @@
 <style>
   /**
    * MUI ButtonBase root + Button root (the theme drops text-transform) +
-   * styles.addButton, as plain CSS: tailwind is imported with `important`, so a
-   * utility class would beat the caller's inline buttonStyle, which MUI let win.
+   * styles.addButton, as plain CSS. The caller's buttonStyle stays inline so it
+   * still wins over these, the way React's style prop beat MUI's classes.
    */
   .muiButton {
     position: relative;

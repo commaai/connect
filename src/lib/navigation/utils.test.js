@@ -1,4 +1,3 @@
-/* eslint-env jest */
 import * as Utils from './utils';
 
 describe('navigation formatting utils', () => {

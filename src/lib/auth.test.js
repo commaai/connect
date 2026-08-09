@@ -1,4 +1,3 @@
-/* eslint-env jest */
 import { isAuthCallback, rememberRedirect, takeRedirectUrl } from './auth';
 
 const url = (href) => new URL(href, 'https://connect.comma.ai');

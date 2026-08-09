@@ -83,8 +83,8 @@
   const hasPrimeSub = $derived(Boolean(subscription && subscription.user_id));
   const alias = $derived(deviceNamePretty(device));
   const containerPadding = $derived(windowWidth > 520 ? 36 : 16);
-  // Kept inline: tailwind is imported with `important`, so a utility class would
-  // beat this, where MUI's own width class lost to React's style prop.
+  // Kept inline, because React set it with a style prop that beat MUI's own
+  // width class.
   const buttonSmallStyle = $derived(windowWidth < 514 ? 'width: 100%' : '');
 
   const joinDate = $derived(
@@ -470,12 +470,12 @@
         use:autofocusPanel
       >
         {#if planSwitchStatus === 'success'}
-          <h2 class="typography title text-white">{`Welcome to ${primePlanName(planSwitchTarget)}`}</h2>
+          <h2 class="typography title">{`Welcome to ${primePlanName(planSwitchTarget)}`}</h2>
           <div class="mt-4 rounded-lg bg-green-500/20 p-3 text-green-100">
             <!-- body1's own color beats the wrapper's text-green-100 -->
             <p class="typography body1">{planSwitchMessage}</p>
           </div>
-          <p class="typography body1 mt-3 text-white/80">
+          <p class="typography body1 body1Muted mt-3">
             {planSwitchTarget === 'data'
               ? 'Your plan now includes data for $24/month.'
               : 'Your plan no longer includes data and costs $14/month.'}
@@ -486,15 +486,15 @@
             </button>
           </div>
         {:else}
-          <h2 class="typography title text-white">{`Switch to ${primePlanName(planSwitchTarget)} plan`}</h2>
-          <p class="typography body1 mt-3 text-white/80">
+          <h2 class="typography title">{`Switch to ${primePlanName(planSwitchTarget)} plan`}</h2>
+          <p class="typography body1 body1Muted mt-3">
             {#if planSwitchTarget === 'data'}The Standard plan costs $24/month, includes a data plan, and is <strong class="font-bold text-white">only available in the U.S.</strong>{:else}The Lite plan costs $14/month and does not include a data plan.{/if}
           </p>
         {/if}
         {#if planSwitchStatus === 'loading'}
           <div class="mt-4 flex flex-col items-center justify-center rounded-lg bg-black/20 p-5 text-center">
             {@render progress()}
-            <p class="typography body1 mt-2 text-white/80">Switching your plan…</p>
+            <p class="typography body1 body1Muted mt-2">Switching your plan…</p>
           </div>
         {/if}
         {#if planSwitchStatus === 'error'}
@@ -589,14 +589,16 @@
 <style>
   /**
    * MUI's JSS sheets and this component's `styles`, as plain CSS in the order
-   * JSS injected them: tailwind is imported with `important`, so a utility class
-   * would beat React's inline style props, which MUI's classes lost to.
+   * JSS injected them. Anything React set with a style prop stays inline, so it
+   * still outranks these the way it outranked MUI's classes.
    */
 
   /* MuiTypography */
   .typography {
+    /* MUI Typography's own margin reset. Left to preflight, which zeroes p and
+       h2/h3 at element specificity, so an mt-* utility on the same element still
+       wins — declaring the shorthand here would silently outrank it. */
     display: block;
-    margin: 0;
   }
 
   .title {
@@ -625,6 +627,11 @@
     font-weight: 400;
     line-height: 1.46429em;
     color: #fff;
+  }
+
+  /* body1 with the muted colour the plan-switch copy uses */
+  .body1Muted {
+    color: rgba(255, 255, 255, 0.8);
   }
 
   .caption {

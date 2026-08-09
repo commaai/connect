@@ -1,4 +1,3 @@
-/* eslint-env jest */
 import { asyncSleep } from '../utils';
 import { applyBufferVideo, applyPause, applyPlay, applySeek, applySelectLoop, currentOffset } from './playback.svelte.js';
 

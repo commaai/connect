@@ -59,7 +59,7 @@ Set up the baseline once:
 That creates a detached worktree of `master` at `../comma-connect-react-baseline`
 with **its own** `node_modules`. Both details matter: react, redux and material-ui
 are gone from this branch, so a baseline sharing this repo's dependencies would
-not build, and keeping it outside the repo means vite, jest and oxlint never scan
+not build, and keeping it outside the repo means vite, vitest and oxlint never scan
 it. Re-run the script any time to refresh it; it is idempotent.
 
 Then diff:
@@ -94,8 +94,9 @@ The pieces below are worth knowing because they affect everything else.
  * `adapter-static` - The app is a JWT-in-localStorage SPA with `ssr = false`, built to `dist/` with an
    `index.html` fallback. That is what nginx and Cloudflare Pages already serve.
  * `Tailwind v4` - All styling. There is no component library; MUI's rendering was ported into the
-   components, which is why `src/index.css` still imports tailwind in `important` mode and carries a
-   body `line-height` shim. Both exist only to match the old Material-UI metrics and should go together.
+   components, so `src/index.css` carries the body `line-height` MUI applied per Typography component.
+   Utilities are not `!important`: a component's own scoped class or inline style outranks them, which
+   is what several components rely on to reproduce what React's style props did.
  * `mapbox-gl` - Used directly. Markers are positioned by projecting in JavaScript
    (`src/lib/utils/mercator.js`) rather than asking the map, so they still render when tiles fail to load.
 

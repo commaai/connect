@@ -327,7 +327,7 @@
       <span class="text-[13px] font-semibold tracking-[0.5px] uppercase text-center leading-none text-white/60 group-hover:text-white/90">stats</span>
     </div>
     {#if showStats}
-      <div class="absolute z-30 right-2 mt-2 flex bg-glass-dark backdrop-blur-[3px] rounded-[5px] md:rounded-[10px] font-mono {compact ? 'flex-row gap-2 items-center p-[6px_8px]' : 'flex-col w-[150px] md:w-[240px] p-[3px_6px] md:p-[10px_16px]'}">
+      <div class="absolute z-30 right-2 mt-2 flex glass-dark bg-black/40 backdrop-blur-[3px] rounded-[5px] md:rounded-[10px] font-mono {compact ? 'flex-row gap-2 items-center p-[6px_8px]' : 'flex-col w-[150px] md:w-[240px] p-[3px_6px] md:p-[10px_16px]'}">
         <div class="flex flex-col">
           {#each STATS_ROWS as { label, key, showInCompact } (key)}
             {#if !(showInCompact === false && compact)}

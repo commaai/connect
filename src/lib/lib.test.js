@@ -1,4 +1,3 @@
-/* eslint-env jest */
 /**
  * Import-level coverage for the ported src/lib modules that have no unit tests
  * of their own yet. This mostly guards against the port going stale: a broken

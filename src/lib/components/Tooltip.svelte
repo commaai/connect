@@ -10,8 +10,8 @@
     offset = 14,
     panelClass = '',
     // MUI's popper class sets opacity .9; InfoTooltip's arrowPopper overrides it
-    // to 1. Tailwind is imported in `important` mode here, so a caller cannot
-    // beat an opacity utility from a style attribute — it has to be a prop.
+    // to 1. A prop rather than something the caller restyles, so the value is
+    // explicit instead of falling out of cascade order.
     opacity = 0.9,
     open = $bindable(false),
     children,

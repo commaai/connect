@@ -42,22 +42,28 @@ TESTS
 -----
 
                         React        SvelteKit
-    suites                 11             11
-    tests                  30             80     +167%
-    statement coverage      -          40.61%
-    branch coverage         -          74.69%
+    suites                 11             13
+    tests                  30             96     +220%
+    statement coverage      -          40.61%   (.js only, as measured before)
+    branch coverage         -          74.69%   (.js only)
+
+Components are in the coverage scope now, which puts the whole-tree number at
+8.02%: two of them have tests. That is the honest denominator.
 
 Coverage is a real number now. `jest --coverage` reported 0% for every file on
 both trees, because @swc/jest emits no istanbul instrumentation and the default
-babel coverage provider therefore measured nothing. jest.config.cjs sets
-coverageProvider: 'v8'.
+babel coverage provider therefore measured nothing. The v8 provider measures it.
 
 The two sets are not the same tests. React's included component-render tests via
 @testing-library; the Svelte side is unit tests over the ported logic (playback
 transitions, mercator projection, route/segment maths, auth redirect handling,
 thumbnail tiling, drive-list formatting, api surface). Three React suites have
 direct successors; four covered redux actions, the React app shell and a window
-hook that svelte/reactivity/window replaces, and were deleted with them.
+hook that svelte/reactivity/window replaces, and were deleted with them. The two
+component suites cover what a pixel diff structurally cannot see: which device a
+click selects, whether a modified click is left to the browser, when the settings
+button is offered, and that the account menu stays empty for a signed-out visitor
+following a shared drive link.
 
 
 WHAT DID NOT IMPROVE
@@ -105,24 +111,52 @@ NEW TOOLING
                           noprime, body, anonymous). No application code knows it
                           exists and it cannot reach a production build.
 
-TOOLING FIXES
--------------
+TOOLING
+-------
 
 `"type": "module"` is set. Node was reparsing svelte.config.js as ESM and warning
-about it on every build and every lint. Only the jest configs needed to be CommonJS;
-they are .cjs now, and jest still transforms the .js tests to CommonJS itself.
+about it on every build and every lint.
 
-jest resolves `$lib` and stubs `$app`, so a module behind SvelteKit's aliases can be
-unit tested rather than having to import by relative path to stay testable.
-
-
-LINTING
--------
+jest is gone. vitest runs the same suites plus the component ones, resolves `$lib`
+from vitest.config.js and stubs `$app/*` from config/vitest/, and brings its own
+jsdom, so @swc/jest, @swc/core, jest-chain-transform, jest-environment-jsdom and
+the five files in config/jest/ all went with it.
 
 oxlint does not parse .svelte, so `bun run lint` covered only the .js files —
 every component was unlinted. Verified by putting an undefined reference in a
 component and watching lint pass. `bun run check` now runs svelte-check over every
 component and lint depends on it, so CI covers components too.
+
+
+TAILWIND `important`
+--------------------
+
+src/index.css imported tailwind in `important` mode, inherited from the React
+app, where every utility had to outrank Material-UI's JSS. It marked 927
+declarations in the main stylesheet `!important` — that file is 63,627 bytes
+uncompressed now against 71,439 before — and it inverted two cascade rules the
+components were quietly depending on:
+
+  - an inline style no longer beat a utility, so `style="font-size:24px"` on an
+    icon lost to a `text-*` class on the same element
+  - a scoped class no longer beat a utility, so a component's own `.body1` lost
+    to `text-white/80`
+
+Both are load-bearing in places, so the flag could not simply be dropped. Every
+site was found statically — utilities stacked on the same property, scoped
+classes against utilities with shorthands expanded, and inline styles against
+utilities — and each was pinned to the value the `important` build computed
+before being rewritten to declare it outright. Eleven sites across six files.
+`.glass` and `.glass-dark` exist for that reason: they are the glass treatment
+without a tint, so a caller that brings its own background composes with them
+instead of stacking a second `bg-*` on `.bg-glass` and letting emission order
+decide.
+
+One of those sites was dead rather than ambiguous. The comma body's bumper tints
+blue while its camera is active, set with an inline style that the `important`
+utility on the same element had been silently beating, in React as well. It
+renders now. That is the one place this branch deliberately differs from the
+React app.
 
 
 ROUTING PARITY
@@ -152,11 +186,13 @@ kept in sessionStorage so signing in returns to it.
 KNOWN GAPS
 ----------
 
-  - jest still runs the .js tests; components have no test runner. vitest with
-    @testing-library/svelte would cover them.
-  - src/index.css still imports tailwind in `important` mode and carries a
-    body line-height shim, both of which existed to coexist with MUI. Removing
-    the shim was tried and regressed all 30 captures, so it needs the per-variant
-    line-heights auditing first.
+  - Two components have tests. The runner is no longer the reason; the other
+    forty-odd are simply not written yet.
+  - The body line-height is not a shim, despite what this file used to call it.
+    Material-UI's CssBaseline sets no line-height at all: 1.46429 is the body1
+    variant, which MUI applied per Typography component and which most ported
+    text needs. Eighteen elements that were raw markup in React carry an explicit
+    1.5. Making it per-element instead would mean annotating the majority to
+    avoid annotating the minority.
   - Clips download returns an error in mock mode by design; real video needs a
     real route.
