@@ -1,0 +1,44 @@
+<script>
+  import AddDevice from './AddDevice.svelte';
+
+  let { onpaired } = $props();
+
+  // MUI Button root (0.875rem / 1.4em, min 36x64, 8px 16px padding, theme
+  // overrides text-transform to none) merged with AddDevice.jsx styles.addButton
+  // (full width, white background, 18px radius, Colors.grey900 text).
+  const addButton = 'relative m-0 box-border inline-flex min-h-9 w-full min-w-16 cursor-pointer '
+    + 'items-center justify-center rounded-[18px] border-0 bg-white px-4 py-2 align-middle '
+    + 'text-[0.875rem] leading-[1.4em] font-medium normal-case text-[#1e2224] no-underline '
+    + 'transition-colors duration-[250ms] outline-none select-none hover:bg-[rgba(255,255,255,0.7)]';
+</script>
+
+<div class="mx-4 mt-4 flex flex-col items-center sm:mt-8 md:mx-6 md:mt-16 lg:mx-8">
+  <!-- Headings, paragraphs, list indentation and marker colour all come from
+       @tailwindcss/typography; max-w-sm is emitted after prose's 65ch. -->
+  <div class="prose prose-invert flex max-w-sm flex-col items-center py-2">
+    <h2>Pair your device</h2>
+    <p>
+      Scan the QR code on your device.
+      If you cannot see a QR code, check the following:
+    </p>
+    <ul class="my-0">
+      <li>Your device is connected to the internet</li>
+      <li>You have installed the latest version of openpilot</li>
+      <li>You may need to look for &quot;Pair Device&quot; in Settings</li>
+    </ul>
+    <p>
+      If you still cannot see a QR code, your device may already be paired to
+      another account. Make sure you have signed in with the same account you
+      may have used previously.
+    </p>
+    <div class="mt-2 w-full">
+      <!-- React rendered <AddDevice> here, so the pair modal lives with its trigger -->
+      <AddDevice buttonText="add new device" buttonStyle={addButton} {onpaired} />
+    </div>
+  </div>
+
+  <picture class="mt-4 max-w-3xl p-4">
+    <source type="image/png" srcset="/images/comma-device.png" />
+    <img alt="comma four" />
+  </picture>
+</div>

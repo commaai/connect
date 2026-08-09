@@ -1,8 +1,15 @@
 <script>
+  import AddDevice from './AddDevice.svelte';
   import SettingsIcon from '$lib/icons/SettingsIcon.svelte';
   import { deviceIsOnline, deviceNamePretty, emptyDevice } from '$lib/utils';
 
-  let { devices, device, profile, selectedDongleId, onselect, onsettings } = $props();
+  let { devices, device, profile, selectedDongleId, onselect, onsettings, onpaired } = $props();
+
+  // DeviceList.jsx's addButtonStyle. React passed this as MUI Button's `style`
+  // prop, which is what let it beat AddDevice's own addButton class (the white
+  // pill the no-device screen uses) — so it has to stay an inline style here too.
+  const addButton = 'border-radius: unset; background-color: transparent; color: white;'
+    + ' font-weight: 600; justify-content: space-between; padding: 16px 44px 16px 54px';
 
   /**
    * A shared device is not in the account's own list, so it gets prepended —
@@ -66,18 +73,7 @@
     {/each}
 
     <div class="hover:bg-black/25">
-      <!-- MUI Button root: 0.875rem / 1.4em; theme.MuiButton overrides text-transform to none -->
-      <button
-        type="button"
-        class="flex w-full cursor-pointer items-center justify-between py-4 pr-[44px] pl-[54px] text-[0.875rem] leading-[1.4em] font-semibold text-white"
-        onclick={() => onsettings(null, 'add')}
-      >
-        <span>add new device</span>
-        <!-- @material-ui/icons/AddCircleOutline, at Colors.white30 like AddDevice.jsx -->
-        <svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px; color: rgba(255, 255, 255, 0.3)" aria-hidden="true">
-          <path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
-        </svg>
-      </button>
+      <AddDevice buttonText="add new device" buttonStyle={addButton} buttonIcon {onpaired} />
     </div>
   </div>
 {/if}
