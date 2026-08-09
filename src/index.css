@@ -62,6 +62,16 @@ body {
   overflow-y: scroll;
   margin: 0;
   padding: 0;
+
+  /* TEMPORARY, for the svelte migration only. Material-UI v1's Typography sets
+     line-height to 20.5/14 = 1.46429em, and tailwind's preflight inherits 1.5.
+     Ported components would otherwise sit ~1px off their React originals in
+     every gallery diff, which buries real regressions in constant noise.
+
+     Unitless so it recomputes per font-size, the way MUI applied it per
+     component. Delete this once the React app is gone: 1.46429 is a 2018 MUI
+     default, not a design decision worth keeping. */
+  line-height: 1.46429;
 }
 
 a:focus {
