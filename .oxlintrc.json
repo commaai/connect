@@ -1,6 +1,12 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "import", "jest", "typescript", "unicorn", "oxc"],
+  "plugins": [
+    "import",
+    "jest",
+    "typescript",
+    "unicorn",
+    "oxc"
+  ],
   "categories": {
     "correctness": "error"
   },
@@ -12,11 +18,6 @@
   },
   "globals": {
     "gtag": "readonly"
-  },
-  "settings": {
-    "react": {
-      "version": "18.2.0"
-    }
   },
   "ignorePatterns": [
     "node_modules/",
@@ -53,13 +54,6 @@
     "import/prefer-default-export": "off",
     "import/no-named-as-default": "off",
     "import/namespace": "off",
-    "react/react-in-jsx-scope": "off",
-    "react/jsx-filename-extension": "off",
-    "react/jsx-props-no-spreading": "off",
-    "react/no-did-mount-set-state": "off",
-    "react/no-did-update-set-state": "off",
-    "react/no-unsafe": "off",
-    "react-hooks/exhaustive-deps": "off",
     "jest/expect-expect": "off",
     "jest/valid-title": "off",
     "jest/no-export": "off",
