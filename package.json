@@ -43,7 +43,6 @@
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.70.2",
     "@sveltejs/vite-plugin-svelte": "^4",
-    "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/svelte": "^5.4.2",

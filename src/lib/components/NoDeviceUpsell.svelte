@@ -13,20 +13,24 @@
 </script>
 
 <div class="mx-4 mt-4 flex flex-col items-center sm:mt-8 md:mx-6 md:mt-16 lg:mx-8">
-  <!-- Headings, paragraphs, list indentation and marker colour all come from
-       @tailwindcss/typography; max-w-sm is emitted after prose's 65ch. -->
-  <div class="prose prose-invert flex max-w-sm flex-col items-center py-2">
-    <h2>Pair your device</h2>
-    <p>
+  <!--
+    This was `prose prose-invert` from @tailwindcss/typography, which emitted 78
+    rules into every page's stylesheet to style this one panel. The values below
+    are what prose computed here: gray-300 body on gray-600 markers, 16/28 text,
+    and the 1.25em/0.5em rhythm it applies to p, ul and li.
+  -->
+  <div class="flex max-w-sm flex-col items-center py-2 text-[16px] leading-7 text-gray-300">
+    <h2 class="mb-6 text-2xl font-bold text-white">Pair your device</h2>
+    <p class="mb-5">
       Scan the QR code on your device.
       If you cannot see a QR code, check the following:
     </p>
-    <ul class="my-0">
-      <li>Your device is connected to the internet</li>
-      <li>You have installed the latest version of openpilot</li>
-      <li>You may need to look for &quot;Pair Device&quot; in Settings</li>
+    <ul class="my-5 list-disc pl-[26px] marker:text-gray-600">
+      <li class="my-2 pl-1.5">Your device is connected to the internet</li>
+      <li class="my-2 pl-1.5">You have installed the latest version of openpilot</li>
+      <li class="my-2 pl-1.5">You may need to look for &quot;Pair Device&quot; in Settings</li>
     </ul>
-    <p>
+    <p class="mb-5">
       If you still cannot see a QR code, your device may already be paired to
       another account. Make sure you have signed in with the same account you
       may have used previously.

@@ -7,7 +7,6 @@
 
 
 @import "tailwindcss";
-@plugin "@tailwindcss/typography";
 
 @theme {
   --animate-fadein: fadein 0.25s;
