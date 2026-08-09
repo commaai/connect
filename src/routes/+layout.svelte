@@ -14,6 +14,10 @@
   let settingsDongleId = $state(null);
 
   const selectedDongleId = $derived(page.params.dongleId ?? null);
+
+  // explorer rendered BodyTeleop *instead of* the header, drawer and window, so
+  // the teleop screen owns the whole viewport.
+  const fullScreen = $derived(page.route.id === '/[dongleId=dongleId]/stream');
   const device = $derived(data.devices?.find((d) => d.dongle_id === selectedDongleId) ?? null);
   const settingsDevice = $derived(data.devices?.find((d) => d.dongle_id === settingsDongleId) ?? null);
 
@@ -54,7 +58,9 @@
   </div>
 {/if}
 
-{#if data.authenticated}
+{#if data.authenticated && fullScreen}
+  {@render children()}
+{:else if data.authenticated}
   <AppHeader
     profile={data.profile}
     dongleId={selectedDongleId}
