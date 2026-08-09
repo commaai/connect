@@ -994,12 +994,25 @@ async function main() {
   }
   if (baseSource && baselineUrl) throw new Error('--base and --baseline-url are mutually exclusive');
   if (args.states) {
-    const wanted = args.states.split(',').map((name) => name.trim()).filter(Boolean);
-    const unknown = wanted.filter((name) => !GALLERY_STATES.some((state) => state.name === name));
+    const wanted = new Set(args.states.split(',').map((name) => name.trim()).filter(Boolean));
+    const unknown = [...wanted].filter((name) => !GALLERY_STATES.some((state) => state.name === name));
     if (unknown.length) throw new Error(`Unknown --states: ${unknown.join(', ')}`);
-    const skipped = GALLERY_STATES.filter((state) => !wanted.includes(state.name)).map((s) => s.name);
-    GALLERY_STATES = GALLERY_STATES.filter((state) => wanted.includes(state.name));
-    console.log(`--states limited this run to ${wanted.join(', ')}; skipped ${skipped.join(', ')}`);
+
+    // A modal state is captured by opening it on top of another state's page, so
+    // asking for one has to pull its base in too or captureOne has nothing to load.
+    const pulled = [];
+    for (const state of GALLERY_STATES) {
+      if (wanted.has(state.name) && state.page && !wanted.has(state.page)) {
+        wanted.add(state.page);
+        pulled.push(`${state.page} (base of ${state.name})`);
+      }
+    }
+
+    const skipped = GALLERY_STATES.filter((state) => !wanted.has(state.name)).map((s) => s.name);
+    GALLERY_STATES = GALLERY_STATES.filter((state) => wanted.has(state.name));
+    console.log(`--states limited this run to ${[...wanted].join(', ')}`);
+    if (pulled.length) console.log(`  pulled in: ${pulled.join(', ')}`);
+    if (skipped.length) console.log(`  skipped: ${skipped.join(', ')}`);
   }
   const temporary = await mkdtemp(resolve(tmpdir(), 'connect-gallery-'));
   try {

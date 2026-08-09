@@ -5,28 +5,37 @@
   import DriveList from '$lib/components/DriveList.svelte';
   import Navigation from '$lib/components/Navigation.svelte';
   import TimeSelect from '$lib/components/TimeSelect.svelte';
-  import { fetchRoutes } from '$lib/state/route-list';
+  import { LIMIT_INCREMENT, fetchRoutes, getPagedFilter } from '$lib/state/route-list';
 
   let { data } = $props();
 
   let filter = $state(null);
   let routes = $state(null);
   let lastRoutes = $state(null);
+  let limit = $state(0);
   let filterOpen = $state(false);
 
-  // The load function owns the first page of results; anything after that
-  // (a new time range, load-more, a visibility refetch) is refetched here.
+  // The load function owns the first page; a new range, load-more, or a
+  // visibility refetch is handled here.
   $effect(() => {
     filter = data.filter;
     routes = data.routes;
     lastRoutes = data.routes;
+    limit = data.limit;
   });
 
-  async function reload(next) {
+  async function refetch(nextFilter, nextLimit) {
     lastRoutes = routes;
     routes = null;
-    filter = next;
-    routes = await fetchRoutes(data.dongleId, next).catch(() => null);
+    filter = nextFilter;
+    limit = nextLimit;
+    routes = await fetchRoutes(data.dongleId, nextFilter, nextLimit).catch(() => null);
+  }
+
+  /** checkLastRoutesData: page by raising the limit, over a fresh five-year window. */
+  function loadMore() {
+    if (routes && routes.length < limit) return;
+    refetch(getPagedFilter(), limit + LIMIT_INCREMENT);
   }
 </script>
 
@@ -43,7 +52,8 @@
     {routes}
     {lastRoutes}
     onfilter={() => { filterOpen = true; }}
-    onrefresh={() => reload(filter)}
+    onrefresh={() => refetch(filter, limit)}
+    onloadmore={loadMore}
   />
 </div>
 
@@ -51,5 +61,5 @@
   isOpen={filterOpen}
   {filter}
   onclose={() => { filterOpen = false; }}
-  onselect={(start, end) => reload({ start, end })}
+  onselect={(start, end) => refetch({ start, end }, limit)}
 />

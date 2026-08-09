@@ -2,6 +2,9 @@ import { drives as Drives } from '$lib/api';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+export const FIVE_YEARS = 5 * 365 * DAY_MS;
+export const LIMIT_INCREMENT = 5;
+
 /** The drive list's default window: the last two weeks, rounded up to the hour. */
 export function getDefaultFilter() {
   const d = new Date();
@@ -11,6 +14,18 @@ export function getDefaultFilter() {
     start: d.getTime() - (14 * DAY_MS),
     end: d.getTime(),
   };
+}
+
+/**
+ * The window the drive list actually settles on.
+ *
+ * checkLastRoutesData widened the range to five years and raised the limit as
+ * soon as the dashboard mounted, so the two-week default above was only ever
+ * live for one render. Paging is by `limit`, not by moving this window.
+ */
+export function getPagedFilter() {
+  const end = Date.now();
+  return { start: end - FIVE_YEARS, end };
 }
 
 /**

@@ -96,6 +96,8 @@
       class="relative w-[400px] max-w-[90%] rounded-[4px] bg-[#30373B] p-4 outline-none
              shadow-[0_1px_5px_0_rgba(0,0,0,0.2),0_2px_2px_0_rgba(0,0,0,0.14),0_3px_1px_-2px_rgba(0,0,0,0.12)]"
     >
+      <!-- tailwind's preflight gives inputs `font: inherit`, and the shorthand carries
+           line-height, so the body shim would reach a control that inherited none in React. -->
       <div class="mb-5 flex">
         <aside class={labelClass}>Start date:</aside>
         <input
@@ -105,6 +107,7 @@
           max={maxDate}
           value={startDate}
           oninput={changeStart}
+          style="line-height: normal"
         />
       </div>
       <div class="mb-5 flex">
@@ -116,6 +119,7 @@
           max={maxDate}
           value={endDate}
           oninput={changeEnd}
+          style="line-height: normal"
         />
       </div>
 
