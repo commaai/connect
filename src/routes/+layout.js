@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/browser';
+import localforage from 'localforage';
 
 import { account as Account, devices as Devices } from '$lib/api';
 import { exchangeCode, initAuth, isAuthCallback } from '$lib/auth';
@@ -37,6 +38,16 @@ export async function load({ url }) {
     // session — otherwise it would clobber a token from a real code exchange.
     if (mockScenario === 'anonymous') localStorage.removeItem('authorization');
     else if (!localStorage.getItem('authorization')) localStorage.setItem('authorization', 'mock-token');
+  }
+
+  // App.jsx's constructor stashed a ?pair= token for the dashboard to redeem.
+  const pairToken = url.searchParams.get('pair');
+  if (pairToken) {
+    try {
+      await localforage.setItem('pairToken', pairToken);
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   // The code has to be exchanged before the session is read, or the freshly

@@ -25,6 +25,12 @@
     }
     return 'Could not reach the billing service. Check your internet connection and try again.';
   }
+  /** MUI Modal focuses its child on enter, after the opening click settles. */
+  function autofocusPanel(node) {
+    const id = requestAnimationFrame(() => node.focus());
+    return { destroy: () => cancelAnimationFrame(id) };
+  }
+
 </script>
 
 <script>
@@ -461,6 +467,7 @@
         tabindex="-1"
         style="line-height: 1.5"
         class="paper absolute top-[40%] left-1/2 w-[400px] max-w-[90%] -translate-x-1/2 -translate-y-1/2 p-4"
+        use:autofocusPanel
       >
         {#if planSwitchStatus === 'success'}
           <h2 class="typography title text-white">{`Welcome to ${primePlanName(planSwitchTarget)}`}</h2>
@@ -528,7 +535,16 @@
         onkeydown={(e) => e.key === 'Escape' && (cancelModal = false)}
       ></div>
 
-      <div role="document" tabindex="-1" style="line-height: 1.5" class="paper modal">
+      <!-- Modal autofocuses its child. PrimeManage's modal style omits
+           outline:none (TimeSelect's and DeviceSettingsModal's set it), so the
+           focused paper carries chrome's focus ring. -->
+      <div
+        role="document"
+        tabindex="-1"
+        style="line-height: 1.5"
+        class="paper modal"
+        use:autofocusPanel
+      >
         <h2 class="typography title">Cancel prime subscription</h2>
         {#if cancelError}
           <div class="cancelError">
@@ -622,7 +638,6 @@
   .paper {
     background-color: #30373b;
     border-radius: 4px;
-    outline: none;
     box-shadow:
       0px 1px 5px 0px rgba(0, 0, 0, 0.2),
       0px 2px 2px 0px rgba(0, 0, 0, 0.14),

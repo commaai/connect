@@ -7,6 +7,7 @@
   import AppDrawer from '$lib/components/AppDrawer.svelte';
   import AppHeader from '$lib/components/AppHeader.svelte';
   import DeviceSettingsModal from '$lib/components/DeviceSettingsModal.svelte';
+  import PairingStatusModal from '$lib/components/PairingStatusModal.svelte';
 
   let { children, data } = $props();
 
@@ -91,6 +92,9 @@
   >
     {@render children()}
   </div>
+
+  <!-- explorer redeemed a stashed ?pair= token over whatever page was showing -->
+  <PairingStatusModal onpaired={onPaired} />
 
   <DeviceSettingsModal
     isOpen={Boolean(settingsDongleId)}
