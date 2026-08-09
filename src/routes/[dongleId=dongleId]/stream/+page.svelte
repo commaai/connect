@@ -175,7 +175,7 @@
 <div class="fixed top-0 left-0 w-screen h-full z-[1300] bg-[#030404]">
   <!-- React inherited line-height 1.5 from preflight on html; the body shim
        would shorten every line box in here by a pixel. -->
-  <div
+  <div role="main"
     bind:this={containerEl}
     class="absolute inset-0 bg-[#030404] flex flex-col touch-none
       overflow-hidden select-none [-webkit-touch-callout:none] [-webkit-text-size-adjust:none]

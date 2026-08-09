@@ -87,6 +87,7 @@
   {/if}
 
   <div
+    role="main"
     class="flex flex-col bg-[linear-gradient(180deg,#1D2225_0%,#16181A_100%)]"
     style={isLarge && sidebarWidth ? `width: calc(100% - ${sidebarWidth}px); margin-left: ${sidebarWidth}px` : ''}
   >

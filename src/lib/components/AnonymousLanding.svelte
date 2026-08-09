@@ -48,7 +48,7 @@
   const labelClass = 'w-[190px] text-center text-[18px] font-semibold text-black';
 </script>
 
-<div class="flex h-screen w-full flex-col items-center justify-center">
+<div role="main" class="flex h-screen w-full flex-col items-center justify-center">
   <div class="flex w-full flex-col items-center overflow-y-auto p-5">
     <div class="flex h-[84px] w-[84px] shrink-0 items-center justify-center rounded-[17px] bg-[#1e2224]">
       <img alt="comma" src="/images/comma-white.png" class="h-[45px] w-auto" />

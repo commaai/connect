@@ -40,12 +40,25 @@
       media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2)" />
 
     <style>body { background: #16181A; }</style>
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
+    <meta name="description" content="Manage your comma device, view your drives, and use comma prime features.">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#16181A">
     <link rel="manifest" href="/manifest.json">
     <link rel="shortcut icon" href="/favicon.ico" sizes="any">
     <link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://athena.comma.ai" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Loaded off the critical path: an @import in index.css chained a
+         third-party request in front of first paint. font-display: swap means
+         the fallback shows immediately either way. -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" /></noscript>
     <link rel="dns-prefetch" href="//athena.comma.ai">
     <title>connect</title>
 

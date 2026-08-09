@@ -1,6 +1,5 @@
 <script>
   import * as Sentry from '@sentry/browser';
-  import { BarcodeDetector } from 'barcode-detector/ponyfill';
 
   import { devices as Devices } from '$lib/api';
   import { pairErrorToMessage, verifyPairToken } from '$lib/utils';
@@ -115,6 +114,8 @@
 
   async function startCamera(video) {
     try {
+      // zxing is ~51KB and only the scanner needs it; keep it off the first load.
+      const { BarcodeDetector } = await import('barcode-detector/ponyfill');
       detector = new BarcodeDetector({ formats: ['qr_code'] });
       stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
