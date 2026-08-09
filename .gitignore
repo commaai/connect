@@ -36,6 +36,3 @@ yarn-error.log*
 
 # vite writes these next to the config while resolving it
 vite.config.mjs.timestamp-*
-
-# vite writes a cache here when cacheDir is set outside node_modules
-/.vite

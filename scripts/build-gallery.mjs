@@ -22,8 +22,7 @@ const TIMEZONE = 'America/Los_Angeles';
 const CHANGE_THRESHOLD = 0.0001;
 const CAPTURE_CONCURRENCY = 4;
 
-// Narrowed by --states during the svelte migration, while most states are
-// still stubs and would fail their readiness waits.
+// Mutable so --states can narrow it to the screens being worked on.
 let GALLERY_STATES = [
   { name: 'signin', label: 'Sign in', path: '/', readyText: 'Sign in with Google', anonymous: true },
   { name: 'pair', label: 'Pair a device', path: '/', readyText: 'add new device' },
@@ -412,8 +411,8 @@ async function mockGalleryRequest(request, origin, pageName, fixtures) {
  * has no index.html to hand rollup as an input. So build it in place and copy
  * the adapter's output to where the caller expects it.
  *
- * This is what lets `--base <react-checkout>` diff a Svelte renderer against a
- * React one during the migration.
+ * The plain Vite path below still runs for a `--base` tree that predates the
+ * adapter, so an older checkout can be built as the baseline.
  */
 async function buildRenderer(source, output) {
   if (await fileExists(resolve(source, 'svelte.config.js'))) {

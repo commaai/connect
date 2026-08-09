@@ -45,34 +45,23 @@ Video is the one thing mock mode can't fake: `qcamera.m3u8` returns an empty
 playlist, so the drive view renders with "Unable to load video". Use a real
 public route URL if you need to work on playback.
 
-### Comparing against the React app
+### Visual regression gallery
 
-While the svelte port is in progress, the gallery can build two source trees and
-pixel-diff them, so each ported route can be checked against the React original.
+`bun run build:gallery` renders every screen at desktop and mobile widths against
+fixed fixtures and writes `dist-gallery/connect-gallery.html`. CI publishes the
+report and diffs each run against the baseline it downloads.
 
-Set up the baseline once:
-
-```sh
-./scripts/react-baseline.sh
-```
-
-That creates a detached worktree of `master` at `../comma-connect-react-baseline`
-with **its own** `node_modules`. Both details matter: react, redux and material-ui
-are gone from this branch, so a baseline sharing this repo's dependencies would
-not build, and keeping it outside the repo means vite, vitest and oxlint never scan
-it. Re-run the script any time to refresh it; it is idempotent.
-
-Then diff:
+To diff locally, point `--base` at another checkout of this repo and name the
+commit it is at:
 
 ```sh
 node scripts/build-gallery.mjs --output ./dist-gallery \
-  --base ../comma-connect-react-baseline \
-  --base-sha "$(git rev-parse master)"
+  --base ../connect-before --base-sha "$(git -C ../connect-before rev-parse HEAD)"
 ```
 
-That captures all 30 states; `--states signin` narrows it to one while you work.
-The report lands in `dist-gallery/connect-gallery.html`, and the branch is honest
-when it reports `0 changed`.
+That checkout needs its own `node_modules`. `--states signin,dashboard` narrows a
+run to the screens you are working on, pulling in the page a modal state opens
+over. A change is clean when the report says `0 changed`.
 
 ## Contributing
 
