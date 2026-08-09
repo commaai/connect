@@ -1,3 +1,6 @@
+import * as Sentry from '@sentry/browser';
+
+import { account as Account, devices as Devices } from '$lib/api';
 import { exchangeCode, initAuth, isAuthCallback } from '$lib/auth';
 
 // connect authenticates with a JWT in localStorage and is served as static
@@ -6,6 +9,20 @@ import { exchangeCode, initAuth, isAuthCallback } from '$lib/auth';
 export const ssr = false;
 export const prerender = false;
 export const trailingSlash = 'ignore';
+
+async function loadSession() {
+  const [profile, devices] = await Promise.all([
+    Account.getProfile().catch((err) => {
+      Sentry.captureException(err, { fingerprint: 'layout_fetch_profile' });
+      return null;
+    }),
+    Devices.listDevices().catch((err) => {
+      Sentry.captureException(err, { fingerprint: 'layout_list_devices' });
+      return null;
+    }),
+  ]);
+  return { profile, devices };
+}
 
 /** Runs in the browser only, because ssr is disabled above. */
 export async function load({ url }) {
@@ -29,6 +46,8 @@ export async function load({ url }) {
   }
 
   const token = await initAuth();
+  const authenticated = Boolean(token);
+  const { profile, devices } = authenticated ? await loadSession() : { profile: null, devices: null };
 
-  return { authenticated: Boolean(token), mockScenario };
+  return { authenticated, profile, devices, mockScenario };
 }
