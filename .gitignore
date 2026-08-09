@@ -33,3 +33,6 @@ yarn-error.log*
 
 # Sentry Auth Token
 .env.sentry-build-plugin
+
+# vite writes these next to the config while resolving it
+vite.config.mjs.timestamp-*
