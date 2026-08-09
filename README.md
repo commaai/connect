@@ -11,14 +11,27 @@ Try it with your openpilot device:
 * Install dependencies: `bun install`
 * Start dev server: `bun start`
 
+Or `./live.sh`, which installs bun if it is missing, installs dependencies, starts
+the dev server and opens a browser on it once it is listening. It opens the port
+vite actually bound, which is not 3000 if something else already has it.
+
+```sh
+./live.sh                  # against the real comma API
+./live.sh mock             # against the bundled mock backend, below
+./live.sh mock noprime     # ... in a particular scenario
+./live.sh noprime          # same thing; a scenario name implies mock
+./live.sh --no-open        # leave the browser alone
+./live.sh -- --host        # anything after -- goes to vite
+```
+
 API and useradmin URL roots can be overridden at build time with
 `VITE_COMMA_URL_ROOT`, `VITE_ATHENA_URL_ROOT`, `VITE_BILLING_URL_ROOT`, and
 `VITE_USERADMIN_URL_ROOT`. Docker Compose accepts the same variables.
 
 ### Mock mode
 
-`bun run start:mock` runs the app against a fake comma backend, so every screen
-works with no comma account and no paired device. The dev server answers the API,
+`bun run start:mock`, or `./live.sh mock`, runs the app against a fake comma
+backend, so every screen works with no comma account and no paired device. The dev server answers the API,
 athena, and billing roots itself, and seeds a session token, so nothing reaches
 the real services.
 
@@ -34,7 +47,11 @@ Pick what the fake account looks like with `VITE_MOCK_SCENARIO`:
 
 ```sh
 VITE_MOCK_SCENARIO=noprime bun run start:mock
+./live.sh noprime                              # the same, and opens a browser
 ```
+
+`live.sh` reads the scenario names out of `config/mock/fixtures.js`, so it rejects
+a typo instead of quietly giving you `default`.
 
 Fixtures and the request table live in `config/mock/`. `fixtures.js` and
 `handlers.js` are pure and framework-agnostic, so they can also back a browser
