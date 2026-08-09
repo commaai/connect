@@ -29,7 +29,16 @@ const routes = [{
 describe('segments', () => {
   it('finds current segment', async () => {
     const [route] = routes;
-    expect(getSegmentNumber(route)).toBe(0);
+    // The offset is explicit now; the React version fell back to reading the
+    // playback offset out of the global redux store.
+    expect(getSegmentNumber(route, 0)).toBe(0);
+    expect(getSegmentNumber(route, 125000)).toBe(2);
+  });
+
+  it('has no segment without an offset', () => {
+    const [route] = routes;
+    expect(getSegmentNumber(route, undefined)).toBe(null);
+    expect(getSegmentNumber(null, 0)).toBe(null);
   });
 
   it('can check if it has segment metadata', () => {

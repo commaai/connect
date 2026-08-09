@@ -30,6 +30,7 @@
     "@mapbox/mapbox-sdk": "^0.15.3",
     "@material-ui/core": "^1.5.1",
     "@material-ui/icons": "^1.1.1",
+    "@sentry/browser": "^10.69.0",
     "@sentry/react": "^7.64.0",
     "@sentry/vite-plugin": "^2.7.0",
     "barcode-detector": "^3.0.8",
