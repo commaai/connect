@@ -176,13 +176,14 @@
     background-color: rgba(255, 255, 255, 0.12);
   }
 
-  /* MUI CircularProgress, size 32, styles.fabProgress marginTop */
+  /* MUI CircularProgress, size 32, styles.fabProgress marginTop. No color prop
+     at the call site, so it is colorPrimary: palette.primary.main. */
   .progress {
     display: inline-block;
     width: 32px;
     height: 32px;
     margin-top: 10px;
-    color: #fff;
+    color: #57a9e3;
   }
 
   .progress svg {
