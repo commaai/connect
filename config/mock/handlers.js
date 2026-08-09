@@ -106,7 +106,9 @@ function handleApi(context, method, path, query, body) {
     return json({ first_pair: true, dongle_id: dongleId });
   }
   if (path === 'v2/auth') {
-    return json({ access_token: 'mock-token' });
+    // Distinct from the seeded session token, so an oauth code exchange is
+    // observable in tests rather than indistinguishable from the seed.
+    return json({ access_token: 'mock-exchanged-token' });
   }
 
   const uploadMatch = path.match(/^v1\/([a-f0-9]{16})\/upload_urls$/);
