@@ -100,7 +100,6 @@
     onclose={() => { settingsDongleId = null; }}
     onunpaired={async () => { settingsDongleId = null; await invalidateAll(); goto('/'); }}
     onprimenav={() => { const id = settingsDongleId; settingsDongleId = null; goto(`/${id}/prime`); }}
-    onuploads={() => { const id = settingsDongleId; settingsDongleId = null; goto(`/${id}/files`); }}
   />
 {:else}
   {@render children()}

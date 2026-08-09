@@ -4,6 +4,7 @@
 
   import { devices as Devices } from '$lib/api';
   import CommacareBadge, { COMMACARE_URL } from './CommacareBadge.svelte';
+  import UploadQueue from './drive/UploadQueue.svelte';
   import MuiTextField from './MuiTextField.svelte';
 
   let {
@@ -14,11 +15,11 @@
     onclose,
     onunpaired,
     onprimenav,
-    onuploads,
   } = $props();
 
   let deviceAlias = $state('');
   let savedAlias = $state(null);
+  let uploadModal = $state(false);
   let loadingDeviceAlias = $state(false);
   let loadingDeviceShare = $state(false);
   let hasSavedAlias = $state(false);
@@ -36,6 +37,7 @@
     untrack(() => {
       deviceAlias = device?.dongle_id === id ? device.alias : '';
       savedAlias = null;
+      uploadModal = false;
       loadingDeviceAlias = false;
       loadingDeviceShare = false;
       hasSavedAlias = false;
@@ -197,7 +199,8 @@
   const SHARE_PATH = 'M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z';
 </script>
 
-<svelte:window onkeydown={(e) => { if (e.key === 'Escape') onEscape(); }} />
+<!-- MUI routes Escape to the top modal only -->
+<svelte:window onkeydown={(e) => { if (!uploadModal && e.key === 'Escape') onEscape(); }} />
 
 {#snippet titleContainer(title)}
   <div class={titleRow}>
@@ -255,7 +258,7 @@
       <div><button type="button" class="{outlinedButton} {spacedButton}" onclick={onPrimeSettings}>Prime settings</button><button type="button" class="{outlinedButton} {spacedButton}" onclick={() => { unpairConfirm = true; }}>Unpair</button></div>
 
       <div class="flex items-end">
-        <button type="button" class="{outlinedButton} {spacedButton}" onclick={() => onuploads?.()}>Uploads</button>
+        <button type="button" class="{outlinedButton} {spacedButton}" onclick={() => { uploadModal = true; }}>Uploads</button>
         {#if commacare}
           <CommacareBadge variant="pill" />
         {/if}
@@ -348,6 +351,16 @@
     </div>
   </div>
 {/if}
+
+<!-- DeviceSettingsModal kept its own Modal open and rendered the queue as a
+     sibling, so both backdrops stack and the settings paper dims behind it. -->
+<UploadQueue
+  open={uploadModal}
+  update={uploadModal}
+  {device}
+  currentDongleId={dongleId}
+  onclose={() => { uploadModal = false; }}
+/>
 
 <style>
   .progress {
