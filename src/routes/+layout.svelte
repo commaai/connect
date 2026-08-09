@@ -4,6 +4,7 @@
   import { page } from '$app/state';
 
   import '../index.css';
+  import AnonymousLanding from '$lib/components/AnonymousLanding.svelte';
   import AppDrawer from '$lib/components/AppDrawer.svelte';
   import AppHeader from '$lib/components/AppHeader.svelte';
   import DeviceSettingsModal from '$lib/components/DeviceSettingsModal.svelte';
@@ -16,15 +17,24 @@
 
   const selectedDongleId = $derived(page.params.dongleId ?? null);
 
+  // App.jsx: showLogin was false whenever url.js could parse a zoom or a segment
+  // range out of the path, so a shared drive link opened the explorer for a
+  // signed-out visitor instead of the landing page. A log id in the path is what
+  // made a URL shareable, so that is the test. Signed out there is no profile and
+  // no device list, exactly as the redux store started out.
+  const sharedDrive = $derived(Boolean(page.params.logId));
+  const showShell = $derived(data.authenticated || sharedDrive);
+  const devices = $derived(data.devices ?? []);
+
   // explorer rendered BodyTeleop *instead of* the header, drawer and window, so
   // the teleop screen owns the whole viewport.
   const fullScreen = $derived(page.route.id === '/[dongleId=dongleId]/stream');
-  const device = $derived(data.devices?.find((d) => d.dongle_id === selectedDongleId) ?? null);
-  const settingsDevice = $derived(data.devices?.find((d) => d.dongle_id === settingsDongleId) ?? null);
+  const device = $derived(devices.find((d) => d.dongle_id === selectedDongleId) ?? null);
+  const settingsDevice = $derived(devices.find((d) => d.dongle_id === settingsDongleId) ?? null);
 
   // explorer.jsx: with no devices and no selected one, the upsell takes the whole
   // window and the drawer collapses to nothing.
-  const noDevicesUpsell = $derived(data.devices?.length === 0 && !selectedDongleId);
+  const noDevicesUpsell = $derived(data.authenticated && devices.length === 0 && !selectedDongleId);
 
   // The drawer is permanent on wide viewports, and takes 20% of the window down
   // to a 280px floor.
@@ -72,7 +82,7 @@
 
 {#if data.authenticated && fullScreen}
   {@render children()}
-{:else if data.authenticated}
+{:else if showShell}
   <AppHeader
     profile={data.profile}
     dongleId={selectedDongleId}
@@ -83,7 +93,7 @@
 
   {#if !noDevicesUpsell}
     <AppDrawer
-      devices={data.devices}
+      {devices}
       {device}
       profile={data.profile}
       {selectedDongleId}
@@ -105,18 +115,21 @@
     {@render children()}
   </div>
 
-  <!-- explorer redeemed a stashed ?pair= token over whatever page was showing -->
-  <PairingStatusModal onpaired={onPaired} />
+  {#if data.authenticated}
+    <!-- explorer redeemed a stashed ?pair= token over whatever page was showing -->
+    <PairingStatusModal onpaired={onPaired} />
 
-  <DeviceSettingsModal
-    isOpen={Boolean(settingsDongleId)}
-    dongleId={settingsDongleId}
-    device={settingsDevice}
-    profile={data.profile}
-    onclose={() => { settingsDongleId = null; }}
-    onunpaired={async () => { settingsDongleId = null; await invalidateAll(); goto('/'); }}
-    onprimenav={() => { const id = settingsDongleId; settingsDongleId = null; goto(`/${id}/prime`); }}
-  />
+    <DeviceSettingsModal
+      isOpen={Boolean(settingsDongleId)}
+      dongleId={settingsDongleId}
+      device={settingsDevice}
+      profile={data.profile}
+      onclose={() => { settingsDongleId = null; }}
+      onunpaired={async () => { settingsDongleId = null; await invalidateAll(); goto('/'); }}
+      onprimenav={() => { const id = settingsDongleId; settingsDongleId = null; goto(`/${id}/prime`); }}
+    />
+  {/if}
 {:else}
-  {@render children()}
+  <!-- App.jsx anonymousRoutes: one screen for every path a signed-out visitor asks for -->
+  <AnonymousLanding />
 {/if}

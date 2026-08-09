@@ -1,5 +1,7 @@
 <script>
-  import RouteStub from "$lib/RouteStub.svelte";
+  import DrivePage from '$lib/components/drive/DrivePage.svelte';
+
+  let { data } = $props();
 </script>
 
-<RouteStub name="Drive view (segment range)" source="src/components/DriveView/index.jsx" />
+<DrivePage {data} initialZoom={data.initialZoom} />

@@ -11,6 +11,11 @@ const config = {
     '!src/**/*.test.js',
   ],
   coveragePathIgnorePatterns: [],
+  // SvelteKit's `$lib` alias comes from svelte.config.js, which jest never reads.
+  moduleNameMapper: {
+    '^\\$lib/(.*)$': '<rootDir>/src/lib/$1',
+    '^\\$app/(.*)$': '<rootDir>/config/jest/appStub.cjs',
+  },
   setupFilesAfterEnv: ['<rootDir>/config/jest/setupTests.js'],
   testEnvironment: 'jsdom',
   testPathIgnorePatterns: ['node_modules'],
@@ -19,7 +24,7 @@ const config = {
       'jest-chain-transform',
       {
         transformers: [
-          `${cwd}/config/jest/importMetaTransform.js`,
+          `${cwd}/config/jest/importMetaTransform.cjs`,
           ['@swc/jest', {
             jsc: {
               target: 'es2017',
@@ -34,8 +39,8 @@ const config = {
         ],
       },
     ],
-    '^.+\\.css$': '<rootDir>/config/jest/cssTransform.js',
-    '^(?!.*\\.(js|jsx|mjs|cjs|ts|tsx|css|json)$)': '<rootDir>/config/jest/fileTransform.js',
+    '^.+\\.css$': '<rootDir>/config/jest/cssTransform.cjs',
+    '^(?!.*\\.(js|jsx|mjs|cjs|ts|tsx|css|json)$)': '<rootDir>/config/jest/fileTransform.cjs',
   },
   transformIgnorePatterns: [
     'node_modules/(?!(.*@commaai.*)/)',

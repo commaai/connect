@@ -1,7 +1,9 @@
 <script>
   import { onMount } from 'svelte';
 
-  import { AuthConfig, PROVIDER_APPLE } from '$lib/auth';
+  import { page } from '$app/state';
+
+  import { AuthConfig, PROVIDER_APPLE, rememberRedirect } from '$lib/auth';
   import { stringifyQuery } from '$lib/utils/query';
   import appleIcon from '$lib/assets/auth_apple.png';
   import githubIcon from '$lib/assets/auth_github.png';
@@ -17,6 +19,10 @@
     // package does not export, so this navigated to "/undefined?code=...".
     window.location = `${AuthConfig.AUTH_PATH}?${stringifyQuery({ code, state, provider: PROVIDER_APPLE })}`;
   }
+
+  // anonymous.jsx componentDidMount: whatever path the visitor asked for is
+  // stashed here, because this screen stands in for every one of them.
+  onMount(() => rememberRedirect(page.url));
 
   onMount(() => {
     const script = document.createElement('script');

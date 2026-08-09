@@ -1,20 +1,7 @@
 <script>
   import { goto, invalidateAll } from '$app/navigation';
-  import { page } from '$app/state';
-  import { onMount } from 'svelte';
 
-  import AnonymousLanding from '$lib/components/AnonymousLanding.svelte';
   import NoDeviceUpsell from '$lib/components/NoDeviceUpsell.svelte';
-  import RouteStub from '$lib/RouteStub.svelte';
-  import { rememberRedirect } from '$lib/auth';
-
-  let { data } = $props();
-
-  const noDevices = $derived(data.devices?.length === 0);
-
-  onMount(() => {
-    if (!data.authenticated) rememberRedirect(page.url);
-  });
 
   async function onPaired(dongleId) {
     await invalidateAll();
@@ -22,10 +9,9 @@
   }
 </script>
 
-{#if !data.authenticated}
-  <AnonymousLanding />
-{:else if noDevices}
-  <NoDeviceUpsell onpaired={onPaired} />
-{:else}
-  <RouteStub name="Dashboard" source="src/components/explorer.jsx" />
-{/if}
+<!--
+  +page.js redirects to /{dongleId} as soon as there is a device to pick, and the
+  layout shows the landing page to anyone signed out, so the only way to get here
+  is signed in with nothing paired.
+-->
+<NoDeviceUpsell onpaired={onPaired} />

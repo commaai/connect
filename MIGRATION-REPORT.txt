@@ -42,14 +42,14 @@ TESTS
 -----
 
                         React        SvelteKit
-    suites                 11             10
-    tests                  30             72     +140%
-    statement coverage      -          39.29%
-    branch coverage         -          73.83%
+    suites                 11             11
+    tests                  30             80     +167%
+    statement coverage      -          40.61%
+    branch coverage         -          74.69%
 
 Coverage is a real number now. `jest --coverage` reported 0% for every file on
 both trees, because @swc/jest emits no istanbul instrumentation and the default
-babel coverage provider therefore measured nothing. jest.config.js sets
+babel coverage provider therefore measured nothing. jest.config.cjs sets
 coverageProvider: 'v8'.
 
 The two sets are not the same tests. React's included component-render tests via
@@ -105,24 +105,55 @@ NEW TOOLING
                           noprime, body, anonymous). No application code knows it
                           exists and it cannot reach a production build.
 
+TOOLING FIXES
+-------------
+
+`"type": "module"` is set. Node was reparsing svelte.config.js as ESM and warning
+about it on every build and every lint. Only the jest configs needed to be CommonJS;
+they are .cjs now, and jest still transforms the .js tests to CommonJS itself.
+
+jest resolves `$lib` and stubs `$app`, so a module behind SvelteKit's aliases can be
+unit tested rather than having to import by relative path to stay testable.
+
+
 LINTING
 -------
 
 oxlint does not parse .svelte, so `bun run lint` covered only the .js files —
 every component was unlinted. Verified by putting an undefined reference in a
-component and watching lint pass. `bun run check` now runs svelte-check over all
-51 files and lint depends on it, so CI covers components too.
+component and watching lint pass. `bun run check` now runs svelte-check over every
+component and lint depends on it, so CI covers components too.
+
+
+ROUTING PARITY
+--------------
+
+url.js parsed the path with two loose regexes, and their overlap carried more
+meaning than it looked like it did.
+
+getSegmentRange matched `/{dongleId}/{logId}/{start}/{end}`, the URL the timeline
+writes when a range is selected, with the range in whole seconds of route-relative
+offset. That is now a real route rather than a stub, so zooming the timeline no
+longer navigates away from the drive. Ranges are clamped to the route, which the
+reducer did not do; a hand-typed range used to leave the timeline unusable.
+
+getZoom also matched `/{dongleId}/{start}/{end}`, which nothing ever generated:
+urlForState only emitted a range after a log id, and without one there was no
+current route, so explorer rendered the dashboard and the zoom went unused. That
+path now redirects to the dashboard instead of carrying a dead range.
+
+App.jsx computed `showLogin` from those same two functions, which is what made a
+shared drive link open the explorer for a signed-out visitor. A log id in the path
+is what a shareable URL has, so that is the test the layout uses. Every other
+signed-out path renders the landing page, as anonymousRoutes did, and the path is
+kept in sessionStorage so signing in returns to it.
 
 
 KNOWN GAPS
 ----------
 
   - jest still runs the .js tests; components have no test runner. vitest with
-    @testing-library/svelte would cover them, and would let the `"type": "module"`
-    change below happen at the same time.
-  - `"type": "module"` is not set, so svelte.config.js logs a module-type warning
-    on every build. Fixing it means renaming the jest configs to .cjs; better
-    done when jest gives way to vitest.
+    @testing-library/svelte would cover them.
   - src/index.css still imports tailwind in `important` mode and carries a
     body line-height shim, both of which existed to coexist with MUI. Removing
     the shim was tried and regressed all 30 captures, so it needs the per-variant

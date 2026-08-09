@@ -67,14 +67,12 @@ Then diff:
 ```sh
 node scripts/build-gallery.mjs --output ./dist-gallery \
   --base ../comma-connect-react-baseline \
-  --base-sha "$(git rev-parse master)" \
-  --states signin
+  --base-sha "$(git rev-parse master)"
 ```
 
-`--states` limits the run to states that have actually been ported; without it
-the unported ones fail their readiness waits and abort the capture. Drop it once
-everything is ported. The report lands in `dist-gallery/connect-gallery.html`;
-a port is done when its states report `0 changed`.
+That captures all 30 states; `--states signin` narrows it to one while you work.
+The report lands in `dist-gallery/connect-gallery.html`, and the branch is honest
+when it reports `0 changed`.
 
 ## Contributing
 
@@ -91,6 +89,8 @@ The pieces below are worth knowing because they affect everything else.
  * `SvelteKit` - File-based routing under `src/routes`. Path segments are validated by matchers in
    `src/params`, so `/{dongleId}` and `/{dongleId}/{logId}` can be siblings and junk 404s instead of
    parsing into `NaN`. Server data is fetched in `load` functions rather than held globally.
+   A log id in the path is what makes a URL a shared drive link, so those routes render for
+   signed-out visitors; every other signed-out path gets the landing page.
  * `adapter-static` - The app is a JWT-in-localStorage SPA with `ssr = false`, built to `dist/` with an
    `index.html` fallback. That is what nginx and Cloudflare Pages already serve.
  * `Tailwind v4` - All styling. There is no component library; MUI's rendering was ported into the

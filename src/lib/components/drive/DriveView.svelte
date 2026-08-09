@@ -15,19 +15,24 @@
     routes = null,
     onclose,
     onanalytics = undefined,
+    initialZoom = null,
   } = $props();
 
-  const zoom = $derived(playback.zoom ?? { start: 0, end: route?.duration ?? 0, previous: null });
+  const wholeRoute = $derived({ start: 0, end: route?.duration ?? 0, previous: null });
+  const zoom = $derived(playback.zoom ?? initialZoom ?? wholeRoute);
 
   // explorer only mounted DriveView after pushTimelineRange had set the zoom and
   // the loop. Seed them here so a direct load does not render an empty timeline.
+  // Only when nothing has set them: zooming the timeline navigates to the range
+  // path, and re-deriving from those whole-second params would round the zoom
+  // the user just dragged. ACTION_ROUTES_METADATA seeded the same way, once.
   $effect(() => {
     if (!route) return;
     if (!playback.zoom) {
-      playback.zoom = { start: 0, end: route.duration, previous: null };
+      playback.zoom = initialZoom ?? { start: 0, end: route.duration, previous: null };
     }
     if (!playback.loop) {
-      playback.selectLoop(0, route.duration);
+      playback.selectLoop(playback.zoom.start, playback.zoom.end);
     }
   });
 

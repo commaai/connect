@@ -1,6 +1,7 @@
 {
   "name": "connect",
   "version": "0.8.0",
+  "type": "module",
   "scripts": {
     "start": "vite",
     "start:mock": "vite --mode mock",
