@@ -670,6 +670,7 @@
     user-select: none;
     outline: none;
     -webkit-appearance: none;
+    appearance: none;
     -moz-appearance: none;
     -webkit-tap-highlight-color: transparent;
     transition:
@@ -747,6 +748,7 @@
     user-select: none;
     outline: none;
     -webkit-appearance: none;
+    appearance: none;
     -moz-appearance: none;
     -webkit-tap-highlight-color: transparent;
     transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;

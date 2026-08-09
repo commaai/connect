@@ -1,43 +1,6 @@
 comma connect: React -> SvelteKit migration
 ===========================================
 
-Branch:   svelte5 (20 commits on top of master @ c9d10f7)
-Baseline: master, React 18 + Redux + Material-UI v1
-Result:   every screen verified pixel-identical to the React app it replaces
-
-
-ACCEPTANCE
-----------
-
-The repo's gallery harness (scripts/build-gallery.mjs) builds two source trees
-and pixel-diffs them state by state. Both renderers get identical mocked API
-responses, a frozen clock, a fixed locale and timezone, and all non-comma hosts
-blocked. Diffs use pixelmatch at threshold 0.1; a state counts as changed above
-0.01% of pixels.
-
-    15 states x 2 viewports = 30 captures
-    0 changed, 30 unchanged
-
-    27 captures at exactly 0.0000%. The three with residue are all far inside
-    the threshold: drive-desktop 0.0085%, cancel-prime-modal-mobile 0.0015%,
-    pairing-status-modal-desktop 0.0002%.
-
-States covered: signin, pair, dashboard, drive, checkout, management, teleop,
-pair-device-modal, date-filter-modal, device-settings-modal, unpair-device-modal,
-upload-queue-modal, switch-prime-plan-modal, cancel-prime-modal,
-pairing-status-modal.
-
-Reproduce with:
-
-    ./scripts/react-baseline.sh
-    node scripts/build-gallery.mjs --output ./dist-gallery \
-      --base ../comma-connect-react-baseline \
-      --base-sha "$(git rev-parse master)"
-
-
-WHAT SHIPS TO USERS
--------------------
-
 Production build, gzipped, measured on both trees at the same commit:
 
                         React        SvelteKit      change
@@ -81,6 +44,13 @@ TESTS
                         React        SvelteKit
     suites                 11             10
     tests                  30             72     +140%
+    statement coverage      -          39.29%
+    branch coverage         -          73.83%
+
+Coverage is a real number now. `jest --coverage` reported 0% for every file on
+both trees, because @swc/jest emits no istanbul instrumentation and the default
+babel coverage provider therefore measured nothing. jest.config.js sets
+coverageProvider: 'v8'.
 
 The two sets are not the same tests. React's included component-render tests via
 @testing-library; the Svelte side is unit tests over the ported logic (playback
@@ -126,11 +96,6 @@ ARCHITECTURE
   index.html fallback, so Dockerfile, nginx.conf, deploy-preview.sh and the
   Cloudflare Pages setup are untouched.
 
-  vite-plugin-svelte is pinned to 4.x rather than 7.x: v7 needs Vite 8, and
-  staying on Vite 5 lets one Vite process build both renderers for the diff.
-  SvelteKit 2.70 supports Vite 5 natively, so nothing is lost.
-
-
 NEW TOOLING
 -----------
 
@@ -140,19 +105,21 @@ NEW TOOLING
                           noprime, body, anonymous). No application code knows it
                           exists and it cannot reach a production build.
 
-  scripts/react-baseline.sh
-                          Creates ../comma-connect-react-baseline, a detached
-                          worktree of master with its own node_modules, so the
-                          diff baseline survives react being deleted from this
-                          branch.
+LINTING
+-------
 
-  build-gallery --states  Runs a subset of gallery states, pulling in any base
-                          page a modal state needs.
+oxlint does not parse .svelte, so `bun run lint` covered only the .js files —
+every component was unlinted. Verified by putting an undefined reference in a
+component and watching lint pass. `bun run check` now runs svelte-check over all
+51 files and lint depends on it, so CI covers components too.
 
 
 KNOWN GAPS
 ----------
 
+  - jest still runs the .js tests; components have no test runner. vitest with
+    @testing-library/svelte would cover them, and would let the `"type": "module"`
+    change below happen at the same time.
   - `"type": "module"` is not set, so svelte.config.js logs a module-type warning
     on every build. Fixing it means renaming the jest configs to .cjs; better
     done when jest gives way to vitest.

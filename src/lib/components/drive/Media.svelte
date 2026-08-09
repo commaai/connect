@@ -970,6 +970,7 @@
     user-select: none;
     outline: none;
     -webkit-appearance: none;
+    appearance: none;
     -moz-appearance: none;
     -webkit-tap-highlight-color: transparent;
     transition:

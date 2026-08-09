@@ -219,6 +219,7 @@
     user-select: none;
     outline: none;
     -webkit-appearance: none;
+    appearance: none;
     -webkit-tap-highlight-color: transparent;
     box-shadow:
       0px 1px 5px 0px rgba(0, 0, 0, 0.2),

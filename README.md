@@ -83,10 +83,23 @@ a port is done when its states report `0 changed`.
 * Keep files small and clean
 * Use branches / pull requests to isolate work. Don't do work that can't be merged quickly, find ways to break it up
 
-## Libraries Used
-There's a ton of them, but these are worth mentioning because they sort of affect everything.
+## Architecture
+The pieces below are worth knowing because they affect everything else.
 
- * `React` - Object oriented components with basic lifecycle callbacks rendered by state and prop changes.
- * `Redux` - Sane formal *global* scope. This is not a replacement for component state, which is the best way to store local component level variables and trigger re-renders. Redux state is for global state that many unrelated components care about. No free-form editing, only specific pre-defined actions. [Redux DevTools](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd?hl=en) can be very helpful.
- * `@material-ui` - Lots of fully featured highly customizable components for building the UIs with. Theming system with global and per-component overrides of any CSS values.
- * `react-router-redux` - the newer one, 5.x.... Mindlessly simple routing with convenient global access due to redux
+ * `Svelte 5` - Components in runes mode: `$state`, `$derived`, `$effect`, `$props`. No stores and no
+   `export let`; reactivity is at the value, not the component.
+ * `SvelteKit` - File-based routing under `src/routes`. Path segments are validated by matchers in
+   `src/params`, so `/{dongleId}` and `/{dongleId}/{logId}` can be siblings and junk 404s instead of
+   parsing into `NaN`. Server data is fetched in `load` functions rather than held globally.
+ * `adapter-static` - The app is a JWT-in-localStorage SPA with `ssr = false`, built to `dist/` with an
+   `index.html` fallback. That is what nginx and Cloudflare Pages already serve.
+ * `Tailwind v4` - All styling. There is no component library; MUI's rendering was ported into the
+   components, which is why `src/index.css` still imports tailwind in `important` mode and carries a
+   body `line-height` shim. Both exist only to match the old Material-UI metrics and should go together.
+ * `mapbox-gl` - Used directly. Markers are positioned by projecting in JavaScript
+   (`src/lib/utils/mercator.js`) rather than asking the map, so they still render when tiles fail to load.
+
+The only global mutable state left is playback (`src/lib/state/playback.svelte.js`), a rune class over the
+same wall-clock arithmetic the old reducer used: the offset is derived from `Date.now()` rather than ticked.
+
+`MIGRATION-REPORT.txt` has the measured before/after numbers from the React rewrite.
