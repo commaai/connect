@@ -14,7 +14,7 @@
      part of the layout, which is what MUI's Drawer variants did. -->
 {#if !isPermanent && open}
   <div
-    class="fixed inset-0 z-40 bg-black/50"
+    class="fixed inset-0 z-[1200] bg-black/50"
     role="presentation"
     onclick={onclose}
     onkeydown={(e) => e.key === 'Escape' && onclose()}
@@ -22,7 +22,7 @@
 {/if}
 
 <aside
-  class="fixed left-0 bottom-0 z-40 transition-transform"
+  class="fixed left-0 bottom-0 z-[1200] transition-transform"
   class:top-0={!isPermanent}
   class:top-auto={isPermanent}
   style="width: {width}px; {isPermanent ? '' : `transform: translateX(${visible ? '0' : '-100%'})`}"
