@@ -339,6 +339,7 @@
     <div
       role="document"
       tabindex="-1"
+      style="line-height: 1.5"
       class="absolute top-1/2 left-1/2 w-[400px] max-w-[90%] -translate-x-1/2 -translate-y-1/2 rounded-[4px] bg-[#30373B] p-4 outline-none
              shadow-[0_1px_5px_0_rgba(0,0,0,0.2),0_2px_2px_0_rgba(0,0,0,0.14),0_3px_1px_-2px_rgba(0,0,0,0.12)]"
     >
@@ -354,11 +355,10 @@
 
       {#if hasCamera === false}
         <!-- MUI Typography body1: 0.875rem, not the browser's 16px default -->
-        <p class="mb-[5px] text-[0.875rem]">{cameraError || 'Camera not found, please enable camera access.'}</p>
-        <!-- React sized this empty line box with tailwind's `html { line-height: 1.5 }`;
-             the body shim would shave 0.6px off it -->
-        <br style="line-height: 1.5" />
-        <p class="text-[0.875rem]">You can also scan the QR code using any other QR code reader application.</p>
+        <p class="mb-[5px] text-[0.875rem]" style="line-height: 1.46429em">{cameraError || 'Camera not found, please enable camera access.'}</p>
+        <!-- React's <br>: an empty line box sized by the panel's inherited 1.5 -->
+        <br />
+        <p class="text-[0.875rem]" style="line-height: 1.46429em">You can also scan the QR code using any other QR code reader application.</p>
       {:else}
         <div class="videoContainer {scrim ? 'videoScrim' : ''}">
           <canvas class="qrCanvas" bind:this={canvasEl}></canvas>

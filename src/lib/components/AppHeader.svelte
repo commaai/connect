@@ -26,7 +26,7 @@
         <MenuIcon />
       </button>
     {:else}
-      <a href={home} class="leading-none">
+      <a href={home} style="line-height: 0">
         <img alt="comma" src="/images/comma-white.png" class="mx-[28px] h-[34px] w-[18.9px]" />
       </a>
     {/if}
