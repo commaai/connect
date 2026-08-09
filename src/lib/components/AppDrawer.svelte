@@ -4,6 +4,8 @@
   let {
     devices, device, profile, selectedDongleId,
     isPermanent = false, open = false, width = 280,
+    /** Where the header ends, so the drawer can start under it. */
+    headerHeight = 64,
     onclose, onselect, onsettings,
   } = $props();
 
@@ -14,7 +16,8 @@
      part of the layout, which is what MUI's Drawer variants did. -->
 {#if !isPermanent && open}
   <div
-    class="fixed inset-0 z-[1200] bg-black/50"
+    class="fixed inset-x-0 bottom-0 z-[1200] bg-black/50"
+    style="top: {headerHeight}px"
     role="presentation"
     onclick={onclose}
     onkeydown={(e) => e.key === 'Escape' && onclose()}
@@ -23,19 +26,14 @@
 
 <aside
   class="fixed left-0 bottom-0 z-[1200] transition-transform"
-  class:top-0={!isPermanent}
   class:top-auto={isPermanent}
-  style="width: {width}px; {isPermanent ? '' : `transform: translateX(${visible ? '0' : '-100%'})`}"
+  style="width: {width}px; {isPermanent ? '' : `top: ${headerHeight}px; transform: translateX(${visible ? '0' : '-100%'})`}"
   aria-hidden={!visible}
 >
-  <div class="ml-safe-left flex h-full flex-col bg-[linear-gradient(180deg,#1B2023_0%,#111516_100%)]">
-    {#if !isPermanent}
-      <a href="/" class="mx-2 flex min-h-[64px] items-center" onclick={onclose}>
-        <img alt="comma" src="/images/comma-white.png" class="mx-6 w-[18.9px]" />
-        <span class="text-xl font-extrabold">connect</span>
-      </a>
-    {/if}
-
+  <div
+    class="ml-safe-left flex h-full flex-col border-r border-[var(--c-bar-edge)]
+           bg-[linear-gradient(180deg,var(--c-rail-top)_0%,var(--c-rail-bot)_100%)]"
+  >
     <DeviceList {devices} {device} {profile} {selectedDongleId} {onselect} {onsettings} />
   </div>
 </aside>

@@ -185,12 +185,12 @@
     <div
       class={isLandscape
         ? 'absolute left-2 top-2 z-20 flex items-center gap-1'
-        : 'flex items-center px-3 py-2 bg-[#1D2225] border-b border-white/10 min-h-[64px] z-10'}
+        : 'flex items-center px-3 py-2 bg-[var(--c-page-top)] border-b border-ink/10 min-h-[64px] z-10'}
     >
       <button
         class={isLandscape
-          ? 'flex items-center rounded-full hover:text-white/90 text-white/60 p-2 w-10 h-10 bg-glass cursor-pointer'
-          : 'text-white p-2 cursor-pointer'}
+          ? 'flex items-center rounded-full hover:text-ink/90 text-ink/60 p-2 w-10 h-10 bg-glass cursor-pointer'
+          : 'text-ink p-2 cursor-pointer'}
         onclick={handleClose}
         aria-label="back"
       >
@@ -209,7 +209,7 @@
       </button>
       <div
         class={isLandscape
-          ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-white glass bg-black/30'
+          ? 'rounded-[20px] px-3.5 h-10 flex items-center text-base font-medium text-ink glass bg-black/30'
           : 'text-base font-medium ml-2 flex-1'}
       >
         {deviceName}
@@ -249,7 +249,7 @@
 
     {#if connected && notCar && !started}
       <div class="absolute w-full bottom-36 2xl:bottom-12 pointer-events-none text-center select-none">
-        <span class="text-sm md:text-base text-white/70">Turn on comma body ignition to remote control</span>
+        <span class="text-sm md:text-base text-ink/70">Turn on comma body ignition to remote control</span>
       </div>
     {/if}
 

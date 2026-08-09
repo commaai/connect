@@ -50,7 +50,7 @@
   {#if data.profile && data.device}
     {#if !hasAccess}
       <!-- MUI Typography, default variant body1 -->
-      <p class="text-[0.875rem] text-white" style="line-height: 1.46429em">No access</p>
+      <p class="text-[0.875rem] text-ink" style="line-height: 1.46429em">No access</p>
     {:else if manage}
       <PrimeManage
         dongleId={data.dongleId}

@@ -25,7 +25,7 @@
   placement="top"
   offset={8}
   opacity={1}
-  panelClass="rounded-[4px] bg-[#1e2224] px-2 py-1 text-[10px] text-white"
+  panelClass="rounded-[4px] bg-[var(--c-grey-900)] px-2 py-1 text-[10px] text-ink"
   {panel}
 >
   <!-- @material-ui/icons InfoOutline, at theme.spacing.unit marginLeft / fontSize 18 -->
@@ -67,6 +67,6 @@
     height: 0;
     border-style: solid;
     border-width: 1em 1em 0 1em;
-    border-color: #1e2224 transparent transparent transparent;
+    border-color: var(--c-grey-900) transparent transparent transparent;
   }
 </style>

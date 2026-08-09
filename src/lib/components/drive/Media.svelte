@@ -387,7 +387,7 @@
 
 <!-- MUI CircularProgress, indeterminate, default thickness -->
 {#snippet progress(size)}
-  <div class="progress" role="progressbar" style="width: {size}px; height: {size}px; color: #fff">
+  <div class="progress" role="progressbar" style="width: {size}px; height: {size}px; color: var(--c-ink)">
     <svg viewBox="22 22 44 44">
       <circle class="progressCircle" cx="44" cy="44" r="20.2" fill="none" stroke-width="3.6" />
     </svg>
@@ -414,7 +414,7 @@
 {#snippet uploadMenuItem(file, name, type)}
   <li
     class="menuItem itemDisabled filesItem"
-    style={files ? 'pointer-events: auto' : 'color: rgba(255, 255, 255, 0.6)'}
+    style={files ? 'pointer-events: auto' : 'color: rgb(var(--c-ink-rgb) / 0.6)'}
   >
     {name}
     {#if !files}
@@ -470,7 +470,7 @@
 {#snippet uploadAllItem(label, disabled, buttonLabel, isUploaded, isUploading, onclick)}
   <li
     class="menuItem itemDisabled filesItem"
-    style={files && stats ? 'pointer-events: auto' : 'color: rgba(255, 255, 255, 0.6)'}
+    style={files && stats ? 'pointer-events: auto' : 'color: rgb(var(--c-ink-rgb) / 0.6)'}
   >
     {label}
     {#if files && canUpload && !disabled}
@@ -561,7 +561,7 @@
       class="menuItem filesItem {files ? '' : 'itemDisabled'}"
       role="menuitem"
       tabindex="-1"
-      style={files ? 'pointer-events: auto' : 'color: rgba(255, 255, 255, 0.6)'}
+      style={files ? 'pointer-events: auto' : 'color: rgb(var(--c-ink-rgb) / 0.6)'}
       onclick={() => { if (files) { uploadModal = true; downloadMenu = null; } }}
       onkeydown={(ev) => { if (files && ev.key === 'Enter') { uploadModal = true; downloadMenu = null; } }}
     >
@@ -680,7 +680,7 @@
           <Tooltip
             title={online ? '' : 'Device offline'}
             placement="top"
-            panelClass="rounded-[4px] bg-[#303639] px-2 py-1 text-[0.625rem] text-white"
+            panelClass="rounded-[4px] bg-[var(--c-panel-3)] px-2 py-1 text-[0.625rem] text-ink"
           >
             <div
               class="mediaOption"
@@ -802,7 +802,7 @@
     font-size: 0.875rem;
     font-weight: 400;
     line-height: 1.46429em;
-    color: #fff;
+    color: var(--c-ink);
   }
 
   /* styles.root */
@@ -825,14 +825,14 @@
     display: flex;
     width: max-content;
     align-items: center;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgb(var(--c-ink-rgb) / 0.1);
     border-radius: 50px;
   }
 
   /* styles.mediaOption */
   .mediaOption {
     align-items: center;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid rgb(var(--c-ink-rgb) / 0.1);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -854,7 +854,7 @@
     font-size: 12px;
     font-weight: 500;
     line-height: 1.46429em;
-    color: #fff;
+    color: var(--c-ink);
     text-align: center;
   }
 
@@ -867,7 +867,7 @@
     min-height: 16px;
     max-width: calc(100% - 32px);
     max-height: calc(100% - 96px);
-    background-color: #30373b;
+    background-color: var(--c-panel);
     border-radius: 4px;
     outline: none;
     box-shadow:
@@ -916,7 +916,7 @@
     font-size: 1rem;
     font-weight: 400;
     line-height: 1.5em;
-    color: #fff;
+    color: var(--c-ink);
     cursor: pointer;
     user-select: none;
     transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
@@ -924,7 +924,7 @@
 
   .menuItem:hover {
     text-decoration: none;
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgb(var(--c-ink-rgb) / 0.1);
   }
 
   /* MuiListItem disabled + ButtonBase disabled */
@@ -940,7 +940,7 @@
     margin: 0;
     border: none;
     flex-shrink: 0;
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: rgb(var(--c-ink-rgb) / 0.12);
   }
 
   /* MuiButtonBase root + MuiButton root, with the theme's text-transform: none */
@@ -957,7 +957,7 @@
     margin: 0;
     border-radius: 4px;
     background-color: transparent;
-    color: #fff;
+    color: var(--c-ink);
     font-family: inherit;
     font-size: 0.875rem;
     font-weight: 500;
@@ -981,7 +981,7 @@
   .muiButton:disabled {
     pointer-events: none;
     cursor: default;
-    color: rgba(255, 255, 255, 0.3);
+    color: rgb(var(--c-ink-rgb) / 0.3);
   }
 
   /* MuiButton label */
@@ -1067,22 +1067,22 @@
   /* styles.uploadButton */
   .uploadButton {
     margin-left: 12px;
-    color: #fff;
+    color: var(--c-ink);
     border-radius: 13px;
     font-size: 0.8rem;
     padding: 4px 12px;
     min-height: 19px;
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgb(var(--c-ink-rgb) / 0.05);
   }
 
   .uploadButton:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgb(var(--c-ink-rgb) / 0.1);
   }
 
   /* styles.fakeUploadButton */
   .fakeUploadButton {
     margin-left: 12px;
-    color: #fff;
+    color: var(--c-ink);
     font-size: 0.8rem;
     padding: 4px 12px;
     display: flex;
@@ -1100,7 +1100,7 @@
     white-space: normal;
     padding: 0 6px;
     border-radius: 4px;
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: rgb(var(--c-ink-rgb) / 0.08);
     margin-right: 4px;
   }
 
@@ -1119,9 +1119,9 @@
     border-radius: 14px;
     font-size: 0.8em;
     padding: 6px 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: #272c2f;
-    color: #fff;
+    border: 1px solid rgb(var(--c-ink-rgb) / 0.1);
+    background-color: var(--c-grey-800);
+    color: var(--c-ink);
   }
 
   .dcameraUploadInfo p {
@@ -1149,7 +1149,7 @@
     font-size: 1rem;
     font-weight: 400;
     line-height: 1.46429em;
-    color: #fff;
+    color: var(--c-ink);
   }
 
   /* MuiSwitch root */
@@ -1171,7 +1171,7 @@
     flex: 0 0 auto;
     width: 48px;
     height: 48px;
-    color: #4b5559;
+    color: var(--c-grey-400);
     transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
   }
 
@@ -1226,7 +1226,7 @@
     left: 50%;
     margin-top: -7px;
     margin-left: -17px;
-    background-color: #fff;
+    background-color: var(--c-ink);
     opacity: 0.3;
     transition:
       opacity 150ms cubic-bezier(0.4, 0, 0.2, 1) 0ms,
@@ -1240,11 +1240,11 @@
 
   /* MuiSwitch disabled, dark palette */
   .switchDisabled {
-    color: #272c2f;
+    color: var(--c-grey-800);
   }
 
   .switchBarDisabled {
-    background-color: #fff;
+    background-color: var(--c-ink);
     opacity: 0.1;
   }
 
@@ -1267,8 +1267,8 @@
     position: fixed;
     border-radius: 16px;
     padding: 8px 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: #272c2f;
+    border: 1px solid rgb(var(--c-ink-rgb) / 0.1);
+    background-color: var(--c-grey-800);
     margin-top: 12px;
     z-index: 50000;
     max-width: 95%;
@@ -1277,7 +1277,7 @@
   .copiedPopover p {
     max-width: 400px;
     font-size: 0.9rem;
-    color: #fff;
+    color: var(--c-ink);
     margin: 0;
   }
 </style>

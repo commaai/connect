@@ -196,3 +196,6 @@ KNOWN GAPS
     avoid annotating the minority.
   - Clips download returns an error in mock mode by design; real video needs a
     real route.
+  - The map is comma's own mapbox style, which is dark, and stays dark under the
+    light theme. Swapping in a stock light style would change the product's
+    cartography, so it is left for comma to decide.

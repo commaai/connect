@@ -244,20 +244,20 @@
 
 {#snippet triggerGroup({ bumperActive, bumperLabel, bumperKey, cameraActive, triggerValue, triggerColor, triggerKey, directionLabel })}
   <div class="flex flex-col items-center gap-1">
-    <span class="text-[9px] font-bold tracking-[0.5px] uppercase transition-colors duration-100 {bumperActive ? 'text-white/90' : 'text-white/50'}">{bumperLabel}</span>
+    <span class="text-[9px] font-bold tracking-[0.5px] uppercase transition-colors duration-100 {bumperActive ? 'text-ink/90' : 'text-ink/50'}">{bumperLabel}</span>
     <!-- the camera-active tint outranks the bumperActive classes below, which it
          did not while tailwind was imported in `important` mode -->
     <div
-      class="w-12 h-6 rounded-[12px_12px_4px_4px] border-2 flex items-center justify-center transition-[background,border-color] duration-100 {bumperActive ? 'bg-white/25 border-white/50' : 'border-white/25 bg-white/5 backdrop-blur-lg'}"
+      class="w-12 h-6 rounded-[12px_12px_4px_4px] border-2 flex items-center justify-center transition-[background,border-color] duration-100 {bumperActive ? 'bg-ink/25 border-ink/50' : 'border-ink/25 bg-ink/5 backdrop-blur-lg'}"
       style={cameraActive ? 'background: rgba(59,130,246,0.35); border-color: rgba(59,130,246,0.5);' : undefined}
     >
-      <span class="text-[9px] font-bold tracking-[0.5px] uppercase transition-colors duration-100 {bumperActive ? 'text-white/90' : 'text-white/50'}">{bumperKey}</span>
+      <span class="text-[9px] font-bold tracking-[0.5px] uppercase transition-colors duration-100 {bumperActive ? 'text-ink/90' : 'text-ink/50'}">{bumperKey}</span>
     </div>
     <div class="w-12 h-20 rounded-[8px_8px_24px_24px] relative overflow-hidden bg-glass bg-radial-white">
       <div class="absolute bottom-0 left-0 right-0 transition-[height] duration-[50ms] linear" style="height: {triggerValue * 100}%; background: {triggerColor};"></div>
-      <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] font-bold tracking-[0.5px] text-white/40 z-[1] pointer-events-none">{triggerKey}</span>
+      <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] font-bold tracking-[0.5px] text-ink/40 z-[1] pointer-events-none">{triggerKey}</span>
     </div>
-    <span class="text-[10px] font-bold tracking-[0.5px] text-white/50 uppercase whitespace-nowrap">{directionLabel}</span>
+    <span class="text-[10px] font-bold tracking-[0.5px] text-ink/50 uppercase whitespace-nowrap">{directionLabel}</span>
   </div>
 {/snippet}
 
@@ -270,13 +270,13 @@
     })}
 
     <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-      <span class="text-[10px] font-bold tracking-[0.5px] text-white/50 uppercase whitespace-nowrap">L Stick — Steering</span>
+      <span class="text-[10px] font-bold tracking-[0.5px] text-ink/50 uppercase whitespace-nowrap">L Stick — Steering</span>
       <div class="w-[100px] h-[100px] rounded-full relative flex items-center justify-center bg-glass bg-radial-white">
-        <div class="absolute top-1/2 left-3 right-3 h-0.5 -translate-y-1/2 bg-white/10 rounded-[1px]"></div>
-        <span class="absolute top-1/2 -translate-y-[55%] text-sm text-white/20 select-none" style="left: 6px;">◀</span>
-        <span class="absolute top-1/2 -translate-y-[55%] text-sm text-white/20 select-none" style="right: 6px;">▶</span>
+        <div class="absolute top-1/2 left-3 right-3 h-0.5 -translate-y-1/2 bg-ink/10 rounded-[1px]"></div>
+        <span class="absolute top-1/2 -translate-y-[55%] text-sm text-ink/20 select-none" style="left: 6px;">◀</span>
+        <span class="absolute top-1/2 -translate-y-[55%] text-sm text-ink/20 select-none" style="right: 6px;">▶</span>
         <div
-          class="w-8 h-8 rounded-full absolute transition-[left] duration-[50ms] linear bg-[radial-gradient(circle_at_35%_35%,rgba(255,255,255,0.4),rgba(255,255,255,0.1))] bg-glass"
+          class="w-8 h-8 rounded-full absolute transition-[left] duration-[50ms] linear bg-[radial-gradient(circle_at_35%_35%,rgb(var(--c-ink-rgb) / 0.4),rgb(var(--c-ink-rgb) / 0.1))] bg-glass"
           style="left: calc({stickThumbLeft}% - 16px);"
         ></div>
       </div>
@@ -300,12 +300,12 @@
     onmousedown={handleMouseDown}
     oncontextmenu={(e) => e.preventDefault()}
   >
-    <div class="absolute left-1/2 top-2 bottom-2 w-px -translate-x-1/2 bg-white/10"></div>
-    <div class="absolute top-1/2 left-2 right-2 h-px -translate-y-1/2 bg-white/10"></div>
-    <div class="absolute left-1/2 top-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/30"></div>
+    <div class="absolute left-1/2 top-2 bottom-2 w-px -translate-x-1/2 bg-ink/10"></div>
+    <div class="absolute top-1/2 left-2 right-2 h-px -translate-y-1/2 bg-ink/10"></div>
+    <div class="absolute left-1/2 top-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink/30"></div>
     <div
       class="absolute w-[52px] h-[52px] rounded-full -translate-x-1/2 -translate-y-1/2 will-change-[left,top] md:w-[56px] md:h-[56px] bg-glass
-        {thumbPos ? 'bg-[radial-gradient(circle_at_35%_35%,rgba(255,255,255,0.6),rgba(255,255,255,0.15))]' : 'bg-radial-white'}"
+        {thumbPos ? 'bg-[radial-gradient(circle_at_35%_35%,rgb(var(--c-ink-rgb) / 0.6),rgb(var(--c-ink-rgb) / 0.15))]' : 'bg-radial-white'}"
       style="left: {thumbLeft}; top: {thumbTop};"
     ></div>
   </div>

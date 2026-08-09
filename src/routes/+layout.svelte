@@ -9,11 +9,25 @@
   import AppHeader from '$lib/components/AppHeader.svelte';
   import DeviceSettingsModal from '$lib/components/DeviceSettingsModal.svelte';
   import PairingStatusModal from '$lib/components/PairingStatusModal.svelte';
+  import { theme } from '$lib/state/theme.svelte.js';
 
   let { children, data } = $props();
 
   let drawerIsOpen = $state(false);
   let settingsDongleId = $state(null);
+  // Measured rather than assumed, because the bar grows with the safe-area inset.
+  let headerHeight = $state(64);
+
+  // Follow the OS until the user says otherwise, and keep following it after.
+  $effect(() => theme.start());
+
+  $effect(() => {
+    document.documentElement.dataset.theme = theme.resolved;
+    // The browser chrome should match the page it is framing.
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const pageColor = getComputedStyle(document.documentElement).getPropertyValue('--c-page').trim();
+    if (meta && pageColor) meta.setAttribute('content', pageColor);
+  });
 
   const selectedDongleId = $derived(page.params.dongleId ?? null);
 
@@ -75,7 +89,7 @@
 </script>
 
 {#if data.mockScenario}
-  <div class="fixed bottom-2 right-2 z-50 rounded-full bg-black/60 px-3 py-1 text-xs text-white/70">
+  <div class="fixed bottom-2 right-2 z-50 rounded-full bg-black/60 px-3 py-1 text-xs text-ink/70">
     mock: {data.mockScenario}
   </div>
 {/if}
@@ -88,6 +102,7 @@
     dongleId={selectedDongleId}
     showDrawerButton={!isLarge}
     {drawerIsOpen}
+    bind:height={headerHeight}
     ontoggledrawer={(open) => { drawerIsOpen = open; }}
   />
 
@@ -100,6 +115,7 @@
       isPermanent={isLarge}
       open={drawerIsOpen}
       width={sidebarWidth}
+      {headerHeight}
       onclose={() => { drawerIsOpen = false; }}
       onselect={selectDevice}
       onsettings={(dongleId) => { settingsDongleId = dongleId; }}
@@ -109,7 +125,7 @@
 
   <div
     role="main"
-    class="flex flex-col bg-[linear-gradient(180deg,#1D2225_0%,#16181A_100%)]"
+    class="flex flex-col bg-[linear-gradient(180deg,var(--c-page-top)_0%,var(--c-page)_100%)]"
     style={isLarge && sidebarWidth ? `width: calc(100% - ${sidebarWidth}px); margin-left: ${sidebarWidth}px` : ''}
   >
     {@render children()}

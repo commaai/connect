@@ -10,7 +10,7 @@
 
   let { onqualitychange, options = QUALITY_OPTIONS } = $props();
 
-  const rowClass = 'flex items-center h-9 px-3.5 gap-3 cursor-pointer select-none text-[13px] text-white/85 hover:bg-white/10 transition-colors whitespace-nowrap';
+  const rowClass = 'flex items-center h-9 px-3.5 gap-3 cursor-pointer select-none text-[13px] text-ink/85 hover:bg-ink/10 transition-colors whitespace-nowrap';
   const pageClass = 'absolute top-0 left-0 w-max min-w-[200px] py-1.5 transition-all duration-200 ease-out';
 
   let open = $state(false);
@@ -82,7 +82,7 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class="flex items-center justify-center h-9 w-9 rounded-[18px] cursor-pointer select-none bg-glass text-white/60 hover:text-white/90 hover:!bg-black/60"
+    class="flex items-center justify-center h-9 w-9 rounded-[18px] cursor-pointer select-none bg-glass text-ink/60 hover:text-ink/90 hover:!bg-black/60"
     onclick={toggleOpen}
     title="Settings"
   >
@@ -117,7 +117,7 @@
         <span class="flex-1">Quality</span>
         <!-- label and icon stay adjacent: JSX dropped the newline between them,
              Svelte would keep it as a rendered space -->
-        <span class="flex items-center gap-1 text-white/45">{selected?.label}{@render chevronRight()}</span>
+        <span class="flex items-center gap-1 text-ink/45">{selected?.label}{@render chevronRight()}</span>
       </div>
     </div>
 
@@ -129,11 +129,11 @@
     >
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="{rowClass} font-medium text-white/90" onclick={() => { view = 'main'; }}>
+      <div class="{rowClass} font-medium text-ink/90" onclick={() => { view = 'main'; }}>
         <!-- src/icons/index.jsx ArrowBackBold: a material symbol, so it keeps its
              own viewBox inside MUI SvgIcon's box. -->
         <svg
-          class="inline-block shrink-0 select-none w-4 h-4 -ml-1 text-white/70"
+          class="inline-block shrink-0 select-none w-4 h-4 -ml-1 text-ink/70"
           viewBox="0 -960 960 960"
           fill="currentColor"
           width="1em"
@@ -146,7 +146,7 @@
         </svg>
         <span>Quality (Bitrate)</span>
       </div>
-      <div class="h-px bg-white/10 mx-2 my-1"></div>
+      <div class="h-px bg-ink/10 mx-2 my-1"></div>
       {#each options as opt (opt.key)}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -155,7 +155,7 @@
             {#if opt.key === quality}
               <!-- @material-ui/icons Check -->
               <svg
-                class="inline-block shrink-0 select-none text-white"
+                class="inline-block shrink-0 select-none text-ink"
                 viewBox="0 0 24 24"
                 fill="currentColor"
                 width="1em"
@@ -170,7 +170,7 @@
           </span>
           <span class="flex-1">{opt.label}</span>
           {#if opt.bitrate}
-            <span class="text-[10px] text-white/40">{opt.bitrate}</span>
+            <span class="text-[10px] text-ink/40">{opt.bitrate}</span>
           {/if}
         </div>
       {/each}

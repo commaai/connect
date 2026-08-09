@@ -19,11 +19,11 @@
   <label
     for={id}
     data-shrink={shrink}
-    class="absolute top-0 left-0 mt-1 ml-4 origin-top-left p-0 text-[1rem] leading-none text-white/70"
+    class="absolute top-0 left-0 mt-1 ml-4 origin-top-left p-0 text-[1rem] leading-none text-ink/70"
     style="transform: {labelTransform}; transition: transform 200ms cubic-bezier(0.0, 0, 0.2, 1) 0ms"
   >{label}</label>
   <!-- MuiInput root; `label + &` supplies the 16px top margin -->
-  <div class="relative mt-4 inline-flex overflow-hidden rounded-[20px] border border-[#272c2f] text-[1rem] leading-[1.1875em] text-white">
+  <div class="relative mt-4 inline-flex overflow-hidden rounded-[20px] border border-[var(--c-grey-800)] text-[1rem] leading-[1.1875em] text-ink">
     <!-- tailwind's preflight gives inputs `font: inherit`; MUI sized this input from
          the Input root (1rem / 1.1875em) on top of a content-box, so state it here. -->
     <input
@@ -38,6 +38,6 @@
   {#if helperText}
     <!-- MuiFormHelperText root is marginTop 8; theme.MuiFormHelperText overrides
          it to marginTop 4, marginLeft 8. -->
-    <p id="{id}-helper-text" class="mt-1 ml-2 min-h-[1em] text-left text-[0.75rem] leading-[1em] text-white/70">{helperText}</p>
+    <p id="{id}-helper-text" class="mt-1 ml-2 min-h-[1em] text-left text-[0.75rem] leading-[1em] text-ink/70">{helperText}</p>
   {/if}
 </div>

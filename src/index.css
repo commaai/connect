@@ -39,9 +39,128 @@
   }
 }
 
+/*
+  Theme tokens
+  ~~~~~~~~~~~~
+
+  connect was designed dark, and src/lib/colors.js already carries the light
+  counterpart of every grey: grey50..grey999 descends into black, lightGrey50..
+  lightGrey999 descends out of white. The light theme is that ramp mirrored,
+  step for step, so a surface two steps off the background stays two steps off it.
+
+  Anything with meaning of its own — the engaged greens, alert reds, prime blues —
+  is not a theme token and does not change.
+
+  :root holds the dark values, so a document with no data-theme (no JS) is the
+  app as it has always looked. app.html stamps data-theme before first paint.
+*/
 :root {
   color-scheme: dark;
-  background: #16181A;
+
+  /* text, and every light overlay: hover fills, hairlines, scrims on media */
+  --c-ink: #fff;
+  --c-ink-rgb: 255 255 255;
+  /* lightGrey600 and a mid grey, both used as text on dark surfaces */
+  --c-ink-mute: #b8c0c4;
+  --c-ink-faint: #74838e;
+
+  /* colors.js grey ramp */
+  --c-grey-999: #0c0e0f;
+  --c-grey-950: #151819;
+  --c-grey-900: #1e2224;
+  --c-grey-800: #272c2f;
+  --c-grey-700: #303639;
+  --c-grey-600: #394044;
+  --c-grey-500: #424a4f;
+  --c-grey-400: #4b5559;
+  --c-grey-300: #535f64;
+  --c-grey-200: #5c696f;
+  --c-grey-100: #65737a;
+  --c-grey-50: #6e7d84;
+
+  /* shell surfaces, which predate colors.js and sit between its steps */
+  --c-page: #16181a;
+  --c-page-top: #1d2225;
+  --c-bar: #1d2225;
+  --c-panel: #30373b;
+  --c-panel-2: #272d30;
+  --c-panel-3: #303639;
+  --c-rail-top: #1b2023;
+  --c-rail-bot: #111516;
+
+  /* the glossy bar: a sheen over a translucent surface */
+  --c-bar-veil: rgb(var(--c-ink-rgb) / 0.055);
+  --c-bar-sheen: rgb(var(--c-ink-rgb) / 0.1);
+  --c-bar-edge: rgb(var(--c-ink-rgb) / 0.12);
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  --c-ink: #030404;
+  --c-ink-rgb: 3 4 4;
+  --c-ink-mute: #424a4f;
+  --c-ink-faint: #5c696f;
+
+  /* colors.js lightGrey ramp, mirrored onto the grey scale above */
+  --c-grey-999: #f8f9f9;
+  --c-grey-950: #eeeff0;
+  --c-grey-900: #e3e6e8;
+  --c-grey-800: #d8dcdf;
+  --c-grey-700: #cdd3d6;
+  --c-grey-600: #c3c9cd;
+  --c-grey-500: #b8c0c4;
+  --c-grey-400: #adb6bb;
+  --c-grey-300: #a3adb2;
+  --c-grey-200: #98a3a9;
+  --c-grey-100: #8d9aa1;
+  --c-grey-50: #77878f;
+
+  --c-page: #f1f3f4;
+  --c-page-top: #fbfbfc;
+  --c-bar: #fbfbfc;
+  --c-panel: #fff;
+  --c-panel-2: #f6f7f8;
+  --c-panel-3: #eef0f1;
+  --c-rail-top: #fbfbfc;
+  --c-rail-bot: #eceef0;
+
+  /* white-on-white has no sheen to catch, so the gloss is a shadow instead */
+  --c-bar-veil: rgb(255 255 255 / 0.55);
+  --c-bar-sheen: rgb(255 255 255 / 0.75);
+  --c-bar-edge: rgb(var(--c-ink-rgb) / 0.1);
+}
+
+/* `inline` keeps the var reference in the generated utility, so bg-page and
+   text-ink follow the theme instead of being resolved at build time. */
+@theme inline {
+  --color-ink: var(--c-ink);
+  --color-ink-mute: var(--c-ink-mute);
+  --color-ink-faint: var(--c-ink-faint);
+  --color-page: var(--c-page);
+  --color-page-top: var(--c-page-top);
+  --color-bar: var(--c-bar);
+  --color-panel: var(--c-panel);
+  --color-panel-2: var(--c-panel-2);
+  --color-panel-3: var(--c-panel-3);
+  --color-rail-top: var(--c-rail-top);
+  --color-rail-bot: var(--c-rail-bot);
+  --color-grey-999: var(--c-grey-999);
+  --color-grey-950: var(--c-grey-950);
+  --color-grey-900: var(--c-grey-900);
+  --color-grey-800: var(--c-grey-800);
+  --color-grey-700: var(--c-grey-700);
+  --color-grey-600: var(--c-grey-600);
+  --color-grey-500: var(--c-grey-500);
+  --color-grey-400: var(--c-grey-400);
+  --color-grey-300: var(--c-grey-300);
+  --color-grey-200: var(--c-grey-200);
+  --color-grey-100: var(--c-grey-100);
+  --color-grey-50: var(--c-grey-50);
+}
+
+:root {
+  background: var(--c-page);
 }
 
 html {
@@ -55,7 +174,8 @@ html {
 }
 
 body {
-  background: #16181A;
+  background: var(--c-page);
+  color: var(--c-ink);
   font-family: 'Inter', sans-serif;
   scrollbar-gutter: stable;
   overflow-y: scroll;
@@ -116,6 +236,16 @@ a:focus {
 /*
   Tailwind utility classes
 */
+
+/* Text on a saturated surface — a warning banner, the prime button — keeps
+   using text-white deliberately: the surface under it does not change with the
+   theme, so the text on it should not either. */
+
+/* The wordmark ships as a white glyph on transparent, so on a light surface it
+   inverts to the black one rather than needing a second asset. */
+[data-theme='light'] .logo-mark {
+  filter: invert(1);
+}
 
 @layer utilities {
   /* The glass treatment without a tint. A caller that brings its own background,

@@ -50,8 +50,8 @@
 </script>
 
 <a
-  class="DriveEntry flex flex-col mb-3 overflow-hidden rounded-lg p-0 no-underline border-t border-white/5"
-  style="background: linear-gradient(to bottom, #30373B 0%, #1D2225 100%); transition: background .2s"
+  class="DriveEntry flex flex-col mb-3 overflow-hidden rounded-lg p-0 no-underline border-t border-ink/5"
+  style="background: linear-gradient(to bottom, var(--c-panel) 0%, var(--c-page-top) 100%); transition: background .2s"
   bind:this={el}
   href={`/${drive.dongle_id}/${drive.log_id}`}
   {onclick}
@@ -81,7 +81,7 @@
           <svg
             viewBox="0 0 24 24"
             fill="currentColor"
-            style="font-size:24px; color:#424a4f; width:32px; height:100%; margin-left:25%; flex-shrink:0; user-select:none"
+            style="font-size:24px; color:var(--c-grey-500); width:32px; height:100%; margin-left:25%; flex-shrink:0; user-select:none"
             aria-hidden="true"
           >
             <path

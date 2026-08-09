@@ -177,16 +177,16 @@
     else if (isOpen) onclose?.();
   }
 
-  // styles.modal, on a MUI Paper whose background the theme overrides to #30373B.
-  const paperClass = 'absolute top-[40%] left-1/2 rounded-[4px] bg-[#30373B] p-4 outline-none '
+  // styles.modal, on a MUI Paper whose background the theme overrides to var(--c-panel).
+  const paperClass = 'absolute top-[40%] left-1/2 rounded-[4px] bg-[var(--c-panel)] p-4 outline-none '
     + 'shadow-[0_1px_5px_0_rgba(0,0,0,0.2),0_2px_2px_0_rgba(0,0,0,0.14),0_3px_1px_-2px_rgba(0,0,0,0.12)]';
   // MUI Button root; theme.MuiButton overrides text-transform to none.
   const buttonBase = 'box-border inline-flex min-h-[36px] min-w-[64px] cursor-pointer items-center justify-center '
     + 'rounded-[4px] px-4 py-2 align-middle text-[0.875rem] leading-[1.4em] font-medium transition-colors';
-  const outlinedButton = `${buttonBase} border border-white/23 text-white hover:bg-white/10 `
-    + 'disabled:cursor-default disabled:text-white/30';
+  const outlinedButton = `${buttonBase} border border-ink/23 text-ink hover:bg-ink/10 `
+    + 'disabled:cursor-default disabled:text-ink/30';
   // variant="contained" carries theme.shadows[2]; styles.cancelButton repaints it grey200/grey400.
-  const cancelButton = `${buttonBase} bg-[#5c696f] text-white hover:bg-[#4b5559] `
+  const cancelButton = `${buttonBase} bg-[var(--c-grey-200)] text-ink hover:bg-[var(--c-grey-400)] `
     + 'shadow-[0_1px_5px_0_rgba(0,0,0,0.2),0_2px_2px_0_rgba(0,0,0,0.14),0_3px_1px_-2px_rgba(0,0,0,0.12)]';
   // styles.primeManageButton
   const spacedButton = 'mt-[20px] mr-[20px] last:mr-0';
@@ -207,10 +207,10 @@
     <!-- MUI Typography variant="title" -->
     <h2 class="text-[1.3125rem] font-medium" style="line-height: 1.16667em">{title}</h2>
     <!-- MUI Typography variant="caption", palette.text.secondary -->
-    <span class="block text-[0.75rem] text-white/70" style="line-height: 1.375em">{device.dongle_id}</span>
+    <span class="block text-[0.75rem] text-ink/70" style="line-height: 1.375em">{device.dongle_id}</span>
   </div>
   <!-- MUI Divider -->
-  <hr class="m-0 h-px shrink-0 border-none bg-white/12" />
+  <hr class="m-0 h-px shrink-0 border-none bg-ink/12" />
 {/snippet}
 
 <!-- styles.wrapper + MUI IconButton (variant="fab" was never an IconButton prop) -->
@@ -219,7 +219,7 @@
     <button
       type="button"
       aria-label={label}
-      class="relative inline-flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full p-0 text-center align-middle text-[24px] text-white hover:bg-white/10"
+      class="relative inline-flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full p-0 text-center align-middle text-[24px] text-ink hover:bg-ink/10"
       {onclick}
     >
       <svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px" aria-hidden="true">
@@ -307,7 +307,7 @@
 
       {#if unpairError}
         <!-- styles.unpairError -->
-        <div class="mt-[15px] flex items-center bg-[rgba(255,0,0,0.3)] p-[10px] text-white">
+        <div class="mt-[15px] flex items-center bg-[rgba(255,0,0,0.3)] p-[10px] text-ink">
           <!-- icons/ErrorOutline -->
           <svg viewBox="0 -960 960 960" fill="currentColor" width="1em" height="1em" style="font-size:24px" class="shrink-0" aria-hidden="true">
             <path d="M480-280q14 0 24-9 9-10 9-24t-9-23q-10-10-24-10t-23 9q-10 10-10 24t9 23q10 10 24 10Zm-27-153h60v-253h-60v253Zm27 353q-82 0-155-31t-127-86q-55-55-86-128-32-73-32-155 0-83 32-156 31-73 86-127t127-85q73-32 156-32 82 0 155 32 73 31 127 85t86 127q31 73 31 156 0 82-31 155t-86 127q-54 55-127 86-73 32-156 32Zm1-60q141 0 240-99t99-241q0-142-99-241t-241-99q-141 0-240 99-100 99-100 241 0 141 100 241t241 99Zm-1-340Z" />
@@ -325,7 +325,7 @@
           </svg>
           {#if commacare}
             <p class="ml-[10px] inline-block text-[0.875rem]">
-              Unpairing will also cancel comma prime and <strong>permanently end your commacare extended warranty.</strong> Your standard 1-year warranty still applies for any remaining time. <a class="text-white underline" href={COMMACARE_URL} target="_blank" rel="noreferrer">What is commacare?</a>
+              Unpairing will also cancel comma prime and <strong>permanently end your commacare extended warranty.</strong> Your standard 1-year warranty still applies for any remaining time. <a class="text-ink underline" href={COMMACARE_URL} target="_blank" rel="noreferrer">What is commacare?</a>
             </p>
           {:else}
             <p class="ml-[10px] inline-block text-[0.875rem]">Unpairing will also cancel the comma prime subscription for this device.</p>

@@ -25,7 +25,7 @@
 
   const AlertStatusCodes = ['normal', 'userPrompt', 'critical'];
 
-  const STATUS_GRADIENT = 'linear-gradient(rgba(0, 0, 0, 0.0) 4%, rgba(255, 255, 255, 0.025) 10%,'
+  const STATUS_GRADIENT = 'linear-gradient(rgba(0, 0, 0, 0.0) 4%, rgb(var(--c-ink-rgb) / 0.025) 10%,'
     + ' rgba(0, 0, 0, 0.1) 25%, rgba(0, 0, 0, 0.4))';
 
   let dragging = $state(null);
@@ -296,14 +296,14 @@
         {#if draggerStyle}
           <div
             class="pointer-events-none absolute h-[44px]"
-            style="background: rgba(255, 255, 255, 0.1); border-left: 1px solid rgba(255, 255, 255, 0.3); border-right: 1px solid rgba(255, 255, 255, 0.3); {draggerStyle}"
+            style="background: rgb(var(--c-ink-rgb) / 0.1); border-left: 1px solid rgb(var(--c-ink-rgb) / 0.3); border-right: 1px solid rgb(var(--c-ink-rgb) / 0.3); {draggerStyle}"
           ></div>
         {/if}
       </div>
       {#if hover}
         <div
-          class="absolute top-[83px] z-[3] w-[80px] rounded-[14px] border border-white/10 px-[4px] py-[3px] text-center text-[0.7em] text-white"
-          style="left: {hover.left}px; background-color: #272c2f"
+          class="absolute top-[83px] z-[3] w-[80px] rounded-[14px] border border-ink/10 px-[4px] py-[3px] text-center text-[0.7em] text-ink"
+          style="left: {hover.left}px; background-color: var(--c-grey-800)"
         >
           {hover.text}
         </div>

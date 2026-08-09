@@ -86,6 +86,12 @@ The pieces below are worth knowing because they affect everything else.
    components, so `src/index.css` carries the body `line-height` MUI applied per Typography component.
    Utilities are not `!important`: a component's own scoped class or inline style outranks them, which
    is what several components rely on to reproduce what React's style props did.
+ * `Theming` - Every surface and every piece of text is a token in `src/index.css`, so no component
+   hardcodes a grey. Light is comma's own `lightGrey` ramp mirrored onto the `grey` one, step for step.
+   Colours that carry meaning — engaged greens, alert reds, prime blues, and the vendor sign-in
+   buttons — are not tokens and do not change. `src/lib/state/theme.svelte.js` follows the OS until the
+   user picks Light or Dark in the account menu; `src/app.html` stamps `data-theme` inline so the page
+   never flashes the wrong theme. The map keeps comma's own dark style in both themes.
  * `mapbox-gl` - Used directly. Markers are positioned by projecting in JavaScript
    (`src/lib/utils/mercator.js`) rather than asking the map, so they still render when tiles fail to load.
 

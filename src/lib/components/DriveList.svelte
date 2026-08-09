@@ -64,15 +64,15 @@
     {#if deviceStats.result}
       <div class="flex gap-2.5 md:gap-8 items-center px-1 justify-center xss:justify-start">
         <div class="flex flex-row items-center gap-1">
-          <p class="text-[0.875rem] font-semibold text-white">{distance}</p>
+          <p class="text-[0.875rem] font-semibold text-ink">{distance}</p>
           <p class="text-[0.875rem]">{metric ? 'kilometers' : 'miles'}</p>
         </div>
         <div class="flex flex-row items-center gap-1">
-          <p class="text-[0.875rem] font-semibold text-white">{deviceStats.result.all.routes}</p>
+          <p class="text-[0.875rem] font-semibold text-ink">{deviceStats.result.all.routes}</p>
           <p class="text-[0.875rem]">drives</p>
         </div>
         <div class="flex flex-row items-center gap-1">
-          <p class="text-[0.875rem] font-semibold text-white">{Math.round(deviceStats.result.all.minutes / 60.0)}</p>
+          <p class="text-[0.875rem] font-semibold text-ink">{Math.round(deviceStats.result.all.minutes / 60.0)}</p>
           <p class="text-[0.875rem]">hours</p>
         </div>
       </div>
@@ -82,8 +82,8 @@
 
     <button
       type="button"
-      class="w-full xxs:w-fit flex flex-row items-center justify-center text-white normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98] cursor-pointer"
-      style="background: linear-gradient(to bottom, #30373B 0%, #1D2225 150%)"
+      class="w-full xxs:w-fit flex flex-row items-center justify-center text-ink normal-case py-1 px-2 rounded-md whitespace-nowrap active:scale-[0.98] cursor-pointer"
+      style="background: linear-gradient(to bottom, var(--c-panel) 0%, var(--c-page-top) 150%)"
       onclick={() => onfilter?.()}
     >
       <!-- @material-ui/icons/FilterList -->

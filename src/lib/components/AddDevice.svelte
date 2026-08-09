@@ -317,7 +317,7 @@
 
 <!-- MUI Button, variant="text", with styles.addButton -->
 <button type="button" class="muiButton addButton {asClass}" style={asStyle} onclick={() => { modalOpen = true; }}>
-  <span class="label">{buttonText}{#if buttonIcon}<!-- @material-ui/icons/AddCircleOutline at Colors.white30 --><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px; color: rgba(255, 255, 255, 0.3)" class="shrink-0" aria-hidden="true"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" /></svg>{/if}</span>
+  <span class="label">{buttonText}{#if buttonIcon}<!-- @material-ui/icons/AddCircleOutline at Colors.white30 --><svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px; color: rgb(var(--c-ink-rgb) / 0.3)" class="shrink-0" aria-hidden="true"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" /></svg>{/if}</span>
 </button>
 
 {#if modalOpen}
@@ -336,23 +336,23 @@
       onkeydown={(e) => e.key === 'Escape' && modalClose()}
     ></div>
 
-    <!-- MUI Paper, backgroundColor overridden to #30373B by the theme -->
+    <!-- MUI Paper, backgroundColor overridden to var(--c-panel) by the theme -->
     <div
       role="document"
       tabindex="-1"
       style="line-height: 1.5"
-      class="absolute top-1/2 left-1/2 w-[400px] max-w-[90%] -translate-x-1/2 -translate-y-1/2 rounded-[4px] bg-[#30373B] p-4 outline-none
+      class="absolute top-1/2 left-1/2 w-[400px] max-w-[90%] -translate-x-1/2 -translate-y-1/2 rounded-[4px] bg-[var(--c-panel)] p-4 outline-none
              shadow-[0_1px_5px_0_rgba(0,0,0,0.2),0_2px_2px_0_rgba(0,0,0,0.14),0_3px_1px_-2px_rgba(0,0,0,0.12)]"
     >
       <div class="mb-[5px] flex items-baseline justify-between">
         <!-- MUI Typography variant="title": lineHeight 24.5/21 -->
         <h2 class="text-[1.3125rem] font-medium" style="line-height: 1.16667em">Pair device</h2>
         <!-- MUI Typography variant="caption": 12px, lineHeight 16.5/12, palette.text.secondary -->
-        <span class="block text-[0.75rem] text-white/70" style="line-height: 1.375em">scan QR code</span>
+        <span class="block text-[0.75rem] text-ink/70" style="line-height: 1.375em">scan QR code</span>
       </div>
 
       <!-- MUI Divider, with styles.divider -->
-      <div class="mb-[10px] h-px bg-white/12"></div>
+      <div class="mb-[10px] h-px bg-ink/12"></div>
 
       {#if hasCamera === false}
         <!-- MUI Typography body1: 0.875rem, not the browser's 16px default -->
@@ -411,8 +411,8 @@
     border: 0;
     margin: 0;
     border-radius: 18px;
-    background: #fff;
-    color: #1e2224;
+    background: var(--c-ink);
+    color: var(--c-grey-900);
     font-family: inherit;
     font-size: 0.875rem;
     font-weight: 500;
@@ -434,8 +434,8 @@
   }
 
   .muiButton:hover {
-    background-color: rgba(255, 255, 255, 0.7);
-    color: #1e2224;
+    background-color: rgb(var(--c-ink-rgb) / 0.7);
+    color: var(--c-grey-900);
   }
 
   .addButton {
