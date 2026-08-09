@@ -48,20 +48,33 @@ public route URL if you need to work on playback.
 ### Comparing against the React app
 
 While the svelte port is in progress, the gallery can build two source trees and
-pixel-diff them. Check out the React app beside this one and pass it as `--base`:
+pixel-diff them, so each ported route can be checked against the React original.
+
+Set up the baseline once:
 
 ```sh
-git worktree add /tmp/react master
-ln -s "$PWD/node_modules" /tmp/react/node_modules
+./scripts/react-baseline.sh
+```
 
+That creates a detached worktree of `master` at `../comma-connect-react-baseline`
+with **its own** `node_modules`. Both details matter: react, redux and material-ui
+are gone from this branch, so a baseline sharing this repo's dependencies would
+not build, and keeping it outside the repo means vite, jest and oxlint never scan
+it. Re-run the script any time to refresh it; it is idempotent.
+
+Then diff:
+
+```sh
 node scripts/build-gallery.mjs --output ./dist-gallery \
-  --base /tmp/react --base-sha "$(git rev-parse master)" \
+  --base ../comma-connect-react-baseline \
+  --base-sha "$(git rev-parse master)" \
   --states signin
 ```
 
 `--states` limits the run to states that have actually been ported; without it
 the unported ones fail their readiness waits and abort the capture. Drop it once
-everything is ported. The report lands in `dist-gallery/connect-gallery.html`.
+everything is ported. The report lands in `dist-gallery/connect-gallery.html`;
+a port is done when its states report `0 changed`.
 
 ## Contributing
 
