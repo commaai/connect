@@ -32,6 +32,17 @@
   const isLarge = $derived(noDevicesUpsell || width > 1080);
   const sidebarWidth = $derived(noDevicesUpsell ? 0 : Math.max(280, width * 0.2));
 
+  // globalState reducer, ACTION_SELECT_DEVICE: remember the device so the next
+  // visit to / returns to it rather than to the first in the list.
+  $effect(() => {
+    if (!selectedDongleId) return;
+    try {
+      localStorage.setItem('selectedDongleId', selectedDongleId);
+    } catch {
+      // storage unavailable; the root just falls back to devices[0]
+    }
+  });
+
   // Close the drawer whenever the route changes, like componentDidUpdate did.
   let lastPathname = $state(null);
   $effect(() => {
