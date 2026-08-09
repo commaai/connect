@@ -22,7 +22,9 @@ const TIMEZONE = 'America/Los_Angeles';
 const CHANGE_THRESHOLD = 0.0001;
 const CAPTURE_CONCURRENCY = 4;
 
-const GALLERY_STATES = [
+// Narrowed by --states during the svelte migration, while most states are
+// still stubs and would fail their readiness waits.
+let GALLERY_STATES = [
   { name: 'signin', label: 'Sign in', path: '/', readyText: 'Sign in with Google', anonymous: true },
   { name: 'pair', label: 'Pair a device', path: '/', readyText: 'add new device' },
   { name: 'dashboard', label: 'Dashboard', path: `/${DONGLE_ID}`, readyText: 'Bronco Sport' },
@@ -402,7 +404,37 @@ async function mockGalleryRequest(request, origin, pageName, fixtures) {
   throw new Error(`No gallery response for ${request.method()} ${request.url()}`);
 }
 
+/**
+ * Build one renderer's source tree into a directory the capture step can serve.
+ *
+ * SvelteKit needs its own path: it builds through an adapter that writes to the
+ * directory named in svelte.config.js and ignores Vite's build.outDir, and it
+ * has no index.html to hand rollup as an input. So build it in place and copy
+ * the adapter's output to where the caller expects it.
+ *
+ * This is what lets `--base <react-checkout>` diff a Svelte renderer against a
+ * React one during the migration.
+ */
 async function buildRenderer(source, output) {
+  if (await fileExists(resolve(source, 'svelte.config.js'))) {
+    await build({ root: source, mode: 'production', base: '/', build: { sourcemap: false } });
+
+    let adapterOutput = null;
+    for (const candidate of ['dist', 'build']) {
+      if (await fileExists(resolve(source, candidate, 'index.html'))) {
+        adapterOutput = resolve(source, candidate);
+        break;
+      }
+    }
+    if (!adapterOutput) {
+      throw new Error(`No SvelteKit adapter output containing index.html found under ${source}`);
+    }
+
+    await rm(output, { recursive: true, force: true });
+    await cp(adapterOutput, output, { recursive: true });
+    return;
+  }
+
   await build({
     root: source,
     mode: 'production',
@@ -681,7 +713,9 @@ async function captureOne(browser, origin, outputPath, state, viewport, fixtures
           image.addEventListener('error', reject, { once: true });
         });
       }));
-      const root = document.getElementById('root');
+      // React mounts into #root; SvelteKit renders into a wrapper div it owns.
+      // Either way the check is the same: the app put something on the page.
+      const root = document.getElementById('root') ?? document.querySelector('body > div');
       if (!root || !root.firstElementChild) {
         throw new Error('Gallery root is missing or blank');
       }
@@ -959,6 +993,14 @@ async function main() {
     throw new Error('--base and --base-sha must be supplied together');
   }
   if (baseSource && baselineUrl) throw new Error('--base and --baseline-url are mutually exclusive');
+  if (args.states) {
+    const wanted = args.states.split(',').map((name) => name.trim()).filter(Boolean);
+    const unknown = wanted.filter((name) => !GALLERY_STATES.some((state) => state.name === name));
+    if (unknown.length) throw new Error(`Unknown --states: ${unknown.join(', ')}`);
+    const skipped = GALLERY_STATES.filter((state) => !wanted.includes(state.name)).map((s) => s.name);
+    GALLERY_STATES = GALLERY_STATES.filter((state) => wanted.includes(state.name));
+    console.log(`--states limited this run to ${wanted.join(', ')}; skipped ${skipped.join(', ')}`);
+  }
   const temporary = await mkdtemp(resolve(tmpdir(), 'connect-gallery-'));
   try {
     const output = resolve(args.output ?? 'dist-gallery');

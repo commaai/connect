@@ -45,6 +45,24 @@ Video is the one thing mock mode can't fake: `qcamera.m3u8` returns an empty
 playlist, so the drive view renders with "Unable to load video". Use a real
 public route URL if you need to work on playback.
 
+### Comparing against the React app
+
+While the svelte port is in progress, the gallery can build two source trees and
+pixel-diff them. Check out the React app beside this one and pass it as `--base`:
+
+```sh
+git worktree add /tmp/react master
+ln -s "$PWD/node_modules" /tmp/react/node_modules
+
+node scripts/build-gallery.mjs --output ./dist-gallery \
+  --base /tmp/react --base-sha "$(git rev-parse master)" \
+  --states signin
+```
+
+`--states` limits the run to states that have actually been ported; without it
+the unported ones fail their readiness waits and abort the capture. Drop it once
+everything is ported. The report lands in `dist-gallery/connect-gallery.html`.
+
 ## Contributing
 
 * Use best practices
