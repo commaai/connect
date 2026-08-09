@@ -1,6 +1,9 @@
 <script>
+  import { goto } from '$app/navigation';
+
   import DeviceInfo from '$lib/components/DeviceInfo.svelte';
   import DriveList from '$lib/components/DriveList.svelte';
+  import Navigation from '$lib/components/Navigation.svelte';
   import TimeSelect from '$lib/components/TimeSelect.svelte';
   import { fetchRoutes } from '$lib/state/route-list';
 
@@ -28,6 +31,11 @@
 </script>
 
 <div class="flex flex-col">
+  <Navigation
+    dongleId={data.dongleId}
+    device={data.device}
+    onprimenav={() => goto(`/${data.dongleId}/prime`)}
+  />
   <DeviceInfo dongleId={data.dongleId} device={data.device} />
   <DriveList
     dongleId={data.dongleId}

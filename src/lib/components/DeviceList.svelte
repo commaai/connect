@@ -45,8 +45,10 @@
             style="background-color: {deviceIsOnline(d) ? '#178645' : '#4b5559'}"
           >&nbsp;</div>
           <div class="ml-4 flex flex-col justify-center">
-            <p class="font-semibold">{deviceNamePretty(d)}</p>
-            <p class="text-[0.75rem] text-[#74838e]">{d.dongle_id}</p>
+            <!-- MUI Typography body1: 0.875rem, not the browser's 16px default -->
+            <p class="text-[0.875rem] font-semibold">{deviceNamePretty(d)}</p>
+            <!-- MUI Typography variant="caption": lineHeight 16.5/12, not the body1 default -->
+            <p class="text-[0.75rem] text-[#74838e]" style="line-height: 1.375em">{d.dongle_id}</p>
           </div>
         </div>
 
@@ -64,9 +66,10 @@
     {/each}
 
     <div class="hover:bg-black/25">
+      <!-- MUI Button root: 0.875rem / 1.4em; theme.MuiButton overrides text-transform to none -->
       <button
         type="button"
-        class="flex w-full cursor-pointer items-center justify-between py-4 pr-[44px] pl-[54px] font-semibold text-white"
+        class="flex w-full cursor-pointer items-center justify-between py-4 pr-[44px] pl-[54px] text-[0.875rem] leading-[1.4em] font-semibold text-white"
         onclick={() => onsettings(null, 'add')}
       >
         <span>add new device</span>
