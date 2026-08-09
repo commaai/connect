@@ -1,7 +1,7 @@
 import { copyFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig, loadEnv } from 'vite';
-import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 
@@ -59,19 +59,10 @@ export default defineConfig(({ mode }) => {
     plugins: [
       // TODO: compression plugin
       tailwindcss(),
-      react(),
+      sveltekit(),
       sentryPlugin,
       env.VITE_MOCK_API === 'true' && mockApiPlugin(env),
       process.env.PREVIEW && previewBranding(),
     ].filter(Boolean),
-    optimizeDeps: {
-      esbuildOptions: {
-        // Node.js global to browser globalThis
-        // Required for Material UI v1
-        define: {
-          global: 'globalThis',
-        },
-      },
-    },
   };
 });

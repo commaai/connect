@@ -16,6 +16,9 @@
 /dist-gallery
 /src/gallery-fixtures/
 
+# sveltekit
+/.svelte-kit
+
 # misc
 .DS_Store
 .env.local
