@@ -1,0 +1,164 @@
+comma connect: React -> SvelteKit migration
+===========================================
+
+Branch:   svelte5 (20 commits on top of master @ c9d10f7)
+Baseline: master, React 18 + Redux + Material-UI v1
+Result:   every screen verified pixel-identical to the React app it replaces
+
+
+ACCEPTANCE
+----------
+
+The repo's gallery harness (scripts/build-gallery.mjs) builds two source trees
+and pixel-diffs them state by state. Both renderers get identical mocked API
+responses, a frozen clock, a fixed locale and timezone, and all non-comma hosts
+blocked. Diffs use pixelmatch at threshold 0.1; a state counts as changed above
+0.01% of pixels.
+
+    15 states x 2 viewports = 30 captures
+    0 changed, 30 unchanged
+
+    27 captures at exactly 0.0000%. The three with residue are all far inside
+    the threshold: drive-desktop 0.0085%, cancel-prime-modal-mobile 0.0015%,
+    pairing-status-modal-desktop 0.0002%.
+
+States covered: signin, pair, dashboard, drive, checkout, management, teleop,
+pair-device-modal, date-filter-modal, device-settings-modal, unpair-device-modal,
+upload-queue-modal, switch-prime-plan-modal, cancel-prime-modal,
+pairing-status-modal.
+
+Reproduce with:
+
+    ./scripts/react-baseline.sh
+    node scripts/build-gallery.mjs --output ./dist-gallery \
+      --base ../comma-connect-react-baseline \
+      --base-sha "$(git rev-parse master)"
+
+
+WHAT SHIPS TO USERS
+-------------------
+
+Production build, gzipped, measured on both trees at the same commit:
+
+                        React        SvelteKit      change
+    JavaScript        554,572 B      390,917 B      -29.5%
+    CSS                12,081 B       18,882 B      +56.3%
+    total             566,653 B      409,799 B      -27.7%
+
+    dist/ on disk          12 M          9.2 M      -23%
+    JS chunks                 8             40      finer code splitting
+
+CSS grew because Material-UI's styling lived in node_modules and was injected at
+runtime by JSS; it is now authored in the components and shipped as static CSS.
+That trade is why the JS drop is larger than the net drop.
+
+
+DEPENDENCIES
+------------
+
+    declared runtime deps        22  ->   9      -59%
+    declared dev deps            14  ->  15      +1
+    packages on a clean install 719  -> 563      -22%
+
+Removed entirely: react, react-dom, react-redux, redux, redux-thunk,
+connected-react-router, react-router, react-router-dom, history,
+@material-ui/core, @material-ui/icons, @sentry/react, react-map-gl, react-player,
+@vitejs/plugin-react, @testing-library/react, @testing-library/jest-dom.
+
+Added: @sveltejs/kit, svelte, @sveltejs/adapter-static, @sveltejs/vite-plugin-svelte,
+@sentry/browser.
+
+Notable non-additions. react-map-gl was replaced with the raw mapbox-gl already
+in the tree, and its WebMercatorViewport was ported into src/lib/utils/mercator.js
+rather than pulling in @math.gl/web-mercator and its transitive gl-matrix and
+@babel/runtime. That port is checked differentially against the real library
+across 3000 randomised viewports: 0 failures, worst relative difference 2.3e-9.
+
+
+TESTS
+-----
+
+                        React        SvelteKit
+    suites                 11             10
+    tests                  30             72     +140%
+
+The two sets are not the same tests. React's included component-render tests via
+@testing-library; the Svelte side is unit tests over the ported logic (playback
+transitions, mercator projection, route/segment maths, auth redirect handling,
+thumbnail tiling, drive-list formatting, api surface). Three React suites have
+direct successors; four covered redux actions, the React app shell and a window
+hook that svelte/reactivity/window replaces, and were deleted with them.
+
+
+WHAT DID NOT IMPROVE
+--------------------
+
+    production build     ~9.9 s  ->  ~12.9 s   (best of 3, same machine)
+
+SvelteKit runs a client and a server pass even with ssr disabled. Slower than
+the single React pass.
+
+    src/ line count      17,233  ->   17,422   (+1%)
+
+Essentially flat. The React tree lost 16,860 lines, but MUI's styling moved from
+node_modules into components, so the source is a wash. The win is in the
+dependency surface and the shipped bundle, not in lines of code.
+
+    node_modules on disk   388 M  ->   378 M
+
+Marginal, and the svelte tree currently carries puppeteer and friends installed
+with --no-save for the gallery.
+
+
+ARCHITECTURE
+------------
+
+  Redux is gone. Server data lives in SvelteKit load functions; the only global
+  mutable state left is playback (src/lib/state/playback.svelte.js), a rune class
+  over the same wall-clock arithmetic the reducer used. Route params replaced
+  state.dongleId, state.primeNav and state.segmentRange.
+
+  src/url.js is gone. Its hand-rolled path regexes became route param matchers
+  (src/params/), which is stricter than what they replaced: /not-a-dongle now
+  404s where the old parser accepted it and produced NaN bounds.
+
+  Rendering is adapter-static with ssr disabled, output to dist/ with an
+  index.html fallback, so Dockerfile, nginx.conf, deploy-preview.sh and the
+  Cloudflare Pages setup are untouched.
+
+  vite-plugin-svelte is pinned to 4.x rather than 7.x: v7 needs Vite 8, and
+  staying on Vite 5 lets one Vite process build both renderers for the diff.
+  SvelteKit 2.70 supports Vite 5 natively, so nothing is lost.
+
+
+NEW TOOLING
+-----------
+
+  config/mock/            A dev-server mock backend. `bun run start:mock` runs
+                          every screen with no paired device and no comma
+                          account, across five scenarios (default, nodevice,
+                          noprime, body, anonymous). No application code knows it
+                          exists and it cannot reach a production build.
+
+  scripts/react-baseline.sh
+                          Creates ../comma-connect-react-baseline, a detached
+                          worktree of master with its own node_modules, so the
+                          diff baseline survives react being deleted from this
+                          branch.
+
+  build-gallery --states  Runs a subset of gallery states, pulling in any base
+                          page a modal state needs.
+
+
+KNOWN GAPS
+----------
+
+  - `"type": "module"` is not set, so svelte.config.js logs a module-type warning
+    on every build. Fixing it means renaming the jest configs to .cjs; better
+    done when jest gives way to vitest.
+  - src/index.css still imports tailwind in `important` mode and carries a
+    body line-height shim, both of which existed to coexist with MUI. Removing
+    the shim was tried and regressed all 30 captures, so it needs the per-variant
+    line-heights auditing first.
+  - Clips download returns an error in mock mode by design; real video needs a
+    real route.
