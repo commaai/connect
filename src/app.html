@@ -66,24 +66,6 @@
     <script defer data-domain="connect.comma.ai" src="https://plausible.io/js/script.js"></script>
 
     %sveltekit.head%
-    <!--
-      Stamp the theme before first paint, so a light-mode visitor never sees the
-      dark app flash. Deliberately duplicates src/lib/state/theme.svelte.js: this
-      has to run inline, ahead of any module, and the two must agree.
-    -->
-    <script>
-      (function () {
-        try {
-          var stored = localStorage.getItem('theme');
-          var theme = stored === 'dark' || stored === 'light'
-            ? stored
-            : (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-          document.documentElement.dataset.theme = theme;
-        } catch (e) {
-          document.documentElement.dataset.theme = 'dark';
-        }
-      })();
-    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

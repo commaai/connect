@@ -25,10 +25,10 @@
   ];
 
   // theme.palette.grey[*]
-  const GREY_999 = 'var(--c-grey-999)';
-  const GREY_900 = 'var(--c-grey-900)';
-  const GREY_500 = 'var(--c-grey-500)';
-  const GREY_300 = 'var(--c-grey-300)';
+  const GREY_999 = '#0c0e0f';
+  const GREY_900 = '#1e2224';
+  const GREY_500 = '#424a4f';
+  const GREY_300 = '#535f64';
 
   // MuiButtonBase root + MuiIconButton root. The theme disables the ripple, so
   // the button has no ripple span. Size and colour stay out of it: two
@@ -36,7 +36,7 @@
   // sheet, not by the order they are written in.
   const iconButton = 'relative inline-flex flex-none cursor-pointer appearance-none items-center'
     + ' justify-center rounded-[50%] border-0 bg-transparent p-0 text-center align-middle outline-none'
-    + ' select-none hover:bg-ink/10 disabled:pointer-events-none disabled:cursor-default';
+    + ' select-none hover:bg-white/10 disabled:pointer-events-none disabled:cursor-default';
   // Everything an <input>/<button> takes from preflight's `font: inherit`, which
   // MUI set on the class instead.
   const iconButtonStyle = 'font-size: 1.5rem; line-height: 1.5';
@@ -51,7 +51,7 @@
   const tinyArrowIcon = `font-size: 24px; flex-shrink: 0; user-select: none; width: 12px; height: 12px; color: ${GREY_500}`;
 
   // MuiTooltip tooltip, at the default bottom placement
-  const tooltipPanel = 'rounded-[4px] bg-[var(--c-panel-3)] px-2 py-1 text-[0.625rem] text-ink';
+  const tooltipPanel = 'rounded-[4px] bg-[#303639] px-2 py-1 text-[0.625rem] text-white';
 
   const noAudioTooltip = 'Enable audio recording through the "Record and Upload Microphone Audio"'
     + ' toggle on your device';
@@ -199,7 +199,7 @@
   <div style="border-right: 1px solid {GREY_900}">
     <button
       type="button"
-      class="{iconButton} h-10 w-10 text-ink"
+      class="{iconButton} h-10 w-10 text-white"
       style={iconButtonStyle}
       onclick={() => jumpBack(10000)}
       aria-label="Jump back 10 seconds"
@@ -212,7 +212,7 @@
   <div style="border-right: 1px solid {GREY_900}">
     <button
       type="button"
-      class="{iconButton} h-10 w-10 text-ink"
+      class="{iconButton} h-10 w-10 text-white"
       style={iconButtonStyle}
       onclick={() => jumpForward(10000)}
       aria-label="Jump forward 10 seconds"
@@ -225,11 +225,11 @@
 
   {#if !isThin}
     <!-- Typography caption, with the paddingTop it was given inline -->
-    <span class="block text-center text-[0.75rem] font-normal text-ink/70" style="padding-top: 4px; line-height: 1.375em">CURRENT PLAYBACK TIME</span>
+    <span class="block text-center text-[0.75rem] font-normal text-white/70" style="padding-top: 4px; line-height: 1.375em">CURRENT PLAYBACK TIME</span>
   {/if}
 
   <!-- Typography body1 + styles.currentTime -->
-  <p class="grow text-center text-[15px] font-medium text-ink" style="display: block; margin: 0 8px; line-height: 1.46429em"><span>{displayTime}</span></p>
+  <p class="grow text-center text-[15px] font-medium text-white" style="display: block; margin: 0 8px; line-height: 1.46429em"><span>{displayTime}</span></p>
 
   {#if !isIos()}
     <div class="mr-2 flex min-w-10 flex-col items-center">
@@ -246,7 +246,7 @@
         </span>
       </button>
       <!-- Typography body2 -->
-      <aside class="text-center text-[0.875rem] font-medium text-ink" style="display: block; line-height: 1.71429em">{lastPlaySpeed}×</aside>
+      <aside class="text-center text-[0.875rem] font-medium text-white" style="display: block; line-height: 1.71429em">{lastPlaySpeed}×</aside>
       <button
         type="button"
         class="{iconButton} h-3 w-3 disabled:invisible"
@@ -267,7 +267,7 @@
       <div>
         <button
           type="button"
-          class="{iconButton} h-10 w-10 text-ink disabled:text-ink/30"
+          class="{iconButton} h-10 w-10 text-white disabled:text-white/30"
           style={iconButtonStyle}
           onclick={onmutetoggle}
           disabled={!hasAudio}
@@ -288,7 +288,7 @@
   <div style="border-left: 1px solid {GREY_900}">
     <button
       type="button"
-      class="{iconButton} h-12 w-12 text-ink"
+      class="{iconButton} h-12 w-12 text-white"
       style={iconButtonStyle}
       onclick={togglePause}
       aria-label={isPaused ? 'Unpause' : 'Pause'}

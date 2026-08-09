@@ -106,11 +106,11 @@
 
   // styles.searchSelectBox, and styles.primeAdContainer layered over it. Written
   // out separately so no two conflicting Tailwind utilities meet on one element.
-  const searchSelectBox = 'flex flex-col rounded-[22px] border border-ink/10 bg-[var(--c-grey-800)] px-4 py-3 text-ink';
-  const primeAdContainer = 'flex flex-col rounded-[22px] border border-[var(--c-panel-3)] bg-[var(--c-grey-500)] px-4 py-3 text-ink';
+  const searchSelectBox = 'flex flex-col rounded-[22px] border border-white/10 bg-[#272c2f] px-4 py-3 text-white';
+  const primeAdContainer = 'flex flex-col rounded-[22px] border border-[#303639] bg-[#424a4f] px-4 py-3 text-white';
   // styles.clearSearchSelect
   const clearSearchSelect = 'absolute top-[-8px] left-[-6px] h-6 w-6 shrink-0 cursor-pointer select-none'
-    + ' rounded-[12px] border border-[var(--c-grey-600)] bg-[var(--c-grey-900)] p-[5px] text-ink hover:bg-[var(--c-panel-3)]';
+    + ' rounded-[12px] border border-[#394044] bg-[#1e2224] p-[5px] text-white hover:bg-[#303639]';
   // MuiButton root + styles.searchSelectButton, minus the contained variant's
   // shadow and 36px min-height — this Button is a flat one.
   const buttonBase = 'relative ml-2 inline-flex min-h-0 min-w-16 max-w-[125px] grow cursor-pointer select-none'
@@ -577,11 +577,11 @@
   </svg>
 {/snippet}
 
-<div bind:this={containerEl} class="navMap border-b border-ink/10" style="height: 200px">
+<div bind:this={containerEl} class="navMap border-b border-white/10" style="height: 200px">
   {#if mapError}
     <div class="relative mt-5 ml-5">
-      <p class="text-[0.875rem] text-ink/50" style="line-height: 1.46429em">Could not initialize map.</p>
-      <p class="text-[0.875rem] text-ink/50" style="line-height: 1.46429em">{mapError}</p>
+      <p class="text-[0.875rem] text-white/50" style="line-height: 1.46429em">Could not initialize map.</p>
+      <p class="text-[0.875rem] text-white/50" style="line-height: 1.46429em">{mapError}</p>
     </div>
   {/if}
 
@@ -618,13 +618,13 @@
                 />
                 <path
                   d="M6.238 291.337a.463.463 0 0 0-.355-.447l-.429-1a.154.154 0 0 0-.141-.095H3.154a.154.154 0 0 0-.136.086l-.434 1.006a.463.463 0 0 0-.355.45v1.08h.308v.307a.308.308 0 1 0 .617 0v-.308h2.159v.308a.308.308 0 1 0 .616 0v-.308h.309zm-2.991-1.234H5.22l.324.771H2.923Zm-.401 1.85a.308.308 0 1 1 0-.616.308.308 0 0 1 0 .616zm2.775 0a.308.308 0 1 1 0-.616.308.308 0 0 1 0 .616z"
-                  style="fill:var(--c-ink);stroke-width:0.30835694"
+                  style="fill:#fff;stroke-width:0.30835694"
                   transform="translate(-1.258 -288.533)"
                 />
               </svg>
               <div
                 bind:this={carPinTooltipEl}
-                class="rounded-[14px] border border-ink/10 bg-[var(--c-grey-800)] px-2 py-[6px] text-center text-[0.8em] text-ink"
+                class="rounded-[14px] border border-white/10 bg-[#272c2f] px-2 py-[6px] text-center text-[0.8em] text-white"
                 style="display: none"
                 style:transform={carPinTooltipTransform}
               >
@@ -640,13 +640,13 @@
                 <div class="mb-[10px] flex w-full items-start justify-between">
                   <div class="basis-auto">
                     <p class="text-[0.875rem] font-semibold" style="line-height: 1.46429em">{device?.alias}</p>
-                    <p class="text-[0.875rem] text-ink/40" style="line-height: 1.46429em">
+                    <p class="text-[0.875rem] text-white/40" style="line-height: 1.46429em">
                       {carLocation ? timeFromNow(carLocation.time) : ''}
                     </p>
                   </div>
                   <div class="flex flex-wrap-reverse items-end justify-end">
                     <a
-                      class="{buttonBase} bg-ink px-3 text-[var(--c-grey-900)] no-underline hover:bg-ink/85"
+                      class="{buttonBase} bg-white px-3 text-[#1e2224] no-underline hover:bg-[#ddd]"
                       style="line-height: 1.4em"
                       href={geoUri}
                       target="_blank"
@@ -657,7 +657,7 @@
                     </a>
                   </div>
                 </div>
-                <p class="text-[0.875rem] text-ink/40" style="line-height: 1.46429em">
+                <p class="text-[0.875rem] text-white/40" style="line-height: 1.46429em">
                   {formatPlaceName(searchSelect)}{formatPlaceAddress(searchSelect)}
                 </p>
               </div>

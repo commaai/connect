@@ -270,14 +270,14 @@
     }
 
     const peakY = h - maxVal * yScale;
-    ctx.strokeStyle = 'rgb(var(--c-ink-rgb) / 0.15)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, peakY);
     ctx.lineTo(w, peakY);
     ctx.stroke();
 
-    ctx.fillStyle = 'rgb(var(--c-ink-rgb) / 0.3)';
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
     ctx.font = '8px monospace';
     ctx.textBaseline = 'bottom';
     ctx.fillText(`${Math.round(maxVal)} ms`, 3, peakY - 1);
@@ -300,7 +300,7 @@
       style="background-color: {indicator.color}"
       title={indicator.label}
     ></div>
-    <span class="text-base hidden xxs:inline text-ink/70">{stats?.rtt ?? '--'}</span>
+    <span class="text-base hidden xxs:inline text-white/70">{stats?.rtt ?? '--'}</span>
   </div>
   {#if battery}
     <div class="flex items-center justify-center gap-2 h-10 px-3.5">
@@ -309,11 +309,11 @@
         fill="currentColor"
         width="1em"
         height="1em"
-        style="font-size: 20px; color: rgb(var(--c-ink-rgb) / 0.7); display: inline-block; flex-shrink: 0"
+        style="font-size: 20px; color: rgba(255, 255, 255, 0.7); display: inline-block; flex-shrink: 0"
         aria-hidden="true"
         focusable="false"
       ><path d={battery.charging ? BATTERY_CHARGING_FULL : BATTERY_FULL} /></svg>
-      <span class="text-base text-ink/70 w-9">{battery.level}%</span>
+      <span class="text-base text-white/70 w-9">{battery.level}%</span>
     </div>
   {/if}
   <div bind:this={statsWrapper}>
@@ -324,7 +324,7 @@
       onclick={toggleStats}
       title="Toggle stats"
     >
-      <span class="text-[13px] font-semibold tracking-[0.5px] uppercase text-center leading-none text-ink/60 group-hover:text-ink/90">stats</span>
+      <span class="text-[13px] font-semibold tracking-[0.5px] uppercase text-center leading-none text-white/60 group-hover:text-white/90">stats</span>
     </div>
     {#if showStats}
       <div class="absolute z-30 right-2 mt-2 flex glass-dark bg-black/40 backdrop-blur-[3px] rounded-[5px] md:rounded-[10px] font-mono {compact ? 'flex-row gap-2 items-center p-[6px_8px]' : 'flex-col w-[150px] md:w-[240px] p-[3px_6px] md:p-[10px_16px]'}">
@@ -332,31 +332,31 @@
           {#each STATS_ROWS as { label, key, showInCompact } (key)}
             {#if !(showInCompact === false && compact)}
               <div class="flex justify-between leading-tight md:py-[3px]">
-                <span class="{textSize} text-ink/45 mr-1.5">{label}</span>
-                <span class="{textSize} text-ink/[0.85] text-right min-w-16">{stats?.[key] ?? '--'}</span>
+                <span class="{textSize} text-white/45 mr-1.5">{label}</span>
+                <span class="{textSize} text-white/[0.85] text-right min-w-16">{stats?.[key] ?? '--'}</span>
               </div>
             {/if}
           {/each}
         </div>
-        {#if !compact}<div class="h-px bg-ink/[0.08] my-px md:my-[5px]"></div>{/if}
+        {#if !compact}<div class="h-px bg-white/[0.08] my-px md:my-[5px]"></div>{/if}
         <div>
-          {#if !compact}<div class="text-[7px] font-bold text-ink/35 tracking-[0.5px] leading-tight py-[2px] pb-px md:text-[11px]">FRAME LATENCY</div>{/if}
+          {#if !compact}<div class="text-[7px] font-bold text-white/35 tracking-[0.5px] leading-tight py-[2px] pb-px md:text-[11px]">FRAME LATENCY</div>{/if}
           {#each LATENCY_LAYERS as { label, key, labelColor } (label)}
             <div class="flex justify-between leading-tight md:py-[3px]">
               <span class="{textSize} mr-1.5 md:mr-[20px]" style="color: {labelColor}">{label}</span>
-              <span class="{textSize} text-nowrap text-ink/[0.85] text-right">{fmtMs(latency?.[key])}</span>
+              <span class="{textSize} text-nowrap text-white/[0.85] text-right">{fmtMs(latency?.[key])}</span>
             </div>
           {/each}
           <div class="flex justify-between leading-tight md:py-[3px]">
-            <span class="{textSize} mr-1.5 md:mr-[18px]" style="font-weight: 700; color: rgb(var(--c-ink-rgb) / 0.65)">Frame Latency</span>
-            <span class="{textSize} text-ink/[0.85] text-right" style="font-weight: 700">{fmtMs(latency?.totalMs)}</span>
+            <span class="{textSize} mr-1.5 md:mr-[18px]" style="font-weight: 700; color: rgba(255,255,255,0.65)">Frame Latency</span>
+            <span class="{textSize} text-white/[0.85] text-right" style="font-weight: 700">{fmtMs(latency?.totalMs)}</span>
           </div>
         </div>
         <canvas
           bind:this={latencyCanvas}
           class="{compact ? 'w-[100px] self-stretch' : 'w-full h-[30px] md:h-[90px] mt-1'} rounded-[3px] bg-black/30 md:rounded-[6px]"
         ></canvas>
-        {#if !compact}<div class="h-px bg-ink/[0.08] my-px md:my-[5px]"></div>{/if}
+        {#if !compact}<div class="h-px bg-white/[0.08] my-px md:my-[5px]"></div>{/if}
       </div>
     {/if}
   </div>

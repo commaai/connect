@@ -31,8 +31,8 @@
   aria-hidden={!visible}
 >
   <div
-    class="ml-safe-left flex h-full flex-col border-r border-[var(--c-bar-edge)]
-           bg-[linear-gradient(180deg,var(--c-rail-top)_0%,var(--c-rail-bot)_100%)]"
+    class="ml-safe-left flex h-full flex-col border-r border-white/12
+           bg-[linear-gradient(180deg,#1B2023_0%,#111516_100%)]"
   >
     <DeviceList {devices} {device} {profile} {selectedDongleId} {onselect} {onsettings} />
   </div>

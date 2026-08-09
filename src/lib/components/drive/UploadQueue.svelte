@@ -133,17 +133,17 @@
     };
   });
 
-  // styles.modal, on a MUI Paper whose background the theme overrides to var(--c-panel).
-  const paperClass = 'absolute top-1/2 left-1/2 w-max max-w-[90%] rounded-[4px] bg-[var(--c-panel)] p-4 outline-none '
+  // styles.modal, on a MUI Paper whose background the theme overrides to #30373B.
+  const paperClass = 'absolute top-1/2 left-1/2 w-max max-w-[90%] rounded-[4px] bg-[#30373B] p-4 outline-none '
     + 'shadow-[0_1px_5px_0_rgba(0,0,0,0.2),0_2px_2px_0_rgba(0,0,0,0.14),0_3px_1px_-2px_rgba(0,0,0,0.12)]';
   // MUI Button root; theme.MuiButton overrides text-transform to none.
   const buttonBase = 'box-border inline-flex min-h-[36px] min-w-[64px] cursor-pointer items-center justify-center '
     + 'rounded-[4px] px-4 py-2 align-middle text-[0.875rem] leading-[1.4em] font-medium transition-colors';
   // variant="contained" carries theme.shadows[2]; styles.cancelButton repaints it grey200/grey400.
   // The disabled rules outrank it: they are .contained$disabled, one class more specific.
-  const cancelButton = `${buttonBase} ml-2 bg-[var(--c-grey-200)] text-ink hover:bg-[var(--c-grey-400)] `
+  const cancelButton = `${buttonBase} ml-2 bg-[#5c696f] text-white hover:bg-[#4b5559] `
     + 'shadow-[0_1px_5px_0_rgba(0,0,0,0.2),0_2px_2px_0_rgba(0,0,0,0.14),0_3px_1px_-2px_rgba(0,0,0,0.12)] '
-    + 'disabled:pointer-events-none disabled:cursor-default disabled:bg-ink/12 disabled:text-ink/30 disabled:shadow-none';
+    + 'disabled:pointer-events-none disabled:cursor-default disabled:bg-white/12 disabled:text-white/30 disabled:shadow-none';
   // styles.uploadCell
   const cellClass = 'h-[25px]';
 
@@ -179,19 +179,19 @@
       <!-- styles.titleContainer -->
       <div class="mb-[5px] flex items-baseline justify-between">
         <!-- MUI Typography variant="title" -->
-        <h2 class="text-[1.3125rem] font-medium text-ink" style="line-height: 1.16667em">Upload queue</h2>
+        <h2 class="text-[1.3125rem] font-medium text-white" style="line-height: 1.16667em">Upload queue</h2>
         <!-- MUI Typography variant="caption", palette.text.secondary -->
-        <span class="ml-2 block text-[0.75rem] text-ink/70" style="line-height: 1.375em">{device.dongle_id}</span>
+        <span class="ml-2 block text-[0.75rem] text-white/70" style="line-height: 1.375em">{device.dongle_id}</span>
       </div>
       <!-- MUI Divider -->
-      <hr class="m-0 h-px shrink-0 border-none bg-ink/12" />
+      <hr class="m-0 h-px shrink-0 border-none bg-white/12" />
 
       <!-- styles.uploadContainer -->
-      <div class="my-2 overflow-y-auto text-left text-ink/90" style={containerStyle}>
+      <div class="my-2 overflow-y-auto text-left text-white/90" style={containerStyle}>
         {#if hasUploading}
           {#if deviceOnCellular(liveDevice) && allPaused}
             <!-- styles.cellularWarning -->
-            <div class="mb-2 flex flex-col rounded-[4px] bg-[var(--c-grey-500)] px-4 py-3">
+            <div class="mb-2 flex flex-col rounded-[4px] bg-[#424a4f] px-4 py-3">
               <div class="mb-[2px] flex items-center">
                 <svg viewBox="0 0 24 24" fill="currentColor" class="shrink-0 select-none" style="font-size: 24px; width: 1em; height: 1em; margin-right: 8px" aria-hidden="true">
                   <path d={WARNING_PATH} />
@@ -232,11 +232,11 @@
                           class="relative overflow-hidden"
                           role="progressbar"
                           aria-valuenow={Math.round(upload.progress * 100)}
-                          style="width: 80%; height: 8px; margin-right: 6px; background-color: rgb(var(--c-ink-rgb) / 0.3)"
+                          style="width: 80%; height: 8px; margin-right: 6px; background-color: rgba(255, 255, 255, 0.3)"
                         >
                           <div
                             class="absolute top-0 bottom-0 left-0 w-full"
-                            style="transform-origin: left; background-color: rgb(var(--c-ink-rgb) / 0.8); will-change: transform; transition: transform 0.5s linear; transform: scaleX({upload.progress})"
+                            style="transform-origin: left; background-color: rgba(255, 255, 255, 0.8); will-change: transform; transition: transform 0.5s linear; transform: scaleX({upload.progress})"
                           ></div>
                         </div>
                       </div>
@@ -248,12 +248,12 @@
                     <!-- styles.cancelCell -->
                     <td class="{cellClass} text-center" style={cellStyle}>
                       {#if isCancelled}
-                        {@render circularProgress(15, 'color: var(--c-ink); margin: 1.5px')}
+                        {@render circularProgress(15, 'color: #fff; margin: 1.5px')}
                       {:else}
                         <button
                           type="button"
                           aria-label="cancel upload"
-                          class="inline-flex cursor-pointer items-center justify-center rounded-[13px] p-0 align-middle text-[0.875rem] leading-[1.4em] font-semibold text-ink outline-none hover:bg-transparent"
+                          class="inline-flex cursor-pointer items-center justify-center rounded-[13px] p-0 align-middle text-[0.875rem] leading-[1.4em] font-semibold text-white outline-none hover:bg-transparent"
                           onclick={() => cancelUploading([id])}
                         >
                           <svg viewBox="0 0 24 24" fill="currentColor" class="shrink-0 select-none" style="font-size: 18px; width: 1em; height: 1em" aria-hidden="true">
@@ -272,7 +272,7 @@
         {:else if hasData}
           <p>no uploads</p>
         {:else}
-          {@render circularProgress(17, 'color: var(--c-ink); margin: 8px')}
+          {@render circularProgress(17, 'color: #fff; margin: 8px')}
         {/if}
       </div>
 

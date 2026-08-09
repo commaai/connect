@@ -120,7 +120,7 @@
 <style>
   /* explorer.jsx styles.modal, over MUI Paper (theme background, elevation 2) */
   .paper {
-    background-color: var(--c-panel);
+    background-color: #30373b;
     border-radius: 4px;
     box-shadow:
       0px 1px 5px 0px rgba(0, 0, 0, 0.2),
@@ -153,14 +153,14 @@
     font-size: 1.3125rem;
     font-weight: 500;
     line-height: 1.16667em;
-    color: var(--c-ink);
+    color: #fff;
   }
 
   .body1 {
     font-size: 0.875rem;
     font-weight: 400;
     line-height: 1.46429em;
-    color: var(--c-ink);
+    color: #fff;
   }
 
   .pairedDongleId {
@@ -173,7 +173,7 @@
     margin: 0;
     border: none;
     flex-shrink: 0;
-    background-color: rgb(var(--c-ink-rgb) / 0.12);
+    background-color: rgba(255, 255, 255, 0.12);
   }
 
   /* MUI CircularProgress, size 32, styles.fabProgress marginTop. No color prop
@@ -231,12 +231,12 @@
   .closeButton {
     margin-top: 10px;
     float: right;
-    background-color: var(--c-grey-200);
-    color: var(--c-ink);
+    background-color: #5c696f;
+    color: #fff;
   }
 
   .closeButton:hover {
-    background-color: var(--c-grey-400);
+    background-color: #4b5559;
   }
 
   .buttonLabel {

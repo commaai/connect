@@ -102,7 +102,7 @@
 </script>
 
 <div class="DriveView">
-  <div class="flex flex-col rounded-lg m-4 bg-[linear-gradient(to_bottom,var(--c-panel)_0%,var(--c-panel-2)_10%,var(--c-page-top)_100%)]">
+  <div class="flex flex-col rounded-lg m-4 bg-[linear-gradient(to_bottom,#30373B_0%,#272D30_10%,#1D2225_100%)]">
     <div>
       <div class="items-center justify-between flex p-3 gap-2">
         <!-- MUI IconButton -->
@@ -120,7 +120,7 @@
             </svg>
           </span>
         </button>
-        <div class="text-ink text-lg font-medium">
+        <div class="text-white text-lg font-medium">
           <span class="hidden sm:inline">{`${startDay} `}</span>{`${startTime} - ${endTime}`}
         </div>
         <!-- IconButton with an href renders a ButtonBase <a> -->
@@ -156,7 +156,7 @@
     font-size: 0.875rem;
     font-weight: 400;
     line-height: 1.46429em;
-    color: var(--c-ink);
+    color: #fff;
   }
 
   /* MuiButtonBase root + MuiIconButton root, palette.action.active on a dark theme */
@@ -173,7 +173,7 @@
     margin: 0;
     border-radius: 50%;
     background-color: transparent;
-    color: var(--c-ink);
+    color: #fff;
     font-size: 1.5rem;
     text-align: center;
     text-decoration: none;
@@ -189,11 +189,11 @@
   }
 
   .iconButton:hover {
-    background-color: rgb(var(--c-ink-rgb) / 0.1);
+    background-color: rgba(255, 255, 255, 0.1);
   }
 
   .iconButton:disabled {
-    color: rgb(var(--c-ink-rgb) / 0.3);
+    color: rgba(255, 255, 255, 0.3);
     pointer-events: none;
     cursor: default;
   }

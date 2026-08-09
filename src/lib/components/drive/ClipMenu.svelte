@@ -820,7 +820,7 @@
     overflow: hidden;
     outline: none;
     border-radius: 4px;
-    background-color: var(--c-panel);
+    background-color: #30373b;
     box-shadow:
       0px 5px 5px -3px rgba(0, 0, 0, 0.2),
       0px 8px 10px 1px rgba(0, 0, 0, 0.14),
@@ -886,7 +886,7 @@
   .header {
     display: block;
     margin: 0 0 4px;
-    color: var(--c-ink);
+    color: #fff;
     font-size: 16px;
     font-weight: 500;
     line-height: 1.46429em;
@@ -895,14 +895,14 @@
   .supporting {
     display: block;
     margin: 0;
-    color: rgb(var(--c-ink-rgb) / 0.6);
+    color: rgba(255, 255, 255, 0.6);
     font-size: 12px;
     font-weight: 400;
     line-height: 1.4;
   }
 
   .range {
-    background: rgb(var(--c-ink-rgb) / 0.05);
+    background: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
     margin: 14px 0;
     padding: 10px 12px;
@@ -911,7 +911,7 @@
   .rangeValue {
     display: block;
     margin: 0;
-    color: var(--c-ink);
+    color: #fff;
     font-size: 15px;
     font-weight: 500;
     line-height: 1.46429em;
@@ -924,7 +924,7 @@
   .label {
     display: block;
     margin: 0 0 6px;
-    color: rgb(var(--c-ink-rgb) / 0.6);
+    color: rgba(255, 255, 255, 0.6);
     font-size: 11px;
     font-weight: 400;
     line-height: 1.46429em;
@@ -932,7 +932,7 @@
 
   .segmentedControl {
     display: flex;
-    border: 1px solid rgb(var(--c-ink-rgb) / 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     overflow: hidden;
   }
@@ -951,7 +951,7 @@
     margin: 0;
     border-radius: 4px;
     background-color: transparent;
-    color: var(--c-ink);
+    color: #fff;
     font-family: inherit;
     font-size: 0.875rem;
     font-weight: 500;
@@ -974,13 +974,13 @@
 
   .muiButton:hover {
     text-decoration: none;
-    background-color: rgb(var(--c-ink-rgb) / 0.1);
+    background-color: rgba(255, 255, 255, 0.1);
   }
 
   .muiButton:disabled {
     pointer-events: none;
     cursor: default;
-    color: rgb(var(--c-ink-rgb) / 0.3);
+    color: rgba(255, 255, 255, 0.3);
   }
 
   .muiButton:disabled:hover {
@@ -998,8 +998,8 @@
   .segmentedButton {
     border: none;
     border-radius: 0;
-    border-right: 1px solid rgb(var(--c-ink-rgb) / 0.1);
-    color: var(--c-ink);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
     flex: 1 1 0;
     font-size: 12px;
     line-height: 1.2;
@@ -1015,17 +1015,17 @@
 
   /* MuiButton's `&$disabled` is two classes deep, so it outranks the colour above */
   .segmentedButton:disabled {
-    color: rgb(var(--c-ink-rgb) / 0.3);
+    color: rgba(255, 255, 255, 0.3);
   }
 
   .segmentedButton[aria-pressed='true'],
   .segmentedButton[aria-pressed='true']:hover,
   .segmentedButton[aria-pressed='true']:focus {
-    background: rgb(var(--c-ink-rgb) / 0.14);
+    background: rgba(255, 255, 255, 0.14);
   }
 
   .qualityDetail {
-    color: rgb(var(--c-ink-rgb) / 0.6);
+    color: rgba(255, 255, 255, 0.6);
     display: block;
     font-size: 10px;
     font-weight: 400;
@@ -1051,18 +1051,18 @@
   .estimateValue {
     display: block;
     margin: 0;
-    color: var(--c-ink);
+    color: #fff;
     font-size: 12px;
     font-weight: 500;
     line-height: 1.46429em;
   }
 
   .input {
-    background: rgb(var(--c-ink-rgb) / 0.05);
-    border: 1px solid rgb(var(--c-ink-rgb) / 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     box-sizing: border-box;
-    color: var(--c-ink);
+    color: #fff;
     font-family: inherit;
     font-size: 13px;
     outline: none;
@@ -1071,7 +1071,7 @@
   }
 
   .input::placeholder {
-    color: rgb(var(--c-ink-rgb) / 0.4);
+    color: rgba(255, 255, 255, 0.4);
   }
 
   .error {
@@ -1084,9 +1084,9 @@
   }
 
   .create {
-    background: var(--c-ink);
+    background: #fff;
     border-radius: 16px;
-    color: var(--c-grey-900);
+    color: #1e2224;
     margin-top: 16px;
     min-height: 32px;
     text-transform: none;
@@ -1094,12 +1094,12 @@
   }
 
   .create:hover {
-    background: rgb(var(--c-ink-rgb) / 0.85);
+    background: #eee;
   }
 
   .create:disabled {
-    background: rgb(var(--c-ink-rgb) / 0.05);
-    color: rgb(var(--c-ink-rgb) / 0.6);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.6);
   }
 
   /* MuiDivider */
@@ -1108,7 +1108,7 @@
     margin: 0;
     border: none;
     flex-shrink: 0;
-    background-color: rgb(var(--c-ink-rgb) / 0.12);
+    background-color: rgba(255, 255, 255, 0.12);
   }
 
   .clipsSection {
@@ -1120,7 +1120,7 @@
 
   .sectionHeader {
     align-items: center;
-    color: rgb(var(--c-ink-rgb) / 0.6);
+    color: rgba(255, 255, 255, 0.6);
     display: flex;
     margin-bottom: 8px;
   }
@@ -1139,7 +1139,7 @@
   }
 
   .clip + .clip {
-    border-top: 1px solid rgb(var(--c-ink-rgb) / 0.05);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .clip:last-child {
@@ -1160,7 +1160,7 @@
   .clipTitle {
     display: block;
     margin: 0;
-    color: var(--c-ink);
+    color: #fff;
     font-size: 15px;
     font-weight: 400;
     line-height: 1.35;
@@ -1169,7 +1169,7 @@
   .clipMeta {
     display: block;
     margin: 2px 0 0;
-    color: rgb(var(--c-ink-rgb) / 0.6);
+    color: rgba(255, 255, 255, 0.6);
     font-size: 13px;
     font-weight: 400;
     line-height: 1.4;
@@ -1197,7 +1197,7 @@
     margin: 0;
     border-radius: 50%;
     background-color: transparent;
-    color: var(--c-ink);
+    color: #fff;
     font-family: inherit;
     font-size: 1.5rem;
     text-align: center;
@@ -1214,13 +1214,13 @@
   }
 
   .iconButton:hover {
-    background-color: rgb(var(--c-ink-rgb) / 0.1);
+    background-color: rgba(255, 255, 255, 0.1);
   }
 
   .iconButton:disabled {
     pointer-events: none;
     cursor: default;
-    color: rgb(var(--c-ink-rgb) / 0.3);
+    color: rgba(255, 255, 255, 0.3);
   }
 
   .iconButton:disabled:hover {
@@ -1247,7 +1247,7 @@
   }
 
   .clipAction {
-    color: var(--c-ink);
+    color: #fff;
     flex: 0 0 auto;
     height: 32px;
     padding: 7px;
@@ -1255,7 +1255,7 @@
   }
 
   .clipAction:disabled {
-    color: rgb(var(--c-ink-rgb) / 0.4);
+    color: rgba(255, 255, 255, 0.4);
   }
 
   /* MuiSvgIcon */
@@ -1384,7 +1384,7 @@
   .transferLabel {
     display: block;
     margin: 8px 0 0;
-    color: rgb(var(--c-ink-rgb) / 0.6);
+    color: rgba(255, 255, 255, 0.6);
     font-size: 12px;
     font-weight: 400;
     line-height: 1.46429em;
@@ -1394,7 +1394,7 @@
   .empty {
     display: block;
     margin: 0;
-    color: rgb(var(--c-ink-rgb) / 0.6);
+    color: rgba(255, 255, 255, 0.6);
     font-size: 13px;
     font-weight: 400;
     line-height: 1.4;
@@ -1412,7 +1412,7 @@
     overflow-y: auto;
     outline: none;
     border-radius: 4px;
-    background-color: var(--c-panel);
+    background-color: #30373b;
     box-shadow:
       0px 11px 15px -7px rgba(0, 0, 0, 0.2),
       0px 24px 38px 3px rgba(0, 0, 0, 0.14),
@@ -1441,7 +1441,7 @@
   .title {
     display: block;
     margin: 0;
-    color: var(--c-ink);
+    color: #fff;
     font-size: 1.3125rem;
     font-weight: 500;
     line-height: 1.16667em;
@@ -1469,7 +1469,7 @@
   }
 
   .viewerPaper {
-    background: var(--c-grey-900);
+    background: #1e2224;
     max-width: 800px;
     width: calc(100vw - 32px);
   }
@@ -1489,7 +1489,7 @@
   .viewerMeta {
     display: block;
     margin: 3px 0 0;
-    color: rgb(var(--c-ink-rgb) / 0.6);
+    color: rgba(255, 255, 255, 0.6);
     font-size: 13px;
     font-weight: 400;
     line-height: 1.4;
@@ -1507,14 +1507,14 @@
   }
 
   .viewerVideo {
-    background: var(--c-grey-950);
+    background: #151819;
     display: block;
     max-height: 70vh;
     width: 100%;
   }
 
   .deletePaper {
-    background: var(--c-grey-900);
+    background: #1e2224;
     width: 360px;
   }
 
@@ -1525,7 +1525,7 @@
   .deleteContent {
     display: block;
     margin: 0;
-    color: rgb(var(--c-ink-rgb) / 0.6);
+    color: rgba(255, 255, 255, 0.6);
     font-size: 14px;
     font-weight: 400;
     line-height: 1.5;

@@ -13,15 +13,15 @@
     { key: 'driver', label: 'driver', num: '2' },
   ];
 
-  const btnBase = 'h-11 w-[80px] rounded-xl text-[14px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[44px] cursor-pointer select-none hover:text-ink hover:bg-ink/20 glass border-[1.5px] border-ink/20';
-  const btnInactive = `${btnBase} bg-ink/10 text-ink/60`;
-  const btnActive = `${btnBase} bg-ink/30 text-ink`;
+  const btnBase = 'h-11 w-[80px] rounded-xl text-[14px] font-bold tracking-[0.2px] uppercase flex items-center justify-center min-w-[44px] cursor-pointer select-none hover:text-white hover:bg-white/20 glass border-[1.5px] border-white/20';
+  const btnInactive = `${btnBase} bg-white/10 text-white/60`;
+  const btnActive = `${btnBase} bg-white/30 text-white`;
 
   const controlsGroupBase = 'z-10 flex flex-row items-stretch gap-3.5 rounded-[20px] p-4 bg-glass-dark';
   const controlsGroupLandscape = 'absolute bottom-4 left-4';
   const controlsGroupPortrait = 'relative self-stretch rounded-none shrink-0 justify-between gap-2';
 
-  const labelClass = 'text-[10px] lg:text-[13px] font-semibold tracking-[0.5px] uppercase text-ink/35 text-center leading-none';
+  const labelClass = 'text-[10px] lg:text-[13px] font-semibold tracking-[0.5px] uppercase text-white/35 text-center leading-none';
 
   let screenshotInProgress = false;
 

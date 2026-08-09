@@ -170,29 +170,29 @@
 
   // MUI Typography variants. The global body shim only supplies body1's
   // line-height, so every variant states its own size and line-height.
-  // The variants declare colour too: createTypography puts text.primary (var(--c-ink) on
+  // The variants declare colour too: createTypography puts text.primary (#fff on
   // the dark palette) on body1/body2, and a class beats inheritance — which is
   // what keeps them full white inside a panel that sets a dimmer colour.
-  const body1 = 'margin: 0; font-size: 0.875rem; font-weight: 400; line-height: 1.46429em; color: var(--c-ink)';
-  const body2 = 'margin: 0; font-size: 0.875rem; font-weight: 500; line-height: 1.71429em; color: var(--c-ink)';
+  const body1 = 'margin: 0; font-size: 0.875rem; font-weight: 400; line-height: 1.46429em; color: #fff';
+  const body2 = 'margin: 0; font-size: 0.875rem; font-weight: 500; line-height: 1.71429em; color: #fff';
 
   // styles.plan
   const planBase = 'width: 160px; padding: 8px 0; border-radius: 18px; font-weight: 600;';
 
   function planStyle(plan) {
-    let background = 'rgb(var(--c-ink-rgb) / 0.1)';
+    let background = 'rgba(255, 255, 255, 0.1)';
     let color = '';
     let cursor = 'pointer';
     // styles.planDisabled, then styles.planInfoLoading which is declared later
     // in the stylesheet and therefore wins when both apply.
     if (plan === 'data' && disabledDataPlan) {
-      background = 'rgb(var(--c-ink-rgb) / 0.05)';
-      color = ' color: rgb(var(--c-ink-rgb) / 0.4);';
+      background = 'rgba(255, 255, 255, 0.05)';
+      color = ' color: rgba(255, 255, 255, 0.4);';
       cursor = 'default';
     }
     if (!info) {
-      background = 'rgb(var(--c-ink-rgb) / 0.03)';
-      color = ' color: rgb(var(--c-ink-rgb) / 0.2);';
+      background = 'rgba(255, 255, 255, 0.03)';
+      color = ' color: rgba(255, 255, 255, 0.2);';
       cursor = 'default';
     }
     const border = selectedPlan === plan ? '2px solid white' : '2px solid transparent';
@@ -231,7 +231,7 @@
 <!-- styles.primeBox. line-height 1.5 reproduces React's inherited preflight value,
      which the <br> strut inside the plan subtext and every bare <p> here depend on. -->
 <div
-  class="flex max-w-[430px] flex-col text-ink"
+  class="flex max-w-[430px] flex-col text-white"
   style="margin: {windowWidth > 520 ? '18px 24px' : '6px 12px'}; line-height: 1.5"
 >
   <!-- styles.primeHeader -->
@@ -240,7 +240,7 @@
     <button
       type="button"
       aria-label="Go Back"
-      class="relative inline-flex h-12 w-12 flex-[0_0_auto] items-center justify-center rounded-full text-center align-middle text-ink select-none hover:bg-ink/10"
+      class="relative inline-flex h-12 w-12 flex-[0_0_auto] items-center justify-center rounded-full text-center align-middle text-white select-none hover:bg-white/10"
       style="margin: 0; padding: 0; background-color: transparent; cursor: pointer; font-size: 1.5rem"
       onclick={goBack}
     >
@@ -285,7 +285,7 @@
 
   {#if device?.eligible_features?.commacare}
     <!-- styles.commacareBanner -->
-    <div style="margin-top: {blockMargin}px; padding: 10px 14px 10px 12px; border-radius: 12px; border: 1px solid #1a974e; color: var(--c-ink)">
+    <div style="margin-top: {blockMargin}px; padding: 10px 14px 10px 12px; border-radius: 12px; border: 1px solid #1a974e; color: #fff">
       <div class="flex items-center">
         <img src={commacareIcon} alt="" class="mr-3 w-6" />
         <p style={body1}>
@@ -302,11 +302,11 @@
 
   {#if device?.device_type === 'four' && !device?.eligible_features?.commacare}
     <!-- styles.commacareIneligible -->
-    <div style="margin-top: {blockMargin}px; padding: 10px 14px; border-radius: 12px; background-color: rgb(var(--c-ink-rgb) / 0.08); color: rgb(var(--c-ink-rgb) / 0.7); font-size: 0.9em">
+    <div style="margin-top: {blockMargin}px; padding: 10px 14px; border-radius: 12px; background-color: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.7); font-size: 0.9em">
       <aside style={body2}>
         This device is past the delivery window. commacare extended warranty won&apos;t be included with this
         subscription.
-        <a href={COMMACARE_URL} target="_blank" rel="noreferrer" style="color: rgb(var(--c-ink-rgb) / 0.7)">What is commacare?</a>
+        <a href={COMMACARE_URL} target="_blank" rel="noreferrer" style="color: rgba(255, 255, 255, 0.7)">What is commacare?</a>
       </aside>
     </div>
   {/if}
@@ -343,7 +343,7 @@
     {#if !info}
       <!-- styles.planLoading, fixed at 140 regardless of the plan box height -->
       <div class="absolute top-0 flex w-full flex-col items-center justify-center" style="height: 140px">
-        {@render circularProgress(38, 'var(--c-ink)')}
+        {@render circularProgress(38, '#fff')}
         <p style="margin: 0; margin-top: 10px; font-size: 0.9rem; line-height: 1.46429em">Fetching SIM data</p>
       </div>
     {/if}
@@ -351,7 +351,7 @@
 
   {#if disabledDataPlanText}
     <!-- styles.overviewBlockDisabled -->
-    <div class="flex items-center" style="margin-top: {blockMargin}px; border-radius: 12px; padding: 8px 12px; background-color: rgb(var(--c-ink-rgb) / 0.08)">
+    <div class="flex items-center" style="margin-top: {blockMargin}px; border-radius: 12px; padding: 8px 12px; background-color: rgba(255, 255, 255, 0.08)">
       <!-- icons/InfoOutline -->
       {@render svgIcon('M453-280h60v-240h-60v240Zm27-314q14 0 23-9t10-23q0-14-9-24-10-10-24-10t-23 10-10 24q0 14 9 23 10 9 24 9Zm0 514q-82 0-155-31t-128-86q-54-55-86-128-31-73-31-155 0-83 32-156 31-73 86-127t127-85q73-32 156-32 82 0 155 32 73 31 127 85t86 127q31 73 31 156 0 82-31 155t-86 127q-54 55-127 86-73 32-156 32Zm0-60q142 0 241-99t99-241q0-142-99-241t-241-99q-141 0-240 99-100 99-100 241 0 141 100 241t241 99Zm0-340Z', '0 -960 960 960', 24, '')}
       <p style="display: inline-block; margin: 0; margin-left: 10px; font-size: 0.875rem; line-height: 1.46429em">{disabledDataPlanText.text}{#if disabledDataPlanText.shop}<a class={linkHighlight} style={linkHighlightStyle} href="https://comma.ai/shop/comma-prime-sim">shop</a>{/if}</p>
@@ -378,11 +378,11 @@
     <!-- MUI Button + styles.buttons -->
     <button
       type="button"
-      class="gotoCheckout relative inline-flex w-full items-center justify-center align-middle select-none hover:bg-[rgb(var(--c-ink-rgb) / 0.7)]"
+      class="gotoCheckout relative inline-flex w-full items-center justify-center align-middle select-none hover:bg-[rgba(255,255,255,0.7)]"
       style="box-sizing: border-box; margin: 0; min-width: 64px; min-height: 36px; height: 42px; padding: 8px 16px;
-             border: 0; border-radius: 21px; color: var(--c-grey-900); font-size: 0.875rem; font-weight: 500;
+             border: 0; border-radius: 21px; color: #1e2224; font-size: 0.875rem; font-weight: 500;
              line-height: 1.4em; text-transform: none;
-             background: {checkoutDisabled ? 'rgb(var(--c-ink-rgb) / 0.7)' : 'var(--c-ink)'};
+             background: {checkoutDisabled ? 'rgba(255, 255, 255, 0.7)' : '#fff'};
              cursor: {checkoutDisabled ? 'default' : 'pointer'};
              pointer-events: {checkoutDisabled ? 'none' : 'auto'}"
       onclick={gotoCheckout}

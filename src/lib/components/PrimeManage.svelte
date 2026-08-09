@@ -306,7 +306,7 @@
 
 <!-- MUI CircularProgress, size={19}, color forced to white by React's style prop -->
 {#snippet progress()}
-  <div class="progress" role="progressbar" style="width: 19px; height: 19px; color: var(--c-ink)">
+  <div class="progress" role="progressbar" style="width: 19px; height: 19px; color: #fff">
     <svg viewBox="22 22 44 44">
       <circle class="progressCircle" cx="44" cy="44" r="20.2" fill="none" stroke-width="3.6" />
     </svg>
@@ -488,7 +488,7 @@
         {:else}
           <h2 class="typography title">{`Switch to ${primePlanName(planSwitchTarget)} plan`}</h2>
           <p class="typography body1 body1Muted mt-3">
-            {#if planSwitchTarget === 'data'}The Standard plan costs $24/month, includes a data plan, and is <strong class="font-bold text-ink">only available in the U.S.</strong>{:else}The Lite plan costs $14/month and does not include a data plan.{/if}
+            {#if planSwitchTarget === 'data'}The Standard plan costs $24/month, includes a data plan, and is <strong class="font-bold text-white">only available in the U.S.</strong>{:else}The Lite plan costs $14/month and does not include a data plan.{/if}
           </p>
         {/if}
         {#if planSwitchStatus === 'loading'}
@@ -605,45 +605,45 @@
     font-size: 1.3125rem;
     font-weight: 500;
     line-height: 1.16667em;
-    color: var(--c-ink);
+    color: #fff;
   }
 
   .subheading {
     font-size: 1rem;
     font-weight: 400;
     line-height: 1.5em;
-    color: var(--c-ink);
+    color: #fff;
   }
 
   .body2 {
     font-size: 0.875rem;
     font-weight: 500;
     line-height: 1.71429em;
-    color: var(--c-ink);
+    color: #fff;
   }
 
   .body1 {
     font-size: 0.875rem;
     font-weight: 400;
     line-height: 1.46429em;
-    color: var(--c-ink);
+    color: #fff;
   }
 
   /* body1 with the muted colour the plan-switch copy uses */
   .body1Muted {
-    color: rgb(var(--c-ink-rgb) / 0.8);
+    color: rgba(255, 255, 255, 0.8);
   }
 
   .caption {
     font-size: 0.75rem;
     font-weight: 400;
     line-height: 1.375em;
-    color: rgb(var(--c-ink-rgb) / 0.7);
+    color: rgba(255, 255, 255, 0.7);
   }
 
   /* MuiPaper: elevation 2, rounded, background overridden by the theme */
   .paper {
-    background-color: var(--c-panel);
+    background-color: #30373b;
     border-radius: 4px;
     box-shadow:
       0px 1px 5px 0px rgba(0, 0, 0, 0.2),
@@ -665,7 +665,7 @@
     margin: 0;
     border-radius: 4px;
     background-color: transparent;
-    color: var(--c-ink);
+    color: #fff;
     font-family: inherit;
     font-size: 0.875rem;
     font-weight: 500;
@@ -688,13 +688,13 @@
 
   .muiButton:hover {
     text-decoration: none;
-    background-color: rgb(var(--c-ink-rgb) / 0.1);
+    background-color: rgba(255, 255, 255, 0.1);
   }
 
   .muiButton:disabled {
     pointer-events: none;
     cursor: default;
-    color: rgb(var(--c-ink-rgb) / 0.3);
+    color: rgba(255, 255, 255, 0.3);
   }
 
   .muiButton:disabled:hover {
@@ -704,7 +704,7 @@
   /* MuiButton variant="contained"; the theme's grey palette has no A100 hover */
   .contained {
     color: rgba(0, 0, 0, 0.87);
-    background-color: var(--c-grey-300);
+    background-color: #535f64;
     box-shadow:
       0px 1px 5px 0px rgba(0, 0, 0, 0.2),
       0px 2px 2px 0px rgba(0, 0, 0, 0.14),
@@ -719,9 +719,9 @@
   }
 
   .contained:disabled {
-    color: rgb(var(--c-ink-rgb) / 0.3);
+    color: rgba(255, 255, 255, 0.3);
     box-shadow: none;
-    background-color: rgb(var(--c-ink-rgb) / 0.12);
+    background-color: rgba(255, 255, 255, 0.12);
   }
 
   /* MuiButton's label span */
@@ -746,7 +746,7 @@
     margin: 0;
     border-radius: 50%;
     background-color: transparent;
-    color: var(--c-ink);
+    color: #fff;
     font-size: 1.5rem;
     text-align: center;
     text-decoration: none;
@@ -762,7 +762,7 @@
   }
 
   .iconButton:hover {
-    background-color: rgb(var(--c-ink-rgb) / 0.1);
+    background-color: rgba(255, 255, 255, 0.1);
   }
 
   .iconButton .label {
@@ -823,8 +823,8 @@
   }
 
   .primeContainer {
-    border-bottom: 1px solid rgb(var(--c-ink-rgb) / 0.1);
-    color: var(--c-ink);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
   }
 
   .overviewBlock {
@@ -879,7 +879,7 @@
     padding: 8px 12px;
     display: flex;
     align-items: center;
-    background-color: rgb(var(--c-ink-rgb) / 0.08);
+    background-color: rgba(255, 255, 255, 0.08);
   }
 
   .overviewBlockDisabled p {
@@ -888,7 +888,7 @@
   }
 
   .overviewBlockDisabled a {
-    color: var(--c-ink);
+    color: white;
   }
 
   .manageItem {
@@ -896,15 +896,15 @@
   }
 
   .manageItem span {
-    color: rgb(var(--c-ink-rgb) / 0.7);
+    color: rgba(255, 255, 255, 0.7);
     font-size: 0.9em;
   }
 
   .buttons {
     margin-top: 10px;
-    background: var(--c-ink);
+    background: #fff;
     border-radius: 18px;
-    color: var(--c-grey-900);
+    color: #1e2224;
     text-transform: none;
     width: 220px;
   }
@@ -912,25 +912,25 @@
   .buttons:hover,
   .buttons:disabled,
   .buttons:disabled:hover {
-    background-color: rgb(var(--c-ink-rgb) / 0.7);
-    color: var(--c-grey-900);
+    background-color: rgba(255, 255, 255, 0.7);
+    color: #1e2224;
   }
 
   .cancelButton {
-    color: var(--c-ink);
+    color: #fff;
     background: transparent;
-    border: 1px solid var(--c-grey-500);
+    border: 1px solid #424a4f;
   }
 
   .cancelButton:hover {
-    background-color: rgb(var(--c-ink-rgb) / 0.1);
-    color: var(--c-ink);
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
   }
 
   .cancelButton:disabled,
   .cancelButton:disabled:hover {
     background-color: transparent;
-    color: var(--c-grey-500);
+    color: #424a4f;
   }
 
   /* styles.modal: theme.spacing.unit * 2 and * 50 */
@@ -951,25 +951,25 @@
   .closeButton {
     margin-top: 10px;
     float: right;
-    background-color: var(--c-grey-200);
-    color: var(--c-ink);
+    background-color: #5c696f;
+    color: #fff;
   }
 
   .closeButton:hover {
-    background-color: var(--c-grey-400);
+    background-color: #4b5559;
   }
 
   .cancelModalButton {
     width: 170px;
     margin-top: 10px;
-    background-color: var(--c-grey-200);
-    color: var(--c-ink);
+    background-color: #5c696f;
+    color: #fff;
   }
 
   .cancelModalButton:hover,
   .cancelModalButton:disabled,
   .cancelModalButton:disabled:hover {
-    background-color: var(--c-grey-400);
+    background-color: #4b5559;
   }
 
   .cancelError {
@@ -1002,11 +1002,11 @@
     margin-top: 12px;
     padding: 10px;
     background-color: #b85e1f;
-    color: var(--c-ink);
+    color: #fff;
   }
 
   .commacareWarning a {
-    color: var(--c-ink);
+    color: #fff;
     text-decoration: underline;
   }
 

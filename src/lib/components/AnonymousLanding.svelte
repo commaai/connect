@@ -49,9 +49,6 @@
     };
   });
 
-  // The provider buttons stay white in both themes. Their marks are the vendors'
-  // own artwork — Apple's and GitHub's are solid black — so a button that
-  // inverted with the theme would swallow two of the three logos.
   const buttonClass = 'flex h-20 w-[400px] max-w-[90%] mb-[10px] cursor-pointer items-center '
     + 'justify-center rounded-[80px] bg-white no-underline hover:bg-[#eee]';
   const labelClass = 'w-[190px] text-center text-[18px] font-semibold text-black';
@@ -59,8 +56,8 @@
 
 <div role="main" class="flex h-screen w-full flex-col items-center justify-center">
   <div class="flex w-full flex-col items-center overflow-y-auto p-5">
-    <div class="flex h-[84px] w-[84px] shrink-0 items-center justify-center rounded-[17px] bg-[var(--c-grey-900)]">
-      <img alt="comma" src="/images/comma-white.png" class="logo-mark h-[45px] w-auto" />
+    <div class="flex h-[84px] w-[84px] shrink-0 items-center justify-center rounded-[17px] bg-[#1e2224]">
+      <img alt="comma" src="/images/comma-white.png" class="h-[45px] w-auto" />
     </div>
 
     <div class="h-[60px] shrink-[2]">&nbsp;</div>

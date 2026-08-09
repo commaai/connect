@@ -31,10 +31,10 @@
 <header
   bind:clientHeight={height}
   class="sticky top-0 z-[1250] flex w-full shrink-0 flex-col
-         border-b border-[var(--c-bar-edge)]
-         bg-bar/72 bg-[linear-gradient(180deg,var(--c-bar-sheen)_0%,transparent_58%)]
+         border-b border-white/12
+         bg-[#1D2225]/72 bg-[linear-gradient(180deg,rgba(255,255,255,0.1)_0%,transparent_58%)]
          backdrop-blur-2xl backdrop-saturate-150
-         shadow-[inset_0_1px_0_var(--c-bar-sheen),0_10px_30px_-18px_rgb(0_0_0/0.85)]"
+         shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_10px_30px_-18px_rgb(0_0_0/0.85)]"
 >
   <div class="flex flex-row flex-wrap items-center justify-between p-[7.5px]">
     <div class="flex flex-nowrap items-center">
@@ -42,14 +42,14 @@
         <button
           type="button"
           aria-label="menu"
-          class="mr-3 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full text-ink hover:bg-ink/10"
+          class="mr-3 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full text-white hover:bg-white/10"
           onclick={() => ontoggledrawer(!drawerIsOpen)}
         >
           <MenuIcon />
         </button>
       {:else}
         <a href={home} style="line-height: 0">
-          <img alt="comma" src="/images/comma-white.png" class="logo-mark mx-[28px] h-[34px] w-[18.9px]" />
+          <img alt="comma" src="/images/comma-white.png" class="mx-[28px] h-[34px] w-[18.9px]" />
         </a>
       {/if}
       <a href={home}>
@@ -64,10 +64,10 @@
           aria-label="account menu"
           aria-haspopup="true"
           aria-expanded={menuOpen}
-          class="flex h-12 w-12 cursor-pointer items-center justify-center rounded-full hover:bg-ink/10"
+          class="flex h-12 w-12 cursor-pointer items-center justify-center rounded-full hover:bg-white/10"
           onclick={() => { menuOpen = !menuOpen; }}
         >
-          <AccountIcon class="h-[34px] w-[34px] text-ink/30" />
+          <AccountIcon class="h-[34px] w-[34px] text-white/30" />
         </button>
         {#if profile}
           <AccountMenu {profile} open={menuOpen} onclose={() => { menuOpen = false; }} />

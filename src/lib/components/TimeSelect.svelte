@@ -76,7 +76,7 @@
   // MUI Typography variant="body2".
   // MUI Typography variant="body2" renders an <aside> via headlineMapping, which is
   // what the container's `& aside { width: 100 }` rule targeted.
-  const labelClass = 'w-[100px] text-[0.875rem] leading-[1.71429em] font-medium text-ink';
+  const labelClass = 'w-[100px] text-[0.875rem] leading-[1.71429em] font-medium text-white';
 </script>
 
 <svelte:window onkeydown={(e) => { if (isOpen && e.key === 'Escape') onclose(); }} />
@@ -90,10 +90,10 @@
       onkeydown={(e) => e.key === 'Escape' && onclose()}
     ></div>
 
-    <!-- MUI Paper, backgroundColor overridden to var(--c-panel) by the theme -->
+    <!-- MUI Paper, backgroundColor overridden to #30373B by the theme -->
     <div
       role="document"
-      class="relative w-[400px] max-w-[90%] rounded-[4px] bg-[var(--c-panel)] p-4 outline-none
+      class="relative w-[400px] max-w-[90%] rounded-[4px] bg-[#30373B] p-4 outline-none
              shadow-[0_1px_5px_0_rgba(0,0,0,0.2),0_2px_2px_0_rgba(0,0,0,0.14),0_3px_1px_-2px_rgba(0,0,0,0.12)]"
     >
       <!-- tailwind's preflight gives inputs `font: inherit`, and the shorthand carries
@@ -124,11 +124,11 @@
       </div>
 
       <!-- MUI Divider -->
-      <div class="h-px bg-ink/12"></div>
+      <div class="h-px bg-white/12"></div>
 
       <div class="mt-5 text-right">
         <!-- Colors.grey200 / grey400, then Colors.white / white70 -->
-        <button type="button" class="{buttonClass} bg-[var(--c-grey-200)] text-ink hover:bg-[var(--c-grey-400)]" onclick={onclose}>Cancel</button>&nbsp;<button type="button" class="{buttonClass} bg-ink text-[var(--c-grey-800)] hover:bg-ink/70" onclick={save}>Save</button>
+        <button type="button" class="{buttonClass} bg-[#5c696f] text-white hover:bg-[#4b5559]" onclick={onclose}>Cancel</button>&nbsp;<button type="button" class="{buttonClass} bg-white text-[#272c2f] hover:bg-white/70" onclick={save}>Save</button>
       </div>
     </div>
   </div>

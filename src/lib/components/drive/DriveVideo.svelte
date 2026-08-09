@@ -441,17 +441,17 @@
 
 <div class="min-h-[200px] relative max-w-[964px] m-[0_auto] aspect-[1.593]">
   {#if videoError || playback.isBufferingVideo}
-    <div class="z-50 absolute h-full w-full bg-page/67">
+    <div class="z-50 absolute h-full w-full bg-[#16181AAA]">
       <div class="relative text-center top-[calc(50%_-_25px)]">
         {#if videoError}
           <ErrorOutline class="mb-2 inline-block shrink-0 select-none" />
           <!-- Typography body1 -->
-          <p style="display: block; margin: 0; font-size: 0.875rem; font-weight: 400; line-height: 1.46429em; color: var(--c-ink)">
+          <p style="display: block; margin: 0; font-size: 0.875rem; font-weight: 400; line-height: 1.46429em; color: #fff">
             {videoError}
           </p>
         {:else}
           <!-- MuiCircularProgress, indeterminate, size={50} thickness={4} -->
-          <div class="circularProgress" role="progressbar" style="width: 50px; height: 50px; color: var(--c-ink)">
+          <div class="circularProgress" role="progressbar" style="width: 50px; height: 50px; color: #fff">
             <svg viewBox="22 22 44 44">
               <circle class="circle" cx="44" cy="44" r="20" fill="none" stroke-width="4" />
             </svg>

@@ -7,9 +7,9 @@
   // overrides text-transform to none) merged with AddDevice.jsx styles.addButton
   // (full width, white background, 18px radius, Colors.grey900 text).
   const addButton = 'relative m-0 box-border inline-flex min-h-9 w-full min-w-16 cursor-pointer '
-    + 'items-center justify-center rounded-[18px] border-0 bg-ink px-4 py-2 align-middle '
-    + 'text-[0.875rem] leading-[1.4em] font-medium normal-case text-[var(--c-grey-900)] no-underline '
-    + 'transition-colors duration-[250ms] outline-none select-none hover:bg-[rgb(var(--c-ink-rgb) / 0.7)]';
+    + 'items-center justify-center rounded-[18px] border-0 bg-white px-4 py-2 align-middle '
+    + 'text-[0.875rem] leading-[1.4em] font-medium normal-case text-[#1e2224] no-underline '
+    + 'transition-colors duration-[250ms] outline-none select-none hover:bg-[rgba(255,255,255,0.7)]';
 </script>
 
 <div class="mx-4 mt-4 flex flex-col items-center sm:mt-8 md:mx-6 md:mt-16 lg:mx-8">

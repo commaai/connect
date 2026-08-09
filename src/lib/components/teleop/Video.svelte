@@ -145,7 +145,7 @@
   ></video>
   {#if connected && connectionTimeLabel}
     <div
-      class="absolute bottom-5 left-1/2 z-10 -translate-x-1/2 select-none rounded bg-black/50 px-2 py-0.5 text-sm leading-4 text-ink/70 pointer-events-none transition-opacity duration-500 ease-out {showConnectionTime ? 'opacity-100' : 'opacity-0'}"
+      class="absolute bottom-5 left-1/2 z-10 -translate-x-1/2 select-none rounded bg-black/50 px-2 py-0.5 text-sm leading-4 text-white/70 pointer-events-none transition-opacity duration-500 ease-out {showConnectionTime ? 'opacity-100' : 'opacity-0'}"
     >{`connected in ${connectionTimeLabel}`}</div>
   {/if}
   {#if !connected}
@@ -155,14 +155,14 @@
           <!-- MUI v1 CircularProgress, size 40, thickness 4 -->
           <div
             class="progress-root"
-            style="width: 40px; height: 40px; color: rgb(var(--c-ink-rgb) / 0.7)"
+            style="width: 40px; height: 40px; color: rgba(255, 255, 255, 0.7)"
             role="progressbar"
           >
             <svg viewBox="22 22 44 44">
               <circle class="progress-circle" cx="44" cy="44" r="20" fill="none" stroke-width="4" />
             </svg>
           </div>
-          <span class="text-xs text-ink/50">Connecting...</span>
+          <span class="text-xs text-white/50">Connecting...</span>
         {:else if canRetry}
           <!-- MUI v1 Button. Its label span is what keeps the icon and the text
                unspaced: the root's gap only ever sees that one child. The rest

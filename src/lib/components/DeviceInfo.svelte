@@ -194,7 +194,7 @@
   );
   // Colors.grey400 / Colors.red400 / Colors.green400
   const batteryBackground = $derived.by(() => {
-    if (batteryVoltage === undefined) return 'var(--c-grey-400)';
+    if (batteryVoltage === undefined) return '#4b5559';
     return batteryVoltage < 11.0 ? '#861721' : '#178645';
   });
   const batteryText = $derived(batteryVoltage ? `${batteryVoltage.toFixed(1)} V` : 'N/A');
@@ -220,10 +220,10 @@
   const pill = 'flex items-center rounded-[15px] px-4 py-[5px] text-center';
   // styles.button / styles.buttonOffline, split so that no two conflicting
   // Tailwind utilities land on the same element (class order does not decide).
-  const buttonOnline = 'cursor-pointer bg-ink text-[var(--c-grey-900)] hover:bg-ink/85 disabled:cursor-default disabled:bg-ink/85';
-  const buttonOffline = 'cursor-pointer bg-[var(--c-grey-400)] text-[var(--c-ink-mute)] disabled:cursor-default';
+  const buttonOnline = 'cursor-pointer bg-white text-[#1e2224] hover:bg-[#ddd] disabled:cursor-default disabled:bg-[#ddd]';
+  const buttonOffline = 'cursor-pointer bg-[#4b5559] text-[#b8c0c4] disabled:cursor-default';
   // styles.popover
-  const popover = 'rounded-[22px] border border-ink/10 bg-[var(--c-grey-800)] px-4 py-2 text-center text-[12px]';
+  const popover = 'rounded-[22px] border border-white/10 bg-[#272c2f] px-4 py-2 text-center text-[12px]';
 </script>
 
 {#snippet snapshotImage(src, isFront)}
@@ -232,7 +232,7 @@
   {:else}
     <!-- Colors.grey950 -->
     <div
-      class="mx-auto flex h-full w-[450px] max-w-full flex-col items-center justify-center bg-[var(--c-grey-950)]"
+      class="mx-auto flex h-full w-[450px] max-w-full flex-col items-center justify-center bg-[#151819]"
       style="padding: 0 80px"
     >
       <p class="text-center text-base font-semibold">{isFront ? 'Interior' : ''} snapshot not available</p>
@@ -245,7 +245,7 @@
   {/if}
 {/snippet}
 
-<div class="flex min-h-16 flex-col justify-center border-b border-ink/10 px-4">
+<div class="flex min-h-16 flex-col justify-center border-b border-white/10 px-4">
   <div class="my-4 flex flex-row flex-wrap items-center justify-between gap-4 pl-1 md:my-2">
     <div class="flex shrink-0 flex-row items-center gap-4">
       {#if device?.commacare}
@@ -269,7 +269,7 @@
               disabled={!online}
             >
               <!-- @material-ui/icons/ContentCut -->
-              <svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px" class="shrink-0 text-page" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px" class="shrink-0 text-black" aria-hidden="true">
                 <path d="M9.64 7.64c.23-.5.36-1.05.36-1.64 0-2.21-1.79-4-4-4S2 3.79 2 6s1.79 4 4 4c.59 0 1.14-.13 1.64-.36L10 12l-2.36 2.36C7.14 14.13 6.59 14 6 14c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4c0-.59-.13-1.14-.36-1.64L12 14l7 7h3v-1L9.64 7.64zM6 8c-1.1 0-2-.89-2-2s.9-2 2-2 2 .89 2 2-.9 2-2 2zm0 12c-1.1 0-2-.89-2-2s.9-2 2-2 2 .89 2 2-.9 2-2 2zm6-7.5c-.28 0-.5-.22-.5-.5s.22-.5.5-.5.5.22.5.5-.22.5-.5.5zM19 3l-6 6 2 2 7-7V3z" />
               </svg>
             </button>
@@ -288,12 +288,12 @@
           >
             {#if bodyTeleopEnabled}
               <!-- GamepadIcon -->
-              <svg viewBox="0 -960 960 960" fill="currentColor" width="1em" height="1em" style="font-size:24px" class="shrink-0 text-page" aria-hidden="true">
+              <svg viewBox="0 -960 960 960" fill="currentColor" width="1em" height="1em" style="font-size:24px" class="shrink-0 text-black" aria-hidden="true">
                 <path d="M182-200q-51 0-79-35.5T82-322l42-300q9-60 53.5-99T282-760h396q60 0 104.5 39t53.5 99l42 300q7 51-21 86.5T778-200q-21 0-39-7.5T706-228l-90-92H344l-90 92q-15 13-33 20.5T182-200Zm18-60q11 0 20.5-5t16.5-14l104-101h278l104 101q7 9 16.5 14t20.5 5q18 0 31-14t10-35l-41-300q-6-42-37.5-69T660-700H300q-31 0-62.5 27T200-604l-41 300q-3 21 10 35t31 14Zm280-140ZM372-400q17 0 28.5-11.5T412-440q0-17-11.5-28.5T372-480q-17 0-28.5 11.5T332-440q0 17 11.5 28.5T372-400Zm0-120q17 0 28.5-11.5T412-560q0-17-11.5-28.5T372-600q-17 0-28.5 11.5T332-560q0 17 11.5 28.5T372-520Zm-120 60q17 0 28.5-11.5T292-500q0-17-11.5-28.5T252-540q-17 0-28.5 11.5T212-500q0 17 11.5 28.5T252-460Zm240 0q17 0 28.5-11.5T532-500q0-17-11.5-28.5T492-540q-17 0-28.5 11.5T452-500q0 17 11.5 28.5T492-460Zm108 0h60v-60h60v-60h-60v-60h-60v60h-60v60h60v60Z" />
               </svg>
             {:else}
               <!-- LivestreamIcon -->
-              <svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px" class="shrink-0 text-page" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em" style="font-size:24px" class="shrink-0 text-black" aria-hidden="true">
                 <path d="M18,16L14,12.8V16H6V8H14V11.2L18,8M20,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z" />
               </svg>
             {/if}
@@ -319,7 +319,7 @@
               </div>
             {:else}
               <!-- CameraIcon -->
-              <svg viewBox="0 0 24 22" fill="currentColor" width="1em" height="1em" style="font-size:24px" class="shrink-0 text-page" aria-hidden="true">
+              <svg viewBox="0 0 24 22" fill="currentColor" width="1em" height="1em" style="font-size:24px" class="shrink-0 text-black" aria-hidden="true">
                 <path d="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z" />
               </svg>
             {/if}
@@ -356,7 +356,7 @@
 </div>
 
 {#if snapshot.result}
-  <div class="border-b border-ink/10">
+  <div class="border-b border-white/10">
     {#if windowWidth >= 640}
       <div class="mx-auto flex max-w-[1050px]" style="padding: {windowWidth > 1440 ? '12px 0' : '0px'}">
         <div class="flex w-1/2 justify-center">
@@ -385,12 +385,12 @@
   }
 
   .snapScroll::-webkit-scrollbar-thumb {
-    background-color: rgb(var(--c-ink-rgb) / 0.8);
+    background-color: #d1d1d1;
     border-radius: 8px;
   }
 
   .snapScroll::-webkit-scrollbar-track {
-    background-color: var(--c-grey-800);
+    background-color: #272c2f;
   }
 
   .progress {

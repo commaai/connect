@@ -8,7 +8,7 @@
   // DeviceList.jsx's addButtonStyle. React passed this as MUI Button's `style`
   // prop, which is what let it beat AddDevice's own addButton class (the white
   // pill the no-device screen uses) — so it has to stay an inline style here too.
-  const addButton = 'border-radius: unset; background-color: transparent; color: var(--c-ink);'
+  const addButton = 'border-radius: unset; background-color: transparent; color: white;'
     + ' font-weight: 600; justify-content: space-between; padding: 16px 44px 16px 54px';
 
   /**
@@ -49,13 +49,13 @@
           <!-- Colors.green400 / Colors.grey400 -->
           <div
             class="h-[6px] w-[6px] rounded-[3px]"
-            style="background-color: {deviceIsOnline(d) ? '#178645' : 'var(--c-grey-400)'}"
+            style="background-color: {deviceIsOnline(d) ? '#178645' : '#4b5559'}"
           >&nbsp;</div>
           <div class="ml-4 flex flex-col justify-center">
             <!-- MUI Typography body1: 0.875rem, not the browser's 16px default -->
             <p class="text-[0.875rem] font-semibold">{deviceNamePretty(d)}</p>
             <!-- MUI Typography variant="caption": lineHeight 16.5/12, not the body1 default -->
-            <p class="text-[0.75rem] text-[var(--c-ink-faint)]" style="line-height: 1.375em">{d.dongle_id}</p>
+            <p class="text-[0.75rem] text-[#74838e]" style="line-height: 1.375em">{d.dongle_id}</p>
           </div>
         </div>
 
@@ -63,7 +63,7 @@
           <button
             type="button"
             aria-label="device settings"
-            class="flex h-[46px] w-[46px] cursor-pointer items-center justify-center rounded-full text-ink/30 transition-colors hover:text-ink"
+            class="flex h-[46px] w-[46px] cursor-pointer items-center justify-center rounded-full text-white/30 transition-colors hover:text-white"
             onclick={(ev) => { ev.stopPropagation(); ev.preventDefault(); onsettings(d.dongle_id); }}
           >
             <SettingsIcon />
