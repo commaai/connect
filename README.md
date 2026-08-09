@@ -15,6 +15,36 @@ API and useradmin URL roots can be overridden at build time with
 `VITE_COMMA_URL_ROOT`, `VITE_ATHENA_URL_ROOT`, `VITE_BILLING_URL_ROOT`, and
 `VITE_USERADMIN_URL_ROOT`. Docker Compose accepts the same variables.
 
+### Mock mode
+
+`bun run start:mock` runs the app against a fake comma backend, so every screen
+works with no comma account and no paired device. The dev server answers the API,
+athena, and billing roots itself, and seeds a session token, so nothing reaches
+the real services.
+
+Pick what the fake account looks like with `VITE_MOCK_SCENARIO`:
+
+| scenario | what you get |
+| --- | --- |
+| `default` | prime device with ~2 weeks of drives |
+| `nodevice` | signed in with nothing paired (pair-a-device flow) |
+| `noprime` | device without a subscription (prime checkout) |
+| `body` | a comma body, so `/stream` teleop renders |
+| `anonymous` | signed out (landing page) |
+
+```sh
+VITE_MOCK_SCENARIO=noprime bun run start:mock
+```
+
+Fixtures and the request table live in `config/mock/`. `fixtures.js` and
+`handlers.js` are pure and framework-agnostic, so they can also back a browser
+mock or a test runner. An unhandled request answers `501` and logs a warning
+rather than failing quietly — that means the table has drifted from `src/api.js`.
+
+Video is the one thing mock mode can't fake: `qcamera.m3u8` returns an empty
+playlist, so the drive view renders with "Unable to load video". Use a real
+public route URL if you need to work on playback.
+
 ## Contributing
 
 * Use best practices

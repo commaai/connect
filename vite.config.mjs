@@ -1,9 +1,11 @@
 import { copyFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
+
+import mockApiPlugin from './config/mock/plugin.mjs';
 
 
 function previewBranding() {
@@ -24,6 +26,8 @@ function previewBranding() {
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+
   let sentryPlugin;
   if (mode === 'production' && process.env.SENTRY_AUTH_TOKEN) {
     sentryPlugin = sentryVitePlugin({
@@ -57,6 +61,7 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       react(),
       sentryPlugin,
+      env.VITE_MOCK_API === 'true' && mockApiPlugin(env),
       process.env.PREVIEW && previewBranding(),
     ].filter(Boolean),
     optimizeDeps: {
