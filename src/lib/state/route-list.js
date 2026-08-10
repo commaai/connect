@@ -44,6 +44,7 @@ export function normalizeRoutes(routesData) {
     let startTime = r.segment_start_times[0];
     let endTime = r.segment_end_times[r.segment_end_times.length - 1];
 
+    // TODO: these will all be relative times soon
     // fix segment boundary times for routes that have the wrong time at the start
     if ((Math.abs(r.start_time_utc_millis - startTime) > DAY_MS)
         && (Math.abs(r.end_time_utc_millis - endTime) < 10 * 1000)) {
@@ -53,6 +54,7 @@ export function normalizeRoutes(routesData) {
       r.segment_end_times = r.segment_numbers.map((x) => Math.min(startTime + ((x + 1) * 60 * 1000), endTime));
     }
 
+    // TODO: backwards compatibility, remove later
     if (r.distance == null && r.length != null) {
       r.distance = r.length;
     }
