@@ -406,47 +406,37 @@ async function mockGalleryRequest(request, origin, pageName, fixtures) {
 /**
  * Build one renderer's source tree into a directory the capture step can serve.
  *
- * SvelteKit needs its own path: it builds through an adapter that writes to the
- * directory named in svelte.config.js and ignores Vite's build.outDir, and it
- * has no index.html to hand rollup as an input. So build it in place and copy
- * the adapter's output to where the caller expects it.
+ * The build goes through an adapter that writes to the directory named in
+ * svelte.config.js and ignores Vite's build.outDir, so it is built in place and
+ * the adapter's output copied to where the caller expects it.
  *
- * The plain Vite path below still runs for a `--base` tree that predates the
- * adapter, so an older checkout can be built as the baseline.
+ * The adapter resolves that directory against the working directory rather than
+ * against Vite's root, so a `--base` tree has to be built from inside itself or
+ * its output lands in whichever tree the script was started from — which is how
+ * this used to fail for every baseline that was not the pre-adapter React tree.
  */
 async function buildRenderer(source, output) {
-  if (await fileExists(resolve(source, 'svelte.config.js'))) {
+  const cwd = process.cwd();
+  try {
+    process.chdir(source);
     await build({ root: source, mode: 'production', base: '/', build: { sourcemap: false } });
-
-    let adapterOutput = null;
-    for (const candidate of ['dist', 'build']) {
-      if (await fileExists(resolve(source, candidate, 'index.html'))) {
-        adapterOutput = resolve(source, candidate);
-        break;
-      }
-    }
-    if (!adapterOutput) {
-      throw new Error(`No SvelteKit adapter output containing index.html found under ${source}`);
-    }
-
-    await rm(output, { recursive: true, force: true });
-    await cp(adapterOutput, output, { recursive: true });
-    return;
+  } finally {
+    process.chdir(cwd);
   }
 
-  await build({
-    root: source,
-    mode: 'production',
-    base: '/',
-    build: {
-      outDir: output,
-      emptyOutDir: true,
-      sourcemap: false,
-      rollupOptions: {
-        input: resolve(source, 'index.html'),
-      },
-    },
-  });
+  let adapterOutput = null;
+  for (const candidate of ['dist', 'build']) {
+    if (await fileExists(resolve(source, candidate, 'index.html'))) {
+      adapterOutput = resolve(source, candidate);
+      break;
+    }
+  }
+  if (!adapterOutput) {
+    throw new Error(`No SvelteKit adapter output containing index.html found under ${source}`);
+  }
+
+  await rm(output, { recursive: true, force: true });
+  await cp(adapterOutput, output, { recursive: true });
 }
 
 async function serveDirectory(directory) {

@@ -322,13 +322,9 @@
       }
     } else if (playback.desiredPlaySpeed === 0) {
       // TODO: fix iOS bug where video doesn't stop buffering while paused
-      //
-      // Half done, and staying a TODO until someone can open a drive on a phone
-      // and watch the qcamera requests stop. Setting only the rate is why it
-      // never stopped: an element at rate 0 is not paused, so it keeps pulling
-      // down the stream. Pausing is what stops the fetch.
+      // staying a TODO until someone can open a drive on iOS and watch the requests stop.
       if (!videoEl.paused) {
-        videoEl.pause();
+        videoEl.pause(); // An element at rate 0 is not paused
       }
     } else {
       if (videoEl.paused) {

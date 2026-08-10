@@ -88,17 +88,19 @@ in a production bundle.
 fixed fixtures and writes `dist-gallery/connect-gallery.html`. CI publishes the
 report and diffs each run against the baseline it downloads.
 
-To diff locally, point `--base` at another checkout of this repo and name the
-commit it is at:
+To diff two commits locally, point `--base` at a checkout of the one to compare
+against. A worktree is the quickest way to get one:
 
 ```sh
+git worktree add ../connect-base <commit>
+(cd ../connect-base && bun install)          # it needs its own node_modules
 node scripts/build-gallery.mjs --output ./dist-gallery \
-  --base ../connect-before --base-sha "$(git -C ../connect-before rev-parse HEAD)"
+  --base ../connect-base --base-sha "$(git -C ../connect-base rev-parse HEAD)"
 ```
 
-That checkout needs its own `node_modules`. `--states signin,dashboard` narrows a
-run to the screens you are working on, pulling in the page a modal state opens
-over. A change is clean when the report says `0 changed`.
+`--states signin,dashboard` narrows a run to the screens you are working on,
+pulling in the page a modal state opens over. A change is clean when the report
+says `0 changed`.
 
 ### Tests
 
