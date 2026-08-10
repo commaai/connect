@@ -53,15 +53,6 @@ describe('AccountMenu', () => {
     expect(onclose).toHaveBeenCalled();
   });
 
-  it('closes on a click outside it', async () => {
-    const onclose = vi.fn();
-    const { container } = mount({ onclose });
-
-    await userEvent.click(container.querySelector('.fixed.inset-0'));
-
-    expect(onclose).toHaveBeenCalled();
-  });
-
   describe('logging out', () => {
     it('closes the menu first, so it is not left open over a signed-out page', async () => {
       const onclose = vi.fn();

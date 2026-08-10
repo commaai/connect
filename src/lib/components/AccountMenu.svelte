@@ -19,13 +19,6 @@
 </script>
 
 {#if open}
-  <div
-    class="fixed inset-0 z-40"
-    role="presentation"
-    onclick={onclose}
-    onkeydown={(e) => e.key === 'Escape' && onclose()}
-  ></div>
-
   <div class="absolute right-0 mt-1 z-50 w-56 sm:w-64 rounded bg-[#30373B] shadow-lg overflow-hidden">
     <div class="flex flex-col items-start gap-2 px-4 pt-3 pb-4">
       <span class="font-bold text-white">{profile.email}</span>

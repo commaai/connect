@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
+import { tick } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 
 import AppHeader from './AppHeader.svelte';
@@ -50,6 +51,42 @@ describe('AppHeader', () => {
       await userEvent.click(button);
 
       expect(button).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByText(profile.email)).toBeInTheDocument();
+    });
+
+    it('closes on a click anywhere outside it', async () => {
+      // The header carries backdrop-blur, so a fixed backdrop would be sized to
+      // the header and clicks on the page below it would never dismiss the menu.
+      mount();
+      await userEvent.click(screen.getByRole('button', { name: 'account menu' }));
+      expect(screen.getByText(profile.email)).toBeInTheDocument();
+
+      const elsewhere = document.createElement('div');
+      document.body.appendChild(elsewhere);
+      elsewhere.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+      await tick();
+
+      expect(screen.queryByText(profile.email)).not.toBeInTheDocument();
+      elsewhere.remove();
+    });
+
+    it('stays open when the menu itself is clicked', async () => {
+      mount();
+      await userEvent.click(screen.getByRole('button', { name: 'account menu' }));
+
+      screen.getByText(profile.email).dispatchEvent(new Event('pointerdown', { bubbles: true }));
+      await tick();
+
+      expect(screen.getByText(profile.email)).toBeInTheDocument();
+    });
+
+    it('does not listen while it is shut', async () => {
+      mount();
+
+      document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+      await tick();
+      await userEvent.click(screen.getByRole('button', { name: 'account menu' }));
+
       expect(screen.getByText(profile.email)).toBeInTheDocument();
     });
 

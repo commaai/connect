@@ -1,4 +1,5 @@
 <script>
+  import { clickOutside } from '$lib/attachments/click-outside';
   import AccountMenu from './AccountMenu.svelte';
   import AccountIcon from '$lib/icons/AccountIcon.svelte';
   import MenuIcon from '$lib/icons/MenuIcon.svelte';
@@ -57,7 +58,10 @@
     </div>
 
     <div class="flex flex-row gap-2">
-      <div class="relative">
+      <!-- The dismiss area cannot be a fixed backdrop: the header carries
+           backdrop-blur, which makes it the containing block for fixed children,
+           so one would only ever cover the header itself. -->
+      <div class="relative" {@attach menuOpen && clickOutside(() => { menuOpen = false; })}>
         <button
           type="button"
           aria-label="account menu"
