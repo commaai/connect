@@ -1,5 +1,6 @@
 <script>
   import { untrack } from 'svelte';
+  import { MediaQuery } from 'svelte/reactivity';
 
   import SettingsMenu from './SettingsMenu.svelte';
   import { clickOutside } from '$lib/attachments/click-outside';
@@ -71,7 +72,10 @@
   };
 
   const indicator = $derived(QUALITY_INDICATOR[connectionQuality] || QUALITY_INDICATOR.good);
-  const compact = $derived(isLandscape && window.matchMedia('(max-height: 500px)').matches);
+  // MediaQuery rather than a matchMedia().matches read, which is a plain lookup
+  // nothing re-runs: a window resized shorter never became compact.
+  const shortViewport = new MediaQuery('max-height: 500px');
+  const compact = $derived(isLandscape && shortViewport.current);
   const textSize = $derived(compact ? 'text-[9px]' : 'text-[10px] md:text-[13px]');
 
   function pushLatency(raw) {
