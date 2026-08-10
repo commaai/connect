@@ -1,5 +1,6 @@
 <script>
   import { innerWidth } from 'svelte/reactivity/window';
+  import { dev } from '$app/environment';
   import { goto, invalidateAll } from '$app/navigation';
   import { page } from '$app/state';
 
@@ -9,6 +10,7 @@
   import AppHeader from '$lib/components/AppHeader.svelte';
   import DeviceSettingsModal from '$lib/components/DeviceSettingsModal.svelte';
   import PairingStatusModal from '$lib/components/PairingStatusModal.svelte';
+  import RenderScan from '$lib/devtools/RenderScan.svelte';
 
   let { children, data } = $props();
 
@@ -18,6 +20,12 @@
   let headerHeight = $state(64);
 
   const selectedDongleId = $derived(page.params.dongleId ?? null);
+
+  // `./live.sh scan`. Gated on `dev` too, which a production build folds to
+  // false, so the scanner and its import are dropped rather than shipped behind
+  // an env var somebody could set on a real build.
+  const renderScan = dev
+    && (import.meta.env.VITE_RENDER_SCAN === '1' || import.meta.env.VITE_RENDER_SCAN === 'true');
 
   // App.jsx: showLogin was false whenever url.js could parse a zoom or a segment
   // range out of the path, so a shared drive link opened the explorer for a
@@ -75,6 +83,10 @@
     if (dongleId) goto(`/${dongleId}`);
   }
 </script>
+
+{#if renderScan}
+  <RenderScan />
+{/if}
 
 {#if data.mockScenario}
   <div class="fixed bottom-2 right-2 z-50 rounded-full bg-black/60 px-3 py-1 text-xs text-white/70">

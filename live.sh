@@ -6,12 +6,12 @@ cd "$DIR"
 
 usage() {
   cat <<'USAGE'
-Usage: ./live.sh [mock] [scenario] [--no-open] [-- vite args...]
+Usage: ./live.sh [mock] [scenario] [scan] [--no-open] [-- vite args...]
 
   ./live.sh                  dev server against the real comma API
   ./live.sh mock             dev server against the bundled mock backend
-  ./live.sh mock noprime     ... in the noprime scenario
-  ./live.sh noprime          same thing; a scenario name implies mock
+  ./live.sh noprime          ... in the noprime scenario, mock implied
+  ./live.sh scan             outline the DOM as it changes, for chasing updates
   ./live.sh --no-open        do not open a browser
   ./live.sh -- --host        anything after -- goes to vite
 
@@ -31,12 +31,14 @@ KNOWN_SCENARIOS="$(scenarios)"
 MOCK=0
 SCENARIO=""
 OPEN=1
+SCAN=0
 VITE_ARGS=()
 
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     mock|start:mock) MOCK=1 ;;
+    scan|--scan) SCAN=1 ;;
     --no-open) OPEN=0 ;;
     --) shift; VITE_ARGS+=("$@"); break ;;
     *)
@@ -90,6 +92,13 @@ if [ "$MOCK" = 1 ]; then
   else
     echo "live.sh: mock backend"
   fi
+fi
+
+# Read by src/routes/+layout.svelte, which gates the scanner on `dev` as well,
+# so setting this against a production build still cannot ship it.
+if [ "$SCAN" = 1 ]; then
+  export VITE_RENDER_SCAN=1
+  echo "live.sh: render scan on"
 fi
 
 bun install

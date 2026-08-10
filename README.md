@@ -20,6 +20,7 @@ vite actually bound, which is not 3000 if something else already has it.
 ./live.sh mock             # against the bundled mock backend, below
 ./live.sh mock noprime     # ... in a particular scenario
 ./live.sh noprime          # same thing; a scenario name implies mock
+./live.sh scan             # with the render scan, below
 ./live.sh --no-open        # leave the browser alone
 ./live.sh -- --host        # anything after -- goes to vite
 ```
@@ -61,6 +62,25 @@ rather than failing quietly — that means the table has drifted from `src/api.j
 Video is the one thing mock mode can't fake: `qcamera.m3u8` returns an empty
 playlist, so the drive view renders with "Unable to load video". Use a real
 public route URL if you need to work on playback.
+
+### Render scan
+
+`./live.sh scan` outlines each element as it is written to, labelled with what
+changed and how many times, hotter the more often. It answers the question
+react-scan answers for React, which is not quite the same question: svelte has no
+re-render step to catch, so this watches the DOM instead, and a box that keeps
+lighting up is an update nobody asked for — a `$derived` recomputing an identical
+value, an `$effect` reassigning a style every frame, a list re-keyed into a full
+teardown. It is only present when asked for, and draws nothing until the page
+changes.
+
+Being built on `MutationObserver` it is framework-agnostic, so it can be pointed
+at another build for a before-and-after.
+
+For the other half of the question — *why* something re-ran rather than what it
+touched — `$inspect.trace()` as the first line of an `$effect` or `$derived.by`
+names the reactive value that caused the run. Both are dev-only and neither is
+in a production bundle.
 
 ### Visual regression gallery
 
