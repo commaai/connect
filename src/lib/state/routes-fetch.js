@@ -15,8 +15,9 @@ if (USE_LOCAL_EVENTS_DATA) {
 }
 
 const CACHE_TTL = 86400 * 14;
+const CACHE_STORES = ['events', 'coords', 'driveCoords'];
 
-let hasExpired = false;
+let expiryScheduled = false;
 let cacheDB = null;
 
 async function getCacheDB() {
@@ -100,11 +101,41 @@ async function expireCacheItems(store) {
   };
 }
 
-export async function getCacheItem(store, key, version = undefined) {
-  if (!hasExpired) {
-    setTimeout(() => expireCacheItems(store), 5000); // TODO: better expire time
-    hasExpired = true;
+/**
+ * Sweep expired entries out of every store, once per page load.
+ *
+ * A single flag used to be raised by the first getCacheItem call, and the sweep
+ * only ran against whichever store that call happened to want — so the other two
+ * kept their expired entries indefinitely. Reads check the version but never the
+ * expiry, which makes this sweep the only thing that enforces CACHE_TTL at all.
+ *
+ * Idle time rather than a fixed 5s: nothing waits on this, and at five seconds it
+ * lands in the middle of the route and video requests the page actually needs.
+ */
+export function scheduleCacheExpiry() {
+  if (expiryScheduled) {
+    return;
   }
+  expiryScheduled = true;
+
+  const sweep = () => {
+    for (const store of CACHE_STORES) {
+      expireCacheItems(store).catch((err) => {
+        console.error('[cache] could not expire', store, err);
+      });
+    }
+  };
+
+  if (typeof requestIdleCallback === 'function') {
+    // the timeout is the backstop for a tab that never goes idle
+    requestIdleCallback(sweep, { timeout: 10000 });
+  } else {
+    setTimeout(sweep, 5000);
+  }
+}
+
+export async function getCacheItem(store, key, version = undefined) {
+  scheduleCacheExpiry();
 
   const db = await getCacheDB();
   if (!db) {
