@@ -7,7 +7,7 @@
 
   import 'mapbox-gl/src/css/mapbox-gl.css';
 
-  import { watchVisibility } from '$lib/actions/visibility';
+  import { watchReturn } from '$lib/state/page-active';
   import { devices as Devices } from '$lib/api';
   import { formatPlaceAddress, formatPlaceName } from '$lib/navigation/utils';
   import { timeFromNow } from '$lib/utils';
@@ -338,24 +338,22 @@
     });
   });
 
+  const refreshLocation = watchReturn(() => getDeviceLastLocation(dongleId), { minInterval: 60 });
+
   $effect(() => {
     const id = dongleId;
     const dev = device;
     untrack(() => {
       if (dev) getDeviceLastLocation(id);
+      // that counts as the refresh for this device
+      refreshLocation.reset();
     });
   });
 
-  // VisibilityHandler onDongleId minInterval={60}
-  $effect(() => {
-    const id = dongleId;
-    return untrack(() => watchVisibility({
-      onVisible: () => getDeviceLastLocation(id),
-      minInterval: 60,
-    }));
-  });
+  $effect(refreshLocation);
 
-  // React attached this natively, so it runs before the drawer's own listener.
+  // Attached natively so it lands before the drawer's own listener; a delegated
+  // handler runs only after the event has already passed every ancestor.
   $effect(() => {
     const el = containerEl;
     if (!el) return;

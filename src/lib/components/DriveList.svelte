@@ -2,7 +2,7 @@
   import * as Sentry from '@sentry/browser';
 
   import { devices as Devices } from '$lib/api';
-  import { watchVisibility } from '$lib/actions/visibility';
+  import { watchReturn } from '$lib/state/page-active';
   import { isMetric, KM_PER_MI } from '$lib/utils/conversions';
   import DriveListEmpty from './DriveListEmpty.svelte';
   import DriveListItem from './DriveListItem.svelte';
@@ -35,13 +35,11 @@
     if (id && !shared) loadStats(id);
   });
 
-  $effect(() => watchVisibility({
-    minInterval: 60,
-    onVisible: () => {
-      onrefresh?.();
-      refreshStats();
-    },
-  }));
+  const refreshOnReturn = watchReturn(() => {
+    onrefresh?.();
+    refreshStats();
+  }, { minInterval: 60 });
+  $effect(refreshOnReturn);
 
   const metric = isMetric();
   const distance = $derived(deviceStats.result

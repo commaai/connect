@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
+import { tick } from 'svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -154,6 +155,85 @@ describe('DriveList', () => {
     it('does not offer it for a short list', () => {
       mount({ routes: [drive(1, JUN_1)] });
       expect(screen.queryByText(/no more routes/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('coming back to the page', () => {
+    // jsdom reports hasFocus() false for everything, so focus is modelled here.
+    const setFocused = (focused) => vi.spyOn(document, 'hasFocus').mockReturnValue(focused);
+
+    // Anchored at call time, not at module load: under a full run the component
+    // mounts seconds after this file is imported, and the throttle counts from
+    // the mount.
+    const secondsLater = (s) => {
+      const then = Date.now() + (s * 1000);
+      vi.spyOn(Date, 'now').mockReturnValue(then);
+    };
+
+    const leave = async () => {
+      setFocused(false);
+      window.dispatchEvent(new Event('blur'));
+      await tick();
+    };
+    /** The window regaining focus is the signal a document-level listener misses. */
+    const comeBack = async () => {
+      setFocused(true);
+      window.dispatchEvent(new Event('focus'));
+      await tick();
+    };
+
+    const mountFocused = async (props) => {
+      setFocused(true);
+      const result = mount(props);
+      await screen.findByText('miles');
+      fetchDeviceStats.mockClear();
+      return result;
+    };
+
+    it('refreshes the drives and the stats', async () => {
+      const onrefresh = vi.fn();
+      await mountFocused({ onrefresh });
+
+      // the throttle is a minute; come back after one
+      await leave();
+      secondsLater(61);
+      await comeBack();
+
+      expect(onrefresh).toHaveBeenCalled();
+      await waitFor(() => expect(fetchDeviceStats).toHaveBeenCalled());
+    });
+
+    it('does nothing for a glance away and straight back', async () => {
+      const onrefresh = vi.fn();
+      await mountFocused({ onrefresh });
+
+      await leave();
+      await comeBack();
+
+      expect(onrefresh).not.toHaveBeenCalled();
+      expect(fetchDeviceStats).not.toHaveBeenCalled();
+    });
+
+    it('does nothing on the way out', async () => {
+      const onrefresh = vi.fn();
+      await mountFocused({ onrefresh });
+
+      secondsLater(61);
+      await leave();
+
+      expect(onrefresh).not.toHaveBeenCalled();
+    });
+
+    it('refreshes when the tab is switched back to as well', async () => {
+      const onrefresh = vi.fn();
+      await mountFocused({ onrefresh });
+
+      secondsLater(61);
+      setFocused(true);
+      document.dispatchEvent(new Event('visibilitychange'));
+      await tick();
+
+      expect(onrefresh).toHaveBeenCalled();
     });
   });
 

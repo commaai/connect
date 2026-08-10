@@ -7,6 +7,7 @@
   import { athena } from '$lib/api';
   import { deviceSupportsClips } from '$lib/api/clips';
   import { deviceIsOnline, deviceNamePretty, deviceVersionAtLeast, truncateName } from '$lib/utils';
+  import { watchReturn } from '$lib/state/page-active';
   import { webrtcConnectionManager } from '$lib/utils/webrtc';
   import CommacareBadge from './CommacareBadge.svelte';
   import Tooltip from './Tooltip.svelte';
@@ -97,9 +98,10 @@
     fetchDeviceNotCar(id);
   }
 
-  // VisibilityHandler onInit + onDongleId: refetch on mount and whenever the
-  // dongle changes, dropping the previous device's readings first.
-  let lastVisibleCall = 0;
+  const refreshOnReturn = watchReturn(() => onVisible(dongleId), { minInterval: 60 });
+
+  // Refetch on mount and whenever the dongle changes, dropping the previous
+  // device's readings first.
   $effect(() => {
     const id = dongleId;
     untrack(() => {
@@ -108,36 +110,13 @@
       clipsSupported = false;
       notCar = null;
       checkClipsSupport(id);
-      lastVisibleCall = Date.now() / 1000;
       onVisible(id);
+      // that counts as the refresh for this device
+      refreshOnReturn.reset();
     });
   });
 
-  // VisibilityHandler minInterval={60}
-  $effect(() => {
-    const onVisibilityEvent = (visible) => {
-      const now = Date.now() / 1000;
-      if (visible && now - lastVisibleCall > 60) {
-        lastVisibleCall = now;
-        onVisible(untrack(() => dongleId));
-      }
-    };
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') onVisibilityEvent(true);
-      else if (document.visibilityState === 'hidden') onVisibilityEvent(false);
-    };
-    const handleFocus = () => onVisibilityEvent(true);
-    const handleBlur = () => onVisibilityEvent(false);
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    document.addEventListener('focus', handleFocus);
-    document.addEventListener('blur', handleBlur);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      document.removeEventListener('focus', handleFocus);
-      document.removeEventListener('blur', handleBlur);
-    };
-  });
+  $effect(refreshOnReturn);
 
   let wasOnline = false;
   $effect(() => {
