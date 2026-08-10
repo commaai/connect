@@ -321,21 +321,41 @@
       newPlaybackRate = 0; // in some circumstances, iOS won't update readyState unless temporarily paused
     }
 
-    // The native branch used to set only the playback rate, which is why a paused
-    // video on iOS never stopped buffering: rate 0 freezes the frame but leaves
-    // the element playing, so it keeps pulling down the stream. Pausing is what
-    // stops the fetch. Both branches drive play/pause the same way now — the same
-    // way the hls one always did — and only iOS ever reached the other one.
-    if (!videoEl.paused && newPlaybackRate === 0) {
-      videoEl.pause();
-    } else if (videoEl.playbackRate !== newPlaybackRate && newPlaybackRate !== 0) {
-      videoEl.playbackRate = newPlaybackRate;
-    }
-    if (videoEl.paused && newPlaybackRate !== 0) {
-      const playRes = videoEl.play();
-      if (playRes) {
-        playRes.catch(() => console.debug('[DriveVideo] play interrupted by pause'));
+    if (hls) {
+      if (!videoEl.paused && newPlaybackRate === 0) {
+        videoEl.pause();
+      } else if (videoEl.playbackRate !== newPlaybackRate && newPlaybackRate !== 0) {
+        videoEl.playbackRate = newPlaybackRate;
       }
+      if (videoEl.paused && newPlaybackRate !== 0) {
+        const playRes = videoEl.play();
+        if (playRes) {
+          playRes.catch(() => console.debug('[DriveVideo] play interrupted by pause'));
+        }
+      }
+    } else if (playback.desiredPlaySpeed === 0) {
+      // Native playback, which is iOS. Setting only the rate is why a paused
+      // video never stopped buffering: an element at rate 0 is not paused, so it
+      // keeps pulling down the stream. Pausing is what stops the fetch.
+      //
+      // Deliberately narrower than the hls branch beside it. The stall above
+      // zeroes the rate too, and pausing *there* would mean recovering
+      // readyState while paused and then resuming with no user gesture behind
+      // the play() — neither of which has been tried on a device. Only a pause
+      // the user asked for is handled here; resuming from one is a click away,
+      // so autoplay policy is satisfied. The stall path keeps the behaviour it
+      // has always had, below.
+      if (!videoEl.paused) {
+        videoEl.pause();
+      }
+    } else {
+      if (videoEl.paused) {
+        const playRes = videoEl.play();
+        if (playRes) {
+          playRes.catch(() => console.debug('[DriveVideo] play interrupted by pause'));
+        }
+      }
+      videoEl.playbackRate = newPlaybackRate;
     }
   }
 
