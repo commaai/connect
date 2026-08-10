@@ -54,7 +54,6 @@
     onanalytics,
   } = $props();
 
-  // `error` is only ever cleared upstream, but the block it gates is kept.
   let error = $state(null);
   let cancelError = $state(null);
   let cancelSuccess = $state(null);
@@ -67,9 +66,13 @@
   let switchingPlan = $state(false);
   let stripeStatus = $state(null);
 
+  /** Polls of the stripe session to tolerate before telling the user. */
+  const STRIPE_SESSION_RETRIES = 5;
+
   let mounted = false;
   let stripeStarted = false;
   let paidReported = false;
+  let stripeSessionFailures = 0;
 
   $effect(() => {
     mounted = true;
@@ -133,16 +136,32 @@
     try {
       const resp = await Billing.getStripeSession(dongleId, stripeStatus.sessionId);
       const status = resp.payment_status;
-      stripeStatus = { ...stripeStatus, paid: status, loading: status !== 'paid' };
+      stripeSessionFailures = 0;
+      stripeStatus = { ...stripeStatus, paid: status, loading: status !== 'paid', error: null };
       if (status === 'paid') {
         fetchSubscription(onplanchanged, true);
       } else {
         setTimeout(fetchStripeSession, 2000);
       }
     } catch (err) {
-      // TODO error handling
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'prime_fetch_stripe_session' });
+
+      // Dropping the poll on the first failure left "Waiting for confirmed
+      // payment" spinning for good. Retry a few times, backing off, before
+      // saying anything — a blip in one poll is not news.
+      stripeSessionFailures += 1;
+      if (stripeSessionFailures < STRIPE_SESSION_RETRIES) {
+        setTimeout(fetchStripeSession, 2000 * stripeSessionFailures);
+        return;
+      }
+      // Only the confirmation is lost here. Checkout happened on Stripe's side,
+      // so this must not read as a failed payment.
+      stripeStatus = {
+        ...stripeStatus,
+        loading: false,
+        error: 'Could not confirm your payment. If you completed checkout it will still activate — reload this page in a moment.',
+      };
     }
   }
 
@@ -186,11 +205,12 @@
 
   async function gotoUpdate() {
     onanalytics?.('prime_stripe_update', { plan: subscription.plan });
+    error = null;
     try {
       const resp = await Billing.getStripePortal(dongleId);
       window.location = resp.url;
     } catch (err) {
-      // TODO show error messages
+      error = 'Could not open the billing portal. Please try again.';
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_update' });
     }
@@ -330,7 +350,15 @@
     <div class="primeContainer" style="padding: 16px {containerPadding}px">
       <h2 class="typography title">comma prime</h2>
       {#if stripeStatus}
-        {#if stripeStatus.paid !== 'paid'}
+        {#if stripeStatus.error}
+          <div class="overviewBlockError">
+            <!-- icons/ErrorOutline -->
+            <svg viewBox="0 -960 960 960" fill="currentColor" width="1em" height="1em" style="font-size:24px" class="shrink-0" aria-hidden="true">
+              <path d="M480-280q14 0 24-9 9-10 9-24t-9-23q-10-10-24-10t-23 9q-10 10-10 24t9 23q10 10 24 10Zm-27-153h60v-253h-60v253Zm27 353q-82 0-155-31t-127-86q-55-55-86-128-32-73-32-155 0-83 32-156 31-73 86-127t127-85q73-32 156-32 82 0 155 32 73 31 127 85t86 127q31 73 31 156 0 82-31 155t-86 127q-54 55-127 86-73 32-156 32Zm1-60q141 0 240-99t99-241q0-142-99-241t-241-99q-141 0-240 99-100 99-100 241 0 141 100 241t241 99Zm-1-340Z" />
+            </svg>
+            <p class="typography body1">{stripeStatus.error}</p>
+          </div>
+        {:else if stripeStatus.paid !== 'paid'}
           <div class="overviewBlockLoading">
             {@render progress()}
             <p class="typography body1">Waiting for confirmed payment</p>

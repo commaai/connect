@@ -146,6 +146,7 @@
 
   async function gotoCheckout() {
     loadingCheckout = true;
+    error = null;
     try {
       const plan = selectedPlan;
       const simId = plan === 'data' ? info.sim_id : undefined;
@@ -153,7 +154,10 @@
       onanalytics?.('prime_checkout', { plan });
       window.location = resp.url;
     } catch (err) {
-      // TODO show error messages
+      // The success path navigates away, so it never clears this; the failure
+      // path has to, or the button spins behind a disabled state for good.
+      loadingCheckout = false;
+      error = 'Could not reach checkout. Please try again.';
       console.error(err);
       Sentry.captureException(err, { fingerprint: 'prime_goto_stripe_checkout' });
     }
