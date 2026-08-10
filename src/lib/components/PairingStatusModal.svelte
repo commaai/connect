@@ -103,7 +103,7 @@
         <p class="typography body1">{pairError}</p>
       {/if}
 
-      <button type="button" class="muiButton closeButton" onclick={closePair}>
+      <button type="button" class="button closeButton" onclick={closePair}>
         <span class="buttonLabel">Close</span>
       </button>
     </div>
@@ -184,7 +184,7 @@
     stroke-dashoffset: 0px;
   }
 
-  .muiButton {
+  .button {
     position: relative;
     display: inline-flex;
     align-items: center;

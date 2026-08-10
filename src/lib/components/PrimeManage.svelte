@@ -390,7 +390,7 @@
         <div class="overviewBlock paymentElement">
           <button
             type="button"
-            class="muiButton buttons"
+            class="button buttons"
             style={buttonSmallStyle}
             onclick={gotoUpdate}
             disabled={!hasPrimeSub || (hasCancelAt && !device.eligible_features?.prime_data && subscription.plan === 'data')}
@@ -400,7 +400,7 @@
           {#if !hasCancelAt}
             <button
               type="button"
-              class="muiButton buttons"
+              class="button buttons"
               style={buttonSmallStyle}
               onclick={openPlanSwitch}
               disabled={switchingPlan}
@@ -409,7 +409,7 @@
             </button>
             <button
               type="button"
-              class="muiButton buttons cancelButton primeCancel"
+              class="button buttons cancelButton primeCancel"
               style={buttonSmallStyle}
               onclick={() => { cancelModal = true; }}
               disabled={!hasPrimeSub}
@@ -469,7 +469,7 @@
               : 'Your plan no longer includes data and costs $14/month.'}
           </p>
           <div class="mt-4">
-            <button type="button" class="muiButton contained closeButton" onclick={resetPlanSwitch}>
+            <button type="button" class="button contained closeButton" onclick={resetPlanSwitch}>
               <span class="label">Done</span>
             </button>
           </div>
@@ -494,7 +494,7 @@
           <div class="mt-4">
             <button
               type="button"
-              class="muiButton contained cancelModalButton"
+              class="button contained cancelModalButton"
               onclick={switchPlan}
               disabled={switchingPlan}
             >
@@ -502,7 +502,7 @@
             </button>
             <button
               type="button"
-              class="muiButton contained closeButton"
+              class="button contained closeButton"
               onclick={resetPlanSwitch}
               disabled={switchingPlan}
             >
@@ -556,7 +556,7 @@
         {/if}
         <button
           type="button"
-          class="muiButton contained cancelModalButton primeModalCancel"
+          class="button contained cancelModalButton primeModalCancel"
           onclick={cancelPrime}
           disabled={Boolean(cancelSuccess || canceling)}
         >
@@ -564,7 +564,7 @@
         </button>
         <button
           type="button"
-          class="muiButton contained closeButton primeModalClose"
+          class="button contained closeButton primeModalClose"
           onclick={() => { cancelModal = false; }}
         >
           <span class="label">Close</span>
@@ -632,7 +632,7 @@
       0px 3px 1px -2px rgba(0, 0, 0, 0.12);
   }
 
-  .muiButton {
+  .button {
     position: relative;
     box-sizing: border-box;
     display: inline-flex;
@@ -666,18 +666,18 @@
       border 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
   }
 
-  .muiButton:hover {
+  .button:hover {
     text-decoration: none;
     background-color: rgba(255, 255, 255, 0.1);
   }
 
-  .muiButton:disabled {
+  .button:disabled {
     pointer-events: none;
     cursor: default;
     color: rgba(255, 255, 255, 0.3);
   }
 
-  .muiButton:disabled:hover {
+  .button:disabled:hover {
     background-color: transparent;
   }
 

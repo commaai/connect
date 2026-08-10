@@ -418,7 +418,7 @@
     {:else if file.url}
       <button
         type="button"
-        class="muiButton uploadButton"
+        class="button uploadButton"
         style="min-width: {uploadButtonWidth}px"
         onclick={() => downloadFile(file, type)}
       >
@@ -447,13 +447,13 @@
         {/if}
       </div>
     {:else if !canUpload}
-      <button type="button" class="muiButton uploadButton" style="min-width: {uploadButtonWidth}px" disabled>
+      <button type="button" class="button uploadButton" style="min-width: {uploadButtonWidth}px" disabled>
         <span class="label">download</span>
       </button>
     {:else}
       <button
         type="button"
-        class="muiButton uploadButton"
+        class="button uploadButton"
         style="min-width: {uploadButtonWidth}px"
         onclick={() => uploadFile(type)}
       >
@@ -470,7 +470,7 @@
   >
     {label}
     {#if files && canUpload && !disabled}
-      <button type="button" class="muiButton uploadButton" style="min-width: {uploadButtonWidth}px" {onclick}>
+      <button type="button" class="button uploadButton" style="min-width: {uploadButtonWidth}px" {onclick}>
         <span class="label">{buttonLabel}</span>
       </button>
     {/if}
@@ -921,7 +921,7 @@
     background-color: rgba(255, 255, 255, 0.12);
   }
 
-  .muiButton {
+  .button {
     position: relative;
     box-sizing: border-box;
     display: inline-flex;
@@ -955,7 +955,7 @@
       border 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
   }
 
-  .muiButton:disabled {
+  .button:disabled {
     pointer-events: none;
     cursor: default;
     color: rgba(255, 255, 255, 0.3);

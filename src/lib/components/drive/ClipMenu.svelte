@@ -556,7 +556,7 @@
                   <button
                     type="button"
                     aria-pressed={camera === value}
-                    class="muiButton segmentedButton"
+                    class="button segmentedButton"
                     disabled={cameraRanges !== null && !cameraCoversRange(cameraRanges, value, startTime, endTime)}
                     onclick={() => { camera = value; }}
                   >
@@ -575,7 +575,7 @@
                   <button
                     type="button"
                     aria-pressed={bitrate === value}
-                    class="muiButton segmentedButton"
+                    class="button segmentedButton"
                     onclick={() => { bitrate = value; }}
                   >
                     <span class="buttonLabel"><span>{label}<span class="qualityDetail">{detail}</span></span></span>
@@ -590,7 +590,7 @@
                   <button
                     type="button"
                     aria-pressed={speedup === value}
-                    class="muiButton segmentedButton"
+                    class="button segmentedButton"
                     onclick={() => { speedup = value; }}
                   >
                     <span class="buttonLabel">{`${value}×`}</span>
@@ -621,7 +621,7 @@
             {/if}
             <button
               type="button"
-              class="muiButton create"
+              class="button create"
               disabled={!deviceOnline || loading || creating || deviceBusy || invalidDuration || invalidFilename || cameraUnavailable || !route}
               onclick={createClip}
             >
@@ -722,10 +722,10 @@
         </p>
       </div>
       <div class="dialogActions deleteActions">
-        <button type="button" class="muiButton dialogAction" disabled={deleting} onclick={() => { deleteDialogOpen = false; }}>
+        <button type="button" class="button dialogAction" disabled={deleting} onclick={() => { deleteDialogOpen = false; }}>
           <span class="buttonLabel">Cancel</span>
         </button>
-        <button type="button" class="muiButton dialogAction deleteButton" disabled={deleting} onclick={confirmDelete}>
+        <button type="button" class="button dialogAction deleteButton" disabled={deleting} onclick={confirmDelete}>
           <span class="buttonLabel">
             {#if deleting}{@render circularProgress(18)}{:else}Delete{/if}
           </span>
@@ -885,7 +885,7 @@
     overflow: hidden;
   }
 
-  .muiButton {
+  .button {
     position: relative;
     box-sizing: border-box;
     display: inline-flex;
@@ -919,18 +919,18 @@
       border 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
   }
 
-  .muiButton:hover {
+  .button:hover {
     text-decoration: none;
     background-color: rgba(255, 255, 255, 0.1);
   }
 
-  .muiButton:disabled {
+  .button:disabled {
     pointer-events: none;
     cursor: default;
     color: rgba(255, 255, 255, 0.3);
   }
 
-  .muiButton:disabled:hover {
+  .button:disabled:hover {
     background-color: transparent;
   }
 

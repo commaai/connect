@@ -6,7 +6,7 @@
   import { lockBodyScroll } from '$lib/utils/scroll-lock';
   import CommacareBadge, { COMMACARE_URL } from './CommacareBadge.svelte';
   import UploadQueue from './drive/UploadQueue.svelte';
-  import MuiTextField from './MuiTextField.svelte';
+  import TextField from './TextField.svelte';
 
   let {
     isOpen,
@@ -238,8 +238,8 @@
           </div>
         {/if}
         <!-- styles.formRow -->
-        <div class="min-h-[75px]"><MuiTextField id="device_alias" label="Device name" class="max-w-[70%]" value={deviceAlias ?? ''} oninput={handleAliasChange} onenter={setDeviceAlias} />{#if showAliasSave}{@render fab(setDeviceAlias, hasSavedAlias ? CHECK_PATH : SAVE_PATH, loadingDeviceAlias, 'save device name')}{/if}</div>
-        <div class="min-h-[75px]"><MuiTextField id="device_share" label="Share by email or user id" class="max-w-[70%]" value={shareEmail} helperText="give another user read access to this device" oninput={handleEmailChange} onenter={shareDevice} />{#if shareEmail.length > 0 || hasShared}{@render fab(shareDevice, hasShared ? CHECK_PATH : SHARE_PATH, loadingDeviceShare, 'share device')}{/if}</div>
+        <div class="min-h-[75px]"><TextField id="device_alias" label="Device name" class="max-w-[70%]" value={deviceAlias ?? ''} oninput={handleAliasChange} onenter={setDeviceAlias} />{#if showAliasSave}{@render fab(setDeviceAlias, hasSavedAlias ? CHECK_PATH : SAVE_PATH, loadingDeviceAlias, 'save device name')}{/if}</div>
+        <div class="min-h-[75px]"><TextField id="device_share" label="Share by email or user id" class="max-w-[70%]" value={shareEmail} helperText="give another user read access to this device" oninput={handleEmailChange} onenter={shareDevice} />{#if shareEmail.length > 0 || hasShared}{@render fab(shareDevice, hasShared ? CHECK_PATH : SHARE_PATH, loadingDeviceShare, 'share device')}{/if}</div>
       </div>
 
       <!-- styles.buttonGroup -->
