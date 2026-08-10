@@ -1,0 +1,6 @@
+# `bun test` is Bun's own runner, not vitest, and it silently ignores
+# vitest.config.js. Rather than let it produce a screenful of module-resolution
+# failures that look like broken tests, the preload below stops it and points at
+# `bun run test`. Nothing here affects `bun install` or `bun run`.
+[test]
+preload = ["./config/bun-test-guard.js"]

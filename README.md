@@ -100,6 +100,26 @@ That checkout needs its own `node_modules`. `--states signin,dashboard` narrows 
 run to the screens you are working on, pulling in the page a modal state opens
 over. A change is clean when the report says `0 changed`.
 
+### Tests
+
+```sh
+bun run test               # vitest, once
+bun run test-watch         # re-run on change
+bun run test-coverage      # with a coverage report
+bun run lint               # oxlint over the .js, svelte-check over every component
+```
+
+Note the `run`. `bun test` is Bun's own runner rather than vitest, and it ignores
+`vitest.config.js` — no `$lib` or `$app/*` aliases, no svelte compiler, and none
+of `config/vitest/setup.js`, so everything touching a component fails to resolve
+and it reads like dozens of broken tests instead of the wrong command.
+`bunfig.toml` stops it and points back here.
+
+Components mount with `@testing-library/svelte` against jsdom. Video and teleop
+are deliberately not covered: mock mode serves an empty `qcamera.m3u8` and a stub
+SDP that negotiates and then times out, so there is nothing truthful to assert
+against until there is a real device and stream to test with.
+
 ## Contributing
 
 * Use best practices
