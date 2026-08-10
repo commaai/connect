@@ -1,10 +1,10 @@
 <script>
-  import dayjs from 'dayjs';
   import { goto } from '$app/navigation';
 
   import Timeline from '$lib/components/Timeline.svelte';
   import { playback } from '$lib/state/playback.svelte.js';
   import { filterRegularClick } from '$lib/utils';
+  import { formatDriveRange } from './drive-view-format.js';
   import Media from './Media.svelte';
 
   let {
@@ -41,13 +41,8 @@
   // so this only ever means "the whole route is selected".
   const backButtonDisabled = $derived(!zoom.previousZoom && currentRouteBoundsSelected);
 
-  // FIXME: end time not always same day as start time
   const start = $derived((route?.start_time_utc_millis ?? 0) + zoom.start);
-  const startDay = $derived(dayjs(start).format('dddd'));
-  const startTime = $derived(
-    dayjs(start).format(`MMM D${dayjs().year() === dayjs(start).year() ? '' : ', YYYY'} @ HH:mm`),
-  );
-  const endTime = $derived(dayjs(start + (zoom.end - zoom.start)).format('HH:mm'));
+  const range = $derived(formatDriveRange(start, start + (zoom.end - zoom.start)));
 
   /** actions/index.js updateTimeline: keep the loop inside the range, then sync the path. */
   function updateTimeline(logId, rangeStart, rangeEnd) {
@@ -121,7 +116,7 @@
           </span>
         </button>
         <div class="text-white text-lg font-medium">
-          <span class="hidden sm:inline">{`${startDay} `}</span>{`${startTime} - ${endTime}`}
+          <span class="hidden sm:inline">{`${range.day} `}</span>{`${range.start} - ${range.end}`}
         </div>
         <!-- IconButton with an href renders a ButtonBase <a> -->
         <a class="iconButton" aria-label="Close" href={`/${dongleId}`} onclick={close}>
