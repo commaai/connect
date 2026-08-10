@@ -1,5 +1,6 @@
 <script>
   import { untrack } from 'svelte';
+  import { clickOutside } from '$lib/attachments/click-outside';
 
   const QUALITY_OPTIONS = [
     { key: 'auto', label: 'auto' },
@@ -18,7 +19,6 @@
   // useState's initial value: a later `options` change must not reset the pick.
   let quality = $state(untrack(() => options[0]?.key));
 
-  let wrapperEl = $state(null);
   let mainEl = $state(null);
   let qualityEl = $state(null);
   let dims = $state(null);
@@ -38,16 +38,6 @@
     open = false;
     view = 'main';
   }
-
-  // hooks/useClickOutside: only listens while the popover is open.
-  $effect(() => {
-    if (!open) return;
-    const onDown = (e) => {
-      if (wrapperEl && !wrapperEl.contains(e.target)) closeMenu();
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  });
 
   function toggleOpen(e) {
     e.stopPropagation();
@@ -78,7 +68,7 @@
   </svg>
 {/snippet}
 
-<div bind:this={wrapperEl} class="relative" style="line-height: 1.5">
+<div class="relative" style="line-height: 1.5" {@attach open && clickOutside(closeMenu)}>
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div

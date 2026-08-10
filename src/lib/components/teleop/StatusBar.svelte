@@ -2,6 +2,7 @@
   import { untrack } from 'svelte';
 
   import SettingsMenu from './SettingsMenu.svelte';
+  import { clickOutside } from '$lib/attachments/click-outside';
 
   const LATENCY_BUFFER_SIZE = 10;
   const LATENCY_HISTORY_MAX = 60;
@@ -56,7 +57,6 @@
   let latency = $state(INITIAL_LATENCY);
   let latencyHistory = $state([INITIAL_LATENCY]);
   let connectionQuality = $state('good');
-  let statsWrapper = $state(null);
   let latencyCanvas = $state(null);
 
   let latencyBuffer = [];
@@ -216,16 +216,6 @@
     showStats = false;
   }
 
-  // useClickOutside: the listener is only attached while the panel is open.
-  $effect(() => {
-    if (!showStats) return undefined;
-    const onDown = (e) => {
-      if (statsWrapper && !statsWrapper.contains(e.target)) closeStats();
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  });
-
   function drawLatencyGraph(canvas, history) {
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
@@ -316,7 +306,7 @@
       <span class="text-base text-white/70 w-9">{battery.level}%</span>
     </div>
   {/if}
-  <div bind:this={statsWrapper}>
+  <div {@attach showStats && clickOutside(closeStats)}>
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
