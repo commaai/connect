@@ -12,6 +12,7 @@
     withDeviceStatus,
   } from '$lib/state/files.svelte.js';
   import { deviceIsOnline, deviceOnCellular, deviceVersionAtLeast } from '$lib/utils';
+  import { lockBodyScroll } from '$lib/utils/scroll-lock';
 
   let {
     open = false,
@@ -101,36 +102,9 @@
   // true for an empty queue -- which hasUploading already rules out.
   const allPaused = $derived(uploadSorted.every((upload) => upload.paused));
 
-  function scrollbarSize() {
-    const div = document.createElement('div');
-    div.style.cssText = 'position:absolute;top:-9999px;width:50px;height:50px;overflow:scroll';
-    document.body.appendChild(div);
-    const size = div.offsetWidth - div.clientWidth;
-    div.remove();
-    return size;
-  }
-
-  /**
-   * MUI's ModalManager blocks scroll for the first modal only, so this stays a no-op
-   * when the queue opens on top of the device settings modal.
-   */
   $effect(() => {
     if (!open) return;
-
-    const { body } = document;
-    if (body.style.overflow === 'hidden') return;
-
-    const prevPaddingRight = body.style.paddingRight;
-    if (body.clientWidth < window.innerWidth) {
-      const padding = parseInt(window.getComputedStyle(body).paddingRight, 10) || 0;
-      body.style.paddingRight = `${padding + scrollbarSize()}px`;
-    }
-    body.style.overflow = 'hidden';
-
-    return () => {
-      body.style.overflow = '';
-      body.style.paddingRight = prevPaddingRight;
-    };
+    return lockBodyScroll();
   });
 
   // styles.modal, on a MUI Paper whose background the theme overrides to #30373B.

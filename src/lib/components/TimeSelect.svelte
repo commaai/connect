@@ -1,5 +1,6 @@
 <script>
   import dayjs from 'dayjs';
+  import { lockBodyScroll } from '$lib/utils/scroll-lock';
 
   let { isOpen, onclose, filter, onselect } = $props();
 
@@ -38,35 +39,9 @@
     onclose();
   }
 
-  function scrollbarSize() {
-    const div = document.createElement('div');
-    div.style.cssText = 'position:absolute;top:-9999px;width:50px;height:50px;overflow:scroll';
-    document.body.appendChild(div);
-    const size = div.offsetWidth - div.clientWidth;
-    div.remove();
-    return size;
-  }
-
-  /**
-   * MUI's Modal locks the body while it is open and pads it by the scrollbar
-   * width, so the page behind does not jump when the scrollbar disappears.
-   */
   $effect(() => {
     if (!isOpen) return;
-
-    const { body } = document;
-    const prevOverflow = body.style.overflow;
-    const prevPaddingRight = body.style.paddingRight;
-    if (body.clientWidth < window.innerWidth) {
-      const padding = parseInt(window.getComputedStyle(body).paddingRight, 10) || 0;
-      body.style.paddingRight = `${padding + scrollbarSize()}px`;
-    }
-    body.style.overflow = 'hidden';
-
-    return () => {
-      body.style.overflow = prevOverflow;
-      body.style.paddingRight = prevPaddingRight;
-    };
+    return lockBodyScroll();
   });
 
   // MUI Button variant="contained": theme.shadows[2].
