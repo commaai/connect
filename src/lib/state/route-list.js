@@ -66,6 +66,8 @@ export function normalizeRoutes(routesData) {
       duration: endTime - startTime,
       start_time_utc_millis: startTime,
       end_time_utc_millis: endTime,
+      // TODO: get this from the API, this isn't correct for segments with a time jump
+      segment_durations: r.segment_start_times.map((x, i) => r.segment_end_times[i] - x),
     };
   }).sort((a, b) => b.create_time - a.create_time);
 }

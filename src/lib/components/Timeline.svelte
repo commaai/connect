@@ -65,7 +65,8 @@
         if (background) {
           style += `; background: ${background}`;
         }
-        if (event.type === 'bookmark') {
+        // TODO: remove flag once 14 days expires old events caches
+        if (event.type === 'bookmark' || event.type === 'flag') {
           style += '; z-index: 1';
         }
         return style;
@@ -78,10 +79,8 @@
         return ENGAGED_GREEN;
       case 'overriding':
         return ENGAGED_GREY;
-      // parseEvents normalises both user_bookmark and user_flag to 'bookmark',
-      // and has since 2025-08-11; a 'flag' could only reach here from an events
-      // cache written before that, which CACHE_TTL expired fourteen days later.
       case 'bookmark':
+      case 'flag':
         return USER_BOOKMARK;
       case 'alert': {
         const status = event.data.alertStatus ? AlertStatusCodes[event.data.alertStatus] : '';
