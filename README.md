@@ -148,5 +148,3 @@ The pieces below are worth knowing because they affect everything else.
 
 The only global mutable state left is playback (`src/lib/state/playback.svelte.js`), a rune class over the
 same wall-clock arithmetic the old reducer used: the offset is derived from `Date.now()` rather than ticked.
-
-`MIGRATION-REPORT.txt` has the measured before/after numbers from the React rewrite.
