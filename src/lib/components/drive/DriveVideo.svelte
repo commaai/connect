@@ -175,13 +175,13 @@
       return;
     }
 
-    if (e.target?.src?.startsWith(window.location.origin) && e.target.src.endsWith('undefined')) {
-      // TODO: figure out why the src isn't set properly
-      // Sometimes an error will be thrown because we try to play
-      // src: "https://connect.comma.ai/.../undefined"
-      console.warn('Video error with undefined src, ignoring', { e, data });
-      return;
-    }
+    // React ignored an error whose src was on the app's own origin and ended in
+    // "undefined". That was react-player assigning the url to the `src` IDL
+    // property: an undefined one stringifies to "undefined", which the browser
+    // reads as a relative URL, resolves against the page, and fails to fetch.
+    // This renders the url as an attribute instead, where undefined removes it,
+    // and renders no <video> at all without a route — so neither half of that
+    // condition can hold. DriveVideo.svelte.test.js pins both.
 
     playback.bufferVideo(true);
 
@@ -321,21 +321,21 @@
       newPlaybackRate = 0; // in some circumstances, iOS won't update readyState unless temporarily paused
     }
 
-    if (hls) {
-      if (!videoEl.paused && newPlaybackRate === 0) {
-        videoEl.pause();
-      } else if (videoEl.playbackRate !== newPlaybackRate && newPlaybackRate !== 0) {
-        videoEl.playbackRate = newPlaybackRate;
-      }
-      if (videoEl.paused && newPlaybackRate !== 0) {
-        const playRes = videoEl.play();
-        if (playRes) {
-          playRes.catch(() => console.debug('[DriveVideo] play interrupted by pause'));
-        }
-      }
-    } else {
-      // TODO: fix iOS bug where video doesn't stop buffering while paused
+    // The native branch used to set only the playback rate, which is why a paused
+    // video on iOS never stopped buffering: rate 0 freezes the frame but leaves
+    // the element playing, so it keeps pulling down the stream. Pausing is what
+    // stops the fetch. Both branches drive play/pause the same way now — the same
+    // way the hls one always did — and only iOS ever reached the other one.
+    if (!videoEl.paused && newPlaybackRate === 0) {
+      videoEl.pause();
+    } else if (videoEl.playbackRate !== newPlaybackRate && newPlaybackRate !== 0) {
       videoEl.playbackRate = newPlaybackRate;
+    }
+    if (videoEl.paused && newPlaybackRate !== 0) {
+      const playRes = videoEl.play();
+      if (playRes) {
+        playRes.catch(() => console.debug('[DriveVideo] play interrupted by pause'));
+      }
     }
   }
 
