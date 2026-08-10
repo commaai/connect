@@ -35,4 +35,8 @@ vi.mock('mapbox-gl/dist/mapbox-gl', () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  // clearAllMocks only forgets the calls, so a spy's mockReturnValue outlives
+  // the test that set it — a component reading navigator.userAgent then sees
+  // the previous test's browser. Spies have to be put back too.
+  vi.restoreAllMocks();
 });
